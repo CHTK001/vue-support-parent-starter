@@ -148,6 +148,7 @@
               >
                 <IconifyIconOnline icon="ri:play-line" class="mr-1" />
                 启动
+              </el-button>
               <el-button 
                 size="small" 
                 @click="viewImageDetail(row)"
@@ -207,11 +208,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { imageApi, getServerList, type SystemSoftImage } from '@/api/docker-management'
+import { getServerList, imageApi, type SystemSoftImage } from '@/api/docker-management'
 import PullImageDialog from '@/components/docker/PullImageDialog.vue'
 import StartContainerDialog from '@/components/docker/StartContainerDialog.vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { onMounted, reactive, ref } from 'vue'
 
 // 响应式数据
 const loading = ref(false)
@@ -481,6 +482,23 @@ onMounted(() => {
   color: #909399;
 }
 
+.image-full-name {
+  font-family: monospace;
+  font-size: 12px;
+  color: #606266;
+}
+
+.server-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.server-name {
+  font-weight: 500;
+  color: #303133;
+}
+
 .action-buttons {
   display: flex;
   gap: 8px;
@@ -513,56 +531,4 @@ onMounted(() => {
   color: #409eff;
   font-weight: 500;
 }
-</style>-line" class="mr-1" />
-                详情
-              </el-button>
-              <el-button 
-                size="small" 
-                type="danger" 
-                @click="handleDelete(row.systemSoftImageId)"
-              >
-                <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-                删除
-              </el-button>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
-      
-      <!-- 分页 -->
-      <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.pageSize"
-          :total="pagination.total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
-    </el-card>
-
-    <!-- 拉取镜像对话框 -->
-    <PullImageDialog
-      v-model:visible="pullDialogVisible"
-      @success="handleDialogSuccess"
-    />
-
-    <!-- 启动容器对话框 -->
-    <StartContainerDialog
-      v-model:visible="startDialogVisible"
-      :image-data="currentImage"
-      @success="handleDialogSuccess"
-    />
-
-    <!-- 批量操作底部工具栏 -->
-    <div v-if="selectedIds.length > 0" class="batch-actions">
-      <div class="batch-info">
-        已选择 {{ selectedIds.length }} 个镜像
-      </div>
-      <el-button @click="clearSelection">取消选择</el-button>
-      <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
-    </div>
-  </div>
-</template>
+</style>

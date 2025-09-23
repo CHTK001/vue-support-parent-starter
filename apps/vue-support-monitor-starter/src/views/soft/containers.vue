@@ -149,22 +149,22 @@
               <div class="usage-item">
                 <span class="usage-label">CPU:</span>
                 <el-progress 
-                  :percentage="row.systemSoftContainerCpuUsage || 0" 
+                  :percentage="row.systemSoftContainerCpuPercent || row.systemSoftContainerCpuUsage || 0" 
                   :show-text="false" 
                   :stroke-width="4"
                   style="width: 60px"
                 />
-                <span class="usage-value">{{ (row.systemSoftContainerCpuUsage || 0).toFixed(1) }}%</span>
+                <span class="usage-value">{{ (row.systemSoftContainerCpuPercent || row.systemSoftContainerCpuUsage || 0).toFixed(1) }}%</span>
               </div>
               <div class="usage-item">
                 <span class="usage-label">内存:</span>
                 <el-progress 
-                  :percentage="row.systemSoftContainerMemoryUsage || 0" 
+                  :percentage="row.systemSoftContainerMemoryPercent || row.systemSoftContainerMemoryUsage || 0" 
                   :show-text="false" 
                   :stroke-width="4"
                   style="width: 60px"
                 />
-                <span class="usage-value">{{ (row.systemSoftContainerMemoryUsage || 0).toFixed(1) }}%</span>
+                <span class="usage-value">{{ (row.systemSoftContainerMemoryPercent || row.systemSoftContainerMemoryUsage || 0).toFixed(1) }}%</span>
               </div>
             </div>
           </template>
@@ -267,11 +267,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import { containerApi, getServerList, type SystemSoftContainer } from '@/api/docker-management'
 import ContainerDetailDialog from '@/components/docker/ContainerDetailDialog.vue'
 import ContainerLogsDialog from '@/components/docker/ContainerLogsDialog.vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { onMounted, reactive, ref } from 'vue'
 
 // 响应式数据
 const loading = ref(false)
@@ -356,7 +356,7 @@ const handleStart = async (container: SystemSoftContainer) => {
       ElMessage.success('容器启动成功')
       loadContainers()
     } else {
-      ElMessage.error(response.message || '容器启动失败')
+      ElMessage.error(response.msg || '容器启动失败')
     }
   } catch (error) {
     ElMessage.error('容器启动失败')
@@ -374,7 +374,7 @@ const handleStop = async (container: SystemSoftContainer) => {
       ElMessage.success('容器停止成功')
       loadContainers()
     } else {
-      ElMessage.error(response.message || '容器停止失败')
+      ElMessage.error(response.msg || '容器停止失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -409,7 +409,7 @@ const handleRestart = async (container: SystemSoftContainer) => {
       ElMessage.success('容器重启成功')
       loadContainers()
     } else {
-      ElMessage.error(response.message || '容器重启失败')
+      ElMessage.error(response.msg || '容器重启失败')
     }
   } catch (error) {
     ElMessage.error('容器重启失败')
@@ -427,7 +427,7 @@ const handleDelete = async (container: SystemSoftContainer) => {
       ElMessage.success('容器删除成功')
       loadContainers()
     } else {
-      ElMessage.error(response.message || '容器删除失败')
+      ElMessage.error(response.msg || '容器删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -444,7 +444,7 @@ const handleSyncStatus = async () => {
       ElMessage.success('容器状态同步成功')
       loadContainers()
     } else {
-      ElMessage.error(response.message || '同步失败')
+      ElMessage.error(response.msg || '同步失败')
     }
   } catch (error) {
     ElMessage.error('同步容器状态失败')
@@ -461,13 +461,17 @@ const handleBatchStart = async () => {
   }
   
   try {
-    const response = await containerApi.batchStartContainers(selectedIds.value)
+    // 使用现有的批量操作API
+    const response = await containerApi.batchOperateContainers({
+      containerIds: selectedIds.value,
+      operation: 'start'
+    })
     if (response.code === '00000') {
       ElMessage.success('批量启动成功')
       selectedIds.value = []
       loadContainers()
     } else {
-      ElMessage.error(response.message || '批量启动失败')
+      ElMessage.error(response.msg || '批量启动失败')
     }
   } catch (error) {
     ElMessage.error('批量启动容器失败')
@@ -485,13 +489,17 @@ const handleBatchStop = async () => {
       type: 'warning'
     })
     
-    const response = await containerApi.batchStopContainers(selectedIds.value)
+    // 使用现有的批量操作API
+    const response = await containerApi.batchOperateContainers({
+      containerIds: selectedIds.value,
+      operation: 'stop'
+    })
     if (response.code === '00000') {
       ElMessage.success('批量停止成功')
       selectedIds.value = []
       loadContainers()
     } else {
-      ElMessage.error(response.message || '批量停止失败')
+      ElMessage.error(response.msg || '批量停止失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -511,13 +519,17 @@ const handleBatchDelete = async () => {
       type: 'error'
     })
     
-    const response = await containerApi.batchDeleteContainers(selectedIds.value)
+    // 使用现有的批量操作API
+    const response = await containerApi.batchOperateContainers({
+      containerIds: selectedIds.value,
+      operation: 'remove'
+    })
     if (response.code === '00000') {
       ElMessage.success('批量删除成功')
       selectedIds.value = []
       loadContainers()
     } else {
-      ElMessage.error(response.message || '批量删除失败')
+      ElMessage.error(response.msg || '批量删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -548,16 +560,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
-<<<<<<< HEAD
 .container-management {
   padding: 20px;
-  background: #f5f7fa;
-=======
-/* 基础样式与records.vue类似，这里只列出容器管理特有的样式 */
-.containers-page {
-  padding: 16px;
   background: var(--el-bg-color-overlay);
->>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
   min-height: calc(100vh - 60px);
 }
 
@@ -577,11 +582,7 @@ onMounted(() => {
   align-items: center;
   font-size: 24px;
   font-weight: 600;
-<<<<<<< HEAD
-  color: #2c3e50;
-=======
   color: var(--el-text-color-primary);
->>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
 }
 
 .title-icon {
@@ -590,13 +591,9 @@ onMounted(() => {
 }
 
 .page-subtitle {
-  color: #6c757d;
+  color: var(--el-text-color-primary);
   margin-top: 8px;
   font-size: 14px;
-<<<<<<< HEAD
-=======
-   color: var(--el-text-color-primary);
->>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
 }
 
 .header-right {
@@ -758,8 +755,6 @@ onMounted(() => {
   color: #409eff;
   font-weight: 500;
 }
-</style>
-
 
 .search-input {
   width: 280px;
@@ -839,7 +834,7 @@ onMounted(() => {
 
 .stat-label {
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 /* 容器表格特有样式 */
@@ -856,7 +851,7 @@ onMounted(() => {
 
 .container-id {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   font-family: "Courier New", monospace;
 }
 
@@ -873,7 +868,7 @@ onMounted(() => {
 
 .server-host {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .ports-list {
@@ -1003,7 +998,7 @@ onMounted(() => {
 
 .stat-label {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .stat-value {
@@ -1037,7 +1032,7 @@ onMounted(() => {
 
 .log-lines-label {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .logs-actions {
@@ -1070,7 +1065,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   font-size: 14px;
   gap: 8px;
 }
@@ -1146,7 +1141,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   font-size: 14px;
   gap: 8px;
 }

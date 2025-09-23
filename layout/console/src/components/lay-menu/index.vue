@@ -278,20 +278,20 @@ defineExpose({ triggerClose, triggerOpen });
 
               &:hover .icon {
                 transform: scale(1.15) rotate(5deg);
-                color: var(--cb-color-text-brand);
+                color: var(  --cb-color-text-white);
               }
             }
 
             .menu.active,
             .menu.active-menu {
-              color: var(--cb-color-text-brand);
+              color: var(  --cb-color-text-white);
               background-color: var(--cb-color-bg-active-brand);
               font-weight: 500;
               transform: translateX(3px);
               box-shadow: 0 4px 12px var(--cb-color-shadow-brand-light);
 
               .icon {
-                color: var(--cb-color-text-brand);
+                color: var(  --cb-color-text-white);
                 background-color: var(--cb-color-bg-brand-light);
               }
 
@@ -358,7 +358,7 @@ defineExpose({ triggerClose, triggerOpen });
 
             &:hover .icon {
               transform: scale(1.15) rotate(5deg);
-              color: var(--cb-color-text-brand);
+              color: var(  --cb-color-text-white);
             }
 
             .text {
@@ -385,7 +385,7 @@ defineExpose({ triggerClose, triggerOpen });
 
               .rotate-icon {
                 transform: rotate(180deg);
-                color: var(--cb-color-text-brand);
+                color: var(  --cb-color-text-white);
               }
             }
           }

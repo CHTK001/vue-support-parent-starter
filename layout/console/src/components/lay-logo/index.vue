@@ -46,7 +46,7 @@ const { title, getLogo } = useNav();
       font-size: 18px;
       font-weight: 600;
       line-height: 32px;
-      color: var(--cb-color-text-brand);
+      color: var(--cb-color-text-white);
       text-overflow: ellipsis;
       white-space: nowrap;
     }

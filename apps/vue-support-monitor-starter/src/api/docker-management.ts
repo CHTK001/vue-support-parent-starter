@@ -71,6 +71,7 @@ export interface SystemSoftContainer {
   systemSoftContainerDockerId?: string;
   systemSoftContainerName?: string;
   systemSoftContainerImage?: string;
+  systemSoftContainerImageName?: string;
   systemSoftContainerImageTag?: string;
   systemSoftContainerStatus?: string;
   systemSoftContainerHealthStatus?: string;
@@ -85,6 +86,10 @@ export interface SystemSoftContainer {
   systemSoftContainerRestartPolicy?: string;
   systemSoftContainerCpuLimit?: string;
   systemSoftContainerMemoryLimit?: string;
+  systemSoftContainerCpuPercent?: number;
+  systemSoftContainerMemoryPercent?: number;
+  systemSoftContainerCpuUsage?: number;
+  systemSoftContainerMemoryUsage?: number;
   systemSoftContainerCreatedTime?: string;
   systemSoftContainerStartedTime?: string;
   systemSoftContainerFinishedTime?: string;
@@ -93,6 +98,7 @@ export interface SystemSoftContainer {
   systemSoftContainerLogPath?: string;
   systemSoftContainerConfigHash?: string;
   systemSoftContainerRemark?: string;
+  systemSoftContainerServerName?: string;
   createTime?: string;
   updateTime?: string;
 }
@@ -120,10 +126,29 @@ export interface ContainerStats {
   diskRead?: number;
   diskWrite?: number;
   timestamp?: string;
+  
+  // 新增字段以匹配后端SystemSoftContainerStats实体类
+  cpuPercent?: number;
+  memoryPercent?: number;
+  networkRxBytes?: number;
+  networkTxBytes?: number;
+  containerId?: number;
+  imageId?: number;
 }
 
-// 容器状态统计
-export interface ContainerStatusStats {
+// 容器统计信息历史数据
+export interface ContainerStatsHistory {
+  timestamps: string[];
+  cpuUsage: number[];
+  memoryUsage: number[];
+  diskRead: number[];
+  diskWrite: number[];
+  networkRx: number[];
+  networkTx: number[];
+}
+
+// 容器状态统计（修复命名冲突）
+export interface ContainerStatusStatistics {
   total?: number;
   running?: number;
   stopped?: number;
@@ -453,9 +478,14 @@ export function getContainerStats(id: number) {
   return http.request<ReturnResult<ContainerStats>>("get", `v1/system/soft/container/${id}/stats`);
 }
 
-// 获取容器状态统计
-export function getContainerStatusStats(serverId?: number) {
-  return http.request<ReturnResult<ContainerStatusStats>>("get", "v1/system/soft/container/stats", { params: { serverId } });
+// 获取容器统计信息历史数据
+export function getContainerStatsHistory(containerId: number, hours: number = 1) {
+  return http.request<ReturnResult<ContainerStatsHistory>>("get", `v1/system/soft/container/${containerId}/stats/history`, { params: { hours } });
+}
+
+// 获取容器状态统计（修复命名冲突）
+export function getContainerStatusStatistics() {
+  return http.request<ReturnResult<ContainerStatusStatistics>>("get", "v1/system/soft/container/stats");
 }
 
 // 获取运行中的容器列表
@@ -562,7 +592,8 @@ export const containerApi = {
   updateContainer,
   getContainerLogs,
   getContainerStats,
-  getContainerStatusStats,
+  getContainerStatsHistory,
+  getContainerStatusStats: getContainerStatusStatistics, // 重命名以避免冲突
   getRunningContainers,
   getAbnormalContainers,
   batchOperateContainers,

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import type { SysHoliday } from "../api/holiday";
-import { Solar, Lunar, Holiday } from "lunisolar";
+// @ts-ignore
+import lunisolar from "lunisolar";
 
 /**
  * 节假日日历组件
@@ -77,22 +78,44 @@ const getHolidayInfo = (date: Date) => {
  */
 const getLunarInfo = (date: Date) => {
   try {
-    const solar = Solar.fromDate(date);
-    const lunar = solar.getLunar();
-    const ganzhi = lunar.getGanZhiYear() + lunar.getGanZhiMonth() + lunar.getGanZhiDay();
+    const ls = lunisolar(date);
+    const lunar = ls.lunar;
     
     // 获取节气
-    const jq = solar.getJieQi();
+    const solarTerm = ls.solarTerm ? ls.solarTerm.toString() : null;
     
-    // 获取传统节日
-    const festival = lunar.getDayPei() === "初一" ? lunar.getMonthInChinese() + "月" : "";
+    // 获取农历日期
+    const lunarDate = lunar.getDayName();
     
+    // 获取月份信息
+    const month = lunar.getMonthName();
+    
+    // 如果是初一，显示月份
+    if (lunarDate === "初一") {
+      return {
+        text: month,
+        isMonthFirst: true,
+        isSolarTerm: false,
+        solarTerm: solarTerm
+      };
+    }
+    
+    // 如果是节气日，显示节气
+    if (solarTerm) {
+      return {
+        text: solarTerm,
+        isMonthFirst: false,
+        isSolarTerm: true,
+        solarTerm: solarTerm
+      };
+    }
+    
+    // 普通农历日期
     return {
-      ganzhi,
-      lunarDate: lunar.getDayInChinese(),
-      month: lunar.getMonthInChinese(),
-      jq,
-      festival
+      text: lunarDate,
+      isMonthFirst: false,
+      isSolarTerm: false,
+      solarTerm: solarTerm
     };
   } catch (error) {
     console.error("获取农历信息失败:", error);
@@ -135,19 +158,7 @@ const getHolidayText = (holiday: SysHoliday | null) => {
  */
 const getLunarText = (lunarInfo: any) => {
   if (!lunarInfo) return "";
-  
-  // 如果是节气，显示节气
-  if (lunarInfo.jq) {
-    return lunarInfo.jq;
-  }
-  
-  // 如果是初一，显示月份
-  if (lunarInfo.lunarDate === "初一") {
-    return lunarInfo.month + "月";
-  }
-  
-  // 显示农历日期
-  return lunarInfo.lunarDate;
+  return lunarInfo.text;
 };
 
 /**
@@ -183,7 +194,13 @@ defineExpose({
           </div>
 
           <!-- 农历信息 -->
-          <div class="lunar-info">
+          <div 
+            class="lunar-info"
+            :class="{
+              'is-solar-term': customDateCell(data.date).lunarInfo?.isSolarTerm,
+              'is-month-first': customDateCell(data.date).lunarInfo?.isMonthFirst
+            }"
+          >
             {{ getLunarText(customDateCell(data.date).lunarInfo) }}
           </div>
 
@@ -215,7 +232,11 @@ defineExpose({
         </div>
         <div class="legend-item">
           <div class="legend-color lunar"></div>
-          <span>农历/节气</span>
+          <span>农历日期</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color solar-term"></div>
+          <span>节气</span>
         </div>
       </div>
     </div>
@@ -224,7 +245,7 @@ defineExpose({
 
 <style scoped lang="scss">
 .holiday-calendar {
-  background: var(--el-bg-color-overlay);
+  background: var(--el-bg-color);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -251,7 +272,7 @@ defineExpose({
               .holiday-info {
                 .holiday-name {
                   background: var(--el-color-danger);
-                  color: var(--el-text-color-primary);
+                  color: white;
                 }
               }
             }
@@ -263,7 +284,7 @@ defineExpose({
               .holiday-info {
                 .holiday-name {
                   background: var(--el-color-warning);
-                  color: var(--el-text-color-primary);
+                  color: white;
                 }
               }
             }
@@ -280,6 +301,16 @@ defineExpose({
               color: var(--el-text-color-secondary);
               margin-bottom: 2px;
               height: 14px;
+              
+              &.is-solar-term {
+                color: var(--el-color-success);
+                font-weight: 500;
+              }
+              
+              &.is-month-first {
+                color: var(--el-color-primary);
+                font-weight: 500;
+              }
             }
 
             .holiday-info {
@@ -352,6 +383,11 @@ defineExpose({
           &.lunar {
             background: var(--el-color-success-light-9);
             border-color: var(--el-color-success-light-5);
+          }
+          
+          &.solar-term {
+            background: var(--el-color-success);
+            border-color: var(--el-color-success);
           }
         }
       }
