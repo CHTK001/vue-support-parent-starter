@@ -143,6 +143,17 @@ export default [
               showParent: true,
             },
           },
+          {
+            path: "/soft/monitoring",
+            name: "softMonitoring",
+            component: () => import("@/views/soft/monitoring.vue"),
+            meta: {
+              icon: "ri:dashboard-line",
+              title: "容器监控",
+              showLink: true,
+              showParent: true,
+            },
+          },
         ],
       },
     ],

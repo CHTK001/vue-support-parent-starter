@@ -3,9 +3,12 @@
 @use "transition";
 @use "element-plus";
 @use "sidebar";
-@use "default";
-@use "dark";
 @use "el-ui";
+// 导入颜色系统
+@use "../../colors/index";
+// 导入Element Plus主题覆盖
+@use "../../element-plus/theme-override";
+
 // sass 混合宏（函数）
 /* 自定义全局 CssVar */
 :root {

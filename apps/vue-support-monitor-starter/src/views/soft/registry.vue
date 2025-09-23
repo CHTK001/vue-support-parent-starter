@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <div class="registry-management">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -24,36 +24,18 @@
     <!-- 搜索栏 -->
     <div class="search-bar">
       <div class="search-left">
-        <el-input
-          v-model="searchParams.keyword"
-          placeholder="搜索仓库名称或地址"
-          class="search-input"
-          clearable
-          @keyup.enter="handleSearch"
-        >
+        <el-input v-model="searchParams.keyword" placeholder="搜索仓库名称或地址" class="search-input" clearable @keyup.enter="handleSearch">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select
-          v-model="searchParams.status"
-          placeholder="状态"
-          clearable
-          class="filter-select"
-          @change="handleSearch"
-        >
+        <el-select v-model="searchParams.status" placeholder="状态" clearable class="filter-select" @change="handleSearch">
           <el-option label="全部" value="" />
           <el-option label="正常" value="active" />
           <el-option label="离线" value="offline" />
           <el-option label="错误" value="error" />
         </el-select>
-        <el-select
-          v-model="searchParams.type"
-          placeholder="仓库类型"
-          clearable
-          class="filter-select"
-          @change="handleSearch"
-        >
+        <el-select v-model="searchParams.type" placeholder="仓库类型" clearable class="filter-select" @change="handleSearch">
           <el-option label="全部" value="" />
           <el-option label="Docker Hub" value="docker_hub" />
           <el-option label="阿里云" value="aliyun" />
@@ -75,23 +57,13 @@
 
     <!-- 仓库表格 -->
     <el-card class="registry-table-card">
-      <el-table
-        :data="registryList"
-        stripe
-        v-loading="loading"
-        @selection-change="handleSelectionChange"
-        class="registry-table"
-      >
+      <el-table :data="registryList" stripe v-loading="loading" @selection-change="handleSelectionChange" class="registry-table">
         <el-table-column type="selection" width="55" />
-        
+
         <el-table-column label="仓库名称" min-width="200">
           <template #default="{ row }">
             <div class="registry-name">
-              <IconifyIconOnline 
-                :icon="getRegistryIcon(row.type)" 
-                class="registry-icon" 
-                :style="{ color: getRegistryIconColor(row.type) }"
-              />
+              <IconifyIconOnline :icon="getRegistryIcon(row.type)" class="registry-icon" :style="{ color: getRegistryIconColor(row.type) }" />
               <div>
                 <div class="name-text">{{ row.name }}</div>
                 <el-tag :type="getRegistryTypeTag(row.type)" size="small">
@@ -149,11 +121,8 @@
               <div v-if="row.lastSyncTime">{{ formatTime(row.lastSyncTime) }}</div>
               <div v-else class="text-gray">从未同步</div>
               <div v-if="row.lastSyncStatus" class="sync-status">
-                <el-tag 
-                  :type="row.lastSyncStatus === 'success' ? 'success' : 'danger'" 
-                  size="mini"
-                >
-                  {{ row.lastSyncStatus === 'success' ? '成功' : '失败' }}
+                <el-tag :type="row.lastSyncStatus === 'success' ? 'success' : 'danger'" size="small">
+                  {{ row.lastSyncStatus === "success" ? "成功" : "失败" }}
                 </el-tag>
               </div>
             </div>
@@ -169,20 +138,11 @@
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-button 
-                size="small" 
-                type="success" 
-                @click="handleSync(row.id)"
-                :loading="syncLoadingMap[row.id]"
-              >
+              <el-button size="small" type="success" @click="handleSync(row.id)" :loading="syncLoadingMap[row.id]">
                 <IconifyIconOnline icon="ri:refresh-2-line" class="mr-1" />
                 同步
               </el-button>
-              <el-button 
-                size="small" 
-                type="info" 
-                @click="testConnection(row)"
-              >
+              <el-button size="small" type="info" @click="testConnection(row)">
                 <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
                 测试
               </el-button>
@@ -190,11 +150,7 @@
                 <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
                 编辑
               </el-button>
-              <el-button 
-                size="small" 
-                type="danger" 
-                @click="handleDelete(row.id)"
-              >
+              <el-button size="small" type="danger" @click="handleDelete(row.id)">
                 <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
                 删除
               </el-button>
@@ -202,39 +158,22 @@
           </template>
         </el-table-column>
       </el-table>
-      
+
       <!-- 分页 -->
       <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.pageSize"
-          :total="pagination.total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
+        <el-pagination v-model:current-page="pagination.page" v-model:page-size="pagination.pageSize" :total="pagination.total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next, jumper" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
       </div>
     </el-card>
 
     <!-- 仓库编辑对话框 -->
-    <RegistryDialog
-      v-model:visible="dialogVisible"
-      :registry-data="currentRegistry"
-      @success="handleDialogSuccess"
-    />
+    <RegistryDialog v-model:visible="dialogVisible" :registry-data="currentRegistry" @success="handleDialogSuccess" />
 
     <!-- 同步进度对话框 -->
-    <SyncProgressDialog
-      v-model:visible="syncProgressVisible"
-      :sync-data="syncProgressData"
-    />
+    <SyncProgressDialog v-model:visible="syncProgressVisible" :progress="syncProgressData" />
 
     <!-- 批量操作底部工具栏 -->
     <div v-if="selectedIds.length > 0" class="batch-actions">
-      <div class="batch-info">
-        已选择 {{ selectedIds.length }} 个仓库
-      </div>
+      <div class="batch-info">已选择 {{ selectedIds.length }} 个仓库</div>
       <el-button @click="clearSelection">取消选择</el-button>
       <el-button type="success" @click="handleBatchSync">批量同步</el-button>
       <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
@@ -242,12 +181,12 @@
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { registryApi, type SystemSoftRegistry } from '@/api/docker-management'
-import RegistryDialog from './components/RegistryDialog.vue'
-import SyncProgressDialog from './components/SyncProgressDialog.vue'
+<script setup lang="ts">
+import { registryApi, type SystemSoftRegistry } from "@/api/docker-management";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { onMounted, reactive, ref } from "vue";
+import RegistryDialog from "./components/RegistryDialog.vue";
+import SyncProgressDialog from "./components/SyncProgressDialog.vue";
 
 /**
  * 软件仓库管理页面组件（重新实现）
@@ -257,163 +196,163 @@ import SyncProgressDialog from './components/SyncProgressDialog.vue'
  */
 
 // 响应式数据
-const loading = ref(false)
-const syncAllLoading = ref(false)
-const syncLoadingMap = ref({})
-const dialogVisible = ref(false)
-const syncProgressVisible = ref(false)
-const tableRef = ref()
-const selectedIds = ref([])
-const registryList = ref<SystemSoftRegistry[]>([])
-const total = ref(0)
+const loading = ref(false);
+const syncAllLoading = ref(false);
+const syncLoadingMap = ref({});
+const dialogVisible = ref(false);
+const syncProgressVisible = ref(false);
+const tableRef = ref();
+const selectedIds = ref([]);
+const registryList = ref<SystemSoftRegistry[]>([]);
+const total = ref(0);
 
 // 搜索参数
 const searchParams = reactive({
-  keyword: '',
-  status: '',
-  type: '',
+  keyword: "",
+  status: "",
+  type: "",
   page: 1,
-  pageSize: 10
-})
+  pageSize: 10,
+});
 
 // 当前编辑的仓库
-const currentRegistry = ref<SystemSoftRegistry | null>(null)
+const currentRegistry = ref<SystemSoftRegistry | null>(null);
 
 // 同步进度数据
-const syncProgressData = ref({})
+const syncProgressData = ref({});
 
 // 分页参数
 const pagination = reactive({
   page: 1,
   pageSize: 10,
-  total: 0
-})
+  total: 0,
+});
 
 // 加载仓库列表
 const loadRegistries = async () => {
   try {
-    loading.value = true
+    loading.value = true;
     const params = {
       ...searchParams,
       page: pagination.page,
-      pageSize: pagination.pageSize
-    }
-    
+      pageSize: pagination.pageSize,
+    };
+
     // 清空空值参数
-    Object.keys(params).forEach(key => {
-      if (params[key] === '' || params[key] === null || params[key] === undefined) {
-        delete params[key]
+    Object.keys(params).forEach((key) => {
+      if (params[key] === "" || params[key] === null || params[key] === undefined) {
+        delete params[key];
       }
-    })
-    
-    const response = await registryApi.pageRegistry(params)
-    if (response.code === '00000') {
-      registryList.value = response.data.records || []
-      pagination.total = response.data.total || 0
+    });
+
+    const response = await registryApi.pageRegistry(params);
+    if (response.code === "00000") {
+      registryList.value = response.data.records || [];
+      pagination.total = response.data.total || 0;
     } else {
-      ElMessage.error(response.message || '加载仓库列表失败')
+      ElMessage.error(response.msg || "加载仓库列表失败");
     }
   } catch (error) {
-    console.error('加载仓库列表失败:', error)
-    ElMessage.error('加载仓库列表失败')
+    console.error("加载仓库列表失败:", error);
+    ElMessage.error("加载仓库列表失败");
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // 刷新数据
 const handleRefresh = () => {
-  loadRegistries()
-}
+  loadRegistries();
+};
 
 // 搜索
 const handleSearch = () => {
-  pagination.page = 1
-  loadRegistries()
-}
+  pagination.page = 1;
+  loadRegistries();
+};
 
 // 重置搜索
 const resetSearch = () => {
   Object.assign(searchParams, {
-    keyword: '',
-    status: '',
-    type: ''
-  })
-  pagination.page = 1
-  loadRegistries()
-}
+    keyword: "",
+    status: "",
+    type: "",
+  });
+  pagination.page = 1;
+  loadRegistries();
+};
 
 // 打开创建对话框
 const openCreateDialog = () => {
-  currentRegistry.value = null
-  dialogVisible.value = true
-}
+  currentRegistry.value = null;
+  dialogVisible.value = true;
+};
 
 // 打开编辑对话框
 const openEditDialog = (registry: SystemSoftRegistry) => {
-  currentRegistry.value = { ...registry }
-  dialogVisible.value = true
-}
+  currentRegistry.value = { ...registry };
+  dialogVisible.value = true;
+};
 
 // 对话框成功回调
 const handleDialogSuccess = () => {
-  loadRegistries()
-  ElMessage.success('操作成功')
-}
+  loadRegistries();
+  ElMessage.success("操作成功");
+};
 
 // 同步单个仓库
 const handleSync = async (registryId: number) => {
-  syncLoadingMap.value[registryId] = true
-  
+  syncLoadingMap.value[registryId] = true;
+
   try {
-    const response = await registryApi.syncRegistry(registryId)
-    
-    if (response.code === '00000') {
+    const response = await registryApi.syncRegistry(registryId);
+
+    if (response.code === "00000") {
       // 显示同步进度对话框
       syncProgressData.value = {
         registryId,
         operationId: response.data.operationId,
-        title: '同步仓库软件信息',
-        type: 'registry_sync'
-      }
-      syncProgressVisible.value = true
-      ElMessage.success('开始同步')
+        title: "同步仓库软件信息",
+        type: "registry_sync",
+      };
+      syncProgressVisible.value = true;
+      ElMessage.success("开始同步");
     } else {
-      ElMessage.error(response.message || '同步失败')
+      ElMessage.error(response.msg || "同步失败");
     }
   } catch (error) {
-    console.error('同步仓库失败:', error)
-    ElMessage.error('同步失败')
+    console.error("同步仓库失败:", error);
+    ElMessage.error("同步失败");
   } finally {
-    syncLoadingMap.value[registryId] = false
+    syncLoadingMap.value[registryId] = false;
   }
-}
+};
 
 // 同步全部仓库
 const handleSyncAll = async () => {
-  syncAllLoading.value = true
-  
+  syncAllLoading.value = true;
+
   try {
-    const response = await registryApi.syncAllRegistries()
-    
-    if (response.code === '00000') {
+    const response = await registryApi.syncAllRegistries();
+
+    if (response.code === "00000") {
       syncProgressData.value = {
         operationId: response.data.operationId,
-        title: '同步全部仓库',
-        type: 'registry_sync_all'
-      }
-      syncProgressVisible.value = true
-      ElMessage.success('开始同步全部仓库')
+        title: "同步全部仓库",
+        type: "registry_sync_all",
+      };
+      syncProgressVisible.value = true;
+      ElMessage.success("开始同步全部仓库");
     } else {
-      ElMessage.error(response.message || '同步失败')
+      ElMessage.error(response.msg || "同步失败");
     }
   } catch (error) {
-    console.error('同步全部仓库失败:', error)
-    ElMessage.error('同步失败')
+    console.error("同步全部仓库失败:", error);
+    ElMessage.error("同步失败");
   } finally {
-    syncAllLoading.value = false
+    syncAllLoading.value = false;
   }
-}
+};
 
 // 测试仓库连接
 const testConnection = async (registry: SystemSoftRegistry) => {
@@ -421,202 +360,194 @@ const testConnection = async (registry: SystemSoftRegistry) => {
     const response = await registryApi.testRegistryConnection({
       url: registry.url!,
       username: registry.username,
-      password: registry.password
-    })
-    
-    if (response.code === '00000' && response.data.success) {
-      ElMessage.success('连接测试成功')
+      password: registry.password,
+    });
+
+    if (response.code === "00000" && response.data.success) {
+      ElMessage.success("连接测试成功");
     } else {
-      ElMessage.error(response.data?.message || '连接测试失败')
+      ElMessage.error(response.data?.message || "连接测试失败");
     }
   } catch (error) {
-    console.error('测试连接失败:', error)
-    ElMessage.error('连接测试失败')
+    console.error("测试连接失败:", error);
+    ElMessage.error("连接测试失败");
   }
-}
+};
 
 // 删除仓库
 const handleDelete = async (registryId: number) => {
   try {
-    await ElMessageBox.confirm(
-      '删除仓库将同时删除相关的软件信息，此操作不可恢复。确认继续？',
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    )
-    
-    const response = await registryApi.deleteRegistry(registryId)
-    
-    if (response.code === '00000') {
-      ElMessage.success('删除成功')
-      loadRegistries()
+    await ElMessageBox.confirm("删除仓库将同时删除相关的软件信息，此操作不可恢复。确认继续？", "确认删除", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+
+    const response = await registryApi.deleteRegistry(registryId);
+
+    if (response.code === "00000") {
+      ElMessage.success("删除成功");
+      loadRegistries();
     } else {
-      ElMessage.error(response.message || '删除失败')
+      ElMessage.error(response.msg || "删除失败");
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除仓库失败:', error)
-      ElMessage.error('删除失败')
+    if (error !== "cancel") {
+      console.error("删除仓库失败:", error);
+      ElMessage.error("删除失败");
     }
   }
-}
+};
 
 // 批量同步
 const handleBatchSync = async () => {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning('请选择要同步的仓库')
-    return
+    ElMessage.warning("请选择要同步的仓库");
+    return;
   }
-  
+
   try {
-    const response = await registryApi.batchSyncRegistries(selectedIds.value)
-    
-    if (response.code === '00000') {
+    const response = await registryApi.batchSyncRegistries(selectedIds.value);
+
+    if (response.code === "00000") {
       syncProgressData.value = {
         registryIds: selectedIds.value,
         operationId: response.data.operationId,
-        title: '批量同步仓库',
-        type: 'registry_batch_sync'
-      }
-      syncProgressVisible.value = true
-      ElMessage.success('开始批量同步')
-      clearSelection()
+        title: "批量同步仓库",
+        type: "registry_batch_sync",
+      };
+      syncProgressVisible.value = true;
+      ElMessage.success("开始批量同步");
+      clearSelection();
     } else {
-      ElMessage.error(response.message || '批量同步失败')
+      ElMessage.error(response.msg || "批量同步失败");
     }
   } catch (error) {
-    console.error('批量同步失败:', error)
-    ElMessage.error('批量同步失败')
+    console.error("批量同步失败:", error);
+    ElMessage.error("批量同步失败");
   }
-}
+};
 
 // 批量删除
 const handleBatchDelete = async () => {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning('请选择要删除的仓库')
-    return
+    ElMessage.warning("请选择要删除的仓库");
+    return;
   }
-  
+
   try {
-    await ElMessageBox.confirm(
-      `确认删除选中的 ${selectedIds.value.length} 个仓库？此操作不可恢复。`,
-      '确认批量删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    )
-    
-    const response = await registryApi.batchDeleteRegistries(selectedIds.value)
-    
-    if (response.code === '00000') {
-      ElMessage.success('批量删除成功')
-      loadRegistries()
-      clearSelection()
+    await ElMessageBox.confirm(`确认删除选中的 ${selectedIds.value.length} 个仓库？此操作不可恢复。`, "确认批量删除", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+
+    const response = await registryApi.batchDeleteRegistries(selectedIds.value);
+
+    if (response.code === "00000") {
+      ElMessage.success("批量删除成功");
+      loadRegistries();
+      clearSelection();
     } else {
-      ElMessage.error(response.message || '批量删除失败')
+      ElMessage.error(response.msg || "批量删除失败");
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      console.error('批量删除失败:', error)
-      ElMessage.error('批量删除失败')
+    if (error !== "cancel") {
+      console.error("批量删除失败:", error);
+      ElMessage.error("批量删除失败");
     }
   }
-}
+};
 
 // 选择变化处理
 const handleSelectionChange = (selection: SystemSoftRegistry[]) => {
-  selectedIds.value = selection.map(item => item.id!)
-}
+  selectedIds.value = selection.map((item) => item.id!);
+};
 
 // 清除选择
 const clearSelection = () => {
-  selectedIds.value = []
-}
+  selectedIds.value = [];
+};
 
 // 分页变化
 const handleSizeChange = (size: number) => {
-  pagination.pageSize = size
-  pagination.page = 1
-  loadRegistries()
-}
+  pagination.pageSize = size;
+  pagination.page = 1;
+  loadRegistries();
+};
 
 const handleCurrentChange = (page: number) => {
-  pagination.page = page
-  loadRegistries()
-}
+  pagination.page = page;
+  loadRegistries();
+};
 
 // 工具函数
 const getRegistryIcon = (type?: string) => {
   const iconMap = {
-    docker_hub: 'ri:docker-line',
-    aliyun: 'ri:cloud-line',
-    harbor: 'ri:ship-line',
-    custom: 'ri:settings-3-line'
-  }
-  return iconMap[type] || 'ri:database-line'
-}
+    docker_hub: "ri:docker-line",
+    aliyun: "ri:cloud-line",
+    harbor: "ri:ship-line",
+    custom: "ri:settings-3-line",
+  };
+  return iconMap[type] || "ri:database-line";
+};
 
 const getRegistryIconColor = (type?: string) => {
   const colorMap = {
-    docker_hub: '#2496ED',
-    aliyun: '#FF6A00',
-    harbor: '#60B2FF',
-    custom: '#67C23A'
-  }
-  return colorMap[type] || '#409EFF'
-}
+    docker_hub: "#2496ED",
+    aliyun: "#FF6A00",
+    harbor: "#60B2FF",
+    custom: "#67C23A",
+  };
+  return colorMap[type] || "#409EFF";
+};
 
 const getRegistryTypeTag = (type?: string) => {
   const tagMap = {
-    docker_hub: 'primary',
-    aliyun: 'success',
-    harbor: 'info',
-    custom: 'warning'
-  }
-  return tagMap[type] || 'info'
-}
+    docker_hub: "primary",
+    aliyun: "success",
+    harbor: "info",
+    custom: "warning",
+  };
+  return tagMap[type] || "info";
+};
 
 const getRegistryTypeText = (type?: string) => {
   const textMap = {
-    docker_hub: 'Docker Hub',
-    aliyun: '阿里云',
-    harbor: 'Harbor',
-    custom: '自定义'
-  }
-  return textMap[type] || '未知'
-}
+    docker_hub: "Docker Hub",
+    aliyun: "阿里云",
+    harbor: "Harbor",
+    custom: "自定义",
+  };
+  return textMap[type] || "未知";
+};
 
 const getStatusTag = (status?: string) => {
   const tagMap = {
-    active: 'success',
-    offline: 'info',
-    error: 'danger'
-  }
-  return tagMap[status] || 'info'
-}
+    active: "success",
+    offline: "info",
+    error: "danger",
+  };
+  return tagMap[status] || "info";
+};
 
 const getStatusText = (status?: string) => {
   const textMap = {
-    active: '正常',
-    offline: '离线',
-    error: '错误'
-  }
-  return textMap[status] || '未知'
-}
+    active: "正常",
+    offline: "离线",
+    error: "错误",
+  };
+  return textMap[status] || "未知";
+};
 
 const formatTime = (time?: string) => {
-  return time ? new Date(time).toLocaleString() : '-'
-}
+  return time ? new Date(time).toLocaleString() : "-";
+};
 
 // 生命周期
 onMounted(() => {
-  loadRegistries()
-})
+  loadRegistries();
+});
 </script>
 
 <style scoped>
@@ -782,36 +713,36 @@ onMounted(() => {
     align-items: stretch;
     gap: 16px;
   }
-  
+
   .search-bar {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
   }
-  
+
   .search-left {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .search-right {
     justify-content: center;
     flex-wrap: wrap;
   }
-  
+
   .search-input {
     width: 100%;
   }
-  
+
   .filter-select {
     width: 100%;
   }
-  
+
   .action-buttons {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .action-buttons .el-button {
     width: 100%;
   }
@@ -821,15 +752,15 @@ onMounted(() => {
   .registry-management {
     padding: 8px;
   }
-  
+
   .page-header {
     padding: 12px;
   }
-  
+
   .search-bar {
     padding: 12px;
   }
-  
+
   .batch-actions {
     flex-direction: column;
     gap: 8px;

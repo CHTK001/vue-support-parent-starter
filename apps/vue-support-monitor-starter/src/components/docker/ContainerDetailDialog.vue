@@ -83,13 +83,13 @@
               <div class="resource-chart">
                 <el-progress
                   type="circle"
-                  :percentage="containerData.systemSoftContainerCpuUsage || 0"
-                  :color="getUsageColor(containerData.systemSoftContainerCpuUsage || 0)"
+                  :percentage="containerData.systemSoftContainerCpuPercent || containerData.systemSoftContainerCpuUsage || 0"
+                  :color="getUsageColor(containerData.systemSoftContainerCpuPercent || containerData.systemSoftContainerCpuUsage || 0)"
                   :width="120"
                 />
               </div>
               <div class="resource-value">
-                {{ (containerData.systemSoftContainerCpuUsage || 0).toFixed(2) }}%
+                {{ (containerData.systemSoftContainerCpuPercent || containerData.systemSoftContainerCpuUsage || 0).toFixed(2) }}%
               </div>
             </div>
             
@@ -98,26 +98,40 @@
               <div class="resource-chart">
                 <el-progress
                   type="circle"
-                  :percentage="containerData.systemSoftContainerMemoryUsage || 0"
-                  :color="getUsageColor(containerData.systemSoftContainerMemoryUsage || 0)"
+                  :percentage="containerData.systemSoftContainerMemoryPercent || containerData.systemSoftContainerMemoryUsage || 0"
+                  :color="getUsageColor(containerData.systemSoftContainerMemoryPercent || containerData.systemSoftContainerMemoryUsage || 0)"
                   :width="120"
                 />
               </div>
               <div class="resource-value">
-                {{ (containerData.systemSoftContainerMemoryUsage || 0).toFixed(2) }}%
+                {{ (containerData.systemSoftContainerMemoryPercent || containerData.systemSoftContainerMemoryUsage || 0).toFixed(2) }}%
               </div>
             </div>
             
             <div class="resource-card">
-              <div class="resource-title">磁盘使用</div>
+              <div class="resource-title">内存使用</div>
+              <div class="resource-stats">
+                <div class="stat-item">
+                  <span class="stat-label">使用：</span>
+                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerMemoryUsageBytes || containerData.systemSoftContainerMemoryUsage || 0) }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">限制：</span>
+                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerMemoryLimit || 0) }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="resource-card">
+              <div class="resource-title">磁盘IO</div>
               <div class="resource-stats">
                 <div class="stat-item">
                   <span class="stat-label">读取：</span>
-                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerDiskRead || 0) }}</span>
+                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerStatsDiskRead || containerData.systemSoftContainerDiskRead || 0) }}</span>
                 </div>
                 <div class="stat-item">
                   <span class="stat-label">写入：</span>
-                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerDiskWrite || 0) }}</span>
+                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerStatsDiskWrite || containerData.systemSoftContainerDiskWrite || 0) }}</span>
                 </div>
               </div>
             </div>
@@ -127,11 +141,11 @@
               <div class="resource-stats">
                 <div class="stat-item">
                   <span class="stat-label">接收：</span>
-                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerNetworkRx || 0) }}</span>
+                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerStatsNetworkRxBytes || containerData.systemSoftContainerNetworkRx || 0) }}</span>
                 </div>
                 <div class="stat-item">
                   <span class="stat-label">发送：</span>
-                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerNetworkTx || 0) }}</span>
+                  <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerStatsNetworkTxBytes || containerData.systemSoftContainerNetworkTx || 0) }}</span>
                 </div>
               </div>
             </div>
@@ -167,6 +181,60 @@
             </div>
           </div>
         </el-tab-pane>
+
+        <!-- 性能图表 -->
+        <el-tab-pane label="性能图表" name="charts">
+          <div class="charts-section">
+            <div class="chart-row">
+              <div class="chart-item">
+                <ContainerRealtimeChart 
+                  :container-id="containerData.systemSoftContainerId!" 
+                  title="CPU使用率" 
+                  data-type="cpu" 
+                />
+              </div>
+              <div class="chart-item">
+                <ContainerRealtimeChart 
+                  :container-id="containerData.systemSoftContainerId!" 
+                  title="内存使用" 
+                  data-type="memory" 
+                />
+              </div>
+            </div>
+            <div class="chart-row">
+              <div class="chart-item">
+                <ContainerRealtimeChart 
+                  :container-id="containerData.systemSoftContainerId!" 
+                  title="磁盘读取" 
+                  data-type="diskRead" 
+                />
+              </div>
+              <div class="chart-item">
+                <ContainerRealtimeChart 
+                  :container-id="containerData.systemSoftContainerId!" 
+                  title="磁盘写入" 
+                  data-type="diskWrite" 
+                />
+              </div>
+            </div>
+            <div class="chart-row">
+              <div class="chart-item">
+                <ContainerRealtimeChart 
+                  :container-id="containerData.systemSoftContainerId!" 
+                  title="网络接收" 
+                  data-type="networkRx" 
+                />
+              </div>
+              <div class="chart-item">
+                <ContainerRealtimeChart 
+                  :container-id="containerData.systemSoftContainerId!" 
+                  title="网络发送" 
+                  data-type="networkTx" 
+                />
+              </div>
+            </div>
+          </div>
+        </el-tab-pane>
       </el-tabs>
     </div>
     
@@ -183,9 +251,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import { containerApi, type SystemSoftContainer } from '@/api/docker-management'
+import { ElMessage } from 'element-plus'
+import { computed, ref, watch } from 'vue'
+import ContainerRealtimeChart from './ContainerRealtimeChart.vue'
 
 interface Props {
   visible: boolean
@@ -287,7 +356,8 @@ const handleRefresh = async () => {
   
   try {
     refreshing.value = true
-    const response = await containerApi.getContainerDetail(props.containerData.systemSoftContainerId)
+    // 修复方法调用错误，使用正确的API方法
+    const response = await containerApi.getContainerById(props.containerData.systemSoftContainerId)
     if (response.code === '00000') {
       ElMessage.success('容器数据已刷新')
       // 这里可以触发父组件更新数据
@@ -447,9 +517,34 @@ const handleClose = () => {
   font-size: 14px;
 }
 
+.charts-section {
+  padding: 16px 0;
+}
+
+.chart-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.chart-item {
+  flex: 1;
+  min-width: 0;
+}
+
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .resources-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .chart-row {
+    flex-direction: column;
+  }
 }
 </style>

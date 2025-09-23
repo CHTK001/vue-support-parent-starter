@@ -2,13 +2,10 @@
 // Application Color System Entry Point
 
 // 导入默认主题颜色
-@import './default.scss';
+@use './default';
 
 // 导入深色主题颜色  
-@import './dark.scss';
-
-// 导入Element Plus主题覆盖
-@import '../element-plus/theme-override.scss';
+@use './dark';
 
 // 颜色实用类 Color Utility Classes
 .app-text-primary { color: var(--app-text-primary) !important; }

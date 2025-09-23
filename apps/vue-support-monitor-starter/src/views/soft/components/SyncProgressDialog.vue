@@ -1,4 +1,4 @@
-﻿<template>
+﻿﻿﻿<template>
   <el-dialog
     title="同步进度"
     v-model="dialogVisible"
@@ -155,8 +155,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { IconifyIconOnline } from '@/components/ReIcon'
+import IconifyIconOnline from '@repo/components/ReIcon/src/iconifyIconOnline';
+import { computed, ref, watch } from 'vue';
 
 // Props 定义
 interface Props {
@@ -262,17 +262,17 @@ const formatTime = (timestamp: number | string) => {
 
 const formatDuration = (seconds: number) => {
   if (seconds < 60) {
-    return ${Math.round(seconds)}秒
+    return `${Math.round(seconds)}秒`;
   } else if (seconds < 3600) {
-    const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = Math.round(seconds % 60)
-    return ${minutes}分秒
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.round(seconds % 60);
+    return `${minutes}分${remainingSeconds}秒`;
   } else {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    return ${hours}小时分钟
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}小时${minutes}分钟`;
   }
-}
+};
 
 const toggleLogDetails = () => {
   showLogDetails.value = !showLogDetails.value

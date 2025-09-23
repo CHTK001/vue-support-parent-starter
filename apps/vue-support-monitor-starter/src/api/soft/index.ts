@@ -16,7 +16,7 @@ export {
   getContainerById,
   getContainerLogs,
   getContainerStats,
-  getContainerStatusStats,
+  getContainerStatusStatistics as getContainerStatusStats,
   getRunningContainers,
   startContainer,
   stopContainer,
@@ -75,4 +75,46 @@ export function getSoftRecordPageList(params: any) {
 
 export function getAbnormalContainers() {
   return http.request<ReturnResult<any[]>>("get", "v1/system/soft/container/abnormal");
+}
+
+// 新增软件安装记录相关API函数
+export function getSoftInstallRecords(params: any) {
+  return http.request<ReturnResult<{ records: any[]; total: number }>>("get", "v1/soft/record/page", { params });
+}
+
+export function retryInstallSoft(data: { recordId: string }) {
+  return http.request<ReturnResult<boolean>>("post", "v1/soft/record/retry", { data });
+}
+
+export function cancelInstallSoft(data: { recordId: string }) {
+  return http.request<ReturnResult<boolean>>("post", "v1/soft/record/cancel", { data });
+}
+
+export function deleteInstallRecord(data: { recordId: string }) {
+  return http.request<ReturnResult<boolean>>("delete", "v1/soft/record", { data });
+}
+
+export function getInstallLogs(params: { recordId: string }) {
+  return http.request<ReturnResult<string>>("get", "v1/soft/record/logs", { params });
+}
+
+// 软件容器相关API函数
+export function getSoftContainerList(params: any) {
+  return http.request<ReturnResult<any[]>>("get", "v1/system/soft/container/list", { params });
+}
+
+export function startSoftContainer(data: { containerId: string }) {
+  return http.request<ReturnResult<boolean>>("post", "v1/system/soft/container/start", { data });
+}
+
+export function stopSoftContainer(data: { containerId: string }) {
+  return http.request<ReturnResult<boolean>>("post", "v1/system/soft/container/stop", { data });
+}
+
+export function removeSoftContainer(data: { containerId: string }) {
+  return http.request<ReturnResult<boolean>>("delete", "v1/system/soft/container", { data });
+}
+
+export function getSoftContainerLogs(params: { containerId: string }) {
+  return http.request<ReturnResult<string>>("get", "v1/system/soft/container/logs", { params });
 }
