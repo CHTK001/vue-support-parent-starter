@@ -77,12 +77,18 @@
 
     <!-- 镜像表格 -->
     <el-card class="images-table-card">
-      <el-table
+      <ScTable
         :data="imagesList"
         stripe
-        v-loading="loading"
+        :loading="loading"
+        :total="pagination.total"
+        :page-size="pagination.pageSize"
+        :current-page="pagination.page"
         @selection-change="handleSelectionChange"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
         class="images-table"
+        table-name="soft-images"
       >
         <el-table-column type="selection" width="55" />
         
@@ -167,20 +173,7 @@
             </div>
           </template>
         </el-table-column>
-      </el-table>
-      
-      <!-- 分页 -->
-      <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.pageSize"
-          :total="pagination.total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
+      </ScTable>
     </el-card>
 
     <!-- 拉取镜像对话框 -->
@@ -213,6 +206,7 @@ import PullImageDialog from '@/components/docker/PullImageDialog.vue'
 import StartContainerDialog from '@/components/docker/StartContainerDialog.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
+import ScTable from "@repo/components/ScTable/index.vue";
 
 // 响应式数据
 const loading = ref(false)
@@ -503,13 +497,6 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  padding: 20px;
-  border-top: 1px solid #f0f2f5;
 }
 
 .batch-actions {
