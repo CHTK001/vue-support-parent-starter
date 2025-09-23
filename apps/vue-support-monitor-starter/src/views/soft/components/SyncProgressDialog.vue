@@ -1,4 +1,4 @@
-﻿﻿﻿<template>
+﻿<template>
   <el-dialog
     title="同步进度"
     v-model="dialogVisible"
@@ -155,7 +155,6 @@
 </template>
 
 <script setup lang="ts">
-import IconifyIconOnline from '@repo/components/ReIcon/src/iconifyIconOnline';
 import { computed, ref, watch } from 'vue';
 
 // Props 定义

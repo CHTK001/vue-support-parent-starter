@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿<template>
+﻿﻿<template>
   <div class="registry-management">
     <!-- 页面头部 -->
     <div class="page-header">

@@ -24,24 +24,12 @@
     <!-- 搜索栏 -->
     <div class="search-bar">
       <div class="search-left">
-        <el-input
-          v-model="searchParams.keyword"
-          placeholder="搜索软件名称或描述"
-          class="search-input"
-          clearable
-          @keyup.enter="handleSearch"
-        >
+        <el-input v-model="searchParams.keyword" placeholder="搜索软件名称或描述" class="search-input" clearable @keyup.enter="handleSearch">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select
-          v-model="searchParams.category"
-          placeholder="软件分类"
-          clearable
-          class="filter-select"
-          @change="handleSearch"
-        >
+        <el-select v-model="searchParams.category" placeholder="软件分类" clearable class="filter-select" @change="handleSearch">
           <el-option label="全部" value="" />
           <el-option label="数据库" value="database" />
           <el-option label="Web服务器" value="web" />
@@ -50,20 +38,9 @@
           <el-option label="监控工具" value="monitor" />
           <el-option label="开发工具" value="dev" />
         </el-select>
-        <el-select
-          v-model="searchParams.registryId"
-          placeholder="软件仓库"
-          clearable
-          class="filter-select"
-          @change="handleSearch"
-        >
+        <el-select v-model="searchParams.registryId" placeholder="软件仓库" clearable class="filter-select" @change="handleSearch">
           <el-option label="全部" value="" />
-          <el-option
-            v-for="registry in registryOptions"
-            :key="registry.id"
-            :label="registry.name"
-            :value="registry.id"
-          />
+          <el-option v-for="registry in registryOptions" :key="registry.id" :label="registry.name" :value="registry.id" />
         </el-select>
       </div>
       <div class="search-right">
@@ -76,15 +53,21 @@
 
     <!-- 软件表格 -->
     <el-card class="software-table-card">
-      <el-table
+      <ScTable
         :data="softwareList"
         stripe
-        v-loading="loading"
+        :loading="loading"
+        :total="pagination.total"
+        :page-size="pagination.pageSize"
+        :current-page="pagination.page"
         @selection-change="handleSelectionChange"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
         class="software-table"
+        table-name="soft-index"
       >
         <el-table-column type="selection" width="55" />
-        
+
         <el-table-column label="软件信息" min-width="250">
           <template #default="{ row }">
             <div class="software-info">
@@ -94,7 +77,7 @@
               </div>
               <div class="software-details">
                 <div class="software-name">{{ row.systemSoftName }}</div>
-                <div class="software-desc">{{ row.systemSoftDesc || '暂无描述' }}</div>
+                <div class="software-desc">{{ row.systemSoftDesc || "暂无描述" }}</div>
               </div>
             </div>
           </template>
@@ -112,11 +95,9 @@
           <template #default="{ row }">
             <div class="version-info">
               <div class="latest-version">
-                最新：<span class="version-tag">{{ row.systemSoftLatestVersion || 'unknown' }}</span>
+                最新：<span class="version-tag">{{ row.systemSoftLatestVersion || "unknown" }}</span>
               </div>
-              <div class="version-count">
-                版本数：{{ row.versionCount || 0 }}
-              </div>
+              <div class="version-count">版本数：{{ row.versionCount || 0 }}</div>
             </div>
           </template>
         </el-table-column>
@@ -124,17 +105,10 @@
         <el-table-column label="标签" min-width="150">
           <template #default="{ row }">
             <div class="tags-container">
-              <el-tag
-                v-for="tag in (row.systemSoftTags || '').split(',').filter(Boolean).slice(0, 2)"
-                :key="tag"
-                size="small"
-                class="tag-item"
-              >
+              <el-tag v-for="tag in (row.systemSoftTags || '').split(',').filter(Boolean).slice(0, 2)" :key="tag" size="small" class="tag-item">
                 {{ tag }}
               </el-tag>
-              <span v-if="(row.systemSoftTags || '').split(',').filter(Boolean).length > 2" class="more-tags">
-                +{{ (row.systemSoftTags || '').split(',').filter(Boolean).length - 2 }}
-              </span>
+              <span v-if="(row.systemSoftTags || '').split(',').filter(Boolean).length > 2" class="more-tags"> +{{ (row.systemSoftTags || "").split(",").filter(Boolean).length - 2 }} </span>
             </div>
           </template>
         </el-table-column>
@@ -163,58 +137,29 @@
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-button 
-                size="small" 
-                type="primary" 
-                @click="handleInstall(row)"
-              >
+              <el-button size="small" type="primary" @click="handleInstall(row)">
                 <IconifyIconOnline icon="ri:download-line" class="mr-1" />
                 安装
               </el-button>
-              <el-button 
-                size="small" 
-                @click="viewSoftwareDetail(row)"
-              >
+              <el-button size="small" @click="viewSoftwareDetail(row)">
                 <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
                 详情
               </el-button>
             </div>
           </template>
         </el-table-column>
-      </el-table>
-      
-      <!-- 分页 -->
-      <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.pageSize"
-          :total="pagination.total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
+      </ScTable>
     </el-card>
 
     <!-- 安装软件对话框 -->
-    <InstallSoftwareDialog
-      v-model:visible="installDialogVisible"
-      :software-data="currentSoftware"
-      @success="handleDialogSuccess"
-    />
+    <InstallSoftwareDialog v-model:visible="installDialogVisible" :software-data="currentSoftware" @success="handleDialogSuccess" />
 
     <!-- 同步软件对话框 -->
-    <SyncSoftwareDialog
-      v-model:visible="syncDialogVisible"
-      @success="handleDialogSuccess"
-    />
+    <SyncSoftwareDialog v-model:visible="syncDialogVisible" @success="handleDialogSuccess" />
 
     <!-- 批量操作底部工具栏 -->
     <div v-if="selectedIds.length > 0" class="batch-actions">
-      <div class="batch-info">
-        已选择 {{ selectedIds.length }} 个软件
-      </div>
+      <div class="batch-info">已选择 {{ selectedIds.length }} 个软件</div>
       <el-button @click="clearSelection">取消选择</el-button>
       <el-button type="primary" @click="handleBatchInstall">批量安装</el-button>
     </div>
@@ -222,124 +167,136 @@
 </template>
 
 <script setup lang="ts">
-import { registryApi, softwareApi, type SystemSoft } from '@/api/docker-management'
-import InstallSoftwareDialog from '@/components/docker/InstallSoftwareDialog.vue'
-import SyncSoftwareDialog from '@/components/docker/SyncSoftwareDialog.vue'
-import { ElMessage } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { registryApi, softwareApi, type SystemSoft } from "@/api/docker-management";
+import InstallSoftwareDialog from "@/components/docker/InstallSoftwareDialog.vue";
+import SyncSoftwareDialog from "@/components/docker/SyncSoftwareDialog.vue";
+import ScTable from "@repo/components/ScTable/index.vue";
+import { ElMessage } from "element-plus";
+import { onMounted, reactive, ref } from "vue";
 
 // 响应式数据
-const loading = ref(false)
-const syncLoading = ref(false)
-const selectedIds = ref<number[]>([])
-const softwareList = ref<SystemSoft[]>([])
-const registryOptions = ref<any[]>([])
-const installDialogVisible = ref(false)
-const syncDialogVisible = ref(false)
-const currentSoftware = ref<SystemSoft | null>(null)
+const loading = ref(false);
+const syncLoading = ref(false);
+const selectedIds = ref<number[]>([]);
+const softwareList = ref<SystemSoft[]>([]);
+const registryOptions = ref<any[]>([]);
+const installDialogVisible = ref(false);
+const syncDialogVisible = ref(false);
+const currentSoftware = ref<SystemSoft | null>(null);
 
 // 搜索参数
 const searchParams = reactive({
-  keyword: '',
-  category: '',
-  registryId: ''
-})
+  keyword: "",
+  category: "",
+  registryId: "",
+});
 
 // 分页参数
 const pagination = reactive({
   page: 1,
   pageSize: 10,
-  total: 0
-})
+  total: 0,
+});
 
 // 基础方法
 const loadSoftwareList = async () => {
   try {
-    loading.value = true
-    const params = { ...searchParams, page: pagination.page, pageSize: pagination.pageSize }
-    Object.keys(params).forEach(key => {
-      if (params[key] === '') delete params[key]
-    })
-    
-    const response = await softwareApi.getSoftPageList(params)
-    if (response.code === '00000') {
-      softwareList.value = response.data.records || []
-      pagination.total = response.data.total || 0
+    loading.value = true;
+    const params = { ...searchParams, page: pagination.page, pageSize: pagination.pageSize };
+    Object.keys(params).forEach((key) => {
+      if (params[key] === "") delete params[key];
+    });
+
+    const response = await softwareApi.getSoftPageList(params);
+    if (response.code === "00000") {
+      softwareList.value = response.data.records || [];
+      pagination.total = response.data.total || 0;
     }
   } catch (error) {
-    ElMessage.error('加载软件列表失败')
+    ElMessage.error("加载软件列表失败");
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
-const handleRefresh = () => loadSoftwareList()
-const handleSearch = () => { pagination.page = 1; loadSoftwareList() }
+const handleRefresh = () => loadSoftwareList();
+const handleSearch = () => {
+  pagination.page = 1;
+  loadSoftwareList();
+};
 const handleSelectionChange = (selection: SystemSoft[]) => {
-  selectedIds.value = selection.map(item => item.systemSoftId!)
-}
-const clearSelection = () => { selectedIds.value = [] }
+  selectedIds.value = selection.map((item) => item.systemSoftId!);
+};
+const clearSelection = () => {
+  selectedIds.value = [];
+};
 
 // 工具函数
 const getCategoryText = (category?: string) => {
   const map = {
-    database: '数据库',
-    web: 'Web服务器',
-    cache: '缓存',
-    mq: '消息队列',
-    monitor: '监控工具',
-    dev: '开发工具'
-  }
-  return map[category] || '其他'
-}
+    database: "数据库",
+    web: "Web服务器",
+    cache: "缓存",
+    mq: "消息队列",
+    monitor: "监控工具",
+    dev: "开发工具",
+  };
+  return map[category] || "其他";
+};
 
-const formatTime = (time?: string) => time ? new Date(time).toLocaleString() : '-'
+const formatTime = (time?: string) => (time ? new Date(time).toLocaleString() : "-");
 
 // 操作方法
 const handleSyncFromRegistry = () => {
-  syncDialogVisible.value = true
-}
+  syncDialogVisible.value = true;
+};
 
 const handleInstall = (software: SystemSoft) => {
-  currentSoftware.value = software
-  installDialogVisible.value = true
-}
+  currentSoftware.value = software;
+  installDialogVisible.value = true;
+};
 
 const viewSoftwareDetail = (software: SystemSoft) => {
-  ElMessage.info('软件详情功能开发中...')
-}
+  ElMessage.info("软件详情功能开发中...");
+};
 
 const handleBatchInstall = () => {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning('请选择要安装的软件')
-    return
+    ElMessage.warning("请选择要安装的软件");
+    return;
   }
-  ElMessage.info('批量安装功能开发中...')
-}
+  ElMessage.info("批量安装功能开发中...");
+};
 
 const handleDialogSuccess = () => {
-  loadSoftwareList()
-}
+  loadSoftwareList();
+};
 
-const handleSizeChange = (size: number) => { pagination.pageSize = size; loadSoftwareList() }
-const handleCurrentChange = (page: number) => { pagination.page = page; loadSoftwareList() }
+const handleSizeChange = (size: number) => {
+  pagination.pageSize = size;
+  loadSoftwareList();
+};
+const handleCurrentChange = (page: number) => {
+  pagination.page = page;
+  loadSoftwareList();
+};
 
 // 加载镜像仓库列表
 const loadRegistries = async () => {
   try {
-    const response = await registryApi.getAllRegistries()
-    if (response.code === '00000') {
-      registryOptions.value = response.data || []
+    const response = await registryApi.getAllRegistries();
+    if (response.code === "00000") {
+      registryOptions.value = response.data || [];
     }
   } catch (error) {
-    console.error('加载镜像仓库列表失败:', error)
+    console.error("加载镜像仓库列表失败:", error);
   }
-}
+};
 
 onMounted(() => {
-  loadSoftwareList()
-  loadRegistries()
-})
+  loadSoftwareList();
+  loadRegistries();
+});
 </script>
 
 <style scoped>
@@ -532,13 +489,6 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  padding: 20px;
-  border-top: 1px solid #f0f2f5;
 }
 
 .batch-actions {

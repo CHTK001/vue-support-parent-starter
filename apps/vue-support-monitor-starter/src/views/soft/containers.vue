@@ -83,12 +83,18 @@
 
     <!-- 容器表格 -->
     <el-card class="container-table-card">
-      <el-table
+      <ScTable
         :data="containerList"
         stripe
-        v-loading="loading"
+        :loading="loading"
+        :total="pagination.total"
+        :page-size="pagination.pageSize"
+        :current-page="pagination.page"
         @selection-change="handleSelectionChange"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
         class="container-table"
+        table-name="soft-containers"
       >
         <el-table-column type="selection" width="55" />
         
@@ -225,20 +231,7 @@
             </div>
           </template>
         </el-table-column>
-      </el-table>
-      
-      <!-- 分页 -->
-      <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.pageSize"
-          :total="pagination.total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
+      </ScTable>
     </el-card>
 
     <!-- 容器详情对话框 -->
@@ -270,6 +263,7 @@
 import { containerApi, getServerList, type SystemSoftContainer } from '@/api/docker-management'
 import ContainerDetailDialog from '@/components/docker/ContainerDetailDialog.vue'
 import ContainerLogsDialog from '@/components/docker/ContainerLogsDialog.vue'
+import ScTable from "@repo/components/ScTable/index.vue"
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
@@ -729,13 +723,6 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  padding: 20px;
-  border-top: 1px solid #f0f2f5;
-}
-
 .batch-actions {
   position: fixed;
   bottom: 20px;
@@ -918,9 +905,9 @@ onMounted(() => {
   font-family: "Courier New", monospace;
   font-size: 12px;
   line-height: 1.4;
-  margin: 0;
 }
 
+/* 配置部分 */
 .config-section {
   margin-bottom: 20px;
 }
@@ -997,11 +984,6 @@ onMounted(() => {
 }
 
 .stat-label {
-  font-size: 12px;
-  color: var(--el-text-color-primary);
-}
-
-.stat-value {
   font-size: 12px;
   color: var(--el-text-color-primary);
   font-weight: 500;
@@ -1116,6 +1098,31 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header-right {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .search-right {
+    flex-direction: column;
+  }
+
+  .monitor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header-actions {
+    flex-direction: column;
+  }
+}
+</style>
   margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid #e4e7ed;
