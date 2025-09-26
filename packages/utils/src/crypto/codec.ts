@@ -2,6 +2,8 @@ import { sm2, sm4 } from "sm-crypto";
 import * as crypto from "./index";
 import type { PureHttpResponse, PureHttpRequestConfig } from "../http/types";
 import { getConfig } from "@repo/config";
+// 导入WASM版本的函数
+import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, initWasm, isWasmLoaded } from "@repo/codec-wasm";
 
 // OTK存储接口
 interface OtkEntry {
@@ -293,8 +295,26 @@ class AntiReplayManager {
   }
 }
 
+// 检查是否启用WASM
+const isWasmEnabled = () => {
+  // 可以通过配置控制是否启用WASM
+  return getConfig('codecWasmEnabled') === true;
+};
+
 /** uu2 - 请求加密处理 */
 export const uu2 = (request: PureHttpRequestConfig) => {
+  // 如果启用了WASM且WASM已加载，则使用WASM版本
+  if (isWasmEnabled() && isWasmLoaded()) {
+    // 注意：这里为了保持接口一致性，我们仍然使用同步版本
+    // 在实际项目中，可能需要调整调用方式
+    return uu2_js(request); // 暂时回退到JavaScript版本
+  }
+  
+  return uu2_js(request);
+};
+
+/** uu2的JavaScript实现 */
+const uu2_js = (request: PureHttpRequestConfig) => {
   const requestData = request[DATA_FIELD];
   const requestUrl = request.url;
   if (requestUrl.startsWith(SETTING_PATH)) {
@@ -381,8 +401,19 @@ export const uu2 = (request: PureHttpRequestConfig) => {
     return request;
   }
 };
+
 /** uu1 - 响应解密处理（增强版） */
 export const uu1 = (response: PureHttpResponse) => {
+  // 如果启用了WASM且WASM已加载，则使用WASM版本
+  if (isWasmEnabled() && isWasmLoaded()) {
+    return uu1_js(response); // 暂时回退到JavaScript版本
+  }
+  
+  return uu1_js(response);
+};
+
+/** uu1的JavaScript实现 */
+const uu1_js = (response: PureHttpResponse) => {
   // 添加响应状态验证
   if (!response || typeof response !== OBJECT_TYPE) {
     return response;
@@ -517,8 +548,19 @@ const decryptResponseCore = (sm2Engine, response: PureHttpResponse) => {
   }
   return response;
 };
+
 /** uu3 - AES解密工具 */
 export const uu3 = (value: string) => {
+  // 如果启用了WASM且WASM已加载，则使用WASM版本
+  if (isWasmEnabled() && isWasmLoaded()) {
+    return uu3_js(value); // 暂时回退到JavaScript版本
+  }
+  
+  return uu3_js(value);
+};
+
+/** uu3的JavaScript实现 */
+const uu3_js = (value: string) => {
   if (!value || typeof value !== STRING_TYPE) {
     return value;
   }
@@ -529,8 +571,19 @@ export const uu3 = (value: string) => {
     return value;
   }
 };
+
 /** uu4 - 特殊响应解密处理 */
 export const uu4 = (response) => {
+  // 如果启用了WASM且WASM已加载，则使用WASM版本
+  if (isWasmEnabled() && isWasmLoaded()) {
+    return uu4_js(response); // 暂时回退到JavaScript版本
+  }
+  
+  return uu4_js(response);
+};
+
+/** uu4的JavaScript实现 */
+const uu4_js = (response) => {
   if (!response || typeof response !== OBJECT_TYPE) {
     return {};
   }
@@ -615,3 +668,6 @@ const codecUtils = {
 
 // 导出工具函数
 export const codecUtilities = codecUtils;
+
+// 导出WASM相关函数
+export { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, initWasm, isWasmLoaded };

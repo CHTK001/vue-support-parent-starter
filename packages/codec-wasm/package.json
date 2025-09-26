@@ -1,0 +1,37 @@
+{
+  "name": "@repo/codec-wasm",
+  "version": "1.0.0",
+  "description": "WebAssembly implementation of codec utilities for encryption/decryption",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "types": "build/release.d.ts",
+  "files": [
+    "src/",
+    "build/",
+    "assembly/"
+  ],
+  "scripts": {
+    "asbuild:debug": "asc assembly/index.ts --target debug",
+    "asbuild:release": "asc assembly/index.ts --target release",
+    "asbuild": "npm run asbuild:release",
+    "build": "npm run asbuild",
+    "test": "node tests"
+  },
+  "keywords": [
+    "webassembly",
+    "wasm",
+    "assemblyscript",
+    "crypto",
+    "codec",
+    "encryption",
+    "decryption"
+  ],
+  "author": "CH",
+  "license": "MIT",
+  "devDependencies": {
+    "assemblyscript": "^0.28.8"
+  },
+  "dependencies": {
+    "@assemblyscript/loader": "^0.28.8"
+  }
+}

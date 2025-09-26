@@ -24,24 +24,12 @@
     <!-- 搜索栏 -->
     <div class="search-bar">
       <div class="search-left">
-        <el-input
-          v-model="searchParams.keyword"
-          placeholder="搜索容器名称或镜像"
-          class="search-input"
-          clearable
-          @keyup.enter="handleSearch"
-        >
+        <el-input v-model="searchParams.keyword" placeholder="搜索容器名称或镜像" class="search-input" clearable @keyup.enter="handleSearch">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select
-          v-model="searchParams.status"
-          placeholder="运行状态"
-          clearable
-          class="filter-select"
-          @change="handleSearch"
-        >
+        <el-select v-model="searchParams.status" placeholder="运行状态" clearable class="filter-select" @change="handleSearch">
           <el-option label="全部" value="" />
           <el-option label="运行中" value="running" />
           <el-option label="已停止" value="stopped" />
@@ -49,20 +37,9 @@
           <el-option label="重启中" value="restarting" />
           <el-option label="错误" value="error" />
         </el-select>
-        <el-select
-          v-model="searchParams.serverId"
-          placeholder="服务器"
-          clearable
-          class="filter-select"
-          @change="handleSearch"
-        >
+        <el-select v-model="searchParams.serverId" placeholder="服务器" clearable class="filter-select" @change="handleSearch">
           <el-option label="全部" value="" />
-          <el-option
-            v-for="server in serverOptions"
-            :key="server.id"
-            :label="server.name"
-            :value="server.id"
-          />
+          <el-option v-for="server in serverOptions" :key="server.id" :label="server.name" :value="server.id" />
         </el-select>
       </div>
       <div class="search-right">
@@ -84,12 +61,10 @@
     <!-- 容器表格 -->
     <el-card class="container-table-card">
       <ScTable
-        :data="containerList"
+        :url="containerApi.getContainerPageList"
+        :params="searchParams"
         stripe
         :loading="loading"
-        :total="pagination.total"
-        :page-size="pagination.pageSize"
-        :current-page="pagination.page"
         @selection-change="handleSelectionChange"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
@@ -97,7 +72,7 @@
         table-name="soft-containers"
       >
         <el-table-column type="selection" width="55" />
-        
+
         <el-table-column label="容器信息" min-width="250">
           <template #default="{ row }">
             <div class="container-info">
@@ -137,12 +112,7 @@
         <el-table-column label="端口映射" min-width="150">
           <template #default="{ row }">
             <div class="ports-container">
-              <el-tag
-                v-for="port in parsePortMappings(row.systemSoftContainerPorts)"
-                :key="port"
-                size="small"
-                class="port-tag"
-              >
+              <el-tag v-for="port in parsePortMappings(row.systemSoftContainerPorts)" :key="port" size="small" class="port-tag">
                 {{ port }}
               </el-tag>
             </div>
@@ -154,22 +124,12 @@
             <div class="resource-usage">
               <div class="usage-item">
                 <span class="usage-label">CPU:</span>
-                <el-progress 
-                  :percentage="row.systemSoftContainerCpuPercent || row.systemSoftContainerCpuUsage || 0" 
-                  :show-text="false" 
-                  :stroke-width="4"
-                  style="width: 60px"
-                />
+                <el-progress :percentage="row.systemSoftContainerCpuPercent || row.systemSoftContainerCpuUsage || 0" :show-text="false" :stroke-width="4" style="width: 60px" />
                 <span class="usage-value">{{ (row.systemSoftContainerCpuPercent || row.systemSoftContainerCpuUsage || 0).toFixed(1) }}%</span>
               </div>
               <div class="usage-item">
                 <span class="usage-label">内存:</span>
-                <el-progress 
-                  :percentage="row.systemSoftContainerMemoryPercent || row.systemSoftContainerMemoryUsage || 0" 
-                  :show-text="false" 
-                  :stroke-width="4"
-                  style="width: 60px"
-                />
+                <el-progress :percentage="row.systemSoftContainerMemoryPercent || row.systemSoftContainerMemoryUsage || 0" :show-text="false" :stroke-width="4" style="width: 60px" />
                 <span class="usage-value">{{ (row.systemSoftContainerMemoryPercent || row.systemSoftContainerMemoryUsage || 0).toFixed(1) }}%</span>
               </div>
             </div>
@@ -185,21 +145,11 @@
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-button 
-                size="small" 
-                type="success" 
-                @click="handleStart(row)"
-                :disabled="row.systemSoftContainerStatus === 'running'"
-              >
+              <el-button size="small" type="success" @click="handleStart(row)" :disabled="row.systemSoftContainerStatus === 'running'">
                 <IconifyIconOnline icon="ri:play-line" class="mr-1" />
                 启动
               </el-button>
-              <el-button 
-                size="small" 
-                type="warning" 
-                @click="handleStop(row)"
-                :disabled="row.systemSoftContainerStatus !== 'running'"
-              >
+              <el-button size="small" type="warning" @click="handleStop(row)" :disabled="row.systemSoftContainerStatus !== 'running'">
                 <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
                 停止
               </el-button>
@@ -235,22 +185,14 @@
     </el-card>
 
     <!-- 容器详情对话框 -->
-    <ContainerDetailDialog
-      v-model:visible="detailDialogVisible"
-      :container-data="currentContainer"
-    />
+    <ContainerDetailDialog v-model:visible="detailDialogVisible" :container-data="currentContainer" />
 
     <!-- 容器日志对话框 -->
-    <ContainerLogsDialog
-      v-model:visible="logsDialogVisible"
-      :container-data="currentContainer"
-    />
+    <ContainerLogsDialog v-model:visible="logsDialogVisible" :container-data="currentContainer" />
 
     <!-- 批量操作底部工具栏 -->
     <div v-if="selectedIds.length > 0" class="batch-actions">
-      <div class="batch-info">
-        已选择 {{ selectedIds.length }} 个容器
-      </div>
+      <div class="batch-info">已选择 {{ selectedIds.length }} 个容器</div>
       <el-button @click="clearSelection">取消选择</el-button>
       <el-button type="success" @click="handleBatchStart">批量启动</el-button>
       <el-button type="warning" @click="handleBatchStop">批量停止</el-button>
@@ -260,297 +202,295 @@
 </template>
 
 <script setup lang="ts">
-import { containerApi, getServerList, type SystemSoftContainer } from '@/api/docker-management'
-import ContainerDetailDialog from '@/components/docker/ContainerDetailDialog.vue'
-import ContainerLogsDialog from '@/components/docker/ContainerLogsDialog.vue'
-import ScTable from "@repo/components/ScTable/index.vue"
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { containerApi, getServerList, type SystemSoftContainer } from "@/api/docker-management";
+import ScTable from "@repo/components/ScTable/index.vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { onMounted, reactive, ref } from "vue";
+import ContainerDetailDialog from "../components/ContainerDetailDialog.vue";
+import ContainerLogsDialog from "../components/ContainerLogsDialog.vue";
 
 // 响应式数据
-const loading = ref(false)
-const syncLoading = ref(false)
-const selectedIds = ref<number[]>([])
-const containerList = ref<SystemSoftContainer[]>([])
-const serverOptions = ref<any[]>([])
-const detailDialogVisible = ref(false)
-const logsDialogVisible = ref(false)
-const currentContainer = ref<SystemSoftContainer | null>(null)
+const loading = ref(false);
+const syncLoading = ref(false);
+const selectedIds = ref<number[]>([]);
+const containerList = ref<SystemSoftContainer[]>([]);
+const serverOptions = ref<any[]>([]);
+const detailDialogVisible = ref(false);
+const logsDialogVisible = ref(false);
+const currentContainer = ref<SystemSoftContainer | null>(null);
 
 // 搜索参数
 const searchParams = reactive({
-  keyword: '',
-  status: '',
-  serverId: ''
-})
+  keyword: "",
+  status: "",
+  serverId: "",
+  size: 10,
+  page: 1
+});
 
 // 分页参数
 const pagination = reactive({
   page: 1,
-  pageSize: 10,
-  total: 0
-})
+  size: 10,
+  total: 0,
+});
 
 // 基础方法
-const loadContainers = async () => {
-  try {
-    loading.value = true
-    const params = { ...searchParams, page: pagination.page, pageSize: pagination.pageSize }
-    Object.keys(params).forEach(key => {
-      if (params[key] === '') delete params[key]
-    })
-    
-    const response = await containerApi.getContainerPageList(params)
-    if (response.code === '00000') {
-      containerList.value = response.data.records || []
-      pagination.total = response.data.total || 0
-    }
-  } catch (error) {
-    ElMessage.error('加载容器列表失败')
-  } finally {
-    loading.value = false
-  }
-}
+// ScTable会自动处理数据加载，此方法不再需要
+const loadContainers = () => {
+  // 空实现，保持向后兼容性
+};
 
-const handleRefresh = () => loadContainers()
-const handleSearch = () => { pagination.page = 1; loadContainers() }
+const handleRefresh = () => loadContainers();
+const handleSearch = () => {
+  pagination.page = 1;
+  loadContainers();
+};
 const handleSelectionChange = (selection: SystemSoftContainer[]) => {
-  selectedIds.value = selection.map(item => item.systemSoftContainerId!)
-}
-const clearSelection = () => { selectedIds.value = [] }
+  selectedIds.value = selection.map((item) => item.systemSoftContainerId!);
+};
+const clearSelection = () => {
+  selectedIds.value = [];
+};
 
 // 工具函数
 const getStatusType = (status?: string) => {
-  const map = { running: 'success', stopped: 'warning', paused: 'info', restarting: 'warning', error: 'danger' }
-  return map[status] || 'info'
-}
+  const map = { running: "success", stopped: "warning", paused: "info", restarting: "warning", error: "danger" };
+  return map[status] || "info";
+};
 
 const getStatusText = (status?: string) => {
-  const map = { running: '运行中', stopped: '已停止', paused: '暂停', restarting: '重启中', error: '错误' }
-  return map[status] || '未知'
-}
+  const map = { running: "运行中", stopped: "已停止", paused: "暂停", restarting: "重启中", error: "错误" };
+  return map[status] || "未知";
+};
 
 const parsePortMappings = (ports?: string) => {
-  if (!ports) return []
+  if (!ports) return [];
   try {
-    const mappings = JSON.parse(ports)
-    return Array.isArray(mappings) ? mappings.map(p => `${p.hostPort}:${p.containerPort}`) : []
+    const mappings = JSON.parse(ports);
+    return Array.isArray(mappings) ? mappings.map((p) => `${p.hostPort}:${p.containerPort}`) : [];
   } catch {
-    return ports.split(',').filter(Boolean)
+    return ports.split(",").filter(Boolean);
   }
-}
+};
 
-const formatTime = (time?: string) => time ? new Date(time).toLocaleString() : '-'
+const formatTime = (time?: string) => (time ? new Date(time).toLocaleString() : "-");
 
 // 容器操作
 const handleStart = async (container: SystemSoftContainer) => {
   try {
-    const response = await containerApi.startContainer(container.systemSoftContainerId!)
-    if (response.code === '00000') {
-      ElMessage.success('容器启动成功')
-      loadContainers()
+    const response = await containerApi.startContainer(container.systemSoftContainerId!);
+    if (response.code === "00000") {
+      ElMessage.success("容器启动成功");
+      loadContainers();
     } else {
-      ElMessage.error(response.msg || '容器启动失败')
+      ElMessage.error(response.msg || "容器启动失败");
     }
   } catch (error) {
-    ElMessage.error('容器启动失败')
+    ElMessage.error("容器启动失败");
   }
-}
+};
 
 const handleStop = async (container: SystemSoftContainer) => {
   try {
-    await ElMessageBox.confirm('确定要停止这个容器吗？', '停止确认', {
-      type: 'warning'
-    })
-    
-    const response = await containerApi.stopContainer(container.systemSoftContainerId!)
-    if (response.code === '00000') {
-      ElMessage.success('容器停止成功')
-      loadContainers()
+    await ElMessageBox.confirm("确定要停止这个容器吗？", "停止确认", {
+      type: "warning",
+    });
+
+    const response = await containerApi.stopContainer(container.systemSoftContainerId!);
+    if (response.code === "00000") {
+      ElMessage.success("容器停止成功");
+      loadContainers();
     } else {
-      ElMessage.error(response.msg || '容器停止失败')
+      ElMessage.error(response.msg || "容器停止失败");
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('容器停止失败')
+    if (error !== "cancel") {
+      ElMessage.error("容器停止失败");
     }
   }
-}
+};
 
 const handleMoreAction = async (command: string, container: SystemSoftContainer) => {
-  currentContainer.value = container
-  
+  currentContainer.value = container;
+
   switch (command) {
-    case 'restart':
-      await handleRestart(container)
-      break
-    case 'logs':
-      logsDialogVisible.value = true
-      break
-    case 'detail':
-      detailDialogVisible.value = true
-      break
-    case 'delete':
-      await handleDelete(container)
-      break
+    case "restart":
+      await handleRestart(container);
+      break;
+    case "logs":
+      logsDialogVisible.value = true;
+      break;
+    case "detail":
+      detailDialogVisible.value = true;
+      break;
+    case "delete":
+      await handleDelete(container);
+      break;
   }
-}
+};
 
 const handleRestart = async (container: SystemSoftContainer) => {
   try {
-    const response = await containerApi.restartContainer(container.systemSoftContainerId!)
-    if (response.code === '00000') {
-      ElMessage.success('容器重启成功')
-      loadContainers()
+    const response = await containerApi.restartContainer(container.systemSoftContainerId!);
+    if (response.code === "00000") {
+      ElMessage.success("容器重启成功");
+      loadContainers();
     } else {
-      ElMessage.error(response.msg || '容器重启失败')
+      ElMessage.error(response.msg || "容器重启失败");
     }
   } catch (error) {
-    ElMessage.error('容器重启失败')
+    ElMessage.error("容器重启失败");
   }
-}
+};
 
 const handleDelete = async (container: SystemSoftContainer) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个容器吗？此操作不可恢复！', '删除确认', {
-      type: 'error'
-    })
-    
-    const response = await containerApi.deleteContainer(container.systemSoftContainerId!)
-    if (response.code === '00000') {
-      ElMessage.success('容器删除成功')
-      loadContainers()
+    await ElMessageBox.confirm("确定要删除这个容器吗？此操作不可恢复！", "删除确认", {
+      type: "error",
+    });
+
+    const response = await containerApi.deleteContainer(container.systemSoftContainerId!);
+    if (response.code === "00000") {
+      ElMessage.success("容器删除成功");
+      loadContainers();
     } else {
-      ElMessage.error(response.msg || '容器删除失败')
+      ElMessage.error(response.msg || "容器删除失败");
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('容器删除失败')
+    if (error !== "cancel") {
+      ElMessage.error("容器删除失败");
     }
   }
-}
+};
 
 const handleSyncStatus = async () => {
   try {
-    syncLoading.value = true
-    const response = await containerApi.syncContainerStatus()
-    if (response.code === '00000') {
-      ElMessage.success('容器状态同步成功')
-      loadContainers()
+    syncLoading.value = true;
+    const response = await containerApi.syncContainerStatus();
+    if (response.code === "00000") {
+      ElMessage.success("容器状态同步成功");
+      loadContainers();
     } else {
-      ElMessage.error(response.msg || '同步失败')
+      ElMessage.error(response.msg || "同步失败");
     }
   } catch (error) {
-    ElMessage.error('同步容器状态失败')
+    ElMessage.error("同步容器状态失败");
   } finally {
-    syncLoading.value = false
+    syncLoading.value = false;
   }
-}
+};
 
 // 批量操作
 const handleBatchStart = async () => {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning('请选择要启动的容器')
-    return
+    ElMessage.warning("请选择要启动的容器");
+    return;
   }
-  
+
   try {
     // 使用现有的批量操作API
     const response = await containerApi.batchOperateContainers({
       containerIds: selectedIds.value,
-      operation: 'start'
-    })
-    if (response.code === '00000') {
-      ElMessage.success('批量启动成功')
-      selectedIds.value = []
-      loadContainers()
+      operation: "start",
+    });
+    if (response.code === "00000") {
+      ElMessage.success("批量启动成功");
+      selectedIds.value = [];
+      loadContainers();
     } else {
-      ElMessage.error(response.msg || '批量启动失败')
+      ElMessage.error(response.msg || "批量启动失败");
     }
   } catch (error) {
-    ElMessage.error('批量启动容器失败')
+    ElMessage.error("批量启动容器失败");
   }
-}
+};
 
 const handleBatchStop = async () => {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning('请选择要停止的容器')
-    return
+    ElMessage.warning("请选择要停止的容器");
+    return;
   }
-  
+
   try {
-    await ElMessageBox.confirm(`确定要停止选中的 ${selectedIds.value.length} 个容器吗？`, '批量停止确认', {
-      type: 'warning'
-    })
-    
+    await ElMessageBox.confirm(`确定要停止选中的 ${selectedIds.value.length} 个容器吗？`, "批量停止确认", {
+      type: "warning",
+    });
+
     // 使用现有的批量操作API
     const response = await containerApi.batchOperateContainers({
       containerIds: selectedIds.value,
-      operation: 'stop'
-    })
-    if (response.code === '00000') {
-      ElMessage.success('批量停止成功')
-      selectedIds.value = []
-      loadContainers()
+      operation: "stop",
+    });
+    if (response.code === "00000") {
+      ElMessage.success("批量停止成功");
+      selectedIds.value = [];
+      loadContainers();
     } else {
-      ElMessage.error(response.msg || '批量停止失败')
+      ElMessage.error(response.msg || "批量停止失败");
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('批量停止容器失败')
+    if (error !== "cancel") {
+      ElMessage.error("批量停止容器失败");
     }
   }
-}
+};
 
 const handleBatchDelete = async () => {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning('请选择要删除的容器')
-    return
+    ElMessage.warning("请选择要删除的容器");
+    return;
   }
-  
+
   try {
-    await ElMessageBox.confirm(`确定要删除选中的 ${selectedIds.value.length} 个容器吗？此操作不可恢复！`, '批量删除确认', {
-      type: 'error'
-    })
-    
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedIds.value.length} 个容器吗？此操作不可恢复！`, "批量删除确认", {
+      type: "error",
+    });
+
     // 使用现有的批量操作API
     const response = await containerApi.batchOperateContainers({
       containerIds: selectedIds.value,
-      operation: 'remove'
-    })
-    if (response.code === '00000') {
-      ElMessage.success('批量删除成功')
-      selectedIds.value = []
-      loadContainers()
+      operation: "remove",
+    });
+    if (response.code === "00000") {
+      ElMessage.success("批量删除成功");
+      selectedIds.value = [];
+      loadContainers();
     } else {
-      ElMessage.error(response.msg || '批量删除失败')
+      ElMessage.error(response.msg || "批量删除失败");
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('批量删除容器失败')
+    if (error !== "cancel") {
+      ElMessage.error("批量删除容器失败");
     }
   }
-}
+};
 
-const handleSizeChange = (size: number) => { pagination.pageSize = size; loadContainers() }
-const handleCurrentChange = (page: number) => { pagination.page = page; loadContainers() }
+const handleSizeChange = (size: number) => {
+  pagination.size = size;
+  loadContainers();
+};
+const handleCurrentChange = (page: number) => {
+  pagination.page = page;
+  loadContainers();
+};
 
 // 加载服务器列表
 const loadServers = async () => {
   try {
-    const response = await getServerList()
-    if (response.code === '00000') {
-      serverOptions.value = response.data || []
+    const response = await getServerList();
+    if (response.code === "00000") {
+      serverOptions.value = response.data || [];
     }
   } catch (error) {
-    console.error('加载服务器列表失败:', error)
+    console.error("加载服务器列表失败:", error);
   }
-}
+};
 
 onMounted(() => {
-  loadContainers()
-  loadServers()
-})
+  loadContainers();
+  loadServers();
+});
 </script>
 
 <style scoped>
@@ -1098,34 +1038,6 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-@media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .header-right {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .search-right {
-    flex-direction: column;
-  }
-
-  .monitor-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .header-actions {
-    flex-direction: column;
-  }
-}
-</style>
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e4e7ed;
 }
 
 .terminal-title {

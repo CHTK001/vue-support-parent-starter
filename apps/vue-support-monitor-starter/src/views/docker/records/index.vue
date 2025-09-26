@@ -24,13 +24,7 @@
     <!-- 搜索和筛选 -->
     <div class="search-bar">
       <div class="search-left">
-        <el-input
-          v-model="searchParams.keyword"
-          placeholder="搜索软件名称、版本或服务器"
-          class="search-input"
-          clearable
-          @keyup.enter="loadRecords"
-        >
+        <el-input v-model="searchParams.keyword" placeholder="搜索软件名称、版本或服务器" class="search-input" clearable @keyup.enter="loadRecords">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
@@ -48,17 +42,7 @@
           <el-option label="Compose" value="COMPOSE" />
           <el-option label="Swarm" value="SWARM" />
         </el-select>
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-          @change="handleDateChange"
-          class="date-picker"
-        />
+        <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" format="YYYY-MM-DD" value-format="YYYY-MM-DD" @change="handleDateChange" class="date-picker" />
       </div>
       <div class="search-right">
         <el-button type="primary" @click="loadRecords">
@@ -74,11 +58,7 @@
 
     <!-- 统计信息 -->
     <div class="stats-section">
-      <StatsCard 
-        :stats="statsData" 
-        :details="statsDetails"
-        :show-toggle="true"
-      />
+      <StatsCard :stats="statsData" :details="statsDetails" :show-toggle="true" />
     </div>
 
     <!-- 记录列表 -->
@@ -94,13 +74,19 @@
           </div>
         </div>
       </template>
-      
-      <el-table 
-        :data="recordsList" 
-        stripe 
-        v-loading="loading"
+
+      <ScTable
+        :data="recordsList"
+        stripe
+        :loading="loading"
+        :total="total"
+        :page-size="pageParams.pageSize"
+        :current-page="pageParams.page"
         @selection-change="handleSelectionChange"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
         class="records-table"
+        table-name="docker-records"
       >
         <el-table-column type="selection" width="55" />
         <el-table-column prop="systemSoftName" label="软件名称" width="150" show-overflow-tooltip />
@@ -135,7 +121,7 @@
                 :software-info="{
                   name: row.systemSoftName,
                   version: row.version,
-                  size: row.size
+                  size: row.size,
                 }"
                 :show-steps="false"
                 :show-stats="false"
@@ -145,11 +131,7 @@
               />
             </div>
             <div v-else class="progress-container">
-              <el-progress 
-                :percentage="row.progress || 0" 
-                :status="getProgressStatus(row.status)"
-                :stroke-width="8"
-              />
+              <el-progress :percentage="row.progress || 0" :status="getProgressStatus(row.status)" :stroke-width="8" />
               <span class="progress-text">{{ row.progress || 0 }}%</span>
             </div>
           </template>
@@ -197,19 +179,11 @@
             </el-dropdown>
           </template>
         </el-table-column>
-      </el-table>
+      </ScTable>
 
       <!-- 分页 -->
       <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="pageParams.page"
-          v-model:page-size="pageParams.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadRecords"
-          @current-change="loadRecords"
-        />
+        <el-pagination v-model:current-page="pageParams.page" v-model:page-size="pageParams.pageSize" :page-sizes="[10, 20, 50, 100]" :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
       </div>
     </el-card>
 
@@ -265,26 +239,40 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed, nextTick } from "vue";
-import { message, ElMessageBox } from "@repo/utils";
-import { 
-  getSoftInstallRecords,
-  type SystemSoftRecord,
-  retryInstallSoft,
-  cancelInstallSoft,
-  deleteInstallRecord,
-  getInstallLogs
-} from "@/api/soft";
 import { getServerPageList } from "@/api/server";
-import StatsCard from "./components/StatsCard.vue";
-import InstallProgress from "./components/InstallProgress.vue";
+import { cancelInstallSoft, deleteInstallRecord, getInstallLogs, getSoftInstallRecords, retryInstallSoft } from "@/api/soft";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
+import { computed, nextTick, onMounted, ref } from "vue";
+import InstallProgress from "../components/InstallProgress.vue";
+import StatsCard from "../components/StatsCard.vue";
+
+// 定义软件安装记录类型
+interface SystemSoftRecord {
+  recordId?: string;
+  systemSoftName?: string;
+  version?: string;
+  serverId?: number;
+  installMethod?: string;
+  status?: string;
+  progress?: number;
+  currentStep?: string;
+  currentStepIndex?: number;
+  steps?: string[];
+  size?: number;
+  startTime?: string;
+  endTime?: string;
+  createTime?: string;
+  errorMessage?: string;
+  installParams?: string;
+}
 
 // 基础数据
 const recordsList = ref<SystemSoftRecord[]>([]);
 const serverOptions = ref<any[]>([]);
 const selectedRecords = ref<SystemSoftRecord[]>([]);
 const currentRecord = ref<SystemSoftRecord | null>(null);
-const logs = ref('');
+const logs = ref("");
 const dateRange = ref<[string, string] | null>(null);
 
 // 页面状态
@@ -296,81 +284,79 @@ const total = ref(0);
 
 // 搜索参数
 const searchParams = ref({
-  keyword: '',
-  status: '',
-  installMethod: '',
-  startDate: '',
-  endDate: ''
+  keyword: "",
+  status: "",
+  installMethod: "",
+  startDate: "",
+  endDate: "",
 });
 
 // 分页参数
 const pageParams = ref({
   page: 1,
-  pageSize: 20
+  pageSize: 20,
 });
 
 // 统计信息
 const stats = computed(() => {
-  const successCount = recordsList.value.filter(r => r.status === 'SUCCESS').length;
-  const installingCount = recordsList.value.filter(r => r.status === 'INSTALLING').length;
-  const failedCount = recordsList.value.filter(r => r.status === 'FAILED').length;
+  const successCount = recordsList.value.filter((r) => r.status === "SUCCESS").length;
+  const installingCount = recordsList.value.filter((r) => r.status === "INSTALLING").length;
+  const failedCount = recordsList.value.filter((r) => r.status === "FAILED").length;
   const totalCount = recordsList.value.length;
-  
+
   return {
     successCount,
     installingCount,
     failedCount,
-    totalCount
+    totalCount,
   };
 });
 
 // 统计卡片数据
 const statsData = computed(() => [
   {
-    key: 'total',
-    label: '总记录数',
+    key: "total",
+    label: "总记录数",
     value: stats.value.totalCount,
-    icon: 'ri:archive-line',
-    type: 'primary',
-    format: 'number',
-    description: '所有安装记录的总数量'
+    icon: "ri:archive-line",
+    type: "primary" as const,
+    format: "number",
+    description: "所有安装记录的总数量",
   },
   {
-    key: 'success',
-    label: '成功安装',
+    key: "success",
+    label: "成功安装",
     value: stats.value.successCount,
-    icon: 'ri:check-line',
-    type: 'success',
-    format: 'number',
-    description: '成功完成的安装数量',
-    trend: { type: 'up', value: '+5' }
+    icon: "ri:check-line",
+    type: "success" as const,
+    format: "number",
+    description: "成功完成的安装数量",
+    trend: { type: "up", value: "+5" },
   },
   {
-    key: 'failed',
-    label: '安装失败',
+    key: "failed",
+    label: "安装失败",
     value: stats.value.failedCount,
-    icon: 'ri:close-line',
-    type: 'danger',
-    format: 'number',
-    description: '安装失败的数量'
+    icon: "ri:close-line",
+    type: "danger" as const,
+    format: "number",
+    description: "安装失败的数量",
   },
   {
-    key: 'installing',
-    label: '安装中',
+    key: "installing",
+    label: "安装中",
     value: stats.value.installingCount,
-    icon: 'ri:time-line',
-    type: 'warning',
-    format: 'number',
-    description: '正在进行的安装数量'
-  }
+    icon: "ri:time-line",
+    type: "warning" as const,
+    format: "number",
+    description: "正在进行的安装数量",
+  },
 ]);
 
 // 统计详情数据
 const statsDetails = computed(() => {
-  const successRate = stats.value.totalCount > 0 
-    ? (stats.value.successCount / stats.value.totalCount * 100) 
-    : 0;
-  
+  const successRate = stats.value.totalCount > 0 ? (stats.value.successCount / stats.value.totalCount) * 100 : 0;
+
   return {
     systemSoftware: Math.floor(stats.value.successCount * 0.3),
     applicationSoftware: Math.floor(stats.value.successCount * 0.5),
@@ -379,7 +365,7 @@ const statsDetails = computed(() => {
     successRate: successRate,
     avgInstallTime: 245, // 秒
     totalInstallTime: stats.value.successCount * 245,
-    mostInstalledCategory: 'Application Software'
+    mostInstalledCategory: "Application Software",
   };
 });
 
@@ -392,9 +378,9 @@ const loadRecords = async () => {
     loading.value = true;
     const params = {
       ...pageParams.value,
-      ...searchParams.value
+      ...searchParams.value,
     };
-    
+
     const res = await getSoftInstallRecords(params);
     if (res.code === "00000") {
       recordsList.value = res.data.records || [];
@@ -409,10 +395,10 @@ const loadServers = async () => {
   const res = await getServerPageList({ page: 1, pageSize: 1000 });
   if (res.code === "00000") {
     const data = (res.data as any).data || res.data.records || [];
-    serverOptions.value = data.map((it: any) => ({ 
-      id: it.id || it.monitorSysGenServerId, 
-      name: it.name || it.monitorSysGenServerName, 
-      host: it.host || it.monitorSysGenServerHost 
+    serverOptions.value = data.map((it: any) => ({
+      id: it.id || it.monitorSysGenServerId,
+      name: it.name || it.monitorSysGenServerName,
+      host: it.host || it.monitorSysGenServerHost,
     }));
   }
 };
@@ -423,18 +409,18 @@ const handleDateChange = (dates: [string, string] | null) => {
     searchParams.value.startDate = dates[0];
     searchParams.value.endDate = dates[1];
   } else {
-    searchParams.value.startDate = '';
-    searchParams.value.endDate = '';
+    searchParams.value.startDate = "";
+    searchParams.value.endDate = "";
   }
 };
 
 const resetSearch = () => {
   searchParams.value = {
-    keyword: '',
-    status: '',
-    installMethod: '',
-    startDate: '',
-    endDate: ''
+    keyword: "",
+    status: "",
+    installMethod: "",
+    startDate: "",
+    endDate: "",
   };
   dateRange.value = null;
   pageParams.value.page = 1;
@@ -443,12 +429,22 @@ const resetSearch = () => {
 
 const refreshRecords = async () => {
   await loadRecords();
-  message.success('记录列表已刷新');
+  message.success("记录列表已刷新");
 };
 
 // 表格操作
 const handleSelectionChange = (selection: SystemSoftRecord[]) => {
   selectedRecords.value = selection;
+};
+
+const handleSizeChange = (size: number) => {
+  pageParams.value.pageSize = size;
+  loadRecords();
+};
+
+const handleCurrentChange = (page: number) => {
+  pageParams.value.page = page;
+  loadRecords();
 };
 
 const viewDetail = (record: SystemSoftRecord) => {
@@ -467,7 +463,7 @@ const loadLogs = async (recordId: string) => {
     logsLoading.value = true;
     const res = await getInstallLogs({ recordId });
     if (res.code === "00000") {
-      logs.value = res.data || '暂无日志信息';
+      logs.value = res.data || "暂无日志信息";
       await nextTick();
       // 滚动到底部
       if (logsContentRef.value) {
@@ -487,14 +483,14 @@ const refreshLogs = async () => {
 
 const downloadLogs = () => {
   if (!logs.value) {
-    return message.warning('暂无日志可下载');
+    return message.warning("暂无日志可下载");
   }
-  
-  const blob = new Blob([logs.value], { type: 'text/plain' });
+
+  const blob = new Blob([logs.value], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
-  a.download = `install-logs-${currentRecord.value?.recordId || 'unknown'}.txt`;
+  a.download = `install-logs-${currentRecord.value?.recordId || "unknown"}.txt`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -504,13 +500,13 @@ const downloadLogs = () => {
 // 记录操作
 const handleAction = async (command: string, record: SystemSoftRecord) => {
   switch (command) {
-    case 'retry':
+    case "retry":
       await retryInstall(record);
       break;
-    case 'cancel':
+    case "cancel":
       await cancelInstall(record);
       break;
-    case 'delete':
+    case "delete":
       await deleteRecord(record);
       break;
   }
@@ -518,121 +514,105 @@ const handleAction = async (command: string, record: SystemSoftRecord) => {
 
 const retryInstall = async (record: SystemSoftRecord) => {
   try {
-    await ElMessageBox.confirm(
-      `确认重试安装 ${record.systemSoftName} v${record.version}？`,
-      '确认重试',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    );
-    
+    await ElMessageBox.confirm(`确认重试安装 ${record.systemSoftName} v${record.version}？`, "确认重试", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+
     const res = await retryInstallSoft({ recordId: record.recordId! });
     if (res.code === "00000") {
-      message.success('重试安装请求已提交');
+      message.success("重试安装请求已提交");
       await loadRecords();
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      message.error('重试安装失败');
+    if (error !== "cancel") {
+      message.error("重试安装失败");
     }
   }
 };
 
 const cancelInstall = async (record: SystemSoftRecord) => {
   try {
-    await ElMessageBox.confirm(
-      `确认取消安装 ${record.systemSoftName} v${record.version}？`,
-      '确认取消',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    );
-    
+    await ElMessageBox.confirm(`确认取消安装 ${record.systemSoftName} v${record.version}？`, "确认取消", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+
     const res = await cancelInstallSoft({ recordId: record.recordId! });
     if (res.code === "00000") {
-      message.success('安装任务已取消');
+      message.success("安装任务已取消");
       await loadRecords();
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      message.error('取消安装失败');
+    if (error !== "cancel") {
+      message.error("取消安装失败");
     }
   }
 };
 
 const deleteRecord = async (record: SystemSoftRecord) => {
   try {
-    await ElMessageBox.confirm(
-      `确认删除安装记录 ${record.systemSoftName} v${record.version}？此操作不可恢复。`,
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'error'
-      }
-    );
-    
+    await ElMessageBox.confirm(`确认删除安装记录 ${record.systemSoftName} v${record.version}？此操作不可恢复。`, "确认删除", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "error",
+    });
+
     const res = await deleteInstallRecord({ recordId: record.recordId! });
     if (res.code === "00000") {
-      message.success('记录删除成功');
+      message.success("记录删除成功");
       await loadRecords();
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      message.error('删除记录失败');
+    if (error !== "cancel") {
+      message.error("删除记录失败");
     }
   }
 };
 
 const batchDelete = async () => {
   try {
-    await ElMessageBox.confirm(
-      `确认删除选中的 ${selectedRecords.value.length} 条记录？此操作不可恢复。`,
-      '确认批量删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'error'
-      }
-    );
-    
+    await ElMessageBox.confirm(`确认删除选中的 ${selectedRecords.value.length} 条记录？此操作不可恢复。`, "确认批量删除", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "error",
+    });
+
     // 这里可以调用批量删除API
-    message.success('批量删除成功');
+    message.success("批量删除成功");
     await loadRecords();
   } catch (error) {
-    if (error !== 'cancel') {
-      message.error('批量删除失败');
+    if (error !== "cancel") {
+      message.error("批量删除失败");
     }
   }
 };
 
 const exportRecords = () => {
-  message.info('导出功能开发中');
+  message.info("导出功能开发中");
 };
 
 // 工具方法
 const formatDate = (date: string | Date) => {
-  if (!date) return '-';
-  return new Date(date).toLocaleString('zh-CN');
+  if (!date) return "-";
+  return new Date(date).toLocaleString("zh-CN");
 };
 
 const formatDuration = (startTime: string | Date, endTime: string | Date) => {
-  if (!startTime || !endTime) return '-';
+  if (!startTime || !endTime) return "-";
   const start = new Date(startTime).getTime();
   const end = new Date(endTime).getTime();
   const duration = Math.floor((end - start) / 1000);
-  
+
   if (duration < 60) return `${duration}秒`;
   if (duration < 3600) return `${Math.floor(duration / 60)}分${duration % 60}秒`;
   return `${Math.floor(duration / 3600)}时${Math.floor((duration % 3600) / 60)}分`;
 };
 
 const formatParams = (params: string) => {
-  if (!params) return '无';
+  if (!params) return "无";
   try {
     return JSON.stringify(JSON.parse(params), null, 2);
   } catch {
@@ -641,58 +621,58 @@ const formatParams = (params: string) => {
 };
 
 const getServerName = (serverId: number) => {
-  const server = serverOptions.value.find(s => s.id === serverId);
+  const server = serverOptions.value.find((s) => s.id === serverId);
   return server?.name || `服务器${serverId}`;
 };
 
 const getServerHost = (serverId: number) => {
-  const server = serverOptions.value.find(s => s.id === serverId);
-  return server?.host || '-';
+  const server = serverOptions.value.find((s) => s.id === serverId);
+  return server?.host || "-";
 };
 
 const getMethodType = (method: string) => {
-  const typeMap: Record<string, string> = {
-    'DOCKER_CLI': '',
-    'COMPOSE': 'success',
-    'SWARM': 'warning'
+  const typeMap: Record<string, any> = {
+    DOCKER_CLI: "",
+    COMPOSE: "success",
+    SWARM: "warning",
   };
-  return typeMap[method] || '';
+  return typeMap[method] || "";
 };
 
 const getMethodLabel = (method: string) => {
   const labelMap: Record<string, string> = {
-    'DOCKER_CLI': 'Docker CLI',
-    'COMPOSE': 'Compose',
-    'SWARM': 'Swarm'
+    DOCKER_CLI: "Docker CLI",
+    COMPOSE: "Compose",
+    SWARM: "Swarm",
   };
   return labelMap[method] || method;
 };
 
 const getStatusType = (status: string) => {
-  const statusMap: Record<string, string> = {
-    'INSTALLING': 'warning',
-    'SUCCESS': 'success',
-    'FAILED': 'danger',
-    'CANCELLED': 'info'
+  const statusMap: Record<string, any> = {
+    INSTALLING: "warning",
+    SUCCESS: "success",
+    FAILED: "danger",
+    CANCELLED: "info",
   };
-  return statusMap[status] || 'info';
+  return statusMap[status] || "info";
 };
 
 const getStatusLabel = (status: string) => {
   const statusMap: Record<string, string> = {
-    'INSTALLING': '安装中',
-    'SUCCESS': '成功',
-    'FAILED': '失败',
-    'CANCELLED': '已取消'
+    INSTALLING: "安装中",
+    SUCCESS: "成功",
+    FAILED: "失败",
+    CANCELLED: "已取消",
   };
   return statusMap[status] || status;
 };
 
 const getProgressStatus = (status: string) => {
-  if (status === 'SUCCESS') return 'success';
-  if (status === 'FAILED') return 'exception';
-  if (status === 'INSTALLING') return undefined;
-  return 'exception';
+  if (status === "SUCCESS") return "success";
+  if (status === "FAILED") return "exception";
+  if (status === "INSTALLING") return undefined;
+  return "exception";
 };
 
 onMounted(async () => {
@@ -742,7 +722,7 @@ onMounted(async () => {
 
 .page-subtitle {
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .header-right {
@@ -851,7 +831,7 @@ onMounted(async () => {
 
 .stat-label {
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 /* 记录卡片 */
@@ -890,7 +870,7 @@ onMounted(async () => {
 
 .server-host {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .progress-container {
@@ -921,7 +901,7 @@ onMounted(async () => {
   background: var(--el-bg-color-overlay);
   padding: 12px;
   border-radius: 4px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 12px;
   line-height: 1.4;
   max-height: 200px;
@@ -935,7 +915,7 @@ onMounted(async () => {
   padding: 12px;
   border-radius: 4px;
   border-left: 4px solid #f56c6c;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 12px;
   line-height: 1.4;
 }
@@ -966,7 +946,7 @@ onMounted(async () => {
 
 .logs-text {
   color: #d4d4d4;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 12px;
   line-height: 1.4;
   padding: 16px;
@@ -981,7 +961,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   height: 100%;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   font-size: 14px;
   gap: 8px;
 }
@@ -1033,15 +1013,15 @@ onMounted(async () => {
   .search-left {
     flex-wrap: wrap;
   }
-  
+
   .search-input {
     width: 240px;
   }
-  
+
   .filter-select {
     width: 120px;
   }
-  
+
   .date-picker {
     width: 200px;
   }
@@ -1051,43 +1031,43 @@ onMounted(async () => {
   .records-page {
     padding: 12px;
   }
-  
+
   .page-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
-  
+
   .search-bar {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .search-left {
     flex-direction: column;
   }
-  
+
   .search-input,
   .filter-select,
   .date-picker {
     width: 100%;
   }
-  
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
   }
-  
+
   .stat-card {
     padding: 16px;
   }
-  
+
   .stat-icon {
     width: 40px;
     height: 40px;
     font-size: 20px;
   }
-  
+
   .stat-value {
     font-size: 20px;
   }
@@ -1097,12 +1077,12 @@ onMounted(async () => {
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .header-right {
     flex-direction: column;
     width: 100%;
   }
-  
+
   .search-right {
     flex-direction: column;
   }

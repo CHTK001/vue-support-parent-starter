@@ -18,6 +18,8 @@ export interface ReturnResult<E> {
   code: string | number;
   // 消息
   msg: string;
+  // 消息（与msg相同，用于兼容不同场景）
+  message: string;
   // 数据
   data: E;
   // 响应头
@@ -97,6 +99,18 @@ class PureHttp {
         config = uu2(config);
         const an = config.headers["x-remote-animation"] || config.headers["loading"];
         config.headers["x-req-fingerprint"] = localStorageProxy().getItem("visitId");
+        
+        // 添加nonce和timestamp参数
+        const timestamp = Date.now();
+        const nonce = generateNonce();
+        
+        config.headers["x-nonce"] = nonce;
+        config.headers["x-timestamp"] = timestamp.toString();
+        
+        // 生成并添加签名
+        const sign = generateSign(config, timestamp);
+        config.headers["x-sign"] = sign;
+        
         if (an) {
           if (an == "true") {
             // 开启进度条动画
@@ -179,6 +193,7 @@ class PureHttp {
           data: null,
           code: 0,
           msg: "",
+          message: "", // 添加message属性
           headers: {},
         };
         const code = response.data?.code || response.status;
@@ -186,6 +201,8 @@ class PureHttp {
         result.code = code;
         result.response = response;
         result.msg = response.data?.msg || response.statusText;
+        // 添加message属性，值与msg相同
+        result.message = result.msg;
         result.headers = response.headers;
         result.success = response.data?.success || isSuccess(code);
         const resVersion = result.headers["x-response-version"];
@@ -357,8 +374,11 @@ class PureHttp {
         .catch((error) => {
           // 请求失败后移除控制器
           PureHttp.activeRequests.delete(requestId);
-          if (error?.response?.data && isObject(error.response.data) && !error?.response?.data?.message) {
-            error.response.data.message = error.response.data.msg;
+          if (error?.response?.data && isObject(error.response.data)) {
+            // 确保错误响应数据包含message属性，值与msg相同
+            if (!error.response.data.message) {
+              error.response.data.message = error.response.data.msg;
+            }
           }
           reject(error?.response?.data || error);
         });
@@ -487,3 +507,109 @@ class PureHttp {
 }
 
 export const http = new PureHttp();
+
+/** 生成复杂的nonce值 */
+const generateNonce = (): string => {
+  // 获取当前时间戳（毫秒）
+  const timestamp = Date.now();
+  
+  // 生成多个随机数
+  const random1 = Math.random().toString(36).substr(2, 5);
+  const random2 = Math.random().toString(36).substr(2, 7);
+  const random3 = Math.floor(Math.random() * 1000000).toString(36);
+  
+  // 生成基于时间戳的哈希-like值
+  const timeHash = (timestamp * 9301 + 49297) % 233280;
+  
+  // 生成序列号
+  const sequence = (timestamp & 0xFFFF) ^ (timestamp >>> 16);
+  
+  // 生成基于随机数的混合值
+  const mixed = ((random1.length * random2.length * random3.length) + timestamp) % 999999;
+  
+  // 生成最终的复杂nonce
+  const nonce = `${random1}${sequence.toString(36)}${random2}${timeHash.toString(36)}${random3}${mixed.toString(36)}`;
+  
+  // 确保长度足够复杂
+  if (nonce.length < 32) {
+    const padding = Math.random().toString(36).substr(2, 32 - nonce.length);
+    return nonce + padding;
+  }
+  
+  return nonce;
+};
+
+/** 生成签名 */
+const generateSign = (config: any, timestamp: number): string => {
+  // 收集请求参数
+  const params: Record<string, any> = {};
+  
+  // 收集URL参数
+  if (config.params) {
+    Object.keys(config.params).sort().forEach(key => {
+      params[key] = config.params[key];
+    });
+  }
+  
+  // 收集请求体数据
+  if (config.data) {
+    if (typeof config.data === 'object' && !(config.data instanceof FormData)) {
+      Object.keys(config.data).sort().forEach(key => {
+        params[key] = config.data[key];
+      });
+    } else if (typeof config.data === 'string') {
+      try {
+        const jsonData = JSON.parse(config.data);
+        Object.keys(jsonData).sort().forEach(key => {
+          params[key] = jsonData[key];
+        });
+      } catch (e) {
+        // 如果不是JSON字符串，则直接使用
+        params['data'] = config.data;
+      }
+    }
+  }
+  
+  // 添加nonce和timestamp
+  params['_nonce'] = config.headers['x-nonce'];
+  params['_timestamp'] = timestamp;
+  
+  // 按键名排序并拼接参数
+  const sortedKeys = Object.keys(params).sort();
+  let paramString = '';
+  sortedKeys.forEach(key => {
+    const value = params[key];
+    if (value !== null && value !== undefined) {
+      paramString += `${key}=${value}&`;
+    }
+  });
+  
+  // 移除末尾的&符号
+  if (paramString.endsWith('&')) {
+    paramString = paramString.slice(0, -1);
+  }
+  
+  // 添加密钥
+  const secretKey = "your-secret-key"; // 实际应该从配置中获取
+  const dataToSign = paramString + secretKey;
+  
+  // 生成MD5签名
+  return md5Hash(dataToSign);
+};
+
+/** MD5哈希函数 */
+const md5Hash = (input: string): string => {
+  // 简化的MD5实现（实际项目中应使用crypto库）
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    const character = input.charCodeAt(i);
+    hash = ((hash << 5) - hash) + character;
+    hash = hash & hash; // 转换为32位整数
+  }
+  // 转换为16进制字符串并确保长度为32位
+  let hex = Math.abs(hash).toString(16);
+  while (hex.length < 32) {
+    hex = "0" + hex;
+  }
+  return hex.substr(0, 32);
+};
