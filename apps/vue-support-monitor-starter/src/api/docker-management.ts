@@ -172,9 +172,8 @@ export interface BatchOperationResult {
 // 分页参数
 export interface PageParams<T = any> {
   page?: number;
-  pageSize?: number;
-  current?: number;
   size?: number;
+  current?: number;
   [k: string]: any;
 }
 

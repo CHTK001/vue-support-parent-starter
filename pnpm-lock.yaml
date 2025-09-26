@@ -960,6 +960,9 @@ importers:
       '@repo/build':
         specifier: workspace:^
         version: link:packages/build
+      '@repo/codec-wasm':
+        specifier: workspace:^
+        version: link:packages/codec-wasm
       '@repo/components':
         specifier: workspace:^
         version: link:packages/components
@@ -3783,6 +3786,16 @@ importers:
       vite:
         specifier: 'catalog:'
         version: 6.3.6(@types/node@22.18.1)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1)
+
+  packages/codec-wasm:
+    dependencies:
+      '@assemblyscript/loader':
+        specifier: ^0.28.8
+        version: 0.28.8
+    devDependencies:
+      assemblyscript:
+        specifier: ^0.28.8
+        version: 0.28.8
 
   packages/components:
     dependencies:
@@ -7254,6 +7267,9 @@ packages:
 
   '@antv/vendor@1.0.11':
     resolution: {integrity: sha512-LmhPEQ+aapk3barntaiIxJ5VHno/Tyab2JnfdcPzp5xONh/8VSfed4bo/9xKo5HcUAEydko38vYLfj6lJliLiw==}
+
+  '@assemblyscript/loader@0.28.8':
+    resolution: {integrity: sha512-zGbXy/LwD5IIN3xa/n8BvS86jmBM6VSuW++P6AzNnh+cSocoVdnXwYoreOOT6QVTOec4vx2iujp7HBFarx0cZQ==}
 
   '@babel/code-frame@7.27.1':
     resolution: {integrity: sha512-cjQ7ZlQ0Mv3b47hABuTevyTuYN4i+loJKGeV9flcCgIK37cCXRh+L1bd3iBHlynerhQ7BhCkn2BPbQUL+rGqFg==}
@@ -11499,6 +11515,11 @@ packages:
   asn1.js@4.10.1:
     resolution: {integrity: sha512-p32cOF5q0Zqs9uBiONKYLm6BClCoBCM5O9JfeUSlnQLBTxYdTK+pW+nXflm8UkKd2UYlEbYz5qEi0JuZR9ckSw==}
 
+  assemblyscript@0.28.8:
+    resolution: {integrity: sha512-RtnvzuplmvWeOlYLgjb61jE/Uvj0LYxQ8KxfO+ARu2zOH69NNnS4gfSRDSq0CbM1qZw91kVd7QKmGZFxUlfQ8g==}
+    engines: {node: '>=20', npm: '>=10'}
+    hasBin: true
+
   assert@2.1.0:
     resolution: {integrity: sha512-eLHpSK/Y4nhMJ07gDaAzoX/XAKS8PSaojml3M0DM4JpV1LAi5JOJ/p6H/XWrl8L+DzVEvVCW1z3vWAaB9oTsQw==}
 
@@ -11616,6 +11637,10 @@ packages:
   binary-extensions@2.3.0:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
     engines: {node: '>=8'}
+
+  binaryen@123.0.0-nightly.20250530:
+    resolution: {integrity: sha512-d1zPHBN5YlOd3Ff+OUxvVExuFeh8heSnqe+X3bjItFxGLvn4VGBKmrvv7pgy/cRhrIUGuPW138iaWfDhwjyDqg==}
+    hasBin: true
 
   bitmap-sdf@1.0.4:
     resolution: {integrity: sha512-1G3U4n5JE6RAiALMxu0p1XmeZkTeCwGKykzsLTCqVzfSDaN6S7fKnkIkfejogz+iwqBWc0UYAIKnKHNN7pSfDg==}
@@ -18666,6 +18691,8 @@ snapshots:
       d3-time: 3.1.0
       d3-timer: 3.0.1
 
+  '@assemblyscript/loader@0.28.8': {}
+
   '@babel/code-frame@7.27.1':
     dependencies:
       '@babel/helper-validator-identifier': 7.27.1
@@ -24358,6 +24385,11 @@ snapshots:
       inherits: 2.0.4
       minimalistic-assert: 1.0.1
 
+  assemblyscript@0.28.8:
+    dependencies:
+      binaryen: 123.0.0-nightly.20250530
+      long: 5.3.2
+
   assert@2.1.0:
     dependencies:
       call-bind: 1.0.8
@@ -24490,6 +24522,8 @@ snapshots:
       write-file-atomic: 4.0.2
 
   binary-extensions@2.3.0: {}
+
+  binaryen@123.0.0-nightly.20250530: {}
 
   bitmap-sdf@1.0.4: {}
 

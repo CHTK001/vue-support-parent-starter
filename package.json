@@ -55,6 +55,7 @@
     "@repo/components": "workspace:^",
     "@repo/config": "workspace:^",
     "@repo/core": "workspace:^",
+    "@repo/codec-wasm": "workspace:^",
     "@repo/module": "workspace:^",
     "@repo/node": "workspace:^",
     "@repo/pages": "workspace:^",
