@@ -8,3 +8,5 @@ export function uu3_wasm(value: string): Promise<string>;
 export function uu4_wasm(response: any): Promise<any>;
 export function initWasm(): Promise<boolean>;
 export function isWasmLoaded(): boolean;
+export function getCurrentTimestamp(): Promise<bigint>;
+export function add(a: number, b: number): Promise<number>;
