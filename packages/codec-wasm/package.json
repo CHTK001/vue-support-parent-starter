@@ -4,7 +4,7 @@
   "description": "WebAssembly implementation of codec utilities for encryption/decryption",
   "main": "src/index.js",
   "module": "src/index.js",
-  "types": "build/release.d.ts",
+  "types": "src/index.d.ts",
   "files": [
     "src/",
     "build/",
