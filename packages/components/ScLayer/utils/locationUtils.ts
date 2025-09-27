@@ -1,5 +1,5 @@
 import type { GeoPoint } from "../types";
-import axios from 'axios';
+import { http } from "@repo/utils";
 import logger from '../composables/LogObject';
 
 //获取当前位置 
@@ -55,12 +55,10 @@ export const getLocationCityCode = async (location: GeoPoint): Promise<{
     const url = 'https://api.bigdatacloud.net/data/reverse-geocode-client';
     
     // 发送请求
-    const response = await axios.get(url, {
-      params: {
-        latitude: lat,
-        longitude: lng,
-        localityLanguage: 'zh' // 使用中文结果
-      }
+    const response: any = await http.get(url, {
+      latitude: lat,
+      longitude: lng,
+      localityLanguage: 'zh' // 使用中文结果
     });
     
     const data = response.data;

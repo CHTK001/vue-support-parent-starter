@@ -9,14 +9,11 @@
 ///
 
 import { t } from "@repo/config";
-import axios from "./config";
+import { http } from "@repo/utils";
 
 // 分发列表
 export function getDishPatchList(data, loading) {
-  return axios({
-    url: "/outgiving/dispatch-list",
-    method: "post",
-    data: data,
+  return http.post("/outgiving/dispatch-list", data, {
     headers: {
       loading: loading === false ? "no" : "",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -26,9 +23,7 @@ export function getDishPatchList(data, loading) {
 
 // 分发列表
 export function getDishPatchListAll() {
-  return axios({
-    url: "/outgiving/dispatch-list-all",
-    method: "get",
+  return http.get("/outgiving/dispatch-list-all", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -37,10 +32,7 @@ export function getDishPatchListAll() {
 
 // 分发节点项目状态
 export function getDispatchProject(id, loading) {
-  return axios({
-    url: "/outgiving/getItemData.json",
-    method: "post",
-    data: { id },
+  return http.post("/outgiving/getItemData.json", { id }, {
     timeout: 0,
     headers: {
       loading: loading === false ? "no" : "",
@@ -51,9 +43,7 @@ export function getDispatchProject(id, loading) {
 
 // reqId
 export function getReqId() {
-  return axios({
-    url: "/outgiving/get-reqId",
-    method: "get",
+  return http.get("/outgiving/get-reqId", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -72,10 +62,7 @@ export function getReqId() {
  * } params
  */
 export function editDispatch(params) {
-  return axios({
-    url: "/outgiving/save",
-    method: "post",
-    data: params,
+  return http.post("/outgiving/save", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -100,10 +87,7 @@ export function editDispatch(params) {
  * } params
  */
 export function editDispatchProject(params) {
-  return axios({
-    url: "/outgiving/save_project",
-    method: "post",
-    data: params,
+  return http.post("/outgiving/save_project", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -120,24 +104,18 @@ export function editDispatchProject(params) {
  * } formData
  */
 export function uploadDispatchFile(formData) {
-  return axios({
-    url: "/outgiving/upload-sharding",
+  return http.post("/outgiving/upload-sharding", formData, {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
       loading: "no",
     },
-    method: "post",
     // 0 表示无超时时间
     timeout: 0,
-    data: formData,
   });
 }
 
 export function uploadDispatchFileMerge(params) {
-  return axios({
-    url: "/outgiving/upload-sharding-merge",
-    method: "post",
-    data: params,
+  return http.post("/outgiving/upload-sharding-merge", params, {
     // 0 表示无超时时间
     timeout: 0,
     headers: {
@@ -157,10 +135,7 @@ export function uploadDispatchFileMerge(params) {
  * } params
  */
 export function remoteDownload(params) {
-  return axios({
-    url: "/outgiving/remote_download",
-    method: "post",
-    data: params,
+  return http.post("/outgiving/remote_download", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -168,10 +143,7 @@ export function remoteDownload(params) {
 }
 
 export function useBuild(params) {
-  return axios({
-    url: "/outgiving/use-build",
-    method: "post",
-    data: params,
+  return http.post("/outgiving/use-build", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -179,10 +151,7 @@ export function useBuild(params) {
 }
 
 export function useuseFileStorage(params) {
-  return axios({
-    url: "/outgiving/use-file-storage",
-    method: "post",
-    data: params,
+  return http.post("/outgiving/use-file-storage", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -190,10 +159,7 @@ export function useuseFileStorage(params) {
 }
 
 export function useuseStaticFileStorage(params) {
-  return axios({
-    url: "/outgiving/use-static-file-storage",
-    method: "post",
-    data: params,
+  return http.post("/outgiving/use-static-file-storage", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -205,10 +171,7 @@ export function useuseStaticFileStorage(params) {
  * @param {*} id 分发 ID
  */
 export function releaseDelDisPatch(id) {
-  return axios({
-    url: "/outgiving/release_del.json",
-    method: "post",
-    data: { id },
+  return http.post("/outgiving/release_del.json", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -220,10 +183,7 @@ export function releaseDelDisPatch(id) {
  * @param {*} id 分发 ID
  */
 export function delDisPatchProject(data) {
-  return axios({
-    url: "/outgiving/delete_project",
-    method: "post",
-    data: data,
+  return http.post("/outgiving/delete_project", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -235,10 +195,7 @@ export function delDisPatchProject(data) {
  * @param {*} id 分发 ID
  */
 export function unbindOutgiving(id) {
-  return axios({
-    url: "/outgiving/unbind.json",
-    method: "get",
-    params: { id },
+  return http.get("/outgiving/unbind.json", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -255,10 +212,7 @@ export function unbindOutgiving(id) {
  * } params
  */
 export function getDishPatchLogList(params) {
-  return axios({
-    url: "/outgiving/log_list_data.json",
-    method: "post",
-    data: params,
+  return http.post("/outgiving/log_list_data.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -267,10 +221,7 @@ export function getDishPatchLogList(params) {
 
 // 获取分发授权数据
 export function getDispatchWhiteList(params) {
-  return axios({
-    url: "/outgiving/white-list",
-    method: "post",
-    data: params,
+  return http.post("/outgiving/white-list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -282,10 +233,7 @@ export function getDispatchWhiteList(params) {
  * @param {*} params
  */
 export function editDispatchWhiteList(params) {
-  return axios({
-    url: "/outgiving/whitelistDirectory_submit",
-    method: "post",
-    data: params,
+  return http.post("/outgiving/whitelistDirectory_submit", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -297,10 +245,7 @@ export function editDispatchWhiteList(params) {
  * @param {*} id 分发 ID
  */
 export function cancelOutgiving(data) {
-  return axios({
-    url: "/outgiving/cancel",
-    method: "post",
-    data,
+  return http.post("/outgiving/cancel", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -308,10 +253,7 @@ export function cancelOutgiving(data) {
 }
 
 export function removeProject(params) {
-  return axios({
-    url: "/outgiving/remove-project",
-    method: "get",
-    params: params,
+  return http.get("/outgiving/remove-project", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -319,10 +261,7 @@ export function removeProject(params) {
 }
 
 export function saveDispatchProjectConfig(data) {
-  return axios({
-    url: "/outgiving/config-project",
-    method: "post",
-    data,
+  return http.post("/outgiving/config-project", data, {
     headers: {
       "Content-Type": "application/json",
     },

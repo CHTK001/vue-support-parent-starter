@@ -430,7 +430,7 @@ import { ref, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import ScInput from "@repo/components/ScInput/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import axios from "axios";
+import { http } from "@repo/utils";
 import CodeDisplay from "./CodeDisplay.vue";
 
 // 主题设置
@@ -520,7 +520,7 @@ const mockOptions = ref([
 // 从JSONPlaceholder获取用户数据
 const fetchUsers = async (params) => {
   try {
-    const response = await axios.get('https://jsonplaceholder.typicode.com/users', { params });
+    const response = await http.get('https://jsonplaceholder.typicode.com/users', params);
     return response.data.map(user => ({
       label: user.name,
       value: user.id,
@@ -744,12 +744,12 @@ const options = [
   { label: "选项五", value: "5", icon: "ep:money" }
 ];`;
     } else if (dataSource.value === 'remote' || dataSource.value === 'params') {
-      code += `\nimport axios from "axios";
+      code += `\nimport { http } from "@repo/utils";
 
 // 从JSONPlaceholder获取用户数据
 const fetchUsers = async (params) => {
   try {
-    const response = await axios.get('https://jsonplaceholder.typicode.com/users', { params });
+    const response = await http.get('https://jsonplaceholder.typicode.com/users', params);
     return response.data.map(user => ({
       label: user.name,
       value: user.id,

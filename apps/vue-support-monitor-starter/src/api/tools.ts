@@ -8,17 +8,14 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from "./config";
+import { http } from "@repo/utils";
 
 /**
  *
  * @param data
  */
 export function cronTools(data) {
-  return axios({
-    url: "/tools/cron",
-    method: "get",
-    params: data,
+  return http.get("/tools/cron", { params: data }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -26,10 +23,7 @@ export function cronTools(data) {
 }
 
 export function ipList(data) {
-  return axios({
-    url: "/tools/ip-list",
-    method: "get",
-    params: data,
+  return http.get("/tools/ip-list", { params: data }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -37,10 +31,7 @@ export function ipList(data) {
 }
 
 export function netPing(data) {
-  return axios({
-    url: "/tools/net-ping",
-    method: "get",
-    params: data,
+  return http.get("/tools/net-ping", { params: data }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -48,10 +39,7 @@ export function netPing(data) {
 }
 
 export function netTelnet(data) {
-  return axios({
-    url: "/tools/net-telnet",
-    method: "get",
-    params: data,
+  return http.get("/tools/net-telnet", { params: data }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

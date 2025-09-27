@@ -8,7 +8,8 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios, { loadRouterBase } from "./config";
+import { http } from "@repo/utils";
+import { loadRouterBase } from "./config";
 
 /**
  * 分页获取仓库列表
@@ -22,13 +23,10 @@ import axios, { loadRouterBase } from "./config";
  * @param {Number} params.repoType      查询的仓库类型[0(GIT), 1(SVN)]
  * @param {String} params.name          仓库名称
  * @param {String} params.gitUrl        仓库地址
- * @return {axios} 请求结果 axios 对象
+ * @return {Promise} 请求结果 Promise 对象
  */
 export function getRepositoryList(params) {
-  return axios({
-    url: "/build/repository/list",
-    method: "post",
-    data: params,
+  return http.post("/build/repository/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -52,27 +50,21 @@ export function exportData(data) {
 }
 // 导入数据
 export function importData(formData) {
-  return axios({
-    url: "/build/repository/import-data",
+  return http.post("/build/repository/import-data", formData, {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
     },
-    method: "post",
     // 0 表示无超时时间
     timeout: 0,
-    data: formData,
   });
 }
 /**
  * 获取仓库信息
  *
- * @return {axios} 请求结果 axios 对象
+ * @return {Promise} 请求结果 Promise 对象
  */
 export function getRepositoryInfo(params) {
-  return axios({
-    url: "/build/repository/get",
-    method: "get",
-    params,
+  return http.get("/build/repository/get", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -82,13 +74,10 @@ export function getRepositoryInfo(params) {
 /**
  * 获取仓库信息
  *
- * @return {axios} 请求结果 axios 对象
+ * @return {Promise} 请求结果 Promise 对象
  */
 export function listRepositoryGroup(params) {
-  return axios({
-    url: "/build/repository/list-group",
-    method: "get",
-    params,
+  return http.get("/build/repository/list-group", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -107,13 +96,10 @@ export function listRepositoryGroup(params) {
  * @param {String} params.userName      用户名
  * @param {String} params.password      密码
  * @param {String} params.rsaPub      公钥信息
- * @return {axios} 请求结果 axios 对象
+ * @return {Promise} 请求结果 Promise 对象
  */
 export function editRepository(params) {
-  return axios({
-    url: "/build/repository/edit",
-    method: "post",
-    data: params,
+  return http.post("/build/repository/edit", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -126,13 +112,10 @@ export function editRepository(params) {
  * @param {Object}  params              请求参数
  * @param {String}  params.id           仓库id
  * @param {Boolean} params.isRealDel    是否真正删除
- * @return {axios} 请求结果 axios 对象
+ * @return {Promise} 请求结果 Promise 对象
  */
 export function deleteRepository(params) {
-  return axios({
-    url: "/build/repository/delete",
-    method: "post",
-    data: params,
+  return http.post("/build/repository/delete", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -144,10 +127,7 @@ export function deleteRepository(params) {
  * @returns
  */
 export function restHideField(id) {
-  return axios({
-    url: "/build/repository/rest_hide_field",
-    method: "post",
-    data: { id },
+  return http.post("/build/repository/rest_hide_field", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -155,10 +135,7 @@ export function restHideField(id) {
 }
 
 export function authorizeRepos(param) {
-  return axios({
-    url: "/build/repository/authorize_repos",
-    method: "get",
-    params: param,
+  return http.get("/build/repository/authorize_repos", { params: param }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -166,9 +143,7 @@ export function authorizeRepos(param) {
 }
 
 export function providerInfo() {
-  return axios({
-    url: "/build/repository/provider_info",
-    method: "get",
+  return http.get("/build/repository/provider_info", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -176,10 +151,7 @@ export function providerInfo() {
 }
 
 export function sortItem(params) {
-  return axios({
-    url: "/build/repository/sort-item",
-    method: "get",
-    params: params,
+  return http.get("/build/repository/sort-item", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

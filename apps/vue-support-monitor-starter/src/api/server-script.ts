@@ -8,17 +8,13 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import { t } from "@repo/config";
-import axios from "./config";
+import { t, http } from "@repo/config";
 
 /**
  * script 服务端中的列表
  */
 export function getScriptList(params) {
-  return axios({
-    url: "/script/list",
-    method: "post",
-    data: params,
+  return http.post("/script/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -31,10 +27,7 @@ export function getScriptList(params) {
  * @returns
  */
 export function editScript(params) {
-  return axios({
-    url: "/script/save.json",
-    method: "post",
-    data: params,
+  return http.post("/script/save.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -48,10 +41,7 @@ export function editScript(params) {
  * params.id 编辑修改时判断 ID
  */
 export function deleteScript(params) {
-  return axios({
-    url: "/script/del.json",
-    method: "post",
-    data: params,
+  return http.post("/script/del.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -65,10 +55,7 @@ export function deleteScript(params) {
  * params.id 编辑修改时判断 ID
  */
 export function unbindScript(params) {
-  return axios({
-    url: "/script/unbind.json",
-    method: "get",
-    params: params,
+  return http.get("/script/unbind.json", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -77,10 +64,7 @@ export function unbindScript(params) {
 
 // 脚本模版日志列表
 export function getScriptLogList(params) {
-  return axios({
-    url: "/script_log/list",
-    method: "post",
-    data: params,
+  return http.post("/script_log/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -89,10 +73,7 @@ export function getScriptLogList(params) {
 
 // 删除执行记录
 export function scriptDel(params) {
-  return axios({
-    url: "/script_log/del_log",
-    method: "post",
-    data: params,
+  return http.post("/script_log/del_log", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -101,10 +82,7 @@ export function scriptDel(params) {
 
 //执行记录 详情
 export function scriptLog(params) {
-  return axios({
-    url: "/script_log/log",
-    method: "post",
-    data: params,
+  return http.post("/script_log/log", params, {
     headers: {
       tip: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -113,10 +91,7 @@ export function scriptLog(params) {
 }
 
 export function syncToWorkspace(params) {
-  return axios({
-    url: "/script/sync-to-workspace",
-    method: "get",
-    params: params,
+  return http.get("/script/sync-to-workspace", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -124,10 +99,7 @@ export function syncToWorkspace(params) {
 }
 
 export function getScriptItem(params) {
-  return axios({
-    url: "/script/get",
-    method: "get",
-    params: params,
+  return http.get("/script/get", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -139,10 +111,7 @@ export function getScriptItem(params) {
  * @param {*} id
  */
 export function getTriggerUrl(data) {
-  return axios({
-    url: "/script/trigger-url",
-    method: "post",
-    data: data,
+  return http.post("/script/trigger-url", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

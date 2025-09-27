@@ -8,15 +8,10 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import { t } from "@repo/config";
-import axios from "../config";
+import { t, http } from "@repo/config";
 
 export function userLoginLgin(params) {
-  return axios({
-    url: "/user/login-log/list-data",
-    method: "post",
-    data: params,
-  });
+  return http.post("/user/login-log/list-data", params, {});
 }
 
 export const operateCodeMap = {

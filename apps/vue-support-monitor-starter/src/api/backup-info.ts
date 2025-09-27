@@ -9,7 +9,7 @@
 ///
 
 import { t } from "@repo/config";
-import axios from "./config";
+import { http } from "@repo/utils";
 import { loadRouterBase } from "./config";
 
 /**
@@ -20,10 +20,7 @@ import { loadRouterBase } from "./config";
  * } params
  */
 export function getBackupList(params) {
-  return axios({
-    url: "/system/backup/list",
-    method: "post",
-    data: params,
+  return http.post("/system/backup/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -34,9 +31,7 @@ export function getBackupList(params) {
  * 获取数据库表名列表
  */
 export function getTableNameList() {
-  return axios({
-    url: "/system/backup/table-name-list",
-    method: "post",
+  return http.post("/system/backup/table-name-list", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -51,13 +46,10 @@ export function createBackup(tableNameList) {
   const data = {
     tableNameList
   };
-  return axios({
-    url: "/system/backup/create",
-    method: "post",
+  return http.post("/system/backup/create", data, {
     headers: {
       "Content-Type": "application/json"
-    },
-    data
+    }
   });
 }
 
@@ -66,10 +58,7 @@ export function createBackup(tableNameList) {
  * @param {*} id
  */
 export function deleteBackup(id) {
-  return axios({
-    url: "/system/backup/delete",
-    method: "post",
-    data: { id },
+  return http.post("/system/backup/delete", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -82,11 +71,8 @@ export function deleteBackup(id) {
  * @returns
  */
 export function restoreBackup(id) {
-  return axios({
-    url: "/system/backup/restore",
-    method: "post",
+  return http.post("/system/backup/restore", { id }, {
     timeout: 0,
-    data: { id },
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -112,22 +98,17 @@ export function downloadBackupFile(id) {
  * } formData
  */
 export function uploadBackupFile(formData) {
-  return axios({
-    url: "/system/backup/upload",
+  return http.post("/system/backup/upload", formData, {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8"
     },
-    method: "post",
     // 0 表示无超时时间
-    timeout: 0,
-    data: formData
+    timeout: 0
   });
 }
 
 export function getTriggerUrl(params) {
-  return axios({
-    url: "/system/backup/trigger-url",
-    method: "post",
+  return http.post("/system/backup/trigger-url", {}, {
     params: params,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"

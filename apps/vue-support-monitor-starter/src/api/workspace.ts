@@ -8,20 +8,19 @@
 /// See the Mulan PSL v2 for more details.
 ///
 import { getHashQuery } from "@/utils/utils";
-import axios from "./config";
+import { http } from "@repo/utils";
+
 export function getWorkspaceId(state) {
   const query = getHashQuery();
   return query.wid || state?.workspaceId || "DEFAULT";
 }
+
 /**
  *
  * @param data
  */
 export function editWorkSpace(data) {
-  return axios({
-    url: "/system/workspace/edit",
-    method: "post",
-    data: data,
+  return http.post("/system/workspace/edit", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -34,10 +33,7 @@ export function editWorkSpace(data) {
  * } params
  */
 export function getWorkSpaceList(params) {
-  return axios({
-    url: "/system/workspace/list",
-    method: "post",
-    data: params,
+  return http.post("/system/workspace/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -50,10 +46,7 @@ export function getWorkSpaceList(params) {
  * } params
  */
 export function getWorkSpaceGroupList(params) {
-  return axios({
-    url: "/system/workspace/list-group-all",
-    method: "get",
-    params: params,
+  return http.get("/system/workspace/list-group-all", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -66,10 +59,7 @@ export function getWorkSpaceGroupList(params) {
  * } params
  */
 export function getWorkSpaceListAll() {
-  return axios({
-    url: "/system/workspace/list_all",
-    method: "get",
-    data: {},
+  return http.get("/system/workspace/list_all", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -82,10 +72,7 @@ export function getWorkSpaceListAll() {
  * } params
  */
 export function deleteWorkspace(id) {
-  return axios({
-    url: "/system/workspace/delete",
-    method: "get",
-    params: { id: id },
+  return http.get("/system/workspace/delete", { params: { id } }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -98,10 +85,7 @@ export function deleteWorkspace(id) {
  * } params
  */
 export function preDeleteWorkspace(id) {
-  return axios({
-    url: "/system/workspace/pre-check-delete",
-    method: "get",
-    params: { id: id },
+  return http.get("/system/workspace/pre-check-delete", { params: { id } }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -114,25 +98,20 @@ export function preDeleteWorkspace(id) {
  * } params
  */
 export function getWorkspaceEnvList(params) {
-  return axios({
-    url: "/system/workspace_env/list",
-    method: "post",
-    data: params,
+  return http.post("/system/workspace_env/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
+
 /*
  * 工作空间环境变量全部列表
  * @param {*}
  * } params
  */
 export function getWorkspaceEnvAll(data) {
-  return axios({
-    url: "/system/workspace_env/all",
-    method: "post",
-    data,
+  return http.post("/system/workspace_env/all", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -144,10 +123,7 @@ export function getWorkspaceEnvAll(data) {
  * @param data
  */
 export function editWorkspaceEnv(data) {
-  return axios({
-    url: "/system/workspace_env/edit",
-    method: "post",
-    data: data,
+  return http.post("/system/workspace_env/edit", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -160,10 +136,7 @@ export function editWorkspaceEnv(data) {
  * } params
  */
 export function deleteWorkspaceEnv(params) {
-  return axios({
-    url: "/system/workspace_env/delete",
-    method: "get",
-    params: params,
+  return http.get("/system/workspace_env/delete", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -171,10 +144,8 @@ export function deleteWorkspaceEnv(params) {
 }
 
 export function getTriggerUrlWorkspaceEnv(params) {
-  return axios({
-    url: "/system/workspace_env/trigger-url",
-    method: "post",
-    params: params,
+  return http.post("/system/workspace_env/trigger-url", {}, {
+    params,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -185,10 +156,7 @@ export function getTriggerUrlWorkspaceEnv(params) {
  * 加载 菜单配置信息
  */
 export function getMenusConfig(data) {
-  return axios({
-    url: "/system/workspace/get_menus_config",
-    method: "post",
-    data,
+  return http.post("/system/workspace/get_menus_config", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -199,10 +167,7 @@ export function getMenusConfig(data) {
  * 保存菜单配置信息
  */
 export function saveMenusConfig(data) {
-  return axios({
-    url: "/system/workspace/save_menus_config.json",
-    method: "post",
-    data: data,
+  return http.post("/system/workspace/save_menus_config.json", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

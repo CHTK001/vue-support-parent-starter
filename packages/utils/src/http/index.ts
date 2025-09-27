@@ -10,8 +10,8 @@ import { transformI18n } from "../../../config/src/i18n";
 import { uu1, uu2 } from "../crypto/codec";
 import type { PureHttpError, PureHttpRequestConfig, PureHttpResponse, RequestMethods } from "../http/types";
 import { message } from "../message";
-// 导入WASM版本的generateNonce函数
-import { generateNonce as generateNonceWasm } from "@repo/codec-wasm";
+// 导入WASM版本的generateNonce、generateSign和md5Hash函数
+import { generateNonce as generateNonceWasm, generateSign as generateSignWasm, md5Hash as md5HashWasm } from "@repo/codec-wasm";
 
 const AutoErrorMessage = getConfig().AutoErrorMessage;
 /** 响应结果 */
@@ -111,7 +111,7 @@ class PureHttp {
         config.headers["x-timestamp"] = timestamp.toString();
         
         // 生成并添加签名
-        const sign = generateSign(config, timestamp, nonce);
+        const sign = await generateSign(config, timestamp, nonce);
         config.headers["x-sign"] = sign;
         
         if (an) {
@@ -513,44 +513,12 @@ export const http = new PureHttp();
 
 /** 生成复杂的nonce值 */
 const generateNonce = async (): Promise<string> => {
-  try {
-    // 使用WASM版本的generateNonce函数
-    return await generateNonceWasm();
-  } catch (error) {
-    console.warn('WASM generateNonce failed, using fallback implementation:', error);
-    // 如果WASM失败，回退到JavaScript实现
-    // 获取当前时间戳（毫秒）
-    const timestamp = Date.now();
-    
-    // 生成多个随机数
-    const random1 = Math.random().toString(36).substr(2, 5);
-    const random2 = Math.random().toString(36).substr(2, 7);
-    const random3 = Math.floor(Math.random() * 1000000).toString(36);
-    
-    // 生成基于时间戳的哈希-like值
-    const timeHash = (timestamp * 9301 + 49297) % 233280;
-    
-    // 生成序列号
-    const sequence = (timestamp & 0xFFFF) ^ (timestamp >>> 16);
-    
-    // 生成基于随机数的混合值
-    const mixed = ((random1.length * random2.length * random3.length) + timestamp) % 999999;
-    
-    // 生成最终的复杂nonce
-    const nonce = `${random1}${sequence.toString(36)}${random2}${timeHash.toString(36)}${random3}${mixed.toString(36)}`;
-    
-    // 确保长度足够复杂
-    if (nonce.length < 32) {
-      const padding = Math.random().toString(36).substr(2, 32 - nonce.length);
-      return nonce + padding;
-    }
-    
-    return nonce;
-  }
+  // 使用WASM版本的generateNonce函数
+  return await generateNonceWasm();
 };
 
 /** 生成签名 */
-const generateSign = (config: any, timestamp: number, nonce: string): string => {
+const generateSign = async (config: any, timestamp: number, nonce: string): Promise<string> => {
   // 收集请求参数
   const params: Record<string, any> = {};
   
@@ -580,10 +548,6 @@ const generateSign = (config: any, timestamp: number, nonce: string): string => 
     }
   }
   
-  // 添加nonce和timestamp
-  params['_nonce'] = nonce;
-  params['_timestamp'] = timestamp;
-  
   // 按键名排序并拼接参数
   const sortedKeys = Object.keys(params).sort();
   let paramString = '';
@@ -599,27 +563,13 @@ const generateSign = (config: any, timestamp: number, nonce: string): string => 
     paramString = paramString.slice(0, -1);
   }
   
-  // 添加密钥
+  // 使用WASM版本的generateSign函数
   const secretKey = "your-secret-key"; // 实际应该从配置中获取
-  const dataToSign = paramString + secretKey;
-  
-  // 生成MD5签名
-  return md5Hash(dataToSign);
+  return await generateSignWasm(paramString, timestamp, nonce, secretKey);
 };
 
 /** MD5哈希函数 */
-const md5Hash = (input: string): string => {
-  // 简化的MD5实现（实际项目中应使用crypto库）
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    const character = input.charCodeAt(i);
-    hash = ((hash << 5) - hash) + character;
-    hash = hash & hash; // 转换为32位整数
-  }
-  // 转换为16进制字符串并确保长度为32位
-  let hex = Math.abs(hash).toString(16);
-  while (hex.length < 32) {
-    hex = "0" + hex;
-  }
-  return hex.substr(0, 32);
+const md5Hash = async (input: string): Promise<string> => {
+  // 使用WASM版本的md5Hash函数
+  return await md5HashWasm(input);
 };

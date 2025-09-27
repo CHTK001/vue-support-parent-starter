@@ -9,7 +9,6 @@
 ///
 
 import { http, type ReturnResult } from "@repo/utils";
-import axios from "../config";
 
 // ==================== 类型定义 ====================
 
@@ -400,10 +399,7 @@ export function getServerStatus(id: string) {
  * @returns 命令执行结果
  */
 export function executeServerCommand(id: string, command: string) {
-  return axios({
-    url: "v1/gen/server/execute",
-    method: "post",
-    data: command,
+  return http.post("v1/gen/server/execute", command, {
     params: { id },
     headers: {
       "Content-Type": "text/plain",
@@ -439,10 +435,7 @@ export function getServerDetailMetrics(serverId: number) {
  * @returns 发送结果
  */
 export function sendServerData(id: string, data: string) {
-  return axios({
-    url: "v1/gen/server/send",
-    method: "post",
-    data,
+  return http.post("v1/gen/server/send", data, {
     params: { id },
     headers: {
       "Content-Type": "text/plain",
@@ -513,10 +506,7 @@ export function getServerFileTree(serverId: string, path: string, maxDepth: numb
 export function uploadServerFile(serverId: string, targetPath: string, file: File) {
   const formData = new FormData();
   formData.append("file", file);
-  return axios({
-    url: "v1/file-management/upload",
-    method: "post",
-    data: formData,
+  return http.post("v1/file-management/upload", formData, {
     params: {
       serverId: parseInt(serverId),
       targetPath,
@@ -535,9 +525,7 @@ export function uploadServerFile(serverId: string, targetPath: string, file: Fil
  * @returns 文件数据
  */
 export function downloadServerFile(serverId: string, filePath: string) {
-  return axios({
-    url: "v1/file-management/download",
-    method: "get",
+  return http.get("v1/file-management/download", {
     params: {
       serverId: parseInt(serverId),
       filePath,
@@ -818,10 +806,7 @@ export function getServerStatistics() {
  * @returns 配置文件
  */
 export function exportServerConfig(ids: string[]) {
-  return axios({
-    url: "v1/gen/server/export",
-    method: "post",
-    data: { ids },
+  return http.post("v1/gen/server/export", { ids }, {
     responseType: "blob",
   });
 }
@@ -834,10 +819,7 @@ export function exportServerConfig(ids: string[]) {
 export function importServerConfig(file: File) {
   const formData = new FormData();
   formData.append("file", file);
-  return axios({
-    url: "v1/gen/server/import",
-    method: "post",
-    data: formData,
+  return http.post("v1/gen/server/import", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },

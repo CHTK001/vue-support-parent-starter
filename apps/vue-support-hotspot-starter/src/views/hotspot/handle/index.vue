@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import axios from "axios";
+import { http } from "@repo/utils";
 import $ from "jquery";
 import { onBeforeMount, reactive } from "vue";
 function scrollToElement(element) {
@@ -50,7 +50,7 @@ const handleClick = async index => {
   scrollToElement(document.getElementById("element" + index));
 };
 onBeforeMount(async () => {
-  axios.get((window.agentPath || "/agent") + "/stream_data").then(res => {
+  http.get((window.agentPath || "/agent") + "/stream_data").then(res => {
     let json = res.data;
     let xhr1 = json["data"];
     let xhr2 = json["title"];

@@ -2,7 +2,7 @@
 import { reactive, ref, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import axios from "axios";
+import { http } from "@repo/utils";
 
 // 国际化
 const { t } = useI18n();
@@ -116,7 +116,7 @@ const env = reactive({
     },
     {
       id: 6,
-      url: "https://pic1.zhimg.com/v2-8d6d2c7d0d8f2e08e4cd8d4cab752f00_r.jpg",
+      url: "https://pic1.zhimg.com/v2-8d6d2c7d0d8f51a9b673bd40e4c4ea46_r.jpg",
       title: "哭泣",
       category: "情感",
       tags: ["哭泣", "伤心", "难过"],
@@ -170,7 +170,7 @@ const env = reactive({
 const fetchHotMemes = async () => {
   env.loading = true;
   try {
-    const response = await axios.get(API_CONFIG.MEME_HOT_API);
+    const response = await http.get(API_CONFIG.MEME_HOT_API);
     if (response.data && response.data.url) {
       // 单个表情包返回处理
       const meme = {
@@ -195,7 +195,7 @@ const fetchMemes = async (keyword = "") => {
   env.searchLoading = true;
   try {
     const params = keyword ? { key: keyword } : {};
-    const response = await axios.get(API_CONFIG.MEME_SEARCH_API, { params });
+    const response = await http.get(API_CONFIG.MEME_SEARCH_API, { params });
 
     if (response.data && response.data.imgurl) {
       // 处理API返回的数据
@@ -828,298 +828,4 @@ onMounted(() => {
     color: var(--el-color-primary);
   }
 
-  &__card-actions {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-
-  /* 加载状态 */
-  &__loading {
-    padding: 20px;
-  }
-
-  /* 空状态 */
-  &__empty {
-    padding: 40px 0;
-
-    &-icon {
-      font-size: 80px;
-      color: var(--el-color-info-light-5);
-      margin-bottom: 20px;
-      animation: pulse 3s infinite ease-in-out;
-    }
-  }
-
-  /* 表情包网格 */
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 20px;
-    padding: 16px;
-  }
-
-  &__grid-item {
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-5px);
-    }
-  }
-
-  &__meme-card {
-    background-color: var(--el-bg-color);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-
-    &:hover {
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-
-      .meme-tool__meme-overlay {
-        opacity: 1;
-      }
-    }
-  }
-
-  &__meme-image-container {
-    position: relative;
-    width: 100%;
-    height: 180px;
-    overflow: hidden;
-  }
-
-  &__meme-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s ease;
-
-    &:hover {
-      transform: scale(1.05);
-    }
-  }
-
-  &__meme-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  &__meme-actions {
-    display: flex;
-    gap: 10px;
-
-    .el-button {
-      transform: scale(0.9);
-      transition: all 0.3s ease;
-
-      &:hover {
-        transform: scale(1);
-      }
-    }
-  }
-
-  &__meme-info {
-    padding: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  &__meme-title {
-    font-weight: 600;
-    font-size: 16px;
-    color: var(--el-text-color-primary);
-  }
-
-  &__meme-tags {
-    padding: 0 12px 12px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  &__meme-tag {
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      transform: scale(1.05);
-    }
-  }
-
-  /* 收藏夹样式 */
-  &__favorites-list {
-    max-height: 400px;
-    overflow-y: auto;
-    padding: 12px;
-
-    /* 自定义滚动条 */
-    &::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background-color: var(--el-color-primary-light-7);
-      border-radius: 3px;
-
-      &:hover {
-        background-color: var(--el-color-primary-light-5);
-      }
-    }
-
-    &::-webkit-scrollbar-track {
-      background-color: var(--el-fill-color-lighter);
-      border-radius: 3px;
-    }
-  }
-
-  &__favorite-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border-radius: 8px;
-    background-color: var(--el-fill-color-light);
-    margin-bottom: 12px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      background-color: var(--el-fill-color);
-      transform: translateX(5px);
-    }
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  &__favorite-image-container {
-    width: 60px;
-    height: 60px;
-    border-radius: 6px;
-    overflow: hidden;
-    flex-shrink: 0;
-  }
-
-  &__favorite-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  &__favorite-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  &__favorite-title {
-    font-weight: 500;
-    font-size: 14px;
-    color: var(--el-text-color-primary);
-  }
-
-  &__favorite-actions {
-    display: flex;
-    gap: 8px;
-  }
-
-  /* 使用技巧样式 */
-  &__tips-list {
-    padding: 12px;
-  }
-
-  &__tip-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px;
-    border-radius: 8px;
-    background-color: var(--el-fill-color-light);
-    margin-bottom: 10px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      background-color: var(--el-fill-color);
-      transform: translateX(5px);
-    }
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  &__tip-icon {
-    font-size: 20px;
-    color: var(--el-color-primary);
-  }
-
-  /* 动画效果 */
-  @keyframes bounce {
-    0%,
-    100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-  }
-
-  @keyframes pulse {
-    0%,
-    100% {
-      transform: scale(1);
-      opacity: 0.8;
-    }
-    50% {
-      transform: scale(1.1);
-      opacity: 1;
-    }
-  }
-
-  /* 响应式调整 */
-  @media (max-width: 768px) {
-    &__grid {
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 15px;
-    }
-
-    &__meme-image-container {
-      height: 140px;
-    }
-
-    &__categories {
-      overflow-x: auto;
-      flex-wrap: nowrap;
-      padding-bottom: 12px;
-
-      &::-webkit-scrollbar {
-        height: 4px;
-      }
-
-      &::-webkit-scrollbar-thumb {
-        background-color: var(--el-color-primary-light-7);
-        border-radius: 2px;
-      }
-    }
-
-    &__category-item {
-      flex-shrink: 0;
-    }
-  }
-}
-</style>
+  &__card

@@ -9,7 +9,7 @@
 ///
 
 import { t } from "@repo/config";
-import axios from "./config";
+import { http } from "@repo/utils";
 import { parseTime, formatPercent2, renderSize, formatDuration } from "@/utils/const";
 import * as echarts from "echarts/core";
 import { GridComponent, TitleComponent, LegendComponent, TooltipComponent, DataZoomComponent } from "echarts/components";
@@ -20,10 +20,7 @@ echarts.use([GridComponent, LineChart, CanvasRenderer, UniversalTransition, Titl
 
 // 获取机器信息
 export function machineInfo(params) {
-  return axios({
-    url: "/node/machine-info",
-    method: "get",
-    params: params,
+  return http.get("/node/machine-info", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -33,10 +30,7 @@ export function machineInfo(params) {
 
 // 机器文件系统
 export function machineDiskInfo(params) {
-  return axios({
-    url: "/node/disk-info",
-    method: "get",
-    params,
+  return http.get("/node/disk-info", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -46,10 +40,7 @@ export function machineDiskInfo(params) {
 
 // 机器硬件硬盘
 export function machineHwDiskInfo(params) {
-  return axios({
-    url: "/node/hw-disk-info",
-    method: "get",
-    params,
+  return http.get("/node/hw-disk-info", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -360,10 +351,7 @@ export function drawChart(data, domId, parseFn, theme) {
 
 // 机器网络
 export function machineNetworkInterfaces(params) {
-  return axios({
-    url: "/node/network-interfaces",
-    method: "get",
-    params,
+  return http.get("/node/network-interfaces", params, {
     headers: {
       loading: "no",
     },

@@ -1,4 +1,4 @@
-import axios from "axios";
+import { http } from "@repo/utils";
 
 /**
  * 上传文件到节点
@@ -23,13 +23,10 @@ export function uploadFileToNode(
   }
   fd.append("file", params.file);
 
-  return axios({
-    url: "node-remote/upload-file",
-    method: "post",
+  return http.request("post", "node-remote/upload-file", {
     data: fd,
     headers: { "Content-Type": "multipart/form-data" },
-    timeout: 0,
     onUploadProgress,
     signal
-  });
+  } as any);
 }

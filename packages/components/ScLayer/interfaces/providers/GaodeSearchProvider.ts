@@ -3,7 +3,7 @@ import { SearchOptions, SearchResult, PlaceDetailApiResponse, NavigationApiRespo
 import { CoordSystem, type GeoPoint } from '../../types/coordinate';
 import logger from '../../composables/LogObject';
 import { fromLonLat, toLonLat } from 'ol/proj';
-import axios from 'axios';
+import { http } from "@repo/utils";
 
 /**
  * 高德地图搜索数据提供者
@@ -41,7 +41,7 @@ export class GaodeSearchProvider implements SearchDataProvider {
       // 如果提供了自定义URL，则使用自定义URL
       const url = options.url || this.SEARCH_URL;
       
-      const response = await axios.get(url, { params });
+      const response: any = await http.get(url, params);
       const data = response.data;
       
       if (data.status !== '1') {
@@ -78,7 +78,7 @@ export class GaodeSearchProvider implements SearchDataProvider {
       // 如果提供了自定义URL，则使用自定义URL
       const requestUrl = url || this.DETAIL_URL;
       
-      const response = await axios.get(requestUrl, { params });
+      const response: any = await http.get(requestUrl, params);
       const data = response.data;
       
       if (data.status !== '1') {
@@ -153,7 +153,7 @@ export class GaodeSearchProvider implements SearchDataProvider {
       
       logger.debug(`[GaodeSearchProvider] 使用API: ${apiUrl} 获取 ${transportType} 导航路径`);
       
-      const response = await axios.get(apiUrl, { params });
+      const response: any = await http.get(apiUrl, params);
       const data = response.data;
       
       if (data.status !== '1') {
@@ -491,7 +491,7 @@ export class GaodeSearchProvider implements SearchDataProvider {
       // 如果提供了自定义URL，则使用自定义URL
       const requestUrl = url || this.AROUND_URL;
       
-      const response = await axios.get(requestUrl, { params });
+      const response: any = await http.get(requestUrl, params);
       const data = response.data;
       
       if (data.status !== '1') {
@@ -530,7 +530,7 @@ export class GaodeSearchProvider implements SearchDataProvider {
       // 如果提供了自定义URL，则使用自定义URL
       const requestUrl = url || this.DISTRICT_URL;
       
-      const response = await axios.get(requestUrl, { params });
+      const response: any = await http.get(requestUrl, params);
       const data = response.data;
       
       if (data.status !== '1') {
@@ -591,4 +591,4 @@ export class GaodeSearchProvider implements SearchDataProvider {
       };
     });
   }
-} 
+}

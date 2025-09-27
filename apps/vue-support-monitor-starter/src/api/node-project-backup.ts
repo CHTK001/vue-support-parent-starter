@@ -8,7 +8,7 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from "./config";
+import { http } from "@repo/utils";
 import { loadRouterBase } from "./config";
 
 /**
@@ -19,10 +19,7 @@ import { loadRouterBase } from "./config";
  * }
  */
 export function listBackup(params) {
-  return axios({
-    url: "/node/manage/file/list-backup",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/file/list-backup", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -30,14 +27,11 @@ export function listBackup(params) {
 }
 
 export function backupFileList(params) {
-  return axios({
-    url: "/node/manage/file/backup-item-files",
-    method: "post",
+  return http.post("/node/manage/file/backup-item-files", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-    data: params,
   });
 }
 
@@ -65,10 +59,7 @@ export function backupDownloadProjectFile(params) {
  * } params
  */
 export function backupDeleteProjectFile(params) {
-  return axios({
-    url: "/node/manage/file/backup-delete",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/file/backup-delete", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -86,10 +77,7 @@ export function backupDeleteProjectFile(params) {
  * } params
  */
 export function backupRecoverProjectFile(params) {
-  return axios({
-    url: "/node/manage/file/backup-recover",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/file/backup-recover", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

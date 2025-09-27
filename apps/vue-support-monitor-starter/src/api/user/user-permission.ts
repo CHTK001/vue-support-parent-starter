@@ -8,39 +8,24 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from '../config'
+import { http } from "@repo/utils";
 
 // 权限组列表
 export function getList(params) {
-  return axios({
-    url: '/user-permission-group/get-list',
-    method: 'post',
-    data: params
-  })
+  return http.post('/user-permission-group/get-list', params);
 }
 
 // 编辑
 export function editPermissionGroup(params) {
-  return axios({
-    url: '/user-permission-group/edit',
-    method: 'post',
-    data: params
-  })
+  return http.post('/user-permission-group/edit', params);
 }
 
 // 所有列表
 export function getUserPermissionListAll() {
-  return axios({
-    url: '/user-permission-group/get-list-all',
-    method: 'get'
-  })
+  return http.get('/user-permission-group/get-list-all');
 }
 
 // 删除
 export function deletePermissionGroup(id) {
-  return axios({
-    url: '/user-permission-group/delete',
-    method: 'get',
-    params: { id }
-  })
+  return http.get('/user-permission-group/delete', { params: { id } });
 }

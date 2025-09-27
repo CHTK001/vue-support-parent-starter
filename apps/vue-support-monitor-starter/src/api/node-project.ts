@@ -12,7 +12,7 @@
  * 节点管理 api
  */
 import { t } from "@repo/config";
-import axios from "./config";
+import { http } from "@repo/utils";
 import { loadRouterBase } from "./config";
 
 /**
@@ -23,10 +23,7 @@ import { loadRouterBase } from "./config";
  * }
  */
 export function getProjectList(params) {
-  return axios({
-    url: "/node/manage/get_project_info",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/get_project_info", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -41,10 +38,7 @@ export function getProjectList(params) {
  * }
  */
 export function getRuningProjectInfo(params, noTip) {
-  return axios({
-    url: "/node/manage/getProjectPort",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/getProjectPort", params, {
     timeout: 0,
     headers: {
       // loading: 'no',
@@ -62,10 +56,7 @@ export function getRuningProjectInfo(params, noTip) {
  * } params
  */
 export function getProjectData(params, loading) {
-  return axios({
-    url: "/node/manage/getProjectData.json",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/getProjectData.json", params, {
     headers: {
       loading: loading === false ? "no" : "",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -78,10 +69,7 @@ export function getProjectData(params, loading) {
  * @param {String} nodeId 节点 ID
  */
 export function getProjectAccessList(nodeId) {
-  return axios({
-    url: "/node/manage/project-access-list",
-    method: "post",
-    data: { nodeId },
+  return http.post("/node/manage/project-access-list", { nodeId }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -125,10 +113,7 @@ export function editProject(params) {
     disableScanDir: params.disableScanDir,
     logCharset: params.logCharset,
   };
-  return axios({
-    url: "/node/manage/saveProject",
-    method: "post",
-    data,
+  return http.post("/node/manage/saveProject", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -144,10 +129,7 @@ export function editProject(params) {
  * } params
  */
 export function deleteProject(params) {
-  return axios({
-    url: "/node/manage/deleteProject",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/deleteProject", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -155,10 +137,7 @@ export function deleteProject(params) {
 }
 
 export function migrateWorkspace(params) {
-  return axios({
-    url: "/node/manage/migrate-workspace",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/migrate-workspace", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -166,10 +145,7 @@ export function migrateWorkspace(params) {
 }
 
 export function releaseOutgiving(params) {
-  return axios({
-    url: "/node/manage/release-outgiving",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/release-outgiving", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -184,14 +160,11 @@ export function releaseOutgiving(params) {
  * } params
  */
 export function getFileList(params) {
-  return axios({
-    url: "/node/manage/file/getFileList",
-    method: "post",
+  return http.post("/node/manage/file/getFileList", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-    data: params,
   });
 }
 
@@ -206,20 +179,14 @@ export function getFileList(params) {
  */
 export function downloadProjectFile(params) {
   return loadRouterBase("/node/manage/file/download", params);
-  // return axios({
-  //   url: "/node/manage/file/download",
-  //   method: "get",
+  // return http.get("/node/manage/file/download", params, {
   //   responseType: "blob",
   //   timeout: 0,
-  //   params,
   // });
 }
 
 export function readFile(formData) {
-  return axios({
-    url: "/node/manage/file/read_file",
-    method: "get",
-    params: formData,
+  return http.get("/node/manage/file/read_file", formData, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -227,11 +194,8 @@ export function readFile(formData) {
 }
 
 export function remoteDownload(formData) {
-  return axios({
-    url: "/node/manage/file/remote_download",
-    method: "get",
+  return http.get("/node/manage/file/remote_download", formData, {
     timeout: 0,
-    params: formData,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -239,10 +203,7 @@ export function remoteDownload(formData) {
 }
 
 export function updateFile(formData) {
-  return axios({
-    url: "/node/manage/file/update_config_file",
-    method: "post",
-    data: formData,
+  return http.post("/node/manage/file/update_config_file", formData, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -261,16 +222,13 @@ export function updateFile(formData) {
  * } formData
  */
 export function uploadProjectFile(formData) {
-  return axios({
-    url: "/node/manage/file/upload-sharding",
+  return http.post("/node/manage/file/upload-sharding", formData, {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
       loading: "no",
     },
-    method: "post",
     // 0 表示无超时时间
     timeout: 0,
-    data: formData,
   });
 }
 
@@ -286,13 +244,9 @@ export function uploadProjectFile(formData) {
  * } formData
  */
 export function shardingMerge(formData) {
-  return axios({
-    url: "/node/manage/file/sharding-merge",
-
-    method: "post",
+  return http.post("/node/manage/file/sharding-merge", formData, {
     // 0 表示无超时时间
     timeout: 0,
-    data: formData,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -310,10 +264,7 @@ export function shardingMerge(formData) {
  * } params
  */
 export function deleteProjectFile(params) {
-  return axios({
-    url: "/node/manage/file/deleteFile",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/file/deleteFile", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -329,10 +280,7 @@ export function deleteProjectFile(params) {
  * } params
  */
 export function getProjectLogSize(params) {
-  return axios({
-    url: "/node/manage/log/logSize",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/log/logSize", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -360,10 +308,7 @@ export function downloadProjectLogFile(params) {
  * } params
  */
 export function getLogBackList(params) {
-  return axios({
-    url: "/node/manage/log/log-back-list",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/log/log-back-list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -393,10 +338,7 @@ export function downloadProjectLogBackFile(params) {
  * } params
  */
 export function deleteProjectLogBackFile(params) {
-  return axios({
-    url: "/node/manage/log/logBack_delete",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/log/logBack_delete", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -412,11 +354,8 @@ export function deleteProjectLogBackFile(params) {
  * } params
  */
 export function getInternalData(params) {
-  return axios({
-    url: "/node/manage/getInternalData",
-    method: "post",
+  return http.post("/node/manage/getInternalData", params, {
     timeout: 0,
-    data: params,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -430,11 +369,8 @@ export function getInternalData(params) {
 //  * } params
 //  */
 // export function getThreadInfo(params) {
-//   return axios({
-//     url: "/node/manage/threadInfos",
-//     method: "post",
+//   return http.post("/node/manage/threadInfos", params, {
 //     timeout: 0,
-//     data: params,
 //   });
 // }
 
@@ -446,12 +382,9 @@ export function getInternalData(params) {
 //  * } params
 //  */
 // export function exportStack(params) {
-//   return axios({
-//     url: "/node/manage/stack",
-//     method: "get",
+//   return http.get("/node/manage/stack", params, {
 //     responseType: "blob",
 //     timeout: 0,
-//     params,
 //   });
 // }
 
@@ -463,12 +396,9 @@ export function getInternalData(params) {
 //  * } params
 //  */
 // export function exportRam(params) {
-//   return axios({
-//     url: "/node/manage/ram",
-//     method: "get",
+//   return http.get("/node/manage/ram", params, {
 //     responseType: "blob",
 //     timeout: 0,
-//     params,
 //   });
 // }
 
@@ -480,10 +410,7 @@ export function getInternalData(params) {
 //  * } params
 //  */
 // export function nodeJudgeLibExist(params) {
-//   return axios({
-//     url: "/node/manage/judge_lib.json",
-//     method: "post",
-//     data: params,
+//   return http.post("/node/manage/judge_lib.json", params, {
 //     headers: {
 //       tip: "no",
 //     },
@@ -498,10 +425,7 @@ export function getInternalData(params) {
  * } params
  */
 export function operateProject(params) {
-  return axios({
-    url: "/node/manage/operate",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/operate", params, {
     headers: {
       loading: "no",
       tip: "no",
@@ -515,10 +439,7 @@ export function operateProject(params) {
  * @param {*} id
  */
 export function getProjectTriggerUrl(data) {
-  return axios({
-    url: "/node/project-trigger-url",
-    method: "post",
-    data: data,
+  return http.post("/node/project-trigger-url", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -531,10 +452,7 @@ export function getProjectTriggerUrl(data) {
  * @returns {id, path, name,unFolder} params x
  */
 export function newFileFolder(params) {
-  return axios({
-    url: "/node/manage/file/new_file_folder",
-    method: "get",
-    params,
+  return http.get("/node/manage/file/new_file_folder", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -547,10 +465,7 @@ export function newFileFolder(params) {
  * @returns {id, levelName, filename,newname} params x
  */
 export function renameFileFolder(params) {
-  return axios({
-    url: "/node/manage/file/rename_file_folder",
-    method: "get",
-    params,
+  return http.get("/node/manage/file/rename_file_folder", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -563,10 +478,7 @@ export function renameFileFolder(params) {
  * @returns {id, levelName, filename,newname} params x
  */
 export function copyFileFolder(params) {
-  return axios({
-    url: "/node/manage/file/copy",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/file/copy", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -579,10 +491,7 @@ export function copyFileFolder(params) {
  * @returns {id, levelName, filename,newname} params x
  */
 export function compressFileFolder(params) {
-  return axios({
-    url: "/node/manage/file/compress",
-    method: "post",
-    data: params,
+  return http.post("/node/manage/file/compress", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -593,9 +502,7 @@ export function compressFileFolder(params) {
  * 构建分组
  */
 export function getProjectGroupAll() {
-  return axios({
-    url: "/node/list-project-group-all",
-    method: "get",
+  return http.get("/node/list-project-group-all", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -649,14 +556,11 @@ export function exportData(data) {
 }
 // 导入数据
 export function importData(formData) {
-  return axios({
-    url: "/node/manage/import-data",
+  return http.post("/node/manage/import-data", formData, {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
     },
-    method: "post",
     // 0 表示无超时时间
     timeout: 0,
-    data: formData,
   });
 }

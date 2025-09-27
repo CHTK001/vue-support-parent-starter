@@ -8,14 +8,11 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from "./config";
+import { http } from "@repo/utils";
 
 // node 列表
 export function getNodeList(params) {
-  return axios({
-    url: "/node/list_data.json",
-    method: "post",
-    params,
+  return http.post("/node/list_data.json", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -25,10 +22,7 @@ export function getNodeList(params) {
 
 // node 列表 all
 export function getNodeListAll(params) {
-  return axios({
-    url: "/node/list_data_all.json",
-    method: "get",
-    params,
+  return http.get("/node/list_data_all.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -37,9 +31,7 @@ export function getNodeListAll(params) {
 
 // node group all
 export function getNodeGroupAll() {
-  return axios({
-    url: "/node/list_group_all.json",
-    method: "get",
+  return http.get("/node/list_group_all.json", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -48,10 +40,7 @@ export function getNodeGroupAll() {
 
 // 节点和版本信息
 export function getNodeListWithVersion(params) {
-  return axios({
-    url: "/node/list_data_with_version",
-    method: "get",
-    params: params,
+  return http.get("/node/list_data_with_version", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -60,19 +49,12 @@ export function getNodeListWithVersion(params) {
 
 // // node 状态
 // export function getNodeStatus(nodeId) {
-//   return axios({
-//     url: "/node/node_status",
-//     method: "post",
-//     data: { nodeId },
-//   });
+//   return http.post("/node/node_status", { nodeId });
 // }
 
 // 节点 + 项目列表
 export function getProjectList(params, loading) {
-  return axios({
-    url: "/node/project_list",
-    method: "post",
-    data: params,
+  return http.post("/node/project_list", params, {
     headers: {
       loading: loading === false ? "no" : "",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -82,10 +64,7 @@ export function getProjectList(params, loading) {
 
 // 节点 + 项目列表
 export function getProjectListAll(params) {
-  return axios({
-    url: "/node/project_list_all",
-    method: "get",
-    params,
+  return http.get("/node/project_list_all", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -94,10 +73,7 @@ export function getProjectListAll(params) {
 
 // 同步节点项目
 export function syncProject(nodeId) {
-  return axios({
-    url: "/node/sync_project",
-    method: "get",
-    params: { nodeId: nodeId },
+  return http.get("/node/sync_project", { nodeId: nodeId }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -105,10 +81,7 @@ export function syncProject(nodeId) {
 }
 
 export function syncToWorkspace(params) {
-  return axios({
-    url: "/node/sync-to-workspace",
-    method: "get",
-    params: params,
+  return http.get("/node/sync-to-workspace", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -117,10 +90,7 @@ export function syncToWorkspace(params) {
 
 //
 export function sortItem(params) {
-  return axios({
-    url: "/node/sort-item",
-    method: "get",
-    params: params,
+  return http.get("/node/sort-item", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -129,10 +99,7 @@ export function sortItem(params) {
 
 // 项目排序
 export function sortItemProject(params) {
-  return axios({
-    url: "/node/project-sort-item",
-    method: "get",
-    params: params,
+  return http.get("/node/project-sort-item", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -173,10 +140,7 @@ export function editNode(params) {
     httpProxy: params.httpProxy,
     httpProxyType: params.httpProxyType,
   };
-  return axios({
-    url: "/node/save.json",
-    method: "post",
-    data,
+  return http.post("/node/save.json", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -185,10 +149,7 @@ export function editNode(params) {
 
 // 删除 node
 export function deleteNode(id) {
-  return axios({
-    url: "/node/del.json",
-    method: "post",
-    data: { id },
+  return http.post("/node/del.json", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -197,10 +158,7 @@ export function deleteNode(id) {
 
 // 解绑 node
 export function unbind(id) {
-  return axios({
-    url: "/node/unbind.json",
-    method: "get",
-    params: { id },
+  return http.get("/node/unbind.json", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -209,10 +167,7 @@ export function unbind(id) {
 
 // // 节点 top 命令
 // export function getNodeTop(nodeId) {
-//   return axios({
-//     url: "/node/getTop",
-//     method: "post",
-//     data: { nodeId },
+//   return http.post("/node/getTop", { nodeId }, {
 //     headers: {
 //       loading: "no",
 //     },
@@ -221,10 +176,7 @@ export function unbind(id) {
 
 // 获取进程列表
 export function getProcessList(data) {
-  return axios({
-    url: "/node/processList",
-    method: "post",
-    data: data,
+  return http.post("/node/processList", data, {
     timeout: 0,
     headers: {
       loading: "no",
@@ -239,10 +191,7 @@ export function getProcessList(data) {
  * @param {nodeId, pid} params
  */
 export function killPid(params) {
-  return axios({
-    url: "/node/kill.json",
-    method: "post",
-    data: params,
+  return http.post("/node/kill.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -257,10 +206,7 @@ export function killPid(params) {
  * } params
  */
 export function nodeMonitorData(params, loading) {
-  return axios({
-    url: "/node/node_monitor_data.json",
-    method: "post",
-    data: params,
+  return http.post("/node/node_monitor_data.json", params, {
     headers: {
       loading: loading === false ? "no" : "",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -276,16 +222,13 @@ export function nodeMonitorData(params, loading) {
  * } formData
  */
 export function uploadAgentFile(formData) {
-  return axios({
-    url: "/node/upload-agent-sharding",
+  return http.post("/node/upload-agent-sharding", formData, {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
       loading: "no",
     },
-    method: "post",
     // 0 表示无超时时间
     timeout: 0,
-    data: formData,
   });
 }
 
@@ -294,10 +237,7 @@ export function uploadAgentFile(formData) {
  * @returns json
  */
 export function uploadAgentFileMerge(data) {
-  return axios({
-    url: "/node/upload-agent-sharding-merge",
-    method: "post",
-    data: data,
+  return http.post("/node/upload-agent-sharding-merge", data, {
     // 0 表示无超时时间
     timeout: 0,
     headers: {
@@ -311,10 +251,7 @@ export function uploadAgentFileMerge(data) {
  * @returns json
  */
 export function checkVersion() {
-  return axios({
-    url: "/node/check_version.json",
-    method: "get",
-    data: {},
+  return http.get("/node/check_version.json", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -326,10 +263,7 @@ export function checkVersion() {
  * @returns1
  */
 export function fastInstall() {
-  return axios({
-    url: "/node/fast_install.json",
-    method: "get",
-    data: {},
+  return http.get("/node/fast_install.json", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -342,10 +276,7 @@ export function fastInstall() {
  * @returns
  */
 export function pullFastInstallResult(params) {
-  return axios({
-    url: "/node/pull_fast_install_result.json",
-    method: "get",
-    params: params,
+  return http.get("/node/pull_fast_install_result.json", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -359,10 +290,7 @@ export function pullFastInstallResult(params) {
  * @returns
  */
 export function confirmFastInstall(params) {
-  return axios({
-    url: "/node/confirm_fast_install.json",
-    method: "get",
-    params: params,
+  return http.get("/node/confirm_fast_install.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -374,12 +302,9 @@ export function confirmFastInstall(params) {
  * @returns json
  */
 export function downloadRemote() {
-  return axios({
-    url: "/node/download_remote.json",
-    method: "get",
+  return http.get("/node/download_remote.json", {}, {
     // 0 表示无超时时间
     timeout: 0,
-    data: {},
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

@@ -9,14 +9,11 @@
 ///
 
 import { t } from "@repo/config";
-import axios from "@/api/config";
+import { http } from "@repo/utils";
 
 // 任务列表
 export function fileReleaseTaskLog(params) {
-  return axios({
-    url: "/file-storage/release-task/list",
-    method: "post",
-    data: params,
+  return http.post("/file-storage/release-task/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -25,10 +22,7 @@ export function fileReleaseTaskLog(params) {
 
 // 新增发布任务
 export function addReleaseTask(params) {
-  return axios({
-    url: "/file-storage/release-task/add-task",
-    method: "post",
-    data: params,
+  return http.post("/file-storage/release-task/add-task", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -37,10 +31,7 @@ export function addReleaseTask(params) {
 
 // 重新发布任务
 export function reReleaseTask(params) {
-  return axios({
-    url: "/file-storage/release-task/re-task",
-    method: "post",
-    data: params,
+  return http.post("/file-storage/release-task/re-task", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -49,10 +40,7 @@ export function reReleaseTask(params) {
 
 // 取消任务
 export function cancelReleaseTask(params) {
-  return axios({
-    url: "/file-storage/release-task/cancel-task",
-    method: "get",
-    params: params,
+  return http.get("/file-storage/release-task/cancel-task", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -61,10 +49,7 @@ export function cancelReleaseTask(params) {
 
 // 删除任务
 export function deleteReleaseTask(params) {
-  return axios({
-    url: "/file-storage/release-task/delete",
-    method: "get",
-    params: params,
+  return http.get("/file-storage/release-task/delete", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -72,10 +57,7 @@ export function deleteReleaseTask(params) {
 }
 
 export function getTaskTemplate(params) {
-  return axios({
-    url: "/file-storage/release-task/get-template",
-    method: "get",
-    params: params,
+  return http.get("/file-storage/release-task/get-template", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -83,10 +65,7 @@ export function getTaskTemplate(params) {
 }
 
 export function listTaskTemplate(params) {
-  return axios({
-    url: "/file-storage/release-task/list-template",
-    method: "post",
-    data: params,
+  return http.post("/file-storage/release-task/list-template", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -94,10 +73,7 @@ export function listTaskTemplate(params) {
 }
 
 export function deleteTaskTemplate(params) {
-  return axios({
-    url: "/file-storage/release-task/delete-template",
-    method: "get",
-    params: params,
+  return http.get("/file-storage/release-task/delete-template", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -106,10 +82,7 @@ export function deleteTaskTemplate(params) {
 
 // 任务详情
 export function taskDetails(params) {
-  return axios({
-    url: "/file-storage/release-task/details",
-    method: "get",
-    params: params,
+  return http.get("/file-storage/release-task/details", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -117,10 +90,7 @@ export function taskDetails(params) {
 }
 
 export function taskLogInfoList(params) {
-  return axios({
-    url: "/file-storage/release-task/log-list",
-    method: "get",
-    params: params,
+  return http.get("/file-storage/release-task/log-list", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",

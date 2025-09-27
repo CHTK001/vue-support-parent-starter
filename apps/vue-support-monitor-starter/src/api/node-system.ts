@@ -8,17 +8,14 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from "./config";
+import { http } from "@repo/utils";
 
 /**
  * white list data
  * @param {nodeId} nodeId
  */
 export function getWhiteList(data) {
-  return axios({
-    url: "/node/system/white-list",
-    method: "post",
-    data: data,
+  return http.post("/node/system/white-list", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -35,10 +32,7 @@ export function getWhiteList(data) {
  * } params
  */
 export function editWhiteList(params) {
-  return axios({
-    url: "/node/system/whitelistDirectory_submit",
-    method: "post",
-    data: params,
+  return http.post("/node/system/whitelistDirectory_submit", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

@@ -8,18 +8,14 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from "./config";
-import { loadRouterBase } from "./config";
+import { http, loadRouterBase } from "@repo/utils";
 
 /**
  * 日志列表
  * @param {nodeId} params
  */
 export function getLogList(params) {
-  return axios({
-    url: "/system/log_data.json",
-    method: "post",
-    data: params,
+  return http.post("/system/log_data.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -40,10 +36,7 @@ export function downloadFile(params) {
  * @param {nodeId, path} params
  */
 export function deleteLog(params) {
-  return axios({
-    url: "/system/log_del.json",
-    method: "post",
-    data: params,
+  return http.post("/system/log_del.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -54,9 +47,7 @@ export function deleteLog(params) {
  * server 缓存数据
  */
 export function getServerCache() {
-  return axios({
-    url: "/system/server-cache",
-    method: "post",
+  return http.post("/system/server-cache", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -68,10 +59,7 @@ export function getServerCache() {
  * @param {String} nodeId
  */
 export function getNodeCache(data) {
-  return axios({
-    url: "/system/node_cache.json",
-    method: "post",
-    data,
+  return http.post("/system/node_cache.json", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -86,10 +74,7 @@ export function getNodeCache(data) {
  * } params
  */
 export function clearCache(params) {
-  return axios({
-    url: "/system/clearCache.json",
-    method: "post",
-    data: params,
+  return http.post("/system/clearCache.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -97,11 +82,7 @@ export function clearCache(params) {
 }
 
 export function asyncRefreshCache(params) {
-  return axios({
-    url: "/system/async-refresh-cache",
-    method: "get",
-
-    params,
+  return http.get("/system/async-refresh-cache", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -113,11 +94,7 @@ export function asyncRefreshCache(params) {
  *
  */
 export function clearErrorWorkspace(params) {
-  return axios({
-    url: "/system/clear-error-workspace",
-    method: "get",
-
-    params,
+  return http.get("/system/clear-error-workspace", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -129,10 +106,7 @@ export function clearErrorWorkspace(params) {
  * @param {String} nodeId 节点 ID，若为空表示加载 Server 端配置
  */
 export function getConfigData(data) {
-  return axios({
-    url: "/system/config-data",
-    method: "post",
-    data: data,
+  return http.post("/system/config-data", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -143,10 +117,7 @@ export function getConfigData(data) {
  * 加载ip配置数据
  */
 export function getIpConfigData() {
-  return axios({
-    url: "/system/ip-config-data",
-    method: "post",
-    data: {},
+  return http.post("/system/ip-config-data", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -161,10 +132,7 @@ export function getIpConfigData() {
  * }
  */
 export function editIpConfig(params) {
-  return axios({
-    url: "/system/save_ip_config.json",
-    method: "post",
-    data: params,
+  return http.post("/system/save_ip_config.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -180,10 +148,7 @@ export function editIpConfig(params) {
  * } params
  */
 export function editConfig(params) {
-  return axios({
-    url: "/system/save_config.json",
-    method: "post",
-    data: params,
+  return http.post("/system/save_config.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -194,9 +159,7 @@ export function editConfig(params) {
  * 加载邮件配置
  */
 export function getMailConfigData() {
-  return axios({
-    url: "/system/mail-config-data",
-    method: "post",
+  return http.post("/system/mail-config-data", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -204,10 +167,7 @@ export function getMailConfigData() {
 }
 
 export function oauthConfigOauth2(params) {
-  return axios({
-    url: "/system/oauth-config/oauth2",
-    method: "get",
-    params,
+  return http.get("/system/oauth-config/oauth2", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -215,10 +175,7 @@ export function oauthConfigOauth2(params) {
 }
 
 export function oauthConfigOauth2Save(params) {
-  return axios({
-    url: "/system/oauth-config/oauth2-save",
-    method: "post",
-    data: params,
+  return http.post("/system/oauth-config/oauth2-save", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -238,10 +195,7 @@ export function oauthConfigOauth2Save(params) {
  * } params
  */
 export function editMailConfig(params) {
-  return axios({
-    url: "/system/mailConfig_save.json",
-    method: "post",
-    data: params,
+  return http.post("/system/mailConfig_save.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -253,15 +207,12 @@ export function editMailConfig(params) {
  * @param {String} nodeId 节点 ID
  */
 export function systemInfo(data) {
-  return axios({
-    url: "/system/info",
-    method: "post",
+  return http.post("/system/info", data, {
     headers: {
       tip: "no",
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
-    },
-    data
+    }
   });
 }
 
@@ -273,16 +224,13 @@ export function systemInfo(data) {
  * } formData
  */
 export function uploadUpgradeFile(formData) {
-  return axios({
-    url: "/system/upload-jar-sharding",
+  return http.post("/system/upload-jar-sharding", formData, {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
       loading: "no"
     },
-    method: "post",
     // 0 表示无超时时间
-    timeout: 0,
-    data: formData
+    timeout: 0
   });
 }
 
@@ -291,11 +239,7 @@ export function uploadUpgradeFile(formData) {
  *@param {String} nodeId 节点 ID
  */
 export function uploadUpgradeFileMerge(data) {
-  return axios({
-    url: "/system/upload-jar-sharding-merge",
-    method: "post",
-
-    data: data,
+  return http.post("/system/upload-jar-sharding-merge", data, {
     // 0 表示无超时时间
     timeout: 0
   });
@@ -306,11 +250,7 @@ export function uploadUpgradeFileMerge(data) {
  *@param {String} nodeId 节点 ID
  */
 export function changelog(data) {
-  return axios({
-    url: "/system/change_log",
-    method: "post",
-
-    data,
+  return http.post("/system/change_log", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -318,11 +258,7 @@ export function changelog(data) {
 }
 
 export function changBetaRelease(params) {
-  return axios({
-    url: "/system/change-beta-release",
-    method: "get",
-
-    params,
+  return http.get("/system/change-beta-release", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -330,11 +266,7 @@ export function changBetaRelease(params) {
 }
 
 export function changeDownloadAuth(params) {
-  return axios({
-    url: "/system/change-download-auth",
-    method: "get",
-
-    params,
+  return http.get("/system/change-download-auth", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -346,11 +278,7 @@ export function changeDownloadAuth(params) {
  *@param {String} nodeId 节点 ID
  */
 export function checkVersion(data) {
-  return axios({
-    url: "/system/check_version.json",
-    method: "post",
-
-    data,
+  return http.post("/system/check_version.json", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -362,12 +290,8 @@ export function checkVersion(data) {
  *@param {String} nodeId 节点 ID
  */
 export function remoteUpgrade(params) {
-  return axios({
-    url: "/system/remote_upgrade.json",
-    method: "get",
+  return http.get("/system/remote_upgrade.json", { params }, {
     timeout: 0,
-
-    params,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -378,9 +302,7 @@ export function remoteUpgrade(params) {
  * 加载 代理配置
  */
 export function getProxyConfig() {
-  return axios({
-    url: "/system/get_proxy_config",
-    method: "get",
+  return http.get("/system/get_proxy_config", {}, {
     params: {},
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
@@ -392,12 +314,9 @@ export function getProxyConfig() {
  * 保存代理配置
  */
 export function saveProxyConfig(data) {
-  return axios({
-    url: "/system/save_proxy_config",
-    method: "post",
+  return http.post("/system/save_proxy_config", data, {
     headers: {
       "Content-Type": "application/json"
-    },
-    data: data
+    }
   });
 }
