@@ -82,9 +82,6 @@
         :total="total"
         :page-size="pageParams.pageSize"
         :current-page="pageParams.page"
-        @selection-change="handleSelectionChange"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
         class="records-table"
         table-name="docker-records"
       >

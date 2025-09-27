@@ -1,6 +1,6 @@
 <script setup>
 // 导入部门管理相关的API请求函数
-import { fetchDeleteDept, fetchListDept, fetchUpdateDept } from "@/api/manage/dept";
+import { fetchListDept, fetchDeleteDept, fetchUpdateDept } from "@/api/manage/dept";
 // 导入防抖工具函数
 import { debounce } from "@pureadmin/utils";
 // 导入时间处理工具函数
@@ -41,23 +41,25 @@ const form = reactive({
 });
 
 /**
- * 加载部门列表数据
- * 该函数会触发API请求获取部门列表，并更新表格数据
+ * 加载部门列表数据的URL函数
+ * 该函数会作为ScTable的url属性使用
  */
-const loadData = async () => {
-  // 设置加载状态为true
-  env.loading = true;
+const loadDeptData = async (params) => {
   try {
     // 发起获取部门列表的API请求
-    const res = await fetchListDept(form);
-    // 将获取到的数据赋值给表格数据
-    tableData.value = res.data;
+    const res = await fetchListDept({...form, ...params});
+    // 返回数据和总数
+    return {
+      data: res.data,
+      total: res.data.length
+    };
   } catch (error) {
     // 处理请求错误
     console.error("获取部门列表数据失败:", error);
-  } finally {
-    // 无论请求成功还是失败，都将加载状态设置为false
-    env.loading = false;
+    return {
+      data: [],
+      total: 0
+    };
   }
 };
 
@@ -80,7 +82,7 @@ const handleDelete = async row => {
     // 发起删除部门的API请求
     await fetchDeleteDept(row.sysDeptId);
     // 重新加载部门列表数据
-    loadData();
+    // loadData();
   } catch (error) {
     // 处理删除请求错误
     console.error("删除部门数据失败:", error);
@@ -143,7 +145,7 @@ const handleUpdate = async row => {
     // 发起更新部门信息的API请求
     await fetchUpdateDept(row);
     // 重新加载部门列表数据
-    loadData();
+    // loadData();
   } catch (error) {
     // 处理更新请求错误
     console.error("更新部门数据失败:", error);
@@ -152,7 +154,7 @@ const handleUpdate = async row => {
 
 // 组件挂载完成后，自动加载部门列表数据
 onMounted(async () => {
-  loadData();
+  // loadData();
 });
 </script>
 
@@ -176,14 +178,14 @@ onMounted(async () => {
           <div class="right-panel">
             <div class="right-panel-search">
               <!-- 搜索按钮，点击后调用加载数据函数，并进行防抖处理 -->
-              <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="debounce(loadData, 1000, true)" />
+              <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="debounce(() => $refs.tableRef.refresh(), 1000, true)" />
               <!-- 新增部门按钮，点击后打开保存对话框 -->
               <el-button :icon="useRenderIcon('ep:plus')" @click="handleEdit({}, 'save')" />
             </div>
           </div>
         </el-header>
         <!-- 表格组件，显示部门列表数据 -->
-        <ScTable ref="tableRef" class="overflow-auto" :data="tableData" row-key="sysDeptId" @row-click="handleOpenDetail">
+        <ScTable ref="tableRef" class="overflow-auto" :url="loadDeptData" :params="form" row-key="sysDeptId" @row-click="handleOpenDetail">
           <!-- 表格列，显示部门ID -->
           <el-table-column label="" prop="sysDeptIds" />
           <!-- 表格列，显示部门名称 -->
@@ -198,101 +200,3 @@ onMounted(async () => {
                 </p>
                 <div class="el-form-item-msg">
                   <!-- 显示部门代码 -->
-                  <span>{{ row.sysDeptCode }}</span>
-                </div>
-              </div>
-            </template>
-          </el-table-column>
-          <!-- 表格列，显示部门权限 -->
-          <el-table-column label="权限" prop="sysDeptPermission" width="180px">
-            <template #default="{ row }">
-              <!-- 若未设置权限则显示提示信息，否则显示权限标签 -->
-              <el-tag>{{ !row.sysDeptDataPermission ? "未设置权限" : getPermissionLabel(row.sysDeptDataPermission) }}</el-tag>
-            </template>
-          </el-table-column>
-          <!-- 表格列，显示部门路径 -->
-          <el-table-column label="路径" prop="sysDeptTreeId" />
-          <!-- 表格列，显示部门是否禁用状态 -->
-          <el-table-column label="是否禁用" prop="sysDeptStatus" width="220px">
-            <template #default="{ row }">
-              <!-- 分段选择器，用于切换部门启用或禁用状态 -->
-              <el-segmented
-                v-model="row.sysDeptStatus"
-                :options="[
-                  {
-                    label: '启用',
-                    value: 0
-                  },
-                  {
-                    label: '禁用',
-                    value: 1
-                  }
-                ]"
-                @change="handleUpdate(row)"
-              />
-            </template>
-          </el-table-column>
-          <!-- 表格列，显示部门创建时间 -->
-          <el-table-column label="创建时间" prop="createTime" width="220px">
-            <template #default="{ row }">
-              <div>
-                <!-- 显示相对时间 -->
-                <span>{{ getTimeAgo(row.createTime) }}</span>
-                <br />
-                <!-- 显示具体时间 -->
-                <span class="text-gray-400">{{ row.createTime }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <!-- 表格列，显示部门更新时间 -->
-          <el-table-column label="更新时间" prop="updateTime" width="220px">
-            <template #default="{ row }">
-              <div>
-                <!-- 显示相对时间 -->
-                <span>{{ getTimeAgo(row.updateTime) }}</span>
-                <br />
-                <!-- 显示具体时间 -->
-                <span class="text-gray-400">{{ row.updateTime }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <!-- 表格列，显示部门备注 -->
-          <el-table-column label="备注" prop="sysDeptRemark" show-overflow-tooltip />
-          <!-- 表格列，显示操作按钮 -->
-          <el-table-column label="操作" width="280px" fixed="right">
-            <template #default="{ row }">
-              <!-- 编辑按钮，点击后打开编辑对话框 -->
-              <el-button class="btn-text" :icon="useRenderIcon('ep:edit-pen')" @click="handleEdit(row, 'edit')" />
-              <!-- 新增子部门按钮，点击后打开保存对话框 -->
-              <el-button
-                class="btn-text"
-                :icon="useRenderIcon('line-md:plus')"
-                @click="
-                  handleEdit(
-                    {
-                      sysDeptPid: row.sysDeptId
-                    },
-                    'save'
-                  )
-                "
-              />
-              <!-- 搜索用户按钮，点击后跳转到用户页面 -->
-              <el-button class="btn-text" :icon="useRenderIcon('line-md:account')" @click="handleSearchUser(row)" />
-              <!-- 打开权限设置对话框按钮 -->
-              <el-button class="btn-text" type="primary" :icon="useRenderIcon('ep:menu')" @click="handleOpenPermission(row)" />
-              <!-- 删除确认弹窗，确认后删除部门 -->
-              <el-popconfirm :title="$t('message.confimDelete')" @confirm="handleDelete(row)">
-                <template #reference>
-                  <!-- 删除按钮 -->
-                  <el-button class="btn-text" type="danger" :icon="useRenderIcon('ep:delete')" />
-                </template>
-              </el-popconfirm>
-            </template>
-          </el-table-column>
-        </ScTable>
-      </template>
-    </el-skeleton>
-    <!-- 保存对话框组件 -->
-    <SaveDialog ref="saveDialogRef" @success="loadData" />
-  </div>
-</template>

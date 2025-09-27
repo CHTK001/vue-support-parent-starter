@@ -3,7 +3,7 @@ import * as crypto from "./index";
 import type { PureHttpResponse, PureHttpRequestConfig } from "../http/types";
 import { getConfig } from "@repo/config";
 // 导入WASM版本的函数
-import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, initWasm, isWasmLoaded } from "@repo/codec-wasm";
+import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, initWasm, isWasmLoaded, generateNonce as generateNonceWasm, processRequest, processResponse } from "@repo/codec-wasm";
 
 // OTK存储接口
 interface OtkEntry {
@@ -244,14 +244,10 @@ class AntiReplayManager {
     return true;
   }
 
-  // 生成随机nonce
-  generateNonce(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < 16; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
+  // 生成随机nonce（直接调用WASM版本）
+  async generateNonce(): Promise<string> {
+    // 直接调用WASM版本的generateNonce函数
+    return await generateNonceWasm();
   }
 
   // 清理过期的请求记录
@@ -301,318 +297,28 @@ const isWasmEnabled = () => {
   return getConfig('codecWasmEnabled') === true;
 };
 
-/** uu2 - 请求加密处理 */
-export const uu2 = (request: PureHttpRequestConfig) => {
-  // 如果启用了WASM且WASM已加载，则使用WASM版本
-  if (isWasmEnabled() && isWasmLoaded()) {
-    // 注意：这里为了保持接口一致性，我们仍然使用同步版本
-    // 在实际项目中，可能需要调整调用方式
-    return uu2_js(request); // 暂时回退到JavaScript版本
-  }
-  
-  return uu2_js(request);
+/** uu2 - 请求加密处理（直接调用WASM版本） */
+export const uu2 = async (request: PureHttpRequestConfig) => {
+  // 直接调用WASM版本，不再处理任何逻辑
+  return await uu2_wasm(request, getConfig);
 };
 
-/** uu2的JavaScript实现 */
-const uu2_js = (request: PureHttpRequestConfig) => {
-  const requestData = request[DATA_FIELD];
-  const requestUrl = request.url;
-  if (requestUrl.startsWith(SETTING_PATH)) {
-    return request;
-  }
-  if (!requestData) {
-    return request;
-  }
-
-  if (!getConfig(REQUEST_CODEC_CONFIG) || !getConfig(CODEC_REQUEST_KEY_CONFIG)) {
-    return request;
-  }
-
-  const isArray = requestData instanceof Array;
-  if (!isArray) {
-    const dataKeys = Object.keys(requestData);
-    if (
-      dataKeys.filter((key) => {
-        const value = requestData[key];
-        if (value instanceof File) {
-          return true;
-        }
-
-        if (value instanceof Blob) {
-          return true;
-        }
-
-        return false;
-      }).length > 0
-    ) {
-      return request;
-    }
-  }
-  
-  // 生成反重放攻击保护参数
-  const antiReplayManager = AntiReplayManager.getInstance();
-  const timestamp = Date.now();
-  const nonce = antiReplayManager.generateNonce();
-  
-  // 验证请求唯一性
-  if (!antiReplayManager.validateRequest(timestamp, nonce)) {
-    console.error('Request encryption failed: Anti-replay validation failed', {
-      timestamp,
-      nonce,
-      url: requestUrl,
-      antiReplayStats: antiReplayManager.getStats()
-    });
-    throw new Error('Anti-replay validation failed');
-  }
-  
-  var jsonData = JSON.stringify(requestData);
-  try {
-    const encryptedData = sm4.encrypt(jsonData, getConfig(CODEC_REQUEST_KEY_CONFIG));
-    request[DATA_FIELD] = isArray ? [{ [DATA_FIELD]: encryptedData }] : { [DATA_FIELD]: encryptedData };
-    
-    // 确保headers存在
-    if (!request.headers) {
-      request.headers = {};
-    }
-    
-    request.headers[ORIGIN_KEY_HEADER] = new Date().getTime();
-    request.headers[TIMESTAMP_HEADER] = timestamp.toString();
-    request.headers[NONCE_HEADER] = nonce;
-    
-    console.info('Request encrypted successfully with anti-replay protection', {
-      timestamp,
-      nonce,
-      url: requestUrl,
-      dataSize: jsonData.length,
-      antiReplayStats: antiReplayManager.getStats()
-    });
-    
-    return request;
-  } catch (error) {
-    console.error('Request encryption failed:', {
-      error: error.message,
-      stack: error.stack,
-      url: request.url,
-      hasData: !!request.data,
-      dataKeys: request.data ? Object.keys(request.data) : []
-    });
-    
-    // 在加密失败时，返回原始请求以保证功能可用性
-    return request;
-  }
+/** uu1 - 响应解密处理（直接调用WASM版本） */
+export const uu1 = async (response: PureHttpResponse) => {
+  // 直接调用WASM版本，不再处理任何逻辑
+  return await uu1_wasm(response);
 };
 
-/** uu1 - 响应解密处理（增强版） */
-export const uu1 = (response: PureHttpResponse) => {
-  // 如果启用了WASM且WASM已加载，则使用WASM版本
-  if (isWasmEnabled() && isWasmLoaded()) {
-    return uu1_js(response); // 暂时回退到JavaScript版本
-  }
-  
-  return uu1_js(response);
+/** uu3 - AES解密工具（直接调用WASM版本） */
+export const uu3 = async (value: string) => {
+  // 直接调用WASM版本，不再处理任何逻辑
+  return await uu3_wasm(value);
 };
 
-/** uu1的JavaScript实现 */
-const uu1_js = (response: PureHttpResponse) => {
-  // 添加响应状态验证
-  if (!response || typeof response !== OBJECT_TYPE) {
-    return response;
-  }
-  
-  // 添加状态码检查
-  if (response.status !== SUCCESS_STATUS) {
-    return response;
-  }
-  
-  // 添加数据完整性检查
-  if (!response[DATA_FIELD] && !response[DATA_FIELD]?.[DATA_FIELD]) {
-    return response;
-  }
-  
-  try {
-    return decryptResponseCore(sm2, response);
-  } catch (error) {
-    // 解密失败时返回原始响应
-    console.warn('Response decryption failed:', error.message);
-    return response;
-  }
-};
-
-/** decryptResponseCore - 核心解密逻辑（支持OTK） */
-const decryptResponseCore = (sm2Engine, response: PureHttpResponse) => {
-  if (response.status == SUCCESS_STATUS) {
-    var rawData = response[DATA_FIELD]?.[DATA_FIELD] || response[DATA_FIELD];
-    
-    // 数据类型验证和提取
-    if (typeof rawData !== STRING_TYPE) {
-      if (typeof rawData === OBJECT_TYPE) {
-        if (!rawData?.[DATA_FIELD] || typeof rawData[DATA_FIELD] !== STRING_TYPE) {
-          return response;
-        }
-        rawData = rawData[DATA_FIELD];
-      } else {
-        return response;
-      }
-    }
-    
-    // 检查加密数据标识
-    if (!rawData.startsWith(ENCRYPTED_PREFIX)) {
-      return response;
-    }
-    
-    // 获取解密密钥和OTK ID
-    var originKey = response?.headers?.[ORIGIN_KEY_HEADER];
-    var otkId = response?.headers?.[OTK_ID_HEADER];
-    
-    if (originKey) {
-      const timestamp = response?.headers?.[TIMESTAMP_HEADER];
-      try {
-        // 数据切片和解密
-        const encryptedPart = rawData.substring(PREFIX_LENGTH, rawData.length - SUFFIX_LENGTH);
-        const decryptKey = crypto.default.AES.decrypt(originKey, timestamp);
-        
-        // OTK验证逻辑
-        if (otkId) {
-          const otkManager = OtkManager.getInstance();
-          
-          console.info('Processing response with OTK', {
-            otkId,
-            url: response.config?.url,
-            status: response.status
-          });
-          
-          // 验证OTK格式
-          if (!codecUtilities.otk.validateOtkId(otkId)) {
-            console.error('Response decryption failed: Invalid OTK ID format', {
-              otkId,
-              url: response.config?.url
-            });
-            return response;
-          }
-          
-          // 检查OTK是否过期
-          const otkTimestamp = codecUtilities.otk.extractTimestamp(otkId);
-          if (codecUtilities.otk.isExpired(otkId)) {
-            console.warn('Response decryption failed: OTK expired', {
-              otkId,
-              timestamp: otkTimestamp ? new Date(otkTimestamp).toISOString() : 'unknown',
-              age: otkTimestamp ? `${Math.round((Date.now() - otkTimestamp) / 1000)}s` : 'unknown',
-              url: response.config?.url
-            });
-            return response;
-          }
-          
-          // 验证并使用OTK
-          if (!otkManager.validateAndUseOtk(otkId, decryptKey)) {
-            console.error('Response decryption failed: OTK validation failed', {
-              otkId,
-              url: response.config?.url,
-              otkStats: otkManager.getStats()
-            });
-            return response;
-          }
-          
-          console.info('OTK validation successful', {
-            otkId,
-            url: response.config?.url,
-            remainingOtks: otkManager.getStats().total
-          });
-        } else {
-          console.warn('Response decryption: No OTK ID found in response headers', {
-            url: response.config?.url,
-            status: response.status,
-            availableHeaders: Object.keys(response.headers || {})
-          });
-        }
-        
-        const decryptedData = sm2Engine.doDecrypt(encryptedPart, decryptKey, 0);
-        
-        // 验证解密结果
-        if (decryptedData) {
-          response[DATA_FIELD] = JSON.parse(decryptedData);
-          
-          if (otkId) {
-            console.debug('Response decrypted successfully with OTK:', otkId);
-          }
-        }
-      } catch (decryptError) {
-        // 静默处理解密错误
-        console.debug('Decryption process failed:', decryptError);
-        
-        // 如果是OTK相关错误，记录详细信息
-        if (otkId) {
-          console.debug('OTK decryption failed for:', otkId, decryptError);
-        }
-      }
-    }
-  }
-  return response;
-};
-
-/** uu3 - AES解密工具 */
-export const uu3 = (value: string) => {
-  // 如果启用了WASM且WASM已加载，则使用WASM版本
-  if (isWasmEnabled() && isWasmLoaded()) {
-    return uu3_js(value); // 暂时回退到JavaScript版本
-  }
-  
-  return uu3_js(value);
-};
-
-/** uu3的JavaScript实现 */
-const uu3_js = (value: string) => {
-  if (!value || typeof value !== STRING_TYPE) {
-    return value;
-  }
-  try {
-    return crypto.default.AES.decrypt(value, DEFAULT_AES_KEY);
-  } catch (error) {
-    console.debug('AES decryption failed:', error);
-    return value;
-  }
-};
-
-/** uu4 - 特殊响应解密处理 */
-export const uu4 = (response) => {
-  // 如果启用了WASM且WASM已加载，则使用WASM版本
-  if (isWasmEnabled() && isWasmLoaded()) {
-    return uu4_js(response); // 暂时回退到JavaScript版本
-  }
-  
-  return uu4_js(response);
-};
-
-/** uu4的JavaScript实现 */
-const uu4_js = (response) => {
-  if (!response || typeof response !== OBJECT_TYPE) {
-    return {};
-  }
-  
-  var data = response?.[DATA_FIELD];
-  if (!data || typeof data !== STRING_TYPE) {
-    return response;
-  }
-  
-  if (!data.startsWith(ENCRYPTED_PREFIX)) {
-    return response;
-  }
-  
-  var uuid = response?.uuid;
-  if (uuid) {
-    const timestamp = response?.timestamp;
-    try {
-      const encryptedSegment = data.substring(PREFIX_LENGTH, data.length - SUFFIX_LENGTH);
-      const key = crypto.default.AES.decrypt(uuid, timestamp);
-      const decrypted = sm2.doDecrypt(encryptedSegment, key, 0);
-      
-      if (decrypted) {
-        return JSON.parse(decrypted);
-      }
-    } catch (error) {
-      console.debug('uu4 decryption failed:', error);
-    }
-  }
-  return {};
+/** uu4 - 特殊响应解密处理（直接调用WASM版本） */
+export const uu4 = async (response) => {
+  // 直接调用WASM版本，不再处理任何逻辑
+  return await uu4_wasm(response);
 };
 
 // 工具函数

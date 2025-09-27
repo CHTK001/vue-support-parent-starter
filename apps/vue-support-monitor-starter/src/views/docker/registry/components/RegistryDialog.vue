@@ -1,4 +1,4 @@
-﻿<template>
+﻿﻿﻿<template>
   <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑仓库' : '添加仓库'" width="600px" @closed="handleDialogClosed">
     <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" @submit.prevent>
       <el-form-item label="仓库名称" prop="name">
@@ -19,7 +19,7 @@
       <el-form-item label="仓库地址" prop="url">
         <el-input v-model="formData.url" placeholder="请输入仓库地址" clearable>
           <template #append>
-            <el-button @click="testConnection" :loading="testLoading">
+            <el-button v-if="showTestButton" @click="testConnection" :loading="testLoading">
               <IconifyIconOnline icon="ri:test-tube-line" class="mr-1" />
               测试
             </el-button>
@@ -181,6 +181,11 @@ const showNamespace = computed(() => {
 
 const showEmail = computed(() => {
   return formData.value.type === "docker_hub";
+});
+
+// 是否显示测试按钮（仅在编辑模式下显示）
+const showTestButton = computed(() => {
+  return isEdit.value;
 });
 
 // 重置表单

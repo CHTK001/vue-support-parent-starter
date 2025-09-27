@@ -59,7 +59,6 @@
         :params="searchParams"
         stripe
         :loading="loading"
-        @selection-change="handleSelectionChange"
         class="images-table"
         table-name="soft-images"
       >
