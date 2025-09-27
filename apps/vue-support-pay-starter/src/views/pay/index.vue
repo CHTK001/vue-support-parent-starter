@@ -1,32 +1,3 @@
-<template>
-  <div>
-    <div class="p-4 flex justify-end el-custom-line">
-      <el-form ref="formRef" :model="form" :inline="true">
-        <el-form-item>
-          <el-select v-model="form.payMerchantId" :loading="loading.merchant" :remote="true" :remote-method="handleFilterMethod" class="!min-w-[240px]">
-            <el-option v-for="item in merchantList" :key="item.payMerchantId" :label="handleRenderName(item)" :value="item.payMerchantId" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button :icon="useRenderIcon('ep:search')" type="primary" @click="handleSearch" />
-          <el-button :icon="useRenderIcon('ep:refresh-left')" @click="handleRefresh" />
-        </el-form-item>
-      </el-form>
-    </div>
-    <div class="p-4">
-      <ScTable ref="resultRef" :data="configList">
-        <template #default="{ row }">
-          <el-icon :size="98" class="cover">
-            <component :is="handleRenderIcon(row)" :class="row.type" />
-          </el-icon>
-          <el-text>{{ handleType(row.type, row.payMerchantConfigWechatTradeType) }}</el-text>
-          <el-button v-auth="'edit'" size="small" @click.stop="handlePay(row)">测试</el-button>
-        </template>
-      </ScTable>
-      <PayLayout ref="payLayoutRef" />
-    </div>
-  </div>
-</template>
 <script setup>
 import { fetchPageMerchant } from "@/api/merchant";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
@@ -45,29 +16,51 @@ const loading = reactive({
 
 const merchantList = ref([]);
 const form = ref({});
-const configList = ref([]);
 
-const handleSearch = async () => {
-  configList.value.length = 0;
-  if (!form.value.payMerchantId) {
-    return;
-  }
-  const merchant = merchantList.value.filter(it => it.payMerchantId == form.value.payMerchantId)?.[0];
-  const { data } = await fetchListMerchantWechat(form.value);
-  data.forEach(element => {
-    element.type = "wechat";
-    configList.value.push(element);
-  });
-
-  if (merchant.payMerchantOpenWallet === 1) {
-    configList.value.push({
-      payMerchantId: merchant.payMerchantId,
-      payMerchantWalletId: merchant.payMerchantWalletId,
-      type: "wallet",
-      payMerchantWalletName: merchant.payMerchantWalletName
+/**
+ * 加载支付数据的URL函数
+ * 该函数会作为ScTable的url属性使用
+ */
+const loadPayData = async (params) => {
+  try {
+    if (!params.payMerchantId) {
+      return {
+        data: [],
+        total: 0
+      };
+    }
+    
+    const merchant = merchantList.value.filter(it => it.payMerchantId == params.payMerchantId)?.[0];
+    const { data } = await fetchListMerchantWechat(params);
+    
+    // 处理微信支付数据
+    const configList = [];
+    data.forEach(element => {
+      element.type = "wechat";
+      configList.push(element);
     });
+
+    // 处理钱包支付数据
+    if (merchant && merchant.payMerchantOpenWallet === 1) {
+      configList.push({
+        payMerchantId: merchant.payMerchantId,
+        payMerchantWalletId: merchant.payMerchantWalletId,
+        type: "wallet",
+        payMerchantWalletName: merchant.payMerchantWalletName
+      });
+    }
+    
+    return {
+      data: configList,
+      total: configList.length
+    };
+  } catch (error) {
+    console.error("获取支付数据失败:", error);
+    return {
+      data: [],
+      total: 0
+    };
   }
-  resultRef.value.refresh();
 };
 
 const handlePay = item => {
@@ -98,10 +91,17 @@ const handleRenderIcon = item => {
 const handleRenderName = item => {
   return item.payMerchantName + " (" + item.payMerchantCode + ")";
 };
+
+const handleSearch = async () => {
+  // 触发表格刷新
+  resultRef.value.refresh();
+};
+
 const handleRefresh = async () => {
   formRef.value.resetFields();
   handleFilterMethod();
 };
+
 const handleFilterMethod = async data => {
   loading.merchant = true;
   return new Promise((resolve, reject) => {
@@ -127,13 +127,3 @@ onMounted(async () => {
   handleFilterMethod();
 });
 </script>
-
-<style scoped>
-.wechat {
-  color: green;
-}
-
-.wallet {
-  color: darksalmon;
-}
-</style>

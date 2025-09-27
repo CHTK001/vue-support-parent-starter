@@ -98,7 +98,7 @@
 
     <!-- 主内容区域 -->
     <div class="job-content">
-      <ScTable ref="tableRef" v-model:page="form" class="job-table" :col-size="4" :data="data" :total="total" :loading="loading" layout="card" cardLayout="default" @data-change="search">
+      <ScTable ref="tableRef" v-model:page="form" class="job-table" :col-size="4" :url="loadJobData" :params="form" layout="card" cardLayout="default" @data-loaded="handleDataLoaded">
         <template #default="{ row }">
           <div class="modern-job-card" :class="{ 'card-active': row.jobTriggerStatus === 1 }">
             <!-- 状态指示器 -->
@@ -280,17 +280,6 @@ const ScSelectFilter = defineAsyncComponent(() => import("@repo/components/ScSel
 const tableRef = ref(null);
 const router = useRouter();
 
-// 数据状态
-const triggerId = ref(undefined);
-const executorParam = ref("");
-const addressList = ref("");
-const triggerTitle = ref("");
-const triggerShow = ref(false);
-const saveShow = ref(false);
-const jobinfoNextTriggerTimeShow = ref(false);
-const jobgroupByIdShow = ref(false);
-const triggerLoadding = ref(false);
-
 // 表单和分页参数
 const form = reactive({
   mode: "card",
@@ -301,17 +290,46 @@ const form = reactive({
   pageSize: 12
 });
 
-const data = ref([]);
+// 数据状态
 const loading = ref(false);
 const executorData = ref([]);
 const jobinfoNextTriggerTimeData = ref([]);
 const jobgroupByIdData = ref([]);
 const total = ref(0);
+const data = ref([]); // 保留data变量以供其他地方使用
 
 // 计算属性
 const totalJobs = computed(() => data.value.length);
 const runningJobs = computed(() => data.value.filter(job => job.jobTriggerStatus === 1).length);
 const stoppedJobs = computed(() => data.value.filter(job => job.jobTriggerStatus === 0).length);
+
+/**
+ * 加载任务数据的URL函数
+ * 该函数会作为ScTable的url属性使用
+ */
+const loadJobData = async (params) => {
+  try {
+    const res = await fetchJobPageList({...form, ...params});
+    return {
+      data: res?.data.data || [],
+      total: res?.data.total || 0
+    };
+  } catch (error) {
+    console.error("获取数据失败:", error);
+    return {
+      data: [],
+      total: 0
+    };
+  }
+};
+
+/**
+ * 处理数据加载完成的回调
+ */
+const handleDataLoaded = (result) => {
+  data.value = result.data;
+  total.value = result.total;
+};
 
 // 过滤器数据
 const filterData = [
@@ -342,7 +360,8 @@ const initial = async () => {
     const res = await fetchAppList({});
     executorData.value = res?.data || [];
     form.jobGroup = executorData.value && executorData.value.length == 1 ? executorData.value[0].monitorId : 0;
-    search({});
+    // 触发表格刷新
+    tableRef.value?.refresh();
   } catch (error) {
     console.error("初始化失败:", error);
   }
@@ -353,16 +372,8 @@ const search = async param => {
   if (param) {
     Object.assign(form, param);
   }
-  loading.value = true;
-  try {
-    const res = await fetchJobPageList(form);
-    data.value = res?.data.data || [];
-    total.value = res?.data.total || 0;
-  } catch (error) {
-    console.error("获取数据失败:", error);
-  } finally {
-    loading.value = false;
-  }
+  // 触发表格刷新
+  tableRef.value?.refresh();
 };
 
 // 过滤器变化

@@ -10,6 +10,8 @@ import { transformI18n } from "../../../config/src/i18n";
 import { uu1, uu2 } from "../crypto/codec";
 import type { PureHttpError, PureHttpRequestConfig, PureHttpResponse, RequestMethods } from "../http/types";
 import { message } from "../message";
+// 导入WASM版本的generateNonce函数
+import { generateNonce as generateNonceWasm } from "@repo/codec-wasm";
 
 const AutoErrorMessage = getConfig().AutoErrorMessage;
 /** 响应结果 */
@@ -96,19 +98,20 @@ class PureHttp {
     PureHttp.axiosInstance.interceptors.request.use(
       async (config: PureHttpRequestConfig): Promise<any> => {
         config.baseURL = getConfig().BaseUrl;
-        config = uu2(config);
+        config = await uu2(config);
         const an = config.headers["x-remote-animation"] || config.headers["loading"];
         config.headers["x-req-fingerprint"] = localStorageProxy().getItem("visitId");
         
         // 添加nonce和timestamp参数
         const timestamp = Date.now();
-        const nonce = generateNonce();
+        // 使用异步方式获取nonce
+        const nonce = await generateNonce();
         
         config.headers["x-nonce"] = nonce;
         config.headers["x-timestamp"] = timestamp.toString();
         
         // 生成并添加签名
-        const sign = generateSign(config, timestamp);
+        const sign = generateSign(config, timestamp, nonce);
         config.headers["x-sign"] = sign;
         
         if (an) {
@@ -509,38 +512,45 @@ class PureHttp {
 export const http = new PureHttp();
 
 /** 生成复杂的nonce值 */
-const generateNonce = (): string => {
-  // 获取当前时间戳（毫秒）
-  const timestamp = Date.now();
-  
-  // 生成多个随机数
-  const random1 = Math.random().toString(36).substr(2, 5);
-  const random2 = Math.random().toString(36).substr(2, 7);
-  const random3 = Math.floor(Math.random() * 1000000).toString(36);
-  
-  // 生成基于时间戳的哈希-like值
-  const timeHash = (timestamp * 9301 + 49297) % 233280;
-  
-  // 生成序列号
-  const sequence = (timestamp & 0xFFFF) ^ (timestamp >>> 16);
-  
-  // 生成基于随机数的混合值
-  const mixed = ((random1.length * random2.length * random3.length) + timestamp) % 999999;
-  
-  // 生成最终的复杂nonce
-  const nonce = `${random1}${sequence.toString(36)}${random2}${timeHash.toString(36)}${random3}${mixed.toString(36)}`;
-  
-  // 确保长度足够复杂
-  if (nonce.length < 32) {
-    const padding = Math.random().toString(36).substr(2, 32 - nonce.length);
-    return nonce + padding;
+const generateNonce = async (): Promise<string> => {
+  try {
+    // 使用WASM版本的generateNonce函数
+    return await generateNonceWasm();
+  } catch (error) {
+    console.warn('WASM generateNonce failed, using fallback implementation:', error);
+    // 如果WASM失败，回退到JavaScript实现
+    // 获取当前时间戳（毫秒）
+    const timestamp = Date.now();
+    
+    // 生成多个随机数
+    const random1 = Math.random().toString(36).substr(2, 5);
+    const random2 = Math.random().toString(36).substr(2, 7);
+    const random3 = Math.floor(Math.random() * 1000000).toString(36);
+    
+    // 生成基于时间戳的哈希-like值
+    const timeHash = (timestamp * 9301 + 49297) % 233280;
+    
+    // 生成序列号
+    const sequence = (timestamp & 0xFFFF) ^ (timestamp >>> 16);
+    
+    // 生成基于随机数的混合值
+    const mixed = ((random1.length * random2.length * random3.length) + timestamp) % 999999;
+    
+    // 生成最终的复杂nonce
+    const nonce = `${random1}${sequence.toString(36)}${random2}${timeHash.toString(36)}${random3}${mixed.toString(36)}`;
+    
+    // 确保长度足够复杂
+    if (nonce.length < 32) {
+      const padding = Math.random().toString(36).substr(2, 32 - nonce.length);
+      return nonce + padding;
+    }
+    
+    return nonce;
   }
-  
-  return nonce;
 };
 
 /** 生成签名 */
-const generateSign = (config: any, timestamp: number): string => {
+const generateSign = (config: any, timestamp: number, nonce: string): string => {
   // 收集请求参数
   const params: Record<string, any> = {};
   
@@ -571,7 +581,7 @@ const generateSign = (config: any, timestamp: number): string => {
   }
   
   // 添加nonce和timestamp
-  params['_nonce'] = config.headers['x-nonce'];
+  params['_nonce'] = nonce;
   params['_timestamp'] = timestamp;
   
   // 按键名排序并拼接参数

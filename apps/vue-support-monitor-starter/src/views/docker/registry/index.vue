@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <div class="registry-management">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -62,9 +62,6 @@
         :params="searchParams"
         stripe
         :loading="loading"
-        @selection-change="handleSelectionChange"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
         class="registry-table"
         table-name="docker-registry"
       >
@@ -171,7 +168,7 @@
 
       <!-- 分页 -->
       <div class="pagination-container">
-        <el-pagination v-model:current-page="pagination.page" v-model:page-size="pagination.size" :total="pagination.total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next, jumper" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+        <el-pagination v-model:current-page="pagination.page" v-model:page-size="pagination.size" :total="pagination.total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next, jumper" />
       </div>
     </el-card>
 
@@ -197,7 +194,7 @@ import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
 import RegistryDialog from "../components/RegistryDialog.vue";
-import SyncProgressDialog from "../components/SyncProgressDialog.vue";
+import SyncProgressDialog from "./components/SyncProgressDialog.vue";
 
 /**
  * 软件仓库管理页面组件（重新实现）
@@ -454,16 +451,6 @@ const clearSelection = () => {
 };
 
 // 分页变化
-const handleSizeChange = (size: number) => {
-  pagination.size = size;
-  pagination.page = 1;
-  loadRegistries();
-};
-
-const handleCurrentChange = (page: number) => {
-  pagination.page = page;
-  loadRegistries();
-};
 
 // 工具函数
 const getRegistryIcon = (type?: string) => {

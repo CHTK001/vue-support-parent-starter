@@ -65,9 +65,6 @@
         :params="searchParams"
         stripe
         :loading="loading"
-        @selection-change="handleSelectionChange"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
         class="container-table"
         table-name="soft-containers"
       >
@@ -206,8 +203,8 @@ import { containerApi, getServerList, type SystemSoftContainer } from "@/api/doc
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
-import ContainerDetailDialog from "../components/ContainerDetailDialog.vue";
-import ContainerLogsDialog from "../components/ContainerLogsDialog.vue";
+import ContainerDetailDialog from "./components/ContainerDetailDialog.vue";
+import ContainerLogsDialog from "./components/ContainerLogsDialog.vue";
 
 // 响应式数据
 const loading = ref(false);
@@ -245,9 +242,6 @@ const handleRefresh = () => loadContainers();
 const handleSearch = () => {
   pagination.page = 1;
   loadContainers();
-};
-const handleSelectionChange = (selection: SystemSoftContainer[]) => {
-  selectedIds.value = selection.map((item) => item.systemSoftContainerId!);
 };
 const clearSelection = () => {
   selectedIds.value = [];
@@ -464,15 +458,6 @@ const handleBatchDelete = async () => {
       ElMessage.error("批量删除容器失败");
     }
   }
-};
-
-const handleSizeChange = (size: number) => {
-  pagination.size = size;
-  loadContainers();
-};
-const handleCurrentChange = (page: number) => {
-  pagination.page = page;
-  loadContainers();
 };
 
 // 加载服务器列表

@@ -110,10 +110,10 @@
 import { containerApi, getServerList, type ContainerStatusStatistics, type SystemSoftContainer } from '@/api/docker-management'
 import { ElMessage } from 'element-plus'
 import { onMounted, onUnmounted, reactive, ref } from 'vue'
-import ContainerDetailDialog from '../components/ContainerDetailDialog.vue'
-import ContainerMonitoringList from '../components/ContainerMonitoringList.vue'
-import ContainerStatusStatsComponent from '../components/ContainerStatusStats.vue'
-import MonitoringOverview from '../components/MonitoringOverview.vue'
+import ContainerDetailDialog from '../containers/components/ContainerDetailDialog.vue'
+import ContainerMonitoringList from './components/ContainerMonitoringList.vue'
+import ContainerStatusStatsComponent from './components/ContainerStatusStats.vue'
+import MonitoringOverview from './components/MonitoringOverview.vue'
 
 // 响应式数据
 const loading = ref(false)
