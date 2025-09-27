@@ -8,16 +8,14 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from "./config";
+import { http } from "@repo/utils";
 
 /**
  * 获取基础运行镜像列表
  * @returns {*}
  */
 export function listExtConf() {
-  return axios({
-    url: "/system/ext-conf/list",
-    method: "get",
+  return http.get("/system/ext-conf/list", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -25,10 +23,7 @@ export function listExtConf() {
 }
 
 export function getItem(params) {
-  return axios({
-    url: "/system/ext-conf/get-item",
-    method: "get",
-    params: params,
+  return http.get("/system/ext-conf/get-item", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -36,10 +31,7 @@ export function getItem(params) {
 }
 
 export function getDefaultItem(params) {
-  return axios({
-    url: "/system/ext-conf/get-default-item",
-    method: "get",
-    params: params,
+  return http.get("/system/ext-conf/get-default-item", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -47,10 +39,7 @@ export function getDefaultItem(params) {
 }
 
 export function saveItem(params) {
-  return axios({
-    url: "/system/ext-conf/save-item",
-    method: "post",
-    data: params,
+  return http.post("/system/ext-conf/save-item", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -58,10 +47,7 @@ export function saveItem(params) {
 }
 
 export function addItem(params) {
-  return axios({
-    url: "/system/ext-conf/add-item",
-    method: "get",
-    params: params,
+  return http.get("/system/ext-conf/add-item", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

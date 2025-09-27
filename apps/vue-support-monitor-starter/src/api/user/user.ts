@@ -8,32 +8,20 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from '../config'
+import { http } from "@repo/utils";
 
 // login
 export function login(params) {
-  return axios({
-    url: '/userLogin',
-    method: 'post',
-    data: params
-  })
+  return http.post('/userLogin', params);
 }
 
 // oauth2Login
 export function oauth2Login(params) {
-  return axios({
-    url: '/oauth2/login',
-    method: 'post',
-    data: params
-  })
+  return http.post('/oauth2/login', params);
 }
 
 export function oauth2Url(params) {
-  return axios({
-    url: '/oauth2-url',
-    method: 'get',
-    params: params
-  })
+  return http.get('/oauth2-url', { params });
 }
 
 /**
@@ -42,36 +30,22 @@ export function oauth2Url(params) {
  * @returns
  */
 export function mfaVerify(params) {
-  return axios({
-    url: '/mfa_verify',
-    method: 'get',
-    params: params
-  })
+  return http.get('/mfa_verify', { params });
 }
 
 // refresh token
 export function refreshToken() {
-  return axios({
-    url: '/renewal',
-    method: 'post'
-  })
+  return http.post('/renewal');
 }
 
 // 关闭 两步验证信息
 export function closeMfa(params) {
-  return axios({
-    url: '/user/close_mfa',
-    method: 'get',
-    params
-  })
+  return http.get('/user/close_mfa', { params });
 }
 
 // 生成 两步验证信息
 export function generateMfa() {
-  return axios({
-    url: '/user/generate_mfa',
-    method: 'get'
-  })
+  return http.get('/user/generate_mfa');
 }
 
 /**
@@ -80,81 +54,47 @@ export function generateMfa() {
  * @returns
  */
 export function bindMfa(params) {
-  return axios({
-    url: '/user/bind_mfa',
-    method: 'get',
-    params: params
-  })
+  return http.get('/user/bind_mfa', { params });
 }
 
 // 获取用户信息
 export function getUserInfo() {
-  return axios({
-    url: '/user/user-basic-info',
-    method: 'post'
-  })
+  return http.post('/user/user-basic-info');
 }
 
 // 退出登录
 export function loginOut(params) {
-  return axios({
-    url: '/logout2',
-    method: 'get',
-    data: params
-  })
+  return http.get('/logout2', { data: params });
 }
 
 // 修改密码
 export function updatePwd(params) {
-  return axios({
-    url: '/user/updatePwd',
-    method: 'post',
-    data: params
-  })
+  return http.post('/user/updatePwd', params);
 }
 
 // 所有管理员列表
 export function getUserListAll() {
-  return axios({
-    url: '/user/get_user_list_all',
-    method: 'post'
-  })
+  return http.post('/user/get_user_list_all');
 }
 
 // 用户列表
 export function getUserList(params) {
-  return axios({
-    url: '/user/get_user_list',
-    method: 'post',
-    data: params
-  })
+  return http.post('/user/get_user_list', params);
 }
 
 // 编辑
 export function editUser(params) {
-  return axios({
-    url: '/user/edit',
-    method: 'post',
-    data: params
-  })
+  return http.post('/user/edit', params);
 }
 
 // // 修改用户
 // export function updateUser(params) {
-//   return axios({
-//     url: '/user/updateUser',
-//     method: 'post',
-//     data: params
-//   })
+//   return http.post('/user/updateUser', params);
 // }
 
 // 删除用户
 export function deleteUser(id) {
-  return axios({
-    url: '/user/deleteUser',
-    method: 'post',
-    data: { id }
-  })
+  return http.post('/user/deleteUser', { id });
 }
 
 /**
@@ -168,11 +108,7 @@ export function deleteUser(id) {
  * } params
  */
 export function editUserInfo(params) {
-  return axios({
-    url: '/user/save_basicInfo.json',
-    method: 'post',
-    data: params
-  })
+  return http.post('/user/save_basicInfo.json', params);
 }
 
 /**
@@ -180,12 +116,7 @@ export function editUserInfo(params) {
  * @param {String} email 邮箱地址
  */
 export function sendEmailCode(email) {
-  return axios({
-    url: '/user/sendCode.json',
-    method: 'post',
-    timeout: 0,
-    data: { email }
-  })
+  return http.post('/user/sendCode.json', { email }, { timeout: 0 });
 }
 
 /**
@@ -194,11 +125,7 @@ export function sendEmailCode(email) {
  * @returns
  */
 export function unlockUser(id) {
-  return axios({
-    url: '/user/unlock',
-    method: 'get',
-    params: { id }
-  })
+  return http.get('/user/unlock', { params: { id } });
 }
 
 /**
@@ -207,11 +134,7 @@ export function unlockUser(id) {
  * @returns
  */
 export function closeUserMfa(id) {
-  return axios({
-    url: '/user/close_user_mfa',
-    method: 'get',
-    params: { id }
-  })
+  return http.get('/user/close_user_mfa', { params: { id } });
 }
 
 /**
@@ -220,11 +143,7 @@ export function closeUserMfa(id) {
  * @returns
  */
 export function restUserPwd(id) {
-  return axios({
-    url: '/user/rest-user-pwd',
-    method: 'get',
-    params: { id }
-  })
+  return http.get('/user/rest-user-pwd', { params: { id } });
 }
 
 /**
@@ -233,11 +152,7 @@ export function restUserPwd(id) {
  * @returns
  */
 export function workspaceList(userId) {
-  return axios({
-    url: '/user/workspace_list',
-    method: 'get',
-    params: { userId: userId }
-  })
+  return http.get('/user/workspace_list', { params: { userId } });
 }
 
 /**
@@ -246,27 +161,15 @@ export function workspaceList(userId) {
  * @returns
  */
 export function myWorkspace() {
-  return axios({
-    url: '/user/my-workspace',
-    method: 'get',
-    params: {}
-  })
+  return http.get('/user/my-workspace', { params: {} });
 }
 
 export function statWorkspace() {
-  return axios({
-    url: '/stat/workspace',
-    method: 'get',
-    params: {}
-  })
+  return http.get('/stat/workspace', { params: {} });
 }
 
 export function statSystemOverview() {
-  return axios({
-    url: '/stat/system',
-    method: 'get',
-    params: {}
-  })
+  return http.get('/stat/system', { params: {} });
 }
 
 /**
@@ -275,11 +178,7 @@ export function statSystemOverview() {
  * @returns
  */
 export function clusterList() {
-  return axios({
-    url: '/user/cluster-list',
-    method: 'get',
-    params: {}
-  })
+  return http.get('/user/cluster-list', { params: {} });
 }
 
 /**
@@ -288,14 +187,11 @@ export function clusterList() {
  * @returns
  */
 export function saveWorkspace(data) {
-  return axios({
-    url: '/user/save-workspace',
-    method: 'post',
-    data,
+  return http.post('/user/save-workspace', data, {
     headers: {
       'Content-Type': 'application/json'
     }
-  })
+  });
 }
 
 /**
@@ -304,11 +200,7 @@ export function saveWorkspace(data) {
  * @returns
  */
 export function loginConfig() {
-  return axios({
-    url: '/login-config',
-    method: 'get',
-    params: {}
-  })
+  return http.get('/login-config', { params: {} });
 }
 
 /**
@@ -317,33 +209,17 @@ export function loginConfig() {
  * @returns
  */
 export function loginRandCode(params) {
-  return axios({
-    url: '/rand-code',
-    method: 'get',
-    params: params
-  })
+  return http.get('/rand-code', { params });
 }
 
 export function listLoginLog(params) {
-  return axios({
-    url: '/user/list-login-log-data',
-    method: 'post',
-    data: params
-  })
+  return http.post('/user/list-login-log-data', params);
 }
 
 export function listOperaterLog(params) {
-  return axios({
-    url: '/user/list-operate-log-data',
-    method: 'post',
-    data: params
-  })
+  return http.post('/user/list-operate-log-data', params);
 }
 
 export function recentLogData(params) {
-  return axios({
-    url: '/user/recent-log-data',
-    method: 'post',
-    data: params
-  })
+  return http.post('/user/recent-log-data', params);
 }

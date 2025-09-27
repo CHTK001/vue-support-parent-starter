@@ -8,14 +8,11 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from "./config";
+import { http } from "@repo/utils";
 
 // 操作日志列表
 export function getOperationLogList(params) {
-  return axios({
-    url: "/user/log/list_data.json",
-    method: "post",
-    data: params,
+  return http.post("/user/log/list_data.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

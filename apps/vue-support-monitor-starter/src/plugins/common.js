@@ -1,9 +1,9 @@
 import "@repo/assets/less/main.less";
-import axios from "axios";
+import { http } from "@repo/utils";
 // import {AyinColor} from "ayin-color"
 
 export default function (app) {
-  window.axios = axios;
+  window.axios = http;
   // app.use(AyinColor)
 
   // const comps=[ ];

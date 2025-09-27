@@ -8,14 +8,11 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from "./config";
+import { http } from "@repo/utils";
 
 // 日志搜索列表
 export function getLogReadList(params) {
-  return axios({
-    url: "/log-read/list",
-    method: "post",
-    data: params,
+  return http.post("/log-read/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -32,10 +29,7 @@ export function getLogReadList(params) {
  * } params
  */
 export function editLogRead(params) {
-  return axios({
-    url: "/log-read/save.json",
-    method: "post",
-    data: params,
+  return http.post("/log-read/save.json", params, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -43,10 +37,7 @@ export function editLogRead(params) {
 }
 
 export function updateCache(params) {
-  return axios({
-    url: "/log-read/update-cache.json",
-    method: "post",
-    data: params,
+  return http.post("/log-read/update-cache.json", params, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -58,10 +49,7 @@ export function updateCache(params) {
  * @param {*} id
  */
 export function deleteLogRead(id) {
-  return axios({
-    url: "/log-read/del.json",
-    method: "post",
-    data: { id },
+  return http.post("/log-read/del.json", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

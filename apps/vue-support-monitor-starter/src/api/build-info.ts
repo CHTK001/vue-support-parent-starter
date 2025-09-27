@@ -9,7 +9,7 @@
 ///
 
 import { t } from "@repo/config";
-import axios from "./config";
+import { http } from "@repo/utils";
 import { loadRouterBase } from "./config";
 
 /**
@@ -19,10 +19,7 @@ import { loadRouterBase } from "./config";
  * } params
  */
 export function getBuildList(params, loading) {
-  return axios({
-    url: "/build/list",
-    method: "post",
-    data: params,
+  return http.post("/build/list", params, {
     headers: {
       loading: loading === false ? "no" : "",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
@@ -37,10 +34,7 @@ export function getBuildList(params, loading) {
  * } params
  */
 export function getBuildGet(params) {
-  return axios({
-    url: "/build/get",
-    method: "get",
-    params,
+  return http.get("/build/get", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -54,10 +48,7 @@ export function getBuildGet(params) {
  * } params
  */
 export function getBuildEnvironment(params) {
-  return axios({
-    url: "/build/manage/environment",
-    method: "post",
-    data: params,
+  return http.post("/build/manage/environment", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -68,9 +59,7 @@ export function getBuildEnvironment(params) {
  * 构建分组
  */
 export function getBuildGroupAll() {
-  return axios({
-    url: "/build/list_group_all",
-    method: "get",
+  return http.get("/build/list_group_all", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -84,11 +73,8 @@ export function getBuildGroupAll() {
  * } params
  */
 export function getBranchList(params) {
-  return axios({
-    url: "/build/branch-list",
-    method: "post",
+  return http.post("/build/branch-list", params, {
     timeout: 0,
-    data: params,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -131,10 +117,7 @@ export function editBuild(params) {
     resultKeepDay: params.resultKeepDay,
     buildEnvParameter: params.buildEnvParameter
   };
-  return axios({
-    url: "/build/edit",
-    method: "post",
-    data,
+  return http.post("/build/edit", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -146,10 +129,7 @@ export function editBuild(params) {
  * @param {*} id
  */
 export function deleteBuild(id) {
-  return axios({
-    url: "/build/delete",
-    method: "post",
-    data: { id },
+  return http.post("/build/delete", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -157,10 +137,7 @@ export function deleteBuild(id) {
 }
 
 export function deleteatchBuild(data) {
-  return axios({
-    url: "/build/batch-delete",
-    method: "post",
-    data: data,
+  return http.post("/build/batch-delete", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -172,10 +149,7 @@ export function deleteatchBuild(data) {
  * @param {*} id
  */
 export function getTriggerUrl(data) {
-  return axios({
-    url: "/build/trigger/url",
-    method: "post",
-    data: data,
+  return http.post("/build/trigger/url", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -187,11 +161,7 @@ export function getTriggerUrl(data) {
 //  * @param {*} id
 //  */
 // export function resetTrigger(id) {
-//   return axios({
-//     url: "/build/trigger/rest",
-//     method: "post",
-//     data: { id },
-//   });
+//   return http.post("/build/trigger/rest", { id });
 // }
 
 /**
@@ -199,10 +169,7 @@ export function getTriggerUrl(data) {
  * @param {*} id
  */
 export function clearBuid(id) {
-  return axios({
-    url: "/build/clean-source",
-    method: "post",
-    data: { id },
+  return http.post("/build/clean-source", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -218,10 +185,7 @@ export function clearBuid(id) {
  * }
  */
 export function loadBuildLog(params) {
-  return axios({
-    url: "/build/manage/get-now-log",
-    method: "post",
-    data: params,
+  return http.post("/build/manage/get-now-log", params, {
     headers: {
       tip: "no",
       loading: "no",
@@ -235,10 +199,7 @@ export function loadBuildLog(params) {
  * @param {*} id
  */
 export function startBuild(data) {
-  return axios({
-    url: "/build/manage/start",
-    method: "post",
-    data: data,
+  return http.post("/build/manage/start", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -250,10 +211,7 @@ export function startBuild(data) {
  * @param {*} id
  */
 export function stopBuild(id) {
-  return axios({
-    url: "/build/manage/cancel",
-    method: "post",
-    data: { id },
+  return http.post("/build/manage/cancel", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -268,10 +226,7 @@ export function stopBuild(id) {
  * } params
  */
 export function geteBuildHistory(params) {
-  return axios({
-    url: "/build/history/history_list.json",
-    method: "post",
-    data: params,
+  return http.post("/build/history/history_list.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -315,10 +270,7 @@ export function downloadBuildFileByBuild(id, numberId) {
  * @returns
  */
 export function rollback(logId) {
-  return axios({
-    url: "/build/manage/reRelease",
-    method: "post",
-    data: { logId },
+  return http.post("/build/manage/reRelease", { logId }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -330,10 +282,7 @@ export function rollback(logId) {
  * @param {*} logId
  */
 export function deleteBuildHistory(logId) {
-  return axios({
-    url: "/build/history/delete_log.json",
-    method: "post",
-    data: { logId },
+  return http.post("/build/history/delete_log.json", { logId }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -341,10 +290,7 @@ export function deleteBuildHistory(logId) {
 }
 
 export function sortItem(params) {
-  return axios({
-    url: "/build/sort-item",
-    method: "get",
-    params: params,
+  return http.get("/build/sort-item", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }

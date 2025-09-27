@@ -9,7 +9,6 @@
 ///
 
 import { http, type ReturnResult } from "@repo/utils";
-import axios from "./config";
 
 // ==================== 类型定义 ====================
 
@@ -133,10 +132,7 @@ export function createServerFileUploadTask(file: File, request: ServerFileUpload
     }
   });
 
-  return axios({
-    url: "server/file-upload/upload",
-    method: "post",
-    data: formData,
+  return http.post("server/file-upload/upload", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },

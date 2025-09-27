@@ -449,6 +449,95 @@ export function compareStrings(a: string, b: string): bool {
   return true
 }
 
+// 生成签名
+export function generateSign(paramsJson: string, timestamp: i64, nonce: string, secretKey: string): string {
+  // 解析参数JSON字符串
+  // 使用简单的键值对数组来存储参数
+  const keys: string[] = new Array<string>()
+  const values: string[] = new Array<string>()
+  
+  // 简化的参数解析（假设格式为 key1=value1&key2=value2 的形式）
+  if (paramsJson.includes("=")) {
+    const pairs: string[] = paramsJson.split("&")
+    for (let i: i32 = 0; i < pairs.length; i++) {
+      const pair: string = pairs[i]
+      const eqIndex: i32 = pair.indexOf("=")
+      if (eqIndex > 0) {
+        const key: string = pair.substring(0, eqIndex)
+        const value: string = pair.substring(eqIndex + 1)
+        keys.push(key)
+        values.push(value)
+      }
+    }
+  }
+  
+  // 添加nonce和timestamp
+  keys.push('_nonce')
+  values.push(nonce)
+  keys.push('_timestamp')
+  values.push(timestamp.toString())
+  
+  // 简单排序（冒泡排序）
+  for (let i: i32 = 0; i < keys.length - 1; i++) {
+    for (let j: i32 = 0; j < keys.length - i - 1; j++) {
+      if (keys[j] > keys[j + 1]) {
+        // 交换键
+        const tempKey: string = keys[j]
+        keys[j] = keys[j + 1]
+        keys[j + 1] = tempKey
+        
+        // 交换值
+        const tempValue: string = values[j]
+        values[j] = values[j + 1]
+        values[j + 1] = tempValue
+      }
+    }
+  }
+  
+  // 拼接参数字符串
+  let paramString: string = ""
+  for (let i: i32 = 0; i < keys.length; i++) {
+    const key: string = keys[i]
+    const value: string = values[i]
+    if (value != null && value != "") {
+      paramString += key + "=" + value + "&"
+    }
+  }
+  
+  // 移除末尾的&符号
+  if (paramString.endsWith("&")) {
+    paramString = paramString.substring(0, paramString.length - 1)
+  }
+  
+  // 添加密钥
+  const dataToSign: string = paramString + secretKey
+  
+  // 生成MD5签名
+  return md5Hash(dataToSign)
+}
+
+// MD5哈希函数
+export function md5Hash(input: string): string {
+  // 简化的MD5实现（实际项目中应使用完整的MD5算法）
+  let hash: i64 = 0
+  for (let i: i32 = 0; i < input.length; i++) {
+    const character: i32 = input.charCodeAt(i)
+    hash = ((hash << 5) - hash) + character
+    hash = hash & 0x7fffffffffffffff // 转换为64位有符号整数
+  }
+  // 转换为16进制字符串
+  let hex: string = hash.toString(16)
+  // 确保长度为32位，不足的前面补0
+  while (hex.length < 32) {
+    hex = "0" + hex
+  }
+  // 如果超过32位，取前32位
+  if (hex.length > 32) {
+    hex = hex.substring(0, 32)
+  }
+  return hex
+}
+
 // 导出一个示例函数
 export function add(a: i32, b: i32): i32 {
   return a + b

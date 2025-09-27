@@ -1,4 +1,4 @@
-import axios from "axios";
+import { http } from "../http";
 /**
  * 检查图片是否存在
  * @param url 图片的 URL 地址
@@ -52,10 +52,10 @@ export const checkImageFormatSupport = async (format) => {
       const canvas = document.createElement("canvas");
       canvas.width = 1;
       canvas.height = 1;
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, mimeType));
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mimeType));
       if (!blob) return false;
 
-      await createImageBitmap(blob);
+      await createImageBitmap(blob as ImageBitmapSource);
       return true;
     } catch (e) {
       return false;
@@ -142,8 +142,8 @@ export const createCompatibleImage = async (url: string, ossAddress: string) => 
 //url转base64
 export const urlToBase64 = async (url) => {
   try {
-    // 使用axios替代fetch，并设置请求头
-    const response = await axios.get(url, {
+    // 使用http替代fetch，并设置请求头
+    const response: any = await http.get(url, {}, {
       responseType: "blob",
       headers: {
         // 删除origin和referer
@@ -151,7 +151,7 @@ export const urlToBase64 = async (url) => {
       },
     });
 
-    const blob = response.data;
+    const blob = response.data as Blob;
     // 创建一个 FileReader 实例
     const reader = new FileReader();
 

@@ -3,7 +3,7 @@ import { SearchOptions, SearchResult, PlaceDetailApiResponse, NavigationApiRespo
 import { CoordSystem } from '../../types/coordinate';
 import logger from '../../composables/LogObject';
 import { GcoordUtils } from '../../utils/GcoordUtils';
-import axios from 'axios';
+import { http } from "@repo/utils";
 
 /**
  * 百度地图搜索数据提供者
@@ -39,7 +39,7 @@ export class BaiduSearchProvider implements SearchDataProvider {
       // 如果提供了自定义URL，则使用自定义URL
       const url = options.url || this.SEARCH_URL;
       
-      const response = await axios.get(url, { params });
+      const response: any = await http.get(url, params);
       const data = response.data;
       
       if (data.status !== 0) {
@@ -77,7 +77,7 @@ export class BaiduSearchProvider implements SearchDataProvider {
       // 如果提供了自定义URL，则使用自定义URL
       const requestUrl = url || this.DETAIL_URL;
       
-      const response = await axios.get(requestUrl, { params });
+      const response: any = await http.get(requestUrl, params);
       const data = response.data;
       
       if (data.status !== 0) {
@@ -148,7 +148,7 @@ export class BaiduSearchProvider implements SearchDataProvider {
       
       logger.debug(`[BaiduSearchProvider] 使用API: ${apiUrl} 获取 ${transportType} 导航路径`);
       
-      const response = await axios.get(apiUrl, { params });
+      const response: any = await http.get(apiUrl, params);
       const data = response.data;
       
       if (data.status !== 0) {
@@ -420,4 +420,4 @@ export class BaiduSearchProvider implements SearchDataProvider {
     
     return [bd09Coords.lng, bd09Coords.lat];
   }
-} 
+}

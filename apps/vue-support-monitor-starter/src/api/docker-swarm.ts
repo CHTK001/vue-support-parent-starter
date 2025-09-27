@@ -9,17 +9,14 @@
 ///
 
 import { t } from "@repo/config";
-import axios from "./config";
+import { http } from "@repo/utils";
 import { loadRouterBase } from "./config";
 /**
  * 容器列表
  * @param {JSON} params
  */
 export function dockerSwarmList(params) {
-  return axios({
-    url: "/docker/swarm/list",
-    method: "post",
-    data: params,
+  return http.post("/docker/swarm/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -27,10 +24,7 @@ export function dockerSwarmList(params) {
 }
 
 export function dockerSwarmListAll(params) {
-  return axios({
-    url: "/docker/swarm/list-all",
-    method: "get",
-    params: params,
+  return http.get("/docker/swarm/list-all", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -38,10 +32,7 @@ export function dockerSwarmListAll(params) {
 }
 
 export function editDockerSwarm(data) {
-  return axios({
-    url: "/docker/swarm/edit",
-    method: "post",
-    data: data,
+  return http.post("/docker/swarm/edit", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -55,10 +46,7 @@ export function editDockerSwarm(data) {
  * } params
  */
 export function delSwarm(params) {
-  return axios({
-    url: "/docker/swarm/del",
-    method: "get",
-    params,
+  return http.get("/docker/swarm/del", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -70,10 +58,7 @@ export function delSwarm(params) {
  * @param {JSON} params
  */
 export function dockerSwarmNodeList(urlPrefix, params) {
-  return axios({
-    url: urlPrefix + "/docker/swarm/node-list",
-    method: "post",
-    data: params,
+  return http.post(urlPrefix + "/docker/swarm/node-list", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -86,10 +71,7 @@ export function dockerSwarmNodeList(urlPrefix, params) {
  * @param {JSON} params
  */
 export function dockerSwarmNodeUpdate(urlPrefix, params) {
-  return axios({
-    url: urlPrefix + "/docker/swarm/update",
-    method: "post",
-    data: params,
+  return http.post(urlPrefix + "/docker/swarm/update", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -101,10 +83,7 @@ export function dockerSwarmNodeUpdate(urlPrefix, params) {
  * @param {JSON} params
  */
 export function dockerSwarmServicesList(urlPrefix, params) {
-  return axios({
-    url: urlPrefix + "/docker/swarm-service/list",
-    method: "post",
-    data: params,
+  return http.post(urlPrefix + "/docker/swarm-service/list", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -117,10 +96,7 @@ export function dockerSwarmServicesList(urlPrefix, params) {
  * @param {JSON} params
  */
 export function dockerSwarmServicesTaskList(urlPrefix, params) {
-  return axios({
-    url: urlPrefix + "/docker/swarm-service/task-list",
-    method: "post",
-    data: params,
+  return http.post(urlPrefix + "/docker/swarm-service/task-list", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -133,10 +109,7 @@ export function dockerSwarmServicesTaskList(urlPrefix, params) {
  * @param {JSON} params
  */
 export function dockerSwarmServicesDel(urlPrefix, params) {
-  return axios({
-    url: urlPrefix + "/docker/swarm-service/del",
-    method: "get",
-    params: params,
+  return http.get(urlPrefix + "/docker/swarm-service/del", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -148,10 +121,7 @@ export function dockerSwarmServicesDel(urlPrefix, params) {
  * @param {JSON} params
  */
 export function dockerSwarmServicesEdit(urlPrefix, params) {
-  return axios({
-    url: urlPrefix + "/docker/swarm-service/edit",
-    method: "post",
-    data: params,
+  return http.post(urlPrefix + "/docker/swarm-service/edit", params, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -163,10 +133,7 @@ export function dockerSwarmServicesEdit(urlPrefix, params) {
  * @param {JSON} params
  */
 export function dockerSwarmServicesStartLog(urlPrefix, params) {
-  return axios({
-    url: urlPrefix + "/docker/swarm-service/start-log",
-    method: "get",
-    params: params,
+  return http.get(urlPrefix + "/docker/swarm-service/start-log", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -178,10 +145,7 @@ export function dockerSwarmServicesStartLog(urlPrefix, params) {
  * @param {JSON} params
  */
 export function dockerSwarmServicesPullLog(urlPrefix, params) {
-  return axios({
-    url: urlPrefix + "/docker/swarm-service/pull-log",
-    method: "get",
-    params: params,
+  return http.get(urlPrefix + "/docker/swarm-service/pull-log", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",

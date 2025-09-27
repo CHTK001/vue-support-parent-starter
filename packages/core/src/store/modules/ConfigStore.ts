@@ -13,6 +13,24 @@ const preventLocal = ref();
 const { setWatermark, clear } = useWatermark();
 
 const { setWatermark: setPreventLocalWatermark } = useWatermark(preventLocal);
+
+// 百度统计初始化函数
+const initBaiduAnalytics = (hmId: string) => {
+  if (!hmId) return;
+  
+  // 避免重复加载
+  if (window._hmt) return;
+  
+  // 创建百度统计脚本
+  const hmScript = document.createElement("script");
+  hmScript.src = `https://hm.baidu.com/hm.js?${hmId}`;
+  const firstScript = document.getElementsByTagName("script")[0];
+  firstScript.parentNode.insertBefore(hmScript, firstScript);
+  
+  // 初始化_hmt对象
+  window._hmt = window._hmt || [];
+};
+
 export const useConfigStore = defineStore({
   id: "config-setting",
   state: () => ({
@@ -136,6 +154,10 @@ export const useConfigStore = defineStore({
       }
       if (this.systemSetting["config:SocketOpen"] == "true" && this.systemSetting["config:SocketUrl"]) {
         this.openSocket(this.systemSetting["config:SocketUrl"]?.split(","), this.systemSetting["config:SocketPath"]);
+      }
+      // 初始化百度统计
+      if (this.systemSetting["config:BaiduHmId"]) {
+        initBaiduAnalytics(this.systemSetting["config:BaiduHmId"]);
       }
     },
     async openSocket(urls, context) {

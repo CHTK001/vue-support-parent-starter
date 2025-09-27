@@ -9,14 +9,11 @@
 ///
 
 import { t } from "@repo/config";
-import axios from "@/api/config";
+import { http } from "@repo/utils";
 
 // 文件列表
 export function fileStorageList(params) {
-  return axios({
-    url: "/file-storage/list",
-    method: "post",
-    data: params,
+  return http.post("/file-storage/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -24,24 +21,18 @@ export function fileStorageList(params) {
 }
 
 export function uploadFile(formData) {
-  return axios({
-    url: "/file-storage/upload-sharding",
+  return http.post("/file-storage/upload-sharding", formData, {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
       loading: "no",
     },
-    method: "post",
     // 0 表示无超时时间
     timeout: 0,
-    data: formData,
   });
 }
 
 export function uploadFileMerge(params) {
-  return axios({
-    url: "/file-storage/upload-sharding-merge",
-    method: "post",
-    data: params,
+  return http.post("/file-storage/upload-sharding-merge", params, {
     // 0 表示无超时时间
     timeout: 0,
     headers: {
@@ -52,10 +43,7 @@ export function uploadFileMerge(params) {
 
 // 修改文件
 export function fileEdit(params) {
-  return axios({
-    url: "/file-storage/edit",
-    method: "post",
-    data: params,
+  return http.post("/file-storage/edit", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -64,10 +52,7 @@ export function fileEdit(params) {
 
 // 下载远程文件
 export function remoteDownload(params) {
-  return axios({
-    url: "/file-storage/remote-download",
-    method: "post",
-    data: params,
+  return http.post("/file-storage/remote-download", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -76,10 +61,7 @@ export function remoteDownload(params) {
 
 // 判断文件是否存在
 export function hasFile(params) {
-  return axios({
-    url: "/file-storage/has-file",
-    method: "get",
-    params: params,
+  return http.get("/file-storage/has-file", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -87,10 +69,7 @@ export function hasFile(params) {
 }
 
 export function delFile(params) {
-  return axios({
-    url: "/file-storage/del",
-    method: "get",
-    params: params,
+  return http.get("/file-storage/del", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -99,10 +78,7 @@ export function delFile(params) {
 
 // 下载 url
 export function triggerUrl(params) {
-  return axios({
-    url: "/file-storage/trigger-url",
-    method: "get",
-    params: params,
+  return http.get("/file-storage/trigger-url", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

@@ -1,5 +1,5 @@
 import { getConfig } from "@repo/config";
-import axios from "axios";
+import { http } from "@repo/utils";
 
 /**
  * 服务器文件上传（带进度 & scriptId）
@@ -17,16 +17,18 @@ export function uploadServerFileWithProgress(
 ) {
   const formData = new FormData();
   formData.append("file", params.file);
-  return axios({
-    url: getConfig().BaseUrl + "/v1/file-management/upload",
-    method: "post",
-    data: formData,
-    params: {
-      serverId: Number(params.serverId),
-      targetPath: params.targetPath,
-      overwrite: Boolean(params.overwrite ?? false),
-      ...(params.scriptId != null ? { scriptId: params.scriptId } : {})
-    },
+  
+  // 添加其他参数
+  Object.keys(params).forEach(key => {
+    if (key !== 'file') {
+      const value = params[key as keyof typeof params];
+      if (value !== undefined && value !== null) {
+        formData.append(key, value.toString());
+      }
+    }
+  });
+
+  return http.post(getConfig().BaseUrl + "/v1/file-management/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },
     timeout: 0,
     onUploadProgress,

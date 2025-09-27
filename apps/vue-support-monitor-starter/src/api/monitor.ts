@@ -9,15 +9,11 @@
 ///
 
 import { t } from "@repo/config";
-import axios from "./config";
+import { http } from "@repo/utils";
 
 // 监控列表
 export function getMonitorList(params) {
-  return axios({
-    url: "/monitor/getMonitorList",
-    method: "post",
-    data: params,
-  });
+  return http.post("/monitor/getMonitorList", params);
 }
 
 /**
@@ -33,10 +29,7 @@ export function getMonitorList(params) {
  * } params
  */
 export function editMonitor(params) {
-  return axios({
-    url: "/monitor/updateMonitor",
-    method: "post",
-    data: params,
+  return http.post("/monitor/updateMonitor", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -52,10 +45,7 @@ export function editMonitor(params) {
  * } params
  */
 export function changeMonitorStatus(params) {
-  return axios({
-    url: "/monitor/changeStatus",
-    method: "post",
-    data: params,
+  return http.post("/monitor/changeStatus", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -67,10 +57,7 @@ export function changeMonitorStatus(params) {
  * @param {*} id
  */
 export function deleteMonitor(id) {
-  return axios({
-    url: "/monitor/deleteMonitor",
-    method: "post",
-    data: { id },
+  return http.post("/monitor/deleteMonitor", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -87,10 +74,7 @@ export function deleteMonitor(id) {
  * } params
  */
 export function getMonitorLogList(params) {
-  return axios({
-    url: "/monitor/list_data.json",
-    method: "post",
-    data: params,
+  return http.post("/monitor/list_data.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -101,9 +85,7 @@ export function getMonitorLogList(params) {
  * 操作监控日志列表
  */
 export function getMonitorOperateLogList() {
-  return axios({
-    url: "/monitor_user_opt/list_data",
-    method: "post",
+  return http.post("/monitor_user_opt/list_data", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -115,9 +97,7 @@ export function getMonitorOperateLogList() {
  * @returns
  */
 export function getMonitorOperateTypeList() {
-  return axios({
-    url: "/monitor_user_opt/type_data",
-    method: "post",
+  return http.post("/monitor_user_opt/type_data", {}, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -137,10 +117,7 @@ export function getMonitorOperateTypeList() {
  * @returns
  */
 export function editMonitorOperate(params) {
-  return axios({
-    url: "/monitor_user_opt/update",
-    method: "post",
-    data: params,
+  return http.post("/monitor_user_opt/update", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -153,10 +130,7 @@ export function editMonitorOperate(params) {
  * @returns
  */
 export function deleteMonitorOperate(id) {
-  return axios({
-    url: "/monitor_user_opt/delete",
-    method: "post",
-    data: { id },
+  return http.post("/monitor_user_opt/delete", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

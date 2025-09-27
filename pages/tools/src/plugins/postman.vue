@@ -2,7 +2,7 @@
 import { reactive, ref, onMounted, computed, watch } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import axios from "axios";
+import { http } from "@repo/utils";
 import { saveAs } from "file-saver";
 import { ElMessage } from "element-plus";
 
@@ -333,7 +333,14 @@ const sendRequest = async () => {
 
   try {
     const config = buildRequestConfig();
-    const response = await axios(config);
+    // 使用 http.ts 替代 axios
+    const response = await http.request(config.method.toLowerCase(), config.url, {
+      params: config.params,
+      headers: config.headers,
+      data: config.data,
+      timeout: config.timeout,
+      responseType: config.responseType
+    });
 
     const endTime = Date.now();
     const responseTime = endTime - startTime;
@@ -1818,4 +1825,3 @@ onMounted(() => {
     stroke-width: 3;
   }
 }
-</style>

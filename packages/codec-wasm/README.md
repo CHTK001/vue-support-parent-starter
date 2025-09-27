@@ -24,7 +24,9 @@ codec-wasm/
 2. **响应解密** - 使用SM2算法解密HTTP响应数据
 3. **AES解密工具** - 提供AES解密功能
 4. **反重放攻击保护** - 生成时间戳和nonce防止重放攻击
-5. **特殊响应处理** - 处理特定格式的加密响应
+5. **请求签名生成** - 生成HTTP请求签名防止篡改
+6. **MD5哈希算法** - 提供MD5哈希计算功能
+7. **特殊响应处理** - 处理特定格式的加密响应
 
 ## 编译要求
 
@@ -57,7 +59,7 @@ codec-wasm/
 在JavaScript/TypeScript项目中使用：
 
 ```javascript
-import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, initWasm } from '@repo/codec-wasm';
+import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, initWasm, generateSign, generateNonce, md5Hash } from '@repo/codec-wasm';
 
 // 初始化WASM模块（应用启动时调用一次）
 await initWasm();
@@ -73,6 +75,15 @@ const decryptedData = await uu3_wasm(encryptedValue);
 
 // 特殊响应解密
 const specialDecryptedData = await uu4_wasm(response);
+
+// 生成nonce
+const nonce = await generateNonce();
+
+// 生成请求签名
+const signature = await generateSign(paramsJson, timestamp, nonce, secretKey);
+
+// MD5哈希计算
+const hash = await md5Hash(input);
 ```
 
 ## 性能优势
@@ -89,7 +100,7 @@ const specialDecryptedData = await uu4_wasm(response);
 1. **代码混淆** - WASM二进制格式难以理解和修改
 2. **反调试** - WASM运行环境提供反调试保护
 3. **密钥保护** - 加密密钥在WASM模块中更难被提取
-4. **完整性验证** - 提供时间戳和nonce验证机制
+4. **完整性验证** - 提供时间戳、nonce和签名验证机制
 
 ## 注意事项
 

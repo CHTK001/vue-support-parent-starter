@@ -17,18 +17,12 @@
 
 // 擅自修改或者删除版权信息有法律风险，请尊重开源协议，不要擅自修改版本信息，否则可能承担法律责任。
 
-import axios from "./config";
+import { http } from "@repo/utils";
 
 export function getLicense() {
-  return axios({
-    url: "/about/license",
-    method: "get"
-  });
+  return http.get("/about/license");
 }
 
 export function getThankDependency() {
-  return axios({
-    url: "/about/thank-dependency",
-    method: "get"
-  });
+  return http.get("/about/thank-dependency");
 }

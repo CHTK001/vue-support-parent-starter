@@ -8,8 +8,7 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from "./config";
-import { loadRouterBase } from "./config";
+import { http, loadRouterBase } from "@repo/utils";
 
 /**
  * 上传文件到 SSH 节点
@@ -21,28 +20,22 @@ import { loadRouterBase } from "./config";
  * } formData
  */
 export function uploadFile(baseUrl, formData) {
-  return axios({
-    url: baseUrl + "upload",
+  return http.post(baseUrl + "upload", formData, {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
     },
-    method: "post",
     // 0 表示无超时时间
     timeout: 0,
-    data: formData,
   });
 }
 
 export function uploadShardingFile(baseUrl, formData) {
-  return axios({
-    url: baseUrl + "upload-sharding",
+  return http.post(baseUrl + "upload-sharding", formData, {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
     },
-    method: "post",
     // 0 表示无超时时间
     timeout: 0,
-    data: formData,
   });
 }
 
@@ -51,9 +44,7 @@ export function uploadShardingFile(baseUrl, formData) {
  * @param {String} id
  */
 export function getRootFileList(baseUrl, id) {
-  return axios({
-    url: baseUrl + "root_file_data.json",
-    method: "post",
+  return http.post(baseUrl + "root_file_data.json", {}, {
     params: { id },
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -66,9 +57,7 @@ export function getRootFileList(baseUrl, id) {
  * @param {id, path, children} params
  */
 export function getFileList(baseUrl, params) {
-  return axios({
-    url: baseUrl + "list_file_data.json",
-    method: "post",
+  return http.post(baseUrl + "list_file_data.json", {}, {
     params,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -90,10 +79,7 @@ export function downloadFile(baseUrl, params) {
  * @param {id, path, name} params x
  */
 export function deleteFile(baseUrl, params) {
-  return axios({
-    url: baseUrl + "delete.json",
-    method: "post",
-    data: params,
+  return http.post(baseUrl + "delete.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -105,10 +91,7 @@ export function deleteFile(baseUrl, params) {
  * @param {id, path, name} params x
  */
 export function readFile(baseUrl, params) {
-  return axios({
-    url: baseUrl + "read_file_data.json",
-    method: "post",
-    data: params,
+  return http.post(baseUrl + "read_file_data.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -120,10 +103,7 @@ export function readFile(baseUrl, params) {
  * @param {id, path, name,content} params x
  */
 export function updateFileData(baseUrl, params) {
-  return axios({
-    url: baseUrl + "update_file_data.json",
-    method: "post",
-    data: params,
+  return http.post(baseUrl + "update_file_data.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -136,9 +116,7 @@ export function updateFileData(baseUrl, params) {
  * @returns {id, path, name,unFolder} params x
  */
 export function newFileFolder(baseUrl, params) {
-  return axios({
-    url: baseUrl + "new_file_folder.json",
-    method: "post",
+  return http.post(baseUrl + "new_file_folder.json", {}, {
     params,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -152,10 +130,7 @@ export function newFileFolder(baseUrl, params) {
  * @returns {id, levelName, filename,newname} params x
  */
 export function renameFileFolder(baseUrl, params) {
-  return axios({
-    url: baseUrl + "rename.json",
-    method: "post",
-    data: params,
+  return http.post(baseUrl + "rename.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -175,10 +150,7 @@ export function renameFileFolder(baseUrl, params) {
  * @returns
  */
 export function changeFilePermission(baseUrl, params) {
-  return axios({
-    url: baseUrl + "change_file_permission.json",
-    method: "post",
-    data: params,
+  return http.post(baseUrl + "change_file_permission.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

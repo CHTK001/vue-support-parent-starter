@@ -8,18 +8,13 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from '@/api/config'
-import { loadRouterBase } from '@/api/config'
+import { http, loadRouterBase } from "@repo/utils";
 // 导入证书
 export function certificateImportFile(formData) {
-  return axios({
-    url: '/certificate/import-file',
+  return http.post('/certificate/import-file', formData, {
     headers: {
       'Content-Type': 'multipart/form-data;charset=UTF-8'
-    },
-    method: 'post',
-
-    data: formData
+    }
   })
 }
 
@@ -27,10 +22,7 @@ export function certificateImportFile(formData) {
  * cert 列表
  */
 export function certList(params) {
-  return axios({
-    url: "/certificate/list",
-    method: "post",
-    data: params,
+  return http.post("/certificate/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -41,10 +33,7 @@ export function certList(params) {
  * cert 列表
  */
 export function certListAll(params) {
-  return axios({
-    url: "/certificate/list-all",
-    method: "post",
-    data: params,
+  return http.post("/certificate/list-all", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -58,10 +47,7 @@ export function certListAll(params) {
  * } params
  */
 export function deleteCert(params) {
-  return axios({
-    url: "/certificate/del",
-    method: "get",
-    params: params,
+  return http.get("/certificate/del", { params }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -80,10 +66,7 @@ export function downloadCert(params) {
 
 // 修改证书
 export function certificateEdit(params) {
-  return axios({
-    url: "/certificate/edit",
-    method: "post",
-    data: params,
+  return http.post("/certificate/edit", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -92,10 +75,7 @@ export function certificateEdit(params) {
 
 // 部署证书
 export function certificateDeploy(params) {
-  return axios({
-    url: "/certificate/deploy",
-    method: "post",
-    data: params,
+  return http.post("/certificate/deploy", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

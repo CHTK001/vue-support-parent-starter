@@ -9,14 +9,12 @@
 ///
 
 import { t } from "@repo/config";
-import axios, { loadRouterBase } from "./config";
+import { http } from "@repo/utils";
+import { loadRouterBase } from "./config";
 
 // 命令列表
 export function getCommandList(params) {
-  return axios({
-    url: "/node/ssh_command/list",
-    method: "post",
-    data: params,
+  return http.post("/node/ssh_command/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -25,22 +23,16 @@ export function getCommandList(params) {
 
 // 编辑命令
 export function editCommand(params) {
-  return axios({
-    url: "/node/ssh_command/edit",
-    method: "post",
+  return http.post("/node/ssh_command/edit", params, {
     headers: {
       "Content-Type": "application/json"
-    },
-    data: params
+    }
   });
 }
 
 // 删除命令
 export function deleteCommand(id) {
-  return axios({
-    url: "/node/ssh_command/del",
-    method: "post",
-    data: { id },
+  return http.post("/node/ssh_command/del", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -49,10 +41,7 @@ export function deleteCommand(id) {
 
 // 删除命令
 export function executeBatch(param) {
-  return axios({
-    url: "/node/ssh_command/batch",
-    method: "post",
-    data: param,
+  return http.post("/node/ssh_command/batch", param, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -61,10 +50,7 @@ export function executeBatch(param) {
 
 // 命令日志列表
 export function getCommandLogList(params) {
-  return axios({
-    url: "/node/ssh_command_log/list",
-    method: "post",
-    data: params,
+  return http.post("/node/ssh_command_log/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -73,10 +59,7 @@ export function getCommandLogList(params) {
 
 // 命令日志批次列表
 export function getCommandLogBarchList(params) {
-  return axios({
-    url: "/node/ssh_command_log/batch_list",
-    method: "get",
-    params: params,
+  return http.get("/node/ssh_command_log/batch_list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -85,10 +68,7 @@ export function getCommandLogBarchList(params) {
 
 // 删除命令执行记录
 export function deleteCommandLog(id) {
-  return axios({
-    url: "/node/ssh_command_log/del",
-    method: "post",
-    data: { id },
+  return http.post("/node/ssh_command_log/del", { id }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -97,10 +77,7 @@ export function deleteCommandLog(id) {
 
 // 命令日志信息
 export function getCommandLogInfo(params) {
-  return axios({
-    url: "/node/ssh_command_log/log",
-    method: "post",
-    data: params,
+  return http.post("/node/ssh_command_log/log", params, {
     headers: {
       loading: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
@@ -119,10 +96,7 @@ export function downloadLog(logId) {
 }
 
 export function syncToWorkspace(params) {
-  return axios({
-    url: "/node/ssh_command/sync-to-workspace",
-    method: "get",
-    params: params,
+  return http.get("/node/ssh_command/sync-to-workspace", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
@@ -134,10 +108,7 @@ export function syncToWorkspace(params) {
  * @param {*} id
  */
 export function getTriggerUrl(data) {
-  return axios({
-    url: "/node/ssh_command/trigger-url",
-    method: "post",
-    data: data,
+  return http.post("/node/ssh_command/trigger-url", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }

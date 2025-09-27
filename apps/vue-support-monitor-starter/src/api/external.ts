@@ -8,28 +8,10 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from "axios";
-
-const external = axios.create({
-  timeout: 5 * 1000,
-  headers: {}
-});
-
-// 响应拦截器
-external.interceptors.response.use(
-  async response => {
-    return response.data;
-  },
-  error => {
-    return Promise.reject(error);
-  }
-);
+import { http } from "@repo/utils";
 
 export function executionRequest(url: any, param: any) {
-  return external({
-    url: url,
-    method: "get",
-    params: param,
+  return http.get(url, param, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }

@@ -8,13 +8,10 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from "./config";
+import { http } from "@repo/utils";
 
 export function triggerTokenList(data) {
-  return axios({
-    url: "/system/trigger/list",
-    method: "post",
-    data: data,
+  return http.post("/system/trigger/list", data, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -22,10 +19,7 @@ export function triggerTokenList(data) {
 }
 
 export function triggerTokenAllType(data) {
-  return axios({
-    url: "/system/trigger/all-type",
-    method: "get",
-    params: data,
+  return http.get("/system/trigger/all-type", { params: data }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -33,10 +27,7 @@ export function triggerTokenAllType(data) {
 }
 
 export function triggerTokenDelete(data) {
-  return axios({
-    url: "/system/trigger/delete",
-    method: "get",
-    params: data,
+  return http.get("/system/trigger/delete", { params: data }, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

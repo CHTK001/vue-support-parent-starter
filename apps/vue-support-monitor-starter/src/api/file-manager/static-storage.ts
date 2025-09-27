@@ -8,13 +8,10 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from "@/api/config";
+import { http } from "@repo/utils";
 
 export function staticFileStorageList(params) {
-  return axios({
-    url: "/file-storage/static/list",
-    method: "post",
-    data: params,
+  return http.post("/file-storage/static/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -22,10 +19,7 @@ export function staticFileStorageList(params) {
 }
 
 export function delFile(params) {
-  return axios({
-    url: "/file-storage/static/del",
-    method: "get",
-    params: params,
+  return http.get("/file-storage/static/del", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -34,10 +28,7 @@ export function delFile(params) {
 
 // 下载 url
 export function triggerUrl(params) {
-  return axios({
-    url: "/file-storage/static/trigger-url",
-    method: "get",
-    params: params,
+  return http.get("/file-storage/static/trigger-url", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -46,10 +37,7 @@ export function triggerUrl(params) {
 
 // 修改文件
 export function fileEdit(params) {
-  return axios({
-    url: "/file-storage/static/edit",
-    method: "post",
-    data: params,
+  return http.post("/file-storage/static/edit", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -57,10 +45,7 @@ export function fileEdit(params) {
 }
 
 export function hasStaticFile(params) {
-  return axios({
-    url: "/file-storage/static/has-file",
-    method: "get",
-    params: params,
+  return http.get("/file-storage/static/has-file", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -68,10 +53,7 @@ export function hasStaticFile(params) {
 }
 
 export function staticScanner(params) {
-  return axios({
-    url: "/file-storage/static/scanner",
-    method: "get",
-    params: params,
+  return http.get("/file-storage/static/scanner", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

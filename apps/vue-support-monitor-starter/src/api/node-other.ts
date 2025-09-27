@@ -9,7 +9,7 @@
 ///
 
 import { t } from "@repo/config";
-import axios from "./config";
+import { http } from "@repo/utils";
 
 /************************** */
 
@@ -17,10 +17,7 @@ import axios from "./config";
  * script 服务端中的所有列表
  */
 export function getScriptListAll(params) {
-  return axios({
-    url: "/node/script/list_all",
-    method: "post",
-    data: params,
+  return http.post("/node/script/list_all", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -29,10 +26,7 @@ export function getScriptListAll(params) {
 
 // 脚本模版日志列表
 export function getScriptLogList(params) {
-  return axios({
-    url: "/node/script_log/list",
-    method: "post",
-    data: params,
+  return http.post("/node/script_log/list", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -41,10 +35,7 @@ export function getScriptLogList(params) {
 
 // 删除执行记录
 export function scriptDel(params) {
-  return axios({
-    url: "/node/script_log/del",
-    method: "post",
-    data: params,
+  return http.post("/node/script_log/del", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -53,10 +44,7 @@ export function scriptDel(params) {
 
 //执行记录 详情
 export function scriptLog(params) {
-  return axios({
-    url: "/node/script_log/log",
-    method: "post",
-    data: params,
+  return http.post("/node/script_log/log", params, {
     headers: {
       tip: "no",
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -74,10 +62,7 @@ export function scriptLog(params) {
  * params.context 内容
  */
 export function editScript(params) {
-  return axios({
-    url: "/node/script/save.json",
-    method: "post",
-    data: params,
+  return http.post("/node/script/save.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -85,10 +70,7 @@ export function editScript(params) {
 }
 
 export function itemScript(params) {
-  return axios({
-    url: "/node/script/item.json",
-    method: "get",
-    params: params,
+  return http.get("/node/script/item.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -96,10 +78,7 @@ export function itemScript(params) {
 }
 
 export function syncScript(params) {
-  return axios({
-    url: "/node/script/sync",
-    method: "get",
-    params: params,
+  return http.get("/node/script/sync", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -116,10 +95,7 @@ export const triggerExecTypeMap = {
  * @param {*} id
  */
 export function getTriggerUrl(data) {
-  return axios({
-    url: "/node/script/trigger-url",
-    method: "post",
-    data: data,
+  return http.post("/node/script/trigger-url", data, {
     params: data,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -134,10 +110,7 @@ export function getTriggerUrl(data) {
  * params.id 编辑修改时判断 ID
  */
 export function deleteScript(params) {
-  return axios({
-    url: "/node/script/del.json",
-    method: "post",
-    data: params,
+  return http.post("/node/script/del.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
@@ -151,10 +124,7 @@ export function deleteScript(params) {
  * params.id 编辑修改时判断 ID
  */
 export function unbindScript(params) {
-  return axios({
-    url: "/node/script/unbind.json",
-    method: "get",
-    params: params,
+  return http.get("/node/script/unbind.json", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },

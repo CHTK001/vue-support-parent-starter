@@ -8,7 +8,7 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from '../config'
+import { http } from "@repo/utils";
 
 export type UserNotificationType = {
   level?: 'error' | 'success' | 'warning' | 'info' | undefined
@@ -20,24 +20,14 @@ export type UserNotificationType = {
 
 // 编辑
 export function saveUserNotification(params: UserNotificationType) {
-  return axios({
-    url: '/user/notification/save',
-    method: 'post',
-    data: params
-  })
+  return http.post('/user/notification/save', params);
 }
 
 // 获取通知
 export function getUserNotification() {
-  return axios({
-    url: '/user/notification/get',
-    method: 'get'
-  })
+  return http.get('/user/notification/get');
 }
 
 export function systemNotification() {
-  return axios({
-    url: '/system-notification',
-    method: 'get'
-  })
+  return http.get('/system-notification');
 }
