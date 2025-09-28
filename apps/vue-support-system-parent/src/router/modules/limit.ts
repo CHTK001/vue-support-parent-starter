@@ -16,7 +16,7 @@ export default [
       {
         path: "/limit/configuration",
         name: "LimitConfiguration",
-        component: () => import("@pages/system/src/components/LimitConfigurationIndex.vue"),
+        component: () => import("@pages/system/src/limit/LimitConfigurationIndex.vue"),
         meta: {
           title: "限流配置",
           showParent: true
@@ -25,7 +25,7 @@ export default [
       {
         path: "/limit/record",
         name: "LimitRecord",
-        component: () => import("@pages/system/src/components/LimitRecordIndex.vue"),
+        component: () => import("@pages/system/src/limit/LimitRecordIndex.vue"),
         meta: {
           title: "限流记录",
           showParent: true
