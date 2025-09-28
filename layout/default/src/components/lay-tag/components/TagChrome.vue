@@ -21,3 +21,13 @@
     </g>
   </svg>
 </template>
+
+<style lang="scss" scoped>
+// 深色主题下的Chrome标签页样式
+html.dark {
+  // 确保SVG在深色主题下正确显示
+  :deep(svg) {
+    color: var(--cb-color-bg-primary);
+  }
+}
+</style>

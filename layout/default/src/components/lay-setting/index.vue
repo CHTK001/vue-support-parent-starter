@@ -57,6 +57,11 @@ if (unref(layoutTheme)) {
   setLayoutModel(layout);
 }
 
+// 确保默认选中白色主题
+if (!layoutTheme.value.theme) {
+  setLayoutThemeColor("light");
+}
+
 /** 默认灵动模式 */
 const markValue = ref($storage.configure?.showModel ?? "chrome");
 
@@ -1305,6 +1310,7 @@ onUnmounted(() => {
   position: relative;
   overflow: hidden;
   transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: var(--el-box-shadow-light);
 
   // 现代化背景装饰 - 动态渐变
   &::before {
@@ -1329,7 +1335,9 @@ onUnmounted(() => {
     right: 0;
     bottom: 0;
     background:
-      radial-gradient(circle at 25% 25%, var(--el-color-primary-light-9) 0%, transparent 40%), radial-gradient(circle at 75% 75%, var(--el-color-primary-light-9) 0%, transparent 40%), radial-gradient(circle at 75% 25%, var(--el-color-success-light-9) 0%, transparent 30%),
+      radial-gradient(circle at 25% 25%, var(--el-color-primary-light-9) 0%, transparent 40%), 
+      radial-gradient(circle at 75% 75%, var(--el-color-primary-light-9) 0%, transparent 40%), 
+      radial-gradient(circle at 75% 25%, var(--el-color-success-light-9) 0%, transparent 30%),
       radial-gradient(circle at 25% 75%, var(--el-color-warning-light-9) 0%, transparent 30%);
     opacity: 0.4;
     pointer-events: none;
@@ -1346,6 +1354,7 @@ onUnmounted(() => {
   // 暗色主题适配
   .dark & {
     background: var(--el-bg-color-page);
+    box-shadow: var(--el-box-shadow-dark);
 
     &::before {
       background: linear-gradient(90deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary-light-1) 25%, var(--el-color-primary) 50%, var(--el-color-primary-light-1) 75%, var(--el-color-primary-light-3) 100%);
@@ -1367,15 +1376,14 @@ onUnmounted(() => {
 // 设置区域 - 现代化玻璃态卡片设计
 .setting-section {
   margin-bottom: 24px;
-  background: rgba(255, 255, 255, 0.8);
-  // backdrop-filter: blur(20px);
+  background: var(--el-bg-color-overlay);
   border-radius: 16px;
   padding: 24px;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.8) inset,
     0 -1px 0 rgba(0, 0, 0, 0.05) inset;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--el-border-color-light);
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
   overflow: hidden;
@@ -1410,12 +1418,12 @@ onUnmounted(() => {
 
   // 优雅的悬停效果
   &:hover {
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--el-bg-color-overlay);
     box-shadow:
       0 16px 48px rgba(0, 0, 0, 0.1),
       0 1px 0 rgba(255, 255, 255, 0.9) inset,
       0 -1px 0 rgba(0, 0, 0, 0.05) inset;
-    border-color: rgba(var(--el-color-primary-rgb), 0.3);
+    border-color: var(--el-color-primary-light-8);
     transform: translateY(-2px) scale(1.01);
 
     &::before {
@@ -1434,20 +1442,20 @@ onUnmounted(() => {
 
   // 暗色主题适配
   .dark & {
-    background: rgba(var(--el-bg-color-rgb), 0.8);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
     box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.3),
       0 1px 0 rgba(255, 255, 255, 0.1) inset,
       0 -1px 0 rgba(0, 0, 0, 0.2) inset;
 
     &:hover {
-      background: rgba(var(--el-bg-color-rgb), 0.9);
+      background: var(--el-bg-color-overlay);
       box-shadow:
         0 16px 48px rgba(0, 0, 0, 0.4),
         0 1px 0 rgba(255, 255, 255, 0.15) inset,
         0 -1px 0 rgba(0, 0, 0, 0.2) inset;
-      border-color: rgba(var(--el-color-primary-rgb), 0.4);
+      border-color: var(--el-color-primary-light-6);
     }
   }
 
@@ -1465,7 +1473,7 @@ onUnmounted(() => {
   justify-content: space-between;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(var(--el-border-color-rgb), 0.3);
+  border-bottom: 1px solid var(--el-border-color-light);
   position: relative;
   flex-wrap: wrap;
 
@@ -1508,7 +1516,7 @@ onUnmounted(() => {
     font-size: 20px;
     color: var(--el-color-primary);
     margin-right: 14px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+    background: var(--el-fill-color-light);
     padding: 10px;
     border-radius: 12px;
     width: 40px;
@@ -1541,10 +1549,19 @@ onUnmounted(() => {
       box-shadow:
         0 8px 20px rgba(var(--el-color-primary-rgb), 0.25),
         0 1px 0 rgba(255, 255, 255, 0.9) inset;
-      background: linear-gradient(135deg, var(--el-color-primary-light-8), var(--el-color-primary-light-7));
+      background: var(--el-color-primary-light-9);
 
       &::before {
         opacity: 1;
+      }
+    }
+
+    // 暗色主题适配
+    .dark & {
+      background: var(--el-fill-color-dark);
+      
+      &:hover {
+        background: var(--el-color-primary-light-8);
       }
     }
   }
@@ -1558,16 +1575,17 @@ onUnmounted(() => {
     letter-spacing: 0.5px;
     text-align: left;
     writing-mode: horizontal-tb;
-    background: linear-gradient(135deg, var(--el-text-color-primary), var(--el-color-primary));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     transition: all 0.3s ease;
 
     &:hover {
-      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-success));
-      background-clip: text;
-      -webkit-background-clip: text;
+      color: var(--el-color-primary);
+    }
+
+    // 暗色主题适配
+    .dark & {
+      &:hover {
+        color: var(--el-color-primary-light-5);
+      }
     }
   }
 }
@@ -1760,34 +1778,37 @@ onUnmounted(() => {
 // 美化 Segmented 组件 - 现代化设计
 :deep(.layui-segmented) {
   background: var(--el-fill-color-extra-light);
-  border-radius: 10px;
-  padding: 4px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 
+    inset 0 1px 3px rgba(0, 0, 0, 0.05),
+    0 4px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid var(--el-border-color-extra-light);
-  // 移除 transition: all，避免主题切换延迟
   transition:
     transform 0.3s ease,
-    box-shadow 0.3s ease;
+    box-shadow 0.3s ease,
+    background-color 0.3s ease;
 
   .layui-segmented-item {
-    border-radius: 6px;
-    // 优化 transition，只对变形和阴影生效
+    border-radius: 8px;
     transition:
       transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-      background-color 0.15s ease;
+      background-color 0.2s ease,
+      color 0.2s ease;
     font-weight: 500;
     color: var(--el-text-color-regular);
-    padding: 8px 14px;
+    padding: 10px 16px;
     position: relative;
     overflow: hidden;
-    font-size: 13px;
+    font-size: 14px;
     text-align: center;
     writing-mode: horizontal-tb;
-    min-height: 36px;
+    min-height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
 
     // 微交互效果
     &::before {
@@ -1797,31 +1818,57 @@ onUnmounted(() => {
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.1), transparent);
-      transition: left 0.5s ease;
+      background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.15), transparent);
+      transition: left 0.6s ease;
+    }
+
+    // 光泽效果
+    &::after {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
     }
 
     &:hover {
       background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
+      transform: translateY(-2px);
+      box-shadow: 
+        0 4px 12px rgba(var(--el-color-primary-rgb), 0.15),
+        0 1px 0 rgba(255, 255, 255, 0.8) inset;
 
       &::before {
         left: 100%;
       }
+
+      &::after {
+        opacity: 1;
+      }
     }
 
     &.layui-segmented-checked {
-      background: var(--el-bg-color-overlay);
+      background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
       color: var(--el-color-primary);
-      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
+      box-shadow: 
+        0 4px 16px rgba(var(--el-color-primary-rgb), 0.25),
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 0 0 1px var(--el-color-primary-light-7);
       font-weight: 600;
-      border: 1px solid var(--el-color-primary-light-8);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      border: none;
 
       &::before {
         display: none;
+      }
+
+      &::after {
+        opacity: 0.7;
       }
     }
   }
@@ -1830,15 +1877,24 @@ onUnmounted(() => {
   .dark & {
     background: var(--el-fill-color-dark);
     border-color: var(--el-border-color);
+    box-shadow: 
+      inset 0 1px 3px rgba(0, 0, 0, 0.2),
+      0 4px 12px rgba(0, 0, 0, 0.3);
 
     .layui-segmented-item {
       &:hover {
         background: var(--el-color-primary-light-8);
+        box-shadow: 
+          0 4px 12px rgba(0, 0, 0, 0.25),
+          0 1px 0 rgba(255, 255, 255, 0.1) inset;
       }
 
       &.layui-segmented-checked {
-        background: var(--el-bg-color-overlay);
-        border-color: var(--el-color-primary-light-6);
+        background: linear-gradient(135deg, var(--el-color-primary-light-8), var(--el-color-primary-light-7));
+        box-shadow: 
+          0 4px 16px rgba(var(--el-color-primary-rgb), 0.4),
+          0 1px 0 rgba(255, 255, 255, 0.15) inset,
+          0 0 0 1px var(--el-color-primary-light-6);
       }
     }
   }
@@ -2200,7 +2256,99 @@ onUnmounted(() => {
 
     &:hover {
       border-color: var(--el-color-primary-light-3);
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+    }
+  }
+}
+
+.switch-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--el-fill-color-light);
+  border-radius: 12px;
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.3s ease;
+  border: 1px solid var(--el-border-color-light);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+  // 背景动画效果
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.1), transparent);
+    transition: left 0.6s ease;
+  }
+
+  // 光泽效果
+  &::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  &:hover {
+    background: var(--el-color-primary-light-9);
+    transform: translateY(-2px);
+    box-shadow: 
+      0 6px 16px rgba(var(--el-color-primary-rgb), 0.15),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    border-color: var(--el-color-primary-light-8);
+
+    &::before {
+      left: 100%;
+    }
+
+    &::after {
+      opacity: 1;
+    }
+  }
+
+  .switch-label {
+    font-size: 15px;
+    color: var(--el-text-color-regular);
+    font-weight: 500;
+    margin: 0;
+    flex: 1;
+    letter-spacing: 0.2px;
+    text-align: left;
+    writing-mode: horizontal-tb;
+  }
+
+  .switch-desc {
+    display: block;
+    font-size: 12px;
+    color: var(--el-text-color-placeholder);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  // 暗色主题适配
+  .dark & {
+    background: var(--el-fill-color-dark);
+    border-color: var(--el-border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      background: var(--el-color-primary-light-8);
+      border-color: var(--el-color-primary-light-6);
+      box-shadow: 
+        0 6px 16px rgba(0, 0, 0, 0.3),
+        0 1px 0 rgba(255, 255, 255, 0.1) inset;
     }
   }
 }
@@ -2398,80 +2546,115 @@ onUnmounted(() => {
 // 美化其他按钮样式（无动画版本）
 :deep(.el-button) {
   border-radius: 8px;
-  // 移除过渡动画
-  transition: none;
+  transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   font-weight: 500;
 
-  // 移除悬停效果
+  // 悬停效果
   &:hover {
-    transform: none; // 移除位移效果
+    transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
   }
 
-  // 移除点击效果
+  // 点击效果
   &:active {
-    transform: none; // 移除位移效果
+    transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   &.is-plain {
     &:hover {
-      background-color: rgba(64, 158, 255, 0.1);
-      border-color: #409eff;
-      color: #409eff;
+      background-color: var(--el-color-primary-light-9);
+      border-color: var(--el-color-primary);
+      color: var(--el-color-primary);
     }
   }
 
   &.el-button--primary {
-    background: linear-gradient(135deg, #409eff, #66b1ff);
+    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
     border: none;
-    color: #ffffff;
+    color: var(--el-color-white);
 
     &:hover {
-      background: linear-gradient(135deg, #66b1ff, #409eff);
-      box-shadow: 0 6px 16px rgba(64, 158, 255, 0.3);
+      background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+      box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.3);
     }
   }
 
   &.el-button--danger {
-    background: linear-gradient(135deg, #f56c6c, #f78989);
+    background: linear-gradient(135deg, var(--el-color-danger), var(--el-color-danger-light-3));
     border: none;
-    color: #ffffff;
+    color: var(--el-color-white);
 
     &:hover {
-      background: linear-gradient(135deg, #f78989, #f56c6c);
-      box-shadow: 0 6px 16px rgba(245, 108, 108, 0.3);
+      background: linear-gradient(135deg, var(--el-color-danger-light-3), var(--el-color-danger));
+      box-shadow: 0 6px 16px rgba(var(--el-color-danger-rgb), 0.3);
+    }
+  }
+
+  &.el-button--warning {
+    background: linear-gradient(135deg, var(--el-color-warning), var(--el-color-warning-light-3));
+    border: none;
+    color: var(--el-color-white);
+
+    &:hover {
+      background: linear-gradient(135deg, var(--el-color-warning-light-3), var(--el-color-warning));
+      box-shadow: 0 6px 16px rgba(var(--el-color-warning-rgb), 0.3);
+    }
+  }
+
+  &.el-button--info {
+    background: linear-gradient(135deg, var(--el-color-info), var(--el-color-info-light-3));
+    border: none;
+    color: var(--el-color-white);
+
+    &:hover {
+      background: linear-gradient(135deg, var(--el-color-info-light-3), var(--el-color-info));
+      box-shadow: 0 6px 16px rgba(var(--el-color-info-rgb), 0.3);
+    }
+  }
+
+  &.el-button--success {
+    background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-light-3));
+    border: none;
+    color: var(--el-color-white);
+
+    &:hover {
+      background: linear-gradient(135deg, var(--el-color-success-light-3), var(--el-color-success));
+      box-shadow: 0 6px 16px rgba(var(--el-color-success-rgb), 0.3);
     }
   }
 }
 
 // 现代化数字输入框样式
 .layout-params-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
 }
 
 .param-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--el-fill-color-extra-light);
-  border-radius: 10px;
-  border: 1px solid var(--el-border-color-extra-light);
+  padding: 16px 20px;
+  background: var(--el-fill-color-light);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-light);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 
   &:hover {
     background: var(--el-color-primary-light-9);
     border-color: var(--el-color-primary-light-8);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.1);
+    transform: translateY(-2px);
+    box-shadow: 
+      0 6px 16px rgba(var(--el-color-primary-rgb), 0.15),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset;
   }
 
   .param-label {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
     color: var(--el-text-color-regular);
     margin: 0;
@@ -2486,25 +2669,31 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   background: var(--el-bg-color-overlay);
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--el-border-color-light);
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
   transition: all 0.3s ease;
 
   &:hover {
     border-color: var(--el-color-primary-light-7);
-    box-shadow: 0 4px 8px rgba(var(--el-color-primary-rgb), 0.1);
+    box-shadow: 
+      0 4px 12px rgba(var(--el-color-primary-rgb), 0.15),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset;
   }
 
   &:focus-within {
     border-color: var(--el-color-primary);
-    box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
+    box-shadow: 
+      0 0 0 3px rgba(var(--el-color-primary-rgb), 0.25),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset;
   }
 
   .number-btn {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border: none;
     background: var(--el-fill-color-light);
     color: var(--el-text-color-regular);
@@ -2513,15 +2702,18 @@ onUnmounted(() => {
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 14px;
+    font-size: 16px;
+    font-weight: 600;
 
     &:hover:not(:disabled) {
       background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
+      transform: scale(1.1);
     }
 
     &:active:not(:disabled) {
       background: var(--el-color-primary-light-8);
+      transform: scale(0.95);
     }
 
     &:disabled {
@@ -2543,8 +2735,8 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     background: var(--el-bg-color-overlay);
-    padding: 0 8px;
-    min-width: 80px;
+    padding: 0 12px;
+    min-width: 90px;
     justify-content: center;
     position: relative;
 
@@ -2552,10 +2744,10 @@ onUnmounted(() => {
       border: none;
       background: transparent;
       color: var(--el-text-color-primary);
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 16px;
+      font-weight: 700;
       text-align: center;
-      width: 40px;
+      width: 50px;
       outline: none;
       padding: 0;
 
@@ -2577,9 +2769,9 @@ onUnmounted(() => {
     }
 
     .number-unit {
-      font-size: 12px;
+      font-size: 13px;
       color: var(--el-text-color-placeholder);
-      margin-left: 4px;
+      margin-left: 6px;
       font-weight: 500;
     }
   }
@@ -2588,6 +2780,9 @@ onUnmounted(() => {
   .dark & {
     background: var(--el-bg-color-overlay);
     border-color: var(--el-border-color);
+    box-shadow: 
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      0 1px 0 rgba(255, 255, 255, 0.1) inset;
 
     .number-btn {
       background: var(--el-fill-color-dark);
@@ -2599,6 +2794,19 @@ onUnmounted(() => {
 
     .number-display {
       background: var(--el-bg-color-overlay);
+    }
+
+    &:hover {
+      border-color: var(--el-color-primary-light-6);
+      box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        0 1px 0 rgba(255, 255, 255, 0.15) inset;
+    }
+
+    &:focus-within {
+      box-shadow: 
+        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.4),
+        0 1px 0 rgba(255, 255, 255, 0.2) inset;
     }
   }
 }
@@ -2678,28 +2886,28 @@ onUnmounted(() => {
 // 现代化主题色选择器 - 玻璃态设计
 .theme-color-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(32px, 1fr));
-  gap: 12px;
-  margin-top: 16px;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(8px);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--el-fill-color-light);
+  border-radius: 16px;
+  border: 1px solid var(--el-border-color-light);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .theme-color-item {
   position: relative;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   cursor: pointer;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  border: 2px solid var(--el-border-color-light);
   box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.08),
-    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
 
   // 基础光泽效果
   &::before {
@@ -2709,18 +2917,18 @@ onUnmounted(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 100%);
     pointer-events: none;
     z-index: 1;
   }
 
   // 悬停效果
   &:hover {
-    transform: translateY(-4px) scale(1.08);
+    transform: translateY(-6px) scale(1.12);
     box-shadow:
-      0 8px 24px rgba(0, 0, 0, 0.15),
-      0 1px 0 rgba(255, 255, 255, 0.8) inset;
-    border-color: rgba(255, 255, 255, 0.8);
+      0 8px 24px rgba(0, 0, 0, 0.2),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    border-color: var(--el-color-primary-light-7);
 
     .shine-effect {
       opacity: 1;
@@ -2728,7 +2936,7 @@ onUnmounted(() => {
     }
 
     .selection-indicator {
-      transform: scale(1.1);
+      transform: scale(1.15);
     }
 
     &::before {
@@ -2738,30 +2946,30 @@ onUnmounted(() => {
 
   // 点击效果
   &:active {
-    transform: translateY(-2px) scale(1.05);
+    transform: translateY(-3px) scale(1.08);
   }
 
   // 选中状态
   &.is-selected {
-    border-color: rgba(255, 255, 255, 0.9);
+    border-color: var(--el-color-primary);
     box-shadow:
-      0 0 0 3px rgba(var(--el-color-primary-rgb), 0.3),
+      0 0 0 4px rgba(var(--el-color-primary-rgb), 0.4),
       0 8px 24px rgba(var(--el-color-primary-rgb), 0.3),
       0 1px 0 rgba(255, 255, 255, 0.9) inset;
-    transform: translateY(-2px) scale(1.05);
+    transform: translateY(-3px) scale(1.08);
 
     .selection-indicator {
       opacity: 1;
-      transform: scale(1);
+      transform: scale(1.1);
 
       .check-ring {
-        background: rgba(255, 255, 255, 0.95);
+        background: var(--el-color-white);
         border-color: var(--el-color-primary);
-        transform: scale(1);
+        transform: scale(1.1);
 
         .check-icon {
           opacity: 1;
-          transform: scale(1);
+          transform: scale(1.1);
           color: var(--el-color-primary);
         }
       }
@@ -2771,14 +2979,14 @@ onUnmounted(() => {
     &::after {
       content: "";
       position: absolute;
-      top: -2px;
-      left: -2px;
-      right: -2px;
-      bottom: -2px;
-      border-radius: 8px;
-      border: 1px solid var(--el-color-primary);
+      top: -3px;
+      left: -3px;
+      right: -3px;
+      bottom: -3px;
+      border-radius: 10px;
+      border: 2px solid var(--el-color-primary);
       opacity: 0;
-      animation: pulse-ring 2s infinite;
+      animation: pulse-ring 1.5s infinite;
       pointer-events: none;
       z-index: 10;
     }
@@ -2787,17 +2995,17 @@ onUnmounted(() => {
   // 暗色主题适配
   .dark & {
     border-color: var(--el-border-color);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 
     &:hover {
       border-color: var(--el-color-primary-light-4);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     }
 
     &.is-selected {
       box-shadow:
-        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.3),
-        0 8px 25px rgba(var(--el-color-primary-rgb), 0.4);
+        0 0 0 4px rgba(var(--el-color-primary-rgb), 0.4),
+        0 8px 24px rgba(var(--el-color-primary-rgb), 0.4);
     }
   }
 }
@@ -2985,24 +3193,23 @@ onUnmounted(() => {
 .pure-theme {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  margin-top: 24px;
-  padding: 12px;
+  gap: 20px;
+  margin-top: 28px;
+  padding: 16px;
 
   li {
     position: relative;
     overflow: hidden;
     cursor: pointer;
-    height: 82px;
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    border-radius: 18px;
+    height: 90px;
+    background: var(--el-bg-color-overlay);
+    border-radius: 20px;
     box-shadow:
-      0 8px 24px rgba(0, 0, 0, 0.08),
+      0 8px 24px rgba(0, 0, 0, 0.1),
       0 1px 0 rgba(255, 255, 255, 0.8) inset,
       0 -1px 0 rgba(0, 0, 0, 0.05) inset;
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid var(--el-border-color-light);
     display: flex;
     align-items: stretch;
     justify-content: stretch;
@@ -3016,7 +3223,7 @@ onUnmounted(() => {
       left: -50%;
       width: 200%;
       height: 200%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
       opacity: 0;
       transition: all 0.6s ease;
       pointer-events: none;
@@ -3030,8 +3237,8 @@ onUnmounted(() => {
       left: 0;
       right: 0;
       bottom: 0;
-      border-radius: 18px;
-      padding: 1px;
+      border-radius: 20px;
+      padding: 2px;
       background: linear-gradient(135deg, transparent, var(--el-color-primary-light-7), transparent);
       mask:
         linear-gradient(#fff 0 0) content-box,
@@ -3042,36 +3249,36 @@ onUnmounted(() => {
     }
 
     &:hover {
-      //transform: translateY(-6px) scale(1.03);
-      // box-shadow:
-      //   0 16px 40px rgba(0, 0, 0, 0.12),
-      //   0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      //   0 -1px 0 rgba(0, 0, 0, 0.05) inset;
-      // border-color: rgba(var(--el-color-primary-rgb), 0.4);
-      // background: rgba(255, 255, 255, 0.85);
+      transform: translateY(-8px) scale(1.04);
+      box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.15),
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+      border-color: var(--el-color-primary-light-7);
+      background: var(--el-bg-color-overlay);
 
-      // &::before {
-      //   opacity: 1;
-      // }
+      &::before {
+        opacity: 1;
+      }
 
-      // &::after {
-      //   opacity: 1;
-      // }
+      &::after {
+        opacity: 1;
+      }
     }
 
     &:active {
-      transform: translateY(-3px) scale(1.01);
+      transform: translateY(-4px) scale(1.02);
     }
 
     &.is-select {
       border-color: var(--el-color-primary);
       box-shadow:
-        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.2),
-        0 12px 32px rgba(var(--el-color-primary-rgb), 0.15),
+        0 0 0 4px rgba(var(--el-color-primary-rgb), 0.25),
+        0 16px 40px rgba(var(--el-color-primary-rgb), 0.2),
         0 1px 0 rgba(255, 255, 255, 0.9) inset;
-      background: rgba(var(--el-color-primary-rgb), 0.05);
-      transform: translateY(-3px);
-      animation: selectPulse 3s ease-in-out infinite;
+      background: var(--el-color-primary-light-9);
+      transform: translateY(-4px);
+      animation: selectPulse 2s ease-in-out infinite;
 
       &::after {
         opacity: 1;
@@ -3081,15 +3288,15 @@ onUnmounted(() => {
 
     // 占位符布局样式
     &.placeholder-layout {
-      background: linear-gradient(135deg, #f8f9fa, #f0f2f5);
-      border: 2px dashed rgba(220, 223, 230, 0.8);
+      background: linear-gradient(135deg, var(--el-fill-color-light), var(--el-fill-color));
+      border: 2px dashed var(--el-border-color-light);
       opacity: 0.7;
 
       &:hover {
-        border-color: rgba(192, 196, 204, 0.8);
-        background: linear-gradient(135deg, #f5f7fa, #eceff3);
+        border-color: var(--el-border-color);
+        background: linear-gradient(135deg, var(--el-fill-color-lighter), var(--el-fill-color-light));
         opacity: 0.9;
-        transform: translateY(-2px) scale(1.01);
+        transform: translateY(-3px) scale(1.02);
       }
 
       .coming-soon {
@@ -3099,12 +3306,12 @@ onUnmounted(() => {
         transform: translate(-50%, -50%);
 
         span {
-          font-size: 11px;
-           color: var(--el-text-color-primary);
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
           font-weight: 600;
           text-align: center;
-          line-height: 1.2;
-          letter-spacing: 0.3px;
+          line-height: 1.3;
+          letter-spacing: 0.4px;
         }
       }
     }
@@ -3112,38 +3319,38 @@ onUnmounted(() => {
     &::after {
       content: attr(data-label);
       position: absolute;
-      bottom: 8px;
+      bottom: 10px;
       left: 0;
       right: 0;
       text-align: center;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-       color: var(--el-text-color-primary);
+      color: var(--el-text-color-primary);
       transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 249, 250, 0.8));
-      backdrop-filter: blur(8px);
-      padding: 4px 8px;
-      border-radius: 6px;
-      margin: 0 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      letter-spacing: 0.3px;
-      text-align: center; // 确保文字水平显示
-      writing-mode: horizontal-tb; // 强制水平文字模式
+      background: var(--el-bg-color-overlay);
+      padding: 6px 10px;
+      border-radius: 8px;
+      margin: 0 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--el-border-color-light);
+      letter-spacing: 0.4px;
+      text-align: center;
+      writing-mode: horizontal-tb;
     }
 
     &:hover::after {
-      color: var(--el-text-color-primary);
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(236, 245, 255, 0.9));
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     &.is-select::after {
-      color: #409eff;
+      color: var(--el-color-primary);
       font-weight: 700;
-      background: linear-gradient(135deg, rgba(236, 245, 255, 0.95), rgba(255, 255, 255, 0.9));
-      border-color: rgba(64, 158, 255, 0.2);
+      background: var(--el-color-primary-light-9);
+      border-color: var(--el-color-primary-light-5);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
     }
 
     // 图片图标样式
@@ -3163,7 +3370,7 @@ onUnmounted(() => {
       flex: 1 !important;
       transition: all 0.3s ease;
       filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-      border-radius: 18px;
+      border-radius: 20px;
     }
 
     // 针对Vue组件形式的SVG
@@ -3171,25 +3378,25 @@ onUnmounted(() => {
       width: 100% !important;
       height: 100% !important;
       flex: 1 !important;
-      border-radius: 18px;
+      border-radius: 20px;
     }
 
     &:hover .layout-icon {
-      transform: scale(1.05);
-      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+      transform: scale(1.06);
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
     }
 
     &:hover svg {
-      transform: scale(1.05);
-      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+      transform: scale(1.06);
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
     }
 
     &.is-select .layout-icon {
-      filter: drop-shadow(0 2px 8px rgba(64, 158, 255, 0.3));
+      filter: drop-shadow(0 2px 8px rgba(var(--el-color-primary-rgb), 0.35));
     }
 
     &.is-select svg {
-      filter: drop-shadow(0 2px 8px rgba(64, 158, 255, 0.3));
+      filter: drop-shadow(0 2px 8px rgba(var(--el-color-primary-rgb), 0.35));
     }
 
     // 移除旧的nth-child样式，现在使用新的el-row布局
@@ -3213,17 +3420,17 @@ onUnmounted(() => {
         width: 100%;
 
         span {
-          font-size: 11px;
+          font-size: 12px;
           color: var(--el-text-color-secondary);
           font-weight: 500;
           text-align: center;
-          line-height: 1.2;
+          line-height: 1.3;
         }
       }
 
       &::after {
         content: "更多布局";
-        font-size: 10px;
+        font-size: 11px;
         color: var(--el-text-color-placeholder);
       }
     }
@@ -3479,4 +3686,3 @@ p.mt-5 {
   }
 }
 </style>
-bubu
