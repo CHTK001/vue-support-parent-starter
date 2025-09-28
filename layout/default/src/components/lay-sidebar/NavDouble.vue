@@ -291,7 +291,7 @@ const defer = useDefer(firstLevelMenus.value.length);
 }
 .el-menu-item.is-active {
   svg{
-    color: var(--el-text-color-primary);
+    color: var(--pure-menu-active-text-color) !important; /* 使用新定义的变量 */
   }
 }
 // 左栏样式
@@ -324,6 +324,11 @@ const defer = useDefer(firstLevelMenus.value.length);
       align-items: center;
       padding: 0 !important;
       height: 56px;
+      color: var(--app-text-primary); /* 未选中状态为黑色 */
+
+      &.is-active {
+        color: var(--pure-menu-active-text-color) !important; /* 选中状态为白色 */
+      }
 
       .menu-icon-only {
         display: flex;
@@ -332,11 +337,24 @@ const defer = useDefer(firstLevelMenus.value.length);
         width: 24px;
         height: 24px;
         font-size: 18px;
+        color: var(--app-text-primary); /* 未选中状态为黑色 */
 
         svg,
         i {
           width: 18px;
           height: 18px;
+          color: var(--app-text-primary); /* 未选中状态为黑色 */
+        }
+      }
+
+      &.is-active {
+        .menu-icon-only {
+          color: var(--pure-menu-active-text-color) !important; /* 选中状态为白色 */
+
+          svg,
+          i {
+            color: var(--pure-menu-active-text-color) !important; /* 选中状态为白色 */
+          }
         }
       }
     }
