@@ -37,7 +37,6 @@
     "@iconify-icons/simple-icons": "catalog:",
     "@iconify/vue": "catalog:",
     "@intlify/unplugin-vue-i18n": "catalog:",
-    "@layout/console": "workspace:^",
     "@layout/default": "workspace:^",
     "@layout/engine": "workspace:^",
     "@pages/example": "workspace:^",

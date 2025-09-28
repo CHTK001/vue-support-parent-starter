@@ -54,20 +54,7 @@ export function useLayout() {
 
   /** 清空缓存后从platform-config.json读取默认配置并赋值到storage中 */
   const layout = computed(() => {
-    const _layout = $storage?.layout?.layout;
-    if(!_layout) {
-      return [$config.Layout];
-    }
-    if(Array.isArray(_layout)) {
-      return [..._layout];
-    }
-
-    if(_layout !== 'undefined') {
-      return [_layout];
-    }
-
-    return [$config.Layout];
-
+    return $storage?.layout?.layout || $config?.Layout || "vertical";
   });
 
   const layoutTheme = computed(() => {
