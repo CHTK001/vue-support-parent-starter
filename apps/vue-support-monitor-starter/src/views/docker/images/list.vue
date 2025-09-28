@@ -157,8 +157,8 @@ import { getServerList, imageApi, type SystemSoftImage } from "@/api/docker-mana
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
-import PullImageDialog from "../components/PullImageDialog.vue";
-import StartContainerDialog from "../components/StartContainerDialog.vue";
+import PullImageDialog from "./components/PullImageDialog.vue";
+import StartContainerDialog from "./components/StartContainerDialog.vue";
 
 // 响应式数据
 const loading = ref(false);

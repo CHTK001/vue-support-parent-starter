@@ -241,8 +241,8 @@ import { cancelInstallSoft, deleteInstallRecord, getInstallLogs, getSoftInstallR
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { computed, nextTick, onMounted, ref } from "vue";
-import InstallProgress from "../components/InstallProgress.vue";
-import StatsCard from "../components/StatsCard.vue";
+import InstallProgress from "./components/InstallProgress.vue";
+import StatsCard from "./components/StatsCard.vue";
 
 // 定义软件安装记录类型
 interface SystemSoftRecord {

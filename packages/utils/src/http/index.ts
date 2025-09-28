@@ -208,7 +208,7 @@ class PureHttp {
         result.message = result.msg;
         result.headers = response.headers;
         result.success = response.data?.success || isSuccess(code);
-        const resVersion = result.headers["x-response-version"];
+        const resVersion = result?.headers["x-response-version"];
         upgrade(resVersion);
         if (!isSuccess(code)) {
           message(response.data?.msg || data.message || "Error", {

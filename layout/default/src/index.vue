@@ -9,7 +9,7 @@ import { useLayout } from "./hooks/useLayout";
 import { setType } from "./types";
 
 import { deviceDetection, useDark, useGlobal, useResizeObserver } from "@pureadmin/utils";
-import { computed, defineAsyncComponent, defineComponent, h, markRaw, onBeforeMount, onMounted, reactive, ref } from "vue";
+import { computed, defineAsyncComponent, defineComponent, h, markRaw, nextTick, onBeforeMount, onMounted, reactive, ref } from "vue";
 //@ts-ignore
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
@@ -38,6 +38,10 @@ const NavDouble = markRaw(NavDoubleLayout);
 const { t } = useI18n();
 const appWrapperRef = ref();
 const { isDark } = useDark();
+const { initStorage } = useLayout();
+
+initStorage();
+
 const { layout } = useLayout();
 const isMobile = deviceDetection();
 const pureSetting = useSettingStoreHook();
@@ -90,6 +94,7 @@ function toggle(device: string, bool: boolean) {
 
 // 判断是否可自动关闭菜单栏
 let isAutoCloseSidebar = true;
+
 
 useResizeObserver(appWrapperRef, (entries) => {
   if (isMobile) return;
@@ -191,6 +196,7 @@ const LayHeader = defineComponent({
     );
   },
 });
+
 </script>
 
 <template>
