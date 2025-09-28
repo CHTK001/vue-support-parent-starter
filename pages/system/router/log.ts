@@ -5,7 +5,7 @@ const routes = [
     path: "/log",
     name: "LogManagement",
     component: async () => {
-      const LayoutDefault = await import("@pages/log");
+      const LayoutDefault = await import("../src/log/LogIndex.vue");
       return LayoutDefault;
     },
     meta: {
@@ -13,3 +13,5 @@ const routes = [
     },
   },
 ] satisfies Array<RouteConfigsTable>;
+
+export default routes;
