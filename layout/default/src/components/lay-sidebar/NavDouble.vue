@@ -326,8 +326,40 @@ const defer = useDefer(firstLevelMenus.value.length);
       height: 56px;
       color: var(--app-text-primary); /* 未选中状态为黑色 */
 
+      &:hover {
+        color: #000000; /* 悬停时保持黑色 */
+        
+        /* 深色主题下悬停样式 */
+        html.dark & {
+          color: #ffffff; /* 悬停时保持白色 */
+          
+          .menu-icon-only {
+            color: #ffffff; /* 悬停时保持白色 */
+            
+            svg,
+            i {
+              color: #ffffff; /* 悬停时保持白色 */
+            }
+          }
+        }
+      }
+
       &.is-active {
         color: var(--pure-menu-active-text-color) !important; /* 选中状态为白色 */
+        
+        /* 悬停时也保持白色 */
+        &:hover {
+          color: var(--pure-menu-active-text-color) !important; /* 悬停时保持白色 */
+          
+          .menu-icon-only {
+            color: var(--pure-menu-active-text-color) !important; /* 悬停时保持白色 */
+            
+            svg,
+            i {
+              color: var(--pure-menu-active-text-color) !important; /* 悬停时保持白色 */
+            }
+          }
+        }
       }
 
       .menu-icon-only {
@@ -337,13 +369,27 @@ const defer = useDefer(firstLevelMenus.value.length);
         width: 24px;
         height: 24px;
         font-size: 18px;
-        color: var(--app-text-primary); /* 未选中状态为黑色 */
+        color: #000000; /* 未选中状态为黑色 */
 
         svg,
         i {
           width: 18px;
           height: 18px;
-          color: var(--app-text-primary); /* 未选中状态为黑色 */
+          color: #000000; /* 未选中状态为黑色 */
+        }
+      }
+
+      /* 深色主题下的样式 */
+      html.dark & {
+        color: #ffffff; /* 未选中状态为白色 */
+
+        .menu-icon-only {
+          color: #ffffff; /* 未选中状态为白色 */
+
+          svg,
+          i {
+            color: #ffffff; /* 未选中状态为白色 */
+          }
         }
       }
 

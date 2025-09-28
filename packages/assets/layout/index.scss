@@ -278,6 +278,9 @@
   .chrome-tab {
     z-index: 10;
   }
+  &:hover { 
+    box-shadow: 0 0 0.7px var(--cb-color-shadow-medium);
+  }
 
   .chrome-tab__bg {
     color: var(--cb-color-bg-brand);
@@ -475,10 +478,6 @@
 
   &:hover {
     z-index: 10;
-
-    .chrome-tab__bg {
-      color: var(--cb-color-bg-chrome-tab-hover);
-    }
 
     .chrome-tab-divider {
       opacity: 0;

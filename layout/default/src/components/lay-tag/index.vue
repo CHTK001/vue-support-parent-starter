@@ -558,7 +558,7 @@ const deferTag = useDefer(tagsViews?.length);
           @click="tagOnClick(item)"
         >
           <template v-if="showModel !== 'chrome' && defer(index)">
-            <span class="tag-title dark:!text-text_color_primary">
+            <span class="tag-title ">
               {{ transformI18n(item.meta.title) }}
             </span>
             <span v-if="isFixedTag(item) ? false : iconIsActive(item, index) || (index === activeIndex && index !== 0)" class="el-icon-close" @click.stop="deleteMenu(item)">
@@ -633,6 +633,7 @@ html.dark {
         background-color: var(--el-bg-color-page); // 激活标签悬停时也使用页面背景色
       }
     }
+    
   }
   
   .chrome-tab {
@@ -640,15 +641,6 @@ html.dark {
       color: var(--cb-color-text-primary);
     }
     
-    &:hover {
-      .tag-title {
-        color: var(--cb-color-text-white);
-      }
-      
-      .chrome-tab__bg {
-        color: var(--cb-color-bg-chrome-tab-hover);
-      }
-    }
     
     &.is-active {
       .tag-title {
@@ -659,11 +651,6 @@ html.dark {
         color: var(--cb-color-bg-brand); // 使用品牌色而不是brand-lighter
       }
       
-      &:hover {
-        .chrome-tab__bg {
-          color: var(--cb-color-bg-brand); // 激活状态悬停时保持品牌色
-        }
-      }
     }
   }
 }

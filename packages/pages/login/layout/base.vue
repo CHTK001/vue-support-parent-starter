@@ -1034,7 +1034,6 @@ onBeforeUnmount(() => {
             font-size: 16px;
             color: var(--el-text-color-primary);
             background: transparent;
-            border: none;
 
             &::placeholder {
               color: var(--el-text-color-placeholder);

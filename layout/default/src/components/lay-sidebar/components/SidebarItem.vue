@@ -98,7 +98,7 @@ function resolvePath(routePath: string) {
       <div v-if="toRaw(item?.meta?.icon)" class="sub-menu-icon" :style="getSubMenuIconStyle">
         <component :is="useRenderIcon(toRaw(onlyOneChild?.meta?.icon) || (item?.meta && toRaw(item?.meta?.icon)))" />
       </div>
-      <el-text v-if="(!item?.meta?.icon && isCollapse && layout === 'vertical' && item?.pathList?.length === 1) || (!onlyOneChild?.meta?.icon && isCollapse && layout === 'mix' && item?.pathList?.length === 2)" truncated class="!w-full !pl-4 !text-inherit">
+      <el-text v-if="(!item?.meta?.icon && isCollapse && layout === 'vertical' && item?.pathList?.length === 1) || (!onlyOneChild?.meta?.icon && isCollapse && layout === 'mix' && item?.pathList?.length === 2)" truncated class="!w-full !pl-4 ">
         {{ transformI18n(onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title) }}
       </el-text>
 
@@ -109,7 +109,7 @@ function resolvePath(routePath: string) {
               offset: [0, -10],
               theme: tooltipEffect,
             }"
-            class="!w-full !text-inherit"
+            class="!w-full "
           >
             {{ transformI18n(onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title) }}
             <ReMenuNewBadge :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime" :type="onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'" :customText="onlyOneChild?.meta?.badgeText || item?.meta?.badgeText" />
@@ -132,7 +132,7 @@ function resolvePath(routePath: string) {
         }"
         :class="{
           '!w-full': true,
-          '!text-inherit': true,
+          '': true,
           '!pl-4': layout !== 'horizontal' && isCollapse && !toRaw(item.meta.icon) && item.parentId === null,
         }"
       >

@@ -124,11 +124,11 @@ html.dark {
 
         &:hover {
           .chrome-tab__bg {
-            color: var(--el-text-color-primary);
+            color: var(--cb-color-bg-chrome-tab-hover);
           }
 
           .tag-title {
-            color: #ffffff;
+            color: var(--cb-color-text-white);
           }
         }
       }
@@ -458,6 +458,10 @@ html.dark {
       .chrome-tab__bg {
         color: var(--cb-color-bg-chrome-tab-hover);
       }
+      
+      .tag-title {
+        color: var(--cb-color-text-white);
+      }
     }
     
     .chrome-close-btn {
@@ -477,6 +481,17 @@ html.dark {
       
       .chrome-tab__bg {
         color: var(--cb-color-bg-brand); // 确保使用品牌色
+      }
+      
+      /* 激活状态悬停时不改变背景色 */
+      &:hover {
+        .chrome-tab__bg {
+          color: var(--cb-color-bg-brand); // 保持品牌色
+        }
+        
+        .tag-title {
+          color: var(--cb-color-text-white); // 保持白色文字
+        }
       }
     }
   }
@@ -747,6 +762,19 @@ html.dark {
 
   ::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.3);
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background-color: transparent;
+  }
+
+  /* 确保暗黑模式下的文本颜色正确 */
+  color: var(--el-text-color-primary);
+}    background-color: rgba(255, 255, 255, 0.3);
   }
 
   ::-webkit-scrollbar-track {
