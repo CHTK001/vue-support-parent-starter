@@ -5,6 +5,74 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.4.3] - 2025-09-27
+
+### 新增
+
+- **Storage工具增强**: 新增同步版本的localStorage和sessionStorage操作代理
+  - 🔄 **双版本支持**: 同时提供异步（支持加密）和同步（不支持加密）两个版本
+  - ⚡ **性能优化**: 同步版本无需等待Promise.resolve，直接返回结果
+  - 🔧 **使用灵活**: 开发者可根据需求选择合适的版本
+  - 📦 **API一致**: 两个版本提供完全一致的API接口，便于切换
+  - 📚 **文档完善**: 新增storage/README.md详细说明使用方法
+
+#### 技术实现细节
+
+**同步版本实现：**
+``typescript
+// SyncLocalStorageProxy类实现
+class SyncLocalStorageProxy {
+  setItem<T>(key: string, value: T): void {
+    // 直接操作localStorage，无需async/await
+    storageLocal().setItem(key, value);
+  }
+
+  getItem<T>(key: string): T {
+    // 直接返回结果，无需Promise
+    return storageLocal().getItem(key) as T;
+  }
+}
+```
+
+**异步版本实现：**
+``typescript
+// CustomLocalStorageProxy类实现
+class CustomLocalStorageProxy {
+  async setItem<T>(key: string, value: T): Promise<void> {
+    // 支持WASM加密的异步操作
+    const encryptedValue = await encryptStorageValue(...);
+    storageLocal().setItem(key, encryptedValue);
+  }
+
+  async getItem<T>(key: string): Promise<T> {
+    // 支持WASM解密的异步操作
+    const encryptedValue = storageLocal().getItem(key);
+    const decryptedValue = await decryptStorageValue(...);
+    return decryptedValue as T;
+  }
+}
+```
+
+**使用方式对比：**
+``typescript
+// 同步版本 - 无需await
+import { syncLocalStorageProxy } from "@repo/utils";
+syncLocalStorageProxy().setItem('key', 'value');
+const value = syncLocalStorageProxy().getItem('key');
+
+// 异步版本 - 需要await
+import { localStorageProxy } from "@repo/utils";
+await localStorageProxy().setItem('key', 'value');
+const value = await localStorageProxy().getItem('key');
+```
+
+### 文档完善
+
+- **Storage模块文档**: 新增完整的README.md文档
+  - 详细的同步和异步版本使用说明
+  - 完整的API接口对比和选择建议
+  - 使用场景分析和技术实现细节
+
 ## [2.4.2] - 2025-09-26
 
 ### 新增
@@ -18,7 +86,7 @@
 #### 技术实现细节
 
 **AssemblyScript实现：**
-```typescript
+``typescript
 // 在WASM模块中实现MD5哈希算法
 export function md5Hash(input: string): string {
   // 简化的MD5实现（实际项目中应使用完整的MD5算法）
@@ -35,7 +103,7 @@ export function md5Hash(input: string): string {
 ```
 
 **JavaScript包装器：**
-```javascript
+```
 // 导出md5Hash函数
 export async function md5Hash(input) {
   try {
@@ -49,7 +117,7 @@ export async function md5Hash(input) {
 ```
 
 **HTTP模块集成：**
-```typescript
+``typescript
 // 在http.ts中使用WASM版本的md5Hash函数
 import { md5Hash as md5HashWasm } from "@repo/codec-wasm";
 

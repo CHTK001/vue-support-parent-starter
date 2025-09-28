@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage测试</title>
+</head>
+<body>
+    <h1>Storage功能测试</h1>
+    <button id="testSync">测试同步Storage</button>
+    <button id="testAsync">测试异步Storage</button>
+    <div id="output"></div>
+
+    <script type="module">
+        // 由于这是一个简化测试，我们直接使用浏览器原生localStorage/sessionStorage
+        // 实际项目中会使用我们封装的storage工具
+        
+        document.getElementById('testSync').addEventListener('click', () => {
+            const output = document.getElementById('output');
+            output.innerHTML = '<h2>同步Storage测试结果：</h2>';
+            
+            // 测试同步localStorage
+            localStorage.setItem('sync-test-key', 'sync-test-value');
+            const syncValue = localStorage.getItem('sync-test-key');
+            output.innerHTML += `<p>localStorage值: ${syncValue}</p>`;
+            
+            // 测试同步sessionStorage
+            sessionStorage.setItem('sync-session-key', 'sync-session-value');
+            const syncSessionValue = sessionStorage.getItem('sync-session-key');
+            output.innerHTML += `<p>sessionStorage值: ${syncSessionValue}</p>`;
+            
+            // 清理测试数据
+            localStorage.removeItem('sync-test-key');
+            sessionStorage.removeItem('sync-session-key');
+            output.innerHTML += '<p>测试数据已清理</p>';
+        });
+        
+        document.getElementById('testAsync').addEventListener('click', async () => {
+            const output = document.getElementById('output');
+            output.innerHTML = '<h2>异步Storage测试结果：</h2>';
+            
+            // 模拟异步操作
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // 测试localStorage
+            localStorage.setItem('async-test-key', 'async-test-value');
+            const asyncValue = localStorage.getItem('async-test-key');
+            output.innerHTML += `<p>localStorage值: ${asyncValue}</p>`;
+            
+            // 测试sessionStorage
+            sessionStorage.setItem('async-session-key', 'async-session-value');
+            const asyncSessionValue = sessionStorage.getItem('async-session-key');
+            output.innerHTML += `<p>sessionStorage值: ${asyncSessionValue}</p>`;
+            
+            // 清理测试数据
+            localStorage.removeItem('async-test-key');
+            sessionStorage.removeItem('async-session-key');
+            output.innerHTML += '<p>测试数据已清理</p>';
+        });
+    </script>
+</body>
+</html>

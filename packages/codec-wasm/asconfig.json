@@ -17,6 +17,8 @@
     }
   },
   "options": {
-    "bindings": "esm"
+    "bindings": "esm",
+    "exportRuntime": true,
+    "runtime": "stub"
   }
 }

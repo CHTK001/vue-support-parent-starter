@@ -1,4 +1,4 @@
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { routerArrays } from "../types";
 import { useGlobal } from "@pureadmin/utils";
@@ -6,8 +6,11 @@ import { useMultiTagsStore } from "@repo/core";
 
 export function useLayout() {
   const { $storage, $config } = useGlobal<any>();
+  let _isInitialed = false;
 
   const initStorage = () => {
+    if (_isInitialed) return;
+    _isInitialed = true;
     /** 路由 */
     if (
       useMultiTagsStore().multiTagsCache &&
@@ -51,7 +54,20 @@ export function useLayout() {
 
   /** 清空缓存后从platform-config.json读取默认配置并赋值到storage中 */
   const layout = computed(() => {
-    return $storage?.layout.layout;
+    const _layout = $storage?.layout?.layout;
+    if(!_layout) {
+      return [$config.Layout];
+    }
+    if(Array.isArray(_layout)) {
+      return [..._layout];
+    }
+
+    if(_layout !== 'undefined') {
+      return [_layout];
+    }
+
+    return [$config.Layout];
+
   });
 
   const layoutTheme = computed(() => {

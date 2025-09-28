@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <div class="registry-management">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -193,7 +193,7 @@ import { registryApi, type SystemSoftRegistry } from "@/api/docker-management";
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
-import RegistryDialog from "../components/RegistryDialog.vue";
+import RegistryDialog from "./components/RegistryDialog.vue";
 import SyncProgressDialog from "./components/SyncProgressDialog.vue";
 
 /**

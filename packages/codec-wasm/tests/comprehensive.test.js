@@ -12,13 +12,13 @@ import {
   add
 } from '../src/index.js';
 
-async function runComprehensiveTests() {
+function runComprehensiveTests() {
   console.log('Running comprehensive WASM tests...');
   
   try {
     // 测试基础数学函数
     console.log('\n1. Testing basic math functions...');
-    const sum = await add(5, 3);
+    const sum = add(5, 3);
     console.log('5 + 3 =', sum);
     if (sum === 8) {
       console.log('✓ Basic math test passed');
@@ -28,7 +28,7 @@ async function runComprehensiveTests() {
     
     // 测试时间戳函数
     console.log('\n2. Testing timestamp function...');
-    const timestamp = await getCurrentTimestamp();
+    const timestamp = getCurrentTimestamp();
     console.log('Current timestamp:', timestamp);
     if (typeof timestamp === 'number' && timestamp > 0) {
       console.log('✓ Timestamp test passed');
@@ -38,7 +38,7 @@ async function runComprehensiveTests() {
     
     // 测试nonce生成
     console.log('\n3. Testing nonce generation...');
-    const nonce = await generateNonce();
+    const nonce = generateNonce();
     console.log('Generated nonce:', nonce);
     console.log('Nonce length:', nonce.length);
     if (typeof nonce === 'string' && nonce.length >= 32) {
@@ -51,10 +51,10 @@ async function runComprehensiveTests() {
     console.log('\n4. Testing AES encryption/decryption...');
     const testData = 'Hello, World!';
     const testKey = 'secret-key-12345';
-    const encrypted = await encryptAES(testData, testKey);
+    const encrypted = encryptAES(testData, testKey);
     console.log('Original data:', testData);
     console.log('Encrypted data:', encrypted);
-    const decrypted = await decryptAES(encrypted, testKey);
+    const decrypted = decryptAES(encrypted, testKey);
     console.log('Decrypted data:', decrypted);
     if (decrypted === testData) {
       console.log('✓ AES encryption/decryption test passed');
@@ -66,7 +66,7 @@ async function runComprehensiveTests() {
     console.log('\n5. Testing storage key encryption...');
     const storageKey = 'user-preferences';
     const systemCode = 'SYS001';
-    const encryptedStorageKey = await encryptStorageKey(storageKey, systemCode);
+    const encryptedStorageKey = encryptStorageKey(storageKey, systemCode);
     console.log('Original storage key:', storageKey);
     console.log('Encrypted storage key:', encryptedStorageKey);
     if (encryptedStorageKey === systemCode + storageKey) {
@@ -78,7 +78,7 @@ async function runComprehensiveTests() {
     // 测试特殊存储key（不应加密）
     console.log('\n6. Testing special storage key...');
     const specialKey = 'responsive-test-key';
-    const encryptedSpecialKey = await encryptStorageKey(specialKey, systemCode);
+    const encryptedSpecialKey = encryptStorageKey(specialKey, systemCode);
     console.log('Special key:', specialKey);
     console.log('Encrypted special key:', encryptedSpecialKey);
     if (encryptedSpecialKey === specialKey) {
@@ -90,10 +90,10 @@ async function runComprehensiveTests() {
     // 测试存储值加密解密
     console.log('\n7. Testing storage value encryption/decryption...');
     const storageValue = 'user-setting-value';
-    const encryptedStorageValue = await encryptStorageValue(storageValue, storageKey, systemCode, testKey, true);
+    const encryptedStorageValue = encryptStorageValue(storageValue, storageKey, systemCode, testKey, true);
     console.log('Original storage value:', storageValue);
     console.log('Encrypted storage value:', encryptedStorageValue);
-    const decryptedStorageValue = await decryptStorageValue(encryptedStorageValue, storageKey, systemCode, testKey, true);
+    const decryptedStorageValue = decryptStorageValue(encryptedStorageValue, storageKey, systemCode, testKey, true);
     console.log('Decrypted storage value:', decryptedStorageValue);
     if (decryptedStorageValue === storageValue) {
       console.log('✓ Storage value encryption/decryption test passed');
@@ -105,7 +105,7 @@ async function runComprehensiveTests() {
     console.log('\n8. Testing request processing...');
     const requestData = JSON.stringify({ username: 'testuser', action: 'login' });
     const requestUrl = '/api/login';
-    const processedRequest = await processRequest(requestData, requestUrl, true, testKey);
+    const processedRequest = processRequest(requestData, requestUrl, true, testKey);
     console.log('Processed request:', processedRequest);
     if (typeof processedRequest === 'string' && processedRequest.includes('data')) {
       console.log('✓ Request processing test passed');

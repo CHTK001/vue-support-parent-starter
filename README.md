@@ -493,6 +493,60 @@ interface DataItem {
 
 详细文档请查看: [ScMessageDialog组件文档](./packages/components/ScMessageDialog/README.md)
 
+## 工具库
+
+### Storage 存储工具
+
+提供多种存储操作方式，包括同步和异步版本，以及支持加密的版本。
+
+#### 特性
+
+- 🔄 **双版本支持**: 同时提供异步（支持加密）和同步（不支持加密）两个版本
+- ⚡ **性能优化**: 同步版本无需等待Promise.resolve，直接返回结果
+- 🔧 **使用灵活**: 开发者可根据需求选择合适的版本
+- 📦 **API一致**: 两个版本提供完全一致的API接口，便于切换
+- 🔒 **数据加密**: 异步版本支持WASM数据加密，提供更高的安全性
+
+#### 基础用法
+
+```typescript
+// 同步版本 - 无需await
+import { syncLocalStorageProxy, syncSessionStorageProxy } from "@repo/utils";
+
+// 存储数据
+syncLocalStorageProxy().setItem('key', 'value');
+syncSessionStorageProxy().setItem('key', 'value');
+
+// 读取数据
+const localValue = syncLocalStorageProxy().getItem('key');
+const sessionValue = syncSessionStorageProxy().getItem('key');
+
+// 异步版本 - 需要await
+import { localStorageProxy, sessionStorageProxy } from "@repo/utils";
+
+// 存储数据
+await localStorageProxy().setItem('key', 'value');
+await sessionStorageProxy().setItem('key', 'value');
+
+// 读取数据
+const localValue = await localStorageProxy().getItem('key');
+const sessionValue = await sessionStorageProxy().getItem('key');
+```
+
+#### 选择建议
+
+1. **需要数据加密**: 使用异步版本 `localStorageProxy()` 或 `sessionStorageProxy()`
+2. **不需要数据加密且希望简单直接**: 使用同步版本 `syncLocalStorageProxy()` 或 `syncSessionStorageProxy()`
+3. **兼容性考虑**: 同步版本在所有环境下都能正常工作，异步版本需要浏览器支持相关API
+
+#### 注意事项
+
+1. 异步版本返回Promise，必须使用await或.then()处理
+2. 同步版本不支持加密功能，如需加密请使用异步版本
+3. 两种版本的API接口保持一致，便于切换
+
+详细文档请查看: [Storage工具文档](./packages/utils/src/storage/README.md)
+
 ## 页面模块
 
 ### Holiday 节假日模块
@@ -680,18 +734,18 @@ router.beforeEach((to, from, next) => {
 
 1) VideoFilter 组件
 
-- 用途：提供 类型/年代/地区/语言 多选筛选，支持“全部”快捷逻辑与更多/收起。
+- 用途：提供 类型/年代/地区/语言 多选筛选，支持"全部"快捷逻辑与更多/收起。
 - 引用路径：`@/view/video/components/VideoFilter.vue`
 - Props
   - `modelValue?: { types: string[]; years: string[]; districts: string[]; languages: string[] }`
-  - `autoSearch?: boolean` 默认 true；为 false 时显示“搜索”按钮
+  - `autoSearch?: boolean` 默认 true；为 false 时显示"搜索"按钮
 - Emits
   - `update:modelValue` 返回与 modelValue 相同结构
   - `filter-change` 筛选改变时触发（autoSearch=true 时自动触发）
   - `search` 当 autoSearch=false，点击确认按钮触发
 - 选项来源
   - 类型：`@/view/video/data/categories` → `movieTypes`
-  - 年代：`generateYearOptions()` 生成，含“全部”与常用分组
+  - 年代：`generateYearOptions()` 生成，含"全部"与常用分组
   - 地区/语言：`@/view/video/data/videoOptions`
 
 2) VideoResults 组件
@@ -712,7 +766,7 @@ router.beforeEach((to, from, next) => {
 
 3) 参数映射与请求示例
 
-- 过滤器到接口字段的映射（多选使用英文逗号拼接，含“全部”时忽略该维度）：
+- 过滤器到接口字段的映射（多选使用英文逗号拼接，含"全部"时忽略该维度）：
   - `keyword` → string（关键词，来自顶部输入框）
   - `videoType` → string（由 VideoFilter.types 归一化）
   - `videoYear` → string（由 VideoFilter.years 归一化）
@@ -740,3 +794,4 @@ router.beforeEach((to, from, next) => {
 
 - 行字段：`videoId` | `videoTitle`/`videoName` | `videoCover` | `videoScore` | `videoViews` | `videoYear` | `videoDistrict` | `videoLanguage` | `videoType`
 - 说明：`videoCover` 可为逗号分隔多源；组件内处理 `videoPlatform` 兼容样式；结果卡片封面等比裁剪（2:3）。
+```

@@ -105,13 +105,19 @@ export const useConfigStore = defineStore({
       }
       this.version = localStorageProxy().getItem(this.storageVersionKey);
       let dataSetting = localStorageProxy().getItem(this.storageKey);
+      // 验证从localStorage获取的数据是否为有效数组
       if (typeof dataSetting === "string") {
-        dataSetting = null;
+        try {
+          dataSetting = JSON.parse(dataSetting);
+        } catch (e) {
+          dataSetting = null;
+        }
       }
 
       if (!dataSetting) {
         return new Promise<void>(async (resolve) => {
-          const { data } = await fetchSetting(this.settingGroup);
+          const response = await fetchSetting(this.settingGroup);
+          const data = response.data; // 提取data字段
 
           localStorageProxy().setItem(this.storageKey, data);
           this.doRegister(data);
@@ -125,6 +131,12 @@ export const useConfigStore = defineStore({
       });
     },
     async doRegister(data) {
+      // 确保data是数组格式
+      if (data && !Array.isArray(data)) {
+        console.error("ConfigStore.doRegister: data is not an array", data);
+        return;
+      }
+      
       data?.forEach((element) => {
         const key = element.sysSettingGroup + ":" + element.sysSettingName;
         this.config[key] = element.sysSettingConfig;
