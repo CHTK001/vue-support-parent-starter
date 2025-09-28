@@ -633,25 +633,6 @@ html.dark {
         background-color: var(--el-bg-color-page); // 激活标签悬停时也使用页面背景色
       }
     }
-    
-  }
-  
-  .chrome-tab {
-    .tag-title {
-      color: var(--cb-color-text-primary);
-    }
-    
-    
-    &.is-active {
-      .tag-title {
-        color: var(--cb-color-text-white);
-      }
-      
-      .chrome-tab__bg {
-        color: var(--cb-color-bg-brand); // 使用品牌色而不是brand-lighter
-      }
-      
-    }
   }
 }
 </style>

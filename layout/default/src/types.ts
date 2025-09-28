@@ -58,6 +58,7 @@ export interface setType {
 export type themeColorsType = {
   color: string;
   themeColor: string;
+  description?: string;
 };
 
 export interface scrollbarDomType extends HTMLElement {

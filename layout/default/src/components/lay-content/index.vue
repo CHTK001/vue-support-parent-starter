@@ -311,6 +311,11 @@ const router = useRouter();
   position: relative;
   // padding: 0px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 确保主内容区域也有正确的背景色 */
+  background-color: #f5f7fa;
+  html.dark & {
+    background-color: #16181d;
+  }
 }
 
 :deep(.el-card__body) {
@@ -329,22 +334,11 @@ const router = useRouter();
   html.dark & {
     background-color: rgb(var(--layout-bg-color) / var(--un-bg-opacity));
   }
-
-  .layout {
-    border-radius: var(--layoutRadius, 6px) !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    &:hover {
-      box-shadow:
-        0 6px 24px rgba(0, 0, 0, 0.05),
-        0 2px 8px rgba(0, 0, 0, 0.03);
-
-      .dark & {
-        box-shadow:
-          0 6px 24px rgba(0, 0, 0, 0.2),
-          0 2px 8px rgba(0, 0, 0, 0.15);
-      }
-    }
+  
+  /* 确保在深色模式下有明确的背景色 */
+  background-color: #f5f7fa;
+  html.dark & {
+    background-color: #16181d;
   }
 }
 

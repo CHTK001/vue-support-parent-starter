@@ -48,7 +48,6 @@
       box-shadow: none;
       &.is-active .tag-title {
         font-weight: 600;
-        color: var(--cb-color-text-white);
       }
     }
 
@@ -393,10 +392,6 @@
   border-color: var(--cb-color-border-brand-light);
   transform: translateY(-1px);
   box-shadow: 0 4px 8px var(--cb-color-shadow-medium);
-
-  .tag-title {
-    color: var(--cb-color-text-brand);
-  }
 }
 
 .rounded-out {
@@ -448,10 +443,6 @@
       }
     }
   }
-  .tag-title {
-    padding: 0;
-    color: var(--cb-color-text-primary)
-  }
 }
 /* 谷歌风格的页签 */
 .chrome-tab {
@@ -463,10 +454,6 @@
   padding: 0 24px;
   white-space: nowrap;
   cursor: pointer;
-  .tag-title {
-    padding: 0;
-    color: var(--cb-color-text-primary)
-  }
 
   .chrome-tab-divider {
     position: absolute;

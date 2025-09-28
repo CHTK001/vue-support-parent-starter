@@ -724,6 +724,7 @@ onMounted(() => {
   border-radius: 16px;
   margin-bottom: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .job-filter-section {
