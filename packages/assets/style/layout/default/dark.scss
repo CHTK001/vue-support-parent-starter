@@ -1,7 +1,5 @@
 @use "element-plus/theme-chalk/src/dark/css-vars.scss" as *;
 
-
-
 /* 整体暗色风格适配 */
 html.dark {
   .text {
@@ -108,6 +106,10 @@ html.dark {
     .scroll-item {
       background-color: var(--app-bg-overlay);
       
+      &:hover {
+        background-color: var(--el-bg-color-page); /* 悬停时使用页面背景色 */
+      }
+      
       .el-icon-close {
         &:hover {
           color: rgb(255 255 255 / 85%) !important;
@@ -137,6 +139,7 @@ html.dark {
       background-color: var(--app-bg-overlay);
       
       &:hover {
+        background-color: var(--el-bg-color-page); /* 激活标签悬停时也使用页面背景色 */
         color: #ffffff;
         
         .tag-title {
@@ -473,7 +476,7 @@ html.dark {
       }
       
       .chrome-tab__bg {
-        color: var(--cb-color-bg-brand);
+        color: var(--cb-color-bg-brand); // 确保使用品牌色
       }
     }
   }

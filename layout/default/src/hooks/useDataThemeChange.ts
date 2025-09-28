@@ -58,7 +58,10 @@ export function useDataThemeChange() {
       overallStyle: overallStyle.value,
     };
 
-    if (theme === "default" || theme === "light") {
+    // 当选择白色主题时，使用#006ae6作为主色调
+    if (theme === "light") {
+      setEpThemeColor("#006ae6");
+    } else if (theme === "default") {
       setEpThemeColor(getConfig().EpThemeColor);
     } else {
       const colors = themeColors.value.find((v) => v.themeColor === theme);

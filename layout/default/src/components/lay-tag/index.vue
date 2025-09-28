@@ -622,8 +622,16 @@ html.dark {
   .scroll-item {
     background-color: var(--app-bg-overlay);
     
+    &:hover {
+      background-color: var(--el-bg-color-page); // 悬停时使用页面背景色而不是白色
+    }
+    
     &.is-active {
       background-color: var(--app-bg-overlay);
+      
+      &:hover {
+        background-color: var(--el-bg-color-page); // 激活标签悬停时也使用页面背景色
+      }
     }
   }
   
@@ -632,9 +640,29 @@ html.dark {
       color: var(--cb-color-text-primary);
     }
     
+    &:hover {
+      .tag-title {
+        color: var(--cb-color-text-white);
+      }
+      
+      .chrome-tab__bg {
+        color: var(--cb-color-bg-chrome-tab-hover);
+      }
+    }
+    
     &.is-active {
       .tag-title {
         color: var(--cb-color-text-white);
+      }
+      
+      .chrome-tab__bg {
+        color: var(--cb-color-bg-brand); // 使用品牌色而不是brand-lighter
+      }
+      
+      &:hover {
+        .chrome-tab__bg {
+          color: var(--cb-color-bg-brand); // 激活状态悬停时保持品牌色
+        }
       }
     }
   }

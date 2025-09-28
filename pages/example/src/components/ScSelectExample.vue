@@ -144,7 +144,7 @@
 
 <script setup>
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { computed, ref, watch } from "vue";
 import CodeDisplay from "./CodeDisplay.vue";
 // 主题设置
@@ -420,7 +420,7 @@ watch(layout, (newLayout) => {
 // 处理选中变化
 const handleChange = (value) => {
   console.log("选中值变化:", value);
-  ElMessage.success(`选中了: ${multiple.value ? value.join(", ") : value}`);
+  message.success(`选中了: ${multiple.value ? value.join(", ") : value}`);
 };
 
 // 生成代码示例
