@@ -83,6 +83,8 @@ export function useDataThemeChange() {
     // 预计算所有颜色值
     const cssProperties = new Map();
     cssProperties.set("--el-color-primary", color);
+    // 同时更新 --app-primary 变量，确保标签页激活状态颜色能正确变化
+    cssProperties.set("--app-primary", color);
 
     // 预计算dark和light变体
     for (let i = 1; i <= 2; i++) {

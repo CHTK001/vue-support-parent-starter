@@ -195,7 +195,7 @@ html.dark {
   --cb-color-text-tertiary: var(--app-text-tertiary);
   --cb-color-text-disabled: var(--app-text-disabled);
   --cb-color-text-inverse: var(--app-text-inverse);
-  --cb-color-text-white: var(--app-white);
+  --cb-color-text-white: #ffffff; /* 在深色主题下始终为白色 */
   --cb-color-text-brand: var(--app-white); /* 保持白色 */
   --cb-color-text-danger: var(--app-danger);
   

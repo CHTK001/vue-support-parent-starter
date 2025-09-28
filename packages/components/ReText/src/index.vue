@@ -54,6 +54,7 @@ onMounted(() => {
 
 <template>
   <el-text
+    class="new-re-text"
     v-bind="{
       truncated: !lineClamp,
       lineClamp,
@@ -65,3 +66,8 @@ onMounted(() => {
     <slot />
   </el-text>
 </template>
+<style lang="scss" scoped>
+.new-re-text {
+  color: var(--pure-menu-active-text-color) !important;
+}
+</style>

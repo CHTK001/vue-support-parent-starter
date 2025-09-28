@@ -1,3 +1,17 @@
+// 在应用启动早期检测并设置深色主题，避免FOUC问题
+(function() {
+  try {
+    // 从localStorage中读取布局配置
+    const layoutConfig = JSON.parse(localStorage.getItem('layout') || '{}');
+    // 如果配置了深色模式，则添加dark类到html元素
+    if (layoutConfig.darkMode) {
+      document.documentElement.classList.add('dark');
+    }
+  } catch (e) {
+    console.warn('Failed to set dark theme from localStorage:', e);
+  }
+})();
+
 import { createApp, type Directive } from "vue";
 import Table from "@pureadmin/table";
 import { getPlatformConfig, injectResponsiveStorage, useI18n } from "@repo/config";
