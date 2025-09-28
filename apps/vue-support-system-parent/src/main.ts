@@ -5,18 +5,30 @@ import VueGridLayout from "vue-grid-layout";
 import App from "./App.vue";
 
 // 在应用启动时检查并设置深色主题
-try {
-  const storage = localStorage.getItem("layout");
-  if (storage) {
-    const layoutConfig = JSON.parse(storage);
-    if (layoutConfig.darkMode) {
-      document.documentElement.classList.add("dark");
+function initializeDarkTheme() {
+  try {
+    // 从localStorage获取布局配置
+    const storage = localStorage.getItem("layout");
+    if (storage) {
+      const layoutConfig = JSON.parse(storage);
+      // 如果配置了深色模式，则添加dark类
+      if (layoutConfig.darkMode) {
+        document.documentElement.classList.add("dark");
+      }
+    } else {
+      // 如果没有存储的配置，检查系统偏好
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add("dark");
+      }
     }
+  } catch (e) {
+    // 静默处理错误，不影响页面加载
+    console.warn("Failed to parse layout config from localStorage:", e);
   }
-} catch (e) {
-  // 静默处理错误，不影响页面加载
-  console.warn("Failed to parse layout config from localStorage:", e);
 }
+
+// 初始化深色主题
+initializeDarkTheme();
 
 // import { useEcharts } from "@/plugins/echarts";
 import Table from "@pureadmin/table";

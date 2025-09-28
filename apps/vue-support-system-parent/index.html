@@ -16,6 +16,11 @@
           if (layoutConfig.darkMode) {
             document.documentElement.classList.add('dark');
           }
+        } else {
+          // 如果没有存储的配置，检查系统偏好
+          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+          }
         }
       } catch (e) {
         // 静默处理错误，不影响页面加载

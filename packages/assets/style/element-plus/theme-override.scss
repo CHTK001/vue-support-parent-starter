@@ -102,7 +102,10 @@
   --el-fill-color-extra-light: var(--app-bg-tertiary);
   --el-fill-color-dark: var(--app-bg-primary);
   --el-fill-color-darker: var(--app-bg-primary);
-  --el-fill-color-blank: #ffffff;
+  --el-fill-color-blank: #ffffff; /* 浅色主题下为白色 */
+
+  /* ===== 布局背景颜色变量 Layout Background Color Variable ===== */
+  --layout-bg-color: 245, 247, 250; /* 浅色主题下为浅灰色 */
 
   /* ===== 阴影覆盖 Shadow Override ===== */
   --el-box-shadow: var(--app-shadow);
@@ -137,9 +140,12 @@ html.dark {
   --el-fill-color-light: var(--app-bg-tertiary);
   --el-fill-color-lighter: var(--app-bg-tertiary);
   --el-fill-color-extra-light: var(--app-bg-tertiary);
-  --el-fill-color-dark: #ffffff;
-  --el-fill-color-darker: #ffffff;
-  --el-fill-color-blank: #000000;
+  --el-fill-color-dark: var(--app-bg-primary);
+  --el-fill-color-darker: var(--app-bg-primary);
+  --el-fill-color-blank: #000000; /* 深色主题下为黑色 */
+  
+  /* ===== 布局背景颜色变量 Layout Background Color Variable ===== */
+  --layout-bg-color: 22, 24, 29; /* 深色主题下为深灰色 */
   
   /* 调整遮罩颜色以适应深色主题 */
   --el-mask-color: rgba(0, 0, 0, 0.9);

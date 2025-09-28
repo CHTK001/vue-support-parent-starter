@@ -209,6 +209,16 @@ export function resetRouter() {
 }
 
 router.beforeEach((to: ToRouteType, _from, next) => {
+  // 确保在路由切换时保持深色主题
+  try {
+    const storage = localStorageProxy().getItem("layout");
+    if (storage && storage.darkMode) {
+      document.documentElement.classList.add("dark");
+    }
+  } catch (e) {
+    console.warn("Failed to set dark theme from localStorage:", e);
+  }
+  
   if (to.meta?.keepAlive) {
     handleAliveRoute(to, "add");
     // 页面整体刷新和点击标签页刷新
@@ -315,6 +325,16 @@ router.beforeEach((to: ToRouteType, _from, next) => {
 });
 
 router.afterEach(() => {
+  // 确保在路由切换完成后保持深色主题
+  try {
+    const storage = localStorageProxy().getItem("layout");
+    if (storage && storage.darkMode) {
+      document.documentElement.classList.add("dark");
+    }
+  } catch (e) {
+    console.warn("Failed to set dark theme from localStorage:", e);
+  }
+  
   NProgress.done();
 });
 export default router;

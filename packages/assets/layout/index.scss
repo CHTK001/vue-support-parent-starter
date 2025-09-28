@@ -214,13 +214,21 @@
       margin: 0;
       cursor: pointer;
 
-      &:hover {
-        color: var(--cb-color-text-brand);
-      }
-
       svg {
         display: block;
         margin-right: 0.5em;
+      }
+    }
+  }
+}
+.dark {
+  .tags-view {
+    .contextmenu{
+      li{
+        &:hover{
+          color: var(--cb-color-text-secondary);
+          background: var(--cb-color-bg-overlay);
+        }
       }
     }
   }
@@ -433,7 +441,7 @@
     padding: 0;
     &.is-active { 
       span {
-        color: var(--cb-color-text-brand);
+        color: var(--cb-color-text-primary)
       }
     }
   }
