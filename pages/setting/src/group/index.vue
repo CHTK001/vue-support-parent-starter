@@ -19,6 +19,7 @@ const formData = reactive<SysSettingGroup>({
   sysSettingGroupIcon: "",
   sysSettingGroupEnable: true,
   sysSettingGroupRemark: "",
+  sysSettingGroupUseProjectInterface: true, // 修改为默认开启
 });
 
 // 表单验证规则
@@ -163,6 +164,7 @@ const resetForm = () => {
     sysSettingGroupIcon: "",
     sysSettingGroupEnable: true,
     sysSettingGroupRemark: "",
+    sysSettingGroupUseProjectInterface: true, // 修改为默认开启
   });
   formRef.value?.clearValidate();
 };
@@ -273,6 +275,10 @@ export default defineComponent({
         </el-form-item>
         <el-form-item label="启用状态">
           <el-switch v-model="formData.sysSettingGroupEnable" active-text="启用" inactive-text="禁用" />
+        </el-form-item>
+        <el-form-item label="使用项目接口">
+          <el-switch v-model="formData.sysSettingGroupUseProjectInterface" active-text="是" inactive-text="否" />
+          <div class="form-item-tip">开启后将使用项目组接口进行配置管理</div>
         </el-form-item>
         <el-form-item label="描述">
           <el-input v-model="formData.sysSettingGroupRemark" type="textarea" :rows="3" placeholder="请输入组描述" clearable />
@@ -474,5 +480,11 @@ export default defineComponent({
 
 :deep(.el-loading-mask) {
   border-radius: 8px;
+}
+
+.form-item-tip {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
 }
 </style>
