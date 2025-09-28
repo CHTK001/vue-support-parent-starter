@@ -660,18 +660,10 @@ const defer = useDefer(firstLevelMenus.value.length);
   }
 
   &.is-active {
-    background: var(--el-color-primary) !important;
-    color: white !important;
-    font-weight: 500;
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
-
-    .menu-content {
-      color: var(--el-text-color-primary);
-
-      .menu-icon {
-        color: white !important;
-      }
-    }
+    background: var(--el-color-primary);
+    color: var(--pure-menu-active-text-color); /* 使用新定义的变量 */
+    font-weight: 600;
+    box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
   }
 
   .menu-content {
@@ -679,12 +671,12 @@ const defer = useDefer(firstLevelMenus.value.length);
     align-items: center;
     height: 100%;
     padding: 0 16px;
-    color: var(--el-text-color-primary);
+    color: var(--app-text-primary); /* 未选中状态为黑色 */
 
     .menu-icon {
       font-size: 18px;
       margin-right: 12px;
-      color: var(--el-text-color-regular);
+      color: var(--app-text-primary); /* 未选中状态为黑色 */
       transition: all 0.3s;
     }
 
@@ -692,6 +684,7 @@ const defer = useDefer(firstLevelMenus.value.length);
       flex: 1;
       font-size: 14px;
       font-weight: 500;
+      color: var(--app-text-primary); /* 未选中状态为黑色 */
     }
   }
 }

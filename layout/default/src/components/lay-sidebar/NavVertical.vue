@@ -167,56 +167,29 @@ const defer = useDefer(menuData.value.length);
   border-right: none;
   background: transparent;
 
-  .el-menu-item {
-    height: 50px;
+  .el-menu-item,
+  .el-sub-menu__title {
+    height: 46px;
     margin: 4px 8px;
+    padding: 0 16px;
+    color: var(--app-text-primary); /* 未选中状态为黑色 */
+    background-color: transparent !important;
     border-radius: 8px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-
-    &::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 50%;
-      height: 60%;
-      width: 4px;
-      background: var(--el-color-primary);
-      opacity: 0;
-      transition: all 0.3s;
-      border-radius: 0 4px 4px 0;
-      transform: translateY(-50%);
-    }
 
     &:hover {
-      background: rgba(var(--el-color-primary-rgb), 0.08);
-      transform: translateX(4px);
+      color: var(--app-text-primary) !important; /* 悬停时保持黑色 */
+      transform: translateX(2px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
 
-    &.is-active {
-      background: var(--el-color-primary) !important;
-      color: white !important;
-      font-weight: 500;
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
-
-      &::after {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 4px;
-        height: 70%;
-        background: linear-gradient(to bottom, var(--el-color-success), var(--el-color-success-light-3));
-        border-radius: 0 4px 4px 0;
-        box-shadow: 0 2px 4px rgba(var(--el-color-success-rgb), 0.2);
-      }
-
-      .el-icon {
-        color: white !important;
-        transform: scale(1.1);
-      }
+    div,
+    span {
+      height: 46px;
+      line-height: 46px;
+      font-size: 14px;
+      letter-spacing: 0.3px;
+      color: var(--app-text-primary); /* 未选中状态为黑色 */
     }
   }
 
@@ -232,10 +205,10 @@ const defer = useDefer(menuData.value.length);
       .el-menu-item {
         &.is-active {
           background: var(--el-color-primary) !important;
-          color: white !important;
+          color: var(--pure-menu-active-text-color) !important; /* 使用新定义的变量 */
 
           .el-icon {
-            color: white !important;
+            color: var(--pure-menu-active-text-color) !important; /* 使用新定义的变量 */
           }
         }
       }

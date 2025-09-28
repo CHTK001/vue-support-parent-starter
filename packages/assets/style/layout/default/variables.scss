@@ -81,7 +81,7 @@
   --cb-color-text-disabled: var(--app-text-disabled);
   --cb-color-text-inverse: var(--app-text-inverse);
   --cb-color-text-white: var(--app-white);
-  --cb-color-text-brand: var(--app-white);
+  --cb-color-text-brand: var(--app-text-primary); /* 修改为黑色 */
   --cb-color-text-danger: var(--app-danger);
   
   --cb-color-bg-primary: var(--app-bg-primary);
@@ -109,6 +109,9 @@
   --cb-color-shadow-medium: var(--app-shadow-md);
   --cb-color-shadow-contextmenu: var(--app-shadow-lg);
   --cb-color-shadow-brand-outline: rgba(var(--app-primary-rgb), 0.2);
+
+  // Menu Active Text Color
+  --pure-menu-active-text-color: var(--app-white); /* 选中状态为白色 */
 }
 
 // Dark 主题变量
@@ -193,7 +196,7 @@ html.dark {
   --cb-color-text-disabled: var(--app-text-disabled);
   --cb-color-text-inverse: var(--app-text-inverse);
   --cb-color-text-white: var(--app-white);
-  --cb-color-text-brand: var(--app-primary);
+  --cb-color-text-brand: var(--app-white); /* 保持白色 */
   --cb-color-text-danger: var(--app-danger);
   
   --cb-color-bg-primary: var(--app-bg-primary);
@@ -221,6 +224,9 @@ html.dark {
   --cb-color-shadow-medium: var(--app-shadow-md);
   --cb-color-shadow-contextmenu: var(--app-shadow-lg);
   --cb-color-shadow-brand-outline: rgba(var(--app-primary-rgb), 0.2);
+
+  // Menu Active Text Color - Dark Theme
+  --pure-menu-active-text-color: var(--app-white); /* 选中状态为白色 */
 }
 
 // CSS 全局变量

@@ -46,6 +46,10 @@
       padding-left: 0;
       margin-right: -18px;
       box-shadow: none;
+      &.is-active .tag-title {
+        font-weight: 600;
+        color: var(--cb-color-text-white);
+      }
     }
 
     &.minimal-item {
@@ -62,11 +66,9 @@
 
       .tag-title {
         font-weight: 500;
-        color: var(--cb-color-text-secondary);
       }
 
       &.is-active .tag-title {
-        color: var(--cb-color-text-brand);
         font-weight: 600;
       }
     }
@@ -88,7 +90,6 @@
 
       .tag-title {
         font-weight: 500;
-        color: var(--cb-color-text-primary);
       }
 
       &.is-active {
@@ -97,7 +98,6 @@
         box-shadow: 0 0 0 2px var(--cb-color-shadow-brand-outline);
 
         .tag-title {
-          color: var(--cb-color-text-brand);
           font-weight: 600;
         }
       }
@@ -148,7 +148,6 @@
 
   .tag-title {
     padding: 0 4px;
-    color: var(--cb-color-text-primary);
     text-decoration: none;
   }
 
@@ -276,10 +275,6 @@
     color: var(--cb-color-bg-brand-lighter) !important;
   }
 
-  .tag-title {
-    color: var(--cb-color-text-brand) !important;
-  }
-
   .chrome-close-btn {
     color: var(--cb-color-text-brand);
 
@@ -298,7 +293,6 @@
     background: var(--cb-color-bg-hover-light);
 
     .tag-title {
-      color: var(--cb-color-text-brand) !important;
       font-weight: 600;
     }
   }
@@ -310,7 +304,6 @@
     border-color: var(--cb-color-border-brand);
 
     .tag-title {
-      color: var(--cb-color-text-brand) !important;
       font-weight: 600;
     }
   }
@@ -363,9 +356,6 @@
 .card-in {
   color: var(--cb-color-text-brand);
 
-  .tag-title {
-    color: var(--cb-color-text-brand);
-  }
 }
 
 /* 卡片模式下鼠标移出隐藏蓝色边框 */
@@ -373,26 +363,17 @@
   color: var(--cb-color-text-primary);
   border: none;
 
-  .tag-title {
-    color: var(--cb-color-text-primary);
-  }
 }
 
 /* 极简模式鼠标悬停效果 */
 .minimal-in {
   background: var(--cb-color-bg-hover-light);
 
-  .tag-title {
-    color: var(--cb-color-text-brand);
-  }
 }
 
 .minimal-out {
   background: transparent;
 
-  .tag-title {
-    color: var(--cb-color-text-secondary);
-  }
 }
 
 /* 圆角模式鼠标悬停效果 */
@@ -413,9 +394,6 @@
   transform: translateY(0);
   box-shadow: 0 2px 4px var(--cb-color-shadow-light);
 
-  .tag-title {
-    color: var(--cb-color-text-primary);
-  }
 }
 
 /* 灵动模式 */
@@ -450,6 +428,20 @@
   animation: schedule-out-width 200ms ease-in;
 }
 
+.tags-view { 
+  &.scroll-item {
+    padding: 0;
+    &.is-active { 
+      span {
+        color: var(--cb-color-text-brand);
+      }
+    }
+  }
+  .tag-title {
+    padding: 0;
+    color: var(--cb-color-text-primary)
+  }
+}
 /* 谷歌风格的页签 */
 .chrome-tab {
   position: relative;
@@ -460,9 +452,9 @@
   padding: 0 24px;
   white-space: nowrap;
   cursor: pointer;
-
   .tag-title {
     padding: 0;
+    color: var(--cb-color-text-primary)
   }
 
   .chrome-tab-divider {
@@ -478,10 +470,6 @@
 
     .chrome-tab__bg {
       color: var(--cb-color-bg-chrome-tab-hover);
-    }
-
-    .tag-title {
-      color: var(--cb-color-text-primary-strong);
     }
 
     .chrome-tab-divider {
