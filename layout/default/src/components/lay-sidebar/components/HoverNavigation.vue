@@ -661,9 +661,21 @@ const defer = useDefer(firstLevelMenus.value.length);
 
   &.is-active {
     background: var(--el-color-primary);
-    color: var(--pure-menu-active-text-color); /* 使用新定义的变量 */
+    color: var(--pure-menu-active-text-color) !important; /* 使用新定义的变量，确保在所有主题下都是白色 */
     font-weight: 600;
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
+    
+    .menu-content {
+      color: var(--pure-menu-active-text-color) !important; /* 确保菜单内容文字也是白色 */
+      
+      .menu-icon {
+        color: var(--pure-menu-active-text-color) !important; /* 确保图标也是白色 */
+      }
+      
+      .menu-title {
+        color: var(--pure-menu-active-text-color) !important; /* 确保标题也是白色 */
+      }
+    }
   }
 
   .menu-content {
@@ -883,7 +895,7 @@ const defer = useDefer(firstLevelMenus.value.length);
 
   &.is-active {
     background: var(--el-color-primary);
-    color: var(--el-color-white);
+    color: var(--pure-menu-active-text-color) !important; /* 使用新定义的变量，确保在所有主题下都是白色 */
     font-weight: 600;
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
   }

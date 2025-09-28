@@ -7,6 +7,20 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=0" />
     <title>后台系统</title>
     <link rel="icon" href="/favicon.ico" />
+    <script>
+      // 在页面加载早期就检查并设置深色主题，防止FOUC
+      try {
+        var storage = localStorage.getItem('layout');
+        if (storage) {
+          var layoutConfig = JSON.parse(storage);
+          if (layoutConfig.darkMode) {
+            document.documentElement.classList.add('dark');
+          }
+        }
+      } catch (e) {
+        // 静默处理错误，不影响页面加载
+      }
+    </script>
   </head>
 
   <body>

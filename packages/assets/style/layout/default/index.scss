@@ -72,6 +72,13 @@
 body {
   color: #000;
 }
+
+/* 深色模式下 SVG 图标默认为白色 */
+html.dark svg {
+  color: #ffffff;
+  fill: #ffffff;
+}
+
 /* 色弱模式 */
 .html-weakness {
   filter: invert(80%);

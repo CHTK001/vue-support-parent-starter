@@ -102,7 +102,7 @@
   --el-fill-color-extra-light: var(--app-bg-tertiary);
   --el-fill-color-dark: var(--app-bg-primary);
   --el-fill-color-darker: var(--app-bg-primary);
-  --el-fill-color-blank: var(--app-bg-primary);
+  --el-fill-color-blank: #ffffff;
 
   /* ===== 阴影覆盖 Shadow Override ===== */
   --el-box-shadow: var(--app-shadow);
@@ -137,10 +137,26 @@ html.dark {
   --el-fill-color-light: var(--app-bg-tertiary);
   --el-fill-color-lighter: var(--app-bg-tertiary);
   --el-fill-color-extra-light: var(--app-bg-tertiary);
+  --el-fill-color-dark: #ffffff;
+  --el-fill-color-darker: #ffffff;
+  --el-fill-color-blank: #000000;
   
   /* 调整遮罩颜色以适应深色主题 */
   --el-mask-color: rgba(0, 0, 0, 0.9);
   --el-mask-color-extra-light: rgba(0, 0, 0, 0.6);
+}
+
+/* ===== 深色主题下的按钮组件样式 Dark Theme Button Component ===== */
+html.dark .el-button {
+  --el-button-text-color: #ffffff;
+  --el-button-bg-color: #000000;
+  --el-button-border-color: #333333;
+  --el-button-hover-text-color: #ffffff;
+  --el-button-hover-bg-color: #333333;
+  --el-button-hover-border-color: #666666;
+  --el-button-active-text-color: #ffffff;
+  --el-button-active-bg-color: #666666;
+  --el-button-active-border-color: #999999;
 }
 
 /* ===== 组件特定的颜色覆盖 Component Specific Color Override ===== */
