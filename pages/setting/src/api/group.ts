@@ -22,8 +22,12 @@ export interface SysSettingGroup {
 
   /** 描述 */
   sysSettingGroupRemark?: string;
+  
   /** 排序 */
   sysSettingGroupSort?: number;
+  
+  /** 是否使用项目组接口 */
+  sysSettingGroupUseProjectInterface?: boolean;
 }
 
 /**
