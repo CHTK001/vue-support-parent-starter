@@ -19,6 +19,16 @@
   "options": {
     "bindings": "esm",
     "exportRuntime": true,
-    "runtime": "stub"
+    "runtime": "stub",
+    "importMemory": false,
+    "exportMemory": true,
+    "initialMemory": 16,
+    "maximumMemory": 16,
+    "sharedMemory": false,
+    "importTable": false,
+    "exportTable": false,
+    "noUnsafe": true,
+    "disable_EXCEPTIONS": true,
+    "disable_TYPEDARRAYS": false
   }
 }
