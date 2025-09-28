@@ -12,6 +12,7 @@ html.dark {
 
   --el-bg-color-2: #232526;
   --el-text-color-primary-2: #fff;
+  
   /* 自定义深色背景颜色 */
   // --el-bg-color: #020409;
 
@@ -78,7 +79,6 @@ html.dark {
   .horizontal-header .submenu-title-noDropdown {
     background: var(--el-bg-color) !important;
   }
-
   .app-main,
   .app-main-nofixed-header {
     background: #020409 !important;
@@ -289,42 +289,52 @@ html.dark {
 
     th,
     td {
-      background-color: var(--el-bg-color-overlay);
+      background-color: var(--el-bg-color-primary);
       border-color: var(--el-border-color);
     }
   }
 
   /* 输入框暗黑模式适配 */
   .el-input__wrapper {
-    background-color: var(--el-bg-color-overlay);
+    background-color: var(--el-bg-color-primary);
     border-color: var(--el-border-color);
   }
 
   /* 对话框暗黑模式适配 */
   .el-dialog {
-    background-color: var(--el-bg-color-overlay);
+    background-color: var(--el-bg-color-primary);
   }
 
   /* 抽屉暗黑模式适配 */
   .el-drawer {
-    background-color: var(--el-bg-color-overlay);
+    background-color: var(--el-bg-color-primary);
   }
 
   /* 菜单暗黑模式适配 */
   .el-menu {
-    background-color: var(--el-bg-color-overlay);
+    background-color: var(--el-bg-color-primary);
   }
 
   /* 下拉菜单暗黑模式适配 */
   .el-dropdown-menu {
-    background-color: var(--el-bg-color-overlay);
+    background-color: var(--el-bg-color-primary);
     border-color: var(--el-border-color);
   }
 
   /* 工具提示暗黑模式适配 */
   .el-tooltip__popper {
-    background-color: var(--el-bg-color-overlay);
-    border-color: var(--el-border-color);
+    background-color: var(--el-bg-color-primary);
+    border-color: var(--el-bg-color-overlay);
+    color: #ffffff;
+  }
+
+  /* Popper 暗黑模式适配 */
+  .el-popper.is-light {
+    background-color: var(--el-bg-color-primary);
+    border-color: var(--el-bg-color-overlay);
+    span:first-child {
+      color: #ffffff;
+    }
   }
 
   /* 分页器暗黑模式适配 */

@@ -568,7 +568,6 @@ const handleDelete = (item: any) => {
 
 .create-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: var(--el-text-color-primary);
 }
 
 .create-btn:hover {

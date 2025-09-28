@@ -848,7 +848,6 @@ onMounted(() => {
 .status-btn {
   border: none;
   background: transparent;
-  color: #6b7280;
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 13px;
@@ -859,14 +858,9 @@ onMounted(() => {
   gap: 4px;
 }
 
-.status-btn:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-}
 
 .status-btn.active {
   background: #667eea;
-  color: var(--el-text-color-primary);
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
@@ -894,7 +888,6 @@ onMounted(() => {
   border-radius: 12px;
   padding: 10px 16px;
   border: 1px solid var(--el-border-color-lighter);
-  color: var(--el-text-color-primary);
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
@@ -903,7 +896,6 @@ onMounted(() => {
 
 .search-btn:hover {
   border-color: #667eea;
-  color: #667eea;
   background: rgba(102, 126, 234, 0.05);
 }
 
@@ -912,7 +904,6 @@ onMounted(() => {
   padding: 10px 20px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
-  color: var(--el-text-color-primary);
   font-weight: 600;
   box-shadow: 0 4px 12px var(--el-shadow-color);
   transition: all 0.3s ease;

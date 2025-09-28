@@ -101,6 +101,9 @@
   transition: 0.1s;
 }
 
+html.dark .pure-segmented-group {
+  color: #fff;
+}
 .pure-segmented-group {
   position: relative;
   display: flex;

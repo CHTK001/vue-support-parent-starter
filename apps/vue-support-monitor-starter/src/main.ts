@@ -5,6 +5,7 @@ import { router, setupStore } from "@repo/core";
 import { useElementPlus } from "@repo/plugins";
 import { MotionPlugin } from "@vueuse/motion";
 import App from "./App.vue";
+import ElementPlusX from "vue-element-plus-x";
 // 引入重置样式
 import "@/styles/threshold.scss";
 import "@repo/assets/iconfont/iconfont.css";
@@ -20,7 +21,6 @@ import ScTable from "@repo/components/ScTable/index.vue";
 import * as directives from "@repo/core/directives";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
-import ElementPlusX from "vue-element-plus-x";
 import VueTippy from "vue-tippy";
 import { setupDirectives } from "./directives";
 import { setupFullscreenSocket } from "./plugins/fullscreenSocket";

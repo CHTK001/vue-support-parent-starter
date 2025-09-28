@@ -248,8 +248,15 @@ const router = useRouter();
   overflow-x: hidden;
   background: linear-gradient(135deg, rgba(245, 247, 250, 0.8), rgba(240, 242, 245, 0.9));
 
-  .dark & {
+  /* 默认深色背景，防止FOUC */
+  html.dark & {
     background: linear-gradient(135deg, rgba(22, 24, 29, 0.8), rgba(26, 28, 35, 0.9));
+  }
+  
+  /* 确保在深色模式下有默认背景色 */
+  background-color: #f5f7fa;
+  html.dark & {
+    background-color: #16181d;
   }
 }
 
@@ -261,8 +268,15 @@ const router = useRouter();
   background: linear-gradient(135deg, rgba(245, 247, 250, 0.8), rgba(240, 242, 245, 0.9));
   backdrop-filter: blur(20px);
 
-  .dark & {
+  /* 默认深色背景，防止FOUC */
+  html.dark & {
     background: linear-gradient(135deg, rgba(22, 24, 29, 0.8), rgba(26, 28, 35, 0.9));
+  }
+  
+  /* 确保在深色模式下有默认背景色 */
+  background-color: #f5f7fa;
+  html.dark & {
+    background-color: #16181d;
   }
 }
 

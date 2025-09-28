@@ -287,7 +287,7 @@ onMounted(() => {
 
     <!-- 操作按钮 -->
     <div class="table-actions">
-      <el-tooltip v-if="!props.hideRefresh" content="刷新" placement="top" :effect="'light'">
+      <el-tooltip v-if="!props.hideRefresh" content="刷新" placement="top" >
         <el-button circle size="default" @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" />
         </el-button>
@@ -474,9 +474,4 @@ onMounted(() => {
   text-align: right;
 }
 
-/* 暗黑模式适配 */
-html.dark .table-settings-container,
-html.dark .column-setting-container {
-  background-color: var(--el-bg-color);
-}
 </style>
