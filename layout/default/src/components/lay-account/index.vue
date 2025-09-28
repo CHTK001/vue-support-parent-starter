@@ -188,7 +188,7 @@ const findComponent = () => {
 
 <style lang="scss">
 .pure-account-settings {
-  background: var(--pure-theme-menu-text);
+  background: var(--app-bg-secondary);
 }
 
 .pure-account-settings-menu {
@@ -197,12 +197,12 @@ const findComponent = () => {
 
   .el-menu-item {
     height: 48px !important;
-    color: var(--pure-theme-menu-text);
+    color: var(--app-text-secondary);
     background-color: transparent !important;
     transition: color 0.2s;
 
     &:hover {
-      color: var(--pure-theme-menu-title-hover) !important;
+      color: var(--app-text-primary) !important;
     }
 
     &.is-active {

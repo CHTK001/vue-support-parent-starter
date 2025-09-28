@@ -616,4 +616,27 @@ const deferTag = useDefer(tagsViews?.length);
 
 <style lang="scss" scoped>
 @import url("@repo/assets/layout/index.scss");
+
+// 深色主题下的特殊处理
+html.dark {
+  .scroll-item {
+    background-color: var(--app-bg-overlay);
+    
+    &.is-active {
+      background-color: var(--app-bg-overlay);
+    }
+  }
+  
+  .chrome-tab {
+    .tag-title {
+      color: var(--cb-color-text-primary);
+    }
+    
+    &.is-active {
+      .tag-title {
+        color: var(--cb-color-text-white);
+      }
+    }
+  }
+}
 </style>
