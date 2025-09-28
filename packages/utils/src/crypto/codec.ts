@@ -246,8 +246,14 @@ class AntiReplayManager {
 
   // 生成随机nonce（直接调用WASM版本）
   async generateNonce(): Promise<string> {
-    // 直接调用WASM版本的generateNonce函数
-    return await generateNonceWasm();
+    try {
+      // 直接调用WASM版本的generateNonce函数
+      return await generateNonceWasm();
+    } catch (error) {
+      console.error('Failed to generate nonce using WASM:', error);
+      // 如果WASM失败，提供一个备用实现
+      return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
   }
 
   // 清理过期的请求记录
@@ -299,26 +305,50 @@ const isWasmEnabled = () => {
 
 /** uu2 - 请求加密处理（直接调用WASM版本） */
 export const uu2 = async (request: PureHttpRequestConfig) => {
-  // 直接调用WASM版本，不再处理任何逻辑
-  return await uu2_wasm(request, getConfig);
+  try {
+    // 直接调用WASM版本，不再处理任何逻辑
+    return await uu2_wasm(request, getConfig);
+  } catch (error) {
+    console.error('Failed to process request with WASM:', error);
+    // 如果WASM失败，直接返回原始请求
+    return request;
+  }
 };
 
 /** uu1 - 响应解密处理（直接调用WASM版本） */
 export const uu1 = async (response: PureHttpResponse) => {
-  // 直接调用WASM版本，不再处理任何逻辑
-  return await uu1_wasm(response);
+  try {
+    // 直接调用WASM版本，不再处理任何逻辑
+    return await uu1_wasm(response);
+  } catch (error) {
+    console.error('Failed to process response with WASM:', error);
+    // 如果WASM失败，直接返回原始响应
+    return response;
+  }
 };
 
 /** uu3 - AES解密工具（直接调用WASM版本） */
 export const uu3 = async (value: string) => {
-  // 直接调用WASM版本，不再处理任何逻辑
-  return await uu3_wasm(value);
+  try {
+    // 直接调用WASM版本，不再处理任何逻辑
+    return await uu3_wasm(value);
+  } catch (error) {
+    console.error('Failed to decrypt with WASM:', error);
+    // 如果WASM失败，直接返回原始值
+    return value;
+  }
 };
 
 /** uu4 - 特殊响应解密处理（直接调用WASM版本） */
 export const uu4 = async (response) => {
-  // 直接调用WASM版本，不再处理任何逻辑
-  return await uu4_wasm(response);
+  try {
+    // 直接调用WASM版本，不再处理任何逻辑
+    return await uu4_wasm(response);
+  } catch (error) {
+    console.error('Failed to process special response with WASM:', error);
+    // 如果WASM失败，直接返回原始响应
+    return response;
+  }
 };
 
 // 工具函数

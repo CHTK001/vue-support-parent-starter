@@ -1,14 +1,5 @@
 <template>
   <div class="project-workspace">
-    <div class="workspace-background">
-      <div class="gradient-orb orb-1"></div>
-      <div class="gradient-orb orb-2"></div>
-      <div class="gradient-orb orb-3"></div>
-      <div class="floating-particles">
-        <div class="particle" v-for="i in 12" :key="i" :style="getParticleStyle(i)"></div>
-      </div>
-    </div>
-
     <div class="modern-workspace">
       <div class="project-dashboard">
         <el-container class="dashboard-container">

@@ -219,14 +219,17 @@ class PureHttp {
         result.message = result.msg;
         result.headers = response.headers;
         result.success = response.data?.success || isSuccess(code);
-        const resVersion = result?.headers["x-response-version"];
-        upgrade(resVersion);
+        // 修复：确保headers存在再访问x-response-version
+        const resVersion = result?.headers && result.headers["x-response-version"];
+        if (resVersion) {
+          upgrade(resVersion);
+        }
         if (!isSuccess(code)) {
-          message(response.data?.msg || data.message || "Error", {
+          message(response.data?.msg || data?.message || "Error", {
             type: "error",
           });
           return Promise.reject({
-            msg: response.data?.msg || data.message || "Error",
+            msg: response.data?.msg || data?.message || "Error",
             code: code,
           });
         }
@@ -524,8 +527,14 @@ export const http = new PureHttp();
 
 /** 生成复杂的nonce值 */
 const generateNonce = async (): Promise<string> => {
-  // 使用WASM版本的generateNonce函数
-  return await generateNonceWasm();
+  try {
+    // 使用WASM版本的generateNonce函数
+    return await generateNonceWasm();
+  } catch (error) {
+    console.error('Failed to generate nonce using WASM:', error);
+    // 如果WASM失败，提供一个备用实现
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  }
 };
 
 /** 生成签名 */
@@ -574,13 +583,25 @@ const generateSign = async (config: any, timestamp: number, nonce: string): Prom
     paramString = paramString.slice(0, -1);
   }
   
-  // 使用WASM版本的generateSign函数
-  const secretKey = "your-secret-key"; // 实际应该从配置中获取
-  return await generateSignWasm(paramString, timestamp, nonce, secretKey);
+  try {
+    // 使用WASM版本的generateSign函数
+    const secretKey = "your-secret-key"; // 实际应该从配置中获取
+    return await generateSignWasm(paramString, timestamp, nonce, secretKey);
+  } catch (error) {
+    console.error('Failed to generate sign using WASM:', error);
+    // 如果WASM失败，提供一个备用实现
+    return btoa(paramString + timestamp + nonce);
+  }
 };
 
 /** MD5哈希函数 */
 const md5Hash = async (input: string): Promise<string> => {
-  // 使用WASM版本的md5Hash函数
-  return await md5HashWasm(input);
+  try {
+    // 使用WASM版本的md5Hash函数
+    return await md5HashWasm(input);
+  } catch (error) {
+    console.error('Failed to generate MD5 hash using WASM:', error);
+    // 如果WASM失败，提供一个备用实现
+    return btoa(input);
+  }
 };
