@@ -1299,15 +1299,6 @@ onUnmounted(() => {
   }
 }
 
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 // 现代化设置容器 - 全新设计语言
 .modern-setting-container {
   padding: 24px;
@@ -1480,23 +1471,23 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
-  padding-bottom: 20px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
   border-bottom: 1px solid var(--el-border-color-light);
   position: relative;
   flex-wrap: wrap;
 
   .section-description {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--el-text-color-secondary);
     margin-left: auto;
-    opacity: 0.9;
+    opacity: 0.8;
     flex-shrink: 0;
 
     @media (max-width: 768px) {
       width: 100%;
       margin-left: 0;
-      margin-top: 6px;
+      margin-top: 4px;
       text-align: left;
     }
   }
@@ -1507,34 +1498,34 @@ onUnmounted(() => {
     position: absolute;
     bottom: -1px;
     left: 0;
-    width: 60px;
-    height: 4px;
+    width: 50px;
+    height: 3px;
     background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 50%, var(--el-color-success-light-5) 100%);
-    border-radius: 3px;
+    border-radius: 2px;
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    box-shadow: 0 2px 10px rgba(var(--el-color-primary-rgb), 0.4);
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
   }
 
   &:hover::after {
-    width: 120px;
+    width: 100px;
     background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-2) 30%, var(--el-color-success) 70%, var(--el-color-warning) 100%);
-    box-shadow: 0 3px 16px rgba(var(--el-color-primary-rgb), 0.5);
+    box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.4);
   }
 
   .section-icon {
-    font-size: 22px;
+    font-size: 20px;
     color: var(--el-color-primary);
-    margin-right: 16px;
+    margin-right: 14px;
     background: var(--el-fill-color-light);
-    padding: 12px;
-    border-radius: 14px;
-    width: 44px;
-    height: 44px;
+    padding: 10px;
+    border-radius: 12px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow:
-      0 4px 14px rgba(var(--el-color-primary-rgb), 0.2),
+      0 4px 12px rgba(var(--el-color-primary-rgb), 0.15),
       0 1px 0 rgba(255, 255, 255, 0.8) inset;
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     position: relative;
@@ -1548,38 +1539,20 @@ onUnmounted(() => {
       left: -50%;
       width: 200%;
       height: 200%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
       opacity: 0;
       transition: opacity 0.3s ease;
     }
 
-    // 内部光泽效果
-    &::after {
-      content: "";
-      position: absolute;
-      top: -30%;
-      left: -30%;
-      width: 160%;
-      height: 160%;
-      background: conic-gradient(transparent, rgba(255, 255, 255, 0.5), transparent 70%);
-      opacity: 0;
-      transition: opacity 0.4s ease;
-      animation: rotate 3s linear infinite;
-    }
-
     &:hover {
-      transform: translateY(-3px) scale(1.12);
+      transform: translateY(-2px) scale(1.08);
       box-shadow:
-        0 10px 24px rgba(var(--el-color-primary-rgb), 0.3),
+        0 8px 20px rgba(var(--el-color-primary-rgb), 0.25),
         0 1px 0 rgba(255, 255, 255, 0.9) inset;
       background: var(--el-color-primary-light-9);
 
       &::before {
         opacity: 1;
-      }
-
-      &::after {
-        opacity: 0.8;
       }
     }
 
@@ -1589,27 +1562,23 @@ onUnmounted(() => {
       
       &:hover {
         background: var(--el-color-primary-light-8);
-        box-shadow:
-          0 10px 24px rgba(var(--el-color-primary-rgb), 0.4),
-          0 1px 0 rgba(255, 255, 255, 0.15) inset;
       }
     }
   }
 
   .section-title {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--el-text-color-primary);
     margin: 0;
     flex: 1;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.5px;
     text-align: left;
     writing-mode: horizontal-tb;
     transition: all 0.3s ease;
 
     &:hover {
       color: var(--el-color-primary);
-      transform: translateX(4px);
     }
 
     // 暗色主题适配
@@ -3717,4 +3686,3 @@ p.mt-5 {
   }
 }
 </style>
-bubu
