@@ -5,7 +5,7 @@ const routes = [
     path: "/limit/record",
     name: "LimitRecord",
     component: async () => {
-      const LayoutDefault = await import("@pages/system/src/components/LimitRecordIndex.vue");
+      const LayoutDefault = await import("../src/limit/LimitRecordIndex.vue");
       return LayoutDefault;
     },
     meta: {

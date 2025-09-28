@@ -5,7 +5,7 @@ const routes = [
     path: "/limit",
     name: "LimitConfiguration",
     component: async () => {
-      const LayoutDefault = await import("@pages/system/src/components/LimitConfigurationIndex.vue");
+      const LayoutDefault = await import("../src/limit/LimitConfigurationIndex.vue");
       return LayoutDefault;
     },
     meta: {
