@@ -27,16 +27,16 @@ class SyncSessionStorageProxy {
 
   getItem<T>(key: string): T {
     if (!key || key.startsWith(responsiveStorageNameSpace())) {
-      var value = storageSession().getItem(key);
+      const value = storageSession().getItem(key);
       return value as T;
     }
     
     const config = getConfig();
-    var value: any = storageSession().getItem(key);
+    const value = storageSession().getItem(key);
     if (config.StorageEncode) {
       try {
         // 同步方式处理存储值解密（简化处理，不使用WASM解密）
-        value = JSON.parse(value as string);
+        return JSON.parse(value as string) as T;
       } catch (error) {
         return value as T;
       }
@@ -92,11 +92,11 @@ class SyncLocalStorageProxy {
       return storageLocal().getItem(key) as T;
     }
 
-    var value: any = storageLocal().getItem(key);
+    const value = storageLocal().getItem(key);
     if (config.StorageEncode) {
       try {
         // 同步方式处理存储值解密（简化处理，不使用WASM解密）
-        value = JSON.parse(value as string);
+        return JSON.parse(value as string) as T;
       } catch (error) {
         return value as T;
       }
@@ -120,7 +120,17 @@ class SyncLocalStorageProxy {
  */
 class CustomSessionStorageProxy {
   setItem<T>(key: string, value: T): void {
+    if (!key) {
+      return;
+    }
+    
     const config = getConfig();
+    if (key.startsWith(responsiveStorageNameSpace())) {
+      storageSession().setItem(key, value);
+      return;
+    }
+    
+    // 使用同步方式处理存储
     let storageValue: any = value;
     if (config.StorageEncode && !key.startsWith(responsiveStorageNameSpace())) {
       try {
@@ -136,17 +146,17 @@ class CustomSessionStorageProxy {
 
   getItem<T>(key: string): T {
     if (!key || key.startsWith(responsiveStorageNameSpace())) {
-      var value = storageSession().getItem(key);
+      const value = storageSession().getItem(key);
       return value as T;
     }
     
     const config = getConfig();
-    var value: any = storageSession().getItem(key);
+    const value = storageSession().getItem(key);
     if (config.StorageEncode) {
       try {
         // 使用同步方式处理存储值解密
         const decryptedValue = decryptStorageValue(value as string, key, config.SystemCode, config.StorageKey, config.StorageEncode);
-        value = JSON.parse(decryptedValue);
+        return JSON.parse(decryptedValue) as T;
       } catch (error) {
         console.error("存储值解密失败:", error);
         return value as T;
@@ -181,16 +191,10 @@ class CustomLocalStorageProxy {
     }
     
     // 使用同步方式处理存储key加密
-    let newKey: string;
-    try {
-      newKey = encryptStorageKey(key, config.SystemCode);
-    } catch (error) {
-      console.error("存储key加密失败:", error);
-      newKey = key;
-    }
+    const newKey = encryptStorageKey(key, config.SystemCode);
     
     let storageValue: any = value;
-    if (config.StorageEncode && !newKey.startsWith(responsiveStorageNameSpace())) {
+    if (config.StorageEncode) {
       try {
         // 使用同步方式处理存储值加密
         storageValue = encryptStorageValue(JSON.stringify(value), key, config.SystemCode, config.StorageKey, config.StorageEncode);
@@ -221,12 +225,12 @@ class CustomLocalStorageProxy {
       newKey = key;
     }
     
-    var value: any = storageLocal().getItem(newKey);
+    const value = storageLocal().getItem(newKey);
     if (config.StorageEncode) {
       try {
         // 使用同步方式处理存储值解密
         const decryptedValue = decryptStorageValue(value as string, key, config.SystemCode, config.StorageKey, config.StorageEncode);
-        value = JSON.parse(decryptedValue);
+        return JSON.parse(decryptedValue) as T;
       } catch (error) {
         console.error("存储值解密失败:", error);
         return value as T;
@@ -236,15 +240,18 @@ class CustomLocalStorageProxy {
   }
 
   removeItem(key: string) {
-    const config = getConfig();
-    // 使用同步方式处理存储key加密
-    let newKey: string;
-    try {
-      newKey = encryptStorageKey(key, config.SystemCode);
-    } catch (error) {
-      console.error("存储key加密失败:", error);
-      newKey = key;
+    if (!key) {
+      return;
     }
+    
+    const config = getConfig();
+    if (key.startsWith(responsiveStorageNameSpace())) {
+      storageLocal().removeItem(key);
+      return;
+    }
+    
+    // 使用同步方式处理存储key加密
+    const newKey = encryptStorageKey(key, config.SystemCode);
     storageLocal().removeItem(newKey);
   }
 

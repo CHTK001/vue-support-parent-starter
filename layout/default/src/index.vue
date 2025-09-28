@@ -9,7 +9,7 @@ import { useLayout } from "./hooks/useLayout";
 import { setType } from "./types";
 
 import { deviceDetection, useDark, useGlobal, useResizeObserver } from "@pureadmin/utils";
-import { computed, defineAsyncComponent, defineComponent, h, markRaw, nextTick, onBeforeMount, onMounted, reactive, ref } from "vue";
+import { computed, defineAsyncComponent, defineComponent, h, markRaw, nextTick, onBeforeMount, onMounted, reactive, ref, watch } from "vue";
 //@ts-ignore
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
@@ -38,11 +38,19 @@ const NavDouble = markRaw(NavDoubleLayout);
 const { t } = useI18n();
 const appWrapperRef = ref();
 const { isDark } = useDark();
+
+// 添加加载状态管理
+const isConfigLoaded = ref(false);
+
 const { initStorage } = useLayout();
 
 initStorage();
 
-const { layout } = useLayout();
+// 将layout改为字符串形式
+const layout = computed(() => {
+  return $storage?.layout?.layout || 'vertical';
+});
+
 const isMobile = deviceDetection();
 const pureSetting = useSettingStoreHook();
 const { $storage } = useGlobal<any>();
@@ -95,7 +103,6 @@ function toggle(device: string, bool: boolean) {
 // 判断是否可自动关闭菜单栏
 let isAutoCloseSidebar = true;
 
-
 useResizeObserver(appWrapperRef, (entries) => {
   if (isMobile) return;
   const entry = entries[0];
@@ -129,11 +136,6 @@ useResizeObserver(appWrapperRef, (entries) => {
  */
 const getDefaultSetting = async () => {
   useConfigStore().load();
-  // await initRouter()
-  //   .then(() => {})
-  //   .catch((error) => {
-  //     useUserStoreHook().logOut();
-  //   });
 };
 
 onBeforeMount(async () => {
@@ -144,6 +146,24 @@ onMounted(async () => {
   if (isMobile) {
     toggle("mobile", false);
   }
+  
+  // 页面加载完成后检查配置并应用
+  nextTick(() => {
+    // 确保body的layout属性正确设置
+    if ($storage?.layout?.layout) {
+      document.body.setAttribute("layout", $storage.layout.layout);
+    }
+    // 确保在组件实例存在时才调用useDataThemeChange
+    try {
+      useDataThemeChange().dataThemeChange($storage?.layout?.overallStyle);
+    } catch (error) {
+      console.warn('Failed to call useDataThemeChange in onMounted:', error);
+    }
+  });
+  
+  // 等待配置加载完成
+  await getDefaultSetting();
+  isConfigLoaded.value = true;
 });
 
 /**
@@ -166,6 +186,7 @@ function getNewUrl(reg) {
   url = url.replace(reg, "#");
   return url;
 }
+
 onBeforeMount(() => {
   let url = getNewUrl(/[^\w](redirectParam)=?([^&|^#]*)/g);
   useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);
@@ -174,6 +195,11 @@ onBeforeMount(() => {
   }
   if (!getConfig().OpenAuth) {
     initRouter();
+  }
+  
+  // 确保在组件挂载前设置body的layout属性
+  if ($storage?.layout?.layout) {
+    document.body.setAttribute("layout", $storage.layout.layout);
   }
 });
 
@@ -184,25 +210,33 @@ const LayHeader = defineComponent({
       "div",
       {
         class: { "fixed-header shadow-tab": set.fixedHeader },
-        style: [set.hideTabs && layout.value.includes("horizontal") ? (isDark.value ? "box-shadow: 0 1px 4px #0d0d0d" : "box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)") : ""],
+        style: [set.hideTabs && layout.value === "horizontal" ? (isDark.value ? "box-shadow: 0 1px 4px #0d0d0d" : "box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)") : ""],
       },
       {
         default: () => [
-          !pureSetting.hiddenSideBar && (layout.value.includes("vertical") || layout.value.includes("mix") || layout.value.includes("hover") || layout.value.includes("card") || layout.value.includes("double")) ? h(LayNavbar) : null,
-          !pureSetting.hiddenSideBar && layout.value.includes("horizontal") ? h(NavHorizontal) : null,
+          !pureSetting.hiddenSideBar && (layout.value === "vertical" || layout.value === "mix" || layout.value === "hover" || layout.value === "card" || layout.value === "double") ? h(LayNavbar) : null,
+          !pureSetting.hiddenSideBar && layout.value === "horizontal" ? h(NavHorizontal) : null,
           h(markRaw(LayTag)),
         ],
       }
     );
   },
 });
-
 </script>
 
 <template>
-  <div ref="appWrapperRef" :class="['app-wrapper', set.classes]">
+  <!-- 全屏加载遮罩 -->
+  <div v-if="!isConfigLoaded" class="fullscreen-loading">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">{{ t('system.initializing') }}</div>
+    </div>
+  </div>
+  
+  <!-- 页面内容 -->
+  <div v-else ref="appWrapperRef" :class="['app-wrapper', set.classes]">
     <!-- 卡片导航模式：直接渲染CardNavigation组件 -->
-    <template v-if="layout.includes('card')">
+    <template v-if="layout === 'card'">
       <Suspense>
         <template #default>
           <CardNavigation />
@@ -216,7 +250,7 @@ const LayHeader = defineComponent({
     </template>
 
     <!-- 双栏导航模式：特殊布局 -->
-    <template v-else-if="layout.includes('double')">
+    <template v-else-if="layout === 'double'">
       <div v-show="set.device === 'mobile' && set.sidebar.opened" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
       <div class="double-layout-container">
         <NavDouble v-show="!pureSetting.hiddenSideBar" />
@@ -252,9 +286,9 @@ const LayHeader = defineComponent({
 
     <!-- 其他导航模式：原有逻辑 -->
     <template v-else>
-      <div v-show="set.device === 'mobile' && set.sidebar.opened && (layout.includes('vertical') || layout.includes('hover'))" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
-      <NavVertical v-show="!pureSetting.hiddenSideBar && (layout.includes('vertical') || layout.includes('mix'))" />
-      <NavHover v-show="!pureSetting.hiddenSideBar && layout.includes('hover')" />
+      <div v-show="set.device === 'mobile' && set.sidebar.opened" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
+      <NavVertical v-show="!pureSetting.hiddenSideBar && (layout === 'vertical' || layout === 'mix')" />
+      <NavHover v-show="!pureSetting.hiddenSideBar && layout === 'hover'" />
       <div :class="['main-container', pureSetting.hiddenSideBar ? 'main-hidden' : '']">
         <div v-if="set.fixedHeader">
           <LayHeader />
@@ -361,13 +395,41 @@ const LayHeader = defineComponent({
   background: var(--el-bg-color-overlay);
 }
 
+// 全屏加载遮罩样式
+.fullscreen-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--el-bg-color-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(10px);
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
 .loading-spinner {
-  width: 2rem;
-  height: 2rem;
+  width: 3rem;
+  height: 3rem;
   border: 4px solid #e5e7eb;
   border-top: 4px solid #3b82f6;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 1.2rem;
+  color: var(--el-text-color-primary);
+  font-weight: 500;
 }
 
 @keyframes spin {
