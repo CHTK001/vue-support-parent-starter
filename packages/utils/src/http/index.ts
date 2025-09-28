@@ -114,6 +114,17 @@ class PureHttp {
         const sign = await generateSign(config, timestamp, nonce);
         config.headers["x-sign"] = sign;
         
+        // 检查是否配置了apiVersion，如果配置了则在URL中添加version参数
+        const apiVersion = getConfig().apiVersion;
+        if (apiVersion) {
+          // 确保URL包含版本参数
+          if (config.params) {
+            config.params.version = apiVersion;
+          } else {
+            config.params = { version: apiVersion };
+          }
+        }
+        
         if (an) {
           if (an == "true") {
             // 开启进度条动画

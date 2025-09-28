@@ -54,5 +54,7 @@ export interface PlatformConfigs {
   ShowNewMenu?: boolean; // 是否显示新增菜单
   NewMenuText?: string; // 新菜单显示文本
   NewMenuTimeLimit?: number; // 新菜单显示时间限制（小时）
+  // API版本配置
+  apiVersion?: string; // API版本号
 }
 export type Effect = "light" | "dark";
