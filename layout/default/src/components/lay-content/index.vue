@@ -74,6 +74,19 @@ const getSectionStyle = computed(() => {
 });
 
 onMounted(async () => {
+  // 确保在组件挂载时保持深色主题
+  try {
+    const storage = localStorage.getItem("layout");
+    if (storage) {
+      const layoutConfig = JSON.parse(storage);
+      if (layoutConfig.darkMode) {
+        document.documentElement.classList.add("dark");
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to set dark theme from localStorage:", e);
+  }
+  
   nextTick(() => {
     document.body.style.setProperty("height", "100vh");
     document.body.style.setProperty("overflow", "hidden");
@@ -91,6 +104,19 @@ const transitionMain = defineComponent({
     },
   },
   render() {
+    // 确保在路由切换动画期间保持深色主题
+    try {
+      const storage = localStorage.getItem("layout");
+      if (storage) {
+        const layoutConfig = JSON.parse(storage);
+        if (layoutConfig.darkMode) {
+          document.documentElement.classList.add("dark");
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to set dark theme from localStorage:", e);
+    }
+    
     const menuTransition = $storage.configure.menuTransition;
     const transitionName = menuTransition ? transitions.value(this.route)?.name || "fade-transform" : "";
     const enterTransition = menuTransition ? transitions.value(this.route)?.enterTransition : "";
@@ -295,6 +321,14 @@ const router = useRouter();
   --un-bg-opacity: 1;
   background-color: rgb(var(--layout-bg-color) / var(--un-bg-opacity));
   transition: background-color 0.3s;
+  /* 确保背景覆盖整个区域 */
+  min-height: 100vh;
+  width: 100%;
+  
+  /* 深色主题下的背景色 */
+  html.dark & {
+    background-color: rgb(var(--layout-bg-color) / var(--un-bg-opacity));
+  }
 
   .layout {
     border-radius: var(--layoutRadius, 6px) !important;

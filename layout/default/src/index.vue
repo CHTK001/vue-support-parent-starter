@@ -183,12 +183,14 @@ function getNewUrl(reg) {
   return url;
 }
 
-onBeforeMount(() => {
+onBeforeMount(async () => {
+  // 处理URL参数
   let url = getNewUrl(/[^\w](redirectParam)=?([^&|^#]*)/g);
-  useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);
   if (url != document.location.href) {
     window.history.replaceState(null, null, url);
   }
+  
+  // 初始化路由
   if (!getConfig().OpenAuth) {
     initRouter();
   }
@@ -197,6 +199,12 @@ onBeforeMount(() => {
   if ($storage?.layout?.layout) {
     document.body.setAttribute("layout", $storage.layout.layout);
   }
+  
+  // 应用主题
+  useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);
+  
+  // 获取默认设置
+  await getDefaultSetting();
 });
 
 const LayHeader = defineComponent({

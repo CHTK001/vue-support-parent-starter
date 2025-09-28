@@ -459,6 +459,19 @@ function openMenu(tag, e) {
 
 /** 触发tags标签切换 */
 function tagOnClick(item) {
+  // 确保在标签页切换时保持深色主题
+  try {
+    const storage = localStorage.getItem("layout");
+    if (storage) {
+      const layoutConfig = JSON.parse(storage);
+      if (layoutConfig.darkMode) {
+        document.documentElement.classList.add("dark");
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to set dark theme from localStorage:", e);
+  }
+  
   const { name, path } = item;
   if (name) {
     if (item.query) {
@@ -545,7 +558,7 @@ const deferTag = useDefer(tagsViews?.length);
           @click="tagOnClick(item)"
         >
           <template v-if="showModel !== 'chrome' && defer(index)">
-            <span class="tag-title dark:!text-text_color_primary dark:hover:!text-primary">
+            <span class="tag-title dark:!text-text_color_primary">
               {{ transformI18n(item.meta.title) }}
             </span>
             <span v-if="isFixedTag(item) ? false : iconIsActive(item, index) || (index === activeIndex && index !== 0)" class="el-icon-close" @click.stop="deleteMenu(item)">

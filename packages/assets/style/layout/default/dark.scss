@@ -79,6 +79,10 @@ html.dark {
   .horizontal-header .submenu-title-noDropdown {
     background: var(--el-bg-color) !important;
   }
+  .tags-view .contextmenu li:hover {
+    color: rgb(255 255 255 / 85%) !important;
+    background-color: rgb(255 255 255 / 12%);
+  }
   .app-main,
   .app-main-nofixed-header {
     background: #020409 !important;
@@ -120,8 +124,19 @@ html.dark {
           }
 
           .tag-title {
-            color: #adadad;
+            color: #ffffff;
           }
+        }
+      }
+    }
+
+    /* 选中的标签页悬停时文字颜色 */
+    .scroll-item.is-active {
+      &:hover {
+        color: #ffffff;
+        
+        .tag-title {
+          color: #ffffff;
         }
       }
     }
@@ -180,6 +195,18 @@ html.dark {
 
   .el-dropdown-menu__item:not(.is-disabled):hover {
     background: transparent;
+  }
+
+  /* 右键菜单暗黑模式适配 */
+  .contextmenu {
+    background: var(--el-bg-color-overlay);
+    
+    li {
+      &:hover {
+        color: #ffffff;
+        background: var(--el-bg-color-overlay);
+      }
+    }
   }
 
   /* 全局覆盖element-plus的el-dialog、el-drawer、el-message-box、el-notification组件右上角关闭图标的样式，表现更鲜明 */
