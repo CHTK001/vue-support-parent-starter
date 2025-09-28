@@ -17,7 +17,7 @@ async function loadWasm() {
   try {
     // 加载WASM模块
     const wasm = await import('../build/release.js');
-    wasmModule = wasm;
+    wasmModule = wasm; // 这里wasm已经是包含所有导出函数的对象
     wasmLoaded = true;
     console.log('Codec WASM module loaded successfully');
     return wasmModule;
@@ -45,7 +45,21 @@ export function isWasmLoaded() {
 }
 
 // WASM版本的uu2函数
-export function uu2_wasm(request, getConfig) {
+export async function uu2_wasm(request, getConfig) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   const requestData = request.data;
   const requestUrl = request.url;
   
@@ -84,7 +98,21 @@ export function uu2_wasm(request, getConfig) {
 }
 
 // WASM版本的uu1函数
-export function uu1_wasm(response) {
+export async function uu1_wasm(response) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   if (!response || typeof response !== 'object') {
     return response;
   }
@@ -119,7 +147,21 @@ export function uu1_wasm(response) {
 }
 
 // WASM版本的uu3函数
-export function uu3_wasm(value) {
+export async function uu3_wasm(value) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   if (!value || typeof value !== 'string') {
     return value;
   }
@@ -128,7 +170,21 @@ export function uu3_wasm(value) {
 }
 
 // WASM版本的uu4函数
-export function uu4_wasm(response) {
+export async function uu4_wasm(response) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   if (!response || typeof response !== 'object') {
     return {};
   }
@@ -155,61 +211,229 @@ export function uu4_wasm(response) {
 }
 
 // 导出WASM模块的其他函数
-export function getCurrentTimestamp() {
+export async function getCurrentTimestamp() {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   return wasmModule.getCurrentTimestamp();
 }
 
-export function add(a, b) {
+export async function add(a, b) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   return wasmModule.add(a, b);
 }
 
 // 导出generateNonce函数
-export function generateNonce() {
+export async function generateNonce() {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   return wasmModule.generateNonce();
 }
 
 // 导出MD5哈希函数
-export function md5Hash(input) {
+export async function md5Hash(input) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   return wasmModule.md5Hash(input);
 }
 
 // 导出generateSign函数
-export function generateSign(paramsJson, timestamp, nonce, secretKey) {
+export async function generateSign(paramsJson, timestamp, nonce, secretKey) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   // 将timestamp从number转换为bigint以匹配AssemblyScript的i64类型
   return wasmModule.generateSign(paramsJson, BigInt(timestamp), nonce, secretKey);
 }
 
 // 导出processRequest函数
-export function processRequest(requestData, requestUrl, codecConfig, codecKey) {
+export async function processRequest(requestData, requestUrl, codecConfig, codecKey) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   return wasmModule.processRequest(requestData, requestUrl, codecConfig, codecKey);
 }
 
 // 导出processResponse函数
-export function processResponse(responseData, originKey, timestamp) {
+export async function processResponse(responseData, originKey, timestamp) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   return wasmModule.processResponse(responseData, originKey, timestamp);
 }
 
 // 导出AES加密函数
-export function encryptAES(data, key) {
+export async function encryptAES(data, key) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   return wasmModule.encryptAES(data, key);
 }
 
 // 导出AES解密函数
-export function decryptAES(value, key) {
+export async function decryptAES(value, key) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   return wasmModule.decryptAES(value, key);
 }
 
 // Storage Key加密函数
-export function encryptStorageKey(key, systemCode) {
+export async function encryptStorageKey(key, systemCode) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   return wasmModule.encryptStorageKey(key, systemCode);
 }
 
 // Storage Value加密函数
-export function encryptStorageValue(value, key, systemCode, storageKey, storageEncode) {
+export async function encryptStorageValue(value, key, systemCode, storageKey, storageEncode) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   return wasmModule.encryptStorageValue(value, key, systemCode, storageKey, storageEncode);
 }
 
 // Storage Value解密函数
-export function decryptStorageValue(value, key, systemCode, storageKey, storageEncode) {
+export async function decryptStorageValue(value, key, systemCode, storageKey, storageEncode) {
+  // 确保WASM已加载
+  if (!wasmLoaded || !wasmModule) {
+    // 尝试重新加载
+    try {
+      await loadWasm();
+    } catch (error) {
+      throw new Error('WASM module not loaded: ' + error.message);
+    }
+    
+    if (!wasmLoaded || !wasmModule) {
+      throw new Error('WASM module not loaded');
+    }
+  }
+  
   return wasmModule.decryptStorageValue(value, key, systemCode, storageKey, storageEncode);
 }
