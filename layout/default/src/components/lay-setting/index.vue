@@ -723,17 +723,19 @@ onUnmounted(() => {
         </div>
         <div class="setting-content">
           <div class="theme-color-grid">
-            <div v-for="(item, index) in themeColors" v-show="showThemeColors(item.themeColor)" :key="index" class="theme-color-item" :class="{ 'is-selected': item.themeColor === layoutTheme.theme }" :style="getThemeColorStyle(item.color)" @click="setLayoutThemeColor(item.themeColor)">
-              <!-- 选中状态指示器 -->
-              <div class="selection-indicator">
-                <div class="check-ring">
-                  <IconifyIconOffline :icon="Check" class="check-icon" />
+            <el-tooltip v-for="(item, index) in themeColors" v-show="showThemeColors(item.themeColor)" :key="index" :content="item.description || item.themeColor" placement="top" effect="light">
+              <div class="theme-color-item" :class="{ 'is-selected': item.themeColor === layoutTheme.theme }" :style="getThemeColorStyle(item.color)" @click="setLayoutThemeColor(item.themeColor)">
+                <!-- 选中状态指示器 -->
+                <div class="selection-indicator">
+                  <div class="check-ring">
+                    <IconifyIconOffline :icon="Check" class="check-icon" />
+                  </div>
                 </div>
-              </div>
 
-              <!-- 光泽效果层 -->
-              <div class="shine-effect"></div>
-            </div>
+                <!-- 光泽效果层 -->
+                <div class="shine-effect"></div>
+              </div>
+            </el-tooltip>
           </div>
         </div>
       </div>
@@ -3371,6 +3373,9 @@ onUnmounted(() => {
       transition: all 0.3s ease;
       filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
       border-radius: 20px;
+      // 让SVG图标颜色跟随主题色变化
+      color: var(--el-text-color-primary);
+      fill: currentColor;
     }
 
     // 针对Vue组件形式的SVG
@@ -3389,6 +3394,9 @@ onUnmounted(() => {
     &:hover svg {
       transform: scale(1.06);
       filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
+      // 悬停状态时SVG图标颜色跟随主题色
+      color: var(--el-color-primary);
+      fill: currentColor;
     }
 
     &.is-select .layout-icon {
@@ -3397,6 +3405,9 @@ onUnmounted(() => {
 
     &.is-select svg {
       filter: drop-shadow(0 2px 8px rgba(var(--el-color-primary-rgb), 0.35));
+      // 选中状态时SVG图标颜色跟随主题色
+      color: var(--el-color-primary);
+      fill: currentColor;
     }
 
     // 移除旧的nth-child样式，现在使用新的el-row布局
