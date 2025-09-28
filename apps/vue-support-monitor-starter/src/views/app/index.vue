@@ -100,10 +100,10 @@
       >
         <template #empty>
           <div class="empty-state">
-            <div class="empty-illustration">
+            <div class="empty-illustration w-full">
               <IconifyIconOnline icon="ri:apps-2-line" class="empty-icon" />
             </div>
-            <h3 class="empty-title">暂无项目配置</h3>
+            <h3 class="empty-title w-full">暂无项目配置</h3>
             <p class="empty-description">开始创建您的第一个项目配置</p>
             <el-button
               type="primary"
@@ -391,20 +391,15 @@ const handleDelete = (item: any) => {
 
 <style scoped>
 /* 页面基础样式 */
-.page {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-}
 
 /* 页面头部 */
 .page-header {
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
   border-radius: 20px;
   padding: 12px;
   margin-bottom: 12px;
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e2e8f0;
 }
 
 .header-content {
@@ -423,7 +418,6 @@ const handleDelete = (item: any) => {
 .page-title {
   font-size: 28px;
   font-weight: 700;
-  color: #1e293b;
   margin: 0;
   display: flex;
   align-items: center;
@@ -438,7 +432,6 @@ const handleDelete = (item: any) => {
 
 .page-subtitle {
   font-size: 16px;
-  color: #64748b;
   margin: 8px 0 0 0;
   line-height: 1.4;
 }
@@ -487,7 +480,6 @@ const handleDelete = (item: any) => {
   padding: 20px 12px;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e2e8f0;
   flex-wrap: wrap;
   gap: 16px;
 }
@@ -514,7 +506,6 @@ const handleDelete = (item: any) => {
   border-radius: 12px;
   box-shadow: var(--el-box-shadow-light);
   border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color-overlay);
   backdrop-filter: blur(10px);
 }
 
@@ -896,7 +887,6 @@ const handleDelete = (item: any) => {
 .empty-state {
   text-align: center;
   padding: 80px 20px;
-  background: rgba(255, 255, 255, 0.8);
   border-radius: 20px;
   margin: 40px;
 }

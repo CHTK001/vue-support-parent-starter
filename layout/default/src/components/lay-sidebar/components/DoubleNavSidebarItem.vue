@@ -130,7 +130,7 @@ const isSubMenuOpened = computed(() => {
               offset: [0, -10],
               theme: tooltipEffect,
             }"
-            class="!w-full !text-inherit"
+            class="!w-full"
           >
             {{ transformI18n(onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title) }}
             <ReMenuNewBadge :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime" :type="onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'" :customText="onlyOneChild?.meta?.badgeText || item?.meta?.badgeText" />
@@ -152,7 +152,7 @@ const isSubMenuOpened = computed(() => {
               offset: [0, -10],
               theme: tooltipEffect,
             }"
-            class="!w-full !text-inherit"
+            class="!w-full "
           >
             {{ transformI18n(item?.meta?.i18nKey || item?.meta?.title) }}
             <ReMenuNewBadge :createTime="item?.meta?.createTime" :type="item?.meta?.badgeType || 'primary'" :customText="item?.meta?.badgeText" />
@@ -189,7 +189,7 @@ const isSubMenuOpened = computed(() => {
               offset: [0, -10],
               theme: tooltipEffect,
             }"
-            class="!w-full !text-inherit"
+            class="!w-full "
           >
             {{ transformI18n(onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title) }}
             <ReMenuNewBadge :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime" :type="onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'" :customText="onlyOneChild?.meta?.badgeText || item?.meta?.badgeText" />
@@ -210,7 +210,7 @@ const isSubMenuOpened = computed(() => {
               offset: [0, -10],
               theme: tooltipEffect,
             }"
-            class="!w-full !text-inherit"
+            class="!w-full "
           >
             {{ transformI18n(item?.meta?.i18nKey || item?.meta?.title) }}
             <ReMenuNewBadge :createTime="item?.meta?.createTime" :type="item?.meta?.badgeType || 'primary'" :customText="item?.meta?.badgeText" />
