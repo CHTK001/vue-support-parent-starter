@@ -3,7 +3,7 @@
   "Title": "PureAdmin",
   "FixedHeader": true,
   "HiddenSideBar": false,
-  "MultiTagsCache": false,
+  "MultiTagsCache": true,
   "KeepAlive": true,
   "Locale": "zh-CN",
   "Layout": "vertical",

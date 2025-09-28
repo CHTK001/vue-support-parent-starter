@@ -43,7 +43,7 @@ export const injectResponsiveStorage = (app: App, config: PlatformConfigs) => {
         hideFooter: config.HideFooter ?? true,
         showLogo: config.ShowLogo ?? true,
         showModel: config.ShowModel ?? "chrome",
-        multiTagsCache: config.MultiTagsCache ?? false,
+        multiTagsCache: config.MultiTagsCache ?? true,
         stretch: config.Stretch ?? false,
         cardColorMode: config.CardColorMode ?? "all",
       },
