@@ -406,9 +406,7 @@ const fetchRemoteOptions = async (params) => {
 
 .preview-container {
   padding: 20px;
-  border: 1px solid #ebeef5;
   border-radius: 4px;
-  background-color: #fafafa;
   display: flex;
   flex-direction: column;
   align-items: center;

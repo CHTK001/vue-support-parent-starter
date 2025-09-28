@@ -259,7 +259,6 @@ h4 {
 .preview-container {
   margin: 20px 0;
   padding: 20px;
-  border: 1px solid #ebeef5;
   border-radius: 4px;
   background-color: var(--el-bg-color);
 }

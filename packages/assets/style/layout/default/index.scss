@@ -33,14 +33,14 @@
   --pure-switch-off-color: #a6a6a6;
 
   /** 主题色 */
-  --pure-theme-sub-menu-active-text: initial;
-  --pure-theme-menu-bg: none;
-  --pure-theme-menu-hover: none;
-  --pure-theme-sub-menu-bg: transparent;
-  --pure-theme-menu-text: initial;
-  --pure-theme-sidebar-logo: none;
-  --pure-theme-menu-title-hover: initial;
-  --pure-theme-menu-active-before: transparent;
+  --pure-theme-sub-menu-active-text: var(--app-text-primary);
+  --pure-theme-menu-bg: var(--app-bg-primary);
+  --pure-theme-menu-hover: var(--app-bg-secondary);
+  --pure-theme-sub-menu-bg: var(--app-bg-primary);
+  --pure-theme-menu-text: var(--app-text-secondary);
+  --pure-theme-sidebar-logo: var(--app-bg-primary);
+  --pure-theme-menu-title-hover: var(--app-text-primary);
+  --pure-theme-menu-active-before: var(--app-primary);
 
   --wanx-v2-font400: normal;
   --wanx-v2-font500: bold;

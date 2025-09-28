@@ -844,7 +844,6 @@ onUnmounted(() => {
     .preview-window {
       flex: 1;
       position: relative;
-      background-color: #2a2a2a;
       border-radius: 12px;
       overflow: hidden;
       
