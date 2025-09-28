@@ -15,7 +15,7 @@ html.dark {
   // --el-bg-color: #020409;
 
   /* 常用border-color 需要时可取用 */
-  --pure-border-color: rgb(253 253 253 / 12%);
+  --pure-border-color: rgb(253 253 255 / 12%);
 
   /* switch关闭状态下的color 需要时可取用 */
   --pure-switch-off-color: #ffffff3f;
@@ -118,18 +118,12 @@ html.dark {
       }
 
       .chrome-tab {
-        .tag-title {
-          color: var(--el-text-color-primary);
-        }
 
         &:hover {
           .chrome-tab__bg {
             color: var(--cb-color-bg-chrome-tab-hover);
           }
 
-          .tag-title {
-            color: var(--cb-color-text-white);
-          }
         }
       }
     }
@@ -474,7 +468,7 @@ html.dark {
     }
     
     /* 激活状态的Chrome标签页 */
-    .is-active & {
+    &.is-active {
       .tag-title {
         color: var(--cb-color-text-white);
       }
@@ -746,6 +740,26 @@ html.dark {
       }
     }
   }
+  
+  /* SVG图标在深色主题下的样式 */
+  svg {
+    fill: currentColor;
+  }
+  
+  /* Chrome标签页SVG在深色主题下的样式 */
+  .chrome-tab {
+    svg {
+      fill: currentColor;
+    }
+    
+    path {
+      fill: currentColor;
+    }
+    
+    use {
+      fill: currentColor;
+    }
+  }
 }
 
 /* 深色主题下的滚动条样式 */
@@ -774,17 +788,5 @@ html.dark {
 
   /* 确保暗黑模式下的文本颜色正确 */
   color: var(--el-text-color-primary);
-}    background-color: rgba(255, 255, 255, 0.3);
-  }
-
-  ::-webkit-scrollbar-track {
-    background-color: rgba(255, 255, 255, 0.05);
-  }
-
-  ::-webkit-scrollbar-corner {
-    background-color: transparent;
-  }
-
-  /* 确保暗黑模式下的文本颜色正确 */
-  color: var(--el-text-color-primary);
 }
+

@@ -11,23 +11,23 @@ export function useDataThemeChange() {
   const { layoutTheme, layout } = useLayout();
   const themeColors = ref<Array<themeColorsType>>([
     /* 亮白色 */
-    { color: "#ffffff", themeColor: "light" },
+    { color: "#ffffff", themeColor: "light", description: "清新明亮的白色主题" },
     /* 道奇蓝 */
-    { color: "#1b2a47", themeColor: "default" },
+    { color: "#1b2a47", themeColor: "default", description: "专业稳重的深蓝主题" },
     /* 深紫罗兰色 */
-    { color: "#722ed1", themeColor: "saucePurple" },
+    { color: "#722ed1", themeColor: "saucePurple", description: "神秘优雅的紫色主题" },
     /* 深粉色 */
-    { color: "#eb2f96", themeColor: "pink" },
+    { color: "#eb2f96", themeColor: "pink", description: "活力四射的粉色主题" },
     /* 猩红色 */
-    { color: "#f5222d", themeColor: "dusk" },
+    { color: "#f5222d", themeColor: "dusk", description: "热情洋溢的红色主题" },
     /* 橙红色 */
-    { color: "#fa541c", themeColor: "volcano" },
+    { color: "#fa541c", themeColor: "volcano", description: "温暖活力的橙色主题" },
     /* 绿宝石 */
-    { color: "#13c2c2", themeColor: "mingQing" },
+    { color: "#13c2c2", themeColor: "mingQing", description: "清新自然的青色主题" },
     /* 酸橙绿 */
-    { color: "#52c41a", themeColor: "auroraGreen" },
+    { color: "#52c41a", themeColor: "auroraGreen", description: "生机勃勃的绿色主题" },
     /**紫色 */
-    { color: "#4e69fd", themeColor: "#4e69fd" },
+    { color: "#4e69fd", themeColor: "#4e69fd", description: "梦幻迷人的紫色主题" },
   ]);
   //@ts-ignore
   const { $storage } = useGlobal<GlobalPropertiesApi>();
@@ -83,6 +83,8 @@ export function useDataThemeChange() {
     // 预计算所有颜色值
     const cssProperties = new Map();
     cssProperties.set("--el-color-primary", color);
+    // 同时更新 --app-primary 变量，确保标签页激活状态颜色能正确变化
+    cssProperties.set("--app-primary", color);
 
     // 预计算dark和light变体
     for (let i = 1; i <= 2; i++) {

@@ -2,7 +2,6 @@
   <el-config-provider :locale="currentLocale">
     <router-view :key="$route.fullPath" />
     <ReDialog />
-    <ProgressMonitor />
   </el-config-provider>
 </template>
 
@@ -11,7 +10,6 @@
 import { defineComponent, ref, nextTick, provide } from "vue";
 import { ElConfigProvider } from "element-plus";
 import { ReDialog } from "@repo/components/ReDialog";
-import ProgressMonitor from "@/components/ProgressMonitor.vue";
 import en from "element-plus/es/locale/lang/en";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
 import { SpinProps } from "ant-design-vue";
@@ -26,7 +24,6 @@ export default defineComponent({
   components: {
     [ElConfigProvider.name]: ElConfigProvider,
     ReDialog,
-    ProgressMonitor
   },
   setup() {
     const routerActivation = ref(true)
