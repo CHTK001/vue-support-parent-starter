@@ -6,6 +6,6 @@
  */
 
 // 导出主页面组件
-import SystemHolidayIndex from "./components/HolidayIndex.vue";
-import SystemLogIndex from "./components/LogIndex.vue";
+import SystemHolidayIndex from "./holiday/HolidayIndex.vue";
+import SystemLogIndex from "./log/LogIndex.vue";
 export { SystemHolidayIndex, SystemLogIndex };

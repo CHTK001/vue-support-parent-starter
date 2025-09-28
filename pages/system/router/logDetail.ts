@@ -2,14 +2,16 @@ import type { RouteConfigsTable } from "@repo/core";
 
 const routes = [
   {
-    path: "/log",
-    name: "LogManagement",
+    path: "/log/detail",
+    name: "LogDetail",
     component: async () => {
-      const LayoutDefault = await import("../src/log/LogIndex.vue");
+      const LayoutDefault = await import("../src/log/LogDetail.vue");
       return LayoutDefault;
     },
     meta: {
-      title: "系统日志",
+      title: "日志详情",
+      icon: "ri:file-list-line",
+      rank: 14
     },
   },
 ] satisfies Array<RouteConfigsTable>;

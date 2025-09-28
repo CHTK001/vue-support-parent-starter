@@ -2,14 +2,16 @@ import type { RouteConfigsTable } from "@repo/core";
 
 const routes = [
   {
-    path: "/log",
-    name: "LogManagement",
+    path: "/limit/record",
+    name: "LimitRecord",
     component: async () => {
-      const LayoutDefault = await import("../src/log/LogIndex.vue");
+      const LayoutDefault = await import("../src/limit/LimitRecordIndex.vue");
       return LayoutDefault;
     },
     meta: {
-      title: "系统日志",
+      title: "限流记录",
+      icon: "ri:record-circle-line",
+      rank: 11
     },
   },
 ] satisfies Array<RouteConfigsTable>;
