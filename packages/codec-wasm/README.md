@@ -39,10 +39,10 @@ npm install @repo/codec-wasm
 ### Initialization
 
 ```javascript
-import { initWasm, isWasmLoaded } from '@repo/codec-wasm';
+import { initializeWasmModule, isWasmLoaded } from '@repo/codec-wasm';
 
 // Initialize the WASM module
-await initWasm();
+await initializeWasmModule();
 
 // Check if the WASM module is loaded
 if (isWasmLoaded()) {
@@ -56,20 +56,12 @@ if (isWasmLoaded()) {
 import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm } from '@repo/codec-wasm';
 
 // Example usage of uu2_wasm
-const requestFunc = (key) => {
-  switch (key) {
-    case 'data': return '{"name":"test","value":"data"}';
-    case 'url': return '/api/test';
-    default: return '';
-  }
-};
+const requestData = '{"name":"test","value":"data"}';
+const requestUrl = '/api/test';
+const configOpenStr = 'true';
+const codecRequestKey = 'encryption_key';
 
-const getConfig = (key) => {
-  // Return configuration values
-  return 'config_value';
-};
-
-const result = uu2_wasm(requestFunc, getConfig);
+const result = uu2_wasm(requestData, requestUrl, configOpenStr, codecRequestKey);
 ```
 
 ## Functions

@@ -40,38 +40,82 @@ import { setupDirectives } from "./directives";
 import { setupFullscreenSocket } from "./plugins/fullscreenSocket";
 import GlobalSocketPlugin from "./plugins/globalSocket";
 
-const app = createApp(App);
-Object.keys(directives).forEach((key) => {
-  app.directive(key, (directives as { [key: string]: Directive })[key]);
-});
-app.component("IconifyIconOffline", IconifyIconOffline);
-app.component("IconifyIconOnline", IconifyIconOnline);
-app.component("FontIcon", FontIcon);
+// 异步加载WASM模块
+import { initializeWasmModule } from "@repo/codec-wasm";
 
-app.component("Auth", Auth);
-app.component("ScTable", ScTable);
+// 先加载WASM模块，再启动应用
+initializeWasmModule().then(() => {
+  const app = createApp(App);
+  Object.keys(directives).forEach((key) => {
+    app.directive(key, (directives as { [key: string]: Directive })[key]);
+  });
+  app.component("IconifyIconOffline", IconifyIconOffline);
+  app.component("IconifyIconOnline", IconifyIconOnline);
+  app.component("FontIcon", FontIcon);
 
-app.use(VueTippy);
-// 使用 ElementPlusX
-app.use(ElementPlusX);
+  app.component("Auth", Auth);
+  app.component("ScTable", ScTable);
 
-app.config.warnHandler = (msg, instance, trace) => {
-  if (msg.includes("__proxyIdCheat__")) return;
-  console.warn(msg, trace);
-};
-// 注册指令
-setupDirectives(app);
+  app.use(VueTippy);
+  // 使用 ElementPlusX
+  app.use(ElementPlusX);
 
-getPlatformConfig(app).then(async (config) => {
-  setupStore(app);
-  app.use(router);
-  await router.isReady();
-  injectResponsiveStorage(app, config);
-  app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
-  // .use(PureDescriptions)
-  // .use(useEcharts);
+  app.config.warnHandler = (msg, instance, trace) => {
+    if (msg.includes("__proxyIdCheat__")) return;
+    console.warn(msg, trace);
+  };
+  // 注册指令
+  setupDirectives(app);
 
-  app.use(GlobalSocketPlugin);
-  setupFullscreenSocket(router);
-  app.mount("#app");
+  getPlatformConfig(app).then(async (config) => {
+    setupStore(app);
+    app.use(router);
+    await router.isReady();
+    injectResponsiveStorage(app, config);
+    app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
+    // .use(PureDescriptions)
+    // .use(useEcharts);
+
+    app.use(GlobalSocketPlugin);
+    setupFullscreenSocket(router);
+    app.mount("#app");
+  });
+}).catch((error) => {
+  console.error("Failed to initialize WASM module:", error);
+  // 即使WASM加载失败，也启动应用，但可能会缺少某些功能
+  const app = createApp(App);
+  Object.keys(directives).forEach((key) => {
+    app.directive(key, (directives as { [key: string]: Directive })[key]);
+  });
+  app.component("IconifyIconOffline", IconifyIconOffline);
+  app.component("IconifyIconOnline", IconifyIconOnline);
+  app.component("FontIcon", FontIcon);
+
+  app.component("Auth", Auth);
+  app.component("ScTable", ScTable);
+
+  app.use(VueTippy);
+  // 使用 ElementPlusX
+  app.use(ElementPlusX);
+
+  app.config.warnHandler = (msg, instance, trace) => {
+    if (msg.includes("__proxyIdCheat__")) return;
+    console.warn(msg, trace);
+  };
+  // 注册指令
+  setupDirectives(app);
+
+  getPlatformConfig(app).then(async (config) => {
+    setupStore(app);
+    app.use(router);
+    await router.isReady();
+    injectResponsiveStorage(app, config);
+    app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
+    // .use(PureDescriptions)
+    // .use(useEcharts);
+
+    app.use(GlobalSocketPlugin);
+    setupFullscreenSocket(router);
+    app.mount("#app");
+  });
 });
