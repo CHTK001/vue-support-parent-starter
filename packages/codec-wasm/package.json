@@ -16,7 +16,8 @@
     "asbuild:release": "asc assembly/index.ts --target release --runtime stub",
     "asbuild": "npm run asbuild:release",
     "build": "npm run asbuild && node scripts/fix-build.mjs",
-    "test": "node tests"
+    "test": "node test/wasm-test.js",
+    "dev": "vite"
   },
   "keywords": [
     "webassembly",
@@ -30,7 +31,8 @@
   "author": "CH",
   "license": "MIT",
   "devDependencies": {
-    "assemblyscript": "^0.28.8"
+    "assemblyscript": "^0.28.8",
+    "vite": "^7.1.7"
   },
   "dependencies": {
     "@assemblyscript/loader": "^0.28.8"

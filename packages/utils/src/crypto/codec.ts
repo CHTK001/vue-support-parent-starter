@@ -247,6 +247,12 @@ class AntiReplayManager {
   // 生成随机nonce（直接调用WASM版本，同步方式）
   generateNonce(): string {
     try {
+      // 确保WASM已加载
+      if (!isWasmLoaded()) {
+        console.warn('WASM not loaded, using fallback nonce generation');
+        // 如果WASM未加载，提供一个备用实现
+        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      }
       // 直接调用WASM版本的generateNonce函数（同步方式）
       return generateNonceWasm();
     } catch (error) {
@@ -303,9 +309,33 @@ const isWasmEnabled = () => {
   return getConfig('codecWasmEnabled') === true;
 };
 
-/** uu2 - 请求加密处理（直接调用WASM版本，同步方式） */
-export const uu2 = (request: PureHttpRequestConfig) => {
+// 初始化WASM模块
+let wasmInitialized = false;
+const initializeWasm = async () => {
+  if (wasmInitialized) return;
+  
   try {
+    await initWasm();
+    wasmInitialized = true;
+    console.log('WASM module initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize WASM module:', error);
+  }
+};
+
+// 确保WASM已初始化
+const ensureWasmInitialized = async () => {
+  if (!wasmInitialized) {
+    await initializeWasm();
+  }
+};
+
+/** uu2 - 请求加密处理（直接调用WASM版本，同步方式） */
+export const uu2 = async (request: PureHttpRequestConfig) => {
+  try {
+    // 确保WASM已初始化
+    await ensureWasmInitialized();
+    
     // 将请求对象转换为函数传递给WASM
     const requestFunc = (key: string) => {
       switch (key) {
@@ -327,8 +357,11 @@ export const uu2 = (request: PureHttpRequestConfig) => {
 };
 
 /** uu1 - 响应解密处理（直接调用WASM版本，同步方式） */
-export const uu1 = (response: PureHttpResponse) => {
+export const uu1 = async (response: PureHttpResponse) => {
   try {
+    // 确保WASM已初始化
+    await ensureWasmInitialized();
+    
     // 将响应对象转换为函数传递给WASM
     const responseFunc = (key: string) => {
       switch (key) {
@@ -352,8 +385,11 @@ export const uu1 = (response: PureHttpResponse) => {
 };
 
 /** uu3 - AES解密工具（直接调用WASM版本，同步方式） */
-export const uu3 = (value: string) => {
+export const uu3 = async (value: string) => {
   try {
+    // 确保WASM已初始化
+    await ensureWasmInitialized();
+    
     // 直接调用WASM版本，传递getConfig函数（同步方式）
     return uu3_wasm(value, getConfig);
   } catch (error) {
@@ -364,8 +400,11 @@ export const uu3 = (value: string) => {
 };
 
 /** uu4 - 特殊响应解密处理（直接调用WASM版本，同步方式） */
-export const uu4 = (response) => {
+export const uu4 = async (response) => {
   try {
+    // 确保WASM已初始化
+    await ensureWasmInitialized();
+    
     // 将响应对象转换为函数传递给WASM
     const responseFunc = (key: string) => {
       switch (key) {
