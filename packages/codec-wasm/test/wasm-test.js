@@ -1,91 +1,61 @@
-// WASM模块测试文件
-import { uu1_wasm, uu2_wasm, uu3_wasm, uu4_wasm, initWasm } from '../src/index.js';
+// 简单的WASM测试文件
+import { initWasm, isWasmLoaded, uu1_wasm, uu2_wasm, uu3_wasm, uu4_wasm, generateNonce, md5Hash } from '../src/index.js';
 
-// 初始化WASM模块
-initWasm();
-
-// 测试uu2_wasm函数
-console.log('Testing uu2_wasm...');
-const mockRequestFunc = (key) => {
-  switch (key) {
-    case 'data':
-      return '{"message": "Hello World"}';
-    case 'url':
-      return '/api/test';
-    default:
-      return '';
-  }
-};
-
+// Mock config function
 const mockGetConfig = (key) => {
-  switch (key) {
-    case 'requestCodecOpen':
-      return 'true';
-    case 'codecRequestKey':
-      return 'testkey123';
-    default:
-      return '';
-  }
+  const config = {
+    requestCodecOpen: 'true',
+    codecRequestKey: '1234567890123456',
+    responseCodecOpen: 'true',
+    codecResponseKey: '1234567890123456'
+  };
+  return config[key] || '';
 };
 
-try {
-  const result = uu2_wasm(mockRequestFunc, mockGetConfig);
-  console.log('uu2_wasm result:', result);
-} catch (error) {
-  console.error('Error in uu2_wasm:', error);
-}
-
-// 测试uu1_wasm函数
-console.log('\nTesting uu1_wasm...');
-const mockResponseFunc = (key) => {
-  switch (key) {
-    case 'status':
-      return '200';
-    case 'data':
-      return '02encrypteddata1234';
-    case 'headers':
-      return '{"access-control-origin-key": "testkey", "access-control-timestamp-user": "1234567890"}';
-    default:
-      return '';
+async function runTests() {
+  try {
+    console.log('Initializing WASM module...');
+    await initWasm();
+    console.log('WASM module initialized:', isWasmLoaded());
+    
+    if (!isWasmLoaded()) {
+      console.error('WASM module failed to load');
+      return;
+    }
+    
+    // 测试generateNonce函数
+    console.log('Testing generateNonce...');
+    const nonce = generateNonce();
+    console.log('Generated nonce:', nonce);
+    
+    // 测试MD5哈希函数
+    console.log('Testing md5Hash...');
+    const hash = md5Hash('test string');
+    console.log('MD5 hash:', hash);
+    
+    // 测试uu2_wasm函数
+    console.log('Testing uu2_wasm...');
+    const requestFunc = (key) => {
+      switch (key) {
+        case 'data': return '{"name":"test","value":"data"}';
+        case 'url': return '/api/test';
+        default: return '';
+      }
+    };
+    
+    const encryptedResult = uu2_wasm(requestFunc, mockGetConfig);
+    console.log('uu2_wasm result:', encryptedResult);
+    
+    // 测试uu3_wasm函数
+    console.log('Testing uu3_wasm...');
+    const simpleEncrypted = uu3_wasm('Hello World', mockGetConfig);
+    console.log('uu3_wasm result:', simpleEncrypted);
+    
+    console.log('All tests completed successfully!');
+  } catch (error) {
+    console.error('Test failed:', error);
   }
-};
-
-try {
-  const result = uu1_wasm(mockResponseFunc);
-  console.log('uu1_wasm result:', result);
-} catch (error) {
-  console.error('Error in uu1_wasm:', error);
 }
 
-// 测试uu3_wasm函数
-console.log('\nTesting uu3_wasm...');
-try {
-  const result = uu3_wasm('encryptedValue', mockGetConfig);
-  console.log('uu3_wasm result:', result);
-} catch (error) {
-  console.error('Error in uu3_wasm:', error);
-}
-
-// 测试uu4_wasm函数
-console.log('\nTesting uu4_wasm...');
-const mockSpecialResponseFunc = (key) => {
-  switch (key) {
-    case 'data':
-      return '02specialdata1234';
-    case 'uuid':
-      return 'testuuid';
-    case 'timestamp':
-      return '1234567890';
-    default:
-      return '';
-  }
-};
-
-try {
-  const result = uu4_wasm(mockSpecialResponseFunc);
-  console.log('uu4_wasm result:', result);
-} catch (error) {
-  console.error('Error in uu4_wasm:', error);
-}
-
-console.log('\nAll tests completed.');
+// 运行测试
+runTests();

@@ -1,6 +1,6 @@
 // codec-wasm TypeScript声明文件
 
-export function initWasm(): boolean;
+export function initWasm(): Promise<boolean>;
 export function isWasmLoaded(): boolean;
 
 export function generateNonce(): string;
