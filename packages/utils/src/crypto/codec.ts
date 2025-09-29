@@ -3,7 +3,7 @@ import * as crypto from "./index";
 import type { PureHttpResponse, PureHttpRequestConfig } from "../http/types";
 import { getConfig } from "@repo/config";
 // 导入WASM版本的函数
-import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, initWasm, isWasmLoaded, generateNonce as generateNonceWasm, processRequest, processResponse } from "@repo/codec-wasm";
+import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, initializeWasmModule, isWasmLoaded, generateNonce as generateNonceWasm, processRequest, processResponse } from "@repo/codec-wasm";
 
 // OTK存储接口
 interface OtkEntry {
@@ -309,46 +309,17 @@ const isWasmEnabled = () => {
   return getConfig('codecWasmEnabled') === true;
 };
 
-// 初始化WASM模块
-let wasmInitialized = false;
-const initializeWasm = async () => {
-  if (wasmInitialized) return;
-  
-  try {
-    await initWasm();
-    wasmInitialized = true;
-    console.log('WASM module initialized successfully');
-  } catch (error) {
-    console.error('Failed to initialize WASM module:', error);
-  }
-};
-
-// 确保WASM已初始化
-const ensureWasmInitialized = async () => {
-  if (!wasmInitialized) {
-    await initializeWasm();
-  }
-};
-
 /** uu2 - 请求加密处理（直接调用WASM版本，同步方式） */
 export const uu2 = async (request: PureHttpRequestConfig) => {
   try {
-    // 确保WASM已初始化
-    await ensureWasmInitialized();
+    // 直接从请求对象中提取所需的数据
+    const requestData = typeof request.data === 'string' ? request.data : JSON.stringify(request.data);
+    const requestUrl = request.url || '';
+    const configOpenStr = getConfig(REQUEST_CODEC_CONFIG) === true ? "true" : "false";
+    const codecRequestKey = getConfig(CODEC_REQUEST_KEY_CONFIG) || '';
     
-    // 将请求对象转换为函数传递给WASM
-    const requestFunc = (key: string) => {
-      switch (key) {
-        case 'data':
-          return typeof request.data === 'string' ? request.data : JSON.stringify(request.data);
-        case 'url':
-          return request.url || '';
-        default:
-          return '';
-      }
-    };
-    // 直接调用WASM版本，传递requestFunc函数和getConfig函数（同步方式）
-    return uu2_wasm(requestFunc, getConfig);
+    // 直接调用WASM版本，传递实际需要的参数（同步方式）
+    return uu2_wasm(requestData, requestUrl, configOpenStr, codecRequestKey);
   } catch (error) {
     console.error('Failed to process request with WASM:', error);
     // 如果WASM失败，直接返回原始请求
@@ -359,24 +330,14 @@ export const uu2 = async (request: PureHttpRequestConfig) => {
 /** uu1 - 响应解密处理（直接调用WASM版本，同步方式） */
 export const uu1 = async (response: PureHttpResponse) => {
   try {
-    // 确保WASM已初始化
-    await ensureWasmInitialized();
+    // 直接从响应对象中提取所需的数据
+    const statusStr = response.status?.toString() || '0';
+    const responseData = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+    const originKey = response.headers?.["access-control-origin-key"] || '';
+    const timestamp = response.headers?.["access-control-timestamp-user"] || '';
     
-    // 将响应对象转换为函数传递给WASM
-    const responseFunc = (key: string) => {
-      switch (key) {
-        case 'status':
-          return response.status?.toString() || '0';
-        case 'data':
-          return typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
-        case 'headers':
-          return JSON.stringify(response.headers || {});
-        default:
-          return '';
-      }
-    };
-    // 直接调用WASM版本，传递responseFunc函数（同步方式）
-    return uu1_wasm(responseFunc);
+    // 直接调用WASM版本，传递实际需要的参数（同步方式）
+    return uu1_wasm(statusStr, responseData, originKey, timestamp);
   } catch (error) {
     console.error('Failed to process response with WASM:', error);
     // 如果WASM失败，直接返回原始响应
@@ -387,11 +348,11 @@ export const uu1 = async (response: PureHttpResponse) => {
 /** uu3 - AES解密工具（直接调用WASM版本，同步方式） */
 export const uu3 = async (value: string) => {
   try {
-    // 确保WASM已初始化
-    await ensureWasmInitialized();
+    // 直接从配置中获取所需的数据
+    const codecResponseKey = getConfig("codecResponseKey") as string || '';
     
-    // 直接调用WASM版本，传递getConfig函数（同步方式）
-    return uu3_wasm(value, getConfig);
+    // 直接调用WASM版本，传递实际需要的参数（同步方式）
+    return uu3_wasm(value, codecResponseKey);
   } catch (error) {
     console.error('Failed to decrypt with WASM:', error);
     // 如果WASM失败，直接返回原始值
@@ -400,26 +361,15 @@ export const uu3 = async (value: string) => {
 };
 
 /** uu4 - 特殊响应解密处理（直接调用WASM版本，同步方式） */
-export const uu4 = async (response) => {
+export const uu4 = async (response: any) => {
   try {
-    // 确保WASM已初始化
-    await ensureWasmInitialized();
+    // 直接从响应对象中提取所需的数据
+    const responseData = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+    const uuid = response.uuid || '';
+    const timestamp = response.timestamp || '';
     
-    // 将响应对象转换为函数传递给WASM
-    const responseFunc = (key: string) => {
-      switch (key) {
-        case 'data':
-          return typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
-        case 'uuid':
-          return response.uuid || '';
-        case 'timestamp':
-          return response.timestamp || '';
-        default:
-          return '';
-      }
-    };
-    // 直接调用WASM版本，传递responseFunc函数（同步方式）
-    const result = uu4_wasm(responseFunc);
+    // 直接调用WASM版本，传递实际需要的参数（同步方式）
+    const result = uu4_wasm(responseData, uuid, timestamp);
     
     // 如果结果是JSON字符串，尝试解析它
     if (typeof result === 'string' && result.length > 0) {
@@ -501,4 +451,4 @@ const codecUtils = {
 export const codecUtilities = codecUtils;
 
 // 导出WASM相关函数
-export { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, initWasm, isWasmLoaded };
+export { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, initializeWasmModule, isWasmLoaded };
