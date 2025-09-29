@@ -244,11 +244,11 @@ class AntiReplayManager {
     return true;
   }
 
-  // 生成随机nonce（直接调用WASM版本）
-  async generateNonce(): Promise<string> {
+  // 生成随机nonce（直接调用WASM版本，同步方式）
+  generateNonce(): string {
     try {
-      // 直接调用WASM版本的generateNonce函数
-      return await generateNonceWasm();
+      // 直接调用WASM版本的generateNonce函数（同步方式）
+      return generateNonceWasm();
     } catch (error) {
       console.error('Failed to generate nonce using WASM:', error);
       // 如果WASM失败，提供一个备用实现
@@ -303,11 +303,22 @@ const isWasmEnabled = () => {
   return getConfig('codecWasmEnabled') === true;
 };
 
-/** uu2 - 请求加密处理（直接调用WASM版本） */
-export const uu2 = async (request: PureHttpRequestConfig) => {
+/** uu2 - 请求加密处理（直接调用WASM版本，同步方式） */
+export const uu2 = (request: PureHttpRequestConfig) => {
   try {
-    // 直接调用WASM版本，不再处理任何逻辑
-    return await uu2_wasm(request, getConfig);
+    // 将请求对象转换为函数传递给WASM
+    const requestFunc = (key: string) => {
+      switch (key) {
+        case 'data':
+          return typeof request.data === 'string' ? request.data : JSON.stringify(request.data);
+        case 'url':
+          return request.url || '';
+        default:
+          return '';
+      }
+    };
+    // 直接调用WASM版本，传递requestFunc函数和getConfig函数（同步方式）
+    return uu2_wasm(requestFunc, getConfig);
   } catch (error) {
     console.error('Failed to process request with WASM:', error);
     // 如果WASM失败，直接返回原始请求
@@ -315,11 +326,24 @@ export const uu2 = async (request: PureHttpRequestConfig) => {
   }
 };
 
-/** uu1 - 响应解密处理（直接调用WASM版本） */
-export const uu1 = async (response: PureHttpResponse) => {
+/** uu1 - 响应解密处理（直接调用WASM版本，同步方式） */
+export const uu1 = (response: PureHttpResponse) => {
   try {
-    // 直接调用WASM版本，不再处理任何逻辑
-    return await uu1_wasm(response);
+    // 将响应对象转换为函数传递给WASM
+    const responseFunc = (key: string) => {
+      switch (key) {
+        case 'status':
+          return response.status?.toString() || '0';
+        case 'data':
+          return typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+        case 'headers':
+          return JSON.stringify(response.headers || {});
+        default:
+          return '';
+      }
+    };
+    // 直接调用WASM版本，传递responseFunc函数（同步方式）
+    return uu1_wasm(responseFunc);
   } catch (error) {
     console.error('Failed to process response with WASM:', error);
     // 如果WASM失败，直接返回原始响应
@@ -327,11 +351,11 @@ export const uu1 = async (response: PureHttpResponse) => {
   }
 };
 
-/** uu3 - AES解密工具（直接调用WASM版本） */
-export const uu3 = async (value: string) => {
+/** uu3 - AES解密工具（直接调用WASM版本，同步方式） */
+export const uu3 = (value: string) => {
   try {
-    // 直接调用WASM版本，不再处理任何逻辑
-    return await uu3_wasm(value);
+    // 直接调用WASM版本，传递getConfig函数（同步方式）
+    return uu3_wasm(value, getConfig);
   } catch (error) {
     console.error('Failed to decrypt with WASM:', error);
     // 如果WASM失败，直接返回原始值
@@ -339,11 +363,43 @@ export const uu3 = async (value: string) => {
   }
 };
 
-/** uu4 - 特殊响应解密处理（直接调用WASM版本） */
-export const uu4 = async (response) => {
+/** uu4 - 特殊响应解密处理（直接调用WASM版本，同步方式） */
+export const uu4 = (response) => {
   try {
-    // 直接调用WASM版本，不再处理任何逻辑
-    return await uu4_wasm(response);
+    // 将响应对象转换为函数传递给WASM
+    const responseFunc = (key: string) => {
+      switch (key) {
+        case 'data':
+          return typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+        case 'uuid':
+          return response.uuid || '';
+        case 'timestamp':
+          return response.timestamp || '';
+        default:
+          return '';
+      }
+    };
+    // 直接调用WASM版本，传递responseFunc函数（同步方式）
+    const result = uu4_wasm(responseFunc);
+    
+    // 如果结果是JSON字符串，尝试解析它
+    if (typeof result === 'string' && result.length > 0) {
+      // 如果是空对象字符串，直接返回空对象
+      if (result === '{}' || result === '""') {
+        return {};
+      }
+      
+      // 尝试解析JSON
+      try {
+        return JSON.parse(result);
+      } catch (parseError) {
+        // 如果解析失败，返回原始结果
+        return result;
+      }
+    }
+    
+    // 如果结果不是字符串，直接返回
+    return result;
   } catch (error) {
     console.error('Failed to process special response with WASM:', error);
     // 如果WASM失败，直接返回原始响应

@@ -58,32 +58,51 @@ codec-wasm/
 
 在JavaScript/TypeScript项目中使用：
 
-```javascript
+```
 import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, initWasm, generateSign, generateNonce, md5Hash } from '@repo/codec-wasm';
 
 // 初始化WASM模块（应用启动时调用一次）
-await initWasm();
+initWasm();
 
 // 请求加密
-const encryptedRequest = await uu2_wasm(request, getConfig);
+const encryptedRequest = uu2_wasm(request, getConfig);
 
 // 响应解密
-const decryptedResponse = await uu1_wasm(response);
+const decryptedResponse = uu1_wasm(response);
 
 // AES解密
-const decryptedData = await uu3_wasm(encryptedValue);
+const decryptedData = uu3_wasm(encryptedValue);
 
 // 特殊响应解密
-const specialDecryptedData = await uu4_wasm(response);
+const specialDecryptedData = uu4_wasm(response);
 
 // 生成nonce
-const nonce = await generateNonce();
+const nonce = generateNonce();
 
 // 生成请求签名
-const signature = await generateSign(paramsJson, timestamp, nonce, secretKey);
+const signature = generateSign(paramsJson, timestamp, nonce, secretKey);
 
 // MD5哈希计算
-const hash = await md5Hash(input);
+const hash = md5Hash(input);
+```
+
+## 使用示例
+
+```
+// 初始化WASM模块
+initWasm();
+
+// 请求加密处理
+const encryptedRequest = uu2_wasm(request, getConfig);
+
+// 响应解密处理
+const decryptedResponse = uu1_wasm(response);
+
+// AES解密工具
+const decryptedData = uu3_wasm(encryptedValue);
+
+// 特殊响应解密处理
+const specialDecryptedData = uu4_wasm(response);
 ```
 
 ## 性能优势

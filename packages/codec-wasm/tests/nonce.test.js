@@ -1,11 +1,14 @@
 // 测试WASM generateNonce函数
-import { generateNonce } from '../src/index.js';
+import { initWasm, generateNonce } from '../src/index.js';
 
-async function testGenerateNonce() {
+function testGenerateNonce() {
   console.log('Testing WASM generateNonce function...');
   
   try {
-    const nonce = await generateNonce();
+    // 初始化WASM模块
+    initWasm();
+    
+    const nonce = generateNonce();
     console.log('Generated nonce:', nonce);
     console.log('Nonce length:', nonce.length);
     
@@ -19,7 +22,7 @@ async function testGenerateNonce() {
     // 生成多个nonce验证唯一性
     const nonces = [];
     for (let i = 0; i < 5; i++) {
-      const n = await generateNonce();
+      const n = generateNonce();
       nonces.push(n);
       console.log(`Nonce ${i+1}:`, n);
     }
