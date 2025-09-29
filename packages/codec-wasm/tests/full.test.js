@@ -36,7 +36,7 @@ async function testFullWasmFunctionality() {
   try {
     // 测试generateNonce函数
     console.log('\n1. Testing generateNonce...');
-    const nonce = await generateNonce();
+    const nonce = generateNonce();
     console.log('Generated nonce:', nonce);
     console.log('Nonce length:', nonce.length);
     
@@ -49,7 +49,7 @@ async function testFullWasmFunctionality() {
     // 测试processRequest函数
     console.log('\n2. Testing processRequest...');
     const requestData = JSON.stringify(mockRequest.data);
-    const result = await processRequest(requestData, mockRequest.url, true, 'test-key-12345');
+    const result = processRequest(requestData, mockRequest.url, true, 'test-key-12345');
     console.log('Process request result:', result);
     
     if (typeof result === 'string' && result.includes('ENCRYPTED_')) {
@@ -60,7 +60,7 @@ async function testFullWasmFunctionality() {
     
     // 测试uu2_wasm函数
     console.log('\n3. Testing uu2_wasm...');
-    const encryptedRequest = await uu2_wasm({...mockRequest}, mockGetConfig);
+    const encryptedRequest = uu2_wasm({...mockRequest}, mockGetConfig);
     console.log('Encrypted request:', encryptedRequest);
     
     if (encryptedRequest.data && encryptedRequest.headers) {

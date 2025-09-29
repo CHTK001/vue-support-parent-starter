@@ -15,6 +15,14 @@
   - 🔧 **使用灵活**: 开发者可根据需求选择合适的版本
   - 📦 **API一致**: 两个版本提供完全一致的API接口，便于切换
   - 📚 **文档完善**: 新增storage/README.md详细说明使用方法
+- 新增Storage加密解密功能
+  ```javascript
+  // 存储加密
+  const encryptedValue = encryptStorageValue(originalValue, key, systemCode, storageKey, storageEncode);
+  
+  // 存储解密
+  const decryptedValue = decryptStorageValue(encryptedValue, key, systemCode, storageKey, storageEncode);
+  ```
 
 #### 技术实现细节
 
@@ -105,9 +113,9 @@ export function md5Hash(input: string): string {
 **JavaScript包装器：**
 ```
 // 导出md5Hash函数
-export async function md5Hash(input) {
+export function md5Hash(input) {
   try {
-    const wasm = await loadWasm();
+    const wasm = loadWasm();
     return wasm.md5Hash(input);
   } catch (error) {
     console.error('WASM md5Hash failed:', error);
@@ -121,9 +129,9 @@ export async function md5Hash(input) {
 // 在http.ts中使用WASM版本的md5Hash函数
 import { md5Hash as md5HashWasm } from "@repo/codec-wasm";
 
-const md5Hash = async (input: string): Promise<string> => {
+const md5Hash = (input: string): string => {
   // 使用WASM版本的md5Hash函数
-  return await md5HashWasm(input);
+  return md5HashWasm(input);
 };
 ```
 
@@ -179,7 +187,7 @@ const generateSign = async (config: any, timestamp: number, nonce: string): Prom
   
   // 使用WASM版本的generateSign函数
   const secretKey = "your-secret-key"; // 实际应该从配置中获取
-  return await generateSignWasm(paramString, timestamp, nonce, secretKey);
+  return generateSignWasm(paramString, timestamp, nonce, secretKey);
 };
 ```
 

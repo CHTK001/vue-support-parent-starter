@@ -104,14 +104,14 @@ class PureHttp {
         
         // 添加nonce和timestamp参数
         const timestamp = Date.now();
-        // 使用异步方式获取nonce
-        const nonce = await generateNonce();
+        // 使用同步方式获取nonce
+        const nonce = generateNonce();
         
         config.headers["x-nonce"] = nonce;
         config.headers["x-timestamp"] = timestamp.toString();
         
         // 生成并添加签名
-        const sign = await generateSign(config, timestamp, nonce);
+        const sign = generateSign(config, timestamp, nonce);
         config.headers["x-sign"] = sign;
         
         // 检查是否配置了apiVersion，如果配置了则在URL中添加version参数
@@ -526,10 +526,10 @@ class PureHttp {
 export const http = new PureHttp();
 
 /** 生成复杂的nonce值 */
-const generateNonce = async (): Promise<string> => {
+const generateNonce = (): string => {
   try {
-    // 使用WASM版本的generateNonce函数
-    return await generateNonceWasm();
+    // 使用WASM版本的generateNonce函数（同步方式）
+    return generateNonceWasm();
   } catch (error) {
     console.error('Failed to generate nonce using WASM:', error);
     // 如果WASM失败，提供一个备用实现
@@ -538,67 +538,45 @@ const generateNonce = async (): Promise<string> => {
 };
 
 /** 生成签名 */
-const generateSign = async (config: any, timestamp: number, nonce: string): Promise<string> => {
-  // 收集请求参数
-  const params: Record<string, any> = {};
-  
-  // 收集URL参数
-  if (config.params) {
-    Object.keys(config.params).sort().forEach(key => {
-      params[key] = config.params[key];
-    });
-  }
-  
-  // 收集请求体数据
-  if (config.data) {
-    if (typeof config.data === 'object' && !(config.data instanceof FormData)) {
-      Object.keys(config.data).sort().forEach(key => {
-        params[key] = config.data[key];
-      });
-    } else if (typeof config.data === 'string') {
-      try {
-        const jsonData = JSON.parse(config.data);
-        Object.keys(jsonData).sort().forEach(key => {
-          params[key] = jsonData[key];
-        });
-      } catch (e) {
-        // 如果不是JSON字符串，则直接使用
-        params['data'] = config.data;
-      }
-    }
-  }
-  
-  // 按键名排序并拼接参数
-  const sortedKeys = Object.keys(params).sort();
-  let paramString = '';
-  sortedKeys.forEach(key => {
-    const value = params[key];
-    if (value !== null && value !== undefined) {
-      paramString += `${key}=${value}&`;
-    }
-  });
-  
-  // 移除末尾的&符号
-  if (paramString.endsWith('&')) {
-    paramString = paramString.slice(0, -1);
-  }
-  
+export const generateSign = (config: PureHttpRequestConfig, timestamp: number, nonce: string): string => {
   try {
-    // 使用WASM版本的generateSign函数
-    const secretKey = "your-secret-key"; // 实际应该从配置中获取
-    return await generateSignWasm(paramString, timestamp, nonce, secretKey);
+    // 准备签名参数
+    const params: Record<string, any> = {
+      ...config.params,
+      ...config.data
+    };
+    
+    // 过滤掉空值和函数
+    const filteredParams: Record<string, string> = {};
+    Object.keys(params).forEach(key => {
+      const value = params[key];
+      if (value !== null && value !== undefined && typeof value !== 'function' && typeof value !== 'object') {
+        filteredParams[key] = String(value);
+      }
+    });
+    
+    // 将参数转换为key=value格式的字符串
+    const paramPairs: string[] = [];
+    Object.keys(filteredParams).sort().forEach(key => {
+      paramPairs.push(`${key}=${filteredParams[key]}`);
+    });
+    
+    const paramsString = paramPairs.join('&');
+    
+    // 使用WASM版本的generateSign函数（同步方式）
+    return generateSignWasm(paramsString, timestamp, nonce, getConfig().secretKey || '');
   } catch (error) {
     console.error('Failed to generate sign using WASM:', error);
     // 如果WASM失败，提供一个备用实现
-    return btoa(paramString + timestamp + nonce);
+    return Math.random().toString(36).substring(2, 10);
   }
 };
 
 /** MD5哈希函数 */
-const md5Hash = async (input: string): Promise<string> => {
+const md5Hash = (input: string): string => {
   try {
-    // 使用WASM版本的md5Hash函数
-    return await md5HashWasm(input);
+    // 使用WASM版本的md5Hash函数（同步方式）
+    return md5HashWasm(input);
   } catch (error) {
     console.error('Failed to generate MD5 hash using WASM:', error);
     // 如果WASM失败，提供一个备用实现

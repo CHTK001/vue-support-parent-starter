@@ -29,6 +29,7 @@
     "exportTable": false,
     "noUnsafe": true,
     "disable_EXCEPTIONS": true,
-    "disable_TYPEDARRAYS": false
+    "disable_TYPEDARRAYS": false,
+    "explicitStart": false
   }
 }

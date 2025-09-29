@@ -298,6 +298,121 @@ export function processRequest(
   return result
 }
 
+// UU2请求加密处理函数
+export function uu2_wasm(requestFunc: (key: string) => string, getConfig: (key: string) => string): string {
+  // 通过requestFunc函数获取请求数据
+  const requestData: string = requestFunc("data");
+  const requestUrl: string = requestFunc("url");
+  
+  // 通过getConfig函数获取配置
+  const configOpenStr: string = getConfig("requestCodecOpen");
+  const requestCodecOpen: bool = configOpenStr === "true";
+  
+  const codecRequestKey: string = getConfig("codecRequestKey");
+  
+  // 检查是否需要跳过加密
+  if (requestUrl.startsWith(SETTING_PATH)) {
+    return requestData;
+  }
+
+  if (!requestData || requestData.length == 0) {
+    return requestData;
+  }
+
+  if (!requestCodecOpen || !codecRequestKey || codecRequestKey.length == 0) {
+    return requestData;
+  }
+
+  // 生成反重放攻击保护参数
+  const timestamp: i64 = Date.now();
+  const nonce: string = generateNonce();
+
+  // 验证请求唯一性（简化实现）
+  if (!validateTimestamp(timestamp, 300000)) {
+    return "ERROR: Anti-replay validation failed";
+  }
+
+  const encryptedData: string = sm4Encrypt(requestData, codecRequestKey);
+  
+  // 构造响应JSON
+  const result = `{
+    "data": "${encryptedData}",
+    "headers": {
+      "${ORIGIN_KEY_HEADER}": ${timestamp},
+      "${TIMESTAMP_HEADER}": "${timestamp}",
+      "${NONCE_HEADER}": "${nonce}"
+    }
+  }`;
+  
+  return result;
+}
+
+// UU1响应解密处理函数
+export function uu1_wasm(responseFunc: (key: string) => string): string {
+  // 通过responseFunc函数获取响应数据
+  const statusStr: string = responseFunc("status");
+  const responseData: string = responseFunc("data");
+  const headersStr: string = responseFunc("headers");
+  
+  // 解析状态码
+  let responseStatus: i32 = 0;
+  if (statusStr && statusStr.length > 0) {
+    responseStatus = <i32>parseInt(statusStr);
+  }
+  
+  // 解析headers中的值
+  let originKey: string = "";
+  let timestamp: string = "";
+  
+  if (headersStr && headersStr.length > 0) {
+    originKey = parseJsonString(headersStr, "access-control-origin-key");
+    timestamp = parseJsonString(headersStr, "access-control-timestamp-user");
+  }
+  
+  // 检查响应状态
+  if (responseStatus !== SUCCESS_STATUS) {
+    return responseData;
+  }
+
+  // 简单验证
+  if (!responseData || responseData.length == 0) {
+    return responseData;
+  }
+
+  // 获取原始数据
+  let rawData: string = responseData;
+  
+  // 检查是否是嵌套对象
+  if (responseData.startsWith("{") && responseData.endsWith("}")) {
+    // 尝试解析JSON以获取内部数据
+    const innerData: string = parseJsonString(responseData, "data");
+    if (innerData && innerData.length > 0) {
+      rawData = innerData;
+    }
+  }
+
+  // 检查加密数据标识
+  if (!rawData.startsWith(ENCRYPTED_PREFIX)) {
+    return responseData;
+  }
+
+  if (!originKey || originKey.length == 0) {
+    return responseData;
+  }
+
+  // 数据切片和解密
+  const startIndex: i32 = PREFIX_LENGTH;
+  const endIndex: i32 = <i32>rawData.length - SUFFIX_LENGTH;
+  if (startIndex < endIndex) {
+    const encryptedPart: string = rawData.substring(startIndex, endIndex);
+    const decryptKey: string = aesDecrypt(originKey, timestamp);
+    const decryptedData: string = sm2Decrypt(encryptedPart, decryptKey);
+    return decryptedData;
+  }
+
+  return responseData;
+}
+
 // 响应解密处理函数
 export function processResponse(
   responseData: string,
@@ -372,6 +487,87 @@ export function processSpecialResponse(
     const key: string = aesDecrypt(uuid, timestamp)
     const decrypted: string = sm2Decrypt(encryptedSegment, key)
     return decrypted
+  }
+
+  return "{}"
+}
+
+// UU3 AES解密工具函数
+export function uu3_wasm(value: string, getConfig: (key: string) => string): string {
+  // 检查输入参数
+  if (!value || value.length == 0) {
+    return value;
+  }
+  
+  // 通过getConfig函数获取配置
+  const codecResponseKey: string = getConfig("codecResponseKey");
+  
+  // 使用配置的密钥进行解密，如果没有配置密钥则使用默认密钥
+  const key: string = codecResponseKey && codecResponseKey.length > 0 ? codecResponseKey : DEFAULT_AES_KEY;
+  return aesDecrypt(value, key);
+}
+
+// 简单的JSON解析辅助函数
+function parseJsonString(json: string, key: string): string {
+  if (!json || !key) return "";
+  
+  const keyIndex: i32 = json.indexOf("\"" + key + "\":");
+  if (keyIndex < 0) return "";
+  
+  let valueStart: i32 = json.indexOf("\"", keyIndex + key.length + 3);
+  if (valueStart < 0) return "";
+  
+  valueStart++; // 跳过开始的引号
+  let valueEnd: i32 = valueStart;
+  
+  // 查找结束引号
+  while (valueEnd < json.length && json.charCodeAt(valueEnd) != 34) {
+    valueEnd++;
+  }
+  
+  if (valueEnd > valueStart) {
+    return json.substring(valueStart, valueEnd);
+  }
+  
+  return "";
+}
+
+// UU4特殊响应解密处理函数
+export function uu4_wasm(responseFunc: (key: string) => string): string {
+  // 通过responseFunc函数获取响应数据
+  const responseData: string = responseFunc("data");
+  const uuid: string = responseFunc("uuid");
+  const timestamp: string = responseFunc("timestamp");
+  
+  // 检查输入参数
+  if (!responseData || responseData.length == 0) {
+    return "{}"
+  }
+
+  // 检查是否为加密数据
+  if (!responseData.startsWith(ENCRYPTED_PREFIX)) {
+    return responseData
+  }
+
+  // 检查UUID
+  if (!uuid || uuid.length == 0) {
+    return "{}"
+  }
+
+  // 数据切片和解密
+  const startIndex: i32 = PREFIX_LENGTH
+  const endIndex: i32 = <i32>responseData.length - SUFFIX_LENGTH
+  
+  if (startIndex < endIndex) {
+    const encryptedSegment: string = responseData.substring(startIndex, endIndex)
+    const key: string = aesDecrypt(uuid, timestamp)
+    const decrypted: string = sm2Decrypt(encryptedSegment, key)
+    
+    // 验证解密结果
+    if (decrypted && decrypted.length > 0 && decrypted !== '{}') {
+      // 确保返回的是有效的JSON字符串
+      return decrypted
+    }
   }
 
   return "{}"

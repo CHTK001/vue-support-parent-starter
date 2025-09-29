@@ -1,6 +1,6 @@
 // codec-wasm TypeScript声明文件
 
-export function initWasm(): Promise<boolean>;
+export function initWasm(): boolean;
 export function isWasmLoaded(): boolean;
 
 export function generateNonce(): string;
@@ -19,7 +19,7 @@ export function encryptStorageKey(key: string, systemCode: string): string;
 export function encryptStorageValue(value: string, key: string, systemCode: string, storageKey: string, storageEncode: boolean): string;
 export function decryptStorageValue(value: string, key: string, systemCode: string, storageKey: string, storageEncode: boolean): string;
 
-export function uu2_wasm(request: any, getConfig: Function): any;
-export function uu1_wasm(response: any): any;
-export function uu3_wasm(value: string): string;
-export function uu4_wasm(response: any): any;
+export function uu2_wasm(requestFunc: (key: string) => string, getConfig: (key: string) => string): any;
+export function uu1_wasm(responseFunc: (key: string) => string): any;
+export function uu3_wasm(value: string, getConfig: (key: string) => string): string;
+export function uu4_wasm(responseFunc: (key: string) => string): string;

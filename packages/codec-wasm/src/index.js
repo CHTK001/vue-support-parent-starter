@@ -3,34 +3,39 @@
 let wasmModule = null;
 let wasmLoaded = false;
 
-// 立即调用initWasm函数进行初始化
-initWasm().catch(error => {
-  console.error('Failed to initialize WASM module:', error);
-});
-
-// 加载WASM模块
-async function loadWasm() {
+// 加载WASM模块（同步方式）
+function loadWasm() {
   if (wasmLoaded) {
     return wasmModule;
   }
 
   try {
-    // 加载WASM模块
-    const wasm = await import('../build/release.js');
-    wasmModule = wasm; // 这里wasm已经是包含所有导出函数的对象
+    // 同步方式加载WASM模块
+    // 注意：在浏览器环境中，我们需要确保WASM文件可以通过fetch加载
+    // 在Node.js环境中，我们需要使用动态导入
+    if (typeof window !== 'undefined' || typeof importScripts !== 'undefined') {
+      // 浏览器或Web Worker环境
+      const wasm = require('../build/release.js');
+      wasmModule = wasm; // 这里wasm已经是包含所有导出函数的对象
+    } else {
+      // Node.js环境
+      // 在Node.js环境中，我们需要动态导入ES模块
+      throw new Error('Node.js environment not supported for synchronous loading');
+    }
+    
     wasmLoaded = true;
     console.log('Codec WASM module loaded successfully');
     return wasmModule;
   } catch (error) {
     console.error('Failed to load WASM module:', error);
-    throw new Error('Failed to load codec WASM module');
+    throw new Error('Failed to load codec WASM module: ' + error.message);
   }
 }
 
-// 初始化函数
-export async function initWasm() {
+// 初始化函数（同步方式）
+export function initWasm() {
   try {
-    await loadWasm();
+    loadWasm();
     console.log('Codec WASM module loaded successfully');
     return true;
   } catch (error) {
@@ -44,13 +49,13 @@ export function isWasmLoaded() {
   return wasmLoaded;
 }
 
-// WASM版本的uu2函数
-export async function uu2_wasm(request, getConfig) {
+// WASM版本的uu2函数（同步方式）
+export function uu2_wasm(requestFunc, getConfig) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -60,50 +65,17 @@ export async function uu2_wasm(request, getConfig) {
     }
   }
   
-  const requestData = request.data;
-  const requestUrl = request.url;
-  
-  if (requestUrl.startsWith('/v2/setting')) {
-    return request;
-  }
-  
-  if (!requestData) {
-    return request;
-  }
-
-  const codecConfig = getConfig('requestCodecOpen');
-  const codecKey = getConfig('codecRequestKey');
-  
-  if (!codecConfig || !codecKey) {
-    return request;
-  }
-
-  const jsonData = JSON.stringify(requestData);
-  const result = wasmModule.processRequest(jsonData, requestUrl, codecConfig, codecKey);
-  
-  if (result.startsWith('ERROR:')) {
-    throw new Error(result);
-  }
-  
-  const parsedResult = JSON.parse(result);
-  
-  // 更新请求对象
-  request.data = { data: parsedResult.data };
-  request.headers = {
-    ...request.headers,
-    ...parsedResult.headers
-  };
-  
-  return request;
+  // 直接调用WASM函数，不进行任何逻辑处理
+  return wasmModule.uu2_wasm(requestFunc, getConfig);
 }
 
-// WASM版本的uu1函数
-export async function uu1_wasm(response) {
+// WASM版本的uu1函数（同步方式）
+export function uu1_wasm(responseFunc) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -113,46 +85,17 @@ export async function uu1_wasm(response) {
     }
   }
   
-  if (!response || typeof response !== 'object') {
-    return response;
-  }
-  
-  if (response.status !== 200) {
-    return response;
-  }
-  
-  const rawData = response.data?.data || response.data;
-  
-  if (typeof rawData !== 'string') {
-    return response;
-  }
-  
-  if (!rawData.startsWith('02')) {
-    return response;
-  }
-  
-  const originKey = response?.headers?.['access-control-origin-key'];
-  if (!originKey) {
-    return response;
-  }
-  
-  const timestamp = response?.headers?.['access-control-timestamp-user'] || '';
-  const decryptedData = wasmModule.processResponse(rawData, originKey.toString(), timestamp);
-  
-  if (decryptedData && decryptedData !== rawData) {
-    response.data = JSON.parse(decryptedData);
-  }
-  
-  return response;
+  // 直接调用WASM函数，不进行任何逻辑处理
+  return wasmModule.uu1_wasm(responseFunc);
 }
 
-// WASM版本的uu3函数
-export async function uu3_wasm(value) {
+// WASM版本的uu3函数（同步方式）
+export function uu3_wasm(value, getConfig) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -162,20 +105,17 @@ export async function uu3_wasm(value) {
     }
   }
   
-  if (!value || typeof value !== 'string') {
-    return value;
-  }
-  
-  return wasmModule.decryptAES(value, '1234567890Oil#@1');
+  // 直接调用WASM函数，不进行任何逻辑处理
+  return wasmModule.uu3_wasm(value, getConfig);
 }
 
-// WASM版本的uu4函数
-export async function uu4_wasm(response) {
+// WASM版本的uu4函数（同步方式）
+export function uu4_wasm(responseFunc) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -185,38 +125,17 @@ export async function uu4_wasm(response) {
     }
   }
   
-  if (!response || typeof response !== 'object') {
-    return {};
-  }
-  
-  const data = response?.data;
-  if (!data || typeof data !== 'string') {
-    return response;
-  }
-  
-  if (!data.startsWith('02')) {
-    return response;
-  }
-  
-  const uuid = response?.uuid;
-  if (uuid) {
-    const timestamp = response?.timestamp || '';
-    const decrypted = wasmModule.processSpecialResponse(data, uuid, timestamp);
-    
-    if (decrypted && decrypted !== '{}') {
-      return JSON.parse(decrypted);
-    }
-  }
-  return {};
+  // 直接调用WASM函数，不进行任何逻辑处理
+  return wasmModule.uu4_wasm(responseFunc);
 }
 
-// 导出WASM模块的其他函数
-export async function getCurrentTimestamp() {
+// 导出WASM模块的其他函数（同步方式）
+export function getCurrentTimestamp() {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -229,12 +148,12 @@ export async function getCurrentTimestamp() {
   return wasmModule.getCurrentTimestamp();
 }
 
-export async function add(a, b) {
+export function add(a, b) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -247,13 +166,13 @@ export async function add(a, b) {
   return wasmModule.add(a, b);
 }
 
-// 导出generateNonce函数
-export async function generateNonce() {
+// 导出generateNonce函数（同步方式）
+export function generateNonce() {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -266,13 +185,13 @@ export async function generateNonce() {
   return wasmModule.generateNonce();
 }
 
-// 导出MD5哈希函数
-export async function md5Hash(input) {
+// 导出MD5哈希函数（同步方式）
+export function md5Hash(input) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -285,13 +204,13 @@ export async function md5Hash(input) {
   return wasmModule.md5Hash(input);
 }
 
-// 导出generateSign函数
-export async function generateSign(paramsJson, timestamp, nonce, secretKey) {
+// 导出generateSign函数（同步方式）
+export function generateSign(paramsJson, timestamp, nonce, secretKey) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -305,13 +224,13 @@ export async function generateSign(paramsJson, timestamp, nonce, secretKey) {
   return wasmModule.generateSign(paramsJson, BigInt(timestamp), nonce, secretKey);
 }
 
-// 导出processRequest函数
-export async function processRequest(requestData, requestUrl, codecConfig, codecKey) {
+// 导出processRequest函数（同步方式）
+export function processRequest(requestData, requestUrl, codecConfig, codecKey) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -324,13 +243,13 @@ export async function processRequest(requestData, requestUrl, codecConfig, codec
   return wasmModule.processRequest(requestData, requestUrl, codecConfig, codecKey);
 }
 
-// 导出processResponse函数
-export async function processResponse(responseData, originKey, timestamp) {
+// 导出processResponse函数（同步方式）
+export function processResponse(responseData, originKey, timestamp) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -343,13 +262,13 @@ export async function processResponse(responseData, originKey, timestamp) {
   return wasmModule.processResponse(responseData, originKey, timestamp);
 }
 
-// 导出AES加密函数
-export async function encryptAES(data, key) {
+// 导出AES加密函数（同步方式）
+export function encryptAES(data, key) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -362,13 +281,13 @@ export async function encryptAES(data, key) {
   return wasmModule.encryptAES(data, key);
 }
 
-// 导出AES解密函数
-export async function decryptAES(value, key) {
+// 导出AES解密函数（同步方式）
+export function decryptAES(value, key) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -381,13 +300,13 @@ export async function decryptAES(value, key) {
   return wasmModule.decryptAES(value, key);
 }
 
-// Storage Key加密函数
-export async function encryptStorageKey(key, systemCode) {
+// Storage Key加密函数（同步方式）
+export function encryptStorageKey(key, systemCode) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -400,13 +319,13 @@ export async function encryptStorageKey(key, systemCode) {
   return wasmModule.encryptStorageKey(key, systemCode);
 }
 
-// Storage Value加密函数
-export async function encryptStorageValue(value, key, systemCode, storageKey, storageEncode) {
+// Storage Value加密函数（同步方式）
+export function encryptStorageValue(value, key, systemCode, storageKey, storageEncode) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
@@ -419,13 +338,13 @@ export async function encryptStorageValue(value, key, systemCode, storageKey, st
   return wasmModule.encryptStorageValue(value, key, systemCode, storageKey, storageEncode);
 }
 
-// Storage Value解密函数
-export async function decryptStorageValue(value, key, systemCode, storageKey, storageEncode) {
+// Storage Value解密函数（同步方式）
+export function decryptStorageValue(value, key, systemCode, storageKey, storageEncode) {
   // 确保WASM已加载
   if (!wasmLoaded || !wasmModule) {
     // 尝试重新加载
     try {
-      await loadWasm();
+      loadWasm();
     } catch (error) {
       throw new Error('WASM module not loaded: ' + error.message);
     }
