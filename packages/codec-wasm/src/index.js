@@ -60,9 +60,7 @@ export function isWasmLoaded() {
 
 // 确保WASM已加载的辅助函数
 function ensureWasmLoaded() {
-  if (!wasmLoaded || !wasmModule) {
-    throw new Error('WASM module not loaded. Please call initWasm() first.');
-  }
+  initWasm();
 }
 
 // WASM版本的uu2函数（同步方式）
