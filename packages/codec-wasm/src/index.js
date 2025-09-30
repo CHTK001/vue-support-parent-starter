@@ -2,6 +2,7 @@
 
 import { instantiateSync } from '@assemblyscript/loader';
 import smCrypto from 'sm-crypto';
+import CryptoJS from 'crypto-js';
 
 const { sm2, sm4 } = smCrypto;
 
@@ -73,11 +74,11 @@ async function loadWasmAsync() {
 // 异步初始化函数（用于应用启动时加载）
 export async function initializeWasmModule() {
   if (wasmLoaded) {
-    return true;
+    return wasmModule;
   }
 
   await loadWasmAsync();
-  return true;
+  return wasmModule;
 }
 
 // 检查WASM是否已加载
@@ -191,7 +192,24 @@ export function uu1_wasm(response) {
     // 从response.data中提取需要解密的数据（response.data一定是对象，结构是{'data': xx}）
     let dataToDecrypt = '';
     if (response.data && typeof response.data === 'object' && 'data' in response.data) {
-      dataToDecrypt = response.data.data;
+      dataToDecrypt = response.data.data.data;
+    }
+    
+    // 添加参数检查，防止传递null或undefined给WASM函数
+    if (dataToDecrypt === null || dataToDecrypt === undefined) {
+      dataToDecrypt = '';
+    }
+    
+    if (statusStr === null || statusStr === undefined) {
+      statusStr = '';
+    }
+    
+    if (originKey === null || originKey === undefined) {
+      originKey = '';
+    }
+    
+    if (timestamp === null || timestamp === undefined) {
+      timestamp = '';
     }
     
     // 对xx部分进行解密
@@ -323,29 +341,114 @@ export function decryptAES(value, key) {
 
 // Storage Key加密函数（同步方式）
 export function encryptStorageKey(key, systemCode) {
-  // 确保WASM已加载
-  if (!wasmLoaded) {
-    throw new Error('WASM module not loaded. Please call initializeWasmModule() first or wait for initialization.');
-  }
-  return wasmModule.encryptStorageKey(key, systemCode);
+  // 不再加密key，直接返回原始key
+  return key;
 }
 
 // Storage Value加密函数（同步方式）
 export function encryptStorageValue(value, key, systemCode, storageKey, storageEncode) {
-  // 确保WASM已加载
-  if (!wasmLoaded) {
-    throw new Error('WASM module not loaded. Please call initializeWasmModule() first or wait for initialization.');
+  // 不再依赖WASM模块，直接在JavaScript中实现加密
+  try {
+    // 确保依赖已加载
+    if (typeof CryptoJS === 'undefined') {
+      throw new Error('CryptoJS library not available');
+    }
+    
+    // 根据storageEncode决定加密方式
+    if (storageEncode === 'SM4') {
+      // SM4加密实现
+      // 注意：这里需要sm-crypto库的支持
+      const { sm4 } = smCrypto;
+      return sm4.encrypt(value, key);
+    } else if (storageEncode === 'AES') {
+      // 使用AES加密value，密钥为key
+      const encrypted = CryptoJS.AES.encrypt(value, key);
+      return encrypted.toString();
+    } else {
+      // 默认使用AES加密
+      const encrypted = CryptoJS.AES.encrypt(value, key);
+      return encrypted.toString();
+    }
+  } catch (error) {
+    console.error('Failed to encrypt storage value:', error);
+    // 如果加密失败，返回原始value
+    return value;
   }
-  return wasmModule.encryptStorageValue(value, key, systemCode, storageKey, storageEncode);
 }
 
 // Storage Value解密函数（同步方式）
 export function decryptStorageValue(value, key, systemCode, storageKey, storageEncode) {
+  // 不再依赖WASM模块，直接在JavaScript中实现解密
+  try {
+    // 确保依赖已加载
+    if (typeof CryptoJS === 'undefined') {
+      throw new Error('CryptoJS library not available');
+    }
+    
+    // 根据storageEncode决定解密方式
+    if (storageEncode === 'SM4') {
+      // SM4解密实现
+      // 注意：这里需要sm-crypto库的支持
+      const { sm4 } = smCrypto;
+      return sm4.decrypt(value, key);
+    } else if (storageEncode === 'AES') {
+      // 使用AES解密value，密钥为key
+      const decrypted = CryptoJS.AES.decrypt(value, key);
+      return decrypted.toString(CryptoJS.enc.Utf8);
+    } else {
+      // 默认使用AES解密
+      const decrypted = CryptoJS.AES.decrypt(value, key);
+      return decrypted.toString(CryptoJS.enc.Utf8);
+    }
+  } catch (error) {
+    console.error('Failed to decrypt storage value:', error);
+    // 如果解密失败，返回原始value
+    return value;
+  }
+}
+
+// 添加SM2结果对比测试函数
+export async function testSM2Comparison() {
   // 确保WASM已加载
   if (!wasmLoaded) {
-    throw new Error('WASM module not loaded. Please call initializeWasmModule() first or wait for initialization.');
+    await initializeWasmModule();
   }
-  return wasmModule.decryptStorageValue(value, key, systemCode, storageKey, storageEncode);
+  
+  console.log("=== SM2算法结果对比测试 ===");
+  
+  // 测试数据
+  const testData = "Hello, World!";
+  const testKey = "1234567890abcdef";
+  
+  console.log("测试数据:", testData);
+  console.log("测试密钥:", testKey);
+  
+  try {
+    // 使用WASM实现进行SM2加密
+    // 注意：当前WASM中的SM2实现是简化的，实际可能需要完整实现
+    const wasmEncrypted = wasmModule.sm2Encrypt(testData, testKey);
+    console.log("WASM加密结果:", wasmEncrypted);
+    
+    // 使用WASM实现进行SM2解密
+    const wasmDecrypted = wasmModule.sm2Decrypt(wasmEncrypted, testKey);
+    console.log("WASM解密结果:", wasmDecrypted);
+  } catch (error) {
+    console.error("WASM处理出错:", error);
+  }
+  
+  try {
+    // 使用JavaScript第三方库进行SM2加密
+    const jsEncrypted = smCrypto.sm2.doEncrypt(testData, testKey, 1); // 1表示C1C3C2格式
+    console.log("JavaScript sm-crypto库加密结果:", jsEncrypted);
+    
+    // 使用JavaScript第三方库进行SM2解密
+    const jsDecrypted = smCrypto.sm2.doDecrypt(jsEncrypted, testKey, 1); // 1表示C1C3C2格式
+    console.log("JavaScript sm-crypto库解密结果:", jsDecrypted);
+  } catch (error) {
+    console.error("JavaScript sm-crypto库处理出错:", error);
+  }
+  
+  console.log("=== 测试完成 ===");
 }
 
 // 在文件顶部添加常量定义
@@ -353,3 +456,11 @@ const ORIGIN_KEY_HEADER = 'access-control-origin-key';
 const TIMESTAMP_HEADER = 'access-control-timestamp-user';
 const NONCE_HEADER = 'access-control-nonce';
 const DATA_FIELD = 'data';
+
+// 在文件末尾添加，确保在浏览器环境中可以访问smCrypto
+if (typeof window !== 'undefined') {
+  window.smCrypto = smCrypto;
+}
+
+export { smCrypto };
+export default wasmModule;

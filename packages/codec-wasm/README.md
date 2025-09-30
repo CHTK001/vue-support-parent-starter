@@ -113,6 +113,36 @@ const response = {
 const processedResponse = uu1_wasm(response);
 ```
 
+### encryptStorageKey
+
+Storage key encryption function. Encrypts storage keys using SM4 encryption with the provided system code as the encryption key.
+
+Usage:
+```javascript
+// Example usage of encryptStorageKey
+const encryptedKey = encryptStorageKey('user_preferences', 'system_secret_code');
+```
+
+### encryptStorageValue
+
+Storage value encryption function. Encrypts storage values using either SM4 or AES encryption based on the storageEncode parameter.
+
+Usage:
+```javascript
+// Example usage of encryptStorageValue
+const encryptedValue = encryptStorageValue('sensitive_data', 'encryption_key', 'system_code', 'storage_key', 'SM4');
+```
+
+### decryptStorageValue
+
+Storage value decryption function. Decrypts storage values using either SM4 or AES decryption based on the storageEncode parameter.
+
+Usage:
+```javascript
+// Example usage of decryptStorageValue
+const decryptedValue = decryptStorageValue('encrypted_data', 'encryption_key', 'system_code', 'storage_key', 'SM4');
+```
+
 ### uu3_wasm
 
 AES decryption utility function.

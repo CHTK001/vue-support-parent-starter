@@ -152,7 +152,7 @@ export const uu2 = async (request: PureHttpRequestConfig) => {
 };
 
 /** uu1 - 响应解密处理（直接调用WASM版本，同步方式） */
-export const uu1 = async (response: PureHttpResponse) => {
+export const uu1 = (response: PureHttpResponse) => {
   try {
     // 直接调用WASM版本，传递整个响应对象（同步方式）
     return uu1_wasm(response);

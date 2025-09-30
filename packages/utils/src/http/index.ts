@@ -198,7 +198,7 @@ class PureHttp {
         if (getConfig().RemoteAnimation) {
           NProgress.done();
         }
-        response = await uu1(response);
+        response = uu1(response);
         const data = response.data?.data || response.data;
         if (data instanceof Object && data?.data) {
           data.records = data?.data;

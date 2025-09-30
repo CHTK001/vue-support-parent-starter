@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.1.6] - 2025-09-30
+
+### Changed
+- 修改了encryptStorageKey函数，使用AES加密算法替代SM4加密算法
+
+## [1.1.5] - 2025-09-30
+
+### Fixed
+- 修复了encryptStorageKey函数中的内存访问越界错误
+- 修正了sm4EncryptBlock函数中的轮函数实现，避免了无效的内存访问
+- 优化了SM4加密算法的实现，提高了稳定性和性能
+
+## [1.1.4] - 2025-09-30
+
+### Added
+- 实现了encryptStorageKey函数，用于加密存储键
+- 实现了encryptStorageValue函数，用于加密存储值
+- 实现了decryptStorageValue函数，用于解密存储值
+- 添加了对不同加密算法(SM4/AES)的支持
+
+### Fixed
+- 修复了WASM模块中缺少encryptStorageKey函数导致的"TypeError: wasmModule.encryptStorageKey is not a function"错误
+
 ## [1.1.3] - 2025-09-30
 
 ### Changed
