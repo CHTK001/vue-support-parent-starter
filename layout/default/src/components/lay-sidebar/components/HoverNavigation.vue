@@ -675,37 +675,13 @@ const defer = useDefer(firstLevelMenus.value.length);
 
   &.is-active {
     background: var(--el-color-primary);
-    color: var(--pure-menu-active-text-color) !important; /* 使用新定义的变量，确保在所有主题下都是白色 */
+    color: #ffffff !important; /* 强制设置为白色确保可见性 */
     font-weight: 600;
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
     
-    /* 悬停时也保持白色 */
-    &:hover {
-      color: var(--pure-menu-active-text-color) !important;
-      
-      .menu-content {
-        color: var(--pure-menu-active-text-color) !important; /* 悬停时确保菜单内容文字也是白色 */
-        
-        .menu-icon {
-          color: var(--pure-menu-active-text-color) !important; /* 悬停时确保图标也是白色 */
-        }
-        
-        .menu-title {
-          color: var(--pure-menu-active-text-color) !important; /* 悬停时确保标题也是白色 */
-        }
-      }
-    }
-    
-    .menu-content {
-      color: var(--pure-menu-active-text-color) !important; /* 确保菜单内容文字也是白色 */
-      
-      .menu-icon {
-        color: var(--pure-menu-active-text-color) !important; /* 确保图标也是白色 */
-      }
-      
-      .menu-title {
-        color: var(--pure-menu-active-text-color) !important; /* 确保标题也是白色 */
-      }
+    svg,
+    i {
+      color: #ffffff !important; /* 强制设置为白色确保可见性 */
     }
   }
 
@@ -727,7 +703,6 @@ const defer = useDefer(firstLevelMenus.value.length);
       flex: 1;
       font-size: 14px;
       font-weight: 500;
-      color: #000000; /* 未选中状态为黑色 */
     }
   }
 
@@ -944,9 +919,14 @@ const defer = useDefer(firstLevelMenus.value.length);
     color: var(--pure-menu-active-text-color) !important; /* 使用新定义的变量，确保在所有主题下都是白色 */
     font-weight: 600;
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
+
   }
 }
-
+.is-active {
+  .menu-title {
+      color: #fff;
+    }
+}
 /* 收藏按钮 - 横向布局 */
 .favorite-btn {
   position: absolute;

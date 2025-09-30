@@ -147,3 +147,10 @@ function resolvePath(routePath: string) {
     </span>
   </el-sub-menu>
 </template>
+<style lang="scss" scoped>
+.router-link-exact-active {
+  .new-re-text {
+    color: #FFF !important;
+  }
+}
+</style>

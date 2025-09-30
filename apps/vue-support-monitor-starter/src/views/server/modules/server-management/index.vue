@@ -1388,24 +1388,12 @@ onUnmounted(() => {
         font-weight: 500;
         padding: 4px 12px;
         border: none;
-
-        &.el-tag--success {
-          background: linear-gradient(135deg, var(--el-color-success-light-8) 0%, var(--el-color-success-light-9) 100%);
-          color: var(--el-color-success);
-        }
-
-        &.el-tag--danger {
-          background: linear-gradient(135deg, var(--el-color-danger-light-8) 0%, var(--el-color-danger-light-9) 100%);
-          color: var(--el-color-danger);
-        }
       }
     }
 
     .group-management {
       .group-btn {
-        background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
         border: none;
-        color: var(--el-text-color-primary);
         font-weight: 500;
         padding: 8px 16px;
         border-radius: 8px;
@@ -1842,21 +1830,6 @@ onUnmounted(() => {
             font-weight: 500;
             font-size: 12px;
             border: none;
-
-            &.el-tag--success {
-              background: linear-gradient(135deg, var(--el-color-success-light-8) 0%, var(--el-color-success-light-9) 100%);
-              color: var(--el-color-success);
-            }
-
-            &.el-tag--danger {
-              background: linear-gradient(135deg, var(--el-color-danger-light-8) 0%, var(--el-color-danger-light-9) 100%);
-              color: var(--el-color-danger);
-            }
-
-            &.el-tag--warning {
-              background: linear-gradient(135deg, var(--el-color-warning-light-8) 0%, var(--el-color-warning-light-9) 100%);
-              color: var(--el-color-warning);
-            }
           }
 
           .protocol-icon {

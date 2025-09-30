@@ -704,183 +704,79 @@ onUnmounted(() => {
 }
 
 .menu-card {
-  min-width: 180px;
-  width: 180px;
-  height: 200px;
-  background: linear-gradient(145deg, #e0f2fe 0%, #b3e5fc 50%, #81d4fa 100%);
-  border: 2px solid #e2e8f0;
-  border-radius: 20px;
+  min-width: 120px;
+  width: 120px;
+  height: 140px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--el-border-color-lighter);
   position: relative;
-  overflow: visible;
-  /* 添加3D透视效果 */
-  perspective: 1000px;
-  transform-style: preserve-3d;
-  box-shadow:
-    0 8px 25px -5px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
-
-  /* 添加斜向渐变装饰条 */
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 60%;
-    height: 40%;
-    background: linear-gradient(135deg, hsl(calc(var(--card-hue, 220) + 0deg), 70%, 65%) 0%, hsl(calc(var(--card-hue, 220) + 30deg), 75%, 70%) 50%, transparent 100%);
-    border-radius: 0 18px 0 100%;
-    opacity: 0.8;
-    transition: all 0.4s ease;
-    z-index: 0;
-    clip-path: polygon(30% 0%, 100% 0%, 100% 70%, 0% 100%);
-  }
-
-  /* 纯白模式样式 */
-  &.white-mode {
-    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 50%, #e2e8f0 100%);
-    border-color: #e2e8f0;
-
-    &::before {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.6) 50%, transparent 100%);
-    }
-
-    &:hover {
-      background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
-      border-color: #cbd5e1;
-    }
-  }
+  overflow: hidden;
+  flex-shrink: 0;
 
   &:hover {
-    transform: translateY(-12px) scale(1.05);
-    box-shadow:
-      0 25px 50px -12px rgba(0, 0, 0, 0.15),
-      0 12px 20px -8px rgba(99, 102, 241, 0.2);
-    border-color: #6366f1;
-    background: linear-gradient(145deg, #bbdefb 0%, #90caf9 50%, #64b5f6 100%);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: var(--el-color-primary-light-3);
+  }
 
-    &::before {
-      opacity: 1;
+  &.is-active {
+    background: var(--el-color-primary);
+    color: #ffffff !important; /* 强制设置为白色确保可见性 */
+    border-color: var(--el-color-primary);
+    box-shadow: 0 8px 24px rgba(var(--el-color-primary-rgb), 0.3);
+    
+    .card-icon-area {
+      background: rgba(255, 255, 255, 0.2);
+      
+      .iconify,
+      svg,
+      i,
+      span {
+        color: #ffffff !important; /* 强制设置为白色确保可见性 */
+      }
     }
-  }
-
-  /* 防止拖拽时的hover效果 */
-  .is-dragging & {
-    pointer-events: none;
-  }
-
-  /* 所有内容相对定位，确保在渐变背景之上 */
-  > * {
-    position: relative;
-    z-index: 1;
+    
+    .card-title {
+      color: #ffffff !important; /* 强制设置为白色确保可见性 */
+    }
   }
 }
 
 .card-icon-area {
-  width: 110px;
-  height: 110px;
-  border: 3px solid #6366f1;
-  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  border: 2px solid #22c55e;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #e2e8f0 100%);
-  margin-bottom: 16px;
-  position: relative;
-  overflow: visible;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  /* 让图标凸出卡片表面 */
-  transform: translateZ(20px);
-  /* 添加强烈的阴影效果 */
-  box-shadow:
-    0 15px 35px rgba(99, 102, 241, 0.15),
-    0 8px 15px rgba(0, 0, 0, 0.1),
-    0 3px 6px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.15) 50%, transparent 100%);
-    border-radius: 13px;
-    opacity: 0;
-    transition: opacity 0.4s ease;
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 60%;
-    height: 60%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    opacity: 0;
-    transition: opacity 0.4s ease;
-  }
-
-  .menu-card:hover & {
-    border-color: #8b5cf6;
-    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 50%, #cbd5e1 100%);
-    transform: translateZ(30px) scale(1.15) rotate(5deg);
-    /* 悬停时更强的阴影效果 */
-    box-shadow:
-      0 25px 50px rgba(139, 92, 246, 0.25),
-      0 15px 25px rgba(0, 0, 0, 0.15),
-      0 8px 15px rgba(0, 0, 0, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9),
-      inset 0 -1px 0 rgba(139, 92, 246, 0.1);
-
-    &::before {
-      opacity: 1;
-    }
-
-    &::after {
-      opacity: 1;
-    }
-  }
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+  margin-bottom: 8px;
 
   .iconify {
-    font-size: 42px;
-    color: #6366f1;
-    position: relative;
-    z-index: 2;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 20px;
+    color: #22c55e;
   }
 
   span {
-    font-size: 32px;
-    font-weight: 700;
-    color: #6366f1;
-    position: relative;
-    z-index: 2;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .menu-card:hover & .iconify,
-  .menu-card:hover & span {
-    color: #8b5cf6;
-    transform: scale(1.1);
+    font-size: 16px;
+    font-weight: 600;
+    color: #22c55e;
   }
 }
 
 .card-title {
-  color: #475569;
-  font-size: 15px;
+  color: #374151;
+  font-size: 11px;
   text-align: center;
-  line-height: 1.4;
+  line-height: 1.3;
   font-weight: 600;
   word-break: break-all;
   display: -webkit-box;
@@ -888,15 +784,6 @@ onUnmounted(() => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   letter-spacing: 0.025em;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  z-index: 2;
-
-  .menu-card:hover & {
-    color: #6366f1;
-    font-weight: 700;
-    transform: translateY(-2px);
-  }
 }
 
 .scroll-arrow {
@@ -1126,6 +1013,28 @@ onUnmounted(() => {
     box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15);
     border-color: #22c55e;
     background: linear-gradient(145deg, #90caf9 0%, #64b5f6 100%);
+  }
+  
+  /* 添加选中状态样式 */
+  &.is-active {
+    background: var(--el-color-primary);
+    color: #ffffff !important; /* 强制设置为白色确保可见性 */
+    border-color: var(--el-color-primary);
+    box-shadow: 0 8px 24px rgba(var(--el-color-primary-rgb), 0.3);
+    
+    .sub-card-icon {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #ffffff;
+      
+      .iconify,
+      span {
+        color: #ffffff !important; /* 强制设置为白色确保可见性 */
+      }
+    }
+    
+    .sub-card-title {
+      color: #ffffff !important; /* 强制设置为白色确保可见性 */
+    }
   }
 }
 
