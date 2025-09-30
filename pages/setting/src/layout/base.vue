@@ -351,21 +351,6 @@ export default defineComponent({
       0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 
-  &.toggle-active {
-    background: linear-gradient(135deg, var(--el-color-success-light-8) 0%, var(--el-color-success-light-9) 100%);
-    border-color: var(--el-color-success-light-5);
-
-    .toggle-icon {
-      background-color: var(--el-color-success);
-      color: var(--el-text-color-primary);
-    }
-
-    .toggle-text {
-      color: var(--el-color-success-dark-2);
-      font-weight: 600;
-    }
-  }
-
   &:not(.toggle-active) {
     .toggle-icon {
       background-color: var(--el-color-danger-light-7);

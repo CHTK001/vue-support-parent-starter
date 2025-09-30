@@ -220,3 +220,68 @@ const defer = useDefer(menuData.value.length);
   user-select: none;
 }
 </style>
+
+<style lang="scss">
+// 垂直导航菜单选中状态颜色确保为白色
+.pure-sidebar-container {
+  :deep(.el-menu) {
+    .el-menu-item,
+    .el-sub-menu__title {
+      height: 46px;
+      margin: 4px 8px;
+      padding: 0 16px;
+      color: var(--app-text-primary); /* 未选中状态为黑色 */
+      background-color: transparent !important;
+      border-radius: 8px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      &:hover {
+        color: var(--app-text-primary) !important; /* 悬停时保持黑色 */
+        transform: translateX(2px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      div,
+      span {
+        height: 46px;
+        line-height: 46px;
+        font-size: 14px;
+        letter-spacing: 0.3px;
+        color: var(--app-text-primary); /* 未选中状态为黑色 */
+      }
+    }
+
+    .el-sub-menu {
+      &.is-active {
+        > .el-sub-menu__title {
+          color: var(--el-color-primary);
+          font-weight: 500;
+        }
+      }
+
+      .el-menu {
+        .el-menu-item {
+          &.is-active {
+            background: var(--el-color-primary) !important;
+            color: #ffffff !important; /* 强制设置为白色确保可见性 */
+
+            .el-icon {
+              color: #ffffff !important; /* 强制设置为白色确保可见性 */
+            }
+            
+            svg,
+            i {
+              color: #ffffff !important; /* 强制设置为白色确保可见性 */
+            }
+            
+            div,
+            span {
+              color: #ffffff !important; /* 强制设置为白色确保可见性 */
+            }
+          }
+        }
+      }
+    }
+  }
+}
+</style>

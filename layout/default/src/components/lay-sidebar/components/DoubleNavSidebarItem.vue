@@ -251,6 +251,11 @@ const isSubMenuOpened = computed(() => {
     display: none;
   }
 }
+.router-link-exact-active{
+  .new-re-text{
+    color: #fff;
+  }
+}
 
 // 自动展开模式：隐藏折叠箭头，但保持展开功能
 :deep(.auto-expand-submenu) {

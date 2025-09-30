@@ -289,11 +289,13 @@ const defer = useDefer(firstLevelMenus.value.length);
     }
   }
 }
+
 .el-menu-item.is-active {
   svg{
-    color: var(--pure-menu-active-text-color) !important; /* 使用新定义的变量 */
+    color: #ffffff !important; /* 强制设置为白色确保可见性 */
   }
 }
+
 // 左栏样式
 .double-nav-left {
   width: 64px;
@@ -345,61 +347,19 @@ const defer = useDefer(firstLevelMenus.value.length);
       }
 
       &.is-active {
-        color: var(--pure-menu-active-text-color) !important; /* 选中状态为白色 */
+        color: #ffffff !important; /* 强制设置为白色确保可见性 */
         
         /* 悬停时也保持白色 */
         &:hover {
-          color: var(--pure-menu-active-text-color) !important; /* 悬停时保持白色 */
+          color: #ffffff !important; /* 强制设置为白色确保可见性 */
           
           .menu-icon-only {
-            color: var(--pure-menu-active-text-color) !important; /* 悬停时保持白色 */
+            color: #ffffff !important; /* 强制设置为白色确保可见性 */
             
             svg,
             i {
-              color: var(--pure-menu-active-text-color) !important; /* 悬停时保持白色 */
+              color: #ffffff !important; /* 强制设置为白色确保可见性 */
             }
-          }
-        }
-      }
-
-      .menu-icon-only {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 24px;
-        height: 24px;
-        font-size: 18px;
-        color: #000000; /* 未选中状态为黑色 */
-
-        svg,
-        i {
-          width: 18px;
-          height: 18px;
-          color: #000000; /* 未选中状态为黑色 */
-        }
-      }
-
-      /* 深色主题下的样式 */
-      html.dark & {
-        color: #ffffff; /* 未选中状态为白色 */
-
-        .menu-icon-only {
-          color: #ffffff; /* 未选中状态为白色 */
-
-          svg,
-          i {
-            color: #ffffff; /* 未选中状态为白色 */
-          }
-        }
-      }
-
-      &.is-active {
-        .menu-icon-only {
-          color: var(--pure-menu-active-text-color) !important; /* 选中状态为白色 */
-
-          svg,
-          i {
-            color: var(--pure-menu-active-text-color) !important; /* 选中状态为白色 */
           }
         }
       }
@@ -440,6 +400,18 @@ const defer = useDefer(firstLevelMenus.value.length);
       :deep(.el-menu-item) {
         border-radius: 6px;
         margin: 2px 8px;
+        
+        /* 确保选中状态为白色 */
+        &.is-active {
+          background: var(--el-color-primary) !important;
+          color: #ffffff !important; /* 强制设置为白色确保可见性 */
+          
+          .el-icon,
+          svg,
+          i {
+            color: #ffffff !important; /* 强制设置为白色确保可见性 */
+          }
+        }
       }
 
       :deep(.el-sub-menu__title) {
