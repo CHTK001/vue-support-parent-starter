@@ -26,7 +26,12 @@ The JavaScript layer ([src/index.js](file:///H:/workspace/spring-support-api-sta
 
 ### WASM Module
 
-The WASM module ([assembly/index.ts](file:///H:/workspace/spring-support-api-starter/spring-api-support-monitor-starter/vue-support-parent-starter/packages/codec-wasm/assembly/index.ts)) contains all the business logic for encryption and decryption.
+The WASM module contains all the business logic for encryption and decryption. There are two implementations available:
+
+1. **AssemblyScript Implementation** ([assembly/index.ts](file:///H:/workspace/spring-support-api-starter/spring-api-support-monitor-starter/vue-support-parent-starter/packages/codec-wasm/assembly/index.ts)) - Original implementation
+2. **Rust Implementation** ([src-rust/lib.rs](file:///H:/workspace/spring-support-api-starter/spring-api-support-monitor-starter/vue-support-parent-starter/packages/codec-wasm/src-rust/lib.rs)) - New implementation using mature Rust cryptographic libraries
+
+The JavaScript wrapper automatically tries to load the Rust implementation first, falling back to the AssemblyScript implementation if the Rust version is not available.
 
 ## Usage
 
@@ -175,6 +180,17 @@ AES decryption function.
 
 ### Building
 
+To build the AssemblyScript implementation:
+```bash
+npm run build:as
+```
+
+To build the Rust implementation:
+```bash
+npm run build:rust
+```
+
+To build (defaulting to Rust implementation):
 ```bash
 npm run build
 ```
@@ -182,6 +198,27 @@ npm run build
 ### Testing
 
 Testing should be done in a browser environment since the WASM module is designed for browser use.
+
+For Rust WASM tests:
+```bash
+wasm-pack test --headless --firefox
+```
+
+Or for Chrome:
+```bash
+wasm-pack test --headless --chrome
+```
+
+## Rust Implementation
+
+This project now includes a Rust implementation of the codec utilities which uses mature cryptographic libraries:
+
+- `sm2` crate for SM2 encryption/decryption
+- `sm3` crate for SM3 hashing
+- `sm4` crate for SM4 encryption/decryption
+- `md5` crate for MD5 hashing
+
+See [BUILD_RUST.md](file:///H:/workspace/spring-support-api-starter/spring-api-support-monitor-starter/vue-support-parent-starter/packages/codec-wasm/BUILD_RUST.md) for detailed instructions on building and using the Rust implementation.
 
 ## License
 

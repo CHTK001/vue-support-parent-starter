@@ -172,7 +172,7 @@
     </div>
 
     <script type="module">
-        import { initializeWasmModule, testSM2Comparison } from './src/index.js';
+        import { initializeWasmModule, smCrypto } from './src/index.js';
 
         const runTestButton = document.getElementById('runTest');
         const logsContainer = document.getElementById('logs');
@@ -262,7 +262,6 @@
                 try {
                     console.log('正在使用JavaScript版本进行SM2加密...');
                     // 注意：sm-crypto库需要在浏览器环境中正确导入
-                    const smCrypto = window.smCrypto;
                     if (smCrypto && smCrypto.sm2) {
                         const jsEncryptedResult = smCrypto.sm2.doEncrypt(testData, testKey, 1); // 1表示C1C3C2格式
                         console.log('JavaScript sm-crypto库加密结果:', jsEncryptedResult);
@@ -286,13 +285,13 @@
                 try {
                     console.log('正在使用WASM版本进行SM2加密...');
                     // 确保WASM模块已正确加载
-                    const wasmModule = window.wasmModule;
+                    const wasmModule = await import('./build/codec_wasm.js');
                     if (wasmModule) {
-                        const wasmEncryptedResult = wasmModule.sm2Encrypt(testData, testKey);
+                        const wasmEncryptedResult = wasmModule.sm2_encrypt(testData, testKey);
                         console.log('WASM加密结果:', wasmEncryptedResult);
                         wasmEncrypted.textContent = wasmEncryptedResult;
                         
-                        const wasmDecryptedResult = wasmModule.sm2Decrypt(wasmEncryptedResult, testKey);
+                        const wasmDecryptedResult = wasmModule.sm2_decrypt(wasmEncryptedResult, testKey);
                         console.log('WASM解密结果:', wasmDecryptedResult);
                         wasmDecrypted.textContent = wasmDecryptedResult;
                     } else {
@@ -319,7 +318,6 @@
             try {
                 await initializeWasmModule();
                 console.log('WASM模块已初始化');
-                window.wasmModule = await import('./build/release.js');
             } catch (error) {
                 console.error('初始化WASM模块失败:', error);
             }
