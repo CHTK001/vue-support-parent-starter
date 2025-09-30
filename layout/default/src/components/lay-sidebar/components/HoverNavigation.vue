@@ -480,6 +480,7 @@ const defer = useDefer(firstLevelMenus.value.length);
         <div v-for="(menu, index) in firstLevelMenus" :key="menu.path" class="first-level-menu-item" :class="{ 'is-active': isMenuActive(menu) }" @mouseenter="handleMenuHover(menu, $event)" @mouseleave="handleMenuLeave" @click="handleMenuClick(menu)">
           <div class="menu-content">
             <IconifyIconOnline v-if="menu.meta?.icon" :icon="menu.meta.icon" class="menu-icon" />
+            <IconifyIconOnline v-else icon="ep:menu" class="menu-icon" />
             <span v-if="!isHoverCollapsed" class="menu-title">{{ menu.meta?.title }}</span>
             <!-- 收缩状态下只显示图标 -->
           </div>

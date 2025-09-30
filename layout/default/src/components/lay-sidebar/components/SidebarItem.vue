@@ -95,8 +95,8 @@ function resolvePath(routePath: string) {
 <template>
   <SidebarLinkItem v-if="hasOneShowingChild(item.children, item) && (!onlyOneChild.children || onlyOneChild.noShowingChildren)" :to="item">
     <el-menu-item :index="resolvePath(onlyOneChild.path)" :class="{ 'submenu-title-noDropdown': !isNest }" :style="getNoDropdownStyle" v-bind="attrs">
-      <div v-if="toRaw(item?.meta?.icon)" class="sub-menu-icon" :style="getSubMenuIconStyle">
-        <component :is="useRenderIcon(toRaw(onlyOneChild?.meta?.icon) || (item?.meta && toRaw(item?.meta?.icon)))" />
+      <div class="sub-menu-icon" :style="getSubMenuIconStyle">
+        <component :is="useRenderIcon(toRaw(onlyOneChild?.meta?.icon) || (item?.meta && toRaw(item?.meta?.icon)) || 'ep:menu')" />
       </div>
       <el-text v-if="(!item?.meta?.icon && isCollapse && layout === 'vertical' && item?.pathList?.length === 1) || (!onlyOneChild?.meta?.icon && isCollapse && layout === 'mix' && item?.pathList?.length === 2)" truncated class="!w-full !pl-4 ">
         {{ transformI18n(onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title) }}
@@ -121,8 +121,8 @@ function resolvePath(routePath: string) {
   </SidebarLinkItem>
   <el-sub-menu v-else ref="subMenu" teleported :index="resolvePath(item.path)" v-bind="expandCloseIcon">
     <template #title>
-      <div v-if="toRaw(item.meta.icon)" :style="getSubMenuIconStyle" class="sub-menu-icon">
-        <component :is="useRenderIcon(item.meta && toRaw(item.meta.icon))" />
+      <div :style="getSubMenuIconStyle" class="sub-menu-icon">
+        <component :is="useRenderIcon(item.meta && toRaw(item.meta.icon) || 'ep:menu')" />
       </div>
       <ReText
         v-if="layout === 'mix' && toRaw(item.meta.icon) ? !isCollapse || item?.pathList?.length !== 2 : !(layout === 'vertical' && isCollapse && toRaw(item.meta.icon) && item.parentId === null)"
@@ -147,10 +147,11 @@ function resolvePath(routePath: string) {
     </span>
   </el-sub-menu>
 </template>
+
 <style lang="scss" scoped>
 .router-link-exact-active {
   .new-re-text {
-    color: #FFF !important;
+    color: #FFF;
   }
 }
 </style>

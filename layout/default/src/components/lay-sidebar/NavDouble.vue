@@ -211,7 +211,7 @@ const defer = useDefer(firstLevelMenus.value.length);
           >
             <div class="menu-icon-only">
               <component :is="useRenderIcon(menu.meta?.icon)" v-if="menu.meta?.icon" />
-              <i v-else class="ri-folder-line" />
+              <component :is="useRenderIcon('ep:menu')" v-else />
             </div>
           </el-menu-item>
         </el-menu>
