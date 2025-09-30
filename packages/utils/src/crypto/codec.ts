@@ -3,181 +3,11 @@ import * as crypto from "./index";
 import type { PureHttpResponse, PureHttpRequestConfig } from "../http/types";
 import { getConfig } from "@repo/config";
 // 导入WASM版本的函数
-import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, initializeWasmModule, isWasmLoaded, generateNonce as generateNonceWasm, processRequest, processResponse } from "@repo/codec-wasm";
-
-// OTK存储接口
-interface OtkEntry {
-  key: string;
-  createTime: number;
-  used: boolean;
-}
-
-// OTK存储管理
-class OtkManager {
-  private static instance: OtkManager;
-  private otkStore: Map<string, OtkEntry> = new Map();
-  private readonly OTK_TTL_MS = 5 * 60 * 1000; // 5分钟
-  private readonly MAX_OTK_SIZE = 1000;
-  private cleanupTimer: NodeJS.Timeout | null = null;
-
-  private constructor() {
-    this.startCleanupTimer();
-  }
-
-  static getInstance(): OtkManager {
-    if (!OtkManager.instance) {
-      OtkManager.instance = new OtkManager();
-    }
-    return OtkManager.instance;
-  }
-
-  // 验证并使用OTK
-  validateAndUseOtk(otkId: string, key: string): boolean {
-    try {
-      const entry = this.otkStore.get(otkId);
-      
-      if (!entry) {
-        console.warn('OTK validation failed: OTK not found', { otkId });
-        return false;
-      }
-      
-      if (entry.used) {
-        console.warn('OTK validation failed: OTK already used', { otkId, createTime: entry.createTime });
-        return false;
-      }
-      
-      const now = Date.now();
-      const age = now - entry.createTime;
-      
-      if (age > this.OTK_TTL_MS) {
-        console.warn('OTK validation failed: OTK expired', { 
-          otkId, 
-          age: `${Math.round(age / 1000)}s`,
-          ttl: `${this.OTK_TTL_MS / 1000}s`
-        });
-        this.otkStore.delete(otkId);
-        return false;
-      }
-      
-      if (entry.key !== key) {
-        console.error('OTK validation failed: Key mismatch', { 
-          otkId,
-          expectedLength: key?.length || 0,
-          actualLength: entry.key?.length || 0
-        });
-        return false;
-      }
-      
-      // 标记为已使用
-      entry.used = true;
-      console.info('OTK validated and consumed successfully', { 
-        otkId, 
-        age: `${Math.round(age / 1000)}s`,
-        remainingOtks: this.otkStore.size - 1
-      });
-      return true;
-    } catch (error) {
-      console.error('OTK validation error:', error, { otkId });
-      return false;
-    }
-  }
-
-  // 存储OTK（用于测试或特殊场景）
-  storeOtk(otkId: string, key: string): void {
-    this.otkStore.set(otkId, {
-      key,
-      createTime: Date.now(),
-      used: false
-    });
-
-    // 如果超过最大限制，清理最旧的
-    if (this.otkStore.size > this.MAX_OTK_SIZE) {
-      const oldestEntry = Array.from(this.otkStore.entries())
-        .sort(([, a], [, b]) => a.createTime - b.createTime)[0];
-      if (oldestEntry) {
-        this.otkStore.delete(oldestEntry[0]);
-      }
-    }
-  }
-
-  // 清理过期的OTK
-  private cleanup(): void {
-    const now = Date.now();
-    let cleanedCount = 0;
-
-    for (const [otkId, entry] of this.otkStore.entries()) {
-      if (now - entry.createTime > this.OTK_TTL_MS) {
-        this.otkStore.delete(otkId);
-        cleanedCount++;
-      }
-    }
-
-    if (cleanedCount > 0) {
-      console.debug(`Cleaned ${cleanedCount} expired OTKs, remaining: ${this.otkStore.size}`);
-    }
-  }
-
-  // 启动清理定时器
-  private startCleanupTimer(): void {
-    if (this.cleanupTimer) {
-      clearInterval(this.cleanupTimer);
-    }
-    // 每2.5分钟清理一次过期的OTK
-    this.cleanupTimer = setInterval(() => this.cleanup(), this.OTK_TTL_MS / 2);
-  }
-
-  // 检查OTK是否过期
-  private isExpired(entry: OtkEntry): boolean {
-    return Date.now() - entry.createTime > this.OTK_TTL_MS;
-  }
-
-  // 强制清理所有过期OTK
-  forceCleanup(): number {
-    const beforeSize = this.otkStore.size;
-    this.cleanup();
-    const afterSize = this.otkStore.size;
-    return beforeSize - afterSize;
-  }
-
-  // 获取即将过期的OTK数量（1分钟内过期）
-  getExpiringCount(): number {
-    const now = Date.now();
-    const oneMinute = 60 * 1000;
-    let expiringCount = 0;
-
-    for (const entry of this.otkStore.values()) {
-      const timeLeft = this.OTK_TTL_MS - (now - entry.createTime);
-      if (timeLeft > 0 && timeLeft <= oneMinute) {
-        expiringCount++;
-      }
-    }
-
-    return expiringCount;
-  }
-
-  // 获取存储状态（用于调试）
-  getStats(): { total: number; used: number; expired: number } {
-    const now = Date.now();
-    let used = 0;
-    let expired = 0;
-
-    for (const entry of this.otkStore.values()) {
-      if (entry.used) used++;
-      if (now - entry.createTime > this.OTK_TTL_MS) expired++;
-    }
-
-    return {
-      total: this.otkStore.size,
-      used,
-      expired
-    };
-  }
-}
+import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, isWasmLoaded, generateNonce as generateNonceWasm, processRequest, processResponse } from "@repo/codec-wasm";
 
 // 常量定义
 const ORIGIN_KEY_HEADER = 'access-control-origin-key';
 const TIMESTAMP_HEADER = 'access-control-timestamp-user';
-const OTK_ID_HEADER = 'access-control-otk-id';
 const NONCE_HEADER = 'access-control-nonce';
 const ENCRYPTED_PREFIX = '02';
 const PREFIX_LENGTH = 8;
@@ -312,14 +142,8 @@ const isWasmEnabled = () => {
 /** uu2 - 请求加密处理（直接调用WASM版本，同步方式） */
 export const uu2 = async (request: PureHttpRequestConfig) => {
   try {
-    // 直接从请求对象中提取所需的数据
-    const requestData = typeof request.data === 'string' ? request.data : JSON.stringify(request.data);
-    const requestUrl = request.url || '';
-    const configOpenStr = getConfig(REQUEST_CODEC_CONFIG) === true ? "true" : "false";
-    const codecRequestKey = getConfig(CODEC_REQUEST_KEY_CONFIG) || '';
-    
-    // 直接调用WASM版本，传递实际需要的参数（同步方式）
-    return uu2_wasm(requestData, requestUrl, configOpenStr, codecRequestKey);
+    // 直接调用WASM版本，传递整个请求对象（同步方式）
+    return uu2_wasm(request);
   } catch (error) {
     console.error('Failed to process request with WASM:', error);
     // 如果WASM失败，直接返回原始请求
@@ -330,14 +154,8 @@ export const uu2 = async (request: PureHttpRequestConfig) => {
 /** uu1 - 响应解密处理（直接调用WASM版本，同步方式） */
 export const uu1 = async (response: PureHttpResponse) => {
   try {
-    // 直接从响应对象中提取所需的数据
-    const statusStr = response.status?.toString() || '0';
-    const responseData = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
-    const originKey = response.headers?.["access-control-origin-key"] || '';
-    const timestamp = response.headers?.["access-control-timestamp-user"] || '';
-    
-    // 直接调用WASM版本，传递实际需要的参数（同步方式）
-    return uu1_wasm(statusStr, responseData, originKey, timestamp);
+    // 直接调用WASM版本，传递整个响应对象（同步方式）
+    return uu1_wasm(response);
   } catch (error) {
     console.error('Failed to process response with WASM:', error);
     // 如果WASM失败，直接返回原始响应
@@ -420,30 +238,6 @@ const codecUtils = {
     if (typeof data === STRING_TYPE && data.length === 0) return false;
     if (typeof data === OBJECT_TYPE && Object.keys(data).length === 0) return false;
     return true;
-  },
-  
-  // OTK相关工具函数
-  otk: {
-    // 验证OTK ID格式
-    validateOtkId: (otkId: string) => {
-      if (!otkId || typeof otkId !== STRING_TYPE) return false;
-      // OTK ID应该以OTK_前缀开头，后跟时间戳和随机字符
-      return /^OTK_\d{13}_[A-F0-9]{16}$/.test(otkId);
-    },
-    
-    // 从OTK ID中提取时间戳
-    extractTimestamp: (otkId: string) => {
-      if (!codecUtils.otk.validateOtkId(otkId)) return null;
-      const parts = otkId.split('_');
-      return parts.length >= 2 ? parseInt(parts[1]) : null;
-    },
-    
-    // 检查OTK是否过期
-    isExpired: (otkId: string, ttlMs: number = 300000) => {
-      const timestamp = codecUtils.otk.extractTimestamp(otkId);
-      if (!timestamp) return true;
-      return Date.now() - timestamp > ttlMs;
-    }
   }
 };
 
@@ -451,4 +245,4 @@ const codecUtils = {
 export const codecUtilities = codecUtils;
 
 // 导出WASM相关函数
-export { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, initializeWasmModule, isWasmLoaded };
+export { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, isWasmLoaded };

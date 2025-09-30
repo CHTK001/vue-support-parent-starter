@@ -192,13 +192,13 @@ class PureHttp {
   private httpInterceptorsResponse(): void {
     const instance = PureHttp.axiosInstance;
     instance.interceptors.response.use(
-      (response: PureHttpResponse) => {
+      async (response: PureHttpResponse) => {
         const $config = response.config;
         // 关闭进度条动画
         if (getConfig().RemoteAnimation) {
           NProgress.done();
         }
-        response = uu1(response);
+        response = await uu1(response);
         const data = response.data?.data || response.data;
         if (data instanceof Object && data?.data) {
           data.records = data?.data;

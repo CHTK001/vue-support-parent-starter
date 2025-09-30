@@ -1,14 +1,58 @@
 # Changelog
 
-## [1.0.0] - 2025-09-29
+## [1.1.3] - 2025-09-30
+
+### Changed
+- 修改了uu2_wasm函数，使其直接接收PureHttpRequestConfig对象并在index.js中处理加密逻辑
+- 简化了codec.ts中的uu2函数实现，直接传递请求对象给WASM处理
+- 更新了AssemblyScript源码，添加了uu2_wasm函数的实现
 
 ### Added
-- Initial release of codec-wasm module
-- WebAssembly implementation of codec utilities for encryption/decryption
-- Implementation of SM2, SM4, and AES encryption/decryption algorithms
-- Object parameter passing to WASM using function wrappers
-- JavaScript layer acting as pure proxy without business logic
-- All business logic implemented in AssemblyScript WASM module
+- 在uu2_wasm函数中实现了根据配置判断是否开启加密的逻辑
+- 实现了只对GET和JSON请求进行加密，不处理表单数据的逻辑
+- 添加了加密密钥随机生成并写入header的功能
+
+## [1.1.2] - 2025-09-30
+
+### Changed
+- 修改了uu1_wasm函数，使其直接接收PureHttpResponse对象并在index.js中处理解密逻辑
+- 简化了codec.ts中的uu1函数实现，直接传递响应对象给WASM处理
+- 更新了AssemblyScript源码，添加了uu1_wasm函数的实现
+
+### Added
+- 在uu1_wasm函数中实现了根据header中的originKey值判断是否为加密数据的逻辑
+- 实现了解密后替换response.data并删除相关header的功能
+
+## [1.1.1] - 2025-09-30
+
+### Changed
+- 删除了JavaScript层WASM导入对象中冗余的加解密算法定义，因为这些算法已在WASM内部实现
+- 简化了WASM模块的导入对象，仅保留必要的环境函数
+
+## [1.1.0] - 2025-09-30
+
+### Added
+- 实现了完整的AES加解密算法在WASM源码中
+- 实现了SM2加解密算法的基础框架在WASM源码中
+- 添加了详细的README文档说明新功能
+
+### Changed
+- 修复了WASM模块加载问题
+- 优化了AssemblyScript代码结构
+- 改进了错误处理和边界检查
+
+### Fixed
+- 修复了AES加解密算法中的内存访问越界问题
+- 修复了SM2解密函数中的输入验证问题
+- 修复了WASM模块导出函数的绑定问题
+
+## [1.0.0] - 2025-09-20
+
+### Added
+- Initial release
+- SM4 encryption implementation
+- Basic WASM module structure
+- JavaScript proxy layer
 
 ### Changed
 - Modified JavaScript wrapper to ensure it only acts as a proxy

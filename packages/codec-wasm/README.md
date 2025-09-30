@@ -39,11 +39,9 @@ npm install @repo/codec-wasm
 ### Initialization
 
 ```javascript
-import { initializeWasmModule, isWasmLoaded } from '@repo/codec-wasm';
+import { isWasmLoaded } from '@repo/codec-wasm';
 
-// Initialize the WASM module
-await initializeWasmModule();
-
+// WASM module is automatically initialized in main.ts
 // Check if the WASM module is loaded
 if (isWasmLoaded()) {
   console.log('WASM module is loaded');
@@ -56,23 +54,64 @@ if (isWasmLoaded()) {
 import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm } from '@repo/codec-wasm';
 
 // Example usage of uu2_wasm
-const requestData = '{"name":"test","value":"data"}';
-const requestUrl = '/api/test';
-const configOpenStr = 'true';
-const codecRequestKey = 'encryption_key';
+const request = {
+  method: 'POST',
+  url: '/api/test',
+  data: { name: 'test', value: 'data' },
+  headers: { 'Content-Type': 'application/json' }
+};
 
-const result = uu2_wasm(requestData, requestUrl, configOpenStr, codecRequestKey);
+const processedRequest = uu2_wasm(request);
 ```
 
 ## Functions
 
 ### uu2_wasm
 
-Request encryption processing function.
+Request encryption processing function. This function receives a PureHttpRequestConfig object and processes encryption based on configuration.
+
+If encryption is enabled in the configuration, it encrypts GET requests and JSON requests using SM4 encryption:
+- Generates a random encryption key
+- Encrypts the request data with the random key
+- Encrypts the random key with the codec request key
+- Adds both keys to the request headers
+
+Usage:
+```javascript
+// Example usage of uu2_wasm
+const request = {
+  method: 'POST',
+  url: '/api/test',
+  data: { name: 'test', value: 'data' },
+  headers: { 'Content-Type': 'application/json' }
+};
+
+const processedRequest = uu2_wasm(request);
+```
 
 ### uu1_wasm
 
 Response decryption processing function.
+
+If the response contains an 'access-control-origin-key' header, it treats the response data as encrypted and processes it accordingly:
+- Decrypts the data using the provided keys
+- Replaces response.data with the decrypted content
+- Removes encryption-related headers from the response
+
+Usage:
+```javascript
+// Example usage of uu1_wasm
+const response = {
+  status: 200,
+  data: '{"data":"encrypted_content"}',
+  headers: {
+    'access-control-origin-key': 'some_key',
+    'access-control-timestamp-user': 'timestamp'
+  }
+};
+
+const processedResponse = uu1_wasm(response);
+```
 
 ### uu3_wasm
 
@@ -81,6 +120,26 @@ AES decryption utility function.
 ### uu4_wasm
 
 Special response decryption processing function.
+
+### sm4Encrypt
+
+SM4 encryption function.
+
+### sm2Encrypt
+
+SM2 encryption function.
+
+### sm2Decrypt
+
+SM2 decryption function.
+
+### aesEncrypt
+
+AES encryption function.
+
+### aesDecrypt
+
+AES decryption function.
 
 ## Development
 

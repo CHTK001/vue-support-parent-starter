@@ -20,7 +20,8 @@ export function encryptStorageValue(value: string, key: string, systemCode: stri
 export function decryptStorageValue(value: string, key: string, systemCode: string, storageKey: string, storageEncode: boolean): string;
 
 // 更新后的函数签名
-export function uu2_wasm(requestData: string, requestUrl: string, configOpenStr: string, codecRequestKey: string): any;
-export function uu1_wasm(statusStr: string, responseData: string, originKey: string, timestamp: string): any;
+// 修改uu2_wasm函数签名，接收PureHttpRequestConfig对象
+export function uu2_wasm(request: any): any;
+export function uu1_wasm(response: any): any;
 export function uu3_wasm(value: string, codecResponseKey: string): string;
 export function uu4_wasm(responseData: string, uuid: string, timestamp: string): string;
