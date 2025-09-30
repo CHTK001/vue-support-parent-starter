@@ -3330,11 +3330,8 @@ onUnmounted(() => {
       color: var(--el-text-color-primary);
       transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       background: var(--el-bg-color-overlay);
-      padding: 6px 10px;
       border-radius: 8px;
-      margin: 0 10px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-      border: 1px solid var(--el-border-color-light);
       letter-spacing: 0.4px;
       text-align: center;
       writing-mode: horizontal-tb;
