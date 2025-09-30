@@ -9,20 +9,18 @@
   "files": [
     "src/",
     "build/",
-    "assembly/"
+    "src-rust/"
   ],
   "scripts": {
-    "asbuild:debug": "asc assembly/index.ts --target debug",
-    "asbuild:release": "asc assembly/index.ts --target release --runtime stub",
-    "asbuild": "npm run asbuild:release",
-    "build": "npm run asbuild && node scripts/fix-build.mjs",
-    "test": "node test/wasm-test.js",
+    "rustbuild": "node scripts/build-rust.mjs",
+    "build": "npm run rustbuild",
+    "test": "node test/sm2-test.js",
     "dev": "vite"
   },
   "keywords": [
     "webassembly",
     "wasm",
-    "assemblyscript",
+    "rust",
     "crypto",
     "codec",
     "encryption",
@@ -31,11 +29,9 @@
   "author": "CH",
   "license": "MIT",
   "devDependencies": {
-    "assemblyscript": "^0.28.8",
     "vite": "^7.1.7"
   },
   "dependencies": {
-    "@assemblyscript/loader": "^0.28.8",
     "crypto-js": "^4.2.0",
     "sm-crypto": "^0.3.13"
   }
