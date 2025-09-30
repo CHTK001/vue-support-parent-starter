@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@assemblyscript/loader": "^0.28.8",
+    "crypto-js": "^4.2.0",
     "sm-crypto": "^0.3.13"
   }
 }

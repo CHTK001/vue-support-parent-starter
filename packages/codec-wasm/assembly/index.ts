@@ -109,36 +109,32 @@ function sm4KeySchedule(key: u32[]): u32[] {
 
 // SM4加密单个块
 function sm4EncryptBlock(block: u32[], rk: u32[]): u32[] {
-  let x0: u32 = block[0]
-  let x1: u32 = block[1]
-  let x2: u32 = block[2]
-  let x3: u32 = block[3]
+  let x0: u32 = block[0];
+  let x1: u32 = block[1];
+  let x2: u32 = block[2];
+  let x3: u32 = block[3];
   
   // 32轮加密
   for (let i: i32 = 0; i < 32; i++) {
-    const temp: u32 = x0
-    x0 = sm4RoundFunction(x0, x1, x2, x3, rk[i])
-    x1 = x1
-    x2 = x2
-    x3 = x3
+    const temp: u32 = x0 ^ x1 ^ x2 ^ x3 ^ rk[i];
+    const t: u32 = sm4SBox(temp);
+    const result: u32 = x0 ^ sm4LinearTransform(t);
+    
     // 循环移位
-    x1 = block[(i + 1) & 3]
-    x2 = block[(i + 2) & 3]
-    x3 = block[(i + 3) & 3]
-    block[0] = x0
-    block[1] = x1
-    block[2] = x2
-    block[3] = x3
+    x0 = x1;
+    x1 = x2;
+    x2 = x3;
+    x3 = result;
   }
   
   // 重新排列输出
-  const result: u32[] = new Array<u32>(4)
-  result[0] = block[3]
-  result[1] = block[2]
-  result[2] = block[1]
-  result[3] = block[0]
+  const result: u32[] = new Array<u32>(4);
+  result[0] = x3;
+  result[1] = x2;
+  result[2] = x1;
+  result[3] = x0;
   
-  return result
+  return result;
 }
 
 // 字符串转字节数组
@@ -543,7 +539,7 @@ const AES_INVERSE_SBOX: u8[] = [
   0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb,
   0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e,
   0x08, 0x2e, 0xa1, 0x66, 0x28, 0xd9, 0x24, 0xb2, 0x76, 0x5b, 0xa2, 0x49, 0x6d, 0x8b, 0xd1, 0x25,
-  0x72, 0xf8, 0xf6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xd4, 0xa4, 0x5c, 0xcc, 0x5d, 0x65, 0xb6, 0x92,
+ 0x72, 0xf8, 0xf6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xd4, 0xa4, 0x5c, 0xcc, 0x5d, 0x65, 0xb6, 0x92,
   0x6c, 0x70, 0x48, 0x50, 0xfd, 0xed, 0xb9, 0xda, 0x5e, 0x15, 0x46, 0x57, 0xa7, 0x8d, 0x9d, 0x84,
   0x90, 0xd8, 0xab, 0x00, 0x8c, 0xbc, 0xd3, 0x0a, 0xf7, 0xe4, 0x58, 0x05, 0xb8, 0xb3, 0x45, 0x06,
   0xd0, 0x2c, 0x1e, 0x8f, 0xca, 0x3f, 0x0f, 0x02, 0xc1, 0xaf, 0xbd, 0x03, 0x01, 0x13, 0x8a, 0x6b,
@@ -993,52 +989,249 @@ export function uu2_wasm(requestData: string, requestUrl: string, configOpenStr:
 
 // WASM版本的uu1函数实现
 export function uu1_wasm(statusStr: string, responseData: string, originKey: string, timestamp: string): string {
+  // 添加参数检查
+  if (statusStr === null) statusStr = "";
+  if (responseData === null) responseData = "";
+  if (originKey === null) originKey = "";
+  if (timestamp === null) timestamp = "";
+  
+  // 检查状态是否为200
+  if (statusStr !== "200") {
+    return responseData;
+  }
+  
+  // 检查responseData是否为空
+  if (responseData.length === 0) {
+    return responseData;
+  }
+  
+  // 限制responseData长度以避免内存问题
+  const maxDataLength: i32 = 50000; // 限制最大处理长度
+  if (responseData.length > maxDataLength) {
+    responseData = responseData.substring(0, maxDataLength);
+  }
+  
+  // 解析responseData，提取data字段
+  let dataValue = "";
+  // 检查responseData是否为对象结构{'data': xx}
+  const dataIndex = responseData.indexOf('"data":');
+  if (dataIndex !== -1) {
+    // 查找data字段的值
+    let dataValueStart = responseData.indexOf('"', dataIndex + 7); // 跳过'"data":'
+    if (dataValueStart !== -1) {
+      dataValueStart++; // 跳过开始的引号
+      
+      // 确保dataValueStart不会越界
+      if (dataValueStart < responseData.length) {
+        let dataValueEnd = responseData.length - 1;
+        // 查找结束引号
+        for (let i = dataValueStart; i < responseData.length; i++) {
+          // 确保索引不会越界
+          if (i >= responseData.length) break;
+          
+          if (responseData.charCodeAt(i) === 34) { // 34是双引号的ASCII码
+            // 检查是否是转义的引号
+            if (i > 0 && responseData.charCodeAt(i - 1) !== 92) { // 92是反斜杠的ASCII码
+              dataValueEnd = i;
+              break;
+            }
+          }
+        }
+        
+        // 检查是否找到了有效的数据范围
+        if (dataValueStart < dataValueEnd) {
+          // 确保数据范围不会越界
+          if (dataValueEnd >= responseData.length) {
+            dataValueEnd = responseData.length - 1;
+          }
+          
+          // 提取data字段的值
+          dataValue = responseData.substring(dataValueStart, dataValueEnd);
+        }
+      }
+    }
+  } else {
+    // 如果没有找到"data"字段，直接使用整个responseData
+    dataValue = responseData;
+  }
+  
+  // 检查dataValue是否为空
+  if (dataValue.length === 0) {
+    return responseData;
+  }
+  
+  // 限制dataValue长度以避免内存问题
+  const maxDataValueLength: i32 = 20000; // 限制最大处理长度
+  if (dataValue.length > maxDataValueLength) {
+    dataValue = dataValue.substring(0, maxDataValueLength);
+  }
+  
+  // 检查数据是否以"02"开头
+  if (dataValue.length < 2 || dataValue.substring(0, 2) !== "02") {
+    return responseData;
+  }
+  
   // 检查originKey是否存在
   if (originKey.length === 0) {
     return responseData;
   }
   
-  // responseData的结构是{'data': xx}，我们需要解析出xx部分
-  // 这里简化处理，假设responseData是一个JSON字符串，包含data字段
-  // 在实际应用中，可能需要更复杂的JSON解析
+  // 限制originKey长度以避免内存问题
+  const maxKeyLength: i32 = 1000; // 限制最大处理长度
+  let processedOriginKey = originKey;
+  if (originKey.length > maxKeyLength) {
+    processedOriginKey = originKey.substring(0, maxKeyLength);
+  }
   
-  // 查找"data"字段的位置
-  const dataIndex = responseData.indexOf('"data":');
-  if (dataIndex === -1) {
-    // 如果没有找到data字段，直接返回原始数据
+  // 限制timestamp长度
+  let processedTimestamp = timestamp;
+  if (timestamp.length > maxKeyLength) {
+    processedTimestamp = timestamp.substring(0, maxKeyLength);
+  }
+  
+  // 使用AES解密originKey
+  const decryptedOriginKey = aesDecrypt(processedOriginKey, processedTimestamp);
+  
+  // 从dataValue中提取加密数据（跳过前8个字符和后4个字符）
+  if (dataValue.length <= 12) { // 8 + 4 = 12
     return responseData;
   }
   
-  // 查找data字段的值
-  let dataValueStart = responseData.indexOf('"', dataIndex + 7); // 跳过'"data":'
-  if (dataValueStart === -1) {
-    return responseData;
-  }
-  dataValueStart++; // 跳过开始的引号
+  const encryptedData = dataValue.substring(8, dataValue.length - 4);
   
-  let dataValueEnd = responseData.length - 1;
-  // 查找结束引号
-  for (let i = dataValueStart; i < responseData.length; i++) {
-    if (responseData.charCodeAt(i) === 34) { // 34是双引号的ASCII码
-      // 检查是否是转义的引号
-      if (i > 0 && responseData.charCodeAt(i - 1) !== 92) { // 92是反斜杠的ASCII码
-        dataValueEnd = i;
-        break;
-      }
-    }
-  }
-  
-  // 检查是否找到了有效的数据范围
-  if (dataValueStart >= dataValueEnd) {
+  // 检查encryptedData是否为空
+  if (encryptedData.length === 0) {
     return responseData;
   }
   
-  // 提取data字段的值
-  const encryptedData = responseData.substring(dataValueStart, dataValueEnd);
+  // 限制encryptedData长度以避免内存问题
+  const maxEncryptedLength: i32 = 20000; // 限制最大处理长度
+  let processedEncryptedData = encryptedData;
+  if (encryptedData.length > maxEncryptedLength) {
+    processedEncryptedData = encryptedData.substring(0, maxEncryptedLength);
+  }
   
-  // 使用originKey解密数据
-  const decryptedData = sm4Decrypt(encryptedData, originKey);
+  // 使用SM2解密数据（这里使用SM4模拟，因为AssemblyScript中没有SM2实现）
+  // 在实际应用中，这里应该使用SM2解密
+  const decryptedData = sm4Decrypt(processedEncryptedData, decryptedOriginKey);
   
   // 返回解密后的数据
   return decryptedData;
+}
+
+// Storage Key加密函数
+export function encryptStorageKey(key: string, systemCode: string): string {
+  // 不再加密key，直接返回原始key
+  return key;
+}
+
+// Storage Value加密函数
+export function encryptStorageValue(value: string, key: string, systemCode: string, storageKey: string, storageEncode: string): string {
+  // 根据storageEncode决定加密方式
+  if (storageEncode === "SM4") {
+    // 使用SM4加密value，密钥为key
+    return sm4Encrypt(value, key);
+  } else if (storageEncode === "AES") {
+    // 使用AES加密value，密钥为key
+    return aesEncrypt(value, key);
+  } else {
+    // 默认使用SM4加密
+    return sm4Encrypt(value, key);
+  }
+}
+
+// Storage Value解密函数
+export function decryptStorageValue(value: string, key: string, systemCode: string, storageKey: string, storageEncode: string): string {
+  // 根据storageEncode决定解密方式
+  if (storageEncode === "SM4") {
+    // 使用SM4解密value，密钥为key
+    return sm4Decrypt(value, key);
+  } else if (storageEncode === "AES") {
+    // 使用AES解密value，密钥为key
+    return aesDecrypt(value, key);
+  } else {
+    // 默认使用SM4解密
+    return sm4Decrypt(value, key);
+  }
+}
+
+// MD5哈希函数实现
+export function md5Hash(input: string): string {
+  // 简化的MD5实现，实际应用中需要完整的MD5算法
+  // 这里仅作示意，返回输入字符串的简单哈希
+  
+  let hash: i32 = 0;
+  if (input.length === 0) return hash.toString(16);
+  
+  // 限制输入长度以避免潜在的内存问题
+  const maxLength: i32 = 10000; // 限制最大处理长度
+  const len: i32 = input.length < maxLength ? input.length : maxLength;
+  
+  // 添加额外的安全检查
+  if (len <= 0) return hash.toString(16);
+  
+  for (let i: i32 = 0; i < len; i++) {
+    // 确保索引不会越界
+    if (i >= input.length) break;
+    
+    const char: i32 = input.charCodeAt(i);
+    // 确保字符码不会导致溢出
+    if (char >= 0 && char <= 0x10FFFF) {
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // 转换为32位整数
+    }
+  }
+  
+  // 确保返回正数
+  const result: i32 = hash & 0x7FFFFFFF; // 确保是正数
+  return result.toString(16);
+}
+
+// 生成签名函数
+export function generateSign(paramsJson: string, timestamp: i64, nonce: string, secretKey: string): string {
+  // 添加参数检查
+  if (paramsJson === null) paramsJson = "";
+  if (nonce === null) nonce = "";
+  if (secretKey === null) secretKey = "";
+  
+  // 将所有参数拼接成一个字符串
+  let signString = paramsJson + timestamp.toString() + nonce + secretKey;
+  
+  // 限制签名字符串长度以避免内存问题
+  const maxSignLength: i32 = 20000;
+  if (signString.length > maxSignLength) {
+    signString = signString.substring(0, maxSignLength);
+  }
+  
+  // 使用MD5哈希生成签名
+  return md5Hash(signString);
+}
+
+// 简单的加法函数
+// This function is used in the HTML demo and should not be optimized away
+export function add(a: i32, b: i32): i32 {
+  // Ensure this function is not optimized away
+  if (a == 0 && b == 0) return 0;
+  return a + b;
+}
+
+// 生成nonce函数
+export function generateNonce(): string {
+  // 生成一个随机的nonce值
+  // 使用当前时间戳作为种子
+  const timestamp = Date.now();
+  
+  // 生成一个基于时间戳的随机字符串
+  let nonce = "";
+  let temp: i64 = timestamp;
+  
+  // 将时间戳转换为一个字符串
+  for (let i: i32 = 0; i < 16; i++) {
+    // 使用简单的伪随机数生成器
+    temp = (temp * 1103515245 + 12345) & 0x7fffffff;
+    const randomChar: i32 = i32(temp % 26) + 97; // 生成a-z的字符
+    nonce += String.fromCharCode(randomChar);
+  }
+  
+  return nonce;
 }

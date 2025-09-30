@@ -617,20 +617,111 @@ const deferTag = useDefer(tagsViews?.length);
 <style lang="scss" scoped>
 @import url("@repo/assets/layout/index.scss");
 
+// 标签页鼠标经过特效
+.scroll-item {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: var(--el-color-primary-light-9);
+    
+    .tag-title {
+      color: var(--el-color-primary);
+    }
+  }
+  
+  &.is-active {
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      background-color: var(--el-color-primary-light-8);
+    }
+  }
+}
+
+.chrome-item {
+  &:hover {
+    .chrome-tab__bg {
+      filter: brightness(1.05);
+    }
+    
+    .tag-title {
+      color: var(--el-color-primary);
+    }
+  }
+  
+  &.is-active {
+    &:hover {
+      .chrome-tab__bg {
+        filter: brightness(1.1);
+      }
+    }
+  }
+}
+
+.minimal-item, .rounded-item {
+  &:hover {
+    background-color: var(--el-color-primary-light-9);
+    
+    .tag-title {
+      color: var(--el-color-primary);
+    }
+  }
+  
+  &.is-active {
+    &:hover {
+      background-color: var(--el-color-primary-light-8);
+    }
+  }
+}
+
 // 深色主题下的特殊处理
 html.dark {
   .scroll-item {
     background-color: var(--app-bg-overlay);
     
     &:hover {
-      background-color: var(--el-bg-color-page); // 悬停时使用页面背景色而不是白色
+      background-color: var(--el-bg-color-page);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     }
     
     &.is-active {
       background-color: var(--app-bg-overlay);
       
       &:hover {
-        background-color: var(--el-bg-color-page); // 激活标签悬停时也使用页面背景色
+        background-color: var(--el-bg-color-page);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      }
+    }
+  }
+  
+  .chrome-item {
+    &:hover {
+      .chrome-tab__bg {
+        filter: brightness(1.2);
+      }
+    }
+    
+    &.is-active {
+      &:hover {
+        .chrome-tab__bg {
+          filter: brightness(1.3);
+        }
+      }
+    }
+  }
+  
+  .minimal-item, .rounded-item {
+    &:hover {
+      background-color: var(--el-bg-color-page);
+    }
+    
+    &.is-active {
+      &:hover {
+        background-color: var(--el-bg-color-page);
       }
     }
   }

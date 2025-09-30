@@ -16,8 +16,8 @@ export function encryptAES(data: string, key: string): string;
 export function decryptAES(value: string, key: string): string;
 
 export function encryptStorageKey(key: string, systemCode: string): string;
-export function encryptStorageValue(value: string, key: string, systemCode: string, storageKey: string, storageEncode: boolean): string;
-export function decryptStorageValue(value: string, key: string, systemCode: string, storageKey: string, storageEncode: boolean): string;
+export function encryptStorageValue(value: string, key: string, systemCode: string, storageKey: string, storageEncode: string): string;
+export function decryptStorageValue(value: string, key: string, systemCode: string, storageKey: string, storageEncode: string): string;
 
 // 更新后的函数签名
 // 修改uu2_wasm函数签名，接收PureHttpRequestConfig对象
