@@ -68,6 +68,12 @@ onMounted(() => {
 </template>
 <style lang="scss" scoped>
 .new-re-text {
-  color: var(--pure-menu-active-text-color) !important;
+  // 亮色主题下显示黑色文字
+  color: #000000;
+  
+  // 深色主题下显示白色文字
+  html.dark & {
+    color: #ffffff;
+  }
 }
 </style>

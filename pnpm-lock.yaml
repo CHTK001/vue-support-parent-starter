@@ -3554,6 +3554,9 @@ importers:
       '@assemblyscript/loader':
         specifier: ^0.28.8
         version: 0.28.8
+      sm-crypto:
+        specifier: ^0.3.13
+        version: 0.3.13
     devDependencies:
       assemblyscript:
         specifier: ^0.28.8

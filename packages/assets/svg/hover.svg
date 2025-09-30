@@ -1,26 +1,29 @@
 <svg viewBox="0 0 64 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- 极简左侧栏 -->
-  <rect x="2" y="2" width="12" height="44" rx="2" fill="currentColor" opacity="0.9"/>
-  <!-- 图标菜单项 -->
-  <rect x="5" y="6" width="6" height="6" rx="1" fill="currentColor" opacity="0.9"/>
-  <rect x="5" y="14" width="6" height="2" rx="1" fill="currentColor" opacity="0.7"/>
-  <rect x="5" y="18" width="6" height="2" rx="1" fill="currentColor" opacity="0.7"/>
-  <rect x="5" y="22" width="6" height="2" rx="1" fill="currentColor" opacity="0.7"/>
+  <!-- 极简左侧栏 (选中状态) -->
+  <rect x="2" y="2" width="12" height="44" rx="2" fill="#006ae6" opacity="1"/>
   
-  <!-- 悬停展开的子菜单 -->
-  <rect x="16" y="6" width="24" height="20" rx="2" fill="currentColor" stroke="currentColor" stroke-width="1" opacity="0.9"/>
-  <!-- 子菜单项 -->
-  <rect x="20" y="10" width="16" height="2" rx="1" fill="currentColor" opacity="0.8"/>
-  <rect x="20" y="14" width="16" height="2" rx="1" fill="currentColor" opacity="0.8"/>
-  <rect x="20" y="18" width="16" height="2" rx="1" fill="currentColor" opacity="0.8"/>
+  <!-- 图标菜单项 (选中状态) -->
+  <rect x="5" y="6" width="6" height="6" rx="1" fill="#ffffff" opacity="1"/>
+  <rect x="5" y="14" width="6" height="2" rx="1" fill="#ffffff" opacity="0.9"/>
+  <rect x="5" y="18" width="6" height="2" rx="1" fill="#ffffff" opacity="0.9"/>
+  <rect x="5" y="22" width="6" height="2" rx="1" fill="#ffffff" opacity="0.9"/>
+  
+  <!-- 悬停展开的子菜单 (选中状态) -->
+  <rect x="16" y="6" width="24" height="20" rx="2" fill="#ffffff" stroke="#006ae6" stroke-width="1" opacity="1"/>
+  
+  <!-- 子菜单项 (选中状态) -->
+  <rect x="20" y="10" width="16" height="2" rx="1" fill="#006ae6" opacity="1"/>
+  <rect x="20" y="14" width="16" height="2" rx="1" fill="#006ae6" opacity="1"/>
+  <rect x="20" y="18" width="16" height="2" rx="1" fill="#006ae6" opacity="1"/>
   
   <!-- 主内容区域 -->
-  <rect x="16" y="28" width="46" height="18" rx="2" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+  <rect x="16" y="28" width="46" height="18" rx="2" fill="#ffffff" stroke="#006ae6" stroke-width="1"/>
+  
   <!-- 内容条 -->
-  <rect x="20" y="32" width="38" height="2" rx="1" fill="currentColor"/>
-  <rect x="20" y="36" width="28" height="2" rx="1" fill="currentColor"/>
-  <rect x="20" y="40" width="32" height="2" rx="1" fill="currentColor"/>
+  <rect x="20" y="32" width="38" height="2" rx="1" fill="#006ae6"/>
+  <rect x="20" y="36" width="28" height="2" rx="1" fill="#006ae6"/>
+  <rect x="20" y="40" width="32" height="2" rx="1" fill="#006ae6"/>
   
   <!-- 连接线表示悬停关系 -->
-  <line x1="11" y1="16" x2="16" y2="16" stroke="currentColor" stroke-width="1" stroke-dasharray="2,2" opacity="0.6"/>
+  <line x1="11" y1="16" x2="16" y2="16" stroke="#ffffff" stroke-width="1" stroke-dasharray="2,2" opacity="1"/>
 </svg>
