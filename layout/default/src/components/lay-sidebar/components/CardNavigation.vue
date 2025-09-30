@@ -476,7 +476,7 @@ onUnmounted(() => {
           <div class="card-icon-area">
             <IconifyIconOnline v-if="menu.meta?.icon" :icon="menu.meta.icon" />
             <IconifyIconOnline v-else-if="menu.meta?.iconOnline" :icon="menu.meta.iconOnline" />
-            <span v-else>{{ menu.meta?.title?.charAt(0) || "?" }}</span>
+            <IconifyIconOnline v-else icon="ep:menu" />
           </div>
           <div v-if="props.showTitle" class="card-title">{{ menu.meta?.title }}</div>
         </div>
@@ -500,7 +500,7 @@ onUnmounted(() => {
           <div class="sub-card-icon">
             <IconifyIconOnline v-if="subMenu.meta?.icon" :icon="subMenu.meta.icon" />
             <IconifyIconOnline v-else-if="subMenu.meta?.iconOnline" :icon="subMenu.meta.iconOnline" />
-            <span v-else>{{ subMenu.meta?.title?.charAt(0) || "?" }}</span>
+            <IconifyIconOnline v-else icon="ep:menu" />
           </div>
           <div class="sub-card-title">{{ subMenu.meta?.title }}</div>
           <!-- 显示是否有更多子菜单的指示器 -->
@@ -516,7 +516,7 @@ onUnmounted(() => {
           <div class="sub-card-icon">
             <IconifyIconOnline v-if="subMenu.meta?.icon" :icon="subMenu.meta.icon" />
             <IconifyIconOnline v-else-if="subMenu.meta?.iconOnline" :icon="subMenu.meta.iconOnline" />
-            <span v-else>{{ subMenu.meta?.title?.charAt(0) || "?" }}</span>
+            <IconifyIconOnline v-else icon="ep:menu" />
           </div>
           <div class="sub-card-title">{{ subMenu.meta?.title }}</div>
           <!-- 显示是否有更多子菜单的指示器 -->
@@ -532,7 +532,7 @@ onUnmounted(() => {
           <div class="sub-card-icon">
             <IconifyIconOnline v-if="subMenu.meta?.icon" :icon="subMenu.meta.icon" />
             <IconifyIconOnline v-else-if="subMenu.meta?.iconOnline" :icon="subMenu.meta.iconOnline" />
-            <span v-else>{{ subMenu.meta?.title?.charAt(0) || "?" }}</span>
+            <IconifyIconOnline v-else icon="ep:menu" />
           </div>
           <div class="sub-card-title">{{ subMenu.meta?.title }}</div>
         </div>
