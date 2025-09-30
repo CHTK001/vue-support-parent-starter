@@ -24,7 +24,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import IconifyIconOnline from '@/components/IconifyIconOnline.vue'
 
 export interface MenuItem {
   key: string
