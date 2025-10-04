@@ -1,4 +1,3 @@
-import { sm2, sm4 } from "sm-crypto";
 import * as crypto from "./index";
 import type { PureHttpResponse, PureHttpRequestConfig } from "../http/types";
 import { getConfig } from "@repo/config";
@@ -40,7 +39,8 @@ export const uu2 = (request: PureHttpRequestConfig) => {
   }
   var data1 = JSON.stringify(body);
   try {
-    const newData = sm4.encrypt(data1, getConfig("codecRequestKey"));
+    // 使用WASM版本的加密函数
+    const newData = crypto.encryptAES(data1, getConfig("codecRequestKey"));
     request.data = isArray ? [{ data: newData }] : { data: newData };
     request.headers["access-control-origin-key"] = new Date().getTime();
     return request;
@@ -48,13 +48,14 @@ export const uu2 = (request: PureHttpRequestConfig) => {
     return request;
   }
 };
+
 /** uu1 */
 export const uu1 = (response: PureHttpResponse) => {
-  return uu(sm2, response);
+  return uu(response);
 };
 
 /** uu */
-const uu = (sm2, response: PureHttpResponse) => {
+const uu = (response: PureHttpResponse) => {
   if (response.status == 200) {
     var data = response.data?.data || response.data;
     if (typeof data !== "string") {
@@ -75,11 +76,11 @@ const uu = (sm2, response: PureHttpResponse) => {
     if (origin) {
       const ts = response?.headers?.["access-control-timestamp-user"];
       try {
+        // 使用WASM版本的解密函数
         response.data = JSON.parse(
-          sm2.doDecrypt(
+          crypto.decryptAES(
             data.substring(8, data.length - 4),
-            crypto.default.AES.decrypt(origin, ts),
-            0,
+            crypto.decryptAES(origin, ts),
           ),
         );
       } catch (err) {}
@@ -87,10 +88,13 @@ const uu = (sm2, response: PureHttpResponse) => {
   }
   return response;
 };
+
 /** uu3 */
 export const uu3 = (value: string) => {
-  return crypto.default.AES.decrypt(value, "1234567890Oil#@1");
+  // 使用WASM版本的解密函数
+  return crypto.decryptAES(value, "1234567890Oil#@1");
 };
+
 /** uu4 */
 export const uu4 = (response) => {
   var data = response?.data;
@@ -101,11 +105,11 @@ export const uu4 = (response) => {
   if (origin) {
     const ts = response?.timestamp;
     try {
+      // 使用WASM版本的解密函数
       return JSON.parse(
-        sm2.doDecrypt(
+        crypto.decryptAES(
           data.substring(8, data.length - 4),
-          crypto.default.AES.decrypt(origin, ts),
-          0,
+          crypto.decryptAES(origin, ts),
         ),
       );
     } catch (err) {}
