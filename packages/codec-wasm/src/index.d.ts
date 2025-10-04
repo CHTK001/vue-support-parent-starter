@@ -1,6 +1,6 @@
 // codec-wasm TypeScript声明文件
 
-export function initializeWasmModule(): Promise<boolean>;
+export function initializeWasmModule(): Promise<any>;
 export function isWasmLoaded(): boolean;
 
 export function generateNonce(): string;
@@ -23,5 +23,5 @@ export function decryptStorageValue(value: string, key: string, systemCode: stri
 // 修改uu2_wasm函数签名，接收PureHttpRequestConfig对象
 export function uu2_wasm(request: any): any;
 export function uu1_wasm(response: any): any;
-export function uu3_wasm(value: string, codecResponseKey: string): string;
-export function uu4_wasm(responseData: string, uuid: string, timestamp: string): string;
+export function uu3_wasm(value: string): string;
+export function uu4_wasm(response: any): any;

@@ -1,0 +1,1 @@
+searchState.loadedDescShard("sm4", 0, "An implementation of the SM4 block cipher.\nSM4 cipher\nReturns the argument unchanged.\nCalls <code>U::from(self)</code>.")

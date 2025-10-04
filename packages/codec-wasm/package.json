@@ -8,19 +8,15 @@
   "type": "module",
   "files": [
     "src/",
-    "build/",
-    "src-rust/"
+    "build/"
   ],
   "scripts": {
-    "rustbuild": "node scripts/build-rust.mjs",
-    "build": "npm run rustbuild",
     "test": "node test/sm2-test.js",
     "dev": "vite"
   },
   "keywords": [
     "webassembly",
     "wasm",
-    "rust",
     "crypto",
     "codec",
     "encryption",
@@ -32,7 +28,6 @@
     "vite": "^7.1.7"
   },
   "dependencies": {
-    "crypto-js": "^4.2.0",
-    "sm-crypto": "^0.3.13"
+    "sm-crypto": "^0.3.12"
   }
 }

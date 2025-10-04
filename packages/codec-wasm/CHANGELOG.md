@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.2.0] - 2025-09-30
+
+### Changed
+- 完全移除了AssemblyScript实现，仅保留Rust实现
+- 更新了JavaScript包装器以直接加载WASM文件而不是JS绑定文件
+- 修改了构建脚本以使用Rust直接编译到WASM
+- 简化了项目结构，删除了不必要的文件
+
+### Added
+- 实现了基于Rust的WASM模块，使用成熟的加密库
+- 添加了内存管理函数(alloc/dealloc)以支持字符串传递
+- 实现了XOR加密算法以匹配JavaScript版本的行为
+
+### Fixed
+- 修复了WASM版本和JavaScript版本加密结果不一致的问题
+- 解决了WASM模块导入对象缺失的问题
+- 修正了index.html中对已删除文件的引用
+
 ## [1.1.6] - 2025-09-30
 
 ### Changed
