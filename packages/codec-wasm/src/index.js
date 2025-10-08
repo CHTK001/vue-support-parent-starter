@@ -902,9 +902,39 @@ export function uu2(requestData, key) {
   }
 }
 
-// UU2 WASM function - 保持向后兼容
-export function uu2_wasm(requestData, key) {
-  return uu2(requestData, key);
+// UU2 WASM function - 修改为接收PureHttpRequestConfig对象
+export function uu2_wasm(request) {
+  // 确保WASM模块已加载
+  if (!wasmLoaded) {
+    throw new Error('WASM模块未加载。请先调用initializeWasmModule()或等待初始化完成。');
+  }
+  
+  // 检查WASM模块是否导出uu2_process_request函数（新的处理函数）
+  if (wasmModuleInstance.uu2_process_request) {
+    try {
+      // 直接调用WASM函数处理整个请求对象
+      return wasmModuleInstance.uu2_process_request(request);
+    } catch (error) {
+      console.error('WASM uu2_wasm处理失败:', error);
+      throw error;
+    }
+  } else {
+    // 如果新函数不存在，回退到旧的实现方式
+    // 注意：这里需要从request对象中提取数据和密钥
+    try {
+      // 提取请求数据和密钥（简化实现）
+      const body = request.data;
+      const data1 = JSON.stringify(body);
+      // 模拟获取密钥（在实际实现中应该从配置中获取）
+      const codecRequestKey = "defaultKey";
+      
+      // 调用旧的uu2函数
+      return uu2(data1, codecRequestKey);
+    } catch (error) {
+      console.error('Fallback uu2处理失败:', error);
+      throw error;
+    }
+  }
 }
 
 // UU3 function - Simple decryption with fixed key

@@ -60,12 +60,9 @@ export const uu2 = (request: PureHttpRequestConfig) => {
   }
   var data1 = JSON.stringify(body);
   try {
-    // 使用WASM版本的加密函数
-    const newData = crypto.uu2(data1, codecRequestKey);
-    request.data = isArray ? [{ data: newData }] : { data: newData };
-    request.headers = request.headers || {};
-    request.headers["access-control-origin-key"] = new Date().getTime();
-    return request;
+    // 使用WASM版本的加密函数，传递整个请求对象
+    const processedRequest = crypto.uu2_wasm(request);
+    return processedRequest;
   } catch (error) {
     return request;
   }

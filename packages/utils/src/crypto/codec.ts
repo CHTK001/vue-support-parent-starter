@@ -140,10 +140,12 @@ const isWasmEnabled = () => {
 };
 
 /** uu2 - 请求加密处理（直接调用WASM版本，同步方式） */
-export const uu2 = async (request: PureHttpRequestConfig) => {
+export const uu2 = async (request: PureHttpRequestConfig): Promise<PureHttpRequestConfig> => {
   try {
     // 直接调用WASM版本，传递整个请求对象（同步方式）
-    return uu2_wasm(request);
+    const result = await uu2_wasm(request);
+    // 确保返回的是PureHttpRequestConfig类型
+    return result as PureHttpRequestConfig;
   } catch (error) {
     console.error('Failed to process request with WASM:', error);
     // 如果WASM失败，直接返回原始请求
@@ -170,7 +172,7 @@ export const uu3 = async (value: string) => {
     const codecResponseKey = getConfig("codecResponseKey") as string || '';
     
     // 直接调用WASM版本，传递实际需要的参数（同步方式）
-    return uu3_wasm(value, codecResponseKey);
+    return uu3_wasm(value);
   } catch (error) {
     console.error('Failed to decrypt with WASM:', error);
     // 如果WASM失败，直接返回原始值
@@ -187,7 +189,7 @@ export const uu4 = async (response: any) => {
     const timestamp = response.timestamp || '';
     
     // 直接调用WASM版本，传递实际需要的参数（同步方式）
-    const result = uu4_wasm(responseData, uuid, timestamp);
+    const result = uu4_wasm(response);
     
     // 如果结果是JSON字符串，尝试解析它
     if (typeof result === 'string' && result.length > 0) {
@@ -244,5 +246,5 @@ const codecUtils = {
 // 导出工具函数
 export const codecUtilities = codecUtils;
 
-// 导出WASM相关函数
-export { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, isWasmLoaded };
+// 导出WASM相关函数和我们定义的uu1函数
+export { uu1, uu2_wasm, uu3_wasm, uu4_wasm, isWasmLoaded };
