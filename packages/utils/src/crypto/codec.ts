@@ -247,4 +247,4 @@ const codecUtils = {
 export const codecUtilities = codecUtils;
 
 // 导出WASM相关函数和我们定义的uu1函数
-export { uu1, uu2_wasm, uu3_wasm, uu4_wasm, isWasmLoaded };
+export { uu2_wasm, uu3_wasm, uu4_wasm, isWasmLoaded };
