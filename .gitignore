@@ -48,3 +48,4 @@ tests/**/coverage/
 *.sln
 tsconfig.tsbuildinfo
 target/*
+*.html

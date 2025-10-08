@@ -12,18 +12,19 @@ hex = "0.4"
 md-5 = "0.10"
 sm3 = "0.4"
 sm4 = "0.4"
+sm2 = "0.13.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 js-sys = "0.3"
-# 使用标准的加密库
+base64 = "0.21"
+# 添加AES加密库依赖
 aes = "0.8"
 cbc = "0.1"
 block-padding = "0.3"
-base64 = "0.21"
-generic-array = "0.14"
-
-# 为了解决版本冲突，明确指定cipher版本
-cipher = "0.4"
+# 添加wasm-bindgen依赖
+wasm-bindgen = "0.2"
+# 添加smcrypto库用于SM2加密解密
+smcrypto = "0.3.1"
 
 [dependencies.web-sys]
 version = "0.3"
