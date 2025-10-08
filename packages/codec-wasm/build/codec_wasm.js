@@ -353,7 +353,7 @@ export function encrypt_storage_key(key_ptr, key_len, system_code_ptr, system_co
  * @returns {number}
  */
 export function encrypt_storage_value(value_ptr, value_len, key_ptr, key_len, system_code_ptr, system_code_len, storage_key_ptr, storage_key_len, storage_encode_ptr, storage_encode_len) {
-    const ret = wasm.encrypt_storage_value(value_ptr, value_len, key_ptr, key_len, system_code_ptr, system_code_len, storage_key_ptr, storage_key_len, storage_encode_ptr, storage_encode_len);
+    const ret = wasm.decrypt_storage_value(value_ptr, value_len, key_ptr, key_len, system_code_ptr, system_code_len, storage_key_ptr, storage_key_len, storage_encode_ptr, storage_encode_len);
     return ret >>> 0;
 }
 

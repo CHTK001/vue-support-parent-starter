@@ -40,7 +40,22 @@ pub fn dealloc(ptr: *mut u8, size: usize) {
 
 // String utilities
 fn string_from_ptr(ptr: *const u8, len: usize) -> String {
+    if ptr.is_null() || len == 0 {
+        return String::new();
+    }
+    
     unsafe {
+        // 检查指针是否有效
+        if ptr.is_null() {
+            return String::new();
+        }
+        
+        // 确保长度不会导致溢出
+        if len > 1000000 {  // 限制最大长度为1MB
+            return String::new();
+        }
+        
+        // 使用更安全的方式创建切片
         let slice = std::slice::from_raw_parts(ptr, len);
         String::from_utf8_lossy(slice).into_owned()
     }
@@ -703,9 +718,23 @@ pub fn uu4_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
 // SM2 signature generation function
 #[wasm_bindgen]
 pub fn generate_sign(data_ptr: *const u8, data_len: usize, private_key_ptr: *const u8, private_key_len: usize) -> *mut u8 {
+    // 验证输入参数
+    if data_ptr.is_null() || private_key_ptr.is_null() {
+        return string_to_ptr("");
+    }
+    
+    if data_len == 0 || private_key_len == 0 {
+        return string_to_ptr("");
+    }
+    
     // 获取字符串数据
     let data = string_from_ptr(data_ptr, data_len);
     let private_key_hex = string_from_ptr(private_key_ptr, private_key_len);
+    
+    // 验证数据是否为空
+    if data.is_empty() || private_key_hex.is_empty() {
+        return string_to_ptr("");
+    }
     
     // 使用smcrypto库进行SM2签名
     // 注意：smcrypto库期望私钥是十六进制字符串格式
@@ -722,10 +751,24 @@ pub fn generate_sign(data_ptr: *const u8, data_len: usize, private_key_ptr: *con
 // SM2 signature verification function
 #[wasm_bindgen]
 pub fn verify_sign(data_ptr: *const u8, data_len: usize, signature_ptr: *const u8, signature_len: usize, public_key_ptr: *const u8, public_key_len: usize) -> bool {
+    // 验证输入参数
+    if data_ptr.is_null() || signature_ptr.is_null() || public_key_ptr.is_null() {
+        return false;
+    }
+    
+    if data_len == 0 || signature_len == 0 || public_key_len == 0 {
+        return false;
+    }
+    
     // 获取字符串数据
     let data = string_from_ptr(data_ptr, data_len);
     let signature_hex = string_from_ptr(signature_ptr, signature_len);
     let public_key_hex = string_from_ptr(public_key_ptr, public_key_len);
+    
+    // 验证数据是否为空
+    if data.is_empty() || signature_hex.is_empty() || public_key_hex.is_empty() {
+        return false;
+    }
     
     // 十六进制解码签名
     let signature_bytes = match hex::decode(&signature_hex) {
