@@ -99,6 +99,11 @@ class PureHttp {
       async (config: PureHttpRequestConfig): Promise<any> => {
         config.baseURL = getConfig().BaseUrl;
         config = await uu2(config);
+        // 确保headers对象存在
+        if (!config.headers) {
+          config.headers = {};
+        }
+        // 修复：确保headers存在再访问其属性
         const an = config.headers["x-remote-animation"] || config.headers["loading"];
         config.headers["x-req-fingerprint"] = localStorageProxy().getItem("visitId");
         

@@ -1,11 +1,16 @@
 // codec-wasm JavaScript包装器
 
 // 引入sm-crypto库
-import * as smCrypto from 'sm-crypto';
+import smCrypto from 'sm-crypto';
+// 引入crypto-js库用于AES加密
+import CryptoJS from 'crypto-js';
+// 引入wasm-bindgen生成的WASM包装器
+import init, * as wasmCodec from '../build/codec_wasm.js';
 
 let wasmModule = null;
 let wasmLoaded = false;
 let wasmModuleInstance = null;
+let wasmMemory = null; // 添加内存对象的引用
 
 // 字符串编码和解码工具
 const encoder = new TextEncoder();
@@ -14,6 +19,24 @@ const decoder = new TextDecoder();
 // 内存管理函数
 let allocFunction = null;
 let deallocFunction = null;
+
+// 安全访问WASM内存的辅助函数
+function getWasmMemory() {
+  // 检查是否已设置内存对象
+  if (wasmMemory) {
+    return wasmMemory;
+  }
+  // 检查wasmCodec是否正确加载并包含memory
+  if (wasmCodec && wasmCodec.default && wasmCodec.default.memory) {
+    return wasmCodec.default.memory;
+  }
+  // 如果default.memory不存在，尝试直接访问memory
+  if (wasmCodec && wasmCodec.memory) {
+    return wasmCodec.memory;
+  }
+  // 如果都不存在，抛出错误
+  throw new Error('WASM memory is not available');
+}
 
 // 将字符串转换为WASM内存中的指针
 function stringToWasm(str) {
@@ -27,7 +50,8 @@ function stringToWasm(str) {
     // 使用WASM的alloc函数
     const bytes = encoder.encode(str);
     const ptr = allocFunction(bytes.length);
-    const memory = new Uint8Array(wasmModuleInstance.memory.buffer, ptr, bytes.length);
+    // 使用安全的方式访问内存
+    const memory = new Uint8Array(getWasmMemory().buffer, ptr, bytes.length);
     memory.set(bytes);
     return { ptr, len: bytes.length };
   } 
@@ -36,7 +60,8 @@ function stringToWasm(str) {
     // 使用AssemblyScript的内存管理
     const bytes = encoder.encode(str);
     const ptr = wasmModuleInstance.__new(bytes.length, 1); // 1表示字符串类型
-    const memory = new Uint8Array(wasmModuleInstance.memory.buffer, ptr, bytes.length);
+    // 使用安全的方式访问内存
+    const memory = new Uint8Array(getWasmMemory().buffer, ptr, bytes.length);
     memory.set(bytes);
     return { ptr, len: bytes.length };
   } else {
@@ -67,7 +92,8 @@ function stringFromWasm(ptr) {
   } else {
     // 尝试从内存中读取以null结尾的字符串
     try {
-      const memory = new Uint8Array(wasmModuleInstance.memory.buffer);
+      // 使用安全的方式访问内存
+      const memory = new Uint8Array(getWasmMemory().buffer);
       let end = ptr;
       
       // 查找字符串结束位置（遇到null字符或超出合理范围）
@@ -95,70 +121,32 @@ async function loadWasmAsync() {
   }
 
   try {
-    // 直接加载WASM文件
-    const wasmUrl = new URL('../build/codec_wasm.wasm', import.meta.url);
-    console.log('Loading WASM from:', wasmUrl.toString());
-    
-    const response = await fetch(wasmUrl);
-    console.log('Fetch response status:', response.status);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch WASM file: ${response.status} ${response.statusText}`);
-    }
-    
-    const wasmBytes = await response.arrayBuffer();
-    console.log('WASM file size:', wasmBytes.byteLength, 'bytes');
-    
-    // 检查是否是有效的WASM文件（应该以0x00 0x61 0x73 0x6d开头）
-    const header = new Uint8Array(wasmBytes, 0, 4);
-    console.log('WASM header:', header);
-    
-    if (header[0] !== 0x00 || header[1] !== 0x61 || header[2] !== 0x73 || header[3] !== 0x6d) {
-      throw new Error('Invalid WASM file: missing magic number');
-    }
-    
-    // 创建导入对象（如果WASM模块需要导入）
-    const imports = {
-      env: {
-        // 内存对象
-        memory: new WebAssembly.Memory({ initial: 256 }),
-        // 如果需要其他导入函数，可以在这里添加
-        abort: () => {
-          console.error('WASM abort called');
-        },
-        // 添加seed函数
-        seed: () => {
-          // 返回一个随机数作为种子
-          return Math.floor(Math.random() * 2147483647);
-        },
-        // 添加Date.now函数
-        "Date.now": () => {
-          return Date.now();
-        }
-      }
-    };
-    
-    // 尝试实例化WASM模块
-    const wasmModule = await WebAssembly.instantiate(wasmBytes, imports);
-    
-    // 获取WASM实例的导出函数
-    const { exports } = wasmModule.instance || wasmModule;
+    // 使用wasm-bindgen生成的初始化函数
+    // 注意：这里需要传递正确的路径和初始化参数
+    const wasmExports = await init();
     
     // 保存WASM模块实例
-    wasmModuleInstance = exports;
+    wasmModuleInstance = wasmExports || wasmCodec;
     wasmLoaded = true;
     
-    // 检查并保存内存管理函数
-    if (typeof exports.alloc === 'function') {
-      allocFunction = exports.alloc;
+    // 尝试从导出中获取内存对象
+    if (wasmExports && wasmExports.memory) {
+      wasmMemory = wasmExports.memory;
+    } else if (wasmModuleInstance && wasmModuleInstance.memory) {
+      wasmMemory = wasmModuleInstance.memory;
     }
-    if (typeof exports.dealloc === 'function') {
-      deallocFunction = exports.dealloc;
+    
+    // 检查并保存内存管理函数
+    if (typeof wasmModuleInstance.alloc === 'function') {
+      allocFunction = wasmModuleInstance.alloc;
+    }
+    if (typeof wasmModuleInstance.dealloc === 'function') {
+      deallocFunction = wasmModuleInstance.dealloc;
     }
     
     console.log('Codec WASM module loaded successfully');
-    console.log('WASM exports:', Object.keys(exports));
-    return exports;
+    console.log('WASM exports:', Object.keys(wasmModuleInstance));
+    return wasmModuleInstance;
   } catch (error) {
     console.error('Failed to load WASM module:', error);
     throw new Error('Failed to load codec WASM module: ' + error.message);
@@ -233,33 +221,6 @@ export function generateNonce() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-// md5Hash函数
-export function md5Hash(data) {
-  if (!wasmLoaded) {
-    throw new Error('WASM module not loaded. Please call initializeWasmModule() first or wait for initialization.');
-  }
-  
-  if (wasmModuleInstance.md5Hash) {
-    try {
-      // 将字符串转换为WASM内存中的指针
-      const dataObj = stringToWasm(data);
-      
-      // 调用WASM函数
-      const resultPtr = wasmModuleInstance.md5Hash(dataObj.ptr);
-      
-      // 从WASM内存中读取结果
-      const result = stringFromWasm(resultPtr);
-      
-      return result;
-    } catch (error) {
-      console.error('WASM md5Hash failed:', error);
-      throw error;
-    }
-  } else {
-    throw new Error('WASM module does not export md5Hash function');
-  }
-}
-
 // SM3哈希函数
 export function sm3Hash(data) {
   if (!wasmLoaded) {
@@ -287,178 +248,30 @@ export function sm3Hash(data) {
   }
 }
 
-// generateSign函数
-export function generateSign(paramsJson, timestamp, nonce, secretKey) {
+// MD5哈希函数
+export function md5Hash(data) {
   if (!wasmLoaded) {
-    throw new Error('WASM module not loaded. Please call initializeWasmModule() first or wait for initialization.');
+    throw new Error('WASM模块未加载。请先调用initializeWasmModule()或等待初始化完成。');
   }
   
-  if (wasmModuleInstance.generate_sign) {
+  if (wasmModuleInstance.md5_hash) {
     try {
       // 将字符串转换为WASM内存中的指针
-      const paramsJsonObj = stringToWasm(paramsJson);
-      const nonceObj = stringToWasm(nonce);
-      const secretKeyObj = stringToWasm(secretKey);
+      const dataObj = stringToWasm(data);
       
-      const resultPtr = wasmModuleInstance.generate_sign(
-        paramsJsonObj.ptr,
-        paramsJsonObj.len,
-        timestamp,
-        nonceObj.ptr,
-        nonceObj.len,
-        secretKeyObj.ptr,
-        secretKeyObj.len
-      );
+      // 调用WASM函数并直接返回结果
+      const resultPtr = wasmModuleInstance.md5_hash(dataObj.ptr, dataObj.len);
       
-      // 从WASM内存中读取结果
+      // 从WASM内存中读取结果字符串
       const result = stringFromWasm(resultPtr);
       
       return result;
     } catch (error) {
-      console.error('WASM generateSign failed:', error);
-      throw error;
-    }
-  } else if (wasmModuleInstance.generateSign) {
-    // AssemblyScript版本
-    try {
-      const paramsJsonObj = stringToWasm(paramsJson);
-      const nonceObj = stringToWasm(nonce);
-      const secretKeyObj = stringToWasm(secretKey);
-      
-      const resultPtr = wasmModuleInstance.generateSign(
-        paramsJsonObj.ptr,
-        paramsJsonObj.len,
-        timestamp,
-        nonceObj.ptr,
-        nonceObj.len,
-        secretKeyObj.ptr,
-        secretKeyObj.len
-      );
-      
-      const result = stringFromWasm(resultPtr);
-      return result;
-    } catch (error) {
-      console.error('WASM generateSign failed:', error);
+      console.error('WASM MD5哈希失败:', error);
       throw error;
     }
   } else {
-    throw new Error('WASM module does not export generate_sign function');
-  }
-}
-
-// processRequest函数
-export function processRequest(requestData, requestUrl, codecConfig, codecKey) {
-  if (!wasmLoaded) {
-    throw new Error('WASM module not loaded. Please call initializeWasmModule() first or wait for initialization.');
-  }
-  
-  if (wasmModuleInstance.process_request) {
-    try {
-      // 将字符串转换为WASM内存中的指针
-      const requestDataObj = stringToWasm(requestData);
-      const requestUrlObj = stringToWasm(requestUrl);
-      const codecKeyObj = stringToWasm(codecKey);
-      
-      const resultPtr = wasmModuleInstance.process_request(
-        requestDataObj.ptr,
-        requestDataObj.len,
-        requestUrlObj.ptr,
-        requestUrlObj.len,
-        codecConfig,
-        codecKeyObj.ptr,
-        codecKeyObj.len
-      );
-      
-      // 从WASM内存中读取结果
-      const result = stringFromWasm(resultPtr);
-      
-      return result;
-    } catch (error) {
-      console.error('WASM processRequest failed:', error);
-      throw error;
-    }
-  } else if (wasmModuleInstance.processRequest) {
-    // AssemblyScript版本
-    try {
-      const requestDataObj = stringToWasm(requestData);
-      const requestUrlObj = stringToWasm(requestUrl);
-      const codecKeyObj = stringToWasm(codecKey);
-      
-      const resultPtr = wasmModuleInstance.processRequest(
-        requestDataObj.ptr,
-        requestDataObj.len,
-        requestUrlObj.ptr,
-        requestUrlObj.len,
-        codecConfig,
-        codecKeyObj.ptr,
-        codecKeyObj.len
-      );
-      
-      const result = stringFromWasm(resultPtr);
-      return result;
-    } catch (error) {
-      console.error('WASM processRequest failed:', error);
-      throw error;
-    }
-  } else {
-    throw new Error('WASM module does not export process_request function');
-  }
-}
-
-// processResponse函数
-export function processResponse(responseData, originKey, timestamp) {
-  if (!wasmLoaded) {
-    throw new Error('WASM module not loaded. Please call initializeWasmModule() first or wait for initialization.');
-  }
-  
-  if (wasmModuleInstance.process_response) {
-    try {
-      // 将字符串转换为WASM内存中的指针
-      const responseDataObj = stringToWasm(responseData);
-      const originKeyObj = stringToWasm(originKey);
-      const timestampObj = stringToWasm(timestamp);
-      
-      const resultPtr = wasmModuleInstance.process_response(
-        responseDataObj.ptr,
-        responseDataObj.len,
-        originKeyObj.ptr,
-        originKeyObj.len,
-        timestampObj.ptr,
-        timestampObj.len
-      );
-      
-      // 从WASM内存中读取结果
-      const result = stringFromWasm(resultPtr);
-      
-      return result;
-    } catch (error) {
-      console.error('WASM processResponse failed:', error);
-      throw error;
-    }
-  } else if (wasmModuleInstance.processResponse) {
-    // AssemblyScript版本
-    try {
-      const responseDataObj = stringToWasm(responseData);
-      const originKeyObj = stringToWasm(originKey);
-      const timestampObj = stringToWasm(timestamp);
-      
-      const resultPtr = wasmModuleInstance.processResponse(
-        responseDataObj.ptr,
-        responseDataObj.len,
-        originKeyObj.ptr,
-        originKeyObj.len,
-        timestampObj.ptr,
-        timestampObj.len
-      );
-      
-      const result = stringFromWasm(resultPtr);
-      return result;
-    } catch (error) {
-      console.error('WASM processResponse failed:', error);
-      throw error;
-    }
-  } else {
-    throw new Error('WASM module does not export process_response function');
+    throw new Error('WASM模块未导出md5_hash函数');
   }
 }
 
@@ -475,14 +288,14 @@ export function encryptAES(data, key) {
   }
   
   // 如果WASM模块有正确的加密函数，使用它
-  if (wasmModuleInstance.aesEncrypt) {
+  if (wasmModuleInstance.aes_encrypt) {
     try {
       // 将字符串转换为WASM内存中的指针
       const dataObj = stringToWasm(data);
       const keyObj = stringToWasm(key);
       
       // 调用WASM函数
-      const resultPtr = wasmModuleInstance.aesEncrypt(
+      const resultPtr = wasmModuleInstance.aes_encrypt(
         dataObj.ptr,
         dataObj.len,
         keyObj.ptr,
@@ -498,7 +311,7 @@ export function encryptAES(data, key) {
       throw error;
     }
   } else {
-    throw new Error('WASM module does not export aesEncrypt function');
+    throw new Error('WASM module does not export aes_encrypt function');
   }
 }
 
@@ -515,14 +328,14 @@ export function decryptAES(encryptedData, key) {
   }
   
   // 如果WASM模块有正确的解密函数，使用它
-  if (wasmModuleInstance.aesDecrypt) {
+  if (wasmModuleInstance.aes_decrypt) {
     try {
       // 将字符串转换为WASM内存中的指针
       const encryptedDataObj = stringToWasm(encryptedData);
       const keyObj = stringToWasm(key);
       
       // 调用WASM函数
-      const resultPtr = wasmModuleInstance.aesDecrypt(
+      const resultPtr = wasmModuleInstance.aes_decrypt(
         encryptedDataObj.ptr,
         encryptedDataObj.len,
         keyObj.ptr,
@@ -538,61 +351,36 @@ export function decryptAES(encryptedData, key) {
       throw error;
     }
   } else {
-    throw new Error('WASM module does not export aesDecrypt function');
+    throw new Error('WASM module does not export aes_decrypt function');
   }
 }
 
-// JavaScript版本的AES加密实现（使用XOR异或加密后Base64编码）
+// JavaScript版本的AES加密实现（使用crypto-js库）
 export function jsEncryptAES(data, key) {
-    // 将字符串转换为字节数组
-    const dataBytes = new TextEncoder().encode(data);
-    const keyBytes = new TextEncoder().encode(key);
-    
-    // 执行XOR异或加密
-    const encryptedBytes = new Uint8Array(dataBytes.length);
-    for (let i = 0; i < dataBytes.length; i++) {
-        encryptedBytes[i] = dataBytes[i] ^ keyBytes[i % keyBytes.length];
-    }
-    
-    // 将加密结果转换为Base64编码
-    // 在浏览器环境中使用btoa，在Node.js环境中使用Buffer
-    if (typeof btoa !== 'undefined') {
-        // 浏览器环境
-        const binaryString = String.fromCharCode.apply(null, encryptedBytes);
-        return btoa(binaryString);
-    } else {
-        // Node.js环境
-        return Buffer.from(encryptedBytes).toString('base64');
-    }
+    // 使用crypto-js库进行AES加密
+    // 使用CBC模式和PKCS7填充，与Rust版本保持一致
+    const keyUtf8 = CryptoJS.enc.Utf8.parse(key);
+    const iv = CryptoJS.enc.Utf8.parse('\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'); // 使用零IV
+    const encrypted = CryptoJS.AES.encrypt(data, keyUtf8, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+    });
+    return encrypted.toString();
 }
 
-// JavaScript版本的AES解密实现（对Base64解码后执行XOR异或解密）
+// JavaScript版本的AES解密实现（使用crypto-js库）
 export function jsDecryptAES(encryptedData, key) {
-    // Base64解码
-    let encryptedBytes;
-    if (typeof atob !== 'undefined') {
-        // 浏览器环境
-        const binaryString = atob(encryptedData);
-        encryptedBytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            encryptedBytes[i] = binaryString.charCodeAt(i);
-        }
-    } else {
-        // Node.js环境
-        encryptedBytes = new Uint8Array(Buffer.from(encryptedData, 'base64'));
-    }
-    
-    // 获取密钥字节数组
-    const keyBytes = new TextEncoder().encode(key);
-    
-    // 执行XOR异或解密
-    const decryptedBytes = new Uint8Array(encryptedBytes.length);
-    for (let i = 0; i < encryptedBytes.length; i++) {
-        decryptedBytes[i] = encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
-    }
-    
-    // 将解密结果转换为字符串
-    return new TextDecoder().decode(decryptedBytes);
+    // 使用crypto-js库进行AES解密
+    // 使用CBC模式和PKCS7填充，与Rust版本保持一致
+    const keyUtf8 = CryptoJS.enc.Utf8.parse(key);
+    const iv = CryptoJS.enc.Utf8.parse('\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'); // 使用零IV
+    const decrypted = CryptoJS.AES.decrypt(encryptedData, keyUtf8, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+    });
+    return decrypted.toString(CryptoJS.enc.Utf8);
 }
 
 // 辅助函数：将ArrayBuffer转换为Base64
@@ -625,17 +413,50 @@ export function jsSm3Hash(data) {
 // JavaScript版本的SM4加密实现（使用sm-crypto）
 export function jsSm4Encrypt(data, key) {
     // 使用sm-crypto库进行SM4加密
-    // SM4加密需要将密钥转换为字节数组
-    const encrypted = smCrypto.sm4.encrypt(data, key);
-    return encrypted;
+    // SM4加密需要将密钥转换为字节数组（如果密钥是16字节的字符串）
+    try {
+        let processedKey = key;
+        // 如果密钥是16字节的字符串，转换为字节数组
+        if (typeof key === 'string' && key.length === 16) {
+            processedKey = [];
+            for (let i = 0; i < key.length; i++) {
+                processedKey.push(key.charCodeAt(i));
+            }
+        }
+        const encrypted = smCrypto.sm4.encrypt(data, processedKey);
+        return encrypted;
+    } catch (error) {
+        console.error('JavaScript SM4 encryption failed:', error);
+        throw error;
+    }
 }
 
 // JavaScript版本的SM4解密实现（使用sm-crypto）
 export function jsSm4Decrypt(encryptedData, key) {
     // 使用sm-crypto库进行SM4解密
-    // SM4解密需要将密钥转换为字节数组
-    const decrypted = smCrypto.sm4.decrypt(encryptedData, key);
-    return decrypted;
+    // SM4解密需要将密钥转换为字节数组（如果密钥是16字节的字符串）
+    try {
+        let processedKey = key;
+        // 如果密钥是16字节的字符串，转换为字节数组
+        if (typeof key === 'string' && key.length === 16) {
+            processedKey = [];
+            for (let i = 0; i < key.length; i++) {
+                processedKey.push(key.charCodeAt(i));
+            }
+        }
+        const decrypted = smCrypto.sm4.decrypt(encryptedData, processedKey);
+        return decrypted;
+    } catch (error) {
+        console.error('JavaScript SM4 decryption failed:', error);
+        throw error;
+    }
+}
+
+// JavaScript版本的MD5哈希实现（使用crypto-js库）
+export function jsMd5Hash(data) {
+    // 使用crypto-js库进行MD5哈希
+    const hash = CryptoJS.MD5(data);
+    return hash.toString();
 }
 
 // SM4加密函数
@@ -913,31 +734,344 @@ export function decryptStorageValue(value, key, systemCode, storageKey, storageE
   }
 }
 
+// SM2加密函数
+export function encryptSM2(data, publicKey) {
+  if (!wasmLoaded) {
+    // 如果WASM未加载，使用JavaScript实现
+    try {
+      // 使用sm-crypto库进行SM2加密
+      const encrypted = smCrypto.sm2.doEncrypt(data, publicKey, 1); // 1表示C1C3C2模式
+      return encrypted;
+    } catch (error) {
+      console.error('JavaScript SM2 encryption failed:', error);
+      throw error;
+    }
+  }
+  
+  // 使用wasmModuleInstance对象调用SM2加密函数
+  if (wasmModuleInstance.sm2_encrypt) {
+    try {
+      const dataObj = stringToWasm(data);
+      const publicKeyObj = stringToWasm(publicKey);
+      
+      const resultPtr = wasmModuleInstance.sm2_encrypt(
+        dataObj.ptr,
+        dataObj.len,
+        publicKeyObj.ptr,
+        publicKeyObj.len
+      );
+      
+      const result = stringFromWasm(resultPtr);
+      return result;
+    } catch (error) {
+      console.error('WASM SM2 encryption failed:', error);
+      throw error;
+    }
+  } else {
+    // 如果WASM函数不存在，使用JavaScript实现
+    try {
+      // 使用sm-crypto库进行SM2加密
+      const encrypted = smCrypto.sm2.doEncrypt(data, publicKey, 1); // 1表示C1C3C2模式
+      return encrypted;
+    } catch (error) {
+      console.error('JavaScript SM2 encryption failed:', error);
+      throw error;
+    }
+  }
+}
+
+// SM2解密函数
+export function decryptSM2(encryptedData, privateKey) {
+  if (!wasmLoaded) {
+    // 如果WASM未加载，使用JavaScript实现
+    try {
+      // 使用sm-crypto库进行SM2解密
+      const decrypted = smCrypto.sm2.doDecrypt(encryptedData, privateKey, 1); // 1表示C1C3C2模式
+      return decrypted;
+    } catch (error) {
+      console.error('JavaScript SM2 decryption failed:', error);
+      throw error;
+    }
+  }
+  
+  // 使用wasmModuleInstance对象调用SM2解密函数
+  if (wasmModuleInstance.sm2_decrypt) {
+    try {
+      const encryptedDataObj = stringToWasm(encryptedData);
+      const privateKeyObj = stringToWasm(privateKey);
+      
+      const resultPtr = wasmModuleInstance.sm2_decrypt(
+        encryptedDataObj.ptr,
+        encryptedDataObj.len,
+        privateKeyObj.ptr,
+        privateKeyObj.len
+      );
+      
+      const result = stringFromWasm(resultPtr);
+      return result;
+    } catch (error) {
+      console.error('WASM SM2 decryption failed:', error);
+      throw error;
+    }
+  } else {
+    // 如果WASM函数不存在，使用JavaScript实现
+    try {
+      // 使用sm-crypto库进行SM2解密
+      const decrypted = smCrypto.sm2.doDecrypt(encryptedData, privateKey, 1); // 1表示C1C3C2模式
+      return decrypted;
+    } catch (error) {
+      console.error('JavaScript SM2 decryption failed:', error);
+      throw error;
+    }
+  }
+}
+
+// 生成SM2密钥对函数
+export function generateSm2KeyPair() {
+  if (!wasmLoaded) {
+    throw new Error('WASM模块未加载。请先调用initializeWasmModule()或等待初始化完成。');
+  }
+  
+  // 使用wasmModuleInstance对象调用生成SM2密钥对函数
+  if (wasmModuleInstance.generate_sm2_key_pair) {
+    try {
+      const resultPtr = wasmModuleInstance.generate_sm2_key_pair();
+      const result = stringFromWasm(resultPtr);
+      return result;
+    } catch (error) {
+      console.error('WASM generateSm2KeyPair failed:', error);
+      throw error;
+    }
+  } else {
+    throw new Error('WASM模块未导出generate_sm2_key_pair函数');
+  }
+}
+
+// UU1 function - Response decryption (简化版本，只负责调用WASM）
+export function uu1(response) {
+  // 确保WASM模块已加载
+  if (!wasmLoaded) {
+    throw new Error('WASM模块未加载。请先调用initializeWasmModule()或等待初始化完成。');
+  }
+  
+  // 检查WASM模块是否导出uu1_decrypt_response_object函数
+  if (!wasmModuleInstance.uu1_decrypt_response_object) {
+    throw new Error('WASM模块未导出uu1_decrypt_response_object函数');
+  }
+  
+  try {
+    // 直接调用WASM函数处理整个响应对象
+    return wasmModuleInstance.uu1_decrypt_response_object(response);
+  } catch (error) {
+    console.error('WASM uu1处理失败:', error);
+    throw error;
+  }
+}
+
+// UU1 WASM function - 保持向后兼容
+export function uu1_wasm(response) {
+  return uu1(response);
+}
+
+// UU2 function - Request encryption
+export function uu2(requestData, key) {
+  if (!wasmLoaded) {
+    throw new Error('WASM模块未加载。请先调用initializeWasmModule()或等待初始化完成。');
+  }
+  
+  if (wasmModuleInstance.uu2_encrypt_request) {
+    try {
+      const requestObj = stringToWasm(requestData);
+      const keyObj = stringToWasm(key);
+      
+      const resultPtr = wasmModuleInstance.uu2_encrypt_request(
+        requestObj.ptr,
+        requestObj.len,
+        keyObj.ptr,
+        keyObj.len
+      );
+      
+      const result = stringFromWasm(resultPtr);
+      return result;
+    } catch (error) {
+      console.error('WASM uu2 failed:', error);
+      throw error;
+    }
+  } else {
+    throw new Error('WASM模块未导出uu2_encrypt_request函数');
+  }
+}
+
+// UU2 WASM function - 保持向后兼容
+export function uu2_wasm(requestData, key) {
+  return uu2(requestData, key);
+}
+
+// UU3 function - Simple decryption with fixed key
+export function uu3(encryptedData) {
+  if (!wasmLoaded) {
+    throw new Error('WASM模块未加载。请先调用initializeWasmModule()或等待初始化完成。');
+  }
+  
+  if (wasmModuleInstance.uu3_decrypt_simple) {
+    try {
+      const encryptedDataObj = stringToWasm(encryptedData);
+      
+      const resultPtr = wasmModuleInstance.uu3_decrypt_simple(
+        encryptedDataObj.ptr,
+        encryptedDataObj.len
+      );
+      
+      const result = stringFromWasm(resultPtr);
+      return result;
+    } catch (error) {
+      console.error('WASM uu3 failed:', error);
+      throw error;
+    }
+  } else {
+    throw new Error('WASM模块未导出uu3_decrypt_simple函数');
+  }
+}
+
+// UU3 WASM function - 保持向后兼容
+export function uu3_wasm(encryptedData) {
+  return uu3(encryptedData);
+}
+
+// UU4 function - Another response decryption
+export function uu4(responseData, uuid, timestamp) {
+  if (!wasmLoaded) {
+    throw new Error('WASM模块未加载。请先调用initializeWasmModule()或等待初始化完成。');
+  }
+  
+  if (wasmModuleInstance.uu4_decrypt_response) {
+    try {
+      const responseDataObj = stringToWasm(responseData);
+      const uuidObj = stringToWasm(uuid);
+      const timestampObj = stringToWasm(timestamp);
+      
+      const resultPtr = wasmModuleInstance.uu4_decrypt_response(
+        responseDataObj.ptr,
+        responseDataObj.len,
+        uuidObj.ptr,
+        uuidObj.len,
+        timestampObj.ptr,
+        timestampObj.len
+      );
+      
+      const result = stringFromWasm(resultPtr);
+      return result;
+    } catch (error) {
+      console.error('WASM uu4 failed:', error);
+      throw error;
+    }
+  } else {
+    throw new Error('WASM模块未导出uu4_decrypt_response函数');
+  }
+}
+
+// UU4 WASM function - 保持向后兼容
+export function uu4_wasm(responseData, uuid, timestamp) {
+  return uu4(responseData, uuid, timestamp);
+}
+
+// SM2签名生成函数
+export function generateSign(data, privateKey) {
+  if (!wasmLoaded) {
+    throw new Error('WASM模块未加载。请先调用initializeWasmModule()或等待初始化完成。');
+  }
+  
+  // 使用wasmModuleInstance对象调用SM2签名生成函数
+  if (wasmModuleInstance.generate_sign) {
+    try {
+      const dataObj = stringToWasm(data);
+      const privateKeyObj = stringToWasm(privateKey);
+      
+      const resultPtr = wasmModuleInstance.generate_sign(
+        dataObj.ptr,
+        dataObj.len,
+        privateKeyObj.ptr,
+        privateKeyObj.len
+      );
+      
+      const result = stringFromWasm(resultPtr);
+      return result;
+    } catch (error) {
+      console.error('WASM generateSign failed:', error);
+      throw error;
+    }
+  } else {
+    throw new Error('WASM模块未导出generate_sign函数');
+  }
+}
+
+// SM2签名验证函数
+export function verifySign(data, signature, publicKey) {
+  if (!wasmLoaded) {
+    throw new Error('WASM模块未加载。请先调用initializeWasmModule()或等待初始化完成。');
+  }
+  
+  // 使用wasmModuleInstance对象调用SM2签名验证函数
+  if (wasmModuleInstance.verify_sign) {
+    try {
+      const dataObj = stringToWasm(data);
+      const signatureObj = stringToWasm(signature);
+      const publicKeyObj = stringToWasm(publicKey);
+      
+      const result = wasmModuleInstance.verify_sign(
+        dataObj.ptr,
+        dataObj.len,
+        signatureObj.ptr,
+        signatureObj.len,
+        publicKeyObj.ptr,
+        publicKeyObj.len
+      );
+      
+      return result;
+    } catch (error) {
+      console.error('WASM verifySign failed:', error);
+      throw error;
+    }
+  } else {
+    throw new Error('WASM模块未导出verify_sign函数');
+  }
+}
+
 // 挂载WASM模块到window对象上，方便全局调用
 if (typeof window !== 'undefined') {
   window.codecWasm = {
-    initializeWasmModule,
     isWasmLoaded,
     getCurrentTimestamp,
     add,
     generateNonce,
+    sm3Hash,
     md5Hash,
-    generateSign,
-    processRequest,
-    processResponse,
     encryptAES,
     decryptAES,
+    encryptSM2,
+    decryptSM2,
+    generateSm2KeyPair,
     encryptSM4,
     decryptSM4,
     encryptStorageKey,
     encryptStorageValue,
     decryptStorageValue,
-    sm3Hash,
     jsEncryptAES,
     jsDecryptAES,
     jsSm3Hash,
+    jsMd5Hash,
     jsSm4Encrypt,
-    jsSm4Decrypt
+    jsSm4Decrypt,
+    uu1,
+    uu1_wasm,
+    uu2,
+    uu2_wasm,
+    uu3,
+    uu3_wasm,
+    uu4,
+    uu4_wasm,
+    generateSign,
+    verifySign
   };
 }
 

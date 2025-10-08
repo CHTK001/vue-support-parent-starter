@@ -148,10 +148,94 @@
         </div>
         <div id="sm4CompareResult" class="result"></div>
     </div>
+    
+    <div class="test-section">
+        <h2>SM2加密/解密测试</h2>
+        <label>测试数据:</label>
+        <input type="text" id="sm2TestData" value="Hello, World!">
+        <button id="sm2GenerateKeyButton">生成SM2密钥对</button>
+        <button id="sm2EncryptButton">SM2加密</button>
+        <button id="sm2DecryptButton">SM2解密</button>
+        <div id="sm2KeyPairResult" class="result"></div>
+        <div id="sm2EncryptResult" class="result"></div>
+        <div id="sm2DecryptResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>SM2加密/解密对比测试 (JavaScript vs WASM)</h2>
+        <label>测试数据:</label>
+        <input type="text" id="sm2CompareData" value="Hello, World!">
+        <button id="sm2CompareGenerateKeyButton">生成SM2密钥对</button>
+        <button id="sm2CompareButton">对比测试</button>
+        <div id="sm2CompareKeyPairResult" class="result"></div>
+        <div class="comparison">
+            <div class="comparison-column">
+                <h3>JavaScript版本</h3>
+                <div id="jsSm2EncryptResult" class="result"></div>
+                <div id="jsSm2DecryptResult" class="result"></div>
+            </div>
+            <div class="comparison-column">
+                <h3>WASM版本</h3>
+                <div id="wasmSm2EncryptResult" class="result"></div>
+                <div id="wasmSm2DecryptResult" class="result"></div>
+            </div>
+        </div>
+        <div id="sm2CompareResult" class="result"></div>
+    </div>
+
+    <!-- 新增交叉测试部分 -->
+    <div class="test-section">
+        <h2>交叉测试 (WASM加密JS解密 & JS加密WASM解密)</h2>
+        <div class="comparison">
+            <div class="comparison-column">
+                <h3>AES交叉测试</h3>
+                <label>测试数据:</label>
+                <input type="text" id="aesCrossTestData" value="Hello, World!">
+                <label>密钥:</label>
+                <input type="text" id="aesCrossTestKey" value="1234567890abcdef">
+                <button id="aesWasmEncryptJsDecryptButton">WASM加密/JS解密</button>
+                <button id="aesJsEncryptWasmDecryptButton">JS加密/WASM解密</button>
+                <div id="aesCrossTestResult" class="result"></div>
+            </div>
+            <div class="comparison-column">
+                <h3>SM4交叉测试</h3>
+                <label>测试数据:</label>
+                <input type="text" id="sm4CrossTestData" value="Hello, World!">
+                <label>密钥:</label>
+                <input type="text" id="sm4CrossTestKey" value="1234567890abcdef">
+                <button id="sm4WasmEncryptJsDecryptButton">WASM加密/JS解密</button>
+                <button id="sm4JsEncryptWasmDecryptButton">JS加密/WASM解密</button>
+                <div id="sm4CrossTestResult" class="result"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增SM2交叉测试部分 -->
+    <div class="test-section">
+        <h2>SM2交叉测试 (WASM加密JS解密 & JS加密WASM解密)</h2>
+        <label>测试数据:</label>
+        <input type="text" id="sm2CrossTestData" value="Hello, World!">
+        <button id="sm2CrossGenerateKeyButton">生成SM2密钥对</button>
+        <div id="sm2CrossKeyPairResult" class="result"></div>
+        <div class="comparison">
+            <div class="comparison-column">
+                <h3>WASM加密/JS解密</h3>
+                <button id="sm2WasmEncryptJsDecryptButton">WASM加密/JS解密</button>
+                <div id="sm2WasmEncryptJsDecryptResult" class="result"></div>
+            </div>
+            <div class="comparison-column">
+                <h3>JS加密/WASM解密</h3>
+                <button id="sm2JsEncryptWasmDecryptButton">JS加密/WASM解密</button>
+                <div id="sm2JsEncryptWasmDecryptResult" class="result"></div>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         // 使用正确的WASM包装器
-        import { encryptAES, decryptAES, initializeWasmModule, isWasmLoaded, sm3Hash, jsEncryptAES, jsDecryptAES, jsSm3Hash, encryptSM4, decryptSM4, jsSm4Encrypt, jsSm4Decrypt } from './src/index.js';
+        import { encryptAES, decryptAES, initializeWasmModule, isWasmLoaded, sm3Hash, jsEncryptAES, jsDecryptAES, jsSm3Hash, encryptSM4, decryptSM4, jsSm4Encrypt, jsSm4Decrypt, encryptSM2, decryptSM2, generateSm2KeyPair } from './src/index.js';
+        // 导入sm-crypto库
+        import smCrypto from 'sm-crypto';
         
         // 初始化按钮事件
         document.getElementById('initButton').addEventListener('click', async () => {
@@ -272,10 +356,15 @@
         document.getElementById('sm4EncryptButton').addEventListener('click', async () => {
             const resultDiv = document.getElementById('sm4EncryptResult');
             try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
                 const data = document.getElementById('sm4TestData').value;
                 const key = document.getElementById('sm4TestKey').value;
                 
-                // 使用JavaScript版本的SM4加密
+                // 使用WASM版本的SM4加密
                 const encrypted = encryptSM4(data, key);
                 resultDiv.innerHTML = `<div class="success">${encrypted}</div>`;
             } catch (error) {
@@ -288,6 +377,11 @@
         document.getElementById('sm4DecryptButton').addEventListener('click', async () => {
             const resultDiv = document.getElementById('sm4DecryptResult');
             try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
                 const data = document.getElementById('sm4TestData').value;
                 const key = document.getElementById('sm4TestKey').value;
                 
@@ -324,15 +418,8 @@
                 const jsDecrypted = jsSm4Decrypt(jsEncrypted, key);
                 
                 // WASM版本
-                let wasmEncrypted, wasmDecrypted;
-                try {
-                    wasmEncrypted = encryptSM4(data, key);
-                    wasmDecrypted = decryptSM4(wasmEncrypted, key);
-                } catch (error) {
-                    // 如果WASM版本不可用，使用JavaScript版本
-                    wasmEncrypted = jsEncrypted;
-                    wasmDecrypted = jsDecrypted;
-                }
+                const wasmEncrypted = encryptSM4(data, key);
+                const wasmDecrypted = decryptSM4(wasmEncrypted, key);
                 
                 // 显示结果（只显示结果，不拼接其它东西）
                 jsEncryptResult.innerHTML = `<div class="success">${jsEncrypted}</div>`;
@@ -349,6 +436,413 @@
             } catch (error) {
                 compareResult.innerHTML = `<div class="error">✗ 对比测试失败: ${error.message}</div>`;
                 console.error('对比测试错误:', error);
+            }
+        });
+        
+        // SM2生成密钥对按钮事件
+        document.getElementById('sm2GenerateKeyButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('sm2KeyPairResult');
+            try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
+                // 生成SM2密钥对
+                const keypairJson = generateSm2KeyPair();
+                const keypair = JSON.parse(keypairJson);
+                
+                // 保存密钥对到全局变量供后续使用
+                window.sm2Keypair = keypair;
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>私钥:</strong> ${keypair.privateKey}</p>
+                        <p><strong>公钥:</strong> ${keypair.publicKey}</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ 生成密钥对失败: ${error.message}</div>`;
+                console.error('生成密钥对错误:', error);
+            }
+        });
+        
+        // SM2加密按钮事件
+        document.getElementById('sm2EncryptButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('sm2EncryptResult');
+            try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
+                // 确保密钥对已生成
+                if (!window.sm2Keypair) {
+                    resultDiv.innerHTML = '<div class="error">✗ 请先生成密钥对</div>';
+                    return;
+                }
+                
+                const data = document.getElementById('sm2TestData').value;
+                const publicKey = window.sm2Keypair.publicKey;
+                
+                // 使用WASM版本的SM2加密
+                const encrypted = encryptSM2(data, publicKey);
+                window.sm2EncryptedData = encrypted;
+                
+                resultDiv.innerHTML = `<div class="success" style="word-break: break-all; white-space: pre-wrap;">${encrypted}</div>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ SM2加密失败: ${error.message}</div>`;
+                console.error('SM2加密错误:', error);
+            }
+        });
+        
+        // SM2解密按钮事件
+        document.getElementById('sm2DecryptButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('sm2DecryptResult');
+            try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
+                // 确保密钥对已生成
+                if (!window.sm2Keypair) {
+                    resultDiv.innerHTML = '<div class="error">✗ 请先生成密钥对</div>';
+                    return;
+                }
+                
+                // 确保已加密数据
+                if (!window.sm2EncryptedData) {
+                    resultDiv.innerHTML = '<div class="error">✗ 请先进行加密</div>';
+                    return;
+                }
+                
+                const privateKey = window.sm2Keypair.privateKey;
+                const encryptedData = window.sm2EncryptedData;
+                
+                // 使用WASM版本的SM2解密
+                const decrypted = decryptSM2(encryptedData, privateKey);
+                
+                resultDiv.innerHTML = `<div class="success">${decrypted}</div>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ SM2解密失败: ${error.message}</div>`;
+                console.error('SM2解密错误:', error);
+            }
+        });
+        
+        // SM2对比测试生成密钥对按钮事件
+        document.getElementById('sm2CompareGenerateKeyButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('sm2CompareKeyPairResult');
+            try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
+                // 生成SM2密钥对
+                const keypairJson = generateSm2KeyPair();
+                const keypair = JSON.parse(keypairJson);
+                
+                // 保存密钥对到全局变量供后续使用
+                window.sm2CompareKeypair = keypair;
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>私钥:</strong> ${keypair.privateKey}</p>
+                        <p><strong>公钥:</strong> ${keypair.publicKey}</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ 生成密钥对失败: ${error.message}</div>`;
+                console.error('生成密钥对错误:', error);
+            }
+        });
+        
+        // SM2对比测试按钮事件
+        document.getElementById('sm2CompareButton').addEventListener('click', async () => {
+            const jsEncryptResult = document.getElementById('jsSm2EncryptResult');
+            const jsDecryptResult = document.getElementById('jsSm2DecryptResult');
+            const wasmEncryptResult = document.getElementById('wasmSm2EncryptResult');
+            const wasmDecryptResult = document.getElementById('wasmSm2DecryptResult');
+            const compareResult = document.getElementById('sm2CompareResult');
+            
+            try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
+                // 确保已生成密钥对
+                if (!window.sm2CompareKeypair) {
+                    compareResult.innerHTML = '<div class="error">✗ 请先生成密钥对</div>';
+                    return;
+                }
+                
+                const data = document.getElementById('sm2CompareData').value;
+                const publicKey = window.sm2CompareKeypair.publicKey;
+                const privateKey = window.sm2CompareKeypair.privateKey;
+                
+                // JavaScript版本
+                const jsEncrypted = smCrypto.sm2.doEncrypt(data, publicKey, 1); // 1表示C1C3C2模式
+                const jsDecrypted = smCrypto.sm2.doDecrypt(jsEncrypted, privateKey, 1); // 1表示C1C3C2模式
+                
+                // WASM版本
+                const wasmEncrypted = encryptSM2(data, publicKey);
+                const wasmDecrypted = decryptSM2(wasmEncrypted, privateKey);
+                
+                // 显示结果（只显示结果，但对长结果进行换行处理）
+                jsEncryptResult.innerHTML = `<div class="success" style="word-break: break-all; white-space: pre-wrap;">${jsEncrypted}</div>`;
+                jsDecryptResult.innerHTML = `<div class="success">${jsDecrypted}</div>`;
+                wasmEncryptResult.innerHTML = `<div class="success" style="word-break: break-all; white-space: pre-wrap;">${wasmEncrypted}</div>`;
+                wasmDecryptResult.innerHTML = `<div class="success">${wasmDecrypted}</div>`;
+                
+                // 比较结果
+                if (jsDecrypted === wasmDecrypted) {
+                    compareResult.innerHTML = '<div class="success">✓ 解密结果一致</div>';
+                } else {
+                    compareResult.innerHTML = '<div class="error">✗ 解密结果不一致</div>';
+                }
+            } catch (error) {
+                compareResult.innerHTML = `<div class="error">✗ 对比测试失败: ${error.message}</div>`;
+                console.error('对比测试错误:', error);
+            }
+        });
+        
+        // 新增交叉测试事件处理函数
+        // AES交叉测试：WASM加密/JS解密
+        document.getElementById('aesWasmEncryptJsDecryptButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('aesCrossTestResult');
+            try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
+                const data = document.getElementById('aesCrossTestData').value;
+                const key = document.getElementById('aesCrossTestKey').value;
+                
+                // WASM加密
+                const wasmEncrypted = encryptAES(data, key);
+                
+                // JS解密
+                const jsDecrypted = jsDecryptAES(wasmEncrypted, key);
+                
+                // 显示结果
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>WASM加密结果:</strong> ${wasmEncrypted}</p>
+                        <p><strong>JS解密结果:</strong> ${jsDecrypted}</p>
+                        <p>${jsDecrypted === data ? '✓ 解密成功' : '✗ 解密失败'}</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ AES交叉测试失败: ${error.message}</div>`;
+                console.error('AES交叉测试错误:', error);
+            }
+        });
+        
+        // AES交叉测试：JS加密/WASM解密
+        document.getElementById('aesJsEncryptWasmDecryptButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('aesCrossTestResult');
+            try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
+                const data = document.getElementById('aesCrossTestData').value;
+                const key = document.getElementById('aesCrossTestKey').value;
+                
+                // JS加密
+                const jsEncrypted = jsEncryptAES(data, key);
+                
+                // WASM解密
+                const wasmDecrypted = decryptAES(jsEncrypted, key);
+                
+                // 显示结果
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>JS加密结果:</strong> ${jsEncrypted}</p>
+                        <p><strong>WASM解密结果:</strong> ${wasmDecrypted}</p>
+                        <p>${wasmDecrypted === data ? '✓ 解密成功' : '✗ 解密失败'}</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ AES交叉测试失败: ${error.message}</div>`;
+                console.error('AES交叉测试错误:', error);
+            }
+        });
+        
+        // SM4交叉测试：WASM加密/JS解密
+        document.getElementById('sm4WasmEncryptJsDecryptButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('sm4CrossTestResult');
+            try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
+                const data = document.getElementById('sm4CrossTestData').value;
+                const key = document.getElementById('sm4CrossTestKey').value;
+                
+                // WASM加密
+                const wasmEncrypted = encryptSM4(data, key);
+                
+                // JS解密
+                const jsDecrypted = jsSm4Decrypt(wasmEncrypted, key);
+                
+                // 显示结果
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>WASM加密结果:</strong> ${wasmEncrypted}</p>
+                        <p><strong>JS解密结果:</strong> ${jsDecrypted}</p>
+                        <p>${jsDecrypted === data ? '✓ 解密成功' : '✗ 解密失败'}</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ SM4交叉测试失败: ${error.message}</div>`;
+                console.error('SM4交叉测试错误:', error);
+            }
+        });
+        
+        // SM4交叉测试：JS加密/WASM解密
+        document.getElementById('sm4JsEncryptWasmDecryptButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('sm4CrossTestResult');
+            try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
+                const data = document.getElementById('sm4CrossTestData').value;
+                const key = document.getElementById('sm4CrossTestKey').value;
+                
+                // JS加密
+                const jsEncrypted = jsSm4Encrypt(data, key);
+                
+                // WASM解密
+                const wasmDecrypted = decryptSM4(jsEncrypted, key);
+                
+                // 显示结果
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>JS加密结果:</strong> ${jsEncrypted}</p>
+                        <p><strong>WASM解密结果:</strong> ${wasmDecrypted}</p>
+                        <p>${wasmDecrypted === data ? '✓ 解密成功' : '✗ 解密失败'}</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ SM4交叉测试失败: ${error.message}</div>`;
+                console.error('SM4交叉测试错误:', error);
+            }
+        });
+        
+        // 新增SM2交叉测试事件处理函数
+        // SM2生成密钥对按钮事件（用于交叉测试）
+        document.getElementById('sm2CrossGenerateKeyButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('sm2CrossKeyPairResult');
+            try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
+                // 生成SM2密钥对
+                const keypairJson = generateSm2KeyPair();
+                const keypair = JSON.parse(keypairJson);
+                
+                // 保存密钥对到全局变量供后续使用
+                window.sm2CrossKeypair = keypair;
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>私钥:</strong> ${keypair.privateKey}</p>
+                        <p><strong>公钥:</strong> ${keypair.publicKey}</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ 生成密钥对失败: ${error.message}</div>`;
+                console.error('生成密钥对错误:', error);
+            }
+        });
+        
+        // SM2交叉测试：WASM加密/JS解密
+        document.getElementById('sm2WasmEncryptJsDecryptButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('sm2WasmEncryptJsDecryptResult');
+            try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
+                // 确保已生成密钥对
+                if (!window.sm2CrossKeypair) {
+                    resultDiv.innerHTML = '<div class="error">✗ 请先生成密钥对</div>';
+                    return;
+                }
+                
+                const data = document.getElementById('sm2CrossTestData').value;
+                const publicKey = window.sm2CrossKeypair.publicKey;
+                const privateKey = window.sm2CrossKeypair.privateKey;
+                
+                // WASM加密
+                const wasmEncrypted = encryptSM2(data, publicKey);
+                
+                // JS解密
+                const jsDecrypted = smCrypto.sm2.doDecrypt(wasmEncrypted, privateKey, 1); // 1表示C1C3C2模式
+                
+                // 显示结果
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>WASM加密结果:</strong></p>
+                        <p style="word-break: break-all; white-space: pre-wrap;">${wasmEncrypted}</p>
+                        <p><strong>JS解密结果:</strong> ${jsDecrypted}</p>
+                        <p>${jsDecrypted === data ? '✓ 解密成功' : '✗ 解密失败'}</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ SM2交叉测试失败: ${error.message}</div>`;
+                console.error('SM2交叉测试错误:', error);
+            }
+        });
+        
+        // SM2交叉测试：JS加密/WASM解密
+        document.getElementById('sm2JsEncryptWasmDecryptButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('sm2JsEncryptWasmDecryptResult');
+            try {
+                // 确保WASM模块已加载
+                if (!isWasmLoaded()) {
+                    await initializeWasmModule();
+                }
+                
+                // 确保已生成密钥对
+                if (!window.sm2CrossKeypair) {
+                    resultDiv.innerHTML = '<div class="error">✗ 请先生成密钥对</div>';
+                    return;
+                }
+                
+                const data = document.getElementById('sm2CrossTestData').value;
+                const publicKey = window.sm2CrossKeypair.publicKey;
+                const privateKey = window.sm2CrossKeypair.privateKey;
+                
+                // JS加密
+                const jsEncrypted = smCrypto.sm2.doEncrypt(data, publicKey, 1); // 1表示C1C3C2模式
+                
+                // WASM解密
+                const wasmDecrypted = decryptSM2(jsEncrypted, privateKey);
+                
+                // 显示结果
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>JS加密结果:</strong></p>
+                        <p style="word-break: break-all; white-space: pre-wrap;">${jsEncrypted}</p>
+                        <p><strong>WASM解密结果:</strong> ${wasmDecrypted}</p>
+                        <p>${wasmDecrypted === data ? '✓ 解密成功' : '✗ 解密失败'}</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ SM2交叉测试失败: ${error.message}</div>`;
+                console.error('SM2交叉测试错误:', error);
             }
         });
     </script>

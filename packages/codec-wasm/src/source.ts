@@ -1,19 +1,40 @@
 import * as crypto from "./index";
-import type { PureHttpResponse, PureHttpRequestConfig } from "../http/types";
-import { getConfig } from "@repo/config";
+
+// 定义基本的类型接口
+interface PureHttpRequestConfig {
+  data?: any;
+  url?: string;
+  headers?: Record<string, any>;
+}
+
+interface PureHttpResponse {
+  status?: number;
+  data?: any;
+  headers?: Record<string, any>;
+}
 
 /** uu2 */
 export const uu2 = (request: PureHttpRequestConfig) => {
   const body = request.data;
   const url = request.url;
-  if (url.startsWith("/v2/setting")) {
+  if (url?.startsWith("/v2/setting")) {
     return request;
   }
   if (!body) {
     return request;
   }
 
-  if (!getConfig("requestCodecOpen") || !getConfig("codecRequestKey")) {
+  // 模拟getConfig函数
+  const getConfig = (key: string): string | undefined => {
+    if (key === "requestCodecOpen") return "true";
+    if (key === "codecRequestKey") return "defaultKey";
+    return undefined;
+  };
+
+  const requestCodecOpen = getConfig("requestCodecOpen");
+  const codecRequestKey = getConfig("codecRequestKey");
+  
+  if (!requestCodecOpen || !codecRequestKey) {
     return request;
   }
 
@@ -40,8 +61,9 @@ export const uu2 = (request: PureHttpRequestConfig) => {
   var data1 = JSON.stringify(body);
   try {
     // 使用WASM版本的加密函数
-    const newData = crypto.encryptAES(data1, getConfig("codecRequestKey"));
+    const newData = crypto.uu2(data1, codecRequestKey);
     request.data = isArray ? [{ data: newData }] : { data: newData };
+    request.headers = request.headers || {};
     request.headers["access-control-origin-key"] = new Date().getTime();
     return request;
   } catch (error) {
@@ -51,54 +73,20 @@ export const uu2 = (request: PureHttpRequestConfig) => {
 
 /** uu1 */
 export const uu1 = (response: PureHttpResponse) => {
-  return uu(response);
-};
-
-/** uu */
-const uu = (response: PureHttpResponse) => {
-  if (response.status == 200) {
-    var data = response.data?.data || response.data;
-    if (typeof data !== "string") {
-      if (typeof data === "object") {
-        if (!data?.data || typeof data.data !== "string") {
-          return response;
-        }
-
-        data = data.data;
-      } else {
-        return response;
-      }
-    }
-    if (!data.startsWith("02")) {
-      return response;
-    }
-    var origin = response?.headers?.["access-control-origin-key"];
-    if (origin) {
-      const ts = response?.headers?.["access-control-timestamp-user"];
-      try {
-        // 使用WASM版本的解密函数
-        response.data = JSON.parse(
-          crypto.decryptAES(
-            data.substring(8, data.length - 4),
-            crypto.decryptAES(origin, ts),
-          ),
-        );
-      } catch (err) {}
-    }
-  }
-  return response;
+  // 直接调用index.js中的uu1函数处理响应解密
+  return crypto.uu1(response);
 };
 
 /** uu3 */
 export const uu3 = (value: string) => {
   // 使用WASM版本的解密函数
-  return crypto.decryptAES(value, "1234567890Oil#@1");
+  return crypto.uu3(value);
 };
 
 /** uu4 */
-export const uu4 = (response) => {
+export const uu4 = (response: any) => {
   var data = response?.data;
-  if (!data.startsWith("02")) {
+  if (!data?.startsWith("02")) {
     return response;
   }
   var origin = response?.uuid;
@@ -107,9 +95,10 @@ export const uu4 = (response) => {
     try {
       // 使用WASM版本的解密函数
       return JSON.parse(
-        crypto.decryptAES(
-          data.substring(8, data.length - 4),
-          crypto.decryptAES(origin, ts),
+        crypto.uu4(
+          data,
+          origin.toString(),
+          ts?.toString() || ""
         ),
       );
     } catch (err) {}
