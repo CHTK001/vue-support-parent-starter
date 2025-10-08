@@ -47,8 +47,8 @@ export interface InitOutput {
   readonly generate_sign: (a: number, b: number, c: number, d: number) => number;
   readonly verify_sign: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
   readonly encrypt_storage_key: (a: number, b: number, c: number, d: number) => number;
-  readonly encrypt_storage_value: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => number;
   readonly decrypt_storage_value: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => number;
+  readonly encrypt_storage_value: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => number;
   readonly __wbindgen_exn_store: (a: number) => void;
   readonly __externref_table_alloc: () => number;
   readonly __wbindgen_export_2: WebAssembly.Table;

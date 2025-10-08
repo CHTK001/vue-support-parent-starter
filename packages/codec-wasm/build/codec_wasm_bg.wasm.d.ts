@@ -21,8 +21,8 @@ export const uu4_decrypt_response: (a: number, b: number, c: number, d: number, 
 export const generate_sign: (a: number, b: number, c: number, d: number) => number;
 export const verify_sign: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
 export const encrypt_storage_key: (a: number, b: number, c: number, d: number) => number;
-export const encrypt_storage_value: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => number;
 export const decrypt_storage_value: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => number;
+export const encrypt_storage_value: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => number;
 export const __wbindgen_exn_store: (a: number) => void;
 export const __externref_table_alloc: () => number;
 export const __wbindgen_export_2: WebAssembly.Table;

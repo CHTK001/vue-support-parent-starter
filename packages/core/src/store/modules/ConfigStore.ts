@@ -118,7 +118,10 @@ export const useConfigStore = defineStore({
         return new Promise<void>(async (resolve) => {
           const response = await fetchSetting(this.settingGroup);
           const data = response.data; // 提取data字段
-
+          if(!data) {
+            resolve(null);
+            return;
+          }
           localStorageProxy().setItem(this.storageKey, data);
           this.doRegister(data);
           resolve(null);
