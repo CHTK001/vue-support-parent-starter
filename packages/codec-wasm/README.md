@@ -1,157 +1,105 @@
-# Codec WASM Module
+# Codec WASM - Rust Implementation
 
-WebAssembly implementation of codec utilities for encryption/decryption.
+This directory contains the Rust implementation of the encryption/decryption algorithms used in the codec-wasm package.
 
-## Overview
+## Features
 
-This module provides a WebAssembly implementation of various codec utilities for encryption and decryption. The module is designed to run in browser environments and provides better performance compared to pure JavaScript implementations.
+- SM2 encryption/decryption and key generation
+- SM3 hashing
+- SM4 encryption/decryption
+- AES-compatible encryption/decryption
+- MD5 hashing
+- Utility functions for nonce generation and timestamp retrieval
+- Implementation of uu2, uu1, uu3, uu4 functions matching the original TypeScript source
 
-## Key Features
+## Prerequisites
 
-1. **Object Parameter Passing**: Instead of serializing objects to JSON strings, we pass objects as functions to WASM. This avoids serialization/deserialization overhead and is more efficient.
+- Rust toolchain (install from https://www.rust-lang.org/)
+- wasm-pack (install with `cargo install wasm-pack`)
 
-2. **Pure Proxy in JavaScript Layer**: The JavaScript layer acts only as a proxy, forwarding function calls to the WASM module without any business logic.
+## Building
 
-3. **All Business Logic in WASM**: All encryption/decryption logic is implemented in the Rust code, ensuring better performance and security.
+To build the Rust WASM module:
 
-## Architecture
-
+```bash
+npm run build:rust
 ```
-JavaScript Layer (Proxy) -> WASM Module (Business Logic)
-```
 
-### JavaScript Layer
+This will:
+1. Compile the Rust code to WebAssembly using wasm-pack
+2. Generate the necessary JavaScript bindings
+3. Copy the WASM file to the build directory
 
-The JavaScript layer ([src/index.js](file:///H:/workspace/spring-support-api-starter/spring-api-support-monitor-starter/vue-support-parent-starter/packages/codec-wasm/src/index.js)) contains only proxy functions that forward calls to the WASM module. It does not contain any business logic.
+## Project Structure
 
-### WASM Module
-
-The WASM module contains all the business logic for encryption and decryption. It is implemented using Rust with mature cryptographic libraries:
-
-- `aes` and `block-modes` crates for AES encryption/decryption
-- `base64` crate for Base64 encoding/decoding
-- `sm2`, `sm3`, `sm4` crates for Chinese cryptographic standards
+- `Cargo.toml` - Rust package configuration
+- `src-rust/lib.rs` - Main Rust implementation
+- `scripts/build-rust.mjs` - Build script
+- `build/pkg/` - Generated WASM and JavaScript bindings (after build)
 
 ## Usage
 
-### Installation
+The Rust implementation provides the same interface as the original AssemblyScript implementation, so it can be used as a drop-in replacement.
+
+## Algorithms
+
+### SM2
+- `sm2_encrypt(data, public_key)` - Encrypt data with SM2 public key
+- `sm2_decrypt(encrypted_data, private_key)` - Decrypt data with SM2 private key
+- `sm2_decrypt_with_mode(encrypted_data, private_key, cipher_mode)` - Decrypt data with SM2 and cipher mode
+- `sm2_generate_keypair()` - Generate a new SM2 keypair
+
+### SM3
+- `sm3_hash(data)` - Generate SM3 hash of data
+
+### SM4
+- `sm4_encrypt(data, key)` - Encrypt data with SM4
+- `sm4_decrypt(encrypted_data, key)` - Decrypt data with SM4
+
+### AES Functions
+- `aes_encrypt(data, key)` - Encrypt data with AES (using SM4 as placeholder)
+- `aes_decrypt(encrypted_data, key)` - Decrypt data with AES (using SM4 as placeholder)
+
+### Utility Functions
+- `generate_nonce()` - Generate a random nonce
+- `md5_hash(input)` - Generate MD5 hash
+- `add(a, b)` - Add two numbers
+- `get_current_timestamp()` - Get current timestamp
+
+### Specialized Functions (matching original source.ts)
+- `uu2(request_data, request_url, config_open, codec_request_key)` - Encrypt request data
+- `uu1(response_status, response_data, origin_key, timestamp)` - Decrypt response data
+- `uu3(value)` - Decrypt value with default key
+- `uu4(response_data, uuid, timestamp)` - Special response decryption
+- `process_request(request_data, request_url, codec_config, codec_key)` - Process request
+- `process_response(response_data, origin_key, timestamp)` - Process response
+- `generate_sign(params_json, timestamp, nonce, secret_key)` - Generate signature
+
+## Dependencies
+
+- `wasm-bindgen` - For generating JavaScript bindings
+- `sm2`, `sm3`, `sm4` - Rust implementations of Chinese cryptographic standards
+- `getrandom` - For generating random numbers
+- `hex` - For hex encoding/decoding
+- `md5` - For MD5 hashing
+- `serde`, `serde_json` - For JSON serialization/deserialization
+
+## Testing
+
+To run the integration tests:
 
 ```bash
-npm install @repo/codec-wasm
+cargo test
 ```
 
-### Initialization
+To run the WebAssembly tests:
 
-```javascript
-import { isWasmLoaded } from '@repo/codec-wasm';
-
-// WASM module is automatically initialized in main.ts
-// Check if the WASM module is loaded
-if (isWasmLoaded()) {
-  console.log('WASM module is loaded');
-}
-```
-
-### Using the Functions
-
-```javascript
-import { encryptAES, decryptAES } from '@repo/codec-wasm';
-
-// Example usage of encryptAES
-const encrypted = encryptAES('Hello, World!', '1234567890abcdef');
-const decrypted = decryptAES(encrypted, '1234567890abcdef');
-```
-
-## Functions
-
-### encryptAES
-
-AES encryption function. Encrypts data using XOR encryption with the provided key.
-
-Usage:
-```javascript
-// Example usage of encryptAES
-const encrypted = encryptAES('Hello, World!', '1234567890abcdef');
-```
-
-### decryptAES
-
-AES decryption function. Decrypts data using XOR decryption with the provided key.
-
-Usage:
-```javascript
-// Example usage of decryptAES
-const decrypted = decryptAES('encrypted_data', '1234567890abcdef');
-```
-
-### encryptStorageKey
-
-Storage key encryption function.
-
-Usage:
-```javascript
-// Example usage of encryptStorageKey
-const encryptedKey = encryptStorageKey('user_preferences', 'system_secret_code');
-```
-
-### encryptStorageValue
-
-Storage value encryption function.
-
-Usage:
-```javascript
-// Example usage of encryptStorageValue
-const encryptedValue = encryptStorageValue('sensitive_data', 'encryption_key', 'system_code', 'storage_key', 'SM4');
-```
-
-### decryptStorageValue
-
-Storage value decryption function.
-
-Usage:
-```javascript
-// Example usage of decryptStorageValue
-const decryptedValue = decryptStorageValue('encrypted_data', 'encryption_key', 'system_code', 'storage_key', 'SM4');
-```
-
-## Development
-
-### Prerequisites
-
-To build the WASM module, you need to install Rust:
-
-1. Install Rust from [https://www.rust-lang.org/](https://www.rust-lang.org/)
-2. Add the wasm32-unknown-unknown target:
-   ```bash
-   rustup target add wasm32-unknown-unknown
-   ```
-
-### Building
-
-To build the WASM module:
 ```bash
-npm run rustbuild
+wasm-pack test --headless --firefox
 ```
 
-This will compile the Rust code to WASM and copy the resulting file to the build directory.
+Or for Chrome:
 
-### Testing
-
-Testing should be done in a browser environment since the WASM module is designed for browser use.
-
-You can open `index.html` in a browser to test the functionality.
-
-## Rust Implementation
-
-This project uses a Rust implementation of the codec utilities which uses mature cryptographic libraries:
-
-- `aes` and `block-modes` crates for AES encryption/decryption
-- `base64` crate for Base64 encoding/decryption
-- `sm2`, `sm3`, `sm4` crates for Chinese cryptographic standards
-- `md5` crate for MD5 hashing
-
-The Rust code is located in [src-rust/lib.rs](file:///H:/workspace/spring-support-api-starter/spring-api-support-monitor-starter/vue-support-parent-starter/packages/codec-wasm/src-rust/lib.rs).
-
-## License
-
-MIT
+```bash
+wasm-pack test --headless --chrome
+```

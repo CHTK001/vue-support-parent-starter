@@ -854,17 +854,137 @@ export function uu1(response) {
     throw new Error('WASM模块未加载。请先调用initializeWasmModule()或等待初始化完成。');
   }
   
-  // 检查WASM模块是否导出uu1_decrypt_response_object函数
-  if (!wasmModuleInstance.uu1_decrypt_response_object) {
-    throw new Error('WASM模块未导出uu1_decrypt_response_object函数');
-  }
-  
-  try {
-    // 直接调用WASM函数处理整个响应对象
-    return wasmModuleInstance.uu1_decrypt_response_object(response);
-  } catch (error) {
-    console.error('WASM uu1处理失败:', error);
-    throw error;
+  // 检查WASM模块是否导出uu1_decrypt_response_object_with_arraybuffer函数
+  if (wasmModuleInstance.uu1_decrypt_response_object_with_arraybuffer) {
+    // 使用新函数处理ArrayBuffer
+    try {
+      // 检查response.data是否为Blob类型
+      if (response.data instanceof Blob) {
+        // 根据Content-Type判断如何处理Blob
+        const contentType = response.headers && response.headers['content-type'];
+        
+        // 只有application/octet-stream类型的二进制数据才使用WASM处理
+        if (contentType && contentType.includes('application/octet-stream')) {
+          // 对于加密的二进制数据，先转换为ArrayBuffer再传递给WASM
+          return response.data.arrayBuffer().then(buffer => {
+            // 创建新的响应对象，将ArrayBuffer数据放入data字段
+            const newResponse = {
+              ...response,
+              data: buffer
+            };
+            // 直接调用WASM函数处理整个响应对象
+            return wasmModuleInstance.uu1_decrypt_response_object_with_arraybuffer(newResponse);
+          });
+        } else if (contentType && contentType.includes('application/json')) {
+          // 对于JSON数据，转换为对象
+          return response.data.text().then(text => {
+            let processedData;
+            try {
+              processedData = JSON.parse(text);
+            } catch (e) {
+              // 如果JSON解析失败，使用原始文本
+              processedData = text;
+            }
+            
+            // 创建新的响应对象
+            const newResponse = {
+              ...response,
+              data: processedData
+            };
+            
+            // 直接返回处理后的响应，不调用WASM
+            return newResponse;
+          });
+        } else if (contentType && contentType.includes('text/')) {
+          // 对于文本数据，直接使用文本
+          return response.data.text().then(text => {
+            // 创建新的响应对象
+            const newResponse = {
+              ...response,
+              data: text
+            };
+            
+            // 直接返回处理后的响应，不调用WASM
+            return newResponse;
+          });
+        } else {
+          // 对于其他类型的Blob，直接返回原始响应
+          return response;
+        }
+      } else {
+        // 对于非Blob数据，直接返回原始响应对象，不调用WASM
+        return response;
+      }
+    } catch (error) {
+      console.error('处理响应数据失败:', error);
+      throw error;
+    }
+  } else if (wasmModuleInstance.uu1_decrypt_response_object) {
+    // 如果新函数不存在，使用旧函数
+    try {
+      // 检查response.data是否为Blob类型
+      if (response.data instanceof Blob) {
+        // 根据Content-Type判断如何处理Blob
+        const contentType = response.headers && response.headers['content-type'];
+        
+        // 只有application/octet-stream类型的二进制数据才使用WASM处理
+        if (contentType && contentType.includes('application/octet-stream')) {
+          // 对于加密的二进制数据，先转换为ArrayBuffer再传递给WASM
+          return response.data.arrayBuffer().then(buffer => {
+            // 创建新的响应对象，将ArrayBuffer数据放入data字段
+            const newResponse = {
+              ...response,
+              data: buffer
+            };
+            // 直接调用WASM函数处理整个响应对象
+            return wasmModuleInstance.uu1_decrypt_response_object_with_arraybuffer(newResponse);
+          });
+        } else if (contentType && contentType.includes('application/json')) {
+          // 对于JSON数据，转换为对象
+          return response.data.text().then(text => {
+            let processedData;
+            try {
+              processedData = JSON.parse(text);
+            } catch (e) {
+              // 如果JSON解析失败，使用原始文本
+              processedData = text;
+            }
+            
+            // 创建新的响应对象
+            const newResponse = {
+              ...response,
+              data: processedData
+            };
+            
+            // 直接返回处理后的响应，不调用WASM
+            return newResponse;
+          });
+        } else if (contentType && contentType.includes('text/')) {
+          // 对于文本数据，直接使用文本
+          return response.data.text().then(text => {
+            // 创建新的响应对象
+            const newResponse = {
+              ...response,
+              data: text
+            };
+            
+            // 直接返回处理后的响应，不调用WASM
+            return newResponse;
+          });
+        } else {
+          // 对于其他类型的Blob，直接返回原始响应
+          return response;
+        }
+      } else {
+        // 对于非Blob数据，直接返回原始响应对象，不调用WASM
+        return response;
+      }
+    } catch (error) {
+      console.error('处理响应数据失败:', error);
+      throw error;
+    }
+  } else {
+    throw new Error('WASM模块未导出uu1_decrypt_response_object或uu1_decrypt_response_object_with_arraybuffer函数');
   }
 }
 

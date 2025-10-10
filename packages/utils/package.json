@@ -41,7 +41,8 @@
     "echarts": "catalog:",
     "vue-i18n": "catalog:",
     "@microsoft/fetch-event-source": "catalog:",
-    "spark-md5": "catalog:"
+    "spark-md5": "catalog:",
+    "@repo/codec-wasm": "workspace:*"
   },
   "devDependencies": {
     "@babel/plugin-transform-runtime": "catalog:",
