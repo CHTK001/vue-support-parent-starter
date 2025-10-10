@@ -509,43 +509,37 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
                             let debug_decrypted_bytes: Vec<String> = decrypted_bytes.iter().take(10).map(|b| format!("{:02x}", b)).collect();
                             web_sys::console::log_1(&format!("UU1解密响应: 解密数据前10字节={}", debug_decrypted_bytes.join(" ")).into());
                             
-                            // 尝试不同的方式将解密结果转换为字符串
+                            // 改进的解密后数据处理逻辑
                             // 首先尝试直接转换为UTF-8字符串
                             match String::from_utf8(decrypted_bytes.clone()) {
                                 Ok(utf8_result) => {
-                                    web_sys::console::log_1(&format!("UU1解密响应: UTF-8转换成功, 长度={}, 内容前100字符={}", utf8_result.len(), &utf8_result[..std::cmp::min(100, utf8_result.len())]).into());
-                                    utf8_result
+                                    web_sys::console::log_1(&format!("UU1解密响应: UTF-8转换成功, 长度={}", utf8_result.len()).into());
+                                    // 检查是否是有效的JSON字符串
+                                    if (utf8_result.starts_with("{") && utf8_result.ends_with("}")) || 
+                                       (utf8_result.starts_with("[") && utf8_result.ends_with("]")) {
+                                        web_sys::console::log_1(&"UU1解密响应: 解密结果是有效的JSON字符串".into());
+                                        utf8_result
+                                    } else {
+                                        web_sys::console::log_1(&"UU1解密响应: 解密结果不是有效的JSON字符串，解码可能有问题".into());
+                                        // 返回空字符串表示解码失败
+                                        String::new()
+                                    }
                                 },
                                 Err(e) => {
                                     web_sys::console::log_1(&format!("UU1解密响应: UTF-8转换失败: {:?}", e).into());
-                                    // 如果UTF-8转换失败，使用from_utf8_lossy
+                                    // 使用from_utf8_lossy进行容错处理
                                     let lossy_result = String::from_utf8_lossy(&decrypted_bytes).into_owned();
-                                    web_sys::console::log_1(&format!("UU1解密响应: UTF-8容错转换, 长度={}, 内容前100字符={}", lossy_result.len(), &lossy_result[..std::cmp::min(100, lossy_result.len())]).into());
+                                    web_sys::console::log_1(&format!("UU1解密响应: UTF-8容错转换, 长度={}", lossy_result.len()).into());
                                     
-                                    // 如果结果看起来像二进制数据，尝试Base64解码
-                                    if lossy_result.len() > 0 && lossy_result.chars().any(|c| c as u32 > 127) {
-                                        web_sys::console::log_1(&"UU1解密响应: 结果包含非ASCII字符, 尝试Base64解码".into());
-                                        match general_purpose::STANDARD.decode(&decrypted_bytes) {
-                                            Ok(decoded_bytes) => {
-                                                match String::from_utf8(decoded_bytes.clone()) {
-                                                    Ok(base64_result) => {
-                                                        web_sys::console::log_1(&format!("UU1解密响应: Base64解码成功, 长度={}, 内容前100字符={}", base64_result.len(), &base64_result[..std::cmp::min(100, base64_result.len())]).into());
-                                                        base64_result
-                                                    },
-                                                    Err(_) => {
-                                                        let base64_lossy_result = String::from_utf8_lossy(&decoded_bytes).into_owned();
-                                                        web_sys::console::log_1(&format!("UU1解密响应: Base64容错转换, 长度={}, 内容前100字符={}", base64_lossy_result.len(), &base64_lossy_result[..std::cmp::min(100, base64_lossy_result.len())]).into());
-                                                        base64_lossy_result
-                                                    }
-                                                }
-                                            },
-                                            Err(_) => {
-                                                web_sys::console::log_1(&"UU1解密响应: Base64解码失败, 返回UTF-8容错结果".into());
-                                                lossy_result
-                                            }
-                                        }
-                                    } else {
+                                    // 检查是否是有效的JSON字符串
+                                    if (lossy_result.starts_with("{") && lossy_result.ends_with("}")) || 
+                                       (lossy_result.starts_with("[") && lossy_result.ends_with("]")) {
+                                        web_sys::console::log_1(&"UU1解密响应: 容错转换后的结果是有效的JSON字符串".into());
                                         lossy_result
+                                    } else {
+                                        web_sys::console::log_1(&"UU1解密响应: 容错转换后的结果不是有效的JSON字符串，解码可能有问题".into());
+                                        // 返回空字符串表示解码失败
+                                        String::new()
                                     }
                                 }
                             }
@@ -556,7 +550,7 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
                         }
                     }
                 };
-                web_sys::console::log_1(&format!("UU1解密响应: 最终解密结果长度={}, 内容前100字符={}", decrypted_data.len(), &decrypted_data[..std::cmp::min(100, decrypted_data.len())]).into());
+                web_sys::console::log_1(&format!("UU1解密响应: 最终解密结果长度={}", decrypted_data.len()).into());
 
                 // 返回解密结果
                 string_to_ptr(&decrypted_data)
@@ -588,10 +582,19 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
             }
             
             let data = &response_data[data_start..data_end];
-            web_sys::console::log_1(&format!("UU1解密响应: 提取未加密数据长度={}, 内容前100字符={}", data.len(), &data[..std::cmp::min(100, data.len())]).into());
+            web_sys::console::log_1(&format!("UU1解密响应: 提取未加密数据长度={}", data.len()).into());
             
-            // 返回原始数据
-            string_to_ptr(data)
+            // 检查是否是有效的JSON字符串
+            if (data.starts_with("{") && data.ends_with("}")) || 
+               (data.starts_with("[") && data.ends_with("]")) {
+                web_sys::console::log_1(&"UU1解密响应: 未加密数据是有效的JSON字符串".into());
+                // 返回原始数据
+                string_to_ptr(data)
+            } else {
+                web_sys::console::log_1(&"UU1解密响应: 未加密数据不是有效的JSON字符串".into());
+                // 返回空字符串表示解码失败
+                string_to_ptr("")
+            }
         } else {
             web_sys::console::log_1(&"UU1解密响应: 未找到数据分隔符'200'".into());
             return string_to_ptr("");
