@@ -54,6 +54,71 @@ function isLikeNone(x) {
     return x === undefined || x === null;
 }
 
+function debugString(val) {
+    // primitive types
+    const type = typeof val;
+    if (type == 'number' || type == 'boolean' || val == null) {
+        return  `${val}`;
+    }
+    if (type == 'string') {
+        return `"${val}"`;
+    }
+    if (type == 'symbol') {
+        const description = val.description;
+        if (description == null) {
+            return 'Symbol';
+        } else {
+            return `Symbol(${description})`;
+        }
+    }
+    if (type == 'function') {
+        const name = val.name;
+        if (typeof name == 'string' && name.length > 0) {
+            return `Function(${name})`;
+        } else {
+            return 'Function';
+        }
+    }
+    // objects
+    if (Array.isArray(val)) {
+        const length = val.length;
+        let debug = '[';
+        if (length > 0) {
+            debug += debugString(val[0]);
+        }
+        for(let i = 1; i < length; i++) {
+            debug += ', ' + debugString(val[i]);
+        }
+        debug += ']';
+        return debug;
+    }
+    // Test for built-in
+    const builtInMatches = /\[object ([^\]]+)\]/.exec(toString.call(val));
+    let className;
+    if (builtInMatches && builtInMatches.length > 1) {
+        className = builtInMatches[1];
+    } else {
+        // Failed to match the standard '[object ClassName]'
+        return toString.call(val);
+    }
+    if (className == 'Object') {
+        // we're a user defined class or Object
+        // JSON.stringify avoids problems with cycles, and is generally much
+        // easier than looping through ownProperties of `val`.
+        try {
+            return 'Object(' + JSON.stringify(val) + ')';
+        } catch (_) {
+            return 'Object';
+        }
+    }
+    // errors
+    if (val instanceof Error) {
+        return `${val.name}: ${val.message}\n${val.stack}`;
+    }
+    // TODO we could test for more things here, like `Set`s and `Map`s.
+    return className;
+}
+
 let WASM_VECTOR_LEN = 0;
 
 const cachedTextEncoder = new TextEncoder();
@@ -257,6 +322,15 @@ export function uu1_decrypt_response_object(response) {
 }
 
 /**
+ * @param {any} response
+ * @returns {any}
+ */
+export function uu1_decrypt_response_object_with_arraybuffer(response) {
+    const ret = wasm.uu1_decrypt_response_object_with_arraybuffer(response);
+    return ret;
+}
+
+/**
  * @param {number} request_data_ptr
  * @param {number} request_data_len
  * @param {number} key_ptr
@@ -328,50 +402,64 @@ export function verify_sign(data_ptr, data_len, signature_ptr, signature_len, pu
 }
 
 /**
- * @param {number} key_ptr
- * @param {number} key_len
- * @param {number} system_code_ptr
- * @param {number} system_code_len
+ * @param {number} _key_ptr
+ * @param {number} _key_len
+ * @param {number} _system_code_ptr
+ * @param {number} _system_code_len
  * @returns {number}
  */
-export function encrypt_storage_key(key_ptr, key_len, system_code_ptr, system_code_len) {
-    const ret = wasm.encrypt_storage_key(key_ptr, key_len, system_code_ptr, system_code_len);
+export function encrypt_storage_key(_key_ptr, _key_len, _system_code_ptr, _system_code_len) {
+    const ret = wasm.encrypt_storage_key(_key_ptr, _key_len, _system_code_ptr, _system_code_len);
     return ret >>> 0;
 }
 
 /**
- * @param {number} value_ptr
- * @param {number} value_len
- * @param {number} key_ptr
- * @param {number} key_len
- * @param {number} system_code_ptr
- * @param {number} system_code_len
- * @param {number} storage_key_ptr
- * @param {number} storage_key_len
- * @param {number} storage_encode_ptr
- * @param {number} storage_encode_len
+ * @param {number} _value_ptr
+ * @param {number} _value_len
+ * @param {number} _key_ptr
+ * @param {number} _key_len
+ * @param {number} _system_code_ptr
+ * @param {number} _system_code_len
+ * @param {number} _storage_key_ptr
+ * @param {number} _storage_key_len
+ * @param {number} _storage_encode_ptr
+ * @param {number} _storage_encode_len
  * @returns {number}
  */
-export function encrypt_storage_value(value_ptr, value_len, key_ptr, key_len, system_code_ptr, system_code_len, storage_key_ptr, storage_key_len, storage_encode_ptr, storage_encode_len) {
-    const ret = wasm.decrypt_storage_value(value_ptr, value_len, key_ptr, key_len, system_code_ptr, system_code_len, storage_key_ptr, storage_key_len, storage_encode_ptr, storage_encode_len);
+export function encrypt_storage_value(_value_ptr, _value_len, _key_ptr, _key_len, _system_code_ptr, _system_code_len, _storage_key_ptr, _storage_key_len, _storage_encode_ptr, _storage_encode_len) {
+    const ret = wasm.decrypt_storage_value(_value_ptr, _value_len, _key_ptr, _key_len, _system_code_ptr, _system_code_len, _storage_key_ptr, _storage_key_len, _storage_encode_ptr, _storage_encode_len);
     return ret >>> 0;
 }
 
 /**
- * @param {number} value_ptr
- * @param {number} value_len
- * @param {number} key_ptr
- * @param {number} key_len
- * @param {number} system_code_ptr
- * @param {number} system_code_len
- * @param {number} storage_key_ptr
- * @param {number} storage_key_len
- * @param {number} storage_encode_ptr
- * @param {number} storage_encode_len
+ * @param {number} _value_ptr
+ * @param {number} _value_len
+ * @param {number} _key_ptr
+ * @param {number} _key_len
+ * @param {number} _system_code_ptr
+ * @param {number} _system_code_len
+ * @param {number} _storage_key_ptr
+ * @param {number} _storage_key_len
+ * @param {number} _storage_encode_ptr
+ * @param {number} _storage_encode_len
  * @returns {number}
  */
-export function decrypt_storage_value(value_ptr, value_len, key_ptr, key_len, system_code_ptr, system_code_len, storage_key_ptr, storage_key_len, storage_encode_ptr, storage_encode_len) {
-    const ret = wasm.decrypt_storage_value(value_ptr, value_len, key_ptr, key_len, system_code_ptr, system_code_len, storage_key_ptr, storage_key_len, storage_encode_ptr, storage_encode_len);
+export function decrypt_storage_value(_value_ptr, _value_len, _key_ptr, _key_len, _system_code_ptr, _system_code_len, _storage_key_ptr, _storage_key_len, _storage_encode_ptr, _storage_encode_len) {
+    const ret = wasm.decrypt_storage_value(_value_ptr, _value_len, _key_ptr, _key_len, _system_code_ptr, _system_code_len, _storage_key_ptr, _storage_key_len, _storage_encode_ptr, _storage_encode_len);
+    return ret >>> 0;
+}
+
+/**
+ * @param {number} data_ptr
+ * @param {number} data_len
+ * @param {number} public_key_ptr
+ * @param {number} public_key_len
+ * @param {number} private_key_ptr
+ * @param {number} private_key_len
+ * @returns {number}
+ */
+export function custom_encrypt_with_codec_keypair(data_ptr, data_len, public_key_ptr, public_key_len, private_key_ptr, private_key_len) {
+    const ret = wasm.custom_encrypt_with_codec_keypair(data_ptr, data_len, public_key_ptr, public_key_len, private_key_ptr, private_key_len);
     return ret >>> 0;
 }
 
@@ -432,6 +520,30 @@ function __wbg_get_imports() {
         const ret = Reflect.get(arg0, arg1);
         return ret;
     }, arguments) };
+    imports.wbg.__wbg_getindex_61bb13d19869849b = function(arg0, arg1) {
+        const ret = arg0[arg1 >>> 0];
+        return ret;
+    };
+    imports.wbg.__wbg_instanceof_ArrayBuffer_67f3012529f6a2dd = function(arg0) {
+        let result;
+        try {
+            result = arg0 instanceof ArrayBuffer;
+        } catch (_) {
+            result = false;
+        }
+        const ret = result;
+        return ret;
+    };
+    imports.wbg.__wbg_instanceof_Uint8Array_9a8378d955933db7 = function(arg0) {
+        let result;
+        try {
+            result = arg0 instanceof Uint8Array;
+        } catch (_) {
+            result = false;
+        }
+        const ret = result;
+        return ret;
+    };
     imports.wbg.__wbg_isArray_52653600d4b65388 = function(arg0) {
         const ret = Array.isArray(arg0);
         return ret;
@@ -439,6 +551,9 @@ function __wbg_get_imports() {
     imports.wbg.__wbg_length_6bb7e81f9d7713e4 = function(arg0) {
         const ret = arg0.length;
         return ret;
+    };
+    imports.wbg.__wbg_log_6c7b5f4f00b8ce3f = function(arg0) {
+        console.log(arg0);
     };
     imports.wbg.__wbg_msCrypto_a61aeb35a24c1329 = function(arg0) {
         const ret = arg0.msCrypto;
@@ -452,8 +567,16 @@ function __wbg_get_imports() {
         const ret = new Array();
         return ret;
     };
+    imports.wbg.__wbg_new_638ebfaedbf32a5e = function(arg0) {
+        const ret = new Uint8Array(arg0);
+        return ret;
+    };
     imports.wbg.__wbg_newnoargs_254190557c45b4ec = function(arg0, arg1) {
         const ret = new Function(getStringFromWasm0(arg0, arg1));
+        return ret;
+    };
+    imports.wbg.__wbg_newwithargs_b8065bb443501079 = function(arg0, arg1, arg2, arg3) {
+        const ret = new Function(getStringFromWasm0(arg0, arg1), getStringFromWasm0(arg2, arg3));
         return ret;
     };
     imports.wbg.__wbg_newwithlength_a167dcc7aaa3ba77 = function(arg0) {
@@ -468,10 +591,6 @@ function __wbg_get_imports() {
         const ret = Date.now();
         return ret;
     };
-    imports.wbg.__wbg_parse_442f5ba02e5eaf8b = function() { return handleError(function (arg0, arg1) {
-        const ret = JSON.parse(getStringFromWasm0(arg0, arg1));
-        return ret;
-    }, arguments) };
     imports.wbg.__wbg_process_dc0fbacc7c1c06f7 = function(arg0) {
         const ret = arg0.process;
         return ret;
@@ -521,6 +640,13 @@ function __wbg_get_imports() {
     imports.wbg.__wbg_versions_c01dfd4722a88165 = function(arg0) {
         const ret = arg0.versions;
         return ret;
+    };
+    imports.wbg.__wbg_wbindgendebugstring_99ef257a3ddda34d = function(arg0, arg1) {
+        const ret = debugString(arg1);
+        const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
+        getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
     };
     imports.wbg.__wbg_wbindgenisfunction_8cee7dce3725ae74 = function(arg0) {
         const ret = typeof(arg0) === 'function';

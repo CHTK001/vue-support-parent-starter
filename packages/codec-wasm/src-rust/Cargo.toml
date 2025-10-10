@@ -31,3 +31,11 @@ version = "0.3"
 features = [
   "console",
 ]
+
+# 添加调试配置
+[profile.dev]
+debug = true
+
+[profile.release]
+debug = true
+opt-level = "s"

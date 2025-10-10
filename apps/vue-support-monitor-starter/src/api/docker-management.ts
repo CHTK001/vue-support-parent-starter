@@ -530,6 +530,16 @@ export function getServerList() {
   }>>>("get", "v1/system/server/list");
 }
 
+// 获取WebSocket主题信息
+export function getWebSocketTopics() {
+  return http.request<ReturnResult<{
+    containerStatus: string;
+    containerLogs: string;
+    containerStatistics: string;
+    containerEvents: string;
+  }>>("get", "v1/system/soft/websocket/topics");
+}
+
 // ========= API对象导出 =========
 
 // 软件仓库管理API对象

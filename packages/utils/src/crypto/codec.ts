@@ -2,8 +2,8 @@ import { sm2, sm4 } from "sm-crypto";
 import * as crypto from "./index";
 import type { PureHttpResponse, PureHttpRequestConfig } from "../http/types";
 import { getConfig } from "@repo/config";
-// 导入WASM版本的函数
-import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, isWasmLoaded, generateNonce as generateNonceWasm, processRequest, processResponse } from "@repo/codec-wasm";
+// 导入WASM版本的函数（移除processRequest和processResponse）
+import { uu2_wasm, uu1_wasm, uu3_wasm, uu4_wasm, isWasmLoaded, generateNonce as generateNonceWasm } from "@repo/codec-wasm";
 
 // 常量定义
 const ORIGIN_KEY_HEADER = 'access-control-origin-key';

@@ -118,3 +118,6 @@ export function removeSoftContainer(data: { containerId: string }) {
 export function getSoftContainerLogs(params: { containerId: string }) {
   return http.request<ReturnResult<string>>("get", "v1/system/soft/container/logs", { params });
 }
+
+// 获取WebSocket主题信息
+export { getWebSocketTopics } from '../docker-management';

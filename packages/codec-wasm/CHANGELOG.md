@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.2.4] - 2025-10-10
+
+### Fixed
+- 修复了build目录缺失的问题，确保WASM模块文件正确放置在build目录中
+- 生成了独立的source map文件，满足用户的source map输出要求
+- 确保index.js能够正确加载位于build目录中的WASM模块
+
+## [1.2.3] - 2025-10-10
+
+### Changed
+- 将UU1相关函数中的所有调试日志输出改为中文说明
+- 包括[uu1_decrypt_response](file:///h:/workspace/spring-support-api-starter/spring-api-support-monitor-starter/vue-support-parent-starter/packages/codec-wasm/src-rust/src/lib.rs#L239-L372)、[uu1_decrypt_response_object](file:///h:/workspace/spring-support-api-starter/spring-api-support-monitor-starter/vue-support-parent-starter/packages/codec-wasm/src-rust/src/lib.rs#L551-L656)和[uu1_decrypt_response_object_with_arraybuffer](file:///h:/workspace/spring-support-api-starter/spring-api-support-monitor-starter/vue-support-parent-starter/packages/codec-wasm/src-rust/src/lib.rs#L658-L766)函数中的日志也改为中文
+
+## [1.2.2] - 2025-10-10
+
+### Changed
+- 将UU1函数中的所有调试日志输出改为中文说明
+- 优化了SM2解密后的数据处理逻辑，提高了字符串转换的准确性
+
+## [1.2.1] - 2025-10-10
+
+### Fixed
+- 修复了UU1函数中SM2解密结果乱码的问题
+- 改进了SM2解密后的数据处理逻辑，增强了解密结果的字符串转换处理
+- 添加了更多的调试日志以便于问题诊断
+
 ## [1.2.0] - 2025-09-30
 
 ### Changed
@@ -148,4 +174,3 @@ export function uu2_wasm(requestFunc: (key: string) => string, getConfig: (key: 
   // All encryption logic implemented here
   // ...
 }
-```

@@ -53,9 +53,10 @@ const defaultConfig: AxiosRequestConfig = {
   headers: {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json; charset=UTF-8",
-    responseType: "json",
     "X-Requested-With": "XMLHttpRequest",
   },
+  // 默认responseType设置为blob
+  responseType: "blob",
   // 数组格式参数序列化（https://github.com/axios/axios/issues/5142）
   paramsSerializer: {
     serialize: stringify as unknown as CustomParamsSerializer,
@@ -197,167 +198,36 @@ class PureHttp {
   private httpInterceptorsResponse(): void {
     const instance = PureHttp.axiosInstance;
     instance.interceptors.response.use(
-      async (response: PureHttpResponse) => {
+      (response: PureHttpResponse) => {
         const $config = response.config;
         // 关闭进度条动画
         if (getConfig().RemoteAnimation) {
           NProgress.done();
         }
-        response = uu1(response);
-        const data = response.data?.data || response.data;
-        if (data instanceof Object && data?.data) {
-          data.records = data?.data;
-        }
-        const result: any = {
-          data: null,
-          code: 0,
-          msg: "",
-          message: "", // 添加message属性
-          headers: {},
-        };
-        const code = response.data?.code || response.status;
-        result.data = data;
-        result.code = code;
-        result.response = response;
-        result.msg = response.data?.msg || response.statusText;
-        // 添加message属性，值与msg相同
-        result.message = result.msg;
-        result.headers = response.headers;
-        result.success = response.data?.success || isSuccess(code);
-        // 修复：确保headers存在再访问x-response-version
-        const resVersion = result?.headers && result.headers["x-response-version"];
-        if (resVersion) {
-          upgrade(resVersion);
-        }
-        if (!isSuccess(code)) {
-          message(response.data?.msg || data?.message || "Error", {
-            type: "error",
+        
+        // 将所有响应处理交给uu1函数，包括blob处理
+        const processedResponse = uu1(response);
+        
+        // 如果processedResponse是Promise（异步处理blob的情况），需要处理Promise
+        if (processedResponse instanceof Promise) {
+          return processedResponse.then(result => {
+            return this.processResponseData(result, $config);
           });
-          return Promise.reject({
-            msg: response.data?.msg || data?.message || "Error",
-            code: code,
-          });
+        } else {
+          return this.processResponseData(processedResponse, $config);
         }
-        // 优先判断post/get等方法是否传入回调，否则执行初始化设置等回调
-        if (typeof $config.beforeResponseCallback === "function") {
-          $config.beforeResponseCallback(response);
-          return result;
-        }
-        if (PureHttp.initConfig.beforeResponseCallback) {
-          PureHttp.initConfig.beforeResponseCallback(response);
-          return result;
-        }
-        if (response.config.headers["wrapper"] === false) {
-          return result.data;
-        }
-        return result;
       },
       (error: PureHttpError) => {
         const $error = error;
         const response = error.response;
-        let code = response?.status as any;
 
         // 关闭进度条动画
         if (getConfig().RemoteAnimation) {
           NProgress.done();
         }
 
-        // 处理Blob类型的响应数据
-        const handleBlobData = (blob) => {
-          return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              try {
-                const text = reader.result as string;
-                const jsonData = JSON.parse(text);
-                resolve(jsonData);
-              } catch (e) {
-                console.error("Failed to parse JSON from blob:", e);
-                reject(e);
-              }
-            };
-            reader.onerror = () => reject(new Error("Failed to read blob"));
-            reader.readAsText(blob);
-          });
-        };
-
-        // 处理错误消息显示
-        const showErrorMessage = (msg: string) => {
-          if (!AutoErrorMessage) {
-            return;
-          }
-          if (msg === "Internal Server Error") {
-            msg = transformI18n("http.error.serverError");
-          }
-          message(msg, {
-            type: "error",
-            grouping: true,
-          });
-        };
-
-        // 处理认证失败的情况
-        const handleAuthError = () => {
-          const token = getToken();
-          if (token.accessToken && token.refreshToken) {
-            handRefreshToken({ refreshToken: token.refreshToken })
-              .catch(() => {
-                logOut();
-              })
-              .finally(() => {
-                PureHttp.isRefreshing = false;
-              });
-            return Promise.resolve(PureHttp.retryOriginalRequest(error.config));
-          }
-          logOut();
-          return Promise.reject($error);
-        };
-
         // 检查是否为取消的请求
         $error.isCancelRequest = Axios.isCancel($error);
-
-        // 处理响应数据
-        if (response) {
-          const data = response.data as any;
-          if (data) {
-            // 处理Blob类型的JSON数据
-            if (data instanceof Blob && data?.type === "application/json") {
-              return handleBlobData(data)
-                .then((jsonData: any) => {
-                  code = jsonData.code || code;
-
-                  if (!isSuccess(code)) {
-                    showErrorMessage(jsonData.msg || "Error");
-
-                    if (isNoAuth(code)) {
-                      return handleAuthError();
-                    }
-                  }
-
-                  return Promise.reject({
-                    msg: jsonData.msg || "Error",
-                    code: code,
-                    data: jsonData.data,
-                  });
-                })
-                .catch((err) => {
-                  return Promise.reject(err);
-                });
-            }
-
-            code = data?.code || code;
-          }
-        }
-
-        // 处理非成功状态码
-        if (!isSuccess(code)) {
-          if (isNoAuth(code)) {
-            return handleAuthError();
-          }
-
-          const data = response ? (response.data as any) : {};
-          const msg = data?.msg || response?.statusText || "Error";
-          showErrorMessage(msg);
-        }
 
         // 所有的响应异常 区分来源为取消请求/非取消请求
         return Promise.reject($error);
@@ -525,6 +395,57 @@ class PureHttp {
     });
 
     return controller;
+  }
+
+  // 处理响应数据的辅助函数
+  private processResponseData(response: PureHttpResponse, $config: PureHttpRequestConfig) {
+    const data = response.data?.data || response.data;
+    if (data instanceof Object && data?.data) {
+      data.records = data?.data;
+    }
+    const result: any = {
+      data: null,
+      code: 0,
+      msg: "",
+      message: "", // 添加message属性
+      headers: {},
+    };
+    const code = response.data?.code || response.status;
+    result.data = data;
+    result.code = code;
+    result.response = response;
+    result.msg = response.data?.msg || response.statusText;
+    // 添加message属性，值与msg相同
+    result.message = result.msg;
+    result.headers = response.headers;
+    result.success = response.data?.success || isSuccess(code);
+    // 修复：确保headers存在再访问x-response-version
+    const resVersion = result?.headers && result.headers["x-response-version"];
+    if (resVersion) {
+      upgrade(resVersion);
+    }
+    if (!isSuccess(code)) {
+      message(response.data?.msg || data?.message || "Error", {
+        type: "error",
+      });
+      return Promise.reject({
+        msg: response.data?.msg || data?.message || "Error",
+        code: code,
+      });
+    }
+    // 优先判断post/get等方法是否传入回调，否则执行初始化设置等回调
+    if (typeof $config.beforeResponseCallback === "function") {
+      $config.beforeResponseCallback(response);
+      return result;
+    }
+    if (PureHttp.initConfig.beforeResponseCallback) {
+      PureHttp.initConfig.beforeResponseCallback(response);
+      return result;
+    }
+    if (response.config.headers["wrapper"] === false) {
+      return result.data;
+    }
+    return result;
   }
 }
 

@@ -9,9 +9,6 @@ export function md5Hash(input: string): string;
 export function getCurrentTimestamp(): number;
 export function add(a: number, b: number): number;
 
-export function processRequest(requestData: string, requestUrl: string, codecConfig: boolean, codecKey: string): string;
-export function processResponse(responseData: string, originKey: string, timestamp: string): string;
-
 export function encryptAES(data: string, key: string): string;
 export function decryptAES(value: string, key: string): string;
 
