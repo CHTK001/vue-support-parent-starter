@@ -272,13 +272,9 @@
 .scroll-item.is-active {
   position: relative;
   color: var(--cb-color-text-white);
-  box-shadow: 0 0 0.7px var(--cb-color-shadow-medium);
 
   .chrome-tab {
     z-index: 10;
-  }
-  &:hover { 
-    box-shadow: 0 0 0.7px var(--cb-color-shadow-medium);
   }
 
   .chrome-tab__bg {
@@ -288,9 +284,6 @@
   .chrome-close-btn {
     color: var(--cb-color-text-brand);
 
-    &:hover {
-      background-color: var(--cb-color-bg-brand);
-    }
   }
 
   .chrome-tab-divider {

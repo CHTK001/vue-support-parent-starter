@@ -199,7 +199,7 @@
     }
 
     .is-active {
-      color: var(--pure-theme-sub-menu-active-text) !important;
+      color: #ffffff !important; /* 强制设置为白色确保可见性 */
       transition: color 0.3s;
     }
 
