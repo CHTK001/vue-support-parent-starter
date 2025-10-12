@@ -1312,7 +1312,11 @@ onUnmounted(() => {
   position: relative;
   overflow: hidden;
   transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  box-shadow: var(--el-box-shadow-light);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.15),
+    0 10px 30px rgba(0, 0, 0, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    var(--el-box-shadow-light);
 
   // 现代化背景装饰 - 动态渐变
   &::before {
@@ -1356,7 +1360,11 @@ onUnmounted(() => {
   // 暗色主题适配
   .dark & {
     background: var(--el-bg-color-page);
-    box-shadow: var(--el-box-shadow-dark);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.4),
+      0 10px 30px rgba(0, 0, 0, 0.35),
+      0 1px 0 rgba(255, 255, 255, 0.15) inset,
+      var(--el-box-shadow-dark);
 
     &::before {
       background: linear-gradient(90deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary-light-1) 25%, var(--el-color-primary) 50%, var(--el-color-primary-light-1) 75%, var(--el-color-primary-light-3) 100%);
@@ -1372,6 +1380,19 @@ onUnmounted(() => {
     width: 100%;
     padding: 16px;
     border-radius: 16px;
+    box-shadow:
+      0 15px 45px rgba(0, 0, 0, 0.12),
+      0 8px 20px rgba(0, 0, 0, 0.1),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset,
+      var(--el-box-shadow-light);
+
+    .dark & {
+      box-shadow:
+        0 15px 45px rgba(0, 0, 0, 0.35),
+        0 8px 20px rgba(0, 0, 0, 0.3),
+        0 1px 0 rgba(255, 255, 255, 0.1) inset,
+        var(--el-box-shadow-dark);
+    }
   }
 }
 
@@ -1382,7 +1403,8 @@ onUnmounted(() => {
   border-radius: 16px;
   padding: 24px;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    0 8px 20px rgba(0, 0, 0, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.8) inset,
     0 -1px 0 rgba(0, 0, 0, 0.05) inset;
   border: 1px solid var(--el-border-color-light);
@@ -1422,11 +1444,12 @@ onUnmounted(() => {
   &:hover {
     background: var(--el-bg-color-overlay);
     box-shadow:
-      0 16px 48px rgba(0, 0, 0, 0.1),
+      0 20px 60px rgba(0, 0, 0, 0.15),
+      0 12px 30px rgba(0, 0, 0, 0.12),
       0 1px 0 rgba(255, 255, 255, 0.9) inset,
       0 -1px 0 rgba(0, 0, 0, 0.05) inset;
     border-color: var(--el-color-primary-light-8);
-    transform: translateY(-2px) scale(1.01);
+    transform: translateY(-4px) scale(1.02);
 
     &::before {
       opacity: 1;
@@ -1447,14 +1470,16 @@ onUnmounted(() => {
     background: var(--el-bg-color-overlay);
     border-color: var(--el-border-color);
     box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.3),
+      0 12px 40px rgba(0, 0, 0, 0.4),
+      0 8px 20px rgba(0, 0, 0, 0.3),
       0 1px 0 rgba(255, 255, 255, 0.1) inset,
       0 -1px 0 rgba(0, 0, 0, 0.2) inset;
 
     &:hover {
       background: var(--el-bg-color-overlay);
       box-shadow:
-        0 16px 48px rgba(0, 0, 0, 0.4),
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 12px 30px rgba(0, 0, 0, 0.4),
         0 1px 0 rgba(255, 255, 255, 0.15) inset,
         0 -1px 0 rgba(0, 0, 0, 0.2) inset;
       border-color: var(--el-color-primary-light-6);
@@ -1465,6 +1490,35 @@ onUnmounted(() => {
   @media (max-width: 768px) {
     padding: 20px;
     margin-bottom: 20px;
+    box-shadow:
+      0 8px 30px rgba(0, 0, 0, 0.1),
+      0 4px 15px rgba(0, 0, 0, 0.06),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+
+    &:hover {
+      box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.15),
+        0 8px 25px rgba(0, 0, 0, 0.1),
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+    }
+
+    .dark & {
+      box-shadow:
+        0 8px 30px rgba(0, 0, 0, 0.35),
+        0 4px 15px rgba(0, 0, 0, 0.25),
+        0 1px 0 rgba(255, 255, 255, 0.1) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.2) inset;
+
+      &:hover {
+        box-shadow:
+          0 12px 40px rgba(0, 0, 0, 0.45),
+          0 8px 25px rgba(0, 0, 0, 0.35),
+          0 1px 0 rgba(255, 255, 255, 0.15) inset,
+          0 -1px 0 rgba(0, 0, 0, 0.2) inset;
+      }
+    }
   }
 }
 
@@ -1985,6 +2039,10 @@ onUnmounted(() => {
   border: 1px solid var(--el-border-color-extra-light);
   position: relative;
   overflow: hidden;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
 
   // 背景动画效果
   &::before {
@@ -2000,8 +2058,11 @@ onUnmounted(() => {
 
   &:hover {
     background: var(--el-color-primary-light-9);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.1);
+    transform: translateY(-2px);
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.1),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset;
     border-color: var(--el-color-primary-light-8);
 
     &::before {
@@ -2024,10 +2085,18 @@ onUnmounted(() => {
   .dark & {
     background: var(--el-fill-color-dark);
     border-color: var(--el-border-color);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.25),
+      0 2px 6px rgba(0, 0, 0, 0.2),
+      0 1px 0 rgba(255, 255, 255, 0.1) inset;
 
     &:hover {
       background: var(--el-color-primary-light-8);
       border-color: var(--el-color-primary-light-6);
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.35),
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        0 1px 0 rgba(255, 255, 255, 0.15) inset;
     }
   }
 }
@@ -2208,6 +2277,10 @@ onUnmounted(() => {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
 
   &::before {
     content: "";
@@ -2222,8 +2295,11 @@ onUnmounted(() => {
 
   &:hover {
     border-color: var(--el-color-primary-light-5);
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.1);
-    transform: translateY(-1px);
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.1),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    transform: translateY(-2px);
 
     &::before {
       left: 100%;
@@ -2255,9 +2331,17 @@ onUnmounted(() => {
   .dark & {
     background: var(--el-bg-color-overlay);
     border-color: var(--el-border-color);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.25),
+      0 2px 6px rgba(0, 0, 0, 0.2),
+      0 1px 0 rgba(255, 255, 255, 0.1) inset;
 
     &:hover {
       border-color: var(--el-color-primary-light-3);
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.35),
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        0 1px 0 rgba(255, 255, 255, 0.15) inset;
     }
   }
 }
@@ -2644,14 +2728,18 @@ onUnmounted(() => {
   border-radius: 12px;
   border: 1px solid var(--el-border-color-light);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
 
   &:hover {
     background: var(--el-color-primary-light-9);
     border-color: var(--el-color-primary-light-8);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
     box-shadow: 
-      0 6px 16px rgba(var(--el-color-primary-rgb), 0.15),
+      0 8px 24px rgba(0, 0, 0, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.1),
       0 1px 0 rgba(255, 255, 255, 0.8) inset;
   }
 
@@ -2665,6 +2753,21 @@ onUnmounted(() => {
     writing-mode: horizontal-tb;
     white-space: nowrap;
   }
+
+  // 暗色主题适配
+  .dark & {
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.25),
+      0 2px 6px rgba(0, 0, 0, 0.2),
+      0 1px 0 rgba(255, 255, 255, 0.1) inset;
+
+    &:hover {
+      box-shadow: 
+        0 8px 24px rgba(0, 0, 0, 0.35),
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        0 1px 0 rgba(255, 255, 255, 0.15) inset;
+    }
+  }
 }
 
 .custom-number-input {
@@ -2675,21 +2778,25 @@ onUnmounted(() => {
   border: 1px solid var(--el-border-color-light);
   overflow: hidden;
   box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.7) inset;
   transition: all 0.3s ease;
 
   &:hover {
     border-color: var(--el-color-primary-light-7);
     box-shadow: 
-      0 4px 12px rgba(var(--el-color-primary-rgb), 0.15),
+      0 8px 24px rgba(0, 0, 0, 0.15),
+      0 4px 12px rgba(0, 0, 0, 0.12),
       0 1px 0 rgba(255, 255, 255, 0.8) inset;
   }
 
   &:focus-within {
     border-color: var(--el-color-primary);
     box-shadow: 
-      0 0 0 3px rgba(var(--el-color-primary-rgb), 0.25),
+      0 0 0 4px rgba(var(--el-color-primary-rgb), 0.3),
+      0 8px 24px rgba(0, 0, 0, 0.18),
+      0 4px 12px rgba(0, 0, 0, 0.15),
       0 1px 0 rgba(255, 255, 255, 0.9) inset;
   }
 
@@ -2706,16 +2813,19 @@ onUnmounted(() => {
     transition: all 0.3s ease;
     font-size: 16px;
     font-weight: 600;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 
     &:hover:not(:disabled) {
       background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
       transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     &:active:not(:disabled) {
       background: var(--el-color-primary-light-8);
       transform: scale(0.95);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     }
 
     &:disabled {
@@ -2741,6 +2851,7 @@ onUnmounted(() => {
     min-width: 90px;
     justify-content: center;
     position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) inset;
 
     .number-input {
       border: none;
@@ -2783,31 +2894,42 @@ onUnmounted(() => {
     background: var(--el-bg-color-overlay);
     border-color: var(--el-border-color);
     box-shadow: 
-      0 2px 8px rgba(0, 0, 0, 0.3),
+      0 4px 12px rgba(0, 0, 0, 0.35),
+      0 2px 6px rgba(0, 0, 0, 0.3),
       0 1px 0 rgba(255, 255, 255, 0.1) inset;
 
     .number-btn {
       background: var(--el-fill-color-dark);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 
       &:hover:not(:disabled) {
         background: var(--el-color-primary-light-8);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      }
+
+      &:active:not(:disabled) {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
       }
     }
 
     .number-display {
       background: var(--el-bg-color-overlay);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) inset;
     }
 
     &:hover {
       border-color: var(--el-color-primary-light-6);
       box-shadow: 
+        0 8px 24px rgba(0, 0, 0, 0.45),
         0 4px 12px rgba(0, 0, 0, 0.4),
         0 1px 0 rgba(255, 255, 255, 0.15) inset;
     }
 
     &:focus-within {
       box-shadow: 
-        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.4),
+        0 0 0 4px rgba(var(--el-color-primary-rgb), 0.45),
+        0 8px 24px rgba(0, 0, 0, 0.5),
+        0 4px 12px rgba(0, 0, 0, 0.45),
         0 1px 0 rgba(255, 255, 255, 0.2) inset;
     }
   }
@@ -2895,7 +3017,10 @@ onUnmounted(() => {
   background: var(--el-fill-color-light);
   border-radius: 16px;
   border: 1px solid var(--el-border-color-light);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.08),
+    0 3px 8px rgba(0, 0, 0, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
 }
 
 .theme-color-item {
@@ -2908,7 +3033,8 @@ onUnmounted(() => {
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   border: 2px solid var(--el-border-color-light);
   box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.1),
+    0 6px 16px rgba(0, 0, 0, 0.12),
+    0 3px 8px rgba(0, 0, 0, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.7) inset;
 
   // 基础光泽效果
@@ -2926,9 +3052,10 @@ onUnmounted(() => {
 
   // 悬停效果
   &:hover {
-    transform: translateY(-6px) scale(1.12);
+    transform: translateY(-8px) scale(1.15);
     box-shadow:
-      0 8px 24px rgba(0, 0, 0, 0.2),
+      0 12px 32px rgba(0, 0, 0, 0.25),
+      0 6px 16px rgba(0, 0, 0, 0.18),
       0 1px 0 rgba(255, 255, 255, 0.9) inset;
     border-color: var(--el-color-primary-light-7);
 
@@ -2938,7 +3065,7 @@ onUnmounted(() => {
     }
 
     .selection-indicator {
-      transform: scale(1.15);
+      transform: scale(1.2);
     }
 
     &::before {
@@ -2948,7 +3075,7 @@ onUnmounted(() => {
 
   // 点击效果
   &:active {
-    transform: translateY(-3px) scale(1.08);
+    transform: translateY(-4px) scale(1.1);
   }
 
   // 选中状态
@@ -2956,22 +3083,23 @@ onUnmounted(() => {
     border-color: var(--el-color-primary);
     box-shadow:
       0 0 0 4px rgba(var(--el-color-primary-rgb), 0.4),
-      0 8px 24px rgba(var(--el-color-primary-rgb), 0.3),
+      0 12px 32px rgba(var(--el-color-primary-rgb), 0.35),
+      0 6px 16px rgba(var(--el-color-primary-rgb), 0.25),
       0 1px 0 rgba(255, 255, 255, 0.9) inset;
-    transform: translateY(-3px) scale(1.08);
+    transform: translateY(-4px) scale(1.1);
 
     .selection-indicator {
       opacity: 1;
-      transform: scale(1.1);
+      transform: scale(1.15);
 
       .check-ring {
         background: var(--el-color-white);
         border-color: var(--el-color-primary);
-        transform: scale(1.1);
+        transform: scale(1.15);
 
         .check-icon {
           opacity: 1;
-          transform: scale(1.1);
+          transform: scale(1.15);
           color: var(--el-color-primary);
         }
       }
@@ -2997,17 +3125,25 @@ onUnmounted(() => {
   // 暗色主题适配
   .dark & {
     border-color: var(--el-border-color);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    box-shadow:
+      0 6px 16px rgba(0, 0, 0, 0.5),
+      0 3px 8px rgba(0, 0, 0, 0.4),
+      0 1px 0 rgba(255, 255, 255, 0.1) inset;
 
     &:hover {
       border-color: var(--el-color-primary-light-4);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      box-shadow:
+        0 12px 32px rgba(0, 0, 0, 0.6),
+        0 6px 16px rgba(0, 0, 0, 0.5),
+        0 1px 0 rgba(255, 255, 255, 0.15) inset;
     }
 
     &.is-selected {
       box-shadow:
         0 0 0 4px rgba(var(--el-color-primary-rgb), 0.4),
-        0 8px 24px rgba(var(--el-color-primary-rgb), 0.4);
+        0 12px 32px rgba(var(--el-color-primary-rgb), 0.5),
+        0 6px 16px rgba(var(--el-color-primary-rgb), 0.4),
+        0 1px 0 rgba(255, 255, 255, 0.15) inset;
     }
   }
 }
@@ -3207,7 +3343,8 @@ onUnmounted(() => {
     background: var(--el-bg-color-overlay);
     border-radius: 20px;
     box-shadow:
-      0 8px 24px rgba(0, 0, 0, 0.1),
+      0 10px 30px rgba(0, 0, 0, 0.12),
+      0 6px 18px rgba(0, 0, 0, 0.08),
       0 1px 0 rgba(255, 255, 255, 0.8) inset,
       0 -1px 0 rgba(0, 0, 0, 0.05) inset;
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -3251,9 +3388,10 @@ onUnmounted(() => {
     }
 
     &:hover {
-      transform: translateY(-8px) scale(1.04);
+      transform: translateY(-12px) scale(1.06);
       box-shadow:
-        0 20px 50px rgba(0, 0, 0, 0.15),
+        0 24px 60px rgba(0, 0, 0, 0.2),
+        0 12px 30px rgba(0, 0, 0, 0.15),
         0 1px 0 rgba(255, 255, 255, 0.9) inset,
         0 -1px 0 rgba(0, 0, 0, 0.05) inset;
       border-color: var(--el-color-primary-light-7);
@@ -3269,17 +3407,18 @@ onUnmounted(() => {
     }
 
     &:active {
-      transform: translateY(-4px) scale(1.02);
+      transform: translateY(-6px) scale(1.03);
     }
 
     &.is-select {
       border-color: var(--el-color-primary);
       box-shadow:
-        0 0 0 4px rgba(var(--el-color-primary-rgb), 0.25),
-        0 16px 40px rgba(var(--el-color-primary-rgb), 0.2),
+        0 0 0 6px rgba(var(--el-color-primary-rgb), 0.3),
+        0 20px 50px rgba(var(--el-color-primary-rgb), 0.25),
+        0 10px 25px rgba(var(--el-color-primary-rgb), 0.18),
         0 1px 0 rgba(255, 255, 255, 0.9) inset;
       background: var(--el-color-primary-light-9);
-      transform: translateY(-4px);
+      transform: translateY(-6px);
       animation: selectPulse 2s ease-in-out infinite;
 
       &::after {
@@ -3293,12 +3432,20 @@ onUnmounted(() => {
       background: linear-gradient(135deg, var(--el-fill-color-light), var(--el-fill-color));
       border: 2px dashed var(--el-border-color-light);
       opacity: 0.7;
+      box-shadow:
+        0 6px 18px rgba(0, 0, 0, 0.08),
+        0 3px 9px rgba(0, 0, 0, 0.06),
+        0 1px 0 rgba(255, 255, 255, 0.7) inset;
 
       &:hover {
         border-color: var(--el-border-color);
         background: linear-gradient(135deg, var(--el-fill-color-lighter), var(--el-fill-color-light));
         opacity: 0.9;
-        transform: translateY(-3px) scale(1.02);
+        transform: translateY(-4px) scale(1.03);
+        box-shadow:
+          0 10px 25px rgba(0, 0, 0, 0.12),
+          0 5px 15px rgba(0, 0, 0, 0.1),
+          0 1px 0 rgba(255, 255, 255, 0.8) inset;
       }
 
       .coming-soon {
@@ -3331,7 +3478,10 @@ onUnmounted(() => {
       transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       background: var(--el-bg-color-overlay);
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.1),
+        0 2px 6px rgba(0, 0, 0, 0.08),
+        0 1px 0 rgba(255, 255, 255, 0.7) inset;
       letter-spacing: 0.4px;
       text-align: center;
       writing-mode: horizontal-tb;
@@ -3340,8 +3490,11 @@ onUnmounted(() => {
     &:hover::after {
       color: var(--el-color-primary);
       background: var(--el-color-primary-light-9);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transform: translateY(-3px);
+      box-shadow:
+        0 6px 16px rgba(0, 0, 0, 0.15),
+        0 3px 8px rgba(0, 0, 0, 0.12),
+        0 1px 0 rgba(255, 255, 255, 0.8) inset;
     }
 
     &.is-select::after {
@@ -3349,7 +3502,10 @@ onUnmounted(() => {
       font-weight: 700;
       background: var(--el-color-primary-light-9);
       border-color: var(--el-color-primary-light-5);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      box-shadow:
+        0 6px 16px rgba(0, 0, 0, 0.18),
+        0 3px 8px rgba(0, 0, 0, 0.15),
+        0 1px 0 rgba(255, 255, 255, 0.8) inset;
     }
 
     // 图片图标样式
@@ -3359,7 +3515,7 @@ onUnmounted(() => {
       display: block;
       object-fit: fill;
       transition: all 0.3s ease;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+      filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.12));
     }
 
     // SVG组件样式 - 让SVG撑满li容器
@@ -3368,7 +3524,7 @@ onUnmounted(() => {
       height: 100% !important;
       flex: 1 !important;
       transition: all 0.3s ease;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+      filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.12));
       border-radius: 20px;
       // 让SVG图标颜色跟随主题色变化
       color: var(--el-text-color-primary);
@@ -3384,24 +3540,24 @@ onUnmounted(() => {
     }
 
     &:hover .layout-icon {
-      transform: scale(1.06);
-      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
+      transform: scale(1.08);
+      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.2));
     }
 
     &:hover svg {
-      transform: scale(1.06);
-      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
+      transform: scale(1.08);
+      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.2));
       // 悬停状态时SVG图标颜色跟随主题色
       color: var(--el-color-primary);
       fill: currentColor;
     }
 
     &.is-select .layout-icon {
-      filter: drop-shadow(0 2px 8px rgba(var(--el-color-primary-rgb), 0.35));
+      filter: drop-shadow(0 4px 10px rgba(var(--el-color-primary-rgb), 0.4));
     }
 
     &.is-select svg {
-      filter: drop-shadow(0 2px 8px rgba(var(--el-color-primary-rgb), 0.35));
+      filter: drop-shadow(0 4px 10px rgba(var(--el-color-primary-rgb), 0.4));
       // 选中状态时SVG图标颜色跟随主题色
       color: var(--el-color-primary);
       fill: currentColor;
@@ -3414,10 +3570,17 @@ onUnmounted(() => {
       opacity: 0.6;
       cursor: not-allowed;
       background: linear-gradient(135deg, var(--el-fill-color-light), var(--el-fill-color));
+      box-shadow:
+        0 6px 18px rgba(0, 0, 0, 0.08),
+        0 3px 9px rgba(0, 0, 0, 0.06),
+        0 1px 0 rgba(255, 255, 255, 0.7) inset;
 
       &:hover {
         transform: none;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        box-shadow:
+          0 8px 24px rgba(0, 0, 0, 0.12),
+          0 4px 12px rgba(0, 0, 0, 0.1),
+          0 1px 0 rgba(255, 255, 255, 0.8) inset;
       }
 
       .coming-soon {
@@ -3440,6 +3603,10 @@ onUnmounted(() => {
         content: "更多布局";
         font-size: 11px;
         color: var(--el-text-color-placeholder);
+        box-shadow:
+          0 3px 8px rgba(0, 0, 0, 0.08),
+          0 1px 4px rgba(0, 0, 0, 0.06),
+          0 1px 0 rgba(255, 255, 255, 0.7) inset;
       }
     }
   }
