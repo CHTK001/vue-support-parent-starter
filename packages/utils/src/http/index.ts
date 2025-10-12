@@ -198,7 +198,7 @@ class PureHttp {
   private httpInterceptorsResponse(): void {
     const instance = PureHttp.axiosInstance;
     instance.interceptors.response.use(
-      (response: PureHttpResponse) => {
+      async (response: PureHttpResponse) => {
         const $config = response.config;
         // 关闭进度条动画
         if (getConfig().RemoteAnimation) {
@@ -206,7 +206,7 @@ class PureHttp {
         }
         
         // 将所有响应处理交给uu1函数，包括blob处理
-        const processedResponse = uu1(response);
+        const processedResponse = await uu1(response);
         
         // 如果processedResponse是Promise（异步处理blob的情况），需要处理Promise
         if (processedResponse instanceof Promise) {

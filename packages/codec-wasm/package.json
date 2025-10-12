@@ -12,7 +12,8 @@
   ],
   "scripts": {
     "test": "node test/sm2-test.js",
-    "dev": "vite"
+    "dev": "vite",
+    "build": "rimraf build && cd src-rust && wasm-pack build --target web --out-dir ../build"
   },
   "keywords": [
     "webassembly",
@@ -25,7 +26,8 @@
   "author": "CH",
   "license": "MIT",
   "devDependencies": {
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "rimraf": "^5.0.0"
   },
   "dependencies": {
     "crypto-js": "^4.2.0",
