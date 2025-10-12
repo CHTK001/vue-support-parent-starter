@@ -623,19 +623,11 @@ const deferTag = useDefer(tagsViews?.length);
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    background-color: var(--el-color-primary-light-9);
-    
-    .tag-title {
-      color: var(--el-color-primary);
-    }
   }
   
   &.is-active {
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      background-color: var(--el-color-primary-light-8);
     }
   }
 }
@@ -644,10 +636,6 @@ const deferTag = useDefer(tagsViews?.length);
   &:hover {
     .chrome-tab__bg {
       filter: brightness(1.05);
-    }
-    
-    .tag-title {
-      color: var(--el-color-primary);
     }
   }
   

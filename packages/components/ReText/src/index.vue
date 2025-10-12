@@ -67,6 +67,13 @@ onMounted(() => {
   </el-text>
 </template>
 <style lang="scss" scoped>
+
+.router-link-exact-active {
+  .new-re-text {
+    // 亮色主题下显示黑色文字
+    color: #ffffff !important;
+  }
+}
 .new-re-text {
   // 亮色主题下显示黑色文字
   color: var(--app-text-primary);
