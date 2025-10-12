@@ -1,5 +1,4 @@
 // codec-wasm JavaScript包装器
-
 // 引入sm-crypto库
 import smCrypto from 'sm-crypto';
 // 引入crypto-js库用于AES加密
@@ -976,8 +975,8 @@ export function uu1(response) {
           return response;
         }
       } else {
-        // 对于非Blob数据，直接返回原始响应对象，不调用WASM
-        return response;
+        // 对于非Blob数据，直接调用WASM函数处理整个响应对象
+        return wasmModuleInstance.uu1_decrypt_response_object(response);
       }
     } catch (error) {
       console.error('处理响应数据失败:', error);
