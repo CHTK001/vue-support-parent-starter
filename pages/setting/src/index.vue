@@ -26,6 +26,11 @@ const layout = reactive({
   email: defineAsyncComponent(() => import("./layout/email.vue")),
   group: GroupManagement,
 });
+
+// 抽屉显示状态控制
+const drawerVisible = reactive({
+  group: false,
+});
 // 默认配置项（作为后备）
 const defaultProductsConfig = [
   {
@@ -79,10 +84,10 @@ const onRowClick = async (it) => {
 
   // 如果是配置组管理，直接显示对话框
   if (item.group === "group") {
-    layout[item.group] = true;
+    drawerVisible[item.group] = true;
   } else if (layout[item.group]) {
     // 如果有自定义布局组件，显示抽屉
-    layout[item.group] = true;
+    drawerVisible[item.group] = true;
   } else {
     // 否则使用默认的设置布局
     try {
@@ -111,8 +116,8 @@ const onRowClick = async (it) => {
 // 关闭设置面板
 const close = (group) => {
   // 关闭对应的布局组件
-  if (layout[group] !== undefined) {
-    layout[group] = false;
+  if (drawerVisible[group] !== undefined) {
+    drawerVisible[group] = false;
   }
 
   // 如果是配置组管理，刷新配置数据
@@ -125,10 +130,10 @@ const close = (group) => {
 
 // 打开配置组管理
 const openGroupManagement = () => {
-  const groupItem = productsConfig.value.find((item) => item.group === "group");
+  const groupItem = productsConfig.find((item) => item.group === "group");
   if (groupItem) {
     currentItem.value = groupItem;
-    layout.group = true;
+    drawerVisible.group = true;
   }
 };
 // if (localStorageProxyObject.getItem(SETTING_TAB_VALUE)) {
@@ -253,12 +258,12 @@ onMounted(() => {
       </template>
       <template v-else-if="currentItem.group === 'group'">
         <!-- 配置组管理使用抽屉显示 -->
-        <el-drawer v-model="layout.group" size="60%" :title="currentItem.name" destroy-on-close @close="close(currentItem.group)">
+        <el-drawer v-model="drawerVisible.group" size="60%" :title="currentItem.name" destroy-on-close @close="close(currentItem.group)" :z-index="2000">
           <GroupManagement :data="currentItem" />
         </el-drawer>
       </template>
       <template v-else>
-        <el-drawer v-model="layout[currentItem.group]" size="50%" :title="currentItem.name">
+        <el-drawer v-model="drawerVisible[currentItem.group]" size="50%" :title="currentItem.name" :z-index="2000">
           <component :is="layout[currentItem.group]" :data="currentItem" />
         </el-drawer>
       </template>
@@ -272,7 +277,11 @@ onMounted(() => {
 .modern-setting-container {
   background-color: var(--el-bg-color);
   border-radius: 16px;
-  box-shadow: 0 8px 30px var(--app-shadow-md);
+  box-shadow: 
+    0 15px 40px rgba(0, 0, 0, 0.15),
+    0 8px 20px rgba(0, 0, 0, 0.1),
+    0 4px 10px rgba(0, 0, 0, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -287,16 +296,25 @@ onMounted(() => {
   position: fixed;
   bottom: 30px;
   right: 30px;
-  z-index: 100;
+  z-index: 1000;
   width: 38px !important;
   height: 38px !important;
   border-radius: 50%;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 
+    0 8px 20px rgba(0, 0, 0, 0.25),
+    0 5px 15px rgba(0, 0, 0, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    0 1px 0 rgba(255, 255, 255, 0.3) inset;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
 
   &:hover {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    box-shadow: 
+      0 12px 30px rgba(0, 0, 0, 0.3),
+      0 8px 20px rgba(0, 0, 0, 0.25),
+      0 4px 12px rgba(0, 0, 0, 0.2),
+      0 1px 0 rgba(255, 255, 255, 0.4) inset;
+    transform: translateY(-3px) scale(1.05);
   }
 }
 
@@ -304,17 +322,25 @@ onMounted(() => {
   position: fixed;
   bottom: 30px;
   right: 90px;
-  z-index: 100;
+  z-index: 1000;
   width: 38px !important;
   height: 38px !important;
   border-radius: 50%;
-  box-shadow: 0 5px 15px var(--app-shadow);
+  box-shadow: 
+    0 8px 20px var(--app-shadow),
+    0 5px 15px rgba(0, 0, 0, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.3) inset;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   background: linear-gradient(135deg, var(--app-success) 0%, var(--app-success-light-3) 100%);
 
   &:hover {
-    box-shadow: 0 8px 20px var(--app-shadow-lg);
-    transform: translateY(-2px);
+    box-shadow: 
+      0 12px 30px var(--app-shadow-lg),
+      0 8px 20px rgba(0, 0, 0, 0.2),
+      0 4px 12px rgba(0, 0, 0, 0.15),
+      0 1px 0 rgba(255, 255, 255, 0.4) inset;
+    transform: translateY(-3px) scale(1.05);
   }
 }
 
@@ -325,6 +351,8 @@ onMounted(() => {
 .setting-header {
   padding: 0 30px;
   margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
 }
 
 .setting-title {
@@ -347,6 +375,8 @@ onMounted(() => {
   padding: 0 30px;
   overflow-y: auto;
   height: 100%;
+  position: relative;
+  z-index: 5;
 }
 
 .setting-cards-grid {
@@ -360,12 +390,18 @@ onMounted(() => {
   margin-top: 20px;
   padding: 0 30px 30px;
   animation: fadeIn 0.5s ease-out;
+  position: relative;
+  z-index: 15;
 }
 
 .setting-card {
   background-color: var(--el-bg-color-overlay);
   border-radius: 16px;
-  box-shadow: 0 6px 16px var(--app-shadow-sm);
+  box-shadow: 
+    0 10px 25px rgba(0, 0, 0, 0.1),
+    0 6px 16px rgba(0, 0, 0, 0.08),
+    0 3px 8px rgba(0, 0, 0, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
   padding: 28px;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -377,18 +413,31 @@ onMounted(() => {
   height: 100%;
   min-height: 150px;
   backdrop-filter: blur(5px);
+  z-index: 1;
 }
 
 .setting-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 12px 28px var(--app-shadow);
+  transform: translateY(-15px) scale(1.02);
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.2),
+    0 15px 30px rgba(0, 0, 0, 0.15),
+    0 8px 20px rgba(0, 0, 0, 0.12),
+    0 3px 10px rgba(0, 0, 0, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.85) inset;
   border-color: var(--app-primary-light-5);
 }
 
 .setting-card-active {
   border-color: var(--el-color-primary);
-  box-shadow: 0 12px 28px var(--app-primary-shadow);
+  box-shadow: 
+    0 25px 50px rgba(var(--el-color-primary-rgb), 0.25),
+    0 15px 30px rgba(var(--el-color-primary-rgb), 0.2),
+    0 8px 20px rgba(var(--el-color-primary-rgb), 0.15),
+    0 3px 10px rgba(var(--el-color-primary-rgb), 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.95) inset;
   background: linear-gradient(135deg, var(--app-primary-lighter) 0%, var(--app-primary-lightest) 100%);
+  transform: translateY(-10px) scale(1.01);
+  z-index: 10;
 }
 
 .setting-card-indicator {
@@ -414,7 +463,11 @@ onMounted(() => {
   border-radius: 14px;
   margin-right: 20px;
   transition: all 0.4s ease;
-  box-shadow: 0 8px 16px var(--app-primary-shadow);
+  box-shadow: 
+    0 10px 20px var(--app-primary-shadow),
+    0 6px 12px rgba(0, 0, 0, 0.15),
+    0 3px 6px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.4) inset;
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
@@ -433,7 +486,13 @@ onMounted(() => {
 }
 
 .setting-card:hover .setting-card-icon {
-  transform: rotate(12deg) scale(1.08);
+  transform: rotate(15deg) scale(1.12);
+  box-shadow: 
+    0 15px 30px rgba(var(--el-color-primary-rgb), 0.3),
+    0 10px 20px rgba(var(--el-color-primary-rgb), 0.25),
+    0 5px 12px rgba(var(--el-color-primary-rgb), 0.2),
+    0 2px 6px rgba(var(--el-color-primary-rgb), 0.15),
+    0 1px 0 rgba(255, 255, 255, 0.5) inset;
 }
 
 .setting-card:hover .setting-card-icon::after {
@@ -484,7 +543,11 @@ onMounted(() => {
 .setting-detail-container {
   background-color: var(--el-bg-color-overlay);
   border-radius: 12px;
-  box-shadow: 0 4px 12px var(--app-shadow-sm);
+  box-shadow: 
+    0 8px 24px var(--app-shadow-sm),
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
   padding: 30px;
   margin-top: 20px;
   animation: fadeIn 0.5s ease-out;
