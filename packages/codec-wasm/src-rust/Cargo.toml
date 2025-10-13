@@ -38,4 +38,3 @@ debug = true
 
 [profile.release]
 debug = true
-opt-level = "s"

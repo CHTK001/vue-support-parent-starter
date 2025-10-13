@@ -491,9 +491,6 @@ function __wbg_get_imports() {
         const ret = arg0.length;
         return ret;
     };
-    imports.wbg.__wbg_log_6c7b5f4f00b8ce3f = function(arg0) {
-        console.log(arg0);
-    };
     imports.wbg.__wbg_msCrypto_a61aeb35a24c1329 = function(arg0) {
         const ret = arg0.msCrypto;
         return ret;
@@ -715,5 +712,3 @@ async function __wbg_init(module_or_path) {
 
 export { initSync };
 export default __wbg_init;
-
-//# sourceMappingURL=codec_wasm_bg.wasm.map
