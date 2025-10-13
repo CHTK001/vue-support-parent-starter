@@ -13,7 +13,7 @@
   "scripts": {
     "test": "node test/sm2-test.js",
     "dev": "vite",
-    "build": "rimraf build && cd src-rust && wasm-pack build --target web --out-dir ../build"
+    "build": "rimraf build && cd src-rust && wasm-pack build --target web --out-dir ../build --release"
   },
   "keywords": [
     "webassembly",

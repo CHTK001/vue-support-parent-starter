@@ -128,27 +128,21 @@ pub fn aes_decrypt(encrypted_data_ptr: *const u8, encrypted_data_len: usize, key
     let encrypted_data_str = string_from_ptr(encrypted_data_ptr, encrypted_data_len);
     let key_str = string_from_ptr(key_ptr, key_len);
     
-    web_sys::console::log_1(&format!("aes_decrypt: encrypted_data={}, key={}", encrypted_data_str, key_str).into());
-    
     // 检查输入是否为空
     if encrypted_data_str.is_empty() {
-        web_sys::console::log_1(&"aes_decrypt: encrypted_data_str is empty".into());
         return string_to_ptr("");
     }
     
     if key_str.is_empty() {
-        web_sys::console::log_1(&"aes_decrypt: key_str is empty".into());
         return string_to_ptr("");
     }
     
     // Base64解码
     let encrypted_bytes = match general_purpose::STANDARD.decode(&encrypted_data_str) {
         Ok(bytes) => {
-            web_sys::console::log_1(&format!("aes_decrypt: base64 decoded, bytes length={}", bytes.len()).into());
             bytes
         },
         Err(e) => {
-            web_sys::console::log_1(&format!("aes_decrypt: base64 decode failed: {:?}", e).into());
             // 解码失败返回空字符串
             return string_to_ptr("");
         }
@@ -156,7 +150,6 @@ pub fn aes_decrypt(encrypted_data_ptr: *const u8, encrypted_data_len: usize, key
     
     // 检查数据长度是否为16字节的倍数
     if encrypted_bytes.len() % 16 != 0 {
-        web_sys::console::log_1(&format!("aes_decrypt: invalid data length {}, must be multiple of 16", encrypted_bytes.len()).into());
         return string_to_ptr("");
     }
     
@@ -166,7 +159,7 @@ pub fn aes_decrypt(encrypted_data_ptr: *const u8, encrypted_data_len: usize, key
     let copy_len = std::cmp::min(key_bytes.len(), key_input_bytes.len());
     key_bytes[..copy_len].copy_from_slice(&key_input_bytes[..copy_len]);
     
-    web_sys::console::log_1(&format!("aes_decrypt: key_bytes prepared, copy_len={}", copy_len).into());
+
     
     // 创建AES解密器
     // 与DigestUtils.java保持一致，使用ECB模式而不是CBC模式
@@ -177,16 +170,12 @@ pub fn aes_decrypt(encrypted_data_ptr: *const u8, encrypted_data_len: usize, key
     // 创建缓冲区
     let mut buffer = encrypted_bytes.clone();
     
-    web_sys::console::log_1(&format!("aes_decrypt: about to decrypt, buffer length={}", buffer.len()).into());
-    
     // 执行AES解密，使用PKCS5Padding（在Rust中对应Pkcs7）
     let decrypted_data = match cipher.decrypt_padded_mut::<Pkcs7>(&mut buffer) {
         Ok(data) => {
-            web_sys::console::log_1(&format!("aes_decrypt: decryption successful, data length={}", data.len()).into());
             data
         },
         Err(e) => {
-            web_sys::console::log_1(&format!("aes_decrypt: decryption failed: {:?}", e).into());
             // 解密失败返回空字符串
             return string_to_ptr("");
         }
@@ -194,7 +183,6 @@ pub fn aes_decrypt(encrypted_data_ptr: *const u8, encrypted_data_len: usize, key
     
     // 将解密结果转换为字符串
     let decrypted_str = String::from_utf8_lossy(decrypted_data).into_owned();
-    web_sys::console::log_1(&format!("aes_decrypt: decrypted string={}", decrypted_str).into());
     
     // 直接返回字符串指针
     string_to_ptr(&decrypted_str)
@@ -387,18 +375,14 @@ pub fn sm2_decrypt(encrypted_data_ptr: *const u8, encrypted_data_len: usize, pri
     let encrypted_data_hex = string_from_ptr(encrypted_data_ptr, encrypted_data_len);
     let private_key_hex = string_from_ptr(private_key_ptr, private_key_len);
     
-    // 打印输入的加密数据用于调试
-    web_sys::console::log_1(&format!("SM2解密: 输入的加密数据(hex)={}", encrypted_data_hex).into());
-    web_sys::console::log_1(&format!("SM2解密: 输入的私钥={}", private_key_hex).into());
+
     
     // 十六进制解码
     let encrypted_bytes = match hex::decode(&encrypted_data_hex) {
         Ok(bytes) => {
-            web_sys::console::log_1(&format!("SM2解密: 十六进制解码成功, 字节长度={}", bytes.len()).into());
             bytes
         },
         Err(e) => {
-            web_sys::console::log_1(&format!("SM2解密: 十六进制解码失败: {:?}", e).into());
             // 解码失败返回空字符串
             return string_to_ptr("");
         }
@@ -409,20 +393,15 @@ pub fn sm2_decrypt(encrypted_data_ptr: *const u8, encrypted_data_len: usize, pri
     let decrypt_ctx = Decrypt::new(&private_key_hex);
     let decrypted_data = decrypt_ctx.decrypt_c1c2c3(&encrypted_bytes);
     
-    web_sys::console::log_1(&format!("SM2解密: 解密成功, 解密后字节长度={}", decrypted_data.len()).into());
-    
     // 改进的解密后数据处理逻辑，解决乱码问题
     // 优先尝试标准UTF-8字符串转换
     let decrypted_str = match String::from_utf8(decrypted_data.clone()) {
         Ok(utf8_result) => {
-            web_sys::console::log_1(&format!("SM2解密: UTF-8转换成功, 长度={}", utf8_result.len()).into());
-            web_sys::console::log_1(&format!("SM2解密: 解密结果={}", utf8_result).into());
             utf8_result
         },
         Err(_) => {
             // 如果标准UTF-8转换失败，使用from_utf8_lossy进行容错处理
             let lossy_result = String::from_utf8_lossy(&decrypted_data);
-            web_sys::console::log_1(&format!("SM2解密: UTF-8容错转换结果={}", lossy_result).into());
             lossy_result.into_owned()
         }
     };
@@ -436,7 +415,6 @@ pub fn sm2_decrypt(encrypted_data_ptr: *const u8, encrypted_data_len: usize, pri
 pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usize, origin_ptr: *const u8, origin_len: usize, ts_ptr: *const u8, ts_len: usize) -> *mut u8 {
     // 验证输入参数
     if response_data_ptr.is_null() || ts_ptr.is_null() {
-        web_sys::console::log_1(&"UU1解密响应: 输入指针为空".into());
         // 创建并返回错误对象
         let error_obj = js_sys::Object::new();
         let _ = Reflect::set(&error_obj, &"data".into(), &"".into());
@@ -455,7 +433,6 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
     }
 
     if response_data_len == 0 || ts_len == 0 {
-        web_sys::console::log_1(&"UU1解密响应: 输入长度为0".into());
         // 创建并返回错误对象
         let error_obj = js_sys::Object::new();
         let _ = Reflect::set(&error_obj, &"data".into(), &"".into());
@@ -484,13 +461,8 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
         String::new()
     };
 
-    web_sys::console::log_1(&format!("UU1解密响应: 响应数据长度={}", response_data.len()).into());
-    web_sys::console::log_1(&format!("UU1解密响应: 原始密钥={}", origin).into());
-    web_sys::console::log_1(&format!("UU1解密响应: 时间戳={}", ts).into());
-
     // 检查数据是否以"02"开头
     if !response_data.starts_with("02") {
-        web_sys::console::log_1(&"UU1解密响应: 响应数据不以02开头".into());
         // 创建并返回错误对象
         let error_obj = js_sys::Object::new();
         let _ = Reflect::set(&error_obj, &"data".into(), &"".into());
@@ -515,7 +487,6 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
         Ok(key_length) => {
             // 检查响应数据长度是否足够
             if response_data.len() < 2 + key_length + 3 + 4 {
-                web_sys::console::log_1(&"UU1解密响应: 响应数据长度不足，无法解密".into());
                 // 创建并返回错误对象
                 let error_obj = js_sys::Object::new();
                 let _ = Reflect::set(&error_obj, &"data".into(), &"".into());
@@ -539,7 +510,6 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
             
             // 确保索引有效
             if key_end > response_data.len() {
-                web_sys::console::log_1(&"UU1解密响应: 密钥索引无效".into());
                 // 创建并返回错误对象
                 let error_obj = js_sys::Object::new();
                 let _ = Reflect::set(&error_obj, &"data".into(), &"".into());
@@ -558,7 +528,6 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
             }
             
             let key = &response_data[key_start..key_end];
-            web_sys::console::log_1(&format!("UU1解密响应: 提取的密钥长度={}, 内容={}", key.len(), key).into());
 
             // 提取加密数据（在key之后，"200"之前）
             let data_start = key_end + 3; // key之后加上"200"的长度
@@ -566,7 +535,6 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
             
             // 确保索引有效
             if data_start >= data_end {
-                web_sys::console::log_1(&"UU1解密响应: 数据索引无效".into());
                 // 创建并返回错误对象
                 let error_obj = js_sys::Object::new();
                 let _ = Reflect::set(&error_obj, &"data".into(), &"".into());
@@ -585,10 +553,6 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
             }
             
             let encrypted_data = &response_data[data_start..data_end];
-            web_sys::console::log_1(&format!("UU1解密响应: 加密数据长度={}", encrypted_data.len()).into());
-            // 打印完整的encrypted_data内容用于调试
-            web_sys::console::log_1(&format!("UU1解密响应: 加密数据内容={}", encrypted_data).into());
-            web_sys::console::log_1(&format!("UU1解密响应: 加密数据内容(前100字符)={}", &encrypted_data[..std::cmp::min(100, encrypted_data.len())]).into());
             
             // 去除encrypted_data前两位
             let processed_encrypted_data = if encrypted_data.len() > 2 {
@@ -596,12 +560,9 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
             } else {
                 encrypted_data
             };
-            web_sys::console::log_1(&format!("UU1解密响应: 去除前两位后的加密数据长度={}", processed_encrypted_data.len()).into());
-            web_sys::console::log_1(&format!("UU1解密响应: 去除前两位后的加密数据内容={}", processed_encrypted_data).into());
 
             // 检查提取的加密数据是否为空
             if processed_encrypted_data.is_empty() {
-                web_sys::console::log_1(&"UU1解密响应: 提取的加密数据为空".into());
                 // 创建并返回错误对象
                 let error_obj = js_sys::Object::new();
                 let _ = Reflect::set(&error_obj, &"data".into(), &"".into());
@@ -622,46 +583,29 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
             // 使用提取的key解密数据
             // 直接使用SM2库解密，而不是调用sm2_decrypt函数
             let decrypted_data = {
-                web_sys::console::log_1(&format!("UU1解密响应: 密钥={}, 加密数据长度={}", key, processed_encrypted_data.len()).into());
                 // 先尝试十六进制解码，再进行SM2解密
                 match hex::decode(&processed_encrypted_data) {
                     Ok(encrypted_bytes) => {
-                        web_sys::console::log_1(&format!("UU1解密响应: 十六进制解码成功, 字节长度={}", encrypted_bytes.len()).into());
-                        
-                        // 打印前几个字节用于调试
-                        let debug_bytes: Vec<String> = encrypted_bytes.iter().take(10).map(|b| format!("{:02x}", b)).collect();
-                        web_sys::console::log_1(&format!("UU1解密响应: 加密数据前10字节={}", debug_bytes.join(" ")).into());
-                        
                         // 使用smcrypto库进行SM2解密
                         let decrypt_ctx = smcrypto::sm2::Decrypt::new(&key);
                         let decrypted_bytes = decrypt_ctx.decrypt_c1c2c3(&encrypted_bytes);
-                        web_sys::console::log_1(&format!("UU1解密响应: SM2解密成功, 字节长度={}", decrypted_bytes.len()).into());
-                        
-                        // 打印解密后的前几个字节用于调试
-                        let debug_decrypted_bytes: Vec<String> = decrypted_bytes.iter().take(10).map(|b| format!("{:02x}", b)).collect();
-                        web_sys::console::log_1(&format!("UU1解密响应: 解密数据前10字节={}", debug_decrypted_bytes.join(" ")).into());
                         
                         // 改进的解密后数据处理逻辑，解决乱码问题
                         // 优先尝试标准UTF-8字符串转换
                         match String::from_utf8(decrypted_bytes.clone()) {
                             Ok(utf8_result) => {
-                                web_sys::console::log_1(&format!("UU1解密响应: UTF-8转换成功, 长度={}", utf8_result.len()).into());
-                                web_sys::console::log_1(&format!("UU1解密响应: 解密结果={}", utf8_result).into());
                                 utf8_result
                             },
                             Err(_) => {
                                 // 如果标准UTF-8转换失败，使用from_utf8_lossy进行容错处理
                                 let lossy_result = String::from_utf8_lossy(&decrypted_bytes);
-                                web_sys::console::log_1(&format!("UU1解密响应: UTF-8容错转换结果={}", lossy_result).into());
                                 
                                 // 检查是否是有效的JSON字符串
                                 let result_str = lossy_result.into_owned();
                                 if (result_str.starts_with("{") && result_str.ends_with("}")) || 
                                    (result_str.starts_with("[") && result_str.ends_with("]")) {
-                                    web_sys::console::log_1(&"UU1解密响应: 解密结果是有效的JSON字符串".into());
                                     result_str
                                 } else {
-                                    web_sys::console::log_1(&"UU1解密响应: 解密结果不是有效的JSON字符串".into());
                                     // 返回空字符串表示解码失败
                                     String::new()
                                 }
@@ -669,12 +613,10 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
                         }
                     },
                     Err(e) => {
-                        web_sys::console::log_1(&format!("UU1解密响应: 十六进制解码加密数据失败: {:?}", e).into());
                         String::new()
                     }
                 }
             };
-            web_sys::console::log_1(&format!("UU1解密响应: 最终解密结果长度={}", decrypted_data.len()).into());
 
             // 创建一个JavaScript对象来返回解密结果
             let result_obj = js_sys::Object::new();
@@ -695,7 +637,6 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
             }
         },
         Err(_) => {
-            web_sys::console::log_1(&"UU1解密响应: 解析密钥长度失败".into());
             // 返回错误对象
             let error_obj = js_sys::Object::new();
             let _ = Reflect::set(&error_obj, &"data".into(), &"".into());
@@ -718,13 +659,10 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
 // UU1 function - Response decryption for entire response object
 #[wasm_bindgen]
 pub fn uu1_decrypt_response_object(response: &JsValue) -> JsValue {
-    web_sys::console::log_1(&"UU1解密响应对象: 调用函数".into());
-    
     // 获取响应数据
     let headers = match Reflect::get(response, &"headers".into()) {
         Ok(headers) => headers,
         Err(_) => {
-            web_sys::console::log_1(&"UU1解密响应对象: 获取响应头失败".into());
             // 如果无法获取headers，返回原始响应
             return response.clone();
         },
@@ -734,7 +672,6 @@ pub fn uu1_decrypt_response_object(response: &JsValue) -> JsValue {
     let data = match Reflect::get(response, &"data".into()) {
         Ok(data) => data,
         Err(_) => {
-            web_sys::console::log_1(&"UU1解密响应对象: 获取响应数据失败".into());
             // 如果无法获取data，返回原始响应
             return response.clone();
         },
@@ -744,7 +681,6 @@ pub fn uu1_decrypt_response_object(response: &JsValue) -> JsValue {
     let timestamp = match Reflect::get(&headers, &"access-control-timestamp-user".into()) {
         Ok(ts) => ts,
         Err(_) => {
-            web_sys::console::log_1(&"UU1解密响应对象: 获取时间戳失败".into());
             JsValue::NULL
         },
     };
@@ -753,7 +689,6 @@ pub fn uu1_decrypt_response_object(response: &JsValue) -> JsValue {
     let origin_key = match Reflect::get(&headers, &"access-control-origin-key".into()) {
         Ok(key) => key,
         Err(_) => {
-            web_sys::console::log_1(&"UU1解密响应对象: 未找到origin-key头".into());
             JsValue::UNDEFINED
         },
     };
@@ -761,19 +696,15 @@ pub fn uu1_decrypt_response_object(response: &JsValue) -> JsValue {
     // 将数据转换为字符串
     let data_string = match data.as_string() {
         Some(s) => {
-            web_sys::console::log_1(&format!("UU1解密响应对象: 响应数据字符串 = {}", s).into());
             s
         },
         None => {
-            web_sys::console::log_1(&"UU1解密响应对象: 响应数据不是字符串，尝试转换为JSON字符串".into());
             // 如果不是字符串，尝试转换为JSON字符串
             match js_sys::JSON::stringify(&data) {
                 Ok(json_str) => {
-                    web_sys::console::log_1(&format!("UU1解密响应对象: 转换为JSON字符串 = {}", json_str.as_string().unwrap_or_default()).into());
                     json_str.into()
                 },
                 Err(_) => {
-                    web_sys::console::log_1(&"UU1解密响应对象: 转换为JSON字符串失败".into());
                     // 如果无法转换为字符串，返回原始响应
                     return response.clone();
                 },
@@ -784,11 +715,9 @@ pub fn uu1_decrypt_response_object(response: &JsValue) -> JsValue {
     // 将timestamp转换为字符串（可能为空）
     let timestamp_string = match timestamp.as_string() {
         Some(s) => {
-            web_sys::console::log_1(&format!("UU1解密响应对象: 时间戳 = {}", s).into());
             s
         },
         None => {
-            web_sys::console::log_1(&"UU1解密响应对象: 无时间戳，假设未加密".into());
             String::new() // 如果没有时间戳，使用空字符串表示未加密
         },
     };
@@ -796,11 +725,9 @@ pub fn uu1_decrypt_response_object(response: &JsValue) -> JsValue {
     // 将origin_key转换为字符串（可能为空）
     let origin_key_string = match origin_key.as_string() {
         Some(s) => {
-            web_sys::console::log_1(&format!("UU1解密响应对象: 原始密钥 = {}", s).into());
             s
         },
         None => {
-            web_sys::console::log_1(&"UU1解密响应对象: 无原始密钥".into());
             String::new() // 如果没有origin_key，使用空字符串
         },
     };
@@ -821,16 +748,11 @@ pub fn uu1_decrypt_response_object(response: &JsValue) -> JsValue {
     };
     let ts_len = timestamp_string.len();
     
-    web_sys::console::log_1(&format!("UU1解密响应对象: 调用uu1_decrypt_response函数，数据长度={}, 原始密钥长度={}, 时间戳长度={}", data_len, origin_len, ts_len).into());
-    
     let decrypted_ptr = uu1_decrypt_response(data_ptr, data_len, origin_ptr, origin_len, ts_ptr, ts_len);
     let decrypted_string = string_from_ptr(decrypted_ptr, get_string_length(decrypted_ptr));
     
-    web_sys::console::log_1(&format!("UU1解密响应对象: 解密结果 = {}", decrypted_string).into());
-    
     // 如果解密结果为空，返回原始响应
     if decrypted_string.is_empty() {
-        web_sys::console::log_1(&"UU1解密响应对象: 解密结果为空，返回原始响应".into());
         return response.clone();
     }
     
@@ -839,8 +761,6 @@ pub fn uu1_decrypt_response_object(response: &JsValue) -> JsValue {
     
     // 直接将解密后的字符串设置为data，不需要解析JSON
     let _ = Reflect::set(&new_response, &"data".into(), &decrypted_string.into());
-    
-    web_sys::console::log_1(&"UU1解密响应对象: 成功更新响应数据".into());
     
     // 注意：我们不能直接删除headers中的属性，因为headers本身可能不是Object类型
     // 我们需要创建一个新的headers对象或者以其他方式处理
@@ -851,13 +771,10 @@ pub fn uu1_decrypt_response_object(response: &JsValue) -> JsValue {
 // UU1 function - Response decryption for entire response object with ArrayBuffer support
 #[wasm_bindgen]
 pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsValue {
-    web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 调用函数".into());
-    
     // 获取响应数据
     let headers = match Reflect::get(response, &"headers".into()) {
         Ok(headers) => headers,
         Err(_) => {
-            web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 获取响应头失败".into());
             // 如果无法获取headers，返回原始响应
             return response.clone();
         },
@@ -867,7 +784,6 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
     let data = match Reflect::get(response, &"data".into()) {
         Ok(data) => data,
         Err(_) => {
-            web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 获取响应数据失败".into());
             // 如果无法获取data，返回原始响应
             return response.clone();
         },
@@ -877,7 +793,6 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
     let timestamp = match Reflect::get(&headers, &"access-control-timestamp-user".into()) {
         Ok(ts) => ts,
         Err(_) => {
-            web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 获取时间戳失败".into());
             JsValue::NULL
         },
     };
@@ -886,15 +801,12 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
     let origin_key = match Reflect::get(&headers, &"access-control-origin-key".into()) {
         Ok(key) => key,
         Err(_) => {
-            web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 未找到origin-key头".into());
             JsValue::UNDEFINED
         },
     };
     
     // 检查data是否为ArrayBuffer或Blob
     if data.is_object() && (js_sys::ArrayBuffer::instanceof(&data) || js_sys::Uint8Array::instanceof(&data)) {
-        web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 数据为ArrayBuffer或Uint8Array类型".into());
-        
         // 打印原始ArrayBuffer数据的长度
         let data_length = if js_sys::ArrayBuffer::instanceof(&data) {
             let uint8_array = js_sys::Uint8Array::new(&data);
@@ -903,8 +815,6 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
             let uint8_array = js_sys::Uint8Array::from(data.clone());
             uint8_array.length()
         };
-        
-        web_sys::console::log_1(&format!("UU1解密响应对象(带ArrayBuffer支持): 数据长度 = {}", data_length).into());
         
         // 打印原始ArrayBuffer数据的前几个字节（用于调试）
         let uint8_array = if js_sys::ArrayBuffer::instanceof(&data) {
@@ -922,8 +832,6 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
             bytes_string.push_str(&format!("{:02x} ", sub_array.get_index(i)));
         }
         
-        web_sys::console::log_1(&format!("UU1解密响应对象(带ArrayBuffer支持): 前{}字节数据 = {}", print_length, bytes_string).into());
-        
         // 使用JavaScript的TextDecoder来解析ArrayBuffer
         // 创建一个JavaScript函数来处理TextDecoder解码，明确指定UTF-8编码
         let decode_function = js_sys::Function::new_with_args("data", "
@@ -940,7 +848,6 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
         let decoded_result = match decode_function.call1(&js_sys::global(), &data) {
             Ok(result) => result,
             Err(_) => {
-                web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 使用TextDecoder解码数据失败".into());
                 return response.clone();
             }
         };
@@ -949,27 +856,21 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
         let data_string = match decoded_result.as_string() {
             Some(s) => s,
             None => {
-                web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 解码结果不是字符串".into());
                 return response.clone();
             }
         };
         
-        web_sys::console::log_1(&format!("UU1解密响应对象(带ArrayBuffer支持): 数据字符串 = {}", data_string).into());
-        
         // 检查数据是否以"02"开头
         if !data_string.starts_with("02") {
-            web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 数据不以02开头".into());
             return response.clone();
         }
         
         // 将timestamp转换为字符串（可能为空）
         let timestamp_string = match timestamp.as_string() {
             Some(s) => {
-                web_sys::console::log_1(&format!("UU1解密响应对象(带ArrayBuffer支持): 时间戳 = {}", s).into());
                 s
             },
             None => {
-                web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 无时间戳，假设未加密".into());
                 String::new() // 如果没有时间戳，使用空字符串表示未加密
             },
         };
@@ -977,11 +878,9 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
         // 将origin_key转换为字符串（可能为空）
         let origin_key_string = match origin_key.as_string() {
             Some(s) => {
-                web_sys::console::log_1(&format!("UU1解密响应对象(带ArrayBuffer支持): 原始密钥 = {}", s).into());
                 s
             },
             None => {
-                web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 无原始密钥".into());
                 String::new() // 如果没有origin_key，使用空字符串
             },
         };
@@ -1002,15 +901,10 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
         };
         let ts_len = timestamp_string.len();
         
-        web_sys::console::log_1(&format!("UU1解密响应对象(带ArrayBuffer支持): 调用uu1_decrypt_response函数，数据长度={}, 原始密钥长度={}, 时间戳长度={}", data_len, origin_len, ts_len).into());
-        
         let decrypted_ptr = uu1_decrypt_response(data_ptr, data_len, origin_ptr, origin_len, ts_ptr, ts_len);
-        
-        web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 解密完成".into());
         
         // 如果解密结果为空，返回原始响应
         if decrypted_ptr.is_null() {
-            web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 解密结果为空指针，返回原始响应".into());
             return response.clone();
         }
         
@@ -1026,43 +920,30 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
         
         // 检查解密结果是否为空
         if data_length == 0 {
-            web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 解密结果为空字符串，返回原始响应".into());
             return response.clone();
         }
         
         // 将指针转换为字符串并解析为JSON对象
         let decrypted_string = string_from_ptr(decrypted_result, data_length);
         
-        web_sys::console::log_1(&format!("UU1解密响应对象(带ArrayBuffer支持): 解密后的字符串 = {}", decrypted_string).into());
-        
         // 解析解密后的字符串为JSON对象
         match js_sys::JSON::parse(&decrypted_string) {
             Ok(parsed_object) => {
-                web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 成功解析为JSON对象".into());
-                
                 // 检查对象是否包含data字段
                 if Reflect::has(&parsed_object, &"data".into()).unwrap_or(false) {
-                    web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 对象包含data字段".into());
-                    
                     // 如果包含data字段，提取data字段的值
                     match Reflect::get(&parsed_object, &"data".into()) {
                         Ok(data_value) => {
-                            web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 成功提取data字段".into());
-                            
                             // 检查data_value是否为字符串并且是有效的JSON
                             if data_value.is_string() {
                                 if let Some(data_string) = data_value.as_string() {
-                                    web_sys::console::log_1(&format!("UU1解密响应对象(带ArrayBuffer支持): data字段是字符串 = {}", data_string).into());
-                                    
                                     // 尝试解析data字段中的JSON字符串
                                     match js_sys::JSON::parse(&data_string) {
                                         Ok(nested_object) => {
-                                            web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 成功解析data字段中的JSON字符串为对象".into());
                                             // 将解析后的对象设置为response.data
                                             let _ = Reflect::set(&new_response, &"data".into(), &nested_object);
                                         },
                                         Err(_) => {
-                                            web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): data字段不是有效的JSON，直接使用字符串".into());
                                             // 如果不是有效的JSON，直接使用字符串
                                             let _ = Reflect::set(&new_response, &"data".into(), &data_string.into());
                                         }
@@ -1072,25 +953,21 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
                                     let _ = Reflect::set(&new_response, &"data".into(), &data_value);
                                 }
                             } else {
-                                web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): data字段不是字符串，直接使用".into());
                                 // 如果data_value不是字符串，直接使用
                                 let _ = Reflect::set(&new_response, &"data".into(), &data_value);
                             }
                         },
                         Err(_) => {
-                            web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 无法提取data字段，将整个对象设置为response.data".into());
                             // 如果无法获取data字段，将整个对象设置为data
                             let _ = Reflect::set(&new_response, &"data".into(), &parsed_object);
                         }
                     }
                 } else {
-                    web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 对象不包含data字段，将整个对象设置为response.data".into());
                     // 如果不包含data字段，将整个对象设置为data
                     let _ = Reflect::set(&new_response, &"data".into(), &parsed_object);
                 }
             },
             Err(_) => {
-                web_sys::console::log_1(&format!("UU1解密响应对象(带ArrayBuffer支持): 解析JSON对象失败，将字符串设置为data: {}", decrypted_string).into());
                 // 如果解析失败，将解密后的字符串设置为data
                 let _ = Reflect::set(&new_response, &"data".into(), &decrypted_string.into());
             }
@@ -1111,16 +988,11 @@ pub fn uu1_decrypt_response_object_with_arraybuffer(response: &JsValue) -> JsVal
         let length_string = data_length.to_string();
         let length_string_clone = length_string.clone();
         let _ = Reflect::set(&headers, &"content-length".into(), &length_string_clone.into());
-        
-        web_sys::console::log_1(&format!("UU1解密响应对象(带ArrayBuffer支持): 添加content-length头 = {}", length_string).into());
-        
-        web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 成功更新响应数据".into());
   
         
         return new_response;
     } else {
         // 如果不是ArrayBuffer，使用原来的处理逻辑
-        web_sys::console::log_1(&"UU1解密响应对象(带ArrayBuffer支持): 数据不是ArrayBuffer类型，使用原始逻辑处理".into());
         return uu1_decrypt_response_object(response);
     }
 }
@@ -1309,31 +1181,22 @@ pub fn uu4_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
     let uuid = string_from_ptr(uuid_ptr, uuid_len);
     let timestamp = string_from_ptr(timestamp_ptr, timestamp_len);
     
-    web_sys::console::log_1(&format!("uu4_decrypt_response: response_data={}, uuid={}, timestamp={}", response_data, uuid, timestamp).into());
-    
     // 检查数据是否以"02"开头
     if !response_data.starts_with("02") {
-        web_sys::console::log_1(&"uu4_decrypt_response: response_data does not start with 02".into());
         return string_to_ptr("");
     }
     
     // 解密uuid获取密钥
-    web_sys::console::log_1(&format!("uu4_decrypt_response: about to decrypt uuid={}, timestamp={}", uuid, timestamp).into());
     let key_ptr = aes_decrypt(uuid_ptr, uuid_len, timestamp_ptr, timestamp_len);
     let key = string_from_ptr(key_ptr, get_string_length(key_ptr));
-    web_sys::console::log_1(&format!("uu4_decrypt_response: decrypted key={}", key).into());
     
     // 检查解密后的密钥是否为空
     if key.is_empty() {
-        web_sys::console::log_1(&"uu4_decrypt_response: decrypted key is empty, AES decryption failed".into());
-        // 添加调试信息
-        web_sys::console::log_1(&format!("uu4_decrypt_response: uuid length={}, timestamp length={}", uuid.len(), timestamp.len()).into());
         return string_to_ptr("");
     }
     
     // 从response_data中提取加密数据（去掉前6位和后4位）
     if response_data.len() < 10 {
-        web_sys::console::log_1(&"uu4_decrypt_response: response_data too short".into());
         return string_to_ptr("");
     }
     
@@ -1343,22 +1206,18 @@ pub fn uu4_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
     
     // 确保开始索引小于结束索引
     if start_index >= end_index {
-        web_sys::console::log_1(&"uu4_decrypt_response: invalid indices for data extraction".into());
         return string_to_ptr("");
     }
     
     // 提取加密数据部分（去掉前6位和后4位）
     let encrypted_data = &response_data[start_index..end_index];
-    web_sys::console::log_1(&format!("uu4_decrypt_response: encrypted_data={}", encrypted_data).into());
     
     // 检查提取的加密数据是否为空
     if encrypted_data.is_empty() {
-        web_sys::console::log_1(&"uu4_decrypt_response: extracted encrypted_data is empty".into());
         return string_to_ptr("");
     }
     
     // 创建加密数据的指针
-    web_sys::console::log_1(&format!("uu4_decrypt_response: about to decrypt encrypted_data with key={}", key).into());
     let encrypted_data_ptr = encrypted_data.as_ptr();
     let encrypted_data_len = encrypted_data.len();
     
@@ -1367,7 +1226,6 @@ pub fn uu4_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
     let key_len_for_decryption = key.len();
     let decrypted_data_ptr = aes_decrypt(encrypted_data_ptr, encrypted_data_len, key_ptr_for_decryption, key_len_for_decryption);
     let decrypted_data = string_from_ptr(decrypted_data_ptr, get_string_length(decrypted_data_ptr));
-    web_sys::console::log_1(&format!("uu4_decrypt_response: decrypted_data={}", decrypted_data).into());
     
     // 返回解密结果
     string_to_ptr(&decrypted_data)
@@ -1494,20 +1352,14 @@ pub fn custom_encrypt_with_codec_keypair(data_ptr: *const u8, data_len: usize, p
     let public_key_hex = string_from_ptr(public_key_ptr, public_key_len);
     let private_key_hex = string_from_ptr(private_key_ptr, private_key_len);
     
-    web_sys::console::log_1(&format!("custom_encrypt_with_codec_keypair: data={}, public_key={}, private_key={}", data, public_key_hex, private_key_hex).into());
-    
     // 使用codecKeyPair加密原始数据 (SM2加密)
     let encrypted_data_ptr = sm2_encrypt(data_ptr, data_len, public_key_ptr, public_key_len);
     let encrypted_data = string_from_ptr(encrypted_data_ptr, get_string_length(encrypted_data_ptr));
-    
-    web_sys::console::log_1(&format!("custom_encrypt_with_codec_keypair: encrypted_data={}", encrypted_data).into());
     
     // 对于密钥，我们使用AES加密私钥（您可以根据需要修改这部分逻辑）
     let timestamp = format!("{:016}", js_sys::Date::now() as u64 % 10000000000000000u64);
     let key_encryption_result_ptr = aes_encrypt(private_key_ptr, private_key_len, timestamp.as_ptr(), timestamp.len());
     let key_encryption_result = string_from_ptr(key_encryption_result_ptr, get_string_length(key_encryption_result_ptr));
-    
-    web_sys::console::log_1(&format!("custom_encrypt_with_codec_keypair: key_encryption_result={}", key_encryption_result).into());
     
     // 创建包含加密数据和加密密钥的JSON对象
     let result_json = format!("{{\"encryptedData\":\"{}\",\"encryptedKey\":\"{}\",\"timestamp\":\"{}\"}}", encrypted_data, key_encryption_result, timestamp);
