@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, nextTick, onMounted, reactive, ref, shallowRef } from "vue";
-const SaveLayoutRaw = defineAsyncComponent(() => import("./layout/base.vue"));
-const SaveItem = defineAsyncComponent(() => import("./admin/index.vue"));
-const GroupManagement = defineAsyncComponent(() => import("./group/index.vue"));
+import { computed, defineComponent, defineAsyncComponent, nextTick, onMounted, reactive, ref, shallowRef } from "vue";
+import SaveLayoutRaw from "./layout/base.vue";
+import SaveItem from "./admin/index.vue";
+import GroupManagement from "./group/index.vue";
 
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { localStorageProxy } from "@repo/utils";
@@ -59,9 +59,9 @@ const productsConfig = reactive([]);
 const products = computed(() => {
   return productsConfig.filter((it) => !it.hide);
 });
-const saveLayout = shallowRef();
+const saveLayoutRef = ref();
 
-const currentItem = shallowRef();
+const currentItem = ref();
 const onRowClick = async (it) => {
   const _tabValue = config.tabValue;
   localStorageProxyObject.setItem(SETTING_TAB_VALUE, _tabValue);
@@ -92,7 +92,7 @@ const onRowClick = async (it) => {
     // 否则使用默认的设置布局
     try {
       // 确保SaveLayoutRaw组件已经加载
-      if (!saveLayout.value) {
+      if (!saveLayoutRef.value) {
         console.error('SaveLayoutRaw组件未加载');
         ElMessage.error('组件加载失败，请刷新页面重试');
         return;
@@ -104,8 +104,8 @@ const onRowClick = async (it) => {
         item.name = item.group;
       }
       
-      await saveLayout.value.setData(item);
-      await saveLayout.value.open();
+      await saveLayoutRef.value.setData(item);
+      await saveLayoutRef.value.open();
     } catch (error) {
       console.error('打开设置布局失败:', error);
       ElMessage.error('打开设置页面失败，请重试');
@@ -253,10 +253,8 @@ onMounted(() => {
 
     <!-- 设置内容区域 -->
     <div class="setting-content-container" v-if="currentItem">
-      <template v-if="!layout[currentItem.group]">
-        <SaveLayoutRaw ref="saveLayout" @close="close(currentItem.group)" class="w-full" />
-      </template>
-      <template v-else-if="currentItem.group === 'group'">
+      <SaveLayoutRaw  ref="saveLayoutRef" @close="close(currentItem.group)" class="w-full" />
+      <template v-if="currentItem.group === 'group'">
         <!-- 配置组管理使用抽屉显示 -->
         <el-drawer v-model="drawerVisible.group" size="60%" :title="currentItem.name" destroy-on-close @close="close(currentItem.group)" :z-index="2000">
           <GroupManagement :data="currentItem" />
@@ -334,14 +332,6 @@ onMounted(() => {
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   background: linear-gradient(135deg, var(--app-success) 0%, var(--app-success-light-3) 100%);
 
-  &:hover {
-    box-shadow: 
-      0 12px 30px var(--app-shadow-lg),
-      0 8px 20px rgba(0, 0, 0, 0.2),
-      0 4px 12px rgba(0, 0, 0, 0.15),
-      0 1px 0 rgba(255, 255, 255, 0.4) inset;
-    transform: translateY(-3px) scale(1.05);
-  }
 }
 
 .setting-tabs-container {
@@ -373,7 +363,6 @@ onMounted(() => {
 
 .setting-cards-container {
   padding: 0 30px;
-  overflow-y: auto;
   height: 100%;
   position: relative;
   z-index: 5;
@@ -391,7 +380,6 @@ onMounted(() => {
   padding: 0 30px 30px;
   animation: fadeIn 0.5s ease-out;
   position: relative;
-  z-index: 15;
 }
 
 .setting-card {
@@ -424,7 +412,6 @@ onMounted(() => {
     0 8px 20px rgba(0, 0, 0, 0.12),
     0 3px 10px rgba(0, 0, 0, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.85) inset;
-  border-color: var(--app-primary-light-5);
 }
 
 .setting-card-active {
