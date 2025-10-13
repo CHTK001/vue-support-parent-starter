@@ -63,6 +63,7 @@ const saveLayoutRef = ref();
 
 const currentItem = ref();
 const onRowClick = async (it) => {
+  await nextTick();
   const _tabValue = config.tabValue;
   localStorageProxyObject.setItem(SETTING_TAB_VALUE, _tabValue);
   const item = products.value.filter((item) => item.group === _tabValue)[0];
@@ -324,13 +325,8 @@ onMounted(() => {
   width: 38px !important;
   height: 38px !important;
   border-radius: 50%;
-  box-shadow: 
-    0 8px 20px var(--app-shadow),
-    0 5px 15px rgba(0, 0, 0, 0.15),
-    0 2px 8px rgba(0, 0, 0, 0.1),
-    0 1px 0 rgba(255, 255, 255, 0.3) inset;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25), 0 5px 15px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 0 rgba(255, 255, 255, 0.3) inset;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  background: linear-gradient(135deg, var(--app-success) 0%, var(--app-success-light-3) 100%);
 
 }
 
