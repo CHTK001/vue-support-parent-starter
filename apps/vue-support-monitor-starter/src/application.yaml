@@ -3,7 +3,7 @@ Title: 运维管理
 #是否显示左侧菜单栏
 ShowBarSetting: true
 #是否开启远程权限控制
-OpenAuth: false
+OpenAuth: true
 #是否自动远程菜单
 RemoteMenu: false
 #是否自动远程布局

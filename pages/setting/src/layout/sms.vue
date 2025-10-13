@@ -48,8 +48,8 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchDefaultNameProject, fetchDefaultProject, fetchPageProject, fetchUpdateProject } from "@repo/core";
 import { message } from "@repo/utils";
-import { defineAsyncComponent,  onMounted, reactive, ref, shallowRef } from "vue";
-const ScTableSelect = defineAsyncComponent(() => import("@repo/components/ScTableSelect/index.vue"));
+import { defineComponent,  onMounted, reactive, ref, shallowRef } from "vue";
+const ScTableSelect = defineComponent(() => import("@repo/components/ScTableSelect/index.vue"));
 const form = reactive({});
 const hasAuth = shallowRef(true);
 const type = "DUAN_XIN";
