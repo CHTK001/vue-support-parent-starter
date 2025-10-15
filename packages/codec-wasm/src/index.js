@@ -552,51 +552,7 @@ export function decryptSM4(encryptedData, key) {
 
 // Storage Key加密函数（同步方式）
 export function encryptStorageKey(key, systemCode) {
-  // 确保WASM已加载
-  if (!wasmLoaded) {
-    throw new Error('WASM module not loaded. Please call initializeWasmModule() first or wait for initialization.');
-  }
-  
-  if (wasmModuleInstance.encrypt_storage_key) {
-    try {
-      const keyObj = stringToWasm(key);
-      const systemCodeObj = stringToWasm(systemCode);
-      
-      const resultPtr = wasmModuleInstance.encrypt_storage_key(
-        keyObj.ptr,
-        keyObj.len,
-        systemCodeObj.ptr,
-        systemCodeObj.len
-      );
-      
-      const result = stringFromWasm(resultPtr);
-      return result;
-    } catch (error) {
-      console.error('WASM encryptStorageKey failed:', error);
-      throw error;
-    }
-  } else if (wasmModuleInstance.encryptStorageKey) {
-    // AssemblyScript版本
-    try {
-      const keyObj = stringToWasm(key);
-      const systemCodeObj = stringToWasm(systemCode);
-      
-      const resultPtr = wasmModuleInstance.encryptStorageKey(
-        keyObj.ptr,
-        keyObj.len,
-        systemCodeObj.ptr,
-        systemCodeObj.len
-      );
-      
-      const result = stringFromWasm(resultPtr);
-      return result;
-    } catch (error) {
-      console.error('WASM encryptStorageKey failed:', error);
-      throw error;
-    }
-  } else {
-    throw new Error('WASM module does not export encrypt_storage_key function');
-  }
+  return systemCode + key;
 }
 
 // Storage Value加密函数（同步方式）
@@ -1037,23 +993,8 @@ export function uu2_wasm(request) {
       console.error('WASM uu2_wasm处理失败:', error);
       throw error;
     }
-  } else {
-    // 如果新函数不存在，回退到旧的实现方式
-    // 注意：这里需要从request对象中提取数据和密钥
-    try {
-      // 提取请求数据和密钥（简化实现）
-      const body = request.data;
-      const data1 = JSON.stringify(body);
-      // 模拟获取密钥（在实际实现中应该从配置中获取）
-      const codecRequestKey = "defaultKey";
-      
-      // 调用旧的uu2函数
-      return uu2(data1, codecRequestKey);
-    } catch (error) {
-      console.error('Fallback uu2处理失败:', error);
-      throw error;
-    }
   }
+  return request;
 }
 
 // UU3 function - Simple decryption with fixed key
