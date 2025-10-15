@@ -83,11 +83,21 @@ function resolvePath(routePath: string) {
   }
 }
 const handleMenu = async (item) => {
+  // 使用Vue Router来生成正确的Hash模式URL
+  const router = useRouter();
+  const routeData = router.resolve({ path: item.path });
+  
+  // 对于Hash模式，我们需要确保路径格式正确
   let url = location.href;
   if (url.indexOf("#") > -1) {
     url = url.substring(0, url.indexOf("#"));
   }
-  window.open(url + "#" + item.path, "_blank");
+  
+  // 确保路径以/开头，但不以/结尾
+  const normalizedPath = item.path.startsWith('/') ? item.path : '/' + item.path;
+  
+  // 生成正确的Hash模式URL
+  window.open(url + "/#" + normalizedPath, "_blank");
 };
 </script>
 

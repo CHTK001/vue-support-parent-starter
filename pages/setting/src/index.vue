@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, defineComponent, defineAsyncComponent, nextTick, onMounted, reactive, ref, shallowRef } from "vue";
-import SaveLayoutRaw from "./layout/base.vue";
-import SaveItem from "./admin/index.vue";
-import GroupManagement from "./group/index.vue";
+import { computed, defineComponent, defineAsyncComponent, nextTick, onMounted, reactive, ref, shallowRef, watch } from "vue";
+// 将同步组件改为异步组件
+const SaveLayoutRaw = defineAsyncComponent(() => import("./layout/base.vue"));
+const SaveItem = defineAsyncComponent(() => import("./admin/index.vue"));
+const GroupManagement = defineAsyncComponent(() => import("./group/index.vue"));
 
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { localStorageProxy } from "@repo/utils";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElLoading } from "element-plus";
 import { useI18n } from "vue-i18n";
 import { fetchListForGroup, type SysSettingGroup } from "./api/group";
 const localStorageProxyObject = localStorageProxy();
@@ -61,56 +62,182 @@ const products = computed(() => {
 });
 const saveLayoutRef = ref();
 
-const currentItem = ref();
-const onRowClick = async (it) => {
-  await nextTick();
-  const _tabValue = config.tabValue;
-  localStorageProxyObject.setItem(SETTING_TAB_VALUE, _tabValue);
-  const item = products.value.filter((item) => item.group === _tabValue)[0];
-  
-  // 数据验证：确保item存在且有必要的属性
-  if (!item) {
-    console.error('未找到对应的配置项:', _tabValue);
-    ElMessage.error('配置项不存在，请刷新页面重试');
-    return;
-  }
-  
-  if (!item.group) {
-    console.error('配置项缺少group属性:', item);
-    ElMessage.error('配置项数据异常，请联系管理员');
-    return;
-  }
-  
-  currentItem.value = item;
+// 添加一个状态来跟踪组件是否已挂载
+const isComponentMounted = ref(false);
+// 添加组件加载状态
+const componentLoadStatus = reactive({
+  saveLayout: false,
+  retryCount: 0,
+  maxRetries: 3
+});
 
-  // 如果是配置组管理，直接显示对话框
-  if (item.group === "group") {
-    drawerVisible[item.group] = true;
-  } else if (layout[item.group]) {
-    // 如果有自定义布局组件，显示抽屉
-    drawerVisible[item.group] = true;
-  } else {
-    // 否则使用默认的设置布局
-    try {
-      // 确保SaveLayoutRaw组件已经加载
-      if (!saveLayoutRef.value) {
-        console.error('SaveLayoutRaw组件未加载');
-        ElMessage.error('组件加载失败，请刷新页面重试');
-        return;
-      }
-      
-      // 验证item数据完整性
-      if (!item.name) {
-        console.warn('配置项缺少name属性，使用group作为默认名称:', item);
-        item.name = item.group;
-      }
-      
-      await saveLayoutRef.value.setData(item);
-      await saveLayoutRef.value.open();
-    } catch (error) {
-      console.error('打开设置布局失败:', error);
-      ElMessage.error('打开设置页面失败，请重试');
+// 添加加载状态
+const loadingState = reactive({
+  isLoading: false,
+  loadingInstance: null
+});
+
+// 防抖控制
+const debounceState = reactive({
+  timeoutId: null,
+  lastClickTime: 0
+});
+
+const currentItem = ref();
+
+// 监听saveLayoutRef的变化
+watch(saveLayoutRef, (newVal) => {
+  if (newVal) {
+    componentLoadStatus.saveLayout = true;
+  }
+});
+
+// 等待组件加载的函数
+const waitForComponentLoad = async (timeout = 1000) => {
+  const startTime = Date.now();
+  while (!saveLayoutRef.value && (Date.now() - startTime) < timeout) {
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  return !!saveLayoutRef.value;
+};
+
+// 显示加载提示
+const showLoading = (message = "加载中...") => {
+  if (!loadingState.loadingInstance) {
+    loadingState.loadingInstance = ElLoading.service({
+      lock: true,
+      text: message,
+      background: 'rgba(0, 0, 0, 0.7)'
+    });
+  }
+};
+
+// 隐藏加载提示
+const hideLoading = () => {
+  if (loadingState.loadingInstance) {
+    loadingState.loadingInstance.close();
+    loadingState.loadingInstance = null;
+  }
+};
+
+// 防抖函数
+const debounceClick = (func, delay = 300) => {
+  return function(...args) {
+    const now = Date.now();
+    // 如果距离上次点击时间小于防抖延迟时间，则取消执行
+    if (now - debounceState.lastClickTime < delay) {
+      console.log('点击过于频繁，已阻止');
+      return;
     }
+    
+    debounceState.lastClickTime = now;
+    
+    if (debounceState.timeoutId) {
+      clearTimeout(debounceState.timeoutId);
+    }
+    
+    debounceState.timeoutId = setTimeout(() => {
+      func.apply(this, args);
+    }, delay);
+  };
+};
+
+const onRowClick = async (it) => {
+  // 防抖检查
+  const now = Date.now();
+  if (now - debounceState.lastClickTime < 300) {
+    console.log('点击过于频繁，已阻止');
+    return;
+  }
+  debounceState.lastClickTime = now;
+  
+  // 显示加载提示
+  showLoading("正在加载设置项...");
+  
+  try {
+    // 确保组件已挂载
+    if (!isComponentMounted.value) {
+      console.warn('组件尚未挂载完成，稍后重试');
+      // 等待一小段时间后重试
+      setTimeout(() => {
+        onRowClick(it);
+      }, 100);
+      return;
+    }
+    
+    await nextTick();
+    const _tabValue = config.tabValue;
+    localStorageProxyObject.setItem(SETTING_TAB_VALUE, _tabValue);
+    const item = products.value.filter((item) => item.group === _tabValue)[0];
+    
+    // 数据验证：确保item存在且有必要的属性
+    if (!item) {
+      console.error('未找到对应的配置项:', _tabValue);
+      ElMessage.error('配置项不存在，请刷新页面重试');
+      return;
+    }
+    
+    if (!item.group) {
+      console.error('配置项缺少group属性:', item);
+      ElMessage.error('配置项数据异常，请联系管理员');
+      return;
+    }
+    
+    currentItem.value = item;
+
+    // 如果是配置组管理，直接显示对话框
+    if (item.group === "group") {
+      drawerVisible[item.group] = true;
+    } else if (layout[item.group]) {
+      // 如果有自定义布局组件，显示抽屉
+      drawerVisible[item.group] = true;
+    } else {
+      // 否则使用默认的设置布局
+      try {
+        // 确保SaveLayoutRaw组件已经加载
+        if (!saveLayoutRef.value) {
+          console.warn('SaveLayoutRaw组件未加载，等待组件加载...');
+          
+          // 等待组件加载完成，最多等待1秒
+          const isLoaded = await waitForComponentLoad(1000);
+          
+          // 如果仍然没有加载成功，尝试重试机制
+          if (!isLoaded && componentLoadStatus.retryCount < componentLoadStatus.maxRetries) {
+            componentLoadStatus.retryCount++;
+            console.warn(`组件加载失败，第${componentLoadStatus.retryCount}次重试`);
+            await new Promise(resolve => setTimeout(resolve, 200 * componentLoadStatus.retryCount));
+            hideLoading(); // 隐藏加载提示
+            return await onRowClick(it); // 递归调用重试
+          }
+          
+          if (!saveLayoutRef.value) {
+            ElMessage.error('组件加载超时，请刷新页面重试');
+            componentLoadStatus.retryCount = 0; // 重置重试计数
+            hideLoading(); // 隐藏加载提示
+            return;
+          }
+        }
+        
+        // 重置重试计数
+        componentLoadStatus.retryCount = 0;
+        
+        // 验证item数据完整性
+        if (!item.name) {
+          console.warn('配置项缺少name属性，使用group作为默认名称:', item);
+          item.name = item.group;
+        }
+        
+        await saveLayoutRef.value.setData(item);
+        await saveLayoutRef.value.open();
+      } catch (error) {
+        console.error('打开设置布局失败:', error);
+        ElMessage.error('打开设置页面失败，请重试');
+        componentLoadStatus.retryCount = 0; // 重置重试计数
+      }
+    }
+  } finally {
+    // 隐藏加载提示
+    hideLoading();
   }
 };
 
@@ -137,11 +264,6 @@ const openGroupManagement = () => {
     drawerVisible.group = true;
   }
 };
-// if (localStorageProxyObject.getItem(SETTING_TAB_VALUE)) {
-//   nextTick(() => {
-//     onRowClick(localStorageProxyObject.getItem(SETTING_TAB_VALUE));
-//   });
-// }
 
 const handleOpenItemDialog = async () => {
   config.saveItemStatus = true;
@@ -171,6 +293,9 @@ const getCurrentSetting = () => {
  */
 const loadProductsConfig = async () => {
   try {
+    // 显示加载提示
+    showLoading("正在加载配置项...");
+    
     const { data } = await fetchListForGroup({});
     if (data && data.length > 0) {
       // 将接口返回的配置组数据转换为产品配置格式
@@ -206,12 +331,23 @@ const loadProductsConfig = async () => {
     productsConfig.splice(0, productsConfig.length, ...defaultProductsConfig);
     console.error("加载配置组失败:", error);
     ElMessage.warning("加载配置组失败，使用默认配置");
+  } finally {
+    // 隐藏加载提示
+    hideLoading();
   }
 };
 
 // 组件挂载时加载配置
 onMounted(() => {
+  isComponentMounted.value = true;
   loadProductsConfig();
+  
+  // 添加一个微任务确保组件引用已建立
+  nextTick(() => {
+    setTimeout(() => {
+      componentLoadStatus.saveLayout = !!saveLayoutRef.value;
+    }, 100);
+  });
 });
 </script>
 <template>
@@ -257,12 +393,29 @@ onMounted(() => {
       <SaveLayoutRaw  ref="saveLayoutRef" @close="close(currentItem.group)" class="w-full" />
       <template v-if="currentItem.group === 'group'">
         <!-- 配置组管理使用抽屉显示 -->
-        <el-drawer v-model="drawerVisible.group" size="60%" :title="currentItem.name" destroy-on-close @close="close(currentItem.group)" :z-index="2000">
+        <el-drawer 
+          v-model="drawerVisible.group" 
+          size="60%" 
+          :title="currentItem.name" 
+          destroy-on-close 
+          @close="close(currentItem.group)" 
+          :z-index="2000"
+          :append-to-body="true"
+          class="setting-drawer"
+        >
           <GroupManagement :data="currentItem" />
         </el-drawer>
       </template>
       <template v-else>
-        <el-drawer v-model="drawerVisible[currentItem.group]" size="50%" :title="currentItem.name" :z-index="2000">
+        <el-drawer 
+          v-model="drawerVisible[currentItem.group]" 
+          size="50%" 
+          :title="currentItem.name" 
+          :z-index="2000"
+          :append-to-body="true"
+          :destroy-on-close="true"
+          class="setting-drawer"
+        >
           <component :is="layout[currentItem.group]" :data="currentItem" />
         </el-drawer>
       </template>
@@ -289,6 +442,15 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+// 添加drawer样式，确保初始渲染时不可见
+.setting-drawer {
+  visibility: hidden;
+  
+  &.el-drawer__open {
+    visibility: visible;
+  }
 }
 
 .floating-settings-btn {

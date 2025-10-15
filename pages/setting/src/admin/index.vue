@@ -4,6 +4,7 @@ import { fetchSettingPage } from "../api";
 import { $t } from "@repo/config";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 const ItemSave = defineAsyncComponent(() => import("./save.vue"));
+const ScTable = defineAsyncComponent(() => import("@repo/components/ScTable/index.vue"));
 const config = reactive({
   visible: false,
   itemSaveStatus: false,

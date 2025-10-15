@@ -14,6 +14,7 @@
                 value: 'sysProjectId',
               }"
               :params="params"
+              ref="scTableSelectRef"
               @selectionChange="selectionChange"
               @failure="handleFailure"
             ></ScTableSelect>
@@ -47,7 +48,7 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchDefaultNameProject, fetchDefaultProject, fetchPageProject, fetchUpdateProject } from "@repo/core";
 import { message } from "@repo/utils";
-import { defineAsyncComponent, onMounted, reactive, shallowRef } from "vue";
+import { defineAsyncComponent, nextTick, onMounted, reactive, ref, shallowRef, watch } from "vue"; // 添加nextTick和watch
 const ScTableSelect = defineAsyncComponent(() => import("@repo/components/ScTableSelect/index.vue"));
 const form = reactive({});
 const hasAuth = shallowRef(true);
@@ -55,6 +56,7 @@ const type = "WEI_XIN";
 const params = {
   sysProjectDictItemCode: type,
 };
+const scTableSelectRef = ref(null); // 添加ref引用
 const prop = defineProps({
   data: {
     type: Object,
@@ -89,21 +91,47 @@ const env = reactive({
     },
   ],
 });
+
+// 监听form.sysProjectId的变化，确保在组件加载后设置值
+watch(() => form.sysProjectId, (newVal) => {
+  if (newVal && scTableSelectRef.value) {
+    // 等待下一个tick确保组件已更新
+    nextTick(() => {
+      // 检查组件是否已加载并具有setValue方法
+      if (scTableSelectRef.value && typeof scTableSelectRef.value.setValue === 'function') {
+        scTableSelectRef.value.setValue([newVal]);
+      }
+    });
+  }
+});
+
 const handleFailure = async (e) => {
   if ((e.status = 403)) {
     hasAuth.value = false;
   }
 };
+
 const initialDefault = async () => {
   const res = await fetchDefaultProject({
     typeName: type,
   });
   Object.assign(form, res.data);
+  
+  // 等待组件加载完成后再设置值
+  if (scTableSelectRef.value) {
+    // 使用nextTick确保DOM更新完成
+    await nextTick();
+    // 检查组件是否已加载并具有setValue方法
+    if (scTableSelectRef.value && typeof scTableSelectRef.value.setValue === 'function') {
+      scTableSelectRef.value.setValue([form.sysProjectId]);
+    }
+  }
 };
 
 const selectionChange = async (value, ids) => {
   Object.assign(form, value);
 };
+
 const handleAfterPropertiesSet = async () => {
   initialDefault();
 };

@@ -64,6 +64,7 @@ const alias: Record<string, string> = {
   "@build": pathResolve(),
   "@layout": pathResolve("../../../layout"),
   "@layout/default": pathResolve("../../../layout/default"),
+  "@pages": pathResolve("../../../pages"),
 };
 
 /** 平台的名称、版本、运行所需的node和pnpm版本、依赖、最后构建时间的类型提示 */

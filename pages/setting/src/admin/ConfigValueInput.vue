@@ -6,18 +6,19 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
-import StringInput from "./components/StringInput.vue";
-import NumberInput from "./components/NumberInput.vue";
-import BooleanToggle from "./components/BooleanToggle.vue";
-import ArrayInput from "./components/ArrayInput.vue";
-import TextAreaInput from "./components/TextAreaInput.vue";
-import DictInput from "./components/DictInput.vue";
-import ColorPicker from "./components/ColorPicker.vue";
-import MailInput from "./components/MailInput.vue";
-import PasswordInput from "./components/PasswordInput.vue";
-import SecretInput from "./components/SecretInput.vue";
-import ObjectInput from "./components/ObjectInput.vue";
+import { computed, defineAsyncComponent } from "vue"; // 添加defineAsyncComponent
+// 将所有组件改为异步组件
+const StringInput = defineAsyncComponent(() => import("./components/StringInput.vue"));
+const NumberInput = defineAsyncComponent(() => import("./components/NumberInput.vue"));
+const BooleanToggle = defineAsyncComponent(() => import("./components/BooleanToggle.vue"));
+const ArrayInput = defineAsyncComponent(() => import("./components/ArrayInput.vue"));
+const TextAreaInput = defineAsyncComponent(() => import("./components/TextAreaInput.vue"));
+const DictInput = defineAsyncComponent(() => import("./components/DictInput.vue"));
+const ColorPicker = defineAsyncComponent(() => import("./components/ColorPicker.vue"));
+const MailInput = defineAsyncComponent(() => import("./components/MailInput.vue"));
+const PasswordInput = defineAsyncComponent(() => import("./components/PasswordInput.vue"));
+const SecretInput = defineAsyncComponent(() => import("./components/SecretInput.vue"));
+const ObjectInput = defineAsyncComponent(() => import("./components/ObjectInput.vue"));
 
 /**
  * 组件属性定义

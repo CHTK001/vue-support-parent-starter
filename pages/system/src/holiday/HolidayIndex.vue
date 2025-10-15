@@ -262,10 +262,6 @@ onMounted(() => {
     padding: 0 20px;
   }
 
-  .el-main {
-    padding: 20px;
-  }
-
   .nopadding {
     padding: 0;
   }
