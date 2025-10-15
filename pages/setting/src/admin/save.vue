@@ -1,9 +1,9 @@
 <script setup>
-import { defineExpose,  reactive, ref } from "vue";
+import { defineExpose, reactive, ref, defineAsyncComponent } from "vue";
 import { fetchUpdateSetting, fetchSaveSetting } from "../api";
 import { $t } from "@repo/config";
 import { message } from "@repo/utils";
-import ConfigValueInput from "./ConfigValueInput.vue";
+const ConfigValueInput = defineAsyncComponent(() => import("./ConfigValueInput.vue"));
 
 // 配置对象，包含所有状态和数据
 const config = reactive({

@@ -1,11 +1,13 @@
 <script>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import ScInput from "@repo/components/ScInput/index.vue";
 import { queryEmail, transformI18n } from "@repo/config";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
-import { defineComponent } from "vue";
-import draggable from "vuedraggable";
+import { defineComponent, defineAsyncComponent } from "vue";
+
+const ScInput = defineAsyncComponent(() => import("@repo/components/ScInput/index.vue"));
+const draggable = defineAsyncComponent(() => import("vuedraggable"));
+
 import { fetchSetting, fetchUpdateBatchSetting } from "../api";
 
 export default defineComponent({
@@ -69,29 +71,33 @@ export default defineComponent({
       
       Object.assign(this.form, data);
       
-      fetchSetting(data.group)
-        .then((res) => {
-          if (res && res.data) {
-            const filteredData = res.data.filter((it) => it.sysSettingGroup === data.group);
-            this.groupList.push(...filteredData);
-            
-            // 如果没有获取到任何配置项，显示提示
-            if (filteredData.length === 0) {
-              console.warn('未获取到配置项:', data.group);
-              message('该分组暂无配置项', { type: 'warning' });
+      // 添加延迟以避免阻塞UI
+      setTimeout(() => {
+        fetchSetting(data.group)
+          .then((res) => {
+            if (res && res.data) {
+              const filteredData = res.data.filter((it) => it.sysSettingGroup === data.group);
+              this.groupList.push(...filteredData);
+              
+              // 如果没有获取到任何配置项，显示提示
+              if (filteredData.length === 0) {
+                console.warn('未获取到配置项:', data.group);
+                message('该分组暂无配置项', { type: 'warning' });
+              }
+            } else {
+              console.error('fetchSetting返回数据格式异常:', res);
+              message('获取配置失败，数据格式异常', { type: 'error' });
             }
-          } else {
-            console.error('fetchSetting返回数据格式异常:', res);
-            message('获取配置失败，数据格式异常', { type: 'error' });
-          }
-        })
-        .catch((error) => {
-          console.error('获取配置失败:', error);
-          message('获取配置失败，请检查网络连接', { type: 'error' });
-        })
-        .finally(() => {
-          this.layoutLoading = false;
-        });
+          })
+          .catch((error) => {
+            console.error('获取配置失败:', error);
+            message('获取配置失败，请检查网络连接', { type: 'error' });
+          })
+          .finally(() => {
+            this.layoutLoading = false;
+          });
+      }, 0);
+      
       return this;
     },
     queryEmailMethod(queryString, callback) {
@@ -121,13 +127,14 @@ export default defineComponent({
       });
     },
     async queryDict(item) {
-      if (!element.sysSettingConfig) {
+      // 修复element未定义的问题
+      if (!item.sysSettingConfig) {
         return [];
       }
       const { data } = await fetchListDictItem({
-        sysDictId: element.sysSettingConfig,
+        sysDictId: item.sysSettingConfig,
       });
-      this.select[element.sysSettingName] = data;
+      this.select[item.sysSettingName] = data;
       return data;
     },
     async submit() {
@@ -155,7 +162,16 @@ export default defineComponent({
 </script>
 <template>
   <div class="h-full">
-    <el-drawer v-model="visible" @close="close" size="50%" :title="form.name">
+    <el-drawer 
+      v-model="visible" 
+      @close="close" 
+      size="50%" 
+      :title="form.name"
+      :append-to-body="true"
+      :z-index="2000"
+      :destroy-on-close="true"
+      class="setting-drawer"
+    >
       <div :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" class="h-full" @close="close">
         <div class="h-full">
           <div class="relative h-full">
@@ -227,6 +243,15 @@ export default defineComponent({
 .h-full {
   display: flex;
   flex-direction: column;
+}
+
+// 添加drawer样式，确保初始渲染时不可见
+.setting-drawer {
+  visibility: hidden;
+  
+  &.el-drawer__open {
+    visibility: visible;
+  }
 }
 
 .setting {

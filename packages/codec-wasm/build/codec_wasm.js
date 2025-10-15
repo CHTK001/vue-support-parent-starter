@@ -248,24 +248,6 @@ export function uu1_decrypt_response(response_data_ptr, response_data_len, origi
 }
 
 /**
- * @param {any} response
- * @returns {any}
- */
-export function uu1_decrypt_response_object(response) {
-    const ret = wasm.uu1_decrypt_response_object(response);
-    return ret;
-}
-
-/**
- * @param {any} response
- * @returns {any}
- */
-export function uu1_decrypt_response_object_with_arraybuffer(response) {
-    const ret = wasm.uu1_decrypt_response_object_with_arraybuffer(response);
-    return ret;
-}
-
-/**
  * @param {number} request_data_ptr
  * @param {number} request_data_len
  * @param {number} key_ptr
@@ -278,35 +260,12 @@ export function uu2_encrypt_request(request_data_ptr, request_data_len, key_ptr,
 }
 
 /**
- * @param {any} request
- * @returns {any}
- */
-export function uu2_process_request(request) {
-    const ret = wasm.uu2_process_request(request);
-    return ret;
-}
-
-/**
  * @param {number} encrypted_data_ptr
  * @param {number} encrypted_data_len
  * @returns {number}
  */
 export function uu3_decrypt_simple(encrypted_data_ptr, encrypted_data_len) {
     const ret = wasm.uu3_decrypt_simple(encrypted_data_ptr, encrypted_data_len);
-    return ret >>> 0;
-}
-
-/**
- * @param {number} response_data_ptr
- * @param {number} response_data_len
- * @param {number} uuid_ptr
- * @param {number} uuid_len
- * @param {number} timestamp_ptr
- * @param {number} timestamp_len
- * @returns {number}
- */
-export function uu4_decrypt_response(response_data_ptr, response_data_len, uuid_ptr, uuid_len, timestamp_ptr, timestamp_len) {
-    const ret = wasm.uu4_decrypt_response(response_data_ptr, response_data_len, uuid_ptr, uuid_len, timestamp_ptr, timestamp_len);
     return ret >>> 0;
 }
 
@@ -334,68 +293,6 @@ export function generate_sign(data_ptr, data_len, private_key_ptr, private_key_l
 export function verify_sign(data_ptr, data_len, signature_ptr, signature_len, public_key_ptr, public_key_len) {
     const ret = wasm.verify_sign(data_ptr, data_len, signature_ptr, signature_len, public_key_ptr, public_key_len);
     return ret !== 0;
-}
-
-/**
- * @param {number} _key_ptr
- * @param {number} _key_len
- * @param {number} _system_code_ptr
- * @param {number} _system_code_len
- * @returns {number}
- */
-export function encrypt_storage_key(_key_ptr, _key_len, _system_code_ptr, _system_code_len) {
-    const ret = wasm.encrypt_storage_key(_key_ptr, _key_len, _system_code_ptr, _system_code_len);
-    return ret >>> 0;
-}
-
-/**
- * @param {number} _value_ptr
- * @param {number} _value_len
- * @param {number} _key_ptr
- * @param {number} _key_len
- * @param {number} _system_code_ptr
- * @param {number} _system_code_len
- * @param {number} _storage_key_ptr
- * @param {number} _storage_key_len
- * @param {number} _storage_encode_ptr
- * @param {number} _storage_encode_len
- * @returns {number}
- */
-export function encrypt_storage_value(_value_ptr, _value_len, _key_ptr, _key_len, _system_code_ptr, _system_code_len, _storage_key_ptr, _storage_key_len, _storage_encode_ptr, _storage_encode_len) {
-    const ret = wasm.decrypt_storage_value(_value_ptr, _value_len, _key_ptr, _key_len, _system_code_ptr, _system_code_len, _storage_key_ptr, _storage_key_len, _storage_encode_ptr, _storage_encode_len);
-    return ret >>> 0;
-}
-
-/**
- * @param {number} _value_ptr
- * @param {number} _value_len
- * @param {number} _key_ptr
- * @param {number} _key_len
- * @param {number} _system_code_ptr
- * @param {number} _system_code_len
- * @param {number} _storage_key_ptr
- * @param {number} _storage_key_len
- * @param {number} _storage_encode_ptr
- * @param {number} _storage_encode_len
- * @returns {number}
- */
-export function decrypt_storage_value(_value_ptr, _value_len, _key_ptr, _key_len, _system_code_ptr, _system_code_len, _storage_key_ptr, _storage_key_len, _storage_encode_ptr, _storage_encode_len) {
-    const ret = wasm.decrypt_storage_value(_value_ptr, _value_len, _key_ptr, _key_len, _system_code_ptr, _system_code_len, _storage_key_ptr, _storage_key_len, _storage_encode_ptr, _storage_encode_len);
-    return ret >>> 0;
-}
-
-/**
- * @param {number} data_ptr
- * @param {number} data_len
- * @param {number} public_key_ptr
- * @param {number} public_key_len
- * @param {number} private_key_ptr
- * @param {number} private_key_len
- * @returns {number}
- */
-export function custom_encrypt_with_codec_keypair(data_ptr, data_len, public_key_ptr, public_key_len, private_key_ptr, private_key_len) {
-    const ret = wasm.custom_encrypt_with_codec_keypair(data_ptr, data_len, public_key_ptr, public_key_len, private_key_ptr, private_key_len);
-    return ret >>> 0;
 }
 
 const EXPECTED_RESPONSE_TYPES = new Set(['basic', 'cors', 'default']);
@@ -451,42 +348,6 @@ function __wbg_get_imports() {
     imports.wbg.__wbg_getRandomValues_b8f5dbd5f3995a9e = function() { return handleError(function (arg0, arg1) {
         arg0.getRandomValues(arg1);
     }, arguments) };
-    imports.wbg.__wbg_get_458e874b43b18b25 = function() { return handleError(function (arg0, arg1) {
-        const ret = Reflect.get(arg0, arg1);
-        return ret;
-    }, arguments) };
-    imports.wbg.__wbg_getindex_61bb13d19869849b = function(arg0, arg1) {
-        const ret = arg0[arg1 >>> 0];
-        return ret;
-    };
-    imports.wbg.__wbg_has_b89e451f638123e3 = function() { return handleError(function (arg0, arg1) {
-        const ret = Reflect.has(arg0, arg1);
-        return ret;
-    }, arguments) };
-    imports.wbg.__wbg_instanceof_ArrayBuffer_67f3012529f6a2dd = function(arg0) {
-        let result;
-        try {
-            result = arg0 instanceof ArrayBuffer;
-        } catch (_) {
-            result = false;
-        }
-        const ret = result;
-        return ret;
-    };
-    imports.wbg.__wbg_instanceof_Uint8Array_9a8378d955933db7 = function(arg0) {
-        let result;
-        try {
-            result = arg0 instanceof Uint8Array;
-        } catch (_) {
-            result = false;
-        }
-        const ret = result;
-        return ret;
-    };
-    imports.wbg.__wbg_isArray_52653600d4b65388 = function(arg0) {
-        const ret = Array.isArray(arg0);
-        return ret;
-    };
     imports.wbg.__wbg_length_6bb7e81f9d7713e4 = function(arg0) {
         const ret = arg0.length;
         return ret;
@@ -499,20 +360,8 @@ function __wbg_get_imports() {
         const ret = new Object();
         return ret;
     };
-    imports.wbg.__wbg_new_1f3a344cf3123716 = function() {
-        const ret = new Array();
-        return ret;
-    };
-    imports.wbg.__wbg_new_638ebfaedbf32a5e = function(arg0) {
-        const ret = new Uint8Array(arg0);
-        return ret;
-    };
     imports.wbg.__wbg_newnoargs_254190557c45b4ec = function(arg0, arg1) {
         const ret = new Function(getStringFromWasm0(arg0, arg1));
-        return ret;
-    };
-    imports.wbg.__wbg_newwithargs_b8065bb443501079 = function(arg0, arg1, arg2, arg3) {
-        const ret = new Function(getStringFromWasm0(arg0, arg1), getStringFromWasm0(arg2, arg3));
         return ret;
     };
     imports.wbg.__wbg_newwithlength_a167dcc7aaa3ba77 = function(arg0) {
@@ -523,24 +372,12 @@ function __wbg_get_imports() {
         const ret = arg0.node;
         return ret;
     };
-    imports.wbg.__wbg_now_1e80617bcee43265 = function() {
-        const ret = Date.now();
-        return ret;
-    };
-    imports.wbg.__wbg_parse_442f5ba02e5eaf8b = function() { return handleError(function (arg0, arg1) {
-        const ret = JSON.parse(getStringFromWasm0(arg0, arg1));
-        return ret;
-    }, arguments) };
     imports.wbg.__wbg_process_dc0fbacc7c1c06f7 = function(arg0) {
         const ret = arg0.process;
         return ret;
     };
     imports.wbg.__wbg_prototypesetcall_3d4a26c1ed734349 = function(arg0, arg1, arg2) {
         Uint8Array.prototype.set.call(getArrayU8FromWasm0(arg0, arg1), arg2);
-    };
-    imports.wbg.__wbg_push_330b2eb93e4e1212 = function(arg0, arg1) {
-        const ret = arg0.push(arg1);
-        return ret;
     };
     imports.wbg.__wbg_randomFillSync_ac0988aba3254290 = function() { return handleError(function (arg0, arg1) {
         arg0.randomFillSync(arg1);
@@ -585,10 +422,6 @@ function __wbg_get_imports() {
         const ret = typeof(arg0) === 'function';
         return ret;
     };
-    imports.wbg.__wbg_wbindgenisnull_f3037694abe4d97a = function(arg0) {
-        const ret = arg0 === null;
-        return ret;
-    };
     imports.wbg.__wbg_wbindgenisobject_307a53c6bd97fbf8 = function(arg0) {
         const val = arg0;
         const ret = typeof(val) === 'object' && val !== null;
@@ -621,11 +454,6 @@ function __wbg_get_imports() {
     imports.wbg.__wbindgen_cast_cb9088102bce6b30 = function(arg0, arg1) {
         // Cast intrinsic for `Ref(Slice(U8)) -> NamedExternref("Uint8Array")`.
         const ret = getArrayU8FromWasm0(arg0, arg1);
-        return ret;
-    };
-    imports.wbg.__wbindgen_cast_d6cd19b81560fd6e = function(arg0) {
-        // Cast intrinsic for `F64 -> Externref`.
-        const ret = arg0;
         return ret;
     };
     imports.wbg.__wbindgen_init_externref_table = function() {

@@ -48,8 +48,8 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchDefaultNameProject, fetchDefaultProject, fetchPageProject, fetchUpdateProject } from "@repo/core";
 import { message } from "@repo/utils";
-import { defineComponent,  onMounted, reactive, ref, shallowRef } from "vue";
-const ScTableSelect = defineComponent(() => import("@repo/components/ScTableSelect/index.vue"));
+import { defineAsyncComponent, nextTick, onMounted, reactive, ref, shallowRef, watch } from "vue"; // 添加nextTick和watch
+const ScTableSelect = defineAsyncComponent(() => import("@repo/components/ScTableSelect/index.vue"));
 const form = reactive({});
 const hasAuth = shallowRef(true);
 const type = "DUAN_XIN";
@@ -88,12 +88,34 @@ const env = reactive({
   ],
 });
 
+// 监听form.sysProjectId的变化，确保在组件加载后设置值
+watch(() => form.sysProjectId, (newVal) => {
+  if (newVal && scTableSelectRef.value) {
+    // 等待下一个tick确保组件已更新
+    nextTick(() => {
+      // 检查组件是否已加载并具有setValue方法
+      if (scTableSelectRef.value && typeof scTableSelectRef.value.setValue === 'function') {
+        scTableSelectRef.value.setValue([newVal]);
+      }
+    });
+  }
+});
+
 const initialDefault = async () => {
   const res = await fetchDefaultProject({
     typeName: type,
   });
   Object.assign(form, res.data);
-  scTableSelectRef.value.setValue([form.sysProjectId]);
+  
+  // 等待组件加载完成后再设置值
+  if (scTableSelectRef.value) {
+    // 使用nextTick确保DOM更新完成
+    await nextTick();
+    // 检查组件是否已加载并具有setValue方法
+    if (scTableSelectRef.value && typeof scTableSelectRef.value.setValue === 'function') {
+      scTableSelectRef.value.setValue([form.sysProjectId]);
+    }
+  }
 };
 
 const handleFailure = async (e) => {
@@ -101,9 +123,11 @@ const handleFailure = async (e) => {
     hasAuth.value = false;
   }
 };
+
 const selectionChange = async (value, ids) => {
   Object.assign(form, value);
 };
+
 const handleAfterPropertiesSet = async () => {
   initialDefault();
 };

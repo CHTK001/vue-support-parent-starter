@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { nextTick, onMounted, reactive, ref } from "vue";
-import draggable from "vuedraggable";
+import { nextTick, onMounted, reactive, ref, defineAsyncComponent } from "vue";
 import { fetchBatchUpdateForGroup, fetchDeleteForGroup, fetchListForGroup, fetchSaveOrUpdateForGroup, type SysSettingGroup } from "../api/group";
+
+// 将draggable组件改为异步组件
+const draggable = defineAsyncComponent(() => import("vuedraggable"));
 
 // 响应式数据
 const loading = ref(false);
@@ -31,11 +33,25 @@ const formRules = {
 const formRef = ref();
 
 /**
+ * 显示加载提示
+ */
+const showLoading = (text?: string) => {
+  loading.value = true;
+};
+
+/**
+ * 隐藏加载提示
+ */
+const hideLoading = () => {
+  loading.value = false;
+};
+
+/**
  * 获取组列表
  */
 const getGroupList = async () => {
   try {
-    loading.value = true;
+    showLoading("正在加载配置组数据...");
     const { data } = await fetchListForGroup({});
     groupList.value = data || [];
     // 数据加载完成后自动触发排序更新
@@ -44,7 +60,7 @@ const getGroupList = async () => {
     console.error("获取组列表失败:", error);
     ElMessage.error("获取组列表失败");
   } finally {
-    loading.value = false;
+    hideLoading();
   }
 };
 
@@ -74,6 +90,7 @@ const handleDragEnd = async () => {
  */
 const handleBatchUpdate = async (updatedList: SysSettingGroup[]) => {
   try {
+    showLoading("正在保存排序...");
     await fetchBatchUpdateForGroup(updatedList);
     ElMessage.success("排序更新成功");
   } catch (error) {
@@ -81,6 +98,8 @@ const handleBatchUpdate = async (updatedList: SysSettingGroup[]) => {
     ElMessage.error("排序更新失败");
     // 重新获取数据恢复原状态
     await getGroupList();
+  } finally {
+    hideLoading();
   }
 };
 
@@ -113,21 +132,24 @@ const handleDelete = async (row: SysSettingGroup) => {
       type: "warning",
     });
 
-    const { data } = await fetchDeleteForGroup({
+    showLoading("正在删除配置组...");
+    const res = await fetchDeleteForGroup({
       sysSettingGroupId: row.sysSettingGroupId!,
     });
 
-    if (data) {
+    if (res.code == "00000") {
       ElMessage.success("删除成功");
       await getGroupList();
     } else {
-      ElMessage.error(data?.msg || "删除失败");
+      ElMessage.error(res.msg || "删除失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("删除失败:", error);
       ElMessage.error("删除失败");
     }
+  } finally {
+    hideLoading();
   }
 };
 
@@ -138,18 +160,21 @@ const handleSave = async () => {
   try {
     await formRef.value?.validate();
 
-    const { data } = await fetchSaveOrUpdateForGroup(formData);
+    showLoading(isEdit.value ? "正在更新配置组..." : "正在创建配置组...");
+    const res = await fetchSaveOrUpdateForGroup(formData);
 
-    if (data) {
+    if (res.code == "00000") {
       ElMessage.success(isEdit.value ? "更新成功" : "创建成功");
       dialogVisible.value = false;
       await getGroupList();
     } else {
-      ElMessage.error(data?.msg || "保存失败");
+      ElMessage.error(res.msg || "保存失败");
     }
   } catch (error) {
     console.error("保存失败:", error);
     ElMessage.error("保存失败");
+  } finally {
+    hideLoading();
   }
 };
 
@@ -202,56 +227,64 @@ export default defineComponent({
     </div>
 
     <!-- 卡片容器 -->
-    <div v-loading="loading" class="card-container">
-      <draggable 
-        v-model="groupList" 
-        item-key="sysSettingGroupId" 
-        handle=".drag-handle" 
-        animation="150" 
-        ghost-class="sortable-ghost" 
-        chosen-class="sortable-chosen" 
-        drag-class="sortable-drag" 
-        @end="handleDragEnd"
-        class="draggable-container"
-      >
-        <template #item="{ element: item, index }">
-          <div class="group-card">
-        <div class="card-header">
-          <div class="card-title">
-            <el-icon v-if="item.sysSettingGroupIcon" class="card-icon">
-              <component :is="useRenderIcon(item.sysSettingGroupIcon)" />
-            </el-icon>
-            <span class="group-name">{{ item.sysSettingGroupName }}</span>
-            <el-tag size="small" class="group-code">{{ item.sysSettingGroupCode }}</el-tag>
+    <div class="card-container">
+      <!-- 骨架屏 -->
+      <div v-if="loading" class="skeleton-container">
+        <el-skeleton :rows="5" animated />
+      </div>
+      
+      <!-- 内容区域 -->
+      <div v-else>
+        <draggable 
+          v-model="groupList" 
+          item-key="sysSettingGroupId" 
+          handle=".drag-handle" 
+          animation="150" 
+          ghost-class="sortable-ghost" 
+          chosen-class="sortable-chosen" 
+          drag-class="sortable-drag" 
+          @end="handleDragEnd"
+          class="draggable-container"
+        >
+          <template #item="{ element: item, index }">
+            <div class="group-card">
+          <div class="card-header">
+            <div class="card-title">
+              <el-icon v-if="item.sysSettingGroupIcon" class="card-icon">
+                <component :is="useRenderIcon(item.sysSettingGroupIcon)" />
+              </el-icon>
+              <span class="group-name">{{ item.sysSettingGroupName }}</span>
+              <el-tag size="small" class="group-code">{{ item.sysSettingGroupCode }}</el-tag>
+            </div>
+            <div class="card-actions">
+              <el-switch v-model="item.sysSettingGroupEnable" active-text="启用" inactive-text="禁用" size="small" />
+            </div>
           </div>
-          <div class="card-actions">
-            <el-switch v-model="item.sysSettingGroupEnable" active-text="启用" inactive-text="禁用" size="small" />
-          </div>
-        </div>
 
-        <div class="card-content">
-          <p class="group-description">{{ item.sysSettingGroupRemark || "暂无描述" }}</p>
-        </div>
+          <div class="card-content">
+            <p class="group-description">{{ item.sysSettingGroupRemark || "暂无描述" }}</p>
+          </div>
 
-        <div class="card-footer">
-          <div class="drag-handle">
-            <el-icon><component :is="useRenderIcon('ri:drag-move-line')" /></el-icon>
-            <span class="sort-text">拖拽排序</span>
+          <div class="card-footer">
+            <div class="drag-handle">
+              <el-icon><component :is="useRenderIcon('ri:drag-move-line')" /></el-icon>
+              <span class="sort-text">拖拽排序</span>
+            </div>
+            <div class="action-buttons">
+              <el-button type="primary" link size="small" :icon="useRenderIcon('ri:edit-line')" @click="handleEdit(item)"> 编辑 </el-button>
+              <el-button type="danger" link size="small" :icon="useRenderIcon('ri:delete-bin-line')" @click="handleDelete(item)"> 删除 </el-button>
+            </div>
           </div>
-          <div class="action-buttons">
-            <el-button type="primary" link size="small" :icon="useRenderIcon('ri:edit-line')" @click="handleEdit(item)"> 编辑 </el-button>
-            <el-button type="danger" link size="small" :icon="useRenderIcon('ri:delete-bin-line')" @click="handleDelete(item)"> 删除 </el-button>
-          </div>
-        </div>
-          </div>
-        </template>
-      </draggable>
+            </div>
+          </template>
+        </draggable>
 
-      <!-- 空状态 -->
-      <div v-if="!loading && groupList.length === 0" class="empty-state">
-        <el-empty description="暂无配置组数据">
-          <el-button type="primary" @click="handleAdd">创建第一个配置组</el-button>
-        </el-empty>
+        <!-- 空状态 -->
+        <div v-if="!loading && groupList.length === 0" class="empty-state">
+          <el-empty description="暂无配置组数据">
+            <el-button type="primary" @click="handleAdd">创建第一个配置组</el-button>
+          </el-empty>
+        </div>
       </div>
     </div>
 
@@ -338,6 +371,13 @@ export default defineComponent({
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
   min-height: 200px;
+}
+
+.skeleton-container {
+  grid-column: 1 / -1;
+  padding: 20px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 12px;
 }
 
 .group-card {
