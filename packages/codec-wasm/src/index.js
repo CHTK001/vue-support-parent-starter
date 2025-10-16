@@ -122,7 +122,8 @@ async function loadWasmAsync() {
   try {
     // 使用wasm-bindgen生成的初始化函数
     // 注意：这里需要传递正确的路径和初始化参数
-    const wasmExports = await init();
+    // 显式传入 wasm 二进制路径，避免某些打包环境下的自动定位失败
+    const wasmExports = await init(new URL('../build/codec_wasm_bg.wasm', import.meta.url));
     
     // 保存WASM模块实例
     wasmModuleInstance = wasmExports || wasmCodec;
@@ -145,7 +146,11 @@ async function loadWasmAsync() {
     
     return wasmModuleInstance;
   } catch (error) {
-    throw new Error('Failed to load codec WASM module: ' + error.message);
+    console.error('Failed to load codec WASM module:', error);
+    // 降级为未加载状态，允许后续走 JS fallback
+    wasmLoaded = false;
+    wasmModuleInstance = null;
+    return null;
   }
 }
 
@@ -155,7 +160,14 @@ export async function initializeWasmModule() {
     return wasmModuleInstance;
   }
 
-  await loadWasmAsync();
+  try {
+    await loadWasmAsync();
+  } catch (e) {
+    // 防御：不再向上抛出，保持降级
+    console.error('initializeWasmModule fallback:', e);
+    wasmLoaded = false;
+    wasmModuleInstance = null;
+  }
   return wasmModuleInstance;
 }
 
@@ -807,7 +819,7 @@ export function uu1(response) {
   }
   
   // 检查WASM模块是否导出uu1_decrypt_response_object_with_arraybuffer函数
-  if (wasmModuleInstance.uu1) {
+  if (wasmModuleInstance.uu1_decrypt_response_object_with_arraybuffer) {
     // 使用新函数处理ArrayBuffer
     try {
       // 检查response.data是否为Blob类型
@@ -825,7 +837,7 @@ export function uu1(response) {
               data: buffer
             };
             // 直接调用WASM函数处理整个响应对象
-            return wasmModuleInstance.uu1(newResponse);
+            return wasmModuleInstance.uu1_decrypt_response_object_with_arraybuffer(newResponse);
           });
         } else if (contentType && contentType.includes('application/json')) {
           // 对于JSON数据，转换为对象

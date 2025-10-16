@@ -1,5 +1,6 @@
 <template>
   <div class="images-management">
+    <ProgressMonitor />
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -152,6 +153,8 @@
 </template>
 
 <script setup lang="ts">
+import ProgressMonitor from '@/components/ProgressMonitor.vue';
+import { enableAutoConnect, connectSocket } from '@/utils/socket';
 import { getServerList, imageApi, type SystemSoftImage } from "@/api/docker-management";
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -312,7 +315,7 @@ const loadServers = async () => {
   }
 };
 
-onMounted(() => {
+onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
   loadServers();
 });
 </script>

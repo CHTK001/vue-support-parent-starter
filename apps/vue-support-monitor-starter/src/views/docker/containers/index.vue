@@ -1,5 +1,6 @@
 <template>
   <div class="container-management">
+    <ProgressMonitor />
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -150,6 +151,10 @@
                 <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
                 停止
               </el-button>
+              <el-button size="small" @click="openExec(row)">
+                <IconifyIconOnline icon="ri:terminal-box-line" class="mr-1" />
+                进入容器
+              </el-button>
               <el-dropdown @command="(command) => handleMoreAction(command, row)">
                 <el-button size="small">
                   <IconifyIconOnline icon="ri:more-line" />
@@ -195,10 +200,15 @@
       <el-button type="warning" @click="handleBatchStop">批量停止</el-button>
       <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
     </div>
+  <ServerTerminalDialog ref="terminalRef" />
   </div>
 </template>
 
 <script setup lang="ts">
+import ProgressMonitor from '@/components/ProgressMonitor.vue';
+import { enableAutoConnect, connectSocket } from '@/utils/socket';
+import ServerTerminalDialog from '@/views/server/modules/server-management/components/ServerTerminalDialog.vue';
+import { getServerInfo, sendServerData } from '@/api/server';
 import { containerApi, getServerList, type SystemSoftContainer } from "@/api/docker-management";
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -472,10 +482,37 @@ const loadServers = async () => {
   }
 };
 
-onMounted(() => {
+onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
   loadContainers();
   loadServers();
 });
+const terminalRef = ref();
+
+async function openExec(row: any) {
+  try {
+    // 获取服务器信息
+    const serverId = String(row.systemServerId || row.systemSoftContainerServerId || row.serverId);
+    if (!serverId) return ElMessage.warning('缺少服务器ID');
+    const { data, code, msg } = await getServerInfo(serverId);
+    if (code !== 0 || !data) return ElMessage.error(msg || '获取服务器信息失败');
+
+    // 打开终端并设置数据
+    // ServerTerminalDialog 暴露 setData/open 方法
+    // 其数据结构为 monitorSysGenServer* 字段，getServerInfo 返回已兼容
+    (terminalRef.value as any)?.setData?.(data);
+    (terminalRef.value as any)?.open?.();
+
+    // 尝试发送 docker exec 命令
+    const name = row.systemSoftContainerName || row.containerName || row.name;
+    const shell = '/bin/sh';
+    setTimeout(() => {
+      sendServerData(serverId, `docker exec -it ${name} ${shell}\n`).catch(()=>{});
+    }, 800);
+  } catch (e) {
+    console.error(e);
+    ElMessage.error('进入容器失败');
+  }
+}
 </script>
 
 <style scoped>

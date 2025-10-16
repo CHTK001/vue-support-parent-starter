@@ -30,6 +30,15 @@ const dockerRoutes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "soft",
+        component: () => import("@/views/docker/soft/index.vue"),
+        name: "DockerSoft",
+        meta: {
+          title: "软件管理",
+          icon: "ri:apps-line",
+        },
+      },
+      {
         path: "registry",
         component: () => import("@/views/docker/registry/index.vue"),
         name: "DockerRegistry",
