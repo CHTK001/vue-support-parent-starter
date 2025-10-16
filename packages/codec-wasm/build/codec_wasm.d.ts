@@ -11,8 +11,8 @@ export function sm4_decrypt(encrypted_data_ptr: number, encrypted_data_len: numb
 export function generate_sm2_key_pair(): number;
 export function sm2_encrypt(data_ptr: number, data_len: number, public_key_ptr: number, public_key_len: number): number;
 export function sm2_decrypt(encrypted_data_ptr: number, encrypted_data_len: number, private_key_ptr: number, private_key_len: number): number;
-export function uu1_decrypt_response(response_data_ptr: number, response_data_len: number, origin_ptr: number, origin_len: number, ts_ptr: number, ts_len: number): number;
-export function uu2_encrypt_request(request_data_ptr: number, request_data_len: number, key_ptr: number, key_len: number): number;
+export function uu1(response_data_ptr: number, response_data_len: number, origin_ptr: number, origin_len: number, ts_ptr: number, ts_len: number): number;
+export function uu2(request_data_ptr: number, request_data_len: number, key_ptr: number, key_len: number): number;
 export function uu3_decrypt_simple(encrypted_data_ptr: number, encrypted_data_len: number): number;
 export function generate_sign(data_ptr: number, data_len: number, private_key_ptr: number, private_key_len: number): number;
 export function verify_sign(data_ptr: number, data_len: number, signature_ptr: number, signature_len: number, public_key_ptr: number, public_key_len: number): boolean;
@@ -32,8 +32,8 @@ export interface InitOutput {
   readonly generate_sm2_key_pair: () => number;
   readonly sm2_encrypt: (a: number, b: number, c: number, d: number) => number;
   readonly sm2_decrypt: (a: number, b: number, c: number, d: number) => number;
-  readonly uu1_decrypt_response: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
-  readonly uu2_encrypt_request: (a: number, b: number, c: number, d: number) => number;
+  readonly uu1: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
+  readonly uu2: (a: number, b: number, c: number, d: number) => number;
   readonly uu3_decrypt_simple: (a: number, b: number) => number;
   readonly generate_sign: (a: number, b: number, c: number, d: number) => number;
   readonly verify_sign: (a: number, b: number, c: number, d: number, e: number, f: number) => number;

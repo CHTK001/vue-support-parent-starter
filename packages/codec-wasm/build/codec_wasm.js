@@ -242,8 +242,8 @@ export function sm2_decrypt(encrypted_data_ptr, encrypted_data_len, private_key_
  * @param {number} ts_len
  * @returns {number}
  */
-export function uu1_decrypt_response(response_data_ptr, response_data_len, origin_ptr, origin_len, ts_ptr, ts_len) {
-    const ret = wasm.uu1_decrypt_response(response_data_ptr, response_data_len, origin_ptr, origin_len, ts_ptr, ts_len);
+export function uu1(response_data_ptr, response_data_len, origin_ptr, origin_len, ts_ptr, ts_len) {
+    const ret = wasm.uu1(response_data_ptr, response_data_len, origin_ptr, origin_len, ts_ptr, ts_len);
     return ret >>> 0;
 }
 
@@ -254,8 +254,8 @@ export function uu1_decrypt_response(response_data_ptr, response_data_len, origi
  * @param {number} key_len
  * @returns {number}
  */
-export function uu2_encrypt_request(request_data_ptr, request_data_len, key_ptr, key_len) {
-    const ret = wasm.uu2_encrypt_request(request_data_ptr, request_data_len, key_ptr, key_len);
+export function uu2(request_data_ptr, request_data_len, key_ptr, key_len) {
+    const ret = wasm.uu2(request_data_ptr, request_data_len, key_ptr, key_len);
     return ret >>> 0;
 }
 
