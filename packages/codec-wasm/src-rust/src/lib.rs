@@ -411,7 +411,7 @@ pub fn sm2_decrypt(encrypted_data_ptr: *const u8, encrypted_data_len: usize, pri
 
 // UU1 function - Response decryption
 #[wasm_bindgen]
-pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usize, origin_ptr: *const u8, origin_len: usize, ts_ptr: *const u8, ts_len: usize) -> *mut u8 {
+pub fn uu1(response_data_ptr: *const u8, response_data_len: usize, origin_ptr: *const u8, origin_len: usize, ts_ptr: *const u8, ts_len: usize) -> *mut u8 {
     // 验证输入参数
     if response_data_ptr.is_null() || ts_ptr.is_null() {
         // 创建并返回错误对象
@@ -657,7 +657,7 @@ pub fn uu1_decrypt_response(response_data_ptr: *const u8, response_data_len: usi
 
 // UU2 function - Request encryption
 #[wasm_bindgen]
-pub fn uu2_encrypt_request(request_data_ptr: *const u8, request_data_len: usize, key_ptr: *const u8, key_len: usize) -> *mut u8 {
+pub fn uu2(request_data_ptr: *const u8, request_data_len: usize, key_ptr: *const u8, key_len: usize) -> *mut u8 {
     // 直接使用AES加密函数
     aes_encrypt(request_data_ptr, request_data_len, key_ptr, key_len)
 }
