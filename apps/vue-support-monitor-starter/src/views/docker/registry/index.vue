@@ -40,9 +40,6 @@
         </el-select>
       </div>
       <div class="search-right">
-        <el-button @click="handleSyncSelected" :loading="syncAllLoading" type="success" :disabled="selectedIds.length===0" circle title="批量同步">
-          <IconifyIconOnline icon="ri:refresh-2-line" />
-        </el-button>
         <el-button @click="handleBatchDelete" :disabled="selectedIds.length === 0" type="danger" circle title="批量删除">
           <IconifyIconOnline icon="ri:delete-bin-line" />
         </el-button>

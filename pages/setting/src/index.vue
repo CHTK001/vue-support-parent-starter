@@ -73,7 +73,7 @@ const componentLoadStatus = reactive({
 
 // 添加加载状态
 const loadingState = reactive({
-  isLoading: false,
+  isLoading: true,
   loadingInstance: null
 });
 
@@ -101,41 +101,24 @@ const waitForComponentLoad = async (timeout = 1000) => {
   return !!saveLayoutRef.value;
 };
 
-// 显示加载提示
-const showLoading = (message = "加载中...") => {
-  if (!loadingState.loadingInstance) {
-    loadingState.loadingInstance = ElLoading.service({
-      lock: true,
-      text: message,
-      background: 'rgba(0, 0, 0, 0.7)'
-    });
-  }
-};
 
-// 隐藏加载提示
-const hideLoading = () => {
-  if (loadingState.loadingInstance) {
-    loadingState.loadingInstance.close();
-    loadingState.loadingInstance = null;
-  }
-};
 
 // 防抖函数
 const debounceClick = (func, delay = 300) => {
-  return function(...args) {
+  return function (...args) {
     const now = Date.now();
     // 如果距离上次点击时间小于防抖延迟时间，则取消执行
     if (now - debounceState.lastClickTime < delay) {
       console.log('点击过于频繁，已阻止');
       return;
     }
-    
+
     debounceState.lastClickTime = now;
-    
+
     if (debounceState.timeoutId) {
       clearTimeout(debounceState.timeoutId);
     }
-    
+
     debounceState.timeoutId = setTimeout(() => {
       func.apply(this, args);
     }, delay);
@@ -150,10 +133,7 @@ const onRowClick = async (it) => {
     return;
   }
   debounceState.lastClickTime = now;
-  
-  // 显示加载提示
-  showLoading("正在加载设置项...");
-  
+
   try {
     // 确保组件已挂载
     if (!isComponentMounted.value) {
@@ -164,25 +144,25 @@ const onRowClick = async (it) => {
       }, 100);
       return;
     }
-    
+
     await nextTick();
     const _tabValue = config.tabValue;
     localStorageProxyObject.setItem(SETTING_TAB_VALUE, _tabValue);
     const item = products.value.filter((item) => item.group === _tabValue)[0];
-    
+
     // 数据验证：确保item存在且有必要的属性
     if (!item) {
       console.error('未找到对应的配置项:', _tabValue);
       ElMessage.error('配置项不存在，请刷新页面重试');
       return;
     }
-    
+
     if (!item.group) {
       console.error('配置项缺少group属性:', item);
       ElMessage.error('配置项数据异常，请联系管理员');
       return;
     }
-    
+
     currentItem.value = item;
 
     // 如果是配置组管理，直接显示对话框
@@ -197,36 +177,34 @@ const onRowClick = async (it) => {
         // 确保SaveLayoutRaw组件已经加载
         if (!saveLayoutRef.value) {
           console.warn('SaveLayoutRaw组件未加载，等待组件加载...');
-          
+
           // 等待组件加载完成，最多等待1秒
           const isLoaded = await waitForComponentLoad(1000);
-          
+
           // 如果仍然没有加载成功，尝试重试机制
           if (!isLoaded && componentLoadStatus.retryCount < componentLoadStatus.maxRetries) {
             componentLoadStatus.retryCount++;
             console.warn(`组件加载失败，第${componentLoadStatus.retryCount}次重试`);
             await new Promise(resolve => setTimeout(resolve, 200 * componentLoadStatus.retryCount));
-            hideLoading(); // 隐藏加载提示
             return await onRowClick(it); // 递归调用重试
           }
-          
+
           if (!saveLayoutRef.value) {
             ElMessage.error('组件加载超时，请刷新页面重试');
             componentLoadStatus.retryCount = 0; // 重置重试计数
-            hideLoading(); // 隐藏加载提示
             return;
           }
         }
-        
+
         // 重置重试计数
         componentLoadStatus.retryCount = 0;
-        
+
         // 验证item数据完整性
         if (!item.name) {
           console.warn('配置项缺少name属性，使用group作为默认名称:', item);
           item.name = item.group;
         }
-        
+
         await saveLayoutRef.value.setData(item);
         await saveLayoutRef.value.open();
       } catch (error) {
@@ -236,8 +214,6 @@ const onRowClick = async (it) => {
       }
     }
   } finally {
-    // 隐藏加载提示
-    hideLoading();
   }
 };
 
@@ -293,9 +269,8 @@ const getCurrentSetting = () => {
  */
 const loadProductsConfig = async () => {
   try {
-    // 显示加载提示
-    showLoading("正在加载配置项...");
-    
+    loadingState.loadingInstance = true;
+
     const { data } = await fetchListForGroup({});
     if (data && data.length > 0) {
       // 将接口返回的配置组数据转换为产品配置格式
@@ -333,7 +308,7 @@ const loadProductsConfig = async () => {
     ElMessage.warning("加载配置组失败，使用默认配置");
   } finally {
     // 隐藏加载提示
-    hideLoading();
+    loadingState.loadingInstance = false;
   }
 };
 
@@ -341,7 +316,7 @@ const loadProductsConfig = async () => {
 onMounted(() => {
   isComponentMounted.value = true;
   loadProductsConfig();
-  
+
   // 添加一个微任务确保组件引用已建立
   nextTick(() => {
     setTimeout(() => {
@@ -352,8 +327,11 @@ onMounted(() => {
 </script>
 <template>
   <div class="app-container h-full modern-setting-container">
-    <el-button :icon="useRenderIcon('ri:settings-4-line')" class="floating-settings-btn" type="primary" circle @click="handleOpenItemDialog" />
-    <el-button :icon="useRenderIcon('ri:group-line')" class="floating-group-btn" type="success" circle @click="openGroupManagement" />
+
+    <el-button :icon="useRenderIcon('ri:settings-4-line')" class="floating-settings-btn" type="primary" circle
+      @click="handleOpenItemDialog" />
+    <el-button :icon="useRenderIcon('ri:group-line')" class="floating-group-btn" type="success" circle
+      @click="openGroupManagement" />
 
     <!-- 页面标题 -->
     <div class="setting-header">
@@ -363,59 +341,46 @@ onMounted(() => {
 
     <!-- 卡片网格布局 -->
     <div class="setting-cards-container">
-      <div class="setting-cards-grid">
-        <div
-          v-for="item in products"
-          :key="item.group"
-          class="setting-card"
-          :class="{ 'setting-card-active': config.tabValue === item.group }"
-          @click="
-            config.tabValue = item.group;
-            onRowClick(item.group);
-          "
-        >
-          <div class="setting-card-icon">
-            <el-icon>
-              <component :is="useRenderIcon(item.icon)" />
-            </el-icon>
+      <el-skeleton :loading="loadingState.loadingInstance" class="setting-skeleton" :rows="6" animated>
+        <template #default>
+
+          <div class="setting-cards-grid">
+
+            <div v-for="item in products" :key="item.group" class="setting-card"
+              :class="{ 'setting-card-active': config.tabValue === item.group }" @click="
+                config.tabValue = item.group;
+              onRowClick(item.group);
+              ">
+              <div class="setting-card-icon">
+                <el-icon>
+                  <component :is="useRenderIcon(item.icon)" />
+                </el-icon>
+              </div>
+              <div class="setting-card-content">
+                <h3 class="setting-card-title">{{ item.name }}</h3>
+                <p class="setting-card-description">{{ item.description || "设置" + item.name }}</p>
+              </div>
+              <div class="setting-card-indicator" v-if="config.tabValue === item.group"></div>
+            </div>
           </div>
-          <div class="setting-card-content">
-            <h3 class="setting-card-title">{{ item.name }}</h3>
-            <p class="setting-card-description">{{ item.description || "设置" + item.name }}</p>
-          </div>
-          <div class="setting-card-indicator" v-if="config.tabValue === item.group"></div>
-        </div>
-      </div>
+        </template>
+      </el-skeleton>
+
     </div>
 
     <!-- 设置内容区域 -->
     <div class="setting-content-container" v-if="currentItem">
-      <SaveLayoutRaw  ref="saveLayoutRef" @close="close(currentItem.group)" class="w-full" />
+      <SaveLayoutRaw ref="saveLayoutRef" @close="close(currentItem.group)" class="w-full" />
       <template v-if="currentItem.group === 'group'">
         <!-- 配置组管理使用抽屉显示 -->
-        <el-drawer 
-          v-model="drawerVisible.group" 
-          size="60%" 
-          :title="currentItem.name" 
-          destroy-on-close 
-          @close="close(currentItem.group)" 
-          :z-index="2000"
-          :append-to-body="true"
-          class="setting-drawer"
-        >
+        <el-drawer v-model="drawerVisible.group" size="60%" :title="currentItem.name" destroy-on-close
+          @close="close(currentItem.group)" :z-index="2000" :append-to-body="true" class="setting-drawer">
           <GroupManagement :data="currentItem" />
         </el-drawer>
       </template>
       <template v-else>
-        <el-drawer 
-          v-model="drawerVisible[currentItem.group]" 
-          size="50%" 
-          :title="currentItem.name" 
-          :z-index="2000"
-          :append-to-body="true"
-          :destroy-on-close="true"
-          class="setting-drawer"
-        >
+        <el-drawer v-model="drawerVisible[currentItem.group]" size="50%" :title="currentItem.name" :z-index="2000"
+          :append-to-body="true" :destroy-on-close="true" class="setting-drawer">
           <component :is="layout[currentItem.group]" :data="currentItem" />
         </el-drawer>
       </template>
@@ -429,7 +394,7 @@ onMounted(() => {
 .modern-setting-container {
   background-color: var(--el-bg-color);
   border-radius: 16px;
-  box-shadow: 
+  box-shadow:
     0 15px 40px rgba(0, 0, 0, 0.15),
     0 8px 20px rgba(0, 0, 0, 0.1),
     0 4px 10px rgba(0, 0, 0, 0.05),
@@ -447,7 +412,7 @@ onMounted(() => {
 // 添加drawer样式，确保初始渲染时不可见
 .setting-drawer {
   visibility: hidden;
-  
+
   &.el-drawer__open {
     visibility: visible;
   }
@@ -461,7 +426,7 @@ onMounted(() => {
   width: 38px !important;
   height: 38px !important;
   border-radius: 50%;
-  box-shadow: 
+  box-shadow:
     0 8px 20px rgba(0, 0, 0, 0.25),
     0 5px 15px rgba(0, 0, 0, 0.2),
     0 2px 8px rgba(0, 0, 0, 0.15),
@@ -470,7 +435,7 @@ onMounted(() => {
   background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
 
   &:hover {
-    box-shadow: 
+    box-shadow:
       0 12px 30px rgba(0, 0, 0, 0.3),
       0 8px 20px rgba(0, 0, 0, 0.25),
       0 4px 12px rgba(0, 0, 0, 0.2),
@@ -543,7 +508,7 @@ onMounted(() => {
 .setting-card {
   background-color: var(--el-bg-color-overlay);
   border-radius: 16px;
-  box-shadow: 
+  box-shadow:
     0 10px 25px rgba(0, 0, 0, 0.1),
     0 6px 16px rgba(0, 0, 0, 0.08),
     0 3px 8px rgba(0, 0, 0, 0.05),
@@ -564,7 +529,7 @@ onMounted(() => {
 
 .setting-card:hover {
   transform: translateY(-15px) scale(1.02);
-  box-shadow: 
+  box-shadow:
     0 25px 50px rgba(0, 0, 0, 0.2),
     0 15px 30px rgba(0, 0, 0, 0.15),
     0 8px 20px rgba(0, 0, 0, 0.12),
@@ -574,7 +539,7 @@ onMounted(() => {
 
 .setting-card-active {
   border-color: var(--el-color-primary);
-  box-shadow: 
+  box-shadow:
     0 25px 50px rgba(var(--el-color-primary-rgb), 0.25),
     0 15px 30px rgba(var(--el-color-primary-rgb), 0.2),
     0 8px 20px rgba(var(--el-color-primary-rgb), 0.15),
@@ -608,7 +573,7 @@ onMounted(() => {
   border-radius: 14px;
   margin-right: 20px;
   transition: all 0.4s ease;
-  box-shadow: 
+  box-shadow:
     0 10px 20px var(--app-primary-shadow),
     0 6px 12px rgba(0, 0, 0, 0.15),
     0 3px 6px rgba(0, 0, 0, 0.1),
@@ -632,7 +597,7 @@ onMounted(() => {
 
 .setting-card:hover .setting-card-icon {
   transform: rotate(15deg) scale(1.12);
-  box-shadow: 
+  box-shadow:
     0 15px 30px rgba(var(--el-color-primary-rgb), 0.3),
     0 10px 20px rgba(var(--el-color-primary-rgb), 0.25),
     0 5px 12px rgba(var(--el-color-primary-rgb), 0.2),
@@ -688,7 +653,7 @@ onMounted(() => {
 .setting-detail-container {
   background-color: var(--el-bg-color-overlay);
   border-radius: 12px;
-  box-shadow: 
+  box-shadow:
     0 8px 24px var(--app-shadow-sm),
     0 4px 12px rgba(0, 0, 0, 0.08),
     0 2px 6px rgba(0, 0, 0, 0.05),
@@ -789,6 +754,7 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -799,6 +765,7 @@ onMounted(() => {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -808,9 +775,11 @@ onMounted(() => {
   0% {
     box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0.4);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(var(--el-color-primary-rgb), 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0);
   }
@@ -910,6 +879,7 @@ onMounted(() => {
   }
 
   &__disabled {
+
     .list-card-item_detail--name,
     .list-card-item_detail--desc {
       color: var(--el-text-color-disabled);
