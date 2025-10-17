@@ -15,7 +15,7 @@
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
-        <el-button type="primary" v-role="'admin'" @click="openEdit()">
+        <el-button type="primary" v-admin @click="openEdit()">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           新增软件
         </el-button>
