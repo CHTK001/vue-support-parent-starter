@@ -76,12 +76,10 @@
       </template>
 
       <ScTable
-        :data="recordsList"
+        ref="tableRef"
+        :url="getSoftInstallRecords"
+        :params="{ ...pageParams, ...searchParams }"
         stripe
-        :loading="loading"
-        :total="total"
-        :page-size="pageParams.pageSize"
-        :current-page="pageParams.page"
         class="records-table"
         table-name="docker-records"
       >
@@ -178,10 +176,6 @@
         </el-table-column>
       </ScTable>
 
-      <!-- 分页 -->
-      <div class="pagination-container">
-        <el-pagination v-model:current-page="pageParams.page" v-model:page-size="pageParams.pageSize" :page-sizes="[10, 20, 50, 100]" :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
-      </div>
     </el-card>
 
     <!-- 详情对话框 -->
@@ -243,6 +237,7 @@ import { ElMessageBox } from "element-plus";
 import { computed, nextTick, onMounted, ref } from "vue";
 import InstallProgress from "./components/InstallProgress.vue";
 import StatsCard from "./components/StatsCard.vue";
+const tableRef = ref();
 
 // 定义软件安装记录类型
 interface SystemSoftRecord {
@@ -369,23 +364,9 @@ const statsDetails = computed(() => {
 // 引用
 const logsContentRef = ref<HTMLElement>();
 
-// 数据加载
-const loadRecords = async () => {
-  try {
-    loading.value = true;
-    const params = {
-      ...pageParams.value,
-      ...searchParams.value,
-    };
-
-    const res = await getSoftInstallRecords(params);
-    if (res.code === "00000") {
-      recordsList.value = res.data.records || [];
-      total.value = res.data.total || 0;
-    }
-  } finally {
-    loading.value = false;
-  }
+// 数据加载（改为通过 ScTable 刷新）
+const reload = () => {
+  tableRef.value?.reload?.({ ...pageParams.value, ...searchParams.value }, 1);
 };
 
 const loadServers = async () => {
@@ -421,11 +402,11 @@ const resetSearch = () => {
   };
   dateRange.value = null;
   pageParams.value.page = 1;
-  loadRecords();
+  reload();
 };
 
 const refreshRecords = async () => {
-  await loadRecords();
+  reload();
   message.success("记录列表已刷新");
 };
 
@@ -436,12 +417,12 @@ const handleSelectionChange = (selection: SystemSoftRecord[]) => {
 
 const handleSizeChange = (size: number) => {
   pageParams.value.pageSize = size;
-  loadRecords();
+  reload();
 };
 
 const handleCurrentChange = (page: number) => {
   pageParams.value.page = page;
-  loadRecords();
+  reload();
 };
 
 const viewDetail = (record: SystemSoftRecord) => {
@@ -520,7 +501,7 @@ const retryInstall = async (record: SystemSoftRecord) => {
     const res = await retryInstallSoft({ recordId: record.recordId! });
     if (res.code === "00000") {
       message.success("重试安装请求已提交");
-      await loadRecords();
+      reload();
     }
   } catch (error) {
     if (error !== "cancel") {
@@ -540,7 +521,7 @@ const cancelInstall = async (record: SystemSoftRecord) => {
     const res = await cancelInstallSoft({ recordId: record.recordId! });
     if (res.code === "00000") {
       message.success("安装任务已取消");
-      await loadRecords();
+      reload();
     }
   } catch (error) {
     if (error !== "cancel") {
@@ -579,7 +560,7 @@ const batchDelete = async () => {
 
     // 这里可以调用批量删除API
     message.success("批量删除成功");
-    await loadRecords();
+    reload();
   } catch (error) {
     if (error !== "cancel") {
       message.error("批量删除失败");
@@ -674,14 +655,14 @@ const getProgressStatus = (status: string) => {
 
 onMounted(async () => {
   await loadServers();
-  await loadRecords();
+  reload();
 });
 </script>
 
 <style scoped>
 .records-page {
   padding: 16px;
-  background: var(--el-bg-color-overlay);
+  background: var(--app-bg-secondary);
   min-height: calc(100vh - 60px);
 }
 
@@ -692,9 +673,9 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 16px;
   padding: 20px;
-  background: var(--el-bg-color-overlay);
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 .header-left {
@@ -709,17 +690,17 @@ onMounted(async () => {
   gap: 8px;
   font-size: 20px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--app-text-primary);
 }
 
 .title-icon {
   font-size: 24px;
-  color: #409eff;
+  color: var(--app-primary);
 }
 
 .page-subtitle {
   font-size: 14px;
-  color: var(--el-text-color-primary);
+  color: var(--app-text-secondary);
 }
 
 .header-right {
@@ -735,9 +716,9 @@ onMounted(async () => {
   gap: 16px;
   margin-bottom: 16px;
   padding: 16px;
-  background: var(--el-bg-color-overlay);
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 .search-left {
@@ -776,9 +757,9 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background: var(--el-bg-color-overlay);
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
   transition: all 0.3s ease;
 }
 
@@ -811,7 +792,7 @@ onMounted(async () => {
 }
 
 .stat-icon.info {
-  background: linear-gradient(135deg, #409eff, #79bbff);
+  background: linear-gradient(135deg, var(--app-primary), #79bbff);
 }
 
 .stat-content {
@@ -821,14 +802,14 @@ onMounted(async () => {
 .stat-value {
   font-size: 24px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--app-text-primary);
   line-height: 1;
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 14px;
-  color: var(--el-text-color-primary);
+  color: var(--app-text-secondary);
 }
 
 /* 记录卡片 */

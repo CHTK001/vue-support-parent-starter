@@ -376,6 +376,35 @@ const getSummaries = (param) => {
 </template>
 ```
 
+#### 属性说明
+- pagination-type：分页模式
+  - default（默认）：标准分页，显示分页器，切换页码重新请求数据
+  - scroll：滚动分页，隐藏分页器，使用触底 sentinel 自动加载下一页
+- auto-load：是否在接近底部时自动加载下一页（仅在 pagination-type=scroll 时生效）
+- load-distance：距离容器底部多少像素触发加载（仅在 pagination-type=scroll 时生效）
+
+#### 默认分页 vs 滚动分页 示例
+```vue
+<template>
+  <div>
+    <!-- 默认分页 -->
+    <ScTable :url="fetchData" :columns="columns" page-size="10" />
+
+    <!-- 滚动分页（卡片布局示例） -->
+    <ScTable
+      layout="card"
+      :url="fetchData"
+      :columns="columns"
+      pagination-type="scroll"
+      :auto-load="true"
+      :load-distance="120"
+      :col-size="3"
+      :row-size="4"
+    />
+  </div>
+</template>
+```
+
 ## 样式定制
 
 ### CSS 变量

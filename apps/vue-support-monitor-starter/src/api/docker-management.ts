@@ -2,21 +2,25 @@ import { http, type ReturnResult } from "@repo/utils";
 
 // ========= 数据类型定义 =========
 
-// 软件仓库管理
+// 软件仓库管理（对齐后端字段命名）
 export interface SystemSoftRegistry {
-  id?: number;
-  name?: string;
-  type?: 'docker_hub' | 'aliyun' | 'harbor' | 'custom';
-  url?: string;
-  username?: string;
-  password?: string;
-  email?: string;
-  namespace?: string;
-  status?: 'active' | 'offline' | 'error';
-  description?: string;
-  lastSyncTime?: string;
-  lastSyncStatus?: 'success' | 'failed';
-  softwareCount?: number;
+  systemSoftRegistryId?: number;
+  systemSoftRegistryName?: string;
+  systemSoftRegistryType?: 'docker_hub' | 'aliyun' | 'harbor' | 'custom' | string;
+  systemSoftRegistryUrl?: string;
+  systemSoftRegistryUsername?: string;
+  systemSoftRegistryPassword?: string;
+  systemSoftRegistryEmail?: string;
+  systemSoftRegistryIsDefault?: number;
+  systemSoftRegistrySslEnabled?: number;
+  systemSoftRegistryTimeout?: number;
+  systemSoftRegistryDescription?: string;
+  systemSoftRegistryConfig?: string;
+  systemSoftRegistryLastConnectTime?: string;
+  systemSoftRegistryConnectStatus?: number;
+  systemSoftRegistryErrorMessage?: string;
+  systemSoftRegistrySort?: number;
+  systemSoftRegistryStatus?: number;
   createTime?: string;
   updateTime?: string;
 }
@@ -42,7 +46,7 @@ export interface SystemSoft {
   updateTime?: string;
 }
 
-// 软件镜像(SystemSoftImage)
+// 软件镜像(SystemSoftImage)（对齐后端字段命名）
 export interface SystemSoftImage {
   systemSoftImageId?: number;
   systemSoftId?: number;
@@ -57,53 +61,45 @@ export interface SystemSoftImage {
   systemSoftImageCreated?: string;
   systemSoftImageArchitecture?: string;
   systemSoftImageOsType?: string;
+  systemSoftImageDigest?: string;
   systemSoftImageStatus?: string;
   systemSoftImageDescription?: string;
   createTime?: string;
   updateTime?: string;
 }
 
-// 软件容器(SystemSoftContainer)
+// 软件容器(SystemSoftContainer)（对齐后端字段命名）
 export interface SystemSoftContainer {
   systemSoftContainerId?: number;
   systemSoftId?: number;
   systemServerId?: number;
+  systemSoftImageId?: number;
   systemSoftContainerDockerId?: string;
   systemSoftContainerName?: string;
   systemSoftContainerImage?: string;
-  systemSoftContainerImageName?: string;
   systemSoftContainerImageTag?: string;
   systemSoftContainerStatus?: string;
-  systemSoftContainerHealthStatus?: string;
   systemSoftContainerPorts?: string;
-  systemSoftContainerEnvironment?: string;
+  systemSoftContainerEnv?: string;
   systemSoftContainerVolumes?: string;
   systemSoftContainerNetworks?: string;
   systemSoftContainerCommand?: string;
   systemSoftContainerArgs?: string;
-  systemSoftContainerWorkingDir?: string;
-  systemSoftContainerUser?: string;
-  systemSoftContainerRestartPolicy?: string;
-  systemSoftContainerCpuLimit?: string;
-  systemSoftContainerMemoryLimit?: string;
-  systemSoftContainerCpuPercent?: number;
-  systemSoftContainerMemoryPercent?: number;
-  systemSoftContainerCpuUsage?: number;
-  systemSoftContainerMemoryUsage?: number;
   systemSoftContainerCreatedTime?: string;
   systemSoftContainerStartedTime?: string;
   systemSoftContainerFinishedTime?: string;
-  systemSoftContainerExitCode?: number;
-  systemSoftContainerError?: string;
-  systemSoftContainerLogPath?: string;
-  systemSoftContainerConfigHash?: string;
+  systemSoftContainerRestartCount?: number;
+  systemSoftContainerConfig?: string;
+  systemSoftContainerHealthStatus?: string;
+  systemSoftContainerAutoRestart?: number;
+  systemSoftContainerCpuLimit?: number;
+  systemSoftContainerMemoryLimit?: number;
   systemSoftContainerRemark?: string;
-  systemSoftContainerServerName?: string;
   createTime?: string;
   updateTime?: string;
 }
 
-// 仓库同步进度信息
+// 仓库同步进度信息（保留）
 export interface RegistrySyncProgress {
   registryId: number;
   totalSoftware: number;
@@ -116,27 +112,22 @@ export interface RegistrySyncProgress {
   endTime?: string;
 }
 
-// 容器统计信息
+// 容器统计信息（对齐后端 SystemSoftContainerStats 字段命名）
 export interface ContainerStats {
-  cpuUsage?: number;
-  memoryUsage?: number;
-  memoryLimit?: number;
-  networkRx?: number;
-  networkTx?: number;
-  diskRead?: number;
-  diskWrite?: number;
-  timestamp?: string;
-  
-  // 新增字段以匹配后端SystemSoftContainerStats实体类
-  cpuPercent?: number;
-  memoryPercent?: number;
-  networkRxBytes?: number;
-  networkTxBytes?: number;
-  containerId?: number;
-  imageId?: number;
+  systemSoftContainerStatsCpuPercent?: number;
+  systemSoftContainerStatsMemoryUsage?: number;
+  systemSoftContainerStatsMemoryLimit?: number;
+  systemSoftContainerStatsMemoryPercent?: number;
+  systemSoftContainerStatsNetworkRxBytes?: number;
+  systemSoftContainerStatsNetworkTxBytes?: number;
+  systemSoftContainerStatsDiskRead?: number;
+  systemSoftContainerStatsDiskWrite?: number;
+  systemSoftContainerStatsRecordTime?: string;
+  systemSoftContainerId?: number;
+  systemSoftImageId?: number;
 }
 
-// 容器统计信息历史数据
+// 容器统计信息历史数据（保留旧结构，若后端提供再对齐）
 export interface ContainerStatsHistory {
   timestamps: string[];
   cpuUsage: number[];
@@ -147,7 +138,7 @@ export interface ContainerStatsHistory {
   networkTx: number[];
 }
 
-// 容器状态统计（修复命名冲突）
+// 容器状态统计（保留）
 export interface ContainerStatusStatistics {
   total?: number;
   running?: number;
@@ -157,7 +148,7 @@ export interface ContainerStatusStatistics {
   dead?: number;
 }
 
-// 批量操作结果
+// 批量操作结果（保留）
 export interface BatchOperationResult {
   total?: number;
   success?: number;
@@ -179,14 +170,14 @@ export interface PageParams<T = any> {
 
 // ========= 1. 软件仓库管理API =========
 
-// 分页查询仓库列表
+// 分页查询仓库列表（路径已对齐后端）
 export function pageRegistry(params: PageParams<SystemSoftRegistry>) {
   return http.request<ReturnResult<{ records: SystemSoftRegistry[]; total: number }>>("get", "v1/system/soft/registry/page", { params });
 }
 
-// 获取所有仓库列表（不分页）
+// 获取所有仓库列表（不分页）——后端为 GET /v1/system/soft/registry
 export function getAllRegistries() {
-  return http.request<ReturnResult<SystemSoftRegistry[]>>("get", "v1/system/soft/registry/list");
+  return http.request<ReturnResult<SystemSoftRegistry[]>>("get", "v1/system/soft/registry");
 }
 
 // 根据ID获取仓库详情
@@ -194,14 +185,14 @@ export function getRegistryById(id: number) {
   return http.request<ReturnResult<SystemSoftRegistry>>("get", `v1/system/soft/registry/${id}`);
 }
 
-// 创建软件仓库
-export function createRegistry(data: Omit<SystemSoftRegistry, 'id' | 'createTime' | 'updateTime'>) {
-  return http.request<ReturnResult<boolean>>("post", "v1/system/soft/registry", { data });
+// 创建软件仓库（后端返回实体）
+export function createRegistry(data: Omit<SystemSoftRegistry, 'createTime' | 'updateTime' | 'systemSoftRegistryId'>) {
+  return http.request<ReturnResult<SystemSoftRegistry>>("post", "v1/system/soft/registry", { data });
 }
 
-// 更新软件仓库
+// 更新软件仓库（后端返回实体）
 export function updateRegistry(id: number, data: Partial<SystemSoftRegistry>) {
-  return http.request<ReturnResult<boolean>>("put", `v1/system/soft/registry/${id}`, { data });
+  return http.request<ReturnResult<SystemSoftRegistry>>("put", `v1/system/soft/registry/${id}`, { data });
 }
 
 // 删除软件仓库
@@ -209,340 +200,159 @@ export function deleteRegistry(id: number) {
   return http.request<ReturnResult<boolean>>("delete", `v1/system/soft/registry/${id}`);
 }
 
-// 批量删除仓库
+// 批量删除仓库（后端接收原始数组）
 export function batchDeleteRegistries(ids: number[]) {
-  return http.request<ReturnResult<boolean>>("delete", "v1/system/soft/registry/batch", { data: { ids } });
+  return http.request<ReturnResult<boolean>>("delete", "v1/system/soft/registry/batch", { data: ids });
 }
 
-// 测试仓库连接
-export function testRegistryConnection(data: { url: string; username?: string; password?: string }) {
-  return http.request<ReturnResult<{ success: boolean; message: string }>>("post", "v1/system/soft/registry/test", { data });
+// 测试仓库连接（后端为 POST /{id}/test）
+export function testRegistryConnection(id: number) {
+  return http.request<ReturnResult<boolean>>("post", `v1/system/soft/registry/${id}/test`);
 }
 
 // 同步单个仓库
 export function syncRegistry(id: number) {
-  return http.request<ReturnResult<{ operationId: string }>>("post", `v1/system/soft/registry/${id}/sync`);
-}
-
-// 同步所有仓库
-export function syncAllRegistries() {
-  return http.request<ReturnResult<{ operationId: string }>>("post", "v1/system/soft/registry/sync-all");
-}
-
-// 批量同步仓库
-export function batchSyncRegistries(ids: number[]) {
-  return http.request<ReturnResult<{ operationId: string }>>("post", "v1/system/soft/registry/batch-sync", { data: { ids } });
-}
-
-// 获取仓库同步进度
-export function getRegistrySyncProgress(operationId: string) {
-  return http.request<ReturnResult<RegistrySyncProgress>>("get", `v1/system/soft/registry/sync-progress/${operationId}`);
-}
-
-// 获取仓库统计信息
-export function getRegistryStats() {
-  return http.request<ReturnResult<{
-    totalRegistries: number;
-    activeRegistries: number;
-    offlineRegistries: number;
-    errorRegistries: number;
-    totalSoftware: number;
-    lastSyncTime?: string;
-  }>>("get", "v1/system/soft/registry/stats");
+  return http.request<ReturnResult<boolean>>("post", `v1/system/soft/registry/${id}/sync`);
 }
 
 // ========= 2. 软件管理API =========
 
-// 分页查询软件列表
+// 分页查询软件列表（已存在 v1 兼容控制器）
 export function getSoftPageList(params: PageParams<SystemSoft>) {
   return http.request<ReturnResult<{ records: SystemSoft[]; total: number }>>("get", "v1/system/soft/page", { params });
 }
 
-// 获取软件详情
+// 其余软件 API 维持不变（待核对后端对应控制器）
 export function getSoftById(id: number) {
   return http.request<ReturnResult<SystemSoft>>("get", `v1/system/soft/${id}`);
 }
-
-// 创建软件
 export function createSoft(data: Omit<SystemSoft, 'systemSoftId' | 'createTime' | 'updateTime'>) {
   return http.request<ReturnResult<boolean>>("post", "v1/system/soft", { data });
 }
-
-// 更新软件
 export function updateSoft(id: number, data: Partial<SystemSoft>) {
   return http.request<ReturnResult<boolean>>("put", `v1/system/soft/${id}`, { data });
 }
-
-// 删除软件
 export function deleteSoft(id: number) {
   return http.request<ReturnResult<boolean>>("delete", `v1/system/soft/${id}`);
 }
-
-// 从仓库同步软件信息
 export function syncSoftware(registryId?: number) {
   return http.request<ReturnResult<{ operationId: string }>>("post", "v1/system/soft/sync", { data: { registryId } });
 }
-
-// 安装软件（拉取镜像到指定服务器）
-export function installSoftware(data: {
-  softId: number;
-  serverIds: number[];
-  imageTag?: string;
-  installMethod?: string;
-  installParams?: string;
-}) {
+export function installSoftware(data: { softId: number; serverIds: number[]; imageTag?: string; installMethod?: string; installParams?: string; }) {
   return http.request<ReturnResult<{ operationId: string }>>("post", "v1/system/soft/install", { data });
 }
-
-// 获取软件统计信息
 export function getSoftwareStats() {
-  return http.request<ReturnResult<{
-    totalSoftware: number;
-    enabledSoftware: number;
-    disabledSoftware: number;
-    officialSoftware: number;
-    categoryCounts: Record<string, number>;
-  }>>("get", "v1/system/soft/stats");
+  return http.request<ReturnResult<{ totalSoftware: number; enabledSoftware: number; disabledSoftware: number; officialSoftware: number; categoryCounts: Record<string, number>; }>>("get", "v1/system/soft/stats");
 }
 
-// ========= 3. 软件镜像管理API =========
+// ========= 3. 软件镜像管理API（路径对齐后端 /api/monitor/system-soft-image） =========
 
-// 分页查询镜像列表
 export function getImagePageList(params: PageParams<SystemSoftImage>) {
-  return http.request<ReturnResult<{ records: SystemSoftImage[]; total: number }>>("get", "v1/system/soft/image/page", { params });
+  return http.request<ReturnResult<{ records: SystemSoftImage[]; total: number }>>("get", "/api/monitor/system-soft-image/page", { params });
 }
 
-// 根据服务器ID查询镜像列表
+// 使用统一 list 接口按条件查询（serverId/softId）
 export function getImagesByServerId(serverId: number) {
-  return http.request<ReturnResult<SystemSoftImage[]>>("get", `v1/system/soft/image/server/${serverId}`);
+  return http.request<ReturnResult<SystemSoftImage[]>>("get", "/api/monitor/system-soft-image/list", { params: { serverId } });
 }
-
-// 根据软件ID查询镜像列表
 export function getImagesBySoftId(softId: number) {
-  return http.request<ReturnResult<SystemSoftImage[]>>("get", `v1/system/soft/image/soft/${softId}`);
+  return http.request<ReturnResult<SystemSoftImage[]>>("get", "/api/monitor/system-soft-image/list", { params: { softId } });
 }
 
-// 根据ID获取镜像详情
 export function getImageById(id: number) {
-  return http.request<ReturnResult<SystemSoftImage>>("get", `v1/system/soft/image/${id}`);
+  return http.request<ReturnResult<SystemSoftImage>>("get", `/api/monitor/system-soft-image/${id}`);
 }
 
-// 拉取镜像
-export function pullImage(data: {
-  softId: number;
-  serverId: number;
-  imageTag: string;
-  repository?: string;
-}) {
-  return http.request<ReturnResult<{ operationId: string }>>("post", "v1/system/soft/image/pull", { data });
+// 拉取镜像（后端 softId/serverId/imageTag 为请求参数，config 为 body）
+export function pullImage(data: { softId: number; serverId: number; imageTag: string; config?: any; }) {
+  const { softId, serverId, imageTag, config } = data;
+  return http.request<ReturnResult<SystemSoftImage>>("post", "/api/monitor/system-soft-image/pull", {
+    params: { softId, serverId, imageTag },
+    data: config,
+  });
 }
 
-// 删除镜像
 export function deleteImage(id: number, force?: boolean) {
-  return http.request<ReturnResult<boolean>>("delete", `v1/system/soft/image/${id}`, { params: { force } });
+  return http.request<ReturnResult<boolean>>("delete", `/api/monitor/system-soft-image/${id}/image`, { params: { force } });
 }
 
-// 批量删除镜像
-export function batchDeleteImages(ids: number[], force?: boolean) {
-  return http.request<ReturnResult<BatchOperationResult>>("delete", "v1/system/soft/image/batch", { data: { ids, force } });
+// 基于镜像创建容器（后端为 POST /{id}/start 返回 Boolean）
+export function startImageAsContainer(payload: { imageId: number; config?: any; }) {
+  const { imageId, config } = payload;
+  return http.request<ReturnResult<boolean>>("post", `/api/monitor/system-soft-image/${imageId}/start`, { data: config });
 }
 
-// 启动镜像（创建并启动容器）
-export function startImageAsContainer(data: {
-  imageId: number;
-  containerName: string;
-  ports?: string;
-  envVars?: string;
-  volumes?: string;
-  command?: string;
-  args?: string;
-  autoRestart?: boolean;
-  cpuLimit?: string;
-  memoryLimit?: string;
-}) {
-  return http.request<ReturnResult<{ operationId: string }>>("post", "v1/system/soft/image/start", { data });
-}
-
-// 同步镜像状态
+// 同步镜像状态（后端暂未提供，保留占位或改为 list 触发刷新）
 export function syncImageStatus(serverId?: number) {
-  return http.request<ReturnResult<number>>("post", "v1/system/soft/image/sync", { data: { serverId } });
+  return http.request<ReturnResult<number>>("get", "/api/monitor/system-soft-image/page", { params: { serverId } });
 }
 
-// 获取镜像统计信息
-export function getImageStats(serverId?: number) {
-  return http.request<ReturnResult<{
-    totalImages: number;
-    availableImages: number;
-    pendingImages: number;
-    errorImages: number;
-    totalSize: number;
-  }>>("get", "v1/system/soft/image/stats", { params: { serverId } });
-}
+// ========= 4. 软件容器管理API（路径对齐后端 /api/monitor/system-soft-container） =========
 
-// ========= 4. 软件容器管理API =========
-
-// 分页查询容器列表
 export function getContainerPageList(params: PageParams<SystemSoftContainer>) {
-  return http.request<ReturnResult<{ records: SystemSoftContainer[]; total: number }>>("get", "v1/system/soft/container/page", { params });
+  return http.request<ReturnResult<{ records: SystemSoftContainer[]; total: number }>>("get", "/api/monitor/system-soft-container/page", { params });
 }
 
-// 根据软件ID查询容器列表
+// 统一使用 list 接口按条件查询
 export function getContainersBySoftId(softId: number) {
-  return http.request<ReturnResult<SystemSoftContainer[]>>("get", `v1/system/soft/container/soft/${softId}`);
+  return http.request<ReturnResult<SystemSoftContainer[]>>("get", "/api/monitor/system-soft-container/list", { params: { softId } });
 }
-
-// 根据服务器ID查询容器列表
 export function getContainersByServerId(serverId: number) {
-  return http.request<ReturnResult<SystemSoftContainer[]>>("get", `v1/system/soft/container/server/${serverId}`);
+  return http.request<ReturnResult<SystemSoftContainer[]>>("get", "/api/monitor/system-soft-container/list", { params: { serverId } });
 }
 
-// 根据ID查询容器详情
 export function getContainerById(id: number) {
-  return http.request<ReturnResult<SystemSoftContainer>>("get", `v1/system/soft/container/${id}`);
+  return http.request<ReturnResult<SystemSoftContainer>>("get", `/api/monitor/system-soft-container/${id}`);
 }
 
-// 创建容器
-export function createContainer(data: {
-  softId: number;
-  serverId: number;
-  containerName: string;
-  imageTag: string;
-  ports?: string;
-  envVars?: string;
-  volumes?: string;
-  command?: string;
-  args?: string;
-  workingDir?: string;
-  user?: string;
-  restartPolicy?: string;
-  cpuLimit?: string;
-  memoryLimit?: string;
-}) {
-  return http.request<ReturnResult<{ operationId: string }>>("post", "v1/system/soft/container", { data });
+// 按后端定义：新增/更新均走实体对象（此处保留占位，调用方应传递完整实体）
+export function createContainer(data: SystemSoftContainer) {
+  return http.request<ReturnResult<boolean>>("post", "/api/monitor/system-soft-container", { data });
 }
 
-// 启动容器
 export function startContainer(id: number) {
-  return http.request<ReturnResult<{ operationId: string }>>("post", `v1/system/soft/container/${id}/start`);
+  return http.request<ReturnResult<boolean>>("post", `/api/monitor/system-soft-container/${id}/start`);
 }
-
-// 停止容器
-export function stopContainer(id: number, timeout?: number) {
-  return http.request<ReturnResult<{ operationId: string }>>("post", `v1/system/soft/container/${id}/stop`, { data: { timeout } });
+export function stopContainer(id: number) {
+  return http.request<ReturnResult<boolean>>("post", `/api/monitor/system-soft-container/${id}/stop`);
 }
-
-// 重启容器
 export function restartContainer(id: number) {
-  return http.request<ReturnResult<{ operationId: string }>>("post", `v1/system/soft/container/${id}/restart`);
+  return http.request<ReturnResult<boolean>>("post", `/api/monitor/system-soft-container/${id}/restart`);
 }
 
-// 暂停容器
-export function pauseContainer(id: number) {
-  return http.request<ReturnResult<{ operationId: string }>>("post", `v1/system/soft/container/${id}/pause`);
-}
-
-// 恢复容器
-export function unpauseContainer(id: number) {
-  return http.request<ReturnResult<{ operationId: string }>>("post", `v1/system/soft/container/${id}/unpause`);
-}
-
-// 删除容器
 export function deleteContainer(id: number, force?: boolean) {
-  return http.request<ReturnResult<boolean>>("delete", `v1/system/soft/container/${id}`, { params: { force } });
+  return http.request<ReturnResult<boolean>>("delete", `/api/monitor/system-soft-container/${id}/container`, { params: { force } });
 }
 
-// 更新容器配置
-export function updateContainer(id: number, data: {
-  containerName?: string;
-  imageTag?: string;
-  ports?: string;
-  envVars?: string;
-  volumes?: string;
-  command?: string;
-  args?: string;
-  autoRestart?: boolean;
-  cpuLimit?: string;
-  memoryLimit?: string;
-}) {
-  return http.request<ReturnResult<boolean>>("put", `v1/system/soft/container/${id}`, { data });
+export function updateContainer(data: SystemSoftContainer) {
+  return http.request<ReturnResult<boolean>>("put", "/api/monitor/system-soft-container", { data });
 }
 
-// 获取容器日志
-export function getContainerLogs(id: number, lines?: number, since?: string) {
-  return http.request<ReturnResult<string>>("get", `v1/system/soft/container/${id}/logs`, { params: { lines, since } });
+export function getContainerLogs(id: number, lines?: number) {
+  return http.request<ReturnResult<string>>("get", `/api/monitor/system-soft-container/${id}/logs`, { params: { lines } });
 }
 
-// 获取容器统计信息
 export function getContainerStats(id: number) {
-  return http.request<ReturnResult<ContainerStats>>("get", `v1/system/soft/container/${id}/stats`);
+  return http.request<ReturnResult<ContainerStats>>("get", `/api/monitor/system-soft-container/${id}/stats`);
 }
 
-// 获取容器统计信息历史数据
-export function getContainerStatsHistory(containerId: number, hours: number = 1) {
-  return http.request<ReturnResult<ContainerStatsHistory>>("get", `v1/system/soft/container/${containerId}/stats/history`, { params: { hours } });
-}
-
-// 获取容器状态统计（修复命名冲突）
-export function getContainerStatusStatistics() {
-  return http.request<ReturnResult<ContainerStatusStatistics>>("get", "v1/system/soft/container/stats");
-}
-
-// 获取运行中的容器列表
-export function getRunningContainers(serverId?: number) {
-  return http.request<ReturnResult<SystemSoftContainer[]>>("get", "v1/system/soft/container/running", { params: { serverId } });
-}
-
-// 获取异常容器列表
-export function getAbnormalContainers(serverId?: number) {
-  return http.request<ReturnResult<SystemSoftContainer[]>>("get", "v1/system/soft/container/abnormal", { params: { serverId } });
-}
-
-// 批量操作容器
-export function batchOperateContainers(data: {
-  containerIds: number[];
-  operation: 'start' | 'stop' | 'restart' | 'pause' | 'unpause' | 'remove';
-  options?: {
-    timeout?: number;
-    force?: boolean;
-  };
-}) {
-  return http.request<ReturnResult<BatchOperationResult>>("post", "v1/system/soft/container/batch", { data });
-}
-
-// 同步容器状态
+// 同步容器状态（后端为 GET /sync?serverId=）
 export function syncContainerStatus(serverId?: number) {
-  return http.request<ReturnResult<number>>("post", "v1/system/soft/container/sync", { data: { serverId } });
+  return http.request<ReturnResult<number>>("get", "/api/monitor/system-soft-container/sync", { params: { serverId } });
 }
-
-// ========= 5. WebSocket相关API（已废弃，改用Socket.IO） =========
-// 注：WebSocket手动推送接口已被新的Socket.IO实时通信替代，这些接口不再使用
 
 // ========= 6. 服务器相关API =========
 
-// 获取服务器列表（用于下拉选择）
 export function getServerList() {
-  return http.request<ReturnResult<Array<{
-    id: number;
-    name: string;
-    host: string;
-    port: number;
-    status: string;
-  }>>>("get", "v1/system/server/list");
+  return http.request<ReturnResult<Array<{ id: number; name: string; host: string; port: number; status: string; }>>>("get", "v1/system/server/list");
 }
 
-// 获取WebSocket主题信息
 export function getWebSocketTopics() {
-  return http.request<ReturnResult<{
-    containerStatus: string;
-    containerLogs: string;
-    containerStatistics: string;
-    containerEvents: string;
-  }>>("get", "v1/system/soft/websocket/topics");
+  return http.request<ReturnResult<{ containerStatus: string; containerLogs: string; containerStatistics: string; containerEvents: string; }>>("get", "v1/system/soft/websocket/topics");
 }
 
 // ========= API对象导出 =========
 
-// 软件仓库管理API对象
 export const registryApi = {
   pageRegistry,
   getAllRegistries,
@@ -553,13 +363,8 @@ export const registryApi = {
   batchDeleteRegistries,
   testRegistryConnection,
   syncRegistry,
-  syncAllRegistries,
-  batchSyncRegistries,
-  getRegistrySyncProgress,
-  getRegistryStats
 };
 
-// 软件管理API对象
 export const softwareApi = {
   getSoftPageList,
   getSoftById,
@@ -568,10 +373,9 @@ export const softwareApi = {
   deleteSoft,
   syncSoftware,
   installSoftware,
-  getSoftwareStats
+  getSoftwareStats,
 };
 
-// 镜像管理API对象
 export const imageApi = {
   getImagePageList,
   getImagesByServerId,
@@ -579,13 +383,9 @@ export const imageApi = {
   getImageById,
   pullImage,
   deleteImage,
-  batchDeleteImages,
   startImageAsContainer,
-  syncImageStatus,
-  getImageStats
 };
 
-// 容器管理API对象
 export const containerApi = {
   getContainerPageList,
   getContainersBySoftId,
@@ -595,27 +395,19 @@ export const containerApi = {
   startContainer,
   stopContainer,
   restartContainer,
-  pauseContainer,
-  unpauseContainer,
   deleteContainer,
   updateContainer,
   getContainerLogs,
   getContainerStats,
-  getContainerStatsHistory,
-  getContainerStatusStats: getContainerStatusStatistics, // 重命名以避免冲突
-  getRunningContainers,
-  getAbnormalContainers,
-  batchOperateContainers,
-  syncContainerStatus
+  syncContainerStatus,
 };
 
-// 统一导出
 export const dockerManagementApi = {
   registry: registryApi,
   software: softwareApi,
   image: imageApi,
   container: containerApi,
-  getServerList
+  getServerList,
 };
 
 export default dockerManagementApi;

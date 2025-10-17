@@ -24,6 +24,12 @@
               <el-option label="滚动分页" value="scroll" />
             </el-select>
           </el-form-item>
+          <el-form-item label="自动加载" v-if="config.showPagination">
+            <el-switch v-model="config.autoLoad" :disabled="config.paginationType !== 'scroll'" />
+          </el-form-item>
+          <el-form-item label="加载距离(px)" v-if="config.showPagination">
+            <el-input-number v-model="config.loadDistance" :min="0" :max="400" :step="20" :disabled="config.paginationType !== 'scroll'" />
+          </el-form-item>
           <el-form-item label="高度(px)">
             <el-input-number v-model="config.height" :min="0" :step="50" />
           </el-form-item>
@@ -68,6 +74,8 @@
           <ScTable v-if="config.layout === 'table'" ref="tableRef" :data="tableData" :params="{}" row-key="id"
             :border="config.border" :stripe="config.stripe" :height="config.height > 0 ? config.height - 2 : null"
             :hidePagination="!config.showPagination" :pageSize="config.pageSize" :paginationType="config.paginationType"
+            :auto-load="config.paginationType === 'scroll' && config.autoLoad"
+            :load-distance="config.loadDistance"
             :contextmenu="config.contextMenu ? handleContextMenu : null" overflow-x="auto">
             <el-table-column type="selection" width="55"></el-table-column>
             <el-table-column prop="id" label="ID" sortable></el-table-column>
@@ -93,6 +101,8 @@
             :params="{}" row-key="id" :border="config.border" :stripe="config.stripe"
             :height="config.height > 0 ? config.height : 400" :hidePagination="!config.showPagination"
             :pageSize="config.pageSize" :paginationType="config.paginationType" :col-size="4" :row-size="2"
+            :auto-load="config.paginationType === 'scroll' && config.autoLoad"
+            :load-distance="config.loadDistance"
             :contextmenu="config.contextMenu ? handleContextMenu : null" @row-click="handleEdit" overflow-x="auto">
             <template #default="{ row }">
               <div class="custom-card">
@@ -129,6 +139,8 @@
             :data="tableData" :params="{}" row-key="id" :border="config.border" :stripe="config.stripe"
             :height="config.height > 0 ? config.height - 2 : null" :hidePagination="!config.showPagination"
             :pageSize="config.pageSize" :paginationType="config.paginationType" :columns="canvasColumns"
+            :auto-load="config.paginationType === 'scroll' && config.autoLoad"
+            :load-distance="config.loadDistance"
             :contextmenu="config.contextMenu ? handleContextMenu : null" @row-click="handleCanvasRowClick">
             <template #table-header>
               <div class="canvas-header">
@@ -143,6 +155,8 @@
             :data="tableData" :params="{}" row-key="id" :border="config.border" :stripe="config.stripe"
             :height="config.height > 0 ? config.height - 2 : null" :hidePagination="!config.showPagination"
             :pageSize="config.pageSize" :paginationType="config.paginationType" :columns="canvasColumns"
+            :auto-load="config.paginationType === 'scroll' && config.autoLoad"
+            :load-distance="config.loadDistance"
             :contextmenu="config.contextMenu ? handleContextMenu : null" @row-click="handleEdit">
           </ScTable>
 
@@ -150,6 +164,8 @@
           <ScTable v-else :layout="config.layout" ref="otherLayoutRef" :data="tableData" :params="{}" row-key="id"
             :border="config.border" :stripe="config.stripe" :height="config.height > 0 ? config.height - 2 : 400"
             :hidePagination="!config.showPagination" :pageSize="config.pageSize" :paginationType="config.paginationType"
+            :auto-load="config.paginationType === 'scroll' && config.autoLoad"
+            :load-distance="config.loadDistance"
             :contextmenu="config.contextMenu ? handleContextMenu : null" @row-click="handleEdit" overflow-x="auto">
             <template #default="{ row }">
               <div class="list-item">
@@ -232,6 +248,8 @@ const config = reactive({
   showPagination: true,
   pageSize: 10,
   paginationType: "default",
+  autoLoad: true,
+  loadDistance: 120,
   height: 500,
   width: "800px",
   layout: "table",

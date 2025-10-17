@@ -323,7 +323,7 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
 <style scoped>
 .images-management {
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--app-bg-secondary);
   min-height: calc(100vh - 60px);
 }
 
@@ -333,9 +333,9 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
   align-items: flex-start;
   margin-bottom: 20px;
   padding: 20px;
-  background: white;
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 .page-title {
@@ -343,16 +343,16 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
   align-items: center;
   font-size: 24px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--app-text-primary);
 }
 
 .title-icon {
   margin-right: 8px;
-  color: #409eff;
+  color: var(--app-primary);
 }
 
 .page-subtitle {
-  color: #6c757d;
+  color: var(--app-text-secondary);
   margin-top: 8px;
   font-size: 14px;
 }
@@ -368,9 +368,9 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
   align-items: center;
   margin-bottom: 20px;
   padding: 16px;
-  background: white;
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 .search-left {
@@ -392,9 +392,9 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
 }
 
 .images-table-card {
-  background: white;
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 .image-info {
@@ -405,18 +405,18 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
 
 .image-name {
   font-weight: 500;
-  color: #303133;
+  color: var(--app-text-primary);
 }
 
 .image-tag {
   font-size: 12px;
-  color: #909399;
+  color: var(--app-text-secondary);
 }
 
 .image-full-name {
   font-family: monospace;
   font-size: 12px;
-  color: #606266;
+  color: var(--app-text-secondary);
 }
 
 .server-info {
@@ -427,7 +427,7 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
 
 .server-name {
   font-weight: 500;
-  color: #303133;
+  color: var(--app-text-primary);
 }
 
 .action-buttons {
@@ -445,14 +445,14 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
   align-items: center;
   gap: 16px;
   padding: 12px 20px;
-  background: white;
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
   z-index: 1000;
 }
 
 .batch-info {
-  color: #409eff;
+  color: var(--app-link);
   font-weight: 500;
 }
 </style>

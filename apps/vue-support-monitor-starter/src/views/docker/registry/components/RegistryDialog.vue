@@ -1,12 +1,12 @@
 ﻿﻿﻿<template>
   <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑仓库' : '添加仓库'" width="600px" @closed="handleDialogClosed">
     <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" @submit.prevent>
-      <el-form-item label="仓库名称" prop="name">
-        <el-input v-model="formData.name" placeholder="请输入仓库名称" clearable />
+      <el-form-item label="仓库名称" prop="systemSoftRegistryName">
+        <el-input v-model="formData.systemSoftRegistryName" placeholder="请输入仓库名称" clearable />
       </el-form-item>
 
-      <el-form-item label="仓库类型" prop="type">
-        <el-select v-model="formData.type" placeholder="请选择仓库类型" style="width: 100%" @change="handleTypeChange">
+      <el-form-item label="仓库类型" prop="systemSoftRegistryType">
+        <el-select v-model="formData.systemSoftRegistryType" placeholder="请选择仓库类型" style="width: 100%" @change="handleTypeChange">
           <el-option v-for="type in registryTypes" :key="type.value" :label="type.label" :value="type.value">
             <div class="registry-type-option">
               <IconifyIconOnline :icon="type.icon" class="mr-2" />
@@ -16,8 +16,8 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="仓库地址" prop="url">
-        <el-input v-model="formData.url" placeholder="请输入仓库地址" clearable>
+      <el-form-item label="仓库地址" prop="systemSoftRegistryUrl">
+        <el-input v-model="formData.systemSoftRegistryUrl" placeholder="请输入仓库地址" clearable>
           <template #append>
             <el-button v-if="showTestButton" @click="testConnection" :loading="testLoading">
               <IconifyIconOnline icon="ri:test-tube-line" class="mr-1" />
@@ -27,15 +27,7 @@
         </el-input>
         <div class="form-hint">
           <IconifyIconOnline icon="ri:information-line" class="mr-1" />
-          {{ getUrlHint(formData.type) }}
-        </div>
-      </el-form-item>
-
-      <el-form-item label="命名空间" prop="namespace" v-if="showNamespace">
-        <el-input v-model="formData.namespace" placeholder="请输入命名空间（可选）" clearable />
-        <div class="form-hint">
-          <IconifyIconOnline icon="ri:information-line" class="mr-1" />
-          用于区分不同的项目或用户空间
+          {{ getUrlHint(formData.systemSoftRegistryType) }}
         </div>
       </el-form-item>
 
@@ -47,20 +39,20 @@
         </span>
       </el-divider>
 
-      <el-form-item label="用户名" prop="username">
-        <el-input v-model="formData.username" placeholder="请输入用户名（可选）" clearable />
+      <el-form-item label="用户名" prop="systemSoftRegistryUsername">
+        <el-input v-model="formData.systemSoftRegistryUsername" placeholder="请输入用户名（可选）" clearable />
       </el-form-item>
 
-      <el-form-item label="密码" prop="password">
-        <el-input v-model="formData.password" type="password" placeholder="请输入密码（可选）" show-password clearable />
+      <el-form-item label="密码" prop="systemSoftRegistryPassword">
+        <el-input v-model="formData.systemSoftRegistryPassword" type="password" placeholder="请输入密码（可选）" show-password clearable />
       </el-form-item>
 
-      <el-form-item label="邮箱" prop="email" v-if="showEmail">
-        <el-input v-model="formData.email" placeholder="请输入邮箱（可选）" clearable />
+      <el-form-item label="邮箱" prop="systemSoftRegistryEmail" v-if="showEmail">
+        <el-input v-model="formData.systemSoftRegistryEmail" placeholder="请输入邮箱（可选）" clearable />
       </el-form-item>
 
-      <el-form-item label="描述" prop="description">
-        <el-input v-model="formData.description" type="textarea" :rows="3" placeholder="请输入仓库描述（可选）" />
+      <el-form-item label="描述" prop="systemSoftRegistryDescription">
+        <el-input v-model="formData.systemSoftRegistryDescription" type="textarea" :rows="3" placeholder="请输入仓库描述（可选）" />
       </el-form-item>
     </el-form>
 
@@ -123,18 +115,17 @@ const dialogVisible = computed({
 });
 
 // 是否为编辑模式
-const isEdit = computed(() => !!props.registryData?.id);
+const isEdit = computed(() => !!props.registryData?.systemSoftRegistryId);
 
 // 表单数据
 const formData = ref<SystemSoftRegistry>({
-  name: "",
-  type: "docker_hub",
-  url: "",
-  username: "",
-  password: "",
-  email: "",
-  namespace: "",
-  description: "",
+  systemSoftRegistryName: "",
+  systemSoftRegistryType: "docker_hub",
+  systemSoftRegistryUrl: "",
+  systemSoftRegistryUsername: "",
+  systemSoftRegistryPassword: "",
+  systemSoftRegistryEmail: "",
+  systemSoftRegistryDescription: "",
 });
 
 // 仓库类型选项
@@ -163,24 +154,20 @@ const registryTypes = [
 
 // 表单验证规则
 const formRules: Record<string, FormItemRule[]> = {
-  name: [
+  systemSoftRegistryName: [
     { required: true, message: "请输入仓库名称", trigger: "blur" },
     { min: 2, max: 50, message: "仓库名称长度在 2 到 50 个字符", trigger: "blur" },
   ],
-  type: [{ required: true, message: "请选择仓库类型", trigger: "change" }],
-  url: [
+  systemSoftRegistryType: [{ required: true, message: "请选择仓库类型", trigger: "change" }],
+  systemSoftRegistryUrl: [
     { required: true, message: "请输入仓库地址", trigger: "blur" },
     { type: "url" as const, message: "请输入有效的URL地址", trigger: "blur" },
   ],
 };
 
 // 计算属性
-const showNamespace = computed(() => {
-  return ["aliyun", "harbor", "custom"].includes(formData.value.type || "");
-});
-
 const showEmail = computed(() => {
-  return formData.value.type === "docker_hub";
+  return formData.value.systemSoftRegistryType === "docker_hub";
 });
 
 // 是否显示测试按钮（仅在编辑模式下显示）
@@ -191,15 +178,14 @@ const showTestButton = computed(() => {
 // 重置表单
 const resetForm = () => {
   formData.value = {
-    name: "",
-    type: "docker_hub",
-    url: "",
-    username: "",
-    password: "",
-    email: "",
-    namespace: "",
-    description: "",
-  };
+    systemSoftRegistryName: "",
+    systemSoftRegistryType: "docker_hub",
+    systemSoftRegistryUrl: "",
+    systemSoftRegistryUsername: "",
+    systemSoftRegistryPassword: "",
+    systemSoftRegistryEmail: "",
+    systemSoftRegistryDescription: "",
+  } as any;
 };
 
 // 获取URL提示信息
@@ -221,10 +207,10 @@ const handleTypeChange = (type: string) => {
     aliyun: "https://registry.cn-hangzhou.aliyuncs.com",
     harbor: "",
     custom: "",
-  };
+  } as Record<string, string>;
 
-  if (defaultUrls[type] && !formData.value.url) {
-    formData.value.url = defaultUrls[type];
+  if (defaultUrls[type] && !formData.value.systemSoftRegistryUrl) {
+    formData.value.systemSoftRegistryUrl = defaultUrls[type];
   }
 
   // 清除测试结果
@@ -233,31 +219,20 @@ const handleTypeChange = (type: string) => {
 
 // 测试连接
 const testConnection = async () => {
-  if (!formData.value.url) {
-    ElMessage.warning("请先输入仓库地址");
+  if (!props.registryData?.systemSoftRegistryId) {
+    ElMessage.warning("请先保存后再测试连接");
     return;
   }
-
   testLoading.value = true;
   testResult.value = null;
-
   try {
-    const response = await softRegistryApi.testRegistryConnection({
-      url: formData.value.url,
-      username: formData.value.username,
-      password: formData.value.password,
-    });
-
-    if (response.code === "00000" && response.data) {
-      testResult.value = response.data;
-      if (response.data.success) {
-        ElMessage.success("连接测试成功");
-      } else {
-        ElMessage.error("连接测试失败");
-      }
+    const response = await softRegistryApi.testRegistryConnection(props.registryData.systemSoftRegistryId);
+    if (response.code === "00000") {
+      testResult.value = { success: true, message: "已发起连接测试" };
+      ElMessage.success("已发起连接测试");
     } else {
-      testResult.value = { success: false, message: "连接测试失败，请检查网络和配置" };
-      ElMessage.error("连接测试失败");
+      testResult.value = { success: false, message: response.msg || "连接测试失败" };
+      ElMessage.error(response.msg || "连接测试失败");
     }
   } catch (error) {
     console.error("测试连接失败:", error);
@@ -277,7 +252,7 @@ const handleConfirm = async () => {
 
     if (isEdit.value) {
       // 编辑模式
-      const response = await softRegistryApi.updateRegistry(formData.value.id!, formData.value);
+      const response = await softRegistryApi.updateRegistry(formData.value.systemSoftRegistryId!, formData.value);
 
       if (response.code === "00000") {
         ElMessage.success("更新成功");
@@ -323,7 +298,7 @@ watch(
   (newData) => {
     if (newData) {
       // 编辑模式，填充数据
-      formData.value = { ...newData };
+      formData.value = { ...(newData as any) };
     } else {
       // 新建模式，重置表单
       resetForm();

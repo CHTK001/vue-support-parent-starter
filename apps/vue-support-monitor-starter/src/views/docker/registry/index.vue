@@ -11,13 +11,8 @@
         <div class="page-subtitle">配置和管理远程软件镜像仓库地址</div>
       </div>
       <div class="header-right">
-        <el-button @click="handleRefresh" :loading="loading">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-        <el-button type="primary" @click="openCreateDialog">
-          <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-          添加仓库
+        <el-button type="primary" circle title="添加仓库" @click="openCreateDialog">
+          <IconifyIconOnline icon="ri:add-line" />
         </el-button>
       </div>
     </div>
@@ -45,13 +40,11 @@
         </el-select>
       </div>
       <div class="search-right">
-        <el-button @click="handleSyncAll" :loading="syncAllLoading" type="success">
-          <IconifyIconOnline icon="ri:refresh-2-line" class="mr-1" />
-          同步全部
+        <el-button @click="handleSyncSelected" :loading="syncAllLoading" type="success" :disabled="selectedIds.length===0" circle title="批量同步">
+          <IconifyIconOnline icon="ri:refresh-2-line" />
         </el-button>
-        <el-button @click="handleBatchDelete" :disabled="selectedIds.length === 0" type="danger">
-          <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-          批量删除
+        <el-button @click="handleBatchDelete" :disabled="selectedIds.length === 0" type="danger" circle title="批量删除">
+          <IconifyIconOnline icon="ri:delete-bin-line" />
         </el-button>
       </div>
     </div>
@@ -71,11 +64,11 @@
         <el-table-column label="仓库名称" min-width="200">
           <template #default="{ row }">
             <div class="registry-name">
-              <IconifyIconOnline :icon="getRegistryIcon(row.type)" class="registry-icon" :style="{ color: getRegistryIconColor(row.type) }" />
+              <IconifyIconOnline :icon="getRegistryIcon(row.systemSoftRegistryType)" class="registry-icon" :style="{ color: getRegistryIconColor(row.systemSoftRegistryType) }" />
               <div>
-                <div class="name-text">{{ row.name }}</div>
-                <el-tag :type="getRegistryTypeTag(row.type)" size="small">
-                  {{ getRegistryTypeText(row.type) }}
+                <div class="name-text">{{ row.systemSoftRegistryName }}</div>
+                <el-tag :type="getRegistryTypeTag(row.systemSoftRegistryType)" size="small">
+                  {{ getRegistryTypeText(row.systemSoftRegistryType) }}
                 </el-tag>
               </div>
             </div>
@@ -85,8 +78,8 @@
         <el-table-column label="仓库地址" min-width="300">
           <template #default="{ row }">
             <div class="registry-url">
-              <el-link :href="row.url" target="_blank" type="primary">
-                {{ row.url }}
+              <el-link :href="row.systemSoftRegistryUrl" target="_blank" type="primary">
+                {{ row.systemSoftRegistryUrl }}
               </el-link>
             </div>
           </template>
@@ -95,7 +88,7 @@
         <el-table-column label="认证信息" min-width="150">
           <template #default="{ row }">
             <div class="auth-info">
-              <el-tag v-if="row.username" type="success" size="small">
+              <el-tag v-if="row.systemSoftRegistryUsername" type="success" size="small">
                 <IconifyIconOnline icon="ri:user-line" class="mr-1" />
                 已配置
               </el-tag>
@@ -109,28 +102,28 @@
 
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="getStatusTag(row.status)" size="small">
-              {{ getStatusText(row.status) }}
+            <el-tag :type="getStatusTag(getRowStatus(row))" size="small">
+              {{ getStatusText(getRowStatus(row)) }}
             </el-tag>
           </template>
         </el-table-column>
 
         <el-table-column label="软件数量" width="100" align="center">
-          <template #default="{ row }">
-            <el-badge :value="row.softwareCount || 0" class="software-count">
+          <template #default>
+            <el-badge :value="0" class="software-count">
               <IconifyIconOnline icon="ri:apps-line" />
             </el-badge>
           </template>
         </el-table-column>
 
-        <el-table-column label="最后同步" min-width="160">
+        <el-table-column label="最后连接" min-width="260">
           <template #default="{ row }">
             <div class="sync-info">
-              <div v-if="row.lastSyncTime">{{ formatTime(row.lastSyncTime) }}</div>
-              <div v-else class="text-gray">从未同步</div>
-              <div v-if="row.lastSyncStatus" class="sync-status">
-                <el-tag :type="row.lastSyncStatus === 'success' ? 'success' : 'danger'" size="small">
-                  {{ row.lastSyncStatus === "success" ? "成功" : "失败" }}
+              <div v-if="row.systemSoftRegistryLastConnectTime">{{ formatTime(row.systemSoftRegistryLastConnectTime) }}</div>
+              <div v-else class="text-gray">从未连接</div>
+              <div v-if="row.systemSoftRegistryConnectStatus != null" class="sync-status">
+                <el-tag :type="row.systemSoftRegistryConnectStatus === 1 ? 'success' : (row.systemSoftRegistryConnectStatus === 2 ? 'danger' : 'info')" size="small">
+                  {{ row.systemSoftRegistryConnectStatus === 1 ? '成功' : (row.systemSoftRegistryConnectStatus === 2 ? '失败' : '未知') }}
                 </el-tag>
               </div>
             </div>
@@ -146,21 +139,17 @@
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-button size="small" type="success" @click="handleSync(row.id)" :loading="syncLoadingMap[row.id]">
-                <IconifyIconOnline icon="ri:refresh-2-line" class="mr-1" />
-                同步
+              <el-button size="small" type="info" circle title="同步" @click="handleSync(row.systemSoftRegistryId)" :loading="syncLoadingMap[row.systemSoftRegistryId]">
+                <IconifyIconOnline icon="ri:refresh-line" />
               </el-button>
-              <el-button size="small" type="info" @click="testConnection(row)">
-                <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
-                测试
+              <el-button size="small" circle title="编辑" @click="openEditDialog(row)">
+                <IconifyIconOnline icon="ri:edit-line" />
               </el-button>
-              <el-button size="small" @click="openEditDialog(row)">
-                <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
-                编辑
+              <el-button size="small" type="danger" circle title="删除" @click="handleDelete(row.systemSoftRegistryId)">
+                <IconifyIconOnline icon="ri:delete-bin-line" />
               </el-button>
-              <el-button size="small" type="danger" @click="handleDelete(row.id)">
-                <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-                删除
+              <el-button size="small" type="info" circle title="测试" @click="testConnection(row)">
+                <IconifyIconOnline icon="ri:wifi-line" />
               </el-button>
             </div>
           </template>
@@ -182,9 +171,15 @@
     <!-- 批量操作底部工具栏 -->
     <div v-if="selectedIds.length > 0" class="batch-actions">
       <div class="batch-info">已选择 {{ selectedIds.length }} 个仓库</div>
-      <el-button @click="clearSelection">取消选择</el-button>
-      <el-button type="success" @click="handleBatchSync">批量同步</el-button>
-      <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
+      <el-button circle title="取消选择" @click="clearSelection">
+        <IconifyIconOnline icon="ri:close-line" />
+      </el-button>
+      <el-button type="success" circle title="批量同步" @click="handleBatchSync">
+        <IconifyIconOnline icon="ri:refresh-2-line" />
+      </el-button>
+      <el-button type="danger" circle title="批量删除" @click="handleBatchDelete">
+        <IconifyIconOnline icon="ri:delete-bin-line" />
+      </el-button>
     </div>
   </div>
 </template>
@@ -209,11 +204,11 @@ import SyncProgressDialog from "./components/SyncProgressDialog.vue";
 // 响应式数据
 const loading = ref(false);
 const syncAllLoading = ref(false);
-const syncLoadingMap = ref({});
+const syncLoadingMap = ref<Record<number, boolean>>({});
 const dialogVisible = ref(false);
 const syncProgressVisible = ref(false);
 const tableRef = ref();
-const selectedIds = ref([]);
+const selectedIds = ref<number[]>([]);
 const registryList = ref<SystemSoftRegistry[]>([]);
 const total = ref(0);
 
@@ -242,11 +237,6 @@ const pagination = reactive({
 // ScTable会自动处理数据加载，此方法不再需要
 const loadRegistries = () => {
   // 空实现，保持向后兼容性
-};
-
-// 刷新数据
-const handleRefresh = () => {
-  loadRegistries();
 };
 
 // 搜索
@@ -313,26 +303,19 @@ const handleSync = async (registryId: number) => {
 };
 
 // 同步全部仓库
-const handleSyncAll = async () => {
+const handleSyncSelected = async () => {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning("请选择要同步的仓库");
+    return;
+  }
   syncAllLoading.value = true;
-
   try {
-    const response = await registryApi.syncAllRegistries();
-
-    if (response.code === "00000") {
-      syncProgressData.value = {
-        operationId: response.data.operationId,
-        title: "同步全部仓库",
-        type: "registry_sync_all",
-      };
-      syncProgressVisible.value = true;
-      ElMessage.success("开始同步全部仓库");
-    } else {
-      ElMessage.error(response.msg || "同步失败");
+    for (const id of selectedIds.value) {
+      await registryApi.syncRegistry(id);
     }
-  } catch (error) {
-    console.error("同步全部仓库失败:", error);
-    ElMessage.error("同步失败");
+    ElMessage.success("已提交同步请求");
+  } catch (e) {
+    ElMessage.error("批量同步失败");
   } finally {
     syncAllLoading.value = false;
   }
@@ -341,16 +324,11 @@ const handleSyncAll = async () => {
 // 测试仓库连接
 const testConnection = async (registry: SystemSoftRegistry) => {
   try {
-    const response = await registryApi.testRegistryConnection({
-      url: registry.url!,
-      username: registry.username,
-      password: registry.password,
-    });
-
-    if (response.code === "00000" && response.data.success) {
-      ElMessage.success("连接测试成功");
+    const response = await registryApi.testRegistryConnection(registry.systemSoftRegistryId!);
+    if (response.code === "00000" && response.data) {
+      ElMessage.success(response.msg || "连接测试成功");
     } else {
-      ElMessage.error(response.data?.message || "连接测试失败");
+      ElMessage.error(response.msg || "连接测试失败");
     }
   } catch (error) {
     console.error("测试连接失败:", error);
@@ -389,23 +367,12 @@ const handleBatchSync = async () => {
     ElMessage.warning("请选择要同步的仓库");
     return;
   }
-
   try {
-    const response = await registryApi.batchSyncRegistries(selectedIds.value);
-
-    if (response.code === "00000") {
-      syncProgressData.value = {
-        registryIds: selectedIds.value,
-        operationId: response.data.operationId,
-        title: "批量同步仓库",
-        type: "registry_batch_sync",
-      };
-      syncProgressVisible.value = true;
-      ElMessage.success("开始批量同步");
-      clearSelection();
-    } else {
-      ElMessage.error(response.msg || "批量同步失败");
+    for (const id of selectedIds.value) {
+      await registryApi.syncRegistry(id);
     }
+    ElMessage.success("批量同步请求已提交");
+    clearSelection();
   } catch (error) {
     console.error("批量同步失败:", error);
     ElMessage.error("批量同步失败");
@@ -445,7 +412,7 @@ const handleBatchDelete = async () => {
 
 // 选择变化处理
 const handleSelectionChange = (selection: SystemSoftRegistry[]) => {
-  selectedIds.value = selection.map((item) => item.id!);
+  selectedIds.value = selection.map((item) => item.systemSoftRegistryId!);
 };
 
 // 清除选择
@@ -496,6 +463,12 @@ const getRegistryTypeText = (type?: string) => {
   return textMap[type] || "未知";
 };
 
+const getRowStatus = (row: SystemSoftRegistry) => {
+  if (row.systemSoftRegistryConnectStatus === 2) return 'error';
+  if (row.systemSoftRegistryStatus === 1) return 'active';
+  return 'offline';
+};
+
 const getStatusTag = (status?: string) => {
   const tagMap = {
     active: "success",
@@ -526,9 +499,8 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
 
 <style scoped>
 .registry-management {
-  padding: 20px;
-  background: #f5f7fa;
-  min-height: calc(100vh - 60px);
+  background: var(--app-bg-secondary);
+  min-height: 100%;
 }
 
 .page-header {
@@ -537,9 +509,9 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
   align-items: flex-start;
   margin-bottom: 20px;
   padding: 20px;
-  background: white;
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 .header-left .page-title {
@@ -547,17 +519,17 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
   align-items: center;
   font-size: 24px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--app-text-primary);
   margin-bottom: 8px;
 }
 
 .title-icon {
   margin-right: 8px;
-  color: #409eff;
+  color: var(--app-primary);
 }
 
 .page-subtitle {
-  color: #6c757d;
+  color: var(--app-text-secondary);
   margin-top: 4px;
   font-size: 14px;
 }
@@ -573,9 +545,9 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
   align-items: center;
   margin-bottom: 20px;
   padding: 16px;
-  background: white;
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 .search-left {
@@ -597,10 +569,10 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
 }
 
 .registry-table-card {
-  background: white;
+  background: var(--app-card-bg);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 .registry-table {
@@ -620,7 +592,7 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
 .name-text {
   font-weight: 500;
   margin-bottom: 4px;
-  color: #303133;
+  color: var(--app-text-primary);
 }
 
 .registry-url {
@@ -630,7 +602,7 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
 .auth-info,
 .sync-info {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 4px;
 }
 
@@ -639,7 +611,7 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
 }
 
 .text-gray {
-  color: #999;
+  color: var(--app-text-secondary);
   font-size: 12px;
 }
 
@@ -657,7 +629,7 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
   display: flex;
   justify-content: center;
   padding: 20px;
-  border-top: 1px solid #f0f2f5;
+  border-top: 1px solid var(--app-table-border);
 }
 
 .batch-actions {
@@ -669,14 +641,14 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
   align-items: center;
   gap: 16px;
   padding: 12px 20px;
-  background: white;
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
   z-index: 1000;
 }
 
 .batch-info {
-  color: #409eff;
+  color: var(--app-link);
   font-weight: 500;
 }
 

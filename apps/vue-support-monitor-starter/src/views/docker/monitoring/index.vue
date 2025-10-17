@@ -283,7 +283,7 @@ onUnmounted(() => {
 <style scoped>
 .container-monitoring {
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--app-bg-secondary);
   min-height: calc(100vh - 60px);
 }
 
@@ -293,9 +293,9 @@ onUnmounted(() => {
   align-items: flex-start;
   margin-bottom: 20px;
   padding: 20px;
-  background: var(--el-bg-color-overlay);
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 .page-title {
@@ -303,16 +303,16 @@ onUnmounted(() => {
   align-items: center;
   font-size: 24px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--app-text-primary);
 }
 
 .title-icon {
   margin-right: 8px;
-  color: #409eff;
+  color: var(--app-primary);
 }
 
 .page-subtitle {
-  color: #6c757d;
+  color: var(--app-text-secondary);
   margin-top: 8px;
   font-size: 14px;
 }
@@ -328,9 +328,9 @@ onUnmounted(() => {
   align-items: center;
   margin-bottom: 20px;
   padding: 16px;
-  background: var(--el-bg-color-overlay);
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 .search-left {
@@ -348,9 +348,9 @@ onUnmounted(() => {
 
 /* 监控表格 */
 .monitoring-table-card {
-  background: white;
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 /* 响应式设计 */

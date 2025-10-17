@@ -1,25 +1,48 @@
 <template>
-  <div class="p-4 space-y-4">
+  <div class="soft-management">
     <ProgressMonitor />
-    <!-- 工具栏 -->
-    <div class="flex items-center justify-between">
-      <div class="flex gap-3 items-center">
-        <el-input v-model="params.keyword" placeholder="搜索名称/代码" clearable style="width:260px" @change="reload" />
-        <el-select v-model="params.category" placeholder="分类" clearable style="width:160px" @change="reload">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="page-title">
+          <IconifyIconOnline icon="ri:apps-line" class="title-icon" />
+          <span>软件库</span>
+        </div>
+        <div class="page-subtitle">从仓库检索并管理可安装的软件</div>
+      </div>
+      <div class="header-right">
+        <el-button @click="reload">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+        <el-button type="primary" v-role="'admin'" @click="openEdit()">
+          <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+          新增软件
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 搜索栏 -->
+    <div class="search-bar">
+      <div class="search-left">
+        <el-input v-model="params.keyword" placeholder="搜索名称/代码" class="search-input" clearable @keyup.enter="reload">
+          <template #prefix>
+            <IconifyIconOnline icon="ri:search-line" />
+          </template>
+        </el-input>
+        <el-select v-model="params.category" placeholder="分类" clearable class="filter-select" @change="reload">
           <el-option label="全部" :value="undefined" />
           <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
         </el-select>
-        <el-select v-model="params.status" placeholder="状态" clearable style="width:140px" @change="reload">
+        <el-select v-model="params.status" placeholder="状态" clearable class="filter-select" @change="reload">
           <el-option label="启用" :value="1" />
           <el-option label="禁用" :value="0" />
         </el-select>
       </div>
-      <div class="flex gap-2">
-        <el-button type="primary" v-role="'admin'" @click="openEdit()">
-          <IconifyIconOnline icon="mdi:plus" /> 新增软件
-        </el-button>
+      <div class="search-right">
         <el-button @click="reload">
-          <IconifyIconOnline icon="mdi:refresh" /> 刷新
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          搜索
         </el-button>
       </div>
     </div>
@@ -34,28 +57,33 @@
       :col-size="4"
       :row-size="3"
       :page-size="12"
+      :pagination-type="paginationType"
+      :auto-load="paginationType === 'scroll'"
+      :load-distance="120"
       table-name="docker-soft-list"
     >
       <template #default="{ row }">
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <IconifyIconOnline :icon="row.systemSoftIcon || 'ri:apps-line'" />
-              <span class="font-semibold">{{ row.systemSoftName }}</span>
+        <div class="soft-card">
+          <div class="soft-card-header">
+            <div class="soft-card-title">
+              <IconifyIconOnline :icon="row.systemSoftIcon || 'ri:apps-line'" class="soft-card-icon" />
+              <span class="name">{{ row.systemSoftName }}</span>
             </div>
-            <el-tag size="small" :type="row.systemSoftStatus === 1 ? 'success' : 'info'">{{ row.systemSoftStatus === 1 ? '启用' : '禁用' }}</el-tag>
+            <el-tag size="small" :type="row.systemSoftStatus === 1 ? 'success' : 'info'">
+              {{ row.systemSoftStatus === 1 ? '启用' : '禁用' }}
+            </el-tag>
           </div>
-          <div class="text-xs text-gray-500">代码：{{ row.systemSoftCode }}</div>
-          <div class="text-xs text-gray-500 truncate-2">{{ row.systemSoftDesc || row.systemSoftDescription || '—' }}</div>
-          <div class="flex gap-2 pt-2">
+          <div class="soft-meta">代码：{{ row.systemSoftCode }}</div>
+          <div class="soft-desc">{{ row.systemSoftDesc || row.systemSoftDescription || '—' }}</div>
+          <div class="soft-actions">
             <el-button size="small" type="primary" @click="openInstall(row)">
-              <IconifyIconOnline icon="mdi:download" /> 安装
+              <IconifyIconOnline icon="ri:download-line" class="mr-1" /> 安装
             </el-button>
             <el-button size="small" v-role="'admin'" @click="openEdit(row)">
-              <IconifyIconOnline icon="mdi:pencil" /> 编辑
+              <IconifyIconOnline icon="ri:edit-line" class="mr-1" /> 编辑
             </el-button>
             <el-button size="small" type="danger" v-role="'admin'" @click="onDelete(row)">
-              <IconifyIconOnline icon="mdi:delete-outline" /> 删除
+              <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" /> 删除
             </el-button>
           </div>
         </div>
@@ -118,9 +146,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ScTable from '@repo/components/ScTable/index.vue';
+import ScDialog from '@repo/components/ScDialog/src/index.vue';
 import ProgressMonitor from '@/components/ProgressMonitor.vue';
 import { enableAutoConnect, connectSocket } from '@/utils/socket';
 import { softwareApi, getServerList } from '@/api/docker-management';
@@ -128,6 +157,11 @@ import { softwareApi, getServerList } from '@/api/docker-management';
 const tableRef = ref();
 const params = reactive<any>({ page: 1, size: 12, keyword: '', category: undefined, status: undefined });
 const categories = ref<string[]>([]);
+
+// 分页模式：默认 normal / 滚动 scroll
+const paginationType = ref<'default' | 'scroll'>('default');
+const isScroll = ref(false);
+watch(isScroll, v => (paginationType.value = v ? 'scroll' : 'default'));
 
 onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{}); });
 
@@ -187,5 +221,77 @@ async function doInstall() {
 </script>
 
 <style scoped>
+.soft-management {
+  padding: 20px;
+  background: var(--app-bg-secondary);
+  min-height: calc(100vh - 60px);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding: 20px;
+  background: var(--app-card-bg);
+  border-radius: 8px;
+  box-shadow: var(--app-card-shadow);
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+}
+
+.title-icon { margin-right: 8px; color: var(--app-primary); }
+.page-subtitle { color: var(--app-text-secondary); margin-top: 6px; font-size: 14px; }
+.header-right { display: flex; gap: 12px; }
+
+.search-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: var(--app-card-bg);
+  border-radius: 8px;
+  box-shadow: var(--app-card-shadow);
+}
+.search-left { display: flex; gap: 12px; flex: 1; }
+.search-right { display: flex; gap: 8px; align-items: center; }
+.search-input { width: 280px; }
+.filter-select { width: 160px; }
+
+/* 卡片样式 */
+.soft-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--app-card-bg);
+  border: 1px solid var(--app-card-border);
+  border-radius: 10px;
+  padding: 14px;
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.soft-card:hover { box-shadow: var(--app-card-shadow); transform: translateY(-2px); }
+.soft-card-header { display:flex; align-items:center; justify-content:space-between; }
+.soft-card-title { display:flex; align-items:center; gap:8px; }
+.soft-card-icon { font-size: 18px; color: var(--app-primary); }
+.soft-card .name { font-weight: 600; color: var(--app-text-primary); }
+.soft-meta { font-size: 12px; color: var(--app-text-secondary); }
+.soft-desc { color: var(--app-text-secondary); font-size: 13px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.soft-actions { display:flex; gap: 8px; padding-top: 6px; }
+
+/* 兼容原有截断类 */
 .truncate-2{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden }
+
+@media (max-width: 768px) {
+  .search-bar { flex-direction: column; align-items: stretch; }
+  .search-left { flex-wrap: wrap; }
+  .search-input, .filter-select { width: 100%; }
+}
 </style>
