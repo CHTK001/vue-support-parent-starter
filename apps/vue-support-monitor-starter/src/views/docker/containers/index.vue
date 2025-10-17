@@ -71,12 +71,12 @@
       >
         <el-table-column type="selection" width="55" />
 
-        <el-table-column label="容器信息" min-width="250">
+<el-table-column label="容器信息" min-width="250">
           <template #default="{ row }">
             <div class="container-info">
               <div class="container-details">
                 <div class="container-name">{{ row.systemSoftContainerName }}</div>
-                <div class="container-id">{{ row.systemSoftContainerId?.substring(0, 12) }}</div>
+                <div class="container-id">{{ row.systemSoftContainerDockerId?.substring(0, 12) }}</div>
               </div>
             </div>
           </template>
@@ -85,7 +85,7 @@
         <el-table-column label="镜像信息" min-width="200">
           <template #default="{ row }">
             <div class="image-info">
-              <div class="image-name">{{ row.systemSoftContainerImageName }}</div>
+              <div class="image-name">{{ row.systemSoftContainerImage }}</div>
               <div class="image-tag">{{ row.systemSoftContainerImageTag }}</div>
             </div>
           </template>
@@ -102,7 +102,7 @@
         <el-table-column label="服务器" width="180">
           <template #default="{ row }">
             <div class="server-info">
-              <div class="server-name">{{ row.systemSoftContainerServerName }}</div>
+              <div class="server-name">{{ row.systemServerId }}</div>
             </div>
           </template>
         </el-table-column>
@@ -518,7 +518,7 @@ async function openExec(row: any) {
 <style scoped>
 .container-management {
   padding: 20px;
-  background: var(--el-bg-color-overlay);
+  background: var(--app-bg-secondary);
   min-height: calc(100vh - 60px);
 }
 
@@ -528,9 +528,9 @@ async function openExec(row: any) {
   align-items: flex-start;
   margin-bottom: 20px;
   padding: 20px;
-  background: var(--el-bg-color-overlay);
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 .page-title {
@@ -538,16 +538,16 @@ async function openExec(row: any) {
   align-items: center;
   font-size: 24px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--app-text-primary);
 }
 
 .title-icon {
   margin-right: 8px;
-  color: #409eff;
+  color: var(--app-primary);
 }
 
 .page-subtitle {
-  color: var(--el-text-color-primary);
+  color: var(--app-text-secondary);
   margin-top: 8px;
   font-size: 14px;
 }
@@ -563,9 +563,9 @@ async function openExec(row: any) {
   align-items: center;
   margin-bottom: 20px;
   padding: 16px;
-  background: var(--el-bg-color-overlay);
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 .search-left {
@@ -587,9 +587,9 @@ async function openExec(row: any) {
 }
 
 .container-table-card {
-  background: white;
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
 }
 
 .container-info {
@@ -605,13 +605,13 @@ async function openExec(row: any) {
 
 .container-name {
   font-weight: 500;
-  color: #303133;
+  color: var(--app-text-primary);
   margin-bottom: 4px;
 }
 
 .container-id {
   font-size: 12px;
-  color: #909399;
+  color: var(--app-text-secondary);
   font-family: monospace;
 }
 
@@ -623,12 +623,12 @@ async function openExec(row: any) {
 
 .image-name {
   font-weight: 500;
-  color: #303133;
+  color: var(--app-text-primary);
 }
 
 .image-tag {
   font-size: 12px;
-  color: #909399;
+  color: var(--app-text-secondary);
 }
 
 .server-info {
@@ -639,7 +639,7 @@ async function openExec(row: any) {
 
 .server-name {
   font-weight: 500;
-  color: #303133;
+  color: var(--app-text-primary);
 }
 
 .ports-container {
@@ -668,13 +668,13 @@ async function openExec(row: any) {
 
 .usage-label {
   font-size: 12px;
-  color: #606266;
+  color: var(--app-text-secondary);
   width: 30px;
 }
 
 .usage-value {
   font-size: 12px;
-  color: #303133;
+  color: var(--app-text-primary);
   width: 35px;
   text-align: right;
 }
@@ -694,14 +694,14 @@ async function openExec(row: any) {
   align-items: center;
   gap: 16px;
   padding: 12px 20px;
-  background: white;
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
   z-index: 1000;
 }
 
 .batch-info {
-  color: #409eff;
+  color: var(--app-link);
   font-weight: 500;
 }
 
@@ -731,9 +731,9 @@ async function openExec(row: any) {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background: var(--el-bg-color-overlay);
+  background: var(--app-card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-card-shadow);
   transition: all 0.3s ease;
 }
 

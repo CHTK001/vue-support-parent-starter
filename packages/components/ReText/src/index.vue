@@ -71,7 +71,7 @@ onMounted(() => {
 .router-link-exact-active {
   .new-re-text {
     // 亮色主题下显示黑色文字
-    color: #ffffff !important;
+    color: #ffffff;
   }
 }
 .new-re-text {

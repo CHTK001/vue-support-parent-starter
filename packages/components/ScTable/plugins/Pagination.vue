@@ -385,6 +385,8 @@ onMounted(() => {
         </div>
       </el-popover>
     </div>
+    <!-- 滚动分页触发器（卡片/列表布局） -->
+    <div v-if="props.paginationType === 'scroll'" class="scroll-pagination-trigger" style="width:100%;height:1px;opacity:0;" />
   </div>
 </template>
 

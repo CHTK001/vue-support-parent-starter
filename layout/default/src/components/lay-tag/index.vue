@@ -640,6 +640,11 @@ const deferTag = useDefer(tagsViews?.length);
   }
   
   &.is-active {
+    .chrome-tab {
+      .tag-title {
+        color: #fff;
+      }
+    }
     &:hover {
       .chrome-tab__bg {
         filter: brightness(1.1);

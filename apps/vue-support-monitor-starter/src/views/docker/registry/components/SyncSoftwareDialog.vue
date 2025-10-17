@@ -21,13 +21,13 @@
             >
               <el-option
                 v-for="registry in registryOptions"
-                :key="registry.id"
-                :label="registry.name"
-                :value="registry.id"
+                :key="registry.systemSoftRegistryId"
+                :label="registry.systemSoftRegistryName"
+                :value="registry.systemSoftRegistryId"
               >
                 <div class="registry-option">
-                  <span class="registry-name">{{ registry.name }}</span>
-                  <span class="registry-type">({{ getRegistryTypeText(registry.type) }})</span>
+                  <span class="registry-name">{{ registry.systemSoftRegistryName }}</span>
+                  <span class="registry-type">({{ getRegistryTypeText(registry.systemSoftRegistryType) }})</span>
                 </div>
               </el-option>
             </el-select>
@@ -204,7 +204,7 @@ watch(dialogVisible, (visible) => {
 const loadData = async () => {
   try {
     // 加载镜像仓库列表
-    const registryResponse = await registryApi.getRegistryList()
+    const registryResponse = await registryApi.getAllRegistries()
     if (registryResponse.code === '00000') {
       registryOptions.value = registryResponse.data || []
     }
@@ -226,8 +226,8 @@ const getRegistryTypeText = (type?: string) => {
 const getSelectedRegistryNames = () => {
   if (form.registryIds.length === 0) return '未选择'
   const names = form.registryIds.map(id => {
-    const registry = registryOptions.value.find(r => r.id === id)
-    return registry?.name || '未知'
+    const registry = registryOptions.value.find((r: any) => r.systemSoftRegistryId === id)
+    return registry?.systemSoftRegistryName || '未知'
   })
   return names.join(', ')
 }
