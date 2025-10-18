@@ -40,6 +40,7 @@
     "element-plus": "catalog:",
     "unbuild": "catalog:",
     "vue": "catalog:",
+    "pinyin-pro": "catalog:",
     "vue-i18n": "catalog:"
   },
   "devDependencies": {
