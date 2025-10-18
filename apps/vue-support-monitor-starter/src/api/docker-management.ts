@@ -13,6 +13,7 @@ export interface SystemSoftRegistry {
   systemSoftRegistryEmail?: string;
   systemSoftRegistryIsDefault?: number;
   systemSoftRegistrySslEnabled?: number;
+  systemSoftRegistrySupportSync?: number;
   systemSoftRegistryTimeout?: number;
   systemSoftRegistryDescription?: string;
   systemSoftRegistryConfig?: string;
@@ -215,6 +216,11 @@ export function syncRegistry(id: number) {
   return http.request<ReturnResult<boolean>>("post", `v1/system/soft/registry/${id}/sync`);
 }
 
+// 设置默认仓库（后端为 POST /{id}/default）
+export function setDefaultRegistry(id: number) {
+  return http.request<ReturnResult<boolean>>("post", `v1/system/soft/registry/${id}/default`);
+}
+
 // ========= 2. 软件管理API =========
 
 // 分页查询软件列表（已存在 v1 兼容控制器）
@@ -363,6 +369,7 @@ export const registryApi = {
   batchDeleteRegistries,
   testRegistryConnection,
   syncRegistry,
+  setDefaultRegistry,
 };
 
 export const softwareApi = {

@@ -3,21 +3,21 @@ import type { CSSProperties } from 'vue'
 /**
  * 主题类型
  * @author CH
- * @version 1.0.0
+ * @version 1.0.1
  */
 export type ScWindowDialogTheme = 
   | 'default'
   | 'primary'
   | 'success'
   | 'warning'
-  | 'error'
+  | 'danger'
   | 'info'
 
 /**
  * ScWindowDialog 组件 Props 接口
  * @author CH
- * @version 2.0.0
- * @description 继承 el-dialog 所有属性，并扩展主题和图标功能
+ * @version 2.1.0
+ * @description 参考 el-dialog 属性并扩展窗口能力
  */
 export interface ScWindowDialogProps {
   /** 对话框显示状态，支持 v-model */
@@ -26,19 +26,19 @@ export interface ScWindowDialogProps {
   /** 对话框标题 */
   title?: string
   
-  /** 对话框宽度，默认 50% */
+  /** 对话框宽度（像素） */
   width?: number
   
-  /** 对话框高度 */
+  /** 对话框高度（像素） */
   height?: number
   
   /** 是否为全屏对话框，默认 false */
   fullscreen?: boolean
   
-  /** Dialog CSS 中的 margin-top 值，默认 15vh */
+  /** Dialog CSS 中的 margin-top 值（像素） */
   top?: number
   
-  /** 距离左侧的距离 */
+  /** 距离左侧的距离（像素） */
   left?: number
   
   /** 是否需要遮罩层，默认 true */
@@ -68,10 +68,10 @@ export interface ScWindowDialogProps {
   /** 关闭前的回调，会暂停 Dialog 的关闭 */
   beforeClose?: (done: () => void) => void
   
-  /** 为 Dialog 启用可拖拽功能，默认 false */
+  /** 为 Dialog 启用可拖拽功能，默认 true */
   draggable?: boolean
   
-  /** 是否可调整大小 */
+  /** 是否可调整大小（四角与四边） */
   resizable?: boolean
   
   /** 最小宽度 */
@@ -89,7 +89,7 @@ export interface ScWindowDialogProps {
   /** 对话框层级 */
   zIndex?: number
   
-  /** 自定义对话框动画，可以是动画名称或 Vue 过渡配置 */
+  /** 自定义对话框动画 */
   transition?: string | object
   
   // ========== ScWindowDialog 扩展属性 ==========
@@ -97,24 +97,53 @@ export interface ScWindowDialogProps {
   /** 对话框主题，默认 default */
   theme?: ScWindowDialogTheme
   
-  /** 标题图标，支持 Iconify 图标名称 */
+  /** 标题图标（Iconify 名称） */
   icon?: string
   
-  /** 对话框唯一标识ID，用于全局管理多个弹框 */
+  /** 对话框唯一标识ID */
   id?: string
   
-  /** 是否启用自动收缩功能，默认 true */
+  /** 是否启用自动收缩功能 */
   autoShrink?: boolean
   
-  /** 收缩时的尺寸（像素），默认 64 */
+  /** 收缩时的尺寸（像素） */
   shrinkSize?: number
+  
+  /** 拖拽到父元素边缘自动收缩 */
+  edgeAutoShrink?: boolean
+  
+  /** 头部点击是否触发缩小到底部 */
+  headClickToMinimize?: boolean
+  
+  /** 父容器选择器（用于边缘与最大化计算），默认 'body' */
+  parentSelector?: string
+  
+  /** 是否持久化位置与尺寸，默认 true */
+  persist?: boolean
+  
+  /** 持久化 key 前缀，默认 'sc:window:' */
+  persistKeyPrefix?: string
+  
+  /** 是否显示工具栏的缩小按钮 */
+  showMinimize?: boolean
+  
+  /** 是否显示工具栏的最大化按钮 */
+  showMaximize?: boolean
+  
+  /** 是否显示工具栏的放大按钮（增大尺寸） */
+  showZoomIn?: boolean
+  
+  /** 是否显示工具栏的缩小按钮（减小尺寸） */
+  showZoomOut?: boolean
+  
+  /** 尺寸放大/缩小的步长（像素），默认 50 */
+  zoomStep?: number
 }
 
 /**
  * ScWindowDialog 组件 Emits 接口
  * @author CH
- * @version 2.0.0
- * @description 继承 el-dialog 所有事件
+ * @version 2.1.0
  */
 export interface ScWindowDialogEmits {
   /** 更新 modelValue */
@@ -154,7 +183,7 @@ export interface ScWindowDialogEmits {
 /**
  * ScWindowDialog 组件实例类型
  * @author CH
- * @version 1.0.0
+ * @version 1.0.1
  */
 export interface ScWindowDialogInstance {
   /** 打开对话框 */

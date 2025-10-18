@@ -213,6 +213,12 @@ const components = [
     description: "实时消息对话框组件，支持多种位置、样式配置和交互功能，可用于显示同步信息、进度监控等",
     component: resolveComponent("./components/ScMessageDialogExample.vue"),
   },
+  {
+    name: "ScRibbon",
+    icon: "ri:bookmark-3-line",
+    description: "徽带/角标组件，支持 badge、corner、diagonal 和 banner 四种样式，支持图标、尺寸与颜色配置",
+    component: resolveComponent("./components/ScRibbonExample.vue"),
+  },
 ];
 
 // 过滤后的组件列表

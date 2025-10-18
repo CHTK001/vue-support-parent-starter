@@ -4,7 +4,8 @@ import ScCard from "./ScCard/index.vue";
 import ScMessageDialog from "./ScMessageDialog/index.vue";
 import ScPanel from "./ScPanel/index.vue";
 import ScTable from "./ScTable/index.vue";
-export { ReMenuNewBadge, ScCard, ScPanel, ScTable };
+import { ScRibbon } from "./ScRibbon";
+export { ReMenuNewBadge, ScCard, ScPanel, ScTable, ScRibbon };
 
 export default {
   ScTable,
@@ -12,5 +13,6 @@ export default {
   ScPanel,
   ScMessageDialog,
   ReMenuNewBadge,
-  useRenderIcon
+  useRenderIcon,
+  ScRibbon
 };
