@@ -4306,6 +4306,9 @@ importers:
       element-plus:
         specifier: 'catalog:'
         version: 2.11.2(vue@3.5.21(typescript@5.9.2))
+      pinyin-pro:
+        specifier: 'catalog:'
+        version: 3.27.0
       unbuild:
         specifier: 'catalog:'
         version: 2.0.0(sass@1.92.1)(typescript@5.9.2)(vue-tsc@2.2.12(typescript@5.9.2))
@@ -6280,6 +6283,9 @@ importers:
       vue-i18n:
         specifier: 'catalog:'
         version: 11.1.12(vue@3.5.21(typescript@5.9.2))
+      vue-json-pretty:
+        specifier: 'catalog:'
+        version: 2.5.0(vue@3.5.21(typescript@5.9.2))
     devDependencies:
       '@commitlint/cli':
         specifier: 'catalog:'
