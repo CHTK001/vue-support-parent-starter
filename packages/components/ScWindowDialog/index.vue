@@ -41,7 +41,7 @@
       <!-- 对话框内容 -->
       <div class="sc-window-dialog__wrapper">
         <!-- 标题栏 -->
-        <div v-if="$slots.header || icon || title || showClose" class="sc-window-dialog__header">
+        <div v-if="$slots.header || icon || title || showClose" class="sc-window-dialog__header" @dblclick.stop="toggleMaximize" @click.stop="onHeaderClick">
           <div class="sc-window-dialog__title">
             <IconifyIconOnline v-if="icon" :icon="icon" class="sc-window-dialog__icon" />
             <span v-if="title" class="sc-window-dialog__title-text">{{ title }}</span>
@@ -49,7 +49,19 @@
           </div>
           <div class="sc-window-dialog__header-actions">
             <slot name="header-extra" />
-            <button v-if="showClose" class="sc-window-dialog__close" type="button" aria-label="关闭对话框" @click="handleClose">
+            <button v-if="showZoomOut" class="sc-window-dialog__close" type="button" aria-label="缩小尺寸" @click.stop="zoomOut">
+              <IconifyIconOnline icon="ep:zoom-out" />
+            </button>
+            <button v-if="showZoomIn" class="sc-window-dialog__close" type="button" aria-label="放大尺寸" @click.stop="zoomIn">
+              <IconifyIconOnline icon="ep:zoom-in" />
+            </button>
+            <button v-if="showMinimize" class="sc-window-dialog__close" type="button" aria-label="最小化" @click.stop="minimize">
+              <IconifyIconOnline icon="ep:minus" />
+            </button>
+            <button v-if="showMaximize" class="sc-window-dialog__close" type="button" :aria-label="isMaximized ? '还原' : '最大化'" @click.stop="toggleMaximize">
+              <IconifyIconOnline :icon="isMaximized ? 'ep:copy-document' : 'ep:full-screen'" />
+            </button>
+            <button v-if="showClose" class="sc-window-dialog__close" type="button" aria-label="关闭对话框" @click.stop="handleClose">
               <IconifyIconOnline icon="ep:close" />
             </button>
           </div>
@@ -79,8 +91,8 @@ import type { ScWindowDialogEmits, ScWindowDialogProps } from "./types";
 /**
  * ScWindowDialog 组件
  * @author CH
- * @version 2.0.0
- * @description 基于 draggable-resizable-vue3 的增强对话框组件，支持拖拽、调整大小、主题、图标等功能
+ * @version 2.1.0
+ * @description 基于 draggable-resizable-vue3 的增强对话框组件，支持拖拽、调整大小、主题、图标、窗口控制等功能
  */
 defineOptions({
   name: "ScWindowDialog"
@@ -106,7 +118,17 @@ const props = withDefaults(defineProps<ScWindowDialogProps>(), {
   maxHeight: 9999,
   fullscreen: false,
   autoShrink: true,
-  shrinkSize: 64
+  shrinkSize: 64,
+  edgeAutoShrink: true,
+  headClickToMinimize: false,
+  parentSelector: 'body',
+  persist: true,
+  persistKeyPrefix: 'sc:window:',
+  showMinimize: true,
+  showMaximize: true,
+  showZoomIn: false,
+  showZoomOut: false,
+  zoomStep: 50
 });
 
 // Emits 定义
@@ -121,6 +143,7 @@ const currentZIndex = ref(props.zIndex || 2000);
 const isActive = ref(false);
 const isDragging = ref(false);
 const isResizing = ref(false);
+const isMaximized = ref(false);
 
 // 对话框位置和尺寸
 const dialogPosition = ref({
@@ -133,61 +156,50 @@ const dialogSize = ref({
   height: props.height || 400
 });
 
+// 最大化前的矩形
+const prevRect = ref<{ x: number; y: number; width: number; height: number } | null>(null);
+
 // 注册对话框实例
 const dialogInstance = dialogManager.register(dialogId, props.modelValue);
 
 // 自动收缩功能
-const { initAutoShrink, destroyAutoShrink, isShrunk, restoreDialog } = useAutoShrink(dialogId, {
-  enabled: props.autoShrink,
+const { initAutoShrink, destroyAutoShrink, isShrunk, restoreDialog, shrinkToBottom } = useAutoShrink(dialogId, {
+  enabled: props.autoShrink && props.edgeAutoShrink,
   shrinkSize: props.shrinkSize,
-  edgeThreshold: 20
+  edgeThreshold: 20,
+  parentSelector: props.parentSelector
 });
 
-// 监听 modelValue 变化
-watch(
-  () => props.modelValue,
-  newVal => {
-    dialogVisible.value = newVal;
-    dialogManager.updateVisible(dialogId, newVal);
-    if (newVal) {
-      // 对话框打开时激活并初始化自动收缩
-      nextTick(() => {
-        dialogManager.activate(dialogId);
-        currentZIndex.value = dialogInstance.zIndex;
-        initAutoShrink();
-        emit("open");
-        nextTick(() => {
-          emit("opened");
-        });
-      });
-    } else {
-      // 对话框关闭时清理
-      destroyAutoShrink();
-      emit("close");
-      nextTick(() => {
-        emit("closed");
-      });
+// 工具函数：持久化
+const storageKey = `${props.persistKeyPrefix}${dialogId}`;
+const savePersisted = () => {
+  if (!props.persist) return;
+  const data = {
+    x: dialogPosition.value.x,
+    y: dialogPosition.value.y,
+    width: dialogSize.value.width,
+    height: dialogSize.value.height,
+    isMaximized: isMaximized.value
+  };
+  try { localStorage.setItem(storageKey, JSON.stringify(data)); } catch {}
+};
+const loadPersisted = () => {
+  if (!props.persist) return;
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (typeof data.x === 'number') dialogPosition.value.x = data.x;
+      if (typeof data.y === 'number') dialogPosition.value.y = data.y;
+      if (typeof data.width === 'number') dialogSize.value.width = data.width;
+      if (typeof data.height === 'number') dialogSize.value.height = data.height;
+      if (data.isMaximized) {
+        // 延后应用最大化，确保容器渲染完成
+        nextTick(() => toggleMaximize(true));
+      }
     }
-  }
-);
-
-// 监听内部状态变化，同步到父组件
-watch(dialogVisible, newVal => {
-  emit("update:modelValue", newVal);
-  dialogManager.updateVisible(dialogId, newVal);
-});
-
-// 监听props位置和尺寸变化
-watch(
-  () => [props.left, props.top, props.width, props.height],
-  ([newLeft, newTop, newWidth, newHeight]) => {
-    dialogPosition.value.x = newLeft || 0;
-    dialogPosition.value.y = newTop || 0;
-    dialogSize.value.width = newWidth || 500;
-    dialogSize.value.height = newHeight || 400;
-  },
-  { deep: true }
-);
+  } catch {}
+};
 
 // 事件处理函数
 const handleOverlayClick = () => {
@@ -202,6 +214,12 @@ const handleDialogClick = (event: Event) => {
     event.stopPropagation();
     dialogManager.activate(dialogId);
     currentZIndex.value = dialogInstance.zIndex;
+  }
+};
+
+const onHeaderClick = () => {
+  if (props.headClickToMinimize) {
+    minimize();
   }
 };
 
@@ -239,6 +257,7 @@ const handleDragging = (x: number, y: number) => {
 const handleDragStop = () => {
   isDragging.value = false;
   emit("dragStop");
+  savePersisted();
 };
 
 const handleResizeStart = () => {
@@ -257,6 +276,7 @@ const handleResizing = (x: number, y: number, width: number, height: number) => 
 const handleResizeStop = () => {
   isResizing.value = false;
   emit("resizeStop");
+  savePersisted();
 };
 
 // 键盘事件处理
@@ -266,10 +286,53 @@ const handleKeydown = (event: KeyboardEvent) => {
   }
 };
 
+// 窗口控制：最小化（缩到底部小方块）
+const minimize = () => {
+  shrinkToBottom();
+};
+
+// 窗口控制：放大/缩小尺寸
+const zoomIn = () => {
+  dialogSize.value.width = Math.min(dialogSize.value.width + props.zoomStep, props.maxWidth);
+  dialogSize.value.height = Math.min(dialogSize.value.height + props.zoomStep, props.maxHeight);
+  savePersisted();
+};
+const zoomOut = () => {
+  dialogSize.value.width = Math.max(dialogSize.value.width - props.zoomStep, props.minWidth);
+  dialogSize.value.height = Math.max(dialogSize.value.height - props.zoomStep, props.minHeight);
+  savePersisted();
+};
+
+// 窗口控制：最大化/还原
+const toggleMaximize = (forceMax?: boolean) => {
+  const wantMax = forceMax ?? !isMaximized.value;
+  if (wantMax) {
+    // 记录原始矩形
+    prevRect.value = { ...dialogPosition.value, ...dialogSize.value } as any;
+    // 计算父容器尺寸
+    const parent = document.querySelector(props.parentSelector) as HTMLElement | null;
+    const rect = parent ? parent.getBoundingClientRect() : document.body.getBoundingClientRect();
+    dialogPosition.value.x = rect.left;
+    dialogPosition.value.y = rect.top;
+    dialogSize.value.width = rect.width;
+    dialogSize.value.height = rect.height;
+    isMaximized.value = true;
+  } else if (prevRect.value) {
+    dialogPosition.value.x = prevRect.value.x;
+    dialogPosition.value.y = prevRect.value.y;
+    dialogSize.value.width = prevRect.value.width;
+    dialogSize.value.height = prevRect.value.height;
+    isMaximized.value = false;
+  }
+  savePersisted();
+};
+
 // 生命周期管理
 onMounted(() => {
   // 添加键盘事件监听
   document.addEventListener("keydown", handleKeydown);
+
+  loadPersisted();
 
   // 如果初始状态为可见，则激活
   if (props.modelValue) {
@@ -290,16 +353,51 @@ onUnmounted(() => {
   dialogManager.unregister(dialogId);
 });
 
-// 暴露方法给父组件
+// 监听 modelValue 变化（放在末尾）
+watch(
+  () => props.modelValue,
+  newVal => {
+    dialogVisible.value = newVal;
+    dialogManager.updateVisible(dialogId, newVal);
+    if (newVal) {
+      nextTick(() => {
+        dialogManager.activate(dialogId);
+        currentZIndex.value = dialogInstance.zIndex;
+        initAutoShrink();
+        emit("open");
+        nextTick(() => emit("opened"));
+      });
+    } else {
+      destroyAutoShrink();
+      emit("close");
+      nextTick(() => emit("closed"));
+    }
+  }
+);
+
+// 监听内部可见性（末尾）
+watch(dialogVisible, newVal => {
+  emit("update:modelValue", newVal);
+  dialogManager.updateVisible(dialogId, newVal);
+});
+
+// 监听 props 位置尺寸变化（末尾）
+watch(
+  () => [props.left, props.top, props.width, props.height],
+  ([newLeft, newTop, newWidth, newHeight]) => {
+    dialogPosition.value.x = newLeft ?? dialogPosition.value.x;
+    dialogPosition.value.y = newTop ?? dialogPosition.value.y;
+    dialogSize.value.width = newWidth ?? dialogSize.value.width;
+    dialogSize.value.height = newHeight ?? dialogSize.value.height;
+  }
+);
+
+// 暴露方法给父组件（置底）
 defineExpose({
   /** 打开对话框 */
-  open: () => {
-    dialogVisible.value = true;
-  },
+  open: () => (dialogVisible.value = true),
   /** 关闭对话框 */
-  close: () => {
-    dialogVisible.value = false;
-  },
+  close: () => (dialogVisible.value = false),
   /** 激活对话框 */
   activate: () => {
     dialogManager.activate(dialogId);
@@ -313,12 +411,21 @@ defineExpose({
   getInstance: () => dialogInstance,
   /** 设置位置 */
   setPosition: (x: number, y: number) => {
-    dialogPosition.value = { x, y };
+    dialogPosition.value = { x, y } as any;
+    savePersisted();
   },
   /** 设置尺寸 */
   setSize: (width: number, height: number) => {
-    dialogSize.value = { width, height };
-  }
+    dialogSize.value = { width, height } as any;
+    savePersisted();
+  },
+  /** 最大化/还原 */
+  toggleMaximize,
+  /** 最小化 */
+  minimize,
+  /** 放大/缩小尺寸 */
+  zoomIn,
+  zoomOut
 });
 </script>
 
@@ -387,6 +494,7 @@ defineExpose({
     display: flex;
     align-items: center;
     gap: 8px;
+    cursor: default;
   }
 
   &__close {

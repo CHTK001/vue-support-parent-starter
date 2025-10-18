@@ -1,6 +1,6 @@
 ﻿﻿﻿<template>
   <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑仓库' : '添加仓库'" width="600px" @closed="handleDialogClosed">
-    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" @submit.prevent>
+<el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" @submit.prevent>
       <el-form-item label="仓库名称" prop="systemSoftRegistryName">
         <el-input v-model="formData.systemSoftRegistryName" placeholder="请输入仓库名称" clearable />
       </el-form-item>
@@ -49,6 +49,14 @@
 
       <el-form-item label="邮箱" prop="systemSoftRegistryEmail" v-if="showEmail">
         <el-input v-model="formData.systemSoftRegistryEmail" placeholder="请输入邮箱（可选）" clearable />
+      </el-form-item>
+
+      <el-form-item label="启用" prop="systemSoftRegistryStatus">
+        <el-switch v-model="formData.systemSoftRegistryStatus" :active-value="1" :inactive-value="0" />
+      </el-form-item>
+
+      <el-form-item label="支持同步" prop="systemSoftRegistrySupportSync">
+        <el-switch v-model="formData.systemSoftRegistrySupportSync" :active-value="1" :inactive-value="0" />
       </el-form-item>
 
       <el-form-item label="描述" prop="systemSoftRegistryDescription">
@@ -125,6 +133,8 @@ const formData = ref<SystemSoftRegistry>({
   systemSoftRegistryUsername: "",
   systemSoftRegistryPassword: "",
   systemSoftRegistryEmail: "",
+  systemSoftRegistryStatus: 1,
+  systemSoftRegistrySupportSync: 1,
   systemSoftRegistryDescription: "",
 });
 
@@ -163,6 +173,12 @@ const formRules: Record<string, FormItemRule[]> = {
     { required: true, message: "请输入仓库地址", trigger: "blur" },
     { type: "url" as const, message: "请输入有效的URL地址", trigger: "blur" },
   ],
+  systemSoftRegistryStatus: [
+    { required: true, message: "请选择是否启用", trigger: "change" },
+  ],
+  systemSoftRegistrySupportSync: [
+    { required: true, message: "请选择是否支持同步", trigger: "change" },
+  ],
 };
 
 // 计算属性
@@ -184,6 +200,8 @@ const resetForm = () => {
     systemSoftRegistryUsername: "",
     systemSoftRegistryPassword: "",
     systemSoftRegistryEmail: "",
+    systemSoftRegistryStatus: 1,
+    systemSoftRegistrySupportSync: 1,
     systemSoftRegistryDescription: "",
   } as any;
 };

@@ -43,7 +43,7 @@
           <IconifyIconOnline icon="mdi:alert" class="mr-1" />
           警告主题
         </el-button>
-        <el-button type="danger" @click="showThemeDialog('error')">
+        <el-button type="danger" @click="showThemeDialog('danger')">
           <IconifyIconOnline icon="mdi:close-circle" class="mr-1" />
           错误主题
         </el-button>
@@ -484,7 +484,7 @@ const themeDialogTitle = computed(() => {
     primary: "主要主题",
     success: "成功主题",
     warning: "警告主题",
-    error: "错误主题",
+    danger: "错误主题",
     info: "信息主题",
   };
   return titles[currentTheme.value] || "默认主题";
@@ -496,7 +496,7 @@ const themeDialogIcon = computed(() => {
     primary: "mdi:information",
     success: "mdi:check-circle",
     warning: "mdi:alert",
-    error: "mdi:close-circle",
+    danger: "mdi:close-circle",
     info: "mdi:information-outline",
   };
   return icons[currentTheme.value] || "mdi:palette";
@@ -508,7 +508,7 @@ const themeDialogDescription = computed(() => {
     primary: "这是主要主题，使用蓝色调，适合重要信息展示。",
     success: "这是成功主题，使用绿色调，适合成功状态提示。",
     warning: "这是警告主题，使用黄色调，适合警告信息提示。",
-    error: "这是错误主题，使用红色调，适合错误信息提示。",
+    danger: "这是错误主题，使用红色调，适合错误信息提示。",
     info: "这是信息主题，使用灰色调，适合一般信息展示。",
   };
   return descriptions[currentTheme.value] || "主题描述";
@@ -562,7 +562,7 @@ const getThemeColor = (theme) => {
     primary: "#409EFF",
     success: "#67C23A",
     warning: "#E6A23C",
-    error: "#F56C6C",
+    danger: "#F56C6C",
     info: "#909399",
   };
   return colors[theme] || "#409EFF";
@@ -574,7 +574,7 @@ const getThemeButtonType = (theme) => {
     primary: "primary",
     success: "success",
     warning: "warning",
-    error: "danger",
+    danger: "danger",
     info: "info",
   };
   return types[theme] || "primary";

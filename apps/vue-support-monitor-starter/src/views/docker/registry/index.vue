@@ -47,23 +47,26 @@
     </div>
 
     <!-- 仓库表格 -->
-    <el-card class="registry-table-card">
-      <ScTable
-        :url="registryApi.pageRegistry"
-        :params="searchParams"
-        stripe
-        :loading="loading"
-        class="registry-table"
-        table-name="docker-registry"
-      >
+    <el-card class="registry-table-card flex-1">
+      <ScTable :key="tableKey" :url="registryApi.pageRegistry" :params="searchParams" stripe :loading="loading" class="registry-table" table-name="docker-registry">
         <el-table-column type="selection" width="55" />
 
-        <el-table-column label="仓库名称" min-width="200">
+        <el-table-column label="" width="90" align="center">
+          <template #default="{ row }">
+            <div class="ribbon-cell">
+              <ScRibbon v-if="row.systemSoftRegistryIsDefault === 1" variant="badge" size="sm" icon="ri:star-fill" text="默认" />
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="仓库名称" min-width="240">
           <template #default="{ row }">
             <div class="registry-name">
               <IconifyIconOnline :icon="getRegistryIcon(row.systemSoftRegistryType)" class="registry-icon" :style="{ color: getRegistryIconColor(row.systemSoftRegistryType) }" />
               <div>
-                <div class="name-text">{{ row.systemSoftRegistryName }}</div>
+                <div class="name-text">
+                  {{ row.systemSoftRegistryName }}
+                </div>
                 <el-tag :type="getRegistryTypeTag(row.systemSoftRegistryType)" size="small">
                   {{ getRegistryTypeText(row.systemSoftRegistryType) }}
                 </el-tag>
@@ -71,8 +74,7 @@
             </div>
           </template>
         </el-table-column>
-
-        <el-table-column label="仓库地址" min-width="300">
+        <el-table-column label="仓库地址" min-width="150">
           <template #default="{ row }">
             <div class="registry-url">
               <el-link :href="row.systemSoftRegistryUrl" target="_blank" type="primary">
@@ -119,8 +121,8 @@
               <div v-if="row.systemSoftRegistryLastConnectTime">{{ formatTime(row.systemSoftRegistryLastConnectTime) }}</div>
               <div v-else class="text-gray">从未连接</div>
               <div v-if="row.systemSoftRegistryConnectStatus != null" class="sync-status">
-                <el-tag :type="row.systemSoftRegistryConnectStatus === 1 ? 'success' : (row.systemSoftRegistryConnectStatus === 2 ? 'danger' : 'info')" size="small">
-                  {{ row.systemSoftRegistryConnectStatus === 1 ? '成功' : (row.systemSoftRegistryConnectStatus === 2 ? '失败' : '未知') }}
+                <el-tag :type="row.systemSoftRegistryConnectStatus === 1 ? 'success' : row.systemSoftRegistryConnectStatus === 2 ? 'danger' : 'info'" size="small">
+                  {{ row.systemSoftRegistryConnectStatus === 1 ? "成功" : row.systemSoftRegistryConnectStatus === 2 ? "失败" : "未知" }}
                 </el-tag>
               </div>
             </div>
@@ -133,7 +135,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="340" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button size="small" type="info" circle title="同步" @click="handleSync(row.systemSoftRegistryId)" :loading="syncLoadingMap[row.systemSoftRegistryId]">
@@ -147,6 +149,9 @@
               </el-button>
               <el-button size="small" type="info" circle title="测试" @click="testConnection(row)">
                 <IconifyIconOnline icon="ri:wifi-line" />
+              </el-button>
+              <el-button size="small" :type="row.systemSoftRegistryIsDefault === 1 ? 'primary' : 'warning'" circle :title="row.systemSoftRegistryIsDefault === 1 ? '默认仓库' : '设置为默认'" :disabled="row.systemSoftRegistryIsDefault === 1" @click="handleSetDefault(row.systemSoftRegistryId)">
+                <IconifyIconOnline :icon="row.systemSoftRegistryIsDefault === 1 ? 'ri:star-fill' : 'ri:star-line'" />
               </el-button>
             </div>
           </template>
@@ -182,14 +187,15 @@
 </template>
 
 <script setup lang="ts">
-import ProgressMonitor from '@/components/ProgressMonitor.vue';
-import { enableAutoConnect, connectSocket } from '@/utils/socket';
 import { registryApi, type SystemSoftRegistry } from "@/api/docker-management";
+import ProgressMonitor from "@/components/ProgressMonitor.vue";
+import { connectSocket, enableAutoConnect } from "@/utils/socket";
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
 import RegistryDialog from "./components/RegistryDialog.vue";
 import SyncProgressDialog from "./components/SyncProgressDialog.vue";
+import { ScRibbon } from "@repo/components/ScRibbon";
 
 /**
  * 软件仓库管理页面组件（重新实现）
@@ -205,6 +211,7 @@ const syncLoadingMap = ref<Record<number, boolean>>({});
 const dialogVisible = ref(false);
 const syncProgressVisible = ref(false);
 const tableRef = ref();
+const tableKey = ref(0);
 const selectedIds = ref<number[]>([]);
 const registryList = ref<SystemSoftRegistry[]>([]);
 const total = ref(0);
@@ -231,9 +238,9 @@ const pagination = reactive({
   total: 0,
 });
 
-// ScTable会自动处理数据加载，此方法不再需要
+// 刷新表格
 const loadRegistries = () => {
-  // 空实现，保持向后兼容性
+  tableKey.value++;
 };
 
 // 搜索
@@ -269,6 +276,21 @@ const openEditDialog = (registry: SystemSoftRegistry) => {
 const handleDialogSuccess = () => {
   loadRegistries();
   ElMessage.success("操作成功");
+};
+
+// 设置默认
+const handleSetDefault = async (registryId: number) => {
+  try {
+    const res = await registryApi.setDefaultRegistry(registryId);
+    if (res.code === "00000") {
+      ElMessage.success(res.msg || "已设为默认");
+      loadRegistries();
+    } else {
+      ElMessage.error(res.msg || "设置失败");
+    }
+  } catch (e) {
+    ElMessage.error("设置失败");
+  }
 };
 
 // 同步单个仓库
@@ -461,9 +483,9 @@ const getRegistryTypeText = (type?: string) => {
 };
 
 const getRowStatus = (row: SystemSoftRegistry) => {
-  if (row.systemSoftRegistryConnectStatus === 2) return 'error';
-  if (row.systemSoftRegistryStatus === 1) return 'active';
-  return 'offline';
+  if (row.systemSoftRegistryConnectStatus === 2) return "error";
+  if (row.systemSoftRegistryStatus === 1) return "active";
+  return "offline";
 };
 
 const getStatusTag = (status?: string) => {
@@ -489,7 +511,9 @@ const formatTime = (time?: string) => {
 };
 
 // 生命周期
-onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
+onMounted(() => {
+  enableAutoConnect();
+  connectSocket().catch(() => {});
   loadRegistries();
 });
 </script>
@@ -580,6 +604,12 @@ onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.ribbon-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .registry-icon {

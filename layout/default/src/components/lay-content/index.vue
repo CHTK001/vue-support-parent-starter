@@ -86,7 +86,7 @@ onMounted(async () => {
   } catch (e) {
     console.warn("Failed to set dark theme from localStorage:", e);
   }
-  
+
   nextTick(() => {
     document.body.style.setProperty("height", "100vh");
     document.body.style.setProperty("overflow", "hidden");
@@ -116,7 +116,7 @@ const transitionMain = defineComponent({
     } catch (e) {
       console.warn("Failed to set dark theme from localStorage:", e);
     }
-    
+
     const menuTransition = $storage.configure.menuTransition;
     const transitionName = menuTransition ? transitions.value(this.route)?.name || "fade-transform" : "";
     const enterTransition = menuTransition ? transitions.value(this.route)?.enterTransition : "";
@@ -278,7 +278,7 @@ const router = useRouter();
   html.dark & {
     background: linear-gradient(135deg, rgba(22, 24, 29, 0.8), rgba(26, 28, 35, 0.9));
   }
-  
+
   /* 确保在深色模式下有默认背景色 */
   background-color: #f5f7fa;
   html.dark & {
@@ -298,7 +298,7 @@ const router = useRouter();
   html.dark & {
     background: linear-gradient(135deg, rgba(22, 24, 29, 0.8), rgba(26, 28, 35, 0.9));
   }
-  
+
   /* 确保在深色模式下有默认背景色 */
   background-color: #f5f7fa;
   html.dark & {
@@ -327,14 +327,14 @@ const router = useRouter();
   background-color: rgb(var(--layout-bg-color) / var(--un-bg-opacity));
   transition: background-color 0.3s;
   /* 确保背景覆盖整个区域 */
-  min-height: 100vh;
+  height: 100%;
   width: 100%;
-  
+
   /* 深色主题下的背景色 */
   html.dark & {
     background-color: rgb(var(--layout-bg-color) / var(--un-bg-opacity));
   }
-  
+
   /* 确保在深色模式下有明确的背景色 */
   background-color: #f5f7fa;
   html.dark & {

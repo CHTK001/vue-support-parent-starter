@@ -1,7 +1,7 @@
 /**
  * 自动收缩功能 Composable
  * @author CH
- * @version 2.0.0
+ * @version 2.1.0
  * @description 处理对话框的自动收缩功能，适配draggable-resizable-vue3
  */
 
@@ -18,6 +18,8 @@ export interface AutoShrinkOptions {
   shrinkSize: number;
   /** 边缘检测阈值 */
   edgeThreshold: number;
+  /** 父容器选择器，默认 'body' */
+  parentSelector?: string;
 }
 
 /**
@@ -60,6 +62,16 @@ export function useAutoShrink(dialogId: string, options: AutoShrinkOptions) {
     // 监听点击事件（用于恢复）
     setupClickListeners(dialog);
   };
+
+  /**
+   * 获取父容器尺寸
+   */
+  const getParentRect = () => {
+    const selector = options.parentSelector || 'body'
+    const parent = document.querySelector(selector) as HTMLElement | null
+    const rect = parent ? parent.getBoundingClientRect() : document.body.getBoundingClientRect()
+    return rect
+  }
 
   /**
    * 设置拖拽监听器
@@ -167,25 +179,28 @@ export function useAutoShrink(dialogId: string, options: AutoShrinkOptions) {
   };
 
   /**
-   * 检查收缩条件
+   * 检查收缩条件（相对父容器）
    */
   const checkShrinkCondition = (dialog: HTMLElement, left: number, top: number) => {
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
+    const rect = getParentRect();
     const threshold = options.edgeThreshold;
     
     // 获取对话框当前尺寸
     const dialogWidth = dialog.offsetWidth;
     const dialogHeight = dialog.offsetHeight;
 
-    // 检查是否接近边缘（使用实际的left和top位置）
-    const nearLeftEdge = left <= threshold;
-    const nearRightEdge = left + dialogWidth >= windowWidth - threshold;
-    const nearTopEdge = top <= threshold;
-    const nearBottomEdge = top + dialogHeight >= windowHeight - threshold;
+    // 计算相对父容器的位置
+    const relLeft = left - rect.left;
+    const relTop = top - rect.top;
+
+    // 检查是否接近边缘
+    const nearLeftEdge = relLeft <= threshold;
+    const nearRightEdge = relLeft + dialogWidth >= rect.width - threshold;
+    const nearTopEdge = relTop <= threshold;
+    const nearBottomEdge = relTop + dialogHeight >= rect.height - threshold;
 
     if ((nearLeftEdge || nearRightEdge || nearTopEdge || nearBottomEdge) && !isShrunk.value) {
-      shrinkDialog(dialog, left, top, nearLeftEdge, nearRightEdge, nearTopEdge, nearBottomEdge);
+      shrinkToEdge(dialog, relLeft, relTop, nearLeftEdge, nearRightEdge, nearTopEdge, nearBottomEdge, rect);
     } else if (!nearLeftEdge && !nearRightEdge && !nearTopEdge && !nearBottomEdge && isShrunk.value) {
       // 如果拖离边缘，恢复原状
       restoreDialog(dialog);
@@ -193,46 +208,78 @@ export function useAutoShrink(dialogId: string, options: AutoShrinkOptions) {
   };
 
   /**
-   * 收缩对话框
+   * 收缩到边缘的小方块
    */
-  const shrinkDialog = (dialog: HTMLElement, left: number, top: number, nearLeft: boolean, nearRight: boolean, nearTop: boolean, nearBottom: boolean) => {
+  const shrinkToEdge = (dialog: HTMLElement, relLeft: number, relTop: number, nearLeft: boolean, nearRight: boolean, nearTop: boolean, nearBottom: boolean, parentRect: DOMRect) => {
     if (isShrunk.value) return;
 
     isShrunk.value = true;
 
-    // 计算收缩位置
-    let shrunkLeft = left;
-    let shrunkTop = top;
+    // 计算收缩位置（相对父容器）
+    let shrunkLeft = relLeft;
+    let shrunkTop = relTop;
 
     if (nearLeft) {
       shrunkLeft = -options.shrinkSize / 2;
     } else if (nearRight) {
-      shrunkLeft = window.innerWidth - options.shrinkSize / 2;
+      shrunkLeft = parentRect.width - options.shrinkSize / 2;
     }
 
     if (nearTop) {
       shrunkTop = -options.shrinkSize / 2;
     } else if (nearBottom) {
-      shrunkTop = window.innerHeight - options.shrinkSize / 2;
+      shrunkTop = parentRect.height - options.shrinkSize / 2;
     }
 
-    // 应用收缩样式
+    // 应用收缩样式（转为绝对屏幕坐标）
+    const absLeft = parentRect.left + shrunkLeft;
+    const absTop = parentRect.top + shrunkTop;
+
     dialog.style.width = `${options.shrinkSize}px`;
     dialog.style.height = `${options.shrinkSize}px`;
-    dialog.style.left = `${shrunkLeft}px`;
-    dialog.style.top = `${shrunkTop}px`;
+    dialog.style.left = `${absLeft}px`;
+    dialog.style.top = `${absTop}px`;
     dialog.style.transition = "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
 
-    // 添加收缩状态类
     dialog.classList.add("sc-window-dialog--shrunk");
 
-    // 更新管理器状态
     dialogManager.setShrunk(dialogId, true, undefined, {
-      top: `${shrunkTop}px`,
-      left: `${shrunkLeft}px`
+      top: `${absTop}px`,
+      left: `${absLeft}px`
     });
 
-    // 移除过渡效果
+    setTimeout(() => {
+      dialog.style.transition = "";
+    }, 300);
+  };
+
+  /**
+   * 收缩到底部任务栏（底部小方块）
+   */
+  const shrinkToBottom = (dialog: HTMLElement) => {
+    if (isShrunk.value) return;
+    const parentRect = getParentRect();
+
+    // 保存原始状态
+    if (!originalState.value) saveOriginalState(dialog);
+
+    isShrunk.value = true;
+
+    const absLeft = parentRect.left + 12; // 底部左侧 12px
+    const absTop = parentRect.top + parentRect.height - options.shrinkSize - 12; // 距底部 12px
+
+    dialog.style.width = `${options.shrinkSize}px`;
+    dialog.style.height = `${options.shrinkSize}px`;
+    dialog.style.left = `${absLeft}px`;
+    dialog.style.top = `${absTop}px`;
+    dialog.style.transition = "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
+    dialog.classList.add("sc-window-dialog--shrunk");
+
+    dialogManager.setShrunk(dialogId, true, undefined, {
+      top: `${absTop}px`,
+      left: `${absLeft}px`
+    });
+
     setTimeout(() => {
       dialog.style.transition = "";
     }, 300);
@@ -293,6 +340,7 @@ export function useAutoShrink(dialogId: string, options: AutoShrinkOptions) {
     initAutoShrink,
     destroyAutoShrink,
     isShrunk,
+    shrinkToBottom: () => dialogElement.value && shrinkToBottom(dialogElement.value),
     restoreDialog: () => dialogElement.value && restoreDialog(dialogElement.value)
   };
 }
