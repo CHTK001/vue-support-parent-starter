@@ -178,7 +178,7 @@ export const socket = (
   const session = io(url, newOptions);
   const socketWrapper = {
     on: function (event, callback) {
-      session.on(event, (row) => {
+      session.on(event, async (row) => {
         if (!row) {
           return;
         }
@@ -191,7 +191,7 @@ export const socket = (
               return;
             }
           }
-          const data = uu4(row);
+          const data = await uu4(row);
           if (typeof data === "object") {
             callback(data);
             return;

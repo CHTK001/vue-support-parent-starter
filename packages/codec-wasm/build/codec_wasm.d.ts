@@ -17,7 +17,7 @@ export function uu1_decrypt_response_object_with_arraybuffer(response: any): any
 export function uu2_encrypt_request(request_data_ptr: number, request_data_len: number, key_ptr: number, key_len: number): number;
 export function uu2_process_request(request: any): any;
 export function uu3_decrypt_simple(encrypted_data_ptr: number, encrypted_data_len: number): number;
-export function uu4_decrypt_response(response_data_ptr: number, response_data_len: number, uuid_ptr: number, uuid_len: number, timestamp_ptr: number, timestamp_len: number): number;
+export function uu4_decrypt_response(response_data_ptr: number, response_data_len: number, _uuid_ptr: number, _uuid_len: number, timestamp_ptr: number, timestamp_len: number): number;
 export function generate_sign(data_ptr: number, data_len: number, private_key_ptr: number, private_key_len: number): number;
 export function verify_sign(data_ptr: number, data_len: number, signature_ptr: number, signature_len: number, public_key_ptr: number, public_key_len: number): boolean;
 export function encrypt_storage_key(_key_ptr: number, _key_len: number, _system_code_ptr: number, _system_code_len: number): number;

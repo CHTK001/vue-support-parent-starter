@@ -88,7 +88,8 @@
     <!-- 容器监控列表 -->
     <el-card class="monitoring-table-card">
       <ContainerMonitoringList
-        :containers="monitoringList"
+        :url="containerApi.getContainerPageList"
+        :params="{ ...searchParams, page: pagination.page, pageSize: pagination.pageSize }"
         :loading="loading"
         :pagination="pagination"
         :show-pagination="true"
