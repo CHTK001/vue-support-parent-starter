@@ -1204,60 +1204,51 @@ pub fn uu3_decrypt_simple(encrypted_data_ptr: *const u8, encrypted_data_len: usi
 
 // UU4 function - Another response decryption
 #[wasm_bindgen]
-pub fn uu4_decrypt_response(response_data_ptr: *const u8, response_data_len: usize, uuid_ptr: *const u8, uuid_len: usize, timestamp_ptr: *const u8, timestamp_len: usize) -> *mut u8 {
+pub fn uu4_decrypt_response(response_data_ptr: *const u8, response_data_len: usize, _uuid_ptr: *const u8, _uuid_len: usize, timestamp_ptr: *const u8, timestamp_len: usize) -> *mut u8 {
     // 获取字符串数据
     let response_data = string_from_ptr(response_data_ptr, response_data_len);
-    let uuid = string_from_ptr(uuid_ptr, uuid_len);
     let timestamp = string_from_ptr(timestamp_ptr, timestamp_len);
-    
+
     // 检查数据是否以"02"开头
     if !response_data.starts_with("02") {
         return string_to_ptr("");
     }
-    
-    // 解密uuid获取密钥
-    let key_ptr = aes_decrypt(uuid_ptr, uuid_len, timestamp_ptr, timestamp_len);
-    let key = string_from_ptr(key_ptr, get_string_length(key_ptr));
-    
-    // 检查解密后的密钥是否为空
-    if key.is_empty() {
-        return string_to_ptr("");
-    }
-    
-    // 从response_data中提取加密数据（去掉前6位和后4位）
-    if response_data.len() < 10 {
-        return string_to_ptr("");
-    }
-    
-    // 提取加密数据部分（去掉前6位和后4位）
-    let start_index = 6;
-    let end_index = response_data.len().saturating_sub(4); // 使用saturating_sub防止下溢
-    
-    // 确保开始索引小于结束索引
-    if start_index >= end_index {
-        return string_to_ptr("");
-    }
-    
-    // 提取加密数据部分（去掉前6位和后4位）
-    let encrypted_data = &response_data[start_index..end_index];
-    
-    // 检查提取的加密数据是否为空
-    if encrypted_data.is_empty() {
-        return string_to_ptr("");
-    }
-    
-    // 创建加密数据的指针
-    let encrypted_data_ptr = encrypted_data.as_ptr();
-    let encrypted_data_len = encrypted_data.len();
-    
-    // 解密数据
-    let key_ptr_for_decryption = key.as_ptr();
-    let key_len_for_decryption = key.len();
-    let decrypted_data_ptr = aes_decrypt(encrypted_data_ptr, encrypted_data_len, key_ptr_for_decryption, key_len_for_decryption);
-    let decrypted_data = string_from_ptr(decrypted_data_ptr, get_string_length(decrypted_data_ptr));
-    
-    // 返回解密结果
-    string_to_ptr(&decrypted_data)
+
+    // 使用 timestamp 表示密钥长度，从 data 中截取明文密钥（位于 02 和 200 之间）
+    let key_length = match timestamp.parse::<usize>() {
+        Ok(v) => v,
+        Err(_) => return string_to_ptr("")
+    };
+
+    // 计算 key 与数据的边界位置
+    let key_start = 2; // 紧随 "02" 之后
+    let key_end = key_start + key_length;
+    if key_end > response_data.len() { return string_to_ptr(""); }
+    let key = &response_data[key_start..key_end];
+
+    // 提取加密数据（key 之后紧跟 "200"，末尾为 "ffff"）
+    let data_start = key_end + 3; // 跳过 "200"
+    if response_data.len() < 4 || data_start >= response_data.len() - 4 { return string_to_ptr(""); }
+    let data_end = response_data.len() - 4;
+    let encrypted_data = &response_data[data_start..data_end];
+
+    // 某些实现前有两个占位字符，按既有逻辑去掉前两位再解密
+    let processed_encrypted_data = if encrypted_data.len() > 2 { &encrypted_data[2..] } else { encrypted_data };
+
+    // 十六进制解码并用 SM2 私钥解密（C1C2C3 格式）
+    let decrypted_str = match hex::decode(processed_encrypted_data) {
+        Ok(encrypted_bytes) => {
+            let decrypt_ctx = smcrypto::sm2::Decrypt::new(&key);
+            let decrypted_bytes = decrypt_ctx.decrypt_c1c2c3(&encrypted_bytes);
+            match String::from_utf8(decrypted_bytes.clone()) {
+                Ok(s) => s,
+                Err(_) => String::from_utf8_lossy(&decrypted_bytes).into_owned(),
+            }
+        },
+        Err(_) => String::new(),
+    };
+
+    string_to_ptr(&decrypted_str)
 }
 
 // SM2 signature generation function

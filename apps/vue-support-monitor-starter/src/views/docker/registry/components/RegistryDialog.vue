@@ -31,6 +31,28 @@
         </div>
       </el-form-item>
 
+      <!-- 选择服务器 -->
+      <el-form-item label="目标服务器" prop="serverId">
+        <el-select
+          v-model="selectedServerId"
+          clearable
+          filterable
+          placeholder="请选择该仓库所在的服务器"
+          style="width: 100%"
+        >
+          <el-option
+            v-for="srv in serverOptions"
+            :key="srv.id"
+            :label="srv.name + (srv.host ? ` (${srv.host})` : '')"
+            :value="srv.id"
+          />
+        </el-select>
+        <div class="form-hint">
+          <IconifyIconOnline icon="ri:information-line" class="mr-1" />
+          必选：选择仓库所在的服务器。
+        </div>
+      </el-form-item>
+
       <!-- 认证信息 -->
       <el-divider content-position="left">
         <span class="divider-text">
@@ -81,6 +103,7 @@
 
 <script setup lang="ts">
 import { registryApi as softRegistryApi, type SystemSoftRegistry } from "@/api/docker-management";
+import { getServerPageList } from "@/api/server";
 import { ElMessage, FormItemRule } from "element-plus";
 import { computed, nextTick, ref, watch } from "vue";
 
@@ -115,6 +138,10 @@ const formRef = ref();
 const confirmLoading = ref(false);
 const testLoading = ref(false);
 const testResult = ref<{ success: boolean; message: string } | null>(null);
+
+// 服务器选择
+const serverOptions = ref<Array<{ id: number; name: string; host?: string }>>([]);
+const selectedServerId = ref<number | null>(null);
 
 // 对话框显示状态
 const dialogVisible = computed({
@@ -173,6 +200,18 @@ const formRules: Record<string, FormItemRule[]> = {
     { required: true, message: "请输入仓库地址", trigger: "blur" },
     { type: "url" as const, message: "请输入有效的URL地址", trigger: "blur" },
   ],
+  // 服务器必选校验（校验单选 serverId）
+  serverId: [
+    {
+      validator: (_rule: any, _value: any, callback: (err?: Error) => void) => {
+        if (!selectedServerId.value) {
+          return callback(new Error("请选择服务器"));
+        }
+        callback();
+      },
+      trigger: "change",
+    },
+  ],
   systemSoftRegistryStatus: [
     { required: true, message: "请选择是否启用", trigger: "change" },
   ],
@@ -204,6 +243,7 @@ const resetForm = () => {
     systemSoftRegistrySupportSync: 1,
     systemSoftRegistryDescription: "",
   } as any;
+  selectedServerId.value = null;
 };
 
 // 获取URL提示信息
@@ -264,13 +304,32 @@ const testConnection = async () => {
 // 确认按钮处理
 const handleConfirm = async () => {
   try {
+    // 额外兜底校验：服务器必选
+    if (!selectedServerId.value) {
+      return ElMessage.error("请选择服务器");
+    }
+
     await formRef.value?.validate();
+
+    // 组装提交载荷：写入多种后端可能字段以兼容
+    const payload: any = { ...(formData.value as any) };
+    payload.serverId = selectedServerId.value;
+    payload.systemSoftRegistryServerId = selectedServerId.value;
+    payload.monitorSysGenServerId = selectedServerId.value;
+
+    // 同时保留在 config 中（兼容旧实现）
+    try {
+      const existing = formData.value.systemSoftRegistryConfig ? JSON.parse(formData.value.systemSoftRegistryConfig) : {};
+      payload.systemSoftRegistryConfig = JSON.stringify({ ...existing, serverId: selectedServerId.value });
+    } catch {
+      payload.systemSoftRegistryConfig = JSON.stringify({ serverId: selectedServerId.value });
+    }
 
     confirmLoading.value = true;
 
     if (isEdit.value) {
       // 编辑模式
-      const response = await softRegistryApi.updateRegistry(formData.value.systemSoftRegistryId!, formData.value);
+      const response = await softRegistryApi.updateRegistry(formData.value.systemSoftRegistryId!, payload);
 
       if (response.code === "00000") {
         ElMessage.success("更新成功");
@@ -281,7 +340,7 @@ const handleConfirm = async () => {
       }
     } else {
       // 新建模式
-      const response = await softRegistryApi.createRegistry(formData.value);
+      const response = await softRegistryApi.createRegistry(payload);
 
       if (response.code === "00000") {
         ElMessage.success("创建成功");
@@ -317,6 +376,19 @@ watch(
     if (newData) {
       // 编辑模式，填充数据
       formData.value = { ...(newData as any) };
+      // 优先读取直传字段
+      const sid = (newData as any).serverId || (newData as any).systemSoftRegistryServerId || (newData as any).monitorSysGenServerId;
+      if (sid) {
+        selectedServerId.value = Number(sid);
+      } else {
+        // 解析 config 中的 serverId
+        try {
+          const cfg = newData.systemSoftRegistryConfig ? JSON.parse(newData.systemSoftRegistryConfig) : {} as any;
+          selectedServerId.value = cfg.serverId ? Number(cfg.serverId) : null;
+        } catch {
+          selectedServerId.value = null;
+        }
+      }
     } else {
       // 新建模式，重置表单
       resetForm();
@@ -329,11 +401,26 @@ watch(
 watch(dialogVisible, (visible) => {
   if (visible) {
     testResult.value = null;
+    // 加载服务器列表
+    loadServers();
     nextTick(() => {
       formRef.value?.clearValidate();
     });
   }
 });
+
+// 加载服务器列表
+const loadServers = async () => {
+  try {
+    const res = await getServerPageList({ page: 1, pageSize: 1000 });
+    if (res.code === "00000") {
+      const records = (res.data?.records || []) as any[];
+      serverOptions.value = records.map((it) => ({ id: it.monitorSysGenServerId, name: it.monitorSysGenServerName, host: it.monitorSysGenServerHost }));
+    }
+  } catch (e) {
+    // 忽略错误，避免阻断编辑
+  }
+};
 </script>
 
 <style scoped>
@@ -345,7 +432,7 @@ watch(dialogVisible, (visible) => {
 .form-hint {
   margin-top: 4px;
   font-size: 12px;
-  color: #6c757d;
+  color: var(--app-text-secondary);
   display: flex;
   align-items: center;
 }
@@ -353,7 +440,7 @@ watch(dialogVisible, (visible) => {
 .divider-text {
   display: flex;
   align-items: center;
-  color: #409eff;
+  color: var(--app-primary);
   font-weight: 500;
 }
 

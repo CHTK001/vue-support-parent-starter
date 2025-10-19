@@ -38,6 +38,10 @@
           <el-option label="Harbor" value="harbor" />
           <el-option label="自定义" value="custom" />
         </el-select>
+        <el-select v-model="searchParams.serverId" placeholder="服务器" clearable class="filter-select" @change="handleSearch">
+          <el-option label="全部" value="" />
+          <el-option v-for="server in serverOptions" :key="server.id" :label="server.name" :value="server.id" />
+        </el-select>
       </div>
       <div class="search-right">
         <el-button @click="handleBatchDelete" :disabled="selectedIds.length === 0" type="danger" circle title="批量删除">
@@ -188,6 +192,7 @@
 
 <script setup lang="ts">
 import { registryApi, type SystemSoftRegistry } from "@/api/docker-management";
+import { getServerPageList } from "@/api/server";
 import ProgressMonitor from "@/components/ProgressMonitor.vue";
 import { connectSocket, enableAutoConnect } from "@/utils/socket";
 import ScTable from "@repo/components/ScTable/index.vue";
@@ -215,12 +220,14 @@ const tableKey = ref(0);
 const selectedIds = ref<number[]>([]);
 const registryList = ref<SystemSoftRegistry[]>([]);
 const total = ref(0);
+const serverOptions = ref<Array<{ id: number; name: string }>>([]);
 
 // 搜索参数
 const searchParams = reactive({
   keyword: "",
   status: "",
   type: "",
+  serverId: "",
   page: 1,
   size: 10,
 });
@@ -258,6 +265,19 @@ const resetSearch = () => {
   });
   pagination.page = 1;
   loadRegistries();
+};
+
+// 加载服务器列表
+const loadServers = async () => {
+  try {
+    const res = await getServerPageList({ page: 1, pageSize: 1000 });
+    if (res.code === "00000") {
+      const records = (res.data?.records || []) as any[];
+      serverOptions.value = records.map((it) => ({ id: it.monitorSysGenServerId, name: it.monitorSysGenServerName }));
+    }
+  } catch (e) {
+    // 忽略错误
+  }
 };
 
 // 打开创建对话框
@@ -514,6 +534,7 @@ const formatTime = (time?: string) => {
 onMounted(() => {
   enableAutoConnect();
   connectSocket().catch(() => {});
+  loadServers();
   loadRegistries();
 });
 </script>

@@ -299,14 +299,14 @@ export function uu3_decrypt_simple(encrypted_data_ptr, encrypted_data_len) {
 /**
  * @param {number} response_data_ptr
  * @param {number} response_data_len
- * @param {number} uuid_ptr
- * @param {number} uuid_len
+ * @param {number} _uuid_ptr
+ * @param {number} _uuid_len
  * @param {number} timestamp_ptr
  * @param {number} timestamp_len
  * @returns {number}
  */
-export function uu4_decrypt_response(response_data_ptr, response_data_len, uuid_ptr, uuid_len, timestamp_ptr, timestamp_len) {
-    const ret = wasm.uu4_decrypt_response(response_data_ptr, response_data_len, uuid_ptr, uuid_len, timestamp_ptr, timestamp_len);
+export function uu4_decrypt_response(response_data_ptr, response_data_len, _uuid_ptr, _uuid_len, timestamp_ptr, timestamp_len) {
+    const ret = wasm.uu4_decrypt_response(response_data_ptr, response_data_len, _uuid_ptr, _uuid_len, timestamp_ptr, timestamp_len);
     return ret >>> 0;
 }
 

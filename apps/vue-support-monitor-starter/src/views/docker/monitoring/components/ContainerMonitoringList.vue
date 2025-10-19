@@ -2,6 +2,8 @@
   <div class="container-monitoring-list">
     <ScTable
       :data="containers"
+      :url="url"
+      :params="params"
       stripe
       :loading="loading"
       class="monitoring-table"
@@ -127,7 +129,9 @@ interface Pagination {
 }
 
 interface Props {
-  containers: SystemSoftContainer[]
+  containers?: SystemSoftContainer[]
+  url?: Function
+  params?: Record<string, any>
   loading?: boolean
   pagination?: Pagination
   showPagination?: boolean
@@ -140,6 +144,7 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  containers: () => [],
   loading: false,
   pagination: () => ({ page: 1, pageSize: 10, total: 0 }),
   showPagination: true
