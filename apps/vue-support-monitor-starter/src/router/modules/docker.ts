@@ -12,7 +12,7 @@ const dockerRoutes: RouteRecordRaw[] = [
     },
     children: [
       {
-        path: "containers",
+        path: "/docker/containers",
         component: () => import("@/views/docker/containers/index.vue"),
         name: "DockerContainers",
         meta: {
@@ -21,7 +21,7 @@ const dockerRoutes: RouteRecordRaw[] = [
         },
       },
       {
-        path: "images",
+        path: "/docker/images",
         component: () => import("@/views/docker/images/index.vue"),
         name: "DockerImages",
         meta: {
@@ -30,7 +30,7 @@ const dockerRoutes: RouteRecordRaw[] = [
         },
       },
       {
-        path: "soft",
+        path: "/docker/soft",
         component: () => import("@/views/docker/soft/index.vue"),
         name: "DockerSoft",
         meta: {
@@ -39,7 +39,7 @@ const dockerRoutes: RouteRecordRaw[] = [
         },
       },
       {
-        path: "registry",
+        path: "/docker/registry",
         component: () => import("@/views/docker/registry/index.vue"),
         name: "DockerRegistry",
         meta: {
@@ -48,7 +48,7 @@ const dockerRoutes: RouteRecordRaw[] = [
         },
       },
       {
-        path: "monitoring",
+        path: "/docker/monitoring",
         component: () => import("@/views/docker/ContainerMonitoringView.vue"),
         name: "DockerMonitoring",
         meta: {
@@ -57,7 +57,7 @@ const dockerRoutes: RouteRecordRaw[] = [
         },
       },
       {
-        path: "overview",
+        path: "/docker/overview",
         component: () => import("@/views/docker/ContainerOverview.vue"),
         name: "DockerOverview",
         meta: {

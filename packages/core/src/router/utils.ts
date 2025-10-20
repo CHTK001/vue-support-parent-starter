@@ -22,6 +22,8 @@ const modulesRoutes = import.meta.glob("/src/views/**/*.{vue,tsx}");
 // modulesRoutes[SettingName] = SettingFrame;
 import { getAsyncRoutes } from "../api/routes";
 const CACHE_ROUTER_KEY = "async-routes";
+// 默认图标（Iconify 名称）
+const DEFAULT_MENU_ICON = "ri:menu-line";
 function handRank(routeInfo: any) {
   const { name, path, parentId, meta } = routeInfo;
   return isAllEmpty(parentId) ? (isAllEmpty(meta?.rank) || (meta?.rank === 0 && name !== "Home" && path !== "/") ? true : false) : false;
@@ -41,10 +43,18 @@ function ascending(arr: any[]) {
   });
 }
 
-/** 过滤meta中showLink为false的菜单 */
+/** 过滤meta中showLink为false的菜单，并为缺省图标的菜单设置默认图标 */
 function filterTree(data: RouteComponent[]) {
-  const newTree = cloneDeep(data).filter((v: { meta: { showLink: boolean } }) => v.meta?.showLink !== false);
-  newTree.forEach((v: { children }) => v.children && (v.children = filterTree(v.children)));
+  const newTree = cloneDeep(data).filter((v: any) => v.meta?.showLink !== false);
+  newTree.forEach((v: any) => {
+    v.meta = v.meta || {};
+    if (!v.meta.icon) {
+      v.meta.icon = DEFAULT_MENU_ICON;
+    }
+    if (v.children) {
+      v.children = filterTree(v.children);
+    }
+  });
   return newTree;
 }
 
