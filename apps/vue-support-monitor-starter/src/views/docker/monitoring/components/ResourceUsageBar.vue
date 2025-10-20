@@ -1,10 +1,11 @@
 <template>
   <div class="resource-bar">
-    <el-progress 
-      :percentage="percentage" 
-      :show-text="false" 
+    <ScProgress
+      type="el"
+      :percentage="percentage"
+      :show-text="false"
       :stroke-width="strokeWidth"
-      :color="color"
+      :stages="stages"
     />
     <span class="resource-value">{{ formattedValue }}</span>
   </div>
@@ -12,6 +13,7 @@
 
 <script setup lang="ts">
 import { defineProps, computed } from 'vue'
+import { ScProgress } from '@repo/components'
 
 interface Props {
   value: number
@@ -23,17 +25,23 @@ const props = defineProps<Props>()
 
 const percentage = computed(() => Math.min(100, Math.max(0, props.value)))
 
-const color = computed(() => {
+const stages = computed(() => {
   if (props.type === 'cpu') {
-    if (props.value < 50) return '#67c23a'
-    if (props.value < 80) return '#e6a23c'
-    return '#f56c6c'
+    return [
+      { threshold: 50, color: '#67c23a' },
+      { threshold: 80, color: '#e6a23c' },
+      { threshold: 100, color: '#f56c6c' }
+    ]
   } else if (props.type === 'memory') {
-    if (props.value < 60) return '#67c23a'
-    if (props.value < 85) return '#e6a23c'
-    return '#f56c6c'
+    return [
+      { threshold: 60, color: '#67c23a' },
+      { threshold: 85, color: '#e6a23c' },
+      { threshold: 100, color: '#f56c6c' }
+    ]
   }
-  return '#409eff'
+  return [
+    { threshold: 100, color: '#409eff' }
+  ]
 })
 
 const formattedValue = computed(() => `${props.value.toFixed(1)}%`)

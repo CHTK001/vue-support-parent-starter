@@ -33,9 +33,10 @@
 
       <!-- 进度条显示（仅对百分比类型的指标显示） -->
       <div v-if="showProgressBar" class="metric-progress">
-        <el-progress
+        <ScProgress
+          type="line"
           :percentage="progressPercentage"
-          :color="getProgressColor(progressPercentage, metricType)"
+          :stages="getProgressStages(metricType)"
           :show-text="false"
           :stroke-width="6"
         />
@@ -67,6 +68,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
+import { ScProgress } from "@repo/components";
 import { executeComponentQuery, type ServerDetailComponent } from "@/api/server";
 
 // 定义属性
@@ -186,6 +188,24 @@ const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
     { color: '#f56c6c', percentage: 100 }
   ];
 };
+
+/**
+ * ScProgress 阶段颜色
+ */
+const getProgressStages = (metricType: string) => {
+  const thresholds = {
+    cpu: { normal: 50, warning: 80, critical: 100 },
+    memory: { normal: 60, warning: 80, critical: 100 },
+    disk: { normal: 70, warning: 85, critical: 100 },
+    network: { normal: 60, warning: 80, critical: 100 },
+  } as const
+  const t = (thresholds as any)[metricType] || thresholds.cpu
+  return [
+    { threshold: t.normal, color: '#67c23a' },
+    { threshold: t.warning, color: '#e6a23c' },
+    { threshold: t.critical, color: '#f56c6c' }
+  ]
+}
 
 /**
  * 加载数据

@@ -67,11 +67,12 @@
                   <div class="metric-label">CPU使用率</div>
                 </div>
               </div>
-              <el-progress
+              <ScProgress
+                type="line"
                 :percentage="currentMetrics.cpuUsage"
-                :color="getProgressColor(currentMetrics.cpuUsage, 'cpu')"
+                :stages="getProgressStages('cpu')"
                 :show-text="false"
-                :stroke-width="4"
+                :stroke-width="6"
               />
             </el-card>
           </el-col>
@@ -87,11 +88,12 @@
                   <div class="metric-label">内存使用率</div>
                 </div>
               </div>
-              <el-progress
+              <ScProgress
+                type="line"
                 :percentage="currentMetrics.memoryUsage"
-                :color="getProgressColor(currentMetrics.memoryUsage, 'memory')"
+                :stages="getProgressStages('memory')"
                 :show-text="false"
-                :stroke-width="4"
+                :stroke-width="6"
               />
             </el-card>
           </el-col>
@@ -107,11 +109,12 @@
                   <div class="metric-label">磁盘使用率</div>
                 </div>
               </div>
-              <el-progress
+              <ScProgress
+                type="line"
                 :percentage="currentMetrics.diskUsage"
-                :color="getProgressColor(currentMetrics.diskUsage, 'disk')"
+                :stages="getProgressStages('disk')"
                 :show-text="false"
-                :stroke-width="4"
+                :stroke-width="6"
               />
             </el-card>
           </el-col>
@@ -207,6 +210,7 @@
 </template>
 
 <script setup lang="ts">
+import { ScProgress } from '@repo/components'
 import { ref, reactive, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
 import { collectServerMetrics, enableServerMonitoring, disableServerMonitoring } from "@/api/server";
@@ -270,8 +274,26 @@ const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
     { color: '#67c23a', percentage: threshold.normal },
     { color: '#e6a23c', percentage: threshold.warning },
     { color: '#f56c6c', percentage: 100 }
-  ];
-};
+  ]
+}
+
+/**
+ * ScProgress 阶段颜色
+ */
+const getProgressStages = (metricType: string) => {
+  const thresholds = {
+    cpu: { normal: 50, warning: 80, critical: 100 },
+    memory: { normal: 60, warning: 85, critical: 100 },
+    disk: { normal: 70, warning: 85, critical: 100 },
+    network: { normal: 60, warning: 80, critical: 100 },
+  } as const
+  const t = (thresholds as any)[metricType] || thresholds.cpu
+  return [
+    { threshold: t.normal, color: '#67c23a' },
+    { threshold: t.warning, color: '#e6a23c' },
+    { threshold: t.critical, color: '#f56c6c' }
+  ]
+}
 
 /**
  * 格式化字节
