@@ -14,9 +14,11 @@
             </el-tag>
           </el-tooltip>
           <el-tooltip :content="`实时监控状态: ${getSocketStatusText}`" placement="bottom" :show-after="500">
-            <el-tag :type="getSocketStatusType" effect="light" size="small" class="ml-2 tag-container">
-              <IconifyIconOnline :icon="getSocketStatusIcon()" class="mr-1" />
-              <span> {{ getSocketStatusText }}</span>
+            <el-tag :type="getSocketStatusType" effect="light" size="small" class="ml-2 tag-container ">
+              <span class="!mt-[-20px]">
+                <IconifyIconOnline :icon="getSocketStatusIcon()" class="mr-1" />
+                <span> {{ getSocketStatusText }}</span>
+              </span>
             </el-tag>
           </el-tooltip>
 

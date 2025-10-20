@@ -1,14 +1,18 @@
-// 在应用启动早期检测并设置深色主题，避免FOUC问题
+// 在应用启动早期检测并设置深色主题与皮肤，避免FOUC问题
 (function() {
   try {
     // 从localStorage中读取布局配置
     const layoutConfig = JSON.parse(localStorage.getItem('layout') || '{}');
-    // 如果配置了深色模式，则添加dark类到html元素
+    // 深色模式
     if (layoutConfig.darkMode) {
       document.documentElement.classList.add('dark');
     }
+    // 主题皮肤（default/flat/enhanced）
+    if (layoutConfig.themeSkin) {
+      document.documentElement.setAttribute('data-theme-skin', layoutConfig.themeSkin);
+    }
   } catch (e) {
-    console.warn('Failed to set dark theme from localStorage:', e);
+    console.warn('Failed to set theme from localStorage:', e);
   }
 })();
 

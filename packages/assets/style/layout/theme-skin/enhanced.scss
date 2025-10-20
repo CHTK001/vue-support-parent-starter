@@ -1,0 +1,86 @@
+/* 增强主题皮肤：仅通过内外阴影增强立体感，不修改背景/渐变/边框/颜色 */
+[data-theme-skin='enhanced'] {
+  /* 容器类 */
+  .el-card,
+  .el-dialog,
+  .el-drawer,
+  .el-popover,
+  .el-message-box,
+  .el-dropdown-menu,
+  .el-select-dropdown,
+  .el-popper,
+  .el-notification,
+  .el-tooltip__popper {
+    box-shadow:
+      var(--el-box-shadow-light),
+      inset 0 1px 0 color-mix(in oklab, var(--el-color-white) 70%, transparent),
+      inset 0 -1px 0 color-mix(in oklab, var(--el-text-color-primary) 6%, transparent);
+  }
+
+  /* 输入与选择 */
+  .el-input__wrapper,
+  .el-textarea__inner,
+  .el-select .el-input__wrapper,
+  .el-input-group__append,
+  .el-input-group__prepend {
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, var(--el-color-white) 60%, transparent),
+      inset 0 -1px 0 color-mix(in oklab, var(--el-text-color-primary) 6%, transparent),
+      0 4px 10px color-mix(in oklab, var(--el-text-color-primary) 10%, transparent);
+  }
+
+  /* 按钮 */
+  .el-button {
+    transition: transform .2s ease, box-shadow .2s ease;
+    box-shadow:
+      var(--el-box-shadow),
+      0 1px 0 color-mix(in oklab, var(--el-color-white) 70%, transparent) inset;
+  }
+  .el-button:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      var(--el-box-shadow-dark),
+      0 1px 0 color-mix(in oklab, var(--el-color-white) 80%, transparent) inset;
+  }
+
+  /* 标签 */
+  .el-tag {
+    box-shadow:
+      0 4px 10px color-mix(in oklab, var(--el-text-color-primary) 10%, transparent),
+      inset 0 1px 0 color-mix(in oklab, var(--el-color-white) 70%, transparent);
+  }
+
+  /* 进度条 */
+  .el-progress {
+    .el-progress-bar__outer {
+      box-shadow:
+        inset 0 1px 0 color-mix(in oklab, var(--el-color-white) 60%, transparent),
+        inset 0 -1px 0 color-mix(in oklab, var(--el-text-color-primary) 6%, transparent);
+    }
+    .el-progress-bar__inner {
+      box-shadow:
+        0 4px 10px rgba(var(--el-color-primary-rgb), 0.25),
+        inset 0 2px 0 color-mix(in oklab, var(--el-color-white) 45%, transparent),
+        inset 0 -2px 0 color-mix(in oklab, var(--el-text-color-primary) 8%, transparent);
+    }
+    &.el-progress--success .el-progress-bar__inner {
+      box-shadow:
+        0 4px 10px rgba(var(--el-color-success-rgb), 0.25),
+        inset 0 2px 0 color-mix(in oklab, var(--el-color-white) 45%, transparent),
+        inset 0 -2px 0 color-mix(in oklab, var(--el-text-color-primary) 8%, transparent);
+    }
+    &.el-progress--warning .el-progress-bar__inner {
+      box-shadow:
+        0 4px 10px rgba(var(--el-color-warning-rgb), 0.25),
+        inset 0 2px 0 color-mix(in oklab, var(--el-color-white) 45%, transparent),
+        inset 0 -2px 0 color-mix(in oklab, var(--el-text-color-primary) 8%, transparent);
+    }
+    &.el-progress--exception .el-progress-bar__inner,
+    &.is-exception .el-progress-bar__inner {
+      box-shadow:
+        0 4px 10px rgba(var(--el-color-danger-rgb), 0.25),
+        inset 0 2px 0 color-mix(in oklab, var(--el-color-white) 45%, transparent),
+        inset 0 -2px 0 color-mix(in oklab, var(--el-text-color-primary) 8%, transparent);
+    }
+  }
+}

@@ -49,6 +49,35 @@ const tippyInstances = ref([]);
 
 const { dataTheme, overallStyle, layoutTheme, themeColors, toggleClass, dataThemeChange, setLayoutThemeColor } = useDataThemeChange();
 
+/* 主题皮肤：默认/扁平化/增强 */
+const themeSkin = ref<string>($storage?.layout?.themeSkin ?? "default");
+const themeSkinOptions = computed<Array<OptionsType>>(() => [
+  { label: "默认", tip: "保留当前风格", value: "default" },
+  { label: "扁平化", tip: "去除渐变与阴影", value: "flat" },
+  { label: "增强", tip: "多重阴影与渐变立体化", value: "enhanced" },
+]);
+
+function setThemeSkin(skin: string) {
+  themeSkin.value = skin;
+  document.documentElement.setAttribute("data-theme-skin", skin);
+  $storage.layout = {
+    ...$storage.layout,
+    layout: layoutTheme.value.layout,
+    theme: layoutTheme.value.theme,
+    darkMode: $storage.layout?.darkMode,
+    sidebarStatus: $storage.layout?.sidebarStatus,
+    epThemeColor: $storage.layout?.epThemeColor,
+    themeColor: $storage.layout?.themeColor,
+    overallStyle: $storage.layout?.overallStyle,
+    themeSkin: skin,
+  };
+}
+
+// 初始化 data-theme-skin
+if (themeSkin.value) {
+  document.documentElement.setAttribute("data-theme-skin", themeSkin.value);
+}
+
 /* body添加layout属性，作用于src/style/sidebar.scss */
 if (unref(layoutTheme)) {
   const layout = unref(layoutTheme).layout;
@@ -715,7 +744,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- 主题色设置区域 -->
+<!-- 主题色设置区域 -->
       <div class="setting-section">
         <div class="section-header">
           <IconifyIconOffline :icon="'ri:drop-line'" class="section-icon" />
@@ -737,6 +766,24 @@ onUnmounted(() => {
               </div>
             </el-tooltip>
           </div>
+        </div>
+      </div>
+
+      <!-- 主题皮肤设置区域 -->
+      <div class="setting-section">
+        <div class="section-header">
+          <IconifyIconOffline :icon="'ri:contrast-drop-2-line'" class="section-icon" />
+          <h3 class="section-title">主题皮肤</h3>
+          <div class="section-description">与主题色兼容：仅改变风格，不改变颜色</div>
+        </div>
+        <div class="setting-content">
+          <Segmented
+            resize
+            class="select-none modern-segmented"
+            :modelValue="themeSkin === 'default' ? 0 : themeSkin === 'flat' ? 1 : 2"
+            :options="themeSkinOptions"
+            @change="({ option, index }) => setThemeSkin(index === 0 ? 'default' : index === 1 ? 'flat' : 'enhanced')"
+          />
         </div>
       </div>
 
