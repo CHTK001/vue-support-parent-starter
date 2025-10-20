@@ -1,0 +1,53 @@
+/* 扁平化主题皮肤：去除阴影与渐变，保留现有颜色变量，兼容主题色 */
+[data-theme-skin='flat'] {
+  /* 卡片与容器 */
+  .el-card,
+  .el-dialog,
+  .el-drawer,
+  .el-popover,
+  .el-message-box,
+  .el-dropdown-menu,
+  .el-select-dropdown,
+  .el-popper,
+  .el-notification,
+  .el-tooltip__popper,
+  .el-table,
+  .el-table__header,
+  .el-table__body {
+    box-shadow: none !important;
+    background: var(--el-bg-color-overlay);
+    background-image: none !important;
+    border-color: var(--el-border-color);
+  }
+
+  /* 输入与选择类 */
+  .el-input__wrapper,
+  .el-textarea__inner,
+  .el-select .el-input__wrapper,
+  .el-input-group__append,
+  .el-input-group__prepend {
+    box-shadow: none !important;
+    background: var(--el-fill-color-light);
+    background-image: none !important;
+  }
+
+  /* 按钮 */
+  .el-button {
+    box-shadow: none !important;
+    background-image: none !important;
+  }
+  .el-button--primary { background: var(--el-color-primary); color: var(--el-color-white); }
+  .el-button--success { background: var(--el-color-success); color: var(--el-color-white); }
+  .el-button--warning { background: var(--el-color-warning); color: var(--el-color-white); }
+  .el-button--danger  { background: var(--el-color-danger);  color: var(--el-color-white); }
+  .el-button--info    { background: var(--el-color-info);    color: var(--el-color-white); }
+
+  /* 标签/标记 */
+  .el-tag { box-shadow: none !important; background-image: none !important; }
+
+  /* 进度条 */
+  .el-progress-bar__inner {
+    background-image: none !important;
+    box-shadow: none !important;
+  }
+}

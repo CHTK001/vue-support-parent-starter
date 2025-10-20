@@ -4,8 +4,9 @@
 @use "element-plus";
 @use "sidebar";
 @use "el-ui";
+@use "../theme-skin/index" as themeSkin;
 // 导入颜色系统
-@use "../../colors/index";
+@use "../../colors/index" as colors;
 // 导入Element Plus主题覆盖
 @use "../../element-plus/theme-override";
 
