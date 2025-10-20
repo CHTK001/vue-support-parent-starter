@@ -16,7 +16,7 @@
           <el-tooltip :content="`实时监控状态: ${getSocketStatusText}`" placement="bottom" :show-after="500">
             <el-tag :type="getSocketStatusType" effect="light" size="small" class="ml-2 tag-container">
               <IconifyIconOnline :icon="getSocketStatusIcon()" class="mr-1" />
-              {{ getSocketStatusText }}
+              <span> {{ getSocketStatusText }}</span>
             </el-tag>
           </el-tooltip>
 
@@ -250,18 +250,10 @@
                   <!-- 实时指标显示（卡片 + 波纹进度） -->
                   <div v-if="server.metricsSupport && getServerMetrics(server.id)" class="metrics-cards">
                     <!-- CPU -->
-                    <el-tooltip :content="`CPU使用率: ${Math.round(getServerMetrics(server.id)?.cpuUsage || 0)}%`" placement="top" :show-after="300">
-                      <div class="metric-card">
-                        <ScProgress type="line" :percentage="Math.round(getServerMetrics(server.id)?.cpuUsage || 0)" :stages="getProgressStages('cpu')" :show-text="true" text-position="inside" :stroke-width="48" />
-                      </div>
-                    </el-tooltip>
+                    <ScProgress desc="CPU使用率" :percentage="Math.round(getServerMetrics(server.id)?.cpuUsage || 0)" :stages="getProgressStages('cpu')" :show-text="true" text-position="inside" :stroke-width="48" />
 
                     <!-- Memory -->
-                    <el-tooltip :content="`内存使用率: ${Math.round(getServerMetrics(server.id)?.memoryUsage || 0)}%`" placement="top" :show-after="300">
-                      <div class="metric-card">
-                        <ScProgress type="line" :percentage="Math.round(getServerMetrics(server.id)?.memoryUsage || 0)" :stages="getProgressStages('memory')" :show-text="true" text-position="inside" :stroke-width="48" />
-                      </div>
-                    </el-tooltip>
+                    <ScProgress desc="内存使用率" :percentage="Math.round(getServerMetrics(server.id)?.memoryUsage || 0)" :stages="getProgressStages('memory')" :show-text="true" text-position="inside" :stroke-width="48" />
                   </div>
 
                   <!-- 操作按钮 -->
