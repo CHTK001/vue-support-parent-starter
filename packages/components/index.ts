@@ -5,7 +5,8 @@ import ScMessageDialog from "./ScMessageDialog/index.vue";
 import ScPanel from "./ScPanel/index.vue";
 import ScTable from "./ScTable/index.vue";
 import { ScRibbon } from "./ScRibbon";
-export { ReMenuNewBadge, ScCard, ScPanel, ScTable, ScRibbon };
+import ScProgress from "./ScProgress/index.vue";
+export { ReMenuNewBadge, ScCard, ScPanel, ScTable, ScRibbon, ScProgress };
 
 export default {
   ScTable,
@@ -14,5 +15,6 @@ export default {
   ScMessageDialog,
   ReMenuNewBadge,
   useRenderIcon,
-  ScRibbon
+  ScRibbon,
+  ScProgress
 };

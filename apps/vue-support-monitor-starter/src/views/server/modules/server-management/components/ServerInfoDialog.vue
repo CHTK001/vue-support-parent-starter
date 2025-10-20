@@ -143,26 +143,32 @@
             {{ systemInfo.cpuArch || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="CPU使用率">
-            <el-progress
+            <ScProgress
+              type="line"
               :percentage="Math.round(systemInfo.cpuUsage || 0)"
-              :color="getProgressColor(systemInfo.cpuUsage, 'cpu')"
+              :stages="getProgressStages('cpu')"
               :show-text="true"
+              text-position="right"
               :stroke-width="8"
             />
           </el-descriptions-item>
           <el-descriptions-item label="内存使用率">
-            <el-progress
+            <ScProgress
+              type="line"
               :percentage="Math.round(systemInfo.memoryUsage || 0)"
-              :color="getProgressColor(systemInfo.memoryUsage, 'memory')"
+              :stages="getProgressStages('memory')"
               :show-text="true"
+              text-position="right"
               :stroke-width="8"
             />
           </el-descriptions-item>
           <el-descriptions-item label="磁盘使用率">
-            <el-progress
+            <ScProgress
+              type="line"
               :percentage="Math.round(systemInfo.diskUsage || 0)"
-              :color="getProgressColor(systemInfo.diskUsage, 'disk')"
+              :stages="getProgressStages('disk')"
               :show-text="true"
+              text-position="right"
               :stroke-width="8"
             />
           </el-descriptions-item>
@@ -192,34 +198,37 @@
           </el-table-column>
           <el-table-column prop="cpuUsage" label="CPU使用率" width="120">
             <template #default="{ row }">
-              <el-progress
+              <ScProgress
+                type="line"
                 :percentage="Math.round(row.cpuUsage || 0)"
-                :color="getProgressColor(row.cpuUsage, 'cpu')"
+                :stages="getProgressStages('cpu')"
                 :show-text="true"
+                text-position="inside"
                 :stroke-width="6"
-                text-inside
               />
             </template>
           </el-table-column>
           <el-table-column prop="memoryUsage" label="内存使用率" width="120">
             <template #default="{ row }">
-              <el-progress
+              <ScProgress
+                type="line"
                 :percentage="Math.round(row.memoryUsage || 0)"
-                :color="getProgressColor(row.memoryUsage, 'memory')"
+                :stages="getProgressStages('memory')"
                 :show-text="true"
+                text-position="inside"
                 :stroke-width="6"
-                text-inside
               />
             </template>
           </el-table-column>
           <el-table-column prop="diskUsage" label="磁盘使用率" width="120">
             <template #default="{ row }">
-              <el-progress
+              <ScProgress
+                type="line"
                 :percentage="Math.round(row.diskUsage || 0)"
-                :color="getProgressColor(row.diskUsage, 'disk')"
+                :stages="getProgressStages('disk')"
                 :show-text="true"
+                text-position="inside"
                 :stroke-width="6"
-                text-inside
               />
             </template>
           </el-table-column>
@@ -250,6 +259,7 @@
 <script setup lang="ts">
 import { ref, reactive } from "vue";
 import { message } from "@repo/utils";
+import { ScProgress } from "@repo/components";
 import {
   getServerStatus,
   getServerInfo,
@@ -491,7 +501,26 @@ const handleConnect = async () => {
     console.error("连接服务器出错:", error);
   } finally {
     loading.value = false;
-  }
+  };
+};
+
+/**
+ * 进度阶段颜色（供 ScProgress 使用）
+ */
+const getProgressStages = (metricType: string) => {
+  const thresholds: Record<string, { normal: number; warning: number; critical: number }> = {
+    cpu: { normal: 50, warning: 80, critical: 100 },
+    memory: { normal: 60, warning: 85, critical: 100 },
+    disk: { normal: 70, warning: 85, critical: 100 },
+    network: { normal: 60, warning: 80, critical: 100 },
+    temperature: { normal: 60, warning: 80, critical: 100 },
+  };
+  const t = thresholds[metricType] || thresholds.cpu;
+  return [
+    { threshold: t.normal, color: "#67c23a" },
+    { threshold: t.warning, color: "#e6a23c" },
+    { threshold: t.critical, color: "#f56c6c" },
+  ];
 };
 
 // 暴露方法

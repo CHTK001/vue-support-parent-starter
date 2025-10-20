@@ -173,20 +173,14 @@
               </el-tooltip>
             </div>
             <!-- 最小化状态下的服务器列表 -->
-            <el-tooltip
-              v-for="server in filteredServers"
-              :key="server.id + '-mini'"
-              :content="`${server.name} (${server.host}:${server.port}) - ${server.onlineStatus === ONLINE_STATUS.ONLINE ? '在线' : '离线'}`"
-              placement="right"
-              :show-after="300"
-            >
+            <el-tooltip v-for="server in filteredServers" :key="server.id + '-mini'" :content="`${server.name} (${server.host}:${server.port}) - ${server.onlineStatus === ONLINE_STATUS.ONLINE ? '在线' : '离线'}`" placement="right" :show-after="300">
               <div
                 class="server-mini-card"
                 :class="{
                   selected: selectedServerId === server.id,
                   online: server.onlineStatus === ONLINE_STATUS.ONLINE,
                   offline: server.onlineStatus === ONLINE_STATUS.OFFLINE,
-                  error: server.status === SERVER_STATUS.ERROR
+                  error: server.status === SERVER_STATUS.ERROR,
                 }"
                 @click="selectServer(server)"
               >
@@ -207,21 +201,14 @@
 
             <!-- 正常状态下的服务器列表 -->
             <template v-if="filteredServers.length > 0">
-              <el-tooltip
-                v-for="server in filteredServers"
-                :key="server.id"
-                :content="`${server.name} (${server.host}:${server.port}) - ${getOnlineStatusText(server.onlineStatus, server.isLocal)}`"
-                placement="right"
-                :show-after="800"
-                :disabled="selectedServerId === server.id"
-              >
+              <el-tooltip v-for="server in filteredServers" :key="server.id" :content="`${server.name} (${server.host}:${server.port}) - ${getOnlineStatusText(server.onlineStatus, server.isLocal)}`" placement="right" :show-after="800" :disabled="selectedServerId === server.id">
                 <div
                   class="server-card"
                   :class="{
                     selected: selectedServerId === server.id,
                     online: server.onlineStatus === ONLINE_STATUS.ONLINE,
                     offline: server.onlineStatus === ONLINE_STATUS.OFFLINE,
-                    error: server.status === SERVER_STATUS.ERROR
+                    error: server.status === SERVER_STATUS.ERROR,
                   }"
                   @click="selectServer(server)"
                 >
@@ -251,12 +238,7 @@
                       <!-- 延迟显示 -->
                       <ServerLatencyDisplay :latency="server.latency" size="small" mode="full" class="server-latency" />
                       <!-- 健康状态指示器 -->
-                      <el-tooltip
-                        v-if="realTimeMetricsEnabled && getServerHealthStatus(server.id) !== 'unknown'"
-                        :content="`健康状态: ${getHealthStatusText(getServerHealthStatus(server.id))}`"
-                        placement="top"
-                        :show-after="300"
-                      >
+                      <el-tooltip v-if="realTimeMetricsEnabled && getServerHealthStatus(server.id) !== 'unknown'" :content="`健康状态: ${getHealthStatusText(getServerHealthStatus(server.id))}`" placement="top" :show-after="300">
                         <el-tag :type="getHealthStatusType(getServerHealthStatus(server.id))" size="small" effect="light" class="health-status">
                           <IconifyIconOnline :icon="getHealthStatusIcon(getServerHealthStatus(server.id))" class="mr-1" />
                           {{ getHealthStatusText(getServerHealthStatus(server.id)) }}
@@ -265,30 +247,19 @@
                     </div>
                   </div>
 
-                  <!-- 实时指标显示 -->
-                  <div v-if="server.metricsSupport && getServerMetrics(server.id)" class="metrics-display">
+                  <!-- 实时指标显示（卡片 + 波纹进度） -->
+                  <div v-if="server.metricsSupport && getServerMetrics(server.id)" class="metrics-cards">
+                    <!-- CPU -->
                     <el-tooltip :content="`CPU使用率: ${Math.round(getServerMetrics(server.id)?.cpuUsage || 0)}%`" placement="top" :show-after="300">
-                      <div class="metric-item">
-                        <span class="metric-label">CPU</span>
-                        <el-progress
-                          :percentage="Math.round(getServerMetrics(server.id)?.cpuUsage || 0)"
-                          :color="getProgressColor(getServerMetrics(server.id)?.cpuUsage || 0, 'cpu')"
-                          :show-text="false"
-                          :stroke-width="4"
-                        />
-                        <span class="metric-value">{{ Math.round(getServerMetrics(server.id)?.cpuUsage || 0) }}%</span>
+                      <div class="metric-card">
+                        <ScProgress type="line" :percentage="Math.round(getServerMetrics(server.id)?.cpuUsage || 0)" :stages="getProgressStages('cpu')" :show-text="true" text-position="inside" :stroke-width="48" />
                       </div>
                     </el-tooltip>
+
+                    <!-- Memory -->
                     <el-tooltip :content="`内存使用率: ${Math.round(getServerMetrics(server.id)?.memoryUsage || 0)}%`" placement="top" :show-after="300">
-                      <div class="metric-item">
-                        <span class="metric-label">内存</span>
-                        <el-progress
-                          :percentage="Math.round(getServerMetrics(server.id)?.memoryUsage || 0)"
-                          :color="getProgressColor(getServerMetrics(server.id)?.memoryUsage || 0, 'memory')"
-                          :show-text="false"
-                          :stroke-width="4"
-                        />
-                        <span class="metric-value">{{ Math.round(getServerMetrics(server.id)?.memoryUsage || 0) }}%</span>
+                      <div class="metric-card">
+                        <ScProgress type="line" :percentage="Math.round(getServerMetrics(server.id)?.memoryUsage || 0)" :stages="getProgressStages('memory')" :show-text="true" text-position="inside" :stroke-width="48" />
                       </div>
                     </el-tooltip>
                   </div>
@@ -317,7 +288,7 @@
                         </el-button>
                       </el-tooltip>
                       <el-tooltip content="更多操作" placement="top" :show-after="500">
-                        <el-dropdown @command="cmd => handleServerAction(cmd, server)" @click.stop.prevent>
+                        <el-dropdown @command="(cmd) => handleServerAction(cmd, server)" @click.stop.prevent>
                           <el-button size="small">
                             <IconifyIconOnline icon="ri:more-line" />
                           </el-button>
@@ -381,15 +352,7 @@
               <!-- 远程桌面组件 (统一处理RDP和VNC) -->
               <RemoteDesktop v-else-if="currentComponent === 'RemoteDesktop'" :server="convertServerForRemoteDesktop(selectedServer)" :key="selectedServerId + '-remote'" @close="closeRightPanel" />
               <!-- 服务器监控组件 -->
-              <ServerMonitor
-                v-else-if="currentComponent === 'ServerMonitor'"
-                :server="selectedServer"
-                :metrics-data="getServerMonitorMetrics(selectedServerId)"
-                :metrics-loading="loading"
-                :key="selectedServerId + '-monitor'"
-                @close="closeRightPanel"
-                @refresh-metrics="handleRefreshMetrics"
-              />
+              <ServerMonitor v-else-if="currentComponent === 'ServerMonitor'" :server="selectedServer" :metrics-data="getServerMonitorMetrics(selectedServerId)" :metrics-loading="loading" :key="selectedServerId + '-monitor'" @close="closeRightPanel" @refresh-metrics="handleRefreshMetrics" />
               <!-- 文件管理组件 -->
               <FileManager v-else-if="currentComponent === 'FileManager'" :server="selectedServer" :key="selectedServerId + '-files'" @close="closeRightPanel" />
               <!-- 脚本管理组件 -->
@@ -397,15 +360,7 @@
               <!-- 服务器详情组件 -->
               <ServerDetailComponents v-else-if="currentComponent === 'ServerDetailComponents'" :server-id="Number(selectedServerId)" :data="selectedServer" :key="selectedServerId + '-detail'" />
               <!-- 默认显示监控组件 -->
-              <ServerMonitor
-                v-else
-                :server="selectedServer"
-                :metrics-data="getServerMonitorMetrics(selectedServerId)"
-                :metrics-loading="loading"
-                :key="selectedServerId + '-default'"
-                @close="closeRightPanel"
-                @refresh-metrics="handleRefreshMetrics"
-              />
+              <ServerMonitor v-else :server="selectedServer" :metrics-data="getServerMonitorMetrics(selectedServerId)" :metrics-loading="loading" :key="selectedServerId + '-default'" @close="closeRightPanel" @refresh-metrics="handleRefreshMetrics" />
             </template>
             <template #fallback>
               <div class="component-loading">
@@ -430,9 +385,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, defineAsyncComponent, Suspense, nextTick } from "vue";
+import { ONLINE_STATUS, SERVER_STATUS, type ServerDisplayData } from "@/api/server";
+import { useGlobalServerLatency } from "@/composables/useServerLatency";
+import { useServerMetricsStore } from "@/stores/serverMetrics";
+import ScProgress from "@repo/components/ScProgress/index.vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
+import { Suspense, computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref } from "vue";
+import { useRouter } from "vue-router";
 
 // 定义 props 接收来自父组件的数据
 interface Props {
@@ -446,7 +406,7 @@ const props = withDefaults(defineProps<Props>(), {
   servers: () => [],
   serverMetrics: () => new Map(),
   wsConnected: false,
-  totalCount: 0
+  totalCount: 0,
 });
 
 // 定义 emits 向父组件发送事件
@@ -455,10 +415,6 @@ const emit = defineEmits<{
   "server-action": [action: string, server: any];
   "select-server": [server: any];
 }>();
-import { getServerPageList, testLocalIpDetection, SERVER_STATUS, ONLINE_STATUS, type ServerDisplayData, type ServerInfo, type ServerMetricsDisplay, mapServerListToDisplayData } from "@/api/server";
-import { useRouter } from "vue-router";
-import { useServerMetricsStore } from "@/stores/serverMetrics";
-import { useGlobalServerLatency } from "@/composables/useServerLatency";
 // 移除 WebSocket 导入，改为通过 props 接收数据
 
 // 异步组件
@@ -505,14 +461,14 @@ const currentComponent = ref("");
 const servers = computed(() => props.servers || []);
 const serverGroups = computed(() => {
   const groups = new Set<string>();
-  servers.value.forEach(server => {
+  servers.value.forEach((server) => {
     if (server.group) {
       groups.add(server.group);
     }
   });
   return Array.from(groups);
 });
-const selectedServer = computed(() => servers.value.find(s => s.id === selectedServerId.value));
+const selectedServer = computed(() => servers.value.find((s) => s.id === selectedServerId.value));
 
 // 服务器指标数据 - 从 props 获取
 const serverMetrics = computed(() => props.serverMetrics || new Map());
@@ -546,13 +502,13 @@ const localDebugVisible = ref(false);
 const localOnlineStatusMap = {
   0: { color: "danger", text: "离线" },
   1: { color: "success", text: "在线" },
-  2: { color: "warning", text: "未知" }
+  2: { color: "warning", text: "未知" },
 } as const;
 
 const localProtocolIconMap = {
   SSH: "ri:terminal-line",
   RDP: "ri:computer-line",
-  VNC: "ri:remote-control-line"
+  VNC: "ri:remote-control-line",
 } as const;
 
 // 计算属性
@@ -561,17 +517,17 @@ const filteredServers = computed(() => {
 
   // 按分组筛选
   if (activeGroup.value !== "all") {
-    result = result.filter(server => server.group === activeGroup.value);
+    result = result.filter((server) => server.group === activeGroup.value);
   }
 
   // 按协议筛选
   if (filterProtocol.value) {
-    result = result.filter(server => server.protocol === filterProtocol.value);
+    result = result.filter((server) => server.protocol === filterProtocol.value);
   }
 
   // 按状态筛选
   if (filterStatus.value) {
-    result = result.filter(server => {
+    result = result.filter((server) => {
       switch (filterStatus.value) {
         case "online":
           return server.onlineStatus === ONLINE_STATUS.ONLINE;
@@ -588,9 +544,7 @@ const filteredServers = computed(() => {
   // 按关键词搜索
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
-    result = result.filter(
-      server => server.name.toLowerCase().includes(keyword) || server.host.toLowerCase().includes(keyword) || (server.description && server.description.toLowerCase().includes(keyword))
-    );
+    result = result.filter((server) => server.name.toLowerCase().includes(keyword) || server.host.toLowerCase().includes(keyword) || (server.description && server.description.toLowerCase().includes(keyword)));
   }
 
   return result;
@@ -613,7 +567,7 @@ const getServerMetrics = (serverId: string) => {
       uptime: metrics.uptime,
       processCount: metrics.processCount,
       loadAverage: metrics.loadAverage,
-      temperature: metrics.temperature
+      temperature: metrics.temperature,
     };
   }
 
@@ -642,24 +596,24 @@ const getServerMonitorMetrics = (serverId: string | null) => {
       cores: 1, // metricsStore中没有这个字段，使用默认值
       load1m: 0, // metricsStore中没有这个字段，使用默认值
       load5m: 0, // metricsStore中没有这个字段，使用默认值
-      load15m: 0 // metricsStore中没有这个字段，使用默认值
+      load15m: 0, // metricsStore中没有这个字段，使用默认值
     },
     memory: {
       total: 0, // metricsStore中没有这个字段，使用默认值
       used: 0, // metricsStore中没有这个字段，使用默认值
       free: 0, // metricsStore中没有这个字段，使用默认值
-      usage: metrics.memoryUsage || 0
+      usage: metrics.memoryUsage || 0,
     },
     disk: {
       total: 0, // metricsStore中没有这个字段，使用默认值
       used: 0, // metricsStore中没有这个字段，使用默认值
       free: 0, // metricsStore中没有这个字段，使用默认值
       usage: metrics.diskUsage || 0,
-      partitions: metrics.diskPartitions || [] // 添加磁盘分区信息
+      partitions: metrics.diskPartitions || [], // 添加磁盘分区信息
     },
     network: {
       in: metrics.networkIn || 0,
-      out: metrics.networkOut || 0
+      out: metrics.networkOut || 0,
     },
     osInfo: metrics.osInfo,
     osName: metrics.osName,
@@ -671,7 +625,7 @@ const getServerMonitorMetrics = (serverId: string | null) => {
     temperature: metrics.temperature,
     networkInPackets: undefined, // metricsStore中没有这个字段
     networkOutPackets: undefined, // metricsStore中没有这个字段
-    extraInfo: undefined // metricsStore中没有这个字段
+    extraInfo: undefined, // metricsStore中没有这个字段
   };
 };
 
@@ -708,7 +662,7 @@ const convertServerForRemoteDesktop = (server: ServerDisplayData | null) => {
     monitorSysGenServerPort: server.port,
     monitorSysGenServerProtocol: server.protocol,
     monitorSysGenServerUsername: server.username,
-    monitorSysGenServerPassword: undefined // ServerDisplayData中没有password字段
+    monitorSysGenServerPassword: undefined, // ServerDisplayData中没有password字段
   };
 };
 
@@ -769,7 +723,7 @@ const getProgressColor = (percentage: number, metricType: string = "cpu") => {
     cpu: { normal: 50, warning: 80, critical: 90 },
     memory: { normal: 60, warning: 80, critical: 90 },
     disk: { normal: 70, warning: 85, critical: 95 },
-    network: { normal: 60, warning: 80, critical: 90 }
+    network: { normal: 60, warning: 80, critical: 90 },
   };
 
   const threshold = thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
@@ -778,8 +732,43 @@ const getProgressColor = (percentage: number, metricType: string = "cpu") => {
   return [
     { color: "#67c23a", percentage: threshold.normal },
     { color: "#e6a23c", percentage: threshold.warning },
-    { color: "#f56c6c", percentage: 100 }
+    { color: "#f56c6c", percentage: 100 },
   ];
+};
+
+/**
+ * ScProgress 阶段颜色
+ */
+const getProgressStages = (metricType: string) => {
+  const thresholds = {
+    cpu: { normal: 50, warning: 80, critical: 100 },
+    memory: { normal: 60, warning: 85, critical: 100 },
+    disk: { normal: 70, warning: 85, critical: 100 },
+    network: { normal: 60, warning: 80, critical: 100 },
+  } as const;
+  const t = (thresholds as any)[metricType] || thresholds.cpu;
+  return [
+    { threshold: t.normal, color: "#67c23a" },
+    { threshold: t.warning, color: "#e6a23c" },
+    { threshold: t.critical, color: "#f56c6c" },
+  ];
+};
+
+/**
+ * 获取指标状态类（normal | warning | critical）
+ */
+const getMetricStatusClass = (percentage: number, metricType: string = "cpu") => {
+  const thresholds = {
+    cpu: { normal: 50, warning: 80, critical: 90 },
+    memory: { normal: 60, warning: 80, critical: 90 },
+    disk: { normal: 70, warning: 85, critical: 95 },
+    network: { normal: 60, warning: 80, critical: 90 },
+  } as const;
+
+  const t = thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
+  if (percentage < t.normal) return "normal";
+  if (percentage < t.warning) return "warning";
+  return "critical";
 };
 
 /**
@@ -809,7 +798,7 @@ const loadServerLatency = async () => {
     if (servers.value.length === 0) return;
 
     // 获取所有服务器ID
-    const serverIds = servers.value.map(server => Number(server.id));
+    const serverIds = servers.value.map((server) => Number(server.id));
 
     // 批量获取延迟数据
     await latencyManager.fetchBatchLatency(serverIds);
@@ -903,8 +892,8 @@ const handleServerAction = async (command: string, server: any) => {
       const routeData = router.resolve({
         name: "fileManager",
         params: {
-          serverId: String(server.monitorSysGenServerId || server.id)
-        }
+          serverId: String(server.monitorSysGenServerId || server.id),
+        },
       });
       window.open(routeData.href, "_blank");
       break;
@@ -945,7 +934,7 @@ const deleteServerConfirm = async (server: any) => {
     await ElMessageBox.confirm(`确定要删除服务器 "${server.name}" 吗？`, "删除确认", {
       type: "warning",
       confirmButtonText: "确定",
-      cancelButtonText: "取消"
+      cancelButtonText: "取消",
     });
 
     console.log("server-management: 通知父组件删除服务器", server);
@@ -1106,7 +1095,7 @@ const updateServerConnectionStatus = async (serverId: string, statusData: any) =
     // 使用nextTick避免立即的响应式更新导致无限递归
     await nextTick();
 
-    const serverIndex = servers.value.findIndex(server => server.id === serverId);
+    const serverIndex = servers.value.findIndex((server) => server.id === serverId);
     if (serverIndex !== -1) {
       // 创建新的服务器对象，避免直接修改原对象
       const updatedServer = { ...servers.value[serverIndex] };
@@ -1848,86 +1837,124 @@ onUnmounted(() => {
         }
       }
 
-      .metrics-display {
-        margin: 16px 0;
-        padding: 16px;
+      /* 新的指标卡片样式 */
+      .metrics-cards {
+        margin: 12px 0;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .metric-card {
         background: linear-gradient(135deg, var(--el-fill-color-extra-light) 0%, var(--el-fill-color-light) 100%);
-        border-radius: 12px;
         border: 1px solid var(--el-border-color-lighter);
+        border-radius: 8px;
+        padding: 0;
+        height: 48px;
+        display: flex;
         backdrop-filter: blur(5px);
+        transition: box-shadow 0.3s ease;
 
-        .metric-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 8px;
-          font-size: 12px;
-
-          &:last-child {
-            margin-bottom: 0;
-          }
-
-          .metric-label {
-            width: 35px;
-            color: var(--el-text-color-secondary);
-            flex-shrink: 0;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 10px;
-          }
-
-          .el-progress {
-            flex: 1;
-
-            :deep(.el-progress-bar__outer) {
-              border-radius: 6px;
-              background-color: var(--el-fill-color-light);
-            }
-
-            :deep(.el-progress-bar__inner) {
-              border-radius: 6px;
-              background: linear-gradient(90deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
-            }
-          }
-
-          .metric-value {
-            width: 40px;
-            text-align: right;
-            font-weight: 600;
-            color: var(--el-text-color-primary);
-            flex-shrink: 0;
-            font-size: 11px;
-          }
-
-          &.network-speed {
-            .network-speeds {
-              display: flex;
-              flex-direction: column;
-              gap: 2px;
-              flex: 1;
-
-              .speed-item {
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                font-size: 10px;
-
-                .speed-direction {
-                  color: var(--el-color-primary);
-                  font-weight: bold;
-                  width: 12px;
-                  text-align: center;
-                }
-
-                .speed-value {
-                  color: var(--el-text-color-primary);
-                  font-weight: 600;
-                  font-size: 10px;
-                }
-              }
-            }
-          }
+        &:hover {
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
         }
+      }
+
+      .metric-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .metric-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--el-text-color-secondary);
+      }
+
+      .metric-card-value {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--el-text-color-primary);
+      }
+
+      .wave-track {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 6px;
+        overflow: hidden;
+        --track-bg: var(--el-fill-color-light);
+        background: var(--track-bg);
+        border: 1px solid var(--el-border-color-lighter);
+      }
+
+      .wave-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 0%;
+        transition: width 0.6s ease;
+        border-radius: 6px;
+      }
+
+      /* 颜色分级 */
+      .wave-track.normal .wave-fill {
+        background: linear-gradient(90deg, #67c23a 0%, #5daf34 100%);
+      }
+      .wave-track.warning .wave-fill {
+        background: linear-gradient(90deg, #e6a23c 0%, #cf8a24 100%);
+      }
+      .wave-track.critical .wave-fill {
+        background: linear-gradient(90deg, #f56c6c 0%, #dd4b4b 100%);
+      }
+
+      /* 右侧为波浪形边缘（动态海浪动画） */
+      .wave-fill::after {
+        content: "";
+        position: absolute;
+        right: -8px;
+        top: 0;
+        bottom: 0;
+        width: 16px;
+        background:
+          radial-gradient(8px 8px at 8px 6px, transparent 7.6px, var(--track-bg) 7.7px) 0 0/100% 16px repeat-y,
+          radial-gradient(8px 8px at 8px 14px, var(--track-bg) 7.6px, transparent 7.7px) 0 8px/100% 16px repeat-y;
+        animation: wave-edge-move 4.8s linear infinite;
+        pointer-events: none;
+      }
+
+      .wave-label {
+        position: absolute;
+        right: 28px; /* 与右侧波浪边保持间距 */
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--el-text-color-primary);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .wave-label-left {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        pointer-events: none;
+        z-index: 1;
       }
 
       .card-actions {
@@ -1952,7 +1979,6 @@ onUnmounted(() => {
 
             &:hover {
               background-color: var(--el-color-primary);
-              color: var(--el-text-color-primary);
               transform: translateY(-1px);
             }
 
@@ -2116,6 +2142,39 @@ onUnmounted(() => {
   }
   50% {
     transform: scale(1.05);
+  }
+}
+
+/* 波纹动画：水平向右移动 */
+@keyframes wave-move {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: 300px;
+  }
+}
+
+@keyframes wave-move-2 {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: 300px;
+  }
+}
+
+/* 右侧波浪边框的上下漂移动画 */
+@keyframes wave-edge-move {
+  from {
+    background-position:
+      0 0,
+      0 8px;
+  }
+  to {
+    background-position:
+      0 16px,
+      0 24px;
   }
 }
 
