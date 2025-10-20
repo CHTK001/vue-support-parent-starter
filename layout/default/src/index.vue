@@ -9,7 +9,7 @@ import { useLayout } from "./hooks/useLayout";
 import { setType } from "./types";
 
 import { deviceDetection, useDark, useGlobal, useResizeObserver } from "@pureadmin/utils";
-import { computed, defineAsyncComponent, defineComponent, h, markRaw, nextTick, onBeforeMount, onMounted, reactive, ref, watch } from "vue";
+import { computed, defineAsyncComponent, defineComponent, h, markRaw, nextTick, onBeforeMount, onMounted, reactive, ref } from "vue";
 //@ts-ignore
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
@@ -17,10 +17,10 @@ import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
 import { localStorageProxy } from "@repo/utils";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LaySetting from "./components/lay-setting/index.vue";
+import NavDoubleLayout from "./components/lay-sidebar/NavDouble.vue";
 import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
 import NavHoverLayout from "./components/lay-sidebar/NavHover.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
-import NavDoubleLayout from "./components/lay-sidebar/NavDouble.vue";
 import LayTag from "./components/lay-tag/index.vue";
 window.onload = () => {
   registerRequestIdleCallback(() => {
@@ -135,14 +135,15 @@ useResizeObserver(appWrapperRef, (entries) => {
  * 获取系统默认配置
  */
 const getDefaultSetting = async () => {
-  useConfigStore().load();
+  await useConfigStore().load();
+  isConfigLoaded.value = true;
 };
 
 onMounted(async () => {
   if (isMobile) {
     toggle("mobile", false);
   }
-  
+
   // 页面加载完成后检查配置并应用
   nextTick(() => {
     // 确保body的layout属性正确设置
@@ -155,11 +156,10 @@ onMounted(async () => {
     } catch (error) {
       console.warn('Failed to call useDataThemeChange in onMounted:', error);
     }
+    // 等待配置加载完成
+    getDefaultSetting();
   });
-  
-  // 等待配置加载完成
-  await getDefaultSetting();
-  isConfigLoaded.value = true;
+
 });
 
 /**
@@ -189,22 +189,22 @@ onBeforeMount(async () => {
   if (url != document.location.href) {
     window.history.replaceState(null, null, url);
   }
-  
+
   // 初始化路由
   if (!getConfig().OpenAuth) {
     initRouter();
   }
-  
+
   // 确保在组件挂载前设置body的layout属性
   if ($storage?.layout?.layout) {
     document.body.setAttribute("layout", $storage.layout.layout);
   }
-  
+
   // 应用主题
   useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);
-  
+
   // 获取默认设置
-  await getDefaultSetting();
+  getDefaultSetting();
 });
 
 const LayHeader = defineComponent({
@@ -236,7 +236,7 @@ const LayHeader = defineComponent({
       <div class="loading-text">{{ t('system.initializing') }}</div>
     </div>
   </div>
-  
+
   <!-- 页面内容 -->
   <div v-else ref="appWrapperRef" :class="['app-wrapper', set.classes]">
     <!-- 卡片导航模式：直接渲染CardNavigation组件 -->
@@ -255,7 +255,8 @@ const LayHeader = defineComponent({
 
     <!-- 双栏导航模式：特殊布局 -->
     <template v-else-if="layout === 'double'">
-      <div v-show="set.device === 'mobile' && set.sidebar.opened" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
+      <div v-show="set.device === 'mobile' && set.sidebar.opened" class="app-mask"
+        @click="useAppStoreHook().toggleSideBar()" />
       <div class="double-layout-container">
         <NavDouble v-show="!pureSetting.hiddenSideBar" />
         <div :class="['main-container', 'double-main', pureSetting.hiddenSideBar ? 'main-hidden' : '']">
@@ -290,7 +291,8 @@ const LayHeader = defineComponent({
 
     <!-- 其他导航模式：原有逻辑 -->
     <template v-else>
-      <div v-show="set.device === 'mobile' && set.sidebar.opened" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
+      <div v-show="set.device === 'mobile' && set.sidebar.opened" class="app-mask"
+        @click="useAppStoreHook().toggleSideBar()" />
       <NavVertical v-show="!pureSetting.hiddenSideBar && (layout === 'vertical' || layout === 'mix')" />
       <NavHover v-show="!pureSetting.hiddenSideBar && layout === 'hover'" />
       <div :class="['main-container', pureSetting.hiddenSideBar ? 'main-hidden' : '']">
@@ -381,7 +383,7 @@ const LayHeader = defineComponent({
   display: flex;
   height: 100%;
   width: 100%;
-  
+
   .double-main {
     flex: 1;
     min-width: 0;
@@ -440,6 +442,7 @@ const LayHeader = defineComponent({
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
