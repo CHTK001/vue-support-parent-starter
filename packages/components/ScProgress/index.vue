@@ -22,9 +22,15 @@
           <!-- 波浪条（中）：固定 capWidth 宽度，波浪填充为背景色，形成波浪边界 -->
           <div v-if="clamped > 0 && clamped < 100" class="sc-progress__wave-strip" :style="waveStripStyle" aria-hidden="true">
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%" :style="{ transform: 'scaleX(-1)', transformOrigin: 'center' }">
-              <path :d="waveBasePath" :fill="currentColor">
-                <animate attributeName="d" :values="waveAnimValues" keyTimes="0;0.33;0.66;1" :dur="waveDur" repeatCount="indefinite" />
-                <animateTransform attributeName="transform" type="translate" from="0 0" to="2 0" :dur="waveDur2" repeatCount="indefinite" />
+              <!-- 前景波浪 -->
+              <path :d="waveBasePath" :fill="currentColor" opacity="0.9">
+                <animate attributeName="d" :values="waveAnimValues" :keyTimes="waveKeyTimes5" :dur="waveDur" repeatCount="indefinite" />
+                <animateTransform attributeName="transform" type="translate" values="0 0; 2 0; 0 0" keyTimes="0;0.5;1" :dur="waveDur2" repeatCount="indefinite" />
+              </path>
+              <!-- 背景波浪（略慢、相位不同） -->
+              <path :d="waveBasePath2" :fill="currentColor" opacity="0.55">
+                <animate attributeName="d" :values="waveAnimValues2" :keyTimes="waveKeyTimes4" :dur="waveDurAlt" repeatCount="indefinite" />
+                <animateTransform attributeName="transform" type="translate" values="0 0; -1.6 0; 0 0" keyTimes="0;0.5;1" :dur="waveDurAlt2" repeatCount="indefinite" />
               </path>
             </svg>
           </div>
@@ -232,12 +238,25 @@ const verticalWavePath = computed(() => buildVerticalWavePath(100, 100, 0.45, 2,
 
 // line 波浪动画（伪随机）
 const waveSeed = Math.random();
+const waveKeyTimes5 = computed(() => "0;0.25;0.5;0.75;1");
+const waveKeyTimes4 = computed(() => "0;0.333;0.666;1");
+// 前景波（首尾一致，消除断点）
 const waveBasePath = computed(() => buildVerticalWavePath(100, 100, 0.44, 2.0, 0));
 const wavePathVar1 = computed(() => buildVerticalWavePath(100, 100, 0.4 + waveSeed * 0.08, 1.8 + waveSeed * 0.5, 0.6 + waveSeed));
 const wavePathVar2 = computed(() => buildVerticalWavePath(100, 100, 0.48, 2.3, 1.2 + waveSeed * 1.5));
-const waveAnimValues = computed(() => [waveBasePath.value, wavePathVar1.value, wavePathVar2.value, waveBasePath.value].join(";"));
-const waveDur = computed(() => `${(2.2 + waveSeed * 1.6).toFixed(2)}s`);
-const waveDur2 = computed(() => `${(3.0 + waveSeed * 1.2).toFixed(2)}s`);
+const wavePathVar3 = computed(() => buildVerticalWavePath(100, 100, 0.45 + waveSeed * 0.05, 2.1, 2.0 + waveSeed * 0.8));
+const waveAnimValues = computed(() => [waveBasePath.value, wavePathVar1.value, wavePathVar2.value, wavePathVar3.value, waveBasePath.value].join(";"));
+// 略慢一些，保证可见但不急促
+const waveDur = computed(() => `${((1.6 + waveSeed * 1.0) * 2.2).toFixed(2)}s`);
+const waveDur2 = computed(() => `${((2.2 + waveSeed * 1.1) * 2.2).toFixed(2)}s`);
+// 背景波（相位/参数不同，首尾一致）
+const waveSeed2 = Math.random();
+const waveBasePath2 = computed(() => buildVerticalWavePath(100, 100, 0.42, 1.7, 0.35 + waveSeed2));
+const wavePathVar1b = computed(() => buildVerticalWavePath(100, 100, 0.46, 2.4, 1.0 + waveSeed2 * 1.1));
+const wavePathVar2b = computed(() => buildVerticalWavePath(100, 100, 0.39 + waveSeed2 * 0.1, 1.9, 1.7 + waveSeed2));
+const waveAnimValues2 = computed(() => [waveBasePath2.value, wavePathVar1b.value, wavePathVar2b.value, waveBasePath2.value].join(";"));
+const waveDurAlt = computed(() => `${((2.0 + waveSeed2 * 1.2) * 2.4).toFixed(2)}s`);
+const waveDurAlt2 = computed(() => `${((2.6 + waveSeed2 * 1.3) * 2.4).toFixed(2)}s`);
 
 // liquid
 const sizePx = computed(() => props.size);
@@ -321,12 +340,35 @@ const tooltipShowAfter = computed(() => props.tooltipShowAfter || 300);
 .sc-progress__bar {
   position: relative;
   width: 100%;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   display: flex;
+  /* 多重外阴影与内阴影塑形 */
   box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.12),
-    inset 0 1px 1px rgba(255, 255, 255, 0.08);
+    0 6px 18px rgba(0, 0, 0, 0.18),
+    0 2px 6px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22);
+}
+.sc-progress__bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* 顶部高光到底部暗角的渐变覆层 */
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 28%, rgba(0, 0, 0, 0.1) 92%, rgba(0, 0, 0, 0.16));
+  mix-blend-mode: overlay;
+}
+.sc-progress__bar::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 6px;
+  pointer-events: none;
+  /* 内部柔和立体层次 */
+  box-shadow:
+    inset 0 2px 8px rgba(255, 255, 255, 0.08),
+    inset 0 -2px 10px rgba(0, 0, 0, 0.12);
 }
 
 .sc-progress__fill {
@@ -334,7 +376,33 @@ const tooltipShowAfter = computed(() => props.tooltipShowAfter || 300);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.12);
+  /* 多重内外阴影让完成段更有厚度 */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    inset 0 0 8px rgba(255, 255, 255, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.08);
+  position: relative;
+  transition: width 2.6s ease-in-out;
+  will-change: width;
+}
+.sc-progress__fill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* 纵向高光渐变 */
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06) 60%, rgba(0, 0, 0, 0.1));
+  mix-blend-mode: soft-light;
+}
+.sc-progress__fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.28;
+  /* 细微斜纹理增加材质感 */
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.06) 0, rgba(255, 255, 255, 0.06) 6px, rgba(0, 0, 0, 0) 6px, rgba(0, 0, 0, 0) 12px);
 }
 
 .sc-progress__wave-strip {
@@ -343,12 +411,31 @@ const tooltipShowAfter = computed(() => props.tooltipShowAfter || 300);
   bottom: 0;
   pointer-events: none;
   z-index: 3;
-  will-change: transform;
+  will-change: transform, left;
+  transition: left 2.6s ease-in-out;
+  transform: translateX(0);
 }
 
 .sc-progress__unfilled {
   flex: 1 1 auto;
   background: v-bind("bgLayerColor");
+  position: relative;
+}
+.sc-progress__unfilled::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* 顶部到下部的环境渐变，让远端更暗一些 */
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.08));
+}
+.sc-progress__unfilled::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.04) 0, rgba(0, 0, 0, 0.04) 8px, rgba(255, 255, 255, 0) 8px, rgba(255, 255, 255, 0) 16px);
 }
 
 .sc-progress__text-overlay {
@@ -372,6 +459,7 @@ const tooltipShowAfter = computed(() => props.tooltipShowAfter || 300);
   font-size: 12px;
   white-space: nowrap;
   padding: 0 6px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .sc-progress__text {
