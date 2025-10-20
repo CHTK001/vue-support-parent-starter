@@ -718,6 +718,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <div>
   <LayPanel>
     <div class="modern-setting-container">
       <!-- 主题风格设置区域 -->
@@ -1276,6 +1277,7 @@ onUnmounted(() => {
       </div>
     </div>
   </LayPanel>
+  </div>
 </template>
 
 <style lang="scss" scoped>

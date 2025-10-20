@@ -1,11 +1,11 @@
-import { ref } from "vue";
-import { defaultRouterArrays, getConfig } from "@repo/config";
-import { useLayout } from "./useLayout";
-import { removeToken, resetRouter, router, useAppStoreHook, useEpThemeStoreHook, useMultiTagsStoreHook } from "@repo/core";
-import type { themeColorsType } from "../types";
+import { darken, lighten } from "@pureadmin/theme/dist/browser-utils";
 import { useGlobal } from "@pureadmin/utils";
-import { darken, lighten, toggleTheme } from "@pureadmin/theme/dist/browser-utils";
+import { defaultRouterArrays, getConfig } from "@repo/config";
+import { removeToken, resetRouter, router, useAppStoreHook, useEpThemeStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import { localStorageProxy } from "@repo/utils";
+import { ref } from "vue";
+import type { themeColorsType } from "../types";
+import { useLayout } from "./useLayout";
 
 export function useDataThemeChange() {
   const { layoutTheme, layout } = useLayout();
@@ -43,7 +43,7 @@ export function useDataThemeChange() {
   }
 
   /** 设置导航主题色 */
-  function setLayoutThemeColor(theme = getConfig().Theme ?? "light", isClick = true) {
+  async function setLayoutThemeColor(theme = getConfig().Theme ?? "light", isClick = true) {
     layoutTheme.value.theme = theme;
     document.documentElement.setAttribute("data-theme", theme);
     // 如果非isClick，保留之前的themeColor
@@ -103,7 +103,7 @@ export function useDataThemeChange() {
   };
 
   /** 浅色、深色整体风格切换 - 优化性能 */
-  function dataThemeChange(overall?: string) {
+  async function dataThemeChange(overall?: string) {
     const htmlElement = document.documentElement;
 
     // 临时禁用所有transition，确保主题切换无延迟
@@ -137,7 +137,7 @@ export function useDataThemeChange() {
     };
 
     // 使用 requestAnimationFrame 确保同步更新
-    requestAnimationFrame(() => {
+    requestAnimationFrame(async () => {
       updates();
 
       // 强制重绘以确保样式立即生效

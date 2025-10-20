@@ -273,6 +273,7 @@ async function loadFavorites() {
   try {
     const stored = await indexedDBProxy().getItem("favoriteMenus");
     if (stored) {
+      //@ts-ignore 
       favoriteMenus.value = stored;
     }
   } catch (error) {
@@ -321,7 +322,7 @@ async function toggleFavorite(menu: any, event?: Event) {
 }
 
 // 处理菜单项悬停（用于显示收藏按钮）
-function handleMenuItemHover(menu: any) {
+async function handleMenuItemHover(menu: any) {
   hoveredMenuItem.value = menu;
 }
 
@@ -460,24 +461,30 @@ const defer = useDefer(firstLevelMenus.value.length);
 
 <template>
   <!-- 悬浮导航模式 -->
-  <div v-loading="loading" :class="['sidebar-hover-container', props.showLogo ? 'has-logo' : 'no-logo', isHoverCollapsed ? 'collapsed' : 'expanded']" @mouseenter.prevent="isShow = true" @mouseleave.prevent="isShow = false">
+  <div
+    :class="['sidebar-hover-container', props.showLogo ? 'has-logo' : 'no-logo', isHoverCollapsed ? 'collapsed' : 'expanded']"
+    @mouseenter.prevent="isShow = true" @mouseleave.prevent="isShow = false">
     <LaySidebarLogo v-if="props.showLogo" :collapse="isHoverCollapsed" />
 
     <!-- 导航栏左侧的收缩按钮 -->
     <div v-show="isShow" class="sidebar-collapse-btn" @click="toggleHoverSideBar">
-      <IconifyIconOffline icon="ri:arrow-left-s-line" :style="{ transform: isHoverCollapsed ? 'rotate(180deg)' : 'none' }" class="sidebar-collapse-icon" />
+      <IconifyIconOffline icon="ri:arrow-left-s-line"
+        :style="{ transform: isHoverCollapsed ? 'rotate(180deg)' : 'none' }" class="sidebar-collapse-icon" />
     </div>
 
     <!-- 悬浮时显示的收缩按钮 -->
     <div v-show="isShow" class="hover-collapse-btn" @click="toggleHoverSideBar">
-      <IconifyIconOffline icon="ri:arrow-left-s-line" :style="{ transform: isHoverCollapsed ? 'rotate(180deg)' : 'none' }" class="collapse-icon" />
+      <IconifyIconOffline icon="ri:arrow-left-s-line"
+        :style="{ transform: isHoverCollapsed ? 'rotate(180deg)' : 'none' }" class="collapse-icon" />
       <span class="collapse-text">{{ isHoverCollapsed ? "点击展开" : "点击折叠" }}</span>
     </div>
 
     <el-scrollbar wrap-class="scrollbar-wrapper" :class="[device === 'mobile' ? 'mobile' : 'pc']">
       <div class="hover-menu-container">
         <!-- 一级菜单 -->
-        <div v-for="(menu, index) in firstLevelMenus" :key="menu.path" class="first-level-menu-item" :class="{ 'is-active': isMenuActive(menu) }" @mouseenter="handleMenuHover(menu, $event)" @mouseleave="handleMenuLeave" @click="handleMenuClick(menu)">
+        <div v-for="(menu, index) in firstLevelMenus" :key="menu.path" class="first-level-menu-item"
+          :class="{ 'is-active': isMenuActive(menu) }" @mouseenter="handleMenuHover(menu, $event)"
+          @mouseleave="handleMenuLeave" @click="handleMenuClick(menu)">
           <div class="menu-content">
             <IconifyIconOnline v-if="menu.meta?.icon" :icon="menu.meta.icon" class="menu-icon" />
             <IconifyIconOnline v-else icon="ep:menu" class="menu-icon" />
@@ -490,16 +497,10 @@ const defer = useDefer(firstLevelMenus.value.length);
 
     <!-- 子菜单弹出层 -->
     <Teleport to="body">
-      <div
-        v-if="subMenuVisible && currentSubMenus.length > 0"
-        class="sub-menu-popup"
-        :style="{
-          top: subMenuPosition.top + 'px',
-          left: subMenuPosition.left + 'px',
-        }"
-        @mouseenter="handleSubMenuHover"
-        @mouseleave="handleSubMenuLeave"
-      >
+      <div v-if="subMenuVisible && currentSubMenus.length > 0" class="sub-menu-popup" :style="{
+        top: subMenuPosition.top + 'px',
+        left: subMenuPosition.left + 'px',
+      }" @mouseenter="handleSubMenuHover" @mouseleave="handleSubMenuLeave">
         <div class="sub-menu-container" :style="{ width: dynamicContainerWidth }">
           <!-- 去掉标题头部 -->
           <div class="sub-menu-content">
@@ -510,22 +511,21 @@ const defer = useDefer(firstLevelMenus.value.length);
                 <p>暂无收藏菜单</p>
                 <span>鼠标悬停在菜单项上点击星标即可收藏</span>
               </div>
-              <div
-                v-else
-                class="favorite-items dynamic-grid"
-                :style="{
-                  gridTemplateColumns: `repeat(${getGridColumns(favoriteMenus.length)}, 1fr)`,
-                  gridTemplateRows: `repeat(${getItemsPerColumn(favoriteMenus.length)}, auto)`,
-                }"
-              >
-                <div v-for="favorite in favoriteMenus" :key="favorite.path" class="menu-item-wrapper" @mouseenter="handleMenuItemHover(favorite)" @mouseleave="handleMenuItemLeave">
-                  <router-link :to="favorite.path" class="favorite-menu-item" @click="handleSubMenuClick(favorite, $event)">
+              <div v-else class="favorite-items dynamic-grid" :style="{
+                gridTemplateColumns: `repeat(${getGridColumns(favoriteMenus.length)}, 1fr)`,
+                gridTemplateRows: `repeat(${getItemsPerColumn(favoriteMenus.length)}, auto)`,
+              }">
+                <div v-for="favorite in favoriteMenus" :key="favorite.path" class="menu-item-wrapper"
+                  @mouseenter="handleMenuItemHover(favorite)" @mouseleave="handleMenuItemLeave">
+                  <router-link :to="favorite.path" class="favorite-menu-item"
+                    @click="handleSubMenuClick(favorite, $event)">
                     <IconifyIconOnline v-if="favorite.icon" :icon="favorite.icon" class="favorite-menu-icon" />
                     <span>{{ favorite.title }}</span>
                     <span class="add-time">{{ formatAddTime(favorite.addTime) }}</span>
                   </router-link>
                   <!-- 取消收藏按钮 -->
-                  <button v-if="hoveredMenuItem?.path === favorite.path" class="favorite-btn remove-favorite" @click="toggleFavorite(favorite, $event)" title="取消收藏">
+                  <button v-if="hoveredMenuItem?.path === favorite.path" class="favorite-btn remove-favorite"
+                    @click="toggleFavorite(favorite, $event)" title="取消收藏">
                     <IconifyIconOnline icon="ep:delete" class="favorite-icon" />
                   </button>
                 </div>
@@ -535,23 +535,26 @@ const defer = useDefer(firstLevelMenus.value.length);
             <!-- 普通菜单内容 - 横向多列布局 -->
             <div v-else class="horizontal-menu-container">
               <!-- 横向多列布局 -->
-              <div
-                class="horizontal-columns-grid"
-                :style="{
-                  gridTemplateColumns: `repeat(${getGridColumns(totalMenuItems)}, 1fr)`,
-                }"
-              >
+              <div class="horizontal-columns-grid" :style="{
+                gridTemplateColumns: `repeat(${getGridColumns(totalMenuItems)}, 1fr)`,
+              }">
                 <!-- 有分组的菜单列 -->
                 <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
                   <div v-if="subMenu.children && subMenu.children.length > 0" class="menu-column">
                     <div class="column-title">{{ subMenu.meta?.title }}</div>
                     <div class="column-items">
-                      <div v-for="thirdMenu in subMenu.children" :key="thirdMenu.path" class="menu-item-wrapper" @mouseenter="handleMenuItemHover(thirdMenu)" @mouseleave="handleMenuItemLeave">
-                        <router-link :to="thirdMenu.path" class="menu-item" :class="{ 'is-active': defaultActive === thirdMenu.path }" @click="handleSubMenuClick(thirdMenu, $event)">
+                      <div v-for="thirdMenu in subMenu.children" :key="thirdMenu.path" class="menu-item-wrapper"
+                        @mouseenter="handleMenuItemHover(thirdMenu)" @mouseleave="handleMenuItemLeave">
+                        <router-link :to="thirdMenu.path" class="menu-item"
+                          :class="{ 'is-active': defaultActive === thirdMenu.path }"
+                          @click="handleSubMenuClick(thirdMenu, $event)">
                           {{ thirdMenu.meta?.title }}
                         </router-link>
                         <!-- 收藏按钮 -->
-                        <button v-if="hoveredMenuItem?.path === thirdMenu.path" class="favorite-btn" :class="{ 'is-favorited': isMenuFavorited(thirdMenu) }" @click="toggleFavorite(thirdMenu, $event)" :title="isMenuFavorited(thirdMenu) ? '取消收藏' : '添加收藏'">
+                        <button v-if="hoveredMenuItem?.path === thirdMenu.path" class="favorite-btn"
+                          :class="{ 'is-favorited': isMenuFavorited(thirdMenu) }"
+                          @click="toggleFavorite(thirdMenu, $event)"
+                          :title="isMenuFavorited(thirdMenu) ? '取消收藏' : '添加收藏'">
                           <IconifyIconOnline :icon="isMenuFavorited(thirdMenu) ? 'ep:star-filled' : 'ep:star'" />
                         </button>
                       </div>
@@ -560,16 +563,22 @@ const defer = useDefer(firstLevelMenus.value.length);
                 </template>
 
                 <!-- 直接的二级菜单项作为单独列 -->
-                <div v-if="currentSubMenus.some((menu) => !menu.children || menu.children.length === 0)" class="menu-column">
+                <div v-if="currentSubMenus.some((menu) => !menu.children || menu.children.length === 0)"
+                  class="menu-column">
                   <div class="column-title">其他功能</div>
                   <div class="column-items">
                     <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
-                      <div v-if="!subMenu.children || subMenu.children.length === 0" class="menu-item-wrapper" @mouseenter="handleMenuItemHover(subMenu)" @mouseleave="handleMenuItemLeave">
-                        <router-link :to="subMenu.path" class="menu-item" :class="{ 'is-active': defaultActive === subMenu.path }" @click="handleSubMenuClick(subMenu, $event)">
+                      <div v-if="!subMenu.children || subMenu.children.length === 0" class="menu-item-wrapper"
+                        @mouseenter="handleMenuItemHover(subMenu)" @mouseleave="handleMenuItemLeave">
+                        <router-link :to="subMenu.path" class="menu-item"
+                          :class="{ 'is-active': defaultActive === subMenu.path }"
+                          @click="handleSubMenuClick(subMenu, $event)">
                           {{ subMenu.meta?.title }}
                         </router-link>
                         <!-- 收藏按钮 -->
-                        <button v-if="hoveredMenuItem?.path === subMenu.path" class="favorite-btn" :class="{ 'is-favorited': isMenuFavorited(subMenu) }" @click="toggleFavorite(subMenu, $event)" :title="isMenuFavorited(subMenu) ? '取消收藏' : '添加收藏'">
+                        <button v-if="hoveredMenuItem?.path === subMenu.path" class="favorite-btn"
+                          :class="{ 'is-favorited': isMenuFavorited(subMenu) }" @click="toggleFavorite(subMenu, $event)"
+                          :title="isMenuFavorited(subMenu) ? '取消收藏' : '添加收藏'">
                           <IconifyIconOnline :icon="isMenuFavorited(subMenu) ? 'ep:star-filled' : 'ep:star'" />
                         </button>
                       </div>
@@ -657,18 +666,21 @@ const defer = useDefer(firstLevelMenus.value.length);
 
   &:hover {
     transform: translateX(4px);
-    
+
     /* 深色主题下悬停样式 */
     html.dark & {
       .menu-content {
-        color: #ffffff; /* 悬停时保持白色 */
-        
+        color: #ffffff;
+        /* 悬停时保持白色 */
+
         .menu-icon {
-          color: #ffffff; /* 悬停时保持白色 */
+          color: #ffffff;
+          /* 悬停时保持白色 */
         }
-        
+
         .menu-title {
-          color: #ffffff; /* 悬停时保持白色 */
+          color: #ffffff;
+          /* 悬停时保持白色 */
         }
       }
     }
@@ -676,13 +688,15 @@ const defer = useDefer(firstLevelMenus.value.length);
 
   &.is-active {
     background: var(--el-color-primary);
-    color: #ffffff !important; /* 强制设置为白色确保可见性 */
+    color: #ffffff !important;
+    /* 强制设置为白色确保可见性 */
     font-weight: 600;
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
-    
+
     svg,
     i {
-      color: #ffffff !important; /* 强制设置为白色确保可见性 */
+      color: #ffffff !important;
+      /* 强制设置为白色确保可见性 */
     }
   }
 
@@ -691,12 +705,14 @@ const defer = useDefer(firstLevelMenus.value.length);
     align-items: center;
     height: 100%;
     padding: 0 16px;
-    color: #000000; /* 未选中状态为黑色 */
+    color: #000000;
+    /* 未选中状态为黑色 */
 
     .menu-icon {
       font-size: 18px;
       margin-right: 12px;
-      color: #000000; /* 未选中状态为黑色 */
+      color: #000000;
+      /* 未选中状态为黑色 */
       transition: all 0.3s;
     }
 
@@ -710,14 +726,17 @@ const defer = useDefer(firstLevelMenus.value.length);
   /* 深色主题下的样式 */
   html.dark & {
     .menu-content {
-      color: #ffffff; /* 未选中状态为白色 */
+      color: #ffffff;
+      /* 未选中状态为白色 */
 
       .menu-icon {
-        color: #ffffff; /* 未选中状态为白色 */
+        color: #ffffff;
+        /* 未选中状态为白色 */
       }
 
       .menu-title {
-        color: #ffffff; /* 未选中状态为白色 */
+        color: #ffffff;
+        /* 未选中状态为白色 */
       }
     }
   }
@@ -917,17 +936,20 @@ const defer = useDefer(firstLevelMenus.value.length);
 
   &.is-active {
     background: var(--el-color-primary);
-    color: var(--pure-menu-active-text-color) !important; /* 使用新定义的变量，确保在所有主题下都是白色 */
+    color: var(--pure-menu-active-text-color) !important;
+    /* 使用新定义的变量，确保在所有主题下都是白色 */
     font-weight: 600;
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
 
   }
 }
+
 .is-active {
   .menu-title {
-      color: #fff;
-    }
+    color: #fff;
+  }
 }
+
 /* 收藏按钮 - 横向布局 */
 .favorite-btn {
   position: absolute;
