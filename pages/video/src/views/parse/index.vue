@@ -19,6 +19,11 @@ const env = reactive({
   history: [],
   apis: [
     {
+      label: "夜幕接口",
+      value: "1",
+      url: "https://www.yemu.xyz/?url={{input}}",
+    },
+    {
       label: "通用接口1",
       value: "1",
       url: "https://jx.xmflv.cc/?url={{input}}",
