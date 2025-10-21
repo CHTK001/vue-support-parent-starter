@@ -1,3 +1,29 @@
+.is-active {
+  .new-re-text {
+    // 亮色主题下显示黑色文字
+    color: #ffffff !important;
+  }
+}
+
+.router-link-exact-active {
+  .new-re-text {
+    // 亮色主题下显示黑色文字
+    color: #ffffff !important;
+  }
+}
+
+.new-re-text {
+  // 亮色主题下显示黑色文字
+  color: var(--app-text-primary);
+
+  // 深色主题下显示白色文字
+  html.dark & {
+    color: #ffffff;
+  }
+}
+
+//=======================================================================================================================
+
 .justify-center {
   justify-content: center;
 }
@@ -9,9 +35,9 @@ img {
 }
 .scTable-page-parent {
   display: flex;
-    justify-content: start;
-    margin-top: 20px;
-    position: relative;
+  justify-content: start;
+  margin-top: 20px;
+  position: relative;
 }
 .scTable-page {
   background-color: #fff;
@@ -34,7 +60,7 @@ img {
 }
 
 .rounded-2\.5 {
-  border-radius: .625rem;
+  border-radius: 0.625rem;
 }
 
 .text-center {
@@ -73,15 +99,15 @@ img {
   border-radius: var(--loading-border-radius);
   background-color: rgba(0, 0, 0, 0.09);
   .shadow-bg {
-      width: 70px;
-      height: 70px;
-      background-color: rgba(0, 0, 0, .6);
-      border-radius: 0.625rem;
+    width: 70px;
+    height: 70px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 0.625rem;
   }
   .text {
-    color:black
+    color: black;
   }
-  
+
   .shadow-bg1 {
     width: 70px;
     height: 70px;
@@ -100,15 +126,15 @@ img {
   border-radius: var(--loading-border-radius);
   background-color: rgba(0, 0, 0, 0.6);
   .shadow-bg-text {
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, .6);
-      border-radius: 0.625rem;
-    }
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 0.625rem;
+  }
   .shadow-bg {
     width: 70px;
     height: 70px;
-    background-color: rgba(0, 0, 0, .6);
+    background-color: rgba(0, 0, 0, 0.6);
     border-radius: 0.625rem;
   }
   .shadow-bg1 {
@@ -138,11 +164,11 @@ img {
 }
 
 .w-3 {
-  width: .75rem;
+  width: 0.75rem;
 }
 
 .h-3 {
-  height: .75rem;
+  height: 0.75rem;
 }
 
 .font-700,
@@ -155,10 +181,9 @@ img {
   &::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: rgba(64, 158, 255, 0.1);
     border-radius: 3px;
   }
 }
-

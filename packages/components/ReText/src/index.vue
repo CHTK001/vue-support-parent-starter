@@ -1,7 +1,6 @@
 <script lang="ts" setup>
-import { h, onMounted, ref, useSlots } from "vue";
+import { h, onMounted, PropType, ref, useSlots } from "vue";
 import { type TippyOptions, useTippy } from "vue-tippy";
-import {PropType} from "vue";
 
 defineOptions({
   name: "ReText"
@@ -53,34 +52,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <el-text
-    class="new-re-text"
-    v-bind="{
-      truncated: !lineClamp,
-      lineClamp,
-      ...$attrs
-    }"
-    ref="textRef"
-    @mouseover.self="handleHover"
-  >
+  <el-text v-bind="{
+    truncated: !lineClamp,
+    lineClamp,
+    ...$attrs
+  }" ref="textRef" class="new-re-text" @mouseover.self="handleHover">
     <slot />
   </el-text>
 </template>
-<style lang="scss" scoped>
-
-.router-link-exact-active {
-  .new-re-text {
-    // 亮色主题下显示黑色文字
-    color: #ffffff;
-  }
-}
-.new-re-text {
-  // 亮色主题下显示黑色文字
-  color: var(--app-text-primary);
-  
-  // 深色主题下显示白色文字
-  html.dark & {
-    color: #ffffff;
-  }
-}
-</style>
+<style lang="scss" scoped></style>
