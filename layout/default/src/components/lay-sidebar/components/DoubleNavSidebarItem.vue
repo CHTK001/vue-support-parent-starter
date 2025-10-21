@@ -253,7 +253,7 @@ const isSubMenuOpened = computed(() => {
 }
 .router-link-exact-active{
   .new-re-text{
-    color: #fff;
+    color: #fff !important;
   }
 }
 

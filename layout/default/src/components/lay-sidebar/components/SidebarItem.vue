@@ -151,7 +151,7 @@ function resolvePath(routePath: string) {
 <style lang="scss" scoped>
 .router-link-exact-active {
   .new-re-text {
-    color: #FFF;
+    color: #FFF !important;
   }
 }
 </style>

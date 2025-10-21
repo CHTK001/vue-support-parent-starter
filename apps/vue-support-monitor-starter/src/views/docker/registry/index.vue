@@ -1,6 +1,5 @@
 <template>
   <div class="registry-management">
-    <ProgressMonitor />
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -11,7 +10,8 @@
         <div class="page-subtitle">配置和管理远程软件镜像仓库地址</div>
       </div>
       <div class="header-right">
-        <el-button type="primary" circle title="添加仓库" @click="openCreateDialog">
+        <el-button type="primary" circle :disabled="!canCreate" :title="canCreate ? '添加仓库' : '仅支持一个仓库'"
+          @click="openCreateDialog">
           <IconifyIconOnline icon="ri:add-line" />
         </el-button>
       </div>
@@ -40,11 +40,6 @@
           <el-option label="阿里云" value="aliyun" />
           <el-option label="Harbor" value="harbor" />
           <el-option label="自定义" value="custom" />
-        </el-select>
-        <el-select v-model="searchParams.serverId" placeholder="服务器" clearable class="filter-select"
-          @change="handleSearch">
-          <el-option label="全部" value="" />
-          <el-option v-for="server in serverOptions" :key="server.id" :label="server.name" :value="server.id" />
         </el-select>
       </div>
       <div class="search-right">
@@ -166,8 +161,8 @@
                 <IconifyIconOnline icon="ri:wifi-line" />
               </el-button>
               <el-button size="small" :type="row.systemSoftRegistryIsDefault === 1 ? 'primary' : 'warning'" circle
-                :title="row.systemSoftRegistryIsDefault === 1 ? '默认仓库' : '设置为默认'"
-                :disabled="row.systemSoftRegistryIsDefault === 1" @click="handleSetDefault(row.systemSoftRegistryId)">
+                :title="row.systemSoftRegistryIsDefault === 1 ? '取消默认' : '设置为默认'"
+                @click="handleToggleDefault(row)">
                 <IconifyIconOnline :icon="row.systemSoftRegistryIsDefault === 1 ? 'ri:star-fill' : 'ri:star-line'" />
               </el-button>
             </div>
@@ -206,8 +201,6 @@
 
 <script setup lang="ts">
 import { registryApi, type SystemSoftRegistry } from "@/api/docker-management";
-import { getServerPageList } from "@/api/server";
-import ProgressMonitor from "@/components/ProgressMonitor.vue";
 import { connectSocket, enableAutoConnect } from "@/utils/socket";
 import { ScRibbon } from "@repo/components/ScRibbon";
 import ScTable from "@repo/components/ScTable/index.vue";
@@ -234,14 +227,14 @@ const tableKey = ref(0);
 const selectedIds = ref<number[]>([]);
 const registryList = ref<SystemSoftRegistry[]>([]);
 const total = ref(0);
-const serverOptions = ref<Array<{ id: number; name: string }>>([]);
+// 仅支持单仓库：当存在仓库时禁用新增
+const canCreate = ref(true);
 
 // 搜索参数
 const searchParams = reactive({
   keyword: "",
   status: "",
   type: "",
-  serverId: "",
   page: 1,
   size: 10,
 });
@@ -260,8 +253,9 @@ const pagination = reactive({
 });
 
 // 刷新表格
-const loadRegistries = () => {
+const loadRegistries = async () => {
   tableKey.value++;
+  await refreshCreateAbility();
 };
 
 // 搜索
@@ -281,21 +275,34 @@ const resetSearch = () => {
   loadRegistries();
 };
 
-// 加载服务器列表
-const loadServers = async () => {
+// 计算是否允许新增（仅支持一个仓库）
+const refreshCreateAbility = async () => {
   try {
-    const res = await getServerPageList({ page: 1, pageSize: 1000 });
+    const res = await registryApi.getAllRegistries();
     if (res.code === "00000") {
-      const records = (res.data?.records || []) as any[];
-      serverOptions.value = records.map((it) => ({ id: it.monitorSysGenServerId, name: it.monitorSysGenServerName }));
+      const list = res.data || [];
+      canCreate.value = list.length === 0;
     }
   } catch (e) {
-    // 忽略错误
+    canCreate.value = true;
   }
 };
 
 // 打开创建对话框
-const openCreateDialog = () => {
+const openCreateDialog = async () => {
+  await refreshCreateAbility();
+  if (!canCreate.value) {
+    // 若已有仓库，直接打开编辑第一个仓库
+    try {
+      const res = await registryApi.getAllRegistries();
+      const list = res.code === "00000" ? (res.data || []) : [];
+      if (list.length > 0) {
+        currentRegistry.value = list[0] as any;
+        dialogVisible.value = true;
+        return;
+      }
+    } catch { }
+  }
   currentRegistry.value = null;
   dialogVisible.value = true;
 };
@@ -312,18 +319,21 @@ const handleDialogSuccess = () => {
   ElMessage.success("操作成功");
 };
 
-// 设置默认
-const handleSetDefault = async (registryId: number) => {
+// 切换默认（允许多个默认；再次点击取消默认）
+const handleToggleDefault = async (row: SystemSoftRegistry) => {
   try {
-    const res = await registryApi.setDefaultRegistry(registryId);
+    const isDefault = row.systemSoftRegistryIsDefault === 1;
+    const res = isDefault
+      ? await registryApi.cancelDefaultRegistry(row.systemSoftRegistryId!)
+      : await registryApi.setDefaultRegistry(row.systemSoftRegistryId!);
     if (res.code === "00000") {
-      ElMessage.success(res.msg || "已设为默认");
+      ElMessage.success(isDefault ? (res.msg || "已取消默认") : (res.msg || "已设为默认"));
       loadRegistries();
     } else {
-      ElMessage.error(res.msg || "设置失败");
+      ElMessage.error(res.msg || "操作失败");
     }
   } catch (e) {
-    ElMessage.error("设置失败");
+    ElMessage.error("操作失败");
   }
 };
 
@@ -549,7 +559,6 @@ const formatTime = (time?: string) => {
 onMounted(() => {
   enableAutoConnect();
   connectSocket().catch(() => { });
-  loadServers();
   loadRegistries();
 });
 </script>

@@ -35,7 +35,7 @@
             show-overflow-tooltip
           >
             <template #header="{ column }">
-              <span @click="onColClick(column, $event)" style="cursor: pointer;">
+              <span style="cursor: pointer" @click="onColClick(column, $event)">
                 {{ item.label }}
               </span>
             </template>

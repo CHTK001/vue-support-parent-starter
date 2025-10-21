@@ -289,16 +289,28 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerApiUrl">
+      <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerHost">
         <template #label>
           <div class="form-label">
-            <span>Docker API地址</span>
-            <el-tooltip content="Docker API的访问地址，如：unix:///var/run/docker.sock 或 tcp://localhost:2376" placement="top" effect="dark">
+            <span>Docker API主机</span>
+            <el-tooltip content="Docker API 服务的主机名或IP，例如：127.0.0.1" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input v-model="formData.monitorSysGenServerSettingDockerApiUrl" placeholder="如：unix:///var/run/docker.sock" maxlength="200" @change="handleChange" />
+        <el-input v-model="formData.monitorSysGenServerSettingDockerHost" placeholder="127.0.0.1" maxlength="200" @change="handleChange" />
+      </el-form-item>
+
+      <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerPort">
+        <template #label>
+          <div class="form-label">
+            <span>Docker API端口</span>
+            <el-tooltip content="Docker API 服务的端口，例如：2376" placement="top" effect="dark">
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number v-model="formData.monitorSysGenServerSettingDockerPort" :min="1" :max="65535" :step="1" placeholder="2376" style="width: 200px" @change="handleChange" />
       </el-form-item>
 
       <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerApiVersion">
@@ -323,6 +335,43 @@
           </div>
         </template>
         <el-switch v-model="formData.monitorSysGenServerSettingDockerTlsEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
+      </el-form-item>
+
+      <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerUsername">
+        <template #label>
+          <div class="form-label">
+            <span>API用户名</span>
+            <el-tooltip content="Docker API 基本认证用户名（可选）" placement="top" effect="dark">
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input v-model="formData.monitorSysGenServerSettingDockerUsername" placeholder="可选" maxlength="100" @change="handleChange" />
+      </el-form-item>
+
+      <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerPassword">
+        <template #label>
+          <div class="form-label">
+            <span>API密码</span>
+            <el-tooltip content="Docker API 基本认证密码（可选）" placement="top" effect="dark">
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input v-model="formData.monitorSysGenServerSettingDockerPassword" type="password" show-password placeholder="可选" maxlength="100" @change="handleChange" />
+      </el-form-item>
+
+      <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerConnectTimeoutMillis">
+        <template #label>
+          <div class="form-label">
+            <span>连接超时</span>
+            <el-tooltip content="Docker API 连接超时时间（秒，可选）" placement="top" effect="dark">
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number v-model="dockerConnectTimeoutSeconds" :min="1" :max="600" :step="1" placeholder="30" style="width: 200px" @change="handleChange" />
+        <span class="form-tip">秒（默认30）</span>
       </el-form-item>
     </div>
 
@@ -1079,7 +1128,7 @@
 import type { FileManagementApiConfig, ServerSetting } from "@/api/server/setting";
 import { getAvailableNodeClients, testFileManagementConnection as testFileManagementConnectionApi } from "@/api/server/setting";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { nextTick, reactive, ref, watch } from "vue";
+import { nextTick, reactive, ref, watch, computed } from "vue";
 
 // 定义属性
 const props = defineProps<{
@@ -1133,8 +1182,13 @@ const DEFAULT_VALUES = {
   monitorSysGenServerSettingDockerEnabled: 0,
   monitorSysGenServerSettingDockerMonitorEnabled: 0,
   monitorSysGenServerSettingDockerConnectionType: "SHELL",
+  monitorSysGenServerSettingDockerHost: "",
+  monitorSysGenServerSettingDockerPort: undefined,
   monitorSysGenServerSettingDockerApiVersion: "1.40",
   monitorSysGenServerSettingDockerTlsEnabled: 0,
+  monitorSysGenServerSettingDockerUsername: "",
+  monitorSysGenServerSettingDockerPassword: "",
+  monitorSysGenServerSettingDockerConnectTimeoutMillis: 30000,
 
   // 代理配置默认值
   monitorSysGenServerSettingProxyEnabled: 0,
@@ -1330,6 +1384,18 @@ watch(
   { immediate: true, deep: true }
 );
 
+// Docker API 连接超时（秒）双向绑定（内部以毫秒存储）
+const dockerConnectTimeoutSeconds = computed({
+  get() {
+    const ms = Number(formData.monitorSysGenServerSettingDockerConnectTimeoutMillis || 30000);
+    return Math.max(1, Math.round(ms / 1000));
+  },
+  set(v: number) {
+    const seconds = Number(v || 30);
+    formData.monitorSysGenServerSettingDockerConnectTimeoutMillis = Math.max(1, seconds) * 1000;
+  },
+});
+
 // 监听表单数据变化
 watch(
   formData,
@@ -1344,6 +1410,28 @@ watch(
     }
   },
   { deep: true }
+);
+
+// 当启用 Docker 且选择 API 连接方式时，自动填充默认主机和端口
+watch(
+  () => [
+    formData.monitorSysGenServerSettingDockerEnabled,
+    formData.monitorSysGenServerSettingDockerConnectionType,
+  ],
+  () => {
+    if (
+      formData.monitorSysGenServerSettingDockerEnabled === 1 &&
+      formData.monitorSysGenServerSettingDockerConnectionType === "API"
+    ) {
+      if (!formData.monitorSysGenServerSettingDockerHost) {
+        formData.monitorSysGenServerSettingDockerHost = "127.0.0.1";
+      }
+      if (!formData.monitorSysGenServerSettingDockerPort) {
+        formData.monitorSysGenServerSettingDockerPort = 2376 as any;
+      }
+      handleChange();
+    }
+  }
 );
 
 /**

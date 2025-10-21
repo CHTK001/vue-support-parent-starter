@@ -142,6 +142,25 @@ interface BatchOperationResult {
 
 ## API 接口
 
+### 在线搜索（SPI 默认仓库）
+
+- GET /v1/system/soft/online/search
+  - 描述：基于 SPI(ServiceProvider) 聚合已设置为默认的仓库，实现跨仓库关键词搜索
+  - 请求参数：keyword(string, 必填), page(number), size(number)
+  - 响应：{ records: SystemSoft[], total: number }
+
+- POST /v1/system/soft/online/import
+  - 描述：将在线检索的结果异步入库为软件条目，返回入队数量
+  - 请求体：{ items: Array<Partial<SystemSoft> & { systemSoftDockerImage?: string }> }
+  - 响应：{ queued: number }
+
+### 仓库默认设置（多默认支持）
+
+- POST /v1/system/soft/registry/{id}/default
+  - 描述：将指定仓库设置为默认（不影响其他已默认仓库）
+- POST /v1/system/soft/registry/{id}/default/cancel
+  - 描述：取消指定仓库的默认状态
+
 ### 软件管理
 
 #### 1. 获取软件分页列表

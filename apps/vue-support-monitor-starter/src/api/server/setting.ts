@@ -58,12 +58,31 @@ export interface ServerSetting {
   monitorSysGenServerSettingAlertSilenceDuration?: number;
   /** 是否启用自动恢复通知 0:否 1:是 */
   monitorSysGenServerSettingAutoRecoveryNotificationEnabled?: number;
+
+  // ==================== Docker 配置 ====================
+  /** 是否支持Docker 0:否 1:是（部分页面使用） */
+  monitorSysGenServerSettingDockerEnabled?: number;
   /** 是否启用Docker监控 0:否 1:是 */
   monitorSysGenServerSettingDockerMonitorEnabled?: number;
-  /** Docker API地址 */
+  /** Docker 连接方式（SHELL/API） - 部分页面使用 */
+  monitorSysGenServerSettingDockerConnectionType?: string;
+  /** Docker API 主机 */
+  monitorSysGenServerSettingDockerHost?: string;
+  /** Docker API 端口 */
+  monitorSysGenServerSettingDockerPort?: number;
+  /** Docker API地址（兼容旧字段） */
   monitorSysGenServerSettingDockerApiUrl?: string;
   /** Docker API版本 */
   monitorSysGenServerSettingDockerApiVersion?: string;
+  /** 是否启用Docker TLS 0:否 1:是 */
+  monitorSysGenServerSettingDockerTlsEnabled?: number;
+  /** Docker API 基本认证用户名（可选） */
+  monitorSysGenServerSettingDockerUsername?: string;
+  /** Docker API 基本认证密码（可选） */
+  monitorSysGenServerSettingDockerPassword?: string;
+  /** Docker API 连接超时时间（毫秒，可选，默认30000） */
+  monitorSysGenServerSettingDockerConnectTimeoutMillis?: number;
+
   /** 是否启用代理 0:否 1:是 */
   monitorSysGenServerSettingProxyEnabled?: number;
   /** 代理类型 */

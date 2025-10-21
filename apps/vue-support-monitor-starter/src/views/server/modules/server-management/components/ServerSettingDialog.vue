@@ -524,14 +524,39 @@
                 v-if="formData.monitorSysGenServerSettingDockerMonitorEnabled"
               >
                 <el-form-item
-                  label="Docker API地址"
-                  prop="monitorSysGenServerSettingDockerApiUrl"
+                  label="Docker API主机"
+                  prop="monitorSysGenServerSettingDockerHost"
                 >
                   <el-input
-                    v-model="formData.monitorSysGenServerSettingDockerApiUrl"
-                    placeholder="Docker API地址，如：tcp://localhost:2376"
+                    v-model="formData.monitorSysGenServerSettingDockerHost"
+                    placeholder="例如：127.0.0.1"
                     clearable
                   />
+                </el-form-item>
+
+                <el-form-item
+                  label="Docker API端口"
+                  prop="monitorSysGenServerSettingDockerPort"
+                >
+                  <el-input-number
+                    v-model="formData.monitorSysGenServerSettingDockerPort"
+                    :min="1"
+                    :max="65535"
+                    placeholder="例如：2376"
+                    controls-position="right"
+                  />
+                </el-form-item>
+
+                <el-form-item label="API用户名" prop="monitorSysGenServerSettingDockerUsername">
+                  <el-input v-model="formData.monitorSysGenServerSettingDockerUsername" placeholder="可选" clearable />
+                </el-form-item>
+
+                <el-form-item label="API密码" prop="monitorSysGenServerSettingDockerPassword">
+                  <el-input v-model="formData.monitorSysGenServerSettingDockerPassword" type="password" show-password placeholder="可选" clearable />
+                </el-form-item>
+
+                <el-form-item label="连接超时(秒)" prop="monitorSysGenServerSettingDockerConnectTimeoutMillis">
+                  <el-input-number v-model="dockerConnectTimeoutSecondsDialog" :min="1" :max="600" :step="1" placeholder="30" controls-position="right" />
                 </el-form-item>
 
                 <el-form-item
@@ -629,7 +654,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed } from "vue";
+import { reactive, ref, computed, watch } from "vue";
 import { message } from "@repo/utils";
 import {
   type ServerSetting,
@@ -692,8 +717,12 @@ const formData = reactive<Partial<ServerSetting>>({
   monitorSysGenServerSettingConnectionTimeout: 30,
   monitorSysGenServerSettingReadTimeout: 30,
   monitorSysGenServerSettingDockerMonitorEnabled: 0,
-  monitorSysGenServerSettingDockerApiUrl: "",
+  monitorSysGenServerSettingDockerHost: "127.0.0.1",
+  monitorSysGenServerSettingDockerPort: 2376,
   monitorSysGenServerSettingDockerApiVersion: "1.40",
+  monitorSysGenServerSettingDockerUsername: "",
+  monitorSysGenServerSettingDockerPassword: "",
+  monitorSysGenServerSettingDockerConnectTimeoutMillis: 30000,
   monitorSysGenServerSettingLogMonitorEnabled: 0,
   monitorSysGenServerSettingLogFilePaths: "",
   monitorSysGenServerSettingMonitorPorts: "",
@@ -797,6 +826,36 @@ const loadServerSetting = async () => {
 };
 
 // 表单变化处理已集成到各个配置项中
+
+// 当开启 Docker 监控时，若未填写主机/端口，则默认填充 127.0.0.1:2376
+watch(
+  () => formData.monitorSysGenServerSettingDockerMonitorEnabled,
+  (val) => {
+    if (val === 1) {
+      if (!formData.monitorSysGenServerSettingDockerHost) {
+        formData.monitorSysGenServerSettingDockerHost = "127.0.0.1";
+      }
+      if (!formData.monitorSysGenServerSettingDockerPort) {
+        formData.monitorSysGenServerSettingDockerPort = 2376 as any;
+      }
+      if (!formData.monitorSysGenServerSettingDockerConnectTimeoutMillis) {
+        formData.monitorSysGenServerSettingDockerConnectTimeoutMillis = 30000 as any;
+      }
+    }
+  }
+);
+
+// Docker API 连接超时（秒）双向绑定（内部以毫秒存储）
+const dockerConnectTimeoutSecondsDialog = computed({
+  get() {
+    const ms = Number(formData.monitorSysGenServerSettingDockerConnectTimeoutMillis || 30000);
+    return Math.max(1, Math.round(ms / 1000));
+  },
+  set(v: number) {
+    const seconds = Number(v || 30);
+    formData.monitorSysGenServerSettingDockerConnectTimeoutMillis = Math.max(1, seconds) * 1000;
+  },
+});
 
 /**
  * 获取通知地址占位符

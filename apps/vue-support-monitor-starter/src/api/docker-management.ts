@@ -221,6 +221,11 @@ export function setDefaultRegistry(id: number) {
   return http.request<ReturnResult<boolean>>("post", `v1/system/soft/registry/${id}/default`);
 }
 
+// 取消默认仓库（后端建议为 POST /{id}/default/cancel）
+export function cancelDefaultRegistry(id: number) {
+  return http.request<ReturnResult<boolean>>("post", `v1/system/soft/registry/${id}/default/cancel`);
+}
+
 // ========= 2. 软件管理API =========
 
 // 分页查询软件列表（已存在 v1 兼容控制器）
@@ -244,7 +249,30 @@ export function deleteSoft(id: number) {
 export function syncSoftware(registryId?: number) {
   return http.request<ReturnResult<{ operationId: string }>>("post", "v1/system/soft/sync", { data: { registryId } });
 }
-export function installSoftware(data: { softId: number; serverIds: number[]; imageTag?: string; installMethod?: string; installParams?: string; }) {
+export type InstallPort = { host: string; container: string; protocol?: string };
+export type InstallEnv = { key: string; value: string };
+export type InstallVolume = { host: string; container: string; ro?: boolean };
+
+export function installSoftware(data: {
+  softId: number;
+  serverIds: number[];
+  imageTag?: string;
+  command?: string;
+  ports?: InstallPort[];
+  env?: InstallEnv[];
+  volumes?: InstallVolume[];
+  networkMode?: string;
+  restartPolicy?: string;
+  memoryLimit?: number;
+  cpuLimit?: number;
+  workingDir?: string;
+  user?: string;
+  autoStart?: boolean;
+  autoRemove?: boolean;
+  privileged?: boolean;
+  healthcheck?: string;
+  maxRetries?: number;
+}) {
   return http.request<ReturnResult<{ operationId: string }>>("post", "v1/system/soft/install", { data });
 }
 export function getSoftwareStats() {
@@ -370,7 +398,24 @@ export const registryApi = {
   testRegistryConnection,
   syncRegistry,
   setDefaultRegistry,
+  cancelDefaultRegistry,
 };
+
+// ========= 2.1 在线搜索（仅检索默认仓库，后端SPI实现，接口占位） =========
+export function searchOnlineSoftware(params: { keyword: string; page?: number; size?: number }) {
+  const kw = (params?.keyword || '').trim();
+  if (!kw) {
+    // 前端直接返回空结果，避免不必要的网络请求
+    return Promise.resolve({ code: "00000", data: { records: [], total: 0 }, msg: "" } as unknown as ReturnResult<{ records: SystemSoft[]; total: number }>);
+  }
+  return http.request<ReturnResult<{ records: SystemSoft[]; total: number }>>("get", "v1/system/soft/online/search", { params: { ...params, keyword: kw } })
+    .catch(() => ({ code: "00000", data: { records: [], total: 0 }, msg: "" } as unknown as ReturnResult<{ records: SystemSoft[]; total: number }>));
+}
+
+// 将在线检索结果导入到软件库（异步保存，接口占位）
+export function importOnlineSoftware(data: { items: Array<Partial<SystemSoft> & { systemSoftDockerImage?: string }> }) {
+  return http.request<ReturnResult<{ queued: number }>>("post", "v1/system/soft/online/import", { data });
+}
 
 export const softwareApi = {
   getSoftPageList,
@@ -381,6 +426,8 @@ export const softwareApi = {
   syncSoftware,
   installSoftware,
   getSoftwareStats,
+  searchOnlineSoftware,
+  importOnlineSoftware,
 };
 
 export const imageApi = {

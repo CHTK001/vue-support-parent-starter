@@ -3,54 +3,13 @@
     <div class="modern-workspace">
       <div class="project-dashboard">
         <el-container class="dashboard-container">
-          <el-header class="dashboard-header">
-            <div class="header-content">
-              <div class="header-title">
-                <div class="title-wrapper">
-                  <div class="title-icon-wrapper">
-                    <el-icon class="title-icon">
-                      <component :is="useRenderIcon('ri:apps-2-line')" />
-                    </el-icon>
-                    <div class="icon-glow"></div>
-                  </div>
-                  <div class="title-content">
-                    <h1 class="title-text">
-                      项目管理中心
-                      <span class="title-badge">Pro</span>
-                    </h1>
-                    <p class="title-subtitle">
-                      <el-icon><component :is="useRenderIcon('ri:data-line')" /></el-icon>
-                      智能管理和监控您的所有AI项目
-                      <span class="project-count">{{ projectStats.total }} 个项目</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div class="header-actions">
-                <div class="stats-overview">
-                  <div class="stat-item">
-                    <div class="stat-value">{{ projectStats.active }}</div>
-                    <div class="stat-label">活跃项目</div>
-                  </div>
-                  <div class="stat-item">
-                    <div class="stat-value">{{ projectStats.completed }}</div>
-                    <div class="stat-label">已完成</div>
-                  </div>
-                </div>
-                <el-button type="primary" class="add-project-btn" @click="handleSave('add', {})">
-                  <el-icon><component :is="useRenderIcon('ri:add-line')" /></el-icon>
-                  <span class="btn-text">新建项目</span>
-                  <div class="btn-glow"></div>
-                </el-button>
-              </div>
-            </div>
-          </el-header>
-
           <el-main class="dashboard-main">
             <div class="content-wrapper">
-              <ScTable ref="tableRef" layout="card" :col-size="6" :row-size="2" :url="fetchPageProject" :rowClick="handleRowClick" :afterLoadedData="handleAfterLoadedData">
+              <ScTable ref="tableRef" layout="card" :col-size="6" :row-size="2" :url="fetchPageProject"
+                :rowClick="handleRowClick" :afterLoadedData="handleAfterLoadedData">
                 <template #default="{ row }">
-                  <div class="project-card" :class="{ 'card-loading': loading }" :style="{ '--project-icon-url': `url(${row?.sysProjectIcon})`, '--random-hue': Math.floor(Math.random() * 360) }">
+                  <div class="project-card" :class="{ 'card-loading': loading }"
+                    :style="{ '--project-icon-url': `url(${row?.sysProjectIcon})`, '--random-hue': Math.floor(Math.random() * 360) }">
                     <div class="card-glow"></div>
                     <div class="card-header">
                       <div class="project-image">
@@ -104,24 +63,31 @@
                     </div>
                     <div class="project-actions">
                       <template v-for="(item, index) in row?.sysProjectFunction?.split(',') || []" :key="index">
-                        <el-tooltip :content="functionMap[item]?.sysDictItemName" placement="top" effect="light" :offset="8">
-                          <el-button v-if="functionMap[item]" type="primary" circle size="small" class="action-button" :icon="useRenderIcon(functionMap[item]?.sysDictItemIcon)" :style="{ animationDelay: index * 0.05 + 's' }" />
+                        <el-tooltip :content="functionMap[item]?.sysDictItemName" placement="top" effect="light"
+                          :offset="8">
+                          <el-button v-if="functionMap[item]" type="primary" circle size="small" class="action-button"
+                            :icon="useRenderIcon(functionMap[item]?.sysDictItemIcon)"
+                            :style="{ animationDelay: index * 0.05 + 's' }" />
                         </el-tooltip>
                       </template>
                     </div>
                     <div class="more" @click.stop>
                       <el-button-group v-if="row?.sysProjectFunction" class="ml-[1px] z-[100]">
-                        <el-button v-if="row?.source?.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
-                        <el-dropdown class="!z-[101] border-right-color" trigger="click" placement="right" @command="handleDropdownCommand">
+                        <el-button v-if="row?.source?.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')"
+                          title="设置默认" size="small" @click.stop="handleDefault(row)" />
+                        <el-dropdown class="!z-[101] border-right-color" trigger="click" placement="right"
+                          @command="handleDropdownCommand">
                           <el-button :icon="useRenderIcon('ri:more-2-line')" size="small" title="更多" @click.stop />
                           <template #dropdown>
                             <el-dropdown-menu>
-                              <el-dropdown-item v-if="defer(0) && row?.source?.length > 0" class="h-[32px]" :icon="useRenderIcon('ri:settings-5-line')">
+                              <el-dropdown-item v-if="defer(0) && row?.source?.length > 0" class="h-[32px]"
+                                :icon="useRenderIcon('ri:settings-5-line')">
                                 <el-dropdown class="z-[100]" placement="right">
                                   <el-text class="w-full">设置默认</el-text>
                                   <template #dropdown>
                                     <el-dropdown-menu>
-                                      <el-dropdown-item v-for="(item1, index) in row.source" :key="index" @click="handleUpdateDefault(row, item1)">
+                                      <el-dropdown-item v-for="(item1, index) in row.source" :key="index"
+                                        @click="handleUpdateDefault(row, item1)">
                                         {{ item1.name }}
                                         <span v-if="item1.label">√</span>
                                       </el-dropdown-item>
@@ -129,12 +95,17 @@
                                   </template>
                                 </el-dropdown>
                               </el-dropdown-item>
-                              <el-dropdown-item v-for="(item1, index) in row.source" :key="index" class="h-[32px]" :icon="useRenderIcon(item1.icon)" @click="handleEventCustom(row, item1, $event)">
+                              <el-dropdown-item v-for="(item1, index) in row.source" :key="index" class="h-[32px]"
+                                :icon="useRenderIcon(item1.icon)" @click="handleEventCustom(row, item1, $event)">
                                 {{ item1.name }}
                                 <span v-if="item1.name.length < 4">{{ $t("message.manage") }}</span>
                               </el-dropdown-item>
-                              <el-dropdown-item v-if="defer(3)" class="h-[32px]" :icon="useRenderIcon('ep:copy-document')" @click.stop="handleCopy(row, 'save')">复制</el-dropdown-item>
-                              <el-dropdown-item v-if="defer(2)" class="h-[32px]" :icon="useRenderIcon('ri:delete-bin-6-line')" @click.prevent="handleDelete(row)">删除</el-dropdown-item>
+                              <el-dropdown-item v-if="defer(3)" class="h-[32px]"
+                                :icon="useRenderIcon('ep:copy-document')"
+                                @click.stop="handleCopy(row, 'save')">复制</el-dropdown-item>
+                              <el-dropdown-item v-if="defer(2)" class="h-[32px]"
+                                :icon="useRenderIcon('ri:delete-bin-6-line')"
+                                @click.prevent="handleDelete(row)">删除</el-dropdown-item>
                             </el-dropdown-menu>
                           </template>
                         </el-dropdown>
@@ -597,32 +568,30 @@ const getFunctionLabel = (val) => {
   return _rs.join("");
 };
 const loading = ref(true);
-const handleAfterLoadedData = (row) => {
+const handleAfterLoadedData = (row, total) => {
   loading.value = false;
   row.forEach((item) => {
     item.source = getDefaultValueArr(item);
   });
-
   // 更新项目统计
-  projectStats.total = row.length;
+  projectStats.total = total;
   projectStats.active = row.filter((item) => item.status !== "completed").length;
   projectStats.completed = row.filter((item) => item.status === "completed").length;
 
   return row;
 };
 const handleAfterPropertieSet = async () => {
-  fetchListDictItem({
+  const res = await fetchListDictItem({
     sysDictId: 1,
-  }).then((res) => {
-    dictItem = res?.data;
   });
-  fetchListDictItem({
+  dictItem = res?.data;
+  const res1 = await fetchListDictItem({
     sysDictId: 6,
-  }).then((res) => {
-    functionList = res?.data;
-    functionList.forEach((item) => {
-      functionMap[item.sysDictItemId] = item;
-    });
+  });
+
+  functionList = res1?.data;
+  functionList.forEach((item) => {
+    functionMap[item.sysDictItemId] = item;
   });
 };
 
@@ -745,6 +714,7 @@ onMounted(async () => {
     0% {
       transform: translateX(-100%);
     }
+
     100% {
       transform: translateX(100%);
     }
@@ -802,11 +772,13 @@ onMounted(async () => {
       }
 
       @keyframes pulse {
+
         0%,
         100% {
           transform: translate(-50%, -50%) scale(1);
           opacity: 0.3;
         }
+
         50% {
           transform: translate(-50%, -50%) scale(1.2);
           opacity: 0.5;
@@ -843,6 +815,7 @@ onMounted(async () => {
           from {
             box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
           }
+
           to {
             box-shadow: 0 4px 16px rgba(255, 215, 0, 0.6);
           }
@@ -1005,7 +978,8 @@ onMounted(async () => {
 
 .content-wrapper {
   //height: calc(100% - 60px); /* 为分页组件预留60px空间 */
-  overflow: hidden; /* 改为hidden，让ScTable内部处理滚动 */
+  overflow: hidden;
+  /* 改为hidden，让ScTable内部处理滚动 */
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1134,7 +1108,6 @@ onMounted(async () => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, var(--app-primary-lighter) 0%, var(--app-success-lighter) 50%, var(--app-warning-lighter) 100%);
     opacity: 0;
     transition: opacity 0.3s ease;
     pointer-events: none;
@@ -1232,26 +1205,32 @@ onMounted(async () => {
   }
 
   @keyframes pulse {
+
     0%,
     100% {
       transform: scale(1);
     }
+
     50% {
       transform: scale(1.05);
     }
   }
 
   @keyframes sparkle {
+
     0%,
     100% {
       transform: rotate(0deg) scale(1);
     }
+
     25% {
       transform: rotate(90deg) scale(1.1);
     }
+
     50% {
       transform: rotate(180deg) scale(1);
     }
+
     75% {
       transform: rotate(270deg) scale(1.1);
     }
@@ -1261,6 +1240,7 @@ onMounted(async () => {
     0% {
       width: 0%;
     }
+
     100% {
       width: 100%;
     }
@@ -1410,12 +1390,13 @@ onMounted(async () => {
 
       .status-indicator {
         position: relative;
+        color: white;
 
         .status-dot {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: currentColor;
+          background: white;
           position: relative;
           z-index: 2;
         }
@@ -1428,7 +1409,7 @@ onMounted(async () => {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: currentColor;
+          background: white;
           opacity: 0.6;
           animation: statusPulse 2s ease-in-out infinite;
         }
@@ -1437,6 +1418,7 @@ onMounted(async () => {
       .status-text {
         font-size: 0.8rem;
         font-weight: 600;
+        color: white;
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
@@ -1539,10 +1521,12 @@ onMounted(async () => {
       transform: translate(-50%, -50%) scale(1);
       opacity: 0.6;
     }
+
     50% {
       transform: translate(-50%, -50%) scale(1.5);
       opacity: 0.2;
     }
+
     100% {
       transform: translate(-50%, -50%) scale(2);
       opacity: 0;
