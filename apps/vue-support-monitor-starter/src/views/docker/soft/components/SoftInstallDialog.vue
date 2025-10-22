@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visibleProxy" class="soft-install-dialog" :show-close="true" @open="onOpen">
+  <el-dialog v-model="visibleProxy" class="soft-install-dialog" :show-close="true">
     <template #header>
       <div class="dlg-header">
         <div class="title">
@@ -10,99 +10,80 @@
     </template>
 
     <div class="content">
-      <el-steps :active="step" finish-status="success" align-center>
-        <el-step title="选择服务器" description="选择一个或多个目标服务器" />
-        <el-step title="安装配置" description="镜像标签、端口、环境变量等" />
-        <el-step title="确认安装" description="核对信息并开始安装" />
-      </el-steps>
-
-      <!-- 步骤一：选择服务器（卡片多选） -->
-      <div v-show="step === 0" class="step-pane">
-        <div class="pane-title">目标服务器</div>
+      <!-- 选择服务器 -->
+      <div class="step-pane">
+        <div class="pane-title">
+          <IconifyIconOnline icon="ri:server-line" class="mr-2" />
+          选择目标服务器
+        </div>
         <div class="server-cards">
-          <div v-for="server in servers" :key="server.id" class="server-card"
-            :class="{ selected: selectedServerIds.includes(server.id) }" @click="toggleServerSelect(server.id)">
+          <div v-for="server in servers" :key="server.monitorSysGenServerId" class="server-card"
+            :class="{ selected: selectedServerIds.includes(server.monitorSysGenServerId) }" 
+            @click="toggleServerSelect(server.monitorSysGenServerId)">
             <div class="card-header">
-              <div class="server-name">{{ server.name }}</div>
-              <div class="server-status">{{ server.status || 'unknown' }}</div>
+              <div class="server-name">
+                <IconifyIconOnline icon="ri:checkbox-blank-circle-fill" 
+                  :class="['status-indicator', getStatusClass(server.monitorSysGenServerConnectionStatus)]" />
+                {{ server.monitorSysGenServerName || '-' }}
+              </div>
+              <el-tag :type="getStatusType(server.monitorSysGenServerConnectionStatus) as any" size="small">
+                {{ getStatusText(server.monitorSysGenServerConnectionStatus) }}
+              </el-tag>
             </div>
             <div class="card-body">
-              <div class="server-host">{{ server.host || server.ip || '-' }}:{{ server.port || '-' }}</div>
+              <div class="server-host">
+                <IconifyIconOnline icon="ri:global-line" class="mr-1" />
+                {{ server.monitorSysGenServerHost || '-' }}:{{ server.monitorSysGenServerPort || '-' }}
+              </div>
+              <div class="server-tags" v-if="server.monitorSysGenServerTags">
+                <el-tag v-for="tag in (server.monitorSysGenServerTags || '').split(',')" 
+                  :key="tag" size="small" type="info">{{ tag }}</el-tag>
+              </div>
+            </div>
+            <div class="card-check" v-if="selectedServerIds.includes(server.monitorSysGenServerId)">
+              <IconifyIconOnline icon="ri:checkbox-circle-fill" />
             </div>
           </div>
         </div>
-        <div class="server-hint">已选择：{{ selectedServerCount }} 台</div>
-      </div>
-
-      <!-- 步骤二：安装配置 -->
-      <div v-show="step === 1" class="step-pane">
-        <div class="pane-title">基础配置</div>
-        <div class="form-row">
-          <el-form :model="form" label-width="120px" class="w-full">
-            <el-form-item label="镜像标签">
-              <el-select v-model="form.imageTag" placeholder="latest" filterable allow-create default-first-option
-                style="width: 280px">
-                <el-option v-for="t in tags" :key="t" :label="t" :value="t" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="启动命令">
-              <el-input v-model="form.command" placeholder="可选，如 /bin/sh -c ..." />
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <div class="pane-title">端口映射</div>
-        <div class="kv-list">
-          <div v-for="(p, idx) in form.ports" :key="idx" class="kv-item">
-            <el-input v-model="p.host" placeholder="主机端口" style="width: 160px" />
-            <span class="mx-1">:</span>
-            <el-input v-model="p.container" placeholder="容器端口" style="width: 160px" />
-            <el-button link type="danger" @click="form.ports.splice(idx, 1)">移除</el-button>
-          </div>
-          <el-button type="primary" text @click="form.ports.push({ host: '', container: '' })">+ 添加端口</el-button>
-        </div>
-
-        <div class="pane-title">环境变量</div>
-        <div class="kv-list">
-          <div v-for="(e, idx) in form.env" :key="idx" class="kv-item">
-            <el-input v-model="e.key" placeholder="键" style="width: 200px" />
-            <span class="mx-1">=</span>
-            <el-input v-model="e.value" placeholder="值" style="width: 260px" />
-            <el-button link type="danger" @click="form.env.splice(idx, 1)">移除</el-button>
-          </div>
-          <el-button type="primary" text @click="form.env.push({ key: '', value: '' })">+ 添加变量</el-button>
-        </div>
-
-        <div class="pane-title">数据卷</div>
-        <div class="kv-list">
-          <div v-for="(v, idx) in form.volumes" :key="idx" class="kv-item">
-            <el-input v-model="v.host" placeholder="主机路径" style="width: 260px" />
-            <span class="mx-1">:</span>
-            <el-input v-model="v.container" placeholder="容器路径" style="width: 260px" />
-            <el-button link type="danger" @click="form.volumes.splice(idx, 1)">移除</el-button>
-          </div>
-          <el-button type="primary" text @click="form.volumes.push({ host: '', container: '' })">+ 添加数据卷</el-button>
+        <div class="server-hint">
+          <IconifyIconOnline icon="ri:information-line" class="mr-1" />
+          已选择 <b>{{ selectedServerCount }}</b> 台服务器，将自动拉取镜像并安装
         </div>
       </div>
 
-      <!-- 步骤三：确认安装 -->
-      <div v-show="step === 2" class="step-pane">
-        <div class="summary">
-          <div class="summary-item"><span>软件：</span><b>{{ soft?.systemSoftName }}</b></div>
-          <div class="summary-item"><span>镜像：</span><b>{{ soft?.systemSoftDockerImage }}</b></div>
-          <div class="summary-item"><span>标签：</span><b>{{ form.imageTag }}</b></div>
-          <div class="summary-item"><span>服务器：</span><b>{{ selectedServerCount }} 台</b></div>
+      <!-- 安装说明 -->
+      <div class="install-info">
+        <div class="info-item">
+          <IconifyIconOnline icon="ri:image-line" class="icon" />
+          <div class="info-content">
+            <div class="info-title">软件</div>
+            <div class="info-value">{{ soft?.systemSoftName }} ({{ soft?.systemSoftDockerImage || '-' }})</div>
+          </div>
         </div>
-        <el-alert type="info" :closable="false" title="当前后端仅使用标签与服务器列表发起安装，其余配置占位保留，用于后续扩展" />
+        <div class="info-item">
+          <IconifyIconOnline icon="ri:shield-check-line" class="icon" />
+          <div class="info-content">
+            <div class="info-title">安装方式</div>
+            <div class="info-value">Docker容器 (latest)</div>
+          </div>
+        </div>
+        <div class="info-item">
+          <IconifyIconOnline icon="ri:progress-5-line" class="icon" />
+          <div class="info-content">
+            <div class="info-title">进度推送</div>
+            <div class="info-value">实时推送安装进度，请保持页面打开</div>
+          </div>
+        </div>
       </div>
     </div>
 
     <template #footer>
       <div class="dlg-footer">
-        <el-button @click="visibleProxy = false">关闭</el-button>
-        <el-button v-if="step > 0" @click="prev">上一步</el-button>
-        <el-button type="primary" v-if="step < 2" @click="next">下一步</el-button>
-        <el-button type="primary" v-else :loading="installing" @click="submit">开始安装</el-button>
+        <el-button @click="visibleProxy = false">取消</el-button>
+        <el-button type="primary" :loading="installing" :disabled="selectedServerCount === 0" @click="submit">
+          <IconifyIconOnline icon="ri:download-cloud-2-line" class="mr-1" v-if="!installing" />
+          {{ installing ? '安装中...' : '开始安装' }}
+        </el-button>
       </div>
     </template>
   </el-dialog>
@@ -110,8 +91,8 @@
 
 <script setup lang="ts">
 import { getServerList, softwareApi } from '@/api/docker-management';
-import { ElMessage } from 'element-plus';
-import { computed, reactive, ref } from 'vue';
+import { ElMessage, ElNotification } from 'element-plus';
+import { computed, ref, watch } from 'vue';
 
 interface Props { visible: boolean; soft?: any }
 interface Emits { (e: 'update:visible', v: boolean): void;(e: 'success'): void }
@@ -120,26 +101,15 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 const visibleProxy = computed({ get: () => props.visible, set: v => emit('update:visible', v) });
 
-// const serverTableRef = ref();
 const servers = ref<any[]>([]);
 const selectedServerIds = ref<number[]>([]);
-const step = ref(0);
-const tags = ref<string[]>(['latest', 'stable', 'alpine']);
 const installing = ref(false);
-
-const form = reactive<any>({
-  imageTag: 'latest',
-  command: '',
-  ports: [],
-  env: [],
-  volumes: []
-});
 
 const selectedServerCount = computed(() => selectedServerIds.value.length);
 
 async function loadServers() {
   try {
-    const res: any = await getServerList({ page: 1, pageSize: 500 });
+    const res: any = await getServerList();
     if (res?.code === '00000') {
       servers.value = res.data || [];
     } else if (Array.isArray(res)) {
@@ -157,45 +127,83 @@ function toggleServerSelect(id: number) {
   else selectedServerIds.value.splice(idx, 1);
 }
 
-function onOpen() {
-  step.value = 0;
+// 获取服务器连接状态类型
+function getStatusType(status: number | undefined): 'success' | 'info' | 'warning' | 'danger' {
+  switch (status) {
+    case 1: return 'success';  // 在线
+    case 0: return 'info';     // 离线
+    case 2: return 'warning';  // 连接中
+    case 3: return 'danger';   // 连接失败
+    default: return 'info';
+  }
 }
 
-// 监听对话框打开/关闭：打开时加载服务器并重置步骤，关闭时清理选择
-import { watch } from 'vue';
+// 获取服务器连接状态文本
+function getStatusText(status: number | undefined): string {
+  switch (status) {
+    case 1: return '在线';
+    case 0: return '离线';
+    case 2: return '连接中';
+    case 3: return '失败';
+    default: return '未知';
+  }
+}
+
+// 获取服务器状态样式类
+function getStatusClass(status: number | undefined): string {
+  switch (status) {
+    case 1: return 'status-online';
+    case 0: return 'status-offline';
+    case 2: return 'status-connecting';
+    case 3: return 'status-error';
+    default: return 'status-unknown';
+  }
+}
+
+// 监听对话框打开/关闭：打开时加载服务器，关闭时清理选择
 watch(() => visibleProxy.value, (val) => {
   if (val) {
-    onOpen();
     loadServers();
   } else {
     // 清理选择
     selectedServerIds.value = [];
   }
 });
-function next() {
-  if (step.value === 0 && selectedServerCount.value === 0) {
-    return ElMessage.warning('请选择目标服务器');
-  }
-  step.value = Math.min(2, step.value + 1);
-}
-function prev() { step.value = Math.max(0, step.value - 1); }
 
 async function submit() {
   const ids = selectedServerIds.value || [];
-  if (!ids.length) return ElMessage.warning('请选择服务器');
+  if (!ids.length) {
+    return ElMessage.warning('请选择至少一台服务器');
+  }
+  
   try {
     installing.value = true;
+    
+    // 简化的安装请求，只传 softId 和 serverIds
     const payload = {
       softId: props.soft?.systemSoftId,
       serverIds: ids,
-      imageTag: form.imageTag,
-      command: form.command,
-      ports: (form.ports || []).filter((p: any) => p.host && p.container).map((p: any) => ({ host: String(p.host), container: String(p.container) })),
-      env: (form.env || []).filter((e: any) => e.key).map((e: any) => ({ key: String(e.key), value: String(e.value || '') })),
-      volumes: (form.volumes || []).filter((v: any) => v.host && v.container).map((v: any) => ({ host: String(v.host), container: String(v.container) }))
+      imageTag: 'latest'  // 默认使用latest标签
     };
-    const { code, message } = await softwareApi.installSoftware(payload as any);
-    if (code === '00000') { emit('success'); visibleProxy.value = false; } else { ElMessage.error(message || '安装失败'); }
+    
+    const result = await softwareApi.installSoftware(payload as any);
+    
+    if (result.code === '00000') {
+      // 通知父组件安装成功（父组件会显示通知）
+      emit('success');
+      
+      // 关闭对话框
+      visibleProxy.value = false;
+    } else {
+      ElMessage.error(result.msg || '安装失败');
+    }
+  } catch (error: any) {
+    console.error('安装软件失败', error);
+    ElNotification.error({
+      title: '安装失败',
+      message: error?.message || '请稍后重试',
+      position: 'bottom-right'
+    });
   } finally {
     installing.value = false;
   }
@@ -265,22 +273,25 @@ async function submit() {
 }
 
 .server-card {
-  border: 1px solid var(--el-border-color, #e6e6e6);
+  position: relative;
+  border: 2px solid var(--el-border-color, #e6e6e6);
   border-radius: 8px;
-  padding: 10px;
+  padding: 12px;
   cursor: pointer;
-  transition: box-shadow .15s ease, transform .08s ease;
+  transition: all .2s ease;
   background: #fff;
 }
 
 .server-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-color: var(--el-color-primary-light-5);
 }
 
 .server-card.selected {
-  border-color: var(--el-color-primary, #409eff);
-  box-shadow: 0 8px 20px rgba(64, 158, 255, 0.12);
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  box-shadow: 0 8px 20px rgba(64, 158, 255, 0.15);
 }
 
 .card-header {
@@ -291,6 +302,33 @@ async function submit() {
 
 .server-name {
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-indicator {
+  font-size: 8px;
+}
+
+.status-online {
+  color: var(--el-color-success);
+}
+
+.status-offline {
+  color: var(--el-color-info);
+}
+
+.status-connecting {
+  color: var(--el-color-warning);
+}
+
+.status-error {
+  color: var(--el-color-danger);
+}
+
+.status-unknown {
+  color: var(--el-color-info);
 }
 
 .server-status {
@@ -301,11 +339,78 @@ async function submit() {
 .card-body {
   margin-top: 8px;
   color: var(--app-text-secondary);
+  font-size: 13px;
+}
+
+.server-host {
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.server-tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.card-check {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 24px;
+  color: var(--el-color-primary);
+  background: white;
+  border-radius: 50%;
+  line-height: 1;
 }
 
 .server-hint {
   margin-top: 10px;
+  padding: 8px 12px;
+  background: var(--el-color-primary-light-9);
+  border-radius: 6px;
+  color: var(--el-color-primary);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+}
+
+.install-info {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--el-fill-color-light);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.info-item .icon {
+  font-size: 20px;
+  color: var(--el-color-primary);
+}
+
+.info-content {
+  flex: 1;
+}
+
+.info-title {
+  font-size: 12px;
   color: var(--app-text-secondary);
-  font-size: 13px
+  margin-bottom: 2px;
+}
+
+.info-value {
+  font-size: 14px;
+  color: var(--app-text-primary);
+  font-weight: 500;
 }
 </style>

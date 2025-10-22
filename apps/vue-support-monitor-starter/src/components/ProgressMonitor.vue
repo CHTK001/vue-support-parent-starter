@@ -142,17 +142,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import {
-  socketState,
-  progressState,
-  connectSocket,
-  disconnectSocket,
-  enableAutoConnect,
-  clearNotifications,
-  type OperationProgress,
-  type ProgressNotification
-} from '@/utils/socket'
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
+import { useGlobalSocket } from '@repo/core'
+
+// 定义类型
+export interface OperationProgress {
+  id: string
+  type: 'pull_image' | 'start_container' | 'install_software' | 'sync_software'
+  title: string
+  status: 'pending' | 'running' | 'success' | 'error'
+  progress: number
+  message: string
+  startTime: Date
+  endTime?: Date
+  data?: any
+}
+
+export interface ProgressNotification {
+  id: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  title: string
+  message: string
+  timestamp: Date
+  duration?: number
+}
+
+// Socket状态
+const socketState = reactive({
+  connected: false,
+  connecting: false,
+  error: null as string | null,
+  reconnectAttempts: 0
+})
+
+// 进度状态
+const progressState = reactive({
+  activeOperations: new Map<string, OperationProgress>(),
+  notifications: [] as ProgressNotification[]
+})
 
 const drawerVisible = ref(false)
 
@@ -232,24 +259,119 @@ const getElapsedTime = (startTime: Date) => {
 }
 
 const clearAllNotifications = () => {
-  clearNotifications()
+  progressState.notifications = []
+}
+
+// 获取全局Socket服务
+const globalSocket = useGlobalSocket()
+
+// 处理Socket事件
+function setupSocketListeners() {
+  if (!globalSocket) {
+    console.warn('Global Socket服务未初始化')
+    return
+  }
+  
+  // 监听连接状态
+  globalSocket.on('connect', () => {
+    socketState.connected = true
+    socketState.connecting = false
+    socketState.reconnectAttempts = 0
+  })
+  
+  globalSocket.on('disconnect', () => {
+    socketState.connected = false
+  })
+  
+  globalSocket.on('connect_error', (error: any) => {
+    socketState.connecting = false
+    socketState.error = error?.message || '连接失败'
+    socketState.reconnectAttempts++
+  })
+  
+  // 监听操作进度
+  globalSocket.on('operation_progress', (data: any) => {
+    const operation: OperationProgress = {
+      id: data.operationId,
+      type: data.type as any,
+      title: data.title,
+      status: (data.status as any) || 'running',
+      progress: data.progress,
+      message: data.message,
+      startTime: progressState.activeOperations.get(data.operationId)?.startTime || new Date()
+    }
+    progressState.activeOperations.set(data.operationId, operation)
+  })
+  
+  // 监听操作完成
+  globalSocket.on('operation_complete', (data: any) => {
+    const operation = progressState.activeOperations.get(data.operationId)
+    if (operation) {
+      operation.status = 'success'
+      operation.progress = 100
+      operation.endTime = new Date()
+      operation.message = data.message || '操作完成'
+      
+      setTimeout(() => {
+        progressState.activeOperations.delete(data.operationId)
+      }, 5000)
+    }
+  })
+  
+  // 监听操作错误
+  globalSocket.on('operation_error', (data: any) => {
+    const operation = progressState.activeOperations.get(data.operationId)
+    if (operation) {
+      operation.status = 'error'
+      operation.endTime = new Date()
+      operation.message = data.error
+      
+      setTimeout(() => {
+        progressState.activeOperations.delete(data.operationId)
+      }, 10000)
+    }
+  })
+  
+  // 监听Docker镜像拉取进度
+  globalSocket.on('docker_image_pull_progress', (data: any) => {
+    const operationId = `pull_image_${data.imageId}`
+    const operation: OperationProgress = {
+      id: operationId,
+      type: 'pull_image',
+      title: `拉取镜像: ${data.imageName}`,
+      status: 'running',
+      progress: data.progress,
+      message: data.message,
+      startTime: progressState.activeOperations.get(operationId)?.startTime || new Date()
+    }
+    progressState.activeOperations.set(operationId, operation)
+  })
+}
+
+function cleanupSocketListeners() {
+  if (!globalSocket) return
+  
+  globalSocket.off('connect')
+  globalSocket.off('disconnect')
+  globalSocket.off('connect_error')
+  globalSocket.off('operation_progress')
+  globalSocket.off('operation_complete')
+  globalSocket.off('operation_error')
+  globalSocket.off('docker_image_pull_progress')
 }
 
 // 生命周期
-onMounted(async () => {
-  // 启用自动连接
-  enableAutoConnect()
+onMounted(() => {
+  setupSocketListeners()
   
-  // 尝试连接Socket.IO
-  try {
-    await connectSocket()
-  } catch (error) {
-    console.warn('Socket.IO连接失败，将在后台重试:', error)
+  // 更新连接状态
+  if (globalSocket) {
+    socketState.connected = globalSocket.isConnected
   }
 })
 
 onUnmounted(() => {
-  disconnectSocket()
+  cleanupSocketListeners()
 })
 </script>
 

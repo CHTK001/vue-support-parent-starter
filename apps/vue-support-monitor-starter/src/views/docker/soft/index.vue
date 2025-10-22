@@ -15,6 +15,10 @@
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
+        <el-button @click="syncVisible = true" type="success" plain>
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          同步镜像
+        </el-button>
         <el-button @click="onlineVisible = true">
           <IconifyIconOnline icon="ri:search-eye-line" class="mr-1" />
           在线搜索
@@ -73,6 +77,16 @@
           </div>
           <div class="soft-meta">代码：{{ row.systemSoftCode }}</div>
           <div class="soft-meta">镜像：{{ row.systemSoftDockerImage || '—' }}</div>
+          <div class="soft-meta" v-if="row.installedServers && row.installedServers.length > 0">
+            <IconifyIconOnline icon="ri:server-line" class="mr-1" />
+            已安装：
+            <el-tag v-for="server in row.installedServers.slice(0, 3)" :key="server" size="small" type="success" effect="plain" class="ml-1">
+              {{ server }}
+            </el-tag>
+            <el-tag v-if="row.installedServers.length > 3" size="small" type="info" effect="plain" class="ml-1">
+              +{{ row.installedServers.length - 3 }}
+            </el-tag>
+          </div>
           <div class="soft-desc">{{ row.systemSoftDesc || row.systemSoftDescription || '—' }}</div>
           <div class="soft-actions">
             <el-button size="small" type="primary" plain @click="openInstall(row)">
@@ -119,22 +133,27 @@
 
     <!-- 在线搜索弹框 -->
     <SoftOnlineSearchDialog v-model:visible="onlineVisible" @success="reload" />
+
+    <!-- 同步镜像弹框 -->
+    <SoftSyncDialog v-model:visible="syncVisible" @success="onSyncSuccess" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { softwareApi } from '@/api/docker-management';
 import ProgressMonitor from '@/components/ProgressMonitor.vue';
-import { connectSocket, enableAutoConnect } from '@/utils/socket';
+import { useGlobalSocket } from '@repo/core';
 import ScDialog from '@repo/components/ScDialog/src/index.vue';
 import ScTable from '@repo/components/ScTable/index.vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { onMounted, reactive, ref, watch } from 'vue';
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus';
+import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import SoftInstallDialog from './components/SoftInstallDialog.vue';
 import SoftOnlineSearchDialog from './components/SoftOnlineSearchDialog.vue';
+import SoftSyncDialog from './components/SoftSyncDialog.vue';
 
 const tableRef = ref();
 const onlineVisible = ref(false);
+const syncVisible = ref(false);
 const params = reactive<any>({ page: 1, size: 12, keyword: '', category: undefined, status: undefined });
 const categories = ref<string[]>([]);
 
@@ -143,7 +162,86 @@ const paginationType = ref<'default' | 'scroll'>('default');
 const isScroll = ref(false);
 watch(isScroll, v => (paginationType.value = v ? 'scroll' : 'default'));
 
-onMounted(() => { enableAutoConnect(); connectSocket().catch(() => { }); });
+// 获取全局Socket服务
+const globalSocket = useGlobalSocket();
+
+// 设置Socket事件监听
+function setupSocketListeners() {
+  if (!globalSocket) {
+    console.warn('Global Socket服务未初始化');
+    return;
+  }
+  
+  // 监听Docker镜像拉取进度
+  globalSocket.on('docker_image_pull_progress', (data: any) => {
+    console.log('📦 镜像拉取进度:', data);
+  });
+  
+  // 监听操作进度更新
+  globalSocket.on('progress_update', (operation: any) => {
+    if (operation.type === 'pull_image' || operation.type === 'install_software') {
+      console.log('⚙️ 安装进度更新:', operation);
+    }
+  });
+  
+  // 监听操作完成
+  globalSocket.on('operation_complete', (operation: any) => {
+    if (operation.type === 'pull_image' || operation.type === 'install_software') {
+      console.log('✅ 操作完成:', operation);
+      ElNotification.success({
+        title: '安装成功',
+        message: `${operation.title} - ${operation.message}`,
+        duration: 4000,
+        position: 'bottom-right'
+      });
+    }
+  });
+  
+  // 监听操作错误
+  globalSocket.on('operation_error', (operation: any) => {
+    if (operation.type === 'pull_image' || operation.type === 'install_software') {
+      console.error('❌ 操作失败:', operation);
+      ElNotification.error({
+        title: '安装失败',
+        message: `${operation.title} - ${operation.message}`,
+        duration: 5000,
+        position: 'bottom-right'
+      });
+    }
+  });
+  
+  // 监听容器状态变化
+  globalSocket.on('docker_container_status', (data: any) => {
+    console.log('🐳 容器状态变化:', data);
+  });
+  
+  // 监听软件同步进度
+  globalSocket.on('software_sync_progress', (data: any) => {
+    console.log('🔄 软件同步进度:', data);
+  });
+}
+
+// 清理Socket事件监听
+function cleanupSocketListeners() {
+  if (!globalSocket) return;
+  
+  globalSocket.off('docker_image_pull_progress');
+  globalSocket.off('progress_update');
+  globalSocket.off('operation_complete');
+  globalSocket.off('operation_error');
+  globalSocket.off('docker_container_status');
+  globalSocket.off('software_sync_progress');
+}
+
+onMounted(() => { 
+  // 设置Socket事件监听
+  setupSocketListeners();
+});
+
+// 组件卸载时清理
+onUnmounted(() => {
+  cleanupSocketListeners();
+});
 
 function reload() {
   tableRef.value?.reload?.(params, 1);
@@ -187,7 +285,22 @@ function openInstall(row: any) {
   installVisible.value = true;
 }
 function onInstallSuccess() {
-  ElMessage.success('已开始安装，进度见镜像/容器管理');
+  ElNotification.success({
+    title: '安装任务已创建',
+    message: '正在拉取镜像，请在右下角查看实时进度',
+    duration: 4000,
+    position: 'bottom-right'
+  });
+}
+
+// 同步
+function onSyncSuccess() {
+  ElNotification.success({
+    title: '同步任务已创建',
+    message: '正在从服务器同步Docker镜像，请在右下角查看实时进度',
+    duration: 4000,
+    position: 'bottom-right'
+  });
 }
 </script>
 

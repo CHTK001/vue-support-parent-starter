@@ -6,7 +6,8 @@ import ScPanel from "./ScPanel/index.vue";
 import ScTable from "./ScTable/index.vue";
 import { ScRibbon } from "./ScRibbon";
 import ScProgress from "./ScProgress/index.vue";
-export { ReMenuNewBadge, ScCard, ScPanel, ScTable, ScRibbon, ScProgress };
+import { ScImage } from "./ScImage";
+export { ReMenuNewBadge, ScCard, ScPanel, ScTable, ScRibbon, ScProgress, ScImage };
 
 export default {
   ScTable,
@@ -16,5 +17,6 @@ export default {
   ReMenuNewBadge,
   useRenderIcon,
   ScRibbon,
-  ScProgress
+  ScProgress,
+  ScImage
 };

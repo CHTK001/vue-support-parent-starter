@@ -154,7 +154,6 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { softwareApi, registryApi } from '@/api/docker-management'
-import { startOperation, subscribeOperation } from '@/utils/socket'
 
 interface Props {
   visible: boolean

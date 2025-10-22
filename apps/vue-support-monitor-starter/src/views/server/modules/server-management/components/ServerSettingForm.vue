@@ -293,12 +293,12 @@
         <template #label>
           <div class="form-label">
             <span>Docker API主机</span>
-            <el-tooltip content="Docker API 服务的主机名或IP，例如：127.0.0.1" placement="top" effect="dark">
+            <el-tooltip content="Docker API 服务的主机名或IP，默认使用当前服务器IP" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input v-model="formData.monitorSysGenServerSettingDockerHost" placeholder="127.0.0.1" maxlength="200" @change="handleChange" />
+        <el-input v-model="formData.monitorSysGenServerSettingDockerHost" :placeholder="serverHost || '127.0.0.1'" maxlength="200" @change="handleChange" />
       </el-form-item>
 
       <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerPort">
@@ -325,17 +325,6 @@
         <el-input v-model="formData.monitorSysGenServerSettingDockerApiVersion" placeholder="如：1.40" maxlength="50" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerTlsEnabled">
-        <template #label>
-          <div class="form-label">
-            <span>启用TLS</span>
-            <el-tooltip content="是否启用TLS加密连接Docker API，提高连接安全性" placement="top" effect="dark">
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-switch v-model="formData.monitorSysGenServerSettingDockerTlsEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
-      </el-form-item>
 
       <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerUsername">
         <template #label>
@@ -372,6 +361,18 @@
         </template>
         <el-input-number v-model="dockerConnectTimeoutSeconds" :min="1" :max="600" :step="1" placeholder="30" style="width: 200px" @change="handleChange" />
         <span class="form-tip">秒（默认30）</span>
+      </el-form-item>
+
+        <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerTlsEnabled">
+        <template #label>
+          <div class="form-label">
+            <span>启用TLS</span>
+            <el-tooltip content="是否启用TLS加密连接Docker API，提高连接安全性" placement="top" effect="dark">
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-switch v-model="formData.monitorSysGenServerSettingDockerTlsEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
     </div>
 
@@ -1138,6 +1139,8 @@ const props = defineProps<{
   serverId?: number;
   /** 简洁样式：用于在配置对话框中与其他分节保持一致的风格 */
   simpleStyle?: boolean;
+  /** 服务器主机地址 */
+  serverHost?: string;
 }>();
 
 // 定义事件
@@ -1424,7 +1427,8 @@ watch(
       formData.monitorSysGenServerSettingDockerConnectionType === "API"
     ) {
       if (!formData.monitorSysGenServerSettingDockerHost) {
-        formData.monitorSysGenServerSettingDockerHost = "127.0.0.1";
+        // 使用当前服务器的IP作为默认Docker主机，如果没有则使用127.0.0.1
+        formData.monitorSysGenServerSettingDockerHost = props.serverHost || "127.0.0.1";
       }
       if (!formData.monitorSysGenServerSettingDockerPort) {
         formData.monitorSysGenServerSettingDockerPort = 2376 as any;

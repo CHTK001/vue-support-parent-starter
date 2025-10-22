@@ -184,7 +184,6 @@ import {
   registryApi, 
   type SystemSoft 
 } from '@/api/docker-management'
-import { startOperation, subscribeOperation } from '@/utils/socket'
 
 interface Props {
   visible: boolean
@@ -327,24 +326,11 @@ const handleSubmit = async () => {
     
     const response = await softwareApi.installSoftware(params)
     if (response.code === '00000') {
-      // 开始监听安装进度
+      // ProgressMonitor会自动监听并显示进度
+      // operationId: response.data?.operationId
       if (response.data?.operationId) {
-        startOperation({
-          id: response.data.operationId,
-          type: 'install_software',
-          title: `安装软件: ${props.softwareData.systemSoftName}`,
-          message: '正在安装软件...'
-        })
-        
-        // 订阅进度更新
-        const unsubscribe = subscribeOperation(response.data.operationId, (operation) => {
-          if (operation.status === 'success' || operation.status === 'error') {
-            unsubscribe()
-            if (operation.status === 'success') {
-              emit('success')
-            }
-          }
-        })
+        // 等待一小段时间让Socket事件传播
+        setTimeout(() => emit('success'), 1000)
       }
       
       ElMessage.success('软件安装任务已创建，请查看进度')

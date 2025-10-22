@@ -182,6 +182,43 @@
           </div>
         </el-tab-pane>
 
+        <!-- 启动配置 -->
+        <el-tab-pane label="启动配置" name="config">
+          <div class="config-section">
+            <el-descriptions :column="2" border>
+              <el-descriptions-item label="容器名称">
+                {{ containerData.systemSoftContainerName }}
+              </el-descriptions-item>
+              <el-descriptions-item label="镜像">
+                {{ containerData.systemSoftContainerImage }}:{{ containerData.systemSoftContainerImageTag }}
+              </el-descriptions-item>
+              <el-descriptions-item label="命令">
+                {{ containerData.systemSoftContainerCommand || '默认' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="参数">
+                {{ containerData.systemSoftContainerArgs || '无' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="网络模式">
+                {{ containerData.systemSoftContainerNetworks || '默认桥接' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="重启策略">
+                {{ containerData.systemSoftContainerAutoRestart ? '自动重启' : '不重启' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="CPU限制">
+                {{ containerData.systemSoftContainerCpuLimit ? `${containerData.systemSoftContainerCpuLimit} 核` : '无限制' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="内存限制">
+                {{ containerData.systemSoftContainerMemoryLimit ? formatBytes(containerData.systemSoftContainerMemoryLimit) : '无限制' }}
+              </el-descriptions-item>
+            </el-descriptions>
+            
+            <div v-if="containerData.systemSoftContainerConfig" class="config-json">
+              <div class="section-title">完整配置（JSON）</div>
+              <pre class="config-code">{{ formatJson(containerData.systemSoftContainerConfig) }}</pre>
+            </div>
+          </div>
+        </el-tab-pane>
+
         <!-- 性能图表 -->
         <el-tab-pane label="性能图表" name="charts">
           <div class="charts-section">
@@ -254,7 +291,7 @@
 import { containerApi, type SystemSoftContainer } from '@/api/docker-management'
 import { ElMessage } from 'element-plus'
 import { computed, ref, watch } from 'vue'
-import ContainerRealtimeChart from './ContainerRealtimeChart.vue'
+import ContainerRealtimeChart from '../../monitoring/components/ContainerRealtimeChart.vue'
 
 interface Props {
   visible: boolean
@@ -348,6 +385,16 @@ const formatEnvVars = (envVars?: string) => {
     return envVars
   } catch {
     return envVars
+  }
+}
+
+const formatJson = (jsonStr?: string) => {
+  if (!jsonStr) return '{}'
+  try {
+    const obj = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr
+    return JSON.stringify(obj, null, 2)
+  } catch {
+    return jsonStr
   }
 }
 
@@ -515,6 +562,30 @@ const handleClose = () => {
   color: #909399;
   padding: 40px;
   font-size: 14px;
+}
+
+.config-section {
+  padding: 16px 0;
+}
+
+.config-json {
+  margin-top: 24px;
+}
+
+.config-code {
+  font-family: 'Consolas', 'Monaco', 'Menlo', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #303133;
+  margin: 0;
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .charts-section {

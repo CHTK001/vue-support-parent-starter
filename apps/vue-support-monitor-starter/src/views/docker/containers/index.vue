@@ -206,7 +206,6 @@
 
 <script setup lang="ts">
 import ProgressMonitor from '@/components/ProgressMonitor.vue';
-import { enableAutoConnect, connectSocket } from '@/utils/socket';
 import ServerTerminalDialog from '@/views/server/modules/server-management/components/ServerTerminalDialog.vue';
 import { getServerInfo, sendServerData } from '@/api/server';
 import { containerApi, getServerList, type SystemSoftContainer } from "@/api/docker-management";
@@ -482,7 +481,8 @@ const loadServers = async () => {
   }
 };
 
-onMounted(() => { enableAutoConnect(); connectSocket().catch(()=>{});
+onMounted(() => {
+  // Global Socket已在App层面初始化
   loadContainers();
   loadServers();
 });

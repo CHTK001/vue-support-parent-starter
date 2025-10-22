@@ -529,9 +529,10 @@
                 >
                   <el-input
                     v-model="formData.monitorSysGenServerSettingDockerHost"
-                    placeholder="例如：127.0.0.1"
+                    :placeholder="currentServer?.monitorSysGenServerHost || '127.0.0.1'"
                     clearable
                   />
+                  <span class="form-tip">默认使用当前服务器IP</span>
                 </el-form-item>
 
                 <el-form-item
@@ -827,13 +828,14 @@ const loadServerSetting = async () => {
 
 // 表单变化处理已集成到各个配置项中
 
-// 当开启 Docker 监控时，若未填写主机/端口，则默认填充 127.0.0.1:2376
+// 当开启 Docker 监控时，若未填写主机/端口，则默认填充当前服务器IP:2376
 watch(
   () => formData.monitorSysGenServerSettingDockerMonitorEnabled,
   (val) => {
     if (val === 1) {
       if (!formData.monitorSysGenServerSettingDockerHost) {
-        formData.monitorSysGenServerSettingDockerHost = "127.0.0.1";
+        // 使用当前服务器的IP作为默认Docker主机，如果没有则使用127.0.0.1
+        formData.monitorSysGenServerSettingDockerHost = currentServer.value?.monitorSysGenServerHost || "127.0.0.1";
       }
       if (!formData.monitorSysGenServerSettingDockerPort) {
         formData.monitorSysGenServerSettingDockerPort = 2376 as any;
@@ -998,6 +1000,12 @@ defineExpose({
   margin-left: 8px;
   color: var(--el-text-color-regular);
   font-size: 12px;
+}
+
+.form-tip {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .dialog-footer {
