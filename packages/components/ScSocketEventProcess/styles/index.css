@@ -1,0 +1,132 @@
+/* 内嵌模式样式 */
+.sc-socket-event-process {
+  margin: 12px 0;
+  padding: 12px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+  transition: all 0.3s;
+}
+
+.process-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.process-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+/* 弹框模式样式 */
+.sc-socket-event-dialog {
+  position: fixed;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 2000;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 位置样式 */
+.position-top-left {
+  top: 20px;
+  left: 20px;
+}
+
+.position-top-right {
+  top: 20px;
+  right: 20px;
+}
+
+.position-bottom-left {
+  bottom: 20px;
+  left: 20px;
+}
+
+.position-bottom-right {
+  bottom: 20px;
+  right: 20px;
+}
+
+/* 最小化状态 */
+.minimized {
+  height: auto !important;
+}
+
+/* 头部 */
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(14, 165, 233, 0.05));
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  cursor: move;
+  user-select: none;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.title-icon {
+  font-size: 20px;
+  color: var(--el-color-primary);
+}
+
+.title-text {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.control-btn {
+  padding: 4px;
+  color: var(--el-text-color-regular);
+  transition: all 0.2s;
+}
+
+.control-btn:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-light);
+}
+
+.close-btn:hover {
+  color: #f56c6c;
+}
+
+/* 内容区域 */
+.dialog-content {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: calc(100% - 50px);
+}
+
+.process-status {
+  margin-bottom: 12px;
+  text-align: right;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .sc-socket-event-dialog {
+    width: calc(100vw - 40px) !important;
+    max-width: 400px;
+  }
+}
+

@@ -23,6 +23,9 @@ export interface GlobalSocketService {
 // 全局Socket注入键
 export const GlobalSocketKey: InjectionKey<GlobalSocketService> = Symbol("GlobalSocket");
 
+// Socket注入键Map，用于存储多个Socket实例
+const socketKeyMap = new Map<string, InjectionKey<GlobalSocketService>>();
+
 /**
  * 创建全局Socket服务
  * @param urls Socket服务器地址数组
@@ -150,6 +153,59 @@ export function useGlobalSocket(): GlobalSocketService {
     console.log("Global Socket服务未提供，请确保在父组件中调用了provideGlobalSocket()");
     return null;
   }
+  return socketService;
+}
+
+/**
+ * 创建或获取指定名称的SocketKey
+ * @param keyName Socket键名称
+ * @returns InjectionKey<GlobalSocketService>
+ */
+export function createSocketKey(keyName: string): InjectionKey<GlobalSocketService> {
+  if (!socketKeyMap.has(keyName)) {
+    socketKeyMap.set(keyName, Symbol(`Socket_${keyName}`));
+  }
+  return socketKeyMap.get(keyName)!;
+}
+
+/**
+ * 提供指定名称的Socket服务
+ * @param keyName Socket键名称
+ * @param urls Socket服务器地址数组
+ * @param context Socket.IO路径
+ * @param query 查询参数
+ * @param options Socket选项
+ */
+export function provideSocket(
+  keyName: string,
+  urls: string[],
+  context?: string,
+  query?: any,
+  options?: any
+): GlobalSocketService {
+  const socketKey = createSocketKey(keyName);
+  const socketService = createGlobalSocketService(urls, context, query, options);
+  provide(socketKey, socketService);
+  return socketService;
+}
+
+/**
+ * 注入指定名称的Socket服务
+ * @param keyName Socket键名称，不传则使用GlobalSocketKey
+ */
+export function useSocket(keyName?: string): GlobalSocketService | null {
+  if (!keyName) {
+    return useGlobalSocket();
+  }
+  
+  const socketKey = createSocketKey(keyName);
+  const socketService = inject(socketKey);
+  
+  if (!socketService) {
+    console.warn(`Socket服务"${keyName}"未提供，请确保在父组件中调用了provideSocket("${keyName}", ...)`);
+    return null;
+  }
+  
   return socketService;
 }
 

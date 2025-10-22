@@ -201,19 +201,6 @@ const components = [
     component: resolveComponent("./components/ScSocketEventProcessExample.vue"),
   },
   {
-    name: "ScWindowDialog",
-      title: "ScWindowDialog",
-      icon: "carbon:application-web",
-      description: "增强型对话框组件，基于Element Plus Dialog封装，支持主题样式、图标显示、自定义头部和底部等功能",
-    component: resolveComponent("./components/ScWindowDialogExample.vue"),
-  },
-  {
-    name: "ScMessageDialog",
-    icon: "carbon:chat",
-    description: "实时消息对话框组件，支持多种位置、样式配置和交互功能，可用于显示同步信息、进度监控等",
-    component: resolveComponent("./components/ScMessageDialogExample.vue"),
-  },
-  {
     name: "ScRibbon",
     icon: "ri:bookmark-3-line",
     description: "徽带/角标组件，支持 badge、corner、diagonal 和 banner 四种样式，支持图标、尺寸与颜色配置",

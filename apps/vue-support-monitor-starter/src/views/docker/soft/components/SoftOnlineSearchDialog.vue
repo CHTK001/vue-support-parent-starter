@@ -10,7 +10,7 @@
     </div>
 
     <ScTable ref="tableRef" :url="softwareApi.searchOnlineSoftware" :params="tableParams" row-key="systemSoftCode"
-      table-name="docker-soft-online-search" :page-size="10" :auto-load="false">
+      table-name="docker-soft-online-search" :page-size="10" :auto-load="false" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="48" />
       <el-table-column label="名称/代码" min-width="260">
         <template #default="{ row }">
@@ -41,9 +41,27 @@
       </el-table-column>
     </ScTable>
 
+    <!-- 已选软件提示 -->
+    <div v-if="selectedSoftware.length > 0" class="selection-info">
+      <el-alert type="success" :closable="false">
+        <template #title>
+          已选择 <strong>{{ selectedSoftware.length }}</strong> 个软件
+        </template>
+      </el-alert>
+    </div>
+
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="visibleProxy = false">关闭</el-button>
+        <el-button 
+          type="primary" 
+          :disabled="selectedSoftware.length === 0" 
+          :loading="saving"
+          @click="handleImport"
+        >
+          <IconifyIconOnline icon="ri:save-line" class="mr-1" />
+          保存选中软件（{{ selectedSoftware.length }}）
+        </el-button>
       </div>
     </template>
   </el-dialog>
@@ -67,6 +85,7 @@ const emit = defineEmits<Emits>();
 const tableRef = ref();
 const keyword = ref('');
 const saving = ref(false);
+const selectedSoftware = ref<any[]>([]);
 let timer: any = null;
 
 const visibleProxy = computed({ get: () => props.visible, set: v => emit('update:visible', v) });
@@ -87,31 +106,46 @@ function onKeywordInput() {
   }, 400);
 }
 
+// 处理选择变化
+function handleSelectionChange(selection: any[]) {
+  selectedSoftware.value = selection;
+}
+
+// 批量保存选中的软件到数据库
 async function handleImport() {
-  const selection = tableRef.value?.getSelection?.() || [];
-  if (!selection.length) return ElMessage.warning('请选择要导入的软件');
+  if (!selectedSoftware.value.length) {
+    return ElMessage.warning('请先选择要保存的软件');
+  }
+  
   try {
     saving.value = true;
     const payload = {
-      items: selection.map((s: any) => ({
+      items: selectedSoftware.value.map((s: any) => ({
         systemSoftName: s.systemSoftName,
         systemSoftCode: s.systemSoftCode,
         systemSoftDesc: s.systemSoftDesc,
         systemSoftIcon: s.systemSoftIcon,
         systemSoftDockerImage: s.systemSoftDockerImage,
+        systemSoftStarCount: s.systemSoftStarCount,
+        systemSoftPullCount: s.systemSoftPullCount,
         systemSoftStatus: 1,
       }))
     };
+    
     const res = await softwareApi.importOnlineSoftware(payload);
     if (res.code === '00000') {
-      ElMessage.success(res.msg || '已异步提交保存任务');
+      ElMessage.success(`成功保存 ${selectedSoftware.value.length} 个软件到数据库`);
       emit('success');
+      // 清空选择
+      selectedSoftware.value = [];
+      // 关闭对话框
       visibleProxy.value = false;
     } else {
       ElMessage.error(res.msg || '保存失败');
     }
-  } catch (e) {
-    ElMessage.error('保存失败（接口不可用）');
+  } catch (e: any) {
+    console.error('保存软件失败:', e);
+    ElMessage.error(e.message || '保存失败，请稍后重试');
   } finally {
     saving.value = false;
   }
@@ -142,5 +176,17 @@ async function handleImport() {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.selection-info {
+  margin-top: 16px;
+  padding: 0 16px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
 }
 </style>

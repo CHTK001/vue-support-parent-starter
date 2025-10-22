@@ -92,10 +92,10 @@
             <el-button size="small" type="primary" plain @click="openInstall(row)">
               <IconifyIconOnline icon="ri:download-line" class="mr-1" /> 安装
             </el-button>
-            <el-button size="small" v-role="'admin'" @click="openEdit(row)">
+            <el-button size="small" v-admin @click="openEdit(row)">
               <IconifyIconOnline icon="ri:edit-line" class="mr-1" /> 编辑
             </el-button>
-            <el-button size="small" type="danger" v-role="'admin'" @click="onDelete(row)">
+            <el-button size="small" type="danger" v-admin @click="onDelete(row)">
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" /> 删除
             </el-button>
           </div>

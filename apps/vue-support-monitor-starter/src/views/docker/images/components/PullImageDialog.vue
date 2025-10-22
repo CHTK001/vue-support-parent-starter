@@ -69,11 +69,25 @@
       </el-form-item>
     </el-form>
     
+    <!-- 进度显示 -->
+    <div v-if="pulling" class="progress-section">
+      <ScSocketPanel
+        mode="embed"
+        title="拉取进度"
+        icon="ri:download-line"
+        :topics="[`image:pull:${progressTopic}`]"
+        height="200px"
+        :progress-only="true"
+        :clearable="false"
+        :closeable="false"
+      />
+    </div>
+
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" @click="handleSubmit" :loading="loading">
-          开始拉取
+        <el-button @click="handleClose" :disabled="pulling">取消</el-button>
+        <el-button type="primary" @click="handleSubmit" :loading="pulling">
+          {{ pulling ? '拉取中...' : '开始拉取' }}
         </el-button>
       </span>
     </template>
@@ -85,6 +99,7 @@ import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { imageApi, getServerList, registryApi } from '@/api/docker-management'
 import { useImagePullNotification } from '@/composables/useImagePullNotification'
+import ScSocketPanel from '@repo/components/ScSocketPanel/index.vue'
 
 interface Props {
   visible: boolean
@@ -99,7 +114,8 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const formRef = ref<FormInstance>()
-const loading = ref(false)
+const pulling = ref(false)
+const progressTopic = ref('')
 const serverOptions = ref<any[]>([])
 const registryOptions = ref<any[]>([])
 
@@ -155,7 +171,10 @@ const handleSubmit = async () => {
   
   try {
     await formRef.value.validate()
-    loading.value = true
+    pulling.value = true
+    
+    // 生成进度主题ID
+    progressTopic.value = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     
     // 构建请求参数
     const params: any = {
@@ -199,12 +218,12 @@ const handleSubmit = async () => {
   } catch (error) {
     ElMessage.error('镜像拉取失败')
   } finally {
-    loading.value = false
+    pulling.value = false
   }
 }
 
 const handleClose = () => {
-  if (!loading.value) {
+  if (!pulling.value) {
     dialogVisible.value = false
     resetForm()
   }
