@@ -136,9 +136,23 @@
       </el-form-item>
     </el-form>
 
+    <!-- 进度显示 -->
+    <div v-if="installing" class="progress-section">
+      <ScSocketPanel
+        mode="embed"
+        title="创建进度"
+        icon="ri:progress-3-line"
+        :topics="[`container:create:${progressTopic}`]"
+        height="200px"
+        :progress-only="true"
+        :clearable="false"
+        :closeable="false"
+      />
+    </div>
+
     <template #footer>
       <div class="dlg-footer">
-        <el-button @click="visibleProxy = false">取消</el-button>
+        <el-button @click="visibleProxy = false" :disabled="installing">取消</el-button>
         <el-button type="primary" :loading="installing" @click="submit">
           <IconifyIconOnline icon="ri:play-circle-line" class="mr-1" v-if="!installing" />
           {{ installing ? '创建中...' : '创建容器' }}
@@ -153,6 +167,7 @@ import { ref, computed, watch } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { containerApi, type SystemSoftImage } from '@/api/docker-management';
+import ScSocketPanel from '@repo/components/ScSocketPanel/index.vue';
 
 interface Props {
   visible: boolean;
@@ -174,6 +189,7 @@ const visibleProxy = computed({
 
 const formRef = ref<FormInstance>();
 const installing = ref(false);
+const progressTopic = ref('');
 
 const form = ref({
   containerName: '',
@@ -259,6 +275,9 @@ async function submit() {
     }
 
     installing.value = true;
+    
+    // 生成进度主题ID
+    progressTopic.value = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // 构建端口映射
     const portBindings: Record<string, Array<{ HostPort: string }>> = {};

@@ -181,7 +181,16 @@
 
     <!-- 列表视图 -->
     <el-card v-else class="images-table-card">
-      <el-table :data="imageList" stripe v-loading="loading" class="images-table">
+      <ScTable
+        ref="imageTableRef"
+        :url="imageApi.getImagePageList"
+        :params="searchParams"
+        stripe
+        table-name="docker-images"
+        row-key="systemSoftImageId"
+        class="images-table"
+        @selection-change="handleSelectionChange"
+      >
         <el-table-column type="selection" width="55" />
         
         <el-table-column label="镜像" min-width="200">
@@ -237,18 +246,7 @@
             </el-button>
           </template>
         </el-table-column>
-      </el-table>
-      
-      <el-pagination
-        v-model:current-page="searchParams.page"
-        v-model:page-size="searchParams.size"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="loadImages"
-        @current-change="loadImages"
-        class="mt-4"
-      />
+      </ScTable>
     </el-card>
 
     <!-- 拉取镜像对话框 -->
@@ -271,6 +269,7 @@ import { ElMessage, ElMessageBox, ElNotification } from 'element-plus';
 import { useGlobalSocket } from '@repo/core';
 import { useImagePullNotification } from '@/composables/useImagePullNotification';
 import ProgressMonitor from '@/components/ProgressMonitor.vue';
+import ScTable from '@repo/components/ScTable/index.vue';
 import { imageApi, getServerList, type SystemSoftImage } from '@/api/docker-management';
 import PullImageDialog from './components/PullImageDialog.vue';
 import InstallContainerDialog from './components/InstallContainerDialog.vue';
@@ -283,6 +282,8 @@ const installContainerVisible = ref(false);
 const syncVisible = ref(false);
 const importVisible = ref(false);
 const currentImage = ref<SystemSoftImage | null>(null);
+const imageTableRef = ref();
+const selectedImages = ref<SystemSoftImage[]>([]);
 
 const groupBy = ref<'server' | 'image' | 'none'>('none');
 const imageList = ref<SystemSoftImage[]>([]);
@@ -387,7 +388,18 @@ function handleSearch() {
 
 // 刷新
 function handleRefresh() {
-  loadImages();
+  if (groupBy.value === 'none' && imageTableRef.value) {
+    // 列表视图使用ScTable刷新
+    imageTableRef.value.refresh?.();
+  } else {
+    // 分组视图手动加载
+    loadImages();
+  }
+}
+
+// 选择变化处理
+function handleSelectionChange(selection: SystemSoftImage[]) {
+  selectedImages.value = selection;
 }
 
 // 分组切换

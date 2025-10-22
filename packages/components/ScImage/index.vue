@@ -2,13 +2,7 @@
   <div class="sc-image-container" :class="{ 'sc-image-compare': compareMode }" :style="containerStyle">
     <!-- 图片比较模式 -->
     <div v-if="compareMode && compareImage" class="sc-image-compare-wrapper">
-      <ScCompare
-        v-if="useScCompare"
-        :left-image="currentImage"
-        :right-image="compareImage"
-        :left-image-label="compareLeftLabel"
-        :right-image-label="compareRightLabel"
-      />
+      <ScCompare v-if="useScCompare" :left-image="currentImage" :right-image="compareImage" :left-image-label="compareLeftLabel" :right-image-label="compareRightLabel" />
       <ImageCompare
         v-else
         v-model:compareValue="compareValue"
@@ -209,13 +203,7 @@
     </el-dialog>
 
     <!-- 图片编辑器 -->
-    <ImageEditor
-      v-model="editorVisible"
-      :imageSrc="currentImage"
-      :imageBlob="originalImageBlob"
-      @confirm="handleEditorConfirm"
-      @cancel="handleEditorCancel"
-    />
+    <ImageEditor v-model="editorVisible" :imageSrc="currentImage" :imageBlob="originalImageBlob" @confirm="handleEditorConfirm" @cancel="handleEditorCancel" />
   </div>
 </template>
 

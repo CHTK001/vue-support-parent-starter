@@ -3,8 +3,19 @@
     <!-- 统计信息组件 -->
     <ConfigStats :stats="stats" class="mb-6" />
 
-    <!-- 同步信息对话框 -->
-    <ScMessageDialog :visible="showSyncDialog" title="同步信息监听" :data="syncMessages" position="bottom-right" width="450px" height="400px" :opacity="0.95" :auto-expand-on-data="true" :auto-scroll="true" :stop-auto-scroll-on-manual="true" @close="showSyncDialog = false" />
+    <!-- 同步信息监听 -->
+    <ScSocketEventProcess 
+      v-if="showSyncDialog"
+      event-id="video-sync-global" 
+      title="同步信息监听" 
+      event-name="/topic/video-sync/global" 
+      mode="dialog" 
+      position="bottom-right" 
+      layout="log" 
+      data-type="socket"
+      :height="400"
+      @close="showSyncDialog = false" 
+    />
 
     <!-- 配置列表 -->
     <div class="config-list flex flex-col">
@@ -102,7 +113,7 @@ import type { VideoSyncConfig } from "../../api/types";
 
 // 导入组件
 //@ts-ignore
-import { ScMessageDialog } from "@repo/components";
+import { ScSocketEventProcess } from "@repo/components";
 import { useGlobalSocket } from "@repo/core";
 import { message } from "@repo/utils";
 import ConfigCard from "./components/ConfigCard.vue";
@@ -151,9 +162,6 @@ const showLogsDialog = ref(false);
 const showSyncDialog = ref(true); // 默认显示同步信息对话框
 const editingConfig = ref<VideoSyncConfig | null>(null);
 
-// 同步消息数据
-const syncMessages = ref<any[]>([]);
-
 // 移除了不再需要的表单相关变量，业务逻辑已移至ConfigForm组件内部
 
 /**
@@ -164,25 +172,10 @@ const initSocket = () => {
     return;
   }
 
-  // 监听同步信息
+  // 监听同步信息（仅用于更新配置列表和统计信息）
   socketInstance.on("/topic/video-sync/global", (data) => {
     const dataObject = JSON.parse(data.data);
     const config = configList.value.find((c) => c.videoSyncConfigId === dataObject.videoSyncConfigId);
-    // 添加同步消息到对话框
-    const syncMessage = {
-      title: `配置同步更新`,
-      message: dataObject?.message || `配置ID: ${dataObject.videoSyncConfigId}\n状态: ${getStatusText(dataObject.type)}\n同步数量: ${dataObject.syncCount || 0}`,
-      isHtml: true,
-      time: new Date(),
-      progress: dataObject.status === "syncing" ? Math.min((dataObject.syncCount || 0) * 10, 90) : dataObject.status === "completed" ? 100 : undefined,
-    };
-
-    syncMessages.value.push(syncMessage);
-
-    // 保持最新的50条消息
-    if (syncMessages.value.length > 50) {
-      syncMessages.value = syncMessages.value.slice(-50);
-    }
 
     if (config) {
       config.videoSyncConfigLastSyncTime = dataObject.lastSyncTime;
@@ -242,18 +235,6 @@ const updateStats = () => {
   stats.errorConfigs = configList.value.filter((c) => c.videoSyncConfigStatus === "ERROR").length;
 };
 
-/**
- * 添加测试同步消息（用于演示）
- */
-const addTestSyncMessage = () => {
-  const testMessage = {
-    title: "测试同步消息",
-    message: `这是一条测试消息\n时间: ${new Date().toLocaleString()}\n状态: 正常`,
-    time: new Date(),
-    progress: Math.floor(Math.random() * 100),
-  };
-  syncMessages.value.push(testMessage);
-};
 
 /**
  * 刷新配置
