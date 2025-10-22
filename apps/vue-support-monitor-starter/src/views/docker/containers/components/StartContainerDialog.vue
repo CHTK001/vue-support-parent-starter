@@ -200,7 +200,6 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { containerApi, type SystemSoftImage } from '@/api/docker-management'
-import { startOperation, subscribeOperation } from '@/utils/socket'
 
 interface Props {
   visible: boolean
@@ -329,23 +328,9 @@ const handleSubmit = async () => {
     if (response.code === '00000') {
       // 开始监听启动进度
       if (response.data?.operationId) {
-        const imageName = `${props.imageData.systemSoftImageName}:${props.imageData.systemSoftImageTag}`
-        startOperation({
-          id: response.data.operationId,
-          type: 'start_container',
-          title: `启动容器: ${imageName}`,
-          message: '正在启动容器...'
-        })
-        
-        // 订阅进度更新
-        const unsubscribe = subscribeOperation(response.data.operationId, (operation) => {
-          if (operation.status === 'success' || operation.status === 'error') {
-            unsubscribe()
-            if (operation.status === 'success') {
-              emit('success')
-            }
-          }
-        })
+        // ProgressMonitor会自动监听并显示进度
+        // 等待一小段时间让Socket事件传播
+        setTimeout(() => emit('success'), 1000)
       }
       
       ElMessage.success('容器启动任务已创建，请查看进度')

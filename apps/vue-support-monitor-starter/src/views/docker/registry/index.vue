@@ -201,7 +201,6 @@
 
 <script setup lang="ts">
 import { registryApi, type SystemSoftRegistry } from "@/api/docker-management";
-import { connectSocket, enableAutoConnect } from "@/utils/socket";
 import { ScRibbon } from "@repo/components/ScRibbon";
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -557,8 +556,7 @@ const formatTime = (time?: string) => {
 
 // 生命周期
 onMounted(() => {
-  enableAutoConnect();
-  connectSocket().catch(() => { });
+  // Global Socket已在App层面初始化
   loadRegistries();
 });
 </script>

@@ -215,7 +215,7 @@
 
                 <!-- Docker配置节 -->
                 <div v-show="activeSection === 'docker'" class="config-section">
-                  <ServerSettingForm v-model="settingData" section="docker" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
+                  <ServerSettingForm v-model="settingData" section="docker" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" :server-host="currentServer?.monitorSysGenServerHost" @change="handleSettingChange" />
                 </div>
 
                 <!-- Prometheus配置节 -->

@@ -321,6 +321,24 @@ export function syncImageStatus(serverId?: number) {
   return http.request<ReturnResult<number>>("get", "/api/monitor/system-soft-image/page", { params: { serverId } });
 }
 
+// 导出镜像
+export function exportImage(data: { imageId: number; serverId: number; }) {
+  return http.request<ReturnResult<{ operationId: string; filePath: string }>>("post", "/api/monitor/system-soft-image/export", { data });
+}
+
+// 导入镜像
+export function importImage(formData: FormData) {
+  return http.request<ReturnResult<{ operationId: string }>>("post", "/api/monitor/system-soft-image/import", { 
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+}
+
+// 同步镜像：从服务器同步Docker镜像到SystemSoftImage表
+export function syncImages(data: { serverIds: number[] }) {
+  return http.request<ReturnResult<{ operationId: string; syncCount: number }>>("post", "/api/monitor/system-soft-image/sync", { data });
+}
+
 // ========= 4. 软件容器管理API（路径对齐后端 /api/monitor/system-soft-container） =========
 
 export function getContainerPageList(params: PageParams<SystemSoftContainer>) {
@@ -366,6 +384,11 @@ export function getContainerLogs(id: number, lines?: number) {
   return http.request<ReturnResult<string>>("get", `/api/monitor/system-soft-container/${id}/logs`, { params: { lines } });
 }
 
+// 批量操作容器
+export function batchOperateContainers(data: { containerIds: number[]; operation: 'start' | 'stop' | 'restart' | 'remove' }) {
+  return http.request<ReturnResult<{ total: number; success: number; failed: number }>>("post", "/api/monitor/system-soft-container/batch", { data });
+}
+
 export function getContainerStats(id: number) {
   return http.request<ReturnResult<ContainerStats>>("get", `/api/monitor/system-soft-container/${id}/stats`);
 }
@@ -378,7 +401,7 @@ export function syncContainerStatus(serverId?: number) {
 // ========= 6. 服务器相关API =========
 
 export function getServerList() {
-  return http.request<ReturnResult<Array<{ id: number; name: string; host: string; port: number; status: string; }>>>("get", "v1/system/server/list");
+  return http.request<ReturnResult<Array<{ id: number; name: string; host: string; port: number; status: string; }>>>("get", "v1/gen/server/list");
 }
 
 export function getWebSocketTopics() {
@@ -438,6 +461,9 @@ export const imageApi = {
   pullImage,
   deleteImage,
   startImageAsContainer,
+  exportImage,
+  importImage,
+  syncImages,
 };
 
 export const containerApi = {
@@ -454,6 +480,7 @@ export const containerApi = {
   getContainerLogs,
   getContainerStats,
   syncContainerStatus,
+  batchOperateContainers,
 };
 
 export const dockerManagementApi = {

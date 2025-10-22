@@ -196,13 +196,10 @@ const loadLogs = async () => {
   try {
     loading.value = true
     
-    const params = {
-      containerId: props.containerData.systemSoftContainerId,
-      lines: logLines.value,
-      level: logLevel.value || undefined
-    }
-    
-    const response = await containerApi.getContainerLogs(params)
+    const response = await containerApi.getContainerLogs(
+      props.containerData.systemSoftContainerId,
+      logLines.value
+    )
     if (response.code === '00000') {
       logs.value = response.data || ''
       updateLogStats()
@@ -212,7 +209,7 @@ const loadLogs = async () => {
       await nextTick()
       scrollToBottom()
     } else {
-      ElMessage.error(response.message || '获取日志失败')
+      ElMessage.error(response.msg || '获取日志失败')
     }
   } catch (error) {
     ElMessage.error('获取容器日志失败')

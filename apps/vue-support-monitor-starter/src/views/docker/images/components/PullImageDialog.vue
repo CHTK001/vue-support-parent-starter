@@ -84,7 +84,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { imageApi, getServerList, registryApi } from '@/api/docker-management'
-import { startOperation, subscribeOperation } from '@/utils/socket'
+import { useImagePullNotification } from '@/composables/useImagePullNotification'
 
 interface Props {
   visible: boolean
@@ -102,6 +102,9 @@ const formRef = ref<FormInstance>()
 const loading = ref(false)
 const serverOptions = ref<any[]>([])
 const registryOptions = ref<any[]>([])
+
+// 使用拉取通知功能
+const { showPullStart } = useImagePullNotification()
 
 const form = reactive({
   imageName: '',
@@ -175,28 +178,19 @@ const handleSubmit = async () => {
     
     const response = await imageApi.pullImage(params)
     if (response.code === '00000') {
-      // 开始监听拉取进度
+      // 显示拉取开始通知
+      const imageName = params.fullImageName || params.imageName
+      const imageTag = params.fullImageName ? undefined : params.imageTag
+      showPullStart(imageName, imageTag, form.serverId)
+      
+      // ProgressMonitor会自动监听并显示进度
+      // operationId: response.data?.operationId
       if (response.data?.operationId) {
-        const imageName = params.fullImageName || `${params.imageName}:${params.imageTag}`
-        startOperation({
-          id: response.data.operationId,
-          type: 'pull_image',
-          title: `拉取镜像: ${imageName}`,
-          message: '正在拉取镜像...'
-        })
-        
-        // 订阅进度更新
-        const unsubscribe = subscribeOperation(response.data.operationId, (operation) => {
-          if (operation.status === 'success' || operation.status === 'error') {
-            unsubscribe()
-            if (operation.status === 'success') {
-              emit('success')
-            }
-          }
-        })
+        // 等待一小段时间让Socket事件传播
+        setTimeout(() => emit('success'), 1000)
       }
       
-      ElMessage.success('镜像拉取任务已启动，请查看进度')
+      ElMessage.success('镜像拉取任务已启动，请在右下角查看实时进度')
       emit('success')
       handleClose()
     } else {
