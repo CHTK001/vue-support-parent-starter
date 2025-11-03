@@ -1,4 +1,21 @@
 <template>
+  <!-- 安装进度弹框 -->
+  <ScSocketEventProcess
+    v-for="(progressItem, index) in installProgressList"
+    :key="progressItem.eventId"
+    :event-id="progressItem.eventId"
+    :event-name="progressItem.eventName"
+    :title="progressItem.title"
+    :icon="progressItem.icon"
+    :position="getProgressPosition(index)"
+    mode="dialog"
+    layout="logs"
+    v-model:visible="progressItem.visible"
+    :storage-prefix="'docker-install'"
+    @close="handleProgressClose(progressItem.eventId)"
+    @data="handleProgressData(progressItem.eventId, $event)"
+  />
+
   <el-dialog v-model="visibleProxy" class="soft-install-dialog" :show-close="true">
     <template #header>
       <div class="dlg-header">
@@ -91,11 +108,20 @@
 
 <script setup lang="ts">
 import { getServerList, softwareApi } from '@/api/docker-management';
+import ScSocketEventProcess from '@repo/components/ScSocketEventProcess/index.vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import { computed, ref, watch } from 'vue';
 
 interface Props { visible: boolean; soft?: any }
 interface Emits { (e: 'update:visible', v: boolean): void;(e: 'success'): void }
+
+interface ProgressItem {
+  eventId: string;
+  eventName: string | string[];
+  title: string;
+  icon: string;
+  visible: boolean;
+}
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
@@ -104,6 +130,7 @@ const visibleProxy = computed({ get: () => props.visible, set: v => emit('update
 const servers = ref<any[]>([]);
 const selectedServerIds = ref<number[]>([]);
 const installing = ref(false);
+const installProgressList = ref<ProgressItem[]>([]);
 
 const selectedServerCount = computed(() => selectedServerIds.value.length);
 
@@ -160,6 +187,38 @@ function getStatusClass(status: number | undefined): string {
   }
 }
 
+// 获取进度弹框位置（多个弹框时错开显示）
+function getProgressPosition(index: number): 'bottom-right' | 'top-right' | 'bottom-left' | 'top-left' {
+  const positions: Array<'bottom-right' | 'top-right' | 'bottom-left' | 'top-left'> = ['bottom-right', 'top-right', 'bottom-left', 'top-left'];
+  return positions[index % 4];
+}
+
+// 处理进度弹框关闭
+function handleProgressClose(eventId: string) {
+  // 从列表中移除该进度项，释放资源
+  const index = installProgressList.value.findIndex(item => item.eventId === eventId);
+  if (index !== -1) {
+    installProgressList.value.splice(index, 1);
+  }
+}
+
+// 处理进度数据
+function handleProgressData(eventId: string, data: any) {
+  // 当进度完成或失败时，延迟移除（给用户查看结果的时间）
+  if (data.status === 'success' || data.status === 'error') {
+    setTimeout(() => {
+      const item = installProgressList.value.find(item => item.eventId === eventId);
+      if (item) {
+        item.visible = false; // 先关闭弹框
+        // 再延迟移除，确保关闭动画完成
+        setTimeout(() => {
+          handleProgressClose(eventId);
+        }, 300);
+      }
+    }, 8000); // 8秒后自动关闭并移除
+  }
+}
+
 // 监听对话框打开/关闭：打开时加载服务器，关闭时清理选择
 watch(() => visibleProxy.value, (val) => {
   if (val) {
@@ -188,9 +247,31 @@ async function submit() {
     
     const result = await softwareApi.installSoftware(payload as any);
     
-    if (result.code === '00000') {
-      // 通知父组件安装成功（父组件会显示通知）
+    if (result.code === '00000' && result.data?.operationId) {
+      // 创建进度监控项
+      const serverNames = servers.value
+        .filter(s => ids.includes(s.monitorSysGenServerId))
+        .map(s => s.monitorSysGenServerName)
+        .join(', ');
+      
+      const progressItem: ProgressItem = {
+        eventId: result.data.operationId,
+        eventName: ['docker_start', 'docker_progress', 'docker_complete', 'docker_error'],
+        title: `安装 ${props.soft?.systemSoftName} (${serverNames})`,
+        icon: 'ri:download-cloud-2-line',
+        visible: true
+      };
+      
+      installProgressList.value.push(progressItem);
+      
+      // 通知父组件安装开始
       emit('success');
+      
+      ElNotification.success({
+        title: '安装已开始',
+        message: `正在 ${ids.length} 台服务器上安装 ${props.soft?.systemSoftName}`,
+        position: 'bottom-right'
+      });
       
       // 关闭对话框
       visibleProxy.value = false;

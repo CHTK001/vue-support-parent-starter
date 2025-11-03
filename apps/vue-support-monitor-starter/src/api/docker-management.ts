@@ -437,7 +437,7 @@ export function searchOnlineSoftware(params: { keyword: string; page?: number; s
 
 // 将在线检索结果导入到软件库（异步保存，接口占位）
 export function importOnlineSoftware(data: { items: Array<Partial<SystemSoft> & { systemSoftDockerImage?: string }> }) {
-  return http.request<ReturnResult<{ queued: number }>>("post", "v1/system/soft/online/import", { data });
+  return http.request<ReturnResult<{ queued: number }>>("post", "v1/system/soft/online/import", { data:data.items });
 }
 
 export const softwareApi = {
