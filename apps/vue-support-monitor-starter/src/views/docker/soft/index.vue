@@ -1,6 +1,21 @@
 <template>
   <div class="soft-management">
-    <ProgressMonitor />
+    <!-- 嵌入式安装进度显示（页面顶部） -->
+    <div v-if="activeInstallOperations.length > 0" class="embedded-progress-panel">
+      <ScSocketEventProcess
+        v-for="operation in activeInstallOperations"
+        :key="operation.eventId"
+        :event-id="operation.eventId"
+        :event-name="operation.eventName"
+        :title="operation.title"
+        :icon="operation.icon"
+        mode="embed"
+        layout="log"
+        :storage-prefix="'docker-install-embedded'"
+        @data="handleOperationData(operation.eventId, $event)"
+      />
+    </div>
+    
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -141,9 +156,9 @@
 
 <script setup lang="ts">
 import { softwareApi } from '@/api/docker-management';
-import ProgressMonitor from '@/components/ProgressMonitor.vue';
 import { useGlobalSocket } from '@repo/core';
 import ScDialog from '@repo/components/ScDialog/src/index.vue';
+import ScSocketEventProcess from '@repo/components/ScSocketEventProcess/index.vue';
 import ScTable from '@repo/components/ScTable/index.vue';
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus';
 import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
@@ -157,6 +172,15 @@ const syncVisible = ref(false);
 const params = reactive<any>({ page: 1, size: 12, keyword: '', category: undefined, status: undefined });
 const categories = ref<string[]>([]);
 
+// 活跃的安装操作列表
+interface InstallOperation {
+  eventId: string;
+  eventName: string | string[];
+  title: string;
+  icon: string;
+}
+const activeInstallOperations = ref<InstallOperation[]>([]);
+
 // 分页模式：默认 normal / 滚动 scroll
 const paginationType = ref<'default' | 'scroll'>('default');
 const isScroll = ref(false);
@@ -164,6 +188,19 @@ watch(isScroll, v => (paginationType.value = v ? 'scroll' : 'default'));
 
 // 获取全局Socket服务
 const globalSocket = useGlobalSocket();
+
+// 处理操作数据（用于清理已完成的操作）
+function handleOperationData(eventId: string, data: any) {
+  // 当进度完成或失败时，延迟移除
+  if (data.status === 'success' || data.status === 'error') {
+    setTimeout(() => {
+      const index = activeInstallOperations.value.findIndex(op => op.eventId === eventId);
+      if (index !== -1) {
+        activeInstallOperations.value.splice(index, 1);
+      }
+    }, 10000); // 10秒后自动移除
+  }
+}
 
 // 设置Socket事件监听
 function setupSocketListeners() {
@@ -307,6 +344,16 @@ function onSyncSuccess() {
 <style scoped>
 .soft-management { padding: 20px; background: var(--app-bg-secondary); }
 
+/* 嵌入式进度面板 */
+.embedded-progress-panel {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .header-left .page-title { display: flex; align-items: center; font-size: 20px; font-weight: 600; }
 .title-icon { margin-right: 8px; }
@@ -381,6 +428,7 @@ function onSyncSuccess() {
   font-size: 13px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -395,6 +443,7 @@ function onSyncSuccess() {
 .truncate-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden
 }
