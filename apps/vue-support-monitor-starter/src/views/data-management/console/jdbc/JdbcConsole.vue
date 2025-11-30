@@ -79,11 +79,12 @@
           </el-button>
           <el-button
             size="small"
-            :disabled="!currentPath"
-            @click="openStructureTab"
+            type="success"
+            :disabled="!currentNodeData || !isTableNode(currentNodeData)"
+            @click="openTableStructure()"
           >
-            <IconifyIconOnline :icon="icons.structure" class="mr-1" />
-            结构
+            <IconifyIconOnline icon="ri:tools-line" class="mr-1" />
+            设计表
           </el-button>
           <el-button-group>
             <el-button
@@ -261,6 +262,14 @@
       @select="onMenuSelect"
       @close="menuVisible = false"
     />
+
+    <!-- 表结构对话框 -->
+    <TableStructureDialog
+      v-model="showStructureDialog"
+      :setting-id="props.id"
+      :table-name="structureTableName"
+      @refresh="onStructureRefresh"
+    />
   </div>
 </template>
 <script setup lang="ts">
@@ -291,7 +300,10 @@ import {
   getStructureCapabilities,
   renameTable,
   backupTable,
+  listTables,
+  listColumns,
 } from "@/api/system-data";
+import TableStructureDialog from "./TableStructureDialog.vue";
 
 const props = defineProps<{ id: number }>();
 
@@ -341,6 +353,14 @@ const structureContent = ref("");
 const statusText = ref("");
 const currentNodeData = ref<any | null>(null);
 const currentComment = ref("");
+
+// 表结构对话框
+const showStructureDialog = ref(false);
+const structureTableName = ref("");
+
+// 自动提示相关
+const tableNames = ref<string[]>([]);
+const columnCache = ref<Record<string, any[]>>({});
 
 // 左右可拖拽分栏
 const leftWidth = ref(300);
@@ -452,6 +472,110 @@ async function loadRoot() {
 
 function onRefreshTree() {
   loadRoot();
+  loadTableNames();
+}
+
+/**
+ * 加载表名列表（用于自动提示）
+ */
+async function loadTableNames() {
+  try {
+    const res = await listTables(props.id);
+    if (res?.data) {
+      tableNames.value = res.data;
+    }
+  } catch (e) {
+    console.error("加载表名列表失败", e);
+  }
+}
+
+/**
+ * 获取指定表的字段列表（带缓存）
+ */
+async function getColumnsForTable(tableName: string): Promise<any[]> {
+  if (columnCache.value[tableName]) {
+    return columnCache.value[tableName];
+  }
+  try {
+    const res = await listColumns(props.id, tableName);
+    if (res?.data) {
+      columnCache.value[tableName] = res.data;
+      return res.data;
+    }
+  } catch (e) {
+    console.error("加载字段列表失败", e);
+  }
+  return [];
+}
+
+/**
+ * 获取SQL自动提示建议
+ */
+function getSqlCompletions(): any[] {
+  const suggestions: any[] = [];
+  
+  // SQL关键字
+  const keywords = [
+    "SELECT", "FROM", "WHERE", "AND", "OR", "NOT", "IN", "LIKE", "BETWEEN",
+    "ORDER BY", "GROUP BY", "HAVING", "LIMIT", "OFFSET", "JOIN", "LEFT JOIN",
+    "RIGHT JOIN", "INNER JOIN", "OUTER JOIN", "ON", "AS", "DISTINCT", "COUNT",
+    "SUM", "AVG", "MAX", "MIN", "INSERT", "INTO", "VALUES", "UPDATE", "SET",
+    "DELETE", "CREATE", "TABLE", "ALTER", "DROP", "INDEX", "PRIMARY KEY",
+    "FOREIGN KEY", "REFERENCES", "NULL", "NOT NULL", "DEFAULT", "AUTO_INCREMENT"
+  ];
+  
+  keywords.forEach(kw => {
+    suggestions.push({
+      label: kw,
+      kind: "keyword",
+      insertText: kw,
+      detail: "SQL关键字"
+    });
+  });
+  
+  // 表名
+  tableNames.value.forEach(table => {
+    suggestions.push({
+      label: table,
+      kind: "table",
+      insertText: table,
+      detail: "表"
+    });
+  });
+  
+  return suggestions;
+}
+
+/**
+ * 打开表结构对话框
+ */
+function openTableStructure(tableName?: string) {
+  if (tableName) {
+    structureTableName.value = tableName;
+  } else if (currentNodeData.value) {
+    const type = (currentNodeData.value?.type || "").toString().toUpperCase();
+    if (type.includes("TABLE")) {
+      structureTableName.value = currentNodeData.value.name;
+    } else {
+      ElMessage.warning("请先选择一个表");
+      return;
+    }
+  } else {
+    ElMessage.warning("请先选择一个表");
+    return;
+  }
+  showStructureDialog.value = true;
+}
+
+/**
+ * 刷新表结构后的回调
+ */
+function onStructureRefresh() {
+  // 清除字段缓存
+  if (structureTableName.value) {
+    delete columnCache.value[structureTableName.value];
+  }
+  onRefreshTree();
 }
 
 async function handleNodeClick(node: any) {
@@ -491,6 +615,15 @@ const loadChildrenLazy = async (
   const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
   resolve(records);
 };
+
+/**
+ * 判断节点是否为表节点
+ */
+function isTableNode(node: any): boolean {
+  if (!node) return false;
+  const type = (node?.type || "").toString().toUpperCase();
+  return type.includes("TABLE");
+}
 
 // 根据类型/层级返回 JDBC 树节点图标
 /**
@@ -764,17 +897,12 @@ function buildMenuItems(type): MenuItem[] {
   }
   if (type?.includes("TABLE")) {
     items.push({ key: "open-table", label: "打开表", icon: "ri:table-2" });
-  }
-  if (
-    allow(
-      consoleConfig.value.jdbc?.viewTableStructure && type.includes("TABLE")
-    )
-  ) {
     items.push({
-      key: "view-structure",
-      label: "查看表结构",
-      icon: "ri:table-2",
+      key: "design-table",
+      label: "设计表",
+      icon: "ri:tools-line",
     });
+    items.push({ key: "divider-1", label: "", divider: true });
   }
   if (
     allow(consoleConfig.value.jdbc?.copyTableName) &&
@@ -869,8 +997,8 @@ async function onMenuSelect(key: string) {
     case "open-table":
       await openTableAndRender(true);
       break;
-    case "view-structure":
-      await viewTableStructure(contextNode.value);
+    case "design-table":
+      openTableStructure(contextNode.value?.name);
       break;
     case "copy-table-name":
       await copyTableName(contextNode.value);
@@ -1074,7 +1202,7 @@ async function addFieldComment(node: any) {
 }
 
 onMounted(async () => {
-  await Promise.all([loadConsoleConfig(), loadRoot()]);
+  await Promise.all([loadConsoleConfig(), loadRoot(), loadTableNames()]);
   
   // 建立Socket.IO连接
   if (globalSocket?.value) {
