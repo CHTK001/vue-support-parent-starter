@@ -403,22 +403,19 @@ class PureHttp {
     if (data instanceof Object && data?.data) {
       data.records = data?.data;
     }
-    const result: any = {
-      data: null,
-      code: 0,
-      msg: "",
-      message: "", // 添加message属性
-      headers: {},
-    };
     const code = response.data?.code || response.status;
-    result.data = data;
-    result.code = code;
-    result.response = response;
-    result.msg = response.data?.msg || response.statusText;
-    // 添加message属性，值与msg相同
-    result.message = result.msg;
-    result.headers = response.headers;
-    result.success = response.data?.success || isSuccess(code);
+    const msg = response.data?.msg || response.data?.message || response.statusText;
+    const success = response.data?.success || isSuccess(code);
+    
+    // 构建统一的返回结果对象
+    const result: any = {
+      data: data,
+      code: code,
+      msg: msg,
+      message: msg,
+      success: success,
+      headers: response.headers,
+    };
     // 修复：确保headers存在再访问x-response-version
     const resVersion = result?.headers && result.headers["x-response-version"];
     if (resVersion) {
