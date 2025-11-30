@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     :title="`设计表 - ${tableName}`"
-    width="1100px"
+    width="1300px"
     :close-on-click-modal="false"
     class="table-structure-dialog"
     draggable
@@ -321,7 +321,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "update:modelValue", value: boolean): void;
-  (e: "refresh"): void;
+  (e: "refreshTable", tableName: string): void;
 }>();
 
 const visible = ref(false);
@@ -821,12 +821,27 @@ async function handleSaveAll() {
       batchRequest.tableComment = tableComment.value;
     }
     
+    // 检查是否有实际的修改内容
+    const hasActualChanges = batchRequest.dropColumns || 
+                             batchRequest.addColumns || 
+                             batchRequest.modifyColumns || 
+                             batchRequest.reorderColumns || 
+                             batchRequest.tableComment !== undefined;
+    
+    if (!hasActualChanges) {
+      ElMessage.info("没有检测到实际修改");
+      return;
+    }
+    
     // 调用批量接口
+    console.log("批量修改请求:", JSON.stringify(batchRequest, null, 2));
     await batchModifyTableStructure(props.settingId, batchRequest);
     
     ElMessage.success("保存成功");
+    // 重置删除列表
+    deletedColumns.value = [];
     await loadStructure();
-    emit("refresh");
+    emit("refreshTable", props.tableName);
   } catch (e: any) {
     ElMessage.error("保存失败: " + (e.message || e));
   } finally {

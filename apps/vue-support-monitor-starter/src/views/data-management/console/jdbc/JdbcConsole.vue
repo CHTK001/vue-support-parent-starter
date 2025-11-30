@@ -269,7 +269,7 @@
       v-model="showStructureDialog"
       :setting-id="props.id"
       :table-name="structureTableName"
-      @refresh="onStructureRefresh"
+      @refresh-table="onStructureRefresh"
     />
 
     <!-- 导入CSV对话框 -->
@@ -631,13 +631,14 @@ function openTableStructure(tableName?: string) {
 
 /**
  * 刷新表结构后的回调
+ * 只刷新指定表的字段缓存，不刷新整个树
+ * @param tableName 表名
  */
-function onStructureRefresh() {
-  // 清除字段缓存
-  if (structureTableName.value) {
-    delete columnCache.value[structureTableName.value];
+function onStructureRefresh(tableName: string) {
+  // 清除该表的字段缓存
+  if (tableName) {
+    delete columnCache.value[tableName];
   }
-  onRefreshTree();
 }
 
 async function handleNodeClick(node: any) {
