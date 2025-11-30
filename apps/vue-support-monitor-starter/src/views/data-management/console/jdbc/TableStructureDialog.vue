@@ -35,9 +35,9 @@
               <IconifyIconOnline icon="ri:insert-row-bottom" class="mr-1" />
               插入字段
             </el-button>
-            <el-button type="danger" size="small" @click="handleDeleteRow" :disabled="selectedRowIndex < 0">
+            <el-button type="danger" size="small" @click="handleDeleteRow" :disabled="selectedRows.length === 0 && selectedRowIndex < 0">
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-              删除字段
+              删除字段 {{ selectedRows.length > 0 ? `(${selectedRows.length})` : '' }}
             </el-button>
             <el-divider direction="vertical" />
             <el-button size="small" @click="handleMoveUp" :disabled="selectedRowIndex <= 0">
@@ -70,9 +70,11 @@
               row-key="__key"
               highlight-current-row
               @current-change="handleCurrentChange"
+              @selection-change="handleSelectionChange"
               @row-dblclick="handleRowDblClick"
               :row-class-name="getRowClassName"
             >
+              <el-table-column type="selection" width="45" fixed="left" />
               <el-table-column type="index" width="50" label="#" fixed="left" />
               
               <!-- 字段名 -->
@@ -341,6 +343,9 @@ const tableCommentModified = ref(false);
 const selectedRowIndex = ref(-1);
 const selectedRow = ref<ColumnInfo | null>(null);
 
+// 多选的行
+const selectedRows = ref<ColumnInfo[]>([]);
+
 // 删除的字段列表
 const deletedColumns = ref<string[]>([]);
 
@@ -548,6 +553,11 @@ function handleCurrentChange(row: ColumnInfo | null) {
   selectedRowIndex.value = row ? columns.value.findIndex(c => c.__key === row.__key) : -1;
 }
 
+// 多选变化
+function handleSelectionChange(rows: ColumnInfo[]) {
+  selectedRows.value = rows;
+}
+
 // 行双击（可以用于其他操作）
 function handleRowDblClick(row: ColumnInfo) {
   // 双击行时可以执行其他操作
@@ -616,26 +626,42 @@ function handleInsertRow() {
   });
 }
 
-// 删除字段
+// 删除字段（支持多选批量删除）
 async function handleDeleteRow() {
-  if (selectedRowIndex.value < 0 || !selectedRow.value) return;
+  // 优先使用多选的行，否则使用当前选中行
+  const rowsToDelete = selectedRows.value.length > 0 
+    ? selectedRows.value 
+    : (selectedRow.value ? [selectedRow.value] : []);
   
-  const row = selectedRow.value;
+  if (rowsToDelete.length === 0) return;
+  
+  const names = rowsToDelete.map(r => r.name || '(未命名)').join(', ');
   try {
     await ElMessageBox.confirm(
-      `确定删除字段 "${row.name || '(未命名)'}" 吗？`,
+      rowsToDelete.length === 1 
+        ? `确定删除字段 "${names}" 吗？`
+        : `确定删除 ${rowsToDelete.length} 个字段吗？\n${names}`,
       "确认删除",
       { type: "warning" }
     );
     
-    // 如果是已存在的字段，记录到删除列表
-    if (!row.__isNew && row.__originalName) {
-      deletedColumns.value.push(row.__originalName);
+    // 遍历删除
+    for (const row of rowsToDelete) {
+      // 如果是已存在的字段，记录到删除列表
+      if (!row.__isNew && row.__originalName) {
+        deletedColumns.value.push(row.__originalName);
+      }
+      const idx = columns.value.findIndex(c => c.__key === row.__key);
+      if (idx >= 0) {
+        columns.value.splice(idx, 1);
+      }
     }
     
-    columns.value.splice(selectedRowIndex.value, 1);
+    // 清空选中状态
     selectedRowIndex.value = -1;
     selectedRow.value = null;
+    selectedRows.value = [];
+    tableRef.value?.clearSelection();
   } catch {
     // 取消删除
   }
