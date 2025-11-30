@@ -712,13 +712,10 @@ onMounted(() => {
 <style scoped>
 /* 页面主容器 */
 .data-management-page {
-  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 50%, #f8fafc 100%);
   padding: 0;
   display: flex;
   flex-direction: column;
   height: 100%;
-  position: relative;
-  overflow: hidden;
 }
 
 /* 背景装饰 */

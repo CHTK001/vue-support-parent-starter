@@ -1,6 +1,7 @@
 <template>
   <el-dialog
     draggable
+    append-to-body
     v-model="visibleInner"
     :title="modelValue ? '编辑配置' : '新建配置'"
     width="1100px"
