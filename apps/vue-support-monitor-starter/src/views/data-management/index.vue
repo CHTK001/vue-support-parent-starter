@@ -960,7 +960,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  color: var(--el-text-color-primary);
+  color: #fff;
   border-radius: 12px;
 }
 
@@ -1285,7 +1285,7 @@ onMounted(() => {
   font-size: 14px;
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   border: none;
-  color: var(--el-text-color-primary);
+  color: #fff;
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
@@ -1293,7 +1293,7 @@ onMounted(() => {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
   background: linear-gradient(135deg, #1d4ed8, #1e40af);
-  color: var(--el-text-color-primary);
+  color: #fff;
 }
 
 .secondary-actions {

@@ -307,3 +307,108 @@ export function backupTable(
     data: payload,
   });
 }
+
+/** 获取表名列表（用于自动提示） */
+export function listTables(settingId: number) {
+  return request({
+    url: `/system/data/console/${settingId}/table/list`,
+    method: "get",
+  });
+}
+
+/** 获取字段列表（用于自动提示） */
+export function listColumns(settingId: number, tableName: string) {
+  return request({
+    url: `/system/data/console/${settingId}/table/columns`,
+    method: "get",
+    params: { tableName },
+  });
+}
+
+/** 获取表结构详情 */
+export function getTableStructure(settingId: number, tableName: string) {
+  return request({
+    url: `/system/data/console/${settingId}/table/structure`,
+    method: "get",
+    params: { tableName },
+  });
+}
+
+/** 获取建表DDL语句 */
+export function getCreateTableDdl(settingId: number, tableName: string) {
+  return request({
+    url: `/system/data/console/${settingId}/table/ddl`,
+    method: "get",
+    params: { tableName },
+  });
+}
+
+/** 添加字段 */
+export function addColumn(
+  settingId: number,
+  payload: {
+    tableName: string;
+    columnName: string;
+    dataType: string;
+    nullable?: boolean;
+    defaultValue?: string;
+    comment?: string;
+    position?: string;
+    afterColumn?: string;
+  }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/column/add`,
+    method: "post",
+    data: payload,
+  });
+}
+
+/** 修改字段 */
+export function modifyColumn(
+  settingId: number,
+  payload: {
+    tableName: string;
+    oldColumnName: string;
+    newColumnName?: string;
+    dataType: string;
+    nullable?: boolean;
+    defaultValue?: string;
+    comment?: string;
+  }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/column/modify`,
+    method: "post",
+    data: payload,
+  });
+}
+
+/** 删除字段 */
+export function dropColumn(
+  settingId: number,
+  payload: { tableName: string; columnName: string }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/column/drop`,
+    method: "post",
+    data: payload,
+  });
+}
+
+/** 调整字段位置 */
+export function reorderColumn(
+  settingId: number,
+  payload: {
+    tableName: string;
+    columnName: string;
+    position: string;
+    afterColumn?: string;
+  }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/column/reorder`,
+    method: "post",
+    data: payload,
+  });
+}

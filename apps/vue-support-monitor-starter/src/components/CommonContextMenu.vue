@@ -5,20 +5,22 @@
     :style="{ left: x + 'px', top: y + 'px' }"
     @contextmenu.prevent
   >
-    <div 
-      v-for="item in items" 
-      :key="item.key"
-      class="menu-item"
-      :class="{ disabled: item.disabled }"
-      @click="handleClick(item)"
-    >
-      <IconifyIconOnline 
-        v-if="item.icon" 
-        :icon="item.icon" 
-        class="menu-item-icon"
-      />
-      <span class="menu-item-label">{{ item.label }}</span>
-    </div>
+    <template v-for="item in items" :key="item.key">
+      <div v-if="item.divider" class="menu-divider" />
+      <div 
+        v-else
+        class="menu-item"
+        :class="{ disabled: item.disabled }"
+        @click="handleClick(item)"
+      >
+        <IconifyIconOnline 
+          v-if="item.icon" 
+          :icon="item.icon" 
+          class="menu-item-icon"
+        />
+        <span class="menu-item-label">{{ item.label }}</span>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -30,6 +32,7 @@ export interface MenuItem {
   label: string
   icon?: string
   disabled?: boolean
+  divider?: boolean
 }
 
 interface Props {
@@ -111,5 +114,11 @@ onBeforeUnmount(() => {
 
 .menu-item-label {
   flex: 1;
+}
+
+.menu-divider {
+  height: 1px;
+  margin: 6px 0;
+  background-color: #ebeef5;
 }
 </style>
