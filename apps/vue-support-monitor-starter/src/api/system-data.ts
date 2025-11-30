@@ -396,6 +396,63 @@ export function dropColumn(
   });
 }
 
+/** 批量删除字段 */
+export function batchDropColumn(
+  settingId: number,
+  payload: { tableName: string; columnNames: string[] }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/column/batch-drop`,
+    method: "post",
+    data: payload,
+  });
+}
+
+/** 批量添加字段 */
+export function batchAddColumn(
+  settingId: number,
+  payload: {
+    tableName: string;
+    columns: Array<{
+      columnName: string;
+      dataType: string;
+      nullable?: boolean;
+      defaultValue?: string;
+      comment?: string;
+      position?: string;
+      afterColumn?: string;
+    }>;
+  }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/column/batch-add`,
+    method: "post",
+    data: payload,
+  });
+}
+
+/** 批量修改字段 */
+export function batchModifyColumn(
+  settingId: number,
+  payload: {
+    tableName: string;
+    columns: Array<{
+      oldColumnName: string;
+      newColumnName?: string;
+      dataType: string;
+      nullable?: boolean;
+      defaultValue?: string;
+      comment?: string;
+    }>;
+  }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/column/batch-modify`,
+    method: "post",
+    data: payload,
+  });
+}
+
 /** 调整字段位置 */
 export function reorderColumn(
   settingId: number,
@@ -408,6 +465,68 @@ export function reorderColumn(
 ) {
   return request({
     url: `/system/data/console/${settingId}/table/column/reorder`,
+    method: "post",
+    data: payload,
+  });
+}
+
+/**
+ * 修改表注释
+ * @param settingId 数据源ID
+ * @param payload 请求参数
+ */
+export function modifyTableComment(
+  settingId: number,
+  payload: {
+    tableName: string;
+    comment: string;
+  }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/comment`,
+    method: "post",
+    data: payload,
+  });
+}
+
+/**
+ * 批量修改表结构
+ * 包括添加字段、修改字段、删除字段、调整顺序、修改表注释等操作
+ * @param settingId 数据源ID
+ * @param payload 批量操作请求
+ */
+export function batchModifyTableStructure(
+  settingId: number,
+  payload: {
+    tableName: string;
+    tableComment?: string;
+    addColumns?: Array<{
+      columnName: string;
+      dataType: string;
+      nullable?: boolean;
+      defaultValue?: string;
+      comment?: string;
+      position?: string;
+      afterColumn?: string;
+    }>;
+    modifyColumns?: Array<{
+      oldColumnName: string;
+      newColumnName?: string;
+      dataType: string;
+      nullable?: boolean;
+      defaultValue?: string;
+      comment?: string;
+    }>;
+    dropColumns?: string[];
+    reorderColumns?: Array<{
+      columnName: string;
+      position: string;
+      afterColumn?: string;
+    }>;
+  }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/batch`,
     method: "post",
     data: payload,
   });

@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    :title="`表结构 - ${tableName}`"
+    :title="`设计表 - ${tableName}`"
     width="1100px"
     :close-on-click-modal="false"
     class="table-structure-dialog"
@@ -9,6 +9,19 @@
     top="5vh"
   >
     <div class="structure-container">
+      <!-- 表注释 -->
+      <div class="table-comment-section">
+        <label class="comment-label">表注释：</label>
+        <el-input
+          v-model="tableComment"
+          size="small"
+          placeholder="输入表注释"
+          style="width: 400px"
+          @change="tableCommentModified = true"
+        />
+        <el-tag v-if="tableCommentModified" type="warning" size="small" class="ml-2">已修改</el-tag>
+      </div>
+
       <!-- 标签页 -->
       <el-tabs v-model="activeTab" type="border-card">
         <!-- 字段列表 -->
@@ -63,83 +76,77 @@
               <el-table-column type="index" width="50" label="#" fixed="left" />
               
               <!-- 字段名 -->
-              <el-table-column prop="name" label="字段名" width="150" fixed="left">
-                <template #default="{ row, $index }">
-                  <el-input
-                    v-if="editingCell?.row === $index && editingCell?.col === 'name'"
-                    v-model="row.name"
-                    size="small"
-                    @blur="finishEdit"
-                    @keyup.enter="finishEdit"
-                    ref="editInputRef"
-                  />
-                  <div v-else class="cell-content" @dblclick="startEdit($index, 'name')">
-                    <span class="column-name">{{ row.name || '(未命名)' }}</span>
-                    <el-tag v-if="row.primaryKey" type="warning" size="small" class="ml-1">PK</el-tag>
-                    <el-tag v-if="row.autoIncrement" type="info" size="small" class="ml-1">AI</el-tag>
-                    <el-tag v-if="row.__isNew" type="success" size="small" class="ml-1">新</el-tag>
-                    <el-tag v-else-if="row.__modified" type="primary" size="small" class="ml-1">改</el-tag>
+              <el-table-column prop="name" label="字段名" width="160" fixed="left">
+                <template #default="{ row }">
+                  <div class="name-cell">
+                    <el-input
+                      v-model="row.name"
+                      size="small"
+                      placeholder="字段名"
+                      @change="markModified(row)"
+                    />
+                    <div class="name-tags">
+                      <el-tag v-if="row.primaryKey" type="warning" size="small">PK</el-tag>
+                      <el-tag v-if="row.autoIncrement" type="info" size="small">AI</el-tag>
+                      <el-tag v-if="row.__isNew" type="success" size="small">新</el-tag>
+                      <el-tag v-else-if="row.__modified && isColumnReallyModified(row)" type="primary" size="small">改</el-tag>
+                    </div>
                   </div>
                 </template>
               </el-table-column>
 
               <!-- 数据类型 -->
-              <el-table-column prop="dataType" label="类型" width="160">
-                <template #default="{ row, $index }">
-                  <el-autocomplete
-                    v-if="editingCell?.row === $index && editingCell?.col === 'dataType'"
-                    v-model="row.fullType"
-                    :fetch-suggestions="queryDataTypes"
+              <el-table-column prop="dataType" label="类型" width="140">
+                <template #default="{ row }">
+                  <el-select
+                    v-model="row.dataType"
                     size="small"
+                    filterable
+                    allow-create
                     style="width: 100%"
-                    @blur="finishEdit"
-                    @select="finishEdit"
-                    ref="editInputRef"
-                    placeholder="如 VARCHAR(255)"
-                  />
-                  <div v-else class="cell-content type-cell" @dblclick="startEdit($index, 'dataType')">
-                    {{ row.fullType || row.dataType || '(未设置)' }}
-                  </div>
+                    @change="onDataTypeChange(row)"
+                  >
+                    <el-option-group v-for="group in dataTypeGroups" :key="group.label" :label="group.label">
+                      <el-option
+                        v-for="type in group.types"
+                        :key="type.value"
+                        :label="type.label"
+                        :value="type.value"
+                      />
+                    </el-option-group>
+                  </el-select>
                 </template>
               </el-table-column>
 
               <!-- 长度 -->
-              <el-table-column prop="length" label="长度" width="80" align="center">
-                <template #default="{ row, $index }">
+              <el-table-column prop="length" label="长度" width="90" align="center">
+                <template #default="{ row }">
                   <el-input-number
-                    v-if="editingCell?.row === $index && editingCell?.col === 'length'"
                     v-model="row.length"
                     size="small"
                     :min="0"
+                    :max="65535"
                     :controls="false"
+                    :disabled="!needsLength(row.dataType)"
                     style="width: 100%"
-                    @blur="finishEdit"
-                    @keyup.enter="finishEdit"
-                    ref="editInputRef"
+                    @change="markModified(row)"
                   />
-                  <div v-else class="cell-content" @dblclick="startEdit($index, 'length')">
-                    {{ row.length ?? '-' }}
-                  </div>
                 </template>
               </el-table-column>
 
               <!-- 小数位 -->
-              <el-table-column prop="scale" label="小数位" width="70" align="center">
-                <template #default="{ row, $index }">
+              <el-table-column prop="scale" label="小数位" width="80" align="center">
+                <template #default="{ row }">
                   <el-input-number
-                    v-if="editingCell?.row === $index && editingCell?.col === 'scale'"
                     v-model="row.scale"
                     size="small"
                     :min="0"
+                    :max="30"
                     :controls="false"
+                    :disabled="!needsScale(row.dataType)"
                     style="width: 100%"
-                    @blur="finishEdit"
-                    @keyup.enter="finishEdit"
-                    ref="editInputRef"
+                    @change="markModified(row)"
                   />
-                  <div v-else class="cell-content" @dblclick="startEdit($index, 'scale')">
-                    {{ row.scale ?? '-' }}
-                  </div>
                 </template>
               </el-table-column>
 
@@ -166,34 +173,50 @@
 
               <!-- 默认值 -->
               <el-table-column prop="defaultValue" label="默认值" width="120">
-                <template #default="{ row, $index }">
+                <template #default="{ row }">
                   <el-input
-                    v-if="editingCell?.row === $index && editingCell?.col === 'defaultValue'"
                     v-model="row.defaultValue"
                     size="small"
-                    @blur="finishEdit"
-                    @keyup.enter="finishEdit"
-                    ref="editInputRef"
+                    placeholder="-"
+                    @change="markModified(row)"
                   />
-                  <div v-else class="cell-content default-value" @dblclick="startEdit($index, 'defaultValue')">
-                    {{ row.defaultValue || '-' }}
-                  </div>
                 </template>
               </el-table-column>
 
               <!-- 注释 -->
-              <el-table-column prop="comment" label="注释" min-width="180">
-                <template #default="{ row, $index }">
+              <el-table-column prop="comment" label="注释" min-width="160">
+                <template #default="{ row }">
                   <el-input
-                    v-if="editingCell?.row === $index && editingCell?.col === 'comment'"
                     v-model="row.comment"
                     size="small"
-                    @blur="finishEdit"
-                    @keyup.enter="finishEdit"
-                    ref="editInputRef"
+                    placeholder="-"
+                    @change="markModified(row)"
                   />
-                  <div v-else class="cell-content comment-text" @dblclick="startEdit($index, 'comment')">
-                    {{ row.comment || '-' }}
+                </template>
+              </el-table-column>
+
+              <!-- 操作列 -->
+              <el-table-column label="操作" width="80" fixed="right" align="center">
+                <template #default="{ $index }">
+                  <div class="row-actions">
+                    <el-button
+                      type="primary"
+                      link
+                      size="small"
+                      :disabled="$index === 0"
+                      @click.stop="handleMoveRowUp($index)"
+                    >
+                      <IconifyIconOnline icon="ri:arrow-up-s-line" />
+                    </el-button>
+                    <el-button
+                      type="primary"
+                      link
+                      size="small"
+                      :disabled="$index >= columns.length - 1"
+                      @click.stop="handleMoveRowDown($index)"
+                    >
+                      <IconifyIconOnline icon="ri:arrow-down-s-line" />
+                    </el-button>
                   </div>
                 </template>
               </el-table-column>
@@ -265,10 +288,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import {
   getTableStructure,
   getCreateTableDdl,
-  addColumn,
-  modifyColumn,
-  dropColumn,
-  reorderColumn,
+  batchModifyTableStructure,
 } from "@/api/system-data";
 
 interface ColumnInfo {
@@ -289,6 +309,7 @@ interface ColumnInfo {
   __isNew?: boolean;
   __modified?: boolean;
   __originalName?: string;
+  __originalData?: string;
   __deleted?: boolean;
 }
 
@@ -310,14 +331,15 @@ const originalColumns = ref<ColumnInfo[]>([]);
 const ddl = ref("");
 const saving = ref(false);
 const tableRef = ref<any>(null);
-const editInputRef = ref<any>(null);
+
+// 表注释
+const tableComment = ref("");
+const originalTableComment = ref("");
+const tableCommentModified = ref(false);
 
 // 当前选中行
 const selectedRowIndex = ref(-1);
 const selectedRow = ref<ColumnInfo | null>(null);
-
-// 编辑状态
-const editingCell = ref<{ row: number; col: string } | null>(null);
 
 // 删除的字段列表
 const deletedColumns = ref<string[]>([]);
@@ -328,35 +350,107 @@ function generateKey() {
   return `col_${Date.now()}_${keyCounter++}`;
 }
 
-// 常用数据类型
-const commonDataTypes = [
-  { value: "INT" },
-  { value: "BIGINT" },
-  { value: "SMALLINT" },
-  { value: "TINYINT" },
-  { value: "VARCHAR(255)" },
-  { value: "VARCHAR(50)" },
-  { value: "VARCHAR(100)" },
-  { value: "CHAR(32)" },
-  { value: "TEXT" },
-  { value: "MEDIUMTEXT" },
-  { value: "LONGTEXT" },
-  { value: "DATETIME" },
-  { value: "TIMESTAMP" },
-  { value: "DATE" },
-  { value: "TIME" },
-  { value: "DECIMAL(10,2)" },
-  { value: "DECIMAL(18,4)" },
-  { value: "DOUBLE" },
-  { value: "FLOAT" },
-  { value: "BOOLEAN" },
-  { value: "JSON" },
-  { value: "BLOB" },
-  { value: "LONGBLOB" },
+// MySQL数据类型分组
+const dataTypeGroups = [
+  {
+    label: "整数类型",
+    types: [
+      { value: "TINYINT", label: "TINYINT" },
+      { value: "SMALLINT", label: "SMALLINT" },
+      { value: "MEDIUMINT", label: "MEDIUMINT" },
+      { value: "INT", label: "INT" },
+      { value: "BIGINT", label: "BIGINT" },
+    ],
+  },
+  {
+    label: "浮点类型",
+    types: [
+      { value: "FLOAT", label: "FLOAT" },
+      { value: "DOUBLE", label: "DOUBLE" },
+      { value: "DECIMAL", label: "DECIMAL" },
+    ],
+  },
+  {
+    label: "字符串类型",
+    types: [
+      { value: "CHAR", label: "CHAR" },
+      { value: "VARCHAR", label: "VARCHAR" },
+      { value: "TINYTEXT", label: "TINYTEXT" },
+      { value: "TEXT", label: "TEXT" },
+      { value: "MEDIUMTEXT", label: "MEDIUMTEXT" },
+      { value: "LONGTEXT", label: "LONGTEXT" },
+    ],
+  },
+  {
+    label: "日期时间类型",
+    types: [
+      { value: "DATE", label: "DATE" },
+      { value: "TIME", label: "TIME" },
+      { value: "DATETIME", label: "DATETIME" },
+      { value: "TIMESTAMP", label: "TIMESTAMP" },
+      { value: "YEAR", label: "YEAR" },
+    ],
+  },
+  {
+    label: "二进制类型",
+    types: [
+      { value: "BINARY", label: "BINARY" },
+      { value: "VARBINARY", label: "VARBINARY" },
+      { value: "TINYBLOB", label: "TINYBLOB" },
+      { value: "BLOB", label: "BLOB" },
+      { value: "MEDIUMBLOB", label: "MEDIUMBLOB" },
+      { value: "LONGBLOB", label: "LONGBLOB" },
+    ],
+  },
+  {
+    label: "其他类型",
+    types: [
+      { value: "BOOLEAN", label: "BOOLEAN" },
+      { value: "JSON", label: "JSON" },
+      { value: "ENUM", label: "ENUM" },
+      { value: "SET", label: "SET" },
+    ],
+  },
 ];
+
+// 需要长度的类型
+const typesNeedLength = ["CHAR", "VARCHAR", "BINARY", "VARBINARY", "TINYINT", "SMALLINT", "MEDIUMINT", "INT", "BIGINT"];
+// 需要小数位的类型
+const typesNeedScale = ["DECIMAL", "FLOAT", "DOUBLE"];
+
+function needsLength(dataType: string): boolean {
+  if (!dataType) return false;
+  const baseType = dataType.toUpperCase().replace(/\(.*\)/, "").trim();
+  return typesNeedLength.includes(baseType);
+}
+
+function needsScale(dataType: string): boolean {
+  if (!dataType) return false;
+  const baseType = dataType.toUpperCase().replace(/\(.*\)/, "").trim();
+  return typesNeedScale.includes(baseType);
+}
+
+// 数据类型变更时更新fullType
+function onDataTypeChange(row: ColumnInfo) {
+  updateFullType(row);
+  markModified(row);
+}
+
+// 根据dataType、length、scale生成fullType
+function updateFullType(row: ColumnInfo) {
+  const baseType = row.dataType?.toUpperCase() || "";
+  if (needsScale(baseType) && row.length && row.scale !== undefined) {
+    row.fullType = `${baseType}(${row.length},${row.scale})`;
+  } else if (needsLength(baseType) && row.length) {
+    row.fullType = `${baseType}(${row.length})`;
+  } else {
+    row.fullType = baseType;
+  }
+}
 
 // 是否有修改
 const hasChanges = computed(() => {
+  if (tableCommentModified.value) return true;
   if (deletedColumns.value.length > 0) return true;
   return columns.value.some(col => col.__isNew || col.__modified);
 });
@@ -379,8 +473,8 @@ watch(visible, (val) => {
 function resetState() {
   selectedRowIndex.value = -1;
   selectedRow.value = null;
-  editingCell.value = null;
   deletedColumns.value = [];
+  tableCommentModified.value = false;
 }
 
 async function loadStructure() {
@@ -390,12 +484,38 @@ async function loadStructure() {
       getCreateTableDdl(props.settingId, props.tableName),
     ]);
     if (structRes?.data) {
-      const cols = (structRes.data.columns || []).map((col: ColumnInfo) => ({
-        ...col,
-        __key: generateKey(),
-        __originalName: col.name,
-        notNull: !col.nullable,
-      }));
+      // 加载表注释
+      tableComment.value = structRes.data.tableComment || "";
+      originalTableComment.value = structRes.data.tableComment || "";
+      tableCommentModified.value = false;
+      
+      const cols = (structRes.data.columns || []).map((col: ColumnInfo) => {
+        // 解析fullType获取dataType、length、scale
+        const parsed = parseFullType(col.fullType || col.dataType || "");
+        return {
+          ...col,
+          dataType: parsed.dataType,
+          length: col.length ?? parsed.length,
+          scale: col.scale ?? parsed.scale,
+          __key: generateKey(),
+          __originalName: col.name,
+          __originalData: JSON.stringify({
+            name: col.name,
+            dataType: parsed.dataType,
+            fullType: col.fullType,
+            length: col.length ?? parsed.length,
+            scale: col.scale ?? parsed.scale,
+            nullable: col.nullable,
+            primaryKey: col.primaryKey,
+            autoIncrement: col.autoIncrement,
+            defaultValue: col.defaultValue,
+            comment: col.comment,
+          }),
+          notNull: !col.nullable,
+          __isNew: false,
+          __modified: false,
+        };
+      });
       columns.value = cols;
       originalColumns.value = JSON.parse(JSON.stringify(cols));
     }
@@ -408,11 +528,18 @@ async function loadStructure() {
   }
 }
 
-function queryDataTypes(queryString: string, cb: Function) {
-  const results = queryString
-    ? commonDataTypes.filter((t) => t.value.toLowerCase().includes(queryString.toLowerCase()))
-    : commonDataTypes;
-  cb(results);
+// 解析fullType如VARCHAR(255)或DECIMAL(10,2)
+function parseFullType(fullType: string): { dataType: string; length?: number; scale?: number } {
+  if (!fullType) return { dataType: "" };
+  const match = fullType.match(/^(\w+)(?:\((\d+)(?:,(\d+))?\))?$/i);
+  if (match) {
+    return {
+      dataType: match[1].toUpperCase(),
+      length: match[2] ? parseInt(match[2]) : undefined,
+      scale: match[3] ? parseInt(match[3]) : undefined,
+    };
+  }
+  return { dataType: fullType.toUpperCase() };
 }
 
 // 行选择
@@ -421,31 +548,9 @@ function handleCurrentChange(row: ColumnInfo | null) {
   selectedRowIndex.value = row ? columns.value.findIndex(c => c.__key === row.__key) : -1;
 }
 
-// 行双击
+// 行双击（可以用于其他操作）
 function handleRowDblClick(row: ColumnInfo) {
-  const index = columns.value.findIndex(c => c.__key === row.__key);
-  if (index >= 0) {
-    startEdit(index, 'name');
-  }
-}
-
-// 开始编辑单元格
-function startEdit(rowIndex: number, col: string) {
-  editingCell.value = { row: rowIndex, col };
-  nextTick(() => {
-    editInputRef.value?.focus?.();
-  });
-}
-
-// 结束编辑
-function finishEdit() {
-  if (editingCell.value) {
-    const row = columns.value[editingCell.value.row];
-    if (row && !row.__isNew) {
-      row.__modified = true;
-    }
-  }
-  editingCell.value = null;
+  // 双击行时可以执行其他操作
 }
 
 // 标记为已修改
@@ -564,64 +669,134 @@ function handleMoveDown() {
   });
 }
 
+// 按索引上移
+function handleMoveRowUp(index: number) {
+  if (index <= 0) return;
+  const row = columns.value[index];
+  columns.value.splice(index, 1);
+  columns.value.splice(index - 1, 0, row);
+  row.__modified = true;
+  selectedRowIndex.value = index - 1;
+  selectedRow.value = row;
+  nextTick(() => {
+    tableRef.value?.setCurrentRow(row);
+  });
+}
+
+// 按索引下移
+function handleMoveRowDown(index: number) {
+  if (index >= columns.value.length - 1) return;
+  const row = columns.value[index];
+  columns.value.splice(index, 1);
+  columns.value.splice(index + 1, 0, row);
+  row.__modified = true;
+  selectedRowIndex.value = index + 1;
+  selectedRow.value = row;
+  nextTick(() => {
+    tableRef.value?.setCurrentRow(row);
+  });
+}
+
+// 检查字段是否真正被修改
+function isColumnReallyModified(col: ColumnInfo): boolean {
+  if (!col.__originalData) return true;
+  
+  // 更新fullType
+  updateFullType(col);
+  
+  const currentData = JSON.stringify({
+    name: col.name,
+    dataType: col.dataType,
+    fullType: col.fullType,
+    length: col.length,
+    scale: col.scale,
+    nullable: !col.notNull,
+    primaryKey: col.primaryKey,
+    autoIncrement: col.autoIncrement,
+    defaultValue: col.defaultValue || "",
+    comment: col.comment || "",
+  });
+  
+  // 标准化原始数据进行比较
+  const originalParsed = JSON.parse(col.__originalData);
+  const originalNormalized = JSON.stringify({
+    name: originalParsed.name,
+    dataType: originalParsed.dataType,
+    fullType: originalParsed.fullType,
+    length: originalParsed.length,
+    scale: originalParsed.scale,
+    nullable: originalParsed.nullable,
+    primaryKey: originalParsed.primaryKey,
+    autoIncrement: originalParsed.autoIncrement,
+    defaultValue: originalParsed.defaultValue || "",
+    comment: originalParsed.comment || "",
+  });
+  
+  return currentData !== originalNormalized;
+}
+
 // 保存所有修改
 async function handleSaveAll() {
   if (!hasChanges.value) return;
   
   saving.value = true;
   try {
-    // 1. 先删除字段
-    for (const colName of deletedColumns.value) {
-      await dropColumn(props.settingId, {
-        tableName: props.tableName,
-        columnName: colName,
-      });
+    // 构建批量请求
+    const batchRequest: any = {
+      tableName: props.tableName,
+    };
+    
+    // 1. 删除字段
+    if (deletedColumns.value.length > 0) {
+      batchRequest.dropColumns = [...deletedColumns.value];
     }
     
     // 2. 添加新字段
-    const newCols = columns.value.filter(c => c.__isNew);
-    for (let i = 0; i < newCols.length; i++) {
-      const col = newCols[i];
-      if (!col.name) continue;
-      
-      const colIndex = columns.value.findIndex(c => c.__key === col.__key);
-      let position = '';
-      let afterColumn = '';
-      
-      if (colIndex === 0) {
-        position = 'FIRST';
-      } else if (colIndex > 0) {
-        position = 'AFTER';
-        afterColumn = columns.value[colIndex - 1].name;
-      }
-      
-      await addColumn(props.settingId, {
-        tableName: props.tableName,
-        columnName: col.name,
-        dataType: col.fullType || col.dataType,
-        nullable: !col.notNull,
-        defaultValue: col.defaultValue || undefined,
-        comment: col.comment || undefined,
-        position: position || undefined,
-        afterColumn: afterColumn || undefined,
+    const newCols = columns.value.filter(c => c.__isNew && c.name);
+    if (newCols.length > 0) {
+      batchRequest.addColumns = newCols.map((col, idx) => {
+        updateFullType(col);
+        const colIndex = columns.value.findIndex(c => c.__key === col.__key);
+        let position = '';
+        let afterColumn = '';
+        
+        if (colIndex === 0) {
+          position = 'FIRST';
+        } else if (colIndex > 0) {
+          position = 'AFTER';
+          afterColumn = columns.value[colIndex - 1].name;
+        }
+        
+        return {
+          columnName: col.name,
+          dataType: col.fullType || col.dataType,
+          nullable: !col.notNull,
+          defaultValue: col.defaultValue || undefined,
+          comment: col.comment || undefined,
+          position: position || undefined,
+          afterColumn: afterColumn || undefined,
+        };
       });
     }
     
-    // 3. 修改已有字段
-    const modifiedCols = columns.value.filter(c => c.__modified && !c.__isNew);
-    for (const col of modifiedCols) {
-      await modifyColumn(props.settingId, {
-        tableName: props.tableName,
-        oldColumnName: col.__originalName || col.name,
-        newColumnName: col.name !== col.__originalName ? col.name : undefined,
-        dataType: col.fullType || col.dataType,
-        nullable: !col.notNull,
-        defaultValue: col.defaultValue || undefined,
-        comment: col.comment || undefined,
+    // 3. 修改已有字段（只修改真正变化的）
+    const modifiedCols = columns.value.filter(c => c.__modified && !c.__isNew && isColumnReallyModified(c));
+    if (modifiedCols.length > 0) {
+      batchRequest.modifyColumns = modifiedCols.map(col => {
+        updateFullType(col);
+        return {
+          oldColumnName: col.__originalName || col.name,
+          newColumnName: col.name !== col.__originalName ? col.name : undefined,
+          dataType: col.fullType || col.dataType,
+          nullable: !col.notNull,
+          defaultValue: col.defaultValue || undefined,
+          comment: col.comment || undefined,
+        };
       });
     }
     
     // 4. 调整字段顺序（如果有移动）
+    const reorderCols: any[] = [];
     for (let i = 0; i < columns.value.length; i++) {
       const col = columns.value[i];
       const originalIndex = originalColumns.value.findIndex(c => c.__originalName === col.__originalName);
@@ -630,14 +805,24 @@ async function handleSaveAll() {
         const position = i === 0 ? 'FIRST' : 'AFTER';
         const afterColumn = i > 0 ? columns.value[i - 1].name : undefined;
         
-        await reorderColumn(props.settingId, {
-          tableName: props.tableName,
+        reorderCols.push({
           columnName: col.name,
           position,
           afterColumn,
         });
       }
     }
+    if (reorderCols.length > 0) {
+      batchRequest.reorderColumns = reorderCols;
+    }
+    
+    // 5. 修改表注释（如果有变化）
+    if (tableCommentModified.value && tableComment.value !== originalTableComment.value) {
+      batchRequest.tableComment = tableComment.value;
+    }
+    
+    // 调用批量接口
+    await batchModifyTableStructure(props.settingId, batchRequest);
     
     ElMessage.success("保存成功");
     await loadStructure();
@@ -689,6 +874,24 @@ async function copyDdl() {
 
 .structure-container {
   min-height: 520px;
+}
+
+.table-comment-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.comment-label {
+  font-weight: 600;
+  color: #475569;
+  font-size: 14px;
+  white-space: nowrap;
 }
 
 .toolbar {
@@ -760,6 +963,24 @@ async function copyDdl() {
 .column-name {
   font-weight: 600;
   color: #303133;
+}
+
+.name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  
+  .name-tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    
+    .el-tag {
+      height: 18px;
+      line-height: 16px;
+      padding: 0 4px;
+    }
+  }
 }
 
 .default-value {
@@ -847,8 +1068,74 @@ async function copyDdl() {
 }
 
 // 编辑输入框样式
-:deep(.el-input__wrapper),
-:deep(.el-input-number) {
-  box-shadow: 0 0 0 1px #409eff inset;
+:deep(.el-input__wrapper) {
+  box-shadow: none;
+  border-radius: 4px;
+}
+
+:deep(.el-input-number .el-input__wrapper) {
+  box-shadow: none;
+}
+
+:deep(.el-select .el-input__wrapper) {
+  box-shadow: none;
+}
+
+// 操作列样式
+.row-actions {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  
+  .el-button {
+    padding: 4px;
+    
+    &:hover:not(:disabled) {
+      background: #ecf5ff;
+    }
+  }
+}
+
+// 表格内输入框样式
+:deep(.el-table .el-input) {
+  .el-input__wrapper {
+    background: transparent;
+    
+    &:hover {
+      box-shadow: 0 0 0 1px #c0c4cc inset;
+    }
+    
+    &.is-focus {
+      box-shadow: 0 0 0 1px #409eff inset;
+    }
+  }
+}
+
+:deep(.el-table .el-input-number) {
+  .el-input__wrapper {
+    background: transparent;
+    
+    &:hover {
+      box-shadow: 0 0 0 1px #c0c4cc inset;
+    }
+    
+    &.is-focus {
+      box-shadow: 0 0 0 1px #409eff inset;
+    }
+  }
+}
+
+:deep(.el-table .el-select) {
+  .el-input__wrapper {
+    background: transparent;
+    
+    &:hover {
+      box-shadow: 0 0 0 1px #c0c4cc inset;
+    }
+    
+    &.is-focus {
+      box-shadow: 0 0 0 1px #409eff inset;
+    }
+  }
 }
 </style>

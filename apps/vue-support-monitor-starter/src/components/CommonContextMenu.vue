@@ -80,45 +80,59 @@ onBeforeUnmount(() => {
 .common-context-menu {
   position: fixed;
   z-index: 9999;
-  background: #ffffff;
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  padding: 6px 0;
-  min-width: 160px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 8px;
+  min-width: 180px;
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 10px 14px;
+  font-size: 13px;
   cursor: pointer;
-  color: #606266;
+  color: #334155;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  margin: 2px 0;
 }
 
 .menu-item:hover:not(.disabled) {
-  background-color: #f5f7fa;
-  color: #409eff;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #2563eb;
+}
+
+.menu-item:active:not(.disabled) {
+  transform: scale(0.98);
 }
 
 .menu-item.disabled {
-  color: #c0c4cc;
+  color: #94a3b8;
   cursor: not-allowed;
 }
 
 .menu-item-icon {
-  margin-right: 8px;
+  margin-right: 10px;
   font-size: 16px;
+  opacity: 0.8;
+}
+
+.menu-item:hover:not(.disabled) .menu-item-icon {
+  opacity: 1;
 }
 
 .menu-item-label {
   flex: 1;
+  font-weight: 500;
 }
 
 .menu-divider {
   height: 1px;
-  margin: 6px 0;
-  background-color: #ebeef5;
+  margin: 8px 4px;
+  background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
 }
 </style>

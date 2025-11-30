@@ -1,14 +1,19 @@
 <template>
   <div class="console" :style="gridStyle">
     <div class="left overflow-auto thin-scrollbar" @contextmenu.prevent>
+      <div class="left-header">
+        <IconifyIconOnline icon="ri:database-2-line" class="header-icon" />
+        <span class="header-title">数据库对象</span>
+      </div>
       <el-input
         v-model="keyword"
-        placeholder="搜索..."
+        placeholder="搜索表、字段..."
         size="small"
         clearable
         @change="loadRoot"
+        class="search-input"
       >
-        <template #append>
+        <template #prefix>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
       </el-input>
@@ -135,14 +140,11 @@
                 v-model:visible="columnFilterVisible"
                 trigger="click"
                 placement="bottom-end"
-                width="260"
+                width="280"
+                :hide-after="0"
               >
                 <template #reference>
-                  <el-button
-                    size="small"
-                    text
-                    @click.stop="columnFilterVisible = !columnFilterVisible"
-                  >
+                  <el-button size="small" text>
                     <IconifyIconOnline
                       icon="ri:menu-unfold-line"
                       class="mr-1"
@@ -150,29 +152,28 @@
                     筛选列
                   </el-button>
                 </template>
-                <div class="col-filter">
-                  <div class="ops">
-                    <el-link
-                      type="primary"
-                      :underline="false"
-                      @click="selectedColumnNames = [...columns]"
-                      >全选</el-link
-                    >
-                    <el-link
-                      type="danger"
-                      :underline="false"
-                      @click="selectedColumnNames = []"
-                      >清空</el-link
-                    >
+                <div class="col-filter" @click.stop>
+                  <div class="filter-header">
+                    <span class="filter-title">选择显示列</span>
+                    <div class="filter-actions">
+                      <el-button size="small" link type="primary" @click.stop="selectedColumnNames = columns.map(c => c.name || c)">
+                        全选
+                      </el-button>
+                      <el-button size="small" link type="danger" @click.stop="selectedColumnNames = []">
+                        清空
+                      </el-button>
+                    </div>
                   </div>
-                  <el-scrollbar height="220px">
+                  <el-scrollbar height="240px" class="filter-list">
                     <el-checkbox-group v-model="selectedColumnNames">
                       <el-checkbox
                         v-for="col in columns"
-                        :key="col.name"
-                        :label="col.name"
-                        >{{ col.name }}</el-checkbox
+                        :key="col.name || col"
+                        :label="col.name || col"
+                        @click.stop
                       >
+                        {{ col.name || col }}
+                      </el-checkbox>
                     </el-checkbox-group>
                   </el-scrollbar>
                 </div>
@@ -270,6 +271,67 @@
       :table-name="structureTableName"
       @refresh="onStructureRefresh"
     />
+
+    <!-- 导入CSV对话框 -->
+    <el-dialog
+      v-model="importCsvVisible"
+      :title="`导入CSV到 ${importCsvTableName}`"
+      width="550px"
+      :close-on-click-modal="false"
+      class="import-csv-dialog"
+    >
+      <el-form :model="importCsvForm" label-width="100px" size="default">
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 16px"
+        >
+          <template #title>
+            使用MySQL的LOAD DATA语句导入CSV文件，文件路径需要是MySQL服务器可访问的路径
+          </template>
+        </el-alert>
+        <el-form-item label="文件路径" required>
+          <el-input
+            v-model="importCsvForm.filePath"
+            placeholder="如：/tmp/data.csv 或 C:/data/import.csv"
+          />
+        </el-form-item>
+        <el-form-item label="字段分隔符">
+          <el-select v-model="importCsvForm.fieldTerminator" style="width: 100%">
+            <el-option label="逗号 (,)" value="," />
+            <el-option label="制表符 (\\t)" value="\\t" />
+            <el-option label="分号 (;)" value=";" />
+            <el-option label="竖线 (|)" value="|" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="行分隔符">
+          <el-select v-model="importCsvForm.lineTerminator" style="width: 100%">
+            <el-option label="换行符 (\\n)" value="\\n" />
+            <el-option label="回车换行 (\\r\\n)" value="\\r\\n" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="跳过行数">
+          <el-input-number v-model="importCsvForm.ignoreLines" :min="0" :max="100" />
+          <span class="form-tip">通常设为1跳过标题行</span>
+        </el-form-item>
+        <el-form-item label="字符集">
+          <el-select v-model="importCsvForm.charset" style="width: 100%">
+            <el-option label="UTF-8" value="utf8mb4" />
+            <el-option label="GBK" value="gbk" />
+            <el-option label="GB2312" value="gb2312" />
+            <el-option label="Latin1" value="latin1" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="importCsvVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleImportCsv">
+          <IconifyIconOnline icon="ri:upload-2-line" class="mr-1" />
+          开始导入
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 <script setup lang="ts">
@@ -903,6 +965,12 @@ function buildMenuItems(type): MenuItem[] {
       icon: "ri:tools-line",
     });
     items.push({ key: "divider-1", label: "", divider: true });
+    items.push({
+      key: "import-csv",
+      label: "导入CSV",
+      icon: "ri:file-upload-line",
+    });
+    items.push({ key: "divider-2", label: "", divider: true });
   }
   if (
     allow(consoleConfig.value.jdbc?.copyTableName) &&
@@ -1000,6 +1068,9 @@ async function onMenuSelect(key: string) {
     case "design-table":
       openTableStructure(contextNode.value?.name);
       break;
+    case "import-csv":
+      showImportCsvDialog(contextNode.value?.name);
+      break;
     case "copy-table-name":
       await copyTableName(contextNode.value);
       break;
@@ -1073,14 +1144,89 @@ async function onMenuSelect(key: string) {
 async function openTableAndRender(hideEditor: boolean) {
   const node = contextNode.value;
   if (!node?.path) return;
-  const resp = await openTable(props.id, node.path, 100);
-  columns.value = resp?.data?.data?.columns || [];
-  rows.value = [];
-  await Promise.resolve();
-  rows.value = resp?.data?.data?.rows || [];
-  tableComment.value = resp?.data?.data?.tableComment || "";
-  activeTab.value = "result";
-  showEditor.value = !hideEditor ? true : false;
+  
+  try {
+    // 设置当前节点
+    currentNodeData.value = node;
+    currentPath.value = node.path;
+    
+    // 生成查询SQL并执行
+    sql.value = `SELECT * FROM ${node.name} LIMIT 1000`;
+    showEditor.value = !hideEditor;
+    
+    // 执行查询
+    await execute();
+    
+    // 加载表注释
+    const resp = await openTable(props.id, node.path, 1000);
+    if (resp?.data?.data) {
+      tableComment.value = resp.data.data.tableComment || "";
+      // 合并字段注释
+      const columnComments = resp.data.data.columnComments || {};
+      columns.value = columns.value.map(col => ({
+        ...col,
+        comment: columnComments[col] || col.comment || ""
+      }));
+    }
+    
+    activeTab.value = "result";
+    searched.value = true;
+  } catch (e: any) {
+    ElMessage.error("打开表失败: " + (e.message || e));
+  }
+}
+
+/**
+ * 显示导入CSV对话框
+ */
+const importCsvVisible = ref(false);
+const importCsvTableName = ref("");
+const importCsvForm = ref({
+  filePath: "",
+  fieldTerminator: ",",
+  lineTerminator: "\\n",
+  ignoreLines: 1,
+  charset: "utf8mb4",
+});
+
+function showImportCsvDialog(tableName: string) {
+  if (!tableName) {
+    ElMessage.warning("请先选择一个表");
+    return;
+  }
+  importCsvTableName.value = tableName;
+  importCsvForm.value = {
+    filePath: "",
+    fieldTerminator: ",",
+    lineTerminator: "\\n",
+    ignoreLines: 1,
+    charset: "utf8mb4",
+  };
+  importCsvVisible.value = true;
+}
+
+async function handleImportCsv() {
+  if (!importCsvForm.value.filePath) {
+    ElMessage.warning("请输入CSV文件路径");
+    return;
+  }
+  
+  // 构建LOAD DATA SQL
+  const loadSql = `LOAD DATA LOCAL INFILE '${importCsvForm.value.filePath}'
+INTO TABLE ${importCsvTableName.value}
+CHARACTER SET ${importCsvForm.value.charset}
+FIELDS TERMINATED BY '${importCsvForm.value.fieldTerminator}'
+LINES TERMINATED BY '${importCsvForm.value.lineTerminator}'
+IGNORE ${importCsvForm.value.ignoreLines} LINES`;
+
+  try {
+    sql.value = loadSql;
+    await execute();
+    ElMessage.success("导入成功");
+    importCsvVisible.value = false;
+  } catch (e: any) {
+    ElMessage.error("导入失败: " + (e.message || e));
+  }
 }
 
 /**
@@ -1280,6 +1426,32 @@ onMounted(async () => {
 
 .left:hover {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* 左侧头部 */
+.left-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.left-header .header-icon {
+  font-size: 20px;
+  color: #3b82f6;
+}
+
+.left-header .header-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* 搜索框 */
+.search-input {
+  margin-bottom: 8px;
 }
 
 .left :deep(.el-input) {
@@ -1518,18 +1690,50 @@ onMounted(async () => {
 
 /* 表格美化 */
 .result-tabs :deep(.el-table) {
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
+  border: 1px solid #e2e8f0;
 }
 
-.result-tabs :deep(.el-table th) {
+.result-tabs :deep(.el-table::before) {
+  display: none;
+}
+
+.result-tabs :deep(.el-table th.el-table__cell) {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
   font-weight: 600;
   color: #334155;
+  font-size: 13px;
+  border-bottom: 2px solid #e2e8f0 !important;
+  padding: 12px 8px;
 }
 
-.result-tabs :deep(.el-table tr:hover > td) {
-  background: #eff6ff !important;
+.result-tabs :deep(.el-table td.el-table__cell) {
+  padding: 10px 8px;
+  font-size: 13px;
+  color: #475569;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.result-tabs :deep(.el-table tr:hover > td.el-table__cell) {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+}
+
+.result-tabs :deep(.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell) {
+  background: #fafbfc !important;
+}
+
+.result-tabs :deep(.el-table .cell) {
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.result-tabs :deep(.el-table--border .el-table__cell) {
+  border-right: 1px solid #f1f5f9 !important;
+}
+
+.result-tabs :deep(.el-table__empty-block) {
+  min-height: 200px;
 }
 
 /* 列头样式 */
@@ -1593,20 +1797,49 @@ onMounted(async () => {
 
 /* 列筛选弹窗 */
 .col-filter {
-  padding: 8px;
+  padding: 12px;
 }
 
-.col-filter .ops {
+.filter-header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
-  padding-bottom: 8px;
+  padding-bottom: 10px;
   border-bottom: 1px solid #e2e8f0;
 }
 
+.filter-title {
+  font-weight: 600;
+  color: #334155;
+  font-size: 14px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-list {
+  margin-top: 8px;
+}
+
 .col-filter :deep(.el-checkbox) {
-  display: block;
-  margin: 6px 0;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.col-filter :deep(.el-checkbox:hover) {
+  background: #f1f5f9;
+}
+
+.col-filter :deep(.el-checkbox__label) {
+  font-size: 13px;
+  color: #475569;
 }
 
 /* 状态栏 */
@@ -1680,5 +1913,31 @@ onMounted(async () => {
 
 .right {
   animation-delay: 0.1s;
+}
+
+/* 导入CSV对话框 */
+.import-csv-dialog :deep(.el-dialog__body) {
+  padding: 20px 24px;
+}
+
+.import-csv-dialog :deep(.el-alert) {
+  border-radius: 8px;
+}
+
+.form-tip {
+  margin-left: 12px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* 工具栏按钮组优化 */
+.toolbar :deep(.el-button--success) {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.toolbar :deep(.el-button--success:hover) {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
 </style>
