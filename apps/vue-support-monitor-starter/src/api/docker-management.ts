@@ -11,7 +11,8 @@ export interface SystemSoftRegistry {
   systemSoftRegistryUsername?: string;
   systemSoftRegistryPassword?: string;
   systemSoftRegistryEmail?: string;
-  systemSoftRegistryIsDefault?: number;
+  // 是否激活（激活的仓库用于软件搜索）
+  systemSoftRegistryActive?: number;
   systemSoftRegistrySslEnabled?: number;
   systemSoftRegistrySupportSync?: number;
   systemSoftRegistryTimeout?: number;
@@ -216,14 +217,19 @@ export function syncRegistry(id: number) {
   return http.request<ReturnResult<boolean>>("post", `v1/system/soft/registry/${id}/sync`);
 }
 
-// 设置默认仓库（后端为 POST /{id}/default）
-export function setDefaultRegistry(id: number) {
-  return http.request<ReturnResult<boolean>>("post", `v1/system/soft/registry/${id}/default`);
+// 激活仓库
+export function activateRegistry(id: number) {
+  return http.request<ReturnResult<boolean>>("post", `v1/system/soft/registry/${id}/activate`);
 }
 
-// 取消默认仓库（后端建议为 POST /{id}/default/cancel）
-export function cancelDefaultRegistry(id: number) {
-  return http.request<ReturnResult<boolean>>("post", `v1/system/soft/registry/${id}/default/cancel`);
+// 取消激活仓库
+export function deactivateRegistry(id: number) {
+  return http.request<ReturnResult<boolean>>("post", `v1/system/soft/registry/${id}/deactivate`);
+}
+
+// 获取激活的仓库列表
+export function getActiveRegistries() {
+  return http.request<ReturnResult<SystemSoftRegistry[]>>("get", "v1/system/soft/registry/active");
 }
 
 // ========= 2. 软件管理API =========
@@ -393,6 +399,11 @@ export function getContainerStats(id: number) {
   return http.request<ReturnResult<ContainerStats>>("get", `/api/monitor/system-soft-container/${id}/stats`);
 }
 
+// 获取容器总体统计
+export function getContainerOverviewStats() {
+  return http.request<ReturnResult<{ total: number; running: number; stopped: number; error: number }>>("get", "/api/monitor/system-soft-container/overview-stats");
+}
+
 // 同步容器状态（后端为 GET /sync?serverId=）
 export function syncContainerStatus(serverId?: number) {
   return http.request<ReturnResult<number>>("get", "/api/monitor/system-soft-container/sync", { params: { serverId } });
@@ -420,11 +431,12 @@ export const registryApi = {
   batchDeleteRegistries,
   testRegistryConnection,
   syncRegistry,
-  setDefaultRegistry,
-  cancelDefaultRegistry,
+  activateRegistry,
+  deactivateRegistry,
+  getActiveRegistries,
 };
 
-// ========= 2.1 在线搜索（仅检索默认仓库，后端SPI实现，接口占位） =========
+// ========= 2.1 在线搜索（检索激活的仓库，后端SPI实现） =========
 export function searchOnlineSoftware(params: { keyword: string; page?: number; size?: number }) {
   const kw = (params?.keyword || '').trim();
   if (!kw) {
@@ -479,6 +491,7 @@ export const containerApi = {
   updateContainer,
   getContainerLogs,
   getContainerStats,
+  getContainerOverviewStats,
   syncContainerStatus,
   batchOperateContainers,
 };

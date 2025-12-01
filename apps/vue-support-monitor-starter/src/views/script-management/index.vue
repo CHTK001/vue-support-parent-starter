@@ -1,46 +1,31 @@
 <template>
   <div class="script-management-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-left">
-          <div class="page-title-section">
-            <div class="title-icon">
-              <IconifyIconOnline icon="ri:terminal-box-line" />
-            </div>
-            <div class="title-content">
-              <h1 class="page-title">脚本管理中心</h1>
-              <p class="page-subtitle">脚本编辑、执行、历史记录管理</p>
-            </div>
+    <!-- 统计卡片导航 -->
+    <div class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-item" :class="{ active: activeTab === 'list' }" @click="activeTab = 'list'">
+          <div class="stat-icon">
+            <IconifyIconOnline icon="ri:file-code-line" />
           </div>
+          <div class="stat-label">脚本库</div>
         </div>
-        <div class="header-right">
-          <div class="stats-overview">
-            <div class="stat-item" :class="{ active: activeTab === 'list' }" @click="activeTab = 'list'">
-              <div class="stat-number">
-                <IconifyIconOnline icon="ri:file-code-line" />
-              </div>
-              <div class="stat-label">脚本库</div>
-            </div>
-            <div class="stat-item" :class="{ active: activeTab === 'running' }" @click="activeTab = 'running'">
-              <div class="stat-number running">
-                <IconifyIconOnline icon="ri:play-circle-line" />
-              </div>
-              <div class="stat-label">运行中</div>
-            </div>
-            <div class="stat-item" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
-              <div class="stat-number">
-                <IconifyIconOnline icon="ri:history-line" />
-              </div>
-              <div class="stat-label">执行历史</div>
-            </div>
-            <div class="stat-item" :class="{ active: activeTab === 'upload-records' }" @click="activeTab = 'upload-records'">
-              <div class="stat-number">
-                <IconifyIconOnline icon="ri:upload-cloud-2-line" />
-              </div>
-              <div class="stat-label">上传记录</div>
-            </div>
+        <div class="stat-item" :class="{ active: activeTab === 'running' }" @click="activeTab = 'running'">
+          <div class="stat-icon running">
+            <IconifyIconOnline icon="ri:play-circle-line" />
           </div>
+          <div class="stat-label">运行中</div>
+        </div>
+        <div class="stat-item" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
+          <div class="stat-icon">
+            <IconifyIconOnline icon="ri:history-line" />
+          </div>
+          <div class="stat-label">执行历史</div>
+        </div>
+        <div class="stat-item" :class="{ active: activeTab === 'upload-records' }" @click="activeTab = 'upload-records'">
+          <div class="stat-icon">
+            <IconifyIconOnline icon="ri:upload-cloud-2-line" />
+          </div>
+          <div class="stat-label">上传记录</div>
         </div>
       </div>
     </div>
@@ -173,109 +158,69 @@ const handleViewExecutionDetail = (execution: any) => {
   flex-direction: column;
   background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 50%, #f8fafc 100%);
 
-  // 页面头部
-  .page-header {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-    padding: 24px 32px;
+  // 统计卡片导航
+  .stats-section {
+    padding: 20px 32px;
 
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
 
-    .header-left {
-      .page-title-section {
+      .stat-item {
         display: flex;
         align-items: center;
-        gap: 16px;
-
-        .title-icon {
-          width: 56px;
-          height: 56px;
-          background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 28px;
-          color: white;
-          box-shadow: 0 8px 16px rgba(139, 92, 246, 0.3);
-        }
-
-        .title-content {
-          .page-title {
-            margin: 0 0 4px 0;
-            font-size: 28px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-
-          .page-subtitle {
-            margin: 0;
-            color: #64748b;
-            font-size: 14px;
-          }
-        }
-      }
-    }
-
-    .header-right {
-      .stats-overview {
-        display: flex;
         gap: 12px;
+        padding: 16px 20px;
+        background: white;
+        border-radius: 12px;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
-        .stat-item {
-          text-align: center;
-          padding: 12px 20px;
-          background: rgba(255, 255, 255, 0.8);
-          border-radius: 12px;
-          border: 2px solid transparent;
-          min-width: 90px;
-          cursor: pointer;
-          transition: all 0.3s ease;
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
 
-          &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          }
+        &.active {
+          border-color: #8b5cf6;
+          background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
 
-          &.active {
-            border-color: #8b5cf6;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
-
-            .stat-number {
-              color: #8b5cf6;
-            }
-
-            .stat-label {
-              color: #8b5cf6;
-              font-weight: 600;
-            }
-          }
-
-          .stat-number {
-            font-size: 24px;
-            color: #64748b;
-            line-height: 1.2;
-            transition: all 0.3s ease;
-
-            &.running {
-              animation: pulse 2s infinite;
-            }
+          .stat-icon {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+            color: white;
           }
 
           .stat-label {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 4px;
-            transition: all 0.3s ease;
+            color: #8b5cf6;
+            font-weight: 600;
           }
+        }
+
+        .stat-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20px;
+          background: #f3e8ff;
+          color: #8b5cf6;
+          transition: all 0.3s ease;
+
+          &.running {
+            animation: pulse 2s infinite;
+          }
+        }
+
+        .stat-label {
+          font-size: 14px;
+          font-weight: 500;
+          color: #64748b;
+          transition: all 0.3s ease;
         }
       }
     }
@@ -285,7 +230,7 @@ const handleViewExecutionDetail = (execution: any) => {
   .main-content {
     flex: 1;
     overflow: hidden;
-    padding: 20px 32px;
+    padding: 0 32px 20px;
 
     .tab-content {
       height: 100%;
@@ -299,33 +244,24 @@ const handleViewExecutionDetail = (execution: any) => {
 
 // 动画
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 // 响应式
 @media (max-width: 768px) {
   .script-management-page {
-    .page-header {
+    .stats-section {
       padding: 16px;
 
-      .header-content {
-        flex-direction: column;
-        gap: 16px;
-      }
-
-      .stats-overview {
-        flex-wrap: wrap;
-        justify-content: center;
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
       }
     }
 
     .main-content {
-      padding: 12px 16px;
+      padding: 0 16px 16px;
     }
   }
 }

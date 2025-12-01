@@ -2,38 +2,42 @@
   <div class="images-management">
     <ProgressMonitor />
     
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <div class="page-title">
-          <IconifyIconOnline icon="ri:image-line" class="title-icon" />
-          <span>镜像管理</span>
+    <!-- 统计卡片 -->
+    <div class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon total">
+            <IconifyIconOnline icon="ri:image-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ imageStats.total }}</div>
+            <div class="stat-label">镜像总数</div>
+          </div>
         </div>
-        <div class="page-subtitle">管理Docker镜像的拉取、安装、导入和导出</div>
-      </div>
-      <div class="header-right">
-        <el-button @click="handleRefresh" :loading="loading">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-        <el-button @click="syncVisible = true" type="success" plain>
-          <IconifyIconOnline icon="ri:refresh-2-line" class="mr-1" />
-          同步镜像
-        </el-button>
-        <el-button @click="importVisible = true" type="warning" plain>
-          <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
-          导入镜像
-        </el-button>
-        <el-button type="primary" @click="pullVisible = true">
-          <IconifyIconOnline icon="ri:download-line" class="mr-1" />
-          拉取镜像
-        </el-button>
+        <div class="stat-card">
+          <div class="stat-icon server">
+            <IconifyIconOnline icon="ri:server-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ imageStats.serverCount }}</div>
+            <div class="stat-label">服务器数</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon size">
+            <IconifyIconOnline icon="ri:hard-drive-2-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ formatSize(imageStats.totalSize) }}</div>
+            <div class="stat-label">总大小</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 搜索和分组栏 -->
-    <div class="search-bar">
-      <div class="search-left">
+    <!-- 工具栏 -->
+    <div class="toolbar-section">
+      <div class="toolbar-left">
         <el-input v-model="searchParams.keyword" placeholder="搜索镜像名称或标签" class="search-input" clearable @keyup.enter="handleSearch">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
@@ -44,28 +48,29 @@
           <el-option v-for="server in servers" :key="server.monitorSysGenServerId" 
             :label="server.monitorSysGenServerName" :value="server.monitorSysGenServerId" />
         </el-select>
-        <el-select v-model="searchParams.status" placeholder="状态" clearable class="filter-select" @change="handleSearch">
-          <el-option label="全部状态" :value="undefined" />
-          <el-option label="可用" value="AVAILABLE" />
-          <el-option label="拉取中" value="PULLING" />
-          <el-option label="错误" value="PULL_FAILED" />
-        </el-select>
-      </div>
-      <div class="search-right">
         <el-radio-group v-model="groupBy" size="default" @change="handleGroupChange">
-          <el-radio-button value="server">
-            <IconifyIconOnline icon="ri:server-line" class="mr-1" />
-            按服务器分组
-          </el-radio-button>
-          <el-radio-button value="image">
-            <IconifyIconOnline icon="ri:image-line" class="mr-1" />
-            按镜像分组
-          </el-radio-button>
-          <el-radio-button value="none">
-            <IconifyIconOnline icon="ri:list-check" class="mr-1" />
-            列表视图
-          </el-radio-button>
+          <el-radio-button value="server">按服务器</el-radio-button>
+          <el-radio-button value="image">按镜像</el-radio-button>
+          <el-radio-button value="none">列表</el-radio-button>
         </el-radio-group>
+      </div>
+      <div class="toolbar-right">
+        <el-button @click="handleRefresh" :loading="loading">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+        <el-button @click="syncVisible = true" type="success" plain>
+          <IconifyIconOnline icon="ri:refresh-2-line" class="mr-1" />
+          同步
+        </el-button>
+        <el-button @click="importVisible = true" type="warning" plain>
+          <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
+          导入
+        </el-button>
+        <el-button type="primary" @click="pullVisible = true">
+          <IconifyIconOnline icon="ri:download-line" class="mr-1" />
+          拉取
+        </el-button>
       </div>
     </div>
 
@@ -289,6 +294,25 @@ const groupBy = ref<'server' | 'image' | 'none'>('none');
 const imageList = ref<SystemSoftImage[]>([]);
 const servers = ref<any[]>([]);
 const total = ref(0);
+
+// 统计数据
+const imageStats = computed(() => {
+  const serverSet = new Set<number>();
+  let totalSize = 0;
+  
+  imageList.value.forEach(img => {
+    if (img.systemSoftImageServerId) {
+      serverSet.add(img.systemSoftImageServerId);
+    }
+    totalSize += img.systemSoftImageSize || 0;
+  });
+  
+  return {
+    total: imageList.value.length,
+    serverCount: serverSet.size,
+    totalSize
+  };
+});
 
 const searchParams = ref({
   page: 1,

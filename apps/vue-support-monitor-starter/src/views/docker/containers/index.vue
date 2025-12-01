@@ -1,30 +1,51 @@
 <template>
   <div class="container-management">
     <ProgressMonitor />
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <div class="page-title">
-          <IconifyIconOnline icon="ri:container-line" class="title-icon" />
-          <span>容器管理</span>
+    <!-- 统计卡片 -->
+    <div class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon total">
+            <IconifyIconOnline icon="ri:stack-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ containerStats.total }}</div>
+            <div class="stat-label">容器总数</div>
+          </div>
         </div>
-        <div class="page-subtitle">管理Docker容器的启动、停止和监控</div>
-      </div>
-      <div class="header-right">
-        <el-button @click="handleRefresh" :loading="loading">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-        <el-button type="success" @click="handleSyncStatus" :loading="syncLoading">
-          <IconifyIconOnline icon="ri:refresh-2-line" class="mr-1" />
-          同步状态
-        </el-button>
+        <div class="stat-card">
+          <div class="stat-icon running">
+            <IconifyIconOnline icon="ri:play-circle-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ containerStats.running }}</div>
+            <div class="stat-label">运行中</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stopped">
+            <IconifyIconOnline icon="ri:stop-circle-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ containerStats.stopped }}</div>
+            <div class="stat-label">已停止</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon error">
+            <IconifyIconOnline icon="ri:error-warning-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ containerStats.error }}</div>
+            <div class="stat-label">异常</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <div class="search-left">
+    <!-- 工具栏 -->
+    <div class="toolbar-section">
+      <div class="toolbar-left">
         <el-input v-model="searchParams.keyword" placeholder="搜索容器名称或镜像" class="search-input" clearable @keyup.enter="handleSearch">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
@@ -43,18 +64,26 @@
           <el-option v-for="server in serverOptions" :key="server.id" :label="server.name" :value="server.id" />
         </el-select>
       </div>
-      <div class="search-right">
-        <el-button @click="handleBatchStart" :disabled="selectedIds.length === 0" type="success">
+      <div class="toolbar-right">
+        <el-button @click="handleRefresh" :loading="loading">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+        <el-button type="success" @click="handleSyncStatus" :loading="syncLoading">
+          <IconifyIconOnline icon="ri:refresh-2-line" class="mr-1" />
+          同步状态
+        </el-button>
+        <el-button @click="handleBatchStart" :disabled="selectedIds.length === 0" type="success" plain>
           <IconifyIconOnline icon="ri:play-line" class="mr-1" />
-          批量启动
+          启动
         </el-button>
-        <el-button @click="handleBatchStop" :disabled="selectedIds.length === 0" type="warning">
+        <el-button @click="handleBatchStop" :disabled="selectedIds.length === 0" type="warning" plain>
           <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
-          批量停止
+          停止
         </el-button>
-        <el-button @click="handleBatchDelete" :disabled="selectedIds.length === 0" type="danger">
+        <el-button @click="handleBatchDelete" :disabled="selectedIds.length === 0" type="danger" plain>
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-          批量删除
+          删除
         </el-button>
       </div>
     </div>
@@ -224,6 +253,14 @@ const serverOptions = ref<any[]>([]);
 const detailDialogVisible = ref(false);
 const logsDialogVisible = ref(false);
 const currentContainer = ref<SystemSoftContainer | null>(null);
+
+// 统计数据
+const containerStats = reactive({
+  total: 0,
+  running: 0,
+  stopped: 0,
+  error: 0
+});
 
 // 搜索参数
 const searchParams = reactive({
@@ -481,10 +518,26 @@ const loadServers = async () => {
   }
 };
 
+// 加载统计数据
+const loadStats = async () => {
+  try {
+    const response = await containerApi.getContainerOverviewStats();
+    if (response.code === "00000" && response.data) {
+      containerStats.total = response.data.total || 0;
+      containerStats.running = response.data.running || 0;
+      containerStats.stopped = response.data.stopped || 0;
+      containerStats.error = response.data.error || 0;
+    }
+  } catch (error) {
+    console.error("加载统计数据失败:", error);
+  }
+};
+
 onMounted(() => {
   // Global Socket已在App层面初始化
   loadContainers();
   loadServers();
+  loadStats();
 });
 const terminalRef = ref();
 

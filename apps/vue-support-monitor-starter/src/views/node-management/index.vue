@@ -1075,114 +1075,20 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .node-management-container {
-  padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 0;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 50%, #f8fafc 100%);
   min-height: 100vh;
-  position: relative;
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    z-index: 1;
-  }
-
-  > * {
-    position: relative;
-    z-index: 2;
-  }
-
-  // 页面标题
-  .page-header {
-    margin-bottom: 32px;
-
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(20px);
-      border-radius: 24px;
-      padding: 32px 40px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-
-      .title-section {
-        .page-title {
-          display: flex;
-          align-items: center;
-          margin: 0 0 8px 0;
-          font-size: 28px;
-          font-weight: 700;
-          color: #2c3e50;
-
-          .title-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
-            margin-right: 16px;
-            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
-
-            i {
-              font-size: 24px;
-              color: var(--el-text-color-primary);
-            }
-          }
-
-          .title-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-        }
-
-        .page-description {
-          margin: 0;
-          color: #64748b;
-          font-size: 16px;
-          line-height: 1.5;
-        }
-      }
-
-      .header-actions {
-        .refresh-btn {
-          height: 40px;
-          padding: 0 20px;
-          border-radius: 10px;
-          font-weight: 500;
-          box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
-          transition: all 0.3s ease;
-
-          &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(64, 158, 255, 0.4);
-          }
-
-          i {
-            margin-right: 6px;
-          }
-        }
-      }
-    }
-  }
+  display: flex;
+  flex-direction: column;
 
   // 统计卡片
   .stats-section {
-    margin-bottom: 24px;
+    padding: 20px 32px;
+    margin-bottom: 0;
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 20px;
 
       .stat-card {
@@ -1348,15 +1254,16 @@ onUnmounted(() => {
 
   // 搜索区域
   .search-section {
-    margin-bottom: 24px;
+    padding: 0 32px 20px;
 
     .search-card {
       border-radius: 16px;
-      border: none;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      background: white;
 
       :deep(.el-card__body) {
-        padding: 20px 24px;
+        padding: 16px 20px;
       }
 
       .search-container {
@@ -1372,21 +1279,19 @@ onUnmounted(() => {
           flex: 1;
 
           .search-input {
-            width: 320px;
+            width: 300px;
 
             :deep(.el-input__wrapper) {
               border-radius: 10px;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             }
           }
 
           .app-filter,
           .status-filter {
-            width: 160px;
+            width: 140px;
 
             :deep(.el-select__wrapper) {
               border-radius: 10px;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             }
           }
         }
@@ -1414,6 +1319,8 @@ onUnmounted(() => {
 
   // 节点列表区域
   .nodes-section {
+    padding: 0 32px 32px;
+    flex: 1;
     .loading-container {
       display: flex;
       flex-direction: column;

@@ -16,38 +16,42 @@
       />
     </div>
     
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <div class="page-title">
-          <IconifyIconOnline icon="ri:apps-line" class="title-icon" />
-          <span>软件库</span>
+    <!-- 统计卡片 -->
+    <div class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon total">
+            <IconifyIconOnline icon="ri:apps-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ softStats.total || 0 }}</div>
+            <div class="stat-label">软件总数</div>
+          </div>
         </div>
-        <div class="page-subtitle">从仓库检索并管理可安装的软件</div>
-      </div>
-      <div class="header-right">
-        <el-button @click="reload">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-        <el-button @click="syncVisible = true" type="success" plain>
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          同步镜像
-        </el-button>
-        <el-button @click="onlineVisible = true">
-          <IconifyIconOnline icon="ri:search-eye-line" class="mr-1" />
-          在线搜索
-        </el-button>
-        <el-button type="primary" v-admin @click="openEdit()">
-          <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-          新增软件
-        </el-button>
+        <div class="stat-card">
+          <div class="stat-icon enabled">
+            <IconifyIconOnline icon="ri:checkbox-circle-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ softStats.enabled || 0 }}</div>
+            <div class="stat-label">已启用</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon official">
+            <IconifyIconOnline icon="ri:award-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ softStats.official || 0 }}</div>
+            <div class="stat-label">官方软件</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <div class="search-left">
+    <!-- 工具栏 -->
+    <div class="toolbar-section">
+      <div class="toolbar-left">
         <el-input v-model="params.keyword" placeholder="搜索名称/代码" class="search-input" clearable @keyup.enter="reload">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
@@ -62,10 +66,18 @@
           <el-option label="禁用" :value="0" />
         </el-select>
       </div>
-      <div class="search-right">
+      <div class="toolbar-right">
         <el-button @click="reload">
-          <IconifyIconOnline icon="ri:search-2-line" class="mr-1" />
-          搜索
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+        <el-button @click="onlineVisible = true">
+          <IconifyIconOnline icon="ri:search-eye-line" class="mr-1" />
+          在线搜索
+        </el-button>
+        <el-button type="primary" v-admin @click="openEdit()">
+          <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+          新增软件
         </el-button>
       </div>
     </div>
@@ -104,8 +116,8 @@
           </div>
           <div class="soft-desc">{{ row.systemSoftDesc || row.systemSoftDescription || '—' }}</div>
           <div class="soft-actions">
-            <el-button size="small" type="primary" plain @click="openInstall(row)">
-              <IconifyIconOnline icon="ri:download-line" class="mr-1" /> 安装
+            <el-button size="small" type="primary" plain @click="openPull(row)">
+              <IconifyIconOnline icon="ri:download-cloud-line" class="mr-1" /> 下载
             </el-button>
             <el-button size="small" v-admin @click="openEdit(row)">
               <IconifyIconOnline icon="ri:edit-line" class="mr-1" /> 编辑
@@ -143,14 +155,11 @@
       </template>
     </ScDialog>
 
-    <!-- 全屏安装向导 -->
-    <SoftInstallDialog v-model:visible="installVisible" :soft="currentSoft" @success="onInstallSuccess" />
+    <!-- 下载镜像对话框 -->
+    <SoftPullDialog v-model:visible="pullVisible" :soft="currentSoft" @success="onPullSuccess" />
 
     <!-- 在线搜索弹框 -->
     <SoftOnlineSearchDialog v-model:visible="onlineVisible" @success="reload" />
-
-    <!-- 同步镜像弹框 -->
-    <SoftSyncDialog v-model:visible="syncVisible" @success="onSyncSuccess" />
   </div>
 </template>
 
@@ -162,15 +171,15 @@ import ScSocketEventProcess from '@repo/components/ScSocketEventProcess/index.vu
 import ScTable from '@repo/components/ScTable/index.vue';
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus';
 import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
-import SoftInstallDialog from './components/SoftInstallDialog.vue';
+import SoftPullDialog from './components/SoftPullDialog.vue';
 import SoftOnlineSearchDialog from './components/SoftOnlineSearchDialog.vue';
-import SoftSyncDialog from './components/SoftSyncDialog.vue';
 
 const tableRef = ref();
 const onlineVisible = ref(false);
-const syncVisible = ref(false);
+const pullVisible = ref(false);
 const params = reactive<any>({ page: 1, size: 12, keyword: '', category: undefined, status: undefined });
 const categories = ref<string[]>([]);
+const softStats = reactive({ total: 0, enabled: 0, official: 0 });
 
 // 活跃的安装操作列表
 interface InstallOperation {
@@ -273,6 +282,8 @@ function cleanupSocketListeners() {
 onMounted(() => { 
   // 设置Socket事件监听
   setupSocketListeners();
+  // 加载统计数据
+  loadStats();
 });
 
 // 组件卸载时清理
@@ -314,30 +325,34 @@ async function onDelete(row: any) {
   if (code === 0) { ElMessage.success('删除成功'); reload(); } else { ElMessage.error(msg || '删除失败'); }
 }
 
-// 安装
-const installVisible = ref(false);
+// 下载镜像
 const currentSoft = ref<any>();
-function openInstall(row: any) {
+function openPull(row: any) {
   currentSoft.value = row;
-  installVisible.value = true;
+  pullVisible.value = true;
 }
-function onInstallSuccess() {
+function onPullSuccess() {
   ElNotification.success({
-    title: '安装任务已创建',
-    message: '正在拉取镜像，请在右下角查看实时进度',
+    title: '下载任务已创建',
+    message: '正在下载镜像，请在右下角查看实时进度',
     duration: 4000,
     position: 'bottom-right'
   });
+  reload();
 }
 
-// 同步
-function onSyncSuccess() {
-  ElNotification.success({
-    title: '同步任务已创建',
-    message: '正在从服务器同步Docker镜像，请在右下角查看实时进度',
-    duration: 4000,
-    position: 'bottom-right'
-  });
+// 加载统计数据
+async function loadStats() {
+  try {
+    const res = await softwareApi.getSoftwareStats();
+    if (res.code === '00000' && res.data) {
+      softStats.total = res.data.totalSoftware || 0;
+      softStats.enabled = res.data.enabledSoftware || 0;
+      softStats.official = res.data.officialSoftware || 0;
+    }
+  } catch (e) {
+    console.error('加载统计数据失败:', e);
+  }
 }
 </script>
 
