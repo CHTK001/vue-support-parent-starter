@@ -321,7 +321,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import ScSocketEventProcess from "@repo/components/ScSocketEventProcess/index.vue";
+import ScSocketEventProcess from "@repo/components/ScSocketMessageDialog/index.vue";
 import CodeDisplay from "./CodeDisplay.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 

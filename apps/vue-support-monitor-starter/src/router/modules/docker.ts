@@ -7,7 +7,7 @@ const dockerRoutes: RouteRecordRaw[] = [
     name: "Docker",
     meta: {
       title: "Docker管理",
-      icon: "ri:container-line",
+      icon: "ri:docker-line",
       alwaysShow: true,
     },
     children: [

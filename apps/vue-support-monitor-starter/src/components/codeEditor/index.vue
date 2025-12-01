@@ -576,23 +576,76 @@ export default {
   height: 100%;
   line-height: 24px;
   border: 1px solid #d9d9d9;
+  border-radius: 8px;
   overflow: hidden;
+  background: var(--el-bg-color-overlay);
 }
+
 .tool-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  margin: 5px 5px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid #d9d9d9;
-  /* 20px 0 0; */
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 12px;
 }
 
 .tool-bar-end {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 16px;
+}
+
+.tool-bar-end > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Ant Design Select 样式覆盖 */
+:deep(.ant-select) {
+  min-width: 150px;
+}
+
+:deep(.ant-select-selector) {
+  border-radius: 6px !important;
+  border-color: #e5e7eb !important;
+  background: #fff !important;
+  height: 32px !important;
+}
+
+:deep(.ant-select-selection-item) {
+  line-height: 30px !important;
+  color: #1e293b;
+}
+
+:deep(.ant-select:hover .ant-select-selector) {
+  border-color: #3b82f6 !important;
+}
+
+:deep(.ant-select-focused .ant-select-selector) {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+}
+
+:deep(.ant-space) {
+  gap: 16px !important;
+}
+
+:deep(.anticon) {
+  color: #64748b;
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+:deep(.anticon:hover) {
+  color: #3b82f6;
 }
 /*
 .CodeMirror {

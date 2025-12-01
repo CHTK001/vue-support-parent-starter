@@ -219,18 +219,23 @@ const getUrlHint = (type?: string) => {
   return hints[type || "docker_hub"] || "请输入完整的仓库地址";
 };
 
+// 默认仓库地址映射
+const defaultUrls: Record<string, string> = {
+  docker_hub: "https://registry-1.docker.io",
+  aliyun: "https://registry.cn-hangzhou.aliyuncs.com",
+  harbor: "",
+  custom: "",
+};
+
 // 仓库类型改变处理
 const handleTypeChange = (type: string) => {
-  // 根据类型设置默认URL
-  const defaultUrls = {
-    docker_hub: "https://registry-1.docker.io",
-    aliyun: "https://registry.cn-hangzhou.aliyuncs.com",
-    harbor: "",
-    custom: "",
-  } as Record<string, string>;
-
-  if (defaultUrls[type] && !formData.value.systemSoftRegistryUrl) {
-    formData.value.systemSoftRegistryUrl = defaultUrls[type];
+  // 获取当前URL是否为其他类型的默认URL
+  const currentUrl = formData.value.systemSoftRegistryUrl;
+  const isDefaultUrl = Object.values(defaultUrls).includes(currentUrl);
+  
+  // 如果当前URL为空或是某个类型的默认URL，则自动填充新类型的默认URL
+  if (!currentUrl || isDefaultUrl) {
+    formData.value.systemSoftRegistryUrl = defaultUrls[type] || "";
   }
 
   // 清除测试结果

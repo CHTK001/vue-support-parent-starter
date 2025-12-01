@@ -108,7 +108,7 @@
 
 <script setup lang="ts">
 import { getServerList, softwareApi } from '@/api/docker-management';
-import ScSocketEventProcess from '@repo/components/ScSocketEventProcess/index.vue';
+import ScSocketEventProcess from '@repo/components/ScSocketMessageDialog/index.vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import { computed, ref, watch } from 'vue';
 
