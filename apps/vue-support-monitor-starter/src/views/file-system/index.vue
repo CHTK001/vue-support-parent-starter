@@ -1,33 +1,33 @@
 <template>
   <div class="file-system-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-left">
-          <div class="page-title-section">
-            <div class="title-icon">
-              <IconifyIconOnline icon="ri:folder-cloud-line" />
-            </div>
-            <div class="title-content">
-              <h1 class="page-title">文件管理中心</h1>
-              <p class="page-subtitle">分片上传、文件管理、HTTP访问控制</p>
-            </div>
+    <!-- 统计卡片 -->
+    <div class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon total">
+            <IconifyIconOnline icon="ri:file-list-3-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ statistics.totalFiles }}</div>
+            <div class="stat-label">总文件</div>
           </div>
         </div>
-        <div class="header-right">
-          <div class="stats-overview">
-            <div class="stat-item">
-              <div class="stat-number">{{ statistics.totalFiles }}</div>
-              <div class="stat-label">总文件</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-number">{{ formatFileSize(statistics.totalSize) }}</div>
-              <div class="stat-label">总大小</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-number">{{ statistics.completedFiles }}</div>
-              <div class="stat-label">已完成</div>
-            </div>
+        <div class="stat-card">
+          <div class="stat-icon size">
+            <IconifyIconOnline icon="ri:hard-drive-2-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ formatFileSize(statistics.totalSize) }}</div>
+            <div class="stat-label">总大小</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon completed">
+            <IconifyIconOnline icon="ri:checkbox-circle-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ statistics.completedFiles }}</div>
+            <div class="stat-label">已完成</div>
           </div>
         </div>
       </div>

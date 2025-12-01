@@ -1,12 +1,12 @@
 <template>
   <el-dialog v-model="visibleProxy" title="在线搜索软件" width="70%" @open="onOpen">
     <div class="toolbar">
-      <el-input v-model="keyword" placeholder="输入关键词检索默认仓库" clearable class="w-80" @input="onKeywordInput">
+      <el-input v-model="keyword" placeholder="输入关键词检索激活的仓库" clearable class="w-80" @input="onKeywordInput">
         <template #prefix>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
       </el-input>
-      <el-alert type="info" class="ml-3 flex-1" :closable="false" title="仅检索默认仓库" />
+      <el-alert type="info" class="ml-3 flex-1" :closable="false" title="检索所有激活的仓库" />
     </div>
 
     <ScTable ref="tableRef" :url="softwareApi.searchOnlineSoftware" :params="tableParams" row-key="systemSoftCode"

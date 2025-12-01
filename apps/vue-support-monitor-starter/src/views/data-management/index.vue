@@ -1,41 +1,33 @@
 <template>
   <div class="data-management-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-left">
-          <div class="page-title-section">
-            <div class="title-icon">
-              <IconifyIconOnline icon="ri:database-2-line" />
-            </div>
-            <div class="title-content">
-              <h1 class="page-title">数据管理中心</h1>
-              <p class="page-subtitle">
-                统一管理各类数据源连接，支持多种数据库类型和实时监控
-              </p>
-            </div>
+    <!-- 统计卡片 -->
+    <div class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon total">
+            <IconifyIconOnline icon="ri:database-2-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ fetchServerStaticData.dataSourceTotal }}</div>
+            <div class="stat-label">数据源</div>
           </div>
         </div>
-        <div class="header-right">
-          <div class="stats-overview">
-            <div class="stat-item">
-              <div class="stat-number">
-                {{ fetchServerStaticData.dataSourceTotal }}
-              </div>
-              <div class="stat-label">数据源</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-number">
-                {{ fetchServerStaticData.dataSourceType }}
-              </div>
-              <div class="stat-label">类型</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-number">
-                {{ Object.keys(backupOn).filter((k) => backupOn[k]).length }}
-              </div>
-              <div class="stat-label">备份中</div>
-            </div>
+        <div class="stat-card">
+          <div class="stat-icon type">
+            <IconifyIconOnline icon="ri:stack-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ fetchServerStaticData.dataSourceType }}</div>
+            <div class="stat-label">类型</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon backup">
+            <IconifyIconOnline icon="ri:refresh-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ Object.keys(backupOn).filter((k) => backupOn[k]).length }}</div>
+            <div class="stat-label">备份中</div>
           </div>
         </div>
       </div>

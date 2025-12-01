@@ -1,241 +1,179 @@
 <template>
   <div class="registry-management">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <div class="page-title">
-          <IconifyIconOnline icon="ri:database-line" class="title-icon" />
-          <span>软件仓库管理</span>
+    <!-- 统计卡片 -->
+    <div class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon total">
+            <IconifyIconOnline icon="ri:database-2-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ registryList.length }}</div>
+            <div class="stat-label">仓库总数</div>
+          </div>
         </div>
-        <div class="page-subtitle">配置和管理远程软件镜像仓库地址</div>
-      </div>
-      <div class="header-right">
-        <el-button type="primary" circle :disabled="!canCreate" :title="canCreate ? '添加仓库' : '仅支持一个仓库'"
-          @click="openCreateDialog">
-          <IconifyIconOnline icon="ri:add-line" />
-        </el-button>
+        <div class="stat-card">
+          <div class="stat-icon active">
+            <IconifyIconOnline icon="ri:checkbox-circle-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ activeCount }}</div>
+            <div class="stat-label">已激活</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon online">
+            <IconifyIconOnline icon="ri:wifi-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ onlineCount }}</div>
+            <div class="stat-label">连接正常</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon error">
+            <IconifyIconOnline icon="ri:error-warning-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ errorCount }}</div>
+            <div class="stat-label">连接异常</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <div class="search-left">
-        <el-input v-model="searchParams.keyword" placeholder="搜索仓库名称或地址" class="search-input" clearable
-          @keyup.enter="handleSearch">
+    <!-- 工具栏 -->
+    <div class="toolbar-section">
+      <div class="toolbar-left">
+        <el-input v-model="searchParams.keyword" placeholder="搜索仓库名称或地址" class="search-input" clearable @keyup.enter="handleSearch">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select v-model="searchParams.status" placeholder="状态" clearable class="filter-select"
-          @change="handleSearch">
-          <el-option label="全部" value="" />
-          <el-option label="正常" value="active" />
-          <el-option label="离线" value="offline" />
-          <el-option label="错误" value="error" />
-        </el-select>
-        <el-select v-model="searchParams.type" placeholder="仓库类型" clearable class="filter-select"
-          @change="handleSearch">
-          <el-option label="全部" value="" />
+        <el-select v-model="searchParams.type" placeholder="仓库类型" clearable class="filter-select" @change="handleSearch">
+          <el-option label="全部类型" value="" />
           <el-option label="Docker Hub" value="docker_hub" />
           <el-option label="阿里云" value="aliyun" />
           <el-option label="Harbor" value="harbor" />
           <el-option label="自定义" value="custom" />
         </el-select>
       </div>
-      <div class="search-right">
-        <el-button @click="handleBatchDelete" :disabled="selectedIds.length === 0" type="danger" circle title="批量删除">
-          <IconifyIconOnline icon="ri:delete-bin-line" />
+      <div class="toolbar-right">
+        <el-button @click="loadRegistries">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+        <el-button type="primary" @click="openCreateDialog">
+          <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+          添加仓库
         </el-button>
       </div>
     </div>
 
-    <!-- 仓库表格 -->
-    <el-card class="registry-table-card flex-1">
-      <ScTable :key="tableKey" :url="registryApi.pageRegistry" :params="searchParams" stripe :loading="loading"
-        class="registry-table" table-name="docker-registry">
-        <el-table-column type="selection" width="55" />
-
-        <el-table-column label="" width="90" align="center">
-          <template #default="{ row }">
-            <div class="ribbon-cell">
-              <ScRibbon v-if="row.systemSoftRegistryIsDefault === 1" variant="badge" size="sm" icon="ri:star-fill"
-                text="默认" />
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="仓库名称" min-width="240">
-          <template #default="{ row }">
-            <div class="registry-name">
-              <IconifyIconOnline :icon="getRegistryIcon(row.systemSoftRegistryType)" class="registry-icon"
-                :style="{ color: getRegistryIconColor(row.systemSoftRegistryType) }" />
-              <div>
-                <div class="name-text">
-                  {{ row.systemSoftRegistryName }}
-                </div>
-                <el-tag :type="getRegistryTypeTag(row.systemSoftRegistryType)" size="small">
-                  {{ getRegistryTypeText(row.systemSoftRegistryType) }}
-                </el-tag>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="仓库地址" min-width="150">
-          <template #default="{ row }">
-            <div class="registry-url">
-              <el-link :href="row.systemSoftRegistryUrl" target="_blank" type="primary">
-                {{ row.systemSoftRegistryUrl }}
-              </el-link>
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="认证信息" min-width="150">
-          <template #default="{ row }">
-            <div class="auth-info">
-              <el-tag v-if="row.systemSoftRegistryUsername" type="success" size="small">
-                <IconifyIconOnline icon="ri:user-line" class="mr-1" />
-                已配置
-              </el-tag>
-              <el-tag v-else type="info" size="small">
-                <IconifyIconOnline icon="ri:user-forbid-line" class="mr-1" />
-                公开访问
-              </el-tag>
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getStatusTag(getRowStatus(row))" size="small">
-              {{ getStatusText(getRowStatus(row)) }}
+    <!-- 仓库卡片列表 -->
+    <div class="registry-grid" v-loading="loading">
+      <div v-for="registry in filteredRegistries" :key="registry.systemSoftRegistryId" class="registry-card" :class="{ active: registry.systemSoftRegistryActive === 1 }">
+        <!-- 卡片头部 -->
+        <div class="card-header">
+          <div class="registry-icon-wrapper" :style="{ background: getRegistryIconBg(registry.systemSoftRegistryType) }">
+            <IconifyIconOnline :icon="getRegistryIcon(registry.systemSoftRegistryType)" />
+          </div>
+          <div class="registry-info">
+            <div class="registry-name">{{ registry.systemSoftRegistryName }}</div>
+            <el-tag :type="getRegistryTypeTag(registry.systemSoftRegistryType)" size="small">
+              {{ getRegistryTypeText(registry.systemSoftRegistryType) }}
             </el-tag>
-          </template>
-        </el-table-column>
+          </div>
+          <div class="registry-status">
+            <el-tag v-if="registry.systemSoftRegistryActive === 1" type="success" size="small" effect="dark">
+              <IconifyIconOnline icon="ri:check-line" class="mr-1" />
+              已激活
+            </el-tag>
+            <el-tag v-else type="info" size="small">未激活</el-tag>
+          </div>
+        </div>
 
-        <el-table-column label="软件数量" width="100" align="center">
-          <template #default>
-            <el-badge :value="0" class="software-count">
-              <IconifyIconOnline icon="ri:apps-line" />
-            </el-badge>
-          </template>
-        </el-table-column>
+        <!-- 卡片内容 -->
+        <div class="card-content">
+          <div class="info-row">
+            <IconifyIconOnline icon="ri:link" class="info-icon" />
+            <el-link :href="registry.systemSoftRegistryUrl" target="_blank" type="primary" class="registry-url">
+              {{ registry.systemSoftRegistryUrl }}
+            </el-link>
+          </div>
+          <div class="info-row">
+            <IconifyIconOnline icon="ri:user-line" class="info-icon" />
+            <span v-if="registry.systemSoftRegistryUsername" class="info-text">{{ registry.systemSoftRegistryUsername }}</span>
+            <span v-else class="info-text muted">公开访问</span>
+          </div>
+          <div class="info-row">
+            <IconifyIconOnline icon="ri:time-line" class="info-icon" />
+            <span class="info-text">{{ registry.systemSoftRegistryLastConnectTime ? formatTime(registry.systemSoftRegistryLastConnectTime) : '从未连接' }}</span>
+            <el-tag v-if="registry.systemSoftRegistryConnectStatus === 1" type="success" size="small">成功</el-tag>
+            <el-tag v-else-if="registry.systemSoftRegistryConnectStatus === 2" type="danger" size="small">失败</el-tag>
+          </div>
+        </div>
 
-        <el-table-column label="最后连接" min-width="260">
-          <template #default="{ row }">
-            <div class="sync-info">
-              <div v-if="row.systemSoftRegistryLastConnectTime">{{ formatTime(row.systemSoftRegistryLastConnectTime) }}
-              </div>
-              <div v-else class="text-gray">从未连接</div>
-              <div v-if="row.systemSoftRegistryConnectStatus != null" class="sync-status">
-                <el-tag
-                  :type="row.systemSoftRegistryConnectStatus === 1 ? 'success' : row.systemSoftRegistryConnectStatus === 2 ? 'danger' : 'info'"
-                  size="small">
-                  {{ row.systemSoftRegistryConnectStatus === 1 ? "成功" : row.systemSoftRegistryConnectStatus === 2 ? "失败"
-                    : "未知" }}
-                </el-tag>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="创建时间" min-width="160">
-          <template #default="{ row }">
-            {{ formatTime(row.createTime) }}
-          </template>
-        </el-table-column>
-
-        <el-table-column label="操作" width="340" fixed="right">
-          <template #default="{ row }">
-            <div class="action-buttons">
-              <!-- <el-button size="small" type="info" circle title="同步" @click="handleSync(row.systemSoftRegistryId)" :loading="syncLoadingMap[row.systemSoftRegistryId]">
-                <IconifyIconOnline icon="ri:refresh-line" />
-              </el-button> -->
-              <el-button size="small" circle title="编辑" @click="openEditDialog(row)">
-                <IconifyIconOnline icon="ri:edit-line" />
-              </el-button>
-              <el-button size="small" type="danger" circle title="删除" @click="handleDelete(row.systemSoftRegistryId)">
-                <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
-              <el-button size="small" type="info" circle title="测试" @click="testConnection(row)">
-                <IconifyIconOnline icon="ri:wifi-line" />
-              </el-button>
-              <el-button size="small" :type="row.systemSoftRegistryIsDefault === 1 ? 'primary' : 'warning'" circle
-                :title="row.systemSoftRegistryIsDefault === 1 ? '取消默认' : '设置为默认'"
-                @click="handleToggleDefault(row)">
-                <IconifyIconOnline :icon="row.systemSoftRegistryIsDefault === 1 ? 'ri:star-fill' : 'ri:star-line'" />
-              </el-button>
-            </div>
-          </template>
-        </el-table-column>
-      </ScTable>
-
-      <!-- 分页 -->
-      <div class="pagination-container">
-        <el-pagination v-model:current-page="pagination.page" v-model:page-size="pagination.size"
-          :total="pagination.total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next, jumper" />
+        <!-- 卡片底部 -->
+        <div class="card-footer">
+          <el-button size="small" @click="openEditDialog(registry)">
+            <IconifyIconOnline icon="ri:edit-line" />
+            编辑
+          </el-button>
+          <el-button size="small" @click="testConnection(registry)">
+            <IconifyIconOnline icon="ri:wifi-line" />
+            测试
+          </el-button>
+          <el-button size="small" :type="registry.systemSoftRegistryActive === 1 ? 'warning' : 'success'" @click="handleToggleActive(registry)">
+            <IconifyIconOnline :icon="registry.systemSoftRegistryActive === 1 ? 'ri:toggle-fill' : 'ri:toggle-line'" />
+            {{ registry.systemSoftRegistryActive === 1 ? '取消激活' : '激活' }}
+          </el-button>
+          <el-button size="small" type="danger" @click="handleDelete(registry.systemSoftRegistryId)">
+            <IconifyIconOnline icon="ri:delete-bin-line" />
+          </el-button>
+        </div>
       </div>
-    </el-card>
+
+      <!-- 空状态 -->
+      <div v-if="filteredRegistries.length === 0 && !loading" class="empty-state">
+        <IconifyIconOnline icon="ri:database-2-line" class="empty-icon" />
+        <p class="empty-text">暂无仓库</p>
+        <el-button type="primary" @click="openCreateDialog">添加仓库</el-button>
+      </div>
+    </div>
 
     <!-- 仓库编辑对话框 -->
     <RegistryDialog v-model:visible="dialogVisible" :registry-data="currentRegistry" @success="handleDialogSuccess" />
 
     <!-- 同步进度对话框 -->
     <SyncProgressDialog v-model:visible="syncProgressVisible" :progress="syncProgressData" />
-
-    <!-- 批量操作底部工具栏 -->
-    <div v-if="selectedIds.length > 0" class="batch-actions">
-      <div class="batch-info">已选择 {{ selectedIds.length }} 个仓库</div>
-      <el-button circle title="取消选择" @click="clearSelection">
-        <IconifyIconOnline icon="ri:close-line" />
-      </el-button>
-      <el-button type="success" circle title="批量同步" @click="handleBatchSync">
-        <IconifyIconOnline icon="ri:refresh-2-line" />
-      </el-button>
-      <el-button type="danger" circle title="批量删除" @click="handleBatchDelete">
-        <IconifyIconOnline icon="ri:delete-bin-line" />
-      </el-button>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { registryApi, type SystemSoftRegistry } from "@/api/docker-management";
-import { ScRibbon } from "@repo/components/ScRibbon";
-import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import RegistryDialog from "./components/RegistryDialog.vue";
 import SyncProgressDialog from "./components/SyncProgressDialog.vue";
 
 /**
- * 软件仓库管理页面组件（重新实现）
+ * 软件仓库管理页面组件
  * @author CH
- * @version 2.0.0
- * @since 2025-09-20
+ * @version 3.0.0
+ * @since 2025-12-01
  */
 
 // 响应式数据
 const loading = ref(false);
-const syncAllLoading = ref(false);
-const syncLoadingMap = ref<Record<number, boolean>>({});
 const dialogVisible = ref(false);
 const syncProgressVisible = ref(false);
-const tableRef = ref();
-const tableKey = ref(0);
-const selectedIds = ref<number[]>([]);
 const registryList = ref<SystemSoftRegistry[]>([]);
-const total = ref(0);
-// 仅支持单仓库：当存在仓库时禁用新增
-const canCreate = ref(true);
 
 // 搜索参数
 const searchParams = reactive({
   keyword: "",
-  status: "",
   type: "",
-  page: 1,
-  size: 10,
 });
 
 // 当前编辑的仓库
@@ -244,64 +182,49 @@ const currentRegistry = ref<SystemSoftRegistry | null>(null);
 // 同步进度数据
 const syncProgressData = ref({});
 
-// 分页参数
-const pagination = reactive({
-  page: 1,
-  size: 10,
-  total: 0,
+// 计算属性
+const activeCount = computed(() => registryList.value.filter(r => r.systemSoftRegistryActive === 1).length);
+const onlineCount = computed(() => registryList.value.filter(r => r.systemSoftRegistryConnectStatus === 1).length);
+const errorCount = computed(() => registryList.value.filter(r => r.systemSoftRegistryConnectStatus === 2).length);
+
+// 过滤后的仓库列表
+const filteredRegistries = computed(() => {
+  let result = registryList.value;
+  if (searchParams.keyword) {
+    const kw = searchParams.keyword.toLowerCase();
+    result = result.filter(r => 
+      r.systemSoftRegistryName?.toLowerCase().includes(kw) ||
+      r.systemSoftRegistryUrl?.toLowerCase().includes(kw)
+    );
+  }
+  if (searchParams.type) {
+    result = result.filter(r => r.systemSoftRegistryType === searchParams.type);
+  }
+  return result;
 });
 
-// 刷新表格
+// 加载仓库列表
 const loadRegistries = async () => {
-  tableKey.value++;
-  await refreshCreateAbility();
+  loading.value = true;
+  try {
+    const res = await registryApi.getAllRegistries();
+    if (res.code === "00000") {
+      registryList.value = res.data || [];
+    }
+  } catch (e) {
+    console.error("加载仓库列表失败:", e);
+  } finally {
+    loading.value = false;
+  }
 };
 
 // 搜索
 const handleSearch = () => {
-  pagination.page = 1;
-  loadRegistries();
-};
-
-// 重置搜索
-const resetSearch = () => {
-  Object.assign(searchParams, {
-    keyword: "",
-    status: "",
-    type: "",
-  });
-  pagination.page = 1;
-  loadRegistries();
-};
-
-// 计算是否允许新增（仅支持一个仓库）
-const refreshCreateAbility = async () => {
-  try {
-    const res = await registryApi.getAllRegistries();
-    if (res.code === "00000") {
-      const list = res.data || [];
-      canCreate.value = list.length === 0;
-    }
-  } catch (e) {
-    canCreate.value = true;
-  }
+  // 前端过滤，无需重新请求
 };
 
 // 打开创建对话框
-const openCreateDialog = async () => {
-  await refreshCreateAbility();
-  if (!canCreate.value) {
-    // 若已有仓库，直接打开编辑第一个仓库
-    try {
-      const res = await registryApi.getAllRegistries();
-      const list = res.code === "00000" ? (res.data || []) : [];
-      if (list.length > 0) {
-        currentRegistry.value = list[0] as any;
-        dialogVisible.value = true;
-        return;
-      }
-    } catch { }
-  }
+const openCreateDialog = () => {
   currentRegistry.value = null;
   dialogVisible.value = true;
 };
@@ -318,15 +241,15 @@ const handleDialogSuccess = () => {
   ElMessage.success("操作成功");
 };
 
-// 切换默认（允许多个默认；再次点击取消默认）
-const handleToggleDefault = async (row: SystemSoftRegistry) => {
+// 切换激活状态
+const handleToggleActive = async (row: SystemSoftRegistry) => {
   try {
-    const isDefault = row.systemSoftRegistryIsDefault === 1;
-    const res = isDefault
-      ? await registryApi.cancelDefaultRegistry(row.systemSoftRegistryId!)
-      : await registryApi.setDefaultRegistry(row.systemSoftRegistryId!);
+    const isActive = row.systemSoftRegistryActive === 1;
+    const res = isActive
+      ? await registryApi.deactivateRegistry(row.systemSoftRegistryId!)
+      : await registryApi.activateRegistry(row.systemSoftRegistryId!);
     if (res.code === "00000") {
-      ElMessage.success(isDefault ? (res.msg || "已取消默认") : (res.msg || "已设为默认"));
+      ElMessage.success(isActive ? "已取消激活" : "已激活");
       loadRegistries();
     } else {
       ElMessage.error(res.msg || "操作失败");
@@ -336,60 +259,13 @@ const handleToggleDefault = async (row: SystemSoftRegistry) => {
   }
 };
 
-// 同步单个仓库
-const handleSync = async (registryId: number) => {
-  syncLoadingMap.value[registryId] = true;
-
-  try {
-    const response = await registryApi.syncRegistry(registryId);
-
-    if (response.code === "00000") {
-      // 显示同步进度对话框
-      syncProgressData.value = {
-        registryId,
-        //@ts-ignore
-        operationId: response.data?.operationId,
-        title: "同步仓库软件信息",
-        type: "registry_sync",
-      };
-      syncProgressVisible.value = true;
-      ElMessage.success("开始同步");
-    } else {
-      ElMessage.error(response.msg || "同步失败");
-    }
-  } catch (error) {
-    console.error("同步仓库失败:", error);
-    ElMessage.error("同步失败");
-  } finally {
-    syncLoadingMap.value[registryId] = false;
-  }
-};
-
-// 同步全部仓库
-const handleSyncSelected = async () => {
-  if (selectedIds.value.length === 0) {
-    ElMessage.warning("请选择要同步的仓库");
-    return;
-  }
-  syncAllLoading.value = true;
-  try {
-    for (const id of selectedIds.value) {
-      await registryApi.syncRegistry(id);
-    }
-    ElMessage.success("已提交同步请求");
-  } catch (e) {
-    ElMessage.error("批量同步失败");
-  } finally {
-    syncAllLoading.value = false;
-  }
-};
-
 // 测试仓库连接
 const testConnection = async (registry: SystemSoftRegistry) => {
   try {
     const response = await registryApi.testRegistryConnection(registry.systemSoftRegistryId!);
     if (response.code === "00000" && response.data) {
       ElMessage.success(response.msg || "连接测试成功");
+      loadRegistries();
     } else {
       ElMessage.error(response.msg || "连接测试失败");
     }
@@ -424,67 +300,6 @@ const handleDelete = async (registryId: number) => {
   }
 };
 
-// 批量同步
-const handleBatchSync = async () => {
-  if (selectedIds.value.length === 0) {
-    ElMessage.warning("请选择要同步的仓库");
-    return;
-  }
-  try {
-    for (const id of selectedIds.value) {
-      await registryApi.syncRegistry(id);
-    }
-    ElMessage.success("批量同步请求已提交");
-    clearSelection();
-  } catch (error) {
-    console.error("批量同步失败:", error);
-    ElMessage.error("批量同步失败");
-  }
-};
-
-// 批量删除
-const handleBatchDelete = async () => {
-  if (selectedIds.value.length === 0) {
-    ElMessage.warning("请选择要删除的仓库");
-    return;
-  }
-
-  try {
-    await ElMessageBox.confirm(`确认删除选中的 ${selectedIds.value.length} 个仓库？此操作不可恢复。`, "确认批量删除", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
-
-    const response = await registryApi.batchDeleteRegistries(selectedIds.value);
-
-    if (response.code === "00000") {
-      ElMessage.success("批量删除成功");
-      loadRegistries();
-      clearSelection();
-    } else {
-      ElMessage.error(response.msg || "批量删除失败");
-    }
-  } catch (error) {
-    if (error !== "cancel") {
-      console.error("批量删除失败:", error);
-      ElMessage.error("批量删除失败");
-    }
-  }
-};
-
-// 选择变化处理
-const handleSelectionChange = (selection: SystemSoftRegistry[]) => {
-  selectedIds.value = selection.map((item) => item.systemSoftRegistryId!);
-};
-
-// 清除选择
-const clearSelection = () => {
-  selectedIds.value = [];
-};
-
-// 分页变化
-
 // 工具函数
 const getRegistryIcon = (type?: string) => {
   const iconMap = {
@@ -496,14 +311,14 @@ const getRegistryIcon = (type?: string) => {
   return iconMap[type] || "ri:database-line";
 };
 
-const getRegistryIconColor = (type?: string) => {
-  const colorMap = {
-    docker_hub: "#2496ED",
-    aliyun: "#FF6A00",
-    harbor: "#60B2FF",
-    custom: "#67C23A",
+const getRegistryIconBg = (type?: string) => {
+  const bgMap = {
+    docker_hub: "linear-gradient(135deg, #2496ED 0%, #1a7bc9 100%)",
+    aliyun: "linear-gradient(135deg, #FF6A00 0%, #e55c00 100%)",
+    harbor: "linear-gradient(135deg, #60B2FF 0%, #4a9ae6 100%)",
+    custom: "linear-gradient(135deg, #67C23A 0%, #5aad33 100%)",
   };
-  return colorMap[type] || "#409EFF";
+  return bgMap[type] || "linear-gradient(135deg, #409EFF 0%, #3a8ee6 100%)";
 };
 
 const getRegistryTypeTag = (type?: string) => {
@@ -561,227 +376,228 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .registry-management {
-  background: var(--app-bg-secondary);
-  min-height: 100%;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 50%, #f8fafc 100%);
+  min-height: 100vh;
+  padding: 0;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-  padding: 20px;
-  background: var(--app-card-bg);
-  border-radius: 8px;
-  box-shadow: var(--app-card-shadow);
-}
+// 统计卡片
+.stats-section {
+  padding: 20px 32px;
 
-.header-left .page-title {
-  display: flex;
-  align-items: center;
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--app-text-primary);
-  margin-bottom: 8px;
-}
-
-.title-icon {
-  margin-right: 8px;
-  color: var(--app-primary);
-}
-
-.page-subtitle {
-  color: var(--app-text-secondary);
-  margin-top: 4px;
-  font-size: 14px;
-}
-
-.header-right {
-  display: flex;
-  gap: 12px;
-}
-
-.search-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 16px;
-  background: var(--app-card-bg);
-  border-radius: 8px;
-  box-shadow: var(--app-card-shadow);
-}
-
-.search-left {
-  display: flex;
-  gap: 12px;
-}
-
-.search-right {
-  display: flex;
-  gap: 12px;
-}
-
-.search-input {
-  width: 280px;
-}
-
-.filter-select {
-  width: 120px;
-}
-
-.registry-table-card {
-  background: var(--app-card-bg);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: var(--app-card-shadow);
-}
-
-.registry-table {
-  width: 100%;
-}
-
-.registry-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ribbon-cell {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.registry-icon {
-  font-size: 18px;
-}
-
-.name-text {
-  font-weight: 500;
-  margin-bottom: 4px;
-  color: var(--app-text-primary);
-}
-
-.registry-url {
-  word-break: break-all;
-}
-
-.auth-info,
-.sync-info {
-  display: flex;
-  flex-direction: row;
-  gap: 4px;
-}
-
-.sync-status {
-  margin-top: 2px;
-}
-
-.text-gray {
-  color: var(--app-text-secondary);
-  font-size: 12px;
-}
-
-.software-count {
-  cursor: pointer;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  padding: 20px;
-  border-top: 1px solid var(--app-table-border);
-}
-
-.batch-actions {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 20px;
-  background: var(--app-card-bg);
-  border-radius: 8px;
-  box-shadow: var(--app-card-shadow);
-  z-index: 1000;
-}
-
-.batch-info {
-  color: var(--app-link);
-  font-weight: 500;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: stretch;
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
+
+    .stat-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+      .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+
+        &.total { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+        &.active { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        &.online { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+        &.error { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+      }
+
+      .stat-info {
+        .stat-value {
+          font-size: 28px;
+          font-weight: 700;
+          color: #1e293b;
+        }
+        .stat-label {
+          font-size: 13px;
+          color: #64748b;
+        }
+      }
+    }
+  }
+}
+
+// 工具栏
+.toolbar-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 32px 20px;
+
+  .toolbar-left {
+    display: flex;
+    gap: 12px;
+
+    .search-input { width: 280px; }
+    .filter-select { width: 140px; }
   }
 
-  .search-bar {
-    flex-direction: column;
-    align-items: stretch;
+  .toolbar-right {
+    display: flex;
     gap: 12px;
   }
+}
 
-  .search-left {
-    flex-direction: column;
+// 仓库卡片网格
+.registry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 20px;
+  padding: 0 32px 32px;
+}
+
+.registry-card {
+  background: white;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  &.active {
+    border-color: #10b981;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    border-bottom: 1px solid #f1f5f9;
+
+    .registry-icon-wrapper {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+    }
+
+    .registry-info {
+      flex: 1;
+
+      .registry-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 4px;
+      }
+    }
+  }
+
+  .card-content {
+    padding: 16px 20px;
+
+    .info-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+
+      &:last-child { margin-bottom: 0; }
+
+      .info-icon {
+        color: #94a3b8;
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+
+      .info-text {
+        font-size: 13px;
+        color: #475569;
+
+        &.muted { color: #94a3b8; }
+      }
+
+      .registry-url {
+        font-size: 13px;
+        word-break: break-all;
+      }
+    }
+  }
+
+  .card-footer {
+    display: flex;
     gap: 8px;
-  }
-
-  .search-right {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .search-input {
-    width: 100%;
-  }
-
-  .filter-select {
-    width: 100%;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .action-buttons .el-button {
-    width: 100%;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
   }
 }
 
-@media (max-width: 480px) {
-  .registry-management {
-    padding: 8px;
+// 空状态
+.empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 16px;
+  border: 1px dashed #e2e8f0;
+
+  .empty-icon {
+    font-size: 64px;
+    color: #cbd5e1;
+    margin-bottom: 16px;
   }
 
-  .page-header {
-    padding: 12px;
+  .empty-text {
+    font-size: 16px;
+    color: #64748b;
+    margin-bottom: 20px;
+  }
+}
+
+// 响应式
+@media (max-width: 1200px) {
+  .stats-section .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-section {
+    padding: 16px;
+    .stats-grid { grid-template-columns: 1fr; }
   }
 
-  .search-bar {
-    padding: 12px;
-  }
-
-  .batch-actions {
+  .toolbar-section {
     flex-direction: column;
-    gap: 8px;
-    width: calc(100% - 16px);
-    transform: translateX(-50%);
+    gap: 12px;
+    padding: 0 16px 16px;
+
+    .toolbar-left, .toolbar-right { width: 100%; }
+    .search-input { width: 100%; }
+  }
+
+  .registry-grid {
+    grid-template-columns: 1fr;
+    padding: 0 16px 16px;
   }
 }
 </style>

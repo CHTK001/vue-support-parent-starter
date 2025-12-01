@@ -167,6 +167,7 @@ const emit = defineEmits<{
 // 响应式数据
 const formRef = ref<FormInstance>();
 const saving = ref(false);
+const activeSubTab = ref("edit");
 
 const scriptForm = reactive({
   monitorSysGenScriptId: null as number | null,
