@@ -1,0 +1,310 @@
+/**
+ * 全局样式修复
+ * 修复各页面在不同主题下的显示问题
+ * 整合所有主题相关的样式修复
+ * @author CH
+ * @version 2.0.0
+ * @since 2025-12-01
+ */
+
+/* ===== 通用页面样式 ===== */
+.page-container,
+.management-container,
+.node-management-container,
+.file-system-container,
+.data-management-container,
+.script-management-container,
+.manage-container,
+.manage-layout,
+.manage-main {
+  background: var(--app-bg-page);
+  color: var(--app-text-primary);
+}
+
+/* ===== 卡片和面板 ===== */
+.panel,
+.card,
+.section-card,
+.stats-card,
+.file-panel,
+.tree-panel,
+.group-panel,
+.detail-panel {
+  background: var(--app-card-bg);
+  border-color: var(--app-card-border);
+  box-shadow: var(--app-card-shadow);
+  
+  &:hover {
+    box-shadow: var(--app-card-hover-shadow);
+  }
+}
+
+/* ===== 面板头部 ===== */
+.panel-header,
+.card-header,
+.section-header {
+  background: var(--app-panel-header-bg);
+  border-color: var(--app-panel-border);
+}
+
+/* ===== 文本颜色 ===== */
+h1, h2, h3, h4, h5, h6,
+.title,
+.panel-title,
+.card-title,
+.section-title,
+.header-title {
+  color: var(--app-text-primary);
+}
+
+.subtitle,
+.description,
+.desc,
+.meta,
+.info,
+.text-secondary {
+  color: var(--app-text-secondary);
+}
+
+.text-tertiary,
+.hint,
+.tip {
+  color: var(--app-text-tertiary);
+}
+
+/* ===== 滚动条样式 ===== */
+.thin-scroller,
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-scrollbar-thumb) var(--app-scrollbar-track);
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: var(--app-scrollbar-track);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--app-scrollbar-thumb);
+    border-radius: 3px;
+    
+    &:hover {
+      background: var(--app-scrollbar-thumb-hover);
+    }
+  }
+}
+
+/* ===== 链接样式 ===== */
+a:not(.el-button):not(.el-link) {
+  color: var(--app-link);
+  
+  &:hover {
+    color: var(--app-link-hover);
+  }
+  
+  &:active {
+    color: var(--app-link-active);
+  }
+}
+
+/* ===== 选中状态 ===== */
+::selection {
+  background: var(--app-primary-lightest);
+  color: var(--app-text-primary);
+}
+
+/* ===== 深色主题特定修复 ===== */
+html.dark {
+  /* 页面背景 */
+  body {
+    background: var(--app-bg-page);
+    color: var(--app-text-primary);
+  }
+  
+  /* Element Plus 组件修复 */
+  .el-card {
+    --el-card-bg-color: var(--app-card-bg);
+    --el-card-border-color: var(--app-card-border);
+  }
+  
+  .el-table {
+    --el-table-bg-color: var(--app-bg-secondary);
+    --el-table-tr-bg-color: var(--app-bg-secondary);
+    --el-table-header-bg-color: var(--app-table-header-bg);
+    --el-table-row-hover-bg-color: var(--app-table-row-hover);
+    --el-table-border-color: var(--app-table-border);
+    --el-table-text-color: var(--app-text-primary);
+  }
+  
+  .el-dialog {
+    --el-dialog-bg-color: var(--app-dialog-bg);
+    --el-dialog-title-font-size: 18px;
+    
+    .el-dialog__header {
+      background: var(--app-dialog-header-bg);
+      border-bottom: 1px solid var(--app-border-primary);
+    }
+    
+    .el-dialog__title {
+      color: var(--app-text-primary);
+    }
+  }
+  
+  .el-input__wrapper,
+  .el-textarea__inner {
+    background: var(--app-input-bg);
+    box-shadow: 0 0 0 1px var(--app-input-border) inset;
+    
+    &:hover {
+      box-shadow: 0 0 0 1px var(--app-border-secondary) inset;
+    }
+    
+    &.is-focus {
+      box-shadow: 0 0 0 1px var(--app-input-focus-border) inset;
+    }
+  }
+  
+  .el-select-dropdown,
+  .el-dropdown-menu,
+  .el-popper {
+    background: var(--app-dropdown-bg);
+    border-color: var(--app-border-primary);
+  }
+  
+  .el-button--default {
+    --el-button-bg-color: var(--app-button-default-bg);
+    --el-button-border-color: var(--app-button-default-border);
+    --el-button-text-color: var(--app-text-primary);
+  }
+  
+  .el-pagination {
+    --el-pagination-bg-color: var(--app-bg-secondary);
+    --el-pagination-button-bg-color: var(--app-bg-secondary);
+  }
+  
+  .el-tabs__header {
+    background: var(--app-bg-secondary);
+  }
+  
+  .el-tabs__nav-wrap::after {
+    background: var(--app-border-primary);
+  }
+  
+  .el-divider {
+    border-color: var(--app-border-primary);
+  }
+  
+  .el-divider__text {
+    background: var(--app-bg-secondary);
+    color: var(--app-text-secondary);
+  }
+  
+  .el-drawer {
+    --el-drawer-bg-color: var(--app-bg-secondary);
+  }
+  
+  .el-message-box {
+    background: var(--app-dialog-bg);
+    border-color: var(--app-border-primary);
+  }
+  
+  .el-tooltip__popper {
+    background: var(--app-bg-tertiary);
+    border-color: var(--app-border-primary);
+    color: var(--app-text-primary);
+  }
+  
+  .el-loading-mask {
+    background: rgba(0, 0, 0, 0.7);
+  }
+  
+  .el-empty__description {
+    color: var(--app-text-secondary);
+  }
+  
+  .el-breadcrumb__inner,
+  .el-breadcrumb__separator {
+    color: var(--app-text-secondary);
+  }
+  
+  .el-breadcrumb__inner.is-link:hover {
+    color: var(--app-primary);
+  }
+  
+  /* 树形节点 */
+  .tree-node,
+  .node-item {
+    &:hover {
+      background: var(--app-bg-hover);
+    }
+    
+    .node-name,
+    .node-label {
+      color: var(--app-text-primary);
+    }
+  }
+  
+  /* 文件列表 */
+  .file-cell,
+  .file-item {
+    .file-name {
+      color: var(--app-text-primary);
+    }
+    
+    .file-meta,
+    .file-size,
+    .file-date {
+      color: var(--app-text-secondary);
+    }
+  }
+  
+  /* 代码块 */
+  pre, code {
+    background: var(--app-code-bg);
+    color: var(--app-code-text);
+    border-color: var(--app-code-border);
+  }
+  
+  /* 代码编辑器 */
+  .CodeMirror,
+  .cm-editor,
+  .monaco-editor {
+    background: var(--app-bg-tertiary);
+  }
+  
+  /* 终端 */
+  .terminal-container,
+  .xterm-viewport {
+    background: #0a0a0a;
+  }
+}
+
+/* ===== 浅色主题特定样式 ===== */
+:root:not(.dark) {
+  /* 页面背景渐变 */
+  .page-with-gradient {
+    background: var(--app-gradient-page);
+  }
+  
+  /* 卡片悬浮效果 */
+  .card-hoverable {
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--app-shadow-md);
+    }
+  }
+}
+
+/* ===== 响应式调整 ===== */
+@media (max-width: 768px) {
+  .thin-scroller::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}

@@ -11,19 +11,24 @@
         <h3>基础用法</h3>
         <p>基本的验证码输入功能</p>
         <div class="example-demo">
-          <ScCode 
-            @complete="handleComplete" 
-            @change="handleChange" 
+          <ScCode
+            @complete="handleComplete"
+            @change="handleChange"
             ref="basicCodeRef"
           />
         </div>
         <div class="example-result">
           <p><strong>当前值:</strong> {{ basicValue }}</p>
-          <p><strong>完成状态:</strong> {{ basicCompleted ? '已完成' : '未完成' }}</p>
+          <p>
+            <strong>完成状态:</strong>
+            {{ basicCompleted ? "已完成" : "未完成" }}
+          </p>
         </div>
         <div class="example-actions">
           <el-button @click="clearBasic">清空</el-button>
-          <el-button @click="setBasicError" type="danger">设置错误状态</el-button>
+          <el-button @click="setBasicError" type="danger"
+            >设置错误状态</el-button
+          >
         </div>
       </div>
 
@@ -32,9 +37,9 @@
         <h3>禁用状态</h3>
         <p>禁用验证码输入</p>
         <div class="example-demo">
-          <ScCode 
+          <ScCode
             :disabled="true"
-            @complete="handleDisabledComplete" 
+            @complete="handleDisabledComplete"
             @change="handleDisabledChange"
           />
         </div>
@@ -48,8 +53,8 @@
         <h3>事件监听</h3>
         <p>监听验证码输入的各种事件</p>
         <div class="example-demo">
-          <ScCode 
-            @complete="handleEventComplete" 
+          <ScCode
+            @complete="handleEventComplete"
             @change="handleEventChange"
             ref="eventCodeRef"
           />
@@ -58,9 +63,9 @@
           <div class="event-log">
             <h4>事件日志:</h4>
             <div class="log-container">
-              <div 
-                v-for="(log, index) in eventLogs" 
-                :key="index" 
+              <div
+                v-for="(log, index) in eventLogs"
+                :key="index"
                 class="log-item"
                 :class="log.type"
               >
@@ -83,25 +88,36 @@
         <h3>功能演示</h3>
         <p>演示验证码组件的各种功能特性</p>
         <div class="example-demo">
-          <ScCode 
-            @complete="handleDemoComplete" 
+          <ScCode
+            @complete="handleDemoComplete"
             @change="handleDemoChange"
             ref="demoCodeRef"
           />
         </div>
         <div class="example-result">
           <p><strong>当前值:</strong> {{ demoValue }}</p>
-          <p><strong>验证状态:</strong> 
-            <el-tag 
-              :type="demoStatus === 'success' ? 'success' : demoStatus === 'error' ? 'danger' : 'info'"
+          <p>
+            <strong>验证状态:</strong>
+            <el-tag
+              :type="
+                demoStatus === 'success'
+                  ? 'success'
+                  : demoStatus === 'error'
+                    ? 'danger'
+                    : 'info'
+              "
             >
               {{ demoStatusText }}
             </el-tag>
           </p>
         </div>
         <div class="example-actions">
-          <el-button @click="simulateSuccess" type="success">模拟验证成功</el-button>
-          <el-button @click="simulateError" type="danger">模拟验证失败</el-button>
+          <el-button @click="simulateSuccess" type="success"
+            >模拟验证成功</el-button
+          >
+          <el-button @click="simulateError" type="danger"
+            >模拟验证失败</el-button
+          >
           <el-button @click="resetDemo">重置</el-button>
         </div>
       </div>
@@ -110,34 +126,27 @@
     <!-- 代码示例 -->
     <div class="code-examples">
       <h3>代码示例</h3>
-      
-      <div class="code-section">
-        <h4>基础用法</h4>
-        <div class="code-block">
-          <pre><code>{{ basicCodeExample }}</code></pre>
-        </div>
-      </div>
-
-      <div class="code-section">
-        <h4>禁用状态</h4>
-        <div class="code-block">
-          <pre><code>{{ disabledCodeExample }}</code></pre>
-        </div>
-      </div>
-
-      <div class="code-section">
-        <h4>事件处理</h4>
-        <div class="code-block">
-          <pre><code>{{ eventCodeExample }}</code></pre>
-        </div>
-      </div>
+      <CodeDisplay
+        :code="basicCodeExample"
+        language="vue"
+        title="基础用法"
+        class="mb-4"
+      />
+      <CodeDisplay
+        :code="disabledCodeExample"
+        language="vue"
+        title="禁用状态"
+        class="mb-4"
+      />
+      <CodeDisplay :code="eventCodeExample" language="vue" title="事件处理" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import ScCode from '@repo/components/ScCode/index.vue'
+import { ref, computed } from "vue";
+import ScCode from "@repo/components/ScCode/index.vue";
+import CodeDisplay from "./CodeDisplay.vue";
 
 /**
  * ScCode组件示例
@@ -147,124 +156,129 @@ import ScCode from '@repo/components/ScCode/index.vue'
  */
 
 // 基础用法
-const basicValue = ref('')
-const basicCompleted = ref(false)
-const basicCodeRef = ref()
+const basicValue = ref("");
+const basicCompleted = ref(false);
+const basicCodeRef = ref();
 
 const handleComplete = (value: string) => {
-  basicValue.value = value
-  basicCompleted.value = true
-  console.log('验证码输入完成:', value)
-}
+  basicValue.value = value;
+  basicCompleted.value = true;
+  console.log("验证码输入完成:", value);
+};
 
 const handleChange = (value: string) => {
-  basicValue.value = value
-  basicCompleted.value = value.length === 6
-}
+  basicValue.value = value;
+  basicCompleted.value = value.length === 6;
+};
 
 const clearBasic = () => {
-  basicCodeRef.value?.clear()
-  basicCompleted.value = false
-}
+  basicCodeRef.value?.clear();
+  basicCompleted.value = false;
+};
 
 const setBasicError = () => {
-  basicCodeRef.value?.setError(true)
-}
+  basicCodeRef.value?.setError(true);
+};
 
 // 禁用状态
-const disabledValue = ref('')
+const disabledValue = ref("");
 
 const handleDisabledComplete = (value: string) => {
-  disabledValue.value = value
-}
+  disabledValue.value = value;
+};
 
 const handleDisabledChange = (value: string) => {
-  disabledValue.value = value
-}
+  disabledValue.value = value;
+};
 
 // 事件监听
-const eventLogs = ref<Array<{time: string, event: string, value: string, type: string}>>([])
-const eventCodeRef = ref()
+const eventLogs = ref<
+  Array<{ time: string; event: string; value: string; type: string }>
+>([]);
+const eventCodeRef = ref();
 
-const addLog = (event: string, value: string, type: string = 'info') => {
-  const time = new Date().toLocaleTimeString()
-  eventLogs.value.unshift({ time, event, value, type })
+const addLog = (event: string, value: string, type: string = "info") => {
+  const time = new Date().toLocaleTimeString();
+  eventLogs.value.unshift({ time, event, value, type });
   // 限制日志数量
   if (eventLogs.value.length > 10) {
-    eventLogs.value = eventLogs.value.slice(0, 10)
+    eventLogs.value = eventLogs.value.slice(0, 10);
   }
-}
+};
 
 const handleEventComplete = (value: string) => {
-  addLog('完成输入', value, 'success')
-}
+  addLog("完成输入", value, "success");
+};
 
 const handleEventChange = (value: string) => {
-  addLog('值变化', value, 'info')
-}
+  addLog("值变化", value, "info");
+};
 
 const clearEvent = () => {
-  eventCodeRef.value?.clear()
-  addLog('清空验证码', '', 'warning')
-}
+  eventCodeRef.value?.clear();
+  addLog("清空验证码", "", "warning");
+};
 
 const clearLogs = () => {
-  eventLogs.value = []
-}
+  eventLogs.value = [];
+};
 
 const setEventError = () => {
-  eventCodeRef.value?.setError(true)
-  addLog('设置错误状态', '', 'error')
-}
+  eventCodeRef.value?.setError(true);
+  addLog("设置错误状态", "", "error");
+};
 
 // 功能演示
-const demoValue = ref('')
-const demoStatus = ref('pending')
-const demoCodeRef = ref()
+const demoValue = ref("");
+const demoStatus = ref("pending");
+const demoCodeRef = ref();
 
 const demoStatusText = computed(() => {
   switch (demoStatus.value) {
-    case 'success': return '验证成功'
-    case 'error': return '验证失败'
-    default: return '等待输入'
+    case "success":
+      return "验证成功";
+    case "error":
+      return "验证失败";
+    default:
+      return "等待输入";
   }
-})
+});
 
 const handleDemoComplete = (value: string) => {
-  demoValue.value = value
+  demoValue.value = value;
   // 模拟验证过程
   setTimeout(() => {
-    if (value === '123456') {
-      demoStatus.value = 'success'
+    if (value === "123456") {
+      demoStatus.value = "success";
     } else {
-      demoStatus.value = 'error'
-      demoCodeRef.value?.setError(true)
+      demoStatus.value = "error";
+      demoCodeRef.value?.setError(true);
     }
-  }, 1000)
-}
+  }, 1000);
+};
 
 const handleDemoChange = (value: string) => {
-  demoValue.value = value
+  demoValue.value = value;
   if (value.length < 6) {
-    demoStatus.value = 'pending'
+    demoStatus.value = "pending";
   }
-}
+};
 
 const simulateSuccess = () => {
-  demoStatus.value = 'success'
-  demoCodeRef.value?.setError(false)
-}
+  demoStatus.value = "success";
+  demoCodeRef.value?.setError(false);
+};
 
 const simulateError = () => {
-  demoStatus.value = 'error'
-  demoCodeRef.value?.setError(true)
-}
+  demoStatus.value = "error";
+  demoCodeRef.value?.setError(true);
+};
 
 const resetDemo = () => {
-  demoValue.value = ''
-  demoStatus.value = 'pending'
-  demoCodeRef.value?.clear()
-}
+  demoValue.value = "";
+  demoStatus.value = "pending";
+  demoCodeRef.value?.clear();
+};
 
 // 代码示例
 const basicCodeExample = `<template>
@@ -298,7 +312,7 @@ const clear = () => {
 const setError = () => {
   codeRef.value?.setError(true)
 }
-<\/script>`
+<\/script>`;
 
 const disabledCodeExample = `<template>
   <ScCode 
@@ -306,7 +320,7 @@ const disabledCodeExample = `<template>
     @complete="handleComplete" 
     @change="handleChange"
   />
-</template>`
+</template>`;
 
 const eventCodeExample = `<template>
   <ScCode 
@@ -326,7 +340,7 @@ const handleChange = (value) => {
   // 验证码值变化时触发
   console.log('值变化:', value)
 }
-<\/script>`
+<\/script>`;
 </script>
 
 <style scoped lang="scss">
@@ -417,7 +431,7 @@ const handleChange = (value) => {
               padding: 8px 12px;
               border-bottom: 1px solid var(--el-border-color-extra-light);
               font-size: 12px;
-              font-family: 'Courier New', monospace;
+              font-family: "Courier New", monospace;
 
               &:last-child {
                 border-bottom: none;
@@ -491,7 +505,7 @@ const handleChange = (value) => {
 
         pre {
           margin: 0;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
           font-size: 13px;
           line-height: 1.5;
 

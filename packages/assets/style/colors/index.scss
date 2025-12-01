@@ -1,14 +1,19 @@
-// 应用颜色系统入口文件
-// Application Color System Entry Point
+/**
+ * 应用颜色系统入口文件
+ * Application Color System Entry Point
+ * @author CH
+ * @version 3.0.0
+ * @since 2025-12-01
+ */
 
-// 导入默认主题颜色
+// 导入浅色主题颜色（默认）
 @use './default';
 
-// 导入深色主题颜色  
-@use './dark';
+// 导入深色主题完整样式（整合了颜色变量和组件样式）
+@use './dark-theme';
 
-// 导入深色主题修复样式
-@use '../dark-theme-fix';
+// 导入全局样式修复
+@use './global-fix';
 
 // 颜色实用类 Color Utility Classes
 .app-text-primary { color: var(--app-text-primary) !important; }

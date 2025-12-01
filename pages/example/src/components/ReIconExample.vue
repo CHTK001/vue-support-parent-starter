@@ -4,15 +4,21 @@
       <h3>在线图标 (IconifyIconOnline)</h3>
       <div class="example-box">
         <div class="icon-grid">
-          <div v-for="(icon, index) in onlineIcons" :key="index" class="icon-item">
+          <div
+            v-for="(icon, index) in onlineIcons"
+            :key="index"
+            class="icon-item"
+          >
             <IconifyIconOnline :icon="icon" />
             <span class="icon-name">{{ icon }}</span>
           </div>
         </div>
       </div>
-      <div class="example-code">
-        <pre>&lt;IconifyIconOnline icon="ri:home-line" /&gt;</pre>
-      </div>
+      <CodeDisplay
+        :code="'<IconifyIconOnline icon=&quot;ri:home-line&quot; />'"
+        language="html"
+        title="在线图标使用示例"
+      />
     </div>
 
     <div class="example-section">
@@ -41,9 +47,11 @@
           </div>
         </div>
       </div>
-      <div class="example-code">
-        <pre>&lt;IconifyIconOnline icon="ri:user-line" style="font-size: 32px;" /&gt;</pre>
-      </div>
+      <CodeDisplay
+        :code="'<IconifyIconOnline icon=&quot;ri:user-line&quot; style=&quot;font-size: 32px;&quot; />'"
+        language="html"
+        title="图标尺寸示例"
+      />
     </div>
 
     <div class="example-section">
@@ -51,30 +59,47 @@
       <div class="example-box">
         <div class="icon-color-demo">
           <div class="color-item">
-            <IconifyIconOnline icon="ri:heart-fill" style="color: #f56c6c; font-size: 32px" />
+            <IconifyIconOnline
+              icon="ri:heart-fill"
+              style="color: #f56c6c; font-size: 32px"
+            />
             <span>红色</span>
           </div>
           <div class="color-item">
-            <IconifyIconOnline icon="ri:heart-fill" style="color: #409eff; font-size: 32px" />
+            <IconifyIconOnline
+              icon="ri:heart-fill"
+              style="color: #409eff; font-size: 32px"
+            />
             <span>蓝色</span>
           </div>
           <div class="color-item">
-            <IconifyIconOnline icon="ri:heart-fill" style="color: #67c23a; font-size: 32px" />
+            <IconifyIconOnline
+              icon="ri:heart-fill"
+              style="color: #67c23a; font-size: 32px"
+            />
             <span>绿色</span>
           </div>
           <div class="color-item">
-            <IconifyIconOnline icon="ri:heart-fill" style="color: #e6a23c; font-size: 32px" />
+            <IconifyIconOnline
+              icon="ri:heart-fill"
+              style="color: #e6a23c; font-size: 32px"
+            />
             <span>黄色</span>
           </div>
           <div class="color-item">
-            <IconifyIconOnline icon="ri:heart-fill" style=" color: var(--el-text-color-primary); font-size: 32px" />
+            <IconifyIconOnline
+              icon="ri:heart-fill"
+              style="color: var(--el-text-color-primary); font-size: 32px"
+            />
             <span>灰色</span>
           </div>
         </div>
       </div>
-      <div class="example-code">
-        <pre>&lt;IconifyIconOnline icon="ri:heart-fill" style="color: #409eff; font-size: 32px;" /&gt;</pre>
-      </div>
+      <CodeDisplay
+        :code="'<IconifyIconOnline icon=&quot;ri:heart-fill&quot; style=&quot;color: #409eff; font-size: 32px;&quot; />'"
+        language="html"
+        title="图标颜色示例"
+      />
     </div>
 
     <div class="example-section">
@@ -111,11 +136,11 @@
           </div>
         </div>
       </div>
-      <div class="example-code">
-        <pre>&lt;!-- HTTP协议图标示例 --&gt;
-&lt;IconifyIconOnline icon="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/github.svg" /&gt;
-&lt;IconifyIconOffline icon="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/vuedotjs.svg" /&gt;</pre>
-      </div>
+      <CodeDisplay
+        :code="httpIconCode"
+        language="html"
+        title="HTTP协议图标示例"
+      />
     </div>
 
     <div class="example-section">
@@ -129,7 +154,12 @@
           </el-input>
 
           <div class="icon-list">
-            <div v-for="(icon, index) in filteredIcons" :key="index" class="icon-list-item" @click="selectIcon(icon)">
+            <div
+              v-for="(icon, index) in filteredIcons"
+              :key="index"
+              class="icon-list-item"
+              @click="selectIcon(icon)"
+            >
               <IconifyIconOnline :icon="icon" />
               <span class="icon-list-name">{{ icon }}</span>
             </div>
@@ -150,12 +180,11 @@
           </div>
         </div>
       </div>
-      <div class="example-code">
-        <pre>
-&lt;!-- 图标选择器示例 --&gt;
-&lt;IconifyIconOnline :icon="selectedIcon" /&gt;
-        </pre>
-      </div>
+      <CodeDisplay
+        :code="selectorCode"
+        language="html"
+        title="图标选择器示例"
+      />
     </div>
   </div>
 </template>
@@ -165,11 +194,15 @@ import { ref, computed } from "vue";
 import { message } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { IconifyIconOffline } from "@repo/components/ReIcon";
+import CodeDisplay from "./CodeDisplay.vue";
 
 // HTTP图标URL
-const httpIcon1 = "https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/github.svg";
-const httpIcon2 = "https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/vuedotjs.svg";
-const httpIcon3 = "https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/react.svg";
+const httpIcon1 =
+  "https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/github.svg";
+const httpIcon2 =
+  "https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/vuedotjs.svg";
+const httpIcon3 =
+  "https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/react.svg";
 
 // 使用useRenderIcon创建HTTP图标组件
 const useRenderIconHttp1 = useRenderIcon(httpIcon1);
@@ -276,6 +309,21 @@ const copyIconCode = () => {
       message("复制失败，请手动复制", { type: "error" });
     });
 };
+
+// HTTP图标代码示例
+const httpIconCode = `<!-- HTTP协议图标示例 -->
+<IconifyIconOnline icon="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/github.svg" />
+<IconifyIconOffline icon="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/vuedotjs.svg" />`;
+
+// 图标选择器代码示例
+const selectorCode = computed(() => {
+  return `<!-- 图标选择器示例 -->
+<IconifyIconOnline :icon="selectedIcon" />
+
+<script setup>
+const selectedIcon = ref("${selectedIcon.value || "ri:home-line"}");
+<\/script>`;
+});
 </script>
 
 <style scoped>
