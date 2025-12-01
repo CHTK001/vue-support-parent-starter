@@ -1102,6 +1102,79 @@ const testBackendAPI = async () => {
   flex-direction: column;
   height: 100%;
 
+  // 统计卡片区域
+  .stats-section {
+    padding: 16px 32px;
+    background: rgba(255, 255, 255, 0.6);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .stat-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: var(--app-card-bg, #fff);
+      border-radius: 12px;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+
+      .stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+
+        &.total {
+          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+          color: #2563eb;
+        }
+
+        &.size {
+          background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+          color: #9333ea;
+        }
+
+        &.completed {
+          background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+          color: #16a34a;
+        }
+      }
+
+      .stat-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        .stat-value {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--app-text-primary, #1e293b);
+          line-height: 1.2;
+        }
+
+        .stat-label {
+          font-size: 12px;
+          color: var(--app-text-secondary, #64748b);
+        }
+      }
+    }
+  }
+
   // 页面头部
   .page-header {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
