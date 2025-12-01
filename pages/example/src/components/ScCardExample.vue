@@ -259,11 +259,79 @@
         </ScCard>
       </div>
     </div>
+
+    <!-- 代码示例 -->
+    <div class="demo-section">
+      <h3 class="section-title">代码示例</h3>
+      <CodePreview :tabs="codeTabs" />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import ScCard from "@repo/components/ScCard/index.vue";
+import CodePreview from "./CodePreview.vue";
+
+// 代码示例标签页
+const codeTabs = [
+  {
+    key: "stats",
+    label: "统计卡片",
+    icon: "ri:bar-chart-line",
+    language: "vue",
+    code: `<ScCard
+  layout="stats"
+  theme="primary"
+  icon="ri:user-line"
+  :value="1234"
+  label="总用户数"
+  trend-icon="ri:arrow-up-line"
+  trend-text="+12.5%"
+/>`,
+  },
+  {
+    key: "compact",
+    label: "紧凑卡片",
+    icon: "ri:layout-grid-line",
+    language: "vue",
+    code: `<ScCard
+  layout="compact"
+  title="Docker Registry"
+  subtitle="registry.example.com"
+  icon="ri:docker-line"
+  theme="primary"
+>
+  <div class="info-row">
+    <IconifyIconOnline icon="ri:image-line" />
+    <span>镜像数量: 128</span>
+  </div>
+  <template #footer>
+    <el-button size="small" type="primary">管理</el-button>
+  </template>
+</ScCard>`,
+  },
+  {
+    key: "media",
+    label: "媒体卡片",
+    icon: "ri:image-line",
+    language: "vue",
+    code: `<ScCard
+  layout="media"
+  title="产品展示"
+  subtitle="产品描述信息"
+>
+  <template #media>
+    <img src="product.jpg" alt="产品图片" />
+  </template>
+  <div class="content">
+    <p>产品描述内容...</p>
+  </div>
+  <template #media-footer>
+    <el-button type="primary" size="small">购买</el-button>
+  </template>
+</ScCard>`,
+  },
+];
 </script>
 
 <style lang="scss" scoped>

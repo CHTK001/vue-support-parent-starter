@@ -70,7 +70,7 @@
       <div v-if="!isMinimized" class="resize-handle resize-bottom-right" @mousedown.stop="onResizeStart($event, 'bottom-right')"></div>
 
       <!-- 头部 -->
-      <div class="dialog-header" @mousedown="onDragStart" v-show="!isEdgeDocked" @click="isMinimized ? toggleMinimize() : null">
+      <div class="dialog-header" @mousedown="isMinimized ? onMinimizedDragStart($event) : onDragStart($event)" v-show="!isEdgeDocked" @click="onMinimizedClick">
         <!-- 最小化状态只显示图标 -->
         <template v-if="isMinimized">
           <div class="minimized-icon" :title="title">
@@ -325,6 +325,11 @@ const dialogX = ref(0);
 const dialogY = ref(0);
 const dialogWidth = ref(props.width);
 const dialogHeight = ref(props.dialogHeight);
+
+// 最小化拖拽相关
+const isMinimizedDragging = ref(false);
+const minimizedDragMoved = ref(false);
+let animationFrameId: number | null = null;
 
 // 靠边吸附相关
 const isEdgeDocked = ref(false);
@@ -631,55 +636,76 @@ const removeSocketListener = () => {
   });
 };
 
-// 拖拽相关函数
+// 拖拽相关函数（使用 requestAnimationFrame 优化性能）
 function onDragStart(e: MouseEvent) {
   if (isMinimized.value) return;
+  e.preventDefault();
 
   isDragging.value = true;
   dragStartX.value = e.clientX - dialogX.value;
   dragStartY.value = e.clientY - dialogY.value;
 
-  document.addEventListener("mousemove", onDragMove);
+  document.addEventListener("mousemove", onDragMove, { passive: true });
   document.addEventListener("mouseup", onDragEnd);
 }
 
 function onDragMove(e: MouseEvent) {
   if (!isDragging.value) return;
 
-  let newX = e.clientX - dragStartX.value;
-  let newY = e.clientY - dragStartY.value;
-
-  // Grid 吸附
-  if (props.enableGridSnap) {
-    newX = Math.round(newX / props.gridSize) * props.gridSize;
-    newY = Math.round(newY / props.gridSize) * props.gridSize;
+  // 使用 requestAnimationFrame 优化性能
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
   }
 
-  // 父元素边界限制
-  const boundary = getBoundaryRect();
-  if (boundary) {
-    const basePos = getBasePosition();
-    const actualX = basePos.x + newX;
-    const actualY = basePos.y + newY;
+  animationFrameId = requestAnimationFrame(() => {
+    let newX = e.clientX - dragStartX.value;
+    let newY = e.clientY - dragStartY.value;
 
-    // 限制在父元素内
-    const minX = boundary.left;
-    const maxX = boundary.right - dialogWidth.value;
-    const minY = boundary.top;
-    const maxY = boundary.bottom - dialogHeight.value;
+    // Grid 吸附
+    if (props.enableGridSnap) {
+      newX = Math.round(newX / props.gridSize) * props.gridSize;
+      newY = Math.round(newY / props.gridSize) * props.gridSize;
+    }
 
-    if (actualX < minX) newX = minX - basePos.x;
-    if (actualX > maxX) newX = maxX - basePos.x;
-    if (actualY < minY) newY = minY - basePos.y;
-    if (actualY > maxY) newY = maxY - basePos.y;
-  }
+    // 父元素边界限制
+    const boundary = getBoundaryRect();
+    if (boundary) {
+      const basePos = getBasePosition();
+      const actualX = basePos.x + newX;
+      const actualY = basePos.y + newY;
 
-  dialogX.value = newX;
-  dialogY.value = newY;
+      const minX = boundary.left;
+      const maxX = boundary.right - dialogWidth.value;
+      const minY = boundary.top;
+      const maxY = boundary.bottom - dialogHeight.value;
+
+      if (actualX < minX) newX = minX - basePos.x;
+      if (actualX > maxX) newX = maxX - basePos.x;
+      if (actualY < minY) newY = minY - basePos.y;
+      if (actualY > maxY) newY = maxY - basePos.y;
+    } else {
+      // 限制在窗口内
+      const basePos = getBasePosition();
+      const actualX = basePos.x + newX;
+      const actualY = basePos.y + newY;
+
+      if (actualX < 0) newX = -basePos.x;
+      if (actualX > window.innerWidth - dialogWidth.value) newX = window.innerWidth - dialogWidth.value - basePos.x;
+      if (actualY < 0) newY = -basePos.y;
+      if (actualY > window.innerHeight - dialogHeight.value) newY = window.innerHeight - dialogHeight.value - basePos.y;
+    }
+
+    dialogX.value = newX;
+    dialogY.value = newY;
+  });
 }
 
 function onDragEnd() {
   isDragging.value = false;
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
   document.removeEventListener("mousemove", onDragMove);
   document.removeEventListener("mouseup", onDragEnd);
 
@@ -690,6 +716,72 @@ function onDragEnd() {
 
   // 保存位置到localStorage
   savePositionToStorage();
+}
+
+// 最小化状态下的拖拽
+function onMinimizedDragStart(e: MouseEvent) {
+  e.preventDefault();
+  isMinimizedDragging.value = true;
+  minimizedDragMoved.value = false;
+
+  // 计算当前位置
+  const rect = dialogRef.value?.getBoundingClientRect();
+  if (rect) {
+    dialogX.value = rect.left - getBasePosition().x;
+    dialogY.value = rect.top - getBasePosition().y;
+  }
+
+  dragStartX.value = e.clientX - dialogX.value;
+  dragStartY.value = e.clientY - dialogY.value;
+
+  document.addEventListener("mousemove", onMinimizedDragMove, { passive: true });
+  document.addEventListener("mouseup", onMinimizedDragEnd);
+}
+
+function onMinimizedDragMove(e: MouseEvent) {
+  if (!isMinimizedDragging.value) return;
+  minimizedDragMoved.value = true;
+
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+  }
+
+  animationFrameId = requestAnimationFrame(() => {
+    let newX = e.clientX - dragStartX.value;
+    let newY = e.clientY - dragStartY.value;
+
+    const basePos = getBasePosition();
+    const actualX = basePos.x + newX;
+    const actualY = basePos.y + newY;
+
+    // 限制在窗口内
+    if (actualX < 0) newX = -basePos.x;
+    if (actualX > window.innerWidth - 48) newX = window.innerWidth - 48 - basePos.x;
+    if (actualY < 0) newY = -basePos.y;
+    if (actualY > window.innerHeight - 48) newY = window.innerHeight - 48 - basePos.y;
+
+    dialogX.value = newX;
+    dialogY.value = newY;
+  });
+}
+
+function onMinimizedDragEnd() {
+  isMinimizedDragging.value = false;
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  document.removeEventListener("mousemove", onMinimizedDragMove);
+  document.removeEventListener("mouseup", onMinimizedDragEnd);
+
+  savePositionToStorage();
+}
+
+// 最小化状态点击（只有没有拖拽时才展开）
+function onMinimizedClick() {
+  if (isMinimized.value && !minimizedDragMoved.value) {
+    toggleMinimize();
+  }
 }
 
 function onDialogMouseDown(e: MouseEvent) {
@@ -754,8 +846,39 @@ function onResizeEnd() {
   savePositionToStorage();
 }
 
-// 最小化/还原
+// 最小化/还原，根据当前位置决定最小化到哪个角落
 function toggleMinimize() {
+  if (!isMinimized.value) {
+    // 计算当前位置应该最小化到哪个角落
+    const rect = dialogRef.value?.getBoundingClientRect();
+    if (rect) {
+      const viewWidth = window.innerWidth;
+      const viewHeight = window.innerHeight;
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      const isLeft = centerX < viewWidth / 2;
+      const isTop = centerY < viewHeight / 2;
+
+      const margin = 20;
+      const basePos = getBasePosition();
+
+      if (isLeft && isTop) {
+        dialogX.value = margin - basePos.x;
+        dialogY.value = margin - basePos.y;
+      } else if (!isLeft && isTop) {
+        dialogX.value = viewWidth - 48 - margin - basePos.x;
+        dialogY.value = margin - basePos.y;
+      } else if (isLeft && !isTop) {
+        dialogX.value = margin - basePos.x;
+        dialogY.value = viewHeight - 48 - margin - basePos.y;
+      } else {
+        dialogX.value = viewWidth - 48 - margin - basePos.x;
+        dialogY.value = viewHeight - 48 - margin - basePos.y;
+      }
+    }
+  }
+
   isMinimized.value = !isMinimized.value;
   emit("minimize", isMinimized.value);
 }
@@ -1104,9 +1227,20 @@ defineExpose({
   cursor: pointer;
 }
 
+.minimized .dialog-header {
+  cursor: grab;
+  user-select: none;
+  will-change: transform;
+}
+
 .minimized .dialog-header:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+}
+
+.minimized .dialog-header:active {
+  cursor: grabbing;
+  transform: scale(1.05);
 }
 
 .minimized-icon {
@@ -1114,6 +1248,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   color: white;
+  pointer-events: none;
 }
 
 .minimized .resize-handle {

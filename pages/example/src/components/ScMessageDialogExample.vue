@@ -82,9 +82,13 @@
       </el-form>
     </div>
 
+    <el-divider content-position="left">代码示例</el-divider>
+
+    <CodePreview :tabs="codeTabs" />
+
     <el-divider content-position="left">新增属性说明</el-divider>
 
-    <el-table :data="newProps" border stripe>
+    <el-table :data="newProps" border stripe class="props-table">
       <el-table-column prop="name" label="属性名" width="180" />
       <el-table-column prop="type" label="类型" width="200" />
       <el-table-column prop="default" label="默认值" width="120" />
@@ -115,6 +119,7 @@
 import { ref, reactive, computed } from "vue";
 import { ElMessage } from "element-plus";
 import ScMessageDialog from "@repo/components/ScMessageDialog/index.vue";
+import CodePreview from "./CodePreview.vue";
 
 /**
  * ScMessageDialog 组件示例
@@ -191,6 +196,82 @@ const newProps = [
 const hasRunningOp = computed(() =>
   operations.value.some((op) => op.status === "running")
 );
+
+// 代码示例标签页
+const codeTabs = computed(() => [
+  {
+    key: "template",
+    label: "模板",
+    icon: "ri:code-s-slash-line",
+    language: "vue",
+    code: `<ScMessageDialog
+  ref="dialogRef"
+  :title="${config.title}"
+  :icon="${config.icon}"
+  :position="${config.position}"
+  :theme-color="${config.themeColor}"
+  :operations="operations"
+  :enable-edge-dock="${config.enableEdgeDock}"
+  :edge-dock-threshold="${config.edgeDockThreshold}"
+  :enable-grid-snap="${config.enableGridSnap}"
+  :grid-size="${config.gridSize}"
+  @clear="handleClear"
+  @expand="handleExpand"
+  @edge-dock="handleEdgeDock"
+  @close="handleClose"
+/>`,
+  },
+  {
+    key: "script",
+    label: "脚本",
+    icon: "ri:javascript-line",
+    language: "ts",
+    code: `import { ref } from "vue";
+import ScMessageDialog from "@repo/components/ScMessageDialog/index.vue";
+
+const dialogRef = ref();
+const operations = ref([]);
+
+// 显示对话框
+function showDialog() {
+  dialogRef.value?.toggleExpand();
+}
+
+// 添加操作
+function addOperation() {
+  operations.value.push({
+    id: \`op-\${Date.now()}\`,
+    type: "download",
+    title: "下载任务",
+    description: "正在下载文件...",
+    status: "running",
+    progress: 0
+  });
+}
+
+// 处理清除
+function handleClear() {
+  operations.value = operations.value.filter(
+    op => op.status === "pending" || op.status === "running"
+  );
+}
+
+// 处理展开
+function handleExpand(expanded) {
+  console.log("展开状态:", expanded);
+}
+
+// 处理靠边吸附
+function handleEdgeDock(docked, edge) {
+  console.log("吸附状态:", docked, edge);
+}
+
+// 处理关闭
+function handleClose() {
+  console.log("对话框已关闭");
+}`,
+  },
+]);
 
 function showDialog() {
   dialogRef.value?.toggleExpand();
@@ -272,7 +353,7 @@ function handleDialogClose() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .example-container {
   padding: 20px;
 }
@@ -281,15 +362,16 @@ function handleDialogClose() {
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 8px;
+  color: var(--el-text-color-primary);
 }
 
 .example-desc {
-  color: #666;
+  color: var(--el-text-color-secondary);
   margin-bottom: 20px;
 }
 
 .demo-section {
-  background: #fafafa;
+  background: var(--el-fill-color-lighter);
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
@@ -304,5 +386,9 @@ function handleDialogClose() {
 
 .config-form {
   margin-top: 16px;
+}
+
+.props-table {
+  margin-bottom: 20px;
 }
 </style>

@@ -99,9 +99,13 @@
       </div>
     </div>
 
+    <el-divider content-position="left">代码示例</el-divider>
+
+    <CodePreview :tabs="codeTabs" />
+
     <el-divider content-position="left">新增属性说明</el-divider>
 
-    <el-table :data="newProps" border stripe>
+    <el-table :data="newProps" border stripe class="props-table">
       <el-table-column prop="name" label="属性名" width="180" />
       <el-table-column prop="type" label="类型" width="200" />
       <el-table-column prop="default" label="默认值" width="120" />
@@ -133,6 +137,7 @@
 import { ref, reactive, computed } from "vue";
 import { ElMessage } from "element-plus";
 import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
+import CodePreview from "./CodePreview.vue";
 
 /**
  * ScSocketMessageDialog 组件示例
@@ -197,6 +202,74 @@ const newProps = [
 const currentDialogRef = computed(() => {
   return config.mode === "embed" ? embedDialogRef.value : dialogDialogRef.value;
 });
+
+// 代码示例标签页
+const codeTabs = computed(() => [
+  {
+    key: "template",
+    label: "模板",
+    icon: "ri:code-s-slash-line",
+    language: "vue",
+    code: `<ScSocketMessageDialog
+  ref="dialogRef"
+  mode="${config.mode}"
+  layout="${config.layout}"
+  position="${config.position}"
+  title="Socket消息"
+  event-id="my-event-id"
+  event-name="progress-event"
+  data-type="default"
+  :visible="dialogVisible"
+  :enable-edge-dock="${config.enableEdgeDock}"
+  :enable-grid-snap="${config.enableGridSnap}"
+  :height="${config.height}"
+  @update:visible="dialogVisible = $event"
+  @edge-dock="handleEdgeDock"
+/>`,
+  },
+  {
+    key: "script",
+    label: "脚本",
+    icon: "ri:javascript-line",
+    language: "ts",
+    code: `import { ref } from "vue";
+import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
+
+const dialogRef = ref();
+const dialogVisible = ref(false);
+
+// 显示对话框
+function showDialog() {
+  dialogVisible.value = true;
+  dialogRef.value?.show();
+}
+
+// 模拟进度更新
+function simulateProgress() {
+  dialogRef.value?.updateProgress({
+    eventId: "my-event-id",
+    message: "正在处理...",
+    percentage: 50,
+    status: "processing"
+  });
+}
+
+// 添加日志
+function addLog() {
+  dialogRef.value?.addLog("执行任务...", 0);
+}
+
+// 重置
+function resetDialog() {
+  dialogRef.value?.resetProgress();
+}
+
+// 处理靠边吸附
+function handleEdgeDock(docked, edge) {
+  console.log("吸附状态:", docked, edge);
+}`,
+  },
+]);
 
 function showDialog() {
   if (config.mode === "dialog") {
@@ -280,7 +353,7 @@ function handleEdgeDock(docked: boolean, edge: string) {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .example-container {
   padding: 20px;
 }
@@ -289,15 +362,16 @@ function handleEdgeDock(docked: boolean, edge: string) {
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 8px;
+  color: var(--el-text-color-primary);
 }
 
 .example-desc {
-  color: #666;
+  color: var(--el-text-color-secondary);
   margin-bottom: 20px;
 }
 
 .demo-section {
-  background: #fafafa;
+  background: var(--el-fill-color-lighter);
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
@@ -314,18 +388,22 @@ function handleEdgeDock(docked: boolean, edge: string) {
   margin-top: 16px;
 }
 
+.props-table {
+  margin-bottom: 20px;
+}
+
 .embed-preview {
   margin-top: 20px;
   padding: 16px;
-  background: white;
+  background: var(--el-bg-color);
   border-radius: 8px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--el-border-color-light);
 }
 
 .embed-preview h4 {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 12px;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 </style>

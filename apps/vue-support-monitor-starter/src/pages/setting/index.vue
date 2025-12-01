@@ -1,54 +1,125 @@
 <template>
-  <div class="settings-page">
-    <div class="header">
-      <h2>系统配置</h2>
-      <div class="sub">常用外观与导航设置</div>
+  <div class="settings-page thin-scroller">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-icon">
+        <IconifyIconOnline icon="ri:settings-3-line" />
+      </div>
+      <div class="header-text">
+        <h1 class="page-title">系统配置</h1>
+        <p class="page-subtitle">自定义外观、导航和系统偏好设置</p>
+      </div>
     </div>
 
-    <el-card class="section-card" shadow="never">
-      <div class="section-title">导航模式</div>
+    <!-- 导航模式设置 -->
+    <div class="settings-section">
+      <div class="section-header">
+        <div class="section-icon">
+          <IconifyIconOnline icon="ri:layout-line" />
+        </div>
+        <div class="section-info">
+          <h2 class="section-title">导航模式</h2>
+          <p class="section-desc">选择适合您工作流程的导航布局</p>
+        </div>
+      </div>
+
       <div class="nav-options">
-        <div class="nav-item" :class="{ active: form.navMode === 'side' }" @click="setMode('side')">
-          <div class="nav-head">
-            <el-radio :model-value="form.navMode" label="side">侧边导航</el-radio>
+        <div
+          class="nav-card"
+          :class="{ active: form.navMode === 'side' }"
+          @click="setMode('side')"
+        >
+          <div class="nav-preview side">
+            <div class="preview-sidebar"></div>
+            <div class="preview-main">
+              <div class="preview-header"></div>
+              <div class="preview-content"></div>
+            </div>
           </div>
-          <div class="nav-illustration side">
-            <div class="menu"></div>
-            <div class="content"></div>
-            <div class="nav-desc">左侧垂直菜单，空间利用高，适合功能较多的系统。</div>
+          <div class="nav-info">
+            <div class="nav-name">
+              <el-radio :model-value="form.navMode" label="side"
+                >侧边导航</el-radio
+              >
+            </div>
+            <p class="nav-desc">左侧垂直菜单，空间利用高，适合功能较多的系统</p>
+          </div>
+          <div class="nav-check" v-if="form.navMode === 'side'">
+            <IconifyIconOnline icon="ri:check-line" />
           </div>
         </div>
 
-        <div class="nav-item" :class="{ active: form.navMode === 'top' }" @click="setMode('top')">
-          <div class="nav-head">
-            <el-radio :model-value="form.navMode" label="top">顶部导航</el-radio>
+        <div
+          class="nav-card"
+          :class="{ active: form.navMode === 'top' }"
+          @click="setMode('top')"
+        >
+          <div class="nav-preview top">
+            <div class="preview-topbar"></div>
+            <div class="preview-body">
+              <div class="preview-content"></div>
+            </div>
           </div>
-          <div class="nav-illustration top">
-            <div class="bar"></div>
-            <div class="content"></div>
-            <div class="nav-desc">顶部水平菜单，简洁直观，适合一级模块较少的场景。</div>
+          <div class="nav-info">
+            <div class="nav-name">
+              <el-radio :model-value="form.navMode" label="top"
+                >顶部导航</el-radio
+              >
+            </div>
+            <p class="nav-desc">
+              顶部水平菜单，简洁直观，适合一级模块较少的场景
+            </p>
+          </div>
+          <div class="nav-check" v-if="form.navMode === 'top'">
+            <IconifyIconOnline icon="ri:check-line" />
           </div>
         </div>
 
-        <div class="nav-item" :class="{ active: form.navMode === 'mix' }" @click="setMode('mix')">
-          <div class="nav-head">
-            <el-radio :model-value="form.navMode" label="mix">混合导航</el-radio>
+        <div
+          class="nav-card"
+          :class="{ active: form.navMode === 'mix' }"
+          @click="setMode('mix')"
+        >
+          <div class="nav-preview mix">
+            <div class="preview-topbar"></div>
+            <div class="preview-body">
+              <div class="preview-sidebar"></div>
+              <div class="preview-content"></div>
+            </div>
           </div>
-          <div class="nav-illustration mix">
-            <div class="bar"></div>
-            <div class="menu"></div>
-            <div class="content"></div>
-            <div class="nav-desc">顶部一级导航 + 左侧二级导航，层级清晰，适合中大型系统。</div>
+          <div class="nav-info">
+            <div class="nav-name">
+              <el-radio :model-value="form.navMode" label="mix"
+                >混合导航</el-radio
+              >
+            </div>
+            <p class="nav-desc">
+              顶部一级导航 + 左侧二级导航，层级清晰，适合中大型系统
+            </p>
+          </div>
+          <div class="nav-check" v-if="form.navMode === 'mix'">
+            <IconifyIconOnline icon="ri:check-line" />
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="actions">
-        <el-button type="primary" @click="save">保存</el-button>
-        <el-button @click="reset">重置</el-button>
-      </div>
-      <div class="tip">保存后可能需要刷新页面以使全局导航样式完全生效。</div>
-    </el-card>
+    <!-- 操作按钮 -->
+    <div class="settings-actions">
+      <el-button type="primary" size="large" @click="save">
+        <IconifyIconOnline icon="ri:save-line" class="mr-1" />
+        保存设置
+      </el-button>
+      <el-button size="large" @click="reset">
+        <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+        重置默认
+      </el-button>
+    </div>
+
+    <div class="settings-tip">
+      <IconifyIconOnline icon="ri:information-line" />
+      <span>保存后可能需要刷新页面以使全局导航样式完全生效</span>
+    </div>
   </div>
 </template>
 
@@ -85,125 +156,274 @@ const reset = () => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .settings-page {
-  padding: 16px;
+  min-height: 100%;
+  padding: 24px;
+  background: var(--el-bg-color-page);
 }
-.header h2 {
-  margin: 0;
-  font-weight: 600;
-}
-.header .sub {
-  margin-top: 4px;
-  color: var(--el-text-color-secondary);
-}
-.section-card {
-  margin-top: 14px;
-  border-radius: 12px;
+
+// 页面头部
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: var(--el-bg-color);
+  border-radius: 16px;
   border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
-.section-title {
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-.nav-options {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-.nav-item {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  padding: 12px;
-  cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    transform 0.15s ease;
-  /* 移除任何模糊相关效果：不使用滤镜 */
-}
-.nav-item:hover {
-  border-color: var(--el-color-primary-light-5);
-  transform: translateY(-1px);
-}
-.nav-item.active {
-  border-color: var(--el-color-primary);
-}
-.nav-head {
-  font-weight: 600;
-}
-.nav-illustration .nav-desc {
-  position: absolute;
-  inset: 0;
+
+.header-icon {
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  padding: 8px;
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 100%
+  );
+  border-radius: 14px;
+  font-size: 28px;
+  color: white;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.page-subtitle {
+  margin: 4px 0 0;
+  font-size: 14px;
   color: var(--el-text-color-secondary);
 }
 
-/* 简易示意图，无模糊 */
-.nav-illustration {
+// 设置区块
+.settings-section {
+  background: var(--el-bg-color);
+  border-radius: 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.section-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--el-color-primary-light-9);
+  border-radius: 10px;
+  font-size: 20px;
+  color: var(--el-color-primary);
+}
+
+.section-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.section-desc {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+// 导航选项
+.nav-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.nav-card {
   position: relative;
-  height: 80px;
-  border-radius: 8px;
+  border: 2px solid var(--el-border-color-lighter);
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--el-bg-color);
+
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  &.active {
+    border-color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+
+    .nav-preview {
+      .preview-sidebar,
+      .preview-topbar {
+        background: var(--el-color-primary);
+      }
+    }
+  }
+}
+
+.nav-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--el-color-primary);
+  border-radius: 50%;
+  color: white;
+  font-size: 14px;
+}
+
+// 导航预览
+.nav-preview {
+  height: 100px;
+  border-radius: 10px;
   overflow: hidden;
   background: var(--el-fill-color-lighter);
-}
-.nav-illustration .menu {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 24%;
-  background: var(--el-color-primary-light-8);
-}
-.nav-illustration .content {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 76%;
-  background: var(--el-fill-color);
-}
-.nav-illustration .bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 20px;
-  background: var(--el-color-primary-light-8);
-}
-.nav-illustration.top .content {
-  top: 20px;
-  width: 100%;
-  left: 0;
-}
-.nav-illustration.mix .bar {
-  height: 20px;
-}
-.nav-illustration.mix .menu {
-  top: 20px;
-  width: 22%;
-}
-.nav-illustration.mix .content {
-  left: 22%;
-  width: 78%;
-  top: 20px;
+  margin-bottom: 12px;
+
+  &.side {
+    display: flex;
+
+    .preview-sidebar {
+      width: 28%;
+      background: var(--el-color-primary-light-7);
+    }
+
+    .preview-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+
+      .preview-header {
+        height: 20%;
+        background: var(--el-fill-color);
+        border-bottom: 1px solid var(--el-border-color-lighter);
+      }
+
+      .preview-content {
+        flex: 1;
+        background: var(--el-fill-color-lighter);
+      }
+    }
+  }
+
+  &.top {
+    display: flex;
+    flex-direction: column;
+
+    .preview-topbar {
+      height: 22%;
+      background: var(--el-color-primary-light-7);
+    }
+
+    .preview-body {
+      flex: 1;
+      background: var(--el-fill-color-lighter);
+    }
+  }
+
+  &.mix {
+    display: flex;
+    flex-direction: column;
+
+    .preview-topbar {
+      height: 22%;
+      background: var(--el-color-primary-light-7);
+    }
+
+    .preview-body {
+      flex: 1;
+      display: flex;
+
+      .preview-sidebar {
+        width: 24%;
+        background: var(--el-fill-color);
+        border-right: 1px solid var(--el-border-color-lighter);
+      }
+
+      .preview-content {
+        flex: 1;
+        background: var(--el-fill-color-lighter);
+      }
+    }
+  }
 }
 
-.actions {
-  margin-top: 14px;
+.nav-info {
+  .nav-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .nav-desc {
+    margin: 0;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.5;
+  }
 }
-.tip {
-  margin-top: 6px;
+
+// 操作按钮
+.settings-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.settings-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--el-color-info-light-9);
+  border-radius: 8px;
+  font-size: 13px;
   color: var(--el-text-color-secondary);
-  font-size: 12px;
 }
 
+// 响应式
 @media (max-width: 1200px) {
   .nav-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-page {
+    padding: 16px;
+  }
+
+  .nav-options {
     grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    flex-direction: column;
+    text-align: center;
   }
 }
 </style>

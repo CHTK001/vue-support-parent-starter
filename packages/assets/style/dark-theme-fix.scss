@@ -1,0 +1,478 @@
+/**
+ * 深色主题全局修复样式
+ * 修复各页面在深色主题下的显示问题
+ * @author CH
+ * @version 1.0.0
+ * @since 2025-12-01
+ */
+
+// ===== 通用修复 =====
+html.dark {
+  // 页面背景
+  .page-container,
+  .management-container,
+  .node-management-container,
+  .file-system-container,
+  .data-management-container,
+  .script-management-container {
+    background: var(--el-bg-color-page) !important;
+  }
+
+  // 卡片和面板
+  .el-card,
+  .panel,
+  .card,
+  .section-card,
+  .stats-card,
+  .file-panel,
+  .tree-panel,
+  .group-panel,
+  .detail-panel {
+    background: var(--el-bg-color) !important;
+    border-color: var(--el-border-color-light) !important;
+  }
+
+  // 面板头部
+  .panel-header,
+  .card-header,
+  .section-header {
+    background: var(--el-fill-color-light) !important;
+    border-color: var(--el-border-color-lighter) !important;
+  }
+
+  // 文本颜色修复
+  h1, h2, h3, h4, h5, h6,
+  .title,
+  .panel-title,
+  .card-title,
+  .section-title,
+  .header-title {
+    color: var(--el-text-color-primary) !important;
+  }
+
+  .subtitle,
+  .description,
+  .desc,
+  .meta,
+  .info {
+    color: var(--el-text-color-secondary) !important;
+  }
+
+  // 树形节点
+  .tree-node,
+  .node-item {
+    &:hover {
+      background: var(--el-fill-color-light) !important;
+    }
+
+    .node-name,
+    .node-label {
+      color: var(--el-text-color-primary) !important;
+    }
+  }
+
+  // 文件列表
+  .file-cell,
+  .file-item {
+    .file-name {
+      color: var(--el-text-color-primary) !important;
+    }
+
+    .file-meta,
+    .file-size,
+    .file-date {
+      color: var(--el-text-color-secondary) !important;
+    }
+  }
+
+  // 搜索区域
+  .search-section,
+  .search-card,
+  .filter-section {
+    background: var(--el-bg-color) !important;
+    border-color: var(--el-border-color-light) !important;
+  }
+
+  // 统计卡片
+  .stats-section,
+  .stats-grid {
+    .stat-value,
+    .stat-number {
+      color: var(--el-text-color-primary) !important;
+    }
+
+    .stat-label,
+    .stat-title {
+      color: var(--el-text-color-secondary) !important;
+    }
+  }
+
+  // 表格修复
+  .el-table {
+    --el-table-bg-color: var(--el-bg-color);
+    --el-table-tr-bg-color: var(--el-bg-color);
+    --el-table-header-bg-color: var(--el-fill-color-light);
+    --el-table-row-hover-bg-color: var(--el-fill-color);
+    --el-table-border-color: var(--el-border-color-lighter);
+
+    th.el-table__cell {
+      background: var(--el-fill-color-light) !important;
+      color: var(--el-text-color-primary) !important;
+    }
+
+    td.el-table__cell {
+      color: var(--el-text-color-primary) !important;
+    }
+  }
+
+  // 对话框修复
+  .el-dialog {
+    --el-dialog-bg-color: var(--el-bg-color);
+    
+    .el-dialog__header {
+      background: var(--el-fill-color-light);
+      border-bottom: 1px solid var(--el-border-color-lighter);
+    }
+
+    .el-dialog__title {
+      color: var(--el-text-color-primary);
+    }
+
+    .el-dialog__body {
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  // 下拉菜单修复
+  .el-dropdown-menu,
+  .el-select-dropdown,
+  .el-popper {
+    --el-bg-color-overlay: var(--el-bg-color);
+    background: var(--el-bg-color) !important;
+    border-color: var(--el-border-color-light) !important;
+  }
+
+  // 输入框修复
+  .el-input__wrapper,
+  .el-textarea__inner {
+    background: var(--el-fill-color-blank) !important;
+  }
+
+  // 按钮组修复
+  .el-button-group {
+    .el-button {
+      border-color: var(--el-border-color) !important;
+    }
+  }
+
+  // 标签页修复
+  .el-tabs__header {
+    background: var(--el-bg-color);
+  }
+
+  .el-tabs__nav-wrap::after {
+    background: var(--el-border-color-light);
+  }
+
+  // 分页修复
+  .el-pagination {
+    --el-pagination-bg-color: var(--el-fill-color-blank);
+    --el-pagination-button-bg-color: var(--el-fill-color-blank);
+  }
+
+  // 空状态修复
+  .el-empty__description {
+    color: var(--el-text-color-secondary);
+  }
+
+  // 工具提示修复
+  .el-tooltip__popper {
+    background: var(--el-bg-color) !important;
+    border-color: var(--el-border-color-light) !important;
+    color: var(--el-text-color-primary) !important;
+  }
+
+  // 消息框修复
+  .el-message-box {
+    background: var(--el-bg-color);
+    border-color: var(--el-border-color-light);
+  }
+
+  // 抽屉修复
+  .el-drawer {
+    --el-drawer-bg-color: var(--el-bg-color);
+  }
+
+  // 面包屑修复
+  .el-breadcrumb__inner,
+  .el-breadcrumb__separator {
+    color: var(--el-text-color-secondary);
+  }
+
+  .el-breadcrumb__inner.is-link:hover {
+    color: var(--el-color-primary);
+  }
+}
+
+// ===== 特定页面修复 =====
+
+// 节点管理页面
+html.dark .node-management-container {
+  .node-card {
+    background: var(--el-bg-color) !important;
+    border-color: var(--el-border-color-light) !important;
+
+    .node-name {
+      color: var(--el-text-color-primary) !important;
+    }
+
+    .node-info,
+    .node-meta {
+      color: var(--el-text-color-secondary) !important;
+    }
+
+    &:hover {
+      border-color: var(--el-color-primary-light-5) !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+    }
+  }
+
+  .detail-item {
+    .detail-label {
+      color: var(--el-text-color-secondary) !important;
+    }
+
+    .detail-value {
+      color: var(--el-text-color-primary) !important;
+    }
+  }
+}
+
+// 文件系统页面
+html.dark .file-system-container {
+  .tree-panel,
+  .file-panel,
+  .group-panel {
+    background: var(--el-bg-color) !important;
+    border-color: var(--el-border-color-light) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+
+    .panel-header {
+      background: var(--el-fill-color-light) !important;
+      border-color: var(--el-border-color-lighter) !important;
+
+      h3 {
+        color: var(--el-text-color-primary) !important;
+      }
+    }
+  }
+
+  .tree-node:hover {
+    background: var(--el-fill-color-light) !important;
+  }
+
+  .file-icon-wrapper {
+    &.type-default {
+      background: linear-gradient(135deg, var(--el-fill-color) 0%, var(--el-fill-color-light) 100%) !important;
+    }
+  }
+}
+
+// 数据管理页面
+html.dark .data-management-container {
+  .console-panel,
+  .result-panel,
+  .history-panel {
+    background: var(--el-bg-color) !important;
+    border-color: var(--el-border-color-light) !important;
+  }
+
+  .sql-editor {
+    background: var(--el-fill-color-darker) !important;
+  }
+}
+
+// 脚本管理页面
+html.dark .script-management-container {
+  .script-list,
+  .script-editor,
+  .script-output {
+    background: var(--el-bg-color) !important;
+    border-color: var(--el-border-color-light) !important;
+  }
+}
+
+// ===== 代码编辑器修复 =====
+html.dark {
+  .CodeMirror,
+  .cm-editor,
+  .monaco-editor {
+    background: var(--el-fill-color-darker) !important;
+  }
+
+  .CodeMirror-gutters {
+    background: var(--el-fill-color-dark) !important;
+    border-color: var(--el-border-color-darker) !important;
+  }
+}
+
+// ===== 终端修复 =====
+html.dark {
+  .terminal-container,
+  .xterm-viewport {
+    background: #1a1a1a !important;
+  }
+}
+
+// ===== 图表修复 =====
+html.dark {
+  .chart-container,
+  .echarts-container {
+    .chart-title {
+      color: var(--el-text-color-primary) !important;
+    }
+
+    .chart-legend {
+      color: var(--el-text-color-secondary) !important;
+    }
+  }
+}
+
+// ===== 滚动条修复 =====
+html.dark {
+  ::-webkit-scrollbar-track {
+    background: var(--el-fill-color-darker);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--el-border-color);
+
+    &:hover {
+      background: var(--el-border-color-light);
+    }
+  }
+}
+
+// ===== 选中状态修复 =====
+html.dark {
+  ::selection {
+    background: var(--el-color-primary-light-7);
+    color: var(--el-text-color-primary);
+  }
+}
+
+// ===== 链接修复 =====
+html.dark {
+  a:not(.el-button):not(.el-link) {
+    color: var(--el-color-primary-light-3);
+
+    &:hover {
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+// ===== 分割线修复 =====
+html.dark {
+  .el-divider {
+    border-color: var(--el-border-color-lighter);
+  }
+
+  .el-divider__text {
+    background: var(--el-bg-color);
+    color: var(--el-text-color-secondary);
+  }
+}
+
+// ===== 徽章修复 =====
+html.dark {
+  .el-badge__content {
+    border-color: var(--el-bg-color);
+  }
+}
+
+// ===== 步骤条修复 =====
+html.dark {
+  .el-steps {
+    .el-step__title {
+      color: var(--el-text-color-primary);
+    }
+
+    .el-step__description {
+      color: var(--el-text-color-secondary);
+    }
+  }
+}
+
+// ===== 时间线修复 =====
+html.dark {
+  .el-timeline-item__content {
+    color: var(--el-text-color-primary);
+  }
+
+  .el-timeline-item__timestamp {
+    color: var(--el-text-color-secondary);
+  }
+}
+
+// ===== 折叠面板修复 =====
+html.dark {
+  .el-collapse-item__header {
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-primary);
+  }
+
+  .el-collapse-item__content {
+    background: var(--el-bg-color);
+    color: var(--el-text-color-primary);
+  }
+}
+
+// ===== 描述列表修复 =====
+html.dark {
+  .el-descriptions {
+    --el-descriptions-item-bordered-label-background: var(--el-fill-color-light);
+  }
+
+  .el-descriptions__label {
+    color: var(--el-text-color-secondary);
+  }
+
+  .el-descriptions__content {
+    color: var(--el-text-color-primary);
+  }
+}
+
+// ===== 结果页修复 =====
+html.dark {
+  .el-result__title {
+    color: var(--el-text-color-primary);
+  }
+
+  .el-result__subtitle {
+    color: var(--el-text-color-secondary);
+  }
+}
+
+// ===== 骨架屏修复 =====
+html.dark {
+  .el-skeleton__item {
+    background: linear-gradient(
+      90deg,
+      var(--el-fill-color) 25%,
+      var(--el-fill-color-light) 37%,
+      var(--el-fill-color) 63%
+    );
+  }
+}
+
+// ===== 加载状态修复 =====
+html.dark {
+  .el-loading-mask {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .el-loading-text {
+    color: var(--el-text-color-primary);
+  }
+}
