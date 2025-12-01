@@ -38,8 +38,27 @@
   </div>
 
   <!-- 弹框模式 -->
-  <Teleport to="body" v-else-if="mode === 'dialog'">
-    <div v-if="visible" ref="dialogRef" class="sc-socket-event-dialog" :class="[`position-${position}`, { minimized: isMinimized }]" :style="dialogStyle" @mousedown="onDialogMouseDown">
+  <Teleport :to="boundaryElement || 'body'" v-else-if="mode === 'dialog'" :disabled="!!boundaryElement">
+    <div
+      v-if="visible"
+      ref="dialogRef"
+      class="sc-socket-event-dialog"
+      :class="[
+        `position-${position}`,
+        {
+          minimized: isMinimized,
+          'edge-docked': isEdgeDocked,
+          'edge-left': dockedEdge === 'left',
+          'edge-right': dockedEdge === 'right',
+          'edge-top': dockedEdge === 'top',
+          'edge-bottom': dockedEdge === 'bottom',
+          'in-boundary': !!props.boundaryElement,
+          'grid-snap': props.enableGridSnap
+        }
+      ]"
+      :style="dialogStyle"
+      @mousedown="onDialogMouseDown"
+    >
       <!-- 调整大小的八个手柄 -->
       <div v-if="!isMinimized" class="resize-handle resize-top" @mousedown.stop="onResizeStart($event, 'top')"></div>
       <div v-if="!isMinimized" class="resize-handle resize-right" @mousedown.stop="onResizeStart($event, 'right')"></div>
@@ -51,20 +70,53 @@
       <div v-if="!isMinimized" class="resize-handle resize-bottom-right" @mousedown.stop="onResizeStart($event, 'bottom-right')"></div>
 
       <!-- 头部 -->
-      <div class="dialog-header" @mousedown="onDragStart">
-        <slot name="header" :data="progressData">
-          <div class="header-title">
-            <IconifyIconOnline v-if="icon" :icon="icon" class="title-icon" />
-            <span class="title-text">{{ title }}</span>
+      <div class="dialog-header" @mousedown="onDragStart" v-show="!isEdgeDocked" @click="isMinimized ? toggleMinimize() : null">
+        <!-- 最小化状态只显示图标 -->
+        <template v-if="isMinimized">
+          <div class="minimized-icon" :title="title">
+            <IconifyIconOnline :icon="icon || 'ri:progress-3-line'" width="24" />
           </div>
-        </slot>
-        <div class="header-controls">
-          <el-button type="text" size="small" class="control-btn" @click.stop="toggleMinimize" :title="isMinimized ? '还原' : '最小化'">
-            <IconifyIconOnline :icon="isMinimized ? 'ri:arrow-up-s-line' : 'ri:subtract-line'" width="16" />
-          </el-button>
-          <el-button v-if="closeable" type="text" size="small" class="control-btn close-btn" @click.stop="handleClose">
-            <IconifyIconOnline icon="ri:close-line" width="16" />
-          </el-button>
+        </template>
+        <!-- 正常状态显示完整头部 -->
+        <template v-else>
+          <slot name="header" :data="progressData">
+            <div class="header-title">
+              <IconifyIconOnline v-if="icon" :icon="icon" class="title-icon" />
+              <span class="title-text">{{ title }}</span>
+            </div>
+          </slot>
+          <div class="header-controls">
+            <el-button v-if="enableEdgeDock" type="text" size="small" class="control-btn" @click.stop="toggleEdgeDock" :title="isEdgeDocked ? '展开' : '靠边吸附'">
+              <IconifyIconOnline :icon="isEdgeDocked ? 'ri:side-bar-fill' : 'ri:side-bar-line'" width="16" />
+            </el-button>
+            <el-button type="text" size="small" class="control-btn" @click.stop="toggleMinimize" :title="isMinimized ? '还原' : '最小化'">
+              <IconifyIconOnline icon="ri:subtract-line" width="16" />
+            </el-button>
+            <el-button v-if="closeable" type="text" size="small" class="control-btn close-btn" @click.stop="handleClose">
+              <IconifyIconOnline icon="ri:close-line" width="16" />
+            </el-button>
+          </div>
+        </template>
+      </div>
+
+      <!-- 靠边吸附模式的图标按钮 -->
+      <div v-if="isEdgeDocked" class="edge-dock-icon" @click="toggleEdgeDock" :title="'点击展开'">
+        <IconifyIconOnline :icon="icon || 'ri:progress-3-line'" width="24" />
+        <div v-if="percentage > 0 && percentage < 100" class="dock-progress-ring">
+          <svg viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="16" fill="none" stroke="var(--el-border-color-light)" stroke-width="3" />
+            <circle
+              cx="18"
+              cy="18"
+              r="16"
+              fill="none"
+              stroke="var(--el-color-primary)"
+              stroke-width="3"
+              stroke-linecap="round"
+              :stroke-dasharray="`${percentage}, 100`"
+              transform="rotate(-90 18 18)"
+            />
+          </svg>
         </div>
       </div>
 
@@ -206,6 +258,36 @@ const props = defineProps({
   storagePrefix: {
     type: String,
     default: "sc-socket-event"
+  },
+  // 是否启用靠边吸附最小化
+  enableEdgeDock: {
+    type: Boolean,
+    default: false
+  },
+  // 吸附边缘的阈值（距离边缘多少像素时自动吸附）
+  edgeDockThreshold: {
+    type: Number,
+    default: 50
+  },
+  // 父元素选择器（限制在父元素内移动）
+  boundaryElement: {
+    type: [String, Object] as PropType<string | HTMLElement | null>,
+    default: null
+  },
+  // 是否启用 grid 方式移动
+  enableGridSnap: {
+    type: Boolean,
+    default: false
+  },
+  // grid 单元格大小
+  gridSize: {
+    type: Number,
+    default: 20
+  },
+  // 吸附图标大小
+  dockIconSize: {
+    type: Number,
+    default: 48
   }
 });
 
@@ -214,6 +296,7 @@ const emit = defineEmits<{
   close: [];
   data: [data: ProgressData];
   minimize: [minimized: boolean];
+  edgeDock: [docked: boolean, edge: string];
 }>();
 
 // Socket实例
@@ -242,6 +325,14 @@ const dialogX = ref(0);
 const dialogY = ref(0);
 const dialogWidth = ref(props.width);
 const dialogHeight = ref(props.dialogHeight);
+
+// 靠边吸附相关
+const isEdgeDocked = ref(false);
+const dockedEdge = ref<"left" | "right" | "top" | "bottom" | "">("");
+const preDockedPosition = ref({ x: 0, y: 0, width: 0, height: 0 });
+
+// 父元素边界
+const boundaryRect = ref<DOMRect | null>(null);
 
 // 计算属性
 const progressStatus = computed(() => {
@@ -287,6 +378,52 @@ const messageIcon = computed(() => {
 });
 
 const dialogStyle = computed(() => {
+  // 靠边吸附模式
+  if (isEdgeDocked.value) {
+    const boundary = getBoundaryRect();
+    const viewWidth = boundary ? boundary.width : window.innerWidth;
+    const viewHeight = boundary ? boundary.height : window.innerHeight;
+
+    const style: any = {
+      width: `${props.dockIconSize}px`,
+      height: `${props.dockIconSize}px`
+    };
+
+    // 吸附到实际边缘位置
+    switch (dockedEdge.value) {
+      case "left":
+        style.left = "0px";
+        style.top = `${Math.min(Math.max(dialogY.value, 0), viewHeight - props.dockIconSize)}px`;
+        style.right = "auto";
+        style.bottom = "auto";
+        style.borderRadius = "0 50% 50% 0";
+        break;
+      case "right":
+        style.right = "0px";
+        style.top = `${Math.min(Math.max(dialogY.value, 0), viewHeight - props.dockIconSize)}px`;
+        style.left = "auto";
+        style.bottom = "auto";
+        style.borderRadius = "50% 0 0 50%";
+        break;
+      case "top":
+        style.top = "0px";
+        style.left = `${Math.min(Math.max(dialogX.value, 0), viewWidth - props.dockIconSize)}px`;
+        style.right = "auto";
+        style.bottom = "auto";
+        style.borderRadius = "0 0 50% 50%";
+        break;
+      case "bottom":
+        style.bottom = "0px";
+        style.left = `${Math.min(Math.max(dialogX.value, 0), viewWidth - props.dockIconSize)}px`;
+        style.right = "auto";
+        style.top = "auto";
+        style.borderRadius = "50% 50% 0 0";
+        break;
+    }
+
+    return style;
+  }
+
   const style: any = {
     width: `${dialogWidth.value}px`,
     height: isMinimized.value ? "auto" : `${dialogHeight.value}px`
@@ -295,8 +432,17 @@ const dialogStyle = computed(() => {
   if (isDragging.value || dialogX.value !== 0 || dialogY.value !== 0) {
     // 自定义位置（拖拽后）
     const basePosition = getBasePosition();
-    style.left = `${basePosition.x + dialogX.value}px`;
-    style.top = `${basePosition.y + dialogY.value}px`;
+    let x = basePosition.x + dialogX.value;
+    let y = basePosition.y + dialogY.value;
+
+    // Grid 吸附
+    if (props.enableGridSnap) {
+      x = Math.round(x / props.gridSize) * props.gridSize;
+      y = Math.round(y / props.gridSize) * props.gridSize;
+    }
+
+    style.left = `${x}px`;
+    style.top = `${y}px`;
     style.right = "auto";
     style.bottom = "auto";
   }
@@ -304,9 +450,42 @@ const dialogStyle = computed(() => {
   return style;
 });
 
+// 获取父元素边界
+function getBoundaryRect(): DOMRect | null {
+  if (!props.boundaryElement) return null;
+
+  let element: HTMLElement | null = null;
+  if (typeof props.boundaryElement === "string") {
+    element = document.querySelector(props.boundaryElement);
+  } else {
+    element = props.boundaryElement;
+  }
+
+  return element?.getBoundingClientRect() || null;
+}
+
 // 获取基础位置
 function getBasePosition() {
   const margin = 20;
+  const boundary = getBoundaryRect();
+
+  // 如果有父元素边界，基于父元素计算
+  if (boundary) {
+    switch (props.position) {
+      case "top-left":
+        return { x: boundary.left + margin, y: boundary.top + margin };
+      case "top-right":
+        return { x: boundary.right - dialogWidth.value - margin, y: boundary.top + margin };
+      case "bottom-left":
+        return { x: boundary.left + margin, y: boundary.bottom - dialogHeight.value - margin };
+      case "bottom-right":
+        return { x: boundary.right - dialogWidth.value - margin, y: boundary.bottom - dialogHeight.value - margin };
+      default:
+        return { x: boundary.left + margin, y: boundary.top + margin };
+    }
+  }
+
+  // 默认基于窗口计算
   switch (props.position) {
     case "top-left":
       return { x: margin, y: margin };
@@ -467,14 +646,47 @@ function onDragStart(e: MouseEvent) {
 function onDragMove(e: MouseEvent) {
   if (!isDragging.value) return;
 
-  dialogX.value = e.clientX - dragStartX.value;
-  dialogY.value = e.clientY - dragStartY.value;
+  let newX = e.clientX - dragStartX.value;
+  let newY = e.clientY - dragStartY.value;
+
+  // Grid 吸附
+  if (props.enableGridSnap) {
+    newX = Math.round(newX / props.gridSize) * props.gridSize;
+    newY = Math.round(newY / props.gridSize) * props.gridSize;
+  }
+
+  // 父元素边界限制
+  const boundary = getBoundaryRect();
+  if (boundary) {
+    const basePos = getBasePosition();
+    const actualX = basePos.x + newX;
+    const actualY = basePos.y + newY;
+
+    // 限制在父元素内
+    const minX = boundary.left;
+    const maxX = boundary.right - dialogWidth.value;
+    const minY = boundary.top;
+    const maxY = boundary.bottom - dialogHeight.value;
+
+    if (actualX < minX) newX = minX - basePos.x;
+    if (actualX > maxX) newX = maxX - basePos.x;
+    if (actualY < minY) newY = minY - basePos.y;
+    if (actualY > maxY) newY = maxY - basePos.y;
+  }
+
+  dialogX.value = newX;
+  dialogY.value = newY;
 }
 
 function onDragEnd() {
   isDragging.value = false;
   document.removeEventListener("mousemove", onDragMove);
   document.removeEventListener("mouseup", onDragEnd);
+
+  // 检查是否需要靠边吸附
+  if (props.enableEdgeDock) {
+    checkEdgeDock();
+  }
 
   // 保存位置到localStorage
   savePositionToStorage();
@@ -546,6 +758,99 @@ function onResizeEnd() {
 function toggleMinimize() {
   isMinimized.value = !isMinimized.value;
   emit("minimize", isMinimized.value);
+}
+
+// 检查是否靠近边缘
+function checkEdgeDock() {
+  if (!props.enableEdgeDock) return;
+
+  const basePos = getBasePosition();
+  const actualX = basePos.x + dialogX.value;
+  const actualY = basePos.y + dialogY.value;
+  const boundary = getBoundaryRect();
+  const threshold = props.edgeDockThreshold;
+
+  const viewWidth = boundary ? boundary.width : window.innerWidth;
+  const viewHeight = boundary ? boundary.height : window.innerHeight;
+  const offsetX = boundary ? boundary.left : 0;
+  const offsetY = boundary ? boundary.top : 0;
+
+  // 检查各个边缘
+  if (actualX - offsetX < threshold) {
+    // 左边吸附
+    dockToEdge("left");
+  } else if (actualX + dialogWidth.value > offsetX + viewWidth - threshold) {
+    // 右边吸附
+    dockToEdge("right");
+  } else if (actualY - offsetY < threshold) {
+    // 上边吸附
+    dockToEdge("top");
+  } else if (actualY + dialogHeight.value > offsetY + viewHeight - threshold) {
+    // 下边吸附
+    dockToEdge("bottom");
+  }
+}
+
+// 吸附到指定边缘
+function dockToEdge(edge: "left" | "right" | "top" | "bottom") {
+  // 保存吸附前的位置
+  preDockedPosition.value = {
+    x: dialogX.value,
+    y: dialogY.value,
+    width: dialogWidth.value,
+    height: dialogHeight.value
+  };
+
+  isEdgeDocked.value = true;
+  dockedEdge.value = edge;
+
+  // 计算吸附位置（保持在当前轴上的位置）
+  const basePos = getBasePosition();
+  if (edge === "left" || edge === "right") {
+    dialogY.value = basePos.y + dialogY.value;
+  } else {
+    dialogX.value = basePos.x + dialogX.value;
+  }
+
+  emit("edgeDock", true, edge);
+}
+
+// 切换靠边吸附状态
+function toggleEdgeDock() {
+  if (isEdgeDocked.value) {
+    // 还原
+    isEdgeDocked.value = false;
+    dockedEdge.value = "";
+    dialogX.value = preDockedPosition.value.x;
+    dialogY.value = preDockedPosition.value.y;
+    dialogWidth.value = preDockedPosition.value.width || props.width;
+    dialogHeight.value = preDockedPosition.value.height || props.dialogHeight;
+    emit("edgeDock", false, "");
+  } else {
+    // 手动吸附到最近的边缘
+    const basePos = getBasePosition();
+    const actualX = basePos.x + dialogX.value;
+    const actualY = basePos.y + dialogY.value;
+    const boundary = getBoundaryRect();
+
+    const viewWidth = boundary ? boundary.width : window.innerWidth;
+    const viewHeight = boundary ? boundary.height : window.innerHeight;
+    const offsetX = boundary ? boundary.left : 0;
+    const offsetY = boundary ? boundary.top : 0;
+
+    // 计算到各边的距离
+    const distLeft = actualX - offsetX;
+    const distRight = offsetX + viewWidth - actualX - dialogWidth.value;
+    const distTop = actualY - offsetY;
+    const distBottom = offsetY + viewHeight - actualY - dialogHeight.value;
+
+    // 找到最近的边
+    const minDist = Math.min(distLeft, distRight, distTop, distBottom);
+    if (minDist === distLeft) dockToEdge("left");
+    else if (minDist === distRight) dockToEdge("right");
+    else if (minDist === distTop) dockToEdge("top");
+    else dockToEdge("bottom");
+  }
 }
 
 // 关闭
@@ -653,7 +958,15 @@ defineExpose({
   // 清空日志
   clearLogs() {
     logs.value = [];
-  }
+  },
+  // 靠边吸附
+  dockToEdge,
+  // 切换靠边吸附
+  toggleEdgeDock,
+  // 是否已吸附
+  isEdgeDocked,
+  // 吸附的边缘
+  dockedEdge
 });
 </script>
 
@@ -766,13 +1079,102 @@ defineExpose({
   right: 20px;
 }
 
-/* 最小化状态 */
+/* 最小化状态 - 只显示图标 */
 .minimized {
-  height: auto !important;
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  overflow: hidden;
 }
 
 .minimized .dialog-content {
-  display: none;
+  display: none !important;
+}
+
+.minimized .dialog-header {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  cursor: pointer;
+}
+
+.minimized .dialog-header:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+}
+
+.minimized-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.minimized .resize-handle {
+  display: none !important;
+}
+
+/* 靠边吸附状态 */
+.edge-docked {
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.edge-docked:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+}
+
+.edge-docked .dialog-content,
+.edge-docked .resize-handle {
+  display: none !important;
+}
+
+/* 靠边吸附图标 */
+.edge-dock-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-color-primary);
+  position: relative;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(14, 165, 233, 0.1));
+}
+
+.dock-progress-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.dock-progress-ring svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 边缘吸附样式已在 dialogStyle 中动态设置 */
+
+/* 父元素内模式 */
+.in-boundary {
+  position: absolute;
+}
+
+/* Grid 吸附模式 */
+.grid-snap {
+  transition:
+    left 0.1s ease,
+    top 0.1s ease;
 }
 
 /* 头部 */

@@ -3,33 +3,33 @@
     <!-- 统计卡片 -->
     <div class="stats-section">
       <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon total">
-            <IconifyIconOnline icon="ri:database-2-line" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ fetchServerStaticData.dataSourceTotal }}</div>
-            <div class="stat-label">数据源</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon type">
-            <IconifyIconOnline icon="ri:stack-line" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ fetchServerStaticData.dataSourceType }}</div>
-            <div class="stat-label">类型</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon backup">
-            <IconifyIconOnline icon="ri:refresh-line" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ Object.keys(backupOn).filter((k) => backupOn[k]).length }}</div>
-            <div class="stat-label">备份中</div>
-          </div>
-        </div>
+        <ScCard
+          layout="stats"
+          theme="primary"
+          icon="ri:database-2-line"
+          :value="fetchServerStaticData.dataSourceTotal"
+          label="数据源"
+          trend-icon="ri:server-line"
+          trend-text="全部数据源"
+        />
+        <ScCard
+          layout="stats"
+          theme="info"
+          icon="ri:stack-line"
+          :value="fetchServerStaticData.dataSourceType"
+          label="类型"
+          trend-icon="ri:apps-line"
+          trend-text="数据库类型"
+        />
+        <ScCard
+          layout="stats"
+          theme="success"
+          icon="ri:refresh-line"
+          :value="Object.keys(backupOn).filter((k) => backupOn[k]).length"
+          label="备份中"
+          trend-icon="ri:time-line"
+          trend-text="进行中"
+        />
       </div>
     </div>
 
@@ -327,13 +327,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  computed,
-  onMounted,
-  watch,
-  reactive,
-} from "vue";
+import { ref, computed, onMounted, watch, reactive } from "vue";
 import {
   pageSystemDataSettings,
   deleteSystemDataSetting,
@@ -352,6 +346,7 @@ import EditDialog from "./modules/EditDialog.vue";
 import ConsoleSettingDialog from "./modules/ConsoleSettingDialog.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import BackConsoleDialog from "./modules/BackConsoleDialog.vue";
+import ScCard from "@repo/components/ScCard/index.vue";
 import { format } from "sql-formatter";
 import Prism from "prismjs"; // ② 高亮核心
 import "prismjs/components/prism-sql"; // ③ SQL 语法文件
@@ -505,32 +500,27 @@ function openConsole(row: SystemDataSetting) {
       name: "dataJdbcConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  }
-  else if (type.includes("redis")) {
+  } else if (type.includes("redis")) {
     _url = router.resolve({
       name: "dataRedisConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  }
-  else if (type.includes("zk") || type.includes("zookeeper")) {
+  } else if (type.includes("zk") || type.includes("zookeeper")) {
     _url = router.resolve({
       name: "dataZookeeperConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  }
- else  if (type.includes("influx")) {
+  } else if (type.includes("influx")) {
     _url = router.resolve({
       name: "dataInfluxConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  }
-  else if (type.includes("mqtt")) {
+  } else if (type.includes("mqtt")) {
     _url = router.resolve({
       name: "dataMqttConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  }
-  else if (
+  } else if (
     type.includes("graph") ||
     type.includes("graphdb") ||
     type.includes("neo4j")
@@ -539,14 +529,13 @@ function openConsole(row: SystemDataSetting) {
       name: "dataGraphConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  }
-  else if (type.includes("email")) {
+  } else if (type.includes("email")) {
     _url = router.resolve({
       name: "dataEmailConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
   }
-   window.open(_url, '_blank')
+  window.open(_url, "_blank");
 }
 
 function openSetting(row: SystemDataSetting) {
@@ -710,28 +699,47 @@ onMounted(() => {
   height: 100%;
 }
 
+/* 统计卡片区域 */
+.stats-section {
+  padding: 20px 32px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
 /* 背景装饰 */
 .data-management-page::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -50%;
   right: -20%;
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(59, 130, 246, 0.08) 0%,
+    transparent 70%
+  );
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
 }
 
 .data-management-page::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -30%;
   left: -10%;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(16, 185, 129, 0.06) 0%,
+    transparent 70%
+  );
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
@@ -744,7 +752,11 @@ onMounted(() => {
 
 /* 页面头部 */
 .page-header {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.9) 100%
+  );
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(226, 232, 240, 0.8);
   padding: 28px 32px;
@@ -781,8 +793,13 @@ onMounted(() => {
 }
 
 @keyframes iconFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 .title-content {
@@ -826,7 +843,7 @@ onMounted(() => {
 }
 
 .stat-item::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -848,9 +865,15 @@ onMounted(() => {
   opacity: 1;
 }
 
-.stat-item:nth-child(1) .stat-number { color: #3b82f6; }
-.stat-item:nth-child(2) .stat-number { color: #8b5cf6; }
-.stat-item:nth-child(3) .stat-number { color: #10b981; }
+.stat-item:nth-child(1) .stat-number {
+  color: #3b82f6;
+}
+.stat-item:nth-child(2) .stat-number {
+  color: #8b5cf6;
+}
+.stat-item:nth-child(3) .stat-number {
+  color: #10b981;
+}
 
 .stat-number {
   font-size: 28px;
@@ -977,14 +1000,30 @@ onMounted(() => {
   }
 }
 
-.enhanced-card-wrapper:nth-child(1) { animation-delay: 0.05s; }
-.enhanced-card-wrapper:nth-child(2) { animation-delay: 0.1s; }
-.enhanced-card-wrapper:nth-child(3) { animation-delay: 0.15s; }
-.enhanced-card-wrapper:nth-child(4) { animation-delay: 0.2s; }
-.enhanced-card-wrapper:nth-child(5) { animation-delay: 0.25s; }
-.enhanced-card-wrapper:nth-child(6) { animation-delay: 0.3s; }
-.enhanced-card-wrapper:nth-child(7) { animation-delay: 0.35s; }
-.enhanced-card-wrapper:nth-child(8) { animation-delay: 0.4s; }
+.enhanced-card-wrapper:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.enhanced-card-wrapper:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.enhanced-card-wrapper:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.enhanced-card-wrapper:nth-child(4) {
+  animation-delay: 0.2s;
+}
+.enhanced-card-wrapper:nth-child(5) {
+  animation-delay: 0.25s;
+}
+.enhanced-card-wrapper:nth-child(6) {
+  animation-delay: 0.3s;
+}
+.enhanced-card-wrapper:nth-child(7) {
+  animation-delay: 0.35s;
+}
+.enhanced-card-wrapper:nth-child(8) {
+  animation-delay: 0.4s;
+}
 
 .enhanced-card-wrapper:hover {
   transform: translateY(-10px);
@@ -996,7 +1035,11 @@ onMounted(() => {
   border: 1px solid rgba(226, 232, 240, 0.8);
   border-radius: 16px;
   overflow: hidden;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.9) 100%
+  );
   backdrop-filter: blur(10px);
   position: relative;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);

@@ -1,21 +1,40 @@
 <template>
-    
-  <el-dialog v-model="visibleProxy" title="安装容器" width="720px" :show-close="true" @close="handleClose">
+  <el-dialog
+    v-model="visibleProxy"
+    title="安装容器"
+    width="720px"
+    :show-close="true"
+    @close="handleClose"
+  >
     <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
       <el-form-item label="镜像">
         <div class="image-display">
           <IconifyIconOnline icon="ri:image-line" class="mr-2" />
-          <span class="image-name">{{ image?.systemSoftImageName }}:{{ image?.systemSoftImageTag }}</span>
-          <el-tag size="small" type="info" class="ml-2">{{ image?.systemSoftImageServerName }}</el-tag>
+          <span class="image-name"
+            >{{ image?.systemSoftImageName }}:{{
+              image?.systemSoftImageTag
+            }}</span
+          >
+          <el-tag size="small" type="info" class="ml-2">{{
+            image?.systemSoftImageServerName
+          }}</el-tag>
         </div>
       </el-form-item>
 
       <el-form-item label="容器名称" prop="containerName">
-        <el-input v-model="form.containerName" placeholder="请输入容器名称（如：my-nginx）" clearable />
+        <el-input
+          v-model="form.containerName"
+          placeholder="请输入容器名称（如：my-nginx）"
+          clearable
+        />
       </el-form-item>
 
       <el-form-item label="主机名">
-        <el-input v-model="form.hostname" placeholder="容器主机名（可选）" clearable />
+        <el-input
+          v-model="form.hostname"
+          placeholder="容器主机名（可选）"
+          clearable
+        />
       </el-form-item>
 
       <el-divider content-position="left">
@@ -25,15 +44,31 @@
 
       <el-form-item>
         <div class="port-mappings">
-          <div v-for="(port, index) in form.portMappings" :key="index" class="port-mapping-row">
-            <el-input v-model="port.hostPort" placeholder="主机端口" style="width: 140px;">
+          <div
+            v-for="(port, index) in form.portMappings"
+            :key="index"
+            class="port-mapping-row"
+          >
+            <el-input
+              v-model="port.hostPort"
+              placeholder="主机端口"
+              style="width: 140px"
+            >
               <template #prepend>Host</template>
             </el-input>
             <span class="port-arrow">→</span>
-            <el-input v-model="port.containerPort" placeholder="容器端口" style="width: 140px;">
+            <el-input
+              v-model="port.containerPort"
+              placeholder="容器端口"
+              style="width: 140px"
+            >
               <template #prepend>Container</template>
             </el-input>
-            <el-select v-model="port.protocol" placeholder="协议" style="width: 100px;">
+            <el-select
+              v-model="port.protocol"
+              placeholder="协议"
+              style="width: 100px"
+            >
               <el-option label="TCP" value="tcp" />
               <el-option label="UDP" value="udp" />
             </el-select>
@@ -55,12 +90,20 @@
 
       <el-form-item>
         <div class="env-vars">
-          <div v-for="(env, index) in form.envVars" :key="index" class="env-var-row">
-            <el-input v-model="env.name" placeholder="变量名（如：MYSQL_ROOT_PASSWORD）" style="flex: 1;">
+          <div
+            v-for="(env, index) in form.envVars"
+            :key="index"
+            class="env-var-row"
+          >
+            <el-input
+              v-model="env.name"
+              placeholder="变量名（如：MYSQL_ROOT_PASSWORD）"
+              style="flex: 1"
+            >
               <template #prepend>Key</template>
             </el-input>
             <span class="env-equal">=</span>
-            <el-input v-model="env.value" placeholder="变量值" style="flex: 1;">
+            <el-input v-model="env.value" placeholder="变量值" style="flex: 1">
               <template #prepend>Value</template>
             </el-input>
             <el-button type="danger" text @click="removeEnvVar(index)">
@@ -81,15 +124,29 @@
 
       <el-form-item>
         <div class="volume-mounts">
-          <div v-for="(volume, index) in form.volumeMounts" :key="index" class="volume-mount-row">
-            <el-input v-model="volume.hostPath" placeholder="主机路径（如：/data/mysql）" style="flex: 1;">
+          <div
+            v-for="(volume, index) in form.volumeMounts"
+            :key="index"
+            class="volume-mount-row"
+          >
+            <el-input
+              v-model="volume.hostPath"
+              placeholder="主机路径（如：/data/mysql）"
+              style="flex: 1"
+            >
               <template #prepend>Host</template>
             </el-input>
             <span class="volume-arrow">→</span>
-            <el-input v-model="volume.containerPath" placeholder="容器路径（如：/var/lib/mysql）" style="flex: 1;">
+            <el-input
+              v-model="volume.containerPath"
+              placeholder="容器路径（如：/var/lib/mysql）"
+              style="flex: 1"
+            >
               <template #prepend>Container</template>
             </el-input>
-            <el-checkbox v-model="volume.readOnly" class="ml-2">只读</el-checkbox>
+            <el-checkbox v-model="volume.readOnly" class="ml-2"
+              >只读</el-checkbox
+            >
             <el-button type="danger" text @click="removeVolumeMount(index)">
               <IconifyIconOnline icon="ri:delete-bin-line" />
             </el-button>
@@ -107,7 +164,11 @@
       </el-divider>
 
       <el-form-item label="重启策略">
-        <el-select v-model="form.restartPolicy" placeholder="选择重启策略" style="width: 100%;">
+        <el-select
+          v-model="form.restartPolicy"
+          placeholder="选择重启策略"
+          style="width: 100%"
+        >
           <el-option label="不重启" value="no" />
           <el-option label="总是重启" value="always" />
           <el-option label="失败时重启" value="on-failure" />
@@ -116,7 +177,11 @@
       </el-form-item>
 
       <el-form-item label="网络模式">
-        <el-select v-model="form.networkMode" placeholder="选择网络模式" style="width: 100%;">
+        <el-select
+          v-model="form.networkMode"
+          placeholder="选择网络模式"
+          style="width: 100%"
+        >
           <el-option label="桥接（bridge）" value="bridge" />
           <el-option label="主机（host）" value="host" />
           <el-option label="无网络（none）" value="none" />
@@ -124,11 +189,19 @@
       </el-form-item>
 
       <el-form-item label="启动命令">
-        <el-input v-model="form.command" placeholder="容器启动命令（可选）" clearable />
+        <el-input
+          v-model="form.command"
+          placeholder="容器启动命令（可选）"
+          clearable
+        />
       </el-form-item>
 
       <el-form-item label="工作目录">
-        <el-input v-model="form.workDir" placeholder="容器工作目录（可选）" clearable />
+        <el-input
+          v-model="form.workDir"
+          placeholder="容器工作目录（可选）"
+          clearable
+        />
       </el-form-item>
 
       <el-form-item label="创建后启动">
@@ -138,24 +211,28 @@
 
     <!-- 进度显示 -->
     <div v-if="installing" class="progress-section">
-      <ScSocketPanel
+      <ScSocketMessageDialog
         mode="embed"
+        layout="log"
         title="创建进度"
-        icon="ri:progress-3-line"
-        :topics="[`container:create:${progressTopic}`]"
-        height="200px"
-        :progress-only="true"
-        :clearable="false"
-        :closeable="false"
+        :event-id="progressTopic"
+        :event-name="`container:create:${progressTopic}`"
+        :height="200"
       />
     </div>
 
     <template #footer>
       <div class="dlg-footer">
-        <el-button @click="visibleProxy = false" :disabled="installing">取消</el-button>
+        <el-button @click="visibleProxy = false" :disabled="installing"
+          >取消</el-button
+        >
         <el-button type="primary" :loading="installing" @click="submit">
-          <IconifyIconOnline icon="ri:play-circle-line" class="mr-1" v-if="!installing" />
-          {{ installing ? '创建中...' : '创建容器' }}
+          <IconifyIconOnline
+            icon="ri:play-circle-line"
+            class="mr-1"
+            v-if="!installing"
+          />
+          {{ installing ? "创建中..." : "创建容器" }}
         </el-button>
       </div>
     </template>
@@ -163,11 +240,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { ElMessage, ElNotification } from 'element-plus';
-import type { FormInstance, FormRules } from 'element-plus';
-import { containerApi, type SystemSoftImage } from '@/api/docker-management';
-import ScSocketPanel from '@repo/components/ScSocketPanel/index.vue';
+import { ref, computed, watch } from "vue";
+import { ElMessage, ElNotification } from "element-plus";
+import type { FormInstance, FormRules } from "element-plus";
+import { containerApi, type SystemSoftImage } from "@/api/docker-management";
+import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
 
 interface Props {
   visible: boolean;
@@ -175,8 +252,8 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'update:visible', v: boolean): void;
-  (e: 'success'): void;
+  (e: "update:visible", v: boolean): void;
+  (e: "success"): void;
 }
 
 const props = defineProps<Props>();
@@ -184,36 +261,52 @@ const emit = defineEmits<Emits>();
 
 const visibleProxy = computed({
   get: () => props.visible,
-  set: (v) => emit('update:visible', v)
+  set: (v) => emit("update:visible", v),
 });
 
 const formRef = ref<FormInstance>();
 const installing = ref(false);
-const progressTopic = ref('');
+const progressTopic = ref("");
 
 const form = ref({
-  containerName: '',
-  hostname: '',
-  portMappings: [] as Array<{ hostPort: string; containerPort: string; protocol: string }>,
+  containerName: "",
+  hostname: "",
+  portMappings: [] as Array<{
+    hostPort: string;
+    containerPort: string;
+    protocol: string;
+  }>,
   envVars: [] as Array<{ name: string; value: string }>,
-  volumeMounts: [] as Array<{ hostPath: string; containerPath: string; readOnly: boolean }>,
-  restartPolicy: 'unless-stopped',
-  networkMode: 'bridge',
-  command: '',
-  workDir: '',
-  autoStart: true
+  volumeMounts: [] as Array<{
+    hostPath: string;
+    containerPath: string;
+    readOnly: boolean;
+  }>,
+  restartPolicy: "unless-stopped",
+  networkMode: "bridge",
+  command: "",
+  workDir: "",
+  autoStart: true,
 });
 
 const rules: FormRules = {
   containerName: [
-    { required: true, message: '请输入容器名称', trigger: 'blur' },
-    { pattern: /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/, message: '容器名称只能包含字母、数字、下划线、点和连字符', trigger: 'blur' }
-  ]
+    { required: true, message: "请输入容器名称", trigger: "blur" },
+    {
+      pattern: /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
+      message: "容器名称只能包含字母、数字、下划线、点和连字符",
+      trigger: "blur",
+    },
+  ],
 };
 
 // 添加端口映射
 function addPortMapping() {
-  form.value.portMappings.push({ hostPort: '', containerPort: '', protocol: 'tcp' });
+  form.value.portMappings.push({
+    hostPort: "",
+    containerPort: "",
+    protocol: "tcp",
+  });
 }
 
 // 删除端口映射
@@ -223,7 +316,7 @@ function removePortMapping(index: number) {
 
 // 添加环境变量
 function addEnvVar() {
-  form.value.envVars.push({ name: '', value: '' });
+  form.value.envVars.push({ name: "", value: "" });
 }
 
 // 删除环境变量
@@ -233,7 +326,11 @@ function removeEnvVar(index: number) {
 
 // 添加数据卷
 function addVolumeMount() {
-  form.value.volumeMounts.push({ hostPath: '', containerPath: '', readOnly: false });
+  form.value.volumeMounts.push({
+    hostPath: "",
+    containerPath: "",
+    readOnly: false,
+  });
 }
 
 // 删除数据卷
@@ -244,16 +341,16 @@ function removeVolumeMount(index: number) {
 // 重置表单
 function resetForm() {
   form.value = {
-    containerName: '',
-    hostname: '',
+    containerName: "",
+    hostname: "",
     portMappings: [],
     envVars: [],
     volumeMounts: [],
-    restartPolicy: 'unless-stopped',
-    networkMode: 'bridge',
-    command: '',
-    workDir: '',
-    autoStart: true
+    restartPolicy: "unless-stopped",
+    networkMode: "bridge",
+    command: "",
+    workDir: "",
+    autoStart: true,
   };
   formRef.value?.clearValidate();
 }
@@ -271,17 +368,17 @@ async function submit() {
     await formRef.value.validate();
 
     if (!props.image) {
-      return ElMessage.error('未选择镜像');
+      return ElMessage.error("未选择镜像");
     }
 
     installing.value = true;
-    
+
     // 生成进度主题ID
     progressTopic.value = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // 构建端口映射
     const portBindings: Record<string, Array<{ HostPort: string }>> = {};
-    form.value.portMappings.forEach(port => {
+    form.value.portMappings.forEach((port) => {
       if (port.containerPort && port.hostPort) {
         const key = `${port.containerPort}/${port.protocol}`;
         portBindings[key] = [{ HostPort: port.hostPort }];
@@ -290,7 +387,7 @@ async function submit() {
 
     // 构建环境变量
     const env: string[] = [];
-    form.value.envVars.forEach(envVar => {
+    form.value.envVars.forEach((envVar) => {
       if (envVar.name && envVar.value) {
         env.push(`${envVar.name}=${envVar.value}`);
       }
@@ -298,9 +395,9 @@ async function submit() {
 
     // 构建数据卷
     const binds: string[] = [];
-    form.value.volumeMounts.forEach(volume => {
+    form.value.volumeMounts.forEach((volume) => {
       if (volume.hostPath && volume.containerPath) {
-        const bind = volume.readOnly 
+        const bind = volume.readOnly
           ? `${volume.hostPath}:${volume.containerPath}:ro`
           : `${volume.hostPath}:${volume.containerPath}`;
         binds.push(bind);
@@ -311,7 +408,8 @@ async function submit() {
       systemSoftImageId: props.image.systemSoftImageId,
       systemSoftImageServerId: props.image.systemSoftImageServerId,
       systemSoftContainerName: form.value.containerName,
-      systemSoftContainerHostname: form.value.hostname || form.value.containerName,
+      systemSoftContainerHostname:
+        form.value.hostname || form.value.containerName,
       systemSoftContainerPortBindings: JSON.stringify(portBindings),
       systemSoftContainerEnv: JSON.stringify(env),
       systemSoftContainerBinds: JSON.stringify(binds),
@@ -319,29 +417,29 @@ async function submit() {
       systemSoftContainerNetworkMode: form.value.networkMode,
       systemSoftContainerCommand: form.value.command,
       systemSoftContainerWorkDir: form.value.workDir,
-      systemSoftContainerAutoStart: form.value.autoStart
+      systemSoftContainerAutoStart: form.value.autoStart,
     };
 
     const result = await containerApi.createContainer(payload as any);
 
-    if (result.code === '00000') {
+    if (result.code === "00000") {
       ElNotification.success({
-        title: '容器创建成功',
+        title: "容器创建成功",
         message: `容器 ${form.value.containerName} 已成功创建`,
-        position: 'bottom-right'
+        position: "bottom-right",
       });
-      emit('success');
+      emit("success");
       visibleProxy.value = false;
     } else {
-      ElMessage.error(result.msg || '创建失败');
+      ElMessage.error(result.msg || "创建失败");
     }
   } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('创建容器失败', error);
+    if (error !== "cancel") {
+      console.error("创建容器失败", error);
       ElNotification.error({
-        title: '创建失败',
-        message: error?.message || '创建容器失败，请稍后重试',
-        position: 'bottom-right'
+        title: "创建失败",
+        message: error?.message || "创建容器失败，请稍后重试",
+        position: "bottom-right",
       });
     }
   } finally {
@@ -350,20 +448,29 @@ async function submit() {
 }
 
 // 监听对话框打开
-watch(() => visibleProxy.value, (val) => {
-  if (val && props.image) {
-    // 根据镜像名称预设一些默认值
-    const imageName = props.image.systemSoftImageName || '';
-    if (imageName.includes('mysql')) {
-      form.value.portMappings = [{ hostPort: '3306', containerPort: '3306', protocol: 'tcp' }];
-      form.value.envVars = [{ name: 'MYSQL_ROOT_PASSWORD', value: '' }];
-    } else if (imageName.includes('nginx')) {
-      form.value.portMappings = [{ hostPort: '80', containerPort: '80', protocol: 'tcp' }];
-    } else if (imageName.includes('redis')) {
-      form.value.portMappings = [{ hostPort: '6379', containerPort: '6379', protocol: 'tcp' }];
+watch(
+  () => visibleProxy.value,
+  (val) => {
+    if (val && props.image) {
+      // 根据镜像名称预设一些默认值
+      const imageName = props.image.systemSoftImageName || "";
+      if (imageName.includes("mysql")) {
+        form.value.portMappings = [
+          { hostPort: "3306", containerPort: "3306", protocol: "tcp" },
+        ];
+        form.value.envVars = [{ name: "MYSQL_ROOT_PASSWORD", value: "" }];
+      } else if (imageName.includes("nginx")) {
+        form.value.portMappings = [
+          { hostPort: "80", containerPort: "80", protocol: "tcp" },
+        ];
+      } else if (imageName.includes("redis")) {
+        form.value.portMappings = [
+          { hostPort: "6379", containerPort: "6379", protocol: "tcp" },
+        ];
+      }
     }
   }
-});
+);
 </script>
 
 <style scoped>
@@ -414,4 +521,3 @@ watch(() => visibleProxy.value, (val) => {
   gap: 8px;
 }
 </style>
-
