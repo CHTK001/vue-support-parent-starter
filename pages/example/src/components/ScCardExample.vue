@@ -1,5 +1,124 @@
 <template>
   <div class="sc-card-demo">
+    <!-- 统计卡片布局 -->
+    <div class="demo-section">
+      <h3 class="section-title">统计卡片布局 (stats)</h3>
+      <div class="card-row stats-row">
+        <ScCard
+          layout="stats"
+          theme="primary"
+          icon="ri:user-line"
+          :value="1234"
+          label="总用户数"
+          trend-icon="ri:arrow-up-line"
+          trend-text="+12.5%"
+        />
+
+        <ScCard
+          layout="stats"
+          theme="success"
+          icon="ri:checkbox-circle-line"
+          :value="892"
+          label="活跃用户"
+          trend-icon="ri:pulse-line"
+          trend-text="72.3%"
+        />
+
+        <ScCard
+          layout="stats"
+          theme="warning"
+          icon="ri:shopping-cart-line"
+          :value="456"
+          label="订单数量"
+          trend-icon="ri:arrow-up-line"
+          trend-text="+8.2%"
+        />
+
+        <ScCard
+          layout="stats"
+          theme="danger"
+          icon="ri:error-warning-line"
+          :value="23"
+          label="异常告警"
+          trend-icon="ri:alert-line"
+          trend-text="需关注"
+        />
+      </div>
+    </div>
+
+    <!-- 紧凑型卡片布局 -->
+    <div class="demo-section">
+      <h3 class="section-title">紧凑型卡片布局 (compact)</h3>
+      <div class="card-row compact-row">
+        <ScCard
+          layout="compact"
+          title="Docker Registry"
+          subtitle="registry.example.com"
+          icon="ri:docker-line"
+          theme="primary"
+        >
+          <div class="info-row">
+            <IconifyIconOnline icon="ri:image-line" class="info-icon" />
+            <span class="info-text">镜像数量: 128</span>
+          </div>
+          <div class="info-row">
+            <IconifyIconOnline icon="ri:hard-drive-line" class="info-icon" />
+            <span class="info-text">存储空间: 45.6 GB</span>
+          </div>
+          <template #footer>
+            <el-button size="small" type="primary">管理</el-button>
+            <el-button size="small">同步</el-button>
+          </template>
+        </ScCard>
+
+        <ScCard
+          layout="compact"
+          title="生产节点"
+          subtitle="192.168.1.100:8080"
+          icon="ri:server-line"
+          icon-bg-color="linear-gradient(135deg, #10b981 0%, #059669 100%)"
+          theme="success"
+          :active="true"
+        >
+          <template #status>
+            <el-tag type="success" size="small">在线</el-tag>
+          </template>
+          <div class="info-row">
+            <IconifyIconOnline icon="ri:cpu-line" class="info-icon" />
+            <span class="info-text">CPU: 45%</span>
+          </div>
+          <div class="info-row">
+            <IconifyIconOnline icon="ri:database-2-line" class="info-icon" />
+            <span class="info-text">内存: 2.4 GB / 8 GB</span>
+          </div>
+          <template #footer>
+            <el-button size="small" type="primary">监控</el-button>
+            <el-button size="small">终端</el-button>
+          </template>
+        </ScCard>
+
+        <ScCard
+          layout="compact"
+          title="测试节点"
+          subtitle="192.168.1.101:8080"
+          icon="ri:bug-line"
+          icon-bg-color="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+          theme="warning"
+        >
+          <template #status>
+            <el-tag type="warning" size="small">维护中</el-tag>
+          </template>
+          <div class="info-row">
+            <IconifyIconOnline icon="ri:time-line" class="info-icon" />
+            <span class="info-text">上次心跳: 5分钟前</span>
+          </div>
+          <template #footer>
+            <el-button size="small" type="warning">重启</el-button>
+          </template>
+        </ScCard>
+      </div>
+    </div>
+
     <div class="demo-section">
       <h3 class="section-title">默认布局</h3>
       <div class="card-row">
@@ -64,7 +183,12 @@
     <div class="demo-section">
       <h3 class="section-title">媒体卡片布局</h3>
       <div class="card-row">
-        <ScCard class="demo-card" layout="media" title="媒体卡片标题" subtitle="副标题内容">
+        <ScCard
+          class="demo-card"
+          layout="media"
+          title="媒体卡片标题"
+          subtitle="副标题内容"
+        >
           <template #media>
             <img src="https://via.placeholder.com/120" alt="示例图片" />
           </template>
@@ -76,7 +200,12 @@
           </template>
         </ScCard>
 
-        <ScCard class="demo-card" layout="media" title="产品展示" subtitle="产品描述信息">
+        <ScCard
+          class="demo-card"
+          layout="media"
+          title="产品展示"
+          subtitle="产品描述信息"
+        >
           <div class="demo-content">
             <p>左侧为默认的媒体占位符，可以放置产品图片。</p>
             <p>右侧可以放置产品描述、价格等信息。</p>
@@ -183,13 +312,41 @@ import ScCard from "@repo/components/ScCard/index.vue";
       @media (max-width: 768px) {
         grid-template-columns: 1fr;
       }
+
+      &.stats-row {
+        grid-template-columns: repeat(4, 1fr);
+
+        @media (max-width: 1400px) {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        @media (max-width: 768px) {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      &.compact-row {
+        grid-template-columns: repeat(3, 1fr);
+
+        @media (max-width: 1200px) {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        @media (max-width: 768px) {
+          grid-template-columns: 1fr;
+        }
+      }
     }
 
     .demo-card {
       height: 200px;
 
       &.custom-card {
-        background: linear-gradient(135deg, var(--el-color-primary-light-8), var(--el-color-primary-light-9));
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary-light-8),
+          var(--el-color-primary-light-9)
+        );
         border-radius: 16px;
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 
@@ -246,6 +403,29 @@ import ScCard from "@repo/components/ScCard/index.vue";
   .media-actions {
     display: flex;
     gap: 8px;
+  }
+
+  // 紧凑型卡片的info-row样式
+  .info-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .info-icon {
+      color: var(--el-text-color-secondary);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .info-text {
+      font-size: 13px;
+      color: var(--el-text-color-regular);
+    }
   }
 }
 </style>
