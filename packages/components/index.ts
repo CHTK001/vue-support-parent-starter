@@ -7,8 +7,9 @@ import { ScRibbon } from "./ScRibbon";
 import ScProgress from "./ScProgress/index.vue";
 import { ScImage } from "./ScImage";
 import { ScSocketPanel } from "./ScSocketPanel";
-import ScOperationMonitor from "./ScOperationMonitor/index.vue";
-export { ReMenuNewBadge, ScCard, ScPanel, ScTable, ScRibbon, ScProgress, ScImage, ScSocketPanel, ScOperationMonitor };
+import ScMessageDialog from "./ScMessageDialog/index.vue";
+
+export { ReMenuNewBadge, ScCard, ScPanel, ScTable, ScRibbon, ScProgress, ScImage, ScSocketPanel, ScMessageDialog };
 
 export default {
   ScTable,
@@ -20,5 +21,5 @@ export default {
   ScProgress,
   ScImage,
   ScSocketPanel,
-  ScOperationMonitor
+  ScMessageDialog
 };

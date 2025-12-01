@@ -1,5 +1,5 @@
 <template>
-  <ScOperationMonitor
+  <ScMessageDialog
     title="Docker操作"
     icon="ri:docker-line"
     position="bottom-right"
@@ -14,12 +14,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { ScOperationMonitor } from '@repo/components';
+import { ScMessageDialog } from '@repo/components';
 import { useDockerOperationStore } from '@/stores/dockerOperation';
 
 /**
  * Docker操作监控组件
- * 使用通用ScOperationMonitor组件，显示在右下角
+ * 使用通用ScMessageDialog组件，显示在右下角
  * @author CH
  * @version 1.1.0
  * @since 2025-12-01

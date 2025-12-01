@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="sc-operation-monitor" 
+    class="sc-message-dialog" 
     :class="{ expanded: isExpanded, minimized: isMinimized }"
     :style="computedStyle"
   >
@@ -40,42 +40,60 @@
       </div>
 
       <div class="panel-content">
-        <div v-if="operations.length === 0" class="empty-state">
-          <IconifyIconOnline icon="ri:inbox-line" class="empty-icon" />
-          <p>{{ emptyText }}</p>
-        </div>
+        <!-- 自定义内容插槽 -->
+        <slot name="content">
+          <div v-if="operations.length === 0" class="empty-state">
+            <!-- 空状态插槽 -->
+            <slot name="empty">
+              <IconifyIconOnline icon="ri:inbox-line" class="empty-icon" />
+              <p>{{ emptyText }}</p>
+            </slot>
+          </div>
 
-        <div v-else class="operation-list">
-          <div
-            v-for="op in operations"
-            :key="op.id"
-            class="operation-item"
-            :class="[op.status, { 'has-error': op.error }]"
-          >
-            <div class="operation-icon">
-              <IconifyIconOnline :icon="getOperationIcon(op.type)" />
-            </div>
-            <div class="operation-info">
-              <div class="operation-title">{{ op.title }}</div>
-              <div class="operation-desc">{{ op.description }}</div>
-              <div v-if="op.status === 'running'" class="operation-progress">
-                <el-progress
-                  :percentage="op.progress || 0"
-                  :stroke-width="4"
-                  :show-text="false"
-                  status="primary"
-                />
-                <span class="progress-text">{{ op.progress || 0 }}%</span>
-              </div>
-              <div v-if="op.error" class="operation-error">{{ op.error }}</div>
-            </div>
-            <div class="operation-status">
-              <el-tag :type="getStatusType(op.status)" size="small">
-                {{ getStatusText(op.status) }}
-              </el-tag>
+          <div v-else class="operation-list">
+            <div
+              v-for="op in operations"
+              :key="op.id"
+              class="operation-item"
+              :class="[op.status, { 'has-error': op.error }]"
+            >
+              <!-- 操作项插槽 -->
+              <slot name="item" :operation="op">
+                <div class="operation-icon">
+                  <slot name="item-icon" :operation="op">
+                    <IconifyIconOnline :icon="getOperationIcon(op.type)" />
+                  </slot>
+                </div>
+                <div class="operation-info">
+                  <div class="operation-title">{{ op.title }}</div>
+                  <div class="operation-desc">{{ op.description }}</div>
+                  <div v-if="op.status === 'running'" class="operation-progress">
+                    <el-progress
+                      :percentage="op.progress || 0"
+                      :stroke-width="4"
+                      :show-text="false"
+                      status="primary"
+                    />
+                    <span class="progress-text">{{ op.progress || 0 }}%</span>
+                  </div>
+                  <div v-if="op.error" class="operation-error">{{ op.error }}</div>
+                </div>
+                <div class="operation-status">
+                  <slot name="item-status" :operation="op">
+                    <el-tag :type="getStatusType(op.status)" size="small">
+                      {{ getStatusText(op.status) }}
+                    </el-tag>
+                  </slot>
+                </div>
+              </slot>
             </div>
           </div>
-        </div>
+        </slot>
+      </div>
+      
+      <!-- 底部操作区插槽 -->
+      <div v-if="$slots.footer" class="panel-footer">
+        <slot name="footer"></slot>
       </div>
     </div>
   </div>
@@ -85,8 +103,9 @@
 import { computed, ref, CSSProperties } from 'vue';
 
 /**
- * 通用操作监控组件
- * 可配置位置（左下角/右下角），支持自定义主题色
+ * 消息对话框组件
+ * 支持四角定位、自定义偏移量、主题色配置
+ * 用于显示操作进度、消息通知等
  * @author CH
  * @version 1.0.0
  * @since 2025-12-01
@@ -95,21 +114,30 @@ import { computed, ref, CSSProperties } from 'vue';
 // 操作状态类型
 export type OperationStatus = 'pending' | 'running' | 'completed' | 'failed';
 
+// 位置类型
+export type PositionType = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
 // 操作记录接口
 export interface Operation {
+  /** 唯一标识 */
   id: string;
+  /** 操作类型 */
   type: string;
+  /** 标题 */
   title: string;
+  /** 描述 */
   description: string;
+  /** 状态 */
   status: OperationStatus;
+  /** 进度(0-100) */
   progress?: number;
+  /** 错误信息 */
   error?: string;
+  /** 创建时间 */
   createdAt?: number;
+  /** 更新时间 */
   updatedAt?: number;
 }
-
-// 位置类型
-type PositionType = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 // 组件属性
 interface Props {
@@ -162,11 +190,12 @@ const emit = defineEmits<{
 const isExpanded = ref(false);
 const isMinimized = ref(true);
 
-// 计算属性
+// 计算属性：活跃操作数量
 const activeCount = computed(() => 
   props.operations.filter(op => op.status === 'pending' || op.status === 'running').length
 );
 
+// 计算属性：已完成操作数量
 const completedCount = computed(() => 
   props.operations.filter(op => op.status === 'completed' || op.status === 'failed').length
 );
@@ -174,11 +203,10 @@ const completedCount = computed(() =>
 // 计算位置样式
 const computedStyle = computed<CSSProperties>(() => {
   const style: CSSProperties = {
-    position: 'fixed',
+    position: 'absolute',
     zIndex: 2000,
   };
   
-  // 根据位置设置
   switch (props.position) {
     case 'top-left':
       style.top = `${props.offsetY}px`;
@@ -216,27 +244,37 @@ const headerStyle = computed<CSSProperties>(() => ({
   background: `linear-gradient(135deg, ${props.themeColor} 0%, ${adjustColor(props.themeColor, -20)} 100%)`,
 }));
 
-// 切换展开/折叠
+/**
+ * 切换展开/折叠
+ */
 const toggleExpand = () => {
   isExpanded.value = !isExpanded.value;
   isMinimized.value = !isExpanded.value;
   emit('expand', isExpanded.value);
 };
 
-// 切换最小化
+/**
+ * 切换最小化
+ */
 const toggleMinimize = () => {
   isMinimized.value = true;
   isExpanded.value = false;
   emit('expand', false);
 };
 
-// 清除已完成
+/**
+ * 清除已完成
+ */
 const handleClear = () => {
   emit('clear');
 };
 
-// 获取操作图标
-const getOperationIcon = (type: string) => {
+/**
+ * 获取操作图标
+ * @param type 操作类型
+ * @returns 图标名称
+ */
+const getOperationIcon = (type: string): string => {
   const defaultIcons: Record<string, string> = {
     'upload': 'ri:upload-cloud-line',
     'download': 'ri:download-cloud-line',
@@ -254,8 +292,12 @@ const getOperationIcon = (type: string) => {
   return props.iconMap[type] || defaultIcons[type] || 'ri:terminal-box-line';
 };
 
-// 获取状态类型
-const getStatusType = (status: string) => {
+/**
+ * 获取状态类型
+ * @param status 状态
+ * @returns Element Plus Tag类型
+ */
+const getStatusType = (status: string): string => {
   const typeMap: Record<string, string> = {
     'pending': 'info',
     'running': 'primary',
@@ -265,12 +307,21 @@ const getStatusType = (status: string) => {
   return typeMap[status] || 'info';
 };
 
-// 获取状态文本
-const getStatusText = (status: string) => {
+/**
+ * 获取状态文本
+ * @param status 状态
+ * @returns 状态文本
+ */
+const getStatusText = (status: string): string => {
   return props.statusTextMap[status] || status;
 };
 
-// 颜色调整工具函数
+/**
+ * 颜色调整工具函数
+ * @param hex 十六进制颜色
+ * @param amount 调整量
+ * @returns 调整后的颜色
+ */
 function adjustColor(hex: string, amount: number): string {
   const num = parseInt(hex.replace('#', ''), 16);
   const r = Math.min(255, Math.max(0, (num >> 16) + amount));
@@ -279,6 +330,12 @@ function adjustColor(hex: string, amount: number): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }
 
+/**
+ * 十六进制转RGBA
+ * @param hex 十六进制颜色
+ * @param alpha 透明度
+ * @returns RGBA颜色字符串
+ */
 function hexToRgba(hex: string, alpha: number): string {
   const num = parseInt(hex.replace('#', ''), 16);
   const r = (num >> 16) & 255;
@@ -286,10 +343,17 @@ function hexToRgba(hex: string, alpha: number): string {
   const b = num & 255;
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
+
+// 暴露方法
+defineExpose({
+  toggleExpand,
+  toggleMinimize,
+  handleClear,
+});
 </script>
 
 <style scoped lang="scss">
-.sc-operation-monitor {
+.sc-message-dialog {
   // 位置样式通过计算属性动态设置
 }
 
@@ -367,6 +431,15 @@ function hexToRgba(hex: string, alpha: number): string {
     flex: 1;
     overflow-y: auto;
     padding: 12px;
+  }
+
+  .panel-footer {
+    padding: 12px 16px;
+    background: #fafafa;
+    border-top: 1px solid #ebeef5;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
   }
 }
 
