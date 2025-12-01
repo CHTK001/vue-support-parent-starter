@@ -299,7 +299,7 @@ defineExpose({
 .upload-queue-status {
   position: fixed;
   bottom: 20px;
-  right: 20px;
+  left: 20px;
   width: 400px;
   max-height: 500px;
   z-index: 1000;
@@ -507,7 +507,7 @@ defineExpose({
 @media (max-width: 768px) {
   .upload-queue-status {
     width: 300px;
-    right: 10px;
+    left: 10px;
     bottom: 10px;
 
     &.is-collapsed {
