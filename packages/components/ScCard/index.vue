@@ -13,9 +13,11 @@ import DefaultLayout from "./layouts/Default.vue";
 import MediaLayout from "./layouts/Media.vue";
 import HeaderContentLayout from "./layouts/HeaderContent.vue";
 import Panel3D from "./layouts/Panel3D.vue";
+import CompactLayout from "./layouts/Compact.vue";
+import StatsLayout from "./layouts/Stats.vue";
 
 // 布局类型
-type LayoutType = "default" | "media" | "header-content" | "panel-3d" | "custom";
+type LayoutType = "default" | "media" | "header-content" | "panel-3d" | "compact" | "stats" | "custom";
 
 export default defineComponent({
   name: "ScCard",
@@ -24,7 +26,9 @@ export default defineComponent({
     DefaultLayout,
     MediaLayout,
     HeaderContentLayout,
-    Panel3D
+    Panel3D,
+    CompactLayout,
+    StatsLayout
   },
   props: {
   /**
@@ -33,7 +37,7 @@ export default defineComponent({
   layout: {
       type: String as PropType<LayoutType>,
     default: "default",
-      validator: (val: string) => ["default", "media", "header-content", "panel-3d", "custom"].includes(val)
+      validator: (val: string) => ["default", "media", "header-content", "panel-3d", "compact", "stats", "custom"].includes(val)
     },
     /**
      * 渲染模式，可以选择使用 el-card 或自定义 div
@@ -187,6 +191,55 @@ export default defineComponent({
     default: "20px"
   },
   /**
+   * 副标题（仅在 layout="compact" 时有效）
+   */
+  subtitle: {
+    type: String,
+    default: ""
+  },
+  /**
+   * 图标背景色（仅在 layout="compact" 时有效）
+   */
+  iconBgColor: {
+    type: String,
+    default: ""
+  },
+  /**
+   * 数值（仅在 layout="stats" 时有效）
+   */
+  value: {
+    type: [String, Number],
+    default: ""
+  },
+  /**
+   * 标签（仅在 layout="stats" 时有效）
+   */
+  label: {
+    type: String,
+    default: ""
+  },
+  /**
+   * 趋势图标（仅在 layout="stats" 时有效）
+   */
+  trendIcon: {
+    type: String,
+    default: ""
+  },
+  /**
+   * 趋势文本（仅在 layout="stats" 时有效）
+   */
+  trendText: {
+    type: String,
+    default: ""
+  },
+  /**
+   * 是否正在计数动画（仅在 layout="stats" 时有效）
+   */
+  counting: {
+    type: Boolean,
+    default: false
+  },
+  /**
      * 自定义组件（仅在 layout="custom" 时有效）
    */
     customComponent: {
@@ -209,6 +262,10 @@ export default defineComponent({
           return HeaderContentLayout;
         case "panel-3d":
           return Panel3D;
+        case "compact":
+          return CompactLayout;
+        case "stats":
+          return StatsLayout;
         case "custom":
           return props.customComponent || DefaultLayout;
         default:
@@ -261,6 +318,27 @@ export default defineComponent({
             borderColor: props.borderColor,
             activeBorderColor: props.activeBorderColor,
             padding: props.padding
+          };
+        case "compact":
+          return {
+            ...baseProps,
+            icon: props.icon,
+            subtitle: props.subtitle,
+            iconBgColor: props.iconBgColor,
+            active: props.active,
+            theme: props.theme
+          };
+        case "stats":
+          return {
+            ...baseProps,
+            icon: props.icon,
+            value: props.value,
+            label: props.label,
+            trendIcon: props.trendIcon,
+            trendText: props.trendText,
+            counting: props.counting,
+            active: props.active,
+            theme: props.theme
           };
         case "custom":
     return {

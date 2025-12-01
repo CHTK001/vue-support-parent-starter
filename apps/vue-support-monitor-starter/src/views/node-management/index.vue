@@ -3,89 +3,53 @@
     <!-- 统计卡片 -->
     <div class="stats-section">
       <div class="stats-grid">
-        <div class="stat-card total-nodes" @click="filterByStatus('all')">
-          <div class="stat-background">
-            <div class="stat-pattern"></div>
-          </div>
-          <div class="stat-content">
-            <div class="stat-icon">
-              <IconifyIconOnline icon="ri:server-line" />
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" :class="{ counting: isCountingUp }">
-                {{ animatedStats.totalNodes }}
-              </div>
-              <div class="stat-label">总节点数</div>
-              <div class="stat-trend">
-                <IconifyIconOnline icon="ri:arrow-up-line" class="trend-icon" />
-                <span class="trend-text">实时更新</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ScCard
+          layout="stats"
+          theme="primary"
+          icon="ri:server-line"
+          :value="animatedStats.totalNodes"
+          label="总节点数"
+          trend-icon="ri:arrow-up-line"
+          trend-text="实时更新"
+          :counting="isCountingUp"
+          @click="filterByStatus('all')"
+        />
 
-        <div class="stat-card online-nodes" @click="filterByStatus('ONLINE')">
-          <div class="stat-background">
-            <div class="stat-pattern"></div>
-          </div>
-          <div class="stat-content">
-            <div class="stat-icon">
-              <IconifyIconOnline icon="ri:checkbox-circle-line" />
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" :class="{ counting: isCountingUp }">
-                {{ animatedStats.onlineNodes }}
-              </div>
-              <div class="stat-label">在线节点</div>
-              <div class="stat-trend">
-                <IconifyIconOnline icon="ri:pulse-line" class="trend-icon" />
-                <span class="trend-text">{{ getOnlineRate() }}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ScCard
+          layout="stats"
+          theme="success"
+          icon="ri:checkbox-circle-line"
+          :value="animatedStats.onlineNodes"
+          label="在线节点"
+          trend-icon="ri:pulse-line"
+          :trend-text="`${getOnlineRate()}%`"
+          :counting="isCountingUp"
+          @click="filterByStatus('ONLINE')"
+        />
 
-        <div class="stat-card healthy-nodes" @click="filterByStatus('healthy')">
-          <div class="stat-background">
-            <div class="stat-pattern"></div>
-          </div>
-          <div class="stat-content">
-            <div class="stat-icon">
-              <IconifyIconOnline icon="ri:heart-pulse-line" />
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" :class="{ counting: isCountingUp }">
-                {{ animatedStats.healthyNodes }}
-              </div>
-              <div class="stat-label">健康节点</div>
-              <div class="stat-trend">
-                <IconifyIconOnline icon="ri:heart-line" class="trend-icon" />
-                <span class="trend-text">{{ getHealthRate() }}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ScCard
+          layout="stats"
+          theme="info"
+          icon="ri:heart-pulse-line"
+          :value="animatedStats.healthyNodes"
+          label="健康节点"
+          trend-icon="ri:heart-line"
+          :trend-text="`${getHealthRate()}%`"
+          :counting="isCountingUp"
+          @click="filterByStatus('healthy')"
+        />
 
-        <div class="stat-card error-nodes" @click="filterByStatus('error')">
-          <div class="stat-background">
-            <div class="stat-pattern"></div>
-          </div>
-          <div class="stat-content">
-            <div class="stat-icon">
-              <IconifyIconOnline icon="ri:error-warning-line" />
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" :class="{ counting: isCountingUp }">
-                {{ animatedStats.errorNodes }}
-              </div>
-              <div class="stat-label">异常节点</div>
-              <div class="stat-trend">
-                <IconifyIconOnline icon="ri:alert-line" class="trend-icon" />
-                <span class="trend-text">需关注</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ScCard
+          layout="stats"
+          theme="danger"
+          icon="ri:error-warning-line"
+          :value="animatedStats.errorNodes"
+          label="异常节点"
+          trend-icon="ri:alert-line"
+          trend-text="需关注"
+          :counting="isCountingUp"
+          @click="filterByStatus('error')"
+        />
       </div>
     </div>
 
@@ -162,202 +126,240 @@
 
     <!-- 节点列表 -->
     <div class="nodes-section">
-      <div v-if="loading && nodeList.length === 0" class="loading-container">
-        <div class="loading-content">
-          <el-skeleton :rows="3" animated />
-          <p class="loading-text">正在加载节点数据...</p>
-        </div>
-      </div>
-
-      <div v-else-if="filteredNodeList.length === 0" class="empty-container">
-        <el-empty description="暂无节点数据" :image-size="120">
-          <template #description>
-            <p class="empty-text">{{ getEmptyText() }}</p>
-          </template>
-          <el-button type="primary" @click="refreshNodes">
-            <IconifyIconOnline icon="ri:refresh-line" />
-            刷新数据
-          </el-button>
-        </el-empty>
-      </div>
-
-      <!-- 卡片视图 -->
-      <div v-else-if="viewMode === 'card'" class="nodes-grid">
-        <transition-group name="node-card" tag="div" class="grid-container">
+      <ScTable
+        ref="scTableRef"
+        :data="{ data: filteredNodeList, total: filteredNodeList.length }"
+        :layout="viewMode"
+        :loading="loading"
+        :col-size="4"
+        :row-size="3"
+        :height="tableHeight"
+        row-key="nodeId"
+        hide-pagination
+        hide-do
+        :search="false"
+        empty-text="暂无节点数据"
+      >
+        <!-- 卡片视图模板 -->
+        <template #default="{ row }">
           <div
-            v-for="(node, index) in filteredNodeList"
-            :key="node.nodeId"
-            class="node-card-wrapper"
-            :style="{ animationDelay: `${index * 0.05}s` }"
+            class="node-card"
+            :class="[
+              getNodeCardClass(row),
+              { 'menu-active': showMenu && hoveredNode?.nodeId === row.nodeId },
+            ]"
+            @click="viewNodeDetail(row)"
+            @mouseenter="showActionMenu(row, $event)"
+            @mouseleave="hideActionMenu"
           >
-            <div
-              class="node-card"
-              :class="[
-                getNodeCardClass(node),
-                {
-                  'menu-active':
-                    showMenu && hoveredNode?.nodeId === node.nodeId,
-                },
-              ]"
-              @click="viewNodeDetail(node)"
-              @mouseenter="showActionMenu(node, $event)"
-              @mouseleave="hideActionMenu"
-            >
-              <div class="card-header">
-                <div class="node-info">
-                  <div class="node-name">
+            <div class="card-header">
+              <div class="node-info">
+                <div class="node-name">
+                  <IconifyIconOnline icon="ri:server-line" class="node-icon" />
+                  <span class="name-text">{{
+                    row.nodeName || row.applicationName
+                  }}</span>
+                </div>
+                <div class="node-address">
+                  <IconifyIconOnline
+                    icon="ri:global-line"
+                    class="address-icon"
+                  />
+                  <span>{{ row.ipAddress }}:{{ row.port }}</span>
+                </div>
+              </div>
+              <div class="node-status">
+                <el-tag
+                  :type="getStatusType(row.status)"
+                  :effect="row.status === 'ONLINE' ? 'dark' : 'plain'"
+                  class="status-tag"
+                >
+                  <IconifyIconOnline :icon="getStatusIcon(row.status)" />
+                  {{ getStatusText(row.status) }}
+                </el-tag>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="node-details">
+                <div class="detail-row">
+                  <div class="detail-item">
                     <IconifyIconOnline
-                      icon="ri:server-line"
-                      class="node-icon"
+                      icon="ri:apps-line"
+                      class="detail-icon"
                     />
-                    <span class="name-text">{{
-                      node.nodeName || node.applicationName
-                    }}</span>
+                    <div class="detail-info">
+                      <span class="detail-label">应用名称</span>
+                      <span class="detail-value">{{
+                        row.applicationName || "N/A"
+                      }}</span>
+                    </div>
                   </div>
-                  <div class="node-address">
+                  <div class="detail-item">
+                    <IconifyIconOnline
+                      icon="ri:links-line"
+                      class="detail-icon"
+                    />
+                    <div class="detail-info">
+                      <span class="detail-label">连接数</span>
+                      <span class="detail-value">{{
+                        row.connectionCount || 0
+                      }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="detail-row">
+                  <div class="detail-item">
+                    <IconifyIconOnline
+                      icon="ri:settings-3-line"
+                      class="detail-icon"
+                    />
+                    <div class="detail-info">
+                      <span class="detail-label">运行环境</span>
+                      <span
+                        class="detail-value"
+                        :class="
+                          getEnvironmentClass(row.metadata?.applicationActive)
+                        "
+                      >
+                        {{ row.metadata?.applicationActive || "N/A" }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="detail-item">
                     <IconifyIconOnline
                       icon="ri:global-line"
-                      class="address-icon"
+                      class="detail-icon"
                     />
-                    <span>{{ node.ipAddress }}:{{ node.port }}</span>
-                  </div>
-                </div>
-                <div class="node-status">
-                  <el-tag
-                    :type="getStatusType(node.status)"
-                    :effect="node.status === 'ONLINE' ? 'dark' : 'plain'"
-                    class="status-tag"
-                  >
-                    <IconifyIconOnline :icon="getStatusIcon(node.status)" />
-                    {{ getStatusText(node.status) }}
-                  </el-tag>
-                </div>
-              </div>
-
-              <div class="card-body">
-                <div class="node-details">
-                  <div class="detail-row">
-                    <div class="detail-item">
-                      <IconifyIconOnline
-                        icon="ri:apps-line"
-                        class="detail-icon"
-                      />
-                      <div class="detail-info">
-                        <span class="detail-label">应用名称</span>
-                        <span class="detail-value">{{
-                          node.applicationName || "N/A"
-                        }}</span>
-                      </div>
-                    </div>
-                    <div class="detail-item">
-                      <IconifyIconOnline
-                        icon="ri:links-line"
-                        class="detail-icon"
-                      />
-                      <div class="detail-info">
-                        <span class="detail-label">连接数</span>
-                        <span class="detail-value">{{
-                          node.connectionCount || 0
-                        }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="detail-row">
-                    <div class="detail-item">
-                      <IconifyIconOnline
-                        icon="ri:settings-3-line"
-                        class="detail-icon"
-                      />
-                      <div class="detail-info">
-                        <span class="detail-label">运行环境</span>
-                        <span
-                          class="detail-value"
-                          :class="
-                            getEnvironmentClass(
-                              node.metadata?.applicationActive
-                            )
-                          "
-                          >{{ node.metadata?.applicationActive || "N/A" }}</span
-                        >
-                      </div>
-                    </div>
-                    <div class="detail-item">
-                      <IconifyIconOnline
-                        icon="ri:global-line"
-                        class="detail-icon"
-                      />
-                      <div class="detail-info">
-                        <span class="detail-label">请求地址</span>
-                        <span class="detail-value">{{
-                          node.metadata?.contextPath || "/"
-                        }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    v-if="node.metadata?.applicationActiveInclude"
-                    class="detail-row single"
-                  >
-                    <div class="detail-item full-width">
-                      <IconifyIconOnline
-                        icon="ri:file-settings-line"
-                        class="detail-icon"
-                      />
-                      <div class="detail-info">
-                        <span class="detail-label">配置项</span>
-                        <span class="detail-value config-value">{{
-                          node.metadata.applicationActiveInclude
-                        }}</span>
-                      </div>
+                    <div class="detail-info">
+                      <span class="detail-label">请求地址</span>
+                      <span class="detail-value">{{
+                        row.metadata?.contextPath || "/"
+                      }}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div class="card-footer">
-                <div class="footer-info">
-                  <div class="connect-time">
-                    <IconifyIconOnline icon="ri:time-line" />
-                    <span>{{ formatConnectTime(node.connectTime) }}</span>
-                  </div>
-                  <div class="last-heartbeat">
+                <div
+                  v-if="row.metadata?.applicationActiveInclude"
+                  class="detail-row single"
+                >
+                  <div class="detail-item full-width">
                     <IconifyIconOnline
-                      icon="ri:heart-pulse-line"
-                      class="heartbeat-icon"
+                      icon="ri:file-settings-line"
+                      class="detail-icon"
                     />
-                    <span class="heartbeat-text">
-                      {{ formatHeartbeat(node.lastHeartbeatTime) }}
-                    </span>
+                    <div class="detail-info">
+                      <span class="detail-label">配置项</span>
+                      <span class="detail-value config-value">{{
+                        row.metadata.applicationActiveInclude
+                      }}</span>
+                    </div>
                   </div>
-                </div>
-                <div class="card-actions">
-                  <el-button-group size="small">
-                    <el-button
-                      @click.stop="openNodeDocumentation(node)"
-                      title="API文档"
-                    >
-                      <IconifyIconOnline icon="ri:file-text-line" />
-                    </el-button>
-                    <el-button
-                      @click.stop="checkNodeHealth(node)"
-                      :loading="nodeCheckingStatus[node.nodeId]"
-                      title="健康检查"
-                    >
-                      <IconifyIconOnline icon="ri:stethoscope-line" />
-                    </el-button>
-                    <el-button
-                      @click.stop="viewNodeDetail(node)"
-                      title="查看详情"
-                    >
-                      <IconifyIconOnline icon="ri:eye-line" />
-                    </el-button>
-                  </el-button-group>
                 </div>
               </div>
             </div>
+
+            <div class="card-footer">
+              <div class="footer-info">
+                <div class="connect-time">
+                  <IconifyIconOnline icon="ri:time-line" />
+                  <span>{{ formatConnectTime(row.connectTime) }}</span>
+                </div>
+                <div class="last-heartbeat">
+                  <IconifyIconOnline
+                    icon="ri:heart-pulse-line"
+                    class="heartbeat-icon"
+                  />
+                  <span class="heartbeat-text">{{
+                    formatHeartbeat(row.lastHeartbeatTime)
+                  }}</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <el-button-group size="small">
+                  <el-button
+                    @click.stop="openNodeDocumentation(row)"
+                    title="API文档"
+                  >
+                    <IconifyIconOnline icon="ri:file-text-line" />
+                  </el-button>
+                  <el-button
+                    @click.stop="checkNodeHealth(row)"
+                    :loading="nodeCheckingStatus[row.nodeId]"
+                    title="健康检查"
+                  >
+                    <IconifyIconOnline icon="ri:stethoscope-line" />
+                  </el-button>
+                  <el-button @click.stop="viewNodeDetail(row)" title="查看详情">
+                    <IconifyIconOnline icon="ri:eye-line" />
+                  </el-button>
+                </el-button-group>
+              </div>
+            </div>
           </div>
-        </transition-group>
-      </div>
+        </template>
+
+        <!-- 表格视图列定义 -->
+        <el-table-column prop="nodeName" label="节点名称" min-width="150">
+          <template #default="{ row }">
+            <div class="node-name-cell">
+              <IconifyIconOnline icon="ri:server-line" class="node-icon" />
+              <span>{{ row.nodeName || row.applicationName }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="ipAddress" label="IP地址" min-width="140">
+          <template #default="{ row }">
+            {{ row.ipAddress }}:{{ row.port }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="applicationName"
+          label="应用名称"
+          min-width="120"
+        />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getStatusType(row.status)" size="small">
+              {{ getStatusText(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="connectionCount"
+          label="连接数"
+          width="80"
+          align="center"
+        />
+        <el-table-column
+          prop="lastHeartbeatTime"
+          label="最后心跳"
+          min-width="120"
+        >
+          <template #default="{ row }">
+            {{ formatHeartbeat(row.lastHeartbeatTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
+          <template #default="{ row }">
+            <el-button-group size="small">
+              <el-button @click="openNodeDocumentation(row)" title="API文档">
+                <IconifyIconOnline icon="ri:file-text-line" />
+              </el-button>
+              <el-button
+                @click="checkNodeHealth(row)"
+                :loading="nodeCheckingStatus[row.nodeId]"
+                title="健康检查"
+              >
+                <IconifyIconOnline icon="ri:stethoscope-line" />
+              </el-button>
+              <el-button @click="viewNodeDetail(row)" title="查看详情">
+                <IconifyIconOnline icon="ri:eye-line" />
+              </el-button>
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </ScTable>
     </div>
 
     <!-- 悬停功能菜单 -->
@@ -444,6 +446,8 @@ import {
 } from "@/api/node-management";
 import { parseTime } from "@/utils/const";
 import LoggerConfig from "./module/logger-config/index.vue";
+import ScCard from "@repo/components/ScCard/index.vue";
+import ScTable from "@repo/components/ScTable/index.vue";
 
 // 路由
 const router = useRouter();
@@ -504,6 +508,8 @@ const selectedNodeForLogger = ref<OnlineNodeInfo | null>(null);
 const selectedApplication = ref("");
 const selectedStatus = ref("");
 const viewMode = ref<"card" | "table">("card");
+const scTableRef = ref();
+const tableHeight = ref("calc(100vh - 280px)");
 
 // 轮询相关
 let pollingTimer: NodeJS.Timeout | null = null;
@@ -1077,7 +1083,6 @@ onUnmounted(() => {
 .node-management-container {
   padding: 0;
   background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 50%, #f8fafc 100%);
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
 
@@ -1088,167 +1093,8 @@ onUnmounted(() => {
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 20px;
-
-      .stat-card {
-        position: relative;
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(20px);
-        border-radius: 20px;
-        padding: 32px;
-        cursor: pointer;
-        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        overflow: hidden;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 4px;
-          background: linear-gradient(135deg, #667eea, #764ba2);
-          opacity: 0;
-          transition: opacity 0.3s ease;
-        }
-
-        &:hover {
-          transform: translateY(-12px) scale(1.03);
-          box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
-
-          &::before {
-            opacity: 1;
-          }
-        }
-
-        .stat-background {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          opacity: 0.1;
-          z-index: 0;
-
-          .stat-pattern {
-            width: 100%;
-            height: 100%;
-            background-image:
-              radial-gradient(
-                circle at 20% 50%,
-                currentColor 2px,
-                transparent 2px
-              ),
-              radial-gradient(
-                circle at 80% 50%,
-                currentColor 2px,
-                transparent 2px
-              );
-            background-size: 30px 30px;
-            animation: patternMove 20s linear infinite;
-          }
-        }
-
-        .stat-content {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          align-items: center;
-
-          .stat-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 64px;
-            height: 64px;
-            border-radius: 16px;
-            margin-right: 20px;
-            font-size: 28px;
-            color: var(--el-text-color-primary);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-          }
-
-          .stat-info {
-            flex: 1;
-
-            .stat-value {
-              font-size: 32px;
-              font-weight: 700;
-              line-height: 1;
-              margin-bottom: 4px;
-              transition: all 0.3s ease;
-
-              &.counting {
-                color: #409eff;
-                transform: scale(1.1);
-              }
-            }
-
-            .stat-label {
-              font-size: 14px;
-              color: #64748b;
-              font-weight: 500;
-              margin-bottom: 8px;
-            }
-
-            .stat-trend {
-              display: flex;
-              align-items: center;
-              font-size: 12px;
-              color: #10b981;
-
-              .trend-icon {
-                margin-right: 4px;
-                font-size: 14px;
-              }
-
-              .trend-text {
-                font-weight: 500;
-              }
-            }
-          }
-        }
-
-        // 不同类型的卡片样式
-        &.total-nodes {
-          .stat-icon {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          }
-          .stat-background {
-            color: #667eea;
-          }
-        }
-
-        &.online-nodes {
-          .stat-icon {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          }
-          .stat-background {
-            color: #10b981;
-          }
-        }
-
-        &.healthy-nodes {
-          .stat-icon {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-          }
-          .stat-background {
-            color: #f59e0b;
-          }
-        }
-
-        &.error-nodes {
-          .stat-icon {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-          }
-          .stat-background {
-            color: #ef4444;
-          }
-        }
-      }
     }
   }
 
@@ -2459,7 +2305,7 @@ onUnmounted(() => {
       p {
         margin: 4px 0 0 0;
         font-size: 14px;
-         color: var(--el-text-color-primary);
+        color: var(--el-text-color-primary);
       }
     }
   }

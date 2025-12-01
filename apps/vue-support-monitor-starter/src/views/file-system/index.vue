@@ -3,33 +3,33 @@
     <!-- 统计卡片 -->
     <div class="stats-section">
       <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon total">
-            <IconifyIconOnline icon="ri:file-list-3-line" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ statistics.totalFiles }}</div>
-            <div class="stat-label">总文件</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon size">
-            <IconifyIconOnline icon="ri:hard-drive-2-line" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ formatFileSize(statistics.totalSize) }}</div>
-            <div class="stat-label">总大小</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon completed">
-            <IconifyIconOnline icon="ri:checkbox-circle-line" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ statistics.completedFiles }}</div>
-            <div class="stat-label">已完成</div>
-          </div>
-        </div>
+        <ScCard
+          layout="stats"
+          theme="primary"
+          icon="ri:file-list-3-line"
+          :value="statistics.totalFiles"
+          label="总文件"
+          trend-icon="ri:folder-line"
+          trend-text="全部文件"
+        />
+        <ScCard
+          layout="stats"
+          theme="info"
+          icon="ri:hard-drive-2-line"
+          :value="formatFileSize(statistics.totalSize)"
+          label="总大小"
+          trend-icon="ri:database-2-line"
+          trend-text="存储空间"
+        />
+        <ScCard
+          layout="stats"
+          theme="success"
+          icon="ri:checkbox-circle-line"
+          :value="statistics.completedFiles"
+          label="已完成"
+          trend-icon="ri:check-double-line"
+          trend-text="合并完成"
+        />
       </div>
     </div>
 
@@ -65,7 +65,10 @@
           <!-- 连接状态 -->
           <el-tooltip :content="connectionStatusText" placement="bottom">
             <div class="connection-badge" :class="connectionStatusClass">
-              <IconifyIconOnline :icon="connectionStatusIcon" class="status-icon" />
+              <IconifyIconOnline
+                :icon="connectionStatusIcon"
+                class="status-icon"
+              />
               <span>{{ connectionStatusText }}</span>
             </div>
           </el-tooltip>
@@ -83,7 +86,12 @@
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
           </el-button>
-          <el-button v-if="showDebugInfo" @click="showDebugInfo = false" type="info" plain>
+          <el-button
+            v-if="showDebugInfo"
+            @click="showDebugInfo = false"
+            type="info"
+            plain
+          >
             <IconifyIconOnline icon="ri:bug-line" class="mr-1" />
             关闭调试
           </el-button>
@@ -100,23 +108,43 @@
       <el-card class="debug-card">
         <template #header>
           <div class="debug-header">
-            <span><IconifyIconOnline icon="ri:terminal-box-line" class="mr-2" />SSE连接调试</span>
+            <span
+              ><IconifyIconOnline
+                icon="ri:terminal-box-line"
+                class="mr-2"
+              />SSE连接调试</span
+            >
             <div class="debug-actions">
-              <el-button @click="testSSEConnection" type="primary" size="small">测试连接</el-button>
-              <el-button @click="testBackendAPI" type="success" size="small">测试API</el-button>
+              <el-button @click="testSSEConnection" type="primary" size="small"
+                >测试连接</el-button
+              >
+              <el-button @click="testBackendAPI" type="success" size="small"
+                >测试API</el-button
+              >
             </div>
           </div>
         </template>
         <el-descriptions :column="4" border size="small">
           <el-descriptions-item label="连接状态">
-            <el-tag :type="sseState.connected ? 'success' : 'danger'" size="small">
+            <el-tag
+              :type="sseState.connected ? 'success' : 'danger'"
+              size="small"
+            >
               {{ connectionStatusText }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="客户端ID">{{ sseState.clientId || "未分配" }}</el-descriptions-item>
-          <el-descriptions-item label="重连次数">{{ sseState.reconnectAttempts }}</el-descriptions-item>
+          <el-descriptions-item label="客户端ID">{{
+            sseState.clientId || "未分配"
+          }}</el-descriptions-item>
+          <el-descriptions-item label="重连次数">{{
+            sseState.reconnectAttempts
+          }}</el-descriptions-item>
           <el-descriptions-item label="最后心跳">
-            {{ sseState.lastHeartbeat ? new Date(sseState.lastHeartbeat).toLocaleString() : "无" }}
+            {{
+              sseState.lastHeartbeat
+                ? new Date(sseState.lastHeartbeat).toLocaleString()
+                : "无"
+            }}
           </el-descriptions-item>
         </el-descriptions>
       </el-card>
@@ -127,8 +155,15 @@
       <!-- 左侧分组树 -->
       <div class="group-panel">
         <div class="panel-header">
-          <h3><IconifyIconOnline icon="ri:folder-3-line" class="mr-2" />文件分组</h3>
-          <el-button type="primary" size="small" circle @click="handleCreateGroup">
+          <h3>
+            <IconifyIconOnline icon="ri:folder-3-line" class="mr-2" />文件分组
+          </h3>
+          <el-button
+            type="primary"
+            size="small"
+            circle
+            @click="handleCreateGroup"
+          >
             <IconifyIconOnline icon="ri:add-line" />
           </el-button>
         </div>
@@ -150,7 +185,9 @@
                   class="node-icon"
                 />
                 <span class="node-name">{{ data.fileSystemGroupName }}</span>
-                <el-tag size="small" type="info" class="node-count">{{ data.fileCount || 0 }}</el-tag>
+                <el-tag size="small" type="info" class="node-count">{{
+                  data.fileCount || 0
+                }}</el-tag>
               </div>
             </template>
           </el-tree>
@@ -161,8 +198,19 @@
       <div class="file-panel">
         <div class="panel-header">
           <div class="header-left">
-            <h3><IconifyIconOnline icon="ri:file-list-3-line" class="mr-2" />文件列表</h3>
-            <el-tag v-if="selectedGroupId" type="primary" size="small" closable @close="clearGroupFilter">
+            <h3>
+              <IconifyIconOnline
+                icon="ri:file-list-3-line"
+                class="mr-2"
+              />文件列表
+            </h3>
+            <el-tag
+              v-if="selectedGroupId"
+              type="primary"
+              size="small"
+              closable
+              @close="clearGroupFilter"
+            >
               {{ getSelectedGroupName() }}
             </el-tag>
           </div>
@@ -174,7 +222,8 @@
               @click="showMoveToGroupDialog = true"
             >
               <IconifyIconOnline icon="ri:folder-transfer-line" class="mr-1" />
-              移动 {{ selectedFiles.length > 0 ? `(${selectedFiles.length})` : '' }}
+              移动
+              {{ selectedFiles.length > 0 ? `(${selectedFiles.length})` : "" }}
             </el-button>
             <el-button
               type="danger"
@@ -205,35 +254,62 @@
             <el-table-column label="文件名" min-width="240">
               <template #default="{ row }">
                 <div class="file-cell">
-                  <div class="file-icon-wrapper" :class="getFileTypeClass(row.fileSystemType)">
-                    <IconifyIconOnline :icon="getFileIcon(row.fileSystemType)" />
+                  <div
+                    class="file-icon-wrapper"
+                    :class="getFileTypeClass(row.fileSystemType)"
+                  >
+                    <IconifyIconOnline
+                      :icon="getFileIcon(row.fileSystemType)"
+                    />
                   </div>
                   <div class="file-info">
-                    <span class="file-name" :title="row.fileSystemName">{{ row.fileSystemName }}</span>
-                    <span class="file-meta">{{ formatFileSize(row.fileSystemSize) }}</span>
+                    <span class="file-name" :title="row.fileSystemName">{{
+                      row.fileSystemName
+                    }}</span>
+                    <span class="file-meta">{{
+                      formatFileSize(row.fileSystemSize)
+                    }}</span>
                   </div>
                 </div>
               </template>
             </el-table-column>
             <el-table-column label="状态" width="110" align="center">
               <template #default="{ row }">
-                <el-tag :type="getStatusType(row.fileSystemStatus)" size="small" effect="light">
-                  <IconifyIconOnline :icon="getStatusIcon(row.fileSystemStatus)" class="mr-1" />
+                <el-tag
+                  :type="getStatusType(row.fileSystemStatus)"
+                  size="small"
+                  effect="light"
+                >
+                  <IconifyIconOnline
+                    :icon="getStatusIcon(row.fileSystemStatus)"
+                    class="mr-1"
+                  />
                   {{ getStatusText(row.fileSystemStatus) }}
                 </el-tag>
               </template>
             </el-table-column>
             <el-table-column label="上传进度" width="160">
               <template #default="{ row }">
-                <div v-if="row.fileSystemChunkTotal > 0" class="progress-wrapper">
+                <div
+                  v-if="row.fileSystemChunkTotal > 0"
+                  class="progress-wrapper"
+                >
                   <el-progress
-                    :percentage="Math.round((row.fileSystemChunkUploaded / row.fileSystemChunkTotal) * 100)"
+                    :percentage="
+                      Math.round(
+                        (row.fileSystemChunkUploaded /
+                          row.fileSystemChunkTotal) *
+                          100
+                      )
+                    "
                     :status="getProgressStatus(row.fileSystemStatus)"
                     :stroke-width="8"
                     :show-text="false"
                   />
                   <span class="progress-text">
-                    {{ row.fileSystemChunkUploaded }}/{{ row.fileSystemChunkTotal }}
+                    {{ row.fileSystemChunkUploaded }}/{{
+                      row.fileSystemChunkTotal
+                    }}
                   </span>
                 </div>
                 <span v-else class="text-muted">-</span>
@@ -251,7 +327,9 @@
             </el-table-column>
             <el-table-column label="创建时间" width="160">
               <template #default="{ row }">
-                <span class="time-text">{{ formatDateTime(row.createTime) }}</span>
+                <span class="time-text">{{
+                  formatDateTime(row.createTime)
+                }}</span>
               </template>
             </el-table-column>
             <el-table-column label="操作" width="180" fixed="right">
@@ -289,11 +367,7 @@
                   >
                     <IconifyIconOnline icon="ri:git-merge-line" />
                   </el-button>
-                  <el-button
-                    link
-                    type="danger"
-                    @click="handleDelete(row)"
-                  >
+                  <el-button link type="danger" @click="handleDelete(row)">
                     <IconifyIconOnline icon="ri:delete-bin-line" />
                   </el-button>
                 </div>
@@ -448,6 +522,7 @@ import UploadQueueStatusComponent from "./components/UploadQueueStatus.vue";
 import FileSystemSettings from "./components/FileSystemSettings.vue";
 import MD5TestDialog from "./components/MD5TestDialog.vue";
 import FileSystemGroupDialog from "./components/FileSystemGroupDialog.vue";
+import ScCard from "@repo/components/ScCard/index.vue";
 
 // SSE连接
 const {
@@ -810,7 +885,9 @@ const getSelectedGroupName = () => {
     }
     return "";
   };
-  return selectedGroupId.value ? findGroup(groupTree.value, selectedGroupId.value) : "";
+  return selectedGroupId.value
+    ? findGroup(groupTree.value, selectedGroupId.value)
+    : "";
 };
 
 /**
@@ -1104,80 +1181,22 @@ const testBackendAPI = async () => {
 
   // 统计卡片区域
   .stats-section {
-    padding: 16px 32px;
-    background: rgba(255, 255, 255, 0.6);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+    padding: 20px 32px;
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-    }
-
-    .stat-card {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px;
-      background: var(--app-card-bg, #fff);
-      border-radius: 12px;
-      border: 1px solid rgba(226, 232, 240, 0.8);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-      transition: all 0.3s ease;
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      }
-
-      .stat-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-
-        &.total {
-          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-          color: #2563eb;
-        }
-
-        &.size {
-          background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
-          color: #9333ea;
-        }
-
-        &.completed {
-          background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-          color: #16a34a;
-        }
-      }
-
-      .stat-info {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-
-        .stat-value {
-          font-size: 20px;
-          font-weight: 700;
-          color: var(--app-text-primary, #1e293b);
-          line-height: 1.2;
-        }
-
-        .stat-label {
-          font-size: 12px;
-          color: var(--app-text-secondary, #64748b);
-        }
-      }
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
     }
   }
 
   // 页面头部
   .page-header {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(248, 250, 252, 0.9) 100%
+    );
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(226, 232, 240, 0.8);
     padding: 24px 32px;
@@ -1270,14 +1289,19 @@ const testBackendAPI = async () => {
       align-items: center;
       gap: 16px;
 
-      .left, .right {
+      .left,
+      .right {
         display: flex;
         align-items: center;
         gap: 12px;
       }
 
-      .w-280 { width: 280px; }
-      .w-160 { width: 160px; }
+      .w-280 {
+        width: 280px;
+      }
+      .w-160 {
+        width: 160px;
+      }
 
       .connection-badge {
         display: flex;
@@ -1290,7 +1314,9 @@ const testBackendAPI = async () => {
         cursor: pointer;
         transition: all 0.3s ease;
 
-        .status-icon { font-size: 14px; }
+        .status-icon {
+          font-size: 14px;
+        }
 
         &.status-connected {
           background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
@@ -1302,10 +1328,13 @@ const testBackendAPI = async () => {
           background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
           color: #d97706;
           border: 1px solid #fcd34d;
-          .status-icon { animation: spin 1s linear infinite; }
+          .status-icon {
+            animation: spin 1s linear infinite;
+          }
         }
 
-        &.status-error, &.status-disconnected {
+        &.status-error,
+        &.status-disconnected {
           background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
           color: #dc2626;
           border: 1px solid #fca5a5;
@@ -1395,9 +1424,17 @@ const testBackendAPI = async () => {
           background: #f1f5f9;
         }
 
-        .node-icon { font-size: 18px; }
-        .node-name { flex: 1; font-size: 14px; color: #334155; }
-        .node-count { font-size: 11px; }
+        .node-icon {
+          font-size: 18px;
+        }
+        .node-name {
+          flex: 1;
+          font-size: 14px;
+          color: #334155;
+        }
+        .node-count {
+          font-size: 11px;
+        }
       }
     }
   }
@@ -1464,13 +1501,34 @@ const testBackendAPI = async () => {
       justify-content: center;
       font-size: 20px;
 
-      &.type-image { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #d97706; }
-      &.type-video { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #2563eb; }
-      &.type-audio { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); color: #9333ea; }
-      &.type-document { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #16a34a; }
-      &.type-archive { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #dc2626; }
-      &.type-code { background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); color: #4f46e5; }
-      &.type-default { background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); color: #64748b; }
+      &.type-image {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #d97706;
+      }
+      &.type-video {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        color: #2563eb;
+      }
+      &.type-audio {
+        background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+        color: #9333ea;
+      }
+      &.type-document {
+        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        color: #16a34a;
+      }
+      &.type-archive {
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        color: #dc2626;
+      }
+      &.type-code {
+        background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+        color: #4f46e5;
+      }
+      &.type-default {
+        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        color: #64748b;
+      }
     }
 
     .file-info {
@@ -1553,10 +1611,20 @@ const testBackendAPI = async () => {
         font-size: 13px;
         border-radius: 6px;
 
-        &:hover { background: #e2e8f0; }
+        &:hover {
+          background: #e2e8f0;
+        }
 
-        .file-icon { font-size: 16px; color: #3b82f6; }
-        .file-name { color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-icon {
+          font-size: 16px;
+          color: #3b82f6;
+        }
+        .file-name {
+          color: #334155;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
       }
 
       .more-files {
@@ -1582,16 +1650,26 @@ const testBackendAPI = async () => {
       gap: 8px;
       flex: 1;
 
-      .group-name { flex: 1; color: #334155; }
-      .file-count { font-size: 12px; color: #64748b; }
+      .group-name {
+        flex: 1;
+        color: #334155;
+      }
+      .file-count {
+        font-size: 12px;
+        color: #64748b;
+      }
     }
   }
 }
 
 // 动画
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 // 响应式设计 - 只在小屏幕上才变成上下布局

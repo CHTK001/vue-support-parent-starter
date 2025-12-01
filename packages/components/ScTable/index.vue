@@ -8,6 +8,7 @@ import CardView from "./components/CardView.vue";
 import ListView from "./components/ListView.vue";
 import TableView from "./components/TableView.vue";
 import VirtualTableView from "./components/VirtualTableView.vue";
+import WaterfallView from "./components/WaterfallView.vue";
 import Pagination from "./plugins/Pagination.vue";
 
 const columnSetting = defineAsyncComponent(() => import("./plugins/columnSetting.vue"));
@@ -22,7 +23,7 @@ const props = defineProps({
   contextmenu: { type: Function, default: () => ({}) },
   contextmenuClass: { type: String, default: "" },
   params: { type: Object, default: () => ({}) },
-  layout: { type: String, default: "table" }, // 支持 table, card, list, virtual, canvas 五种布局
+  layout: { type: String, default: "table" }, // 支持 table, card, list, virtual, canvas, waterfall 六种布局
   cardLayout: { type: String, default: "default" }, // 卡片布局类型，可选值：card, default
   filter: {
     type: Object,
@@ -64,7 +65,11 @@ const props = defineProps({
   paginationLayout: { type: String, default: config.paginationLayout },
   paginationType: { type: String, default: "default" }, // 分页类型：default-当前分页，scroll-滚动分页
   autoLoad: { type: Boolean, default: true }, // 是否在滚动到底部时自动加载更多数据
-  loadDistance: { type: Number, default: 50 } // 距离底部多少像素时触发加载
+  loadDistance: { type: Number, default: 50 }, // 距离底部多少像素时触发加载
+  // 瀑布流相关配置
+  waterfallGap: { type: Number, default: 16 }, // 瀑布流卡片间距
+  estimatedItemHeight: { type: Number, default: 200 }, // 预估卡片高度
+  bufferSize: { type: Number, default: 5 } // 虚拟滚动缓冲区大小
 });
 
 // 定义组件事件
@@ -1034,7 +1039,8 @@ const componentMap = {
   card: CardView,
   list: ListView,
   virtual: VirtualTableView,
-  canvas: CanvasTableView
+  canvas: CanvasTableView,
+  waterfall: WaterfallView
 };
 
 // 暴露方法给父组件
@@ -1095,11 +1101,21 @@ defineExpose({
           :col-size="colSize"
           :row-size="rowSize"
           :layout="layout === 'card' ? cardLayout : undefined"
+          :loading="loading"
+          :total="total"
+          :current-page="currentPage"
+          :page-size="scPageSize"
+          :gap="waterfallGap"
+          :estimated-item-height="estimatedItemHeight"
+          :buffer-size="bufferSize"
           @row-click="onRowClick"
           @col-click="onColClick"
           @selection-change="selectionChange"
           @sort-change="sortChange"
           @filter-change="filterChange"
+          @load-more="onLoadMore"
+          @next-page="onNextPage"
+          @update:current-page="onUpdateCurrentPage"
         >
           <template #default="{ row, index }">
             <slot :row="row" :index="index" :default="row" />

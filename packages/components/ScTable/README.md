@@ -4,8 +4,9 @@ ScTable 是一个功能强大的数据表格组件，支持多种视图模式、
 
 ## 功能特性
 
-- 📊 **多种视图模式**：支持 table、card、list、virtual、canvas 五种布局
+- 📊 **多种视图模式**：支持 table、card、list、virtual、canvas、waterfall 六种布局
 - 🚀 **虚拟滚动**：支持大数据量的高性能渲染
+- 🌊 **瀑布流布局**：支持虚拟滚动的瀑布流卡片布局，只渲染可见区域提高性能
 - 💾 **数据缓存**：智能缓存机制，提升用户体验
 - 🔍 **搜索过滤**：内置搜索和过滤功能
 - 📱 **响应式设计**：自适应不同屏幕尺寸
@@ -144,6 +145,49 @@ const tableData = {
 </template>
 ```
 
+### 6. 瀑布流视图 (waterfall)
+
+瀑布流布局支持虚拟滚动，只渲染可见区域的项目，适合展示大量卡片数据。
+
+```vue
+<template>
+  <ScTable
+    :url="fetchData"
+    layout="waterfall"
+    :col-size="4"
+    :height="600"
+    :waterfall-gap="16"
+    :estimated-item-height="200"
+    :buffer-size="5"
+    row-key="id"
+  >
+    <template #default="{ row }">
+      <div class="waterfall-card">
+        <img :src="row.image" :alt="row.title" />
+        <h3>{{ row.title }}</h3>
+        <p>{{ row.description }}</p>
+      </div>
+    </template>
+  </ScTable>
+</template>
+```
+
+#### 瀑布流属性说明
+
+| 属性名 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| waterfallGap | Number | 16 | 卡片之间的间距(px) |
+| estimatedItemHeight | Number | 200 | 预估卡片高度，用于初始计算位置 |
+| bufferSize | Number | 5 | 缓冲区大小，可视区域外额外渲染的项目数 |
+
+#### 瀑布流性能优化原理
+
+1. **虚拟滚动**：只渲染可见区域内的项目，大幅减少 DOM 节点数量
+2. **位置缓存**：计算并缓存每个项目的位置信息，避免重复计算
+3. **缓冲区机制**：在可视区域外预渲染一定数量的项目，保证滚动流畅
+4. **GPU 加速**：使用 `transform: translateZ(0)` 启用硬件加速
+5. **节流处理**：滚动事件使用节流函数，减少计算频率
+
 ## API
 
 ### Props
@@ -155,7 +199,10 @@ const tableData = {
 | url | Function | null | 数据获取函数 |
 | data | Object | null | 静态数据 |
 | columns | Array | [] | 列配置 |
-| layout | String | 'table' | 视图模式：table/card/list/virtual/canvas |
+| layout | String | 'table' | 视图模式：table/card/list/virtual/canvas/waterfall |
+| waterfallGap | Number | 16 | 瀑布流卡片间距(px) |
+| estimatedItemHeight | Number | 200 | 瀑布流预估卡片高度 |
+| bufferSize | Number | 5 | 瀑布流虚拟滚动缓冲区大小 |
 | cardLayout | String | 'default' | 卡片布局类型 |
 | params | Object | {} | 请求参数 |
 | filter | Object | {} | 过滤条件 |
