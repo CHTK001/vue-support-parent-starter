@@ -23,8 +23,8 @@
       <el-badge :value="activeCount" :hidden="activeCount === 0" type="primary" class="dock-badge" />
     </div>
 
-    <!-- 折叠状态显示（只显示图标） -->
-    <div v-else-if="isMinimized" class="monitor-badge" :style="badgeStyle" @click="toggleExpand" :title="title">
+    <!-- 折叠状态显示（只显示图标，支持拖拽） -->
+    <div v-else-if="isMinimized" class="monitor-badge" :style="badgeStyle" :title="title" @mousedown="onMinimizedDragStart" @click="onMinimizedClick">
       <el-badge :value="activeCount" :hidden="activeCount === 0" type="primary">
         <div class="badge-icon">
           <slot name="icon">
@@ -232,6 +232,11 @@ const dragStartY = ref(0);
 const dialogX = ref(0);
 const dialogY = ref(0);
 
+// 最小化拖拽相关
+const isMinimizedDragging = ref(false);
+const minimizedDragMoved = ref(false);
+let animationFrameId: number | null = null;
+
 // 靠边吸附相关
 const isEdgeDocked = ref(false);
 const dockedEdge = ref<"left" | "right" | "top" | "bottom" | "">("");
@@ -389,17 +394,47 @@ const show = () => {
 };
 
 /**
- * 切换最小化
+ * 切换最小化，根据当前位置决定最小化到哪个角落
  */
 const toggleMinimize = () => {
+  // 计算当前位置应该最小化到哪个角落
+  const rect = dialogRef.value?.getBoundingClientRect();
+  if (rect) {
+    const viewWidth = window.innerWidth;
+    const viewHeight = window.innerHeight;
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    // 根据中心点位置决定最小化到哪个角落
+    const isLeft = centerX < viewWidth / 2;
+    const isTop = centerY < viewHeight / 2;
+
+    // 设置最小化位置
+    const margin = 20;
+    if (isLeft && isTop) {
+      dialogX.value = margin;
+      dialogY.value = margin;
+    } else if (!isLeft && isTop) {
+      dialogX.value = viewWidth - 48 - margin;
+      dialogY.value = margin;
+    } else if (isLeft && !isTop) {
+      dialogX.value = margin;
+      dialogY.value = viewHeight - 48 - margin;
+    } else {
+      dialogX.value = viewWidth - 48 - margin;
+      dialogY.value = viewHeight - 48 - margin;
+    }
+  }
+
   isMinimized.value = true;
   isExpanded.value = false;
   emit("expand", false);
 };
 
-// 拖拽相关函数
+// 拖拽相关函数（使用 requestAnimationFrame 优化性能）
 function onDragStart(e: MouseEvent) {
   if (isMinimized.value || isEdgeDocked.value) return;
+  e.preventDefault();
 
   isDragging.value = true;
 
@@ -415,44 +450,110 @@ function onDragStart(e: MouseEvent) {
   dragStartX.value = e.clientX - dialogX.value;
   dragStartY.value = e.clientY - dialogY.value;
 
-  document.addEventListener("mousemove", onDragMove);
+  document.addEventListener("mousemove", onDragMove, { passive: true });
   document.addEventListener("mouseup", onDragEnd);
 }
 
 function onDragMove(e: MouseEvent) {
   if (!isDragging.value) return;
 
-  let newX = e.clientX - dragStartX.value;
-  let newY = e.clientY - dragStartY.value;
-
-  // Grid 吸附
-  if (props.enableGridSnap) {
-    newX = Math.round(newX / props.gridSize) * props.gridSize;
-    newY = Math.round(newY / props.gridSize) * props.gridSize;
+  // 使用 requestAnimationFrame 优化性能
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
   }
 
-  // 父元素边界限制
-  const boundary = getBoundaryRect();
-  if (boundary) {
-    const panelWidth = 380;
-    const panelHeight = 480;
+  animationFrameId = requestAnimationFrame(() => {
+    let newX = e.clientX - dragStartX.value;
+    let newY = e.clientY - dragStartY.value;
 
-    newX = Math.max(boundary.left, Math.min(newX, boundary.right - panelWidth));
-    newY = Math.max(boundary.top, Math.min(newY, boundary.bottom - panelHeight));
-  }
+    // Grid 吸附
+    if (props.enableGridSnap) {
+      newX = Math.round(newX / props.gridSize) * props.gridSize;
+      newY = Math.round(newY / props.gridSize) * props.gridSize;
+    }
 
-  dialogX.value = newX;
-  dialogY.value = newY;
+    // 父元素边界限制
+    const boundary = getBoundaryRect();
+    if (boundary) {
+      const panelWidth = 380;
+      const panelHeight = 480;
+
+      newX = Math.max(boundary.left, Math.min(newX, boundary.right - panelWidth));
+      newY = Math.max(boundary.top, Math.min(newY, boundary.bottom - panelHeight));
+    } else {
+      // 限制在窗口内
+      newX = Math.max(0, Math.min(newX, window.innerWidth - 380));
+      newY = Math.max(0, Math.min(newY, window.innerHeight - 480));
+    }
+
+    dialogX.value = newX;
+    dialogY.value = newY;
+  });
 }
 
 function onDragEnd() {
   isDragging.value = false;
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
   document.removeEventListener("mousemove", onDragMove);
   document.removeEventListener("mouseup", onDragEnd);
 
   // 检查是否需要靠边吸附
   if (props.enableEdgeDock) {
     checkEdgeDock();
+  }
+}
+
+// 最小化状态下的拖拽
+function onMinimizedDragStart(e: MouseEvent) {
+  e.preventDefault();
+  isMinimizedDragging.value = true;
+  minimizedDragMoved.value = false;
+
+  dragStartX.value = e.clientX - dialogX.value;
+  dragStartY.value = e.clientY - dialogY.value;
+
+  document.addEventListener("mousemove", onMinimizedDragMove, { passive: true });
+  document.addEventListener("mouseup", onMinimizedDragEnd);
+}
+
+function onMinimizedDragMove(e: MouseEvent) {
+  if (!isMinimizedDragging.value) return;
+  minimizedDragMoved.value = true;
+
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+  }
+
+  animationFrameId = requestAnimationFrame(() => {
+    let newX = e.clientX - dragStartX.value;
+    let newY = e.clientY - dragStartY.value;
+
+    // 限制在窗口内
+    newX = Math.max(0, Math.min(newX, window.innerWidth - 48));
+    newY = Math.max(0, Math.min(newY, window.innerHeight - 48));
+
+    dialogX.value = newX;
+    dialogY.value = newY;
+  });
+}
+
+function onMinimizedDragEnd() {
+  isMinimizedDragging.value = false;
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  document.removeEventListener("mousemove", onMinimizedDragMove);
+  document.removeEventListener("mouseup", onMinimizedDragEnd);
+}
+
+// 最小化状态点击（只有没有拖拽时才展开）
+function onMinimizedClick() {
+  if (!minimizedDragMoved.value) {
+    toggleExpand();
   }
 }
 
@@ -676,12 +777,21 @@ defineExpose({
   height: 48px;
   padding: 0;
   border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  cursor: grab;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  user-select: none;
+  will-change: transform;
 
   &:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  &:active {
+    cursor: grabbing;
+    transform: scale(1.05);
   }
 
   .badge-icon {
@@ -692,6 +802,7 @@ defineExpose({
     justify-content: center;
     font-size: 20px;
     color: white;
+    pointer-events: none;
   }
 }
 

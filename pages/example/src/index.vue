@@ -347,9 +347,32 @@ const componentList = computed(() => {
 <style scoped lang="scss">
 .example-container {
   min-height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
   padding: 32px;
   position: relative;
   background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+
+  // 滚动条样式
+  scrollbar-width: thin;
+  scrollbar-color: var(--el-color-primary, #6366f1) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--el-color-primary, #6366f1);
+    border-radius: 3px;
+
+    &:hover {
+      background: var(--el-color-primary-light-3, #8b5cf6);
+    }
+  }
 
   &::before {
     content: "";

@@ -7,6 +7,9 @@
 // 导入深色主题颜色  
 @use './dark';
 
+// 导入深色主题修复样式
+@use '../dark-theme-fix';
+
 // 颜色实用类 Color Utility Classes
 .app-text-primary { color: var(--app-text-primary) !important; }
 .app-text-secondary { color: var(--app-text-secondary) !important; }
