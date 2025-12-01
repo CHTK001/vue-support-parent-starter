@@ -1,8 +1,21 @@
 <template>
+  <!-- 最小化状态显示 -->
+  <div v-if="isMinimized" class="sc-dialog-minimized" :style="minimizedStyle" @click="handleRestore">
+    <div class="sc-dialog-minimized__icon">
+      <IconifyIconOnline :icon="minimizedIcon || icon" />
+    </div>
+    <el-tooltip :content="title" placement="top">
+      <span class="sc-dialog-minimized__title">{{ title }}</span>
+    </el-tooltip>
+  </div>
+
+  <!-- 正常对话框 -->
   <el-dialog
+    v-else
+    ref="dialogRef"
     v-model="dialogVisible"
     :title="title"
-    :width="width"
+    :width="currentWidth"
     :top="top"
     :modal="modal"
     :append-to-body="appendToBody"
@@ -14,20 +27,30 @@
     :draggable="draggable"
     :center="center"
     :destroy-on-close="destroyOnClose"
-    :class="['sc-dialog', 'sc-dialog--default', `sc-dialog--${type}`, { 'sc-dialog--with-icon': showIcon }]"
-    @open="$emit('open')"
+    :style="dialogStyle"
+    :class="dialogClasses"
+    @open="handleOpen"
     @opened="$emit('opened')"
     @close="$emit('close')"
-    @closed="$emit('closed')"
+    @closed="handleClosed"
+    @mousedown="handleDialogClick"
   >
-    <!-- 对话框图标 -->
-    <div v-if="showIcon" class="sc-dialog__icon">
-      <IconifyIconOnline :icon="icon" />
-    </div>
-
-    <!-- 自定义标题插槽 -->
-    <template v-if="$slots.header" #header>
-      <slot name="header" />
+    <!-- 自定义标题栏 -->
+    <template #header>
+      <div class="sc-dialog__header">
+        <div class="sc-dialog__header-left">
+          <div v-if="showIcon" class="sc-dialog__header-icon">
+            <IconifyIconOnline :icon="icon" />
+          </div>
+          <slot name="header">
+            <span class="sc-dialog__title">{{ title }}</span>
+          </slot>
+        </div>
+        <div class="sc-dialog__header-actions">
+          <!-- 最小化按钮 -->
+          <el-button v-if="showMinimizeButton && enableMinimize" class="sc-dialog__action-btn" :icon="useRenderIcon(minimizeIcon)" circle size="small" @click.stop="handleMinimize" />
+        </div>
+      </div>
     </template>
 
     <!-- 内容区域 -->
@@ -54,14 +77,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { ElDialog, ElButton } from "element-plus";
-import { PropType } from "vue";
+/**
+ * ScDialog 默认布局组件
+ * 支持多弹框、边缘吸附、最小化等功能
+ * @author CH
+ * @version 3.0.0
+ * @since 2025-12-01
+ */
+import { ref, watch, onUnmounted, nextTick, computed, PropType } from "vue";
+import { ElDialog, ElButton, ElTooltip } from "element-plus";
+import interact from "interactjs";
+import { useDialogFeatures } from "../useDialogFeatures";
+import { dialogManager } from "../dialogManager";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import type { MinimizePosition, EdgeDockPosition } from "../types";
 
 const props = defineProps({
+  // 基础属性
   modelValue: {
     type: Boolean,
     default: false
+  },
+  dialogId: {
+    type: String,
+    default: ""
   },
   title: {
     type: String,
@@ -126,7 +165,7 @@ const props = defineProps({
   },
   showIcon: {
     type: Boolean,
-    default: true
+    default: false
   },
   isForm: {
     type: Boolean,
@@ -169,15 +208,154 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+
+  // 缩放属性
+  resizable: {
+    type: Boolean,
+    default: false
+  },
+  resizeEdges: {
+    type: Object as PropType<{ left?: boolean; right?: boolean; top?: boolean; bottom?: boolean }>,
+    default: () => ({ left: true, right: true, bottom: true, top: false })
+  },
+  minSize: {
+    type: Object as PropType<{ width: number; height: number }>,
+    default: () => ({ width: 300, height: 200 })
+  },
+  maxSize: {
+    type: Object as PropType<{ width: number; height: number }>,
+    default: () => ({ width: Infinity, height: Infinity })
+  },
+  preserveAspectRatio: {
+    type: Boolean,
+    default: false
+  },
+
+  // 边缘吸附属性
+  enableEdgeDock: {
+    type: Boolean,
+    default: false
+  },
+  edgeDockThreshold: {
+    type: Number,
+    default: 50
+  },
+
+  // 最小化属性
+  enableMinimize: {
+    type: Boolean,
+    default: false
+  },
+  showMinimizeButton: {
+    type: Boolean,
+    default: false
+  },
+  minimizeIcon: {
+    type: String,
+    default: "ri:subtract-line"
+  },
+  minimizedIcon: {
+    type: String,
+    default: "ri:window-line"
+  },
+  defaultMinimizePosition: {
+    type: String as PropType<MinimizePosition>,
+    default: "bottom-right"
   }
 });
 
-const emit = defineEmits(["update:modelValue", "open", "opened", "close", "closed", "cancel", "confirm"]);
+const emit = defineEmits(["update:modelValue", "open", "opened", "close", "closed", "cancel", "confirm", "resize", "minimize", "restore", "edgeDock", "edgeUndock"]);
 
-/**
- * 对话框可见状态
- */
+// 对话框引用
+const dialogRef = ref<InstanceType<typeof ElDialog> | null>(null);
+const dialogElRef = ref<HTMLElement | null>(null);
+
+// interact 实例
+let interactInstance: ReturnType<typeof interact> | null = null;
+
+// 当前尺寸
+const currentSize = ref({ width: 0, height: 0 });
+
+// 生成对话框ID
+const internalDialogId = computed(() => {
+  return props.dialogId || dialogManager.generateId();
+});
+
+// 使用对话框功能
 const dialogVisible = ref(props.modelValue);
+
+const {
+  isMinimized,
+  isEdgeDocked,
+  dockedEdge,
+  minimizePosition,
+  position,
+  size,
+  zIndex,
+  minimizedStyle,
+  minimize,
+  restore,
+  dockToEdge,
+  undockFromEdge,
+  activateDialog,
+  handleDragEnd,
+  getState,
+  getNearestEdge
+} = useDialogFeatures({
+  dialogId: internalDialogId.value,
+  title: props.title,
+  icon: props.icon,
+  enableEdgeDock: props.enableEdgeDock,
+  edgeDockThreshold: props.edgeDockThreshold,
+  enableMinimize: props.enableMinimize,
+  defaultMinimizePosition: props.defaultMinimizePosition,
+  visible: dialogVisible,
+  dialogRef: dialogElRef
+});
+
+// 计算当前宽度
+const currentWidth = computed(() => {
+  if (isEdgeDocked.value) {
+    return `${size.value.width}px`;
+  }
+  if (currentSize.value.width > 0) {
+    return `${currentSize.value.width}px`;
+  }
+  return props.width;
+});
+
+// 计算对话框样式
+const dialogStyle = computed(() => {
+  const style: Record<string, string> = {};
+
+  if (isEdgeDocked.value) {
+    style.position = "fixed";
+    style.top = `${position.value.y}px`;
+    style.left = `${position.value.x}px`;
+    style.margin = "0";
+    style.height = `${size.value.height}px`;
+  }
+
+  style.zIndex = String(zIndex.value);
+
+  return style;
+});
+
+// 计算对话框类名
+const dialogClasses = computed(() => {
+  return [
+    "sc-dialog",
+    "sc-dialog--default",
+    `sc-dialog--${props.type}`,
+    {
+      "sc-dialog--with-icon": props.showIcon,
+      "sc-dialog--resizable": props.resizable,
+      "sc-dialog--edge-docked": isEdgeDocked.value,
+      [`sc-dialog--docked-${dockedEdge.value}`]: isEdgeDocked.value && dockedEdge.value
+    }
+  ];
+});
 
 /**
  * 监听modelValue变化，同步到dialogVisible
@@ -224,6 +402,167 @@ const onCancel = () => {
 const onConfirm = () => {
   emit("confirm");
 };
+
+/**
+ * 初始化 interact 缩放
+ */
+const initResize = () => {
+  if (!props.resizable) return;
+
+  nextTick(() => {
+    // 获取对话框元素
+    const dialogEl = document.querySelector(".sc-dialog--resizable .el-dialog") as HTMLElement;
+    if (!dialogEl) return;
+
+    // 销毁旧实例
+    if (interactInstance) {
+      interactInstance.unset();
+    }
+
+    // 创建新实例
+    interactInstance = interact(dialogEl).resizable({
+      edges: props.resizeEdges,
+      listeners: {
+        move(event) {
+          const target = event.target;
+
+          // 更新尺寸
+          currentSize.value.width = event.rect.width;
+          currentSize.value.height = event.rect.height;
+
+          // 应用样式
+          target.style.width = `${event.rect.width}px`;
+          target.style.height = `${event.rect.height}px`;
+
+          // 处理从左边或上边缩放时的位置调整
+          const x = (parseFloat(target.getAttribute("data-x")) || 0) + event.deltaRect.left;
+          const y = (parseFloat(target.getAttribute("data-y")) || 0) + event.deltaRect.top;
+
+          target.style.transform = `translate(${x}px, ${y}px)`;
+          target.setAttribute("data-x", String(x));
+          target.setAttribute("data-y", String(y));
+
+          emit("resize", { width: event.rect.width, height: event.rect.height });
+        }
+      },
+      modifiers: [
+        interact.modifiers.restrictSize({
+          min: props.minSize,
+          max: props.maxSize
+        })
+      ],
+      inertia: false
+    });
+
+    // 添加宽高比保持
+    if (props.preserveAspectRatio) {
+      interactInstance.resizable({
+        modifiers: [
+          interact.modifiers.aspectRatio({
+            ratio: "preserve"
+          }),
+          interact.modifiers.restrictSize({
+            min: props.minSize,
+            max: props.maxSize
+          })
+        ]
+      });
+    }
+  });
+};
+
+/**
+ * 销毁 interact 实例
+ */
+const destroyResize = () => {
+  if (interactInstance) {
+    interactInstance.unset();
+    interactInstance = null;
+  }
+  // 重置尺寸
+  currentSize.value = { width: 0, height: 0 };
+};
+
+/**
+ * 处理对话框打开事件
+ */
+const handleOpen = () => {
+  emit("open");
+  if (props.resizable) {
+    initResize();
+  }
+};
+
+/**
+ * 处理对话框关闭动画结束事件
+ */
+const handleClosed = () => {
+  emit("closed");
+  destroyResize();
+};
+
+/**
+ * 处理最小化
+ */
+const handleMinimize = () => {
+  const pos = getNearestMinimizePosition();
+  minimize(pos);
+  emit("minimize", pos);
+};
+
+/**
+ * 处理恢复
+ */
+const handleRestore = () => {
+  restore();
+  emit("restore");
+};
+
+/**
+ * 获取最近的最小化位置
+ * @returns 最小化位置
+ */
+const getNearestMinimizePosition = (): MinimizePosition => {
+  // 获取对话框当前位置
+  const dialogEl = document.querySelector(".sc-dialog--default .el-dialog") as HTMLElement;
+  if (!dialogEl) return props.defaultMinimizePosition;
+
+  const rect = dialogEl.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const windowWidth = window.innerWidth;
+  const windowHeight = window.innerHeight;
+
+  const isLeft = centerX < windowWidth / 2;
+  const isTop = centerY < windowHeight / 2;
+
+  if (isTop && isLeft) return "top-left";
+  if (isTop && !isLeft) return "top-right";
+  if (!isTop && isLeft) return "bottom-left";
+  return "bottom-right";
+};
+
+/**
+ * 处理对话框点击（激活）
+ */
+const handleDialogClick = () => {
+  activateDialog();
+};
+
+/**
+ * 暴露方法给父组件
+ */
+defineExpose({
+  minimize: handleMinimize,
+  restore: handleRestore,
+  dockToEdge,
+  undockFromEdge,
+  getState
+});
+
+onUnmounted(() => {
+  destroyResize();
+});
 </script>
 
 <style lang="scss">
@@ -436,6 +775,219 @@ const onConfirm = () => {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* 可缩放对话框样式 */
+.sc-dialog--resizable {
+  .el-dialog {
+    touch-action: none;
+    user-select: none;
+
+    // 缩放手柄样式
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      background: transparent;
+    }
+
+    // 右边缘
+    &::after {
+      right: 0;
+      top: 0;
+      width: 8px;
+      height: 100%;
+      cursor: ew-resize;
+    }
+
+    // 底边缘
+    &::before {
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 8px;
+      cursor: ns-resize;
+    }
+  }
+
+  // 右下角缩放手柄
+  .el-dialog__body::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 16px;
+    height: 16px;
+    cursor: nwse-resize;
+    background: linear-gradient(
+      135deg,
+      transparent 50%,
+      var(--el-border-color) 50%,
+      var(--el-border-color) 60%,
+      transparent 60%,
+      transparent 70%,
+      var(--el-border-color) 70%,
+      var(--el-border-color) 80%,
+      transparent 80%
+    );
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    border-radius: 0 0 12px 0;
+  }
+
+  .el-dialog:hover .el-dialog__body::after {
+    opacity: 1;
+  }
+}
+
+/* 自定义标题栏样式 */
+.sc-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.sc-dialog__header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sc-dialog__header-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--el-color-primary-light-8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    font-size: 18px;
+    color: var(--el-color-primary);
+  }
+}
+
+.sc-dialog__title {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--el-text-color-primary);
+}
+
+.sc-dialog__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 30px;
+}
+
+.sc-dialog__action-btn {
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+
+  &:hover {
+    background: var(--el-fill-color-light) !important;
+  }
+}
+
+/* 最小化状态样式 */
+.sc-dialog-minimized {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  animation: sc-dialog-minimize-in 0.3s ease-out;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  &__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--el-color-primary-light-8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+      font-size: 18px;
+      color: var(--el-color-primary);
+    }
+  }
+
+  &__title {
+    font-size: 10px;
+    color: var(--el-text-color-secondary);
+    max-width: 48px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: none;
+  }
+}
+
+@keyframes sc-dialog-minimize-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 边缘吸附样式 */
+.sc-dialog--edge-docked {
+  .el-dialog {
+    margin: 0 !important;
+    border-radius: 0 !important;
+    max-height: 100vh !important;
+
+    .el-dialog__body {
+      max-height: calc(100vh - 120px) !important;
+    }
+  }
+
+  &.sc-dialog--docked-left .el-dialog {
+    border-left: none !important;
+    border-top-right-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+  }
+
+  &.sc-dialog--docked-right .el-dialog {
+    border-right: none !important;
+    border-top-left-radius: 8px !important;
+    border-bottom-left-radius: 8px !important;
+  }
+
+  &.sc-dialog--docked-top .el-dialog {
+    border-top: none !important;
+    border-bottom-left-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+  }
+
+  &.sc-dialog--docked-bottom .el-dialog {
+    border-bottom: none !important;
+    border-top-left-radius: 8px !important;
+    border-top-right-radius: 8px !important;
   }
 }
 </style>

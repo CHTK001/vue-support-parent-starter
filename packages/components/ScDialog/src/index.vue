@@ -3,15 +3,20 @@
     <!-- 根据布局类型选择不同的组件 -->
     <component
       :is="layoutComponent"
+      ref="layoutRef"
       v-bind="dialogProps"
       v-model="dialogVisible"
-      :showConfirmButton="showConfirmButton"
       @open="onOpen"
       @opened="onOpened"
       @close="onClose"
       @closed="onClosed"
       @cancel="handleCancel"
       @confirm="handleConfirm"
+      @resize="onResize"
+      @minimize="onMinimize"
+      @restore="onRestore"
+      @edgeDock="onEdgeDock"
+      @edgeUndock="onEdgeUndock"
     >
       <!-- 传递插槽内容 -->
       <template v-if="$slots.default" #default>
@@ -38,10 +43,14 @@ import HeadlessLayout from "./layouts/HeadlessLayout.vue";
 
 /**
  * 定义组件属性
+ * @author CH
+ * @version 3.0.0
+ * @since 2025-12-01
  */
 const props = withDefaults(defineProps<ScDialogProps>(), {
   // 对话框基本属性
   modelValue: false,
+  dialogId: "",
   title: "",
   width: "500px",
   top: "15vh",
@@ -63,6 +72,24 @@ const props = withDefaults(defineProps<ScDialogProps>(), {
   icon: "ep:info-filled",
   showIcon: true,
   isForm: false,
+
+  // 缩放属性
+  resizable: false,
+  resizeEdges: () => ({ left: true, right: true, bottom: true, top: false }),
+  minSize: () => ({ width: 300, height: 200 }),
+  maxSize: () => ({ width: Infinity, height: Infinity }),
+  preserveAspectRatio: false,
+
+  // 边缘吸附属性
+  enableEdgeDock: false,
+  edgeDockThreshold: 50,
+
+  // 最小化属性
+  enableMinimize: false,
+  showMinimizeButton: false,
+  minimizeIcon: "ri:subtract-line",
+  minimizedIcon: "ri:window-line",
+  defaultMinimizePosition: "bottom-right",
 
   // 底部按钮属性
   showFooter: true,
@@ -196,11 +223,91 @@ const close = () => {
 };
 
 /**
+ * 布局组件引用
+ */
+const layoutRef = ref<InstanceType<typeof DefaultLayout> | null>(null);
+
+/**
+ * 缩放事件
+ */
+const onResize = (size: { width: number; height: number }) => {
+  emit("resize", size);
+};
+
+/**
+ * 最小化事件
+ */
+const onMinimize = (position: import("./types").MinimizePosition) => {
+  emit("minimize", position);
+};
+
+/**
+ * 恢复事件
+ */
+const onRestore = () => {
+  emit("restore");
+};
+
+/**
+ * 边缘吸附事件
+ */
+const onEdgeDock = (edge: import("./types").EdgeDockPosition) => {
+  emit("edgeDock", edge);
+};
+
+/**
+ * 取消边缘吸附事件
+ */
+const onEdgeUndock = () => {
+  emit("edgeUndock");
+};
+
+/**
+ * 最小化对话框
+ */
+const minimize = (position?: import("./types").MinimizePosition) => {
+  layoutRef.value?.minimize(position);
+};
+
+/**
+ * 恢复对话框
+ */
+const restore = () => {
+  layoutRef.value?.restore();
+};
+
+/**
+ * 吸附到边缘
+ */
+const dockToEdge = (edge: import("./types").EdgeDockPosition) => {
+  layoutRef.value?.dockToEdge(edge);
+};
+
+/**
+ * 取消边缘吸附
+ */
+const undockFromEdge = () => {
+  layoutRef.value?.undockFromEdge();
+};
+
+/**
+ * 获取对话框状态
+ */
+const getState = () => {
+  return layoutRef.value?.getState();
+};
+
+/**
  * 暴露方法给父组件
  */
 defineExpose({
   open,
-  close
+  close,
+  minimize,
+  restore,
+  dockToEdge,
+  undockFromEdge,
+  getState
 });
 </script>
 

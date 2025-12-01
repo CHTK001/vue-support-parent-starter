@@ -74,7 +74,8 @@
     "vue-types": "catalog:",
     "vue3-compare-image": "catalog:",
     "vue3-puzzle-vcode": "catalog:",
-    "vuedraggable": "catalog:"
+    "vuedraggable": "catalog:",
+    "interactjs": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",

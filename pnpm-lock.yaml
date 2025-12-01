@@ -411,6 +411,9 @@ catalogs:
     husky:
       specifier: ^9.1.7
       version: 9.1.7
+    interactjs:
+      specifier: ^1.10.27
+      version: 1.10.27
     jiti:
       specifier: ^2.4.2
       version: 2.5.1
@@ -3311,6 +3314,9 @@ importers:
       h3-js:
         specifier: 'catalog:'
         version: 4.3.0
+      interactjs:
+        specifier: 'catalog:'
+        version: 1.10.27
       leaflet:
         specifier: 'catalog:'
         version: 1.9.4

@@ -1,21 +1,79 @@
 <template>
-  <el-container>
-    <el-header>
-      <el-page-header :content="data.name"></el-page-header>
-      <div class="do">
-        <el-button type="primary" @click="exportJson">export JSON</el-button>
-      </div>
-    </el-header>
-    <el-main>
-      <sc-workflow v-model="data.nodeConfig"></sc-workflow>
-    </el-main>
-  </el-container>
+  <div class="workflow-example">
+    <el-container>
+      <el-header>
+        <el-page-header :content="data.name"></el-page-header>
+        <div class="do">
+          <el-button type="primary" @click="exportJson">导出 JSON</el-button>
+        </div>
+      </el-header>
+      <el-main>
+        <sc-workflow v-model="data.nodeConfig"></sc-workflow>
+      </el-main>
+    </el-container>
+
+    <!-- 代码示例 -->
+    <div class="code-section">
+      <CodePreview :tabs="codeTabs" />
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { reactive } from "vue";
 import { ElMessage } from "element-plus";
 import scWorkflow from "@repo/components/ScWorkflow/index.vue";
+import CodePreview from "./CodePreview.vue";
+
+// 代码示例标签页
+const codeTabs = [
+  {
+    key: "template",
+    label: "模板",
+    icon: "ri:code-s-slash-line",
+    language: "vue",
+    code: `<template>
+  <sc-workflow v-model="nodeConfig" />
+</template>`,
+  },
+  {
+    key: "script",
+    label: "脚本",
+    icon: "ri:javascript-line",
+    language: "ts",
+    code: `import { reactive } from "vue";
+import scWorkflow from "@repo/components/ScWorkflow/index.vue";
+
+const data = reactive({
+  name: "请假审批",
+  nodeConfig: {
+    nodeName: "发起人",
+    type: 0,
+    nodeRoleList: [],
+    childNode: {
+      nodeName: "条件路由",
+      type: 4,
+      conditionNodes: [
+        {
+          nodeName: "长期",
+          type: 3,
+          priorityLevel: 1,
+          conditionList: [
+            { label: "请假天数", field: "day", operator: ">", value: "7" }
+          ],
+          childNode: {
+            nodeName: "领导审批",
+            type: 1,
+            setType: 1,
+            nodeUserList: [{ id: "1", name: "张三" }]
+          }
+        }
+      ]
+    }
+  }
+});`,
+  },
+];
 
 /**
  * 用户信息接口
@@ -208,4 +266,19 @@ const exportJson = (): void => {
 };
 </script>
 
-<style></style>
+<style scoped lang="scss">
+.workflow-example {
+  padding: 20px;
+}
+
+.code-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.do {
+  display: flex;
+  gap: 8px;
+}
+</style>
