@@ -2,8 +2,8 @@
   <component :is="renderComponent" v-bind="componentProps" @click="handleClick">
     <template v-for="(_, name) in $slots" #[name]="slotData">
       <slot :name="name" v-bind="slotData || {}" />
-      </template>
-    </component>
+    </template>
+  </component>
 </template>
 
 <script lang="ts">
@@ -31,12 +31,12 @@ export default defineComponent({
     StatsLayout
   },
   props: {
-  /**
-   * 卡片布局类型
-   */
-  layout: {
+    /**
+     * 卡片布局类型
+     */
+    layout: {
       type: String as PropType<LayoutType>,
-    default: "default",
+      default: "default",
       validator: (val: string) => ["default", "media", "header-content", "panel-3d", "compact", "stats", "custom"].includes(val)
     },
     /**
@@ -46,28 +46,36 @@ export default defineComponent({
       type: String as PropType<"el-card" | "div">,
       default: "div",
       validator: (val: string) => ["el-card", "div"].includes(val)
-  },
-  /**
+    },
+    /**
      * 卡片标题
-   */
-  title: {
-    type: String,
-    default: ""
-  },
-  /**
+     */
+    title: {
+      type: String,
+      default: ""
+    },
+    /**
      * 是否可悬停
-   */
-  hoverable: {
-    type: Boolean,
+     */
+    hoverable: {
+      type: Boolean,
       default: false
-  },
-  /**
-   * 阴影显示时机
-   */
-  shadow: {
-    type: String,
+    },
+    /**
+     * 阴影显示时机
+     */
+    shadow: {
+      type: String,
       default: "always",
       validator: (val: string) => ["always", "hover", "never"].includes(val)
+    },
+    /**
+     * 卡片尺寸
+     */
+    size: {
+      type: String as PropType<"small" | "normal" | "large">,
+      default: "normal",
+      validator: (val: string) => ["small", "normal", "large"].includes(val)
     },
     /**
      * 边框加粗显示位置
@@ -135,11 +143,11 @@ export default defineComponent({
       default: ""
     },
     /**
-     * 3D面板主题（仅在 layout="panel-3d" 时有效）
+     * 主题色（panel-3d/compact/stats 布局有效）
      */
     theme: {
-      type: String as PropType<"blue" | "green" | "purple" | "orange" | "custom">,
-      default: "blue"
+      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info" | "blue" | "green" | "purple" | "orange" | "custom">,
+      default: "default"
     },
     /**
      * 是否显示头部（仅在 layout="panel-3d" 时有效）
@@ -175,73 +183,73 @@ export default defineComponent({
     borderColor: {
       type: String,
       default: ""
-  },
-  /**
+    },
+    /**
      * 激活时边框颜色（仅在 layout="panel-3d" 时有效）
-   */
+     */
     activeBorderColor: {
-    type: String,
+      type: String,
       default: ""
-  },
-  /**
+    },
+    /**
      * 内边距
-   */
-  padding: {
-    type: String,
-    default: "20px"
-  },
-  /**
-   * 副标题（仅在 layout="compact" 时有效）
-   */
-  subtitle: {
-    type: String,
-    default: ""
-  },
-  /**
-   * 图标背景色（仅在 layout="compact" 时有效）
-   */
-  iconBgColor: {
-    type: String,
-    default: ""
-  },
-  /**
-   * 数值（仅在 layout="stats" 时有效）
-   */
-  value: {
-    type: [String, Number],
-    default: ""
-  },
-  /**
-   * 标签（仅在 layout="stats" 时有效）
-   */
-  label: {
-    type: String,
-    default: ""
-  },
-  /**
-   * 趋势图标（仅在 layout="stats" 时有效）
-   */
-  trendIcon: {
-    type: String,
-    default: ""
-  },
-  /**
-   * 趋势文本（仅在 layout="stats" 时有效）
-   */
-  trendText: {
-    type: String,
-    default: ""
-  },
-  /**
-   * 是否正在计数动画（仅在 layout="stats" 时有效）
-   */
-  counting: {
-    type: Boolean,
-    default: false
-  },
-  /**
+     */
+    padding: {
+      type: String,
+      default: "20px"
+    },
+    /**
+     * 副标题（仅在 layout="compact" 时有效）
+     */
+    subtitle: {
+      type: String,
+      default: ""
+    },
+    /**
+     * 图标背景色（仅在 layout="compact" 时有效）
+     */
+    iconBgColor: {
+      type: String,
+      default: ""
+    },
+    /**
+     * 数值（仅在 layout="stats" 时有效）
+     */
+    value: {
+      type: [String, Number],
+      default: ""
+    },
+    /**
+     * 标签（仅在 layout="stats" 时有效）
+     */
+    label: {
+      type: String,
+      default: ""
+    },
+    /**
+     * 趋势图标（仅在 layout="stats" 时有效）
+     */
+    trendIcon: {
+      type: String,
+      default: ""
+    },
+    /**
+     * 趋势文本（仅在 layout="stats" 时有效）
+     */
+    trendText: {
+      type: String,
+      default: ""
+    },
+    /**
+     * 是否正在计数动画（仅在 layout="stats" 时有效）
+     */
+    counting: {
+      type: Boolean,
+      default: false
+    },
+    /**
      * 自定义组件（仅在 layout="custom" 时有效）
-   */
+     */
     customComponent: {
       type: Object,
       default: null
@@ -271,11 +279,11 @@ export default defineComponent({
         default:
           return DefaultLayout;
       }
-});
+    });
 
     // 根据不同的组件类型，传递不同的属性
     const componentProps = computed(() => {
-  const baseProps = {
+      const baseProps = {
         title: props.title,
         hoverable: props.hoverable,
         shadow: props.shadow,
@@ -338,15 +346,16 @@ export default defineComponent({
             trendText: props.trendText,
             counting: props.counting,
             active: props.active,
-            theme: props.theme
+            theme: props.theme,
+            size: props.size === "normal" ? "small" : props.size
           };
         case "custom":
-    return {
-      ...baseProps,
+          return {
+            ...baseProps,
             ...props
-    };
+          };
         default:
-  return baseProps;
+          return baseProps;
       }
     });
 
@@ -368,8 +377,8 @@ export default defineComponent({
 // 全局样式，确保组件在不同场景下的一致性
 .sc-card-wrapper {
   display: block;
-          width: 100%;
-          height: 100%;
+  width: 100%;
+  height: 100%;
 
   // 支持Element Plus变量
   --el-color-primary: var(--el-color-primary);

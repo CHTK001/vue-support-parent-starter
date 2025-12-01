@@ -6,7 +6,7 @@ import { http, type ReturnResult } from "@repo/utils";
 export interface SystemSoftRegistry {
   systemSoftRegistryId?: number;
   systemSoftRegistryName?: string;
-  systemSoftRegistryType?: 'docker_hub' | 'aliyun' | 'harbor' | 'custom' | string;
+  systemSoftRegistryType?: 'docker_hub' | 'github' | 'aliyun' | 'harbor' | 'custom' | string;
   systemSoftRegistryUrl?: string;
   systemSoftRegistryUsername?: string;
   systemSoftRegistryPassword?: string;
@@ -334,7 +334,7 @@ export function exportImage(data: { imageId: number; serverId: number; }) {
 
 // 导入镜像
 export function importImage(formData: FormData) {
-  return http.request<ReturnResult<{ operationId: string }>>("post", "/api/monitor/system-soft-image/import", { 
+  return http.request<ReturnResult<{ operationId: string }>>("post", "/api/monitor/system-soft-image/import", {
     data: formData,
     headers: { 'Content-Type': 'multipart/form-data' }
   });
@@ -411,8 +411,24 @@ export function syncContainerStatus(serverId?: number) {
 
 // ========= 6. 服务器相关API =========
 
+/**
+ * 服务器信息接口（适配后端字段）
+ */
+export interface ServerInfo {
+  monitorSysGenServerId: number;
+  monitorSysGenServerName: string;
+  monitorSysGenServerHost: string;
+  monitorSysGenServerPort: number;
+  monitorSysGenServerStatus?: number;
+}
+
+/**
+ * 获取服务器列表
+ * 
+ * @returns 服务器列表
+ */
 export function getServerList() {
-  return http.request<ReturnResult<Array<{ id: number; name: string; host: string; port: number; status: string; }>>>("get", "v1/gen/server/list");
+  return http.request<ReturnResult<ServerInfo[]>>("get", "v1/gen/server/list");
 }
 
 export function getWebSocketTopics() {
@@ -449,7 +465,7 @@ export function searchOnlineSoftware(params: { keyword: string; page?: number; s
 
 // 将在线检索结果导入到软件库（异步保存，接口占位）
 export function importOnlineSoftware(data: { items: Array<Partial<SystemSoft> & { systemSoftDockerImage?: string }> }) {
-  return http.request<ReturnResult<{ queued: number }>>("post", "v1/system/soft/online/import", { data:data.items });
+  return http.request<ReturnResult<{ queued: number }>>("post", "v1/system/soft/online/import", { data: data.items });
 }
 
 export const softwareApi = {

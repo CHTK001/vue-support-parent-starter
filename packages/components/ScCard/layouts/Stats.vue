@@ -1,11 +1,5 @@
 <template>
-  <div
-    class="sc-card-stats"
-    :class="[
-      `theme--${theme}`,
-      { 'is-hoverable': hoverable, 'is-active': active }
-    ]"
-  >
+  <div class="sc-card-stats" :class="[`theme--${theme}`, `size--${size}`, { 'is-hoverable': hoverable, 'is-active': active }]">
     <!-- 背景装饰 -->
     <div class="sc-card-stats__background">
       <div class="sc-card-stats__pattern"></div>
@@ -103,8 +97,8 @@ export default defineComponent({
      * 主题色
      */
     theme: {
-      type: String as PropType<"primary" | "success" | "warning" | "danger" | "info">,
-      default: "primary"
+      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info">,
+      default: "default"
     },
     /**
      * 是否可悬停
@@ -119,6 +113,13 @@ export default defineComponent({
     active: {
       type: Boolean,
       default: false
+    },
+    /**
+     * 卡片尺寸
+     */
+    size: {
+      type: String as PropType<"small" | "normal" | "large">,
+      default: "small"
     }
   }
 });
@@ -134,6 +135,34 @@ export default defineComponent({
   min-height: 140px;
 
   // 主题色定义
+  &.theme--default {
+    background: var(--el-bg-color-overlay, #fff);
+    border: 1px solid var(--el-border-color-light, #e4e7ed);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+    .sc-card-stats__icon {
+      background: var(--el-color-primary-light-8, #ecf5ff);
+      color: var(--el-color-primary, #409eff);
+    }
+
+    .sc-card-stats__value {
+      color: var(--el-text-color-primary, #303133);
+      text-shadow: none;
+    }
+
+    .sc-card-stats__label {
+      color: var(--el-text-color-secondary, #909399);
+    }
+
+    .sc-card-stats__trend {
+      color: var(--el-text-color-regular, #606266);
+    }
+
+    &.is-hoverable:hover {
+      border-color: var(--el-color-primary-light-5, #a0cfff);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+  }
   &.theme--primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   }
@@ -157,6 +186,81 @@ export default defineComponent({
 
   &.is-active {
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
+  }
+
+  // 尺寸定义
+  &.size--small {
+    min-height: 100px;
+    border-radius: 16px;
+
+    .sc-card-stats__content {
+      padding: 16px;
+      gap: 14px;
+    }
+
+    .sc-card-stats__icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      font-size: 22px;
+    }
+
+    .sc-card-stats__value {
+      font-size: 24px;
+      margin-bottom: 2px;
+    }
+
+    .sc-card-stats__label {
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .sc-card-stats__trend {
+      font-size: 11px;
+
+      .trend-icon {
+        font-size: 12px;
+      }
+    }
+  }
+
+  &.size--normal {
+    min-height: 140px;
+  }
+
+  &.size--large {
+    min-height: 180px;
+    border-radius: 24px;
+
+    .sc-card-stats__content {
+      padding: 32px;
+      gap: 24px;
+    }
+
+    .sc-card-stats__icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      font-size: 36px;
+    }
+
+    .sc-card-stats__value {
+      font-size: 42px;
+      margin-bottom: 6px;
+    }
+
+    .sc-card-stats__label {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .sc-card-stats__trend {
+      font-size: 14px;
+
+      .trend-icon {
+        font-size: 16px;
+      }
+    }
   }
 
   &__background {
@@ -259,7 +363,8 @@ export default defineComponent({
 }
 
 @keyframes countPulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {

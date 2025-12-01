@@ -14,7 +14,7 @@
           clearable
         />
       </el-form-item>
-      
+
       <el-form-item label="镜像标签" prop="imageTag">
         <el-input
           v-model="form.imageTag"
@@ -22,7 +22,7 @@
           clearable
         />
       </el-form-item>
-      
+
       <el-form-item label="完整镜像" prop="fullImageName">
         <el-input
           v-model="form.fullImageName"
@@ -33,7 +33,7 @@
           如果填写了完整镜像名称，将优先使用此项，忽略上面的镜像名称和标签
         </div>
       </el-form-item>
-      
+
       <el-form-item label="目标服务器" prop="serverId">
         <el-select
           v-model="form.serverId"
@@ -42,13 +42,13 @@
         >
           <el-option
             v-for="server in serverOptions"
-            :key="server.id"
-            :label="server.name"
-            :value="server.id"
+            :key="server.monitorSysGenServerId"
+            :label="server.monitorSysGenServerName"
+            :value="server.monitorSysGenServerId"
           />
         </el-select>
       </el-form-item>
-      
+
       <el-form-item label="镜像仓库" prop="registryId">
         <el-select
           v-model="form.registryId"
@@ -58,28 +58,24 @@
         >
           <el-option
             v-for="registry in registryOptions"
-            :key="registry.id"
-            :label="registry.name"
-            :value="registry.id"
+            :key="registry.systemSoftRegistryId"
+            :label="registry.systemSoftRegistryName"
+            :value="registry.systemSoftRegistryId"
           />
         </el-select>
-        <div class="form-tip">
-          如果不选择，将使用默认的Docker Hub
-        </div>
+        <div class="form-tip">如果不选择，将使用默认的Docker Hub</div>
       </el-form-item>
     </el-form>
-    
+
     <!-- 进度显示 -->
     <div v-if="pulling" class="progress-section">
-      <ScSocketPanel
+      <ScSocketMessageDialog
         mode="embed"
+        layout="log"
         title="拉取进度"
-        icon="ri:download-line"
-        :topics="[`image:pull:${progressTopic}`]"
-        height="200px"
-        :progress-only="true"
-        :clearable="false"
-        :closeable="false"
+        :event-id="progressTopic"
+        :event-name="`image:pull:${progressTopic}`"
+        :height="200"
       />
     </div>
 
@@ -87,7 +83,7 @@
       <span class="dialog-footer">
         <el-button @click="handleClose" :disabled="pulling">取消</el-button>
         <el-button type="primary" @click="handleSubmit" :loading="pulling">
-          {{ pulling ? '拉取中...' : '开始拉取' }}
+          {{ pulling ? "拉取中..." : "开始拉取" }}
         </el-button>
       </span>
     </template>
@@ -95,148 +91,146 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { imageApi, getServerList, registryApi } from '@/api/docker-management'
-import { useImagePullNotification } from '@/composables/useImagePullNotification'
-import ScSocketPanel from '@repo/components/ScSocketPanel/index.vue'
+import { ref, reactive, computed, watch } from "vue";
+import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { imageApi, getServerList, registryApi } from "@/api/docker-management";
+import { useImagePullNotification } from "@/composables/useImagePullNotification";
+import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
 
 interface Props {
-  visible: boolean
+  visible: boolean;
 }
 
 interface Emits {
-  (e: 'update:visible', value: boolean): void
-  (e: 'success'): void
+  (e: "update:visible", value: boolean): void;
+  (e: "success"): void;
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
-const formRef = ref<FormInstance>()
-const pulling = ref(false)
-const progressTopic = ref('')
-const serverOptions = ref<any[]>([])
-const registryOptions = ref<any[]>([])
+const formRef = ref<FormInstance>();
+const pulling = ref(false);
+const progressTopic = ref("");
+const serverOptions = ref<any[]>([]);
+const registryOptions = ref<any[]>([]);
 
 // 使用拉取通知功能
-const { showPullStart } = useImagePullNotification()
+const { showPullStart } = useImagePullNotification();
 
 const form = reactive({
-  imageName: '',
-  imageTag: 'latest',
-  fullImageName: '',
-  serverId: '',
-  registryId: ''
-})
+  imageName: "",
+  imageTag: "latest",
+  fullImageName: "",
+  serverId: "",
+  registryId: "",
+});
 
 const rules: FormRules = {
-  serverId: [
-    { required: true, message: '请选择服务器', trigger: 'change' }
-  ]
-}
+  serverId: [{ required: true, message: "请选择服务器", trigger: "change" }],
+};
 
 const dialogVisible = computed({
   get: () => props.visible,
-  set: (value) => emit('update:visible', value)
-})
+  set: (value) => emit("update:visible", value),
+});
 
 // 监听对话框打开
 watch(dialogVisible, (visible) => {
   if (visible) {
-    loadData()
+    loadData();
   }
-})
+});
 
 const loadData = async () => {
   try {
     // 加载服务器列表
-    const serverResponse = await getServerList()
-    if (serverResponse.code === '00000') {
-      serverOptions.value = serverResponse.data || []
+    const serverResponse = await getServerList();
+    if (serverResponse.code === "00000") {
+      serverOptions.value = serverResponse.data || [];
     }
-    
+
     // 加载镜像仓库列表
-    const registryResponse = await registryApi.getRegistryList()
-    if (registryResponse.code === '00000') {
-      registryOptions.value = registryResponse.data || []
+    const registryResponse = await registryApi.getAllRegistries();
+    if (registryResponse.code === "00000") {
+      registryOptions.value = registryResponse.data || [];
     }
   } catch (error) {
-    console.error('加载数据失败:', error)
+    console.error("加载数据失败:", error);
   }
-}
+};
 
 const handleSubmit = async () => {
-  if (!formRef.value) return
-  
+  if (!formRef.value) return;
+
   try {
-    await formRef.value.validate()
-    pulling.value = true
-    
+    await formRef.value.validate();
+    pulling.value = true;
+
     // 生成进度主题ID
-    progressTopic.value = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    
+    progressTopic.value = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     // 构建请求参数
     const params: any = {
       serverId: form.serverId,
-      registryId: form.registryId || undefined
-    }
-    
+      registryId: form.registryId || undefined,
+    };
+
     // 如果填写了完整镜像名称，优先使用
     if (form.fullImageName.trim()) {
-      params.fullImageName = form.fullImageName.trim()
+      params.fullImageName = form.fullImageName.trim();
     } else {
       // 否则使用镜像名称和标签组合
       if (!form.imageName.trim()) {
-        ElMessage.error('请填写镜像名称或完整镜像名称')
-        return
+        ElMessage.error("请填写镜像名称或完整镜像名称");
+        return;
       }
-      params.imageName = form.imageName.trim()
-      params.imageTag = form.imageTag.trim() || 'latest'
+      params.imageName = form.imageName.trim();
+      params.imageTag = form.imageTag.trim() || "latest";
     }
-    
-    const response = await imageApi.pullImage(params)
-    if (response.code === '00000') {
+
+    const response = await imageApi.pullImage(params);
+    if (response.code === "00000") {
       // 显示拉取开始通知
-      const imageName = params.fullImageName || params.imageName
-      const imageTag = params.fullImageName ? undefined : params.imageTag
-      showPullStart(imageName, imageTag, form.serverId)
-      
+      const imageName = params.fullImageName || params.imageName;
+      const imageTag = params.fullImageName ? undefined : params.imageTag;
+      showPullStart(imageName, imageTag, form.serverId);
+
       // ProgressMonitor会自动监听并显示进度
       // operationId: response.data?.operationId
       if (response.data?.operationId) {
         // 等待一小段时间让Socket事件传播
-        setTimeout(() => emit('success'), 1000)
+        setTimeout(() => emit("success"), 1000);
       }
-      
-      ElMessage.success('镜像拉取任务已启动，请在右下角查看实时进度')
-      emit('success')
-      handleClose()
+
+      ElMessage.success("镜像拉取任务已启动，请在右下角查看实时进度");
+      emit("success");
+      handleClose();
     } else {
-      ElMessage.error(response.message || '镜像拉取失败')
+      ElMessage.error(response.message || "镜像拉取失败");
     }
   } catch (error) {
-    ElMessage.error('镜像拉取失败')
+    ElMessage.error("镜像拉取失败");
   } finally {
-    pulling.value = false
+    pulling.value = false;
   }
-}
+};
 
 const handleClose = () => {
   if (!pulling.value) {
-    dialogVisible.value = false
-    resetForm()
+    dialogVisible.value = false;
+    resetForm();
   }
-}
+};
 
 const resetForm = () => {
-  form.imageName = ''
-  form.imageTag = 'latest'
-  form.fullImageName = ''
-  form.serverId = ''
-  form.registryId = ''
-  formRef.value?.resetFields()
-}
+  form.imageName = "";
+  form.imageTag = "latest";
+  form.fullImageName = "";
+  form.serverId = "";
+  form.registryId = "";
+  formRef.value?.resetFields();
+};
 </script>
 
 <style scoped>
