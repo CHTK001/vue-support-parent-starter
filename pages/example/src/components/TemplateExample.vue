@@ -239,12 +239,14 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import DashboardCard from "@/template/components/DashboardCard.vue";
-import StatisticCard from "@/template/components/StatisticCard.vue";
-import FeatureCard from "@/template/components/FeatureCard.vue";
-import TimelineCard from "@/template/components/TimelineCard.vue";
-import PricingCard from "@/template/components/PricingCard.vue";
-import ProfileCard from "@/template/components/ProfileCard.vue";
+import {
+  DashboardCard,
+  StatisticCard,
+  FeatureCard,
+  TimelineCard,
+  PricingCard,
+  ProfileCard,
+} from "@repo/template";
 import CodePreview from "./CodePreview.vue";
 
 const timelineItems = ref([
