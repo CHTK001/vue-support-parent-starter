@@ -38,104 +38,32 @@
   </div>
 
   <!-- 弹框模式 -->
-  <Teleport :to="boundaryElement || 'body'" v-else-if="mode === 'dialog'" :disabled="!!boundaryElement">
-    <div
-      v-if="visible"
-      ref="dialogRef"
-      class="sc-socket-event-dialog"
-      :class="[
-        `position-${position}`,
-        {
-          minimized: isMinimized,
-          'edge-docked': isEdgeDocked,
-          'edge-left': dockedEdge === 'left',
-          'edge-right': dockedEdge === 'right',
-          'edge-top': dockedEdge === 'top',
-          'edge-bottom': dockedEdge === 'bottom',
-          'in-boundary': !!props.boundaryElement,
-          'grid-snap': props.enableGridSnap
-        }
-      ]"
-      :style="dialogStyle"
-      @mousedown="onDialogMouseDown"
-    >
-      <!-- 调整大小的八个手柄 -->
-      <div v-if="!isMinimized" class="resize-handle resize-top" @mousedown.stop="onResizeStart($event, 'top')"></div>
-      <div v-if="!isMinimized" class="resize-handle resize-right" @mousedown.stop="onResizeStart($event, 'right')"></div>
-      <div v-if="!isMinimized" class="resize-handle resize-bottom" @mousedown.stop="onResizeStart($event, 'bottom')"></div>
-      <div v-if="!isMinimized" class="resize-handle resize-left" @mousedown.stop="onResizeStart($event, 'left')"></div>
-      <div v-if="!isMinimized" class="resize-handle resize-top-left" @mousedown.stop="onResizeStart($event, 'top-left')"></div>
-      <div v-if="!isMinimized" class="resize-handle resize-top-right" @mousedown.stop="onResizeStart($event, 'top-right')"></div>
-      <div v-if="!isMinimized" class="resize-handle resize-bottom-left" @mousedown.stop="onResizeStart($event, 'bottom-left')"></div>
-      <div v-if="!isMinimized" class="resize-handle resize-bottom-right" @mousedown.stop="onResizeStart($event, 'bottom-right')"></div>
-
-      <!-- 头部 -->
-      <div class="dialog-header" @mousedown="isMinimized ? onMinimizedDragStart($event) : onDragStart($event)" v-show="!isEdgeDocked" @click="onMinimizedClick">
-        <!-- 最小化状态只显示图标 -->
-        <template v-if="isMinimized">
-          <div class="minimized-icon" :title="title">
-            <IconifyIconOnline :icon="icon || 'ri:progress-3-line'" width="24" />
-          </div>
-        </template>
-        <!-- 正常状态显示完整头部 -->
-        <template v-else>
-          <slot name="header" :data="progressData">
-            <div class="header-title">
-              <IconifyIconOnline v-if="icon" :icon="icon" class="title-icon" />
-              <span class="title-text">{{ title }}</span>
-            </div>
-          </slot>
-          <div class="header-controls">
-            <el-button v-if="enableEdgeDock" type="text" size="small" class="control-btn" @click.stop="toggleEdgeDock" :title="isEdgeDocked ? '展开' : '靠边吸附'">
-              <IconifyIconOnline :icon="isEdgeDocked ? 'ri:side-bar-fill' : 'ri:side-bar-line'" width="16" />
-            </el-button>
-            <el-button type="text" size="small" class="control-btn" @click.stop="toggleMinimize" :title="isMinimized ? '还原' : '最小化'">
-              <IconifyIconOnline icon="ri:subtract-line" width="16" />
-            </el-button>
-            <el-button v-if="closeable" type="text" size="small" class="control-btn close-btn" @click.stop="handleClose">
-              <IconifyIconOnline icon="ri:close-line" width="16" />
-            </el-button>
-          </div>
-        </template>
-      </div>
-
-      <!-- 靠边吸附模式的图标按钮 -->
-      <div v-if="isEdgeDocked" class="edge-dock-icon" @click="toggleEdgeDock" :title="'点击展开'">
-        <IconifyIconOnline :icon="icon || 'ri:progress-3-line'" width="24" />
-        <div v-if="percentage > 0 && percentage < 100" class="dock-progress-ring">
-          <svg viewBox="0 0 36 36">
-            <circle cx="18" cy="18" r="16" fill="none" stroke="var(--el-border-color-light)" stroke-width="3" />
-            <circle
-              cx="18"
-              cy="18"
-              r="16"
-              fill="none"
-              stroke="var(--el-color-primary)"
-              stroke-width="3"
-              stroke-linecap="round"
-              :stroke-dasharray="`${percentage}, 100`"
-              transform="rotate(-90 18 18)"
-            />
-          </svg>
+  <Teleport to="body" v-else-if="mode === 'dialog'">
+    <div v-if="visible" ref="dialogRef" class="sc-socket-event-dialog" :style="dialogStyle">
+      <!-- 头部（拖拽区域） -->
+      <div class="dialog-header">
+        <div class="header-title">
+          <IconifyIconOnline v-if="icon" :icon="icon" class="title-icon" />
+          <span class="title-text">{{ title }}</span>
+          <el-tag :type="statusType" size="small" class="ml-2">{{ statusText }}</el-tag>
+        </div>
+        <div class="header-controls">
+          <el-button v-if="closeable" type="text" size="small" class="control-btn close-btn" @click.stop="handleClose">
+            <IconifyIconOnline icon="ri:close-line" width="16" />
+          </el-button>
         </div>
       </div>
 
       <!-- 内容区域 -->
-      <div v-show="!isMinimized" class="dialog-content">
-        <!-- 自定义布局slot -->
+      <div class="dialog-content">
         <slot v-if="layout === 'custom'" :data="progressData" :logs="logs" :percentage="percentage" :status="status"></slot>
 
         <!-- Process 布局 -->
         <template v-else-if="layout === 'process'">
-          <div class="process-status">
-            <el-tag :type="statusType" size="small">{{ statusText }}</el-tag>
-          </div>
           <el-progress :percentage="percentage" :status="progressStatus" :stroke-width="10" :format="percentageFormat" />
-
           <div class="process-message" v-if="message">
             <IconifyIconOnline :icon="messageIcon" class="message-icon" />
             <span>{{ message }}</span>
-            <span v-if="currentStep" class="process-step">{{ currentStep }}</span>
           </div>
         </template>
 
@@ -147,7 +75,6 @@
               <span class="log-message">{{ log.message }}</span>
             </div>
           </div>
-
           <div class="log-progress">
             <el-progress :percentage="percentage" :status="progressStatus" :stroke-width="8" :format="percentageFormat" />
           </div>
@@ -158,9 +85,19 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * Socket 消息对话框组件
+ * 支持拖拽、缩放、吸附功能
+ * 使用 interact.js 实现拖拽和缩放
+ * @author CH
+ * @version 2.0.0
+ * @since 2025-12-01
+ * @updated 2025-12-02 集成 interact.js
+ */
 import { ref, computed, inject, onMounted, onUnmounted, watch, nextTick, type PropType } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { useSocket } from "@repo/core";
+import interact from "interactjs";
 
 interface LogItem {
   time: Date;
@@ -313,14 +250,14 @@ const progressData = ref<ProgressData>({});
 
 // 弹框状态
 const isMinimized = ref(false);
-const dialogRef = ref<HTMLElement>();
+const dialogRef = ref<HTMLElement | null>(null);
 
-// 拖拽和缩放相关
+// interact.js 实例
+let interactInstance: ReturnType<typeof interact> | null = null;
+
+// 拖拽和缩放状态
 const isDragging = ref(false);
 const isResizing = ref(false);
-const resizeDirection = ref("");
-const dragStartX = ref(0);
-const dragStartY = ref(0);
 const dialogX = ref(0);
 const dialogY = ref(0);
 const dialogWidth = ref(props.width);
@@ -329,7 +266,6 @@ const dialogHeight = ref(props.dialogHeight);
 // 最小化拖拽相关
 const isMinimizedDragging = ref(false);
 const minimizedDragMoved = ref(false);
-let animationFrameId: number | null = null;
 
 // 靠边吸附相关
 const isEdgeDocked = ref(false);
@@ -382,78 +318,12 @@ const messageIcon = computed(() => {
   return "ri:information-line";
 });
 
-const dialogStyle = computed(() => {
-  // 靠边吸附模式
-  if (isEdgeDocked.value) {
-    const boundary = getBoundaryRect();
-    const viewWidth = boundary ? boundary.width : window.innerWidth;
-    const viewHeight = boundary ? boundary.height : window.innerHeight;
-
-    const style: any = {
-      width: `${props.dockIconSize}px`,
-      height: `${props.dockIconSize}px`
-    };
-
-    // 吸附到实际边缘位置
-    switch (dockedEdge.value) {
-      case "left":
-        style.left = "0px";
-        style.top = `${Math.min(Math.max(dialogY.value, 0), viewHeight - props.dockIconSize)}px`;
-        style.right = "auto";
-        style.bottom = "auto";
-        style.borderRadius = "0 50% 50% 0";
-        break;
-      case "right":
-        style.right = "0px";
-        style.top = `${Math.min(Math.max(dialogY.value, 0), viewHeight - props.dockIconSize)}px`;
-        style.left = "auto";
-        style.bottom = "auto";
-        style.borderRadius = "50% 0 0 50%";
-        break;
-      case "top":
-        style.top = "0px";
-        style.left = `${Math.min(Math.max(dialogX.value, 0), viewWidth - props.dockIconSize)}px`;
-        style.right = "auto";
-        style.bottom = "auto";
-        style.borderRadius = "0 0 50% 50%";
-        break;
-      case "bottom":
-        style.bottom = "0px";
-        style.left = `${Math.min(Math.max(dialogX.value, 0), viewWidth - props.dockIconSize)}px`;
-        style.right = "auto";
-        style.top = "auto";
-        style.borderRadius = "50% 50% 0 0";
-        break;
-    }
-
-    return style;
-  }
-
-  const style: any = {
-    width: `${dialogWidth.value}px`,
-    height: isMinimized.value ? "auto" : `${dialogHeight.value}px`
-  };
-
-  if (isDragging.value || dialogX.value !== 0 || dialogY.value !== 0) {
-    // 自定义位置（拖拽后）
-    const basePosition = getBasePosition();
-    let x = basePosition.x + dialogX.value;
-    let y = basePosition.y + dialogY.value;
-
-    // Grid 吸附
-    if (props.enableGridSnap) {
-      x = Math.round(x / props.gridSize) * props.gridSize;
-      y = Math.round(y / props.gridSize) * props.gridSize;
-    }
-
-    style.left = `${x}px`;
-    style.top = `${y}px`;
-    style.right = "auto";
-    style.bottom = "auto";
-  }
-
-  return style;
-});
+// 对话框样式（位置由 interact.js 的 transform 控制）
+const dialogStyle = computed(() => ({
+  width: `${dialogWidth.value}px`,
+  height: isMinimized.value ? "auto" : `${dialogHeight.value}px`,
+  touchAction: "none"
+}));
 
 // 获取父元素边界
 function getBoundaryRect(): DOMRect | null {
@@ -636,214 +506,218 @@ const removeSocketListener = () => {
   });
 };
 
-// 拖拽相关函数（使用 requestAnimationFrame 优化性能）
-function onDragStart(e: MouseEvent) {
+/**
+ * 初始化 interact.js 拖拽和缩放
+ */
+function initInteract(): void {
+  if (!dialogRef.value || props.mode !== "dialog") return;
+
+  // 销毁旧实例
+  destroyInteract();
+
+  // 设置初始位置
+  const el = dialogRef.value;
+  const margin = 20;
+  let initX = 0;
+  let initY = 0;
+
+  switch (props.position) {
+    case "top-left":
+      initX = margin;
+      initY = margin;
+      break;
+    case "top-right":
+      initX = window.innerWidth - dialogWidth.value - margin;
+      initY = margin;
+      break;
+    case "bottom-left":
+      initX = margin;
+      initY = window.innerHeight - dialogHeight.value - margin;
+      break;
+    case "bottom-right":
+    default:
+      initX = window.innerWidth - dialogWidth.value - margin;
+      initY = window.innerHeight - dialogHeight.value - margin;
+      break;
+  }
+
+  el.style.transform = `translate(${initX}px, ${initY}px)`;
+  el.setAttribute("data-x", String(initX));
+  el.setAttribute("data-y", String(initY));
+  dialogX.value = initX;
+  dialogY.value = initY;
+
+  // 配置拖拽修改器
+  const modifiers: unknown[] = [];
+
+  // 网格吸附
+  if (props.enableGridSnap) {
+    modifiers.push(
+      interact.modifiers.snap({
+        targets: [interact.snappers.grid({ x: props.gridSize, y: props.gridSize })],
+        range: Infinity,
+        relativePoints: [{ x: 0, y: 0 }]
+      })
+    );
+  }
+
+  // 边界限制
+  const boundary = props.boundaryElement || "body";
+  modifiers.push(
+    interact.modifiers.restrict({
+      restriction: boundary,
+      endOnly: false,
+      elementRect: { top: 0, left: 0, bottom: 1, right: 1 }
+    })
+  );
+
+  // 创建实例
+  interactInstance = interact(dialogRef.value)
+    // 配置拖拽
+    .draggable({
+      allowFrom: ".dialog-header",
+      inertia: {
+        resistance: 15,
+        minSpeed: 200,
+        endSpeed: 10
+      },
+      modifiers,
+      autoScroll: true,
+      listeners: {
+        start: () => {
+          isDragging.value = true;
+          minimizedDragMoved.value = false;
+          // 阻止文字选择
+          document.body.style.userSelect = "none";
+        },
+        move: event => {
+          const target = event.target as HTMLElement;
+          // 使用 data 属性存储位置
+          const x = (parseFloat(target.getAttribute("data-x") || "0") || 0) + event.dx;
+          const y = (parseFloat(target.getAttribute("data-y") || "0") || 0) + event.dy;
+
+          // 更新元素位置
+          target.style.transform = `translate(${x}px, ${y}px)`;
+          target.setAttribute("data-x", String(x));
+          target.setAttribute("data-y", String(y));
+
+          // 同步到响应式变量
+          dialogX.value = x;
+          dialogY.value = y;
+
+          if (isMinimized.value) {
+            minimizedDragMoved.value = true;
+          }
+        },
+        end: () => {
+          isDragging.value = false;
+          isMinimizedDragging.value = false;
+          // 恢复文字选择
+          document.body.style.userSelect = "";
+
+          // 检查边缘吸附
+          if (props.enableEdgeDock && !isMinimized.value) {
+            checkEdgeDock();
+          }
+
+          // 保存位置
+          savePositionToStorage();
+        }
+      }
+    })
+    // 配置缩放
+    .resizable({
+      edges: { left: true, right: true, bottom: true, top: true },
+      inertia: false,
+      modifiers: [
+        interact.modifiers.restrictSize({
+          min: { width: 280, height: 200 },
+          max: { width: 800, height: 600 }
+        })
+      ],
+      listeners: {
+        start: () => {
+          isResizing.value = true;
+          document.body.style.userSelect = "none";
+        },
+        move: event => {
+          const target = event.target as HTMLElement;
+          const { width, height } = event.rect;
+          const { left, top } = event.deltaRect;
+
+          // 更新尺寸
+          dialogWidth.value = width;
+          dialogHeight.value = height;
+          target.style.width = `${width}px`;
+          target.style.height = `${height}px`;
+
+          // 更新位置（处理从左侧或顶部缩放）
+          const x = (parseFloat(target.getAttribute("data-x") || "0") || 0) + left;
+          const y = (parseFloat(target.getAttribute("data-y") || "0") || 0) + top;
+          target.style.transform = `translate(${x}px, ${y}px)`;
+          target.setAttribute("data-x", String(x));
+          target.setAttribute("data-y", String(y));
+
+          dialogX.value = x;
+          dialogY.value = y;
+        },
+        end: () => {
+          isResizing.value = false;
+          document.body.style.userSelect = "";
+          savePositionToStorage();
+        }
+      }
+    });
+}
+
+/**
+ * 销毁 interact.js 实例
+ */
+function destroyInteract(): void {
+  if (interactInstance) {
+    interactInstance.unset();
+    interactInstance = null;
+  }
+}
+
+/**
+ * 拖拽开始（兼容原有接口）
+ */
+function onDragStart(e: MouseEvent): void {
   if (isMinimized.value) return;
-  e.preventDefault();
-
-  isDragging.value = true;
-  dragStartX.value = e.clientX - dialogX.value;
-  dragStartY.value = e.clientY - dialogY.value;
-
-  document.addEventListener("mousemove", onDragMove, { passive: true });
-  document.addEventListener("mouseup", onDragEnd);
+  // interact.js 自动处理
 }
 
-function onDragMove(e: MouseEvent) {
-  if (!isDragging.value) return;
-
-  // 使用 requestAnimationFrame 优化性能
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-  }
-
-  animationFrameId = requestAnimationFrame(() => {
-    let newX = e.clientX - dragStartX.value;
-    let newY = e.clientY - dragStartY.value;
-
-    // Grid 吸附
-    if (props.enableGridSnap) {
-      newX = Math.round(newX / props.gridSize) * props.gridSize;
-      newY = Math.round(newY / props.gridSize) * props.gridSize;
-    }
-
-    // 父元素边界限制
-    const boundary = getBoundaryRect();
-    if (boundary) {
-      const basePos = getBasePosition();
-      const actualX = basePos.x + newX;
-      const actualY = basePos.y + newY;
-
-      const minX = boundary.left;
-      const maxX = boundary.right - dialogWidth.value;
-      const minY = boundary.top;
-      const maxY = boundary.bottom - dialogHeight.value;
-
-      if (actualX < minX) newX = minX - basePos.x;
-      if (actualX > maxX) newX = maxX - basePos.x;
-      if (actualY < minY) newY = minY - basePos.y;
-      if (actualY > maxY) newY = maxY - basePos.y;
-    } else {
-      // 限制在窗口内
-      const basePos = getBasePosition();
-      const actualX = basePos.x + newX;
-      const actualY = basePos.y + newY;
-
-      if (actualX < 0) newX = -basePos.x;
-      if (actualX > window.innerWidth - dialogWidth.value) newX = window.innerWidth - dialogWidth.value - basePos.x;
-      if (actualY < 0) newY = -basePos.y;
-      if (actualY > window.innerHeight - dialogHeight.value) newY = window.innerHeight - dialogHeight.value - basePos.y;
-    }
-
-    dialogX.value = newX;
-    dialogY.value = newY;
-  });
-}
-
-function onDragEnd() {
-  isDragging.value = false;
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
-  document.removeEventListener("mousemove", onDragMove);
-  document.removeEventListener("mouseup", onDragEnd);
-
-  // 检查是否需要靠边吸附
-  if (props.enableEdgeDock) {
-    checkEdgeDock();
-  }
-
-  // 保存位置到localStorage
-  savePositionToStorage();
-}
-
-// 最小化状态下的拖拽
-function onMinimizedDragStart(e: MouseEvent) {
-  e.preventDefault();
+/**
+ * 最小化拖拽开始（兼容原有接口）
+ */
+function onMinimizedDragStart(e: MouseEvent): void {
   isMinimizedDragging.value = true;
   minimizedDragMoved.value = false;
-
-  // 计算当前位置
-  const rect = dialogRef.value?.getBoundingClientRect();
-  if (rect) {
-    dialogX.value = rect.left - getBasePosition().x;
-    dialogY.value = rect.top - getBasePosition().y;
-  }
-
-  dragStartX.value = e.clientX - dialogX.value;
-  dragStartY.value = e.clientY - dialogY.value;
-
-  document.addEventListener("mousemove", onMinimizedDragMove, { passive: true });
-  document.addEventListener("mouseup", onMinimizedDragEnd);
+  // interact.js 自动处理
 }
 
-function onMinimizedDragMove(e: MouseEvent) {
-  if (!isMinimizedDragging.value) return;
-  minimizedDragMoved.value = true;
-
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-  }
-
-  animationFrameId = requestAnimationFrame(() => {
-    let newX = e.clientX - dragStartX.value;
-    let newY = e.clientY - dragStartY.value;
-
-    const basePos = getBasePosition();
-    const actualX = basePos.x + newX;
-    const actualY = basePos.y + newY;
-
-    // 限制在窗口内
-    if (actualX < 0) newX = -basePos.x;
-    if (actualX > window.innerWidth - 48) newX = window.innerWidth - 48 - basePos.x;
-    if (actualY < 0) newY = -basePos.y;
-    if (actualY > window.innerHeight - 48) newY = window.innerHeight - 48 - basePos.y;
-
-    dialogX.value = newX;
-    dialogY.value = newY;
-  });
-}
-
-function onMinimizedDragEnd() {
-  isMinimizedDragging.value = false;
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
-  document.removeEventListener("mousemove", onMinimizedDragMove);
-  document.removeEventListener("mouseup", onMinimizedDragEnd);
-
-  savePositionToStorage();
-}
-
-// 最小化状态点击（只有没有拖拽时才展开）
-function onMinimizedClick() {
+/**
+ * 最小化状态点击（只有没有拖拽时才展开）
+ */
+function onMinimizedClick(): void {
   if (isMinimized.value && !minimizedDragMoved.value) {
     toggleMinimize();
   }
 }
 
-function onDialogMouseDown(e: MouseEvent) {
-  // 防止点击对话框内容时触发拖拽
-  if ((e.target as HTMLElement).classList.contains("dialog-header") || (e.target as HTMLElement).closest(".dialog-header")) {
-    return;
-  }
+/**
+ * 对话框鼠标按下
+ */
+function onDialogMouseDown(e: MouseEvent): void {
+  // interact.js 自动处理
 }
 
-// 缩放相关函数
-function onResizeStart(e: MouseEvent, direction: string) {
-  isResizing.value = true;
-  resizeDirection.value = direction;
-  dragStartX.value = e.clientX;
-  dragStartY.value = e.clientY;
-
-  document.addEventListener("mousemove", onResizeMove);
-  document.addEventListener("mouseup", onResizeEnd);
-}
-
-function onResizeMove(e: MouseEvent) {
-  if (!isResizing.value) return;
-
-  const deltaX = e.clientX - dragStartX.value;
-  const deltaY = e.clientY - dragStartY.value;
-
-  const direction = resizeDirection.value;
-
-  // 根据方向调整大小和位置
-  if (direction.includes("right")) {
-    dialogWidth.value = Math.max(300, dialogWidth.value + deltaX);
-  }
-  if (direction.includes("left")) {
-    const newWidth = Math.max(300, dialogWidth.value - deltaX);
-    if (newWidth > 300) {
-      dialogX.value += deltaX;
-      dialogWidth.value = newWidth;
-    }
-  }
-  if (direction.includes("bottom")) {
-    dialogHeight.value = Math.max(200, dialogHeight.value + deltaY);
-  }
-  if (direction.includes("top")) {
-    const newHeight = Math.max(200, dialogHeight.value - deltaY);
-    if (newHeight > 200) {
-      dialogY.value += deltaY;
-      dialogHeight.value = newHeight;
-    }
-  }
-
-  dragStartX.value = e.clientX;
-  dragStartY.value = e.clientY;
-}
-
-function onResizeEnd() {
-  isResizing.value = false;
-  resizeDirection.value = "";
-  document.removeEventListener("mousemove", onResizeMove);
-  document.removeEventListener("mouseup", onResizeEnd);
-
-  // 保存尺寸到localStorage
-  savePositionToStorage();
+/**
+ * 缩放开始（兼容原有接口，实际由 interact.js 处理）
+ */
+function onResizeStart(e: MouseEvent, direction: string): void {
+  // interact.js 自动处理缩放
 }
 
 // 最小化/还原，根据当前位置决定最小化到哪个角落
@@ -1025,11 +899,17 @@ function loadPositionFromStorage() {
 onMounted(() => {
   setupSocketListener();
   loadPositionFromStorage();
+
+  // 初始化 interact.js
+  nextTick(() => {
+    initInteract();
+  });
 });
 
 // 组件卸载
 onUnmounted(() => {
   removeSocketListener();
+  destroyInteract();
 });
 
 // 监听属性变化
@@ -1037,6 +917,16 @@ watch([() => props.eventId, () => props.dataType, () => props.eventName], () => 
   removeSocketListener();
   setupSocketListener();
 });
+
+// 监听模式变化，重新初始化 interact
+watch(
+  () => props.mode,
+  () => {
+    nextTick(() => {
+      initInteract();
+    });
+  }
+);
 
 // 暴露方法
 defineExpose({
