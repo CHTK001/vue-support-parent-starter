@@ -21,11 +21,29 @@
       @radioChange="selectionChange"
       @page-change="pageChange"
     >
+      <!-- 头部插槽 -->
+      <template #header>
+        <slot name="header" />
+      </template>
+      <!-- 底部插槽 -->
       <template #footer>
         <slot name="footer" />
       </template>
+      <!-- 工具栏插槽 -->
       <template #toolbar>
         <slot name="toolbar" />
+      </template>
+      <!-- 空数据插槽 -->
+      <template #empty>
+        <slot name="empty">
+          <el-empty description="暂无数据" :image-size="60" />
+        </slot>
+      </template>
+      <!-- 动态列插槽 - 透传所有列的自定义渲染 -->
+      <template v-for="col in state.table.columns" :key="col.prop" #[col.prop]="scope">
+        <slot :name="col.prop" v-bind="scope">
+          {{ scope.row[col.prop] }}
+        </slot>
       </template>
     </TSelectTable>
   </div>
