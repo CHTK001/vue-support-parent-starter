@@ -1,0 +1,18 @@
+/**
+ * 基础样式入口
+ * 导出所有基础样式模块
+ * @author CH
+ * @date 2025-12-02
+ */
+
+// 变量定义（需要最先加载）
+@forward 'variables';
+
+// 混入函数
+@forward 'mixins';
+
+// 重置样式
+@forward 'reset';
+
+// 过渡动画
+@forward 'transitions';

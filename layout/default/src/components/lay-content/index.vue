@@ -1,6 +1,6 @@
 <script setup lang="ts">
 //@ts-ignore
-import { emitter } from "@repo/utils";
+import { emitter } from "@repo/core";
 import { isNumber, useGlobal } from "@pureadmin/utils";
 import { usePermissionStoreHook } from "@repo/core";
 import {

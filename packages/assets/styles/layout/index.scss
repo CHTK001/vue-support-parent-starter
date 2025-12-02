@@ -1,0 +1,9 @@
+/**
+ * 布局样式入口
+ * 整合布局相关样式
+ * @author CH
+ * @date 2025-12-02
+ */
+
+// 引入原有布局样式（保持兼容）
+@use '../../style/layout/default' as default-layout;
