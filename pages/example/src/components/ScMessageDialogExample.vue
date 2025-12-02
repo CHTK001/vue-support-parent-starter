@@ -2,7 +2,7 @@
   <div class="example-container">
     <h2 class="example-title">ScMessageDialog 消息对话框示例</h2>
     <p class="example-desc">
-      用于显示操作进度、消息通知等，支持拖拽、靠边吸附、Grid吸附等功能
+      用于显示操作进度、消息通知等，支持 interact.js 拖拽功能
     </p>
 
     <el-divider content-position="left">功能演示</el-divider>
@@ -29,7 +29,7 @@
 
       <el-divider content-position="left">属性配置</el-divider>
 
-      <el-form label-width="140px" class="config-form">
+      <el-form label-width="100px" class="config-form">
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="位置">
@@ -47,35 +47,8 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="启用靠边吸附">
-              <el-switch v-model="config.enableEdgeDock" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="启用Grid吸附">
-              <el-switch v-model="config.enableGridSnap" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="Grid大小">
-              <el-input-number
-                v-model="config.gridSize"
-                :min="10"
-                :max="50"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="吸附阈值">
-              <el-input-number
-                v-model="config.edgeDockThreshold"
-                :min="20"
-                :max="100"
-                style="width: 100%"
-              />
+            <el-form-item label="标题">
+              <el-input v-model="config.title" placeholder="对话框标题" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -86,12 +59,12 @@
 
     <CodePreview :tabs="codeTabs" />
 
-    <el-divider content-position="left">新增属性说明</el-divider>
+    <el-divider content-position="left">属性说明</el-divider>
 
-    <el-table :data="newProps" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
+    <el-table :data="propsData" border stripe class="props-table">
+      <el-table-column prop="name" label="属性名" width="150" />
       <el-table-column prop="type" label="类型" width="200" />
-      <el-table-column prop="default" label="默认值" width="120" />
+      <el-table-column prop="default" label="默认值" width="150" />
       <el-table-column prop="description" label="说明" />
     </el-table>
 
@@ -103,13 +76,7 @@
       :position="config.position"
       :theme-color="config.themeColor"
       :operations="operations"
-      :enable-edge-dock="config.enableEdgeDock"
-      :edge-dock-threshold="config.edgeDockThreshold"
-      :enable-grid-snap="config.enableGridSnap"
-      :grid-size="config.gridSize"
       @clear="handleClear"
-      @expand="handleExpand"
-      @edge-dock="handleEdgeDock"
       @close="handleDialogClose"
     />
   </div>
@@ -147,49 +114,45 @@ const config = reactive({
   icon: "ri:terminal-box-line",
   position: "bottom-right" as const,
   themeColor: "#3b82f6",
-  enableEdgeDock: true,
-  edgeDockThreshold: 50,
-  enableGridSnap: false,
-  gridSize: 20,
 });
 
-// 新增属性说明
-const newProps = [
+// 属性说明
+const propsData = [
   {
-    name: "enableEdgeDock",
-    type: "boolean",
-    default: "false",
-    description: "是否启用靠边吸附最小化，拖拽到边缘时自动吸附为圆形图标",
+    name: "title",
+    type: "string",
+    default: "'操作监控'",
+    description: "对话框标题",
   },
   {
-    name: "edgeDockThreshold",
-    type: "number",
-    default: "50",
-    description: "吸附边缘的阈值（距离边缘多少像素时自动吸附）",
+    name: "icon",
+    type: "string",
+    default: "'ri:terminal-box-line'",
+    description: "标题图标",
   },
   {
-    name: "boundaryElement",
-    type: "string | HTMLElement",
-    default: "null",
-    description: "父元素选择器或元素，限制在父元素内移动",
+    name: "position",
+    type: "'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'",
+    default: "'bottom-right'",
+    description: "初始位置（四个角落）",
   },
   {
-    name: "enableGridSnap",
-    type: "boolean",
-    default: "false",
-    description: "是否启用 grid 方式移动，拖拽时自动对齐到网格",
+    name: "themeColor",
+    type: "string",
+    default: "'#3b82f6'",
+    description: "主题色",
   },
   {
-    name: "gridSize",
-    type: "number",
-    default: "20",
-    description: "grid 单元格大小（像素）",
+    name: "operations",
+    type: "Operation[]",
+    default: "[]",
+    description: "操作列表",
   },
   {
-    name: "dockIconSize",
-    type: "number",
-    default: "48",
-    description: "吸附图标大小（像素）",
+    name: "emptyText",
+    type: "string",
+    default: "'暂无操作'",
+    description: "空状态文本",
   },
 ];
 
@@ -206,18 +169,12 @@ const codeTabs = computed(() => [
     language: "vue",
     code: `<ScMessageDialog
   ref="dialogRef"
-  :title="${config.title}"
-  :icon="${config.icon}"
-  :position="${config.position}"
-  :theme-color="${config.themeColor}"
+  title="${config.title}"
+  icon="${config.icon}"
+  position="${config.position}"
+  theme-color="${config.themeColor}"
   :operations="operations"
-  :enable-edge-dock="${config.enableEdgeDock}"
-  :edge-dock-threshold="${config.edgeDockThreshold}"
-  :enable-grid-snap="${config.enableGridSnap}"
-  :grid-size="${config.gridSize}"
   @clear="handleClear"
-  @expand="handleExpand"
-  @edge-dock="handleEdgeDock"
   @close="handleClose"
 />`,
   },
@@ -234,7 +191,7 @@ const operations = ref([]);
 
 // 显示对话框
 function showDialog() {
-  dialogRef.value?.toggleExpand();
+  dialogRef.value?.show();
 }
 
 // 添加操作
@@ -256,16 +213,6 @@ function handleClear() {
   );
 }
 
-// 处理展开
-function handleExpand(expanded) {
-  console.log("展开状态:", expanded);
-}
-
-// 处理靠边吸附
-function handleEdgeDock(docked, edge) {
-  console.log("吸附状态:", docked, edge);
-}
-
 // 处理关闭
 function handleClose() {
   console.log("对话框已关闭");
@@ -274,7 +221,7 @@ function handleClose() {
 ]);
 
 function showDialog() {
-  dialogRef.value?.toggleExpand();
+  dialogRef.value?.show();
 }
 
 function addOperation() {
@@ -334,22 +281,11 @@ function handleClear() {
   operations.value = operations.value.filter(
     (op) => op.status === "pending" || op.status === "running"
   );
-}
-
-function handleExpand(expanded: boolean) {
-  console.log("展开状态:", expanded);
-}
-
-function handleEdgeDock(docked: boolean, edge: string) {
-  if (docked) {
-    ElMessage.info(
-      `已吸附到${edge === "left" ? "左" : edge === "right" ? "右" : edge === "top" ? "上" : "下"}边缘`
-    );
-  }
+  ElMessage.success("已清除已完成的操作");
 }
 
 function handleDialogClose() {
-  ElMessage.info("对话框已关闭（销毁）");
+  ElMessage.info("对话框已关闭");
 }
 </script>
 

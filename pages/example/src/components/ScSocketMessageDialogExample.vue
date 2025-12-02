@@ -2,7 +2,7 @@
   <div class="example-container">
     <h2 class="example-title">ScSocketMessageDialog Socket消息对话框示例</h2>
     <p class="example-desc">
-      用于显示实时Socket消息、进度等，支持多种布局模式和靠边吸附功能
+      用于显示实时Socket消息、进度等，支持多种布局模式和 interact.js 拖拽/缩放
     </p>
 
     <el-divider content-position="left">功能演示</el-divider>
@@ -61,21 +61,21 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item label="启用靠边吸附">
-              <el-switch v-model="config.enableEdgeDock" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="启用Grid吸附">
-              <el-switch v-model="config.enableGridSnap" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
             <el-form-item label="高度">
               <el-input-number
                 v-model="config.height"
                 :min="100"
                 :max="400"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="宽度">
+              <el-input-number
+                v-model="config.width"
+                :min="300"
+                :max="600"
                 style="width: 100%"
               />
             </el-form-item>
@@ -124,11 +124,10 @@
       event-name="example-dialog-progress"
       data-type="default"
       :visible="dialogVisible"
-      :enable-edge-dock="config.enableEdgeDock"
-      :enable-grid-snap="config.enableGridSnap"
       :height="config.height"
+      :width="config.width"
       @update:visible="dialogVisible = $event"
-      @edge-dock="handleEdgeDock"
+      @close="handleClose"
     />
   </div>
 </template>
@@ -154,48 +153,47 @@ const config = reactive({
   mode: "embed" as "embed" | "dialog",
   layout: "process" as "process" | "log" | "custom",
   position: "bottom-right" as const,
-  enableEdgeDock: true,
-  enableGridSnap: false,
   height: 200,
+  width: 400,
 });
 
-// 新增属性说明
+// 属性说明
 const newProps = [
   {
-    name: "enableEdgeDock",
-    type: "boolean",
-    default: "false",
-    description: "是否启用靠边吸附最小化，拖拽到边缘时自动吸附为圆形图标",
+    name: "mode",
+    type: "'embed' | 'dialog'",
+    default: "'embed'",
+    description: "显示模式：内嵌或弹框",
   },
   {
-    name: "edgeDockThreshold",
+    name: "layout",
+    type: "'process' | 'log' | 'custom'",
+    default: "'process'",
+    description: "布局类型：进度条、日志或自定义",
+  },
+  {
+    name: "position",
+    type: "'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'",
+    default: "'bottom-right'",
+    description: "初始位置（四个角落）",
+  },
+  {
+    name: "width",
     type: "number",
-    default: "50",
-    description: "吸附边缘的阈值（距离边缘多少像素时自动吸附）",
+    default: "400",
+    description: "弹框宽度",
   },
   {
-    name: "boundaryElement",
-    type: "string | HTMLElement",
-    default: "null",
-    description: "父元素选择器或元素，限制在父元素内移动",
-  },
-  {
-    name: "enableGridSnap",
-    type: "boolean",
-    default: "false",
-    description: "是否启用 grid 方式移动，拖拽时自动对齐到网格",
-  },
-  {
-    name: "gridSize",
+    name: "dialogHeight",
     type: "number",
-    default: "20",
-    description: "grid 单元格大小（像素）",
+    default: "300",
+    description: "弹框高度",
   },
   {
-    name: "dockIconSize",
-    type: "number",
-    default: "48",
-    description: "吸附图标大小（像素）",
+    name: "eventId",
+    type: "string | number",
+    default: "-",
+    description: "事件ID，用于过滤Socket消息",
   },
 ];
 
@@ -220,11 +218,10 @@ const codeTabs = computed(() => [
   event-name="progress-event"
   data-type="default"
   :visible="dialogVisible"
-  :enable-edge-dock="${config.enableEdgeDock}"
-  :enable-grid-snap="${config.enableGridSnap}"
+  :width="${config.width}"
   :height="${config.height}"
   @update:visible="dialogVisible = $event"
-  @edge-dock="handleEdgeDock"
+  @close="handleClose"
 />`,
   },
   {
@@ -264,9 +261,9 @@ function resetDialog() {
   dialogRef.value?.resetProgress();
 }
 
-// 处理靠边吸附
-function handleEdgeDock(docked, edge) {
-  console.log("吸附状态:", docked, edge);
+// 关闭
+function handleClose() {
+  console.log("对话框已关闭");
 }`,
   },
 ]);
@@ -344,12 +341,8 @@ function resetDialog() {
   ElMessage.info("已重置");
 }
 
-function handleEdgeDock(docked: boolean, edge: string) {
-  if (docked) {
-    ElMessage.info(
-      `已吸附到${edge === "left" ? "左" : edge === "right" ? "右" : edge === "top" ? "上" : "下"}边缘`
-    );
-  }
+function handleClose() {
+  ElMessage.info("对话框已关闭");
 }
 </script>
 
