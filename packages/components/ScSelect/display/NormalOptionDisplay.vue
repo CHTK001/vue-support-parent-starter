@@ -25,17 +25,17 @@
       </div>
     </div>
     <div v-else class="option-text-item">
-      <div class="option-checkbox">
-        <div v-if="isSelected" class="checkbox-checked">
-          <IconRenderer icon="ri:check-line" />
-        </div>
-      </div>
       <div class="option-info">
         <!-- 文本选项自定义内容插槽 -->
         <slot name="content" :option="option" :isSelected="isSelected">
           <div class="option-label">{{ option.label || option.describe || option.name }}</div>
           <div v-if="option.description" class="option-description truncate !max-w-[100px]">{{ option.description }}</div>
         </slot>
+      </div>
+      <div class="option-checkbox">
+        <div v-if="isSelected" class="checkbox-checked">
+          <IconRenderer icon="ri:check-line" />
+        </div>
       </div>
     </div>
   </div>
@@ -78,6 +78,15 @@ defineEmits<{
     opacity: 0.5;
     cursor: not-allowed;
     pointer-events: none;
+
+    .option-text-item {
+      background: var(--el-fill-color-lighter);
+
+      .option-label {
+        color: var(--el-text-color-disabled);
+        text-decoration: line-through;
+      }
+    }
   }
 
   &.preview-item {
@@ -134,28 +143,29 @@ defineEmits<{
   }
 
   .option-checkbox {
-    width: 18px;
-    height: 18px;
-    margin-right: 12px;
+    width: 22px;
+    height: 22px;
+    margin-left: auto;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid var(--el-border-color);
-    border-radius: 4px;
+    border: 2px solid transparent;
+    border-radius: 50%;
     transition: all 0.2s ease;
 
     .checkbox-checked {
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
-      border-radius: 4px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--el-text-color-primary);
+      color: #fff;
       font-size: 12px;
       border: none;
-      box-shadow: 0 2px 4px rgba(var(--el-color-primary-rgb), 0.3);
+      box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.4);
       animation: checkboxPop 0.2s ease;
     }
   }

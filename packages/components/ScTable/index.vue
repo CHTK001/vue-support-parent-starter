@@ -1,5 +1,6 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { deepCopy, localStorageProxy, paginate } from "@repo/utils";
 import { computed, defineAsyncComponent, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { columnSettingGet, columnSettingReset, columnSettingSave, config, parseData } from "./column";
@@ -56,6 +57,10 @@ const props = defineProps({
   columnInTemplate: { type: Boolean, default: true },
   remoteSort: { type: Boolean, default: false },
   remoteFilter: { type: Boolean, default: false },
+  // 默认开启表头排序
+  defaultSortable: { type: [Boolean, String], default: true },
+  // 是否将过滤参数携带到请求中
+  filterToParams: { type: Boolean, default: true },
   remoteSummary: { type: Boolean, default: false },
   search: { type: Boolean, default: true },
   hidePagination: { type: Boolean, default: false },
@@ -69,11 +74,51 @@ const props = defineProps({
   // 瀑布流相关配置
   waterfallGap: { type: Number, default: 16 }, // 瀑布流卡片间距
   estimatedItemHeight: { type: Number, default: 200 }, // 预估卡片高度
-  bufferSize: { type: Number, default: 5 } // 虚拟滚动缓冲区大小
+  bufferSize: { type: Number, default: 5 }, // 虚拟滚动缓冲区大小
+  // 拖拽排序相关配置
+  /**
+   * 是否启用行拖拽排序
+   */
+  draggable: { type: Boolean, default: false },
+  /**
+   * 拖拽排序远程地址，设置后会将排序结果提交到后端
+   */
+  dragSortUrl: { type: Function, default: null },
+  /**
+   * 拖拽交互次数
+   * 1: 每次拖拽直接触发提交
+   * >1: 显示保存按钮，点击后批量提交
+   */
+  dragInteractionCount: { type: Number, default: 1 },
+  /**
+   * 拖拽排序使用的行标识字段
+   */
+  dragRowKey: { type: String, default: "id" },
+  /**
+   * 拖拽手柄列宽度
+   */
+  dragHandleWidth: { type: Number, default: 50 }
 });
 
 // 定义组件事件
-const emit = defineEmits(["loaded", "data-loaded", "dataChange", "finish", "update:cardLayout", "rowClick", "colClick"]);
+const emit = defineEmits([
+  "loaded",
+  "data-loaded",
+  "dataChange",
+  "finish",
+  "update:cardLayout",
+  "rowClick",
+  "colClick",
+  "drag-sort-change", // 拖拽排序变化
+  "drag-sort-save", // 拖拽排序保存
+  "drag-sort-success", // 拖拽排序保存成功
+  "drag-sort-error" // 拖拽排序保存失败
+]);
+
+// 拖拽排序相关状态
+const dragSortPending = ref(false); // 是否有待保存的排序
+const dragChangeCount = ref(0); // 拖拽变化次数
+const dragSortLoading = ref(false); // 拖拽排序保存中
 
 // 引用
 const scTableMain = ref(null);
@@ -99,6 +144,7 @@ const selectCacheData = ref({});
 const customColumnShow = ref(false);
 const summary = ref({});
 const cacheData = ref({});
+const filterParams = ref({}); // 存储当前的过滤参数
 const isLoading = ref(false); // 是否正在加载中，避免重复加载
 const observerRef = ref(null); // 用于存储IntersectionObserver实例
 const rowSize = ref(props.rowSize); // 卡片布局行数
@@ -229,7 +275,14 @@ const icon = iconName => {
 // 获取列
 const getCustomColumn = async () => {
   const column = await columnSettingGet(props.tableName, props.columns);
-  userColumn.value = column;
+  // 处理默认排序属性
+  userColumn.value = column.map(col => {
+    // 如果列没有明确设置 sortable，则使用 defaultSortable 的值
+    if (col.sortable === undefined && props.defaultSortable !== false) {
+      return { ...col, sortable: props.defaultSortable === true ? "custom" : props.defaultSortable };
+    }
+    return col;
+  });
 };
 
 /**
@@ -279,6 +332,11 @@ const getRemoteData = async isLoading => {
     [config.request.prop]: prop.value,
     [config.request.order]: order.value
   };
+
+  // 如果开启了过滤参数携带，将过滤参数添加到请求中
+  if (props.filterToParams && Object.keys(filterParams.value).length > 0) {
+    Object.assign(reqData, filterParams.value);
+  }
   if (props.hidePagination) {
     delete reqData[config.request.page];
     delete reqData[config.request.pageSize];
@@ -548,13 +606,19 @@ const filterHandler = (value, row, column) => {
 
 // 过滤事件
 const filterChange = filters => {
+  // 存储过滤参数
+  Object.keys(filters).forEach(key => {
+    if (filters[key] && filters[key].length > 0) {
+      filterParams.value[key] = filters[key].join(",");
+    } else {
+      delete filterParams.value[key];
+    }
+  });
+
   if (!props.remoteFilter) {
     return false;
   }
-  Object.keys(filters).forEach(key => {
-    filters[key] = filters[key].join(",");
-  });
-  upData(filters);
+  upData(filterParams.value);
 };
 
 // 远程合计行处理
@@ -669,6 +733,68 @@ const doLayout = () => {
 
 const sort = (prop, order) => {
   scTable.value.sort(prop, order);
+};
+
+/**
+ * 处理拖拽排序变化
+ * @param {Object} sortInfo - 排序信息
+ * @param {number} sortInfo.oldIndex - 原索引
+ * @param {number} sortInfo.newIndex - 新索引
+ * @param {Array} sortInfo.newOrder - 新排序数组
+ */
+const onDragSortChange = sortInfo => {
+  dragChangeCount.value++;
+  dragSortPending.value = true;
+
+  // 更新表格数据
+  tableData.value = sortInfo.newOrder;
+
+  // 触发排序变化事件
+  emit("drag-sort-change", sortInfo);
+
+  // 判断是否需要立即提交
+  if (props.dragInteractionCount === 1 && props.dragSortUrl) {
+    saveDragSort();
+  }
+};
+
+/**
+ * 保存拖拽排序
+ */
+const saveDragSort = async () => {
+  if (!props.dragSortUrl || !dragSortPending.value) return;
+
+  dragSortLoading.value = true;
+
+  // 构建排序数据
+  const sortData = tableData.value.map((item, index) => ({
+    [props.dragRowKey]: item[props.dragRowKey],
+    sort: index + 1
+  }));
+
+  emit("drag-sort-save", sortData);
+
+  try {
+    const result = await props.dragSortUrl(sortData);
+    dragSortPending.value = false;
+    dragChangeCount.value = 0;
+    emit("drag-sort-success", result);
+  } catch (error) {
+    emit("drag-sort-error", error);
+  } finally {
+    dragSortLoading.value = false;
+  }
+};
+
+/**
+ * 取消拖拽排序（恢复原始顺序）
+ */
+const cancelDragSort = () => {
+  if (dragSortPending.value) {
+    getData(false);
+    dragSortPending.value = false;
+    dragChangeCount.value = 0;
+  }
 };
 
 const selectionChange = values => {
@@ -1068,7 +1194,13 @@ defineExpose({
   sort,
   getSelection,
   loadMore,
-  onColClick
+  onColClick,
+  // 拖拽排序方法
+  saveDragSort,
+  cancelDragSort,
+  dragSortPending,
+  dragChangeCount,
+  dragSortLoading
 });
 </script>
 
@@ -1108,6 +1240,9 @@ defineExpose({
           :gap="waterfallGap"
           :estimated-item-height="estimatedItemHeight"
           :buffer-size="bufferSize"
+          :draggable="draggable"
+          :drag-row-key="dragRowKey"
+          :drag-handle-width="dragHandleWidth"
           @row-click="onRowClick"
           @col-click="onColClick"
           @selection-change="selectionChange"
@@ -1116,6 +1251,7 @@ defineExpose({
           @load-more="onLoadMore"
           @next-page="onNextPage"
           @update:current-page="onUpdateCurrentPage"
+          @drag-sort-change="onDragSortChange"
         >
           <template #default="{ row, index }">
             <slot :row="row" :index="index" :default="row" />
@@ -1127,6 +1263,24 @@ defineExpose({
             </slot>
           </template>
         </component>
+      </div>
+
+      <!-- 拖拽排序操作栏 -->
+      <div v-if="draggable && dragSortPending && dragInteractionCount > 1" class="sc-table-drag-actions">
+        <div class="drag-action-info">
+          <IconifyIconOnline icon="ep:sort" />
+          <span>已拖拽 {{ dragChangeCount }} 次，排序已变更</span>
+        </div>
+        <div class="drag-action-buttons">
+          <el-button size="small" @click="cancelDragSort">
+            <IconifyIconOnline icon="ep:refresh-left" />
+            取消
+          </el-button>
+          <el-button type="primary" size="small" :loading="dragSortLoading" @click="saveDragSort">
+            <IconifyIconOnline icon="ep:check" />
+            保存排序
+          </el-button>
+        </div>
       </div>
 
       <!-- 分页区域 -->
@@ -1204,6 +1358,32 @@ defineExpose({
     height: auto;
     min-height: 300px;
     overflow-y: auto;
+  }
+}
+
+// 拖拽排序操作栏样式
+.sc-table-drag-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--el-color-warning-light-9) 0%, var(--el-color-warning-light-8) 100%);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid var(--el-color-warning-light-5);
+
+  .drag-action-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--el-color-warning);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .drag-action-buttons {
+    display: flex;
+    gap: 8px;
   }
 }
 

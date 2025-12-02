@@ -68,15 +68,25 @@
                 { label: '表格', value: 'table', icon: 'ep:grid' },
                 { label: '列表', value: 'list', icon: 'ep:list' },
                 { label: '卡片', value: 'card', icon: 'ep:menu' },
+                { label: '瀑布流', value: 'waterfall', icon: 'ep:watermelon' },
                 { label: '虚拟表格', value: 'virtual', icon: 'ep:top' },
                 { label: 'Canvas', value: 'canvas', icon: 'ep:finished' },
               ]"
               layout="pill"
-              :columns="5"
+              :columns="6"
             />
           </el-form-item>
           <el-form-item label="启用右键菜单">
             <el-switch v-model="config.contextMenu" />
+          </el-form-item>
+          <el-form-item label="启用拖拽排序">
+            <el-switch v-model="config.draggable" />
+          </el-form-item>
+          <el-form-item v-if="config.draggable" label="交互次数">
+            <el-radio-group v-model="config.dragInteractionCount">
+              <el-radio :label="1">即时保存</el-radio>
+              <el-radio :label="5">批量保存</el-radio>
+            </el-radio-group>
           </el-form-item>
           <el-form-item label="数据数量">
             <div class="data-count-control">
@@ -114,6 +124,12 @@
             :auto-load="config.paginationType === 'scroll' && config.autoLoad"
             :load-distance="config.loadDistance"
             :contextmenu="config.contextMenu ? handleContextMenu : null"
+            :draggable="config.draggable"
+            :drag-interaction-count="config.dragInteractionCount"
+            :drag-sort-url="config.draggable ? mockDragSortUrl : null"
+            drag-row-key="id"
+            @drag-sort-change="handleDragSortChange"
+            @drag-sort-success="handleDragSortSuccess"
             overflow-x="auto"
           >
             <el-table-column type="selection" width="55"></el-table-column>
@@ -203,6 +219,79 @@
                     @click="handleDelete(row)"
                     >删除</el-button
                   >
+                </div>
+              </div>
+            </template>
+          </ScTable>
+
+          <!-- 瀑布流布局 -->
+          <ScTable
+            v-else-if="config.layout === 'waterfall'"
+            :layout="config.layout"
+            ref="waterfallLayoutRef"
+            :data="tableData"
+            :params="{}"
+            row-key="id"
+            :border="config.border"
+            :stripe="config.stripe"
+            :height="config.height > 0 ? config.height - 2 : 500"
+            :hidePagination="!config.showPagination"
+            :pageSize="config.pageSize"
+            :paginationType="config.paginationType"
+            :waterfall-gap="16"
+            :estimated-item-height="180"
+            :buffer-size="5"
+            :auto-load="config.paginationType === 'scroll' && config.autoLoad"
+            :load-distance="config.loadDistance"
+            :contextmenu="config.contextMenu ? handleContextMenu : null"
+            @row-click="handleEdit"
+          >
+            <template #default="{ row }">
+              <div
+                class="waterfall-card"
+                :style="{ minHeight: getRandomHeight(row.id) + 'px' }"
+              >
+                <div class="waterfall-card-header">
+                  <span class="waterfall-card-title">{{ row.name }}</span>
+                  <el-tag
+                    :type="row.status === 'active' ? 'success' : 'info'"
+                    size="small"
+                  >
+                    {{ row.status === "active" ? "启用" : "禁用" }}
+                  </el-tag>
+                </div>
+                <div class="waterfall-card-content">
+                  <p class="waterfall-card-desc">{{ row.description }}</p>
+                  <div class="waterfall-card-meta">
+                    <span class="meta-item">
+                      <IconifyIconOnline icon="ep:calendar" />
+                      {{ row.createTime }}
+                    </span>
+                    <span class="meta-item">
+                      <IconifyIconOnline icon="ep:user" />
+                      ID: {{ row.id }}
+                    </span>
+                  </div>
+                </div>
+                <div class="waterfall-card-footer">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    text
+                    @click.stop="handleEdit(row)"
+                  >
+                    <IconifyIconOnline icon="ep:edit" />
+                    编辑
+                  </el-button>
+                  <el-button
+                    type="danger"
+                    size="small"
+                    text
+                    @click.stop="handleDelete(row)"
+                  >
+                    <IconifyIconOnline icon="ep:delete" />
+                    删除
+                  </el-button>
                 </div>
               </div>
             </template>
@@ -396,6 +485,8 @@ const config = reactive({
   layout: "table",
   dataCount: 108,
   contextMenu: false,
+  draggable: false,
+  dragInteractionCount: 1,
 });
 
 // Canvas表格列配置
@@ -418,6 +509,7 @@ const getLayoutTitle = computed(() => {
     table: "表格模式预览",
     card: "卡片模式预览",
     list: "列表模式预览",
+    waterfall: "瀑布流模式预览",
     virtual: "虚拟表格预览",
     canvas: "Canvas表格预览",
   };
@@ -446,6 +538,14 @@ const tableRef = ref(null);
 const otherLayoutRef = ref(null);
 const canvasLayoutRef = ref(null);
 const virtualLayoutRef = ref(null);
+const waterfallLayoutRef = ref(null);
+
+// 生成随机高度（用于瀑布流布局演示）
+const getRandomHeight = (id) => {
+  // 基于 ID 生成固定的随机高度，保证每次渲染结果一致
+  const heights = [150, 180, 200, 220, 250, 280, 300];
+  return heights[id % heights.length];
+};
 
 // 模拟表格数据
 const tableData = ref([
@@ -560,6 +660,28 @@ const handleDelete = (row) => {
     message: `删除: ${row.name}`,
     type: "warning",
   });
+};
+
+// 模拟拖拽排序API
+const mockDragSortUrl = async (sortData) => {
+  // 模拟网络延迟
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  console.log("保存排序数据:", sortData);
+  return { code: 200, message: "排序保存成功" };
+};
+
+// 拖拽排序变化处理
+const handleDragSortChange = (sortInfo) => {
+  console.log("拖拽排序变化:", sortInfo);
+  ElMessage.info(
+    `将第 ${sortInfo.oldIndex + 1} 行移动到第 ${sortInfo.newIndex + 1} 行`
+  );
+};
+
+// 拖拽排序保存成功处理
+const handleDragSortSuccess = (result) => {
+  ElMessage.success("排序保存成功");
+  console.log("排序保存结果:", result);
 };
 
 // 定义右键菜单处理函数
@@ -820,6 +942,40 @@ const handleContextMenu = (row, column, event) => {
   :columns="columns"
   @row-click="handleRowClick">
 </ScTable>`;
+  } else if (config.layout === "waterfall") {
+    // 瀑布流布局代码
+    code = `<ScTable 
+  layout="waterfall"
+  :data="tableData" 
+  row-key="id"
+  :height="500"
+  :pageSize="${config.pageSize}"
+  :paginationType="${config.paginationType}"
+  :waterfall-gap="16"
+  :estimated-item-height="180"
+  :buffer-size="5"
+  @row-click="handleRowClick">
+  <template #default="{ row }">
+    <div class="waterfall-card">
+      <div class="waterfall-card-header">
+        <span class="waterfall-card-title">{{ row.name }}</span>
+        <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+          {{ row.status === "active" ? "启用" : "禁用" }}
+        </el-tag>
+      </div>
+      <div class="waterfall-card-content">
+        <p class="waterfall-card-desc">{{ row.description }}</p>
+        <div class="waterfall-card-meta">
+          <span class="meta-item">{{ row.createTime }}</span>
+        </div>
+      </div>
+      <div class="waterfall-card-footer">
+        <el-button type="primary" size="small" text @click.stop="handleEdit(row)">编辑</el-button>
+        <el-button type="danger" size="small" text @click.stop="handleDelete(row)">删除</el-button>
+      </div>
+    </div>
+  </template>
+</ScTable>`;
   } else {
     // 列表布局代码
     code = `<ScTable 
@@ -1023,6 +1179,70 @@ code {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+// 瀑布流卡片样式
+.waterfall-card {
+  background: var(--el-bg-color-overlay);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    transform: translateY(-4px);
+  }
+
+  .waterfall-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+
+    .waterfall-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .waterfall-card-content {
+    flex: 1;
+
+    .waterfall-card-desc {
+      font-size: 14px;
+      color: var(--el-text-color-regular);
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+
+    .waterfall-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+
+      .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
+
+  .waterfall-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
 }
 
 .context-menu-help {

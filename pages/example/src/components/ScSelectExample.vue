@@ -191,6 +191,7 @@
                 { value: 'social', label: '社交媒体' },
                 { value: 'httpIcon', label: 'HTTP图标' },
                 { value: 'tableData', label: '表格数据' },
+                { value: 'tree', label: '树形数据' },
                 { value: 'remote', label: '远程数据' },
               ]"
             />
@@ -489,6 +490,100 @@ const tableColumns = [
   { prop: "status", label: "状态", width: 80, show: true },
 ];
 
+// 树形数据选项
+const treeOptions = [
+  {
+    label: "技术部",
+    value: "tech",
+    icon: "ep:setting",
+    children: [
+      {
+        label: "前端组",
+        value: "frontend",
+        icon: "ep:monitor",
+        children: [
+          { label: "Vue开发", value: "vue", icon: "ri:vuejs-fill" },
+          { label: "React开发", value: "react", icon: "ri:reactjs-line" },
+          { label: "小程序开发", value: "miniapp", icon: "ri:wechat-fill" },
+        ],
+      },
+      {
+        label: "后端组",
+        value: "backend",
+        icon: "ep:cpu",
+        children: [
+          { label: "Java开发", value: "java", icon: "ri:java-fill" },
+          { label: "Python开发", value: "python", icon: "ri:python-fill" },
+          { label: "Go开发", value: "go", icon: "ri:code-s-slash-line" },
+        ],
+      },
+      {
+        label: "运维组",
+        value: "devops",
+        icon: "ep:connection",
+        children: [
+          { label: "Docker容器化", value: "docker", icon: "ri:docker-fill" },
+          { label: "K8s集群管理", value: "k8s", icon: "ri:cloud-fill" },
+          { label: "CI/CD流水线", value: "cicd", icon: "ri:git-branch-line" },
+        ],
+      },
+    ],
+  },
+  {
+    label: "产品部",
+    value: "product",
+    icon: "ep:goods",
+    children: [
+      {
+        label: "产品设计",
+        value: "design",
+        icon: "ep:brush",
+        children: [
+          { label: "UI设计", value: "ui", icon: "ri:palette-fill" },
+          { label: "UX设计", value: "ux", icon: "ri:user-smile-fill" },
+        ],
+      },
+      {
+        label: "产品策划",
+        value: "planning",
+        icon: "ep:document",
+        children: [
+          {
+            label: "需求分析",
+            value: "requirements",
+            icon: "ri:file-list-3-line",
+          },
+          {
+            label: "竞品分析",
+            value: "competitive",
+            icon: "ri:bar-chart-fill",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    label: "运营部",
+    value: "operation",
+    icon: "ep:promotion",
+    children: [
+      { label: "内容运营", value: "content", icon: "ri:article-fill" },
+      { label: "用户运营", value: "user-ops", icon: "ri:group-fill" },
+      { label: "活动运营", value: "activity", icon: "ri:gift-fill" },
+    ],
+  },
+  {
+    label: "人事行政",
+    value: "hr",
+    icon: "ep:user",
+    children: [
+      { label: "招聘培训", value: "recruitment", icon: "ri:user-add-fill" },
+      { label: "薪酬福利", value: "salary", icon: "ri:money-cny-box-fill" },
+      { label: "行政后勤", value: "admin", icon: "ri:building-fill" },
+    ],
+  },
+];
+
 // 过滤器演示选项
 const filterOptions = [
   { label: "前端开发", value: "frontend", field: "category", operator: "eq" },
@@ -515,6 +610,8 @@ const options = computed(() => {
       return httpIconOptions;
     case "tableData":
       return tableDataOptions;
+    case "tree":
+      return treeOptions;
     case "remote":
       return [];
     default:
@@ -620,6 +717,10 @@ watch(layout, (newLayout) => {
   // 表格布局更适合显示表格数据
   if (newLayout === "select-table" && optionSet.value !== "tableData") {
     optionSet.value = "tableData";
+  }
+  // 树形布局自动切换到树形数据
+  if (newLayout === "tree" && optionSet.value !== "tree") {
+    optionSet.value = "tree";
   }
 });
 

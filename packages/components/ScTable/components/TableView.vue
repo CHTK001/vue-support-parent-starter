@@ -6,6 +6,7 @@
         :key="toggleIndex"
         ref="scTable"
         class="modern-table max-w-full headerSticky"
+        :class="{ 'is-draggable': draggable }"
         :data="tableData"
         :row-key="rowKey"
         :size="config.size"
@@ -20,6 +21,18 @@
         @filter-change="filterChange"
         @row-contextmenu="handleRowContextMenu"
       >
+        <!-- 拖拽手柄列 -->
+        <el-table-column v-if="draggable" :width="dragHandleWidth" align="center" fixed="left">
+          <template #header>
+            <IconifyIconOnline icon="ep:sort" />
+          </template>
+          <template #default>
+            <div class="drag-handle">
+              <IconifyIconOnline icon="ep:rank" />
+            </div>
+          </template>
+        </el-table-column>
+
         <template v-for="(item, index) in userColumn" :key="index">
           <el-table-column
             v-if="(!item.hide || !item?.handleHide(item)) && columnInTemplate"
@@ -61,6 +74,8 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
+import Sortable from "sortablejs";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import ContextMenu from "../plugins/ContextMenu.vue";
 
 // 定义props
@@ -98,11 +113,27 @@ const props = defineProps({
   stickyTop: {
     type: Number,
     default: 0
+  },
+  // 拖拽排序相关属性
+  draggable: {
+    type: Boolean,
+    default: false
+  },
+  dragRowKey: {
+    type: String,
+    default: "id"
+  },
+  dragHandleWidth: {
+    type: Number,
+    default: 50
   }
 });
 
 // 定义emits
-const emit = defineEmits(["row-click", "selection-change", "sort-change", "filter-change", "col-click"]);
+const emit = defineEmits(["row-click", "selection-change", "sort-change", "filter-change", "col-click", "drag-sort-change"]);
+
+// 拖拽排序实例
+let sortableInstance = null;
 
 // 右键菜单相关状态
 const contextMenuRef = ref(null);
@@ -381,6 +412,76 @@ watch(
   { deep: true }
 );
 
+// 监听拖拽属性变化
+watch(
+  () => props.draggable,
+  newVal => {
+    nextTick(() => {
+      if (newVal) {
+        initSortable();
+      } else if (sortableInstance) {
+        sortableInstance.destroy();
+        sortableInstance = null;
+      }
+    });
+  }
+);
+
+// 监听数据变化重新初始化拖拽
+watch(
+  () => props.tableData,
+  () => {
+    if (props.draggable) {
+      nextTick(() => {
+        initSortable();
+      });
+    }
+  }
+);
+
+/**
+ * 初始化拖拽排序
+ */
+const initSortable = () => {
+  if (!props.draggable || !scTable.value) return;
+
+  // 销毁旧实例
+  if (sortableInstance) {
+    sortableInstance.destroy();
+    sortableInstance = null;
+  }
+
+  const tableEl = scTable.value.$el;
+  const tbody = tableEl.querySelector(".el-table__body-wrapper tbody");
+
+  if (!tbody) return;
+
+  sortableInstance = Sortable.create(tbody, {
+    handle: ".drag-handle",
+    animation: 150,
+    ghostClass: "sortable-ghost",
+    chosenClass: "sortable-chosen",
+    dragClass: "sortable-drag",
+    onEnd: evt => {
+      const { oldIndex, newIndex } = evt;
+      if (oldIndex === newIndex) return;
+
+      // 创建新的排序数组
+      const newOrder = [...props.tableData];
+      const movedItem = newOrder.splice(oldIndex, 1)[0];
+      newOrder.splice(newIndex, 0, movedItem);
+
+      // 触发排序变化事件
+      emit("drag-sort-change", {
+        oldIndex,
+        newIndex,
+        movedItem,
+        newOrder
+      });
+    }
+  });
+};
+
 // 生命周期钩子
 onMounted(() => {
   // 初始化表格布局
@@ -391,6 +492,11 @@ onMounted(() => {
     const parentScrollElement = findScrollParent(tableContainer.value);
     if (parentScrollElement && parentScrollElement !== document) {
       parentScrollElement.addEventListener("scroll", applyHeaderSticky);
+    }
+
+    // 初始化拖拽排序
+    if (props.draggable) {
+      initSortable();
     }
   });
 
@@ -418,6 +524,12 @@ onBeforeUnmount(() => {
       headerWrapper.removeEventListener("scroll", handleHeaderScroll);
       bodyWrapper.removeEventListener("scroll", handleHeaderScroll);
     }
+  }
+
+  // 销毁拖拽排序实例
+  if (sortableInstance) {
+    sortableInstance.destroy();
+    sortableInstance = null;
   }
 });
 
@@ -577,5 +689,52 @@ defineExpose({
       min-width: 100%;
     }
   }
+
+  // 拖拽相关样式
+  &.is-draggable {
+    :deep(.el-table__body) {
+      tr {
+        cursor: default;
+      }
+    }
+  }
+}
+
+// 拖拽手柄样式
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: var(--el-text-color-secondary);
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+
+  &:hover {
+    color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+// Sortable 拖拽样式
+:deep(.sortable-ghost) {
+  opacity: 0.5;
+  background: var(--el-color-primary-light-9) !important;
+}
+
+:deep(.sortable-chosen) {
+  background: var(--el-color-primary-light-8) !important;
+}
+
+:deep(.sortable-drag) {
+  opacity: 1;
+  background: var(--el-bg-color) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 </style>
