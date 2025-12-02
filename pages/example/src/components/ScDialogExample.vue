@@ -60,6 +60,58 @@
               ></el-switch>
             </el-form-item>
 
+            <el-form-item label="边缘吸附" v-if="config.mode === 'custom'">
+              <el-switch
+                v-model="config.edgeDock"
+                active-text="启用边缘吸附"
+                class="mb-2 block"
+              ></el-switch>
+              <el-input-number
+                v-if="config.edgeDock"
+                v-model="config.edgeThreshold"
+                :min="20"
+                :max="100"
+                :step="10"
+                style="width: 100%"
+                placeholder="吸附阈值(px)"
+              ></el-input-number>
+            </el-form-item>
+
+            <el-form-item label="图标设置" v-if="config.mode === 'custom'">
+              <el-input
+                v-model="config.icon"
+                placeholder="图标名称，如 ep:info-filled"
+                class="mb-2"
+              ></el-input>
+              <el-radio-group
+                v-model="config.iconMode"
+                class="mb-2 block"
+                v-if="config.icon"
+              >
+                <el-radio label="inline">标题左侧</el-radio>
+                <el-radio label="float">顶部浮动</el-radio>
+              </el-radio-group>
+              <el-input-number
+                v-if="config.icon"
+                v-model="config.iconSize"
+                :min="16"
+                :max="48"
+                :step="4"
+                style="width: 100%"
+                placeholder="图标大小"
+              ></el-input-number>
+            </el-form-item>
+
+            <el-form-item label="对话框类型">
+              <el-radio-group v-model="config.type" class="mb-2 block">
+                <el-radio label="default">默认</el-radio>
+                <el-radio label="info">信息</el-radio>
+                <el-radio label="success">成功</el-radio>
+                <el-radio label="warning">警告</el-radio>
+                <el-radio label="error">错误</el-radio>
+              </el-radio-group>
+            </el-form-item>
+
             <el-form-item label="功能设置">
               <el-switch
                 v-model="config.fullscreen"
@@ -227,6 +279,7 @@
             :width="config.width + 'px'"
             :top="config.top"
             :mode="config.mode"
+            :type="config.type"
             :fullscreen="config.fullscreen"
             :modal="config.modal"
             :append-to-body="config.appendToBody"
@@ -238,6 +291,11 @@
             :draggable="config.draggable"
             :resizable="config.resizable"
             :destroy-on-close="config.destroyOnClose"
+            :edge-dock="config.edgeDock"
+            :edge-threshold="config.edgeThreshold"
+            :icon="config.icon"
+            :icon-mode="config.iconMode"
+            :icon-size="config.iconSize"
             @open="handleDialogOpen"
             @opened="handleDialogOpened"
             @close="handleDialogClose"
@@ -341,6 +399,7 @@ const config = reactive({
   width: 500,
   top: "15vh",
   mode: "element", // element 或 custom
+  type: "default", // default, info, success, warning, error
   fullscreen: false,
   modal: true,
   draggable: true,
@@ -355,6 +414,12 @@ const config = reactive({
   customHeader: false,
   contentType: "text",
   textContent: "这是一个可配置的对话框示例，您可以通过左侧面板调整各种属性。",
+  // 自定义模式特有配置
+  edgeDock: true,
+  edgeThreshold: 50,
+  icon: "",
+  iconMode: "inline",
+  iconSize: 24,
 });
 
 // 表单数据
@@ -407,6 +472,10 @@ const generatedCode = computed(() => {
   code += `\n  width="${config.width}px"`;
   code += `\n  mode="${config.mode}"`;
 
+  if (config.type !== "default") {
+    code += `\n  type="${config.type}"`;
+  }
+
   if (config.top !== "15vh") {
     code += `\n  top="${config.top}"`;
   }
@@ -453,6 +522,26 @@ const generatedCode = computed(() => {
 
   if (config.destroyOnClose) {
     code += `\n  destroy-on-close`;
+  }
+
+  // 自定义模式特有属性
+  if (config.mode === "custom") {
+    if (config.edgeDock) {
+      code += `\n  edge-dock`;
+      if (config.edgeThreshold !== 50) {
+        code += `\n  :edge-threshold="${config.edgeThreshold}"`;
+      }
+    } else {
+      code += `\n  :edge-dock="false"`;
+    }
+
+    if (config.icon) {
+      code += `\n  icon="${config.icon}"`;
+      code += `\n  icon-mode="${config.iconMode}"`;
+      if (config.iconSize !== 24) {
+        code += `\n  :icon-size="${config.iconSize}"`;
+      }
+    }
   }
 
   code += `>`;

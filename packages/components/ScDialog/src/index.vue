@@ -43,8 +43,23 @@
   <!-- 自定义模式（使用 interact.js） -->
   <template v-else>
     <Teleport to="body">
+      <!-- 最小化边缘图标 -->
+      <Transition name="dock-fade">
+        <div
+          v-if="dialogVisible && isMinimized"
+          class="sc-dialog-dock-icon"
+          :class="[`sc-dialog-dock-icon--${dockPosition}`, `sc-dialog-dock-icon--${type}`]"
+          :style="minimizedIconStyle"
+          :title="title"
+          @click="restoreFromEdge"
+        >
+          <IconifyIconOnline :icon="minimizeIcon || 'ep:chat-dot-round'" />
+        </div>
+      </Transition>
+
+      <!-- 对话框主体 -->
       <Transition name="dialog-fade" @after-leave="handleAfterLeave">
-        <div v-if="dialogVisible" class="sc-dialog-overlay" :class="{ 'has-modal': modal }" :style="{ zIndex: currentZIndex }" @click.self="handleOverlayClick">
+        <div v-if="dialogVisible && !isMinimized" class="sc-dialog-overlay" :class="{ 'has-modal': modal }" :style="{ zIndex: currentZIndex }" @click.self="handleOverlayClick">
           <div
             ref="dialogRef"
             class="sc-dialog sc-dialog--custom"
@@ -192,6 +207,12 @@ const props = withDefaults(
     iconSize?: number;
     /** 图标颜色 */
     iconColor?: string;
+    /** 是否启用边缘吸附 */
+    edgeDock?: boolean;
+    /** 边缘吸附阈值（像素） */
+    edgeThreshold?: number;
+    /** 最小化图标 */
+    minimizeIcon?: string;
   }>(),
   {
     modelValue: false,
@@ -221,7 +242,10 @@ const props = withDefaults(
     icon: "",
     iconMode: "inline",
     iconSize: 24,
-    iconColor: ""
+    iconColor: "",
+    edgeDock: true,
+    edgeThreshold: 50,
+    minimizeIcon: "ep:chat-dot-round"
   }
 );
 
@@ -242,6 +266,9 @@ function getNextZIndex(): number {
   return globalZIndex++;
 }
 
+/** 吸附位置类型 */
+type DockPosition = "left" | "right" | "top" | "bottom" | null;
+
 // 状态
 const dialogVisible = ref(props.modelValue);
 const dialogRef = ref<HTMLElement | null>(null);
@@ -249,6 +276,9 @@ const isDragging = ref(false);
 const isResizing = ref(false);
 const currentZIndex = ref(2050);
 const currentWidth = ref<string | null>(null);
+const isMinimized = ref(false);
+const dockPosition = ref<DockPosition>(null);
+const lastDialogState = ref<{ x: number; y: number; width: string; height: string } | null>(null);
 
 // interact.js 实例
 let interactInstance: ReturnType<typeof interact> | null = null;
@@ -309,6 +339,9 @@ watch(dialogVisible, val => {
   if (val && props.mode === "custom") {
     currentZIndex.value = getNextZIndex();
     currentWidth.value = null; // 重置宽度
+    isMinimized.value = false; // 重置最小化状态
+    dockPosition.value = null;
+    lastDialogState.value = null;
     emit("open");
     nextTick(() => {
       initInteract();
@@ -355,9 +388,13 @@ function initInteract(): void {
           target.setAttribute("data-x", String(x));
           target.setAttribute("data-y", String(y));
         },
-        end: () => {
+        end: event => {
           isDragging.value = false;
           document.body.style.userSelect = "";
+          // 边缘吸附检测
+          if (props.edgeDock) {
+            checkEdgeDock(event);
+          }
         }
       }
     });
@@ -458,6 +495,105 @@ function handleAfterLeave(): void {
   emit("closed");
 }
 
+/**
+ * 检测边缘吸附
+ */
+function checkEdgeDock(event: { target: EventTarget | null; client: { x: number; y: number } }): void {
+  const target = event.target as HTMLElement;
+  if (!target) return;
+
+  const rect = target.getBoundingClientRect();
+  const threshold = props.edgeThreshold;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  let position: DockPosition = null;
+
+  // 检测左边缘
+  if (rect.left <= threshold) {
+    position = "left";
+  }
+  // 检测右边缘
+  else if (rect.right >= viewportWidth - threshold) {
+    position = "right";
+  }
+  // 检测顶部边缘
+  else if (rect.top <= threshold) {
+    position = "top";
+  }
+  // 检测底部边缘
+  else if (rect.bottom >= viewportHeight - threshold) {
+    position = "bottom";
+  }
+
+  if (position) {
+    minimizeToEdge(position, target);
+  }
+}
+
+/**
+ * 最小化到边缘
+ */
+function minimizeToEdge(position: DockPosition, target: HTMLElement): void {
+  // 保存当前状态
+  lastDialogState.value = {
+    x: parseFloat(target.getAttribute("data-x") || "0") || 0,
+    y: parseFloat(target.getAttribute("data-y") || "0") || 0,
+    width: target.style.width || "",
+    height: target.style.height || ""
+  };
+
+  dockPosition.value = position;
+  isMinimized.value = true;
+}
+
+/**
+ * 从边缘恢复
+ */
+function restoreFromEdge(): void {
+  isMinimized.value = false;
+  dockPosition.value = null;
+
+  // 恢复对话框状态
+  nextTick(() => {
+    if (dialogRef.value && lastDialogState.value) {
+      const target = dialogRef.value;
+      target.style.transform = `translate(${lastDialogState.value.x}px, ${lastDialogState.value.y}px)`;
+      target.setAttribute("data-x", String(lastDialogState.value.x));
+      target.setAttribute("data-y", String(lastDialogState.value.y));
+      if (lastDialogState.value.width) {
+        target.style.width = lastDialogState.value.width;
+      }
+      if (lastDialogState.value.height) {
+        target.style.height = lastDialogState.value.height;
+      }
+    }
+  });
+}
+
+/**
+ * 获取最小化图标位置样式
+ */
+const minimizedIconStyle = computed(() => {
+  const base: Record<string, string> = {
+    position: "fixed",
+    zIndex: String(currentZIndex.value)
+  };
+
+  switch (dockPosition.value) {
+    case "left":
+      return { ...base, left: "0", top: "50%", transform: "translateY(-50%)" };
+    case "right":
+      return { ...base, right: "0", top: "50%", transform: "translateY(-50%)" };
+    case "top":
+      return { ...base, top: "0", left: "50%", transform: "translateX(-50%)" };
+    case "bottom":
+      return { ...base, bottom: "0", left: "50%", transform: "translateX(-50%)" };
+    default:
+      return base;
+  }
+});
+
 // 生命周期
 onMounted(() => {
   if (dialogVisible.value && props.mode === "custom") {
@@ -476,7 +612,14 @@ defineExpose({
   },
   close: () => {
     dialogVisible.value = false;
-  }
+  },
+  minimize: () => {
+    if (dialogRef.value) {
+      minimizeToEdge("right", dialogRef.value);
+    }
+  },
+  restore: restoreFromEdge,
+  isMinimized: () => isMinimized.value
 });
 </script>
 
@@ -676,6 +819,54 @@ defineExpose({
   }
 }
 
+// 边缘吸附图标
+.sc-dialog-dock-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--el-color-primary);
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  // 位置样式
+  &--left {
+    border-radius: 0 8px 8px 0;
+  }
+  &--right {
+    border-radius: 8px 0 0 8px;
+  }
+  &--top {
+    border-radius: 0 0 8px 8px;
+  }
+  &--bottom {
+    border-radius: 8px 8px 0 0;
+  }
+
+  // 类型样式
+  &--info {
+    background: var(--el-color-info);
+  }
+  &--success {
+    background: var(--el-color-success);
+  }
+  &--warning {
+    background: var(--el-color-warning);
+  }
+  &--error {
+    background: var(--el-color-danger);
+  }
+}
+
 // 对话框过渡动画
 .dialog-fade-enter-active,
 .dialog-fade-leave-active {
@@ -696,5 +887,17 @@ defineExpose({
     transform: translateY(-20px);
     opacity: 0;
   }
+}
+
+// 边缘图标过渡动画
+.dock-fade-enter-active,
+.dock-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.dock-fade-enter-from,
+.dock-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.5);
 }
 </style>
