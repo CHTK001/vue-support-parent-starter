@@ -1,0 +1,10 @@
+{
+  "name": "@repo/components-sc-tip",
+  "version": "1.0.0",
+  "description": "ScTip 提示组件",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "dependencies": {
+    "typeit": "^8.8.3"
+  }
+}

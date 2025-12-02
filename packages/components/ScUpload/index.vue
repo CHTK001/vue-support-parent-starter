@@ -112,7 +112,10 @@ export default {
     cropperAutoUpload: { type: Boolean, default: true },
     cropper: { type: Boolean, default: false },
     compress: { type: Number, default: 1 },
-    aspectRatio: { type: Number, default: NaN }
+    aspectRatio: { type: Number, default: NaN },
+    enablePaste: { type: Boolean, default: true },
+    enableDrag: { type: Boolean, default: true },
+    placeholder: { type: String, default: '点击或拖拽上传图片，支持 Ctrl+V 粘贴' }
   },
   data() {
     return {
@@ -142,6 +145,16 @@ export default {
   mounted() {
     this.value = this.modelValue;
     this.newFile(this.modelValue);
+    // 添加粘贴事件监听
+    if (this.enablePaste) {
+      document.addEventListener('paste', this.handlePaste);
+    }
+  },
+  beforeUnmount() {
+    // 移除粘贴事件监听
+    if (this.enablePaste) {
+      document.removeEventListener('paste', this.handlePaste);
+    }
   },
   methods: {
 
@@ -247,6 +260,63 @@ export default {
 
     submit() {
       this.$refs.uploader.submit();
+    },
+    /**
+     * 处理粘贴事件
+     */
+    handlePaste(event) {
+      if (this.disabled || this.file) return;
+      
+      const items = event.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.indexOf('image') !== -1) {
+          event.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            this.handlePasteFile(file);
+          }
+          break;
+        }
+      }
+    },
+    /**
+     * 处理粘贴的文件
+     */
+    handlePasteFile(file) {
+      const uploadFile = {
+        uid: genFileId(),
+        name: `paste-${Date.now()}.png`,
+        raw: file,
+        status: 'ready',
+        size: file.size,
+        type: file.type,
+        percentage: 0
+      };
+
+      // 检查文件大小
+      const maxSize = file.size / 1024 / 1024 < this.maxSize;
+      if (!maxSize) {
+        this.$message.warning(`上传文件大小不能超过 ${this.maxSize}MB!`);
+        return;
+      }
+
+      if (this.cropper) {
+        // 如果启用裁剪，打开裁剪对话框
+        this.cropperFile = uploadFile;
+        this.cropperFile.tempCropperFile = URL.createObjectURL(file);
+        this.cropperDialogVisible = true;
+      } else {
+        // 直接上传
+        this.file = uploadFile;
+        this.file.tempFile = URL.createObjectURL(file);
+        if (this.autoUpload) {
+          this.$refs.uploader.handleStart(uploadFile);
+          this.$refs.uploader.submit();
+        }
+      }
     },
     success(res, file) {
       var os = this.onSuccess(res, file);
