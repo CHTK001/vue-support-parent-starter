@@ -71,8 +71,10 @@ const tableConfigData = ref({
   rowSize: props.rowSize,
   colSize: props.colSize,
   cardLayout: props.cardLayout,
-  columnDraggable: false,
-  crossHighlight: false
+  draggable: false,
+  crossHighlight: false,
+  cacheEnabled: false,
+  cachePageCount: 3
 });
 
 // columnSetting组件的引用
@@ -97,8 +99,10 @@ const getTableConfig = () => {
     rowSize: props.rowSize,
     colSize: props.colSize,
     cardLayout: props.cardLayout,
-    columnDraggable: props.tableConfig.columnDraggable ?? false,
-    crossHighlight: props.tableConfig.crossHighlight ?? false
+    draggable: props.tableConfig.draggable ?? false,
+    crossHighlight: props.tableConfig.crossHighlight ?? false,
+    cacheEnabled: props.tableConfig.cacheEnabled ?? false,
+    cachePageCount: props.tableConfig.cachePageCount ?? 3
   };
 };
 
@@ -201,9 +205,21 @@ const handleStripeChange = value => {
   emit("save-config", { type: "table", config: tableConfigData.value });
 };
 
-// 监听列位置交换变更
-const handleColumnDraggableChange = value => {
-  tableConfigData.value.columnDraggable = value;
+// 监听拖拽排序变更
+const handleDraggableChange = value => {
+  tableConfigData.value.draggable = value;
+  emit("save-config", { type: "table", config: tableConfigData.value });
+};
+
+// 监听缓存开启变更
+const handleCacheEnabledChange = value => {
+  tableConfigData.value.cacheEnabled = value;
+  emit("save-config", { type: "table", config: tableConfigData.value });
+};
+
+// 监听缓存页数变更
+const handleCachePageCountChange = value => {
+  tableConfigData.value.cachePageCount = value;
   emit("save-config", { type: "table", config: tableConfigData.value });
 };
 
@@ -395,14 +411,14 @@ onMounted(() => {
             <!-- 分隔线 -->
             <div class="settings-divider"></div>
 
-            <!-- 列位置交换 -->
+            <!-- 拖拽排序 -->
             <div class="setting-item">
               <div class="setting-label">
-                <IconifyIconOnline icon="ep:switch" class="setting-icon" />
-                <span>列位置交换</span>
+                <IconifyIconOnline icon="ep:rank" class="setting-icon" />
+                <span>启用拖拽排序</span>
               </div>
               <div class="setting-control">
-                <el-switch v-model="tableConfigData.columnDraggable" @change="handleColumnDraggableChange" />
+                <el-switch v-model="tableConfigData.draggable" @change="handleDraggableChange" />
               </div>
             </div>
 
@@ -414,6 +430,34 @@ onMounted(() => {
               </div>
               <div class="setting-control">
                 <el-switch v-model="tableConfigData.crossHighlight" @change="handleCrossHighlightChange" />
+              </div>
+            </div>
+
+            <!-- 分隔线 -->
+            <div class="settings-divider"></div>
+
+            <!-- 缓存设置 -->
+            <div class="setting-item">
+              <div class="setting-label">
+                <IconifyIconOnline icon="ep:document-copy" class="setting-icon" />
+                <span>启用数据缓存</span>
+                <el-tooltip content="开启后会预加载多页数据到缓存，翻页时优先使用缓存" placement="top">
+                  <IconifyIconOnline icon="ep:question-filled" class="help-icon" />
+                </el-tooltip>
+              </div>
+              <div class="setting-control">
+                <el-switch v-model="tableConfigData.cacheEnabled" @change="handleCacheEnabledChange" />
+              </div>
+            </div>
+
+            <!-- 缓存页数设置 -->
+            <div v-if="tableConfigData.cacheEnabled" class="setting-item">
+              <div class="setting-label">
+                <IconifyIconOnline icon="ep:files" class="setting-icon" />
+                <span>预加载页数</span>
+              </div>
+              <div class="setting-control">
+                <el-input-number v-model="tableConfigData.cachePageCount" :min="2" :max="10" size="small" controls-position="right" @change="handleCachePageCountChange" />
               </div>
             </div>
           </div>

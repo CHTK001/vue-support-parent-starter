@@ -165,9 +165,15 @@ const configState = reactive({
   border: typeof props.border === "string" ? props.border === "true" : !!props.border,
   stripe: typeof props.stripe === "string" ? props.stripe === "true" : !!props.stripe,
   countDownable: props.countDownable,
-  columnDraggable: props.columnDraggable,
-  crossHighlight: props.crossHighlight
+  draggable: props.draggable,
+  crossHighlight: props.crossHighlight,
+  cacheEnabled: false,
+  cachePageCount: 3
 });
+
+// 缓存相关状态
+const dataCache = ref(new Map()); // 缓存的数据，key为页码
+const cacheTotalCount = ref(0); // 缓存的总数
 
 const customCountDownTime = ref(10);
 const timer = ref(null);
@@ -203,8 +209,10 @@ const loadConfigFromStorage = () => {
         configState.border = savedConfig.table.border !== undefined ? savedConfig.table.border : configState.border;
         configState.stripe = savedConfig.table.stripe !== undefined ? savedConfig.table.stripe : configState.stripe;
         configState.size = savedConfig.table.size || configState.size;
-        configState.columnDraggable = savedConfig.table.columnDraggable !== undefined ? savedConfig.table.columnDraggable : configState.columnDraggable;
+        configState.draggable = savedConfig.table.draggable !== undefined ? savedConfig.table.draggable : configState.draggable;
         configState.crossHighlight = savedConfig.table.crossHighlight !== undefined ? savedConfig.table.crossHighlight : configState.crossHighlight;
+        configState.cacheEnabled = savedConfig.table.cacheEnabled !== undefined ? savedConfig.table.cacheEnabled : configState.cacheEnabled;
+        configState.cachePageCount = savedConfig.table.cachePageCount !== undefined ? savedConfig.table.cachePageCount : configState.cachePageCount;
       }
     }
   } catch (error) {
@@ -316,11 +324,17 @@ const getStatisticData = async isLoading => {
 
 /**
  * 获取分页大小
+ * 如果启用了缓存，会根据缓存页数计算实际请求的数据量
  */
 const getPageSize = () => {
   if (props.layout == "card") {
     return rowSize.value * colSize.value;
   }
+  // 优先使用配置面板的缓存设置
+  if (configState.cacheEnabled && configState.cachePageCount > 1) {
+    return scPageSize.value * configState.cachePageCount;
+  }
+  // 兼容旧的 props 缓存配置
   if (props.cacheable && props.cachePage > 0) {
     return scPageSize.value * props.cachePage;
   }
@@ -411,8 +425,12 @@ const rebuildCache = async response => {
     tableData.value = newData;
   }
 
-  if (props.cacheable) {
-    for (var index = 0; index < props.cachePage; index++) {
+  // 处理缓存逻辑（支持配置面板的缓存设置和旧的 props 配置）
+  const isCacheEnabled = configState.cacheEnabled || props.cacheable;
+  const cachePageCount = configState.cacheEnabled ? configState.cachePageCount : props.cachePage;
+
+  if (isCacheEnabled && cachePageCount > 1) {
+    for (var index = 0; index < cachePageCount; index++) {
       cacheData.value[currentPage.value + index] = tableData.value.slice(index * scPageSize.value, (index + 1) * scPageSize.value);
     }
 
@@ -1069,12 +1087,24 @@ const saveConfig = config => {
     configState.stripe = config.config.stripe;
     configState.size = config.config.size;
 
-    // 处理列位置交换和十字标记
-    if (config.config.columnDraggable !== undefined) {
-      configState.columnDraggable = config.config.columnDraggable;
+    // 处理拖拽排序和十字标记
+    if (config.config.draggable !== undefined) {
+      configState.draggable = config.config.draggable;
     }
     if (config.config.crossHighlight !== undefined) {
       configState.crossHighlight = config.config.crossHighlight;
+    }
+    // 处理缓存配置
+    if (config.config.cacheEnabled !== undefined) {
+      configState.cacheEnabled = config.config.cacheEnabled;
+      // 如果关闭缓存，清空缓存数据
+      if (!config.config.cacheEnabled) {
+        dataCache.value.clear();
+        cacheTotalCount.value = 0;
+      }
+    }
+    if (config.config.cachePageCount !== undefined) {
+      configState.cachePageCount = config.config.cachePageCount;
     }
 
     // 处理卡片布局的行列数设置
