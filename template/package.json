@@ -1,0 +1,16 @@
+{
+  "name": "@repo/template",
+  "version": "1.0.0",
+  "description": "Vue页面美化模板组件库",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./components": "./components/index.ts",
+    "./styles": "./styles/common.scss"
+  },
+  "scripts": {},
+  "dependencies": {},
+  "devDependencies": {}
+}

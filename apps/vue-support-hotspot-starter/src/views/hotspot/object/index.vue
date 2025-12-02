@@ -1,27 +1,60 @@
 <template>
-  <div>
-    <el-form :inline="true">
-      <el-form-item label="" prop="">
-        <el-input v-model="filterName" placeholder="搜索" class="!w-[300px]" />
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="handleQuery" />
-      </el-form-item>
-    </el-form>
-    <ScTable ref="tableRef" :url="fetchData" fixed :filter="filter" height="90%">
-      <el-table-column type="index" label="序号" width="80" align="center" />
-      <el-table-column label="类" prop="name">
-        <template #default="{ row }">
-          <span v-html="row.name" />
+  <div class="page flex flex-col h-full">
+    <!-- 页面标题 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">
+            <IconifyIconOnline icon="ri:box-3-line" class="title-icon" />
+            对象监控
+          </h1>
+          <p class="page-subtitle">查看和管理系统对象信息</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 搜索栏 -->
+    <div class="toolbar">
+      <el-input v-model="filterName" placeholder="搜索类名..." clearable class="search-input" @keyup.enter="handleQuery">
+        <template #prefix>
+          <IconifyIconOnline icon="ep:search" />
         </template>
-      </el-table-column>
-      <el-table-column label="已加载数" prop="count" />
-      <el-table-column label="操作">
-        <template #default="{ row }">
-          <el-button plain circle :icon="useRenderIcon('ri:eye-2-fill')" @click="handleView(row)" />
-        </template>
-      </el-table-column>
-    </ScTable>
+      </el-input>
+      <el-button type="primary" @click="handleQuery">
+        <IconifyIconOnline icon="ep:search" class="mr-1" />
+        搜索
+      </el-button>
+    </div>
+
+    <!-- 表格区域 -->
+    <div class="flex-1 overflow-hidden">
+      <el-card shadow="never" class="h-full">
+        <ScTable ref="tableRef" :url="fetchData" fixed :filter="filter" height="100%">
+          <el-table-column type="index" label="#" width="60" align="center" />
+          <el-table-column label="类名" prop="name" min-width="300">
+            <template #default="{ row }">
+              <div class="flex items-center gap-2">
+                <IconifyIconOnline icon="ri:code-box-line" class="text-primary" />
+                <span v-html="row.name" class="font-mono text-sm" />
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="已加载数" prop="count" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag type="info" size="small">{{ row.count }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120" align="center" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="handleView(row)">
+                <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
+                查看
+              </el-button>
+            </template>
+          </el-table-column>
+        </ScTable>
+      </el-card>
+    </div>
 
     <el-dialog v-model="config.visibleCfrVisible" title="详情" draggable :close-on-click-modal="false" @close="handleClose">
       <el-skeleton animated :loading="config.visibleCfrLoading" />
@@ -110,7 +143,61 @@ const fetchData = async params => {
   return http.request("get", url.value, { params });
 };
 </script>
-<style lang="scss" scoped>
+<style scoped lang="scss">
+.page {
+  padding: 0;
+  background: var(--el-bg-color-page);
+}
+
+.page-header {
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+  padding: 24px 32px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 0 0 8px 0;
+
+  .title-icon {
+    font-size: 28px;
+    color: var(--el-color-primary);
+  }
+}
+
+.page-subtitle {
+  color: var(--el-text-color-regular);
+  font-size: 14px;
+  margin: 0;
+}
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  .search-input {
+    width: 300px;
+  }
+}
+
+:deep(.el-card) {
+  border-radius: 8px;
+}
+
 .counter {
   counter-reset: counter;
 }
