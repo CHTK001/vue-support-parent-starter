@@ -49,24 +49,44 @@
           v-if="dialogVisible && isMinimized"
           ref="minimizedIconRef"
           class="sc-dialog-dock-icon"
-          :class="[`sc-dialog-dock-icon--${dockPosition || 'bottom'}`, `sc-dialog-dock-icon--${type}`, { 'is-dragging': isMinimizedDragging }]"
+          :class="[
+            `sc-dialog-dock-icon--${dockPosition || 'bottom'}`,
+            `sc-dialog-dock-icon--${type}`,
+            { 'is-dragging': isMinimizedDragging, 'show-title': minimizeShowTitle && dockPosition === 'bottom' }
+          ]"
           :style="minimizedIconStyle"
           :title="title"
           @click="handleMinimizedIconClick"
         >
-          <IconifyIconOnline :icon="minimizeIcon || 'ep:chat-dot-round'" />
-          <span class="sc-dialog-dock-icon__title">{{ title }}</span>
+          <IconifyIconOnline :icon="actualMinimizeIcon" />
+          <span v-if="minimizeShowTitle && dockPosition === 'bottom'" class="sc-dialog-dock-icon__title">{{ title }}</span>
         </div>
       </Transition>
 
+      <!-- 对齐辅助线 -->
+      <div v-if="showAlignGuides && (isDragging || isResizing)" ref="alignGuidesRef" class="sc-dialog-align-guides">
+        <div v-for="(x, i) in alignGuides.vertical" :key="'v-' + i" class="sc-dialog-align-guide sc-dialog-align-guide--vertical" :style="{ left: x + 'px' }" />
+        <div v-for="(y, i) in alignGuides.horizontal" :key="'h-' + i" class="sc-dialog-align-guide sc-dialog-align-guide--horizontal" :style="{ top: y + 'px' }" />
+      </div>
+
       <!-- 对话框主体 -->
-      <Transition name="dialog-fade" @after-leave="handleAfterLeave">
+      <Transition :name="minimizeTransitionName" @after-leave="handleAfterLeave">
         <div v-if="dialogVisible && !isMinimized" class="sc-dialog-overlay" :class="{ 'has-modal': modal }" :style="{ zIndex: currentZIndex }" @click.self="handleOverlayClick">
           <div
             ref="dialogRef"
+            :id="internalDialogId"
             class="sc-dialog sc-dialog--custom"
-            :class="[`sc-dialog--${type}`, { 'is-dragging': isDragging, 'is-resizing': isResizing, 'has-float-icon': icon && iconMode === 'float' }]"
+            :class="[
+              `sc-dialog--${type}`,
+              {
+                'is-dragging': isDragging,
+                'is-resizing': isResizing,
+                'is-maximized': isMaximized,
+                'has-float-icon': icon && iconMode === 'float'
+              }
+            ]"
             :style="dialogStyle"
+            @mousedown="handleDialogMouseDown"
           >
             <!-- 浮动图标（float 模式） -->
             <div v-if="icon && iconMode === 'float'" class="sc-dialog__float-icon" :style="floatIconStyle">
@@ -90,11 +110,15 @@
               </slot>
               <div class="sc-dialog__header-actions">
                 <!-- 最小化按钮 -->
-                <button v-if="showMinimize" class="sc-dialog__minimize" @click.stop="handleMinimize" title="最小化">
+                <button v-if="showMinimize" class="sc-dialog__btn sc-dialog__minimize" @click.stop="handleMinimize" title="最小化">
                   <IconifyIconOnline icon="ep:minus" />
                 </button>
+                <!-- 最大化/还原按钮 -->
+                <button v-if="showMaximize" class="sc-dialog__btn sc-dialog__maximize" @click.stop="handleToggleMaximize" :title="isMaximized ? '还原' : '最大化'">
+                  <IconifyIconOnline :icon="isMaximized ? 'ep:copy-document' : 'ep:full-screen'" />
+                </button>
                 <!-- 关闭按钮 -->
-                <button v-if="showClose" class="sc-dialog__close" @click="handleClose">
+                <button v-if="showClose" class="sc-dialog__btn sc-dialog__close" @click="handleClose">
                   <IconifyIconOnline icon="ep:close" />
                 </button>
               </div>
@@ -155,6 +179,79 @@ type DialogType = "default" | "info" | "success" | "warning" | "error";
 
 /** 图标显示模式 */
 type IconMode = "inline" | "float";
+
+/** 吸附位置类型 */
+type DockPosition = "left" | "right" | "top" | "bottom" | null;
+
+// ==================== 全局对话框管理器 ====================
+interface DialogInstance {
+  id: string;
+  zIndex: number;
+  rect: DOMRect | null;
+  element: HTMLElement | null;
+  isMinimized: boolean;
+}
+
+// 全局对话框注册表
+const dialogRegistry = new Map<string, DialogInstance>();
+let globalZIndex = 2050;
+let dialogIdCounter = 0;
+
+/** 生成唯一对话框 ID */
+function generateDialogId(): string {
+  return `sc-dialog-${++dialogIdCounter}-${Date.now()}`;
+}
+
+/** 获取下一个 z-index */
+function getNextZIndex(): number {
+  return ++globalZIndex;
+}
+
+/** 激活对话框（置于顶层） */
+function activateDialog(id: string): number {
+  const newZIndex = getNextZIndex();
+  const instance = dialogRegistry.get(id);
+  if (instance) {
+    instance.zIndex = newZIndex;
+  }
+  return newZIndex;
+}
+
+/** 注册对话框 */
+function registerDialog(id: string, element: HTMLElement | null): void {
+  dialogRegistry.set(id, {
+    id,
+    zIndex: getNextZIndex(),
+    rect: element?.getBoundingClientRect() || null,
+    element,
+    isMinimized: false
+  });
+}
+
+/** 注销对话框 */
+function unregisterDialog(id: string): void {
+  dialogRegistry.delete(id);
+}
+
+/** 更新对话框位置信息 */
+function updateDialogRect(id: string, element: HTMLElement | null): void {
+  const instance = dialogRegistry.get(id);
+  if (instance && element) {
+    instance.rect = element.getBoundingClientRect();
+    instance.element = element;
+  }
+}
+
+/** 获取所有其他对话框的位置信息（用于对齐辅助线） */
+function getOtherDialogsRects(excludeId: string): DOMRect[] {
+  const rects: DOMRect[] = [];
+  dialogRegistry.forEach((instance, id) => {
+    if (id !== excludeId && instance.rect && !instance.isMinimized) {
+      rects.push(instance.rect);
+    }
+  });
+  return rects;
+}
 
 const props = withDefaults(
   defineProps<{
@@ -226,6 +323,18 @@ const props = withDefaults(
     showMinimize?: boolean;
     /** 最小化后是否可拖拽 */
     minimizeDraggable?: boolean;
+    /** 对话框唯一标识 */
+    dialogId?: string;
+    /** 是否显示最大化按钮 */
+    showMaximize?: boolean;
+    /** 是否启用多对话框互相吸附 */
+    snapToDialogs?: boolean;
+    /** 对话框吸附阈值（像素） */
+    snapThreshold?: number;
+    /** 是否显示对齐辅助线 */
+    showAlignGuides?: boolean;
+    /** 最小化时是否显示标题（仅底部位置生效） */
+    minimizeShowTitle?: boolean;
   }>(),
   {
     modelValue: false,
@@ -258,9 +367,15 @@ const props = withDefaults(
     iconColor: "",
     edgeDock: true,
     edgeThreshold: 50,
-    minimizeIcon: "ep:chat-dot-round",
+    minimizeIcon: "",
     showMinimize: true,
-    minimizeDraggable: true
+    minimizeDraggable: true,
+    dialogId: "",
+    showMaximize: true,
+    snapToDialogs: true,
+    snapThreshold: 10,
+    minimizeShowTitle: true,
+    showAlignGuides: true
   }
 );
 
@@ -275,28 +390,27 @@ const emit = defineEmits<{
   resize: [size: { width: number; height: number }];
 }>();
 
-// 全局 z-index 管理
-let globalZIndex = 2050;
-function getNextZIndex(): number {
-  return globalZIndex++;
-}
-
-/** 吸附位置类型 */
-type DockPosition = "left" | "right" | "top" | "bottom" | null;
+// 对话框 ID（使用传入的或自动生成）
+const internalDialogId = ref(props.dialogId || generateDialogId());
 
 // 状态
 const dialogVisible = ref(props.modelValue);
 const dialogRef = ref<HTMLElement | null>(null);
 const minimizedIconRef = ref<HTMLElement | null>(null);
+const alignGuidesRef = ref<HTMLElement | null>(null);
 const isDragging = ref(false);
 const isResizing = ref(false);
 const isMinimizedDragging = ref(false);
 const currentZIndex = ref(2050);
 const currentWidth = ref<string | null>(null);
+const currentHeight = ref<string | null>(null);
 const isMinimized = ref(false);
+const isMaximized = ref(false);
 const dockPosition = ref<DockPosition>(null);
 const lastDialogState = ref<{ x: number; y: number; width: string; height: string } | null>(null);
+const preMaximizeState = ref<{ x: number; y: number; width: string; height: string } | null>(null);
 const minimizedIconPosition = ref<{ x: number; y: number } | null>(null);
+const alignGuides = ref<{ vertical: number[]; horizontal: number[] }>({ vertical: [], horizontal: [] });
 
 // interact.js 实例
 let interactInstance: ReturnType<typeof interact> | null = null;
@@ -304,9 +418,23 @@ let minimizedInteractInstance: ReturnType<typeof interact> | null = null;
 
 // 对话框样式
 const dialogStyle = computed(() => {
+  // 最大化状态
+  if (isMaximized.value) {
+    return {
+      width: "100vw",
+      height: "100vh",
+      maxHeight: "100vh",
+      transform: "translate(0, 0)",
+      touchAction: "none",
+      borderRadius: "0"
+    };
+  }
+
   const w = currentWidth.value || (typeof props.width === "number" ? `${props.width}px` : props.width);
+  const h = currentHeight.value || "auto";
   return {
     width: w,
+    height: h,
     minWidth: `${props.minSize.width}px`,
     minHeight: `${props.minSize.height}px`,
     touchAction: "none"
@@ -342,6 +470,195 @@ const floatIconStyle = computed(() => {
   };
 });
 
+// 最小化过渡动画名称（根据吸附位置）
+const minimizeTransitionName = computed(() => {
+  if (!dockPosition.value) return "dialog-fade";
+  return `dialog-minimize-${dockPosition.value}`;
+});
+
+// 实际使用的最小化图标（提供默认值）
+const actualMinimizeIcon = computed(() => {
+  if (props.minimizeIcon) return props.minimizeIcon;
+  // 根据类型提供默认图标
+  const typeIcons: Record<string, string> = {
+    default: "ep:chat-dot-round",
+    info: "ep:info-filled",
+    success: "ep:success-filled",
+    warning: "ep:warning-filled",
+    error: "ep:circle-close-filled"
+  };
+  return typeIcons[props.type] || typeIcons.default;
+});
+
+/**
+ * 点击对话框激活（置于顶层）
+ */
+function handleDialogMouseDown(): void {
+  currentZIndex.value = activateDialog(internalDialogId.value);
+}
+
+/**
+ * 切换最大化状态
+ */
+function handleToggleMaximize(): void {
+  if (isMaximized.value) {
+    restoreFromMaximize();
+  } else {
+    maximize();
+  }
+}
+
+/**
+ * 最大化
+ */
+function maximize(): void {
+  if (!dialogRef.value || isMaximized.value) return;
+
+  const target = dialogRef.value;
+  // 保存当前状态
+  preMaximizeState.value = {
+    x: parseFloat(target.getAttribute("data-x") || "0") || 0,
+    y: parseFloat(target.getAttribute("data-y") || "0") || 0,
+    width: target.style.width || "",
+    height: target.style.height || ""
+  };
+
+  isMaximized.value = true;
+  // 销毁拖拽和缩放
+  destroyInteract();
+}
+
+/**
+ * 从最大化还原
+ */
+function restoreFromMaximize(): void {
+  isMaximized.value = false;
+
+  nextTick(() => {
+    if (dialogRef.value && preMaximizeState.value) {
+      const target = dialogRef.value;
+      target.style.transform = `translate(${preMaximizeState.value.x}px, ${preMaximizeState.value.y}px)`;
+      target.setAttribute("data-x", String(preMaximizeState.value.x));
+      target.setAttribute("data-y", String(preMaximizeState.value.y));
+      if (preMaximizeState.value.width) {
+        target.style.width = preMaximizeState.value.width;
+        currentWidth.value = preMaximizeState.value.width;
+      }
+      if (preMaximizeState.value.height) {
+        target.style.height = preMaximizeState.value.height;
+        currentHeight.value = preMaximizeState.value.height;
+      }
+    }
+    // 重新初始化拖拽和缩放
+    initInteract();
+  });
+}
+
+/**
+ * 计算对齐辅助线
+ */
+function calculateAlignGuides(currentRect: DOMRect): void {
+  if (!props.showAlignGuides) return;
+
+  const guides: { vertical: number[]; horizontal: number[] } = { vertical: [], horizontal: [] };
+  const threshold = props.snapThreshold;
+  const otherRects = getOtherDialogsRects(internalDialogId.value);
+
+  otherRects.forEach(rect => {
+    // 垂直对齐线（左对左、右对右、左对右、右对左、中对中）
+    if (Math.abs(currentRect.left - rect.left) < threshold) {
+      guides.vertical.push(rect.left);
+    }
+    if (Math.abs(currentRect.right - rect.right) < threshold) {
+      guides.vertical.push(rect.right);
+    }
+    if (Math.abs(currentRect.left - rect.right) < threshold) {
+      guides.vertical.push(rect.right);
+    }
+    if (Math.abs(currentRect.right - rect.left) < threshold) {
+      guides.vertical.push(rect.left);
+    }
+    const currentCenterX = currentRect.left + currentRect.width / 2;
+    const rectCenterX = rect.left + rect.width / 2;
+    if (Math.abs(currentCenterX - rectCenterX) < threshold) {
+      guides.vertical.push(rectCenterX);
+    }
+
+    // 水平对齐线（上对上、下对下、上对下、下对上、中对中）
+    if (Math.abs(currentRect.top - rect.top) < threshold) {
+      guides.horizontal.push(rect.top);
+    }
+    if (Math.abs(currentRect.bottom - rect.bottom) < threshold) {
+      guides.horizontal.push(rect.bottom);
+    }
+    if (Math.abs(currentRect.top - rect.bottom) < threshold) {
+      guides.horizontal.push(rect.bottom);
+    }
+    if (Math.abs(currentRect.bottom - rect.top) < threshold) {
+      guides.horizontal.push(rect.top);
+    }
+    const currentCenterY = currentRect.top + currentRect.height / 2;
+    const rectCenterY = rect.top + rect.height / 2;
+    if (Math.abs(currentCenterY - rectCenterY) < threshold) {
+      guides.horizontal.push(rectCenterY);
+    }
+  });
+
+  alignGuides.value = guides;
+}
+
+/**
+ * 计算吸附到其他对话框的位置
+ */
+function snapToOtherDialogs(x: number, y: number, width: number, height: number): { x: number; y: number; snapped: boolean } {
+  if (!props.snapToDialogs) return { x, y, snapped: false };
+
+  const threshold = props.snapThreshold;
+  const otherRects = getOtherDialogsRects(internalDialogId.value);
+  let snappedX = x;
+  let snappedY = y;
+  let snapped = false;
+
+  const currentRight = x + width;
+  const currentBottom = y + height;
+  const currentCenterX = x + width / 2;
+  const currentCenterY = y + height / 2;
+
+  otherRects.forEach(rect => {
+    // 左边缘吸附
+    if (Math.abs(x - rect.left) < threshold) {
+      snappedX = rect.left;
+      snapped = true;
+    } else if (Math.abs(x - rect.right) < threshold) {
+      snappedX = rect.right;
+      snapped = true;
+    } else if (Math.abs(currentRight - rect.left) < threshold) {
+      snappedX = rect.left - width;
+      snapped = true;
+    } else if (Math.abs(currentRight - rect.right) < threshold) {
+      snappedX = rect.right - width;
+      snapped = true;
+    }
+
+    // 上边缘吸附
+    if (Math.abs(y - rect.top) < threshold) {
+      snappedY = rect.top;
+      snapped = true;
+    } else if (Math.abs(y - rect.bottom) < threshold) {
+      snappedY = rect.bottom;
+      snapped = true;
+    } else if (Math.abs(currentBottom - rect.top) < threshold) {
+      snappedY = rect.top - height;
+      snapped = true;
+    } else if (Math.abs(currentBottom - rect.bottom) < threshold) {
+      snappedY = rect.bottom - height;
+      snapped = true;
+    }
+  });
+
+  return { x: snappedX, y: snappedY, snapped };
+}
+
 // 同步 modelValue
 watch(
   () => props.modelValue,
@@ -358,15 +675,22 @@ watch(dialogVisible, val => {
   if (val && props.mode === "custom") {
     currentZIndex.value = getNextZIndex();
     currentWidth.value = null; // 重置宽度
+    currentHeight.value = null; // 重置高度
     isMinimized.value = false; // 重置最小化状态
+    isMaximized.value = false; // 重置最大化状态
     dockPosition.value = null;
     lastDialogState.value = null;
+    preMaximizeState.value = null;
     emit("open");
     nextTick(() => {
+      // 注册对话框
+      registerDialog(internalDialogId.value, dialogRef.value);
       initInteract();
       emit("opened");
     });
   } else if (!val && props.mode === "custom") {
+    // 注销对话框
+    unregisterDialog(internalDialogId.value);
     destroyInteract();
     emit("close");
   }
@@ -399,17 +723,40 @@ function initInteract(): void {
           document.body.style.userSelect = "none";
         },
         move: event => {
+          if (isMaximized.value) return; // 最大化时禁止拖拽
+
           const target = event.target as HTMLElement;
-          const x = (parseFloat(target.getAttribute("data-x") || "0") || 0) + event.dx;
-          const y = (parseFloat(target.getAttribute("data-y") || "0") || 0) + event.dy;
+          let x = (parseFloat(target.getAttribute("data-x") || "0") || 0) + event.dx;
+          let y = (parseFloat(target.getAttribute("data-y") || "0") || 0) + event.dy;
+
+          // 计算当前对话框的矩形
+          const rect = target.getBoundingClientRect();
+
+          // 吸附到其他对话框
+          if (props.snapToDialogs) {
+            const snapped = snapToOtherDialogs(rect.left, rect.top, rect.width, rect.height);
+            if (snapped.snapped) {
+              x = snapped.x - (rect.left - x);
+              y = snapped.y - (rect.top - y);
+            }
+          }
+
+          // 计算对齐辅助线
+          if (props.showAlignGuides) {
+            calculateAlignGuides(rect);
+          }
 
           target.style.transform = `translate(${x}px, ${y}px)`;
           target.setAttribute("data-x", String(x));
           target.setAttribute("data-y", String(y));
+
+          // 更新对话框位置信息
+          updateDialogRect(internalDialogId.value, target);
         },
         end: event => {
           isDragging.value = false;
           document.body.style.userSelect = "";
+          alignGuides.value = { vertical: [], horizontal: [] }; // 清除辅助线
           // 边缘吸附检测
           if (props.edgeDock) {
             checkEdgeDock(event);
@@ -640,8 +987,11 @@ function initMinimizedIconInteract(): void {
 
   minimizedInteractInstance = interact(minimizedIconRef.value);
 
+  // 记录拖拽开始时的初始位置
+  let dragStartRect: DOMRect | null = null;
+
   minimizedInteractInstance.draggable({
-    inertia: { resistance: 15, minSpeed: 200, endSpeed: 10 },
+    inertia: false, // 禁用惯性，确保位置准确
     modifiers: [
       interact.modifiers.restrict({
         restriction: "body",
@@ -649,19 +999,27 @@ function initMinimizedIconInteract(): void {
       })
     ],
     listeners: {
-      start: () => {
+      start: event => {
         isMinimizedDragging.value = true;
         document.body.style.userSelect = "none";
+        // 记录拖拽开始时图标的位置
+        const target = event.target as HTMLElement;
+        dragStartRect = target.getBoundingClientRect();
+        // 初始化 data-x 和 data-y 为 0（相对于初始位置的偏移）
+        target.setAttribute("data-x", "0");
+        target.setAttribute("data-y", "0");
       },
       move: event => {
         const target = event.target as HTMLElement;
-        const x = (parseFloat(target.getAttribute("data-x") || "0") || 0) + event.dx;
-        const y = (parseFloat(target.getAttribute("data-y") || "0") || 0) + event.dy;
+        // 累加偏移量
+        const currentX = parseFloat(target.getAttribute("data-x") || "0") || 0;
+        const currentY = parseFloat(target.getAttribute("data-y") || "0") || 0;
+        const x = currentX + event.dx;
+        const y = currentY + event.dy;
 
         target.style.transform = `translate(${x}px, ${y}px)`;
         target.setAttribute("data-x", String(x));
         target.setAttribute("data-y", String(y));
-        minimizedIconPosition.value = { x, y };
       },
       end: event => {
         document.body.style.userSelect = "";
@@ -699,11 +1057,12 @@ function initMinimizedIconInteract(): void {
           target.removeAttribute("data-x");
           target.removeAttribute("data-y");
         } else {
-          // 拖到非边缘区域，恢复对话框到拖拽位置（左上角）
-          const x = rect.left;
-          const y = rect.top;
-          restoreFromMinimized({ x, y });
+          // 拖到非边缘区域，恢复对话框到原始位置（最小化前的位置）
+          // 使用 lastDialogState 中保存的原始位置，而不是当前拖拽位置
+          restoreFromMinimized();
         }
+
+        dragStartRect = null;
       }
     }
   });
@@ -766,19 +1125,38 @@ onUnmounted(() => {
 
 // 暴露方法
 defineExpose({
+  /** 对话框 ID */
+  dialogId: internalDialogId,
+  /** 打开对话框 */
   open: () => {
     dialogVisible.value = true;
   },
+  /** 关闭对话框 */
   close: () => {
     dialogVisible.value = false;
   },
-  minimize: () => {
+  /** 最小化对话框 */
+  minimize: (position: DockPosition = "bottom") => {
     if (dialogRef.value) {
-      minimizeToEdge("right", dialogRef.value);
+      minimizeToEdge(position, dialogRef.value);
     }
   },
+  /** 还原对话框 */
   restore: restoreFromEdge,
-  isMinimized: () => isMinimized.value
+  /** 最大化对话框 */
+  maximize,
+  /** 从最大化还原 */
+  restoreFromMaximize,
+  /** 切换最大化状态 */
+  toggleMaximize: handleToggleMaximize,
+  /** 激活对话框（置于顶层） */
+  activate: () => {
+    currentZIndex.value = activateDialog(internalDialogId.value);
+  },
+  /** 是否最小化 */
+  isMinimized: () => isMinimized.value,
+  /** 是否最大化 */
+  isMaximized: () => isMaximized.value
 });
 </script>
 
@@ -886,8 +1264,7 @@ defineExpose({
     gap: 4px;
   }
 
-  .sc-dialog__minimize,
-  .sc-dialog__close {
+  .sc-dialog__btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -912,9 +1289,33 @@ defineExpose({
     color: var(--el-color-warning);
   }
 
+  .sc-dialog__maximize:hover {
+    background: var(--el-color-success-light-9);
+    color: var(--el-color-success);
+  }
+
   .sc-dialog__close:hover {
     background: var(--el-color-danger-light-9);
     color: var(--el-color-danger);
+  }
+
+  // 最大化状态
+  &.is-maximized {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    max-height: 100vh !important;
+
+    .sc-dialog__header {
+      cursor: default;
+      border-radius: 0;
+    }
+
+    .sc-dialog__body {
+      max-height: calc(100vh - 120px);
+    }
   }
 
   .sc-dialog__body {
@@ -999,16 +1400,20 @@ defineExpose({
 .sc-dialog-dock-icon {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 12px;
   background: var(--el-color-primary);
   color: #fff;
-  font-size: 18px;
+  font-size: 20px;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
+  transition:
+    box-shadow 0.3s ease,
+    transform 0.2s ease;
   touch-action: none;
   user-select: none;
+  border-radius: 8px;
 
   &:hover {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
@@ -1017,48 +1422,46 @@ defineExpose({
   &.is-dragging {
     cursor: grabbing;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transition: none; // 拖拽时禁用过渡
   }
 
   &__title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
-    max-width: 120px;
+    max-width: 100px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  // 位置样式
+  // 位置样式 - 左侧（仅图标）
   &--left {
     border-radius: 0 8px 8px 0;
-    flex-direction: row;
-
-    .sc-dialog-dock-icon__title {
-      display: none;
-    }
+    padding: 12px;
   }
+
+  // 位置样式 - 右侧（仅图标）
   &--right {
     border-radius: 8px 0 0 8px;
-    flex-direction: row-reverse;
-
-    .sc-dialog-dock-icon__title {
-      display: none;
-    }
+    padding: 12px;
   }
+
+  // 位置样式 - 顶部（仅图标）
   &--top {
     border-radius: 0 0 8px 8px;
-    flex-direction: column;
-    padding: 12px 16px;
-
-    .sc-dialog-dock-icon__title {
-      display: none;
-    }
+    padding: 12px;
   }
+
+  // 位置样式 - 底部（可显示标题）
   &--bottom {
     border-radius: 8px 8px 0 0;
-    flex-direction: row;
-    min-width: 120px;
+    padding: 10px 12px;
+  }
+
+  // 有标题时的样式
+  &.show-title {
     padding: 10px 16px;
+    min-width: 120px;
   }
 
   // 类型样式
@@ -1108,5 +1511,127 @@ defineExpose({
 .dock-fade-leave-to {
   opacity: 0;
   transform: scale(0.5);
+}
+
+// 对齐辅助线
+.sc-dialog-align-guides {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.sc-dialog-align-guide {
+  position: absolute;
+  background: var(--el-color-primary);
+  opacity: 0.6;
+
+  &--vertical {
+    width: 1px;
+    top: 0;
+    bottom: 0;
+  }
+
+  &--horizontal {
+    height: 1px;
+    left: 0;
+    right: 0;
+  }
+}
+
+// 最小化动画 - 向左
+.dialog-minimize-left-enter-active,
+.dialog-minimize-left-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .sc-dialog--custom {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+.dialog-minimize-left-leave-to {
+  .sc-dialog--custom {
+    transform: translateX(-100vw) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.dialog-minimize-left-enter-from {
+  .sc-dialog--custom {
+    transform: translateX(-100vw) scale(0.3);
+    opacity: 0;
+  }
+}
+
+// 最小化动画 - 向右
+.dialog-minimize-right-enter-active,
+.dialog-minimize-right-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .sc-dialog--custom {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+.dialog-minimize-right-leave-to {
+  .sc-dialog--custom {
+    transform: translateX(100vw) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.dialog-minimize-right-enter-from {
+  .sc-dialog--custom {
+    transform: translateX(100vw) scale(0.3);
+    opacity: 0;
+  }
+}
+
+// 最小化动画 - 向上
+.dialog-minimize-top-enter-active,
+.dialog-minimize-top-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .sc-dialog--custom {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+.dialog-minimize-top-leave-to {
+  .sc-dialog--custom {
+    transform: translateY(-100vh) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.dialog-minimize-top-enter-from {
+  .sc-dialog--custom {
+    transform: translateY(-100vh) scale(0.3);
+    opacity: 0;
+  }
+}
+
+// 最小化动画 - 向下
+.dialog-minimize-bottom-enter-active,
+.dialog-minimize-bottom-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .sc-dialog--custom {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+.dialog-minimize-bottom-leave-to {
+  .sc-dialog--custom {
+    transform: translateY(100vh) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.dialog-minimize-bottom-enter-from {
+  .sc-dialog--custom {
+    transform: translateY(100vh) scale(0.3);
+    opacity: 0;
+  }
 }
 </style>

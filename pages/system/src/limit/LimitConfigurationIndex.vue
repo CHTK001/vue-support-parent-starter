@@ -1,20 +1,87 @@
 <template>
   <div class="limit-configuration-container">
-    <el-card class="limit-configuration-card">
-      <template #header>
-        <div class="card-header">
-          <span>限流配置管理</span>
-          <el-button
-            type="primary"
-            :icon="useRenderIcon('ep:plus')"
-            @click="handleAdd"
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">
+            <IconifyIconOnline icon="ri:shield-check-line" class="title-icon" />
+            限流配置管理
+          </h1>
+          <p class="page-subtitle">配置 API 接口的访问频率限制规则</p>
+        </div>
+        <div class="header-stats">
+          <div class="stat-item">
+            <span class="stat-value">{{ pagination.total }}</span>
+            <span class="stat-label">配置总数</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{{
+              tableData.filter((i) => i.sysLimitStatus === 1).length
+            }}</span>
+            <span class="stat-label">已启用</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <el-card class="limit-configuration-card" shadow="never">
+      <!-- 工具栏 -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <el-input
+            v-model="searchForm.sysLimitPath"
+            placeholder="接口路径"
+            clearable
+            style="width: 180px"
           >
+            <template #prefix>
+              <IconifyIconOnline icon="ri:links-line" />
+            </template>
+          </el-input>
+          <el-input
+            v-model="searchForm.sysLimitName"
+            placeholder="规则名称"
+            clearable
+            style="width: 160px"
+          >
+            <template #prefix>
+              <IconifyIconOnline icon="ri:text" />
+            </template>
+          </el-input>
+          <el-select
+            v-model="searchForm.sysLimitStatus"
+            placeholder="状态"
+            clearable
+            style="width: 120px"
+          >
+            <el-option label="全部" :value="null" />
+            <el-option label="启用" :value="1" />
+            <el-option label="禁用" :value="0" />
+          </el-select>
+        </div>
+        <div class="toolbar-right">
+          <el-button @click="handleReset">
+            <IconifyIconOnline icon="ri:refresh-line" />
+            重置
+          </el-button>
+          <el-button type="primary" @click="handleSearch">
+            <IconifyIconOnline icon="ri:search-line" />
+            查询
+          </el-button>
+          <el-button type="success" @click="handleAdd">
+            <IconifyIconOnline icon="ri:add-line" />
             新增配置
           </el-button>
         </div>
-      </template>
+      </div>
 
-      <el-form :model="searchForm" :inline="true" class="search-form">
+      <el-form
+        :model="searchForm"
+        :inline="true"
+        class="search-form"
+        style="display: none"
+      >
         <el-form-item label="接口路径">
           <el-input
             v-model="searchForm.sysLimitPath"
@@ -456,10 +523,95 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .limit-configuration-container {
-  padding: 24px;
+  padding: 0;
   height: 100%;
   box-sizing: border-box;
-  background-color: var(--el-bg-color);
+  background-color: var(--el-bg-color-page);
+  display: flex;
+  flex-direction: column;
+}
+
+.page-header {
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-9) 0%,
+    var(--el-color-primary-light-8) 100%
+  );
+  padding: 24px 32px;
+  border-radius: 8px;
+  margin: 16px 16px 0;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .title-section {
+    .page-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 8px;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+
+      .title-icon {
+        font-size: 28px;
+        color: var(--el-color-primary);
+      }
+    }
+
+    .page-subtitle {
+      margin: 0;
+      font-size: 14px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 32px;
+
+    .stat-item {
+      text-align: center;
+
+      .stat-value {
+        display: block;
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--el-color-primary);
+      }
+
+      .stat-label {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  .toolbar-left,
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+.limit-configuration-card {
+  flex: 1;
+  margin: 16px;
+  border-radius: 8px;
+  overflow: hidden;
   border-radius: 12px;
 }
 
