@@ -20,7 +20,7 @@
     @click="toggleSwitch"
   >
     <!-- 角标 -->
-    <ScRibbon v-if="isChecked && showRibbon" :text="ribbonText" :color="ribbonColor" variant="corner" position="rt" size="sm" />
+    <ScRibbon v-if="isChecked && showRibbon" :text="ribbonText" :color="ribbonColor" variant="tag" position="rt" size="sm" />
 
     <!-- 图标区域 -->
     <div v-if="hasIcon" class="sc-switch-visual-card__icon">
