@@ -11,3 +11,5 @@ export { default as FeatureCard } from "./FeatureCard.vue";
 export { default as TimelineCard } from "./TimelineCard.vue";
 export { default as PricingCard } from "./PricingCard.vue";
 export { default as ProfileCard } from "./ProfileCard.vue";
+export { default as ActionCard } from "./ActionCard.vue";
+export { default as InfoCard } from "./InfoCard.vue";
