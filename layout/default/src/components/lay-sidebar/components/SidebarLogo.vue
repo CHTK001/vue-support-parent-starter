@@ -1,6 +1,16 @@
 <script setup lang="ts">
+/**
+ * 侧边栏 Logo 组件
+ * 支持配置图片大小和动画效果
+ * @author CH
+ * @date 2025-12-02
+ */
 import TypeIt from "@repo/components/ReTypeit";
 import { getTopMenu } from "@repo/core";
+import { emitter } from "@repo/core";
+import { responsiveStorageNameSpace } from "@repo/config";
+import { localStorageProxy } from "@repo/utils";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useNav } from "../../../hooks/useNav";
 
 defineProps({
@@ -8,21 +18,88 @@ defineProps({
 });
 
 const { title, getLogo, layout } = useNav();
+
+// Logo 配置
+const logoSize = ref(
+  localStorageProxy().getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`
+  )?.logoSize ?? 32
+);
+const logoAnimation = ref(
+  localStorageProxy().getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`
+  )?.logoAnimation ?? "none"
+);
+
+// 计算 Logo 样式
+const logoStyle = computed(() => ({
+  height: `${logoSize.value}px`,
+  width: "auto",
+}));
+
+// 计算动画类名
+const animationClass = computed(() => {
+  switch (logoAnimation.value) {
+    case "pulse":
+      return "logo-pulse";
+    case "bounce":
+      return "logo-bounce";
+    default:
+      return "";
+  }
+});
+
+// 监听配置变更
+onMounted(() => {
+  emitter.on(
+    "logoConfigChange",
+    (config: { logoSize: number; logoAnimation: string }) => {
+      logoSize.value = config.logoSize;
+      logoAnimation.value = config.logoAnimation;
+    }
+  );
+});
+
+onBeforeUnmount(() => {
+  emitter.off("logoConfigChange");
+});
 </script>
 
 <template>
   <div class="sidebar-logo-container" :class="{ collapses: collapse }">
     <transition name="sidebarLogoFade">
-      <router-link v-if="collapse" key="collapse" :title="title" class="sidebar-logo-link" :to="getTopMenu()?.path ?? '/'">
-        <img :src="getLogo()" alt="logo" />
-        <span class="sidebar-title"  v-if="layout!= 'double'"">
-          <TypeIt  :options="{ strings: [title], cursor: false, speed: 100 }" />
+      <router-link
+        v-if="collapse"
+        key="collapse"
+        :title="title"
+        class="sidebar-logo-link"
+        :to="getTopMenu()?.path ?? '/'"
+      >
+        <img
+          :src="getLogo()"
+          alt="logo"
+          :class="animationClass"
+          :style="logoStyle"
+        />
+        <span class="sidebar-title" v-if="layout !== 'double'">
+          <TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" />
         </span>
       </router-link>
-      <router-link v-else key="expand" :title="title" class="sidebar-logo-link" :to="getTopMenu()?.path ?? '/'">
-        <img :src="getLogo()" alt="logo" />
-        <span class="sidebar-title" v-if="layout!= 'double'">
-          <TypeIt  :options="{ strings: [title], cursor: false, speed: 100 }" />
+      <router-link
+        v-else
+        key="expand"
+        :title="title"
+        class="sidebar-logo-link"
+        :to="getTopMenu()?.path ?? '/'"
+      >
+        <img
+          :src="getLogo()"
+          alt="logo"
+          :class="animationClass"
+          :style="logoStyle"
+        />
+        <span class="sidebar-title" v-if="layout !== 'double'">
+          <TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" />
         </span>
       </router-link>
     </transition>
@@ -77,6 +154,43 @@ const { title, getLogo, layout } = useNav();
         margin: 0;
       }
     }
+  }
+}
+
+/* Logo 动画效果 */
+.logo-pulse {
+  animation: logoPulse 2s ease-in-out infinite;
+}
+
+.logo-bounce {
+  animation: logoBounce 2s ease-in-out infinite;
+}
+
+@keyframes logoPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes logoBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-3px);
+  }
+  50% {
+    transform: translateY(0);
+  }
+  75% {
+    transform: translateY(-2px);
   }
 }
 </style>
