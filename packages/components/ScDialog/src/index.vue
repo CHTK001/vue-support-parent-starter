@@ -718,9 +718,17 @@ function initInteract(): void {
       ],
       inertia: { resistance: 15, minSpeed: 200, endSpeed: 10 },
       listeners: {
-        start: () => {
+        start: event => {
           isDragging.value = true;
           document.body.style.userSelect = "none";
+          // 拖拽开始时记录当前位置
+          const target = event.target as HTMLElement;
+          lastDialogState.value = {
+            x: parseFloat(target.getAttribute("data-x") || "0") || 0,
+            y: parseFloat(target.getAttribute("data-y") || "0") || 0,
+            width: target.style.width || "",
+            height: target.style.height || ""
+          };
         },
         move: event => {
           if (isMaximized.value) return; // 最大化时禁止拖拽
@@ -898,10 +906,10 @@ function checkEdgeDock(event: { target: EventTarget | null; client: { x: number;
 }
 
 /**
- * 最小化到边缘
+ * 最小化到边缘（拖拽到边缘时调用）
  */
 function minimizeToEdge(position: DockPosition, target: HTMLElement): void {
-  // 保存当前状态
+  // 拖拽到边缘时，保存当前拖拽后的位置
   lastDialogState.value = {
     x: parseFloat(target.getAttribute("data-x") || "0") || 0,
     y: parseFloat(target.getAttribute("data-y") || "0") || 0,
@@ -926,7 +934,18 @@ function minimizeToEdge(position: DockPosition, target: HTMLElement): void {
  */
 function handleMinimize(): void {
   if (dialogRef.value) {
-    minimizeToEdge("bottom", dialogRef.value);
+    // 最小化按钮点击时不更新 lastDialogState
+    // 直接使用已保存的拖拽位置
+    dockPosition.value = "bottom";
+    isMinimized.value = true;
+    minimizedIconPosition.value = null;
+
+    // 初始化最小化图标的拖拽
+    nextTick(() => {
+      if (props.minimizeDraggable) {
+        initMinimizedIconInteract();
+      }
+    });
   }
 }
 
