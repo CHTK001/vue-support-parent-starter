@@ -1015,17 +1015,20 @@ onUnmounted(() => {
                 </el-radio-group>
               </div>
             </div>
-            <div class="setting-content">
-              <div
-                v-if="settings.doubleNavExpandMode === 'manual'"
-                class="switch-item"
-              >
-                <label class="switch-label">展开子菜单</label>
-                <el-switch
-                  v-model="settings.doubleNavAutoExpandAll"
-                  @change="doubleNavAutoExpandAllChange"
-                />
-              </div>
+            <div
+              v-if="settings.doubleNavExpandMode === 'manual'"
+              class="setting-content"
+            >
+              <ScSwitch
+                v-model="settings.doubleNavAutoExpandAll"
+                layout="visual-card"
+                size="small"
+                label="展开子菜单"
+                description="自动展开所有子菜单"
+                active-icon="ri:menu-unfold-line"
+                ribbon-color="var(--el-color-primary)"
+                @change="doubleNavAutoExpandAllChange"
+              />
             </div>
           </div>
         </div>
@@ -1241,18 +1244,19 @@ onUnmounted(() => {
           <div class="section-header">
             <IconifyIconOffline :icon="'ri:magic-line'" class="section-icon" />
             <h3 class="section-title">{{ t("panel.transition") }}</h3>
+            <div class="section-description">配置页面切换动画效果</div>
           </div>
           <div class="setting-content">
-            <div class="switch-item">
-              <label class="switch-label">{{
-                t("panel.menuTransitionChange")
-              }}</label>
-              <el-switch
-                v-model="settings.menuTransition"
-                inline-prompt
-                @change="menuTransitionChange"
-              />
-            </div>
+            <ScSwitch
+              v-model="settings.menuTransition"
+              layout="visual-card"
+              size="small"
+              :label="t('panel.menuTransitionChange')"
+              description="页面切换时显示过渡动画"
+              active-icon="ri:loader-4-line"
+              ribbon-color="var(--el-color-primary)"
+              @change="menuTransitionChange"
+            />
           </div>
         </div>
 
@@ -1274,117 +1278,45 @@ onUnmounted(() => {
                 视觉效果
               </h4>
               <div class="switch-card-grid">
-                <div
-                  class="switch-card-item"
-                  :class="{ 'is-active': settings.greyVal }"
-                  @click="
-                    () => {
-                      settings.greyVal = !settings.greyVal;
-                      greyChange(settings.greyVal);
-                    }
-                  "
-                >
-                  <ScRibbon
-                    v-if="settings.greyVal"
-                    text="开启"
-                    color="var(--el-color-primary)"
-                    variant="corner"
-                    position="rt"
-                    size="sm"
-                  />
-                  <div class="switch-card-icon">
-                    <IconifyIconOffline :icon="'ri:contrast-2-line'" />
-                  </div>
-                  <div class="switch-card-content">
-                    <span class="switch-card-label">{{
-                      t("panel.pureGreyModel")
-                    }}</span>
-                    <span class="switch-card-desc">降低色彩饱和度</span>
-                  </div>
-                </div>
+                <ScSwitch
+                  v-model="settings.greyVal"
+                  layout="visual-card"
+                  size="small"
+                  :label="t('panel.pureGreyModel')"
+                  description="降低色彩饱和度"
+                  active-icon="ri:contrast-2-line"
+                  @change="greyChange"
+                />
 
-                <div
-                  class="switch-card-item"
-                  :class="{ 'is-active': settings.weakVal }"
-                  @click="
-                    () => {
-                      settings.weakVal = !settings.weakVal;
-                      weekChange(settings.weakVal);
-                    }
-                  "
-                >
-                  <ScRibbon
-                    v-if="settings.weakVal"
-                    text="开启"
-                    color="var(--el-color-primary)"
-                    variant="corner"
-                    position="rt"
-                    size="sm"
-                  />
-                  <div class="switch-card-icon">
-                    <IconifyIconOffline :icon="'ri:eye-line'" />
-                  </div>
-                  <div class="switch-card-content">
-                    <span class="switch-card-label">{{
-                      t("panel.pureWeakModel")
-                    }}</span>
-                    <span class="switch-card-desc">优化色彩对比度</span>
-                  </div>
-                </div>
+                <ScSwitch
+                  v-model="settings.weakVal"
+                  layout="visual-card"
+                  size="small"
+                  :label="t('panel.pureWeakModel')"
+                  description="优化色彩对比度"
+                  active-icon="ri:eye-line"
+                  @change="weekChange"
+                />
 
-                <div
-                  class="switch-card-item"
-                  :class="{ 'is-active': settings.invertVal }"
-                  @click="
-                    () => {
-                      settings.invertVal = !settings.invertVal;
-                      invertChange(settings.invertVal);
-                    }
-                  "
-                >
-                  <ScRibbon
-                    v-if="settings.invertVal"
-                    text="开启"
-                    color="var(--el-color-primary)"
-                    variant="corner"
-                    position="rt"
-                    size="sm"
-                  />
-                  <div class="switch-card-icon">
-                    <IconifyIconOffline :icon="'ri:contrast-drop-line'" />
-                  </div>
-                  <div class="switch-card-content">
-                    <span class="switch-card-label">反色模式</span>
-                    <span class="switch-card-desc">反转页面颜色</span>
-                  </div>
-                </div>
+                <ScSwitch
+                  v-model="settings.invertVal"
+                  layout="visual-card"
+                  size="small"
+                  label="反色模式"
+                  description="反转页面颜色"
+                  active-icon="ri:contrast-drop-line"
+                  @change="invertChange"
+                />
 
-                <div
-                  class="switch-card-item"
-                  :class="{ 'is-active': settings.monochromeVal }"
-                  @click="
-                    () => {
-                      settings.monochromeVal = !settings.monochromeVal;
-                      monochromeChange(settings.monochromeVal);
-                    }
-                  "
-                >
-                  <ScRibbon
-                    v-if="settings.monochromeVal"
-                    text="开启"
-                    color="var(--el-color-primary)"
-                    variant="corner"
-                    position="rt"
-                    size="sm"
-                  />
-                  <div class="switch-card-icon">
-                    <IconifyIconOffline :icon="'ri:drop-line'" />
-                  </div>
-                  <div class="switch-card-content">
-                    <span class="switch-card-label">黑白模式</span>
-                    <span class="switch-card-desc">显示黑白界面</span>
-                  </div>
-                </div>
+                <ScSwitch
+                  v-model="settings.monochromeVal"
+                  layout="visual-card"
+                  size="small"
+                  label="黑白模式"
+                  description="显示黑白界面"
+                  active-icon="ri:drop-line"
+                  @change="monochromeChange"
+                />
               </div>
             </div>
 
@@ -1398,117 +1330,61 @@ onUnmounted(() => {
                 界面元素
               </h4>
               <div class="switch-card-grid">
-                <div
-                  class="switch-card-item"
-                  :class="{ 'is-active': logoVal }"
-                  @click="
-                    () => {
-                      logoVal = !logoVal;
-                      logoChange(logoVal);
-                    }
-                  "
-                >
-                  <ScRibbon
-                    v-if="logoVal"
-                    text="开启"
-                    color="var(--el-color-success)"
-                    variant="corner"
-                    position="rt"
-                    size="sm"
-                  />
-                  <div class="switch-card-icon">
-                    <IconifyIconOffline :icon="'ri:image-line'" />
-                  </div>
-                  <div class="switch-card-content">
-                    <span class="switch-card-label">显示Logo</span>
-                    <span class="switch-card-desc">侧边栏显示Logo</span>
-                  </div>
-                </div>
+                <ScSwitch
+                  v-model="logoVal"
+                  layout="visual-card"
+                  size="small"
+                  label="显示Logo"
+                  description="侧边栏显示Logo"
+                  active-icon="ri:image-line"
+                  ribbon-color="var(--el-color-success)"
+                  @change="logoChange"
+                />
 
-                <div
-                  class="switch-card-item"
-                  :class="{ 'is-active': !settings.tabsVal }"
-                  @click="
-                    () => {
-                      settings.tabsVal = !settings.tabsVal;
+                <ScSwitch
+                  :model-value="!settings.tabsVal"
+                  layout="visual-card"
+                  size="small"
+                  :label="t('panel.pureHiddenTags')"
+                  description="标签页导航"
+                  active-icon="ri:bookmark-line"
+                  ribbon-text="显示"
+                  ribbon-color="var(--el-color-success)"
+                  @change="
+                    (val) => {
+                      settings.tabsVal = !val;
                       tagsChange();
                     }
                   "
-                >
-                  <ScRibbon
-                    v-if="!settings.tabsVal"
-                    text="显示"
-                    color="var(--el-color-success)"
-                    variant="corner"
-                    position="rt"
-                    size="sm"
-                  />
-                  <div class="switch-card-icon">
-                    <IconifyIconOffline :icon="'ri:bookmark-line'" />
-                  </div>
-                  <div class="switch-card-content">
-                    <span class="switch-card-label">{{
-                      t("panel.pureHiddenTags")
-                    }}</span>
-                    <span class="switch-card-desc">标签页导航</span>
-                  </div>
-                </div>
+                />
 
-                <div
-                  class="switch-card-item"
-                  :class="{ 'is-active': !settings.hideFooter }"
-                  @click="
-                    () => {
-                      settings.hideFooter = !settings.hideFooter;
+                <ScSwitch
+                  :model-value="!settings.hideFooter"
+                  layout="visual-card"
+                  size="small"
+                  :label="t('panel.pureHiddenFooter')"
+                  description="页脚信息"
+                  active-icon="ri:layout-bottom-line"
+                  ribbon-text="显示"
+                  ribbon-color="var(--el-color-success)"
+                  @change="
+                    (val) => {
+                      settings.hideFooter = !val;
                       hideFooterChange();
                     }
                   "
-                >
-                  <ScRibbon
-                    v-if="!settings.hideFooter"
-                    text="显示"
-                    color="var(--el-color-success)"
-                    variant="corner"
-                    position="rt"
-                    size="sm"
-                  />
-                  <div class="switch-card-icon">
-                    <IconifyIconOffline :icon="'ri:layout-bottom-line'" />
-                  </div>
-                  <div class="switch-card-content">
-                    <span class="switch-card-label">{{
-                      t("panel.pureHiddenFooter")
-                    }}</span>
-                    <span class="switch-card-desc">页脚信息</span>
-                  </div>
-                </div>
+                />
 
-                <div
-                  class="switch-card-item"
-                  :class="{ 'is-active': cardBodyVal }"
-                  @click="
-                    () => {
-                      cardBodyVal = !cardBodyVal;
-                      cardBodyChange(cardBodyVal);
-                    }
-                  "
-                >
-                  <ScRibbon
-                    v-if="cardBodyVal"
-                    text="开启"
-                    color="var(--el-color-success)"
-                    variant="corner"
-                    position="rt"
-                    size="sm"
-                  />
-                  <div class="switch-card-icon">
-                    <IconifyIconOffline :icon="'ri:layout-masonry-line'" />
-                  </div>
-                  <div class="switch-card-content">
-                    <span class="switch-card-label">内容卡片</span>
-                    <span class="switch-card-desc">卡片样式背景</span>
-                  </div>
-                </div>
+                <ScSwitch
+                  v-model="cardBodyVal"
+                  layout="visual-card"
+                  size="small"
+                  label="内容卡片"
+                  description="卡片样式背景"
+                  active-icon="ri:layout-masonry-line"
+                  ribbon-color="var(--el-color-success)"
+                  @change="cardBodyChange"
+                />
               </div>
             </div>
 
@@ -1521,38 +1397,16 @@ onUnmounted(() => {
                 />
                 功能设置
               </h4>
-              <div class="switch-card-grid single-row">
-                <div
-                  class="switch-card-item wide"
-                  :class="{ 'is-active': settings.multiTagsCache }"
-                  @click="
-                    () => {
-                      settings.multiTagsCache = !settings.multiTagsCache;
-                      multiTagsCacheChange();
-                    }
-                  "
-                >
-                  <ScRibbon
-                    v-if="settings.multiTagsCache"
-                    text="开启"
-                    color="var(--el-color-warning)"
-                    variant="corner"
-                    position="rt"
-                    size="sm"
-                  />
-                  <div class="switch-card-icon">
-                    <IconifyIconOffline :icon="'ri:save-line'" />
-                  </div>
-                  <div class="switch-card-content">
-                    <span class="switch-card-label">{{
-                      t("panel.pureMultiTagsCache")
-                    }}</span>
-                    <span class="switch-card-desc"
-                      >持久化保存已打开的标签页</span
-                    >
-                  </div>
-                </div>
-              </div>
+              <ScSwitch
+                v-model="settings.multiTagsCache"
+                layout="visual-card"
+                size="small"
+                :label="t('panel.pureMultiTagsCache')"
+                description="持久化保存已打开的标签页"
+                active-icon="ri:save-line"
+                ribbon-color="var(--el-color-warning)"
+                @change="multiTagsCacheChange"
+              />
             </div>
           </div>
         </div>
@@ -1574,19 +1428,16 @@ onUnmounted(() => {
                 />
                 新菜单显示
               </h4>
-              <div class="switch-grid">
-                <div class="switch-item">
-                  <div class="switch-info">
-                    <label class="switch-label">显示新增菜单</label>
-                    <span class="switch-desc">是否在菜单项上显示新增标识</span>
-                  </div>
-                  <el-switch
-                    v-model="settings.showNewMenu"
-                    inline-prompt
-                    @change="showNewMenuChange"
-                  />
-                </div>
-              </div>
+              <ScSwitch
+                v-model="settings.showNewMenu"
+                layout="visual-card"
+                size="small"
+                label="显示新增菜单"
+                description="在菜单项上显示新增标识"
+                active-icon="ri:add-circle-line"
+                ribbon-color="var(--el-color-primary)"
+                @change="showNewMenuChange"
+              />
             </div>
 
             <!-- 新菜单文本设置 -->
@@ -1645,66 +1496,45 @@ onUnmounted(() => {
             <div class="section-description">更多个性化配置选项</div>
           </div>
           <div class="setting-content">
-            <!-- 性能优化 -->
+            <!-- 高级功能开关 -->
             <div class="setting-group">
               <h4 class="group-title">
                 <IconifyIconOffline
-                  :icon="'ri:speed-line'"
+                  :icon="'ri:settings-4-line'"
                   class="group-icon"
                 />
-                性能优化
+                高级功能
               </h4>
-              <div class="switch-grid">
-                <div class="switch-item">
-                  <div class="switch-info">
-                    <label class="switch-label">组件缓存</label>
-                    <span class="switch-desc"
-                      >开启页面组件缓存，提升切换速度</span
-                    >
-                  </div>
-                  <el-switch v-model="settings.keepAlive" inline-prompt />
-                </div>
-              </div>
-            </div>
-
-            <!-- 用户体验 -->
-            <div class="setting-group">
-              <h4 class="group-title">
-                <IconifyIconOffline
-                  :icon="'ri:user-heart-line'"
-                  class="group-icon"
+              <div class="switch-card-grid">
+                <ScSwitch
+                  v-model="settings.keepAlive"
+                  layout="visual-card"
+                  size="small"
+                  label="组件缓存"
+                  description="提升页面切换速度"
+                  active-icon="ri:speed-line"
+                  ribbon-color="var(--el-color-success)"
                 />
-                用户体验
-              </h4>
-              <div class="switch-grid">
-                <div class="switch-item">
-                  <div class="switch-info">
-                    <label class="switch-label">页面拉伸</label>
-                    <span class="switch-desc"
-                      >自适应页面宽度，充分利用屏幕空间</span
-                    >
-                  </div>
-                  <el-switch v-model="settings.stretch" inline-prompt />
-                </div>
-              </div>
-            </div>
 
-            <!-- 开发者选项 -->
-            <div class="setting-group">
-              <h4 class="group-title">
-                <IconifyIconOffline :icon="'ri:code-line'" class="group-icon" />
-                开发者选项
-              </h4>
-              <div class="switch-grid">
-                <div class="switch-item">
-                  <div class="switch-info">
-                    <label class="switch-label">调试模式</label>
-                    <span class="switch-desc"
-                      >显示更多调试信息（开发环境）</span
-                    >
-                  </div>
-                  <el-switch v-model="settings.debugMode" inline-prompt />
-                </div>
+                <ScSwitch
+                  v-model="settings.stretch"
+                  layout="visual-card"
+                  size="small"
+                  label="页面拉伸"
+                  description="充分利用屏幕空间"
+                  active-icon="ri:fullscreen-line"
+                  ribbon-color="var(--el-color-success)"
+                />
+
+                <ScSwitch
+                  v-model="settings.debugMode"
+                  layout="visual-card"
+                  size="small"
+                  label="调试模式"
+                  description="显示调试信息"
+                  active-icon="ri:code-line"
+                  ribbon-color="var(--el-color-warning)"
+                />
               </div>
             </div>
 
@@ -4653,21 +4483,6 @@ p.mt-5 {
 
     .switch-card-label {
       color: var(--el-color-primary);
-    }
-  }
-
-  &.wide {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 16px;
-    padding: 16px 20px;
-
-    .switch-card-icon {
-      margin-bottom: 0;
-    }
-
-    .switch-card-content {
-      align-items: flex-start;
     }
   }
 }

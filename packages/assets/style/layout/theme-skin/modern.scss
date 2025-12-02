@@ -1,0 +1,339 @@
+/**
+ * 现代化主题皮肤
+ * 通过圆角、微阴影、玻璃拟态效果打造现代化设计风格
+ * @author CH
+ * @date 2025-12-02
+ */
+[data-theme-skin='modern'] {
+  /* ===== 全局变量 ===== */
+  --modern-radius: 12px;
+  --modern-radius-sm: 8px;
+  --modern-radius-lg: 16px;
+  --modern-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --modern-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --modern-glass-bg: rgba(255, 255, 255, 0.75);
+  --modern-glass-border: rgba(255, 255, 255, 0.2);
+  --modern-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ===== 导航栏现代化 ===== */
+  .modern-navbar,
+  .horizontal-header,
+  .nav-horizontal {
+    background: var(--modern-glass-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid var(--modern-glass-border);
+    box-shadow: var(--modern-shadow);
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(
+        90deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 50%,
+        var(--el-color-primary) 100%
+      );
+      opacity: 0.8;
+    }
+  }
+
+  /* ===== 侧边栏现代化 ===== */
+  .layout-sidebar,
+  .el-menu,
+  .main-left {
+    background: var(--modern-glass-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-right: 1px solid var(--modern-glass-border);
+
+    .el-menu-item,
+    .el-sub-menu__title {
+      border-radius: var(--modern-radius-sm);
+      margin: 4px 8px;
+      transition: var(--modern-transition);
+
+      &:hover {
+        background: rgba(var(--el-color-primary-rgb), 0.1);
+        transform: translateX(4px);
+      }
+
+      &.is-active {
+        background: linear-gradient(
+          135deg,
+          rgba(var(--el-color-primary-rgb), 0.15) 0%,
+          rgba(var(--el-color-primary-rgb), 0.08) 100%
+        );
+        box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 3px;
+          height: 60%;
+          background: var(--el-color-primary);
+          border-radius: 0 2px 2px 0;
+        }
+      }
+    }
+  }
+
+  /* ===== 标签栏现代化 ===== */
+  .tags-view {
+    background: var(--modern-glass-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid var(--modern-glass-border);
+    padding: 6px 12px;
+
+    .scroll-item {
+      border-radius: var(--modern-radius-sm);
+      padding: 6px 16px;
+      margin: 0 4px;
+      background: rgba(var(--el-color-primary-rgb), 0.05);
+      border: 1px solid transparent;
+      transition: var(--modern-transition);
+
+      &:hover {
+        background: rgba(var(--el-color-primary-rgb), 0.1);
+        border-color: rgba(var(--el-color-primary-rgb), 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+      }
+
+      &.is-active {
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary) 0%,
+          var(--el-color-primary-light-3) 100%
+        );
+        color: #fff;
+        border-color: var(--el-color-primary);
+        box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.3);
+
+        .tag-title {
+          color: #fff;
+        }
+
+        .el-icon-close {
+          color: rgba(255, 255, 255, 0.8);
+
+          &:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.2);
+          }
+        }
+      }
+    }
+
+    .arrow-left,
+    .arrow-right,
+    .arrow-down {
+      background: rgba(var(--el-color-primary-rgb), 0.08);
+      border-radius: var(--modern-radius-sm);
+      transition: var(--modern-transition);
+
+      &:hover {
+        background: rgba(var(--el-color-primary-rgb), 0.15);
+        transform: scale(1.1);
+      }
+    }
+  }
+
+  /* ===== 卡片现代化 ===== */
+  .el-card {
+    border-radius: var(--modern-radius);
+    border: 1px solid var(--modern-glass-border);
+    background: var(--modern-glass-bg);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--modern-shadow);
+    transition: var(--modern-transition);
+
+    &:hover {
+      box-shadow: var(--modern-shadow-hover);
+      transform: translateY(-2px);
+    }
+
+    .el-card__header {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      background: rgba(var(--el-color-primary-rgb), 0.02);
+    }
+  }
+
+  /* ===== 对话框现代化 ===== */
+  .el-dialog {
+    border-radius: var(--modern-radius-lg);
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+
+    .el-dialog__header {
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.08) 0%,
+        rgba(var(--el-color-primary-rgb), 0.02) 100%
+      );
+      border-bottom: 1px solid rgba(var(--el-color-primary-rgb), 0.1);
+      padding: 16px 24px;
+
+      .el-dialog__title {
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+    }
+
+    .el-dialog__body {
+      padding: 24px;
+    }
+
+    .el-dialog__footer {
+      border-top: 1px solid var(--el-border-color-lighter);
+      padding: 16px 24px;
+      background: var(--el-fill-color-lighter);
+    }
+  }
+
+  /* ===== 按钮现代化 ===== */
+  .el-button {
+    border-radius: var(--modern-radius-sm);
+    transition: var(--modern-transition);
+    font-weight: 500;
+
+    &:not(.is-text):not(.is-link) {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+
+    &--primary {
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 100%
+      );
+      border: none;
+
+      &:hover {
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary-light-3) 0%,
+          var(--el-color-primary) 100%
+        );
+      }
+    }
+  }
+
+  /* ===== 输入框现代化 ===== */
+  .el-input__wrapper,
+  .el-textarea__inner {
+    border-radius: var(--modern-radius-sm);
+    transition: var(--modern-transition);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    &.is-focus {
+      box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.15),
+        0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  /* ===== 表格现代化 ===== */
+  .el-table {
+    border-radius: var(--modern-radius);
+    overflow: hidden;
+    box-shadow: var(--modern-shadow);
+
+    th.el-table__cell {
+      background: linear-gradient(
+        180deg,
+        var(--el-fill-color-lighter) 0%,
+        var(--el-fill-color-light) 100%
+      );
+      font-weight: 600;
+    }
+
+    .el-table__row {
+      transition: var(--modern-transition);
+
+      &:hover > td.el-table__cell {
+        background: rgba(var(--el-color-primary-rgb), 0.04);
+      }
+    }
+  }
+
+  /* ===== 下拉菜单现代化 ===== */
+  .el-dropdown-menu,
+  .el-select-dropdown,
+  .el-popper {
+    border-radius: var(--modern-radius);
+    border: 1px solid var(--modern-glass-border);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+
+    .el-dropdown-menu__item,
+    .el-select-dropdown__item {
+      border-radius: var(--modern-radius-sm);
+      margin: 4px 8px;
+      transition: var(--modern-transition);
+
+      &:hover {
+        background: rgba(var(--el-color-primary-rgb), 0.1);
+      }
+    }
+  }
+
+  /* ===== 深色主题适配 ===== */
+  &.dark,
+  html.dark & {
+    --modern-glass-bg: rgba(30, 30, 35, 0.85);
+    --modern-glass-border: rgba(255, 255, 255, 0.08);
+    --modern-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    --modern-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+    .modern-navbar,
+    .horizontal-header,
+    .nav-horizontal,
+    .layout-sidebar,
+    .el-menu,
+    .main-left,
+    .tags-view {
+      background: var(--modern-glass-bg);
+      border-color: var(--modern-glass-border);
+    }
+
+    .el-card {
+      background: var(--modern-glass-bg);
+      border-color: var(--modern-glass-border);
+    }
+
+    .scroll-item {
+      background: rgba(255, 255, 255, 0.05);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      &.is-active {
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary) 0%,
+          var(--el-color-primary-dark-2) 100%
+        );
+      }
+    }
+  }
+}
