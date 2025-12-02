@@ -78,6 +78,7 @@
             class="sc-dialog sc-dialog--custom"
             :class="[
               `sc-dialog--${type}`,
+              theme ? `sc-dialog--theme-${theme}` : '',
               {
                 'is-dragging': isDragging,
                 'is-resizing': isResizing,
@@ -335,6 +336,8 @@ const props = withDefaults(
     showAlignGuides?: boolean;
     /** 最小化时是否显示标题（仅底部位置生效） */
     minimizeShowTitle?: boolean;
+    /** 主题风格 */
+    theme?: "tech" | "default";
   }>(),
   {
     modelValue: false,
@@ -375,7 +378,8 @@ const props = withDefaults(
     snapToDialogs: true,
     snapThreshold: 10,
     minimizeShowTitle: true,
-    showAlignGuides: true
+    showAlignGuides: true,
+    theme: "default"
   }
 );
 
@@ -1412,6 +1416,156 @@ defineExpose({
   &.sc-dialog--error .sc-dialog__header {
     border-top: 3px solid var(--el-color-danger);
     border-radius: 8px 8px 0 0;
+  }
+
+  // Tech 主题样式
+  &.sc-dialog--theme-tech {
+    background: rgba(0, 20, 40, 0.95);
+    border: 1px solid rgba(0, 246, 255, 0.3);
+    border-radius: 2px;
+    box-shadow:
+      0 0 20px rgba(0, 246, 255, 0.3),
+      inset 0 0 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+
+    // 网格背景
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: linear-gradient(rgba(0, 246, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 246, 255, 0.1) 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    // 边角装饰
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border: 2px solid transparent;
+      border-image: linear-gradient(135deg, rgba(0, 246, 255, 0.5), transparent 50%, rgba(0, 246, 255, 0.5)) 1;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .sc-dialog__header {
+      background: rgba(0, 30, 60, 0.8);
+      border-bottom: 1px solid rgba(0, 246, 255, 0.5);
+      position: relative;
+      z-index: 2;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        width: 100px;
+        height: 2px;
+        background: #00f6ff;
+        box-shadow: 0 0 10px rgba(0, 246, 255, 0.8);
+      }
+    }
+
+    .sc-dialog__title {
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0, 246, 255, 0.8);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .sc-dialog__body {
+      color: rgba(255, 255, 255, 0.9);
+      position: relative;
+      z-index: 2;
+
+      &::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(0, 246, 255, 0.5);
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    .sc-dialog__footer {
+      border-top: 1px solid rgba(0, 246, 255, 0.3);
+      background: rgba(0, 30, 60, 0.5);
+      position: relative;
+      z-index: 2;
+    }
+
+    .sc-dialog__btn {
+      color: #00f6ff;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(0, 246, 255, 0.2);
+        color: #00f6ff;
+        box-shadow: 0 0 10px rgba(0, 246, 255, 0.5);
+      }
+    }
+
+    .sc-dialog__close:hover {
+      background: rgba(255, 77, 79, 0.2);
+      color: #ff4d4f;
+      box-shadow: 0 0 10px rgba(255, 77, 79, 0.5);
+    }
+
+    .sc-dialog__minimize:hover {
+      background: rgba(255, 193, 7, 0.2);
+      color: #ffc107;
+      box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+    }
+
+    .sc-dialog__maximize:hover {
+      background: rgba(0, 255, 136, 0.2);
+      color: #00ff88;
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+    }
+
+    // 扩展手柄样式
+    .sc-dialog__resize-handle {
+      &::after {
+        content: "";
+        position: absolute;
+        background: rgba(0, 246, 255, 0.5);
+      }
+
+      &--se::after,
+      &--sw::after {
+        width: 10px;
+        height: 10px;
+        bottom: 2px;
+      }
+
+      &--se::after {
+        right: 2px;
+        border-right: 2px solid #00f6ff;
+        border-bottom: 2px solid #00f6ff;
+      }
+
+      &--sw::after {
+        left: 2px;
+        border-left: 2px solid #00f6ff;
+        border-bottom: 2px solid #00f6ff;
+      }
+    }
   }
 }
 
