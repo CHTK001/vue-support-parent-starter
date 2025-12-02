@@ -247,6 +247,7 @@ const tagsChange = () => {
 const hideFooterChange = () => {
   const hideFooter = settings.hideFooter;
   storageConfigureChange("hideFooter", hideFooter);
+  emitter.emit("hideFooterChange", hideFooter);
 };
 
 /** 标签页持久化设置 */
@@ -1342,37 +1343,29 @@ onUnmounted(() => {
                 />
 
                 <ScSwitch
-                  :model-value="!settings.tabsVal"
+                  v-model="settings.tabsVal"
                   layout="visual-card"
                   size="small"
                   :label="t('panel.pureHiddenTags')"
-                  description="标签页导航"
-                  active-icon="ri:bookmark-line"
-                  ribbon-text="显示"
-                  ribbon-color="var(--el-color-success)"
-                  @change="
-                    (val) => {
-                      settings.tabsVal = !val;
-                      tagsChange();
-                    }
-                  "
+                  description="隐藏后不显示标签页"
+                  active-icon="ri:eye-off-line"
+                  inactive-icon="ri:bookmark-line"
+                  ribbon-text="隐藏"
+                  ribbon-color="var(--el-color-warning)"
+                  @change="tagsChange"
                 />
 
                 <ScSwitch
-                  :model-value="!settings.hideFooter"
+                  v-model="settings.hideFooter"
                   layout="visual-card"
                   size="small"
                   :label="t('panel.pureHiddenFooter')"
-                  description="页脚信息"
-                  active-icon="ri:layout-bottom-line"
-                  ribbon-text="显示"
-                  ribbon-color="var(--el-color-success)"
-                  @change="
-                    (val) => {
-                      settings.hideFooter = !val;
-                      hideFooterChange();
-                    }
-                  "
+                  description="隐藏底部页脚区域"
+                  active-icon="ri:eye-off-line"
+                  inactive-icon="ri:layout-bottom-line"
+                  ribbon-text="隐藏"
+                  ribbon-color="var(--el-color-warning)"
+                  @change="hideFooterChange"
                 />
 
                 <ScSwitch
@@ -4132,57 +4125,130 @@ onUnmounted(() => {
       color: var(--el-color-primary);
       fill: currentColor;
     }
+  }
+}
 
-    // 移除旧的nth-child样式，现在使用新的el-row布局
+// 深色模式下导航模式选择器样式覆盖
+html.dark {
+  .modern-layout-grid li {
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color-dark),
+      var(--el-fill-color-darker)
+    );
+    border-color: var(--el-border-color-dark);
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.3),
+      0 4px 12px rgba(0, 0, 0, 0.25);
 
-    /* 占位符样式 */
-    &.placeholder-layout {
-      opacity: 0.6;
-      cursor: not-allowed;
+    &::after {
+      background: var(--el-bg-color);
+      color: var(--el-text-color-primary);
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    svg {
+      color: var(--el-text-color-primary);
+    }
+
+    &:hover {
       background: linear-gradient(
         135deg,
-        var(--el-fill-color-light),
-        var(--el-fill-color)
+        var(--el-fill-color-darker),
+        var(--el-fill-color-dark)
       );
+      border-color: var(--el-color-primary-light-3);
       box-shadow:
-        0 6px 18px rgba(0, 0, 0, 0.08),
-        0 3px 9px rgba(0, 0, 0, 0.06),
-        0 1px 0 rgba(255, 255, 255, 0.7) inset;
-
-      &:hover {
-        transform: none;
-        box-shadow:
-          0 8px 24px rgba(0, 0, 0, 0.12),
-          0 4px 12px rgba(0, 0, 0, 0.1),
-          0 1px 0 rgba(255, 255, 255, 0.8) inset;
-      }
-
-      .coming-soon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        width: 100%;
-
-        span {
-          font-size: 12px;
-          color: var(--el-text-color-secondary);
-          font-weight: 500;
-          text-align: center;
-          line-height: 1.3;
-        }
-      }
+        0 16px 40px rgba(0, 0, 0, 0.4),
+        0 8px 20px rgba(0, 0, 0, 0.3);
 
       &::after {
-        content: "更多布局";
-        font-size: 11px;
-        color: var(--el-text-color-placeholder);
-        box-shadow:
-          0 3px 8px rgba(0, 0, 0, 0.08),
-          0 1px 4px rgba(0, 0, 0, 0.06),
-          0 1px 0 rgba(255, 255, 255, 0.7) inset;
+        color: #fff;
+        background: var(--el-color-primary);
+      }
+
+      svg {
+        color: var(--el-color-primary);
       }
     }
+
+    &.is-select {
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.15),
+        rgba(var(--el-color-primary-rgb), 0.1)
+      );
+      border-color: var(--el-color-primary);
+
+      &::after {
+        color: #fff;
+        background: var(--el-color-primary);
+      }
+
+      svg {
+        color: #fff;
+      }
+    }
+
+    &.placeholder-layout {
+      background: linear-gradient(
+        135deg,
+        var(--el-fill-color-dark),
+        var(--el-fill-color-darker)
+      );
+      border-color: var(--el-border-color-dark);
+    }
+  }
+}
+
+/* 占位符样式 - 独立定义 */
+.modern-layout-grid li.placeholder-layout {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: linear-gradient(
+    135deg,
+    var(--el-fill-color-light),
+    var(--el-fill-color)
+  );
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.08),
+    0 3px 9px rgba(0, 0, 0, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+
+  &:hover {
+    transform: none;
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.1),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  }
+
+  .coming-soon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+
+    span {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      font-weight: 500;
+      text-align: center;
+      line-height: 1.3;
+    }
+  }
+
+  &::after {
+    content: "更多布局";
+    font-size: 11px;
+    color: var(--el-text-color-placeholder);
+    box-shadow:
+      0 3px 8px rgba(0, 0, 0, 0.08),
+      0 1px 4px rgba(0, 0, 0, 0.06),
+      0 1px 0 rgba(255, 255, 255, 0.7) inset;
   }
 }
 

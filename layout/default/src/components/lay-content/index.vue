@@ -1,5 +1,6 @@
 <script setup lang="ts">
 //@ts-ignore
+import { emitter } from "@repo/utils";
 import { isNumber, useGlobal } from "@pureadmin/utils";
 import { usePermissionStoreHook } from "@repo/core";
 import {
@@ -8,6 +9,8 @@ import {
   h,
   nextTick,
   onMounted,
+  onBeforeUnmount,
+  ref,
   Transition,
 } from "vue";
 import { useI18n } from "vue-i18n";
@@ -51,8 +54,15 @@ const layoutBlur = computed(() => {
   return $storage?.configure.layoutBlur || 4;
 });
 
-const hideFooter = computed(() => {
-  return $storage?.configure.hideFooter;
+const hideFooter = ref($storage?.configure.hideFooter ?? false);
+
+// 监听页脚显示/隐藏事件
+emitter.on("hideFooterChange", (value: boolean) => {
+  hideFooter.value = value;
+});
+
+onBeforeUnmount(() => {
+  emitter.off("hideFooterChange");
 });
 
 const stretch = computed(() => {
