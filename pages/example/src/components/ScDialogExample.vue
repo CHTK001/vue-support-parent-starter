@@ -1,26 +1,45 @@
 <template>
-  <div class="sc-dialog-example">
+  <div class="example-page sc-dialog-example">
     <el-row :gutter="20">
       <el-col :span="8">
         <div class="config-panel">
           <h3>配置面板</h3>
           <el-form label-position="top" :model="config">
             <el-form-item label="标题">
-              <el-input v-model="config.title" placeholder="请输入对话框标题"></el-input>
+              <el-input
+                v-model="config.title"
+                placeholder="请输入对话框标题"
+              ></el-input>
             </el-form-item>
 
             <el-form-item label="宽度">
-              <el-input-number v-model="config.width" :min="300" :max="1200" :step="50" style="width: 100%"></el-input-number>
+              <el-input-number
+                v-model="config.width"
+                :min="300"
+                :max="1200"
+                :step="50"
+                style="width: 100%"
+              ></el-input-number>
             </el-form-item>
 
             <el-form-item label="位置(top)">
-              <el-input v-model="config.top" placeholder="请输入对话框距顶部位置"></el-input>
+              <el-input
+                v-model="config.top"
+                placeholder="请输入对话框距顶部位置"
+              ></el-input>
             </el-form-item>
 
             <el-form-item label="样式">
-              <el-select v-model="config.customClass" placeholder="请选择样式" style="width: 100%">
+              <el-select
+                v-model="config.customClass"
+                placeholder="请选择样式"
+                style="width: 100%"
+              >
                 <el-option label="默认" value=""></el-option>
-                <el-option label="主题色边框" value="primary-border"></el-option>
+                <el-option
+                  label="主题色边框"
+                  value="primary-border"
+                ></el-option>
                 <el-option label="圆角风格" value="rounded-dialog"></el-option>
                 <el-option label="简约风格" value="minimal-dialog"></el-option>
               </el-select>
@@ -35,16 +54,56 @@
             </el-form-item>
 
             <el-form-item label="功能设置">
-              <el-switch v-model="config.fullscreen" active-text="全屏显示" class="mb-2 block"></el-switch>
-              <el-switch v-model="config.modal" active-text="显示遮罩层" class="mb-2 block"></el-switch>
-              <el-switch v-model="config.draggable" active-text="允许拖拽" class="mb-2 block"></el-switch>
-              <el-switch v-model="config.showClose" active-text="显示关闭按钮" class="mb-2 block"></el-switch>
-              <el-switch v-model="config.closeOnClickModal" active-text="点击遮罩关闭" class="mb-2 block"></el-switch>
-              <el-switch v-model="config.closeOnPressEscape" active-text="ESC键关闭" class="mb-2 block"></el-switch>
-              <el-switch v-model="config.lockScroll" active-text="锁定滚动" class="mb-2 block"></el-switch>
-              <el-switch v-model="config.appendToBody" active-text="插入到body" class="mb-2 block"></el-switch>
-              <el-switch v-model="config.destroyOnClose" active-text="关闭销毁内容" class="mb-2 block"></el-switch>
-              <el-switch v-model="config.customHeader" active-text="自定义头部" class="mb-2 block"></el-switch>
+              <el-switch
+                v-model="config.fullscreen"
+                active-text="全屏显示"
+                class="mb-2 block"
+              ></el-switch>
+              <el-switch
+                v-model="config.modal"
+                active-text="显示遮罩层"
+                class="mb-2 block"
+              ></el-switch>
+              <el-switch
+                v-model="config.draggable"
+                active-text="允许拖拽"
+                class="mb-2 block"
+              ></el-switch>
+              <el-switch
+                v-model="config.showClose"
+                active-text="显示关闭按钮"
+                class="mb-2 block"
+              ></el-switch>
+              <el-switch
+                v-model="config.closeOnClickModal"
+                active-text="点击遮罩关闭"
+                class="mb-2 block"
+              ></el-switch>
+              <el-switch
+                v-model="config.closeOnPressEscape"
+                active-text="ESC键关闭"
+                class="mb-2 block"
+              ></el-switch>
+              <el-switch
+                v-model="config.lockScroll"
+                active-text="锁定滚动"
+                class="mb-2 block"
+              ></el-switch>
+              <el-switch
+                v-model="config.appendToBody"
+                active-text="插入到body"
+                class="mb-2 block"
+              ></el-switch>
+              <el-switch
+                v-model="config.destroyOnClose"
+                active-text="关闭销毁内容"
+                class="mb-2 block"
+              ></el-switch>
+              <el-switch
+                v-model="config.customHeader"
+                active-text="自定义头部"
+                class="mb-2 block"
+              ></el-switch>
             </el-form-item>
 
             <el-form-item label="内容设置">
@@ -55,11 +114,21 @@
               </el-radio-group>
 
               <template v-if="config.contentType === 'text'">
-                <el-input v-model="config.textContent" type="textarea" :rows="3" placeholder="请输入对话框内容"></el-input>
+                <el-input
+                  v-model="config.textContent"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="请输入对话框内容"
+                ></el-input>
               </template>
             </el-form-item>
 
-            <el-button type="primary" @click="dialogVisible = true" style="width: 100%">打开对话框</el-button>
+            <el-button
+              type="primary"
+              @click="dialogVisible = true"
+              style="width: 100%"
+              >打开对话框</el-button
+            >
           </el-form>
 
           <div class="code-preview mt-4">
@@ -74,18 +143,35 @@
       <el-col :span="16">
         <div class="preview-panel">
           <h3>实时预览</h3>
-          <p class="example-desc">通过左侧配置面板调整对话框属性，点击"打开对话框"按钮查看效果</p>
+          <p class="example-desc">
+            通过左侧配置面板调整对话框属性，点击"打开对话框"按钮查看效果
+          </p>
 
           <div class="dialog-preview">
-            <div class="dialog-frame" :style="{ width: config.width + 'px' }" :class="{ layout: config.layout }">
+            <div
+              class="dialog-frame"
+              :style="{ width: config.width + 'px' }"
+              :class="{ layout: config.layout }"
+            >
               <div class="dialog-header" v-if="config.layout !== 'headless'">
                 <span>{{ config.title || "对话框标题" }}</span>
                 <i class="el-icon-close" v-if="config.showClose"></i>
               </div>
-              <div class="dialog-body" :class="{ headless: config.layout === 'headless' }">
-                <i class="el-icon-close top-close" v-if="config.layout === 'headless' && config.showClose"></i>
+              <div
+                class="dialog-body"
+                :class="{ headless: config.layout === 'headless' }"
+              >
+                <i
+                  class="el-icon-close top-close"
+                  v-if="config.layout === 'headless' && config.showClose"
+                ></i>
                 <template v-if="config.contentType === 'text'">
-                  <p>{{ config.textContent || "这里是对话框的内容区域，可以根据需要放置不同的组件和内容。" }}</p>
+                  <p>
+                    {{
+                      config.textContent ||
+                      "这里是对话框的内容区域，可以根据需要放置不同的组件和内容。"
+                    }}
+                  </p>
                 </template>
                 <template v-else-if="config.contentType === 'form'">
                   <div class="preview-form">
@@ -145,10 +231,21 @@
             <template #header v-if="config.customHeader">
               <div class="custom-header">
                 <div class="header-left">
-                  <IconifyIconOnline icon="ri:file-list-line" class="header-icon" />
-                  <span class="header-title">{{ config.title || "自定义头部" }}</span>
+                  <IconifyIconOnline
+                    icon="ri:file-list-line"
+                    class="header-icon"
+                  />
+                  <span class="header-title">{{
+                    config.title || "自定义头部"
+                  }}</span>
                 </div>
-                <el-button type="primary" text circle @click="dialogVisible = false" v-if="config.showClose">
+                <el-button
+                  type="primary"
+                  text
+                  circle
+                  @click="dialogVisible = false"
+                  v-if="config.showClose"
+                >
                   <IconifyIconOnline icon="ri:close-line" />
                 </el-button>
               </div>
@@ -163,13 +260,23 @@
             <template v-else-if="config.contentType === 'form'">
               <el-form :model="formData" label-width="80px">
                 <el-form-item label="用户名">
-                  <el-input v-model="formData.username" placeholder="请输入用户名"></el-input>
+                  <el-input
+                    v-model="formData.username"
+                    placeholder="请输入用户名"
+                  ></el-input>
                 </el-form-item>
                 <el-form-item label="邮箱">
-                  <el-input v-model="formData.email" placeholder="请输入邮箱"></el-input>
+                  <el-input
+                    v-model="formData.email"
+                    placeholder="请输入邮箱"
+                  ></el-input>
                 </el-form-item>
                 <el-form-item label="部门">
-                  <el-select v-model="formData.department" placeholder="请选择部门" style="width: 100%">
+                  <el-select
+                    v-model="formData.department"
+                    placeholder="请选择部门"
+                    style="width: 100%"
+                  >
                     <el-option label="市场部" value="market"></el-option>
                     <el-option label="技术部" value="tech"></el-option>
                     <el-option label="财务部" value="finance"></el-option>
@@ -181,7 +288,10 @@
 
             <template v-else-if="config.contentType === 'confirm'">
               <div class="confirm-content">
-                <IconifyIconOnline icon="ri:error-warning-line" class="warning-icon" />
+                <IconifyIconOnline
+                  icon="ri:error-warning-line"
+                  class="warning-icon"
+                />
                 <div class="confirm-message">
                   <p class="confirm-title">确认操作</p>
                   <p class="confirm-desc">您确定要执行此操作吗？</p>
@@ -192,7 +302,9 @@
             <template #footer>
               <div class="dialog-footer">
                 <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="handleConfirm">确定</el-button>
+                <el-button type="primary" @click="handleConfirm"
+                  >确定</el-button
+                >
               </div>
             </template>
           </ScDialog>
@@ -267,7 +379,8 @@ const generatedCode = computed(() => {
 
   switch (config.layout) {
     case "simple":
-      layoutDescription += "简单布局 - 直接使用Element Plus的原生对话框样式 -->";
+      layoutDescription +=
+        "简单布局 - 直接使用Element Plus的原生对话框样式 -->";
       break;
     case "headless":
       layoutDescription += "无头部布局 - 移除标题栏，内容区域扩展 -->";
@@ -450,7 +563,7 @@ const generatedCode = computed(() => {
       border: 1px solid var(--el-border-color);
       border-radius: 4px;
       box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-      background-color: #fff;
+      background-color: var(--el-bg-color);
       width: 500px;
       max-width: 100%;
 
@@ -460,7 +573,7 @@ const generatedCode = computed(() => {
         justify-content: space-between;
         align-items: center;
         padding: 16px 20px;
-        border-bottom: 1px solid #e4e7ed;
+        border-bottom: 1px solid var(--el-border-color-light);
 
         span {
           font-size: 16px;
@@ -492,7 +605,7 @@ const generatedCode = computed(() => {
           right: 8px;
           font-size: 16px;
           cursor: pointer;
-           color: var(--el-text-color-primary);
+          color: var(--el-text-color-primary);
 
           &:hover {
             color: var(--el-color-primary);
@@ -512,13 +625,13 @@ const generatedCode = computed(() => {
               display: block;
               margin-bottom: 8px;
               font-size: 14px;
-              color: #606266;
+              color: var(--el-text-color-regular);
             }
 
             .input-box,
             .select-box {
               height: 32px;
-              background-color: #f0f2f5;
+              background-color: var(--el-fill-color-light);
               border-radius: 4px;
             }
           }
@@ -548,7 +661,7 @@ const generatedCode = computed(() => {
             }
 
             .desc {
-               color: var(--el-text-color-primary);
+              color: var(--el-text-color-primary);
               font-size: 14px;
             }
           }
@@ -557,7 +670,7 @@ const generatedCode = computed(() => {
 
       .dialog-footer {
         padding: 10px 20px;
-        border-top: 1px solid #e4e7ed;
+        border-top: 1px solid var(--el-border-color-light);
         display: flex;
         justify-content: flex-end;
         gap: 8px;
@@ -570,7 +683,8 @@ const generatedCode = computed(() => {
 
           &.btn-cancel {
             border: 1px solid var(--el-border-color);
-            background-color: #fff;
+            background-color: var(--el-bg-color);
+            color: var(--el-text-color-primary);
           }
 
           &.btn-confirm {
@@ -650,7 +764,7 @@ const generatedCode = computed(() => {
       }
 
       .confirm-desc {
-         color: var(--el-text-color-primary);
+        color: var(--el-text-color-primary);
         font-size: 14px;
       }
     }
@@ -698,7 +812,7 @@ const generatedCode = computed(() => {
 :deep(.minimal-dialog) {
   box-shadow: none !important;
   border: none !important;
-  background-color: rgba(255, 255, 255, 0.95) !important;
+  background-color: var(--el-bg-color-overlay) !important;
   backdrop-filter: blur(10px);
 
   .el-dialog__header {
@@ -712,7 +826,7 @@ const generatedCode = computed(() => {
 
 :deep(.sc-dialog--simple) {
   .el-dialog__header {
-    background-color: #f5f7fa;
+    background-color: var(--el-fill-color-light);
   }
 }
 
@@ -732,7 +846,7 @@ const generatedCode = computed(() => {
     border-top: 4px solid var(--el-color-primary);
 
     .dialog-header {
-      border-bottom: 1px solid #e4e7ed;
+      border-bottom: 1px solid var(--el-border-color-light);
 
       span {
         color: var(--el-color-primary);
@@ -744,7 +858,7 @@ const generatedCode = computed(() => {
     border-top: none;
 
     .dialog-header {
-      background-color: #f5f7fa;
+      background-color: var(--el-fill-color-light);
     }
   }
 
@@ -757,6 +871,26 @@ const generatedCode = computed(() => {
 
     .dialog-body {
       padding-top: 30px;
+    }
+  }
+}
+
+/* 深色主题适配 */
+html.dark {
+  .sc-dialog-example {
+    .config-panel,
+    .preview-panel {
+      background: var(--el-bg-color-overlay);
+      border-color: var(--el-border-color);
+    }
+
+    .dialog-frame {
+      box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    .code-box {
+      background-color: #1e1e1e;
+      border: 1px solid var(--el-border-color);
     }
   }
 }

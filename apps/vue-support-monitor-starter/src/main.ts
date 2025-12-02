@@ -1,5 +1,5 @@
 // 在应用启动早期检测并设置深色主题与皮肤，避免FOUC问题
-(function() {
+(function () {
   try {
     // 从localStorage中读取布局配置
     const layoutConfig = JSON.parse(localStorage.getItem('layout') || '{}');
@@ -26,6 +26,7 @@ import App from "./App.vue";
 import ElementPlusX from "vue-element-plus-x";
 // 引入重置样式
 import "@/styles/threshold.scss";
+import "@/styles/theme-common.scss";
 import "@repo/assets/iconfont/iconfont.css";
 import "@repo/assets/iconfont/iconfont.js";
 import "@repo/assets/style/layout/default/index.scss";

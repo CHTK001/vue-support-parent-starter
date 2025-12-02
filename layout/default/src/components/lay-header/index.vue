@@ -1,15 +1,28 @@
 <template>
   <div
     :class="{ 'fixed-header shadow-tab': set.fixedHeader }"
-    :style="[set.hideTabs && layout.includes('horizontal') ? (isDark ? 'box-shadow: 0 1px 4px #0d0d0d' : 'box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)') : '']"
+    :style="[
+      set.hideTabs && layout.includes('horizontal')
+        ? 'box-shadow: var(--el-box-shadow-light)'
+        : '',
+    ]"
   >
     <!-- 纵向和混合布局的导航栏 -->
-    <div v-if="!pureSetting.hiddenSideBar && (layout.includes('vertical') || layout.includes('mix') || layout.includes('hover'))">
+    <div
+      v-if="
+        !pureSetting.hiddenSideBar &&
+        (layout.includes('vertical') ||
+          layout.includes('mix') ||
+          layout.includes('hover'))
+      "
+    >
       <LayNavbar v-if="defer(0)" />
     </div>
 
     <!-- 横向布局的导航栏 -->
-    <div v-else-if="!pureSetting.hiddenSideBar && layout.includes('horizontal')">
+    <div
+      v-else-if="!pureSetting.hiddenSideBar && layout.includes('horizontal')"
+    >
       <NavHorizontal v-if="defer(1)" />
     </div>
 
@@ -115,7 +128,8 @@ const set: setType = reactive({
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg,
+    background: linear-gradient(
+      90deg,
       rgba(64, 158, 255, 0.1) 0%,
       rgba(64, 158, 255, 0.2) 50%,
       rgba(64, 158, 255, 0.1) 100%
@@ -129,7 +143,8 @@ const set: setType = reactive({
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg,
+    background: linear-gradient(
+      90deg,
       rgba(0, 0, 0, 0.02) 0%,
       rgba(0, 0, 0, 0.06) 50%,
       rgba(0, 0, 0, 0.02) 100%
@@ -138,7 +153,8 @@ const set: setType = reactive({
 
   .dark & {
     &::before {
-      background: linear-gradient(90deg,
+      background: linear-gradient(
+        90deg,
         rgba(64, 158, 255, 0.15) 0%,
         rgba(64, 158, 255, 0.25) 50%,
         rgba(64, 158, 255, 0.15) 100%
@@ -146,7 +162,8 @@ const set: setType = reactive({
     }
 
     &::after {
-      background: linear-gradient(90deg,
+      background: linear-gradient(
+        90deg,
         rgba(255, 255, 255, 0.02) 0%,
         rgba(255, 255, 255, 0.06) 50%,
         rgba(255, 255, 255, 0.02) 100%
@@ -197,7 +214,8 @@ const set: setType = reactive({
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg,
+    background: linear-gradient(
+      90deg,
       rgba(0, 0, 0, 0.02) 0%,
       rgba(0, 0, 0, 0.06) 50%,
       rgba(0, 0, 0, 0.02) 100%
@@ -206,7 +224,8 @@ const set: setType = reactive({
 
   .dark & {
     &::after {
-      background: linear-gradient(90deg,
+      background: linear-gradient(
+        90deg,
         rgba(255, 255, 255, 0.02) 0%,
         rgba(255, 255, 255, 0.06) 50%,
         rgba(255, 255, 255, 0.02) 100%

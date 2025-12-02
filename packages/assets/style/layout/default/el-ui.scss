@@ -140,7 +140,7 @@ translate-x-50\% {
 }
 //--el-bg-color
 .main-content {
-  background-color: var(--el-bg-color);
+  background: var(--el-bg-color);
   border: 1px solid var(--el-card-border-color);
   border-radius: var(--el-card-border-radius);
   color: var(--el-text-color-primary);
@@ -473,7 +473,7 @@ section.panel-padding > aside {
   height: 100%;
 }
 .bg-layout .layout {
-  background-color: #fff !important;
+  background-color: var(--el-bg-color) !important;
 }
 .el-container {
   height: 100%;

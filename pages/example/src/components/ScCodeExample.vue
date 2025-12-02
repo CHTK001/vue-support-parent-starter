@@ -1,5 +1,5 @@
 <template>
-  <div class="sc-code-example">
+  <div class="example-page sc-code-example">
     <div class="example-header">
       <h2>ScCode 验证码输入组件示例</h2>
       <p>现代化的验证码输入组件，支持自动跳转、粘贴、键盘导航等功能</p>
@@ -344,211 +344,17 @@ const handleChange = (value) => {
 </script>
 
 <style scoped lang="scss">
+// 组件特有样式（通用样式已在 example-common.scss 中定义）
 .sc-code-example {
-  padding: 24px;
-  background: var(--el-bg-color-overlay);
-  border-radius: 8px;
-
-  .example-header {
-    margin-bottom: 32px;
-    text-align: center;
-
-    h2 {
-      color: var(--el-text-color-primary);
-      margin-bottom: 8px;
-    }
-
-    p {
-      color: var(--el-text-color-regular);
-      margin: 0;
-    }
-  }
-
-  .example-content {
-    .example-section {
-      margin-bottom: 40px;
-      padding: 24px;
-      background: var(--el-fill-color-extra-light);
-      border-radius: 8px;
-      border: 1px solid var(--el-border-color-lighter);
-
-      h3 {
-        color: var(--el-text-color-primary);
-        margin-bottom: 8px;
-        font-size: 18px;
-      }
-
-      > p {
-        color: var(--el-text-color-regular);
-        margin-bottom: 20px;
-        font-size: 14px;
-      }
-
-      .example-demo {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 20px;
-        padding: 20px;
-        background: var(--el-bg-color-overlay);
-        border-radius: 6px;
-        border: 1px solid var(--el-border-color-light);
-      }
-
-      .example-result {
-        margin-bottom: 16px;
-        padding: 16px;
-        background: var(--el-bg-color-overlay);
-        border-radius: 6px;
-        border: 1px solid var(--el-border-color-light);
-
-        p {
-          margin: 8px 0;
-          color: var(--el-text-color-regular);
-          font-size: 14px;
-
-          strong {
-            color: var(--el-text-color-primary);
-          }
-        }
-
-        .event-log {
-          h4 {
-            color: var(--el-text-color-primary);
-            margin-bottom: 12px;
-            font-size: 14px;
-          }
-
-          .log-container {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid var(--el-border-color-lighter);
-            border-radius: 4px;
-            background: var(--el-fill-color-blank);
-
-            .log-item {
-              display: flex;
-              align-items: center;
-              padding: 8px 12px;
-              border-bottom: 1px solid var(--el-border-color-extra-light);
-              font-size: 12px;
-              font-family: "Courier New", monospace;
-
-              &:last-child {
-                border-bottom: none;
-              }
-
-              &.success {
-                background: var(--el-color-success-light-9);
-                color: var(--el-color-success);
-              }
-
-              &.error {
-                background: var(--el-color-danger-light-9);
-                color: var(--el-color-danger);
-              }
-
-              &.warning {
-                background: var(--el-color-warning-light-9);
-                color: var(--el-color-warning);
-              }
-
-              .log-time {
-                min-width: 80px;
-                color: var(--el-text-color-placeholder);
-              }
-
-              .log-event {
-                min-width: 80px;
-                font-weight: 500;
-              }
-
-              .log-value {
-                flex: 1;
-                font-weight: 600;
-              }
-            }
-          }
-        }
-      }
-
-      .example-actions {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-    }
-  }
-
-  .code-examples {
-    margin-top: 40px;
-
-    h3 {
-      color: var(--el-text-color-primary);
-      margin-bottom: 20px;
-      font-size: 20px;
-    }
-
-    .code-section {
-      margin-bottom: 24px;
-
-      h4 {
-        color: var(--el-text-color-primary);
-        margin-bottom: 12px;
-        font-size: 16px;
-      }
-
-      .code-block {
-        background: var(--el-fill-color-dark);
-        border-radius: 6px;
-        padding: 16px;
-        overflow-x: auto;
-
-        pre {
-          margin: 0;
-          font-family: "Courier New", monospace;
-          font-size: 13px;
-          line-height: 1.5;
-
-          code {
-            color: var(--el-text-color-primary);
-            background: transparent;
-          }
-        }
-      }
-    }
-  }
-}
-
-// 暗黑模式适配
-.el-dark {
-  .sc-code-example {
-    .code-examples {
-      .code-section {
-        .code-block {
-          background: var(--el-fill-color-darker);
-          border: 1px solid var(--el-border-color-dark);
-
-          pre code {
-            color: var(--el-text-color-primary);
-          }
-        }
-      }
-    }
-  }
-}
-
-// 响应式设计
-@media (max-width: 768px) {
-  .sc-code-example {
+  // 响应式设计
+  @media (max-width: 768px) {
     padding: 16px;
 
-    .example-content {
-      .example-section {
-        padding: 16px;
+    :deep(.example-section) {
+      padding: 16px;
 
-        .example-actions {
-          justify-content: center;
-        }
+      .example-actions {
+        justify-content: center;
       }
     }
   }

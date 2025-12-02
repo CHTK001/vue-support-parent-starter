@@ -7,7 +7,22 @@ import LayNavMix from "../lay-sidebar/NavMix.vue";
 //@ts-ignore
 import LayTool from "../lay-tool/index.vue";
 
-const { layout, device, logout, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } = useNav();
+const {
+  layout,
+  device,
+  logout,
+  onPanel,
+  pureApp,
+  username,
+  userAvatar,
+  avatarsStyle,
+  toggleSideBar,
+  clickClearRouter,
+  gotoSecret,
+  gotoAccountSetting,
+  getDropdownItemStyle,
+  getDropdownItemClass,
+} = useNav();
 
 const { t, locale, translationCh, translationEn } = useTranslationLang();
 </script>
@@ -15,16 +30,32 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
 <template>
   <div class="modern-navbar">
     <!-- 移动端汉堡菜单 -->
-    <LaySidebarTopCollapse v-if="device === 'mobile'" class="hamburger-container" :is-active="pureApp.sidebar.opened" @toggleClick="toggleSideBar" />
+    <LaySidebarTopCollapse
+      v-if="device === 'mobile'"
+      class="hamburger-container"
+      :is-active="pureApp.sidebar.opened"
+      @toggleClick="toggleSideBar"
+    />
 
     <!-- 面包屑导航 -->
-    <LaySidebarBreadCrumb v-if="layout !== 'mix' && device !== 'mobile'" class="breadcrumb-container" />
+    <LaySidebarBreadCrumb
+      v-if="layout !== 'mix' && device !== 'mobile'"
+      class="breadcrumb-container"
+    />
 
     <!-- 混合布局导航 -->
     <LayNavMix v-if="layout === 'mix'" />
 
     <!-- 纵向/悬停/卡片/双栏布局右侧工具栏 -->
-    <div v-if="layout === 'vertical' || layout === 'hover' || layout === 'card' || layout === 'double'" class="vertical-header-right">
+    <div
+      v-if="
+        layout === 'vertical' ||
+        layout === 'hover' ||
+        layout === 'card' ||
+        layout === 'double'
+      "
+      class="vertical-header-right"
+    >
       <LayTool />
     </div>
   </div>
@@ -37,8 +68,8 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
   height: 48px;
   overflow: hidden;
   backdrop-filter: blur(20px);
-  background: rgba(255, 255, 255, 0.95);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
@@ -52,22 +83,12 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, rgba(64, 158, 255, 0.1) 0%, rgba(64, 158, 255, 0.3) 50%, rgba(64, 158, 255, 0.1) 100%);
-  }
-
-  // 暗色主题适配
-  .dark & {
-    background: rgba(18, 18, 23, 0.95);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-
-    &::before {
-      background: linear-gradient(90deg, rgba(64, 158, 255, 0.15) 0%, rgba(64, 158, 255, 0.4) 50%, rgba(64, 158, 255, 0.15) 100%);
-    }
-  }
-
-  // 保持向后兼容
-  .navbar {
-    @extend .modern-navbar;
+    background: linear-gradient(
+      90deg,
+      rgba(var(--el-color-primary-rgb), 0.1) 0%,
+      rgba(var(--el-color-primary-rgb), 0.3) 50%,
+      rgba(var(--el-color-primary-rgb), 0.1) 100%
+    );
   }
 
   // 汉堡菜单容器美化
@@ -81,9 +102,9 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
     margin: 0 8px;
 
     &:hover {
-      background: rgba(64, 158, 255, 0.08);
+      background: rgba(var(--el-color-primary-rgb), 0.08);
       transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
     }
 
     &:active {
@@ -114,14 +135,14 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
       cursor: pointer;
       border-radius: 8px;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      background: rgba(255, 255, 255, 0.8);
-      border: 1px solid rgba(0, 0, 0, 0.06);
+      background: var(--el-bg-color-overlay);
+      border: 1px solid var(--el-border-color-lighter);
 
       &:hover {
-        background: rgba(64, 158, 255, 0.08);
-        border-color: rgba(64, 158, 255, 0.2);
+        background: rgba(var(--el-color-primary-rgb), 0.08);
+        border-color: rgba(var(--el-color-primary-rgb), 0.2);
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(64, 158, 255, 0.15);
+        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
       }
 
       &:active {
@@ -134,6 +155,7 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
         font-weight: 500;
         margin: 0 8px;
         transition: color 0.3s;
+        color: var(--el-text-color-primary);
       }
 
       // 头像样式美化
@@ -143,12 +165,12 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
         border-radius: 50%;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 2px solid rgba(255, 255, 255, 0.8);
+        border: 2px solid var(--el-bg-color);
 
         &:hover {
           transform: scale(1.1);
-          box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
-          border-color: rgba(64, 158, 255, 0.3);
+          box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+          border-color: rgba(var(--el-color-primary-rgb), 0.3);
         }
       }
     }
@@ -164,14 +186,55 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
     border-radius: 8px;
     backdrop-filter: blur(10px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
 
-    .dark & {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.1);
+// 深色主题适配
+html.dark {
+  .modern-navbar {
+    background: var(--el-bg-color);
+    border-bottom-color: var(--el-border-color);
+
+    &::before {
+      background: linear-gradient(
+        90deg,
+        rgba(var(--el-color-primary-rgb), 0.15) 0%,
+        rgba(var(--el-color-primary-rgb), 0.4) 50%,
+        rgba(var(--el-color-primary-rgb), 0.15) 100%
+      );
+    }
+
+    .hamburger-container {
+      &:hover {
+        background: rgba(var(--el-color-primary-rgb), 0.15);
+      }
+    }
+
+    .vertical-header-right {
+      .el-dropdown-link {
+        background: var(--el-fill-color-dark);
+        border-color: var(--el-border-color);
+
+        &:hover {
+          background: rgba(var(--el-color-primary-rgb), 0.15);
+          border-color: rgba(var(--el-color-primary-rgb), 0.3);
+        }
+
+        p {
+          color: var(--el-text-color-primary);
+        }
+
+        img {
+          border-color: var(--el-border-color);
+        }
+      }
+    }
+
+    .breadcrumb-container {
+      background: var(--el-fill-color-dark);
 
       &:hover {
-        background: rgba(255, 255, 255, 0.15);
-        border-color: rgba(64, 158, 255, 0.3);
+        background: var(--el-fill-color);
       }
     }
   }

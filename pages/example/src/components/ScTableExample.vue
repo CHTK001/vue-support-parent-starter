@@ -14,21 +14,41 @@
             <el-switch v-model="config.showPagination" />
           </el-form-item>
           <el-form-item label="每页条数">
-            <el-select v-model="config.pageSize" :disabled="!config.showPagination">
-              <el-option v-for="size in [5, 10, 20, 50, 1000, 10000, 100000]" :key="size" :label="size" :value="size" />
+            <el-select
+              v-model="config.pageSize"
+              :disabled="!config.showPagination"
+            >
+              <el-option
+                v-for="size in [5, 10, 20, 50, 1000, 10000, 100000]"
+                :key="size"
+                :label="size"
+                :value="size"
+              />
             </el-select>
           </el-form-item>
           <el-form-item label="分页类型">
-            <el-select v-model="config.paginationType" :disabled="!config.showPagination">
+            <el-select
+              v-model="config.paginationType"
+              :disabled="!config.showPagination"
+            >
               <el-option label="当前分页" value="default" />
               <el-option label="滚动分页" value="scroll" />
             </el-select>
           </el-form-item>
           <el-form-item label="自动加载" v-if="config.showPagination">
-            <el-switch v-model="config.autoLoad" :disabled="config.paginationType !== 'scroll'" />
+            <el-switch
+              v-model="config.autoLoad"
+              :disabled="config.paginationType !== 'scroll'"
+            />
           </el-form-item>
           <el-form-item label="加载距离(px)" v-if="config.showPagination">
-            <el-input-number v-model="config.loadDistance" :min="0" :max="400" :step="20" :disabled="config.paginationType !== 'scroll'" />
+            <el-input-number
+              v-model="config.loadDistance"
+              :min="0"
+              :max="400"
+              :step="20"
+              :disabled="config.paginationType !== 'scroll'"
+            />
           </el-form-item>
           <el-form-item label="高度(px)">
             <el-input-number v-model="config.height" :min="0" :step="50" />
@@ -42,14 +62,14 @@
             </el-select>
           </el-form-item>
           <el-form-item label="布局方式">
-            <ScSelect 
+            <ScSelect
               v-model="config.layout"
               :options="[
                 { label: '表格', value: 'table', icon: 'ep:grid' },
                 { label: '列表', value: 'list', icon: 'ep:list' },
                 { label: '卡片', value: 'card', icon: 'ep:menu' },
                 { label: '虚拟表格', value: 'virtual', icon: 'ep:top' },
-                { label: 'Canvas', value: 'canvas', icon: 'ep:finished' }
+                { label: 'Canvas', value: 'canvas', icon: 'ep:finished' },
               ]"
               layout="pill"
               :columns="5"
@@ -60,23 +80,42 @@
           </el-form-item>
           <el-form-item label="数据数量">
             <div class="data-count-control">
-              <el-input-number v-model="config.dataCount" :min="1" :max="10000" @change="generateData" />
+              <el-input-number
+                v-model="config.dataCount"
+                :min="1"
+                :max="10000"
+                @change="generateData"
+              />
             </div>
           </el-form-item>
         </el-form>
       </div>
 
-      <div class="preview-panel" :style="{ width: config.width !== 'auto' ? config.width : '100%' }">
+      <div
+        class="preview-panel"
+        :style="{ width: config.width !== 'auto' ? config.width : '100%' }"
+      >
         <h3>{{ getLayoutTitle }}</h3>
         <p class="example-desc">通过左侧配置面板调整表格属性，实时查看效果</p>
 
         <div class="table-preview-container">
-          <ScTable v-if="config.layout === 'table'" ref="tableRef" :data="tableData" :params="{}" row-key="id"
-            :border="config.border" :stripe="config.stripe" :height="config.height > 0 ? config.height - 2 : null"
-            :hidePagination="!config.showPagination" :pageSize="config.pageSize" :paginationType="config.paginationType"
+          <ScTable
+            v-if="config.layout === 'table'"
+            ref="tableRef"
+            :data="tableData"
+            :params="{}"
+            row-key="id"
+            :border="config.border"
+            :stripe="config.stripe"
+            :height="config.height > 0 ? config.height - 2 : null"
+            :hidePagination="!config.showPagination"
+            :pageSize="config.pageSize"
+            :paginationType="config.paginationType"
             :auto-load="config.paginationType === 'scroll' && config.autoLoad"
             :load-distance="config.loadDistance"
-            :contextmenu="config.contextMenu ? handleContextMenu : null" overflow-x="auto">
+            :contextmenu="config.contextMenu ? handleContextMenu : null"
+            overflow-x="auto"
+          >
             <el-table-column type="selection" width="55"></el-table-column>
             <el-table-column prop="id" label="ID" sortable></el-table-column>
             <el-table-column prop="name" label="名称"></el-table-column>
@@ -88,27 +127,52 @@
               </template>
             </el-table-column>
             <el-table-column prop="description" label="描述"></el-table-column>
-            <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+            <el-table-column
+              prop="createTime"
+              label="创建时间"
+              sortable
+            ></el-table-column>
             <el-table-column label="操作" width="150">
               <template #default="{ row }">
-                <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-                <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+                <el-button type="primary" size="small" @click="handleEdit(row)"
+                  >编辑</el-button
+                >
+                <el-button type="danger" size="small" @click="handleDelete(row)"
+                  >删除</el-button
+                >
               </template>
             </el-table-column>
           </ScTable>
 
-          <ScTable v-else-if="config.layout === 'card'" :layout="config.layout" ref="otherLayoutRef" :data="tableData"
-            :params="{}" row-key="id" :border="config.border" :stripe="config.stripe"
-            :height="config.height > 0 ? config.height : 400" :hidePagination="!config.showPagination"
-            :pageSize="config.pageSize" :paginationType="config.paginationType" :col-size="4" :row-size="2"
+          <ScTable
+            v-else-if="config.layout === 'card'"
+            :layout="config.layout"
+            ref="otherLayoutRef"
+            :data="tableData"
+            :params="{}"
+            row-key="id"
+            :border="config.border"
+            :stripe="config.stripe"
+            :height="config.height > 0 ? config.height : 400"
+            :hidePagination="!config.showPagination"
+            :pageSize="config.pageSize"
+            :paginationType="config.paginationType"
+            :col-size="4"
+            :row-size="2"
             :auto-load="config.paginationType === 'scroll' && config.autoLoad"
             :load-distance="config.loadDistance"
-            :contextmenu="config.contextMenu ? handleContextMenu : null" @row-click="handleEdit" overflow-x="auto">
+            :contextmenu="config.contextMenu ? handleContextMenu : null"
+            @row-click="handleEdit"
+            overflow-x="auto"
+          >
             <template #default="{ row }">
               <div class="custom-card">
                 <div class="card-header">
                   <span class="card-title">{{ row.name }}</span>
-                  <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+                  <el-tag
+                    :type="row.status === 'active' ? 'success' : 'info'"
+                    size="small"
+                  >
                     {{ row.status === "active" ? "启用" : "禁用" }}
                   </el-tag>
                 </div>
@@ -127,21 +191,43 @@
                   </div>
                 </div>
                 <div class="card-actions">
-                  <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-                  <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="handleEdit(row)"
+                    >编辑</el-button
+                  >
+                  <el-button
+                    type="danger"
+                    size="small"
+                    @click="handleDelete(row)"
+                    >删除</el-button
+                  >
                 </div>
               </div>
             </template>
           </ScTable>
 
           <!-- Canvas布局 -->
-          <ScTable v-else-if="config.layout === 'canvas'" :layout="config.layout" ref="canvasLayoutRef"
-            :data="tableData" :params="{}" row-key="id" :border="config.border" :stripe="config.stripe"
-            :height="config.height > 0 ? config.height - 2 : null" :hidePagination="!config.showPagination"
-            :pageSize="config.pageSize" :paginationType="config.paginationType" :columns="canvasColumns"
+          <ScTable
+            v-else-if="config.layout === 'canvas'"
+            :layout="config.layout"
+            ref="canvasLayoutRef"
+            :data="tableData"
+            :params="{}"
+            row-key="id"
+            :border="config.border"
+            :stripe="config.stripe"
+            :height="config.height > 0 ? config.height - 2 : null"
+            :hidePagination="!config.showPagination"
+            :pageSize="config.pageSize"
+            :paginationType="config.paginationType"
+            :columns="canvasColumns"
             :auto-load="config.paginationType === 'scroll' && config.autoLoad"
             :load-distance="config.loadDistance"
-            :contextmenu="config.contextMenu ? handleContextMenu : null" @row-click="handleCanvasRowClick">
+            :contextmenu="config.contextMenu ? handleContextMenu : null"
+            @row-click="handleCanvasRowClick"
+          >
             <template #table-header>
               <div class="canvas-header">
                 <h4>Canvas表格 - 高性能渲染</h4>
@@ -151,22 +237,47 @@
           </ScTable>
 
           <!-- 虚拟表格布局 -->
-          <ScTable v-else-if="config.layout === 'virtual'" :layout="config.layout" ref="virtualLayoutRef"
-            :data="tableData" :params="{}" row-key="id" :border="config.border" :stripe="config.stripe"
-            :height="config.height > 0 ? config.height - 2 : null" :hidePagination="!config.showPagination"
-            :pageSize="config.pageSize" :paginationType="config.paginationType" :columns="canvasColumns"
+          <ScTable
+            v-else-if="config.layout === 'virtual'"
+            :layout="config.layout"
+            ref="virtualLayoutRef"
+            :data="tableData"
+            :params="{}"
+            row-key="id"
+            :border="config.border"
+            :stripe="config.stripe"
+            :height="config.height > 0 ? config.height - 2 : null"
+            :hidePagination="!config.showPagination"
+            :pageSize="config.pageSize"
+            :paginationType="config.paginationType"
+            :columns="canvasColumns"
             :auto-load="config.paginationType === 'scroll' && config.autoLoad"
             :load-distance="config.loadDistance"
-            :contextmenu="config.contextMenu ? handleContextMenu : null" @row-click="handleEdit">
+            :contextmenu="config.contextMenu ? handleContextMenu : null"
+            @row-click="handleEdit"
+          >
           </ScTable>
 
           <!-- 列表布局 -->
-          <ScTable v-else :layout="config.layout" ref="otherLayoutRef" :data="tableData" :params="{}" row-key="id"
-            :border="config.border" :stripe="config.stripe" :height="config.height > 0 ? config.height - 2 : 400"
-            :hidePagination="!config.showPagination" :pageSize="config.pageSize" :paginationType="config.paginationType"
+          <ScTable
+            v-else
+            :layout="config.layout"
+            ref="otherLayoutRef"
+            :data="tableData"
+            :params="{}"
+            row-key="id"
+            :border="config.border"
+            :stripe="config.stripe"
+            :height="config.height > 0 ? config.height - 2 : 400"
+            :hidePagination="!config.showPagination"
+            :pageSize="config.pageSize"
+            :paginationType="config.paginationType"
             :auto-load="config.paginationType === 'scroll' && config.autoLoad"
             :load-distance="config.loadDistance"
-            :contextmenu="config.contextMenu ? handleContextMenu : null" @row-click="handleEdit" overflow-x="auto">
+            :contextmenu="config.contextMenu ? handleContextMenu : null"
+            @row-click="handleEdit"
+            overflow-x="auto"
+          >
             <template #default="{ row }">
               <div class="list-item">
                 <div class="list-item-main">
@@ -174,14 +285,27 @@
                   <p>{{ row.description }}</p>
                 </div>
                 <div class="list-item-meta">
-                  <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+                  <el-tag
+                    :type="row.status === 'active' ? 'success' : 'info'"
+                    size="small"
+                  >
                     {{ row.status === "active" ? "启用" : "禁用" }}
                   </el-tag>
                   <span class="list-time">{{ row.createTime }}</span>
                 </div>
                 <div class="list-item-actions">
-                  <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-                  <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="handleEdit(row)"
+                    >编辑</el-button
+                  >
+                  <el-button
+                    type="danger"
+                    size="small"
+                    @click="handleDelete(row)"
+                    >删除</el-button
+                  >
                 </div>
               </div>
             </template>
@@ -192,27 +316,39 @@
 
     <el-divider></el-divider>
     <div class="code-panel">
-      <CodeDisplay 
-        :code="generatedCode" 
-        language="html" 
-        title="代码示例" 
+      <CodeDisplay
+        :code="generatedCode"
+        language="html"
+        title="代码示例"
         description="此代码示例会根据您在配置面板中的选择实时更新"
       />
 
       <div v-if="config.contextMenu" class="context-menu-help">
         <h4>右键菜单使用说明</h4>
-        <p>ScTable组件支持在表格行上使用右键菜单，只需要提供一个<code>contextmenu</code>函数即可。该函数接收三个参数：当前行数据、当前列、事件对象，并返回一个菜单项配置数组。</p>
+        <p>
+          ScTable组件支持在表格行上使用右键菜单，只需要提供一个<code>contextmenu</code>函数即可。该函数接收三个参数：当前行数据、当前列、事件对象，并返回一个菜单项配置数组。
+        </p>
         <p>菜单项配置说明：</p>
         <ul>
           <li><strong>name</strong>: 菜单项显示的名称</li>
-          <li><strong>icon</strong>: 菜单项图标，使用ElementPlus图标或者Iconify图标</li>
-          <li><strong>handle</strong>: 点击菜单项时的处理函数，接收当前行数据</li>
+          <li>
+            <strong>icon</strong>:
+            菜单项图标，使用ElementPlus图标或者Iconify图标
+          </li>
+          <li>
+            <strong>handle</strong>: 点击菜单项时的处理函数，接收当前行数据
+          </li>
           <li><strong>type</strong>: 特殊类型，设置为"LINE"时显示为分割线</li>
-          <li><strong>show</strong>: (可选) 显示条件，返回布尔值决定是否显示该菜单项</li>
-          <li><strong>children</strong>: (可选) 子菜单项，配置同父级，支持多级嵌套</li>
+          <li>
+            <strong>show</strong>: (可选)
+            显示条件，返回布尔值决定是否显示该菜单项
+          </li>
+          <li>
+            <strong>children</strong>: (可选) 子菜单项，配置同父级，支持多级嵌套
+          </li>
         </ul>
         <p>在表格行上点击右键即可呼出右键菜单，支持嵌套的二级菜单。</p>
-        
+
         <h4>二级菜单配置示例</h4>
         <pre><code class="language-js">{
   name: "更多操作",
@@ -259,24 +395,28 @@ const config = reactive({
 
 // Canvas表格列配置
 const canvasColumns = [
-  { label: 'ID', prop: 'id', width: 80, sortable: true },
-  { label: '名称', prop: 'name', width: 150 },
-  { label: '状态', prop: 'status', width: 400, 
-    formatter: (row) => row.status === 'active' ? '启用' : '禁用' },
-  { label: '描述', prop: 'description', width: 400 },
-  { label: '创建时间', prop: 'createTime', width: 180, sortable: true }
+  { label: "ID", prop: "id", width: 80, sortable: true },
+  { label: "名称", prop: "name", width: 150 },
+  {
+    label: "状态",
+    prop: "status",
+    width: 400,
+    formatter: (row) => (row.status === "active" ? "启用" : "禁用"),
+  },
+  { label: "描述", prop: "description", width: 400 },
+  { label: "创建时间", prop: "createTime", width: 180, sortable: true },
 ];
 
 // 获取布局标题
 const getLayoutTitle = computed(() => {
   const layoutMap = {
-    'table': '表格模式预览',
-    'card': '卡片模式预览',
-    'list': '列表模式预览',
-    'virtual': '虚拟表格预览',
-    'canvas': 'Canvas表格预览'
+    table: "表格模式预览",
+    card: "卡片模式预览",
+    list: "列表模式预览",
+    virtual: "虚拟表格预览",
+    canvas: "Canvas表格预览",
   };
-  return layoutMap[config.layout] || '预览';
+  return layoutMap[config.layout] || "预览";
 });
 
 // 监听配置变化，确保变更能实时生效
@@ -382,15 +522,17 @@ const generateData = () => {
 const getRandomDate = () => {
   const start = new Date(2023, 0, 1);
   const end = new Date();
-  const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-  
+  const date = new Date(
+    start.getTime() + Math.random() * (end.getTime() - start.getTime())
+  );
+
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-  
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 };
 
@@ -424,14 +566,14 @@ const handleContextMenu = (row, column, event) => {
       icon: "ep:view",
       handle: () => {
         ElMessage.info("查看行详情：" + row.name);
-      }
+      },
     },
     {
       name: "编辑",
       icon: "ep:edit",
       handle: () => {
         handleEdit(row);
-      }
+      },
     },
     {
       name: "更多操作",
@@ -442,26 +584,26 @@ const handleContextMenu = (row, column, event) => {
           icon: "ep:download",
           handle: () => {
             ElMessage.success("导出数据：" + row.name);
-          }
+          },
         },
         {
           name: "分享",
           icon: "ep:share",
           handle: () => {
             ElMessage.success("分享数据：" + row.name);
-          }
+          },
         },
         {
           name: "打印",
           icon: "ep:printer",
           handle: () => {
             ElMessage.success("打印数据：" + row.name);
-          }
-        }
-      ]
+          },
+        },
+      ],
     },
     {
-      type: "LINE"
+      type: "LINE",
     },
     {
       name: "复制ID",
@@ -470,23 +612,23 @@ const handleContextMenu = (row, column, event) => {
         navigator.clipboard.writeText(row.id).then(() => {
           ElMessage.success("已复制ID到剪贴板");
         });
-      }
+      },
     },
     {
       name: "删除",
       icon: "ep:delete",
       handle: () => {
         handleDelete(row);
-      }
-    }
+      },
+    },
   ];
 };
 
 // 根据配置生成代码
 const generatedCode = computed(() => {
   let code = "";
-  
-  if (config.layout === 'table') {
+
+  if (config.layout === "table") {
     // 表格布局代码
     code = `<ScTable 
   :data="tableData" 
@@ -496,12 +638,12 @@ const generatedCode = computed(() => {
   :height="${config.height}" 
   :pageSize="${config.pageSize}"
   :paginationType="${config.paginationType}"`;
-    
+
     if (config.contextMenu) {
       code += `
   :contextmenu="handleContextMenu"`;
     }
-    
+
     code += `>
   <el-table-column type="selection" width="55"></el-table-column>
   <el-table-column prop="id" label="ID" sortable></el-table-column>
@@ -522,7 +664,7 @@ const generatedCode = computed(() => {
     </template>
   </el-table-column>
 </ScTable>`;
-    
+
     // 如果启用了右键菜单，添加菜单实现代码
     if (config.contextMenu) {
       code += `
@@ -597,7 +739,7 @@ const handleContextMenu = (row, column, event) => {
 };
 <\/script>`;
     }
-  } else if (config.layout === 'card') {
+  } else if (config.layout === "card") {
     // 卡片布局代码
     code = `<ScTable 
   layout="card"
@@ -639,7 +781,7 @@ const handleContextMenu = (row, column, event) => {
     </div>
   </template>
 </ScTable>`;
-  } else if (config.layout === 'canvas') {
+  } else if (config.layout === "canvas") {
     // Canvas表格布局代码
     code = `<ScTable 
   layout="canvas"
@@ -659,7 +801,7 @@ const handleContextMenu = (row, column, event) => {
     </div>
   </template>
 </ScTable>`;
-  } else if (config.layout === 'virtual') {
+  } else if (config.layout === "virtual") {
     // 虚拟表格布局代码
     code = `<ScTable 
   layout="virtual"
@@ -715,6 +857,9 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.sc-table-example {
+  background-color: var(--el-bg-color);
+}
 .example-container {
   display: flex;
   gap: 20px;
@@ -772,7 +917,7 @@ code {
   flex-direction: column;
 
   &:hover {
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: var(--el-box-shadow-light);
   }
 
   .card-header {
@@ -797,7 +942,7 @@ code {
 
       .field-label {
         width: 80px;
-         color: var(--el-text-color);
+        color: var(--el-text-color);
       }
 
       .field-value {
@@ -830,7 +975,7 @@ code {
   transition: all 0.3s;
 
   &:hover {
-    background-color: #f5f7fa;
+    background-color: var(--el-fill-color-light);
   }
 
   .list-item-main {
@@ -845,7 +990,7 @@ code {
 
     p {
       margin: 0;
-      color: #606266;
+      color: var(--el-text-color-regular);
       font-size: 14px;
     }
   }
@@ -859,7 +1004,7 @@ code {
     .list-time {
       margin-top: 8px;
       font-size: 12px;
-       color: var(--el-text-color);
+      color: var(--el-text-color);
     }
   }
 
@@ -878,7 +1023,7 @@ code {
 .context-menu-help {
   margin-top: 20px;
   padding: 15px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
   background: var(--el-bg-color-overlay);
 

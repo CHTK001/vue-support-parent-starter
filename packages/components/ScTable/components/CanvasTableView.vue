@@ -81,6 +81,54 @@ const headerHeight = ref(40);
 const rowHeight = ref(40);
 const columnWidths = ref([]);
 const devicePixelRatio = ref(window.devicePixelRatio || 1);
+// 检测深色主题
+const isDark = ref(document.documentElement.classList.contains("dark"));
+
+// 监听主题变化
+const themeObserver = new MutationObserver(mutations => {
+  mutations.forEach(mutation => {
+    if (mutation.attributeName === "class") {
+      isDark.value = document.documentElement.classList.contains("dark");
+      updateTheme();
+    }
+  });
+});
+
+// 更新主题颜色
+const updateTheme = () => {
+  if (isDark.value) {
+    theme.value = {
+      headerBgColor: "#1d1e1f",
+      headerTextColor: "#e5eaf3",
+      rowBgColor: "#141414",
+      rowAltBgColor: "#1d1e1f",
+      rowHoverBgColor: "#262727",
+      rowSelectedBgColor: "#18222c",
+      borderColor: "#414243",
+      textColor: "#e5eaf3",
+      fontSize: 14,
+      fontFamily: "Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif"
+    };
+  } else {
+    theme.value = {
+      headerBgColor: "#f5f7fa",
+      headerTextColor: "#606266",
+      rowBgColor: "#ffffff",
+      rowAltBgColor: "#fafafa",
+      rowHoverBgColor: "#f5f7fa",
+      rowSelectedBgColor: "#ecf5ff",
+      borderColor: "#ebeef5",
+      textColor: "#606266",
+      fontSize: 14,
+      fontFamily: "Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif"
+    };
+  }
+  // 主题变化后重新渲染表格
+  nextTick(() => {
+    rerenderTable();
+  });
+};
+
 const theme = ref({
   headerBgColor: "#f5f7fa",
   headerTextColor: "#606266",
@@ -644,6 +692,12 @@ const handleMenuAction = action => {
 
 // 生命周期钩子
 onMounted(() => {
+  // 初始化主题
+  updateTheme();
+
+  // 启动主题观察器
+  themeObserver.observe(document.documentElement, { attributes: true });
+
   // 设置事件监听
   window.addEventListener("resize", handleResize);
   headerCanvas.value?.addEventListener("click", handleCellClick);
@@ -676,6 +730,9 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  // 断开主题观察器
+  themeObserver.disconnect();
+
   // 移除事件监听
   window.removeEventListener("resize", handleResize);
   headerCanvas.value?.removeEventListener("click", handleCellClick);
@@ -738,7 +795,7 @@ defineExpose({
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: var(--el-mask-color-extra-light);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -748,8 +805,8 @@ defineExpose({
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #409eff;
+  border: 4px solid var(--el-fill-color-light);
+  border-top: 4px solid var(--el-color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

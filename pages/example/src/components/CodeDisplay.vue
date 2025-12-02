@@ -3,10 +3,24 @@
     <div class="code-header">
       <h4 v-if="title">{{ title }}</h4>
       <div class="code-actions">
-        <el-button type="primary" size="small" :icon="useRenderIcon('ep:copy-document')" @click="copyCode" class="copy-btn" :loading="copying">
+        <el-button
+          type="primary"
+          size="small"
+          :icon="useRenderIcon('ep:copy-document')"
+          @click="copyCode"
+          class="copy-btn"
+          :loading="copying"
+        >
           {{ copyButtonText }}
         </el-button>
-        <el-button v-if="showFullscreen" type="default" size="small" :icon="useRenderIcon('ep:full-screen')" @click="toggleFullscreen" class="fullscreen-btn">
+        <el-button
+          v-if="showFullscreen"
+          type="default"
+          size="small"
+          :icon="useRenderIcon('ep:full-screen')"
+          @click="toggleFullscreen"
+          class="fullscreen-btn"
+        >
           {{ isFullscreen ? "退出全屏" : "全屏" }}
         </el-button>
       </div>
@@ -29,7 +43,11 @@
 
       <!-- 行号显示 -->
       <div v-if="showLineNumbers" class="line-numbers">
-        <span v-for="(line, index) in codeLines" :key="index" class="line-number">
+        <span
+          v-for="(line, index) in codeLines"
+          :key="index"
+          class="line-number"
+        >
           {{ index + 1 }}
         </span>
       </div>
@@ -193,11 +211,11 @@ watch(isFullscreen, (newVal) => {
 }
 
 .copy-btn:hover {
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
 }
 
 .fullscreen-btn:hover {
-  box-shadow: 0 4px 12px rgba(144, 147, 153, 0.3);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .code-desc {
@@ -210,7 +228,7 @@ watch(isFullscreen, (newVal) => {
   position: relative;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--el-border-color);
   background: var(--el-bg-color-overlay);
   transition: all 0.3s ease;
 }
@@ -223,7 +241,7 @@ watch(isFullscreen, (newVal) => {
   bottom: 0;
   z-index: 9999;
   border-radius: 0;
-  background: #fff;
+  background: var(--el-bg-color);
   display: flex;
   flex-direction: column;
 }
@@ -257,8 +275,8 @@ code {
   top: 0;
   left: 0;
   padding: 20px 0;
-  background: rgba(0, 0, 0, 0.05);
-  border-right: 1px solid #e4e7ed;
+  background: var(--el-fill-color-light);
+  border-right: 1px solid var(--el-border-color);
   user-select: none;
   min-width: 40px;
   text-align: center;
@@ -266,7 +284,7 @@ code {
 
 .line-number {
   display: block;
-  color: #999;
+  color: var(--el-text-color-placeholder);
   font-size: 12px;
   line-height: 1.6;
   height: 22.4px;
@@ -294,13 +312,13 @@ code {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #67c23a;
+  color: var(--el-color-success);
   font-size: 16px;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--el-bg-color);
   padding: 12px 20px;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--el-box-shadow);
   animation: bounceIn 0.5s ease;
 }
 
@@ -355,35 +373,28 @@ code {
   }
 }
 
-/* 暗黑模式样式 */
-.el-dark .code-header h4 {
-  color: #e5eaf3;
-}
+/* 暗黑模式样式 - 使用 html.dark 选择器 */
+html.dark {
+  .code-container {
+    border-color: var(--el-border-color);
+    background: var(--el-fill-color-dark);
+  }
 
-.el-dark .code-container {
-  border-color: #414243;
-  background: #1d1e1f;
-}
+  .line-numbers {
+    background: var(--el-fill-color-darker);
+    border-color: var(--el-border-color);
+  }
 
-.el-dark pre {
-  color: #e5eaf3;
-}
+  .line-number {
+    color: var(--el-text-color-secondary);
+  }
 
-.el-dark .line-numbers {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: #414243;
-}
+  .copy-success {
+    background: var(--el-bg-color-overlay);
+  }
 
-.el-dark .line-number {
-  color: var(--el-text-color-primary);
-}
-
-.el-dark .copy-success {
-  background: rgba(42, 42, 42, 0.95);
-  color: #67c23a;
-}
-
-.el-dark .code-container.fullscreen {
-  background: #0d1117;
+  .code-container.fullscreen {
+    background: var(--el-bg-color);
+  }
 }
 </style>

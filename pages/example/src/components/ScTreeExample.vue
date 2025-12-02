@@ -3,8 +3,18 @@
     <!-- 预览区域 -->
     <div class="preview-area">
       <h4>组件预览</h4>
-      <div class="preview-container" :class="{ fullscreen: isFullscreen }" :style="customContainerStyle">
-        <el-button class="fullscreen-btn" type="primary" circle size="small" @click="toggleFullscreen">
+      <div
+        class="preview-container"
+        :class="{ fullscreen: isFullscreen }"
+        :style="customContainerStyle"
+      >
+        <el-button
+          class="fullscreen-btn"
+          type="primary"
+          circle
+          size="small"
+          @click="toggleFullscreen"
+        >
           <el-icon v-if="isFullscreen"><i class="el-icon-close" /></el-icon>
           <el-icon v-else><i class="el-icon-full-screen" /></el-icon>
         </el-button>
@@ -36,11 +46,21 @@
 
     <!-- 操作按钮区域 -->
     <div class="action-bar">
-      <el-button @click="expandAll" type="primary" size="small" plain>展开所有</el-button>
-      <el-button @click="collapseAll" type="info" size="small" plain>折叠所有</el-button>
-      <el-button @click="getSelectedData" type="success" size="small" plain>获取选中节点</el-button>
-      <el-button @click="getAllData" type="warning" size="small" plain>获取所有数据</el-button>
-      <el-button @click="resetData" type="danger" size="small" plain>重置数据</el-button>
+      <el-button @click="expandAll" type="primary" size="small" plain
+        >展开所有</el-button
+      >
+      <el-button @click="collapseAll" type="info" size="small" plain
+        >折叠所有</el-button
+      >
+      <el-button @click="getSelectedData" type="success" size="small" plain
+        >获取选中节点</el-button
+      >
+      <el-button @click="getAllData" type="warning" size="small" plain
+        >获取所有数据</el-button
+      >
+      <el-button @click="resetData" type="danger" size="small" plain
+        >重置数据</el-button
+      >
       <el-button @click="addNode" size="small" plain>添加节点</el-button>
     </div>
 
@@ -57,13 +77,22 @@
             </el-form-item>
 
             <el-form-item label="缩进大小">
-              <el-slider v-model="indent" :min="8" :max="32" :step="4" show-stops />
+              <el-slider
+                v-model="indent"
+                :min="8"
+                :max="32"
+                :step="4"
+                show-stops
+              />
             </el-form-item>
 
             <el-divider content-position="center">树节点属性</el-divider>
 
             <el-form-item label="子节点属性名">
-              <el-input v-model="treeProps.children" placeholder="子节点属性名" />
+              <el-input
+                v-model="treeProps.children"
+                placeholder="子节点属性名"
+              />
             </el-form-item>
 
             <el-form-item label="标签属性名">
@@ -82,18 +111,37 @@
           <el-form label-position="top" size="default">
             <el-form-item label="基本功能">
               <div class="option-switches">
-                <el-switch v-model="highlightCurrent" active-text="高亮当前节点" />
-                <el-switch v-model="defaultExpandAll" active-text="默认展开所有" />
-                <el-switch v-model="autoExpandParent" active-text="自动展开父节点" />
-                <el-switch v-model="expandOnClickNode" active-text="点击节点展开" />
+                <el-switch
+                  v-model="highlightCurrent"
+                  active-text="高亮当前节点"
+                />
+                <el-switch
+                  v-model="defaultExpandAll"
+                  active-text="默认展开所有"
+                />
+                <el-switch
+                  v-model="autoExpandParent"
+                  active-text="自动展开父节点"
+                />
+                <el-switch
+                  v-model="expandOnClickNode"
+                  active-text="点击节点展开"
+                />
               </div>
             </el-form-item>
 
             <el-form-item label="选择功能">
               <div class="option-switches">
                 <el-switch v-model="showCheckbox" active-text="显示复选框" />
-                <el-switch v-model="checkStrictly" :disabled="!showCheckbox" active-text="严格选择模式" />
-                <el-switch v-model="checkOnClickNode" active-text="点击节点选中" />
+                <el-switch
+                  v-model="checkStrictly"
+                  :disabled="!showCheckbox"
+                  active-text="严格选择模式"
+                />
+                <el-switch
+                  v-model="checkOnClickNode"
+                  active-text="点击节点选中"
+                />
               </div>
             </el-form-item>
 
@@ -114,7 +162,9 @@
       <div class="result-container">
         <div class="result-header">
           <span>{{ operationResultTitle }}</span>
-          <el-button type="text" @click="operationResult = null">关闭</el-button>
+          <el-button type="text" @click="operationResult = null"
+            >关闭</el-button
+          >
         </div>
         <pre class="result-content">{{ operationResult }}</pre>
       </div>
@@ -122,10 +172,10 @@
 
     <!-- 代码示例 -->
     <div class="code-example mt-4">
-      <CodeDisplay 
-        :code="generatedCode" 
-        language="html" 
-        title="代码示例" 
+      <CodeDisplay
+        :code="generatedCode"
+        language="html"
+        title="代码示例"
         description="根据当前配置生成的代码示例"
       />
     </div>
@@ -135,7 +185,11 @@
 <script setup lang="ts">
 import ScTree from "@repo/components/ScTree/index.vue";
 import CodeDisplay from "./CodeDisplay.vue";
-import type { TreeNode, TreeNodeData, TreeProps } from "@repo/components/ScTree/types";
+import type {
+  TreeNode,
+  TreeNodeData,
+  TreeProps,
+} from "@repo/components/ScTree/types";
 import { computed, reactive, ref } from "vue";
 
 // 初始树形数据
@@ -191,7 +245,9 @@ const initialTreeData: TreeNodeData[] = [
 ];
 
 // 树形数据
-const treeData = ref<TreeNodeData[]>(JSON.parse(JSON.stringify(initialTreeData)));
+const treeData = ref<TreeNodeData[]>(
+  JSON.parse(JSON.stringify(initialTreeData))
+);
 
 // 树形组件引用
 const treeRef = ref<InstanceType<typeof ScTree> | null>(null);
@@ -338,7 +394,12 @@ const handleCheck = (data: TreeNodeData, params: any) => {
   );
 };
 
-const handleDragEnd = (draggingNode: TreeNode, dropNode: TreeNode | null, dropType: "before" | "after" | "inner" | undefined, event: DragEvent) => {
+const handleDragEnd = (
+  draggingNode: TreeNode,
+  dropNode: TreeNode | null,
+  dropType: "before" | "after" | "inner" | undefined,
+  event: DragEvent
+) => {
   operationResultTitle.value = "拖拽结束事件";
   operationResult.value = JSON.stringify(
     {
@@ -359,7 +420,12 @@ const handleDragEnd = (draggingNode: TreeNode, dropNode: TreeNode | null, dropTy
   );
 };
 
-const handleNodeDrop = (draggingNode: TreeNode, dropNode: TreeNode | null, dropType: "before" | "after" | "inner" | undefined, event: DragEvent) => {
+const handleNodeDrop = (
+  draggingNode: TreeNode,
+  dropNode: TreeNode | null,
+  dropType: "before" | "after" | "inner" | undefined,
+  event: DragEvent
+) => {
   // 拖拽完成时获取新的完整数据
   getAllData();
 };
@@ -369,8 +435,13 @@ function generateCode() {
   let template = "<template>\n";
   template += "  <ScTree\n";
   template += '    :data="treeData"\n';
-  template += nodeKey.value !== "id" ? `    :node-key="${nodeKey.value}"\n` : '    node-key="id"\n';
-  template += !defaultExpandAll.value ? '    :default-expand-all="false"\n' : "    default-expand-all\n";
+  template +=
+    nodeKey.value !== "id"
+      ? `    :node-key="${nodeKey.value}"\n`
+      : '    node-key="id"\n';
+  template += !defaultExpandAll.value
+    ? '    :default-expand-all="false"\n'
+    : "    default-expand-all\n";
 
   if (!expandOnClickNode.value) {
     template += '    :expand-on-click-node="false"\n';
@@ -408,7 +479,11 @@ function generateCode() {
     template += `    :indent="${indent.value}"\n`;
   }
 
-  const hasCustomProps = Object.keys(treeProps).some((key) => treeProps[key as keyof TreeProps] !== (key === "children" ? "children" : key === "label" ? "label" : "disabled"));
+  const hasCustomProps = Object.keys(treeProps).some(
+    (key) =>
+      treeProps[key as keyof TreeProps] !==
+      (key === "children" ? "children" : key === "label" ? "label" : "disabled")
+  );
 
   if (hasCustomProps) {
     template += `    :props="${JSON.stringify(treeProps)}"\n`;
@@ -432,7 +507,8 @@ function generateCode() {
   template += '<script setup lang="ts">\n';
   template += "import { ref } from 'vue';\n";
   template += "import ScTree from '@repo/components/ScTree/index.vue';\n";
-  template += "import type { TreeNodeData, TreeNode, TreeProps } from '@repo/components/ScTree/types';\n\n";
+  template +=
+    "import type { TreeNodeData, TreeNode, TreeProps } from '@repo/components/ScTree/types';\n\n";
 
   template += "const treeData = ref<TreeNodeData[]>([\n";
   template += "  {\n";
@@ -453,12 +529,14 @@ function generateCode() {
     template += `const treeProps: TreeProps = ${JSON.stringify(treeProps, null, 2)};\n\n`;
   }
 
-  template += "const handleNodeClick = (data: TreeNodeData, node: TreeNode) => {\n";
+  template +=
+    "const handleNodeClick = (data: TreeNodeData, node: TreeNode) => {\n";
   template += "  console.log('节点点击:', data, node);\n";
   template += "};\n";
 
   if (showCheckbox.value) {
-    template += "\nconst handleCheck = (data: TreeNodeData, params: any) => {\n";
+    template +=
+      "\nconst handleCheck = (data: TreeNodeData, params: any) => {\n";
     template += "  console.log('节点选中:', data, params);\n";
     template += "};\n";
   }
@@ -469,7 +547,8 @@ function generateCode() {
     template += "  dropNode: TreeNode | null,\n";
     template += "  dropType: 'before' | 'after' | 'inner' | undefined\n";
     template += ") => {\n";
-    template += "  console.log('拖拽结束:', draggingNode, dropNode, dropType);\n";
+    template +=
+      "  console.log('拖拽结束:', draggingNode, dropNode, dropType);\n";
     template += "};\n\n";
 
     template += "const handleNodeDrop = (\n";
@@ -511,7 +590,7 @@ const generatedCode = computed(() => generateCode());
   }
 
   .text-secondary {
-     color: var(--el-text-color-primary);
+    color: var(--el-text-color-primary);
     margin: 0;
   }
 
@@ -524,7 +603,7 @@ const generatedCode = computed(() => generateCode());
 
   h5 {
     font-size: 16px;
-    color: #606266;
+    color: var(--el-text-color-regular);
     margin-top: 0;
     margin-bottom: 16px;
   }
@@ -558,7 +637,7 @@ const generatedCode = computed(() => generateCode());
       z-index: 2000;
       border-radius: 0;
       padding: 40px;
-      background-color: #f5f7fa;
+      background-color: var(--el-bg-color-page);
 
       &:before {
         content: "";
@@ -567,7 +646,11 @@ const generatedCode = computed(() => generateCode());
         left: 0;
         width: 100%;
         height: 6px;
-        background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-success));
+        background: linear-gradient(
+          90deg,
+          var(--el-color-primary),
+          var(--el-color-success)
+        );
       }
     }
   }
@@ -606,21 +689,22 @@ const generatedCode = computed(() => generateCode());
 
   .operation-result {
     margin-top: 20px;
-    border: 1px solid #e6f7ff;
+    border: 1px solid var(--el-color-primary-light-7);
     border-radius: 8px;
     overflow: hidden;
 
     .result-header {
-      background-color: #e6f7ff;
+      background-color: var(--el-color-primary-light-9);
       padding: 10px 15px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-weight: bold;
+      color: var(--el-text-color-primary);
     }
 
     .result-container {
-      background-color: #f9fafc;
+      background-color: var(--el-fill-color-lighter);
     }
 
     .result-content {
@@ -630,8 +714,9 @@ const generatedCode = computed(() => generateCode());
       overflow: auto;
       font-family: "SFMono-Regular", Consolas, Monaco, "Andale Mono", monospace;
       font-size: 13px;
-      background-color: #f8f8f8;
+      background-color: var(--el-fill-color-light);
       white-space: pre-wrap;
+      color: var(--el-text-color-primary);
     }
   }
 
@@ -641,7 +726,7 @@ const generatedCode = computed(() => generateCode());
     }
 
     pre {
-      background-color: #f5f7fa;
+      background-color: var(--el-fill-color-light);
       padding: 15px;
       border-radius: 4px;
       overflow-x: auto;
@@ -649,9 +734,39 @@ const generatedCode = computed(() => generateCode());
     }
 
     code {
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-family:
+        "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
       font-size: 14px;
       color: var(--el-text-color-primary);
+    }
+  }
+}
+
+// 深色主题适配
+html.dark {
+  .sc-tree-example {
+    .preview-container.fullscreen {
+      background-color: var(--el-bg-color);
+    }
+
+    .operation-result {
+      border-color: var(--el-border-color);
+
+      .result-header {
+        background-color: var(--el-fill-color-dark);
+      }
+
+      .result-container {
+        background-color: var(--el-fill-color-darker);
+      }
+
+      .result-content {
+        background-color: var(--el-fill-color-dark);
+      }
+    }
+
+    .code-example pre {
+      background-color: var(--el-fill-color-darker);
     }
   }
 }

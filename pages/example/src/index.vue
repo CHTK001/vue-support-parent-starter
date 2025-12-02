@@ -807,7 +807,6 @@ const componentList = computed(() => {
 
   .el-dialog__body {
     padding: 24px;
-    background: #f8fafc;
   }
 
   .el-dialog__headerbtn {
@@ -872,8 +871,6 @@ const componentList = computed(() => {
 /* 暗色模式 */
 :root.dark {
   .example-container {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-
     &::before {
       background:
         radial-gradient(
