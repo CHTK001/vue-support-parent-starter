@@ -409,6 +409,7 @@ onMounted(() => {
   &.is-filled {
     border-color: var(--el-color-success-light-5);
     background: linear-gradient(180deg, rgba(var(--el-color-success-rgb), 0.05) 0%, var(--el-fill-color-blank) 100%);
+    animation: totp-fill-pulse 0.3s ease-out;
 
     &.is-focused {
       border-color: var(--el-color-primary);
@@ -436,5 +437,18 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-color-danger);
   line-height: 1.2;
+}
+
+// 填充脉冲动画
+@keyframes totp-fill-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 </style>

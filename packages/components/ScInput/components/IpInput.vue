@@ -6,7 +6,7 @@
       </div>
 
       <ul class="sc-ip-adress">
-        <li v-for="(item, index) in ipAddress" :key="index">
+        <li v-for="(item, index) in ipAddress" :key="index" :class="{ 'is-filled': item.value.length > 0, 'is-active': activeIndex === index }">
           <input
             ref="ipInput"
             v-model="item.value"
@@ -14,11 +14,11 @@
             class="sc-ip-input-class"
             :disabled="disabled"
             :placeholder="placeholder?.split('.')[index] || ''"
-            @input="checkIpVal(item)"
+            @input="checkIpVal(item, index)"
             @keyup="turnIpPosition(item, index, $event)"
             @keydown.190.prevent="moveFocusToNext(index)"
-            @focus="handleFocus"
-            @blur="handleBlur"
+            @focus="handleFocusIndex(index, $event)"
+            @blur="handleBlurIndex(index, $event)"
           />
           <div @click="!disabled && moveFocusToNext(index)" :class="{ clickable: !disabled }" />
         </li>
@@ -110,6 +110,7 @@ const emit = defineEmits(["update:modelValue", "change", "input", "focus", "blur
 
 const ipInput = ref<HTMLInputElement[]>([]);
 const ipAddress = ref<IpSegment[]>([{ value: "" }, { value: "" }, { value: "" }, { value: "" }]);
+const activeIndex = ref<number>(-1); // 当前激活的输入框索引
 
 const actualPrefixIcon = computed(() => getDefaultIcon("ip"));
 
@@ -208,7 +209,7 @@ onMounted(() => {
 });
 
 // 校验IP值
-function checkIpVal(item: IpSegment) {
+function checkIpVal(item: IpSegment, index: number) {
   if (props.disabled) return;
 
   let val = item.value;
@@ -225,6 +226,11 @@ function checkIpVal(item: IpSegment) {
 
   item.value = val;
   updateModelValue();
+
+  // 输入完成后自动跳转到下一个输入框
+  if (val.length >= 3 || (val.length > 0 && parseInt(val) > 25)) {
+    moveFocusToNext(index);
+  }
 }
 
 // 处理光标位置
@@ -294,7 +300,17 @@ function validateValue() {
   }
 }
 
-// 处理焦点事件
+// 处理焦点事件并记录索引
+function handleFocusIndex(index: number, event: FocusEvent) {
+  activeIndex.value = index;
+  handleFocus(event);
+}
+
+function handleBlurIndex(index: number, event: FocusEvent) {
+  activeIndex.value = -1;
+  handleBlur(event);
+}
+
 function handleFocus(event: FocusEvent) {
   if (!props.disabled) {
     emit("focus", event);
@@ -402,6 +418,27 @@ function handleClear() {
   list-style-type: none;
   display: flex;
   align-items: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  // 已填充状态
+  &.is-filled {
+    .sc-ip-input-class {
+      background: rgba(var(--el-color-primary-rgb), 0.08);
+      border-radius: 6px;
+    }
+  }
+
+  // 激活状态
+  &.is-active {
+    transform: scale(1.05);
+    z-index: 1;
+
+    .sc-ip-input-class {
+      background: rgba(var(--el-color-primary-rgb), 0.12);
+      border-radius: 6px;
+      box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
+    }
+  }
 }
 
 .sc-ip-input-class {
