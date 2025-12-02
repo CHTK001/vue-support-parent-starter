@@ -1,12 +1,24 @@
 <script setup lang="ts">
 import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
-import { computed, nextTick, onBeforeMount, onMounted, onUnmounted, reactive, ref, unref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeMount,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  unref,
+  watch,
+} from "vue";
 import { useI18n } from "vue-i18n";
 import { useNav } from "../../hooks/useNav";
 import LayPanel from "../lay-panel/index.vue";
 
 import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import ScRibbon from "@repo/components/ScRibbon/index.vue";
 import { ElMessage } from "element-plus";
 import { useDataThemeChange } from "../../hooks/useDataThemeChange";
 
@@ -47,14 +59,22 @@ const doubleRef = ref();
 // 存储 tippy 实例的数组，用于组件销毁时清理
 const tippyInstances = ref([]);
 
-const { dataTheme, overallStyle, layoutTheme, themeColors, toggleClass, dataThemeChange, setLayoutThemeColor } = useDataThemeChange();
+const {
+  dataTheme,
+  overallStyle,
+  layoutTheme,
+  themeColors,
+  toggleClass,
+  dataThemeChange,
+  setLayoutThemeColor,
+} = useDataThemeChange();
 
-/* 主题皮肤：默认/扁平化/增强 */
+/* 主题皮肤：默认/扁平化/现代化 */
 const themeSkin = ref<string>($storage?.layout?.themeSkin ?? "default");
 const themeSkinOptions = computed<Array<OptionsType>>(() => [
   { label: "默认", tip: "保留当前风格", value: "default" },
-  { label: "扁平化", tip: "去除渐变与阴影", value: "flat" },
-  { label: "增强", tip: "多重阴影与渐变立体化", value: "enhanced" },
+  { label: "扁平化", tip: "去除渐变与阴影，简洁风格", value: "flat" },
+  { label: "现代化", tip: "圆角与微阴影，现代设计", value: "modern" },
 ]);
 
 function setThemeSkin(skin: string) {
@@ -245,12 +265,16 @@ function onChange({ option }: { option: OptionsType }) {
 
 /** 侧边栏Logo */
 function logoChange() {
-  unref(logoVal) ? storageConfigureChange("showLogo", true) : storageConfigureChange("showLogo", false);
+  unref(logoVal)
+    ? storageConfigureChange("showLogo", true)
+    : storageConfigureChange("showLogo", false);
   emitter.emit("logoChange", unref(logoVal));
 }
 /** 卡片Body */
 function cardBodyChange() {
-  unref(cardBodyVal) ? storageConfigureChange("cardBody", true) : storageConfigureChange("cardBody", false);
+  unref(cardBodyVal)
+    ? storageConfigureChange("cardBody", true)
+    : storageConfigureChange("cardBody", false);
 }
 
 /** 卡片颜色模式变更 */
@@ -356,9 +380,15 @@ const stretchTypeChange = ({ option }: { option: OptionsType }) => {
 /** 主题色 激活选择项 */
 const getThemeColor = computed(() => {
   return (current: string) => {
-    if (current === layoutTheme.value.theme && layoutTheme.value.theme !== "light") {
+    if (
+      current === layoutTheme.value.theme &&
+      layoutTheme.value.theme !== "light"
+    ) {
       return "#fff";
-    } else if (current === layoutTheme.value.theme && layoutTheme.value.theme === "light") {
+    } else if (
+      current === layoutTheme.value.theme &&
+      layoutTheme.value.theme === "light"
+    ) {
       return "#1d2b45";
     } else {
       return "transparent";
@@ -498,10 +528,14 @@ onBeforeMount(() => {
   /* 初始化系统配置 */
   nextTick(() => {
     watchSystemThemeChange();
-    settings.greyVal && document.querySelector("html")?.classList.add("html-grey");
-    settings.weakVal && document.querySelector("html")?.classList.add("html-weakness");
-    settings.invertVal && document.querySelector("html")?.classList.add("html-invert");
-    settings.monochromeVal && document.querySelector("html")?.classList.add("html-monochrome");
+    settings.greyVal &&
+      document.querySelector("html")?.classList.add("html-grey");
+    settings.weakVal &&
+      document.querySelector("html")?.classList.add("html-weakness");
+    settings.invertVal &&
+      document.querySelector("html")?.classList.add("html-invert");
+    settings.monochromeVal &&
+      document.querySelector("html")?.classList.add("html-monochrome");
     settings.tabsVal && tagsChange();
     settings.hideFooter && hideFooterChange();
   });
@@ -510,7 +544,13 @@ onBeforeMount(() => {
 // 收集 tippy 实例的函数
 const collectTippyInstances = () => {
   nextTick(() => {
-    const elementsWithTippy = [verticalRef.value, horizontalRef.value, mixRef.value, hoverRef.value, doubleRef.value].filter(Boolean);
+    const elementsWithTippy = [
+      verticalRef.value,
+      horizontalRef.value,
+      mixRef.value,
+      hoverRef.value,
+      doubleRef.value,
+    ].filter(Boolean);
 
     elementsWithTippy.forEach((element) => {
       if (element && element._tippy) {
@@ -532,7 +572,13 @@ onMounted(() => {
 // 销毁所有 tippy 实例的函数
 const destroyAllTippyInstances = () => {
   // 销毁通过 v-tippy 指令创建的实例
-  const elementsWithTippy = [verticalRef.value, horizontalRef.value, mixRef.value, hoverRef.value, doubleRef.value].filter(Boolean);
+  const elementsWithTippy = [
+    verticalRef.value,
+    horizontalRef.value,
+    mixRef.value,
+    hoverRef.value,
+    doubleRef.value,
+  ].filter(Boolean);
 
   elementsWithTippy.forEach((element) => {
     if (element && element._tippy) {
@@ -645,7 +691,10 @@ function doubleNavExpandModeChange() {
 }
 
 function doubleNavAutoExpandAllChange() {
-  storageConfigureChange("doubleNavAutoExpandAll", settings.doubleNavAutoExpandAll);
+  storageConfigureChange(
+    "doubleNavAutoExpandAll",
+    settings.doubleNavAutoExpandAll
+  );
 }
 
 /** 导入设置 */
@@ -719,564 +768,974 @@ onUnmounted(() => {
 
 <template>
   <div>
-  <LayPanel>
-    <div class="modern-setting-container">
-      <!-- 主题风格设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:palette-line'" class="section-icon" />
-          <h3 class="section-title">{{ t("panel.pureOverallStyle") }}</h3>
+    <LayPanel>
+      <div class="modern-setting-container">
+        <!-- 主题风格设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOffline
+              :icon="'ri:palette-line'"
+              class="section-icon"
+            />
+            <h3 class="section-title">{{ t("panel.pureOverallStyle") }}</h3>
+          </div>
+          <div class="setting-content">
+            <Segmented
+              resize
+              class="select-none modern-segmented"
+              :modelValue="overallStyle === 'system' ? 2 : dataTheme ? 1 : 0"
+              :options="themeOptions"
+              @change="
+                (theme) => {
+                  theme.index === 1 && theme.index !== 2
+                    ? (dataTheme = true)
+                    : (dataTheme = false);
+                  overallStyle = theme.option.theme;
+                  dataThemeChange(theme.option.theme);
+                  theme.index === 2 && watchSystemThemeChange();
+                }
+              "
+            />
+          </div>
         </div>
-        <div class="setting-content">
-          <Segmented
-            resize
-            class="select-none modern-segmented"
-            :modelValue="overallStyle === 'system' ? 2 : dataTheme ? 1 : 0"
-            :options="themeOptions"
-            @change="
-              (theme) => {
-                theme.index === 1 && theme.index !== 2 ? (dataTheme = true) : (dataTheme = false);
-                overallStyle = theme.option.theme;
-                dataThemeChange(theme.option.theme);
-                theme.index === 2 && watchSystemThemeChange();
-              }
-            "
-          />
-        </div>
-      </div>
 
-<!-- 主题色设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:drop-line'" class="section-icon" />
-          <h3 class="section-title">{{ t("panel.pureThemeColor") }}</h3>
-        </div>
-        <div class="setting-content">
-          <div class="theme-color-grid">
-            <el-tooltip v-for="(item, index) in themeColors" v-show="showThemeColors(item.themeColor)" :key="index" :content="item.description || item.themeColor" placement="top" effect="light">
-              <div class="theme-color-item" :class="{ 'is-selected': item.themeColor === layoutTheme.theme }" :style="getThemeColorStyle(item.color)" @click="setLayoutThemeColor(item.themeColor)">
-                <!-- 选中状态指示器 -->
-                <div class="selection-indicator">
-                  <div class="check-ring">
-                    <IconifyIconOffline :icon="Check" class="check-icon" />
+        <!-- 主题色设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOffline :icon="'ri:drop-line'" class="section-icon" />
+            <h3 class="section-title">{{ t("panel.pureThemeColor") }}</h3>
+          </div>
+          <div class="setting-content">
+            <div class="theme-color-grid">
+              <el-tooltip
+                v-for="(item, index) in themeColors"
+                v-show="showThemeColors(item.themeColor)"
+                :key="index"
+                :content="item.description || item.themeColor"
+                placement="top"
+                effect="light"
+              >
+                <div
+                  class="theme-color-item"
+                  :class="{
+                    'is-selected': item.themeColor === layoutTheme.theme,
+                  }"
+                  :style="getThemeColorStyle(item.color)"
+                  @click="setLayoutThemeColor(item.themeColor)"
+                >
+                  <!-- 选中状态指示器 -->
+                  <div class="selection-indicator">
+                    <div class="check-ring">
+                      <IconifyIconOffline :icon="Check" class="check-icon" />
+                    </div>
                   </div>
+
+                  <!-- 光泽效果层 -->
+                  <div class="shine-effect"></div>
                 </div>
-
-                <!-- 光泽效果层 -->
-                <div class="shine-effect"></div>
-              </div>
-            </el-tooltip>
+              </el-tooltip>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 主题皮肤设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:contrast-drop-2-line'" class="section-icon" />
-          <h3 class="section-title">主题皮肤</h3>
-          <div class="section-description">与主题色兼容：仅改变风格，不改变颜色</div>
-        </div>
-        <div class="setting-content">
-          <Segmented
-            resize
-            class="select-none modern-segmented"
-            :modelValue="themeSkin === 'default' ? 0 : themeSkin === 'flat' ? 1 : 2"
-            :options="themeSkinOptions"
-            @change="({ option, index }) => setThemeSkin(index === 0 ? 'default' : index === 1 ? 'flat' : 'enhanced')"
-          />
-        </div>
-      </div>
-
-      <!-- 布局模式设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:layout-line'" class="section-icon" />
-          <h3 class="section-title">{{ t("panel.pureLayoutModel") }}</h3>
-          <div class="section-description">选择适合您的导航布局模式</div>
-        </div>
-        <div class="setting-content">
-          <ul class="pure-theme">
-            <li
-              ref="verticalRef"
-              v-tippy="{
-                content: '纵向布局：经典侧边栏导航，适合功能丰富的管理系统',
-                zIndex: 41000,
-              }"
-              :class="layoutTheme.layout === 'vertical' ? 'is-select' : ''"
-              @click="setLayoutModel('vertical')"
-            >
-              <VerticalIcon />
-            </li>
-            <li
-              v-if="device !== 'mobile'"
-              ref="horizontalRef"
-              v-tippy="{
-                content: '横向布局：顶部导航栏设计，充分利用屏幕宽度',
-                zIndex: 41000,
-              }"
-              :class="layoutTheme.layout === 'horizontal' ? 'is-select' : ''"
-              @click="setLayoutModel('horizontal')"
-            >
-              <HorizontalIcon />
-            </li>
-            <li
-              v-if="device !== 'mobile'"
-              ref="mixRef"
-              v-tippy="{
-                content: '混合布局：结合顶部和侧边导航优势',
-                zIndex: 41000,
-              }"
-              :class="layoutTheme.layout === 'mix' ? 'is-select' : ''"
-              @click="setLayoutModel('mix')"
-            >
-              <MixIcon />
-            </li>
-            <li
-              v-if="device !== 'mobile'"
-              ref="hoverRef"
-              v-tippy="{
-                content: '悬停导航：极简设计，鼠标悬停展开子菜单',
-                zIndex: 41000,
-              }"
-              :class="layoutTheme.layout === 'hover' ? 'is-select' : ''"
-              @click="setLayoutModel('hover')"
-            >
-              <HoverIcon />
-            </li>
-            <li
-              v-if="device !== 'mobile'"
-              ref="cardRef"
-              v-tippy="{
-                content: '卡片导航：以卡片形式展示所有功能模块',
-                zIndex: 41000,
-              }"
-              :class="layoutTheme.layout === 'card' ? 'is-select' : ''"
-              @click="setLayoutModel('card')"
-            >
-              <CardIcon />
-            </li>
-            <li
-              v-if="device !== 'mobile'"
-              ref="doubleRef"
-              v-tippy="{
-                content: '双栏导航：左右双栏布局，支持子菜单展开控制',
-                zIndex: 41000,
-              }"
-              :class="layoutTheme.layout === 'double' ? 'is-select' : ''"
-              @click="setLayoutModel('double')"
-            >
-              <DoubleIcon />
-            </li>
-            <li
-              v-if="device !== 'mobile'"
-              class="placeholder-layout"
-              v-tippy="{
-                content: '敬请期待更多布局模式',
-                zIndex: 41000,
-              }"
-            >
-              <div class="coming-soon">
-                <span>敬请期待</span>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </div>
-      <!-- 卡片导航设置 -->
-      <div v-if="layoutTheme.layout === 'card'" class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:layout-column-line'" class="section-icon" />
-          <h3 class="section-title">卡片导航</h3>
-          <div class="section-description">配置卡片导航行为</div>
-        </div>
-        <div class="setting-content">
-          <div class="switch-item">
-            <Segmented resize class="select-none modern-segmented" :modelValue="cardColorMode === 'all' ? 0 : cardColorMode === 'third' ? 1 : 2" :options="cardColorOptions" @change="onCardColorModeChange" />
-          </div>
-        </div>
-      </div>
-
-      <!-- 双栏导航配置区域 -->
-      <div v-if="layoutTheme.layout === 'double'" class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:layout-column-line'" class="section-icon" />
-          <h3 class="section-title">双栏导航配置</h3>
-          <div class="section-description">配置双栏导航的子菜单展开行为</div>
-        </div>
-        <div class="setting-content">
-          <div class="switch-item">
-            <label class="switch-label">展开模式</label>
-            <div class="radio-group">
-              <el-radio-group v-model="settings.doubleNavExpandMode" @change="doubleNavExpandModeChange">
-                <el-radio value="auto">自动展开</el-radio>
-                <el-radio value="manual">手动展开</el-radio>
-              </el-radio-group>
+        <!-- 主题皮肤设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOffline
+              :icon="'ri:contrast-drop-2-line'"
+              class="section-icon"
+            />
+            <h3 class="section-title">主题皮肤</h3>
+            <div class="section-description">
+              与主题色兼容：仅改变风格，不改变颜色
             </div>
           </div>
           <div class="setting-content">
-            <div v-if="settings.doubleNavExpandMode === 'manual'" class="switch-item">
-              <label class="switch-label">展开子菜单</label>
-              <el-switch v-model="settings.doubleNavAutoExpandAll" @change="doubleNavAutoExpandAllChange" />
+            <Segmented
+              resize
+              class="select-none modern-segmented"
+              :modelValue="
+                themeSkin === 'default' ? 0 : themeSkin === 'flat' ? 1 : 2
+              "
+              :options="themeSkinOptions"
+              @change="
+                ({ option, index }) =>
+                  setThemeSkin(
+                    index === 0 ? 'default' : index === 1 ? 'flat' : 'modern'
+                  )
+              "
+            />
+          </div>
+        </div>
+
+        <!-- 布局模式设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOffline :icon="'ri:layout-line'" class="section-icon" />
+            <h3 class="section-title">{{ t("panel.pureLayoutModel") }}</h3>
+            <div class="section-description">选择适合您的导航布局模式</div>
+          </div>
+          <div class="setting-content">
+            <ul class="pure-theme">
+              <li
+                ref="verticalRef"
+                v-tippy="{
+                  content: '纵向布局：经典侧边栏导航，适合功能丰富的管理系统',
+                  zIndex: 41000,
+                }"
+                :class="layoutTheme.layout === 'vertical' ? 'is-select' : ''"
+                @click="setLayoutModel('vertical')"
+              >
+                <VerticalIcon />
+              </li>
+              <li
+                v-if="device !== 'mobile'"
+                ref="horizontalRef"
+                v-tippy="{
+                  content: '横向布局：顶部导航栏设计，充分利用屏幕宽度',
+                  zIndex: 41000,
+                }"
+                :class="layoutTheme.layout === 'horizontal' ? 'is-select' : ''"
+                @click="setLayoutModel('horizontal')"
+              >
+                <HorizontalIcon />
+              </li>
+              <li
+                v-if="device !== 'mobile'"
+                ref="mixRef"
+                v-tippy="{
+                  content: '混合布局：结合顶部和侧边导航优势',
+                  zIndex: 41000,
+                }"
+                :class="layoutTheme.layout === 'mix' ? 'is-select' : ''"
+                @click="setLayoutModel('mix')"
+              >
+                <MixIcon />
+              </li>
+              <li
+                v-if="device !== 'mobile'"
+                ref="hoverRef"
+                v-tippy="{
+                  content: '悬停导航：极简设计，鼠标悬停展开子菜单',
+                  zIndex: 41000,
+                }"
+                :class="layoutTheme.layout === 'hover' ? 'is-select' : ''"
+                @click="setLayoutModel('hover')"
+              >
+                <HoverIcon />
+              </li>
+              <li
+                v-if="device !== 'mobile'"
+                ref="cardRef"
+                v-tippy="{
+                  content: '卡片导航：以卡片形式展示所有功能模块',
+                  zIndex: 41000,
+                }"
+                :class="layoutTheme.layout === 'card' ? 'is-select' : ''"
+                @click="setLayoutModel('card')"
+              >
+                <CardIcon />
+              </li>
+              <li
+                v-if="device !== 'mobile'"
+                ref="doubleRef"
+                v-tippy="{
+                  content: '双栏导航：左右双栏布局，支持子菜单展开控制',
+                  zIndex: 41000,
+                }"
+                :class="layoutTheme.layout === 'double' ? 'is-select' : ''"
+                @click="setLayoutModel('double')"
+              >
+                <DoubleIcon />
+              </li>
+              <li
+                v-if="device !== 'mobile'"
+                class="placeholder-layout"
+                v-tippy="{
+                  content: '敬请期待更多布局模式',
+                  zIndex: 41000,
+                }"
+              >
+                <div class="coming-soon">
+                  <span>敬请期待</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <!-- 卡片导航设置 -->
+        <div v-if="layoutTheme.layout === 'card'" class="setting-section">
+          <div class="section-header">
+            <IconifyIconOffline
+              :icon="'ri:layout-column-line'"
+              class="section-icon"
+            />
+            <h3 class="section-title">卡片导航</h3>
+            <div class="section-description">配置卡片导航行为</div>
+          </div>
+          <div class="setting-content">
+            <div class="switch-item">
+              <Segmented
+                resize
+                class="select-none modern-segmented"
+                :modelValue="
+                  cardColorMode === 'all'
+                    ? 0
+                    : cardColorMode === 'third'
+                      ? 1
+                      : 2
+                "
+                :options="cardColorOptions"
+                @change="onCardColorModeChange"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 双栏导航配置区域 -->
+        <div v-if="layoutTheme.layout === 'double'" class="setting-section">
+          <div class="section-header">
+            <IconifyIconOffline
+              :icon="'ri:layout-column-line'"
+              class="section-icon"
+            />
+            <h3 class="section-title">双栏导航配置</h3>
+            <div class="section-description">配置双栏导航的子菜单展开行为</div>
+          </div>
+          <div class="setting-content">
+            <div class="switch-item">
+              <label class="switch-label">展开模式</label>
+              <div class="radio-group">
+                <el-radio-group
+                  v-model="settings.doubleNavExpandMode"
+                  @change="doubleNavExpandModeChange"
+                >
+                  <el-radio value="auto">自动展开</el-radio>
+                  <el-radio value="manual">手动展开</el-radio>
+                </el-radio-group>
+              </div>
+            </div>
+            <div class="setting-content">
+              <div
+                v-if="settings.doubleNavExpandMode === 'manual'"
+                class="switch-item"
+              >
+                <label class="switch-label">展开子菜单</label>
+                <el-switch
+                  v-model="settings.doubleNavAutoExpandAll"
+                  @change="doubleNavAutoExpandAllChange"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 页面宽度设置区域 -->
+        <div
+          v-if="useAppStoreHook().getViewportWidth > 1280"
+          class="setting-section"
+        >
+          <div class="section-header">
+            <IconifyIconOffline
+              :icon="'ri:fullscreen-line'"
+              class="section-icon"
+            />
+            <h3 class="section-title">{{ t("panel.pureStretch") }}</h3>
+          </div>
+          <div class="setting-content">
+            <Segmented
+              resize
+              class="mb-2 select-none modern-segmented"
+              :modelValue="isNumber(settings.stretch) ? 1 : 0"
+              :options="stretchTypeOptions"
+              @change="stretchTypeChange"
+            />
+            <el-input-number
+              v-if="isNumber(settings.stretch)"
+              v-model="settings.stretch as number"
+              :min="1280"
+              :max="1600"
+              controls-position="right"
+              @change="(value: number) => setStretch(value)"
+            />
+            <button
+              v-else
+              v-ripple="{ class: 'text-gray-300' }"
+              class="stretch-button"
+              @click="setStretch(!settings.stretch)"
+            >
+              <div
+                class="stretch-indicator"
+                :class="[settings.stretch ? 'w-[24%]' : 'w-[50%]']"
+              >
+                <IconifyIconOffline
+                  :icon="settings.stretch ? RightArrow : LeftArrow"
+                  height="20"
+                />
+                <div class="stretch-line" />
+                <IconifyIconOffline
+                  :icon="settings.stretch ? LeftArrow : RightArrow"
+                  height="20"
+                />
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- 布局参数设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOffline
+              :icon="'ri:settings-3-line'"
+              class="section-icon"
+            />
+            <h3 class="section-title">
+              {{ t("panel.pureLayoutParams") || "布局参数" }}
+            </h3>
+          </div>
+          <div class="setting-content">
+            <!-- 现代化数字输入框 - 横向布局 -->
+            <div class="layout-params-grid">
+              <div class="param-item">
+                <label class="param-label">{{
+                  t("panel.pureStretchMargin") || "内容边距"
+                }}</label>
+                <div class="custom-number-input">
+                  <button
+                    class="number-btn decrease"
+                    @click="adjustValue('contentMargin', -1)"
+                    :disabled="settings.contentMargin <= 0"
+                  >
+                    <IconifyIconOffline :icon="'ri:subtract-line'" />
+                  </button>
+                  <div class="number-display">
+                    <input
+                      type="number"
+                      v-model.number="settings.contentMargin"
+                      @input="handleInput($event, 'contentMargin')"
+                      @keydown="handleKeydown($event, 'contentMargin')"
+                      :min="0"
+                      :max="100"
+                      class="number-input"
+                      placeholder="0"
+                    />
+                    <span class="number-unit">px</span>
+                  </div>
+                  <button
+                    class="number-btn increase"
+                    @click="adjustValue('contentMargin', 1)"
+                    :disabled="settings.contentMargin >= 100"
+                  >
+                    <IconifyIconOffline :icon="'ri:add-line'" />
+                  </button>
+                </div>
+              </div>
+
+              <div class="param-item">
+                <label class="param-label">{{
+                  t("panel.pureLayoutRadius") || "圆角大小"
+                }}</label>
+                <div class="custom-number-input">
+                  <button
+                    class="number-btn decrease"
+                    @click="adjustValue('layoutRadius', -1)"
+                    :disabled="settings.layoutRadius <= 0"
+                  >
+                    <IconifyIconOffline :icon="'ri:subtract-line'" />
+                  </button>
+                  <div class="number-display">
+                    <input
+                      type="number"
+                      v-model.number="settings.layoutRadius"
+                      @input="handleInput($event, 'layoutRadius')"
+                      @keydown="handleKeydown($event, 'layoutRadius')"
+                      :min="0"
+                      :max="100"
+                      class="number-input"
+                      placeholder="0"
+                    />
+                    <span class="number-unit">px</span>
+                  </div>
+                  <button
+                    class="number-btn increase"
+                    @click="adjustValue('layoutRadius', 1)"
+                    :disabled="settings.layoutRadius >= 100"
+                  >
+                    <IconifyIconOffline :icon="'ri:add-line'" />
+                  </button>
+                </div>
+              </div>
+
+              <div class="param-item">
+                <label class="param-label">{{
+                  t("panel.pureLayoutBlur") || "模糊效果"
+                }}</label>
+                <div class="custom-number-input">
+                  <button
+                    class="number-btn decrease"
+                    @click="adjustValue('layoutBlur', -1)"
+                    :disabled="settings.layoutBlur <= 0"
+                  >
+                    <IconifyIconOffline :icon="'ri:subtract-line'" />
+                  </button>
+                  <div class="number-display">
+                    <input
+                      type="number"
+                      v-model.number="settings.layoutBlur"
+                      @input="handleInput($event, 'layoutBlur')"
+                      @keydown="handleKeydown($event, 'layoutBlur')"
+                      :min="0"
+                      :max="100"
+                      class="number-input"
+                      placeholder="0"
+                    />
+                    <span class="number-unit">px</span>
+                  </div>
+                  <button
+                    class="number-btn increase"
+                    @click="adjustValue('layoutBlur', 1)"
+                    :disabled="settings.layoutBlur >= 100"
+                  >
+                    <IconifyIconOffline :icon="'ri:add-line'" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 标签页样式设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOffline
+              :icon="'ri:price-tag-3-line'"
+              class="section-icon"
+            />
+            <h3 class="section-title">{{ t("panel.pureTagsStyle") }}</h3>
+          </div>
+          <div class="setting-content">
+            <Segmented
+              resize
+              class="select-none modern-segmented"
+              :modelValue="
+                markValue === 'smart'
+                  ? 0
+                  : markValue === 'card'
+                    ? 1
+                    : markValue === 'chrome'
+                      ? 2
+                      : markValue === 'minimal'
+                        ? 3
+                        : markValue === 'rounded'
+                          ? 4
+                          : 0
+              "
+              :options="markOptions"
+              @change="onChange"
+            />
+          </div>
+        </div>
+
+        <!-- 过渡动画设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOffline :icon="'ri:magic-line'" class="section-icon" />
+            <h3 class="section-title">{{ t("panel.transition") }}</h3>
+          </div>
+          <div class="setting-content">
+            <div class="switch-item">
+              <label class="switch-label">{{
+                t("panel.menuTransitionChange")
+              }}</label>
+              <el-switch
+                v-model="settings.menuTransition"
+                inline-prompt
+                @change="menuTransitionChange"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 界面显示设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOffline :icon="'ri:eye-line'" class="section-icon" />
+            <h3 class="section-title">{{ t("panel.pureInterfaceDisplay") }}</h3>
+            <div class="section-description">自定义界面显示效果和功能开关</div>
+          </div>
+          <div class="setting-content">
+            <!-- 视觉效果设置 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOffline
+                  :icon="'ri:palette-line'"
+                  class="group-icon"
+                />
+                视觉效果
+              </h4>
+              <div class="switch-card-grid">
+                <div
+                  class="switch-card-item"
+                  :class="{ 'is-active': settings.greyVal }"
+                  @click="
+                    () => {
+                      settings.greyVal = !settings.greyVal;
+                      greyChange(settings.greyVal);
+                    }
+                  "
+                >
+                  <ScRibbon
+                    v-if="settings.greyVal"
+                    text="开启"
+                    color="var(--el-color-primary)"
+                    variant="corner"
+                    position="rt"
+                    size="sm"
+                  />
+                  <div class="switch-card-icon">
+                    <IconifyIconOffline :icon="'ri:contrast-2-line'" />
+                  </div>
+                  <div class="switch-card-content">
+                    <span class="switch-card-label">{{
+                      t("panel.pureGreyModel")
+                    }}</span>
+                    <span class="switch-card-desc">降低色彩饱和度</span>
+                  </div>
+                </div>
+
+                <div
+                  class="switch-card-item"
+                  :class="{ 'is-active': settings.weakVal }"
+                  @click="
+                    () => {
+                      settings.weakVal = !settings.weakVal;
+                      weekChange(settings.weakVal);
+                    }
+                  "
+                >
+                  <ScRibbon
+                    v-if="settings.weakVal"
+                    text="开启"
+                    color="var(--el-color-primary)"
+                    variant="corner"
+                    position="rt"
+                    size="sm"
+                  />
+                  <div class="switch-card-icon">
+                    <IconifyIconOffline :icon="'ri:eye-line'" />
+                  </div>
+                  <div class="switch-card-content">
+                    <span class="switch-card-label">{{
+                      t("panel.pureWeakModel")
+                    }}</span>
+                    <span class="switch-card-desc">优化色彩对比度</span>
+                  </div>
+                </div>
+
+                <div
+                  class="switch-card-item"
+                  :class="{ 'is-active': settings.invertVal }"
+                  @click="
+                    () => {
+                      settings.invertVal = !settings.invertVal;
+                      invertChange(settings.invertVal);
+                    }
+                  "
+                >
+                  <ScRibbon
+                    v-if="settings.invertVal"
+                    text="开启"
+                    color="var(--el-color-primary)"
+                    variant="corner"
+                    position="rt"
+                    size="sm"
+                  />
+                  <div class="switch-card-icon">
+                    <IconifyIconOffline :icon="'ri:contrast-drop-line'" />
+                  </div>
+                  <div class="switch-card-content">
+                    <span class="switch-card-label">反色模式</span>
+                    <span class="switch-card-desc">反转页面颜色</span>
+                  </div>
+                </div>
+
+                <div
+                  class="switch-card-item"
+                  :class="{ 'is-active': settings.monochromeVal }"
+                  @click="
+                    () => {
+                      settings.monochromeVal = !settings.monochromeVal;
+                      monochromeChange(settings.monochromeVal);
+                    }
+                  "
+                >
+                  <ScRibbon
+                    v-if="settings.monochromeVal"
+                    text="开启"
+                    color="var(--el-color-primary)"
+                    variant="corner"
+                    position="rt"
+                    size="sm"
+                  />
+                  <div class="switch-card-icon">
+                    <IconifyIconOffline :icon="'ri:drop-line'" />
+                  </div>
+                  <div class="switch-card-content">
+                    <span class="switch-card-label">黑白模式</span>
+                    <span class="switch-card-desc">显示黑白界面</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 界面元素设置 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOffline
+                  :icon="'ri:layout-4-line'"
+                  class="group-icon"
+                />
+                界面元素
+              </h4>
+              <div class="switch-card-grid">
+                <div
+                  class="switch-card-item"
+                  :class="{ 'is-active': logoVal }"
+                  @click="
+                    () => {
+                      logoVal = !logoVal;
+                      logoChange(logoVal);
+                    }
+                  "
+                >
+                  <ScRibbon
+                    v-if="logoVal"
+                    text="开启"
+                    color="var(--el-color-success)"
+                    variant="corner"
+                    position="rt"
+                    size="sm"
+                  />
+                  <div class="switch-card-icon">
+                    <IconifyIconOffline :icon="'ri:image-line'" />
+                  </div>
+                  <div class="switch-card-content">
+                    <span class="switch-card-label">显示Logo</span>
+                    <span class="switch-card-desc">侧边栏显示Logo</span>
+                  </div>
+                </div>
+
+                <div
+                  class="switch-card-item"
+                  :class="{ 'is-active': !settings.tabsVal }"
+                  @click="
+                    () => {
+                      settings.tabsVal = !settings.tabsVal;
+                      tagsChange();
+                    }
+                  "
+                >
+                  <ScRibbon
+                    v-if="!settings.tabsVal"
+                    text="显示"
+                    color="var(--el-color-success)"
+                    variant="corner"
+                    position="rt"
+                    size="sm"
+                  />
+                  <div class="switch-card-icon">
+                    <IconifyIconOffline :icon="'ri:bookmark-line'" />
+                  </div>
+                  <div class="switch-card-content">
+                    <span class="switch-card-label">{{
+                      t("panel.pureHiddenTags")
+                    }}</span>
+                    <span class="switch-card-desc">标签页导航</span>
+                  </div>
+                </div>
+
+                <div
+                  class="switch-card-item"
+                  :class="{ 'is-active': !settings.hideFooter }"
+                  @click="
+                    () => {
+                      settings.hideFooter = !settings.hideFooter;
+                      hideFooterChange();
+                    }
+                  "
+                >
+                  <ScRibbon
+                    v-if="!settings.hideFooter"
+                    text="显示"
+                    color="var(--el-color-success)"
+                    variant="corner"
+                    position="rt"
+                    size="sm"
+                  />
+                  <div class="switch-card-icon">
+                    <IconifyIconOffline :icon="'ri:layout-bottom-line'" />
+                  </div>
+                  <div class="switch-card-content">
+                    <span class="switch-card-label">{{
+                      t("panel.pureHiddenFooter")
+                    }}</span>
+                    <span class="switch-card-desc">页脚信息</span>
+                  </div>
+                </div>
+
+                <div
+                  class="switch-card-item"
+                  :class="{ 'is-active': cardBodyVal }"
+                  @click="
+                    () => {
+                      cardBodyVal = !cardBodyVal;
+                      cardBodyChange(cardBodyVal);
+                    }
+                  "
+                >
+                  <ScRibbon
+                    v-if="cardBodyVal"
+                    text="开启"
+                    color="var(--el-color-success)"
+                    variant="corner"
+                    position="rt"
+                    size="sm"
+                  />
+                  <div class="switch-card-icon">
+                    <IconifyIconOffline :icon="'ri:layout-masonry-line'" />
+                  </div>
+                  <div class="switch-card-content">
+                    <span class="switch-card-label">内容卡片</span>
+                    <span class="switch-card-desc">卡片样式背景</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 功能设置 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOffline
+                  :icon="'ri:settings-3-line'"
+                  class="group-icon"
+                />
+                功能设置
+              </h4>
+              <div class="switch-card-grid single-row">
+                <div
+                  class="switch-card-item wide"
+                  :class="{ 'is-active': settings.multiTagsCache }"
+                  @click="
+                    () => {
+                      settings.multiTagsCache = !settings.multiTagsCache;
+                      multiTagsCacheChange();
+                    }
+                  "
+                >
+                  <ScRibbon
+                    v-if="settings.multiTagsCache"
+                    text="开启"
+                    color="var(--el-color-warning)"
+                    variant="corner"
+                    position="rt"
+                    size="sm"
+                  />
+                  <div class="switch-card-icon">
+                    <IconifyIconOffline :icon="'ri:save-line'" />
+                  </div>
+                  <div class="switch-card-content">
+                    <span class="switch-card-label">{{
+                      t("panel.pureMultiTagsCache")
+                    }}</span>
+                    <span class="switch-card-desc"
+                      >持久化保存已打开的标签页</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 菜单设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOffline :icon="'ri:menu-line'" class="section-icon" />
+            <h3 class="section-title">菜单设置</h3>
+            <div class="section-description">配置新增菜单的显示方式</div>
+          </div>
+          <div class="setting-content">
+            <!-- 新菜单显示设置 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOffline
+                  :icon="'ri:add-circle-line'"
+                  class="group-icon"
+                />
+                新菜单显示
+              </h4>
+              <div class="switch-grid">
+                <div class="switch-item">
+                  <div class="switch-info">
+                    <label class="switch-label">显示新增菜单</label>
+                    <span class="switch-desc">是否在菜单项上显示新增标识</span>
+                  </div>
+                  <el-switch
+                    v-model="settings.showNewMenu"
+                    inline-prompt
+                    @change="showNewMenuChange"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- 新菜单文本设置 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOffline :icon="'ri:text'" class="group-icon" />
+                显示文本
+              </h4>
+              <div class="input-item">
+                <div class="input-info">
+                  <label class="input-label">新菜单标识文本</label>
+                  <span class="input-desc">自定义新菜单显示的文本内容</span>
+                </div>
+                <el-input
+                  v-model="settings.newMenuText"
+                  placeholder="请输入显示文本"
+                  maxlength="10"
+                  show-word-limit
+                  @blur="newMenuTextChange"
+                  style="width: 120px"
+                />
+              </div>
+            </div>
+
+            <!-- 时间限制设置 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOffline :icon="'ri:time-line'" class="group-icon" />
+                时间控制
+              </h4>
+              <div class="input-item">
+                <div class="input-info">
+                  <label class="input-label">显示时间限制</label>
+                  <span class="input-desc"
+                    >菜单创建后多少小时内显示新标识（小时）</span
+                  >
+                </div>
+                <el-input-number
+                  v-model="settings.newMenuTimeLimit"
+                  :min="1"
+                  :max="8760"
+                  :step="1"
+                  @change="newMenuTimeLimitChange"
+                  style="width: 120px"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 高级设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOffline :icon="'ri:tools-line'" class="section-icon" />
+            <h3 class="section-title">高级设置</h3>
+            <div class="section-description">更多个性化配置选项</div>
+          </div>
+          <div class="setting-content">
+            <!-- 性能优化 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOffline
+                  :icon="'ri:speed-line'"
+                  class="group-icon"
+                />
+                性能优化
+              </h4>
+              <div class="switch-grid">
+                <div class="switch-item">
+                  <div class="switch-info">
+                    <label class="switch-label">组件缓存</label>
+                    <span class="switch-desc"
+                      >开启页面组件缓存，提升切换速度</span
+                    >
+                  </div>
+                  <el-switch v-model="settings.keepAlive" inline-prompt />
+                </div>
+              </div>
+            </div>
+
+            <!-- 用户体验 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOffline
+                  :icon="'ri:user-heart-line'"
+                  class="group-icon"
+                />
+                用户体验
+              </h4>
+              <div class="switch-grid">
+                <div class="switch-item">
+                  <div class="switch-info">
+                    <label class="switch-label">页面拉伸</label>
+                    <span class="switch-desc"
+                      >自适应页面宽度，充分利用屏幕空间</span
+                    >
+                  </div>
+                  <el-switch v-model="settings.stretch" inline-prompt />
+                </div>
+              </div>
+            </div>
+
+            <!-- 开发者选项 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOffline :icon="'ri:code-line'" class="group-icon" />
+                开发者选项
+              </h4>
+              <div class="switch-grid">
+                <div class="switch-item">
+                  <div class="switch-info">
+                    <label class="switch-label">调试模式</label>
+                    <span class="switch-desc"
+                      >显示更多调试信息（开发环境）</span
+                    >
+                  </div>
+                  <el-switch v-model="settings.debugMode" inline-prompt />
+                </div>
+              </div>
+            </div>
+
+            <!-- 重置选项 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOffline
+                  :icon="'ri:refresh-line'"
+                  class="group-icon"
+                />
+                重置选项
+              </h4>
+              <div class="reset-actions">
+                <el-button type="warning" plain @click="resetToDefault">
+                  <IconifyIconOffline :icon="'ri:restart-line'" />
+                  恢复默认设置
+                </el-button>
+                <el-button type="info" plain @click="exportSettings">
+                  <IconifyIconOffline :icon="'ri:download-line'" />
+                  导出配置
+                </el-button>
+                <el-button type="success" plain @click="importSettings">
+                  <IconifyIconOffline :icon="'ri:upload-line'" />
+                  导入配置
+                </el-button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- 页面宽度设置区域 -->
-      <div v-if="useAppStoreHook().getViewportWidth > 1280" class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:fullscreen-line'" class="section-icon" />
-          <h3 class="section-title">{{ t("panel.pureStretch") }}</h3>
-        </div>
-        <div class="setting-content">
-          <Segmented resize class="mb-2 select-none modern-segmented" :modelValue="isNumber(settings.stretch) ? 1 : 0" :options="stretchTypeOptions" @change="stretchTypeChange" />
-          <el-input-number v-if="isNumber(settings.stretch)" v-model="settings.stretch as number" :min="1280" :max="1600" controls-position="right" @change="(value: number) => setStretch(value)" />
-          <button v-else v-ripple="{ class: 'text-gray-300' }" class="stretch-button" @click="setStretch(!settings.stretch)">
-            <div class="stretch-indicator" :class="[settings.stretch ? 'w-[24%]' : 'w-[50%]']">
-              <IconifyIconOffline :icon="settings.stretch ? RightArrow : LeftArrow" height="20" />
-              <div class="stretch-line" />
-              <IconifyIconOffline :icon="settings.stretch ? LeftArrow : RightArrow" height="20" />
-            </div>
-          </button>
-        </div>
-      </div>
-
-      <!-- 布局参数设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:settings-3-line'" class="section-icon" />
-          <h3 class="section-title">{{ t("panel.pureLayoutParams") || "布局参数" }}</h3>
-        </div>
-        <div class="setting-content">
-          <!-- 现代化数字输入框 - 横向布局 -->
-          <div class="layout-params-grid">
-            <div class="param-item">
-              <label class="param-label">{{ t("panel.pureStretchMargin") || "内容边距" }}</label>
-              <div class="custom-number-input">
-                <button class="number-btn decrease" @click="adjustValue('contentMargin', -1)" :disabled="settings.contentMargin <= 0">
-                  <IconifyIconOffline :icon="'ri:subtract-line'" />
-                </button>
-                <div class="number-display">
-                  <input type="number" v-model.number="settings.contentMargin" @input="handleInput($event, 'contentMargin')" @keydown="handleKeydown($event, 'contentMargin')" :min="0" :max="100" class="number-input" placeholder="0" />
-                  <span class="number-unit">px</span>
-                </div>
-                <button class="number-btn increase" @click="adjustValue('contentMargin', 1)" :disabled="settings.contentMargin >= 100">
-                  <IconifyIconOffline :icon="'ri:add-line'" />
-                </button>
-              </div>
-            </div>
-
-            <div class="param-item">
-              <label class="param-label">{{ t("panel.pureLayoutRadius") || "圆角大小" }}</label>
-              <div class="custom-number-input">
-                <button class="number-btn decrease" @click="adjustValue('layoutRadius', -1)" :disabled="settings.layoutRadius <= 0">
-                  <IconifyIconOffline :icon="'ri:subtract-line'" />
-                </button>
-                <div class="number-display">
-                  <input type="number" v-model.number="settings.layoutRadius" @input="handleInput($event, 'layoutRadius')" @keydown="handleKeydown($event, 'layoutRadius')" :min="0" :max="100" class="number-input" placeholder="0" />
-                  <span class="number-unit">px</span>
-                </div>
-                <button class="number-btn increase" @click="adjustValue('layoutRadius', 1)" :disabled="settings.layoutRadius >= 100">
-                  <IconifyIconOffline :icon="'ri:add-line'" />
-                </button>
-              </div>
-            </div>
-
-            <div class="param-item">
-              <label class="param-label">{{ t("panel.pureLayoutBlur") || "模糊效果" }}</label>
-              <div class="custom-number-input">
-                <button class="number-btn decrease" @click="adjustValue('layoutBlur', -1)" :disabled="settings.layoutBlur <= 0">
-                  <IconifyIconOffline :icon="'ri:subtract-line'" />
-                </button>
-                <div class="number-display">
-                  <input type="number" v-model.number="settings.layoutBlur" @input="handleInput($event, 'layoutBlur')" @keydown="handleKeydown($event, 'layoutBlur')" :min="0" :max="100" class="number-input" placeholder="0" />
-                  <span class="number-unit">px</span>
-                </div>
-                <button class="number-btn increase" @click="adjustValue('layoutBlur', 1)" :disabled="settings.layoutBlur >= 100">
-                  <IconifyIconOffline :icon="'ri:add-line'" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 标签页样式设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:price-tag-3-line'" class="section-icon" />
-          <h3 class="section-title">{{ t("panel.pureTagsStyle") }}</h3>
-        </div>
-        <div class="setting-content">
-          <Segmented resize class="select-none modern-segmented" :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : markValue === 'chrome' ? 2 : markValue === 'minimal' ? 3 : markValue === 'rounded' ? 4 : 0" :options="markOptions" @change="onChange" />
-        </div>
-      </div>
-
-      <!-- 过渡动画设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:magic-line'" class="section-icon" />
-          <h3 class="section-title">{{ t("panel.transition") }}</h3>
-        </div>
-        <div class="setting-content">
-          <div class="switch-item">
-            <label class="switch-label">{{ t("panel.menuTransitionChange") }}</label>
-            <el-switch v-model="settings.menuTransition" inline-prompt @change="menuTransitionChange" />
-          </div>
-        </div>
-      </div>
-
-      <!-- 界面显示设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:eye-line'" class="section-icon" />
-          <h3 class="section-title">{{ t("panel.pureInterfaceDisplay") }}</h3>
-          <div class="section-description">自定义界面显示效果和功能开关</div>
-        </div>
-        <div class="setting-content">
-          <!-- 视觉效果设置 -->
-          <div class="setting-group">
-            <h4 class="group-title">
-              <IconifyIconOffline :icon="'ri:palette-line'" class="group-icon" />
-              视觉效果
-            </h4>
-            <div class="switch-grid">
-              <div class="switch-item">
-                <div class="switch-info">
-                  <label class="switch-label">{{ t("panel.pureGreyModel") }}</label>
-                  <span class="switch-desc">开启灰色模式，降低色彩饱和度</span>
-                </div>
-                <el-switch v-model="settings.greyVal" inline-prompt @change="greyChange" />
-              </div>
-
-              <div class="switch-item">
-                <div class="switch-info">
-                  <label class="switch-label">{{ t("panel.pureWeakModel") }}</label>
-                  <span class="switch-desc">色弱模式，优化色彩对比度</span>
-                </div>
-                <el-switch v-model="settings.weakVal" inline-prompt @change="weekChange" />
-              </div>
-
-              <div class="switch-item">
-                <div class="switch-info">
-                  <label class="switch-label">反色模式</label>
-                  <span class="switch-desc">反转页面颜色，适合夜间使用</span>
-                </div>
-                <el-switch v-model="settings.invertVal" inline-prompt @change="invertChange" />
-              </div>
-
-              <div class="switch-item">
-                <div class="switch-info">
-                  <label class="switch-label">黑白模式</label>
-                  <span class="switch-desc">移除所有颜色，显示黑白界面</span>
-                </div>
-                <el-switch v-model="settings.monochromeVal" inline-prompt @change="monochromeChange" />
-              </div>
-            </div>
-          </div>
-
-          <!-- 界面元素设置 -->
-          <div class="setting-group">
-            <h4 class="group-title">
-              <IconifyIconOffline :icon="'ri:layout-4-line'" class="group-icon" />
-              界面元素
-            </h4>
-            <div class="switch-grid">
-              <div class="switch-item">
-                <div class="switch-info">
-                  <label class="switch-label">显示Logo</label>
-                  <span class="switch-desc">在侧边栏顶部显示系统Logo</span>
-                </div>
-                <el-switch v-model="logoVal" inline-prompt :active-value="true" :inactive-value="false" @change="logoChange" />
-              </div>
-
-              <div class="switch-item">
-                <div class="switch-info">
-                  <label class="switch-label">{{ t("panel.pureHiddenTags") }}</label>
-                  <span class="switch-desc">隐藏页面顶部的标签页导航</span>
-                </div>
-                <el-switch v-model="settings.tabsVal" inline-prompt @change="tagsChange" />
-              </div>
-
-              <div class="switch-item">
-                <div class="switch-info">
-                  <label class="switch-label">{{ t("panel.pureHiddenFooter") }}</label>
-                  <span class="switch-desc">隐藏页面底部的页脚信息</span>
-                </div>
-                <el-switch v-model="settings.hideFooter" inline-prompt @change="hideFooterChange" />
-              </div>
-
-              <div class="switch-item">
-                <div class="switch-info">
-                  <label class="switch-label">内容卡片</label>
-                  <span class="switch-desc">为页面内容添加卡片样式背景</span>
-                </div>
-                <el-switch v-model="cardBodyVal" inline-prompt :active-value="true" :inactive-value="false" @change="cardBodyChange" />
-              </div>
-            </div>
-          </div>
-
-          <!-- 功能设置 -->
-          <div class="setting-group">
-            <h4 class="group-title">
-              <IconifyIconOffline :icon="'ri:settings-3-line'" class="group-icon" />
-              功能设置
-            </h4>
-            <div class="switch-grid">
-              <div class="switch-item">
-                <div class="switch-info">
-                  <label class="switch-label">{{ t("panel.pureMultiTagsCache") }}</label>
-                  <span class="switch-desc">持久化保存已打开的标签页</span>
-                </div>
-                <el-switch v-model="settings.multiTagsCache" inline-prompt @change="multiTagsCacheChange" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 菜单设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:menu-line'" class="section-icon" />
-          <h3 class="section-title">菜单设置</h3>
-          <div class="section-description">配置新增菜单的显示方式</div>
-        </div>
-        <div class="setting-content">
-          <!-- 新菜单显示设置 -->
-          <div class="setting-group">
-            <h4 class="group-title">
-              <IconifyIconOffline :icon="'ri:add-circle-line'" class="group-icon" />
-              新菜单显示
-            </h4>
-            <div class="switch-grid">
-              <div class="switch-item">
-                <div class="switch-info">
-                  <label class="switch-label">显示新增菜单</label>
-                  <span class="switch-desc">是否在菜单项上显示新增标识</span>
-                </div>
-                <el-switch v-model="settings.showNewMenu" inline-prompt @change="showNewMenuChange" />
-              </div>
-            </div>
-          </div>
-
-          <!-- 新菜单文本设置 -->
-          <div class="setting-group">
-            <h4 class="group-title">
-              <IconifyIconOffline :icon="'ri:text'" class="group-icon" />
-              显示文本
-            </h4>
-            <div class="input-item">
-              <div class="input-info">
-                <label class="input-label">新菜单标识文本</label>
-                <span class="input-desc">自定义新菜单显示的文本内容</span>
-              </div>
-              <el-input v-model="settings.newMenuText" placeholder="请输入显示文本" maxlength="10" show-word-limit @blur="newMenuTextChange" style="width: 120px" />
-            </div>
-          </div>
-
-          <!-- 时间限制设置 -->
-          <div class="setting-group">
-            <h4 class="group-title">
-              <IconifyIconOffline :icon="'ri:time-line'" class="group-icon" />
-              时间控制
-            </h4>
-            <div class="input-item">
-              <div class="input-info">
-                <label class="input-label">显示时间限制</label>
-                <span class="input-desc">菜单创建后多少小时内显示新标识（小时）</span>
-              </div>
-              <el-input-number v-model="settings.newMenuTimeLimit" :min="1" :max="8760" :step="1" @change="newMenuTimeLimitChange" style="width: 120px" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 高级设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:tools-line'" class="section-icon" />
-          <h3 class="section-title">高级设置</h3>
-          <div class="section-description">更多个性化配置选项</div>
-        </div>
-        <div class="setting-content">
-          <!-- 性能优化 -->
-          <div class="setting-group">
-            <h4 class="group-title">
-              <IconifyIconOffline :icon="'ri:speed-line'" class="group-icon" />
-              性能优化
-            </h4>
-            <div class="switch-grid">
-              <div class="switch-item">
-                <div class="switch-info">
-                  <label class="switch-label">组件缓存</label>
-                  <span class="switch-desc">开启页面组件缓存，提升切换速度</span>
-                </div>
-                <el-switch v-model="settings.keepAlive" inline-prompt />
-              </div>
-            </div>
-          </div>
-
-          <!-- 用户体验 -->
-          <div class="setting-group">
-            <h4 class="group-title">
-              <IconifyIconOffline :icon="'ri:user-heart-line'" class="group-icon" />
-              用户体验
-            </h4>
-            <div class="switch-grid">
-              <div class="switch-item">
-                <div class="switch-info">
-                  <label class="switch-label">页面拉伸</label>
-                  <span class="switch-desc">自适应页面宽度，充分利用屏幕空间</span>
-                </div>
-                <el-switch v-model="settings.stretch" inline-prompt />
-              </div>
-            </div>
-          </div>
-
-          <!-- 开发者选项 -->
-          <div class="setting-group">
-            <h4 class="group-title">
-              <IconifyIconOffline :icon="'ri:code-line'" class="group-icon" />
-              开发者选项
-            </h4>
-            <div class="switch-grid">
-              <div class="switch-item">
-                <div class="switch-info">
-                  <label class="switch-label">调试模式</label>
-                  <span class="switch-desc">显示更多调试信息（开发环境）</span>
-                </div>
-                <el-switch v-model="settings.debugMode" inline-prompt />
-              </div>
-            </div>
-          </div>
-
-          <!-- 重置选项 -->
-          <div class="setting-group">
-            <h4 class="group-title">
-              <IconifyIconOffline :icon="'ri:refresh-line'" class="group-icon" />
-              重置选项
-            </h4>
-            <div class="reset-actions">
-              <el-button type="warning" plain @click="resetToDefault">
-                <IconifyIconOffline :icon="'ri:restart-line'" />
-                恢复默认设置
-              </el-button>
-              <el-button type="info" plain @click="exportSettings">
-                <IconifyIconOffline :icon="'ri:download-line'" />
-                导出配置
-              </el-button>
-              <el-button type="success" plain @click="importSettings">
-                <IconifyIconOffline :icon="'ri:upload-line'" />
-                导入配置
-              </el-button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </LayPanel>
+    </LayPanel>
   </div>
 </template>
 
@@ -1375,7 +1834,14 @@ onUnmounted(() => {
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--el-color-primary-light-5) 0%, var(--el-color-primary) 25%, var(--el-color-primary-dark-2) 50%, var(--el-color-primary) 75%, var(--el-color-primary-light-5) 100%);
+    background: linear-gradient(
+      90deg,
+      var(--el-color-primary-light-5) 0%,
+      var(--el-color-primary) 25%,
+      var(--el-color-primary-dark-2) 50%,
+      var(--el-color-primary) 75%,
+      var(--el-color-primary-light-5) 100%
+    );
     background-size: 200% 100%;
     animation: gradientShift 8s ease-in-out infinite;
     z-index: 0;
@@ -1390,10 +1856,26 @@ onUnmounted(() => {
     right: 0;
     bottom: 0;
     background:
-      radial-gradient(circle at 25% 25%, var(--el-color-primary-light-9) 0%, transparent 40%), 
-      radial-gradient(circle at 75% 75%, var(--el-color-primary-light-9) 0%, transparent 40%), 
-      radial-gradient(circle at 75% 25%, var(--el-color-success-light-9) 0%, transparent 30%),
-      radial-gradient(circle at 25% 75%, var(--el-color-warning-light-9) 0%, transparent 30%);
+      radial-gradient(
+        circle at 25% 25%,
+        var(--el-color-primary-light-9) 0%,
+        transparent 40%
+      ),
+      radial-gradient(
+        circle at 75% 75%,
+        var(--el-color-primary-light-9) 0%,
+        transparent 40%
+      ),
+      radial-gradient(
+        circle at 75% 25%,
+        var(--el-color-success-light-9) 0%,
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at 25% 75%,
+        var(--el-color-warning-light-9) 0%,
+        transparent 30%
+      );
     opacity: 0.4;
     pointer-events: none;
     z-index: 0;
@@ -1416,7 +1898,14 @@ onUnmounted(() => {
       var(--el-box-shadow-dark);
 
     &::before {
-      background: linear-gradient(90deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary-light-1) 25%, var(--el-color-primary) 50%, var(--el-color-primary-light-1) 75%, var(--el-color-primary-light-3) 100%);
+      background: linear-gradient(
+        90deg,
+        var(--el-color-primary-light-3) 0%,
+        var(--el-color-primary-light-1) 25%,
+        var(--el-color-primary) 50%,
+        var(--el-color-primary-light-1) 75%,
+        var(--el-color-primary-light-3) 100%
+      );
     }
 
     &::after {
@@ -1469,7 +1958,14 @@ onUnmounted(() => {
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, transparent 0%, var(--el-color-primary-light-5) 20%, var(--el-color-primary) 50%, var(--el-color-primary-light-5) 80%, transparent 100%);
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--el-color-primary-light-5) 20%,
+      var(--el-color-primary) 50%,
+      var(--el-color-primary-light-5) 80%,
+      transparent 100%
+    );
     border-radius: 16px 16px 0 0;
     opacity: 0.6;
     transition: opacity 0.3s ease;
@@ -1483,7 +1979,11 @@ onUnmounted(() => {
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.1) 0%,
+      transparent 70%
+    );
     opacity: 0;
     transition: opacity 0.6s ease;
     pointer-events: none;
@@ -1502,7 +2002,14 @@ onUnmounted(() => {
 
     &::before {
       opacity: 1;
-      background: linear-gradient(90deg, transparent 0%, var(--el-color-primary-light-3) 20%, var(--el-color-primary) 50%, var(--el-color-primary-light-3) 80%, transparent 100%);
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--el-color-primary-light-3) 20%,
+        var(--el-color-primary) 50%,
+        var(--el-color-primary-light-3) 80%,
+        transparent 100%
+      );
     }
 
     &::after {
@@ -1605,7 +2112,12 @@ onUnmounted(() => {
     left: 0;
     width: 50px;
     height: 3px;
-    background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 50%, var(--el-color-success-light-5) 100%);
+    background: linear-gradient(
+      90deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 50%,
+      var(--el-color-success-light-5) 100%
+    );
     border-radius: 2px;
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
@@ -1613,7 +2125,13 @@ onUnmounted(() => {
 
   &:hover::after {
     width: 100px;
-    background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-2) 30%, var(--el-color-success) 70%, var(--el-color-warning) 100%);
+    background: linear-gradient(
+      90deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-2) 30%,
+      var(--el-color-success) 70%,
+      var(--el-color-warning) 100%
+    );
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.4);
   }
 
@@ -1644,7 +2162,11 @@ onUnmounted(() => {
       left: -50%;
       width: 200%;
       height: 200%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+      background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.3) 0%,
+        transparent 70%
+      );
       opacity: 0;
       transition: opacity 0.3s ease;
     }
@@ -1664,7 +2186,7 @@ onUnmounted(() => {
     // 暗色主题适配
     .dark & {
       background: var(--el-fill-color-dark);
-      
+
       &:hover {
         background: var(--el-color-primary-light-8);
       }
@@ -1885,7 +2407,7 @@ onUnmounted(() => {
   background: var(--el-fill-color-extra-light);
   border-radius: 12px;
   padding: 6px;
-  box-shadow: 
+  box-shadow:
     inset 0 1px 3px rgba(0, 0, 0, 0.05),
     0 4px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid var(--el-border-color-extra-light);
@@ -1923,7 +2445,12 @@ onUnmounted(() => {
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.15), transparent);
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(var(--el-color-primary-rgb), 0.15),
+        transparent
+      );
       transition: left 0.6s ease;
     }
 
@@ -1935,7 +2462,11 @@ onUnmounted(() => {
       left: -50%;
       width: 200%;
       height: 200%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+      background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.2) 0%,
+        transparent 70%
+      );
       opacity: 0;
       transition: opacity 0.4s ease;
     }
@@ -1944,7 +2475,7 @@ onUnmounted(() => {
       background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
       transform: translateY(-2px);
-      box-shadow: 
+      box-shadow:
         0 4px 12px rgba(var(--el-color-primary-rgb), 0.15),
         0 1px 0 rgba(255, 255, 255, 0.8) inset;
 
@@ -1958,9 +2489,13 @@ onUnmounted(() => {
     }
 
     &.layui-segmented-checked {
-      background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary-light-9),
+        var(--el-color-primary-light-8)
+      );
       color: var(--el-color-primary);
-      box-shadow: 
+      box-shadow:
         0 4px 16px rgba(var(--el-color-primary-rgb), 0.25),
         0 1px 0 rgba(255, 255, 255, 0.9) inset,
         0 0 0 1px var(--el-color-primary-light-7);
@@ -1982,21 +2517,25 @@ onUnmounted(() => {
   .dark & {
     background: var(--el-fill-color-dark);
     border-color: var(--el-border-color);
-    box-shadow: 
+    box-shadow:
       inset 0 1px 3px rgba(0, 0, 0, 0.2),
       0 4px 12px rgba(0, 0, 0, 0.3);
 
     .layui-segmented-item {
       &:hover {
         background: var(--el-color-primary-light-8);
-        box-shadow: 
+        box-shadow:
           0 4px 12px rgba(0, 0, 0, 0.25),
           0 1px 0 rgba(255, 255, 255, 0.1) inset;
       }
 
       &.layui-segmented-checked {
-        background: linear-gradient(135deg, var(--el-color-primary-light-8), var(--el-color-primary-light-7));
-        box-shadow: 
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary-light-8),
+          var(--el-color-primary-light-7)
+        );
+        box-shadow:
           0 4px 16px rgba(var(--el-color-primary-rgb), 0.4),
           0 1px 0 rgba(255, 255, 255, 0.15) inset,
           0 0 0 1px var(--el-color-primary-light-6);
@@ -2030,7 +2569,11 @@ onUnmounted(() => {
     top: 0;
     bottom: 0;
     width: 3px;
-    background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    background: linear-gradient(
+      180deg,
+      var(--el-color-primary),
+      var(--el-color-primary-light-3)
+    );
     transform: scaleY(0);
     transform-origin: bottom;
     transition: transform 0.3s ease;
@@ -2101,7 +2644,12 @@ onUnmounted(() => {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.05), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(var(--el-color-primary-rgb), 0.05),
+      transparent
+    );
     transition: left 0.5s ease;
   }
 
@@ -2178,7 +2726,12 @@ onUnmounted(() => {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.05), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(var(--el-color-primary-rgb), 0.05),
+      transparent
+    );
     transition: left 0.6s ease;
   }
 
@@ -2193,7 +2746,12 @@ onUnmounted(() => {
     }
 
     .stretch-line {
-      background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3), var(--el-color-primary));
+      background: linear-gradient(
+        90deg,
+        var(--el-color-primary),
+        var(--el-color-primary-light-3),
+        var(--el-color-primary)
+      );
     }
   }
 
@@ -2215,7 +2773,12 @@ onUnmounted(() => {
     .stretch-line {
       flex: 1;
       height: 2px;
-      background: linear-gradient(90deg, var(--el-color-primary-light-5), var(--el-color-primary), var(--el-color-primary-light-5));
+      background: linear-gradient(
+        90deg,
+        var(--el-color-primary-light-5),
+        var(--el-color-primary),
+        var(--el-color-primary-light-5)
+      );
       border-radius: 1px;
       margin: 0 12px;
       position: relative;
@@ -2229,7 +2792,12 @@ onUnmounted(() => {
         left: -2px;
         right: -2px;
         bottom: -1px;
-        background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.3), transparent);
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(var(--el-color-primary-rgb), 0.3),
+          transparent
+        );
         border-radius: 2px;
         opacity: 0;
         transition: opacity 0.3s ease;
@@ -2265,7 +2833,11 @@ onUnmounted(() => {
   border-radius: 12px;
   height: 48px;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--el-color-danger), var(--el-color-danger-light-3));
+  background: linear-gradient(
+    135deg,
+    var(--el-color-danger),
+    var(--el-color-danger-light-3)
+  );
   border: none;
   color: #ffffff;
   box-shadow: 0 4px 16px rgba(var(--el-color-danger-rgb), 0.25);
@@ -2285,12 +2857,21 @@ onUnmounted(() => {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
     transition: left 0.6s ease;
   }
 
   &:hover {
-    background: linear-gradient(135deg, var(--el-color-danger-light-3), var(--el-color-danger));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-danger-light-3),
+      var(--el-color-danger)
+    );
     box-shadow: 0 6px 20px rgba(var(--el-color-danger-rgb), 0.35);
     transform: translateY(-2px);
 
@@ -2338,7 +2919,12 @@ onUnmounted(() => {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
     transition: left 0.6s ease;
   }
 
@@ -2419,7 +3005,12 @@ onUnmounted(() => {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.1), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(var(--el-color-primary-rgb), 0.1),
+      transparent
+    );
     transition: left 0.6s ease;
   }
 
@@ -2431,7 +3022,11 @@ onUnmounted(() => {
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.15) 0%,
+      transparent 70%
+    );
     opacity: 0;
     transition: opacity 0.4s ease;
   }
@@ -2439,7 +3034,7 @@ onUnmounted(() => {
   &:hover {
     background: var(--el-color-primary-light-9);
     transform: translateY(-2px);
-    box-shadow: 
+    box-shadow:
       0 6px 16px rgba(var(--el-color-primary-rgb), 0.15),
       0 1px 0 rgba(255, 255, 255, 0.8) inset;
     border-color: var(--el-color-primary-light-8);
@@ -2481,7 +3076,7 @@ onUnmounted(() => {
     &:hover {
       background: var(--el-color-primary-light-8);
       border-color: var(--el-color-primary-light-6);
-      box-shadow: 
+      box-shadow:
         0 6px 16px rgba(0, 0, 0, 0.3),
         0 1px 0 rgba(255, 255, 255, 0.1) inset;
     }
@@ -2520,7 +3115,11 @@ onUnmounted(() => {
       right: 1px;
       bottom: 1px;
       border-radius: 23px;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+      background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.2),
+        rgba(255, 255, 255, 0.05)
+      );
       pointer-events: none;
     }
 
@@ -2565,7 +3164,11 @@ onUnmounted(() => {
         right: 1px;
         bottom: 1px;
         border-radius: 50%;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), transparent);
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
         pointer-events: none;
       }
     }
@@ -2573,7 +3176,11 @@ onUnmounted(() => {
 
   &.is-checked {
     .el-switch__core {
-      background: linear-gradient(135deg, var(--el-switch-on-color), var(--el-color-primary-light-3));
+      background: linear-gradient(
+        135deg,
+        var(--el-switch-on-color),
+        var(--el-color-primary-light-3)
+      );
       box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
 
       .el-switch__action {
@@ -2595,7 +3202,11 @@ onUnmounted(() => {
 
   &:not(.is-checked) {
     .el-switch__core {
-      background: linear-gradient(135deg, var(--el-switch-off-color), var(--el-fill-color-light));
+      background: linear-gradient(
+        135deg,
+        var(--el-switch-off-color),
+        var(--el-fill-color-light)
+      );
 
       .el-switch__action {
         transform: translateX(2px);
@@ -2659,12 +3270,20 @@ onUnmounted(() => {
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 
       &::before {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.1),
+          rgba(255, 255, 255, 0.02)
+        );
       }
     }
 
     .el-switch__action {
-      background: linear-gradient(135deg, var(--el-bg-color), var(--el-bg-color-overlay));
+      background: linear-gradient(
+        135deg,
+        var(--el-bg-color),
+        var(--el-bg-color-overlay)
+      );
       border-color: var(--el-border-color);
     }
 
@@ -2706,56 +3325,96 @@ onUnmounted(() => {
   }
 
   &.el-button--primary {
-    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary),
+      var(--el-color-primary-light-3)
+    );
     border: none;
     color: var(--el-color-white);
 
     &:hover {
-      background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary-light-3),
+        var(--el-color-primary)
+      );
       box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.3);
     }
   }
 
   &.el-button--danger {
-    background: linear-gradient(135deg, var(--el-color-danger), var(--el-color-danger-light-3));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-danger),
+      var(--el-color-danger-light-3)
+    );
     border: none;
     color: var(--el-color-white);
 
     &:hover {
-      background: linear-gradient(135deg, var(--el-color-danger-light-3), var(--el-color-danger));
+      background: linear-gradient(
+        135deg,
+        var(--el-color-danger-light-3),
+        var(--el-color-danger)
+      );
       box-shadow: 0 6px 16px rgba(var(--el-color-danger-rgb), 0.3);
     }
   }
 
   &.el-button--warning {
-    background: linear-gradient(135deg, var(--el-color-warning), var(--el-color-warning-light-3));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-warning),
+      var(--el-color-warning-light-3)
+    );
     border: none;
     color: var(--el-color-white);
 
     &:hover {
-      background: linear-gradient(135deg, var(--el-color-warning-light-3), var(--el-color-warning));
+      background: linear-gradient(
+        135deg,
+        var(--el-color-warning-light-3),
+        var(--el-color-warning)
+      );
       box-shadow: 0 6px 16px rgba(var(--el-color-warning-rgb), 0.3);
     }
   }
 
   &.el-button--info {
-    background: linear-gradient(135deg, var(--el-color-info), var(--el-color-info-light-3));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-info),
+      var(--el-color-info-light-3)
+    );
     border: none;
     color: var(--el-color-white);
 
     &:hover {
-      background: linear-gradient(135deg, var(--el-color-info-light-3), var(--el-color-info));
+      background: linear-gradient(
+        135deg,
+        var(--el-color-info-light-3),
+        var(--el-color-info)
+      );
       box-shadow: 0 6px 16px rgba(var(--el-color-info-rgb), 0.3);
     }
   }
 
   &.el-button--success {
-    background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-light-3));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-success),
+      var(--el-color-success-light-3)
+    );
     border: none;
     color: var(--el-color-white);
 
     &:hover {
-      background: linear-gradient(135deg, var(--el-color-success-light-3), var(--el-color-success));
+      background: linear-gradient(
+        135deg,
+        var(--el-color-success-light-3),
+        var(--el-color-success)
+      );
       box-shadow: 0 6px 16px rgba(var(--el-color-success-rgb), 0.3);
     }
   }
@@ -2786,7 +3445,7 @@ onUnmounted(() => {
     background: var(--el-color-primary-light-9);
     border-color: var(--el-color-primary-light-8);
     transform: translateY(-3px);
-    box-shadow: 
+    box-shadow:
       0 8px 24px rgba(0, 0, 0, 0.12),
       0 4px 12px rgba(0, 0, 0, 0.1),
       0 1px 0 rgba(255, 255, 255, 0.8) inset;
@@ -2811,7 +3470,7 @@ onUnmounted(() => {
       0 1px 0 rgba(255, 255, 255, 0.1) inset;
 
     &:hover {
-      box-shadow: 
+      box-shadow:
         0 8px 24px rgba(0, 0, 0, 0.35),
         0 4px 12px rgba(0, 0, 0, 0.3),
         0 1px 0 rgba(255, 255, 255, 0.15) inset;
@@ -2826,7 +3485,7 @@ onUnmounted(() => {
   border-radius: 10px;
   border: 1px solid var(--el-border-color-light);
   overflow: hidden;
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.1),
     0 2px 6px rgba(0, 0, 0, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.7) inset;
@@ -2834,7 +3493,7 @@ onUnmounted(() => {
 
   &:hover {
     border-color: var(--el-color-primary-light-7);
-    box-shadow: 
+    box-shadow:
       0 8px 24px rgba(0, 0, 0, 0.15),
       0 4px 12px rgba(0, 0, 0, 0.12),
       0 1px 0 rgba(255, 255, 255, 0.8) inset;
@@ -2842,7 +3501,7 @@ onUnmounted(() => {
 
   &:focus-within {
     border-color: var(--el-color-primary);
-    box-shadow: 
+    box-shadow:
       0 0 0 4px rgba(var(--el-color-primary-rgb), 0.3),
       0 8px 24px rgba(0, 0, 0, 0.18),
       0 4px 12px rgba(0, 0, 0, 0.15),
@@ -2942,7 +3601,7 @@ onUnmounted(() => {
   .dark & {
     background: var(--el-bg-color-overlay);
     border-color: var(--el-border-color);
-    box-shadow: 
+    box-shadow:
       0 4px 12px rgba(0, 0, 0, 0.35),
       0 2px 6px rgba(0, 0, 0, 0.3),
       0 1px 0 rgba(255, 255, 255, 0.1) inset;
@@ -2968,14 +3627,14 @@ onUnmounted(() => {
 
     &:hover {
       border-color: var(--el-color-primary-light-6);
-      box-shadow: 
+      box-shadow:
         0 8px 24px rgba(0, 0, 0, 0.45),
         0 4px 12px rgba(0, 0, 0, 0.4),
         0 1px 0 rgba(255, 255, 255, 0.15) inset;
     }
 
     &:focus-within {
-      box-shadow: 
+      box-shadow:
         0 0 0 4px rgba(var(--el-color-primary-rgb), 0.45),
         0 8px 24px rgba(0, 0, 0, 0.5),
         0 4px 12px rgba(0, 0, 0, 0.45),
@@ -3094,7 +3753,12 @@ onUnmounted(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 100%);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0.1) 100%
+    );
     pointer-events: none;
     z-index: 1;
   }
@@ -3238,7 +3902,12 @@ onUnmounted(() => {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
   opacity: 0;
   transform: translateX(-100%);
   transition: all 0.6s ease;
@@ -3411,7 +4080,11 @@ onUnmounted(() => {
       left: -50%;
       width: 200%;
       height: 200%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
+      background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.25) 0%,
+        transparent 70%
+      );
       opacity: 0;
       transition: all 0.6s ease;
       pointer-events: none;
@@ -3427,7 +4100,12 @@ onUnmounted(() => {
       bottom: 0;
       border-radius: 20px;
       padding: 2px;
-      background: linear-gradient(135deg, transparent, var(--el-color-primary-light-7), transparent);
+      background: linear-gradient(
+        135deg,
+        transparent,
+        var(--el-color-primary-light-7),
+        transparent
+      );
       mask:
         linear-gradient(#fff 0 0) content-box,
         linear-gradient(#fff 0 0);
@@ -3472,13 +4150,22 @@ onUnmounted(() => {
 
       &::after {
         opacity: 1;
-        background: linear-gradient(135deg, var(--el-color-primary-light-5), var(--el-color-primary), var(--el-color-primary-light-5));
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary-light-5),
+          var(--el-color-primary),
+          var(--el-color-primary-light-5)
+        );
       }
     }
 
     // 占位符布局样式
     &.placeholder-layout {
-      background: linear-gradient(135deg, var(--el-fill-color-light), var(--el-fill-color));
+      background: linear-gradient(
+        135deg,
+        var(--el-fill-color-light),
+        var(--el-fill-color)
+      );
       border: 2px dashed var(--el-border-color-light);
       opacity: 0.7;
       box-shadow:
@@ -3488,7 +4175,11 @@ onUnmounted(() => {
 
       &:hover {
         border-color: var(--el-border-color);
-        background: linear-gradient(135deg, var(--el-fill-color-lighter), var(--el-fill-color-light));
+        background: linear-gradient(
+          135deg,
+          var(--el-fill-color-lighter),
+          var(--el-fill-color-light)
+        );
         opacity: 0.9;
         transform: translateY(-4px) scale(1.03);
         box-shadow:
@@ -3618,7 +4309,11 @@ onUnmounted(() => {
     &.placeholder-layout {
       opacity: 0.6;
       cursor: not-allowed;
-      background: linear-gradient(135deg, var(--el-fill-color-light), var(--el-fill-color));
+      background: linear-gradient(
+        135deg,
+        var(--el-fill-color-light),
+        var(--el-fill-color)
+      );
       box-shadow:
         0 6px 18px rgba(0, 0, 0, 0.08),
         0 3px 9px rgba(0, 0, 0, 0.06),
@@ -3797,7 +4492,8 @@ p.mt-5 {
 .el-table,
 .el-form-item {
   transition:
-    background-color var(--theme-transition-duration) var(--theme-transition-timing),
+    background-color var(--theme-transition-duration)
+      var(--theme-transition-timing),
     border-color var(--theme-transition-duration) var(--theme-transition-timing),
     color var(--theme-transition-duration) var(--theme-transition-timing) !important;
 }
@@ -3806,7 +4502,8 @@ p.mt-5 {
 [style*="--el-"],
 [class*="el-"] {
   transition:
-    background-color var(--theme-transition-duration) var(--theme-transition-timing),
+    background-color var(--theme-transition-duration)
+      var(--theme-transition-timing),
     border-color var(--theme-transition-duration) var(--theme-transition-timing),
     color var(--theme-transition-duration) var(--theme-transition-timing);
 }
@@ -3907,6 +4604,154 @@ p.mt-5 {
   .theme-color-grid {
     grid-template-columns: repeat(6, 1fr);
     gap: 6px;
+  }
+}
+
+// 卡片开关网格样式
+.switch-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+
+  &.single-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+// 卡片开关项样式
+.switch-card-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 12px;
+  background: var(--el-fill-color-lighter);
+  border: 2px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 90px;
+  overflow: hidden;
+
+  &:hover {
+    background: var(--el-fill-color-light);
+    border-color: var(--el-color-primary-light-5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+  }
+
+  &.is-active {
+    background: var(--el-color-primary-light-9);
+    border-color: var(--el-color-primary);
+    box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.2);
+
+    .switch-card-icon {
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-8);
+    }
+
+    .switch-card-label {
+      color: var(--el-color-primary);
+    }
+  }
+
+  &.wide {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 16px;
+    padding: 16px 20px;
+
+    .switch-card-icon {
+      margin-bottom: 0;
+    }
+
+    .switch-card-content {
+      align-items: flex-start;
+    }
+  }
+}
+
+.switch-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+  font-size: 20px;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+}
+
+.switch-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.switch-card-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  transition: color 0.3s ease;
+}
+
+.switch-card-desc {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
+}
+
+// 深色主题适配
+html.dark {
+  .switch-card-item {
+    background: var(--el-fill-color-dark);
+    border-color: var(--el-border-color);
+
+    &:hover {
+      background: var(--el-fill-color);
+      border-color: var(--el-color-primary-light-3);
+    }
+
+    &.is-active {
+      background: rgba(var(--el-color-primary-rgb), 0.15);
+      border-color: var(--el-color-primary);
+
+      .switch-card-icon {
+        background: rgba(var(--el-color-primary-rgb), 0.2);
+      }
+    }
+  }
+
+  .switch-card-icon {
+    background: var(--el-fill-color-darker);
+  }
+}
+
+// 响应式适配
+@media (max-width: 480px) {
+  .switch-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .switch-card-item {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    min-height: auto;
+
+    .switch-card-icon {
+      margin-bottom: 0;
+    }
+
+    .switch-card-content {
+      align-items: flex-start;
+    }
   }
 }
 </style>

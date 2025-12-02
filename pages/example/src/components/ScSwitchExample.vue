@@ -23,7 +23,11 @@
           </div>
 
           <div class="result-display mt-4">
-            <el-alert :title="`当前状态: ${switchValue}`" type="success" :closable="false" />
+            <el-alert
+              :title="`当前状态: ${switchValue}`"
+              type="success"
+              :closable="false"
+            />
           </div>
         </div>
 
@@ -32,19 +36,44 @@
         <div class="layout-preview">
           <div class="layout-item">
             <p class="layout-title">默认布局</p>
-            <ScSwitch v-model="switchValueDefault" layout="default" active-text="开启" inactive-text="关闭" />
+            <ScSwitch
+              v-model="switchValueDefault"
+              layout="default"
+              active-text="开启"
+              inactive-text="关闭"
+            />
           </div>
           <div class="layout-item">
             <p class="layout-title">卡片布局</p>
-            <ScSwitch v-model="switchValueCard" layout="card" active-icon="ep:check" inactive-icon="ep:close" active-text="开启" inactive-text="关闭" />
+            <ScSwitch
+              v-model="switchValueCard"
+              layout="card"
+              active-icon="ep:check"
+              inactive-icon="ep:close"
+              active-text="开启"
+              inactive-text="关闭"
+            />
           </div>
           <div class="layout-item">
             <p class="layout-title">滑块布局</p>
-            <ScSwitch v-model="switchValueSlider" layout="slider" active-text="开启" inactive-text="关闭" active-icon="ep:check" />
+            <ScSwitch
+              v-model="switchValueSlider"
+              layout="slider"
+              active-text="开启"
+              inactive-text="关闭"
+              active-icon="ep:check"
+            />
           </div>
           <div class="layout-item">
             <p class="layout-title">现代布局</p>
-            <ScSwitch v-model="switchValueModern" layout="modern" active-text="ON" inactive-text="OFF" active-icon="ep:check" inactive-icon="ep:close" />
+            <ScSwitch
+              v-model="switchValueModern"
+              layout="modern"
+              active-text="ON"
+              inactive-text="OFF"
+              active-icon="ep:check"
+              inactive-icon="ep:close"
+            />
           </div>
         </div>
       </div>
@@ -102,7 +131,11 @@
           </el-form-item>
 
           <el-form-item label="开启图标">
-            <el-select v-model="activeIcon" placeholder="选择图标" class="w-100">
+            <el-select
+              v-model="activeIcon"
+              placeholder="选择图标"
+              class="w-100"
+            >
               <el-option label="无图标" value="" />
               <el-option label="对勾" value="ep:check" />
               <el-option label="打开" value="ep:open" />
@@ -112,7 +145,11 @@
           </el-form-item>
 
           <el-form-item label="关闭图标">
-            <el-select v-model="inactiveIcon" placeholder="选择图标" class="w-100">
+            <el-select
+              v-model="inactiveIcon"
+              placeholder="选择图标"
+              class="w-100"
+            >
               <el-option label="无图标" value="" />
               <el-option label="关闭" value="ep:close" />
               <el-option label="关机" value="ep:turn-off" />
@@ -133,7 +170,15 @@
     </div>
 
     <!-- 代码示例 -->
-    <CodeDisplay :code="codeExample" language="html" title="代码示例" description="根据当前配置生成的代码示例" :show-line-numbers="false" :show-fullscreen="true" class="mt-4" />
+    <CodeDisplay
+      :code="codeExample"
+      language="html"
+      title="代码示例"
+      description="根据当前配置生成的代码示例"
+      :show-line-numbers="false"
+      :show-fullscreen="true"
+      class="mt-4"
+    />
   </div>
 </template>
 
@@ -228,7 +273,7 @@ const handleChange = (value) => {
 }
 
 .text-secondary {
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   margin: 0;
 }
 
@@ -278,9 +323,9 @@ h4 {
   gap: 24px;
   margin-top: 16px;
   padding: 16px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
-  background-color: #fafafa;
+  background-color: var(--el-fill-color-lighter);
 }
 
 .layout-item {
@@ -291,15 +336,15 @@ h4 {
   gap: 12px;
   padding: 16px;
   border-radius: 8px;
-  background-color: #fff;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  background-color: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-lighter);
   min-width: 120px;
 }
 
 .layout-title {
   margin: 0;
   font-size: 14px;
-  color: #606266;
+  color: var(--el-text-color-regular);
 }
 
 .code-example {
@@ -323,7 +368,7 @@ h4 {
 }
 
 pre {
-  background-color: #f5f7fa;
+  background-color: var(--el-fill-color-light);
   padding: 15px;
   border-radius: 4px;
   overflow-x: auto;
@@ -340,50 +385,25 @@ code {
   margin-bottom: 8px;
 }
 
+/* 暗黑模式样式 - 使用 html.dark 选择器 */
+html.dark {
+  .layout-preview {
+    background-color: var(--el-fill-color-dark);
+    border-color: var(--el-border-color);
+  }
 
+  .layout-item {
+    background-color: var(--el-bg-color-overlay);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3);
+  }
 
-/* 暗黑模式样式 */
-.el-dark {
-  --preview-bg: #1a1a1a;
-  --preview-border: #333;
-  --text-color: #eee;
-  --heading-color: #fff;
-  --code-bg: #2d2d2d;
-  --code-color: #eee;
-}
+  .layout-title {
+    color: var(--el-text-color-secondary);
+  }
 
-.el-dark .preview-container,
-.el-dark .layout-preview {
-  background-color: var(--preview-bg);
-  border-color: var(--preview-border);
-}
-
-.el-dark .layout-item {
-  background-color: #2a2a2a;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.2);
-}
-
-.el-dark .layout-title {
-  color: #ddd;
-}
-
-.el-dark h3,
-.el-dark h4 {
-  color: var(--heading-color);
-}
-
-
-
-.el-dark .text-secondary {
-  color: #aaa;
-}
-
-.el-dark pre {
-  background-color: var(--code-bg);
-}
-
-.el-dark code {
-  color: var(--code-color);
+  pre {
+    background-color: var(--el-fill-color-darker);
+  }
 }
 
 @media screen and (max-width: 768px) {

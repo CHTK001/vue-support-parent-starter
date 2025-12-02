@@ -14,11 +14,11 @@
         </div>
       </template>
 
-        <el-alert title="提示" type="info" :closable="false">
-          <p>
-            本组件提供20种不同风格的绸带效果，包括徽章、角标、对角线、横幅、折叠、书签、标签、悬挂、斜绶带、盾牌、波浪、箭头、圆形、星形、六边形、爆炸星、双层、梯形、三角旗和飘带等样式，适用于徽章、标签、促销标识等多种场景
-          </p>
-        </el-alert>
+      <el-alert title="提示" type="info" :closable="false">
+        <p>
+          本组件提供20种不同风格的绸带效果，包括徽章、角标、对角线、横幅、折叠、书签、标签、悬挂、斜绶带、盾牌、波浪、箭头、圆形、星形、六边形、爆炸星、双层、梯形、三角旗和飘带等样式，适用于徽章、标签、促销标识等多种场景
+        </p>
+      </el-alert>
     </el-card>
 
     <!-- 1. Badge 徽章 -->
@@ -1152,7 +1152,7 @@ const swooshCode = `<div class="card">
 
 .demo-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow);
 }
 
 .demo-card.large {
@@ -1235,7 +1235,7 @@ const swooshCode = `<div class="card">
 
 .product-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--el-box-shadow-dark);
 }
 
 .product-image {
@@ -1300,6 +1300,21 @@ const swooshCode = `<div class="card">
 
   .shape-demo {
     gap: 24px;
+  }
+}
+
+/* 深色主题适配 */
+html.dark {
+  .demo-card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .product-card:hover {
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .size-group {
+    background: var(--el-fill-color-dark);
   }
 }
 </style>

@@ -2,7 +2,14 @@
 //@ts-ignore
 import { isNumber, useGlobal } from "@pureadmin/utils";
 import { usePermissionStoreHook } from "@repo/core";
-import { computed, defineComponent, h, nextTick, onMounted, Transition } from "vue";
+import {
+  computed,
+  defineComponent,
+  h,
+  nextTick,
+  onMounted,
+  Transition,
+} from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useTags } from "../../hooks/useTag";
@@ -60,16 +67,30 @@ const cardBody = computed(() => {
 });
 
 const getMainWidth = computed(() => {
-  return isNumber(stretch.value) ? stretch.value + "px" : stretch.value ? "1440px" : "100%";
+  return isNumber(stretch.value)
+    ? stretch.value + "px"
+    : stretch.value
+      ? "1440px"
+      : "100%";
 });
 
 const getSectionStyle = computed(() => {
   return [
     hideTabs.value && isVerticalLayout.value ? "padding-top: 48px;" : "",
-    !hideTabs.value && isVerticalLayout.value ? (showModel.value == "chrome" ? "padding-top: 85px;" : "padding-top: 81px;") : "",
+    !hideTabs.value && isVerticalLayout.value
+      ? showModel.value == "chrome"
+        ? "padding-top: 85px;"
+        : "padding-top: 81px;"
+      : "",
     hideTabs.value && !isVerticalLayout.value ? "padding-top: 48px;" : "",
-    !hideTabs.value && !isVerticalLayout.value ? (showModel.value == "chrome" ? "padding-top: 85px;" : "padding-top: 81px;") : "",
-    props.fixedHeader ? "" : `padding-top: 0;${hideTabs.value ? "min-height: calc(100vh - 48px);" : "min-height: calc(100vh - 86px);"}`,
+    !hideTabs.value && !isVerticalLayout.value
+      ? showModel.value == "chrome"
+        ? "padding-top: 85px;"
+        : "padding-top: 81px;"
+      : "",
+    props.fixedHeader
+      ? ""
+      : `padding-top: 0;${hideTabs.value ? "min-height: calc(100vh - 48px);" : "min-height: calc(100vh - 86px);"}`,
   ];
 });
 
@@ -90,8 +111,14 @@ onMounted(async () => {
   nextTick(() => {
     document.body.style.setProperty("height", "100vh");
     document.body.style.setProperty("overflow", "hidden");
-    document.body.style.setProperty("--contentMargin", contentMargin.value + "px");
-    document.body.style.setProperty("--layoutRadius", layoutRadius.value + "px");
+    document.body.style.setProperty(
+      "--contentMargin",
+      contentMargin.value + "px"
+    );
+    document.body.style.setProperty(
+      "--layoutRadius",
+      layoutRadius.value + "px"
+    );
     document.body.style.setProperty("--layoutBlur", layoutBlur.value + "px");
   });
 });
@@ -118,15 +145,33 @@ const transitionMain = defineComponent({
     }
 
     const menuTransition = $storage.configure.menuTransition;
-    const transitionName = menuTransition ? transitions.value(this.route)?.name || "fade-transform" : "";
-    const enterTransition = menuTransition ? transitions.value(this.route)?.enterTransition : "";
-    const leaveTransition = menuTransition ? transitions.value(this.route)?.leaveTransition : "";
+    const transitionName = menuTransition
+      ? transitions.value(this.route)?.name || "fade-transform"
+      : "";
+    const enterTransition = menuTransition
+      ? transitions.value(this.route)?.enterTransition
+      : "";
+    const leaveTransition = menuTransition
+      ? transitions.value(this.route)?.leaveTransition
+      : "";
     return h(
       Transition,
       {
-        name: !menuTransition ? "" : enterTransition ? "pure-classes-transition" : transitionName,
-        enterActiveClass: !menuTransition ? "" : enterTransition ? `animate__animated ${enterTransition}` : undefined,
-        leaveActiveClass: !menuTransition ? "" : leaveTransition ? `animate__animated ${leaveTransition}` : undefined,
+        name: !menuTransition
+          ? ""
+          : enterTransition
+            ? "pure-classes-transition"
+            : transitionName,
+        enterActiveClass: !menuTransition
+          ? ""
+          : enterTransition
+            ? `animate__animated ${enterTransition}`
+            : undefined,
+        leaveActiveClass: !menuTransition
+          ? ""
+          : leaveTransition
+            ? `animate__animated ${leaveTransition}`
+            : undefined,
         mode: "out-in",
         appear: true,
       },
@@ -141,7 +186,10 @@ const router = useRouter();
 </script>
 
 <template>
-  <section :class="[fixedHeader ? 'app-main' : 'app-main-nofixed-header']" :style="getSectionStyle">
+  <section
+    :class="[fixedHeader ? 'app-main' : 'app-main-nofixed-header']"
+    :style="getSectionStyle"
+  >
     <router-view :key="$route.fullPath">
       <template #default="{ Component, route }">
         <LayFrame :currComp="Component" :currRoute="route">
@@ -162,7 +210,10 @@ const router = useRouter();
                 'flex-direction': 'column',
               }"
             >
-              <el-backtop :title="t('buttons.pureBackTop')" target=".app-main .el-scrollbar__wrap" />
+              <el-backtop
+                :title="t('buttons.pureBackTop')"
+                target=".app-main .el-scrollbar__wrap"
+              />
               <div class="grow bg-layout">
                 <el-card
                   v-if="cardBody"
@@ -175,10 +226,24 @@ const router = useRouter();
                   }"
                 >
                   <transitionMain :route="route">
-                    <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
-                      <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" />
+                    <keep-alive
+                      v-if="isKeepAlive"
+                      :include="usePermissionStoreHook().cachePageList"
+                    >
+                      <component
+                        :is="Comp"
+                        :key="fullPath"
+                        :frameInfo="frameInfo"
+                        class="main-content"
+                      />
                     </keep-alive>
-                    <component :is="Comp" v-else :key="fullPath" :frameInfo="frameInfo" class="main-content" />
+                    <component
+                      :is="Comp"
+                      v-else
+                      :key="fullPath"
+                      :frameInfo="frameInfo"
+                      class="main-content"
+                    />
                   </transitionMain>
                 </el-card>
                 <div
@@ -192,10 +257,26 @@ const router = useRouter();
                   }"
                 >
                   <transitionMain :route="route">
-                    <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
-                      <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" :style="{ 'border-radius': layoutRadius + 'px' }" />
+                    <keep-alive
+                      v-if="isKeepAlive"
+                      :include="usePermissionStoreHook().cachePageList"
+                    >
+                      <component
+                        :is="Comp"
+                        :key="fullPath"
+                        :frameInfo="frameInfo"
+                        class="main-content"
+                        :style="{ 'border-radius': layoutRadius + 'px' }"
+                      />
                     </keep-alive>
-                    <component :is="Comp" v-else :key="fullPath" :frameInfo="frameInfo" class="main-content" :style="{ 'border-radius': layoutRadius + 'px' }" />
+                    <component
+                      :is="Comp"
+                      v-else
+                      :key="fullPath"
+                      :frameInfo="frameInfo"
+                      class="main-content"
+                      :style="{ 'border-radius': layoutRadius + 'px' }"
+                    />
                   </transitionMain>
                 </div>
               </div>
@@ -214,10 +295,24 @@ const router = useRouter();
                 }"
               >
                 <transitionMain :route="route">
-                  <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
-                    <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" />
+                  <keep-alive
+                    v-if="isKeepAlive"
+                    :include="usePermissionStoreHook().cachePageList"
+                  >
+                    <component
+                      :is="Comp"
+                      :key="fullPath"
+                      :frameInfo="frameInfo"
+                      class="main-content"
+                    />
                   </keep-alive>
-                  <component :is="Comp" v-else :key="fullPath" :frameInfo="frameInfo" class="main-content" />
+                  <component
+                    :is="Comp"
+                    v-else
+                    :key="fullPath"
+                    :frameInfo="frameInfo"
+                    class="main-content"
+                  />
                 </transitionMain>
               </el-card>
               <div
@@ -231,10 +326,26 @@ const router = useRouter();
                 }"
               >
                 <transitionMain :route="route">
-                  <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
-                    <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" :style="{ 'border-radius': layoutRadius + 'px' }" />
+                  <keep-alive
+                    v-if="isKeepAlive"
+                    :include="usePermissionStoreHook().cachePageList"
+                  >
+                    <component
+                      :is="Comp"
+                      :key="fullPath"
+                      :frameInfo="frameInfo"
+                      class="main-content"
+                      :style="{ 'border-radius': layoutRadius + 'px' }"
+                    />
                   </keep-alive>
-                  <component :is="Comp" v-else :key="fullPath" :frameInfo="frameInfo" class="main-content" :style="{ 'border-radius': layoutRadius + 'px' }" />
+                  <component
+                    :is="Comp"
+                    v-else
+                    :key="fullPath"
+                    :frameInfo="frameInfo"
+                    class="main-content"
+                    :style="{ 'border-radius': layoutRadius + 'px' }"
+                  />
                 </transitionMain>
               </div>
             </div>
@@ -250,7 +361,7 @@ const router = useRouter();
 
 <style lang="scss" scoped>
 .sidebar-custom {
-  background-color: var(--el-bg-color);
+  background: var(--el-bg-color);
   border: 1px solid var(--el-card-border-color);
   border-radius: var(--el-card-border-radius);
   color: var(--el-text-color-primary);
@@ -272,17 +383,25 @@ const router = useRouter();
   width: 100%;
   height: 100vh;
   overflow-x: hidden;
-  background: linear-gradient(135deg, rgba(245, 247, 250, 0.8), rgba(240, 242, 245, 0.9));
+  background: linear-gradient(
+    135deg,
+    rgba(245, 247, 250, 0.8),
+    rgba(240, 242, 245, 0.9)
+  );
 
   /* 默认深色背景，防止FOUC */
   html.dark & {
-    background: linear-gradient(135deg, rgba(22, 24, 29, 0.8), rgba(26, 28, 35, 0.9));
+    background: linear-gradient(
+      135deg,
+      rgba(22, 24, 29, 0.8),
+      rgba(26, 28, 35, 0.9)
+    );
   }
 
   /* 确保在深色模式下有默认背景色 */
-  background-color: #f5f7fa;
+  background: var(--el-bg-color-page);
   html.dark & {
-    background-color: #16181d;
+    background: var(--el-bg-color);
   }
 }
 
@@ -291,18 +410,26 @@ const router = useRouter();
   display: flex;
   flex-direction: column;
   width: 100%;
-  background: linear-gradient(135deg, rgba(245, 247, 250, 0.8), rgba(240, 242, 245, 0.9));
+  background: linear-gradient(
+    135deg,
+    rgba(245, 247, 250, 0.8),
+    rgba(240, 242, 245, 0.9)
+  );
   backdrop-filter: blur(20px);
 
   /* 默认深色背景，防止FOUC */
   html.dark & {
-    background: linear-gradient(135deg, rgba(22, 24, 29, 0.8), rgba(26, 28, 35, 0.9));
+    background: linear-gradient(
+      135deg,
+      rgba(22, 24, 29, 0.8),
+      rgba(26, 28, 35, 0.9)
+    );
   }
 
   /* 确保在深色模式下有默认背景色 */
-  background-color: #f5f7fa;
+  background-color: var(--el-bg-color-page);
   html.dark & {
-    background-color: #16181d;
+    background: var(--el-bg-color);
   }
 }
 
@@ -312,9 +439,9 @@ const router = useRouter();
   // padding: 0px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   /* 确保主内容区域也有正确的背景色 */
-  background-color: #f5f7fa;
+  background: var(--el-bg-color-page);
   html.dark & {
-    background-color: #16181d;
+    background: var(--el-bg-color);
   }
 }
 
@@ -336,9 +463,9 @@ const router = useRouter();
   }
 
   /* 确保在深色模式下有明确的背景色 */
-  background-color: #f5f7fa;
+  background-color: var(--el-bg-color-page);
   html.dark & {
-    background-color: #16181d;
+    background: var(--el-bg-color);
   }
 }
 

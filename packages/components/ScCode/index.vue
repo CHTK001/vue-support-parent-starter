@@ -726,13 +726,15 @@ defineExpose({
   margin-right: 10px;
   text-align: center;
   font-size: 18px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--el-border-color);
   border-radius: 5px;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-primary);
 }
 
 .verification-input:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 5px #007bff;
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 5px var(--el-color-primary);
 }
 </style>

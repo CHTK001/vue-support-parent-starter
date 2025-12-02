@@ -1,0 +1,454 @@
+/**
+ * 例子文件通用样式
+ * 支持深色主题适配
+ * @author CH
+ * @version 1.0.0
+ * @since 2025-12-01
+ */
+
+// 例子页面容器
+.example-page {
+  padding: 24px;
+  background: var(--el-bg-color);
+  min-height: 100%;
+  color: var(--el-text-color-primary);
+}
+
+// 例子头部
+.example-header {
+  margin-bottom: 32px;
+  text-align: center;
+
+  h2 {
+    color: var(--el-text-color-primary);
+    margin-bottom: 8px;
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  p {
+    color: var(--el-text-color-secondary);
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+// 例子内容区
+.example-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+// 例子区块
+.example-section {
+  padding: 24px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-light);
+  transition: all 0.3s;
+
+  &:hover {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  h3 {
+    color: var(--el-text-color-primary);
+    margin-bottom: 8px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  > p {
+    color: var(--el-text-color-secondary);
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+}
+
+// 演示区域
+.example-demo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 24px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 8px;
+  border: 1px dashed var(--el-border-color);
+}
+
+// 结果展示区
+.example-result {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+
+  p {
+    margin: 8px 0;
+    color: var(--el-text-color-regular);
+    font-size: 14px;
+
+    &:first-child {
+      margin-top: 0;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    strong {
+      color: var(--el-text-color-primary);
+      margin-right: 8px;
+    }
+  }
+}
+
+// 操作按钮区
+.example-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+// 代码示例区
+.code-examples {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--el-border-color-lighter);
+
+  h3 {
+    color: var(--el-text-color-primary);
+    margin-bottom: 20px;
+    font-size: 20px;
+    font-weight: 600;
+  }
+}
+
+// 代码块
+.code-block {
+  background: var(--el-fill-color-dark);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+
+  pre {
+    margin: 0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+
+    code {
+      color: var(--el-text-color-primary);
+      background: transparent;
+    }
+  }
+}
+
+// 配置面板
+.config-panel {
+  padding: 20px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+
+  h4 {
+    color: var(--el-text-color-primary);
+    margin-bottom: 16px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .config-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--el-border-color-extra-light);
+
+    &:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+    }
+
+    .config-label {
+      color: var(--el-text-color-regular);
+      font-size: 14px;
+    }
+  }
+}
+
+// 预览区域
+.preview-area {
+  padding: 24px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-light);
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// 事件日志
+.event-log {
+  h4 {
+    color: var(--el-text-color-primary);
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .log-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 6px;
+    background: var(--el-bg-color);
+
+    .log-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--el-border-color-extra-light);
+      font-size: 12px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      transition: background 0.2s;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:hover {
+        background: var(--el-fill-color-light);
+      }
+
+      &.success {
+        background: var(--el-color-success-light-9);
+        color: var(--el-color-success);
+      }
+
+      &.error {
+        background: var(--el-color-danger-light-9);
+        color: var(--el-color-danger);
+      }
+
+      &.warning {
+        background: var(--el-color-warning-light-9);
+        color: var(--el-color-warning);
+      }
+
+      &.info {
+        background: var(--el-color-info-light-9);
+        color: var(--el-color-info);
+      }
+
+      .log-time {
+        min-width: 80px;
+        color: var(--el-text-color-placeholder);
+      }
+
+      .log-event {
+        min-width: 100px;
+        font-weight: 500;
+      }
+
+      .log-value {
+        flex: 1;
+        font-weight: 600;
+        word-break: break-all;
+      }
+    }
+  }
+}
+
+// 网格布局
+.example-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+// 卡片样式
+.example-card {
+  padding: 16px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  transition: all 0.3s;
+
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 2px 12px rgba(var(--el-color-primary-rgb), 0.1);
+  }
+}
+
+// 标签组
+.tag-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+// 分隔线
+.example-divider {
+  height: 1px;
+  background: var(--el-border-color-lighter);
+  margin: 24px 0;
+}
+
+// 提示信息
+.example-tip {
+  padding: 12px 16px;
+  background: var(--el-color-info-light-9);
+  border-radius: 6px;
+  border-left: 4px solid var(--el-color-info);
+  color: var(--el-color-info);
+  font-size: 14px;
+  margin-bottom: 16px;
+
+  &.warning {
+    background: var(--el-color-warning-light-9);
+    border-left-color: var(--el-color-warning);
+    color: var(--el-color-warning-dark-2);
+  }
+
+  &.success {
+    background: var(--el-color-success-light-9);
+    border-left-color: var(--el-color-success);
+    color: var(--el-color-success-dark-2);
+  }
+
+  &.danger {
+    background: var(--el-color-danger-light-9);
+    border-left-color: var(--el-color-danger);
+    color: var(--el-color-danger-dark-2);
+  }
+}
+
+// 间距工具类
+.mb-0 { margin-bottom: 0 !important; }
+.mb-1 { margin-bottom: 4px !important; }
+.mb-2 { margin-bottom: 8px !important; }
+.mb-3 { margin-bottom: 12px !important; }
+.mb-4 { margin-bottom: 16px !important; }
+.mb-5 { margin-bottom: 20px !important; }
+.mb-6 { margin-bottom: 24px !important; }
+
+.mt-0 { margin-top: 0 !important; }
+.mt-1 { margin-top: 4px !important; }
+.mt-2 { margin-top: 8px !important; }
+.mt-3 { margin-top: 12px !important; }
+.mt-4 { margin-top: 16px !important; }
+.mt-5 { margin-top: 20px !important; }
+.mt-6 { margin-top: 24px !important; }
+
+// ========== 深色主题适配 ==========
+html.dark {
+  .example-page {
+    background: var(--el-bg-color);
+  }
+
+  .example-section {
+    background: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+
+    &:hover {
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .example-demo {
+    background: var(--el-fill-color-darker);
+    border-color: var(--el-border-color);
+  }
+
+  .example-result {
+    background: var(--el-fill-color-dark);
+    border-color: var(--el-border-color);
+  }
+
+  .code-block {
+    background: #1e1e1e;
+    border: 1px solid var(--el-border-color);
+
+    pre code {
+      color: #d4d4d4;
+    }
+  }
+
+  .config-panel {
+    background: var(--el-fill-color-dark);
+    border-color: var(--el-border-color);
+
+    .config-item {
+      border-bottom-color: var(--el-border-color-dark);
+    }
+  }
+
+  .preview-area {
+    background: var(--el-fill-color-darker);
+    border-color: var(--el-border-color);
+  }
+
+  .event-log {
+    .log-container {
+      background: var(--el-bg-color-overlay);
+      border-color: var(--el-border-color);
+
+      .log-item {
+        border-bottom-color: var(--el-border-color-dark);
+
+        &:hover {
+          background: var(--el-fill-color-dark);
+        }
+
+        &.success {
+          background: rgba(var(--el-color-success-rgb), 0.15);
+        }
+
+        &.error {
+          background: rgba(var(--el-color-danger-rgb), 0.15);
+        }
+
+        &.warning {
+          background: rgba(var(--el-color-warning-rgb), 0.15);
+        }
+
+        &.info {
+          background: rgba(var(--el-color-info-rgb), 0.15);
+        }
+      }
+    }
+  }
+
+  .example-card {
+    background: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+
+    &:hover {
+      border-color: var(--el-color-primary);
+      box-shadow: 0 2px 12px rgba(var(--el-color-primary-rgb), 0.2);
+    }
+  }
+
+  .example-tip {
+    &.warning {
+      color: var(--el-color-warning);
+    }
+
+    &.success {
+      color: var(--el-color-success);
+    }
+
+    &.danger {
+      color: var(--el-color-danger);
+    }
+  }
+}

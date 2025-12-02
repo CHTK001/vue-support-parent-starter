@@ -273,3 +273,14 @@
   --app-code-text: var(--app-text-primary);
   --app-code-border: var(--app-border-primary);
 }
+
+
+html.light,
+html.default {
+  // 使用新的颜色变量
+  --el-bg-color-2: var(--app-bg-primary);
+  --el-text-color-primary-2: var(--app-text-secondary);
+  .text {
+    color: var(--app-text-primary);
+  }
+}

@@ -4,6 +4,7 @@ import router from "./router";
 import { ScMap, ScLayer } from "@repo/components";
 
 import "./styles/main.css";
+import "./styles/example-common.scss";
 
 const app = createApp(App);
 

@@ -15,7 +15,7 @@ const { device } = useNav();
 </script>
 
 <template>
-  <div class="search-footer text-[#333] dark:text-white">
+  <div class="search-footer">
     <span class="search-footer-item">
       <EnterOutlined class="icon" />
       {{ t("buttons.pureConfirm") }}
@@ -50,9 +50,9 @@ const { device } = useNav();
     margin-right: 3px;
     font-size: 20px;
     box-shadow:
-      inset 0 -2px #cdcde6,
-      inset 0 0 1px 1px #fff,
-      0 1px 2px 1px #1e235a66;
+      inset 0 -2px var(--el-border-color-lighter),
+      inset 0 0 1px 1px var(--el-bg-color),
+      0 1px 2px 1px rgba(30, 35, 90, 0.4);
   }
 
   .search-footer-total {

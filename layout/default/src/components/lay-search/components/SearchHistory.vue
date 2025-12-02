@@ -26,11 +26,12 @@ const instance = getCurrentInstance()!;
 const props = withDefaults(defineProps<Props>(), {});
 
 const itemStyle = computed(() => {
-  return item => {
+  return (item) => {
     return {
-      background: item?.path === active.value ? useEpThemeStoreHook().epThemeColor : "",
+      background:
+        item?.path === active.value ? useEpThemeStoreHook().epThemeColor : "",
       color: item.path === active.value ? "#fff" : "",
-      fontSize: item.path === active.value ? "16px" : "14px"
+      fontSize: item.path === active.value ? "16px" : "14px",
     };
   };
 });
@@ -38,7 +39,7 @@ const itemStyle = computed(() => {
 const titleStyle = computed(() => {
   return {
     color: useEpThemeStoreHook().epThemeColor,
-    fontWeight: 500
+    fontWeight: 500,
   };
 });
 
@@ -48,12 +49,12 @@ const active = computed({
   },
   set(val: string) {
     emit("update:value", val);
-  }
+  },
 });
 
 watch(
   () => props.value,
-  newValue => {
+  (newValue) => {
     if (newValue) {
       if (stopMouseEvent.value) {
         delay(100).then(() => (stopMouseEvent.value = false));
@@ -63,11 +64,11 @@ watch(
 );
 
 const historyList = computed(() => {
-  return props.options.filter(item => item.type === "history");
+  return props.options.filter((item) => item.type === "history");
 });
 
 const collectList = computed(() => {
-  return props.options.filter(item => item.type === "collect");
+  return props.options.filter((item) => item.type === "collect");
 });
 
 function handleCollect(item) {
@@ -98,7 +99,9 @@ useResizeObserver(historyRef, resizeResult);
 function handleScroll(index: number) {
   const curInstance = instance?.proxy?.$refs[`historyItemRef${index}`];
   if (!curInstance) return 0;
-  const curRef = isArray(curInstance) ? (curInstance[0] as any) : (curInstance as any);
+  const curRef = isArray(curInstance)
+    ? (curInstance[0] as any)
+    : (curInstance as any);
   const scrollTop = curRef.offsetTop + 128; // 128 两个history-item（56px+56px=112px）高度加上下margin（8px+8px=16px）
   return scrollTop > innerHeight.value ? scrollTop - innerHeight.value : 0;
 }
@@ -111,20 +114,21 @@ let sortableInstance = null;
 
 watch(
   collectList,
-  val => {
+  (val) => {
     if (val.length > 1) {
       nextTick(() => {
-        const wrapper: HTMLElement = document.querySelector(".collect-container");
+        const wrapper: HTMLElement =
+          document.querySelector(".collect-container");
         if (!wrapper || sortableInstance) return;
         sortableInstance = Sortable.create(wrapper, {
           animation: 160,
-          onStart: event => {
+          onStart: (event) => {
             event.item.style.cursor = "move";
           },
-          onEnd: event => {
+          onEnd: (event) => {
             event.item.style.cursor = "pointer";
           },
-          onUpdate: handleChangeIndex
+          onUpdate: handleChangeIndex,
         });
         resizeResult();
       });
@@ -151,12 +155,18 @@ defineExpose({ handleScroll });
         @click="handleTo"
         @mouseenter="handleMouse(item)"
       >
-        <SearchHistoryItem :item="item" @delete-item="handleDelete" @collect-item="handleCollect" />
+        <SearchHistoryItem
+          :item="item"
+          @delete-item="handleDelete"
+          @collect-item="handleCollect"
+        />
       </div>
     </template>
     <template v-if="collectList.length">
       <div :style="titleStyle">
-        {{ `${t("search.pureCollect")}${collectList.length > 1 ? t("search.pureDragSort") : ""}` }}
+        {{
+          `${t("search.pureCollect")}${collectList.length > 1 ? t("search.pureDragSort") : ""}`
+        }}
       </div>
       <div class="collect-container">
         <div
@@ -186,7 +196,7 @@ defineExpose({ handleScroll });
     padding: 14px;
     margin: 8px auto 10px;
     cursor: pointer;
-    border: 0.1px solid #ccc;
+    border: 1px solid var(--el-border-color-lighter);
     border-radius: 4px;
     transition: font-size 0.16s;
   }

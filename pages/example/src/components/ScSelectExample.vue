@@ -4,7 +4,10 @@
       <!-- 左侧预览区域 -->
       <div class="preview-area">
         <h4>组件预览{{ layout }}</h4>
-        <div class="preview-container" :class="{ 'custom-style': useCustomStyle, dark: isDarkMode }">
+        <div
+          class="preview-container"
+          :class="{ 'custom-style': useCustomStyle, dark: isDarkMode }"
+        >
           <ScSelect
             v-model="selectedValue"
             :options="options"
@@ -17,20 +20,42 @@
             :max-collapse-tags="maxCollapseTags"
             :width="width"
             :icon-position="iconPosition"
-            :filter-output-format="showFilterDemo ? filterOutputFormat : undefined"
+            :filter-output-format="
+              showFilterDemo ? filterOutputFormat : undefined
+            "
             @change="handleChange"
           />
 
           <div class="result-display mt-4">
-            <el-alert v-if="showFilterDemo" :title="`过滤器选中值: ${filterSelectedValue.join(', ')}`" type="success" :closable="false" />
-            <el-alert v-else-if="!multiple" :title="`当前选中值: ${selectedValue}`" type="success" :closable="false" />
-            <el-alert v-else :title="`当前选中值: ${selectedMultipleDisplay}`" type="success" :closable="false" />
+            <el-alert
+              v-if="showFilterDemo"
+              :title="`过滤器选中值: ${filterSelectedValue.join(', ')}`"
+              type="success"
+              :closable="false"
+            />
+            <el-alert
+              v-else-if="!multiple"
+              :title="`当前选中值: ${selectedValue}`"
+              type="success"
+              :closable="false"
+            />
+            <el-alert
+              v-else
+              :title="`当前选中值: ${selectedMultipleDisplay}`"
+              type="success"
+              :closable="false"
+            />
           </div>
 
           <!-- 输出格式展示 -->
-          <div v-if="showFilterDemo && outputFormatDisplay" class="output-format-display mt-4">
+          <div
+            v-if="showFilterDemo && outputFormatDisplay"
+            class="output-format-display mt-4"
+          >
             <h5>{{ filterOutputFormat.toUpperCase() }}格式输出:</h5>
-            <pre class="output-code"><code>{{ outputFormatDisplay }}</code></pre>
+            <pre
+              class="output-code"
+            ><code>{{ outputFormatDisplay }}</code></pre>
           </div>
         </div>
       </div>
@@ -55,7 +80,11 @@
           </el-form-item>
 
           <el-form-item label="选择模式">
-            <el-switch v-model="multiple" active-text="多选" inactive-text="单选" />
+            <el-switch
+              v-model="multiple"
+              active-text="多选"
+              inactive-text="单选"
+            />
           </el-form-item>
 
           <el-form-item v-if="layout === 'card'" label="图标位置">
@@ -73,11 +102,21 @@
           </el-form-item>
 
           <el-form-item label="自定义样式">
-            <el-switch v-model="useCustomStyle" active-text="启用" inactive-text="禁用" />
+            <el-switch
+              v-model="useCustomStyle"
+              active-text="启用"
+              inactive-text="禁用"
+            />
           </el-form-item>
 
           <el-form-item label="卡片宽度">
-            <el-input-number v-model="widthValue" :min="80" :max="300" :step="10" @change="updateWidth" />
+            <el-input-number
+              v-model="widthValue"
+              :min="80"
+              :max="300"
+              :step="10"
+              @change="updateWidth"
+            />
             <span class="ml-2">px</span>
           </el-form-item>
 
@@ -86,25 +125,59 @@
           </el-form-item>
 
           <el-form-item label="多选限制数量" :disabled="!multiple">
-            <el-tooltip content="多选模式下最多可选择的选项数量，0表示不限制" placement="top" :disabled="!multiple">
+            <el-tooltip
+              content="多选模式下最多可选择的选项数量，0表示不限制"
+              placement="top"
+              :disabled="!multiple"
+            >
               <div>
-                <el-slider v-model="limit" :min="0" :max="10" :step="1" show-stops :disabled="!multiple" />
-                <div class="limit-hint">{{ limit === 0 ? "不限制" : `最多选择 ${limit} 项` }}</div>
+                <el-slider
+                  v-model="limit"
+                  :min="0"
+                  :max="10"
+                  :step="1"
+                  show-stops
+                  :disabled="!multiple"
+                />
+                <div class="limit-hint">
+                  {{ limit === 0 ? "不限制" : `最多选择 ${limit} 项` }}
+                </div>
               </div>
             </el-tooltip>
           </el-form-item>
 
-          <el-form-item label="标签显示数量" :disabled="!multiple || layout !== 'select'">
-            <el-tooltip content="select布局下多选模式最多显示的标签数量" placement="top" :disabled="!multiple || layout !== 'select'">
+          <el-form-item
+            label="标签显示数量"
+            :disabled="!multiple || layout !== 'select'"
+          >
+            <el-tooltip
+              content="select布局下多选模式最多显示的标签数量"
+              placement="top"
+              :disabled="!multiple || layout !== 'select'"
+            >
               <div>
-                <el-slider v-model="maxCollapseTags" :min="1" :max="5" :step="1" show-stops :disabled="!multiple || layout !== 'select'" />
-                <div class="limit-hint">最多显示 {{ maxCollapseTags }} 个标签</div>
+                <el-slider
+                  v-model="maxCollapseTags"
+                  :min="1"
+                  :max="5"
+                  :step="1"
+                  show-stops
+                  :disabled="!multiple || layout !== 'select'"
+                />
+                <div class="limit-hint">
+                  最多显示 {{ maxCollapseTags }} 个标签
+                </div>
               </div>
             </el-tooltip>
           </el-form-item>
 
           <el-form-item label="演示模式">
-            <el-switch v-model="showFilterDemo" active-text="过滤器模式" inactive-text="普通选择器" class="w-100" />
+            <el-switch
+              v-model="showFilterDemo"
+              active-text="过滤器模式"
+              inactive-text="普通选择器"
+              class="w-100"
+            />
           </el-form-item>
 
           <el-form-item v-if="!showFilterDemo" label="选项集合">
@@ -137,7 +210,12 @@
 
     <!-- 代码示例 -->
     <div class="code-example mt-4">
-      <CodeDisplay :code="codeExample" language="html" title="代码示例" description="根据当前配置生成的代码示例" />
+      <CodeDisplay
+        :code="codeExample"
+        language="html"
+        title="代码示例"
+        description="根据当前配置生成的代码示例"
+      />
     </div>
   </div>
 </template>
@@ -161,7 +239,9 @@ const toggleTheme = () => {
 const layout = ref("card");
 const columnsType = ref("auto");
 const columnsValue = ref(3);
-const columns = computed(() => (columnsType.value === "auto" ? "auto" : columnsValue.value));
+const columns = computed(() =>
+  columnsType.value === "auto" ? "auto" : columnsValue.value
+);
 const gap = ref(8);
 const multiple = ref(false);
 const useCustomStyle = ref(false);
@@ -181,20 +261,89 @@ const mockTableUrl = async (params) => {
 
   // 模拟数据
   const allData = [
-    { id: 1, label: "张三", value: "user1", department: "技术部", position: "前端工程师", experience: "3年", status: "在职" },
-    { id: 2, label: "李四", value: "user2", department: "产品部", position: "产品经理", experience: "5年", status: "在职" },
-    { id: 3, label: "王五", value: "user3", department: "设计部", position: "UI设计师", experience: "2年", status: "在职" },
-    { id: 4, label: "赵六", value: "user4", department: "技术部", position: "后端工程师", experience: "4年", status: "离职" },
-    { id: 5, label: "钱七", value: "user5", department: "运营部", position: "运营专员", experience: "1年", status: "在职" },
-    { id: 6, label: "孙八", value: "user6", department: "技术部", position: "全栈工程师", experience: "6年", status: "在职" },
-    { id: 7, label: "周九", value: "user7", department: "测试部", position: "测试工程师", experience: "3年", status: "在职" },
-    { id: 8, label: "吴十", value: "user8", department: "技术部", position: "架构师", experience: "8年", status: "在职" },
+    {
+      id: 1,
+      label: "张三",
+      value: "user1",
+      department: "技术部",
+      position: "前端工程师",
+      experience: "3年",
+      status: "在职",
+    },
+    {
+      id: 2,
+      label: "李四",
+      value: "user2",
+      department: "产品部",
+      position: "产品经理",
+      experience: "5年",
+      status: "在职",
+    },
+    {
+      id: 3,
+      label: "王五",
+      value: "user3",
+      department: "设计部",
+      position: "UI设计师",
+      experience: "2年",
+      status: "在职",
+    },
+    {
+      id: 4,
+      label: "赵六",
+      value: "user4",
+      department: "技术部",
+      position: "后端工程师",
+      experience: "4年",
+      status: "离职",
+    },
+    {
+      id: 5,
+      label: "钱七",
+      value: "user5",
+      department: "运营部",
+      position: "运营专员",
+      experience: "1年",
+      status: "在职",
+    },
+    {
+      id: 6,
+      label: "孙八",
+      value: "user6",
+      department: "技术部",
+      position: "全栈工程师",
+      experience: "6年",
+      status: "在职",
+    },
+    {
+      id: 7,
+      label: "周九",
+      value: "user7",
+      department: "测试部",
+      position: "测试工程师",
+      experience: "3年",
+      status: "在职",
+    },
+    {
+      id: 8,
+      label: "吴十",
+      value: "user8",
+      department: "技术部",
+      position: "架构师",
+      experience: "8年",
+      status: "在职",
+    },
   ];
 
   // 模拟搜索过滤
   let filteredData = allData;
   if (params?.keywords) {
-    filteredData = allData.filter((item) => item.label.includes(params.keywords) || item.department.includes(params.keywords) || item.position.includes(params.keywords));
+    filteredData = allData.filter(
+      (item) =>
+        item.label.includes(params.keywords) ||
+        item.department.includes(params.keywords) ||
+        item.position.includes(params.keywords)
+    );
   }
 
   if (params?.page) {
@@ -264,7 +413,11 @@ const socialOptions = [
 
 const httpIconOptions = [
   { label: "GitHub", value: "github", icon: "https://github.com/favicon.ico" },
-  { label: "Google", value: "google", icon: "https://www.google.com/favicon.ico" },
+  {
+    label: "Google",
+    value: "google",
+    icon: "https://www.google.com/favicon.ico",
+  },
   { label: "百度", value: "baidu", icon: "https://www.baidu.com/favicon.ico" },
   { label: "默认图标", value: "default" }, // 测试默认图标
   { label: "Remix图标", value: "remix", icon: "ri:github-fill" }, // 测试ri:格式
@@ -272,12 +425,54 @@ const httpIconOptions = [
 
 // 表格数据选项
 const tableDataOptions = [
-  { label: "张三", value: "user1", department: "技术部", position: "前端工程师", experience: "3年", status: "在职" },
-  { label: "李四", value: "user2", department: "产品部", position: "产品经理", experience: "5年", status: "在职" },
-  { label: "王五", value: "user3", department: "设计部", position: "UI设计师", experience: "2年", status: "在职" },
-  { label: "赵六", value: "user4", department: "技术部", position: "后端工程师", experience: "4年", status: "离职" },
-  { label: "钱七", value: "user5", department: "运营部", position: "运营专员", experience: "1年", status: "在职" },
-  { label: "孙八", value: "user6", department: "技术部", position: "全栈工程师", experience: "6年", status: "在职" },
+  {
+    label: "张三",
+    value: "user1",
+    department: "技术部",
+    position: "前端工程师",
+    experience: "3年",
+    status: "在职",
+  },
+  {
+    label: "李四",
+    value: "user2",
+    department: "产品部",
+    position: "产品经理",
+    experience: "5年",
+    status: "在职",
+  },
+  {
+    label: "王五",
+    value: "user3",
+    department: "设计部",
+    position: "UI设计师",
+    experience: "2年",
+    status: "在职",
+  },
+  {
+    label: "赵六",
+    value: "user4",
+    department: "技术部",
+    position: "后端工程师",
+    experience: "4年",
+    status: "离职",
+  },
+  {
+    label: "钱七",
+    value: "user5",
+    department: "运营部",
+    position: "运营专员",
+    experience: "1年",
+    status: "在职",
+  },
+  {
+    label: "孙八",
+    value: "user6",
+    department: "技术部",
+    position: "全栈工程师",
+    experience: "6年",
+    status: "在职",
+  },
 ];
 
 // 表格列配置
@@ -332,18 +527,24 @@ const outputFormatDisplay = computed(() => {
   if (!showFilterDemo.value) return null;
 
   const value = filterSelectedValue.value;
-  const selectedOptions = filterOptions.filter((opt) => value.includes(opt.value));
+  const selectedOptions = filterOptions.filter((opt) =>
+    value.includes(opt.value)
+  );
 
   switch (filterOutputFormat.value) {
     case "array":
       return JSON.stringify(value, null, 2);
     case "sql":
       if (selectedOptions.length === 0) return "";
-      const sqlConditions = selectedOptions.map((opt) => `${opt.field} ${opt.operator} '${opt.value}'`);
+      const sqlConditions = selectedOptions.map(
+        (opt) => `${opt.field} ${opt.operator} '${opt.value}'`
+      );
       return sqlConditions.join(" OR ");
     case "lucene":
       if (selectedOptions.length === 0) return "";
-      const luceneConditions = selectedOptions.map((opt) => `${opt.field}:${opt.value}`);
+      const luceneConditions = selectedOptions.map(
+        (opt) => `${opt.field}:${opt.value}`
+      );
       return luceneConditions.join(" OR ");
     default: // default
       return JSON.stringify(
@@ -426,7 +627,11 @@ const handleChange = (value) => {
 // 生成代码示例
 const codeExample = computed(() => {
   const isMultiple = showFilterDemo.value ? true : multiple.value;
-  const modelName = showFilterDemo.value ? "filterValue" : isMultiple ? "selectedValues" : "selectedValue";
+  const modelName = showFilterDemo.value
+    ? "filterValue"
+    : isMultiple
+      ? "selectedValues"
+      : "selectedValue";
 
   let code = `<template>
   <div${useCustomStyle.value ? ' class="custom-style-container"' : ""}>
@@ -567,7 +772,7 @@ const handleTablePageChange = (page) => {
 }
 
 .text-secondary {
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   margin: 0;
 }
 
@@ -626,7 +831,7 @@ h4 {
 }
 
 pre {
-  background-color: #f5f7fa;
+  background-color: var(--el-fill-color-light);
   padding: 15px;
   border-radius: 4px;
   overflow-x: auto;
@@ -646,24 +851,24 @@ code {
 /* 自定义样式示例 */
 .custom-style :deep(.card-selector-item) {
   border-radius: 16px;
-  background-color: #f0f9ff;
-  border-color: #e0f2fe;
+  background-color: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-7);
 }
 
 .custom-style :deep(.card-selector-item:hover) {
-  background-color: #e0f2fe;
+  background-color: var(--el-color-primary-light-8);
   transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow);
 }
 
 .custom-style :deep(.card-selector-item.active) {
-  background-color: #0ea5e9;
-  border-color: #0284c7;
-  color: var(--el-text-color-primary);
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary-dark-2);
+  color: #fff;
 }
 
 .custom-style :deep(.card-selector-item.active .card-icon) {
-  color: var(--el-text-color-primary);
+  color: #fff;
 }
 
 .limit-hint {
@@ -686,7 +891,7 @@ code {
 
 .output-code {
   background: var(--el-bg-color-overlay);
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
   padding: 12px;
   margin: 0;
@@ -701,73 +906,45 @@ code {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
-/* 暗黑模式样式 */
-.el-dark {
-  --preview-bg: #1a1a1a;
-  --preview-border: #333;
-  --text-color: #eee;
-  --heading-color: #fff;
-  --code-bg: #2d2d2d;
-  --code-color: #eee;
-}
+/* 暗黑模式样式 - 使用 html.dark 选择器 */
+html.dark {
+  .preview-container {
+    background-color: var(--el-fill-color-dark);
+    border-color: var(--el-border-color);
+  }
 
-.el-dark .preview-container {
-  background-color: var(--preview-bg);
-  border-color: var(--preview-border);
-}
+  pre {
+    background-color: var(--el-fill-color-darker);
+  }
 
-.el-dark h3,
-.el-dark h4 {
-  color: var(--heading-color);
-}
-
-.el-dark .text-secondary {
-  color: #aaa;
-}
-
-.el-dark pre {
-  background-color: var(--code-bg);
-}
-
-.el-dark code {
-  color: var(--code-color);
-}
-
-.el-dark .output-format-display h5 {
-  color: var(--heading-color);
-}
-
-.el-dark .output-code {
-  background-color: var(--code-bg);
-  border-color: var(--el-text-color-primary);
-}
-
-.el-dark .output-code code {
-  color: var(--code-color);
+  .output-code {
+    background-color: var(--el-fill-color-darker);
+    border-color: var(--el-border-color);
+  }
 }
 
 /* 自定义样式示例 - 药丸样式 */
 .custom-style :deep(.pill-selector-item) {
   border-radius: 24px;
-  background-color: #f0f9ff;
-  border-color: #e0f2fe;
+  background-color: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-7);
 }
 
 .custom-style :deep(.pill-selector-item:hover) {
-  background-color: #e0f2fe;
+  background-color: var(--el-color-primary-light-8);
   transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow);
 }
 
 .custom-style :deep(.pill-selector-item.active) {
-  background-color: #0ea5e9;
-  border-color: #0284c7;
-  color: var(--el-text-color-primary);
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary-dark-2);
+  color: #fff;
 }
 
 .custom-style :deep(.pill-selector-item.active .pill-icon) {
   background-color: var(--el-bg-color-overlay);
-  color: #0ea5e9;
+  color: var(--el-color-primary);
 }
 
 @media screen and (max-width: 768px) {

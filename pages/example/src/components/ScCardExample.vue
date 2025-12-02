@@ -416,10 +416,10 @@ const codeTabs = [
           var(--el-color-primary-light-9)
         );
         border-radius: 16px;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--el-box-shadow);
 
         &:hover {
-          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+          box-shadow: var(--el-box-shadow-dark);
           transform: translateY(-4px);
         }
       }

@@ -5,12 +5,16 @@
         <div class="card-header">
           <div class="header-content">
             <h3>多类型输入组件 (ScInput)</h3>
-            <p class="text-secondary">一个支持多种输入类型的组件，可根据不同需求灵活使用</p>
+            <p class="text-secondary">
+              一个支持多种输入类型的组件，可根据不同需求灵活使用
+            </p>
           </div>
           <div class="theme-switch">
             <el-tooltip content="切换主题">
               <el-button circle @click="toggleTheme">
-                <IconifyIconOnline :icon="isDarkMode ? 'ep:sunny' : 'ep:moon'" />
+                <IconifyIconOnline
+                  :icon="isDarkMode ? 'ep:sunny' : 'ep:moon'"
+                />
               </el-button>
             </el-tooltip>
           </div>
@@ -21,7 +25,7 @@
         <!-- 左侧预览区域 -->
         <div class="preview-area">
           <h4>组件预览</h4>
-          <div class="preview-container" :class="{ 'dark': isDarkMode }">
+          <div class="preview-container" :class="{ dark: isDarkMode }">
             <div class="preview-item">
               <ScInput
                 v-model="inputValue"
@@ -52,40 +56,68 @@
             </div>
 
             <div class="result-display mt-4">
-              <el-alert :title="`当前值: ${inputValue}`" type="success" :closable="false" />
+              <el-alert
+                :title="`当前值: ${inputValue}`"
+                type="success"
+                :closable="false"
+              />
             </div>
           </div>
-          
+
           <!-- 类型预览 -->
           <h4 class="mt-4">输入类型预览</h4>
           <div class="layout-preview">
             <div class="layout-item">
               <p class="layout-title">文本输入</p>
-              <ScInput v-model="textValue" type="text" placeholder="请输入文本" />
+              <ScInput
+                v-model="textValue"
+                type="text"
+                placeholder="请输入文本"
+              />
             </div>
             <div class="layout-item">
               <p class="layout-title">文本域</p>
-              <ScInput v-model="textareaValue" type="textarea" placeholder="请输入多行文本" />
+              <ScInput
+                v-model="textareaValue"
+                type="textarea"
+                placeholder="请输入多行文本"
+              />
             </div>
             <div class="layout-item">
               <p class="layout-title">数字输入</p>
-              <ScInput v-model="numberValue" type="number" placeholder="请输入数字" />
+              <ScInput
+                v-model="numberValue"
+                type="number"
+                placeholder="请输入数字"
+              />
             </div>
             <div class="layout-item">
               <p class="layout-title">密码输入</p>
-              <ScInput v-model="passwordValue" type="password" placeholder="请输入密码" />
+              <ScInput
+                v-model="passwordValue"
+                type="password"
+                placeholder="请输入密码"
+              />
             </div>
             <div class="layout-item">
               <p class="layout-title">搜索输入</p>
-              <ScInput v-model="searchValue" type="search" placeholder="请输入搜索内容" />
+              <ScInput
+                v-model="searchValue"
+                type="search"
+                placeholder="请输入搜索内容"
+              />
             </div>
             <div class="layout-item">
               <p class="layout-title">邮箱输入</p>
-              <ScInput 
-                v-model="emailValue" 
-                type="email" 
-                placeholder="请输入邮箱" 
-                :rules="{ required: true, type: 'email', message: '请输入有效的邮箱地址' }"
+              <ScInput
+                v-model="emailValue"
+                type="email"
+                placeholder="请输入邮箱"
+                :rules="{
+                  required: true,
+                  type: 'email',
+                  message: '请输入有效的邮箱地址',
+                }"
               />
             </div>
             <div class="layout-item">
@@ -98,18 +130,22 @@
             </div>
             <div class="layout-item">
               <p class="layout-title">IP地址输入</p>
-              <ScInput 
-                v-model="ipValue" 
-                type="ip" 
+              <ScInput
+                v-model="ipValue"
+                type="ip"
                 placeholder="0.0.0.0"
-                :rules="{ required: true, type: 'ip', message: '请输入有效的IP地址' }"
+                :rules="{
+                  required: true,
+                  type: 'ip',
+                  message: '请输入有效的IP地址',
+                }"
               />
             </div>
             <div class="layout-item">
               <p class="layout-title">验证码输入</p>
-              <ScInput 
-                v-model="captchaValue" 
-                type="captcha" 
+              <ScInput
+                v-model="captchaValue"
+                type="captcha"
                 placeholder="请输入验证码"
                 :captcha-source="captchaSource"
                 :rules="{ required: true, message: '请输入验证码' }"
@@ -117,9 +153,9 @@
             </div>
             <div class="layout-item">
               <p class="layout-title">TOTP数字输入</p>
-              <ScInput 
-                v-model="totpNumberValue" 
-                type="totp" 
+              <ScInput
+                v-model="totpNumberValue"
+                type="totp"
                 totpValueType="number"
                 :count="true"
                 :rules="{ required: true, message: '请输入验证码' }"
@@ -127,9 +163,9 @@
             </div>
             <div class="layout-item">
               <p class="layout-title">TOTP字母输入</p>
-              <ScInput 
-                v-model="totpLetterValue" 
-                type="totp" 
+              <ScInput
+                v-model="totpLetterValue"
+                type="totp"
                 totpValueType="letter"
                 :count="true"
                 :rules="{ required: true, message: '请输入验证码' }"
@@ -137,29 +173,29 @@
             </div>
             <div class="layout-item">
               <p class="layout-title">TOTP任意字符</p>
-              <ScInput 
-                v-model="totpAnyValue" 
-                type="totp" 
+              <ScInput
+                v-model="totpAnyValue"
+                type="totp"
                 totpValueType="any"
                 :count="false"
                 :rules="{ required: true, message: '请输入验证码' }"
               />
             </div>
-            
+
             <div class="layout-item">
               <p class="layout-title">选择器输入</p>
-              <ScInput 
-                v-model="selectValue" 
-                type="select" 
+              <ScInput
+                v-model="selectValue"
+                type="select"
                 placeholder="请选择选项"
                 :options="mockOptions"
               />
             </div>
             <div class="layout-item">
               <p class="layout-title">多选选择器</p>
-              <ScInput 
-                v-model="multiSelectValue" 
-                type="select" 
+              <ScInput
+                v-model="multiSelectValue"
+                type="select"
                 placeholder="请选择多个选项"
                 :options="mockOptions"
                 :multiple="true"
@@ -167,18 +203,18 @@
             </div>
             <div class="layout-item">
               <p class="layout-title">远程数据选择器</p>
-              <ScInput 
-                v-model="remoteSelectValue" 
-                type="select" 
+              <ScInput
+                v-model="remoteSelectValue"
+                type="select"
                 placeholder="请选择用户"
                 :fetch-method="fetchUsers"
               />
             </div>
             <div class="layout-item">
               <p class="layout-title">带参数查询的选择器</p>
-              <ScInput 
-                v-model="paramsSelectValue" 
-                type="select" 
+              <ScInput
+                v-model="paramsSelectValue"
+                type="select"
                 placeholder="查询用户"
                 :fetch-method="fetchUsers"
                 :params="{ username: 'Bret' }"
@@ -186,65 +222,53 @@
             </div>
             <div class="layout-item">
               <p class="layout-title">日期选择器</p>
-              <ScInput 
-                v-model="dateValue" 
-                type="date" 
-                placeholder="选择日期"
-              />
+              <ScInput v-model="dateValue" type="date" placeholder="选择日期" />
             </div>
             <div class="layout-item">
               <p class="layout-title">时间选择器</p>
-              <ScInput 
-                v-model="timeValue" 
-                type="time" 
-                placeholder="选择时间"
-              />
+              <ScInput v-model="timeValue" type="time" placeholder="选择时间" />
             </div>
             <div class="layout-item">
               <p class="layout-title">日期时间</p>
-              <ScInput 
-                v-model="datetimeValue" 
-                type="datetime" 
+              <ScInput
+                v-model="datetimeValue"
+                type="datetime"
                 placeholder="选择日期和时间"
               />
             </div>
             <div class="layout-item">
               <p class="layout-title">年份选择</p>
-              <ScInput 
-                v-model="yearValue" 
-                type="year" 
-                placeholder="选择年份"
-              />
+              <ScInput v-model="yearValue" type="year" placeholder="选择年份" />
             </div>
             <div class="layout-item">
               <p class="layout-title">日期范围</p>
-              <ScInput 
-                v-model="dateRangeValue" 
-                type="daterange" 
+              <ScInput
+                v-model="dateRangeValue"
+                type="daterange"
                 placeholder="选择日期范围"
               />
             </div>
             <div class="layout-item">
               <p class="layout-title">时间范围</p>
-              <ScInput 
-                v-model="timeRangeValue" 
-                type="timerange" 
+              <ScInput
+                v-model="timeRangeValue"
+                type="timerange"
                 placeholder="选择时间范围"
               />
             </div>
             <div class="layout-item">
               <p class="layout-title">月份选择</p>
-              <ScInput 
-                v-model="monthValue" 
-                type="month" 
+              <ScInput
+                v-model="monthValue"
+                type="month"
                 placeholder="选择月份"
               />
             </div>
             <div class="layout-item">
               <p class="layout-title">月份范围</p>
-              <ScInput 
-                v-model="monthRangeValue" 
-                type="monthrange" 
+              <ScInput
+                v-model="monthRangeValue"
+                type="monthrange"
                 placeholder="选择月份范围"
               />
             </div>
@@ -256,7 +280,11 @@
           <h4>配置选项</h4>
           <el-form label-position="top" size="default">
             <el-form-item label="输入类型">
-              <el-select v-model="inputType" placeholder="选择输入类型" class="w-100">
+              <el-select
+                v-model="inputType"
+                placeholder="选择输入类型"
+                class="w-100"
+              >
                 <el-option-group label="基础输入">
                   <el-option label="文本 (text)" value="text" />
                   <el-option label="文本域 (textarea)" value="textarea" />
@@ -275,7 +303,10 @@
                   <el-option label="时间 (time)" value="time" />
                   <el-option label="年份 (year)" value="year" />
                   <el-option label="日期范围 (daterange)" value="daterange" />
-                  <el-option label="日期时间范围 (datetimerange)" value="datetimerange" />
+                  <el-option
+                    label="日期时间范围 (datetimerange)"
+                    value="datetimerange"
+                  />
                   <el-option label="月份范围 (monthrange)" value="monthrange" />
                   <el-option label="周范围 (weekrange)" value="weekrange" />
                   <el-option label="时间范围 (timerange)" value="timerange" />
@@ -321,21 +352,57 @@
             <el-form-item label="可清空">
               <el-switch v-model="clearable" />
             </el-form-item>
-            
+
             <el-form-item label="显示前缀图标">
               <el-switch v-model="showPrefix" />
             </el-form-item>
 
-            <el-form-item label="字数限制" v-if="['text', 'textarea', 'password', 'search', 'email', 'tel', 'url'].includes(inputType)">
-              <el-input-number v-model="maxlength" :min="0" :max="1000" class="w-100" />
+            <el-form-item
+              label="字数限制"
+              v-if="
+                [
+                  'text',
+                  'textarea',
+                  'password',
+                  'search',
+                  'email',
+                  'tel',
+                  'url',
+                ].includes(inputType)
+              "
+            >
+              <el-input-number
+                v-model="maxlength"
+                :min="0"
+                :max="1000"
+                class="w-100"
+              />
             </el-form-item>
 
-            <el-form-item label="显示字数统计" v-if="['text', 'textarea', 'password', 'search', 'email', 'tel', 'url'].includes(inputType) && maxlength > 0">
+            <el-form-item
+              label="显示字数统计"
+              v-if="
+                [
+                  'text',
+                  'textarea',
+                  'password',
+                  'search',
+                  'email',
+                  'tel',
+                  'url',
+                ].includes(inputType) && maxlength > 0
+              "
+            >
               <el-switch v-model="showWordLimit" />
             </el-form-item>
 
             <el-form-item label="前缀图标" v-if="showPrefix">
-              <el-select v-model="prefixIcon" placeholder="选择图标" clearable class="w-100">
+              <el-select
+                v-model="prefixIcon"
+                placeholder="选择图标"
+                clearable
+                class="w-100"
+              >
                 <el-option label="无图标" value="" />
                 <el-option label="搜索" value="ep:search" />
                 <el-option label="用户" value="ep:user" />
@@ -346,8 +413,26 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item label="后缀图标" v-if="['text', 'password', 'search', 'email', 'tel', 'url', 'card'].includes(inputType)">
-              <el-select v-model="suffixIcon" placeholder="选择图标" clearable class="w-100">
+            <el-form-item
+              label="后缀图标"
+              v-if="
+                [
+                  'text',
+                  'password',
+                  'search',
+                  'email',
+                  'tel',
+                  'url',
+                  'card',
+                ].includes(inputType)
+              "
+            >
+              <el-select
+                v-model="suffixIcon"
+                placeholder="选择图标"
+                clearable
+                class="w-100"
+              >
                 <el-option label="无图标" value="" />
                 <el-option label="警告" value="ep:warning" />
                 <el-option label="信息" value="ep:info" />
@@ -356,21 +441,24 @@
                 <el-option label="帮助" value="ep:question" />
               </el-select>
             </el-form-item>
-            
+
             <el-form-item label="数据校验">
               <el-switch v-model="enableValidation" />
             </el-form-item>
-            
+
             <el-form-item label="必填项" v-if="enableValidation">
               <el-switch v-model="isRequired" />
             </el-form-item>
-            
+
             <el-form-item label="显示校验消息" v-if="enableValidation">
               <el-switch v-model="showValidationMsg" />
             </el-form-item>
-            
+
             <el-form-item label="验证码图片地址" v-if="inputType === 'captcha'">
-              <el-input v-model="captchaSource" placeholder="输入验证码图片地址" />
+              <el-input
+                v-model="captchaSource"
+                placeholder="输入验证码图片地址"
+              />
             </el-form-item>
 
             <el-form-item label="是否多选" v-if="inputType === 'select'">
@@ -385,8 +473,14 @@
               </el-radio-group>
             </el-form-item>
 
-            <el-form-item label="远程查询参数" v-if="inputType === 'select' && dataSource === 'params'">
-              <el-input v-model="searchParams" placeholder="输入查询参数，如: name=John">
+            <el-form-item
+              label="远程查询参数"
+              v-if="inputType === 'select' && dataSource === 'params'"
+            >
+              <el-input
+                v-model="searchParams"
+                placeholder="输入查询参数，如: name=John"
+              >
                 <template #append>
                   <el-button @click="handleParamsSearch">搜索</el-button>
                 </template>
@@ -402,7 +496,13 @@
             </el-form-item>
 
             <el-form-item label="TOTP长度" v-if="inputType === 'totp'">
-              <el-slider v-model="totpLength" :min="4" :max="8" :show-stops="true" :marks="{4: '4', 5: '5', 6: '6', 7: '7', 8: '8'}" />
+              <el-slider
+                v-model="totpLength"
+                :min="4"
+                :max="8"
+                :show-stops="true"
+                :marks="{ 4: '4', 5: '5', 6: '6', 7: '7', 8: '8' }"
+              />
             </el-form-item>
 
             <el-form-item label="显示数量" v-if="inputType === 'totp'">
@@ -414,10 +514,10 @@
 
       <!-- 代码示例 -->
       <div class="code-example mt-4">
-        <CodeDisplay 
-          :code="codeExample" 
-          language="html" 
-          title="代码示例" 
+        <CodeDisplay
+          :code="codeExample"
+          language="html"
+          title="代码示例"
           description="根据当前配置生成的代码示例"
         />
       </div>
@@ -484,26 +584,26 @@ const isMultiple = ref(false);
 const dataSource = ref("static");
 
 // 参数查询相关
-const searchParams = ref('');
+const searchParams = ref("");
 const queryParams = ref({});
 const showTotpCount = ref(true);
 
 // TOTP输入相关
-const totpNumberValue = ref('');
-const totpLetterValue = ref('');
-const totpAnyValue = ref('');
-const totpValueType = ref('number');
+const totpNumberValue = ref("");
+const totpLetterValue = ref("");
+const totpAnyValue = ref("");
+const totpValueType = ref("number");
 const totpLength = ref(6);
 
 // 日期时间相关变量
-const dateValue = ref('');
-const timeValue = ref('');
-const datetimeValue = ref('');
-const yearValue = ref('');
+const dateValue = ref("");
+const timeValue = ref("");
+const datetimeValue = ref("");
+const yearValue = ref("");
 const dateRangeValue = ref([]);
 const timeRangeValue = ref([]);
-const monthValue = ref('');
-const weekValue = ref('');
+const monthValue = ref("");
+const weekValue = ref("");
 const monthRangeValue = ref([]);
 const weekRangeValue = ref([]);
 const datetimeRangeValue = ref([]);
@@ -520,14 +620,17 @@ const mockOptions = ref([
 // 从JSONPlaceholder获取用户数据
 const fetchUsers = async (params) => {
   try {
-    const response = await http.get('https://jsonplaceholder.typicode.com/users', params);
-    return response.data.map(user => ({
+    const response = await http.get(
+      "https://jsonplaceholder.typicode.com/users",
+      params
+    );
+    return response.data.map((user) => ({
       label: user.name,
       value: user.id,
-      icon: "ep:user"
+      icon: "ep:user",
     }));
   } catch (error) {
-    console.error('Error fetching users:', error);
+    console.error("Error fetching users:", error);
     return [];
   }
 };
@@ -535,19 +638,19 @@ const fetchUsers = async (params) => {
 // 校验规则
 const validationRules = computed(() => {
   if (!enableValidation.value) return {};
-  
+
   const rules = { required: isRequired.value };
-  
+
   if (inputType.value) {
     rules.type = inputType.value;
   }
-  
+
   if (isRequired.value) {
-    rules.message = `请输入${inputType.value === 'captcha' ? '验证码' : '内容'}`;
+    rules.message = `请输入${inputType.value === "captcha" ? "验证码" : "内容"}`;
   } else {
     rules.message = `请输入有效的${inputType.value}格式`;
   }
-  
+
   return rules;
 });
 
@@ -582,15 +685,15 @@ const handleRefresh = () => {
 // 处理参数搜索
 const handleParamsSearch = () => {
   const params = {};
-  const paramPairs = searchParams.value.split('&');
-  
-  paramPairs.forEach(pair => {
-    const [key, value] = pair.split('=');
+  const paramPairs = searchParams.value.split("&");
+
+  paramPairs.forEach((pair) => {
+    const [key, value] = pair.split("=");
     if (key && value) {
       params[key.trim()] = value.trim();
     }
   });
-  
+
   queryParams.value = params;
   ElMessage.info(`搜索参数: ${JSON.stringify(params)}`);
 };
@@ -598,34 +701,43 @@ const handleParamsSearch = () => {
 // 生成代码示例
 const codeExample = computed(() => {
   let propsStr = [];
-  
+
   // 必要属性
   propsStr.push(`type="${inputType.value}"`);
-  
+
   // 可选属性，只有不是默认值时才添加
   if (placeholder.value) propsStr.push(`placeholder="${placeholder.value}"`);
   if (size.value !== "default") propsStr.push(`size="${size.value}"`);
   if (disabled.value) propsStr.push(`disabled`);
   if (!clearable.value) propsStr.push(`:clearable="false"`);
   if (!showPrefix.value) propsStr.push(`:show-prefix="false"`);
-  
+
   // 根据类型添加不同的属性
-  if (["text", "textarea", "password", "search", "email", "tel", "url"].includes(inputType.value)) {
+  if (
+    ["text", "textarea", "password", "search", "email", "tel", "url"].includes(
+      inputType.value
+    )
+  ) {
     if (maxlength.value > 0) propsStr.push(`:maxlength="${maxlength.value}"`);
     if (showWordLimit.value) propsStr.push(`show-word-limit`);
   }
-  
+
   if (prefixIcon.value) propsStr.push(`prefix-icon="${prefixIcon.value}"`);
-  if (suffixIcon.value && ["text", "password", "search", "email", "tel", "url", "card"].includes(inputType.value)) {
+  if (
+    suffixIcon.value &&
+    ["text", "password", "search", "email", "tel", "url", "card"].includes(
+      inputType.value
+    )
+  ) {
     propsStr.push(`suffix-icon="${suffixIcon.value}"`);
   }
-  
-  if (inputType.value === 'captcha' && captchaSource.value) {
+
+  if (inputType.value === "captcha" && captchaSource.value) {
     propsStr.push(`captcha-source="${captchaSource.value}"`);
   }
-  
+
   // TOTP特定属性
-  if (inputType.value === 'totp') {
+  if (inputType.value === "totp") {
     propsStr.push(`totp-value-type="${totpValueType.value}"`);
     if (totpLength.value !== 6) {
       propsStr.push(`:length="${totpLength.value}"`);
@@ -634,45 +746,45 @@ const codeExample = computed(() => {
       propsStr.push(`:count="false"`);
     }
   }
-  
+
   // 选择器特定属性
-  if (inputType.value === 'select') {
+  if (inputType.value === "select") {
     if (isMultiple.value) {
       propsStr.push(`:multiple="true"`);
     }
-    
-    if (dataSource.value === 'static') {
+
+    if (dataSource.value === "static") {
       propsStr.push(`:options="options"`);
-    } else if (dataSource.value === 'remote') {
+    } else if (dataSource.value === "remote") {
       propsStr.push(`:fetch-method="fetchUsers"`);
-    } else if (dataSource.value === 'params') {
+    } else if (dataSource.value === "params") {
       propsStr.push(`:fetch-method="fetchUsers"`);
       propsStr.push(`:params="{ username: 'Bret' }"`);
     }
   }
-  
+
   // 添加校验规则
   if (enableValidation.value) {
-    let rulesStr = '{';
+    let rulesStr = "{";
     if (isRequired.value) {
-      rulesStr += ' required: true,';
+      rulesStr += " required: true,";
     }
-    if (inputType.value && inputType.value !== 'select') {
+    if (inputType.value && inputType.value !== "select") {
       rulesStr += ` type: "${inputType.value}",`;
     }
-    let message = isRequired.value 
-      ? `请${inputType.value === 'select' ? '选择' : '输入'}${inputType.value === 'captcha' ? '验证码' : '内容'}`
+    let message = isRequired.value
+      ? `请${inputType.value === "select" ? "选择" : "输入"}${inputType.value === "captcha" ? "验证码" : "内容"}`
       : `请输入有效的${inputType.value}格式`;
     rulesStr += ` message: "${message}" }`;
     propsStr.push(`:rules="${rulesStr}"`);
-    
+
     if (!showValidationMsg.value) {
       propsStr.push(`:show-validation-msg="false"`);
     }
   }
-  
+
   const propsText = propsStr.join("\n    ");
-  
+
   // 根据类型确定示例值
   let exampleValue;
   switch (inputType.value) {
@@ -708,17 +820,17 @@ const codeExample = computed(() => {
     default:
       exampleValue = "''";
   }
-  
+
   // 添加事件
   let events = [];
   events.push(`@change="handleChange"`);
-  
-  if (inputType.value === 'captcha') {
+
+  if (inputType.value === "captcha") {
     events.push(`@refresh="handleRefresh"`);
   }
-  
+
   const eventsText = events.join("\n    ");
-  
+
   let code = `<template>
   <ScInput
     v-model="value"
@@ -732,8 +844,8 @@ import { ref } from 'vue';
 import ScInput from "@repo/components/ScInput/index.vue";`;
 
   // 根据类型添加相关代码
-  if (inputType.value === 'select') {
-    if (dataSource.value === 'static') {
+  if (inputType.value === "select") {
+    if (dataSource.value === "static") {
       code += `\n
 // 静态选项数据
 const options = [
@@ -743,7 +855,7 @@ const options = [
   { label: "选项四", value: "4", icon: "ep:sell" },
   { label: "选项五", value: "5", icon: "ep:money" }
 ];`;
-    } else if (dataSource.value === 'remote' || dataSource.value === 'params') {
+    } else if (dataSource.value === "remote" || dataSource.value === "params") {
       code += `\nimport { http } from "@repo/utils";
 
 // 从JSONPlaceholder获取用户数据
@@ -770,7 +882,7 @@ const handleChange = (value) => {
   console.log("值变化:", value);
 };`;
 
-  if (inputType.value === 'captcha') {
+  if (inputType.value === "captcha") {
     code += `\n
 const handleRefresh = () => {
   console.log("验证码已刷新");
@@ -810,7 +922,7 @@ onMounted(() => {
 }
 
 .text-secondary {
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   margin: 0;
 }
 
@@ -862,9 +974,9 @@ h4 {
   gap: 24px;
   margin-top: 16px;
   padding: 16px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
-  background-color: #fafafa;
+  background-color: var(--el-fill-color-lighter);
 }
 
 .layout-item {
@@ -875,8 +987,8 @@ h4 {
   gap: 12px;
   padding: 16px;
   border-radius: 8px;
-  background-color: #fff;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  background-color: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-lighter);
   min-width: 200px;
   width: calc(50% - 24px);
 }
@@ -884,7 +996,7 @@ h4 {
 .layout-title {
   margin: 0;
   font-size: 14px;
-  color: #606266;
+  color: var(--el-text-color-regular);
 }
 
 .code-example {
@@ -908,7 +1020,7 @@ h4 {
 }
 
 pre {
-  background-color: #f5f7fa;
+  background-color: var(--el-fill-color-light);
   padding: 15px;
   border-radius: 4px;
   overflow-x: auto;
@@ -925,57 +1037,36 @@ code {
   margin-bottom: 8px;
 }
 
-/* 暗黑模式样式 */
-.el-dark {
-  --preview-bg: #1a1a1a;
-  --preview-border: #333;
-  --text-color: #eee;
-  --heading-color: #fff;
-  --code-bg: #2d2d2d;
-  --code-color: #eee;
-}
+/* 暗黑模式样式 - 使用 html.dark 选择器 */
+html.dark {
+  .layout-preview {
+    background-color: var(--el-fill-color-dark);
+    border-color: var(--el-border-color);
+  }
 
-.el-dark .preview-container,
-.el-dark .layout-preview {
-  background-color: var(--preview-bg);
-  border-color: var(--preview-border);
-}
+  .layout-item {
+    background-color: var(--el-bg-color-overlay);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3);
+  }
 
-.el-dark .layout-item {
-  background-color: #2a2a2a;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.2);
-}
+  .layout-title {
+    color: var(--el-text-color-secondary);
+  }
 
-.el-dark .layout-title {
-  color: #ddd;
-}
-
-.el-dark h3, 
-.el-dark h4 {
-  color: var(--heading-color);
-}
-
-.el-dark .text-secondary {
-  color: #aaa;
-}
-
-.el-dark pre {
-  background-color: var(--code-bg);
-}
-
-.el-dark code {
-  color: var(--code-color);
+  pre {
+    background-color: var(--el-fill-color-darker);
+  }
 }
 
 @media screen and (max-width: 768px) {
   .example-content {
     flex-direction: column;
   }
-  
+
   .config-panel {
     width: 100%;
   }
-  
+
   .layout-item {
     width: 100%;
   }

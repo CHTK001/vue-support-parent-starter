@@ -21,8 +21,9 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   color: var(--el-text-color-primary);
   background-color: #f5f7fa;
 }
@@ -34,7 +35,6 @@ body {
 }
 
 .header {
-  background-color: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   padding: 16px 20px;
   display: flex;
@@ -74,4 +74,4 @@ nav a.router-link-active {
   flex: 1;
   padding: 20px;
 }
-</style> 
+</style>
