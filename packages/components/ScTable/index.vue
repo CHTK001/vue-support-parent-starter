@@ -97,7 +97,16 @@ const props = defineProps({
   /**
    * 拖拽手柄列宽度
    */
-  dragHandleWidth: { type: Number, default: 50 }
+  dragHandleWidth: { type: Number, default: 50 },
+  // 表格专有功能
+  /**
+   * 是否启用列位置交换（拖动表头列交换位置）
+   */
+  columnDraggable: { type: Boolean, default: false },
+  /**
+   * 是否启用十字标记（点击单元格高亮横向和纵向）
+   */
+  crossHighlight: { type: Boolean, default: false }
 });
 
 // 定义组件事件
@@ -155,7 +164,9 @@ const configState = reactive({
   size: props.size,
   border: typeof props.border === "string" ? props.border === "true" : !!props.border,
   stripe: typeof props.stripe === "string" ? props.stripe === "true" : !!props.stripe,
-  countDownable: props.countDownable
+  countDownable: props.countDownable,
+  columnDraggable: props.columnDraggable,
+  crossHighlight: props.crossHighlight
 });
 
 const customCountDownTime = ref(10);
@@ -192,8 +203,9 @@ const loadConfigFromStorage = () => {
         configState.border = savedConfig.table.border !== undefined ? savedConfig.table.border : configState.border;
         configState.stripe = savedConfig.table.stripe !== undefined ? savedConfig.table.stripe : configState.stripe;
         configState.size = savedConfig.table.size || configState.size;
+        configState.columnDraggable = savedConfig.table.columnDraggable !== undefined ? savedConfig.table.columnDraggable : configState.columnDraggable;
+        configState.crossHighlight = savedConfig.table.crossHighlight !== undefined ? savedConfig.table.crossHighlight : configState.crossHighlight;
       }
-      // 可以在这里加载其他配置
     }
   } catch (error) {
     console.error("加载表格配置失败:", error);
@@ -1056,6 +1068,14 @@ const saveConfig = config => {
     configState.border = config.config.border;
     configState.stripe = config.config.stripe;
     configState.size = config.config.size;
+
+    // 处理列位置交换和十字标记
+    if (config.config.columnDraggable !== undefined) {
+      configState.columnDraggable = config.config.columnDraggable;
+    }
+    if (config.config.crossHighlight !== undefined) {
+      configState.crossHighlight = config.config.crossHighlight;
+    }
 
     // 处理卡片布局的行列数设置
     if (config.config.rowSize !== undefined) {
