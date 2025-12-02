@@ -41,45 +41,71 @@
   </el-dialog>
 
   <!-- 自定义模式（使用 interact.js） -->
-  <Teleport v-else to="body">
-    <div v-if="dialogVisible" class="sc-dialog-overlay" :class="{ 'has-modal': modal }" @click.self="handleOverlayClick">
-      <div ref="dialogRef" class="sc-dialog sc-dialog--custom" :class="[`sc-dialog--${type}`, { 'is-dragging': isDragging, 'is-resizing': isResizing }]" :style="dialogStyle">
-        <!-- 头部 -->
-        <div class="sc-dialog__header" @mousedown="onHeaderMouseDown">
-          <slot name="header">
-            <span class="sc-dialog__title">{{ title }}</span>
-          </slot>
-          <button v-if="showClose" class="sc-dialog__close" @click="handleClose">
-            <IconifyIconOnline icon="ep:close" />
-          </button>
-        </div>
+  <template v-else>
+    <Teleport to="body">
+      <Transition name="dialog-fade" @after-leave="handleAfterLeave">
+        <div v-if="dialogVisible" class="sc-dialog-overlay" :class="{ 'has-modal': modal }" :style="{ zIndex: currentZIndex }" @click.self="handleOverlayClick">
+          <div
+            ref="dialogRef"
+            class="sc-dialog sc-dialog--custom"
+            :class="[`sc-dialog--${type}`, { 'is-dragging': isDragging, 'is-resizing': isResizing, 'has-float-icon': icon && iconMode === 'float' }]"
+            :style="dialogStyle"
+          >
+            <!-- 浮动图标（float 模式） -->
+            <div v-if="icon && iconMode === 'float'" class="sc-dialog__float-icon" :style="floatIconStyle">
+              <component :is="iconComponentName" :icon="icon" :style="{ fontSize: `${iconSize}px`, color: '#fff' }" />
+            </div>
 
-        <!-- 内容 -->
-        <div class="sc-dialog__body">
-          <slot />
-        </div>
+            <!-- 头部 -->
+            <div class="sc-dialog__header" @mousedown="onHeaderMouseDown">
+              <slot name="header">
+                <div class="sc-dialog__header-content">
+                  <!-- 内联图标（inline 模式） -->
+                  <component
+                    v-if="icon && iconMode === 'inline'"
+                    :is="iconComponentName"
+                    :icon="icon"
+                    class="sc-dialog__inline-icon"
+                    :style="{ fontSize: `${iconSize}px`, color: iconColor || typeColor }"
+                  />
+                  <span class="sc-dialog__title">{{ title }}</span>
+                </div>
+              </slot>
+              <button v-if="showClose" class="sc-dialog__close" @click="handleClose">
+                <IconifyIconOnline icon="ep:close" />
+              </button>
+            </div>
 
-        <!-- 底部 -->
-        <div v-if="showFooter" class="sc-dialog__footer">
-          <slot name="footer">
-            <el-button v-if="showCancelButton" @click="handleCancel">
-              {{ cancelText }}
-            </el-button>
-            <el-button v-if="showConfirmButton" type="primary" :loading="loading" @click="handleConfirm">
-              {{ confirmText }}
-            </el-button>
-          </slot>
-        </div>
+            <!-- 内容 -->
+            <div class="sc-dialog__body">
+              <slot />
+            </div>
 
-        <!-- 缩放手柄 -->
-        <template v-if="resizable">
-          <div class="sc-dialog__resize-handle sc-dialog__resize-handle--e"></div>
-          <div class="sc-dialog__resize-handle sc-dialog__resize-handle--s"></div>
-          <div class="sc-dialog__resize-handle sc-dialog__resize-handle--se"></div>
-        </template>
-      </div>
-    </div>
-  </Teleport>
+            <!-- 底部 -->
+            <div v-if="showFooter" class="sc-dialog__footer">
+              <slot name="footer">
+                <el-button v-if="showCancelButton" @click="handleCancel">
+                  {{ cancelText }}
+                </el-button>
+                <el-button v-if="showConfirmButton" type="primary" :loading="loading" @click="handleConfirm">
+                  {{ confirmText }}
+                </el-button>
+              </slot>
+            </div>
+
+            <!-- 缩放手柄 -->
+            <template v-if="resizable">
+              <div class="sc-dialog__resize-handle sc-dialog__resize-handle--w"></div>
+              <div class="sc-dialog__resize-handle sc-dialog__resize-handle--e"></div>
+              <div class="sc-dialog__resize-handle sc-dialog__resize-handle--s"></div>
+              <div class="sc-dialog__resize-handle sc-dialog__resize-handle--sw"></div>
+              <div class="sc-dialog__resize-handle sc-dialog__resize-handle--se"></div>
+            </template>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+  </template>
 </template>
 
 <script setup lang="ts">
@@ -95,7 +121,6 @@
  */
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, type PropType } from "vue";
 import { ElDialog, ElButton } from "element-plus";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
 import interact from "interactjs";
 
 /** 对话框模式 */
@@ -103,6 +128,9 @@ type DialogMode = "element" | "custom";
 
 /** 对话框类型 */
 type DialogType = "default" | "info" | "success" | "warning" | "error";
+
+/** 图标显示模式 */
+type IconMode = "inline" | "float";
 
 const props = withDefaults(
   defineProps<{
@@ -156,6 +184,14 @@ const props = withDefaults(
     confirmText?: string;
     /** 加载状态 */
     loading?: boolean;
+    /** 图标 */
+    icon?: string;
+    /** 图标模式：inline(标题左侧) 或 float(顶部浮动圆形) */
+    iconMode?: IconMode;
+    /** 图标大小 */
+    iconSize?: number;
+    /** 图标颜色 */
+    iconColor?: string;
   }>(),
   {
     modelValue: false,
@@ -181,7 +217,11 @@ const props = withDefaults(
     showConfirmButton: true,
     cancelText: "取消",
     confirmText: "确定",
-    loading: false
+    loading: false,
+    icon: "",
+    iconMode: "inline",
+    iconSize: 24,
+    iconColor: ""
   }
 );
 
@@ -196,23 +236,60 @@ const emit = defineEmits<{
   resize: [size: { width: number; height: number }];
 }>();
 
+// 全局 z-index 管理
+let globalZIndex = 2050;
+function getNextZIndex(): number {
+  return globalZIndex++;
+}
+
 // 状态
 const dialogVisible = ref(props.modelValue);
 const dialogRef = ref<HTMLElement | null>(null);
 const isDragging = ref(false);
 const isResizing = ref(false);
+const currentZIndex = ref(2050);
+const currentWidth = ref<string | null>(null);
 
 // interact.js 实例
 let interactInstance: ReturnType<typeof interact> | null = null;
 
 // 对话框样式
 const dialogStyle = computed(() => {
-  const w = typeof props.width === "number" ? `${props.width}px` : props.width;
+  const w = currentWidth.value || (typeof props.width === "number" ? `${props.width}px` : props.width);
   return {
     width: w,
     minWidth: `${props.minSize.width}px`,
     minHeight: `${props.minSize.height}px`,
     touchAction: "none"
+  };
+});
+
+// 图标组件名（根据图标格式自动选择）
+const iconComponentName = computed(() => {
+  if (!props.icon) return null;
+  // 包含 : 的是在线图标，否则是本地图标
+  return props.icon.includes(":") ? "IconifyIconOnline" : "IconifyIconOffline";
+});
+
+// 类型对应的颜色
+const typeColor = computed(() => {
+  const colors: Record<string, string> = {
+    default: "var(--el-color-primary)",
+    info: "var(--el-color-info)",
+    success: "var(--el-color-success)",
+    warning: "var(--el-color-warning)",
+    error: "var(--el-color-danger)"
+  };
+  return colors[props.type] || colors.default;
+});
+
+// 浮动图标样式
+const floatIconStyle = computed(() => {
+  const size = (props.iconSize || 24) * 2 + 16;
+  return {
+    width: `${size}px`,
+    height: `${size}px`,
+    backgroundColor: props.iconColor || typeColor.value
   };
 });
 
@@ -227,12 +304,19 @@ watch(dialogVisible, val => {
   emit("update:modelValue", val);
 });
 
-// 对话框显示时初始化 interact.js
+// 对话框显示时初始化 interact.js 并触发事件
 watch(dialogVisible, val => {
   if (val && props.mode === "custom") {
-    nextTick(() => initInteract());
-  } else {
+    currentZIndex.value = getNextZIndex();
+    currentWidth.value = null; // 重置宽度
+    emit("open");
+    nextTick(() => {
+      initInteract();
+      emit("opened");
+    });
+  } else if (!val && props.mode === "custom") {
     destroyInteract();
+    emit("close");
   }
 });
 
@@ -279,10 +363,10 @@ function initInteract(): void {
     });
   }
 
-  // 配置缩放
+  // 配置缩放（支持左右两侧和底部）
   if (props.resizable) {
     interactInstance.resizable({
-      edges: { left: false, right: true, bottom: true, top: false },
+      edges: { left: true, right: true, bottom: true, top: false },
       modifiers: [
         interact.modifiers.restrictSize({
           min: props.minSize,
@@ -299,6 +383,8 @@ function initInteract(): void {
           const { width, height } = event.rect;
           const { left, top } = event.deltaRect;
 
+          // 更新宽度状态，防止被 computed 覆盖
+          currentWidth.value = `${width}px`;
           target.style.width = `${width}px`;
           target.style.height = `${height}px`;
 
@@ -368,6 +454,10 @@ function onHeaderMouseDown(): void {
   // interact.js 自动处理
 }
 
+function handleAfterLeave(): void {
+  emit("closed");
+}
+
 // 生命周期
 onMounted(() => {
   if (dialogVisible.value && props.mode === "custom") {
@@ -413,7 +503,6 @@ defineExpose({
 .sc-dialog-overlay {
   position: fixed;
   inset: 0;
-  z-index: 2000;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -440,6 +529,30 @@ defineExpose({
     user-select: none;
   }
 
+  // 浮动图标模式时增加顶部间距
+  &.has-float-icon {
+    margin-top: 32px;
+
+    .sc-dialog__header {
+      padding-top: 24px;
+    }
+  }
+
+  // 浮动图标
+  .sc-dialog__float-icon {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1;
+  }
+
   .sc-dialog__header {
     display: flex;
     align-items: center;
@@ -447,6 +560,16 @@ defineExpose({
     padding: 16px 20px;
     border-bottom: 1px solid var(--el-border-color-lighter);
     cursor: move;
+  }
+
+  .sc-dialog__header-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sc-dialog__inline-icon {
+    flex-shrink: 0;
   }
 
   .sc-dialog__title {
@@ -493,6 +616,14 @@ defineExpose({
   .sc-dialog__resize-handle {
     position: absolute;
 
+    &--w {
+      top: 0;
+      left: 0;
+      width: 8px;
+      height: 100%;
+      cursor: w-resize;
+    }
+
     &--e {
       top: 0;
       right: 0;
@@ -503,10 +634,18 @@ defineExpose({
 
     &--s {
       bottom: 0;
-      left: 0;
-      width: 100%;
+      left: 8px;
+      right: 8px;
       height: 8px;
       cursor: s-resize;
+    }
+
+    &--sw {
+      bottom: 0;
+      left: 0;
+      width: 16px;
+      height: 16px;
+      cursor: sw-resize;
     }
 
     &--se {
@@ -534,6 +673,28 @@ defineExpose({
   &.sc-dialog--error .sc-dialog__header {
     border-top: 3px solid var(--el-color-danger);
     border-radius: 8px 8px 0 0;
+  }
+}
+
+// 对话框过渡动画
+.dialog-fade-enter-active,
+.dialog-fade-leave-active {
+  transition: opacity 0.3s ease;
+
+  .sc-dialog--custom {
+    transition:
+      transform 0.3s ease,
+      opacity 0.3s ease;
+  }
+}
+
+.dialog-fade-enter-from,
+.dialog-fade-leave-to {
+  opacity: 0;
+
+  .sc-dialog--custom {
+    transform: translateY(-20px);
+    opacity: 0;
   }
 }
 </style>

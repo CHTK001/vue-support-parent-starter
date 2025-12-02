@@ -45,12 +45,19 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item label="布局模式">
-              <el-radio-group v-model="config.layout" class="mb-2 block">
-                <el-radio label="default">默认布局</el-radio>
-                <el-radio label="simple">简单布局</el-radio>
-                <el-radio label="headless">无头部布局</el-radio>
+            <el-form-item label="模式">
+              <el-radio-group v-model="config.mode" class="mb-2 block">
+                <el-radio label="element">ElementPlus</el-radio>
+                <el-radio label="custom">自定义(拖拽/缩放)</el-radio>
               </el-radio-group>
+            </el-form-item>
+
+            <el-form-item label="缩放" v-if="config.mode === 'custom'">
+              <el-switch
+                v-model="config.resizable"
+                active-text="允许缩放"
+                class="mb-2 block"
+              ></el-switch>
             </el-form-item>
 
             <el-form-item label="功能设置">
@@ -219,6 +226,7 @@
             :title="config.customHeader ? undefined : config.title"
             :width="config.width + 'px'"
             :top="config.top"
+            :mode="config.mode"
             :fullscreen="config.fullscreen"
             :modal="config.modal"
             :append-to-body="config.appendToBody"
@@ -228,8 +236,8 @@
             :close-on-press-escape="config.closeOnPressEscape"
             :show-close="config.showClose"
             :draggable="config.draggable"
+            :resizable="config.resizable"
             :destroy-on-close="config.destroyOnClose"
-            :layout="config.layout"
             @open="handleDialogOpen"
             @opened="handleDialogOpened"
             @close="handleDialogClose"
@@ -332,9 +340,11 @@ const config = reactive({
   title: "对话框示例",
   width: 500,
   top: "15vh",
+  mode: "element", // element 或 custom
   fullscreen: false,
   modal: true,
-  draggable: false,
+  draggable: true,
+  resizable: false,
   showClose: true,
   closeOnClickModal: true,
   closeOnPressEscape: true,
@@ -345,7 +355,6 @@ const config = reactive({
   customHeader: false,
   contentType: "text",
   textContent: "这是一个可配置的对话框示例，您可以通过左侧面板调整各种属性。",
-  layout: "default",
 });
 
 // 表单数据
@@ -382,23 +391,13 @@ const handleDialogClosed = () => {
 
 // 生成代码示例
 const generatedCode = computed(() => {
-  // 添加注释说明选择的布局模式
-  let layoutDescription = "<!-- 使用的布局模式: ";
+  // 添加注释说明选择的模式
+  const modeDescription =
+    config.mode === "custom"
+      ? "<!-- 自定义模式：使用 interact.js 实现拖拽和缩放 -->"
+      : "<!-- ElementPlus 模式：使用原生 el-dialog -->";
 
-  switch (config.layout) {
-    case "simple":
-      layoutDescription +=
-        "简单布局 - 直接使用Element Plus的原生对话框样式 -->";
-      break;
-    case "headless":
-      layoutDescription += "无头部布局 - 移除标题栏，内容区域扩展 -->";
-      break;
-    default:
-      layoutDescription += "默认布局 - 具有完整样式和功能的对话框 -->";
-      break;
-  }
-
-  let code = `${layoutDescription}\n<ScDialog
+  let code = `${modeDescription}\n<ScDialog
   v-model="dialogVisible"`;
 
   if (!config.customHeader) {
@@ -406,13 +405,10 @@ const generatedCode = computed(() => {
   }
 
   code += `\n  width="${config.width}px"`;
+  code += `\n  mode="${config.mode}"`;
 
   if (config.top !== "15vh") {
     code += `\n  top="${config.top}"`;
-  }
-
-  if (config.layout !== "default") {
-    code += `\n  layout="${config.layout}"`;
   }
 
   if (config.fullscreen) {
@@ -449,6 +445,10 @@ const generatedCode = computed(() => {
 
   if (config.draggable) {
     code += `\n  draggable`;
+  }
+
+  if (config.mode === "custom" && config.resizable) {
+    code += `\n  resizable`;
   }
 
   if (config.destroyOnClose) {
