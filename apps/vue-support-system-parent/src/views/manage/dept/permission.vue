@@ -25,7 +25,9 @@ let rules = {};
 const handleOpen = async (row) => {
   env.visible = true;
   env.form = row;
-  env.form.sysDeptDataPermissionDeptIds = env.form.sysDeptDataPermissionDeptId?.split(",")?.map((it) => ~~it);
+  env.form.sysDeptDataPermissionDeptIds = env.form.sysDeptDataPermissionDeptId
+    ?.split(",")
+    ?.map((it) => ~~it);
   rules = {
     sysDeptDataPermission: [
       {
@@ -57,7 +59,8 @@ const handleClose = () => {
 
 const handleUpdate = async () => {
   env.loading = true;
-  env.form.sysDeptDataPermissionDeptId = env.form.sysDeptDataPermissionDeptIds?.join(",");
+  env.form.sysDeptDataPermissionDeptId =
+    env.form.sysDeptDataPermissionDeptIds?.join(",");
   fetchUpdateDept(env.form)
     .then((res) => {
       message(t("message.updateSuccess"), { type: "success" });
@@ -80,18 +83,53 @@ defineExpose({
 
 <template>
   <div>
-    <el-dialog v-model="env.visible" :title="env.title" draggable width="500px" :close-on-click-modal="false" @close="handleClose">
+    <el-dialog
+      v-model="env.visible"
+      :title="env.title"
+      width="600px"
+      draggable
+      :close-on-click-modal="false"
+      @close="handleClose"
+      class="modern-dialog"
+    >
+      <template #header>
+        <div class="dialog-header">
+          <IconifyIconOnline icon="ri:shield-user-line" class="header-icon" />
+          <span>{{ env.title }}</span>
+        </div>
+      </template>
       <el-form :model="env.form" :rules="rules">
         <el-form-item label="机构名称" prop="sysDeptName">
           <el-text> {{ env.form.sysDeptName }}</el-text>
         </el-form-item>
         <el-form-item label="数据权限" prop="sysDeptDataPermission">
-          <el-select v-model="env.form.sysDeptDataPermission" placeholder="请选择数据权限" clearable>
-            <el-option v-for="item in PermissionList" :key="item.value" :label="item.label" :value="item.value"></el-option>
+          <el-select
+            v-model="env.form.sysDeptDataPermission"
+            placeholder="请选择数据权限"
+            clearable
+          >
+            <el-option
+              v-for="item in PermissionList"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            ></el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="选择部门" prop="sysDeptDataPermissionDeptId" v-if="env.form.sysDeptDataPermission === 5">
-          <el-cascader v-model="env.form.sysDeptDataPermissionDeptIds" class="w-full" :options="env.deptList" :props="env.defaultProps" clearable filterable placeholder="请选择上级菜单">
+        <el-form-item
+          label="选择部门"
+          prop="sysDeptDataPermissionDeptId"
+          v-if="env.form.sysDeptDataPermission === 5"
+        >
+          <el-cascader
+            v-model="env.form.sysDeptDataPermissionDeptIds"
+            class="w-full"
+            :options="env.deptList"
+            :props="env.defaultProps"
+            clearable
+            filterable
+            placeholder="请选择上级菜单"
+          >
             <template #default="{ node, data }">
               <div>
                 <span v-if="data.sysDeptI18n">
@@ -105,9 +143,59 @@ defineExpose({
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="handleClose">取 消</el-button>
-        <el-button type="primary" @click="handleUpdate" :loading="env.loading">确 定</el-button>
+        <div class="dialog-footer">
+          <el-button @click="handleClose">
+            <IconifyIconOnline icon="ep:close" class="mr-1" />
+            {{ t("buttons.cancel") }}
+          </el-button>
+          <el-button
+            type="primary"
+            :loading="env.loading"
+            @click="handleUpdate"
+          >
+            <IconifyIconOnline icon="ep:check" class="mr-1" />
+            {{ t("buttons.confirm") }}
+          </el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
 </template>
+
+<style lang="scss" scoped>
+.modern-dialog {
+  :deep(.el-dialog__header) {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    margin-bottom: 0;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 24px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 16px 24px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+
+  .header-icon {
+    font-size: 20px;
+    color: var(--el-color-primary);
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+</style>

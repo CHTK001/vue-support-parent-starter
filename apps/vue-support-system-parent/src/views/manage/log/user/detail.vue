@@ -10,15 +10,15 @@ export default defineComponent({
   props: {
     moduleOptions: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
   data() {
     return {
       icon: { EyeClose: null },
       visible: false,
       row: {},
-      clickEye: false
+      clickEye: false,
     };
   },
   mounted() {
@@ -46,31 +46,56 @@ export default defineComponent({
     },
     transform(value) {
       value = String(value || "").toUpperCase();
-      const _value = this.moduleOptions.filter(item => {
+      const _value = this.moduleOptions.filter((item) => {
         if (item.value == value) {
           return item.label;
         }
       });
-      return _value || _value.length > 0 ? _value?.[0]?.label : transformI18n("module.other");
-    }
-  }
+      return _value || _value.length > 0
+        ? _value?.[0]?.label
+        : transformI18n("module.other");
+    },
+  },
 });
 </script>
 <template>
   <div>
-    <el-drawer v-model="visible" title="详情页" @close="onClose">
-      <el-divider />
-      <el-main style="padding: 0 20px">
+    <el-drawer
+      v-model="visible"
+      size="60%"
+      @close="onClose"
+      class="modern-drawer"
+    >
+      <template #header>
+        <div class="drawer-header">
+          <IconifyIconOnline icon="ri:file-list-3-line" class="header-icon" />
+          <span>日志详情</span>
+        </div>
+      </template>
+      <div class="drawer-content">
         <el-descriptions :column="1" border size="small">
           <el-descriptions-item label="请求接口">
-            <el-tag v-if="row.sysLogCost <= 1000" type="success" plain>{{ row.sysLogCost || 0 }} ms</el-tag>
-            <el-tag v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000" type="warning" plain>{{ row.sysLogCost || 0 }} ms</el-tag>
-            <el-tag v-else type="danger" plain>{{ row.sysLogCost || 0 }} ms</el-tag>
+            <el-tag v-if="row.sysLogCost <= 1000" type="success" plain
+              >{{ row.sysLogCost || 0 }} ms</el-tag
+            >
+            <el-tag
+              v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
+              type="warning"
+              plain
+              >{{ row.sysLogCost || 0 }} ms</el-tag
+            >
+            <el-tag v-else type="danger" plain
+              >{{ row.sysLogCost || 0 }} ms</el-tag
+            >
             <span class="ml-2">{{ row.sysLogUrl }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="客户端地址">
             <span>{{ row.sysLogIp }}</span>
-            <el-icon v-if="!clickEye && !row.sysLogAddress" class="cursor-pointer" style="z-index: 999999">
+            <el-icon
+              v-if="!clickEye && !row.sysLogAddress"
+              class="cursor-pointer"
+              style="z-index: 999999"
+            >
               <component :is="EyeClose" />
             </el-icon>
           </el-descriptions-item>
@@ -78,8 +103,16 @@ export default defineComponent({
             <el-tag>{{ row.sysLogAddress }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="状态代码">
-            <sc-status-indicator v-if="row.sysLogStatus == 1" pulse type="success" />
-            <sc-status-indicator v-if="row.sysLogStatus == 0" pulse type="danger" />
+            <sc-status-indicator
+              v-if="row.sysLogStatus == 1"
+              pulse
+              type="success"
+            />
+            <sc-status-indicator
+              v-if="row.sysLogStatus == 0"
+              pulse
+              type="danger"
+            />
             {{ row.sysLogStatus == 1 ? "成功" : "失败" }}
           </el-descriptions-item>
           <el-descriptions-item label="日志名">
@@ -115,7 +148,46 @@ export default defineComponent({
             <div ref="code" class="code" v-html="logWatch" />
           </el-collapse-item> -->
         </el-collapse>
-      </el-main>
+      </div>
     </el-drawer>
   </div>
 </template>
+
+<style lang="scss" scoped>
+.modern-drawer {
+  :deep(.el-drawer__header) {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    margin-bottom: 0;
+  }
+
+  :deep(.el-drawer__body) {
+    padding: 24px;
+  }
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+
+  .header-icon {
+    font-size: 20px;
+    color: var(--el-color-primary);
+  }
+}
+
+.drawer-content {
+  :deep(.el-descriptions) {
+    border-radius: 4px;
+  }
+
+  :deep(.vjs-tree) {
+    background: var(--el-fill-color-light);
+    padding: 16px;
+    border-radius: 4px;
+  }
+}
+</style>
