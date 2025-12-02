@@ -13,14 +13,18 @@
           <div class="sort-options">
             <span class="sort-label">排序方式:</span>
             <div class="sort-buttons">
-              <div 
-                v-for="option in sortOptions" 
-                :key="option.value" 
-                :class="['sort-button', { active: sortType === option.value }]" 
+              <div
+                v-for="option in sortOptions"
+                :key="option.value"
+                :class="['sort-button', { active: sortType === option.value }]"
                 @click="handleSort(option.value)"
               >
                 {{ option.label }}
-                <IconifyIconOnline v-if="sortType === option.value" icon="ri:check-line" class="sort-icon" />
+                <IconifyIconOnline
+                  v-if="sortType === option.value"
+                  icon="ri:check-line"
+                  class="sort-icon"
+                />
               </div>
             </div>
           </div>
@@ -30,40 +34,63 @@
       <!-- 卡片视图 -->
       <div class="school-cards">
         <el-row :gutter="20">
-          <el-col v-for="school in schoolList" :key="school.schoolId" :xs="24" :sm="12" :md="8" :lg="6">
+          <el-col
+            v-for="school in schoolList"
+            :key="school.schoolId"
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="6"
+          >
             <div class="school-card" @click="handleSchoolClick(school)">
               <div class="school-card-header">
                 <div class="school-logo">
-                  <el-image :src="school.schoolLogoUrl" fit="contain">
-                    <template #error>
-                      <div class="image-placeholder">
-                        <IconifyIconOnline icon="ri:school-line" />
-                      </div>
-                    </template>
-                  </el-image>
+                  <ScImage
+                    :src="school.schoolLogoUrl"
+                    fit="contain"
+                    theme="card"
+                    placeholder-icon="ri:school-line"
+                    error-icon="ri:school-line"
+                    :show-mask="false"
+                  />
                 </div>
                 <div class="school-basic-info">
                   <h3 class="school-name">{{ school.schoolName }}</h3>
                   <div class="school-badges">
-                    <span v-if="school.schoolIs985" class="badge badge-985">985</span>
-                    <span v-if="school.schoolIs211" class="badge badge-211">211</span>
-                    <span v-if="school.schoolIsDoubleFirst" class="badge badge-double">双一流</span>
+                    <span v-if="school.schoolIs985" class="badge badge-985"
+                      >985</span
+                    >
+                    <span v-if="school.schoolIs211" class="badge badge-211"
+                      >211</span
+                    >
+                    <span
+                      v-if="school.schoolIsDoubleFirst"
+                      class="badge badge-double"
+                      >双一流</span
+                    >
                   </div>
                 </div>
               </div>
               <div class="school-card-body">
                 <div class="school-info-row">
                   <div class="info-label">院校类型:</div>
-                  <div class="info-value">{{ school.schoolType || '未知' }}</div>
+                  <div class="info-value">
+                    {{ school.schoolType || "未知" }}
+                  </div>
                 </div>
                 <div class="school-info-row">
                   <div class="info-label">办学层次:</div>
-                  <div class="info-value">{{ school.schoolLevel || '未知' }}</div>
+                  <div class="info-value">
+                    {{ school.schoolLevel || "未知" }}
+                  </div>
                 </div>
                 <div class="school-info-row">
                   <div class="info-label">所在地区:</div>
                   <div class="info-value">
-                    <IconifyIconOnline icon="ri:map-pin-line" class="info-icon" />
+                    <IconifyIconOnline
+                      icon="ri:map-pin-line"
+                      class="info-icon"
+                    />
                     {{ school.schoolProvince }}{{ school.schoolCity }}
                   </div>
                 </div>
@@ -71,11 +98,17 @@
                   <div class="info-label">师生情况:</div>
                   <div class="info-value">
                     <span class="stat-item">
-                      <IconifyIconOnline icon="ri:user-line" class="info-icon" />
+                      <IconifyIconOnline
+                        icon="ri:user-line"
+                        class="info-icon"
+                      />
                       {{ school.schoolInfoStudentCount || 0 }}名学生
                     </span>
                     <span class="stat-item">
-                      <IconifyIconOnline icon="ri:team-line" class="info-icon" />
+                      <IconifyIconOnline
+                        icon="ri:team-line"
+                        class="info-icon"
+                      />
                       {{ school.schoolInfoTeacherCount || 0 }}名教师
                     </span>
                   </div>
@@ -94,7 +127,15 @@
 
       <!-- 分页 -->
       <div class="pagination-container">
-        <el-pagination v-model:current-page="queryParams.pageNum" v-model:page-size="queryParams.pageSize" :total="total" :page-sizes="[10, 20, 30, 50]" layout="total, sizes, prev, pager, next, jumper" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+        <el-pagination
+          v-model:current-page="queryParams.pageNum"
+          v-model:page-size="queryParams.pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 30, 50]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
       </div>
     </div>
 
@@ -111,7 +152,14 @@ import SchoolFilter from "./components/SchoolFilter.vue";
 import SchoolForm from "./components/SchoolForm.vue";
 import { getSchoolInfoList } from "@/api";
 import type { SchoolInfo } from "@/api";
-import { queryParams, sortType, total, schoolList, getSortLabel, sortOptions } from "./data";
+import {
+  queryParams,
+  sortType,
+  total,
+  schoolList,
+  getSortLabel,
+  sortOptions,
+} from "./data";
 
 // 路由实例
 const router = useRouter();
@@ -127,7 +175,7 @@ const loadSchoolList = async () => {
   try {
     loading.value = true;
     const res = await getSchoolInfoList(queryParams);
-    if (res.code === '00000') {
+    if (res.code === "00000") {
       schoolList.value = res.data.data;
       total.value = res.data.length;
       schoolList.value.forEach((index, item) => {
@@ -151,7 +199,12 @@ const handleSort = (type: "score" | "rank" | "") => {
 };
 
 // 处理学校点击
-const handleSchoolClick = (school: SchoolInfo & { schoolInfoStudentCount?: number; schoolInfoTeacherCount?: number }) => {
+const handleSchoolClick = (
+  school: SchoolInfo & {
+    schoolInfoStudentCount?: number;
+    schoolInfoTeacherCount?: number;
+  }
+) => {
   router.push(`/school/detail/${school.schoolId}`);
 };
 
@@ -382,7 +435,7 @@ onMounted(() => {
 
 .image-placeholder {
   font-size: 30px;
-   color: var(--el-text-color);
+  color: var(--el-text-color);
 }
 
 .school-basic-info {
