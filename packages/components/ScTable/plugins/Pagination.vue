@@ -70,7 +70,9 @@ const tableConfigData = ref({
   size: "default",
   rowSize: props.rowSize,
   colSize: props.colSize,
-  cardLayout: props.cardLayout
+  cardLayout: props.cardLayout,
+  columnDraggable: false,
+  crossHighlight: false
 });
 
 // columnSetting组件的引用
@@ -94,7 +96,9 @@ const getTableConfig = () => {
     size: props.tableConfig.size || "default",
     rowSize: props.rowSize,
     colSize: props.colSize,
-    cardLayout: props.cardLayout
+    cardLayout: props.cardLayout,
+    columnDraggable: props.tableConfig.columnDraggable ?? false,
+    crossHighlight: props.tableConfig.crossHighlight ?? false
   };
 };
 
@@ -194,6 +198,18 @@ const handleBorderChange = value => {
 // 监听斑马纹样式变更
 const handleStripeChange = value => {
   tableConfigData.value.stripe = value;
+  emit("save-config", { type: "table", config: tableConfigData.value });
+};
+
+// 监听列位置交换变更
+const handleColumnDraggableChange = value => {
+  tableConfigData.value.columnDraggable = value;
+  emit("save-config", { type: "table", config: tableConfigData.value });
+};
+
+// 监听十字标记变更
+const handleCrossHighlightChange = value => {
+  tableConfigData.value.crossHighlight = value;
   emit("save-config", { type: "table", config: tableConfigData.value });
 };
 
@@ -375,6 +391,31 @@ onMounted(() => {
                 <el-switch v-model="tableConfigData.stripe" @change="handleStripeChange" />
               </div>
             </div>
+
+            <!-- 分隔线 -->
+            <div class="settings-divider"></div>
+
+            <!-- 列位置交换 -->
+            <div class="setting-item">
+              <div class="setting-label">
+                <IconifyIconOnline icon="ep:switch" class="setting-icon" />
+                <span>列位置交换</span>
+              </div>
+              <div class="setting-control">
+                <el-switch v-model="tableConfigData.columnDraggable" @change="handleColumnDraggableChange" />
+              </div>
+            </div>
+
+            <!-- 十字标记 -->
+            <div class="setting-item">
+              <div class="setting-label">
+                <IconifyIconOnline icon="ep:aim" class="setting-icon" />
+                <span>单元格十字标记</span>
+              </div>
+              <div class="setting-control">
+                <el-switch v-model="tableConfigData.crossHighlight" @change="handleCrossHighlightChange" />
+              </div>
+            </div>
           </div>
         </div>
       </el-popover>
@@ -501,5 +542,11 @@ onMounted(() => {
 
 .setting-control {
   flex-shrink: 0;
+}
+
+.settings-divider {
+  height: 1px;
+  background: var(--el-border-color-lighter);
+  margin: 4px 0;
 }
 </style>

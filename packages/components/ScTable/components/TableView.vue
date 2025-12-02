@@ -6,7 +6,7 @@
         :key="toggleIndex"
         ref="scTable"
         class="modern-table max-w-full headerSticky"
-        :class="{ 'is-draggable': draggable }"
+        :class="{ 'is-draggable': draggable, 'cross-highlight-enabled': config.crossHighlight }"
         :data="tableData"
         :row-key="rowKey"
         :size="config.size"
@@ -15,11 +15,13 @@
         :height="undefined"
         :max-height="undefined"
         :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod"
+        :highlight-current-row="config.crossHighlight"
         @row-click="onRowClick"
         @selection-change="selectionChange"
         @sort-change="sortChange"
         @filter-change="filterChange"
         @row-contextmenu="handleRowContextMenu"
+        @cell-click="handleCellClick"
       >
         <!-- 拖拽手柄列 -->
         <el-table-column v-if="draggable" :width="dragHandleWidth" align="center" fixed="left">
@@ -129,8 +131,12 @@ const props = defineProps({
   }
 });
 
+// 十字标记相关状态
+const highlightRowIndex = ref(-1);
+const highlightColIndex = ref(-1);
+
 // 定义emits
-const emit = defineEmits(["row-click", "selection-change", "sort-change", "filter-change", "col-click", "drag-sort-change"]);
+const emit = defineEmits(["row-click", "selection-change", "sort-change", "filter-change", "col-click", "drag-sort-change", "cell-click"]);
 
 // 拖拽排序实例
 let sortableInstance = null;
@@ -349,6 +355,48 @@ const onColClick = (column, event) => {
   emit("col-click", column, event);
 };
 
+// 处理单元格点击，实现十字标记
+const handleCellClick = (row, column, cell, event) => {
+  if (!props.config.crossHighlight) return;
+
+  // 获取行索引
+  const rowIndex = props.tableData.indexOf(row);
+  // 获取列索引
+  const colIndex = props.userColumn.findIndex(col => col.prop === column.property);
+
+  highlightRowIndex.value = rowIndex;
+  highlightColIndex.value = colIndex;
+
+  // 移除之前的高亮
+  const tableEl = scTable.value?.$el;
+  if (tableEl) {
+    tableEl.querySelectorAll(".cross-highlight-row, .cross-highlight-col").forEach(el => {
+      el.classList.remove("cross-highlight-row", "cross-highlight-col");
+    });
+
+    // 添加行高亮
+    const rows = tableEl.querySelectorAll(".el-table__body tr");
+    if (rows[rowIndex]) {
+      rows[rowIndex].classList.add("cross-highlight-row");
+    }
+
+    // 添加列高亮
+    const allRows = tableEl.querySelectorAll(".el-table__body tr");
+    allRows.forEach(tr => {
+      const cells = tr.querySelectorAll("td");
+      // 计算实际列索引（考虑拖拽手柄列和选择列）
+      let actualColIndex = colIndex;
+      if (props.draggable) actualColIndex += 1;
+
+      if (cells[actualColIndex]) {
+        cells[actualColIndex].classList.add("cross-highlight-col");
+      }
+    });
+  }
+
+  emit("cell-click", row, column, cell, event);
+};
+
 const filterHandler = (value, row, column) => {
   const property = column.property;
   return row[property] === value;
@@ -439,6 +487,39 @@ watch(
   }
 );
 
+// 监听列位置交换配置变化
+watch(
+  () => props.config.columnDraggable,
+  newVal => {
+    nextTick(() => {
+      if (newVal) {
+        initHeaderSortable();
+      } else if (headerSortableInstance) {
+        headerSortableInstance.destroy();
+        headerSortableInstance = null;
+      }
+    });
+  }
+);
+
+// 监听十字标记配置变化
+watch(
+  () => props.config.crossHighlight,
+  newVal => {
+    if (!newVal) {
+      // 清除十字标记
+      highlightRowIndex.value = -1;
+      highlightColIndex.value = -1;
+      const tableEl = scTable.value?.$el;
+      if (tableEl) {
+        tableEl.querySelectorAll(".cross-highlight-row, .cross-highlight-col").forEach(el => {
+          el.classList.remove("cross-highlight-row", "cross-highlight-col");
+        });
+      }
+    }
+  }
+);
+
 /**
  * 初始化拖拽排序
  */
@@ -482,6 +563,41 @@ const initSortable = () => {
   });
 };
 
+// 列位置交换实例
+let headerSortableInstance = null;
+
+/**
+ * 初始化列位置交换
+ */
+const initHeaderSortable = () => {
+  if (!props.config.columnDraggable || !scTable.value) return;
+
+  // 销毁旧实例
+  if (headerSortableInstance) {
+    headerSortableInstance.destroy();
+    headerSortableInstance = null;
+  }
+
+  const tableEl = scTable.value.$el;
+  const headerRow = tableEl.querySelector(".el-table__header-wrapper thead tr");
+
+  if (!headerRow) return;
+
+  headerSortableInstance = Sortable.create(headerRow, {
+    animation: 150,
+    ghostClass: "header-sortable-ghost",
+    chosenClass: "header-sortable-chosen",
+    filter: ".el-table-fixed-column--left, .el-table-fixed-column--right, .el-table__expand-column",
+    onEnd: evt => {
+      const { oldIndex, newIndex } = evt;
+      if (oldIndex === newIndex) return;
+
+      // 注意：这里只是临时交换视觉位置，不会影响实际数据
+      console.log(`列位置交换: ${oldIndex} -> ${newIndex}`);
+    }
+  });
+};
+
 // 生命周期钩子
 onMounted(() => {
   // 初始化表格布局
@@ -497,6 +613,11 @@ onMounted(() => {
     // 初始化拖拽排序
     if (props.draggable) {
       initSortable();
+    }
+
+    // 初始化列位置交换
+    if (props.config.columnDraggable) {
+      initHeaderSortable();
     }
   });
 
@@ -530,6 +651,12 @@ onBeforeUnmount(() => {
   if (sortableInstance) {
     sortableInstance.destroy();
     sortableInstance = null;
+  }
+
+  // 销毁列位置交换实例
+  if (headerSortableInstance) {
+    headerSortableInstance.destroy();
+    headerSortableInstance = null;
   }
 });
 
@@ -736,5 +863,55 @@ defineExpose({
   opacity: 1;
   background: var(--el-bg-color) !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+// 列位置交换样式
+:deep(.header-sortable-ghost) {
+  opacity: 0.5;
+  background: var(--el-color-primary-light-9) !important;
+}
+
+:deep(.header-sortable-chosen) {
+  background: var(--el-color-primary-light-8) !important;
+  cursor: grabbing !important;
+}
+
+// 十字标记样式
+.cross-highlight-enabled {
+  :deep(.cross-highlight-row) {
+    background: rgba(var(--el-color-primary-rgb), 0.08) !important;
+
+    td {
+      background: rgba(var(--el-color-primary-rgb), 0.08) !important;
+    }
+  }
+
+  :deep(.cross-highlight-col) {
+    background: rgba(var(--el-color-primary-rgb), 0.08) !important;
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-left: 2px solid var(--el-color-primary-light-5);
+      border-right: 2px solid var(--el-color-primary-light-5);
+      pointer-events: none;
+    }
+  }
+
+  :deep(.cross-highlight-row .cross-highlight-col) {
+    background: rgba(var(--el-color-primary-rgb), 0.15) !important;
+    box-shadow: inset 0 0 0 2px var(--el-color-primary-light-3);
+  }
+
+  :deep(.el-table__body) {
+    tr {
+      cursor: pointer;
+    }
+  }
 }
 </style>
