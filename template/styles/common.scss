@@ -1,0 +1,167 @@
+/**
+ * 通用页面样式
+ * @author CH
+ * @version 1.0.0
+ * @since 2025-12-02
+ */
+
+// 页面容器
+.modern-page {
+  padding: 0;
+  background: var(--el-bg-color-page);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+// 工具栏
+.modern-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  .toolbar-left {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .toolbar-right {
+    display: flex;
+    gap: 12px;
+  }
+
+  .search-input {
+    width: 300px;
+  }
+}
+
+// 内容区域
+.modern-content {
+  flex: 1;
+  overflow: hidden;
+  
+  :deep(.el-card) {
+    height: 100%;
+    border-radius: 8px;
+    
+    .el-card__body {
+      height: 100%;
+      padding: 0;
+    }
+  }
+}
+
+// 代码块
+.code-block {
+  background: var(--el-fill-color-light);
+  padding: 16px;
+  border-radius: 4px;
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-x: auto;
+  margin: 0;
+
+  code {
+    color: var(--el-text-color-primary);
+  }
+}
+
+// 表格样式增强
+.modern-table {
+  :deep(.el-table) {
+    font-size: 14px;
+
+    .el-table__header th {
+      background: var(--el-fill-color-light);
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+
+    .el-table__row {
+      transition: all 0.2s;
+
+      &:hover {
+        background: var(--el-fill-color-lighter);
+      }
+    }
+  }
+}
+
+// 卡片网格
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  padding: 16px;
+
+  .grid-item {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s;
+    cursor: pointer;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+  }
+}
+
+// 空状态
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--el-text-color-secondary);
+
+  .empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .empty-text {
+    font-size: 14px;
+  }
+}
+
+// 加载状态
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+// 响应式
+@media (max-width: 768px) {
+  .modern-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+
+    .toolbar-left,
+    .toolbar-right {
+      width: 100%;
+    }
+
+    .search-input {
+      width: 100%;
+    }
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+}

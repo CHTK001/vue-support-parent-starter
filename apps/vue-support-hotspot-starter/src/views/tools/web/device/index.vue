@@ -1,14 +1,33 @@
 <template>
-  <div class="bg-white p-[30px]">
-    <div class="browser-info bg-white">
-      <h1 class="text-2xl font-bold mb-4">浏览器信息</h1>
-      <div class="flex flex-wrap gap-[5px]">
-        <el-descriptions border :column="2">
-          <el-descriptions-item v-for="(value, key) in browserInfo" :key="key" style="flex: 1 1 auto; width: calc(20% - 5px)" :label="key">
-            {{ value }}
+  <div class="page flex flex-col h-full">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">
+            <IconifyIconOnline icon="ri:device-line" class="title-icon" />
+            设备信息
+          </h1>
+          <p class="page-subtitle">查看当前浏览器和设备的详细信息</p>
+        </div>
+        <div class="stats-section">
+          <div class="stat-card">
+            <div class="stat-number">{{ Object.keys(browserInfo).length }}</div>
+            <div class="stat-label">信息项</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="flex-1 overflow-auto">
+      <el-card shadow="never">
+        <el-descriptions border :column="2" class="device-info">
+          <el-descriptions-item v-for="(value, key) in browserInfo" :key="key" :label="key">
+            <span class="info-value">{{ value }}</span>
           </el-descriptions-item>
         </el-descriptions>
-      </div>
+      </el-card>
     </div>
   </div>
 </template>
@@ -50,14 +69,85 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.card-header {
+<style scoped lang="scss">
+.page {
+  padding: 0;
+  background: var(--el-bg-color-page);
+}
+
+.page-header {
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+  padding: 24px 32px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.card-content {
-  white-space: pre-wrap;
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 0 0 8px 0;
+
+  .title-icon {
+    font-size: 28px;
+    color: var(--el-color-primary);
+  }
+}
+
+.page-subtitle {
+  color: var(--el-text-color-regular);
+  font-size: 14px;
+  margin: 0;
+}
+
+.stats-section {
+  display: flex;
+  gap: 16px;
+}
+
+.stat-card {
+  background: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  .stat-number {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--el-color-primary);
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.device-info {
+  .info-value {
+    font-family: "Courier New", monospace;
+    font-size: 13px;
+    color: var(--el-text-color-primary);
+  }
+}
+
+:deep(.el-card) {
+  border-radius: 8px;
+}
+
+:deep(.el-descriptions) {
+  border-radius: 4px;
 }
 </style>

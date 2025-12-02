@@ -1,25 +1,53 @@
 <template>
-  <div class="bg-white p-[30px]">
-    <el-segmented
-      v-model="setting.type"
-      :options="[
-        { label: '格式化', value: '0' },
-        { label: '解析SQL', value: '1' },
-        { label: '清空', value: '-1' }
-      ]"
-      @change="handle"
-    />
-    <el-row class="pt-3">
-      <el-col :span="10">
-        <el-input v-model="oldSql" type="textarea" :rows="30" />
-      </el-col>
-      <el-col :span="2" class="p-[20px]">
-        <el-button :icon="useRenderIcon('ep:d-arrow-right')" class="w-full" @click="handle" />
-      </el-col>
-      <el-col :span="10" class="h-full">
-        <pre ref="sqlPre" class="h-full !max-h-[700px] language-sql line-numbers inline-color"><code class="language-sql line-numbers inline-color">{{ newSql }}</code> </pre>
-      </el-col>
-    </el-row>
+  <div class="page flex flex-col h-full">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">
+            <IconifyIconOnline icon="ri:code-s-slash-line" class="title-icon" />
+            SQL 格式化工具
+          </h1>
+          <p class="page-subtitle">格式化和解析 SQL 语句</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="flex-1 overflow-hidden">
+      <el-card shadow="never" class="h-full">
+        <div class="toolbar-section">
+          <el-segmented
+            v-model="setting.type"
+            :options="[
+              { label: '格式化', value: '0' },
+              { label: '解析SQL', value: '1' },
+              { label: '清空', value: '-1' }
+            ]"
+            @change="handle"
+          />
+        </div>
+        <el-row :gutter="16" class="sql-editor-row">
+          <el-col :span="10">
+            <div class="editor-header">
+              <IconifyIconOnline icon="ri:file-edit-line" class="editor-icon" />
+              <span>输入 SQL</span>
+            </div>
+            <el-input v-model="oldSql" type="textarea" :rows="25" class="sql-textarea" placeholder="请输入 SQL 语句..." />
+          </el-col>
+          <el-col :span="2" class="flex items-center justify-center">
+            <el-button type="primary" circle size="large" :icon="useRenderIcon('ep:d-arrow-right')" @click="handle" />
+          </el-col>
+          <el-col :span="12">
+            <div class="editor-header">
+              <IconifyIconOnline icon="ri:code-box-line" class="editor-icon" />
+              <span>格式化结果</span>
+            </div>
+            <pre ref="sqlPre" class="sql-result"><code class="language-sql line-numbers">{{ newSql }}</code></pre>
+          </el-col>
+        </el-row>
+      </el-card>
+    </div>
   </div>
 </template>
 <script setup>
@@ -89,3 +117,98 @@ const handlePrism = async () => {
 };
 handlePrism();
 </script>
+
+<style scoped lang="scss">
+.page {
+  padding: 0;
+  background: var(--el-bg-color-page);
+}
+
+.page-header {
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+  padding: 24px 32px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 0 0 8px 0;
+
+  .title-icon {
+    font-size: 28px;
+    color: var(--el-color-primary);
+  }
+}
+
+.page-subtitle {
+  color: var(--el-text-color-regular);
+  font-size: 14px;
+  margin: 0;
+}
+
+.toolbar-section {
+  margin-bottom: 16px;
+}
+
+.sql-editor-row {
+  height: calc(100% - 60px);
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+
+  .editor-icon {
+    font-size: 18px;
+    color: var(--el-color-primary);
+  }
+}
+
+.sql-textarea {
+  :deep(.el-textarea__inner) {
+    font-family: "Courier New", monospace;
+    font-size: 13px;
+    border-radius: 4px;
+  }
+}
+
+.sql-result {
+  background: var(--el-fill-color-light);
+  padding: 16px;
+  border-radius: 4px;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-x: auto;
+  max-height: calc(100% - 60px);
+  margin: 0;
+}
+
+:deep(.el-card) {
+  border-radius: 8px;
+
+  .el-card__body {
+    height: 100%;
+  }
+}
+</style>
