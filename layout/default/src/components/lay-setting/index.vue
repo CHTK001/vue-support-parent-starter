@@ -142,6 +142,9 @@ const settings = reactive({
   // 双栏导航设置相关
   doubleNavExpandMode: $storage.configure.doubleNavExpandMode ?? "auto",
   doubleNavAutoExpandAll: $storage.configure.doubleNavAutoExpandAll ?? true,
+  // Logo 配置相关
+  logoSize: $storage.configure.logoSize ?? 32,
+  logoAnimation: $storage.configure.logoAnimation ?? "none",
 });
 
 /** 卡片颜色模式配置 */
@@ -696,6 +699,26 @@ function doubleNavAutoExpandAllChange() {
     "doubleNavAutoExpandAll",
     settings.doubleNavAutoExpandAll
   );
+}
+
+/** Logo 大小变更 */
+function logoSizeChange(value: number) {
+  storageConfigureChange("logoSize", value);
+  emitter.emit("logoConfigChange", {
+    logoSize: value,
+    logoAnimation: settings.logoAnimation,
+  });
+}
+
+/** Logo 动画变更 */
+function logoAnimationChange({ option }: { option: OptionsType }) {
+  const value = option.value as string;
+  settings.logoAnimation = value;
+  storageConfigureChange("logoAnimation", value);
+  emitter.emit("logoConfigChange", {
+    logoSize: settings.logoSize,
+    logoAnimation: value,
+  });
 }
 
 /** 导入设置 */
@@ -1449,6 +1472,57 @@ onUnmounted(() => {
                   ribbon-color="var(--el-color-success)"
                   @change="cardBodyChange"
                 />
+              </div>
+            </div>
+
+            <!-- Logo 设置 -->
+            <div v-if="logoVal" class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOffline
+                  :icon="'ri:image-2-line'"
+                  class="group-icon"
+                />
+                Logo 配置
+              </h4>
+              <div class="logo-config-grid">
+                <div class="config-item">
+                  <label class="config-label">图片大小</label>
+                  <div class="config-control">
+                    <el-slider
+                      v-model="settings.logoSize"
+                      :min="20"
+                      :max="48"
+                      :step="2"
+                      show-input
+                      size="small"
+                      @change="logoSizeChange"
+                    />
+                  </div>
+                </div>
+                <div class="config-item">
+                  <label class="config-label">动画效果</label>
+                  <div class="config-control">
+                    <Segmented
+                      resize
+                      class="select-none modern-segmented"
+                      :modelValue="
+                        settings.logoAnimation === 'none'
+                          ? 0
+                          : settings.logoAnimation === 'pulse'
+                            ? 1
+                            : settings.logoAnimation === 'bounce'
+                              ? 2
+                              : 0
+                      "
+                      :options="[
+                        { label: '无', value: 'none' },
+                        { label: '脉冲', value: 'pulse' },
+                        { label: '弹跳', value: 'bounce' },
+                      ]"
+                      @change="logoAnimationChange"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -3939,7 +4013,226 @@ onUnmounted(() => {
 // 移除设置区域的进入动画
 // .setting-section animation - 已移除
 
-// 布局模式选择器 - 现代化玻璃态设计
+// 布局模式选择器 - 现代化卡片网格设计
+.layout-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 8px 0;
+
+  @media (max-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+.layout-mode-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--el-bg-color-overlay);
+  border: 2px solid var(--el-border-color-lighter);
+  border-radius: 16px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    transform: translateY(-6px);
+    box-shadow:
+      0 12px 32px rgba(var(--el-color-primary-rgb), 0.15),
+      0 6px 16px rgba(0, 0, 0, 0.08);
+
+    .layout-mode-preview {
+      background: var(--el-color-primary-light-9);
+
+      svg {
+        transform: scale(1.05);
+        color: var(--el-color-primary);
+      }
+    }
+
+    .layout-mode-name {
+      color: var(--el-color-primary);
+    }
+  }
+
+  &.is-active {
+    border-color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+    box-shadow:
+      0 0 0 4px rgba(var(--el-color-primary-rgb), 0.2),
+      0 8px 24px rgba(var(--el-color-primary-rgb), 0.18);
+
+    .layout-mode-preview {
+      background: rgba(var(--el-color-primary-rgb), 0.08);
+
+      svg {
+        color: var(--el-color-primary);
+      }
+    }
+
+    .layout-mode-name {
+      color: var(--el-color-primary);
+      font-weight: 600;
+    }
+
+    .layout-mode-desc {
+      color: var(--el-color-primary-light-3);
+    }
+  }
+}
+
+.layout-mode-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  padding: 12px;
+  background: var(--el-fill-color-lighter);
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+  transition: all 0.3s ease;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    max-width: 120px;
+    max-height: 60px;
+    transition: all 0.3s ease;
+    color: var(--el-text-color-regular);
+    border-radius: 8px;
+  }
+}
+
+.layout-mode-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 8px;
+  gap: 2px;
+}
+
+// Logo 配置样式
+.logo-config-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .config-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .config-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+  }
+
+  .config-control {
+    :deep(.el-slider) {
+      .el-slider__runway {
+        background: var(--el-fill-color-light);
+      }
+
+      .el-slider__bar {
+        background: var(--el-color-primary);
+      }
+
+      .el-slider__button {
+        border-color: var(--el-color-primary);
+      }
+
+      .el-input-number {
+        width: 70px;
+      }
+    }
+  }
+}
+
+.layout-mode-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  transition: all 0.3s ease;
+}
+
+.layout-mode-desc {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  transition: all 0.3s ease;
+}
+
+.layout-mode-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--el-color-primary);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.4);
+  animation: badge-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// 深色模式适配
+html.dark {
+  .layout-mode-item {
+    background: var(--el-fill-color-dark);
+    border-color: var(--el-border-color-dark);
+
+    &:hover {
+      background: var(--el-fill-color-darker);
+      border-color: var(--el-color-primary-light-3);
+    }
+
+    &.is-active {
+      background: rgba(var(--el-color-primary-rgb), 0.15);
+      border-color: var(--el-color-primary);
+
+      .layout-mode-preview svg {
+        color: #fff;
+      }
+
+      .layout-mode-name {
+        color: #fff;
+      }
+    }
+  }
+
+  .layout-mode-preview {
+    background: var(--el-fill-color-darker);
+    border-color: var(--el-border-color-dark);
+
+    svg {
+      color: var(--el-text-color-regular);
+    }
+  }
+
+  .layout-mode-badge {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+}
+
+// 保留旧的 pure-theme 样式以兼容其他地方的使用
 .pure-theme {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
