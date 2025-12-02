@@ -82,3 +82,74 @@ export default {
   }
 };
 </script>
+
+<style lang="scss" scoped>
+.page {
+  padding: 0;
+  background: var(--el-bg-color-page);
+}
+
+.page-header {
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+  padding: 24px 32px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 0 0 8px 0;
+
+  .title-icon {
+    font-size: 28px;
+    color: var(--el-color-primary);
+  }
+}
+
+.page-subtitle {
+  color: var(--el-text-color-regular);
+  font-size: 14px;
+  margin: 0;
+}
+
+.qrcode-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.qrcode-wrapper {
+  padding: 24px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.qrcode-info {
+  display: flex;
+  gap: 12px;
+}
+
+:deep(.el-card) {
+  border-radius: 8px;
+}
+</style>
