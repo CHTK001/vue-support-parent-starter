@@ -1,0 +1,72 @@
+{
+  "name": "@pages/strategy",
+  "version": "1.0.0",
+  "description": "策略管理模块 - 提供限流、熔断、降级等策略配置管理界面",
+  "private": true,
+  "keywords": [
+    "strategy",
+    "rate-limit",
+    "circuit-breaker",
+    "degradation"
+  ],
+  "author": "CH",
+  "license": "ISC",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm unbuild",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ],
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./router": {
+      "types": "./src/router/index.ts",
+      "development": "./src/router/index.ts",
+      "default": "./dist/router.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.mjs"
+      },
+      "./router": {
+        "default": "./dist/router.mjs"
+      }
+    }
+  },
+  "dependencies": {
+    "@pureadmin/utils": "catalog:",
+    "@repo/components": "workspace:^",
+    "@repo/core": "workspace:^",
+    "element-plus": "catalog:",
+    "unbuild": "catalog:",
+    "vue": "catalog:",
+    "vue-i18n": "catalog:"
+  },
+  "devDependencies": {
+    "@repo/build": "workspace:^",
+    "@repo/config": "workspace:^",
+    "@repo/tailwind-config": "workspace:^",
+    "@repo/tsconfig": "workspace:^",
+    "@types/node": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "autoprefixer": "catalog:",
+    "postcss": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}
