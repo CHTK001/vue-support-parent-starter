@@ -17,11 +17,19 @@
       </div>
 
       <el-scrollbar class="left-list thin-scrollbar">
-        <div v-for="(s, idx) in storages" :key="idx" :class="['left-item', { active: selectedIndex === idx }]" @click="selectStorage(idx)">
+        <div
+          v-for="(s, idx) in storages"
+          :key="idx"
+          :class="['left-item', { active: selectedIndex === idx }]"
+          @click="selectStorage(idx)"
+        >
           <div class="row1">
             <span class="seq">#{{ idx + 1 }}</span>
             <span class="type">{{ s.fileStorageType }}</span>
-            <el-tag size="small" :type="s.fileStorageEnabled ? 'success' : 'info'">
+            <el-tag
+              size="small"
+              :type="s.fileStorageEnabled ? 'success' : 'info'"
+            >
               {{ s.fileStorageEnabled ? "启用" : "禁用" }}
             </el-tag>
           </div>
@@ -57,9 +65,16 @@
         </el-button>
         <!-- 面包屑与上级 -->
         <div class="crumbs">
-          <el-button size="small" @click="goUp" :disabled="!canGoUp">上级</el-button>
+          <el-button size="small" @click="goUp" :disabled="!canGoUp"
+            >上级</el-button
+          >
           <el-breadcrumb separator="/" class="bc">
-            <el-breadcrumb-item v-for="(c, i) in crumbs" :key="i" @click="onCrumbClick(i)" class="bc-item">
+            <el-breadcrumb-item
+              v-for="(c, i) in crumbs"
+              :key="i"
+              @click="onCrumbClick(i)"
+              class="bc-item"
+            >
               {{ c.name || "/" }}
             </el-breadcrumb-item>
           </el-breadcrumb>
@@ -71,8 +86,17 @@
             <span class="si-name" :title="serverInfo.monitorSysGenServerName">
               {{ serverInfo.monitorSysGenServerName }}
             </span>
-            <span class="si-addr" :title="serverInfo.monitorSysGenServerHost + ':' + serverInfo.monitorSysGenServerPort">
-              {{ serverInfo.monitorSysGenServerHost }}:{{ serverInfo.monitorSysGenServerPort }}
+            <span
+              class="si-addr"
+              :title="
+                serverInfo.monitorSysGenServerHost +
+                ':' +
+                serverInfo.monitorSysGenServerPort
+              "
+            >
+              {{ serverInfo.monitorSysGenServerHost }}:{{
+                serverInfo.monitorSysGenServerPort
+              }}
             </span>
           </template>
           <template v-else>
@@ -83,21 +107,41 @@
         <div class="spacer" />
         <div class="pager">
           <span>每页</span>
-          <el-select v-model="pager.limit" size="small" style="width: 90px" @change="onLimitChange">
+          <el-select
+            v-model="pager.limit"
+            size="small"
+            style="width: 90px"
+            @change="onLimitChange"
+          >
             <el-option :value="20" label="20" />
             <el-option :value="50" label="50" />
             <el-option :value="100" label="100" />
           </el-select>
           <span>条</span>
           <span class="gap" />
-          <el-button size="small" @click="goPrevPage" :disabled="pager.page <= 1">上一页</el-button>
-          <el-button size="small" @click="goNextPage" :disabled="previewItems.length < pager.limit">下一页</el-button>
+          <el-button
+            size="small"
+            @click="goPrevPage"
+            :disabled="pager.page <= 1"
+            >上一页</el-button
+          >
+          <el-button
+            size="small"
+            @click="goNextPage"
+            :disabled="previewItems.length < pager.limit"
+            >下一页</el-button
+          >
         </div>
       </div>
 
       <div class="preview-body thin-scrollbar">
         <template v-if="mode === 'list'">
-          <el-table :data="previewItems" height="calc(100vh - 180px)" size="small" border>
+          <el-table
+            :data="previewItems"
+            height="calc(100vh - 180px)"
+            size="small"
+            border
+          >
             <el-table-column prop="name" label="名称" min-width="240" />
             <el-table-column prop="size" label="大小" width="120" />
             <el-table-column prop="modified" label="修改时间" width="200" />
@@ -105,20 +149,25 @@
         </template>
         <template v-else-if="mode === 'card'">
           <div class="card-grid">
-            <el-card v-for="it in previewItems" :key="it.id" class="file-card" shadow="hover" @click="onItemClick(it)">
+            <el-card
+              v-for="it in previewItems"
+              :key="it.id"
+              class="file-card"
+              shadow="hover"
+              @click="onItemClick(it)"
+            >
               <div class="thumb-wrap">
                 <template v-if="isImage(it)">
-                  <el-image :key="getImageUrl(it)" :src="getImageUrl(it)" fit="cover" lazy>
-                    <template #placeholder>
-                      <div class="img-skeleton" />
-                    </template>
-                    <template #error>
-                      <div class="img-error">
-                        <span>加载失败</span>
-                        <el-button size="small" @click.stop="retryImage(it)">重试</el-button>
-                      </div>
-                    </template>
-                  </el-image>
+                  <ScImage
+                    :key="getImageUrl(it)"
+                    :src="getImageUrl(it)"
+                    fit="cover"
+                    :lazy="true"
+                    theme="card"
+                    :show-mask="true"
+                    placeholder-text="加载中..."
+                    error-text="加载失败"
+                  />
                 </template>
                 <template v-else>
                   <img :src="getFileThumb(it)" class="ph-img" />
@@ -133,19 +182,23 @@
         </template>
         <template v-else>
           <div class="image-grid">
-            <div v-for="it in previewItems" :key="it.id" class="img-card" @click="onItemClick(it)">
+            <div
+              v-for="it in previewItems"
+              :key="it.id"
+              class="img-card"
+              @click="onItemClick(it)"
+            >
               <template v-if="isImage(it)">
-                <el-image :key="getImageUrl(it)" :src="getImageUrl(it)" fit="cover" lazy>
-                  <template #placeholder>
-                    <div class="img-skeleton" />
-                  </template>
-                  <template #error>
-                    <div class="img-error">
-                      <span>加载失败</span>
-                      <el-button size="small" @click.stop="retryImage(it)">重试</el-button>
-                    </div>
-                  </template>
-                </el-image>
+                <ScImage
+                  :key="getImageUrl(it)"
+                  :src="getImageUrl(it)"
+                  fit="cover"
+                  :lazy="true"
+                  theme="card"
+                  :show-mask="true"
+                  placeholder-text="加载中..."
+                  error-text="加载失败"
+                />
               </template>
               <template v-else>
                 <img :src="getFileThumb(it)" alt="file" />
@@ -160,8 +213,17 @@
       </div>
     </main>
     <!-- 预览弹窗：非图片文件用 iframe 预览（?preview） -->
-    <el-dialog v-model="previewDialogVisible" width="80%" top="20px" title="预览">
-      <iframe v-if="previewUrl" :src="previewUrl" style="width: 100%; height: 70vh; border: none" />
+    <el-dialog
+      v-model="previewDialogVisible"
+      width="80%"
+      top="20px"
+      title="预览"
+    >
+      <iframe
+        v-if="previewUrl"
+        :src="previewUrl"
+        style="width: 100%; height: 70vh; border: none"
+      />
     </el-dialog>
   </div>
 </template>
@@ -171,7 +233,12 @@ import { ref, onMounted, computed } from "vue";
 import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 
-import { getFileStorageConfig, getSystemServerSettingByServerId, type FileStorageConfig, type SystemServerSetting } from "@/api/system-server-setting";
+import {
+  getFileStorageConfig,
+  getSystemServerSettingByServerId,
+  type FileStorageConfig,
+  type SystemServerSetting,
+} from "@/api/system-server-setting";
 import { getSystemServerById, type SystemServer } from "@/api/system-server";
 import { fileStorageList } from "@/api/file-manager/file-storage";
 // 本地静态资源（按后缀）
@@ -359,7 +426,7 @@ const EXT_ICON_MAP: Record<string, string> = {
   mdb: imgMdb,
   log: imgLog,
   ofd: imgOfd,
-  eml: imgEml
+  eml: imgEml,
 };
 
 // 提取后缀
@@ -380,10 +447,21 @@ function getFileThumb(it: any): string {
 }
 
 // 轻量缓存：30秒内同参命中直接返回，减少请求
-const listCache = new Map<string, { ts: number; items: any[]; marker: string }>();
+const listCache = new Map<
+  string,
+  { ts: number; items: any[]; marker: string }
+>();
 const CACHE_TTL = 30_000;
 function makeCacheKey(s: any, basePath: string, limit: number, marker: string) {
-  return [serverId, s?.fileStorageType, s?.fileStorageEndpoint, s?.fileStorageBucket, basePath, limit, marker].join("|");
+  return [
+    serverId,
+    s?.fileStorageType,
+    s?.fileStorageEndpoint,
+    s?.fileStorageBucket,
+    basePath,
+    limit,
+    marker,
+  ].join("|");
 }
 
 // 基于 marker 的分页（与后端 AbstractFileStorage#calcIndex 对齐）
@@ -395,7 +473,7 @@ function base64EncodeUtf8(input: string) {
 function hexEncode(str: string) {
   const bytes = new TextEncoder().encode(str);
   return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, "0"))
+    .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
 function makeMarker(index: number) {
@@ -416,7 +494,8 @@ function onLimitChange() {
 function goPrevPage() {
   if (pager.value.page <= 1) return;
   pager.value.page -= 1;
-  pager.value.marker = pager.value.page === 1 ? "" : makeMarker(pager.value.page);
+  pager.value.marker =
+    pager.value.page === 1 ? "" : makeMarker(pager.value.page);
   fetchPreviewItems();
 }
 function goNextPage() {
@@ -449,7 +528,7 @@ function addStorage() {
     fileStorageBucket: "",
     fileStorageAccessKey: "",
     fileStorageSecretKey: "",
-    fileStorageRegion: ""
+    fileStorageRegion: "",
   } as any);
   selectedIndex.value = storages.value.length - 1;
 }
@@ -477,7 +556,17 @@ function isImage(it: any) {
   if (!ext) {
     ext = getExt(it);
   }
-  const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "heic"];
+  const imageExts = [
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+    "bmp",
+    "webp",
+    "svg",
+    "tiff",
+    "heic",
+  ];
   return imageExts.includes(ext);
 }
 
@@ -493,13 +582,17 @@ function retryImage(it: any) {
 }
 
 function buildUrl(it: any, usePreview = false) {
-  const s = selectedIndex.value != null ? storages.value[selectedIndex.value] : storages.value[0];
+  const s =
+    selectedIndex.value != null
+      ? storages.value[selectedIndex.value]
+      : storages.value[0];
   if (!s) return "";
 
   const si = (serverInfo as any).value || {};
   const host = si.systemServerHost || si.monitorSysGenServerHost || "127.0.0.1";
   const port = si.systemServerPort || si.monitorSysGenServerPort || 8080;
-  const context = si.systemServerContextPath || si.systemServerContentPath || "";
+  const context =
+    si.systemServerContextPath || si.systemServerContentPath || "";
 
   // 构建基础URL
   const base = `http://${host}:${port}${context}`;
@@ -542,10 +635,11 @@ function onItemClick(it: any) {
 async function reload() {
   try {
     pager.value.marker = null;
-    getFileStorageConfig(serverId).then(async res => {
+    getFileStorageConfig(serverId).then(async (res) => {
       if (res?.success && Array.isArray(res.data)) {
         storages.value = res.data as any[];
-        if (!storages.value.length) ElMessage.info("当前服务器暂无已安装的存储");
+        if (!storages.value.length)
+          ElMessage.info("当前服务器暂无已安装的存储");
         selectedIndex.value = storages.value.length ? 0 : null;
         const s = storages.value[0];
         const base = s?.fileStorageBasePath || "/";
@@ -571,7 +665,10 @@ async function doPreview(idx: number) {
 
 async function fetchPreviewItems() {
   try {
-    const s = selectedIndex.value != null ? storages.value[selectedIndex.value] : storages.value[0];
+    const s =
+      selectedIndex.value != null
+        ? storages.value[selectedIndex.value]
+        : storages.value[0];
     if (!s) {
       previewItems.value = [];
       return;
@@ -579,7 +676,12 @@ async function fetchPreviewItems() {
     if (!currentPath.value) currentPath.value = s.fileStorageBasePath || "/";
 
     // 缓存命中：直接使用
-    const key = makeCacheKey(s, currentPath.value, pager.value.limit, pager.value.marker || "");
+    const key = makeCacheKey(
+      s,
+      currentPath.value,
+      pager.value.limit,
+      pager.value.marker || ""
+    );
     const now = Date.now();
     const cached = listCache.get(key);
     if (cached && now - cached.ts < CACHE_TTL) {
@@ -593,7 +695,10 @@ async function fetchPreviewItems() {
     params.append("type", s.fileStorageType || "");
     params.append("bucket", s.fileStorageBucket || "");
     params.append("endpoint", s.fileStorageEndpoint || "");
-    params.append("basePath", currentPath.value || s.fileStorageBasePath || "/");
+    params.append(
+      "basePath",
+      currentPath.value || s.fileStorageBasePath || "/"
+    );
     // 通过 limit 控制后端返回条数
     params.append("limit", String(pager.value.limit));
     // 通过 marker 控制分页游标
@@ -611,12 +716,18 @@ async function fetchPreviewItems() {
     // 仅取必要字段，避免在前端继续扩大对象
     const mapped = (items || []).map((it: any, i: number) => ({
       id: it.fileId || it.id || i,
-      name: it.name || it.filename || it.fileName || it.originalFilename || it.path || "",
+      name:
+        it.name ||
+        it.filename ||
+        it.fileName ||
+        it.originalFilename ||
+        it.path ||
+        "",
       size: it.size || it.fileSize || it.length || 0,
       modified: it.modified || it.lastModified || it.updateTime || "",
       ext: it.ext || it.suffix || "",
       filePath: it.filePath || it.parentPath || currentPath.value || "/",
-      directory: it.directory === true
+      directory: it.directory === true,
     }));
 
     previewItems.value = mapped;
@@ -825,7 +936,11 @@ onMounted(() => {
   right: 0;
   bottom: 0;
   padding: 8px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 80%);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.55) 80%
+  );
   color: #fff;
 }
 .overlay .ov-name {
