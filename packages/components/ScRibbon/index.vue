@@ -45,7 +45,7 @@ const props = withDefaults(defineProps<Props>(), {
   text: "",
   icon: "",
   color: "#409eff",
-  variant: "badge",
+  variant: "diagonal",
   position: "lt",
   size: "md",
   width: "100%"

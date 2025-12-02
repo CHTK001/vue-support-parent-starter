@@ -97,8 +97,8 @@ export default defineComponent({
      * 主题色
      */
     theme: {
-      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info">,
-      default: "default"
+      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info" | "blue" | "green" | "purple" | "orange">,
+      default: "primary"
     },
     /**
      * 是否可悬停
@@ -136,12 +136,12 @@ export default defineComponent({
 
   // 主题色定义
   &.theme--default {
-    background: var(--el-bg-color-overlay, #fff);
+    background: linear-gradient(135deg, var(--el-bg-color-overlay, #fff) 0%, var(--el-fill-color-light, #f5f7fa) 100%);
     border: 1px solid var(--el-border-color-light, #e4e7ed);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 
     .sc-card-stats__icon {
-      background: var(--el-color-primary-light-8, #ecf5ff);
+      background: linear-gradient(135deg, var(--el-color-primary-light-7, #d9ecff) 0%, var(--el-color-primary-light-5, #a0cfff) 100%);
       color: var(--el-color-primary, #409eff);
     }
 
@@ -160,8 +160,22 @@ export default defineComponent({
 
     &.is-hoverable:hover {
       border-color: var(--el-color-primary-light-5, #a0cfff);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      transform: translateY(-6px) scale(1.01);
     }
+  }
+
+  &.theme--blue {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  }
+  &.theme--green {
+    background: linear-gradient(135deg, #065f46 0%, #10b981 100%);
+  }
+  &.theme--purple {
+    background: linear-gradient(135deg, #5b21b6 0%, #8b5cf6 100%);
+  }
+  &.theme--orange {
+    background: linear-gradient(135deg, #c2410c 0%, #f97316 100%);
   }
   &.theme--primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

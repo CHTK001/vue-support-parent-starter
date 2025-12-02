@@ -99,9 +99,17 @@
         </el-button>
       </div>
       <div class="feature-description">
-        <p><strong>多弹框管理：</strong>支持同时打开多个对话框，每个对话框都有唯一ID</p>
-        <p><strong>激活功能：</strong>点击任意对话框会自动置顶（调整z-index）</p>
-        <p><strong>自动收缩：</strong>拖拽对话框到浏览器边缘时自动收缩为64px正方形，点击可恢复</p>
+        <p>
+          <strong>多弹框管理：</strong
+          >支持同时打开多个对话框，每个对话框都有唯一ID
+        </p>
+        <p>
+          <strong>激活功能：</strong>点击任意对话框会自动置顶（调整z-index）
+        </p>
+        <p>
+          <strong>自动收缩：</strong
+          >拖拽对话框到浏览器边缘时自动收缩为64px正方形，点击可恢复
+        </p>
       </div>
     </div>
 
@@ -134,7 +142,9 @@
           <el-form-item label="其他选项">
             <div class="checkbox-group">
               <el-checkbox v-model="showClose">显示关闭按钮</el-checkbox>
-              <el-checkbox v-model="closeOnClickModal">点击遮罩关闭</el-checkbox>
+              <el-checkbox v-model="closeOnClickModal"
+                >点击遮罩关闭</el-checkbox
+              >
               <el-checkbox v-model="closeOnPressEscape">ESC键关闭</el-checkbox>
               <el-checkbox v-model="lockScroll">锁定滚动</el-checkbox>
             </div>
@@ -148,36 +158,94 @@
       <h3 class="section-title">代码示例</h3>
       <el-tabs v-model="activeTab">
         <el-tab-pane label="基础用法" name="basic">
-          <CodeDisplay :code="basicCode" language="vue" />
+          <CodePreview
+            :tabs="[
+              {
+                key: 'basic',
+                label: '基础用法',
+                icon: 'ri:code-s-slash-line',
+                language: 'vue',
+                code: basicCode,
+              },
+            ]"
+          />
         </el-tab-pane>
         <el-tab-pane label="主题和图标" name="theme">
-          <CodeDisplay :code="themeCode" language="vue" />
+          <CodePreview
+            :tabs="[
+              {
+                key: 'theme',
+                label: '主题',
+                icon: 'ri:code-s-slash-line',
+                language: 'vue',
+                code: themeCode,
+              },
+            ]"
+          />
         </el-tab-pane>
         <el-tab-pane label="自定义内容" name="custom">
-          <CodeDisplay :code="customCode" language="vue" />
+          <CodePreview
+            :tabs="[
+              {
+                key: 'custom',
+                label: '自定义',
+                icon: 'ri:code-s-slash-line',
+                language: 'vue',
+                code: customCode,
+              },
+            ]"
+          />
         </el-tab-pane>
         <el-tab-pane label="高级功能" name="advanced">
-          <CodeDisplay :code="advancedCode" language="vue" />
+          <CodePreview
+            :tabs="[
+              {
+                key: 'advanced',
+                label: '高级',
+                icon: 'ri:code-s-slash-line',
+                language: 'vue',
+                code: advancedCode,
+              },
+            ]"
+          />
         </el-tab-pane>
       </el-tabs>
     </div>
 
     <!-- 对话框实例 -->
     <!-- 基础对话框 -->
-    <ScWindowDialog v-model="basicVisible" title="基础对话框" :width="600" :height="400" :top="100" :left="200">
+    <ScWindowDialog
+      v-model="basicVisible"
+      title="基础对话框"
+      :width="600"
+      :height="400"
+      :top="100"
+      :left="200"
+    >
       <p>这是一个基础的对话框示例，展示了ScWindowDialog组件的基本功能。</p>
       <p>您可以通过配置选项来调整对话框的各种属性。</p>
 
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="basicVisible = false">取消</el-button>
-          <el-button type="primary" @click="basicVisible = false">确定</el-button>
+          <el-button type="primary" @click="basicVisible = false"
+            >确定</el-button
+          >
         </div>
       </template>
     </ScWindowDialog>
 
     <!-- 带图标对话框 -->
-    <ScWindowDialog v-model="iconVisible" title="带图标对话框" icon="mdi:check-circle" theme="success" :width="500" :height="350" :top="150" :left="250">
+    <ScWindowDialog
+      v-model="iconVisible"
+      title="带图标对话框"
+      icon="mdi:check-circle"
+      theme="success"
+      :width="500"
+      :height="350"
+      :top="150"
+      :left="250"
+    >
       <p>这个对话框展示了如何使用图标和主题功能。</p>
       <p>图标会显示在标题旁边，主题会影响对话框的整体样式。</p>
 
@@ -189,7 +257,13 @@
     </ScWindowDialog>
 
     <!-- 自定义对话框 -->
-    <ScWindowDialog v-model="customVisible" :width="700" :height="450" :top="120" :left="180">
+    <ScWindowDialog
+      v-model="customVisible"
+      :width="700"
+      :height="450"
+      :top="120"
+      :left="180"
+    >
       <template #header="{ close }">
         <div class="custom-header">
           <div class="header-left">
@@ -213,13 +287,22 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="customVisible = false">取消</el-button>
-          <el-button type="primary" @click="customVisible = false">保存</el-button>
+          <el-button type="primary" @click="customVisible = false"
+            >保存</el-button
+          >
         </div>
       </template>
     </ScWindowDialog>
 
     <!-- 全屏对话框 -->
-    <ScWindowDialog v-model="fullscreenVisible" title="全屏对话框" :width="800" :height="600" :top="50" :left="100">
+    <ScWindowDialog
+      v-model="fullscreenVisible"
+      title="全屏对话框"
+      :width="800"
+      :height="600"
+      :top="50"
+      :left="100"
+    >
       <div style="padding: 20px; text-align: center">
         <h2>全屏模式</h2>
         <p>这是一个全屏显示的对话框，适合展示大量内容或复杂的界面。</p>
@@ -234,9 +317,21 @@
     </ScWindowDialog>
 
     <!-- 主题对话框 -->
-    <ScWindowDialog v-model="themeVisible" :title="themeDialogTitle" :icon="themeDialogIcon" :theme="currentTheme" :width="500" :height="350" :top="200" :left="300">
+    <ScWindowDialog
+      v-model="themeVisible"
+      :title="themeDialogTitle"
+      :icon="themeDialogIcon"
+      :theme="currentTheme"
+      :width="500"
+      :height="350"
+      :top="200"
+      :left="300"
+    >
       <div style="text-align: center; padding: 20px">
-        <IconifyIconOnline :icon="themeDialogIcon" style="font-size: 48px; margin-bottom: 16px" />
+        <IconifyIconOnline
+          :icon="themeDialogIcon"
+          style="font-size: 48px; margin-bottom: 16px"
+        />
         <p>{{ themeDialogDescription }}</p>
       </div>
 
@@ -248,7 +343,15 @@
     </ScWindowDialog>
 
     <!-- 可拖拽对话框 -->
-    <ScWindowDialog v-model="draggableVisible" title="可拖拽对话框" :draggable="true" :width="600" :height="400" :top="100" :left="150">
+    <ScWindowDialog
+      v-model="draggableVisible"
+      title="可拖拽对话框"
+      :draggable="true"
+      :width="600"
+      :height="400"
+      :top="100"
+      :left="150"
+    >
       <p>这个对话框支持拖拽功能，您可以通过拖拽标题栏来移动对话框位置。</p>
       <p>拖拽功能让用户可以更灵活地管理对话框的位置。</p>
 
@@ -260,12 +363,28 @@
     </ScWindowDialog>
 
     <!-- 嵌套对话框 -->
-    <ScWindowDialog v-model="nestedVisible" title="父对话框" :width="600" :height="400" :top="80" :left="120">
+    <ScWindowDialog
+      v-model="nestedVisible"
+      title="父对话框"
+      :width="600"
+      :height="400"
+      :top="80"
+      :left="120"
+    >
       <p>这是父对话框，点击下面的按钮可以打开子对话框。</p>
-      <el-button type="primary" @click="nestedChildVisible = true">打开子对话框</el-button>
+      <el-button type="primary" @click="nestedChildVisible = true"
+        >打开子对话框</el-button
+      >
 
       <!-- 子对话框 -->
-      <ScWindowDialog v-model="nestedChildVisible" title="子对话框" :width="400" :height="300" :top="150" :left="250">
+      <ScWindowDialog
+        v-model="nestedChildVisible"
+        title="子对话框"
+        :width="400"
+        :height="300"
+        :top="150"
+        :left="250"
+      >
         <p>这是嵌套的子对话框，它会显示在父对话框之上。</p>
 
         <template #footer>
@@ -283,8 +402,20 @@
     </ScWindowDialog>
 
     <!-- 表单对话框 -->
-    <ScWindowDialog v-model="formVisible" title="表单对话框" :width="600" :height="500" :top="60" :left="200">
-      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="80px">
+    <ScWindowDialog
+      v-model="formVisible"
+      title="表单对话框"
+      :width="600"
+      :height="500"
+      :top="60"
+      :left="200"
+    >
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="formRules"
+        label-width="80px"
+      >
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="姓名" prop="name">
@@ -328,7 +459,12 @@
         </el-form-item>
 
         <el-form-item label="描述">
-          <el-input v-model="formData.description" type="textarea" :rows="3" placeholder="请输入描述" />
+          <el-input
+            v-model="formData.description"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入描述"
+          />
         </el-form-item>
       </el-form>
 
@@ -341,11 +477,25 @@
     </ScWindowDialog>
 
     <!-- 确认对话框 -->
-    <ScWindowDialog v-model="confirmVisible" title="确认操作" icon="mdi:help-circle" theme="warning" :width="400" :height="250" :top="200" :left="350">
+    <ScWindowDialog
+      v-model="confirmVisible"
+      title="确认操作"
+      icon="mdi:help-circle"
+      theme="warning"
+      :width="400"
+      :height="250"
+      :top="200"
+      :left="350"
+    >
       <div style="text-align: center; padding: 20px">
-        <IconifyIconOnline icon="mdi:help-circle" style="font-size: 48px; color: #e6a23c; margin-bottom: 16px" />
+        <IconifyIconOnline
+          icon="mdi:help-circle"
+          style="font-size: 48px; color: #e6a23c; margin-bottom: 16px"
+        />
         <p>您确定要执行此操作吗？</p>
-        <p style="color: var(--el-text-color-primary); font-size: 14px">此操作不可撤销，请谨慎操作。</p>
+        <p style="color: var(--el-text-color-primary); font-size: 14px">
+          此操作不可撤销，请谨慎操作。
+        </p>
       </div>
 
       <template #footer>
@@ -357,7 +507,19 @@
     </ScWindowDialog>
 
     <!-- 多弹框演示 -->
-    <ScWindowDialog v-for="dialog in multipleDialogs" :key="dialog.id" v-model="dialog.visible" :title="dialog.title" :dialog-id="dialog.id" :draggable="true" :width="400" :height="300" :top="dialog.top" :left="dialog.left" @close="removeDialog(dialog.id)">
+    <ScWindowDialog
+      v-for="dialog in multipleDialogs"
+      :key="dialog.id"
+      v-model="dialog.visible"
+      :title="dialog.title"
+      :dialog-id="dialog.id"
+      :draggable="true"
+      :width="400"
+      :height="300"
+      :top="dialog.top"
+      :left="dialog.left"
+      @close="removeDialog(dialog.id)"
+    >
       <p>{{ dialog.content }}</p>
       <p>对话框ID: {{ dialog.id }}</p>
 
@@ -369,10 +531,22 @@
     </ScWindowDialog>
 
     <!-- 自动收缩演示 -->
-    <ScWindowDialog v-model="autoShrinkVisible" title="自动收缩对话框" dialog-id="auto-shrink-dialog" :draggable="true" :auto-shrink="true" :width="500" :height="400" :top="100" :left="300">
+    <ScWindowDialog
+      v-model="autoShrinkVisible"
+      title="自动收缩对话框"
+      dialog-id="auto-shrink-dialog"
+      :draggable="true"
+      :auto-shrink="true"
+      :width="500"
+      :height="400"
+      :top="100"
+      :left="300"
+    >
       <div style="padding: 20px">
         <h4>自动收缩功能演示</h4>
-        <p>请拖拽此对话框到浏览器窗口的边缘（距离边缘小于20px），对话框会自动收缩为64x64px的小方块。</p>
+        <p>
+          请拖拽此对话框到浏览器窗口的边缘（距离边缘小于20px），对话框会自动收缩为64x64px的小方块。
+        </p>
         <p>收缩后点击小方块可以恢复到原始大小。</p>
         <p>这个功能特别适合需要长时间保持打开但不占用太多屏幕空间的对话框。</p>
       </div>
@@ -385,7 +559,13 @@
     </ScWindowDialog>
 
     <!-- 激活功能演示 -->
-    <ScWindowDialog v-model="activationDemoVisible" title="激活功能演示" dialog-id="activation-demo" draggable width="450px">
+    <ScWindowDialog
+      v-model="activationDemoVisible"
+      title="激活功能演示"
+      dialog-id="activation-demo"
+      draggable
+      width="450px"
+    >
       <div style="padding: 20px">
         <h4>激活功能说明</h4>
         <p>当页面上有多个对话框时，点击任意对话框都会自动将其置顶显示。</p>
@@ -407,7 +587,7 @@ import { IconifyIconOnline } from "@repo/components/ReIcon";
 import ScWindowDialog from "@repo/components/ScWindowDialog/index.vue";
 import { ElMessage } from "element-plus";
 import { computed, ref } from "vue";
-import CodeDisplay from "./CodeDisplay.vue";
+import CodePreview from "./CodePreview.vue";
 
 // 对话框显示状态
 const basicVisible = ref(false);
@@ -472,7 +652,11 @@ const formRules = {
   ],
   phone: [
     { required: true, message: "请输入电话号码", trigger: "blur" },
-    { pattern: /^1[3-9]\d{9}$/, message: "请输入正确的手机号码", trigger: "blur" },
+    {
+      pattern: /^1[3-9]\d{9}$/,
+      message: "请输入正确的手机号码",
+      trigger: "blur",
+    },
   ],
   gender: [{ required: true, message: "请选择性别", trigger: "change" }],
 };

@@ -132,10 +132,17 @@
           </el-form>
 
           <div class="code-preview mt-4">
-            <h4>代码示例：</h4>
-            <div class="code-box">
-              <pre class="language-html"><code>{{ generatedCode }}</code></pre>
-            </div>
+            <CodePreview
+              :tabs="[
+                {
+                  key: 'code',
+                  label: '代码示例',
+                  icon: 'ri:code-s-slash-line',
+                  language: 'vue',
+                  code: generatedCode,
+                },
+              ]"
+            />
           </div>
         </div>
       </el-col>
@@ -318,6 +325,7 @@
 import { ref, reactive, computed } from "vue";
 import ScDialog from "@repo/components/ScDialog/src/index.vue";
 import { message } from "@repo/utils";
+import CodePreview from "./CodePreview.vue";
 
 // 对话框配置
 const config = reactive({

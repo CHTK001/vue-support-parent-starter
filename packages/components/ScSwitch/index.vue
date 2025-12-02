@@ -1,6 +1,6 @@
 <template>
   <div class="sc-switch">
-    <CardLayout 
+    <CardLayout
       v-if="layout === 'card'"
       v-model="currentValue"
       :disabled="disabled"
@@ -16,7 +16,7 @@
       :inactive-icon="inactiveIcon"
       @change="handleChange"
     />
-    <SliderLayout 
+    <SliderLayout
       v-else-if="layout === 'slider'"
       v-model="currentValue"
       :disabled="disabled"
@@ -32,7 +32,7 @@
       :inactive-icon="inactiveIcon"
       @change="handleChange"
     />
-    <ModernLayout 
+    <ModernLayout
       v-else-if="layout === 'modern'"
       v-model="currentValue"
       :disabled="disabled"
@@ -54,8 +54,8 @@
       :disabled="disabled"
       :loading="loading"
       :size="size"
-      :active-text="activeText"
-      :inactive-text="inactiveText"
+      :active-text="showText ? activeText : ''"
+      :inactive-text="showText ? inactiveText : ''"
       :active-value="activeValue"
       :inactive-value="inactiveValue"
       :active-color="activeColor"
@@ -74,7 +74,7 @@ import ModernLayout from "./components/ModernLayout.vue";
 const props = defineProps({
   modelValue: {
     type: [Boolean, String, Number],
-    default: false,
+    default: false
   },
   disabled: {
     type: Boolean,
@@ -125,6 +125,13 @@ const props = defineProps({
   inactiveIcon: {
     type: String,
     default: ""
+  },
+  /**
+   * 是否显示文字
+   */
+  showText: {
+    type: Boolean,
+    default: false
   },
   name: {
     type: String,

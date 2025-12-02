@@ -32,9 +32,19 @@ export default defineComponent({
       },
       visible: false,
       rules: {
-        sysSecretDictItemId: [{ required: true, message: "请选择厂家", trigger: "blur" }],
-        sysSecretGroup: [{ required: true, message: "请输入密钥分组", trigger: "blur" }],
-        sysSecretCode: [{ required: true, message: "请输入编码, 可自行唯一", trigger: "blur" }],
+        sysSecretDictItemId: [
+          { required: true, message: "请选择厂家", trigger: "blur" },
+        ],
+        sysSecretGroup: [
+          { required: true, message: "请输入密钥分组", trigger: "blur" },
+        ],
+        sysSecretCode: [
+          {
+            required: true,
+            message: "请输入编码, 可自行唯一",
+            trigger: "blur",
+          },
+        ],
       },
       loading: false,
       title: "",
@@ -84,7 +94,9 @@ export default defineComponent({
           var res = {};
           const newForm = {};
           Object.assign(newForm, this.form);
-          newForm.sysSecretFunction = (this.form.sysSecretFunctions || []).join(",");
+          newForm.sysSecretFunction = (this.form.sysSecretFunctions || []).join(
+            ","
+          );
           if (this.mode === "save") {
             res = await fetchSaveSecret(newForm);
           } else if (this.mode === "edit") {
@@ -106,44 +118,89 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
-      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
+    <el-dialog
+      v-model="visible"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :destroy-on-close="true"
+      draggable
+      :title="title"
+      @close="close"
+    >
+      <el-form
+        ref="dialogForm"
+        :model="form"
+        :rules="rules"
+        :disabled="mode == 'show'"
+        label-width="100px"
+      >
         <el-row>
           <el-col :span="12">
             <el-form-item label="密钥分组" prop="sysSecretGroup">
-              <el-input v-model="form.sysSecretGroup" placeholder="请输入密钥分组" />
+              <el-input
+                v-model="form.sysSecretGroup"
+                placeholder="请输入密钥分组"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="密钥标识" prop="sysSecretCode">
-              <el-input v-model="form.sysSecretCode" placeholder="请输入密码标识" />
+              <el-input
+                v-model="form.sysSecretCode"
+                placeholder="请输入密码标识"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="适用厂家" prop="sysSecretDictItemId">
-              <el-select v-model="form.sysSecretDictItemId" placeholder="请选择厂家" filterable>
-                <el-option v-for="item in dictItem" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+              <el-select
+                v-model="form.sysSecretDictItemId"
+                placeholder="请选择厂家"
+                filterable
+              >
+                <el-option
+                  v-for="item in dictItem"
+                  :key="item.sysDictItemId"
+                  :label="item.sysDictItemName"
+                  :value="item.sysDictItemId"
+                />
               </el-select>
             </el-form-item>
           </el-col>
 
           <el-col :span="12">
             <el-form-item label="同步功能" prop="sysSecretFunction">
-              <el-select v-model="form.sysSecretFunctions" placeholder="请选择支持同步功能" filterable multiple>
-                <el-option v-for="item in sysSecretFunctions" :key="item.value" :label="item.label" :value="item.value" />
+              <el-select
+                v-model="form.sysSecretFunctions"
+                placeholder="请选择支持同步功能"
+                filterable
+                multiple
+              >
+                <el-option
+                  v-for="item in sysSecretFunctions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
               </el-select>
             </el-form-item>
           </el-col>
 
           <el-col :span="12">
             <el-form-item label="appId" prop="sysSecretAppId">
-              <el-input v-model="form.sysSecretAppId" placeholder="请输入AppId" />
+              <el-input
+                v-model="form.sysSecretAppId"
+                placeholder="请输入AppId"
+              />
             </el-form-item>
           </el-col>
 
           <el-col :span="12">
             <el-form-item label="appSecret" prop="sysSecretAppSecret">
-              <el-input v-model="form.sysSecretAppSecret" placeholder="请输入appSecret" />
+              <el-input
+                v-model="form.sysSecretAppSecret"
+                placeholder="请输入appSecret"
+              />
             </el-form-item>
           </el-col>
 
@@ -155,7 +212,10 @@ export default defineComponent({
 
           <el-col :span="12">
             <el-form-item label="endpoint" prop="sysSecretEndpoint">
-              <el-input v-model="form.sysSecretEndpoint" placeholder="请输入endpoint" />
+              <el-input
+                v-model="form.sysSecretEndpoint"
+                placeholder="请输入endpoint"
+              />
             </el-form-item>
           </el-col>
 
@@ -167,7 +227,11 @@ export default defineComponent({
 
           <el-col :span="24">
             <el-form-item label="备注" prop="sysSecretRemark">
-              <el-input v-model="form.sysSecretRemark" placeholder="请输入备注" type="textarea" />
+              <el-input
+                v-model="form.sysSecretRemark"
+                placeholder="请输入备注"
+                type="textarea"
+              />
             </el-form-item>
           </el-col>
         </el-row>
@@ -175,23 +239,56 @@ export default defineComponent({
 
       <template #footer>
         <el-button @click="visible = false">取 消</el-button>
-        <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="debounce(submit(), 1000, true)">保 存</el-button>
+        <el-button
+          v-if="mode != 'show'"
+          type="primary"
+          :loading="loading"
+          @click="debounce(submit(), 1000, true)"
+          >保 存</el-button
+        >
       </template>
     </el-dialog>
   </div>
 </template>
 
-<style scoped>
-.el-dialog {
-  border-radius: 8px;
+<style scoped lang="scss">
+:deep(.el-dialog) {
+  border-radius: 12px;
+  overflow: hidden;
+
+  .el-dialog__header {
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color-overlay) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    padding: 16px 20px;
+    margin: 0;
+  }
+
+  .el-dialog__body {
+    padding: 24px;
+  }
+
+  .el-dialog__footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
 }
 
 .el-form {
-  padding: 20px 0;
+  padding: 0;
 }
 
 .el-form-item {
   margin-bottom: 20px;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-select__wrapper),
+:deep(.el-textarea__inner) {
+  border-radius: 8px;
 }
 
 .el-row {
@@ -200,5 +297,9 @@ export default defineComponent({
 
 .el-col {
   padding: 0 10px;
+}
+
+:deep(.el-button) {
+  border-radius: 8px;
 }
 </style>

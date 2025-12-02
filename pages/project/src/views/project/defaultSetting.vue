@@ -1,8 +1,19 @@
 <template>
   <div>
-    <el-dialog v-model="visible" draggable title="设置默认" width="400px">
+    <el-dialog
+      v-model="visible"
+      draggable
+      title="设置默认"
+      width="400px"
+      class="default-setting-dialog"
+    >
       <el-form>
-        <el-form-item v-for="item in currentValue" :key="item.value" prop="label" :label="item.label">
+        <el-form-item
+          v-for="item in currentValue"
+          :key="item.value"
+          prop="label"
+          :label="item.label"
+        >
           <el-segmented
             v-model="defaultValue[item.value]"
             :options="[
@@ -20,7 +31,12 @@
       </el-form>
       <template #footer>
         <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :icon="useRenderIcon('ri:save-2-line')" @click="handleSubmit">保存</el-button>
+        <el-button
+          type="primary"
+          :icon="useRenderIcon('ri:save-2-line')"
+          @click="handleSubmit"
+          >保存</el-button
+        >
       </template>
     </el-dialog>
   </div>
@@ -85,3 +101,91 @@ defineExpose({
   handleOpen,
 });
 </script>
+
+<style scoped lang="scss">
+:deep(.el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+
+  .el-dialog__header {
+    padding: 20px 24px;
+    margin: 0;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color-overlay) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-lighter);
+
+    .el-dialog__title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .el-dialog__body {
+    padding: 28px;
+    background: var(--el-bg-color);
+  }
+
+  .el-dialog__footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--el-border-color-lighter);
+    background: var(--el-bg-color-overlay);
+  }
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.1);
+  }
+
+  .el-form-item__label {
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+}
+
+:deep(.el-segmented) {
+  border-radius: 10px;
+
+  .el-segmented__item {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+
+    &.is-selected {
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 100%
+      );
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
+    }
+  }
+}
+
+:deep(.el-button) {
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &.el-button--primary:hover {
+    box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.35);
+  }
+}
+</style>

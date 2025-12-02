@@ -5,13 +5,30 @@
     <div class="example-content">
       <!-- 左侧地图区域 -->
       <div class="map-area">
-        <ScLayer ref="layerRef" :height="config.height" :map-type="config.mapType" :map-tile="config.mapTile"
-          :center="config.center" :zoom="config.zoom" :dragging="config.dragging"
-          :scroll-wheel-zoom="config.scrollWheelZoom" :map-key="config.mapKey" :show-toolbar="config.showToolbar"
-          :show-scale-line="config.showScaleLine" :map="config.map" @map-initialized="onMapInit" @map-click="onMapClick"
-          @marker-click="onMarkerClick" @toolbar-state-change="onToolbarStateChange" @marker-create="onMarkerCreate"
-          @marker-update="onMarkerUpdate" @marker-delete="onMarkerDelete" @shape-create="onShapeCreate"
-          @shape-update="onShapeUpdate" @shape-delete="onShapeDelete">
+        <ScLayer
+          ref="layerRef"
+          :height="config.height"
+          :map-type="config.mapType"
+          :map-tile="config.mapTile"
+          :center="config.center"
+          :zoom="config.zoom"
+          :dragging="config.dragging"
+          :scroll-wheel-zoom="config.scrollWheelZoom"
+          :map-key="config.mapKey"
+          :show-toolbar="config.showToolbar"
+          :show-scale-line="config.showScaleLine"
+          :map="config.map"
+          @map-initialized="onMapInit"
+          @map-click="onMapClick"
+          @marker-click="onMarkerClick"
+          @toolbar-state-change="onToolbarStateChange"
+          @marker-create="onMarkerCreate"
+          @marker-update="onMarkerUpdate"
+          @marker-delete="onMarkerDelete"
+          @shape-create="onShapeCreate"
+          @shape-update="onShapeUpdate"
+          @shape-delete="onShapeDelete"
+        >
         </ScLayer>
       </div>
 
@@ -21,21 +38,28 @@
           <div class="config-item"></div>
           <div class="label">地图配置</div>
           <div class="controls">
-
             <!-- 替换地图类型下拉框为按钮组 -->
             <div class="control-row">
               <span>地图类型:</span>
               <div class="button-group">
-                <button @click="changeMapType(MapType.GAODE)"
-                  :class="{ 'active-button': config.mapType === MapType.GAODE }">
+                <button
+                  @click="changeMapType(MapType.GAODE)"
+                  :class="{ 'active-button': config.mapType === MapType.GAODE }"
+                >
                   高德地图
                 </button>
-                <button @click="changeMapType(MapType.OSM)"
-                  :class="{ 'active-button': config.mapType === MapType.OSM }">
+                <button
+                  @click="changeMapType(MapType.OSM)"
+                  :class="{ 'active-button': config.mapType === MapType.OSM }"
+                >
                   OpenStreetMap
                 </button>
-                <button @click="changeMapType(MapType.TIANDI)"
-                  :class="{ 'active-button': config.mapType === MapType.TIANDI }">
+                <button
+                  @click="changeMapType(MapType.TIANDI)"
+                  :class="{
+                    'active-button': config.mapType === MapType.TIANDI,
+                  }"
+                >
                   天地图
                 </button>
               </div>
@@ -43,13 +67,22 @@
             <div class="control-row">
               <span>图层类型:</span>
               <div class="button-group">
-                <button @click="changeLayerType('normal')" :class="{ 'active-button': tileType === 'normal' }">
+                <button
+                  @click="changeLayerType('normal')"
+                  :class="{ 'active-button': tileType === 'normal' }"
+                >
                   标准图层
                 </button>
-                <button @click="changeLayerType('satellite')" :class="{ 'active-button': tileType === 'satellite' }">
+                <button
+                  @click="changeLayerType('satellite')"
+                  :class="{ 'active-button': tileType === 'satellite' }"
+                >
                   卫星图层
                 </button>
-                <button @click="changeLayerType('hybrid')" :class="{ 'active-button': tileType === 'hybrid' }">
+                <button
+                  @click="changeLayerType('hybrid')"
+                  :class="{ 'active-button': tileType === 'hybrid' }"
+                >
                   混合图层
                 </button>
               </div>
@@ -57,24 +90,44 @@
             <div class="control-row">
               <span>工具栏位置:</span>
               <div class="button-group">
-                <button @click="changeToolbarPosition(ToolbarPosition.TOP_LEFT)"
-                  :class="{ 'active-button': toolbarPosition === ToolbarPosition.TOP_LEFT }">
+                <button
+                  @click="changeToolbarPosition(ToolbarPosition.TOP_LEFT)"
+                  :class="{
+                    'active-button':
+                      toolbarPosition === ToolbarPosition.TOP_LEFT,
+                  }"
+                >
                   左上角
                 </button>
-                <button @click="changeToolbarPosition(ToolbarPosition.TOP_RIGHT)"
-                  :class="{ 'active-button': toolbarPosition === ToolbarPosition.TOP_RIGHT }">
+                <button
+                  @click="changeToolbarPosition(ToolbarPosition.TOP_RIGHT)"
+                  :class="{
+                    'active-button':
+                      toolbarPosition === ToolbarPosition.TOP_RIGHT,
+                  }"
+                >
                   右上角
                 </button>
               </div>
             </div>
             <div class="control-row toolbar-position-row">
               <div class="button-group">
-                <button @click="changeToolbarPosition(ToolbarPosition.BOTTOM_LEFT)"
-                  :class="{ 'active-button': toolbarPosition === ToolbarPosition.BOTTOM_LEFT }">
+                <button
+                  @click="changeToolbarPosition(ToolbarPosition.BOTTOM_LEFT)"
+                  :class="{
+                    'active-button':
+                      toolbarPosition === ToolbarPosition.BOTTOM_LEFT,
+                  }"
+                >
                   左下角
                 </button>
-                <button @click="changeToolbarPosition(ToolbarPosition.BOTTOM_RIGHT)"
-                  :class="{ 'active-button': toolbarPosition === ToolbarPosition.BOTTOM_RIGHT }">
+                <button
+                  @click="changeToolbarPosition(ToolbarPosition.BOTTOM_RIGHT)"
+                  :class="{
+                    'active-button':
+                      toolbarPosition === ToolbarPosition.BOTTOM_RIGHT,
+                  }"
+                >
                   右下角
                 </button>
               </div>
@@ -84,12 +137,22 @@
             <div class="control-row">
               <span>工具栏方向:</span>
               <div class="button-group">
-                <button @click="changeToolbarDirection(ToolbarDirection.HORIZONTAL)"
-                  :class="{ 'active-button': toolbarDirection === ToolbarDirection.HORIZONTAL }">
+                <button
+                  @click="changeToolbarDirection(ToolbarDirection.HORIZONTAL)"
+                  :class="{
+                    'active-button':
+                      toolbarDirection === ToolbarDirection.HORIZONTAL,
+                  }"
+                >
                   水平方向
                 </button>
-                <button @click="changeToolbarDirection(ToolbarDirection.VERTICAL)"
-                  :class="{ 'active-button': toolbarDirection === ToolbarDirection.VERTICAL }">
+                <button
+                  @click="changeToolbarDirection(ToolbarDirection.VERTICAL)"
+                  :class="{
+                    'active-button':
+                      toolbarDirection === ToolbarDirection.VERTICAL,
+                  }"
+                >
                   垂直方向
                 </button>
               </div>
@@ -97,41 +160,83 @@
 
             <div class="control-row">
               <span>可拖动:</span>
-              <input type="checkbox" v-model="config.dragging" @change="handleInteractionChange">
+              <input
+                type="checkbox"
+                v-model="config.dragging"
+                @change="handleInteractionChange"
+              />
             </div>
             <div class="control-row">
               <span>滚轮缩放:</span>
-              <input type="checkbox" v-model="config.scrollWheelZoom" @change="handleInteractionChange">
+              <input
+                type="checkbox"
+                v-model="config.scrollWheelZoom"
+                @change="handleInteractionChange"
+              />
             </div>
             <div class="control-row">
               <span>比例尺:</span>
-              <input type="checkbox" v-model="config.showScaleLine" @change="handleScaleLineChange">
+              <input
+                type="checkbox"
+                v-model="config.showScaleLine"
+                @change="handleScaleLineChange"
+              />
             </div>
             <div class="control-row">
               <span>缩放级别:</span>
-              <input type="range" v-model.number="config.zoom" min="3" max="18" @change="handleZoomChange">
+              <input
+                type="range"
+                v-model.number="config.zoom"
+                min="3"
+                max="18"
+                @change="handleZoomChange"
+              />
               <span class="value">{{ config.zoom }}</span>
             </div>
             <div class="control-row">
               <span>快速切换:</span>
             </div>
             <div class="control-row buttons-row">
-              <button @click="switchToLayer(MapType.GAODE, MapTile.NORMAL)"
-                :class="{ 'active-button': config.mapType === MapType.GAODE && config.mapTile === MapTile.NORMAL }">
+              <button
+                @click="switchToLayer(MapType.GAODE, MapTile.NORMAL)"
+                :class="{
+                  'active-button':
+                    config.mapType === MapType.GAODE &&
+                    config.mapTile === MapTile.NORMAL,
+                }"
+              >
                 高德标准
               </button>
-              <button @click="switchToLayer(MapType.GAODE, MapTile.SATELLITE)"
-                :class="{ 'active-button': config.mapType === MapType.GAODE && config.mapTile === MapTile.SATELLITE }">
+              <button
+                @click="switchToLayer(MapType.GAODE, MapTile.SATELLITE)"
+                :class="{
+                  'active-button':
+                    config.mapType === MapType.GAODE &&
+                    config.mapTile === MapTile.SATELLITE,
+                }"
+              >
                 高德卫星
               </button>
             </div>
             <div class="control-row buttons-row">
-              <button @click="switchToLayer(MapType.OSM, MapTile.NORMAL)"
-                :class="{ 'active-button': config.mapType === MapType.OSM && config.mapTile === MapTile.NORMAL }">
+              <button
+                @click="switchToLayer(MapType.OSM, MapTile.NORMAL)"
+                :class="{
+                  'active-button':
+                    config.mapType === MapType.OSM &&
+                    config.mapTile === MapTile.NORMAL,
+                }"
+              >
                 OSM地图
               </button>
-              <button @click="switchToLayer(MapType.TIANDI, MapTile.NORMAL)"
-                :class="{ 'active-button': config.mapType === MapType.TIANDI && config.mapTile === MapTile.NORMAL }">
+              <button
+                @click="switchToLayer(MapType.TIANDI, MapTile.NORMAL)"
+                :class="{
+                  'active-button':
+                    config.mapType === MapType.TIANDI &&
+                    config.mapTile === MapTile.NORMAL,
+                }"
+              >
                 天地图
               </button>
             </div>
@@ -165,10 +270,14 @@
             </div>
             <div class="control-row buttons-row">
               <button @click="addPhotoMarkers">添加Photo样式图标</button>
-              <button @click="toggleAllMarkers">{{ allMarkersVisible ? '隐藏所有标记点' : '显示所有标记点' }}</button>
+              <button @click="toggleAllMarkers">
+                {{ allMarkersVisible ? "隐藏所有标记点" : "显示所有标记点" }}
+              </button>
             </div>
             <div class="control-row buttons-row">
-              <button @click="toggleAllLabels">{{ allLabelsVisible ? '隐藏所有标签' : '显示所有标签' }}</button>
+              <button @click="toggleAllLabels">
+                {{ allLabelsVisible ? "隐藏所有标签" : "显示所有标签" }}
+              </button>
             </div>
 
             <div class="feature-group-title">Popover标记</div>
@@ -214,7 +323,9 @@
               <button @click="clearAllShapes">清除所有图形</button>
             </div>
             <div class="control-row buttons-row">
-              <button @click="toggleShapeVisible">{{ allShapesVisible ? '隐藏所有图形' : '显示所有图形' }}</button>
+              <button @click="toggleShapeVisible">
+                {{ allShapesVisible ? "隐藏所有图形" : "显示所有图形" }}
+              </button>
               <button @click="modifyRandomShape">修改随机图形</button>
             </div>
 
@@ -249,22 +360,50 @@
             <!-- 3D模型操作区域 - 添加功能分组 -->
             <div class="feature-group-title">3D模型管理</div>
             <div class="control-row buttons-row">
-              <button @click="addSimple3DModel" :disabled="!is3DMode">添加简单模型</button>
-              <button @click="addDetailed3DModel" :disabled="!is3DMode">添加详细模型</button>
+              <button @click="addSimple3DModel" :disabled="!is3DMode">
+                添加简单模型
+              </button>
+              <button @click="addDetailed3DModel" :disabled="!is3DMode">
+                添加详细模型
+              </button>
             </div>
             <div class="control-row buttons-row">
-              <button @click="addCustom3DModel" :disabled="!is3DMode">添加自定义模型</button>
-              <button @click="clearAll3DModels" :disabled="!is3DMode">清除所有模型</button>
+              <button @click="addCustom3DModel" :disabled="!is3DMode">
+                添加自定义模型
+              </button>
+              <button @click="clearAll3DModels" :disabled="!is3DMode">
+                清除所有模型
+              </button>
             </div>
 
             <div class="feature-group-title">模型操作</div>
             <div class="control-row buttons-row">
-              <button @click="flyToSelectedModel" :disabled="!is3DMode || !selectedModelId">飞行到模型</button>
-              <button @click="rotateSelectedModel" :disabled="!is3DMode || !selectedModelId">旋转模型</button>
+              <button
+                @click="flyToSelectedModel"
+                :disabled="!is3DMode || !selectedModelId"
+              >
+                飞行到模型
+              </button>
+              <button
+                @click="rotateSelectedModel"
+                :disabled="!is3DMode || !selectedModelId"
+              >
+                旋转模型
+              </button>
             </div>
             <div class="control-row buttons-row">
-              <button @click="resizeSelectedModel" :disabled="!is3DMode || !selectedModelId">调整模型大小</button>
-              <button @click="changeModelColor" :disabled="!is3DMode || !selectedModelId">更改模型颜色</button>
+              <button
+                @click="resizeSelectedModel"
+                :disabled="!is3DMode || !selectedModelId"
+              >
+                调整模型大小
+              </button>
+              <button
+                @click="changeModelColor"
+                :disabled="!is3DMode || !selectedModelId"
+              >
+                更改模型颜色
+              </button>
             </div>
           </div>
         </div>
@@ -276,12 +415,16 @@
             <!-- 热力图操作区域 - 添加功能分组 -->
             <div class="feature-group-title">热力图控制</div>
             <div class="control-row buttons-row">
-              <button @click="toggleHeatmapPerformanceMode">{{ heatmapPerformanceMode ? '禁用性能模式' : '启用性能模式' }}</button>
+              <button @click="toggleHeatmapPerformanceMode">
+                {{ heatmapPerformanceMode ? "禁用性能模式" : "启用性能模式" }}
+              </button>
             </div>
 
             <div class="feature-group-title">热力点管理</div>
             <div class="control-row buttons-row">
-              <button @click="addRandomHeatmapPoints(20)">添加随机热力点</button>
+              <button @click="addRandomHeatmapPoints(20)">
+                添加随机热力点
+              </button>
               <button @click="clearHeatmapPoints">清除热力点</button>
             </div>
             <div class="control-row buttons-row">
@@ -297,19 +440,37 @@
             <div class="feature-group-title">风场参数</div>
             <div class="control-row">
               <span>粒子数量:</span>
-              <input type="range" v-model.number="windConfig.paths" min="100" max="5000" @input="updateWindOptions">
+              <input
+                type="range"
+                v-model.number="windConfig.paths"
+                min="100"
+                max="5000"
+                @input="updateWindOptions"
+              />
               <span class="value">{{ windConfig.paths }}</span>
             </div>
             <div class="control-row">
               <span>线条粗细:</span>
-              <input type="range" v-model.number="windConfig.lineWidth" min="1" max="5" step="0.5"
-                @input="updateWindOptions">
+              <input
+                type="range"
+                v-model.number="windConfig.lineWidth"
+                min="1"
+                max="5"
+                step="0.5"
+                @input="updateWindOptions"
+              />
               <span class="value">{{ windConfig.lineWidth }}</span>
             </div>
             <div class="control-row">
               <span>速度缩放:</span>
-              <input type="range" v-model.number="windConfig.velocityScale" min="0.01" max="0.1" step="0.01"
-                @input="updateWindOptions">
+              <input
+                type="range"
+                v-model.number="windConfig.velocityScale"
+                min="0.01"
+                max="0.1"
+                step="0.01"
+                @input="updateWindOptions"
+              />
               <span class="value">{{ windConfig.velocityScale }}</span>
             </div>
           </div>
@@ -322,25 +483,36 @@
             <span>可见: {{ visibleMarkerCount }}</span>
           </div>
           <div class="marker-list">
-            <div v-if="markers.length === 0" class="no-markers">
-              暂无标记点
-            </div>
-            <div v-for="marker in markers.slice(0, 5)" :key="marker.id" class="marker-item thin-scrollbar">
+            <div v-if="markers.length === 0" class="no-markers">暂无标记点</div>
+            <div
+              v-for="marker in markers.slice(0, 5)"
+              :key="marker.id"
+              class="marker-item thin-scrollbar"
+            >
               <div class="marker-header">
                 <span class="marker-id">ID: {{ safeSlice(marker.id) }}</span>
-                <span :class="['marker-status', marker.visible ? 'visible' : 'hidden']">
-                  {{ marker.visible ? '可见' : '隐藏' }}
+                <span
+                  :class="[
+                    'marker-status',
+                    marker.visible ? 'visible' : 'hidden',
+                  ]"
+                >
+                  {{ marker.visible ? "可见" : "隐藏" }}
                 </span>
               </div>
-              <div class="marker-position">位置: [{{ marker.position[0].toFixed(4) }}, {{ marker.position[1].toFixed(4)
-              }}]</div>
-              <div class="marker-title" v-if="marker.title">标题: {{ marker.title }}</div>
+              <div class="marker-position">
+                位置: [{{ marker.position[0].toFixed(4) }},
+                {{ marker.position[1].toFixed(4) }}]
+              </div>
+              <div class="marker-title" v-if="marker.title">
+                标题: {{ marker.title }}
+              </div>
               <div class="marker-actions">
                 <button @click="toggleMarkerVisibility(marker)">
-                  {{ marker.visible ? '隐藏' : '显示' }}
+                  {{ marker.visible ? "隐藏" : "显示" }}
                 </button>
                 <button @click="toggleMarkerPopover(marker)">
-                  {{ marker.showPopover ? '隐藏Popover' : '显示Popover' }}
+                  {{ marker.showPopover ? "隐藏Popover" : "显示Popover" }}
                 </button>
                 <button @click="moveMarker(marker)">移动</button>
                 <button @click="removeMarker(marker)">删除</button>
@@ -359,39 +531,42 @@
             <span>可见: {{ allShapesVisible ? shapes.length : 0 }}</span>
           </div>
           <div class="shape-list">
-            <div v-if="shapes.length === 0" class="no-shapes">
-              暂无图形
-            </div>
-            <div v-for="shape in shapes.slice(0, 5)" :key="shape.id" class="shape-item thin-scrollbar">
+            <div v-if="shapes.length === 0" class="no-shapes">暂无图形</div>
+            <div
+              v-for="shape in shapes.slice(0, 5)"
+              :key="shape.id"
+              class="shape-item thin-scrollbar"
+            >
               <div class="shape-header">
                 <span class="shape-id">ID: {{ safeSlice(shape.id) }}</span>
-                <span class="shape-type">类型: {{ getShapeTypeName(shape.type) }}</span>
+                <span class="shape-type"
+                  >类型: {{ getShapeTypeName(shape.type) }}</span
+                >
               </div>
               <div class="shape-data" v-if="shape.data">
                 <template v-if="typeof shape.data === 'object'">
-                  <div v-for="(value, key) in shape.data" :key="key" class="shape-data-item">
+                  <div
+                    v-for="(value, key) in shape.data"
+                    :key="key"
+                    class="shape-data-item"
+                  >
                     {{ key }}: {{ value }}
                   </div>
                 </template>
-                <template v-else>
-                  数据: {{ shape.data }}
-                </template>
+                <template v-else> 数据: {{ shape.data }} </template>
               </div>
               <div class="shape-status">
-                状态: <span :class="[shape.visible === false ? 'hidden' : 'visible']">
-                  {{ shape.visible === false ? '隐藏' : '可见' }}
+                状态:
+                <span :class="[shape.visible === false ? 'hidden' : 'visible']">
+                  {{ shape.visible === false ? "隐藏" : "可见" }}
                 </span>
               </div>
               <div class="shape-actions">
                 <button @click="toggleShapeVisibility(shape)">
-                  {{ shape.visible === false ? '显示' : '隐藏' }}
+                  {{ shape.visible === false ? "显示" : "隐藏" }}
                 </button>
-                <button @click="changeShapeStyle(shape)">
-                  修改样式
-                </button>
-                <button @click="removeShape(shape)">
-                  删除
-                </button>
+                <button @click="changeShapeStyle(shape)">修改样式</button>
+                <button @click="removeShape(shape)">删除</button>
               </div>
             </div>
             <div v-if="shapes.length > 5" class="more-shapes">
@@ -411,11 +586,20 @@
             <div v-if="flightLines.length === 0" class="no-flight-lines">
               暂无飞线数据
             </div>
-            <div v-for="line in flightLines" :key="line.id" class="flight-line-item thin-scrollbar"
-              :class="{ 'flight-line-selected': selectedFlightLine === line.id }" @click="selectFlightLine(line.id)">
+            <div
+              v-for="line in flightLines"
+              :key="line.id"
+              class="flight-line-item thin-scrollbar"
+              :class="{
+                'flight-line-selected': selectedFlightLine === line.id,
+              }"
+              @click="selectFlightLine(line.id)"
+            >
               <div class="flight-line-header">
                 <span class="flight-line-id">ID: {{ safeSlice(line.id) }}</span>
-                <span class="flight-line-value" v-if="line.value">值: {{ line.value }}</span>
+                <span class="flight-line-value" v-if="line.value"
+                  >值: {{ line.value }}</span
+                >
               </div>
               <div class="flight-line-route">
                 <span>{{ line.fromName }}</span>
@@ -432,14 +616,16 @@
         <div class="config-item">
           <div class="label">事件日志</div>
           <div class="log-container">
-            <div v-for="(log, index) in logs" :key="index" class="log-item thin-scrollbar">
+            <div
+              v-for="(log, index) in logs"
+              :key="index"
+              class="log-item thin-scrollbar"
+            >
               <span class="log-time">{{ log.time }}</span>
               <span class="log-type">{{ log.type }}:</span>
               <span class="log-message">{{ log.message }}</span>
             </div>
-            <div v-if="logs.length === 0" class="no-logs">
-              暂无事件记录
-            </div>
+            <div v-if="logs.length === 0" class="no-logs">暂无事件记录</div>
           </div>
         </div>
 
@@ -453,17 +639,28 @@
               <div v-if="markerGroups.length === 0" class="no-marker-groups">
                 暂无标记点分组
               </div>
-              <div v-for="group in markerGroups" :key="group.name" class="marker-group-item thin-scrollbar">
+              <div
+                v-for="group in markerGroups"
+                :key="group.name"
+                class="marker-group-item thin-scrollbar"
+              >
                 <div class="marker-group-header">
                   <span class="marker-group-name">{{ group.name }}</span>
-                  <span :class="['marker-group-status', group.visible ? 'visible' : 'hidden']">
-                    {{ group.visible ? '可见' : '隐藏' }}
+                  <span
+                    :class="[
+                      'marker-group-status',
+                      group.visible ? 'visible' : 'hidden',
+                    ]"
+                  >
+                    {{ group.visible ? "可见" : "隐藏" }}
                   </span>
                 </div>
-                <div class="marker-group-count">标记点数量: {{ getGroupMarkerCount(group.name) }}</div>
+                <div class="marker-group-count">
+                  标记点数量: {{ getGroupMarkerCount(group.name) }}
+                </div>
                 <div class="marker-group-actions">
                   <button @click="toggleMarkerGroupVisibility(group.name)">
-                    {{ group.visible ? '隐藏' : '显示' }}
+                    {{ group.visible ? "隐藏" : "显示" }}
                   </button>
                 </div>
               </div>
@@ -483,14 +680,26 @@
               <div v-if="heatmapPoints.length === 0" class="no-heatmap-points">
                 暂无热力图点数据
               </div>
-              <div v-for="point in heatmapPoints" :key="point.id" class="heatmap-item thin-scrollbar"
-                :class="{ 'heatmap-selected': selectedHeatmapPoint === point.id }" @click="selectHeatmapPoint(point.id)">
+              <div
+                v-for="point in heatmapPoints"
+                :key="point.id"
+                class="heatmap-item thin-scrollbar"
+                :class="{
+                  'heatmap-selected': selectedHeatmapPoint === point.id,
+                }"
+                @click="selectHeatmapPoint(point.id)"
+              >
                 <div class="heatmap-header">
-                  <span class="heatmap-name">{{ point.name || '未命名点' }}</span>
-                  <span class="heatmap-weight">权重: {{ point.weight?.toFixed(2) || '0.00' }}</span>
+                  <span class="heatmap-name">{{
+                    point.name || "未命名点"
+                  }}</span>
+                  <span class="heatmap-weight"
+                    >权重: {{ point.weight?.toFixed(2) || "0.00" }}</span
+                  >
                 </div>
                 <div class="heatmap-position">
-                  坐标: [{{ point.longitude?.toFixed(4) || '0.0000' }}, {{ point.latitude?.toFixed(4) || '0.0000' }}]
+                  坐标: [{{ point.longitude?.toFixed(4) || "0.0000" }},
+                  {{ point.latitude?.toFixed(4) || "0.0000" }}]
                 </div>
               </div>
               <div v-if="heatmapPoints.length > 10" class="more-heatmap-points">
@@ -512,17 +721,29 @@
               <div v-if="models.length === 0" class="no-models">
                 暂无3D模型数据
               </div>
-              <div v-for="model in models" :key="model.id" class="model-item thin-scrollbar"
-                :class="{ 'model-selected': selectedModelId === model.id }" @click="selectedModelId = model.id">
+              <div
+                v-for="model in models"
+                :key="model.id"
+                class="model-item thin-scrollbar"
+                :class="{ 'model-selected': selectedModelId === model.id }"
+                @click="selectedModelId = model.id"
+              >
                 <div class="model-header">
-                  <span class="model-name">{{ model.name || '未命名模型' }}</span>
+                  <span class="model-name">{{
+                    model.name || "未命名模型"
+                  }}</span>
                   <span class="model-type">类型: {{ model.type }}</span>
                 </div>
-                <div class="model-id">
-                  ID: {{ safeSlice(model.id) }}
-                </div>
+                <div class="model-id">ID: {{ safeSlice(model.id) }}</div>
                 <div class="model-actions">
-                  <button @click.stop="selectedModelId = model.id; flyToSelectedModel()">飞行到此模型</button>
+                  <button
+                    @click.stop="
+                      selectedModelId = model.id;
+                      flyToSelectedModel();
+                    "
+                  >
+                    飞行到此模型
+                  </button>
                   <button @click.stop="removeModel(model.id)">删除</button>
                 </div>
               </div>
@@ -536,83 +757,95 @@
 
 <script setup lang="ts">
 console.log(console.track());
-import ScLayer from '@repo/components/ScLayer/index.vue';
-import type { HeatmapPoint, ShapeOption, WindConfig } from '@repo/components/ScLayer/types';
-import { DEFAULT_MAP_CONFIG, ToolbarDirection, ToolbarPosition } from '@repo/components/ScLayer/types';
-import { MapTile, MapType } from '@repo/components/ScLayer/types/index';
-import { computed, reactive, ref, watch } from 'vue';
+import ScLayer from "@repo/components/ScLayer/index.vue";
+import type {
+  HeatmapPoint,
+  ShapeOption,
+  WindConfig,
+} from "@repo/components/ScLayer/types";
+import {
+  DEFAULT_MAP_CONFIG,
+  ToolbarDirection,
+  ToolbarPosition,
+} from "@repo/components/ScLayer/types";
+import { MapTile, MapType } from "@repo/components/ScLayer/types/index";
+import { computed, reactive, ref, watch } from "vue";
 // 引入CesiumObject和模型类型定义
-import type { Model3DOptions } from '@repo/components/ScLayer/composables/CesiumModelObject';
+import type { Model3DOptions } from "@repo/components/ScLayer/composables/CesiumModelObject";
 
 // 标记点聚合模式的枚举
 const MarkerClusterMode = {
-  CLUSTER: 'cluster',
-  NONE: 'none'
+  CLUSTER: "cluster",
+  NONE: "none",
 };
 // 引入飞线图类型定义
-import type { FlightLineConfig, FlightLineData, FlightLinePoint } from '@repo/components/ScLayer/types';
+import type {
+  FlightLineConfig,
+  FlightLineData,
+  FlightLinePoint,
+} from "@repo/components/ScLayer/types";
 // 引入Element Plus组件
-import { ElMessage } from 'element-plus';
+import { ElMessage } from "element-plus";
 
 // 地图实例引用
 const layerRef = ref(null);
 
 // 3D模型相关状态
 const is3DMode = ref(false);
-const models = ref < { id: string; name: string; type: string }[] > ([]);
-const selectedModelId = ref < string | null > (null);
-const viewMode = ref < '2D' | '3D' | '2.5D' > ('3D');
+const models = ref<{ id: string; name: string; type: string }[]>([]);
+const selectedModelId = ref<string | null>(null);
+const viewMode = ref<"2D" | "3D" | "2.5D">("3D");
 
 // 热力图相关
-const heatmapPoints = ref < Array < HeatmapPoint >> ([]);
+const heatmapPoints = ref<Array<HeatmapPoint>>([]);
 const pointsVisible = ref(false);
 // 添加当前选中的热力图记录
-const selectedHeatmapPoint = ref < string | null > (null);
+const selectedHeatmapPoint = ref<string | null>(null);
 // 热力图性能模式
 const heatmapPerformanceMode = ref(false);
 
 // 飞线图相关
-const flightLinePoints = ref < Array < FlightLinePoint >> ([]);
-const flightLineConfig = ref < FlightLineConfig > ({
-  curveness: 0.2,        // 曲度调整为0.2，与sakitam示例一致
-  width: 1,              // 线宽调整为1
-  showEffect: true,      // 显示效果
-  showNodes: true,       // 显示节点
-  color: '#a6c84c',      // 使用sakitam示例中的颜色
-  opacity: 0.5,          // 透明度调整为0.5
-  effectPeriod: 6,       // 效果周期调整为6
-  effectTrailLength: 0,  // 效果轨迹长度调整为0.7
-  effectSymbolSize: 18,  // 动画效果大小设为8
-  nodeSymbolSize: 3,     // 节点大小从8减小到3
-  effectSymbol: 'plane', // 效果符号改为arrow
-  visible: true,         // 可见性
-  nodeColor: '#ddb926',  // 节点颜色
-  nodeEffect: true,      // 节点效果
-  zIndex: 90,            // 层级
-  hideOnMoving: false,   // 移动时不隐藏
-  hideOnZooming: false,  // 缩放时不隐藏
-  enablePerformanceMode: false // 关闭性能模式以确保显示
+const flightLinePoints = ref<Array<FlightLinePoint>>([]);
+const flightLineConfig = ref<FlightLineConfig>({
+  curveness: 0.2, // 曲度调整为0.2，与sakitam示例一致
+  width: 1, // 线宽调整为1
+  showEffect: true, // 显示效果
+  showNodes: true, // 显示节点
+  color: "#a6c84c", // 使用sakitam示例中的颜色
+  opacity: 0.5, // 透明度调整为0.5
+  effectPeriod: 6, // 效果周期调整为6
+  effectTrailLength: 0, // 效果轨迹长度调整为0.7
+  effectSymbolSize: 18, // 动画效果大小设为8
+  nodeSymbolSize: 3, // 节点大小从8减小到3
+  effectSymbol: "plane", // 效果符号改为arrow
+  visible: true, // 可见性
+  nodeColor: "#ddb926", // 节点颜色
+  nodeEffect: true, // 节点效果
+  zIndex: 90, // 层级
+  hideOnMoving: false, // 移动时不隐藏
+  hideOnZooming: false, // 缩放时不隐藏
+  enablePerformanceMode: false, // 关闭性能模式以确保显示
 });
 
 // 飞线图相关状态
 const flightLineActive = ref(false);
 
 // 飞线图列表数据 - 修改为单选模式
-const flightLines = ref < Array < FlightLineData & { id: string } >> ([]);
-const selectedFlightLine = ref < string | null > (null);
+const flightLines = ref<Array<FlightLineData & { id: string }>>([]);
+const selectedFlightLine = ref<string | null>(null);
 
 // 创建一个Shape枚举常量
 const ShapeType = {
-  POINT: 'Point',
-  LINE: 'LineString',
-  POLYGON: 'Polygon',
-  CIRCLE: 'Circle',
-  RECTANGLE: 'Rectangle',
-  SQUARE: 'Square'
+  POINT: "Point",
+  LINE: "LineString",
+  POLYGON: "Polygon",
+  CIRCLE: "Circle",
+  RECTANGLE: "Rectangle",
+  SQUARE: "Square",
 };
 
 // 图层类型选择（UI展示用）
-const tileType = ref('normal');
+const tileType = ref("normal");
 
 // 地图配置
 const config = reactive({
@@ -626,28 +859,30 @@ const config = reactive({
   scrollWheelZoom: true,
   showToolbar: true,
   showScaleLine: true,
-  mapKey: {} as Record<string, string>
+  mapKey: {} as Record<string, string>,
 });
 
 // 标记点数据
-const markers = ref < any[] > ([]);
+const markers = ref<any[]>([]);
 const allMarkersVisible = ref(true);
 const allLabelsVisible = ref(true);
 
 // 标记点分组数据
-const markerGroups = ref < { name: string, visible: boolean }[] > ([]);
+const markerGroups = ref<{ name: string; visible: boolean }[]>([]);
 // 当前选中的用于切换显示的分组索引
 const currentGroupIndex = ref(0);
 
 // 图形数据
-const shapes = ref < ShapeOption[] > ([]);
+const shapes = ref<ShapeOption[]>([]);
 const allShapesVisible = ref(true);
 
 // 轨迹相关状态
-const tracks = ref < { id: string; name: string; points: any[]; visible: boolean }[] > ([]);
+const tracks = ref<
+  { id: string; name: string; points: any[]; visible: boolean }[]
+>([]);
 const allTracksVisible = ref(true);
 const hasTrack = ref(false);
-const activeTrackId = ref < string | null > (null); // 当前选中的轨迹ID
+const activeTrackId = ref<string | null>(null); // 当前选中的轨迹ID
 
 // 轨迹播放配置
 const trackPlaySpeed = ref(60);
@@ -657,7 +892,7 @@ const trackPlayShowNodes = ref(false);
 
 // 计算可见标记点数量
 const visibleMarkerCount = computed(() => {
-  return markers.value.filter(marker => marker.visible).length;
+  return markers.value.filter((marker) => marker.visible).length;
 });
 
 // 事件日志
@@ -665,19 +900,19 @@ const logs = reactive([]);
 
 // 安全地获取ID的后8位字符
 function safeSlice(id: any): string {
-  if (!id) return '无ID';
-  return typeof id === 'string' ? id.slice(-8) : String(id);
+  if (!id) return "无ID";
+  return typeof id === "string" ? id.slice(-8) : String(id);
 }
 
 // 添加日志
 function addLog(type, message) {
   const now = new Date();
-  const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+  const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
 
   logs.unshift({
     time: timeStr,
     type: type,
-    message: message
+    message: message,
   });
 
   // 只保留最近10条日志
@@ -688,8 +923,8 @@ function addLog(type, message) {
 
 // 地图初始化完成回调
 function onMapInit(mapInstance) {
-  addLog('初始化', '地图加载完成');
-  console.log('地图实例:', mapInstance);
+  addLog("初始化", "地图加载完成");
+  console.log("地图实例:", mapInstance);
 
   // 添加一个中心标记点
   addCenterMarker();
@@ -705,8 +940,8 @@ function onMapInit(mapInstance) {
     const toolbarManager = layerRef.value.getToolbarManager();
     if (toolbarManager) {
       // 从工具栏中移除编辑按钮
-      toolbarManager.removeTool('edit-shape');
-      addLog('工具栏', '已移除编辑按钮');
+      toolbarManager.removeTool("edit-shape");
+      addLog("工具栏", "已移除编辑按钮");
     }
   }
 
@@ -726,7 +961,7 @@ const selectFirstHeatmapPoint = () => {
     const firstPoint = heatmapPoints.value[0];
     if (firstPoint && firstPoint.id) {
       selectedHeatmapPoint.value = firstPoint.id;
-      addLog('热力图', `已选中热力点: ${firstPoint.name || '未命名'}`);
+      addLog("热力图", `已选中热力点: ${firstPoint.name || "未命名"}`);
     }
   }
 };
@@ -736,23 +971,29 @@ const selectFirstHeatmapPoint = () => {
  */
 const selectHeatmapPoint = (id: string) => {
   selectedHeatmapPoint.value = id;
-  const point = heatmapPoints.value.find(p => p.id === id);
+  const point = heatmapPoints.value.find((p) => p.id === id);
   if (point) {
-    addLog('热力图', `已选中热力点: ${point.name || '未命名'}`);
+    addLog("热力图", `已选中热力点: ${point.name || "未命名"}`);
   }
 };
 
 // 地图点击事件
 function onMapClick(evt) {
   const coordinates = evt.coordinates;
-  addLog('点击', `地图坐标: [${coordinates[0].toFixed(4)}, ${coordinates[1].toFixed(4)}]`);
+  addLog(
+    "点击",
+    `地图坐标: [${coordinates[0].toFixed(4)}, ${coordinates[1].toFixed(4)}]`
+  );
 }
 
 // 标记点击事件
 function onMarkerClick(evt) {
   const data = evt.data;
   const markerId = data?.id;
-  addLog('点击', `标记点: ${data.title || '未命名'} [ID: ${safeSlice(markerId)}]`);
+  addLog(
+    "点击",
+    `标记点: ${data.title || "未命名"} [ID: ${safeSlice(markerId)}]`
+  );
 }
 
 // 添加中心标记点
@@ -763,23 +1004,23 @@ function addCenterMarker() {
   const centerLat = config.center[0];
 
   const markerId = layerRef.value.addMarker({
-    id: 'center-marker',
+    id: "center-marker",
     position: [centerLon, centerLat],
-    title: '中心点',
+    title: "中心点",
     clickable: true,
     usePopover: true,
-    data: { type: 'center', importance: 'high' },
-    template: '<div><h3>{{title}}</h3><p>这是地图中心点</p></div>',
+    data: { type: "center", importance: "high" },
+    template: "<div><h3>{{title}}</h3><p>这是地图中心点</p></div>",
     style: {
       scale: 1.2,
-      textColor: '#f00',
-      textFont: 'bold 14px Arial'
-    }
+      textColor: "#f00",
+      textFont: "bold 14px Arial",
+    },
   });
 
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', '已添加中心标记点');
+  addLog("操作", "已添加中心标记点");
 }
 
 // 添加随机标记点
@@ -790,18 +1031,25 @@ function addRandomMarkers(count) {
   const centerLat = config.center[0];
 
   // 可用的图标类型
-  const iconTypes = ['url', 'svg', 'base64', 'default'];
+  const iconTypes = ["url", "svg", "base64", "default"];
   // 一些预定义的随机URL图标
   const iconUrls = [
-    'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png',
-    'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-2.png',
-    'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-3.png',
-    'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png'
+    "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png",
+    "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-2.png",
+    "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-3.png",
+    "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
   ];
   // 随机颜色
-  const colors = ['#1890ff', '#52c41a', '#faad14', '#722ed1', '#eb2f96', '#fa541c'];
+  const colors = [
+    "#1890ff",
+    "#52c41a",
+    "#faad14",
+    "#722ed1",
+    "#eb2f96",
+    "#fa541c",
+  ];
   // 随机分组
-  const groups = ['景点', '餐厅', '交通', '购物', null]; // null表示不分组
+  const groups = ["景点", "餐厅", "交通", "购物", null]; // null表示不分组
 
   for (let i = 0; i < count; i++) {
     const offsetLon = (Math.random() - 0.5) * 0.1;
@@ -827,19 +1075,19 @@ function addRandomMarkers(count) {
 
     // 根据不同图标类型准备图标内容
     switch (iconType) {
-      case 'svg':
+      case "svg":
         // 直接传递SVG字符串
         icon = iconSvg;
         break;
-      case 'url':
+      case "url":
         // 使用URL图标
         icon = iconUrls[Math.floor(Math.random() * iconUrls.length)];
         break;
-      case 'base64':
+      case "base64":
         // 使用base64编码的图标
-        icon = 'data:image/svg+xml;base64,' + btoa(iconSvg);
+        icon = "data:image/svg+xml;base64," + btoa(iconSvg);
         break;
-      case 'default':
+      case "default":
       default:
         // 默认图标
         icon = iconSvg;
@@ -849,13 +1097,13 @@ function addRandomMarkers(count) {
     layerRef.value.addMarker({
       id,
       position: [lon, lat],
-      title: `标记 ${i + 1} (${iconType})${group ? ' - ' + group : ''}`,
+      title: `标记 ${i + 1} (${iconType})${group ? " - " + group : ""}`,
       icon: icon,
       iconType: iconType,
       clickable: true,
       usePopover: usePopover,
       group: group, // 设置分组属性
-      data: { type: 'random', index: i }
+      data: { type: "random", index: i },
     });
   }
 
@@ -864,7 +1112,10 @@ function addRandomMarkers(count) {
   // 更新分组列表
   updateMarkerGroups();
 
-  addLog('操作', `已添加 ${count} 个随机标记点 (不同图标类型${count > 1 ? '和分组' : ''})`);
+  addLog(
+    "操作",
+    `已添加 ${count} 个随机标记点 (不同图标类型${count > 1 ? "和分组" : ""})`
+  );
 }
 
 // 添加彩色标记点
@@ -876,10 +1127,34 @@ function addColoredMarkers() {
 
   // 定义四个方向和颜色
   const directions = [
-    { name: '东', offset: [0.05, 0], color: '#1890ff', usePopover: true, iconType: 'svg' },
-    { name: '南', offset: [0, -0.05], color: '#52c41a', usePopover: false, iconType: 'url' },
-    { name: '西', offset: [-0.05, 0], color: '#faad14', usePopover: true, iconType: 'base64' },
-    { name: '北', offset: [0, 0.05], color: '#722ed1', usePopover: false, iconType: 'default' }
+    {
+      name: "东",
+      offset: [0.05, 0],
+      color: "#1890ff",
+      usePopover: true,
+      iconType: "svg",
+    },
+    {
+      name: "南",
+      offset: [0, -0.05],
+      color: "#52c41a",
+      usePopover: false,
+      iconType: "url",
+    },
+    {
+      name: "西",
+      offset: [-0.05, 0],
+      color: "#faad14",
+      usePopover: true,
+      iconType: "base64",
+    },
+    {
+      name: "北",
+      offset: [0, 0.05],
+      color: "#722ed1",
+      usePopover: false,
+      iconType: "default",
+    },
   ];
 
   directions.forEach((dir, index) => {
@@ -893,19 +1168,22 @@ function addColoredMarkers() {
     // 根据不同图标类型准备图标内容
     let icon;
     switch (dir.iconType) {
-      case 'svg':
+      case "svg":
         // 直接传递SVG字符串
         icon = iconSvg;
         break;
-      case 'url':
+      case "url":
         // 使用URL图标
-        icon = 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-' + (index + 1) + '.png';
+        icon =
+          "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-" +
+          (index + 1) +
+          ".png";
         break;
-      case 'base64':
+      case "base64":
         // 使用base64编码的图标
-        icon = 'data:image/svg+xml;base64,' + btoa(iconSvg);
+        icon = "data:image/svg+xml;base64," + btoa(iconSvg);
         break;
-      case 'default':
+      case "default":
       default:
         // 默认使用SVG作为内容
         icon = iconSvg;
@@ -920,17 +1198,17 @@ function addColoredMarkers() {
       iconType: dir.iconType,
       clickable: true,
       usePopover: dir.usePopover,
-      data: { type: 'direction', name: dir.name },
+      data: { type: "direction", name: dir.name },
       style: {
         scale: 1,
-        textColor: dir.color
-      }
+        textColor: dir.color,
+      },
     });
   });
 
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', '已添加四个方向彩色标记点 (不同图标类型)');
+  addLog("操作", "已添加四个方向彩色标记点 (不同图标类型)");
 }
 
 // 添加聚合标记点
@@ -959,13 +1237,13 @@ function addClusterMarkers() {
       title: `聚合点 ${i + 1}`,
       clickable: true,
       clusterMode: MARKER_CLUSTER_MODE.CLUSTER,
-      data: { type: 'cluster', index: i }
+      data: { type: "cluster", index: i },
     });
   }
 
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', '已添加10个聚合标记点');
+  addLog("操作", "已添加10个聚合标记点");
 }
 
 // 添加Photo样式标记点
@@ -977,20 +1255,20 @@ function addPhotoMarkers() {
 
   // 远程图片URL列表
   const photoUrls = [
-    'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png',
-    'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-2.png',
-    'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-3.png',
-    'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png',
-    'https://openlayers.org/en/latest/examples/data/icon.png'
+    "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png",
+    "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-2.png",
+    "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-3.png",
+    "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
+    "https://openlayers.org/en/latest/examples/data/icon.png",
   ];
 
   // 不同的Photo样式形状
   const photoStyles = [
-    { kind: 'circle', name: '圆形' },
-    { kind: 'square', name: '方形' },
-    { kind: 'shield', name: '盾牌形' },
-    { kind: 'anchor', name: '锚形' },
-    { kind: 'folio', name: '文件形' }
+    { kind: "circle", name: "圆形" },
+    { kind: "square", name: "方形" },
+    { kind: "shield", name: "盾牌形" },
+    { kind: "anchor", name: "锚形" },
+    { kind: "folio", name: "文件形" },
   ];
 
   // 创建不同形状的Photo样式标记点
@@ -1011,21 +1289,21 @@ function addPhotoMarkers() {
       position: [lon, lat],
       title: `${style.name}图片标记`,
       icon: photoUrl,
-      iconType: 'url', // 关键：使用url类型，才会启用Photo样式
+      iconType: "url", // 关键：使用url类型，才会启用Photo样式
       clickable: true,
       usePopover: true,
       showPopover: true,
       data: {
-        type: 'photo',
+        type: "photo",
         photoKind: style.kind,
         photoStroke: 2,
-        photoStrokeColor: '#ffffff',
+        photoStrokeColor: "#ffffff",
         photoShadow: true,
         photoShadowBlur: 7,
-        photoShadowColor: 'rgba(0,0,0,0.5)',
+        photoShadowColor: "rgba(0,0,0,0.5)",
         photoCrop: true,
-        photoBackground: 'rgba(200,200,200,0.2)'
-      }
+        photoBackground: "rgba(200,200,200,0.2)",
+      },
     });
   });
 
@@ -1034,28 +1312,28 @@ function addPhotoMarkers() {
   layerRef.value.addMarker({
     id: customPhotoId,
     position: [centerLon, centerLat - 0.01],
-    title: '自定义Photo样式',
-    icon: 'https://openlayers.org/en/latest/examples/data/icon.png',
-    iconType: 'url',
+    title: "自定义Photo样式",
+    icon: "https://openlayers.org/en/latest/examples/data/icon.png",
+    iconType: "url",
     clickable: true,
     usePopover: true,
     showPopover: true,
     data: {
-      type: 'photo',
-      photoKind: 'circle',
+      type: "photo",
+      photoKind: "circle",
       photoStroke: 3,
-      photoStrokeColor: '#ff5500',
+      photoStrokeColor: "#ff5500",
       photoShadow: true,
       photoShadowBlur: 10,
-      photoShadowColor: 'rgba(255,85,0,0.7)',
+      photoShadowColor: "rgba(255,85,0,0.7)",
       photoCrop: true,
-      photoBackground: 'rgba(255,240,200,0.3)'
-    }
+      photoBackground: "rgba(255,240,200,0.3)",
+    },
   });
 
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', '已添加Photo样式图片标记点，使用ol-ext渲染远程URL图标');
+  addLog("操作", "已添加Photo样式图片标记点，使用ol-ext渲染远程URL图标");
 }
 
 // 清除所有标记
@@ -1066,7 +1344,7 @@ function clearAllMarkers() {
 
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', '已清除所有标记点');
+  addLog("操作", "已清除所有标记点");
 }
 
 // 切换所有标记点的可见性
@@ -1077,12 +1355,12 @@ function toggleAllMarkers() {
     // 如果当前标记点可见，则隐藏所有
     layerRef.value.hideAllMarkers();
     allMarkersVisible.value = false;
-    addLog('操作', '已隐藏所有标记点');
+    addLog("操作", "已隐藏所有标记点");
   } else {
     // 如果当前标记点隐藏，则显示所有
     layerRef.value.showAllMarkers();
     allMarkersVisible.value = true;
-    addLog('操作', '已显示所有标记点');
+    addLog("操作", "已显示所有标记点");
   }
 
   // 更新标记点列表
@@ -1097,12 +1375,12 @@ function toggleAllLabels() {
     // 如果当前标签可见，则隐藏所有
     layerRef.value.hideAllLabels();
     allLabelsVisible.value = false;
-    addLog('操作', '已隐藏所有标记点标签');
+    addLog("操作", "已隐藏所有标记点标签");
   } else {
     // 如果当前标签隐藏，则显示所有
     layerRef.value.showAllLabels();
     allLabelsVisible.value = true;
-    addLog('操作', '已显示所有标记点标签');
+    addLog("操作", "已显示所有标记点标签");
   }
 }
 
@@ -1112,10 +1390,10 @@ function toggleMarkerVisibility(marker: any) {
 
   if (marker.visible) {
     layerRef.value.hideMarker(marker.id);
-    addLog('操作', `已隐藏标记点: ${safeSlice(marker.id)}`);
+    addLog("操作", `已隐藏标记点: ${safeSlice(marker.id)}`);
   } else {
     layerRef.value.showMarker(marker.id);
-    addLog('操作', `已显示标记点: ${safeSlice(marker.id)}`);
+    addLog("操作", `已显示标记点: ${safeSlice(marker.id)}`);
   }
 
   // 更新标记点列表
@@ -1128,12 +1406,15 @@ function toggleMarkerPopover(marker: any) {
 
   const showPopover = !marker.showPopover;
   layerRef.value.updateMarker(marker.id, {
-    showPopover: showPopover
+    showPopover: showPopover,
   });
 
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', `已${showPopover ? '显示' : '隐藏'}标记点 ${safeSlice(marker.id)} 的Popover`);
+  addLog(
+    "操作",
+    `已${showPopover ? "显示" : "隐藏"}标记点 ${safeSlice(marker.id)} 的Popover`
+  );
 }
 
 // 移动标记点
@@ -1145,12 +1426,12 @@ function moveMarker(marker: any) {
   const lat = marker.position[1] + (Math.random() - 0.5) * 0.01;
 
   layerRef.value.updateMarker(marker.id, {
-    position: [lon, lat]
+    position: [lon, lat],
   });
 
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', `已移动标记点: ${safeSlice(marker.id)}`);
+  addLog("操作", `已移动标记点: ${safeSlice(marker.id)}`);
 }
 
 // 删除标记点
@@ -1161,7 +1442,7 @@ function removeMarker(marker: any) {
 
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', `已删除标记点: ${safeSlice(marker.id)}`);
+  addLog("操作", `已删除标记点: ${safeSlice(marker.id)}`);
 }
 
 // 更新标记点列表
@@ -1172,7 +1453,7 @@ function updateMarkerList() {
   markers.value = allMarkers;
 
   // 更新全局标记点可见状态
-  allMarkersVisible.value = allMarkers.filter(m => m.visible).length > 0;
+  allMarkersVisible.value = allMarkers.filter((m) => m.visible).length > 0;
 
   // 更新分组列表
   updateMarkerGroups();
@@ -1187,7 +1468,7 @@ function handleMapTypeChange() {
   // 更新图层类型显示
   updateLayerTypeDisplay();
 
-  addLog('操作', `切换地图类型为: ${config.mapType}`);
+  addLog("操作", `切换地图类型为: ${config.mapType}`);
 }
 
 // 处理图层类型变更
@@ -1196,13 +1477,13 @@ function handleLayerTypeChange() {
 
   // 转换图层类型
   switch (tileType.value) {
-    case 'normal':
+    case "normal":
       config.mapTile = MapTile.NORMAL;
       break;
-    case 'satellite':
+    case "satellite":
       config.mapTile = MapTile.SATELLITE;
       break;
-    case 'hybrid':
+    case "hybrid":
       config.mapTile = MapTile.HYBRID;
       break;
     default:
@@ -1212,7 +1493,7 @@ function handleLayerTypeChange() {
   // 切换地图图层
   layerRef.value.changeMapLayer(config.mapType, config.mapTile);
 
-  addLog('操作', `切换图层类型为: ${getMapTileName(config.mapTile)}`);
+  addLog("操作", `切换图层类型为: ${getMapTileName(config.mapTile)}`);
 }
 
 // 处理缩放级别变更
@@ -1221,18 +1502,21 @@ function handleZoomChange() {
 
   // 设置缩放
   layerRef.value.getMapObject().setZoom(config.zoom);
-  addLog('操作', `设置缩放级别为: ${config.zoom}`);
+  addLog("操作", `设置缩放级别为: ${config.zoom}`);
 }
 
 // 处理交互控制变更
 function handleInteractionChange() {
   if (!layerRef.value) return;
 
-  addLog('用户交互', `地图交互状态变更: 拖动=${config.dragging}, 滚轮缩放=${config.scrollWheelZoom}`);
+  addLog(
+    "用户交互",
+    `地图交互状态变更: 拖动=${config.dragging}, 滚轮缩放=${config.scrollWheelZoom}`
+  );
 
   layerRef.value.setInteractions({
     dragging: config.dragging,
-    scrollWheelZoom: config.scrollWheelZoom
+    scrollWheelZoom: config.scrollWheelZoom,
   });
 }
 
@@ -1240,7 +1524,7 @@ function handleInteractionChange() {
 function handleScaleLineChange() {
   if (!layerRef.value) return;
 
-  addLog('比例尺', `比例尺显示状态: ${config.showScaleLine ? '显示' : '隐藏'}`);
+  addLog("比例尺", `比例尺显示状态: ${config.showScaleLine ? "显示" : "隐藏"}`);
 
   // 注意：由于使用props传递，配置变更会自动更新，不需要额外调用方法
 }
@@ -1253,24 +1537,24 @@ function addPopoverMarker() {
   const centerLat = config.center[0];
 
   const markerId = layerRef.value.addMarker({
-    id: 'pop-marker',
+    id: "pop-marker",
     position: [centerLon, centerLat],
-    title: 'Popover标记',
+    title: "Popover标记",
     clickable: true,
     usePopover: true,
     showPopover: true,
-    data: { type: 'pop', importance: 'high' },
-    template: '<div><h3>{{title}}</h3><p>这是默认显示Popover的标记</p></div>',
+    data: { type: "pop", importance: "high" },
+    template: "<div><h3>{{title}}</h3><p>这是默认显示Popover的标记</p></div>",
     style: {
       scale: 1.2,
-      textColor: '#f00',
-      textFont: 'bold 14px Arial'
-    }
+      textColor: "#f00",
+      textFont: "bold 14px Arial",
+    },
   });
 
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', '已添加默认显示Popover的标记');
+  addLog("操作", "已添加默认显示Popover的标记");
 }
 
 // 添加带模板的标记点
@@ -1285,23 +1569,23 @@ function addTemplateMarker() {
   const lat = centerLat;
 
   const markerId = layerRef.value.addMarker({
-    id: 'template-marker',
+    id: "template-marker",
     position: [lon, lat],
-    title: '带模板标记',
+    title: "带模板标记",
     clickable: true,
     usePopover: false,
-    data: { type: 'template', importance: 'high' },
-    template: '<div><h3>{{title}}</h3><p>这是带模板的标记</p></div>',
+    data: { type: "template", importance: "high" },
+    template: "<div><h3>{{title}}</h3><p>这是带模板的标记</p></div>",
     style: {
       scale: 1.2,
-      textColor: '#f00',
-      textFont: 'bold 14px Arial'
-    }
+      textColor: "#f00",
+      textFont: "bold 14px Arial",
+    },
   });
 
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', '已添加带模板的标记点，点击时不会显示popover');
+  addLog("操作", "已添加带模板的标记点，点击时不会显示popover");
 }
 
 // 添加无模板的标记点
@@ -1316,22 +1600,22 @@ function addNoTemplateMarker() {
   const lat = centerLat;
 
   const markerId = layerRef.value.addMarker({
-    id: 'no-template-marker',
+    id: "no-template-marker",
     position: [lon, lat],
-    title: '无模板标记',
+    title: "无模板标记",
     clickable: true,
     usePopover: true,
-    data: { type: 'no-template', importance: 'high' },
+    data: { type: "no-template", importance: "high" },
     style: {
       scale: 1.2,
-      textColor: '#00a',
-      textFont: 'bold 14px Arial'
-    }
+      textColor: "#00a",
+      textFont: "bold 14px Arial",
+    },
   });
 
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', '已添加无模板的标记点，将在点击时显示popover');
+  addLog("操作", "已添加无模板的标记点，将在点击时显示popover");
 }
 
 // 添加正方形图形
@@ -1342,20 +1626,16 @@ function addSquareShape() {
   const centerLat = config.center[0];
 
   // 创建一个正方形，边长为500米
-  const id = layerRef.value.addSquare(
-    [centerLon, centerLat],
-    500,
-    {
-      id: `square-${Date.now()}`,
-      style: {
-        fill: { color: 'rgba(255, 165, 0, 0.3)' },
-        stroke: { color: 'orange', width: 3 }
-      },
-      data: { type: 'square', createdAt: new Date().toISOString() }
-    }
-  );
+  const id = layerRef.value.addSquare([centerLon, centerLat], 500, {
+    id: `square-${Date.now()}`,
+    style: {
+      fill: { color: "rgba(255, 165, 0, 0.3)" },
+      stroke: { color: "orange", width: 3 },
+    },
+    data: { type: "square", createdAt: new Date().toISOString() },
+  });
 
-  addLog('操作', `已添加正方形图形，ID: ${id}`);
+  addLog("操作", `已添加正方形图形，ID: ${id}`);
 }
 
 // 添加圆形图形
@@ -1370,20 +1650,16 @@ function addCircleShape() {
   const lat = centerLat + 0.01;
 
   // 创建一个圆，半径为300米
-  const id = layerRef.value.addCircle(
-    [lon, lat],
-    300,
-    {
-      id: `circle-${Date.now()}`,
-      style: {
-        fill: { color: 'rgba(24, 144, 255, 0.3)' },
-        stroke: { color: '#1890ff', width: 2 }
-      },
-      data: { type: 'circle', createdAt: new Date().toISOString() }
-    }
-  );
+  const id = layerRef.value.addCircle([lon, lat], 300, {
+    id: `circle-${Date.now()}`,
+    style: {
+      fill: { color: "rgba(24, 144, 255, 0.3)" },
+      stroke: { color: "#1890ff", width: 2 },
+    },
+    data: { type: "circle", createdAt: new Date().toISOString() },
+  });
 
-  addLog('操作', `已添加圆形图形，ID: ${id}`);
+  addLog("操作", `已添加圆形图形，ID: ${id}`);
 }
 
 // 添加矩形图形
@@ -1400,20 +1676,16 @@ function addRectangleShape() {
   const maxLat = centerLat - 0.005;
 
   // 创建一个矩形
-  const id = layerRef.value.addRectangle(
-    [minLon, minLat],
-    [maxLon, maxLat],
-    {
-      id: `rectangle-${Date.now()}`,
-      style: {
-        fill: { color: 'rgba(82, 196, 26, 0.3)' },
-        stroke: { color: '#52c41a', width: 2, lineDash: [5, 5] }
-      },
-      data: { type: 'rectangle', createdAt: new Date().toISOString() }
-    }
-  );
+  const id = layerRef.value.addRectangle([minLon, minLat], [maxLon, maxLat], {
+    id: `rectangle-${Date.now()}`,
+    style: {
+      fill: { color: "rgba(82, 196, 26, 0.3)" },
+      stroke: { color: "#52c41a", width: 2, lineDash: [5, 5] },
+    },
+    data: { type: "rectangle", createdAt: new Date().toISOString() },
+  });
 
-  addLog('操作', `已添加矩形图形，ID: ${id}`);
+  addLog("操作", `已添加矩形图形，ID: ${id}`);
 }
 
 // 添加多边形图形
@@ -1431,19 +1703,16 @@ function addPolygonShape() {
   ];
 
   // 创建一个多边形（三角形）
-  const id = layerRef.value.addPolygon(
-    coordinates,
-    {
-      id: `polygon-${Date.now()}`,
-      style: {
-        fill: { color: 'rgba(245, 34, 45, 0.3)' },
-        stroke: { color: '#f5222d', width: 2 }
-      },
-      data: { type: 'polygon', createdAt: new Date().toISOString() }
-    }
-  );
+  const id = layerRef.value.addPolygon(coordinates, {
+    id: `polygon-${Date.now()}`,
+    style: {
+      fill: { color: "rgba(245, 34, 45, 0.3)" },
+      stroke: { color: "#f5222d", width: 2 },
+    },
+    data: { type: "polygon", createdAt: new Date().toISOString() },
+  });
 
-  addLog('操作', `已添加多边形图形（三角形），ID: ${id}`);
+  addLog("操作", `已添加多边形图形（三角形），ID: ${id}`);
 }
 
 // 添加线段图形
@@ -1457,22 +1726,19 @@ function addLineShape() {
   const coordinates = [
     [centerLon - 0.02, centerLat + 0.02],
     [centerLon, centerLat + 0.03],
-    [centerLon + 0.02, centerLat + 0.02]
+    [centerLon + 0.02, centerLat + 0.02],
   ];
 
   // 创建一条线
-  const id = layerRef.value.addLine(
-    coordinates,
-    {
-      id: `line-${Date.now()}`,
-      style: {
-        stroke: { color: '#722ed1', width: 4, lineDash: [10, 5] }
-      },
-      data: { type: 'line', createdAt: new Date().toISOString() }
-    }
-  );
+  const id = layerRef.value.addLine(coordinates, {
+    id: `line-${Date.now()}`,
+    style: {
+      stroke: { color: "#722ed1", width: 4, lineDash: [10, 5] },
+    },
+    data: { type: "line", createdAt: new Date().toISOString() },
+  });
 
-  addLog('操作', `已添加线段图形，ID: ${id}`);
+  addLog("操作", `已添加线段图形，ID: ${id}`);
 }
 
 // 添加点图形
@@ -1487,23 +1753,20 @@ function addPointShape() {
   const lat = centerLat + 0.02;
 
   // 创建一个点
-  const id = layerRef.value.addPoint(
-    [lon, lat],
-    {
-      id: `point-${Date.now()}`,
-      style: {
-        fill: { color: 'rgba(255, 0, 0, 0.8)' },
-        stroke: { color: '#ffffff', width: 2 },
-        radius: 8, // 点的半径
-        zIndex: 10 // 置于其他图形之上
-      },
-      data: { type: 'point', createdAt: new Date().toISOString() }
-    }
-  );
+  const id = layerRef.value.addPoint([lon, lat], {
+    id: `point-${Date.now()}`,
+    style: {
+      fill: { color: "rgba(255, 0, 0, 0.8)" },
+      stroke: { color: "#ffffff", width: 2 },
+      radius: 8, // 点的半径
+      zIndex: 10, // 置于其他图形之上
+    },
+    data: { type: "point", createdAt: new Date().toISOString() },
+  });
 
   // 更新图形列表
   updateShapeList();
-  addLog('操作', `已添加点图形，ID: ${id}`);
+  addLog("操作", `已添加点图形，ID: ${id}`);
 }
 
 // 添加复合图形示例
@@ -1514,18 +1777,14 @@ function addCustomShapeExample() {
   const centerLat = config.center[0];
 
   // 创建一个正方形作为基础
-  const squareId = layerRef.value.addSquare(
-    [centerLon, centerLat],
-    600,
-    {
-      id: `complex-base-${Date.now()}`,
-      style: {
-        fill: { color: 'rgba(230, 230, 230, 0.5)' },
-        stroke: { color: '#333333', width: 2 }
-      },
-      data: { type: 'complex-base', part: 'base' }
-    }
-  );
+  const squareId = layerRef.value.addSquare([centerLon, centerLat], 600, {
+    id: `complex-base-${Date.now()}`,
+    style: {
+      fill: { color: "rgba(230, 230, 230, 0.5)" },
+      stroke: { color: "#333333", width: 2 },
+    },
+    data: { type: "complex-base", part: "base" },
+  });
 
   // 在四个角添加圆形
   const radius = 100;
@@ -1538,10 +1797,10 @@ function addCustomShapeExample() {
     {
       id: `complex-circle-ne-${Date.now()}`,
       style: {
-        fill: { color: 'rgba(24, 144, 255, 0.6)' },
-        stroke: { color: '#1890ff', width: 2 }
+        fill: { color: "rgba(24, 144, 255, 0.6)" },
+        stroke: { color: "#1890ff", width: 2 },
       },
-      data: { type: 'complex-part', part: 'northeast' }
+      data: { type: "complex-part", part: "northeast" },
     }
   );
 
@@ -1552,10 +1811,10 @@ function addCustomShapeExample() {
     {
       id: `complex-circle-nw-${Date.now()}`,
       style: {
-        fill: { color: 'rgba(82, 196, 26, 0.6)' },
-        stroke: { color: '#52c41a', width: 2 }
+        fill: { color: "rgba(82, 196, 26, 0.6)" },
+        stroke: { color: "#52c41a", width: 2 },
       },
-      data: { type: 'complex-part', part: 'northwest' }
+      data: { type: "complex-part", part: "northwest" },
     }
   );
 
@@ -1566,10 +1825,10 @@ function addCustomShapeExample() {
     {
       id: `complex-circle-sw-${Date.now()}`,
       style: {
-        fill: { color: 'rgba(250, 173, 20, 0.6)' },
-        stroke: { color: '#faad14', width: 2 }
+        fill: { color: "rgba(250, 173, 20, 0.6)" },
+        stroke: { color: "#faad14", width: 2 },
       },
-      data: { type: 'complex-part', part: 'southwest' }
+      data: { type: "complex-part", part: "southwest" },
     }
   );
 
@@ -1580,30 +1839,27 @@ function addCustomShapeExample() {
     {
       id: `complex-circle-se-${Date.now()}`,
       style: {
-        fill: { color: 'rgba(245, 34, 45, 0.6)' },
-        stroke: { color: '#f5222d', width: 2 }
+        fill: { color: "rgba(245, 34, 45, 0.6)" },
+        stroke: { color: "#f5222d", width: 2 },
       },
-      data: { type: 'complex-part', part: 'southeast' }
+      data: { type: "complex-part", part: "southeast" },
     }
   );
 
   // 添加中心点
-  layerRef.value.addPoint(
-    [centerLon, centerLat],
-    {
-      id: `complex-center-${Date.now()}`,
-      style: {
-        fill: { color: 'rgba(0, 0, 0, 0.8)' },
-        stroke: { color: '#ffffff', width: 2 },
-        radius: 10
-      },
-      data: { type: 'complex-part', part: 'center' }
-    }
-  );
+  layerRef.value.addPoint([centerLon, centerLat], {
+    id: `complex-center-${Date.now()}`,
+    style: {
+      fill: { color: "rgba(0, 0, 0, 0.8)" },
+      stroke: { color: "#ffffff", width: 2 },
+      radius: 10,
+    },
+    data: { type: "complex-part", part: "center" },
+  });
 
   // 更新图形列表
   updateShapeList();
-  addLog('操作', '已添加复合图形示例');
+  addLog("操作", "已添加复合图形示例");
 }
 
 // 清除所有图形
@@ -1611,7 +1867,7 @@ function clearAllShapes() {
   if (!layerRef.value) return;
 
   layerRef.value.clearAllShapes();
-  addLog('操作', '已清除所有图形');
+  addLog("操作", "已清除所有图形");
 }
 
 // 切换所有图形的可见性
@@ -1623,22 +1879,22 @@ function toggleShapeVisible() {
 
   if (allShapesVisible.value) {
     // 隐藏所有图形
-    shapes.value.forEach(shape => {
+    shapes.value.forEach((shape) => {
       if (shape.id) {
         layerRef.value.updateShape(shape.id, { visible: false });
       }
     });
     allShapesVisible.value = false;
-    addLog('操作', '已隐藏所有图形');
+    addLog("操作", "已隐藏所有图形");
   } else {
     // 显示所有图形
-    shapes.value.forEach(shape => {
+    shapes.value.forEach((shape) => {
       if (shape.id) {
         layerRef.value.updateShape(shape.id, { visible: true });
       }
     });
     allShapesVisible.value = true;
-    addLog('操作', '已显示所有图形');
+    addLog("操作", "已显示所有图形");
   }
 
   // 更新图形列表
@@ -1654,25 +1910,30 @@ function modifyRandomShape() {
   const shape = shapes.value[randomIndex];
 
   if (!shape || !shape.id) {
-    addLog('操作', '没有可修改的图形');
+    addLog("操作", "没有可修改的图形");
     return;
   }
 
   // 生成随机颜色
   const randomColor = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.5)`;
-  const randomStrokeColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
+  const randomStrokeColor = `#${Math.floor(Math.random() * 16777215)
+    .toString(16)
+    .padStart(6, "0")}`;
 
   // 修改图形样式
   layerRef.value.updateShape(shape.id, {
     style: {
       fill: { color: randomColor },
-      stroke: { color: randomStrokeColor, width: Math.floor(Math.random() * 5) + 1 }
-    }
+      stroke: {
+        color: randomStrokeColor,
+        width: Math.floor(Math.random() * 5) + 1,
+      },
+    },
   });
 
   // 更新图形列表
   updateShapeList();
-  addLog('操作', `已随机修改图形样式，ID: ${safeSlice(shape.id)}`);
+  addLog("操作", `已随机修改图形样式，ID: ${safeSlice(shape.id)}`);
 }
 
 // 更新图形列表
@@ -1682,21 +1943,22 @@ function updateShapeList() {
   const allShapes = layerRef.value.getAllShapeDatas() || [];
   shapes.value = allShapes;
   // 检查图形可见性状态
-  allShapesVisible.value = allShapes.length > 0 && allShapes.every(s => s.visible !== false);
+  allShapesVisible.value =
+    allShapes.length > 0 && allShapes.every((s) => s.visible !== false);
 }
 
 // 获取图形类型名称
 function getShapeTypeName(type: string): string {
   const typeNames = {
-    [ShapeType.POINT]: '点',
-    [ShapeType.LINE]: '线',
-    [ShapeType.POLYGON]: '多边形',
-    [ShapeType.CIRCLE]: '圆形',
-    [ShapeType.RECTANGLE]: '矩形',
-    [ShapeType.SQUARE]: '正方形'
+    [ShapeType.POINT]: "点",
+    [ShapeType.LINE]: "线",
+    [ShapeType.POLYGON]: "多边形",
+    [ShapeType.CIRCLE]: "圆形",
+    [ShapeType.RECTANGLE]: "矩形",
+    [ShapeType.SQUARE]: "正方形",
   };
 
-  return typeNames[type] || '未知类型';
+  return typeNames[type] || "未知类型";
 }
 
 // 切换图形可见性
@@ -1706,12 +1968,15 @@ function toggleShapeVisibility(shape: any) {
   const newVisible = shape.visible === false; // 如果当前是隐藏的，则显示
 
   layerRef.value.updateShape(shape.id, {
-    visible: newVisible
+    visible: newVisible,
   });
 
   // 更新图形列表
   updateShapeList();
-  addLog('操作', `已${newVisible ? '显示' : '隐藏'}图形: ${safeSlice(shape.id)}`);
+  addLog(
+    "操作",
+    `已${newVisible ? "显示" : "隐藏"}图形: ${safeSlice(shape.id)}`
+  );
 }
 
 // 修改图形样式
@@ -1723,12 +1988,17 @@ function changeShapeStyle(shape: any) {
 
   // 随机颜色
   const randomFillColor = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.5)`;
-  const randomStrokeColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
+  const randomStrokeColor = `#${Math.floor(Math.random() * 16777215)
+    .toString(16)
+    .padStart(6, "0")}`;
 
   // 基础样式
   style = {
     fill: { color: randomFillColor },
-    stroke: { color: randomStrokeColor, width: Math.floor(Math.random() * 4) + 1 }
+    stroke: {
+      color: randomStrokeColor,
+      width: Math.floor(Math.random() * 4) + 1,
+    },
   };
 
   // 对于点类型，增加半径属性
@@ -1741,7 +2011,7 @@ function changeShapeStyle(shape: any) {
 
   // 更新图形列表
   updateShapeList();
-  addLog('操作', `已修改图形样式: ${safeSlice(shape.id)}`);
+  addLog("操作", `已修改图形样式: ${safeSlice(shape.id)}`);
 }
 
 // 删除图形
@@ -1752,25 +2022,24 @@ function removeShape(shape: any) {
 
   // 更新图形列表
   updateShapeList();
-  addLog('操作', `已删除图形: ${safeSlice(shape.id)}`);
+  addLog("操作", `已删除图形: ${safeSlice(shape.id)}`);
 }
-
 
 // 更新显示的图层类型（根据配置中的实际值）
 function updateLayerTypeDisplay() {
   // 根据 config.mapTile 设置 tileType 显示值
   switch (config.mapTile) {
     case MapTile.NORMAL:
-      tileType.value = 'normal';
+      tileType.value = "normal";
       break;
     case MapTile.SATELLITE:
-      tileType.value = 'satellite';
+      tileType.value = "satellite";
       break;
     case MapTile.HYBRID:
-      tileType.value = 'hybrid';
+      tileType.value = "hybrid";
       break;
     default:
-      tileType.value = 'normal';
+      tileType.value = "normal";
   }
 }
 
@@ -1779,18 +2048,18 @@ function onToolbarStateChange(state) {
   const { toolId, active, toolType, data } = state;
 
   // 记录工具栏状态变化
-  addLog('工具栏', `工具ID: ${toolId}, 激活状态: ${active}, 类型: ${toolType}`);
+  addLog("工具栏", `工具ID: ${toolId}, 激活状态: ${active}, 类型: ${toolType}`);
 
   // 检测图层面板关闭事件
-  if (toolId === 'layer-switch' && !active) {
-    addLog('图层', '图层选择面板已关闭');
+  if (toolId === "layer-switch" && !active) {
+    addLog("图层", "图层选择面板已关闭");
     // 确保UI更新为最新的图层类型
     updateLayerTypeDisplay();
   }
 
   // 检测图层变更事件
-  if (toolId === 'layer-change' && data) {
-    addLog('图层', `图层已变更为: ${data.mapType} - ${data.mapTile}`);
+  if (toolId === "layer-change" && data) {
+    addLog("图层", `图层已变更为: ${data.mapType} - ${data.mapTile}`);
     // 更新本地配置
     config.mapType = data.mapType;
     config.mapTile = data.mapTile;
@@ -1813,28 +2082,28 @@ function switchToLayer(mapType: MapType, mapTile: MapTile) {
   // 更新UI显示
   updateLayerTypeDisplay();
 
-  addLog('操作', `切换地图: ${mapType} - ${getMapTileName(mapTile)}`);
+  addLog("操作", `切换地图: ${mapType} - ${getMapTileName(mapTile)}`);
 }
 
 // 获取图层类型名称
 function getMapTileName(mapTile: MapTile): string {
   switch (mapTile) {
     case MapTile.NORMAL:
-      return '标准图层';
+      return "标准图层";
     case MapTile.SATELLITE:
-      return '卫星图层';
+      return "卫星图层";
     case MapTile.HYBRID:
-      return '混合图层';
+      return "混合图层";
     default:
-      return '未知图层';
+      return "未知图层";
   }
 }
 
 // 添加标记创建事件处理函数
 function onMarkerCreate(evt) {
   const { id, options } = evt;
-  const title = options.title || '未命名标记';
-  addLog('创建', `标记点已创建: ${title} [ID: ${safeSlice(id)}]`);
+  const title = options.title || "未命名标记";
+  addLog("创建", `标记点已创建: ${title} [ID: ${safeSlice(id)}]`);
 
   // 更新标记点列表
   updateMarkerList();
@@ -1843,8 +2112,10 @@ function onMarkerCreate(evt) {
 // 添加标记更新事件处理函数
 function onMarkerUpdate(evt) {
   const { id, options } = evt;
-  const position = options.position ? `[${options.position[0].toFixed(4)}, ${options.position[1].toFixed(4)}]` : '位置未变';
-  addLog('更新', `标记点已更新: [ID: ${safeSlice(id)}] ${position}`);
+  const position = options.position
+    ? `[${options.position[0].toFixed(4)}, ${options.position[1].toFixed(4)}]`
+    : "位置未变";
+  addLog("更新", `标记点已更新: [ID: ${safeSlice(id)}] ${position}`);
 
   // 更新标记点列表
   updateMarkerList();
@@ -1853,7 +2124,7 @@ function onMarkerUpdate(evt) {
 // 添加标记删除事件处理函数
 function onMarkerDelete(evt) {
   const { id } = evt;
-  addLog('删除', `标记点已删除: [ID: ${safeSlice(id)}]`);
+  addLog("删除", `标记点已删除: [ID: ${safeSlice(id)}]`);
 
   // 更新标记点列表
   updateMarkerList();
@@ -1863,7 +2134,7 @@ function onMarkerDelete(evt) {
 function onShapeCreate(evt) {
   const { id, options } = evt;
   const type = getShapeTypeName(options.type);
-  addLog('创建', `图形已创建: ${type} [ID: ${safeSlice(id)}]`);
+  addLog("创建", `图形已创建: ${type} [ID: ${safeSlice(id)}]`);
 
   // 更新图形列表
   updateShapeList();
@@ -1872,7 +2143,7 @@ function onShapeCreate(evt) {
 // 添加图形更新事件处理函数
 function onShapeUpdate(evt) {
   const { id, options } = evt;
-  addLog('更新', `图形已更新: [ID: ${safeSlice(id)}]`);
+  addLog("更新", `图形已更新: [ID: ${safeSlice(id)}]`);
 
   // 更新图形列表
   updateShapeList();
@@ -1881,7 +2152,7 @@ function onShapeUpdate(evt) {
 // 添加图形删除事件处理函数
 function onShapeDelete(evt) {
   const { id } = evt;
-  addLog('删除', `图形已删除: [ID: ${safeSlice(id)}]`);
+  addLog("删除", `图形已删除: [ID: ${safeSlice(id)}]`);
 
   // 更新图形列表
   updateShapeList();
@@ -1899,7 +2170,7 @@ const addSampleTrack = () => {
     let lastLng = center[1];
     for (let i = 0; i < 20; i++) {
       // 距离不等间隔，模拟真实轨迹
-      const offset = (i === 0) ? 0 : (Math.random() * 0.008 + 0.002); // 0.002~0.01
+      const offset = i === 0 ? 0 : Math.random() * 0.008 + 0.002; // 0.002~0.01
       lastLng += offset;
       // 时间递减，保证不会超过当前时间
       lastTime -= Math.floor(Math.random() * 80 + 40); // 每点间隔40~120秒
@@ -1909,36 +2180,42 @@ const addSampleTrack = () => {
         time: lastTime,
         dir: 90,
         title: `轨迹点 ${i + 1}`,
-        iconUrl: i === 0 ? 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png' : undefined,
+        iconUrl:
+          i === 0
+            ? "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png"
+            : undefined,
         iconSize: [24, 24],
         info: [
-          { key: '时间', value: new Date(lastTime * 1000).toLocaleTimeString() },
-          { key: '速度', value: '45 km/h' },
-          { key: '方向', value: '90°' }
-        ]
+          {
+            key: "时间",
+            value: new Date(lastTime * 1000).toLocaleTimeString(),
+          },
+          { key: "速度", value: "45 km/h" },
+          { key: "方向", value: "90°" },
+        ],
       } as any);
     }
     // 按时间升序排列
     points.sort((a, b) => a.time - b.time);
     // 创建轨迹对象
     const track = {
-      id: 'sample-track-' + Math.floor(Math.random() * 1000),
-      name: '示例轨迹',
+      id: "sample-track-" + Math.floor(Math.random() * 1000),
+      name: "示例轨迹",
       points: points,
-      color: '#FF5252',
-      visible: true
+      color: "#FF5252",
+      visible: true,
     };
     // 添加轨迹
     if (layerRef.value) {
       layerRef.value.addTrack(track);
       tracks.value.push(track);
       hasTrack.value = true;
-      addLog('info', `已添加示例轨迹，包含 ${points.length} 个点`);
+      addLog("info", `已添加示例轨迹，包含 ${points.length} 个点`);
     } else {
-      addLog('error', '获取轨迹对象失败');
+      addLog("error", "获取轨迹对象失败");
     }
   } catch (e) {
-    addLog('error', `添加示例轨迹失败: ${e}`);
+    addLog("error", `添加示例轨迹失败: ${e}`);
   }
 };
 
@@ -1952,13 +2229,48 @@ const addComplexTrack = () => {
 
     // 定义复杂轨迹的关键点 - 包含多个转弯点
     const keyPoints = [
-      { lat: center[0], lng: center[1], name: '起点', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/start.png' },
-      { lat: center[0] + 0.02, lng: center[1] + 0.02, name: '转弯点1', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png' },
-      { lat: center[0] + 0.03, lng: center[1], name: '转弯点2', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-2.png' },
-      { lat: center[0] + 0.01, lng: center[1] - 0.02, name: '转弯点3', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-3.png' },
-      { lat: center[0] - 0.01, lng: center[1] - 0.03, name: '转弯点4', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-4.png' },
-      { lat: center[0] - 0.02, lng: center[1] - 0.01, name: '转弯点5', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/warning.png' },
-      { lat: center[0] - 0.01, lng: center[1] + 0.01, name: '终点', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/end.png' },
+      {
+        lat: center[0],
+        lng: center[1],
+        name: "起点",
+        icon: "https://a.amap.com/jsapi_demos/static/demo-center/icons/start.png",
+      },
+      {
+        lat: center[0] + 0.02,
+        lng: center[1] + 0.02,
+        name: "转弯点1",
+        icon: "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png",
+      },
+      {
+        lat: center[0] + 0.03,
+        lng: center[1],
+        name: "转弯点2",
+        icon: "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-2.png",
+      },
+      {
+        lat: center[0] + 0.01,
+        lng: center[1] - 0.02,
+        name: "转弯点3",
+        icon: "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-3.png",
+      },
+      {
+        lat: center[0] - 0.01,
+        lng: center[1] - 0.03,
+        name: "转弯点4",
+        icon: "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-4.png",
+      },
+      {
+        lat: center[0] - 0.02,
+        lng: center[1] - 0.01,
+        name: "转弯点5",
+        icon: "https://a.amap.com/jsapi_demos/static/demo-center/icons/warning.png",
+      },
+      {
+        lat: center[0] - 0.01,
+        lng: center[1] + 0.01,
+        name: "终点",
+        icon: "https://a.amap.com/jsapi_demos/static/demo-center/icons/end.png",
+      },
     ];
 
     // 为每个关键点之间插入中间点，使路径更平滑
@@ -1973,7 +2285,9 @@ const addComplexTrack = () => {
         const lng = start.lng + (end.lng - start.lng) * ratio;
 
         // 计算方向（使用简单的角度计算）
-        const direction = Math.atan2(end.lat - start.lat, end.lng - start.lng) * (180 / Math.PI);
+        const direction =
+          Math.atan2(end.lat - start.lat, end.lng - start.lng) *
+          (180 / Math.PI);
 
         // 设置点位的时间，每点间隔30秒
         const time = now + (i * steps + j) * 30;
@@ -1984,12 +2298,17 @@ const addComplexTrack = () => {
           lng,
           time,
           dir: direction,
-          title: j === 0 ? start.name : (j === steps ? end.name : `路线点 ${points.length + 1}`),
+          title:
+            j === 0
+              ? start.name
+              : j === steps
+                ? end.name
+                : `路线点 ${points.length + 1}`,
           info: [
-            { key: '时间', value: new Date(time * 1000).toLocaleTimeString() },
-            { key: '类型', value: j === 0 ? '关键点' : '路线点' },
-            { key: '方向', value: `${Math.round(direction)}°` }
-          ]
+            { key: "时间", value: new Date(time * 1000).toLocaleTimeString() },
+            { key: "类型", value: j === 0 ? "关键点" : "路线点" },
+            { key: "方向", value: `${Math.round(direction)}°` },
+          ],
         } as any; // 使用类型断言解决TypeScript类型问题
 
         // 为关键点添加自定义图标
@@ -2011,11 +2330,11 @@ const addComplexTrack = () => {
 
     // 创建轨迹对象
     const track = {
-      id: 'complex-track-' + Math.floor(Math.random() * 1000),
-      name: '复杂轨迹示例',
+      id: "complex-track-" + Math.floor(Math.random() * 1000),
+      name: "复杂轨迹示例",
       points: points,
-      color: '#1890FF', // 蓝色
-      visible: true
+      color: "#1890FF", // 蓝色
+      visible: true,
     };
 
     // 添加轨迹
@@ -2023,12 +2342,15 @@ const addComplexTrack = () => {
       layerRef.value.addTrack(track);
       tracks.value.push(track);
       hasTrack.value = true;
-      addLog('info', `已添加复杂轨迹，包含 ${points.length} 个点，${keyPoints.length} 个关键点`);
+      addLog(
+        "info",
+        `已添加复杂轨迹，包含 ${points.length} 个点，${keyPoints.length} 个关键点`
+      );
     } else {
-      addLog('error', '获取轨迹对象失败');
+      addLog("error", "获取轨迹对象失败");
     }
   } catch (e) {
-    addLog('error', `添加复杂轨迹失败: ${e}`);
+    addLog("error", `添加复杂轨迹失败: ${e}`);
   }
 };
 
@@ -2039,8 +2361,8 @@ const addMultipleTrack = () => {
     const tracksToAdd = [];
 
     // 生成四条不同方向的轨迹
-    const directions = ['north', 'east', 'south', 'west'];
-    const colors = ['#FF5252', '#448AFF', '#66BB6A', '#FFC107'];
+    const directions = ["north", "east", "south", "west"];
+    const colors = ["#FF5252", "#448AFF", "#66BB6A", "#FFC107"];
 
     for (let i = 0; i < directions.length; i++) {
       const direction = directions[i];
@@ -2051,34 +2373,34 @@ const addMultipleTrack = () => {
         name: `${getDirectionName(direction)}向轨迹`,
         points: points,
         color: colors[i],
-        visible: true
+        visible: true,
       });
     }
 
     // 添加所有轨迹
     if (layerRef.value) {
       let addedCount = 0;
-      tracksToAdd.forEach(track => {
+      tracksToAdd.forEach((track) => {
         try {
           layerRef.value.addTrack(track);
           tracks.value.push(track);
           addedCount++;
         } catch (e) {
-          addLog('error', `添加轨迹 ${track.name} 失败: ${e}`);
+          addLog("error", `添加轨迹 ${track.name} 失败: ${e}`);
         }
       });
 
       if (addedCount > 0) {
         hasTrack.value = true;
-        addLog('info', `已添加 ${addedCount} 条轨迹`);
+        addLog("info", `已添加 ${addedCount} 条轨迹`);
       } else {
-        addLog('warn', '未能添加任何轨迹');
+        addLog("warn", "未能添加任何轨迹");
       }
     } else {
-      addLog('error', '获取轨迹对象失败');
+      addLog("error", "获取轨迹对象失败");
     }
   } catch (e) {
-    addLog('error', `添加多条轨迹失败: ${e}`);
+    addLog("error", `添加多条轨迹失败: ${e}`);
   }
 };
 
@@ -2108,10 +2430,13 @@ const addCircularTrack = () => {
         dir: direction,
         title: `环形轨迹点 ${i + 1}`,
         info: [
-          { key: '时间', value: new Date((now + i * 60) * 1000).toLocaleTimeString() },
-          { key: '速度', value: '30 km/h' },
-          { key: '方向', value: `${Math.round(direction)}°` }
-        ]
+          {
+            key: "时间",
+            value: new Date((now + i * 60) * 1000).toLocaleTimeString(),
+          },
+          { key: "速度", value: "30 km/h" },
+          { key: "方向", value: `${Math.round(direction)}°` },
+        ],
       });
     }
 
@@ -2120,11 +2445,11 @@ const addCircularTrack = () => {
 
     // 创建轨迹对象
     const track = {
-      id: 'circular-track-' + Math.floor(Math.random() * 1000),
-      name: '环形轨迹',
+      id: "circular-track-" + Math.floor(Math.random() * 1000),
+      name: "环形轨迹",
       points: points,
-      color: '#9C27B0', // 紫色
-      visible: true
+      color: "#9C27B0", // 紫色
+      visible: true,
     };
 
     // 添加轨迹
@@ -2132,12 +2457,12 @@ const addCircularTrack = () => {
       layerRef.value.addTrack(track);
       tracks.value.push(track);
       hasTrack.value = true;
-      addLog('info', `已添加环形轨迹，包含 ${points.length} 个点`);
+      addLog("info", `已添加环形轨迹，包含 ${points.length} 个点`);
     } else {
-      addLog('error', '获取轨迹对象失败');
+      addLog("error", "获取轨迹对象失败");
     }
   } catch (e) {
-    addLog('error', `添加环形轨迹失败: ${e}`);
+    addLog("error", `添加环形轨迹失败: ${e}`);
   }
 };
 
@@ -2170,7 +2495,9 @@ const addZigzagTrack = () => {
         const lng = start.lng + (end.lng - start.lng) * ratio;
 
         // 计算方向（使用简单的角度计算）
-        const direction = Math.atan2(end.lat - start.lat, end.lng - start.lng) * (180 / Math.PI);
+        const direction =
+          Math.atan2(end.lat - start.lat, end.lng - start.lng) *
+          (180 / Math.PI);
 
         points.push({
           lat,
@@ -2179,10 +2506,15 @@ const addZigzagTrack = () => {
           dir: direction,
           title: `Z字形轨迹点 ${points.length + 1}`,
           info: [
-            { key: '时间', value: new Date((now + (i * steps + j) * 60) * 1000).toLocaleTimeString() },
-            { key: '速度', value: '40 km/h' },
-            { key: '方向', value: `${Math.round(direction)}°` }
-          ]
+            {
+              key: "时间",
+              value: new Date(
+                (now + (i * steps + j) * 60) * 1000
+              ).toLocaleTimeString(),
+            },
+            { key: "速度", value: "40 km/h" },
+            { key: "方向", value: `${Math.round(direction)}°` },
+          ],
         });
       }
     }
@@ -2192,11 +2524,11 @@ const addZigzagTrack = () => {
 
     // 创建轨迹对象
     const track = {
-      id: 'zigzag-track-' + Math.floor(Math.random() * 1000),
-      name: 'Z字形轨迹',
+      id: "zigzag-track-" + Math.floor(Math.random() * 1000),
+      name: "Z字形轨迹",
       points: points,
-      color: '#E74C3C', // 红色
-      visible: true
+      color: "#E74C3C", // 红色
+      visible: true,
     };
 
     // 添加轨迹
@@ -2204,12 +2536,12 @@ const addZigzagTrack = () => {
       layerRef.value.addTrack(track);
       tracks.value.push(track);
       hasTrack.value = true;
-      addLog('info', `已添加Z字形轨迹，包含 ${points.length} 个点`);
+      addLog("info", `已添加Z字形轨迹，包含 ${points.length} 个点`);
     } else {
-      addLog('error', '获取轨迹对象失败');
+      addLog("error", "获取轨迹对象失败");
     }
   } catch (e) {
-    addLog('error', `添加Z字形轨迹失败: ${e}`);
+    addLog("error", `添加Z字形轨迹失败: ${e}`);
   }
 };
 
@@ -2217,13 +2549,13 @@ const addZigzagTrack = () => {
 const clearAllTracks = () => {
   try {
     if (!hasTrack.value || tracks.value.length === 0) {
-      addLog('warn', '没有轨迹可清除');
+      addLog("warn", "没有轨迹可清除");
       return;
     }
 
     if (layerRef.value) {
       // 停止所有轨迹播放
-      tracks.value.forEach(track => {
+      tracks.value.forEach((track) => {
         try {
           layerRef.value.stopTrack(track.id);
         } catch (e) {
@@ -2240,18 +2572,18 @@ const clearAllTracks = () => {
 
         // 停用轨迹播放器工具
         if (layerRef.value) {
-          layerRef.value.deactivateTool('track-player');
+          layerRef.value.deactivateTool("track-player");
         }
 
-        addLog('info', '已清除所有轨迹');
+        addLog("info", "已清除所有轨迹");
       } else {
-        addLog('error', '清除轨迹失败');
+        addLog("error", "清除轨迹失败");
       }
     } else {
-      addLog('error', '获取轨迹对象失败');
+      addLog("error", "获取轨迹对象失败");
     }
   } catch (e) {
-    addLog('error', `清除所有轨迹失败: ${e}`);
+    addLog("error", `清除所有轨迹失败: ${e}`);
   }
 };
 
@@ -2259,7 +2591,7 @@ const clearAllTracks = () => {
 const toggleTrackVisible = () => {
   try {
     if (!hasTrack.value || tracks.value.length === 0) {
-      addLog('warn', '没有轨迹可操作');
+      addLog("warn", "没有轨迹可操作");
       return;
     }
 
@@ -2268,23 +2600,28 @@ const toggleTrackVisible = () => {
         // 隐藏所有轨迹
         layerRef.value.hideAllTracks();
         allTracksVisible.value = false;
-        addLog('info', '已隐藏所有轨迹');
+        addLog("info", "已隐藏所有轨迹");
       } else {
         // 显示所有轨迹
         layerRef.value.showAllTracks();
         allTracksVisible.value = true;
-        addLog('info', '已显示所有轨迹');
+        addLog("info", "已显示所有轨迹");
       }
     } else {
-      addLog('error', '获取轨迹对象失败');
+      addLog("error", "获取轨迹对象失败");
     }
   } catch (e) {
-    addLog('error', `切换轨迹可见性失败: ${e}`);
+    addLog("error", `切换轨迹可见性失败: ${e}`);
   }
 };
 
 // 生成定向轨迹
-const generateDirectionalTrack = (center: [number, number], direction: string, distance: number, points: number) => {
+const generateDirectionalTrack = (
+  center: [number, number],
+  direction: string,
+  distance: number,
+  points: number
+) => {
   const now = Math.floor(Date.now() / 1000);
   const interval = 60; // 每点间隔1分钟
   const result = [];
@@ -2298,22 +2635,22 @@ const generateDirectionalTrack = (center: [number, number], direction: string, d
   let lngMultiplier = 0;
 
   switch (direction) {
-    case 'north':
+    case "north":
       dirDegrees = 0;
       latMultiplier = 1;
       lngMultiplier = 0;
       break;
-    case 'east':
+    case "east":
       dirDegrees = 90;
       latMultiplier = 0;
       lngMultiplier = 1;
       break;
-    case 'south':
+    case "south":
       dirDegrees = 180;
       latMultiplier = -1;
       lngMultiplier = 0;
       break;
-    case 'west':
+    case "west":
       dirDegrees = 270;
       latMultiplier = 0;
       lngMultiplier = -1;
@@ -2332,10 +2669,13 @@ const generateDirectionalTrack = (center: [number, number], direction: string, d
       dir: dirDegrees,
       title: `${getDirectionName(direction)}向轨迹点 ${i + 1}`,
       info: [
-        { key: '时间', value: new Date((now + i * interval) * 1000).toLocaleTimeString() },
-        { key: '速度', value: '45 km/h' },
-        { key: '方向', value: `${dirDegrees}°` }
-      ]
+        {
+          key: "时间",
+          value: new Date((now + i * interval) * 1000).toLocaleTimeString(),
+        },
+        { key: "速度", value: "45 km/h" },
+        { key: "方向", value: `${dirDegrees}°` },
+      ],
     });
   }
 
@@ -2345,15 +2685,18 @@ const generateDirectionalTrack = (center: [number, number], direction: string, d
 // 获取方向名称
 const getDirectionName = (direction: string) => {
   switch (direction) {
-    case 'north': return '北';
-    case 'east': return '东';
-    case 'south': return '南';
-    case 'west': return '西';
-    default: return direction;
+    case "north":
+      return "北";
+    case "east":
+      return "东";
+    case "south":
+      return "南";
+    case "west":
+      return "西";
+    default:
+      return direction;
   }
 };
-
-
 
 /**
  * 添加随机热力点
@@ -2382,8 +2725,8 @@ const addRandomHeatmapPoints = (count) => {
       name: `热力点 ${i + 1}`,
       properties: {
         value: Math.floor(Math.random() * 100),
-        type: '随机点'
-      }
+        type: "随机点",
+      },
     };
 
     points.push(point);
@@ -2397,10 +2740,10 @@ const addRandomHeatmapPoints = (count) => {
   // 如果没有选中的热力点，则选择第一个
   if (!selectedHeatmapPoint.value && newPoints.length > 0) {
     selectedHeatmapPoint.value = newPoints[0].id;
-    addLog('热力图', `已选中热力点: ${newPoints[0].name}`);
+    addLog("热力图", `已选中热力点: ${newPoints[0].name}`);
   }
 
-  addLog('热力图', `添加了${count}个随机热力点`);
+  addLog("热力图", `添加了${count}个随机热力点`);
 };
 
 /**
@@ -2437,8 +2780,8 @@ const addClusteredHeatmapPoints = () => {
         properties: {
           cluster: c + 1,
           value: Math.floor(Math.random() * 100),
-          type: '聚类点'
-        }
+          type: "聚类点",
+        },
       };
 
       points.push(point);
@@ -2447,9 +2790,15 @@ const addClusteredHeatmapPoints = () => {
 
   // 批量添加热力点
   const ids = layerRef.value.addHeatmapPoints(points);
-  heatmapPoints.value = [...heatmapPoints.value, ...points.map((p, i) => ({ ...p, id: ids[i] }))];
+  heatmapPoints.value = [
+    ...heatmapPoints.value,
+    ...points.map((p, i) => ({ ...p, id: ids[i] })),
+  ];
 
-  addLog('热力图', `添加了${clusters}个聚类，共${clusters * pointsPerCluster}个热力点`);
+  addLog(
+    "热力图",
+    `添加了${clusters}个聚类，共${clusters * pointsPerCluster}个热力点`
+  );
 };
 
 /**
@@ -2467,8 +2816,8 @@ const addWeightedHeatmapPoints = () => {
 
   // 创建一个权重递增的线性分布
   for (let i = 0; i < 10; i++) {
-    const weight = 0.1 + (i * 0.1); // 权重从0.1递增到1.0
-    const latOffset = -0.05 + (i * 0.01);
+    const weight = 0.1 + i * 0.1; // 权重从0.1递增到1.0
+    const latOffset = -0.05 + i * 0.01;
     const lngOffset = 0;
 
     const point = {
@@ -2478,8 +2827,8 @@ const addWeightedHeatmapPoints = () => {
       name: `权重${weight.toFixed(1)}的点`,
       properties: {
         value: Math.round(weight * 100),
-        type: '权重点'
-      }
+        type: "权重点",
+      },
     };
 
     points.push(point);
@@ -2487,9 +2836,12 @@ const addWeightedHeatmapPoints = () => {
 
   // 批量添加热力点
   const ids = layerRef.value.addHeatmapPoints(points);
-  heatmapPoints.value = [...heatmapPoints.value, ...points.map((p, i) => ({ ...p, id: ids[i] }))];
+  heatmapPoints.value = [
+    ...heatmapPoints.value,
+    ...points.map((p, i) => ({ ...p, id: ids[i] })),
+  ];
 
-  addLog('热力图', '添加了10个权重递增的热力点');
+  addLog("热力图", "添加了10个权重递增的热力点");
 };
 
 /**
@@ -2501,7 +2853,7 @@ const clearHeatmap = () => {
   const result = layerRef.value.clearHeatmap();
   if (result) {
     heatmapPoints.value = [];
-    addLog('热力图', '清除热力图点');
+    addLog("热力图", "清除热力图点");
   }
 };
 
@@ -2513,18 +2865,18 @@ const configureHeatmap = () => {
 
   // 设置热力图配置
   const heatmapConfig = {
-    radius: 20,                // 热力点半径
-    blur: 15,                  // 模糊大小
-    opacity: 0.8,              // 不透明度
-    gradient: ['#0000ff', '#00ffff', '#00ff00', '#ffff00', '#ff0000'], // 渐变色
-    showPoints: pointsVisible.value,  // 显示数据点
-    pointRadius: 4,            // 点半径
-    pointColor: 'rgba(0, 0, 255, 0.7)' // 点颜色
+    radius: 20, // 热力点半径
+    blur: 15, // 模糊大小
+    opacity: 0.8, // 不透明度
+    gradient: ["#0000ff", "#00ffff", "#00ff00", "#ffff00", "#ff0000"], // 渐变色
+    showPoints: pointsVisible.value, // 显示数据点
+    pointRadius: 4, // 点半径
+    pointColor: "rgba(0, 0, 255, 0.7)", // 点颜色
   };
 
   const result = layerRef.value.configureHeatmap(heatmapConfig);
   if (result) {
-    addLog('热力图', '更新热力图配置');
+    addLog("热力图", "更新热力图配置");
   }
 };
 
@@ -2538,10 +2890,10 @@ const togglePointsVisible = () => {
 
   // 更新热力图配置，切换数据点显示
   layerRef.value.configureHeatmap({
-    showPoints: pointsVisible.value
+    showPoints: pointsVisible.value,
   });
 
-  addLog('热力图', pointsVisible.value ? '显示数据点' : '隐藏数据点');
+  addLog("热力图", pointsVisible.value ? "显示数据点" : "隐藏数据点");
 };
 
 /**
@@ -2558,7 +2910,14 @@ const addDenseHeatmapPoints = () => {
     radius: 15,
     blur: 12,
     opacity: 0.85,
-    gradient: ['#0000ff', '#00ffff', '#00ff00', '#ffff00', '#ff0000', '#ff00ff'],
+    gradient: [
+      "#0000ff",
+      "#00ffff",
+      "#00ff00",
+      "#ffff00",
+      "#ff0000",
+      "#ff00ff",
+    ],
   });
 
   // 获取地图中心点和边界
@@ -2572,7 +2931,7 @@ const addDenseHeatmapPoints = () => {
     { lat: center[0] + 0.02, lng: center[1] + 0.02 },
     { lat: center[0] - 0.03, lng: center[1] + 0.01 },
     { lat: center[0] + 0.01, lng: center[1] - 0.03 },
-    { lat: center[0], lng: center[1] }
+    { lat: center[0], lng: center[1] },
   ];
 
   // 为每个热点区域生成点
@@ -2587,12 +2946,16 @@ const addDenseHeatmapPoints = () => {
     }
 
     // 在热点周围生成随机偏移
-    const latOffset = (Math.random() * 0.06 - 0.03) * (Math.random() < 0.7 ? 0.5 : 1);
-    const lngOffset = (Math.random() * 0.06 - 0.03) * (Math.random() < 0.7 ? 0.5 : 1);
+    const latOffset =
+      (Math.random() * 0.06 - 0.03) * (Math.random() < 0.7 ? 0.5 : 1);
+    const lngOffset =
+      (Math.random() * 0.06 - 0.03) * (Math.random() < 0.7 ? 0.5 : 1);
 
     // 根据距离热点中心的距离计算权重（越近权重越高）
-    const distanceFromHotspot = Math.sqrt(latOffset * latOffset + lngOffset * lngOffset);
-    const weight = Math.max(0.2, 1 - (distanceFromHotspot * 10));
+    const distanceFromHotspot = Math.sqrt(
+      latOffset * latOffset + lngOffset * lngOffset
+    );
+    const weight = Math.max(0.2, 1 - distanceFromHotspot * 10);
 
     const point = {
       longitude: basePoint.lng + lngOffset,
@@ -2601,9 +2964,9 @@ const addDenseHeatmapPoints = () => {
       name: `密集点 ${i + 1}`,
       properties: {
         value: Math.floor(weight * 100),
-        type: '密集点',
-        hotspot: basePoint === center ? "中心" : "热点区域"
-      }
+        type: "密集点",
+        hotspot: basePoint === center ? "中心" : "热点区域",
+      },
     };
 
     points.push(point);
@@ -2614,7 +2977,7 @@ const addDenseHeatmapPoints = () => {
   const newPoints = points.map((p, i) => ({ ...p, id: ids[i] }));
   heatmapPoints.value = [...heatmapPoints.value, ...newPoints];
 
-  addLog('热力图', `添加了${pointCount}个密集热力点数据`);
+  addLog("热力图", `添加了${pointCount}个密集热力点数据`);
 };
 
 /**
@@ -2628,14 +2991,17 @@ const toggleHeatmapPerformanceMode = () => {
   // 更新热力图配置
   layerRef.value.configureHeatmap({
     hideOnMoving: heatmapPerformanceMode.value,
-    hideOnZooming: heatmapPerformanceMode.value
+    hideOnZooming: heatmapPerformanceMode.value,
   });
 
-  addLog('热力图', heatmapPerformanceMode.value ? '启用性能模式' : '禁用性能模式');
+  addLog(
+    "热力图",
+    heatmapPerformanceMode.value ? "启用性能模式" : "禁用性能模式"
+  );
 };
 
 // 工具栏位置
-const toolbarPosition = ref < ToolbarPosition > (ToolbarPosition.TOP_LEFT);
+const toolbarPosition = ref<ToolbarPosition>(ToolbarPosition.TOP_LEFT);
 
 // 简化工具栏位置更新方法
 const changeToolbarPosition = (position: ToolbarPosition) => {
@@ -2647,11 +3013,11 @@ const changeToolbarPosition = (position: ToolbarPosition) => {
   layerRef.value.updateToolbarConfig({ position });
 
   // 记录日志
-  addLog('工具栏', `切换位置: ${position}`);
+  addLog("工具栏", `切换位置: ${position}`);
 };
 
 // 添加工具栏方向数据
-const toolbarDirection = ref < ToolbarDirection > (ToolbarDirection.HORIZONTAL);
+const toolbarDirection = ref<ToolbarDirection>(ToolbarDirection.HORIZONTAL);
 
 // 简化工具栏方向更新方法
 const changeToolbarDirection = (direction: ToolbarDirection) => {
@@ -2663,9 +3029,8 @@ const changeToolbarDirection = (direction: ToolbarDirection) => {
   layerRef.value.updateToolbarConfig({ direction });
 
   // 记录日志
-  addLog('工具栏', `切换方向: ${direction}`);
+  addLog("工具栏", `切换方向: ${direction}`);
 };
-
 
 /**
  * 更新飞线列表
@@ -2676,7 +3041,7 @@ const updateFlightLineList = () => {
   // 获取飞线图对象
   const flightLineObj = layerRef.value.getFlightLineObject();
   if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
+    addLog("飞线图", "无法获取飞线图对象");
     return;
   }
 
@@ -2694,7 +3059,7 @@ const updateFlightLineList = () => {
     allFlightLines.forEach((line, id) => {
       linesArray.push({
         ...line,
-        id
+        id,
       });
     });
 
@@ -2714,10 +3079,10 @@ const updateFlightLineList = () => {
     // 更新选中状态
     selectedFlightLine.value = activeFlightLine;
 
-    addLog('飞线图', `飞线列表已更新，共 ${linesArray.length} 条飞线`);
+    addLog("飞线图", `飞线列表已更新，共 ${linesArray.length} 条飞线`);
   } catch (error) {
-    console.error('获取飞线列表错误:', error);
-    addLog('飞线图', `获取飞线列表失败: ${error.message}`);
+    console.error("获取飞线列表错误:", error);
+    addLog("飞线图", `获取飞线列表失败: ${error.message}`);
   }
 };
 
@@ -2731,7 +3096,7 @@ const selectFlightLine = (id: string) => {
   // 获取飞线图对象
   const flightLineObj = layerRef.value.getFlightLineObject();
   if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
+    addLog("飞线图", "无法获取飞线图对象");
     return;
   }
 
@@ -2740,14 +3105,14 @@ const selectFlightLine = (id: string) => {
     // 取消选中当前飞线
     flightLineObj.updateFlightLine(id, {
       highlight: false,
-      style: undefined
+      style: undefined,
     });
     selectedFlightLine.value = null;
 
     // 获取飞线数据记录日志
-    const line = flightLines.value.find(line => line.id === id);
+    const line = flightLines.value.find((line) => line.id === id);
     if (line) {
-      addLog('飞线图', `取消选中飞线: ${line.fromName} -> ${line.toName}`);
+      addLog("飞线图", `取消选中飞线: ${line.fromName} -> ${line.toName}`);
     }
   } else {
     // 设置新选中的飞线
@@ -2755,9 +3120,9 @@ const selectFlightLine = (id: string) => {
     selectedFlightLine.value = id;
 
     // 获取飞线数据记录日志
-    const line = flightLines.value.find(line => line.id === id);
+    const line = flightLines.value.find((line) => line.id === id);
     if (line) {
-      addLog('飞线图', `选中飞线: ${line.fromName} -> ${line.toName}`);
+      addLog("飞线图", `选中飞线: ${line.fromName} -> ${line.toName}`);
     }
   }
 };
@@ -2769,7 +3134,7 @@ const isFlightLineSelected = (id: string) => {
 
 // 获取分组中的标记点数量
 function getGroupMarkerCount(groupName: string): number {
-  return markers.value.filter(marker => marker.group === groupName).length;
+  return markers.value.filter((marker) => marker.group === groupName).length;
 }
 
 // 切换分组可见性
@@ -2777,19 +3142,19 @@ function toggleMarkerGroupVisibility(groupName: string) {
   if (!layerRef.value) return;
 
   // 找到分组信息
-  const groupInfo = markerGroups.value.find(g => g.name === groupName);
+  const groupInfo = markerGroups.value.find((g) => g.name === groupName);
   if (!groupInfo) return;
 
   if (groupInfo.visible) {
     // 如果当前可见，则隐藏
     layerRef.value.hideMarkerGroup(groupName);
     groupInfo.visible = false;
-    addLog('操作', `已隐藏 "${groupName}" 分组的标记点`);
+    addLog("操作", `已隐藏 "${groupName}" 分组的标记点`);
   } else {
     // 如果当前隐藏，则显示
     layerRef.value.showMarkerGroup(groupName);
     groupInfo.visible = true;
-    addLog('操作', `已显示 "${groupName}" 分组的标记点`);
+    addLog("操作", `已显示 "${groupName}" 分组的标记点`);
   }
 
   // 更新标记点列表
@@ -2799,7 +3164,7 @@ function toggleMarkerGroupVisibility(groupName: string) {
 // 循环切换不同分组的可见性
 function toggleGroupVisibility() {
   if (!layerRef.value || markerGroups.value.length === 0) {
-    ElMessage.warning('没有可用的标记点分组');
+    ElMessage.warning("没有可用的标记点分组");
     return;
   }
 
@@ -2815,7 +3180,8 @@ function toggleGroupVisibility() {
   toggleMarkerGroupVisibility(currentGroup.name);
 
   // 更新索引为下一个分组
-  currentGroupIndex.value = (currentGroupIndex.value + 1) % markerGroups.value.length;
+  currentGroupIndex.value =
+    (currentGroupIndex.value + 1) % markerGroups.value.length;
 }
 
 // 添加分组标记点
@@ -2823,10 +3189,10 @@ function addGroupedMarkers() {
   if (!layerRef.value) return;
 
   // 定义分组
-  const groups = ['景点', '餐厅', '交通', '购物'];
+  const groups = ["景点", "餐厅", "交通", "购物"];
 
   // 为每个分组添加3个标记点
-  groups.forEach(groupName => {
+  groups.forEach((groupName) => {
     for (let i = 0; i < 3; i++) {
       const centerLon = config.center[1];
       const centerLat = config.center[0];
@@ -2834,10 +3200,18 @@ function addGroupedMarkers() {
       // 根据分组稍微调整位置，避免重叠
       let offsetMultiplier = 0;
       switch (groupName) {
-        case '景点': offsetMultiplier = 1; break;
-        case '餐厅': offsetMultiplier = -1; break;
-        case '交通': offsetMultiplier = 0.5; break;
-        case '购物': offsetMultiplier = -0.5; break;
+        case "景点":
+          offsetMultiplier = 1;
+          break;
+        case "餐厅":
+          offsetMultiplier = -1;
+          break;
+        case "交通":
+          offsetMultiplier = 0.5;
+          break;
+        case "购物":
+          offsetMultiplier = -0.5;
+          break;
       }
 
       const offsetLon = (Math.random() - 0.5) * 0.05 + offsetMultiplier * 0.01;
@@ -2851,10 +3225,18 @@ function addGroupedMarkers() {
       // 根据分组设置不同颜色和图标
       let color;
       switch (groupName) {
-        case '景点': color = '#1890ff'; break; // 蓝色
-        case '餐厅': color = '#52c41a'; break; // 绿色
-        case '交通': color = '#faad14'; break; // 橙色
-        case '购物': color = '#722ed1'; break; // 紫色
+        case "景点":
+          color = "#1890ff";
+          break; // 蓝色
+        case "餐厅":
+          color = "#52c41a";
+          break; // 绿色
+        case "交通":
+          color = "#faad14";
+          break; // 橙色
+        case "购物":
+          color = "#722ed1";
+          break; // 紫色
       }
 
       // 创建SVG图标
@@ -2865,11 +3247,11 @@ function addGroupedMarkers() {
         position: [lon, lat],
         title: `${groupName}标记 ${i + 1}`,
         icon: iconSvg,
-        iconType: 'svg',
+        iconType: "svg",
         clickable: true,
         usePopover: true,
         group: groupName, // 设置分组属性
-        data: { type: 'grouped', index: i }
+        data: { type: "grouped", index: i },
       });
     }
   });
@@ -2879,7 +3261,7 @@ function addGroupedMarkers() {
   // 更新分组列表
   updateMarkerGroups();
 
-  addLog('操作', '已添加4个分组的标记点，每组3个');
+  addLog("操作", "已添加4个分组的标记点，每组3个");
 }
 
 // 更新分组列表
@@ -2890,7 +3272,7 @@ function updateMarkerGroups() {
   const groups = layerRef.value.getGroups();
   markerGroups.value = groups;
 
-  addLog('更新', `获取到 ${groups.length} 个标记点分组`);
+  addLog("更新", `获取到 ${groups.length} 个标记点分组`);
 }
 
 // 切换地图类型
@@ -2907,8 +3289,8 @@ const changeLayerType = (layerType: string) => {
 
 // 标记点聚合模式的常量
 const MARKER_CLUSTER_MODE = {
-  CLUSTER: 'cluster',
-  NONE: 'none'
+  CLUSTER: "cluster",
+  NONE: "none",
 };
 
 /**
@@ -2920,133 +3302,136 @@ const addRandomFlightLines = () => {
   // 获取飞线图对象
   const flightLineObj = layerRef.value.getFlightLineObject();
   if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
+    addLog("飞线图", "无法获取飞线图对象");
     return;
   }
 
   // 强制启用飞线图
-  flightLineObj.enable().then(() => {
-    try {
-      // 获取地图中心点
-      const center = config.center;
-      const centerLon = center[1];
-      const centerLat = center[0];
+  flightLineObj
+    .enable()
+    .then(() => {
+      try {
+        // 获取地图中心点
+        const center = config.center;
+        const centerLon = center[1];
+        const centerLat = center[0];
 
-      addLog('飞线图', `地图中心点: [${centerLat}, ${centerLon}]`);
+        addLog("飞线图", `地图中心点: [${centerLat}, ${centerLon}]`);
 
-      // 创建坐标映射表 - 参考sakitam.com示例
-      const geoCoordMap = {
-        '中心点': [centerLon, centerLat]
-      };
-
-      // 创建四个主要方向点
-      const directions = ['东', '南', '西', '北'];
-      const offsets = [
-        [0.05, 0],    // 东
-        [0, -0.05],   // 南
-        [-0.05, 0],   // 西
-        [0, 0.05]     // 北
-      ];
-
-      // 添加四个固定方向点
-      for (let i = 0; i < 4; i++) {
-        const name = `${directions[i]}方向`;
-        const lon = centerLon + offsets[i][0];
-        const lat = centerLat + offsets[i][1];
-        geoCoordMap[name] = [lon, lat];
-      }
-
-      // 添加一些随机点
-      for (let i = 0; i < 6; i++) {
-        const name = `随机点${i + 1}`;
-        const lon = centerLon + (Math.random() - 0.5) * 0.1;
-        const lat = centerLat + (Math.random() - 0.5) * 0.1;
-        geoCoordMap[name] = [lon, lat];
-      }
-
-      // 将所有坐标点添加到飞线对象中
-      flightLineObj.addCoordinates(geoCoordMap);
-
-      // 创建从中心点出发的数据
-      const centerData = [
-        [{ name: '中心点' }, { name: '东方向', value: 95 }],
-        [{ name: '中心点' }, { name: '南方向', value: 85 }],
-        [{ name: '中心点' }, { name: '西方向', value: 75 }],
-        [{ name: '中心点' }, { name: '北方向', value: 65 }]
-      ];
-
-      // 创建从东方向出发的数据
-      const eastData = [
-        [{ name: '东方向' }, { name: '随机点1', value: 90 }],
-        [{ name: '东方向' }, { name: '随机点2', value: 80 }]
-      ];
-
-      // 创建从南方向出发的数据
-      const southData = [
-        [{ name: '南方向' }, { name: '随机点3', value: 85 }],
-        [{ name: '南方向' }, { name: '随机点4', value: 75 }]
-      ];
-
-      // 转换数据为飞线数据
-      const convertData = (data) => {
-        const res = [];
-        for (let i = 0; i < data.length; i++) {
-          const dataItem = data[i];
-          const fromCoord = geoCoordMap[dataItem[0].name];
-          const toCoord = geoCoordMap[dataItem[1].name];
-          if (fromCoord && toCoord) {
-            res.push({
-              fromName: dataItem[0].name,
-              toName: dataItem[1].name,
-              coords: [fromCoord, toCoord],
-              value: dataItem[1].value
-            });
-          }
-        }
-        return res;
-      };
-
-      // 转换数据
-      const lines = [
-        ...convertData(centerData),
-        ...convertData(eastData),
-        ...convertData(southData)
-      ];
-
-      // 为每条线添加样式
-      const colors = ['#a6c84c', '#ffa022', '#46bee9'];
-      lines.forEach((line, index) => {
-        const colorIndex = index % colors.length;
-        line.style = {
-          color: colors[colorIndex],
-          width: 1,
-          opacity: 0.5,
-          curveness: 0.2
+        // 创建坐标映射表 - 参考sakitam.com示例
+        const geoCoordMap = {
+          中心点: [centerLon, centerLat],
         };
-      });
 
-      // 添加飞线
-      const ids = flightLineObj.addFlightLines(lines, true, 6);
+        // 创建四个主要方向点
+        const directions = ["东", "南", "西", "北"];
+        const offsets = [
+          [0.05, 0], // 东
+          [0, -0.05], // 南
+          [-0.05, 0], // 西
+          [0, 0.05], // 北
+        ];
 
-      // 设置最佳视角
-      setTimeout(() => {
-        flightLineObj.setOptimalView(6);
-      }, 300);
+        // 添加四个固定方向点
+        for (let i = 0; i < 4; i++) {
+          const name = `${directions[i]}方向`;
+          const lon = centerLon + offsets[i][0];
+          const lat = centerLat + offsets[i][1];
+          geoCoordMap[name] = [lon, lat];
+        }
 
-      // 更新飞线列表
-      setTimeout(() => {
-        updateFlightLineList();
-      }, 500);
+        // 添加一些随机点
+        for (let i = 0; i < 6; i++) {
+          const name = `随机点${i + 1}`;
+          const lon = centerLon + (Math.random() - 0.5) * 0.1;
+          const lat = centerLat + (Math.random() - 0.5) * 0.1;
+          geoCoordMap[name] = [lon, lat];
+        }
 
-      addLog('飞线图', `已添加${lines.length}条飞线，请等待显示`);
-    } catch (error) {
-      console.error('添加飞线时发生错误:', error);
-      addLog('飞线图', `添加飞线时发生错误: ${error.message || error}`);
-    }
-  }).catch(err => {
-    console.error('启用飞线图失败:', err);
-    addLog('飞线图', `启用飞线图失败: ${err.message || err}`);
-  });
+        // 将所有坐标点添加到飞线对象中
+        flightLineObj.addCoordinates(geoCoordMap);
+
+        // 创建从中心点出发的数据
+        const centerData = [
+          [{ name: "中心点" }, { name: "东方向", value: 95 }],
+          [{ name: "中心点" }, { name: "南方向", value: 85 }],
+          [{ name: "中心点" }, { name: "西方向", value: 75 }],
+          [{ name: "中心点" }, { name: "北方向", value: 65 }],
+        ];
+
+        // 创建从东方向出发的数据
+        const eastData = [
+          [{ name: "东方向" }, { name: "随机点1", value: 90 }],
+          [{ name: "东方向" }, { name: "随机点2", value: 80 }],
+        ];
+
+        // 创建从南方向出发的数据
+        const southData = [
+          [{ name: "南方向" }, { name: "随机点3", value: 85 }],
+          [{ name: "南方向" }, { name: "随机点4", value: 75 }],
+        ];
+
+        // 转换数据为飞线数据
+        const convertData = (data) => {
+          const res = [];
+          for (let i = 0; i < data.length; i++) {
+            const dataItem = data[i];
+            const fromCoord = geoCoordMap[dataItem[0].name];
+            const toCoord = geoCoordMap[dataItem[1].name];
+            if (fromCoord && toCoord) {
+              res.push({
+                fromName: dataItem[0].name,
+                toName: dataItem[1].name,
+                coords: [fromCoord, toCoord],
+                value: dataItem[1].value,
+              });
+            }
+          }
+          return res;
+        };
+
+        // 转换数据
+        const lines = [
+          ...convertData(centerData),
+          ...convertData(eastData),
+          ...convertData(southData),
+        ];
+
+        // 为每条线添加样式
+        const colors = ["#a6c84c", "#ffa022", "#46bee9"];
+        lines.forEach((line, index) => {
+          const colorIndex = index % colors.length;
+          line.style = {
+            color: colors[colorIndex],
+            width: 1,
+            opacity: 0.5,
+            curveness: 0.2,
+          };
+        });
+
+        // 添加飞线
+        const ids = flightLineObj.addFlightLines(lines, true, 6);
+
+        // 设置最佳视角
+        setTimeout(() => {
+          flightLineObj.setOptimalView(6);
+        }, 300);
+
+        // 更新飞线列表
+        setTimeout(() => {
+          updateFlightLineList();
+        }, 500);
+
+        addLog("飞线图", `已添加${lines.length}条飞线，请等待显示`);
+      } catch (error) {
+        console.error("添加飞线时发生错误:", error);
+        addLog("飞线图", `添加飞线时发生错误: ${error.message || error}`);
+      }
+    })
+    .catch((err) => {
+      console.error("启用飞线图失败:", err);
+      addLog("飞线图", `启用飞线图失败: ${err.message || err}`);
+    });
 };
 
 /**
@@ -3058,7 +3443,7 @@ const addChainFlightLines = () => {
   // 获取飞线图对象
   const flightLineObj = layerRef.value.getFlightLineObject();
   if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
+    addLog("飞线图", "无法获取飞线图对象");
     return;
   }
 
@@ -3076,11 +3461,11 @@ const addChainFlightLines = () => {
   for (let i = 0; i < nodeCount; i++) {
     // 使点沿水平线分布
     const lat = centerLat;
-    const lon = centerLon - 0.1 + (i * 0.2 / (nodeCount - 1));
+    const lon = centerLon - 0.1 + (i * 0.2) / (nodeCount - 1);
 
     points.push({
       name: `节点${i + 1}`,
-      coords: [lon, lat]
+      coords: [lon, lat],
     });
   }
 
@@ -3089,11 +3474,8 @@ const addChainFlightLines = () => {
     lines.push({
       fromName: points[i].name,
       toName: points[i + 1].name,
-      coords: [
-        points[i].coords,
-        points[i + 1].coords
-      ],
-      value: 50
+      coords: [points[i].coords, points[i + 1].coords],
+      value: 50,
     });
   }
 
@@ -3103,7 +3485,7 @@ const addChainFlightLines = () => {
   // 更新飞线列表
   updateFlightLineList();
 
-  addLog('飞线图', `已添加${lines.length}条链状飞线`);
+  addLog("飞线图", `已添加${lines.length}条链状飞线`);
 };
 
 /**
@@ -3115,7 +3497,7 @@ const addStarFlightLines = () => {
   // 获取飞线图对象
   const flightLineObj = layerRef.value.getFlightLineObject();
   if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
+    addLog("飞线图", "无法获取飞线图对象");
     return;
   }
 
@@ -3149,9 +3531,9 @@ const addStarFlightLines = () => {
       toName: name,
       coords: [
         [centerLon, centerLat],
-        [lon, lat]
+        [lon, lat],
       ],
-      value: 70
+      value: 70,
     });
   }
 
@@ -3161,9 +3543,8 @@ const addStarFlightLines = () => {
   // 更新飞线列表
   updateFlightLineList();
 
-  addLog('飞线图', `已添加${lines.length}条星型飞线`);
+  addLog("飞线图", `已添加${lines.length}条星型飞线`);
 };
-
 
 /**
  * 清除飞线
@@ -3174,7 +3555,7 @@ const clearFlightLines = () => {
   // 获取飞线图对象
   const flightLineObj = layerRef.value.getFlightLineObject();
   if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
+    addLog("飞线图", "无法获取飞线图对象");
     return;
   }
 
@@ -3197,10 +3578,10 @@ const clearFlightLines = () => {
     flightLines.value = [];
     selectedFlightLine.value = null;
 
-    addLog('飞线图', '已清除所有飞线');
+    addLog("飞线图", "已清除所有飞线");
   } catch (error) {
-    console.error('清除飞线失败:', error);
-    addLog('飞线图', `清除飞线失败: ${error.message}`);
+    console.error("清除飞线失败:", error);
+    addLog("飞线图", `清除飞线失败: ${error.message}`);
   }
 };
 
@@ -3211,7 +3592,7 @@ const selectSingleFlightLine = (id: string) => {
   // 获取飞线图对象
   const flightLineObj = layerRef.value.getFlightLineObject();
   if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
+    addLog("飞线图", "无法获取飞线图对象");
     return;
   }
 
@@ -3222,9 +3603,9 @@ const selectSingleFlightLine = (id: string) => {
     selectedFlightLine.value = null;
 
     // 获取飞线数据记录日志
-    const line = flightLines.value.find(line => line.id === id);
+    const line = flightLines.value.find((line) => line.id === id);
     if (line) {
-      addLog('飞线图', `取消单飞线显示，恢复显示全部`);
+      addLog("飞线图", `取消单飞线显示，恢复显示全部`);
     }
   } else {
     // 只显示选中的飞线
@@ -3232,9 +3613,9 @@ const selectSingleFlightLine = (id: string) => {
     selectedFlightLine.value = id;
 
     // 获取飞线数据记录日志
-    const line = flightLines.value.find(line => line.id === id);
+    const line = flightLines.value.find((line) => line.id === id);
     if (line) {
-      addLog('飞线图', `只显示飞线: ${line.fromName} -> ${line.toName}`);
+      addLog("飞线图", `只显示飞线: ${line.fromName} -> ${line.toName}`);
     }
   }
 };
@@ -3243,7 +3624,7 @@ const selectSingleFlightLine = (id: string) => {
  * 地图初始化完成
  */
 const onMapInitialized = (map: any) => {
-  addLog('地图', '地图初始化完成');
+  addLog("地图", "地图初始化完成");
   // 更新飞线列表
   setTimeout(() => {
     updateFlightLineList();
@@ -3259,22 +3640,22 @@ const addTestFlightLines = () => {
   // 获取飞线图对象
   const flightLineObj = layerRef.value.getFlightLineObject();
   if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
+    addLog("飞线图", "无法获取飞线图对象");
     return;
   }
 
   // 示例城市坐标
   const cities = {
-    '北京': [116.4, 39.9],
-    '上海': [121.5, 31.2],
-    '广州': [113.3, 23.1],
-    '深圳': [114.1, 22.5],
-    '杭州': [120.2, 30.3],
-    '成都': [104.1, 30.7],
-    '武汉': [114.3, 30.6],
-    '西安': [108.9, 34.3],
-    '南京': [118.8, 32.0],
-    '重庆': [106.5, 29.5]
+    北京: [116.4, 39.9],
+    上海: [121.5, 31.2],
+    广州: [113.3, 23.1],
+    深圳: [114.1, 22.5],
+    杭州: [120.2, 30.3],
+    成都: [104.1, 30.7],
+    武汉: [114.3, 30.6],
+    西安: [108.9, 34.3],
+    南京: [118.8, 32.0],
+    重庆: [106.5, 29.5],
   };
 
   // 添加坐标点
@@ -3286,20 +3667,20 @@ const addTestFlightLines = () => {
 
   // 创建以北京为中心的星形网络
   for (let i = 1; i < cityNames.length; i++) {
-    const from = '北京';
+    const from = "北京";
     const to = cityNames[i];
     testLines.push({
       fromName: from,
       toName: to,
       coords: [cities[from], cities[to]],
-      value: Math.floor(Math.random() * 1000) + 100
+      value: Math.floor(Math.random() * 1000) + 100,
     });
   }
 
   // 添加测试飞线
   flightLineObj.addFlightLines(testLines);
 
-  addLog('飞线图', `添加了${testLines.length}条测试飞线`);
+  addLog("飞线图", `添加了${testLines.length}条测试飞线`);
 };
 
 /**
@@ -3308,23 +3689,23 @@ const addTestFlightLines = () => {
 const drawTaizhouBoundary = () => {
   if (!layerRef.value) return;
 
-  addLog('操作', '开始绘制台州边界');
+  addLog("操作", "开始绘制台州边界");
 
   // 台州市边界GeoJSON数据 (简化版坐标)
   const taizhouBoundaryData = {
-    "type": "FeatureCollection",
-    "features": [
+    type: "FeatureCollection",
+    features: [
       {
-        "type": "Feature",
-        "properties": {
-          "name": "台州市",
-          "id": "331000",
-          "cp": [121.42079, 28.655716],
-          "childNum": 9
+        type: "Feature",
+        properties: {
+          name: "台州市",
+          id: "331000",
+          cp: [121.42079, 28.655716],
+          childNum: 9,
         },
-        "geometry": {
-          "type": "Polygon",
-          "coordinates": [
+        geometry: {
+          type: "Polygon",
+          coordinates: [
             [
               [121.25183, 28.34585],
               [121.10168, 28.39856],
@@ -3354,19 +3735,19 @@ const drawTaizhouBoundary = () => {
               [119.68506, 29.59875],
               [119.77112, 29.58347],
               [119.89319, 29.63828],
-              [119.96460, 29.61777],
+              [119.9646, 29.61777],
               [120.07019, 29.66443],
               [120.12512, 29.65181],
-              [120.20020, 29.68259],
+              [120.2002, 29.68259],
               [120.34485, 29.65443],
               [120.44189, 29.68259],
-              [120.55847, 29.64180],
+              [120.55847, 29.6418],
               [120.62988, 29.55766],
-              [120.69580, 29.53970],
+              [120.6958, 29.5397],
               [120.83496, 29.57079],
-              [120.93750, 29.58347],
-              [121.01257, 29.54760],
-              [121.11511, 29.56530],
+              [120.9375, 29.58347],
+              [121.01257, 29.5476],
+              [121.11511, 29.5653],
               [121.16455, 29.61777],
               [121.29211, 29.59036],
               [121.32507, 29.51934],
@@ -3379,27 +3760,27 @@ const drawTaizhouBoundary = () => {
               [121.84448, 29.10164],
               [121.98914, 28.99592],
               [122.11121, 28.92111],
-              [122.15515, 28.84060],
+              [122.15515, 28.8406],
               [122.11121, 28.75377],
               [122.04529, 28.72253],
               [121.96472, 28.71171],
-              [121.90430, 28.66504],
-              [121.87683, 28.60480],
+              [121.9043, 28.66504],
+              [121.87683, 28.6048],
               [121.88232, 28.52933],
               [121.96472, 28.45234],
-              [121.89880, 28.41635],
+              [121.8988, 28.41635],
               [121.83838, 28.46588],
               [121.74683, 28.42527],
               [121.72485, 28.35297],
-              [121.66992, 28.32510],
+              [121.66992, 28.3251],
               [121.48681, 28.33673],
               [121.36475, 28.36189],
-              [121.25183, 28.34585]
-            ]
-          ]
-        }
-      }
-    ]
+              [121.25183, 28.34585],
+            ],
+          ],
+        },
+      },
+    ],
   };
 
   try {
@@ -3407,29 +3788,31 @@ const drawTaizhouBoundary = () => {
     const coordinates = taizhouBoundaryData.features[0].geometry.coordinates[0];
 
     // 转换成适合ScLayer的格式 - 将[lon, lat]格式转为[lat, lon]格式
-    const taizhouCoordinates = coordinates.map(point => [point[1], point[0]]);
+    const taizhouCoordinates = coordinates.map((point) => [point[1], point[0]]);
 
     // 使用addPolygon方法绘制台州边界
     const id = layerRef.value.addPolygon(taizhouCoordinates, {
-      name: '台州市边界',
-      data: { regionId: '331000', regionType: 'city' },
-      fillColor: 'rgba(24, 144, 255, 0.3)',
-      strokeColor: 'rgba(24, 144, 255, 0.8)',
+      name: "台州市边界",
+      data: { regionId: "331000", regionType: "city" },
+      fillColor: "rgba(24, 144, 255, 0.3)",
+      strokeColor: "rgba(24, 144, 255, 0.8)",
       strokeWidth: 3,
-      dashArray: '5,5',
-      fillOpacity: 0.4
+      dashArray: "5,5",
+      fillOpacity: 0.4,
     });
 
     // 更新图形列表
     updateShapeList();
 
     // 设置地图视角到台州中心
-    layerRef.value.getMapObject().setView([28.655716, 121.42079] as [number, number], 9);
+    layerRef.value
+      .getMapObject()
+      .setView([28.655716, 121.42079] as [number, number], 9);
 
-    addLog('边界', `已绘制台州市边界 [ID: ${safeSlice(id)}]`);
+    addLog("边界", `已绘制台州市边界 [ID: ${safeSlice(id)}]`);
   } catch (error) {
-    console.error('绘制台州边界失败:', error);
-    addLog('错误', `绘制台州边界失败: ${error.message}`);
+    console.error("绘制台州边界失败:", error);
+    addLog("错误", `绘制台州边界失败: ${error.message}`);
   }
 };
 
@@ -3442,13 +3825,13 @@ const selectTrack = (trackId: string) => {
     activeTrackId.value = trackId;
   }
 
-  addLog('轨迹', `选中轨迹: ${trackId}`);
+  addLog("轨迹", `选中轨迹: ${trackId}`);
 };
 
 // 双击定位到轨迹
 const locateTrack = (trackId: string) => {
   if (!layerRef.value) {
-    addLog('error', '地图组件未初始化');
+    addLog("error", "地图组件未初始化");
     return;
   }
 
@@ -3457,22 +3840,22 @@ const locateTrack = (trackId: string) => {
     gotoStart: true,
     padding: [100, 100, 100, 100],
     duration: 600,
-    maxZoom: 16
+    maxZoom: 16,
   });
 
   if (success) {
-    addLog('轨迹', `已定位到轨迹: ${trackId}`);
+    addLog("轨迹", `已定位到轨迹: ${trackId}`);
     // 自动选中轨迹
     activeTrackId.value = trackId;
   } else {
-    addLog('error', `定位轨迹失败: ${trackId}`);
+    addLog("error", `定位轨迹失败: ${trackId}`);
   }
 };
 
 // 播放指定ID的轨迹
 const playTrackById = (trackId: string) => {
   if (!layerRef.value) {
-    addLog('error', '地图组件未初始化');
+    addLog("error", "地图组件未初始化");
     return;
   }
 
@@ -3484,17 +3867,17 @@ const playTrackById = (trackId: string) => {
     speedFactor: 1.0,
     showNodes: trackPlayShowNodes.value,
     showNodeAnchors: true,
-    showNodeNames: true,  // 显示节点名称
-    showNodeTime: true,   // 显示节点时间
+    showNodeNames: true, // 显示节点名称
+    showNodeTime: true, // 显示节点时间
     showPointNames: true, // 显示移动点位名称
-    showSpeed: true,      // 显示速度
-    showNodeSpeed: true,  // 显示节点速度
-    stabilizeViewport: true // 启用视口稳定，防止播放过程中不必要的缩放
+    showSpeed: true, // 显示速度
+    showNodeSpeed: true, // 显示节点速度
+    stabilizeViewport: true, // 启用视口稳定，防止播放过程中不必要的缩放
   });
 
   if (success) {
     // 尝试激活轨迹播放器工具
-    layerRef.value.activateTool('track-player');
+    layerRef.value.activateTool("track-player");
 
     // 获取地图对象并触发渲染
     const map = layerRef.value.getMapObject();
@@ -3511,44 +3894,47 @@ const playTrackById = (trackId: string) => {
     layerRef.value.updateTrackPlayer(trackId, {
       showNodes: trackPlayShowNodes.value,
       showNodeAnchors: true,
-      showNodeNames: true,  // 显示节点名称
-      showNodeTime: true,   // 显示节点时间
+      showNodeNames: true, // 显示节点名称
+      showNodeTime: true, // 显示节点时间
       showPointNames: true, // 显示移动点位名称
-      showSpeed: true,      // 显示速度
-      showNodeSpeed: true,  // 显示节点速度
-      stabilizeViewport: true // 启用视口稳定，防止播放过程中不必要的缩放
+      showSpeed: true, // 显示速度
+      showNodeSpeed: true, // 显示节点速度
+      stabilizeViewport: true, // 启用视口稳定，防止播放过程中不必要的缩放
     });
 
     // 获取轨迹数据记录日志
-    const track = tracks.value.find(t => t.id === trackId);
+    const track = tracks.value.find((t) => t.id === trackId);
     if (track) {
-      addLog('轨迹', `正在播放轨迹: ${track.name}，速度: ${trackPlaySpeed.value} km/h`);
+      addLog(
+        "轨迹",
+        `正在播放轨迹: ${track.name}，速度: ${trackPlaySpeed.value} km/h`
+      );
     }
   } else {
-    addLog('error', `播放轨迹失败: ${trackId}`);
+    addLog("error", `播放轨迹失败: ${trackId}`);
   }
 };
 
 // 停止指定ID的轨迹
 const stopTrackById = (trackId: string) => {
   if (!layerRef.value) {
-    addLog('error', '地图组件未初始化');
+    addLog("error", "地图组件未初始化");
     return;
   }
 
   const success = layerRef.value.stopTrack(trackId);
 
   if (success) {
-    addLog('轨迹', `已停止播放轨迹: ${trackId}`);
+    addLog("轨迹", `已停止播放轨迹: ${trackId}`);
   } else {
-    addLog('warn', `停止轨迹播放失败: ${trackId}`);
+    addLog("warn", `停止轨迹播放失败: ${trackId}`);
   }
 };
 
 // 删除指定ID的轨迹
 const removeTrackById = (trackId: string) => {
   if (!layerRef.value) {
-    addLog('error', '地图组件未初始化');
+    addLog("error", "地图组件未初始化");
     return;
   }
 
@@ -3560,7 +3946,7 @@ const removeTrackById = (trackId: string) => {
 
   if (success) {
     // 更新轨迹列表
-    tracks.value = tracks.value.filter(t => t.id !== trackId);
+    tracks.value = tracks.value.filter((t) => t.id !== trackId);
 
     // 如果删除的是当前选中的轨迹，清除选中状态
     if (activeTrackId.value === trackId) {
@@ -3572,9 +3958,9 @@ const removeTrackById = (trackId: string) => {
       hasTrack.value = false;
     }
 
-    addLog('轨迹', `已删除轨迹: ${trackId}`);
+    addLog("轨迹", `已删除轨迹: ${trackId}`);
   } else {
-    addLog('error', `删除轨迹失败: ${trackId}`);
+    addLog("error", `删除轨迹失败: ${trackId}`);
   }
 };
 
@@ -3602,23 +3988,23 @@ const updateHeatmapPointList = () => {
     allPoints.forEach((point, id) => {
       pointsArray.push({
         ...point,
-        id
+        id,
       });
     });
 
     // 更新热力点列表
     heatmapPoints.value = pointsArray;
   } catch (error) {
-    console.error('获取热力点列表错误:', error);
-    addLog('热力图', `获取热力点列表失败: ${error.message}`);
+    console.error("获取热力点列表错误:", error);
+    addLog("热力图", `获取热力点列表失败: ${error.message}`);
   }
 };
 
 // 添加风场图配置
 const windConfig = reactive<WindConfig>({
-  paths: 3000,           // 初始粒子数量
-  lineWidth: 2,          // 初始线条粗细
-  velocityScale: 0.05,   // 初始速度缩放
+  paths: 3000, // 初始粒子数量
+  lineWidth: 2, // 初始线条粗细
+  velocityScale: 0.05, // 初始速度缩放
   colorScale: [
     "rgb(36,104,180)",
     "rgb(60,157,194)",
@@ -3634,43 +4020,43 @@ const windConfig = reactive<WindConfig>({
     "rgb(245,64,32)",
     "rgb(237,45,28)",
     "rgb(220,24,32)",
-    "rgb(180,0,35)"
-  ]
+    "rgb(180,0,35)",
+  ],
 });
 
 // 激活风场图
 function activateWindLayer() {
   if (!layerRef.value) {
-    addLog('风场图', '地图组件未初始化');
+    addLog("风场图", "地图组件未初始化");
     return;
   }
 
-  layerRef.value.activateTool('wind-layer');
-  addLog('风场图', '风场图已启用');
+  layerRef.value.activateTool("wind-layer");
+  addLog("风场图", "风场图已启用");
 }
 
 // 禁用风场图
 function deactivateWindLayer() {
   if (!layerRef.value) {
-    addLog('风场图', '地图组件未初始化');
+    addLog("风场图", "地图组件未初始化");
     return;
   }
 
-  layerRef.value.deactivateTool('wind-layer');
-  addLog('风场图', '风场图已禁用');
+  layerRef.value.deactivateTool("wind-layer");
+  addLog("风场图", "风场图已禁用");
 }
 
 // 更新风场图参数
 function updateWindOptions() {
   if (!layerRef.value) {
-    addLog('风场图', '地图组件未初始化');
+    addLog("风场图", "地图组件未初始化");
     return;
   }
 
   // 获取风场图对象
   const windObject = layerRef.value.getWindObject();
   if (!windObject) {
-    addLog('风场图', '无法获取风场图对象');
+    addLog("风场图", "无法获取风场图对象");
     return;
   }
 
@@ -3678,10 +4064,13 @@ function updateWindOptions() {
   windObject.setWindOptions({
     paths: windConfig.paths,
     lineWidth: windConfig.lineWidth,
-    velocityScale: windConfig.velocityScale
+    velocityScale: windConfig.velocityScale,
   });
 
-  addLog('风场图', `参数已更新: 粒子=${windConfig.paths}, 线宽=${windConfig.lineWidth}, 速度=${windConfig.velocityScale}`);
+  addLog(
+    "风场图",
+    `参数已更新: 粒子=${windConfig.paths}, 线宽=${windConfig.lineWidth}, 速度=${windConfig.velocityScale}`
+  );
 }
 
 // 3D模型相关函数
@@ -3695,7 +4084,7 @@ const toggle3DMode = () => {
   try {
     const cesiumObj = layerRef.value.getCesiumObject();
     if (!cesiumObj) {
-      addLog('3D', '无法获取Cesium对象');
+      addLog("3D", "无法获取Cesium对象");
       return;
     }
 
@@ -3706,7 +4095,7 @@ const toggle3DMode = () => {
       is3DMode.value = cesiumObj.isEnabled();
       viewMode.value = cesiumObj.getViewMode();
 
-      addLog('3D', `已切换至${is3DMode.value ? '3D' : '2D'}模式`);
+      addLog("3D", `已切换至${is3DMode.value ? "3D" : "2D"}模式`);
 
       // 如果切换到了3D模式，设置默认视图
       if (is3DMode.value) {
@@ -3715,11 +4104,11 @@ const toggle3DMode = () => {
         }, 1000);
       }
     } else {
-      addLog('3D', '切换3D模式失败');
+      addLog("3D", "切换3D模式失败");
     }
   } catch (error) {
-    console.error('切换3D模式时发生错误:', error);
-    addLog('3D', `切换3D模式失败: ${error.message || '未知错误'}`);
+    console.error("切换3D模式时发生错误:", error);
+    addLog("3D", `切换3D模式失败: ${error.message || "未知错误"}`);
   }
 };
 
@@ -3732,7 +4121,7 @@ const set3DViewMode = () => {
   try {
     const cesiumObj = layerRef.value.getCesiumObject();
     if (!cesiumObj) {
-      addLog('3D', '无法获取Cesium对象');
+      addLog("3D", "无法获取Cesium对象");
       return;
     }
 
@@ -3746,18 +4135,18 @@ const set3DViewMode = () => {
       position: {
         longitude: centerLon,
         latitude: centerLat,
-        height: 2000 // 高度2000米
+        height: 2000, // 高度2000米
       },
-      heading: 0,    // 朝北
-      pitch: -30,    // 俯视30度
-      roll: 0,       // 无侧倾
-      duration: 2    // 2秒完成飞行
+      heading: 0, // 朝北
+      pitch: -30, // 俯视30度
+      roll: 0, // 无侧倾
+      duration: 2, // 2秒完成飞行
     });
 
-    addLog('3D', '已设置3D视角');
+    addLog("3D", "已设置3D视角");
   } catch (error) {
-    console.error('设置3D视角时发生错误:', error);
-    addLog('3D', `设置3D视角失败: ${error.message || '未知错误'}`);
+    console.error("设置3D视角时发生错误:", error);
+    addLog("3D", `设置3D视角失败: ${error.message || "未知错误"}`);
   }
 };
 
@@ -3770,7 +4159,7 @@ const addSimple3DModel = () => {
   try {
     const cesiumObj = layerRef.value.getCesiumObject();
     if (!cesiumObj) {
-      addLog('3D', '无法获取Cesium对象');
+      addLog("3D", "无法获取Cesium对象");
       return;
     }
 
@@ -3780,49 +4169,49 @@ const addSimple3DModel = () => {
     const centerLat = center[0];
 
     // 创建模型配置
-    const modelId = 'simple-box-' + Math.floor(Math.random() * 10000);
+    const modelId = "simple-box-" + Math.floor(Math.random() * 10000);
     const modelConfig: Model3DOptions = {
       id: modelId,
-      url: '', // 使用空URL，Cesium会创建一个默认盒体
+      url: "", // 使用空URL，Cesium会创建一个默认盒体
       position: {
         longitude: centerLon,
         latitude: centerLat,
-        height: 200 // 高度200米
+        height: 200, // 高度200米
       },
       scale: {
         x: 100,
         y: 100,
-        z: 100
+        z: 100,
       },
-      color: '#1890FF', // 蓝色
+      color: "#1890FF", // 蓝色
       label: {
-        text: '简单盒体模型',
-        fillColor: '#FFFFFF',
-        outlineColor: '#000000',
+        text: "简单盒体模型",
+        fillColor: "#FFFFFF",
+        outlineColor: "#000000",
         outlineWidth: 2,
-        heightOffset: 120
-      }
+        heightOffset: 120,
+      },
     };
 
     // 添加模型
     const result = cesiumObj.addModel(modelConfig);
 
     if (result) {
-      addLog('3D', `已添加简单盒体模型: ${modelId}`);
+      addLog("3D", `已添加简单盒体模型: ${modelId}`);
       models.value.push({
         id: modelId,
-        name: '简单盒体模型',
-        type: 'box'
+        name: "简单盒体模型",
+        type: "box",
       });
 
       // 选中当前模型
       selectedModelId.value = modelId;
     } else {
-      addLog('3D', '添加模型失败');
+      addLog("3D", "添加模型失败");
     }
   } catch (error) {
-    console.error('添加简单模型时发生错误:', error);
-    addLog('3D', `添加简单模型失败: ${error.message || '未知错误'}`);
+    console.error("添加简单模型时发生错误:", error);
+    addLog("3D", `添加简单模型失败: ${error.message || "未知错误"}`);
   }
 };
 
@@ -3835,7 +4224,7 @@ const addDetailed3DModel = () => {
   try {
     const cesiumObj = layerRef.value.getCesiumObject();
     if (!cesiumObj) {
-      addLog('3D', '无法获取Cesium对象');
+      addLog("3D", "无法获取Cesium对象");
       return;
     }
 
@@ -3845,58 +4234,58 @@ const addDetailed3DModel = () => {
     const centerLat = center[0];
 
     // 创建模型配置 - 使用一个公开的glTF模型URL
-    const modelId = 'cesium-man-' + Math.floor(Math.random() * 10000);
+    const modelId = "cesium-man-" + Math.floor(Math.random() * 10000);
     const modelConfig: Model3DOptions = {
       id: modelId,
-      url: 'https://sandcastle.cesium.com/SampleData/models/CesiumMan/Cesium_Man.glb', // Cesium示例模型
+      url: "https://sandcastle.cesium.com/SampleData/models/CesiumMan/Cesium_Man.glb", // Cesium示例模型
       position: {
         longitude: centerLon,
         latitude: centerLat,
-        height: 0 // 地面高度
+        height: 0, // 地面高度
       },
       scale: {
         x: 10,
         y: 10,
-        z: 10
+        z: 10,
       },
       rotation: {
         heading: 0, // 朝北
-        pitch: 0,   // 无俯仰
-        roll: 0     // 无翻滚
+        pitch: 0, // 无俯仰
+        roll: 0, // 无翻滚
       },
       label: {
-        text: 'Cesium人物模型',
-        fillColor: '#FFFFFF',
-        outlineColor: '#000000',
+        text: "Cesium人物模型",
+        fillColor: "#FFFFFF",
+        outlineColor: "#000000",
         outlineWidth: 2,
-        heightOffset: 50
+        heightOffset: 50,
       },
       animation: {
         speedFactor: 1.0,
         loop: true,
-        autoPlay: true
-      }
+        autoPlay: true,
+      },
     };
 
     // 添加模型
     const result = cesiumObj.addModel(modelConfig);
 
     if (result) {
-      addLog('3D', `已添加Cesium人物模型: ${modelId}`);
+      addLog("3D", `已添加Cesium人物模型: ${modelId}`);
       models.value.push({
         id: modelId,
-        name: 'Cesium人物模型',
-        type: 'glTF'
+        name: "Cesium人物模型",
+        type: "glTF",
       });
 
       // 选中当前模型
       selectedModelId.value = modelId;
     } else {
-      addLog('3D', '添加人物模型失败');
+      addLog("3D", "添加人物模型失败");
     }
   } catch (error) {
-    console.error('添加详细模型时发生错误:', error);
-    addLog('3D', `添加详细模型失败: ${error.message || '未知错误'}`);
+    console.error("添加详细模型时发生错误:", error);
+    addLog("3D", `添加详细模型失败: ${error.message || "未知错误"}`);
   }
 };
 
@@ -3909,7 +4298,7 @@ const addCustom3DModel = () => {
   try {
     const cesiumObj = layerRef.value.getCesiumObject();
     if (!cesiumObj) {
-      addLog('3D', '无法获取Cesium对象');
+      addLog("3D", "无法获取Cesium对象");
       return;
     }
 
@@ -3919,53 +4308,53 @@ const addCustom3DModel = () => {
     const centerLat = center[0];
 
     // 创建模型配置 - 使用一个公开的glTF模型URL
-    const modelId = 'custom-model-' + Math.floor(Math.random() * 10000);
+    const modelId = "custom-model-" + Math.floor(Math.random() * 10000);
     const modelConfig: Model3DOptions = {
       id: modelId,
-      url: 'https://sandcastle.cesium.com/SampleData/models/CesiumAir/Cesium_Air.glb', // Cesium飞机模型
+      url: "https://sandcastle.cesium.com/SampleData/models/CesiumAir/Cesium_Air.glb", // Cesium飞机模型
       position: {
         longitude: centerLon,
         latitude: centerLat,
-        height: 200 // 高度200米
+        height: 200, // 高度200米
       },
       scale: {
         x: 10,
         y: 10,
-        z: 10
+        z: 10,
       },
       rotation: {
         heading: 45, // 东北方向
-        pitch: 0,    // 无俯仰
-        roll: 0      // 无翻滚
+        pitch: 0, // 无俯仰
+        roll: 0, // 无翻滚
       },
       label: {
-        text: '自定义飞机模型',
-        fillColor: '#FFFFFF',
-        outlineColor: '#000000',
+        text: "自定义飞机模型",
+        fillColor: "#FFFFFF",
+        outlineColor: "#000000",
         outlineWidth: 2,
-        heightOffset: 50
-      }
+        heightOffset: 50,
+      },
     };
 
     // 添加模型
     const result = cesiumObj.addModel(modelConfig);
 
     if (result) {
-      addLog('3D', `已添加自定义飞机模型: ${modelId}`);
+      addLog("3D", `已添加自定义飞机模型: ${modelId}`);
       models.value.push({
         id: modelId,
-        name: '自定义飞机模型',
-        type: 'aircraft'
+        name: "自定义飞机模型",
+        type: "aircraft",
       });
 
       // 选中当前模型
       selectedModelId.value = modelId;
     } else {
-      addLog('3D', '添加自定义模型失败');
+      addLog("3D", "添加自定义模型失败");
     }
   } catch (error) {
-    console.error('添加自定义模型时发生错误:', error);
-    addLog('3D', `添加自定义模型失败: ${error.message || '未知错误'}`);
+    console.error("添加自定义模型时发生错误:", error);
+    addLog("3D", `添加自定义模型失败: ${error.message || "未知错误"}`);
   }
 };
 
@@ -3978,7 +4367,7 @@ const clearAll3DModels = () => {
   try {
     const cesiumObj = layerRef.value.getCesiumObject();
     if (!cesiumObj) {
-      addLog('3D', '无法获取Cesium对象');
+      addLog("3D", "无法获取Cesium对象");
       return;
     }
 
@@ -3986,15 +4375,15 @@ const clearAll3DModels = () => {
     const success = cesiumObj.clearAllModels();
 
     if (success) {
-      addLog('3D', '已清除所有3D模型');
+      addLog("3D", "已清除所有3D模型");
       models.value = [];
       selectedModelId.value = null;
     } else {
-      addLog('3D', '清除3D模型失败');
+      addLog("3D", "清除3D模型失败");
     }
   } catch (error) {
-    console.error('清除3D模型时发生错误:', error);
-    addLog('3D', `清除3D模型失败: ${error.message || '未知错误'}`);
+    console.error("清除3D模型时发生错误:", error);
+    addLog("3D", `清除3D模型失败: ${error.message || "未知错误"}`);
   }
 };
 
@@ -4007,29 +4396,32 @@ const flyToSelectedModel = () => {
   try {
     const cesiumObj = layerRef.value.getCesiumObject();
     if (!cesiumObj) {
-      addLog('3D', '无法获取Cesium对象');
+      addLog("3D", "无法获取Cesium对象");
       return;
     }
 
     // 飞行到模型
     const success = cesiumObj.flyToModel(selectedModelId.value, {
       offset: {
-        heading: 45,   // 从东北方向看
-        pitch: -30,    // 俯视30度
-        range: 500     // 距离500米
+        heading: 45, // 从东北方向看
+        pitch: -30, // 俯视30度
+        range: 500, // 距离500米
       },
-      duration: 2      // 2秒完成飞行
+      duration: 2, // 2秒完成飞行
     });
 
     if (success) {
-      const model = models.value.find(m => m.id === selectedModelId.value);
-      addLog('3D', `已飞行到模型: ${model ? model.name : selectedModelId.value}`);
+      const model = models.value.find((m) => m.id === selectedModelId.value);
+      addLog(
+        "3D",
+        `已飞行到模型: ${model ? model.name : selectedModelId.value}`
+      );
     } else {
-      addLog('3D', '飞行到模型失败');
+      addLog("3D", "飞行到模型失败");
     }
   } catch (error) {
-    console.error('飞行到模型时发生错误:', error);
-    addLog('3D', `飞行到模型失败: ${error.message || '未知错误'}`);
+    console.error("飞行到模型时发生错误:", error);
+    addLog("3D", `飞行到模型失败: ${error.message || "未知错误"}`);
   }
 };
 
@@ -4042,7 +4434,7 @@ const rotateSelectedModel = () => {
   try {
     const cesiumObj = layerRef.value.getCesiumObject();
     if (!cesiumObj) {
-      addLog('3D', '无法获取Cesium对象');
+      addLog("3D", "无法获取Cesium对象");
       return;
     }
 
@@ -4056,19 +4448,19 @@ const rotateSelectedModel = () => {
       rotation: {
         heading,
         pitch,
-        roll
-      }
+        roll,
+      },
     });
 
     if (success) {
-      const model = models.value.find(m => m.id === selectedModelId.value);
-      addLog('3D', `已旋转模型: ${model ? model.name : selectedModelId.value}`);
+      const model = models.value.find((m) => m.id === selectedModelId.value);
+      addLog("3D", `已旋转模型: ${model ? model.name : selectedModelId.value}`);
     } else {
-      addLog('3D', '旋转模型失败');
+      addLog("3D", "旋转模型失败");
     }
   } catch (error) {
-    console.error('旋转模型时发生错误:', error);
-    addLog('3D', `旋转模型失败: ${error.message || '未知错误'}`);
+    console.error("旋转模型时发生错误:", error);
+    addLog("3D", `旋转模型失败: ${error.message || "未知错误"}`);
   }
 };
 
@@ -4081,7 +4473,7 @@ const resizeSelectedModel = () => {
   try {
     const cesiumObj = layerRef.value.getCesiumObject();
     if (!cesiumObj) {
-      addLog('3D', '无法获取Cesium对象');
+      addLog("3D", "无法获取Cesium对象");
       return;
     }
 
@@ -4093,19 +4485,22 @@ const resizeSelectedModel = () => {
       scale: {
         x: scaleFactor * 10,
         y: scaleFactor * 10,
-        z: scaleFactor * 10
-      }
+        z: scaleFactor * 10,
+      },
     });
 
     if (success) {
-      const model = models.value.find(m => m.id === selectedModelId.value);
-      addLog('3D', `已调整模型大小: ${model ? model.name : selectedModelId.value} (${scaleFactor.toFixed(2)}x)`);
+      const model = models.value.find((m) => m.id === selectedModelId.value);
+      addLog(
+        "3D",
+        `已调整模型大小: ${model ? model.name : selectedModelId.value} (${scaleFactor.toFixed(2)}x)`
+      );
     } else {
-      addLog('3D', '调整模型大小失败');
+      addLog("3D", "调整模型大小失败");
     }
   } catch (error) {
-    console.error('调整模型大小时发生错误:', error);
-    addLog('3D', `调整模型大小失败: ${error.message || '未知错误'}`);
+    console.error("调整模型大小时发生错误:", error);
+    addLog("3D", `调整模型大小失败: ${error.message || "未知错误"}`);
   }
 };
 
@@ -4118,28 +4513,38 @@ const changeModelColor = () => {
   try {
     const cesiumObj = layerRef.value.getCesiumObject();
     if (!cesiumObj) {
-      addLog('3D', '无法获取Cesium对象');
+      addLog("3D", "无法获取Cesium对象");
       return;
     }
 
     // 随机颜色
-    const colors = ['#1890FF', '#52C41A', '#FAAD14', '#F5222D', '#722ED1', '#EB2F96'];
+    const colors = [
+      "#1890FF",
+      "#52C41A",
+      "#FAAD14",
+      "#F5222D",
+      "#722ED1",
+      "#EB2F96",
+    ];
     const color = colors[Math.floor(Math.random() * colors.length)];
 
     // 更新模型颜色
     const success = cesiumObj.updateModel(selectedModelId.value, {
-      color: color
+      color: color,
     });
 
     if (success) {
-      const model = models.value.find(m => m.id === selectedModelId.value);
-      addLog('3D', `已更改模型颜色: ${model ? model.name : selectedModelId.value} (${color})`);
+      const model = models.value.find((m) => m.id === selectedModelId.value);
+      addLog(
+        "3D",
+        `已更改模型颜色: ${model ? model.name : selectedModelId.value} (${color})`
+      );
     } else {
-      addLog('3D', '更改模型颜色失败');
+      addLog("3D", "更改模型颜色失败");
     }
   } catch (error) {
-    console.error('更改模型颜色时发生错误:', error);
-    addLog('3D', `更改模型颜色失败: ${error.message || '未知错误'}`);
+    console.error("更改模型颜色时发生错误:", error);
+    addLog("3D", `更改模型颜色失败: ${error.message || "未知错误"}`);
   }
 };
 
@@ -4156,10 +4561,10 @@ const clearHeatmapPoints = () => {
     heatmapPoints.value = [];
     selectedHeatmapPoint.value = null;
 
-    addLog('热力图', '已清除所有热力点');
+    addLog("热力图", "已清除所有热力点");
   } catch (error) {
-    console.error('清除热力点失败:', error);
-    addLog('热力图', `清除热力点失败: ${error.message || '未知错误'}`);
+    console.error("清除热力点失败:", error);
+    addLog("热力图", `清除热力点失败: ${error.message || "未知错误"}`);
   }
 };
 
@@ -4173,7 +4578,7 @@ const removeModel = (id: string) => {
   try {
     const cesiumObj = layerRef.value.getCesiumObject();
     if (!cesiumObj) {
-      addLog('3D', '无法获取Cesium对象');
+      addLog("3D", "无法获取Cesium对象");
       return;
     }
 
@@ -4182,11 +4587,11 @@ const removeModel = (id: string) => {
 
     if (success) {
       // 从模型列表中移除
-      const modelIndex = models.value.findIndex(m => m.id === id);
+      const modelIndex = models.value.findIndex((m) => m.id === id);
       if (modelIndex !== -1) {
         const model = models.value[modelIndex];
         models.value.splice(modelIndex, 1);
-        addLog('3D', `已删除模型: ${model.name}`);
+        addLog("3D", `已删除模型: ${model.name}`);
       }
 
       // 如果删除的是当前选中的模型，清除选中状态
@@ -4194,15 +4599,15 @@ const removeModel = (id: string) => {
         selectedModelId.value = null;
       }
     } else {
-      addLog('3D', `删除模型 ${id} 失败`);
+      addLog("3D", `删除模型 ${id} 失败`);
     }
   } catch (error) {
-    console.error('删除模型时发生错误:', error);
-    addLog('3D', `删除模型失败: ${error.message || '未知错误'}`);
+    console.error("删除模型时发生错误:", error);
+    addLog("3D", `删除模型失败: ${error.message || "未知错误"}`);
   }
 };
 
-const gaodeKey = ref('054b327a96515ec1ae59f94e080c1680');
+const gaodeKey = ref("054b327a96515ec1ae59f94e080c1680");
 config.mapKey.GAODE = gaodeKey.value;
 watch(gaodeKey, (val) => {
   config.mapKey.GAODE = val;
@@ -4508,8 +4913,8 @@ button:hover {
   font-size: 13px;
   margin: 16px 0 8px 0;
   padding-bottom: 4px;
-  border-bottom: 1px solid #e0e0e0;
-  color: #1890ff;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  color: var(--el-color-primary);
 }
 
 .feature-group-title:first-child {
@@ -4541,7 +4946,7 @@ button:hover {
 }
 
 /* 添加功能分组的分隔线 */
-.feature-group-title+.control-row {
+.feature-group-title + .control-row {
   margin-top: 8px;
 }
 
@@ -4560,7 +4965,7 @@ button:hover {
 }
 
 /* 添加功能分组的分隔线 */
-.feature-group-title+.control-row {
+.feature-group-title + .control-row {
   margin-top: 8px;
 }
 

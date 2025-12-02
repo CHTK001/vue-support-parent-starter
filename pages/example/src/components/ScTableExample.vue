@@ -316,11 +316,16 @@
 
     <el-divider></el-divider>
     <div class="code-panel">
-      <CodeDisplay
-        :code="generatedCode"
-        language="html"
-        title="代码示例"
-        description="此代码示例会根据您在配置面板中的选择实时更新"
+      <CodePreview
+        :tabs="[
+          {
+            key: 'template',
+            label: '模板',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: generatedCode,
+          },
+        ]"
       />
 
       <div v-if="config.contextMenu" class="context-menu-help">
@@ -375,7 +380,7 @@
 import { ref, reactive, computed, watch, nextTick, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import CodeDisplay from "./CodeDisplay.vue";
+import CodePreview from "./CodePreview.vue";
 
 // 配置项
 const config = reactive({

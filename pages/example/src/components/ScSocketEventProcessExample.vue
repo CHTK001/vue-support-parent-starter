@@ -4,7 +4,9 @@
       <template #header>
         <div class="card-header">
           <h3>Socket事件进度条组件 (ScSocketEventProcess) - 增强版</h3>
-          <p class="text-secondary">支持内嵌模式和弹框模式，支持多事件监听、自定义布局、拖拽缩放等功能</p>
+          <p class="text-secondary">
+            支持内嵌模式和弹框模式，支持多事件监听、自定义布局、拖拽缩放等功能
+          </p>
         </div>
       </template>
 
@@ -15,7 +17,7 @@
           v-model="currentMode"
           :options="[
             { value: 'embed', label: '内嵌模式' },
-            { value: 'dialog', label: '弹框模式' }
+            { value: 'dialog', label: '弹框模式' },
           ]"
         />
       </div>
@@ -40,15 +42,48 @@
 
               <div class="action-buttons mt-3">
                 <el-button-group>
-                  <el-button size="small" type="primary" @click="simulateProgress(processRef1, 0)">开始</el-button>
-                  <el-button size="small" type="success" @click="simulateProgress(processRef1, 100)">完成</el-button>
-                  <el-button size="small" type="warning" @click="simulateProgress(processRef1, 50)">进行中</el-button>
-                  <el-button size="small" type="danger" @click="simulateError(processRef1)">错误</el-button>
-                  <el-button size="small" @click="processRef1?.resetProgress()">重置</el-button>
+                  <el-button
+                    size="small"
+                    type="primary"
+                    @click="simulateProgress(processRef1, 0)"
+                    >开始</el-button
+                  >
+                  <el-button
+                    size="small"
+                    type="success"
+                    @click="simulateProgress(processRef1, 100)"
+                    >完成</el-button
+                  >
+                  <el-button
+                    size="small"
+                    type="warning"
+                    @click="simulateProgress(processRef1, 50)"
+                    >进行中</el-button
+                  >
+                  <el-button
+                    size="small"
+                    type="danger"
+                    @click="simulateError(processRef1)"
+                    >错误</el-button
+                  >
+                  <el-button size="small" @click="processRef1?.resetProgress()"
+                    >重置</el-button
+                  >
                 </el-button-group>
               </div>
 
-              <CodeDisplay :code="code1" language="vue" class="mt-3" />
+              <CodePreview
+                :tabs="[
+                  {
+                    key: 'code1',
+                    label: '代码',
+                    icon: 'ri:code-s-slash-line',
+                    language: 'vue',
+                    code: code1,
+                  },
+                ]"
+                class="mt-3"
+              />
             </div>
           </el-col>
 
@@ -70,14 +105,39 @@
 
               <div class="action-buttons mt-3">
                 <el-button-group>
-                  <el-button size="small" type="primary" @click="addRandomLog(processRef2)">添加日志</el-button>
-                  <el-button size="small" type="success" @click="simulateLogComplete(processRef2)">完成</el-button>
-                  <el-button size="small" @click="processRef2?.clearLogs()">清空日志</el-button>
-                  <el-button size="small" @click="processRef2?.resetProgress()">重置</el-button>
+                  <el-button
+                    size="small"
+                    type="primary"
+                    @click="addRandomLog(processRef2)"
+                    >添加日志</el-button
+                  >
+                  <el-button
+                    size="small"
+                    type="success"
+                    @click="simulateLogComplete(processRef2)"
+                    >完成</el-button
+                  >
+                  <el-button size="small" @click="processRef2?.clearLogs()"
+                    >清空日志</el-button
+                  >
+                  <el-button size="small" @click="processRef2?.resetProgress()"
+                    >重置</el-button
+                  >
                 </el-button-group>
               </div>
 
-              <CodeDisplay :code="code2" language="vue" class="mt-3" />
+              <CodePreview
+                :tabs="[
+                  {
+                    key: 'code2',
+                    label: '代码',
+                    icon: 'ri:code-s-slash-line',
+                    language: 'vue',
+                    code: code2,
+                  },
+                ]"
+                class="mt-3"
+              />
             </div>
           </el-col>
         </el-row>
@@ -99,7 +159,9 @@
                 <template #default="{ data, percentage, status }">
                   <div class="custom-layout">
                     <div class="custom-header">
-                      <el-tag :type="getStatusType(status)" size="large">{{ status }}</el-tag>
+                      <el-tag :type="getStatusType(status)" size="large">{{
+                        status
+                      }}</el-tag>
                       <span class="custom-percentage">{{ percentage }}%</span>
                     </div>
                     <div class="custom-content">
@@ -111,7 +173,10 @@
                       <div class="custom-message" v-if="data.message">
                         {{ data.message }}
                       </div>
-                      <div class="custom-data" v-if="Object.keys(data).length > 0">
+                      <div
+                        class="custom-data"
+                        v-if="Object.keys(data).length > 0"
+                      >
                         <pre>{{ JSON.stringify(data, null, 2) }}</pre>
                       </div>
                     </div>
@@ -121,13 +186,36 @@
 
               <div class="action-buttons mt-3">
                 <el-button-group>
-                  <el-button size="small" type="primary" @click="simulateProgress(processRef3, 30)">30%</el-button>
-                  <el-button size="small" type="success" @click="simulateProgress(processRef3, 70)">70%</el-button>
-                  <el-button size="small" @click="processRef3?.resetProgress()">重置</el-button>
+                  <el-button
+                    size="small"
+                    type="primary"
+                    @click="simulateProgress(processRef3, 30)"
+                    >30%</el-button
+                  >
+                  <el-button
+                    size="small"
+                    type="success"
+                    @click="simulateProgress(processRef3, 70)"
+                    >70%</el-button
+                  >
+                  <el-button size="small" @click="processRef3?.resetProgress()"
+                    >重置</el-button
+                  >
                 </el-button-group>
               </div>
 
-              <CodeDisplay :code="code3" language="vue" class="mt-3" />
+              <CodePreview
+                :tabs="[
+                  {
+                    key: 'code3',
+                    label: '代码',
+                    icon: 'ri:code-s-slash-line',
+                    language: 'vue',
+                    code: code3,
+                  },
+                ]"
+                class="mt-3"
+              />
             </div>
           </el-col>
 
@@ -135,11 +223,13 @@
           <el-col :span="12">
             <div class="example-card">
               <h4>示例4: 多事件监听</h4>
-              <p class="description">监听多个Socket事件：progress、build、deploy</p>
+              <p class="description">
+                监听多个Socket事件：progress、build、deploy
+              </p>
               <ScSocketEventProcess
                 :event-id="eventId4"
                 title="多事件监听"
-                :event-name="(multiEvents as any)"
+                :event-name="multiEvents as any"
                 mode="embed"
                 layout="log"
                 :height="250"
@@ -149,7 +239,18 @@
                 @data="handleData"
               />
 
-              <CodeDisplay :code="code4" language="vue" class="mt-3" />
+              <CodePreview
+                :tabs="[
+                  {
+                    key: 'code4',
+                    label: '代码',
+                    icon: 'ri:code-s-slash-line',
+                    language: 'vue',
+                    code: code4,
+                  },
+                ]"
+                class="mt-3"
+              />
             </div>
           </el-col>
         </el-row>
@@ -166,13 +267,21 @@
           <p><strong>弹框模式使用说明：</strong></p>
           <ul>
             <li>✅ 使用 <code>v-model:visible</code> 控制显示/隐藏</li>
-            <li>📍 四个角落定位（top-left, top-right, bottom-left, bottom-right）</li>
+            <li>
+              📍 四个角落定位（top-left, top-right, bottom-left, bottom-right）
+            </li>
             <li>🖱️ 拖拽移动（鼠标拖动标题栏）</li>
             <li>↔️ 八个方向缩放（四个角和四条边）</li>
             <li>➖ 最小化/还原（点击最小化按钮）</li>
-            <li>💾 位置和大小自动保存到localStorage（使用 storagePrefix + eventId 作为key）</li>
+            <li>
+              💾 位置和大小自动保存到localStorage（使用 storagePrefix + eventId
+              作为key）
+            </li>
           </ul>
-          <p class="mt-2"><strong>提示：</strong>点击下方按钮显示弹框，弹框支持拖拽移动和调整大小，刷新页面后位置会保持。</p>
+          <p class="mt-2">
+            <strong>提示：</strong
+            >点击下方按钮显示弹框，弹框支持拖拽移动和调整大小，刷新页面后位置会保持。
+          </p>
         </el-alert>
 
         <el-row :gutter="20">
@@ -184,33 +293,59 @@
                 <span class="control-label">显示/隐藏弹框：</span>
                 <el-space wrap>
                   <el-button type="primary" @click="showDialog1 = !showDialog1">
-                    <IconifyIconOnline :icon="showDialog1 ? 'ri:eye-off-line' : 'ri:eye-line'" class="mr-1" />
-                    {{ showDialog1 ? '隐藏' : '显示' }} 右下角弹框
+                    <IconifyIconOnline
+                      :icon="showDialog1 ? 'ri:eye-off-line' : 'ri:eye-line'"
+                      class="mr-1"
+                    />
+                    {{ showDialog1 ? "隐藏" : "显示" }} 右下角弹框
                   </el-button>
                   <el-button type="success" @click="showDialog2 = !showDialog2">
-                    <IconifyIconOnline :icon="showDialog2 ? 'ri:eye-off-line' : 'ri:eye-line'" class="mr-1" />
-                    {{ showDialog2 ? '隐藏' : '显示' }} 左上角弹框
+                    <IconifyIconOnline
+                      :icon="showDialog2 ? 'ri:eye-off-line' : 'ri:eye-line'"
+                      class="mr-1"
+                    />
+                    {{ showDialog2 ? "隐藏" : "显示" }} 左上角弹框
                   </el-button>
                   <el-button type="warning" @click="showDialog3 = !showDialog3">
-                    <IconifyIconOnline :icon="showDialog3 ? 'ri:eye-off-line' : 'ri:eye-line'" class="mr-1" />
-                    {{ showDialog3 ? '隐藏' : '显示' }} 右上角弹框
+                    <IconifyIconOnline
+                      :icon="showDialog3 ? 'ri:eye-off-line' : 'ri:eye-line'"
+                      class="mr-1"
+                    />
+                    {{ showDialog3 ? "隐藏" : "显示" }} 右上角弹框
                   </el-button>
                   <el-button type="info" @click="showDialog4 = !showDialog4">
-                    <IconifyIconOnline :icon="showDialog4 ? 'ri:eye-off-line' : 'ri:eye-line'" class="mr-1" />
-                    {{ showDialog4 ? '隐藏' : '显示' }} 左下角弹框
+                    <IconifyIconOnline
+                      :icon="showDialog4 ? 'ri:eye-off-line' : 'ri:eye-line'"
+                      class="mr-1"
+                    />
+                    {{ showDialog4 ? "隐藏" : "显示" }} 左下角弹框
                   </el-button>
                 </el-space>
               </div>
-              
+
               <el-divider />
-              
+
               <div class="control-section">
                 <span class="control-label">测试进度更新：</span>
                 <el-space wrap>
-                  <el-button size="small" @click="simulateProgress(dialogRef1, 30)">更新弹框1进度</el-button>
-                  <el-button size="small" @click="addRandomLog(dialogRef2)">添加弹框2日志</el-button>
-                  <el-button size="small" @click="simulateProgress(dialogRef3, 70)">更新弹框3进度</el-button>
-                  <el-button size="small" @click="simulateProgress(dialogRef4, 100)">完成弹框4</el-button>
+                  <el-button
+                    size="small"
+                    @click="simulateProgress(dialogRef1, 30)"
+                    >更新弹框1进度</el-button
+                  >
+                  <el-button size="small" @click="addRandomLog(dialogRef2)"
+                    >添加弹框2日志</el-button
+                  >
+                  <el-button
+                    size="small"
+                    @click="simulateProgress(dialogRef3, 70)"
+                    >更新弹框3进度</el-button
+                  >
+                  <el-button
+                    size="small"
+                    @click="simulateProgress(dialogRef4, 100)"
+                    >完成弹框4</el-button
+                  >
                 </el-space>
               </div>
             </div>
@@ -219,10 +354,30 @@
 
         <el-row :gutter="20" class="mt-4">
           <el-col :span="12">
-            <CodeDisplay :code="code5" language="vue" title="右下角弹框代码" />
+            <CodePreview
+              :tabs="[
+                {
+                  key: 'code5',
+                  label: '右下角弹框',
+                  icon: 'ri:code-s-slash-line',
+                  language: 'vue',
+                  code: code5,
+                },
+              ]"
+            />
           </el-col>
           <el-col :span="12">
-            <CodeDisplay :code="code6" language="vue" title="左上角弹框代码" />
+            <CodePreview
+              :tabs="[
+                {
+                  key: 'code6',
+                  label: '左上角弹框',
+                  icon: 'ri:code-s-slash-line',
+                  language: 'vue',
+                  code: code6,
+                },
+              ]"
+            />
           </el-col>
         </el-row>
       </div>
@@ -322,7 +477,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import ScSocketEventProcess from "@repo/components/ScSocketMessageDialog/index.vue";
-import CodeDisplay from "./CodeDisplay.vue";
+import CodePreview from "./CodePreview.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 // 配置
@@ -351,8 +506,18 @@ const showDialog4 = ref(false);
 
 // 模拟进度
 const simulateProgress = (processRef: any, percentage: number) => {
-  const message = percentage === 0 ? "开始处理..." : percentage === 100 ? "处理完成!" : `正在处理中: ${percentage}%`;
-  const status = percentage === 0 ? "waiting" : percentage === 100 ? "success" : "processing";
+  const message =
+    percentage === 0
+      ? "开始处理..."
+      : percentage === 100
+        ? "处理完成!"
+        : `正在处理中: ${percentage}%`;
+  const status =
+    percentage === 0
+      ? "waiting"
+      : percentage === 100
+        ? "success"
+        : "processing";
 
   if (processRef) {
     processRef.updateProgress({
@@ -360,7 +525,7 @@ const simulateProgress = (processRef: any, percentage: number) => {
       percentage,
       status,
       step: Math.ceil(percentage / 10),
-      total: 10
+      total: 10,
     });
   }
 };
@@ -373,7 +538,7 @@ const simulateError = (processRef: any) => {
       percentage: 75,
       status: "error",
       step: 7,
-      total: 10
+      total: 10,
     });
   }
 };
@@ -388,7 +553,7 @@ const logMessages = [
   "生成文档...",
   "上传到服务器...",
   "清理临时文件...",
-  "构建完成!"
+  "构建完成!",
 ];
 
 // 添加随机日志
@@ -396,15 +561,15 @@ const addRandomLog = (processRef: any) => {
   if (processRef) {
     const randomIndex = Math.floor(Math.random() * logMessages.length);
     const randomMessage = logMessages[randomIndex];
-    
+
     processRef.addLog(randomMessage);
-    
+
     // 更新进度
     const currentProgress = Math.min(100, Math.floor(Math.random() * 100));
     processRef.updateProgress({
       message: randomMessage,
       percentage: currentProgress,
-      status: currentProgress === 100 ? "success" : "processing"
+      status: currentProgress === 100 ? "success" : "processing",
     });
   }
 };
@@ -417,7 +582,7 @@ const simulateLogComplete = (processRef: any) => {
     processRef.updateProgress({
       message: "构建成功完成!",
       percentage: 100,
-      status: "success"
+      status: "success",
     });
   }
 };
@@ -438,7 +603,7 @@ const getStatusType = (status: string) => {
     waiting: "info",
     processing: "warning",
     success: "success",
-    error: "danger"
+    error: "danger",
   };
   return map[status] || "info";
 };
@@ -454,7 +619,7 @@ const getResultIcon = (status: string) => {
     waiting: "clock",
     processing: "warning",
     success: "success",
-    error: "error"
+    error: "error",
   };
   return map[status] || "info";
 };

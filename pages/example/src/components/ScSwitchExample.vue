@@ -170,13 +170,16 @@
     </div>
 
     <!-- 代码示例 -->
-    <CodeDisplay
-      :code="codeExample"
-      language="html"
-      title="代码示例"
-      description="根据当前配置生成的代码示例"
-      :show-line-numbers="false"
-      :show-fullscreen="true"
+    <CodePreview
+      :tabs="[
+        {
+          key: 'template',
+          label: '模板',
+          icon: 'ri:code-s-slash-line',
+          language: 'vue',
+          code: codeExample,
+        },
+      ]"
       class="mt-4"
     />
   </div>
@@ -186,7 +189,7 @@
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { ElMessage } from "element-plus";
 import { computed, ref } from "vue";
-import CodeDisplay from "./CodeDisplay.vue";
+import CodePreview from "./CodePreview.vue";
 
 // 切换主题
 const toggleTheme = () => {

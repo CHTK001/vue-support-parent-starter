@@ -3,17 +3,47 @@
     <!-- 预览区域 -->
     <div class="preview-area">
       <h4>组件预览</h4>
-      <div class="preview-container" :class="{ fullscreen: isFullscreen }" :style="customContainerStyle">
-        <el-button class="close-preview-btn" type="danger" circle size="small" @click="closeLoading" v-if="loadingVisible">
+      <div
+        class="preview-container"
+        :class="{ fullscreen: isFullscreen }"
+        :style="customContainerStyle"
+      >
+        <el-button
+          class="close-preview-btn"
+          type="danger"
+          circle
+          size="small"
+          @click="closeLoading"
+          v-if="loadingVisible"
+        >
           <IconifyIconOnline icon="ep:close" />
         </el-button>
 
-        <el-button class="fullscreen-btn" type="primary" circle size="small" @click="toggleFullscreen" v-if="loadingVisible">
-          <IconifyIconOnline :icon="isFullscreen ? 'ep:close-bold' : 'ep:full-screen'" />
+        <el-button
+          class="fullscreen-btn"
+          type="primary"
+          circle
+          size="small"
+          @click="toggleFullscreen"
+          v-if="loadingVisible"
+        >
+          <IconifyIconOnline
+            :icon="isFullscreen ? 'ep:close-bold' : 'ep:full-screen'"
+          />
         </el-button>
 
         <div class="loading-area">
-          <ScLoading ref="loadingRef" v-model="loadingVisible" :layout="selectedLayout" :show-number="showNumber" :show-loading="showLoadingText" :show-loading-label="loadingLabel" :auto-close-finished="autoCloseFinished" :border-radius="borderRadius" :style="customLoadingStyle" />
+          <ScLoading
+            ref="loadingRef"
+            v-model="loadingVisible"
+            :layout="selectedLayout"
+            :show-number="showNumber"
+            :show-loading="showLoadingText"
+            :show-loading-label="loadingLabel"
+            :auto-close-finished="autoCloseFinished"
+            :border-radius="borderRadius"
+            :style="customLoadingStyle"
+          />
         </div>
       </div>
     </div>
@@ -27,20 +57,34 @@
           <el-form label-position="top" size="default">
             <el-form-item label="布局类型">
               <el-select v-model="selectedLayout" class="w-100">
-                <el-option v-for="layout in layouts" :key="layout.value" :label="layout.label" :value="layout.value" />
+                <el-option
+                  v-for="layout in layouts"
+                  :key="layout.value"
+                  :label="layout.label"
+                  :value="layout.value"
+                />
               </el-select>
             </el-form-item>
 
             <el-form-item label="显示选项">
               <div class="display-options">
                 <el-switch v-model="showNumber" active-text="显示进度数字" />
-                <el-switch v-model="showLoadingText" active-text="显示加载文本" />
-                <el-switch v-model="autoCloseFinished" active-text="完成自动关闭" />
+                <el-switch
+                  v-model="showLoadingText"
+                  active-text="显示加载文本"
+                />
+                <el-switch
+                  v-model="autoCloseFinished"
+                  active-text="完成自动关闭"
+                />
               </div>
             </el-form-item>
 
             <el-form-item label="加载文本" v-if="showLoadingText">
-              <el-input v-model="loadingLabel" placeholder="请输入加载提示文本" />
+              <el-input
+                v-model="loadingLabel"
+                placeholder="请输入加载提示文本"
+              />
             </el-form-item>
           </el-form>
         </el-col>
@@ -49,7 +93,11 @@
         <el-col :xs="24" :sm="12">
           <el-form label-position="top" size="default">
             <el-form-item label="背景颜色">
-              <el-color-picker v-model="customBgColor" show-alpha class="w-100" />
+              <el-color-picker
+                v-model="customBgColor"
+                show-alpha
+                class="w-100"
+              />
             </el-form-item>
 
             <el-form-item label="进度条颜色">
@@ -57,7 +105,13 @@
             </el-form-item>
 
             <el-form-item label="圆角大小">
-              <el-slider v-model="borderRadius" :min="0" :max="20" :step="1" show-stops />
+              <el-slider
+                v-model="borderRadius"
+                :min="0"
+                :max="20"
+                :step="1"
+                show-stops
+              />
             </el-form-item>
           </el-form>
         </el-col>
@@ -68,7 +122,15 @@
         <h4>进度控制</h4>
         <el-row :gutter="20">
           <el-col :span="16">
-            <el-slider v-model="progress" :min="0" :max="100" :step="1" :show-tooltip="true" :format-tooltip="(value) => `${value}%`" @change="handleProgressChange" />
+            <el-slider
+              v-model="progress"
+              :min="0"
+              :max="100"
+              :step="1"
+              :show-tooltip="true"
+              :format-tooltip="(value) => `${value}%`"
+              @change="handleProgressChange"
+            />
           </el-col>
           <el-col :span="8">
             <div class="action-buttons">
@@ -102,13 +164,31 @@
       <p class="example-desc">点击卡片预览对应的布局样式</p>
 
       <div class="layout-grid">
-        <div v-for="layout in layouts" :key="layout.value" class="layout-item" :class="{ active: selectedLayout === layout.value }" @click="previewLayout(layout.value)">
+        <div
+          v-for="layout in layouts"
+          :key="layout.value"
+          class="layout-item"
+          :class="{ active: selectedLayout === layout.value }"
+          @click="previewLayout(layout.value)"
+        >
           <div class="layout-preview">
-            <ScLoading :layout="layout.value" :model-value="true" :show-number="false" :show-loading="false" />
+            <ScLoading
+              :layout="layout.value"
+              :model-value="true"
+              :show-number="false"
+              :show-loading="false"
+            />
           </div>
           <div class="layout-name">
             {{ layout.label }}
-            <el-tag v-if="selectedLayout === layout.value" size="small" effect="dark" type="success" class="active-tag">当前选中</el-tag>
+            <el-tag
+              v-if="selectedLayout === layout.value"
+              size="small"
+              effect="dark"
+              type="success"
+              class="active-tag"
+              >当前选中</el-tag
+            >
           </div>
         </div>
       </div>
@@ -116,11 +196,16 @@
 
     <!-- 代码示例 -->
     <div class="code-example mt-4">
-      <CodeDisplay 
-        :code="codeExample" 
-        language="html" 
-        title="代码示例" 
-        description="根据当前配置生成的代码示例"
+      <CodePreview
+        :tabs="[
+          {
+            key: 'template',
+            label: '模板',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: codeExample,
+          },
+        ]"
       />
     </div>
   </div>
@@ -128,7 +213,7 @@
 
 <script setup>
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import CodeDisplay from "./CodeDisplay.vue";
+import CodePreview from "./CodePreview.vue";
 import ScLoading from "@repo/components/ScLoading/index.vue";
 import { computed, onUnmounted, ref } from "vue";
 
@@ -329,7 +414,7 @@ onUnmounted(() => {
   }
 
   .text-secondary {
-     color: var(--el-text-color-primary);
+    color: var(--el-text-color-primary);
     margin: 0;
   }
 
@@ -389,7 +474,11 @@ onUnmounted(() => {
         left: 0;
         width: 100%;
         height: 6px;
-        background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-success));
+        background: linear-gradient(
+          90deg,
+          var(--el-color-primary),
+          var(--el-color-success)
+        );
       }
     }
   }
@@ -474,7 +563,11 @@ onUnmounted(() => {
       box-shadow: 0 8px 15px rgba(0, 0, 0, 0.08);
 
       &:before {
-        background: linear-gradient(90deg, var(--el-color-primary-light-5), var(--el-color-primary));
+        background: linear-gradient(
+          90deg,
+          var(--el-color-primary-light-5),
+          var(--el-color-primary)
+        );
       }
     }
 
@@ -506,7 +599,11 @@ onUnmounted(() => {
       transform: translateY(-4px);
 
       &:before {
-        background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-success));
+        background: linear-gradient(
+          90deg,
+          var(--el-color-primary),
+          var(--el-color-success)
+        );
         height: 4px;
       }
 
@@ -517,7 +614,8 @@ onUnmounted(() => {
         right: 0;
         border-style: solid;
         border-width: 0 24px 24px 0;
-        border-color: transparent var(--el-color-primary) transparent transparent;
+        border-color: transparent var(--el-color-primary) transparent
+          transparent;
       }
     }
   }
@@ -541,7 +639,8 @@ onUnmounted(() => {
     }
 
     code {
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-family:
+        "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
       font-size: 14px;
       color: var(--el-text-color-primary);
     }

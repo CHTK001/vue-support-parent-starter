@@ -126,19 +126,41 @@
     <!-- 代码示例 -->
     <div class="code-examples">
       <h3>代码示例</h3>
-      <CodeDisplay
-        :code="basicCodeExample"
-        language="vue"
-        title="基础用法"
+      <CodePreview
+        :tabs="[
+          {
+            key: 'basic',
+            label: '基础用法',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: basicCodeExample,
+          },
+        ]"
         class="mb-4"
       />
-      <CodeDisplay
-        :code="disabledCodeExample"
-        language="vue"
-        title="禁用状态"
+      <CodePreview
+        :tabs="[
+          {
+            key: 'disabled',
+            label: '禁用状态',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: disabledCodeExample,
+          },
+        ]"
         class="mb-4"
       />
-      <CodeDisplay :code="eventCodeExample" language="vue" title="事件处理" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'event',
+            label: '事件处理',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: eventCodeExample,
+          },
+        ]"
+      />
     </div>
   </div>
 </template>
@@ -146,7 +168,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import ScCode from "@repo/components/ScCode/index.vue";
-import CodeDisplay from "./CodeDisplay.vue";
+import CodePreview from "./CodePreview.vue";
 
 /**
  * ScCode组件示例

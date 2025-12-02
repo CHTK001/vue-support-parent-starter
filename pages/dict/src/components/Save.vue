@@ -1,21 +1,47 @@
 <template>
   <div class="dict-save-container">
-    <el-dialog v-model="visible" :title="title" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable class="dict-dialog" @close="close">
-      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="dict-form">
+    <el-dialog
+      v-model="visible"
+      :title="title"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :destroy-on-close="true"
+      draggable
+      class="dict-dialog"
+      @close="close"
+    >
+      <el-form
+        ref="dialogForm"
+        :model="form"
+        :rules="rules"
+        :disabled="mode == 'show'"
+        label-width="100px"
+        class="dict-form"
+      >
         <el-row :gutter="20">
           <!-- 字典父节点选择 -->
           <el-col :span="24">
             <el-form-item label="字典父节点" prop="sysDictPid">
-              <el-tree-select v-model="form.sysDictPid" :props="defaultProps" check-strictly class="dict-tree-select" :data="treeData">
+              <el-tree-select
+                v-model="form.sysDictPid"
+                :props="defaultProps"
+                check-strictly
+                class="dict-tree-select"
+                :data="treeData"
+              >
                 <template #label="scope">
                   <span v-if="!scope?.label">
-                    <span v-if="scope.value == '0'" class="dict-root-node">根节点</span>
+                    <span v-if="scope.value == '0'" class="dict-root-node"
+                      >根节点</span
+                    >
                     <del v-else class="dict-deleted-node">已删除</del>
                   </span>
                   <span v-else class="dict-node-label">{{ scope?.label }}</span>
                 </template>
               </el-tree-select>
-              <div class="form-item-help">选择字典的父级节点，不选择则为顶级节点</div>
+              <div class="form-item-help">
+                选择字典的父级节点，不选择则为顶级节点
+              </div>
             </el-form-item>
           </el-col>
 
@@ -25,7 +51,11 @@
               <div class="section-title">基本信息</div>
 
               <el-form-item label="字典名称" prop="sysDictName">
-                <el-input v-model="form.sysDictName" placeholder="请输入字典名称" class="dict-input">
+                <el-input
+                  v-model="form.sysDictName"
+                  placeholder="请输入字典名称"
+                  class="dict-input"
+                >
                   <template #prefix>
                     <el-icon>
                       <IconifyIconOnline icon="ep:document" />
@@ -35,18 +65,28 @@
               </el-form-item>
 
               <el-form-item label="字典编码" prop="sysDictCode">
-                <el-input v-model="form.sysDictCode" placeholder="请输入字典编码" class="dict-input">
+                <el-input
+                  v-model="form.sysDictCode"
+                  placeholder="请输入字典编码"
+                  class="dict-input"
+                >
                   <template #prefix>
                     <el-icon>
                       <IconifyIconOnline icon="ep:key" />
                     </el-icon>
                   </template>
                 </el-input>
-                <div class="form-item-help">系统将根据字典名称自动生成拼音编码</div>
+                <div class="form-item-help">
+                  系统将根据字典名称自动生成拼音编码
+                </div>
               </el-form-item>
 
               <el-form-item label="字典i18n" prop="sysDictI18n">
-                <el-input v-model="form.sysDictI18n" placeholder="请输入字典i18n" class="dict-input">
+                <el-input
+                  v-model="form.sysDictI18n"
+                  placeholder="请输入字典i18n"
+                  class="dict-input"
+                >
                   <template #prefix>
                     <IconifyIconOnline icon="fa-solid:language" />
                   </template>
@@ -62,12 +102,22 @@
               <div class="section-title">高级设置</div>
 
               <el-form-item label="系统变量" prop="sysDictInSystem">
-                <ReSegmented v-model="form.sysDictInSystem" :options="options" class="dict-segmented" />
+                <ReSegmented
+                  v-model="form.sysDictInSystem"
+                  :options="options"
+                  class="dict-segmented"
+                />
                 <div class="form-item-help">设置为系统变量后将无法删除</div>
               </el-form-item>
 
               <el-form-item label="描述" prop="sysDictRemark">
-                <el-input v-model="form.sysDictRemark" placeholder="请输入描述" type="textarea" :rows="3" class="dict-textarea" />
+                <el-input
+                  v-model="form.sysDictRemark"
+                  placeholder="请输入描述"
+                  type="textarea"
+                  :rows="3"
+                  class="dict-textarea"
+                />
               </el-form-item>
             </div>
           </el-col>
@@ -76,8 +126,18 @@
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="visible = false" class="cancel-btn"> 取消 </el-button>
-          <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()" class="save-btn"> 保存 </el-button>
+          <el-button @click="visible = false" class="cancel-btn">
+            取消
+          </el-button>
+          <el-button
+            v-if="mode != 'show'"
+            type="primary"
+            :loading="loading"
+            @click="submit()"
+            class="save-btn"
+          >
+            保存
+          </el-button>
         </div>
       </template>
     </el-dialog>
@@ -119,11 +179,21 @@ export default defineComponent({
       rules: {
         sysDictName: [
           { required: true, message: "请输入字典名称", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
+          {
+            min: 2,
+            max: 20,
+            message: "长度在 2 到 20 个字符",
+            trigger: "blur",
+          },
         ],
         sysDictCode: [
           { required: true, message: "请输入字典编码", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
+          {
+            min: 2,
+            max: 20,
+            message: "长度在 2 到 20 个字符",
+            trigger: "blur",
+          },
         ],
       },
       // 系统变量选项
@@ -149,7 +219,9 @@ export default defineComponent({
           return;
         }
         const py = pinyin(val, { toneType: "none", type: "array" }) || [];
-        this.form.sysDictCode = py.map((it) => String(it).toUpperCase()).join("_");
+        this.form.sysDictCode = py
+          .map((it) => String(it).toUpperCase())
+          .join("_");
       },
     },
   },
@@ -204,7 +276,9 @@ export default defineComponent({
             }
 
             if (res.code == "00000") {
-              message(this.mode === "save" ? "添加成功" : "更新成功", { type: "success" });
+              message(this.mode === "save" ? "添加成功" : "更新成功", {
+                type: "success",
+              });
               this.$emit("success");
               this.visible = false;
             } else {
@@ -224,76 +298,131 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .dict-save-container {
-  .dict-dialog {
-    :deep(.el-dialog) {
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: var(--app-shadow-lg);
+  :deep(.el-dialog) {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 
-      .el-dialog__header {
-        padding: 20px;
-        margin: 0;
-        border-bottom: 1px solid var(--app-border-secondary);
-        background: var(--app-bg-overlay);
+    .el-dialog__header {
+      padding: 24px;
+      margin: 0;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary-light-9) 0%,
+        var(--el-bg-color-overlay) 100%
+      );
+
+      .el-dialog__title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--el-text-color-primary);
       }
 
-      .el-dialog__body {
-        padding: 24px;
-        background: var(--app-bg-primary);
-      }
+      .el-dialog__headerbtn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        transition: all 0.3s ease;
 
-      .el-dialog__footer {
-        padding: 16px 20px;
-        border-top: 1px solid var(--app-border-secondary);
-        background: var(--app-bg-overlay);
+        &:hover {
+          background: var(--el-color-primary-light-9);
+
+          .el-dialog__close {
+            color: var(--el-color-primary);
+          }
+        }
       }
+    }
+
+    .el-dialog__body {
+      padding: 28px;
+      background: linear-gradient(
+        180deg,
+        var(--el-bg-color) 0%,
+        var(--el-fill-color-lighter) 100%
+      );
+    }
+
+    .el-dialog__footer {
+      padding: 20px 28px;
+      border-top: 1px solid var(--el-border-color-lighter);
+      background: var(--el-bg-color-overlay);
     }
   }
 
   .dict-form {
     .form-section {
       margin-bottom: 24px;
-      padding: 16px;
-      background: var(--app-bg-overlay);
-      border-radius: 8px;
-      box-shadow: var(--app-shadow);
-      transition: all 0.3s ease;
+      padding: 20px 24px;
+      background: var(--el-bg-color-overlay);
+      border-radius: 14px;
+      border: 1px solid var(--el-border-color-lighter);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
       &:hover {
-        box-shadow: var(--app-shadow-md);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+        border-color: var(--el-color-primary-light-7);
+        transform: translateY(-2px);
       }
     }
 
     .section-title {
-      margin-bottom: 16px;
-      padding-bottom: 8px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
       font-size: 16px;
-      font-weight: 600;
-      color: var(--app-text-primary);
-      border-bottom: 1px solid var(--app-border-secondary);
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+      border-bottom: 2px solid var(--el-color-primary-light-7);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      &::before {
+        content: "";
+        width: 4px;
+        height: 18px;
+        background: linear-gradient(
+          180deg,
+          var(--el-color-primary) 0%,
+          var(--el-color-primary-light-3) 100%
+        );
+        border-radius: 2px;
+      }
     }
 
     .form-item-help {
-      margin-top: 4px;
+      margin-top: 6px;
       font-size: 12px;
-      color: var(--app-text-secondary);
+      color: var(--el-text-color-placeholder);
+      padding-left: 4px;
+    }
+
+    :deep(.el-form-item) {
+      margin-bottom: 20px;
+
+      .el-form-item__label {
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
     }
   }
 
   .dict-tree-select {
     width: 100%;
 
-    :deep(.el-select-dropdown__item) {
-      padding: 8px 12px;
+    :deep(.el-select__wrapper) {
+      border-radius: 10px;
     }
 
     .dict-root-node {
-      color: var(--app-primary);
-      font-weight: 500;
+      color: var(--el-color-primary);
+      font-weight: 600;
     }
 
     .dict-deleted-node {
-      color: var(--app-danger);
+      color: var(--el-color-danger);
     }
 
     .dict-node-label {
@@ -303,18 +432,31 @@ export default defineComponent({
 
   .dict-input {
     :deep(.el-input__wrapper) {
-      padding-left: 8px;
+      border-radius: 10px;
+      padding-left: 12px;
+      transition: all 0.3s ease;
+
+      &:hover,
+      &:focus-within {
+        box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.12);
+      }
 
       .el-input__prefix {
         margin-right: 8px;
-        color: var(--app-text-secondary);
+        color: var(--el-text-color-placeholder);
       }
     }
   }
 
   .dict-textarea {
     :deep(.el-textarea__inner) {
-      border-radius: 4px;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+
+      &:hover,
+      &:focus {
+        box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.12);
+      }
     }
   }
 
@@ -325,28 +467,25 @@ export default defineComponent({
   .dialog-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
+    gap: 16px;
 
     .el-button {
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding: 8px 20px;
-      transition: all 0.3s ease;
+      gap: 6px;
+      padding: 10px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
       &:hover {
         transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
       }
-    }
-  }
-}
 
-// 暗色主题适配
-:root[data-theme="dark"] {
-  .dict-save-container {
-    .form-section {
-      background: var(--app-bg-overlay);
-      box-shadow: var(--app-shadow);
+      &.el-button--primary:hover {
+        box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.35);
+      }
     }
   }
 }

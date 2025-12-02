@@ -251,68 +251,128 @@ const dialogClose = () => {
 
 <style scoped lang="scss">
 .dict-page {
-  background-color: var(--el-bg-color);
-  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    var(--el-bg-color) 0%,
+    var(--el-fill-color-lighter) 100%
+  );
+  border-radius: 16px;
   overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
 .dict-container {
   height: 100%;
-  background-color: var(--el-bg-color);
+  background-color: transparent;
 }
 
 .dict-aside {
-  background-color: var(--el-bg-color-overlay);
+  background: linear-gradient(
+    180deg,
+    var(--el-bg-color-overlay) 0%,
+    var(--el-bg-color) 100%
+  );
   border-right: 1px solid var(--el-border-color-lighter);
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(var(--el-color-primary-rgb), 0.1),
+      transparent
+    );
+  }
 
   &:hover {
-    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.05);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.06);
   }
 }
 
 .aside-header {
-  padding: 20px;
+  padding: 24px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   background: linear-gradient(
     135deg,
     var(--el-color-primary-light-9) 0%,
     var(--el-bg-color-overlay) 100%
   );
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+      circle,
+      rgba(var(--el-color-primary-rgb), 0.08) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
 }
 
 .aside-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 16px;
-  font-weight: 600;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 700;
   color: var(--el-text-color-primary);
+  position: relative;
+  z-index: 1;
 }
 
 .aside-icon {
-  font-size: 20px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
   color: var(--el-color-primary);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-8) 0%,
+    var(--el-color-primary-light-9) 100%
+  );
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
 }
 
 .dict-main {
   padding: 0;
-  background-color: var(--el-bg-color);
+  background-color: transparent;
 }
 
 .dict-header {
   height: auto !important;
-  padding: 16px 20px;
-  background-color: var(--el-bg-color-overlay);
+  padding: 20px 24px;
+  background: linear-gradient(
+    180deg,
+    var(--el-bg-color-overlay) 0%,
+    var(--el-bg-color) 100%
+  );
   border-bottom: 1px solid var(--el-border-color-lighter);
   display: flex;
   align-items: center;
 }
 
 .dict-content {
-  padding: 20px;
+  padding: 24px;
   background-color: var(--el-bg-color);
 }
 
@@ -321,47 +381,98 @@ const dialogClose = () => {
 }
 
 :deep(.el-table) {
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--el-border-color-lighter);
 
   th {
-    background-color: var(--el-fill-color-light) !important;
+    background: linear-gradient(
+      180deg,
+      var(--el-fill-color-light) 0%,
+      var(--el-fill-color-lighter) 100%
+    ) !important;
     font-weight: 600;
+    color: var(--el-text-color-primary);
+    border-bottom: 2px solid var(--el-border-color-lighter) !important;
   }
 
   .el-table__row {
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-      background-color: var(--el-color-primary-light-9) !important;
+      background: linear-gradient(
+        90deg,
+        var(--el-color-primary-light-9) 0%,
+        var(--el-bg-color) 100%
+      ) !important;
+
+      td {
+        border-color: var(--el-color-primary-light-8) !important;
+      }
     }
   }
 }
 
 :deep(.el-tag) {
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 500;
+  padding: 4px 12px;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 :deep(.btn-text) {
-  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    transform: scale(1.1);
+    transform: scale(1.1) translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 }
 
 :deep(.el-empty) {
-  padding: 60px 0;
+  padding: 80px 0;
+
+  .el-empty__image {
+    opacity: 0.6;
+  }
 
   .el-empty__description {
     color: var(--el-text-color-secondary);
+    font-size: 15px;
   }
 }
 
 .search-form {
   :deep(.el-form-item) {
     margin-bottom: 12px;
+  }
+}
+
+// 搜索组件美化
+:deep(.sc-search) {
+  .el-input__wrapper {
+    border-radius: 10px;
+    transition: all 0.3s ease;
+
+    &:hover,
+    &:focus-within {
+      box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.15);
+    }
+  }
+
+  .el-button {
+    border-radius: 10px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.25);
+    }
   }
 }
 </style>

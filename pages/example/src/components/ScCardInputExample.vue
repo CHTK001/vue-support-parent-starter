@@ -5,12 +5,16 @@
         <div class="card-header">
           <div class="header-content">
             <h3>卡片输入组件 (ScInput - Card)</h3>
-            <p class="text-secondary">一种视觉化选择输入方式，支持图标和自定义样式</p>
+            <p class="text-secondary">
+              一种视觉化选择输入方式，支持图标和自定义样式
+            </p>
           </div>
           <div class="theme-switch">
             <el-tooltip content="切换主题">
               <el-button circle @click="toggleTheme">
-                <IconifyIconOnline :icon="isDarkMode ? 'ep:sunny' : 'ep:moon'" />
+                <IconifyIconOnline
+                  :icon="isDarkMode ? 'ep:sunny' : 'ep:moon'"
+                />
               </el-button>
             </el-tooltip>
           </div>
@@ -21,7 +25,7 @@
         <!-- 左侧预览区域 -->
         <div class="preview-area">
           <h4>组件预览</h4>
-          <div class="preview-container" :class="{ 'dark': isDarkMode }">
+          <div class="preview-container" :class="{ dark: isDarkMode }">
             <div class="preview-item">
               <ScInput
                 v-model="selectedValue"
@@ -37,10 +41,14 @@
             </div>
 
             <div class="result-display mt-4">
-              <el-alert :title="`当前选择值: ${selectedValue}`" type="success" :closable="false" />
+              <el-alert
+                :title="`当前选择值: ${selectedValue}`"
+                type="success"
+                :closable="false"
+              />
             </div>
           </div>
-          
+
           <!-- 布局预览 -->
           <h4 class="mt-4">不同尺寸预览</h4>
           <div class="layout-preview">
@@ -72,7 +80,7 @@
               />
             </div>
           </div>
-          
+
           <!-- 样式变体预览 -->
           <h4 class="mt-4">选项样式预览</h4>
           <div class="layout-preview">
@@ -117,7 +125,11 @@
           <h4>配置选项</h4>
           <el-form label-position="top">
             <el-form-item label="当前选项集">
-              <el-select v-model="currentOptionSet" placeholder="选择选项集" class="w-100">
+              <el-select
+                v-model="currentOptionSet"
+                placeholder="选择选项集"
+                class="w-100"
+              >
                 <el-option label="设备类型" value="devices" />
                 <el-option label="交通工具" value="vehicles" />
                 <el-option label="动物" value="animals" />
@@ -153,10 +165,16 @@
 
       <!-- 代码示例 -->
       <div class="code-example mt-4">
-        <CodeDisplay 
-          :code="codeExample" 
-          language="html" 
-          title="代码示例" 
+        <CodePreview
+          :tabs="[
+            {
+              key: 'template',
+              label: '模板',
+              icon: 'ri:code-s-slash-line',
+              language: 'vue',
+              code: codeExample,
+            },
+          ]"
           description="根据当前配置生成的代码示例"
         />
       </div>
@@ -170,7 +188,7 @@ import { ElMessage } from "element-plus";
 import ScInput from "@repo/components/ScInput/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { InputType } from "@repo/components/ScInput/types";
-import CodeDisplay from "./CodeDisplay.vue";
+import CodePreview from "./CodePreview.vue";
 
 // 主题设置
 const isDarkMode = ref(false);
@@ -190,7 +208,7 @@ const selectedValue = ref("");
 const sizeValues = ref({
   small: "",
   default: "",
-  large: ""
+  large: "",
 });
 
 // 样式变体的选项值
@@ -198,7 +216,7 @@ const variantValues = ref({
   text: "",
   icon: "",
   disabled: "",
-  remote: ""
+  remote: "",
 });
 
 // 选项集合
@@ -214,7 +232,7 @@ const deviceOptions = [
   { label: "手机", value: "phone", icon: "ri:smartphone-line" },
   { label: "平板", value: "tablet", icon: "ri:tablet-line" },
   { label: "笔记本", value: "laptop", icon: "ri:laptop-line" },
-  { label: "台式机", value: "desktop", icon: "ri:computer-line" }
+  { label: "台式机", value: "desktop", icon: "ri:computer-line" },
 ];
 
 // 交通工具选项
@@ -222,7 +240,7 @@ const vehicleOptions = [
   { label: "小汽车", value: "car", icon: "ri:car-line" },
   { label: "自行车", value: "bike", icon: "ri:bike-line" },
   { label: "飞机", value: "plane", icon: "ri:flight-takeoff-line" },
-  { label: "轮船", value: "ship", icon: "ri:ship-line" }
+  { label: "轮船", value: "ship", icon: "ri:ship-line" },
 ];
 
 // 动物选项
@@ -230,7 +248,7 @@ const animalOptions = [
   { label: "猫", value: "cat", icon: "ri:emotion-line" },
   { label: "狗", value: "dog", icon: "ri:emotion-happy-line" },
   { label: "兔子", value: "rabbit", icon: "ri:emotion-line" },
-  { label: "鸟", value: "bird", icon: "ri:emotion-line" }
+  { label: "鸟", value: "bird", icon: "ri:emotion-line" },
 ];
 
 // 获取当前选项集
@@ -253,21 +271,21 @@ const currentOptions = computed(() => {
 // 尺寸示例用选项
 const sizeOptions = [
   { label: "选项一", value: "option1", icon: "ri:checkbox-circle-line" },
-  { label: "选项二", value: "option2", icon: "ri:checkbox-circle-line" }
+  { label: "选项二", value: "option2", icon: "ri:checkbox-circle-line" },
 ];
 
 // 纯文本选项
 const textOptions = [
   { label: "选项一", value: "option1" },
   { label: "选项二", value: "option2" },
-  { label: "选项三", value: "option3" }
+  { label: "选项三", value: "option3" },
 ];
 
 // 带图标选项
 const iconOptions = [
   { label: "成功", value: "success", icon: "ri:checkbox-circle-line" },
   { label: "警告", value: "warning", icon: "ri:alert-line" },
-  { label: "错误", value: "error", icon: "ri:close-circle-line" }
+  { label: "错误", value: "error", icon: "ri:close-circle-line" },
 ];
 
 // 生成代码示例
@@ -277,9 +295,9 @@ const codeExample = computed(() => {
   <ScInput
     v-model="selectedValue"
     type="card"
-    ${placeholder.value ? `placeholder="${placeholder.value}"` : ''}
-    ${disabled.value ? 'disabled' : ''}
-    ${size.value !== 'default' ? `size="${size.value}"` : ''}
+    ${placeholder.value ? `placeholder="${placeholder.value}"` : ""}
+    ${disabled.value ? "disabled" : ""}
+    ${size.value !== "default" ? `size="${size.value}"` : ""}
     :options="options"
     @change="handleChange"
   />
@@ -304,9 +322,9 @@ const handleChange = (value) => {
   <ScInput
     v-model="selectedValue"
     type="card"
-    ${placeholder.value ? `placeholder="${placeholder.value}"` : ''}
-    ${disabled.value ? 'disabled' : ''}
-    ${size.value !== 'default' ? `size="${size.value}"` : ''}
+    ${placeholder.value ? `placeholder="${placeholder.value}"` : ""}
+    ${disabled.value ? "disabled" : ""}
+    ${size.value !== "default" ? `size="${size.value}"` : ""}
     :url="fetchOptions"
     @change="handleChange"
   />
@@ -354,13 +372,13 @@ const handleChange = (value) => {
 // 远程数据获取函数
 const fetchRemoteOptions = async (params) => {
   // 模拟加载延迟
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
   // 返回模拟数据
   return [
     { label: "远程选项1", value: "remote1", icon: "ri:cloud-line" },
     { label: "远程选项2", value: "remote2", icon: "ri:cloud-fill" },
-    { label: "远程选项3", value: "remote3", icon: "ri:cloud-off-line" }
+    { label: "远程选项3", value: "remote3", icon: "ri:cloud-off-line" },
   ];
 };
 </script>
@@ -381,10 +399,10 @@ const fetchRemoteOptions = async (params) => {
     margin: 0;
     margin-bottom: 8px;
   }
-  
+
   .text-secondary {
     margin: 0;
-     color: var(--el-text-color);
+    color: var(--el-text-color);
   }
 }
 
@@ -515,7 +533,7 @@ code {
   color: #ddd;
 }
 
-.el-dark h3, 
+.el-dark h3,
 .el-dark h4 {
   color: var(--heading-color);
 }
@@ -536,11 +554,11 @@ code {
   .example-content {
     flex-direction: column;
   }
-  
+
   .config-panel {
     width: 100%;
   }
-  
+
   .layout-item {
     width: 100%;
   }
