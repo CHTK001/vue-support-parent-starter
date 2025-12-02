@@ -1,0 +1,8 @@
+{
+  "name": "@repo/components-sc-button",
+  "version": "1.0.0",
+  "description": "ScButton 按钮组件",
+  "main": "index.vue",
+  "author": "CH",
+  "license": "MIT"
+}
