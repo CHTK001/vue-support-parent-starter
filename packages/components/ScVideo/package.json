@@ -1,0 +1,11 @@
+{
+  "name": "@repo/components-sc-video",
+  "version": "2.0.0",
+  "description": "ScVideo 视频播放器组件",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "dependencies": {
+    "plyr": "^3.7.8",
+    "hls.js": "^1.5.7"
+  }
+}

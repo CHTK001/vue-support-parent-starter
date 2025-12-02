@@ -1,0 +1,10 @@
+{
+  "name": "@repo/components-sc-image",
+  "version": "1.0.0",
+  "description": "ScImage 图片组件",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "dependencies": {
+    "photoswipe": "^5.4.3"
+  }
+}
