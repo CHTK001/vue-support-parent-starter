@@ -1049,8 +1049,8 @@ watch(
   { immediate: true }
 );
 
-// 新增的handleSaveConfig方法
-const handleSaveConfig = config => {
+// 保存配置方法
+const saveConfig = config => {
   if (config.type === "table") {
     // 更新表格配置
     configState.border = config.config.border;
@@ -1207,6 +1207,24 @@ defineExpose({
 <template>
   <div ref="scTableMain" class="sc-table-container" :class="{ 'auto-height': height === 'auto' }">
     <div class="sc-table-wrapper">
+      <!-- 拖拽排序操作栏 - 显示在表头上方 -->
+      <div v-if="draggable && dragSortPending && dragInteractionCount > 1" class="sc-table-drag-actions">
+        <div class="drag-action-info">
+          <IconifyIconOnline icon="ep:sort" />
+          <span>已拖拽 {{ dragChangeCount }} 次，排序已变更</span>
+        </div>
+        <div class="drag-action-buttons">
+          <el-button size="small" @click="cancelDragSort">
+            <IconifyIconOnline icon="ep:refresh-left" />
+            取消
+          </el-button>
+          <el-button type="primary" size="small" :loading="dragSortLoading" @click="saveDragSort">
+            <IconifyIconOnline icon="ep:check" />
+            保存排序
+          </el-button>
+        </div>
+      </div>
+
       <!-- 表格内容区域 -->
       <div class="sc-table-auto-height">
         <component
@@ -1265,26 +1283,8 @@ defineExpose({
         </component>
       </div>
 
-      <!-- 拖拽排序操作栏 -->
-      <div v-if="draggable && dragSortPending && dragInteractionCount > 1" class="sc-table-drag-actions">
-        <div class="drag-action-info">
-          <IconifyIconOnline icon="ep:sort" />
-          <span>已拖拽 {{ dragChangeCount }} 次，排序已变更</span>
-        </div>
-        <div class="drag-action-buttons">
-          <el-button size="small" @click="cancelDragSort">
-            <IconifyIconOnline icon="ep:refresh-left" />
-            取消
-          </el-button>
-          <el-button type="primary" size="small" :loading="dragSortLoading" @click="saveDragSort">
-            <IconifyIconOnline icon="ep:check" />
-            保存排序
-          </el-button>
-        </div>
-      </div>
-
-      <!-- 分页区域 -->
-      <div v-if="!hidePagination" class="sc-table-pagination-wrapper">
+      <!-- 分页区域 - 瀑布流布局使用滚动分页，不显示分页按钮 -->
+      <div v-if="!hidePagination && layout !== 'waterfall'" class="sc-table-pagination-wrapper">
         <Pagination
           v-model:current-page="currentPage"
           v-model:page-size="scPageSize"

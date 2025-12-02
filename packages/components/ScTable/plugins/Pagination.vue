@@ -79,8 +79,10 @@ const columnSettingRef = ref(null);
 // 计算属性
 const isListLayout = computed(() => props.tableLayout === "list");
 const isCardLayout = computed(() => props.tableLayout === "card");
-const showTableSettings = computed(() => !props.hideSetting && !isListLayout.value);
-const showColumnSettings = computed(() => !props.hideSetting && !isListLayout.value && !isCardLayout.value && props.columns && props.columns.length > 0);
+// 只有表格模式才显示表格设置
+const isTableLayout = computed(() => props.tableLayout === "table");
+const showTableSettings = computed(() => !props.hideSetting && isTableLayout.value);
+const showColumnSettings = computed(() => !props.hideSetting && isTableLayout.value && props.columns && props.columns.length > 0);
 
 // 初始化表格设置
 const getTableConfig = () => {
@@ -287,7 +289,7 @@ onMounted(() => {
 
     <!-- 操作按钮 -->
     <div class="table-actions">
-      <el-tooltip v-if="!props.hideRefresh" content="刷新" placement="top" >
+      <el-tooltip v-if="!props.hideRefresh" content="刷新" placement="top">
         <el-button circle size="default" @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" />
         </el-button>
@@ -326,67 +328,59 @@ onMounted(() => {
         </template>
 
         <div class="table-settings-container">
-          <h4 class="settings-title">表格设置</h4>
-
-          <!-- 表格尺寸设置 -->
-          <div class="setting-item">
-            <span class="setting-label">表格尺寸:</span>
-            <div class="setting-control">
-              <el-radio-group v-model="tableConfigData.size" size="small" @change="handleTableSizeChange">
-                <el-radio-button label="large">大号</el-radio-button>
-                <el-radio-button label="default">默认</el-radio-button>
-                <el-radio-button label="small">小号</el-radio-button>
-              </el-radio-group>
-            </div>
+          <div class="settings-header">
+            <IconifyIconOnline icon="ep:setting" class="settings-icon" />
+            <h4 class="settings-title">表格设置</h4>
           </div>
 
-          <!-- 边框设置 -->
-          <div class="setting-item">
-            <span class="setting-label">显示边框:</span>
-            <div class="setting-control">
-              <el-switch v-model="tableConfigData.border" @change="handleBorderChange" />
+          <div class="settings-body">
+            <!-- 表格尺寸设置 -->
+            <div class="setting-item">
+              <div class="setting-label">
+                <IconifyIconOnline icon="ep:zoom-in" class="setting-icon" />
+                <span>表格尺寸</span>
+              </div>
+              <div class="setting-control">
+                <el-segmented
+                  v-model="tableConfigData.size"
+                  :options="[
+                    { label: '大号', value: 'large' },
+                    { label: '默认', value: 'default' },
+                    { label: '小号', value: 'small' }
+                  ]"
+                  size="small"
+                  @change="handleTableSizeChange"
+                />
+              </div>
             </div>
-          </div>
 
-          <!-- 斑马纹设置 -->
-          <div class="setting-item">
-            <span class="setting-label">显示斑马纹:</span>
-            <div class="setting-control">
-              <el-switch v-model="tableConfigData.stripe" @change="handleStripeChange" />
+            <!-- 边框设置 -->
+            <div class="setting-item">
+              <div class="setting-label">
+                <IconifyIconOnline icon="ep:grid" class="setting-icon" />
+                <span>显示边框</span>
+              </div>
+              <div class="setting-control">
+                <el-switch v-model="tableConfigData.border" @change="handleBorderChange" />
+              </div>
             </div>
-          </div>
 
-          <!-- 卡片布局行数设置 -->
-          <div v-if="isCardLayout" class="setting-item">
-            <span class="setting-label">行显示数量:</span>
-            <div class="setting-control">
-              <el-input-number v-model="tableConfigData.rowSize" :min="1" :max="10" size="small" @change="handleRowSizeChange" />
-            </div>
-          </div>
-
-          <!-- 卡片布局列数设置 -->
-          <div v-if="isCardLayout" class="setting-item">
-            <span class="setting-label">列显示数量:</span>
-            <div class="setting-control">
-              <el-input-number v-model="tableConfigData.colSize" :min="1" :max="8" size="small" @change="handleColSizeChange" />
-            </div>
-          </div>
-
-          <!-- 卡片布局类型设置 -->
-          <div v-if="isCardLayout" class="setting-item">
-            <span class="setting-label">卡片样式:</span>
-            <div class="setting-control">
-              <el-radio-group v-model="tableConfigData.cardLayout" size="small" @change="handleCardLayoutChange">
-                <el-radio-button label="card">卡片</el-radio-button>
-                <el-radio-button label="default">无边框</el-radio-button>
-              </el-radio-group>
+            <!-- 斑马纹设置 -->
+            <div class="setting-item">
+              <div class="setting-label">
+                <IconifyIconOnline icon="ep:menu" class="setting-icon" />
+                <span>斑马纹样式</span>
+              </div>
+              <div class="setting-control">
+                <el-switch v-model="tableConfigData.stripe" @change="handleStripeChange" />
+              </div>
             </div>
           </div>
         </div>
       </el-popover>
     </div>
     <!-- 滚动分页触发器（卡片/列表布局） -->
-    <div v-if="props.paginationType === 'scroll'" class="scroll-pagination-trigger" style="width:100%;height:1px;opacity:0;" />
+    <div v-if="props.paginationType === 'scroll'" class="scroll-pagination-trigger" style="width: 100%; height: 1px; opacity: 0" />
   </div>
 </template>
 
@@ -446,34 +440,66 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.settings-title {
-  margin-top: 0;
-  margin-bottom: 16px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+// 表格设置容器样式
+.table-settings-container {
+  padding: 4px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+
+  .settings-icon {
+    font-size: 20px;
+    color: var(--el-color-primary);
+  }
+
+  .settings-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+}
+
+.settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .setting-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-}
+  padding: 8px 12px;
+  background: var(--el-fill-color-light);
+  border-radius: 8px;
+  transition: all 0.2s;
 
-.setting-item:last-child {
-  margin-bottom: 0;
+  &:hover {
+    background: var(--el-fill-color);
+  }
 }
 
 .setting-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 14px;
   color: var(--el-text-color-regular);
-  flex-basis: 100px;
+
+  .setting-icon {
+    font-size: 16px;
+    color: var(--el-text-color-secondary);
+  }
 }
 
 .setting-control {
-  flex-grow: 1;
-  text-align: right;
+  flex-shrink: 0;
 }
-
 </style>
