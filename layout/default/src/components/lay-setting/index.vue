@@ -877,91 +877,162 @@ onUnmounted(() => {
             <div class="section-description">选择适合您的导航布局模式</div>
           </div>
           <div class="setting-content">
-            <ul class="pure-theme">
-              <li
+            <div class="layout-mode-grid">
+              <div
                 ref="verticalRef"
+                class="layout-mode-item"
+                :class="{ 'is-active': layoutTheme.layout === 'vertical' }"
                 v-tippy="{
-                  content: '纵向布局：经典侧边栏导航，适合功能丰富的管理系统',
+                  content: '经典侧边栏导航，适合功能丰富的管理系统',
                   zIndex: 41000,
                 }"
-                :class="layoutTheme.layout === 'vertical' ? 'is-select' : ''"
                 @click="setLayoutModel('vertical')"
               >
-                <VerticalIcon />
-              </li>
-              <li
+                <div class="layout-mode-preview">
+                  <VerticalIcon />
+                </div>
+                <div class="layout-mode-info">
+                  <span class="layout-mode-name">纵向布局</span>
+                  <span class="layout-mode-desc">侧边导航</span>
+                </div>
+                <div
+                  v-if="layoutTheme.layout === 'vertical'"
+                  class="layout-mode-badge"
+                >
+                  <IconifyIconOnline icon="ri:check-line" />
+                </div>
+              </div>
+
+              <div
                 v-if="device !== 'mobile'"
                 ref="horizontalRef"
+                class="layout-mode-item"
+                :class="{ 'is-active': layoutTheme.layout === 'horizontal' }"
                 v-tippy="{
-                  content: '横向布局：顶部导航栏设计，充分利用屏幕宽度',
+                  content: '顶部导航栏设计，充分利用屏幕宽度',
                   zIndex: 41000,
                 }"
-                :class="layoutTheme.layout === 'horizontal' ? 'is-select' : ''"
                 @click="setLayoutModel('horizontal')"
               >
-                <HorizontalIcon />
-              </li>
-              <li
+                <div class="layout-mode-preview">
+                  <HorizontalIcon />
+                </div>
+                <div class="layout-mode-info">
+                  <span class="layout-mode-name">横向布局</span>
+                  <span class="layout-mode-desc">顶部导航</span>
+                </div>
+                <div
+                  v-if="layoutTheme.layout === 'horizontal'"
+                  class="layout-mode-badge"
+                >
+                  <IconifyIconOnline icon="ri:check-line" />
+                </div>
+              </div>
+
+              <div
                 v-if="device !== 'mobile'"
                 ref="mixRef"
+                class="layout-mode-item"
+                :class="{ 'is-active': layoutTheme.layout === 'mix' }"
                 v-tippy="{
-                  content: '混合布局：结合顶部和侧边导航优势',
+                  content: '结合顶部和侧边导航优势',
                   zIndex: 41000,
                 }"
-                :class="layoutTheme.layout === 'mix' ? 'is-select' : ''"
                 @click="setLayoutModel('mix')"
               >
-                <MixIcon />
-              </li>
-              <li
+                <div class="layout-mode-preview">
+                  <MixIcon />
+                </div>
+                <div class="layout-mode-info">
+                  <span class="layout-mode-name">混合布局</span>
+                  <span class="layout-mode-desc">双导航</span>
+                </div>
+                <div
+                  v-if="layoutTheme.layout === 'mix'"
+                  class="layout-mode-badge"
+                >
+                  <IconifyIconOnline icon="ri:check-line" />
+                </div>
+              </div>
+
+              <div
                 v-if="device !== 'mobile'"
                 ref="hoverRef"
+                class="layout-mode-item"
+                :class="{ 'is-active': layoutTheme.layout === 'hover' }"
                 v-tippy="{
-                  content: '悬停导航：极简设计，鼠标悬停展开子菜单',
+                  content: '极简设计，鼠标悬停展开子菜单',
                   zIndex: 41000,
                 }"
-                :class="layoutTheme.layout === 'hover' ? 'is-select' : ''"
                 @click="setLayoutModel('hover')"
               >
-                <HoverIcon />
-              </li>
-              <li
+                <div class="layout-mode-preview">
+                  <HoverIcon />
+                </div>
+                <div class="layout-mode-info">
+                  <span class="layout-mode-name">悬停导航</span>
+                  <span class="layout-mode-desc">极简设计</span>
+                </div>
+                <div
+                  v-if="layoutTheme.layout === 'hover'"
+                  class="layout-mode-badge"
+                >
+                  <IconifyIconOnline icon="ri:check-line" />
+                </div>
+              </div>
+
+              <div
                 v-if="device !== 'mobile'"
                 ref="cardRef"
+                class="layout-mode-item"
+                :class="{ 'is-active': layoutTheme.layout === 'card' }"
                 v-tippy="{
-                  content: '卡片导航：以卡片形式展示所有功能模块',
+                  content: '以卡片形式展示所有功能模块',
                   zIndex: 41000,
                 }"
-                :class="layoutTheme.layout === 'card' ? 'is-select' : ''"
                 @click="setLayoutModel('card')"
               >
-                <CardIcon />
-              </li>
-              <li
+                <div class="layout-mode-preview">
+                  <CardIcon />
+                </div>
+                <div class="layout-mode-info">
+                  <span class="layout-mode-name">卡片导航</span>
+                  <span class="layout-mode-desc">模块化</span>
+                </div>
+                <div
+                  v-if="layoutTheme.layout === 'card'"
+                  class="layout-mode-badge"
+                >
+                  <IconifyIconOnline icon="ri:check-line" />
+                </div>
+              </div>
+
+              <div
                 v-if="device !== 'mobile'"
                 ref="doubleRef"
+                class="layout-mode-item"
+                :class="{ 'is-active': layoutTheme.layout === 'double' }"
                 v-tippy="{
-                  content: '双栏导航：左右双栏布局，支持子菜单展开控制',
+                  content: '左右双栏布局，支持子菜单展开控制',
                   zIndex: 41000,
                 }"
-                :class="layoutTheme.layout === 'double' ? 'is-select' : ''"
                 @click="setLayoutModel('double')"
               >
-                <DoubleIcon />
-              </li>
-              <li
-                v-if="device !== 'mobile'"
-                class="placeholder-layout"
-                v-tippy="{
-                  content: '敬请期待更多布局模式',
-                  zIndex: 41000,
-                }"
-              >
-                <div class="coming-soon">
-                  <span>敬请期待</span>
+                <div class="layout-mode-preview">
+                  <DoubleIcon />
                 </div>
-              </li>
-            </ul>
+                <div class="layout-mode-info">
+                  <span class="layout-mode-name">双栏导航</span>
+                  <span class="layout-mode-desc">双层菜单</span>
+                </div>
+                <div
+                  v-if="layoutTheme.layout === 'double'"
+                  class="layout-mode-badge"
+                >
+                  <IconifyIconOnline icon="ri:check-line" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <!-- 卡片导航设置 -->

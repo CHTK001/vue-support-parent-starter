@@ -1,0 +1,36 @@
+/**
+ * 地图工具栏图标样式
+ * @author CH
+ * @date 2025-12-02
+ */
+
+// 图标字体
+@font-face {
+  font-family: 'map-icons';
+  src: url('/assets/fonts/map-icons.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+// 图标基础样式
+[class^="icon-"],
+[class*=" icon-"] {
+  font-family: 'map-icons' !important;
+  speak: never;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// 图标内容
+.icon-pan::before { content: "\e900"; }
+.icon-zoom-in::before { content: "\e901"; }
+.icon-zoom-out::before { content: "\e902"; }
+.icon-marker::before { content: "\e903"; }
+.icon-line::before { content: "\e904"; }
+.icon-polygon::before { content: "\e905"; }
+.icon-ruler::before { content: "\e906"; }
