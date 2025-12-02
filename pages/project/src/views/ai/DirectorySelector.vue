@@ -1,11 +1,27 @@
 <template>
   <div class="directory-selector">
-    <el-tree-select v-model="selectedValue" :data="treeData" :props="treeProps" placeholder="请选择存储根目录" :render-after-expand="false" :load="loadNode" lazy :check-strictly="true" :expand-on-click-node="false" style="width: 100%" @change="handleChange">
+    <el-tree-select
+      v-model="selectedValue"
+      :data="treeData"
+      :props="treeProps"
+      placeholder="请选择存储根目录"
+      :render-after-expand="false"
+      :load="loadNode"
+      lazy
+      :check-strictly="true"
+      :expand-on-click-node="false"
+      style="width: 100%"
+      @change="handleChange"
+    >
       <template #default="{ node, data }">
         <div class="tree-node">
-          <IconifyIconOnline :icon="data.type === 'drive' ? 'ep:folder-opened' : 'ep:folder'" />
+          <IconifyIconOnline
+            :icon="data.type === 'drive' ? 'ep:folder-opened' : 'ep:folder'"
+          />
           <span class="node-label">{{ data.label }}</span>
-          <span v-if="data.type === 'drive'" class="drive-info"> ({{ formatBytes(data.freeSpace) }} 可用) </span>
+          <span v-if="data.type === 'drive'" class="drive-info">
+            ({{ formatBytes(data.freeSpace) }} 可用)
+          </span>
         </div>
       </template>
     </el-tree-select>
@@ -16,7 +32,12 @@
 import { formatBytes } from "@pureadmin/utils";
 import { ElMessage } from "element-plus";
 import { computed, onMounted, ref, watch } from "vue";
-import { getDirectories, getSystemDrives, type DirectoryInfo, type DriveInfo } from "../../api/ai/filesystem";
+import {
+  getDirectories,
+  getSystemDrives,
+  type DirectoryInfo,
+  type DriveInfo,
+} from "../../api/ai/filesystem";
 
 // Props & Emits
 const props = defineProps<{
@@ -119,33 +140,66 @@ onMounted(() => {
 .tree-node {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: var(--el-color-primary-light-9);
+  }
 
   .node-icon {
-    font-size: 16px;
+    font-size: 18px;
     color: var(--el-color-primary);
   }
 
   .node-label {
     flex: 1;
     color: var(--el-text-color-primary);
+    font-weight: 500;
   }
 
   .drive-info {
     font-size: 12px;
     color: var(--el-text-color-secondary);
+    background: var(--el-fill-color-light);
+    padding: 2px 8px;
+    border-radius: 6px;
   }
 }
 
 :deep(.el-tree-select) {
+  .el-select__wrapper {
+    border-radius: 10px;
+    transition: all 0.3s ease;
+
+    &:hover,
+    &:focus-within {
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.12);
+    }
+  }
+
   .el-tree-node__content {
     height: auto;
-    padding: 4px 0;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: var(--el-color-primary-light-9);
+    }
   }
 
   .el-tree-node__label {
     width: 100%;
   }
+}
+
+:deep(.el-popper) {
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--el-border-color-lighter);
 }
 </style>

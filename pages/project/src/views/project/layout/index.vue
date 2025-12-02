@@ -11,7 +11,13 @@
     type_name: 'Node.js',
     html_content: ''
  */
-import { config, parseData, columnSettingGet, columnSettingReset, columnSettingSave } from "./column";
+import {
+  config,
+  parseData,
+  columnSettingGet,
+  columnSettingReset,
+  columnSettingSave,
+} from "./column";
 import columnSettingLayout from "./columnSetting.vue";
 import { defineComponent, markRaw } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
@@ -57,9 +63,9 @@ export default defineComponent({
     pageSizes: { type: Array, default: config.pageSizes },
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
-    rowClick: { type: Function, default: () => { } },
-    editClick: { type: Function, default: () => { } },
-    columns: { type: Object, default: () => { } },
+    rowClick: { type: Function, default: () => {} },
+    editClick: { type: Function, default: () => {} },
+    columns: { type: Object, default: () => {} },
     columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
     remoteFilter: { type: Boolean, default: false },
@@ -215,7 +221,12 @@ export default defineComponent({
       // this.total = this.data.total || newTableData.length;
       const page = this.currentPage;
       const pageSize = this.scPageSize;
-      const { data, total } = paginate(newTableData, pageSize, page, this.filter);
+      const { data, total } = paginate(
+        newTableData,
+        pageSize,
+        page,
+        this.filter
+      );
       this.loading = false;
       this.tableData = this.afterLoadedData(data);
       this.total = total;
@@ -300,7 +311,10 @@ export default defineComponent({
 
       if (this.cacheable) {
         for (var index = 0; index < this.cachePage; index++) {
-          this.cacheData[this.currentPage + index] = this.tableData.slice(index * this.scPageSize, (index + 1) * this.scPageSize);
+          this.cacheData[this.currentPage + index] = this.tableData.slice(
+            index * this.scPageSize,
+            (index + 1) * this.scPageSize
+          );
         }
         this.tableData = this.afterLoadedData(this.cacheData[this.currentPage]);
       }
@@ -375,7 +389,9 @@ export default defineComponent({
       try {
         const column = await columnSettingReset(this.tableName, this.columns);
         this.userColumn = column;
-        this.$refs.columnSetting.usercolumn = JSON.parse(JSON.stringify(this.userColumn || []));
+        this.$refs.columnSetting.usercolumn = JSON.parse(
+          JSON.stringify(this.userColumn || [])
+        );
       } catch (error) {
         this.$message.error("重置失败");
         this.$refs.columnSetting.isSave = false;
@@ -519,14 +535,24 @@ export default defineComponent({
   <div v-if="tableData && tableData.length > 0" class="article-list h-full">
     <div class="list">
       <div class="offset">
-        <div class="item sidebar-custom-v11" v-for="item in tableData" :key="item.id">
+        <div
+          class="item sidebar-custom-v11"
+          v-for="item in tableData"
+          :key="item.id"
+        >
           <el-skeleton :loading="loading" animated>
             <template #template>
               <div class="top">
-                <el-skeleton-item variant="image" style="width: 100%; height: 100%; border-radius: 10px" />
+                <el-skeleton-item
+                  variant="image"
+                  style="width: 100%; height: 100%; border-radius: 10px"
+                />
                 <div style="padding: 16px 0">
                   <el-skeleton-item variant="p" style="width: 80%" />
-                  <el-skeleton-item variant="p" style="width: 40%; margin-top: 10px" />
+                  <el-skeleton-item
+                    variant="p"
+                    style="width: 40%; margin-top: 10px"
+                  />
                 </div>
               </div>
             </template>
@@ -544,34 +570,84 @@ export default defineComponent({
     </div>
   </div>
   <el-empty v-else class="h-full"></el-empty>
-  <div style="display: flex; justify-content: start; margin-top: 20px" class="scTable-page-parent">
+  <div
+    style="display: flex; justify-content: start; margin-top: 20px"
+    class="scTable-page-parent"
+  >
     <div v-if="!hidePagination || !hideDo" class="scTable-page w-full">
       <div class="scTable-pagination">
-        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size"
-          :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes"
-          @current-change="paginationChange" @update:page-size="pageSizeChange" />
+        <el-pagination
+          v-if="!hidePagination"
+          v-model:currentPage="currentPage"
+          background
+          :size="config.size"
+          :layout="paginationLayout"
+          :total="total"
+          :page-size="scPageSize"
+          :page-sizes="pageSizes"
+          @current-change="paginationChange"
+          @update:page-size="pageSizeChange"
+        />
       </div>
       <div v-if="!hideDo" class="scTable-do">
         <div v-if="config.countDownable">
           <slot :row="countDown" name="time" />
         </div>
-        <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
-        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
-          @show="customColumnShow = true" @after-leave="customColumnShow = false">
+        <el-button
+          v-if="!hideRefresh"
+          :icon="icon('ep:refresh')"
+          circle
+          style="margin-left: 15px"
+          @click="refresh"
+        />
+        <el-popover
+          v-if="columns"
+          placement="top"
+          title="列设置"
+          :width="500"
+          trigger="click"
+          :hide-after="0"
+          @show="customColumnShow = true"
+          @after-leave="customColumnShow = false"
+        >
           <template #reference>
-            <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
+            <el-button
+              :icon="icon('ep:set-up')"
+              circle
+              style="margin-left: 15px"
+            />
           </template>
-          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn"
-            @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler"
-            @back="columnSettingBackHandler" />
+          <columnSetting
+            v-if="customColumnShow"
+            ref="columnSetting"
+            :column="userColumn"
+            @userChange="columnSettingChangeHandler"
+            @save="columnSettingSaveHandler"
+            @back="columnSettingBackHandler"
+          />
         </el-popover>
-        <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
+        <el-popover
+          v-if="!hideSetting"
+          placement="top"
+          title="表格设置"
+          :width="400"
+          trigger="click"
+          :hide-after="0"
+        >
           <template #reference>
-            <el-button :icon="icon('ep:setting')" circle style="margin-left: 15px" />
+            <el-button
+              :icon="icon('ep:setting')"
+              circle
+              style="margin-left: 15px"
+            />
           </template>
           <el-form label-width="80px" label-position="left">
             <el-form-item label="表格尺寸">
-              <el-radio-group v-model="config.size" size="small" @change="configSizeChange">
+              <el-radio-group
+                v-model="config.size"
+                size="small"
+                @change="configSizeChange"
+              >
                 <el-radio-button value="large">大</el-radio-button>
                 <el-radio-button value="default">正常</el-radio-button>
                 <el-radio-button value="small">小</el-radio-button>
@@ -605,9 +681,7 @@ export default defineComponent({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  @else {
+  } @else {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -619,18 +693,67 @@ export default defineComponent({
 
 .scTable-page-parent {
   position: relative;
-  height: 50px;
+  height: 60px;
 }
 
 .scTable-page {
   position: relative;
-  height: 50px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 15px;
+  padding: 0 20px;
   position: absolute;
-  background: var(--el-bg-color-overlay);
+  background: linear-gradient(
+    180deg,
+    var(--el-bg-color-overlay) 0%,
+    var(--el-fill-color-lighter) 100%
+  );
+  border-radius: 12px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--el-border-color-lighter);
+
+  :deep(.el-pagination) {
+    .el-pager li {
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+
+      &.is-active {
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary) 0%,
+          var(--el-color-primary-light-3) 100%
+        );
+        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+      }
+    }
+
+    .btn-prev,
+    .btn-next {
+      border-radius: 8px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+
+  :deep(.el-button) {
+    border-radius: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+    }
+  }
 }
 
 .custom-segmented .el-segmented {
@@ -653,17 +776,31 @@ export default defineComponent({
       width: calc(20% - 20px);
       margin: 0 20px 20px 0;
       cursor: pointer;
-      border-radius: calc(var(--custom-radius) / 2 + 2px) !important;
+      border-radius: 16px !important;
+      background: var(--el-bg-color-overlay);
+      border: 1px solid var(--el-border-color-lighter);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: hidden;
 
       &:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 16px 40px rgba(var(--el-color-primary-rgb), 0.15);
+        border-color: var(--el-color-primary-light-5);
+
         .el-button {
           opacity: 1 !important;
+        }
+
+        .top .cover {
+          transform: scale(1.05);
         }
       }
 
       .top {
         position: relative;
         aspect-ratio: 16/9.5;
+        overflow: hidden;
 
         .cover {
           align-items: center;
@@ -671,7 +808,8 @@ export default defineComponent({
           width: 100%;
           height: 100%;
           object-fit: cover;
-          border-radius: calc(var(--custom-radius) / 2 + 2px) calc(var(--custom-radius) / 2 + 2px) 0 0;
+          border-radius: 16px 16px 0 0;
+          transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 
           .image-slot {
             font-size: 26px;
@@ -681,23 +819,29 @@ export default defineComponent({
 
         .type {
           position: absolute;
-          top: 5px;
-          right: 5px;
-          padding: 5px 4px;
+          top: 12px;
+          right: 12px;
+          padding: 6px 12px;
           font-size: 12px;
-          color: var(--art-gray-300);
-          background: rgba($color: #000, $alpha: 60%);
-          border-radius: 4px;
+          font-weight: 600;
+          color: #fff;
+          background: linear-gradient(
+            135deg,
+            rgba(0, 0, 0, 0.7) 0%,
+            rgba(0, 0, 0, 0.5) 100%
+          );
+          border-radius: 8px;
+          backdrop-filter: blur(8px);
         }
       }
 
       .bottom-line,
       .bottom {
-        padding: 5px 10px;
+        padding: 16px;
 
         h2 {
           font-size: 16px;
-          font-weight: 500;
+          font-weight: 600;
           color: var(--el-text-color-primary);
 
           @include ellipsis();
@@ -707,17 +851,17 @@ export default defineComponent({
           display: flex;
           justify-content: space-between;
           width: 100%;
-          height: 25px;
-          margin-top: 6px;
-          line-height: 25px;
+          height: 28px;
+          margin-top: 10px;
+          line-height: 28px;
 
           .text {
             display: flex;
             align-items: center;
-            color: var(--art-text-gray-600);
+            color: var(--el-text-color-secondary);
 
             i {
-              margin-right: 5px;
+              margin-right: 6px;
               font-size: 14px;
             }
 
@@ -729,13 +873,18 @@ export default defineComponent({
               width: 1px;
               height: 12px;
               margin: 0 15px;
-              background-color: var(--art-border-dashed-color);
+              background-color: var(--el-border-color);
             }
           }
 
           .el-button {
             opacity: 0;
-            transition: all 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 8px;
+
+            &:hover {
+              transform: scale(1.1);
+            }
           }
         }
       }

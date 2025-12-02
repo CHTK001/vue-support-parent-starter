@@ -1,7 +1,7 @@
 <script setup>
 import { deepClean, message } from "@repo/utils";
 import * as _ from "lodash-es";
-import { computed,  defineExpose, reactive, ref, shallowRef } from "vue";
+import { computed, defineExpose, reactive, ref, shallowRef } from "vue";
 import { fetchUpdateChannelForDevice } from "../../../../api/manage/device-channel";
 
 // 定义组件事件
@@ -126,7 +126,10 @@ const handleSaveIntoList = async () => {
     message("添加成功", { type: "success" });
   } else {
     // 更新现有通道
-    const index = form.channelList.findIndex((item) => item.sysDeviceChannelId === selectedItem.value.sysDeviceChannelId);
+    const index = form.channelList.findIndex(
+      (item) =>
+        item.sysDeviceChannelId === selectedItem.value.sysDeviceChannelId
+    );
     if (index !== -1) {
       form.channelList[index] = _.cloneDeep(selectedItem.value);
       message("更新成功", { type: "success" });
@@ -184,39 +187,92 @@ defineExpose({
 
 <template>
   <div>
-    <el-dialog :title="title" draggable v-model="visible" :close-on-click-modal="false" @close="handleClose" width="800px" class="channel-dialog">
+    <el-dialog
+      :title="title"
+      draggable
+      v-model="visible"
+      :close-on-click-modal="false"
+      @close="handleClose"
+      width="800px"
+      class="channel-dialog"
+    >
       <div class="channel-container">
         <!-- 通道列表区域 -->
-        <div class="channel-list-section" :class="{ 'w-full': !isSelected, 'w-1/2': isSelected }">
+        <div
+          class="channel-list-section"
+          :class="{ 'w-full': !isSelected, 'w-1/2': isSelected }"
+        >
           <div class="section-header">
             <h3 class="section-title">通道列表</h3>
-            <el-button type="primary" size="small" class="add-button" @click="handleAddNew">
+            <el-button
+              type="primary"
+              size="small"
+              class="add-button"
+              @click="handleAddNew"
+            >
               <IconifyIconOnline icon="mdi:plus" />
               <span>添加通道</span>
             </el-button>
           </div>
 
           <div class="channel-grid">
-            <div v-for="(item, index) in form.channelList" :key="index" class="channel-card-wrapper" @click="handleClickItem(item)">
-              <el-card :class="{ 'is-selected': selectedItem.sysDeviceChannelId === item.sysDeviceChannelId }" class="channel-card">
+            <div
+              v-for="(item, index) in form.channelList"
+              :key="index"
+              class="channel-card-wrapper"
+              @click="handleClickItem(item)"
+            >
+              <el-card
+                :class="{
+                  'is-selected':
+                    selectedItem.sysDeviceChannelId === item.sysDeviceChannelId,
+                }"
+                class="channel-card"
+              >
                 <div class="channel-card-content">
-                  <div class="channel-name">{{ item.sysDeviceChannelName || "未命名通道" }}</div>
+                  <div class="channel-name">
+                    {{ item.sysDeviceChannelName || "未命名通道" }}
+                  </div>
                   <div class="channel-info">
-                    <el-tag size="small" :type="item.sysDeviceChannelStatus === 1 ? 'success' : 'danger'">
-                      {{ channelStatusList.find((status) => status.value === item.sysDeviceChannelStatus)?.label || "未知" }}
+                    <el-tag
+                      size="small"
+                      :type="
+                        item.sysDeviceChannelStatus === 1 ? 'success' : 'danger'
+                      "
+                    >
+                      {{
+                        channelStatusList.find(
+                          (status) =>
+                            status.value === item.sysDeviceChannelStatus
+                        )?.label || "未知"
+                      }}
                     </el-tag>
-                    <span class="channel-id">{{ item.sysDeviceChannelId }}</span>
+                    <span class="channel-id">{{
+                      item.sysDeviceChannelId
+                    }}</span>
                   </div>
                 </div>
-                <el-button class="delete-btn" type="danger" size="small" circle @click="handleDelete(item, $event)">
+                <el-button
+                  class="delete-btn"
+                  type="danger"
+                  size="small"
+                  circle
+                  @click="handleDelete(item, $event)"
+                >
                   <IconifyIconOnline icon="mdi:delete" />
                 </el-button>
               </el-card>
             </div>
 
             <!-- 空状态提示 -->
-            <div v-if="form.channelList && form.channelList.length === 0" class="empty-tip">
-              <IconifyIconOnline icon="mdi:playlist-remove" class="empty-icon" />
+            <div
+              v-if="form.channelList && form.channelList.length === 0"
+              class="empty-tip"
+            >
+              <IconifyIconOnline
+                icon="mdi:playlist-remove"
+                class="empty-icon"
+              />
               <p>暂无通道数据，请点击"添加通道"按钮创建</p>
             </div>
           </div>
@@ -225,35 +281,66 @@ defineExpose({
         <!-- 通道详情区域 -->
         <div class="channel-detail-section w-full" v-if="isSelected">
           <div class="section-header">
-            <h3 class="section-title">{{ isAddingNew ? "添加通道" : "通道详情" }}</h3>
+            <h3 class="section-title">
+              {{ isAddingNew ? "添加通道" : "通道详情" }}
+            </h3>
             <el-button type="primary" size="small" @click="handleSaveIntoList">
               <IconifyIconOnline icon="mdi:content-save" />
               <span>{{ isAddingNew ? "添加" : "保存" }}</span>
             </el-button>
           </div>
 
-          <el-form :model="selectedItem" label-position="top" class="detail-form">
+          <el-form
+            :model="selectedItem"
+            label-position="top"
+            class="detail-form"
+          >
             <el-form-item label="通道编码">
-              <el-input v-model="selectedItem.sysDeviceChannelId" placeholder="系统自动生成" disabled></el-input>
+              <el-input
+                v-model="selectedItem.sysDeviceChannelId"
+                placeholder="系统自动生成"
+                disabled
+              ></el-input>
             </el-form-item>
 
             <el-form-item label="通道名称" required>
-              <el-input v-model="selectedItem.sysDeviceChannelName" placeholder="请输入通道名称"></el-input>
+              <el-input
+                v-model="selectedItem.sysDeviceChannelName"
+                placeholder="请输入通道名称"
+              ></el-input>
             </el-form-item>
 
             <el-form-item label="通道号">
-              <el-input v-model="selectedItem.sysDeviceChannelNo" placeholder="请输入通道号"></el-input>
+              <el-input
+                v-model="selectedItem.sysDeviceChannelNo"
+                placeholder="请输入通道号"
+              ></el-input>
             </el-form-item>
 
             <el-form-item label="通道类型">
-              <el-input v-model="selectedItem.sysDeviceChannelType" placeholder="请输入通道类型"></el-input>
+              <el-input
+                v-model="selectedItem.sysDeviceChannelType"
+                placeholder="请输入通道类型"
+              ></el-input>
             </el-form-item>
 
             <el-form-item label="通道状态">
-              <el-select v-model="selectedItem.sysDeviceChannelStatus" placeholder="请选择通道状态" class="w-full">
-                <el-option v-for="item in channelStatusList" :key="item.value" :label="item.label" :value="item.value">
+              <el-select
+                v-model="selectedItem.sysDeviceChannelStatus"
+                placeholder="请选择通道状态"
+                class="w-full"
+              >
+                <el-option
+                  v-for="item in channelStatusList"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                >
                   <div class="status-option">
-                    <div class="status-dot" :style="{ backgroundColor: item.color }"></div>
+                    <div
+                      class="status-dot"
+                      :style="{ backgroundColor: item.color }"
+                    ></div>
                     <span>{{ item.label }}</span>
                   </div>
                 </el-option>
@@ -283,7 +370,9 @@ defineExpose({
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="handleClose">取 消</el-button>
-          <el-button type="primary" @click="handleSubmit" :loading="loading">保 存</el-button>
+          <el-button type="primary" @click="handleSubmit" :loading="loading"
+            >保 存</el-button
+          >
         </div>
       </template>
     </el-dialog>
@@ -291,50 +380,73 @@ defineExpose({
 </template>
 
 <style scoped lang="scss">
-.channel-dialog {
-  :deep(.el-dialog__body) {
-    padding: 20px;
-  }
+:deep(.el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 
-  :deep(.el-dialog__header) {
+  .el-dialog__header {
     margin-right: 0;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--el-border-color);
+    padding: 20px 24px;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color-overlay) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-lighter);
+
+    .el-dialog__title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+    }
   }
 
-  :deep(.el-dialog__footer) {
-    padding: 16px 20px;
-    border-top: 1px solid #f0f0f0;
+  .el-dialog__body {
+    padding: 24px;
+    background: linear-gradient(
+      180deg,
+      var(--el-bg-color) 0%,
+      var(--el-fill-color-lighter) 100%
+    );
+  }
+
+  .el-dialog__footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--el-border-color-lighter);
+    background: var(--el-bg-color-overlay);
   }
 }
 
 .channel-container {
   display: flex;
-  gap: 20px;
+  gap: 24px;
   min-height: 400px;
 }
 
 .channel-list-section,
 .channel-detail-section {
-  background-color: var(--el-bg-color);
-  border-radius: 8px;
-  padding: 16px;
+  background-color: var(--el-bg-color-overlay);
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .section-title {
   font-size: 16px;
-  font-weight: 600;
-  color: var(--el-color-primary);
+  font-weight: 700;
+  color: var(--el-text-color-primary);
   margin: 0;
   position: relative;
-  padding-left: 12px;
+  padding-left: 14px;
 
   &::before {
     content: "";
@@ -343,17 +455,32 @@ defineExpose({
     top: 50%;
     transform: translateY(-50%);
     width: 4px;
-    height: 16px;
-    background-color: var(--el-color-primary);
+    height: 18px;
+    background: linear-gradient(
+      180deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 100%
+    );
     border-radius: 2px;
+  }
+}
+
+.add-button {
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.35);
   }
 }
 
 .channel-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
-  margin-top: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .channel-card-wrapper {
@@ -362,31 +489,40 @@ defineExpose({
 
 .channel-card {
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   height: 100%;
-  background-color: var(--el-table-row-hover-bg-color);
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    border-color: var(--el-color-primary-light-5);
   }
 
   &.is-selected {
     border-color: var(--el-color-primary);
-    box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
+    box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.15);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color) 100%
+    );
   }
 
   .channel-card-content {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .channel-name {
-    font-weight: 500;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--el-text-color-primary);
   }
 
   .channel-info {
@@ -397,18 +533,25 @@ defineExpose({
   }
 
   .channel-id {
-     color: var(--el-text-color);
+    color: var(--el-text-color-placeholder);
     font-size: 11px;
+    background: var(--el-fill-color-light);
+    padding: 2px 8px;
+    border-radius: 6px;
   }
 
   .delete-btn {
     position: absolute;
-    top: 5px;
-    right: 5px;
+    top: 8px;
+    right: 8px;
     opacity: 0;
-    transition: opacity 0.2s;
+    transition: all 0.3s ease;
     padding: 4px;
     font-size: 12px;
+
+    &:hover {
+      transform: scale(1.1);
+    }
   }
 
   &:hover .delete-btn {
@@ -416,23 +559,45 @@ defineExpose({
   }
 }
 
+:deep(.el-card__body) {
+  padding: 16px;
+}
+
 .detail-form {
   margin-top: 16px;
 
-  :deep(.el-form-item__label) {
-    padding-bottom: 4px;
+  :deep(.el-form-item) {
+    margin-bottom: 20px;
+
+    .el-form-item__label {
+      padding-bottom: 8px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-select__wrapper) {
+    border-radius: 10px;
+    transition: all 0.3s ease;
+
+    &:hover,
+    &:focus-within {
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.12);
+    }
   }
 }
 
 .status-option {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 
   .status-dot {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   }
 }
 
@@ -442,23 +607,43 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 0;
-   color: var(--el-text-color);
+  padding: 60px 0;
+  color: var(--el-text-color-placeholder);
 
   .empty-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-    color: #dcdfe6;
+    font-size: 56px;
+    margin-bottom: 20px;
+    color: var(--el-border-color-lighter);
   }
 
   p {
     margin: 0;
+    font-size: 14px;
   }
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 16px;
+
+  .el-button {
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+
+    &.el-button--primary:hover {
+      box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.35);
+    }
+  }
+}
+
+:deep(.el-tag) {
+  border-radius: 8px;
+  font-weight: 500;
 }
 </style>

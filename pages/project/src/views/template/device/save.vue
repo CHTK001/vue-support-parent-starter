@@ -2,7 +2,10 @@
 import { fetchListDictItem } from "@repo/core";
 import { getCameraRtspTemplates, message } from "@repo/utils";
 import { defineComponent } from "vue";
-import { fetchSaveProjectForDevice, fetchUpdateProjectForDevice } from "../../../api/manage/project-device";
+import {
+  fetchSaveProjectForDevice,
+  fetchUpdateProjectForDevice,
+} from "../../../api/manage/project-device";
 
 export default defineComponent({
   props: {
@@ -46,11 +49,21 @@ export default defineComponent({
       rules: {
         sysDeviceName: [
           { required: true, message: "请输入设备名称", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
+          {
+            min: 2,
+            max: 20,
+            message: "长度在 2 到 20 个字符",
+            trigger: "blur",
+          },
         ],
         sysDeviceSerialNumber: [
           { required: true, message: "请输入设备序列号", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
+          {
+            min: 2,
+            max: 20,
+            message: "长度在 2 到 20 个字符",
+            trigger: "blur",
+          },
         ],
       },
       // 加载状态
@@ -115,12 +128,15 @@ export default defineComponent({
 
       // 处理通道数据
       if (this.form.sysDeviceChannels) {
-        this.form.sysDeviceChannelsTemp = this.form.sysDeviceChannels.split(",");
+        this.form.sysDeviceChannelsTemp =
+          this.form.sysDeviceChannels.split(",");
       }
 
       // 如果有RTSP地址，尝试匹配模板
       if (this.form.sysDeviceRtsp) {
-        const matchedTemplate = this.rtspTemplates.find((template) => this.form.sysDeviceRtsp === template.rtspTemplate);
+        const matchedTemplate = this.rtspTemplates.find(
+          (template) => this.form.sysDeviceRtsp === template.rtspTemplate
+        );
         if (matchedTemplate) {
           this.selectedRtspTemplate = matchedTemplate.rtspTemplate;
           this.selectedTemplateParams = matchedTemplate.params;
@@ -146,7 +162,8 @@ export default defineComponent({
     async open(mode = "save") {
       this.visible = true;
       this.mode = mode;
-      this.title = mode == "save" ? "新增设备" : mode == "edit" ? "编辑设备" : "查看设备";
+      this.title =
+        mode == "save" ? "新增设备" : mode == "edit" ? "编辑设备" : "查看设备";
 
       // 新增模式下设置默认值
       if (mode == "save") {
@@ -163,8 +180,12 @@ export default defineComponent({
       if (template) {
         this.form.sysDeviceRtsp = template;
         // 找到当前选中的模板，获取其参数说明
-        const selectedTemplate = this.rtspTemplates.find((item) => item.rtspTemplate === template);
-        this.selectedTemplateParams = selectedTemplate ? selectedTemplate.params : null;
+        const selectedTemplate = this.rtspTemplates.find(
+          (item) => item.rtspTemplate === template
+        );
+        this.selectedTemplateParams = selectedTemplate
+          ? selectedTemplate.params
+          : null;
       } else {
         this.selectedTemplateParams = null;
       }
@@ -182,8 +203,10 @@ export default defineComponent({
 
           // 处理通道数据
           if (this.form.sysDeviceChannelsTemp) {
-            this.form.sysDeviceChannels = this.form.sysDeviceChannelsTemp.join(",");
-            this.form.sysDeviceChannelCount = this.form.sysDeviceChannelsTemp.length;
+            this.form.sysDeviceChannels =
+              this.form.sysDeviceChannelsTemp.join(",");
+            this.form.sysDeviceChannelCount =
+              this.form.sysDeviceChannelsTemp.length;
           }
 
           Object.assign(newForm, this.form);
@@ -259,20 +282,41 @@ export default defineComponent({
 }
 
 /* 设备对话框样式 */
-.device-dialog {
-  :deep(.el-dialog__body) {
-    padding: 20px 24px;
-  }
+:deep(.el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 
-  :deep(.el-dialog__header) {
+  .el-dialog__header {
     margin-right: 0;
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--el-border-color);
+    padding: 20px 24px;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color-overlay) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-lighter);
+
+    .el-dialog__title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+    }
   }
 
-  :deep(.el-dialog__footer) {
+  .el-dialog__body {
+    padding: 24px;
+    background: linear-gradient(
+      180deg,
+      var(--el-bg-color) 0%,
+      var(--el-fill-color-lighter) 100%
+    );
+  }
+
+  .el-dialog__footer {
     padding: 16px 24px;
-    border-top: 1px solid #f0f0f0;
+    border-top: 1px solid var(--el-border-color-lighter);
+    background: var(--el-bg-color-overlay);
   }
 }
 
@@ -280,9 +324,17 @@ export default defineComponent({
 .device-form {
   .form-section {
     margin-bottom: 24px;
-    padding: 16px;
-    background-color: var(--el-bg-color);
-    border-radius: 8px;
+    padding: 20px 24px;
+    background-color: var(--el-bg-color-overlay);
+    border-radius: 14px;
+    border: 1px solid var(--el-border-color-lighter);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+      border-color: var(--el-color-primary-light-7);
+    }
 
     &:last-child {
       margin-bottom: 0;
@@ -291,29 +343,55 @@ export default defineComponent({
 
   .section-title {
     font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: var(--el-color-primary);
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--el-text-color-primary);
     position: relative;
-    padding-left: 12px;
+    padding-left: 14px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--el-color-primary-light-7);
 
     &::before {
       content: "";
       position: absolute;
       left: 0;
-      top: 50%;
-      transform: translateY(-50%);
+      top: 0;
       width: 4px;
-      height: 16px;
-      background-color: var(--el-color-primary);
+      height: 18px;
+      background: linear-gradient(
+        180deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 100%
+      );
       border-radius: 2px;
+    }
+  }
+
+  :deep(.el-form-item) {
+    margin-bottom: 20px;
+
+    .el-form-item__label {
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-select__wrapper),
+  :deep(.el-textarea__inner) {
+    border-radius: 10px;
+    transition: all 0.3s ease;
+
+    &:hover,
+    &:focus-within {
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.12);
     }
   }
 
   /* 帮助文本样式 */
   .form-help {
     font-size: 12px;
-     color: var(--el-text-color-primary);
+    color: var(--el-text-color-primary);
     margin-top: 4px;
   }
 
@@ -409,7 +487,21 @@ export default defineComponent({
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 16px;
+
+  .el-button {
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+
+    &.el-button--primary:hover {
+      box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.35);
+    }
+  }
 }
 
 /* 工具类 */
@@ -430,7 +522,7 @@ export default defineComponent({
 }
 
 .text-gray-400 {
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .font-medium {
@@ -465,28 +557,64 @@ export default defineComponent({
 </style>
 <template>
   <div>
-    <el-dialog v-model="visible" top="10px" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close" width="750px" class="device-dialog">
-      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="device-form">
+    <el-dialog
+      v-model="visible"
+      top="10px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :destroy-on-close="true"
+      draggable
+      :title="title"
+      @close="close"
+      width="750px"
+      class="device-dialog"
+    >
+      <el-form
+        ref="dialogForm"
+        :model="form"
+        :rules="rules"
+        :disabled="mode == 'show'"
+        label-width="100px"
+        class="device-form"
+      >
         <!-- 基础信息区域 -->
         <div class="form-section">
           <div class="section-title">基础信息</div>
           <el-row :gutter="16">
             <el-col :span="24">
               <el-form-item label="名称" prop="sysDeviceName">
-                <el-input v-model="form.sysDeviceName" placeholder="请输入摄像头名称" />
+                <el-input
+                  v-model="form.sysDeviceName"
+                  placeholder="请输入摄像头名称"
+                />
               </el-form-item>
             </el-col>
             <el-col :span="24">
               <el-form-item label="序列号" prop="sysDeviceSerialNumber">
-                <el-input v-model="form.sysDeviceSerialNumber" placeholder="请输入序列号" />
+                <el-input
+                  v-model="form.sysDeviceSerialNumber"
+                  placeholder="请输入序列号"
+                />
               </el-form-item>
             </el-col>
             <el-col :span="24">
               <el-form-item label="设备类型" prop="sysDeviceResourceType">
-                <el-select v-model="form.sysDeviceResourceType" placeholder="请选择设备类型" clearable class="w-full">
-                  <el-option v-for="item in deviceResourceTypes" :key="item.sysDictItemCode" :label="item.sysDictItemName" :value="item.sysDictItemCode">
+                <el-select
+                  v-model="form.sysDeviceResourceType"
+                  placeholder="请选择设备类型"
+                  clearable
+                  class="w-full"
+                >
+                  <el-option
+                    v-for="item in deviceResourceTypes"
+                    :key="item.sysDictItemCode"
+                    :label="item.sysDictItemName"
+                    :value="item.sysDictItemCode"
+                  >
                     <span>{{ item.sysDictItemName }}</span>
-                    <span class="text-gray-400 text-xs ml-2">{{ item.sysDictItemCode }}</span>
+                    <span class="text-gray-400 text-xs ml-2">{{
+                      item.sysDictItemCode
+                    }}</span>
                   </el-option>
                 </el-select>
               </el-form-item>
@@ -507,7 +635,12 @@ export default defineComponent({
 
             <el-col :span="24">
               <el-form-item label="描述" prop="sysDeviceDescription">
-                <el-input v-model="form.sysDeviceDescription" placeholder="请输入设备描述信息" type="textarea" :rows="2" />
+                <el-input
+                  v-model="form.sysDeviceDescription"
+                  placeholder="请输入设备描述信息"
+                  type="textarea"
+                  :rows="2"
+                />
               </el-form-item>
             </el-col>
 
@@ -532,7 +665,10 @@ export default defineComponent({
           <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="设备账号" prop="sysDeviceAccount">
-                <el-input v-model="form.sysDeviceAccount" placeholder="请输入设备账号">
+                <el-input
+                  v-model="form.sysDeviceAccount"
+                  placeholder="请输入设备账号"
+                >
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:account" />
                   </template>
@@ -541,7 +677,12 @@ export default defineComponent({
             </el-col>
             <el-col :span="12">
               <el-form-item label="设备密码" prop="sysDevicePassword">
-                <el-input v-model="form.sysDevicePassword" placeholder="推流设备密码" show-password type="password">
+                <el-input
+                  v-model="form.sysDevicePassword"
+                  placeholder="推流设备密码"
+                  show-password
+                  type="password"
+                >
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:lock" />
                   </template>
@@ -551,7 +692,10 @@ export default defineComponent({
 
             <el-col :span="24">
               <el-form-item label="网络地址" prop="sysDeviceNetAddress">
-                <el-input v-model="form.sysDeviceNetAddress" placeholder="请输入设备IP地址">
+                <el-input
+                  v-model="form.sysDeviceNetAddress"
+                  placeholder="请输入设备IP地址"
+                >
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:ip-network" />
                   </template>
@@ -565,57 +709,106 @@ export default defineComponent({
                 <template #label>
                   <div class="label-with-help">
                     <span>推流地址</span>
-                    <el-tooltip v-if="selectedTemplateParams" placement="top" :show-after="200">
+                    <el-tooltip
+                      v-if="selectedTemplateParams"
+                      placement="top"
+                      :show-after="200"
+                    >
                       <template #content>
                         <div class="params-tooltip">
                           <div class="font-bold mb-1">参数说明:</div>
-                          <div v-for="(desc, key) in selectedTemplateParams" :key="key" class="param-item">
-                            <span class="param-name">${{ key }}</span> - <span class="param-desc">{{ desc }}</span>
+                          <div
+                            v-for="(desc, key) in selectedTemplateParams"
+                            :key="key"
+                            class="param-item"
+                          >
+                            <span class="param-name">${{ key }}</span> -
+                            <span class="param-desc">{{ desc }}</span>
                           </div>
                         </div>
                       </template>
-                      <IconifyIconOnline icon="mdi:help-circle-outline" class="help-icon-inline" />
+                      <IconifyIconOnline
+                        icon="mdi:help-circle-outline"
+                        class="help-icon-inline"
+                      />
                     </el-tooltip>
                   </div>
                 </template>
 
                 <!-- 摄像头厂商模板选择 -->
-                <el-select v-model="selectedRtspTemplate" placeholder="请选择摄像头厂商模板" clearable class="w-full mb-2" @change="handleRtspTemplateChange">
-                  <el-option v-for="item in rtspTemplates" :key="item.manufacturer" :label="`${item.manufacturer} (${item.version})`" :value="item.rtspTemplate">
+                <el-select
+                  v-model="selectedRtspTemplate"
+                  placeholder="请选择摄像头厂商模板"
+                  clearable
+                  class="w-full mb-2"
+                  @change="handleRtspTemplateChange"
+                >
+                  <el-option
+                    v-for="item in rtspTemplates"
+                    :key="item.manufacturer"
+                    :label="`${item.manufacturer} (${item.version})`"
+                    :value="item.rtspTemplate"
+                  >
                     <div class="flex flex-col">
-                      <div class="font-medium">{{ item.manufacturer }} - {{ item.version }}</div>
-                      <div class="text-xs text-gray-400 mt-1">{{ item.description }}</div>
+                      <div class="font-medium">
+                        {{ item.manufacturer }} - {{ item.version }}
+                      </div>
+                      <div class="text-xs text-gray-400 mt-1">
+                        {{ item.description }}
+                      </div>
                     </div>
                   </el-option>
                 </el-select>
 
                 <!-- RTSP地址输入框 -->
-                <el-input v-model="form.sysDeviceRtsp" placeholder="请输入推流地址" type="textarea" :rows="3" class="rtsp-input"> </el-input>
+                <el-input
+                  v-model="form.sysDeviceRtsp"
+                  placeholder="请输入推流地址"
+                  type="textarea"
+                  :rows="3"
+                  class="rtsp-input"
+                >
+                </el-input>
               </el-form-item>
             </el-col>
 
             <el-col :span="12">
               <el-form-item label="主码流编码" prop="sysDeviceMainSubtype">
-                <el-input v-model="form.sysDeviceMainSubtype" placeholder="请输入主码流编码"> </el-input>
+                <el-input
+                  v-model="form.sysDeviceMainSubtype"
+                  placeholder="请输入主码流编码"
+                >
+                </el-input>
               </el-form-item>
             </el-col>
 
             <el-col :span="12">
               <el-form-item label="子码流编码" prop="sysDeviceSubSubtype">
-                <el-input v-model="form.sysDeviceSubSubtype" placeholder="请输入子码流编码"> </el-input>
+                <el-input
+                  v-model="form.sysDeviceSubSubtype"
+                  placeholder="请输入子码流编码"
+                >
+                </el-input>
               </el-form-item>
             </el-col>
 
             <el-col :span="24">
               <el-form-item label="webtrc地址" prop="sysDeviceRtspWebrtc">
-                <el-input v-model="form.sysDeviceRtspWebrtc" placeholder="请输入webrtc地址"> </el-input>
+                <el-input
+                  v-model="form.sysDeviceRtspWebrtc"
+                  placeholder="请输入webrtc地址"
+                >
+                </el-input>
                 <div class="form-help">用于解析rtsp流，支持浏览器播放</div>
               </el-form-item>
             </el-col>
 
             <el-col :span="24">
               <el-form-item label="位置" prop="sysDevicePosition">
-                <el-input v-model="form.sysDevicePosition" placeholder="请输入设备安装位置">
+                <el-input
+                  v-model="form.sysDevicePosition"
+                  placeholder="请输入设备安装位置"
+                >
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:map-marker" />
                   </template>
@@ -625,13 +818,19 @@ export default defineComponent({
 
             <el-col :span="12">
               <el-form-item label="版本号" prop="sysDeviceVersion">
-                <el-input v-model="form.sysDeviceVersion" placeholder="请输入设备版本号" />
+                <el-input
+                  v-model="form.sysDeviceVersion"
+                  placeholder="请输入设备版本号"
+                />
               </el-form-item>
             </el-col>
 
             <el-col :span="12">
               <el-form-item label="所属编码" prop="sysDeviceOwner">
-                <el-input v-model="form.sysDeviceOwner" placeholder="请输入所属者唯一编码" />
+                <el-input
+                  v-model="form.sysDeviceOwner"
+                  placeholder="请输入所属者唯一编码"
+                />
               </el-form-item>
             </el-col>
           </el-row>
@@ -641,7 +840,13 @@ export default defineComponent({
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="visible = false">取 消</el-button>
-          <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()">保 存</el-button>
+          <el-button
+            v-if="mode != 'show'"
+            type="primary"
+            :loading="loading"
+            @click="submit()"
+            >保 存</el-button
+          >
         </div>
       </template>
     </el-dialog>

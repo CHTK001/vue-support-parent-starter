@@ -39,7 +39,18 @@
           color="#ff9800"
         />
       </div>
-      <CodeDisplay :code="badgeCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'badge',
+            label: '徽章',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: badgeCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 2. Corner 角标 -->
@@ -61,7 +72,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="cornerCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'corner',
+            label: '角标',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: cornerCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 3. Diagonal 对角线 -->
@@ -89,7 +111,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="diagonalCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'diagonal',
+            label: '对角线',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: diagonalCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 4. Banner 横幅 -->
@@ -121,7 +154,18 @@
           </div>
         </div>
       </div>
-      <CodeDisplay :code="bannerCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'banner',
+            label: '横幅',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: bannerCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 5. Folded 折叠 -->
@@ -142,7 +186,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="foldedCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'folded',
+            label: '折叠',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: foldedCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 6. Bookmark 书签 -->
@@ -178,7 +233,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="bookmarkCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'bookmark',
+            label: '书签',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: bookmarkCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 7. Tag 标签 -->
@@ -212,7 +278,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="tagCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'tag',
+            label: '标签',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: tagCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 8. Hanging 悬挂 -->
@@ -236,7 +313,18 @@
         />
         <ScRibbon text="特价" variant="hanging" color="#14b8a6" size="sm" />
       </div>
-      <CodeDisplay :code="hangingCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'hanging',
+            label: '悬挂',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: hangingCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 9. Sash 斜绶带 -->
@@ -268,7 +356,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="sashCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'sash',
+            label: '斜绶带',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: sashCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 10. Shield 盾牌 -->
@@ -313,7 +412,18 @@
           </template>
         </ScRibbon>
       </div>
-      <CodeDisplay :code="shieldCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'shield',
+            label: '盾牌',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: shieldCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 尺寸对比 -->
@@ -356,7 +466,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="sizeCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'size',
+            label: '尺寸',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: sizeCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 11. Wave 波浪 -->
@@ -390,7 +511,18 @@
           </div>
         </div>
       </div>
-      <CodeDisplay :code="waveCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'wave',
+            label: '波浪',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: waveCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 12. Arrow 箭头 -->
@@ -426,7 +558,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="arrowCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'arrow',
+            label: '箭头',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: arrowCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 13. Circle 圆形 -->
@@ -467,7 +610,18 @@
           </template>
         </ScRibbon>
       </div>
-      <CodeDisplay :code="circleCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'circle',
+            label: '圆形',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: circleCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 14. Star 星形 -->
@@ -501,7 +655,18 @@
           </template>
         </ScRibbon>
       </div>
-      <CodeDisplay :code="starCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'star',
+            label: '星形',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: starCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 15. Hexagon 六边形 -->
@@ -535,7 +700,18 @@
           </template>
         </ScRibbon>
       </div>
-      <CodeDisplay :code="hexagonCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'hexagon',
+            label: '六边形',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: hexagonCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 16. Starburst 爆炸星 -->
@@ -572,7 +748,18 @@
           </template>
         </ScRibbon>
       </div>
-      <CodeDisplay :code="starburstCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'starburst',
+            label: '爆炸星',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: starburstCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 17. Double 双层 -->
@@ -604,7 +791,18 @@
           </div>
         </div>
       </div>
-      <CodeDisplay :code="doubleCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'double',
+            label: '双层',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: doubleCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 18. Trapezoid 梯形 -->
@@ -638,7 +836,18 @@
           </div>
         </div>
       </div>
-      <CodeDisplay :code="trapezoidCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'trapezoid',
+            label: '梯形',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: trapezoidCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 19. Pennant 三角旗 -->
@@ -674,7 +883,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="pennantCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'pennant',
+            label: '三角旗',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: pennantCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 20. Swoosh 飘带 -->
@@ -710,7 +930,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="swooshCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'swoosh',
+            label: '飘带',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: swooshCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 实际应用场景 -->
@@ -849,7 +1080,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import ScRibbon from "@repo/components/ScRibbon/index.vue";
-import CodeDisplay from "./CodeDisplay.vue";
+import CodePreview from "./CodePreview.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 // 角标位置配置

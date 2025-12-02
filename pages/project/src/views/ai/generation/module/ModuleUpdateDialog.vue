@@ -1,23 +1,48 @@
 <template>
-  <el-dialog v-model="env.visible" :title="env.title" draggable :close-on-click-modal="false" @close="handleClose">
+  <el-dialog
+    v-model="env.visible"
+    :title="env.title"
+    draggable
+    :close-on-click-modal="false"
+    @close="handleClose"
+  >
     <el-form :model="form" ref="formRef" :rules="rules" label-width="100px">
       <el-form-item label="模块名称" prop="sysAiModuleName">
-        <el-input v-model="form.sysAiModuleName" placeholder="请输入模块名称"></el-input>
+        <el-input
+          v-model="form.sysAiModuleName"
+          placeholder="请输入模块名称"
+        ></el-input>
       </el-form-item>
 
       <el-form-item label="模块标识" prop="sysAiModuleCode">
-        <el-input v-model="form.sysAiModuleCode" placeholder="请输入模块标识"></el-input>
+        <el-input
+          v-model="form.sysAiModuleCode"
+          placeholder="请输入模块标识"
+        ></el-input>
       </el-form-item>
 
       <el-form-item label="模型类型" prop="sysAiModuleType">
         <el-select v-model="form.sysAiModuleType" placeholder="请选择模块类型">
-          <el-option v-for="item in moduleType" :key="item.value" :label="item.label" :value="item.value" />
+          <el-option
+            v-for="item in moduleType"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
         </el-select>
       </el-form-item>
 
       <el-form-item label="模块厂家" prop="sysAiModuleManufacturers">
-        <el-select v-model="form.sysAiModuleManufacturers" placeholder="请选择模块类型">
-          <el-option v-for="item in manufacturers" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+        <el-select
+          v-model="form.sysAiModuleManufacturers"
+          placeholder="请选择模块类型"
+        >
+          <el-option
+            v-for="item in manufacturers"
+            :key="item.sysDictItemId"
+            :label="item.sysDictItemName"
+            :value="item.sysDictItemId"
+          />
         </el-select>
       </el-form-item>
 
@@ -31,25 +56,40 @@
         ></el-segmented>
       </el-form-item>
       <el-form-item label="模型地址" prop="sysAiModuleUrl">
-        <el-input v-model="form.sysAiModuleUrl" placeholder="请输入模型地址"></el-input>
+        <el-input
+          v-model="form.sysAiModuleUrl"
+          placeholder="请输入模型地址"
+        ></el-input>
       </el-form-item>
 
       <el-form-item label="优先级" prop="sysAiModuleSort">
-        <el-input-number v-model="form.sysAiModuleSort" placeholder="请输入模块优先级"></el-input-number>
+        <el-input-number
+          v-model="form.sysAiModuleSort"
+          placeholder="请输入模块优先级"
+        ></el-input-number>
       </el-form-item>
 
       <el-form-item label="版本" prop="sysAiModuleVersion">
-        <el-input v-model="form.sysAiModuleVersion" placeholder="请输入版本"></el-input>
+        <el-input
+          v-model="form.sysAiModuleVersion"
+          placeholder="请输入版本"
+        ></el-input>
       </el-form-item>
 
       <el-form-item label="模块描述" prop="sysAiModuleRemark">
-        <el-input v-model="form.sysAiModuleRemark" placeholder="请输入模块描述" type="textarea"></el-input>
+        <el-input
+          v-model="form.sysAiModuleRemark"
+          placeholder="请输入模块描述"
+          type="textarea"
+        ></el-input>
       </el-form-item>
     </el-form>
 
     <template #footer>
       <el-button @click="env.visible = false">取 消</el-button>
-      <el-button type="primary" @click="debounce(handleUpdate(), 1000, true)">确 定</el-button>
+      <el-button type="primary" @click="debounce(handleUpdate(), 1000, true)"
+        >确 定</el-button
+      >
     </template>
   </el-dialog>
 </template>
@@ -58,7 +98,10 @@ import { debounce } from "@pureadmin/utils";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineExpose, reactive, ref, shallowRef } from "vue";
-import { fetchSaveProjectForAiModule, fetchUpdateProjectForAiModule } from "../../../../api/manage/project-ai-module";
+import {
+  fetchSaveProjectForAiModule,
+  fetchUpdateProjectForAiModule,
+} from "../../../../api/manage/project-ai-module";
 
 const emit = defineEmits();
 const rules = {
@@ -70,9 +113,15 @@ const rules = {
     { required: true, message: "请输入模块名称", trigger: "blur" },
     { min: 2, max: 200, message: "长度在 2 到 200个字符", trigger: "blur" },
   ],
-  sysApiModuleManufacturers: [{ required: true, message: "请选择模块厂家", trigger: "blur" }],
-  sysApiModuleType: [{ required: true, message: "请选择模块类型", trigger: "blur" }],
-  sysAiModuleVlm: [{ required: true, message: "请选择是否vlm模型", trigger: "blur" }],
+  sysApiModuleManufacturers: [
+    { required: true, message: "请选择模块厂家", trigger: "blur" },
+  ],
+  sysApiModuleType: [
+    { required: true, message: "请选择模块类型", trigger: "blur" },
+  ],
+  sysAiModuleVlm: [
+    { required: true, message: "请选择是否vlm模型", trigger: "blur" },
+  ],
 };
 const formRef = ref();
 const form = ref({});
@@ -143,7 +192,10 @@ const handleClose = () => {
 
 const handleOpen = async (item, mode) => {
   env.visible = true;
-  env.title = mode == "add" || mode == "save" ? "模块新增" : "模块更新" + " - " + (item.sysProjectName || item.sysAiModuleName);
+  env.title =
+    mode == "add" || mode == "save"
+      ? "模块新增"
+      : "模块更新" + " - " + (item.sysProjectName || item.sysAiModuleName);
   env.mode = mode;
   form.value = item;
   initialManufacturers();
@@ -157,3 +209,93 @@ defineExpose({
   handleClose,
 });
 </script>
+
+<style scoped lang="scss">
+:deep(.el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+
+  .el-dialog__header {
+    padding: 20px 24px;
+    margin: 0;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color-overlay) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-lighter);
+
+    .el-dialog__title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .el-dialog__body {
+    padding: 28px;
+    background: var(--el-bg-color);
+  }
+
+  .el-dialog__footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--el-border-color-lighter);
+    background: var(--el-bg-color-overlay);
+  }
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 20px;
+
+  .el-form-item__label {
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-select__wrapper),
+:deep(.el-textarea__inner) {
+  border-radius: 10px;
+  transition: all 0.3s ease;
+
+  &:hover,
+  &:focus-within {
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.12);
+  }
+}
+
+:deep(.el-segmented) {
+  border-radius: 10px;
+
+  .el-segmented__item {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+
+    &.is-selected {
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 100%
+      );
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
+    }
+  }
+}
+
+:deep(.el-button) {
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &.el-button--primary:hover {
+    box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.35);
+  }
+}
+</style>

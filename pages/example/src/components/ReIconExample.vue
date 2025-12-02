@@ -14,10 +14,7 @@
           </div>
         </div>
       </div>
-      <CodeDisplay
-        :code="'<IconifyIconOnline icon=&quot;ri:home-line&quot; />'"
-        language="html"
-        title="在线图标使用示例"
+      <CodePreview :tabs="[{ key: 'online', label: '在线图标', icon: 'ri:code-s-slash-line', language: 'html', code: '<IconifyIconOnline icon=\"ri:home-line\" />' }]"
       />
     </div>
 
@@ -47,10 +44,7 @@
           </div>
         </div>
       </div>
-      <CodeDisplay
-        :code="'<IconifyIconOnline icon=&quot;ri:user-line&quot; style=&quot;font-size: 32px;&quot; />'"
-        language="html"
-        title="图标尺寸示例"
+      <CodePreview :tabs="[{ key: 'size', label: '图标尺寸', icon: 'ri:code-s-slash-line', language: 'html', code: '<IconifyIconOnline icon=\"ri:user-line\" style=\"font-size: 32px;\" />' }]"
       />
     </div>
 
@@ -95,10 +89,7 @@
           </div>
         </div>
       </div>
-      <CodeDisplay
-        :code="'<IconifyIconOnline icon=&quot;ri:heart-fill&quot; style=&quot;color: #409eff; font-size: 32px;&quot; />'"
-        language="html"
-        title="图标颜色示例"
+      <CodePreview :tabs="[{ key: 'color', label: '图标颜色', icon: 'ri:code-s-slash-line', language: 'html', code: '<IconifyIconOnline icon=\"ri:heart-fill\" style=\"color: #409eff; font-size: 32px;\" />' }]"
       />
     </div>
 
@@ -136,10 +127,7 @@
           </div>
         </div>
       </div>
-      <CodeDisplay
-        :code="httpIconCode"
-        language="html"
-        title="HTTP协议图标示例"
+      <CodePreview :tabs="[{ key: 'http', label: 'HTTP图标', icon: 'ri:code-s-slash-line', language: 'html', code: httpIconCode }]"
       />
     </div>
 
@@ -180,10 +168,7 @@
           </div>
         </div>
       </div>
-      <CodeDisplay
-        :code="selectorCode"
-        language="html"
-        title="图标选择器示例"
+      <CodePreview :tabs="[{ key: 'selector', label: '图标选择器', icon: 'ri:code-s-slash-line', language: 'html', code: selectorCode }]"
       />
     </div>
   </div>
@@ -194,7 +179,7 @@ import { ref, computed } from "vue";
 import { message } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { IconifyIconOffline } from "@repo/components/ReIcon";
-import CodeDisplay from "./CodeDisplay.vue";
+import CodePreview from "./CodePreview.vue";
 
 // HTTP图标URL
 const httpIcon1 =

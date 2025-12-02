@@ -16,7 +16,8 @@
 
       <el-alert title="提示" type="info" :closable="false">
         <p>
-          本组件基于 Element Plus 的 Image 组件扩展，支持图片编辑、比较、背景去除等高级功能
+          本组件基于 Element Plus 的 Image
+          组件扩展，支持图片编辑、比较、背景去除等高级功能
         </p>
       </el-alert>
     </el-card>
@@ -55,7 +56,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="basicCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'basic',
+            label: '基础用法',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: basicCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 不同尺寸 -->
@@ -77,7 +89,18 @@
           <ScImage v-model="sizeImage3" width="250px" height="250px" />
         </div>
       </div>
-      <CodeDisplay :code="sizeCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'size',
+            label: '尺寸',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: sizeCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 不同填充模式 -->
@@ -88,12 +111,7 @@
       <div class="demo-row">
         <div class="demo-item">
           <p class="demo-label">Fill</p>
-          <ScImage
-            v-model="fitImage"
-            width="200px"
-            height="200px"
-            fit="fill"
-          />
+          <ScImage v-model="fitImage" width="200px" height="200px" fit="fill" />
         </div>
         <div class="demo-item">
           <p class="demo-label">Contain</p>
@@ -123,7 +141,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="fitCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'fit',
+            label: '填充模式',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: fitCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 图片编辑 -->
@@ -133,7 +162,9 @@
       </template>
       <div class="feature-demo">
         <div class="demo-item">
-          <p class="demo-label">上传图片后，点击编辑按钮可以进行裁剪、旋转、缩放等操作</p>
+          <p class="demo-label">
+            上传图片后，点击编辑按钮可以进行裁剪、旋转、缩放等操作
+          </p>
           <ScImage
             v-model="editImage"
             width="300px"
@@ -144,14 +175,41 @@
         <div class="feature-info">
           <h4>编辑功能：</h4>
           <ul>
-            <li><el-icon><IconifyIconOnline icon="ri:scissors-line" /></el-icon> 裁剪</li>
-            <li><el-icon><IconifyIconOnline icon="ri:rotate-lock-line" /></el-icon> 旋转</li>
-            <li><el-icon><IconifyIconOnline icon="ri:zoom-in-line" /></el-icon> 缩放</li>
-            <li><el-icon><IconifyIconOnline icon="ri:flip-horizontal-line" /></el-icon> 翻转</li>
+            <li>
+              <el-icon><IconifyIconOnline icon="ri:scissors-line" /></el-icon>
+              裁剪
+            </li>
+            <li>
+              <el-icon
+                ><IconifyIconOnline icon="ri:rotate-lock-line"
+              /></el-icon>
+              旋转
+            </li>
+            <li>
+              <el-icon><IconifyIconOnline icon="ri:zoom-in-line" /></el-icon>
+              缩放
+            </li>
+            <li>
+              <el-icon
+                ><IconifyIconOnline icon="ri:flip-horizontal-line"
+              /></el-icon>
+              翻转
+            </li>
           </ul>
         </div>
       </div>
-      <CodeDisplay :code="editCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'edit',
+            label: '编辑',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: editCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 图片比较 -->
@@ -161,7 +219,9 @@
       </template>
       <div class="feature-demo">
         <div class="demo-item wide">
-          <p class="demo-label">上传图片后，点击比较按钮选择对比图片，支持滑动和并排比较</p>
+          <p class="demo-label">
+            上传图片后，点击比较按钮选择对比图片，支持滑动和并排比较
+          </p>
           <ScImage
             v-model="compareImage"
             width="100%"
@@ -173,7 +233,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="compareCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'compare',
+            label: '比较',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: compareCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 背景去除 -->
@@ -221,7 +292,18 @@
           </el-alert>
         </div>
       </div>
-      <CodeDisplay :code="bgRemovalCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'bgRemoval',
+            label: '背景去除',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: bgRemovalCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 自定义配置 -->
@@ -260,7 +342,18 @@
           />
         </div>
       </div>
-      <CodeDisplay :code="customCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'custom',
+            label: '自定义',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: customCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- 事件回调 -->
@@ -284,7 +377,11 @@
         <div class="event-log">
           <h4>事件日志：</h4>
           <div class="log-container">
-            <div v-for="(log, index) in eventLogs" :key="index" class="log-item">
+            <div
+              v-for="(log, index) in eventLogs"
+              :key="index"
+              class="log-item"
+            >
               <span class="log-time">{{ log.time }}</span>
               <span :class="`log-type log-${log.type}`">{{ log.type }}</span>
               <span class="log-message">{{ log.message }}</span>
@@ -292,7 +389,18 @@
           </div>
         </div>
       </div>
-      <CodeDisplay :code="eventCode" language="vue" class="mt-3" />
+      <CodePreview
+        :tabs="[
+          {
+            key: 'event',
+            label: '事件',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: eventCode,
+          },
+        ]"
+        class="mt-3"
+      />
     </el-card>
 
     <!-- Props 说明 -->
@@ -325,7 +433,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import ScImage from "@repo/components/ScImage/index.vue";
-import CodeDisplay from "./CodeDisplay.vue";
+import CodePreview from "./CodePreview.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { ElMessage } from "element-plus";
 
@@ -358,7 +466,9 @@ const customImage3 = ref("");
 
 // 事件示例
 const eventImage = ref("");
-const eventLogs = ref<Array<{ time: string; type: string; message: string }>>([]);
+const eventLogs = ref<Array<{ time: string; type: string; message: string }>>(
+  []
+);
 
 // 方法
 const handleImageChange = (url: string) => {
@@ -477,35 +587,126 @@ const eventCode = `<ScImage
 
 // Props 数据
 const propsData = [
-  { prop: "modelValue", type: "string", default: "''", description: "图片地址，支持 v-model" },
-  { prop: "width", type: "string", default: "'200px'", description: "容器宽度" },
-  { prop: "height", type: "string", default: "'200px'", description: "容器高度" },
-  { prop: "fit", type: "string", default: "'cover'", description: "图片填充模式：fill/contain/cover/none/scale-down" },
-  { prop: "accept", type: "string", default: "'image/jpeg,image/jpg,image/png,image/webp'", description: "接受的文件类型" },
-  { prop: "maxSize", type: "number", default: "10", description: "文件大小限制（MB）" },
-  { prop: "disabled", type: "boolean", default: "false", description: "是否禁用" },
-  { prop: "showActions", type: "boolean", default: "true", description: "是否显示操作按钮" },
-  { prop: "showDownload", type: "boolean", default: "true", description: "是否显示下载按钮" },
-  { prop: "drag", type: "boolean", default: "true", description: "是否启用拖拽上传" },
-  { prop: "enableBackgroundRemoval", type: "boolean", default: "true", description: "是否启用背景去除功能" },
-  { prop: "enableCompare", type: "boolean", default: "true", description: "是否启用图片比较功能" },
-  { prop: "compareDirection", type: "string", default: "'horizontal'", description: "比较方向：horizontal/vertical" },
-  { prop: "lazy", type: "boolean", default: "false", description: "是否懒加载" },
-  { prop: "previewSrcList", type: "array", default: "undefined", description: "预览图片列表" },
-  { prop: "zIndex", type: "number", default: "9999", description: "预览层级" }
+  {
+    prop: "modelValue",
+    type: "string",
+    default: "''",
+    description: "图片地址，支持 v-model",
+  },
+  {
+    prop: "width",
+    type: "string",
+    default: "'200px'",
+    description: "容器宽度",
+  },
+  {
+    prop: "height",
+    type: "string",
+    default: "'200px'",
+    description: "容器高度",
+  },
+  {
+    prop: "fit",
+    type: "string",
+    default: "'cover'",
+    description: "图片填充模式：fill/contain/cover/none/scale-down",
+  },
+  {
+    prop: "accept",
+    type: "string",
+    default: "'image/jpeg,image/jpg,image/png,image/webp'",
+    description: "接受的文件类型",
+  },
+  {
+    prop: "maxSize",
+    type: "number",
+    default: "10",
+    description: "文件大小限制（MB）",
+  },
+  {
+    prop: "disabled",
+    type: "boolean",
+    default: "false",
+    description: "是否禁用",
+  },
+  {
+    prop: "showActions",
+    type: "boolean",
+    default: "true",
+    description: "是否显示操作按钮",
+  },
+  {
+    prop: "showDownload",
+    type: "boolean",
+    default: "true",
+    description: "是否显示下载按钮",
+  },
+  {
+    prop: "drag",
+    type: "boolean",
+    default: "true",
+    description: "是否启用拖拽上传",
+  },
+  {
+    prop: "enableBackgroundRemoval",
+    type: "boolean",
+    default: "true",
+    description: "是否启用背景去除功能",
+  },
+  {
+    prop: "enableCompare",
+    type: "boolean",
+    default: "true",
+    description: "是否启用图片比较功能",
+  },
+  {
+    prop: "compareDirection",
+    type: "string",
+    default: "'horizontal'",
+    description: "比较方向：horizontal/vertical",
+  },
+  {
+    prop: "lazy",
+    type: "boolean",
+    default: "false",
+    description: "是否懒加载",
+  },
+  {
+    prop: "previewSrcList",
+    type: "array",
+    default: "undefined",
+    description: "预览图片列表",
+  },
+  { prop: "zIndex", type: "number", default: "9999", description: "预览层级" },
 ];
 
 // Events 数据
 const eventsData = [
-  { event: "update:modelValue", params: "url: string", description: "图片地址更新时触发" },
+  {
+    event: "update:modelValue",
+    params: "url: string",
+    description: "图片地址更新时触发",
+  },
   { event: "change", params: "url: string", description: "图片改变时触发" },
   { event: "remove", params: "-", description: "图片删除时触发" },
   { event: "load", params: "event", description: "图片加载成功时触发" },
   { event: "error", params: "event", description: "图片加载失败时触发" },
-  { event: "backgroundRemoved", params: "blob: Blob, url: string", description: "背景去除完成时触发" },
-  { event: "compareStart", params: "img1: string, img2: string", description: "开始比较时触发" },
+  {
+    event: "backgroundRemoved",
+    params: "blob: Blob, url: string",
+    description: "背景去除完成时触发",
+  },
+  {
+    event: "compareStart",
+    params: "img1: string, img2: string",
+    description: "开始比较时触发",
+  },
   { event: "compareEnd", params: "-", description: "退出比较时触发" },
-  { event: "compareChange", params: "value: number", description: "比较滑块变化时触发" }
+  {
+    event: "compareChange",
+    params: "value: number",
+    description: "比较滑块变化时触发",
+  },
 ];
 </script>
 
@@ -639,7 +840,7 @@ const eventsData = [
   background: var(--el-bg-color);
   border-radius: 4px;
   font-size: 12px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 .log-time {
@@ -699,4 +900,3 @@ const eventsData = [
   }
 }
 </style>
-

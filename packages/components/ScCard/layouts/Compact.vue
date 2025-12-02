@@ -98,8 +98,8 @@ export default defineComponent({
      * 主题色
      */
     theme: {
-      type: String as PropType<"primary" | "success" | "warning" | "danger" | "info">,
-      default: "primary"
+      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info">,
+      default: "default"
     },
     /**
      * 阴影显示时机
@@ -155,11 +155,55 @@ export default defineComponent({
   }
 
   // 主题色
-  &.theme--primary.is-active { border-color: var(--el-color-primary); }
-  &.theme--success.is-active { border-color: var(--el-color-success); }
-  &.theme--warning.is-active { border-color: var(--el-color-warning); }
-  &.theme--danger.is-active { border-color: var(--el-color-danger); }
-  &.theme--info.is-active { border-color: var(--el-color-info); }
+  &.theme--default {
+    .sc-card-compact__icon {
+      background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color) 100%);
+      color: var(--el-text-color-primary);
+    }
+    &.is-active {
+      border-color: var(--el-color-primary);
+    }
+  }
+  &.theme--primary {
+    .sc-card-compact__icon {
+      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    }
+    &.is-active {
+      border-color: var(--el-color-primary);
+    }
+  }
+  &.theme--success {
+    .sc-card-compact__icon {
+      background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-light-3) 100%);
+    }
+    &.is-active {
+      border-color: var(--el-color-success);
+    }
+  }
+  &.theme--warning {
+    .sc-card-compact__icon {
+      background: linear-gradient(135deg, var(--el-color-warning) 0%, var(--el-color-warning-light-3) 100%);
+    }
+    &.is-active {
+      border-color: var(--el-color-warning);
+    }
+  }
+  &.theme--danger {
+    .sc-card-compact__icon {
+      background: linear-gradient(135deg, var(--el-color-danger) 0%, var(--el-color-danger-light-3) 100%);
+    }
+    &.is-active {
+      border-color: var(--el-color-danger);
+    }
+  }
+  &.theme--info {
+    .sc-card-compact__icon {
+      background: linear-gradient(135deg, var(--el-color-info) 0%, var(--el-color-info-light-3) 100%);
+    }
+    &.is-active {
+      border-color: var(--el-color-info);
+    }
+  }
 
   &__header {
     display: flex;

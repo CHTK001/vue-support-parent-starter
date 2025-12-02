@@ -210,11 +210,16 @@
 
     <!-- 代码示例 -->
     <div class="code-example mt-4">
-      <CodeDisplay
-        :code="codeExample"
-        language="html"
-        title="代码示例"
-        description="根据当前配置生成的代码示例"
+      <CodePreview
+        :tabs="[
+          {
+            key: 'template',
+            label: '模板',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: codeExample,
+          },
+        ]"
       />
     </div>
   </div>
@@ -224,7 +229,7 @@
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { message } from "@repo/utils";
 import { computed, ref, watch } from "vue";
-import CodeDisplay from "./CodeDisplay.vue";
+import CodePreview from "./CodePreview.vue";
 // 主题设置
 const isDarkMode = ref(false);
 const isRemote = computed(() => {

@@ -172,11 +172,16 @@
 
     <!-- 代码示例 -->
     <div class="code-example mt-4">
-      <CodeDisplay
-        :code="generatedCode"
-        language="html"
-        title="代码示例"
-        description="根据当前配置生成的代码示例"
+      <CodePreview
+        :tabs="[
+          {
+            key: 'template',
+            label: '模板',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: generatedCode,
+          },
+        ]"
       />
     </div>
   </div>
@@ -184,7 +189,7 @@
 
 <script setup lang="ts">
 import ScTree from "@repo/components/ScTree/index.vue";
-import CodeDisplay from "./CodeDisplay.vue";
+import CodePreview from "./CodePreview.vue";
 import type {
   TreeNode,
   TreeNodeData,

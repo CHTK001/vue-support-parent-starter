@@ -337,23 +337,27 @@ function handleClear() {
   display: flex;
   align-items: center;
   border: 1px solid var(--el-border-color);
-  border-radius: 4px;
-  background-color: var(--el-fill-color-blank, #fff);
-  transition: all 0.2s;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--el-fill-color-blank, #fff) 0%, var(--el-fill-color-lighter, #fafafa) 100%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 
   &:hover:not(.is-disabled) {
-    border-color: var(--el-border-color-hover);
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
   }
 
   &:focus-within:not(.is-disabled) {
     border-color: var(--el-color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.15);
   }
 
   &.is-disabled {
-    background-color: var(--el-disabled-bg-color);
+    background: var(--el-disabled-bg-color);
     border-color: var(--el-disabled-border-color);
     color: var(--el-disabled-text-color);
     cursor: not-allowed;
+    opacity: 0.7;
 
     .sc-ip-input__prefix,
     .sc-ip-input__suffix {
@@ -367,8 +371,9 @@ function handleClear() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 8px;
-  color: var(--el-text-color-placeholder);
+  padding: 0 12px;
+  color: var(--el-text-color-secondary);
+  font-size: 16px;
 }
 
 .sc-ip-input__suffix {
@@ -383,7 +388,7 @@ function handleClear() {
   display: flex;
   border: none;
   width: auto;
-  height: 36px;
+  height: 40px;
   flex: 1;
   padding: 0;
   margin: 0;
@@ -401,12 +406,15 @@ function handleClear() {
 
 .sc-ip-input-class {
   border: none;
-  width: 49px;
+  width: 52px;
   height: 100%;
   text-align: center;
   background: transparent;
-  font-size: 14px;
-  color: var(--el-text-color-regular);
+  font-size: 15px;
+  font-weight: 500;
+  font-family: "Monaco", "Menlo", "Consolas", monospace;
+  color: var(--el-text-color-primary);
+  letter-spacing: 1px;
 
   &:disabled {
     background-color: transparent;
@@ -416,20 +424,32 @@ function handleClear() {
 
   &::placeholder {
     color: var(--el-text-color-placeholder);
+    font-weight: 400;
+  }
+
+  &:focus {
+    color: var(--el-color-primary);
   }
 }
 
 .sc-ip-adress li div {
   position: absolute;
-  bottom: 15px;
-  right: 0;
+  bottom: 50%;
+  right: -2px;
+  transform: translateY(50%);
   border-radius: 50%;
-  background: var(--el-text-color-secondary);
-  width: 3px;
-  height: 3px;
+  background: var(--el-color-primary-light-5);
+  width: 4px;
+  height: 4px;
+  transition: all 0.2s;
 
   &.clickable {
     cursor: pointer;
+
+    &:hover {
+      background: var(--el-color-primary);
+      transform: translateY(50%) scale(1.3);
+    }
   }
 }
 
