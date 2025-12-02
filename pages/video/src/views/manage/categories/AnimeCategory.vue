@@ -1,10 +1,21 @@
 <template>
   <div class="video-movie">
     <!-- 上方筛选区域 -->
-    <VideoFilter v-model="filterConditions" :autoSearch="true" @filter-change="handleFilterChange" />
+    <VideoFilter
+      v-model="filterConditions"
+      :autoSearch="true"
+      @filter-change="handleFilterChange"
+    />
 
     <!-- 下方结果区域 -->
-    <VideoResults :params="queryParams" :sortBy="queryParams.sortBy" :url="getVideoList" @sort-change="handleSortChange" @video-click="handleVideoClick" ref="tableRef" />
+    <VideoResults
+      :params="queryParams"
+      :sortBy="queryParams.sortBy"
+      :url="getVideoList"
+      @sort-change="handleSortChange"
+      @video-click="handleVideoClick"
+      ref="tableRef"
+    />
   </div>
 </template>
 
@@ -98,5 +109,26 @@ defineExpose({
 <style lang="scss" scoped>
 .video-movie {
   margin-bottom: 24px;
+  padding: 20px;
+  background: var(--el-bg-color-page);
+  border-radius: 12px;
+  min-height: 100vh;
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 200px;
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.05) 0%,
+      rgba(var(--el-color-success-rgb), 0.05) 100%
+    );
+    border-radius: 12px 12px 0 0;
+    pointer-events: none;
+  }
 }
 </style>
