@@ -2,6 +2,7 @@
 import { reactive, ref, computed } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import hljs from "highlight.js/lib/core";
 import json from "highlight.js/lib/languages/json";
 import "highlight.js/styles/github.css";
@@ -29,11 +30,16 @@ const env = reactive({
 const highlightedJson = computed(() => {
   if (!env.outputJson) return "";
 
-  const highlighted = hljs.highlight(env.outputJson, { language: "json" }).value;
+  const highlighted = hljs.highlight(env.outputJson, {
+    language: "json",
+  }).value;
 
   if (env.showLineNumbers) {
     const lines = highlighted.split("\n");
-    const numberedLines = lines.map((line, index) => `<span class="json-tool__line-number">${index + 1}</span><span class="json-tool__line-content">${line}</span>`);
+    const numberedLines = lines.map(
+      (line, index) =>
+        `<span class="json-tool__line-number">${index + 1}</span><span class="json-tool__line-content">${line}</span>`
+    );
     return numberedLines.join("\n");
   }
 
@@ -63,12 +69,20 @@ const formatJson = () => {
     }
 
     // 格式化输出
-    env.outputJson = JSON.stringify(result, null, env.compactOutput ? 0 : env.indentSize);
+    env.outputJson = JSON.stringify(
+      result,
+      null,
+      env.compactOutput ? 0 : env.indentSize
+    );
 
-    message(t("message.formatSuccess") || "JSON 格式化成功", { type: "success" });
+    message(t("message.formatSuccess") || "JSON 格式化成功", {
+      type: "success",
+    });
   } catch (error) {
     env.errorMessage = error.message;
-    message(t("message.formatError") || "JSON 格式错误: " + error.message, { type: "error" });
+    message(t("message.formatError") || "JSON 格式错误: " + error.message, {
+      type: "error",
+    });
   } finally {
     env.loading = false;
   }
@@ -145,7 +159,9 @@ const loadExample = () => {
 // 下载 JSON 文件
 const downloadJson = () => {
   if (!env.outputJson) {
-    message(t("message.noDataToDownload") || "没有数据可下载", { type: "warning" });
+    message(t("message.noDataToDownload") || "没有数据可下载", {
+      type: "warning",
+    });
     return;
   }
 
@@ -171,7 +187,9 @@ const handleFileUpload = (event) => {
   const reader = new FileReader();
   reader.onload = (e) => {
     env.inputJson = e.target.result;
-    message(t("message.fileLoadSuccess") || "文件加载成功", { type: "success" });
+    message(t("message.fileLoadSuccess") || "文件加载成功", {
+      type: "success",
+    });
   };
   reader.onerror = () => {
     message(t("message.fileLoadError") || "文件加载失败", { type: "error" });
@@ -188,7 +206,9 @@ const handleFileUpload = (event) => {
         <div class="json-tool__header">
           <div class="json-tool__header-inner">
             <div class="json-tool__header-title">JSON 格式化工具</div>
-            <div class="json-tool__header-subtitle">格式化、验证、压缩和排序 JSON 数据</div>
+            <div class="json-tool__header-subtitle">
+              格式化、验证、压缩和排序 JSON 数据
+            </div>
           </div>
           <div class="json-tool__header-decoration">
             <div class="json-tool__header-circle"></div>
@@ -204,7 +224,10 @@ const handleFileUpload = (event) => {
           <el-card class="json-tool__input-card" shadow="hover">
             <template #header>
               <div class="json-tool__card-header">
-                <IconifyIconOnline icon="ri:input-method-line" class="json-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:input-method-line"
+                  class="json-tool__card-icon"
+                />
                 <span>输入 JSON</span>
               </div>
             </template>
@@ -220,7 +243,13 @@ const handleFileUpload = (event) => {
                 <span>清空</span>
               </el-button>
 
-              <el-upload action="" :auto-upload="false" :show-file-list="false" accept=".json" @change="handleFileUpload">
+              <el-upload
+                action=""
+                :auto-upload="false"
+                :show-file-list="false"
+                accept=".json"
+                @change="handleFileUpload"
+              >
                 <el-button size="small">
                   <IconifyIconOnline icon="ri:upload-2-line" />
                   <span>上传文件</span>
@@ -228,32 +257,56 @@ const handleFileUpload = (event) => {
               </el-upload>
             </div>
 
-            <el-input v-model="env.inputJson" type="textarea" :rows="12" placeholder="请输入 JSON 内容..." class="json-tool__textarea" />
+            <el-input
+              v-model="env.inputJson"
+              type="textarea"
+              :rows="12"
+              placeholder="请输入 JSON 内容..."
+              class="json-tool__textarea"
+            />
 
             <div class="json-tool__options">
               <el-form :inline="true" size="small">
                 <el-form-item label="缩进大小">
-                  <el-input-number v-model="env.indentSize" :min="0" :max="8" size="small" />
+                  <el-input-number
+                    v-model="env.indentSize"
+                    :min="0"
+                    :max="8"
+                    size="small"
+                  />
                 </el-form-item>
 
                 <el-form-item label="排序键">
-                  <el-switch v-model="env.sortKeys" />
+                  <ScSwitch v-model="env.sortKeys" layout="modern" />
                 </el-form-item>
               </el-form>
             </div>
 
             <div class="json-tool__actions">
-              <el-button type="primary" :loading="env.loading" class="json-tool__format-btn" @click="formatJson">
+              <el-button
+                type="primary"
+                :loading="env.loading"
+                class="json-tool__format-btn"
+                @click="formatJson"
+              >
                 <IconifyIconOnline icon="ri:braces-line" />
                 <span>格式化</span>
               </el-button>
 
-              <el-button type="success" class="json-tool__beautify-btn" @click="beautifyJson">
+              <el-button
+                type="success"
+                class="json-tool__beautify-btn"
+                @click="beautifyJson"
+              >
                 <IconifyIconOnline icon="ri:layout-line" />
                 <span>美化</span>
               </el-button>
 
-              <el-button type="warning" class="json-tool__compact-btn" @click="compactJson">
+              <el-button
+                type="warning"
+                class="json-tool__compact-btn"
+                @click="compactJson"
+              >
                 <IconifyIconOnline icon="ri:compress-line" />
                 <span>压缩</span>
               </el-button>
@@ -266,38 +319,75 @@ const handleFileUpload = (event) => {
           <el-card class="json-tool__result-card" shadow="hover">
             <template #header>
               <div class="json-tool__card-header">
-                <IconifyIconOnline icon="ri:braces-fill" class="json-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:braces-fill"
+                  class="json-tool__card-icon"
+                />
                 <span>格式化结果</span>
               </div>
             </template>
 
-            <el-empty v-if="!env.outputJson && !env.errorMessage" description="请先输入并格式化 JSON" class="json-tool__empty">
+            <el-empty
+              v-if="!env.outputJson && !env.errorMessage"
+              description="请先输入并格式化 JSON"
+              class="json-tool__empty"
+            >
               <template #image>
-                <IconifyIconOnline icon="ri:braces-line" class="json-tool__empty-icon" />
+                <IconifyIconOnline
+                  icon="ri:braces-line"
+                  class="json-tool__empty-icon"
+                />
               </template>
             </el-empty>
 
             <div v-else-if="env.errorMessage" class="json-tool__error">
-              <IconifyIconOnline icon="ri:error-warning-line" class="json-tool__error-icon" />
+              <IconifyIconOnline
+                icon="ri:error-warning-line"
+                class="json-tool__error-icon"
+              />
               <div class="json-tool__error-message">{{ env.errorMessage }}</div>
             </div>
 
             <div v-else class="json-tool__result">
               <div class="json-tool__result-actions">
-                <el-button type="primary" link size="small" class="json-tool__copy-btn" @click="copyToClipboard(env.outputJson)">
+                <el-button
+                  type="primary"
+                  link
+                  size="small"
+                  class="json-tool__copy-btn"
+                  @click="copyToClipboard(env.outputJson)"
+                >
                   <IconifyIconOnline icon="ri:file-copy-line" />
                   <span>复制</span>
                 </el-button>
 
-                <el-button type="success" link size="small" class="json-tool__download-btn" @click="downloadJson">
+                <el-button
+                  type="success"
+                  link
+                  size="small"
+                  class="json-tool__download-btn"
+                  @click="downloadJson"
+                >
                   <IconifyIconOnline icon="ri:download-line" />
                   <span>下载</span>
                 </el-button>
 
-                <el-switch v-model="env.showLineNumbers" active-text="显示行号" inactive-text="隐藏行号" size="small" style="margin-left: 10px" />
+                <ScSwitch
+                  v-model="env.showLineNumbers"
+                  active-text="显示行号"
+                  inactive-text="隐藏行号"
+                  size="small"
+                  layout="modern"
+                  style="margin-left: 10px"
+                />
               </div>
 
-              <pre class="json-tool__output" :class="{ 'json-tool__output--with-line-numbers': env.showLineNumbers }"><code v-html="highlightedJson"></code></pre>
+              <pre
+                class="json-tool__output"
+                :class="{
+                  'json-tool__output--with-line-numbers': env.showLineNumbers,
+                }"
+              ><code v-html="highlightedJson"></code></pre>
             </div>
           </el-card>
         </el-col>
@@ -307,30 +397,48 @@ const handleFileUpload = (event) => {
       <el-card class="json-tool__tips-card" shadow="hover">
         <template #header>
           <div class="json-tool__card-header">
-            <IconifyIconOnline icon="ri:information-line" class="json-tool__card-icon" />
+            <IconifyIconOnline
+              icon="ri:information-line"
+              class="json-tool__card-icon"
+            />
             <span>使用说明</span>
           </div>
         </template>
         <div class="json-tool__tips-content">
           <div class="json-tool__tip-item">
             <div class="json-tool__tip-number">1</div>
-            <div class="json-tool__tip-text">在左侧输入框中粘贴或输入 JSON 内容，或者点击"加载示例"按钮加载示例数据</div>
+            <div class="json-tool__tip-text">
+              在左侧输入框中粘贴或输入 JSON
+              内容，或者点击"加载示例"按钮加载示例数据
+            </div>
           </div>
           <div class="json-tool__tip-item">
             <div class="json-tool__tip-number">2</div>
-            <div class="json-tool__tip-text">点击"格式化"按钮将 JSON 格式化为易读的格式，或者点击"压缩"按钮将 JSON 压缩为单行</div>
+            <div class="json-tool__tip-text">
+              点击"格式化"按钮将 JSON 格式化为易读的格式，或者点击"压缩"按钮将
+              JSON 压缩为单行
+            </div>
           </div>
           <div class="json-tool__tip-item">
             <div class="json-tool__tip-number">3</div>
-            <div class="json-tool__tip-text">可以调整缩进大小和是否按键名排序等选项</div>
+            <div class="json-tool__tip-text">
+              可以调整缩进大小和是否按键名排序等选项
+            </div>
           </div>
           <div class="json-tool__tip-item">
             <div class="json-tool__tip-number">4</div>
-            <div class="json-tool__tip-text">格式化后的 JSON 可以复制到剪贴板或下载为文件</div>
+            <div class="json-tool__tip-text">
+              格式化后的 JSON 可以复制到剪贴板或下载为文件
+            </div>
           </div>
           <div class="json-tool__tip-item json-tool__tip-item--warning">
-            <IconifyIconOnline icon="ri:alert-line" class="json-tool__tip-icon" />
-            <div class="json-tool__tip-text">注意：处理大型 JSON 文件可能会导致浏览器性能下降</div>
+            <IconifyIconOnline
+              icon="ri:alert-line"
+              class="json-tool__tip-icon"
+            />
+            <div class="json-tool__tip-text">
+              注意：处理大型 JSON 文件可能会导致浏览器性能下降
+            </div>
           </div>
         </div>
       </el-card>

@@ -71,7 +71,7 @@
 }
 
 body {
-  color: #000;
+  color: var(--el-text-color-primary);
 }
 
 /* 深色模式下 SVG 图标默认为白色 */

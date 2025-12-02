@@ -4,12 +4,7 @@
       <IconifyIconOnline :icon="prefixIcon" />
     </div>
     <div class="sc-richtext-input-container">
-      <Toolbar
-        class="sc-richtext-toolbar"
-        :editor="editorRef"
-        :defaultConfig="toolbarConfig"
-        :mode="mode"
-      />
+      <Toolbar class="sc-richtext-toolbar" :editor="editorRef" :defaultConfig="toolbarConfig" :mode="mode" />
       <Editor
         class="sc-richtext-editor"
         :class="{
@@ -24,10 +19,7 @@
         @onFocus="handleFocus"
         @onBlur="handleBlur"
       />
-      <div
-        v-if="validationResult && !validationResult.isValid && showValidationMsg"
-        class="sc-richtext-input__error"
-      >
+      <div v-if="validationResult && !validationResult.isValid && showValidationMsg" class="sc-richtext-input__error">
         {{ validationResult.message }}
       </div>
     </div>
@@ -35,12 +27,12 @@
 </template>
 
 <script setup lang="ts">
-import '@wangeditor/editor/dist/css/style.css';
-import { Editor, Toolbar } from '@wangeditor/editor-for-vue';
+import "@wangeditor/editor/dist/css/style.css";
+import { Editor, Toolbar } from "@wangeditor/editor-for-vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import { computed, ref, shallowRef, onBeforeUnmount, watch, onMounted } from 'vue';
-import { validate } from '../utils/validate';
-import type { IDomEditor, IEditorConfig, IToolbarConfig } from '@wangeditor/editor';
+import { computed, ref, shallowRef, onBeforeUnmount, watch, onMounted } from "vue";
+import { validate } from "../utils/validate";
+import type { IDomEditor, IEditorConfig, IToolbarConfig } from "@wangeditor/editor";
 
 interface Props {
   /**
@@ -62,7 +54,7 @@ interface Props {
   /**
    * 编辑器模式
    */
-  mode?: 'default' | 'simple';
+  mode?: "default" | "simple";
   /**
    * 前缀图标
    */
@@ -90,12 +82,12 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  modelValue: '',
-  placeholder: '请输入内容...',
+  modelValue: "",
+  placeholder: "请输入内容...",
   disabled: false,
   height: 300,
-  mode: 'default',
-  prefixIcon: '',
+  mode: "default",
+  prefixIcon: "",
   showPrefix: true,
   rules: () => [],
   showValidationMsg: true,
@@ -103,13 +95,7 @@ const props = withDefaults(defineProps<Props>(), {
   editorConfig: () => ({})
 });
 
-const emit = defineEmits([
-  'update:modelValue',
-  'change',
-  'focus',
-  'blur',
-  'created'
-]);
+const emit = defineEmits(["update:modelValue", "change", "focus", "blur", "created"]);
 
 // 编辑器实例，必须用 shallowRef
 const editorRef = shallowRef<IDomEditor>();
@@ -120,12 +106,12 @@ const validationResult = ref<any>(null);
 // 当前值
 const currentValue = computed({
   get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val)
+  set: val => emit("update:modelValue", val)
 });
 
 // 工具栏配置
 const toolbarConfig = computed(() => ({
-  excludeKeys: props.disabled ? ['uploadImage', 'uploadVideo'] : [],
+  excludeKeys: props.disabled ? ["uploadImage", "uploadVideo"] : [],
   ...props.toolbarConfig
 }));
 
@@ -137,18 +123,18 @@ const editorConfig = computed(() => ({
   MENU_CONF: {
     // 上传图片配置
     uploadImage: {
-      server: '/api/upload/image',
-      fieldName: 'file',
+      server: "/api/upload/image",
+      fieldName: "file",
       maxFileSize: 5 * 1024 * 1024, // 5M
-      allowedFileTypes: ['image/*'],
+      allowedFileTypes: ["image/*"],
       ...props.editorConfig?.MENU_CONF?.uploadImage
     },
     // 上传视频配置
     uploadVideo: {
-      server: '/api/upload/video',
-      fieldName: 'file',
+      server: "/api/upload/video",
+      fieldName: "file",
       maxFileSize: 100 * 1024 * 1024, // 100M
-      allowedFileTypes: ['video/*'],
+      allowedFileTypes: ["video/*"],
       ...props.editorConfig?.MENU_CONF?.uploadVideo
     },
     ...props.editorConfig?.MENU_CONF
@@ -160,7 +146,7 @@ const editorConfig = computed(() => ({
  */
 const handleCreated = (editor: IDomEditor) => {
   editorRef.value = editor;
-  emit('created', editor);
+  emit("created", editor);
 };
 
 /**
@@ -168,9 +154,9 @@ const handleCreated = (editor: IDomEditor) => {
  */
 const handleChange = (editor: IDomEditor) => {
   const html = editor.getHtml();
-  emit('update:modelValue', html);
-  emit('change', html, editor);
-  
+  emit("update:modelValue", html);
+  emit("change", html, editor);
+
   // 验证
   if (props.rules && props.rules.length > 0) {
     validationResult.value = validate(html, props.rules);
@@ -181,14 +167,14 @@ const handleChange = (editor: IDomEditor) => {
  * 处理焦点事件
  */
 const handleFocus = (editor: IDomEditor) => {
-  emit('focus', editor);
+  emit("focus", editor);
 };
 
 /**
  * 处理失焦事件
  */
 const handleBlur = (editor: IDomEditor) => {
-  emit('blur', editor);
+  emit("blur", editor);
 };
 
 /**
@@ -196,7 +182,7 @@ const handleBlur = (editor: IDomEditor) => {
  */
 watch(
   () => props.modelValue,
-  (newVal) => {
+  newVal => {
     if (props.rules && props.rules.length > 0) {
       validationResult.value = validate(newVal, props.rules);
     }
@@ -231,7 +217,7 @@ defineExpose({
   blur: () => editorRef.value?.blur(),
   clear: () => {
     editorRef.value?.clear();
-    emit('update:modelValue', '');
+    emit("update:modelValue", "");
   },
   getHtml: () => editorRef.value?.getHtml(),
   getText: () => editorRef.value?.getText(),
@@ -247,20 +233,20 @@ defineExpose({
   width: 100%;
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   // 悬停效果
   &:hover {
     transform: translateY(-1px);
-    
+
     .sc-richtext-input-container {
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
   }
-  
+
   // 聚焦状态
   &:focus-within {
     transform: translateY(-2px);
-    
+
     .sc-richtext-input-container {
       box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.1), 0 6px 16px rgba(64, 158, 255, 0.15);
     }
@@ -275,7 +261,7 @@ defineExpose({
   margin-top: 8px;
   font-size: 16px;
   transition: color 0.3s ease;
-  
+
   .sc-richtext-input-wrapper:focus-within & {
     color: var(--el-color-primary);
   }
@@ -283,155 +269,118 @@ defineExpose({
 
 .sc-richtext-input-container {
   flex: 1;
-  border: 2px solid #e4e7ed;
+  border: 2px solid var(--el-border-color-light);
   border-radius: 12px;
   overflow: hidden;
-  background-color: #ffffff;
+  background-color: var(--el-bg-color);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-  
+
   &:hover {
-    border-color: #c0c4cc;
+    border-color: var(--el-border-color);
   }
-  
+
   &:focus-within {
-    border-color: #409eff;
+    border-color: var(--el-color-primary);
   }
 }
 
 .sc-richtext-toolbar {
-  border-bottom: 1px solid #e4e7ed;
-  background-color: #fafafa;
-  
+  border-bottom: 1px solid var(--el-border-color-light);
+  background-color: var(--el-fill-color-lighter);
+
   :deep(.w-e-toolbar) {
     border: none;
     background-color: transparent;
-    
-    .w-e-bar-item {
-      border-radius: 6px;
-      margin: 2px;
-      transition: all 0.2s ease;
-      
-      &:hover {
-        background-color: rgba(64, 158, 255, 0.1);
-        transform: scale(1.05);
-      }
-      
-      &.w-e-bar-item-active {
-        background-color: var(--el-color-primary);
-        color: var(--el-text-color-primary);
-      }
-    }
-  }
-}
 
+{{ ... }
 .sc-richtext-editor {
   :deep(.w-e-text-container) {
     border: none;
     min-height: v-bind("typeof height === 'number' ? height + 'px' : height");
-    
+
     .w-e-text-placeholder {
-      color: #a8abb2;
+      color: var(--el-text-color-placeholder);
       font-style: normal;
     }
-    
+
     .w-e-text {
       padding: 16px;
       font-size: 14px;
-      line-height: 1.6;
-      color: var(--el-text-color-primary);
-      
-      p {
-        margin: 0 0 8px 0;
-        
-        &:last-child {
-          margin-bottom: 0;
-        }
-      }
-      
-      img {
-        max-width: 100%;
-        height: auto;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      }
-      
-      blockquote {
-        border-left: 4px solid var(--el-color-primary);
-        background-color: rgba(64, 158, 255, 0.05);
+{{ ... }
         padding: 12px 16px;
         margin: 16px 0;
         border-radius: 0 8px 8px 0;
       }
-      
+
       code {
-        background-color: #f5f7fa;
+        background-color: var(--el-fill-color-light);
         padding: 2px 6px;
         border-radius: 4px;
         font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
         font-size: 0.9em;
       }
-      
+
       pre {
-        background-color: #f5f7fa;
+        background-color: var(--el-fill-color-light);
         padding: 16px;
         border-radius: 8px;
         overflow-x: auto;
-        
+
         code {
           background: none;
           padding: 0;
         }
       }
-      
+
       table {
         border-collapse: collapse;
         width: 100%;
         margin: 16px 0;
-        
+
         th, td {
-          border: 1px solid #e4e7ed;
+          border: 1px solid var(--el-border-color-light);
           padding: 8px 12px;
           text-align: left;
         }
-        
+
         th {
-          background-color: #f5f7fa;
+          background-color: var(--el-fill-color-light);
           font-weight: 600;
         }
       }
     }
   }
-  
+
   // 禁用状态
   &--disabled {
     :deep(.w-e-text-container) {
-      background-color: #f5f7fa;
+      background-color: var(--el-fill-color-light);
       cursor: not-allowed;
-      
+
       .w-e-text {
-        color: #c0c4cc;
+        color: var(--el-text-color-disabled);
       }
     }
   }
-  
+
   // 验证失败状态
   &--invalid {
     .sc-richtext-input-container {
-      border-color: #f56c6c;
+      border-color: var(--el-color-danger);
       animation: shake 0.5s ease-in-out;
     }
   }
 }
 
 .sc-richtext-input__error {
-  color: #f56c6c;
+  color: var(--el-color-danger);
   font-size: 12px;
   line-height: 1.4;
   padding: 8px 16px;
   background-color: rgba(245, 108, 108, 0.05);
   border-top: 1px solid rgba(245, 108, 108, 0.2);
-  animation: fadeInUp 0.3s ease;
+{{ ... }
 }
 
 // 动画定义
@@ -457,7 +406,7 @@ defineExpose({
   .sc-richtext-input-container {
     border-radius: 10px;
   }
-  
+
   .sc-richtext-toolbar {
     :deep(.w-e-toolbar) {
       .w-e-bar-item {
@@ -466,7 +415,7 @@ defineExpose({
       }
     }
   }
-  
+
   .sc-richtext-editor {
     :deep(.w-e-text-container .w-e-text) {
       padding: 12px;
@@ -479,7 +428,7 @@ defineExpose({
   .sc-richtext-input-container {
     border-radius: 8px;
   }
-  
+
   .sc-richtext-editor {
     :deep(.w-e-text-container .w-e-text) {
       padding: 10px;

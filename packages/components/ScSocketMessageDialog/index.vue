@@ -1100,7 +1100,7 @@ defineExpose({
   padding: 12px;
   background: var(--el-bg-color-overlay);
   border-radius: 8px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-lighter);
   transition: all 0.3s;
 }
 
@@ -1120,7 +1120,7 @@ defineExpose({
 .process-message {
   margin-top: 8px;
   font-size: 12px;
-  color: #606266;
+  color: var(--el-text-color-regular);
   display: flex;
   align-items: center;
 }
@@ -1139,9 +1139,9 @@ defineExpose({
 /* 日志布局样式 */
 .log-container {
   overflow-y: auto;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
-  background-color: #fafafa;
+  background-color: var(--el-fill-color-lighter);
   padding: 8px;
   margin-bottom: 10px;
   font-family: monospace;
@@ -1151,7 +1151,7 @@ defineExpose({
 .log-item {
   padding: 3px 0;
   line-height: 1.5;
-  border-bottom: 1px dashed #f0f0f0;
+  border-bottom: 1px dashed var(--el-border-color-extra-light);
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -1162,7 +1162,7 @@ defineExpose({
 }
 
 .log-message {
-  color: #606266;
+  color: var(--el-text-color-regular);
 }
 
 .log-progress {
@@ -1360,7 +1360,7 @@ defineExpose({
 }
 
 .close-btn:hover {
-  color: #f56c6c;
+  color: var(--el-color-danger);
 }
 
 /* 内容区域 */

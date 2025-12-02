@@ -33,7 +33,15 @@ const subMenuPosition = ref({ top: 0, left: 0 });
 const hideTimer = ref(null);
 const showTimer = ref(null);
 
-const { device, pureApp, isCollapse, tooltipEffect, menuSelect, toggleSideBar, layout } = useNav();
+const {
+  device,
+  pureApp,
+  isCollapse,
+  tooltipEffect,
+  menuSelect,
+  toggleSideBar,
+  layout,
+} = useNav();
 
 // 悬浮导航的收缩状态
 const isHoverCollapsed = ref(false);
@@ -45,7 +53,10 @@ function toggleHoverSideBar() {
   isHoverCollapsed.value = !isHoverCollapsed.value;
 
   // 通过CSS变量通知全局布局状态变化
-  document.documentElement.style.setProperty("--hover-sidebar-width", isHoverCollapsed.value ? "64px" : "200px");
+  document.documentElement.style.setProperty(
+    "--hover-sidebar-width",
+    isHoverCollapsed.value ? "64px" : "200px"
+  );
 }
 
 // 收藏相关数据
@@ -54,7 +65,9 @@ const hoveredMenuItem = ref(null);
 
 // 只获取一级菜单，并添加"我的收藏"菜单
 const firstLevelMenus = computed(() => {
-  const menus = usePermissionStoreHook().wholeMenus.filter((menu) => menu.meta?.showLink !== false);
+  const menus = usePermissionStoreHook().wholeMenus.filter(
+    (menu) => menu.meta?.showLink !== false
+  );
 
   // 添加"我的收藏"菜单
   const favoritesMenu = {
@@ -94,7 +107,9 @@ const totalMenuItems = computed(() => {
 
 // 计算直接二级菜单数量
 const directMenuCount = computed(() => {
-  return currentSubMenus.value.filter((menu) => !menu.children || menu.children.length === 0).length;
+  return currentSubMenus.value.filter(
+    (menu) => !menu.children || menu.children.length === 0
+  ).length;
 });
 
 // 动态计算容器宽度 - 横向多列布局
@@ -108,7 +123,8 @@ const dynamicContainerWidth = computed(() => {
   const padding = 32; // 容器内边距
   const gap = 16; // 列间距（增加以改善可读性）
 
-  const calculatedWidth = columnsNeeded * baseWidth + (columnsNeeded - 1) * gap + padding;
+  const calculatedWidth =
+    columnsNeeded * baseWidth + (columnsNeeded - 1) * gap + padding;
 
   // 设置合理的最小和最大宽度
   const minWidth = 320; // 最小宽度（单列时）
@@ -121,8 +137,12 @@ const dynamicContainerWidth = computed(() => {
 // 布局策略：每个分组作为一列，最多四列
 const getGridColumns = (itemCount: number) => {
   // 计算分组数量
-  const groupCount = currentSubMenus.value.filter((menu) => menu.children && menu.children.length > 0).length;
-  const directMenuCount = currentSubMenus.value.filter((menu) => !menu.children || menu.children.length === 0).length;
+  const groupCount = currentSubMenus.value.filter(
+    (menu) => menu.children && menu.children.length > 0
+  ).length;
+  const directMenuCount = currentSubMenus.value.filter(
+    (menu) => !menu.children || menu.children.length === 0
+  ).length;
 
   // 总列数 = 分组数 + (有直接菜单项时+1)
   let totalColumns = groupCount;
@@ -256,7 +276,9 @@ function isMenuActive(menu: any): boolean {
     return menu.children.some((child: any) => {
       if (child.path === route.path) return true;
       if (child.children) {
-        return child.children.some((grandChild: any) => grandChild.path === route.path);
+        return child.children.some(
+          (grandChild: any) => grandChild.path === route.path
+        );
       }
       return false;
     });
@@ -273,7 +295,7 @@ async function loadFavorites() {
   try {
     const stored = await indexedDBProxy().getItem("favoriteMenus");
     if (stored) {
-      //@ts-ignore 
+      //@ts-ignore
       favoriteMenus.value = stored;
     }
   } catch (error) {
@@ -303,7 +325,9 @@ async function toggleFavorite(menu: any, event?: Event) {
 
   if (isFavorited) {
     // 取消收藏
-    favoriteMenus.value = favoriteMenus.value.filter((fav) => fav.path !== menu.path);
+    favoriteMenus.value = favoriteMenus.value.filter(
+      (fav) => fav.path !== menu.path
+    );
   } else {
     // 添加收藏
     const favoriteItem = {
@@ -462,33 +486,66 @@ const defer = useDefer(firstLevelMenus.value.length);
 <template>
   <!-- 悬浮导航模式 -->
   <div
-    :class="['sidebar-hover-container', props.showLogo ? 'has-logo' : 'no-logo', isHoverCollapsed ? 'collapsed' : 'expanded']"
-    @mouseenter.prevent="isShow = true" @mouseleave.prevent="isShow = false">
+    :class="[
+      'sidebar-hover-container',
+      props.showLogo ? 'has-logo' : 'no-logo',
+      isHoverCollapsed ? 'collapsed' : 'expanded',
+    ]"
+    @mouseenter.prevent="isShow = true"
+    @mouseleave.prevent="isShow = false"
+  >
     <LaySidebarLogo v-if="props.showLogo" :collapse="isHoverCollapsed" />
 
     <!-- 导航栏左侧的收缩按钮 -->
-    <div v-show="isShow" class="sidebar-collapse-btn" @click="toggleHoverSideBar">
-      <IconifyIconOffline icon="ri:arrow-left-s-line"
-        :style="{ transform: isHoverCollapsed ? 'rotate(180deg)' : 'none' }" class="sidebar-collapse-icon" />
+    <div
+      v-show="isShow"
+      class="sidebar-collapse-btn"
+      @click="toggleHoverSideBar"
+    >
+      <IconifyIconOffline
+        icon="ri:arrow-left-s-line"
+        :style="{ transform: isHoverCollapsed ? 'rotate(180deg)' : 'none' }"
+        class="sidebar-collapse-icon"
+      />
     </div>
 
     <!-- 悬浮时显示的收缩按钮 -->
     <div v-show="isShow" class="hover-collapse-btn" @click="toggleHoverSideBar">
-      <IconifyIconOffline icon="ri:arrow-left-s-line"
-        :style="{ transform: isHoverCollapsed ? 'rotate(180deg)' : 'none' }" class="collapse-icon" />
-      <span class="collapse-text">{{ isHoverCollapsed ? "点击展开" : "点击折叠" }}</span>
+      <IconifyIconOffline
+        icon="ri:arrow-left-s-line"
+        :style="{ transform: isHoverCollapsed ? 'rotate(180deg)' : 'none' }"
+        class="collapse-icon"
+      />
+      <span class="collapse-text">{{
+        isHoverCollapsed ? "点击展开" : "点击折叠"
+      }}</span>
     </div>
 
-    <el-scrollbar wrap-class="scrollbar-wrapper" :class="[device === 'mobile' ? 'mobile' : 'pc']">
+    <el-scrollbar
+      wrap-class="scrollbar-wrapper"
+      :class="[device === 'mobile' ? 'mobile' : 'pc']"
+    >
       <div class="hover-menu-container">
         <!-- 一级菜单 -->
-        <div v-for="(menu, index) in firstLevelMenus" :key="menu.path" class="first-level-menu-item"
-          :class="{ 'is-active': isMenuActive(menu) }" @mouseenter="handleMenuHover(menu, $event)"
-          @mouseleave="handleMenuLeave" @click="handleMenuClick(menu)">
+        <div
+          v-for="(menu, index) in firstLevelMenus"
+          :key="menu.path"
+          class="first-level-menu-item"
+          :class="{ 'is-active': isMenuActive(menu) }"
+          @mouseenter="handleMenuHover(menu, $event)"
+          @mouseleave="handleMenuLeave"
+          @click="handleMenuClick(menu)"
+        >
           <div class="menu-content">
-            <IconifyIconOnline v-if="menu.meta?.icon" :icon="menu.meta.icon" class="menu-icon" />
+            <IconifyIconOnline
+              v-if="menu.meta?.icon"
+              :icon="menu.meta.icon"
+              class="menu-icon"
+            />
             <IconifyIconOnline v-else icon="ep:menu" class="menu-icon" />
-            <span v-if="!isHoverCollapsed" class="menu-title">{{ menu.meta?.title }}</span>
+            <span v-if="!isHoverCollapsed" class="menu-title">{{
+              menu.meta?.title
+            }}</span>
             <!-- 收缩状态下只显示图标 -->
           </div>
         </div>
@@ -497,35 +554,69 @@ const defer = useDefer(firstLevelMenus.value.length);
 
     <!-- 子菜单弹出层 -->
     <Teleport to="body">
-      <div v-if="subMenuVisible && currentSubMenus.length > 0" class="sub-menu-popup" :style="{
-        top: subMenuPosition.top + 'px',
-        left: subMenuPosition.left + 'px',
-      }" @mouseenter="handleSubMenuHover" @mouseleave="handleSubMenuLeave">
-        <div class="sub-menu-container" :style="{ width: dynamicContainerWidth }">
+      <div
+        v-if="subMenuVisible && currentSubMenus.length > 0"
+        class="sub-menu-popup"
+        :style="{
+          top: subMenuPosition.top + 'px',
+          left: subMenuPosition.left + 'px',
+        }"
+        @mouseenter="handleSubMenuHover"
+        @mouseleave="handleSubMenuLeave"
+      >
+        <div
+          class="sub-menu-container"
+          :style="{ width: dynamicContainerWidth }"
+        >
           <!-- 去掉标题头部 -->
           <div class="sub-menu-content">
             <!-- 我的收藏特殊处理 -->
-            <div v-if="hoveredMenu?.path === '/favorites'" class="favorites-content">
+            <div
+              v-if="hoveredMenu?.path === '/favorites'"
+              class="favorites-content"
+            >
               <div v-if="favoriteMenus.length === 0" class="empty-favorites">
                 <IconifyIconOnline icon="ep:star" class="empty-icon" />
                 <p>暂无收藏菜单</p>
                 <span>鼠标悬停在菜单项上点击星标即可收藏</span>
               </div>
-              <div v-else class="favorite-items dynamic-grid" :style="{
-                gridTemplateColumns: `repeat(${getGridColumns(favoriteMenus.length)}, 1fr)`,
-                gridTemplateRows: `repeat(${getItemsPerColumn(favoriteMenus.length)}, auto)`,
-              }">
-                <div v-for="favorite in favoriteMenus" :key="favorite.path" class="menu-item-wrapper"
-                  @mouseenter="handleMenuItemHover(favorite)" @mouseleave="handleMenuItemLeave">
-                  <router-link :to="favorite.path" class="favorite-menu-item"
-                    @click="handleSubMenuClick(favorite, $event)">
-                    <IconifyIconOnline v-if="favorite.icon" :icon="favorite.icon" class="favorite-menu-icon" />
+              <div
+                v-else
+                class="favorite-items dynamic-grid"
+                :style="{
+                  gridTemplateColumns: `repeat(${getGridColumns(favoriteMenus.length)}, 1fr)`,
+                  gridTemplateRows: `repeat(${getItemsPerColumn(favoriteMenus.length)}, auto)`,
+                }"
+              >
+                <div
+                  v-for="favorite in favoriteMenus"
+                  :key="favorite.path"
+                  class="menu-item-wrapper"
+                  @mouseenter="handleMenuItemHover(favorite)"
+                  @mouseleave="handleMenuItemLeave"
+                >
+                  <router-link
+                    :to="favorite.path"
+                    class="favorite-menu-item"
+                    @click="handleSubMenuClick(favorite, $event)"
+                  >
+                    <IconifyIconOnline
+                      v-if="favorite.icon"
+                      :icon="favorite.icon"
+                      class="favorite-menu-icon"
+                    />
                     <span>{{ favorite.title }}</span>
-                    <span class="add-time">{{ formatAddTime(favorite.addTime) }}</span>
+                    <span class="add-time">{{
+                      formatAddTime(favorite.addTime)
+                    }}</span>
                   </router-link>
                   <!-- 取消收藏按钮 -->
-                  <button v-if="hoveredMenuItem?.path === favorite.path" class="favorite-btn remove-favorite"
-                    @click="toggleFavorite(favorite, $event)" title="取消收藏">
+                  <button
+                    v-if="hoveredMenuItem?.path === favorite.path"
+                    class="favorite-btn remove-favorite"
+                    @click="toggleFavorite(favorite, $event)"
+                    title="取消收藏"
+                  >
                     <IconifyIconOnline icon="ep:delete" class="favorite-icon" />
                   </button>
                 </div>
@@ -535,27 +626,59 @@ const defer = useDefer(firstLevelMenus.value.length);
             <!-- 普通菜单内容 - 横向多列布局 -->
             <div v-else class="horizontal-menu-container">
               <!-- 横向多列布局 -->
-              <div class="horizontal-columns-grid" :style="{
-                gridTemplateColumns: `repeat(${getGridColumns(totalMenuItems)}, 1fr)`,
-              }">
+              <div
+                class="horizontal-columns-grid"
+                :style="{
+                  gridTemplateColumns: `repeat(${getGridColumns(totalMenuItems)}, 1fr)`,
+                }"
+              >
                 <!-- 有分组的菜单列 -->
-                <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
-                  <div v-if="subMenu.children && subMenu.children.length > 0" class="menu-column">
+                <template
+                  v-for="subMenu in currentSubMenus"
+                  :key="subMenu.path"
+                >
+                  <div
+                    v-if="subMenu.children && subMenu.children.length > 0"
+                    class="menu-column"
+                  >
                     <div class="column-title">{{ subMenu.meta?.title }}</div>
                     <div class="column-items">
-                      <div v-for="thirdMenu in subMenu.children" :key="thirdMenu.path" class="menu-item-wrapper"
-                        @mouseenter="handleMenuItemHover(thirdMenu)" @mouseleave="handleMenuItemLeave">
-                        <router-link :to="thirdMenu.path" class="menu-item"
-                          :class="{ 'is-active': defaultActive === thirdMenu.path }"
-                          @click="handleSubMenuClick(thirdMenu, $event)">
+                      <div
+                        v-for="thirdMenu in subMenu.children"
+                        :key="thirdMenu.path"
+                        class="menu-item-wrapper"
+                        @mouseenter="handleMenuItemHover(thirdMenu)"
+                        @mouseleave="handleMenuItemLeave"
+                      >
+                        <router-link
+                          :to="thirdMenu.path"
+                          class="menu-item"
+                          :class="{
+                            'is-active': defaultActive === thirdMenu.path,
+                          }"
+                          @click="handleSubMenuClick(thirdMenu, $event)"
+                        >
                           {{ thirdMenu.meta?.title }}
                         </router-link>
                         <!-- 收藏按钮 -->
-                        <button v-if="hoveredMenuItem?.path === thirdMenu.path" class="favorite-btn"
-                          :class="{ 'is-favorited': isMenuFavorited(thirdMenu) }"
+                        <button
+                          v-if="hoveredMenuItem?.path === thirdMenu.path"
+                          class="favorite-btn"
+                          :class="{
+                            'is-favorited': isMenuFavorited(thirdMenu),
+                          }"
                           @click="toggleFavorite(thirdMenu, $event)"
-                          :title="isMenuFavorited(thirdMenu) ? '取消收藏' : '添加收藏'">
-                          <IconifyIconOnline :icon="isMenuFavorited(thirdMenu) ? 'ep:star-filled' : 'ep:star'" />
+                          :title="
+                            isMenuFavorited(thirdMenu) ? '取消收藏' : '添加收藏'
+                          "
+                        >
+                          <IconifyIconOnline
+                            :icon="
+                              isMenuFavorited(thirdMenu)
+                                ? 'ep:star-filled'
+                                : 'ep:star'
+                            "
+                          />
                         </button>
                       </div>
                     </div>
@@ -563,23 +686,55 @@ const defer = useDefer(firstLevelMenus.value.length);
                 </template>
 
                 <!-- 直接的二级菜单项作为单独列 -->
-                <div v-if="currentSubMenus.some((menu) => !menu.children || menu.children.length === 0)"
-                  class="menu-column">
+                <div
+                  v-if="
+                    currentSubMenus.some(
+                      (menu) => !menu.children || menu.children.length === 0
+                    )
+                  "
+                  class="menu-column"
+                >
                   <div class="column-title">其他功能</div>
                   <div class="column-items">
-                    <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
-                      <div v-if="!subMenu.children || subMenu.children.length === 0" class="menu-item-wrapper"
-                        @mouseenter="handleMenuItemHover(subMenu)" @mouseleave="handleMenuItemLeave">
-                        <router-link :to="subMenu.path" class="menu-item"
-                          :class="{ 'is-active': defaultActive === subMenu.path }"
-                          @click="handleSubMenuClick(subMenu, $event)">
+                    <template
+                      v-for="subMenu in currentSubMenus"
+                      :key="subMenu.path"
+                    >
+                      <div
+                        v-if="
+                          !subMenu.children || subMenu.children.length === 0
+                        "
+                        class="menu-item-wrapper"
+                        @mouseenter="handleMenuItemHover(subMenu)"
+                        @mouseleave="handleMenuItemLeave"
+                      >
+                        <router-link
+                          :to="subMenu.path"
+                          class="menu-item"
+                          :class="{
+                            'is-active': defaultActive === subMenu.path,
+                          }"
+                          @click="handleSubMenuClick(subMenu, $event)"
+                        >
                           {{ subMenu.meta?.title }}
                         </router-link>
                         <!-- 收藏按钮 -->
-                        <button v-if="hoveredMenuItem?.path === subMenu.path" class="favorite-btn"
-                          :class="{ 'is-favorited': isMenuFavorited(subMenu) }" @click="toggleFavorite(subMenu, $event)"
-                          :title="isMenuFavorited(subMenu) ? '取消收藏' : '添加收藏'">
-                          <IconifyIconOnline :icon="isMenuFavorited(subMenu) ? 'ep:star-filled' : 'ep:star'" />
+                        <button
+                          v-if="hoveredMenuItem?.path === subMenu.path"
+                          class="favorite-btn"
+                          :class="{ 'is-favorited': isMenuFavorited(subMenu) }"
+                          @click="toggleFavorite(subMenu, $event)"
+                          :title="
+                            isMenuFavorited(subMenu) ? '取消收藏' : '添加收藏'
+                          "
+                        >
+                          <IconifyIconOnline
+                            :icon="
+                              isMenuFavorited(subMenu)
+                                ? 'ep:star-filled'
+                                : 'ep:star'
+                            "
+                          />
                         </button>
                       </div>
                     </template>
@@ -593,7 +748,10 @@ const defer = useDefer(firstLevelMenus.value.length);
     </Teleport>
 
     <!-- 底部收缩按钮保持原有逻辑 -->
-    <LaySidebarLeftCollapse :is-active="!isHoverCollapsed" @toggleClick="toggleHoverSideBar" />
+    <LaySidebarLeftCollapse
+      :is-active="!isHoverCollapsed"
+      @toggleClick="toggleHoverSideBar"
+    />
   </div>
 </template>
 
@@ -602,7 +760,11 @@ const defer = useDefer(firstLevelMenus.value.length);
   position: relative;
   height: 100%;
   width: 200px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0.98)
+  );
   backdrop-filter: blur(12px);
   border-right: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -645,7 +807,11 @@ const defer = useDefer(firstLevelMenus.value.length);
   }
 
   .dark & {
-    background: linear-gradient(180deg, rgba(28, 28, 35, 0.95), rgba(30, 30, 40, 0.98));
+    background: linear-gradient(
+      180deg,
+      rgba(28, 28, 35, 0.95),
+      rgba(30, 30, 40, 0.98)
+    );
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
@@ -705,14 +871,14 @@ const defer = useDefer(firstLevelMenus.value.length);
     align-items: center;
     height: 100%;
     padding: 0 16px;
-    color: #000000;
-    /* 未选中状态为黑色 */
+    color: var(--el-text-color-primary);
+    /* 未选中状态 */
 
     .menu-icon {
       font-size: 18px;
       margin-right: 12px;
-      color: #000000;
-      /* 未选中状态为黑色 */
+      color: var(--el-text-color-primary);
+      /* 未选中状态 */
       transition: all 0.3s;
     }
 
@@ -765,7 +931,11 @@ const defer = useDefer(firstLevelMenus.value.length);
   max-width: 900px;
   width: fit-content;
   max-height: 85vh;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0.98)
+  );
   border-radius: 16px;
   box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.08),
@@ -784,11 +954,20 @@ const defer = useDefer(firstLevelMenus.value.length);
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.8),
+      transparent
+    );
   }
 
   .dark & {
-    background: linear-gradient(135deg, rgba(28, 28, 35, 0.95), rgba(30, 30, 40, 0.98));
+    background: linear-gradient(
+      135deg,
+      rgba(28, 28, 35, 0.95),
+      rgba(30, 30, 40, 0.98)
+    );
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow:
       0 20px 40px rgba(0, 0, 0, 0.4),
@@ -940,7 +1119,6 @@ const defer = useDefer(firstLevelMenus.value.length);
     /* 使用新定义的变量，确保在所有主题下都是白色 */
     font-weight: 600;
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
-
   }
 }
 
@@ -1039,10 +1217,18 @@ const defer = useDefer(firstLevelMenus.value.length);
       border: 1px solid transparent;
       width: 100%;
       min-height: 44px;
-      background: linear-gradient(135deg, var(--el-bg-color), rgba(var(--el-color-warning-rgb), 0.02));
+      background: linear-gradient(
+        135deg,
+        var(--el-bg-color),
+        rgba(var(--el-color-warning-rgb), 0.02)
+      );
 
       &:hover {
-        background: linear-gradient(135deg, var(--el-color-warning-light-9), var(--el-color-warning-light-8));
+        background: linear-gradient(
+          135deg,
+          var(--el-color-warning-light-9),
+          var(--el-color-warning-light-8)
+        );
         color: var(--el-color-warning-dark-2);
         transform: translateY(-2px);
         border-color: var(--el-color-warning-light-7);

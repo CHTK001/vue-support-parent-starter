@@ -102,7 +102,7 @@
 }
 
 html.dark .pure-segmented-group {
-  color: #fff;
+  color: var(--el-text-color-primary);
 }
 .pure-segmented-group {
   position: relative;
@@ -121,7 +121,7 @@ html.dark .pure-segmented-group {
   width: 0;
   height: 100%;
   padding: 4px 0;
-  background-color: #fff;
+  background-color: var(--el-bg-color);
   border-radius: 4px;
   box-shadow:
     0 2px 8px -2px rgb(0 0 0 / 5%),

@@ -1,14 +1,31 @@
 <template>
   <div class="llm-container">
     <!-- 保持原有结构，添加新的类名 -->
-    <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment"></ModuleUpdateDialog>
-    <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment"></ModuleDialog>
-    <el-button @click="handleOpenModuleManager" class="settings-btn" circle size="large" type="primary">
+    <ModuleUpdateDialog
+      ref="moduleUpdateDialogRef"
+      @success="handleRefreshEnvironment"
+    ></ModuleUpdateDialog>
+    <ModuleDialog
+      ref="moduleDialogRef"
+      @success="handleRefreshEnvironment"
+    ></ModuleDialog>
+    <el-button
+      @click="handleOpenModuleManager"
+      class="settings-btn"
+      circle
+      size="large"
+      type="primary"
+    >
       <IconifyIconOnline icon="ep:setting" />
     </el-button>
     <div class="llm-main-container">
       <div class="chat-main">
-        <ChatComponent :form="form" :env="env" :model-list="modelList" ref="chatComponentRef" />
+        <ChatComponent
+          :form="form"
+          :env="env"
+          :model-list="modelList"
+          ref="chatComponentRef"
+        />
       </div>
     </div>
   </div>
@@ -16,27 +33,31 @@
 
 <style scoped lang="scss">
 .llm-container {
-  --primary: #7c3aed;
-  --primary-dark: #6d28d9;
-  --primary-light: #ede9fe;
-  --primary-50: rgba(124, 58, 237, 0.05);
-  --primary-rgb: 124, 58, 237;
+  --primary: var(--el-color-primary);
+  --primary-dark: var(--el-color-primary-dark-2);
+  --primary-light: var(--el-color-primary-light-9);
+  --primary-50: rgba(var(--el-color-primary-rgb), 0.05);
+  --primary-rgb: var(--el-color-primary-rgb);
   --transition: cubic-bezier(0.4, 0, 0.2, 1);
 
   @apply h-full relative;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-bg-color) 0%,
+    var(--el-fill-color-lighter) 100%
+  );
 
   .settings-btn {
     @apply fixed right-6 top-1/2 z-[99];
-    background: var(--primary);
-    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+    background: var(--el-color-primary);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
     transition: all 0.5s var(--transition);
     animation: float 3s ease-in-out infinite;
 
     &:hover {
       transform: scale(1.1) rotate(15deg);
-      background: var(--primary-dark);
-      box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
+      background: var(--el-color-primary-dark-2);
+      box-shadow: 0 8px 20px rgba(var(--el-color-primary-rgb), 0.3);
       animation: none;
     }
   }
@@ -65,15 +86,19 @@
 
 .dark {
   .llm-container {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-bg-color) 0%,
+      var(--el-fill-color-darker) 100%
+    );
 
     .settings-btn {
-      @apply bg-indigo-500;
-      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+      background: var(--el-color-primary);
+      box-shadow: 0 4px 20px rgba(var(--el-color-primary-rgb), 0.4);
 
       &:hover {
-        @apply bg-indigo-600;
-        box-shadow: 0 8px 30px rgba(99, 102, 241, 0.5);
+        background: var(--el-color-primary-dark-2);
+        box-shadow: 0 8px 30px rgba(var(--el-color-primary-rgb), 0.5);
       }
     }
 
@@ -118,15 +143,15 @@
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
+    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0.4);
   }
 
   70% {
-    box-shadow: 0 0 0 10px rgba(124, 58, 237, 0);
+    box-shadow: 0 0 0 10px rgba(var(--el-color-primary-rgb), 0);
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
+    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0);
   }
 }
 </style>
@@ -135,13 +160,23 @@
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { useUserStoreHook } from "@repo/core";
 import { getRandomInt, localStorageProxy } from "@repo/utils";
-import { computed, defineAsyncComponent, onMounted, reactive, shallowRef } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  onMounted,
+  reactive,
+  shallowRef,
+} from "vue";
 import { useRoute } from "vue-router";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
 
 // 导入新的ChatComponent组件
-const ChatComponent = defineAsyncComponent(() => import("./module/ChatComponent.vue"));
-const ModuleUpdateDialog = defineAsyncComponent(() => import("../module-update.vue"));
+const ChatComponent = defineAsyncComponent(
+  () => import("./module/ChatComponent.vue")
+);
+const ModuleUpdateDialog = defineAsyncComponent(
+  () => import("../module-update.vue")
+);
 const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));
 
 const form = reactive({
@@ -162,7 +197,9 @@ const rules = {
   tokens: [{ required: true, message: "请输入tokens", trigger: "change" }],
   topK: [{ required: true, message: "请输入topK", trigger: "change" }],
   topP: [{ required: true, message: "请输入topP", trigger: "change" }],
-  temperature: [{ required: true, message: "请输入temperature", trigger: "change" }],
+  temperature: [
+    { required: true, message: "请输入temperature", trigger: "change" },
+  ],
 };
 const route = useRoute();
 

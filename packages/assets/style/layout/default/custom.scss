@@ -40,7 +40,7 @@ img {
   position: relative;
 }
 .scTable-page {
-  background-color: #fff;
+  background-color: var(--el-bg-color);
   z-index: 100;
   width: 100%;
   border-radius: 10px;

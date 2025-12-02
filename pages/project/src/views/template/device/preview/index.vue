@@ -1,36 +1,55 @@
 <template>
   <div class="device-camera-container">
     <div class="device-camera-setting">
-      <div :class="{ 'device-camera-show-content': !showSetting }" class="device-camera-setting-content">
+      <div
+        :class="{ 'device-camera-show-content': !showSetting }"
+        class="device-camera-setting-content"
+      >
         <div v-if="showSetting" class="device-camera-setting-inner">
           <div class="device-camera-options">
             <div class="device-camera-option-group">
               <el-row><b>设备选择</b></el-row>
               <el-row class="device-camera-select-layout">
-                <el-segmented v-model="env.showOrHide" @change="handleShowOrHide" class="device-camera-segmented"
+                <el-segmented
+                  v-model="env.showOrHide"
+                  @change="handleShowOrHide"
+                  class="device-camera-segmented"
                   :options="[
-        {
-          label: '显示',
-          value: true,
-        },
-        {
-          label: '隐藏',
-          value: false,
-        },
-      ]"></el-segmented>
+                    {
+                      label: '显示',
+                      value: true,
+                    },
+                    {
+                      label: '隐藏',
+                      value: false,
+                    },
+                  ]"
+                ></el-segmented>
               </el-row>
             </div>
-            <div class="device-camera-option-group device-camera-layout-options">
+            <div
+              class="device-camera-option-group device-camera-layout-options"
+            >
               <el-row><b>布局方式</b></el-row>
               <el-row class="device-camera-select-layout">
-                <el-col :span="3" class="device-camera-layout-item device-camera-item00"
-                  :class="{ 'device-camera-active': env.layout == 1 }" @click="setLayout(1)" title="1">
+                <el-col
+                  :span="3"
+                  class="device-camera-layout-item device-camera-item00"
+                  :class="{ 'device-camera-active': env.layout == 1 }"
+                  @click="setLayout(1)"
+                  title="1"
+                >
                   <el-row :gutter="2">
                     <el-col :span="24"><span /></el-col>
                   </el-row>
                 </el-col>
-                <el-col :span="3" class="device-camera-layout-item device-camera-item03"
-                  :class="{ 'device-camera-active': env.layout == 2 }" @click="setLayout(2)" title="2x2">
+                <el-col
+                  :span="3"
+                  class="device-camera-layout-item device-camera-item03"
+                  :class="{ 'device-camera-active': env.layout == 2 }"
+                  @click="setLayout(2)"
+                  title="2x2"
+                >
                   <el-row :gutter="2" class="h-[45px]">
                     <el-col :span="12"><span /></el-col>
                     <el-col :span="12"><span /></el-col>
@@ -38,8 +57,13 @@
                     <el-col :span="12"><span /></el-col>
                   </el-row>
                 </el-col>
-                <el-col :span="3" class="device-camera-layout-item device-camera-item04"
-                  :class="{ 'device-camera-active': env.layout == 3 }" @click="setLayout(3)" title="3x3">
+                <el-col
+                  :span="3"
+                  class="device-camera-layout-item device-camera-item04"
+                  :class="{ 'device-camera-active': env.layout == 3 }"
+                  @click="setLayout(3)"
+                  title="3x3"
+                >
                   <el-row :gutter="2">
                     <el-col :span="8"><span /></el-col>
                     <el-col :span="8"><span /></el-col>
@@ -59,7 +83,12 @@
       </div>
       <div class="device-camera-toggle">
         <div></div>
-        <el-icon class="device-camera-toggle-btn" color="white" size="24" @click="() => (showSetting = !showSetting)">
+        <el-icon
+          class="device-camera-toggle-btn"
+          color="white"
+          size="24"
+          @click="() => (showSetting = !showSetting)"
+        >
           <component :is="useRenderIcon('ep:arrow-down')" v-if="showSetting" />
           <component :is="useRenderIcon('ep:arrow-up')" v-else />
         </el-icon>
@@ -71,74 +100,173 @@
         <template v-if="env.layout == 1">
           <el-row class="device-camera-video-row device-camera-single">
             <el-col :span="24">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['01'] = el)" :form="env.form"
-                :devices="env.devices" key="01" diff="01" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['01'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="01"
+                diff="01"
+              />
             </el-col>
           </el-row>
         </template>
         <template v-else-if="env.layout == 2">
-          <el-row :gutter="2" class="device-camera-video-row device-camera-grid-2">
+          <el-row
+            :gutter="2"
+            class="device-camera-video-row device-camera-grid-2"
+          >
             <el-col :span="12" class="device-camera-video-item">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['01'] = el)" :form="env.form"
-                :devices="env.devices" key="01" diff="01" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['01'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="01"
+                diff="01"
+              />
             </el-col>
             <el-col :span="12" class="device-camera-video-item">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['02'] = el)" :form="env.form"
-                :devices="env.devices" key="02" diff="02" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['02'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="02"
+                diff="02"
+              />
             </el-col>
           </el-row>
-          <el-row :gutter="2" class="device-camera-video-row device-camera-grid-2">
+          <el-row
+            :gutter="2"
+            class="device-camera-video-row device-camera-grid-2"
+          >
             <el-col :span="12" class="device-camera-video-item">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['11'] = el)" :form="env.form"
-                :devices="env.devices" key="11" diff="11" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['11'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="11"
+                diff="11"
+              />
             </el-col>
             <el-col :span="12" class="device-camera-video-item">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['12'] = el)" :form="env.form"
-                :devices="env.devices" key="12" diff="12" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['12'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="12"
+                diff="12"
+              />
             </el-col>
           </el-row>
         </template>
         <template v-else-if="env.layout == 3">
-          <el-row :gutter="2" class="device-camera-video-row device-camera-grid-3">
+          <el-row
+            :gutter="2"
+            class="device-camera-video-row device-camera-grid-3"
+          >
             <el-col :span="8" class="device-camera-video-item">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['01'] = el)" :form="env.form"
-                :devices="env.devices" key="01" diff="01" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['01'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="01"
+                diff="01"
+              />
             </el-col>
             <el-col :span="8" class="device-camera-video-item">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['02'] = el)" :form="env.form"
-                :devices="env.devices" key="02" diff="02" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['02'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="02"
+                diff="02"
+              />
             </el-col>
             <el-col :span="8" class="device-camera-video-item">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['03'] = el)" :form="env.form"
-                :devices="env.devices" key="03" diff="03" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['03'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="03"
+                diff="03"
+              />
             </el-col>
           </el-row>
-          <el-row :gutter="2" class="device-camera-video-row device-camera-grid-3">
+          <el-row
+            :gutter="2"
+            class="device-camera-video-row device-camera-grid-3"
+          >
             <el-col :span="8" class="device-camera-video-item">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['11'] = el)" :form="env.form"
-                :devices="env.devices" key="11" diff="11" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['11'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="11"
+                diff="11"
+              />
             </el-col>
             <el-col :span="8" class="device-camera-video-item">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['12'] = el)" :form="env.form"
-                :devices="env.devices" key="12" diff="12" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['12'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="12"
+                diff="12"
+              />
             </el-col>
             <el-col :span="8" class="device-camera-video-item">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['13'] = el)" :form="env.form"
-                :devices="env.devices" key="13" diff="13" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['13'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="13"
+                diff="13"
+              />
             </el-col>
           </el-row>
-          <el-row :gutter="2" class="device-camera-video-row device-camera-grid-3">
+          <el-row
+            :gutter="2"
+            class="device-camera-video-row device-camera-grid-3"
+          >
             <el-col :span="8" class="device-camera-video-item">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['21'] = el)" :form="env.form"
-                :devices="env.devices" key="21" name="21" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['21'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="21"
+                name="21"
+              />
             </el-col>
             <el-col :span="8" class="device-camera-video-item">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['22'] = el)" :form="env.form"
-                :devices="env.devices" key="22" name="22" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['22'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="22"
+                name="22"
+              />
             </el-col>
             <el-col :span="8" class="device-camera-video-item">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['23'] = el)" :form="env.form"
-                :devices="env.devices" key="23" name="23" />
+              <CameraPreviewDialog
+                :autoOrHide="env.autoOrHide"
+                :ref="(el) => (refs['23'] = el)"
+                :form="env.form"
+                :devices="env.devices"
+                key="23"
+                name="23"
+              />
             </el-col>
           </el-row>
         </template>
@@ -151,7 +279,17 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
 import { useRoute, useRouter } from "vue-router";
-import { defineAsyncComponent, defineExpose, nextTick, reactive, shallowRef, getCurrentInstance, handleError, onMounted, onUnmounted } from "vue";
+import {
+  defineAsyncComponent,
+  defineExpose,
+  nextTick,
+  reactive,
+  shallowRef,
+  getCurrentInstance,
+  handleError,
+  onMounted,
+  onUnmounted,
+} from "vue";
 import LoadingComponent from "@repo/components/ScLoadCompent/index.vue";
 import { useFullscreen } from "@vueuse/core";
 import { Base64 } from "js-base64";
@@ -169,7 +307,7 @@ onMounted(() => {
   const _route = useRoute();
   try {
     handleOpen(JSON.parse(Base64.decode(_route.query.data)), "view");
-  } catch (error) { }
+  } catch (error) {}
 });
 
 onUnmounted(async () => {
@@ -200,10 +338,18 @@ const handleToggle = async () => {
 
 const handleTrigger = async () => {
   settingOpen.value = !settingOpen.value;
-  window.aside?.style.setProperty("--aside-width", settingOpen.value ? "300px" : "55px");
+  window.aside?.style.setProperty(
+    "--aside-width",
+    settingOpen.value ? "300px" : "55px"
+  );
 };
 
-isFullscreen.value = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+isFullscreen.value = !!(
+  document.fullscreenElement ||
+  document.webkitFullscreenElement ||
+  document.mozFullScreenElement ||
+  document.msFullscreenElement
+);
 
 const handleOpen = async (item, mode) => {
   env.visible = true;
@@ -318,7 +464,7 @@ defineExpose({
 .device-camera-container {
   height: 100vh;
   width: 100vw;
-  background-color: #0a0a0a;
+  background-color: var(--el-bg-color-page);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -343,7 +489,7 @@ defineExpose({
   /* 进一步增加高度，确保布局选项完全显示 */
   width: 100vw;
   backdrop-filter: blur(15px);
-  background-color: rgba(30, 30, 30, 0.7);
+  background-color: rgba(var(--el-bg-color-rgb), 0.85);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   animation: device-camera-fade-in 0.5s ease-out;
@@ -363,7 +509,7 @@ defineExpose({
 .device-camera-options {
   display: flex;
   gap: 32px;
-  color: #fff;
+  color: var(--el-text-color-primary);
   flex-wrap: wrap;
   align-items: flex-start;
   /* 确保项目从顶部对齐 */
@@ -376,12 +522,12 @@ defineExpose({
     font-size: 14px;
     margin-bottom: 10px;
     display: inline-block;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--el-text-color-primary);
     position: relative;
     padding-left: 12px;
 
     &:before {
-      content: '';
+      content: "";
       position: absolute;
       left: 0;
       top: 50%;
@@ -415,7 +561,7 @@ defineExpose({
 /* 布局选择器样式 */
 .device-camera-layout-item {
   height: 55px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--el-border-color-lighter);
   padding: 4px;
   cursor: pointer;
   margin-right: 12px;
@@ -424,7 +570,7 @@ defineExpose({
   /* 添加底部间距 */
   border-radius: 8px;
   transition: all 0.3s ease;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--el-fill-color-light);
   max-width: 80px;
   /* 限制最大宽度 */
 
@@ -442,7 +588,7 @@ defineExpose({
 
   span {
     display: block;
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--el-fill-color);
     height: 22px;
     border-radius: 4px;
     transition: all 0.3s ease;
@@ -452,7 +598,7 @@ defineExpose({
 .device-camera-item04 {
   span {
     display: block;
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--el-fill-color);
     height: 15px;
     border-radius: 4px;
     transition: all 0.3s ease;

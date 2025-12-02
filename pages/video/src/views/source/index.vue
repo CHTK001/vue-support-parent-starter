@@ -13,7 +13,11 @@
 
           <div class="list-actions">
             <div class="search-input">
-              <el-input v-model="searchKeyword" placeholder="搜索视频源平台或URL" @input="handleSearch">
+              <el-input
+                v-model="searchKeyword"
+                placeholder="搜索视频源平台或URL"
+                @input="handleSearch"
+              >
                 <template #prefix>
                   <el-icon>
                     <IconifyIconOnline icon="ep:search" />
@@ -23,7 +27,11 @@
             </div>
 
             <div class="filter-select">
-              <el-select v-model="statusFilter" placeholder="状态筛选" @change="handleFilter">
+              <el-select
+                v-model="statusFilter"
+                placeholder="状态筛选"
+                @change="handleFilter"
+              >
                 <el-option label="全部" value="" />
                 <el-option label="启用" value="1" />
                 <el-option label="禁用" value="0" />
@@ -31,11 +39,18 @@
             </div>
 
             <div class="header-actions">
-              <el-button type="primary" @click="showAddDialog = true" class="action-btn primary-action">
+              <el-button
+                type="primary"
+                @click="showAddDialog = true"
+                class="action-btn primary-action"
+              >
                 <IconifyIconOnline icon="ep:plus" />
                 新增视频源
               </el-button>
-              <el-button @click="refreshSources" class="action-btn secondary-action">
+              <el-button
+                @click="refreshSources"
+                class="action-btn secondary-action"
+              >
                 <el-icon>
                   <IconifyIconOnline icon="ep:refresh" />
                 </el-icon>
@@ -46,11 +61,20 @@
       </div>
 
       <div class="list-content flex-1">
-        <ScTable :url="getSourceList" :params="{
-          keyword: searchKeyword,
-          status: statusFilter,
-        }" :col-size="4" layout="card" :page-size="pageSize" @selection-change="handleSelectionChange"
-          @data-loaded="handleDataLoaded" class="source-cards" ref="tableRef">
+        <ScTable
+          :url="getSourceList"
+          :params="{
+            keyword: searchKeyword,
+            status: statusFilter,
+          }"
+          :col-size="4"
+          layout="card"
+          :page-size="pageSize"
+          @selection-change="handleSelectionChange"
+          @data-loaded="handleDataLoaded"
+          class="source-cards"
+          ref="tableRef"
+        >
           <!-- 空状态模板 -->
           <template #empty>
             <div class="empty-state">
@@ -58,8 +82,14 @@
                 <IconifyIconOnline icon="ep:video-camera" />
               </div>
               <div class="empty-title">暂无视频源数据</div>
-              <div class="empty-description">还没有添加任何视频源，点击上方按钮开始添加</div>
-              <el-button type="primary" @click="showAddDialog = true" class="empty-action">
+              <div class="empty-description">
+                还没有添加任何视频源，点击上方按钮开始添加
+              </div>
+              <el-button
+                type="primary"
+                @click="showAddDialog = true"
+                class="empty-action"
+              >
                 <IconifyIconOnline icon="ep:plus" class="mr-2" />
                 新增视频源
               </el-button>
@@ -68,16 +98,31 @@
 
           <!-- 卡片模板 -->
           <template #default="{ row }">
-            <SourceCard :source="row" @action="handleCommand" @test-connection="testConnection" />
+            <SourceCard
+              :source="row"
+              @action="handleCommand"
+              @test-connection="testConnection"
+            />
           </template>
         </ScTable>
       </div>
     </div>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog v-model="showAddDialog" :title="editingSource ? '编辑视频源' : '新增视频源'" width="80%"
-      :close-on-click-modal="false" class="source-dialog" draggable>
-      <SourceForm :source="editingSource" @submit="handleSubmit" @cancel="handleCancel" ref="formRef" />
+    <el-dialog
+      v-model="showAddDialog"
+      :title="editingSource ? '编辑视频源' : '新增视频源'"
+      width="80%"
+      :close-on-click-modal="false"
+      class="source-dialog"
+      draggable
+    >
+      <SourceForm
+        :source="editingSource"
+        @submit="handleSubmit"
+        @cancel="handleCancel"
+        ref="formRef"
+      />
     </el-dialog>
   </div>
 </template>
@@ -91,7 +136,12 @@
  */
 import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, onUnmounted, ref } from "vue";
-import { deleteSource, getSourceList, saveSource, updateSource } from "../../api/source";
+import {
+  deleteSource,
+  getSourceList,
+  saveSource,
+  updateSource,
+} from "../../api/source";
 import type { VideoSource } from "../../api/types";
 import SourceCard from "./components/SourceCard.vue";
 import SourceForm from "./components/SourceForm.vue";
@@ -165,11 +215,15 @@ const editSource = (source: VideoSource) => {
  * 删除视频源
  */
 const deleteSourceItem = (source: VideoSource) => {
-  ElMessageBox.confirm(`确定要删除视频源 "${source.videoSourcePlatform}" 吗？`, "确认删除", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
-  })
+  ElMessageBox.confirm(
+    `确定要删除视频源 "${source.videoSourcePlatform}" 吗？`,
+    "确认删除",
+    {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    }
+  )
     .then(() => {
       deleteSource(source.videoSourceId)
         .then(() => {
@@ -290,7 +344,6 @@ onUnmounted(() => {
   padding: 20px;
   border-bottom: 1px solid var(--el-border-color);
   background: var(--el-bg-color-overlay);
-
 }
 
 .list-header-content {
@@ -308,12 +361,16 @@ onUnmounted(() => {
 .list-icon {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 100%
+  );
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--el-button-text-color);
+  color: var(--el-color-white);
   font-size: 18px;
 }
 
@@ -349,15 +406,19 @@ onUnmounted(() => {
 }
 
 .primary-action {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 100%
+  );
   border: none;
-  color: var(--el-button-text-color);
+  color: var(--el-color-white);
 }
 
 .secondary-action {
   background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color);
-  color: #606266;
+  color: var(--el-text-color-regular);
 }
 
 .list-content {
@@ -375,7 +436,7 @@ onUnmounted(() => {
 
 .empty-icon {
   font-size: 64px;
-  color: #c0c4cc;
+  color: var(--el-text-color-placeholder);
   margin-bottom: 16px;
 }
 
@@ -387,12 +448,16 @@ onUnmounted(() => {
 
 .empty-description {
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   margin-bottom: 24px;
 }
 
 .empty-action {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 100%
+  );
   border: none;
 }
 
@@ -401,8 +466,8 @@ onUnmounted(() => {
 }
 
 .source-dialog :deep(.el-dialog__header) {
-  background: #fafbfc;
-  border-bottom: 1px solid #ebeef5;
+  background: var(--el-fill-color-lighter);
+  border-bottom: 1px solid var(--el-border-color-lighter);
   padding: 20px 24px;
 }
 

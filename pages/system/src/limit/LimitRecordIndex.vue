@@ -9,16 +9,32 @@
 
       <el-form :model="searchForm" :inline="true" class="search-form">
         <el-form-item label="接口路径">
-          <el-input v-model="searchForm.sysLimitPath" placeholder="请输入接口路径" clearable />
+          <el-input
+            v-model="searchForm.sysLimitPath"
+            placeholder="请输入接口路径"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="规则名称">
-          <el-input v-model="searchForm.sysLimitName" placeholder="请输入规则名称" clearable />
+          <el-input
+            v-model="searchForm.sysLimitName"
+            placeholder="请输入规则名称"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="用户ID">
-          <el-input v-model="searchForm.sysUserId" placeholder="请输入用户ID" clearable />
+          <el-input
+            v-model="searchForm.sysUserId"
+            placeholder="请输入用户ID"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="客户端IP">
-          <el-input v-model="searchForm.clientIp" placeholder="请输入客户端IP" clearable />
+          <el-input
+            v-model="searchForm.clientIp"
+            placeholder="请输入客户端IP"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="限流时间">
           <el-date-picker
@@ -30,7 +46,11 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="handleSearch">
+          <el-button
+            type="primary"
+            :icon="useRenderIcon('ep:search')"
+            @click="handleSearch"
+          >
             查询
           </el-button>
           <el-button :icon="useRenderIcon('ep:refresh')" @click="handleReset">
@@ -62,7 +82,11 @@
         <el-table-column type="selection" width="55" />
         <el-table-column prop="sysLimitName" label="规则名称" min-width="120" />
         <el-table-column prop="sysLimitPath" label="接口路径" min-width="150" />
-        <el-table-column prop="sysLimitDimension" label="限流维度" min-width="100" />
+        <el-table-column
+          prop="sysLimitDimension"
+          label="限流维度"
+          min-width="100"
+        />
         <el-table-column prop="sysLimitKey" label="限流键值" min-width="120" />
         <el-table-column prop="sysUserName" label="用户名" min-width="100" />
         <el-table-column prop="clientIp" label="客户端IP" min-width="120" />
@@ -105,7 +129,7 @@ import {
   fetchLimitRecordPage,
   deleteLimitRecord,
   deleteBatchLimitRecord,
-  type SysLimitRecord
+  type SysLimitRecord,
 } from "../api/limitRecord";
 
 // 搜索表单
@@ -114,7 +138,7 @@ const searchForm = reactive({
   sysLimitName: "",
   sysUserId: undefined,
   clientIp: "",
-  sysLimitTime: ""
+  sysLimitTime: "",
 });
 
 // 表格数据
@@ -125,7 +149,7 @@ const loading = ref(false);
 const pagination = reactive({
   currentPage: 1,
   pageSize: 10,
-  total: 0
+  total: 0,
 });
 
 // 选中的行
@@ -138,7 +162,7 @@ const getData = async () => {
     const params = {
       ...searchForm,
       current: pagination.currentPage,
-      size: pagination.pageSize
+      size: pagination.pageSize,
     };
     const res = await fetchLimitRecordPage(params);
     if (res.success) {
@@ -179,22 +203,24 @@ const handleSelectionChange = (rows: SysLimitRecord[]) => {
 // 删除
 const handleDelete = (row: SysLimitRecord) => {
   ElMessageBox.confirm("确定要删除该限流记录吗？", "提示", {
-    type: "warning"
-  }).then(async () => {
-    try {
-      const res = await deleteLimitRecord(row.sysLimitRecordId!);
-      if (res.success) {
-        ElMessage.success("删除成功");
-        getData();
-      } else {
-        ElMessage.error(res.msg || "删除失败");
+    type: "warning",
+  })
+    .then(async () => {
+      try {
+        const res = await deleteLimitRecord(row.sysLimitRecordId!);
+        if (res.success) {
+          ElMessage.success("删除成功");
+          getData();
+        } else {
+          ElMessage.error(res.msg || "删除失败");
+        }
+      } catch (error) {
+        ElMessage.error("删除失败");
       }
-    } catch (error) {
-      ElMessage.error("删除失败");
-    }
-  }).catch(() => {
-    // 取消删除
-  });
+    })
+    .catch(() => {
+      // 取消删除
+    });
 };
 
 // 批量删除
@@ -204,24 +230,30 @@ const handleBatchDelete = () => {
     return;
   }
 
-  ElMessageBox.confirm(`确定要删除选中的${selectedRows.value.length}条限流记录吗？`, "提示", {
-    type: "warning"
-  }).then(async () => {
-    try {
-      const ids = selectedRows.value.map(item => item.sysLimitRecordId!);
-      const res = await deleteBatchLimitRecord(ids);
-      if (res.success) {
-        ElMessage.success("批量删除成功");
-        getData();
-      } else {
-        ElMessage.error(res.msg || "批量删除失败");
-      }
-    } catch (error) {
-      ElMessage.error("批量删除失败");
+  ElMessageBox.confirm(
+    `确定要删除选中的${selectedRows.value.length}条限流记录吗？`,
+    "提示",
+    {
+      type: "warning",
     }
-  }).catch(() => {
-    // 取消删除
-  });
+  )
+    .then(async () => {
+      try {
+        const ids = selectedRows.value.map((item) => item.sysLimitRecordId!);
+        const res = await deleteBatchLimitRecord(ids);
+        if (res.success) {
+          ElMessage.success("批量删除成功");
+          getData();
+        } else {
+          ElMessage.error(res.msg || "批量删除失败");
+        }
+      } catch (error) {
+        ElMessage.error("批量删除失败");
+      }
+    })
+    .catch(() => {
+      // 取消删除
+    });
 };
 
 // 分页变化
@@ -243,34 +275,105 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .limit-record-container {
-  padding: 20px;
+  padding: 24px;
   height: 100%;
   box-sizing: border-box;
+  background-color: var(--el-bg-color);
+  border-radius: 12px;
 }
 
 .limit-record-card {
   height: 100%;
   display: flex;
   flex-direction: column;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+
+  :deep(.el-card__header) {
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color-overlay) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    padding: 16px 20px;
+  }
+
+  :deep(.el-card__body) {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+
+  span {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
 }
 
 .search-form {
   margin-bottom: 20px;
+  padding: 16px;
+  background-color: var(--el-fill-color-lighter);
+  border-radius: 8px;
+
+  :deep(.el-form-item) {
+    margin-bottom: 0;
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-select__wrapper) {
+    border-radius: 8px;
+  }
 }
 
 .toolbar {
   margin-bottom: 20px;
+
+  :deep(.el-button) {
+    border-radius: 8px;
+  }
+}
+
+:deep(.el-table) {
+  border-radius: 8px;
+  overflow: hidden;
+
+  th {
+    background-color: var(--el-fill-color-light) !important;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+
+  .el-table__row {
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: var(--el-color-primary-light-9) !important;
+    }
+  }
+}
+
+:deep(.el-tag) {
+  border-radius: 6px;
+  font-weight: 500;
 }
 
 .pagination-container {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 </style>

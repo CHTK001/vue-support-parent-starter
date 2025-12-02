@@ -610,8 +610,6 @@ const layoutClass = computed(() => {
         @send="handleSendEmail"
         @save-draft="handleSaveDraft"
         @discard="handleCloseComposer"
-      />
-    </div>
   </div>
 </template>
 
@@ -621,13 +619,18 @@ const layoutClass = computed(() => {
   grid-template-columns: 280px 350px 1fr;
   grid-template-rows: 100%;
   height: 100%;
-  background-color: var(--app-bg-secondary);
+  background-color: var(--el-bg-color);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   
   &__sidebar {
     grid-column: 1;
     grid-row: 1;
     height: 100%;
     overflow: hidden;
+    background-color: var(--el-bg-color-overlay);
+    border-right: 1px solid var(--el-border-color-lighter);
   }
   
   &__list {
@@ -635,6 +638,8 @@ const layoutClass = computed(() => {
     grid-row: 1;
     height: 100%;
     overflow: hidden;
+    background-color: var(--el-bg-color);
+    border-right: 1px solid var(--el-border-color-lighter);
   }
   
   &__detail {
@@ -642,6 +647,7 @@ const layoutClass = computed(() => {
     grid-row: 1;
     height: 100%;
     overflow: hidden;
+    background-color: var(--el-bg-color);
   }
   
   &__composer {
@@ -650,7 +656,7 @@ const layoutClass = computed(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--app-bg-primary);
+    background-color: var(--el-bg-color);
     z-index: 100;
     overflow: hidden;
   }

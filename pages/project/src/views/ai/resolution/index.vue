@@ -1,12 +1,31 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { clearObject, fileToBase64, localStorageProxy, message, urlImageInfo } from "@repo/utils";
-import { computed, defineAsyncComponent, onMounted, reactive, shallowRef } from "vue";
+import {
+  clearObject,
+  fileToBase64,
+  localStorageProxy,
+  message,
+  urlImageInfo,
+} from "@repo/utils";
+import {
+  computed,
+  defineAsyncComponent,
+  onMounted,
+  reactive,
+  shallowRef,
+} from "vue";
 import { useRoute } from "vue-router";
-import { fetchGetTaskForResolution, fetchSaveTaskForResolution } from "../../../api/ai/image-resolution";
+import {
+  fetchGetTaskForResolution,
+  fetchSaveTaskForResolution,
+} from "../../../api/ai/image-resolution";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
-const ScLoading = defineAsyncComponent(() => import("@repo/components/ScLoading/index.vue"));
-const ScCompare = defineAsyncComponent(() => import("@repo/components/ScCompare/index.vue"));
+const ScLoading = defineAsyncComponent(
+  () => import("@repo/components/ScLoading/index.vue")
+);
+const ScCompare = defineAsyncComponent(
+  () => import("@repo/components/ScCompare/index.vue")
+);
 const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));
 const moduleDialogRef = shallowRef();
 const scLoadingRef = shallowRef();
@@ -58,7 +77,8 @@ const initialModuleList = async () => {
   modelList.value = data.map((it) => {
     it.vincentSetting = {
       ...it.vincentSetting,
-      sysAiVincentSupportedSizeList: it.vincentSetting?.sysAiVincentSupportedSize?.split(",") || [],
+      sysAiVincentSupportedSizeList:
+        it.vincentSetting?.sysAiVincentSupportedSize?.split(",") || [],
     };
     return {
       ...it,
@@ -89,7 +109,9 @@ const scaleFactorLabel = computed(() => {
  * 获取key
  */
 const requestId = () => {
-  const _requestId = localStorageProxy().getItem("resolution-request-id:" + getKey());
+  const _requestId = localStorageProxy().getItem(
+    "resolution-request-id:" + getKey()
+  );
   return _requestId;
 };
 const loadedRequestId = async (row) => {
@@ -119,7 +141,12 @@ const createInterval = () => {
     return;
   }
   intervalId = setInterval(() => {
-    fetchGetTaskForResolution({ taskId: requestId(), sysProjectId: form.sysProjectId, sysAiModuleType: form.sysAiModuleType, model: form.model })
+    fetchGetTaskForResolution({
+      taskId: requestId(),
+      sysProjectId: form.sysProjectId,
+      sysAiModuleType: form.sysAiModuleType,
+      model: form.model,
+    })
       .then(({ data }) => {
         if (data?.taskStatus === "SUCCESS") {
           clearTask();
@@ -198,7 +225,10 @@ const handleChange = async (files) => {
   resolutionImage.value = null;
   fileToBase64(files.raw).then(({ base64, width, height }) => {
     if (width * form.scaleFactor > formSetting.sysAiVincentSupportedMaxSize) {
-      message(`图片${width}尺寸超过最大值${formSetting.sysAiVincentSupportedMaxSize}, 请重新选择`, { type: "error" });
+      message(
+        `图片${width}尺寸超过最大值${formSetting.sysAiVincentSupportedMaxSize}, 请重新选择`,
+        { type: "error" }
+      );
       return;
     }
     form.url = base64;
@@ -218,23 +248,65 @@ onMounted(async () => {
 <template>
   <div class="resolution-container h-full w-full overflow-hidden">
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment" />
-    <el-button :icon="useRenderIcon('ep:setting')" class="fixed right-8 top-1/2 settings-btn z-[99]" circle size="large" @click="handleOpenModuleManager" />
+    <el-button
+      :icon="useRenderIcon('ep:setting')"
+      class="fixed right-8 top-1/2 settings-btn z-[99]"
+      circle
+      size="large"
+      @click="handleOpenModuleManager"
+    />
     <el-container class="h-full">
       <el-header class="header-panel flex w-full items-center px-6">
         <div class="panel-content flex items-center justify-between gap-4">
-          <el-form ref="formRef" :model="form" :rules="rules" label-width="0" :inline="true" class="flex-1 flex items-center gap-4">
+          <el-form
+            ref="formRef"
+            :model="form"
+            :rules="rules"
+            label-width="0"
+            :inline="true"
+            class="flex-1 flex items-center gap-4"
+          >
             <el-form-item prop="model" class="flex-1 mb-0">
-              <el-select v-model="form.model" filterable placeholder="请选择模型" clearable class="!w-full model-select" @change="handleChangeModule">
-                <el-option v-for="item in modelList" :key="item" class="!h-[70px]" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
+              <el-select
+                v-model="form.model"
+                filterable
+                placeholder="请选择模型"
+                clearable
+                class="!w-full model-select"
+                @change="handleChangeModule"
+              >
+                <el-option
+                  v-for="item in modelList"
+                  :key="item"
+                  class="!h-[70px]"
+                  :label="item.sysAiModuleName"
+                  :value="item.sysAiModuleCode"
+                >
                   <template #default>
-                    <el-tooltip placement="right" :raw-content="true" :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
-                      <div class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-primary-50 transition-all duration-300">
-                        <el-image :src="item.sysProjectIcon" fit="scale-down" class="!w-[50px] !h-[50px] rounded-lg shadow-sm">
-                          <template #error><div class="error-icon">AI</div></template>
+                    <el-tooltip
+                      placement="right"
+                      :raw-content="true"
+                      :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`"
+                    >
+                      <div
+                        class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-primary-50 transition-all duration-300"
+                      >
+                        <el-image
+                          :src="item.sysProjectIcon"
+                          fit="scale-down"
+                          class="!w-[50px] !h-[50px] rounded-lg shadow-sm"
+                        >
+                          <template #error
+                            ><div class="error-icon">AI</div></template
+                          >
                         </el-image>
                         <div class="flex flex-col">
-                          <span class="text-[15px] font-medium">{{ item.sysAiModuleName }}</span>
-                          <span class="text-gray-500 text-[13px]">{{ item.sysProjectName }}</span>
+                          <span class="text-[15px] font-medium">{{
+                            item.sysAiModuleName
+                          }}</span>
+                          <span class="text-gray-500 text-[13px]">{{
+                            item.sysProjectName
+                          }}</span>
                         </div>
                       </div>
                     </el-tooltip>
@@ -242,37 +314,84 @@ onMounted(async () => {
                 </el-option>
                 <template #label="{ label }">
                   <div class="flex items-center gap-3">
-                    <el-image class="!w-[32px] !h-[32px] rounded-lg" :src="modelSelectLabel?.sysProjectIcon">
-                      <template #error><div class="error-icon">AI</div></template>
+                    <el-image
+                      class="!w-[32px] !h-[32px] rounded-lg"
+                      :src="modelSelectLabel?.sysProjectIcon"
+                    >
+                      <template #error
+                        ><div class="error-icon">AI</div></template
+                      >
                     </el-image>
                     <span>{{ label }}</span>
                   </div>
                 </template>
               </el-select>
             </el-form-item>
-            <el-form-item v-if="formSetting?.sysAiVincentSupportedSizeList?.length" class="mb-0">
+            <el-form-item
+              v-if="formSetting?.sysAiVincentSupportedSizeList?.length"
+              class="mb-0"
+            >
               <el-dropdown trigger="click" class="scale-dropdown">
-                <button class="scale-btn flex items-center gap-2 px-4 py-2 rounded-lg border hover:border-primary transition-all duration-300">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M4 14h6v6M4 4h16v16H4V4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                <button
+                  class="scale-btn flex items-center gap-2 px-4 py-2 rounded-lg border hover:border-primary transition-all duration-300"
+                >
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M4 14h6v6M4 4h16v16H4V4z"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
                   <span>{{ scaleFactorLabel }}</span>
-                  <el-icon><component :is="useRenderIcon('ep:arrow-down')" /></el-icon>
+                  <el-icon
+                    ><component :is="useRenderIcon('ep:arrow-down')"
+                  /></el-icon>
                 </button>
                 <template #dropdown>
                   <el-dropdown-menu class="!p-2">
-                    <el-dropdown-item class="!rounded !my-1" @click="() => (form.scaleFactor = 1)">原始尺寸</el-dropdown-item>
-                    <el-dropdown-item v-for="item in formSetting.sysAiVincentSupportedSizeList" :key="item" class="!rounded !my-1" @click="() => (form.scaleFactor = item)"> {{ item }}倍 </el-dropdown-item>
+                    <el-dropdown-item
+                      class="!rounded !my-1"
+                      @click="() => (form.scaleFactor = 1)"
+                      >原始尺寸</el-dropdown-item
+                    >
+                    <el-dropdown-item
+                      v-for="item in formSetting.sysAiVincentSupportedSizeList"
+                      :key="item"
+                      class="!rounded !my-1"
+                      @click="() => (form.scaleFactor = item)"
+                    >
+                      {{ item }}倍
+                    </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
             </el-form-item>
             <el-form-item>
-              <el-upload :show-file-list="false" :auto-upload="false" accept="image/*" :on-change="handleChange">
-                <el-button type="primary" class="upload-btn flex items-center gap-2 !px-6">
-                  <el-icon><component :is="useRenderIcon('ep:upload')" /></el-icon>
+              <el-upload
+                :show-file-list="false"
+                :auto-upload="false"
+                accept="image/*"
+                :on-change="handleChange"
+              >
+                <el-button
+                  type="primary"
+                  class="upload-btn flex items-center gap-2 !px-6"
+                >
+                  <el-icon
+                    ><component :is="useRenderIcon('ep:upload')"
+                  /></el-icon>
                   上传图片
                 </el-button>
               </el-upload>
-              <el-button v-if="env.showEdit" class="add-btn !p-3" :icon="useRenderIcon('ep:plus')" circle @click="handleOpenModule" />
+              <el-button
+                v-if="env.showEdit"
+                class="add-btn !p-3"
+                :icon="useRenderIcon('ep:plus')"
+                circle
+                @click="handleOpenModule"
+              />
             </el-form-item>
           </el-form>
         </div>
@@ -286,14 +405,27 @@ onMounted(async () => {
               '--image-width': showImageSize.width + 'px',
             }"
           >
-            <div v-if="!resolutionImage" class="flex justify-center h-full w-full image-container">
+            <div
+              v-if="!resolutionImage"
+              class="flex justify-center h-full w-full image-container"
+            >
               <el-empty v-if="!showImageUrl" class="h-full w-full empty-state">
                 <template #description>
                   <p class="empty-text">请上传一张需要提升分辨率的图片</p>
                 </template>
               </el-empty>
-              <el-image v-else :src="showImageUrl" class="h-full img image-preview" fit="contain" transition="fade" />
-              <ScLoading ref="scLoadingRef" v-model="loadingConfig.export" transition="fade" />
+              <el-image
+                v-else
+                :src="showImageUrl"
+                class="h-full img image-preview"
+                fit="contain"
+                transition="fade"
+              />
+              <ScLoading
+                ref="scLoadingRef"
+                v-model="loadingConfig.export"
+                transition="fade"
+              />
             </div>
             <ScCompare
               v-if="resolutionImage"
@@ -304,9 +436,17 @@ onMounted(async () => {
               :right-image-label="`修复后:${resolutionImageSize.width}x${resolutionImageSize.height}`"
               transition="fade"
             />
-            <div v-if="resolutionImage" class="absolute bottom-6 right-6 action-buttons">
+            <div
+              v-if="resolutionImage"
+              class="absolute bottom-6 right-6 action-buttons"
+            >
               <a :href="resolutionImage" download>
-                <el-button :icon="useRenderIcon('ep:download')" circle size="large" class="download-btn" />
+                <el-button
+                  :icon="useRenderIcon('ep:download')"
+                  circle
+                  size="large"
+                  class="download-btn"
+                />
               </a>
             </div>
           </div>
@@ -331,17 +471,17 @@ onMounted(async () => {
   margin-top: 20px;
 }
 .resolution-container {
-  --primary-color: #7c3aed;
-  --primary-dark: #6d28d9;
-  --primary-light: #ede9fe;
+  --primary-color: var(--el-color-primary);
+  --primary-dark: var(--el-color-primary-dark-2);
+  --primary-light: var(--el-color-primary-light-9);
   --primary-50: var(--el-bg-color);
-  --primary-rgb: 124, 58, 237;
+  --primary-rgb: var(--el-color-primary-rgb);
   --transition-bezier: cubic-bezier(0.4, 0, 0.2, 1);
 
   @apply p-6;
 
   .header-panel {
-    @apply  backdrop-blur-lg border ;
+    @apply backdrop-blur-lg border;
     margin-bottom: 1.5rem;
     border-radius: 16px;
     box-shadow:
@@ -412,7 +552,7 @@ onMounted(async () => {
     @apply rounded-xl border-0 overflow-hidden;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(var(--el-bg-color-rgb), 0.95);
     transform-origin: top;
     animation: dropdownIn 0.3s var(--transition-bezier);
 
@@ -428,7 +568,7 @@ onMounted(async () => {
   }
 
   .compare-image {
-    @apply  rounded-2xl;
+    @apply rounded-2xl;
     transition: all 0.4s var(--transition-bezier);
   }
 

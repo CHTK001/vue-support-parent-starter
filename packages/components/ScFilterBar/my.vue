@@ -91,12 +91,12 @@ export default {
 }
 .sc-filter-my-list {
   list-style-type: none;
-  background: #fff;
-  border-bottom: 1px solid #e6e6e6;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .sc-filter-my-list h2 {
   font-size: 12px;
-  color: #999;
+  color: var(--el-text-color-secondary);
   font-weight: normal;
   padding: 20px;
 }
@@ -104,12 +104,12 @@ export default {
   padding: 12px 20px;
   cursor: pointer;
   position: relative;
-  color: #3c4a54;
+  color: var(--el-text-color-primary);
   padding-right: 80px;
 }
 .sc-filter-my-list li:hover {
-  background: #ecf5ff;
-  color: #409eff;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
 }
 .sc-filter-my-list li label {
   cursor: pointer;
@@ -117,7 +117,7 @@ export default {
   line-height: 1.8;
 }
 .sc-filter-my-list li label span {
-  color: #999;
+  color: var(--el-text-color-secondary);
   margin-right: 10px;
 }
 .sc-filter-my-list li .del {
@@ -130,10 +130,10 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: var(--el-text-color-secondary);
 }
 .sc-filter-my-list li .del:hover {
-  background: #f56c6c;
+  background: var(--el-color-danger);
   color: #fff;
 }
 

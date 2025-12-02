@@ -366,7 +366,7 @@ export default {
 }
 
 .sc-upload__img-actions .del {
-  background: #f56c6c;
+  background: var(--el-color-danger);
 }
 
 .sc-upload__img:hover .sc-upload__img-actions {
@@ -426,7 +426,7 @@ export default {
 .sc-upload .file-empty h4 {
   font-size: 12px;
   font-weight: normal;
-  color: #8c939d;
+  color: var(--el-text-color-placeholder);
   margin-top: 8px;
 }
 

@@ -2,6 +2,7 @@
 import { reactive, ref, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 
 // 国际化
 const { t } = useI18n();
@@ -45,7 +46,9 @@ const formattedFileSize = computed(() => {
 // 编码文本为 Base64
 const encodeText = () => {
   if (!env.inputText.trim()) {
-    message(t("message.emptyInput") || "请输入要编码的文本", { type: "warning" });
+    message(t("message.emptyInput") || "请输入要编码的文本", {
+      type: "warning",
+    });
     return;
   }
 
@@ -69,7 +72,9 @@ const encodeText = () => {
     message(t("message.encodeSuccess") || "编码成功", { type: "success" });
   } catch (error) {
     env.errorMessage = error.message;
-    message(t("message.encodeError") || "编码错误: " + error.message, { type: "error" });
+    message(t("message.encodeError") || "编码错误: " + error.message, {
+      type: "error",
+    });
   } finally {
     env.loading = false;
   }
@@ -78,7 +83,9 @@ const encodeText = () => {
 // 解码 Base64 为文本
 const decodeText = () => {
   if (!env.inputText.trim()) {
-    message(t("message.emptyInput") || "请输入要解码的 Base64 字符串", { type: "warning" });
+    message(t("message.emptyInput") || "请输入要解码的 Base64 字符串", {
+      type: "warning",
+    });
     return;
   }
 
@@ -125,7 +132,9 @@ const decodeText = () => {
     message(t("message.decodeSuccess") || "解码成功", { type: "success" });
   } catch (error) {
     env.errorMessage = error.message;
-    message(t("message.decodeError") || "解码错误: " + error.message, { type: "error" });
+    message(t("message.decodeError") || "解码错误: " + error.message, {
+      type: "error",
+    });
   } finally {
     env.loading = false;
   }
@@ -138,7 +147,9 @@ const encodeFile = (file) => {
   // 检查文件大小
   if (file.size > 10 * 1024 * 1024) {
     // 10MB
-    message(t("message.fileTooLarge") || "文件过大，请选择小于 10MB 的文件", { type: "warning" });
+    message(t("message.fileTooLarge") || "文件过大，请选择小于 10MB 的文件", {
+      type: "warning",
+    });
     return;
   }
 
@@ -164,10 +175,16 @@ const encodeFile = (file) => {
     }
 
     // 添加到历史记录
-    addToHistory("encode", `文件: ${file.name}`, base64String.substring(0, 100) + "...");
+    addToHistory(
+      "encode",
+      `文件: ${file.name}`,
+      base64String.substring(0, 100) + "..."
+    );
 
     env.loading = false;
-    message(t("message.fileEncodeSuccess") || "文件编码成功", { type: "success" });
+    message(t("message.fileEncodeSuccess") || "文件编码成功", {
+      type: "success",
+    });
   };
 
   reader.onerror = () => {
@@ -264,7 +281,9 @@ const toggleInputType = () => {
 // 下载文件
 const downloadFile = () => {
   if (!env.outputText) {
-    message(t("message.noDataToDownload") || "没有数据可下载", { type: "warning" });
+    message(t("message.noDataToDownload") || "没有数据可下载", {
+      type: "warning",
+    });
     return;
   }
 
@@ -311,7 +330,9 @@ const downloadFile = () => {
         type = "text/plain";
       }
     } catch (error) {
-      message(t("message.downloadError") || "下载错误: " + error.message, { type: "error" });
+      message(t("message.downloadError") || "下载错误: " + error.message, {
+        type: "error",
+      });
       return;
     }
   }
@@ -375,7 +396,9 @@ onMounted(() => {
         <div class="base64-tool__header">
           <div class="base64-tool__header-inner">
             <div class="base64-tool__header-title">Base64 编解码工具</div>
-            <div class="base64-tool__header-subtitle">编码和解码文本、图片和文件</div>
+            <div class="base64-tool__header-subtitle">
+              编码和解码文本、图片和文件
+            </div>
           </div>
           <div class="base64-tool__header-decoration">
             <div class="base64-tool__header-circle"></div>
@@ -399,11 +422,24 @@ onMounted(() => {
             </el-radio-button>
           </el-radio-group>
 
-          <el-switch v-model="env.urlMode" active-text="URL 编解码" inactive-text="Base64 编解码" @change="clearAll" />
+          <ScSwitch
+            v-model="env.urlMode"
+            active-text="URL 编解码"
+            inactive-text="Base64 编解码"
+            layout="modern"
+            @change="clearAll"
+          />
         </div>
 
-        <div v-if="env.mode === 'encode'" class="base64-tool__input-type-selector">
-          <el-radio-group v-model="env.inputType" size="default" @change="clearAll">
+        <div
+          v-if="env.mode === 'encode'"
+          class="base64-tool__input-type-selector"
+        >
+          <el-radio-group
+            v-model="env.inputType"
+            size="default"
+            @change="clearAll"
+          >
             <el-radio-button label="text">
               <IconifyIconOnline icon="ri:text" />
               <span>文本</span>
@@ -422,8 +458,13 @@ onMounted(() => {
           <el-card class="base64-tool__input-card" shadow="hover">
             <template #header>
               <div class="base64-tool__card-header">
-                <IconifyIconOnline icon="ri:input-method-line" class="base64-tool__card-icon" />
-                <span>{{ env.mode === "encode" ? "输入内容" : "输入编码" }}</span>
+                <IconifyIconOnline
+                  icon="ri:input-method-line"
+                  class="base64-tool__card-icon"
+                />
+                <span>{{
+                  env.mode === "encode" ? "输入内容" : "输入编码"
+                }}</span>
               </div>
             </template>
 
@@ -435,24 +476,60 @@ onMounted(() => {
                   <span>清空</span>
                 </el-button>
 
-                <el-button @click="generateExample" size="small" v-if="env.mode === 'encode'">
+                <el-button
+                  @click="generateExample"
+                  size="small"
+                  v-if="env.mode === 'encode'"
+                >
                   <IconifyIconOnline icon="ri:magic-line" />
                   <span>示例</span>
                 </el-button>
               </div>
 
-              <el-input v-model="env.inputText" type="textarea" :rows="12" :placeholder="env.mode === 'encode' ? '请输入要编码的文本...' : '请输入要解码的Base64字符串...'" class="base64-tool__textarea" />
+              <el-input
+                v-model="env.inputText"
+                type="textarea"
+                :rows="12"
+                :placeholder="
+                  env.mode === 'encode'
+                    ? '请输入要编码的文本...'
+                    : '请输入要解码的Base64字符串...'
+                "
+                class="base64-tool__textarea"
+              />
             </template>
 
             <!-- 文件输入 -->
-            <template v-else-if="env.inputType === 'file' && env.mode === 'encode'">
-              <input ref="fileInputRef" type="file" style="display: none" @change="handleFileChange" />
+            <template
+              v-else-if="env.inputType === 'file' && env.mode === 'encode'"
+            >
+              <input
+                ref="fileInputRef"
+                type="file"
+                style="display: none"
+                @change="handleFileChange"
+              />
 
-              <div class="base64-tool__file-drop-area" @dragover="handleDragOver" @drop="handleFileDrop" @click="openFileSelector">
-                <div v-if="!env.fileInfo" class="base64-tool__file-drop-placeholder">
-                  <IconifyIconOnline icon="ri:upload-cloud-line" class="base64-tool__file-drop-icon" />
-                  <div class="base64-tool__file-drop-text">点击或拖放文件到此处</div>
-                  <div class="base64-tool__file-drop-subtext">支持图片、音频、视频、PDF 和其他文件类型</div>
+              <div
+                class="base64-tool__file-drop-area"
+                @dragover="handleDragOver"
+                @drop="handleFileDrop"
+                @click="openFileSelector"
+              >
+                <div
+                  v-if="!env.fileInfo"
+                  class="base64-tool__file-drop-placeholder"
+                >
+                  <IconifyIconOnline
+                    icon="ri:upload-cloud-line"
+                    class="base64-tool__file-drop-icon"
+                  />
+                  <div class="base64-tool__file-drop-text">
+                    点击或拖放文件到此处
+                  </div>
+                  <div class="base64-tool__file-drop-subtext">
+                    支持图片、音频、视频、PDF 和其他文件类型
+                  </div>
                 </div>
 
                 <div v-else class="base64-tool__file-info">
@@ -479,8 +556,25 @@ onMounted(() => {
             </template>
 
             <div class="base64-tool__actions-bottom">
-              <el-button type="primary" @click="env.mode === 'encode' ? (env.inputType === 'text' ? encodeText() : openFileSelector()) : decodeText()" :loading="env.loading" :disabled="env.loading">
-                <IconifyIconOnline :icon="env.mode === 'encode' ? 'ri:lock-line' : 'ri:lock-unlock-line'" />
+              <el-button
+                type="primary"
+                @click="
+                  env.mode === 'encode'
+                    ? env.inputType === 'text'
+                      ? encodeText()
+                      : openFileSelector()
+                    : decodeText()
+                "
+                :loading="env.loading"
+                :disabled="env.loading"
+              >
+                <IconifyIconOnline
+                  :icon="
+                    env.mode === 'encode'
+                      ? 'ri:lock-line'
+                      : 'ri:lock-unlock-line'
+                  "
+                />
                 <span>{{ env.mode === "encode" ? "编码" : "解码" }}</span>
               </el-button>
             </div>
@@ -492,8 +586,13 @@ onMounted(() => {
           <el-card class="base64-tool__output-card" shadow="hover">
             <template #header>
               <div class="base64-tool__card-header">
-                <IconifyIconOnline icon="ri:output-line" class="base64-tool__card-icon" />
-                <span>{{ env.mode === "encode" ? "编码结果" : "解码结果" }}</span>
+                <IconifyIconOnline
+                  icon="ri:output-line"
+                  class="base64-tool__card-icon"
+                />
+                <span>{{
+                  env.mode === "encode" ? "编码结果" : "解码结果"
+                }}</span>
               </div>
             </template>
 
@@ -502,29 +601,58 @@ onMounted(() => {
             </div>
 
             <div v-else-if="env.errorMessage" class="base64-tool__error">
-              <IconifyIconOnline icon="ri:error-warning-line" class="base64-tool__error-icon" />
-              <div class="base64-tool__error-message">{{ env.errorMessage }}</div>
+              <IconifyIconOnline
+                icon="ri:error-warning-line"
+                class="base64-tool__error-icon"
+              />
+              <div class="base64-tool__error-message">
+                {{ env.errorMessage }}
+              </div>
             </div>
 
             <div v-else-if="!env.outputText" class="base64-tool__empty">
-              <IconifyIconOnline icon="ri:information-line" class="base64-tool__empty-icon" />
-              <div class="base64-tool__empty-text">{{ env.mode === "encode" ? "编码结果将显示在这里" : "解码结果将显示在这里" }}</div>
+              <IconifyIconOnline
+                icon="ri:information-line"
+                class="base64-tool__empty-icon"
+              />
+              <div class="base64-tool__empty-text">
+                {{
+                  env.mode === "encode"
+                    ? "编码结果将显示在这里"
+                    : "解码结果将显示在这里"
+                }}
+              </div>
             </div>
 
             <div v-else class="base64-tool__result">
               <div class="base64-tool__result-actions">
-                <el-button type="primary" link size="small" class="base64-tool__copy-btn" @click="copyToClipboard(env.outputText)">
+                <el-button
+                  type="primary"
+                  link
+                  size="small"
+                  class="base64-tool__copy-btn"
+                  @click="copyToClipboard(env.outputText)"
+                >
                   <IconifyIconOnline icon="ri:file-copy-line" />
                   <span>复制</span>
                 </el-button>
 
-                <el-button type="success" link size="small" class="base64-tool__download-btn" @click="downloadFile">
+                <el-button
+                  type="success"
+                  link
+                  size="small"
+                  class="base64-tool__download-btn"
+                  @click="downloadFile"
+                >
                   <IconifyIconOnline icon="ri:download-line" />
                   <span>下载</span>
                 </el-button>
               </div>
 
-              <div v-if="env.imagePreview && env.mode === 'decode'" class="base64-tool__image-preview">
+              <div
+                v-if="env.imagePreview && env.mode === 'decode'"
+                class="base64-tool__image-preview"
+              >
                 <img :src="env.imagePreview" alt="图片预览" />
               </div>
 
@@ -533,7 +661,13 @@ onMounted(() => {
 
             <div class="base64-tool__actions-bottom">
               <el-button type="default" @click="toggleMode">
-                <IconifyIconOnline :icon="env.mode === 'encode' ? 'ri:lock-unlock-line' : 'ri:lock-line'" />
+                <IconifyIconOnline
+                  :icon="
+                    env.mode === 'encode'
+                      ? 'ri:lock-unlock-line'
+                      : 'ri:lock-line'
+                  "
+                />
                 <span>切换到{{ env.mode === "encode" ? "解码" : "编码" }}</span>
               </el-button>
             </div>
@@ -542,12 +676,25 @@ onMounted(() => {
       </el-row>
 
       <!-- 历史记录 -->
-      <el-card class="base64-tool__history-card" shadow="hover" v-if="env.history.length > 0">
+      <el-card
+        class="base64-tool__history-card"
+        shadow="hover"
+        v-if="env.history.length > 0"
+      >
         <template #header>
           <div class="base64-tool__card-header">
-            <IconifyIconOnline icon="ri:history-line" class="base64-tool__card-icon" />
+            <IconifyIconOnline
+              icon="ri:history-line"
+              class="base64-tool__card-icon"
+            />
             <span>历史记录</span>
-            <el-button type="danger" link size="small" @click="clearHistory" style="margin-left: auto">
+            <el-button
+              type="danger"
+              link
+              size="small"
+              @click="clearHistory"
+              style="margin-left: auto"
+            >
               <IconifyIconOnline icon="ri:delete-bin-line" />
               <span>清空历史</span>
             </el-button>
@@ -557,7 +704,10 @@ onMounted(() => {
         <el-table :data="env.history" style="width: 100%" size="small">
           <el-table-column label="操作" width="100">
             <template #default="scope">
-              <el-tag :type="scope.row.operation === 'encode' ? 'primary' : 'success'" size="small">
+              <el-tag
+                :type="scope.row.operation === 'encode' ? 'primary' : 'success'"
+                size="small"
+              >
                 {{ scope.row.operation === "encode" ? "编码" : "解码" }}
               </el-tag>
             </template>
@@ -579,7 +729,12 @@ onMounted(() => {
           </el-table-column>
           <el-table-column label="操作" width="100" fixed="right">
             <template #default="scope">
-              <el-button type="primary" link size="small" @click="loadFromHistory(scope.row)">
+              <el-button
+                type="primary"
+                link
+                size="small"
+                @click="loadFromHistory(scope.row)"
+              >
                 <IconifyIconOnline icon="ri:arrow-go-back-line" />
                 <span>加载</span>
               </el-button>

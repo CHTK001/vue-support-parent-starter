@@ -854,8 +854,8 @@ defineExpose({
 
   .panel-footer {
     padding: 12px 16px;
-    background: #fafafa;
-    border-top: 1px solid #ebeef5;
+    background: var(--el-fill-color-lighter);
+    border-top: 1px solid var(--el-border-color-lighter);
     display: flex;
     gap: 8px;
     justify-content: center;
@@ -868,7 +868,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   padding: 40px 20px;
-  color: #94a3b8;
+  color: var(--el-text-color-placeholder);
 
   .empty-icon {
     font-size: 48px;
@@ -890,9 +890,9 @@ defineExpose({
   display: flex;
   gap: 12px;
   padding: 12px;
-  background: #f8fafc;
+  background: var(--el-fill-color-lighter);
   border-radius: 10px;
-  border-left: 3px solid #e2e8f0;
+  border-left: 3px solid var(--el-border-color-light);
   transition: all 0.3s ease;
 
   &.running {
@@ -930,7 +930,7 @@ defineExpose({
     .operation-title {
       font-size: 13px;
       font-weight: 600;
-      color: #1e293b;
+      color: var(--el-text-color-primary);
       margin-bottom: 2px;
       white-space: nowrap;
       overflow: hidden;
@@ -939,7 +939,7 @@ defineExpose({
 
     .operation-desc {
       font-size: 12px;
-      color: #64748b;
+      color: var(--el-text-color-secondary);
       margin-bottom: 6px;
       white-space: nowrap;
       overflow: hidden;
@@ -957,14 +957,14 @@ defineExpose({
 
       .progress-text {
         font-size: 11px;
-        color: #64748b;
+        color: var(--el-text-color-secondary);
         min-width: 36px;
       }
     }
 
     .operation-error {
       font-size: 11px;
-      color: #ef4444;
+      color: var(--el-color-danger);
       margin-top: 4px;
     }
   }

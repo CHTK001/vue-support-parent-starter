@@ -311,7 +311,7 @@ export default {
   font-size: 12px;
 }
 .sc-upload__item-actions .del {
-  background: #f56c6c;
+  background: var(--el-color-danger);
 }
 .sc-upload__item-progress {
   position: absolute;

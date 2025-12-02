@@ -21,7 +21,14 @@
       </el-card>
 
       <el-card class="tools-content">
-        <ScTable layout="card" ref="tableRef" :data="toolsList" :params="{}" :col-size="4" :row-size="10">
+        <ScTable
+          layout="card"
+          ref="tableRef"
+          :data="toolsList"
+          :params="{}"
+          :col-size="4"
+          :row-size="10"
+        >
           <template #default="{ row }">
             <div class="tool-card" @click="openTool(row)">
               <div class="tool-icon">
@@ -46,13 +53,22 @@
               <IconifyIconOnline icon="ep:back" />
               返回工具列表
             </el-button>
-            <span class="plugin-title">{{ currentToolInfo?.name || "工具详情" }}</span>
+            <span class="plugin-title">{{
+              currentToolInfo?.name || "工具详情"
+            }}</span>
           </div>
         </template>
         <component v-if="dynamicComponent" :is="dynamicComponent" />
-        <el-result v-else-if="loadError" icon="error" :title="loadError" sub-title="请检查路径是否正确">
+        <el-result
+          v-else-if="loadError"
+          icon="error"
+          :title="loadError"
+          sub-title="请检查路径是否正确"
+        >
           <template #extra>
-            <el-button type="primary" @click="backToList">返回工具列表</el-button>
+            <el-button type="primary" @click="backToList"
+              >返回工具列表</el-button
+            >
           </template>
         </el-result>
         <div v-else class="loading-container">
@@ -322,7 +338,13 @@ const toolsList = computed(() => {
   }
 
   const keyword = searchText.value.toLowerCase();
-  return tools.filter((item) => item.name.toLowerCase().includes(keyword) || item.description.toLowerCase().includes(keyword) || (item.tags && item.tags.some((tag) => tag.toLowerCase().includes(keyword))));
+  return tools.filter(
+    (item) =>
+      item.name.toLowerCase().includes(keyword) ||
+      item.description.toLowerCase().includes(keyword) ||
+      (item.tags &&
+        item.tags.some((tag) => tag.toLowerCase().includes(keyword)))
+  );
 });
 
 // 获取当前工具信息
@@ -364,22 +386,74 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .tools-container {
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  padding: 24px;
+  background-color: var(--el-bg-color);
+  border-radius: 12px;
 }
 
-.tools-header,
+.tools-header {
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+
+  :deep(.el-card__header) {
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color-overlay) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    padding: 20px 24px;
+  }
+
+  :deep(.el-card__body) {
+    padding: 16px 24px;
+  }
+}
+
 .plugin-container {
-  margin-bottom: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+
+  :deep(.el-card__header) {
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color-overlay) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    padding: 16px 24px;
+  }
+
+  :deep(.el-card__body) {
+    padding: 24px;
+    flex: 1;
+    overflow: auto;
+  }
 }
 
 .tools-content {
   flex: 1;
   overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--el-border-color-lighter);
+
+  :deep(.el-card__body) {
+    padding: 20px;
+  }
 }
 
 .card-header,
@@ -391,26 +465,38 @@ onMounted(() => {
 
 .card-header span,
 .plugin-title {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
 }
 
 .search-box {
-  width: 300px;
+  width: 320px;
+
+  :deep(.el-input__wrapper) {
+    border-radius: 8px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 0 0 1px var(--el-color-primary-light-5) inset;
+    }
+  }
 }
 
 .tools-description {
-  color: var(--app-text-primary);
+  color: var(--el-text-color-secondary);
   margin-bottom: 8px;
+  font-size: 14px;
 }
 
 .tool-card {
   height: 100%;
-  padding: 20px;
-  border-radius: 8px;
-  background-color: var(--app-bg-overlay);
-  box-shadow: 0 2px 12px 0 var(--app-shadow-sm);
-  transition: all 0.3s;
+  padding: 24px;
+  border-radius: 12px;
+  background-color: var(--el-bg-color-overlay);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--el-border-color-lighter);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -419,18 +505,38 @@ onMounted(() => {
 }
 
 .tool-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 20px 0 var(--app-shadow);
-  background-color: var(--app-bg-overlay-light);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  border-color: var(--el-color-primary-light-5);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-9) 0%,
+    var(--el-bg-color-overlay) 100%
+  );
 }
 
 .tool-icon {
-  font-size: 40px;
+  width: 64px;
+  height: 64px;
+  font-size: 32px;
   margin-bottom: 16px;
-  color: var(--app-primary);
+  color: var(--el-color-white);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 100%
+  );
+  border-radius: 16px;
   display: flex;
   justify-content: center;
   align-items: center;
+  box-shadow: 0 8px 16px rgba(var(--el-color-primary-rgb), 0.3);
+  transition: all 0.3s ease;
+}
+
+.tool-card:hover .tool-icon {
+  transform: rotate(10deg) scale(1.1);
+  box-shadow: 0 12px 24px rgba(var(--el-color-primary-rgb), 0.4);
 }
 
 .tool-info {
@@ -441,22 +547,30 @@ onMounted(() => {
   font-size: 16px;
   margin-bottom: 8px;
   font-weight: 600;
-  color: var(--app-text-primary);
+  color: var(--el-text-color-primary);
+  transition: color 0.2s ease;
+}
+
+.tool-card:hover .tool-name {
+  color: var(--el-color-primary);
 }
 
 .tool-desc {
-  font-size: 12px;
-  color: var(--app-text-secondary);
-  line-height: 1.4;
-}
-
-.plugin-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
 }
 
 .loading-container {
-  padding: 20px;
+  padding: 24px;
+}
+
+:deep(.el-button--text) {
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateX(-2px);
+  }
 }
 </style>

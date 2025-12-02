@@ -271,7 +271,7 @@ const handleRefresh = async () => {
 }
 .show-box {
   .show-box-item {
-    box-shadow: -1px 3px 6px 2px #ccc;
+    box-shadow: var(--el-box-shadow-light);
     border-radius: 0.5em;
   }
 }

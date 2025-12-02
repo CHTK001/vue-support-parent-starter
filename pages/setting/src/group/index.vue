@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { nextTick, onMounted, reactive, ref, defineAsyncComponent } from "vue";
-import { fetchBatchUpdateForGroup, fetchDeleteForGroup, fetchListForGroup, fetchSaveOrUpdateForGroup, type SysSettingGroup } from "../api/group";
+import {
+  fetchBatchUpdateForGroup,
+  fetchDeleteForGroup,
+  fetchListForGroup,
+  fetchSaveOrUpdateForGroup,
+  type SysSettingGroup,
+} from "../api/group";
 
 // 将draggable组件改为异步组件
 const draggable = defineAsyncComponent(() => import("vuedraggable"));
@@ -26,8 +33,12 @@ const formData = reactive<SysSettingGroup>({
 
 // 表单验证规则
 const formRules = {
-  sysSettingGroupName: [{ required: true, message: "请输入组名称", trigger: "blur" }],
-  sysSettingGroupCode: [{ required: true, message: "请输入组编码", trigger: "blur" }],
+  sysSettingGroupName: [
+    { required: true, message: "请输入组名称", trigger: "blur" },
+  ],
+  sysSettingGroupCode: [
+    { required: true, message: "请输入组编码", trigger: "blur" },
+  ],
 };
 
 const formRef = ref();
@@ -126,11 +137,15 @@ const handleEdit = (row: SysSettingGroup) => {
  */
 const handleDelete = async (row: SysSettingGroup) => {
   try {
-    await ElMessageBox.confirm(`确定要删除组 "${row.sysSettingGroupName}" 吗？`, "确认删除", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await ElMessageBox.confirm(
+      `确定要删除组 "${row.sysSettingGroupName}" 吗？`,
+      "确认删除",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      }
+    );
 
     showLoading("正在删除配置组...");
     const res = await fetchDeleteForGroup({
@@ -213,8 +228,8 @@ import { defineComponent } from "vue";
 
 export default defineComponent({
   components: {
-    draggable
-  }
+    draggable,
+  },
 });
 </script>
 
@@ -222,8 +237,16 @@ export default defineComponent({
   <div class="group-management">
     <!-- 操作栏 -->
     <div class="toolbar">
-      <el-button type="primary" :icon="useRenderIcon('ri:add-line')" @click="handleAdd"> 新增配置组 </el-button>
-      <el-button :icon="useRenderIcon('ri:refresh-line')" @click="getGroupList"> 刷新 </el-button>
+      <el-button
+        type="primary"
+        :icon="useRenderIcon('ri:add-line')"
+        @click="handleAdd"
+      >
+        新增配置组
+      </el-button>
+      <el-button :icon="useRenderIcon('ri:refresh-line')" @click="getGroupList">
+        刷新
+      </el-button>
     </div>
 
     <!-- 卡片容器 -->
@@ -232,49 +255,77 @@ export default defineComponent({
       <div v-if="loading" class="skeleton-container">
         <el-skeleton :rows="5" animated />
       </div>
-      
+
       <!-- 内容区域 -->
       <div v-else>
-        <draggable 
-          v-model="groupList" 
-          item-key="sysSettingGroupId" 
-          handle=".drag-handle" 
-          animation="150" 
-          ghost-class="sortable-ghost" 
-          chosen-class="sortable-chosen" 
-          drag-class="sortable-drag" 
+        <draggable
+          v-model="groupList"
+          item-key="sysSettingGroupId"
+          handle=".drag-handle"
+          animation="150"
+          ghost-class="sortable-ghost"
+          chosen-class="sortable-chosen"
+          drag-class="sortable-drag"
           @end="handleDragEnd"
           class="draggable-container"
         >
           <template #item="{ element: item, index }">
             <div class="group-card">
-          <div class="card-header">
-            <div class="card-title">
-              <el-icon v-if="item.sysSettingGroupIcon" class="card-icon">
-                <component :is="useRenderIcon(item.sysSettingGroupIcon)" />
-              </el-icon>
-              <span class="group-name">{{ item.sysSettingGroupName }}</span>
-              <el-tag size="small" class="group-code">{{ item.sysSettingGroupCode }}</el-tag>
-            </div>
-            <div class="card-actions">
-              <el-switch v-model="item.sysSettingGroupEnable" active-text="启用" inactive-text="禁用" size="small" />
-            </div>
-          </div>
+              <div class="card-header">
+                <div class="card-title">
+                  <el-icon v-if="item.sysSettingGroupIcon" class="card-icon">
+                    <component :is="useRenderIcon(item.sysSettingGroupIcon)" />
+                  </el-icon>
+                  <span class="group-name">{{ item.sysSettingGroupName }}</span>
+                  <el-tag size="small" class="group-code">{{
+                    item.sysSettingGroupCode
+                  }}</el-tag>
+                </div>
+                <div class="card-actions">
+                  <ScSwitch
+                    v-model="item.sysSettingGroupEnable"
+                    active-text="启用"
+                    inactive-text="禁用"
+                    layout="modern"
+                    size="small"
+                  />
+                </div>
+              </div>
 
-          <div class="card-content">
-            <p class="group-description">{{ item.sysSettingGroupRemark || "暂无描述" }}</p>
-          </div>
+              <div class="card-content">
+                <p class="group-description">
+                  {{ item.sysSettingGroupRemark || "暂无描述" }}
+                </p>
+              </div>
 
-          <div class="card-footer">
-            <div class="drag-handle">
-              <el-icon><component :is="useRenderIcon('ri:drag-move-line')" /></el-icon>
-              <span class="sort-text">拖拽排序</span>
-            </div>
-            <div class="action-buttons">
-              <el-button type="primary" link size="small" :icon="useRenderIcon('ri:edit-line')" @click="handleEdit(item)"> 编辑 </el-button>
-              <el-button type="danger" link size="small" :icon="useRenderIcon('ri:delete-bin-line')" @click="handleDelete(item)"> 删除 </el-button>
-            </div>
-          </div>
+              <div class="card-footer">
+                <div class="drag-handle">
+                  <el-icon
+                    ><component :is="useRenderIcon('ri:drag-move-line')"
+                  /></el-icon>
+                  <span class="sort-text">拖拽排序</span>
+                </div>
+                <div class="action-buttons">
+                  <el-button
+                    type="primary"
+                    link
+                    size="small"
+                    :icon="useRenderIcon('ri:edit-line')"
+                    @click="handleEdit(item)"
+                  >
+                    编辑
+                  </el-button>
+                  <el-button
+                    type="danger"
+                    link
+                    size="small"
+                    :icon="useRenderIcon('ri:delete-bin-line')"
+                    @click="handleDelete(item)"
+                  >
+                    删除
+                  </el-button>
+                </div>
+              </div>
             </div>
           </template>
         </draggable>
@@ -282,23 +333,47 @@ export default defineComponent({
         <!-- 空状态 -->
         <div v-if="!loading && groupList.length === 0" class="empty-state">
           <el-empty description="暂无配置组数据">
-            <el-button type="primary" @click="handleAdd">创建第一个配置组</el-button>
+            <el-button type="primary" @click="handleAdd"
+              >创建第一个配置组</el-button
+            >
           </el-empty>
         </div>
       </div>
     </div>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑配置组' : '新增配置组'" width="500px" @close="handleClose">
-      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="isEdit ? '编辑配置组' : '新增配置组'"
+      width="500px"
+      @close="handleClose"
+    >
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="formRules"
+        label-width="100px"
+      >
         <el-form-item label="组名称" prop="sysSettingGroupName">
-          <el-input v-model="formData.sysSettingGroupName" placeholder="请输入组名称" clearable />
+          <el-input
+            v-model="formData.sysSettingGroupName"
+            placeholder="请输入组名称"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="组编码" prop="sysSettingGroupCode">
-          <el-input v-model="formData.sysSettingGroupCode" placeholder="请输入组编码（唯一标识）" clearable />
+          <el-input
+            v-model="formData.sysSettingGroupCode"
+            placeholder="请输入组编码（唯一标识）"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="图标">
-          <el-input v-model="formData.sysSettingGroupIcon" placeholder="请输入图标名称，如：ri:settings-line" clearable>
+          <el-input
+            v-model="formData.sysSettingGroupIcon"
+            placeholder="请输入图标名称，如：ri:settings-line"
+            clearable
+          >
             <template #append>
               <el-icon v-if="formData.sysSettingGroupIcon">
                 <component :is="useRenderIcon(formData.sysSettingGroupIcon)" />
@@ -307,14 +382,30 @@ export default defineComponent({
           </el-input>
         </el-form-item>
         <el-form-item label="启用状态">
-          <el-switch v-model="formData.sysSettingGroupEnable" active-text="启用" inactive-text="禁用" />
+          <ScSwitch
+            v-model="formData.sysSettingGroupEnable"
+            active-text="启用"
+            inactive-text="禁用"
+            layout="modern"
+          />
         </el-form-item>
         <el-form-item label="使用项目接口">
-          <el-switch v-model="formData.sysSettingGroupUseProjectInterface" active-text="是" inactive-text="否" />
+          <ScSwitch
+            v-model="formData.sysSettingGroupUseProjectInterface"
+            active-text="是"
+            inactive-text="否"
+            layout="modern"
+          />
           <div class="form-item-tip">开启后将使用项目组接口进行配置管理</div>
         </el-form-item>
         <el-form-item label="描述">
-          <el-input v-model="formData.sysSettingGroupRemark" type="textarea" :rows="3" placeholder="请输入组描述" clearable />
+          <el-input
+            v-model="formData.sysSettingGroupRemark"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入组描述"
+            clearable
+          />
         </el-form-item>
       </el-form>
 
@@ -412,7 +503,7 @@ export default defineComponent({
 
 .card-icon {
   font-size: 20px;
-  color: #409eff;
+  color: var(--el-color-primary);
 }
 
 .group-name {
@@ -423,7 +514,7 @@ export default defineComponent({
 
 .group-code {
   background: var(--el-bg-color-overlay);
-  color: #0369a1;
+  color: var(--el-color-primary);
   border: 1px solid var(--el-border-color);
 }
 
@@ -462,7 +553,7 @@ export default defineComponent({
 }
 
 .drag-handle:hover {
-  color: #409eff;
+  color: var(--el-color-primary);
 }
 
 .sort-text {
@@ -495,8 +586,8 @@ export default defineComponent({
 
 .sortable-ghost {
   opacity: 0.5;
-  background: #f0f9ff;
-  border: 2px dashed #409eff;
+  background: var(--el-color-primary-light-9);
+  border: 2px dashed var(--el-color-primary);
 }
 
 .sortable-chosen {
@@ -510,8 +601,8 @@ export default defineComponent({
 }
 
 :deep(.el-switch) {
-  --el-switch-on-color: #67c23a;
-  --el-switch-off-color: #dcdfe6;
+  --el-switch-on-color: var(--el-color-success);
+  --el-switch-off-color: var(--el-border-color);
 }
 
 :deep(.el-button--small) {

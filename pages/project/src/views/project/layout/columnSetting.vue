@@ -3,8 +3,10 @@ import Sortable from "sortablejs";
 import { defineComponent } from "vue";
 import Caret from "@iconify-icons/ep/d-caret";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 
 export default defineComponent({
+  components: { ScSwitch },
   props: {
     column: { type: Object, default: () => {} },
   },
@@ -72,7 +74,12 @@ export default defineComponent({
             </el-tag>
           </span>
           <span class="show_b">
-            <el-switch v-model="item.hide" :active-value="false" :inactive-value="true" />
+            <ScSwitch
+              v-model="item.hide"
+              :active-value="false"
+              :inactive-value="true"
+              layout="modern"
+            />
           </span>
           <span class="name_b" :title="item.prop">
             {{ item.label || item.name }}
@@ -81,10 +88,10 @@ export default defineComponent({
             <el-input v-model="item.width" placeholder="auto" size="small" />
           </span>
           <span class="sortable_b">
-            <el-switch v-model="item.sortable" />
+            <ScSwitch v-model="item.sortable" layout="modern" />
           </span>
           <span class="fixed_b">
-            <el-switch v-model="item.fixed" />
+            <ScSwitch v-model="item.fixed" layout="modern" />
           </span>
         </li>
       </ul>
@@ -105,7 +112,7 @@ export default defineComponent({
 .setting-column__title span {
   display: inline-block;
   font-weight: bold;
-   color: var(--el-text-color);
+  color: var(--el-text-color);
   font-size: 12px;
 }
 .setting-column__title span.move_b {

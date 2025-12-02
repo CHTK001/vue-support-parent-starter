@@ -1,6 +1,13 @@
 <template>
   <div class="source-form thin-scroller">
-    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" label-position="left" class="form-container flex flex-row gap-6 flex-1">
+    <el-form
+      ref="formRef"
+      :model="formData"
+      :rules="formRules"
+      label-width="100px"
+      label-position="left"
+      class="form-container flex flex-row gap-6 flex-1"
+    >
       <div class="form-section flex-1">
         <h4 class="section-title">
           <IconifyIconOnline icon="ep:info-filled" class="section-icon" />
@@ -8,7 +15,12 @@
         </h4>
 
         <el-form-item label="数据源名称" prop="videoSourceName">
-          <el-input v-model="formData.videoSourceName" placeholder="请输入数据源名称，如：观影AC、PanSou等" maxlength="50" show-word-limit>
+          <el-input
+            v-model="formData.videoSourceName"
+            placeholder="请输入数据源名称，如：观影AC、PanSou等"
+            maxlength="50"
+            show-word-limit
+          >
             <template #prefix>
               <IconifyIconOnline icon="ep:video-camera" />
             </template>
@@ -16,7 +28,12 @@
         </el-form-item>
 
         <el-form-item label="平台名称" prop="videoSourcePlatform">
-          <el-input v-model="formData.videoSourcePlatform" placeholder="请输入视频源平台名称，如：观影AC、PanSou等" maxlength="50" show-word-limit>
+          <el-input
+            v-model="formData.videoSourcePlatform"
+            placeholder="请输入视频源平台名称，如：观影AC、PanSou等"
+            maxlength="50"
+            show-word-limit
+          >
             <template #prefix>
               <IconifyIconOnline icon="ep:video-camera" />
             </template>
@@ -28,7 +45,11 @@
         </el-form-item>
 
         <el-form-item label="视频源URL" prop="videoSourceUrl">
-          <el-input v-model="formData.videoSourceUrl" placeholder="请输入视频源的API地址或网站URL" type="url">
+          <el-input
+            v-model="formData.videoSourceUrl"
+            placeholder="请输入视频源的API地址或网站URL"
+            type="url"
+          >
             <template #prefix>
               <IconifyIconOnline icon="ep:link" />
             </template>
@@ -36,7 +57,14 @@
         </el-form-item>
 
         <el-form-item label="启用状态" prop="videoSourceEnable">
-          <el-switch v-model="formData.videoSourceEnable" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="禁用" active-color="#67c23a" inactive-color="#f56c6c" />
+          <ScSwitch
+            v-model="formData.videoSourceEnable"
+            :active-value="1"
+            :inactive-value="0"
+            active-text="启用"
+            inactive-text="禁用"
+            layout="modern"
+          />
         </el-form-item>
       </div>
 
@@ -47,16 +75,37 @@
         </h4>
 
         <el-form-item label="最大查询数" prop="videoSourceMaxResource">
-          <el-input-number v-model="formData.videoSourceMaxResource" :min="0" :max="10000" :step="10" placeholder="0表示无限制" controls-position="right" class="w-full" />
-          <div class="form-tip">设置单次查询返回的最大资源数量，0表示无限制</div>
+          <el-input-number
+            v-model="formData.videoSourceMaxResource"
+            :min="0"
+            :max="10000"
+            :step="10"
+            placeholder="0表示无限制"
+            controls-position="right"
+            class="w-full"
+          />
+          <div class="form-tip">
+            设置单次查询返回的最大资源数量，0表示无限制
+          </div>
         </el-form-item>
 
         <el-form-item label="最大查询时间" prop="videoSourceConnectTimeout">
-          <el-input-number v-model="formData.videoSourceConnectTimeout" type="number" placeholder="最大查询时间" controls-position="right" class="w-full" />
+          <el-input-number
+            v-model="formData.videoSourceConnectTimeout"
+            type="number"
+            placeholder="最大查询时间"
+            controls-position="right"
+            class="w-full"
+          />
         </el-form-item>
 
         <el-form-item label="访问Token" prop="videoSourceToken">
-          <el-input v-model="formData.videoSourceToken" placeholder="如果API需要认证，请输入访问Token" type="password" show-password>
+          <el-input
+            v-model="formData.videoSourceToken"
+            placeholder="如果API需要认证，请输入访问Token"
+            type="password"
+            show-password
+          >
             <template #prefix>
               <IconifyIconOnline icon="ep:key" />
             </template>
@@ -65,30 +114,74 @@
         </el-form-item>
 
         <el-form-item label="支持类型" prop="videoSourceType">
-          <el-select v-model="formData.videoSourceType" multiple placeholder="请输入支持的视频类型，如：movie、tv等">
-            <el-option v-for="item in allCategories" :key="item.value" :label="item.label" :value="item.value" />
+          <el-select
+            v-model="formData.videoSourceType"
+            multiple
+            placeholder="请输入支持的视频类型，如：movie、tv等"
+          >
+            <el-option
+              v-for="item in allCategories"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
           </el-select>
         </el-form-item>
 
         <el-form-item label="支持检索">
-          <ScSwitch v-model="formData.videoSourceSupportSearch" layout="modern" active-text="支持" inactive-text="不支持" :active-value="1" :inactive-value="0" />
+          <ScSwitch
+            v-model="formData.videoSourceSupportSearch"
+            layout="modern"
+            active-text="支持"
+            inactive-text="不支持"
+            :active-value="1"
+            :inactive-value="0"
+          />
         </el-form-item>
 
         <el-form-item label="支持同步">
-          <ScSwitch v-model="formData.videoSourceSupportSync" layout="modern" active-text="支持" inactive-text="不支持" :active-value="1" :inactive-value="0" />
+          <ScSwitch
+            v-model="formData.videoSourceSupportSync"
+            layout="modern"
+            active-text="支持"
+            inactive-text="不支持"
+            :active-value="1"
+            :inactive-value="0"
+          />
         </el-form-item>
 
         <el-form-item label="User Agent" prop="videoSourceUserAgent">
-          <el-input class="w-[80%]" v-model="formData.videoSourceUserAgent" placeholder="请输入User Agent，或点击生成按钮自动生成" type="textarea" :rows="2" maxlength="500" show-word-limit>
+          <el-input
+            class="w-[80%]"
+            v-model="formData.videoSourceUserAgent"
+            placeholder="请输入User Agent，或点击生成按钮自动生成"
+            type="textarea"
+            :rows="2"
+            maxlength="500"
+            show-word-limit
+          >
           </el-input>
           <div class="form-tip flex flex-row items-center gap-2">
             <span>自定义请求头User Agent，用于模拟不同浏览器访问</span>
-            <IconifyIconOnline class="cursor-pointer" class-name="ml-2"  @click="generateRandomUserAgent" icon="ep:refresh" />
+            <IconifyIconOnline
+              class="cursor-pointer"
+              class-name="ml-2"
+              @click="generateRandomUserAgent"
+              icon="ep:refresh"
+            />
           </div>
         </el-form-item>
 
         <el-form-item label="最小年份" prop="videoSourceMinYear">
-          <el-input-number v-model="formData.videoSourceMinYear" :min="1900" :max="2024" :step="1" placeholder="请输入最小年份" controls-position="right" class="w-full" />
+          <el-input-number
+            v-model="formData.videoSourceMinYear"
+            :min="1900"
+            :max="2024"
+            :step="1"
+            placeholder="请输入最小年份"
+            controls-position="right"
+            class="w-full"
+          />
           <div class="form-tip">设置查询的最小年份，0表示无限制</div>
         </el-form-item>
       </div>
@@ -100,7 +193,13 @@
       </h4>
 
       <div class="template-grid">
-        <div v-for="template in templates" :key="template.name" class="template-card" :class="{ active: selectedTemplate === template.name }" @click="applyTemplate(template)">
+        <div
+          v-for="template in templates"
+          :key="template.name"
+          class="template-card"
+          :class="{ active: selectedTemplate === template.name }"
+          @click="applyTemplate(template)"
+        >
           <div class="template-icon">
             <IconifyIconOnline :icon="template.icon" />
           </div>
@@ -172,7 +271,8 @@ const formData = reactive<VideoSource>({
   videoSourceMinYear: 1970,
   videoSourceMaxResource: 100,
   videoSourceToken: "",
-  videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  videoSourceUserAgent:
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 });
 
 // 计算属性
@@ -182,17 +282,40 @@ const isEdit = computed(() => !!props.source?.videoSourceId);
 const formRules: FormRules = {
   videoSourcePlatform: [
     { required: true, message: "请输入平台名称", trigger: "blur" },
-    { min: 2, max: 50, message: "平台名称长度在 2 到 50 个字符", trigger: "blur" },
+    {
+      min: 2,
+      max: 50,
+      message: "平台名称长度在 2 到 50 个字符",
+      trigger: "blur",
+    },
   ],
   videoSourceName: [
     { required: true, message: "请输入数据源名称", trigger: "blur" },
-    { min: 2, max: 50, message: "数据源名称长度在 2 到 50 个字符", trigger: "blur" },
+    {
+      min: 2,
+      max: 50,
+      message: "数据源名称长度在 2 到 50 个字符",
+      trigger: "blur",
+    },
   ],
   videoSourceUserAgent: [
     { required: true, message: "请输入User Agent", trigger: "blur" },
-    { min: 10, max: 500, message: "User Agent长度在 10 到 500 个字符", trigger: "blur" },
+    {
+      min: 10,
+      max: 500,
+      message: "User Agent长度在 10 到 500 个字符",
+      trigger: "blur",
+    },
   ],
-  videoSourceMaxResource: [{ type: "number", min: 0, max: 10000, message: "最大查询数范围为 0-10000", trigger: "blur" }],
+  videoSourceMaxResource: [
+    {
+      type: "number",
+      min: 0,
+      max: 10000,
+      message: "最大查询数范围为 0-10000",
+      trigger: "blur",
+    },
+  ],
 };
 
 // 预设模板
@@ -206,7 +329,8 @@ const templates = [
       videoSourcePlatform: "GUANYING",
       videoSourceUrl: "https://api.guanyingmv.com",
       videoSourceMaxResource: 50,
-      videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      videoSourceUserAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     },
   },
   {
@@ -218,7 +342,8 @@ const templates = [
       videoSourcePlatform: "DOUBAN",
       videoSourceUrl: "https://api.douban.com",
       videoSourceMaxResource: 50,
-      videoSourceUserAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      videoSourceUserAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
     },
   },
   {
@@ -230,7 +355,8 @@ const templates = [
       videoSourcePlatform: "PanSou",
       videoSourceUrl: "https://api.pansou.com",
       videoSourceMaxResource: 500,
-      videoSourceUserAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      videoSourceUserAgent:
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     },
   },
   {
@@ -242,7 +368,8 @@ const templates = [
       videoSourcePlatform: "TMDB",
       videoSourceUrl: "https://api.themoviedb.org/3/discover/movie",
       videoSourceMaxResource: 500,
-      videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+      videoSourceUserAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
     },
   },
 ];
@@ -278,9 +405,9 @@ const generateRandomUserAgent = () => {
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1",
     "Mozilla/5.0 (iPad; CPU OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1",
     "Mozilla/5.0 (Android 14; Mobile; rv:121.0) Gecko/121.0 Firefox/121.0",
-    "Mozilla/5.0 (Linux; Android 14; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+    "Mozilla/5.0 (Linux; Android 14; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
   ];
-  
+
   const randomIndex = Math.floor(Math.random() * userAgents.length);
   formData.videoSourceUserAgent = userAgents[randomIndex];
 };
@@ -337,7 +464,8 @@ watch(
         videoSourceEnable: 1,
         videoSourceMaxResource: 100,
         videoSourceToken: "",
-        videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        videoSourceUserAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       });
     }
   },
@@ -388,7 +516,7 @@ defineExpose({
 
 .form-tip {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   margin-top: 4px;
   line-height: 1.4;
 }
@@ -449,7 +577,7 @@ defineExpose({
 .template-desc {
   margin: 0;
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   line-height: 1.4;
 }
 
@@ -473,7 +601,7 @@ defineExpose({
 }
 
 :deep(.el-input__prefix) {
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 :deep(.el-input-number) {

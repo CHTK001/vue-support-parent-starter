@@ -7,7 +7,14 @@
           <el-radio-button label="tab">Tab 缩进</el-radio-button>
         </el-radio-group>
 
-        <el-input-number v-model="indentSize" :min="1" :max="8" size="small" controls-position="right" @change="formatCss" />
+        <el-input-number
+          v-model="indentSize"
+          :min="1"
+          :max="8"
+          size="small"
+          controls-position="right"
+          @change="formatCss"
+        />
 
         <el-button-group class="action-buttons">
           <el-button type="primary" @click="formatCss">
@@ -29,7 +36,14 @@
         <div class="editor-wrapper">
           <div class="editor-header">输入 CSS 代码</div>
           <div class="editor-body">
-            <el-input v-model="inputCss" type="textarea" :rows="15" resize="none" placeholder="请输入需要格式化的 CSS 代码..." @input="autoFormat" />
+            <el-input
+              v-model="inputCss"
+              type="textarea"
+              :rows="15"
+              resize="none"
+              placeholder="请输入需要格式化的 CSS 代码..."
+              @input="autoFormat"
+            />
           </div>
         </div>
         <div class="editor-divider">
@@ -45,7 +59,9 @@
 
       <template #footer>
         <div class="tips">
-          <p>提示：点击格式化按钮或在输入框中输入代码后自动格式化。可调整缩进类型和缩进大小。</p>
+          <p>
+            提示：点击格式化按钮或在输入框中输入代码后自动格式化。可调整缩进类型和缩进大小。
+          </p>
           <p>支持压缩后的 CSS 代码美化。</p>
         </div>
       </template>
@@ -58,7 +74,11 @@
         <sc-panel title="基本设置" theme="info">
           <el-form label-position="top">
             <el-form-item label="换行规则">
-              <el-select v-model="newLineOption" @change="formatCss" style="width: 100%">
+              <el-select
+                v-model="newLineOption"
+                @change="formatCss"
+                style="width: 100%"
+              >
                 <el-option label="系统默认 (LF/CRLF)" value="auto" />
                 <el-option label="Unix 风格 (LF)" value="lf" />
                 <el-option label="Windows 风格 (CRLF)" value="crlf" />
@@ -66,11 +86,19 @@
             </el-form-item>
 
             <el-form-item label="每个属性单独一行">
-              <el-switch v-model="onePropertyPerLine" @change="formatCss" />
+              <ScSwitch
+                v-model="onePropertyPerLine"
+                layout="modern"
+                @change="formatCss"
+              />
             </el-form-item>
 
             <el-form-item label="选择器之后换行">
-              <el-switch v-model="newLineAfterSelector" @change="formatCss" />
+              <ScSwitch
+                v-model="newLineAfterSelector"
+                layout="modern"
+                @change="formatCss"
+              />
             </el-form-item>
           </el-form>
         </sc-panel>
@@ -80,11 +108,15 @@
         <sc-panel title="高级设置" theme="info">
           <el-form label-position="top">
             <el-form-item label="自动修复简单错误">
-              <el-switch v-model="autoFix" @change="formatCss" />
+              <ScSwitch v-model="autoFix" layout="modern" @change="formatCss" />
             </el-form-item>
 
             <el-form-item label="属性排序">
-              <el-select v-model="sortProperties" @change="formatCss" style="width: 100%">
+              <el-select
+                v-model="sortProperties"
+                @change="formatCss"
+                style="width: 100%"
+              >
                 <el-option label="不排序" value="none" />
                 <el-option label="按字母排序" value="alphabetical" />
                 <el-option label="按类型分组" value="grouped" />
@@ -92,7 +124,11 @@
             </el-form-item>
 
             <el-form-item label="颜色格式">
-              <el-select v-model="colorFormat" @change="formatCss" style="width: 100%">
+              <el-select
+                v-model="colorFormat"
+                @change="formatCss"
+                style="width: 100%"
+              >
                 <el-option label="保持不变" value="preserve" />
                 <el-option label="HEX 格式" value="hex" />
                 <el-option label="RGB 格式" value="rgb" />
@@ -110,17 +146,31 @@
         <li>在左侧输入框中粘贴您需要格式化的 CSS 代码。</li>
         <li>根据需要调整格式化选项（缩进类型、缩进大小等）。</li>
         <li>点击"格式化"按钮或自动格式化。</li>
-        <li>格式化后的代码将显示在右侧，可以点击"复制"按钮复制格式化后的代码。</li>
+        <li>
+          格式化后的代码将显示在右侧，可以点击"复制"按钮复制格式化后的代码。
+        </li>
       </ol>
 
       <h3>格式化选项说明</h3>
       <ul>
         <li><strong>缩进类型：</strong> 选择使用空格或制表符进行缩进。</li>
-        <li><strong>缩进大小：</strong> 设置缩进的空格数量（仅当使用空格缩进时有效）。</li>
+        <li>
+          <strong>缩进大小：</strong>
+          设置缩进的空格数量（仅当使用空格缩进时有效）。
+        </li>
         <li><strong>换行规则：</strong> 选择文件中使用的换行符类型。</li>
-        <li><strong>每个属性单独一行：</strong> 启用后，每个 CSS 属性将单独占一行。</li>
-        <li><strong>选择器之后换行：</strong> 启用后，在选择器和左大括号之间添加换行。</li>
-        <li><strong>自动修复简单错误：</strong> 尝试修复缺失的分号、括号等简单错误。</li>
+        <li>
+          <strong>每个属性单独一行：</strong> 启用后，每个 CSS
+          属性将单独占一行。
+        </li>
+        <li>
+          <strong>选择器之后换行：</strong>
+          启用后，在选择器和左大括号之间添加换行。
+        </li>
+        <li>
+          <strong>自动修复简单错误：</strong>
+          尝试修复缺失的分号、括号等简单错误。
+        </li>
         <li><strong>属性排序：</strong> 按字母顺序或类型对属性进行排序。</li>
         <li><strong>颜色格式：</strong> 统一颜色值的表示方式。</li>
       </ul>
@@ -132,6 +182,7 @@
 import { ref, watch, onMounted, nextTick } from "vue";
 import { ElMessage } from "element-plus";
 import { useClipboard } from "@vueuse/core";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 
 // 复制功能
 const { copyText } = useClipboard();
@@ -181,7 +232,8 @@ const formatCss = () => {
     css = css.replace(/}/g, "}\n\n").replace(/{/g, " {\n").replace(/;/g, ";\n");
 
     // 3. 处理新行和缩进
-    const indent = indentType.value === "space" ? " ".repeat(indentSize.value) : "\t";
+    const indent =
+      indentType.value === "space" ? " ".repeat(indentSize.value) : "\t";
 
     // 4. 处理规则内部的属性
     let formattedLines = [];
@@ -214,7 +266,9 @@ const formatCss = () => {
       // 处理属性
       else if (inBlock) {
         if (line.startsWith("/* COMMENT_PLACEHOLDER_")) {
-          formattedLines.push(`${indent}${line.replace(/\/\* COMMENT_PLACEHOLDER_[a-z0-9]+ /, "").replace(/ \*\/$/, " */")}`);
+          formattedLines.push(
+            `${indent}${line.replace(/\/\* COMMENT_PLACEHOLDER_[a-z0-9]+ /, "").replace(/ \*\/$/, " */")}`
+          );
         } else {
           // 属性行，添加缩进
           formattedLines.push(`${indent}${line}`);
@@ -233,47 +287,84 @@ const formatCss = () => {
 
       // 找到所有 CSS 规则块
       const rulePattern = /([^{]+)\s*{([^}]*)}/g;
-      tmpResult = tmpResult.replace(rulePattern, (match, selector, properties) => {
-        const propertyLines = properties.split("\n").filter((line) => line.trim());
+      tmpResult = tmpResult.replace(
+        rulePattern,
+        (match, selector, properties) => {
+          const propertyLines = properties
+            .split("\n")
+            .filter((line) => line.trim());
 
-        if (sortProperties.value === "alphabetical") {
-          // 按字母顺序排序
-          propertyLines.sort((a, b) => {
-            const propA = a.split(":")[0] || "";
-            const propB = b.split(":")[0] || "";
-            return propA.localeCompare(propB);
-          });
-        } else if (sortProperties.value === "grouped") {
-          // 这里只是一个简单的分组实现，可以根据需要扩展
-          const groups = {
-            position: ["position", "top", "right", "bottom", "left", "z-index"],
-            display: ["display", "flex", "grid", "align", "justify", "order", "float", "clear"],
-            box: ["width", "height", "margin", "padding", "border", "box-sizing"],
-            visual: ["background", "color", "font", "text", "line-height", "letter-spacing"],
-            animation: ["transition", "animation", "transform"],
-          };
+          if (sortProperties.value === "alphabetical") {
+            // 按字母顺序排序
+            propertyLines.sort((a, b) => {
+              const propA = a.split(":")[0] || "";
+              const propB = b.split(":")[0] || "";
+              return propA.localeCompare(propB);
+            });
+          } else if (sortProperties.value === "grouped") {
+            // 这里只是一个简单的分组实现，可以根据需要扩展
+            const groups = {
+              position: [
+                "position",
+                "top",
+                "right",
+                "bottom",
+                "left",
+                "z-index",
+              ],
+              display: [
+                "display",
+                "flex",
+                "grid",
+                "align",
+                "justify",
+                "order",
+                "float",
+                "clear",
+              ],
+              box: [
+                "width",
+                "height",
+                "margin",
+                "padding",
+                "border",
+                "box-sizing",
+              ],
+              visual: [
+                "background",
+                "color",
+                "font",
+                "text",
+                "line-height",
+                "letter-spacing",
+              ],
+              animation: ["transition", "animation", "transform"],
+            };
 
-          // 按组排序
-          const getGroupIndex = (propName) => {
-            for (const [groupIndex, [groupName, props]] of Object.entries(Object.entries(groups))) {
-              if (props.some((prop) => propName.includes(prop))) {
-                return parseInt(groupIndex);
+            // 按组排序
+            const getGroupIndex = (propName) => {
+              for (const [groupIndex, [groupName, props]] of Object.entries(
+                Object.entries(groups)
+              )) {
+                if (props.some((prop) => propName.includes(prop))) {
+                  return parseInt(groupIndex);
+                }
               }
-            }
-            return 999; // 未分类的属性放到最后
-          };
+              return 999; // 未分类的属性放到最后
+            };
 
-          propertyLines.sort((a, b) => {
-            const propA = a.split(":")[0]?.trim() || "";
-            const propB = b.split(":")[0]?.trim() || "";
-            const groupIndexA = getGroupIndex(propA);
-            const groupIndexB = getGroupIndex(propB);
-            return groupIndexA - groupIndexB || propA.localeCompare(propB);
-          });
+            propertyLines.sort((a, b) => {
+              const propA = a.split(":")[0]?.trim() || "";
+              const propB = b.split(":")[0]?.trim() || "";
+              const groupIndexA = getGroupIndex(propA);
+              const groupIndexB = getGroupIndex(propB);
+              return groupIndexA - groupIndexB || propA.localeCompare(propB);
+            });
+          }
+
+          return `${selector} {\n${propertyLines.join("\n")}\n}`;
         }
-
-        return `${selector} {\n${propertyLines.join("\n")}\n}`;
-      });
+      );
 
       formattedLines = tmpResult.split("\n");
     }
@@ -284,9 +375,12 @@ const formatCss = () => {
         // 颜色处理逻辑，这里仅为示例
         if (colorFormat.value === "hex") {
           // 简单的 RGB 到 HEX 转换
-          line = line.replace(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/g, (match, r, g, b) => {
-            return `#${Number(r).toString(16).padStart(2, "0")}${Number(g).toString(16).padStart(2, "0")}${Number(b).toString(16).padStart(2, "0")}`;
-          });
+          line = line.replace(
+            /rgb\((\d+),\s*(\d+),\s*(\d+)\)/g,
+            (match, r, g, b) => {
+              return `#${Number(r).toString(16).padStart(2, "0")}${Number(g).toString(16).padStart(2, "0")}${Number(b).toString(16).padStart(2, "0")}`;
+            }
+          );
         }
         return line;
       });
@@ -299,7 +393,10 @@ const formatCss = () => {
     // 自动修复简单错误
     if (autoFix.value) {
       // 确保所有属性都有分号结尾
-      formattedCss.value = formattedCss.value.replace(/([^;}])\s*\n\s*}/g, "$1;\n}");
+      formattedCss.value = formattedCss.value.replace(
+        /([^;}])\s*\n\s*}/g,
+        "$1;\n}"
+      );
       // 确保选择器后面有空格
       formattedCss.value = formattedCss.value.replace(/([^\s]){/g, "$1 {");
     }

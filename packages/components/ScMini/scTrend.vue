@@ -69,12 +69,12 @@ export default {
   margin-left: 2px;
 }
 .sc-trend--P {
-  color: #f56c6c;
+  color: var(--el-color-danger);
 }
 .sc-trend--N {
-  color: #67c23a;
+  color: var(--el-color-success);
 }
 .sc-trend--Z {
-  color: #555;
+  color: var(--el-text-color-secondary);
 }
 </style>

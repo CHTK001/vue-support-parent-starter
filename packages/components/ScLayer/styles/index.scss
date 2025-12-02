@@ -205,12 +205,12 @@
   cursor: pointer;
   font-weight: bold;
   font-size: 16px;
-  color: #555;
+  color: var(--el-text-color-secondary);
 }
 
 .custom-popup-close-button:hover {
   background-color: rgba(0, 0, 0, 0.05);
-  color: #000;
+  color: var(--el-text-color-primary);
 }
 
 .rotated-svg-icon,
