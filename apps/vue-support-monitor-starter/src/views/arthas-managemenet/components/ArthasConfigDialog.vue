@@ -1,25 +1,72 @@
 <template>
-  <el-dialog v-model="visible" title="Arthas 配置" width="620px" @open="onOpen">
-    <el-form :model="form" label-width="150px">
+  <el-dialog
+    v-model="visible"
+    width="620px"
+    class="modern-dialog"
+    @open="onOpen"
+  >
+    <template #header>
+      <div class="dialog-header">
+        <IconifyIconOnline icon="ri:settings-4-line" class="header-icon" />
+        <span class="header-title">Arthas 配置</span>
+      </div>
+    </template>
+
+    <el-form :model="form" label-width="140px" class="modern-form">
       <el-form-item label="Tunnel 地址">
-        <el-input v-model="form.address" placeholder="ws://host:port/ws" />
+        <el-input v-model="form.address" placeholder="ws://host:port/ws">
+          <template #prefix>
+            <IconifyIconOnline icon="ri:link" />
+          </template>
+        </el-input>
       </el-form-item>
       <el-form-item label="HTTP API 地址">
-        <el-input v-model="form.http" placeholder="http://host:port/api" />
+        <el-input v-model="form.http" placeholder="http://host:port/api">
+          <template #prefix>
+            <IconifyIconOnline icon="ri:global-line" />
+          </template>
+        </el-input>
       </el-form-item>
       <el-form-item label="HTTP超时时间(ms)">
-        <el-input-number v-model="httpTimeout" :min="1000" :step="1000" :max="120000" />
+        <el-input-number
+          v-model="httpTimeout"
+          :min="1000"
+          :step="1000"
+          :max="120000"
+        />
       </el-form-item>
       <el-form-item label="用户名">
-        <el-input v-model="form.username" placeholder="可选" />
+        <el-input v-model="form.username" placeholder="可选">
+          <template #prefix>
+            <IconifyIconOnline icon="ri:user-line" />
+          </template>
+        </el-input>
       </el-form-item>
       <el-form-item label="密码">
-        <el-input v-model="form.password" type="password" show-password placeholder="可选" />
+        <el-input
+          v-model="form.password"
+          type="password"
+          show-password
+          placeholder="可选"
+        >
+          <template #prefix>
+            <IconifyIconOnline icon="ri:lock-line" />
+          </template>
+        </el-input>
       </el-form-item>
     </el-form>
+
     <template #footer>
-      <el-button @click="close">取消</el-button>
-      <el-button type="primary" :loading="loading" @click="save">保存</el-button>
+      <div class="dialog-footer">
+        <el-button @click="close">
+          <IconifyIconOnline icon="ri:close-line" />
+          取消
+        </el-button>
+        <el-button type="primary" :loading="loading" @click="save">
+          <IconifyIconOnline icon="ri:check-line" />
+          保存
+        </el-button>
+      </div>
     </template>
   </el-dialog>
 </template>
@@ -27,7 +74,11 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import { ElMessage } from "element-plus";
-import { getTunnelConfig, setTunnelConfig, type ArthasTunnelConfigDto } from "@/api/arthas-management";
+import {
+  getTunnelConfig,
+  setTunnelConfig,
+  type ArthasTunnelConfigDto,
+} from "@/api/arthas-management";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -50,7 +101,9 @@ const form = ref<ArthasTunnelConfigDto>({
 
 // HTTP 超时（仅前端使用，不提交到后端）
 const HTTP_TIMEOUT_KEY = "arthas.http.timeout";
-const httpTimeout = ref<number>(Number(localStorage.getItem(HTTP_TIMEOUT_KEY) || 15000));
+const httpTimeout = ref<number>(
+  Number(localStorage.getItem(HTTP_TIMEOUT_KEY) || 15000)
+);
 
 function close() {
   visible.value = false;
@@ -62,12 +115,16 @@ async function onOpen() {
     loading.value = true;
     const res: any = await getTunnelConfig(props.serverId as any);
     if (res?.success) {
-      form.value.address = res.data?.arthasTunnelConfigAddress || "ws://127.0.0.1:7777/ws";
+      form.value.address =
+        res.data?.arthasTunnelConfigAddress || "ws://127.0.0.1:7777/ws";
       form.value.username = res.data?.arthasTunnelConfigUsername || "";
-      form.value.http = res.data?.arthasTunnelConfigHttp || "http://127.0.0.1:8563/api";
+      form.value.http =
+        res.data?.arthasTunnelConfigHttp || "http://127.0.0.1:8563/api";
       form.value.password = res.data?.arthasTunnelConfigPassword || "";
       // 读取本地已保存的超时，若无则保持默认
-      const t = Number(localStorage.getItem(HTTP_TIMEOUT_KEY) || httpTimeout.value || 15000);
+      const t = Number(
+        localStorage.getItem(HTTP_TIMEOUT_KEY) || httpTimeout.value || 15000
+      );
       httpTimeout.value = isNaN(t) ? 15000 : t;
     } else {
       ElMessage.error(res?.msg || "获取配置失败");
@@ -109,3 +166,40 @@ watch(
   }
 );
 </script>
+
+<style lang="scss" scoped>
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .header-icon {
+    font-size: 22px;
+    color: var(--el-color-primary);
+  }
+
+  .header-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+}
+
+.modern-form {
+  padding: 8px 0;
+
+  :deep(.el-form-item) {
+    margin-bottom: 20px;
+  }
+
+  :deep(.el-input__prefix) {
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+</style>

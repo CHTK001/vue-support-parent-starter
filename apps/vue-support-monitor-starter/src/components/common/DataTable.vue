@@ -21,14 +21,19 @@
         :formatter="column.formatter"
       >
         <template #default="scope" v-if="slots[column.prop]">
-          <slot :name="column.prop" :row="scope.row" :column="scope.column" :$index="scope.$index"></slot>
+          <slot
+            :name="column.prop"
+            :row="scope.row"
+            :column="scope.column"
+            :$index="scope.$index"
+          ></slot>
         </template>
       </el-table-column>
-      
+
       <!-- 默认插槽用于添加额外的列 -->
       <slot></slot>
     </el-table>
-    
+
     <!-- 分页 -->
     <div class="data-table__pagination" v-if="showPagination">
       <el-pagination
@@ -45,31 +50,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, useSlots } from 'vue'
-import { ElTable } from 'element-plus'
+import { ref, useSlots } from "vue";
+import { ElTable } from "element-plus";
 
 interface Column {
-  prop: string
-  label: string
-  width?: string | number
-  minWidth?: string | number
-  fixed?: boolean | 'left' | 'right'
-  align?: 'left' | 'center' | 'right'
-  headerAlign?: 'left' | 'center' | 'right'
-  sortable?: boolean | 'custom'
-  formatter?: (row: any, column: any, cellValue: any, index: number) => any
+  prop: string;
+  label: string;
+  width?: string | number;
+  minWidth?: string | number;
+  fixed?: boolean | "left" | "right";
+  align?: "left" | "center" | "right";
+  headerAlign?: "left" | "center" | "right";
+  sortable?: boolean | "custom";
+  formatter?: (row: any, column: any, cellValue: any, index: number) => any;
 }
 
 interface Props {
-  columns: Column[]
-  data: any[]
-  loading?: boolean
-  total?: number
-  currentPage?: number
-  pageSize?: number
-  pageSizes?: number[]
-  showPagination?: boolean
-  paginationLayout?: string
+  columns: Column[];
+  data: any[];
+  loading?: boolean;
+  total?: number;
+  currentPage?: number;
+  pageSize?: number;
+  pageSizes?: number[];
+  showPagination?: boolean;
+  paginationLayout?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -81,44 +86,75 @@ const props = withDefaults(defineProps<Props>(), {
   pageSize: 10,
   pageSizes: () => [10, 20, 50, 100],
   showPagination: true,
-  paginationLayout: 'total, sizes, prev, pager, next, jumper'
-})
+  paginationLayout: "total, sizes, prev, pager, next, jumper",
+});
 
 const emit = defineEmits<{
-  (e: 'size-change', size: number): void
-  (e: 'current-change', page: number): void
-  (e: 'selection-change', selection: any[]): void
-}>()
+  (e: "size-change", size: number): void;
+  (e: "current-change", page: number): void;
+  (e: "selection-change", selection: any[]): void;
+}>();
 
-const tableRef = ref<InstanceType<typeof ElTable> | null>(null)
-const slots = useSlots()
+const tableRef = ref<InstanceType<typeof ElTable> | null>(null);
+const slots = useSlots();
 
 function handleSizeChange(size: number) {
-  emit('size-change', size)
+  emit("size-change", size);
 }
 
 function handleCurrentChange(page: number) {
-  emit('current-change', page)
+  emit("current-change", page);
 }
 
 function handleSelectionChange(selection: any[]) {
-  emit('selection-change', selection)
+  emit("selection-change", selection);
 }
 
 // 暴露方法给父组件
 defineExpose({
-  tableRef
-})
+  tableRef,
+});
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .data-table {
   width: 100%;
+  background: var(--el-bg-color);
+  border-radius: 8px;
+  overflow: hidden;
+
+  :deep(.el-table) {
+    --el-table-border-color: var(--el-border-color-lighter);
+    border-radius: 8px;
+
+    .el-table__header-wrapper {
+      th {
+        background: var(--el-fill-color-light);
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+    }
+
+    .el-table__row {
+      transition: background-color 0.2s ease;
+
+      &:hover > td {
+        background: var(--el-fill-color-lighter);
+      }
+    }
+
+    .el-table__empty-block {
+      min-height: 200px;
+    }
+  }
 }
 
 .data-table__pagination {
   margin-top: 16px;
+  padding: 12px 16px;
   display: flex;
   justify-content: flex-end;
+  background: var(--el-bg-color);
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 </style>
