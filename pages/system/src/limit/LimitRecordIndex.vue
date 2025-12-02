@@ -1,73 +1,87 @@
 <template>
   <div class="limit-record-container">
-    <el-card class="limit-record-card">
-      <template #header>
-        <div class="card-header">
-          <span>限流记录管理</span>
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">
+            <IconifyIconOnline icon="ri:history-line" class="title-icon" />
+            限流记录管理
+          </h1>
+          <p class="page-subtitle">查看和管理 API 接口的限流触发记录</p>
         </div>
-      </template>
+        <div class="header-stats">
+          <div class="stat-item">
+            <span class="stat-value">{{ pagination.total }}</span>
+            <span class="stat-label">记录总数</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{{ selectedRows.length }}</span>
+            <span class="stat-label">已选择</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
-      <el-form :model="searchForm" :inline="true" class="search-form">
-        <el-form-item label="接口路径">
+    <el-card class="limit-record-card" shadow="never">
+      <!-- 工具栏 -->
+      <div class="toolbar">
+        <div class="toolbar-left">
           <el-input
             v-model="searchForm.sysLimitPath"
-            placeholder="请输入接口路径"
+            placeholder="接口路径"
             clearable
-          />
-        </el-form-item>
-        <el-form-item label="规则名称">
+            style="width: 160px"
+          >
+            <template #prefix
+              ><IconifyIconOnline icon="ri:links-line"
+            /></template>
+          </el-input>
           <el-input
             v-model="searchForm.sysLimitName"
-            placeholder="请输入规则名称"
+            placeholder="规则名称"
             clearable
-          />
-        </el-form-item>
-        <el-form-item label="用户ID">
-          <el-input
-            v-model="searchForm.sysUserId"
-            placeholder="请输入用户ID"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="客户端IP">
+            style="width: 140px"
+          >
+            <template #prefix><IconifyIconOnline icon="ri:text" /></template>
+          </el-input>
           <el-input
             v-model="searchForm.clientIp"
-            placeholder="请输入客户端IP"
+            placeholder="客户端IP"
             clearable
-          />
-        </el-form-item>
-        <el-form-item label="限流时间">
+            style="width: 140px"
+          >
+            <template #prefix
+              ><IconifyIconOnline icon="ri:computer-line"
+            /></template>
+          </el-input>
           <el-date-picker
             v-model="searchForm.sysLimitTime"
             type="date"
-            placeholder="请选择限流时间"
+            placeholder="限流时间"
             value-format="YYYY-MM-DD"
             clearable
+            style="width: 150px"
           />
-        </el-form-item>
-        <el-form-item>
-          <el-button
-            type="primary"
-            :icon="useRenderIcon('ep:search')"
-            @click="handleSearch"
-          >
-            查询
-          </el-button>
-          <el-button :icon="useRenderIcon('ep:refresh')" @click="handleReset">
+        </div>
+        <div class="toolbar-right">
+          <el-button @click="handleReset">
+            <IconifyIconOnline icon="ri:refresh-line" />
             重置
           </el-button>
-        </el-form-item>
-      </el-form>
-
-      <div class="toolbar">
-        <el-button
-          type="danger"
-          :icon="useRenderIcon('ep:delete')"
-          @click="handleBatchDelete"
-          :disabled="selectedRows.length === 0"
-        >
-          批量删除
-        </el-button>
+          <el-button type="primary" @click="handleSearch">
+            <IconifyIconOnline icon="ri:search-line" />
+            查询
+          </el-button>
+          <el-button
+            type="danger"
+            @click="handleBatchDelete"
+            :disabled="selectedRows.length === 0"
+          >
+            <IconifyIconOnline icon="ri:delete-bin-line" />
+            批量删除
+          </el-button>
+        </div>
       </div>
 
       <el-table
@@ -275,73 +289,103 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .limit-record-container {
-  padding: 24px;
+  padding: 0;
   height: 100%;
   box-sizing: border-box;
-  background-color: var(--el-bg-color);
-  border-radius: 12px;
-}
-
-.limit-record-card {
-  height: 100%;
+  background-color: var(--el-bg-color-page);
   display: flex;
   flex-direction: column;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  border: 1px solid var(--el-border-color-lighter);
-  overflow: hidden;
-
-  :deep(.el-card__header) {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-9) 0%,
-      var(--el-bg-color-overlay) 100%
-    );
-    border-bottom: 1px solid var(--el-border-color-lighter);
-    padding: 16px 20px;
-  }
-
-  :deep(.el-card__body) {
-    padding: 20px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  span {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-  }
-}
-
-.search-form {
-  margin-bottom: 20px;
-  padding: 16px;
-  background-color: var(--el-fill-color-lighter);
+.page-header {
+  background: linear-gradient(
+    135deg,
+    var(--el-color-danger-light-9) 0%,
+    var(--el-color-warning-light-9) 100%
+  );
+  padding: 24px 32px;
   border-radius: 8px;
+  margin: 16px 16px 0;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 
-  :deep(.el-form-item) {
-    margin-bottom: 0;
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
-  :deep(.el-input__wrapper),
-  :deep(.el-select__wrapper) {
-    border-radius: 8px;
+  .title-section {
+    .page-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 8px;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+
+      .title-icon {
+        font-size: 28px;
+        color: var(--el-color-danger);
+      }
+    }
+
+    .page-subtitle {
+      margin: 0;
+      font-size: 14px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 32px;
+
+    .stat-item {
+      text-align: center;
+
+      .stat-value {
+        display: block;
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--el-color-danger);
+      }
+
+      .stat-label {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+      }
+    }
   }
 }
 
 .toolbar {
-  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 
-  :deep(.el-button) {
-    border-radius: 8px;
+  .toolbar-left,
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+.limit-record-card {
+  flex: 1;
+  margin: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--el-border-color-lighter);
+
+  :deep(.el-card__body) {
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 }
 
