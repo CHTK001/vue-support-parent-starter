@@ -92,13 +92,13 @@ export default {
 }
 
 .setting-column__title {
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--el-border-color-lighter);
   padding-bottom: 15px;
 }
 .setting-column__title span {
   display: inline-block;
   font-weight: bold;
-   color: var(--el-text-color);
+  color: var(--el-text-color);
   font-size: 12px;
 }
 .setting-column__title span.move_b {
@@ -165,7 +165,7 @@ export default {
 }
 
 .setting-column__bottom {
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--el-border-color-lighter);
   padding-top: 15px;
   text-align: right;
 }

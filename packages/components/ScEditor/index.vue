@@ -1,6 +1,6 @@
 <template>
-  <div style="border: 1px solid #ccc">
-    <Toolbar style="border-bottom: 1px solid #ccc" :editor="editorRef" :defaultConfig="toolbarConfig" :mode="mode" />
+  <div class="sc-editor-container">
+    <Toolbar class="sc-editor-toolbar" :editor="editorRef" :defaultConfig="toolbarConfig" :mode="mode" />
     <Editor v-model="valueHtml" style="height: 500px; overflow-y: hidden" :defaultConfig="editorConfig" :mode="mode" @onCreated="handleCreated" @onChange="handleChange" />
   </div>
 </template>
@@ -21,7 +21,7 @@ export default {
   setup(props) {
     // 编辑器实例，必须用 shallowRef
     const editorRef = shallowRef();
-    const {modelValue} = props;
+    const { modelValue } = props;
     // 内容 HTML
     const valueHtml = shallowRef(`${modelValue}`);
 
@@ -55,3 +55,13 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+.sc-editor-container {
+  border: 1px solid var(--el-border-color);
+}
+
+.sc-editor-toolbar {
+  border-bottom: 1px solid var(--el-border-color);
+}
+</style>

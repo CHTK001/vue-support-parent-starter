@@ -111,7 +111,7 @@ export default {
     border-style: solid;
     border-width: 8px 6px 4px;
     border-color: rgb(202, 202, 202) transparent transparent;
-    background: #f6f8f9;
+    background: var(--el-fill-color-light);
   }
   .node-wrap-box.start-node:before {
     content: none;
@@ -143,7 +143,7 @@ export default {
     padding: 15px;
   }
   .node-wrap-box .content .placeholder {
-    color: #999;
+    color: var(--el-text-color-placeholder);
   }
   .node-wrap-box:hover .close {
     display: block;

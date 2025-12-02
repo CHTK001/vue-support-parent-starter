@@ -148,18 +148,18 @@ export default defineComponent({
 }
 
 .sc-ip-address {
-  color: #606266;
+  color: var(--el-text-color-regular);
 }
 
 .sc-ip-empty {
-   color: var(--el-text-color);
+  color: var(--el-text-color);
   font-style: italic;
 }
 
 .sc-ip-icon {
   margin-left: 5px;
   font-size: 16px;
-   color: var(--el-text-color);
+  color: var(--el-text-color);
   cursor: help;
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <div class="sc-captcha-input-wrapper" :class="{ 'is-invalid': !validationResult.valid }">
     <div class="sc-captcha-container">
-      <el-input 
+      <el-input
         v-model="currentValue"
         class="sc-captcha-input"
         v-bind="$attrs"
@@ -24,7 +24,7 @@
           <slot name="prefix" />
         </template>
       </el-input>
-      
+
       <div class="sc-captcha-image" @click="refreshCaptcha">
         <img v-if="captchaImage" :src="captchaImage" alt="验证码" :class="{ 'is-loading': loading }" />
         <div v-else-if="loading" class="sc-captcha-loading">
@@ -36,7 +36,7 @@
         </div>
       </div>
     </div>
-    
+
     <div v-if="!validationResult.valid && showValidationMsg" class="sc-captcha-input__error">
       {{ validationResult.message }}
     </div>
@@ -44,10 +44,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { validate } from '../validation';
-import { getDefaultIcon } from '../defaultIcons';
-import { IconifyIconOnline } from '@repo/components/ReIcon';
+import { ref, computed, onMounted } from "vue";
+import { validate } from "../validation";
+import { getDefaultIcon } from "../defaultIcons";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 interface Props {
   /**
@@ -69,7 +69,7 @@ interface Props {
   /**
    * 输入框尺寸
    */
-  size?: 'large' | 'default' | 'small';
+  size?: "large" | "default" | "small";
   /**
    * 输入框前缀图标
    */
@@ -110,44 +110,36 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  modelValue: '',
-  placeholder: '请输入验证码',
+  modelValue: "",
+  placeholder: "请输入验证码",
   disabled: false,
   maxlength: 6,
-  size: 'default',
-  prefixIcon: '',
+  size: "default",
+  prefixIcon: "",
   showPrefix: true,
   clearable: true,
-  captchaSource: '',
+  captchaSource: "",
   captchaParams: () => ({}),
   rules: () => ({}),
   showValidationMsg: true
 });
 
-const emit = defineEmits([
-  'update:modelValue',
-  'change',
-  'input',
-  'focus',
-  'blur',
-  'clear',
-  'refresh'
-]);
+const emit = defineEmits(["update:modelValue", "change", "input", "focus", "blur", "clear", "refresh"]);
 
 const currentValue = computed({
   get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val)
+  set: val => emit("update:modelValue", val)
 });
 
-const actualPrefixIcon = computed(() => getDefaultIcon('captcha'));
+const actualPrefixIcon = computed(() => getDefaultIcon("captcha"));
 
 // 验证码图片
-const captchaImage = ref<string>('');
+const captchaImage = ref<string>("");
 const loading = ref(false);
 const timestamp = ref(Date.now());
 
 // 数据校验结果
-const validationResult = ref<{ valid: boolean; message: string }>({ valid: true, message: '' });
+const validationResult = ref<{ valid: boolean; message: string }>({ valid: true, message: "" });
 
 onMounted(() => {
   loadCaptcha();
@@ -156,7 +148,7 @@ onMounted(() => {
 // 加载验证码
 async function loadCaptcha() {
   if (loading.value) return;
-  
+
   loading.value = true;
   try {
     if (props.refreshFunction) {
@@ -165,22 +157,22 @@ async function loadCaptcha() {
       // 构建带时间戳参数的验证码URL，防止缓存
       const url = new URL(props.captchaSource);
       const params = new URLSearchParams(url.search);
-      
+
       // 添加时间戳
-      params.set('_t', timestamp.value.toString());
-      
+      params.set("_t", timestamp.value.toString());
+
       // 添加自定义参数
       if (props.captchaParams) {
         Object.entries(props.captchaParams).forEach(([key, value]) => {
           params.set(key, String(value));
         });
       }
-      
+
       url.search = params.toString();
       captchaImage.value = url.toString();
     }
   } catch (error) {
-    console.error('加载验证码失败', error);
+    console.error("加载验证码失败", error);
   } finally {
     loading.value = false;
   }
@@ -190,48 +182,48 @@ async function loadCaptcha() {
 function refreshCaptcha() {
   timestamp.value = Date.now();
   loadCaptcha();
-  emit('refresh', timestamp.value);
+  emit("refresh", timestamp.value);
 }
 
 // 处理值更新事件
 function handleUpdate(value: string | number) {
   validationResult.value = validate(value, props.rules);
-  emit('update:modelValue', value);
+  emit("update:modelValue", value);
 }
 
 // 处理change事件
 function handleChange(value: string | number) {
   validationResult.value = validate(value, props.rules);
-  emit('change', value);
+  emit("change", value);
 }
 
 // 处理input事件
 function handleInput(value: string | number) {
-  emit('input', value);
+  emit("input", value);
 }
 
 // 处理focus事件
 function handleFocus(event: FocusEvent) {
-  emit('focus', event);
+  emit("focus", event);
 }
 
 // 处理blur事件
 function handleBlur(event: FocusEvent) {
   validationResult.value = validate(props.modelValue, props.rules);
-  emit('blur', event);
+  emit("blur", event);
 }
 
 // 处理clear事件
 function handleClear() {
-  validationResult.value = { valid: true, message: '' };
-  emit('clear');
+  validationResult.value = { valid: true, message: "" };
+  emit("clear");
 }
 </script>
 
 <style lang="scss" scoped>
 .sc-captcha-input-wrapper {
   width: 100%;
-  
+
   &.is-invalid {
     .sc-captcha-input :deep(.el-input__wrapper) {
       box-shadow: 0 0 0 1px var(--el-color-danger) inset;
@@ -259,14 +251,14 @@ function handleClear() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f5f7fa;
-  
+  background-color: var(--el-fill-color-light);
+
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     transition: opacity 0.3s;
-    
+
     &.is-loading {
       opacity: 0.6;
     }
@@ -281,7 +273,7 @@ function handleClear() {
   color: var(--el-text-color-secondary);
   font-size: 12px;
   gap: 4px;
-  
+
   svg {
     font-size: 16px;
   }
@@ -292,7 +284,7 @@ function handleClear() {
   align-items: center;
   justify-content: center;
   color: var(--el-color-primary);
-  
+
   .loading-icon {
     animation: rotate 1s linear infinite;
   }
@@ -307,7 +299,11 @@ function handleClear() {
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
-</style> 
+</style>

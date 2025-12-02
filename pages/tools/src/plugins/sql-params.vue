@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import Prism from "prismjs";
 import "prismjs/components/prism-sql.min.js";
 import "prismjs/themes/prism-tomorrow.min.css";
@@ -52,7 +53,8 @@ const env = reactive({
     {
       name: "命名参数 (冒号前缀)",
       sql: "SELECT * FROM orders WHERE customer_id = :customerId AND order_date BETWEEN :startDate AND :endDate",
-      params: '{"customerId": 12345, "startDate": "2023-01-01", "endDate": "2023-12-31"}',
+      params:
+        '{"customerId": 12345, "startDate": "2023-01-01", "endDate": "2023-12-31"}',
       type: "json",
     },
     {
@@ -340,7 +342,9 @@ const parseMybatisLog = () => {
     const logContent = env.mybatisLog.input;
 
     // 尝试提取SQL语句 - 同时支持带有 ==> 前缀和不带前缀的格式
-    let sqlMatch = logContent.match(/(?:==>)?\s*Preparing:\s*([\s\S]+?)(?=(?:==>)?\s*Parameters:|$)/i);
+    let sqlMatch = logContent.match(
+      /(?:==>)?\s*Preparing:\s*([\s\S]+?)(?=(?:==>)?\s*Parameters:|$)/i
+    );
     if (!sqlMatch || !sqlMatch[1]) {
       throw new Error("无法从日志中提取SQL语句");
     }
@@ -349,7 +353,9 @@ const parseMybatisLog = () => {
     let sql = sqlMatch[1].trim();
 
     // 尝试提取参数 - 同时支持带有 ==> 前缀和不带前缀的格式
-    let paramsMatch = logContent.match(/(?:==>)?\s*Parameters:\s*([\s\S]+?)(?=\n|$)/i);
+    let paramsMatch = logContent.match(
+      /(?:==>)?\s*Parameters:\s*([\s\S]+?)(?=\n|$)/i
+    );
     let params = [];
     let paramsStr = "";
 
@@ -369,10 +375,18 @@ const parseMybatisLog = () => {
         if (type.includes("String")) {
           // 保持字符串格式
           params.push(value);
-        } else if (type.includes("Integer") || type.includes("Long") || type.includes("Short")) {
+        } else if (
+          type.includes("Integer") ||
+          type.includes("Long") ||
+          type.includes("Short")
+        ) {
           // 转换为数字
           params.push(parseInt(value, 10));
-        } else if (type.includes("Double") || type.includes("Float") || type.includes("BigDecimal")) {
+        } else if (
+          type.includes("Double") ||
+          type.includes("Float") ||
+          type.includes("BigDecimal")
+        ) {
           // 转换为浮点数
           params.push(parseFloat(value));
         } else if (type.includes("Boolean")) {
@@ -430,7 +444,9 @@ const toggleMybatisLogInput = () => {
         <div class="sql-params__header">
           <div class="sql-params__header-inner">
             <h1 class="sql-params__header-title">SQL参数填充工具</h1>
-            <p class="sql-params__header-subtitle">填充SQL预处理语句中的参数，支持问号占位符、数字占位符和命名参数</p>
+            <p class="sql-params__header-subtitle">
+              填充SQL预处理语句中的参数，支持问号占位符、数字占位符和命名参数
+            </p>
           </div>
         </div>
       </div>
@@ -442,12 +458,30 @@ const toggleMybatisLogInput = () => {
           <el-card class="sql-params__input-card" shadow="hover">
             <template #header>
               <div class="sql-params__card-header">
-                <IconifyIconOnline icon="ri:database-2-line" class="sql-params__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:database-2-line"
+                  class="sql-params__card-icon"
+                />
                 <span>SQL参数填充</span>
                 <div class="sql-params__header-actions">
-                  <el-button type="primary" link size="small" @click="toggleMybatisLogInput">
-                    <IconifyIconOnline :icon="env.mybatisLog.enabled ? 'ri:arrow-go-back-line' : 'ri:file-search-line'" />
-                    <span>{{ env.mybatisLog.enabled ? "返回手动输入" : "解析MyBatis日志" }}</span>
+                  <el-button
+                    type="primary"
+                    link
+                    size="small"
+                    @click="toggleMybatisLogInput"
+                  >
+                    <IconifyIconOnline
+                      :icon="
+                        env.mybatisLog.enabled
+                          ? 'ri:arrow-go-back-line'
+                          : 'ri:file-search-line'
+                      "
+                    />
+                    <span>{{
+                      env.mybatisLog.enabled
+                        ? "返回手动输入"
+                        : "解析MyBatis日志"
+                    }}</span>
                   </el-button>
                 </div>
               </div>
@@ -456,15 +490,38 @@ const toggleMybatisLogInput = () => {
             <el-form label-position="top" v-if="!env.mybatisLog.enabled">
               <!-- SQL输入 -->
               <el-form-item label="SQL语句 (包含占位符)">
-                <el-input v-model="env.inputSQL" type="textarea" :rows="8" placeholder="例如: SELECT * FROM users WHERE username = ? AND status = ?" resize="vertical" />
+                <el-input
+                  v-model="env.inputSQL"
+                  type="textarea"
+                  :rows="8"
+                  placeholder="例如: SELECT * FROM users WHERE username = ? AND status = ?"
+                  resize="vertical"
+                />
               </el-form-item>
 
               <!-- 参数类型选择 -->
               <el-form-item label="参数类型">
-                <el-radio-group v-model="env.paramsType" class="sql-params__radio-group">
-                  <el-radio v-for="option in env.paramTypeOptions" :key="option.value" :label="option.value">
+                <el-radio-group
+                  v-model="env.paramsType"
+                  class="sql-params__radio-group"
+                >
+                  <el-radio
+                    v-for="option in env.paramTypeOptions"
+                    :key="option.value"
+                    :label="option.value"
+                  >
                     <div class="sql-params__radio-content">
-                      <IconifyIconOnline :icon="option.value === 'json' ? 'ri:braces-line' : option.value === 'array' ? 'ri:list-ordered' : option.value === 'named' ? 'ri:hashtag' : 'ri:number-1'" />
+                      <IconifyIconOnline
+                        :icon="
+                          option.value === 'json'
+                            ? 'ri:braces-line'
+                            : option.value === 'array'
+                              ? 'ri:list-ordered'
+                              : option.value === 'named'
+                                ? 'ri:hashtag'
+                                : 'ri:number-1'
+                        "
+                      />
                       <span>{{ option.label }}</span>
                     </div>
                   </el-radio>
@@ -473,43 +530,97 @@ const toggleMybatisLogInput = () => {
 
               <!-- 参数输入 -->
               <!-- 参数输入 -->
-              <el-form-item :label="env.paramsType === 'json' ? 'JSON参数' : env.paramsType === 'array' ? '数组参数 (用逗号分隔)' : env.paramsType === 'named' ? '命名参数 (JSON对象)' : '数字占位符参数 (JSON数组)'">
+              <el-form-item
+                :label="
+                  env.paramsType === 'json'
+                    ? 'JSON参数'
+                    : env.paramsType === 'array'
+                      ? '数组参数 (用逗号分隔)'
+                      : env.paramsType === 'named'
+                        ? '命名参数 (JSON对象)'
+                        : '数字占位符参数 (JSON数组)'
+                "
+              >
                 <el-input
                   v-model="env.paramsInput"
                   type="textarea"
                   :rows="5"
-                  :placeholder="env.paramsType === 'json' ? '[&quot;value1&quot;, &quot;value2&quot;]' : env.paramsType === 'array' ? 'value1, value2, value3' : env.paramsType === 'named' ? '{&quot;name&quot;: &quot;value&quot;, &quot;status&quot;: 1}' : '[&quot;value1&quot;, &quot;value2&quot;]'"
+                  :placeholder="
+                    env.paramsType === 'json'
+                      ? '[&quot;value1&quot;, &quot;value2&quot;]'
+                      : env.paramsType === 'array'
+                        ? 'value1, value2, value3'
+                        : env.paramsType === 'named'
+                          ? '{&quot;name&quot;: &quot;value&quot;, &quot;status&quot;: 1}'
+                          : '[&quot;value1&quot;, &quot;value2&quot;]'
+                  "
                   resize="vertical"
                 />
               </el-form-item>
               <!-- 分隔符设置 (仅数组模式) -->
-              <el-form-item v-if="env.paramsType === 'array'" label="参数分隔符">
-                <el-input v-model="env.paramsSeparator" placeholder="默认为逗号" style="width: 100px" />
+              <el-form-item
+                v-if="env.paramsType === 'array'"
+                label="参数分隔符"
+              >
+                <el-input
+                  v-model="env.paramsSeparator"
+                  placeholder="默认为逗号"
+                  style="width: 100px"
+                />
               </el-form-item>
 
               <!-- 格式化选项 -->
               <el-form-item label="格式化选项">
                 <div class="sql-params__format-options">
-                  <el-switch v-model="env.formatOptions.enabled" active-text="启用格式化" />
+                  <ScSwitch
+                    v-model="env.formatOptions.enabled"
+                    active-text="启用格式化"
+                    layout="modern"
+                  />
 
-                  <div v-if="env.formatOptions.enabled" class="sql-params__format-settings">
-                    <el-select v-model="env.formatOptions.language" placeholder="SQL方言" class="sql-params__format-select">
-                      <el-option v-for="option in env.sqlDialectOptions" :key="option.value" :label="option.label" :value="option.value" />
+                  <div
+                    v-if="env.formatOptions.enabled"
+                    class="sql-params__format-settings"
+                  >
+                    <el-select
+                      v-model="env.formatOptions.language"
+                      placeholder="SQL方言"
+                      class="sql-params__format-select"
+                    >
+                      <el-option
+                        v-for="option in env.sqlDialectOptions"
+                        :key="option.value"
+                        :label="option.label"
+                        :value="option.value"
+                      />
                     </el-select>
 
-                    <el-switch v-model="env.formatOptions.uppercase" active-text="关键字大写" />
+                    <ScSwitch
+                      v-model="env.formatOptions.uppercase"
+                      active-text="关键字大写"
+                      layout="modern"
+                    />
                   </div>
                 </div>
               </el-form-item>
 
               <!-- 操作按钮 -->
               <div class="sql-params__actions">
-                <el-button type="primary" :loading="env.loading" class="sql-params__fill-btn" @click="fillSQLParams">
+                <el-button
+                  type="primary"
+                  :loading="env.loading"
+                  class="sql-params__fill-btn"
+                  @click="fillSQLParams"
+                >
                   <IconifyIconOnline icon="ri:play-fill" />
                   <span>填充参数</span>
                 </el-button>
 
-                <el-button type="success" class="sql-params__format-btn" @click="formatSQL">
+                <el-button
+                  type="success"
+                  class="sql-params__format-btn"
+                  @click="formatSQL"
+                >
                   <IconifyIconOnline icon="ri:format-line" />
                   <span>格式化SQL</span>
                 </el-button>
@@ -523,16 +634,30 @@ const toggleMybatisLogInput = () => {
             <el-form label-position="top" v-else>
               <!-- MyBatis日志解析表单 -->
               <el-form-item label="粘贴MyBatis日志 (包含SQL和参数)">
-                <el-input v-model="env.mybatisLog.input" type="textarea" :rows="12" placeholder="例如: Preparing: select * from users where id = ? Parameters: 123(Integer)" resize="vertical" />
+                <el-input
+                  v-model="env.mybatisLog.input"
+                  type="textarea"
+                  :rows="12"
+                  placeholder="例如: Preparing: select * from users where id = ? Parameters: 123(Integer)"
+                  resize="vertical"
+                />
               </el-form-item>
 
               <div class="sql-params__actions">
-                <el-button type="primary" :loading="env.loading" class="sql-params__fill-btn" @click="parseMybatisLog">
+                <el-button
+                  type="primary"
+                  :loading="env.loading"
+                  class="sql-params__fill-btn"
+                  @click="parseMybatisLog"
+                >
                   <IconifyIconOnline icon="ri:search-line" />
                   <span>解析日志</span>
                 </el-button>
 
-                <el-button class="sql-params__clear-btn" @click="env.mybatisLog.input = ''">
+                <el-button
+                  class="sql-params__clear-btn"
+                  @click="env.mybatisLog.input = ''"
+                >
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                   <span>清空</span>
                 </el-button>
@@ -544,25 +669,41 @@ const toggleMybatisLogInput = () => {
           <el-card class="sql-params__templates-card" shadow="hover">
             <template #header>
               <div class="sql-params__card-header">
-                <IconifyIconOnline icon="ri:file-list-3-line" class="sql-params__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:file-list-3-line"
+                  class="sql-params__card-icon"
+                />
                 <span>常用SQL模板</span>
               </div>
             </template>
 
             <div class="sql-params__templates">
               <el-collapse accordion>
-                <el-collapse-item v-for="(template, index) in env.templates" :key="index" :title="template.name" :name="index">
+                <el-collapse-item
+                  v-for="(template, index) in env.templates"
+                  :key="index"
+                  :title="template.name"
+                  :name="index"
+                >
                   <div class="sql-params__template-content">
                     <div class="sql-params__template-sql">
                       <div class="sql-params__template-label">SQL:</div>
-                      <div class="sql-params__template-code">{{ template.sql }}</div>
+                      <div class="sql-params__template-code">
+                        {{ template.sql }}
+                      </div>
                     </div>
                     <div class="sql-params__template-params">
                       <div class="sql-params__template-label">参数:</div>
-                      <div class="sql-params__template-code">{{ template.params }}</div>
+                      <div class="sql-params__template-code">
+                        {{ template.params }}
+                      </div>
                     </div>
                     <div class="sql-params__template-actions">
-                      <el-button type="primary" size="small" @click.stop="applyTemplate(template)">
+                      <el-button
+                        type="primary"
+                        size="small"
+                        @click.stop="applyTemplate(template)"
+                      >
                         <IconifyIconOnline icon="ri:file-copy-line" />
                         <span>应用模板</span>
                       </el-button>
@@ -580,10 +721,18 @@ const toggleMybatisLogInput = () => {
           <el-card class="sql-params__result-card" shadow="hover">
             <template #header>
               <div class="sql-params__card-header">
-                <IconifyIconOnline icon="ri:code-line" class="sql-params__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:code-line"
+                  class="sql-params__card-icon"
+                />
                 <span>填充结果</span>
                 <div class="sql-params__header-actions" v-if="env.outputSQL">
-                  <el-button type="primary" link size="small" @click="copyToClipboard(env.outputSQL)">
+                  <el-button
+                    type="primary"
+                    link
+                    size="small"
+                    @click="copyToClipboard(env.outputSQL)"
+                  >
                     <IconifyIconOnline icon="ri:file-copy-line" />
                     <span>复制</span>
                   </el-button>
@@ -591,14 +740,23 @@ const toggleMybatisLogInput = () => {
               </div>
             </template>
 
-            <el-empty v-if="!env.outputSQL" description="请先填充SQL参数" class="sql-params__empty">
+            <el-empty
+              v-if="!env.outputSQL"
+              description="请先填充SQL参数"
+              class="sql-params__empty"
+            >
               <template #image>
-                <IconifyIconOnline icon="ri:database-2-line" class="sql-params__empty-icon" />
+                <IconifyIconOnline
+                  icon="ri:database-2-line"
+                  class="sql-params__empty-icon"
+                />
               </template>
             </el-empty>
 
             <div v-else class="sql-params__result">
-              <pre class="language-sql line-numbers"><code class="language-sql">{{ env.outputSQL }}</code></pre>
+              <pre
+                class="language-sql line-numbers"
+              ><code class="language-sql">{{ env.outputSQL }}</code></pre>
             </div>
           </el-card>
 
@@ -606,18 +764,33 @@ const toggleMybatisLogInput = () => {
           <el-card class="sql-params__history-card" shadow="hover">
             <template #header>
               <div class="sql-params__card-header">
-                <IconifyIconOnline icon="ri:history-line" class="sql-params__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:history-line"
+                  class="sql-params__card-icon"
+                />
                 <span>历史记录</span>
               </div>
             </template>
 
-            <el-empty v-if="!env.history.length" description="暂无历史记录" class="sql-params__empty">
+            <el-empty
+              v-if="!env.history.length"
+              description="暂无历史记录"
+              class="sql-params__empty"
+            >
               <template #image>
-                <IconifyIconOnline icon="ri:history-line" class="sql-params__empty-icon" />
+                <IconifyIconOnline
+                  icon="ri:history-line"
+                  class="sql-params__empty-icon"
+                />
               </template>
             </el-empty>
 
-            <el-table v-else :data="env.history" style="width: 100%" max-height="400">
+            <el-table
+              v-else
+              :data="env.history"
+              style="width: 100%"
+              max-height="400"
+            >
               <el-table-column label="SQL" show-overflow-tooltip>
                 <template #default="scope">
                   <span>{{ scope.row.inputSQL }}</span>
@@ -635,7 +808,12 @@ const toggleMybatisLogInput = () => {
               </el-table-column>
               <el-table-column label="操作" width="100" fixed="right">
                 <template #default="scope">
-                  <el-button type="primary" link size="small" @click="loadFromHistory(scope.row)">
+                  <el-button
+                    type="primary"
+                    link
+                    size="small"
+                    @click="loadFromHistory(scope.row)"
+                  >
                     <IconifyIconOnline icon="ri:arrow-go-back-line" />
                     <span>加载</span>
                   </el-button>
@@ -648,7 +826,10 @@ const toggleMybatisLogInput = () => {
           <el-card class="sql-params__reference-card" shadow="hover">
             <template #header>
               <div class="sql-params__card-header">
-                <IconifyIconOnline icon="ri:information-line" class="sql-params__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:information-line"
+                  class="sql-params__card-icon"
+                />
                 <span>使用说明</span>
               </div>
             </template>

@@ -7,7 +7,7 @@
 
 <script>
 export default {
-  name: 'LoadingComponent',
+  name: "LoadingComponent"
 };
 </script>
 
@@ -21,11 +21,11 @@ export default {
 }
 
 .spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
+  border: 4px solid var(--el-border-color-lighter);
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  border-left-color: #000;
+  border-left-color: var(--el-color-primary);
   animation: spin 1s linear infinite;
 }
 

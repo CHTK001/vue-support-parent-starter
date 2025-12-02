@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from "vue";
 
 interface Props {
   /**
@@ -53,8 +53,8 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  modelValue: '',
-  placeholder: '',
+  modelValue: "",
+  placeholder: "",
   disabled: false,
   maxlength: undefined,
   showWordLimit: false,
@@ -63,52 +63,46 @@ const props = withDefaults(defineProps<Props>(), {
   autofocus: false
 });
 
-const emit = defineEmits([
-  'update:modelValue',
-  'change',
-  'input',
-  'focus',
-  'blur'
-]);
+const emit = defineEmits(["update:modelValue", "change", "input", "focus", "blur"]);
 
 const currentValue = computed({
   get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val)
+  set: val => emit("update:modelValue", val)
 });
 
 /**
  * 处理值更新事件
  */
 const handleUpdate = (value: string) => {
-  emit('update:modelValue', value);
+  emit("update:modelValue", value);
 };
 
 /**
  * 处理change事件
  */
 const handleChange = (value: string) => {
-  emit('change', value);
+  emit("change", value);
 };
 
 /**
  * 处理input事件
  */
 const handleInput = (value: string) => {
-  emit('input', value);
+  emit("input", value);
 };
 
 /**
  * 处理focus事件
  */
 const handleFocus = (event: FocusEvent) => {
-  emit('focus', event);
+  emit("focus", event);
 };
 
 /**
  * 处理blur事件
  */
 const handleBlur = (event: FocusEvent) => {
-  emit('blur', event);
+  emit("blur", event);
 };
 </script>
 
@@ -116,74 +110,78 @@ const handleBlur = (event: FocusEvent) => {
 .sc-textarea-input {
   width: 100%;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   :deep(.el-textarea__inner) {
-    border: 2px solid #e4e7ed;
+    border: 2px solid var(--el-border-color-light);
     border-radius: 12px;
     padding: 12px 16px;
     font-size: 14px;
     line-height: 1.6;
     color: var(--el-text-color-primary);
-    background-color: #ffffff;
+    background-color: var(--el-bg-color);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     resize: vertical;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-    
+
     &:hover {
-      border-color: #c0c4cc;
+      border-color: var(--el-border-color);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
       transform: translateY(-1px);
     }
-    
+
     &:focus {
-      border-color: #409eff;
-      box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.1), 0 4px 12px rgba(64, 158, 255, 0.15);
+      border-color: var(--el-color-primary);
+      box-shadow:
+        0 0 0 4px rgba(var(--el-color-primary-rgb), 0.1),
+        0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
       outline: none;
       transform: translateY(-1px);
     }
-    
+
     &::placeholder {
-      color: #a8abb2;
+      color: var(--el-text-color-placeholder);
       transition: color 0.3s ease;
     }
-    
+
     &:focus::placeholder {
-      color: #c0c4cc;
+      color: var(--el-text-color-disabled);
     }
   }
-  
+
   // 禁用状态
   &.is-disabled {
     :deep(.el-textarea__inner) {
-      background-color: #f5f7fa;
-      border-color: #e4e7ed;
-      color: #c0c4cc;
+      background-color: var(--el-fill-color-light);
+      border-color: var(--el-border-color-light);
+      color: var(--el-text-color-disabled);
       cursor: not-allowed;
       box-shadow: none;
-      
+
       &:hover {
-        border-color: #e4e7ed;
+        border-color: var(--el-border-color-light);
         box-shadow: none;
         transform: none;
       }
     }
   }
-  
+
   // 字数统计样式
   :deep(.el-input__count) {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 8px;
     padding: 2px 8px;
     font-size: 12px;
-     color: var(--el-text-color-primary);
+    color: var(--el-text-color-primary);
     backdrop-filter: blur(4px);
     border: 1px solid rgba(228, 231, 237, 0.6);
   }
-  
+
   // 自适应高度动画
   &.autosize {
     :deep(.el-textarea__inner) {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.2s ease;
+      transition:
+        all 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        height 0.2s ease;
     }
   }
 }

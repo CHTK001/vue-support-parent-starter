@@ -349,20 +349,20 @@ export default {
   height: 46px;
   line-height: 46px;
   margin: 15px 0;
-  border: 1px dashed #e6e6e6;
-  color: #999;
+  border: 1px dashed var(--el-border-color-lighter);
+  color: var(--el-text-color-secondary);
   text-align: center;
   border-radius: 3px;
 }
 
 .sc-filter-main {
   padding: 20px;
-  border-bottom: 1px solid #e6e6e6;
-  background: #fff;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
 }
 .sc-filter-main h2 {
   font-size: 12px;
-  color: #999;
+  color: var(--el-text-color-secondary);
   font-weight: normal;
 }
 .sc-filter-main table {
@@ -385,8 +385,8 @@ export default {
   width: 100%;
 }
 .sc-filter-main table td .del {
-  background: #fff;
-  color: #999;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-secondary);
   width: 32px;
   height: 32px;
   line-height: 32px;
@@ -396,7 +396,7 @@ export default {
   cursor: pointer;
 }
 .sc-filter-main table td .del:hover {
-  background: #f56c6c;
+  background: var(--el-color-danger);
   color: #fff;
 }
 
@@ -410,7 +410,7 @@ export default {
 }
 .root:deep(.el-tabs__content) {
   flex: 1;
-  background: #f6f8f9;
+  background: var(--el-fill-color-light);
 }
 .root:deep(.el-tabs__content) .el-tab-pane {
   overflow: auto;
@@ -428,7 +428,7 @@ export default {
   background: none;
 }
 .dark .sc-filter-main table td .del:hover {
-  background: #f56c6c;
+  background: var(--el-color-danger);
 }
 .dark .nodata {
   border-color: var(--el-border-color-light);

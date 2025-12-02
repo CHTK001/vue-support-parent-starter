@@ -1,12 +1,22 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fileToBase64, localStorageProxy, message } from "@repo/utils";
-import { computed, defineAsyncComponent, onMounted, reactive, shallowRef } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  onMounted,
+  reactive,
+  shallowRef,
+} from "vue";
 import { useRoute } from "vue-router";
 import { fetchFaceDetection } from "../../../../api/ai/face";
 import { fetchListProjectForAiModule } from "../../../../api/manage/project-ai-module";
-const ScLoading = defineAsyncComponent(() => import("@repo/components/ScLoading/index.vue"));
-const ScCompare = defineAsyncComponent(() => import("@repo/components/ScCompare/index.vue"));
+const ScLoading = defineAsyncComponent(
+  () => import("@repo/components/ScLoading/index.vue")
+);
+const ScCompare = defineAsyncComponent(
+  () => import("@repo/components/ScCompare/index.vue")
+);
 const ModuleDialog = defineAsyncComponent(() => import("../../module.vue"));
 
 const moduleDialogRef = shallowRef();
@@ -95,7 +105,9 @@ const initialModuleList = async () => {
 };
 
 const generateRequestId = () => {
-  return "face_detect_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+  return (
+    "face_detect_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9)
+  );
 };
 
 const handleDetectionResult = (result) => {
@@ -132,7 +144,12 @@ const generateDetectionImage = () => {
       if (face.bbox) {
         ctx.strokeStyle = "#ff0000";
         ctx.lineWidth = 3;
-        ctx.strokeRect(face.bbox.x, face.bbox.y, face.bbox.width, face.bbox.height);
+        ctx.strokeRect(
+          face.bbox.x,
+          face.bbox.y,
+          face.bbox.width,
+          face.bbox.height
+        );
 
         // 添加标签
         ctx.fillStyle = "#ff0000";
@@ -276,34 +293,78 @@ onMounted(() => {
       </div>
     </div>
 
-    <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment"></ModuleDialog>
+    <ModuleDialog
+      ref="moduleDialogRef"
+      @success="handleRefreshEnvironment"
+    ></ModuleDialog>
 
     <!-- 现代化设置按钮 -->
-    <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-6 top-1/2 transform -translate-y-1/2 z-[99] settings-btn-modern" circle size="large"> </el-button>
+    <el-button
+      :icon="useRenderIcon('ep:setting')"
+      @click="handleOpenModuleManager"
+      class="fixed right-6 top-1/2 transform -translate-y-1/2 z-[99] settings-btn-modern"
+      circle
+      size="large"
+    >
+    </el-button>
 
     <div class="container-wrapper h-full">
       <el-container class="h-full">
-        <el-header class="header-panel h-auto flex w-full items-center justify-between px-8 py-6 mb-2">
+        <el-header
+          class="header-panel h-auto flex w-full items-center justify-between px-8 py-6 mb-2"
+        >
           <div class="panel-left mr-6">
             <div class="model-selection-card flex flex-row">
-              <el-form ref="formRef" :model="form" :rules="rules" label-width="0" class="w-full">
+              <el-form
+                ref="formRef"
+                :model="form"
+                :rules="rules"
+                label-width="0"
+                class="w-full"
+              >
                 <el-form-item prop="model" class="mb-0">
                   <div class="flex items-center gap-1 w-full">
-                    <el-select filterable v-model="form.model" placeholder="请选择人脸检测模型" clearable @change="handleChangeModule" class="model-select-modern flex-1" size="large">
-                      <el-option v-for="item in modelList" class="!h-[80px]" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
+                    <el-select
+                      filterable
+                      v-model="form.model"
+                      placeholder="请选择人脸检测模型"
+                      clearable
+                      @change="handleChangeModule"
+                      class="model-select-modern flex-1"
+                      size="large"
+                    >
+                      <el-option
+                        v-for="item in modelList"
+                        class="!h-[80px]"
+                        :key="item"
+                        :label="item.sysAiModuleName"
+                        :value="item.sysAiModuleCode"
+                      >
                         <template #default>
-                          <el-tooltip placement="right" :raw-content="true" :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
+                          <el-tooltip
+                            placement="right"
+                            :raw-content="true"
+                            :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`"
+                          >
                             <div class="model-option">
                               <div class="model-icon-wrapper">
-                                <el-image :src="item.sysProjectIcon" fit="scale-down" class="model-icon">
+                                <el-image
+                                  :src="item.sysProjectIcon"
+                                  fit="scale-down"
+                                  class="model-icon"
+                                >
                                   <template #error>
                                     <div class="error-icon-modern">AI</div>
                                   </template>
                                 </el-image>
                               </div>
                               <div class="model-info">
-                                <span class="model-name">{{ item.sysAiModuleName }}</span>
-                                <span class="model-project">{{ item.sysProjectName }}</span>
+                                <span class="model-name">{{
+                                  item.sysAiModuleName
+                                }}</span>
+                                <span class="model-project">{{
+                                  item.sysProjectName
+                                }}</span>
                               </div>
                               <div class="model-badge">
                                 <span class="badge-text">推荐</span>
@@ -315,7 +376,10 @@ onMounted(() => {
                       <template #label="{ label }">
                         <div class="selected-model">
                           <div class="selected-icon-wrapper">
-                            <el-image class="selected-icon" :src="modelSelectLabel?.sysProjectIcon">
+                            <el-image
+                              class="selected-icon"
+                              :src="modelSelectLabel?.sysProjectIcon"
+                            >
                               <template #error>
                                 <div class="error-icon-modern">AI</div>
                               </template>
@@ -326,7 +390,14 @@ onMounted(() => {
                       </template>
                     </el-select>
 
-                    <el-button v-if="env.showEdit" class="add-model-btn" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule" circle> </el-button>
+                    <el-button
+                      v-if="env.showEdit"
+                      class="add-model-btn"
+                      :icon="useRenderIcon('ep:plus')"
+                      @click="handleOpenModule"
+                      circle
+                    >
+                    </el-button>
                   </div>
                 </el-form-item>
               </el-form>
@@ -335,7 +406,13 @@ onMounted(() => {
 
           <div class="panel-right">
             <div class="action-buttons-group">
-              <el-upload :show-file-list="false" :auto-upload="false" accept="image/*" :on-change="handleChange" class="upload-wrapper">
+              <el-upload
+                :show-file-list="false"
+                :auto-upload="false"
+                accept="image/*"
+                :on-change="handleChange"
+                class="upload-wrapper"
+              >
                 <template #trigger>
                   <el-button class="upload-btn-modern" size="large">
                     <div class="btn-content">
@@ -348,7 +425,13 @@ onMounted(() => {
                 </template>
               </el-upload>
 
-              <el-button v-if="showImageUrl && !detectionImage" class="detect-btn-modern" @click="handleDetection" :loading="loadingConfig.export" size="large">
+              <el-button
+                v-if="showImageUrl && !detectionImage"
+                class="detect-btn-modern"
+                @click="handleDetection"
+                :loading="loadingConfig.export"
+                size="large"
+              >
                 <div class="btn-content">
                   <el-icon class="btn-icon">
                     <component :is="useRenderIcon('ep:search')" />
@@ -396,18 +479,26 @@ onMounted(() => {
                   </el-icon>
                 </div>
                 <h3 class="empty-title">开始您的AI人脸检测之旅</h3>
-                <p class="empty-description">上传一张包含人脸的图片，体验先进的AI检测技术</p>
+                <p class="empty-description">
+                  上传一张包含人脸的图片，体验先进的AI检测技术
+                </p>
                 <div class="empty-features">
                   <div class="feature-item">
-                    <el-icon><component :is="useRenderIcon('ep:check')" /></el-icon>
+                    <el-icon
+                      ><component :is="useRenderIcon('ep:check')"
+                    /></el-icon>
                     <span>高精度检测</span>
                   </div>
                   <div class="feature-item">
-                    <el-icon><component :is="useRenderIcon('ep:check')" /></el-icon>
+                    <el-icon
+                      ><component :is="useRenderIcon('ep:check')"
+                    /></el-icon>
                     <span>实时处理</span>
                   </div>
                   <div class="feature-item">
-                    <el-icon><component :is="useRenderIcon('ep:check')" /></el-icon>
+                    <el-icon
+                      ><component :is="useRenderIcon('ep:check')"
+                    /></el-icon>
                     <span>多人脸识别</span>
                   </div>
                 </div>
@@ -416,10 +507,19 @@ onMounted(() => {
               <!-- 图片预览状态 -->
               <div v-else-if="!detectionImage" class="image-preview-container">
                 <div class="image-wrapper">
-                  <el-image :src="showImageUrl" class="preview-image" fit="contain" :preview-src-list="[showImageUrl]" :initial-index="0" preview-teleported>
+                  <el-image
+                    :src="showImageUrl"
+                    class="preview-image"
+                    fit="contain"
+                    :preview-src-list="[showImageUrl]"
+                    :initial-index="0"
+                    preview-teleported
+                  >
                     <template #error>
                       <div class="image-error">
-                        <el-icon><component :is="useRenderIcon('ep:picture-filled')" /></el-icon>
+                        <el-icon
+                          ><component :is="useRenderIcon('ep:picture-filled')"
+                        /></el-icon>
                         <span>图片加载失败</span>
                       </div>
                     </template>
@@ -442,28 +542,52 @@ onMounted(() => {
 
               <!-- 检测结果对比 -->
               <div v-else class="comparison-container">
-                <ScCompare class="comparison-view-modern" left-image-label="原图" :left-image="showImageUrl" :right-image="detectionImage" right-image-label="检测结果"></ScCompare>
+                <ScCompare
+                  class="comparison-view-modern"
+                  left-image-label="原图"
+                  :left-image="showImageUrl"
+                  :right-image="detectionImage"
+                  right-image-label="检测结果"
+                ></ScCompare>
 
                 <!-- 浮动操作按钮 -->
                 <div class="floating-actions">
                   <el-tooltip content="下载检测结果" placement="left">
-                    <a :href="detectionImage" download="face-detection-result.jpg">
-                      <el-button class="action-btn download-action" circle size="large">
-                        <el-icon><component :is="useRenderIcon('ep:download')" /></el-icon>
+                    <a
+                      :href="detectionImage"
+                      download="face-detection-result.jpg"
+                    >
+                      <el-button
+                        class="action-btn download-action"
+                        circle
+                        size="large"
+                      >
+                        <el-icon
+                          ><component :is="useRenderIcon('ep:download')"
+                        /></el-icon>
                       </el-button>
                     </a>
                   </el-tooltip>
 
                   <el-tooltip content="分享结果" placement="left">
-                    <el-button class="action-btn share-action" circle size="large">
-                      <el-icon><component :is="useRenderIcon('ep:share')" /></el-icon>
+                    <el-button
+                      class="action-btn share-action"
+                      circle
+                      size="large"
+                    >
+                      <el-icon
+                        ><component :is="useRenderIcon('ep:share')"
+                      /></el-icon>
                     </el-button>
                   </el-tooltip>
                 </div>
               </div>
 
               <!-- 检测结果信息卡片 -->
-              <div v-if="faceDetectionResults.length > 0" class="result-info-card">
+              <div
+                v-if="faceDetectionResults.length > 0"
+                class="result-info-card"
+              >
                 <div class="result-header">
                   <el-icon class="result-icon">
                     <component :is="useRenderIcon('ep:user')" />
@@ -472,7 +596,9 @@ onMounted(() => {
                 </div>
                 <div class="result-content">
                   <div class="result-stat">
-                    <span class="stat-number">{{ faceDetectionResults.length }}</span>
+                    <span class="stat-number">{{
+                      faceDetectionResults.length
+                    }}</span>
                     <span class="stat-label">张人脸</span>
                   </div>
                   <div class="result-details">
@@ -519,7 +645,9 @@ onMounted(() => {
     position: absolute;
     width: 100%;
     height: 100%;
-    background-image: linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px);
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px);
     background-size: 40px 40px;
   }
 }
@@ -530,38 +658,38 @@ onMounted(() => {
 }
 
 // 简化设置按钮
-  .settings-btn-modern {
-    border: 1px solid var(--el-border-color);
-     background: var(--el-bg-color-overlay);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s ease;
-    border-radius: 8px;
+.settings-btn-modern {
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color-overlay);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  border-radius: 8px;
 
-    &:hover {
-      background: var(--el-bg-color-overlay);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      transform: translateY(-1px);
-    }
-
-    &:active {
-      transform: translateY(0);
-    }
+  &:hover {
+    background: var(--el-bg-color-overlay);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
   }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
 
 // 简化头部面板
-  .header-panel {
-     background: var(--el-bg-color-overlay);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    border: none;
-    border-radius: 12px;
-    margin: 16px;
-    transition: all 0.2s ease;
+.header-panel {
+  background: var(--el-bg-color-overlay);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 12px;
+  margin: 16px;
+  transition: all 0.2s ease;
 
-    &:hover {
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-      transform: translateY(-2px);
-    }
+  &:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
   }
+}
 
 // 模型选择卡片
 .model-selection-card {
@@ -592,7 +720,7 @@ onMounted(() => {
     :deep(.el-select__wrapper) {
       border-radius: 8px;
       border: 1px solid var(--el-border-color);
-       background: var(--el-bg-color-overlay);
+      background: var(--el-bg-color-overlay);
       transition: all 0.2s ease;
       min-height: 40px;
 
@@ -793,7 +921,7 @@ onMounted(() => {
         align-items: center;
         justify-content: center;
         height: 100%;
-         background: var(--el-bg-color-overlay);
+        background: var(--el-bg-color-overlay);
         border-radius: 12px;
         border: 2px dashed #cbd5e0;
         padding: 60px 40px;
@@ -802,7 +930,7 @@ onMounted(() => {
         position: relative;
 
         &:hover {
-          border-color: #94a3b8;
+          border-color: var(--el-border-color);
           box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
         }
 
@@ -811,7 +939,7 @@ onMounted(() => {
 
           .empty-icon {
             font-size: 64px;
-            color: #94a3b8;
+            color: var(--el-text-color-placeholder);
             transition: all 0.2s ease;
           }
         }
@@ -847,11 +975,11 @@ onMounted(() => {
             display: flex;
             align-items: center;
             gap: 8px;
-            color: #10b981;
+            color: var(--el-color-success);
             font-weight: 500;
             font-size: 14px;
             padding: 6px 12px;
-            background: #f0fdf4;
+            background: var(--el-color-success-light-9);
             border-radius: 12px;
             transition: all 0.2s ease;
 
@@ -860,7 +988,7 @@ onMounted(() => {
             }
 
             &:hover {
-              background: #dcfce7;
+              background: var(--el-color-success-light-8);
             }
           }
         }
@@ -874,7 +1002,17 @@ onMounted(() => {
 
         .image-wrapper {
           height: 100%;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%), radial-gradient(circle at 50% 50%, rgba(102, 126, 234, 0.02) 0%, transparent 70%);
+          background:
+            linear-gradient(
+              135deg,
+              rgba(255, 255, 255, 0.98) 0%,
+              rgba(255, 255, 255, 0.95) 100%
+            ),
+            radial-gradient(
+              circle at 50% 50%,
+              rgba(102, 126, 234, 0.02) 0%,
+              transparent 70%
+            );
           backdrop-filter: blur(25px);
           border-radius: 28px;
           overflow: hidden;
@@ -892,7 +1030,17 @@ onMounted(() => {
             left: 0;
             right: 0;
             bottom: 0;
-            background: radial-gradient(circle at 30% 30%, rgba(102, 126, 234, 0.03) 0%, transparent 50%), radial-gradient(circle at 70% 70%, rgba(255, 119, 198, 0.03) 0%, transparent 50%);
+            background:
+              radial-gradient(
+                circle at 30% 30%,
+                rgba(102, 126, 234, 0.03) 0%,
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 70% 70%,
+                rgba(255, 119, 198, 0.03) 0%,
+                transparent 50%
+              );
             opacity: 0;
             transition: opacity 0.5s ease;
             pointer-events: none;
@@ -958,7 +1106,17 @@ onMounted(() => {
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%), radial-gradient(circle at 50% 50%, rgba(102, 126, 234, 0.05) 0%, transparent 70%);
+            background:
+              linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.98) 0%,
+                rgba(255, 255, 255, 0.95) 100%
+              ),
+              radial-gradient(
+                circle at 50% 50%,
+                rgba(102, 126, 234, 0.05) 0%,
+                transparent 70%
+              );
             backdrop-filter: blur(15px);
             display: flex;
             align-items: center;
@@ -1077,7 +1235,17 @@ onMounted(() => {
         position: absolute;
         top: 32px;
         left: 32px;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%), radial-gradient(circle at 50% 50%, rgba(102, 126, 234, 0.03) 0%, transparent 70%);
+        background:
+          linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.98) 0%,
+            rgba(255, 255, 255, 0.95) 100%
+          ),
+          radial-gradient(
+            circle at 50% 50%,
+            rgba(102, 126, 234, 0.03) 0%,
+            transparent 70%
+          );
         backdrop-filter: blur(25px);
         border-radius: 20px;
         padding: 28px;
@@ -1100,7 +1268,12 @@ onMounted(() => {
           left: 0;
           right: 0;
           height: 3px;
-          background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #48bb78 100%);
+          background: linear-gradient(
+            90deg,
+            #667eea 0%,
+            #764ba2 50%,
+            #48bb78 100%
+          );
           border-radius: 20px 20px 0 0;
         }
 
@@ -1111,7 +1284,17 @@ onMounted(() => {
           left: 0;
           right: 0;
           bottom: 0;
-          background: radial-gradient(circle at 30% 30%, rgba(102, 126, 234, 0.05) 0%, transparent 50%), radial-gradient(circle at 70% 70%, rgba(255, 119, 198, 0.05) 0%, transparent 50%);
+          background:
+            radial-gradient(
+              circle at 30% 30%,
+              rgba(102, 126, 234, 0.05) 0%,
+              transparent 50%
+            ),
+            radial-gradient(
+              circle at 70% 70%,
+              rgba(255, 119, 198, 0.05) 0%,
+              transparent 50%
+            );
           opacity: 0;
           transition: opacity 0.5s ease;
           pointer-events: none;
@@ -1251,8 +1434,12 @@ onMounted(() => {
   justify-content: center;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: var(--el-text-color-primary);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 100%
+  );
+  color: var(--el-color-white);
   font-weight: bold;
   border-radius: 12px;
   font-size: 14px;

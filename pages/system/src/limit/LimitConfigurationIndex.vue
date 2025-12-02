@@ -4,7 +4,11 @@
       <template #header>
         <div class="card-header">
           <span>限流配置管理</span>
-          <el-button type="primary" :icon="useRenderIcon('ep:plus')" @click="handleAdd">
+          <el-button
+            type="primary"
+            :icon="useRenderIcon('ep:plus')"
+            @click="handleAdd"
+          >
             新增配置
           </el-button>
         </div>
@@ -12,20 +16,36 @@
 
       <el-form :model="searchForm" :inline="true" class="search-form">
         <el-form-item label="接口路径">
-          <el-input v-model="searchForm.sysLimitPath" placeholder="请输入接口路径" clearable />
+          <el-input
+            v-model="searchForm.sysLimitPath"
+            placeholder="请输入接口路径"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="规则名称">
-          <el-input v-model="searchForm.sysLimitName" placeholder="请输入规则名称" clearable />
+          <el-input
+            v-model="searchForm.sysLimitName"
+            placeholder="请输入规则名称"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.sysLimitStatus" placeholder="请选择状态" clearable>
+          <el-select
+            v-model="searchForm.sysLimitStatus"
+            placeholder="请选择状态"
+            clearable
+          >
             <el-option label="全部" :value="null" />
             <el-option label="启用" :value="1" />
             <el-option label="禁用" :value="0" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="handleSearch">
+          <el-button
+            type="primary"
+            :icon="useRenderIcon('ep:search')"
+            @click="handleSearch"
+          >
             查询
           </el-button>
           <el-button :icon="useRenderIcon('ep:refresh')" @click="handleReset">
@@ -44,15 +64,33 @@
       >
         <el-table-column prop="sysLimitName" label="规则名称" min-width="120" />
         <el-table-column prop="sysLimitPath" label="接口路径" min-width="150" />
-        <el-table-column prop="sysLimitForPeriod" label="许可数量" min-width="100" />
-        <el-table-column prop="sysLimitRefreshPeriodSeconds" label="刷新周期(秒)" min-width="120" />
-        <el-table-column prop="sysLimitTimeoutDurationMillis" label="超时时间(毫秒)" min-width="120" />
-        <el-table-column prop="sysLimitDimension" label="限流维度" min-width="100" />
+        <el-table-column
+          prop="sysLimitForPeriod"
+          label="许可数量"
+          min-width="100"
+        />
+        <el-table-column
+          prop="sysLimitRefreshPeriodSeconds"
+          label="刷新周期(秒)"
+          min-width="120"
+        />
+        <el-table-column
+          prop="sysLimitTimeoutDurationMillis"
+          label="超时时间(毫秒)"
+          min-width="120"
+        />
+        <el-table-column
+          prop="sysLimitDimension"
+          label="限流维度"
+          min-width="100"
+        />
         <el-table-column prop="sysLimitSort" label="排序" min-width="80" />
         <el-table-column label="状态" min-width="80">
           <template #default="scope">
-            <el-tag :type="scope.row.sysLimitStatus === 1 ? 'success' : 'danger'">
-              {{ scope.row.sysLimitStatus === 1 ? '启用' : '禁用' }}
+            <el-tag
+              :type="scope.row.sysLimitStatus === 1 ? 'success' : 'danger'"
+            >
+              {{ scope.row.sysLimitStatus === 1 ? "启用" : "禁用" }}
             </el-tag>
           </template>
         </el-table-column>
@@ -107,10 +145,16 @@
         label-position="right"
       >
         <el-form-item label="规则名称" prop="sysLimitName">
-          <el-input v-model="formData.sysLimitName" placeholder="请输入规则名称" />
+          <el-input
+            v-model="formData.sysLimitName"
+            placeholder="请输入规则名称"
+          />
         </el-form-item>
         <el-form-item label="接口路径" prop="sysLimitPath">
-          <el-input v-model="formData.sysLimitPath" placeholder="请输入接口路径" />
+          <el-input
+            v-model="formData.sysLimitPath"
+            placeholder="请输入接口路径"
+          />
         </el-form-item>
         <el-form-item label="许可数量" prop="sysLimitForPeriod">
           <el-input-number
@@ -128,7 +172,10 @@
             placeholder="请输入刷新周期"
           />
         </el-form-item>
-        <el-form-item label="超时时间(毫秒)" prop="sysLimitTimeoutDurationMillis">
+        <el-form-item
+          label="超时时间(毫秒)"
+          prop="sysLimitTimeoutDurationMillis"
+        >
           <el-input-number
             v-model="formData.sysLimitTimeoutDurationMillis"
             :min="1"
@@ -137,7 +184,10 @@
           />
         </el-form-item>
         <el-form-item label="限流维度" prop="sysLimitDimension">
-          <el-select v-model="formData.sysLimitDimension" placeholder="请选择限流维度">
+          <el-select
+            v-model="formData.sysLimitDimension"
+            placeholder="请选择限流维度"
+          >
             <el-option label="全局" value="GLOBAL" />
             <el-option label="IP" value="IP" />
             <el-option label="用户" value="USER" />
@@ -152,10 +202,16 @@
           />
         </el-form-item>
         <el-form-item label="降级方法名称" prop="sysLimitFallbackMethod">
-          <el-input v-model="formData.sysLimitFallbackMethod" placeholder="请输入降级方法名称" />
+          <el-input
+            v-model="formData.sysLimitFallbackMethod"
+            placeholder="请输入降级方法名称"
+          />
         </el-form-item>
         <el-form-item label="错误消息" prop="sysLimitMessage">
-          <el-input v-model="formData.sysLimitMessage" placeholder="请输入错误消息" />
+          <el-input
+            v-model="formData.sysLimitMessage"
+            placeholder="请输入错误消息"
+          />
         </el-form-item>
         <el-form-item label="描述信息" prop="sysLimitDescription">
           <el-input
@@ -173,12 +229,13 @@
           />
         </el-form-item>
         <el-form-item label="状态" prop="sysLimitStatus">
-          <el-switch
+          <ScSwitch
             v-model="formData.sysLimitStatus"
             :active-value="1"
             :inactive-value="0"
             active-text="启用"
             inactive-text="禁用"
+            layout="modern"
           />
         </el-form-item>
       </el-form>
@@ -196,20 +253,21 @@
 import { ref, reactive, onMounted, nextTick } from "vue";
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import {
   fetchLimitConfigurationPage,
   fetchLimitConfigurationList,
   saveLimitConfiguration,
   updateLimitConfiguration,
   deleteLimitConfiguration,
-  type SysLimitConfiguration
+  type SysLimitConfiguration,
 } from "../api/limit";
 
 // 搜索表单
 const searchForm = reactive({
   sysLimitPath: "",
   sysLimitName: "",
-  sysLimitStatus: null
+  sysLimitStatus: null,
 });
 
 // 表格数据
@@ -220,7 +278,7 @@ const loading = ref(false);
 const pagination = reactive({
   currentPage: 1,
   pageSize: 10,
-  total: 0
+  total: 0,
 });
 
 // 对话框
@@ -235,17 +293,29 @@ const formData = ref<SysLimitConfiguration>({
   sysLimitForPeriod: 10,
   sysLimitRefreshPeriodSeconds: 1,
   sysLimitTimeoutDurationMillis: 500,
-  sysLimitSort: 0
+  sysLimitSort: 0,
 });
 
 // 表单验证规则
 const formRules = {
-  sysLimitName: [{ required: true, message: "请输入规则名称", trigger: "blur" }],
-  sysLimitPath: [{ required: true, message: "请输入接口路径", trigger: "blur" }],
-  sysLimitForPeriod: [{ required: true, message: "请输入许可数量", trigger: "blur" }],
-  sysLimitRefreshPeriodSeconds: [{ required: true, message: "请输入刷新周期", trigger: "blur" }],
-  sysLimitTimeoutDurationMillis: [{ required: true, message: "请输入超时时间", trigger: "blur" }],
-  sysLimitDimension: [{ required: true, message: "请选择限流维度", trigger: "change" }]
+  sysLimitName: [
+    { required: true, message: "请输入规则名称", trigger: "blur" },
+  ],
+  sysLimitPath: [
+    { required: true, message: "请输入接口路径", trigger: "blur" },
+  ],
+  sysLimitForPeriod: [
+    { required: true, message: "请输入许可数量", trigger: "blur" },
+  ],
+  sysLimitRefreshPeriodSeconds: [
+    { required: true, message: "请输入刷新周期", trigger: "blur" },
+  ],
+  sysLimitTimeoutDurationMillis: [
+    { required: true, message: "请输入超时时间", trigger: "blur" },
+  ],
+  sysLimitDimension: [
+    { required: true, message: "请选择限流维度", trigger: "change" },
+  ],
 };
 
 // 获取数据
@@ -255,7 +325,7 @@ const getData = async () => {
     const params = {
       ...searchForm,
       current: pagination.currentPage,
-      size: pagination.pageSize
+      size: pagination.pageSize,
     };
     const res = await fetchLimitConfigurationPage(params);
     if (res.success) {
@@ -295,7 +365,7 @@ const handleAdd = () => {
     sysLimitForPeriod: 10,
     sysLimitRefreshPeriodSeconds: 1,
     sysLimitTimeoutDurationMillis: 500,
-    sysLimitSort: 0
+    sysLimitSort: 0,
   };
   dialogVisible.value = true;
   nextTick(() => {
@@ -317,28 +387,32 @@ const handleEdit = (row: SysLimitConfiguration) => {
 // 删除
 const handleDelete = (row: SysLimitConfiguration) => {
   ElMessageBox.confirm("确定要删除该限流配置吗？", "提示", {
-    type: "warning"
-  }).then(async () => {
-    try {
-      const res = await deleteLimitConfiguration(row.sysLimitConfigurationId!);
-      if (res.success) {
-        ElMessage.success("删除成功");
-        getData();
-      } else {
-        ElMessage.error(res.msg || "删除失败");
+    type: "warning",
+  })
+    .then(async () => {
+      try {
+        const res = await deleteLimitConfiguration(
+          row.sysLimitConfigurationId!
+        );
+        if (res.success) {
+          ElMessage.success("删除成功");
+          getData();
+        } else {
+          ElMessage.error(res.msg || "删除失败");
+        }
+      } catch (error) {
+        ElMessage.error("删除失败");
       }
-    } catch (error) {
-      ElMessage.error("删除失败");
-    }
-  }).catch(() => {
-    // 取消删除
-  });
+    })
+    .catch(() => {
+      // 取消删除
+    });
 };
 
 // 提交表单
 const handleSubmit = async () => {
   if (!formRef.value) return;
-  
+
   await formRef.value.validate(async (valid) => {
     if (valid) {
       try {
@@ -348,16 +422,16 @@ const handleSubmit = async () => {
         } else {
           res = await saveLimitConfiguration(formData.value);
         }
-        
+
         if (res.success) {
-          ElMessage.success(`${isEdit.value ? '更新' : '新增'}成功`);
+          ElMessage.success(`${isEdit.value ? "更新" : "新增"}成功`);
           dialogVisible.value = false;
           getData();
         } else {
-          ElMessage.error(res.msg || `${isEdit.value ? '更新' : '新增'}失败`);
+          ElMessage.error(res.msg || `${isEdit.value ? "更新" : "新增"}失败`);
         }
       } catch (error) {
-        ElMessage.error(`${isEdit.value ? '更新' : '新增'}失败`);
+        ElMessage.error(`${isEdit.value ? "更新" : "新增"}失败`);
       }
     }
   });
@@ -382,36 +456,136 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .limit-configuration-container {
-  padding: 20px;
+  padding: 24px;
   height: 100%;
   box-sizing: border-box;
+  background-color: var(--el-bg-color);
+  border-radius: 12px;
 }
 
 .limit-configuration-card {
   height: 100%;
   display: flex;
   flex-direction: column;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+
+  :deep(.el-card__header) {
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color-overlay) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    padding: 16px 20px;
+  }
+
+  :deep(.el-card__body) {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+
+  span {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
 }
 
 .search-form {
   margin-bottom: 20px;
+  padding: 16px;
+  background-color: var(--el-fill-color-lighter);
+  border-radius: 8px;
+
+  :deep(.el-form-item) {
+    margin-bottom: 0;
+  }
+}
+
+:deep(.el-table) {
+  border-radius: 8px;
+  overflow: hidden;
+
+  th {
+    background-color: var(--el-fill-color-light) !important;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+
+  .el-table__row {
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: var(--el-color-primary-light-9) !important;
+    }
+  }
+}
+
+:deep(.el-tag) {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+:deep(.el-button--link) {
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
 }
 
 .pagination-container {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
+}
+
+:deep(.el-dialog) {
+  border-radius: 12px;
+  overflow: hidden;
+
+  .el-dialog__header {
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color-overlay) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    padding: 16px 20px;
+    margin: 0;
+  }
+
+  .el-dialog__body {
+    padding: 24px;
+  }
+
+  .el-dialog__footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+}
+
+:deep(.el-form-item__label) {
+  font-weight: 500;
+  color: var(--el-text-color-primary);
 }
 </style>

@@ -68,7 +68,9 @@ function getRandomHue() {
 
 // 获取主菜单项（一级菜单）
 const mainMenuItems = computed(() => {
-  const items = usePermissionStoreHook().wholeMenus.filter((menu) => menu.meta?.showLink !== false && menu.path !== "/");
+  const items = usePermissionStoreHook().wholeMenus.filter(
+    (menu) => menu.meta?.showLink !== false && menu.path !== "/"
+  );
   // 为每个菜单项添加随机颜色
   return items.map((menu) => ({
     ...menu,
@@ -89,7 +91,9 @@ function getSubMenuItems(menu: any, level: number = 1) {
     if (child.meta?.showLink === false) return;
 
     // 检查是否有components（即是否为最终页面）
-    const hasComponents = child.component || (child.components && Object.keys(child.components).length > 0);
+    const hasComponents =
+      child.component ||
+      (child.components && Object.keys(child.components).length > 0);
     const hasChildren = child.children && child.children.length > 0;
 
     if (level < 3) {
@@ -351,7 +355,8 @@ function handleTouchEnd() {
 function getRouteComponent() {
   const currentPath = route.path;
   const urlParams = new URLSearchParams(window.location.search);
-  const showNav = urlParams.get("nav") === "true" || window.location.hash === "#nav";
+  const showNav =
+    urlParams.get("nav") === "true" || window.location.hash === "#nav";
 
   // 如果URL包含nav参数或hash为#nav，显示卡片导航
   if (showNav || currentPath === "/" || currentPath === "") {
@@ -445,7 +450,11 @@ onUnmounted(() => {
     <!-- 顶部信息栏 -->
     <div class="card-navigation-header">
       <!-- 返回按钮（仅在显示组件时显示） -->
-      <div v-if="!showCardNavigation" class="back-button" @click="goBackToNavigation">
+      <div
+        v-if="!showCardNavigation"
+        class="back-button"
+        @click="goBackToNavigation"
+      >
         <IconifyIconOnline icon="ri:arrow-left-line" />
         <span>返回导航</span>
       </div>
@@ -458,16 +467,31 @@ onUnmounted(() => {
     <!-- 卡片导航区域 -->
     <div v-if="showCardNavigation" class="horizontal-card-wrapper">
       <!-- 左侧滚动箭头 -->
-      <div v-show="canScrollLeft" class="scroll-arrow scroll-arrow-left" @click="scrollLeft">
+      <div
+        v-show="canScrollLeft"
+        class="scroll-arrow scroll-arrow-left"
+        @click="scrollLeft"
+      >
         <IconifyIconOnline icon="ri:arrow-left-fill" />
       </div>
 
       <!-- 卡片滚动容器 -->
-      <div ref="scrollContainer" class="card-scroll-container" :class="{ 'is-dragging': isDragging }" @mousedown="handleMouseDown" @touchstart="handleTouchStart" @touchmove="handleTouchMove" @touchend="handleTouchEnd">
+      <div
+        ref="scrollContainer"
+        class="card-scroll-container"
+        :class="{ 'is-dragging': isDragging }"
+        @mousedown="handleMouseDown"
+        @touchstart="handleTouchStart"
+        @touchmove="handleTouchMove"
+        @touchend="handleTouchEnd"
+      >
         <div
           v-for="menu in mainMenuItems"
           :key="menu.path"
-          :class="['menu-card', { 'white-mode': $storage.configure?.cardColorMode === 'white' }]"
+          :class="[
+            'menu-card',
+            { 'white-mode': $storage.configure?.cardColorMode === 'white' },
+          ]"
           :style="{ '--card-hue': menu.randomHue }"
           @click="!isDragging && handleCardClick(menu)"
           @mouseenter="(event) => !isDragging && handleMouseEnter(menu, event)"
@@ -475,15 +499,24 @@ onUnmounted(() => {
         >
           <div class="card-icon-area">
             <IconifyIconOnline v-if="menu.meta?.icon" :icon="menu.meta.icon" />
-            <IconifyIconOnline v-else-if="menu.meta?.iconOnline" :icon="menu.meta.iconOnline" />
+            <IconifyIconOnline
+              v-else-if="menu.meta?.iconOnline"
+              :icon="menu.meta.iconOnline"
+            />
             <IconifyIconOnline v-else icon="ep:menu" />
           </div>
-          <div v-if="props.showTitle" class="card-title">{{ menu.meta?.title }}</div>
+          <div v-if="props.showTitle" class="card-title">
+            {{ menu.meta?.title }}
+          </div>
         </div>
       </div>
 
       <!-- 右侧滚动箭头 -->
-      <div v-show="canScrollRight" class="scroll-arrow scroll-arrow-right" @click="scrollRight">
+      <div
+        v-show="canScrollRight"
+        class="scroll-arrow scroll-arrow-right"
+        @click="scrollRight"
+      >
         <IconifyIconOnline icon="ri:arrow-right-fill" />
       </div>
     </div>
@@ -494,12 +527,33 @@ onUnmounted(() => {
     </div>
 
     <!-- 子菜单悬停弹出 -->
-    <div v-if="hoveredMenu && shouldShowSubMenu(hoveredMenu)" class="sub-menu-popup" :style="{ top: subMenuPosition.top + 'px', left: subMenuPosition.left + 'px' }" @mouseenter="handleMouseEnter(hoveredMenu)" @mouseleave="handleMouseLeave">
+    <div
+      v-if="hoveredMenu && shouldShowSubMenu(hoveredMenu)"
+      class="sub-menu-popup"
+      :style="{
+        top: subMenuPosition.top + 'px',
+        left: subMenuPosition.left + 'px',
+      }"
+      @mouseenter="handleMouseEnter(hoveredMenu)"
+      @mouseleave="handleMouseLeave"
+    >
       <div class="sub-menu-grid">
-        <div v-for="subMenu in getSubMenuItems(hoveredMenu, 1)" :key="subMenu.path" class="sub-menu-card" @click="handleSubMenuClick(subMenu)" @mouseenter="handleSubMenuEnter(subMenu, $event)">
+        <div
+          v-for="subMenu in getSubMenuItems(hoveredMenu, 1)"
+          :key="subMenu.path"
+          class="sub-menu-card"
+          @click="handleSubMenuClick(subMenu)"
+          @mouseenter="handleSubMenuEnter(subMenu, $event)"
+        >
           <div class="sub-card-icon">
-            <IconifyIconOnline v-if="subMenu.meta?.icon" :icon="subMenu.meta.icon" />
-            <IconifyIconOnline v-else-if="subMenu.meta?.iconOnline" :icon="subMenu.meta.iconOnline" />
+            <IconifyIconOnline
+              v-if="subMenu.meta?.icon"
+              :icon="subMenu.meta.icon"
+            />
+            <IconifyIconOnline
+              v-else-if="subMenu.meta?.iconOnline"
+              :icon="subMenu.meta.iconOnline"
+            />
             <IconifyIconOnline v-else icon="ep:menu" />
           </div>
           <div class="sub-card-title">{{ subMenu.meta?.title }}</div>
@@ -510,12 +564,33 @@ onUnmounted(() => {
     </div>
 
     <!-- 二级子菜单悬停弹出 -->
-    <div v-if="hoveredSubMenu && shouldShowSubMenu(hoveredSubMenu, 2)" class="sub-menu-popup level-2" :style="{ top: subMenuPosition2.top + 'px', left: subMenuPosition2.left + 'px' }" @mouseenter="handleSubMenuEnter(hoveredSubMenu)" @mouseleave="handleSubMenuLeave">
+    <div
+      v-if="hoveredSubMenu && shouldShowSubMenu(hoveredSubMenu, 2)"
+      class="sub-menu-popup level-2"
+      :style="{
+        top: subMenuPosition2.top + 'px',
+        left: subMenuPosition2.left + 'px',
+      }"
+      @mouseenter="handleSubMenuEnter(hoveredSubMenu)"
+      @mouseleave="handleSubMenuLeave"
+    >
       <div class="sub-menu-grid">
-        <div v-for="subMenu in getSubMenuItems(hoveredSubMenu, 2)" :key="subMenu.path" class="sub-menu-card" @click="handleSubMenuClick(subMenu)" @mouseenter="handleThirdMenuEnter(subMenu, $event)">
+        <div
+          v-for="subMenu in getSubMenuItems(hoveredSubMenu, 2)"
+          :key="subMenu.path"
+          class="sub-menu-card"
+          @click="handleSubMenuClick(subMenu)"
+          @mouseenter="handleThirdMenuEnter(subMenu, $event)"
+        >
           <div class="sub-card-icon">
-            <IconifyIconOnline v-if="subMenu.meta?.icon" :icon="subMenu.meta.icon" />
-            <IconifyIconOnline v-else-if="subMenu.meta?.iconOnline" :icon="subMenu.meta.iconOnline" />
+            <IconifyIconOnline
+              v-if="subMenu.meta?.icon"
+              :icon="subMenu.meta.icon"
+            />
+            <IconifyIconOnline
+              v-else-if="subMenu.meta?.iconOnline"
+              :icon="subMenu.meta.iconOnline"
+            />
             <IconifyIconOnline v-else icon="ep:menu" />
           </div>
           <div class="sub-card-title">{{ subMenu.meta?.title }}</div>
@@ -526,12 +601,32 @@ onUnmounted(() => {
     </div>
 
     <!-- 三级子菜单悬停弹出 -->
-    <div v-if="hoveredThirdMenu && shouldShowSubMenu(hoveredThirdMenu, 3)" class="sub-menu-popup level-3" :style="{ top: subMenuPosition3.top + 'px', left: subMenuPosition3.left + 'px' }" @mouseenter="() => handleThirdMenuEnter(hoveredThirdMenu)" @mouseleave="handleThirdMenuLeave">
+    <div
+      v-if="hoveredThirdMenu && shouldShowSubMenu(hoveredThirdMenu, 3)"
+      class="sub-menu-popup level-3"
+      :style="{
+        top: subMenuPosition3.top + 'px',
+        left: subMenuPosition3.left + 'px',
+      }"
+      @mouseenter="() => handleThirdMenuEnter(hoveredThirdMenu)"
+      @mouseleave="handleThirdMenuLeave"
+    >
       <div class="sub-menu-grid">
-        <div v-for="subMenu in getSubMenuItems(hoveredThirdMenu, 3)" :key="subMenu.path" class="sub-menu-card" @click="handleSubMenuClick(subMenu)">
+        <div
+          v-for="subMenu in getSubMenuItems(hoveredThirdMenu, 3)"
+          :key="subMenu.path"
+          class="sub-menu-card"
+          @click="handleSubMenuClick(subMenu)"
+        >
           <div class="sub-card-icon">
-            <IconifyIconOnline v-if="subMenu.meta?.icon" :icon="subMenu.meta.icon" />
-            <IconifyIconOnline v-else-if="subMenu.meta?.iconOnline" :icon="subMenu.meta.iconOnline" />
+            <IconifyIconOnline
+              v-if="subMenu.meta?.icon"
+              :icon="subMenu.meta.icon"
+            />
+            <IconifyIconOnline
+              v-else-if="subMenu.meta?.iconOnline"
+              :icon="subMenu.meta.iconOnline"
+            />
             <IconifyIconOnline v-else icon="ep:menu" />
           </div>
           <div class="sub-card-title">{{ subMenu.meta?.title }}</div>
@@ -581,7 +676,12 @@ onUnmounted(() => {
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, rgba(64, 158, 255, 0.1) 0%, rgba(64, 158, 255, 0.3) 50%, rgba(64, 158, 255, 0.1) 100%);
+    background: linear-gradient(
+      90deg,
+      rgba(64, 158, 255, 0.1) 0%,
+      rgba(64, 158, 255, 0.3) 50%,
+      rgba(64, 158, 255, 0.1) 100%
+    );
   }
 
   /* 暗色主题适配 */
@@ -590,7 +690,12 @@ onUnmounted(() => {
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
     &::before {
-      background: linear-gradient(90deg, rgba(64, 158, 255, 0.15) 0%, rgba(64, 158, 255, 0.4) 50%, rgba(64, 158, 255, 0.15) 100%);
+      background: linear-gradient(
+        90deg,
+        rgba(64, 158, 255, 0.15) 0%,
+        rgba(64, 158, 255, 0.4) 50%,
+        rgba(64, 158, 255, 0.15) 100%
+      );
     }
   }
 }
@@ -657,7 +762,11 @@ onUnmounted(() => {
 .component-container {
   margin-top: 48px;
   flex: 1;
-  background: linear-gradient(145deg, #e3f2fd 0%, #bbdefb 100%);
+  background: linear-gradient(
+    145deg,
+    var(--el-color-primary-light-9) 0%,
+    var(--el-color-primary-light-8) 100%
+  );
   border-radius: 16px;
   margin: 68px 20px 20px 20px;
   box-shadow:
@@ -731,10 +840,10 @@ onUnmounted(() => {
     color: #ffffff !important; /* 强制设置为白色确保可见性 */
     border-color: var(--el-color-primary);
     box-shadow: 0 8px 24px rgba(var(--el-color-primary-rgb), 0.3);
-    
+
     .card-icon-area {
       background: rgba(255, 255, 255, 0.2);
-      
+
       .iconify,
       svg,
       i,
@@ -742,7 +851,7 @@ onUnmounted(() => {
         color: #ffffff !important; /* 强制设置为白色确保可见性 */
       }
     }
-    
+
     .card-title {
       color: #ffffff !important; /* 强制设置为白色确保可见性 */
     }
@@ -757,7 +866,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.1) 0%,
+    rgba(34, 197, 94, 0.05) 100%
+  );
   margin-bottom: 8px;
 
   .iconify {
@@ -811,7 +924,11 @@ onUnmounted(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(145deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+    background: linear-gradient(
+      145deg,
+      rgba(99, 102, 241, 0.1),
+      rgba(168, 85, 247, 0.1)
+    );
     border-radius: 14px;
     opacity: 0;
     transition: opacity 0.4s ease;
@@ -877,7 +994,7 @@ onUnmounted(() => {
 .sub-menu-popup {
   position: fixed;
   transform: translate(-50%, calc(-100% - 15px));
-   background: var(--el-bg-color-overlay);
+  background: var(--el-bg-color-overlay);
   border: 2px solid #e5e7eb;
   border-radius: 16px;
   box-shadow:
@@ -996,7 +1113,7 @@ onUnmounted(() => {
   position: relative;
   width: 90px;
   height: 100px;
-   background: var(--el-bg-color-overlay);
+  background: var(--el-bg-color-overlay);
   border: 2px solid #f3f4f6;
   border-radius: 12px;
   display: flex;
@@ -1014,24 +1131,24 @@ onUnmounted(() => {
     border-color: #22c55e;
     background: linear-gradient(145deg, #90caf9 0%, #64b5f6 100%);
   }
-  
+
   /* 添加选中状态样式 */
   &.is-active {
     background: var(--el-color-primary);
     color: #ffffff !important; /* 强制设置为白色确保可见性 */
     border-color: var(--el-color-primary);
     box-shadow: 0 8px 24px rgba(var(--el-color-primary-rgb), 0.3);
-    
+
     .sub-card-icon {
       background: rgba(255, 255, 255, 0.2);
       border-color: #ffffff;
-      
+
       .iconify,
       span {
         color: #ffffff !important; /* 强制设置为白色确保可见性 */
       }
     }
-    
+
     .sub-card-title {
       color: #ffffff !important; /* 强制设置为白色确保可见性 */
     }
@@ -1046,7 +1163,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.1) 0%,
+    rgba(34, 197, 94, 0.05) 100%
+  );
   margin-bottom: 8px;
 
   .iconify {

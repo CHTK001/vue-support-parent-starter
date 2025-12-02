@@ -2,7 +2,7 @@
 
 .splitter-pane-resizer {
   box-sizing: border-box;
-  background: #000;
+  background: var(--el-text-color-primary);
   position: absolute;
   opacity: 0.2;
   z-index: 1;
@@ -13,7 +13,7 @@
 .splitter-pane-resizer.horizontal {
   height: 6px;
   width: 100%;
-  background: #e5e6eb;
+  background: var(--el-border-color-light);
   cursor: row-resize;
 }
 
@@ -21,7 +21,7 @@
   content: "\eda3";
   font-family: "iconfont";
   font-size: 13px;
-  color: #000;
+  color: var(--el-text-color-primary);
   position: absolute;
   top: 50%;
   left: 50%;
@@ -31,7 +31,7 @@
 .splitter-pane-resizer.vertical {
   width: 6px;
   height: 100%;
-  background: #e5e6eb;
+  background: var(--el-border-color-light);
   cursor: col-resize;
 }
 
@@ -39,7 +39,7 @@
   content: "\e647";
   font-family: "iconfont";
   font-size: 13px;
-  color: #000;
+  color: var(--el-text-color-primary);
   position: absolute;
   top: 50%;
   left: 50%;

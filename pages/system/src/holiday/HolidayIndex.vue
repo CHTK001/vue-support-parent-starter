@@ -5,7 +5,11 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import ScSearch from "@repo/components/ScSearch/index.vue";
 import { message } from "@repo/utils";
 import { defineAsyncComponent, nextTick, onMounted, reactive, ref } from "vue";
-import { fetchHolidayList, syncHolidayData, type SysHoliday } from "../api/holiday";
+import {
+  fetchHolidayList,
+  syncHolidayData,
+  type SysHoliday,
+} from "../api/holiday";
 /**
  * 节假日管理主页面
  * @author CH
@@ -14,7 +18,9 @@ import { fetchHolidayList, syncHolidayData, type SysHoliday } from "../api/holid
  */
 
 // 异步加载组件
-const HolidayCalendar = defineAsyncComponent(() => import("./HolidayCalendar.vue"));
+const HolidayCalendar = defineAsyncComponent(
+  () => import("./HolidayCalendar.vue")
+);
 
 // 响应式数据
 const tableRef = ref(null);
@@ -177,25 +183,42 @@ onMounted(() => {
               <div class="flex items-center gap-2 ml-4">
                 <!-- 视图切换按钮 -->
                 <el-button-group>
-                  <el-button :type="viewMode === 'table' ? 'primary' : 'default'" @click="switchViewMode('table')">
+                  <el-button
+                    :type="viewMode === 'table' ? 'primary' : 'default'"
+                    @click="switchViewMode('table')"
+                  >
                     <el-icon><ep-list /></el-icon>
                     列表视图
                   </el-button>
-                  <el-button :type="viewMode === 'calendar' ? 'primary' : 'default'" @click="switchViewMode('calendar')">
-                    <el-icon><component :is="useRenderIcon(Calendar)" /></el-icon>
+                  <el-button
+                    :type="viewMode === 'calendar' ? 'primary' : 'default'"
+                    @click="switchViewMode('calendar')"
+                  >
+                    <el-icon
+                      ><component :is="useRenderIcon(Calendar)"
+                    /></el-icon>
                     日历视图
                   </el-button>
                 </el-button-group>
 
                 <!-- 同步按钮 -->
-                <el-button type="primary" :loading="syncLoading" @click="handleSync">
+                <el-button
+                  type="primary"
+                  :loading="syncLoading"
+                  @click="handleSync"
+                >
                   <el-icon><component :is="useRenderIcon(Refresh)" /></el-icon>
                 </el-button>
               </div>
 
               <div class="flex-1 flex items-center">
                 <div class="w-full flex items-center flex-1">
-                  <ScSearch :columns="columns" :onSearch="onSearch" :show-number="4" :loading="loading" />
+                  <ScSearch
+                    :columns="columns"
+                    :onSearch="onSearch"
+                    :show-number="4"
+                    :loading="loading"
+                  />
                 </div>
               </div>
             </div>
@@ -205,28 +228,67 @@ onMounted(() => {
           <el-main>
             <!-- 表格视图 -->
             <div v-if="viewMode === 'table'" v-loading="loading">
-              <el-table :data="holidayData" border stripe style="width: 100%" empty-text="暂无节假日数据">
-                <el-table-column label="序号" type="index" align="center" width="60px" />
+              <el-table
+                :data="holidayData"
+                border
+                stripe
+                style="width: 100%"
+                empty-text="暂无节假日数据"
+              >
+                <el-table-column
+                  label="序号"
+                  type="index"
+                  align="center"
+                  width="60px"
+                />
 
-                <el-table-column prop="sysHolidayYear" label="年份" align="center" width="100px" />
+                <el-table-column
+                  prop="sysHolidayYear"
+                  label="年份"
+                  align="center"
+                  width="100px"
+                />
 
-                <el-table-column prop="sysHolidayDate" label="日期" align="center" width="120px">
+                <el-table-column
+                  prop="sysHolidayDate"
+                  label="日期"
+                  align="center"
+                  width="120px"
+                >
                   <template #default="{ row }">
                     {{ formatDate(row.sysHolidayDate) }}
                   </template>
                 </el-table-column>
 
-                <el-table-column prop="sysHolidayName" label="节假日名称" align="center" min-width="150px">
+                <el-table-column
+                  prop="sysHolidayName"
+                  label="节假日名称"
+                  align="center"
+                  min-width="150px"
+                >
                   <template #default="{ row }">
-                    <el-tag :type="getHolidayTagType(row.sysHolidayIsHoliday)" effect="dark" size="small">
+                    <el-tag
+                      :type="getHolidayTagType(row.sysHolidayIsHoliday)"
+                      effect="dark"
+                      size="small"
+                    >
                       {{ row.sysHolidayName }}
                     </el-tag>
                   </template>
                 </el-table-column>
 
-                <el-table-column prop="sysHolidayIsHoliday" label="类型" align="center" width="100px">
+                <el-table-column
+                  prop="sysHolidayIsHoliday"
+                  label="类型"
+                  align="center"
+                  width="100px"
+                >
                   <template #default="{ row }">
-                    <el-tag :type="getHolidayTagType(row.sysHolidayIsHoliday)" effect="plain" size="small">
+                    <el-tag
+                      :type="getHolidayTagType(row.sysHolidayIsHoliday)"
+                      effect="plain"
+                      size="small"
+                    >
                       {{ getHolidayText(row.sysHolidayIsHoliday) }}
                     </el-tag>
                   </template>
@@ -257,9 +319,20 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .holiday-container {
+  height: 100%;
+  background-color: var(--el-bg-color);
+  border-radius: 12px;
+  overflow: hidden;
+
   .el-header {
-    border-bottom: 1px solid var(--app-border-primary);
-    padding: 0 20px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    padding: 16px 24px;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color-overlay) 100%
+    );
+    height: auto !important;
   }
 
   .nopadding {
@@ -267,27 +340,67 @@ onMounted(() => {
   }
 }
 
+:deep(.el-main) {
+  padding: 24px;
+  background-color: var(--el-bg-color);
+}
+
 :deep(.el-table) {
+  border-radius: 8px;
+  overflow: hidden;
+
   .el-table__header {
     th {
-      background-color: var(--app-table-header-bg);
+      background-color: var(--el-fill-color-light) !important;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
     }
   }
+
+  .el-table__row {
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: var(--el-color-primary-light-9) !important;
+    }
+  }
+}
+
+:deep(.el-tag) {
+  border-radius: 6px;
+  font-weight: 500;
 }
 
 :deep(.el-button-group) {
   .el-button {
     border-radius: 0;
+    transition: all 0.2s ease;
 
     &:first-child {
-      border-top-left-radius: 4px;
-      border-bottom-left-radius: 4px;
+      border-top-left-radius: 8px;
+      border-bottom-left-radius: 8px;
     }
 
     &:last-child {
-      border-top-right-radius: 4px;
-      border-bottom-right-radius: 4px;
+      border-top-right-radius: 8px;
+      border-bottom-right-radius: 8px;
     }
+
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+:deep(.el-input) {
+  .el-input__wrapper {
+    border-radius: 8px;
+  }
+}
+
+:deep(.el-select) {
+  .el-select__wrapper {
+    border-radius: 8px;
   }
 }
 </style>

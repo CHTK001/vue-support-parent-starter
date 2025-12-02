@@ -1,12 +1,30 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { clearObject, fileToBase64, localStorageProxy, message } from "@repo/utils";
-import { computed, defineAsyncComponent, onMounted, reactive, shallowRef } from "vue";
+import {
+  clearObject,
+  fileToBase64,
+  localStorageProxy,
+  message,
+} from "@repo/utils";
+import {
+  computed,
+  defineAsyncComponent,
+  onMounted,
+  reactive,
+  shallowRef,
+} from "vue";
 import { useRoute } from "vue-router";
-import { fetchGetTaskForColorization, fetchSaveTaskForColorization } from "../../../api/ai/image-colorization";
+import {
+  fetchGetTaskForColorization,
+  fetchSaveTaskForColorization,
+} from "../../../api/ai/image-colorization";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
-const ScLoading = defineAsyncComponent(() => import("@repo/components/ScLoading/index.vue"));
-const ScCompare = defineAsyncComponent(() => import("@repo/components/ScCompare/index.vue"));
+const ScLoading = defineAsyncComponent(
+  () => import("@repo/components/ScLoading/index.vue")
+);
+const ScCompare = defineAsyncComponent(
+  () => import("@repo/components/ScCompare/index.vue")
+);
 const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));
 const moduleDialogRef = shallowRef();
 const scLoadingRef = shallowRef();
@@ -58,7 +76,8 @@ const initialModuleList = async () => {
   modelList.value = data.map((it) => {
     it.vincentSetting = {
       ...it.vincentSetting,
-      sysAiVincentSupportedSizeList: it.vincentSetting?.sysAiVincentSupportedSize?.split(",") || [],
+      sysAiVincentSupportedSizeList:
+        it.vincentSetting?.sysAiVincentSupportedSize?.split(",") || [],
     };
     return {
       ...it,
@@ -86,11 +105,16 @@ const getKey = () => {
  * 获取key
  */
 const requestId = () => {
-  const _requestId = localStorageProxy().getItem("colorization-request-id:" + getKey());
+  const _requestId = localStorageProxy().getItem(
+    "colorization-request-id:" + getKey()
+  );
   return _requestId;
 };
 const loadedRequestId = async (row) => {
-  localStorageProxy().setItem("colorization-request-id:" + getKey(), row.taskId);
+  localStorageProxy().setItem(
+    "colorization-request-id:" + getKey(),
+    row.taskId
+  );
 };
 const loadInterval = () => {
   if (intervalId) {
@@ -116,7 +140,12 @@ const createInterval = () => {
     return;
   }
   intervalId = setInterval(() => {
-    fetchGetTaskForColorization({ taskId: requestId(), sysProjectId: form.sysProjectId, sysAiModuleType: form.sysAiModuleType, model: form.model })
+    fetchGetTaskForColorization({
+      taskId: requestId(),
+      sysProjectId: form.sysProjectId,
+      sysAiModuleType: form.sysAiModuleType,
+      model: form.model,
+    })
       .then(({ data }) => {
         if (data?.taskStatus === "SUCCESS") {
           clearTask();
@@ -203,25 +232,72 @@ onMounted(async () => {
 </script>
 <template>
   <div class="colorization-container h-full w-full pt-4 px-4 overflow-hidden">
-    <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment"></ModuleDialog>
-    <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-4 top-1/2 sidebar-custom-v2 z-[99] bg-primary text-white hover:bg-primary-dark settings-btn" circle size="large"> </el-button>
+    <ModuleDialog
+      ref="moduleDialogRef"
+      @success="handleRefreshEnvironment"
+    ></ModuleDialog>
+    <el-button
+      :icon="useRenderIcon('ep:setting')"
+      @click="handleOpenModuleManager"
+      class="fixed right-4 top-1/2 sidebar-custom-v2 z-[99] bg-primary text-white hover:bg-primary-dark settings-btn"
+      circle
+      size="large"
+    >
+    </el-button>
     <el-container class="h-full">
-      <el-header class="header-panel h-auto flex w-full items-center justify-between px-6 py-3 mb-2">
+      <el-header
+        class="header-panel h-auto flex w-full items-center justify-between px-6 py-3 mb-2"
+      >
         <div class="panel-left flex-1 mr-4">
-          <el-form ref="formRef" :model="form" :rules="rules" label-width="10px" :inline="true" class="w-full">
+          <el-form
+            ref="formRef"
+            :model="form"
+            :rules="rules"
+            label-width="10px"
+            :inline="true"
+            class="w-full"
+          >
             <el-form-item prop="model" class="w-full mb-0">
               <div class="flex justify-start w-full">
-                <el-select filterable v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule" class="model-select !w-[200px]">
-                  <el-option v-for="item in modelList" class="!h-[70px]" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
+                <el-select
+                  filterable
+                  v-model="form.model"
+                  placeholder="请选择模型"
+                  clearable
+                  @change="handleChangeModule"
+                  class="model-select !w-[200px]"
+                >
+                  <el-option
+                    v-for="item in modelList"
+                    class="!h-[70px]"
+                    :key="item"
+                    :label="item.sysAiModuleName"
+                    :value="item.sysAiModuleCode"
+                  >
                     <template #default>
-                      <el-tooltip placement="right" :raw-content="true" :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
-                        <div class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-primary-50 transition-all duration-300">
-                          <el-image :src="item.sysProjectIcon" fit="scale-down" class="!w-[50px] !h-[50px] rounded-lg shadow-sm"
-                            ><template #error><div class="error-icon">AI</div></template></el-image
+                      <el-tooltip
+                        placement="right"
+                        :raw-content="true"
+                        :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`"
+                      >
+                        <div
+                          class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-primary-50 transition-all duration-300"
+                        >
+                          <el-image
+                            :src="item.sysProjectIcon"
+                            fit="scale-down"
+                            class="!w-[50px] !h-[50px] rounded-lg shadow-sm"
+                            ><template #error
+                              ><div class="error-icon">AI</div></template
+                            ></el-image
                           >
                           <div class="flex flex-col">
-                            <span class="text-[15px] font-medium">{{ item.sysAiModuleName }}</span
-                            ><span class="text-gray-500 text-[13px]">{{ item.sysProjectName }}</span>
+                            <span class="text-[15px] font-medium">{{
+                              item.sysAiModuleName
+                            }}</span
+                            ><span class="text-gray-500 text-[13px]">{{
+                              item.sysProjectName
+                            }}</span>
                           </div>
                         </div>
                       </el-tooltip>
@@ -229,23 +305,44 @@ onMounted(async () => {
                   </el-option>
                   <template #label="{ label }">
                     <div class="flex items-center gap-3">
-                      <el-image class="!w-[32px] !h-[32px] rounded-lg" :src="modelSelectLabel?.sysProjectIcon"
-                        ><template #error><div class="error-icon">AI</div></template></el-image
+                      <el-image
+                        class="!w-[32px] !h-[32px] rounded-lg"
+                        :src="modelSelectLabel?.sysProjectIcon"
+                        ><template #error
+                          ><div class="error-icon">AI</div></template
+                        ></el-image
                       ><span>{{ label }}</span>
                     </div>
                   </template>
                 </el-select>
-                <el-button v-if="env.showEdit" class="ml-2 btn-text bg-primary text-white hover:bg-primary-dark add-btn" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule"> </el-button>
+                <el-button
+                  v-if="env.showEdit"
+                  class="ml-2 btn-text bg-primary text-white hover:bg-primary-dark add-btn"
+                  :icon="useRenderIcon('ep:plus')"
+                  @click="handleOpenModule"
+                >
+                </el-button>
               </div>
             </el-form-item>
           </el-form>
         </div>
         <div class="panel-right">
-          <el-upload :show-file-list="false" :auto-upload="false" accept="image/*" :on-change="handleChange" class="upload-demo">
+          <el-upload
+            :show-file-list="false"
+            :auto-upload="false"
+            accept="image/*"
+            :on-change="handleChange"
+            class="upload-demo"
+          >
             <template #trigger>
-              <el-button type="primary" class="bg-primary text-white hover:bg-primary-dark upload-btn">
+              <el-button
+                type="primary"
+                class="bg-primary text-white hover:bg-primary-dark upload-btn"
+              >
                 <span class="flex items-center">
-                  <el-icon class="mr-1 upload-icon"><component :is="useRenderIcon('ep:upload')" /></el-icon>
+                  <el-icon class="mr-1 upload-icon"
+                    ><component :is="useRenderIcon('ep:upload')"
+                  /></el-icon>
                   上传图片
                 </span>
               </el-button>
@@ -262,20 +359,50 @@ onMounted(async () => {
               '--image-width': showImageSize.width + 'px',
             }"
           >
-            <div class="w-full h-full relative flex justify-center items-center">
+            <div
+              class="w-full h-full relative flex justify-center items-center"
+            >
               <div v-if="!resolutionImage" class="h-full image-container">
                 <el-empty v-if="!showImageUrl" class="h-full empty-state">
                   <template #description>
                     <p class="empty-text">请上传一张需要上色的图片</p>
                   </template>
                 </el-empty>
-                <el-image v-else :src="showImageUrl" class="h-full img rounded-lg image-preview" fit="contain" transition="fade"></el-image>
-                <ScLoading ref="scLoadingRef" v-model="loadingConfig.export" transition="fade"></ScLoading>
+                <el-image
+                  v-else
+                  :src="showImageUrl"
+                  class="h-full img rounded-lg image-preview"
+                  fit="contain"
+                  transition="fade"
+                ></el-image>
+                <ScLoading
+                  ref="scLoadingRef"
+                  v-model="loadingConfig.export"
+                  transition="fade"
+                ></ScLoading>
               </div>
-              <ScCompare class="img rounded-lg comparison-view" v-if="resolutionImage" left-image-label="上色前" :left-image="showImageUrl" :right-image="resolutionImage" right-image-label="上色后" transition="fade"> </ScCompare>
-              <div v-if="resolutionImage" class="absolute bottom-4 right-4 action-buttons">
+              <ScCompare
+                class="img rounded-lg comparison-view"
+                v-if="resolutionImage"
+                left-image-label="上色前"
+                :left-image="showImageUrl"
+                :right-image="resolutionImage"
+                right-image-label="上色后"
+                transition="fade"
+              >
+              </ScCompare>
+              <div
+                v-if="resolutionImage"
+                class="absolute bottom-4 right-4 action-buttons"
+              >
                 <a :href="resolutionImage" download>
-                  <el-button :icon="useRenderIcon('ep:download')" circle size="large" class="bg-primary text-white hover:bg-primary-dark download-btn"> </el-button>
+                  <el-button
+                    :icon="useRenderIcon('ep:download')"
+                    circle
+                    size="large"
+                    class="bg-primary text-white hover:bg-primary-dark download-btn"
+                  >
+                  </el-button>
                 </a>
               </div>
             </div>
@@ -298,10 +425,10 @@ onMounted(async () => {
   height: min(var(--image-height), 672px);
 }
 .colorization-container {
-  --primary-color: #007bff;
-  --primary-dark: #0056b3;
-  --primary-light: #e6f2ff;
-  --primary-rgb: 0, 123, 255;
+  --primary-color: var(--el-color-primary);
+  --primary-dark: var(--el-color-primary-dark-2);
+  --primary-light: var(--el-color-primary-light-9);
+  --primary-rgb: var(--el-color-primary-rgb);
   --transition-bezier: cubic-bezier(0.34, 1.56, 0.64, 1);
   --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   --card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
@@ -392,7 +519,11 @@ onMounted(async () => {
       left: -50%;
       width: 200%;
       height: 200%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 70%);
+      background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.3) 0%,
+        rgba(255, 255, 255, 0) 70%
+      );
       opacity: 0;
       transform: scale(0.5);
       transition: all 0.5s ease;
@@ -561,7 +692,7 @@ onMounted(async () => {
   }
 
   .header-panel {
-    background: rgba(30, 30, 30, 0.6);
+    background: rgba(var(--el-bg-color-rgb), 0.6);
   }
 
   .settings-btn,
@@ -580,7 +711,7 @@ onMounted(async () => {
   }
 
   .dark .header-panel {
-    background: rgba(30, 30, 30, 0.5);
+    background: rgba(var(--el-bg-color-rgb), 0.5);
     backdrop-filter: blur(15px);
   }
 

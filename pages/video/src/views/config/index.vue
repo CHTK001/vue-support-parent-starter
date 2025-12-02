@@ -4,17 +4,17 @@
     <ConfigStats :stats="stats" class="mb-6" />
 
     <!-- 同步信息监听 -->
-    <ScSocketEventProcess 
+    <ScSocketEventProcess
       v-if="showSyncDialog"
-      event-id="video-sync-global" 
-      title="同步信息监听" 
-      event-name="/topic/video-sync/global" 
-      mode="dialog" 
-      position="bottom-right" 
-      layout="log" 
+      event-id="video-sync-global"
+      title="同步信息监听"
+      event-name="/topic/video-sync/global"
+      mode="dialog"
+      position="bottom-right"
+      layout="log"
       data-type="socket"
       :height="400"
-      @close="showSyncDialog = false" 
+      @close="showSyncDialog = false"
     />
 
     <!-- 配置列表 -->
@@ -30,7 +30,11 @@
 
           <div class="list-actions">
             <div class="search-input">
-              <el-input v-model="searchKeyword" placeholder="搜索配置名称" @input="handleSearch">
+              <el-input
+                v-model="searchKeyword"
+                placeholder="搜索配置名称"
+                @input="handleSearch"
+              >
                 <template #prefix>
                   <el-icon><IconifyIconOnline icon="ep:search" /></el-icon>
                 </template>
@@ -38,7 +42,11 @@
             </div>
 
             <div class="filter-select">
-              <el-select v-model="statusFilter" placeholder="状态筛选" @change="handleFilter">
+              <el-select
+                v-model="statusFilter"
+                placeholder="状态筛选"
+                @change="handleFilter"
+              >
                 <el-option label="全部" value="" />
                 <el-option label="启用" value="enabled" />
                 <el-option label="禁用" value="disabled" />
@@ -48,10 +56,17 @@
             </div>
 
             <div class="header-actions">
-              <el-button type="primary" @click="showAddDialog = true" class="action-btn primary-action">
+              <el-button
+                type="primary"
+                @click="showAddDialog = true"
+                class="action-btn primary-action"
+              >
                 <IconifyIconOnline icon="ep:plus" />
               </el-button>
-              <el-button @click="refreshConfigs" class="action-btn secondary-action">
+              <el-button
+                @click="refreshConfigs"
+                class="action-btn secondary-action"
+              >
                 <el-icon><IconifyIconOnline icon="ep:refresh" /></el-icon>
               </el-button>
             </div>
@@ -80,8 +95,14 @@
                 <IconifyIconOnline icon="ep:video-camera" />
               </div>
               <div class="empty-title">暂无配置数据</div>
-              <div class="empty-description">还没有创建任何视频同步配置，点击上方按钮开始创建</div>
-              <el-button type="primary" @click="showAddDialog = true" class="empty-action">
+              <div class="empty-description">
+                还没有创建任何视频同步配置，点击上方按钮开始创建
+              </div>
+              <el-button
+                type="primary"
+                @click="showAddDialog = true"
+                class="empty-action"
+              >
                 <IconifyIconOnline icon="ep:plus" class="mr-2" />
               </el-button>
             </div>
@@ -89,16 +110,31 @@
 
           <!-- 卡片模板 -->
           <template #default="{ row }">
-            <ConfigCard :config="row" @action="handleCommand" @copy-url="copyUrl" />
+            <ConfigCard
+              :config="row"
+              @action="handleCommand"
+              @copy-url="copyUrl"
+            />
           </template>
         </ScTable>
       </div>
 
       <!-- 新增/编辑配置对话框 -->
-      <ConfigForm v-model:visible="showAddDialog" :config="editingConfig" :editing="!!editingConfig" @success="handleConfigSuccess" @close="resetForm" />
+      <ConfigForm
+        v-model:visible="showAddDialog"
+        :config="editingConfig"
+        :editing="!!editingConfig"
+        @success="handleConfigSuccess"
+        @close="resetForm"
+      />
 
       <!-- 同步日志对话框 -->
-      <LogViewer v-model:visible="showLogsDialog" :logs="syncLogs" @refresh="refreshLogs" @clear="clearLogs" />
+      <LogViewer
+        v-model:visible="showLogsDialog"
+        :logs="syncLogs"
+        @refresh="refreshLogs"
+        @clear="clearLogs"
+      />
     </div>
   </div>
 </template>
@@ -108,7 +144,14 @@
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, onUnmounted, reactive, ref } from "vue";
-import { deleteSyncConfig, executeSyncConfig, getSyncConfigs, stopSyncTask, testSyncConfig, toggleSyncConfigStatus } from "../../api/config";
+import {
+  deleteSyncConfig,
+  executeSyncConfig,
+  getSyncConfigs,
+  stopSyncTask,
+  testSyncConfig,
+  toggleSyncConfigStatus,
+} from "../../api/config";
 import type { VideoSyncConfig } from "../../api/types";
 
 // 导入组件
@@ -175,7 +218,9 @@ const initSocket = () => {
   // 监听同步信息（仅用于更新配置列表和统计信息）
   socketInstance.on("/topic/video-sync/global", (data) => {
     const dataObject = JSON.parse(data.data);
-    const config = configList.value.find((c) => c.videoSyncConfigId === dataObject.videoSyncConfigId);
+    const config = configList.value.find(
+      (c) => c.videoSyncConfigId === dataObject.videoSyncConfigId
+    );
 
     if (config) {
       config.videoSyncConfigLastSyncTime = dataObject.lastSyncTime;
@@ -230,11 +275,16 @@ const getStatusText = (status: string): string => {
  */
 const updateStats = () => {
   stats.totalConfigs = configList.value.length;
-  stats.enabledConfigs = configList.value.filter((c) => c.videoSyncConfigEnable === true).length;
-  stats.syncingConfigs = configList.value.filter((c) => c.videoSyncConfigStatus === "PROGRESS").length;
-  stats.errorConfigs = configList.value.filter((c) => c.videoSyncConfigStatus === "ERROR").length;
+  stats.enabledConfigs = configList.value.filter(
+    (c) => c.videoSyncConfigEnable === true
+  ).length;
+  stats.syncingConfigs = configList.value.filter(
+    (c) => c.videoSyncConfigStatus === "PROGRESS"
+  ).length;
+  stats.errorConfigs = configList.value.filter(
+    (c) => c.videoSyncConfigStatus === "ERROR"
+  ).length;
 };
-
 
 /**
  * 刷新配置
@@ -331,11 +381,15 @@ const handleCommand = (command: string, config: VideoSyncConfig) => {
  * @param config 配置信息
  */
 const handleStop = (config: VideoSyncConfig) => {
-  ElMessageBox.confirm(`确定要停止配置 "${config.videoSyncConfigName}" 的同步任务吗？`, "确认停止", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
-  })
+  ElMessageBox.confirm(
+    `确定要停止配置 "${config.videoSyncConfigName}" 的同步任务吗？`,
+    "确认停止",
+    {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    }
+  )
     .then(() => {
       // 用户确认停止
       stopSyncTask(config.videoSyncConfigId!)
@@ -377,11 +431,15 @@ const toggleConfigStatus = (config: VideoSyncConfig, enable: boolean) => {
  * 删除配置
  */
 const deleteConfig = (config: VideoSyncConfig) => {
-  ElMessageBox.confirm(`确定要删除配置 "${config.videoSyncConfigName}" 吗？`, "确认删除", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
-  })
+  ElMessageBox.confirm(
+    `确定要删除配置 "${config.videoSyncConfigName}" 吗？`,
+    "确认删除",
+    {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    }
+  )
     .then(() => {
       // 用户确认删除
       deleteSyncConfig(config.videoSyncConfigId!)
@@ -530,7 +588,7 @@ onUnmounted(() => {
 
 .header-subtitle {
   font-size: 0.9rem;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   margin: 0;
   line-height: 1.4;
 }
@@ -548,18 +606,20 @@ onUnmounted(() => {
 }
 
 .primary-action {
-  background: var(--el-bg-color-overlay);
-  color: var(--el-text-color-primary);
-  border: 1px solid #409eff;
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 100%
+  );
+  color: var(--el-color-white);
+  border: none;
 }
-
 
 .secondary-action {
   background: var(--el-bg-color-overlay);
   color: var(--el-text-color-primary);
   border: 1px solid var(--el-border-color);
 }
-
 
 /* 配置列表样式 */
 .config-list {
@@ -632,12 +692,12 @@ onUnmounted(() => {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .empty-icon {
   font-size: 64px;
-  color: #c0c4cc;
+  color: var(--el-text-color-placeholder);
   margin-bottom: 24px;
   display: inline-block;
 }
@@ -645,13 +705,13 @@ onUnmounted(() => {
 .empty-title {
   font-size: 18px;
   font-weight: 600;
-  color: #606266;
+  color: var(--el-text-color-primary);
   margin-bottom: 8px;
 }
 
 .empty-description {
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   line-height: 1.5;
   max-width: 400px;
   margin: 0 auto 32px;
@@ -659,12 +719,16 @@ onUnmounted(() => {
 
 .empty-action {
   padding: 12px 24px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 14px;
-  background: var(--el-bg-color-overlay);
-  border: 1px solid #409eff;
-  color: var(--el-text-color-primary);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 100%
+  );
+  border: none;
+  color: var(--el-color-white);
   transition: all 0.2s ease;
 }
 
@@ -675,13 +739,23 @@ onUnmounted(() => {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
   transition: left 0.5s;
 }
 
 .empty-action:hover {
-  background: #337ecc;
-  border-color: #337ecc;
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-dark-2) 0%,
+    var(--el-color-primary) 100%
+  );
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
 }
 
 @media (max-width: 768px) {

@@ -55,7 +55,7 @@ const percentageFormat = (percentage: number) => {
 .process-message {
   margin-top: 8px;
   font-size: 12px;
-  color: #606266;
+  color: var(--el-text-color-regular);
   display: flex;
   align-items: center;
 }

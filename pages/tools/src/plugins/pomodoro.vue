@@ -2,36 +2,91 @@
   <div class="pomodoro-container">
     <div class="tool-description">
       <el-alert type="info" show-icon :closable="false">
-        <p>番茄工作法是一种时间管理方法，使用一个定时器来分割工作和休息时间，以提高效率和保持专注。</p>
-        <p>传统的番茄工作法包括25分钟的工作时间和5分钟的休息时间，完成4个周期后进行一次较长休息。</p>
+        <p>
+          番茄工作法是一种时间管理方法，使用一个定时器来分割工作和休息时间，以提高效率和保持专注。
+        </p>
+        <p>
+          传统的番茄工作法包括25分钟的工作时间和5分钟的休息时间，完成4个周期后进行一次较长休息。
+        </p>
       </el-alert>
     </div>
 
     <el-row :gutter="20" class="main-content">
       <el-col :span="16">
         <el-card class="timer-card">
-          <div class="timer-display" :class="{ 'work-mode': isWorkMode, 'break-mode': !isWorkMode }">
-            <div class="timer-status">{{ isWorkMode ? "工作时间" : "休息时间" }}</div>
+          <div
+            class="timer-display"
+            :class="{ 'work-mode': isWorkMode, 'break-mode': !isWorkMode }"
+          >
+            <div class="timer-status">
+              {{ isWorkMode ? "工作时间" : "休息时间" }}
+            </div>
             <div class="timer-clock">{{ formatTime(currentTime) }}</div>
             <div class="timer-progress">
-              <el-progress :percentage="progressPercentage" :stroke-width="10" :color="isWorkMode ? '#ff6b6b' : '#4caf50'" :show-text="false" />
+              <el-progress
+                :percentage="progressPercentage"
+                :stroke-width="10"
+                :color="isWorkMode ? '#ff6b6b' : '#4caf50'"
+                :show-text="false"
+              />
             </div>
           </div>
 
           <div class="timer-controls">
             <el-button-group>
-              <el-button v-if="!isRunning" type="primary" @click="startTimer" round :icon="renderIcon('ri:play-circle-line')"> 开始 </el-button>
-              <el-button v-else type="danger" @click="pauseTimer" round :icon="renderIcon('ri:pause-circle-line')"> 暂停 </el-button>
-              <el-button type="warning" @click="resetTimer" round :icon="renderIcon('ri:restart-line')"> 重置 </el-button>
-              <el-button type="info" @click="skipToNext" round :icon="renderIcon('ri:skip-forward-line')"> 跳过 </el-button>
+              <el-button
+                v-if="!isRunning"
+                type="primary"
+                @click="startTimer"
+                round
+                :icon="renderIcon('ri:play-circle-line')"
+              >
+                开始
+              </el-button>
+              <el-button
+                v-else
+                type="danger"
+                @click="pauseTimer"
+                round
+                :icon="renderIcon('ri:pause-circle-line')"
+              >
+                暂停
+              </el-button>
+              <el-button
+                type="warning"
+                @click="resetTimer"
+                round
+                :icon="renderIcon('ri:restart-line')"
+              >
+                重置
+              </el-button>
+              <el-button
+                type="info"
+                @click="skipToNext"
+                round
+                :icon="renderIcon('ri:skip-forward-line')"
+              >
+                跳过
+              </el-button>
             </el-button-group>
           </div>
 
           <div class="timer-cycles">
             <div class="cycle-label">已完成番茄数：</div>
             <div class="cycle-indicators">
-              <div v-for="n in workCyclesTarget" :key="n" class="cycle-indicator" :class="{ completed: n <= completedWorkCycles }">
-                <IconifyIconOnline :icon="n <= completedWorkCycles ? 'ri:checkbox-circle-fill' : 'ri:checkbox-blank-circle-line'" />
+              <div
+                v-for="n in workCyclesTarget"
+                :key="n"
+                class="cycle-indicator"
+                :class="{ completed: n <= completedWorkCycles }"
+              >
+                <IconifyIconOnline
+                  :icon="
+                    n <= completedWorkCycles
+                      ? 'ri:checkbox-circle-fill'
+                      : 'ri:checkbox-blank-circle-line'
+                  "
+                />
               </div>
             </div>
           </div>
@@ -64,44 +119,81 @@
           <div class="settings-content">
             <div class="settings-item">
               <div class="settings-label">工作时间 (分钟):</div>
-              <el-input-number v-model="workTime" :min="1" :max="60" :step="1" :disabled="isRunning" />
+              <el-input-number
+                v-model="workTime"
+                :min="1"
+                :max="60"
+                :step="1"
+                :disabled="isRunning"
+              />
             </div>
 
             <div class="settings-item">
               <div class="settings-label">短休息时间 (分钟):</div>
-              <el-input-number v-model="shortBreakTime" :min="1" :max="30" :step="1" :disabled="isRunning" />
+              <el-input-number
+                v-model="shortBreakTime"
+                :min="1"
+                :max="30"
+                :step="1"
+                :disabled="isRunning"
+              />
             </div>
 
             <div class="settings-item">
               <div class="settings-label">长休息时间 (分钟):</div>
-              <el-input-number v-model="longBreakTime" :min="1" :max="60" :step="1" :disabled="isRunning" />
+              <el-input-number
+                v-model="longBreakTime"
+                :min="1"
+                :max="60"
+                :step="1"
+                :disabled="isRunning"
+              />
             </div>
 
             <div class="settings-item">
               <div class="settings-label">长休息周期 (工作次数):</div>
-              <el-input-number v-model="workCyclesTarget" :min="1" :max="10" :step="1" :disabled="isRunning" />
+              <el-input-number
+                v-model="workCyclesTarget"
+                :min="1"
+                :max="10"
+                :step="1"
+                :disabled="isRunning"
+              />
             </div>
 
             <el-divider />
 
             <div class="settings-item">
               <div class="settings-label">自动开始休息:</div>
-              <el-switch v-model="autoStartBreak" :disabled="isRunning" />
+              <ScSwitch
+                v-model="autoStartBreak"
+                :disabled="isRunning"
+                layout="modern"
+              />
             </div>
 
             <div class="settings-item">
               <div class="settings-label">自动开始工作:</div>
-              <el-switch v-model="autoStartWork" :disabled="isRunning" />
+              <ScSwitch
+                v-model="autoStartWork"
+                :disabled="isRunning"
+                layout="modern"
+              />
             </div>
 
             <div class="settings-item">
               <div class="settings-label">声音提醒:</div>
-              <el-switch v-model="soundEnabled" />
+              <ScSwitch v-model="soundEnabled" layout="modern" />
             </div>
 
             <div class="settings-item">
               <div class="settings-label">声音音量:</div>
-              <el-slider v-model="soundVolume" :min="0" :max="100" :disabled="!soundEnabled" />
+              <el-slider
+                v-model="soundVolume"
+                :min="0"
+                :max="100"
+                :disabled="!soundEnabled"
+              />
             </div>
           </div>
         </el-card>
@@ -120,11 +212,21 @@
           <div class="tips-content">
             <ul class="tips-list">
               <li>每个番茄时间（通常为25分钟）专注于单一任务，不受干扰。</li>
-              <li>休息时间应远离工作，真正放松身心（起身走动、伸展、闭目养神等）。</li>
-              <li>在开始番茄钟前，列出你要完成的任务，并计划需要几个番茄钟。</li>
-              <li>如果有干扰（想法、邮件、电话），写下来，然后回到工作中，在休息时再处理。</li>
-              <li>记录每天完成的番茄数量，可以帮助你了解自己的工作效率和注意力模式。</li>
-              <li>番茄工作法有助于减轻拖延症，因为你只需承诺短时间的专注工作。</li>
+              <li>
+                休息时间应远离工作，真正放松身心（起身走动、伸展、闭目养神等）。
+              </li>
+              <li>
+                在开始番茄钟前，列出你要完成的任务，并计划需要几个番茄钟。
+              </li>
+              <li>
+                如果有干扰（想法、邮件、电话），写下来，然后回到工作中，在休息时再处理。
+              </li>
+              <li>
+                记录每天完成的番茄数量，可以帮助你了解自己的工作效率和注意力模式。
+              </li>
+              <li>
+                番茄工作法有助于减轻拖延症，因为你只需承诺短时间的专注工作。
+              </li>
             </ul>
           </div>
         </el-card>
@@ -132,14 +234,23 @@
     </el-row>
 
     <!-- 隐藏的音频元素 -->
-    <audio ref="workFinishedSound" preload="auto" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"></audio>
-    <audio ref="breakFinishedSound" preload="auto" src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3"></audio>
+    <audio
+      ref="workFinishedSound"
+      preload="auto"
+      src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"
+    ></audio>
+    <audio
+      ref="breakFinishedSound"
+      preload="auto"
+      src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3"
+    ></audio>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { ElMessage, ElNotification } from "element-plus";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 
 // 状态变量
 const isRunning = ref(false);
@@ -168,7 +279,12 @@ let timerInterval = null;
 
 // 计算属性：进度百分比
 const progressPercentage = computed(() => {
-  const totalDuration = isWorkMode.value ? workTime.value * 60 : completedWorkCycles.value % workCyclesTarget.value === 0 && completedWorkCycles.value > 0 ? longBreakTime.value * 60 : shortBreakTime.value * 60;
+  const totalDuration = isWorkMode.value
+    ? workTime.value * 60
+    : completedWorkCycles.value % workCyclesTarget.value === 0 &&
+        completedWorkCycles.value > 0
+      ? longBreakTime.value * 60
+      : shortBreakTime.value * 60;
 
   return Math.floor((1 - currentTime.value / totalDuration) * 100);
 });
@@ -332,10 +448,14 @@ onMounted(() => {
       shortBreakTime.value = settings.shortBreakTime || 5;
       longBreakTime.value = settings.longBreakTime || 15;
       workCyclesTarget.value = settings.workCyclesTarget || 4;
-      autoStartBreak.value = settings.autoStartBreak !== undefined ? settings.autoStartBreak : true;
-      autoStartWork.value = settings.autoStartWork !== undefined ? settings.autoStartWork : false;
-      soundEnabled.value = settings.soundEnabled !== undefined ? settings.soundEnabled : true;
-      soundVolume.value = settings.soundVolume !== undefined ? settings.soundVolume : 80;
+      autoStartBreak.value =
+        settings.autoStartBreak !== undefined ? settings.autoStartBreak : true;
+      autoStartWork.value =
+        settings.autoStartWork !== undefined ? settings.autoStartWork : false;
+      soundEnabled.value =
+        settings.soundEnabled !== undefined ? settings.soundEnabled : true;
+      soundVolume.value =
+        settings.soundVolume !== undefined ? settings.soundVolume : 80;
     } catch (error) {
       console.error("Failed to load settings:", error);
     }

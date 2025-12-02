@@ -14,7 +14,7 @@ export default {
 <style scoped>
 .sc-state {
   display: inline-block;
-  background: #000;
+  background: var(--el-text-color-primary);
   width: 8px;
   height: 8px;
   border-radius: 50%;

@@ -86,9 +86,9 @@ defineExpose({
 
 .log-container {
   overflow-y: auto;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
-  background-color: #fafafa;
+  background-color: var(--el-fill-color-lighter);
   padding: 8px;
   margin-bottom: 10px;
   font-family: monospace;
@@ -98,7 +98,7 @@ defineExpose({
 .log-item {
   padding: 3px 0;
   line-height: 1.5;
-  border-bottom: 1px dashed #f0f0f0;
+  border-bottom: 1px dashed var(--el-border-color-extra-light);
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -109,7 +109,7 @@ defineExpose({
 }
 
 .log-message {
-  color: #606266;
+  color: var(--el-text-color-regular);
 }
 
 .log-progress {

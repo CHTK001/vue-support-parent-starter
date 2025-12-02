@@ -9,8 +9,12 @@
 
         <div class="calculator-keypad">
           <div class="keypad-section function-keys">
-            <el-button type="info" class="calc-key" @click="clearAll">AC</el-button>
-            <el-button type="info" class="calc-key" @click="clearEntry">CE</el-button>
+            <el-button type="info" class="calc-key" @click="clearAll"
+              >AC</el-button
+            >
+            <el-button type="info" class="calc-key" @click="clearEntry"
+              >CE</el-button
+            >
             <el-button type="info" class="calc-key" @click="backspace">
               <IconifyIconOnline icon="ep:delete" />
             </el-button>
@@ -18,56 +22,209 @@
               <IconifyIconOnline icon="ep:collection" />
             </el-button>
 
-            <el-button type="warning" class="calc-key" @click="appendOperator('/')">/</el-button>
-            <el-button type="warning" class="calc-key" @click="appendOperator('*')">×</el-button>
-            <el-button type="warning" class="calc-key" @click="appendOperator('-')">-</el-button>
-            <el-button type="warning" class="calc-key" @click="appendOperator('+')">+</el-button>
+            <el-button
+              type="warning"
+              class="calc-key"
+              @click="appendOperator('/')"
+              >/</el-button
+            >
+            <el-button
+              type="warning"
+              class="calc-key"
+              @click="appendOperator('*')"
+              >×</el-button
+            >
+            <el-button
+              type="warning"
+              class="calc-key"
+              @click="appendOperator('-')"
+              >-</el-button
+            >
+            <el-button
+              type="warning"
+              class="calc-key"
+              @click="appendOperator('+')"
+              >+</el-button
+            >
 
-            <el-button type="default" class="calc-key" @click="appendDigit('7')">7</el-button>
-            <el-button type="default" class="calc-key" @click="appendDigit('8')">8</el-button>
-            <el-button type="default" class="calc-key" @click="appendDigit('9')">9</el-button>
-            <el-button type="success" class="calc-key" @click="calculateResult">=</el-button>
+            <el-button type="default" class="calc-key" @click="appendDigit('7')"
+              >7</el-button
+            >
+            <el-button type="default" class="calc-key" @click="appendDigit('8')"
+              >8</el-button
+            >
+            <el-button type="default" class="calc-key" @click="appendDigit('9')"
+              >9</el-button
+            >
+            <el-button type="success" class="calc-key" @click="calculateResult"
+              >=</el-button
+            >
 
-            <el-button type="default" class="calc-key" @click="appendDigit('4')">4</el-button>
-            <el-button type="default" class="calc-key" @click="appendDigit('5')">5</el-button>
-            <el-button type="default" class="calc-key" @click="appendDigit('6')">6</el-button>
-            <el-button type="primary" class="calc-key" @click="appendFunction('sqrt')">√</el-button>
+            <el-button type="default" class="calc-key" @click="appendDigit('4')"
+              >4</el-button
+            >
+            <el-button type="default" class="calc-key" @click="appendDigit('5')"
+              >5</el-button
+            >
+            <el-button type="default" class="calc-key" @click="appendDigit('6')"
+              >6</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendFunction('sqrt')"
+              >√</el-button
+            >
 
-            <el-button type="default" class="calc-key" @click="appendDigit('1')">1</el-button>
-            <el-button type="default" class="calc-key" @click="appendDigit('2')">2</el-button>
-            <el-button type="default" class="calc-key" @click="appendDigit('3')">3</el-button>
-            <el-button type="primary" class="calc-key" @click="appendFunction('pow')">x²</el-button>
+            <el-button type="default" class="calc-key" @click="appendDigit('1')"
+              >1</el-button
+            >
+            <el-button type="default" class="calc-key" @click="appendDigit('2')"
+              >2</el-button
+            >
+            <el-button type="default" class="calc-key" @click="appendDigit('3')"
+              >3</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendFunction('pow')"
+              >x²</el-button
+            >
 
-            <el-button type="default" class="calc-key" @click="toggleSign">±</el-button>
-            <el-button type="default" class="calc-key" @click="appendDigit('0')">0</el-button>
-            <el-button type="default" class="calc-key" @click="appendDigit('.')">.</el-button>
-            <el-button type="primary" class="calc-key" @click="appendConstant('PI')">π</el-button>
+            <el-button type="default" class="calc-key" @click="toggleSign"
+              >±</el-button
+            >
+            <el-button type="default" class="calc-key" @click="appendDigit('0')"
+              >0</el-button
+            >
+            <el-button type="default" class="calc-key" @click="appendDigit('.')"
+              >.</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendConstant('PI')"
+              >π</el-button
+            >
           </div>
 
           <div class="keypad-section scientific-keys" v-if="showScientific">
-            <el-button type="primary" class="calc-key" @click="appendFunction('sin')">sin</el-button>
-            <el-button type="primary" class="calc-key" @click="appendFunction('cos')">cos</el-button>
-            <el-button type="primary" class="calc-key" @click="appendFunction('tan')">tan</el-button>
-            <el-button type="primary" class="calc-key" @click="appendFunction('log')">log</el-button>
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendFunction('sin')"
+              >sin</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendFunction('cos')"
+              >cos</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendFunction('tan')"
+              >tan</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendFunction('log')"
+              >log</el-button
+            >
 
-            <el-button type="primary" class="calc-key" @click="appendFunction('asin')">sin⁻¹</el-button>
-            <el-button type="primary" class="calc-key" @click="appendFunction('acos')">cos⁻¹</el-button>
-            <el-button type="primary" class="calc-key" @click="appendFunction('atan')">tan⁻¹</el-button>
-            <el-button type="primary" class="calc-key" @click="appendFunction('ln')">ln</el-button>
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendFunction('asin')"
+              >sin⁻¹</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendFunction('acos')"
+              >cos⁻¹</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendFunction('atan')"
+              >tan⁻¹</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendFunction('ln')"
+              >ln</el-button
+            >
 
-            <el-button type="primary" class="calc-key" @click="appendFunction('pow', 3)">x³</el-button>
-            <el-button type="primary" class="calc-key" @click="appendOperator('^')">xʸ</el-button>
-            <el-button type="primary" class="calc-key" @click="appendFunction('cbrt')">∛</el-button>
-            <el-button type="primary" class="calc-key" @click="appendFunction('exp')">eˣ</el-button>
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendFunction('pow', 3)"
+              >x³</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendOperator('^')"
+              >xʸ</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendFunction('cbrt')"
+              >∛</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendFunction('exp')"
+              >eˣ</el-button
+            >
 
-            <el-button type="primary" class="calc-key" @click="appendConstant('E')">e</el-button>
-            <el-button type="primary" class="calc-key" @click="appendOperator('!')">!</el-button>
-            <el-button type="primary" class="calc-key" @click="appendOperator('%')">%</el-button>
-            <el-button type="primary" class="calc-key" @click="appendConstant('1/PI')">1/π</el-button>
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendConstant('E')"
+              >e</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendOperator('!')"
+              >!</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendOperator('%')"
+              >%</el-button
+            >
+            <el-button
+              type="primary"
+              class="calc-key"
+              @click="appendConstant('1/PI')"
+              >1/π</el-button
+            >
 
-            <el-button type="info" class="calc-key" @click="appendParenthesis('(')">(</el-button>
-            <el-button type="info" class="calc-key" @click="appendParenthesis(')')">)</el-button>
-            <el-button type="info" class="calc-key" @click="convertToRad">DEG</el-button>
+            <el-button
+              type="info"
+              class="calc-key"
+              @click="appendParenthesis('(')"
+              >(</el-button
+            >
+            <el-button
+              type="info"
+              class="calc-key"
+              @click="appendParenthesis(')')"
+              >)</el-button
+            >
+            <el-button type="info" class="calc-key" @click="convertToRad"
+              >DEG</el-button
+            >
             <el-button type="info" class="calc-key" @click="copyResult">
               <IconifyIconOnline icon="ep:document-copy" />
             </el-button>
@@ -75,8 +232,17 @@
         </div>
 
         <div class="calculator-controls">
-          <el-switch v-model="showScientific" active-text="科学计算" inactive-text="基本计算" />
-          <el-button size="small" @click="clearHistory" v-if="calculationHistory.length > 0">
+          <ScSwitch
+            v-model="showScientific"
+            active-text="科学计算"
+            inactive-text="基本计算"
+            layout="modern"
+          />
+          <el-button
+            size="small"
+            @click="clearHistory"
+            v-if="calculationHistory.length > 0"
+          >
             <IconifyIconOnline icon="ep:delete" />
             清空历史
           </el-button>
@@ -92,14 +258,26 @@
             </span>
           </template>
           <div class="calculation-history">
-            <div v-for="(item, index) in calculationHistory" :key="index" class="history-item">
+            <div
+              v-for="(item, index) in calculationHistory"
+              :key="index"
+              class="history-item"
+            >
               <div class="history-expression">{{ item.expression }}</div>
               <div class="history-result">= {{ item.result }}</div>
               <div class="history-actions">
-                <el-button type="text" @click="recallCalculation(item)" size="small">
+                <el-button
+                  type="text"
+                  @click="recallCalculation(item)"
+                  size="small"
+                >
                   <IconifyIconOnline icon="ep:refresh" />
                 </el-button>
-                <el-button type="text" @click="copyHistoryItem(item)" size="small">
+                <el-button
+                  type="text"
+                  @click="copyHistoryItem(item)"
+                  size="small"
+                >
                   <IconifyIconOnline icon="ep:document-copy" />
                 </el-button>
               </div>
@@ -112,7 +290,11 @@
         <div class="memory-panel" v-if="showMemory">
           <div class="memory-header">
             <h3>储存的值</h3>
-            <el-button size="small" @click="clearMemory" v-if="memory.length > 0">
+            <el-button
+              size="small"
+              @click="clearMemory"
+              v-if="memory.length > 0"
+            >
               <IconifyIconOnline icon="ep:delete" />
               清空记忆
             </el-button>
@@ -121,11 +303,21 @@
             <div v-if="memory.length === 0" class="empty-memory">
               <p>暂无储存的值。使用 M+ 按钮储存当前结果。</p>
             </div>
-            <div v-for="(value, index) in memory" :key="index" class="memory-item">
+            <div
+              v-for="(value, index) in memory"
+              :key="index"
+              class="memory-item"
+            >
               <div class="memory-value">{{ formatNumber(value) }}</div>
               <div class="memory-actions">
-                <el-button type="text" @click="recallMemory(value)" size="small">应用</el-button>
-                <el-button type="text" @click="removeFromMemory(index)" size="small">
+                <el-button type="text" @click="recallMemory(value)" size="small"
+                  >应用</el-button
+                >
+                <el-button
+                  type="text"
+                  @click="removeFromMemory(index)"
+                  size="small"
+                >
                   <IconifyIconOnline icon="ep:close" />
                 </el-button>
               </div>
@@ -139,8 +331,12 @@
       <h3>计算器功能</h3>
       <ul>
         <li><strong>基本计算：</strong> 支持加减乘除等基本运算</li>
-        <li><strong>科学计算：</strong> 支持三角函数、对数、幂运算等高级功能</li>
-        <li><strong>历史记录：</strong> 自动保存计算历史，随时可以查看或重用</li>
+        <li>
+          <strong>科学计算：</strong> 支持三角函数、对数、幂运算等高级功能
+        </li>
+        <li>
+          <strong>历史记录：</strong> 自动保存计算历史，随时可以查看或重用
+        </li>
         <li><strong>内存功能：</strong> 可以储存和调用多个数值</li>
       </ul>
 
@@ -161,6 +357,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { ElMessage } from "element-plus";
 import { useClipboard } from "@vueuse/core";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 
 // 复制功能
 const { copyText } = useClipboard();
@@ -178,7 +375,18 @@ const showMemory = ref(false);
 const displayExpression = computed(() => {
   if (!currentExpression.value) return "0";
   // 美化显示表达式
-  return currentExpression.value.replace(/\*/g, "×").replace(/\//g, "÷").replace(/\^/g, "^").replace(/sqrt/g, "√").replace(/sin/g, "sin").replace(/cos/g, "cos").replace(/tan/g, "tan").replace(/log/g, "log").replace(/ln/g, "ln").replace(/PI/g, "π").replace(/E/g, "e");
+  return currentExpression.value
+    .replace(/\*/g, "×")
+    .replace(/\//g, "÷")
+    .replace(/\^/g, "^")
+    .replace(/sqrt/g, "√")
+    .replace(/sin/g, "sin")
+    .replace(/cos/g, "cos")
+    .replace(/tan/g, "tan")
+    .replace(/log/g, "log")
+    .replace(/ln/g, "ln")
+    .replace(/PI/g, "π")
+    .replace(/E/g, "e");
 });
 
 const displayResult = computed(() => {
@@ -266,7 +474,12 @@ const toggleSign = () => {
     if (charBeforeNumber === "-") {
       // 如果前面是减号，删除它
       currentExpression.value = prefix.substring(0, prefix.length - 1) + number;
-    } else if (charBeforeNumber === "+" || charBeforeNumber === "" || charBeforeNumber === "(" || ["+", "-", "*", "/", "^"].includes(charBeforeNumber)) {
+    } else if (
+      charBeforeNumber === "+" ||
+      charBeforeNumber === "" ||
+      charBeforeNumber === "(" ||
+      ["+", "-", "*", "/", "^"].includes(charBeforeNumber)
+    ) {
       // 如果前面是加号或开始位置或左括号或操作符，添加减号
       currentExpression.value = prefix + "-" + number;
     } else {
@@ -302,9 +515,12 @@ const calculateLive = () => {
     });
 
     // 处理幂运算
-    expr = expr.replace(/(\d+(\.\d+)?)\s*\^\s*(\d+(\.\d+)?)/g, (match, base, _, exponent) => {
-      return `Math.pow(${base}, ${exponent})`;
-    });
+    expr = expr.replace(
+      /(\d+(\.\d+)?)\s*\^\s*(\d+(\.\d+)?)/g,
+      (match, base, _, exponent) => {
+        return `Math.pow(${base}, ${exponent})`;
+      }
+    );
 
     // 计算结果
     // eslint-disable-next-line no-new-func
