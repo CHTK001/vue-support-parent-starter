@@ -1031,6 +1031,16 @@ const defer = useDefer(firstLevelMenus.value.length);
     border-left: 3px solid var(--el-color-primary);
     position: relative;
 
+    /* 浅色风格下文字为黑色 */
+    html[data-theme="light"] & {
+      color: #1e293b;
+    }
+
+    /* 深色模式下文字为白色 */
+    html.dark & {
+      color: #ffffff;
+    }
+
     &::after {
       content: "";
       position: absolute;
@@ -1104,6 +1114,16 @@ const defer = useDefer(firstLevelMenus.value.length);
   white-space: nowrap;
   overflow: hidden;
 
+  /* 浅色风格下文字为黑色 */
+  html[data-theme="light"] & {
+    color: #1e293b;
+  }
+
+  /* 深色模式下文字为白色 */
+  html.dark & {
+    color: #ffffff;
+  }
+
   &:hover {
     background: var(--el-color-primary-light-9);
     color: var(--el-color-primary-dark-2);
@@ -1111,6 +1131,17 @@ const defer = useDefer(firstLevelMenus.value.length);
     transform: translateY(-1px);
     border-color: var(--el-color-primary-light-6);
     box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
+
+    /* 浅色风格下悬停样式 */
+    html[data-theme="light"] & {
+      color: var(--el-color-primary-dark-2);
+    }
+
+    /* 深色模式下悬停样式 */
+    html.dark & {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.15);
+    }
   }
 
   &.is-active {
@@ -1119,6 +1150,11 @@ const defer = useDefer(firstLevelMenus.value.length);
     /* 使用新定义的变量，确保在所有主题下都是白色 */
     font-weight: 600;
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
+
+    /* 浅色风格下激活样式保持白色 */
+    html[data-theme="light"] & {
+      color: #ffffff !important;
+    }
   }
 }
 
@@ -1183,6 +1219,16 @@ const defer = useDefer(firstLevelMenus.value.length);
     text-align: center;
     color: var(--el-text-color-secondary);
 
+    /* 浅色风格下文字为黑色 */
+    html[data-theme="light"] & {
+      color: #64748b;
+    }
+
+    /* 深色模式下文字为白色 */
+    html.dark & {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
     .empty-icon {
       font-size: 48px;
       color: var(--el-color-info-light-5);
@@ -1194,12 +1240,32 @@ const defer = useDefer(firstLevelMenus.value.length);
       font-weight: 500;
       margin: 0 0 8px 0;
       color: var(--el-text-color-regular);
+
+      /* 浅色风格下文字为黑色 */
+      html[data-theme="light"] & {
+        color: #1e293b;
+      }
+
+      /* 深色模式下文字为白色 */
+      html.dark & {
+        color: #ffffff;
+      }
     }
 
     span {
       font-size: 13px;
       color: var(--el-text-color-placeholder);
       line-height: 1.4;
+
+      /* 浅色风格下文字为黑色 */
+      html[data-theme="light"] & {
+        color: #94a3b8;
+      }
+
+      /* 深色模式下文字为白色 */
+      html.dark & {
+        color: rgba(255, 255, 255, 0.6);
+      }
     }
   }
 
@@ -1223,6 +1289,17 @@ const defer = useDefer(firstLevelMenus.value.length);
         rgba(var(--el-color-warning-rgb), 0.02)
       );
 
+      /* 浅色风格下文字为黑色 */
+      html[data-theme="light"] & {
+        color: #1e293b;
+      }
+
+      /* 深色模式下文字为白色 */
+      html.dark & {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
       &:hover {
         background: linear-gradient(
           135deg,
@@ -1235,6 +1312,13 @@ const defer = useDefer(firstLevelMenus.value.length);
         box-shadow:
           0 4px 12px rgba(var(--el-color-warning-rgb), 0.15),
           0 2px 6px rgba(var(--el-color-warning-rgb), 0.1);
+
+        /* 浅色风格下悬停样式 */
+        html[data-theme="light"] & {
+          background: rgba(255, 255, 255, 0.2);
+          color: #ffffff;
+          border-color: rgba(255, 255, 255, 0.3);
+        }
       }
 
       .favorite-menu-icon {
@@ -1257,6 +1341,16 @@ const defer = useDefer(firstLevelMenus.value.length);
         color: var(--el-text-color-placeholder);
         margin-left: 6px;
         opacity: 0.6;
+
+        /* 浅色风格下文字为黑色 */
+        html[data-theme="light"] & {
+          color: #94a3b8;
+        }
+
+        /* 深色模式下文字为白色 */
+        html.dark & {
+          color: rgba(255, 255, 255, 0.5);
+        }
       }
     }
   }

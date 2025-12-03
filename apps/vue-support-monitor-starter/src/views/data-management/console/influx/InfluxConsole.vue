@@ -1,57 +1,60 @@
 <template>
-  <div class="console" :style="gridStyle">
-    <div class="left overflow-auto thin-scrollbar" @contextmenu.prevent>
-      <el-input
-        v-model="keyword"
-        placeholder="搜索..."
-        size="small"
-        clearable
-        @change="loadRoot"
-      >
-        <template #append>
-          <IconifyIconOnline icon="ri:search-line" />
-        </template>
-      </el-input>
-      <el-tree
-        ref="treeRef"
-        :key="treeVersion"
-        class="tree"
-        :data="treeData"
-        :props="treeProps"
-        :load="loadChildrenLazy"
-        lazy
-        node-key="path"
-        :expand-on-click-node="false"
-        @node-click="handleNodeClick"
-        @node-contextmenu="handleNodeContextMenu"
-      >
-        <template #default="{ node, data }">
-          <IconifyIconOnline :icon="getJdbcNodeIcon(node, data)" class="mr-1" />
-          <span class="flex justify-between w-full !max-w-[120px]" >
-            <span>
-              <span>{{ data.name }}</span>
-              <span class="el-form-item-msg ml-2 mt-[3px]">{{
+  <ScContainer
+    class="influx-console"
+    aside-width="300px"
+    :resizable="true"
+    :min-aside-width="220"
+    @contextmenu.prevent
+  >
+    <!-- 左侧：搜索 + 树 -->
+    <template #aside>
+      <div class="left-panel">
+        <div class="panel-header">
+          <IconifyIconOnline icon="ri:time-line" class="header-icon" />
+          <span class="header-title">InfluxDB 数据</span>
+        </div>
+        <el-input
+          v-model="keyword"
+          placeholder="搜索..."
+          clearable
+          class="search-input"
+          @change="loadRoot"
+        >
+          <template #prefix>
+            <IconifyIconOnline icon="ri:search-line" />
+          </template>
+        </el-input>
+        <el-tree
+          ref="treeRef"
+          :key="treeVersion"
+          class="tree"
+          :data="treeData"
+          :props="treeProps"
+          :load="loadChildrenLazy"
+          lazy
+          node-key="path"
+          :expand-on-click-node="false"
+          @node-click="handleNodeClick"
+          @node-contextmenu="handleNodeContextMenu"
+        >
+          <template #default="{ node, data }">
+            <IconifyIconOnline
+              :icon="getJdbcNodeIcon(node, data)"
+              class="node-icon"
+            />
+            <span class="node-content">
+              <span class="node-name">{{ data.name }}</span>
+              <span v-if="data.properties?.columnType" class="node-type">{{
                 data.properties?.columnType
               }}</span>
-              <span
-                v-if="data.properties?.columnSize"
-                class="el-form-item-msg ml-2 mt-[3px]"
-                >({{ data.properties?.columnSize }})</span
-              >
             </span>
-            <span class="el-form-item-msg ml-2 mt-[3px]">{{
-              data.properties?.comment
-            }}</span>
-          </span>
-        </template>
-      </el-tree>
-    </div>
-    <div
-      class="splitter cursor-col-resize"
-      @mousedown="onDragStart"
-      @dblclick="resetWidth"
-    />
-    <div class="right image-paper">
+          </template>
+        </el-tree>
+      </div>
+    </template>
+
+    <!-- 主内容区 -->
+    <div class="main-panel">
       <div class="right-header">
         <div class="path" :title="currentPath || '未选择'">
           <IconifyIconOnline icon="ri:route-line" class="mr-1" />
@@ -77,11 +80,7 @@
           <el-button size="small" @click="onRefreshTree">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
           </el-button>
-          <el-button
-            size="small"
-            v-if="currentPath"
-            @click="handleQueryPolicy"
-          >
+          <el-button size="small" v-if="currentPath" @click="handleQueryPolicy">
             <IconifyIconOnline :icon="icons.structure" class="mr-1" />
             查询策略
           </el-button>
@@ -227,7 +226,7 @@
                       class="comment-text el-form-item-msg"
                       :title="col.name"
                     >
-                      <span v-if="col.comment ">（{{ col.comment }}）</span>
+                      <span v-if="col.comment">（{{ col.comment }}）</span>
                     </div>
                     <div>{{ row[col.name] }}</div>
                   </div>
@@ -238,10 +237,13 @@
           </el-tab-pane>
         </el-tabs>
       </div>
-      <div class="right-status">
+      <!-- 状态栏 -->
+      <div class="main-footer">
         <span v-if="statusText">{{ statusText }}</span>
       </div>
     </div>
+
+    <!-- 右键菜单 -->
     <CommonContextMenu
       :visible="menuVisible"
       :x="menuX"
@@ -250,13 +252,13 @@
       @select="onMenuSelect"
       @close="menuVisible = false"
     />
-  </div>
+  </ScContainer>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount, nextTick } from "vue";
+import { ref, onMounted, computed, nextTick } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import CodeEditor from "@/components/codeEditor/index.vue";
-// request不再直接使用，统一在system-data.ts封装
+import ScContainer from "@repo/components/ScContainer";
 import {
   extractArrayFromApi,
   normalizeTreeNode,
@@ -323,49 +325,11 @@ const statusText = ref("");
 const currentNodeData = ref<any | null>(null);
 const currentComment = ref("");
 
-// 左右可拖拽分栏
-const leftWidth = ref(300);
-const isDragging = ref(false);
-const gridStyle = computed(() => ({
-  gridTemplateColumns: `${leftWidth.value}px 6px 1fr`,
-}));
-let startX = 0;
-let startW = 300;
-function onDragStart(e: MouseEvent) {
-  isDragging.value = true;
-  startX = e.clientX;
-  startW = leftWidth.value;
-  document.addEventListener("mousemove", onDragging);
-  document.addEventListener("mouseup", onDragEnd);
-  document.body.style.cursor = "col-resize";
-}
-function onDragging(e: MouseEvent) {
-  if (!isDragging.value) return;
-  const dx = e.clientX - startX;
-  const next = Math.min(800, Math.max(220, startW + dx));
-  leftWidth.value = next;
-}
-
 async function handleQueryPolicy() {
-  const _currentPath =  currentPath.value.split('/');
+  const _currentPath = currentPath.value.split("/");
   sql.value = "SHOW RETENTION POLICIES ON " + _currentPath[1];
   await execute();
 }
-
-function onDragEnd() {
-  if (!isDragging.value) return;
-  isDragging.value = false;
-  document.removeEventListener("mousemove", onDragging);
-  document.removeEventListener("mouseup", onDragEnd);
-  document.body.style.cursor = "";
-}
-function resetWidth() {
-  leftWidth.value = 300;
-}
-
-onBeforeUnmount(() => {
-  onDragEnd();
-});
 
 // console config
 const consoleConfig = ref<{
@@ -436,7 +400,7 @@ async function handleNodeClick(node: any) {
   currentPath.value = node?.path;
   // 若为表节点，打开表（查询+注释）
   const type = (node?.type || "").toString().toUpperCase();
-  const databaseName = node.parentPath.replace('/', '');
+  const databaseName = node.parentPath.replace("/", "");
   if (type.includes("TABLE")) {
     sql.value = `select * from ${node.name} limit 100`;
     await execute();
@@ -476,7 +440,6 @@ const loadChildrenLazy = async (
  */
 function getJdbcNodeIcon(node: any, data: any): string {
   try {
-    
     const type = (data?.type || "").toString().toLowerCase();
     if (type) {
       if (
@@ -506,7 +469,12 @@ function getJdbcNodeIcon(node: any, data: any): string {
 async function execute() {
   const start = performance.now();
   searched.value = false;
-  const res = await executeConsole(props.id, sql.value, "sql", currentPath.value);
+  const res = await executeConsole(
+    props.id,
+    sql.value,
+    "sql",
+    currentPath.value
+  );
   const data = res?.data;
   const dataData = data?.data || {};
   columns.value = dataData?.columns || [];
@@ -830,7 +798,11 @@ async function onMenuSelect(key: string) {
         const { value } = await ElMessageBox.prompt(
           "请输入新表名：",
           "重命名表",
-          { confirmButtonText: "确定", cancelButtonText: "取消",inputValue: contextNode.value.name }
+          {
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            inputValue: contextNode.value.name,
+          }
         );
         if (!value || !value.trim()) return;
         await renameTable(props.id, {
@@ -840,7 +812,7 @@ async function onMenuSelect(key: string) {
         ElMessage.success("已重命名");
         contextNode.value.name = value.trim();
         refreshNodeChildren({
-          path: contextNode.value.parentPath
+          path: contextNode.value.parentPath,
         });
         // await refreshContextNodeChildren();
       } catch (_) {}
@@ -857,7 +829,11 @@ async function onMenuSelect(key: string) {
         const { value } = await ElMessageBox.prompt(
           "请输入备份表名：",
           "备份表",
-          { confirmButtonText: "确定", cancelButtonText: "取消", inputValue: defaultName }
+          {
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            inputValue: defaultName,
+          }
         );
         if (!value || !value.trim()) return;
         await backupTable(props.id, {
@@ -866,7 +842,7 @@ async function onMenuSelect(key: string) {
         });
         ElMessage.success("已发起备份");
         refreshNodeChildren({
-          path: contextNode.value.parentPath
+          path: contextNode.value.parentPath,
         });
       } catch (_) {}
       break;
@@ -895,7 +871,10 @@ async function refreshNodeChildren(node: any) {
   try {
     const res = await getConsoleChildren(props.id, node?.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
+    if (
+      treeRef.value &&
+      typeof treeRef.value.updateKeyChildren === "function"
+    ) {
       // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node?.path, records);
     } else {
@@ -918,7 +897,10 @@ async function refreshContextNodeChildren() {
   try {
     const res = await getConsoleChildren(props.id, node.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
+    if (
+      treeRef.value &&
+      typeof treeRef.value.updateKeyChildren === "function"
+    ) {
       // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node.path, records);
     } else {
@@ -1004,129 +986,282 @@ onMounted(async () => {
 });
 </script>
 <style scoped lang="scss">
-.console {
-  display: grid;
-  grid-template-columns: 300px 1fr;
+/* InfluxDB 控制台容器 - 紫色主题 */
+.influx-console {
   height: calc(100vh - 16px);
-  overflow: hidden;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+
+  :deep(.sc-container__aside) {
+    background: transparent;
+    border: none;
+    padding: 8px;
+    overflow: visible;
+  }
+
+  :deep(.sc-container__main) {
+    background: transparent;
+    padding: 8px;
+    padding-left: 12px;
+  }
+
+  :deep(.sc-container__resize-handle--vertical) {
+    background: transparent;
+
+    &::before {
+      background: #cbd5e1;
+    }
+
+    &:hover::before {
+      background: #8b5cf6;
+      height: 60px;
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
+    }
+  }
 }
 
-.left {
-  border: 1px solid #eee;
-  border-radius: 8px;
-  padding: 8px;
+/* 左侧面板 */
+.left-panel {
+  height: 100%;
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  }
 }
 
+/* 面板头部 */
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+
+  .header-icon {
+    font-size: 20px;
+    color: #8b5cf6;
+  }
+
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #334155;
+  }
+}
+
+/* 搜索框 */
+.search-input {
+  :deep(.el-input__wrapper) {
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    &.is-focus {
+      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+    }
+  }
+}
+
+/* 树形组件 */
 .tree {
-  margin-top: 8px;
+  margin-top: 12px;
   flex: 1;
   overflow: auto;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 8px;
+
+  :deep(.el-tree-node__content) {
+    height: 36px;
+    border-radius: 8px;
+    margin: 2px 0;
+    padding: 0 8px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    }
+  }
+
+  :deep(.el-tree-node.is-current > .el-tree-node__content) {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: #fff;
+  }
 }
 
-.left-toolbar {
-  margin-top: 6px;
+.node-icon {
+  margin-right: 6px;
+  font-size: 16px;
+}
+
+.node-content {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
 }
 
-.right {
-  border: 1px solid #eee;
-  border-radius: 8px;
+.node-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.node-type {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-left: 8px;
+}
+
+/* 主内容面板 */
+.main-panel {
+  height: 100%;
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
+/* 头部工具栏 */
 .right-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px;
-  border-bottom: 1px solid #eee;
-  background: var(--el-fill-color-lighter);
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  gap: 16px;
 }
 
 .right-header .path {
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: var(--el-text-color-secondary);
+  gap: 8px;
+  color: #64748b;
+  font-size: 13px;
+
+  .iconify {
+    color: #8b5cf6;
+  }
 }
 
 .right-header .comment {
   margin-left: 8px;
-  color: var(--el-text-color-regular);
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  :deep(.el-button) {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
 }
 
 .ellipsis {
-  max-width: 520px;
+  max-width: 400px;
   overflow: hidden;
-
-  /* 拖拽分割条 */
-  .splitter {
-    width: 6px;
-    cursor: col-resize;
-    background: var(--el-border-color-lighter);
-    border-left: 1px solid var(--el-border-color-lighter);
-    border-right: 1px solid var(--el-border-color-lighter);
-  }
-
-  .splitter:hover {
-    background: var(--el-border-color);
-  }
-
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+/* 内容区 */
 .right-body {
-  padding: 8px;
-  display: flex;
   flex: 1;
+  padding: 16px;
+  overflow: auto;
+  display: flex;
   flex-direction: column;
-  gap: 8px;
-  overflow: hidden;
+  gap: 12px;
+  background: #fff;
 }
 
+/* 结果区 */
 .result {
-  flex: 1;
-  overflow: auto;
   display: flex;
   flex-direction: row;
   align-content: end;
+  justify-content: flex-end;
+}
 
-  .result-content-toolbar {
-    width: 100%;
-    line-height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: end;
-    padding: 0px 10px 0px 10px;
+/* 结果 Tabs */
+.result-tabs {
+  flex: 1 !important;
+  border-radius: 12px;
+  overflow: hidden;
 
-    &:hover {
-      background-color: #f0f2f5;
-    }
+  :deep(.el-tabs__content) {
+    padding: 0;
+  }
 
-    .item {
-      cursor: pointer;
-    }
+  :deep(.el-tabs__header) {
+    margin: 0;
   }
 }
 
-.result-tabs {
-  flex: 1 !important;
-}
+/* 表格美化 */
+.right-body :deep(.el-table) {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
 
-.result-tabs :deep(.el-tabs__content) {
-  padding: 0;
+  &::before {
+    display: none;
+  }
+
+  th.el-table__cell {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%) !important;
+    font-weight: 600;
+    color: #5b21b6;
+    font-size: 13px;
+    border-bottom: 2px solid #ddd6fe !important;
+    padding: 12px 8px;
+  }
+
+  td.el-table__cell {
+    padding: 10px 8px;
+    font-size: 13px;
+    color: #475569;
+    border-bottom: 1px solid #f1f5f9 !important;
+  }
+
+  tr:hover > td.el-table__cell {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%) !important;
+  }
 }
 
 .col-header {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
+  gap: 4px;
 }
 
 .mini-bar {
@@ -1135,34 +1270,66 @@ onMounted(async () => {
   gap: 2px;
   height: 42px;
   margin-left: 6px;
-}
 
-.mini-bar .bar {
-  width: 6px;
-  background: var(--el-color-primary);
-  border-radius: 2px;
-  cursor: pointer;
-  opacity: 0.8;
+  .bar {
+    width: 6px;
+    background: #8b5cf6;
+    border-radius: 2px;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: all 0.2s ease;
+
+    &:hover {
+      opacity: 1;
+      transform: scaleY(1.1);
+    }
+  }
 }
 
 .row-dim {
   opacity: 0.4;
 }
 
-.image-paper {
-  background:
-    linear-gradient(transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 / 100% 40px,
-    linear-gradient(90deg, transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 /
-      40px 100%,
-    linear-gradient(#fff, #fff);
-}
-
-.right-status {
-  height: 28px;
-  border-top: 1px solid #eee;
+/* 底部状态栏 */
+.main-footer {
+  height: 32px;
+  border-top: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
-  padding: 0 8px;
-  color: var(--el-text-color-secondary);
+  padding: 0 16px;
+  color: #64748b;
+  font-size: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+/* 空状态美化 */
+.right-body :deep(.el-empty) {
+  padding: 60px 0;
+
+  .el-empty__description {
+    color: #94a3b8;
+    font-size: 14px;
+  }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.left-panel,
+.main-panel {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.main-panel {
+  animation-delay: 0.1s;
 }
 </style>

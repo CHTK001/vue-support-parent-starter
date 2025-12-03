@@ -127,6 +127,7 @@
           :showTool="false"
           :height="'200px'"
           :options="{ mode: 'sql' }"
+          :sqlHintTables="sqlHintTables"
         />
         <el-tabs
           v-model="activeTab"
@@ -156,10 +157,22 @@
                   <div class="filter-header">
                     <span class="filter-title">选择显示列</span>
                     <div class="filter-actions">
-                      <el-button size="small" link type="primary" @click.stop="selectedColumnNames = columns.map(c => c.name || c)">
+                      <el-button
+                        size="small"
+                        link
+                        type="primary"
+                        @click.stop="
+                          selectedColumnNames = columns.map((c) => c.name || c)
+                        "
+                      >
                         全选
                       </el-button>
-                      <el-button size="small" link type="danger" @click.stop="selectedColumnNames = []">
+                      <el-button
+                        size="small"
+                        link
+                        type="danger"
+                        @click.stop="selectedColumnNames = []"
+                      >
                         清空
                       </el-button>
                     </div>
@@ -288,7 +301,8 @@
           style="margin-bottom: 16px"
         >
           <template #title>
-            使用MySQL的LOAD DATA语句导入CSV文件，文件路径需要是MySQL服务器可访问的路径
+            使用MySQL的LOAD
+            DATA语句导入CSV文件，文件路径需要是MySQL服务器可访问的路径
           </template>
         </el-alert>
         <el-form-item label="文件路径" required>
@@ -298,7 +312,10 @@
           />
         </el-form-item>
         <el-form-item label="字段分隔符">
-          <el-select v-model="importCsvForm.fieldTerminator" style="width: 100%">
+          <el-select
+            v-model="importCsvForm.fieldTerminator"
+            style="width: 100%"
+          >
             <el-option label="逗号 (,)" value="," />
             <el-option label="制表符 (\\t)" value="\\t" />
             <el-option label="分号 (;)" value=";" />
@@ -312,7 +329,11 @@
           </el-select>
         </el-form-item>
         <el-form-item label="跳过行数">
-          <el-input-number v-model="importCsvForm.ignoreLines" :min="0" :max="100" />
+          <el-input-number
+            v-model="importCsvForm.ignoreLines"
+            :min="0"
+            :max="100"
+          />
           <span class="form-tip">通常设为1跳过标题行</span>
         </el-form-item>
         <el-form-item label="字符集">
@@ -335,7 +356,14 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount, nextTick, inject } from "vue";
+import {
+  ref,
+  onMounted,
+  computed,
+  onBeforeUnmount,
+  nextTick,
+  inject,
+} from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import CodeEditor from "@/components/codeEditor/index.vue";
 import { socket } from "@repo/core";
@@ -370,7 +398,7 @@ import TableStructureDialog from "./TableStructureDialog.vue";
 const props = defineProps<{ id: number }>();
 
 // 使用全局Socket.IO或创建独立连接
-const globalSocket = inject<any>('globalSocket');
+const globalSocket = inject<any>("globalSocket");
 let socketConnection: any = null;
 let unsubscribeHandlers: any[] = [];
 
@@ -422,7 +450,20 @@ const structureTableName = ref("");
 
 // 自动提示相关
 const tableNames = ref<string[]>([]);
-const columnCache = ref<Record<string, any[]>>({});
+const columnCache = ref<Record<string, string[]>>({});
+
+/**
+ * SQL 自动补全数据
+ * 格式: { 表名: [字段名1, 字段名2, ...], ... }
+ */
+const sqlHintTables = computed(() => {
+  const tables: Record<string, string[]> = {};
+  // 添加所有表名，如果有缓存的字段则也添加
+  tableNames.value.forEach((tableName) => {
+    tables[tableName] = columnCache.value[tableName] || [];
+  });
+  return tables;
+});
 
 // 左右可拖拽分栏
 const leftWidth = ref(300);
@@ -459,16 +500,16 @@ function resetWidth() {
 
 onBeforeUnmount(() => {
   onDragEnd();
-  
+
   // 清理Socket.IO事件监听
-  unsubscribeHandlers.forEach(handler => handler());
+  unsubscribeHandlers.forEach((handler) => handler());
   unsubscribeHandlers = [];
-  
+
   // 如果是独立连接，断开连接
   if (socketConnection && !globalSocket?.value) {
     socketConnection.disconnect();
   }
-  
+
   socketConnection = null;
 });
 
@@ -545,6 +586,8 @@ async function loadTableNames() {
     const res = await listTables(props.id);
     if (res?.data) {
       tableNames.value = res.data;
+      // 预加载每个表的字段列表（异步执行，不阻塞主流程）
+      loadAllColumnsAsync();
     }
   } catch (e) {
     console.error("加载表名列表失败", e);
@@ -552,17 +595,33 @@ async function loadTableNames() {
 }
 
 /**
+ * 异步加载所有表的字段列表
+ */
+async function loadAllColumnsAsync() {
+  // 每次最多并行加载 5 个表的字段，避免请求过多
+  const batchSize = 5;
+  for (let i = 0; i < tableNames.value.length; i += batchSize) {
+    const batch = tableNames.value.slice(i, i + batchSize);
+    await Promise.all(batch.map((tableName) => getColumnsForTable(tableName)));
+  }
+}
+
+/**
  * 获取指定表的字段列表（带缓存）
  */
-async function getColumnsForTable(tableName: string): Promise<any[]> {
+async function getColumnsForTable(tableName: string): Promise<string[]> {
   if (columnCache.value[tableName]) {
     return columnCache.value[tableName];
   }
   try {
     const res = await listColumns(props.id, tableName);
     if (res?.data) {
-      columnCache.value[tableName] = res.data;
-      return res.data;
+      // 提取字段名（支持字符串数组或对象数组）
+      const columnNames = res.data.map((col: any) =>
+        typeof col === "string" ? col : col.name || col.columnName || col
+      );
+      columnCache.value[tableName] = columnNames;
+      return columnNames;
     }
   } catch (e) {
     console.error("加载字段列表失败", e);
@@ -575,36 +634,75 @@ async function getColumnsForTable(tableName: string): Promise<any[]> {
  */
 function getSqlCompletions(): any[] {
   const suggestions: any[] = [];
-  
+
   // SQL关键字
   const keywords = [
-    "SELECT", "FROM", "WHERE", "AND", "OR", "NOT", "IN", "LIKE", "BETWEEN",
-    "ORDER BY", "GROUP BY", "HAVING", "LIMIT", "OFFSET", "JOIN", "LEFT JOIN",
-    "RIGHT JOIN", "INNER JOIN", "OUTER JOIN", "ON", "AS", "DISTINCT", "COUNT",
-    "SUM", "AVG", "MAX", "MIN", "INSERT", "INTO", "VALUES", "UPDATE", "SET",
-    "DELETE", "CREATE", "TABLE", "ALTER", "DROP", "INDEX", "PRIMARY KEY",
-    "FOREIGN KEY", "REFERENCES", "NULL", "NOT NULL", "DEFAULT", "AUTO_INCREMENT"
+    "SELECT",
+    "FROM",
+    "WHERE",
+    "AND",
+    "OR",
+    "NOT",
+    "IN",
+    "LIKE",
+    "BETWEEN",
+    "ORDER BY",
+    "GROUP BY",
+    "HAVING",
+    "LIMIT",
+    "OFFSET",
+    "JOIN",
+    "LEFT JOIN",
+    "RIGHT JOIN",
+    "INNER JOIN",
+    "OUTER JOIN",
+    "ON",
+    "AS",
+    "DISTINCT",
+    "COUNT",
+    "SUM",
+    "AVG",
+    "MAX",
+    "MIN",
+    "INSERT",
+    "INTO",
+    "VALUES",
+    "UPDATE",
+    "SET",
+    "DELETE",
+    "CREATE",
+    "TABLE",
+    "ALTER",
+    "DROP",
+    "INDEX",
+    "PRIMARY KEY",
+    "FOREIGN KEY",
+    "REFERENCES",
+    "NULL",
+    "NOT NULL",
+    "DEFAULT",
+    "AUTO_INCREMENT",
   ];
-  
-  keywords.forEach(kw => {
+
+  keywords.forEach((kw) => {
     suggestions.push({
       label: kw,
       kind: "keyword",
       insertText: kw,
-      detail: "SQL关键字"
+      detail: "SQL关键字",
     });
   });
-  
+
   // 表名
-  tableNames.value.forEach(table => {
+  tableNames.value.forEach((table) => {
     suggestions.push({
       label: table,
       kind: "table",
       insertText: table,
-      detail: "表"
+      detail: "表",
     });
   });
-  
+
   return suggestions;
 }
 
@@ -1145,31 +1243,31 @@ async function onMenuSelect(key: string) {
 async function openTableAndRender(hideEditor: boolean) {
   const node = contextNode.value;
   if (!node?.path) return;
-  
+
   try {
     // 设置当前节点
     currentNodeData.value = node;
     currentPath.value = node.path;
-    
+
     // 生成查询SQL并执行
     sql.value = `SELECT * FROM ${node.name} LIMIT 1000`;
     showEditor.value = !hideEditor;
-    
+
     // 执行查询
     await execute();
-    
+
     // 加载表注释
     const resp = await openTable(props.id, node.path, 1000);
     if (resp?.data?.data) {
       tableComment.value = resp.data.data.tableComment || "";
       // 合并字段注释
       const columnComments = resp.data.data.columnComments || {};
-      columns.value = columns.value.map(col => ({
+      columns.value = columns.value.map((col) => ({
         ...col,
-        comment: columnComments[col] || col.comment || ""
+        comment: columnComments[col] || col.comment || "",
       }));
     }
-    
+
     activeTab.value = "result";
     searched.value = true;
   } catch (e: any) {
@@ -1211,7 +1309,7 @@ async function handleImportCsv() {
     ElMessage.warning("请输入CSV文件路径");
     return;
   }
-  
+
   // 构建LOAD DATA SQL
   const loadSql = `LOAD DATA LOCAL INFILE '${importCsvForm.value.filePath}'
 INTO TABLE ${importCsvTableName.value}
@@ -1350,7 +1448,7 @@ async function addFieldComment(node: any) {
 
 onMounted(async () => {
   await Promise.all([loadConsoleConfig(), loadRoot(), loadTableNames()]);
-  
+
   // 建立Socket.IO连接
   if (globalSocket?.value) {
     // 使用全局Socket.IO连接
@@ -1360,43 +1458,43 @@ onMounted(async () => {
     const config = getConfig();
     socketConnection = socket(splitToArray(config.SocketUrl), undefined, {});
   }
-  
+
   if (socketConnection) {
     // 监听系统数据监听事件
     const listenHandler = (data: any) => {
-      if (data.settingId === props.id && data.type === 'jdbc') {
+      if (data.settingId === props.id && data.type === "jdbc") {
         try {
-          console.log('JDBC Console received message:', data);
-          if (data.messageType === 'status') {
-            statusText.value = data.content || '';
-          } else if (data.messageType === 'log') {
-            ElMessage.info(data.content || '');
-          } else if (data.messageType === 'error') {
-            ElMessage.error(data.content || '操作出现错误');
+          console.log("JDBC Console received message:", data);
+          if (data.messageType === "status") {
+            statusText.value = data.content || "";
+          } else if (data.messageType === "log") {
+            ElMessage.info(data.content || "");
+          } else if (data.messageType === "error") {
+            ElMessage.error(data.content || "操作出现错误");
           }
         } catch (error) {
-          console.error('Error processing console message:', error);
+          console.error("Error processing console message:", error);
         }
       }
     };
-    
+
     const logHandler = (data: any) => {
-      if (data.settingId === props.id && data.type === 'jdbc') {
+      if (data.settingId === props.id && data.type === "jdbc") {
         try {
-          console.log('JDBC Console log:', data);
-          ElMessage.info(data.content || '');
+          console.log("JDBC Console log:", data);
+          ElMessage.info(data.content || "");
         } catch (error) {
-          console.error('Error processing log message:', error);
+          console.error("Error processing log message:", error);
         }
       }
     };
-    
-    socketConnection.on('system/data/listen', listenHandler);
-    socketConnection.on('system/data/log', logHandler);
-    
+
+    socketConnection.on("system/data/listen", listenHandler);
+    socketConnection.on("system/data/log", logHandler);
+
     unsubscribeHandlers.push(
-      () => socketConnection.off('system/data/listen', listenHandler),
-      () => socketConnection.off('system/data/log', logHandler)
+      () => socketConnection.off("system/data/listen", listenHandler),
+      () => socketConnection.off("system/data/log", logHandler)
     );
   }
 });
@@ -1501,7 +1599,8 @@ onMounted(async () => {
   color: #fff;
 }
 
-.tree :deep(.el-tree-node.is-current > .el-tree-node__content .el-form-item-msg) {
+.tree
+  :deep(.el-tree-node.is-current > .el-tree-node__content .el-form-item-msg) {
   color: rgba(255, 255, 255, 0.8);
 }
 
@@ -1521,7 +1620,7 @@ onMounted(async () => {
 }
 
 .splitter::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 50%;
   top: 50%;
@@ -1720,7 +1819,13 @@ onMounted(async () => {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
 }
 
-.result-tabs :deep(.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell) {
+.result-tabs
+  :deep(
+    .el-table--striped
+      .el-table__body
+      tr.el-table__row--striped
+      td.el-table__cell
+  ) {
   background: #fafbfc !important;
 }
 
@@ -1908,7 +2013,8 @@ onMounted(async () => {
   }
 }
 
-.left, .right {
+.left,
+.right {
   animation: fadeIn 0.4s ease forwards;
 }
 
