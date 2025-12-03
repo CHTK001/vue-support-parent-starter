@@ -531,3 +531,64 @@ export function batchModifyTableStructure(
     data: payload,
   });
 }
+
+/**
+ * 更新表数据行
+ * @param settingId 数据源ID
+ * @param payload 更新参数
+ */
+export function updateTableRow(
+  settingId: number,
+  payload: {
+    tableName: string;
+    primaryKey: string;
+    primaryValue: any;
+    columnName: string;
+    newValue: any;
+  }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/row/update`,
+    method: "post",
+    data: payload,
+  });
+}
+
+/**
+ * 删除表数据行
+ * @param settingId 数据源ID
+ * @param payload 删除参数
+ */
+export function deleteTableRow(
+  settingId: number,
+  payload: {
+    tableName: string;
+    primaryKey: string;
+    primaryValue: any;
+  }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/row/delete`,
+    method: "post",
+    data: payload,
+  });
+}
+
+/**
+ * 插入表数据行
+ * @param settingId 数据源ID
+ * @param payload 插入参数
+ */
+export function insertTableRow(
+  settingId: number,
+  payload: {
+    tableName: string;
+    data: Record<string, any>;
+  }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/row/insert`,
+    method: "post",
+    data: payload,
+  });
+}

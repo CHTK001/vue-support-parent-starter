@@ -2,7 +2,7 @@
   <div
     class="code-mirror-div"
     :style="{
-      height: height
+      height: height,
     }"
   >
     <a-spin v-if="loading" :tip="$t('i18n_6a8c30bd06')" :spinning="loading">
@@ -14,61 +14,83 @@
 
         <a-space class="tool-bar-end">
           <div>
-            {{ $t('i18n_08902526f1')
+            {{ $t("i18n_08902526f1")
             }}<a-select
               v-model:value="cmOptions.theme"
               show-search
               :filter-option="
                 (input, option) => {
-                  const children = option.children && option.children()
+                  const children = option.children && option.children();
                   return (
                     children &&
                     children[0].children &&
-                    children[0].children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                  )
+                    children[0].children
+                      .toLowerCase()
+                      .indexOf(input.toLowerCase()) >= 0
+                  );
                 }
               "
               :placeholder="$t('i18n_37b30fc862')"
               style="width: 150px"
               @select="handleSelectTheme"
             >
-              <a-select-option v-for="item in themeList" :key="item.theme">{{ item.name }}</a-select-option>
+              <a-select-option v-for="item in themeList" :key="item.theme">{{
+                item.name
+              }}</a-select-option>
             </a-select>
           </div>
           <div>
-            {{ $t('i18n_117a9cbc8d')
+            {{ $t("i18n_117a9cbc8d")
             }}<a-select
               v-model:value="cmOptions.mode"
               show-search
               :filter-option="
                 (input, option) => {
-                  const children = option.children && option.children()
+                  const children = option.children && option.children();
                   return (
                     children &&
                     children[0].children &&
-                    children[0].children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                  )
+                    children[0].children
+                      .toLowerCase()
+                      .indexOf(input.toLowerCase()) >= 0
+                  );
                 }
               "
               :placeholder="$t('i18n_773b1a5ef6')"
               style="width: 150px"
               @select="handleSelectMode"
             >
-              <a-select-option value="">{{ $t('i18n_773b1a5ef6') }}</a-select-option>
-              <a-select-option v-for="item in modeList" :key="item.mode">{{ item.name }}</a-select-option>
+              <a-select-option value="">{{
+                $t("i18n_773b1a5ef6")
+              }}</a-select-option>
+              <a-select-option v-for="item in modeList" :key="item.mode">{{
+                item.name
+              }}</a-select-option>
             </a-select>
           </div>
 
           <a-tooltip>
             <template #title>
               <ul>
-                <li><b>Ctrl-F / Cmd-F</b>&nbsp;{{ $t('i18n_99d3e5c718') }}</li>
-                <li><b>Ctrl-G / Cmd-G</b>&nbsp;{{ $t('i18n_6292498392') }}</li>
-                <li><b>Shift-Ctrl-G / Shift-Cmd-G</b>&nbsp;{{ $t('i18n_11e88c95ee') }}</li>
-                <li><b>Shift-Ctrl-F / Cmd-Option-F</b>&nbsp;{{ $t('i18n_d324f8b5c9') }}</li>
-                <li><b>Shift-Ctrl-R / Shift-Cmd-Option-F</b>&nbsp;{{ $t('i18n_b9c4cf7483') }}</li>
-                <li><b>Alt-F</b>&nbsp;{{ $t('i18n_9402665a2c') }}</li>
-                <li><b>Alt-G</b>&nbsp;{{ $t('i18n_5fc6c33832') }}</li>
+                <li><b>Ctrl-F / Cmd-F</b>&nbsp;{{ $t("i18n_99d3e5c718") }}</li>
+                <li><b>Ctrl-G / Cmd-G</b>&nbsp;{{ $t("i18n_6292498392") }}</li>
+                <li>
+                  <b>Shift-Ctrl-G / Shift-Cmd-G</b>&nbsp;{{
+                    $t("i18n_11e88c95ee")
+                  }}
+                </li>
+                <li>
+                  <b>Shift-Ctrl-F / Cmd-Option-F</b>&nbsp;{{
+                    $t("i18n_d324f8b5c9")
+                  }}
+                </li>
+                <li>
+                  <b>Shift-Ctrl-R / Shift-Cmd-Option-F</b>&nbsp;{{
+                    $t("i18n_b9c4cf7483")
+                  }}
+                </li>
+                <li><b>Alt-F</b>&nbsp;{{ $t("i18n_9402665a2c") }}</li>
+                <li><b>Alt-G</b>&nbsp;{{ $t("i18n_5fc6c33832") }}</li>
               </ul>
             </template>
             <QuestionCircleOutlined />
@@ -88,128 +110,128 @@
   </div>
 </template>
 <script>
-import Codemirror from 'codemirror-editor-vue3'
-import 'codemirror/lib/codemirror.css'
+import Codemirror from "codemirror-editor-vue3";
+import "codemirror/lib/codemirror.css";
 
 // language
-import 'codemirror/mode/javascript/javascript.js'
-import 'codemirror/mode/css/css.js'
-import 'codemirror/mode/diff/diff.js'
-import 'codemirror/mode/dockerfile/dockerfile.js'
-import 'codemirror/mode/go/go.js'
-import 'codemirror/mode/groovy/groovy.js'
-import 'codemirror/mode/http/http.js'
-import 'codemirror/mode/python/python.js'
-import 'codemirror/mode/rpm/rpm.js'
-import 'codemirror/mode/sass/sass.js'
-import 'codemirror/mode/ruby/ruby.js'
-import 'codemirror/mode/shell/shell.js'
-import 'codemirror/mode/vue/vue.js'
-import 'codemirror/mode/xml/xml.js'
-import 'codemirror/mode/yaml/yaml.js'
-import 'codemirror/mode/vb/vb.js'
-import 'codemirror/mode/sql/sql.js'
-import 'codemirror/mode/powershell/powershell.js'
-import 'codemirror/mode/nginx/nginx.js'
-import 'codemirror/mode/cmake/cmake.js'
-import 'codemirror/mode/properties/properties.js'
-import 'codemirror/mode/php/php.js'
-import 'codemirror/mode/htmlmixed/htmlmixed.js'
-import 'codemirror/mode/yaml-frontmatter/yaml-frontmatter.js'
+import "codemirror/mode/javascript/javascript.js";
+import "codemirror/mode/css/css.js";
+import "codemirror/mode/diff/diff.js";
+import "codemirror/mode/dockerfile/dockerfile.js";
+import "codemirror/mode/go/go.js";
+import "codemirror/mode/groovy/groovy.js";
+import "codemirror/mode/http/http.js";
+import "codemirror/mode/python/python.js";
+import "codemirror/mode/rpm/rpm.js";
+import "codemirror/mode/sass/sass.js";
+import "codemirror/mode/ruby/ruby.js";
+import "codemirror/mode/shell/shell.js";
+import "codemirror/mode/vue/vue.js";
+import "codemirror/mode/xml/xml.js";
+import "codemirror/mode/yaml/yaml.js";
+import "codemirror/mode/vb/vb.js";
+import "codemirror/mode/sql/sql.js";
+import "codemirror/mode/powershell/powershell.js";
+import "codemirror/mode/nginx/nginx.js";
+import "codemirror/mode/cmake/cmake.js";
+import "codemirror/mode/properties/properties.js";
+import "codemirror/mode/php/php.js";
+import "codemirror/mode/htmlmixed/htmlmixed.js";
+import "codemirror/mode/yaml-frontmatter/yaml-frontmatter.js";
 const modes = [
-  { name: 'shell', mode: 'shell' },
-  { name: 'powershell', mode: 'powershell' },
-  { name: 'dockerfile', mode: 'dockerfile' },
-  { name: 'yaml', mode: 'yaml' },
-  { name: 'properties', mode: 'properties' },
-  { name: 'htmlmixed', mode: 'htmlmixed' },
-  { name: 'nginx', mode: 'nginx' },
-  { name: 'python', mode: 'python' },
-  { name: 'go', mode: 'go' },
-  { name: 'php', mode: 'php' },
-  { name: 'rpm', mode: 'rpm' },
-  { name: 'sass', mode: 'sass' },
-  { name: 'vue', mode: 'vue' },
-  { name: 'xml', mode: 'xml' },
-  { name: 'sql', mode: 'sql' },
-  { name: 'javascript', mode: 'javascript' },
-  { name: 'css', mode: 'css' },
-  { name: 'diff', mode: 'diff' },
-  { name: 'vb', mode: 'vb' },
-  { name: 'http', mode: 'http' },
-  { name: 'ruby', mode: 'ruby' },
-  { name: 'groovy', mode: 'groovy' },
-  { name: 'cmake', mode: 'cmake' }
-]
+  { name: "shell", mode: "shell" },
+  { name: "powershell", mode: "powershell" },
+  { name: "dockerfile", mode: "dockerfile" },
+  { name: "yaml", mode: "yaml" },
+  { name: "properties", mode: "properties" },
+  { name: "htmlmixed", mode: "htmlmixed" },
+  { name: "nginx", mode: "nginx" },
+  { name: "python", mode: "python" },
+  { name: "go", mode: "go" },
+  { name: "php", mode: "php" },
+  { name: "rpm", mode: "rpm" },
+  { name: "sass", mode: "sass" },
+  { name: "vue", mode: "vue" },
+  { name: "xml", mode: "xml" },
+  { name: "sql", mode: "sql" },
+  { name: "javascript", mode: "javascript" },
+  { name: "css", mode: "css" },
+  { name: "diff", mode: "diff" },
+  { name: "vb", mode: "vb" },
+  { name: "http", mode: "http" },
+  { name: "ruby", mode: "ruby" },
+  { name: "groovy", mode: "groovy" },
+  { name: "cmake", mode: "cmake" },
+];
 
 //
 
 // theme
-import 'codemirror/theme/3024-day.css'
-import 'codemirror/theme/3024-night.css'
-import 'codemirror/theme/abcdef.css'
-import 'codemirror/theme/ambiance-mobile.css'
-import 'codemirror/theme/ayu-dark.css'
-import 'codemirror/theme/ambiance.css'
-import 'codemirror/theme/ayu-mirage.css'
-import 'codemirror/theme/abbott.css'
-import 'codemirror/theme/base16-dark.css'
-import 'codemirror/theme/base16-light.css'
-import 'codemirror/theme/bespin.css'
-import 'codemirror/theme/blackboard.css'
-import 'codemirror/theme/cobalt.css'
-import 'codemirror/theme/colorforth.css'
-import 'codemirror/theme/darcula.css'
-import 'codemirror/theme/dracula.css'
-import 'codemirror/theme/duotone-dark.css'
-import 'codemirror/theme/duotone-light.css'
-import 'codemirror/theme/eclipse.css'
-import 'codemirror/theme/elegant.css'
-import 'codemirror/theme/erlang-dark.css'
-import 'codemirror/theme/gruvbox-dark.css'
-import 'codemirror/theme/hopscotch.css'
-import 'codemirror/theme/icecoder.css'
-import 'codemirror/theme/idea.css'
-import 'codemirror/theme/isotope.css'
-import 'codemirror/theme/juejin.css'
-import 'codemirror/theme/lesser-dark.css'
-import 'codemirror/theme/liquibyte.css'
-import 'codemirror/theme/lucario.css'
-import 'codemirror/theme/material-darker.css'
-import 'codemirror/theme/material-palenight.css'
-import 'codemirror/theme/material-ocean.css'
-import 'codemirror/theme/material.css'
-import 'codemirror/theme/mbo.css'
-import 'codemirror/theme/mdn-like.css'
-import 'codemirror/theme/midnight.css'
-import 'codemirror/theme/monokai.css'
-import 'codemirror/theme/moxer.css'
-import 'codemirror/theme/neat.css'
-import 'codemirror/theme/neo.css'
-import 'codemirror/theme/night.css'
-import 'codemirror/theme/nord.css'
-import 'codemirror/theme/oceanic-next.css'
-import 'codemirror/theme/panda-syntax.css'
-import 'codemirror/theme/paraiso-dark.css'
-import 'codemirror/theme/paraiso-light.css'
-import 'codemirror/theme/pastel-on-dark.css'
-import 'codemirror/theme/railscasts.css'
-import 'codemirror/theme/rubyblue.css'
-import 'codemirror/theme/seti.css'
-import 'codemirror/theme/shadowfox.css'
-import 'codemirror/theme/solarized.css'
-import 'codemirror/theme/ssms.css'
-import 'codemirror/theme/the-matrix.css'
-import 'codemirror/theme/tomorrow-night-bright.css'
-import 'codemirror/theme/tomorrow-night-eighties.css'
-import 'codemirror/theme/ttcn.css'
-import 'codemirror/theme/twilight.css'
-import 'codemirror/theme/vibrant-ink.css'
-import 'codemirror/theme/xq-dark.css'
-import 'codemirror/theme/xq-light.css'
-import 'codemirror/theme/yeti.css'
-import 'codemirror/theme/yonce.css'
-import 'codemirror/theme/zenburn.css'
+import "codemirror/theme/3024-day.css";
+import "codemirror/theme/3024-night.css";
+import "codemirror/theme/abcdef.css";
+import "codemirror/theme/ambiance-mobile.css";
+import "codemirror/theme/ayu-dark.css";
+import "codemirror/theme/ambiance.css";
+import "codemirror/theme/ayu-mirage.css";
+import "codemirror/theme/abbott.css";
+import "codemirror/theme/base16-dark.css";
+import "codemirror/theme/base16-light.css";
+import "codemirror/theme/bespin.css";
+import "codemirror/theme/blackboard.css";
+import "codemirror/theme/cobalt.css";
+import "codemirror/theme/colorforth.css";
+import "codemirror/theme/darcula.css";
+import "codemirror/theme/dracula.css";
+import "codemirror/theme/duotone-dark.css";
+import "codemirror/theme/duotone-light.css";
+import "codemirror/theme/eclipse.css";
+import "codemirror/theme/elegant.css";
+import "codemirror/theme/erlang-dark.css";
+import "codemirror/theme/gruvbox-dark.css";
+import "codemirror/theme/hopscotch.css";
+import "codemirror/theme/icecoder.css";
+import "codemirror/theme/idea.css";
+import "codemirror/theme/isotope.css";
+import "codemirror/theme/juejin.css";
+import "codemirror/theme/lesser-dark.css";
+import "codemirror/theme/liquibyte.css";
+import "codemirror/theme/lucario.css";
+import "codemirror/theme/material-darker.css";
+import "codemirror/theme/material-palenight.css";
+import "codemirror/theme/material-ocean.css";
+import "codemirror/theme/material.css";
+import "codemirror/theme/mbo.css";
+import "codemirror/theme/mdn-like.css";
+import "codemirror/theme/midnight.css";
+import "codemirror/theme/monokai.css";
+import "codemirror/theme/moxer.css";
+import "codemirror/theme/neat.css";
+import "codemirror/theme/neo.css";
+import "codemirror/theme/night.css";
+import "codemirror/theme/nord.css";
+import "codemirror/theme/oceanic-next.css";
+import "codemirror/theme/panda-syntax.css";
+import "codemirror/theme/paraiso-dark.css";
+import "codemirror/theme/paraiso-light.css";
+import "codemirror/theme/pastel-on-dark.css";
+import "codemirror/theme/railscasts.css";
+import "codemirror/theme/rubyblue.css";
+import "codemirror/theme/seti.css";
+import "codemirror/theme/shadowfox.css";
+import "codemirror/theme/solarized.css";
+import "codemirror/theme/ssms.css";
+import "codemirror/theme/the-matrix.css";
+import "codemirror/theme/tomorrow-night-bright.css";
+import "codemirror/theme/tomorrow-night-eighties.css";
+import "codemirror/theme/ttcn.css";
+import "codemirror/theme/twilight.css";
+import "codemirror/theme/vibrant-ink.css";
+import "codemirror/theme/xq-dark.css";
+import "codemirror/theme/xq-light.css";
+import "codemirror/theme/yeti.css";
+import "codemirror/theme/yonce.css";
+import "codemirror/theme/zenburn.css";
 
 //
 //
@@ -218,107 +240,114 @@ import 'codemirror/theme/zenburn.css'
 //
 
 // placeholder
-import 'codemirror/addon/display/placeholder.js'
+import "codemirror/addon/display/placeholder.js";
 
- import 'codemirror/addon/hint/show-hint.css'
- import 'codemirror/addon/hint/show-hint.js'
+import "codemirror/addon/hint/show-hint.css";
+import "codemirror/addon/hint/show-hint.js";
+import "codemirror/addon/hint/sql-hint.js";
 // import 'codemirror/addon/hint/javascript-hint.js'
 // import 'codemirror/addon/hint/xml-hint.js'
 // import 'codemirror/addon/hint/css-hint.js'
 // import 'codemirror/addon/hint/html-hint.js'
-// import 'codemirror/addon/hint/sql-hint.js'
 // import 'codemirror/addon/hint/anyword-hint.js'
+import CodeMirror from "codemirror";
 // 自动提示
 // import 'codemirror/addon/lint/lint.css'
 // import 'codemirror/addon/lint/lint.js'
 // import 'codemirror/addon/lint/json-lint'
 // import 'codemirror/addon/lint/javascript-lint.js'
 // 代码折叠
-import 'codemirror/addon/fold/foldcode.js'
-import 'codemirror/addon/fold/foldgutter.js'
-import 'codemirror/addon/fold/foldgutter.css'
-import 'codemirror/addon/fold/brace-fold.js'
-import 'codemirror/addon/fold/xml-fold.js'
-import 'codemirror/addon/fold/comment-fold.js'
-import 'codemirror/addon/fold/markdown-fold.js'
-import 'codemirror/addon/fold/indent-fold.js'
+import "codemirror/addon/fold/foldcode.js";
+import "codemirror/addon/fold/foldgutter.js";
+import "codemirror/addon/fold/foldgutter.css";
+import "codemirror/addon/fold/brace-fold.js";
+import "codemirror/addon/fold/xml-fold.js";
+import "codemirror/addon/fold/comment-fold.js";
+import "codemirror/addon/fold/markdown-fold.js";
+import "codemirror/addon/fold/indent-fold.js";
 
-import 'codemirror/addon/edit/closebrackets.js'
-import 'codemirror/addon/edit/closetag.js'
-import 'codemirror/addon/edit/matchtags.js'
-import 'codemirror/addon/edit/matchbrackets.js'
+import "codemirror/addon/edit/closebrackets.js";
+import "codemirror/addon/edit/closetag.js";
+import "codemirror/addon/edit/matchtags.js";
+import "codemirror/addon/edit/matchbrackets.js";
 // 当前行高亮
-import 'codemirror/addon/selection/active-line.js'
-import 'codemirror/addon/search/jump-to-line.js'
-import 'codemirror/addon/dialog/dialog.js'
-import 'codemirror/addon/dialog/dialog.css'
-import 'codemirror/addon/search/searchcursor.js'
-import 'codemirror/addon/search/search.js'
-import 'codemirror/addon/display/autorefresh.js'
-import 'codemirror/addon/selection/mark-selection.js'
-import 'codemirror/addon/search/match-highlighter.js'
-import { t } from '@repo/config'
+import "codemirror/addon/selection/active-line.js";
+import "codemirror/addon/search/jump-to-line.js";
+import "codemirror/addon/dialog/dialog.js";
+import "codemirror/addon/dialog/dialog.css";
+import "codemirror/addon/search/searchcursor.js";
+import "codemirror/addon/search/search.js";
+import "codemirror/addon/display/autorefresh.js";
+import "codemirror/addon/selection/mark-selection.js";
+import "codemirror/addon/search/match-highlighter.js";
+import { t } from "@repo/config";
 
 // 文件后缀与语言对应表
 const fileSuffixToModeMap = {
-  html: 'htmlmixed',
-  css: 'css',
-  yml: 'yaml',
-  yaml: 'yaml',
-  json: 'json',
-  sh: 'shell',
-  bat: 'powershell',
-  vue: 'vue',
-  xml: 'xml',
-  sql: 'sql',
-  py: 'python',
-  php: 'php',
-  md: 'markdown',
-  dockerfile: 'dockerfile',
-  properties: 'properties',
-  lua: 'lua',
-  go: 'go'
-}
+  html: "htmlmixed",
+  css: "css",
+  yml: "yaml",
+  yaml: "yaml",
+  json: "json",
+  sh: "shell",
+  bat: "powershell",
+  vue: "vue",
+  xml: "xml",
+  sql: "sql",
+  py: "python",
+  php: "php",
+  md: "markdown",
+  dockerfile: "dockerfile",
+  properties: "properties",
+  lua: "lua",
+  go: "go",
+};
 export default {
   components: { Codemirror },
   props: {
     height: {
       type: String,
-      default: '100%'
+      default: "100%",
     },
     content: {
       type: String,
-      default: ''
+      default: "",
     },
     options: {
       type: Object,
       default() {
-        return {}
-      }
+        return {};
+      },
     },
     fileSuffix: {
       type: String,
-      default: ''
+      default: "",
     },
     showTool: {
       type: Boolean,
-      default: false
+      default: false,
     },
     placeholder: {
       type: String,
       default: function () {
-        return t('i18n_a11cc7a65b')
-      }
-    }
+        return t("i18n_a11cc7a65b");
+      },
+    },
+    // SQL 自动补全的表名和字段数据
+    // 格式: { 表名: [字段名1, 字段名2, ...], ... }
+    sqlHintTables: {
+      type: Object,
+      default: () => ({}),
+    },
   },
-  emits: ['update:content'],
+  emits: ["update:content"],
   data() {
     return {
-      codeMirrorHeight: '',
-      data: '',
+      codeMirrorHeight: "",
+      data: "",
       cmOptions: {
-        mode: '', // Language mode
-        theme: localStorage.getItem('editorTheme') || 'idea', // Theme
+        mode: "", // Language mode
+        theme: localStorage.getItem("editorTheme") || "idea", // Theme
         // // 是否应滚动或换行以显示长行
         lineWrapping: true,
         lineNumbers: true,
@@ -333,8 +362,12 @@ export default {
         // // 有点类似于虚拟滚动显示
         // Infinity - 无限制，始终显示全部内容，但是数据量大的时候会造成页面卡顿
         viewportMargin: 10,
-        lint: { esversion: '8' },
-        gutters: ['CodeMirror-lint-markers', 'CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
+        lint: { esversion: "8" },
+        gutters: [
+          "CodeMirror-lint-markers",
+          "CodeMirror-linenumbers",
+          "CodeMirror-foldgutter",
+        ],
         // extraKeys: {
         //   'Alt-Q': 'autocomplete',
         //   'Ctrl-Alt-L': () => {
@@ -356,12 +389,31 @@ export default {
         autoRefresh: true,
         highlightSelectionMatches: {
           minChars: 2,
-          style: 'matchhighlight',
-          showToken: true
+          style: "matchhighlight",
+          showToken: true,
         },
         styleSelectedText: true,
         enableAutoFormatJson: true,
-        defaultJsonIndentation: 2
+        defaultJsonIndentation: 2,
+        // SQL 自动补全配置
+        extraKeys: {
+          "Ctrl-Space": "autocomplete",
+          "Alt-/": "autocomplete",
+          ".": (cm) => {
+            // 输入点号后触发自动补全
+            cm.replaceSelection(".");
+            if (
+              cm.getOption("mode") === "sql" ||
+              cm.getOption("mode") === "text/x-sql"
+            ) {
+              setTimeout(() => cm.execCommand("autocomplete"), 100);
+            }
+          },
+        },
+        hintOptions: {
+          completeSingle: false,
+          tables: {},
+        },
       },
       modeList: modes,
       themeList: [
@@ -375,125 +427,141 @@ export default {
         // { name: 'ayu深2', theme: 'ayu-mirage' },
         // { name: '浅灰', theme: 'bespin' }
 
-        { name: this.$t('i18n_72eae3107e'), theme: 'abbott' },
-        { name: this.$t('i18n_96c1c8f4ee'), theme: 'abcdef' },
-        { name: this.$t('i18n_cad01fe13c'), theme: 'ambiance-mobile' },
-        { name: this.$t('i18n_1880b85dc5'), theme: 'ambiance' },
-        { name: this.$t('i18n_50ed14e70b'), theme: 'dracula' },
-        { name: this.$t('i18n_d937a135b9'), theme: 'eclipse' },
-        { name: this.$t('i18n_be1956b246'), theme: 'blackboard' },
-        { name: this.$t('i18n_8cae9cb626'), theme: 'idea' },
-        { name: 'ayu-dark', theme: 'ayu-dark' },
-        { name: 'ayu-mirage', theme: 'ayu-mirage' },
-        { name: 'base16-dark', theme: 'base16-dark' },
-        { name: 'base16-light', theme: 'base16-light' },
-        { name: 'bespin', theme: 'bespin' },
+        { name: this.$t("i18n_72eae3107e"), theme: "abbott" },
+        { name: this.$t("i18n_96c1c8f4ee"), theme: "abcdef" },
+        { name: this.$t("i18n_cad01fe13c"), theme: "ambiance-mobile" },
+        { name: this.$t("i18n_1880b85dc5"), theme: "ambiance" },
+        { name: this.$t("i18n_50ed14e70b"), theme: "dracula" },
+        { name: this.$t("i18n_d937a135b9"), theme: "eclipse" },
+        { name: this.$t("i18n_be1956b246"), theme: "blackboard" },
+        { name: this.$t("i18n_8cae9cb626"), theme: "idea" },
+        { name: "ayu-dark", theme: "ayu-dark" },
+        { name: "ayu-mirage", theme: "ayu-mirage" },
+        { name: "base16-dark", theme: "base16-dark" },
+        { name: "base16-light", theme: "base16-light" },
+        { name: "bespin", theme: "bespin" },
 
-        { name: 'cobalt', theme: 'cobalt' },
-        { name: 'colorforth', theme: 'colorforth' },
+        { name: "cobalt", theme: "cobalt" },
+        { name: "colorforth", theme: "colorforth" },
 
-        { name: 'duotone-dark', theme: 'duotone-dark' },
-        { name: 'duotone-light', theme: 'duotone-light' },
+        { name: "duotone-dark", theme: "duotone-dark" },
+        { name: "duotone-light", theme: "duotone-light" },
 
-        { name: 'elegant', theme: 'elegant' },
-        { name: 'erlang-dark', theme: 'erlang-dark' },
-        { name: 'gruvbox-dark', theme: 'gruvbox-dark' },
-        { name: 'hopscotch', theme: 'hopscotch' },
-        { name: 'icecoder', theme: 'icecoder' },
+        { name: "elegant", theme: "elegant" },
+        { name: "erlang-dark", theme: "erlang-dark" },
+        { name: "gruvbox-dark", theme: "gruvbox-dark" },
+        { name: "hopscotch", theme: "hopscotch" },
+        { name: "icecoder", theme: "icecoder" },
 
-        { name: 'isotope', theme: 'isotope' },
-        { name: 'juejin', theme: 'juejin' },
-        { name: 'lesser-dark', theme: 'lesser-dark' },
-        { name: 'liquibyte', theme: 'liquibyte' },
-        { name: 'lucario', theme: 'lucario' },
-        { name: 'material-darker', theme: 'material-darker' },
-        { name: 'material-ocean', theme: 'material-ocean' },
-        { name: 'material-palenight', theme: 'material-palenight' },
-        { name: 'material', theme: 'material' },
-        { name: 'mbo', theme: 'mbo' },
-        { name: 'mdn-like', theme: 'mdn-like' },
-        { name: 'midnight', theme: 'midnight' },
-        { name: 'monokai', theme: 'monokai' },
-        { name: 'moxer', theme: 'moxer' },
-        { name: 'neat', theme: 'neat' },
-        { name: 'neo', theme: 'neo' },
-        { name: 'night', theme: 'night' },
-        { name: 'nord', theme: 'nord' },
-        { name: 'oceanic-next', theme: 'oceanic-next' },
-        { name: 'panda-syntax', theme: 'panda-syntax' },
-        { name: 'paraiso-dark', theme: 'paraiso-dark' },
-        { name: 'paraiso-light', theme: 'paraiso-light' },
-        { name: 'pastel-on-dark', theme: 'pastel-on-dark' },
-        { name: 'railscasts', theme: 'railscasts' },
-        { name: 'rubyblue', theme: 'rubyblue' },
-        { name: 'seti', theme: 'seti' },
-        { name: 'shadowfox', theme: 'shadowfox' },
-        { name: 'solarized', theme: 'solarized' },
-        { name: 'ssms', theme: 'ssms' },
-        { name: 'the-matrix', theme: 'the-matrix' },
-        { name: 'tomorrow-night-bright', theme: 'tomorrow-night-bright' },
-        { name: 'tomorrow-night-eighties', theme: 'tomorrow-night-eighties' },
-        { name: 'ttcn', theme: 'ttcn' },
-        { name: 'twilight', theme: 'twilight' },
-        { name: 'vibrant-ink', theme: 'vibrant-ink' },
-        { name: 'xq-dark', theme: 'xq-dark' },
-        { name: 'xq-light', theme: 'xq-light' },
-        { name: 'yeti', theme: 'yeti' },
-        { name: 'yonce', theme: 'yonce' },
-        { name: 'zenburn', theme: 'zenburn' },
-        { name: '3024-day', theme: '3024-day' },
-        { name: '3024-night', theme: '3024-night' }
+        { name: "isotope", theme: "isotope" },
+        { name: "juejin", theme: "juejin" },
+        { name: "lesser-dark", theme: "lesser-dark" },
+        { name: "liquibyte", theme: "liquibyte" },
+        { name: "lucario", theme: "lucario" },
+        { name: "material-darker", theme: "material-darker" },
+        { name: "material-ocean", theme: "material-ocean" },
+        { name: "material-palenight", theme: "material-palenight" },
+        { name: "material", theme: "material" },
+        { name: "mbo", theme: "mbo" },
+        { name: "mdn-like", theme: "mdn-like" },
+        { name: "midnight", theme: "midnight" },
+        { name: "monokai", theme: "monokai" },
+        { name: "moxer", theme: "moxer" },
+        { name: "neat", theme: "neat" },
+        { name: "neo", theme: "neo" },
+        { name: "night", theme: "night" },
+        { name: "nord", theme: "nord" },
+        { name: "oceanic-next", theme: "oceanic-next" },
+        { name: "panda-syntax", theme: "panda-syntax" },
+        { name: "paraiso-dark", theme: "paraiso-dark" },
+        { name: "paraiso-light", theme: "paraiso-light" },
+        { name: "pastel-on-dark", theme: "pastel-on-dark" },
+        { name: "railscasts", theme: "railscasts" },
+        { name: "rubyblue", theme: "rubyblue" },
+        { name: "seti", theme: "seti" },
+        { name: "shadowfox", theme: "shadowfox" },
+        { name: "solarized", theme: "solarized" },
+        { name: "ssms", theme: "ssms" },
+        { name: "the-matrix", theme: "the-matrix" },
+        { name: "tomorrow-night-bright", theme: "tomorrow-night-bright" },
+        { name: "tomorrow-night-eighties", theme: "tomorrow-night-eighties" },
+        { name: "ttcn", theme: "ttcn" },
+        { name: "twilight", theme: "twilight" },
+        { name: "vibrant-ink", theme: "vibrant-ink" },
+        { name: "xq-dark", theme: "xq-dark" },
+        { name: "xq-light", theme: "xq-light" },
+        { name: "yeti", theme: "yeti" },
+        { name: "yonce", theme: "yonce" },
+        { name: "zenburn", theme: "zenburn" },
+        { name: "3024-day", theme: "3024-day" },
+        { name: "3024-night", theme: "3024-night" },
       ],
 
-      loading: true
-    }
+      loading: true,
+    };
   },
   watch: {
     fileSuffix: {
       handler(v) {
         if (!v) {
-          return
+          return;
         }
-        if (v.indexOf('.') > -1) {
-          const textArr = v.split('.')
-          const suffix = textArr.length ? textArr[textArr.length - 1] : v
-          const newMode = fileSuffixToModeMap[suffix]
+        if (v.indexOf(".") > -1) {
+          const textArr = v.split(".");
+          const suffix = textArr.length ? textArr[textArr.length - 1] : v;
+          const newMode = fileSuffixToModeMap[suffix];
           if (newMode) {
-            this.cmOptions = { ...this.cmOptions, mode: newMode }
+            this.cmOptions = { ...this.cmOptions, mode: newMode };
           }
         } else {
-          const v2 = v.toLowerCase()
+          const v2 = v.toLowerCase();
           for (let key in fileSuffixToModeMap) {
             if (v2.endsWith(key)) {
-              const newMode = fileSuffixToModeMap[key]
+              const newMode = fileSuffixToModeMap[key];
               if (newMode) {
-                this.cmOptions = { ...this.cmOptions, mode: newMode }
+                this.cmOptions = { ...this.cmOptions, mode: newMode };
               }
-              break
+              break;
             }
           }
         }
       },
       deep: true,
-      immediate: true
+      immediate: true,
     },
     options: {
       handler(n) {
         if (Object.keys(n).length) {
-          const options = JSON.parse(JSON.stringify(n))
-          this.cmOptions = { ...this.cmOptions, ...options }
+          const options = JSON.parse(JSON.stringify(n));
+          this.cmOptions = { ...this.cmOptions, ...options };
         }
       },
       deep: true,
-      immediate: true
+      immediate: true,
+    },
+    // 监听 SQL 补全数据变化
+    sqlHintTables: {
+      handler(tables) {
+        if (tables && Object.keys(tables).length) {
+          this.cmOptions = {
+            ...this.cmOptions,
+            hintOptions: {
+              ...this.cmOptions.hintOptions,
+              tables: tables,
+            },
+          };
+        }
+      },
+      deep: true,
+      immediate: true,
     },
     content: {
       handler(v) {
-        this.data = v || ''
-        this.codeMirrorHeight = this.showTool ? `calc( 100% -  50px )` : '100%'
+        this.data = v || "";
+        this.codeMirrorHeight = this.showTool ? `calc( 100% -  50px )` : "100%";
       },
-      immediate: true
-    }
+      immediate: true,
+    },
   },
   mounted() {
     // https://juejin.cn/post/7218032919008624700
@@ -526,22 +594,22 @@ export default {
 
     // 延迟渲染，等待资源加载完成
     setTimeout(() => {
-      this.loading = false
-    }, 1000)
+      this.loading = false;
+    }, 1000);
   },
   methods: {
     onCmCodeChanges(v) {
-      this.$emit('update:content', v)
+      this.$emit("update:content", v);
     },
     // 选择语言
     handleSelectMode(v) {
-      this.cmOptions = { ...this.cmOptions, mode: v }
+      this.cmOptions = { ...this.cmOptions, mode: v };
     },
 
     // 选择皮肤
     handleSelectTheme(v) {
-      this.cmOptions = { ...this.cmOptions, theme: v }
-      localStorage.setItem('editorTheme', v)
+      this.cmOptions = { ...this.cmOptions, theme: v };
+      localStorage.setItem("editorTheme", v);
     },
 
     onReady() {
@@ -558,9 +626,9 @@ export default {
       // editor.addKeyMap({
       //   'Ctrl-Alt-L': autoFormatSelection
       // })
-    }
-  }
-}
+    },
+  },
+};
 </script>
 <style>
 .CodeMirror {

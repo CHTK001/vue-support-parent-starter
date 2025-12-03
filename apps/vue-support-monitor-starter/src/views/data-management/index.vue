@@ -90,6 +90,7 @@
         :params="queryParams"
         :col-size="5"
         layout="card"
+        @data-loaded="onDataLoaded"
       >
         <template #empty>
           <el-empty description="暂无数据源配置">
@@ -330,6 +331,7 @@
 import { ref, computed, onMounted, watch, reactive } from "vue";
 import {
   pageSystemDataSettings,
+  listSystemDataSettings,
   deleteSystemDataSetting,
   type SystemDataSetting,
   uploadJdbcDriver,
@@ -421,16 +423,49 @@ const typeOptions = computed(
     ) as string[]
 );
 
-// 交给 ScTable 处理分页与过滤，这里保留 options 构建
-const queryParams = ref({ current: 1, size: 20, name: "", type: "" });
-watch([searchKey, typeFilter], () => {
+// 交给 ScTable 处理分页与过滤
+const queryParams = ref({
+  current: 1,
+  size: 20,
+  name: "",
+  type: "",
+  sort: "name",
+  order: "asc",
+});
+
+// 监听搜索、类型过滤、排序变化
+watch([searchKey, typeFilter, sortKey], () => {
+  // 根据排序字段设置实际的排序参数
+  const sortField =
+    sortKey.value === "name"
+      ? "systemDataSettingName"
+      : "systemDataSettingType";
   queryParams.value = {
     ...queryParams.value,
     current: 1,
     name: searchKey.value,
     type: typeFilter.value || "",
+    sort: sortField,
+    order: "asc",
   };
 });
+
+/**
+ * 数据加载完成回调
+ * 用于更新 list 和 typeOptions
+ */
+function onDataLoaded(data: SystemDataSetting[], total: number) {
+  // 更新 list 以便计算类型选项
+  if (data && data.length > 0) {
+    // 合并新数据到 list，确保类型选项更全
+    const existingIds = new Set(list.value.map((i) => i.systemDataSettingId));
+    data.forEach((item) => {
+      if (!existingIds.has(item.systemDataSettingId)) {
+        list.value.push(item);
+      }
+    });
+  }
+}
 
 function getTypeTag(
   type?: string
@@ -684,7 +719,16 @@ const fetchServerStaticDataFunction = () => {
   });
 };
 
-onMounted(() => {
+onMounted(async () => {
+  // 加载所有数据源用于类型选项
+  try {
+    const res = await listSystemDataSettings();
+    if (res?.data) {
+      list.value = res.data;
+    }
+  } catch (e) {
+    console.error("加载数据源列表失败", e);
+  }
   load();
   fetchServerStaticDataFunction();
 });

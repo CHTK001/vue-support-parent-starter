@@ -529,7 +529,9 @@
                 >
                   <el-input
                     v-model="formData.monitorSysGenServerSettingDockerHost"
-                    :placeholder="currentServer?.monitorSysGenServerHost || '127.0.0.1'"
+                    :placeholder="
+                      currentServer?.monitorSysGenServerHost || '127.0.0.1'
+                    "
                     clearable
                   />
                   <span class="form-tip">默认使用当前服务器IP</span>
@@ -548,16 +550,42 @@
                   />
                 </el-form-item>
 
-                <el-form-item label="API用户名" prop="monitorSysGenServerSettingDockerUsername">
-                  <el-input v-model="formData.monitorSysGenServerSettingDockerUsername" placeholder="可选" clearable />
+                <el-form-item
+                  label="API用户名"
+                  prop="monitorSysGenServerSettingDockerUsername"
+                >
+                  <el-input
+                    v-model="formData.monitorSysGenServerSettingDockerUsername"
+                    placeholder="可选"
+                    clearable
+                  />
                 </el-form-item>
 
-                <el-form-item label="API密码" prop="monitorSysGenServerSettingDockerPassword">
-                  <el-input v-model="formData.monitorSysGenServerSettingDockerPassword" type="password" show-password placeholder="可选" clearable />
+                <el-form-item
+                  label="API密码"
+                  prop="monitorSysGenServerSettingDockerPassword"
+                >
+                  <el-input
+                    v-model="formData.monitorSysGenServerSettingDockerPassword"
+                    type="password"
+                    show-password
+                    placeholder="可选"
+                    clearable
+                  />
                 </el-form-item>
 
-                <el-form-item label="连接超时(秒)" prop="monitorSysGenServerSettingDockerConnectTimeoutMillis">
-                  <el-input-number v-model="dockerConnectTimeoutSecondsDialog" :min="1" :max="600" :step="1" placeholder="30" controls-position="right" />
+                <el-form-item
+                  label="连接超时(秒)"
+                  prop="monitorSysGenServerSettingDockerConnectTimeoutMillis"
+                >
+                  <el-input-number
+                    v-model="dockerConnectTimeoutSecondsDialog"
+                    :min="1"
+                    :max="600"
+                    :step="1"
+                    placeholder="30"
+                    controls-position="right"
+                  />
                 </el-form-item>
 
                 <el-form-item
@@ -783,7 +811,6 @@ const open = async (serverIdParam: number) => {
   serverId.value = serverIdParam;
   visible.value = true;
   activeTab.value = "basic";
-  debugger;
   // 同时加载服务器信息和设置
   await Promise.all([loadServerInfo(), loadServerSetting()]);
 };
@@ -796,7 +823,6 @@ const loadServerInfo = async () => {
 
   try {
     const result = await getServerInfo(String(serverId.value));
-    debugger;
     if (result.code === "00000" && result.data) {
       currentServer.value = result.data;
     }
@@ -835,13 +861,15 @@ watch(
     if (val === 1) {
       if (!formData.monitorSysGenServerSettingDockerHost) {
         // 使用当前服务器的IP作为默认Docker主机，如果没有则使用127.0.0.1
-        formData.monitorSysGenServerSettingDockerHost = currentServer.value?.monitorSysGenServerHost || "127.0.0.1";
+        formData.monitorSysGenServerSettingDockerHost =
+          currentServer.value?.monitorSysGenServerHost || "127.0.0.1";
       }
       if (!formData.monitorSysGenServerSettingDockerPort) {
         formData.monitorSysGenServerSettingDockerPort = 2376 as any;
       }
       if (!formData.monitorSysGenServerSettingDockerConnectTimeoutMillis) {
-        formData.monitorSysGenServerSettingDockerConnectTimeoutMillis = 30000 as any;
+        formData.monitorSysGenServerSettingDockerConnectTimeoutMillis =
+          30000 as any;
       }
     }
   }
@@ -850,12 +878,15 @@ watch(
 // Docker API 连接超时（秒）双向绑定（内部以毫秒存储）
 const dockerConnectTimeoutSecondsDialog = computed({
   get() {
-    const ms = Number(formData.monitorSysGenServerSettingDockerConnectTimeoutMillis || 30000);
+    const ms = Number(
+      formData.monitorSysGenServerSettingDockerConnectTimeoutMillis || 30000
+    );
     return Math.max(1, Math.round(ms / 1000));
   },
   set(v: number) {
     const seconds = Number(v || 30);
-    formData.monitorSysGenServerSettingDockerConnectTimeoutMillis = Math.max(1, seconds) * 1000;
+    formData.monitorSysGenServerSettingDockerConnectTimeoutMillis =
+      Math.max(1, seconds) * 1000;
   },
 });
 

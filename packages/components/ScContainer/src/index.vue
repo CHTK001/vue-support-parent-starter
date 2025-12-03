@@ -75,9 +75,17 @@ const emit = defineEmits<{
   resize: [area: string, size: number];
 }>();
 
-const headerRef = ref<HTMLElement>();
-const asideRef = ref<HTMLElement>();
-const footerRef = ref<HTMLElement>();
+const headerRef = ref<any>();
+const asideRef = ref<any>();
+const footerRef = ref<any>();
+
+/**
+ * 获取组件的 DOM 元素
+ */
+function getElement(ref: any): HTMLElement | null {
+  if (!ref) return null;
+  return ref.$el || ref;
+}
 
 const currentHeaderHeight = ref<number>(0);
 const currentAsideWidth = ref<number>(0);
@@ -113,17 +121,22 @@ function startResize(event: MouseEvent, area: string): void {
   if (!props.resizable) return;
 
   event.preventDefault();
+  event.stopPropagation();
   resizing = true;
   resizeArea = area;
   startX = event.clientX;
   startY = event.clientY;
 
-  if (area === "header" && headerRef.value) {
-    startSize = headerRef.value.offsetHeight;
-  } else if (area === "aside" && asideRef.value) {
-    startSize = asideRef.value.offsetWidth;
-  } else if (area === "footer" && footerRef.value) {
-    startSize = footerRef.value.offsetHeight;
+  const headerEl = getElement(headerRef.value);
+  const asideEl = getElement(asideRef.value);
+  const footerEl = getElement(footerRef.value);
+
+  if (area === "header" && headerEl) {
+    startSize = headerEl.offsetHeight;
+  } else if (area === "aside" && asideEl) {
+    startSize = asideEl.offsetWidth;
+  } else if (area === "footer" && footerEl) {
+    startSize = footerEl.offsetHeight;
   }
 
   document.addEventListener("mousemove", handleResize);
@@ -170,14 +183,18 @@ function stopResize(): void {
 
 onMounted(() => {
   // 初始化尺寸
-  if (headerRef.value) {
-    currentHeaderHeight.value = headerRef.value.offsetHeight;
+  const headerEl = getElement(headerRef.value);
+  const asideEl = getElement(asideRef.value);
+  const footerEl = getElement(footerRef.value);
+
+  if (headerEl) {
+    currentHeaderHeight.value = headerEl.offsetHeight;
   }
-  if (asideRef.value) {
-    currentAsideWidth.value = asideRef.value.offsetWidth;
+  if (asideEl) {
+    currentAsideWidth.value = asideEl.offsetWidth;
   }
-  if (footerRef.value) {
-    currentFooterHeight.value = footerRef.value.offsetHeight;
+  if (footerEl) {
+    currentFooterHeight.value = footerEl.offsetHeight;
   }
 });
 
@@ -205,19 +222,19 @@ defineExpose({
   &__footer {
     position: relative;
     background: var(--el-bg-color);
-    border: 1px solid var(--el-border-color-lighter);
+    border: none;
   }
 
   &__header {
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    border-bottom: none;
   }
 
   &__aside {
-    border-right: 1px solid var(--el-border-color-lighter);
+    border-right: none;
   }
 
   &__footer {
-    border-top: 1px solid var(--el-border-color-lighter);
+    border-top: none;
   }
 
   &__main {
@@ -225,42 +242,88 @@ defineExpose({
     overflow: auto;
   }
 
+  /* 拖拽手柄 - 与 JDBC 控制台一致的样式 */
   &__resize-handle {
     position: absolute;
-    z-index: 10;
+    z-index: 999;
     background: transparent;
-    transition: background 0.2s;
+    transition: all 0.2s ease;
 
-    &:hover {
-      background: var(--el-color-primary-light-7);
+    /* 中心装饰条 */
+    &::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      background: #cbd5e1;
+      border-radius: 2px;
+      transition: all 0.2s ease;
+      pointer-events: none;
     }
 
+    &:hover::before {
+      background: var(--el-color-primary, #3b82f6);
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+    }
+
+    /* 水平拖拽条（上下调整） */
     &--horizontal {
       left: 0;
       right: 0;
-      height: 4px;
-      bottom: -2px;
+      height: 6px;
+      bottom: -3px;
       cursor: ns-resize;
 
+      &::before {
+        width: 40px;
+        height: 4px;
+      }
+
+      &:hover::before {
+        width: 60px;
+      }
+
       &.sc-container__resize-handle--top {
-        top: -2px;
+        top: -3px;
         bottom: auto;
       }
     }
 
+    /* 垂直拖拽条（左右调整） */
     &--vertical {
       top: 0;
       bottom: 0;
-      width: 4px;
-      right: -2px;
+      width: 6px;
+      right: -3px;
       cursor: ew-resize;
+
+      &::before {
+        width: 4px;
+        height: 40px;
+      }
+
+      &:hover::before {
+        height: 60px;
+      }
     }
   }
 
   &__resizable {
-    &:hover {
-      .sc-container__resize-handle {
-        background: var(--el-color-primary-light-8);
+    overflow: visible;
+  }
+}
+
+/* 深色模式适配 */
+html.dark {
+  .sc-container {
+    &__resize-handle {
+      &::before {
+        background: #64748b;
+      }
+
+      &:hover::before {
+        background: var(--el-color-primary);
       }
     }
   }

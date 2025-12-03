@@ -549,7 +549,6 @@ function selectEmail(email: any) {
   //   pageNumber: email.pageNumber,
   //   messageId: email.messageId
   // }).then(res => {
-  //   debugger;
   // });
   if (!email.read) {
     email.read = true;
@@ -564,9 +563,7 @@ const fetchMessageRead = async (email: any) => {
     command: "mark-read",
     pageNumber: email.pageNumber,
     messageId: email.messageId,
-  }).then((res) => {
-    debugger;
-  });
+  }).then((res) => {});
 };
 
 async function toggleStar(email: SystemDataEmailHistory) {
@@ -1216,15 +1213,15 @@ onMounted(async () => {
       console.log("[EmailConsole] 接收到新邮件消息");
       //设置数量
       folders.value.forEach((it) => {
-        if(it.name === '收件箱' && message.folder == "INBOX") {
+        if (it.name === "收件箱" && message.folder == "INBOX") {
           it.count += 1;
           return;
         }
-        if(it.name == message.folder) {
+        if (it.name == message.folder) {
           it.count += 1;
         }
       });
-       const cacheKey = generateCacheKey(
+      const cacheKey = generateCacheKey(
         props.id,
         message.folder == "INBOX" ? "收件箱" : message.folder,
         emailsPageNumber.value
@@ -1232,27 +1229,27 @@ onMounted(async () => {
       let emailBox = [];
       let emailBoxTotal = 0;
       indexedDBProxy()
-        .getItemAsync(cacheKey).then(async (cachedData) => {
+        .getItemAsync(cacheKey)
+        .then(async (cachedData) => {
           //@ts-ignore
           emailBox = cachedData?.emails || [];
           //@ts-ignore
           emailBoxTotal = cachedData?.total || 0;
-          emailBoxTotal ++;
+          emailBoxTotal++;
           emailBox.unshift(message);
 
           emails.value = emailBox;
           emailsTotal.value = emailBoxTotal;
-             // 保存到缓存
+          // 保存到缓存
           await saveEmailsToCache(
-              props.id,
-              message.folder == "INBOX" ? "收件箱" : message.folder,
-              emailsPageNumber.value,
-              emailBox,
-              emailBoxTotal,
-              hasMore.value
-            );
-      });
-
+            props.id,
+            message.folder == "INBOX" ? "收件箱" : message.folder,
+            emailsPageNumber.value,
+            emailBox,
+            emailBoxTotal,
+            hasMore.value
+          );
+        });
     };
 
     // 监听system/data/listen主题
@@ -1407,7 +1404,7 @@ onBeforeUnmount(() => {
 .folder-icon {
   font-size: 16px;
   margin-right: 8px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .folder-item.active .folder-icon {
@@ -1560,7 +1557,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   margin-right: 8px;
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .sender-avatar.large {
@@ -1593,7 +1590,7 @@ onBeforeUnmount(() => {
 
 .email-preview {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1608,13 +1605,13 @@ onBeforeUnmount(() => {
 
 .email-time {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   white-space: nowrap;
 }
 
 .email-attachment {
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .empty-state {
@@ -1623,7 +1620,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   height: 200px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .empty-icon {
@@ -1757,7 +1754,7 @@ onBeforeUnmount(() => {
 
 .sender-details .sender-email {
   font-size: 14px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
@@ -1800,7 +1797,7 @@ onBeforeUnmount(() => {
 
 .welcome-content {
   text-align: center;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
 }
 
 .welcome-icon {
