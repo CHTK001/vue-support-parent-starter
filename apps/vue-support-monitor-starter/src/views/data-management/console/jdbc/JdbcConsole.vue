@@ -94,6 +94,13 @@
           <el-button-group>
             <el-button
               size="small"
+              :type="showDataType ? 'primary' : 'default'"
+              :disabled="!searched"
+              @click="showDataType = !showDataType"
+              >数据类型</el-button
+            >
+            <el-button
+              size="small"
               :type="showTableComment ? 'primary' : 'default'"
               :disabled="!searched"
               @click="showTableComment = !showTableComment"
@@ -127,7 +134,6 @@
           :showTool="false"
           :height="'200px'"
           :options="{ mode: 'sql' }"
-          :sqlHintTables="sqlHintTables"
         />
         <el-tabs
           v-model="activeTab"
@@ -196,32 +202,41 @@
               border
               v-if="columns.length"
               :data="rows"
-              size="small"
-              height="580px"
+              size="default"
+              :max-height="tableMaxHeight"
               :row-class-name="rowClassName"
+              class="data-table"
+              @cell-dblclick="handleCellDblClick"
             >
+              <!-- 序号列 -->
+              <el-table-column type="index" width="50" label="#" fixed="left" />
+              <!-- 数据列 -->
               <el-table-column
                 v-for="col in visibleColumns"
-                :key="col"
-                :prop="col.name"
-                :label="col.name"
-                :min-width="120"
+                :key="col.name || col"
+                :prop="col.name || col"
+                :label="col.name || col"
+                :min-width="getColumnWidth(col)"
+                show-overflow-tooltip
               >
                 <template #header>
-                  <div
-                    class="col-header flex flex-col justify-start items-start"
-                  >
-                    <div>
-                      {{ col.name }}
+                  <div class="col-header">
+                    <div class="col-header-main">
+                      <span class="col-name">{{ col.name || col }}</span>
+                      <span v-if="col.isPrimary" class="col-pk-badge">PK</span>
+                      <span
+                        v-if="showDataType && col.dataType"
+                        class="col-type-badge"
+                        >{{ col.dataType }}</span
+                      >
                     </div>
                     <div
-                      v-if="showTableComment"
-                      class="hidden-note el-form-item-msg"
+                      v-if="showTableComment && col.comment"
+                      class="col-comment"
                       :title="col.comment"
                     >
-                      ({{ col.comment }})
+                      {{ col.comment }}
                     </div>
-
                     <div
                       v-if="analyzing && analysisData[col.name]?.length"
                       class="chart mini-bar"
@@ -246,16 +261,40 @@
                     </div>
                   </div>
                 </template>
-                <template #default="{ row }">
-                  <div class="flex flex-col">
-                    <div
-                      v-if="showFieldComments"
-                      class="comment-text el-form-item-msg"
-                      :title="col.name"
-                    >
-                      <span v-if="col.comment">（{{ col.comment }}）</span>
-                    </div>
-                    <div>{{ row[col.name] }}</div>
+                <template #default="{ row, $index }">
+                  <div
+                    class="cell-content"
+                    :class="{
+                      'cell-editing': isEditing($index, col.name || col),
+                    }"
+                  >
+                    <!-- 编辑模式 -->
+                    <el-input
+                      v-if="isEditing($index, col.name || col)"
+                      v-model="editingValue"
+                      size="small"
+                      autofocus
+                      @blur="handleCellBlur(row, col.name || col, $index)"
+                      @keyup.enter="
+                        handleCellBlur(row, col.name || col, $index)
+                      "
+                      @keyup.escape="cancelEdit"
+                    />
+                    <!-- 显示模式 -->
+                    <template v-else>
+                      <span
+                        v-if="showFieldComments && col.comment"
+                        class="field-comment"
+                      >
+                        {{ col.comment }}:
+                      </span>
+                      <span
+                        class="cell-value"
+                        :class="{ 'cell-null': row[col.name || col] === null }"
+                      >
+                        {{ formatCellValue(row[col.name || col]) }}
+                      </span>
+                    </template>
                   </div>
                 </template>
               </el-table-column>
@@ -390,8 +429,7 @@ import {
   getStructureCapabilities,
   renameTable,
   backupTable,
-  listTables,
-  listColumns,
+  updateTableRow,
 } from "@/api/system-data";
 import TableStructureDialog from "./TableStructureDialog.vue";
 
@@ -430,14 +468,18 @@ const analysisData = ref<
   Record<string, Array<{ value: string; count: number }>>
 >({});
 const showEditor = ref(true);
+const showDataType = ref(false);
 const showTableComment = ref(false);
 const showFieldComments = ref(false);
 const columnFilterVisible = ref(false);
 const selectedColumnNames = ref<string[]>([]);
 const visibleColumns = computed(() => {
   if (!selectedColumnNames.value.length) return columns.value;
-  return columns.value.filter((col) => selectedColumnNames.value.includes(col));
-}) as any;
+  return columns.value.filter((col) => {
+    const colName = col.name || col;
+    return selectedColumnNames.value.includes(colName);
+  });
+});
 const activeTab = ref<"result" | "structure">("result");
 const structureContent = ref("");
 const statusText = ref("");
@@ -448,22 +490,158 @@ const currentComment = ref("");
 const showStructureDialog = ref(false);
 const structureTableName = ref("");
 
-// 自动提示相关
-const tableNames = ref<string[]>([]);
-const columnCache = ref<Record<string, string[]>>({});
+// 单元格编辑相关
+const editingRowIndex = ref<number | null>(null);
+const editingColumnName = ref<string | null>(null);
+const editingValue = ref<string>("");
+const editingOriginalValue = ref<any>(null);
+const currentTableName = ref<string>("");
+const primaryKeyColumn = ref<string>("");
+
+// 表格最大高度
+const tableMaxHeight = computed(() => {
+  return showEditor.value ? "calc(100vh - 450px)" : "calc(100vh - 250px)";
+});
 
 /**
- * SQL 自动补全数据
- * 格式: { 表名: [字段名1, 字段名2, ...], ... }
+ * 判断单元格是否处于编辑状态
  */
-const sqlHintTables = computed(() => {
-  const tables: Record<string, string[]> = {};
-  // 添加所有表名，如果有缓存的字段则也添加
-  tableNames.value.forEach((tableName) => {
-    tables[tableName] = columnCache.value[tableName] || [];
-  });
-  return tables;
-});
+function isEditing(rowIndex: number, columnName: string): boolean {
+  return (
+    editingRowIndex.value === rowIndex && editingColumnName.value === columnName
+  );
+}
+
+/**
+ * 获取列宽度
+ */
+function getColumnWidth(col: any): number {
+  const name = col.name || col;
+  const len = String(name).length;
+  return Math.max(100, Math.min(200, len * 12 + 40));
+}
+
+/**
+ * 格式化单元格值
+ */
+function formatCellValue(value: any): string {
+  if (value === null || value === undefined) {
+    return "(NULL)";
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+/**
+ * 双击单元格进入编辑模式
+ */
+function handleCellDblClick(
+  row: any,
+  column: any,
+  cell: any,
+  event: MouseEvent
+) {
+  // 忽略序号列
+  if (column.type === "index") return;
+
+  const columnName = column.property;
+  if (!columnName) return;
+
+  const rowIndex = rows.value.indexOf(row);
+  if (rowIndex === -1) return;
+
+  // 保存编辑状态
+  editingRowIndex.value = rowIndex;
+  editingColumnName.value = columnName;
+  editingOriginalValue.value = row[columnName];
+  editingValue.value = row[columnName] === null ? "" : String(row[columnName]);
+
+  // 解析当前表名
+  parseCurrentTableName();
+}
+
+/**
+ * 解析当前表名（从 SQL 或路径中提取）
+ */
+function parseCurrentTableName() {
+  // 从 currentPath 中提取表名
+  if (currentPath.value) {
+    const parts = currentPath.value.split("/");
+    if (parts.length >= 2) {
+      currentTableName.value = parts[parts.length - 1];
+    }
+  }
+  // 从 currentNodeData 中获取
+  if (currentNodeData.value?.name) {
+    const type = (currentNodeData.value?.type || "").toString().toUpperCase();
+    if (type.includes("TABLE")) {
+      currentTableName.value = currentNodeData.value.name;
+    }
+  }
+  // 尝试从 columns 中找主键
+  const pkCol = columns.value.find((c: any) => c.isPrimary || c.primaryKey);
+  if (pkCol) {
+    primaryKeyColumn.value = pkCol.name || pkCol;
+  } else if (columns.value.length > 0) {
+    // 默认使用第一列
+    const firstCol = columns.value[0];
+    primaryKeyColumn.value = firstCol.name || firstCol;
+  }
+}
+
+/**
+ * 单元格失去焦点，保存修改
+ */
+async function handleCellBlur(row: any, columnName: string, rowIndex: number) {
+  // 检查值是否变化
+  const newValue = editingValue.value === "" ? null : editingValue.value;
+  const oldValue = editingOriginalValue.value;
+
+  if (
+    newValue === oldValue ||
+    (newValue === null && oldValue === null) ||
+    String(newValue) === String(oldValue)
+  ) {
+    cancelEdit();
+    return;
+  }
+
+  // 更新本地数据
+  row[columnName] = newValue;
+
+  // 尝试调用后端 API 更新（如果配置了表名和主键）
+  if (currentTableName.value && primaryKeyColumn.value) {
+    try {
+      const primaryValue = row[primaryKeyColumn.value];
+      await updateTableRow(props.id, {
+        tableName: currentTableName.value,
+        primaryKey: primaryKeyColumn.value,
+        primaryValue: primaryValue,
+        columnName: columnName,
+        newValue: newValue,
+      });
+      statusText.value = `已更新: ${columnName} = ${newValue === null ? "NULL" : newValue}`;
+    } catch (e: any) {
+      // 恢复原值
+      row[columnName] = oldValue;
+      ElMessage.error("更新失败: " + (e?.message || "未知错误"));
+    }
+  }
+
+  cancelEdit();
+}
+
+/**
+ * 取消编辑
+ */
+function cancelEdit() {
+  editingRowIndex.value = null;
+  editingColumnName.value = null;
+  editingValue.value = "";
+  editingOriginalValue.value = null;
+}
 
 // 左右可拖拽分栏
 const leftWidth = ref(300);
@@ -575,135 +753,6 @@ async function loadRoot() {
 
 function onRefreshTree() {
   loadRoot();
-  loadTableNames();
-}
-
-/**
- * 加载表名列表（用于自动提示）
- */
-async function loadTableNames() {
-  try {
-    const res = await listTables(props.id);
-    if (res?.data) {
-      tableNames.value = res.data;
-      // 预加载每个表的字段列表（异步执行，不阻塞主流程）
-      loadAllColumnsAsync();
-    }
-  } catch (e) {
-    console.error("加载表名列表失败", e);
-  }
-}
-
-/**
- * 异步加载所有表的字段列表
- */
-async function loadAllColumnsAsync() {
-  // 每次最多并行加载 5 个表的字段，避免请求过多
-  const batchSize = 5;
-  for (let i = 0; i < tableNames.value.length; i += batchSize) {
-    const batch = tableNames.value.slice(i, i + batchSize);
-    await Promise.all(batch.map((tableName) => getColumnsForTable(tableName)));
-  }
-}
-
-/**
- * 获取指定表的字段列表（带缓存）
- */
-async function getColumnsForTable(tableName: string): Promise<string[]> {
-  if (columnCache.value[tableName]) {
-    return columnCache.value[tableName];
-  }
-  try {
-    const res = await listColumns(props.id, tableName);
-    if (res?.data) {
-      // 提取字段名（支持字符串数组或对象数组）
-      const columnNames = res.data.map((col: any) =>
-        typeof col === "string" ? col : col.name || col.columnName || col
-      );
-      columnCache.value[tableName] = columnNames;
-      return columnNames;
-    }
-  } catch (e) {
-    console.error("加载字段列表失败", e);
-  }
-  return [];
-}
-
-/**
- * 获取SQL自动提示建议
- */
-function getSqlCompletions(): any[] {
-  const suggestions: any[] = [];
-
-  // SQL关键字
-  const keywords = [
-    "SELECT",
-    "FROM",
-    "WHERE",
-    "AND",
-    "OR",
-    "NOT",
-    "IN",
-    "LIKE",
-    "BETWEEN",
-    "ORDER BY",
-    "GROUP BY",
-    "HAVING",
-    "LIMIT",
-    "OFFSET",
-    "JOIN",
-    "LEFT JOIN",
-    "RIGHT JOIN",
-    "INNER JOIN",
-    "OUTER JOIN",
-    "ON",
-    "AS",
-    "DISTINCT",
-    "COUNT",
-    "SUM",
-    "AVG",
-    "MAX",
-    "MIN",
-    "INSERT",
-    "INTO",
-    "VALUES",
-    "UPDATE",
-    "SET",
-    "DELETE",
-    "CREATE",
-    "TABLE",
-    "ALTER",
-    "DROP",
-    "INDEX",
-    "PRIMARY KEY",
-    "FOREIGN KEY",
-    "REFERENCES",
-    "NULL",
-    "NOT NULL",
-    "DEFAULT",
-    "AUTO_INCREMENT",
-  ];
-
-  keywords.forEach((kw) => {
-    suggestions.push({
-      label: kw,
-      kind: "keyword",
-      insertText: kw,
-      detail: "SQL关键字",
-    });
-  });
-
-  // 表名
-  tableNames.value.forEach((table) => {
-    suggestions.push({
-      label: table,
-      kind: "table",
-      insertText: table,
-      detail: "表",
-    });
-  });
-
-  return suggestions;
 }
 
 /**
@@ -729,13 +778,12 @@ function openTableStructure(tableName?: string) {
 
 /**
  * 刷新表结构后的回调
- * 只刷新指定表的字段缓存，不刷新整个树
  * @param tableName 表名
  */
 function onStructureRefresh(tableName: string) {
-  // 清除该表的字段缓存
+  // 刷新树节点
   if (tableName) {
-    delete columnCache.value[tableName];
+    loadRoot();
   }
 }
 
@@ -1447,7 +1495,7 @@ async function addFieldComment(node: any) {
 }
 
 onMounted(async () => {
-  await Promise.all([loadConsoleConfig(), loadRoot(), loadTableNames()]);
+  await Promise.all([loadConsoleConfig(), loadRoot()]);
 
   // 建立Socket.IO连接
   if (globalSocket?.value) {
@@ -1842,12 +1890,144 @@ onMounted(async () => {
   min-height: 200px;
 }
 
+/* 数据表格美化 - Navicat 风格 */
+.data-table {
+  border-radius: 4px;
+  overflow: hidden;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  font-size: 12px;
+}
+
+.data-table :deep(.el-table__header-wrapper th) {
+  background: #f5f5f5 !important;
+  padding: 6px 8px !important;
+  height: 28px !important;
+  line-height: 16px !important;
+}
+
+.data-table :deep(.el-table__body-wrapper td) {
+  padding: 4px 8px !important;
+  height: 24px !important;
+  line-height: 16px !important;
+}
+
+.data-table :deep(.el-table__row) {
+  height: 24px !important;
+}
+
+.data-table :deep(.el-table__row:hover > td) {
+  background: #e3f2fd !important;
+}
+
+.data-table :deep(.el-table .cell) {
+  padding: 0 4px !important;
+  line-height: 16px !important;
+}
+
+.data-table :deep(.el-table__body-wrapper .el-table__row.current-row > td) {
+  background: #bbdefb !important;
+}
+
 /* 列头样式 */
 .col-header {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 2px;
+}
+
+.col-header-main {
+  display: flex;
+  align-items: center;
   gap: 4px;
+}
+
+.col-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 12px;
+}
+
+.col-pk-badge {
+  display: inline-block;
+  padding: 0 4px;
+  background: #ff9800;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  border-radius: 2px;
+  line-height: 14px;
+}
+
+.col-type-badge {
+  display: inline-block;
+  padding: 0 4px;
+  background: #e0e0e0;
+  color: #666;
+  font-size: 9px;
+  font-weight: 500;
+  border-radius: 2px;
+  line-height: 14px;
+  text-transform: uppercase;
+}
+
+.col-comment {
+  font-size: 10px;
+  color: #999;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 12px;
+}
+
+/* 单元格内容 */
+.cell-content {
+  display: flex;
+  align-items: center;
+  min-height: 16px;
+  width: 100%;
+}
+
+.cell-content.cell-editing {
+  padding: 0;
+}
+
+.cell-content :deep(.el-input) {
+  width: 100%;
+}
+
+.cell-content :deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 1px #2196f3;
+  border-radius: 2px;
+  padding: 0 4px;
+}
+
+.cell-content :deep(.el-input__inner) {
+  height: 20px !important;
+  line-height: 20px !important;
+  font-size: 12px;
+}
+
+.cell-value {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+  font-size: 12px;
+}
+
+.cell-null {
+  color: #999;
+  font-style: italic;
+}
+
+.field-comment {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-right: 4px;
 }
 
 .hidden-note {
