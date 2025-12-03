@@ -1,63 +1,53 @@
-/**
- * HTTP 请求模块
- * 基于 Axios 封装，支持拦截器、SSE、请求取消等功能
- * @author CH
- * @version 2.0.0
- * @since 2025-12-03
- */
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { isObject } from "@pureadmin/utils";
-import {
-  formatToken,
-  getConfig,
-  getToken,
-  handRefreshToken,
-  upgrade,
-} from "@repo/config";
+import { formatToken, getConfig, getToken, handRefreshToken, logOut, upgrade } from "@repo/config";
 import { UserResult } from "@repo/core";
 import { localStorageProxy } from "@repo/utils";
-import Axios, {
-  type AxiosInstance,
-  type AxiosRequestConfig,
-  type CustomParamsSerializer,
-} from "axios";
+import Axios, { type AxiosInstance, type AxiosRequestConfig, type CustomParamsSerializer } from "axios";
 import NProgress from "nprogress";
 import { stringify } from "qs";
 import { transformI18n } from "../../../config/src/i18n";
 import { uu1, uu2 } from "../crypto/codec";
-import type {
-  PureHttpError,
-  PureHttpRequestConfig,
-  PureHttpResponse,
-  RequestMethods,
-} from "../http/types";
+import type { PureHttpError, PureHttpRequestConfig, PureHttpResponse, RequestMethods } from "../http/types";
 import { message } from "../message";
-import {
-  generateNonce as generateNonceWasm,
-  generateSign as generateSignWasm,
-  md5Hash as md5HashWasm,
-} from "@repo/codec-wasm";
+// 导入WASM版本的generateNonce、generateSign和md5Hash函数
+import { generateNonce as generateNonceWasm, generateSign as generateSignWasm, md5Hash as md5HashWasm } from "@repo/codec-wasm";
 
-/** 响应结果类型 */
+const AutoErrorMessage = getConfig().AutoErrorMessage;
+/** 响应结果 */
 export interface ReturnResult<E> {
+  // 状态码; 成功 00000
   code: string | number;
+  // 消息
   msg: string;
+  // 消息（与msg相同，用于兼容不同场景）
   message: string;
+  // 数据
   data: E;
+  // 响应头
   headers?: any;
+  /** 是否成功 */
   success: boolean;
 }
+const isNoAuth = (code) => {
+  if (!code) {
+    return false;
+  }
 
-/** 无权限状态码判断 */
-const isNoAuth = (code: string | number | null): boolean =>
-  code === "C0403S0000" || code === 403;
+  return code === "C0403S0000" || code === 403;
+};
 
-/** 成功状态码判断 */
-const isSuccess = (code: string | number | null): boolean =>
-  code === "00000" || code === 200;
+const isSuccess = (code) => {
+  if (!code) {
+    return false;
+  }
 
-/** 默认请求配置 */
+  return code === "00000" || code === 200;
+};
+
+// 相关配置请参考：www.axios-js.com/zh-cn/docs/#axios-request-config-1
 const defaultConfig: AxiosRequestConfig = {
+  // 请求超时时间
   timeout: getConfig().baseHttpTimeout || 30000,
   baseURL: getConfig().BaseUrl,
   headers: {
@@ -65,14 +55,13 @@ const defaultConfig: AxiosRequestConfig = {
     "Content-Type": "application/json; charset=UTF-8",
     "X-Requested-With": "XMLHttpRequest",
   },
+  // 默认responseType设置为blob
   responseType: "blob",
+  // 数组格式参数序列化（https://github.com/axios/axios/issues/5142）
   paramsSerializer: {
     serialize: stringify as unknown as CustomParamsSerializer,
   },
 };
-
-/** 请求白名单（不需要 token） */
-const WHITE_LIST = ["/refresh-token", "/login", "/logout"];
 
 class PureHttp {
   constructor() {
@@ -116,23 +105,21 @@ class PureHttp {
           config.headers = {};
         }
         // 修复：确保headers存在再访问其属性
-        const an =
-          config.headers["x-remote-animation"] || config.headers["loading"];
-        config.headers["x-req-fingerprint"] =
-          localStorageProxy().getItem("visitId");
-
+        const an = config.headers["x-remote-animation"] || config.headers["loading"];
+        config.headers["x-req-fingerprint"] = localStorageProxy().getItem("visitId");
+        
         // 添加nonce和timestamp参数
         const timestamp = Date.now();
         // 使用同步方式获取nonce
         const nonce = generateNonce();
-
+        
         config.headers["x-nonce"] = nonce;
         config.headers["x-timestamp"] = timestamp.toString();
-
+        
         // 生成并添加签名
         const sign = generateSign(config, timestamp, nonce);
         config.headers["x-sign"] = sign;
-
+        
         // 检查是否配置了apiVersion，如果配置了则在URL中添加version参数
         const apiVersion = getConfig().apiVersion;
         if (apiVersion) {
@@ -143,7 +130,7 @@ class PureHttp {
             config.params = { version: apiVersion };
           }
         }
-
+        
         if (an) {
           if (an == "true") {
             // 开启进度条动画
@@ -163,8 +150,9 @@ class PureHttp {
           PureHttp.initConfig.beforeRequestCallback(config);
           return config;
         }
-        // 白名单接口直接放行
-        return WHITE_LIST.some((url) => config.url?.endsWith(url))
+        /** 请求白名单，放置一些不需要`token`的接口（通过设置请求白名单，防止`token`过期后再请求造成的死循环问题） */
+        const whiteList = ["/refresh-token", "/login", "/logout"];
+        return whiteList.some((url) => config.url.endsWith(url))
           ? config
           : new Promise((resolve) => {
               let data = getToken();
@@ -174,8 +162,7 @@ class PureHttp {
               }
               if ((openAuth && data) || !openAuth) {
                 const now = new Date().getTime();
-                const expired =
-                  ~~data.expires == 0 ? false : ~~data.expires - now <= 0;
+                const expired = ~~data.expires == 0 ? false : ~~data.expires - now <= 0;
                 if (expired) {
                   if (!PureHttp.isRefreshing) {
                     PureHttp.isRefreshing = true;
@@ -193,9 +180,7 @@ class PureHttp {
                   }
                   resolve(PureHttp.retryOriginalRequest(config));
                 } else {
-                  config.headers["Authorization"] = formatToken(
-                    data.accessToken
-                  );
+                  config.headers["Authorization"] = formatToken(data.accessToken);
                   resolve(config);
                 }
               } else {
@@ -219,13 +204,13 @@ class PureHttp {
         if (getConfig().RemoteAnimation) {
           NProgress.done();
         }
-
+        
         // 将所有响应处理交给uu1函数，包括blob处理
         const processedResponse = await uu1(response);
-
+        
         // 如果processedResponse是Promise（异步处理blob的情况），需要处理Promise
         if (processedResponse instanceof Promise) {
-          return processedResponse.then((result) => {
+          return processedResponse.then(result => {
             return this.processResponseData(result, $config);
           });
         } else {
@@ -251,12 +236,7 @@ class PureHttp {
   }
 
   /** 通用请求工具函数 */
-  public request<T>(
-    method: RequestMethods,
-    url: string,
-    param?: AxiosRequestConfig,
-    axiosConfig?: PureHttpRequestConfig
-  ): Promise<T> & { requestId: string } {
+  public request<T>(method: RequestMethods, url: string, param?: AxiosRequestConfig, axiosConfig?: PureHttpRequestConfig): Promise<T> & { requestId: string } {
     const config = {
       method,
       url,
@@ -302,22 +282,14 @@ class PureHttp {
   }
 
   /** 单独抽离的`post`工具函数 */
-  public post<T>(
-    url: string,
-    data?: any,
-    config?: PureHttpRequestConfig
-  ): Promise<T> {
+  public post<T>(url: string, data?: any, config?: PureHttpRequestConfig): Promise<T> {
     return this.request<T>("post", url, {
       data: data,
       headers: config?.headers,
     });
   }
   /** 单独抽离的`put`工具函数 */
-  public put<T>(
-    url: string,
-    data?: any,
-    config?: PureHttpRequestConfig
-  ): Promise<T> {
+  public put<T>(url: string, data?: any, config?: PureHttpRequestConfig): Promise<T> {
     return this.request<T>("put", url, {
       data: data,
       headers: config?.headers,
@@ -325,22 +297,14 @@ class PureHttp {
   }
 
   /** 单独抽离的`get`工具函数 */
-  public get<T>(
-    url: string,
-    params?: any,
-    config?: PureHttpRequestConfig
-  ): Promise<T> {
+  public get<T>(url: string, params?: any, config?: PureHttpRequestConfig): Promise<T> {
     return this.request<T>("get", url, {
       params: params,
       headers: config?.headers,
     });
   }
   /** 单独抽离的`delete`工具函数 */
-  public delete<T>(
-    url: string,
-    params?: any,
-    config?: PureHttpRequestConfig
-  ): Promise<T> {
+  public delete<T>(url: string, params?: any, config?: PureHttpRequestConfig): Promise<T> {
     return this.request<T>("delete", url, {
       params: params,
       headers: config?.headers,
@@ -406,15 +370,10 @@ class PureHttp {
       body: options.body,
       signal: controller.signal,
       onopen: async (response) => {
-        if (
-          response.ok &&
-          response.headers.get("content-type")?.includes("text/event-stream")
-        ) {
+        if (response.ok && response.headers.get("content-type")?.includes("text/event-stream")) {
           options.onopen?.(response);
         } else {
-          throw new Error(
-            `SSE连接失败: ${response.status} ${response.statusText}`
-          );
+          throw new Error(`SSE连接失败: ${response.status} ${response.statusText}`);
         }
       },
       onmessage: (event) => {
@@ -439,19 +398,15 @@ class PureHttp {
   }
 
   // 处理响应数据的辅助函数
-  private processResponseData(
-    response: PureHttpResponse,
-    $config: PureHttpRequestConfig
-  ) {
+  private processResponseData(response: PureHttpResponse, $config: PureHttpRequestConfig) {
     const data = response.data?.data || response.data;
     if (data instanceof Object && data?.data) {
       data.records = data?.data;
     }
     const code = response.data?.code || response.status;
-    const msg =
-      response.data?.msg || response.data?.message || response.statusText;
+    const msg = response.data?.msg || response.data?.message || response.statusText;
     const success = response.data?.success || isSuccess(code);
-
+    
     // 构建统一的返回结果对象
     const result: any = {
       data: data,
@@ -499,61 +454,42 @@ const generateNonce = (): string => {
     // 使用WASM版本的generateNonce函数（同步方式）
     return generateNonceWasm();
   } catch (error) {
-    console.error("Failed to generate nonce using WASM:", error);
+    console.error('Failed to generate nonce using WASM:', error);
     // 如果WASM失败，提供一个备用实现
-    return (
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15)
-    );
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   }
 };
 
 /** 生成签名 */
-export const generateSign = (
-  config: PureHttpRequestConfig,
-  timestamp: number,
-  nonce: string
-): string => {
+export const generateSign = (config: PureHttpRequestConfig, timestamp: number, nonce: string): string => {
   try {
     // 准备签名参数
     const params: Record<string, any> = {
       ...config.params,
-      ...config.data,
+      ...config.data
     };
-
+    
     // 过滤掉空值和函数
     const filteredParams: Record<string, string> = {};
-    Object.keys(params).forEach((key) => {
+    Object.keys(params).forEach(key => {
       const value = params[key];
-      if (
-        value !== null &&
-        value !== undefined &&
-        typeof value !== "function" &&
-        typeof value !== "object"
-      ) {
+      if (value !== null && value !== undefined && typeof value !== 'function' && typeof value !== 'object') {
         filteredParams[key] = String(value);
       }
     });
-
+    
     // 将参数转换为key=value格式的字符串
     const paramPairs: string[] = [];
-    Object.keys(filteredParams)
-      .sort()
-      .forEach((key) => {
-        paramPairs.push(`${key}=${filteredParams[key]}`);
-      });
-
-    const paramsString = paramPairs.join("&");
-
+    Object.keys(filteredParams).sort().forEach(key => {
+      paramPairs.push(`${key}=${filteredParams[key]}`);
+    });
+    
+    const paramsString = paramPairs.join('&');
+    
     // 使用WASM版本的generateSign函数（同步方式）
-    return generateSignWasm(
-      paramsString,
-      timestamp,
-      nonce,
-      getConfig().secretKey || ""
-    );
+    return generateSignWasm(paramsString, timestamp, nonce, getConfig().secretKey || '');
   } catch (error) {
-    console.error("Failed to generate sign using WASM:", error);
+    console.error('Failed to generate sign using WASM:', error);
     // 如果WASM失败，提供一个备用实现
     return Math.random().toString(36).substring(2, 10);
   }
@@ -565,7 +501,7 @@ const md5Hash = (input: string): string => {
     // 使用WASM版本的md5Hash函数（同步方式）
     return md5HashWasm(input);
   } catch (error) {
-    console.error("Failed to generate MD5 hash using WASM:", error);
+    console.error('Failed to generate MD5 hash using WASM:', error);
     // 如果WASM失败，提供一个备用实现
     return btoa(input);
   }

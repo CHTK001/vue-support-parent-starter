@@ -8,8 +8,9 @@ import ScProgress from "./ScProgress/index.vue";
 import { ScImage } from "./ScImage";
 import { ScSocketPanel } from "./ScSocketPanel";
 import ScMessageDialog from "./ScMessageDialog/index.vue";
+import ScDebugConsole from "./ScDebugConsole/index.vue";
 
-export { ReMenuNewBadge, ScCard, ScPanel, ScTable, ScRibbon, ScProgress, ScImage, ScSocketPanel, ScMessageDialog };
+export { ReMenuNewBadge, ScCard, ScPanel, ScTable, ScRibbon, ScProgress, ScImage, ScSocketPanel, ScMessageDialog, ScDebugConsole };
 
 export default {
   ScTable,
@@ -21,5 +22,6 @@ export default {
   ScProgress,
   ScImage,
   ScSocketPanel,
-  ScMessageDialog
+  ScMessageDialog,
+  ScDebugConsole
 };
