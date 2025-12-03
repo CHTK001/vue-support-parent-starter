@@ -1,36 +1,92 @@
-// import "@/utils/sso";
+/**
+ * 路由配置模块
+ * 提供路由初始化、导航守卫、动态路由加载等功能
+ * @author CH
+ * @version 2.0.0
+ * @since 2025-12-03
+ */
 import { isAllEmpty, isUrl, openLink } from "@pureadmin/utils";
-import { getConfig, multipleTabsKey, transformI18n, userKey } from "@repo/config";
+import {
+  getConfig,
+  multipleTabsKey,
+  transformI18n,
+  userKey,
+} from "@repo/config";
 import type { UserResult } from "@repo/core";
 import { removeToken, useMultiTagsStoreHook } from "@repo/core";
-import { buildHierarchyTree, localStorageProxy, NProgress, splitRemainingLeaves } from "@repo/utils";
+import { buildHierarchyTree, localStorageProxy, NProgress } from "@repo/utils";
 import Cookies from "js-cookie";
 import yaml from "js-yaml";
-import { createRouter, type RouteComponent, type Router, type RouteRecordRaw } from "vue-router";
+import {
+  createRouter,
+  type RouteComponent,
+  type Router,
+  type RouteRecordRaw,
+} from "vue-router";
 import { usePermissionStoreHook } from "../store/modules/PermissionStore";
-import { ascending, findRouteByPath, formatFlatteningRoutes, formatTwoStageRoutes, getHistoryMode, getTopMenu, handleAliveRoute, initRouter, isOneOfArray } from "./utils";
+import {
+  ascending,
+  findRouteByPath,
+  formatFlatteningRoutes,
+  formatTwoStageRoutes,
+  getHistoryMode,
+  getTopMenu,
+  handleAliveRoute,
+  initRouter,
+  isOneOfArray,
+} from "./utils";
+
+/** 默认菜单图标 */
+const DEFAULT_MENU_ICON = "ri:menu-line";
 
 /** 路由白名单 */
 const whiteList = ["/login"];
 //@ts-ignore
 const { VITE_HIDE_HOME } = import.meta.env;
 
-const remainingRouter = [];
-//@ts-ignore
-const noInModules: Record<string, any> = import.meta.glob(["./modules/**/remaining*.ts", "@/router/**/remaining*.ts"], {
-  eager: true,
-});
-Object.keys(noInModules || {}).forEach((key) => {
-  const _value = noInModules[key].default;
-  if (!_value) {
-    return;
+/** 不参与菜单显示的路由集合 */
+const remainingRouter: RouteRecordRaw[] = [];
+
+/**
+ * 确保路由具有图标，若无则设置默认图标
+ * @param route - 路由配置对象
+ */
+const ensureRouteIcon = (route: any): void => {
+  if (!route) return;
+  if (!route.meta) route.meta = {};
+  if (!route.meta.icon) route.meta.icon = DEFAULT_MENU_ICON;
+  if (route.children?.length) {
+    route.children.forEach(ensureRouteIcon);
   }
-  if (_value instanceof Array) {
-    _value.forEach((it) => remainingRouter.push(it));
-    return;
-  }
-  remainingRouter.push(_value);
-});
+};
+
+/**
+ * 加载不参与菜单的路由模块
+ */
+const loadRemainingRoutes = (): void => {
+  // @ts-ignore
+  const noInModules: Record<string, any> = import.meta.glob(
+    ["./modules/**/remaining*.ts", "@/router/**/remaining*.ts"],
+    { eager: true }
+  );
+
+  Object.values(noInModules).forEach((module) => {
+    const routes = module.default;
+    if (!routes) return;
+
+    if (Array.isArray(routes)) {
+      routes.forEach((route) => {
+        ensureRouteIcon(route);
+        remainingRouter.push(route);
+      });
+    } else {
+      ensureRouteIcon(routes);
+      remainingRouter.push(routes);
+    }
+  });
+};
+
+loadRemainingRoutes();
 
 /** 原始静态路由（未做任何处理） */
 const routes = [];
@@ -42,32 +98,44 @@ const routerNameMapping = new Set();
 //@ts-ignore
 const _createAutoRouter = () => {
   //@ts-ignore
-  const modules: Record<string, any> = import.meta.glob(["@/views/**/index.y(a)?ml"], {
-    eager: true,
-    query: "raw",
-  });
+  const modules: Record<string, any> = import.meta.glob(
+    ["@/views/**/index.y(a)?ml"],
+    {
+      eager: true,
+      query: "raw",
+    }
+  );
   //  const modulesVue: Record<string, any> = import.meta.glob(["@/views/**/index.vue"], {
   //   eager: true,
   //  });
   const templateRoutes = [];
 
   Object.entries(modules).map(([key, value]: any) => {
-    const _key = key.substring(key.indexOf("views") + 5).replace(/(index.yaml|index.yml)/, "");
+    const _key = key
+      .substring(key.indexOf("views") + 5)
+      .replace(/(index.yaml|index.yml)/, "");
     const keys = _key.split("/").filter(Boolean);
     const _itemValue = yaml.load(value.default);
+    const meta = _itemValue?.meta || _itemValue || {};
+    // 确保有默认图标
+    if (!meta.icon) meta.icon = DEFAULT_MENU_ICON;
+    // 处理国际化标题
+    if (meta.title?.startsWith("$t")) {
+      meta.title = transformI18n(
+        meta.title.substring(4, meta.title.length - 2)
+      );
+    }
+
     const _item = {
       path: `/${keys.join("/")}`,
       name: _itemValue?.name || keys.join("")?.toLowerCase(),
       component: () => import(/* @vite-ignore */ `/src/views${_key}index.vue`),
-      meta: _itemValue?.meta || _itemValue,
+      meta,
       node: {
         hasParentNode: keys.length > 1,
         parentNodes: keys.slice(0, -1),
       },
     };
-    if (_item.meta.title?.startsWith("$t")) {
-      _item.meta.title = transformI18n(_item.meta.title.substring(4, _item.meta.title.length - 2));
-    }
     templateRoutes.push(_item);
   });
 
@@ -84,7 +152,9 @@ const _createAutoRouter = () => {
       for (let i = item.node.parentNodes.length - 1; i >= 0; i--) {
         const _parentNames = getName(item.node.parentNodes, i);
         const _parentName = _parentNames.join("")?.toLowerCase();
-        let _parentNode = templateRoutes.find((item) => item.name === _parentName);
+        let _parentNode = templateRoutes.find(
+          (item) => item.name === _parentName
+        );
         if (!_parentNode) {
           const keys = _parentNames.slice(0, -1);
           let _newName = getName(keys, 0).join("")?.toLowerCase();
@@ -92,7 +162,9 @@ const _createAutoRouter = () => {
           if (!_parentNode) {
             for (let i = keys.length; i >= 0; i--) {
               _newName = getName(keys, i).join("")?.toLowerCase();
-              _parentNode = templateRoutes.find((item) => item.name === _newName);
+              _parentNode = templateRoutes.find(
+                (item) => item.name === _newName
+              );
               if (_parentNode) {
                 break;
               }
@@ -133,36 +205,61 @@ const _createAutoRouter = () => {
   });
 };
 
+/**
+ * 创建普通路由（基于TS模块）
+ */
 const _createNormalRouter = () => {
-  //@ts-ignore
-  const modules: Record<string, any> = import.meta.glob(["./modules/**/*.ts", "!./modules/**/remaining*.ts", "@/router/**/*.ts", "@/router/*.ts", "!@/router/**/remaining*.ts"], {
-    eager: true,
-  });
+  // @ts-ignore
+  const modules: Record<string, any> = import.meta.glob(
+    [
+      "./modules/**/*.ts",
+      "!./modules/**/remaining*.ts",
+      "@/router/**/*.ts",
+      "@/router/*.ts",
+      "!@/router/**/remaining*.ts",
+    ],
+    { eager: true }
+  );
 
-  Object.keys(modules).forEach((key) => {
-    const route = modules[key].default;
+  Object.values(modules).forEach((module) => {
+    const route = module.default;
+    if (!route) return;
+
+    // 确保路由有默认图标
+    ensureRouteIcon(route);
     routes.push(route);
-    // const { removed, remaining } = splitRemainingLeaves(route);
-    // routes.push(remaining);
-    // remainingRouter.push(...removed);
     routerNameMapping.add(route.name?.toLowerCase());
   });
 };
 
-if (getConfig().AutoRouter || getConfig().RouterModule == "AUTO" || false) {
-  _createAutoRouter();
-} else if (getConfig().RouterModule == "MIX") {
-  _createAutoRouter();
-  _createNormalRouter();
-} else {
-  _createNormalRouter();
-}
+/**
+ * 根据配置初始化路由模式
+ */
+const initRouterMode = (): void => {
+  const config = getConfig();
+  const routerModule = config.RouterModule;
+
+  if (config.AutoRouter || routerModule === "AUTO") {
+    _createAutoRouter();
+  } else if (routerModule === "MIX") {
+    _createAutoRouter();
+    _createNormalRouter();
+  } else {
+    _createNormalRouter();
+  }
+};
+
+initRouterMode();
 
 /** 导出处理后的静态路由（三级及以上的路由全部拍成二级） */
-export const constantRoutes: Array<RouteRecordRaw> = formatTwoStageRoutes(formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity)))));
+export const constantRoutes: Array<RouteRecordRaw> = formatTwoStageRoutes(
+  formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity))))
+);
 
 /** 用于渲染菜单，保持原始层级 */
-export const constantMenus: Array<RouteComponent> = ascending(routes.flat(Infinity)).concat(...remainingRouter);
+export const constantMenus: Array<RouteComponent> = ascending(
+  routes.flat(Infinity)
+).concat(...remainingRouter);
 
 /** 不参与菜单的路由 */
 export const remainingPaths = remainingRouter
@@ -202,7 +299,11 @@ export function resetRouter() {
     const { name, meta } = route;
     if (name && router.hasRoute(name) && meta?.backstage) {
       router.removeRoute(name);
-      router.options.routes = formatTwoStageRoutes(formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity)))));
+      router.options.routes = formatTwoStageRoutes(
+        formatFlatteningRoutes(
+          buildHierarchyTree(ascending(routes.flat(Infinity)))
+        )
+      );
     }
   });
   usePermissionStoreHook().clearAllCachePage();
@@ -218,7 +319,7 @@ router.beforeEach((to: ToRouteType, _from, next) => {
   } catch (e) {
     console.warn("Failed to set dark theme from localStorage:", e);
   }
-  
+
   if (to.meta?.keepAlive) {
     handleAliveRoute(to, "add");
     // 页面整体刷新和点击标签页刷新
@@ -253,7 +354,10 @@ router.beforeEach((to: ToRouteType, _from, next) => {
   }
   if (Cookies.get(multipleTabsKey) && userInfo) {
     // 无权限跳转403页面
-    if (to.meta?.roles && !isOneOfArray(to.meta?.roles, userInfo?.userInfo?.roles)) {
+    if (
+      to.meta?.roles &&
+      !isOneOfArray(to.meta?.roles, userInfo?.userInfo?.roles)
+    ) {
       next({ path: "/error/403" });
     }
     // 开启隐藏首页后在浏览器地址栏手动输入首页welcome路由则跳转到404页面
@@ -270,12 +374,18 @@ router.beforeEach((to: ToRouteType, _from, next) => {
       }
     } else {
       // 刷新
-      if (usePermissionStoreHook().wholeMenus.length === 0 && to.path !== "/login") {
+      if (
+        usePermissionStoreHook().wholeMenus.length === 0 &&
+        to.path !== "/login"
+      ) {
         initRouter()
           .then((router: Router) => {
             if (!useMultiTagsStoreHook().getMultiTagsCache) {
               const { path } = to;
-              const route = findRouteByPath(path, router.options.routes[0].children);
+              const route = findRouteByPath(
+                path,
+                router.options.routes[0].children
+              );
               getTopMenu(true);
               // query、params模式路由传参数的标签页不在此处处理
               if (route && route.meta?.title) {
@@ -334,7 +444,7 @@ router.afterEach(() => {
   } catch (e) {
     console.warn("Failed to set dark theme from localStorage:", e);
   }
-  
+
   NProgress.done();
 });
 export default router;

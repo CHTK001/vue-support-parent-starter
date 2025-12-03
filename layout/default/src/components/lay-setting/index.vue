@@ -19,6 +19,7 @@ import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScRibbon from "@repo/components/ScRibbon/index.vue";
+import ScDebugConsole from "@repo/components/ScDebugConsole/index.vue";
 import { ElMessage } from "element-plus";
 import { useDataThemeChange } from "../../hooks/useDataThemeChange";
 
@@ -55,6 +56,7 @@ const verticalRef = ref();
 const horizontalRef = ref();
 const hoverRef = ref();
 const doubleRef = ref();
+const debugConsoleRef = ref<InstanceType<typeof ScDebugConsole> | null>(null);
 
 // 存储 tippy 实例的数组，用于组件销毁时清理
 const tippyInstances = ref([]);
@@ -699,6 +701,31 @@ function doubleNavAutoExpandAllChange() {
     "doubleNavAutoExpandAll",
     settings.doubleNavAutoExpandAll
   );
+}
+
+/**
+ * 调试模式切换
+ * @param enabled - 是否启用调试模式
+ */
+function debugModeChange(enabled: boolean) {
+  settings.debugMode = enabled;
+  if (enabled) {
+    // 显示调试控制台
+    nextTick(() => {
+      debugConsoleRef.value?.show();
+    });
+  } else {
+    // 关闭调试控制台
+    debugConsoleRef.value?.handleClose();
+  }
+}
+
+/**
+ * 调试控制台关闭回调
+ * 当用户关闭调试控制台时，自动关闭调试模式
+ */
+function handleDebugConsoleClose() {
+  settings.debugMode = false;
 }
 
 /** Logo 大小变更 */
@@ -1669,9 +1696,10 @@ onUnmounted(() => {
                   layout="visual-card"
                   size="small"
                   label="调试模式"
-                  description="显示调试信息"
-                  active-icon="ri:code-line"
+                  description="控制台日志显示在右上角"
+                  active-icon="ri:terminal-box-line"
                   ribbon-color="var(--el-color-warning)"
+                  @change="debugModeChange"
                 />
               </div>
             </div>
@@ -1704,6 +1732,13 @@ onUnmounted(() => {
         </div>
       </div>
     </LayPanel>
+
+    <!-- 调试控制台 -->
+    <ScDebugConsole
+      v-if="settings.debugMode"
+      ref="debugConsoleRef"
+      @close="handleDebugConsoleClose"
+    />
   </div>
 </template>
 
