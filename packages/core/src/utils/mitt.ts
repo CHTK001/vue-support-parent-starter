@@ -9,6 +9,10 @@ type Events = {
   logoChange: boolean;
   changLayoutRoute: string;
   settingPanelClosed: void;
+  hideFooterChange: boolean;
+  breadcrumbChange: boolean;
+  breadcrumbModeChange: string;
+  keepAliveChange: boolean;
 };
 
 export const emitter: Emitter<Events> = mitt<Events>();

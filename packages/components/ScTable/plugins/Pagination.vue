@@ -475,11 +475,13 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  min-height: 40px;
+  min-height: 56px;
   flex-shrink: 0; /* 防止被压缩 */
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
+  padding: 14px 20px;
+  background: var(--app-bg-overlay);
+  border-radius: 10px;
 }
 
 .pagination-left {

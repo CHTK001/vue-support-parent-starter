@@ -239,21 +239,21 @@ html.dark {
     background-color: var(--el-bg-color-overlay);
 
     th, td {
-      background-color: var(--el-bg-color-primary);
+      background-color: var(--el-bg-color);
       border-color: var(--el-border-color);
     }
   }
 
   .el-dialog {
-    background-color: var(--el-bg-color-primary);
+    background-color: var(--el-bg-color);
   }
 
   .el-drawer {
-    background-color: var(--el-bg-color-primary);
+    background-color: var(--el-bg-color);
   }
 
   .el-dropdown-menu {
-    background-color: var(--el-bg-color-primary);
+    background-color: var(--el-bg-color);
     border-color: var(--el-border-color);
   }
 
@@ -270,6 +270,11 @@ html.dark {
   .el-popover {
     background-color: var(--el-bg-color-overlay);
     border-color: var(--el-border-color);
+  }
+
+  /* 工具提示文字颜色 */
+  .el-tooltip.is-dark span {
+    color: #fff !important;
   }
 
   /* 关闭图标悬停样式 */

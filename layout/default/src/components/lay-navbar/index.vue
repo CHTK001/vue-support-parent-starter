@@ -6,6 +6,9 @@ import LaySidebarTopCollapse from "../lay-sidebar/components/SidebarTopCollapse.
 import LayNavMix from "../lay-sidebar/NavMix.vue";
 //@ts-ignore
 import LayTool from "../lay-tool/index.vue";
+import { emitter } from "@repo/core";
+import { useGlobal } from "@pureadmin/utils";
+import { onBeforeUnmount, ref } from "vue";
 
 const {
   layout,
@@ -25,6 +28,21 @@ const {
 } = useNav();
 
 const { t, locale, translationCh, translationEn } = useTranslationLang();
+
+// 全局配置
+const { $storage } = useGlobal<any>();
+
+// 面包屑导航显示控制
+const showBreadcrumb = ref($storage?.configure?.showBreadcrumb ?? true);
+
+// 监听面包屑显示变更事件
+emitter.on("breadcrumbChange", (value: boolean) => {
+  showBreadcrumb.value = value;
+});
+
+onBeforeUnmount(() => {
+  emitter.off("breadcrumbChange");
+});
 </script>
 
 <template>
@@ -39,7 +57,7 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
 
     <!-- 面包屑导航 -->
     <LaySidebarBreadCrumb
-      v-if="layout !== 'mix' && device !== 'mobile'"
+      v-if="layout !== 'mix' && device !== 'mobile' && showBreadcrumb"
       class="breadcrumb-container"
     />
 

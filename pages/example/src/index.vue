@@ -228,6 +228,13 @@ const components = [
     component: resolveComponent("./components/ScDialogExample.vue"),
   },
   {
+    name: "ScDialog (自定义模式)",
+    icon: "ri:window-2-line",
+    description:
+      "自定义对话框组件，支持拖拽、缩放、边缘吸附、任务栏模式等高级功能",
+    component: resolveComponent("./components/ScDialog2Example.vue"),
+  },
+  {
     name: "ScSwitch",
     icon: "carbon:toggle-switch",
     description: "开关组件，支持多种布局样式，包括默认、卡片和滑块等布局",

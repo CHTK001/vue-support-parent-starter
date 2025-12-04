@@ -2,75 +2,36 @@
   <div class="registry-management">
     <!-- 页面头部 -->
     <div class="page-header">
-      <div class="page-title">
-        <IconifyIconOnline icon="ri:database-line" class="title-icon" />
-        <span>软件仓库管理</span>
+      <div class="header-left">
+        <div class="page-title">
+          <IconifyIconOnline icon="ri:database-line" class="title-icon" />
+          <span>镜像源配置</span>
+        </div>
+        <div class="page-subtitle">配置Docker镜像仓库用于检索软件</div>
+      </div>
+      <div class="header-right">
+        <el-tooltip content="刷新" placement="top">
+          <el-button circle @click="loadRegistries">
+            <IconifyIconOnline icon="ri:refresh-line" />
+          </el-button>
+        </el-tooltip>
+        <el-tooltip
+          :content="canCreate ? '添加仓库' : '仅支持一个仓库'"
+          placement="top"
+        >
+          <el-button
+            type="primary"
+            circle
+            :disabled="!canCreate"
+            @click="openCreateDialog"
+          >
+            <IconifyIconOnline icon="ri:add-line" />
+          </el-button>
+        </el-tooltip>
       </div>
     </div>
 
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <div class="search-left">
-        <el-input
-          v-model="searchParams.keyword"
-          placeholder="搜索仓库名称或地址"
-          class="search-input"
-          clearable
-          @keyup.enter="handleSearch"
-        >
-          <template #prefix>
-            <IconifyIconOnline icon="ri:search-line" />
-          </template>
-        </el-input>
-        <el-select
-          v-model="searchParams.status"
-          placeholder="状态"
-          clearable
-          class="filter-select"
-          @change="handleSearch"
-        >
-          <el-option label="全部" value="" />
-          <el-option label="正常" value="active" />
-          <el-option label="离线" value="offline" />
-          <el-option label="错误" value="error" />
-        </el-select>
-        <el-select
-          v-model="searchParams.type"
-          placeholder="仓库类型"
-          clearable
-          class="filter-select"
-          @change="handleSearch"
-        >
-          <el-option label="全部" value="" />
-          <el-option label="Docker Hub" value="docker_hub" />
-          <el-option label="阿里云" value="aliyun" />
-          <el-option label="Harbor" value="harbor" />
-          <el-option label="自定义" value="custom" />
-        </el-select>
-      </div>
-      <div class="search-right">
-        <el-button
-          type="primary"
-          circle
-          :disabled="!canCreate"
-          :title="canCreate ? '添加仓库' : '仅支持一个仓库'"
-          @click="openCreateDialog"
-        >
-          <IconifyIconOnline icon="ri:add-line" />
-        </el-button>
-        <el-button
-          @click="handleBatchDelete"
-          :disabled="selectedIds.length === 0"
-          type="danger"
-          circle
-          title="批量删除"
-        >
-          <IconifyIconOnline icon="ri:delete-bin-line" />
-        </el-button>
-      </div>
-    </div>
-
-    <!-- 仓库卡片 -->
+    <!-- 仓库列表 - 简洁表格模式 -->
     <ScTable
       ref="tableRef"
       :key="tableKey"
@@ -78,137 +39,97 @@
       :params="searchParams"
       row-key="systemSoftRegistryId"
       layout="card"
-      :col-size="3"
+      :col-size="4"
       :row-size="2"
-      :page-size="6"
+      :page-size="4"
       table-name="docker-registry"
     >
       <template #default="{ row }">
-        <div
-          class="registry-card"
-          :class="{
-            'registry-card--disabled': row.systemSoftRegistryStatus !== 1,
-          }"
-        >
-          <!-- 卡片头部 -->
-          <div class="registry-card-header">
+        <div class="card-wrapper">
+          <el-card
+            class="registry-card"
+            :class="{ 'is-disabled': row.systemSoftRegistryStatus !== 1 }"
+            shadow="never"
+          >
+            <!-- 状态指示条 -->
             <div
-              class="registry-card-logo"
-              :style="{
-                background: getRegistryGradient(row.systemSoftRegistryType),
-              }"
-            >
-              <IconifyIconOnline
-                :icon="getRegistryIcon(row.systemSoftRegistryType)"
-                class="logo-icon"
-              />
-            </div>
-            <div class="registry-card-info">
-              <div class="registry-card-title">
-                <span class="name">{{ row.systemSoftRegistryName }}</span>
-              </div>
-              <el-tag
-                :type="getRegistryTypeTag(row.systemSoftRegistryType)"
-                size="small"
-                effect="plain"
+              class="status-bar"
+              :class="
+                row.systemSoftRegistryStatus === 1 ? 'active' : 'inactive'
+              "
+            ></div>
+
+            <!-- 卡片头部 -->
+            <div class="card-header">
+              <div
+                class="icon-box"
+                :style="{
+                  background: getRegistryGradient(row.systemSoftRegistryType),
+                }"
               >
-                {{ getRegistryTypeText(row.systemSoftRegistryType) }}
-              </el-tag>
-            </div>
-            <div class="registry-card-status">
+                <IconifyIconOnline
+                  :icon="getRegistryIcon(row.systemSoftRegistryType)"
+                />
+              </div>
+              <div class="title-section">
+                <h3 class="name">{{ row.systemSoftRegistryName }}</h3>
+                <el-tag
+                  :type="getRegistryTypeTag(row.systemSoftRegistryType)"
+                  size="small"
+                  effect="light"
+                >
+                  {{ getRegistryTypeText(row.systemSoftRegistryType) }}
+                </el-tag>
+              </div>
               <el-switch
                 :model-value="row.systemSoftRegistryStatus === 1"
                 size="small"
                 @change="(val: boolean) => handleToggleStatus(row, val)"
               />
             </div>
-          </div>
 
-          <!-- 仓库地址 -->
-          <div class="registry-url-box">
-            <div class="url-label">
-              <IconifyIconOnline icon="ri:global-line" />
-              仓库地址
+            <!-- 仓库信息 -->
+            <div class="card-body">
+              <div class="info-row">
+                <IconifyIconOnline icon="ri:global-line" class="info-icon" />
+                <el-link
+                  :href="row.systemSoftRegistryUrl"
+                  target="_blank"
+                  type="primary"
+                  class="url-link"
+                  >{{ row.systemSoftRegistryUrl }}</el-link
+                >
+              </div>
+              <div class="info-row">
+                <IconifyIconOnline
+                  icon="ri:shield-user-line"
+                  class="info-icon"
+                />
+                <span class="info-text">{{
+                  row.systemSoftRegistryUsername ? "已配置认证" : "公开访问"
+                }}</span>
+              </div>
             </div>
-            <el-link
-              :href="row.systemSoftRegistryUrl"
-              target="_blank"
-              type="primary"
-              class="url-link"
-            >
-              {{ row.systemSoftRegistryUrl }}
-            </el-link>
-          </div>
 
-          <!-- 状态信息 -->
-          <div class="registry-stats">
-            <div class="stat-item">
-              <IconifyIconOnline icon="ri:shield-user-line" />
-              <span v-if="row.systemSoftRegistryUsername">已配置认证</span>
-              <span v-else class="text-muted">公开访问</span>
+            <!-- 操作按钮 -->
+            <div class="card-actions">
+              <el-tooltip content="编辑" placement="top">
+                <el-button size="small" circle @click="openEditDialog(row)"
+                  ><IconifyIconOnline icon="ri:edit-line"
+                /></el-button>
+              </el-tooltip>
+              <el-tooltip content="删除" placement="top">
+                <el-button
+                  size="small"
+                  circle
+                  type="danger"
+                  plain
+                  @click="handleDelete(row.systemSoftRegistryId)"
+                  ><IconifyIconOnline icon="ri:delete-bin-line"
+                /></el-button>
+              </el-tooltip>
             </div>
-            <div
-              class="stat-item"
-              v-if="row.systemSoftRegistrySupportSync === 1"
-            >
-              <IconifyIconOnline icon="ri:refresh-line" />
-              <span>支持同步</span>
-            </div>
-            <div class="stat-item">
-              <IconifyIconOnline icon="ri:time-line" />
-              <span v-if="row.systemSoftRegistryLastConnectTime">{{
-                formatTime(row.systemSoftRegistryLastConnectTime)
-              }}</span>
-              <span v-else class="text-muted">从未连接</span>
-            </div>
-          </div>
-
-          <!-- 连接状态指示 -->
-          <div
-            class="registry-connect-status"
-            v-if="row.systemSoftRegistryConnectStatus != null"
-          >
-            <div
-              class="connect-dot"
-              :class="
-                row.systemSoftRegistryConnectStatus === 1 ? 'success' : 'error'
-              "
-            ></div>
-            <span>{{
-              row.systemSoftRegistryConnectStatus === 1
-                ? "连接正常"
-                : "连接失败"
-            }}</span>
-          </div>
-
-          <!-- 操作按钮 -->
-          <div class="registry-actions">
-            <el-button
-              size="small"
-              @click="openEditDialog(row)"
-              class="action-btn"
-            >
-              <IconifyIconOnline icon="ri:edit-line" class="mr-1" />编辑
-            </el-button>
-            <el-button
-              size="small"
-              type="info"
-              plain
-              @click="testConnection(row)"
-              class="action-btn"
-            >
-              <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />测试
-            </el-button>
-            <el-button
-              size="small"
-              type="danger"
-              plain
-              @click="handleDelete(row.systemSoftRegistryId)"
-              class="action-btn"
-            >
-              <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />删除
-            </el-button>
-          </div>
+          </el-card>
         </div>
       </template>
     </ScTable>
@@ -225,30 +146,6 @@
       v-model:visible="syncProgressVisible"
       :progress="syncProgressData"
     />
-
-    <!-- 批量操作底部工具栏 -->
-    <div v-if="selectedIds.length > 0" class="batch-actions">
-      <div class="batch-info">已选择 {{ selectedIds.length }} 个仓库</div>
-      <el-button circle title="取消选择" @click="clearSelection">
-        <IconifyIconOnline icon="ri:close-line" />
-      </el-button>
-      <el-button
-        type="success"
-        circle
-        title="批量同步"
-        @click="handleBatchSync"
-      >
-        <IconifyIconOnline icon="ri:refresh-2-line" />
-      </el-button>
-      <el-button
-        type="danger"
-        circle
-        title="批量删除"
-        @click="handleBatchDelete"
-      >
-        <IconifyIconOnline icon="ri:delete-bin-line" />
-      </el-button>
-    </div>
   </div>
 </template>
 
@@ -415,23 +312,6 @@ const handleSyncSelected = async () => {
     ElMessage.error("批量同步失败");
   } finally {
     syncAllLoading.value = false;
-  }
-};
-
-// 测试仓库连接
-const testConnection = async (registry: SystemSoftRegistry) => {
-  try {
-    const response = await registryApi.testRegistryConnection(
-      registry.systemSoftRegistryId!
-    );
-    if (response.code === "00000" && response.data) {
-      ElMessage.success(response.msg || "连接测试成功");
-    } else {
-      ElMessage.error(response.msg || "连接测试失败");
-    }
-  } catch (error) {
-    console.error("测试连接失败:", error);
-    ElMessage.error("连接测试失败");
   }
 };
 
@@ -635,7 +515,6 @@ const formatTime = (time?: string) => {
 
 // 生命周期
 onMounted(() => {
-  // Global Socket已在App层面初始化
   loadRegistries();
 });
 </script>
@@ -644,273 +523,182 @@ onMounted(() => {
 .registry-management {
   padding: 20px;
   background: var(--app-bg-secondary);
-  min-height: 100%;
 }
 
 .page-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 16px;
 }
 
-.page-title {
+.header-left .page-title {
   display: flex;
   align-items: center;
   font-size: 20px;
   font-weight: 600;
-  color: var(--app-text-primary);
 }
 
 .title-icon {
   margin-right: 8px;
-  color: var(--app-primary);
+  color: var(--el-color-primary);
 }
 
-.search-bar {
+.page-subtitle {
+  color: var(--app-text-secondary);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.header-right {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 16px;
-  background: var(--app-card-bg);
-  border-radius: 8px;
-  box-shadow: var(--app-card-shadow);
+  gap: 8px;
 }
 
-.search-left {
-  display: flex;
-  gap: 12px;
+/* 卡片包装器 */
+.card-wrapper {
+  height: 100%;
+  transition: transform 0.25s ease;
 }
 
-.search-right {
-  display: flex;
-  gap: 12px;
+.card-wrapper:hover {
+  transform: translateY(-4px);
 }
 
-.search-input {
-  width: 280px;
-}
-
-.filter-select {
-  width: 120px;
-}
-
-/* 卡片样式 */
+/* 卡片样式 - 参考 data-management */
 .registry-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: var(--app-card-bg);
-  border: 1px solid var(--app-card-border);
-  border-radius: 16px;
-  padding: 20px;
-  transition: all 0.3s ease;
+  position: relative;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+  background: var(--el-bg-color);
+}
+
+.registry-card :deep(.el-card__body) {
+  padding: 0;
+}
+
+.registry-card.el-card {
+  border: 1px solid var(--el-border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .registry-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  transform: translateY(-4px);
   border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
-.registry-card--disabled {
-  opacity: 0.6;
+.registry-card.is-disabled {
+  opacity: 0.5;
 }
 
-.registry-card-header {
+/* 状态指示条 */
+.status-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.status-bar.active {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.status-bar.inactive {
+  background: linear-gradient(90deg, #9ca3af, #6b7280);
+}
+
+/* 卡片头部 */
+.card-header {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  padding: 16px 16px 12px;
 }
 
-.registry-card-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+.icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 20px;
+  color: #fff;
   flex-shrink: 0;
 }
 
-.registry-card-logo .logo-icon {
-  font-size: 24px;
-  color: #fff;
-}
-
-.registry-card-info {
+.title-section {
   flex: 1;
   min-width: 0;
 }
 
-.registry-card-title {
-  margin-bottom: 4px;
-}
-
-.registry-card-title .name {
+.title-section .name {
+  margin: 0 0 4px;
+  font-size: 15px;
   font-weight: 600;
-  font-size: 16px;
-  color: var(--app-text-primary);
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.registry-card-status {
+/* 卡片内容 */
+.card-body {
+  padding: 0 16px 12px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 6px;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-icon {
+  font-size: 14px;
+  color: var(--el-text-color-placeholder);
   flex-shrink: 0;
 }
 
-.registry-url-box {
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
-  padding: 10px 12px;
-}
-
-.registry-url-box .url-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.url-link {
   font-size: 12px;
-  color: var(--app-text-tertiary);
-  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.registry-url-box .url-link {
-  font-size: 13px;
-  word-break: break-all;
+.info-text {
+  color: var(--el-text-color-secondary);
 }
 
-.registry-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--app-text-secondary);
-}
-
-.stat-item .text-muted {
-  color: var(--app-text-tertiary);
-}
-
-.registry-connect-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-}
-
-.connect-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.connect-dot.success {
-  background: var(--el-color-success);
-  box-shadow: 0 0 6px var(--el-color-success);
-}
-
-.connect-dot.error {
-  background: var(--el-color-danger);
-  box-shadow: 0 0 6px var(--el-color-danger);
-}
-
-.registry-actions {
+/* 操作按钮 */
+.card-actions {
   display: flex;
   gap: 8px;
-  margin-top: 4px;
-  padding-top: 12px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  padding: 10px 16px;
+  border-top: 1px solid var(--el-border-color-extra-light);
+  background: var(--el-fill-color-lighter);
 }
 
-.action-btn {
-  flex: 1;
-}
-
-.batch-actions {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 20px;
-  background: var(--app-card-bg);
-  border-radius: 8px;
-  box-shadow: var(--app-card-shadow);
-  z-index: 1000;
-}
-
-.batch-info {
-  color: var(--app-link);
-  font-weight: 500;
-}
-
-/* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-
-  .search-bar {
-    flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
     gap: 12px;
   }
 
-  .search-left {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .search-right {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .search-input {
+  .header-right {
     width: 100%;
-  }
-
-  .filter-select {
-    width: 100%;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .action-buttons .el-button {
-    width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .registry-management {
-    padding: 8px;
-  }
-
-  .page-header {
-    padding: 12px;
-  }
-
-  .search-bar {
-    padding: 12px;
-  }
-
-  .batch-actions {
-    flex-direction: column;
-    gap: 8px;
-    width: calc(100% - 16px);
-    transform: translateX(-50%);
+    justify-content: flex-end;
   }
 }
 </style>

@@ -69,10 +69,24 @@ const gotoAccountSetting = () => {
       trigger="click"
       popper-class="lang-dropdown-popper"
     >
-      <div class="lang-trigger">
-        <IconifyIconOnline icon="ri:translate-2" class="lang-icon" />
-        <span class="lang-text">{{ locale === "zh-CN" ? "中文" : "EN" }}</span>
-        <IconifyIconOnline icon="ri:arrow-down-s-line" class="lang-arrow" />
+      <div class="user-trigger lang-style">
+        <div class="lang-icon-wrapper">
+          <IconifyIconOnline icon="ri:translate-2" class="lang-main-icon" />
+        </div>
+        <div class="user-info">
+          <span class="user-name">{{
+            locale === "zh-CN" ? "简体中文" : "English"
+          }}</span>
+          <span class="user-role">{{
+            locale === "zh-CN" ? "语言" : "Language"
+          }}</span>
+        </div>
+        <span class="dropdown-arrow-wrapper">
+          <IconifyIconOnline
+            icon="ri:arrow-down-s-line"
+            class="dropdown-arrow"
+          />
+        </span>
       </div>
       <template #dropdown>
         <el-dropdown-menu class="lang-menu">
@@ -268,8 +282,33 @@ const gotoAccountSetting = () => {
   }
 }
 
-// 语言切换触发器
-.lang-trigger {
+// 语言切换触发器 - 统一为头像风格
+.lang-style {
+  .lang-icon-wrapper {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 100%
+    );
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
+
+    .lang-main-icon {
+      font-size: 16px;
+      color: #fff;
+    }
+  }
+}
+
+// 保留旧的触发器样式作为备用
+.lang-trigger-old {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -442,8 +481,8 @@ const gotoAccountSetting = () => {
     display: flex !important;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 16px !important;
-    margin: 8px 10px;
+    padding: 16px 18px !important;
+    margin: 10px 12px;
     border-radius: 12px;
     transition: all 0.2s ease;
 
@@ -570,8 +609,8 @@ const gotoAccountSetting = () => {
     display: flex !important;
     align-items: center;
     gap: 14px;
-    padding: 16px 16px !important;
-    margin: 8px 0;
+    padding: 18px 18px !important;
+    margin: 10px 0;
     border-radius: 14px;
     transition: all 0.2s ease;
     cursor: pointer;

@@ -109,7 +109,9 @@ class PureHttp {
   private httpInterceptorsRequest(): void {
     PureHttp.axiosInstance.interceptors.request.use(
       async (config: PureHttpRequestConfig): Promise<any> => {
-        config.baseURL = getConfig().BaseUrl;
+        // 优先使用 ApiAddress，如果未设置则使用 BaseUrl
+        const apiAddress = getConfig().ApiAddress;
+        config.baseURL = apiAddress || getConfig().BaseUrl;
         config = await uu2(config);
         // 确保headers对象存在
         if (!config.headers) {
@@ -399,7 +401,9 @@ class PureHttp {
       ...options.headers,
     };
 
-    fetchEventSource(getConfig().BaseUrl + url, {
+    // 优先使用 ApiAddress，如果未设置则使用 BaseUrl
+    const sseBaseUrl = getConfig().ApiAddress || getConfig().BaseUrl;
+    fetchEventSource(sseBaseUrl + url, {
       method: options.method || "GET",
       //@ts-ignore
       headers: defaultHeaders,

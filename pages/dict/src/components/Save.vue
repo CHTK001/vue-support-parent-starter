@@ -305,14 +305,10 @@ export default defineComponent({
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 
     .el-dialog__header {
-      padding: 24px;
+      padding: 20px 24px;
       margin: 0;
       border-bottom: 1px solid var(--el-border-color-lighter);
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary-light-9) 0%,
-        var(--el-bg-color-overlay) 100%
-      );
+      background: transparent;
 
       .el-dialog__title {
         font-size: 18px;
