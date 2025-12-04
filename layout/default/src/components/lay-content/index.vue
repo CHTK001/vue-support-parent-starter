@@ -91,7 +91,15 @@ const getMainWidth = computed(() => {
       : "100%";
 });
 
+// 判断是否为移动导航模式
+const isMobileLayout = computed(() => layoutMode.value === "mobile");
+
 const getSectionStyle = computed(() => {
+  // 移动导航模式下，没有标签页，padding-top 更小
+  if (isMobileLayout.value) {
+    return ["padding-top: 0;"];
+  }
+
   return [
     hideTabs.value && isVerticalLayout.value ? "padding-top: 48px;" : "",
     !hideTabs.value && isVerticalLayout.value
