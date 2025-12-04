@@ -25,6 +25,24 @@
       "types": "./src/index.ts",
       "development": "./src/index.ts",
       "default": "./dist/index.mjs"
+    },
+    "./src/log/LogIndex.vue": {
+      "default": "./src/log/LogIndex.vue"
+    },
+    "./src/log/LogDetail.vue": {
+      "default": "./src/log/LogDetail.vue"
+    },
+    "./src/limit/LimitConfigurationIndex.vue": {
+      "default": "./src/limit/LimitConfigurationIndex.vue"
+    },
+    "./src/limit/LimitRecordIndex.vue": {
+      "default": "./src/limit/LimitRecordIndex.vue"
+    },
+    "./src/holiday/HolidayIndex.vue": {
+      "default": "./src/holiday/HolidayIndex.vue"
+    },
+    "./src/holiday/HolidayCalendar.vue": {
+      "default": "./src/holiday/HolidayCalendar.vue"
     }
   },
   "publishConfig": {
