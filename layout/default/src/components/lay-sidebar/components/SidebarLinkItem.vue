@@ -36,8 +36,10 @@ const getLinkProps = (item: MenuType | { path: string }) => {
       href: "javascript:void(0)",
     };
   }
+  // 只传递 path，避免传递整个路由对象导致循环
+  const path = "path" in item ? item.path : item.name;
   return {
-    to: item,
+    to: path,
   };
 };
 
@@ -71,7 +73,11 @@ function convertPathToComponentParam(path: string): string {
 </script>
 
 <template>
-  <component :is="isExternalLink || isRemainingMenu ? 'a' : 'router-link'" v-bind="getLinkProps(to)" @click="handleClick">
+  <component
+    :is="isExternalLink || isRemainingMenu ? 'a' : 'router-link'"
+    v-bind="getLinkProps(to)"
+    @click="handleClick"
+  >
     <slot />
   </component>
 </template>

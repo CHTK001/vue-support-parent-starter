@@ -14,7 +14,7 @@ export default [
       {
         path: "/project/llm",
         name: "ProjectLlm",
-        redirect: "/project/llm",
+        redirect: "/project/ai/llm/web",
         meta: {
           icon: "ep:folder",
           title: "大语言模型",
@@ -36,7 +36,7 @@ export default [
       {
         path: "/project/generation",
         name: "ProjectGeneration",
-        redirect: "/project/llm",
+        redirect: "/project/ai/vincent/web",
         meta: {
           icon: "ep:folder",
           title: "文生图模型",
