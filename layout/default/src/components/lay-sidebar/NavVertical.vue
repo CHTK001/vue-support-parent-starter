@@ -237,27 +237,61 @@ const defer = useDefer(menuData.value.length);
   border-right: none;
   background: transparent; /* 折叠状态下菜单样式修复 */
   &.el-menu--collapse {
-    /* 没有子菜单的菜单项样式修复 */
+    /* 隐藏折叠状态下的箭头图标 */
+    .el-sub-menu__icon-arrow {
+      display: none !important;
+    }
+
+    /* 有子菜单的菜单项样式 */
+    .el-sub-menu > .el-sub-menu__title {
+      padding: 0 !important;
+      justify-content: center;
+
+      > .sub-menu-icon {
+        margin: 0 !important;
+      }
+    }
+
+    /* 没有子菜单的菜单项样式修复 - 与有子菜单的保持一致 */
     .el-menu-item.submenu-title-noDropdown {
       padding: 0 !important;
-      display: flex;
       justify-content: center;
-      align-items: center;
+
+      > div {
+        width: 100% !important;
+        flex: none !important;
+        display: block;
+      }
 
       .sub-menu-icon {
         margin: 0 !important;
       }
     }
 
-    /* 选中状态样式 */
-    .el-menu-item.is-active {
-      background: var(--el-color-primary) !important;
-      border-radius: 8px;
+    /* 没有子菜单的选中状态样式 - 左侧小竖条 */
+    .el-menu-item.is-active.submenu-title-noDropdown {
+      position: relative;
+      background: transparent !important;
+
+      &::before {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        content: "";
+        background: linear-gradient(
+          to bottom,
+          var(--pure-theme-menu-active-before),
+          var(--el-color-primary)
+        );
+        border-radius: 0 4px 4px 0;
+      }
 
       .el-icon,
       svg,
       i {
-        color: #fff !important;
+        color: var(--el-color-primary) !important;
       }
     }
   }
@@ -300,14 +334,15 @@ const defer = useDefer(menuData.value.length);
       .el-menu-item {
         &.is-active {
           background: var(--el-color-primary) !important;
-          color: var(
-            --pure-menu-active-text-color
-          ) !important; /* 使用新定义的变量 */
+          color: var(--pure-menu-active-text-color) !important;
 
-          .el-icon {
-            color: var(
-              --pure-menu-active-text-color
-            ) !important; /* 使用新定义的变量 */
+          .el-icon,
+          svg,
+          i,
+          span,
+          div,
+          .el-text {
+            color: var(--pure-menu-active-text-color) !important;
           }
         }
       }
@@ -362,20 +397,15 @@ const defer = useDefer(menuData.value.length);
         .el-menu-item {
           &.is-active {
             background: var(--el-color-primary) !important;
-            color: #ffffff !important; /* 强制设置为白色确保可见性 */
+            color: var(--pure-menu-active-text-color) !important;
 
-            .el-icon {
-              color: #ffffff !important; /* 强制设置为白色确保可见性 */
-            }
-
+            .el-icon,
             svg,
-            i {
-              color: #ffffff !important; /* 强制设置为白色确保可见性 */
-            }
-
+            i,
             div,
-            span {
-              color: #ffffff !important; /* 强制设置为白色确保可见性 */
+            span,
+            .el-text {
+              color: var(--pure-menu-active-text-color) !important;
             }
           }
         }
