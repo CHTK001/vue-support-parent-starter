@@ -31,11 +31,11 @@
           </div>
           <div class="stat-item">
             <div class="stat-value">{{ onlineServers }}</div>
-            <div class="stat-label">在线服务�?/div>
+            <div class="stat-label">在线服务器</div>
           </div>
           <div class="stat-item">
             <div class="stat-value">{{ Math.round(onlineRate) }}%</div>
-            <div class="stat-label">在线�?/div>
+            <div class="stat-label">在线率</div>
           </div>
         </div>
 
@@ -102,9 +102,9 @@
           </div>
         </div>
 
-        <!-- 最后更新时�?-->
+        <!-- 最后更新时间 -->
         <div class="update-time">
-          <span class="update-label">最后更�?</span>
+          <span class="update-label">最后更新:</span>
           <span class="update-value">{{ formatUpdateTime }}</span>
         </div>
       </div>
@@ -122,7 +122,7 @@ import { zhCN } from 'date-fns/locale';
 // 延迟管理
 const latencyManager = useGlobalServerLatency();
 
-// 计算属�?
+// 计算属性
 const totalServers = computed(() => latencyManager.totalServers.value);
 const onlineServers = computed(() => latencyManager.onlineServers.value);
 const normalServers = computed(() => latencyManager.normalServers.value);
@@ -131,7 +131,7 @@ const abnormalServers = computed(() => latencyManager.abnormalServers.value);
 const loading = computed(() => latencyManager.loading.value);
 const alerts = computed(() => latencyManager.alerts.value);
 
-// 计算百分�?
+// 计算百分比
 const onlineRate = computed(() => {
   return totalServers.value > 0 ? (onlineServers.value / totalServers.value) * 100 : 0;
 });
@@ -148,10 +148,10 @@ const abnormalPercentage = computed(() => {
   return onlineServers.value > 0 ? Math.round((abnormalServers.value / onlineServers.value) * 100) : 0;
 });
 
-// 格式化更新时�?
+// 格式化更新时间
 const formatUpdateTime = computed(() => {
   if (!latencyManager.lastUpdateTime.value) {
-    return '未更�?;
+    return '未更新';
   }
   
   try {
@@ -184,7 +184,7 @@ onMounted(() => {
   // 初始加载
   refreshStatistics();
   
-  // 每分钟刷新一次统计数�?
+  // 每分钟刷新一次统计数据
   refreshTimer = setInterval(refreshStatistics, 60000);
 });
 
@@ -401,7 +401,7 @@ onUnmounted(() => {
   }
 }
 
-// 响应式设�?
+// 响应式设计
 @media (max-width: 768px) {
   .overview-stats {
     grid-template-columns: 1fr !important;

@@ -31,7 +31,7 @@
         <span class="unit" v-if="unit">{{ unit }}</span>
       </div>
 
-      <!-- 进度条显示（仅对百分比类型的指标显示�?-->
+      <!-- 进度条显示（仅对百分比类型的指标显示） -->
       <div v-if="showProgressBar" class="metric-progress">
         <el-progress
           :percentage="progressPercentage"
@@ -45,7 +45,7 @@
         {{ componentData.monitorSysGenServerDetailComponentDesc }}
       </div>
       <div class="last-update">
-        最后更�? {{ lastUpdateTime }}
+        最后更新: {{ lastUpdateTime }}
       </div>
     </div>
 
@@ -69,7 +69,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
 import { executeComponentQuery, type ServerDetailComponent } from "@/api/server";
 
-// 定义属�?
+// 定义属性
 const props = defineProps<{
   componentData: ServerDetailComponent;
   serverId: number;
@@ -83,14 +83,14 @@ const emit = defineEmits<{
   refresh: [componentId: number];
 }>();
 
-// 响应式状�?
+// 响应式状态
 const loading = ref(false);
 const refreshing = ref(false);
 const data = ref<any>(null);
 const lastUpdateTime = ref("");
 const refreshTimer = ref<NodeJS.Timeout>();
 
-// 计算属�?
+// 计算属性
 const displayValue = computed(() => {
   if (data.value === null || data.value === undefined) {
     return "--";
@@ -112,7 +112,7 @@ const unit = computed(() => {
   }
 });
 
-// 判断是否显示进度�?
+// 判断是否显示进度条
 const showProgressBar = computed(() => {
   try {
     const config = JSON.parse(props.componentData.monitorSysGenServerDetailComponentChartConfig || "{}");
@@ -122,10 +122,10 @@ const showProgressBar = computed(() => {
   }
 });
 
-// 判断是否为百分比类型的指�?
+// 判断是否为百分比类型的指标
 const isPercentageMetric = computed(() => {
   const title = props.componentData.monitorSysGenServerDetailComponentTitle?.toLowerCase() || "";
-  return title.includes("使用�?) || title.includes("cpu") || title.includes("memory") || title.includes("内存") || title.includes("磁盘");
+  return title.includes("使用率") || title.includes("cpu") || title.includes("memory") || title.includes("内存") || title.includes("磁盘");
 });
 
 // 获取指标类型
@@ -145,7 +145,7 @@ const progressPercentage = computed(() => {
   const numValue = typeof data.value === "number" ? data.value : parseFloat(String(data.value));
   if (isNaN(numValue)) return 0;
 
-  // 如果值大�?00，可能是原始值需要转换为百分�?
+  // 如果值大于100，可能是原始值需要转换为百分比
   if (numValue > 100) {
     return Math.min(numValue / 100, 100);
   }
@@ -169,7 +169,7 @@ const getIcon = () => {
  * 获取进度条颜色（支持渐变和不同指标类型）
  */
 const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
-  // 定义不同指标的阈�?
+  // 定义不同指标的阈值
   const thresholds = {
     cpu: { normal: 50, warning: 80, critical: 90 },
     memory: { normal: 60, warning: 80, critical: 90 },
@@ -179,7 +179,7 @@ const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
 
   const threshold = thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
 
-  // 返回渐变色配�?
+  // 返回渐变色配置
   return [
     { color: '#67c23a', percentage: threshold.normal },
     { color: '#e6a23c', percentage: threshold.warning },
@@ -195,7 +195,7 @@ const loadData = async () => {
     loading.value = true;
     
     const timeRange = {
-      start: Date.now() - 5 * 60 * 1000, // 最�?分钟
+      start: Date.now() - 5 * 60 * 1000, // 最近5分钟
       end: Date.now(),
     };
 
@@ -205,7 +205,7 @@ const loadData = async () => {
     );
 
     if (res.code === "00000") {
-      // 处理返回的数据，提取单个�?
+      // 处理返回的数据，提取单个值
       if (Array.isArray(res.data) && res.data.length > 0) {
         data.value = res.data[0].value || res.data[0];
       } else if (typeof res.data === "object" && res.data !== null) {
@@ -402,7 +402,7 @@ onUnmounted(() => {
   justify-content: center;
 }
 
-// 响应式设�?
+// 响应式设计
 @media (max-width: 768px) {
   .card-content {
     padding: 16px;

@@ -1,6 +1,6 @@
 <template>
   <div class="file-detail-content modern-scrollbar" v-if="fileInfo">
-    <!-- 文件图标和名�?-->
+    <!-- 文件图标和名称 -->
     <div class="file-header">
       <div class="file-icon-large">
         <IconifyIconOnline
@@ -21,7 +21,7 @@
         <div class="detail-item">
           <span class="label">类型:</span>
           <span class="value">{{
-            fileInfo.isDirectory ? "文件�? : "文件"
+            fileInfo.isDirectory ? "文件夹" : "文件"
           }}</span>
         </div>
         <div class="detail-item" v-if="!fileInfo.isDirectory">
@@ -96,7 +96,7 @@ const isPreviewable = computed(() => {
 
   if (!ext) return false;
 
-  // 支持预览的文件格�?
+  // 支持预览的文件格式
   const previewableExtensions = [
     // 图片格式
     "jpg",
@@ -177,7 +177,7 @@ const getFileIcon = (file: FileInfo) => {
     tsx: "ri:javascript-line",
     vue: "ri:vuejs-line",
 
-    // Web技�?
+    // Web技术
     html: "ri:html5-line",
     htm: "ri:html5-line",
     css: "ri:css3-line",
@@ -277,7 +277,7 @@ const getFileIcon = (file: FileInfo) => {
     flv: "ri:video-line",
     webm: "ri:video-line",
 
-    // 可执行文�?
+    // 可执行文件
     exe: "ri:install-line",
     msi: "ri:install-line",
     dmg: "ri:install-line",
@@ -285,14 +285,14 @@ const getFileIcon = (file: FileInfo) => {
     rpm: "ri:install-line",
     app: "ri:install-line",
 
-    // 库文�?
+    // 库文件
     dll: "ri:code-box-line",
     so: "ri:code-box-line",
     dylib: "ri:code-box-line",
     lib: "ri:code-box-line",
     a: "ri:code-box-line",
 
-    // 数据�?
+    // 数据库
     db: "ri:database-line",
     sqlite: "ri:database-line",
     sql: "ri:database-line",
@@ -309,7 +309,7 @@ const getFileIcon = (file: FileInfo) => {
 };
 
 /**
- * 格式化文件大�?
+ * 格式化文件大小
  */
 const formatFileSize = (bytes: number) => {
   if (bytes === 0) return "0 B";
@@ -320,7 +320,7 @@ const formatFileSize = (bytes: number) => {
 };
 
 /**
- * 格式化时�?
+ * 格式化时间
  */
 const formatTime = (timeStr: string) => {
   if (!timeStr) return "-";
@@ -358,7 +358,7 @@ const handleDelete = async () => {
 
   try {
     await ElMessageBox.confirm(
-      `确定要删�?"${props.fileInfo.name}" 吗？`,
+      `确定要删除 "${props.fileInfo.name}" 吗？`,
       "确认删除",
       {
         type: "warning",
@@ -379,7 +379,7 @@ const handleDelete = async () => {
   padding: 16px;
   height: 100%;
   overflow-y: auto;
-   background: var(--el-bg-color-overlay); /* 设置文件详情内容背景为白�?*/
+   background: var(--el-bg-color-overlay); /* 设置文件详情内容背景为白色 */
 }
 
 .file-header {
@@ -465,7 +465,7 @@ const handleDelete = async () => {
   min-width: 80px;
 }
 
-/* 统一的细滚动条样�?*/
+/* 统一的细滚动条样式 */
 .file-detail-content::-webkit-scrollbar {
   width: 4px;
   height: 4px;

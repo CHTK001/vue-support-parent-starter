@@ -15,10 +15,10 @@
           <el-option label="VNC" value="VNC" />
         </el-select>
 
-        <el-select v-model="filterStatus" placeholder="连接状�? clearable style="width: 120px; margin-left: 12px" @change="handleFilter">
+        <el-select v-model="filterStatus" placeholder="连接状态" clearable style="width: 120px; margin-left: 12px" @change="handleFilter">
           <el-option label="在线" :value="1" />
           <el-option label="离线" :value="0" />
-          <el-option label="连接�? :value="2" />
+          <el-option label="连接中" :value="2" />
           <el-option label="异常" :value="3" />
         </el-select>
       </div>
@@ -46,11 +46,11 @@
       </div>
     </div>
 
-    <!-- 服务器表�?-->
+    <!-- 服务器表格 -->
     <el-table v-loading="loading" :data="serverList" stripe @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" />
 
-      <el-table-column label="服务器信�? min-width="200">
+      <el-table-column label="服务器信息" min-width="200">
         <template #default="{ row }">
           <div class="server-info">
             <div class="server-name">
@@ -75,7 +75,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="连接状�? width="100" align="center">
+      <el-table-column label="连接状态" width="100" align="center">
         <template #default="{ row }">
           <el-tag :type="getConnectionStatusType(row.monitorSysGenServerConnectionStatus)" size="small" effect="light">
             {{ getConnectionStatusText(row.monitorSysGenServerConnectionStatus) }}
@@ -83,7 +83,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="服务器状�? width="100" align="center">
+      <el-table-column label="服务器状态" width="100" align="center">
         <template #default="{ row }">
           <el-switch v-model="row.monitorSysGenServerStatus" :active-value="1" :inactive-value="0" @change="handleStatusChange(row)" />
         </template>
@@ -95,7 +95,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="最后连接时�? width="160" align="center">
+      <el-table-column label="最后连接时间" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerLastConnectTime">
             {{ formatDateTime(row.monitorSysGenServerLastConnectTime) }}
@@ -135,7 +135,7 @@
                 <el-dropdown-menu>
                   <el-dropdown-item command="edit">编辑</el-dropdown-item>
                   <el-dropdown-item command="config">配置管理</el-dropdown-item>
-                  <el-dropdown-item command="setting">服务器设�?/el-dropdown-item>
+                  <el-dropdown-item command="setting">服务器设置</el-dropdown-item>
                   <el-dropdown-item command="test">测试连接</el-dropdown-item>
                   <el-dropdown-item command="logs">查看日志</el-dropdown-item>
                   <el-dropdown-item command="clone">克隆配置</el-dropdown-item>
@@ -185,12 +185,12 @@ const emit = defineEmits<{
   upload: [server: ServerInfo];
 }>();
 
-// 响应式状�?
+// 响应式状态
 const loading = ref(false);
 const serverList = ref<ServerInfo[]>([]);
 const selectedServers = ref<ServerInfo[]>([]);
 
-// 搜索和筛�?
+// 搜索和筛选
 const searchKeyword = ref("");
 const filterProtocol = ref("");
 const filterStatus = ref("");
@@ -203,7 +203,7 @@ const pagination = reactive({
 });
 
 /**
- * 加载服务器列�?
+ * 加载服务器列表
  */
 const loadServerList = async () => {
   try {
@@ -222,8 +222,8 @@ const loadServerList = async () => {
       pagination.total = res.data.total || 0;
     }
   } catch (error) {
-    console.error("加载服务器列表失�?", error);
-    message.error("加载服务器列表失�?);
+    console.error("加载服务器列表失败:", error);
+    message.error("加载服务器列表失败");
   } finally {
     loading.value = false;
   }
@@ -254,7 +254,7 @@ const getProtocolType = (protocol: string) => {
 };
 
 /**
- * 获取连接状态类�?
+ * 获取连接状态类型
  */
 const getConnectionStatusType = (status: number) => {
   return getConnectionStatusColor(status);
@@ -268,7 +268,7 @@ const getTagList = (tags: string) => {
 };
 
 /**
- * 格式化日期时�?
+ * 格式化日期时间
  */
 const formatDateTime = (dateTime: string) => {
   return new Date(dateTime).toLocaleString();
@@ -283,7 +283,7 @@ const handleSearch = () => {
 };
 
 /**
- * 处理筛�?
+ * 处理筛选
  */
 const handleFilter = () => {
   pagination.page = 1;
@@ -305,7 +305,7 @@ const handleSelectionChange = (selection: ServerInfo[]) => {
 };
 
 /**
- * 处理状态变�?
+ * 处理状态变化
  */
 const handleStatusChange = async (server: ServerInfo) => {
   try {
@@ -313,11 +313,11 @@ const handleStatusChange = async (server: ServerInfo) => {
       monitorSysGenServerId: server.monitorSysGenServerId,
       monitorSysGenServerStatus: server.monitorSysGenServerStatus
     } as any);
-    message.success("状态更新成�?);
+    message.success("状态更新成功");
   } catch (error) {
-    console.error("状态更新失�?", error);
-    message.error("状态更新失�?);
-    // 回滚状�?
+    console.error("状态更新失败:", error);
+    message.error("状态更新失败");
+    // 回滚状态
     server.monitorSysGenServerStatus = server.monitorSysGenServerStatus === 1 ? 0 : 1;
   }
 };
@@ -372,15 +372,15 @@ const handleTestConnection = async (server: ServerInfo) => {
 };
 
 /**
- * 处理克隆服务�?
+ * 处理克隆服务器
  */
 const handleCloneServer = async (server: ServerInfo) => {
   try {
-    const { value: targetName } = await ElMessageBox.prompt("请输入新服务器名�?, "克隆服务�?, {
+    const { value: targetName } = await ElMessageBox.prompt("请输入新服务器名称", "克隆服务器", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       inputPattern: /^.{2,50}$/,
-      inputErrorMessage: "名称长度�?2 �?50 个字�?
+      inputErrorMessage: "名称长度在 2 到 50 个字符"
     });
 
     const res = await cloneServer({
@@ -389,21 +389,21 @@ const handleCloneServer = async (server: ServerInfo) => {
     });
 
     if (res.code === "00000") {
-      message.success("服务器克隆成�?);
+      message.success("服务器克隆成功");
       loadServerList();
     } else {
       message.error(`克隆失败: ${res.msg}`);
     }
   } catch (error) {
     if (error !== "cancel") {
-      console.error("克隆服务器失�?", error);
-      message.error("克隆服务器失�?);
+      console.error("克隆服务器失败:", error);
+      message.error("克隆服务器失败");
     }
   }
 };
 
 /**
- * 处理删除服务�?
+ * 处理删除服务器
  */
 const handleDeleteServer = async (server: ServerInfo) => {
   try {
@@ -423,8 +423,8 @@ const handleDeleteServer = async (server: ServerInfo) => {
     }
   } catch (error) {
     if (error !== "cancel") {
-      console.error("删除服务器失�?", error);
-      message.error("删除服务器失�?);
+      console.error("删除服务器失败:", error);
+      message.error("删除服务器失败");
     }
   }
 };
@@ -434,12 +434,12 @@ const handleDeleteServer = async (server: ServerInfo) => {
  */
 const handleBatchAction = async (command: string) => {
   if (selectedServers.value.length === 0) {
-    message.warning("请先选择要操作的服务�?);
+    message.warning("请先选择要操作的服务器");
     return;
   }
 
   try {
-    await ElMessageBox.confirm(`确定要对选中�?${selectedServers.value.length} 台服务器执行 "${command}" 操作吗？`, "批量操作确认", {
+    await ElMessageBox.confirm(`确定要对选中的 ${selectedServers.value.length} 台服务器执行 "${command}" 操作吗？`, "批量操作确认", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "warning"
@@ -472,7 +472,7 @@ const handleSizeChange = (size: number) => {
 };
 
 /**
- * 处理当前页变�?
+ * 处理当前页变化
  */
 const handleCurrentChange = (page: number) => {
   pagination.page = page;
@@ -500,7 +500,7 @@ const handleOpenFullSetting = (serverId: number) => {
  * 处理设置变化
  */
 const handleSettingChanged = (serverId: number) => {
-  // 可以在这里刷新服务器列表或更新特定服务器的状�?
+  // 可以在这里刷新服务器列表或更新特定服务器的状态
   console.log("服务器设置已更新:", serverId);
 };
 

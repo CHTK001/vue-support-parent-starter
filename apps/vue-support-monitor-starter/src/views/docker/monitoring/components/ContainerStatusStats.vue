@@ -39,11 +39,11 @@ const props = defineProps<Props>()
 
 const statsData: ContainerStatusStat[] = [
   { status: 'total', count: props.stats.total || 0, label: '总计', icon: 'ri:container-line' },
-  { status: 'running', count: props.stats.running || 0, label: '运行�?, icon: 'ri:play-circle-line' },
-  { status: 'stopped', count: props.stats.stopped || 0, label: '已停�?, icon: 'ri:stop-circle-line' },
-  { status: 'paused', count: props.stats.paused || 0, label: '已暂�?, icon: 'ri:pause-circle-line' },
-  { status: 'exited', count: props.stats.exited || 0, label: '已退�?, icon: 'ri:logout-box-line' },
-  { status: 'dead', count: props.stats.dead || 0, label: '已死�?, icon: 'ri:skull-line' }
+  { status: 'running', count: props.stats.running || 0, label: '运行中', icon: 'ri:play-circle-line' },
+  { status: 'stopped', count: props.stats.stopped || 0, label: '已停止', icon: 'ri:stop-circle-line' },
+  { status: 'paused', count: props.stats.paused || 0, label: '已暂停', icon: 'ri:pause-circle-line' },
+  { status: 'exited', count: props.stats.exited || 0, label: '已退出', icon: 'ri:logout-box-line' },
+  { status: 'dead', count: props.stats.dead || 0, label: '已死亡', icon: 'ri:skull-line' }
 ]
 </script>
 
@@ -125,7 +125,7 @@ const statsData: ContainerStatusStat[] = [
   color: #909399;
 }
 
-/* 响应式设�?*/
+/* 响应式设计 */
 @media (max-width: 768px) {
   .stats-grid {
     grid-template-columns: repeat(3, 1fr);

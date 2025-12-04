@@ -30,13 +30,13 @@
         <div class="info-value">{{ container.systemSoftContainerImage }}:{{ container.systemSoftContainerImageTag || 'latest' }}</div>
       </div>
 
-      <!-- 服务器信�?-->
+      <!-- 服务器信息 -->
       <div class="info-row">
         <div class="info-label">
           <IconifyIconOnline icon="ri:server-line" class="info-icon" />
-          <span>服务�?/span>
+          <span>服务器</span>
         </div>
-        <div class="info-value">服务�?#{{ container.systemServerId }}</div>
+        <div class="info-value">服务器 #{{ container.systemServerId }}</div>
       </div>
 
       <!-- 端口映射 -->
@@ -89,7 +89,7 @@
       </div>
     </div>
 
-    <!-- 卡片底部操作�?-->
+    <!-- 卡片底部操作栏 -->
     <template #footer>
       <div class="card-footer">
         <el-button-group class="action-group">
@@ -169,7 +169,7 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-// 计算属�?
+// 计算属性
 const isRunning = computed(() => props.container.systemSoftContainerStatus === 'running')
 const isStopped = computed(() => 
   props.container.systemSoftContainerStatus === 'stopped' || 
@@ -221,11 +221,11 @@ const getStatusType = (status?: string) => {
 
 const getStatusText = (status?: string) => {
   const map: Record<string, string> = {
-    running: '运行�?,
-    stopped: '已停�?,
-    exited: '已退�?,
+    running: '运行中',
+    stopped: '已停止',
+    exited: '已退出',
     paused: '暂停',
-    restarting: '重启�?,
+    restarting: '重启中',
     error: '错误'
   }
   return map[status || ''] || '未知'

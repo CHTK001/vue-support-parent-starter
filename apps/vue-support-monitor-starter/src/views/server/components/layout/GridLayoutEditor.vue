@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 
-// 定义属�?
+// 定义属性
 const props = defineProps<{
   layout: any[];
   editMode: boolean;
@@ -45,7 +45,7 @@ const emit = defineEmits<{
   'component-delete': [componentId: number];
 }>();
 
-// 响应式状�?
+// 响应式状态
 const gridContainer = ref<HTMLElement>();
 const isDragging = ref(false);
 const isResizing = ref(false);
@@ -56,13 +56,13 @@ const startPos = ref({ x: 0, y: 0 });
 const startSize = ref({ w: 0, h: 0 });
 const startPosition = ref({ x: 0, y: 0 });
 
-// 计算属�?
+// 计算属性
 const cols = computed(() => props.cols || 12);
 const rowHeight = computed(() => props.rowHeight || 60);
 const margin = computed(() => props.margin || [10, 10]);
 
 /**
- * 获取网格项样�?
+ * 获取网格项样式
  */
 const getItemStyle = (item: any) => {
   const containerWidth = gridContainer.value?.clientWidth || 1200;
@@ -102,7 +102,7 @@ const handleMouseDown = (event: MouseEvent, item: any) => {
 };
 
 /**
- * 调整大小开�?
+ * 调整大小开始
  */
 const handleResizeStart = (event: MouseEvent, item: any, direction: string) => {
   event.preventDefault();

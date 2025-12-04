@@ -18,7 +18,7 @@
         <div class="path-input-group">
           <el-input
             v-model="uploadPath"
-            placeholder="请输入上传路径，�? /home/user/documents"
+            placeholder="请输入上传路径，如: /home/user/documents"
             class="path-input"
           >
             <template #prepend>
@@ -56,12 +56,12 @@
             <div class="upload-text">
               <p class="primary-text">点击选择文件或拖拽文件到此处</p>
               <p class="secondary-text">
-                支持多文件上传，单个文件最�?{{ maxFileSize }}MB
+                支持多文件上传，单个文件最大 {{ maxFileSize }}MB
               </p>
             </div>
           </div>
 
-          <!-- 隐藏的文件输�?-->
+          <!-- 隐藏的文件输入 -->
           <input
             ref="fileInputRef"
             type="file"
@@ -76,7 +76,7 @@
       <div class="file-list-section" v-if="fileList.length > 0">
         <div class="section-title">
           <IconifyIconOnline icon="ri:file-list-line" class="mr-2" />
-          待上传文�?({{ fileList.length }})
+          待上传文件 ({{ fileList.length }})
         </div>
 
         <div class="file-list">
@@ -166,7 +166,7 @@
       <div class="dialog-footer">
         <div class="footer-info">
           <span v-if="fileList.length > 0" class="file-count">
-            �?{{ fileList.length }} 个文件，总大�?
+            共 {{ fileList.length }} 个文件，总大小
             {{ formatFileSize(totalSize) }}
           </span>
         </div>
@@ -182,7 +182,7 @@
             :loading="isUploading"
           >
             <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
-            {{ isUploading ? "上传�?.." : "开始上�? }}
+            {{ isUploading ? "上传中..." : "开始上传" }}
           </el-button>
         </div>
       </div>
@@ -209,7 +209,7 @@ const emit = defineEmits<{
   "upload-success": [];
 }>();
 
-// 文件项接�?
+// 文件项接口
 interface FileItem {
   name: string;
   size: number;
@@ -221,7 +221,7 @@ interface FileItem {
   errorMessage?: string;
 }
 
-// 响应式数�?
+// 响应式数据
 const uploadPath = ref("");
 const fileList = ref<FileItem[]>([]);
 const isDragOver = ref(false);
@@ -233,7 +233,7 @@ const maxFileSize = ref(100); // MB
 // 组件引用
 const fileInputRef = ref<HTMLInputElement>();
 
-// 计算属�?
+// 计算属性
 const dialogVisible = computed({
   get: () => props.visible,
   set: (value) => {
@@ -260,7 +260,7 @@ watch(
 );
 
 /**
- * 格式化文件大�?
+ * 格式化文件大小
  */
 const formatFileSize = (size: number) => {
   return formatBytes(size);
@@ -300,7 +300,7 @@ const getFileIcon = (fileName: string) => {
     json: "ri:file-code-line",
     xml: "ri:file-code-line",
 
-    // 压缩�?
+    // 压缩包
     zip: "ri:file-zip-line",
     rar: "ri:file-zip-line",
     "7z": "ri:file-zip-line",

@@ -4,11 +4,11 @@
       <h4 class="mb-4 font-medium">串口参数</h4>
 
       <el-form-item label="串口" prop="monitorSerialPort">
-        <el-input v-model="form.monitorSerialPort" placeholder="请输入串口，如COM1�?dev/ttyUSB0" />
+        <el-input v-model="form.monitorSerialPort" placeholder="请输入串口，如COM1、/dev/ttyUSB0" />
       </el-form-item>
 
-      <el-form-item label="波特�? prop="monitorSerialBaudRate">
-        <el-select v-model="form.monitorSerialBaudRate" placeholder="选择波特�? class="w-full">
+      <el-form-item label="波特率" prop="monitorSerialBaudRate">
+        <el-select v-model="form.monitorSerialBaudRate" placeholder="选择波特率" class="w-full">
           <el-option :value="110" label="110" />
           <el-option :value="300" label="300" />
           <el-option :value="1200" label="1200" />
@@ -26,8 +26,8 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="数据�? prop="monitorSerialDataBits">
-        <el-select v-model="form.monitorSerialDataBits" placeholder="选择数据�? class="w-full">
+      <el-form-item label="数据位" prop="monitorSerialDataBits">
+        <el-select v-model="form.monitorSerialDataBits" placeholder="选择数据位" class="w-full">
           <el-option :value="5" label="5" />
           <el-option :value="6" label="6" />
           <el-option :value="7" label="7" />
@@ -35,27 +35,27 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="停止�? prop="monitorSerialStopBits">
-        <el-select v-model="form.monitorSerialStopBits" placeholder="选择停止�? class="w-full">
+      <el-form-item label="停止位" prop="monitorSerialStopBits">
+        <el-select v-model="form.monitorSerialStopBits" placeholder="选择停止位" class="w-full">
           <el-option :value="1" label="1" />
           <el-option :value="1.5" label="1.5" />
           <el-option :value="2" label="2" />
         </el-select>
       </el-form-item>
 
-      <el-form-item label="校验�? prop="monitorSerialParity">
-        <el-select v-model="form.monitorSerialParity" placeholder="选择校验�? class="w-full">
-          <el-option value="none" label="无校�? />
-          <el-option value="even" label="偶校�? />
-          <el-option value="odd" label="奇校�? />
+      <el-form-item label="校验位" prop="monitorSerialParity">
+        <el-select v-model="form.monitorSerialParity" placeholder="选择校验位" class="w-full">
+          <el-option value="none" label="无校验" />
+          <el-option value="even" label="偶校验" />
+          <el-option value="odd" label="奇校验" />
           <el-option value="mark" label="标记校验" />
           <el-option value="space" label="空格校验" />
         </el-select>
       </el-form-item>
 
-      <el-form-item label="流控�? prop="monitorSerialFlowControl">
-        <el-select v-model="form.monitorSerialFlowControl" placeholder="选择流控�? class="w-full">
-          <el-option value="none" label="�? />
+      <el-form-item label="流控制" prop="monitorSerialFlowControl">
+        <el-select v-model="form.monitorSerialFlowControl" placeholder="选择流控制" class="w-full">
+          <el-option value="none" label="无" />
           <el-option value="hardware" label="硬件流控" />
           <el-option value="software" label="软件流控" />
         </el-select>
@@ -75,7 +75,7 @@
         <el-switch v-model="form.monitorSerialAutoScroll" />
       </el-form-item>
 
-      <el-form-item label="添加时间�?>
+      <el-form-item label="添加时间戳">
         <el-switch v-model="form.monitorSerialAddTimestamp" />
       </el-form-item>
 

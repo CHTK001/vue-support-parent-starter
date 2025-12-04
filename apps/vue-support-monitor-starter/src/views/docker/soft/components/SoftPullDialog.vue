@@ -13,8 +13,8 @@
         <el-input v-model="form.imageTag" placeholder="latest" />
       </el-form-item>
 
-      <el-form-item label="目标服务�? prop="serverId">
-        <el-select v-model="form.serverId" placeholder="选择服务�? class="w-full" filterable>
+      <el-form-item label="目标服务器 prop="serverId">
+        <el-select v-model="form.serverId" placeholder="选择服务器 class="w-full" filterable>
           <el-option
             v-for="server in serverList"
             :key="server.systemServerId"
@@ -37,7 +37,7 @@
       <el-button @click="visibleProxy = false">取消</el-button>
       <el-button type="primary" :loading="loading" @click="handlePull">
         <IconifyIconOnline icon="ri:download-cloud-line" class="mr-1" />
-        开始下�?
+        开始下?
       </el-button>
     </template>
   </el-dialog>
@@ -51,7 +51,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { http, type ReturnResult } from '@repo/utils';
 
 /**
- * 软件镜像下载对话�?
+ * 软件镜像下载对话?
  * @author CH
  * @version 1.0.0
  * @since 2025-12-01
@@ -87,11 +87,11 @@ const form = reactive({
 });
 
 const rules: FormRules = {
-  imageTag: [{ required: true, message: '请输入镜像标�?, trigger: 'blur' }],
-  serverId: [{ required: true, message: '请选择目标服务�?, trigger: 'change' }],
+  imageTag: [{ required: true, message: '请输入镜像标?, trigger: 'blur' }],
+  serverId: [{ required: true, message: '请选择目标服务器, trigger: 'change' }],
 };
 
-// 加载服务器列�?
+// 加载服务器列?
 const loadServerList = async () => {
   try {
     const res = await http.request<ReturnResult<any[]>>('get', '/api/monitor/gen-server/list');
@@ -99,18 +99,18 @@ const loadServerList = async () => {
       serverList.value = res.data || [];
     }
   } catch (e) {
-    console.error('加载服务器列表失�?', e);
+    console.error('加载服务器列表失?', e);
   }
 };
 
-// 对话框打开�?
+// 对话框打开?
 const onOpen = () => {
   form.imageTag = 'latest';
   form.serverId = null;
   loadServerList();
 };
 
-// 开始下�?
+// 开始下?
 const handlePull = async () => {
   if (!formRef.value) return;
   
@@ -127,12 +127,12 @@ const handlePull = async () => {
 
   loading.value = true;
 
-  // 添加到操作监�?
+  // 添加到操作监?
   const server = serverList.value.find(s => s.systemServerId === form.serverId);
   const operationId = operationStore.addOperation({
     type: 'pull',
     title: `下载 ${props.soft.systemSoftName}`,
-    description: `${props.soft.systemSoftDockerImage}:${form.imageTag} -> ${server?.systemServerName || '未知服务�?}`,
+    description: `${props.soft.systemSoftDockerImage}:${form.imageTag} -> ${server?.systemServerName || '未知服务器}`,
     status: 'running',
     progress: 0,
     serverId: form.serverId,
@@ -149,7 +149,7 @@ const handlePull = async () => {
 
     if (res.code === '00000') {
       operationStore.completeOperation(operationId);
-      ElMessage.success('镜像下载任务已提�?);
+      ElMessage.success('镜像下载任务已提?);
       emit('success');
       visibleProxy.value = false;
     } else {

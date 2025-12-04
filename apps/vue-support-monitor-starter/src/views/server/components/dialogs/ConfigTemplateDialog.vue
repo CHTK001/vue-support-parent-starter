@@ -50,7 +50,7 @@ const emit = defineEmits<{
   select: [template: string];
 }>();
 
-// 响应式状�?
+// 响应式状态
 const visible = ref(false);
 const componentType = ref<string>("card");
 
@@ -67,7 +67,7 @@ const templateConfigs = {
       }, null, 2)
     },
     {
-      name: "带阈值卡�?,
+      name: "带阈值卡片",
       icon: "ri:alarm-warning-line",
       description: "带有警告阈值的卡片配置",
       config: JSON.stringify({
@@ -82,7 +82,7 @@ const templateConfigs = {
   ],
   gauge: [
     {
-      name: "基础仪表�?,
+      name: "基础仪表盘",
       icon: "ri:dashboard-3-line",
       description: "标准的仪表盘配置",
       config: JSON.stringify({
@@ -98,7 +98,7 @@ const templateConfigs = {
     {
       name: "自定义范围仪表盘",
       icon: "ri:speed-line",
-      description: "自定义数值范围的仪表�?,
+      description: "自定义数值范围的仪表盘",
       config: JSON.stringify({
         min: 0,
         max: 1000,
@@ -112,7 +112,7 @@ const templateConfigs = {
   ],
   line: [
     {
-      name: "基础折线�?,
+      name: "基础折线图",
       icon: "ri:line-chart-line",
       description: "标准的折线图配置",
       config: JSON.stringify({
@@ -123,9 +123,9 @@ const templateConfigs = {
       }, null, 2)
     },
     {
-      name: "多色折线�?,
+      name: "多色折线图",
       icon: "ri:line-chart-fill",
-      description: "带有渐变色的折线�?,
+      description: "带有渐变色的折线图",
       config: JSON.stringify({
         unit: "MB",
         legend: true,
@@ -137,7 +137,7 @@ const templateConfigs = {
   ],
   bar: [
     {
-      name: "基础柱状�?,
+      name: "基础柱状图",
       icon: "ri:bar-chart-line",
       description: "标准的柱状图配置",
       config: JSON.stringify({
@@ -147,7 +147,7 @@ const templateConfigs = {
       }, null, 2)
     },
     {
-      name: "堆叠柱状�?,
+      name: "堆叠柱状图",
       icon: "ri:bar-chart-fill",
       description: "堆叠显示的柱状图",
       config: JSON.stringify({
@@ -162,7 +162,7 @@ const templateConfigs = {
     {
       name: "基础饼图",
       icon: "ri:pie-chart-line",
-      description: "标准的饼图配�?,
+      description: "标准的饼图配置",
       config: JSON.stringify({
         legend: true,
         radius: ["40%", "70%"]
@@ -171,7 +171,7 @@ const templateConfigs = {
     {
       name: "环形饼图",
       icon: "ri:pie-chart-fill",
-      description: "环形显示的饼�?,
+      description: "环形显示的饼图",
       config: JSON.stringify({
         legend: true,
         radius: ["50%", "80%"],
@@ -183,12 +183,12 @@ const templateConfigs = {
     {
       name: "基础表格",
       icon: "ri:table-line",
-      description: "标准的表格配�?,
+      description: "标准的表格配置",
       config: JSON.stringify({
         columns: [
           { prop: "name", label: "名称", width: "120" },
-          { prop: "value", label: "�?, width: "100" },
-          { prop: "status", label: "状�?, width: "80" }
+          { prop: "value", label: "值", width: "100" },
+          { prop: "status", label: "状态", width: "80" }
         ],
         stripe: true,
         border: false
@@ -197,13 +197,13 @@ const templateConfigs = {
   ]
 };
 
-// 计算属�?
+// 计算属性
 const templates = computed(() => {
   return templateConfigs[componentType.value as keyof typeof templateConfigs] || [];
 });
 
 /**
- * 打开对话�?
+ * 打开对话框
  */
 const open = (type: string = "card") => {
   componentType.value = type;
@@ -312,7 +312,7 @@ defineExpose({
   justify-content: flex-end;
 }
 
-// 响应式设�?
+// 响应式设计
 @media (max-width: 768px) {
   .template-content {
     .template-list {

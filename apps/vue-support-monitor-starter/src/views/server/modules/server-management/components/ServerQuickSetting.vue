@@ -18,13 +18,13 @@
             :icon="isMonitorEnabled ? 'ri:eye-line' : 'ri:eye-off-line'" 
             class="mr-1" 
           />
-          {{ isMonitorEnabled ? '监控�? : '未监�? }}
+          {{ isMonitorEnabled ? '监控中' : '未监控' }}
         </el-button>
       </template>
 
       <div class="quick-setting-content">
         <div class="setting-header">
-          <h4>快速设�?/h4>
+          <h4>快速设置</h4>
           <span class="server-name">{{ serverName }}</span>
         </div>
 
@@ -101,7 +101,7 @@ import {
   saveOrUpdateServerSetting
 } from "@/api/server/setting";
 
-// 定义属�?
+// 定义属性
 interface Props {
   serverId: number;
   serverName: string;
@@ -115,20 +115,20 @@ const emit = defineEmits<{
   settingChanged: [serverId: number];
 }>();
 
-// 响应式状�?
+// 响应式状态
 const visible = ref(false);
 const loading = ref(false);
 const saveLoading = ref(false);
 const serverSetting = ref<ServerSetting | null>(null);
 
-// 本地设置状�?
+// 本地设置状态
 const localSettings = reactive({
   monitorEnabled: 0,
   reportEnabled: 0,
   alertEnabled: 0,
 });
 
-// 计算属�?
+// 计算属性
 const isMonitorEnabled = computed(() => localSettings.monitorEnabled === 1);
 
 // 监听服务器ID变化
@@ -139,7 +139,7 @@ watch(() => props.serverId, (newServerId) => {
 }, { immediate: true });
 
 /**
- * 处理可见性变�?
+ * 处理可见性变化
  */
 const handleVisibleChange = (newVisible: boolean) => {
   visible.value = newVisible;
@@ -149,7 +149,7 @@ const handleVisibleChange = (newVisible: boolean) => {
 };
 
 /**
- * 加载服务器设�?
+ * 加载服务器设置
  */
 const loadServerSetting = async () => {
   if (!props.serverId) return;
@@ -165,14 +165,14 @@ const loadServerSetting = async () => {
       localSettings.alertEnabled = result.data.monitorSysGenServerSettingAlertEnabled || 0;
     }
   } catch (error) {
-    console.error('加载服务器设置失�?', error);
+    console.error('加载服务器设置失败:', error);
   } finally {
     loading.value = false;
   }
 };
 
 /**
- * 处理监控状态变�?
+ * 处理监控状态变化
  */
 const handleMonitorChange = (value: number) => {
   // 如果关闭监控，同时关闭上报和告警
@@ -183,20 +183,20 @@ const handleMonitorChange = (value: number) => {
 };
 
 /**
- * 处理上报状态变�?
+ * 处理上报状态变化
  */
 const handleReportChange = (value: number) => {
-  // 如果开启上报，需要先开启监�?
+  // 如果开启上报，需要先开启监控
   if (value === 1 && localSettings.monitorEnabled === 0) {
     localSettings.monitorEnabled = 1;
   }
 };
 
 /**
- * 处理告警状态变�?
+ * 处理告警状态变化
  */
 const handleAlertChange = (value: number) => {
-  // 如果开启告警，需要先开启监�?
+  // 如果开启告警，需要先开启监控
   if (value === 1 && localSettings.monitorEnabled === 0) {
     localSettings.monitorEnabled = 1;
   }

@@ -1,173 +1,161 @@
 <template>
   <div class="file-system-page">
-    <!-- 统计卡片 -->
-    <div class="stats-section">
-      <div class="stats-grid">
-        <ScCard
-          layout="stats"
-          theme="primary"
-          icon="ri:file-list-3-line"
-          :value="statistics.totalFiles"
-          label="总文�?
-          trend-icon="ri:folder-line"
-          trend-text="全部文件"
-        />
-        <ScCard
-          layout="stats"
-          theme="info"
-          icon="ri:hard-drive-2-line"
-          :value="formatFileSize(statistics.totalSize)"
-          label="总大�?
-          trend-icon="ri:database-2-line"
-          trend-text="存储空间"
-        />
-        <ScCard
-          layout="stats"
-          theme="success"
-          icon="ri:checkbox-circle-line"
-          :value="statistics.completedFiles"
-          label="已完�?
-          trend-icon="ri:check-double-line"
-          trend-text="合并完成"
-        />
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <h2 class="page-title">
+          <IconifyIconOnline icon="ri:file-list-3-line" class="mr-2" />
+          文件管理
+        </h2>
+        <p class="page-description">分片上传、文件管理、HTTP访问控制</p>
       </div>
-    </div>
-
-    <!-- 工具�?-->
-    <div class="toolbar-section">
-      <div class="toolbar modern-toolbar">
-        <div class="left">
-          <el-input
-            v-model="searchQuery.fileName"
-            placeholder="搜索文件�?.."
-            clearable
-            class="w-280"
-            @clear="handleSearch"
-            @keyup.enter="handleSearch"
-          >
-            <template #prefix>
-              <IconifyIconOnline icon="ri:search-line" />
-            </template>
-          </el-input>
-          <el-select
-            v-model="searchQuery.fileStatus"
-            placeholder="文件状�?
-            clearable
-            class="w-160"
-            @change="handleSearch"
-          >
-            <el-option label="全部" :value="null" />
-            <el-option label="待合�? :value="0" />
-            <el-option label="合并�? :value="1" />
-            <el-option label="已完�? :value="2" />
-            <el-option label="合并失败" :value="3" />
-          </el-select>
-          <!-- 连接状�?-->
+      <div class="header-right">
+        <!-- WebSocket连接状态 -->
+        <div class="connection-status">
           <el-tooltip :content="connectionStatusText" placement="bottom">
-            <div class="connection-badge" :class="connectionStatusClass">
+            <div class="status-indicator" :class="connectionStatusClass">
               <IconifyIconOnline
                 :icon="connectionStatusIcon"
                 class="status-icon"
               />
-              <span>{{ connectionStatusText }}</span>
+              <span class="status-text">{{ connectionStatusText }}</span>
             </div>
           </el-tooltip>
         </div>
-        <div class="right">
-          <el-button type="primary" @click="showUploadDialog = true">
-            <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-1" />
-            上传文件
-          </el-button>
-          <el-button @click="showSettingsDialog = true">
-            <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
-            设置
-          </el-button>
-          <el-button @click="refreshData">
-            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-            刷新
-          </el-button>
-          <el-button
-            v-if="showDebugInfo"
-            @click="showDebugInfo = false"
-            type="info"
-            plain
-          >
-            <IconifyIconOnline icon="ri:bug-line" class="mr-1" />
-            关闭调试
-          </el-button>
-          <el-button v-else @click="showDebugInfo = true" plain>
-            <IconifyIconOnline icon="ri:bug-line" class="mr-1" />
-            调试
-          </el-button>
-        </div>
+
+        <el-button @click="showSettingsDialog = true">
+          <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
+          设置
+        </el-button>
+        <el-button @click="showMD5TestDialog = true">
+          <IconifyIconOnline icon="ri:shield-check-line" class="mr-1" />
+          MD5测试
+        </el-button>
+        <el-button type="primary" @click="showUploadDialog = true">
+          <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-1" />
+          上传文件
+        </el-button>
+        <el-button @click="refreshData">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+        <el-button @click="showDebugInfo = !showDebugInfo">
+          <IconifyIconOnline icon="ri:bug-line" class="mr-1" />
+          调试
+        </el-button>
       </div>
     </div>
 
     <!-- 调试信息面板 -->
     <div v-if="showDebugInfo" class="debug-panel">
-      <el-card class="debug-card">
+      <el-card>
         <template #header>
-          <div class="debug-header">
-            <span
-              ><IconifyIconOnline
-                icon="ri:terminal-box-line"
-                class="mr-2"
-              />SSE连接调试</span
-            >
-            <div class="debug-actions">
-              <el-button @click="testSSEConnection" type="primary" size="small"
-                >测试连接</el-button
-              >
-              <el-button @click="testBackendAPI" type="success" size="small"
-                >测试API</el-button
-              >
-            </div>
+          <div class="card-header">
+            <span>SSE连接调试信息</span>
+            <el-button @click="testSSEConnection" type="primary" size="small">
+              测试连接
+            </el-button>
+            <el-button @click="testBackendAPI" type="success" size="small">
+              测试后端API
+            </el-button>
           </div>
         </template>
-        <el-descriptions :column="4" border size="small">
-          <el-descriptions-item label="连接状�?>
-            <el-tag
-              :type="sseState.connected ? 'success' : 'danger'"
-              size="small"
-            >
+        <div class="debug-content">
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="连接状态">
               {{ connectionStatusText }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="客户端ID">{{
-            sseState.clientId || "未分�?
-          }}</el-descriptions-item>
-          <el-descriptions-item label="重连次数">{{
-            sseState.reconnectAttempts
-          }}</el-descriptions-item>
-          <el-descriptions-item label="最后心�?>
-            {{
-              sseState.lastHeartbeat
-                ? new Date(sseState.lastHeartbeat).toLocaleString()
-                : "�?
-            }}
-          </el-descriptions-item>
-        </el-descriptions>
+            </el-descriptions-item>
+            <el-descriptions-item label="客户端ID">
+              {{ sseState.clientId || "未分配" }}
+            </el-descriptions-item>
+            <el-descriptions-item label="连接中">
+              {{ sseState.connecting ? "是" : "否" }}
+            </el-descriptions-item>
+            <el-descriptions-item label="已连接">
+              {{ sseState.connected ? "是" : "否" }}
+            </el-descriptions-item>
+            <el-descriptions-item label="重连次数">
+              {{ sseState.reconnectAttempts }}
+            </el-descriptions-item>
+            <el-descriptions-item label="最后心跳">
+              {{
+                sseState.lastHeartbeat
+                  ? new Date(sseState.lastHeartbeat).toLocaleString()
+                  : "无"
+              }}
+            </el-descriptions-item>
+            <el-descriptions-item label="错误信息" :span="2">
+              {{ sseState.error || "无" }}
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
       </el-card>
     </div>
 
-    <!-- 主内容区�?-->
-    <div class="main-content">
-      <!-- 左侧分组�?-->
-      <div class="group-panel">
-        <div class="panel-header">
-          <h3>
-            <IconifyIconOnline icon="ri:folder-3-line" class="mr-2" />文件分组
-          </h3>
-          <el-button
-            type="primary"
-            size="small"
-            circle
-            @click="handleCreateGroup"
-          >
-            <IconifyIconOnline icon="ri:add-line" />
+    <!-- 统计卡片 -->
+    <div class="statistics-cards">
+      <el-row :gutter="16">
+        <el-col :span="6">
+          <div class="stat-card total">
+            <div class="stat-icon">
+              <IconifyIconOnline icon="ri:file-list-line" />
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ statistics.totalFiles }}</div>
+              <div class="stat-label">总文件数</div>
+            </div>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="stat-card size">
+            <div class="stat-icon">
+              <IconifyIconOnline icon="ri:hard-drive-line" />
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">
+                {{ formatFileSize(statistics.totalSize) }}
+              </div>
+              <div class="stat-label">总大小</div>
+            </div>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="stat-card completed">
+            <div class="stat-icon">
+              <IconifyIconOnline icon="ri:checkbox-circle-line" />
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ statistics.completedFiles }}</div>
+              <div class="stat-label">已完成</div>
+            </div>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="stat-card failed">
+            <div class="stat-icon">
+              <IconifyIconOnline icon="ri:error-warning-line" />
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ statistics.failedFiles }}</div>
+              <div class="stat-label">失败</div>
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+    </div>
+
+    <!-- 分组树和文件列表 -->
+    <div class="content-layout">
+      <!-- 左侧分组树 -->
+      <div class="group-tree-container">
+        <div class="group-tree-header">
+          <h3>文件分组</h3>
+          <el-button type="primary" size="small" @click="handleCreateGroup">
+            <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+            新建分组
           </el-button>
         </div>
-        <div class="panel-body">
+        <div class="group-tree-content">
           <el-tree
             ref="groupTreeRef"
             :data="groupTree"
@@ -178,16 +166,14 @@
             @node-click="handleGroupSelect"
           >
             <template #default="{ data }">
-              <div class="tree-node">
+              <div class="group-tree-node">
                 <IconifyIconOnline
                   :icon="data.fileSystemGroupIcon || 'ri:folder-line'"
-                  :style="{ color: data.fileSystemGroupColor || '#3b82f6' }"
-                  class="node-icon"
+                  :style="{ color: data.fileSystemGroupColor || '#409EFF' }"
+                  class="mr-2"
                 />
-                <span class="node-name">{{ data.fileSystemGroupName }}</span>
-                <el-tag size="small" type="info" class="node-count">{{
-                  data.fileCount || 0
-                }}</el-tag>
+                <span class="group-name">{{ data.fileSystemGroupName }}</span>
+                <span class="file-count">({{ data.fileCount || 0 }})</span>
               </div>
             </template>
           </el-tree>
@@ -195,46 +181,55 @@
       </div>
 
       <!-- 右侧文件列表 -->
-      <div class="file-panel">
-        <div class="panel-header">
-          <div class="header-left">
-            <h3>
-              <IconifyIconOnline
-                icon="ri:file-list-3-line"
-                class="mr-2"
-              />文件列表
-            </h3>
-            <el-tag
-              v-if="selectedGroupId"
-              type="primary"
-              size="small"
-              closable
-              @close="clearGroupFilter"
+      <div class="file-list-container">
+        <div class="list-header">
+          <div class="search-bar">
+            <el-input
+              v-model="searchQuery.fileName"
+              placeholder="搜索文件名..."
+              clearable
+              @clear="handleSearch"
+              @keyup.enter="handleSearch"
             >
-              {{ getSelectedGroupName() }}
-            </el-tag>
+              <template #prefix>
+                <IconifyIconOnline icon="ri:search-line" />
+              </template>
+            </el-input>
+            <el-select
+              v-model="searchQuery.fileStatus"
+              placeholder="文件状态"
+              clearable
+              @change="handleSearch"
+            >
+              <el-option label="全部" :value="null" />
+              <el-option label="待合并" :value="0" />
+              <el-option label="合并中" :value="1" />
+              <el-option label="已完成" :value="2" />
+              <el-option label="合并失败" :value="3" />
+            </el-select>
+            <el-button type="primary" @click="handleSearch">
+              <IconifyIconOnline icon="ri:search-line" class="mr-1" />
+              搜索
+            </el-button>
           </div>
-          <div class="header-actions">
+          <div class="list-actions">
             <el-button
               type="primary"
-              size="small"
               :disabled="!selectedFiles.length"
               @click="showMoveToGroupDialog = true"
             >
               <IconifyIconOnline icon="ri:folder-transfer-line" class="mr-1" />
-              移动
-              {{ selectedFiles.length > 0 ? `(${selectedFiles.length})` : "" }}
+              移动到分组
             </el-button>
             <el-button
               type="danger"
-              size="small"
               :disabled="!selectedFiles.length"
               @click="handleBatchDelete"
             >
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-              删除
+              批量删除
             </el-button>
-            <el-button size="small" @click="handleCleanExpired">
+            <el-button @click="handleCleanExpired">
               <IconifyIconOnline icon="ri:delete-bin-2-line" class="mr-1" />
               清理过期
             </el-button>
@@ -242,7 +237,7 @@
         </div>
 
         <!-- 文件表格 -->
-        <div class="panel-body table-body">
+        <div class="file-table">
           <ScTable
             ref="tableRef"
             :url="getFileSystemPage"
@@ -250,50 +245,35 @@
             table-name="file-system"
             @selection-change="handleSelectionChange"
           >
-            <el-table-column type="selection" width="50" />
-            <el-table-column label="文件�? min-width="240">
+            <el-table-column type="selection" width="55" />
+            <el-table-column label="文件名" min-width="200">
               <template #default="{ row }">
-                <div class="file-cell">
-                  <div
-                    class="file-icon-wrapper"
-                    :class="getFileTypeClass(row.fileSystemType)"
-                  >
-                    <IconifyIconOnline
-                      :icon="getFileIcon(row.fileSystemType)"
-                    />
-                  </div>
-                  <div class="file-info">
-                    <span class="file-name" :title="row.fileSystemName">{{
-                      row.fileSystemName
-                    }}</span>
-                    <span class="file-meta">{{
-                      formatFileSize(row.fileSystemSize)
-                    }}</span>
-                  </div>
+                <div class="file-name-cell">
+                  <IconifyIconOnline
+                    :icon="getFileIcon(row.fileSystemType)"
+                    class="file-icon"
+                  />
+                  <span class="file-name" :title="row.fileSystemName">
+                    {{ row.fileSystemName }}
+                  </span>
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="状�? width="110" align="center">
+            <el-table-column label="文件大小" width="120" align="right">
               <template #default="{ row }">
-                <el-tag
-                  :type="getStatusType(row.fileSystemStatus)"
-                  size="small"
-                  effect="light"
-                >
-                  <IconifyIconOnline
-                    :icon="getStatusIcon(row.fileSystemStatus)"
-                    class="mr-1"
-                  />
+                {{ formatFileSize(row.fileSystemSize) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="getStatusType(row.fileSystemStatus)">
                   {{ getStatusText(row.fileSystemStatus) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="上传进度" width="160">
+            <el-table-column label="进度" width="150">
               <template #default="{ row }">
-                <div
-                  v-if="row.fileSystemChunkTotal > 0"
-                  class="progress-wrapper"
-                >
+                <div v-if="row.fileSystemChunkTotal > 0" class="progress-cell">
                   <el-progress
                     :percentage="
                       Math.round(
@@ -303,74 +283,67 @@
                       )
                     "
                     :status="getProgressStatus(row.fileSystemStatus)"
-                    :stroke-width="8"
-                    :show-text="false"
+                    :stroke-width="6"
                   />
-                  <span class="progress-text">
-                    {{ row.fileSystemChunkUploaded }}/{{
-                      row.fileSystemChunkTotal
-                    }}
-                  </span>
                 </div>
-                <span v-else class="text-muted">-</span>
+                <span v-else>-</span>
               </template>
             </el-table-column>
-            <el-table-column label="HTTP" width="80" align="center">
+            <el-table-column label="HTTP访问" width="100" align="center">
               <template #default="{ row }">
                 <el-switch
                   v-model="row.fileSystemHttpAccessEnabled"
                   :disabled="row.fileSystemStatus !== 2"
-                  size="small"
                   @change="handleToggleHttpAccess(row)"
                 />
               </template>
             </el-table-column>
             <el-table-column label="创建时间" width="160">
               <template #default="{ row }">
-                <span class="time-text">{{
-                  formatDateTime(row.createTime)
-                }}</span>
+                {{ formatDateTime(row.createTime) }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="180" fixed="right">
+            <el-table-column label="操作" width="200" fixed="right">
               <template #default="{ row }">
-                <div class="action-buttons">
-                  <el-button
-                    v-if="row.fileSystemStatus === 2"
-                    link
-                    type="primary"
-                    @click="handleDownload(row)"
-                  >
-                    <IconifyIconOnline icon="ri:download-line" />
-                  </el-button>
-                  <el-button
-                    v-if="row.fileSystemStatus === 2"
-                    link
-                    type="success"
-                    @click="openDistribute(row)"
-                  >
-                    <IconifyIconOnline icon="ri:share-forward-line" />
-                  </el-button>
-                  <el-button
-                    v-if="row.fileSystemStatus === 3"
-                    link
-                    type="warning"
-                    @click="handleRetryMerge(row)"
-                  >
-                    <IconifyIconOnline icon="ri:restart-line" />
-                  </el-button>
-                  <el-button
-                    v-if="row.fileSystemStatus === 0"
-                    link
-                    type="success"
-                    @click="handleManualMerge(row)"
-                  >
-                    <IconifyIconOnline icon="ri:git-merge-line" />
-                  </el-button>
-                  <el-button link type="danger" @click="handleDelete(row)">
-                    <IconifyIconOnline icon="ri:delete-bin-line" />
-                  </el-button>
-                </div>
+                <el-button
+                  v-if="row.fileSystemStatus === 2"
+                  size="small"
+                  type="primary"
+                  @click="handleDownload(row)"
+                >
+                  下载
+                </el-button>
+                <el-button
+                  v-if="row.fileSystemStatus === 2"
+                  size="small"
+                  type="success"
+                  @click="openDistribute(row)"
+                >
+                  同步
+                </el-button>
+                <el-button
+                  v-if="row.fileSystemStatus === 3"
+                  size="small"
+                  type="warning"
+                  @click="handleRetryMerge(row)"
+                >
+                  重试
+                </el-button>
+                <el-button
+                  v-if="row.fileSystemStatus === 0"
+                  size="small"
+                  type="success"
+                  @click="handleManualMerge(row)"
+                >
+                  合并
+                </el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  @click="handleDelete(row)"
+                >
+                  删除
+                </el-button>
               </template>
             </el-table-column>
           </ScTable>
@@ -378,7 +351,7 @@
       </div>
     </div>
 
-    <!-- 上传对话�?-->
+    <!-- 上传对话框 -->
     <FileSystemDistributeDialog
       v-model="showDistributeDialog"
       :file="currentDistributeFile"
@@ -394,23 +367,23 @@
       @add-to-queue="handleAddToQueue"
     />
 
-    <!-- 队列状态组�?-->
+    <!-- 队列状态组件 -->
     <UploadQueueStatusComponent
       ref="queueStatusRef"
       :queue-status="queueStatus"
       @queue-update="handleQueueUpdate"
     />
 
-    <!-- 文件系统设置对话�?-->
+    <!-- 文件系统设置对话框 -->
     <FileSystemSettings
       v-model="showSettingsDialog"
       @settings-updated="handleSettingsUpdated"
     />
 
-    <!-- MD5测试对话�?-->
+    <!-- MD5测试对话框 -->
     <MD5TestDialog v-model="showMD5TestDialog" />
 
-    <!-- 分组管理对话�?-->
+    <!-- 分组管理对话框 -->
     <FileSystemGroupDialog
       ref="groupDialogRef"
       v-model="showGroupDialog"
@@ -420,7 +393,7 @@
     <!-- 移动到分组对话框 -->
     <el-dialog
       v-model="showMoveToGroupDialog"
-      title="移动文件到分�?
+      title="移动文件到分组"
       width="500px"
       :close-on-click-modal="false"
     >
@@ -440,7 +413,7 @@
               <span class="file-name">{{ file.fileSystemName }}</span>
             </div>
             <div v-if="selectedFiles.length > 5" class="more-files">
-              还有 {{ selectedFiles.length - 5 }} 个文�?..
+              还有 {{ selectedFiles.length - 5 }} 个文件...
             </div>
           </div>
         </div>
@@ -448,7 +421,7 @@
         <el-divider />
 
         <div class="group-selection">
-          <p>选择目标分组�?/p>
+          <p>选择目标分组：</p>
           <el-tree
             ref="moveGroupTreeRef"
             :data="groupTree"
@@ -522,7 +495,6 @@ import UploadQueueStatusComponent from "./components/UploadQueueStatus.vue";
 import FileSystemSettings from "./components/FileSystemSettings.vue";
 import MD5TestDialog from "./components/MD5TestDialog.vue";
 import FileSystemGroupDialog from "./components/FileSystemGroupDialog.vue";
-import ScCard from "@repo/components/ScCard/index.vue";
 
 // SSE连接
 const {
@@ -534,7 +506,7 @@ const {
   MESSAGE_TYPE,
 } = useFileSystemSSE();
 
-// 响应式数�?
+// 响应式数据
 const showUploadDialog = ref(false);
 const showSettingsDialog = ref(false);
 const showMD5TestDialog = ref(false);
@@ -548,7 +520,7 @@ const groupTreeRef = ref();
 const groupDialogRef = ref();
 const selectedGroupId = ref(null);
 
-// 移动到分组相关数�?
+// 移动到分组相关数据
 const moveGroupTreeRef = ref();
 const selectedMoveGroupId = ref(null);
 const moveToGroupLoading = ref(false);
@@ -582,12 +554,12 @@ const searchQuery = reactive({
   groupId: null as number | null,
 });
 
-// SSE连接状�?
+// SSE连接状态
 const connectionStatusText = computed(() => {
-  if (sseState.value.connecting) return "连接�?;
-  if (sseState.value.connected) return "已连�?;
+  if (sseState.value.connecting) return "连接中";
+  if (sseState.value.connected) return "已连接";
   if (sseState.value.error) return "连接失败";
-  return "未连�?;
+  return "未连接";
 });
 
 const connectionStatusClass = computed(() => {
@@ -605,7 +577,7 @@ const connectionStatusIcon = computed(() => {
 });
 
 /**
- * 加载分组�?
+ * 加载分组树
  */
 const loadGroupTree = async () => {
   try {
@@ -613,10 +585,10 @@ const loadGroupTree = async () => {
     if (String(res.code) === "00000") {
       groupTree.value = res.data || [];
     } else {
-      console.error("加载分组树失�?", res.msg);
+      console.error("加载分组树失败:", res.msg);
     }
   } catch (error) {
-    console.error("加载分组树异�?", error);
+    console.error("加载分组树异常:", error);
   }
 };
 
@@ -642,7 +614,7 @@ const handleGroupSelect = (data: FileSystemGroup) => {
  * 处理分组操作成功
  */
 const handleGroupSuccess = () => {
-  // 重新加载分组�?
+  // 重新加载分组树
   loadGroupTree();
   // 重新加载文件列表
   handleSearch();
@@ -656,7 +628,7 @@ const handleMoveGroupSelect = (data: FileSystemGroup) => {
 };
 
 /**
- * 处理移动到分�?
+ * 处理移动到分组
  */
 const handleMoveToGroup = async () => {
   if (!selectedMoveGroupId.value || !selectedFiles.value.length) {
@@ -680,7 +652,7 @@ const handleMoveToGroup = async () => {
       ElMessage.error(res.msg || "移动文件失败");
     }
   } catch (error) {
-    console.error("移动文件到分组失�?", error);
+    console.error("移动文件到分组失败:", error);
     ElMessage.error("移动文件失败");
   } finally {
     moveToGroupLoading.value = false;
@@ -697,10 +669,10 @@ const handleCreateGroup = () => {
 // 生命周期
 onMounted(() => {
   loadStatistics();
-  loadGroupTree(); // 加载分组�?
+  loadGroupTree(); // 加载分组树
   connectSSE(); // 连接SSE
 
-  // 注册SSE消息处理�?
+  // 注册SSE消息处理器
   onMessage(MESSAGE_TYPE.UPLOAD_COMPLETED, () => {
     refreshData();
   });
@@ -753,7 +725,7 @@ const handleSearch = () => {
   tableRef.value?.refresh();
 };
 
-// 监听搜索条件变化，自动刷新表�?
+// 监听搜索条件变化，自动刷新表格
 watch(
   () => searchQuery,
   () => {
@@ -770,14 +742,14 @@ const handleSelectionChange = (selection: FileSystem[]) => {
 };
 
 /**
- * 格式化文件大�?
+ * 格式化文件大小
  */
 const formatFileSize = (size: number) => {
   return formatBytes(size);
 };
 
 /**
- * 格式化日期时�?
+ * 格式化日期时间
  */
 const formatDateTime = (dateTime: string) => {
   return dateTime ? dayjs(dateTime).format("YYYY-MM-DD HH:mm:ss") : "-";
@@ -799,7 +771,7 @@ const getFileIcon = (fileType: string) => {
 };
 
 /**
- * 获取状态类�?
+ * 获取状态类型
  */
 const getStatusType = (
   status: number
@@ -808,16 +780,16 @@ const getStatusType = (
     number,
     "success" | "warning" | "info" | "primary" | "danger"
   > = {
-    0: "warning", // 待合�?
-    1: "primary", // 合并�?
-    2: "success", // 已完�?
+    0: "warning", // 待合并
+    1: "primary", // 合并中
+    2: "success", // 已完成
     3: "danger", // 合并失败
   };
   return typeMap[status] || "info";
 };
 
 /**
- * 打开同步对话�?
+ * 打开同步对话框
  */
 const showDistributeDialog = ref(false);
 const currentDistributeFile = ref<FileSystem | null>(null);
@@ -827,81 +799,24 @@ const openDistribute = (file: FileSystem) => {
 };
 
 const handleDistributeSuccess = () => {
-  ElMessage.success("同步任务已完�?);
+  ElMessage.success("同步任务已完成");
 };
 
 /**
- * 获取状态文�?
+ * 获取状态文本
  */
 const getStatusText = (status: number) => {
   const textMap: Record<number, string> = {
-    0: "待合�?,
-    1: "合并�?,
-    2: "已完�?,
-    3: "失败",
+    0: "待合并",
+    1: "合并中",
+    2: "已完成",
+    3: "合并失败",
   };
   return textMap[status] || "未知";
 };
 
 /**
- * 获取状态图�?
- */
-const getStatusIcon = (status: number) => {
-  const iconMap: Record<number, string> = {
-    0: "ri:time-line",
-    1: "ri:loader-4-line",
-    2: "ri:checkbox-circle-line",
-    3: "ri:error-warning-line",
-  };
-  return iconMap[status] || "ri:question-line";
-};
-
-/**
- * 获取文件类型样式�?
- */
-const getFileTypeClass = (fileType: string) => {
-  const classMap: Record<string, string> = {
-    image: "type-image",
-    video: "type-video",
-    audio: "type-audio",
-    document: "type-document",
-    archive: "type-archive",
-    code: "type-code",
-  };
-  return classMap[fileType] || "type-default";
-};
-
-/**
- * 获取选中分组名称
- */
-const getSelectedGroupName = () => {
-  const findGroup = (groups: any[], id: number): string => {
-    for (const g of groups) {
-      if (g.fileSystemGroupId === id) return g.fileSystemGroupName;
-      if (g.children) {
-        const found = findGroup(g.children, id);
-        if (found) return found;
-      }
-    }
-    return "";
-  };
-  return selectedGroupId.value
-    ? findGroup(groupTree.value, selectedGroupId.value)
-    : "";
-};
-
-/**
- * 清除分组筛�?
- */
-const clearGroupFilter = () => {
-  selectedGroupId.value = null;
-  searchQuery.groupId = null;
-  groupTreeRef.value?.setCurrentKey(null);
-  handleSearch();
-};
-
-/**
- * 获取进度状�?
+ * 获取进度状态
  */
 const getProgressStatus = (status: number) => {
   if (status === 2) return "success";
@@ -936,7 +851,7 @@ const handleDownload = async (file: FileSystem) => {
 const handleDelete = async (file: FileSystem) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除文�?"${file.fileSystemName}" 吗？`,
+      `确定要删除文件 "${file.fileSystemName}" 吗？`,
       "确认删除",
       {
         type: "warning",
@@ -964,7 +879,7 @@ const handleDelete = async (file: FileSystem) => {
 const handleBatchDelete = async () => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除选中�?${selectedFiles.value.length} 个文件吗？`,
+      `确定要删除选中的 ${selectedFiles.value.length} 个文件吗？`,
       "确认批量删除",
       {
         type: "warning",
@@ -1001,12 +916,12 @@ const handleToggleHttpAccess = async (file: FileSystem) => {
         file.fileSystemHttpAccessEnabled ? "已启用HTTP访问" : "已禁用HTTP访问"
       );
     } else {
-      // 恢复原状�?
+      // 恢复原状态
       file.fileSystemHttpAccessEnabled = !file.fileSystemHttpAccessEnabled;
       ElMessage.error(res.msg || "操作失败");
     }
   } catch (error) {
-    // 恢复原状�?
+    // 恢复原状态
     file.fileSystemHttpAccessEnabled = !file.fileSystemHttpAccessEnabled;
     console.error("切换HTTP访问失败:", error);
     ElMessage.error("操作失败");
@@ -1019,7 +934,7 @@ const handleToggleHttpAccess = async (file: FileSystem) => {
 const handleCleanExpired = async () => {
   try {
     await ElMessageBox.confirm(
-      "确定要清理过期文件吗？此操作不可恢复�?,
+      "确定要清理过期文件吗？此操作不可恢复。",
       "确认清理",
       {
         type: "warning",
@@ -1048,7 +963,7 @@ const handleRetryMerge = async (file: FileSystem) => {
   try {
     const res = await retryMergeTask(file.fileSystemId!);
     if (res.code === "00000") {
-      ElMessage.success("重试合并任务已提�?);
+      ElMessage.success("重试合并任务已提交");
       refreshData();
     } else {
       ElMessage.error(res.msg || "重试失败");
@@ -1066,7 +981,7 @@ const handleManualMerge = async (file: FileSystem) => {
   try {
     const res = await manualMergeFile(file.fileSystemId!);
     if (res.code === "00000") {
-      ElMessage.success("手动合并任务已提�?);
+      ElMessage.success("手动合并任务已提交");
       refreshData();
     } else {
       ElMessage.error(res.msg || "合并失败");
@@ -1085,27 +1000,27 @@ const handleUploadSuccess = () => {
 };
 
 /**
- * 处理添加到队�?
+ * 处理添加到队列
  */
 const handleAddToQueue = (task: UploadQueueStatus) => {
-  // SSE会自动更新queueStatus，这里不需要手动处�?
-  console.log("添加到上传队�?", task);
+  // SSE会自动更新queueStatus，这里不需要手动处理
+  console.log("添加到上传队列:", task);
 };
 
 /**
  * 处理队列更新
  */
 const handleQueueUpdate = (queue: UploadQueueStatus[]) => {
-  // 可以在这里处理队列状态更�?
-  console.log("队列状态更�?", queue);
+  // 可以在这里处理队列状态更新
+  console.log("队列状态更新:", queue);
 };
 
 /**
  * 处理设置更新
  */
 const handleSettingsUpdated = () => {
-  ElMessage.success("设置已更�?);
-  // 可以在这里刷新相关数�?
+  ElMessage.success("设置已更新");
+  // 可以在这里刷新相关数据
   loadStatistics();
 };
 
@@ -1146,21 +1061,21 @@ const testBackendAPI = async () => {
     if (res.code === "00000") {
       ElMessage.success("后端API连接正常");
 
-      // 测试SSE状态端�?
+      // 测试SSE状态端点
       const baseUrl = "/monitor/api";
       const statusResponse = await fetch(`${baseUrl}/v1/filesystem/sse/status`);
       console.log(
-        "SSE状态端点响�?",
+        "SSE状态端点响应:",
         statusResponse.status,
         statusResponse.statusText
       );
 
       if (statusResponse.ok) {
         const statusData = await statusResponse.json();
-        console.log("SSE状态数�?", statusData);
+        console.log("SSE状态数据:", statusData);
         ElMessage.success("SSE状态端点也正常");
       } else {
-        ElMessage.warning(`SSE状态端点返�? ${statusResponse.status}`);
+        ElMessage.warning(`SSE状态端点返回: ${statusResponse.status}`);
       }
     } else {
       ElMessage.error(`后端API错误: ${res.msg}`);
@@ -1174,417 +1089,320 @@ const testBackendAPI = async () => {
 
 <style scoped lang="scss">
 .file-system-page {
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-
-  // 统计卡片区域
-  .stats-section {
-    padding: 20px 32px;
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-    }
-  }
-
-  // 页面头部
   .page-header {
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.95) 0%,
-      rgba(248, 250, 252, 0.9) 100%
-    );
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-    padding: 24px 32px;
-    margin-bottom: 0;
-
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 20px;
+    background: var(--el-bg-color-overlay);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
     .header-left {
-      .page-title-section {
+      .page-title {
+        margin: 0 0 8px 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
         display: flex;
         align-items: center;
-        gap: 16px;
+      }
 
-        .title-icon {
-          width: 56px;
-          height: 56px;
-          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 28px;
-          color: white;
-          box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
-        }
-
-        .title-content {
-          .page-title {
-            margin: 0 0 4px 0;
-            font-size: 28px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-
-          .page-subtitle {
-            margin: 0;
-            color: #64748b;
-            font-size: 14px;
-          }
-        }
+      .page-description {
+        margin: 0;
+         color: var(--el-text-color-primary);
+        font-size: 14px;
       }
     }
 
     .header-right {
-      .stats-overview {
-        display: flex;
-        gap: 24px;
-
-        .stat-item {
-          text-align: center;
-          padding: 12px 20px;
-          background: rgba(255, 255, 255, 0.8);
-          border-radius: 12px;
-          border: 1px solid rgba(226, 232, 240, 0.6);
-          min-width: 90px;
-
-          .stat-number {
-            font-size: 24px;
-            font-weight: 700;
-            color: #3b82f6;
-            line-height: 1.2;
-          }
-
-          .stat-label {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 4px;
-          }
-        }
-      }
-    }
-  }
-
-  // 工具�?
-  .toolbar-section {
-    padding: 16px 32px;
-    background: rgba(255, 255, 255, 0.6);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
-
-    .modern-toolbar {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
 
-      .left,
-      .right {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
+      .connection-status {
+        .status-indicator {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s ease;
 
-      .w-280 {
-        width: 280px;
-      }
-      .w-160 {
-        width: 160px;
-      }
-
-      .connection-badge {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-
-        .status-icon {
-          font-size: 14px;
-        }
-
-        &.status-connected {
-          background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-          color: #16a34a;
-          border: 1px solid #86efac;
-        }
-
-        &.status-connecting {
-          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-          color: #d97706;
-          border: 1px solid #fcd34d;
           .status-icon {
-            animation: spin 1s linear infinite;
+            font-size: 14px;
+          }
+
+          &.status-connected {
+            background: #f0f9ff;
+            color: #0ea5e9;
+            border: 1px solid #bae6fd;
+
+            .status-icon {
+              animation: none;
+            }
+          }
+
+          &.status-connecting {
+            background: #fef3c7;
+            color: #d97706;
+            border: 1px solid #fde68a;
+
+            .status-icon {
+              animation: spin 1s linear infinite;
+            }
+          }
+
+          &.status-error,
+          &.status-disconnected {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+          }
+
+          &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
           }
         }
-
-        &.status-error,
-        &.status-disconnected {
-          background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-          color: #dc2626;
-          border: 1px solid #fca5a5;
-        }
       }
     }
   }
 
-  // 调试面板
-  .debug-panel {
-    padding: 0 32px 16px;
+  .statistics-cards {
+    margin-bottom: 20px;
 
-    .debug-card {
-      border-radius: 12px;
-      border: 1px solid #e2e8f0;
+    .stat-card {
+      padding: 20px;
+      background: var(--el-bg-color-overlay);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      transition: transform 0.2s ease;
 
-      .debug-header {
+      &:hover {
+        transform: translateY(-2px);
+      }
+
+      .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        justify-content: center;
+        margin-right: 16px;
+        font-size: 24px;
+        color: var(--el-text-color-primary);
+      }
 
-        .debug-actions {
-          display: flex;
-          gap: 8px;
+      .stat-content {
+        flex: 1;
+
+        .stat-value {
+          font-size: 24px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+          margin-bottom: 4px;
         }
+
+        .stat-label {
+          font-size: 14px;
+           color: var(--el-text-color-primary);
+        }
+      }
+
+      &.total .stat-icon {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      &.size .stat-icon {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      }
+
+      &.completed .stat-icon {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      }
+
+      &.failed .stat-icon {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
       }
     }
   }
 
-  // 主内容区�?
-  .main-content {
+  .content-layout {
     display: flex;
-    flex-direction: row;
     gap: 20px;
-    padding: 20px 32px;
-    flex: 1;
-    overflow: hidden;
-    min-height: 0;
+    height: calc(100vh - 300px);
   }
 
-  // 分组面板
-  .group-panel {
+  .group-tree-container {
     width: 280px;
-    min-width: 280px;
-    max-width: 280px;
-    background: white;
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
+    background: var(--el-bg-color-overlay);
+    border-radius: 8px;
+    padding: 16px;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
-    .panel-header {
+    .group-tree-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 20px;
-      border-bottom: 1px solid #e2e8f0;
-      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #ebeef5;
 
       h3 {
         margin: 0;
-        font-size: 15px;
+        font-size: 16px;
         font-weight: 600;
-        color: #334155;
-        display: flex;
-        align-items: center;
+        color: var(--el-text-color-primary);
       }
     }
 
-    .panel-body {
+    .group-tree-content {
       flex: 1;
       overflow-y: auto;
-      padding: 12px;
 
-      .tree-node {
+      .group-tree-node {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        border-radius: 8px;
-        transition: all 0.2s;
+        width: 100%;
 
-        &:hover {
-          background: #f1f5f9;
-        }
-
-        .node-icon {
-          font-size: 18px;
-        }
-        .node-name {
+        .group-name {
           flex: 1;
-          font-size: 14px;
-          color: #334155;
+          margin-right: 8px;
         }
-        .node-count {
-          font-size: 11px;
+
+        .file-count {
+          font-size: 12px;
+           color: var(--el-text-color-primary);
+          background: var(--el-bg-color-overlay);
+          padding: 2px 6px;
+          border-radius: 10px;
         }
       }
     }
   }
 
-  // 文件面板
-  .file-panel {
+  .file-list-container {
+    padding: 20px;
     flex: 1;
-    background: white;
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
+    background: var(--el-bg-color-overlay);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 
-    .panel-header {
+    .list-header {
+      padding: 20px;
+      border-bottom: 1px solid #ebeef5;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 20px;
-      border-bottom: 1px solid #e2e8f0;
-      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      flex-wrap: wrap;
+      gap: 16px;
 
-      .header-left {
+      .search-bar {
         display: flex;
-        align-items: center;
         gap: 12px;
+        align-items: center;
+        flex: 1;
+        min-width: 400px;
 
-        h3 {
-          margin: 0;
-          font-size: 15px;
-          font-weight: 600;
-          color: #334155;
-          display: flex;
-          align-items: center;
+        .el-input {
+          width: 200px;
+        }
+
+        .el-select {
+          width: 120px;
         }
       }
 
-      .header-actions {
+      .list-actions {
         display: flex;
+        gap: 12px;
+      }
+    }
+
+    .file-table {
+      .file-name-cell {
+        display: flex;
+        align-items: center;
         gap: 8px;
+
+        .file-icon {
+          font-size: 18px;
+          color: #409eff;
+        }
+
+        .file-name {
+          flex: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+
+      .progress-cell {
+        padding: 0 8px;
       }
     }
-
-    .table-body {
-      flex: 1;
-      overflow: auto;
-      padding: 16px;
-    }
-  }
-
-  // 文件单元�?
-  .file-cell {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .file-icon-wrapper {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-
-      &.type-image {
-        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        color: #d97706;
-      }
-      &.type-video {
-        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        color: #2563eb;
-      }
-      &.type-audio {
-        background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
-        color: #9333ea;
-      }
-      &.type-document {
-        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-        color: #16a34a;
-      }
-      &.type-archive {
-        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-        color: #dc2626;
-      }
-      &.type-code {
-        background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-        color: #4f46e5;
-      }
-      &.type-default {
-        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-        color: #64748b;
-      }
-    }
-
-    .file-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-
-      .file-name {
-        font-size: 14px;
-        font-weight: 500;
-        color: #1e293b;
-        max-width: 200px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .file-meta {
-        font-size: 12px;
-        color: #94a3b8;
-      }
-    }
-  }
-
-  // 进度�?
-  .progress-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-
-    .progress-text {
-      font-size: 11px;
-      color: #64748b;
-      text-align: center;
-    }
-  }
-
-  // 操作按钮
-  .action-buttons {
-    display: flex;
-    gap: 4px;
-    justify-content: center;
-  }
-
-  // 时间文本
-  .time-text {
-    font-size: 13px;
-    color: #64748b;
-  }
-
-  .text-muted {
-    color: #94a3b8;
   }
 }
 
-// 移动到分组对话框
+// 响应式设计
+@media (max-width: 768px) {
+  .file-system-page {
+    padding: 10px;
+
+    .page-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+
+      .header-right {
+        width: 100%;
+        justify-content: flex-end;
+      }
+    }
+
+    .statistics-cards {
+      .el-col {
+        margin-bottom: 16px;
+      }
+    }
+
+    .file-list-container .list-header {
+      flex-direction: column;
+      align-items: stretch;
+
+      .search-bar {
+        min-width: auto;
+        flex-wrap: wrap;
+
+        .el-input,
+        .el-select {
+          width: 100%;
+        }
+      }
+
+      .list-actions {
+        justify-content: flex-end;
+      }
+    }
+  }
+}
+
+// 移动到分组对话框样式
 .move-to-group-dialog {
   .selected-files-info {
     margin-bottom: 16px;
@@ -1598,29 +1416,25 @@ const testBackendAPI = async () => {
     .file-list {
       max-height: 120px;
       overflow-y: auto;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
+      border: 1px solid var(--el-border-color-lighter);
+      border-radius: 4px;
       padding: 8px;
-      background: #f8fafc;
+      background-color: var(--el-fill-color-extra-light);
 
       .file-item {
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 6px 8px;
+        padding: 4px 0;
         font-size: 13px;
-        border-radius: 6px;
-
-        &:hover {
-          background: #e2e8f0;
-        }
 
         .file-icon {
           font-size: 16px;
-          color: #3b82f6;
+          color: var(--el-color-primary);
         }
+
         .file-name {
-          color: #334155;
+          color: var(--el-text-color-regular);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -1628,9 +1442,9 @@ const testBackendAPI = async () => {
       }
 
       .more-files {
-        padding: 6px;
+        padding: 4px 0;
         font-size: 12px;
-        color: #64748b;
+        color: var(--el-text-color-secondary);
         text-align: center;
         font-style: italic;
       }
@@ -1652,11 +1466,12 @@ const testBackendAPI = async () => {
 
       .group-name {
         flex: 1;
-        color: #334155;
+        color: var(--el-text-color-primary);
       }
+
       .file-count {
         font-size: 12px;
-        color: #64748b;
+        color: var(--el-text-color-secondary);
       }
     }
   }
@@ -1669,40 +1484,6 @@ const testBackendAPI = async () => {
   }
   to {
     transform: rotate(360deg);
-  }
-}
-
-// 响应式设�?- 只在小屏幕上才变成上下布局
-@media (max-width: 768px) {
-  .file-system-page {
-    .page-header {
-      padding: 16px;
-
-      .header-content {
-        flex-direction: column;
-        gap: 16px;
-      }
-    }
-
-    .toolbar-section {
-      padding: 12px 16px;
-
-      .modern-toolbar {
-        flex-wrap: wrap;
-      }
-    }
-
-    .main-content {
-      flex-direction: column;
-      padding: 12px 16px;
-    }
-
-    .group-panel {
-      width: 100%;
-      min-width: 100%;
-      max-width: 100%;
-      max-height: 200px;
-    }
   }
 }
 </style>

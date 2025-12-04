@@ -24,15 +24,15 @@
 
       <div v-if="selectedFile" class="file-info">
         <h4>文件信息</h4>
-        <p><strong>文件�?</strong> {{ selectedFile.name }}</p>
+        <p><strong>文件名:</strong> {{ selectedFile.name }}</p>
         <p><strong>文件大小:</strong> {{ formatFileSize(selectedFile.size) }}</p>
         <p><strong>文件类型:</strong> {{ selectedFile.type || '未知' }}</p>
-        <p><strong>最后修�?</strong> {{ new Date(selectedFile.lastModified).toLocaleString() }}</p>
+        <p><strong>最后修改:</strong> {{ new Date(selectedFile.lastModified).toLocaleString() }}</p>
       </div>
 
       <div v-if="isCalculating" class="calculating">
         <el-progress :percentage="progress" :stroke-width="8" />
-        <p class="mt-2">正在计算MD5哈希�?..</p>
+        <p class="mt-2">正在计算MD5哈希值...</p>
       </div>
 
       <div v-if="results.length" class="results">
@@ -83,7 +83,7 @@ const emit = defineEmits<{
   "update:modelValue": [value: boolean];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const visible = computed({
   get: () => props.modelValue,
   set: (value) => emit("update:modelValue", value),
@@ -107,7 +107,7 @@ const handleFileChange = (file: any) => {
 };
 
 /**
- * 格式化文件大�?
+ * 格式化文件大小
  */
 const formatFileSize = (size: number) => {
   return formatBytes(size);
@@ -137,7 +137,7 @@ const calculateStandardMD5 = async (file: File): Promise<string> => {
 };
 
 /**
- * 计算MD5 - 分片方法（适用于大文件�?
+ * 计算MD5 - 分片方法（适用于大文件）
  */
 const calculateChunkedMD5 = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -213,9 +213,9 @@ const calculateMD5 = async () => {
       time: time2
     });
 
-    // 验证结果一致�?
+    // 验证结果一致性
     if (hash1 === hash2) {
-      ElMessage.success("MD5计算完成，两种方法结果一�?);
+      ElMessage.success("MD5计算完成，两种方法结果一致");
     } else {
       ElMessage.error("警告：两种方法计算结果不一致！");
     }
@@ -235,7 +235,7 @@ const calculateMD5 = async () => {
 const copyToClipboard = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text);
-    ElMessage.success("已复制到剪贴�?);
+    ElMessage.success("已复制到剪贴板");
   } catch (error) {
     ElMessage.error("复制失败");
   }

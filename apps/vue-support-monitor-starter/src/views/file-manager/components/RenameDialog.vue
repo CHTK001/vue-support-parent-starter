@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    title="重命�?
+    title="重命名"
     width="500px"
     :before-close="handleClose"
     class="rename-dialog"
@@ -29,7 +29,7 @@
         </div>
       </div>
 
-      <!-- 重命名表�?-->
+      <!-- 重命名表单 -->
       <div class="rename-form">
         <el-form
           ref="formRef"
@@ -38,7 +38,7 @@
           label-width="80px"
           @submit.prevent="handleSubmit"
         >
-          <el-form-item label="新名�? prop="newName">
+          <el-form-item label="新名称" prop="newName">
             <el-input
               v-model="formData.newName"
               placeholder="请输入新的文件名"
@@ -64,11 +64,11 @@
         </div>
         <div class="analysis-content">
           <div class="analysis-item">
-            <span class="analysis-label">文件�?</span>
+            <span class="analysis-label">文件名:</span>
             <span class="analysis-value">{{ nameAnalysis.fileName }}</span>
           </div>
           <div class="analysis-item" v-if="nameAnalysis.extension">
-            <span class="analysis-label">扩展�?</span>
+            <span class="analysis-label">扩展名:</span>
             <span class="analysis-value extension">{{ nameAnalysis.extension }}</span>
           </div>
           <div class="analysis-item">
@@ -78,7 +78,7 @@
           <div class="analysis-item" v-if="nameAnalysis.isTypeChanged">
             <el-alert
               title="类型变更提醒"
-              :description="`文件类型将从 ${getFileTypeText(fileInfo.type)} 变更�?${getFileTypeText(nameAnalysis.detectedType)}`"
+              :description="`文件类型将从 ${getFileTypeText(fileInfo.type)} 变更为 ${getFileTypeText(nameAnalysis.detectedType)}`"
               type="warning"
               show-icon
               :closable="false"
@@ -88,7 +88,7 @@
         </div>
       </div>
 
-      <!-- 冲突检�?-->
+      <!-- 冲突检测 -->
       <div class="conflict-detection" v-if="conflictInfo.hasConflict">
         <el-alert
           title="名称冲突"
@@ -104,7 +104,7 @@
               <div class="conflict-options">
                 <el-radio-group v-model="formData.conflictAction">
                   <el-radio label="replace">替换现有文件</el-radio>
-                  <el-radio label="rename">自动重命�?/el-radio>
+                  <el-radio label="rename">自动重命名</el-radio>
                   <el-radio label="cancel">取消操作</el-radio>
                 </el-radio-group>
               </div>
@@ -121,7 +121,7 @@
               <el-form-item>
                 <el-checkbox v-model="formData.preserveExtension">
                   <IconifyIconOnline icon="ri:file-text-line" class="checkbox-icon" />
-                  保持原始扩展�?
+                  保持原始扩展名
                 </el-checkbox>
               </el-form-item>
               
@@ -154,7 +154,7 @@
           :disabled="!formData.newName.trim() || conflictInfo.hasConflict && formData.conflictAction === 'cancel'"
         >
           <IconifyIconOnline v-if="!isRenaming" icon="ri:edit-line" class="btn-icon" />
-          {{ isRenaming ? '重命名中...' : '确认重命�? }}
+          {{ isRenaming ? '重命名中...' : '确认重命名' }}
         </el-button>
       </div>
     </template>
@@ -198,7 +198,7 @@ const emit = defineEmits<{
   'file-renamed': [oldName: string, newName: string]
 }>()
 
-// 响应式数�?
+// 响应式数据
 const dialogVisible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
@@ -220,16 +220,16 @@ const formData = reactive({
 const formRules: FormRules = {
   newName: [
     { required: true, message: '请输入新的文件名', trigger: 'blur' },
-    { min: 1, max: 255, message: '文件名长度在 1 �?255 个字�?, trigger: 'blur' },
+    { min: 1, max: 255, message: '文件名长度在 1 到 255 个字符', trigger: 'blur' },
     {
       pattern: /^[^<>:"/\\|?*]+$/,
-      message: '文件名不能包含以下字�? < > : " / \\ | ? *',
+      message: '文件名不能包含以下字符: < > : " / \\ | ? *',
       trigger: 'blur'
     },
     {
       validator: (rule, value, callback) => {
         if (value === props.fileInfo.name) {
-          callback(new Error('新文件名不能与原文件名相�?))
+          callback(new Error('新文件名不能与原文件名相同'))
         } else {
           callback()
         }
@@ -239,7 +239,7 @@ const formRules: FormRules = {
   ]
 }
 
-// 计算属�?
+// 计算属性
 const nameAnalysis = computed(() => {
   const newName = formData.newName.trim()
   if (!newName) {
@@ -267,8 +267,8 @@ const nameAnalysis = computed(() => {
 
 const conflictInfo = computed(() => {
   // 这里应该检查文件名冲突
-  // 模拟冲突检�?
-  const hasConflict = false // 实际应该调用API检�?
+  // 模拟冲突检测
+  const hasConflict = false // 实际应该调用API检查
   
   return {
     hasConflict,
@@ -311,7 +311,7 @@ const getFileTypeClass = (type: string): string => {
 
 const getFileTypeText = (type: string): string => {
   const typeMap: Record<string, string> = {
-    folder: '文件�?,
+    folder: '文件夹',
     image: '图片文件',
     video: '视频文件',
     audio: '音频文件',
@@ -396,8 +396,8 @@ const handleSubmit = async () => {
     handleClose()
     
   } catch (error: any) {
-    ElMessage.error(error.message || '重命名失�?)
-    console.error('重命名失�?', error)
+    ElMessage.error(error.message || '重命名失败')
+    console.error('重命名失败:', error)
   } finally {
     isRenaming.value = false
   }
@@ -416,11 +416,11 @@ const renameFile = async (options: {
     // const response = await renameFileApi(options)
     // return response.data
     
-    // 模拟重命�?
+    // 模拟重命名
     await new Promise(resolve => setTimeout(resolve, 1000))
     return { success: true }
   } catch (error) {
-    throw new Error('重命名失�?)
+    throw new Error('重命名失败')
   }
 }
 
@@ -445,11 +445,11 @@ const resetForm = () => {
 // 监听对话框打开
 watch(dialogVisible, (visible) => {
   if (visible && props.fileInfo.name) {
-    // 初始化新名称为原文件�?
+    // 初始化新名称为原文件名
     formData.newName = props.fileInfo.name
     
     nextTick(() => {
-      // 聚焦到输入框并选中文件名部分（不包括扩展名�?
+      // 聚焦到输入框并选中文件名部分（不包括扩展名）
       const input = document.querySelector('.name-input input') as HTMLInputElement
       if (input) {
         input.focus()
@@ -651,7 +651,7 @@ watch(dialogVisible, (visible) => {
   padding: 0;
 }
 
-// 响应式设�?
+// 响应式设计
 @media (max-width: 768px) {
   .rename-dialog {
     .dialog-content {

@@ -3,7 +3,7 @@ import { reactive, ref, onMounted, nextTick } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 
-// 国际�?
+// 国际化
 const { t } = useI18n();
 
 // 图片处理相关引用
@@ -37,7 +37,7 @@ const handleImageUpload = e => {
     return;
   }
 
-  // 验证文件大小 (最�?0MB)
+  // 验证文件大小 (最大10MB)
   if (file.size > 10 * 1024 * 1024) {
     message(t("message.fileSizeError"), { type: "error" });
     return;
@@ -47,13 +47,13 @@ const handleImageUpload = e => {
   reader.onload = event => {
     env.sourceImage = event.target.result;
 
-    // 加载图片以获取尺�?
+    // 加载图片以获取尺寸
     const img = new Image();
     img.onload = () => {
       env.imageSize.width = img.width;
       env.imageSize.height = img.height;
 
-      // 等待DOM更新后处理图�?
+      // 等待DOM更新后处理图片
       nextTick(() => {
         imageRef.value.src = env.sourceImage;
       });
@@ -74,7 +74,7 @@ const handleDrop = e => {
   if (e.dataTransfer.files && e.dataTransfer.files[0]) {
     const file = e.dataTransfer.files[0];
 
-    // 创建一个新的事件对象模拟文件上�?
+    // 创建一个新的事件对象模拟文件上传
     const event = {
       target: {
         files: [file]
@@ -110,7 +110,7 @@ const processFanqie = async () => {
     const canvas = canvasRef.value;
     const ctx = canvas.getContext("2d");
 
-    // 设置canvas尺寸与图像一�?
+    // 设置canvas尺寸与图像一致
     canvas.width = env.imageSize.width;
     canvas.height = env.imageSize.height;
 
@@ -208,7 +208,7 @@ const resetProcess = () => {
             <div v-if="!env.sourceImage" class="fanqie__upload-placeholder">
               <IconifyIconOnline icon="ri:upload-cloud-2-line" class="fanqie__upload-icon" />
               <div class="fanqie__upload-text">拖放图片到此处或点击上传</div>
-              <div class="fanqie__upload-tip">支持 JPG、PNG 格式，最�?10MB</div>
+              <div class="fanqie__upload-tip">支持 JPG、PNG 格式，最大 10MB</div>
               <el-button type="primary" class="fanqie__upload-btn">
                 <IconifyIconOnline icon="ri:image-add-line" />
                 <span>选择图片</span>
@@ -246,7 +246,7 @@ const resetProcess = () => {
             </div>
 
             <div class="fanqie__result-content">
-              <el-empty v-if="!env.resultImage" description="请先上传并解析图�? class="fanqie__empty" />
+              <el-empty v-if="!env.resultImage" description="请先上传并解析图片" class="fanqie__empty" />
 
               <div v-else class="fanqie__result-image-container">
                 <img :src="env.resultImage" class="fanqie__result-image" alt="解析结果" />
@@ -592,7 +592,7 @@ const resetProcess = () => {
   }
 }
 
-/* 响应式调�?*/
+/* 响应式调整 */
 @media (max-width: 768px) {
   .fanqie {
     &__upload-area,

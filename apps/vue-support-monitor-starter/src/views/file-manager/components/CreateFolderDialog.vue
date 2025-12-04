@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    title="新建文件�?
+    title="新建文件夹"
     width="500px"
     :before-close="handleClose"
     class="create-folder-dialog"
@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <!-- 文件夹名称输�?-->
+      <!-- 文件夹名称输入 -->
       <div class="folder-name-section">
         <el-form
           ref="formRef"
@@ -36,7 +36,7 @@
           label-width="100px"
           @submit.prevent="handleSubmit"
         >
-          <el-form-item label="文件夹名�? prop="folderName">
+          <el-form-item label="文件夹名称" prop="folderName">
             <el-input
               v-model="formData.folderName"
               placeholder="请输入文件夹名称"
@@ -66,8 +66,8 @@
             <span class="preview-value">{{ fullPath }}</span>
           </div>
           <div class="preview-item">
-            <span class="preview-label">文件夹名�?</span>
-            <span class="preview-value">{{ formData.folderName || '(未输�?' }}</span>
+            <span class="preview-label">文件夹名称:</span>
+            <span class="preview-value">{{ formData.folderName || '(未输入)' }}</span>
           </div>
         </div>
       </div>
@@ -80,7 +80,7 @@
               <el-form-item label="权限设置">
                 <el-select
                   v-model="formData.permissions"
-                  placeholder="选择文件夹权�?
+                  placeholder="选择文件夹权限"
                   class="permissions-select"
                 >
                   <el-option
@@ -91,7 +91,7 @@
                       <IconifyIconOnline icon="ri:lock-unlock-line" class="option-icon" />
                       <div class="option-details">
                         <div class="option-title">读写权限 (755)</div>
-                        <div class="option-desc">所有者可读写执行，其他用户可读执�?/div>
+                        <div class="option-desc">所有者可读写执行，其他用户可读执行</div>
                       </div>
                     </div>
                   </el-option>
@@ -103,7 +103,7 @@
                       <IconifyIconOnline icon="ri:lock-line" class="option-icon" />
                       <div class="option-details">
                         <div class="option-title">只读权限 (644)</div>
-                        <div class="option-desc">所有者可读写，其他用户只�?/div>
+                        <div class="option-desc">所有者可读写，其他用户只读</div>
                       </div>
                     </div>
                   </el-option>
@@ -115,7 +115,7 @@
                       <IconifyIconOnline icon="ri:lock-unlock-fill" class="option-icon" />
                       <div class="option-details">
                         <div class="option-title">完全权限 (777)</div>
-                        <div class="option-desc">所有用户都有读写执行权�?/div>
+                        <div class="option-desc">所有用户都有读写执行权限</div>
                       </div>
                     </div>
                   </el-option>
@@ -151,7 +151,7 @@
           :disabled="!formData.folderName.trim()"
         >
           <IconifyIconOnline v-if="!isCreating" icon="ri:folder-add-line" class="btn-icon" />
-          {{ isCreating ? '创建�?..' : '创建文件�? }}
+          {{ isCreating ? '创建中...' : '创建文件夹' }}
         </el-button>
       </div>
     </template>
@@ -180,7 +180,7 @@ const emit = defineEmits<{
   'folder-created': [folderPath: string]
 }>()
 
-// 响应式数�?
+// 响应式数据
 const dialogVisible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
@@ -201,10 +201,10 @@ const formData = reactive({
 const formRules: FormRules = {
   folderName: [
     { required: true, message: '请输入文件夹名称', trigger: 'blur' },
-    { min: 1, max: 255, message: '文件夹名称长度在 1 �?255 个字�?, trigger: 'blur' },
+    { min: 1, max: 255, message: '文件夹名称长度在 1 到 255 个字符', trigger: 'blur' },
     {
       pattern: /^[^<>:"/\\|?*]+$/,
-      message: '文件夹名称不能包含以下字�? < > : " / \\ | ? *',
+      message: '文件夹名称不能包含以下字符: < > : " / \\ | ? *',
       trigger: 'blur'
     },
     {
@@ -233,7 +233,7 @@ const formRules: FormRules = {
   ]
 }
 
-// 计算属�?
+// 计算属性
 const fullPath = computed(() => {
   if (!formData.folderName.trim()) {
     return props.currentPath
@@ -254,11 +254,11 @@ const handleSubmit = async () => {
     // 验证表单
     await formRef.value.validate()
     
-    // 检查文件夹是否已存�?
+    // 检查文件夹是否已存在
     const folderExists = await checkFolderExists(fullPath.value)
     if (folderExists) {
       const action = await ElMessageBox.confirm(
-        `文件�?"${formData.folderName}" 已存在，是否要覆盖？`,
+        `文件夹 "${formData.folderName}" 已存在，是否要覆盖？`,
         '文件夹已存在',
         {
           confirmButtonText: '覆盖',
@@ -282,14 +282,14 @@ const handleSubmit = async () => {
       addToFavorites: formData.addToFavorites
     })
     
-    ElMessage.success(`文件�?"${formData.folderName}" 创建成功`)
+    ElMessage.success(`文件夹 "${formData.folderName}" 创建成功`)
     emit('folder-created', fullPath.value)
     handleClose()
     
   } catch (error: any) {
     if (error !== 'cancel') {
-      ElMessage.error(error.message || '创建文件夹失�?)
-      console.error('创建文件夹失�?', error)
+      ElMessage.error(error.message || '创建文件夹失败')
+      console.error('创建文件夹失败:', error)
     }
   } finally {
     isCreating.value = false
@@ -302,7 +302,7 @@ const checkFolderExists = async (path: string): Promise<boolean> => {
     // const response = await checkPathExists(path)
     // return response.data.exists
     
-    // 模拟检�?
+    // 模拟检查
     return false
   } catch (error) {
     console.error('检查文件夹是否存在失败:', error)
@@ -325,7 +325,7 @@ const createFolder = async (options: {
     await new Promise(resolve => setTimeout(resolve, 1000))
     return { success: true }
   } catch (error) {
-    throw new Error('创建文件夹失�?)
+    throw new Error('创建文件夹失败')
   }
 }
 
@@ -350,7 +350,7 @@ const resetForm = () => {
 watch(dialogVisible, (visible) => {
   if (visible) {
     nextTick(() => {
-      // 聚焦到文件夹名称输入�?
+      // 聚焦到文件夹名称输入框
       const input = document.querySelector('.folder-name-input input') as HTMLInputElement
       if (input) {
         input.focus()
@@ -529,7 +529,7 @@ watch(dialogVisible, (visible) => {
   }
 }
 
-// 响应式设�?
+// 响应式设计
 @media (max-width: 768px) {
   .create-folder-dialog {
     .dialog-content {

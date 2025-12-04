@@ -2,8 +2,8 @@ import { ref, onUnmounted } from "vue";
 
 /**
  * 组合式函数：通用轮询
- * @param task 轮询任务（返�?Promise），抛错将被吞掉
- * @param intervalMs 间隔毫秒，默�?3000
+ * @param task 轮询任务（返回 Promise），抛错将被吞掉
+ * @param intervalMs 间隔毫秒，默认 3000
  * @returns start/stop/isRunning
  */
 export function usePolling(task: () => Promise<void>, intervalMs = 3000) {

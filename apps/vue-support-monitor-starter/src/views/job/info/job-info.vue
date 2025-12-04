@@ -17,11 +17,11 @@
           </div>
           <div class="stat-card">
             <div class="stat-number">{{ runningJobs }}</div>
-            <div class="stat-label">运行�?/div>
+            <div class="stat-label">运行中</div>
           </div>
           <div class="stat-card">
             <div class="stat-number">{{ stoppedJobs }}</div>
-            <div class="stat-label">已停�?/div>
+            <div class="stat-label">已停止</div>
           </div>
         </div>
       </div>
@@ -32,7 +32,7 @@
       <div class="modern-toolbar">
         <div class="toolbar-left">
           <div class="search-container">
-            <el-input v-model="form.jobDesc" placeholder="搜索任务名称或描�?.." clearable class="search-input">
+            <el-input v-model="form.jobDesc" placeholder="搜索任务名称或描述..." clearable class="search-input">
               <template #prefix>
                 <IconifyIconOnline icon="ep:search" class="search-icon" />
               </template>
@@ -40,11 +40,11 @@
           </div>
           
           <div class="filter-container">
-            <el-select v-model="form.jobGroup" class="group-select" placeholder="选择任务�?>
-              <el-option :value="0" label="全部任务�?>
+            <el-select v-model="form.jobGroup" class="group-select" placeholder="选择任务组">
+              <el-option :value="0" label="全部任务组">
                 <div class="option-item">
                   <IconifyIconOnline icon="ep:menu" class="option-icon" />
-                  <span>全部任务�?/span>
+                  <span>全部任务组</span>
                 </div>
               </el-option>
               <el-option v-for="item in executorData" :key="item.monitorId" :value="item.monitorId">
@@ -56,7 +56,7 @@
               </el-option>
             </el-select>
 
-            <!-- 状态快捷切�?-->
+            <!-- 状态快捷切换 -->
             <div class="status-filter">
               <el-button 
                 :class="['status-btn', { 'active': form.jobTriggerStatus === null }]" 
@@ -70,14 +70,14 @@
                 @click="setStatus(1)"
               >
                 <IconifyIconOnline icon="ep:video-play" class="btn-icon" />
-                运行�?
+                运行中
               </el-button>
               <el-button 
                 :class="['status-btn', 'warning', { 'active': form.jobTriggerStatus === 0 }]" 
                 @click="setStatus(0)"
               >
                 <IconifyIconOnline icon="ep:video-pause" class="btn-icon" />
-                已停�?
+                已停止
               </el-button>
             </div>
           </div>
@@ -96,7 +96,7 @@
       </div>
     </div>
 
-    <!-- 主内容区�?-->
+    <!-- 主内容区域 -->
     <div class="job-content">
       <ScTable ref="tableRef" v-model:page="form" class="job-table" :col-size="4" :url="loadJobData" :params="form" layout="card" cardLayout="default" @data-loaded="handleDataLoaded">
         <template #default="{ row }">
@@ -117,7 +117,7 @@
               </div>
               <div class="status-badge" :class="row.jobTriggerStatus === 1 ? 'badge-running' : 'badge-stopped'">
                 <IconifyIconOnline :icon="row.jobTriggerStatus === 1 ? 'ep:success-filled' : 'ep:circle-close-filled'" class="status-icon" />
-                <span class="status-text">{{ row.jobTriggerStatus === 1 ? '运行�? : '已停�? }}</span>
+                <span class="status-text">{{ row.jobTriggerStatus === 1 ? '运行中' : '已停止' }}</span>
               </div>
             </div>
 
@@ -125,13 +125,13 @@
             <div class="card-content">
               <div class="schedule-expression">
                 <IconifyIconOnline icon="ep:clock" class="schedule-icon" />
-                <span class="schedule-text">{{ row.jobScheduleType }} {{ row.jobScheduleTime }}<span v-if="row.jobScheduleType === 'FIXED'">�?/span></span>
+                <span class="schedule-text">{{ row.jobScheduleType }} {{ row.jobScheduleTime }}<span v-if="row.jobScheduleType === 'FIXED'">秒</span></span>
               </div>
               
               <div class="job-metadata">
                 <div class="meta-item">
                   <IconifyIconOnline icon="ep:user" class="meta-icon" />
-                  <span class="meta-label">创建�?</span>
+                  <span class="meta-label">创建者:</span>
                   <span class="meta-value">{{ row.jobAuthor }}</span>
                 </div>
                 <div class="meta-item">
@@ -157,12 +157,12 @@
                 </el-tag>
                 <el-tag size="small" :type="row.jobTriggerStatus === 1 ? 'success' : 'warning'" class="status-tag">
                   <IconifyIconOnline :icon="row.jobTriggerStatus === 1 ? 'ep:success-filled' : 'ep:warning-filled'" class="tag-icon" />
-                  {{ row.jobTriggerStatus === 1 ? '运行�? : '已停�? }}
+                  {{ row.jobTriggerStatus === 1 ? '运行中' : '已停止' }}
                 </el-tag>
               </div>
             </div>
 
-            <!-- 卡片操作�?-->
+            <!-- 卡片操作区 -->
             <div class="card-actions">
               <div class="primary-actions">
                 <el-button size="small" type="primary" class="action-btn" @click="edit(row)">
@@ -218,7 +218,7 @@
         </template>
         <template #empty>
           <el-empty description="暂无任务数据" class="job-empty-state">
-            <el-button type="primary" @click="add">创建第一个任�?/el-button>
+            <el-button type="primary" @click="add">创建第一个任务</el-button>
           </el-empty>
         </template>
       </ScTable>
@@ -242,7 +242,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="jobinfoNextTriggerTimeShow" draggable title="下一次执行时�? width="400px" class="job-dialog">
+    <el-dialog v-model="jobinfoNextTriggerTimeShow" draggable title="下一次执行时间" width="400px" class="job-dialog">
       <div class="job-next-time-list">
         <div v-for="item in jobinfoNextTriggerTimeData" :key="item" class="job-next-time-item">
           {{ item }}
@@ -266,13 +266,13 @@
 <script setup lang="ts">
 import { fetchAppList } from "@/api/monitor/app";
 import { fetchJobDelete, fetchJobNextTriggerTime, fetchJobPageList, fetchJobStart, fetchJobStop, fetchJobTrigger } from "@/api/monitor/job";
-// import { fetchServiceList } from "@/api/monitor/service"; // 已删除服务监控功�?
+// import { fetchServiceList } from "@/api/monitor/service"; // 已删除服务监控功能
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { computed, defineAsyncComponent, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
-// 动态导入组�?
+// 动态导入组件
 const Save = defineAsyncComponent(() => import("./save.vue"));
 const ScSelectFilter = defineAsyncComponent(() => import("@repo/components/ScSelectFilter/index.vue"));
 
@@ -280,7 +280,7 @@ const ScSelectFilter = defineAsyncComponent(() => import("@repo/components/ScSel
 const tableRef = ref(null);
 const router = useRouter();
 
-// 表单和分页参�?
+// 表单和分页参数
 const form = reactive({
   mode: "card",
   jobTriggerStatus: null,
@@ -290,7 +290,7 @@ const form = reactive({
   pageSize: 12
 });
 
-// 数据状�?
+// 数据状态
 const loading = ref(false);
 const executorData = ref([]);
 const jobinfoNextTriggerTimeData = ref([]);
@@ -298,14 +298,14 @@ const jobgroupByIdData = ref([]);
 const total = ref(0);
 const data = ref([]); // 保留data变量以供其他地方使用
 
-// 计算属�?
+// 计算属性
 const totalJobs = computed(() => data.value.length);
 const runningJobs = computed(() => data.value.filter(job => job.jobTriggerStatus === 1).length);
 const stoppedJobs = computed(() => data.value.filter(job => job.jobTriggerStatus === 0).length);
 
 /**
  * 加载任务数据的URL函数
- * 该函数会作为ScTable的url属性使�?
+ * 该函数会作为ScTable的url属性使用
  */
 const loadJobData = async (params) => {
   try {
@@ -324,17 +324,17 @@ const loadJobData = async (params) => {
 };
 
 /**
- * 处理数据加载完成的回�?
+ * 处理数据加载完成的回调
  */
 const handleDataLoaded = (result) => {
   data.value = result.data;
   total.value = result.total;
 };
 
-// 过滤器数�?
+// 过滤器数据
 const filterData = [
   {
-    title: "状�?,
+    title: "状态",
     key: "jobTriggerStatus",
     multiple: false,
     options: [
@@ -354,7 +354,7 @@ const filterData = [
   }
 ];
 
-// 初始化数�?
+// 初始化数据
 const initial = async () => {
   try {
     const res = await fetchAppList({});
@@ -363,7 +363,7 @@ const initial = async () => {
     // 触发表格刷新
     tableRef.value?.refresh();
   } catch (error) {
-    console.error("初始化失�?", error);
+    console.error("初始化失败:", error);
   }
 };
 
@@ -376,13 +376,13 @@ const search = async param => {
   tableRef.value?.refresh();
 };
 
-// 过滤器变�?
+// 过滤器变化
 const filterChange = row => {
   form.jobTriggerStatus = row.jobTriggerStatus;
   search({});
 };
 
-// 状态快捷切换（与筛选器联动�?
+// 状态快捷切换（与筛选器联动）
 const setStatus = (v: number | null) => {
   form.jobTriggerStatus = v as any;
   search(undefined);
@@ -412,7 +412,7 @@ const copy = row => {
 // 删除任务
 const del = async row => {
   try {
-    await ElMessageBox.confirm(`确定要删除任�?"${row.jobName}" 吗？`, "提示", {
+    await ElMessageBox.confirm(`确定要删除任务 "${row.jobName}" 吗？`, "提示", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "warning"
@@ -455,7 +455,7 @@ const start = async row => {
 // 停止任务（增加二次确认）
 const stop = async row => {
   try {
-    await ElMessageBox.confirm(`确定要停止任�?"${row.jobName}" 吗？`, "提示", { type: "warning", confirmButtonText: "确定", cancelButtonText: "取消" });
+    await ElMessageBox.confirm(`确定要停止任务 "${row.jobName}" 吗？`, "提示", { type: "warning", confirmButtonText: "确定", cancelButtonText: "取消" });
 
     const res = await fetchJobStop({ jobId: row.jobId });
     if (res.code === "00000") {
@@ -509,14 +509,14 @@ const triggerExecute = async () => {
 
 // 触发执行
 const trigger = row => {
-  triggerTitle.value = row.jobName + "(执行一�?";
+  triggerTitle.value = row.jobName + "(执行一次)";
   triggerShow.value = true;
   triggerId.value = row.jobId;
 };
 
-// 查看注册节点（服务监控已移除，展示空列表提示�?
+// 查看注册节点（服务监控已移除，展示空列表提示）
 const jobgroupById = async (row: any) => {
-  ElMessage.info("服务节点信息功能已移�?);
+  ElMessage.info("服务节点信息功能已移除");
   jobgroupByIdData.value = [];
   jobgroupByIdShow.value = true;
 };
@@ -532,7 +532,7 @@ const logger = row => {
   });
 };
 
-// 查看下一次执行时�?
+// 查看下一次执行时间
 const nextTriggerTime = async row => {
   try {
     const res = await fetchJobNextTriggerTime({
@@ -552,7 +552,7 @@ const nextTriggerTime = async row => {
   }
 };
 
-// 获取执行器名�?
+// 获取执行器名称
 const getExecutorName = (jobGroup) => {
   const executor = executorData.value.find(item => item.monitorId === jobGroup);
   return executor ? executor.monitorName : '未知';
@@ -563,17 +563,17 @@ const getStatusClass = (status) => {
   return status === 1 ? 'status-running' : 'status-stopped';
 };
 
-// 获取状态图�?
+// 获取状态图标
 const getStatusIcon = (status) => {
   return status === 1 ? 'ep:success-filled' : 'ep:circle-close-filled';
 };
 
-// 获取状态文�?
+// 获取状态文本
 const getStatusText = (status) => {
-  return status === 1 ? '运行�? : '已停�?;
+  return status === 1 ? '运行中' : '已停止';
 };
 
-// 格式化时�?
+// 格式化时间
 const formatTime = (timestamp) => {
   if (!timestamp) return '-';
   const date = new Date(timestamp);
@@ -588,7 +588,7 @@ const formatTime = (timestamp) => {
 
 // 处理卡片点击
 const handleCardClick = (row) => {
-  // 可以添加卡片点击逻辑，比如显示详�?
+  // 可以添加卡片点击逻辑，比如显示详情
   console.log('Card clicked:', row);
 };
 
@@ -624,7 +624,7 @@ const handleCommand = (command, row) => {
 // 组件引用
 const saveRef = ref(null);
 
-// 初始�?
+// 初始化
 onMounted(() => {
   initial();
 });
@@ -719,7 +719,7 @@ onMounted(() => {
   letter-spacing: 0.5px;
 }
 
-/* 工具栏样�?*/
+/* 工具栏样式 */
 .job-control-panel {
   border-radius: 16px;
   margin-bottom: 24px;
@@ -918,7 +918,7 @@ onMounted(() => {
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
-/* 主内容区�?*/
+/* 主内容区域 */
 .job-content {
   flex: 1;
   position: relative;
@@ -1226,7 +1226,7 @@ onMounted(() => {
   margin-right: 6px;
 }
 
-/* 空状态样�?*/
+/* 空状态样式 */
 .job-empty-state {
   text-align: center;
   padding: 80px 20px;
@@ -1282,7 +1282,7 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-/* 下一次执行时间列�?*/
+/* 下一次执行时间列表 */
 .job-next-time-list {
   max-height: 300px;
   overflow-y: auto;
@@ -1339,7 +1339,7 @@ onMounted(() => {
   }
 }
 
-/* 响应式设�?*/
+/* 响应式设计 */
 @media (max-width: 1024px) {
   .header-content {
     flex-direction: column;

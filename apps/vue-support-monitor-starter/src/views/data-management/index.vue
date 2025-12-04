@@ -1,39 +1,47 @@
 <template>
   <div class="data-management-page">
-    <!-- 统计卡片 -->
-    <div class="stats-section">
-      <div class="stats-grid">
-        <ScCard
-          layout="stats"
-          theme="primary"
-          icon="ri:database-2-line"
-          :value="fetchServerStaticData.dataSourceTotal"
-          label="数据�?
-          trend-icon="ri:server-line"
-          trend-text="全部数据�?
-        />
-        <ScCard
-          layout="stats"
-          theme="info"
-          icon="ri:stack-line"
-          :value="fetchServerStaticData.dataSourceType"
-          label="类型"
-          trend-icon="ri:apps-line"
-          trend-text="数据库类�?
-        />
-        <ScCard
-          layout="stats"
-          theme="success"
-          icon="ri:refresh-line"
-          :value="Object.keys(backupOn).filter((k) => backupOn[k]).length"
-          label="备份�?
-          trend-icon="ri:time-line"
-          trend-text="进行�?
-        />
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-left">
+          <div class="page-title-section">
+            <div class="title-icon">
+              <IconifyIconOnline icon="ri:database-2-line" />
+            </div>
+            <div class="title-content">
+              <h1 class="page-title">数据管理中心</h1>
+              <p class="page-subtitle">
+                统一管理各类数据源连接，支持多种数据库类型和实时监控
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="stats-overview">
+            <div class="stat-item">
+              <div class="stat-number">
+                {{ fetchServerStaticData.dataSourceTotal }}
+              </div>
+              <div class="stat-label">数据源</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">
+                {{ fetchServerStaticData.dataSourceType }}
+              </div>
+              <div class="stat-label">类型</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">
+                {{ Object.keys(backupOn).filter((k) => backupOn[k]).length }}
+              </div>
+              <div class="stat-label">备份中</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 工具�?-->
+    <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar modern-toolbar">
         <div class="left">
@@ -62,8 +70,8 @@
             />
           </el-select>
           <el-select v-model="sortKey" class="w-160 ml-8">
-            <el-option label="按名称排�? value="name" />
-            <el-option label="按类型排�? value="type" />
+            <el-option label="按名称排序" value="name" />
+            <el-option label="按类型排序" value="type" />
           </el-select>
         </div>
         <div class="right">
@@ -74,7 +82,7 @@
             class="create-btn"
           >
             <IconifyIconOnline icon="ri:add-line" />
-            新建数据�?
+            新建数据源
           </el-button>
         </div>
       </div>
@@ -88,12 +96,11 @@
         :loading="loading"
         :url="pageSystemDataSettings"
         :params="queryParams"
-        :col-size="5"
+        :col-size="4"
         layout="card"
-        @data-loaded="onDataLoaded"
       >
         <template #empty>
-          <el-empty description="暂无数据源配�?>
+          <el-empty description="暂无数据源配置">
             <el-button type="primary" @click="openEdit()">新建配置</el-button>
           </el-empty>
         </template>
@@ -168,7 +175,7 @@
                       :content="
                         backupOn[item.systemDataSettingId!]
                           ? '停止备份'
-                          : '开始备�?
+                          : '开始备份'
                       "
                       placement="top"
                     >
@@ -216,7 +223,7 @@
                         <IconifyIconOnline icon="ri:edit-line" />
                       </el-button>
                     </el-tooltip>
-                    <el-tooltip content="删除数据�? placement="top">
+                    <el-tooltip content="删除数据源" placement="top">
                       <el-button
                         class="quick-action-btn danger"
                         size="small"
@@ -238,9 +245,9 @@
                       <IconifyIconOnline icon="ri:terminal-line" />
                     </div>
                     <div class="info-content">
-                      <div class="info-label">控制台类�?/div>
+                      <div class="info-label">控制台类型</div>
                       <div class="info-value">
-                        {{ item.systemDataSettingConsoleType || "未配�? }}
+                        {{ item.systemDataSettingConsoleType || "未配置" }}
                       </div>
                     </div>
                   </div>
@@ -257,7 +264,7 @@
                   </div>
                 </div>
 
-                <!-- 连接状�?-->
+                <!-- 连接状态 -->
                 <div class="connection-status">
                   <div
                     class="status-indicator"
@@ -277,7 +284,7 @@
               <!-- 操作按钮 -->
               <div class="enhanced-card-actions" @click.stop>
                 <div class="action-buttons">
-                  <el-tooltip content="打开控制�? placement="top">
+                  <el-tooltip content="打开控制台" placement="top">
                     <el-button
                       size="small"
                       type="primary"
@@ -295,7 +302,7 @@
       </ScTable>
     </div>
 
-    <!-- 对话框组�?-->
+    <!-- 对话框组件 -->
     <EditDialog
       v-model:visible="showEdit"
       :model-value="current"
@@ -303,7 +310,7 @@
     />
     <el-dialog
       v-model="showDoc"
-      title="数据源文�?
+      title="数据源文档"
       width="80%"
       draggable
       class="doc-dialog"
@@ -328,10 +335,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, reactive } from "vue";
+import {
+  ref,
+  computed,
+  onMounted,
+  watch,
+  reactive,
+} from "vue";
 import {
   pageSystemDataSettings,
-  listSystemDataSettings,
   deleteSystemDataSetting,
   type SystemDataSetting,
   uploadJdbcDriver,
@@ -348,11 +360,10 @@ import EditDialog from "./modules/EditDialog.vue";
 import ConsoleSettingDialog from "./modules/ConsoleSettingDialog.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import BackConsoleDialog from "./modules/BackConsoleDialog.vue";
-import ScCard from "@repo/components/ScCard/index.vue";
 import { format } from "sql-formatter";
-import Prism from "prismjs"; // �?高亮核心
-import "prismjs/components/prism-sql"; // �?SQL 语法文件
-import "prismjs/themes/prism-tomorrow.css"; // �?主题（任选）
+import Prism from "prismjs"; // ② 高亮核心
+import "prismjs/components/prism-sql"; // ③ SQL 语法文件
+import "prismjs/themes/prism-tomorrow.css"; // ④ 主题（任选）
 
 const loading = ref(false);
 const list = ref<SystemDataSetting[]>([]);
@@ -368,7 +379,7 @@ const docUrl = ref("");
 const backupCounts = ref<Record<number, number>>({});
 const logCounts = ref<Record<number, number>>({});
 
-// 备份列表对话�?
+// 备份列表对话框
 const showBackupDialog = ref(false);
 const currentSettingIdForBackup = ref<number | null>(null);
 const backupList = ref<any[]>([]);
@@ -394,7 +405,7 @@ async function loadBackupList() {
     count: 100,
     sort: "timestamp desc",
   });
-  // 后端返回结构未知，这里尽量兼容常见字�?
+  // 后端返回结构未知，这里尽量兼容常见字段
   const items = (res?.data?.items ||
     res?.data?.data ||
     res?.data ||
@@ -411,7 +422,7 @@ const settingId = ref<number | null>(null);
 const settingType = ref<string | undefined>(undefined);
 const backupLogList = reactive<any>([]);
 const tableRef = ref();
-// 过滤与排�?
+// 过滤与排序
 const searchKey = ref("");
 const typeFilter = ref<string | "">("");
 const sortKey = ref<"name" | "type">("name");
@@ -423,49 +434,16 @@ const typeOptions = computed(
     ) as string[]
 );
 
-// 交给 ScTable 处理分页与过�?
-const queryParams = ref({
-  current: 1,
-  size: 20,
-  name: "",
-  type: "",
-  sort: "name",
-  order: "asc",
-});
-
-// 监听搜索、类型过滤、排序变�?
-watch([searchKey, typeFilter, sortKey], () => {
-  // 根据排序字段设置实际的排序参�?
-  const sortField =
-    sortKey.value === "name"
-      ? "systemDataSettingName"
-      : "systemDataSettingType";
+// 交给 ScTable 处理分页与过滤，这里保留 options 构建
+const queryParams = ref({ current: 1, size: 20, name: "", type: "" });
+watch([searchKey, typeFilter], () => {
   queryParams.value = {
     ...queryParams.value,
     current: 1,
     name: searchKey.value,
     type: typeFilter.value || "",
-    sort: sortField,
-    order: "asc",
   };
 });
-
-/**
- * 数据加载完成回调
- * 用于更新 list �?typeOptions
- */
-function onDataLoaded(data: SystemDataSetting[], total: number) {
-  // 更新 list 以便计算类型选项
-  if (data && data.length > 0) {
-    // 合并新数据到 list，确保类型选项更全
-    const existingIds = new Set(list.value.map((i) => i.systemDataSettingId));
-    data.forEach((item) => {
-      if (!existingIds.has(item.systemDataSettingId)) {
-        list.value.push(item);
-      }
-    });
-  }
-}
 
 function getTypeTag(
   type?: string
@@ -535,27 +513,32 @@ function openConsole(row: SystemDataSetting) {
       name: "dataJdbcConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  } else if (type.includes("redis")) {
+  }
+  else if (type.includes("redis")) {
     _url = router.resolve({
       name: "dataRedisConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  } else if (type.includes("zk") || type.includes("zookeeper")) {
+  }
+  else if (type.includes("zk") || type.includes("zookeeper")) {
     _url = router.resolve({
       name: "dataZookeeperConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  } else if (type.includes("influx")) {
+  }
+ else  if (type.includes("influx")) {
     _url = router.resolve({
       name: "dataInfluxConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  } else if (type.includes("mqtt")) {
+  }
+  else if (type.includes("mqtt")) {
     _url = router.resolve({
       name: "dataMqttConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  } else if (
+  }
+  else if (
     type.includes("graph") ||
     type.includes("graphdb") ||
     type.includes("neo4j")
@@ -564,13 +547,14 @@ function openConsole(row: SystemDataSetting) {
       name: "dataGraphConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  } else if (type.includes("email")) {
+  }
+  else if (type.includes("email")) {
     _url = router.resolve({
       name: "dataEmailConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
   }
-  window.open(_url, "_blank");
+   window.open(_url, '_blank')
 }
 
 function openSetting(row: SystemDataSetting) {
@@ -589,7 +573,7 @@ async function remove(row: SystemDataSetting) {
   });
   const res = await deleteSystemDataSetting(row.systemDataSettingId as number);
   if (res?.success) {
-    ElMessage.success("已删�?);
+    ElMessage.success("已删除");
     load();
   }
 }
@@ -617,7 +601,7 @@ async function onUploadDriver(row: SystemDataSetting, fileEvent: any) {
       return;
     }
     if (!row.systemDataSettingId) {
-      ElMessage.warning("请先保存配置再上传驱�?);
+      ElMessage.warning("请先保存配置再上传驱动");
       return;
     }
     const res = await uploadJdbcDriver(row.systemDataSettingId, raw);
@@ -679,13 +663,13 @@ function getTypeIcon(type?: string): string {
 
 function getStatusClass(item: SystemDataSetting): string {
   // 这里可以根据实际的连接状态来判断
-  // 暂时使用随机状态作为示�?
+  // 暂时使用随机状态作为示例
   const statuses = ["connected", "disconnected", "warning"];
   return statuses[Math.floor(Math.random() * statuses.length)];
 }
 
 function getConnectionStatus(item: SystemDataSetting): string {
-  // 根据实际情况判断连接状�?
+  // 根据实际情况判断连接状态
   const hasAddress = addressOf(item) !== "-";
   const hasConsole = item.systemDataSettingConsoleType;
 
@@ -701,17 +685,17 @@ function getConnectionStatusText(item: SystemDataSetting): string {
   const status = getConnectionStatus(item);
   switch (status) {
     case "status-connected":
-      return "已连�?;
+      return "已连接";
     case "status-warning":
-      return "配置�?;
+      return "配置中";
     case "status-disconnected":
-      return "未连�?;
+      return "未连接";
     default:
       return "未知";
   }
 }
 /**
- * 服务器静态数�?
+ * 服务器静态数据
  */
 const fetchServerStaticDataFunction = () => {
   fetchServerStatic().then((res) => {
@@ -719,94 +703,34 @@ const fetchServerStaticDataFunction = () => {
   });
 };
 
-onMounted(async () => {
-  // 加载所有数据源用于类型选项
-  try {
-    const res = await listSystemDataSettings();
-    if (res?.data) {
-      list.value = res.data;
-    }
-  } catch (e) {
-    console.error("加载数据源列表失�?, e);
-  }
+onMounted(() => {
   load();
   fetchServerStaticDataFunction();
 });
 </script>
 
 <style scoped>
-/* 页面主容�?*/
+/* 页面主容器 */
 .data-management-page {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   padding: 0;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-/* 统计卡片区域 */
-.stats-section {
-  padding: 20px 32px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-}
-
-/* 背景装饰 */
-.data-management-page::before {
-  content: "";
-  position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(
-    circle,
-    rgba(59, 130, 246, 0.08) 0%,
-    transparent 70%
-  );
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.data-management-page::after {
-  content: "";
-  position: absolute;
-  bottom: -30%;
-  left: -10%;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(
-    circle,
-    rgba(16, 185, 129, 0.06) 0%,
-    transparent 70%
-  );
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.data-management-page > * {
-  position: relative;
-  z-index: 1;
-}
-
 /* 页面头部 */
 .page-header {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(248, 250, 252, 0.9) 100%
-  );
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-  padding: 28px 32px;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid #e2e8f0;
+  padding: 24px 0px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
+.content-section {
+  position: relative;
+}
+
 .header-content {
   max-width: 1400px;
   margin: 0 auto;
@@ -823,27 +747,16 @@ onMounted(async () => {
 }
 
 .title-icon {
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  border-radius: 18px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 28px;
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.35);
-  animation: iconFloat 3s ease-in-out infinite;
-}
-
-@keyframes iconFloat {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-4px);
-  }
+  color: var(--el-text-color-primary);
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .title-content {
@@ -870,87 +783,48 @@ onMounted(async () => {
 /* 统计概览 */
 .stats-overview {
   display: flex;
-  gap: 16px;
+  gap: 24px;
 }
 
 .stat-item {
   text-align: center;
-  padding: 18px 24px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  border: 1px solid rgba(226, 232, 240, 0.6);
-  min-width: 100px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-}
-
-.stat-item::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  min-width: 80px;
+  transition: all 0.2s ease;
 }
 
 .stat-item:hover {
   background: rgba(255, 255, 255, 1);
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-  border-color: rgba(59, 130, 246, 0.3);
-}
-
-.stat-item:hover::before {
-  opacity: 1;
-}
-
-.stat-item:nth-child(1) .stat-number {
-  color: #3b82f6;
-}
-.stat-item:nth-child(2) .stat-number {
-  color: #8b5cf6;
-}
-.stat-item:nth-child(3) .stat-number {
-  color: #10b981;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .stat-number {
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 24px;
+  font-weight: 700;
+  color: #3b82f6;
   line-height: 1;
-  background: linear-gradient(135deg, currentColor, currentColor);
-  -webkit-background-clip: text;
 }
 
 .stat-label {
-  font-size: 13px;
+  font-size: 12px;
   color: #64748b;
-  margin-top: 6px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.toolbar-section {
-  padding: 0 32px;
-  margin-bottom: 20px;
+  margin-top: 4px;
+  font-weight: 500;
 }
 
 .modern-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  padding: 20px 28px;
-  border-radius: 20px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(226, 232, 240, 0.6);
+  background: var(--el-bg-color-overlay);
+  padding: 20px 24px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
 }
 
 .modern-toolbar .left {
@@ -972,127 +846,53 @@ onMounted(async () => {
   width: 160px;
 }
 
-/* 搜索框和下拉框美�?*/
-.modern-toolbar :deep(.el-input__wrapper) {
+.create-btn {
+  padding: 12px 24px;
   border-radius: 12px;
-  box-shadow: none;
-  border: 1px solid #e2e8f0;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
   transition: all 0.2s ease;
 }
 
-.modern-toolbar :deep(.el-input__wrapper:hover) {
-  border-color: #cbd5e1;
-}
-
-.modern-toolbar :deep(.el-input__wrapper.is-focus) {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.modern-toolbar :deep(.el-select .el-input__wrapper) {
-  border-radius: 12px;
-}
-
-.create-btn {
-  padding: 14px 28px;
-  border-radius: 14px;
-  font-weight: 600;
-  font-size: 15px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: none;
-}
-
 .create-btn:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.45);
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-}
-
-.create-btn:active {
-  transform: translateY(0) scale(0.98);
-}
-
-.content-section {
-  padding: 0 32px 32px;
-  flex: 1;
-  overflow: auto;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
 /* 增强卡片网格 */
 .enhanced-card-grid {
-  --gap: 16px;
+  --gap: 20px;
 }
 
-/* 卡片包装�?*/
+/* 卡片包装器 */
 .enhanced-card-wrapper {
   height: 100%;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: cardFadeIn 0.5s ease forwards;
-  opacity: 0;
-}
-
-@keyframes cardFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.enhanced-card-wrapper:nth-child(1) {
-  animation-delay: 0.05s;
-}
-.enhanced-card-wrapper:nth-child(2) {
-  animation-delay: 0.1s;
-}
-.enhanced-card-wrapper:nth-child(3) {
-  animation-delay: 0.15s;
-}
-.enhanced-card-wrapper:nth-child(4) {
-  animation-delay: 0.2s;
-}
-.enhanced-card-wrapper:nth-child(5) {
-  animation-delay: 0.25s;
-}
-.enhanced-card-wrapper:nth-child(6) {
-  animation-delay: 0.3s;
-}
-.enhanced-card-wrapper:nth-child(7) {
-  animation-delay: 0.35s;
-}
-.enhanced-card-wrapper:nth-child(8) {
-  animation-delay: 0.4s;
 }
 
 .enhanced-card-wrapper:hover {
-  transform: translateY(-10px);
+  transform: translateY(-8px);
 }
 
 /* 增强数据卡片 */
 .enhanced-data-card {
   height: 100%;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
   overflow: hidden;
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(248, 250, 252, 0.9) 100%
-  );
-  backdrop-filter: blur(10px);
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
   position: relative;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .enhanced-data-card:hover {
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12);
+  border-color: #3b82f6;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 /* 卡片状态指示器 */
@@ -1119,7 +919,7 @@ onMounted(async () => {
 
 /* 增强卡片头部 */
 .enhanced-card-header {
-  padding: 16px 16px 10px;
+  padding: 24px 24px 16px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -1130,14 +930,14 @@ onMounted(async () => {
 .header-main {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   flex: 1;
 }
 
 .icon-container {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1159,9 +959,9 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  color: #fff;
-  border-radius: 10px;
+  font-size: 20px;
+  color: var(--el-text-color-primary);
+  border-radius: 12px;
 }
 
 .data-icon-placeholder.is-jdbc {
@@ -1183,13 +983,13 @@ onMounted(async () => {
 .title-section {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   flex: 1;
   min-width: 0;
 }
 
 .data-title {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 600;
   color: #1e293b;
   margin: 0;
@@ -1226,13 +1026,13 @@ onMounted(async () => {
 }
 
 .quick-action-btn {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(0, 0, 0, 0.08);
@@ -1295,7 +1095,7 @@ onMounted(async () => {
 
 /* 增强卡片主体 */
 .enhanced-card-body {
-  padding: 0 16px 12px;
+  padding: 0 24px 16px;
   position: relative;
   z-index: 1;
 }
@@ -1303,17 +1103,17 @@ onMounted(async () => {
 .connection-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .info-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 12px;
+  padding: 12px;
   background: rgba(255, 255, 255, 0.6);
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid rgba(226, 232, 240, 0.8);
   transition: all 0.2s ease;
 }
@@ -1324,15 +1124,15 @@ onMounted(async () => {
 }
 
 .info-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #64748b;
-  font-size: 12px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
@@ -1342,16 +1142,16 @@ onMounted(async () => {
 }
 
 .info-label {
-  font-size: 11px;
+  font-size: 12px;
   color: #64748b;
   font-weight: 500;
-  margin-bottom: 1px;
+  margin-bottom: 2px;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
 }
 
 .info-value {
-  font-size: 12px;
+  font-size: 14px;
   color: #1e293b;
   font-weight: 500;
   white-space: nowrap;
@@ -1423,19 +1223,19 @@ onMounted(async () => {
   position: absolute;
   top: 0;
   right: 0;
-  width: 80px;
-  height: 80px;
+  width: 120px;
+  height: 120px;
   background-size: cover;
   background-position: center;
   opacity: 0.08;
-  border-radius: 0 16px 0 0;
+  border-radius: 0 20px 0 0;
   pointer-events: none;
   z-index: 0;
 }
 
 /* 增强操作按钮 */
 .enhanced-card-actions {
-  padding: 10px 16px 14px;
+  padding: 12px 24px 20px;
   border-top: 1px solid rgba(226, 232, 240, 0.6);
   background: rgba(248, 250, 252, 0.5);
   opacity: 0;
@@ -1451,17 +1251,17 @@ onMounted(async () => {
 .action-buttons {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .action-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
   transition: all 0.2s ease;
   border: 1px solid #e2e8f0;
   background: rgba(255, 255, 255, 0.8);
@@ -1479,13 +1279,13 @@ onMounted(async () => {
 .primary-action {
   width: 100%;
   height: auto;
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   border: none;
-  color: #fff;
+  color: var(--el-text-color-primary);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
@@ -1493,7 +1293,7 @@ onMounted(async () => {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
   background: linear-gradient(135deg, #1d4ed8, #1e40af);
-  color: #fff;
+  color: var(--el-text-color-primary);
 }
 
 .secondary-actions {
@@ -1570,7 +1370,7 @@ onMounted(async () => {
   background: rgba(244, 63, 94, 0.1);
 }
 
-/* 空状态样�?*/
+/* 空状态样式 */
 .empty-wrap {
   padding: 80px 40px;
   text-align: center;
@@ -1625,7 +1425,7 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
-/* 对话框样�?*/
+/* 对话框样式 */
 .doc-dialog :deep(.el-dialog) {
   border-radius: 16px;
   overflow: hidden;
@@ -1647,7 +1447,7 @@ onMounted(async () => {
   padding: 0;
 }
 
-/* 响应式设�?*/
+/* 响应式设计 */
 @media (max-width: 1200px) {
   .header-content {
     flex-direction: column;
@@ -1729,136 +1529,44 @@ onMounted(async () => {
   }
 }
 
-/* 工具�?*/
+/* 工具类 */
 .text-muted {
-  color: var(--el-text-color-secondary);
+  color: #64748b;
 }
 
 .text-primary {
-  color: var(--el-color-primary);
+  color: #3b82f6;
 }
 
 .text-success {
-  color: var(--el-color-success);
+  color: #10b981;
 }
 
 .text-warning {
-  color: var(--el-color-warning);
+  color: #f59e0b;
 }
 
 .text-danger {
-  color: var(--el-color-danger);
+  color: #ef4444;
 }
 
 .bg-primary {
-  background-color: var(--el-color-primary);
+  background-color: #3b82f6;
 }
 
 .bg-success {
-  background-color: var(--el-color-success);
+  background-color: #10b981;
 }
 
 .bg-warning {
-  background-color: var(--el-color-warning);
+  background-color: #f59e0b;
 }
 
 .bg-danger {
-  background-color: var(--el-color-danger);
+  background-color: #ef4444;
 }
 
 .mr-4 {
   margin-right: 4px;
-}
-
-/* 深色主题适配 */
-html.dark {
-  .data-management-page {
-    background: var(--el-bg-color);
-  }
-
-  .page-title {
-    color: var(--el-text-color-primary);
-  }
-
-  .page-subtitle {
-    color: var(--el-text-color-secondary);
-  }
-
-  .stat-item {
-    background: var(--el-bg-color-overlay);
-    border-color: var(--el-border-color);
-  }
-
-  .stat-item:hover {
-    background: var(--el-bg-color-overlay);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
-  }
-
-  .stat-label {
-    color: var(--el-text-color-secondary);
-  }
-
-  .modern-toolbar {
-    background: var(--el-bg-color-overlay);
-    border-color: var(--el-border-color);
-  }
-
-  .modern-toolbar :deep(.el-input__wrapper) {
-    border-color: var(--el-border-color);
-    background: var(--el-fill-color-dark);
-  }
-
-  .enhanced-card-wrapper :deep(.el-card) {
-    background: var(--el-bg-color-overlay);
-    border-color: var(--el-border-color);
-  }
-
-  .data-title {
-    color: var(--el-text-color-primary);
-  }
-
-  .info-label {
-    color: var(--el-text-color-secondary);
-  }
-
-  .info-value {
-    color: var(--el-text-color-primary);
-  }
-
-  .info-icon {
-    background: var(--el-fill-color-dark);
-    color: var(--el-text-color-secondary);
-  }
-
-  .info-item {
-    background: var(--el-fill-color-darker);
-    border-color: var(--el-border-color);
-  }
-
-  .info-item:hover {
-    background: var(--el-fill-color-dark);
-    border-color: var(--el-border-color-light);
-  }
-
-  .quick-action-btn {
-    background: var(--el-bg-color-overlay);
-    border-color: var(--el-border-color);
-    color: var(--el-text-color-regular);
-  }
-
-  .quick-action-btn:hover {
-    background: var(--el-fill-color-dark);
-  }
-
-  .action-btn {
-    background: var(--el-bg-color-overlay);
-    border-color: var(--el-border-color);
-    color: var(--el-text-color-regular);
-  }
-
-  .action-btn:hover {
-    background: var(--el-fill-color-dark);
-    border-color: var(--el-border-color-light);
-  }
 }
 </style>

@@ -3,17 +3,17 @@
     <div class="content">
       <div class="import-steps">
         <el-steps :active="currentStep" align-center finish-status="success">
-          <el-step title="选择服务�? icon="Server" />
+          <el-step title="选择服务器" icon="Server" />
           <el-step title="选择文件" icon="Document" />
           <el-step title="导入设置" icon="Setting" />
         </el-steps>
       </div>
 
-      <!-- 步骤1: 选择服务�?-->
+      <!-- 步骤1: 选择服务器 -->
       <div v-if="currentStep === 0" class="step-content">
         <div class="pane-title">
           <IconifyIconOnline icon="ri:server-line" class="mr-2" />
-          选择目标服务�?
+          选择目标服务器
         </div>
         <div class="server-cards">
           <div
@@ -62,11 +62,11 @@
           >
             <el-icon class="el-icon--upload"><IconifyIconOnline icon="ri:upload-cloud-line" /></el-icon>
             <div class="el-upload__text">
-              将镜像文件拖到此处，�?em>点击上传</em>
+              将镜像文件拖到此处，或<em>点击上传</em>
             </div>
             <template #tip>
               <div class="el-upload__tip">
-                支持 .tar�?tar.gz �?.tgz 格式的镜像文�?
+                支持 .tar、.tar.gz 或 .tgz 格式的镜像文件
               </div>
             </template>
           </el-upload>
@@ -81,10 +81,10 @@
         </div>
         <el-form :model="importForm" label-width="120px">
           <el-form-item label="镜像名称">
-            <el-input v-model="importForm.imageName" placeholder="镜像名称（如：nginx�? />
+            <el-input v-model="importForm.imageName" placeholder="镜像名称（如：nginx）" />
           </el-form-item>
           <el-form-item label="镜像标签">
-            <el-input v-model="importForm.imageTag" placeholder="镜像标签（如：latest�? />
+            <el-input v-model="importForm.imageTag" placeholder="镜像标签（如：latest）" />
           </el-form-item>
           <el-form-item label="强制导入">
             <el-switch v-model="importForm.force" />
@@ -102,15 +102,15 @@
             <span class="value">{{ getSelectedServerName() }}</span>
           </div>
           <div class="summary-item">
-            <span class="label">文件名称�?/span>
+            <span class="label">文件名称：</span>
             <span class="value">{{ fileList[0]?.name || '-' }}</span>
           </div>
           <div class="summary-item">
-            <span class="label">文件大小�?/span>
+            <span class="label">文件大小：</span>
             <span class="value">{{ formatFileSize(fileList[0]?.size) }}</span>
           </div>
           <div class="summary-item">
-            <span class="label">镜像名称�?/span>
+            <span class="label">镜像名称：</span>
             <span class="value">{{ importForm.imageName || '自动识别' }}:{{ importForm.imageTag || 'latest' }}</span>
           </div>
         </div>
@@ -120,13 +120,13 @@
     <template #footer>
       <div class="dlg-footer">
         <el-button @click="visibleProxy = false">取消</el-button>
-        <el-button v-if="currentStep > 0" @click="prevStep">上一�?/el-button>
+        <el-button v-if="currentStep > 0" @click="prevStep">上一步</el-button>
         <el-button v-if="currentStep < 2" type="primary" :disabled="!canNext" @click="nextStep">
-          下一�?
+          下一步
         </el-button>
         <el-button v-if="currentStep === 2" type="primary" :loading="importing" @click="submit">
           <IconifyIconOnline icon="ri:upload-line" class="mr-1" v-if="!importing" />
-          {{ importing ? '导入�?..' : '开始导�? }}
+          {{ importing ? '导入中...' : '开始导入' }}
         </el-button>
       </div>
     </template>
@@ -168,7 +168,7 @@ const importForm = ref({
   force: false
 });
 
-// 是否可以进入下一�?
+// 是否可以进入下一步
 const canNext = computed(() => {
   if (currentStep.value === 0) {
     return selectedServerId.value !== null;
@@ -179,7 +179,7 @@ const canNext = computed(() => {
   return true;
 });
 
-// 加载服务器列�?
+// 加载服务器列表
 async function loadServers() {
   try {
     const res: any = await getServerList();
@@ -189,19 +189,19 @@ async function loadServers() {
       servers.value = res || [];
     }
   } catch (error) {
-    console.error('加载服务器列表失�?', error);
-    ElMessage.error('加载服务器列表失�?);
+    console.error('加载服务器列表失败:', error);
+    ElMessage.error('加载服务器列表失败');
   }
 }
 
-// 获取状态类�?
+// 获取状态类型
 function getStatusType(status: number | undefined): 'success' | 'info' | 'warning' | 'danger' {
   if (status === 1) return 'success';
   if (status === 0) return 'danger';
   return 'info';
 }
 
-// 获取状态文�?
+// 获取状态文本
 function getStatusText(status: number | undefined): string {
   if (status === 1) return '在线';
   if (status === 0) return '离线';
@@ -213,7 +213,7 @@ function handleFileChange(file: UploadFile) {
   fileList.value = [file];
 }
 
-// 格式化文件大�?
+// 格式化文件大小
 function formatFileSize(bytes: number | undefined): string {
   if (!bytes) return '-';
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -232,14 +232,14 @@ function getSelectedServerName(): string {
   return server?.monitorSysGenServerName || '-';
 }
 
-// 下一�?
+// 下一步
 function nextStep() {
   if (canNext.value) {
     currentStep.value++;
   }
 }
 
-// 上一�?
+// 上一步
 function prevStep() {
   currentStep.value--;
 }
@@ -259,7 +259,7 @@ function reset() {
 // 提交
 async function submit() {
   if (!selectedServerId.value) {
-    return ElMessage.warning('请选择服务�?);
+    return ElMessage.warning('请选择服务器');
   }
   if (fileList.value.length === 0) {
     return ElMessage.warning('请选择文件');

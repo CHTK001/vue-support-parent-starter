@@ -1,18 +1,18 @@
 <template>
   <div class="server-group-panel">
-    <!-- 左侧服务器卡�?-->
+    <!-- 左侧服务器卡?-->
     <div class="server-sidebar">
       <div class="sidebar-header">
         <h3 class="sidebar-title">
           <IconifyIconOnline icon="ri:server-line" class="mr-2" />
-          服务器列�?
+          服务器列?
         </h3>
-        <el-tooltip content="上一�?>
+        <el-tooltip content="上一?>
           <el-button size="small" circle :disabled="!canScrollUp" @click="scrollUp">
             <IconifyIconOnline icon="ri:arrow-up-s-line" />
           </el-button>
         </el-tooltip>
-        <el-tooltip content="下一�?>
+        <el-tooltip content="下一?>
           <el-button size="small" circle :disabled="!canScrollDown" @click="scrollDown">
             <IconifyIconOnline icon="ri:arrow-down-s-line" />
           </el-button>
@@ -36,7 +36,7 @@
           </div>
           <div class="server-card-footer">
             <el-tag size="small" type="info">
-              {{ server.imageCount || 0 }} 个镜�?
+              {{ server.imageCount || 0 }} 个镜?
             </el-tag>
             <el-tag
               size="small"
@@ -55,10 +55,10 @@
         <div class="header-left">
           <h3 class="content-title">
             <IconifyIconOnline icon="ri:image-line" class="mr-2" />
-            {{ currentServer?.name || '选择服务�? }}
+            {{ currentServer?.name || '选择服务器 }}
           </h3>
           <el-tag v-if="currentServer" size="small" type="info" class="ml-2">
-            {{ filteredImages.length }} 个镜�?
+            {{ filteredImages.length }} 个镜?
           </el-tag>
         </div>
         <div class="header-right">
@@ -75,14 +75,14 @@
           </el-input>
           <el-select
             v-model="filterStatus"
-            placeholder="状�?
+            placeholder="状?
             clearable
             class="filter-select"
             @change="handleFilter"
           >
             <el-option label="全部" :value="undefined" />
             <el-option label="可用" value="AVAILABLE" />
-            <el-option label="拉取�? value="PULLING" />
+            <el-option label="拉取中 value="PULLING" />
             <el-option label="错误" value="PULL_FAILED" />
           </el-select>
         </div>
@@ -96,7 +96,7 @@
         
         <div v-else-if="filteredImages.length === 0" class="empty-state">
           <IconifyIconOnline icon="ri:image-line" class="empty-icon" />
-          <p class="empty-text">{{ filterKeyword || filterStatus ? '没有符合条件的镜�? : '该服务器暂无镜像' }}</p>
+          <p class="empty-text">{{ filterKeyword || filterStatus ? '没有符合条件的镜? : '该服务器暂无镜像' }}</p>
         </div>
 
         <div v-else class="image-grid">
@@ -119,15 +119,15 @@
             
             <div class="image-card-body">
               <div class="image-meta">
-                <span class="meta-label">大小�?/span>
+                <span class="meta-label">大小?/span>
                 <span>{{ formatSize(image.systemSoftImageSize) }}</span>
               </div>
               <div class="image-meta">
-                <span class="meta-label">ID�?/span>
+                <span class="meta-label">ID?/span>
                 <span class="image-id">{{ (image.systemSoftImageImageId || '').substring(0, 12) }}</span>
               </div>
               <div class="image-meta">
-                <span class="meta-label">拉取时间�?/span>
+                <span class="meta-label">拉取时间轴/span>
                 <span>{{ formatDate(image.systemSoftImageLastPulled) }}</span>
               </div>
             </div>
@@ -237,7 +237,7 @@ const filteredImages = computed(() => {
   return result;
 });
 
-// 选择服务�?
+// 选择服务器
 function selectServer(serverId: number) {
   selectedServerId.value = serverId;
   // 清空过滤条件
@@ -277,10 +277,10 @@ function handleAction(command: string, image: SystemSoftImage) {
 
 // 过滤处理
 function handleFilter() {
-  // 过滤逻辑已在computed中处�?
+  // 过滤逻辑已在computed中处?
 }
 
-// 格式化大�?
+// 格式化大?
 function formatSize(bytes: number | undefined): string {
   if (!bytes) return '-';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -293,7 +293,7 @@ function formatSize(bytes: number | undefined): string {
   return `${size.toFixed(2)} ${units[unitIndex]}`;
 }
 
-// 格式化日�?
+// 格式化日?
 function formatDate(date: string | undefined): string {
   if (!date) return '-';
   return new Date(date).toLocaleString('zh-CN', {
@@ -305,7 +305,7 @@ function formatDate(date: string | undefined): string {
   });
 }
 
-// 获取状态标签类�?
+// 获取状态标签类?
 function getStatusTagType(status: string | undefined): 'success' | 'warning' | 'danger' | 'info' {
   switch (status) {
     case 'AVAILABLE': return 'success';
@@ -315,17 +315,17 @@ function getStatusTagType(status: string | undefined): 'success' | 'warning' | '
   }
 }
 
-// 获取状态文�?
+// 获取状态文?
 function getStatusText(status: string | undefined): string {
   switch (status) {
     case 'AVAILABLE': return '可用';
-    case 'PULLING': return '拉取�?;
+    case 'PULLING': return '拉取中;
     case 'PULL_FAILED': return '拉取失败';
     default: return '未知';
   }
 }
 
-// 监听服务器列表变化，初始化滚动状�?
+// 监听服务器列表变化，初始化滚动状?
 watch(() => props.servers, () => {
   nextTick(() => {
     handleScroll();
@@ -341,7 +341,7 @@ watch(() => props.servers, () => {
   min-height: 600px;
 }
 
-/* 左侧服务器边�?*/
+/* 左侧服务器边?*/
 .server-sidebar {
   width: 280px;
   flex-shrink: 0;

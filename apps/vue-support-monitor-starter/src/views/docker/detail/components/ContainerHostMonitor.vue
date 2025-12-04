@@ -13,9 +13,9 @@
     </div>
     
     <div class="monitor-content">
-      <!-- CPU使用�?-->
+      <!-- CPU使用率 -->
       <div class="resource-item">
-        <div class="resource-label">CPU使用�?/div>
+        <div class="resource-label">CPU使用率</div>
         <div class="resource-progress">
           <el-progress
             :percentage="cpuUsage"
@@ -27,9 +27,9 @@
         <div class="resource-value">{{ cpuUsage.toFixed(1) }}%</div>
       </div>
       
-      <!-- 内存使用�?-->
+      <!-- 内存使用率 -->
       <div class="resource-item">
-        <div class="resource-label">内存使用�?/div>
+        <div class="resource-label">内存使用率</div>
         <div class="resource-progress">
           <el-progress
             :percentage="memoryUsage"
@@ -41,9 +41,9 @@
         <div class="resource-value">{{ memoryUsage.toFixed(1) }}%</div>
       </div>
       
-      <!-- 磁盘使用�?-->
+      <!-- 磁盘使用率 -->
       <div class="resource-item">
-        <div class="resource-label">磁盘使用�?/div>
+        <div class="resource-label">磁盘使用率</div>
         <div class="resource-progress">
           <el-progress
             :percentage="diskUsage"
@@ -55,15 +55,15 @@
         <div class="resource-value">{{ diskUsage.toFixed(1) }}%</div>
       </div>
       
-      <!-- 容器状态统�?-->
+      <!-- 容器状态统计 -->
       <div class="container-stats">
         <div class="stats-item">
           <div class="stats-count">{{ containerStats.running }}</div>
-          <div class="stats-label">运行�?/div>
+          <div class="stats-label">运行中</div>
         </div>
         <div class="stats-item">
           <div class="stats-count">{{ containerStats.stopped }}</div>
-          <div class="stats-label">已停�?/div>
+          <div class="stats-label">已停止</div>
         </div>
         <div class="stats-item">
           <div class="stats-count">{{ containerStats.total }}</div>
@@ -78,7 +78,7 @@
 import { containerApi, type ContainerStatusStatistics } from '@/api/docker'
 import { onMounted, ref } from 'vue'
 
-// 响应式数�?
+// 响应式数据
 const loading = ref(false)
 const cpuUsage = ref(0)
 const memoryUsage = ref(0)
@@ -100,7 +100,7 @@ const fetchHostStats = async () => {
     memoryUsage.value = Math.random() * 100
     diskUsage.value = Math.random() * 100
     
-    // 获取容器状态统�?
+    // 获取容器状态统计
     const response = await containerApi.getContainerStatusStats()
     if (response.code === '00000') {
       containerStats.value = response.data || { total: 0, running: 0, stopped: 0 }
@@ -117,14 +117,14 @@ const handleRefresh = () => {
   fetchHostStats()
 }
 
-// 根据使用率获取颜�?
+// 根据使用率获取颜色
 const getUsageColor = (percentage: number) => {
   if (percentage < 50) return '#67c23a'
   if (percentage < 80) return '#e6a23c'
   return '#f56c6c'
 }
 
-// 组件挂载时获取数�?
+// 组件挂载时获取数据
 onMounted(() => {
   fetchHostStats()
 })

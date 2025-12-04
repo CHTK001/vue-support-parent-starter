@@ -14,10 +14,10 @@
           基础配置
         </h4>
         <div class="config-grid">
-          <el-form-item label="启用状�?>
+          <el-form-item label="启用状态">
             <el-switch v-model="config.enabled" />
           </el-form-item>
-          <el-form-item label="响应头名�?>
+          <el-form-item label="响应头名称">
             <el-input
               v-model="config.headerName"
               placeholder="X-Request-Fingerprint"
@@ -42,10 +42,10 @@
               <el-option label="SHA-512" value="SHA-512" />
             </el-select>
           </el-form-item>
-          <el-form-item label="盐�?>
+          <el-form-item label="盐值">
             <el-input
               v-model="config.salt"
-              placeholder="可选的盐�?
+              placeholder="可选的盐值"
               style="width: 200px"
             />
           </el-form-item>
@@ -68,7 +68,7 @@
           <el-form-item label="包含请求参数">
             <el-switch v-model="config.includeParams" />
           </el-form-item>
-          <el-form-item label="包含请求�?>
+          <el-form-item label="包含请求体">
             <el-switch v-model="config.includeBody" />
             <el-text type="warning" size="small">
               注意：包含请求体会增加计算开销
@@ -76,7 +76,7 @@
           </el-form-item>
         </div>
 
-        <!-- 请求头配�?-->
+        <!-- 请求头配置 -->
         <div class="headers-config">
           <h5>参与指纹的请求头</h5>
           <div class="header-tags">
@@ -93,7 +93,7 @@
           <div class="add-header">
             <el-input
               v-model="newHeader"
-              placeholder="输入请求头名�?
+              placeholder="输入请求头名称"
               style="width: 200px"
               @keyup.enter="addHeader"
             />
@@ -115,14 +115,14 @@
           去重配置
         </h4>
         <div class="config-grid">
-          <el-form-item label="有效�?>
+          <el-form-item label="有效期">
             <el-input-number
               v-model="validitySeconds"
               :min="0"
               :max="86400"
               style="width: 150px"
             />
-            <span class="unit-text">�?/span>
+            <span class="unit-text">秒</span>
           </el-form-item>
           <el-form-item label="拦截重复请求">
             <el-switch v-model="config.rejectDuplicate" />
@@ -133,7 +133,7 @@
             当前配置: {{ formatValidityTime(validitySeconds) }}
           </el-tag>
           <el-text v-if="config.rejectDuplicate" type="warning" size="small">
-            启用后，在有效期内的重复请求将被拒绝（HTTP 409�?
+            启用后，在有效期内的重复请求将被拒绝（HTTP 409）
           </el-text>
         </div>
       </div>
@@ -146,10 +146,10 @@
         </h4>
         <el-card class="config-preview thin-scrollbar">
           <div class="preview-info">
-            <p><strong>指纹算法�?/strong>{{ config.algorithm }}</p>
+            <p><strong>指纹算法：</strong>{{ config.algorithm }}</p>
             <p><strong>响应头：</strong>{{ config.headerName }}</p>
-            <p><strong>包含内容�?/strong>{{ getIncludeContentText() }}</p>
-            <p><strong>去重策略�?/strong>{{ getDuplicateStrategyText() }}</p>
+            <p><strong>包含内容：</strong>{{ getIncludeContentText() }}</p>
+            <p><strong>去重策略：</strong>{{ getDuplicateStrategyText() }}</p>
           </div>
           <el-divider />
           <pre>{{ JSON.stringify(config, null, 2) }}</pre>
@@ -288,7 +288,7 @@ async function handleSave() {
       config as any
     );
     if (res.success) {
-      ElMessage.success("请求指纹配置保存成功，已热应�?);
+      ElMessage.success("请求指纹配置保存成功，已热应用");
       emit("success");
       visibleInner.value = false;
     } else {
@@ -302,12 +302,12 @@ async function handleSave() {
   }
 }
 
-// 关闭对话�?
+// 关闭对话框
 function handleClose() {
   visibleInner.value = false;
 }
 
-// 添加请求�?
+// 添加请求头
 function addHeader() {
   if (newHeader.value.trim()) {
     const headerName = newHeader.value.trim();
@@ -320,7 +320,7 @@ function addHeader() {
   }
 }
 
-// 移除请求�?
+// 移除请求头
 function removeHeader(header: string) {
   const index = config.includeHeaders.indexOf(header);
   if (index > -1) {
@@ -330,7 +330,7 @@ function removeHeader(header: string) {
 
 // 格式化有效期时间
 function formatValidityTime(seconds: number) {
-  if (seconds === 0) return "不去�?;
+  if (seconds === 0) return "不去重";
   if (seconds < 60) return `${seconds}秒`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}分钟`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}小时`;
@@ -343,19 +343,19 @@ function getIncludeContentText() {
   if (config.includeMethod) items.push("HTTP方法");
   if (config.includePath) items.push("请求路径");
   if (config.includeParams) items.push("请求参数");
-  if (config.includeBody) items.push("请求�?);
+  if (config.includeBody) items.push("请求体");
   if (config.includeHeaders.length > 0) {
-    items.push(`请求�?${config.includeHeaders.length}�?`);
+    items.push(`请求头(${config.includeHeaders.length}个)`);
   }
-  return items.length > 0 ? items.join("�?) : "�?;
+  return items.length > 0 ? items.join("、") : "无";
 }
 
 // 获取去重策略文本
 function getDuplicateStrategyText() {
-  if (validitySeconds.value === 0) return "不去�?;
+  if (validitySeconds.value === 0) return "不去重";
   const timeText = formatValidityTime(validitySeconds.value);
-  const actionText = config.rejectDuplicate ? "拦截重复请求" : "仅记录指�?;
-  return `${timeText}�?{actionText}`;
+  const actionText = config.rejectDuplicate ? "拦截重复请求" : "仅记录指纹";
+  return `${timeText}内${actionText}`;
 }
 </script>
 

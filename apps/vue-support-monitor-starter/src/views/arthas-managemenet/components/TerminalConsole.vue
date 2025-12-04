@@ -1,7 +1,7 @@
 <template>
   <div class="terminal-console">
     <div class="toolbar">
-      <el-input v-model="command" placeholder="输入 Arthas 命令，例�? thread | jvm | heap | logger | profiler" @keyup.enter.native="sendCommand" clearable />
+      <el-input v-model="command" placeholder="输入 Arthas 命令，例如: thread | jvm | heap | logger | profiler" @keyup.enter.native="sendCommand" clearable />
       <el-button type="primary" @click="sendCommand" :disabled="!connected">执行</el-button>
       <el-button @click="clearOutput">清屏</el-button>
       <el-button @click="reconnect" :disabled="connecting">重连</el-button>
@@ -128,7 +128,7 @@ function disconnect() {
 }
 
 function initialTerm() {
-  // 初始�?xterm
+  // 初始化 xterm
   if (!terminal.value && xtermRef.value) {
     terminal.value = new Terminal({
       cursorBlink: true,
@@ -151,7 +151,7 @@ function initialTerm() {
     try {
       fitAddon.fit();
     } catch {}
-    // 记录一次初始化计算得到�?cols/rows，并固定下来
+    // 记录一次初始化计算得到的 cols/rows，并固定下来
     fixedCols.value = terminal.value.cols + 100;
     fixedRows.value = terminal.value.rows + 100;
     // 锁定容器尺寸为当前像素大小，避免后续布局变化
@@ -241,7 +241,7 @@ onBeforeUnmount(() => {
 .output,
 .xterm-viewport {
   scrollbar-color: var(--el-color-primary) transparent;
-  /* 滑块颜色、轨道颜�?*/
+  /* 滑块颜色、轨道颜色 */
 
   /* Firefox */
   scrollbar-width: thin;
@@ -249,22 +249,22 @@ onBeforeUnmount(() => {
   /* 可选值为 'auto', 'thin', 'none' */
   ::-webkit-scrollbar {
     width: 6px;
-    /* 滚动条宽�?*/
+    /* 滚动条宽度 */
   }
 
-  /* 滚动条轨�?*/
+  /* 滚动条轨道 */
   ::-webkit-scrollbar-track {
     background: transparent;
     /* 轨道颜色 */
   }
 
-  /* 滚动条滑�?*/
+  /* 滚动条滑块 */
   ::-webkit-scrollbar-thumb {
     background-color: var(--el-color-primary-light-1);
     border-radius: 4px;
   }
 
-  /* 滚动条滑块：hover状�?*/
+  /* 滚动条滑块：hover状态 */
   ::-webkit-scrollbar-thumb:hover {
     background: var(--el-color-primary);
     /* 滑块hover颜色 */

@@ -5,25 +5,25 @@
         <el-card class="global-card" shadow="never">
           <template #header>
             <div class="card-header-row">
-              <div class="card-header">全局设置（FileStorageSetting�?/div>
+              <div class="card-header">全局设置（FileStorageSetting）</div>
             </div>
           </template>
           <el-form :model="global" label-width="140px" class="global-form">
-            <el-form-item label="开启下�?><el-switch v-model="global.openDownload" /></el-form-item>
-            <el-form-item label="开启预�?><el-switch v-model="global.openPreview" /></el-form-item>
-            <el-form-item label="开启插�?><el-switch v-model="global.openPlugin" /></el-form-item>
-            <el-form-item label="开启设�?><el-switch v-model="global.openSetting" /></el-form-item>
+            <el-form-item label="开启下载"><el-switch v-model="global.openDownload" /></el-form-item>
+            <el-form-item label="开启预览"><el-switch v-model="global.openPreview" /></el-form-item>
+            <el-form-item label="开启插件"><el-switch v-model="global.openPlugin" /></el-form-item>
+            <el-form-item label="开启设置"><el-switch v-model="global.openSetting" /></el-form-item>
             <el-form-item label="开启Range"><el-switch v-model="global.openRange" /></el-form-item>
-            <el-form-item label="开启水�?><el-switch v-model="global.openWatermark" /></el-form-item>
+            <el-form-item label="开启水印"><el-switch v-model="global.openWatermark" /></el-form-item>
             <el-form-item label="支持webjars"><el-switch v-model="global.openWebjars" /></el-form-item>
             <el-form-item label="支持远程文件"><el-switch v-model="global.openRemoteFile" /></el-form-item>
 
-            <el-form-item label="参数名（逗号分隔�? v-if="global.openSetting">
+            <el-form-item label="参数名（逗号分隔）" v-if="global.openSetting">
               <el-select v-model="imageSettingSelection" multiple filterable allow-create default-first-option placeholder="选择或自定义参数">
                 <el-option v-for="opt in imageSettingOptions" :key="opt.name" :label="opt.describe || opt.name" :value="opt.name" />
               </el-select>
             </el-form-item>
-            <el-form-item label="插件（逗号分隔�? v-if="global.openPlugin">
+            <el-form-item label="插件（逗号分隔）" v-if="global.openPlugin">
               <el-select v-model="imageFilterSelection" multiple filterable allow-create default-first-option placeholder="选择或自定义插件">
                 <el-option v-for="opt in imageFilterOptions" :key="opt.name" :label="opt.describe || opt.name" :value="opt.name" />
               </el-select>
@@ -36,7 +36,7 @@
             <el-divider content-position="left">水印</el-divider>
             <template v-if="global.openWatermark">
               <el-form-item label="水印内容/URL"><el-input v-model="global.watermark" placeholder="文本或图片URL" /></el-form-item>
-              <el-form-item label="水印颜色"><el-input v-model="global.watermarkColor" placeholder="#RRGGBB �?颜色�? /></el-form-item>
+              <el-form-item label="水印颜色"><el-input v-model="global.watermarkColor" placeholder="#RRGGBB 或 颜色名" /></el-form-item>
               <el-form-item label="水印坐标X"><el-input-number v-model="global.watermarkX" :min="-9999" :max="9999" /></el-form-item>
               <el-form-item label="水印坐标Y"><el-input-number v-model="global.watermarkY" :min="-9999" :max="9999" /></el-form-item>
             </template>
@@ -78,7 +78,7 @@
               <div class="row2">
                 <IconifyIconOnline :icon="getStorageIcon(s.fileStorageType)" class="storage-icon" />
                 <span v-if="s.fileStorageType === 'FILESYSTEM'">
-                  {{ s.fileStorageEndpoint || "未配置路�? }}
+                  {{ s.fileStorageEndpoint || "未配置路径" }}
                 </span>
                 <span v-else>{{ s.fileStorageBucket || "-" }} @ {{ s.fileStorageEndpoint || "-" }}</span>
               </div>
@@ -136,8 +136,8 @@
               </template>
             </div>
             <div class="pager">
-              <el-button size="small" @click="goPrevPage" :disabled="pager.page <= 1">上一�?/el-button>
-              <el-button size="small" @click="goNextPage" :disabled="previewItems.length < pager.limit">下一�?/el-button>
+              <el-button size="small" @click="goPrevPage" :disabled="pager.page <= 1">上一页</el-button>
+              <el-button size="small" @click="goNextPage" :disabled="previewItems.length < pager.limit">下一页</el-button>
               <span class="gap" />
               <span>每页</span>
               <el-select v-model="pager.limit" size="small" style="width: 90px" @change="onLimitChange">
@@ -145,7 +145,7 @@
                 <el-option :value="50" label="50" />
                 <el-option :value="100" label="100" />
               </el-select>
-              <span>�?/span>
+              <span>条</span>
             </div>
           </div>
           <div v-else-if="currentStorage">
@@ -162,7 +162,7 @@
             <el-form :model="currentStorage" :rules="formRules(currentStorage)" ref="detailFormRef" label-width="120px" class="storage-form">
               <!-- 根据存储类型显示不同的配置项 -->
               <template v-if="currentStorage.fileStorageType === 'FILESYSTEM'">
-                <el-form-item label="根路�? prop="fileStorageEndpoint">
+                <el-form-item label="根路径" prop="fileStorageEndpoint">
                   <div class="dir-picker">
                     <DirectorySelector v-model="currentStorage.fileStorageEndpoint" />
                   </div>
@@ -179,16 +179,16 @@
                     <IconifyIconOnline icon="ri:information-line" />
                     <span v-if="currentStorage.fileStorageType === 'S3'">AWS S3 端点，如: https://s3.amazonaws.com</span>
                     <span v-else-if="currentStorage.fileStorageType === 'MINIO'">MinIO 服务端点，如: http://localhost:9000</span>
-                    <span v-else-if="currentStorage.fileStorageType === 'ALIYUN'">阿里�?OSS 端点，如: https://oss-cn-hangzhou.aliyuncs.com</span>
+                    <span v-else-if="currentStorage.fileStorageType === 'ALIYUN'">阿里云 OSS 端点，如: https://oss-cn-hangzhou.aliyuncs.com</span>
                     <span v-else>对象存储服务端点地址</span>
                   </div>
                 </el-form-item>
 
-                <el-form-item label="存储�? prop="fileStorageBucket">
-                  <el-input v-model="currentStorage.fileStorageBucket" placeholder="存储桶名�? />
+                <el-form-item label="存储桶" prop="fileStorageBucket">
+                  <el-input v-model="currentStorage.fileStorageBucket" placeholder="存储桶名称" />
                   <div class="form-tip">
                     <IconifyIconOnline icon="ri:information-line" />
-                    存储桶名称，用于组织和管理文�?
+                    存储桶名称，用于组织和管理文件
                   </div>
                 </el-form-item>
 
@@ -205,7 +205,7 @@
                   <div class="form-tip">
                     <IconifyIconOnline icon="ri:information-line" />
                     <span v-if="currentStorage.fileStorageType === 'S3'">AWS 区域，如: us-east-1, eu-west-1</span>
-                    <span v-else-if="currentStorage.fileStorageType === 'ALIYUN'">阿里云区域，�? oss-cn-hangzhou, oss-cn-beijing</span>
+                    <span v-else-if="currentStorage.fileStorageType === 'ALIYUN'">阿里云区域，如: oss-cn-hangzhou, oss-cn-beijing</span>
                   </div>
                 </el-form-item>
 
@@ -213,13 +213,13 @@
                   <el-input v-model="currentStorage.fileStorageBasePath" placeholder="存储桶内的基础路径，如: /app/uploads" />
                   <div class="form-tip">
                     <IconifyIconOnline icon="ri:information-line" />
-                    在存储桶内的基础路径前缀，用于文件分类管�?
+                    在存储桶内的基础路径前缀，用于文件分类管理
                   </div>
                 </el-form-item>
               </template>
 
-              <!-- 通用配置�?-->
-              <el-form-item label="启用状�?>
+              <!-- 通用配置项 -->
+              <el-form-item label="启用状态">
                 <el-switch v-model="currentStorage.fileStorageEnabled" active-text="启用" inactive-text="禁用" />
                 <div class="form-tip">
                   <IconifyIconOnline icon="ri:information-line" />
@@ -228,7 +228,7 @@
               </el-form-item>
             </el-form>
           </div>
-          <el-empty v-else description="请选择左侧已安装的存储或新增一�? />
+          <el-empty v-else description="请选择左侧已安装的存储或新增一个" />
         </el-card>
       </div>
     </div>
@@ -274,7 +274,7 @@ type SpiOption = {
 };
 const typeOptions = ref<SpiOption[]>([]);
 
-// 全局设置默认�?
+// 全局设置默认值
 const global = ref({
   openDownload: true,
   openPreview: true,
@@ -327,16 +327,16 @@ function formRules(s: FileStorageConfig): FormRules {
     fileStorageType: [{ required: true, message: "请选择存储类型", trigger: "change" }],
   };
 
-  // 根据存储类型设置不同的验证规�?
+  // 根据存储类型设置不同的验证规则
   if (s.fileStorageType === "FILESYSTEM") {
     // 文件系统类型只需要根路径
-    common.fileStorageEndpoint = [{ required: true, message: "请选择根目�?, trigger: "blur" }];
+    common.fileStorageEndpoint = [{ required: true, message: "请选择根目录", trigger: "blur" }];
   } else {
     // 对象存储类型需要端点、存储桶、访问密钥等
     common.fileStorageEndpoint = [{ required: true, message: "请输入端点地址", trigger: "blur" }];
     common.fileStorageBucket = [{ required: true, message: "请输入存储桶名称", trigger: "blur" }];
-    common.fileStorageAccessKey = [{ required: true, message: "请输入访问密�?, trigger: "blur" }];
-    common.fileStorageSecretKey = [{ required: true, message: "请输入密�?, trigger: "blur" }];
+    common.fileStorageAccessKey = [{ required: true, message: "请输入访问密钥", trigger: "blur" }];
+    common.fileStorageSecretKey = [{ required: true, message: "请输入密钥", trigger: "blur" }];
   }
 
   return common;
@@ -387,7 +387,7 @@ async function testConnection(idx: number) {
 
   try {
     ElMessage.info("正在测试连接...");
-    // 这里可以调用后端测试连接的接�?
+    // 这里可以调用后端测试连接的接口
     // const result = await testStorageConnection(storage);
 
     // 模拟测试结果
@@ -417,25 +417,25 @@ function newStorage(): FileStorageConfig {
   } as any;
 }
 
-// 右侧预览状�?
+// 右侧预览状态
 const rightPreview = ref({
   visible: false,
   mode: "list" as "list" | "card" | "image",
 });
 const previewItems = ref<any[]>([]);
-// 轻量缓存�?0秒内同参命中直接返回，减少请�?
+// 轻量缓存：30秒内同参命中直接返回，减少请求
 const listCache = new Map<string, { ts: number; items: any[]; marker: string }>();
 const CACHE_TTL = 30_000;
 function makeCacheKey(serverId: number, s: any, basePath: string, limit: number, marker: string) {
   return [serverId, s?.fileStorageType, s?.fileStorageEndpoint, s?.fileStorageBucket, basePath, limit, marker].join("|");
 }
-// 请求互斥：使用页面已�?loading 状�?
+// 请求互斥：使用页面已有 loading 状态
 
-// 基于 marker 的分�?
+// 基于 marker 的分页
 const pager = ref({ page: 1, limit: 20, marker: "", nextMarker: "" });
 
 function base64EncodeUtf8(input: string) {
-  // �?UTF-8 字符串编码为 base64（兼容中文）
+  // 将 UTF-8 字符串编码为 base64（兼容中文）
   // eslint-disable-next-line no-undef
   return btoa(unescape(encodeURIComponent(input)));
 }
@@ -467,7 +467,7 @@ function goPrevPage() {
   fetchPreviewItems();
 }
 function goNextPage() {
-  // 简单依据条目数量判断是否可能有下一�?
+  // 简单依据条目数量判断是否可能有下一页
   if (previewItems.value.length < pager.value.limit) return;
   pager.value.page += 1;
   pager.value.marker = makeMarker(pager.value.page);
@@ -482,10 +482,10 @@ function previewStorage(idx: number) {
 
 async function openFullPreview() {
   if (storages.value.length === 0) {
-    ElMessageBox.alert("请先添加一个文件存储配�?, "提示");
+    ElMessageBox.alert("请先添加一个文件存储配置", "提示");
     return;
   }
-  // 路由跳转到全屏预览页�?
+  // 路由跳转到全屏预览页面
   try {
     const url = `#/service/file-storage/preview/${props.serverId}`;
     // 通过 a 标签打开新窗口，避免依赖全局路由实例
@@ -521,7 +521,7 @@ async function fetchPreviewItems() {
       return;
     }
 
-    // 调用文件存储列表接口（后端使用FileStorage#listObject�?
+    // 调用文件存储列表接口（后端使用FileStorage#listObject）
     const params = new URLSearchParams();
     params.append("serverId", String(props.serverId));
     params.append("type", s.fileStorageType || "");
@@ -532,11 +532,11 @@ async function fetchPreviewItems() {
     params.append("limit", String(pager.value.limit));
     // 分页游标
     params.append("marker", pager.value.marker || "");
-    // 提示后端只返回必要字段（若不支持会被忽略�?
+    // 提示后端只返回必要字段（若不支持会被忽略）
     params.append("fields", "name,size,modified,ext,url");
     // 简化模式，减少拼装计算（若不支持会被忽略）
     params.append("simple", "1");
-    // 兼容接口期望的表单提�?
+    // 兼容接口期望的表单提交
     const res = await fileStorageList(params);
     const rr = res?.data; // ReturnResult
     const items = Array.isArray(rr?.metadata) ? rr.metadata : [];
@@ -723,7 +723,7 @@ function toPayload(s: any) {
 }
 
 async function handleSave() {
-  // 优先校验右侧详情表单（若有选中�?
+  // 优先校验右侧详情表单（若有选中）
   if (detailFormRef.value) {
     const ok = await detailFormRef.value.validate().catch(() => false);
     if (!ok) return;
@@ -742,7 +742,7 @@ async function handleSave() {
       }
     } else {
       if (!s.fileStorageEndpoint) {
-        message.error(`存储 #${i + 1} 请完整填�?Endpoint/Bucket`);
+        message.error(`存储 #${i + 1} 请完整填写 Endpoint/Bucket`);
         return;
       }
     }
@@ -753,13 +753,13 @@ async function handleSave() {
     const ok = await saveGlobal();
     if (!ok) throw new Error("全局设置保存失败");
 
-    // 重置并保存各存储�?
+    // 重置并保存各存储项
     await deleteFileStorageConfig(props.serverId);
     for (const s of storages.value) {
       const res = await saveFileStorageConfig(toPayload(s));
       if (!res.success) throw new Error(res.msg || "保存失败");
     }
-    ElMessage.success({ message: "保存成功，已热应�? });
+    ElMessage.success({ message: "保存成功，已热应用" });
     emit("success");
     visibleInner.value = false;
   } catch (e: any) {
@@ -780,7 +780,7 @@ function reload() {
 // 当前选中存储
 const currentStorage = computed(() => (selectedIndex.value != null ? storages.value[selectedIndex.value] : null));
 
-// 本地目录选择（仅 LOCAL 类型使用�?
+// 本地目录选择（仅 LOCAL 类型使用）
 const dirSelection = ref<string | undefined>(undefined);
 const dirOptions = ref<any[]>([]);
 const dirProps = {
@@ -861,7 +861,7 @@ async function loadData() {
             storages.value = [];
           }
         } catch (e) {
-          // 后端可能未提供该接口或暂未有配置，容错为�?
+          // 后端可能未提供该接口或暂未有配置，容错为空
           storages.value = [];
         }
       })(),
@@ -942,7 +942,7 @@ async function loadData() {
   max-height: 640px;
 }
 
-/* 存储项样�?- 参考PreviewFull.vue */
+/* 存储项样式 - 参考PreviewFull.vue */
 .storage-item {
   padding: 8px;
   border-bottom: 1px solid var(--el-border-color);
@@ -1000,7 +1000,7 @@ async function loadData() {
   font-size: 14px;
 }
 
-/* 滚动条样�?*/
+/* 滚动条样式 */
 .thin-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: var(--el-border-color) transparent;
@@ -1055,7 +1055,7 @@ async function loadData() {
   justify-self: end;
 }
 
-/* 右侧类型按钮�?*/
+/* 右侧类型按钮组 */
 .detail-card {
   border-radius: 8px;
   height: 100%;
@@ -1082,7 +1082,7 @@ async function loadData() {
     grid-template-columns: 1fr;
   }
 
-  /* 右侧与全屏预览样�?*/
+  /* 右侧与全屏预览样式 */
   .preview-body {
     max-height: 360px;
     overflow: auto;

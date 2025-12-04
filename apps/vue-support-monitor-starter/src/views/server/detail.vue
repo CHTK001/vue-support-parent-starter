@@ -10,7 +10,7 @@
         <div class="server-info">
           <div class="server-title">
             <IconifyIconOnline :icon="getProtocolIcon(serverInfo?.protocol)" class="server-icon" />
-            <span class="server-name">{{ serverInfo?.name || "服务器详�? }}</span>
+            <span class="server-name">{{ serverInfo?.name || "服务器详情" }}</span>
             <el-tag :type="getStatusType(serverInfo?.status)" size="small" class="status-tag">
               {{ getStatusText(serverInfo?.status) }}
             </el-tag>
@@ -61,12 +61,12 @@
       <GridLayoutEditor ref="gridLayoutEditorRef" :server-id="serverId" :initial-layout="layout" @layout-change="handleLayoutUpdated" @save="handleSaveLayout" />
     </div>
 
-    <!-- 编辑模式工具�?-->
+    <!-- 编辑模式工具栏 -->
     <div v-if="editMode" class="edit-toolbar">
       <div class="toolbar-content">
         <span class="edit-tip">
           <IconifyIconOnline icon="ri:information-line" class="mr-1" />
-          编辑模式：可拖拽和调整组件大�?
+          编辑模式：可拖拽和调整组件大小
         </span>
         <div class="toolbar-actions">
           <el-button @click="handleCancelEdit">取消</el-button>
@@ -75,21 +75,21 @@
       </div>
     </div>
 
-    <!-- 组件编辑对话�?-->
+    <!-- 组件编辑对话框 -->
     <ComponentEditDialog ref="componentEditDialogRef" @success="handleComponentSaved" />
 
-    <!-- 组件管理对话�?-->
+    <!-- 组件管理对话框 -->
     <ComponentManageDialog ref="componentManageDialogRef" @success="handleComponentsManaged" />
 
-    <!-- 文件管理对话�?-->
+    <!-- 文件管理对话框 -->
     <el-dialog v-model="fileManagerVisible" title="文件管理" width="90%" :before-close="handleFileManagerClose" append-to-body destroy-on-close>
       <FileManager :server="serverInfo" @close="handleFileManagerClose" />
     </el-dialog>
 
-    <!-- 组件配置对话�?-->
+    <!-- 组件配置对话框 -->
     <ComponentConfigDialog ref="componentConfigDialogRef" :server-id="serverId" @success="handleComponentConfigSuccess" />
 
-    <!-- 布局配置对话�?-->
+    <!-- 布局配置对话框 -->
     <LayoutConfigDialog ref="layoutConfigDialogRef" @apply="handleApplyLayoutTemplate" />
   </div>
 </template>
@@ -118,7 +118,7 @@ import FileManager from "./modules/file-management/index.vue";
 const route = useRoute();
 const router = useRouter();
 
-// 响应式状�?
+// 响应式状态
 const loading = ref(false);
 const refreshLoading = ref(false);
 const editMode = ref(false);
@@ -134,7 +134,7 @@ const componentConfigDialogRef = ref();
 const layoutConfigDialogRef = ref();
 const gridLayoutEditorRef = ref();
 
-// 文件管理对话框状�?
+// 文件管理对话框状态
 const fileManagerVisible = ref(false);
 
 // 组件类型映射
@@ -168,7 +168,7 @@ const getProtocolIcon = (protocol?: string) => {
 };
 
 /**
- * 获取状态类�?
+ * 获取状态类型
  */
 const getStatusType = (status?: number) => {
   const typeMap = {
@@ -181,7 +181,7 @@ const getStatusType = (status?: number) => {
 };
 
 /**
- * 获取状态文�?
+ * 获取状态文本
  */
 const getStatusText = (status?: number) => {
   const textMap = {
@@ -194,7 +194,7 @@ const getStatusText = (status?: number) => {
 };
 
 /**
- * 返回上一�?
+ * 返回上一页
  */
 const goBack = () => {
   router.back();
@@ -238,7 +238,7 @@ const handleFileManager = () => {
 };
 
 /**
- * 关闭文件管理对话�?
+ * 关闭文件管理对话框
  */
 const handleFileManagerClose = () => {
   fileManagerVisible.value = false;
@@ -269,21 +269,21 @@ const toggleEditMode = () => {
 };
 
 /**
- * 初始化默认组�?
+ * 初始化默认组件
  */
 const handleInitDefaultComponents = async () => {
   try {
     loading.value = true;
     const res = await initDefaultComponentsForServerDetail(serverId.value);
     if (res.code === "00000") {
-      message.success("初始化默认组件成�?);
+      message.success("初始化默认组件成功");
       await loadComponents();
     } else {
-      message.error(res.msg || "初始化失�?);
+      message.error(res.msg || "初始化失败");
     }
   } catch (error) {
-    console.error("初始化默认组件失�?", error);
-    message.error("初始化失�?);
+    console.error("初始化默认组件失败:", error);
+    message.error("初始化失败");
   } finally {
     loading.value = false;
   }
@@ -343,7 +343,7 @@ const handleCancelEdit = () => {
  */
 const handleSaveLayout = async () => {
   try {
-    // 将布局信息映射回组件数�?
+    // 将布局信息映射回组件数据
     const updatedComponents = components.value.map((component) => {
       const layoutItem = layout.value.find((item) => item.i === String(component.monitorSysGenServerComponentId));
       if (layoutItem) {
@@ -392,7 +392,7 @@ const handleComponentsManaged = () => {
  */
 const handleComponentConfigSuccess = () => {
   loadComponents();
-  message.success("组件配置已保�?);
+  message.success("组件配置已保存");
 };
 
 /**
@@ -401,12 +401,12 @@ const handleComponentConfigSuccess = () => {
 const handleApplyLayoutTemplate = (template: any) => {
   if (gridLayoutEditorRef.value) {
     gridLayoutEditorRef.value.setLayout(template.config.layout);
-    message.success("布局模板已应�?);
+    message.success("布局模板已应用");
   }
 };
 
 /**
- * 加载服务器信�?
+ * 加载服务器信息
  */
 const loadServerInfo = async () => {
   try {
@@ -416,7 +416,7 @@ const loadServerInfo = async () => {
       serverInfo.value = res.data;
     }
   } catch (error) {
-    console.error("加载服务器信息失�?", error);
+    console.error("加载服务器信息失败:", error);
   }
 };
 
@@ -458,7 +458,7 @@ const loadComponents = async () => {
   }
 };
 
-// 页面初始�?
+// 页面初始化
 onMounted(() => {
   loadServerInfo();
   loadComponents();
@@ -595,7 +595,7 @@ onMounted(() => {
   }
 }
 
-// 响应式设�?
+// 响应式设计
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;

@@ -64,7 +64,7 @@
       </div>
       
       <div class="last-update">
-        最后更�? {{ lastUpdateTime }}
+        最后更新: {{ lastUpdateTime }}
       </div>
     </div>
 
@@ -88,7 +88,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useServerMetrics } from "@/composables/useServerWebSocket";
 import type { ServerDetailComponent } from "@/api/server";
 
-// 定义属�?
+// 定义属性
 interface Props {
   componentData: ServerDetailComponent;
   serverId: number;
@@ -106,7 +106,7 @@ const emit = defineEmits<{
   refresh: [component: ServerDetailComponent];
 }>();
 
-// 响应式状�?
+// 响应式状态
 const loading = ref(false);
 const refreshing = ref(false);
 const partitions = ref<any[]>([]);
@@ -115,7 +115,7 @@ const lastUpdateTime = ref<string>('-');
 // WebSocket监听
 const { onServerMetrics } = useServerMetrics(props.serverId);
 
-// 监听服务器指标数�?
+// 监听服务器指标数据
 let unsubscribe: (() => void) | null = null;
 
 onMounted(() => {
@@ -143,7 +143,7 @@ const updatePartitionsData = (metrics: any) => {
 
 
 /**
- * 格式化字�?
+ * 格式化字节
  */
 const formatBytes = (bytes: number) => {
   if (bytes === 0) return '0 B';

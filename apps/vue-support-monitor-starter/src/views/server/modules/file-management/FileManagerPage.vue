@@ -1,13 +1,8 @@
 <template>
-  <div
-    class="file-manager-page"
-    @dragenter.prevent
-    @dragover.prevent
-    @drop.prevent
-  >
+  <div class="file-manager-page" @dragenter.prevent @dragover.prevent @drop.prevent>
     <!-- 主要内容区域 -->
     <div class="manager-content">
-      <!-- 左侧文件�?-->
+      <!-- 左侧文件树 -->
       <div class="left-panel">
         <!-- 目录结构头部 -->
         <!-- <div class="tree-header">
@@ -30,7 +25,7 @@
           </div>
         </div> -->
 
-        <!-- 文件树内�?-->
+        <!-- 文件树内容 -->
         <div class="tree-content">
           <FileTree
             ref="fileTreeRef"
@@ -45,26 +40,14 @@
         </div>
       </div>
 
-      <!-- 分割�?-->
+      <!-- 分割线 -->
       <div class="splitter" />
 
       <!-- 右侧文件列表 -->
       <div class="right-panel">
-        <!-- 工具�?-->
-        <div
-          class="list-toolbar"
-          style="
-            padding: 8px 12px;
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-          "
-        >
-          <el-button
-            type="primary"
-            size="small"
-            @click="showUploadDialog = true"
-          >
+        <!-- 工具栏 -->
+        <div class="list-toolbar" style="padding: 8px 12px; display: flex; justify-content: flex-end; gap: 8px">
+          <el-button type="primary" size="small" @click="showUploadDialog = true">
             <IconifyIconOnline icon="ri:upload-cloud-2-line" class="mr-1" />
             上传文件
           </el-button>
@@ -84,45 +67,24 @@
         </div>
 
         <!-- 文件详情面板 -->
-        <div
-          v-if="detailVisible"
-          class="file-detail-panel"
-          :class="{ 'panel-visible': detailVisible }"
-          :style="{ height: detailVisible ? `${detailPanelHeight}px` : '0px' }"
-        >
+        <div v-if="detailVisible" class="file-detail-panel" :class="{ 'panel-visible': detailVisible }" :style="{ height: detailVisible ? `${detailPanelHeight}px` : '0px' }">
           <!-- 拖拽手柄 -->
-          <div
-            class="resize-handle"
-            @mousedown="startResize"
-            @touchstart="startResize"
-          >
+          <div class="resize-handle" @mousedown="startResize" @touchstart="startResize">
             <div class="resize-indicator" />
           </div>
 
           <div class="detail-header">
             <div class="detail-title">
               <IconifyIconOnline icon="ri:file-info-line" class="mr-2" />
-              <span>文件属�?/span>
+              <span>文件属性</span>
             </div>
-            <el-button
-              size="small"
-              text
-              class="close-detail-btn"
-              @click="detailVisible = false"
-            >
+            <el-button size="small" text class="close-detail-btn" @click="detailVisible = false">
               <IconifyIconOnline icon="ri:close-line" />
             </el-button>
           </div>
           <div class="detail-content">
-            <!-- 上传对话�?-->
-            <MultiTargetUploadDialog
-              v-model="showUploadDialog"
-              :current-path="currentPath"
-              :queue-status="queueStatus"
-              :enqueue="enqueue"
-              :preset-files="presetFiles"
-              @success="handleUploadSuccess"
-            />
+            <!-- 上传对话框 -->
+            <MultiTargetUploadDialog v-model="showUploadDialog" :current-path="currentPath" :queue-status="queueStatus" :enqueue="enqueue" :preset-files="presetFiles" @success="handleUploadSuccess" />
 
             <MultiTargetDistributeDialog
               v-model="showDistributeDialog"
@@ -132,7 +94,7 @@
               @success="handleDistributeSuccess"
             />
 
-            <!-- 上传队列状�?-->
+            <!-- 上传队列状态 -->
             <UploadQueueStatusComponent
               ref="queueStatusRef"
               :queue-status="queueStatus"
@@ -143,25 +105,14 @@
               @cancel-task="manager.cancelTask($event)"
               @sync-task="handleSyncTask"
             />
-            <FileDetailContent
-              :server-id="serverId"
-              :file-info="selectedFile"
-              @preview="handleFileDetailPreview"
-              @download="handleFileDetailDownload"
-              @delete="handleFileDetailDelete"
-            />
+            <FileDetailContent :server-id="serverId" :file-info="selectedFile" @preview="handleFileDetailPreview" @download="handleFileDetailDownload" @delete="handleFileDetailDelete" />
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 文件预览/编辑对话�?-->
-    <FilePreviewDialog
-      v-model:visible="previewVisible"
-      :server-id="serverId"
-      :file-info="selectedFile"
-      @file-updated="handleFileUpdated"
-    />
+    <!-- 文件预览/编辑对话框 -->
+    <FilePreviewDialog v-model:visible="previewVisible" :server-id="serverId" :file-info="selectedFile" @file-updated="handleFileUpdated" />
   </div>
 </template>
 
@@ -179,43 +130,37 @@ import FileTree from "./FileTree.vue";
 import MultiTargetDistributeDialog from "./components/MultiTargetDistributeDialog.vue";
 import MultiTargetUploadDialog from "./components/MultiTargetUploadDialog.vue";
 import { useUploadManager } from "./composables/useUploadManager";
-// 上传对话�?
+// 上传对话框
 const showUploadDialog = ref(false);
 
 // 队列状态（与文件系统模块复用）
-const {
-  queueStatus,
-  connect: connectSSE,
-  disconnect: disconnectSSE,
-  onMessage,
-  MESSAGE_TYPE,
-} = useFileSystemSSE();
+const { queueStatus, connect: connectSSE, disconnect: disconnectSSE, onMessage, MESSAGE_TYPE } = useFileSystemSSE();
 const queueStatusRef = ref();
 
 function handleUploadSuccess() {
-  // 上传成功后刷新当前列�?
+  // 上传成功后刷新当前列表
   fileListRef.value?.refreshList?.();
 }
 
 function handleQueueUpdate(list: any[]) {
-  // 可选：在页面其他位置同步显示数�?
+  // 可选：在页面其他位置同步显示数量
   console.log("Upload queue updated:", list?.length);
 }
 
-// 上传管理器（并发/控制�?
+// 上传管理器（并发/控制）
 const manager = useUploadManager({
   concurrency: 3,
   maxRetries: 2,
-  queueMap: queueStatus.value,
+  queueMap: queueStatus.value
 });
 const presetFiles = ref<File[]>([]);
 function handleSyncTask(fileId: number) {
   const meta = manager.getTaskMeta?.(fileId);
   if (!meta?.file) {
-    ElMessage.warning("无法获取原始文件，无法同�?);
+    ElMessage.warning("无法获取原始文件，无法同步");
     return;
   }
-  // 预填文件到对话框，用户选择目标服务�?节点后执�?
+  // 预填文件到对话框，用户选择目标服务器/节点后执行
   presetFiles.value = [meta.file];
   showUploadDialog.value = true;
 }
@@ -225,16 +170,13 @@ const enqueue = (
   tasks: Array<{
     id: number;
     name: string;
-    run: (
-      signal: AbortSignal,
-      onProgress: (p: number) => void
-    ) => Promise<void>;
+    run: (signal: AbortSignal, onProgress: (p: number) => void) => Promise<void>;
   }>
 ) => {
   manager.enqueue(tasks as any);
 };
 
-// 打开分发对话框（来自文件列表 @sync 事件�?
+// 打开分发对话框（来自文件列表 @sync 事件）
 function openDistribute(file: FileInfo) {
   selectedFile.value = file;
   showDistributeDialog.value = true;
@@ -242,7 +184,7 @@ function openDistribute(file: FileInfo) {
 
 // 分发完成回调（关闭对话框并刷新列表）
 function handleDistributeSuccess() {
-  ElMessage.success("同步任务已完�?);
+  ElMessage.success("同步任务已完成");
   showDistributeDialog.value = false;
   fileListRef.value?.refreshList?.();
 }
@@ -261,7 +203,7 @@ const props = defineProps<{
   serverInfo?: any;
 }>();
 
-// 响应式数�?
+// 响应式数据
 const currentPath = ref("/");
 const selectedFile = ref<FileInfo | null>(null);
 const previewVisible = ref(false);
@@ -271,8 +213,8 @@ const showDistributeDialog = ref(false);
 // 拖拽调整高度相关
 const detailPanelHeight = ref(300); // 默认高度
 const isResizing = ref(false);
-const minHeight = 150; // 最小高�?
-const maxHeightRatio = 0.7; // 最大高度占窗口的比�?
+const minHeight = 150; // 最小高度
+const maxHeightRatio = 0.7; // 最大高度占窗口的比例
 
 // 组件引用
 const fileTreeRef = ref();
@@ -285,9 +227,9 @@ const getFileManagementModeText = (mode: string) => {
   const modeMap: Record<string, string> = {
     LOCAL: "本地连接",
     SSH: "SSH连接",
-    NODE: "NODE客户�?,
+    NODE: "NODE客户端",
     API: "API连接",
-    NONE: "未启�?,
+    NONE: "未启用"
   };
   return modeMap[mode] || mode;
 };
@@ -310,10 +252,10 @@ const handleTreeNodeClick = async (path: string, node: FileInfo) => {
 const handleTreeFolderClick = async (path: string, node: FileInfo) => {
   console.log("FileManagerPage: Tree folder clicked", path, node);
 
-  // 先更新路�?
+  // 先更新路径
   currentPath.value = path;
 
-  // 等待树的选中状态更新完�?
+  // 等待树的选中状态更新完成
   await fileTreeRef.value?.setCurrentPath(path);
 
   // 主动加载右侧文件列表
@@ -323,7 +265,7 @@ const handleTreeFolderClick = async (path: string, node: FileInfo) => {
 };
 
 /**
- * 处理树文件点�?
+ * 处理树文件点击
  */
 const handleTreeFileClick = async (path: string, node: FileInfo) => {
   console.log("FileManagerPage: Tree file clicked", path, node);
@@ -340,17 +282,13 @@ const handlePathChange = async (path: string) => {
   console.log("FileManagerPage: Path changed to", path);
   currentPath.value = path;
 
-  // 同步左侧文件树：展开到新路径并高�?
+  // 同步左侧文件树：展开到新路径并高亮
   try {
     await fileTreeRef.value?.expandToPath(path);
     console.log("FileManagerPage: Tree expanded to path", path);
   } catch (error) {
-    console.error(
-      "FileManagerPage: Failed to expand tree to path",
-      path,
-      error
-    );
-    // 如果展开失败，至少设置当前选中状�?
+    console.error("FileManagerPage: Failed to expand tree to path", path, error);
+    // 如果展开失败，至少设置当前选中状态
     fileTreeRef.value?.setCurrentPath(path);
   }
 
@@ -367,10 +305,10 @@ const handleFileSelect = (file: FileInfo) => {
 
   // 根据文件类型决定操作
   if (file.isDirectory) {
-    // 目录：显示详�?
+    // 目录：显示详情
     detailVisible.value = true;
   } else {
-    // 文件：根据类型决定是否可以预�?
+    // 文件：根据类型决定是否可以预览
     if (isPreviewableFile(file)) {
       previewVisible.value = true;
     } else {
@@ -411,13 +349,13 @@ const isPreviewableFile = (file: FileInfo) => {
     "yml",
     "yaml",
     "ini",
-    "conf",
+    "conf"
   ];
   return previewableExts.includes(ext || "");
 };
 
 /**
- * 处理树刷�?
+ * 处理树刷新
  */
 const handleTreeRefresh = () => {
   console.log("FileManagerPage: Tree refreshed");
@@ -444,54 +382,44 @@ const handleFileUpdated = () => {
  */
 async function handleDropUpload(targetDir: string, files: File[]) {
   if (!props.serverId) {
-    ElMessage.warning("请先选择服务�?);
+    ElMessage.warning("请先选择服务器");
     return;
   }
   if (!targetDir) targetDir = currentPath.value || "/";
   if (!targetDir.startsWith("/")) targetDir = "/" + targetDir;
 
   // 是否覆盖确认
-  const { value: overwrite } = await ElMessageBox.confirm(
-    `目标目录: ${targetDir}\n�?${files.length} 个文件。是否覆盖已存在的同名文件？`,
-    "上传确认",
-    {
-      confirmButtonText: "覆盖",
-      cancelButtonText: "不覆�?,
-      distinguishCancelAndClose: true,
-      type: "warning",
-    }
-  )
+  const { value: overwrite } = await ElMessageBox.confirm(`目标目录: ${targetDir}\n共 ${files.length} 个文件。是否覆盖已存在的同名文件？`, "上传确认", {
+    confirmButtonText: "覆盖",
+    cancelButtonText: "不覆盖",
+    distinguishCancelAndClose: true,
+    type: "warning"
+  })
     .then(() => ({ value: true }))
-    .catch((action) => ({ value: action === "confirm" }));
+    .catch(action => ({ value: action === "confirm" }));
 
-  // 构建上传任务并入�?
-  const tasks = files.map((file) => {
+  // 构建上传任务并入队
+  const tasks = files.map(file => {
     const id = -Date.now() - Math.floor(Math.random() * 100000);
     const name = `${file.name} @ S:${props.serverId}`;
     return {
       id,
       name,
-      meta: {
-        file,
-        target: { type: "SERVER", id: props.serverId },
-        dirPath: targetDir,
-      },
+      meta: { file, target: { type: "SERVER", id: props.serverId }, dirPath: targetDir },
       run: (signal: AbortSignal, onProgress: (p: number) => void) =>
         uploadServerFileWithProgress(
           { serverId: props.serverId, targetPath: targetDir, file, overwrite },
-          (e) => {
-            const percent = e.total
-              ? Math.round((e.loaded / e.total) * 100)
-              : 0;
+          e => {
+            const percent = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
             onProgress(percent);
           },
           signal
-        ).then(() => void 0),
+        ).then(() => void 0)
     };
   });
 
   manager.enqueue(tasks as any);
-  showUploadDialog.value = true; // 打开上传对话框查看进�?
+  showUploadDialog.value = true; // 打开上传对话框查看进度
 }
 
 /**
@@ -499,9 +427,9 @@ async function handleDropUpload(targetDir: string, files: File[]) {
  */
 const refreshAll = () => {
   console.log("FileManagerPage: Refreshing current view");
-  // 只刷新右侧文件列表，保持左侧树的展开状�?
+  // 只刷新右侧文件列表，保持左侧树的展开状态
   fileListRef.value?.refreshList();
-  // 如果需要刷新树的当前节点，可以调用特定的刷新方�?
+  // 如果需要刷新树的当前节点，可以调用特定的刷新方法
   // fileTreeRef.value?.refreshCurrentNode();
 };
 
@@ -523,7 +451,7 @@ const handleFileDetailDelete = (file: FileInfo) => {
   // TODO: 实现文件删除功能
   console.log("Delete file:", file);
   ElMessage.info("删除功能开发中...");
-  // 删除成功后关闭详情面�?
+  // 删除成功后关闭详情面板
   detailVisible.value = false;
 };
 
@@ -540,19 +468,15 @@ const startResize = (event: MouseEvent | TouchEvent) => {
   const handleMouseMove = (moveEvent: MouseEvent | TouchEvent) => {
     if (!isResizing.value) return;
 
-    const currentY =
-      "touches" in moveEvent ? moveEvent.touches[0].clientY : moveEvent.clientY;
-    const deltaY = startY - currentY; // 向上拖拽为正�?
+    const currentY = "touches" in moveEvent ? moveEvent.touches[0].clientY : moveEvent.clientY;
+    const deltaY = startY - currentY; // 向上拖拽为正值
     const newHeight = startHeight + deltaY;
 
-    // 计算最大高�?
+    // 计算最大高度
     const maxHeight = window.innerHeight * maxHeightRatio;
 
     // 限制高度范围
-    detailPanelHeight.value = Math.max(
-      minHeight,
-      Math.min(newHeight, maxHeight)
-    );
+    detailPanelHeight.value = Math.max(minHeight, Math.min(newHeight, maxHeight));
   };
 
   const handleMouseUp = () => {
@@ -565,19 +489,19 @@ const startResize = (event: MouseEvent | TouchEvent) => {
     document.body.style.cursor = "";
   };
 
-  // 添加事件监听�?
+  // 添加事件监听器
   document.addEventListener("mousemove", handleMouseMove);
   document.addEventListener("mouseup", handleMouseUp);
   document.addEventListener("touchmove", handleMouseMove);
   document.addEventListener("touchend", handleMouseUp);
 
-  // 防止文本选择和设置光标样�?
+  // 防止文本选择和设置光标样式
   document.body.style.userSelect = "none";
   document.body.style.cursor = "row-resize";
 };
 
 /**
- * 处理键盘快捷�?
+ * 处理键盘快捷键
  */
 const handleKeydown = (event: KeyboardEvent) => {
   // F5 刷新
@@ -592,7 +516,7 @@ const handleKeydown = (event: KeyboardEvent) => {
     refreshAll();
   }
 
-  // ESC 关闭对话�?
+  // ESC 关闭对话框
   if (event.key === "Escape") {
     if (previewVisible.value) {
       previewVisible.value = false;
@@ -602,14 +526,12 @@ const handleKeydown = (event: KeyboardEvent) => {
   }
 };
 
-// 监听serverId变化，重置文件列表状�?
+// 监听serverId变化，重置文件列表状态
 watch(
   () => props.serverId,
   (newServerId, oldServerId) => {
     if (newServerId !== oldServerId && fileListRef.value) {
-      console.log(
-        "FileManagerPage: ServerId changed, resetting file list state"
-      );
+      console.log("FileManagerPage: ServerId changed, resetting file list state");
       fileListRef.value.resetState();
       currentPath.value = "/"; // 重置路径到根目录
     }
@@ -619,10 +541,10 @@ watch(
 // 监听serverId变化，刷新文件树
 watch(
   () => props.serverId,
-  (newServerId) => {
+  newServerId => {
     console.log("FileManagerPage: serverId changed to", newServerId);
     if (newServerId && fileTreeRef.value) {
-      // 主动刷新文件�?
+      // 主动刷新文件树
       fileTreeRef.value.refreshTree();
     }
   },
@@ -636,10 +558,10 @@ onMounted(() => {
   const prevent = (e: DragEvent) => {
     e.preventDefault();
   };
-  // 防止浏览器默认的拖拽打开行为（全局�?
+  // 防止浏览器默认的拖拽打开行为（全局）
   document.addEventListener("dragover", prevent);
   document.addEventListener("drop", prevent);
-  // 存到 window 以便卸载时移�?
+  // 存到 window 以便卸载时移除
   (window as any).__fm_prevent_drag__ = prevent;
 });
 
@@ -658,135 +580,77 @@ defineExpose({
   refreshAll,
   setCurrentPath: (path: string) => {
     currentPath.value = path;
-  },
+  }
 });
 </script>
 
 <style scoped>
 .file-manager-page {
-  height: 100vh;
-  width: 100vw;
+  height: 100vh; /* 撑满整个视口高度 */
+  width: 100vw; /* 撑满整个视口宽度 */
   display: flex;
   flex-direction: column;
-  background: linear-gradient(
-    135deg,
-    rgba(248, 250, 252, 0.98) 0%,
-    rgba(241, 245, 249, 0.95) 100%
-  );
+   background: var(--el-bg-color-overlay); /* 设置背景为白色 */
   overflow: hidden;
-  position: fixed;
+  position: fixed; /* 固定定位确保撑满页面 */
   top: 0;
   left: 0;
-  z-index: 1000;
+  z-index: 1000; /* 确保在最上层 */
 }
 
 .manager-content {
   flex: 1;
   display: flex;
   overflow: hidden;
-  margin: 12px;
-  gap: 12px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .left-panel {
-  width: 300px;
-  min-width: 240px;
+  width: 280px;
+  min-width: 220px;
   max-width: 400px;
   height: 100%;
   flex-shrink: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.98) 0%,
-    rgba(248, 250, 252, 0.95) 100%
-  );
+   background: var(--el-bg-color-overlay); /* 设置左侧面板背景为白色 */
   display: flex;
   flex-direction: column;
-  border-radius: 16px 0 0 16px;
-  border-right: 1px solid rgba(226, 232, 240, 0.8);
-  backdrop-filter: blur(10px);
-  overflow: hidden;
-
-  /* 装饰性顶部渐变条 */
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-    border-radius: 16px 0 0 0;
-  }
+  border-right: 1px solid var(--el-border-color-light);
 }
 
 /* 目录结构头部样式 */
 .tree-header {
-  height: 56px;
-  padding: 0 20px;
+  height: 50px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-  background: linear-gradient(
-    135deg,
-    rgba(102, 126, 234, 0.05) 0%,
-    rgba(118, 75, 162, 0.03) 100%
-  );
+  border-bottom: 1px solid var(--el-border-color-light);
+  background: var(--el-fill-color-extra-light);
   flex-shrink: 0;
-  margin-top: 4px;
 }
 
 .tree-header-left {
   display: flex;
   align-items: center;
-
-  .iconify {
-    font-size: 20px;
-    color: #667eea;
-    padding: 6px;
-    background: linear-gradient(
-      135deg,
-      rgba(102, 126, 234, 0.1) 0%,
-      rgba(118, 75, 162, 0.08) 100%
-    );
-    border-radius: 8px;
-  }
 }
 
 .tree-title {
-  font-size: 15px;
-  font-weight: 600;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
 }
 
 .tree-header-right {
   display: flex;
-  gap: 8px;
-
-  .el-button {
-    border-radius: 8px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-  }
+  gap: 6px;
 }
 
-/* 文件树内容区�?*/
+/* 文件树内容区域 */
 .tree-content {
   flex: 1;
   overflow: auto;
-  padding: 8px;
 }
 
-/* 统一滚动条样�?*/
+/* 统一滚动条样式 */
 .tree-content::-webkit-scrollbar,
 .right-panel::-webkit-scrollbar {
   width: 6px;
@@ -820,29 +684,23 @@ defineExpose({
 }
 
 .splitter {
-  width: 2px;
-  background: linear-gradient(
-    180deg,
-    rgba(102, 126, 234, 0.2) 0%,
-    rgba(118, 75, 162, 0.1) 100%
-  );
+  width: 1px;
+  background: var(--el-border-color-light);
   cursor: col-resize;
   flex-shrink: 0;
   position: relative;
-  transition: all 0.3s ease;
 }
 
 .splitter:hover {
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-  width: 3px;
+  background: var(--el-color-primary);
 }
 
 .splitter::before {
   content: "";
   position: absolute;
-  left: -4px;
+  left: -2px;
   top: 0;
-  width: 10px;
+  width: 5px;
   height: 100%;
   background: transparent;
 }
@@ -851,59 +709,9 @@ defineExpose({
   flex: 1;
   height: 100%;
   overflow: hidden;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.98) 0%,
-    rgba(248, 250, 252, 0.95) 100%
-  );
+   background: var(--el-bg-color-overlay); /* 设置右侧面板背景为白色 */
   display: flex;
   flex-direction: column;
-  border-radius: 0 16px 16px 0;
-  backdrop-filter: blur(10px);
-  position: relative;
-
-  /* 装饰性顶部渐变条 */
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #764ba2 0%, #f093fb 50%, #f5576c 100%);
-    border-radius: 0 16px 0 0;
-    z-index: 1;
-  }
-}
-
-/* 工具栏美�?*/
-.list-toolbar {
-  padding: 12px 16px !important;
-  background: linear-gradient(
-    135deg,
-    rgba(102, 126, 234, 0.05) 0%,
-    rgba(118, 75, 162, 0.03) 100%
-  );
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-  margin-top: 4px;
-
-  .el-button {
-    border-radius: 10px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-
-    &.el-button--primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border: none;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-        background: linear-gradient(135deg, #7c8ff0 0%, #8b5fb8 100%);
-      }
-    }
-  }
 }
 
 /* 文件列表容器 */
@@ -911,22 +719,15 @@ defineExpose({
   flex: 1;
   overflow: hidden;
   transition: all 0.3s ease;
-  padding: 8px;
 }
 
 /* 文件详情面板 */
 .file-detail-panel {
   overflow: hidden;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.98) 0%,
-    rgba(248, 250, 252, 0.95) 100%
-  );
-  border-top: 1px solid rgba(226, 232, 240, 0.8);
+   background: var(--el-bg-color-overlay); /* 设置文件详情面板背景为白色 */
+  border-top: 1px solid var(--el-border-color-light);
   transition: height 0.3s ease;
   position: relative;
-  border-radius: 12px 12px 0 0;
-  margin: 0 8px;
 }
 
 /* 拖拽手柄 */
@@ -935,163 +736,140 @@ defineExpose({
   top: -3px;
   left: 0;
   right: 0;
-  height: 8px;
+  height: 6px;
   cursor: row-resize;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px 12px 0 0;
-  transition: all 0.2s ease;
 }
 
 .resize-handle:hover {
-  background: linear-gradient(
-    135deg,
-    rgba(102, 126, 234, 0.1) 0%,
-    rgba(118, 75, 162, 0.08) 100%
-  );
+  background: var(--el-color-primary-light-8);
 }
 
 .resize-indicator {
-  width: 50px;
-  height: 4px;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  border-radius: 2px;
-  transition: all 0.2s ease;
-  opacity: 0.5;
+  width: 40px;
+  height: 2px;
+  background: var(--el-border-color-darker);
+  border-radius: 1px;
+  transition: background 0.2s ease;
 }
 
 .resize-handle:hover .resize-indicator {
-  opacity: 1;
-  width: 60px;
+  background: var(--el-color-primary);
 }
 
 /* 详情面板头部 */
 .detail-header {
-  height: 44px;
-  padding: 0 20px;
-  margin-top: 4px;
+  height: 40px;
+  padding: 0 16px;
+  margin-top: 3px; /* 为拖拽手柄留出空间 */
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(
-    135deg,
-    rgba(102, 126, 234, 0.05) 0%,
-    rgba(118, 75, 162, 0.03) 100%
-  );
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  background: var(--el-fill-color-extra-light);
+  border-bottom: 1px solid var(--el-border-color-light);
   flex-shrink: 0;
-  border-radius: 12px 12px 0 0;
 }
 
 .detail-title {
   display: flex;
   align-items: center;
   font-size: 14px;
-  font-weight: 600;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-
-  .iconify {
-    margin-right: 8px;
-    font-size: 18px;
-    color: #667eea;
-  }
+  font-weight: 500;
+  color: var(--el-text-color-primary);
 }
 
 .close-detail-btn {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   padding: 0;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-  }
 }
 
 /* 详情面板内容 */
 .detail-content {
-  height: calc(100% - 48px);
+  height: calc(100% - 43px); /* 减去头部高度和拖拽手柄空间 */
   overflow: hidden;
-  padding: 12px;
 }
 
-/* 响应式设�?*/
+/* 响应式设计 */
 @media (max-width: 768px) {
   .manager-content {
     flex-direction: column;
-    margin: 8px;
-    gap: 8px;
-    border-radius: 12px;
   }
 
   .left-panel {
     width: 100%;
-    height: 280px;
+    height: 250px; /* 增加移动端高度 */
     max-width: none;
-    border-radius: 12px 12px 0 0;
-
-    &::before {
-      border-radius: 12px 12px 0 0;
-    }
   }
 
   .tree-header {
-    height: 48px;
-    padding: 0 16px;
+    height: 45px;
+    padding: 0 12px;
   }
 
   .tree-title {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .splitter {
     width: 100%;
-    height: 2px;
+    height: 1px;
     cursor: row-resize;
-    background: linear-gradient(
-      90deg,
-      rgba(102, 126, 234, 0.2) 0%,
-      rgba(118, 75, 162, 0.1) 100%
-    );
   }
 
   .splitter::before {
     left: 0;
-    top: -4px;
+    top: -2px;
     width: 100%;
-    height: 10px;
+    height: 5px;
   }
 
   .right-panel {
     flex: 1;
     width: 100%;
-    border-radius: 0 0 12px 12px;
-
-    &::before {
-      display: none;
-    }
   }
 
   .file-detail-panel {
+    /* 移动端使用固定高度，不支持拖拽调整 */
     height: 250px !important;
-    margin: 0 4px;
-    border-radius: 8px 8px 0 0;
   }
 
   .resize-handle {
-    display: none;
+    display: none; /* 移动端隐藏拖拽手柄 */
   }
 
   .detail-header {
-    margin-top: 0;
-    border-radius: 8px 8px 0 0;
+    margin-top: 0; /* 移动端不需要为拖拽手柄留空间 */
+  }
+}
+
+/* 暗色主题适配 - 强制保持白色背景 */
+@media (prefers-color-scheme: dark) {
+  .file-manager-page {
+    background: #ffffff !important; /* 强制保持白色背景 */
+  }
+
+  .tree-header {
+    background: #ffffff !important; /* 强制保持白色背景 */
+    border-bottom-color: var(--el-border-color);
+  }
+
+  .left-panel,
+  .right-panel,
+  .file-detail-panel {
+    background: #ffffff !important; /* 强制保持白色背景 */
+  }
+
+  .detail-header {
+    background: #ffffff !important; /* 强制保持白色背景 */
+    border-bottom-color: var(--el-border-color);
+  }
+
+  .splitter {
+    background: var(--el-border-color);
   }
 }
 </style>

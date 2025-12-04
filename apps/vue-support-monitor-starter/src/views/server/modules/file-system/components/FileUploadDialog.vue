@@ -23,7 +23,7 @@
           />
           <div class="upload-text">
             <p class="primary-text">点击选择文件或拖拽文件到此处</p>
-            <p class="secondary-text">支持多文件上传，单个文件最�?100MB</p>
+            <p class="secondary-text">支持多文件上传，单个文件最大 100MB</p>
           </div>
         </div>
         <input
@@ -38,7 +38,7 @@
       <!-- 文件列表 -->
       <div v-if="fileList.length" class="file-list">
         <div class="list-header">
-          <span>待上传文�?({{ fileList.length }})</span>
+          <span>待上传文件 ({{ fileList.length }})</span>
           <el-button size="small" text @click="clearFiles">
             <IconifyIconOnline icon="ri:delete-bin-line" />
             清空
@@ -73,7 +73,7 @@
       <!-- 上传配置 -->
       <div class="upload-config">
         <el-form :model="uploadConfig" label-width="100px" size="small">
-          <el-form-item label="并发�?>
+          <el-form-item label="并发数">
             <el-input-number
               v-model="uploadConfig.concurrent"
               :min="1"
@@ -87,7 +87,7 @@
                 >分片大小: {{ systemConfig.chunkSize }}MB</span
               >
               <span class="config-item"
-                >最大文�? {{ systemConfig.maxFileSize }}MB</span
+                >最大文件: {{ systemConfig.maxFileSize }}MB</span
               >
             </div>
           </el-form-item>
@@ -104,7 +104,7 @@
           :loading="uploading"
           @click="startUpload"
         >
-          {{ uploading ? "上传�?.." : "开始上�? }}
+          {{ uploading ? "上传中..." : "开始上传" }}
         </el-button>
       </div>
     </template>
@@ -133,7 +133,7 @@ const emit = defineEmits<{
   "upload-success": [];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const visible = computed({
   get: () => props.modelValue,
   set: (value) => emit("update:modelValue", value),
@@ -147,8 +147,8 @@ const systemConfig = ref<FileSystemConfig | null>(null);
 
 // 上传配置
 const uploadConfig = reactive({
-  concurrent: 2, // 并发�?(默认�?
-  retryCount: 3, // 重试次数 (默认�?
+  concurrent: 2, // 并发数 (默认值)
+  retryCount: 3, // 重试次数 (默认值)
 });
 
 /**
@@ -195,13 +195,13 @@ const triggerFileSelect = () => {
  * 添加文件
  */
 const addFiles = (files: File[]) => {
-  // 检查系统配置是否加�?
+  // 检查系统配置是否加载
   if (!systemConfig.value) {
-    ElMessage.error("系统配置未加载，请稍后重�?);
+    ElMessage.error("系统配置未加载，请稍后重试");
     return;
   }
 
-  const maxSize = systemConfig.value.maxFileSize * 1024 * 1024; // 转换为字�?
+  const maxSize = systemConfig.value.maxFileSize * 1024 * 1024; // 转换为字节
   const validFiles = files.filter((file) => {
     if (file.size > maxSize) {
       ElMessage.warning(
@@ -217,13 +217,13 @@ const addFiles = (files: File[]) => {
   const newFiles = validFiles.filter((file) => !existingNames.has(file.name));
 
   if (newFiles.length !== validFiles.length) {
-    ElMessage.warning("部分文件已存在，已跳过重复文�?);
+    ElMessage.warning("部分文件已存在，已跳过重复文件");
   }
 
   fileList.value.push(...newFiles);
 
   if (newFiles.length > 0) {
-    ElMessage.success(`已添�?${newFiles.length} 个文件`);
+    ElMessage.success(`已添加 ${newFiles.length} 个文件`);
   }
 };
 
@@ -242,7 +242,7 @@ const clearFiles = () => {
 };
 
 /**
- * 计算文件MD5哈希�?
+ * 计算文件MD5哈希值
  */
 const calculateFileMD5 = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -270,7 +270,7 @@ const calculateFileMD5 = async (file: File): Promise<string> => {
 };
 
 /**
- * 开始上�?
+ * 开始上传
  */
 const startUpload = async () => {
   if (!fileList.value.length) return;
@@ -282,7 +282,7 @@ const startUpload = async () => {
       await uploadSingleFile(file);
     }
 
-    ElMessage.success("所有文件上传完�?);
+    ElMessage.success("所有文件上传完成");
     emit("upload-success");
     handleClose();
   } catch (error) {
@@ -300,14 +300,14 @@ const uploadSingleFile = async (file: File) => {
   // 计算文件MD5
   const fileMd5 = await calculateFileMD5(file);
 
-  // 检查系统配�?
+  // 检查系统配置
   if (!systemConfig.value) {
-    throw new Error("系统配置未加�?);
+    throw new Error("系统配置未加载");
   }
 
-  const chunkSize = systemConfig.value.chunkSize * 1024 * 1024; // 转换为字�?
+  const chunkSize = systemConfig.value.chunkSize * 1024 * 1024; // 转换为字节
 
-  // 初始化分片上�?
+  // 初始化分片上传
   const initRes = await initChunkUpload({
     fileName: file.name,
     fileSize: file.size,
@@ -316,7 +316,7 @@ const uploadSingleFile = async (file: File) => {
   });
 
   if (initRes.code !== "00000" || !initRes.data) {
-    throw new Error(initRes.msg || "初始化上传失�?);
+    throw new Error(initRes.msg || "初始化上传失败");
   }
 
   const { fileId, chunkTotal, exists, message } = initRes.data;
@@ -334,7 +334,7 @@ const uploadSingleFile = async (file: File) => {
     chunks.push(uploadFileChunk(file, fileId, i, chunkSize));
   }
 
-  // 控制并发�?
+  // 控制并发数
   await Promise.all(chunks);
 };
 
@@ -354,7 +354,7 @@ const uploadFileChunk = async (
   const formData = new FormData();
   formData.append("fileId", fileId.toString());
   formData.append("chunkNumber", chunkNumber.toString());
-  formData.append("file", chunk); // 后端期望的参数名�?file"
+  formData.append("file", chunk); // 后端期望的参数名是"file"
 
   const res = await uploadChunk(formData);
   if (res.code !== "00000") {
@@ -363,7 +363,7 @@ const uploadFileChunk = async (
 };
 
 /**
- * 格式化文件大�?
+ * 格式化文件大小
  */
 const formatFileSize = (size: number) => {
   return formatBytes(size);
@@ -397,7 +397,7 @@ const getFileIcon = (fileName: string) => {
     ppt: "ri:file-ppt-line",
     pptx: "ri:file-ppt-line",
     txt: "ri:file-text-line",
-    // 压缩�?
+    // 压缩包
     zip: "ri:file-zip-line",
     rar: "ri:file-zip-line",
     "7z": "ri:file-zip-line",
@@ -441,18 +441,18 @@ const handleClose = () => {
   }
 };
 
-// 监听对话框显示状�?
+// 监听对话框显示状态
 watch(visible, (newVal) => {
   if (newVal) {
-    loadConfig(); // 打开时加载配�?
+    loadConfig(); // 打开时加载配置
   } else {
-    // 关闭时清理数�?
+    // 关闭时清理数据
     fileList.value = [];
     uploading.value = false;
   }
 });
 
-// 组件挂载时加载配�?
+// 组件挂载时加载配置
 onMounted(() => {
   loadConfig();
 });

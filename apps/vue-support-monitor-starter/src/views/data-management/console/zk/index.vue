@@ -7,7 +7,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import ZookeeperConsole from "@/views/data-management/console/zk/ZookeeperConsole.vue";
+import ZookeeperConsole from "@/views/data-management/console/zk/ZookeeperConsole.vueue";
 
 const route = useRoute();
 const id = computed(() => Number(route.query.id));

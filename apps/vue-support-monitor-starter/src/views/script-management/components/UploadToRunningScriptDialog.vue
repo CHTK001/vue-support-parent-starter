@@ -5,8 +5,8 @@
         <ScSelect v-model="form.type" :options="typeOptions" placeholder="请选择类型" />
       </el-form-item>
 
-      <el-form-item v-if="form.type === 'REMOTE'" label="服务�? prop="serverIds">
-        <el-select v-model="form.serverIds" multiple filterable clearable placeholder="请选择服务�? style="width: 100%">
+      <el-form-item v-if="form.type === 'REMOTE'" label="服务器" prop="serverIds">
+        <el-select v-model="form.serverIds" multiple filterable clearable placeholder="请选择服务器" style="width: 100%">
           <el-option v-for="opt in serverOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
         </el-select>
       </el-form-item>
@@ -22,7 +22,7 @@
       </el-form-item>
 
       <el-form-item label="是否覆盖">
-        <el-switch v-model="form.overwrite" active-text="�? inactive-text="�? />
+        <el-switch v-model="form.overwrite" active-text="是" inactive-text="否" />
       </el-form-item>
     </el-form>
 
@@ -79,9 +79,9 @@ const submitting = ref(false);
 
 const rules = {
   type: [{ required: true, message: "请选择类型" }],
-  serverIds: [{ required: () => form.value.type === "REMOTE", message: "请选择服务�? }],
+  serverIds: [{ required: () => form.value.type === "REMOTE", message: "请选择服务器" }],
   nodeIds: [{ required: () => form.value.type === "NODE", message: "请选择节点" }],
-  dirPath: [{ required: true, message: "请输入上传目�? }]
+  dirPath: [{ required: true, message: "请输入上传目录" }]
 };
 
 async function loadServerOptions() {
@@ -130,7 +130,7 @@ const handleConfirm = async () => {
     if (!props.scriptId) throw new Error("缺少脚本ID");
 
     if (form.value.type === "REMOTE") {
-      if (!form.value.serverIds?.length) throw new Error("请选择服务�?);
+      if (!form.value.serverIds?.length) throw new Error("请选择服务器");
       await Promise.all(
         form.value.serverIds.map(sid =>
           fetchUploadScriptToServer({
@@ -155,7 +155,7 @@ const handleConfirm = async () => {
       );
     }
 
-    ElMessage.success("已提交上传任�?);
+    ElMessage.success("已提交上传任务");
     emit("update:visible", false);
   } catch (e: any) {
     ElMessage.error(e?.message || "提交失败");

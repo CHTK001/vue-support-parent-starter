@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="表达式帮�?
+    title="表达式帮助"
     width="1000px"
     :close-on-click-modal="false"
     destroy-on-close
@@ -9,7 +9,7 @@
     align-center
     top="5vh"
   >
-    <!-- 自定义头�?-->
+    <!-- 自定义头部 -->
     <template #header="{ titleId, titleClass }">
       <div class="dialog-header">
         <div class="header-left">
@@ -17,7 +17,7 @@
           <span :id="titleId" :class="titleClass" class="dialog-title">
             {{
               serverReportType === "prometheus"
-                ? "PromQL 表达式帮�?
+                ? "PromQL 表达式帮助"
                 : "组件选择帮助"
             }}
           </span>
@@ -48,21 +48,21 @@
     </template>
 
     <div class="help-content modern-scrollbar">
-      <!-- Prometheus 表达式帮�?-->
+      <!-- Prometheus 表达式帮助 -->
       <div v-if="serverReportType === 'prometheus'" class="prometheus-help">
         <div class="help-section">
           <h3>
             <IconifyIconOnline icon="logos:prometheus" class="mr-2" />
             Prometheus PromQL 语法
           </h3>
-          <p>Prometheus 查询语言 (PromQL) 用于查询时间序列数据�?/p>
+          <p>Prometheus 查询语言 (PromQL) 用于查询时间序列数据。</p>
 
           <h4>基本语法</h4>
           <div class="code-block">
             <pre><code># 查询指标
 cpu_usage_percent
 
-# 带标签过�?
+# 带标签过滤
 cpu_usage_percent{instance="localhost:9100"}
 
 # 范围查询
@@ -76,18 +76,18 @@ sum(rate(http_requests_total[5m]))</code></pre>
           <h4>常用函数</h4>
           <div class="function-list">
             <div class="function-item">
-              <strong>rate()</strong> - 计算每秒平均增长�?
+              <strong>rate()</strong> - 计算每秒平均增长率
             </div>
             <div class="function-item">
-              <strong>irate()</strong> - 计算瞬时增长�?
+              <strong>irate()</strong> - 计算瞬时增长率
             </div>
-            <div class="function-item"><strong>avg()</strong> - 平均�?/div>
+            <div class="function-item"><strong>avg()</strong> - 平均值</div>
             <div class="function-item"><strong>sum()</strong> - 求和</div>
-            <div class="function-item"><strong>max()</strong> - 最大�?/div>
-            <div class="function-item"><strong>min()</strong> - 最小�?/div>
+            <div class="function-item"><strong>max()</strong> - 最大值</div>
+            <div class="function-item"><strong>min()</strong> - 最小值</div>
           </div>
 
-          <h4>示例表达�?/h4>
+          <h4>示例表达式</h4>
           <div class="examples">
             <div
               class="example-item"
@@ -98,7 +98,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
               "
             >
               <div class="example-header">
-                <strong>CPU使用�?/strong>
+                <strong>CPU使用率</strong>
                 <el-button type="primary" text size="small">
                   <IconifyIconOnline icon="ri:add-line" />
                   选择
@@ -118,7 +118,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
               "
             >
               <div class="example-header">
-                <strong>内存使用�?/strong>
+                <strong>内存使用率</strong>
                 <el-button type="primary" text size="small">
                   <IconifyIconOnline icon="ri:add-line" />
                   选择
@@ -138,7 +138,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
               "
             >
               <div class="example-header">
-                <strong>磁盘使用�?/strong>
+                <strong>磁盘使用率</strong>
                 <el-button type="primary" text size="small">
                   <IconifyIconOnline icon="ri:add-line" />
                   选择
@@ -168,14 +168,14 @@ sum(rate(http_requests_total[5m]))</code></pre>
         </div>
       </div>
 
-      <!-- �?Prometheus 组件选择帮助 -->
+      <!-- 非 Prometheus 组件选择帮助 -->
       <div v-else class="component-help">
         <div class="help-section">
           <h3>
             <IconifyIconOnline icon="ri:dashboard-line" class="mr-2" />
             可用组件类型
           </h3>
-          <p>选择要监控的系统组件，系统将自动收集相应的监控数据�?/p>
+          <p>选择要监控的系统组件，系统将自动收集相应的监控数据。</p>
 
           <div class="component-grid">
             <div class="component-category">
@@ -189,8 +189,8 @@ sum(rate(http_requests_total[5m]))</code></pre>
                   @click="selectComponent('cpu_usage')"
                 >
                   <div class="component-info">
-                    <strong>CPU使用�?/strong>
-                    <span>监控CPU使用百分�?/span>
+                    <strong>CPU使用率</strong>
+                    <span>监控CPU使用百分比</span>
                   </div>
                   <el-button type="primary" text size="small">选择</el-button>
                 </div>
@@ -199,8 +199,8 @@ sum(rate(http_requests_total[5m]))</code></pre>
                   @click="selectComponent('memory_usage')"
                 >
                   <div class="component-info">
-                    <strong>内存使用�?/strong>
-                    <span>监控内存使用百分�?/span>
+                    <strong>内存使用率</strong>
+                    <span>监控内存使用百分比</span>
                   </div>
                   <el-button type="primary" text size="small">选择</el-button>
                 </div>
@@ -228,7 +228,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
                   @click="selectComponent('disk_usage')"
                 >
                   <div class="component-info">
-                    <strong>磁盘使用�?/strong>
+                    <strong>磁盘使用率</strong>
                     <span>监控磁盘空间使用情况</span>
                   </div>
                   <el-button type="primary" text size="small">选择</el-button>
@@ -239,7 +239,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
                 >
                   <div class="component-info">
                     <strong>磁盘列表</strong>
-                    <span>显示所有磁盘信�?/span>
+                    <span>显示所有磁盘信息</span>
                   </div>
                   <el-button type="primary" text size="small">选择</el-button>
                 </div>
@@ -330,7 +330,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
                 <div class="component-item" @click="selectComponent('uptime')">
                   <div class="component-info">
                     <strong>系统运行时间</strong>
-                    <span>显示系统启动时间和运行时�?/span>
+                    <span>显示系统启动时间和运行时长</span>
                   </div>
                   <el-button type="primary" text size="small">选择</el-button>
                 </div>
@@ -353,7 +353,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
 import { ref } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 
-// 定义属�?
+// 定义属性
 const props = defineProps<{
   serverId: number;
 }>();
@@ -363,13 +363,13 @@ const emit = defineEmits<{
   expressionSelected: [expression: string];
 }>();
 
-// 响应式状�?
+// 响应式状态
 const visible = ref(false);
 const expressionType = ref<string>("PROMETHEUS");
 const serverReportType = ref<string>("prometheus");
 
 /**
- * 打开对话�?
+ * 打开对话框
  */
 const open = (
   type: string = "PROMETHEUS",
@@ -381,7 +381,7 @@ const open = (
 };
 
 /**
- * 选择表达�?
+ * 选择表达式
  */
 const selectExpression = (expression: string) => {
   emit("expressionSelected", expression);
@@ -615,7 +615,7 @@ defineExpose({
   border-top: 1px solid var(--el-border-color-light);
 }
 
-// 响应式设�?
+// 响应式设计
 @media (max-width: 768px) {
   .help-content {
     .help-section {
@@ -662,7 +662,7 @@ defineExpose({
   }
 }
 
-// 滚动条样�?
+// 滚动条样式
 .help-content {
   &::-webkit-scrollbar {
     width: 6px;

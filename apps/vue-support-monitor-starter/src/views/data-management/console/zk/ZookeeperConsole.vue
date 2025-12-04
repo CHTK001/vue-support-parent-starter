@@ -1,90 +1,71 @@
 <template>
-  <ScContainer
-    class="zk-console"
-    aside-width="300px"
-    :resizable="true"
-    :min-aside-width="220"
-    @contextmenu.prevent
-  >
-    <!-- 左侧：搜�?+ �?-->
-    <template #aside>
-      <div class="left-panel">
-        <div class="panel-header">
-          <IconifyIconOnline icon="ri:node-tree" class="header-icon" />
-          <span class="header-title">Zookeeper 节点</span>
-        </div>
-        <el-input
-          v-model="keyword"
-          placeholder="搜索节点..."
-          clearable
-          class="search-input"
-          @change="loadRoot"
-        >
-          <template #prefix>
-            <IconifyIconOnline icon="ri:search-line" />
-          </template>
-        </el-input>
-        <el-tree
-          class="tree"
-          :data="treeData"
-          :props="treeProps"
-          :load="loadChildrenLazy"
-          lazy
-          node-key="path"
-          :expand-on-click-node="false"
-          @node-click="open"
-        >
-          <template #default="{ node, data }">
-            <IconifyIconOnline
-              :icon="getZkNodeIcon(node, data)"
-              class="node-icon"
-            />
-            <span class="node-name">{{ data.name }}</span>
-          </template>
-        </el-tree>
-      </div>
-    </template>
+  <div class="console" :style="gridStyle" @contextmenu.prevent>
+    <!-- 左侧：搜索 + 树（参考 Redis 实现） -->
+    <div class="left overflow-auto thin-scrollbar">
+      <el-input
+        v-model="keyword"
+        placeholder="搜索..."
+        size="small"
+        clearable
+        @change="loadRoot"
+      >
+        <template #append>
+          <IconifyIconOnline icon="ri:search-line" />
+        </template>
+      </el-input>
+      <el-tree
+        class="tree"
+        :data="treeData"
+        :props="treeProps"
+        :load="loadChildrenLazy"
+        lazy
+        node-key="path"
+        :expand-on-click-node="false"
+        @node-click="open"
+      >
+        <template #default="{ node, data }">
+          <IconifyIconOnline :icon="getZkNodeIcon(node, data)" class="mr-1" />
+          <span class="flex justify-between w-full">
+            <span>{{ data.name }}</span>
+          </span>
+        </template>
+      </el-tree>
+    </div>
 
-    <!-- 主内容区 -->
-    <div class="main-panel">
-      <!-- 头部工具�?-->
-      <div class="main-header">
-        <div class="path-info">
-          <IconifyIconOnline icon="ri:route-line" class="path-icon" />
-          <span class="path-text">{{ path || "未选择节点" }}</span>
+    <!-- 分割条 -->
+    <div
+      class="splitter cursor-col-resize"
+      @mousedown="onDragStart"
+      @dblclick="resetWidth"
+    />
+
+    <!-- 右侧：路径 + 工具栏 + 内容 -->
+    <div class="right image-paper">
+      <div class="right-header">
+        <div class="path" :title="path || '未选择'">
+          <IconifyIconOnline icon="ri:route-line" class="mr-1" />
+          <span class="ellipsis">{{ path || "未选择" }}</span>
         </div>
         <div class="toolbar">
           <el-button size="small" :disabled="!path" @click="refreshNode">
-            <IconifyIconOnline icon="ri:refresh-line" />
-            刷新
+            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
           </el-button>
         </div>
       </div>
-
-      <!-- 内容�?-->
-      <div class="main-body">
+      <div class="right-body">
         <template v-if="path">
-          <el-input
-            v-model="content"
-            type="textarea"
-            :rows="30"
-            disabled
-            readonly
-          />
+          <el-input v-model="content" type="textarea" :rows="40" disabled readonly />
         </template>
         <el-empty v-else description="请选择左侧节点" />
       </div>
-
-      <!-- 状态栏 -->
-      <div class="main-footer">
+      <div class="right-status">
         <span v-if="statusText">{{ statusText }}</span>
       </div>
     </div>
-  </ScContainer>
+  </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import ScContainer from "@repo/components/ScContainer";
+import { ref, onMounted, computed, onBeforeUnmount } from "vue";
 import {
   extractArrayFromApi,
   normalizeTreeNode,
@@ -137,285 +118,137 @@ async function refreshNode() {
   content.value = (res?.data?.properties?.data || "") as any;
   content.value = tryPrettyJsonString(content.value);
   const ms = Math.round(performance.now() - start);
-  statusText.value = `加载完成，用�?${ms} ms`;
+  statusText.value = `加载完成，用时 ${ms} ms`;
 }
 function tryPrettyJsonString(src: string): string {
   const s = (src || "").trim();
   if (!s) return src;
   const first = s[0];
   const last = s[s.length - 1];
-  // 粗略判断可能�?JSON 文本
+  // 粗略判断可能是 JSON 文本
   if ((first === "{" && last === "}") || (first === "[" && last === "]")) {
     try {
       const obj = JSON.parse(s);
       return JSON.stringify(obj, null, 2);
     } catch {
-      return src; // 非合�?JSON，原样返�?
+      return src; // 非合法 JSON，原样返回
     }
   }
   return src;
 }
+// 左右拖拽
+const leftWidth = ref(300);
+const isDragging = ref(false);
+const gridStyle = computed(() => ({
+  gridTemplateColumns: `${leftWidth.value}px 6px 1fr`,
+}));
+let startX = 0,
+  startW = 300;
+function onDragStart(e: MouseEvent) {
+  isDragging.value = true;
+  startX = e.clientX;
+  startW = leftWidth.value;
+  document.addEventListener("mousemove", onDragging);
+  document.addEventListener("mouseup", onDragEnd);
+  document.body.style.cursor = "col-resize";
+}
+function onDragging(e: MouseEvent) {
+  if (!isDragging.value) return;
+  const dx = e.clientX - startX;
+  leftWidth.value = Math.min(800, Math.max(220, startW + dx));
+}
+function onDragEnd() {
+  if (!isDragging.value) return;
+  isDragging.value = false;
+  document.removeEventListener("mousemove", onDragging);
+  document.removeEventListener("mouseup", onDragEnd);
+  document.body.style.cursor = "";
+}
+function resetWidth() {
+  leftWidth.value = 300;
+}
+
+onBeforeUnmount(() => onDragEnd());
 
 onMounted(loadRoot);
 </script>
 <style scoped lang="scss">
-/* Zookeeper 控制台容�?*/
-.zk-console {
+.console {
+  display: grid;
+  grid-template-columns: 300px 1fr;
   height: calc(100vh - 16px);
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-
-  :deep(.sc-container__aside) {
-    background: transparent;
-    border: none;
-    padding: 8px;
-    overflow: visible;
-  }
-
-  :deep(.sc-container__main) {
-    background: transparent;
-    padding: 8px;
-    padding-left: 12px;
-  }
-
-  :deep(.sc-container__resize-handle--vertical) {
-    background: transparent;
-
-    &::before {
-      background: #cbd5e1;
-    }
-
-    &:hover {
-      background: rgba(34, 197, 94, 0.1);
-
-      &::before {
-        background: #22c55e;
-        box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
-      }
-    }
-  }
+  overflow: hidden;
 }
-
-/* 左侧面板 */
-.left-panel {
-  height: 100%;
-  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 16px;
+.left {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-
-  &:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  }
 }
-
-/* 面板头部 */
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
-
-  .header-icon {
-    font-size: 20px;
-    color: #22c55e;
-  }
-
-  .header-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: #334155;
-  }
-}
-
-/* 搜索�?*/
-.search-input {
-  :deep(.el-input__wrapper) {
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    transition: all 0.2s ease;
-
-    &:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    &.is-focus {
-      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
-    }
-  }
-}
-
-/* 树形组件 */
 .tree {
-  margin-top: 12px;
+  margin-top: 8px;
   flex: 1;
   overflow: auto;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.6);
-  padding: 8px;
-
-  :deep(.el-tree-node__content) {
-    height: 36px;
-    border-radius: 8px;
-    margin: 2px 0;
-    padding: 0 8px;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-    }
-  }
-
-  :deep(.el-tree-node.is-current > .el-tree-node__content) {
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    color: #fff;
-  }
 }
-
-.node-icon {
-  margin-right: 6px;
-  font-size: 16px;
-}
-
-.node-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 主内容面�?*/
-.main-panel {
-  height: 100%;
-  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
+.right {
+  border: 1px solid #eee;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
-
-/* 头部工具�?*/
-.main-header {
+.right-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e2e8f0;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  gap: 16px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #eee;
+  background: var(--el-fill-color-lighter);
 }
-
-.path-info {
+.right-header .path {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-
-  .path-icon {
-    font-size: 18px;
-    color: #22c55e;
-  }
-
-  .path-text {
-    font-size: 13px;
-    color: #64748b;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 500px;
-  }
+  gap: 6px;
+  color: var(--el-text-color-secondary);
 }
-
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  :deep(.el-button) {
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-
-    &:hover {
-      transform: translateY(-1px);
-    }
-  }
+.ellipsis {
+  max-width: 520px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-
-/* 内容�?*/
-.main-body {
-  flex: 1;
-  padding: 16px;
-  overflow: auto;
+.splitter {
+  width: 6px;
+  cursor: col-resize;
+  background: var(--el-border-color-lighter);
+  border-left: 1px solid var(--el-border-color-lighter);
+  border-right: 1px solid var(--el-border-color-lighter);
+}
+.splitter:hover {
+  background: var(--el-border-color);
+}
+.right-body {
+  padding: 8px;
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: 12px;
-  background: #fff;
-
-  :deep(.el-textarea__inner) {
-    flex: 1;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
-    font-size: 13px;
-    line-height: 1.6;
-    background: linear-gradient(180deg, #fafbfc 0%, #f8fafc 100%);
-    padding: 16px;
-
-    &:focus {
-      border-color: #22c55e;
-      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.1);
-    }
-  }
+  gap: 8px;
+  overflow: hidden;
 }
-
-/* 底部状态栏 */
-.main-footer {
-  height: 32px;
-  border-top: 1px solid #e2e8f0;
+.image-paper {
+  background:
+    linear-gradient(transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 / 100% 40px,
+    linear-gradient(90deg, transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 /
+      40px 100%,
+    linear-gradient(#fff, #fff);
+}
+.right-status {
+  height: 28px;
+  border-top: 1px solid #eee;
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  color: #64748b;
-  font-size: 12px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-}
-
-/* 空状态美�?*/
-.main-body :deep(.el-empty) {
-  padding: 60px 0;
-
-  .el-empty__description {
-    color: #94a3b8;
-    font-size: 14px;
-  }
-}
-
-/* 动画效果 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.left-panel,
-.main-panel {
-  animation: fadeIn 0.4s ease forwards;
-}
-
-.main-panel {
-  animation-delay: 0.1s;
+  padding: 0 8px;
+  color: var(--el-text-color-secondary);
 }
 </style>

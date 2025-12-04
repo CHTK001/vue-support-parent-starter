@@ -35,7 +35,7 @@
         </el-button>
         <el-button size="small" @click="formatCode">
           <IconifyIconOnline icon="ri:code-s-slash-line" />
-          格式�?
+          格式化
         </el-button>
         <el-button size="small" type="success" @click="handleSave">
           <IconifyIconOnline icon="ri:save-line" />
@@ -48,13 +48,13 @@
       </div>
     </div>
 
-    <!-- 代码编辑�?-->
+    <!-- 代码编辑器 -->
     <div class="editor-container">
       <div class="editor-header">
         <div class="file-info">
           <IconifyIconOnline :icon="getFileIcon(scriptForm.type)" />
           <span
-            >{{ scriptForm.name || "未命名脚�?
+            >{{ scriptForm.name || "未命名脚本"
             }}{{ getFileExtension(scriptForm.type) }}</span
           >
         </div>
@@ -69,7 +69,7 @@
           ref="editorRef"
           v-model="scriptForm.content"
           class="code-editor"
-          placeholder="请输入脚本内�?.."
+          placeholder="请输入脚本内容..."
           @input="handleContentChange"
         />
       </div>
@@ -84,7 +84,7 @@
         <span class="encoding">UTF-8</span>
       </div>
       <div class="footer-right">
-        <span class="cursor-position">�?1, �?1</span>
+        <span class="cursor-position">行 1, 列 1</span>
       </div>
     </div>
   </div>
@@ -108,7 +108,7 @@ const emit = defineEmits<{
   execute: [script: any];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const editorRef = ref();
 const scriptForm = ref({
   id: null,
@@ -119,7 +119,7 @@ const scriptForm = ref({
   status: "active",
 });
 
-// 计算属�?
+// 计算属性
 const lineCount = computed(() => {
   return scriptForm.value.content.split("\n").length;
 });
@@ -149,13 +149,13 @@ const getTemplate = (type: string) => {
   const templates = {
     shell: `#!/bin/bash
 
-# 脚本描述�?{scriptForm.value.description || "请添加脚本描�?}
-# 作者：系统管理�?
-# 创建时间�?{new Date().toLocaleDateString()}
+# 脚本描述：${scriptForm.value.description || "请添加脚本描述"}
+# 作者：系统管理员
+# 创建时间：${new Date().toLocaleDateString()}
 
-echo "开始执行脚�?.."
+echo "开始执行脚本..."
 
-# 在这里添加你的脚本内�?
+# 在这里添加你的脚本内容
 
 echo "脚本执行完成"`,
 
@@ -163,42 +163,42 @@ echo "脚本执行完成"`,
 # -*- coding: utf-8 -*-
 
 """
-脚本描述�?{scriptForm.value.description || "请添加脚本描�?}
-作者：系统管理�?
-创建时间�?{new Date().toLocaleDateString()}
+脚本描述：${scriptForm.value.description || "请添加脚本描述"}
+作者：系统管理员
+创建时间：${new Date().toLocaleDateString()}
 """
 
 import os
 import sys
 
 def main():
-    print("开始执行脚�?..")
+    print("开始执行脚本...")
 
-    # 在这里添加你的脚本内�?
+    # 在这里添加你的脚本内容
 
     print("脚本执行完成")
 
 if __name__ == "__main__":
     main()`,
 
-    powershell: `# 脚本描述�?{scriptForm.value.description || "请添加脚本描�?}
-# 作者：系统管理�?
-# 创建时间�?{new Date().toLocaleDateString()}
+    powershell: `# 脚本描述：${scriptForm.value.description || "请添加脚本描述"}
+# 作者：系统管理员
+# 创建时间：${new Date().toLocaleDateString()}
 
-Write-Host "开始执行脚�?.."
+Write-Host "开始执行脚本..."
 
-# 在这里添加你的脚本内�?
+# 在这里添加你的脚本内容
 
 Write-Host "脚本执行完成"`,
 
     batch: `@echo off
-REM 脚本描述�?{scriptForm.value.description || "请添加脚本描�?}
-REM 作者：系统管理�?
-REM 创建时间�?{new Date().toLocaleDateString()}
+REM 脚本描述：${scriptForm.value.description || "请添加脚本描述"}
+REM 作者：系统管理员
+REM 创建时间：${new Date().toLocaleDateString()}
 
-echo 开始执行脚�?..
+echo 开始执行脚本...
 
-REM 在这里添加你的脚本内�?
+REM 在这里添加你的脚本内容
 
 echo 脚本执行完成
 pause`,
@@ -207,7 +207,7 @@ pause`,
   return templates[type] || templates.shell;
 };
 
-// 监听�?
+// 监听器
 watch(
   () => props.scriptData,
   (newData) => {
@@ -220,7 +220,7 @@ watch(
   { immediate: true }
 );
 
-// 初始�?
+// 初始化
 onMounted(() => {
   if (!props.scriptData) {
     loadTemplate();
@@ -237,7 +237,7 @@ const handleTypeChange = () => {
 };
 
 const formatCode = () => {
-  // 简单的代码格式�?
+  // 简单的代码格式化
   ElMessage.info("代码格式化功能开发中");
 };
 
@@ -247,12 +247,12 @@ const handleContentChange = () => {
 
 const handleSave = async () => {
   if (!scriptForm.value.name) {
-    ElMessage.warning("请输入脚本名�?);
+    ElMessage.warning("请输入脚本名称");
     return;
   }
 
   if (!scriptForm.value.content.trim()) {
-    ElMessage.warning("请输入脚本内�?);
+    ElMessage.warning("请输入脚本内容");
     return;
   }
 
@@ -297,7 +297,7 @@ const handleSave = async () => {
 
 const handleExecute = () => {
   if (!scriptForm.value.content.trim()) {
-    ElMessage.warning("请输入脚本内�?);
+    ElMessage.warning("请输入脚本内容");
     return;
   }
 

@@ -9,13 +9,13 @@
     align-center
     top="5vh"
   >
-    <!-- 自定义头�?-->
+    <!-- 自定义头部 -->
     <template #header="{ titleId, titleClass }">
       <div class="dialog-header">
         <div class="header-left">
           <IconifyIconOnline icon="ri:eye-line" class="header-icon" />
           <span :id="titleId" :class="titleClass" class="dialog-title">
-            组件预览 - {{ componentData?.monitorSysGenServerDetailComponentName || '未命名组�? }}
+            组件预览 - {{ componentData?.monitorSysGenServerDetailComponentName || '未命名组件' }}
           </span>
         </div>
         <div class="header-right">
@@ -35,15 +35,15 @@
       <!-- 组件信息 -->
       <div class="component-info">
         <div class="info-item">
-          <span class="label">组件名称�?/span>
+          <span class="label">组件名称：</span>
           <span class="value">{{ componentData?.monitorSysGenServerDetailComponentName }}</span>
         </div>
         <div class="info-item">
-          <span class="label">组件标题�?/span>
+          <span class="label">组件标题：</span>
           <span class="value">{{ componentData?.monitorSysGenServerDetailComponentTitle }}</span>
         </div>
         <div class="info-item">
-          <span class="label">组件类型�?/span>
+          <span class="label">组件类型：</span>
           <span class="value">{{ getComponentTypeName(componentData?.monitorSysGenServerDetailComponentType) }}</span>
         </div>
         <div class="info-item">
@@ -72,21 +72,21 @@
                 :type="previewSize === 'small' ? 'primary' : ''"
                 @click="previewSize = 'small'"
               >
-                �?
+                小
               </el-button>
               <el-button 
                 size="small" 
                 :type="previewSize === 'medium' ? 'primary' : ''"
                 @click="previewSize = 'medium'"
               >
-                �?
+                中
               </el-button>
               <el-button 
                 size="small" 
                 :type="previewSize === 'large' ? 'primary' : ''"
                 @click="previewSize = 'large'"
               >
-                �?
+                大
               </el-button>
             </el-button-group>
           </div>
@@ -99,7 +99,7 @@
               <h5>{{ componentData?.monitorSysGenServerDetailComponentTitle || '组件标题' }}</h5>
             </div>
             <div class="component-body">
-              <!-- 根据组件类型显示不同的预览内�?-->
+              <!-- 根据组件类型显示不同的预览内容 -->
               <div v-if="componentData?.monitorSysGenServerDetailComponentType === 'card'" class="card-preview">
                 <div class="metric-value">{{ mockData.value }}</div>
                 <div class="metric-unit">{{ mockData.unit }}</div>
@@ -119,14 +119,14 @@
               <div v-else-if="componentData?.monitorSysGenServerDetailComponentType === 'line'" class="chart-preview">
                 <div class="chart-placeholder">
                   <IconifyIconOnline icon="ri:line-chart-line" />
-                  <span>折线图预�?/span>
+                  <span>折线图预览</span>
                 </div>
               </div>
               
               <div v-else-if="componentData?.monitorSysGenServerDetailComponentType === 'bar'" class="chart-preview">
                 <div class="chart-placeholder">
                   <IconifyIconOnline icon="ri:bar-chart-line" />
-                  <span>柱状图预�?/span>
+                  <span>柱状图预览</span>
                 </div>
               </div>
               
@@ -142,8 +142,8 @@
                   <thead>
                     <tr>
                       <th>指标</th>
-                      <th>数�?/th>
-                      <th>状�?/th>
+                      <th>数值</th>
+                      <th>状态</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -187,12 +187,12 @@ import { ref, reactive, computed } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import type { ServerDetailComponent } from "@/api/server";
 
-// 定义属�?
+// 定义属性
 const props = defineProps<{
   serverId: number;
 }>();
 
-// 响应式状�?
+// 响应式状态
 const visible = ref(false);
 const loading = ref(false);
 const previewSize = ref<'small' | 'medium' | 'large'>('medium');
@@ -205,16 +205,16 @@ const mockData = reactive({
   change: '+2.3%',
   trend: 'up',
   percentage: 76,
-  label: 'CPU使用�?,
+  label: 'CPU使用率',
   tableData: [
-    { metric: 'CPU使用�?, value: '85.6%', status: 'normal' },
-    { metric: '内存使用�?, value: '92.3%', status: 'warning' },
-    { metric: '磁盘使用�?, value: '45.2%', status: 'normal' },
+    { metric: 'CPU使用率', value: '85.6%', status: 'normal' },
+    { metric: '内存使用率', value: '92.3%', status: 'warning' },
+    { metric: '磁盘使用率', value: '45.2%', status: 'normal' },
   ]
 });
 
 /**
- * 打开对话�?
+ * 打开对话框
  */
 const open = (data: ServerDetailComponent) => {
   componentData.value = data;
@@ -246,9 +246,9 @@ const handleRefresh = () => {
 const getComponentTypeName = (type?: string) => {
   const typeMap: Record<string, string> = {
     card: '卡片',
-    gauge: '仪表�?,
-    line: '折线�?,
-    bar: '柱状�?,
+    gauge: '仪表盘',
+    line: '折线图',
+    bar: '柱状图',
     pie: '饼图',
     table: '表格'
   };
@@ -286,7 +286,7 @@ const getComponentTypeColor = (type?: string) => {
 };
 
 /**
- * 获取表达式类型名�?
+ * 获取表达式类型名称
  */
 const getExpressionTypeName = (type?: string) => {
   const typeMap: Record<string, string> = {
@@ -602,7 +602,7 @@ defineExpose({
   border-top: 1px solid var(--el-border-color-light);
 }
 
-// 响应式设�?
+// 响应式设计
 @media (max-width: 768px) {
   .preview-content {
     .component-info {

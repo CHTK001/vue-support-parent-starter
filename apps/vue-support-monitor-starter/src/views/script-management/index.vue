@@ -1,60 +1,10 @@
 <template>
-  <div class="script-management-page">
-    <!-- 统计卡片导航 -->
-    <div class="stats-section">
-      <div class="stats-grid">
-        <div
-          class="stat-item"
-          :class="{ active: activeTab === 'list' }"
-          @click="activeTab = 'list'"
-        >
-          <div class="stat-icon">
-            <IconifyIconOnline icon="ri:file-code-line" />
-          </div>
-          <div class="stat-label">脚本�?/div>
-        </div>
-        <div
-          class="stat-item"
-          :class="{ active: activeTab === 'running' }"
-          @click="activeTab = 'running'"
-        >
-          <div class="stat-icon running">
-            <IconifyIconOnline icon="ri:play-circle-line" />
-          </div>
-          <div class="stat-label">运行�?/div>
-        </div>
-        <div
-          class="stat-item"
-          :class="{ active: activeTab === 'history' }"
-          @click="activeTab = 'history'"
-        >
-          <div class="stat-icon">
-            <IconifyIconOnline icon="ri:history-line" />
-          </div>
-          <div class="stat-label">执行历史</div>
-        </div>
-        <div
-          class="stat-item"
-          :class="{ active: activeTab === 'upload-records' }"
-          @click="activeTab = 'upload-records'"
-        >
-          <div class="stat-icon">
-            <IconifyIconOnline icon="ri:upload-cloud-2-line" />
-          </div>
-          <div class="stat-label">上传记录</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 主内容区�?-->
-    <div class="main-content">
+  <div class="script-management-panel">
+    <!-- 主内容区域 -->
+    <div class="panel-content">
       <!-- 脚本列表 -->
       <div v-show="activeTab === 'list'" class="tab-content">
-        <ScriptList
-          @execute="handleExecuteScript"
-          @edit="handleEditScript"
-          @create="handleCreateScript"
-        />
+        <ScriptList @execute="handleExecuteScript" @edit="handleEditScript" @create="handleCreateScript" />
       </div>
 
       <!-- 执行历史 -->
@@ -67,35 +17,53 @@
         <ScriptUploadRecords />
       </div>
 
-      <!-- 运行中脚�?-->
+      <!-- 运行中脚本 -->
       <div v-show="activeTab === 'running'" class="tab-content">
-        <RunningScripts
-          @stop="handleStopScript"
-          @view-detail="handleViewExecutionDetail"
-        />
+        <RunningScripts @stop="handleStopScript" @view-detail="handleViewExecutionDetail" />
       </div>
     </div>
 
-    <!-- 脚本编辑对话�?-->
-    <ScriptEditDialog
-      v-model:visible="editDialogVisible"
-      :script-data="currentScript"
-      @save="handleSaveScript"
-      @test="handleTestScript"
-    />
+    <!-- 底部标签页导航 -->
+    <div class="bottom-tabs">
+      <div class="tab-nav">
+        <div class="tab-item" :class="{ active: activeTab === 'list' }" @click="activeTab = 'list'">
+          <div class="tab-icon">
+            <IconifyIconOnline icon="ri:file-list-3-line" />
+          </div>
+          <div class="tab-label">主页</div>
+        </div>
 
-    <!-- 脚本执行对话�?-->
-    <ScriptExecuteDialog
-      v-model="executeDialogVisible"
-      :script-data="currentScript"
-      @success="handleExecuteSuccess"
-    />
+        <div class="tab-item" :class="{ active: activeTab === 'upload-records' }" @click="activeTab = 'upload-records'">
+          <div class="tab-icon">
+            <IconifyIconOnline icon="ri:upload-cloud-2-line" />
+          </div>
+          <div class="tab-label">上传历史</div>
+        </div>
 
-    <!-- 执行详情对话�?-->
-    <ExecutionDetailDialog
-      v-model="detailDialogVisible"
-      :execution-data="currentExecution"
-    />
+        <div class="tab-item" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
+          <div class="tab-icon">
+            <IconifyIconOnline icon="ri:history-line" />
+          </div>
+          <div class="tab-label">执行历史</div>
+        </div>
+
+        <div class="tab-item" :class="{ active: activeTab === 'running' }" @click="activeTab = 'running'">
+          <div class="tab-icon">
+            <IconifyIconOnline icon="ri:play-circle-line" />
+          </div>
+          <div class="tab-label">运行中</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 脚本编辑对话框 -->
+    <ScriptEditDialog v-model:visible="editDialogVisible" :script-data="currentScript" @save="handleSaveScript" @test="handleTestScript" />
+
+    <!-- 脚本执行对话框 -->
+    <ScriptExecuteDialog v-model="executeDialogVisible" :script-data="currentScript" @success="handleExecuteSuccess" />
+
+    <!-- 执行详情对话框 -->
+    <ExecutionDetailDialog v-model="detailDialogVisible" :execution-data="currentExecution" />
   </div>
 </template>
 
@@ -110,7 +78,7 @@ import RunningScripts from "./components/RunningScripts.vue";
 import ScriptExecuteDialog from "./components/ScriptExecuteDialog.vue";
 import ExecutionDetailDialog from "./components/ExecutionDetailDialog.vue";
 
-// 响应式数�?
+// 响应式数据
 const activeTab = ref("list");
 const currentScript = ref(null);
 const currentExecution = ref(null);
@@ -118,9 +86,9 @@ const editDialogVisible = ref(false);
 const executeDialogVisible = ref(false);
 const detailDialogVisible = ref(false);
 
-// 初始�?
+// 初始化
 onMounted(() => {
-  console.log("脚本管理页面初始�?);
+  console.log("脚本管理页面初始化");
 });
 
 // 事件处理
@@ -150,7 +118,7 @@ const handleSaveScript = (script: any) => {
 };
 
 const handleTestScript = (script: any) => {
-  // 测试脚本 - 可以打开执行对话框进行测�?
+  // 测试脚本 - 可以打开执行对话框进行测试
   currentScript.value = script;
   executeDialogVisible.value = true;
 };
@@ -158,7 +126,7 @@ const handleTestScript = (script: any) => {
 const handleExecuteSuccess = () => {
   ElMessage.success("脚本执行成功");
   executeDialogVisible.value = false;
-  // 切换到运行中脚本标签�?
+  // 切换到运行中脚本标签页
   activeTab.value = "running";
 };
 
@@ -168,242 +136,143 @@ const handleStopScript = (execution: any) => {
 };
 
 const handleViewExecutionDetail = (execution: any) => {
-  // 统一映射�?ExecutionDetailDialog 需要的结构
+  // 统一映射为 ExecutionDetailDialog 需要的结构
   const ex = execution?.raw || execution || {};
   currentExecution.value = {
     id: ex.monitorSysGenScriptExecutionId || execution.id,
-    scriptName: ex.monitorSysGenScriptId
-      ? `脚本#${ex.monitorSysGenScriptId}`
-      : execution.scriptName,
-    status: (ex.monitorSysGenScriptExecutionStatus || execution.status || "")
-      .toString()
-      .toLowerCase(),
-    exitCode:
-      ex.monitorSysGenScriptExecutionExitCode ?? execution.exitCode ?? null,
-    startTime: ex.monitorSysGenScriptExecutionStartTime
-      ? new Date(ex.monitorSysGenScriptExecutionStartTime)
-      : execution.startTime,
-    endTime: ex.monitorSysGenScriptExecutionEndTime
-      ? new Date(ex.monitorSysGenScriptExecutionEndTime)
-      : execution.endTime,
-    duration:
-      ex.monitorSysGenScriptExecutionDuration ?? execution.duration ?? null,
+    scriptName: ex.monitorSysGenScriptId ? `脚本#${ex.monitorSysGenScriptId}` : execution.scriptName,
+    status: (ex.monitorSysGenScriptExecutionStatus || execution.status || "").toString().toLowerCase(),
+    exitCode: ex.monitorSysGenScriptExecutionExitCode ?? execution.exitCode ?? null,
+    startTime: ex.monitorSysGenScriptExecutionStartTime ? new Date(ex.monitorSysGenScriptExecutionStartTime) : execution.startTime,
+    endTime: ex.monitorSysGenScriptExecutionEndTime ? new Date(ex.monitorSysGenScriptExecutionEndTime) : execution.endTime,
+    duration: ex.monitorSysGenScriptExecutionDuration ?? execution.duration ?? null,
     stdout: ex.monitorSysGenScriptExecutionStdout ?? execution.stdout ?? "",
     stderr: ex.monitorSysGenScriptExecutionStderr ?? execution.stderr ?? "",
-    executor: ex.createBy || execution.executor || "",
+    executor: ex.createBy || execution.executor || ""
   } as any;
   detailDialogVisible.value = true;
 };
 </script>
 
 <style scoped lang="scss">
-.script-management-page {
-  height: 100%;
+.script-management-panel {
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(
-    135deg,
-    rgba(248, 250, 252, 0.98) 0%,
-    rgba(241, 245, 249, 0.95) 100%
-  );
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  overflow: hidden;
 
-  // 统计卡片导航
-  .stats-section {
-    padding: 24px 32px 16px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 1;
+  }
+
+  > * {
     position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+    z-index: 2;
+  }
+}
 
-    // 装饰性波�?
-    &::before {
-      content: "";
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(
-        circle,
-        rgba(255, 255, 255, 0.1) 0%,
-        transparent 50%
-      );
-      animation: headerShimmer 4s ease-in-out infinite;
-    }
+.panel-content {
+  flex: 1;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  margin-bottom: 80px; // 为底部导航留出空间
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
+  .tab-content {
+    height: 100%;
+    overflow: auto;
+    background: rgba(255, 255, 255, 0.6);
+  }
+}
+
+// 底部标签页导航样式
+.bottom-tabs {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+
+  .tab-nav {
+    display: flex;
+    height: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
       position: relative;
-      z-index: 1;
+      padding: 8px 12px;
+      border-radius: 12px;
+      margin: 8px 4px;
 
-      .stat-item {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 18px 24px;
-        background: rgba(255, 255, 255, 0.15);
-        backdrop-filter: blur(10px);
-        border-radius: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      &:hover {
+        background: rgba(102, 126, 234, 0.05);
+        transform: translateY(-2px);
+      }
 
-        &:hover {
-          transform: translateY(-3px);
-          background: rgba(255, 255, 255, 0.25);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      &.active {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+
+        .tab-icon {
+          color: #667eea;
+          transform: scale(1.1);
         }
 
-        &.active {
-          background: rgba(255, 255, 255, 0.95);
-          border-color: rgba(255, 255, 255, 0.8);
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-
-          .stat-icon {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
-          }
-
-          .stat-label {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: 700;
-          }
-        }
-
-        .stat-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 22px;
-          background: rgba(255, 255, 255, 0.3);
-          color: #fff;
-          transition: all 0.3s ease;
-          flex-shrink: 0;
-
-          &.running {
-            animation: runningPulse 2s infinite;
-            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
-          }
-        }
-
-        .stat-label {
-          font-size: 15px;
+        .tab-label {
+          color: #667eea;
           font-weight: 600;
-          color: #fff;
-          transition: all 0.3s ease;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        &::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 30px;
+          height: 3px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border-radius: 0 0 2px 2px;
         }
       }
-    }
-  }
 
-  // 主内容区�?
-  .main-content {
-    flex: 1;
-    overflow: hidden;
-    padding: 20px 32px 24px;
-
-    .tab-content {
-      height: 100%;
-      overflow: auto;
-      background: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.98) 0%,
-        rgba(248, 250, 252, 0.95) 100%
-      );
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(226, 232, 240, 0.8);
-      position: relative;
-      overflow: hidden;
-
-      // 装饰性顶部渐变条
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(
-          90deg,
-          #667eea 0%,
-          #764ba2 50%,
-          #f093fb 100%
-        );
-        border-radius: 16px 16px 0 0;
+      .tab-icon {
+        font-size: 24px;
+        color: #64748b;
+        margin-bottom: 4px;
+        transition: all 0.3s ease;
       }
-    }
-  }
-}
 
-// 动画
-@keyframes headerShimmer {
-  0%,
-  100% {
-    transform: translateX(-30%) translateY(-30%) rotate(0deg);
-  }
-  50% {
-    transform: translateX(30%) translateY(30%) rotate(180deg);
-  }
-}
-
-@keyframes runningPulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
-  }
-  50% {
-    opacity: 0.85;
-    transform: scale(1.05);
-    box-shadow: 0 0 30px rgba(16, 185, 129, 0.7);
-  }
-}
-
-// 响应�?
-@media (max-width: 768px) {
-  .script-management-page {
-    .stats-section {
-      padding: 16px;
-
-      .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-
-        .stat-item {
-          padding: 14px 16px;
-
-          .stat-icon {
-            width: 38px;
-            height: 38px;
-            font-size: 18px;
-          }
-
-          .stat-label {
-            font-size: 13px;
-          }
-        }
-      }
-    }
-
-    .main-content {
-      padding: 16px;
-
-      .tab-content {
-        border-radius: 12px;
+      .tab-label {
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-align: center;
+        line-height: 1.2;
       }
     }
   }

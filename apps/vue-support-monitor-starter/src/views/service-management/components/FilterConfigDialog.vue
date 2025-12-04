@@ -4,11 +4,11 @@
       <el-alert v-if="!settingId" type="warning" show-icon title="未选择具体的配置实例，无法保存配置" style="margin-bottom: 12px" />
 
       <div class="kv-row" v-for="(row, idx) in rows" :key="row._key">
-        <el-input v-model="row.name" placeholder="参数�?name)" style="width: 260px" />
-        <el-input v-model="row.value" placeholder="参数�?value)" style="width: 360px; margin-left: 8px" />
+        <el-input v-model="row.name" placeholder="参数名(name)" style="width: 260px" />
+        <el-input v-model="row.value" placeholder="参数值(value)" style="width: 360px; margin-left: 8px" />
         <el-button type="danger" circle style="margin-left: 8px" @click="rows.splice(idx, 1)"><IconifyIconOnline icon="ri:delete-bin-line" /></el-button>
       </div>
-      <el-button type="primary" link @click="addRow"><IconifyIconOnline icon="ri:add-line" />新增一�?/el-button>
+      <el-button type="primary" link @click="addRow"><IconifyIconOnline icon="ri:add-line" />新增一行</el-button>
     </div>
 
     <template #footer>
@@ -89,7 +89,7 @@ async function handleSave() {
   try {
     const res = await batchSaveSystemServerSettingItems(settingId.value, items);
     if (res.success) {
-      ElMessage.success("保存成功，已热应�?);
+      ElMessage.success("保存成功，已热应用");
       emit("success");
       visibleInner.value = false;
     } else {

@@ -10,12 +10,12 @@
       <div class="rule-row" v-for="(r, idx) in rules" :key="idx">
         <el-select v-model="r.addressRateLimitType" style="width: 140px" placeholder="类型">
           <el-option label="限流" value="RATE_LIMIT" />
-          <el-option label="白名�? value="WHITELIST" />
-          <el-option label="黑名�? value="BLACKLIST" />
+          <el-option label="白名单" value="WHITELIST" />
+          <el-option label="黑名单" value="BLACKLIST" />
         </el-select>
         <el-input
           v-model="r.addressRateLimitAddress"
-          placeholder="地址前缀/路径（例�?/api/user�?
+          placeholder="地址前缀/路径（例如 /api/user）"
           style="width: 220px; margin-left: 8px"
         />
         <el-input-number
@@ -104,7 +104,7 @@ async function handleSave() {
   try {
     const res = await saveAddressRateLimitRules(props.serverId, props.filterSettingId, rules.value);
     if (res.success) {
-      ElMessage.success("保存成功，已热应�?);
+      ElMessage.success("保存成功，已热应用");
       emit("success");
       visibleInner.value = false;
     } else {

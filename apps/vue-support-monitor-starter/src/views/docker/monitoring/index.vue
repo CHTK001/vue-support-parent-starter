@@ -24,12 +24,12 @@
       </div>
     </div>
 
-    <!-- 搜索�?-->
+    <!-- 搜索栏 -->
     <div class="search-bar">
       <div class="search-left">
         <el-input
           v-model="searchParams.keyword"
-          placeholder="搜索容器名称或镜�?
+          placeholder="搜索容器名称或镜像"
           class="search-input"
           clearable
           @keyup.enter="handleSearch"
@@ -40,21 +40,21 @@
         </el-input>
         <el-select
           v-model="searchParams.status"
-          placeholder="运行状�?
+          placeholder="运行状态"
           clearable
           class="filter-select"
           @change="handleSearch"
         >
           <el-option label="全部" value="" />
-          <el-option label="运行�? value="running" />
-          <el-option label="已停�? value="stopped" />
+          <el-option label="运行中" value="running" />
+          <el-option label="已停止" value="stopped" />
           <el-option label="暂停" value="paused" />
-          <el-option label="重启�? value="restarting" />
+          <el-option label="重启中" value="restarting" />
           <el-option label="错误" value="error" />
         </el-select>
         <el-select
           v-model="searchParams.serverId"
-          placeholder="服务�?
+          placeholder="服务器"
           clearable
           class="filter-select"
           @change="handleSearch"
@@ -70,7 +70,7 @@
       </div>
     </div>
 
-    <!-- 容器状态统�?-->
+    <!-- 容器状态统计 -->
     <el-card>
       <ContainerStatusStatsComponent :stats="containerStats" />
     </el-card>
@@ -99,7 +99,7 @@
       />
     </el-card>
 
-    <!-- 容器详情对话�?-->
+    <!-- 容器详情对话框 -->
     <ContainerDetailDialog
       v-model:visible="detailDialogVisible"
       :container-data="currentContainer"
@@ -116,7 +116,7 @@ import ContainerMonitoringList from './components/ContainerMonitoringList.vue'
 import ContainerStatusStatsComponent from './components/ContainerStatusStats.vue'
 import MonitoringOverview from './components/MonitoringOverview.vue'
 
-// 响应式数�?
+// 响应式数据
 const loading = ref(false)
 const autoRefresh = ref(false)
 const monitoringList = ref<SystemSoftContainer[]>([])
@@ -147,7 +147,7 @@ const overviewStats = reactive({
   runningContainers: 0
 })
 
-// 定时�?
+// 定时器
 let refreshTimer: any = null
 
 // 基础方法
@@ -172,7 +172,7 @@ const loadMonitoringData = async () => {
   }
 }
 
-// 加载容器状态统�?
+// 加载容器状态统计
 const loadContainerStats = async () => {
   try {
     const response = await containerApi.getContainerStatusStats()
@@ -180,7 +180,7 @@ const loadContainerStats = async () => {
       containerStats.value = response.data || { total: 0 }
     }
   } catch (error) {
-    console.error('加载容器状态统计失�?', error)
+    console.error('加载容器状态统计失败:', error)
   }
 }
 
@@ -203,7 +203,7 @@ const calculateOverviewStats = () => {
   overviewStats.avgCpuUsage = cpuSum / monitoringList.value.length
   overviewStats.avgMemoryUsage = memorySum / monitoringList.value.length
   
-  // 计算容器总数和运行中容器�?
+  // 计算容器总数和运行中容器数
   overviewStats.totalContainers = monitoringList.value.length
   overviewStats.runningContainers = monitoringList.value.filter(
     container => container.systemSoftContainerStatus === 'running'
@@ -234,7 +234,7 @@ const startAutoRefresh = () => {
       loadMonitoringData()
       loadContainerStats()
     }
-  }, 5000) // �?秒刷新一�?
+  }, 5000) // 每5秒刷新一次
 }
 
 const stopAutoRefresh = () => {
@@ -256,7 +256,7 @@ const viewContainerDetail = (container: SystemSoftContainer) => {
 const handleSizeChange = (size: number) => { pagination.pageSize = size; loadMonitoringData() }
 const handleCurrentChange = (page: number) => { pagination.page = page; loadMonitoringData() }
 
-// 加载服务器列�?
+// 加载服务器列表
 const loadServers = async () => {
   try {
     const response = await getServerList()
@@ -264,7 +264,7 @@ const loadServers = async () => {
       serverOptions.value = response.data || []
     }
   } catch (error) {
-    console.error('加载服务器列表失�?', error)
+    console.error('加载服务器列表失败:', error)
   }
 }
 
@@ -354,7 +354,7 @@ onUnmounted(() => {
   box-shadow: var(--app-card-shadow);
 }
 
-/* 响应式设�?*/
+/* 响应式设计 */
 @media (max-width: 1200px) {
   .search-left {
     flex-wrap: wrap;

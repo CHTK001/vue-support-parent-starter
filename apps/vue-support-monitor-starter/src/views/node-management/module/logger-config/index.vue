@@ -22,7 +22,7 @@
     </template>
 
     <div class="logger-config-content">
-      <!-- 搜索�?-->
+      <!-- 搜索栏 -->
       <div
         class="search-bar"
         style="
@@ -34,7 +34,7 @@
       >
         <el-input
           v-model="searchText"
-          placeholder="搜索日志器名�?.."
+          placeholder="搜索日志器名称..."
           clearable
           style="width: 300px"
         >
@@ -67,7 +67,7 @@
         :loading="loading"
         @refresh="handleRefresh"
       >
-        <el-table-column label="日志器名�? min-width="300">
+        <el-table-column label="日志器名称" min-width="300">
           <template #default="{ row }">
             <div class="logger-name">
               <IconifyIconOnline
@@ -90,7 +90,7 @@
             >
               {{ row.configuredLevel }}
             </el-tag>
-            <span v-else class="text-[var(--el-text-color-placeholder)]">未配�?/span>
+            <span v-else class="text-[var(--el-text-color-placeholder)]">未配置</span>
           </template>
         </el-table-column>
 
@@ -102,15 +102,15 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="继承�? width="80" align="center">
+        <el-table-column label="继承性" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.additive ? 'success' : 'info'" size="small">
-              {{ row.additive ? "�? : "�? }}
+              {{ row.additive ? "是" : "否" }}
             </el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column label="新等�? width="150" align="center">
+        <el-table-column label="新等级" width="150" align="center">
           <template #default="{ row }">
             <el-select
               v-model="row.newLevel"
@@ -164,7 +164,7 @@ import {
 // 日志等级枚举
 export type LogLevel = "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE";
 
-// 节点日志器配置接�?
+// 节点日志器配置接口
 export interface NodeLoggerConfig {
   pluginNodeLoggerConfigId?: number;
   pluginNodeLoggerConfigNodeName: string;
@@ -221,7 +221,7 @@ const getLevelTagType = (
   }
 };
 
-// 定义组件属�?
+// 定义组件属性
 interface Props {
   modelValue: boolean;
   nodeInfo?: {
@@ -240,7 +240,7 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-// 响应式数�?
+// 响应式数据
 const visible = computed({
   get: () => props.modelValue,
   set: (value) => emit("update:modelValue", value),
@@ -255,7 +255,7 @@ const searchText = ref("");
 // 日志等级选项
 const logLevels: LogLevel[] = ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
 
-// 过滤后的日志器列�?
+// 过滤后的日志器列表
 const filteredLoggers = computed(() => {
   if (!searchText.value) return loggers.value;
   return loggers.value.filter((logger: any) =>
@@ -274,18 +274,18 @@ watch(
   { immediate: true }
 );
 
-// 监听弹框显示状�?
+// 监听弹框显示状态
 watch(visible, (newVisible) => {
   if (newVisible && props.nodeInfo) {
     loadLoggers();
   } else if (!newVisible) {
-    // 关闭时清理数�?
+    // 关闭时清理数据
     loggers.value = [];
     searchText.value = "";
   }
 });
 
-// 加载日志器配置数�?
+// 加载日志器配置数据
 const loadLoggers = async () => {
   if (!props.nodeInfo) return;
 
@@ -298,7 +298,7 @@ const loadLoggers = async () => {
     const response = await getNodeLoggers(encodedNodeUrl);
 
     if (response.success && (response as any).data) {
-      // 后端返回的数据在 response.data 中，直接使用后端字段�?
+      // 后端返回的数据在 response.data 中，直接使用后端字段名
       loggers.value = ((response as any).data || []).map((logger: any) => ({
         ...logger,
         // 添加前端扩展字段
@@ -366,7 +366,7 @@ const updateLoggerLevel = async (logger: any) => {
     if (response.success) {
       logger.configuredLevel = logger.newLevel;
       ElMessage.success("日志等级设置成功");
-      // 重新加载数据以获取最新状�?
+      // 重新加载数据以获取最新状态
       await loadLoggers();
     } else {
       ElMessage.error(

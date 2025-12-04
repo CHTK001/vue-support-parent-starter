@@ -6,7 +6,7 @@
         <div class="server-info">
           <div class="server-title">
             <IconifyIconOnline :icon="getProtocolIcon(serverInfo?.protocol)" class="server-icon" />
-            <span class="server-name">{{ serverInfo?.name || "服务器详�? }}</span>
+            <span class="server-name">{{ serverInfo?.name || "服务器详情" }}</span>
             <el-tag :type="getStatusType(serverInfo?.status)" size="small" class="status-tag">
               {{ getStatusText(serverInfo?.status) }}
             </el-tag>
@@ -21,7 +21,7 @@
         </el-button>
         <el-button type="primary" @click="handleInitDefaultComponents" :loading="loading" plain size="small">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-          初始化组�?
+          初始化组件
         </el-button>
         <el-button type="info" @click="handleManageComponents" plain size="small">
           <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
@@ -38,7 +38,7 @@
     <div class="components-container" v-loading="loading">
       <div v-if="components.length === 0" class="empty-state">
         <el-empty description="暂无组件">
-          <el-button type="primary" @click="handleInitDefaultComponents"> 初始化默认组�?</el-button>
+          <el-button type="primary" @click="handleInitDefaultComponents"> 初始化默认组件 </el-button>
         </el-empty>
       </div>
 
@@ -49,10 +49,10 @@
       </GridLayoutEditor>
     </div>
 
-    <!-- 组件编辑对话�?-->
+    <!-- 组件编辑对话框 -->
     <ComponentEditDialog ref="componentEditDialogRef" :server-id="serverId" @saved="handleComponentSaved" />
 
-    <!-- 组件管理对话�?-->
+    <!-- 组件管理对话框 -->
     <ComponentManageDialog ref="componentManageDialogRef" :server-id="serverId" @managed="handleComponentsManaged" />
   </div>
 </template>
@@ -73,12 +73,12 @@ import LineChartComponent from "./components/previews/LinePreview.vue";
 import PieChartComponent from "./components/previews/PiePreview.vue";
 import TableComponent from "./components/previews/TablePreview.vue";
 
-// 定义属�?
+// 定义属性
 const props = defineProps<{
   serverId: number;
 }>();
 
-// 响应式状�?
+// 响应式状态
 const loading = ref(false);
 const refreshLoading = ref(false);
 const editMode = ref(false);
@@ -123,7 +123,7 @@ const getProtocolIcon = (protocol?: string) => {
 };
 
 /**
- * 获取状态类�?
+ * 获取状态类型
  */
 const getStatusType = (status?: string): any => {
   const typeMap: Record<string, string> = {
@@ -135,7 +135,7 @@ const getStatusType = (status?: string): any => {
 };
 
 /**
- * 获取状态文�?
+ * 获取状态文本
  */
 const getStatusText = (status?: string) => {
   const textMap: Record<string, string> = {
@@ -147,7 +147,7 @@ const getStatusText = (status?: string) => {
 };
 
 /**
- * 加载服务器信�?
+ * 加载服务器信息
  */
 const loadServerInfo = async () => {
   try {
@@ -156,7 +156,7 @@ const loadServerInfo = async () => {
       serverInfo.value = res.data;
     }
   } catch (error) {
-    console.error("加载服务器信息失�?", error);
+    console.error("加载服务器信息失败:", error);
   }
 };
 
@@ -215,21 +215,21 @@ const handleRefresh = async () => {
 };
 
 /**
- * 初始化默认组�?
+ * 初始化默认组件
  */
 const handleInitDefaultComponents = async () => {
   try {
     loading.value = true;
     const res = await initDefaultComponentsForServerDetail(props.serverId);
     if (res.code === "00000") {
-      message.success("初始化默认组件成�?);
+      message.success("初始化默认组件成功");
       await loadComponents();
     } else {
-      message.error(res.msg || "初始化失�?);
+      message.error(res.msg || "初始化失败");
     }
   } catch (error) {
-    console.error("初始化默认组件失�?", error);
-    message.error("初始化失�?);
+    console.error("初始化默认组件失败:", error);
+    message.error("初始化失败");
   } finally {
     loading.value = false;
   }

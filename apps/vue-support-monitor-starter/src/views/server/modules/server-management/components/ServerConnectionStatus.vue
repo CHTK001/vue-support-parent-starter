@@ -8,15 +8,15 @@
         {{ getStatusText(connectionStatus) }}
       </el-tag>
 
-      <!-- 最后连接时�?-->
-      <span v-if="lastConnectTime" class="last-connect-time">最后连�? {{ formatTime(lastConnectTime) }}</span>
+      <!-- 最后连接时间 -->
+      <span v-if="lastConnectTime" class="last-connect-time">最后连接: {{ formatTime(lastConnectTime) }}</span>
     </div>
 
     <!-- 连接操作按钮 -->
     <div class="connection-actions">
       <el-button size="small" type="primary" :loading="isConnecting" @click="testConnection" :disabled="!serverId">
         <IconifyIconOnline icon="ep:connection" />
-        {{ isConnecting ? "测试�?.." : "测试连接" }}
+        {{ isConnecting ? "测试中..." : "测试连接" }}
       </el-button>
 
       <el-button v-if="connectionStatus === CONNECTION_STATUS.FAILED" size="small" type="warning" @click="showErrorDetails">
@@ -25,7 +25,7 @@
       </el-button>
     </div>
 
-    <!-- 错误详情对话�?-->
+    <!-- 错误详情对话框 -->
     <el-dialog v-model="showErrorDialog" title="连接错误详情" width="500px" :close-on-click-modal="false">
       <div class="error-details">
         <el-alert :title="errorMessage || '连接失败'" type="error" :closable="false" show-icon />
@@ -38,11 +38,11 @@
         <div class="troubleshooting">
           <h4>故障排除建议:</h4>
           <ul>
-            <li>检查服务器地址和端口是否正�?/li>
+            <li>检查服务器地址和端口是否正确</li>
             <li>确认网络连接是否正常</li>
             <li>验证用户名和密码是否正确</li>
             <li>检查防火墙设置</li>
-            <li>确认服务器服务是否正在运�?/li>
+            <li>确认服务器服务是否正在运行</li>
           </ul>
         </div>
       </div>
@@ -62,7 +62,7 @@ import { testServerConnection } from "@/api/server";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 
-// 连接状态常�?
+// 连接状态常量
 const CONNECTION_STATUS = {
   OFFLINE: 0,
   ONLINE: 1,
@@ -84,7 +84,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   connectionStatus: CONNECTION_STATUS.OFFLINE,
   autoRefresh: false,
-  refreshInterval: 30000 // 30�?
+  refreshInterval: 30000 // 30秒
 });
 
 // Emits
@@ -93,25 +93,25 @@ const emit = defineEmits<{
   testComplete: [success: boolean, error?: string];
 }>();
 
-// 响应式状�?
+// 响应式状态
 const isConnecting = ref(false);
 const showErrorDialog = ref(false);
 const autoRefreshTimer = ref<NodeJS.Timeout | null>(null);
 
-// 计算属�?
+// 计算属性
 const currentStatus = computed(() => props.connectionStatus);
 
-// 监听状态变�?
+// 监听状态变化
 watch(
   () => props.connectionStatus,
   (newStatus, oldStatus) => {
     if (newStatus !== oldStatus) {
-      console.log(`服务�?${props.serverName} 连接状态变�? ${oldStatus} -> ${newStatus}`);
+      console.log(`服务器 ${props.serverName} 连接状态变化: ${oldStatus} -> ${newStatus}`);
     }
   }
 );
 
-// 获取状态类�?
+// 获取状态类型
 const getStatusType = (status: number) => {
   switch (status) {
     case CONNECTION_STATUS.ONLINE:
@@ -125,7 +125,7 @@ const getStatusType = (status: number) => {
   }
 };
 
-// 获取状态图�?
+// 获取状态图标
 const getStatusIcon = (status: number) => {
   switch (status) {
     case CONNECTION_STATUS.ONLINE:
@@ -139,13 +139,13 @@ const getStatusIcon = (status: number) => {
   }
 };
 
-// 获取状态文�?
+// 获取状态文本
 const getStatusText = (status: number) => {
   switch (status) {
     case CONNECTION_STATUS.ONLINE:
       return "在线";
     case CONNECTION_STATUS.CONNECTING:
-      return "连接�?;
+      return "连接中";
     case CONNECTION_STATUS.FAILED:
       return "连接失败";
     default:
@@ -153,7 +153,7 @@ const getStatusText = (status: number) => {
   }
 };
 
-// 格式化时�?
+// 格式化时间
 const formatTime = (time: string | Date) => {
   if (!time) return "";
   const date = typeof time === "string" ? new Date(time) : time;
@@ -201,7 +201,7 @@ const showErrorDetails = () => {
   showErrorDialog.value = true;
 };
 
-// 开始自动刷�?
+// 开始自动刷新
 const startAutoRefresh = () => {
   if (props.autoRefresh && props.serverId) {
     autoRefreshTimer.value = setInterval(() => {

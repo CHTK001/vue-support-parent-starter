@@ -1,15 +1,15 @@
 <template>
-  <el-dialog v-model="visible" title="服务器文件上�? width="800px" :close-on-click-modal="false" @close="handleClose">
+  <el-dialog v-model="visible" title="服务器文件上传" width="800px" :close-on-click-modal="false" @close="handleClose">
     <el-form ref="formRef" :model="uploadForm" :rules="formRules" label-width="120px" class="upload-form">
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="任务名称" prop="taskName">
-            <el-input v-model="uploadForm.taskName" placeholder="请输入任务名�? maxlength="100" show-word-limit />
+            <el-input v-model="uploadForm.taskName" placeholder="请输入任务名称" maxlength="100" show-word-limit />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="目标服务�? prop="serverId">
-            <el-select v-model="uploadForm.serverId" placeholder="请选择目标服务�? style="width: 100%" filterable>
+          <el-form-item label="目标服务器" prop="serverId">
+            <el-select v-model="uploadForm.serverId" placeholder="请选择目标服务器" style="width: 100%" filterable>
               <el-option
                 v-for="server in sshServers"
                 :key="server.monitorSysGenServerId"
@@ -44,11 +44,11 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="优先�? prop="priority">
+          <el-form-item label="优先级" prop="priority">
             <el-select v-model="uploadForm.priority" style="width: 100%">
-              <el-option label="�? :value="1" />
-              <el-option label="普�? :value="5" />
-              <el-option label="�? :value="10" />
+              <el-option label="低" :value="1" />
+              <el-option label="普通" :value="5" />
+              <el-option label="高" :value="10" />
             </el-select>
           </el-form-item>
         </el-col>
@@ -61,7 +61,7 @@
           </el-form-item>
         </el-col>
         <el-col :span="8">
-          <el-form-item label="备份原文�?>
+          <el-form-item label="备份原文件">
             <el-switch v-model="uploadForm.backup" />
           </el-form-item>
         </el-col>
@@ -79,12 +79,12 @@
           </el-form-item>
         </el-col>
         <el-col :span="8">
-          <el-form-item label="超时时间(�?">
+          <el-form-item label="超时时间(秒)">
             <el-input-number v-model="uploadForm.timeoutSeconds" :min="30" :max="3600" style="width: 100%" />
           </el-form-item>
         </el-col>
         <el-col :span="8">
-          <el-form-item label="最大重试次�?>
+          <el-form-item label="最大重试次数">
             <el-input-number v-model="uploadForm.maxRetry" :min="0" :max="10" style="width: 100%" />
           </el-form-item>
         </el-col>
@@ -108,11 +108,11 @@
         >
           <IconifyIconOnline icon="ep:upload-filled" class="el-icon--upload" />
           <div class="el-upload__text">
-            将文件拖到此处，�?
+            将文件拖到此处，或
             <em>点击上传</em>
           </div>
           <template #tip>
-            <div class="el-upload__tip">支持多文件上传，单个文件大小不超�?100MB</div>
+            <div class="el-upload__tip">支持多文件上传，单个文件大小不超过 100MB</div>
           </template>
         </el-upload>
       </el-form-item>
@@ -152,7 +152,7 @@ const emit = defineEmits<{
   close: [];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const visible = ref(false);
 const submitting = ref(false);
 const formRef = ref<FormInstance>();
@@ -179,13 +179,13 @@ const uploadForm = reactive({
 // 表单验证规则
 const formRules: FormRules = {
   taskName: [
-    { required: true, message: "请输入任务名�?, trigger: "blur" },
-    { min: 2, max: 100, message: "任务名称长度�?2 �?100 个字�?, trigger: "blur" }
+    { required: true, message: "请输入任务名称", trigger: "blur" },
+    { min: 2, max: 100, message: "任务名称长度在 2 到 100 个字符", trigger: "blur" }
   ],
-  serverId: [{ required: true, message: "请选择目标服务�?, trigger: "change" }],
+  serverId: [{ required: true, message: "请选择目标服务器", trigger: "change" }],
   targetPath: [
-    { required: true, message: "请输入目标路�?, trigger: "blur" },
-    { pattern: /^\/.*/, message: "目标路径必须�?/ 开�?, trigger: "blur" }
+    { required: true, message: "请输入目标路径", trigger: "blur" },
+    { pattern: /^\/.*/, message: "目标路径必须以 / 开头", trigger: "blur" }
   ],
   uploadMode: [{ required: true, message: "请选择上传模式", trigger: "change" }],
   scheduledTime: [
@@ -214,7 +214,7 @@ const formRules: FormRules = {
   ]
 };
 
-// 计算属�?
+// 计算属性
 const disabledDate = (time: Date) => {
   return time.getTime() < Date.now() - 24 * 60 * 60 * 1000;
 };
@@ -251,7 +251,7 @@ const resetForm = () => {
 };
 
 const handleFileChange = (file: UploadFile) => {
-  // 文件大小检�?
+  // 文件大小检查
   if (file.size && file.size > 100 * 1024 * 1024) {
     ElMessage.error("文件大小不能超过 100MB");
     return false;
@@ -283,7 +283,7 @@ const handleSubmit = async () => {
 
     submitting.value = true;
 
-    // 为每个文件创建上传任�?
+    // 为每个文件创建上传任务
     for (const fileItem of fileList.value) {
       if (!fileItem.raw) continue;
 

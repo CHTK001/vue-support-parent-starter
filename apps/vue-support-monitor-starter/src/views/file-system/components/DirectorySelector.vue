@@ -4,7 +4,7 @@
       v-model="selectedValue"
       :data="treeData"
       :props="treeProps"
-      placeholder="请选择存储根目�?
+      placeholder="请选择存储根目录"
       :render-after-expand="false"
       :load="loadNode"
       lazy
@@ -50,7 +50,7 @@ const emit = defineEmits<{
   "update:modelValue": [value: string];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const selectedValue = ref<string>("");
 const treeData = ref<any[]>([]);
 
@@ -62,7 +62,7 @@ const treeProps = {
   isLeaf: "isLeaf",
 };
 
-// 计算属�?
+// 计算属性
 const displayValue = computed(() => props.modelValue || "");
 
 // 监听 modelValue 变化
@@ -83,7 +83,7 @@ const handleChange = (value: string) => {
 const loadNode = async (node: any, resolve: Function) => {
   try {
     if (node.level === 0) {
-      // 加载根节�?- 磁盘驱动�?
+      // 加载根节点 - 磁盘驱动器
       const res = await getSystemDrives();
       if (String(res.code) === "00000") {
         const drives = res.data || [];
@@ -97,11 +97,11 @@ const loadNode = async (node: any, resolve: Function) => {
         }));
         resolve(driveNodes);
       } else {
-        ElMessage.error(res.msg || "获取磁盘驱动器失�?);
+        ElMessage.error(res.msg || "获取磁盘驱动器失败");
         resolve([]);
       }
     } else {
-      // 加载子目�?
+      // 加载子目录
       const parentPath = node.data.value;
       const res = await getDirectories(parentPath, false);
       if (String(res.code) === "00000") {
@@ -125,9 +125,9 @@ const loadNode = async (node: any, resolve: Function) => {
   }
 };
 
-// 初始�?
+// 初始化
 onMounted(() => {
-  // 如果有初始值，设置选中状�?
+  // 如果有初始值，设置选中状态
   if (props.modelValue) {
     selectedValue.value = props.modelValue;
   }

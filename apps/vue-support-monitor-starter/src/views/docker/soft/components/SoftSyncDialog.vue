@@ -5,16 +5,16 @@
         <div class="title">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-2" /> 同步镜像
         </div>
-        <div class="subtitle">从服务器同步Docker镜像到系�?/div>
+        <div class="subtitle">从服务器同步Docker镜像到系统</div>
       </div>
     </template>
 
     <div class="content">
-      <!-- 选择服务�?-->
+      <!-- 选择服务器 -->
       <div class="step-pane">
         <div class="pane-title">
           <IconifyIconOnline icon="ri:server-line" class="mr-2" />
-          选择同步服务�?
+          选择同步服务器
         </div>
         <div class="server-cards">
           <div v-for="server in servers" :key="server.monitorSysGenServerId" class="server-card"
@@ -47,7 +47,7 @@
         </div>
         <div class="server-hint">
           <IconifyIconOnline icon="ri:information-line" class="mr-1" />
-          已选择 <b>{{ selectedServerCount }}</b> 台服务器，将从这些服务器获取Docker镜像列表并同�?
+          已选择 <b>{{ selectedServerCount }}</b> 台服务器，将从这些服务器获取Docker镜像列表并同步
         </div>
       </div>
 
@@ -57,7 +57,7 @@
           <IconifyIconOnline icon="ri:database-2-line" class="icon" />
           <div class="info-content">
             <div class="info-title">同步内容</div>
-            <div class="info-value">Docker镜像列表（使用DockerProtocolClient.listImage�?/div>
+            <div class="info-value">Docker镜像列表（使用DockerProtocolClient.listImage）</div>
           </div>
         </div>
         <div class="info-item">
@@ -70,7 +70,7 @@
         <div class="info-item">
           <IconifyIconOnline icon="ri:progress-5-line" class="icon" />
           <div class="info-content">
-            <div class="info-title">进度推�?/div>
+            <div class="info-title">进度推送</div>
             <div class="info-value">实时推送同步进度，请保持页面打开</div>
           </div>
         </div>
@@ -82,7 +82,7 @@
         <el-button @click="visibleProxy = false">取消</el-button>
         <el-button type="primary" :loading="syncing" :disabled="selectedServerCount === 0" @click="submit">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" v-if="!syncing" />
-          {{ syncing ? '同步�?..' : '开始同�? }}
+          {{ syncing ? '同步中...' : '开始同步' }}
         </el-button>
       </div>
     </template>
@@ -116,7 +116,7 @@ async function loadServers() {
       servers.value = res || [];
     }
   } catch (err) {
-    console.error('加载服务器失�?, err);
+    console.error('加载服务器失败', err);
   }
 }
 
@@ -126,7 +126,7 @@ function toggleServerSelect(id: number) {
   else selectedServerIds.value.splice(idx, 1);
 }
 
-// 获取服务器连接状态类�?
+// 获取服务器连接状态类型
 function getStatusType(status: number | undefined): 'success' | 'info' | 'warning' | 'danger' {
   switch (status) {
     case 1: return 'success';
@@ -137,12 +137,12 @@ function getStatusType(status: number | undefined): 'success' | 'info' | 'warnin
   }
 }
 
-// 获取服务器连接状态文�?
+// 获取服务器连接状态文本
 function getStatusText(status: number | undefined): string {
   switch (status) {
     case 1: return '在线';
     case 0: return '离线';
-    case 2: return '连接�?;
+    case 2: return '连接中';
     case 3: return '失败';
     default: return '未知';
   }
@@ -184,10 +184,10 @@ async function submit() {
     const result = await softwareApi.syncImages(payload as any);
     
     if (result.code === '00000') {
-      // 通知父组件同步成�?
+      // 通知父组件同步成功
       emit('success');
       
-      // 关闭对话�?
+      // 关闭对话框
       visibleProxy.value = false;
     } else {
       ElMessage.error(result.msg || '同步失败');
@@ -196,7 +196,7 @@ async function submit() {
     console.error('同步镜像失败', error);
     ElNotification.error({
       title: '同步失败',
-      message: error?.message || '请稍后重�?,
+      message: error?.message || '请稍后重试',
       position: 'bottom-right'
     });
   } finally {

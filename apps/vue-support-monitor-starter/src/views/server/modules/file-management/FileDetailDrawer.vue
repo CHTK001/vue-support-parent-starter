@@ -7,7 +7,7 @@
     :close-on-click-modal="false"
   >
     <div class="file-detail" v-if="fileInfo">
-      <!-- 文件图标和名�?-->
+      <!-- 文件图标和名称 -->
       <div class="file-header">
         <div class="file-icon-large">
           <IconifyIconOnline
@@ -27,7 +27,7 @@
         <div class="detail-list">
           <div class="detail-item">
             <span class="label">类型:</span>
-            <span class="value">{{ fileInfo.isDirectory ? "文件�? : "文件" }}</span>
+            <span class="value">{{ fileInfo.isDirectory ? "文件夹" : "文件" }}</span>
           </div>
           <div class="detail-item" v-if="!fileInfo.isDirectory">
             <span class="label">大小:</span>
@@ -55,7 +55,7 @@
           
           <el-button size="small" disabled>
             <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
-            重命�?(开发中)
+            重命名 (开发中)
           </el-button>
           
           <el-button size="small" type="danger" disabled>
@@ -86,7 +86,7 @@ const emit = defineEmits<{
   "update:visible": [value: boolean];
 }>();
 
-// 计算属�?
+// 计算属性
 const drawerVisible = computed({
   get: () => props.visible,
   set: (value) => emit("update:visible", value),
@@ -94,18 +94,18 @@ const drawerVisible = computed({
 
 const drawerTitle = computed(() => {
   if (!props.fileInfo) return "文件详情";
-  return props.fileInfo.isDirectory ? "文件夹详�? : "文件详情";
+  return props.fileInfo.isDirectory ? "文件夹详情" : "文件详情";
 });
 
 /**
- * 格式化文件大�?
+ * 格式化文件大小
  */
 const formatFileSize = (size: number) => {
   return formatBytes(size);
 };
 
 /**
- * 格式化时�?
+ * 格式化时间
  */
 const formatTime = (time: string) => {
   return dayjs(time).format("YYYY-MM-DD HH:mm:ss");
@@ -130,7 +130,7 @@ const getFileIcon = (file: FileInfo) => {
     case "vue":
       return "ri:vuejs-line";
 
-    // Web技�?
+    // Web技术
     case "html":
     case "htm":
       return "ri:html5-line";
@@ -249,7 +249,7 @@ const getFileIcon = (file: FileInfo) => {
     case "webm":
       return "ri:video-line";
 
-    // 可执行文�?
+    // 可执行文件
     case "exe":
     case "msi":
     case "dmg":
@@ -258,7 +258,7 @@ const getFileIcon = (file: FileInfo) => {
     case "app":
       return "ri:install-line";
 
-    // 库文�?
+    // 库文件
     case "dll":
     case "so":
     case "dylib":
@@ -266,7 +266,7 @@ const getFileIcon = (file: FileInfo) => {
     case "a":
       return "ri:code-box-line";
 
-    // 数据�?
+    // 数据库
     case "db":
     case "sqlite":
     case "sql":

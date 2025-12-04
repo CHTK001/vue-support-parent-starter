@@ -14,7 +14,7 @@
       <el-form-item label="组件名称" prop="monitorSysGenServerComponentName">
         <el-input
           v-model="formData.monitorSysGenServerComponentName"
-          placeholder="请输入组件名�?
+          placeholder="请输入组件名称"
         />
       </el-form-item>
       
@@ -25,17 +25,17 @@
           style="width: 100%"
         >
           <el-option label="卡片" value="card" />
-          <el-option label="仪表�? value="gauge" />
-          <el-option label="折线�? value="line" />
-          <el-option label="柱状�? value="bar" />
+          <el-option label="仪表盘" value="gauge" />
+          <el-option label="折线图" value="line" />
+          <el-option label="柱状图" value="bar" />
           <el-option label="饼图" value="pie" />
         </el-select>
       </el-form-item>
       
-      <el-form-item label="表达式类�? prop="monitorSysGenServerComponentExpressionType">
+      <el-form-item label="表达式类型" prop="monitorSysGenServerComponentExpressionType">
         <el-select
           v-model="formData.monitorSysGenServerComponentExpressionType"
-          placeholder="请选择表达式类�?
+          placeholder="请选择表达式类型"
           style="width: 100%"
         >
           <el-option label="Prometheus PromQL" value="PROMETHEUS" />
@@ -44,7 +44,7 @@
         </el-select>
       </el-form-item>
       
-      <el-form-item label="表达�? prop="monitorSysGenServerComponentExpression">
+      <el-form-item label="表达式" prop="monitorSysGenServerComponentExpression">
         <el-input
           v-model="formData.monitorSysGenServerComponentExpression"
           type="textarea"
@@ -56,7 +56,7 @@
       <el-form-item label="单位">
         <el-input
           v-model="formData.monitorSysGenServerComponentUnit"
-          placeholder="请输入单位，如：%、MB、个�?
+          placeholder="请输入单位，如：%、MB、个等"
         />
       </el-form-item>
       
@@ -65,11 +65,11 @@
           v-model="formData.monitorSysGenServerComponentDescription"
           type="textarea"
           :rows="2"
-          placeholder="请输入组件描�?
+          placeholder="请输入组件描述"
         />
       </el-form-item>
       
-      <el-form-item label="启用状�?>
+      <el-form-item label="启用状态">
         <el-switch
           v-model="formData.monitorSysGenServerComponentEnabled"
           active-text="启用"
@@ -104,7 +104,7 @@ import {
   type ComponentFormData
 } from "@/utils/component-field-mapping";
 
-// 定义属�?
+// 定义属性
 const props = defineProps<{
   modelValue: boolean;
   component?: ServerComponent;
@@ -117,7 +117,7 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const dialogVisible = ref(false);
 const loading = ref(false);
 const formRef = ref<FormInstance>();
@@ -137,23 +137,23 @@ const formData = ref<ComponentFormData>({
 // 表单验证规则
 const formRules: FormRules = {
   monitorSysGenServerComponentName: [
-    { required: true, message: '请输入组件名�?, trigger: 'blur' }
+    { required: true, message: '请输入组件名称', trigger: 'blur' }
   ],
   monitorSysGenServerComponentType: [
     { required: true, message: '请选择组件类型', trigger: 'change' }
   ],
   monitorSysGenServerComponentExpressionType: [
-    { required: true, message: '请选择表达式类�?, trigger: 'change' }
+    { required: true, message: '请选择表达式类型', trigger: 'change' }
   ],
   monitorSysGenServerComponentExpression: [
     { required: true, message: '请输入表达式', trigger: 'blur' }
   ]
 };
 
-// 计算属�?
+// 计算属性
 const isEdit = computed(() => !!props.component?.monitorSysGenServerComponentId);
 
-// 监听对话框显示状�?
+// 监听对话框显示状态
 watch(() => props.modelValue, (val) => {
   dialogVisible.value = val;
   if (val) {
@@ -166,14 +166,14 @@ watch(dialogVisible, (val) => {
 });
 
 /**
- * 初始化表�?
+ * 初始化表单
  */
 const initForm = () => {
   if (props.component) {
-    // 编辑模式，使用工具函数转换数�?
+    // 编辑模式，使用工具函数转换数据
     formData.value = convertApiDataToFormData(props.component);
   } else {
-    // 新增模式，重置表�?
+    // 新增模式，重置表单
     formData.value = {
       monitorSysGenServerId: props.serverId || 0,
       monitorSysGenServerComponentName: '',
@@ -186,7 +186,7 @@ const initForm = () => {
     };
   }
 
-  // 清除验证状�?
+  // 清除验证状态
   formRef.value?.clearValidate();
 };
 
@@ -250,7 +250,7 @@ const handleSubmit = async () => {
 };
 
 /**
- * 关闭对话�?
+ * 关闭对话框
  */
 const handleClose = () => {
   dialogVisible.value = false;

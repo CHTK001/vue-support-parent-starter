@@ -30,7 +30,7 @@
             <IconifyIconOnline icon="ri:upload-cloud-line" class="upload-icon" />
             <div class="upload-text">
               <p class="upload-hint">将文件拖拽到此处，或<em>点击上传</em></p>
-              <p class="upload-desc">支持多文件上传，单个文件大小不超�?{{ maxSizeText }}</p>
+              <p class="upload-desc">支持多文件上传，单个文件大小不超过 {{ maxSizeText }}</p>
             </div>
           </div>
         </el-upload>
@@ -41,7 +41,7 @@
         <div class="list-header">
           <h4 class="list-title">
             <IconifyIconOnline icon="ri:file-list-line" class="title-icon" />
-            待上传文�?({{ fileList.length }})
+            待上传文件 ({{ fileList.length }})
           </h4>
           <div class="list-actions">
             <el-button @click="clearAllFiles" size="small" type="danger" plain>
@@ -120,7 +120,7 @@
           <el-form-item label="上传路径">
             <el-input
               v-model="uploadConfig.targetPath"
-              placeholder="文件将上传到此路�?
+              placeholder="文件将上传到此路径"
               readonly
               class="path-input"
             >
@@ -142,7 +142,7 @@
               </el-radio>
               <el-radio value="rename">
                 <IconifyIconOnline icon="ri:edit-line" class="radio-icon" />
-                自动重命�?
+                自动重命名
               </el-radio>
             </el-radio-group>
           </el-form-item>
@@ -166,7 +166,7 @@
             :loading="isUploading"
           >
             <IconifyIconOnline v-if="!isUploading" icon="ri:upload-line" class="btn-icon" />
-            {{ isUploading ? '上传�?..' : '开始上�? }}
+            {{ isUploading ? '上传中...' : '开始上传' }}
           </el-button>
         </div>
       </div>
@@ -197,7 +197,7 @@ const emit = defineEmits<{
   'upload-success': []
 }>()
 
-// 响应式数�?
+// 响应式数据
 const dialogVisible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
@@ -232,11 +232,11 @@ const allowedTypes = [
   'text/plain', 'text/markdown', 'text/csv', 'application/json', 'text/xml',
   // 压缩文件
   'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
-  // 音视�?
+  // 音视频
   'audio/mpeg', 'audio/wav', 'audio/flac', 'video/mp4', 'video/avi', 'video/quicktime'
 ]
 
-// 计算属�?
+// 计算属性
 const uploadUrl = computed(() => {
   return '/api/files/upload'
 })
@@ -332,13 +332,13 @@ const getStatusText = (status?: string) => {
     case 'ready':
       return '准备上传'
     case 'uploading':
-      return '上传�?
+      return '上传中'
     case 'success':
       return '上传成功'
     case 'error':
       return '上传失败'
     default:
-      return '未知状�?
+      return '未知状态'
   }
 }
 
@@ -357,7 +357,7 @@ const handleFileRemove = (file: UploadFile, files: UploadFiles) => {
 }
 
 const beforeUpload = (file: File) => {
-  // 检查文件大�?
+  // 检查文件大小
   if (file.size > maxSize) {
     ElMessage.error(`文件 ${file.name} 大小超过 ${maxSizeText} 限制`)
     return false
@@ -396,10 +396,10 @@ const handleUploadSuccess = (response: any, file: UploadFile) => {
     const errorCount = fileList.value.filter(f => f.status === 'error').length
     
     if (errorCount === 0) {
-      ElMessage.success(`所有文件上传成�?(${successCount}�?`)
+      ElMessage.success(`所有文件上传成功 (${successCount}个)`)
       emit('upload-success')
     } else {
-      ElMessage.warning(`上传完成: 成功 ${successCount}�? 失败 ${errorCount}个`)
+      ElMessage.warning(`上传完成: 成功 ${successCount}个, 失败 ${errorCount}个`)
     }
   }
 }
@@ -428,7 +428,7 @@ const clearAllFiles = async () => {
   
   try {
     await ElMessageBox.confirm(
-      '确定要清空所有文件吗�?,
+      '确定要清空所有文件吗？',
       '确认清空',
       {
         confirmButtonText: '清空',
@@ -453,7 +453,7 @@ const startUpload = () => {
   
   isUploading.value = true
   
-  // 重置所有文件状�?
+  // 重置所有文件状态
   fileList.value.forEach(file => {
     if (file.status !== 'success') {
       file.status = 'ready'
@@ -463,7 +463,7 @@ const startUpload = () => {
   
   updateUploadStats()
   
-  // 开始上�?
+  // 开始上传
   uploadRef.value?.submit()
 }
 
@@ -476,7 +476,7 @@ const updateUploadStats = () => {
 const handleClose = () => {
   if (isUploading.value) {
     ElMessageBox.confirm(
-      '上传正在进行中，确定要关闭吗�?,
+      '上传正在进行中，确定要关闭吗？',
       '确认关闭',
       {
         confirmButtonText: '确定',
@@ -798,7 +798,7 @@ watch(
   }
 }
 
-// 响应式设�?
+// 响应式设计
 @media (max-width: 768px) {
   .file-upload-dialog {
     .upload-container {

@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    :title="`设计�?- ${tableName}`"
+    :title="`设计?- ${tableName}`"
     width="1300px"
     :close-on-click-modal="false"
     class="table-structure-dialog"
@@ -9,20 +9,20 @@
     top="5vh"
   >
     <div class="structure-container">
-      <!-- 表注�?-->
+      <!-- 表注?-->
       <div class="table-comment-section">
         <label class="comment-label">表注释：</label>
         <el-input
           v-model="tableComment"
           size="small"
-          placeholder="输入表注�?
+          placeholder="输入表注?
           style="width: 400px"
           @change="tableCommentModified = true"
         />
-        <el-tag v-if="tableCommentModified" type="warning" size="small" class="ml-2">已修�?/el-tag>
+        <el-tag v-if="tableCommentModified" type="warning" size="small" class="ml-2">已修?/el-tag>
       </div>
 
-      <!-- 标签�?-->
+      <!-- 标签?-->
       <el-tabs v-model="activeTab" type="border-card">
         <!-- 字段列表 -->
         <el-tab-pane label="字段" name="columns">
@@ -59,7 +59,7 @@
             </el-button>
           </div>
 
-          <!-- 可编辑表�?-->
+          <!-- 可编辑表?-->
           <div class="table-wrapper">
             <el-table
               ref="tableRef"
@@ -77,21 +77,21 @@
               <el-table-column type="selection" width="45" fixed="left" />
               <el-table-column type="index" width="50" label="#" fixed="left" />
               
-              <!-- 字段�?-->
-              <el-table-column prop="name" label="字段�? width="160" fixed="left">
+              <!-- 字段名-->
+              <el-table-column prop="name" label="字段名 width="160" fixed="left">
                 <template #default="{ row }">
                   <div class="name-cell">
                     <el-input
                       v-model="row.name"
                       size="small"
-                      placeholder="字段�?
+                      placeholder="字段名
                       @change="markModified(row)"
                     />
                     <div class="name-tags">
                       <el-tag v-if="row.primaryKey" type="warning" size="small">PK</el-tag>
                       <el-tag v-if="row.autoIncrement" type="info" size="small">AI</el-tag>
-                      <el-tag v-if="row.__isNew" type="success" size="small">�?/el-tag>
-                      <el-tag v-else-if="row.__modified && isColumnReallyModified(row)" type="primary" size="small">�?/el-tag>
+                      <el-tag v-if="row.__isNew" type="success" size="small">?/el-tag>
+                      <el-tag v-else-if="row.__modified && isColumnReallyModified(row)" type="primary" size="small">?/el-tag>
                     </div>
                   </div>
                 </template>
@@ -136,8 +136,8 @@
                 </template>
               </el-table-column>
 
-              <!-- 小数�?-->
-              <el-table-column prop="scale" label="小数�? width="80" align="center">
+              <!-- 小数?-->
+              <el-table-column prop="scale" label="小数? width="80" align="center">
                 <template #default="{ row }">
                   <el-input-number
                     v-model="row.scale"
@@ -173,8 +173,8 @@
                 </template>
               </el-table-column>
 
-              <!-- 默认�?-->
-              <el-table-column prop="defaultValue" label="默认�? width="120">
+              <!-- 默认?-->
+              <el-table-column prop="defaultValue" label="默认? width="120">
                 <template #default="{ row }">
                   <el-input
                     v-model="row.defaultValue"
@@ -197,7 +197,7 @@
                 </template>
               </el-table-column>
 
-              <!-- 操作�?-->
+              <!-- 操作?-->
               <el-table-column label="操作" width="80" fixed="right" align="center">
                 <template #default="{ $index }">
                   <div class="row-actions">
@@ -229,13 +229,13 @@
           <div class="status-bar">
             <span v-if="hasChanges" class="status-changed">
               <IconifyIconOnline icon="ri:error-warning-line" class="mr-1" />
-              有未保存的修�?
+              有未保存的修?
             </span>
             <span v-else class="status-saved">
               <IconifyIconOnline icon="ri:checkbox-circle-line" class="mr-1" />
-              已保�?
+              已保?
             </span>
-            <span class="status-count">�?{{ columns.length }} 个字�?/span>
+            <span class="status-count">?{{ columns.length }} 个字?/span>
           </div>
         </el-tab-pane>
 
@@ -260,7 +260,7 @@
             </el-button>
           </div>
           <div class="ddl-container">
-            <pre class="ddl-code"><code>{{ ddl || '加载�?..' }}</code></pre>
+            <pre class="ddl-code"><code>{{ ddl || '加载中..' }}</code></pre>
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -306,7 +306,7 @@ interface ColumnInfo {
   defaultValue?: string;
   comment?: string;
   ordinalPosition: number;
-  // 内部状�?
+  // 内部状?
   __key?: string;
   __isNew?: boolean;
   __modified?: boolean;
@@ -334,22 +334,22 @@ const ddl = ref("");
 const saving = ref(false);
 const tableRef = ref<any>(null);
 
-// 表注�?
+// 表注?
 const tableComment = ref("");
 const originalTableComment = ref("");
 const tableCommentModified = ref(false);
 
-// 当前选中�?
+// 当前选中?
 const selectedRowIndex = ref(-1);
 const selectedRow = ref<ColumnInfo | null>(null);
 
-// 多选的�?
+// 多选的?
 const selectedRows = ref<ColumnInfo[]>([]);
 
-// 删除的字段列�?
+// 删除的字段列?
 const deletedColumns = ref<string[]>([]);
 
-// 唯一key生成�?
+// 唯一key生成?
 let keyCounter = 0;
 function generateKey() {
   return `col_${Date.now()}_${keyCounter++}`;
@@ -376,7 +376,7 @@ const dataTypeGroups = [
     ],
   },
   {
-    label: "字符串类�?,
+    label: "字符串类?,
     types: [
       { value: "CHAR", label: "CHAR" },
       { value: "VARCHAR", label: "VARCHAR" },
@@ -397,7 +397,7 @@ const dataTypeGroups = [
     ],
   },
   {
-    label: "二进制类�?,
+    label: "二进制类?,
     types: [
       { value: "BINARY", label: "BINARY" },
       { value: "VARBINARY", label: "VARBINARY" },
@@ -420,7 +420,7 @@ const dataTypeGroups = [
 
 // 需要长度的类型
 const typesNeedLength = ["CHAR", "VARCHAR", "BINARY", "VARBINARY", "TINYINT", "SMALLINT", "MEDIUMINT", "INT", "BIGINT"];
-// 需要小数位的类�?
+// 需要小数位的类?
 const typesNeedScale = ["DECIMAL", "FLOAT", "DOUBLE"];
 
 function needsLength(dataType: string): boolean {
@@ -453,7 +453,7 @@ function updateFullType(row: ColumnInfo) {
   }
 }
 
-// 是否有修�?
+// 是否有修?
 const hasChanges = computed(() => {
   if (tableCommentModified.value) return true;
   if (deletedColumns.value.length > 0) return true;
@@ -489,7 +489,7 @@ async function loadStructure() {
       getCreateTableDdl(props.settingId, props.tableName),
     ]);
     if (structRes?.data) {
-      // 加载表注�?
+      // 加载表注?
       tableComment.value = structRes.data.tableComment || "";
       originalTableComment.value = structRes.data.tableComment || "";
       tableCommentModified.value = false;
@@ -529,7 +529,7 @@ async function loadStructure() {
     }
     deletedColumns.value = [];
   } catch (e: any) {
-    ElMessage.error("加载表结构失�? " + e.message);
+    ElMessage.error("加载表结构失? " + e.message);
   }
 }
 
@@ -553,12 +553,12 @@ function handleCurrentChange(row: ColumnInfo | null) {
   selectedRowIndex.value = row ? columns.value.findIndex(c => c.__key === row.__key) : -1;
 }
 
-// 多选变�?
+// 多选变?
 function handleSelectionChange(rows: ColumnInfo[]) {
   selectedRows.value = rows;
 }
 
-// 行双击（可以用于其他操作�?
+// 行双击（可以用于其他操作?
 function handleRowDblClick(row: ColumnInfo) {
   // 双击行时可以执行其他操作
 }
@@ -570,7 +570,7 @@ function markModified(row: ColumnInfo) {
   }
 }
 
-// 获取行样�?
+// 获取行样?
 function getRowClassName({ row }: { row: ColumnInfo }) {
   if (row.__isNew) return 'row-new';
   if (row.__modified) return 'row-modified';
@@ -601,7 +601,7 @@ function handleAddRow() {
   });
 }
 
-// 插入字段（当前行之后�?
+// 插入字段（当前行之后?
 function handleInsertRow() {
   if (selectedRowIndex.value < 0) return;
   const newCol: ColumnInfo = {
@@ -628,14 +628,14 @@ function handleInsertRow() {
 
 // 删除字段（支持多选批量删除）
 async function handleDeleteRow() {
-  // 优先使用多选的行，否则使用当前选中�?
+  // 优先使用多选的行，否则使用当前选中?
   const rowsToDelete = selectedRows.value.length > 0 
     ? selectedRows.value 
     : (selectedRow.value ? [selectedRow.value] : []);
   
   if (rowsToDelete.length === 0) return;
   
-  const names = rowsToDelete.map(r => r.name || '(未命�?').join(', ');
+  const names = rowsToDelete.map(r => r.name || '(未命?').join(', ');
   try {
     await ElMessageBox.confirm(
       rowsToDelete.length === 1 
@@ -647,7 +647,7 @@ async function handleDeleteRow() {
     
     // 遍历删除
     for (const row of rowsToDelete) {
-      // 如果是已存在的字段，记录到删除列�?
+      // 如果是已存在的字段，记录到删除列?
       if (!row.__isNew && row.__originalName) {
         deletedColumns.value.push(row.__originalName);
       }
@@ -657,7 +657,7 @@ async function handleDeleteRow() {
       }
     }
     
-    // 清空选中状�?
+    // 清空选中状?
     selectedRowIndex.value = -1;
     selectedRow.value = null;
     selectedRows.value = [];
@@ -695,7 +695,7 @@ function handleMoveDown() {
   });
 }
 
-// 按索引上�?
+// 按索引上?
 function handleMoveRowUp(index: number) {
   if (index <= 0) return;
   const row = columns.value[index];
@@ -709,7 +709,7 @@ function handleMoveRowUp(index: number) {
   });
 }
 
-// 按索引下�?
+// 按索引下?
 function handleMoveRowDown(index: number) {
   if (index >= columns.value.length - 1) return;
   const row = columns.value[index];
@@ -743,7 +743,7 @@ function isColumnReallyModified(col: ColumnInfo): boolean {
     comment: col.comment || "",
   });
   
-  // 标准化原始数据进行比�?
+  // 标准化原始数据进行比?
   const originalParsed = JSON.parse(col.__originalData);
   const originalNormalized = JSON.stringify({
     name: originalParsed.name,
@@ -761,7 +761,7 @@ function isColumnReallyModified(col: ColumnInfo): boolean {
   return currentData !== originalNormalized;
 }
 
-// 保存所有修�?
+// 保存所有修?
 async function handleSaveAll() {
   if (!hasChanges.value) return;
   
@@ -777,7 +777,7 @@ async function handleSaveAll() {
       batchRequest.dropColumns = [...deletedColumns.value];
     }
     
-    // 2. 添加新字�?
+    // 2. 添加新字?
     const newCols = columns.value.filter(c => c.__isNew && c.name);
     if (newCols.length > 0) {
       batchRequest.addColumns = newCols.map((col, idx) => {
@@ -821,7 +821,7 @@ async function handleSaveAll() {
       });
     }
     
-    // 4. 调整字段顺序（如果有移动�?
+    // 4. 调整字段顺序（如果有移动?
     const reorderCols: any[] = [];
     for (let i = 0; i < columns.value.length; i++) {
       const col = columns.value[i];
@@ -847,7 +847,7 @@ async function handleSaveAll() {
       batchRequest.tableComment = tableComment.value;
     }
     
-    // 检查是否有实际的修改内�?
+    // 检查是否有实际的修改内?
     const hasActualChanges = batchRequest.dropColumns || 
                              batchRequest.addColumns || 
                              batchRequest.modifyColumns || 
@@ -875,12 +875,12 @@ async function handleSaveAll() {
   }
 }
 
-// 关闭对话�?
+// 关闭对话?
 async function handleClose() {
   if (hasChanges.value) {
     try {
       await ElMessageBox.confirm(
-        "有未保存的修改，确定要关闭吗�?,
+        "有未保存的修改，确定要关闭吗?,
         "提示",
         { type: "warning" }
       );
@@ -894,7 +894,7 @@ async function handleClose() {
 async function copyDdl() {
   try {
     await navigator.clipboard.writeText(ddl.value);
-    ElMessage.success("已复制到剪贴�?);
+    ElMessage.success("已复制到剪贴?);
   } catch {
     ElMessage.error("复制失败");
   }
@@ -1108,7 +1108,7 @@ async function copyDdl() {
   margin-right: 4px;
 }
 
-// 编辑输入框样�?
+// 编辑输入框样?
 :deep(.el-input__wrapper) {
   box-shadow: none;
   border-radius: 4px;
@@ -1122,7 +1122,7 @@ async function copyDdl() {
   box-shadow: none;
 }
 
-// 操作列样�?
+// 操作列样?
 .row-actions {
   display: flex;
   justify-content: center;

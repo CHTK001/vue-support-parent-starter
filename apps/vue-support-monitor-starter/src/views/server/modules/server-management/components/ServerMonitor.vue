@@ -3,7 +3,7 @@
     <!-- 头部信息 -->
     <div class="monitor-header">
       <div class="server-info">
-        <h3 class="server-name">{{ server?.name || "未知服务�? }}</h3>
+        <h3 class="server-name">{{ server?.name || "未知服务器" }}</h3>
         <div class="server-details">
           <span class="server-address"
             >{{ server?.host }}:{{ server?.port }}</span
@@ -31,11 +31,11 @@
 
     <!-- 指标卡片 -->
     <div class="metrics-grid modern-scrollbar" v-loading="loading">
-      <!-- CPU使用�?-->
+      <!-- CPU使用率 -->
       <div class="metric-card">
         <div class="metric-header">
           <IconifyIconOnline icon="ri:cpu-line" class="metric-icon" />
-          <span class="metric-title">CPU使用�?/span>
+          <span class="metric-title">CPU使用率</span>
         </div>
         <div class="metric-content">
           <div
@@ -50,17 +50,17 @@
             :show-text="false"
           />
           <div class="metric-details">
-            <span>核心�? {{ metrics?.cpu?.cores || "N/A" }}</span>
+            <span>核心数: {{ metrics?.cpu?.cores || "N/A" }}</span>
             <span>负载: {{ (metrics?.cpu?.load1m || 0).toFixed(2) }}</span>
           </div>
         </div>
       </div>
 
-      <!-- 内存使用�?-->
+      <!-- 内存使用率 -->
       <div class="metric-card">
         <div class="metric-header">
           <IconifyIconOnline icon="ri:database-line" class="metric-icon" />
-          <span class="metric-title">内存使用�?/span>
+          <span class="metric-title">内存使用率</span>
         </div>
         <div class="metric-content">
           <div
@@ -90,7 +90,7 @@
           <span class="metric-title"
             >磁盘使用情况
             <span class="partitions-count"
-              >{{ diskPartitions.length }} 个分�?/span
+              >{{ diskPartitions.length }} 个分区</span
             ></span
           >
         </div>
@@ -179,7 +179,7 @@
             <span class="info-value">{{ getOsVersion }}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">主机�?</span>
+            <span class="info-label">主机名:</span>
             <span class="info-value">{{ getHostname }}</span>
           </div>
           <div class="info-item">
@@ -195,11 +195,11 @@
             <span class="info-value">{{ metrics?.loadAverage || "N/A" }}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">进程�?</span>
+            <span class="info-label">进程数:</span>
             <span class="info-value">{{ metrics?.processCount || "N/A" }}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">CPU核心�?</span>
+            <span class="info-label">CPU核心数:</span>
             <span class="info-value">{{ metrics?.cpu?.cores || "N/A" }}</span>
           </div>
         </div>
@@ -229,10 +229,10 @@
       </div>
     </div>
 
-    <!-- 最后更新时�?-->
+    <!-- 最后更新时间 -->
     <div class="update-time" v-if="metrics?.collectTime">
       <IconifyIconOnline icon="ri:time-line" class="mr-1" />
-      最后更�? {{ formatTime(metrics.collectTime) }}
+      最后更新: {{ formatTime(metrics.collectTime) }}
     </div>
   </div>
 </template>
@@ -271,7 +271,7 @@ export interface DiskPartition {
 }
 
 /**
- * 服务器指标数据类型（简化版本，与useServerMetricsSocket保持兼容�?
+ * 服务器指标数据类型（简化版本，与useServerMetricsSocket保持兼容）
  */
 export interface ServerMetricsData {
   serverId: number;
@@ -335,7 +335,7 @@ const emit = defineEmits<{
   refreshMetrics: [serverId: string];
 }>();
 
-// 状�?
+// 状态
 const loading = ref(false);
 const updateTimer = ref<NodeJS.Timeout | null>(null);
 
@@ -349,10 +349,10 @@ const uptimeAnimation = useIntegerAnimation(0, { duration: 1200 });
 const processCountAnimation = useIntegerAnimation(0, { duration: 800 });
 const temperatureAnimation = useIntegerAnimation(0, { duration: 1000 });
 
-// 指标数据（从props获取�?
+// 指标数据（从props获取）
 const metrics = computed(() => props.metricsData);
 
-// 计算属�?
+// 计算属性
 const serverId = computed(() => props.server?.id);
 
 // 磁盘分区数据
@@ -365,9 +365,9 @@ watch(
   () => props.metricsData,
   (newMetrics, oldMetrics) => {
     if (newMetrics) {
-      console.log("ServerMonitor接收到指标数�?", newMetrics);
+      console.log("ServerMonitor接收到指标数据:", newMetrics);
 
-      // 更新动画�?- 如果新值为空且旧值存在，则保持旧�?
+      // 更新动画值 - 如果新值为空且旧值存在，则保持旧值
       updateAnimationValueSafely(
         cpuAnimation,
         newMetrics.cpu?.usage,
@@ -414,7 +414,7 @@ watch(
         oldMetrics?.temperature !== undefined &&
         oldMetrics?.temperature !== null
       ) {
-        // 如果新数据没有温度但旧数据有，保持旧�?
+        // 如果新数据没有温度但旧数据有，保持旧值
         temperatureAnimation.setValue(oldMetrics.temperature);
       }
     }
@@ -447,7 +447,7 @@ const getOnlineStatusText = (status: number) => {
 };
 
 /**
- * 阈值配�?
+ * 阈值配置
  */
 const thresholds = {
   cpu: { normal: 50, warning: 80, critical: 90 },
@@ -458,7 +458,7 @@ const thresholds = {
 };
 
 /**
- * 根据指标类型和值获取颜�?
+ * 根据指标类型和值获取颜色
  */
 const getMetricColor = (metricType: string, value: number) => {
   const threshold = thresholds[metricType as keyof typeof thresholds];
@@ -470,13 +470,13 @@ const getMetricColor = (metricType: string, value: number) => {
 };
 
 /**
- * 获取进度条颜色（支持渐变�?
+ * 获取进度条颜色（支持渐变）
  */
 const getProgressColor = (percentage: number, metricType: string = "cpu") => {
   const threshold = thresholds[metricType as keyof typeof thresholds];
   if (!threshold) return "#67c23a";
 
-  // 返回渐变色配�?
+  // 返回渐变色配置
   return [
     { color: "#67c23a", percentage: threshold.normal },
     { color: "#e6a23c", percentage: threshold.warning },
@@ -492,18 +492,18 @@ const getTempColor = (temp: number) => {
 };
 
 /**
- * 安全更新动画�?- 如果新值为空且旧值存在，则保持旧�?
+ * 安全更新动画值 - 如果新值为空且旧值存在，则保持旧值
  */
 const updateAnimationValueSafely = (
   animation: any,
   newValue: any,
   oldValue: any
 ) => {
-  // 如果新值有效，使用新�?
+  // 如果新值有效，使用新值
   if (newValue !== undefined && newValue !== null && !isNaN(Number(newValue))) {
     animation.setValue(Number(newValue));
   }
-  // 如果新值无效但旧值有效，保持旧�?
+  // 如果新值无效但旧值有效，保持旧值
   else if (
     oldValue !== undefined &&
     oldValue !== null &&
@@ -538,10 +538,10 @@ const getOsName = computed(() => {
     return metrics.value.osName;
   }
 
-  // �?osInfo 中解�?
+  // 从 osInfo 中解析
   if (metrics.value?.osInfo) {
     const osInfo = metrics.value.osInfo;
-    // 匹配常见的操作系统名�?
+    // 匹配常见的操作系统名称
     if (osInfo.includes("Ubuntu")) return "Ubuntu";
     if (osInfo.includes("CentOS")) return "CentOS";
     if (osInfo.includes("Red Hat")) return "Red Hat";
@@ -572,11 +572,11 @@ const getOsVersion = computed(() => {
     return metrics.value.osVersion;
   }
 
-  // �?osInfo 中解析版本信�?
+  // 从 osInfo 中解析版本信息
   if (metrics.value?.osInfo) {
     const osInfo = metrics.value.osInfo;
 
-    // 匹配版本号模�?
+    // 匹配版本号模式
     const versionMatch = osInfo.match(/(\d+\.\d+(?:\.\d+)?)/);
     if (versionMatch) {
       return versionMatch[1];
@@ -599,7 +599,7 @@ const getOsVersion = computed(() => {
 });
 
 /**
- * 智能获取主机�?
+ * 智能获取主机名
  */
 const getHostname = computed(() => {
   // 优先使用 hostname 字段
@@ -607,7 +607,7 @@ const getHostname = computed(() => {
     return metrics.value.hostname;
   }
 
-  // �?extraInfo 中解�?
+  // 从 extraInfo 中解析
   if (metrics.value?.extraInfo) {
     const hostnameMatch = metrics.value.extraInfo.match(/hostname:([^,]+)/);
     if (hostnameMatch) {
@@ -642,7 +642,7 @@ const getSystemArch = computed(() => {
 });
 
 /**
- * 获取磁盘分区使用率颜色类�?
+ * 获取磁盘分区使用率颜色类名
  */
 const getPartitionUsageClass = (percentage: number) => {
   if (percentage >= 90) return "usage-critical";
@@ -655,7 +655,7 @@ const formatUptime = (uptime: number | undefined) => {
   const days = Math.floor(uptime / 86400);
   const hours = Math.floor((uptime % 86400) / 3600);
   const minutes = Math.floor((uptime % 3600) / 60);
-  return `${days}�?${hours}小时 ${minutes}分钟`;
+  return `${days}天 ${hours}小时 ${minutes}分钟`;
 };
 
 const formatTime = (time: string | Date) => {
@@ -668,10 +668,10 @@ const refreshMetrics = async () => {
   try {
     loading.value = true;
 
-    // 通知父组件刷新指标数�?
+    // 通知父组件刷新指标数据
     emit("refreshMetrics", serverId.value);
 
-    message.success("指标数据刷新请求已发�?);
+    message.success("指标数据刷新请求已发送");
   } catch (error) {
     message.error("刷新失败");
     console.error("刷新指标数据失败:", error);
@@ -683,10 +683,10 @@ const refreshMetrics = async () => {
 const startAutoRefresh = () => {
   updateTimer.value = setInterval(() => {
     if (serverId.value) {
-      // 通知父组件自动刷新指标数�?
+      // 通知父组件自动刷新指标数据
       emit("refreshMetrics", serverId.value);
     }
-  }, 30000); // 30秒自动刷�?
+  }, 30000); // 30秒自动刷新
 };
 
 const stopAutoRefresh = () => {
@@ -701,7 +701,7 @@ onMounted(() => {
   // 启动自动刷新
   startAutoRefresh();
 
-  // 如果有服务器ID，立即请求一次数�?
+  // 如果有服务器ID，立即请求一次数据
   if (serverId.value) {
     emit("refreshMetrics", serverId.value);
   }
@@ -845,7 +845,7 @@ onUnmounted(() => {
   padding: 4px;
   min-height: 400px;
 
-  /* 统一的细滚动条样�?*/
+  /* 统一的细滚动条样式 */
   &::-webkit-scrollbar {
     width: 4px;
     height: 4px;
@@ -1049,7 +1049,7 @@ onUnmounted(() => {
       overflow-x: hidden;
       padding-right: 4px;
 
-      /* 统一的细滚动条样�?*/
+      /* 统一的细滚动条样式 */
       &::-webkit-scrollbar {
         width: 4px;
         height: 4px;
@@ -1144,7 +1144,7 @@ onUnmounted(() => {
   }
 }
 
-/* 响应式设�?*/
+/* 响应式设计 */
 @media (max-width: 1200px) {
   .metrics-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1295,7 +1295,7 @@ onUnmounted(() => {
   }
 }
 
-/* 加载状态优�?*/
+/* 加载状态优化 */
 .metrics-grid[v-loading] {
   .metric-card {
     animation: pulse 1.5s ease-in-out infinite;
@@ -1317,13 +1317,13 @@ onUnmounted(() => {
   scroll-behavior: smooth;
 }
 
-/* 焦点状态优�?*/
+/* 焦点状态优化 */
 .metric-card:focus-visible {
   outline: 2px solid var(--el-color-primary);
   outline-offset: 2px;
 }
 
-/* 数值动画效�?*/
+/* 数值动画效果 */
 .metric-value {
   transition: all 0.3s ease;
 
@@ -1333,7 +1333,7 @@ onUnmounted(() => {
   }
 }
 
-/* 进度条动�?*/
+/* 进度条动画 */
 .el-progress {
   :deep(.el-progress-bar__outer) {
     transition: all 0.3s ease;
@@ -1399,7 +1399,7 @@ onUnmounted(() => {
     overflow-x: hidden;
     padding-right: 4px;
 
-    /* 统一的细滚动条样�?*/
+    /* 统一的细滚动条样式 */
     &::-webkit-scrollbar {
       width: 4px;
       height: 4px;
@@ -1510,7 +1510,7 @@ onUnmounted(() => {
   }
 }
 
-/* 数值变化时的微妙高亮效�?*/
+/* 数值变化时的微妙高亮效果 */
 @keyframes valueChange {
   0% {
     background-color: transparent;

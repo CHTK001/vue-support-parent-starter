@@ -1,15 +1,11 @@
 <template>
   <div class="ssh-terminal">
-    <!-- 头部工具�?-->
+    <!-- 头部工具栏 -->
     <div class="terminal-header">
       <div class="terminal-info">
         <IconifyIconOnline icon="ri:terminal-line" class="mr-2" />
         <span class="terminal-title">SSH终端 - {{ server?.name }}</span>
-        <el-tag
-          :type="connectionStatus === 'connected' ? 'success' : 'danger'"
-          size="small"
-          class="ml-2"
-        >
+        <el-tag :type="connectionStatus === 'connected' ? 'success' : 'danger'" size="small" class="ml-2">
           {{ connectionStatusText }}
         </el-tag>
       </div>
@@ -31,21 +27,14 @@
     </div>
 
     <!-- 终端容器 -->
-    <div
-      class="terminal-container"
-      ref="terminalContainer"
-      v-loading="connecting"
-    >
+    <div class="terminal-container" ref="terminalContainer" v-loading="connecting">
       <div class="terminal-content" ref="terminalContent">
-        <!-- 连接状态提�?-->
-        <div
-          v-if="connectionStatus === 'disconnected'"
-          class="connection-prompt"
-        >
+        <!-- 连接状态提示 -->
+        <div v-if="connectionStatus === 'disconnected'" class="connection-prompt">
           <div class="prompt-content">
             <IconifyIconOnline icon="ri:terminal-line" class="prompt-icon" />
             <h3>SSH终端连接</h3>
-            <p>服务�? {{ server?.host }}:{{ server?.port }}</p>
+            <p>服务器: {{ server?.host }}:{{ server?.port }}</p>
             <el-button type="primary" @click="connect" :loading="connecting">
               <IconifyIconOnline icon="ri:play-line" class="mr-1" />
               连接
@@ -54,11 +43,7 @@
         </div>
 
         <!-- 终端输出区域 -->
-        <div
-          v-show="connectionStatus === 'connected'"
-          class="terminal-output"
-          ref="terminalOutput"
-        >
+        <div v-show="connectionStatus === 'connected'" class="terminal-output" ref="terminalOutput">
           <!-- 这里将集成xterm.js终端 -->
         </div>
       </div>
@@ -77,7 +62,7 @@
         </span>
         <span class="status-item">
           <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
-          发�? {{ formatBytes(bytesSent) }}
+          发送: {{ formatBytes(bytesSent) }}
         </span>
       </div>
       <div class="terminal-settings">
@@ -89,9 +74,7 @@
             <el-dropdown-menu>
               <el-dropdown-item command="copy">复制选中</el-dropdown-item>
               <el-dropdown-item command="paste">粘贴</el-dropdown-item>
-              <el-dropdown-item command="cleanup" divided
-                >清屏</el-dropdown-item
-              >
+              <el-dropdown-item command="cleanup" divided>清屏</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -103,15 +86,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from "vue";
 import { message } from "@repo/utils";
-import "xterm/css/xterm.css";
-import { Terminal } from "xterm";
-import { Unicode11Addon } from "xterm-addon-unicode11";
-import { WebLinksAddon } from "xterm-addon-web-links";
-import { FitAddon } from "xterm-addon-fit";
-import {
-  useSSHWebSocket,
-  useServerWebSocket,
-} from "@/composables/useServerWebSocket";
+import 'xterm/css/xterm.css'
+import { Terminal } from 'xterm'
+import { Unicode11Addon } from 'xterm-addon-unicode11'
+import { WebLinksAddon } from 'xterm-addon-web-links';
+import { FitAddon } from 'xterm-addon-fit'
+import { useSSHWebSocket, useServerWebSocket } from "@/composables/useServerWebSocket";
+
 
 // Props
 const props = defineProps<{
@@ -123,11 +104,9 @@ const emit = defineEmits<{
   close: [];
 }>();
 
-// 状�?
+// 状态
 const connecting = ref(false);
-const connectionStatus = ref<
-  "disconnected" | "connecting" | "connected" | "error"
->("disconnected");
+const connectionStatus = ref<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
 const connectionStartTime = ref<number>(0);
 const connectionDuration = ref(0);
 const bytesReceived = ref(0);
@@ -140,72 +119,53 @@ const terminalOutput = ref<HTMLElement>();
 
 // WebSocket连接
 const terminal = ref<any>(null); // xterm.js实例
-const isInitialized = ref(false); // 防止重复初始�?
-const isSSHListenersInitialized = ref(false); // SSH监听器初始化状�?
-const {
-  connectSSH,
-  sendSSHInput,
-  disconnectSSH,
-  onSSHData,
-  onSSHStatus,
-  cleanupSubscriptions,
-} = useSSHWebSocket(props.server?.id || 0);
+const isInitialized = ref(false); // 防止重复初始化
+const isSSHListenersInitialized = ref(false); // SSH监听器初始化状态
+const { connectSSH, sendSSHInput, disconnectSSH, onSSHData, onSSHStatus, cleanupSubscriptions } = useSSHWebSocket(props.server?.id || 0);
 
-// 计算属�?
+
+// 计算属性
 const connectionStatusText = computed(() => {
   const statusMap = {
-    disconnected: "未连�?,
-    connecting: "连接�?,
-    connected: "已连�?,
-    error: "连接错误",
+    'disconnected': '未连接',
+    'connecting': '连接中',
+    'connected': '已连接',
+    'error': '连接错误'
   };
   return statusMap[connectionStatus.value];
 });
 
 // 方法
 const connect = async () => {
-  if (connecting.value || connectionStatus.value === "connected") {
-    console.log(
-      "跳过连接请求 - connecting:",
-      connecting.value,
-      "status:",
-      connectionStatus.value
-    );
+  if (connecting.value || connectionStatus.value === 'connected') {
+    console.log('跳过连接请求 - connecting:', connecting.value, 'status:', connectionStatus.value);
     return;
   }
 
   try {
-    console.log("开始SSH连接...");
+    console.log('开始SSH连接...');
     connecting.value = true;
-    connectionStatus.value = "connecting";
+    connectionStatus.value = 'connecting';
 
     // 初始化终端（每次连接都重新初始化以确保状态正确）
     if (!isInitialized.value || !terminal.value) {
-      console.log("初始化终�?..");
+      console.log('初始化终端...');
       await initTerminal();
       isInitialized.value = true;
     }
-    // 发�?SSH 连接请求
-    console.log(
-      "发送SSH连接请求�?",
-      props.server?.host,
-      ":",
-      props.server?.port
-    );
-    const success = connectSSH(
-      props.server?.host || "",
-      props.server?.port || 22
-    );
+    // 发送 SSH 连接请求
+    console.log('发送SSH连接请求到:', props.server?.host, ':', props.server?.port);
+    const success = connectSSH(props.server?.host || '', props.server?.port || 22);
     if (!success) {
-      throw new Error("发送连接请求失�?);
+      throw new Error('发送连接请求失败');
     }
 
-    console.log("SSH连接请求已发送，等待后端确认...");
+    console.log('SSH连接请求已发送，等待后端确认...');
     // 注意：不在这里设置连接状态，等待后端的ssh_connect消息确认
   } catch (error) {
-    console.error("SSH连接失败:", error);
-    connectionStatus.value = "error";
-    message.error("SSH连接失败: " + error.message);
+    console.error('SSH连接失败:', error);
+    connectionStatus.value = 'error';
+    message.error('SSH连接失败: ' + error.message);
   } finally {
     connecting.value = false;
   }
@@ -213,10 +173,10 @@ const connect = async () => {
 
 const disconnect = async (skipWebSocketCleanup = false) => {
   try {
-    console.log("断开SSH连接, skipWebSocketCleanup:", skipWebSocketCleanup);
+    console.log('断开SSH连接, skipWebSocketCleanup:', skipWebSocketCleanup);
 
     // 发送断开连接消息
-    disconnectSSH("用户主动断开");
+    disconnectSSH('用户主动断开');
 
     // 只在完全关闭时清理WebSocket订阅，重连时保留
     if (!skipWebSocketCleanup) {
@@ -226,71 +186,73 @@ const disconnect = async (skipWebSocketCleanup = false) => {
 
     if (terminal.value) {
       try {
-        await terminal.value.loadAddonReady;
-        // 清理事件监听�?
+        await terminal.value.loadAddonReady; 
+        // 清理事件监听器
         if (terminal.value._resizeHandler) {
-          window.removeEventListener("resize", terminal.value._resizeHandler);
+          window.removeEventListener('resize', terminal.value._resizeHandler);
         }
 
-        // 销毁终端实�?- 这会自动清理所有相关的DOM元素
+        // 销毁终端实例 - 这会自动清理所有相关的DOM元素
         terminal.value.dispose();
       } catch (error) {
-        console.warn("终端销毁时出现警告:", error);
+        console.warn('终端销毁时出现警告:', error);
       }
       terminal.value = null;
     }
 
-    // 手动清理可能残留�?xterm-helpers 元素
+    // 手动清理可能残留的 xterm-helpers 元素
     setTimeout(() => {
-      const helpers = document.querySelectorAll(".xterm-helpers");
-      helpers.forEach((helper) => {
-        // 检查是否为孤立元素（没有关联的终端容器�?
-        if (!helper.closest(".terminal-output")) {
+      const helpers = document.querySelectorAll('.xterm-helpers');
+      helpers.forEach(helper => {
+        // 检查是否为孤立元素（没有关联的终端容器）
+        if (!helper.closest('.terminal-output')) {
           helper.remove();
         }
       });
     }, 100);
 
-    connectionStatus.value = "disconnected";
+    connectionStatus.value = 'disconnected';
     isInitialized.value = false;
     stopDurationTimer();
     resetStats();
   } catch (error) {
-    console.error("断开连接时出�?", error);
+    console.error('断开连接时出错:', error);
   }
 };
 
+
+
 const reconnect = async () => {
   if (connecting.value) {
-    console.log("正在连接中，跳过重连请求");
+    console.log('正在连接中，跳过重连请求');
     return;
   }
 
-  console.log("开始重连SSH...");
+  console.log('开始重连SSH...');
 
   // 先断开连接，但保留WebSocket订阅
   disconnect(true);
   isSSHListenersInitialized.value = false;
-  // 等待DOM更新和清理完�?
+  // 等待DOM更新和清理完成
   await nextTick();
 
   // 等待更长时间确保后端连接完全清理
   setTimeout(async () => {
     try {
-      console.log("检查WebSocket连接状�?..");
+      console.log('检查WebSocket连接状态...');
       // 确保WebSocket监听器已设置
       if (!isSSHListenersInitialized.value) {
-        console.log("重新初始化SSH监听�?..");
+        console.log('重新初始化SSH监听器...');
         initSSHMessageHandlers();
       }
 
-      console.log("开始重新连�?..");
+      console.log('开始重新连接...');
       await connect();
     } catch (error) {
-      console.error("重连失败:", error);
-      message.error("重连失败: " + error.message);
+      console.error('重连失败:', error);
+      message.error('重连失败: ' + error.message);
     }
-  }, 500); // 增加等待时间�?00ms
+  }, 500); // 增加等待时间到500ms
 };
 
 const clearTerminal = () => {
@@ -299,71 +261,71 @@ const clearTerminal = () => {
   }
 };
 
+
+
+
 /**
- * 初始�?SSH 消息监听
+ * 初始化 SSH 消息监听
  */
 const initSSHMessageHandlers = () => {
   if (isSSHListenersInitialized.value) {
-    console.log("SSH监听器已初始化，跳过重复初始�?);
+    console.log('SSH监听器已初始化，跳过重复初始化');
     return;
   }
 
-  console.log("初始化SSH消息监听�?..");
+  console.log('初始化SSH消息监听器...');
 
-  // 监听 SSH 连接状�?
-  onSSHStatus(
-    (status: "connected" | "disconnected" | "error", msg?: string) => {
-      switch (status) {
-        case "connected":
-          if (connectionStatus.value == "connected") {
-            break;
-          }
-          console.log("SSH连接成功");
-          connectionStatus.value = "connected";
-          connectionStartTime.value = Date.now();
-          startDurationTimer();
-
-          // 清除终端内容并显示简单欢迎信�?
-          if (terminal.value) {
-            terminal.value.clear();
-            terminal.value.write("\x1b[32m�?SSH 连接成功\x1b[0m\r\n");
-            terminal.value.write(
-              "服务�? " + (props.server?.host || "Unknown") + "\r\n"
-            );
-            terminal.value.write("\x1B[31m准备就绪\x1B[0m\r\n\r\n");
-
-            // 连接成功后重新调整终端大�?
-            setTimeout(() => {
-              try {
-                // 触发窗口大小变化事件来重新调整终�?
-                window.dispatchEvent(new Event("resize"));
-              } catch (error) {
-                console.warn("连接后调整终端大小失�?", error);
-              }
-            }, 100);
-          }
-
-          // 显示连接成功消息
-          message.success("SSH连接成功");
+  // 监听 SSH 连接状态
+  onSSHStatus((status: 'connected' | 'disconnected' | 'error', msg?: string) => {
+    
+    switch (status) {
+      case 'connected':
+        if(connectionStatus.value == 'connected') {
           break;
-        case "disconnected":
-          console.log("SSH连接断开:", msg);
-          connectionStatus.value = "disconnected";
-          break;
-        case "error":
-          console.error("SSH错误:", msg);
-          connectionStatus.value = "error";
-          message.error(msg || "SSH连接错误");
-          break;
-      }
+        }
+        console.log('SSH连接成功');
+        connectionStatus.value = 'connected';
+        connectionStartTime.value = Date.now();
+        startDurationTimer();
+        
+        // 清除终端内容并显示简单欢迎信息
+        if (terminal.value) {
+          terminal.value.clear();
+          terminal.value.write('\x1b[32m✓ SSH 连接成功\x1b[0m\r\n');
+          terminal.value.write('服务器: ' + (props.server?.name || 'Unknown') + '\r\n');
+          terminal.value.write('\x1B[31m准备就绪\x1B[0m\r\n\r\n');
+
+          // 连接成功后重新调整终端大小
+          setTimeout(() => {
+            try {
+              // 触发窗口大小变化事件来重新调整终端
+              window.dispatchEvent(new Event('resize'));
+            } catch (error) {
+              console.warn('连接后调整终端大小失败:', error);
+            }
+          }, 100);
+        }
+
+        // 显示连接成功消息
+        message.success('SSH连接成功');
+        break;
+      case 'disconnected':
+        console.log('SSH连接断开:', msg);
+        connectionStatus.value = 'disconnected';
+        break;
+      case 'error':
+        console.error('SSH错误:', msg);
+        connectionStatus.value = 'error';
+        message.error(msg || 'SSH连接错误');
+        break;
     }
-  );
+  });
   // 监听 SSH 数据
   onSSHData((data: string) => {
     if (terminal.value) {
       // 确保数据是字符串格式
       let outputData = data;
-      if (typeof outputData !== "string") {
+      if (typeof outputData !== 'string') {
         outputData = String(outputData);
       }
 
@@ -371,22 +333,24 @@ const initSSHMessageHandlers = () => {
       // xterm.js内置了完整的ANSI/VT100支持，包括颜色、光标控制等
 
       try {
-        // 直接写入终端，xterm.js 会自动处�?ANSI 转义序列
+        // 直接写入终端，xterm.js 会自动处理 ANSI 转义序列
         terminal.value.write(outputData);
         bytesReceived.value += outputData.length;
       } catch (error) {
-        console.error("写入终端数据时出�?", error);
+        console.error('写入终端数据时出错:', error);
       }
     }
   });
-  // 标记SSH监听器已初始�?
+  // 标记SSH监听器已初始化
   isSSHListenersInitialized.value = true;
-  console.log("SSH消息监听器初始化完成");
+  console.log('SSH消息监听器初始化完成');
 };
+
+
 
 const initTerminal = async () => {
   try {
-    // 清理旧终端实�?
+    // 清理旧终端实例
     if (terminal.value) {
       terminal.value.dispose();
       terminal.value = null;
@@ -398,16 +362,16 @@ const initTerminal = async () => {
       fontSize: 14,
       fontFamily: 'Consolas, "Courier New", monospace',
       theme: {
-        background: "#1e1e1e",
-        foreground: "#d4d4d4",
-        cursor: "#ffffff",
+        background: '#1e1e1e',
+        foreground: '#d4d4d4',
+        cursor: '#ffffff'
       },
       convertEol: true,
       windowsMode: true,
-      scrollback: 1000,
+      scrollback: 1000
     });
 
-    // 创建并加载插�?
+    // 创建并加载插件
     const fitAddon = new FitAddon();
     terminal.value.loadAddon(fitAddon);
     // terminal.value.loadAddon(new Unicode11Addon());
@@ -423,7 +387,7 @@ const initTerminal = async () => {
 
     // 监听用户输入
     terminal.value.onData((data: string) => {
-      if (connectionStatus.value === "connected") {
+      if (connectionStatus.value === 'connected') {
         const success = sendSSHInput(data);
         if (success) {
           bytesSent.value += data.length;
@@ -437,17 +401,18 @@ const initTerminal = async () => {
         fitAddon.fit();
       }
     };
-    window.addEventListener("resize", resizeHandler);
+    window.addEventListener('resize', resizeHandler);
     terminal.value._resizeHandler = resizeHandler;
+
   } catch (error) {
-    console.error("初始化终端失�?", error);
+    console.error('初始化终端失败:', error);
     throw error;
   }
 };
 
 const startDurationTimer = () => {
   const timer = setInterval(() => {
-    if (connectionStatus.value === "connected") {
+    if (connectionStatus.value === 'connected') {
       connectionDuration.value = Date.now() - connectionStartTime.value;
     } else {
       clearInterval(timer);
@@ -469,82 +434,79 @@ const formatDuration = (ms: number) => {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
-
+  
   if (hours > 0) {
-    return `${hours}:${(minutes % 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
+    return `${hours}:${(minutes % 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
   }
-  return `${minutes}:${(seconds % 60).toString().padStart(2, "0")}`;
+  return `${minutes}:${(seconds % 60).toString().padStart(2, '0')}`;
 };
 
 const formatBytes = (bytes: number) => {
-  if (bytes === 0) return "0 B";
+  if (bytes === 0) return '0 B';
   const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
+  const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
 const handleSettingCommand = (command: string) => {
   switch (command) {
-    case "cleanup":
+    case 'cleanup':
       if (terminal.value) {
         terminal.value.clear();
-        message.success("终端已清�?);
+        message.success('终端已清屏');
       }
       break;
-    case "copy":
+    case 'copy':
       if (terminal.value) {
         const selection = terminal.value.getSelection();
         if (selection) {
           navigator.clipboard.writeText(selection);
-          message.success("已复制到剪贴�?);
+          message.success('已复制到剪贴板');
         } else {
-          message.warning("请先选择要复制的文本");
+          message.warning('请先选择要复制的文本');
         }
       }
       break;
-    case "paste":
-      navigator.clipboard
-        .readText()
-        .then((text) => {
-          if (terminal.value && connectionStatus.value === "connected") {
-            const success = sendSSHInput(text);
-            if (success) {
-              bytesSent.value += text.length;
-            }
+    case 'paste':
+      navigator.clipboard.readText().then(text => {
+        if (terminal.value && connectionStatus.value === 'connected') {
+          const success = sendSSHInput(text);
+          if (success) {
+            bytesSent.value += text.length;
           }
-        })
-        .catch(() => {
-          message.error("粘贴失败，请检查剪贴板权限");
-        });
+        }
+      }).catch(() => {
+        message.error('粘贴失败，请检查剪贴板权限');
+      });
       break;
   }
 };
 
-// 监听服务器变�?
-watch(
-  () => props.server?.id,
-  (newId, oldId) => {
-    if (newId !== oldId && oldId !== undefined) {
-      // 服务器变化时重置状�?
-      disconnect();
-      isInitialized.value = false;
-    }
-  },
-  { immediate: false }
-);
+
+
+
+
+// 监听服务器变化
+watch(() => props.server?.id, (newId, oldId) => {
+  if (newId !== oldId && oldId !== undefined) {
+    // 服务器变化时重置状态
+    disconnect();
+    isInitialized.value = false;
+  }
+}, { immediate: false });
 
 // 生命周期
 onMounted(async () => {
   try {
-    // 初始�?SSH 消息处理
+    // 初始化 SSH 消息处理
     initSSHMessageHandlers();
 
     // 自动连接 SSH
     connect();
   } catch (error) {
-    console.error("WebSocket 连接失败:", error);
-    message.error("WebSocket 连接失败");
+    console.error('WebSocket 连接失败:', error);
+    message.error('WebSocket 连接失败');
   }
 });
 
@@ -552,7 +514,7 @@ onUnmounted(() => {
   // 断开 SSH 连接
   disconnect();
 
-  console.log("WebSocket 连接已断开");
+  console.log('WebSocket 连接已断开');
 
   // // 额外的清理，确保所有xterm相关元素都被移除
   // setTimeout(() => {

@@ -62,7 +62,7 @@ onBeforeUnmount(() => {
 });
 
 /**
- * 初始化图�?
+ * 初始化图表
  */
 const initChart = () => {
   if (!chartRef.value) return;
