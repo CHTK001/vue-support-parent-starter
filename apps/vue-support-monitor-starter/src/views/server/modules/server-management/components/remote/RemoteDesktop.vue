@@ -18,8 +18,8 @@
             <h3>RDP 远程桌面</h3>
             <p>Microsoft Remote Desktop Protocol</p>
             <ul class="protocol-features">
-              <li>支持 Windows 服务�?/li>
-              <li>高质量音频传�?/li>
+              <li>支持 Windows 服务器</li>
+              <li>高质量音频传输</li>
               <li>文件传输支持</li>
               <li>多显示器支持</li>
             </ul>
@@ -35,8 +35,8 @@
             <h3>VNC 远程桌面</h3>
             <p>Virtual Network Computing</p>
             <ul class="protocol-features">
-              <li>跨平台支�?/li>
-              <li>轻量级协�?/li>
+              <li>跨平台支持</li>
+              <li>轻量级协议</li>
               <li>多种编码方式</li>
               <li>只读模式支持</li>
             </ul>
@@ -52,10 +52,10 @@
             show-icon
           >
             <template #default>
-              <p>请根据目标服务器的操作系统和配置选择合适的远程桌面协议�?/p>
+              <p>请根据目标服务器的操作系统和配置选择合适的远程桌面协议：</p>
               <ul>
-                <li><strong>RDP</strong>：适用�?Windows 服务器，提供最佳的用户体验</li>
-                <li><strong>VNC</strong>：适用�?Linux/Unix 服务器，或需要跨平台支持的场�?/li>
+                <li><strong>RDP</strong>：适用于 Windows 服务器，提供最佳的用户体验</li>
+                <li><strong>VNC</strong>：适用于 Linux/Unix 服务器，或需要跨平台支持的场景</li>
               </ul>
             </template>
           </el-alert>
@@ -97,7 +97,7 @@ import SimpleRDPDesktop from './SimpleRDPDesktop.vue';
 import SimpleVNCDesktop from './SimpleVNCDesktop.vue';
 
 interface Props {
-  /** 服务器信�?*/
+  /** 服务器信息 */
   server?: {
     monitorSysGenServerId: number;
     monitorSysGenServerName: string;
@@ -124,10 +124,10 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>();
 
-// 状�?
+// 状态
 const selectedProtocol = ref<'rdp' | 'vnc'  | null>(null);
 
-// 计算属�?
+// 计算属性
 const serverProtocol = computed(() => {
   if (props.server?.monitorSysGenServerProtocol) {
     const protocol = props.server.monitorSysGenServerProtocol.toLowerCase();
@@ -150,7 +150,7 @@ const goBack = () => {
   selectedProtocol.value = null;
 };
 
-// 初始�?
+// 初始化
 const initializeProtocol = () => {
   // 如果设置了自动选择协议
   if (props.autoSelectProtocol) {
@@ -176,7 +176,7 @@ const initializeProtocol = () => {
       }
     }
   } else {
-    // 手动选择模式，但如果有明确的协议配置，直接使�?
+    // 手动选择模式，但如果有明确的协议配置，直接使用
     if (serverProtocol.value) {
       selectedProtocol.value = serverProtocol.value;
     } else if (props.defaultProtocol) {
@@ -288,7 +288,7 @@ initializeProtocol();
           padding-left: 16px;
 
           &::before {
-            content: '�?;
+            content: '✓';
             position: absolute;
             left: 0;
             color: #67c23a;
@@ -335,7 +335,7 @@ initializeProtocol();
     z-index: 100;
   }
 
-  // 响应式设�?
+  // 响应式设计
   @media (max-width: 768px) {
     .protocol-selection {
       padding: 12px;
@@ -387,7 +387,7 @@ initializeProtocol();
   }
 }
 
-// 协议选择卡片的特殊样�?
+// 协议选择卡片的特殊样式
 .protocol-options {
   .protocol-option {
     &:nth-child(1) {

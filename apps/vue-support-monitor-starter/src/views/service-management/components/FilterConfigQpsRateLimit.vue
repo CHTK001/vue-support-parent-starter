@@ -15,12 +15,12 @@
           基础配置
         </h4>
         <div class="config-grid">
-          <el-form-item label="启用状�?>
+          <el-form-item label="启用状态">
             <el-switch v-model="config.enabled" />
           </el-form-item>
-          <el-form-item label="限流器类�?>
+          <el-form-item label="限流器类型">
             <el-select v-model="config.limiterType" style="width: 150px">
-              <el-option label="令牌�? value="token" />
+              <el-option label="令牌桶" value="token" />
               <el-option label="滑动窗口" value="sliding" />
               <el-option label="Guava限流" value="guava" />
             </el-select>
@@ -28,14 +28,14 @@
         </div>
       </div>
 
-      <!-- 限流阈值配�?-->
+      <!-- 限流阈值配置 -->
       <div class="config-section">
         <h4 class="section-title">
           <IconifyIconOnline icon="ri:speed-line" />
-          限流阈�?
+          限流阈值
         </h4>
         <div class="config-grid">
-          <el-form-item label="阈�?>
+          <el-form-item label="阈值">
             <el-input-number
               v-model="config.threshold"
               :min="1"
@@ -46,8 +46,8 @@
           <el-form-item label="时间单位">
             <el-select v-model="config.timeUnit" style="width: 150px">
               <el-option label="每秒 (QPS)" value="SECOND" />
-              <el-option label="每分�?(QPM)" value="MINUTE" />
-              <el-option label="每小�?(QPH)" value="HOUR" />
+              <el-option label="每分钟 (QPM)" value="MINUTE" />
+              <el-option label="每小时 (QPH)" value="HOUR" />
               <el-option label="每天 (QPD)" value="DAY" />
             </el-select>
           </el-form-item>
@@ -71,7 +71,7 @@
           <el-form-item label="策略类型">
             <el-radio-group v-model="config.rejectStrategy">
               <el-radio value="LIMIT">限流惩罚</el-radio>
-              <el-radio value="BLACKLIST">加入黑名�?/el-radio>
+              <el-radio value="BLACKLIST">加入黑名单</el-radio>
             </el-radio-group>
           </el-form-item>
         </div>
@@ -92,29 +92,29 @@
           </div>
           <el-form-item
             v-if="config.rejectStrategy === 'LIMIT'"
-            label="惩罚阈�?
+            label="惩罚阈值"
           >
             <el-input-number
               v-model="config.penaltyThreshold"
               :min="1"
               :max="100000"
-              placeholder="留空则与阈值相�?
+              placeholder="留空则与阈值相同"
               style="width: 150px"
             />
           </el-form-item>
         </div>
       </div>
 
-      <!-- IP白名�?黑名单配�?-->
+      <!-- IP白名单/黑名单配置 -->
       <div class="config-section">
         <h4 class="section-title">
           <IconifyIconOnline icon="ri:user-settings-line" />
           IP访问控制
         </h4>
 
-        <!-- 白名�?-->
+        <!-- 白名单 -->
         <div class="ip-list-config">
-          <h5>白名�?IP</h5>
+          <h5>白名单 IP</h5>
           <div class="ip-tags">
             <el-tag
               v-for="ip in config.whitelistIps"
@@ -140,9 +140,9 @@
           </div>
         </div>
 
-        <!-- 黑名�?-->
+        <!-- 黑名单 -->
         <div class="ip-list-config">
-          <h5>黑名�?IP</h5>
+          <h5>黑名单 IP</h5>
           <div class="ip-tags">
             <el-tag
               v-for="ip in config.blacklistIps"
@@ -271,7 +271,7 @@ async function handleSave() {
   try {
     const res = await saveServletFilterConfig(props.filterSettingId, config);
     if (res.success) {
-      ElMessage.success("QPS限流配置保存成功，已热应�?);
+      ElMessage.success("QPS限流配置保存成功，已热应用");
       emit("success");
       visibleInner.value = false;
     } else {
@@ -285,7 +285,7 @@ async function handleSave() {
   }
 }
 
-// 关闭对话�?
+// 关闭对话框
 function handleClose() {
   visibleInner.value = false;
 }
@@ -293,15 +293,15 @@ function handleClose() {
 // 获取时间单位文本
 function getTimeUnitText(unit: string) {
   const unitMap: Record<string, string> = {
-    SECOND: "�?,
+    SECOND: "秒",
     MINUTE: "分钟",
     HOUR: "小时",
-    DAY: "�?,
+    DAY: "天",
   };
-  return unitMap[unit] || "�?;
+  return unitMap[unit] || "秒";
 }
 
-// 白名单操�?
+// 白名单操作
 function addToWhitelist() {
   if (newWhitelistIp.value.trim()) {
     if (!config.whitelistIps.includes(newWhitelistIp.value.trim())) {
@@ -320,7 +320,7 @@ function removeFromWhitelist(ip: string) {
   }
 }
 
-// 黑名单操�?
+// 黑名单操作
 function addToBlacklist() {
   if (newBlacklistIp.value.trim()) {
     if (!config.blacklistIps.includes(newBlacklistIp.value.trim())) {

@@ -1,6 +1,6 @@
 <template>
   <div class="server-file-upload-tasks">
-    <!-- 工具�?-->
+    <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
         <el-button type="primary" @click="handleCreateTask">
@@ -22,11 +22,11 @@
           </template>
         </el-input>
 
-        <el-select v-model="searchForm.status" placeholder="任务状�? style="width: 120px; margin-left: 8px" clearable @change="handleSearch">
+        <el-select v-model="searchForm.status" placeholder="任务状态" style="width: 120px; margin-left: 8px" clearable @change="handleSearch">
           <el-option v-for="status in statusOptions" :key="status.value" :label="status.label" :value="status.value" />
         </el-select>
 
-        <el-select v-model="searchForm.serverId" placeholder="选择服务�? style="width: 200px; margin-left: 8px" clearable @change="handleSearch">
+        <el-select v-model="searchForm.serverId" placeholder="选择服务器" style="width: 200px; margin-left: 8px" clearable @change="handleSearch">
           <el-option
             v-for="server in sshServers"
             :key="server.monitorSysGenServerId"
@@ -45,7 +45,7 @@
 
       <el-table-column prop="monitorSysGenServerFileUploadTaskName" label="任务名称" min-width="150" />
 
-      <el-table-column label="服务�? width="200">
+      <el-table-column label="服务器" width="200">
         <template #default="{ row }">
           <div>
             <div class="font-medium">{{ getServerName(row.monitorSysGenServerId) }}</div>
@@ -54,7 +54,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column prop="monitorSysGenServerFileUploadFileName" label="文件�? min-width="150" />
+      <el-table-column prop="monitorSysGenServerFileUploadFileName" label="文件名" min-width="150" />
 
       <el-table-column label="文件大小" width="100">
         <template #default="{ row }">
@@ -72,7 +72,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="任务状�? width="100">
+      <el-table-column label="任务状态" width="100">
         <template #default="{ row }">
           <el-tag :type="getStatusType(row.monitorSysGenServerFileUploadStatus)">
             {{ getStatusText(row.monitorSysGenServerFileUploadStatus) }}
@@ -80,7 +80,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="优先�? width="80">
+      <el-table-column label="优先级" width="80">
         <template #default="{ row }">
           <el-tag :type="getPriorityType(row.monitorSysGenServerFileUploadPriority)" size="small">
             {{ row.monitorSysGenServerFileUploadPriority }}
@@ -132,7 +132,7 @@
     <div v-if="selectedTasks.length > 0" class="batch-actions">
       <el-card>
         <div class="batch-actions-content">
-          <span>已选择 {{ selectedTasks.length }} 个任�?/span>
+          <span>已选择 {{ selectedTasks.length }} 个任务</span>
           <div class="batch-buttons">
             <el-button type="warning" @click="handleBatchCancel">批量取消</el-button>
             <el-button type="success" @click="handleBatchRetry">批量重试</el-button>
@@ -142,7 +142,7 @@
       </el-card>
     </div>
 
-    <!-- 上传对话�?-->
+    <!-- 上传对话框 -->
     <ServerFileUploadDialog ref="uploadDialogRef" :ssh-servers="sshServers" @success="handleUploadSuccess" />
   </div>
 </template>
@@ -183,7 +183,7 @@ const emit = defineEmits<{
   taskUpdated: [];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const loading = ref(false);
 const taskList = ref<ServerFileUploadTask[]>([]);
 const selectedTasks = ref<ServerFileUploadTask[]>([]);
@@ -205,14 +205,14 @@ const pagination = reactive({
 
 // 状态选项
 const statusOptions = [
-  { label: "待处�?, value: "PENDING" },
-  { label: "处理�?, value: "PROCESSING" },
-  { label: "已完�?, value: "COMPLETED" },
+  { label: "待处理", value: "PENDING" },
+  { label: "处理中", value: "PROCESSING" },
+  { label: "已完成", value: "COMPLETED" },
   { label: "失败", value: "FAILED" },
-  { label: "已取�?, value: "CANCELLED" }
+  { label: "已取消", value: "CANCELLED" }
 ];
 
-// 计算属�?
+// 计算属性
 const serverMap = computed(() => {
   const map = new Map();
   props.sshServers.forEach(server => {
@@ -324,7 +324,7 @@ const handleRetryTask = async (task: ServerFileUploadTask) => {
 
 const handleDeleteTask = async (task: ServerFileUploadTask) => {
   try {
-    await ElMessageBox.confirm("确定要删除该任务吗？删除后无法恢复�?, "提示", {
+    await ElMessageBox.confirm("确定要删除该任务吗？删除后无法恢复。", "提示", {
       type: "warning"
     });
 
@@ -340,13 +340,13 @@ const handleDeleteTask = async (task: ServerFileUploadTask) => {
 };
 
 const handleViewTask = (task: ServerFileUploadTask) => {
-  // 这里可以打开任务详情对话�?
+  // 这里可以打开任务详情对话框
   console.log("查看任务详情:", task);
 };
 
 const handleBatchCancel = async () => {
   try {
-    await ElMessageBox.confirm(`确定要取消选中�?${selectedTasks.value.length} 个任务吗？`, "提示", {
+    await ElMessageBox.confirm(`确定要取消选中的 ${selectedTasks.value.length} 个任务吗？`, "提示", {
       type: "warning"
     });
 
@@ -365,7 +365,7 @@ const handleBatchCancel = async () => {
 
 const handleBatchRetry = async () => {
   try {
-    await ElMessageBox.confirm(`确定要重试选中�?${selectedTasks.value.length} 个任务吗？`, "提示", {
+    await ElMessageBox.confirm(`确定要重试选中的 ${selectedTasks.value.length} 个任务吗？`, "提示", {
       type: "warning"
     });
 
@@ -384,7 +384,7 @@ const handleBatchRetry = async () => {
 
 const handleBatchDelete = async () => {
   try {
-    await ElMessageBox.confirm(`确定要删除选中�?${selectedTasks.value.length} 个任务吗？删除后无法恢复。`, "提示", {
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedTasks.value.length} 个任务吗？删除后无法恢复。`, "提示", {
       type: "warning"
     });
 
@@ -412,7 +412,7 @@ const setStatusFilter = (status: string) => {
 // 工具方法
 const getServerName = (serverId: number) => {
   const server = serverMap.value.get(serverId);
-  return server?.monitorSysGenServerName || `服务�?{serverId}`;
+  return server?.monitorSysGenServerName || `服务器${serverId}`;
 };
 
 const getServerHost = (serverId: number) => {
@@ -444,11 +444,11 @@ const getModeText = (mode: string) => {
 
 const getStatusText = (status: string) => {
   const statusMap = {
-    [TASK_STATUS.PENDING]: "待处�?,
-    [TASK_STATUS.PROCESSING]: "处理�?,
-    [TASK_STATUS.COMPLETED]: "已完�?,
+    [TASK_STATUS.PENDING]: "待处理",
+    [TASK_STATUS.PROCESSING]: "处理中",
+    [TASK_STATUS.COMPLETED]: "已完成",
     [TASK_STATUS.FAILED]: "失败",
-    [TASK_STATUS.CANCELLED]: "已取�?
+    [TASK_STATUS.CANCELLED]: "已取消"
   };
   return statusMap[status] || status;
 };

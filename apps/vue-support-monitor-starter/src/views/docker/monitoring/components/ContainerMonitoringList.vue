@@ -34,7 +34,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="运行状�? width="120">
+      <el-table-column label="运行状态" width="120">
         <template #default="{ row }">
           <el-tag :type="getStatusType(row.systemSoftContainerStatus)" size="small">
             {{ getStatusText(row.systemSoftContainerStatus) }}
@@ -42,7 +42,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="服务�? width="180">
+      <el-table-column label="服务器" width="180">
         <template #default="{ row }">
           <div class="server-info">
             <div class="server-name">{{ row.systemSoftContainerServerName }}</div>
@@ -50,7 +50,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="CPU使用�? width="150">
+      <el-table-column label="CPU使用率" width="150">
         <template #default="{ row }">
           <ResourceUsageBar 
             :value="row.systemSoftContainerCpuPercent || row.systemSoftContainerCpuUsage || 0" 
@@ -59,7 +59,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="内存使用�? width="150">
+      <el-table-column label="内存使用率" width="150">
         <template #default="{ row }">
           <ResourceUsageBar 
             :value="row.systemSoftContainerMemoryPercent || row.systemSoftContainerMemoryUsage || 0" 
@@ -85,7 +85,7 @@
             :read-value="row.systemSoftContainerStatsNetworkRxBytes || row.systemSoftContainerNetworkRx || 0"
             :write-value="row.systemSoftContainerStatsNetworkTxBytes || row.systemSoftContainerNetworkTx || 0"
             read-label="接收"
-            write-label="发�?
+            write-label="发送"
           />
         </template>
       </el-table-column>
@@ -159,7 +159,7 @@ const getStatusType = (status?: string) => {
 }
 
 const getStatusText = (status?: string) => {
-  const map = { running: '运行�?, stopped: '已停�?, paused: '暂停', restarting: '重启�?, error: '错误' }
+  const map = { running: '运行中', stopped: '已停止', paused: '暂停', restarting: '重启中', error: '错误' }
   return map[status] || '未知'
 }
 

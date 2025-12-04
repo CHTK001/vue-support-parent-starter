@@ -4,7 +4,7 @@
       <h3>撰写邮件</h3>
       <div class="compose-actions">
         <el-button size="small" @click="handleSaveDraft">保存草稿</el-button>
-        <el-button type="primary" size="small" @click="handleSend">发�?/el-button>
+        <el-button type="primary" size="small" @click="handleSend">发送</el-button>
         <el-button size="small" @click="handleClose">关闭</el-button>
       </div>
     </div>
@@ -18,11 +18,11 @@
         <el-input v-model="form.cc" placeholder="抄送邮箱地址" />
       </div>
       <div class="form-row">
-        <label>主题�?/label>
+        <label>主题：</label>
         <el-input v-model="form.subject" placeholder="邮件主题" />
       </div>
       <div class="form-row full">
-        <label>内容�?/label>
+        <label>内容：</label>
         <CodeEditor 
           v-model:content="form.content" 
           :height="'300px'" 
@@ -59,7 +59,7 @@ const emit = defineEmits<{
   close: [];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const form = ref<ComposeForm>({
   to: '',
   cc: '',
@@ -82,7 +82,7 @@ watch(() => props.initialForm, (newForm) => {
 // 方法
 function handleSend() {
   if (!form.value.to || !form.value.subject) {
-    ElMessage.warning("请填写收件人和主�?);
+    ElMessage.warning("请填写收件人和主题");
     return;
   }
   emit('send', { ...form.value });
@@ -174,7 +174,7 @@ defineExpose({
   flex: 1;
 }
 
-/* 滚动条样�?*/
+/* 滚动条样式 */
 .compose-form::-webkit-scrollbar {
   width: 6px;
 }

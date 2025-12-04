@@ -1,43 +1,47 @@
 <template>
   <div class="service-management-container">
     <!-- 统计卡片 -->
-    <div class="stats-section">
-      <div class="stats-grid">
-        <ScCard
-          layout="stats"
-          theme="primary"
-          icon="ri:server-line"
-          :value="statistics.total || 0"
-          label="总服务器�?
-          trend-icon="ri:stack-line"
-          trend-text="全部服务"
-        />
-        <ScCard
-          layout="stats"
-          theme="success"
-          icon="ri:play-circle-line"
-          :value="statistics.running || 0"
-          label="运行�?
-          trend-icon="ri:checkbox-circle-line"
-          trend-text="正常运行"
-        />
-        <ScCard
-          layout="stats"
-          theme="warning"
-          icon="ri:stop-circle-line"
-          :value="statistics.stopped || 0"
-          label="已停�?
-          trend-icon="ri:pause-circle-line"
-          trend-text="已暂�?
-        />
-      </div>
+    <div class="statistics-cards">
+      <el-card class="stat-card">
+        <div class="stat-content">
+          <div class="stat-icon total">
+            <IconifyIconOnline icon="ri:server-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ statistics.total || 0 }}</div>
+            <div class="stat-label">总服务器数</div>
+          </div>
+        </div>
+      </el-card>
+      <el-card class="stat-card">
+        <div class="stat-content">
+          <div class="stat-icon running">
+            <IconifyIconOnline icon="ri:play-circle-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ statistics.running || 0 }}</div>
+            <div class="stat-label">运行中</div>
+          </div>
+        </div>
+      </el-card>
+      <el-card class="stat-card">
+        <div class="stat-content">
+          <div class="stat-icon stopped">
+            <IconifyIconOnline icon="ri:stop-circle-line" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ statistics.stopped || 0 }}</div>
+            <div class="stat-label">已停止</div>
+          </div>
+        </div>
+      </el-card>
     </div>
 
-    <!-- 筛选条�?-->
+    <!-- 筛选条件 -->
     <el-card class="filter-card">
       <div class="filter-content">
         <el-form :model="queryParams" inline>
-          <el-form-item label="服务器名�?>
+          <el-form-item label="服务器名称">
             <el-input
               v-model="queryParams.serverName"
               placeholder="请输入服务器名称"
@@ -45,10 +49,10 @@
               style="width: 200px"
             />
           </el-form-item>
-          <el-form-item label="服务器类�?>
+          <el-form-item label="服务器类型">
             <el-select
               v-model="queryParams.serverType"
-              placeholder="请选择服务器类�?
+              placeholder="请选择服务器类型"
               clearable
               style="width: 200px"
             >
@@ -60,22 +64,22 @@
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="运行状�?>
+          <el-form-item label="运行状态">
             <el-select
               v-model="queryParams.status"
-              placeholder="请选择运行状�?
+              placeholder="请选择运行状态"
               clearable
               style="width: 200px"
             >
-              <el-option label="运行�? value="RUNNING" />
-              <el-option label="已停�? value="STOPPED" />
-              <el-option label="启动�? value="STARTING" />
-              <el-option label="停止�? value="STOPPING" />
+              <el-option label="运行中" value="RUNNING" />
+              <el-option label="已停止" value="STOPPED" />
+              <el-option label="启动中" value="STARTING" />
+              <el-option label="停止中" value="STOPPING" />
               <el-option label="异常" value="ERROR" />
             </el-select>
           </el-form-item>
 
-          <!-- 操作按钮�?-->
+          <!-- 操作按钮组 -->
           <el-form-item class="action-buttons">
             <el-button type="primary" @click="handleQuery">
               <IconifyIconOnline icon="ri:search-line" />
@@ -91,14 +95,14 @@
             </el-button>
             <el-button type="primary" @click="showAddDialog = true">
               <IconifyIconOnline icon="ri:add-line" />
-              新增服务�?
+              新增服务器
             </el-button>
           </el-form-item>
         </el-form>
       </div>
     </el-card>
 
-    <!-- 服务器列�?-->
+    <!-- 服务器列表 -->
     <div class="server-list">
       <ScTable
         ref="serverTable"
@@ -108,9 +112,9 @@
         layout="card"
       >
         <template #empty>
-          <el-empty description="暂无服务器数�?>
+          <el-empty description="暂无服务器数据">
             <el-button type="primary" @click="showAddDialog = true"
-              >新增服务�?/el-button
+              >新增服务器</el-button
             >
           </el-empty>
         </template>
@@ -201,12 +205,12 @@
                 class="info-item"
                 :title="
                   '最大连接数: ' +
-                  (server.systemServerMaxConnections || '无限�?)
+                  (server.systemServerMaxConnections || '无限制')
                 "
               >
                 <IconifyIconOnline icon="ri:group-line" />
                 <span class="info-value">{{
-                  server.systemServerMaxConnections || "�?
+                  server.systemServerMaxConnections || "∞"
                 }}</span>
               </div>
               <div
@@ -220,11 +224,11 @@
               </div>
               <div
                 class="info-item"
-                :title="'上下�? ' + (server.systemServerContextPath || '�?)"
+                :title="'上下文: ' + (server.systemServerContextPath || '无')"
               >
                 <IconifyIconOnline icon="ri:parentheses-fill" />
                 <span class="info-value">{{
-                  server.systemServerContextPath || "�?
+                  server.systemServerContextPath || "无"
                 }}</span>
               </div>
               <div
@@ -282,7 +286,7 @@
         </template>
       </ScTable>
     </div>
-    <!-- 新增/编辑对话�?-->
+    <!-- 新增/编辑对话框 -->
     <ServerFormDialog
       v-model:visible="showAddDialog"
       :server-data="currentServer"
@@ -290,7 +294,7 @@
       @success="handleFormSuccess"
     />
 
-    <!-- 克隆对话�?-->
+    <!-- 克隆对话框 -->
     <ServerCloneDialog
       v-model:visible="showCloneDialog"
       :source-server="currentServer"
@@ -309,15 +313,15 @@
 
 <script setup lang="ts">
 import {
-  deleteSystemServer,
-  getAvailableServerTypes,
-  getSystemServerPage,
-  getSystemServerStatistics,
-  restartSystemServer,
-  startSystemServer,
-  stopSystemServer,
-  type SystemServer,
-  type SystemServerStatistics,
+    deleteSystemServer,
+    getAvailableServerTypes,
+    getSystemServerPage,
+    getSystemServerStatistics,
+    restartSystemServer,
+    startSystemServer,
+    stopSystemServer,
+    type SystemServer,
+    type SystemServerStatistics,
 } from "@/api/system-server";
 import { getProtocolIcon } from "@/components/protocol-icons";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -325,14 +329,13 @@ import { onMounted, reactive, ref } from "vue";
 import ServerCloneDialog from "./components/ServerCloneDialog.vue";
 import ServerConfigDialog from "./components/ServerConfigDialog.vue";
 import ServerFormDialog from "./components/ServerFormDialog.vue";
-import ScCard from "@repo/components/ScCard/index.vue";
 
 // 页面标题
 defineOptions({
   name: "ServiceManagement",
 });
 
-// 响应式数�?
+// 响应式数据
 const loading = ref(false);
 const serverTable = ref<any>(null);
 const serverTypes = ref<string[]>([]);
@@ -344,18 +347,18 @@ const statistics = ref<SystemServerStatistics>({
 });
 const actionLoading = ref<Record<number, boolean>>({});
 
-// 表格列配�?
+// 表格列配置
 const columns = [
   {
-    label: "服务器名�?,
+    label: "服务器名称",
     prop: "systemServerName",
   },
   {
-    label: "服务器类�?,
+    label: "服务器类型",
     prop: "systemServerType",
   },
   {
-    label: "运行状�?,
+    label: "运行状态",
     prop: "systemServerStatus",
   },
 ];
@@ -375,7 +378,7 @@ const queryParams = reactive({
   status: "",
 });
 
-// 对话框状�?
+// 对话框状态
 const showAddDialog = ref(false);
 const showCloneDialog = ref(false);
 const showConfigDialog = ref(false);
@@ -399,7 +402,7 @@ const getServerCardClass = (status: string) => {
   }
 };
 
-// 获取状态标签类�?
+// 获取状态标签类型
 const getStatusTagType = (status: string) => {
   switch (status) {
     case "RUNNING":
@@ -416,17 +419,17 @@ const getStatusTagType = (status: string) => {
   }
 };
 
-// 获取状态文�?
+// 获取状态文本
 const getStatusText = (status: string) => {
   switch (status) {
     case "RUNNING":
-      return "运行�?;
+      return "运行中";
     case "STOPPED":
-      return "已停�?;
+      return "已停止";
     case "STARTING":
-      return "启动�?;
+      return "启动中";
     case "STOPPING":
-      return "停止�?;
+      return "停止中";
     case "ERROR":
       return "异常";
     default:
@@ -441,7 +444,7 @@ const handleOpen = async (server) => {
   );
 };
 
-// 加载服务器类�?
+// 加载服务器类型
 const loadServerTypes = async () => {
   try {
     const response = await getAvailableServerTypes();
@@ -450,7 +453,7 @@ const loadServerTypes = async () => {
       serverTypes.value = data;
     }
   } catch (error) {
-    console.error("加载服务器类型失�?", error);
+    console.error("加载服务器类型失败:", error);
   }
 };
 
@@ -484,69 +487,69 @@ const resetQuery = () => {
 // 刷新数据
 const refreshData = () => {
   loadStatistics();
-  serverTable.value?.reload(); // 调用 ScTable 的重新加载数据方�?
+  serverTable.value?.reload(); // 调用 ScTable 的重新加载数据方法
 };
 
-// 启动服务�?
+// 启动服务器
 const startServer = async (serverId: number) => {
   actionLoading.value[serverId] = true;
   try {
     const response = await startSystemServer(serverId);
     const { code, data, msg } = response;
     if (code === "00000") {
-      ElMessage.success("服务器启动成�?);
+      ElMessage.success("服务器启动成功");
       refreshData();
     } else {
       ElMessage.error(msg || "启动失败");
     }
   } catch (error) {
-    console.error("启动服务器失�?", error);
+    console.error("启动服务器失败:", error);
     ElMessage.error("启动失败");
   } finally {
     actionLoading.value[serverId] = false;
   }
 };
 
-// 停止服务�?
+// 停止服务器
 const stopServer = async (serverId: number) => {
   actionLoading.value[serverId] = true;
   try {
     const response = await stopSystemServer(serverId);
     const { code, data, msg } = response;
     if (code === "00000") {
-      ElMessage.success("服务器停止成�?);
+      ElMessage.success("服务器停止成功");
       refreshData();
     } else {
       ElMessage.error(msg || "停止失败");
     }
   } catch (error) {
-    console.error("停止服务器失�?", error);
+    console.error("停止服务器失败:", error);
     ElMessage.error("停止失败");
   } finally {
     actionLoading.value[serverId] = false;
   }
 };
 
-// 重启服务�?
+// 重启服务器
 const restartServer = async (serverId: number) => {
   actionLoading.value[serverId] = true;
   try {
     const response = await restartSystemServer(serverId);
     if (response.code === "00000") {
-      ElMessage.success("服务器重启成�?);
+      ElMessage.success("服务器重启成功");
       refreshData();
     } else {
       ElMessage.error(response.msg || "重启失败");
     }
   } catch (error) {
-    console.error("重启服务器失�?", error);
+    console.error("重启服务器失败:", error);
     ElMessage.error("重启失败");
   } finally {
     actionLoading.value[serverId] = false;
   }
 };
 
-// 处理服务器操�?
+// 处理服务器操作
 const handleServerAction = (command: any) => {
   // 处理对象形式的命令（编辑和克隆操作）
   if (typeof command === "object" && command !== null) {
@@ -564,7 +567,7 @@ const handleServerAction = (command: any) => {
     return;
   }
 
-  // 处理字符串形式的命令（重启和删除操作�?
+  // 处理字符串形式的命令（重启和删除操作）
   const [action, serverIdStr] = command.split("-");
   const serverId = parseInt(serverIdStr);
   switch (action) {
@@ -577,11 +580,11 @@ const handleServerAction = (command: any) => {
   }
 };
 
-// 删除服务�?
+// 删除服务器
 const handleDeleteServer = async (serverId: number) => {
   try {
     await ElMessageBox.confirm(
-      "确定要删除这个服务器配置吗？删除后无法恢复�?,
+      "确定要删除这个服务器配置吗？删除后无法恢复。",
       "确认删除",
       {
         confirmButtonText: "确定",
@@ -599,13 +602,13 @@ const handleDeleteServer = async (serverId: number) => {
     }
   } catch (error) {
     if (error !== "cancel") {
-      console.error("删除服务器失�?", error);
+      console.error("删除服务器失败:", error);
       ElMessage.error("删除失败");
     }
   }
 };
 
-// 打开服务器配�?
+// 打开服务器配置
 const openServerConfig = (serverId: number, server: SystemServer) => {
   currentServerId.value = serverId;
   currentServer.value = server;
@@ -634,7 +637,7 @@ const handleConfigSuccess = () => {
   refreshData();
 };
 
-// 初始�?
+// 初始化
 onMounted(() => {
   loadServerTypes();
   loadStatistics();
@@ -644,12 +647,8 @@ onMounted(() => {
 <style lang="scss" scoped>
 .service-management-container {
   padding: 24px;
-  min-height: 100%;
-  background: linear-gradient(
-    135deg,
-    rgba(248, 250, 252, 0.98) 0%,
-    rgba(241, 245, 249, 0.95) 100%
-  );
+  height: 100%;
+  background: var(--el-bg-color-overlay);
   display: flex;
   flex-direction: column;
 }
@@ -681,160 +680,141 @@ onMounted(() => {
   }
 }
 
-// 统计卡片区域
-.stats-section {
-  margin-bottom: 20px;
-}
-
-.stats-grid {
+// 统计卡片
+.statistics-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
-}
+  margin-bottom: 24px;
 
-@media (max-width: 1024px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .stat-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .stat-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: var(--el-text-color-primary);
+
+        &.total {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        &.running {
+          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        &.stopped {
+          background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
+      }
+
+      .stat-info {
+        .stat-value {
+          font-size: 28px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+          line-height: 1;
+        }
+
+        .stat-label {
+          font-size: 14px;
+           color: var(--el-text-color-primary);
+          margin-top: 4px;
+        }
+      }
+    }
   }
 }
 
-@media (max-width: 640px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-// 筛选卡�?
+// 筛选卡片
 .filter-card {
   margin-bottom: 24px;
-  border-radius: 16px;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(248, 250, 252, 0.9) 100%
-  );
-  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 
   .filter-content {
-    padding: 12px 0;
+    padding: 8px 0;
 
     .el-form {
       .action-buttons {
-        margin-left: 20px;
-        padding-left: 20px;
-        border-left: 2px solid rgba(102, 126, 234, 0.2);
+        margin-left: 16px;
+        padding-left: 16px;
+        border-left: 1px solid #e4e7ed;
 
         .el-button {
-          margin-left: 10px;
-          border-radius: 10px;
+          margin-left: 8px;
+          border-radius: 8px;
           font-weight: 500;
-          transition: all 0.3s ease;
 
           &:first-child {
             margin-left: 0;
-          }
-
-          &:hover {
-            transform: translateY(-2px);
-          }
-
-          &.el-button--primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-
-            &:hover {
-              box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-            }
           }
         }
       }
     }
   }
-
-  :deep(.el-input__wrapper) {
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    transition: all 0.3s ease;
-
-    &:hover {
-      border-color: #667eea;
-    }
-
-    &.is-focus {
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
-    }
-  }
-
-  :deep(.el-select .el-input__wrapper) {
-    border-radius: 10px;
-  }
 }
 
-// 服务器列�?
+// 服务器列表
 .server-list {
   flex: 1;
   .server-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
     margin-bottom: 24px;
   }
 
   .server-card {
-    border-radius: 18px;
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.98) 0%,
-      rgba(248, 250, 252, 0.95) 100%
-    );
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 8px;
+    border: 1px solid var(--el-border-color);
+     background: var(--el-bg-color-overlay);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-    padding: 18px;
-    backdrop-filter: blur(10px);
-
-    &::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: var(--card-accent, #e5e7eb);
-      transition: height 0.3s ease;
-    }
-
+    padding: 10px;
     &:hover {
-      transform: translateY(-6px) scale(1.01);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
-
-      &::before {
-        height: 5px;
-      }
+      transform: translateY(-2px);
+      box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
 
     &.server-running {
-      --card-accent: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+      border-left: 3px solid #67c23a;
     }
 
     &.server-stopped {
-      --card-accent: linear-gradient(90deg, #94a3b8 0%, #cbd5e1 100%);
+      border-left: 3px solid #909399;
     }
 
     &.server-transitioning {
-      --card-accent: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+      border-left: 3px solid #e6a23c;
       animation: pulse 2s infinite;
     }
 
     &.server-error {
-      --card-accent: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+      border-left: 3px solid #f56c6c;
     }
 
     .server-header {
@@ -842,37 +822,29 @@ onMounted(() => {
       justify-content: space-between;
       align-items: center;
       margin-bottom: 16px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 
       .server-title {
         flex: 1;
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 12px;
 
         .server-icon {
-          width: 44px;
-          height: 44px;
+          width: 40px;
+          height: 40px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 12px;
-          background: linear-gradient(
-            135deg,
-            rgba(102, 126, 234, 0.1) 0%,
-            rgba(118, 75, 162, 0.08) 100%
-          );
-          color: #667eea;
-          transition: all 0.3s ease;
+          border-radius: 8px;
+          background: #f1f5f9;
+          color: #64748b;
+          transition: all 0.2s ease;
 
           &:hover {
-            background: linear-gradient(
-              135deg,
-              rgba(102, 126, 234, 0.15) 0%,
-              rgba(118, 75, 162, 0.12) 100%
-            );
-            transform: scale(1.05);
+            background: #e2e8f0;
+            color: #475569;
           }
 
           .protocol-icon {
@@ -887,9 +859,9 @@ onMounted(() => {
 
           h3 {
             margin: 0;
-            font-size: 17px;
+            font-size: 16px;
             font-weight: 600;
-            color: #1e293b;
+            color: #2c3e50;
             letter-spacing: -0.3px;
             white-space: nowrap;
             overflow: hidden;
@@ -897,13 +869,12 @@ onMounted(() => {
           }
 
           .el-tag {
-            margin-top: 6px;
-            font-weight: 600;
+            margin-top: 4px;
+            font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
           }
         }
       }
@@ -911,15 +882,14 @@ onMounted(() => {
       .server-actions {
         margin-left: 16px;
         opacity: 0;
-        transform: translateY(-4px);
-        transition: all 0.3s ease;
+        transition: opacity 0.3s ease;
 
         .el-button {
           padding: 8px;
-          border-radius: 10px;
+          border-radius: 8px;
 
           &:hover {
-            background: rgba(102, 126, 234, 0.1);
+            background: rgba(0, 0, 0, 0.05);
           }
         }
       }
@@ -928,49 +898,37 @@ onMounted(() => {
     &:hover {
       .server-actions {
         opacity: 1;
-        transform: translateY(0);
       }
     }
 
     .server-info {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-bottom: 16px;
+      gap: 8px;
+      margin-bottom: 12px;
 
       .info-item {
-        padding: 10px 12px;
-        background: linear-gradient(
-          135deg,
-          rgba(248, 250, 252, 0.9) 0%,
-          rgba(241, 245, 249, 0.8) 100%
-        );
-        border: 1px solid rgba(226, 232, 240, 0.6);
-        border-radius: 10px;
-        transition: all 0.3s ease;
+        padding: 6px;
+        background: #f8fafc;
+        border-radius: 4px;
+        transition: all 0.2s ease;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         cursor: help;
 
         &:hover {
-          background: linear-gradient(
-            135deg,
-            rgba(241, 245, 249, 0.95) 0%,
-            rgba(226, 232, 240, 0.9) 100%
-          );
-          border-color: rgba(102, 126, 234, 0.3);
-          transform: translateY(-2px);
+          background: #f1f5f9;
         }
 
         .iconify-icon {
-          font-size: 18px;
-          color: #667eea;
+          font-size: 16px;
+          color: #64748b;
           flex-shrink: 0;
         }
 
         .info-value {
-          font-size: 13px;
+          font-size: 12px;
           color: #334155;
           font-weight: 500;
           flex: 1;
@@ -988,62 +946,54 @@ onMounted(() => {
     .server-footer {
       .server-controls {
         display: flex;
-        gap: 12px;
+        gap: 16px;
 
         .el-button {
           flex: 1;
-          border-radius: 10px;
-          font-weight: 600;
-          height: 36px;
-          font-size: 13px;
-          padding: 0 16px;
+          border-radius: 4px;
+          font-weight: 500;
+          height: 28px;
+          font-size: 12px;
+          padding: 0 12px;
           transition: all 0.3s ease;
 
-          &:hover {
-            transform: translateY(-2px);
-          }
-
           &.el-button--success {
-            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            background: #10b981;
             border: none;
-            color: white;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            color: var(--el-text-color-primary);
 
             &:hover {
-              box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+              background: #059669;
             }
           }
 
           &.el-button--danger {
-            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+            background: #ef4444;
             border: none;
-            color: white;
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+            color: var(--el-text-color-primary);
 
             &:hover {
-              box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+              background: #dc2626;
             }
           }
 
           &.el-button--warning {
-            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            background: #f59e0b;
             border: none;
-            color: white;
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+            color: var(--el-text-color-primary);
 
             &:hover {
-              box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+              background: #d97706;
             }
           }
 
           &.el-button--primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #3b82f6;
             border: none;
-            color: white;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            color: var(--el-text-color-primary);
 
             &:hover {
-              box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+              background: #2563eb;
             }
           }
 
@@ -1075,7 +1025,7 @@ onMounted(() => {
   }
 }
 
-// 响应�?
+// 响应式
 @media (max-width: 1200px) {
   .server-list {
     .server-info {
@@ -1157,44 +1107,87 @@ onMounted(() => {
   }
 }
 
-/* 标签样式增强 */
-:deep(.el-tag--success) {
-  background: linear-gradient(
-    135deg,
-    rgba(16, 185, 129, 0.15) 0%,
-    rgba(52, 211, 153, 0.1) 100%
-  );
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #059669;
+/* Modern enhancements for service cards */
+.server-list .server-card {
+  border-radius: 14px;
+  padding: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+  border: 1px solid transparent;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
 }
 
-:deep(.el-tag--warning) {
-  background: linear-gradient(
-    135deg,
-    rgba(245, 158, 11, 0.15) 0%,
-    rgba(251, 191, 36, 0.1) 100%
-  );
-  border-color: rgba(245, 158, 11, 0.3);
-  color: #d97706;
+.server-list .server-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: var(--card-accent, #e5e7eb);
 }
 
-:deep(.el-tag--danger) {
-  background: linear-gradient(
-    135deg,
-    rgba(239, 68, 68, 0.15) 0%,
-    rgba(248, 113, 113, 0.1) 100%
-  );
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #dc2626;
+.server-list .server-card.server-running {
+  --card-accent: #10b981;
+}
+.server-list .server-card.server-stopped {
+  --card-accent: #94a3b8;
+}
+.server-list .server-card.server-transitioning {
+  --card-accent: #f59e0b;
+}
+.server-list .server-card.server-error {
+  --card-accent: #ef4444;
 }
 
-:deep(.el-tag--info) {
-  background: linear-gradient(
-    135deg,
-    rgba(100, 116, 139, 0.15) 0%,
-    rgba(148, 163, 184, 0.1) 100%
-  );
-  border-color: rgba(100, 116, 139, 0.3);
-  color: #475569;
+.server-list .server-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 12px 28px rgba(17, 24, 39, 0.12);
+}
+
+/* Subtle slide-in for actions */
+.server-list .server-card .server-actions {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+.server-list .server-card:hover .server-actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Info grid pill look */
+.server-list .server-card .server-info .info-item {
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.server-list .server-card .server-info .info-item:hover {
+  background: #f1f5f9;
+  border-color: #e5eaf0;
+}
+
+/* Title optics */
+.server-list .server-card .server-title-content h3 {
+  font-size: 17px;
+  letter-spacing: -0.2px;
+}
+
+/* Better buttons contrast on cards */
+.server-list .server-card .server-footer .server-controls .el-button {
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .server-list .server-card {
+    border-radius: 12px;
+    padding: 14px;
+  }
 }
 </style>

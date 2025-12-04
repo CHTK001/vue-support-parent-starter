@@ -32,20 +32,20 @@
               <el-option label="禁用监控" value="disable_monitoring" />
               <el-option label="收集指标" value="collect_metrics" />
             </el-option-group>
-            <el-option-group label="状态操�?>
-              <el-option label="启用服务�? value="enable" />
-              <el-option label="禁用服务�? value="disable" />
+            <el-option-group label="状态操作">
+              <el-option label="启用服务器" value="enable" />
+              <el-option label="禁用服务器" value="disable" />
               <el-option label="设为维护" value="maintenance" />
             </el-option-group>
             <el-option-group label="数据操作">
               <el-option label="导出配置" value="export" />
               <el-option label="重启服务" value="restart" />
-              <el-option label="删除服务�? value="delete" />
+              <el-option label="删除服务器" value="delete" />
             </el-option-group>
           </el-select>
         </el-form-item>
 
-        <el-form-item label="目标服务�? v-if="selectedServers.length > 0">
+        <el-form-item label="目标服务器" v-if="selectedServers.length > 0">
           <div class="server-list">
             <el-tag
               v-for="server in selectedServers"
@@ -132,7 +132,7 @@
           :loading="executing"
           :disabled="!canExecute"
         >
-          {{ executing ? '执行�?..' : '开始执�? }}
+          {{ executing ? '执行中...' : '开始执行' }}
         </el-button>
       </div>
     </template>
@@ -153,7 +153,7 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 状�?
+// 状态
 const visible = ref(false);
 const executing = ref(false);
 const progress = ref(0);
@@ -173,7 +173,7 @@ const formData = reactive({
 // 选中的服务器
 const selectedServers = ref<any[]>([]);
 
-// 计算属�?
+// 计算属性
 const needsTimeout = computed(() => {
   return ['connect', 'test', 'restart'].includes(formData.operation);
 });
@@ -217,7 +217,7 @@ const resetForm = () => {
 
 const handleClose = () => {
   if (executing.value) {
-    message.warning('操作执行中，请等待完�?);
+    message.warning('操作执行中，请等待完成');
     return;
   }
   visible.value = false;
@@ -232,7 +232,7 @@ const handleExecute = async () => {
     progressStatus.value = undefined;
     executionLogs.value = [];
     
-    addLog('info', '开始执行批量操�?..');
+    addLog('info', '开始执行批量操作...');
     
     if (formData.executeMode === 'parallel') {
       await executeParallel();

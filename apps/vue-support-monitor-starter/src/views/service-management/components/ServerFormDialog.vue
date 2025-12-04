@@ -1,21 +1,19 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    :title="isEdit ? '编辑服务�? : '新增服务�?"
+    :title="isEdit ? '编辑服务器' : '新增服务器'"
     width="600px"
     :close-on-click-modal="false"
     @close="handleClose"
-    class="server-form-dialog"
   >
     <el-form
       ref="formRef"
       :model="formData"
       :rules="formRules"
-      label-width="110px"
+      label-width="120px"
       label-position="right"
-      class="server-form"
     >
-      <el-form-item label="服务器名�? prop="systemServerName">
+      <el-form-item label="服务器名称" prop="systemServerName">
         <el-input
           v-model="formData.systemServerName"
           placeholder="请输入服务器名称"
@@ -23,10 +21,10 @@
         />
       </el-form-item>
 
-      <el-form-item label="服务器类�? prop="systemServerType">
+      <el-form-item label="服务器类型" prop="systemServerType">
         <el-select
           v-model="formData.systemServerType"
-          placeholder="请选择服务器类�?
+          placeholder="请选择服务器类型"
           style="width: 100%"
         >
           <el-option
@@ -36,11 +34,12 @@
               item.describe ? item.describe + '(' + item.name + ')' : item.name
             "
             :value="item.name"
-          />
+          >
+          </el-option>
         </el-select>
       </el-form-item>
 
-      <el-form-item label="服务器主�?>
+      <el-form-item label="系统服务器主机">
         <el-input
           v-model="formData.systemServerHost"
           placeholder="请输入服务器主机"
@@ -48,28 +47,22 @@
         />
       </el-form-item>
 
-      <el-form-item label="服务器端�? prop="systemServerPort">
+      <el-form-item label="服务器端口" prop="systemServerPort">
         <el-input-number
           v-model="formData.systemServerPort"
           :min="1"
           :max="65535"
           placeholder="请输入端口号"
           style="width: 100%"
-          @blur="checkPortAvailableHandler"
+          @blur="checkPortAvailable"
         />
         <div
           v-if="portCheckMessage"
-          :class="['port-check-message', portCheckClass]"
+          :class="portCheckClass"
+          class="port-check-message"
         >
           {{ portCheckMessage }}
         </div>
-      </el-form-item>
-
-      <el-form-item label="上下文路�? prop="systemServerContextPath">
-        <el-input
-          v-model="formData.systemServerContextPath"
-          placeholder="不填则使用默认�?
-        />
       </el-form-item>
 
       <el-form-item label="最大连接数" prop="systemServerMaxConnections">
@@ -82,12 +75,20 @@
         />
       </el-form-item>
 
-      <el-form-item label="超时时间(�?" prop="systemServerTimeout">
+      <el-form-item label="超时时间(秒)" prop="systemServerTimeout">
         <el-input-number
           v-model="formData.systemServerTimeout"
           :min="1"
           :max="3600"
-          placeholder="不填则使用默认�?
+          placeholder="不填则使用默认值"
+          style="width: 100%"
+        />
+      </el-form-item>
+
+      <el-form-item label="上下文" prop="systemServerContextPath">
+        <el-input
+          v-model="formData.systemServerContextPath"
+          placeholder="不填则使用默认值"
           style="width: 100%"
         />
       </el-form-item>
@@ -95,17 +96,17 @@
       <el-form-item label="自动启动">
         <el-switch
           v-model="formData.systemServerAutoStart"
-          active-text="�?
-          inactive-text="�?
+          active-text="是"
+          inactive-text="否"
         />
       </el-form-item>
 
-      <el-form-item label="服务器描�? prop="systemServerDescription">
+      <el-form-item label="服务器描述" prop="systemServerDescription">
         <el-input
           v-model="formData.systemServerDescription"
           type="textarea"
           :rows="3"
-          placeholder="请输入服务器描述信息"
+          placeholder="请输入服务器描述"
         />
       </el-form-item>
     </el-form>
@@ -113,12 +114,7 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
-        <el-button
-          type="primary"
-          @click="handleSubmit"
-          :loading="loading"
-          class="submit-btn"
-        >
+        <el-button type="primary" @click="handleSubmit" :loading="loading">
           {{ isEdit ? "更新" : "创建" }}
         </el-button>
       </div>
@@ -155,13 +151,13 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const formRef = ref<FormInstance>();
 const loading = ref(false);
 const portCheckMessage = ref("");
 const portCheckClass = ref("");
 
-// 计算属�?
+// 计算属性
 const dialogVisible = computed({
   get: () => props.visible,
   set: (value) => emit("update:visible", value),
@@ -189,12 +185,12 @@ const formRules: FormRules = {
     {
       min: 2,
       max: 100,
-      message: "服务器名称长度在 2 �?100 个字�?,
+      message: "服务器名称长度在 2 到 100 个字符",
       trigger: "blur",
     },
   ],
   systemServerType: [
-    { required: true, message: "请选择服务器类�?, trigger: "change" },
+    { required: true, message: "请选择服务器类型", trigger: "change" },
   ],
   systemServerPort: [
     { required: true, message: "请输入服务器端口", trigger: "blur" },
@@ -207,7 +203,7 @@ const formRules: FormRules = {
     },
   ],
   systemServerDescription: [
-    { max: 500, message: "描述长度不能超过 500 个字�?, trigger: "blur" },
+    { max: 500, message: "描述长度不能超过 500 个字符", trigger: "blur" },
   ],
 };
 
@@ -226,7 +222,7 @@ const resetForm = () => {
   formRef.value?.clearValidate();
 };
 
-// 监听服务器数据变�?
+// 监听服务器数据变化
 watch(
   () => props.serverData,
   (newData) => {
@@ -248,13 +244,13 @@ watch(
   { immediate: true }
 );
 
-// 关闭对话�?
+// 关闭对话框
 const handleClose = () => {
   dialogVisible.value = false;
   resetForm();
 };
 
-// 检查端口可用�?
+// 检查端口可用性
 const checkPortAvailableHandler = async () => {
   if (!formData.systemServerPort) {
     portCheckMessage.value = "";
@@ -277,8 +273,8 @@ const checkPortAvailableHandler = async () => {
       }
     }
   } catch (error) {
-    console.error("检查端口失�?", error);
-    portCheckMessage.value = "检查端口失�?;
+    console.error("检查端口失败:", error);
+    portCheckMessage.value = "检查端口失败";
     portCheckClass.value = "port-error";
   }
 };
@@ -333,14 +329,5 @@ const handleSubmit = async () => {
   &.port-error {
     color: #e6a23c;
   }
-}
-
-.submit-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-}
-
-.submit-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #7c8ff0 0%, #8b5fb8 100%);
 }
 </style>

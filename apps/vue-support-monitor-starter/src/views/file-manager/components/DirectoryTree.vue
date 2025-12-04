@@ -41,7 +41,7 @@
       </div>
     </div>
 
-    <!-- 搜索�?-->
+    <!-- 搜索框 -->
     <div class="tree-search">
       <el-input
         v-model="searchText"
@@ -76,7 +76,7 @@
       </div>
     </div>
 
-    <!-- 目录�?-->
+    <!-- 目录树 -->
     <div class="tree-container">
       <el-tree
         ref="treeRef"
@@ -110,7 +110,7 @@
               </div>
             </div>
             <div class="node-actions" v-if="showNodeActions">
-              <el-tooltip content="新建文件�? placement="top">
+              <el-tooltip content="新建文件夹" placement="top">
                 <el-button
                   size="small"
                   circle
@@ -152,7 +152,7 @@
           </el-dropdown-item>
           <el-dropdown-item @click="createFolderInContext">
             <IconifyIconOnline icon="ri:folder-add-line" class="menu-icon" />
-            新建文件�?
+            新建文件夹
           </el-dropdown-item>
           <el-dropdown-item @click="refreshNodeInContext">
             <IconifyIconOnline icon="ri:refresh-line" class="menu-icon" />
@@ -164,7 +164,7 @@
           </el-dropdown-item>
           <el-dropdown-item @click="showProperties">
             <IconifyIconOnline icon="ri:information-line" class="menu-icon" />
-            属�?
+            属性
           </el-dropdown-item>
         </el-dropdown-menu>
       </template>
@@ -214,7 +214,7 @@ const emit = defineEmits<{
   'node-refresh': [path: string]
 }>()
 
-// 响应式数�?
+// 响应式数据
 const treeRef = ref<InstanceType<typeof ElTree>>()
 const contextMenuRef = ref()
 const isLoading = ref(false)
@@ -232,17 +232,17 @@ const treeProps = {
 
 // 快捷路径
 const quickPaths = ref<QuickPath[]>([
-  { name: '根目�?, path: '/', icon: 'ri:home-line' },
+  { name: '根目录', path: '/', icon: 'ri:home-line' },
   { name: '文档', path: '/documents', icon: 'ri:file-text-line' },
   { name: '图片', path: '/images', icon: 'ri:image-line' },
   { name: '视频', path: '/videos', icon: 'ri:video-line' },
   { name: '音频', path: '/audio', icon: 'ri:music-line' },
   { name: '下载', path: '/downloads', icon: 'ri:download-line' },
   { name: '桌面', path: '/desktop', icon: 'ri:computer-line' },
-  { name: '回收�?, path: '/trash', icon: 'ri:delete-bin-line' }
+  { name: '回收站', path: '/trash', icon: 'ri:delete-bin-line' }
 ])
 
-// 计算属�?
+// 计算属性
 const filteredTreeData = computed(() => {
   if (!searchText.value.trim()) {
     return treeData.value
@@ -271,11 +271,11 @@ const filterTreeData = (data: DirectoryNode[], searchTerm: string): DirectoryNod
 const loadNode = async (node: ElTreeNode, resolve: (data: DirectoryNode[]) => void) => {
   try {
     if (node.level === 0) {
-      // 加载根节�?
+      // 加载根节点
       const rootData = await loadDirectoryData('/')
       resolve(rootData)
     } else {
-      // 加载子节�?
+      // 加载子节点
       const nodeData = node.data as DirectoryNode
       const childData = await loadDirectoryData(nodeData.path)
       resolve(childData)
@@ -410,11 +410,11 @@ const selectPath = (path: string) => {
 const refreshTree = async () => {
   isLoading.value = true
   try {
-    // 重新加载整个�?
+    // 重新加载整个树
     const rootData = await loadDirectoryData('/')
     treeData.value = rootData
     
-    // 刷新树组�?
+    // 刷新树组件
     if (treeRef.value) {
       treeRef.value.setData(rootData)
     }
@@ -429,7 +429,7 @@ const refreshTree = async () => {
 
 const expandAll = () => {
   if (treeRef.value) {
-    // 展开所有节�?
+    // 展开所有节点
     const allNodes = treeRef.value.store.nodesMap
     Object.values(allNodes).forEach((node: any) => {
       if (node.isLeaf === false) {
@@ -441,7 +441,7 @@ const expandAll = () => {
 
 const collapseAll = () => {
   if (treeRef.value) {
-    // 收起所有节�?
+    // 收起所有节点
     const allNodes = treeRef.value.store.nodesMap
     Object.values(allNodes).forEach((node: any) => {
       if (node.isLeaf === false) {
@@ -496,7 +496,7 @@ const refreshNodeInContext = () => {
 const copyPath = () => {
   if (contextMenuNode.value) {
     navigator.clipboard.writeText(contextMenuNode.value.path).then(() => {
-      ElMessage.success('路径已复制到剪贴�?)
+      ElMessage.success('路径已复制到剪贴板')
     }).catch(() => {
       ElMessage.error('复制路径失败')
     })
@@ -775,7 +775,7 @@ onMounted(() => {
   background: transparent;
 }
 
-// 响应式设�?
+// 响应式设计
 @media (max-width: 768px) {
   .directory-tree {
     .tree-header {

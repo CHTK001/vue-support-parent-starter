@@ -24,7 +24,7 @@
                 </div>
                 <div class="metric-content">
                   <div class="metric-value">{{ formatPercent(avgCpuUsage) }}</div>
-                  <div class="metric-label">平均CPU使用�?/div>
+                  <div class="metric-label">平均CPU使用率</div>
                 </div>
               </div>
               
@@ -34,7 +34,7 @@
                 </div>
                 <div class="metric-content">
                   <div class="metric-value">{{ formatPercent(avgMemoryUsage) }}</div>
-                  <div class="metric-label">平均内存使用�?/div>
+                  <div class="metric-label">平均内存使用率</div>
                 </div>
               </div>
               
@@ -54,12 +54,12 @@
                 </div>
                 <div class="metric-content">
                   <div class="metric-value">{{ runningContainers }}</div>
-                  <div class="metric-label">运行中容�?/div>
+                  <div class="metric-label">运行中容器</div>
                 </div>
               </div>
             </div>
             
-            <!-- 容器状态分�?-->
+            <!-- 容器状态分布 -->
             <div class="status-distribution">
               <div class="chart-container">
                 <div ref="chartContainerRef" class="chart"></div>
@@ -77,7 +77,7 @@ import { containerApi } from '@/api/docker'
 import * as echarts from 'echarts'
 import { onMounted, onUnmounted, ref } from 'vue'
 
-// 响应式数�?
+// 响应式数据
 const loading = ref(false)
 const chartContainerRef = ref<HTMLElement>()
 let chartInstance: echarts.ECharts | null = null
@@ -88,7 +88,7 @@ const avgMemoryUsage = ref(0)
 const totalContainers = ref(0)
 const runningContainers = ref(0)
 
-// 初始化图�?
+// 初始化图表
 const initChart = () => {
   if (chartContainerRef.value) {
     chartInstance = echarts.init(chartContainerRef.value)
@@ -102,7 +102,7 @@ const updateChart = () => {
   
   const option = {
     title: {
-      text: '容器状态分�?,
+      text: '容器状态分布',
       left: 'center',
       textStyle: {
         fontSize: 14,
@@ -119,7 +119,7 @@ const updateChart = () => {
     },
     series: [
       {
-        name: '容器状�?,
+        name: '容器状态',
         type: 'pie',
         radius: ['40%', '70%'],
         avoidLabelOverlap: false,
@@ -143,8 +143,8 @@ const updateChart = () => {
           show: false
         },
         data: [
-          { value: runningContainers.value, name: '运行�?, itemStyle: { color: '#67c23a' } },
-          { value: totalContainers.value - runningContainers.value, name: '其他状�?, itemStyle: { color: '#909399' } }
+          { value: runningContainers.value, name: '运行中', itemStyle: { color: '#67c23a' } },
+          { value: totalContainers.value - runningContainers.value, name: '其他状态', itemStyle: { color: '#909399' } }
         ]
       }
     ]
@@ -158,7 +158,7 @@ const loadData = async () => {
   try {
     loading.value = true
     
-    // 获取容器状态统�?
+    // 获取容器状态统计
     const statsResponse = await containerApi.getContainerStatusStats()
     if (statsResponse.code === '00000') {
       const stats = statsResponse.data || { total: 0, running: 0 }
@@ -334,7 +334,7 @@ onUnmounted(() => {
   height: 100%;
 }
 
-/* 响应式设�?*/
+/* 响应式设计 */
 @media (max-width: 768px) {
   .metrics-grid {
     grid-template-columns: 1fr;

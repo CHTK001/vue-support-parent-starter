@@ -3,64 +3,100 @@
     <!-- 统计卡片 -->
     <div class="stats-section">
       <div class="stats-grid">
-        <ScCard
-          layout="stats"
-          theme="primary"
-          icon="ri:server-line"
-          :value="animatedStats.totalNodes"
-          label="总节点数"
-          trend-icon="ri:arrow-up-line"
-          trend-text="实时更新"
-          :counting="isCountingUp"
-          @click="filterByStatus('all')"
-        />
+        <div class="stat-card total-nodes" @click="filterByStatus('all')">
+          <div class="stat-background">
+            <div class="stat-pattern"></div>
+          </div>
+          <div class="stat-content">
+            <div class="stat-icon">
+              <IconifyIconOnline icon="ri:server-line" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" :class="{ counting: isCountingUp }">
+                {{ animatedStats.totalNodes }}
+              </div>
+              <div class="stat-label">总节点数</div>
+              <div class="stat-trend">
+                <IconifyIconOnline icon="ri:arrow-up-line" class="trend-icon" />
+                <span class="trend-text">实时更新</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <ScCard
-          layout="stats"
-          theme="success"
-          icon="ri:checkbox-circle-line"
-          :value="animatedStats.onlineNodes"
-          label="在线节点"
-          trend-icon="ri:pulse-line"
-          :trend-text="`${getOnlineRate()}%`"
-          :counting="isCountingUp"
-          @click="filterByStatus('ONLINE')"
-        />
+        <div class="stat-card online-nodes" @click="filterByStatus('ONLINE')">
+          <div class="stat-background">
+            <div class="stat-pattern"></div>
+          </div>
+          <div class="stat-content">
+            <div class="stat-icon">
+              <IconifyIconOnline icon="ri:checkbox-circle-line" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" :class="{ counting: isCountingUp }">
+                {{ animatedStats.onlineNodes }}
+              </div>
+              <div class="stat-label">在线节点</div>
+              <div class="stat-trend">
+                <IconifyIconOnline icon="ri:pulse-line" class="trend-icon" />
+                <span class="trend-text">{{ getOnlineRate() }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <ScCard
-          layout="stats"
-          theme="info"
-          icon="ri:heart-pulse-line"
-          :value="animatedStats.healthyNodes"
-          label="健康节点"
-          trend-icon="ri:heart-line"
-          :trend-text="`${getHealthRate()}%`"
-          :counting="isCountingUp"
-          @click="filterByStatus('healthy')"
-        />
+        <div class="stat-card healthy-nodes" @click="filterByStatus('healthy')">
+          <div class="stat-background">
+            <div class="stat-pattern"></div>
+          </div>
+          <div class="stat-content">
+            <div class="stat-icon">
+              <IconifyIconOnline icon="ri:heart-pulse-line" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" :class="{ counting: isCountingUp }">
+                {{ animatedStats.healthyNodes }}
+              </div>
+              <div class="stat-label">健康节点</div>
+              <div class="stat-trend">
+                <IconifyIconOnline icon="ri:heart-line" class="trend-icon" />
+                <span class="trend-text">{{ getHealthRate() }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <ScCard
-          layout="stats"
-          theme="danger"
-          icon="ri:error-warning-line"
-          :value="animatedStats.errorNodes"
-          label="异常节点"
-          trend-icon="ri:alert-line"
-          trend-text="需关注"
-          :counting="isCountingUp"
-          @click="filterByStatus('error')"
-        />
+        <div class="stat-card error-nodes" @click="filterByStatus('error')">
+          <div class="stat-background">
+            <div class="stat-pattern"></div>
+          </div>
+          <div class="stat-content">
+            <div class="stat-icon">
+              <IconifyIconOnline icon="ri:error-warning-line" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" :class="{ counting: isCountingUp }">
+                {{ animatedStats.errorNodes }}
+              </div>
+              <div class="stat-label">异常节点</div>
+              <div class="stat-trend">
+                <IconifyIconOnline icon="ri:alert-line" class="trend-icon" />
+                <span class="trend-text">需关注</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 搜索和筛�?-->
+    <!-- 搜索和筛选 -->
     <div class="search-section">
       <el-card class="search-card" shadow="never">
         <div class="search-container">
           <div class="search-left">
             <el-input
               v-model="searchKeyword"
-              placeholder="搜索节点名称、IP地址或应用名�?
+              placeholder="搜索节点名称、IP地址或应用名称"
               class="search-input"
               clearable
               @input="handleSearch"
@@ -85,14 +121,14 @@
             </el-select>
             <el-select
               v-model="selectedStatus"
-              placeholder="节点状�?
+              placeholder="节点状态"
               class="status-filter"
               clearable
               @change="handleStatusFilter"
             >
               <el-option label="在线" value="ONLINE" />
               <el-option label="离线" value="OFFLINE" />
-              <el-option label="维护�? value="MAINTENANCE" />
+              <el-option label="维护中" value="MAINTENANCE" />
             </el-select>
           </div>
           <div class="search-right">
@@ -126,179 +162,202 @@
 
     <!-- 节点列表 -->
     <div class="nodes-section">
-      <ScTable
-        ref="scTableRef"
-        :data="{ data: filteredNodeList, total: filteredNodeList.length }"
-        :layout="viewMode"
-        :loading="loading"
-        :col-size="4"
-        :row-size="3"
-        :height="tableHeight"
-        row-key="nodeId"
-        hide-pagination
-        hide-do
-        :search="false"
-        empty-text="暂无节点数据"
-      >
-        <!-- 卡片视图模板 -->
-        <template #default="{ row }">
-          <div
-            class="node-card"
-            :class="[
-              getNodeCardClass(row),
-              { 'menu-active': showMenu && hoveredNode?.nodeId === row.nodeId },
-            ]"
-            @click="viewNodeDetail(row)"
-            @mouseenter="showActionMenu(row, $event)"
-            @mouseleave="hideActionMenu"
-          >
-            <div class="card-header">
-              <div class="node-info">
-                <div class="node-name">
-                  <IconifyIconOnline icon="ri:server-line" class="node-icon" />
-                  <span class="name-text">{{
-                    row.nodeName || row.applicationName
-                  }}</span>
-                </div>
-                <div class="node-address">
-                  <IconifyIconOnline
-                    icon="ri:global-line"
-                    class="address-icon"
-                  />
-                  <span>{{ row.ipAddress }}:{{ row.port }}</span>
-                </div>
-              </div>
-              <div class="node-status">
-                <el-tag
-                  :type="getStatusType(row.status)"
-                  :effect="row.status === 'ONLINE' ? 'dark' : 'plain'"
-                  class="status-tag"
-                >
-                  <IconifyIconOnline :icon="getStatusIcon(row.status)" />
-                  {{ getStatusText(row.status) }}
-                </el-tag>
-              </div>
-            </div>
+      <div v-if="loading && nodeList.length === 0" class="loading-container">
+        <div class="loading-content">
+          <el-skeleton :rows="3" animated />
+          <p class="loading-text">正在加载节点数据...</p>
+        </div>
+      </div>
 
-            <div class="card-body">
-              <div class="node-details">
-                <div class="detail-row">
-                  <div class="detail-item">
+      <div v-else-if="filteredNodeList.length === 0" class="empty-container">
+        <el-empty description="暂无节点数据" :image-size="120">
+          <template #description>
+            <p class="empty-text">{{ getEmptyText() }}</p>
+          </template>
+          <el-button type="primary" @click="refreshNodes">
+            <IconifyIconOnline icon="ri:refresh-line" />
+            刷新数据
+          </el-button>
+        </el-empty>
+      </div>
+
+      <!-- 卡片视图 -->
+      <div v-else-if="viewMode === 'card'" class="nodes-grid">
+        <transition-group name="node-card" tag="div" class="grid-container">
+          <div
+            v-for="(node, index) in filteredNodeList"
+            :key="node.nodeId"
+            class="node-card-wrapper"
+            :style="{ animationDelay: `${index * 0.05}s` }"
+          >
+            <div
+              class="node-card"
+              :class="[
+                getNodeCardClass(node),
+                {
+                  'menu-active':
+                    showMenu && hoveredNode?.nodeId === node.nodeId,
+                },
+              ]"
+              @click="viewNodeDetail(node)"
+              @mouseenter="showActionMenu(node, $event)"
+              @mouseleave="hideActionMenu"
+            >
+              <div class="card-header">
+                <div class="node-info">
+                  <div class="node-name">
                     <IconifyIconOnline
-                      icon="ri:apps-line"
-                      class="detail-icon"
+                      icon="ri:server-line"
+                      class="node-icon"
                     />
-                    <div class="detail-info">
-                      <span class="detail-label">应用名称</span>
-                      <span class="detail-value">{{
-                        row.applicationName || "N/A"
-                      }}</span>
-                    </div>
+                    <span class="name-text">{{
+                      node.nodeName || node.applicationName
+                    }}</span>
                   </div>
-                  <div class="detail-item">
-                    <IconifyIconOnline
-                      icon="ri:links-line"
-                      class="detail-icon"
-                    />
-                    <div class="detail-info">
-                      <span class="detail-label">连接�?/span>
-                      <span class="detail-value">{{
-                        row.connectionCount || 0
-                      }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="detail-row">
-                  <div class="detail-item">
-                    <IconifyIconOnline
-                      icon="ri:settings-3-line"
-                      class="detail-icon"
-                    />
-                    <div class="detail-info">
-                      <span class="detail-label">运行环境</span>
-                      <span
-                        class="detail-value"
-                        :class="
-                          getEnvironmentClass(row.metadata?.applicationActive)
-                        "
-                      >
-                        {{ row.metadata?.applicationActive || "N/A" }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="detail-item">
+                  <div class="node-address">
                     <IconifyIconOnline
                       icon="ri:global-line"
-                      class="detail-icon"
+                      class="address-icon"
                     />
-                    <div class="detail-info">
-                      <span class="detail-label">请求地址</span>
-                      <span class="detail-value">{{
-                        row.metadata?.contextPath || "/"
-                      }}</span>
-                    </div>
+                    <span>{{ node.ipAddress }}:{{ node.port }}</span>
                   </div>
                 </div>
-                <div
-                  v-if="row.metadata?.applicationActiveInclude"
-                  class="detail-row single"
-                >
-                  <div class="detail-item full-width">
-                    <IconifyIconOnline
-                      icon="ri:file-settings-line"
-                      class="detail-icon"
-                    />
-                    <div class="detail-info">
-                      <span class="detail-label">配置�?/span>
-                      <span class="detail-value config-value">{{
-                        row.metadata.applicationActiveInclude
-                      }}</span>
-                    </div>
-                  </div>
+                <div class="node-status">
+                  <el-tag
+                    :type="getStatusType(node.status)"
+                    :effect="node.status === 'ONLINE' ? 'dark' : 'plain'"
+                    class="status-tag"
+                  >
+                    <IconifyIconOnline :icon="getStatusIcon(node.status)" />
+                    {{ getStatusText(node.status) }}
+                  </el-tag>
                 </div>
               </div>
-            </div>
 
-            <div class="card-footer">
-              <div class="footer-info">
-                <div class="connect-time">
-                  <IconifyIconOnline icon="ri:time-line" />
-                  <span>{{ formatConnectTime(row.connectTime) }}</span>
-                </div>
-                <div class="last-heartbeat">
-                  <IconifyIconOnline
-                    icon="ri:heart-pulse-line"
-                    class="heartbeat-icon"
-                  />
-                  <span class="heartbeat-text">{{
-                    formatHeartbeat(row.lastHeartbeatTime)
-                  }}</span>
+              <div class="card-body">
+                <div class="node-details">
+                  <div class="detail-row">
+                    <div class="detail-item">
+                      <IconifyIconOnline
+                        icon="ri:apps-line"
+                        class="detail-icon"
+                      />
+                      <div class="detail-info">
+                        <span class="detail-label">应用名称</span>
+                        <span class="detail-value">{{
+                          node.applicationName || "N/A"
+                        }}</span>
+                      </div>
+                    </div>
+                    <div class="detail-item">
+                      <IconifyIconOnline
+                        icon="ri:links-line"
+                        class="detail-icon"
+                      />
+                      <div class="detail-info">
+                        <span class="detail-label">连接数</span>
+                        <span class="detail-value">{{
+                          node.connectionCount || 0
+                        }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="detail-row">
+                    <div class="detail-item">
+                      <IconifyIconOnline
+                        icon="ri:settings-3-line"
+                        class="detail-icon"
+                      />
+                      <div class="detail-info">
+                        <span class="detail-label">运行环境</span>
+                        <span
+                          class="detail-value"
+                          :class="
+                            getEnvironmentClass(
+                              node.metadata?.applicationActive
+                            )
+                          "
+                          >{{ node.metadata?.applicationActive || "N/A" }}</span
+                        >
+                      </div>
+                    </div>
+                    <div class="detail-item">
+                      <IconifyIconOnline
+                        icon="ri:global-line"
+                        class="detail-icon"
+                      />
+                      <div class="detail-info">
+                        <span class="detail-label">请求地址</span>
+                        <span class="detail-value">{{
+                          node.metadata?.contextPath || "/"
+                        }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    v-if="node.metadata?.applicationActiveInclude"
+                    class="detail-row single"
+                  >
+                    <div class="detail-item full-width">
+                      <IconifyIconOnline
+                        icon="ri:file-settings-line"
+                        class="detail-icon"
+                      />
+                      <div class="detail-info">
+                        <span class="detail-label">配置项</span>
+                        <span class="detail-value config-value">{{
+                          node.metadata.applicationActiveInclude
+                        }}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="card-actions">
-                <el-button-group size="small">
-                  <el-button
-                    @click.stop="openNodeDocumentation(row)"
-                    title="API文档"
-                  >
-                    <IconifyIconOnline icon="ri:file-text-line" />
-                  </el-button>
-                  <el-button
-                    @click.stop="checkNodeHealth(row)"
-                    :loading="nodeCheckingStatus[row.nodeId]"
-                    title="健康检�?
-                  >
-                    <IconifyIconOnline icon="ri:stethoscope-line" />
-                  </el-button>
-                  <el-button @click.stop="viewNodeDetail(row)" title="查看详情">
-                    <IconifyIconOnline icon="ri:eye-line" />
-                  </el-button>
-                </el-button-group>
+
+              <div class="card-footer">
+                <div class="footer-info">
+                  <div class="connect-time">
+                    <IconifyIconOnline icon="ri:time-line" />
+                    <span>{{ formatConnectTime(node.connectTime) }}</span>
+                  </div>
+                  <div class="last-heartbeat">
+                    <IconifyIconOnline
+                      icon="ri:heart-pulse-line"
+                      class="heartbeat-icon"
+                    />
+                    <span class="heartbeat-text">
+                      {{ formatHeartbeat(node.lastHeartbeatTime) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="card-actions">
+                  <el-button-group size="small">
+                    <el-button
+                      @click.stop="openNodeDocumentation(node)"
+                      title="API文档"
+                    >
+                      <IconifyIconOnline icon="ri:file-text-line" />
+                    </el-button>
+                    <el-button
+                      @click.stop="checkNodeHealth(node)"
+                      :loading="nodeCheckingStatus[node.nodeId]"
+                      title="健康检查"
+                    >
+                      <IconifyIconOnline icon="ri:stethoscope-line" />
+                    </el-button>
+                    <el-button
+                      @click.stop="viewNodeDetail(node)"
+                      title="查看详情"
+                    >
+                      <IconifyIconOnline icon="ri:eye-line" />
+                    </el-button>
+                  </el-button-group>
+                </div>
               </div>
             </div>
           </div>
-        </template>
-      </ScTable>
+        </transition-group>
+      </div>
     </div>
 
     <!-- 悬停功能菜单 -->
@@ -312,7 +371,7 @@
         @mouseleave="hideActionMenu"
       >
         <div class="menu-overlay">
-          <!-- 分页指示�?-->
+          <!-- 分页指示器 -->
           <div class="menu-pagination" v-if="totalMenuPages > 1">
             <div
               v-for="page in totalMenuPages"
@@ -385,13 +444,11 @@ import {
 } from "@/api/server/node-management";
 import { parseTime } from "@/utils/const";
 import LoggerConfig from "./module/logger-config/index.vue";
-import ScCard from "@repo/components/ScCard/index.vue";
-import ScTable from "@repo/components/ScTable/index.vue";
 
 // 路由
 const router = useRouter();
 
-// 响应式数�?
+// 响应式数据
 const loading = ref(false);
 const nodeList = ref<OnlineNodeInfo[]>([]);
 
@@ -404,9 +461,9 @@ let hideMenuTimer: NodeJS.Timeout | null = null;
 
 // 菜单分页相关
 const currentMenuPage = ref(1);
-const itemsPerPage = 9; // 每页最�?个功�?
+const itemsPerPage = 9; // 每页最多9个功能
 
-// 节点检查状�?
+// 节点检查状态
 const nodeCheckingStatus = ref<Record<string, boolean>>({});
 const nodeStats = ref<NodeStatistics>({
   totalNodes: 0,
@@ -438,7 +495,7 @@ const animatedStats = reactive({
 
 const isCountingUp = ref(false);
 
-// 搜索和筛�?
+// 搜索和筛选
 const searchKeyword = ref("");
 
 // 日志配置组件相关
@@ -447,14 +504,12 @@ const selectedNodeForLogger = ref<OnlineNodeInfo | null>(null);
 const selectedApplication = ref("");
 const selectedStatus = ref("");
 const viewMode = ref<"card" | "table">("card");
-const scTableRef = ref();
-const tableHeight = ref("calc(100vh - 280px)");
 
 // 轮询相关
 let pollingTimer: NodeJS.Timeout | null = null;
-const POLLING_INTERVAL = 30000; // 30�?
+const POLLING_INTERVAL = 30000; // 30秒
 
-// 计算属�?
+// 计算属性
 const applicationList = computed(() => {
   const apps = new Set<string>();
   nodeList.value.forEach((node) => {
@@ -468,7 +523,7 @@ const applicationList = computed(() => {
 const filteredNodeList = computed(() => {
   let filtered = nodeList.value;
 
-  // 关键词搜�?
+  // 关键词搜索
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
     filtered = filtered.filter(
@@ -480,14 +535,14 @@ const filteredNodeList = computed(() => {
     );
   }
 
-  // 应用筛�?
+  // 应用筛选
   if (selectedApplication.value) {
     filtered = filtered.filter(
       (node) => node.applicationName === selectedApplication.value
     );
   }
 
-  // 状态筛�?
+  // 状态筛选
   if (selectedStatus.value) {
     filtered = filtered.filter((node) => node.status === selectedStatus.value);
   }
@@ -637,9 +692,9 @@ const getEmptyText = () => {
     selectedApplication.value ||
     selectedStatus.value
   ) {
-    return "没有找到符合条件的节�?;
+    return "没有找到符合条件的节点";
   }
-  return "暂无节点数据，请检查节点服务是否正�?;
+  return "暂无节点数据，请检查节点服务是否正常";
 };
 
 const getNodeCardClass = (node: OnlineNodeInfo) => {
@@ -680,7 +735,7 @@ const getStatusText = (status: string) => {
     case "OFFLINE":
       return "离线";
     case "MAINTENANCE":
-      return "维护�?;
+      return "维护中";
     default:
       return "未知";
   }
@@ -700,12 +755,12 @@ const getStatusIcon = (status: string) => {
 };
 
 const formatConnectTime = (time: string | null | undefined) => {
-  if (!time) return "未连�?;
+  if (!time) return "未连接";
   return parseTime(time, "{m}-{d} {h}:{i}");
 };
 
 const formatHeartbeat = (time: string | null | undefined) => {
-  if (!time) return "无心�?;
+  if (!time) return "无心跳";
   return parseTime(time, "{m}-{d} {h}:{i}");
 };
 
@@ -738,7 +793,7 @@ const showActionMenu = (node: OnlineNodeInfo, event: MouseEvent) => {
 
   hoveredNode.value = node;
   showMenu.value = true;
-  currentMenuPage.value = 1; // 重置到第一�?
+  currentMenuPage.value = 1; // 重置到第一页
 
   nextTick(() => {
     const cardElement = event.currentTarget as HTMLElement;
@@ -878,11 +933,11 @@ const checkNodeHealth = async (node: OnlineNodeInfo) => {
         `节点 ${node.nodeName || node.applicationName} 健康检查通过`
       );
     } else {
-      ElMessage.warning(`节点健康检查失�? ${response.msg}`);
+      ElMessage.warning(`节点健康检查失败: ${response.msg}`);
     }
   } catch (error) {
-    console.error("节点健康检查失�?", error);
-    ElMessage.error("节点健康检查失�?);
+    console.error("节点健康检查失败:", error);
+    ElMessage.error("节点健康检查失败");
   } finally {
     nodeCheckingStatus.value[node.nodeId] = false;
   }
@@ -939,7 +994,7 @@ const allMenuActions = [
   },
   {
     key: "health",
-    title: "健康检�?,
+    title: "健康检查",
     icon: "ri:heart-pulse-line",
     handler: checkNodeHealth,
   },
@@ -995,12 +1050,12 @@ const allMenuActions = [
   },
 ];
 
-// 计算总页�?
+// 计算总页数
 const totalMenuPages = computed(() => {
   return Math.ceil(allMenuActions.length / itemsPerPage);
 });
 
-// 计算当前页的功能�?
+// 计算当前页的功能项
 const currentPageActions = computed(() => {
   const startIndex = (currentMenuPage.value - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -1020,35 +1075,288 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .node-management-container {
-  padding: 0;
-  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 50%, #f8fafc 100%);
-  display: flex;
-  flex-direction: column;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 1;
+  }
+
+  > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  // 页面标题
+  .page-header {
+    margin-bottom: 32px;
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 32px 40px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+
+      .title-section {
+        .page-title {
+          display: flex;
+          align-items: center;
+          margin: 0 0 8px 0;
+          font-size: 28px;
+          font-weight: 700;
+          color: #2c3e50;
+
+          .title-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            margin-right: 16px;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+
+            i {
+              font-size: 24px;
+              color: var(--el-text-color-primary);
+            }
+          }
+
+          .title-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          }
+        }
+
+        .page-description {
+          margin: 0;
+          color: #64748b;
+          font-size: 16px;
+          line-height: 1.5;
+        }
+      }
+
+      .header-actions {
+        .refresh-btn {
+          height: 40px;
+          padding: 0 20px;
+          border-radius: 10px;
+          font-weight: 500;
+          box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+          transition: all 0.3s ease;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(64, 158, 255, 0.4);
+          }
+
+          i {
+            margin-right: 6px;
+          }
+        }
+      }
+    }
+  }
 
   // 统计卡片
   .stats-section {
-    padding: 20px 32px;
-    margin-bottom: 0;
+    margin-bottom: 24px;
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 20px;
+
+      .stat-card {
+        position: relative;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 32px;
+        cursor: pointer;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+
+        &::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(135deg, #667eea, #764ba2);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+
+        &:hover {
+          transform: translateY(-12px) scale(1.03);
+          box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+
+          &::before {
+            opacity: 1;
+          }
+        }
+
+        .stat-background {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          opacity: 0.1;
+          z-index: 0;
+
+          .stat-pattern {
+            width: 100%;
+            height: 100%;
+            background-image:
+              radial-gradient(
+                circle at 20% 50%,
+                currentColor 2px,
+                transparent 2px
+              ),
+              radial-gradient(
+                circle at 80% 50%,
+                currentColor 2px,
+                transparent 2px
+              );
+            background-size: 30px 30px;
+            animation: patternMove 20s linear infinite;
+          }
+        }
+
+        .stat-content {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+
+          .stat-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            margin-right: 20px;
+            font-size: 28px;
+            color: var(--el-text-color-primary);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+          }
+
+          .stat-info {
+            flex: 1;
+
+            .stat-value {
+              font-size: 32px;
+              font-weight: 700;
+              line-height: 1;
+              margin-bottom: 4px;
+              transition: all 0.3s ease;
+
+              &.counting {
+                color: #409eff;
+                transform: scale(1.1);
+              }
+            }
+
+            .stat-label {
+              font-size: 14px;
+              color: #64748b;
+              font-weight: 500;
+              margin-bottom: 8px;
+            }
+
+            .stat-trend {
+              display: flex;
+              align-items: center;
+              font-size: 12px;
+              color: #10b981;
+
+              .trend-icon {
+                margin-right: 4px;
+                font-size: 14px;
+              }
+
+              .trend-text {
+                font-weight: 500;
+              }
+            }
+          }
+        }
+
+        // 不同类型的卡片样式
+        &.total-nodes {
+          .stat-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          }
+          .stat-background {
+            color: #667eea;
+          }
+        }
+
+        &.online-nodes {
+          .stat-icon {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          }
+          .stat-background {
+            color: #10b981;
+          }
+        }
+
+        &.healthy-nodes {
+          .stat-icon {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          }
+          .stat-background {
+            color: #f59e0b;
+          }
+        }
+
+        &.error-nodes {
+          .stat-icon {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          }
+          .stat-background {
+            color: #ef4444;
+          }
+        }
+      }
     }
   }
 
   // 搜索区域
   .search-section {
-    padding: 0 32px 20px;
+    margin-bottom: 24px;
 
     .search-card {
       border-radius: 16px;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      background: white;
+      border: none;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 
       :deep(.el-card__body) {
-        padding: 16px 20px;
+        padding: 20px 24px;
       }
 
       .search-container {
@@ -1064,19 +1372,21 @@ onUnmounted(() => {
           flex: 1;
 
           .search-input {
-            width: 300px;
+            width: 320px;
 
             :deep(.el-input__wrapper) {
               border-radius: 10px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             }
           }
 
           .app-filter,
           .status-filter {
-            width: 140px;
+            width: 160px;
 
             :deep(.el-select__wrapper) {
               border-radius: 10px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             }
           }
         }
@@ -1104,548 +1414,607 @@ onUnmounted(() => {
 
   // 节点列表区域
   .nodes-section {
-    padding: 0 32px 32px;
-    flex: 1;
-
-    // 表格视图节点名称单元�?
-    .node-name-cell {
+    .loading-container {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      padding: 60px 20px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 
-      .node-icon {
-        color: var(--el-color-primary);
+      .loading-content {
+        text-align: center;
+        max-width: 400px;
+
+        .loading-text {
+          margin-top: 16px;
+          color: #64748b;
+          font-size: 16px;
+        }
       }
     }
 
-    // 节点卡片样式
-    .node-card {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(20px);
-      border-radius: 24px;
-      padding: 0;
-      cursor: pointer;
-      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      overflow: hidden;
-      position: relative;
-      height: 320px;
-      display: flex;
-      flex-direction: column;
-      box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.12),
-        0 2px 8px rgba(0, 0, 0, 0.08);
+    .empty-container {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 60px 20px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 
-      // 移动端适配
-      @media (max-width: 768px) {
-        height: auto;
-        min-height: 280px;
-        border-radius: 20px;
+      .empty-text {
+        color: #64748b;
+        font-size: 16px;
+        margin: 16px 0;
       }
+    }
 
-      &:hover {
-        transform: translateY(-12px) scale(1.02);
-        box-shadow:
-          0 32px 64px rgba(0, 0, 0, 0.15),
-          0 16px 32px rgba(0, 0, 0, 0.1);
-        border-color: rgba(59, 130, 246, 0.4);
-      }
+    // 卡片视图
+    .nodes-grid {
+      .grid-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+        gap: 32px;
+        padding: 8px;
 
-      &.menu-active {
-        transform: translateY(-8px) scale(1.01);
-        box-shadow:
-          0 40px 80px rgba(0, 0, 0, 0.2),
-          0 20px 40px rgba(0, 0, 0, 0.15);
-        border-color: rgba(59, 130, 246, 0.6);
-        background: rgba(255, 255, 255, 0.98);
-
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(59, 130, 246, 0.05);
-          border-radius: 24px;
-          pointer-events: none;
-        }
-      }
-
-      // 状态指示条 - 更现代的设计
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 6px;
-        z-index: 1;
-        border-radius: 24px 24px 0 0;
-        opacity: 0.9;
-      }
-
-      // 状态光晕效�?
-      &::after {
-        content: "";
-        position: absolute;
-        top: -2px;
-        left: -2px;
-        right: -2px;
-        bottom: -2px;
-        border-radius: 26px;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        z-index: -1;
-      }
-
-      &.node-online {
-        &::before {
-          background: linear-gradient(135deg, #10b981, #34d399, #6ee7b7);
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        // 响应式设计
+        @media (max-width: 1400px) {
+          grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+          gap: 28px;
         }
 
-        &:hover::after {
-          background: linear-gradient(
-            135deg,
-            rgba(16, 185, 129, 0.1),
-            rgba(52, 211, 153, 0.1)
-          );
-          opacity: 1;
-        }
-      }
-
-      &.node-offline {
-        &::before {
-          background: linear-gradient(135deg, #ef4444, #f87171, #fca5a5);
-          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        @media (max-width: 1200px) {
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          gap: 24px;
         }
 
-        &:hover::after {
-          background: linear-gradient(
-            135deg,
-            rgba(239, 68, 68, 0.1),
-            rgba(248, 113, 113, 0.1)
-          );
-          opacity: 1;
-        }
-      }
-
-      &.node-maintenance {
-        &::before {
-          background: linear-gradient(135deg, #f59e0b, #fbbf24, #fcd34d);
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        @media (max-width: 768px) {
+          grid-template-columns: 1fr;
+          gap: 20px;
+          padding: 4px;
         }
 
-        &:hover::after {
-          background: linear-gradient(
-            135deg,
-            rgba(245, 158, 11, 0.1),
-            rgba(251, 191, 36, 0.1)
-          );
-          opacity: 1;
-        }
-      }
+        .node-card-wrapper {
+          animation: cardSlideIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) both;
 
-      &.node-unhealthy {
-        border-color: rgba(239, 68, 68, 0.3);
-
-        &:hover {
-          border-color: rgba(239, 68, 68, 0.5);
-        }
-      }
-
-      .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 28px 28px 20px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        background: linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.9),
-          rgba(248, 250, 252, 0.8)
-        );
-        backdrop-filter: blur(10px);
-
-        .node-info {
-          flex: 1;
-          min-width: 0;
-
-          .node-name {
-            display: flex;
-            align-items: center;
-            font-size: 18px;
-            font-weight: 800;
-            color: #1e293b;
-            margin-bottom: 8px;
-            transition: all 0.3s ease;
-
-            .node-icon {
-              width: 32px;
-              height: 32px;
-              margin-right: 12px;
-              background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-              color: #ffffff;
-              border-radius: 10px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 16px;
-              transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-            }
-
-            .name-text {
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-              background: linear-gradient(135deg, #1e293b, #475569);
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              background-clip: text;
-            }
-
-            &:hover {
-              .node-icon {
-                transform: scale(1.1) rotate(10deg);
-                background: linear-gradient(135deg, #2563eb, #1e40af);
-                box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
-              }
-            }
-          }
-
-          .node-address {
-            display: flex;
-            align-items: center;
-            font-size: 14px;
-            color: #64748b;
-            font-family:
-              "JetBrains Mono", "SF Mono", "Monaco", "Menlo", monospace;
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.8);
-            padding: 8px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(226, 232, 240, 0.6);
-            backdrop-filter: blur(10px);
-            font-weight: 600;
-
-            .address-icon {
-              margin-right: 8px;
-              font-size: 14px;
-              color: #94a3b8;
-              transition: all 0.3s ease;
-            }
-
-            &:hover {
-              color: #3b82f6;
-              background: rgba(59, 130, 246, 0.1);
-              border-color: rgba(59, 130, 246, 0.3);
-              transform: translateY(-1px);
-              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-
-              .address-icon {
-                color: #3b82f6;
-                transform: scale(1.1);
-              }
-            }
-          }
-        }
-
-        .node-status {
-          flex-shrink: 0;
-
-          .status-tag {
-            font-weight: 700;
-            border-radius: 12px;
-            padding: 8px 16px;
-            font-size: 13px;
-            line-height: 1.2;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-            position: relative;
+          .node-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 0;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             overflow: hidden;
+            position: relative;
+            height: 320px;
+            display: flex;
+            flex-direction: column;
+            box-shadow:
+              0 8px 32px rgba(0, 0, 0, 0.12),
+              0 2px 8px rgba(0, 0, 0, 0.08);
 
-            &::before {
-              content: "";
-              position: absolute;
-              top: 0;
-              left: -100%;
-              width: 100%;
-              height: 100%;
-              background: linear-gradient(
-                90deg,
-                transparent,
-                rgba(255, 255, 255, 0.3),
-                transparent
-              );
-              transition: left 0.5s ease;
+            // 移动端适配
+            @media (max-width: 768px) {
+              height: auto;
+              min-height: 280px;
+              border-radius: 20px;
             }
 
             &:hover {
-              transform: translateY(-3px) scale(1.05);
-              box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-
-              &::before {
-                left: 100%;
-              }
+              transform: translateY(-12px) scale(1.02);
+              box-shadow:
+                0 32px 64px rgba(0, 0, 0, 0.15),
+                0 16px 32px rgba(0, 0, 0, 0.1);
+              border-color: rgba(59, 130, 246, 0.4);
             }
 
-            i {
-              margin-right: 6px;
-              font-size: 12px;
-            }
-          }
-        }
-      }
-
-      .card-body {
-        padding: 24px 28px;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        background: rgba(255, 255, 255, 0.6);
-        backdrop-filter: blur(5px);
-
-        .node-details {
-          .detail-row {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 16px;
-
-            &:last-child {
-              margin-bottom: 0;
-            }
-
-            &.single {
-              .detail-item.full-width {
-                flex: none;
-                width: 100%;
-              }
-            }
-
-            .detail-item {
-              flex: 1;
-              display: flex;
-              align-items: center;
-              padding: 16px 18px;
-              background: rgba(255, 255, 255, 0.8);
-              border-radius: 16px;
-              border: 1px solid rgba(226, 232, 240, 0.6);
-              transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-              position: relative;
-              overflow: hidden;
-              backdrop-filter: blur(10px);
+            &.menu-active {
+              transform: translateY(-8px) scale(1.01);
+              box-shadow:
+                0 40px 80px rgba(0, 0, 0, 0.2),
+                0 20px 40px rgba(0, 0, 0, 0.15);
+              border-color: rgba(59, 130, 246, 0.6);
+              background: rgba(255, 255, 255, 0.98);
 
               &::before {
                 content: "";
                 position: absolute;
                 top: 0;
                 left: 0;
-                width: 4px;
-                height: 100%;
-                background: linear-gradient(180deg, #3b82f6, #1d4ed8, #1e40af);
-                opacity: 0;
-                transition: all 0.3s ease;
-                border-radius: 0 4px 4px 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(59, 130, 246, 0.05);
+                border-radius: 24px;
+                pointer-events: none;
               }
+            }
+
+            // 状态指示条 - 更现代的设计
+            &::before {
+              content: "";
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              height: 6px;
+              z-index: 1;
+              border-radius: 24px 24px 0 0;
+              opacity: 0.9;
+            }
+
+            // 状态光晕效果
+            &::after {
+              content: "";
+              position: absolute;
+              top: -2px;
+              left: -2px;
+              right: -2px;
+              bottom: -2px;
+              border-radius: 26px;
+              opacity: 0;
+              transition: opacity 0.3s ease;
+              z-index: -1;
+            }
+
+            &.node-online {
+              &::before {
+                background: linear-gradient(135deg, #10b981, #34d399, #6ee7b7);
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+              }
+
+              &:hover::after {
+                background: linear-gradient(
+                  135deg,
+                  rgba(16, 185, 129, 0.1),
+                  rgba(52, 211, 153, 0.1)
+                );
+                opacity: 1;
+              }
+            }
+
+            &.node-offline {
+              &::before {
+                background: linear-gradient(135deg, #ef4444, #f87171, #fca5a5);
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+              }
+
+              &:hover::after {
+                background: linear-gradient(
+                  135deg,
+                  rgba(239, 68, 68, 0.1),
+                  rgba(248, 113, 113, 0.1)
+                );
+                opacity: 1;
+              }
+            }
+
+            &.node-maintenance {
+              &::before {
+                background: linear-gradient(135deg, #f59e0b, #fbbf24, #fcd34d);
+                box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+              }
+
+              &:hover::after {
+                background: linear-gradient(
+                  135deg,
+                  rgba(245, 158, 11, 0.1),
+                  rgba(251, 191, 36, 0.1)
+                );
+                opacity: 1;
+              }
+            }
+
+            &.node-unhealthy {
+              border-color: rgba(239, 68, 68, 0.3);
 
               &:hover {
-                background: rgba(59, 130, 246, 0.1);
-                border-color: rgba(59, 130, 246, 0.3);
-                transform: translateY(-4px) scale(1.02);
-                box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
-
-                &::before {
-                  opacity: 1;
-                }
+                border-color: rgba(239, 68, 68, 0.5);
               }
+            }
 
-              .detail-icon {
-                width: 28px;
-                height: 28px;
-                background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-                color: #ffffff;
-                border-radius: 8px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 14px;
-                margin-right: 12px;
-                flex-shrink: 0;
-                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-              }
+            .card-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 28px 28px 20px;
+              border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+              background: linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.9),
+                rgba(248, 250, 252, 0.8)
+              );
+              backdrop-filter: blur(10px);
 
-              &:hover .detail-icon {
-                transform: scale(1.1) rotate(10deg);
-                background: linear-gradient(135deg, #2563eb, #1e40af);
-                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-              }
-
-              .detail-info {
+              .node-info {
                 flex: 1;
                 min-width: 0;
 
-                .detail-label {
-                  display: block;
-                  font-size: 11px;
-                  color: #64748b;
-                  line-height: 1.3;
-                  margin-bottom: 4px;
-                  font-weight: 700;
-                  text-transform: uppercase;
-                  letter-spacing: 0.05em;
-                  opacity: 0.8;
-                }
-
-                .detail-value {
-                  display: block;
-                  font-size: 15px;
+                .node-name {
+                  display: flex;
+                  align-items: center;
+                  font-size: 18px;
                   font-weight: 800;
                   color: #1e293b;
-                  line-height: 1.3;
+                  margin-bottom: 8px;
+                  transition: all 0.3s ease;
+
+                  .node-icon {
+                    width: 32px;
+                    height: 32px;
+                    margin-right: 12px;
+                    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                    color: #ffffff;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 16px;
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                  }
+
+                  .name-text {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    background: linear-gradient(135deg, #1e293b, #475569);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                  }
+
+                  &:hover {
+                    .node-icon {
+                      transform: scale(1.1) rotate(10deg);
+                      background: linear-gradient(135deg, #2563eb, #1e40af);
+                      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+                    }
+                  }
+                }
+
+                .node-address {
+                  display: flex;
+                  align-items: center;
+                  font-size: 14px;
+                  color: #64748b;
+                  font-family:
+                    "JetBrains Mono", "SF Mono", "Monaco", "Menlo", monospace;
+                  transition: all 0.3s ease;
+                  background: rgba(255, 255, 255, 0.8);
+                  padding: 8px 12px;
+                  border-radius: 12px;
+                  border: 1px solid rgba(226, 232, 240, 0.6);
+                  backdrop-filter: blur(10px);
+                  font-weight: 600;
+
+                  .address-icon {
+                    margin-right: 8px;
+                    font-size: 14px;
+                    color: #94a3b8;
+                    transition: all 0.3s ease;
+                  }
+
+                  &:hover {
+                    color: #3b82f6;
+                    background: rgba(59, 130, 246, 0.1);
+                    border-color: rgba(59, 130, 246, 0.3);
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+
+                    .address-icon {
+                      color: #3b82f6;
+                      transform: scale(1.1);
+                    }
+                  }
+                }
+              }
+
+              .node-status {
+                flex-shrink: 0;
+
+                .status-tag {
+                  font-weight: 700;
+                  border-radius: 12px;
+                  padding: 8px 16px;
+                  font-size: 13px;
+                  line-height: 1.2;
+                  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                  border: 1px solid rgba(255, 255, 255, 0.3);
+                  backdrop-filter: blur(10px);
+                  position: relative;
                   overflow: hidden;
-                  text-overflow: ellipsis;
-                  white-space: nowrap;
-                  background: linear-gradient(135deg, #1e293b, #475569);
-                  -webkit-background-clip: text;
-                  -webkit-text-fill-color: transparent;
-                  background-clip: text;
 
-                  &.env-up {
-                    color: #52c41a;
+                  &::before {
+                    content: "";
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(
+                      90deg,
+                      transparent,
+                      rgba(255, 255, 255, 0.3),
+                      transparent
+                    );
+                    transition: left 0.5s ease;
                   }
 
-                  &.env-down {
-                    color: #ff4d4f;
+                  &:hover {
+                    transform: translateY(-3px) scale(1.05);
+                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+
+                    &::before {
+                      left: 100%;
+                    }
                   }
 
-                  &.env-prod {
-                    color: #fa541c;
-                  }
-
-                  &.env-dev {
-                    color: #1890ff;
-                  }
-
-                  &.env-test {
-                    color: #722ed1;
-                  }
-
-                  &.config-value {
-                    font-family: "SF Mono", "Monaco", "Menlo", monospace;
-                    font-size: 11px;
-                    background: rgba(0, 0, 0, 0.02);
-                    padding: 2px 6px;
-                    border-radius: 4px;
-                    color: #595959;
+                  i {
+                    margin-right: 6px;
+                    font-size: 12px;
                   }
                 }
               }
             }
-          }
-        }
-      }
 
-      .card-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 20px 28px 24px;
-        background: linear-gradient(
-          135deg,
-          rgba(248, 250, 252, 0.9),
-          rgba(241, 245, 249, 0.8)
-        );
-        border-top: 1px solid rgba(255, 255, 255, 0.2);
-        margin-top: auto;
-        backdrop-filter: blur(10px);
+            .card-body {
+              padding: 24px 28px;
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              background: rgba(255, 255, 255, 0.6);
+              backdrop-filter: blur(5px);
 
-        .footer-info {
-          display: flex;
-          gap: 24px;
-          flex: 1;
+              .node-details {
+                .detail-row {
+                  display: flex;
+                  gap: 16px;
+                  margin-bottom: 16px;
 
-          .connect-time,
-          .last-heartbeat {
-            display: flex;
-            align-items: center;
-            font-size: 13px;
-            color: #64748b;
-            transition: all 0.3s ease;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.6);
-            padding: 6px 10px;
-            border-radius: 10px;
-            border: 1px solid rgba(226, 232, 240, 0.6);
-            backdrop-filter: blur(5px);
+                  &:last-child {
+                    margin-bottom: 0;
+                  }
 
-            &:hover {
-              color: #3b82f6;
-              background: rgba(59, 130, 246, 0.1);
-              border-color: rgba(59, 130, 246, 0.3);
-              transform: translateY(-1px);
+                  &.single {
+                    .detail-item.full-width {
+                      flex: none;
+                      width: 100%;
+                    }
+                  }
+
+                  .detail-item {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    padding: 16px 18px;
+                    background: rgba(255, 255, 255, 0.8);
+                    border-radius: 16px;
+                    border: 1px solid rgba(226, 232, 240, 0.6);
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: relative;
+                    overflow: hidden;
+                    backdrop-filter: blur(10px);
+
+                    &::before {
+                      content: "";
+                      position: absolute;
+                      top: 0;
+                      left: 0;
+                      width: 4px;
+                      height: 100%;
+                      background: linear-gradient(
+                        180deg,
+                        #3b82f6,
+                        #1d4ed8,
+                        #1e40af
+                      );
+                      opacity: 0;
+                      transition: all 0.3s ease;
+                      border-radius: 0 4px 4px 0;
+                    }
+
+                    &:hover {
+                      background: rgba(59, 130, 246, 0.1);
+                      border-color: rgba(59, 130, 246, 0.3);
+                      transform: translateY(-4px) scale(1.02);
+                      box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
+
+                      &::before {
+                        opacity: 1;
+                      }
+                    }
+
+                    .detail-icon {
+                      width: 28px;
+                      height: 28px;
+                      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                      color: #ffffff;
+                      border-radius: 8px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      font-size: 14px;
+                      margin-right: 12px;
+                      flex-shrink: 0;
+                      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+                    }
+
+                    &:hover .detail-icon {
+                      transform: scale(1.1) rotate(10deg);
+                      background: linear-gradient(135deg, #2563eb, #1e40af);
+                      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+                    }
+
+                    .detail-info {
+                      flex: 1;
+                      min-width: 0;
+
+                      .detail-label {
+                        display: block;
+                        font-size: 11px;
+                        color: #64748b;
+                        line-height: 1.3;
+                        margin-bottom: 4px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.05em;
+                        opacity: 0.8;
+                      }
+
+                      .detail-value {
+                        display: block;
+                        font-size: 15px;
+                        font-weight: 800;
+                        color: #1e293b;
+                        line-height: 1.3;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        background: linear-gradient(135deg, #1e293b, #475569);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        background-clip: text;
+
+                        &.env-up {
+                          color: #52c41a;
+                        }
+
+                        &.env-down {
+                          color: #ff4d4f;
+                        }
+
+                        &.env-prod {
+                          color: #fa541c;
+                        }
+
+                        &.env-dev {
+                          color: #1890ff;
+                        }
+
+                        &.env-test {
+                          color: #722ed1;
+                        }
+
+                        &.config-value {
+                          font-family: "SF Mono", "Monaco", "Menlo", monospace;
+                          font-size: 11px;
+                          background: rgba(0, 0, 0, 0.02);
+                          padding: 2px 6px;
+                          border-radius: 4px;
+                          color: #595959;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
 
-            i {
-              margin-right: 8px;
-              font-size: 14px;
-              transition: all 0.3s ease;
-            }
+            .card-footer {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 20px 28px 24px;
+              background: linear-gradient(
+                135deg,
+                rgba(248, 250, 252, 0.9),
+                rgba(241, 245, 249, 0.8)
+              );
+              border-top: 1px solid rgba(255, 255, 255, 0.2);
+              margin-top: auto;
+              backdrop-filter: blur(10px);
 
-            &:hover i {
-              transform: scale(1.1);
-            }
-          }
+              .footer-info {
+                display: flex;
+                gap: 24px;
+                flex: 1;
 
-          .last-heartbeat {
-            .heartbeat-icon {
-              color: #ff4d4f;
-              animation: heartbeat 2s ease-in-out infinite;
-            }
+                .connect-time,
+                .last-heartbeat {
+                  display: flex;
+                  align-items: center;
+                  font-size: 13px;
+                  color: #64748b;
+                  transition: all 0.3s ease;
+                  font-weight: 600;
+                  background: rgba(255, 255, 255, 0.6);
+                  padding: 6px 10px;
+                  border-radius: 10px;
+                  border: 1px solid rgba(226, 232, 240, 0.6);
+                  backdrop-filter: blur(5px);
 
-            .heartbeat-text {
-              font-family: "SF Mono", "Monaco", "Menlo", monospace;
-            }
-          }
-        }
+                  &:hover {
+                    color: #3b82f6;
+                    background: rgba(59, 130, 246, 0.1);
+                    border-color: rgba(59, 130, 246, 0.3);
+                    transform: translateY(-1px);
+                  }
 
-        .card-actions {
-          flex-shrink: 0;
+                  i {
+                    margin-right: 8px;
+                    font-size: 14px;
+                    transition: all 0.3s ease;
+                  }
 
-          :deep(.el-button-group) {
-            border-radius: 6px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                  &:hover i {
+                    transform: scale(1.1);
+                  }
+                }
 
-            .el-button {
-              border-radius: 0;
-              padding: 4px 8px;
-              font-size: 12px;
-              min-width: 28px;
-              height: 28px;
-              transition: all 0.2s ease;
+                .last-heartbeat {
+                  .heartbeat-icon {
+                    color: #ff4d4f;
+                    animation: heartbeat 2s ease-in-out infinite;
+                  }
 
-              &:first-child {
-                border-top-left-radius: 6px;
-                border-bottom-left-radius: 6px;
+                  .heartbeat-text {
+                    font-family: "SF Mono", "Monaco", "Menlo", monospace;
+                  }
+                }
               }
 
-              &:last-child {
-                border-top-right-radius: 6px;
-                border-bottom-right-radius: 6px;
-              }
+              .card-actions {
+                flex-shrink: 0;
 
-              &:hover {
-                transform: translateY(-1px);
-                z-index: 1;
-              }
+                :deep(.el-button-group) {
+                  border-radius: 6px;
+                  overflow: hidden;
+                  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-              i {
-                font-size: 12px;
+                  .el-button {
+                    border-radius: 0;
+                    padding: 4px 8px;
+                    font-size: 12px;
+                    min-width: 28px;
+                    height: 28px;
+                    transition: all 0.2s ease;
+
+                    &:first-child {
+                      border-top-left-radius: 6px;
+                      border-bottom-left-radius: 6px;
+                    }
+
+                    &:last-child {
+                      border-top-right-radius: 6px;
+                      border-bottom-right-radius: 6px;
+                    }
+
+                    &:hover {
+                      transform: translateY(-1px);
+                      z-index: 1;
+                    }
+
+                    i {
+                      font-size: 12px;
+                    }
+                  }
+                }
               }
             }
           }
@@ -1721,7 +2090,7 @@ onUnmounted(() => {
   transition: transform 0.5s ease;
 }
 
-// 响应式设�?
+// 响应式设计
 @media (max-width: 1200px) {
   .node-management-container {
     .stats-section .stats-grid {
@@ -1846,7 +2215,7 @@ onUnmounted(() => {
     position: relative;
   }
 
-  // 分页指示�?
+  // 分页指示器
   .menu-pagination {
     position: absolute;
     top: 10px;
@@ -1997,7 +2366,7 @@ onUnmounted(() => {
       bottom: -40px;
     }
 
-    // 不同功能的特定颜色主�?
+    // 不同功能的特定颜色主题
     &.api-docs:hover {
       background: rgba(34, 197, 94, 0.2);
       border-color: rgba(34, 197, 94, 0.4);
@@ -2183,7 +2552,7 @@ onUnmounted(() => {
       p {
         margin: 4px 0 0 0;
         font-size: 14px;
-        color: var(--el-text-color-primary);
+         color: var(--el-text-color-primary);
       }
     }
   }
@@ -2214,7 +2583,7 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-// 日志配置菜单项样�?
+// 日志配置菜单项样式
 .action-icon.logger-config {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 

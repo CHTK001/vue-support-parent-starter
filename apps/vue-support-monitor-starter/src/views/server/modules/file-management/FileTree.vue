@@ -1,23 +1,23 @@
 <template>
   <div class="file-tree">
-    <!-- 头部工具�?-->
+    <!-- 头部工具栏 -->
     <div class="tree-header">
       <div class="tree-title">
         <IconifyIconOnline icon="ri:folder-line" class="mr-2" />
         <span>目录结构</span>
       </div>
       <div class="tree-actions">
-        <el-tooltip content="刷新目录�? placement="top">
+        <el-tooltip content="刷新目录树" placement="top">
           <el-button size="small" text @click="refreshTree">
             <IconifyIconOnline icon="ri:refresh-line" />
           </el-button>
         </el-tooltip>
-        <el-tooltip content="展开所�? placement="top">
+        <el-tooltip content="展开所有" placement="top">
           <el-button size="small" text @click="expandAll">
             <IconifyIconOnline icon="ri:add-box-line" />
           </el-button>
         </el-tooltip>
-        <!-- <el-tooltip content="折叠所�? placement="top">
+        <!-- <el-tooltip content="折叠所有" placement="top">
           <el-button size="small" text @click="collapseAll">
             <IconifyIconOnline icon="ri:subtract-box-line" />
           </el-button>
@@ -30,7 +30,7 @@
       </div>
     </div>
 
-    <!-- 文件�?-->
+    <!-- 文件树 -->
     <div class="tree-content" v-loading="loading">
       <el-tree
         ref="treeRef"
@@ -61,7 +61,7 @@
             <IconifyIconOnline v-if="loadingNodes.has(data.path)" icon="ri:loader-4-line" class="node-loading" />
 
             <div class="node-actions" v-if="data.isDirectory" @click.stop>
-              <el-tooltip content="新建文件�? placement="top">
+              <el-tooltip content="新建文件夹" placement="top">
                 <el-button size="small" text @click="createFolder(data)">
                   <IconifyIconOnline icon="ri:folder-add-line" />
                 </el-button>
@@ -78,7 +78,7 @@
     </div>
 
     <!-- 新建文件夹对话框 -->
-    <el-dialog v-model="createFolderVisible" title="新建文件�? width="400px" :close-on-click-modal="false">
+    <el-dialog v-model="createFolderVisible" title="新建文件夹" width="400px" :close-on-click-modal="false">
       <el-form :model="createFolderForm" label-width="80px">
         <el-form-item label="文件夹名">
           <el-input v-model="createFolderForm.name" placeholder="请输入文件夹名称" @keyup.enter="confirmCreateFolder" />
@@ -113,29 +113,29 @@ const emit = defineEmits<{
   "drop-upload": [targetDir: string, files: File[]];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const loading = ref(false);
 const treeRef = ref<InstanceType<typeof ElTree>>();
 const treeData = ref<FileInfo[]>([]); // 懒加载模式下的树数据
-const rootNodeData = ref<FileInfo[]>([]); // 存储根节点数�?
+const rootNodeData = ref<FileInfo[]>([]); // 存储根节点数据
 const createFolderVisible = ref(false);
 const createFolderForm = reactive({
   name: "",
   parentPath: ""
 });
 
-// 拖拽高亮状�?
+// 拖拽高亮状态
 const dragOverPath = ref<string | null>(null);
 
 // 性能优化配置
 const LAZY_LOAD_PAGE_SIZE = 50; // 每次懒加载的数量
-const loadingNodes = ref(new Set<string>()); // 正在加载的节点路�?
+const loadingNodes = ref(new Set<string>()); // 正在加载的节点路径
 
 // 树形组件配置
 const treeProps = {
   children: "children",
   label: "name",
-  isLeaf: "leaf" // 使用后端返回�?leaf 属�?
+  isLeaf: "leaf" // 使用后端返回的 leaf 属性
 };
 
 /**
@@ -156,12 +156,12 @@ const loadRootNode = async () => {
     console.log("FileTree: API response", res);
 
     if (res.code === "00000" && res.data?.success && (res.data.fileTree || res.data.tree)) {
-      // 获取根节点数�?
+      // 获取根节点数据
       const treeData = res.data.fileTree || res.data.tree;
       console.log("FileTree: Received tree data", treeData);
 
       // 如果根节点有子节点，使用子节点作为树的根数据
-      // 否则将根节点本身作为树的根数�?
+      // 否则将根节点本身作为树的根数据
       let rootData = [];
       if (treeData.children && treeData.children.length > 0) {
         rootData = treeData.children;
@@ -174,12 +174,12 @@ const loadRootNode = async () => {
       rootNodeData.value = rootData;
     } else {
       console.error("FileTree: API error", res);
-      ElMessage.error(res.data?.message || "加载文件树失�?);
+      ElMessage.error(res.data?.message || "加载文件树失败");
       rootNodeData.value = [];
     }
   } catch (error) {
-    console.error("FileTree: 加载文件树失�?", error);
-    ElMessage.error("加载文件树失�?);
+    console.error("FileTree: 加载文件树失败:", error);
+    ElMessage.error("加载文件树失败");
     rootNodeData.value = [];
   } finally {
     loading.value = false;
@@ -194,7 +194,7 @@ const loadNode = async (node: any, resolve: Function) => {
   console.log("FileTree: Node level:", node.level);
   console.log("FileTree: Node data:", node.data);
 
-  // 处理根节点（level 0�?
+  // 处理根节点（level 0）
   if (node.level === 0) {
     console.log("FileTree: Loading root level data via lazy loading");
 
@@ -227,7 +227,7 @@ const loadNode = async (node: any, resolve: Function) => {
     console.log("FileTree: Loading children for", nodeData.path);
     console.log("FileTree: Using serverId", props.serverId);
 
-    // 使用文件列表 API 加载子节�?
+    // 使用文件列表 API 加载子节点
     const res = await getFileList(
       props.serverId,
       nodeData.path,
@@ -243,9 +243,9 @@ const loadNode = async (node: any, resolve: Function) => {
 
       console.log("FileTree: Raw children data", children);
 
-      // 处理子节点数据，确保正确设置 leaf 属�?
+      // 处理子节点数据，确保正确设置 leaf 属性
       const processedChildren = children.map(child => {
-        // 后端应该已经设置了正确的 leaf 属�?
+        // 后端应该已经设置了正确的 leaf 属性
         // 但为了保险起见，我们再次确认
         if (child.leaf === undefined) {
           child.leaf = !child.isDirectory;
@@ -261,10 +261,10 @@ const loadNode = async (node: any, resolve: Function) => {
       resolve([]);
     }
   } catch (error) {
-    console.error("FileTree: 加载子节点失�?", error);
+    console.error("FileTree: 加载子节点失败:", error);
     resolve([]);
   } finally {
-    // 清理加载状�?
+    // 清理加载状态
     loadingNodes.value.delete(nodeData.path);
   }
 };
@@ -276,7 +276,7 @@ const handleNodeClick = (data: FileInfo) => {
   console.log("FileTree: Node clicked", data);
 
   if (data.isDirectory) {
-    // 点击文件夹：调用list接口显示文件夹内�?
+    // 点击文件夹：调用list接口显示文件夹内容
     console.log("FileTree: Directory clicked, emitting folder-click event");
     emit("folder-click", data.path, data);
   } else {
@@ -285,7 +285,7 @@ const handleNodeClick = (data: FileInfo) => {
     emit("file-click", data.path, data);
   }
 
-  // 保持原有的node-click事件以兼容现有代�?
+  // 保持原有的node-click事件以兼容现有代码
   emit("node-click", data.path, data);
 };
 
@@ -382,7 +382,7 @@ const getNodeIcon = (data: FileInfo) => {
     case "vue":
       return "ri:vuejs-line";
 
-    // Web技�?
+    // Web技术
     case "html":
     case "htm":
       return "ri:html5-line";
@@ -501,7 +501,7 @@ const getNodeIcon = (data: FileInfo) => {
     case "webm":
       return "ri:video-line";
 
-    // 可执行文�?
+    // 可执行文件
     case "exe":
     case "msi":
     case "dmg":
@@ -510,7 +510,7 @@ const getNodeIcon = (data: FileInfo) => {
     case "app":
       return "ri:install-line";
 
-    // 库文�?
+    // 库文件
     case "dll":
     case "so":
     case "dylib":
@@ -518,7 +518,7 @@ const getNodeIcon = (data: FileInfo) => {
     case "a":
       return "ri:code-box-line";
 
-    // 数据�?
+    // 数据库
     case "db":
     case "sqlite":
     case "sql":
@@ -538,22 +538,22 @@ const getNodeIcon = (data: FileInfo) => {
 };
 
 /**
- * 刷新�?
+ * 刷新树
  */
 const refreshTree = async () => {
   console.log("FileTree: Refreshing tree");
 
-  // 清理所有数据和加载状�?
+  // 清理所有数据和加载状态
   rootNodeData.value = [];
   loadingNodes.value.clear();
 
-  // 重新设置空数组，让懒加载重新开�?
+  // 重新设置空数组，让懒加载重新开始
   treeData.value = [];
 
-  // 主动加载根节点数�?
+  // 主动加载根节点数据
   if (props.serverId) {
     await loadRootNode();
-    // 如果有根节点数据，更新树数据以触发显�?
+    // 如果有根节点数据，更新树数据以触发显示
     if (rootNodeData.value.length > 0) {
       treeData.value = [...rootNodeData.value];
     }
@@ -563,7 +563,7 @@ const refreshTree = async () => {
 };
 
 /**
- * 展开所有节�?
+ * 展开所有节点
  */
 const expandAll = () => {
   // 遍历所有节点并展开
@@ -581,7 +581,7 @@ const expandAll = () => {
 };
 
 /**
- * 折叠所有节�?
+ * 折叠所有节点
  */
 const collapseAll = () => {
   // 遍历所有节点并折叠
@@ -599,7 +599,7 @@ const collapseAll = () => {
 };
 
 /**
- * 创建文件�?
+ * 创建文件夹
  */
 const createFolder = (parentNode: FileInfo) => {
   createFolderForm.name = "";
@@ -608,7 +608,7 @@ const createFolder = (parentNode: FileInfo) => {
 };
 
 /**
- * 确认创建文件�?
+ * 确认创建文件夹
  */
 const confirmCreateFolder = async () => {
   if (!createFolderForm.name.trim()) {
@@ -621,15 +621,15 @@ const confirmCreateFolder = async () => {
     const res = await createDirectory(props.serverId, folderPath, false);
 
     if (res.code === "00000" && res.data?.success) {
-      ElMessage.success("文件夹创建成�?);
+      ElMessage.success("文件夹创建成功");
       createFolderVisible.value = false;
       refreshTree();
     } else {
-      ElMessage.error(res.data?.message || "创建文件夹失�?);
+      ElMessage.error(res.data?.message || "创建文件夹失败");
     }
   } catch (error) {
-    console.error("FileTree: 创建文件夹失�?", error);
-    ElMessage.error("创建文件夹失�?);
+    console.error("FileTree: 创建文件夹失败:", error);
+    ElMessage.error("创建文件夹失败");
   }
 };
 
@@ -643,7 +643,7 @@ const refreshNode = async (node: any, data: FileInfo) => {
 };
 
 /**
- * 设置当前选中的路�?
+ * 设置当前选中的路径
  */
 const setCurrentPath = async (path: string) => {
   await nextTick();
@@ -684,7 +684,7 @@ const expandToPath = async (targetPath: string) => {
       }
     }
 
-    // 最后设置当前选中的节�?
+    // 最后设置当前选中的节点
     await nextTick();
     treeRef.value?.setCurrentKey(targetPath);
 
@@ -695,17 +695,17 @@ const expandToPath = async (targetPath: string) => {
 };
 
 /**
- * 监听serverId变化，清理数�?
+ * 监听serverId变化，清理数据
  */
 watch(
   () => props.serverId,
   newServerId => {
     if (newServerId) {
       console.log("FileTree: serverId changed to", newServerId);
-      // 清理之前的数�?
+      // 清理之前的数据
       rootNodeData.value = [];
       loadingNodes.value.clear();
-      // 重新设置空数组，让懒加载重新开�?
+      // 重新设置空数组，让懒加载重新开始
       treeData.value = [];
     }
   },
@@ -720,12 +720,12 @@ watch(
   async (newServerId, oldServerId) => {
     console.log("FileTree: serverId changed from", oldServerId, "to", newServerId);
     if (newServerId && newServerId !== oldServerId) {
-      // 清理旧数�?
+      // 清理旧数据
       rootNodeData.value = [];
       loadingNodes.value.clear();
       treeData.value = [];
 
-      // 加载新的根节点数�?
+      // 加载新的根节点数据
       await loadRootNode();
       if (rootNodeData.value.length > 0) {
         treeData.value = [...rootNodeData.value];
@@ -736,15 +736,15 @@ watch(
 );
 
 /**
- * 组件挂载时的初始�?
+ * 组件挂载时的初始化
  */
 onMounted(async () => {
   console.log("FileTree: Component mounted, serverId:", props.serverId);
   if (props.serverId) {
     console.log("FileTree: Initial serverId available, loading root data");
-    // 主动加载根节点数�?
+    // 主动加载根节点数据
     await loadRootNode();
-    // 如果有根节点数据，更新树数据以触发显�?
+    // 如果有根节点数据，更新树数据以触发显示
     if (rootNodeData.value.length > 0) {
       treeData.value = [...rootNodeData.value];
     }
@@ -794,8 +794,8 @@ defineExpose({
   overflow-y: auto;
   overflow-x: hidden;
   padding: 8px;
-  min-height: 0; /* 确保flex子元素可以收�?*/
-  max-height: 100%; /* 确保不会超出父容�?*/
+  min-height: 0; /* 确保flex子元素可以收缩 */
+  max-height: 100%; /* 确保不会超出父容器 */
 }
 
 .tree-node {
@@ -837,7 +837,7 @@ defineExpose({
   display: flex;
 }
 
-/* 自定义树形组件样�?*/
+/* 自定义树形组件样式 */
 :deep(.el-tree-node__content) {
   height: 32px;
   padding: 0 8px;
@@ -862,7 +862,7 @@ defineExpose({
   color: transparent;
 }
 
-/* 加载状态样�?*/
+/* 加载状态样式 */
 .node-loading {
   margin-left: 8px;
   color: var(--el-color-primary);
@@ -879,7 +879,7 @@ defineExpose({
   }
 }
 
-/* 性能优化：减少重�?*/
+/* 性能优化：减少重绘 */
 .tree-node {
   will-change: transform;
 }
@@ -908,7 +908,7 @@ defineExpose({
   background: var(--el-color-primary-light-5);
 }
 
-/* 确保树形结构在小高度下也能正常滚�?*/
+/* 确保树形结构在小高度下也能正常滚动 */
 :deep(.el-tree) {
   min-height: fit-content;
 }
@@ -917,7 +917,7 @@ defineExpose({
   min-height: 32px;
 }
 
-/* 响应式设�?- 移动端滚动条 */
+/* 响应式设计 - 移动端滚动条 */
 @media (max-width: 768px) {
   .tree-content::-webkit-scrollbar {
     width: 4px;

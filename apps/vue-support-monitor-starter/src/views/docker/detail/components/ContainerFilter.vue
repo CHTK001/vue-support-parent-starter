@@ -11,7 +11,7 @@
             <el-form-item label="容器名称">
               <el-input
                 v-model="filterParams.name"
-                placeholder="请输入容器名�?
+                placeholder="请输入容器名称"
                 clearable
                 @keyup.enter="applyFilter"
               />
@@ -22,7 +22,7 @@
             <el-form-item label="镜像名称">
               <el-input
                 v-model="filterParams.image"
-                placeholder="请输入镜像名�?
+                placeholder="请输入镜像名称"
                 clearable
                 @keyup.enter="applyFilter"
               />
@@ -30,28 +30,28 @@
           </el-col>
           
           <el-col :span="12">
-            <el-form-item label="运行状�?>
+            <el-form-item label="运行状态">
               <el-select
                 v-model="filterParams.status"
-                placeholder="请选择运行状�?
+                placeholder="请选择运行状态"
                 clearable
                 style="width: 100%"
               >
                 <el-option label="全部" value="" />
-                <el-option label="运行�? value="running" />
-                <el-option label="已停�? value="stopped" />
+                <el-option label="运行中" value="running" />
+                <el-option label="已停止" value="stopped" />
                 <el-option label="暂停" value="paused" />
-                <el-option label="重启�? value="restarting" />
+                <el-option label="重启中" value="restarting" />
                 <el-option label="错误" value="error" />
               </el-select>
             </el-form-item>
           </el-col>
           
           <el-col :span="12">
-            <el-form-item label="服务�?>
+            <el-form-item label="服务器">
               <el-select
                 v-model="filterParams.serverId"
-                placeholder="请选择服务�?
+                placeholder="请选择服务器"
                 clearable
                 style="width: 100%"
               >

@@ -3,7 +3,7 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-content">
-        <h1 class="page-title">服务器文件上�?/h1>
+        <h1 class="page-title">服务器文件上传</h1>
         <p class="page-description">
           管理SSH服务器的文件上传任务，支持实时上传和定时上传
         </p>
@@ -32,7 +32,7 @@
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ statistics.pendingCount || 0 }}</div>
-                <div class="stat-label">待处理任�?/div>
+                <div class="stat-label">待处理任务</div>
               </div>
             </div>
           </el-card>
@@ -48,7 +48,7 @@
                 <div class="stat-value">
                   {{ statistics.processingCount || 0 }}
                 </div>
-                <div class="stat-label">处理中任�?/div>
+                <div class="stat-label">处理中任务</div>
               </div>
             </div>
           </el-card>
@@ -64,7 +64,7 @@
                 <div class="stat-value">
                   {{ statistics.completedCount || 0 }}
                 </div>
-                <div class="stat-label">已完成任�?/div>
+                <div class="stat-label">已完成任务</div>
               </div>
             </div>
           </el-card>
@@ -103,9 +103,9 @@
             <div class="header-tabs">
               <el-radio-group v-model="activeTab" @change="handleTabChange">
                 <el-radio-button value="all">全部任务</el-radio-button>
-                <el-radio-button value="pending">待处�?/el-radio-button>
-                <el-radio-button value="processing">处理�?/el-radio-button>
-                <el-radio-button value="completed">已完�?/el-radio-button>
+                <el-radio-button value="pending">待处理</el-radio-button>
+                <el-radio-button value="processing">处理中</el-radio-button>
+                <el-radio-button value="completed">已完成</el-radio-button>
                 <el-radio-button value="failed">失败</el-radio-button>
               </el-radio-group>
             </div>
@@ -120,7 +120,7 @@
       </el-card>
     </div>
 
-    <!-- 上传对话�?-->
+    <!-- 上传对话框 -->
     <ServerFileUploadDialog
       ref="uploadDialogRef"
       :ssh-servers="sshServers"
@@ -142,13 +142,13 @@ import ServerFileUploadTasks from "../components/ServerFileUploadTasks.vue";
 import ServerFileUploadDialog from "../components/dialogs/ServerFileUploadDialog.vue";
 import ServerFileUploadProgress from "../components/ServerFileUploadProgress.vue";
 
-// 响应式数�?
+// 响应式数据
 const loading = ref(false);
 const activeTab = ref("all");
 const taskManagerRef = ref();
 const uploadDialogRef = ref();
 
-// SSH服务器列�?
+// SSH服务器列表
 const sshServers = ref<
   Array<{
     monitorSysGenServerId: number;
@@ -171,7 +171,7 @@ const statistics = reactive({
   totalFileSize: 0,
 });
 
-// 定时�?
+// 定时器
 let statsTimer: NodeJS.Timeout | null = null;
 
 // 生命周期
@@ -198,8 +198,8 @@ const loadSshServers = async () => {
 
     sshServers.value = data.records || [];
   } catch (error: any) {
-    console.error("加载SSH服务器列表失�?", error);
-    ElMessage.error("加载SSH服务器列表失�?);
+    console.error("加载SSH服务器列表失败:", error);
+    ElMessage.error("加载SSH服务器列表失败");
   }
 };
 
@@ -259,7 +259,7 @@ const handleTabChange = (tab: string) => {
 const handleViewTaskDetail = async (taskId: number) => {
   try {
     const { data } = await getServerFileUploadTaskById(taskId);
-    // 这里可以打开任务详情对话框或跳转到详情页�?
+    // 这里可以打开任务详情对话框或跳转到详情页面
     console.log("任务详情:", data);
   } catch (error: any) {
     ElMessage.error(error.message || "获取任务详情失败");
@@ -267,7 +267,7 @@ const handleViewTaskDetail = async (taskId: number) => {
 };
 
 const startAutoRefresh = () => {
-  // �?0秒刷新统计数�?
+  // 每30秒刷新统计数据
   statsTimer = setInterval(() => {
     loadStatistics();
   }, 30000);

@@ -1,9 +1,9 @@
 <template>
-  <el-dialog v-model="visibleLocal" title="控制台权限设�? width="520px" @close="handleClose" class="data-console-setting-dialog">
+  <el-dialog v-model="visibleLocal" title="控制台权限设置" width="520px" @close="handleClose" class="data-console-setting-dialog">
     <div v-if="isJdbc" class="section">
-      <div class="section-title">JDBC 控制�?/div>
+      <div class="section-title">JDBC 控制台</div>
       <el-form label-width="140px">
-        <el-form-item label="查看表结�?>
+        <el-form-item label="查看表结构">
           <el-switch v-model="form.jdbc.viewTableStructure" />
         </el-form-item>
         <el-form-item label="复制表名">
@@ -18,7 +18,7 @@
       </el-form>
     </div>
     <div v-if="isRedis" class="section">
-      <div class="section-title">Redis 控制�?/div>
+      <div class="section-title">Redis 控制台</div>
       <el-form label-width="140px">
         <el-form-item label="复制键名">
           <el-switch v-model="form.redis.copyKeyName" />
@@ -29,7 +29,7 @@
       </el-form>
     </div>
     <div v-if="isZk" class="section">
-      <div class="section-title">ZK 控制�?/div>
+      <div class="section-title">ZK 控制台</div>
       <el-form label-width="140px">
         <el-form-item label="创建节点">
           <el-switch v-model="form.zk.createNode" />
@@ -47,7 +47,7 @@
 </template>
 <script setup lang="ts">
 import { computed,ref, watch, reactive } from 'vue'
-import { getConsoleConfig, saveConsoleConfig } from '@/api/system-data'
+import { getConsoleConfig, saveConsoleConfig } from '@/api/data-management/system-data'
 
 const props = defineProps<{ modelValue: boolean; settingId: number | null; settingType?: string }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void; (e: 'saved'): void }>()

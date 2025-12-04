@@ -1,6 +1,6 @@
 <template>
   <div class="server-latency-display">
-    <!-- 延迟指示�?-->
+    <!-- 延迟指示器 -->
     <div class="latency-indicator" :class="latencyClass">
       <el-tooltip :content="latencyTooltip" placement="top" :show-after="300">
         <div class="latency-content">
@@ -34,7 +34,7 @@ const props = withDefaults(defineProps<Props>(), {
   showDetail: true,
 });
 
-// 计算延迟状�?
+// 计算延迟状态
 const latencyStatus = computed((): LatencyStatus | null => {
   if (props.latency === null || props.latency === undefined) {
     return null;
@@ -50,7 +50,7 @@ const latencyText = computed(() => {
   return formatLatencyText(props.latency);
 });
 
-// 计算延迟样式�?
+// 计算延迟样式类
 const latencyClass = computed(() => {
   const status = latencyStatus.value;
   if (!status) {
@@ -69,11 +69,11 @@ const latencyClass = computed(() => {
 // 计算提示文本
 const latencyTooltip = computed(() => {
   if (props.latency === null || props.latency === undefined) {
-    return "延迟未检�?;
+    return "延迟未检测";
   }
 
   if (props.latency < 0) {
-    return "延迟检测失�?;
+    return "延迟检测失败";
   }
 
   const status = latencyStatus.value;
@@ -85,9 +85,9 @@ const latencyTooltip = computed(() => {
     if (props.latency < 100) {
       tooltip += "\n网络状况良好";
     } else if (props.latency < 500) {
-      tooltip += "\n网络延迟较高，可能影响使用体�?;
+      tooltip += "\n网络延迟较高，可能影响使用体验";
     } else {
-      tooltip += "\n网络延迟异常，建议检查网络连�?;
+      tooltip += "\n网络延迟异常，建议检查网络连接";
     }
   }
 
@@ -202,7 +202,7 @@ const latencyTooltip = computed(() => {
   }
 }
 
-// 响应式设�?
+// 响应式设计
 @media (max-width: 768px) {
   .latency-indicator {
     &.size-medium {

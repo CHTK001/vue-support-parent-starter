@@ -29,8 +29,8 @@
                     v-model="date"
                     value-format="YYYY-MM-DD HH:mm:ss"
                     type="datetimerange"
-                    range-separator="�?
-                    start-placeholder="开始日�?
+                    range-separator="至"
+                    start-placeholder="开始日期"
                     end-placeholder="结束日期"
                   />
                 </div>
@@ -40,7 +40,7 @@
                     v-model="form.jobLogTriggerCode"
                     clearable
                     class="w-full"
-                    placeholder="请选择任务状�?
+                    placeholder="请选择任务状态"
                   >
                     <el-option value="" label="全部" />
                     <el-option :value="1" label="成功" />
@@ -53,7 +53,7 @@
                     v-model="form.jobLogApp"
                     clearable
                     class="w-full"
-                    placeholder="请选择执行�?
+                    placeholder="请选择执行器"
                   >
                     <el-option value="" label="全部" />
                     <el-option
@@ -83,7 +83,7 @@
                     placeholder="请选择环境"
                   >
                     <el-option value="" label="全部" />
-                    <el-option value="dev" label="开�? />
+                    <el-option value="dev" label="开发" />
                     <el-option value="prod" label="生产" />
                     <el-option value="test" label="测试" />
                   </el-select>
@@ -198,7 +198,7 @@
                   <span v-if="scope.row.handleMsg">{{
                     scope.row.handleMsg
                   }}</span>
-                  <span v-else>�?/span>
+                  <span v-else>无</span>
                 </template>
               </el-table-column>
 
@@ -228,7 +228,7 @@
 
     <el-dialog v-model="clearShow" title="日志清理" @close="clearShow = !1">
       <el-form :model="form" label-width="120px">
-        <el-form-item label="执行�?>
+        <el-form-item label="执行器">
           <el-input v-model="jobGroupName" disabled readonly />
         </el-form-item>
         <el-form-item label="任务">
@@ -236,15 +236,15 @@
         </el-form-item>
         <el-form-item label="">
           <el-select v-model="clearType" style="width: 100%">
-            <el-option label="清理一个月之前的日志数�? :value="1" />
+            <el-option label="清理一个月之前的日志数据" :value="1" />
             <el-option label="清理三个月之前的日志数据" :value="2" />
             <el-option label="清理六个月之前的日志数据" :value="3" />
             <el-option label="清理一年之前的日志数据" :value="4" />
-            <!-- <el-option label="清理一千条之前的日志数�? :value="5" />
-            <el-option label="清理一万条之前的日志数�? :value="6" />
+            <!-- <el-option label="清理一千条之前的日志数据" :value="5" />
+            <el-option label="清理一万条之前的日志数据" :value="6" />
             <el-option label="清理三万条之前的日志数据" :value="7" />
             <el-option label="清理十万条之前的日志数据" :value="8" /> -->
-            <el-option label="清理所以日志数�? :value="9" />
+            <el-option label="清理所以日志数据" :value="9" />
           </el-select>
         </el-form-item>
       </el-form>

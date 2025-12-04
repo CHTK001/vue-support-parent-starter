@@ -7,7 +7,7 @@
         <el-col :span="12">
           <el-form-item label="任务环境" prop="jobApplicationActive">
             <el-select v-model="form.jobApplicationActive" allow-create placeholder="请选择任务环境">
-              <el-option value="dev" label="开�? />
+              <el-option value="dev" label="开发" />
               <el-option value="prod" label="生产" />
               <el-option value="test" label="测试" />
             </el-select>
@@ -15,16 +15,16 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="任务名称" prop="jobName">
-            <el-input v-model="form.jobName" placeholder="请输入任务名�? maxlength="50" />
+            <el-input v-model="form.jobName" placeholder="请输入任务名称" maxlength="50" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="负责�? prop="jobAuthor">
+          <el-form-item label="负责人" prop="jobAuthor">
             <el-input v-model="form.jobAuthor" maxlength="50" placeholder="请输入负责人" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="执行�? prop="jobGroup">
+          <el-form-item label="执行器" prop="jobGroup">
             <el-select v-model="form.monitorId" clearable filterable style="width: 100%">
               <el-option v-for="item in executorData" :key="item.monitorId" :value="item.monitorId" :label="item.monitorName">
                 <span style="float: left">{{ item.monitorName }}</span>
@@ -46,7 +46,7 @@
         <el-col :span="12">
           <el-form-item label="调度类型" prop="jobScheduleType">
             <el-radio-group v-model="form.jobScheduleType">
-              <el-radio-button label="NONE">�?/el-radio-button>
+              <el-radio-button label="NONE">无</el-radio-button>
               <el-radio-button label="CRON">Cron</el-radio-button>
               <el-radio-button label="FIX_RATE">固定速率</el-radio-button>
             </el-radio-group>
@@ -62,7 +62,7 @@
               maxlength="10"
               onkeyup="this.value=this.value.replace(/\D/g,'')"
               onafterpaste="this.value=this.value.replace(/\D/g,'')"
-              placeholder="请输�?�?Second �?
+              placeholder="请输入 （ Second ）"
               clearable
             />
           </el-form-item>
@@ -86,14 +86,14 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="运行名称" prop="jobExecuteBean">
-            <el-input v-model="form.jobExecuteBean" maxlength="100" placeholder="请输入后端配置执行名�? clearable />
+            <el-input v-model="form.jobExecuteBean" maxlength="100" placeholder="请输入后端配置执行名称" clearable />
           </el-form-item>
         </el-col>
       </el-row>
       <el-row>
         <el-col :span="24">
           <el-form-item label="任务参数" prop="jobExecutorParam">
-            <el-input v-model="form.jobExecutorParam" type="textarea" maxlength="512" placeholder="请输入任务参�? clearable />
+            <el-input v-model="form.jobExecutorParam" type="textarea" maxlength="512" placeholder="请输入任务参数" clearable />
           </el-form-item>
         </el-col>
       </el-row>
@@ -103,12 +103,12 @@
         <el-col :span="12">
           <el-form-item label="路由策略" prop="jobExecutorRouteStrategy">
             <el-select v-model="form.jobExecutorRouteStrategy" clearable filterable style="width: 100%">
-              <el-option value="FIRST" label="第一�? />
-              <el-option value="LAST" label="最后一�? />
+              <el-option value="FIRST" label="第一个" />
+              <el-option value="LAST" label="最后一个" />
               <el-option value="ROUND" label="轮询" />
               <el-option value="RANDOM" label="随机" />
               <el-option value="CONSISTENT_HASH" label="一致性HASH" />
-              <el-option value="LEAST_FREQUENTLY_USED" label="最不经常使�? />
+              <el-option value="LEAST_FREQUENTLY_USED" label="最不经常使用" />
               <el-option value="LEAST_RECENTLY_USED" label="最近最久未使用" />
               <el-option value="FAILOVER" label="故障转移" />
               <el-option value="BUSYOVER" label="忙碌转移" />
@@ -127,7 +127,7 @@
           <el-form-item label="调度过期策略" prop="jobExecuteMisfireStrategy">
             <el-radio-group v-model="form.jobExecuteMisfireStrategy">
               <el-radio-button label="DO_NOTHING">忽略</el-radio-button>
-              <el-radio-button label="FIRE_ONCE_NOW">立即执行一�?/el-radio-button>
+              <el-radio-button label="FIRE_ONCE_NOW">立即执行一次</el-radio-button>
             </el-radio-group>
           </el-form-item>
         </el-col>
@@ -147,7 +147,7 @@
             <el-input
               v-model="form.jobExecutorTimeout"
               maxlength="6"
-              placeholder="任务超时时间，单位秒，大于零时生�?
+              placeholder="任务超时时间，单位秒，大于零时生效"
               clearable
               onkeyup="this.value=this.value.replace(/\D/g,'')"
               onafterpaste="this.value=this.value.replace(/\D/g,'')"
@@ -159,7 +159,7 @@
             <el-input
               v-model="form.jobExecutorFailRetryCount"
               maxlength="4"
-              placeholder="失败重试次数，大于零时生�?
+              placeholder="失败重试次数，大于零时生效"
               clearable
               onkeyup="this.value=this.value.replace(/\D/g,'')"
               onafterpaste="this.value=this.value.replace(/\D/g,'')"
@@ -192,25 +192,25 @@ export default {
       executorData: [],
       shortcuts: [
         {
-          text: "每天8点和12�?(自定义追�?",
+          text: "每天8点和12点 (自定义追加)",
           value: "0 0 8,12 * * ?"
         },
         {
-          text: "每分�?(自定义追�?",
+          text: "每分钟 (自定义追加)",
           value: "0 * * * * ?"
         }
       ],
       mode: "add",
       title: "新增",
       rules: {
-        jobGroup: [{ trigger: "blur", message: "任务执行器不能为�?, required: !0 }],
+        jobGroup: [{ trigger: "blur", message: "任务执行器不能为空", required: !0 }],
         jobName: [{ trigger: "blur", message: "任务描述不能为空", required: !0 }],
         jobGlueType: [{ trigger: "blur", message: "运行模式不能为空", required: !0 }],
         jobScheduleType: [{ trigger: "blur", message: "任务类型不能为空", required: !0 }],
         jobScheduleTime: [{ trigger: "blur", message: "任务时间不能为空不能为空", required: !0 }],
         jobExecutorHandler: [{ trigger: "blur", message: "任务名称不能为空", required: !0 }],
-        monitorId: [{ trigger: "blur", message: "所属应用不能为�?, required: !0 }],
-        jobAuthor: [{ trigger: "blur", message: "负责人不能为�?, required: !0 }]
+        monitorId: [{ trigger: "blur", message: "所属应用不能为空", required: !0 }],
+        jobAuthor: [{ trigger: "blur", message: "负责人不能为空", required: !0 }]
       },
       form: {
         monitorId: null,

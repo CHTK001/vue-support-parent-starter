@@ -3,7 +3,7 @@
 import { fetchToolPhantom } from "@/api/monitor/tools";
 import { ref } from "vue";
 
-// 响应式数据定�?
+// 响应式数据定义
 const leftFile = ref();
 const rightFile = ref();
 const sourceImage = ref();
@@ -11,7 +11,7 @@ const loading = ref(false);
 
 /**
  * 处理左侧图片上传变更
- * @param {Object} file - 上传的文件对�?
+ * @param {Object} file - 上传的文件对象
  */
 const handleLeftChange = async file => {
   leftFile.value = file.raw;
@@ -20,7 +20,7 @@ const handleLeftChange = async file => {
 
 /**
  * 处理右侧图片上传变更
- * @param {Object} file - 上传的文件对�?
+ * @param {Object} file - 上传的文件对象
  */
 const handleRightChange = async file => {
   rightFile.value = file.raw;
@@ -58,7 +58,7 @@ const handleGenerate = async () => {
       <template #header>
         <div class="phantom-header">
           <h2 class="phantom-title">幻影图像生成工具</h2>
-          <span class="phantom-subtitle">上传亮暗两张图片，生成幻影效�?/span>
+          <span class="phantom-subtitle">上传亮暗两张图片，生成幻影效果</span>
         </div>
       </template>
 
@@ -119,7 +119,7 @@ const handleGenerate = async () => {
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden; // 防止出现滚动�?
+    overflow: hidden; // 防止出现滚动条
   }
 
   &-card {

@@ -66,7 +66,7 @@ interface SystemSoftContainer {
   systemSoftContainerServerName?: string;
   cpuUsage?: number;
   memoryUsage?: number;
-  // 添加其他可能需要的属�?
+  // 添加其他可能需要的属性
   [key: string]: any;
 }
 
@@ -94,13 +94,13 @@ const installRecords = ref<SystemSoftRecord[]>([]);
 const serverOptions = ref<any[]>([]);
 const selectedContainers = ref<SystemSoftContainer[]>([]);
 
-// 页面状�?
+// 页面状态
 const activeTab = ref('versions');
 const versionsLoading = ref(false);
 const containersLoading = ref(false);
 const recordsLoading = ref(false);
 
-// 安装对话�?
+// 安装对话框
 const installVisible = ref(false);
 const installing = ref(false);
 const installForm = ref<{ systemSoftId: number; systemSoftVersionId?: number; serverIds: number[]; method?: string; params?: string }>({
@@ -110,14 +110,14 @@ const installForm = ref<{ systemSoftId: number; systemSoftVersionId?: number; se
   params: ""
 });
 
-// 计算属�?
+// 计算属性
 const runningContainers = computed(() => {
   return containerList.value.filter(container => container.systemSoftContainerStatus === 'RUNNING').length;
 });
 
 // 数据加载方法
 const loadSoft = async () => {
-  // 详情字段暂时�?card 页传参或后续新增详情接口
+  // 详情字段暂时以 card 页传参或后续新增详情接口
 };
 
 const loadVersions = async () => {
@@ -167,12 +167,12 @@ const loadServers = async () => {
 // 刷新方法
 const refreshContainers = async () => {
   await loadContainers();
-  message.success('容器列表已刷�?);
+  message.success('容器列表已刷新');
 };
 
 const refreshRecords = async () => {
   await loadInstallRecords();
-  message.success('安装记录已刷�?);
+  message.success('安装记录已刷新');
 };
 
 // 版本管理
@@ -207,7 +207,7 @@ const openUninstall = async (row: SystemSoftVersion) => {
     });
     
     if (res.code === "00000") {
-      message.success('卸载请求已提�?);
+      message.success('卸载请求已提交');
       await loadContainers();
       await loadInstallRecords();
     }
@@ -232,7 +232,7 @@ const doInstall = async () => {
       params: installForm.value.params
     });
     if (res.code === "00000") {
-      message.success("安装请求已提�?);
+      message.success("安装请求已提交");
       installVisible.value = false;
       await loadInstallRecords();
     }
@@ -335,7 +335,7 @@ const cancelInstall = async (record: SystemSoftRecord) => {
     );
     
     // 这里调用取消安装的API
-    message.success('安装任务已取�?);
+    message.success('安装任务已取消');
     await loadInstallRecords();
   } catch (error) {
     if (error !== 'cancel') {
@@ -369,14 +369,14 @@ const formatDate = (date: string | Date) => {
 
 const getServerName = (serverId: number) => {
   const server = serverOptions.value.find(s => s.id === serverId);
-  return server ? `${server.name}(${server.host})` : `服务�?{serverId}`;
+  return server ? `${server.name}(${server.host})` : `服务器${serverId}`;
 };
 
 const getSoftTypeLabel = (type: string) => {
   const typeMap: Record<string, string> = {
     'APPLICATION': '应用软件',
-    'MIDDLEWARE': '中间�?,
-    'DATABASE': '数据�?,
+    'MIDDLEWARE': '中间件',
+    'DATABASE': '数据库',
     'SYSTEM': '系统软件',
     'OTHER': '其他'
   };
@@ -397,8 +397,8 @@ const getStatusLabel = (status: string) => {
   const statusMap: Record<string, string> = {
     'ACTIVE': '启用',
     'INACTIVE': '禁用',
-    'DEPRECATED': '已废�?,
-    'DELETED': '已删�?
+    'DEPRECATED': '已废弃',
+    'DELETED': '已删除'
   };
   return statusMap[status] || status;
 };
@@ -415,9 +415,9 @@ const getContainerStatusType = (status: string) => {
 
 const getContainerStatusLabel = (status: string) => {
   const statusMap: Record<string, string> = {
-    'RUNNING': '运行�?,
-    'STOPPED': '已停�?,
-    'PAUSED': '已暂�?,
+    'RUNNING': '运行中',
+    'STOPPED': '已停止',
+    'PAUSED': '已暂停',
     'ERROR': '错误'
   };
   return statusMap[status] || status;
@@ -435,10 +435,10 @@ const getRecordStatusType = (status: string) => {
 
 const getRecordStatusLabel = (status: string) => {
   const statusMap: Record<string, string> = {
-    'INSTALLING': '安装�?,
+    'INSTALLING': '安装中',
     'SUCCESS': '成功',
     'FAILED': '失败',
-    'CANCELLED': '已取�?
+    'CANCELLED': '已取消'
   };
   return statusMap[status] || status;
 };
@@ -457,8 +457,8 @@ const handleSizeChange = (val: number) => {
 };
 
 const handleCurrentChange = (val: number) => {
-  // 处理当前页变�?
-  console.log('当前页变�?', val);
+  // 处理当前页变化
+  console.log('当前页变化:', val);
 };
 
 onMounted(async () => {
@@ -483,7 +483,7 @@ onUnmounted(() => {
 watch(activeTab, async (newTab) => {
   if (newTab === 'containers') {
     await loadContainers();
-    // 订阅容器状态变�?
+    // 订阅容器状态变化
     containerList.value.forEach(container => {
       subscribeContainerStatus(container.containerId!);
     });
@@ -494,7 +494,7 @@ watch(activeTab, async (newTab) => {
 
 // WebSocket事件处理
 const setupWebSocketHandlers = () => {
-  // 容器状态变化处�?
+  // 容器状态变化处理
   onMessage(SOFT_WS_MESSAGE_TYPE.CONTAINER_STATUS_CHANGED, (message: ContainerStatusMessage) => {
     const { containerId, status } = message.data;
     const container = containerList.value.find(c => c.containerId === containerId);
@@ -540,7 +540,7 @@ const setupWebSocketHandlers = () => {
   });
 };
 
-// 清理WebSocket事件处理�?
+// 清理WebSocket事件处理器
 const cleanupWebSocketHandlers = () => {
   offMessage(SOFT_WS_MESSAGE_TYPE.CONTAINER_STATUS_CHANGED, () => {});
   offMessage(SOFT_WS_MESSAGE_TYPE.CONTAINER_LOG, () => {});

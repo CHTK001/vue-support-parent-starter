@@ -38,7 +38,7 @@
     <!-- 中间：分隔条 -->
     <div class="splitter cursor-col-resize" @mousedown="onDragStart" @dblclick="resetWidth" />
 
-    <!-- 右侧：编�?+ 结果 -->
+    <!-- 右侧：编辑 + 结果 -->
     <div class="right image-paper">
       <div class="right-header">
         <div class="path" :title="currentPath || '未选择'">
@@ -78,7 +78,7 @@
             :min-width="120"
           />
         </el-table>
-        <div v-else class="empty-tip">无数�?/div>
+        <div v-else class="empty-tip">无数据</div>
       </div>
 
       <div class="right-footer el-form-item-msg">
@@ -91,18 +91,18 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import CodeEditor from '@/components/codeEditor/index.vue'
-import { getConsoleRoot, getConsoleChildren, getConsoleNode, executeConsole } from '@/api/system-data'
+import { getConsoleRoot, getConsoleChildren, getConsoleNode, executeConsole } from '@/api/data-management/system-data'
 
 const props = defineProps<{ id: number }>()
 
-// 左侧�?
+// 左侧树
 const treeData = ref<any[]>([])
 const treeRef = ref<any>()
 const treeProps = { label: 'name', children: 'children', isLeaf: 'leaf' }
 const keyword = ref('')
 const currentPath = ref<string | undefined>(undefined)
 
-// 编辑与结�?
+// 编辑与结果
 const flux = ref<string>(`from(bucket: "example")\n  |> range(start: -1h)\n  |> limit(n: 100)`)
 const columns = ref<string[]>([])
 const rows = ref<any[]>([])
@@ -135,7 +135,7 @@ function resetWidth() {
   leftWidth.value = 300
 }
 
-// 通用工具：从后端响应中提取数�?
+// 通用工具：从后端响应中提取数组
 function extractArrayFromApi(payload: any): any[] {
   const d = payload?.data ?? payload?.records ?? payload?.list ?? payload?.items ?? payload
   if (Array.isArray(d)) return d
@@ -178,7 +178,7 @@ async function loadChildrenLazy(node: any, resolve: (children: any[]) => void) {
 
 function getNodeIcon(node: any, data: any) {
   const level = Number(node?.level || 0)
-  if (level <= 1) return 'ri:database-2-line'    // bucket/�?
+  if (level <= 1) return 'ri:database-2-line'    // bucket/库
   if (level === 2) return 'ri:table-2'          // measurement/table
   if (level === 3) return 'ri:braces-line'      // field
   return data?.leaf ? 'ri:file-2-line' : 'ri:folder-2-line'
@@ -186,7 +186,7 @@ function getNodeIcon(node: any, data: any) {
 
 async function handleNodeClick(node: any) {
   currentPath.value = node?.path
-  // 简单示例：按节点类型生成示�?flux
+  // 简单示例：按节点类型生成示例 flux
   const t = (node?.type || '').toLowerCase()
   if (t.includes('bucket') || t.includes('database')) {
     flux.value = `from(bucket: "${node.name}")\n  |> range(start: -1h)\n  |> limit(n: 100)`
@@ -201,7 +201,7 @@ async function execute() {
   await Promise.resolve()
   rows.value = (data?.rows || []) as any[]
   const ms = Math.round(performance.now() - start)
-  statusText.value = `已返�?${rows.value.length} 行，用时 ${ms} ms, ${res?.data?.errorMessage || ''}`
+  statusText.value = `已返回 ${rows.value.length} 行，用时 ${ms} ms, ${res?.data?.errorMessage || ''}`
 }
 </script>
 

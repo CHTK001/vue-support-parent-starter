@@ -12,7 +12,7 @@
             :icon="autoRefresh ? 'ri:pause-line' : 'ri:play-line'" 
             class="mr-1" 
           />
-          {{ autoRefresh ? '暂停' : '开�? }}
+          {{ autoRefresh ? '暂停' : '开始' }}
         </el-button>
         <el-button size="small" @click="clearData">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
@@ -25,15 +25,15 @@
     
     <div class="chart-stats" v-if="latestStats">
       <div class="stat-item">
-        <span class="stat-label">当前�?</span>
+        <span class="stat-label">当前值:</span>
         <span class="stat-value">{{ formatValue(latestStats.current) }}</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">平均�?</span>
+        <span class="stat-label">平均值:</span>
         <span class="stat-value">{{ formatValue(latestStats.average) }}</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">最大�?</span>
+        <span class="stat-label">最大值:</span>
         <span class="stat-value">{{ formatValue(latestStats.max) }}</span>
       </div>
     </div>
@@ -68,7 +68,7 @@ interface StatsSummary {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  interval: 5000 // 默认5秒刷新一�?
+  interval: 5000 // 默认5秒刷新一次
 })
 
 const emit = defineEmits<Emits>()
@@ -81,7 +81,7 @@ const autoRefresh = ref(true)
 const loading = ref(false)
 let refreshTimer: number | null = null
 
-// 初始化图�?
+// 初始化图表
 const initChart = () => {
   if (chartContainerRef.value) {
     chartInstance = echarts.init(chartContainerRef.value)
@@ -139,7 +139,7 @@ const updateChart = () => {
   chartInstance.setOption(option)
 }
 
-// 格式化值显�?
+// 格式化值显示
 const formatValue = (value: number) => {
   switch (props.dataType) {
     case 'cpu':
@@ -156,7 +156,7 @@ const formatValue = (value: number) => {
   }
 }
 
-// 格式化字节显�?
+// 格式化字节显示
 const formatBytes = (bytes: number) => {
   if (bytes === 0) return '0 B'
   const k = 1024
@@ -176,7 +176,7 @@ const fetchRealtimeStats = async () => {
     if (response.code === '00000') {
       const stats = response.data
       if (stats) {
-        // 根据数据类型提取相应的数�?
+        // 根据数据类型提取相应的数据
         const value = extractValueByType(stats)
         const timestamp = new Date().toLocaleTimeString()
         
@@ -186,7 +186,7 @@ const fetchRealtimeStats = async () => {
           value
         })
         
-        // 限制数据点数量，最多保�?00个点
+        // 限制数据点数量，最多保留100个点
         if (chartData.value.length > 100) {
           chartData.value.shift()
         }
@@ -241,7 +241,7 @@ const calculateStatsSummary = () => {
   latestStats.value = { current, average, max }
 }
 
-// 开�?暂停自动刷新
+// 开始/暂停自动刷新
 const toggleAutoRefresh = () => {
   autoRefresh.value = !autoRefresh.value
   if (autoRefresh.value) {
@@ -251,7 +251,7 @@ const toggleAutoRefresh = () => {
   }
 }
 
-// 开始自动刷�?
+// 开始自动刷新
 const startAutoRefresh = () => {
   if (refreshTimer) {
     clearInterval(refreshTimer)
@@ -285,7 +285,7 @@ watch(() => props.containerId, () => {
   fetchRealtimeStats()
 })
 
-// 监听数据变化并更新图�?
+// 监听数据变化并更新图表
 watch(chartData, () => {
   updateChart()
 })

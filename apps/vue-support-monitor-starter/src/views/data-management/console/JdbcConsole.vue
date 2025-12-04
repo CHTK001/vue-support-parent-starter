@@ -57,7 +57,7 @@
           <IconifyIconOnline icon="ri:route-line" class="mr-1" />
           <span class="ellipsis">{{ currentPath || "未选择" }}</span>
           <span v-if="currentComment" class="comment" :title="currentComment"
-            >�?注释：{{ currentComment }}</span
+            >• 注释：{{ currentComment }}</span
           >
         </div>
         <div class="toolbar">
@@ -72,7 +72,7 @@
           </el-button>
           <el-button v-if="showEditor" size="small" @click="formatSql">
             <IconifyIconOnline :icon="formatIcon" class="mr-1" />
-            格式�?
+            格式化
           </el-button>
           <el-button size="small" @click="onRefreshTree">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
@@ -110,7 +110,7 @@
               :icon="analyzing ? 'ri:close-circle-line' : 'ri:bar-chart-2-line'"
               class="mr-1"
             />
-            {{ analyzing ? "退出分�? : "分析" }}
+            {{ analyzing ? "退出分析" : "分析" }}
           </el-button>
         </div>
       </div>
@@ -155,7 +155,7 @@
                       type="primary"
                       :underline="false"
                       @click="selectedColumnNames = [...columns]"
-                      >全�?/el-link
+                      >全选</el-link
                     >
                     <el-link
                       type="danger"
@@ -238,14 +238,14 @@
                       class="comment-text el-form-item-msg"
                       :title="col.name"
                     >
-                      （{{ col.comment }}�?
+                      （{{ col.comment }}）
                     </div>
                     <div>{{ row[col.name] }}</div>
                   </div>
                 </template>
               </el-table-column>
             </el-table>
-            <el-empty v-else description="无结�? />
+            <el-empty v-else description="无结果" />
           </el-tab-pane>
         </el-tabs>
       </div>
@@ -297,13 +297,13 @@ const treeRef = ref<any>();
 const treeVersion = ref(0);
 const treeProps = { label: "name", children: "children", isLeaf: "leaf" };
 
-// 工具栏图标（格式化图标由 JS 生成选择�?
+// 工具栏图标（格式化图标由 JS 生成选择）
 const icons = {
   execute: "ri:play-circle-line",
   structure: "ri:table-2",
 } as const;
 const formatIcon = computed(() => {
-  // 简单随机切换书写笔/魔棒两种风格（可改为基于主题/偏好�?
+  // 简单随机切换书写笔/魔棒两种风格（可改为基于主题/偏好）
   return Math.random() > 0.5 ? "ri:magic-line" : "ri:pencil-ruler-2-line";
 });
 
@@ -334,7 +334,7 @@ const statusText = ref("");
 const currentNodeData = ref<any | null>(null);
 const currentComment = ref("");
 
-// 左右可拖拽分�?
+// 左右可拖拽分栏
 const leftWidth = ref(300);
 const isDragging = ref(false);
 const gridStyle = computed(() => ({
@@ -426,7 +426,7 @@ async function loadRoot() {
   const res = await getConsoleRoot(props.id, keyword.value);
   const records = extractArrayFromApi(res?.data);
   treeData.value = records.map(normalizeTreeNode);
-  // 强制重建树，清理已加�?展开状态，避免重复追加
+  // 强制重建树，清理已加载/展开状态，避免重复追加
   await nextTick();
   treeVersion.value++;
 }
@@ -438,7 +438,7 @@ function onRefreshTree() {
 async function handleNodeClick(node: any) {
   currentNodeData.value = node;
   currentPath.value = node?.path;
-  // 若为表节点，打开表（查询+注释�?
+  // 若为表节点，打开表（查询+注释）
   const type = (node?.type || "").toString().toUpperCase();
   if (type.includes("TABLE")) {
     sql.value = `select * from ${node.name} limit 1000`;
@@ -454,12 +454,12 @@ async function handleNodeClick(node: any) {
   }
 }
 
-// 懒加载子节点（结�?hasChildren 展示展开图标�?
+// 懒加载子节点（结合 hasChildren 展示展开图标）
 const loadChildrenLazy = async (
   node: any,
   resolve: (children: any[]) => void
 ) => {
-  // 根节点（node.level === 0）直接返回已�?children
+  // 根节点（node.level === 0）直接返回已有 children
   if (!node || node.level === 0) {
     return resolve(treeData.value || []);
   }
@@ -473,7 +473,7 @@ const loadChildrenLazy = async (
   resolve(records);
 };
 
-// 根据类型/层级返回 JDBC 树节点图�?
+// 根据类型/层级返回 JDBC 树节点图标
 /**
  * 根据节点元信息返回合适的图标
  */
@@ -493,7 +493,7 @@ function getJdbcNodeIcon(node: any, data: any): string {
     if (type.includes("view")) return "ri:layout-2-line";
     if (type.includes("index")) return "ri:hashtag";
   }
-  // 按层级兜底：1-�?2-�?3-�?其他-文件
+  // 按层级兜底：1-库 2-表 3-列 其他-文件
   const level = Number(node?.level || 0);
   if (level <= 1) return "ri:database-2-line";
   if (level === 2) return "ri:table-2";
@@ -512,7 +512,7 @@ async function execute() {
   rows.value = dataData?.rows || [];
   searched.value = true;
   const ms = Math.round(performance.now() - start);
-  statusText.value = `已返�?${rows.value.length} 行，用时 ${ms} ms, ${data?.errorMessage || ""}`;
+  statusText.value = `已返回 ${rows.value.length} 行，用时 ${ms} ms, ${data?.errorMessage || ""}`;
   activeTab.value = "result";
 }
 
@@ -524,16 +524,16 @@ function formatSql() {
     sql.value = formatted;
     statusText.value = "已格式化 SQL";
   } catch (e) {
-    statusText.value = "格式化失�?;
+    statusText.value = "格式化失败";
   }
 }
 
 function simpleSqlFormat(input: string): string {
   let s = (input || "").replace(/\r\n/g, "\n").trim();
-  // 先统一多空格为单空格（注意：简单处理，可能影响字符串字面量�?
+  // 先统一多空格为单空格（注意：简单处理，可能影响字符串字面量）
   s = s.replace(/\s+/g, " ");
 
-  // 关键词大�?
+  // 关键词大写
   const KEYWORDS = [
     "SELECT",
     "FROM",
@@ -569,7 +569,7 @@ function simpleSqlFormat(input: string): string {
     s = s.replace(re, kw);
   }
 
-  // 在主要关键词前断�?
+  // 在主要关键词前断行
   const BREAK_BEFORE = [
     "SELECT",
     "FROM",
@@ -597,7 +597,7 @@ function simpleSqlFormat(input: string): string {
     s = s.replace(re, `\n${token}`);
   }
 
-  // 逗号后换行，提升可读�?
+  // 逗号后换行，提升可读性
   s = s.replace(/,\s*/g, ",\n  ");
   // 多余空行压缩
   s = s.replace(/\n{2,}/g, "\n");
@@ -638,9 +638,9 @@ function barStyle(col: string, b: { value: string; count: number }) {
 function barTooltip(col: string, b: { value: string; count: number }) {
   const v =
     b.value === null || b.value === undefined || b.value === "null"
-      ? "(�?"
+      ? "(空)"
       : String(b.value);
-  return `${col}: ${v}�?{b.count}）`;
+  return `${col}: ${v}（${b.count}）`;
 }
 
 const filters = ref<Record<string, Set<string>>>({});
@@ -703,7 +703,7 @@ async function loadCurrentComment() {
 }
 
 /**
- * 右键菜单状态管�?
+ * 右键菜单状态管理
  */
 const menuVisible = ref(false);
 const menuX = ref(0);
@@ -711,7 +711,7 @@ const menuY = ref(0);
 const contextNode = ref<any | null>(null);
 
 /**
- * 判断是否为列/字段类型的叶子节�?
+ * 判断是否为列/字段类型的叶子节点
  */
 function isColumnLeaf(data: any): boolean {
   const type = (data?.type || "").toString().toLowerCase();
@@ -724,8 +724,8 @@ function isColumnLeaf(data: any): boolean {
 }
 
 /**
- * 构建右键菜单�?
- * - 根据控制台配置和节点类型动态生�?
+ * 构建右键菜单项
+ * - 根据控制台配置和节点类型动态生成
  */
 function buildMenuItems(type): MenuItem[] {
   const allow = (p?: boolean) => Boolean(p);
@@ -735,7 +735,7 @@ function buildMenuItems(type): MenuItem[] {
     items.push({ key: "refresh-node", label: "刷新", icon: "ri:refresh-line" });
   }
   if (type?.includes("TABLE")) {
-    items.push({ key: "open-table", label: "打开�?, icon: "ri:table-2" });
+    items.push({ key: "open-table", label: "打开表", icon: "ri:table-2" });
   }
   if (
     allow(
@@ -744,7 +744,7 @@ function buildMenuItems(type): MenuItem[] {
   ) {
     items.push({
       key: "view-structure",
-      label: "查看表结�?,
+      label: "查看表结构",
       icon: "ri:table-2",
     });
   }
@@ -775,11 +775,11 @@ function buildMenuItems(type): MenuItem[] {
   ) {
     items.push({
       key: "copy-column-name",
-      label: "复制字段�?,
+      label: "复制字段名",
       icon: "ri:file-copy-line",
     });
   }
-  // 添加注释：仅在字段（叶子列）上显�?
+  // 添加注释：仅在字段（叶子列）上显示
   if (
     allow(consoleConfig.value.jdbc?.addFieldComment) &&
     contextNode.value &&
@@ -792,7 +792,7 @@ function buildMenuItems(type): MenuItem[] {
       icon: "ri:chat-new-line",
     });
   }
-  // SPI 能力：重命名�?/ 备份表（仅在表节点显示）
+  // SPI 能力：重命名表 / 备份表（仅在表节点显示）
   if (type.includes("TABLE")) {
     items.push({
       key: "rename-table",
@@ -801,7 +801,7 @@ function buildMenuItems(type): MenuItem[] {
     });
     items.push({
       key: "backup-table",
-      label: "备份�?,
+      label: "备份表",
       icon: "ri:database-2-line",
     });
   }
@@ -811,7 +811,7 @@ function buildMenuItems(type): MenuItem[] {
 const menuItems = ref<MenuItem[]>([]);
 
 /**
- * 处理树节点右键事件，展示上下文菜�?
+ * 处理树节点右键事件，展示上下文菜单
  */
 function handleNodeContextMenu(event: MouseEvent, data: any) {
   contextNode.value = data;
@@ -860,7 +860,7 @@ async function onMenuSelect(key: string) {
       if (!contextNode.value?.path) return;
       try {
         const { value } = await ElMessageBox.prompt(
-          "请输入新表名�?,
+          "请输入新表名：",
           "重命名表",
           { confirmButtonText: "确定", cancelButtonText: "取消",inputValue: contextNode.value.name }
         );
@@ -888,7 +888,7 @@ async function onMenuSelect(key: string) {
         const defaultName = `${contextNode.value.name}${yyyy}${mm}${dd}`;
         const { value } = await ElMessageBox.prompt(
           "请输入备份表名：",
-          "备份�?,
+          "备份表",
           { confirmButtonText: "确定", cancelButtonText: "取消", inputValue: defaultName }
         );
         if (!value || !value.trim()) return;
@@ -896,7 +896,7 @@ async function onMenuSelect(key: string) {
           nodePath: contextNode.value.path,
           backupName: value.trim(),
         });
-        ElMessage.success("已发起备�?);
+        ElMessage.success("已发起备份");
         refreshNodeChildren({
           path: contextNode.value.parentPath
         });
@@ -928,10 +928,10 @@ async function refreshNodeChildren(node: any) {
     const res = await getConsoleChildren(props.id, node?.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
     if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
-      // �?API 覆盖子节点，避免越刷越多
+      // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node?.path, records);
     } else {
-      // 兜底：直接覆盖数�?
+      // 兜底：直接覆盖数据
       node.children = records;
     }
     node.leaf = records.length === 0;
@@ -951,10 +951,10 @@ async function refreshContextNodeChildren() {
     const res = await getConsoleChildren(props.id, node.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
     if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
-      // �?API 覆盖子节点，避免越刷越多
+      // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node.path, records);
     } else {
-      // 兜底：直接覆盖数�?
+      // 兜底：直接覆盖数据
       node.children = records;
     }
     node.leaf = records.length === 0;
@@ -966,19 +966,19 @@ async function refreshContextNodeChildren() {
 }
 
 /**
- * 查看表结构（将返回内容放置到 SQL 编辑器中展示�?
+ * 查看表结构（将返回内容放置到 SQL 编辑器中展示）
  */
 async function viewTableStructure(node: any) {
   if (!node?.path) return;
   const res = await getConsoleNode(props.id, node.path, "structure");
   const detail = res?.data?.data || "";
-  // 简单展示：放到 editor �?
+  // 简单展示：放到 editor 中
   sql.value =
     typeof detail === "string" ? detail : JSON.stringify(detail, null, 2);
 }
 
 /**
- * 复制树节点名称（通常为表名或列名�?
+ * 复制树节点名称（通常为表名或列名）
  */
 async function copyTableName(node: any) {
   const name = node?.name || "";
@@ -999,9 +999,9 @@ async function copyCreateSql(node: any) {
 }
 
 /**
- * 为指定字段节点添加注�?
- * - 弹出输入�?
- * - 提交到后端保�?
+ * 为指定字段节点添加注释
+ * - 弹出输入框
+ * - 提交到后端保存
  */
 async function addFieldComment(node: any) {
   if (!node?.path) return;
@@ -1013,7 +1013,7 @@ async function addFieldComment(node: any) {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         inputType: "textarea",
-        inputPlaceholder: "请输入注�?..",
+        inputPlaceholder: "请输入注释...",
         inputValue: node?.properties?.comment || "",
       }
     );
@@ -1024,7 +1024,7 @@ async function addFieldComment(node: any) {
       dataType: node.properties?.dataType,
       nullable: node.properties?.nullable,
     });
-    ElMessage.success("已保存注�?);
+    ElMessage.success("已保存注释");
     node.properties.comment = value.trim();
   } catch (_) {
     // canceled
@@ -1096,7 +1096,7 @@ onMounted(async () => {
   max-width: 520px;
   overflow: hidden;
 
-  /* 拖拽分割�?*/
+  /* 拖拽分割条 */
   .splitter {
     width: 6px;
     cursor: col-resize;

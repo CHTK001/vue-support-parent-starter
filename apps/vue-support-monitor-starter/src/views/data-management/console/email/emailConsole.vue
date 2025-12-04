@@ -1,6 +1,6 @@
 <template>
   <div class="email-console">
-    <!-- 顶部工具�?-->
+    <!-- 顶部工具栏 -->
     <EmailHeader
       :setting-id="props.id"
       @compose="handleCompose"
@@ -12,7 +12,7 @@
 
     <!-- 主要内容区域 -->
     <div class="email-content">
-      <!-- 左侧导航�?-->
+      <!-- 左侧导航栏 -->
       <EmailSidebar
         ref="sidebarRef"
         :setting-id="props.id"
@@ -66,7 +66,7 @@
       </div>
     </div>
 
-    <!-- 发送状态提�?-->
+    <!-- 发送状态提示 -->
     <el-alert
       v-if="status"
       :title="status"
@@ -123,7 +123,7 @@ interface EmailCacheKey {
 const EMAIL_CACHE_PREFIX = "email_cache";
 const CACHE_EXPIRY_TIME = 5 * 60 * 1000; // 5分钟缓存过期时间
 
-// 生成缓存�?
+// 生成缓存键
 const generateCacheKey = (
   settingId: number,
   folderKey: string,
@@ -140,12 +140,12 @@ const generateFolderCacheKey = (
   return `${EMAIL_CACHE_PREFIX}_folder_${settingId}_${folderKey}`;
 };
 
-// 检查缓存是否过�?
+// 检查缓存是否过期
 const isCacheExpired = (timestamp: number): boolean => {
   return Date.now() - timestamp > CACHE_EXPIRY_TIME;
 };
 
-// 从缓存获取邮件数�?
+// 从缓存获取邮件数据
 const getEmailsFromCache = async (
   settingId: number,
   folderKey: string,
@@ -157,7 +157,7 @@ const getEmailsFromCache = async (
       await indexedDBProxy().getItem(cacheKey);
 
     if (cachedData && !isCacheExpired(cachedData.timestamp)) {
-      console.log("[邮件缓存] 从缓存加载邮件数�?, {
+      console.log("[邮件缓存] 从缓存加载邮件数据", {
         settingId,
         folderKey,
         pageNumber,
@@ -175,7 +175,7 @@ const getEmailsFromCache = async (
   }
 };
 
-// 保存邮件数据到缓�?
+// 保存邮件数据到缓存
 const saveEmailsToCache = async (
   settingId: number,
   folderKey: string,
@@ -198,7 +198,7 @@ const saveEmailsToCache = async (
 
     await indexedDBProxy().setItem(cacheKey, cacheData);
 
-    console.log("[邮件缓存] 保存邮件数据到缓�?, {
+    console.log("[邮件缓存] 保存邮件数据到缓存", {
       settingId,
       folderKey,
       pageNumber,
@@ -216,19 +216,19 @@ const clearExpiredCache = async (settingId: number): Promise<void> => {
   try {
     // 这里可以实现更复杂的缓存清理逻辑
     // 由于indexedDBProxy没有提供遍历所有键的方法，我们暂时跳过自动清理
-    console.log("[邮件缓存] 缓存清理功能待实�?);
+    console.log("[邮件缓存] 缓存清理功能待实现");
   } catch (error) {
     console.error("[邮件缓存] 清理缓存失败:", error);
   }
 };
 
-// 清理指定文件夹的所有缓�?
+// 清理指定文件夹的所有缓存
 const clearFolderCache = async (
   settingId: number,
   folderKey: string
 ): Promise<void> => {
   try {
-    // 清理前几页的缓存（假设最多缓�?0页）
+    // 清理前几页的缓存（假设最多缓存10页）
     const clearPromises = [];
     for (let page = 1; page <= 10; page++) {
       const cacheKey = generateCacheKey(settingId, folderKey, page);
@@ -237,18 +237,18 @@ const clearFolderCache = async (
 
     await Promise.all(clearPromises);
 
-    console.log("[邮件缓存] 清理文件夹缓�?, {
+    console.log("[邮件缓存] 清理文件夹缓存", {
       settingId,
       folderKey,
     });
   } catch (error) {
-    console.error("[邮件缓存] 清理文件夹缓存失�?", error);
+    console.error("[邮件缓存] 清理文件夹缓存失败:", error);
   }
 };
 
 const props = defineProps<{ id: number }>();
 
-// 使用全局Socket.IO或创建独立连�?
+// 使用全局Socket.IO或创建独立连接
 const globalSocket = inject<any>("globalSocket");
 let socketConnection: any = null;
 let unsubscribeHandlers: any[] = [];
@@ -257,7 +257,7 @@ let unsubscribeHandlers: any[] = [];
 const composeRef = ref(null);
 const sidebarRef = ref(null);
 
-// 界面状�?
+// 界面状态
 const selectedFolder = ref(null);
 const showCompose = ref(false);
 const activeFolder = ref("inbox");
@@ -284,12 +284,12 @@ interface EmailFolder {
   count: number;
 }
 
-// 邮箱文件�?
+// 邮箱文件夹
 const folders = ref<EmailFolder[]>([
-  // { key: "inbox", name: "收件�?, icon: "ri:inbox-line", count: 5 },
-  // { key: "sent", name: "已发�?, icon: "ri:send-plane-line", count: 0 },
-  // { key: "drafts", name: "草稿�?, icon: "ri:draft-line", count: 2 },
-  // { key: "trash", name: "垃圾�?, icon: "ri:delete-bin-line", count: 0 },
+  // { key: "inbox", name: "收件箱", icon: "ri:inbox-line", count: 5 },
+  // { key: "sent", name: "已发送", icon: "ri:send-plane-line", count: 0 },
+  // { key: "drafts", name: "草稿箱", icon: "ri:draft-line", count: 2 },
+  // { key: "trash", name: "垃圾箱", icon: "ri:delete-bin-line", count: 0 },
   // { key: "spam", name: "垃圾邮件", icon: "ri:spam-line", count: 0 }
 ]);
 
@@ -320,7 +320,7 @@ const emailListRef = ref(null);
 // 过滤邮件
 const filteredEmails = computed(() => {
   let result = emails.value.filter((email) => {
-    // 按标签过�?
+    // 按标签过滤
     // if (activeTag.value && !email.tags.includes(activeTag.value)) {
     //   return false;
     // }
@@ -350,7 +350,7 @@ async function selectFolder(folderKey: string) {
   activeTag.value = "";
   selectedEmail.value = null;
 
-  // 重置分页状�?
+  // 重置分页状态
   emailsPageNumber.value = 1;
   hasMore.value = true;
   loading.value = true;
@@ -392,7 +392,7 @@ async function selectFolder(folderKey: string) {
       });
     })
     .catch(async (e) => {
-      // 异步获取最新数�?
+      // 异步获取最新数据
       try {
         const res = await fetchEmailsObject(props.id, {
           folderName: folderKey,
@@ -411,7 +411,7 @@ async function selectFolder(folderKey: string) {
         hasMore.value = newHasMore;
         loading.value = false;
 
-        // 保存到缓�?
+        // 保存到缓存
         await saveEmailsToCache(
           props.id,
           folderKey,
@@ -421,7 +421,7 @@ async function selectFolder(folderKey: string) {
           newHasMore
         );
 
-        console.log("[邮件加载] 从服务器获取最新数�?, {
+        console.log("[邮件加载] 从服务器获取最新数据", {
           folderKey,
           emailsCount: newEmails.length,
           total: newTotal,
@@ -471,7 +471,7 @@ async function loadMoreEmails() {
     });
   }
 
-  // 异步获取最新分页数�?
+  // 异步获取最新分页数据
   try {
     const res = await fetchEmailsObject(props.id, {
       folderName: activeFolder.value,
@@ -488,7 +488,7 @@ async function loadMoreEmails() {
       emailsTotal.value;
     // 如果有缓存数据，需要替换对应的部分；如果没有缓存，直接追加
     if (cachedData) {
-      // 移除之前添加的缓存数据，添加最新数�?
+      // 移除之前添加的缓存数据，添加最新数据
       const emailsWithoutCache = emails.value.slice(
         0,
         emails.value.length - cachedData.emails.length
@@ -499,11 +499,11 @@ async function loadMoreEmails() {
       emails.value = [...emails.value, ...newEmails];
     }
 
-    // 更新状�?
+    // 更新状态
     hasMore.value = newHasMore;
     loadingMore.value = false;
 
-    // 保存到缓�?
+    // 保存到缓存
     await saveEmailsToCache(
       props.id,
       activeFolder.value,
@@ -513,7 +513,7 @@ async function loadMoreEmails() {
       newHasMore
     );
 
-    console.log("[邮件分页] 从服务器获取最新分页数�?, {
+    console.log("[邮件分页] 从服务器获取最新分页数据", {
       folderKey: activeFolder.value,
       pageNumber: emailsPageNumber.value,
       emailsCount: newEmails.length,
@@ -523,7 +523,7 @@ async function loadMoreEmails() {
   } catch (error) {
     console.error("加载更多邮件失败:", error);
 
-    // 如果没有缓存数据且网络请求失败，回退状�?
+    // 如果没有缓存数据且网络请求失败，回退状态
     if (!cachedData) {
       loadingMore.value = false;
       emailsPageNumber.value -= 1; // 回退页码
@@ -549,6 +549,7 @@ function selectEmail(email: any) {
   //   pageNumber: email.pageNumber,
   //   messageId: email.messageId
   // }).then(res => {
+  //   debugger;
   // });
   if (!email.read) {
     email.read = true;
@@ -563,14 +564,16 @@ const fetchMessageRead = async (email: any) => {
     command: "mark-read",
     pageNumber: email.pageNumber,
     messageId: email.messageId,
-  }).then((res) => {});
+  }).then((res) => {
+    debugger;
+  });
 };
 
 async function toggleStar(email: SystemDataEmailHistory) {
   const newStarred = !email.starred;
   const startTime = Date.now();
 
-  console.log("[邮件操作] 开始更新星标状�?, {
+  console.log("[邮件操作] 开始更新星标状态", {
     emailId: email.id,
     subject: email.subject,
     currentStarred: email.starred,
@@ -582,22 +585,22 @@ async function toggleStar(email: SystemDataEmailHistory) {
     //@ts-ignore
     await updateEmailStatus(props.id, { id: email.id, starred: newStarred });
 
-    // 更新本地状�?
+    // 更新本地状态
     //@ts-ignore
     email.starred = newStarred;
     updateFolderCount();
 
     const duration = Date.now() - startTime;
-    console.log("[邮件操作] 星标状态更新成�?, {
+    console.log("[邮件操作] 星标状态更新成功", {
       emailId: email.id,
       newStarred: newStarred,
       duration: `${duration}ms`,
       timestamp: new Date().toISOString(),
     });
 
-    ElMessage.success(newStarred ? "已添加星�? : "已取消星�?);
+    ElMessage.success(newStarred ? "已添加星标" : "已取消星标");
 
-    // 更新缓存中的邮件状�?
+    // 更新缓存中的邮件状态
     await clearFolderCache(props.id, activeFolder.value);
     console.log("[缓存更新] 星标状态更新后清理缓存", {
       folderKey: activeFolder.value,
@@ -615,7 +618,7 @@ async function toggleStar(email: SystemDataEmailHistory) {
       timestamp: new Date().toISOString(),
     };
 
-    console.error("[邮件操作] 星标状态更新失�?", errorInfo);
+    console.error("[邮件操作] 星标状态更新失败:", errorInfo);
     ElMessage.error(
       `${newStarred ? "添加" : "取消"}星标失败: ${error.message || "未知错误"}`
     );
@@ -636,7 +639,7 @@ async function deleteSelected() {
   }
 
   ElMessageBox.confirm(
-    `确定要删除选中�?${selectedEmails.length} 封邮件吗？`,
+    `确定要删除选中的 ${selectedEmails.length} 封邮件吗？`,
     "确认删除",
     {
       confirmButtonText: "确定",
@@ -657,7 +660,7 @@ async function deleteSelected() {
 
     // 清理相关缓存
     await clearFolderCache(props.id, activeFolder.value);
-    console.log("[缓存清理] 批量删除邮件后清理缓�?, {
+    console.log("[缓存清理] 批量删除邮件后清理缓存", {
       folderKey: activeFolder.value,
       deletedCount: selectedEmails.length,
     });
@@ -701,7 +704,7 @@ async function markAsRead() {
 
     await Promise.all(updatePromises);
 
-    // 更新本地状�?
+    // 更新本地状态
     unreadEmails.forEach((email) => {
       email.read = true;
     });
@@ -713,12 +716,12 @@ async function markAsRead() {
       timestamp: new Date().toISOString(),
     });
 
-    ElMessage.success(`已标�?${unreadEmails.length} 封邮件为已读`);
+    ElMessage.success(`已标记 ${unreadEmails.length} 封邮件为已读`);
     updateFolderCount();
 
-    // 更新缓存中的邮件状�?
+    // 更新缓存中的邮件状态
     await clearFolderCache(props.id, activeFolder.value);
-    console.log("[缓存更新] 标记已读后清理缓�?, {
+    console.log("[缓存更新] 标记已读后清理缓存", {
       folderKey: activeFolder.value,
       count: unreadEmails.length,
     });
@@ -759,7 +762,7 @@ async function refreshEmails() {
   statusType.value = "info";
 
   const startTime = Date.now();
-  console.log("[邮件同步] 开始同步邮�?, {
+  console.log("[邮件同步] 开始同步邮件", {
     timestamp: new Date().toISOString(),
     folder: selectedFolder.value,
     pagination: pagination.value,
@@ -771,12 +774,12 @@ async function refreshEmails() {
     const syncResult = await fetchEmails(props.id, activeFolder.value);
 
     if (syncResult.success) {
-      status.value = "邮件拉取成功，正在加�?..";
-      console.log("[邮件拉取] 服务器同步成�?, syncResult);
+      status.value = "邮件拉取成功，正在加载...";
+      console.log("[邮件拉取] 服务器同步成功", syncResult);
 
-      // 同步成功后清理缓存，确保下次加载最新数�?
+      // 同步成功后清理缓存，确保下次加载最新数据
       await clearFolderCache(props.id, activeFolder.value);
-      console.log("[缓存清理] 邮件同步成功后清理缓�?, {
+      console.log("[缓存清理] 邮件同步成功后清理缓存", {
         folderKey: activeFolder.value,
       });
     } else {
@@ -797,15 +800,15 @@ async function refreshEmails() {
 
     console.error("[邮件同步] 同步失败:", errorInfo);
 
-    // 根据错误类型提供不同的错误信�?
+    // 根据错误类型提供不同的错误信息
     let errorMessage = "邮件同步失败";
     if (error.message?.includes("网络")) {
-      errorMessage = "网络连接失败，请检查网络设�?;
+      errorMessage = "网络连接失败，请检查网络设置";
     } else if (
       error.message?.includes("认证") ||
       error.message?.includes("授权")
     ) {
-      errorMessage = "邮箱认证失败，请检查账号密�?;
+      errorMessage = "邮箱认证失败，请检查账号密码";
     } else if (error.message?.includes("超时")) {
       errorMessage = "连接超时，请稍后重试";
     } else if (error.message) {
@@ -818,7 +821,7 @@ async function refreshEmails() {
   } finally {
     loading.value = false;
 
-    // 清除状态提�?
+    // 清除状态提示
     setTimeout(() => {
       status.value = "";
     }, 5000);
@@ -842,7 +845,7 @@ function replyEmail() {
     to: selectedEmail.value.senderEmail,
     cc: "",
     subject: `Re: ${selectedEmail.value.subject}`,
-    content: `\n\n--- 原始邮件 ---\n发件�? ${selectedEmail.value.sender}\n时间: ${formatFullTime(selectedEmail.value.time)}\n主题: ${selectedEmail.value.subject}\n\n${selectedEmail.value.content.replace(/<[^>]*>/g, "")}`,
+    content: `\n\n--- 原始邮件 ---\n发件人: ${selectedEmail.value.sender}\n时间: ${formatFullTime(selectedEmail.value.time)}\n主题: ${selectedEmail.value.subject}\n\n${selectedEmail.value.content.replace(/<[^>]*>/g, "")}`,
   };
   showCompose.value = true;
 }
@@ -858,7 +861,7 @@ function forwardEmail() {
     to: "",
     cc: "",
     subject: `Fwd: ${selectedEmail.value.subject}`,
-    content: `\n\n--- 转发邮件 ---\n发件�? ${selectedEmail.value.sender}\n时间: ${formatFullTime(selectedEmail.value.time)}\n主题: ${selectedEmail.value.subject}\n\n${selectedEmail.value.content.replace(/<[^>]*>/g, "")}`,
+    content: `\n\n--- 转发邮件 ---\n发件人: ${selectedEmail.value.sender}\n时间: ${formatFullTime(selectedEmail.value.time)}\n主题: ${selectedEmail.value.subject}\n\n${selectedEmail.value.content.replace(/<[^>]*>/g, "")}`,
   };
   showCompose.value = true;
 }
@@ -866,7 +869,7 @@ function forwardEmail() {
 async function deleteEmail() {
   if (!selectedEmail.value) return;
 
-  ElMessageBox.confirm("确定要删除这封邮件吗�?, "确认删除", {
+  ElMessageBox.confirm("确定要删除这封邮件吗？", "确认删除", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
     type: "warning",
@@ -883,7 +886,7 @@ async function deleteEmail() {
 
     // 清理相关缓存
     await clearFolderCache(props.id, activeFolder.value);
-    console.log("[缓存清理] 删除邮件后清理缓�?, {
+    console.log("[缓存清理] 删除邮件后清理缓存", {
       folderKey: activeFolder.value,
     });
   });
@@ -891,7 +894,7 @@ async function deleteEmail() {
 
 async function sendEmail() {
   if (!composeForm.value.to || !composeForm.value.subject) {
-    ElMessage.warning("请填写收件人和主�?);
+    ElMessage.warning("请填写收件人和主题");
     return;
   }
 
@@ -903,7 +906,7 @@ async function sendEmail() {
     content: composeForm.value.content,
   };
 
-  console.log("[邮件发送] 开始发送邮�?, {
+  console.log("[邮件发送] 开始发送邮件", {
     to: emailData.to,
     cc: emailData.cc,
     subject: emailData.subject,
@@ -918,24 +921,24 @@ async function sendEmail() {
     const duration = Date.now() - startTime;
 
     if (res?.data?.success) {
-      console.log("[邮件发送] 邮件发送成�?, {
+      console.log("[邮件发送] 邮件发送成功", {
         to: emailData.to,
         subject: emailData.subject,
         duration: `${duration}ms`,
         timestamp: new Date().toISOString(),
       });
 
-      status.value = "邮件发送成�?;
+      status.value = "邮件发送成功";
       statusType.value = "success";
       showCompose.value = false;
       composeForm.value = { to: "", cc: "", subject: "", content: "" };
-      ElMessage.success("邮件发送成�?);
+      ElMessage.success("邮件发送成功");
 
       // 发送成功后刷新邮件列表
       refreshEmails();
     } else {
-      const errorMsg = res?.data?.msg || "邮件发送失�?;
-      console.error("[邮件发送] 邮件发送失�?, {
+      const errorMsg = res?.data?.msg || "邮件发送失败";
+      console.error("[邮件发送] 邮件发送失败", {
         to: emailData.to,
         subject: emailData.subject,
         error: errorMsg,
@@ -958,48 +961,48 @@ async function sendEmail() {
       timestamp: new Date().toISOString(),
     };
 
-    console.error("[邮件发送] 邮件发送异�?", errorInfo);
+    console.error("[邮件发送] 邮件发送异常:", errorInfo);
 
-    const errorMessage = `邮件发送失�? ${error.message || "未知错误"}`;
+    const errorMessage = `邮件发送失败: ${error.message || "未知错误"}`;
     status.value = errorMessage;
     statusType.value = "error";
     ElMessage.error(errorMessage);
   }
 
-  // 清除状态提�?
+  // 清除状态提示
   setTimeout(() => {
     status.value = "";
   }, 5000);
 }
 
 function saveDraft() {
-  ElMessage.success("草稿已保�?);
+  ElMessage.success("草稿已保存");
 }
 
-// 云同步处理函�?
+// 云同步处理函数
 async function handleCloudSync() {
   loading.value = true;
-  status.value = "正在进行云同�?..";
+  status.value = "正在进行云同步...";
   statusType.value = "info";
 
   try {
     const result = await syncEmails(props.id, activeFolder.value);
 
     if (result.success) {
-      status.value = "云同步成�?;
+      status.value = "云同步成功";
       statusType.value = "success";
-      ElMessage.success("云同步成�?);
+      ElMessage.success("云同步成功");
 
-      // 同步成功后刷新邮件列�?
+      // 同步成功后刷新邮件列表
       await refreshEmails();
     } else {
-      const errorMsg = result.msg || "云同步失�?;
+      const errorMsg = result.msg || "云同步失败";
       status.value = errorMsg;
       statusType.value = "error";
       ElMessage.error(errorMsg);
     }
   } catch (error) {
-    const errorMessage = `云同步失�? ${error.message || "未知错误"}`;
+    const errorMessage = `云同步失败: ${error.message || "未知错误"}`;
     status.value = errorMessage;
     statusType.value = "error";
     ElMessage.error(errorMessage);
@@ -1007,14 +1010,14 @@ async function handleCloudSync() {
   } finally {
     loading.value = false;
 
-    // 清除状态提�?
+    // 清除状态提示
     setTimeout(() => {
       status.value = "";
     }, 5000);
   }
 }
 
-// 云备份处理函�?
+// 云备份处理函数
 function handleCloudBackup() {
   // 创建文件输入元素
   const fileInput = document.createElement("input");
@@ -1040,7 +1043,7 @@ function handleCloudBackup() {
           `邮件备份成功: ${result.data?.filename || file.name}`
         );
 
-        // 备份成功后刷新邮件列�?
+        // 备份成功后刷新邮件列表
         await refreshEmails();
       } else {
         const errorMsg = result.msg || "邮件备份失败";
@@ -1057,7 +1060,7 @@ function handleCloudBackup() {
     } finally {
       loading.value = false;
 
-      // 清除状态提�?
+      // 清除状态提示
       setTimeout(() => {
         status.value = "";
       }, 5000);
@@ -1067,28 +1070,28 @@ function handleCloudBackup() {
     document.body.removeChild(fileInput);
   };
 
-  // 添加到DOM并触发点�?
+  // 添加到DOM并触发点击
   document.body.appendChild(fileInput);
   fileInput.click();
 }
 
 // 处理菜单清空事件
 function handleMenuCleared() {
-  console.log("[EmailConsole] 菜单数据已清空，将重新加�?);
+  console.log("[EmailConsole] 菜单数据已清空，将重新加载");
   loadRoot();
 }
 
 // 处理缓存清空事件
 function handleCacheCleared() {
-  console.log("[EmailConsole] 邮件缓存数据已清�?);
-  // 清空当前邮件列表，强制重新加�?
+  console.log("[EmailConsole] 邮件缓存数据已清空");
+  // 清空当前邮件列表，强制重新加载
   emails.value = [];
   emailsTotal.value = 0;
   emailsPageNumber.value = 1;
   hasMore.value = true;
   selectedEmail.value = null;
 
-  // 重置EmailList组件的滚动位�?
+  // 重置EmailList组件的滚动位置
   if (emailListRef.value?.resetScroll) {
     emailListRef.value.resetScroll();
   }
@@ -1187,14 +1190,14 @@ async function loadFromIndexedDB() {
   } catch (error) {
     console.error("[EmailConsole] 从IndexedDB加载菜单数据失败:", error);
   }
-  return false; // 表示需要从服务器加�?
+  return false; // 表示需要从服务器加载
 }
 
 onMounted(async () => {
   // 清理过期缓存
   await clearExpiredCache(props.id);
 
-  // 优先�?IndexedDB 加载数据
+  // 优先从 IndexedDB 加载数据
   loadFromIndexedDB();
 
   // 建立Socket.IO连接
@@ -1203,7 +1206,7 @@ onMounted(async () => {
       socketConnection = globalSocket;
       await socketConnection.connect?.();
     } else {
-      // 如果没有全局Socket.IO，创建独立连�?
+      // 如果没有全局Socket.IO，创建独立连接
       const config = getConfig();
       socketConnection = socket(splitToArray(config.SocketUrl), undefined, {});
     }
@@ -1213,43 +1216,43 @@ onMounted(async () => {
       console.log("[EmailConsole] 接收到新邮件消息");
       //设置数量
       folders.value.forEach((it) => {
-        if (it.name === "收件�? && message.folder == "INBOX") {
+        if(it.name === '收件箱' && message.folder == "INBOX") {
           it.count += 1;
           return;
         }
-        if (it.name == message.folder) {
+        if(it.name == message.folder) {
           it.count += 1;
         }
       });
-      const cacheKey = generateCacheKey(
+       const cacheKey = generateCacheKey(
         props.id,
-        message.folder == "INBOX" ? "收件�? : message.folder,
+        message.folder == "INBOX" ? "收件箱" : message.folder,
         emailsPageNumber.value
       );
       let emailBox = [];
       let emailBoxTotal = 0;
       indexedDBProxy()
-        .getItemAsync(cacheKey)
-        .then(async (cachedData) => {
+        .getItemAsync(cacheKey).then(async (cachedData) => {
           //@ts-ignore
           emailBox = cachedData?.emails || [];
           //@ts-ignore
           emailBoxTotal = cachedData?.total || 0;
-          emailBoxTotal++;
+          emailBoxTotal ++;
           emailBox.unshift(message);
 
           emails.value = emailBox;
           emailsTotal.value = emailBoxTotal;
-          // 保存到缓�?
+             // 保存到缓存
           await saveEmailsToCache(
-            props.id,
-            message.folder == "INBOX" ? "收件�? : message.folder,
-            emailsPageNumber.value,
-            emailBox,
-            emailBoxTotal,
-            hasMore.value
-          );
-        });
+              props.id,
+              message.folder == "INBOX" ? "收件箱" : message.folder,
+              emailsPageNumber.value,
+              emailBox,
+              emailBoxTotal,
+              hasMore.value
+            );
+      });
+
     };
 
     // 监听system/data/listen主题
@@ -1273,7 +1276,7 @@ onMounted(async () => {
     );
     if (unsubLog) unsubscribeHandlers.push(unsubLog);
 
-    console.log("[EmailConsole] Socket.IO连接已建�?);
+    console.log("[EmailConsole] Socket.IO连接已建立");
   } catch (error) {
     console.error("[EmailConsole] Socket.IO连接失败:", error);
   }
@@ -1282,7 +1285,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   // 清理Socket.IO连接
   try {
-    // 取消所有事件监�?
+    // 取消所有事件监听
     unsubscribeHandlers.forEach((unsubscribe) => {
       if (typeof unsubscribe === "function") {
         unsubscribe();
@@ -1296,7 +1299,7 @@ onBeforeUnmount(() => {
     }
 
     socketConnection = null;
-    console.log("[EmailConsole] Socket.IO连接已清�?);
+    console.log("[EmailConsole] Socket.IO连接已清理");
   } catch (error) {
     console.error("[EmailConsole] 清理Socket.IO连接失败:", error);
   }
@@ -1310,7 +1313,7 @@ onBeforeUnmount(() => {
   background: var(--el-bg-color-overlay);
 }
 
-/* 顶部工具�?*/
+/* 顶部工具栏 */
 .email-header {
   display: flex;
   justify-content: space-between;
@@ -1351,7 +1354,7 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-/* 左侧导航�?*/
+/* 左侧导航栏 */
 .email-sidebar {
   width: 240px;
   background: #fff;
@@ -1404,7 +1407,7 @@ onBeforeUnmount(() => {
 .folder-icon {
   font-size: 16px;
   margin-right: 8px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
 }
 
 .folder-item.active .folder-icon {
@@ -1557,7 +1560,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   margin-right: 8px;
   font-size: 14px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
 }
 
 .sender-avatar.large {
@@ -1590,7 +1593,7 @@ onBeforeUnmount(() => {
 
 .email-preview {
   font-size: 12px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1605,13 +1608,13 @@ onBeforeUnmount(() => {
 
 .email-time {
   font-size: 12px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
   white-space: nowrap;
 }
 
 .email-attachment {
   font-size: 14px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
 }
 
 .empty-state {
@@ -1620,7 +1623,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
 }
 
 .empty-icon {
@@ -1754,7 +1757,7 @@ onBeforeUnmount(() => {
 
 .sender-details .sender-email {
   font-size: 14px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
@@ -1797,7 +1800,7 @@ onBeforeUnmount(() => {
 
 .welcome-content {
   text-align: center;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
 }
 
 .welcome-icon {
@@ -1817,7 +1820,7 @@ onBeforeUnmount(() => {
   font-size: 14px;
 }
 
-/* 状态提�?*/
+/* 状态提示 */
 .status-alert {
   position: fixed;
   top: 80px;
@@ -1826,7 +1829,7 @@ onBeforeUnmount(() => {
   max-width: 400px;
 }
 
-/* 响应式设�?*/
+/* 响应式设计 */
 @media (max-width: 1200px) {
   .email-sidebar {
     width: 200px;
@@ -1858,7 +1861,7 @@ onBeforeUnmount(() => {
   }
 }
 
-/* 滚动条样�?*/
+/* 滚动条样式 */
 .email-sidebar::-webkit-scrollbar,
 .list-content::-webkit-scrollbar,
 .detail-content::-webkit-scrollbar,

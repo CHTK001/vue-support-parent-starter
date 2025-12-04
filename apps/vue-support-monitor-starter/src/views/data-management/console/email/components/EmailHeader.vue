@@ -2,13 +2,13 @@
   <div class="email-header">
     <div class="header-left">
       <IconifyIconOnline icon="ri:mail-line" class="email-icon" />
-      <h2 class="email-title">邮箱控制�?/h2>
+      <h2 class="email-title">邮箱控制台</h2>
     </div>
     <div class="header-right">
       <el-button :icon="useRenderIcon('ri:refresh-line')" @click="handleRefresh">刷新</el-button>
       <!--<el-button type="primary" :icon="useRenderIcon('ri:add-line')" @click="handleCompose">撰写邮件</el-button>
-      <el-button type="success" :icon="useRenderIcon('ri:cloud-line')" @click="handleCloudSync">云同�?/el-button>
-      <el-button type="warning" :icon="useRenderIcon('ri:upload-cloud-line')" @click="handleCloudBackup">云备�?/el-button>-->
+      <el-button type="success" :icon="useRenderIcon('ri:cloud-line')" @click="handleCloudSync">云同步</el-button>
+      <el-button type="warning" :icon="useRenderIcon('ri:upload-cloud-line')" @click="handleCloudBackup">云备份</el-button>-->
     </div>
   </div>
 </template>
@@ -49,8 +49,8 @@ async function clearMenuFromDB(settingId: number) {
 async function clearEmailCacheFromDB(settingId: number) {
   try {
     const EMAIL_CACHE_PREFIX = "email_cache";
-    // 清理前几页的缓存（假设最多缓�?0页，支持多个文件夹）
-    const folders = ["INBOX","收件�?, "草稿�?, "已发�?, "已删�?, "垃圾邮件", "病毒文件�?, "广告邮件", "订阅邮件"];
+    // 清理前几页的缓存（假设最多缓存10页，支持多个文件夹）
+    const folders = ["INBOX","收件箱", "草稿箱", "已发送", "已删除", "垃圾邮件", "病毒文件夹", "广告邮件", "订阅邮件"];
     const clearPromises = [];
 
     for (const folder of folders) {
@@ -58,7 +58,7 @@ async function clearEmailCacheFromDB(settingId: number) {
         const cacheKey = `${EMAIL_CACHE_PREFIX}_${settingId}_${folder}_${page}`;
         clearPromises.push(indexedDBProxy().removeItem(cacheKey));
       }
-      // 也清理文件夹级别的缓�?
+      // 也清理文件夹级别的缓存
       const folderCacheKey = `${EMAIL_CACHE_PREFIX}_folder_${settingId}_${folder}`;
       clearPromises.push(indexedDBProxy().removeItem(folderCacheKey));
     }
@@ -78,7 +78,7 @@ function handleCompose() {
 }
 
 async function handleRefresh() {
-  // 如果有settingId，先清空IndexedDB中的菜单数据和邮件缓存数�?
+  // 如果有settingId，先清空IndexedDB中的菜单数据和邮件缓存数据
   if (props.settingId) {
     const menuCleared = await clearMenuFromDB(props.settingId);
     const cacheCleared = await clearEmailCacheFromDB(props.settingId);

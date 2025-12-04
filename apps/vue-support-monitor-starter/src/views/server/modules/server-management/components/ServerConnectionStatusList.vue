@@ -58,12 +58,12 @@
       </el-row>
     </div>
 
-    <!-- 工具�?-->
+    <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
         <el-button type="primary" @click="handleCheckAll" :loading="checkingAll">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          检查所有连�?
+          检查所有连接
         </el-button>
         
         <el-button @click="handleRefresh">
@@ -75,20 +75,20 @@
       <div class="toolbar-right">
         <el-select
           v-model="filterStatus"
-          placeholder="连接状�?
+          placeholder="连接状态"
           clearable
           style="width: 120px"
           @change="handleFilter"
         >
           <el-option label="在线" :value="CONNECTION_STATUS.CONNECTED" />
           <el-option label="离线" :value="CONNECTION_STATUS.DISCONNECTED" />
-          <el-option label="连接�? :value="CONNECTION_STATUS.CONNECTING" />
+          <el-option label="连接中" :value="CONNECTION_STATUS.CONNECTING" />
           <el-option label="异常" :value="CONNECTION_STATUS.ERROR" />
         </el-select>
         
         <el-input
           v-model="searchKeyword"
-          placeholder="搜索服务�?.."
+          placeholder="搜索服务器..."
           clearable
           style="width: 200px; margin-left: 12px"
           @input="handleSearch"
@@ -100,7 +100,7 @@
       </div>
     </div>
 
-    <!-- 连接状态表�?-->
+    <!-- 连接状态表格 -->
     <el-table
       v-loading="loading"
       :data="paginatedConnectionStatusList"
@@ -109,7 +109,7 @@
     >
       <el-table-column type="selection" width="55" />
       
-      <el-table-column label="服务器信�? min-width="200">
+      <el-table-column label="服务器信息" min-width="200">
         <template #default="{ row }">
           <div class="server-info">
             <div class="server-name">
@@ -121,7 +121,7 @@
         </template>
       </el-table-column>
       
-      <el-table-column label="连接状�? width="120" align="center">
+      <el-table-column label="连接状态" width="120" align="center">
         <template #default="{ row }">
           <el-tag
             :type="getConnectionStatusColor(row.monitorSysGenServerConnectionStatus)"
@@ -146,7 +146,7 @@
         </template>
       </el-table-column>
       
-      <el-table-column label="最后测试时�? width="160" align="center">
+      <el-table-column label="最后测试时间" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerConnectionTestTime">
             {{ formatDateTime(row.monitorSysGenServerConnectionTestTime) }}
@@ -155,7 +155,7 @@
         </template>
       </el-table-column>
       
-      <el-table-column label="最后成功时�? width="160" align="center">
+      <el-table-column label="最后成功时间" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerConnectionLastSuccessTime">
             {{ formatDateTime(row.monitorSysGenServerConnectionLastSuccessTime) }}
@@ -175,7 +175,7 @@
           <span v-if="row.monitorSysGenServerConnectionError" class="error-text">
             {{ row.monitorSysGenServerConnectionError }}
           </span>
-          <span v-else class="text-muted">�?/span>
+          <span v-else class="text-muted">无</span>
         </template>
       </el-table-column>
       
@@ -219,18 +219,18 @@
       />
     </div>
 
-    <!-- 连接趋势对话�?-->
+    <!-- 连接趋势对话框 -->
     <el-dialog
       v-model="trendDialogVisible"
-      title="连接状态趋�?
+      title="连接状态趋势"
       width="80%"
       destroy-on-close
     >
       <div v-if="trendData.length > 0" class="trend-chart">
         <!-- 这里可以集成图表组件显示趋势数据 -->
         <div class="chart-placeholder">
-          <p>连接状态趋势图�?/p>
-          <p>数据点数�? {{ trendData.length }}</p>
+          <p>连接状态趋势图表</p>
+          <p>数据点数量: {{ trendData.length }}</p>
         </div>
       </div>
       <el-empty v-else description="暂无趋势数据" />
@@ -265,14 +265,14 @@ const emit = defineEmits<{
   batchTest: [servers: any[]];
 }>();
 
-// 响应式状�?
+// 响应式状态
 const loading = ref(false);
 const checkingAll = ref(false);
 const connectionStatusList = ref<any[]>([]);
 const selectedConnections = ref<any[]>([]);
 const testingServers = ref(new Set<number>());
 
-// 搜索和筛�?
+// 搜索和筛选
 const searchKeyword = ref("");
 const filterStatus = ref("");
 
@@ -293,15 +293,15 @@ const statistics = reactive<ConnectionStatusStatistics>({
   connectionSuccessRate: 0,
 });
 
-// 趋势对话�?
+// 趋势对话框
 const trendDialogVisible = ref(false);
 const trendData = ref<any[]>([]);
 
-// 计算属�?
+// 计算属性
 const filteredConnectionStatusList = computed(() => {
   let result = connectionStatusList.value;
 
-  // 按状态筛�?
+  // 按状态筛选
   if (filterStatus.value !== "") {
     result = result.filter(item =>
       item.monitorSysGenServerConnectionStatus === filterStatus.value
@@ -327,7 +327,7 @@ const paginatedConnectionStatusList = computed(() => {
 });
 
 /**
- * 加载连接状态列�?
+ * 加载连接状态列表
  */
 const loadConnectionStatusList = async () => {
   try {
@@ -337,8 +337,8 @@ const loadConnectionStatusList = async () => {
       connectionStatusList.value = res.data || [];
     }
   } catch (error) {
-    console.error("加载连接状态失�?", error);
-    message.error("加载连接状态失�?);
+    console.error("加载连接状态失败:", error);
+    message.error("加载连接状态失败");
   } finally {
     loading.value = false;
   }
@@ -371,7 +371,7 @@ const getProtocolIcon = (protocol: string) => {
 };
 
 /**
- * 格式化日期时�?
+ * 格式化日期时间
  */
 const formatDateTime = (dateTime: string) => {
   return new Date(dateTime).toLocaleString();
@@ -385,7 +385,7 @@ const handleSearch = () => {
 };
 
 /**
- * 处理筛�?
+ * 处理筛选
  */
 const handleFilter = () => {
   pagination.page = 1;
@@ -400,7 +400,7 @@ const handleRefresh = () => {
 };
 
 /**
- * 处理检查所有连�?
+ * 处理检查所有连接
  */
 const handleCheckAll = async () => {
   try {
@@ -414,11 +414,11 @@ const handleCheckAll = async () => {
         loadStatistics();
       }, 2000);
     } else {
-      message.error(`检查失�? ${res.msg}`);
+      message.error(`检查失败: ${res.msg}`);
     }
   } catch (error) {
-    console.error("检查所有连接失�?", error);
-    message.error("检查所有连接失�?);
+    console.error("检查所有连接失败:", error);
+    message.error("检查所有连接失败");
   } finally {
     checkingAll.value = false;
   }
@@ -472,7 +472,7 @@ const handleViewTrend = async (connection: any) => {
 };
 
 /**
- * 处理重置连接状�?
+ * 处理重置连接状态
  */
 const handleReset = async (connection: any) => {
   try {
@@ -488,15 +488,15 @@ const handleReset = async (connection: any) => {
 
     const res = await resetServerConnectionStatus(connection.monitorSysGenServerId);
     if (res.code === "00000") {
-      message.success("连接状态重置成�?);
+      message.success("连接状态重置成功");
       loadConnectionStatusList();
     } else {
       message.error(`重置失败: ${res.msg}`);
     }
   } catch (error) {
     if (error !== "cancel") {
-      console.error("重置连接状态失�?", error);
-      message.error("重置连接状态失�?);
+      console.error("重置连接状态失败:", error);
+      message.error("重置连接状态失败");
     }
   }
 };
@@ -510,7 +510,7 @@ const handleSizeChange = (size: number) => {
 };
 
 /**
- * 处理当前页变�?
+ * 处理当前页变化
  */
 const handleCurrentChange = (page: number) => {
   pagination.page = page;

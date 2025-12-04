@@ -1,15 +1,15 @@
 <template>
   <el-dialog v-model="visibleProxy" title="安装容器" width="800px" :show-close="true" @close="handleClose" class="install-wizard-dialog">
-    <!-- 步骤�?-->
+    <!-- 步骤条-->
     <el-steps :active="currentStep" finish-status="success" align-center class="wizard-steps">
-      <el-step title="基本信息" description="容器名称和运行配�? />
+      <el-step title="基本信息" description="容器名称和运行配? />
       <el-step title="端口映射" description="配置端口转发" />
       <el-step title="环境变量" description="设置环境参数" />
-      <el-step title="数据�? description="挂载存储目录" />
+      <el-step title="数据? description="挂载存储目录" />
     </el-steps>
 
     <div class="wizard-content">
-      <!-- 步骤1：基本信�?-->
+      <!-- 步骤1：基本信?-->
       <div v-show="currentStep === 0" class="step-content">
         <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
           <el-form-item label="镜像">
@@ -21,42 +21,42 @@
           </el-form-item>
 
           <el-form-item label="容器名称" prop="containerName">
-            <el-input v-model="form.containerName" placeholder="请输入容器名称（如：my-nginx�? clearable />
+            <el-input v-model="form.containerName" placeholder="请输入容器名称（如：my-nginx? clearable />
           </el-form-item>
 
-          <el-form-item label="主机�?>
+          <el-form-item label="主机?>
             <el-input v-model="form.hostname" placeholder="容器主机名（可选）" clearable />
           </el-form-item>
 
           <el-form-item label="后台运行">
             <el-switch v-model="form.detached" />
-            <span class="form-tip">启用后容器将在后台运�?/span>
+            <span class="form-tip">启用后容器将在后台运?/span>
           </el-form-item>
 
-          <el-form-item label="创建后启�?>
+          <el-form-item label="创建后启?>
             <el-switch v-model="form.autoStart" />
           </el-form-item>
 
           <el-form-item label="重启策略">
             <el-select v-model="form.restartPolicy" placeholder="选择重启策略" style="width: 100%;">
-              <el-option label="不重�? value="no" />
+              <el-option label="不重? value="no" />
               <el-option label="总是重启" value="always" />
-              <el-option label="失败时重�? value="on-failure" />
+              <el-option label="失败时重? value="on-failure" />
               <el-option label="除非手动停止" value="unless-stopped" />
             </el-select>
           </el-form-item>
 
           <el-form-item label="网络模式">
             <el-select v-model="form.networkMode" placeholder="选择网络模式" style="width: 100%;">
-              <el-option label="桥接（bridge�? value="bridge" />
-              <el-option label="主机（host�? value="host" />
-              <el-option label="无网络（none�? value="none" />
+              <el-option label="桥接（bridge? value="bridge" />
+              <el-option label="主机（host? value="host" />
+              <el-option label="无网络（none? value="none" />
             </el-select>
           </el-form-item>
         </el-form>
       </div>
 
-      <!-- 步骤2：端口映�?-->
+      <!-- 步骤2：端口映?-->
       <div v-show="currentStep === 1" class="step-content">
         <div class="step-header">
           <h4>端口映射配置</h4>
@@ -88,7 +88,7 @@
         </div>
       </div>
 
-      <!-- 步骤3：环境变�?-->
+      <!-- 步骤3：环境变?-->
       <div v-show="currentStep === 2" class="step-content">
         <div class="step-header">
           <h4>环境变量配置</h4>
@@ -96,11 +96,11 @@
         </div>
         <div class="env-vars">
           <div v-for="(env, index) in form.envVars" :key="index" class="mapping-row">
-            <el-input v-model="env.name" placeholder="变量�? class="env-input">
+            <el-input v-model="env.name" placeholder="变量? class="env-input">
               <template #prepend>KEY</template>
             </el-input>
             <span class="mapping-arrow">=</span>
-            <el-input v-model="env.value" placeholder="变量�? class="env-input">
+            <el-input v-model="env.value" placeholder="变量? class="env-input">
               <template #prepend>VALUE</template>
             </el-input>
             <el-button type="danger" circle @click="removeEnvVar(index)">
@@ -117,8 +117,8 @@
       <!-- 步骤4：数据卷 -->
       <div v-show="currentStep === 3" class="step-content">
         <div class="step-header">
-          <h4>数据卷挂�?/h4>
-          <p class="step-desc">将主机目录挂载到容器内，实现数据持久�?/p>
+          <h4>数据卷挂?/h4>
+          <p class="step-desc">将主机目录挂载到容器内，实现数据持久?/p>
         </div>
         <div class="volume-mounts">
           <div v-for="(volume, index) in form.volumeMounts" :key="index" class="mapping-row">
@@ -138,7 +138,7 @@
           </div>
           <el-button type="primary" plain @click="addVolumeMount" class="add-btn">
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-            添加数据�?
+            添加数据?
           </el-button>
         </div>
       </div>
@@ -155,15 +155,15 @@
         <el-button @click="visibleProxy = false" :disabled="installing">取消</el-button>
         <el-button v-if="currentStep > 0" @click="prevStep" :disabled="installing">
           <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
-          上一�?
+          上一?
         </el-button>
         <el-button v-if="currentStep < 3" type="primary" @click="nextStep">
-          下一�?
+          下一?
           <IconifyIconOnline icon="ri:arrow-right-line" class="ml-1" />
         </el-button>
         <el-button v-else type="primary" :loading="installing" @click="submit">
           <IconifyIconOnline icon="ri:play-circle-line" class="mr-1" v-if="!installing" />
-          {{ installing ? '创建�?..' : '创建容器' }}
+          {{ installing ? '创建?..' : '创建容器' }}
         </el-button>
       </div>
     </template>
@@ -179,7 +179,7 @@ import { useDockerOperationStore } from '@/stores/dockerOperation';
 
 /**
  * 容器安装向导组件
- * 步骤式引导用户配置容器参�?
+ * 步骤式引导用户配置容器参?
  * @author CH
  * @version 1.0.0
  * @since 2025-12-01
@@ -226,12 +226,12 @@ const form = ref({
 
 const rules: FormRules = {
   containerName: [
-    { required: true, message: '请输入容器名�?, trigger: 'blur' },
-    { pattern: /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/, message: '容器名称只能包含字母、数字、下划线、点和横�?, trigger: 'blur' }
+    { required: true, message: '请输入容器名?, trigger: 'blur' },
+    { pattern: /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/, message: '容器名称只能包含字母、数字、下划线、点和横?, trigger: 'blur' }
   ]
 };
 
-// 监听对话框打开，重置表�?
+// 监听对话框打开，重置表?
 watch(() => props.visible, (val) => {
   if (val) {
     resetForm();
@@ -258,17 +258,17 @@ const resetForm = () => {
   };
 };
 
-// 上一�?
+// 上一?
 const prevStep = () => {
   if (currentStep.value > 0) {
     currentStep.value--;
   }
 };
 
-// 下一�?
+// 下一?
 const nextStep = async () => {
   if (currentStep.value === 0) {
-    // 验证第一步表�?
+    // 验证第一步表?
     if (!formRef.value) return;
     try {
       await formRef.value.validate();
@@ -299,7 +299,7 @@ const removeEnvVar = (index: number) => {
   form.value.envVars.splice(index, 1);
 };
 
-// 数据卷操�?
+// 数据卷操?
 const addVolumeMount = () => {
   form.value.volumeMounts.push({ hostPath: '', containerPath: '', readOnly: false });
 };
@@ -308,7 +308,7 @@ const removeVolumeMount = (index: number) => {
   form.value.volumeMounts.splice(index, 1);
 };
 
-// 关闭对话�?
+// 关闭对话?
 const handleClose = () => {
   if (!installing.value) {
     visibleProxy.value = false;
@@ -326,7 +326,7 @@ const submit = async () => {
   installProgress.value = 10;
   installMessage.value = '正在准备创建容器...';
 
-  // 添加到操作监�?
+  // 添加到操作监?
   const operationId = operationStore.addOperation({
     type: 'create',
     title: `创建容器 ${form.value.containerName}`,
@@ -370,7 +370,7 @@ const submit = async () => {
     if (res.code === '00000') {
       installProgress.value = 100;
       installStatus.value = 'success';
-      installMessage.value = '容器创建成功�?;
+      installMessage.value = '容器创建成功?;
       
       operationStore.completeOperation(operationId);
       

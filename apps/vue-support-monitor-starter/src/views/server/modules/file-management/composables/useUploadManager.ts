@@ -3,7 +3,7 @@ import type { UploadQueueStatus } from "@/api/monitor/filesystem";
 
 export interface UploadTask {
   id: number;
-  name: string; // 文件�?+ 目标标识
+  name: string; // 文件名 + 目标标识
   run: (
     signal: AbortSignal,
     onProgress: (percent: number) => Promise<void> | void
@@ -13,7 +13,7 @@ export interface UploadTask {
 
 interface Options {
   concurrency?: number;
-  maxRetries?: number; // 默认2�?
+  maxRetries?: number; // 默认2次
   queueMap: Map<number, UploadQueueStatus>;
 }
 
@@ -57,12 +57,12 @@ export function useUploadManager(opts: Options) {
     running.set(task.id, { task, controller, retries: 0 });
     setQueueItem(task.id, {
       status: "uploading",
-      message: "开始上�?,
+      message: "开始上传",
       progress: 0,
     });
 
     const onProgress = (p: number) =>
-      setQueueItem(task.id, { progress: p, message: `已上�?${p}%` });
+      setQueueItem(task.id, { progress: p, message: `已上传 ${p}%` });
 
     try {
       await task.run(controller.signal, onProgress);
@@ -74,16 +74,16 @@ export function useUploadManager(opts: Options) {
     } catch (e: any) {
       // 若被取消
       if (controller.signal.aborted) {
-        setQueueItem(task.id, { status: "failed", message: "已取�? });
+        setQueueItem(task.id, { status: "failed", message: "已取消" });
       } else {
         const rec = running.get(task.id);
         if (rec && rec.retries < maxRetries) {
           rec.retries += 1;
           setQueueItem(task.id, {
             status: "uploading",
-            message: `重试�?${rec.retries} 次`,
+            message: `重试第 ${rec.retries} 次`,
           });
-          // 指数退�?
+          // 指数退避
           await new Promise((r) =>
             setTimeout(r, Math.min(2000 * rec.retries, 8000))
           );
@@ -142,7 +142,7 @@ export function useUploadManager(opts: Options) {
   }
 
   function pauseAll() {
-    // 通过取消当前请求达到暂停效果，未开始的任务保留�?waiting
+    // 通过取消当前请求达到暂停效果，未开始的任务保留在 waiting
     for (const { controller } of running.values()) {
       controller.abort();
     }
@@ -156,15 +156,15 @@ export function useUploadManager(opts: Options) {
     const r = running.get(id);
     if (r) {
       r.controller.abort();
-      setQueueItem(id, { status: "failed", message: "已取�? });
+      setQueueItem(id, { status: "failed", message: "已取消" });
       running.delete(id);
       pump();
       return;
     }
-    // 若在等待队列，直接移�?
+    // 若在等待队列，直接移除
     const idx = waiting.findIndex((t) => t.id === id);
     if (idx >= 0) waiting.splice(idx, 1);
-    setQueueItem(id, { status: "failed", message: "已取�? });
+    setQueueItem(id, { status: "failed", message: "已取消" });
   }
 
   function cancelAll() {

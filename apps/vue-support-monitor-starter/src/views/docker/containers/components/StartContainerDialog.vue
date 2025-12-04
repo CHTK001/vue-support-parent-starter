@@ -80,13 +80,13 @@
           >
             <el-input
               v-model="env.key"
-              placeholder="变量�?
+              placeholder="变量名"
               style="width: 200px"
             />
             <span class="env-separator">=</span>
             <el-input
               v-model="env.value"
-              placeholder="变量�?
+              placeholder="变量值"
               style="width: 200px"
             />
             <el-button
@@ -142,9 +142,9 @@
         
         <el-form-item label="重启策略">
           <el-select v-model="form.restartPolicy" style="width: 200px">
-            <el-option label="不重�? value="no" />
+            <el-option label="不重启" value="no" />
             <el-option label="总是重启" value="always" />
-            <el-option label="异常时重�? value="on-failure" />
+            <el-option label="异常时重启" value="on-failure" />
             <el-option label="除非手动停止" value="unless-stopped" />
           </el-select>
         </el-form-item>
@@ -169,7 +169,7 @@
           <el-select v-model="form.networkMode" style="width: 200px">
             <el-option label="桥接" value="bridge" />
             <el-option label="主机" value="host" />
-            <el-option label="无网�? value="none" />
+            <el-option label="无网络" value="none" />
             <el-option label="容器网络" value="container" />
           </el-select>
         </el-form-item>
@@ -180,7 +180,7 @@
         
         <el-form-item label="自动删除">
           <el-switch v-model="form.autoRemove" />
-          <div class="form-tip">容器停止后自动删�?/div>
+          <div class="form-tip">容器停止后自动删除</div>
         </el-form-item>
       </div>
     </el-form>
@@ -248,7 +248,7 @@ const form = reactive({
 
 const rules: FormRules = {
   containerName: [
-    { pattern: /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/, message: '容器名称格式不正�?, trigger: 'blur' }
+    { pattern: /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/, message: '容器名称格式不正确', trigger: 'blur' }
   ]
 }
 
@@ -326,14 +326,14 @@ const handleSubmit = async () => {
     
     const response = await containerApi.startContainer(params)
     if (response.code === '00000') {
-      // 开始监听启动进�?
+      // 开始监听启动进度
       if (response.data?.operationId) {
         // ProgressMonitor会自动监听并显示进度
         // 等待一小段时间让Socket事件传播
         setTimeout(() => emit('success'), 1000)
       }
       
-      ElMessage.success('容器启动任务已创建，请查看进�?)
+      ElMessage.success('容器启动任务已创建，请查看进度')
       emit('success')
       handleClose()
     } else {

@@ -40,11 +40,11 @@
             <el-radio-group v-model="form.syncType">
               <el-radio label="popular">热门软件</el-radio>
               <el-radio label="official">官方镜像</el-radio>
-              <el-radio label="custom">自定义搜�?/el-radio>
+              <el-radio label="custom">自定义搜索</el-radio>
             </el-radio-group>
           </el-form-item>
           
-          <el-form-item v-if="form.syncType === 'custom'" label="搜索关键�?>
+          <el-form-item v-if="form.syncType === 'custom'" label="搜索关键词">
             <el-input
               v-model="form.searchKeywords"
               placeholder="输入要搜索的软件关键词，多个关键词用逗号分隔"
@@ -82,8 +82,8 @@
           
           <el-form-item label="覆盖策略">
             <el-radio-group v-model="form.overwritePolicy">
-              <el-radio label="skip">跳过已存�?/el-radio>
-              <el-radio label="update">更新已存�?/el-radio>
+              <el-radio label="skip">跳过已存在</el-radio>
+              <el-radio label="update">更新已存在</el-radio>
               <el-radio label="merge">合并信息</el-radio>
             </el-radio-group>
             <div class="form-tip">
@@ -99,7 +99,7 @@
               style="width: 200px"
             />
             <div class="form-tip">
-              同时同步的软件数量，建议不超�?�?
+              同时同步的软件数量，建议不超过5个
             </div>
           </el-form-item>
           
@@ -111,9 +111,9 @@
               :step="30"
               style="width: 200px"
             />
-            <span style="margin-left: 8px;">�?/span>
+            <span style="margin-left: 8px;">秒</span>
             <div class="form-tip">
-              单个软件信息同步的超时时�?
+              单个软件信息同步的超时时间
             </div>
           </el-form-item>
         </div>
@@ -124,15 +124,15 @@
         <div class="section-title">同步预览</div>
         <div class="preview-info">
           <div class="preview-item">
-            <span class="preview-label">选择仓库�?/span>
+            <span class="preview-label">选择仓库：</span>
             <span class="preview-value">{{ getSelectedRegistryNames() }}</span>
           </div>
           <div class="preview-item">
-            <span class="preview-label">同步类型�?/span>
+            <span class="preview-label">同步类型：</span>
             <span class="preview-value">{{ getSyncTypeText() }}</span>
           </div>
           <div class="preview-item">
-            <span class="preview-label">预计数量�?/span>
+            <span class="preview-label">预计数量：</span>
             <span class="preview-value">{{ getEstimatedCount() }}</span>
           </div>
         </div>
@@ -143,7 +143,7 @@
       <span class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
         <el-button type="primary" @click="handleSubmit" :loading="loading">
-          开始同�?
+          开始同步
         </el-button>
       </span>
     </template>
@@ -184,7 +184,7 @@ const form = reactive({
 
 const rules: FormRules = {
   registryIds: [
-    { required: true, message: '请选择至少一个镜像仓�?, trigger: 'change' }
+    { required: true, message: '请选择至少一个镜像仓库', trigger: 'change' }
   ]
 }
 
@@ -215,9 +215,9 @@ const loadData = async () => {
 const getRegistryTypeText = (type?: string) => {
   const map = {
     docker_hub: 'Docker Hub',
-    aliyun: '阿里�?,
+    aliyun: '阿里云',
     harbor: 'Harbor',
-    custom: '自定�?
+    custom: '自定义'
   }
   return map[type] || '未知'
 }
@@ -235,7 +235,7 @@ const getSyncTypeText = () => {
   const map = {
     popular: '热门软件',
     official: '官方镜像',
-    custom: '自定义搜�?
+    custom: '自定义搜索'
   }
   return map[form.syncType] || '未知'
 }
@@ -247,10 +247,10 @@ const getEstimatedCount = () => {
   let baseCount = form.limitCount
   if (form.syncType === 'custom' && form.searchKeywords) {
     const keywordCount = form.searchKeywords.split(',').filter(k => k.trim()).length
-    baseCount = Math.min(baseCount, keywordCount * 10) // 每个关键词预�?0个结�?
+    baseCount = Math.min(baseCount, keywordCount * 10) // 每个关键词预计10个结果
   }
   
-  return `�?${registryCount * baseCount} 个软件`
+  return `约 ${registryCount * baseCount} 个软件`
 }
 
 const handleSubmit = async () => {
@@ -274,7 +274,7 @@ const handleSubmit = async () => {
     
     const response = await softwareApi.syncSoftwareFromRegistry(params)
     if (response.code === '00000') {
-      // 开始监听同步进�?
+      // 开始监听同步进度
       if (response.data?.operationId) {
         startOperation({
           id: response.data.operationId,
@@ -294,7 +294,7 @@ const handleSubmit = async () => {
         })
       }
       
-      ElMessage.success('软件同步任务已启动，请查看进�?)
+      ElMessage.success('软件同步任务已启动，请查看进度')
       emit('success')
       handleClose()
     } else {

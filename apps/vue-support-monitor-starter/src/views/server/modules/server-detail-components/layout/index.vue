@@ -1,13 +1,13 @@
 <template>
   <div class="server-detail-layout h-full">
-    <!-- 空状态展�?-->
-    <el-empty v-if="!localData.serverId" class="h-full" description="请选择服务�? />
+    <!-- 空状态展示 -->
+    <el-empty v-if="!localData.serverId" class="h-full" description="请选择服务器" />
 
-    <!-- 主内容区�?-->
+    <!-- 主内容区域 -->
     <div v-else class="server-content h-full">
-      <!-- 顶部信息�?-->
+      <!-- 顶部信息栏 -->
       <div class="server-header">
-        <!-- 服务器信�?-->
+        <!-- 服务器信息 -->
         <div class="server-header__info">
           <IconifyIconOnline icon="ri:server-line" class="server-header__icon" />
           <span class="server-header__name" :title="localData.serverName">{{ localData.serverName }}</span>
@@ -18,14 +18,14 @@
 
         <!-- 查询控制区域 -->
         <div class="server-header__controls">
-          <!-- 时间范围选择�?-->
+          <!-- 时间范围选择器 -->
           <div class="control-item">
             <label class="control-label">时间范围:</label>
             <el-date-picker
               v-model="queryTimeRange"
               type="datetimerange"
-              range-separator="�?
-              start-placeholder="开始时�?
+              range-separator="至"
+              start-placeholder="开始时间"
               end-placeholder="结束时间"
               format="YYYY-MM-DD HH:mm:ss"
               value-format="YYYY-MM-DD HH:mm:ss"
@@ -40,21 +40,21 @@
           <div class="control-item">
             <label class="control-label">自动刷新:</label>
             <el-select v-model="autoRefreshInterval" placeholder="选择刷新间隔" size="small" style="width: 80px" @change="handleRefreshIntervalChange">
-              <el-option label="不刷�? :value="0" />
-              <el-option label="30�? :value="30" />
+              <el-option label="不刷新" :value="0" />
+              <el-option label="30秒" :value="30" />
               <el-option label="1分钟" :value="60" />
               <el-option label="5分钟" :value="300" />
               <el-option label="10分钟" :value="600" />
             </el-select>
           </div>
 
-          <!-- 刷新倒计�?-->
+          <!-- 刷新倒计时 -->
           <div v-if="autoRefreshInterval > 0" class="control-item refresh-countdown">
             <span class="countdown-text">{{ refreshCountdown }}s</span>
           </div>
         </div>
 
-        <!-- 状态信息区�?-->
+        <!-- 状态信息区域 -->
         <div class="server-header__status">
           <div class="status-item">
             <span class="status-label">组件:</span>
@@ -66,7 +66,7 @@
           </div>
           <div class="status-item">
             <span class="status-label">更新:</span>
-            <span class="status-value">{{ lastUpdateTime || "未更�? }}</span>
+            <span class="status-value">{{ lastUpdateTime || "未更新" }}</span>
           </div>
         </div>
 
@@ -134,7 +134,7 @@ const emit = defineEmits<{
   "update:data": [data: any];
 }>();
 
-// 响应式状�?
+// 响应式状态
 const serverLayoutRef = ref();
 const editMode = ref(false);
 const refreshing = ref(false);
@@ -144,14 +144,14 @@ const componentCount = ref(0);
 
 // 查询控制相关
 const queryTimeRange = ref([]);
-const autoRefreshInterval = ref(0); // 默认不自动刷�?
+const autoRefreshInterval = ref(0); // 默认不自动刷新
 const refreshCountdown = ref(0);
 const globalRefreshTimer = ref(null);
 
 // 时间范围快捷选项
 const timeRangeShortcuts = [
   {
-    text: "最�?小时",
+    text: "最近1小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -160,7 +160,7 @@ const timeRangeShortcuts = [
     }
   },
   {
-    text: "最�?小时",
+    text: "最近6小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -169,7 +169,7 @@ const timeRangeShortcuts = [
     }
   },
   {
-    text: "最�?2小时",
+    text: "最近12小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -178,7 +178,7 @@ const timeRangeShortcuts = [
     }
   },
   {
-    text: "最�?4小时",
+    text: "最近24小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -187,7 +187,7 @@ const timeRangeShortcuts = [
     }
   },
   {
-    text: "最�?�?,
+    text: "最近7天",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -201,7 +201,7 @@ const timeRangeShortcuts = [
 const localData = computed(() => {
   // 支持两种传参方式：data 对象或直接传 serverId
   const serverId = props.serverId || props.data?.serverId || props.data?.monitorSysGenServerId;
-  const serverName = props.data?.serverName || props.data?.monitorSysGenServerName || `服务�?${serverId}`;
+  const serverName = props.data?.serverName || props.data?.monitorSysGenServerName || `服务器 ${serverId}`;
   const status = props.data?.status || props.data?.monitorSysGenServerStatus || 1; // 默认在线
 
   return {
@@ -227,7 +227,7 @@ const updateMetrics = () => {
     Math.random() * 100 + 50
   );
 
-  // 更新组件数量（这里应该从实际数据获取�?
+  // 更新组件数量（这里应该从实际数据获取）
   componentCount.value = 0; // TODO: 从布局组件获取实际数量
 };
 
@@ -255,7 +255,7 @@ watch(
 
 // 生命周期
 onMounted(() => {
-  // 初始化默认时间范围（最�?小时�?
+  // 初始化默认时间范围（最近1小时）
   const end = new Date();
   const start = new Date();
   start.setTime(start.getTime() - 3600 * 1000);
@@ -263,14 +263,14 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  // 清理定时�?
+  // 清理定时器
   if (globalRefreshTimer.value) {
     clearInterval(globalRefreshTimer.value);
   }
 });
 
 /**
- * 获取状态类�?
+ * 获取状态类型
  */
 const getStatusType = (status: number) => {
   switch (status) {
@@ -284,7 +284,7 @@ const getStatusType = (status: number) => {
 };
 
 /**
- * 获取状态文�?
+ * 获取状态文本
  */
 const getStatusText = (status: number) => {
   switch (status) {
@@ -309,10 +309,10 @@ const getTimeRangeParams = () => {
     };
   }
 
-  // 默认返回最�?小时
+  // 默认返回最近1小时
   const now = Date.now();
   return {
-    start: now - 60 * 60 * 1000, // 1小时�?
+    start: now - 60 * 60 * 1000, // 1小时前
     end: now,
     step: 60 // 1分钟步长
   };
@@ -331,7 +331,7 @@ const toggleEditMode = () => {
  */
 const handleTimeRangeChange = (value: any) => {
   console.log("时间范围变化:", value);
-  // 时间范围变化时可以自动触发数据查�?
+  // 时间范围变化时可以自动触发数据查询
   if (value && value.length === 2) {
     handleManualQuery();
   }
@@ -341,13 +341,13 @@ const handleTimeRangeChange = (value: any) => {
  * 自动刷新间隔变化处理
  */
 const handleRefreshIntervalChange = (interval: number) => {
-  // 清除现有定时�?
+  // 清除现有定时器
   if (globalRefreshTimer.value) {
     clearInterval(globalRefreshTimer.value);
     globalRefreshTimer.value = null;
   }
 
-  // 设置新的全局定时�?
+  // 设置新的全局定时器
   if (interval > 0) {
     refreshCountdown.value = interval;
     globalRefreshTimer.value = setInterval(() => {
@@ -370,7 +370,7 @@ const handleManualQuery = async () => {
 
   try {
     refreshing.value = true;
-    console.log("手动查询数据，时间范�?", queryTimeRange.value);
+    console.log("手动查询数据，时间范围:", queryTimeRange.value);
 
     if (serverLayoutRef.value && serverLayoutRef.value.handleManualQuery) {
       await serverLayoutRef.value.handleManualQuery();
@@ -394,7 +394,7 @@ const handleManualQuery = async () => {
  */
 const handleAutoRefresh = async () => {
   try {
-    console.log("自动刷新数据，时间范�?", queryTimeRange.value);
+    console.log("自动刷新数据，时间范围:", queryTimeRange.value);
 
     if (serverLayoutRef.value && serverLayoutRef.value.handleManualQuery) {
       await serverLayoutRef.value.handleManualQuery();
@@ -410,7 +410,7 @@ const handleAutoRefresh = async () => {
 };
 
 /**
- * 刷新数据（兼容旧接口�?
+ * 刷新数据（兼容旧接口）
  */
 const handleRefresh = async () => {
   await handleManualQuery();

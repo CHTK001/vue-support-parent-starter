@@ -3,13 +3,13 @@
     <el-form :model="form" label-width="100px" :rules="rules" ref="formRef">
       <el-form-item label="上传对象" prop="type">
         <el-radio-group v-model="form.type" size="small">
-          <el-radio-button label="SERVER">服务�?/el-radio-button>
+          <el-radio-button label="SERVER">服务器</el-radio-button>
           <el-radio-button label="NODE">节点</el-radio-button>
         </el-radio-group>
       </el-form-item>
 
-      <el-form-item v-if="form.type === 'SERVER'" label="服务�? prop="serverIds">
-        <el-select v-model="form.serverIds" multiple filterable clearable placeholder="请选择服务�? style="width: 100%">
+      <el-form-item v-if="form.type === 'SERVER'" label="服务器" prop="serverIds">
+        <el-select v-model="form.serverIds" multiple filterable clearable placeholder="请选择服务器" style="width: 100%">
           <el-option v-for="opt in serverOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
         </el-select>
       </el-form-item>
@@ -32,7 +32,7 @@
         <el-upload drag :auto-upload="false" :on-change="handleUploadChange" :on-remove="handleRemove" multiple :file-list="fileList">
           <IconifyIconOnline icon="ri:upload-cloud-2-line" style="font-size: 28px; color: #64748b" />
           <div class="el-upload__text">
-            将文件拖到此处，�?
+            将文件拖到此处，或
             <em>点击上传</em>
           </div>
         </el-upload>
@@ -41,7 +41,7 @@
 
     <template #footer>
       <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="handleConfirm">开始上�?/el-button>
+      <el-button type="primary" :loading="submitting" @click="handleConfirm">开始上传</el-button>
     </template>
   </el-dialog>
 </template>
@@ -70,7 +70,7 @@ interface Props {
   presetFiles?: File[];
 }
 
-// 监听预设文件，用于“同步”场�?
+// 监听预设文件，用于“同步”场景
 watch(
   () => props.presetFiles,
   files => {
@@ -102,9 +102,9 @@ const form = ref({
 });
 
 const rules = {
-  serverIds: [{ required: () => form.value.type === "SERVER", message: "请选择服务�? }],
+  serverIds: [{ required: () => form.value.type === "SERVER", message: "请选择服务器" }],
   nodeIds: [{ required: () => form.value.type === "NODE", message: "请选择节点" }],
-  dirPath: [{ required: true, message: "请输入目标目�? }],
+  dirPath: [{ required: true, message: "请输入目标目录" }],
   files: [{ required: true, message: "请选择文件" }]
 };
 
@@ -179,7 +179,7 @@ async function handleConfirm() {
     }> = [];
 
     if (form.value.type === "SERVER") {
-      if (!form.value.serverIds?.length) throw new Error("请选择服务�?);
+      if (!form.value.serverIds?.length) throw new Error("请选择服务器");
       for (const sid of form.value.serverIds) {
         for (const file of form.value.files) {
           const id = -Date.now() - Math.floor(Math.random() * 100000);
@@ -243,7 +243,7 @@ async function handleConfirm() {
     }
 
     props.enqueue?.(tasks);
-    ElMessage.success("上传任务已加入队�?);
+    ElMessage.success("上传任务已加入队列");
     emit("success");
     visible.value = false;
   } catch (e: any) {

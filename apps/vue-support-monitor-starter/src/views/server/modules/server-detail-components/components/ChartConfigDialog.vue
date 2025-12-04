@@ -12,7 +12,7 @@
         <el-tab-pane label="基础配置" name="basic">
           <el-form :model="configForm" label-width="120px" class="config-form">
             <el-form-item label="图表标题">
-              <el-input v-model="configForm.title" placeholder="请输入图表标�? />
+              <el-input v-model="configForm.title" placeholder="请输入图表标题" />
             </el-form-item>
             
             <el-form-item label="显示图例">
@@ -28,7 +28,7 @@
               </el-select>
             </el-form-item>
             
-            <el-form-item label="显示工具�?>
+            <el-form-item label="显示工具栏">
               <el-switch v-model="configForm.toolbox.show" />
             </el-form-item>
             
@@ -40,15 +40,15 @@
         
         <el-tab-pane label="样式配置" name="style">
           <el-form :model="configForm" label-width="120px" class="config-form">
-            <el-form-item label="主题�?>
+            <el-form-item label="主题色">
               <el-color-picker v-model="configForm.color.primary" />
             </el-form-item>
             
-            <el-form-item label="背景�?>
+            <el-form-item label="背景色">
               <el-color-picker v-model="configForm.color.background" />
             </el-form-item>
             
-            <el-form-item label="网格线颜�?>
+            <el-form-item label="网格线颜色">
               <el-color-picker v-model="configForm.color.grid" />
             </el-form-item>
             
@@ -60,7 +60,7 @@
               <el-input-number v-model="configForm.lineWidth" :min="1" :max="10" style="width: 100%" />
             </el-form-item>
             
-            <el-form-item label="柱状图宽�? v-if="isBarChart">
+            <el-form-item label="柱状图宽度" v-if="isBarChart">
               <el-input-number v-model="configForm.barWidth" :min="10" :max="100" style="width: 100%" />
             </el-form-item>
           </el-form>
@@ -69,25 +69,25 @@
         <el-tab-pane label="数据配置" name="data">
           <el-form :model="configForm" label-width="120px" class="config-form">
             <el-form-item label="数据单位">
-              <el-input v-model="configForm.unit" placeholder="如：%、MB、个�? />
+              <el-input v-model="configForm.unit" placeholder="如：%、MB、个等" />
             </el-form-item>
             
             <el-form-item label="小数位数">
               <el-input-number v-model="configForm.decimal" :min="0" :max="6" style="width: 100%" />
             </el-form-item>
             
-            <el-form-item label="最大�? v-if="isGaugeChart">
+            <el-form-item label="最大值" v-if="isGaugeChart">
               <el-input-number v-model="configForm.max" :min="1" style="width: 100%" />
             </el-form-item>
             
-            <el-form-item label="最小�? v-if="isGaugeChart">
+            <el-form-item label="最小值" v-if="isGaugeChart">
               <el-input-number v-model="configForm.min" :min="0" style="width: 100%" />
             </el-form-item>
             
-            <el-form-item label="阈值配�? v-if="isGaugeChart || isCardChart">
+            <el-form-item label="阈值配置" v-if="isGaugeChart || isCardChart">
               <div class="threshold-config">
                 <div v-for="(threshold, index) in configForm.thresholds" :key="index" class="threshold-item">
-                  <el-input-number v-model="threshold.value" placeholder="阈�? style="width: 120px" />
+                  <el-input-number v-model="threshold.value" placeholder="阈值" style="width: 120px" />
                   <el-color-picker v-model="threshold.color" />
                   <el-input v-model="threshold.label" placeholder="标签" style="width: 100px" />
                   <el-button type="danger" size="small" @click="removeThreshold(index)">
@@ -96,7 +96,7 @@
                 </div>
                 <el-button type="primary" size="small" @click="addThreshold">
                   <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-                  添加阈�?
+                  添加阈值
                 </el-button>
               </div>
             </el-form-item>
@@ -105,7 +105,7 @@
         
         <el-tab-pane label="高级配置" name="advanced">
           <el-form :model="configForm" label-width="120px" class="config-form">
-            <el-form-item label="自定义配�?>
+            <el-form-item label="自定义配置">
               <el-input
                 v-model="customConfigStr"
                 type="textarea"
@@ -159,7 +159,7 @@ const emit = defineEmits<{
   save: [item: any, config: any];
 }>();
 
-// 响应式状�?
+// 响应式状态
 const visible = ref(false);
 const activeTab = ref("basic");
 const saving = ref(false);
@@ -203,14 +203,14 @@ const configForm = reactive({
 // 自定义配置字符串
 const customConfigStr = ref("");
 
-// 计算属�?
+// 计算属性
 const isLineChart = computed(() => currentItem.value?.type === "line");
 const isBarChart = computed(() => currentItem.value?.type === "bar");
 const isGaugeChart = computed(() => currentItem.value?.type === "gauge");
 const isCardChart = computed(() => currentItem.value?.type === "card");
 
 /**
- * 打开对话�?
+ * 打开对话框
  */
 const open = (item: any) => {
   currentItem.value = item;
@@ -219,7 +219,7 @@ const open = (item: any) => {
   // 加载现有配置
   loadExistingConfig(item);
   
-  // 初始化预�?
+  // 初始化预览
   nextTick(() => {
     initPreview();
   });
@@ -235,7 +235,7 @@ const loadExistingConfig = (item: any) => {
         ? JSON.parse(item.chartConfig) 
         : item.chartConfig;
       
-      // 合并配置到表�?
+      // 合并配置到表单
       Object.assign(configForm, {
         ...configForm,
         ...config
@@ -249,7 +249,7 @@ const loadExistingConfig = (item: any) => {
 };
 
 /**
- * 初始化预�?
+ * 初始化预览
  */
 const initPreview = () => {
   if (!previewChartRef.value) return;
@@ -300,7 +300,7 @@ const generatePreviewOption = () => {
     backgroundColor: configForm.color.background
   };
 
-  // 根据图表类型生成不同的配�?
+  // 根据图表类型生成不同的配置
   switch (currentItem.value?.type) {
     case "line":
       return {
@@ -349,7 +349,7 @@ const generatePreviewOption = () => {
           type: 'gauge',
           min: configForm.min,
           max: configForm.max,
-          data: [{ value: 75, name: '使用�? }],
+          data: [{ value: 75, name: '使用率' }],
           axisLine: {
             lineStyle: {
               color: configForm.thresholds.map(t => [t.value / configForm.max, t.color])
@@ -364,18 +364,18 @@ const generatePreviewOption = () => {
 };
 
 /**
- * 添加阈�?
+ * 添加阈值
  */
 const addThreshold = () => {
   configForm.thresholds.push({
     value: 50,
     color: "#409EFF",
-    label: "新阈�?
+    label: "新阈值"
   });
 };
 
 /**
- * 删除阈�?
+ * 删除阈值
  */
 const removeThreshold = (index: number) => {
   configForm.thresholds.splice(index, 1);
@@ -389,7 +389,7 @@ const validateConfig = () => {
     JSON.parse(customConfigStr.value);
     ElMessage.success("配置格式正确");
   } catch (e) {
-    ElMessage.error("配置格式错误�? + e.message);
+    ElMessage.error("配置格式错误：" + e.message);
   }
 };
 
@@ -438,13 +438,13 @@ const handleSave = () => {
     visible.value = false;
     ElMessage.success("配置保存成功");
   } catch (e) {
-    ElMessage.error("保存失败�? + e.message);
+    ElMessage.error("保存失败：" + e.message);
   } finally {
     saving.value = false;
   }
 };
 
-// 监听配置变化，自动刷新预�?
+// 监听配置变化，自动刷新预览
 watch(() => configForm, () => {
   if (visible.value) {
     refreshPreview();

@@ -12,7 +12,7 @@
       <!-- 文件信息 -->
       <div class="file-info" v-if="fileInfo">
         <div class="info-item">
-          <span class="label">文件�?</span>
+          <span class="label">文件名:</span>
           <span class="value">{{ fileInfo.name }}</span>
         </div>
         <div class="info-item">
@@ -95,7 +95,7 @@
         <div v-else class="unsupported-preview">
           <div class="unsupported-content">
             <IconifyIconOnline icon="ri:file-line" class="unsupported-icon" />
-            <p>此文件类型暂不支持预�?/p>
+            <p>此文件类型暂不支持预览</p>
             <p class="file-type-hint">{{ getFileTypeHint() }}</p>
             <div class="unsupported-actions">
               <el-button type="primary" @click="downloadFile">
@@ -166,19 +166,19 @@ const emit = defineEmits<{
   "file-updated": [];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const loading = ref(false);
 const fileContent = ref<string | null>(null);
 const error = ref<string>("");
 const viewMode = ref<"text" | "code">("text");
 
-// 计算属�?
+// 计算属性
 const dialogVisible = computed({
   get: () => props.visible,
   set: (value) => {
     emit("update:visible", value);
     if (!value) {
-      // 关闭时重置状�?
+      // 关闭时重置状态
       fileContent.value = null;
       error.value = "";
       viewMode.value = "text";
@@ -271,7 +271,7 @@ const isImageFile = computed(() => {
 });
 
 /**
- * 获取文件扩展�?
+ * 获取文件扩展名
  */
 const getFileExtension = () => {
   if (!props.fileInfo) return "";
@@ -279,14 +279,14 @@ const getFileExtension = () => {
 };
 
 /**
- * 格式化文件大�?
+ * 格式化文件大小
  */
 const formatFileSize = (size: number) => {
   return formatBytes(size);
 };
 
 /**
- * 格式化时�?
+ * 格式化时间
  */
 const formatTime = (time: string) => {
   return dayjs(time).format("YYYY-MM-DD HH:mm:ss");
@@ -306,7 +306,7 @@ const getFileType = () => {
     json: "JSON文件",
     xml: "XML文件",
     html: "HTML文档",
-    css: "CSS样式�?,
+    css: "CSS样式表",
     js: "JavaScript文件",
     ts: "TypeScript文件",
     vue: "Vue组件",
@@ -337,13 +337,13 @@ const getFileTypeHint = () => {
     return "建议下载后使用相应软件打开";
   }
   if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) {
-    return "压缩文件，请下载后解压查�?;
+    return "压缩文件，请下载后解压查看";
   }
   if (["exe", "msi", "dmg", "deb", "rpm"].includes(ext)) {
     return "可执行文件，请谨慎下载和运行";
   }
 
-  return "该文件类型暂不支持在线预�?;
+  return "该文件类型暂不支持在线预览";
 };
 
 /**
@@ -383,7 +383,7 @@ const getLanguageClass = () => {
 const getImageUrl = () => {
   if (!props.fileInfo) return "";
   // 这里应该调用后端API获取图片URL
-  // 暂时返回占位�?
+  // 暂时返回占位符
   return `/api/file-management/${props.serverId}/preview?path=${encodeURIComponent(props.fileInfo.path)}`;
 };
 
@@ -432,7 +432,7 @@ const downloadFile = async () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      ElMessage.success("文件下载开�?);
+      ElMessage.success("文件下载开始");
     } else {
       ElMessage.error(response.message || "文件下载失败");
     }
@@ -465,7 +465,7 @@ const onImageError = () => {
 };
 
 /**
- * 关闭对话�?
+ * 关闭对话框
  */
 const closeDialog = () => {
   dialogVisible.value = false;
@@ -567,7 +567,7 @@ watch(
   flex-direction: column;
 }
 
-/* 工具栏样�?*/
+/* 工具栏样式 */
 .preview-toolbar {
   display: flex;
   align-items: center;
@@ -601,7 +601,7 @@ watch(
   flex: 1;
   overflow: auto;
   padding: 20px;
-   background: var(--el-bg-color-overlay); /* 设置代码内容背景为白�?*/
+   background: var(--el-bg-color-overlay); /* 设置代码内容背景为白色 */
 }
 
 .text-content pre,
@@ -722,14 +722,14 @@ watch(
   justify-content: center;
 }
 
-/* 对话框底部样�?*/
+/* 对话框底部样式 */
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
 }
 
-/* 滚动条样�?*/
+/* 滚动条样式 */
 .text-content::-webkit-scrollbar,
 .code-content::-webkit-scrollbar,
 .image-container::-webkit-scrollbar {
@@ -758,7 +758,7 @@ watch(
   background: var(--el-color-primary-light-5);
 }
 
-/* 响应式设�?*/
+/* 响应式设计 */
 @media (max-width: 768px) {
   .file-preview-dialog :deep(.el-dialog) {
     width: 95% !important;

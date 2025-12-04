@@ -62,7 +62,7 @@ onBeforeUnmount(() => {
 });
 
 /**
- * 初始化图�?
+ * 初始化图表
  */
 const initChart = () => {
   if (!chartRef.value) return;
@@ -93,7 +93,7 @@ const generateOption = () => {
   const min = config.min || data.min || 0;
   const unit = config.unit || data.unit || '';
   
-  // 生成阈值颜�?
+  // 生成阈值颜色
   const thresholds = config.thresholds || [
     { value: 80, color: '#F56C6C' },
     { value: 60, color: '#E6A23C' },
@@ -114,7 +114,7 @@ const generateOption = () => {
     },
     series: [
       {
-        name: '仪表�?,
+        name: '仪表盘',
         type: 'gauge',
         min: min,
         max: max,
@@ -162,7 +162,7 @@ const generateOption = () => {
         data: [
           {
             value: value,
-            name: data.name || '当前�?
+            name: data.name || '当前值'
           }
         ]
       }

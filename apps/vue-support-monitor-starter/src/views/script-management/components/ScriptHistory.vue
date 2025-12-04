@@ -5,21 +5,21 @@
       <template #left>
         <el-select
           v-model="filterStatus"
-          placeholder="执行状�?
+          placeholder="执行状态"
           size="small"
           style="width: 120px"
           clearable
         >
           <el-option label="成功" value="success" />
           <el-option label="失败" value="failed" />
-          <el-option label="运行�? value="running" />
-          <el-option label="已取�? value="cancelled" />
+          <el-option label="运行中" value="running" />
+          <el-option label="已取消" value="cancelled" />
         </el-select>
         <el-date-picker
           v-model="dateRange"
           type="datetimerange"
-          range-separator="�?
-          start-placeholder="开始时�?
+          range-separator="至"
+          start-placeholder="开始时间"
           end-placeholder="结束时间"
           size="small"
           style="width: 300px"
@@ -72,10 +72,10 @@
           {{ formatDuration(execution.monitorSysGenScriptExecutionDuration) }}
         </template>
         <template #exitCode>
-          退出码: {{ execution.monitorSysGenScriptExecutionExitCode ?? "�? }}
+          退出码: {{ execution.monitorSysGenScriptExecutionExitCode ?? "无" }}
         </template>
         <template #user>
-          执行�?
+          执行人:
           {{ execution.monitorSysGenScriptExecutionTriggerUser || "系统" }}
         </template>
         <template v-if="execution.monitorSysGenScriptExecutionOutput" #preview>
@@ -107,7 +107,7 @@
         </template>
       </ExecutionCard>
 
-      <!-- 空状�?-->
+      <!-- 空状态 -->
       <div
         v-if="filteredExecutions.length === 0 && !loading"
         class="empty-state"
@@ -131,7 +131,7 @@
       />
     </div>
 
-    <!-- 执行详情对话�?-->
+    <!-- 执行详情对话框 -->
     <ScriptExecutionDetail
       v-model="showDetailDialog"
       :executionData="selectedExecution"
@@ -158,11 +158,11 @@ import StatusTag from "./StatusTag.vue";
 import ExecutionCard from "./ExecutionCard.vue";
 
 /**
- * 组件：执行历�?
- * 职责：提供执行历史的筛选（状�?时间）、分页展示、查看详情、清理过期记录等能力�?
- * 注意�?
- *  - 与后端时间格式对齐（YYYY-MM-DDTHH:mm:ss�?
- *  - 执行状态统一转为小写进行比较与展�?
+ * 组件：执行历史
+ * 职责：提供执行历史的筛选（状态/时间）、分页展示、查看详情、清理过期记录等能力。
+ * 注意：
+ *  - 与后端时间格式对齐（YYYY-MM-DDTHH:mm:ss）
+ *  - 执行状态统一转为小写进行比较与展示
  */
 
 /**
@@ -174,7 +174,7 @@ const emit = defineEmits<{
   "view-detail": [execution: any];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const loading = ref(false);
 const filterStatus = ref("");
 const dateRange = ref([]);
@@ -185,15 +185,15 @@ const total = ref(0);
 const executions = ref<ScriptExecution[]>([]);
 const selectedExecutions = ref<number[]>([]);
 
-// 执行详情对话�?
+// 执行详情对话框
 const showDetailDialog = ref(false);
 const selectedExecution = ref<ScriptExecution | null>(null);
 
-// 计算属�?
+// 计算属性
 const filteredExecutions = computed(() => {
   let result = executions.value;
 
-  // 按状态筛�?
+  // 按状态筛选
   if (filterStatus.value) {
     result = result.filter(
       (exec) =>
@@ -203,7 +203,7 @@ const filteredExecutions = computed(() => {
     );
   }
 
-  // 按时间范围筛�?
+  // 按时间范围筛选
   if (dateRange.value && dateRange.value.length === 2) {
     const [start, end] = dateRange.value;
     result = result.filter((exec) => {
@@ -218,13 +218,13 @@ const filteredExecutions = computed(() => {
   return result;
 });
 
-// 监听筛选条件变�?
+// 监听筛选条件变化
 watch([filterStatus, dateRange], () => {
-  currentPage.value = 1; // 重置到第一�?
+  currentPage.value = 1; // 重置到第一页
   loadExecutions();
 });
 
-// 初始�?
+// 初始化
 onMounted(() => {
   loadExecutions();
 });
@@ -239,12 +239,12 @@ const loadExecutions = async () => {
       pageSize: pageSize.value,
     };
 
-    // 添加状态筛�?
+    // 添加状态筛选
     if (filterStatus.value) {
       params.monitorSysGenScriptExecutionStatus = filterStatus.value;
     }
 
-    // 添加时间范围筛�?
+    // 添加时间范围筛选
     if (dateRange.value && dateRange.value.length === 2) {
       params.startTime = dayjs(dateRange.value[0]).format(
         "YYYY-MM-DDTHH:mm:ss"
@@ -275,7 +275,7 @@ const handleRefresh = () => {
 const handleClearHistory = async () => {
   try {
     await ElMessageBox.confirm(
-      "确定要清理过期的执行历史吗？将清�?0天前的记录�?,
+      "确定要清理过期的执行历史吗？将清理30天前的记录。",
       "清理确认",
       {
         type: "warning",
@@ -286,7 +286,7 @@ const handleClearHistory = async () => {
 
     const response = await cleanExpiredExecutions(30);
     if (response.success) {
-      ElMessage.success(`清理�?${response.data} 条过期记录`);
+      ElMessage.success(`清理了 ${response.data} 条过期记录`);
       loadExecutions(); // 重新加载数据
     } else {
       ElMessage.error("清理执行历史失败");
@@ -301,7 +301,7 @@ const handleClearHistory = async () => {
 const handleStopExecution = async (execution: any) => {
   try {
     execution.status = "cancelled";
-    ElMessage.success("脚本执行已停�?);
+    ElMessage.success("脚本执行已停止");
   } catch (error) {
     ElMessage.error("停止脚本执行失败");
   }
@@ -367,13 +367,13 @@ const getStatusText = (status: string) => {
   const textMap = {
     success: "成功",
     failed: "失败",
-    running: "运行�?,
-    cancelled: "已取�?,
+    running: "运行中",
+    cancelled: "已取消",
   };
   return textMap[status] || "未知";
 };
 
-// 格式化时间函�?
+// 格式化时间函数
 const formatTime = (dateStr: string | Date) => {
   if (!dateStr) return "未知";
   const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
@@ -589,7 +589,7 @@ const formatTime = (dateStr: string | Date) => {
   }
 }
 
-/* 空状�?*/
+/* 空状态 */
 .empty-state {
   grid-column: 1 / -1;
   text-align: center;

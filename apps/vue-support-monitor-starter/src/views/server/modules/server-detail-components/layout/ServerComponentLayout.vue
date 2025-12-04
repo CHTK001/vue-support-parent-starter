@@ -1,7 +1,7 @@
 <template>
   <div ref="serverLayoutRef" class="server-component-layout h-full">
     <div class="layout-header" v-if="editable">
-      <!-- 左侧编辑操作�?-->
+      <!-- 左侧编辑操作区 -->
       <div class="layout-actions-left">
         <el-button type="primary" @click="showAddComponentDrawer = true">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
@@ -9,7 +9,7 @@
         </el-button>
         <el-button type="primary" @click="showComponentSelector = true">
           <IconifyIconOnline icon="ri:file-list-line" class="mr-1" />
-          组件�?
+          组件库
         </el-button>
         <el-button type="primary" @click="loadSharedComponents">
           <IconifyIconOnline icon="ri:share-line" class="mr-1" />
@@ -17,7 +17,7 @@
         </el-button>
       </div>
 
-      <!-- 右侧保存操作�?-->
+      <!-- 右侧保存操作区 -->
       <div v-if="editable && layoutChanged" class="layout-actions-right">
         <el-button type="primary" @click="saveConfigToServer">
           <IconifyIconOnline icon="ri:save-line" class="mr-1" />
@@ -71,12 +71,12 @@
       </GridItem>
     </GridLayout>
 
-    <!-- 空状�?-->
+    <!-- 空状态 -->
     <div v-else class="empty-layout">
       <el-empty description="暂无组件">
         <el-button type="primary" @click="showAddComponentDrawer = true">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-          添加第一个组�?
+          添加第一个组件
         </el-button>
       </el-empty>
     </div>
@@ -86,7 +86,7 @@
       <div class="add-component-form">
         <el-form ref="addFormRef" :model="addForm" :rules="addFormRules" label-width="120px">
           <el-form-item label="组件名称" prop="title">
-            <el-input v-model="addForm.title" placeholder="请输入组件名�? />
+            <el-input v-model="addForm.title" placeholder="请输入组件名称" />
           </el-form-item>
 
           <el-form-item label="组件类型" prop="type">
@@ -95,16 +95,16 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item label="表达式类�? prop="expressionType">
-            <el-select v-model="addForm.expressionType" placeholder="请选择表达式类�? style="width: 100%">
+          <el-form-item label="表达式类型" prop="expressionType">
+            <el-select v-model="addForm.expressionType" placeholder="请选择表达式类型" style="width: 100%">
               <el-option v-for="option in expressionTypeOptions" :key="option.value" :label="option.label" :value="option.value" />
             </el-select>
           </el-form-item>
 
-          <el-form-item :label="addForm.expressionType === 'PROMETHEUS' ? 'PromQL表达�? : '组件选择'" prop="expression">
-            <!-- Prometheus 表达式输�?-->
+          <el-form-item :label="addForm.expressionType === 'PROMETHEUS' ? 'PromQL表达式' : '组件选择'" prop="expression">
+            <!-- Prometheus 表达式输入 -->
             <template v-if="addForm.expressionType === 'PROMETHEUS'">
-              <el-input v-model="addForm.expression" type="textarea" :rows="4" placeholder="请输入PromQL查询表达�? />
+              <el-input v-model="addForm.expression" type="textarea" :rows="4" placeholder="请输入PromQL查询表达式" />
               <div class="expression-examples">
                 <div class="examples-header">常用表达式示例：</div>
                 <div class="examples-list">
@@ -134,8 +134,8 @@
             </el-row>
           </el-form-item>
 
-          <el-form-item label="数值单�? prop="valueUnit">
-            <el-select v-model="addForm.valueUnit" placeholder="请选择数值单�? style="width: 100%" clearable>
+          <el-form-item label="数值单位" prop="valueUnit">
+            <el-select v-model="addForm.valueUnit" placeholder="请选择数值单位" style="width: 100%" clearable>
               <el-option v-for="option in valueUnitOptions" :key="option.value" :label="option.label" :value="option.value" />
             </el-select>
           </el-form-item>
@@ -199,7 +199,7 @@
         </el-tabs>
 
         <div class="selector-footer">
-          <div class="selected-info">已选择 {{ selectedComponents.length }} 个组�?/div>
+          <div class="selected-info">已选择 {{ selectedComponents.length }} 个组件</div>
           <div class="selector-actions">
             <el-button @click="showComponentSelector = false">取消</el-button>
             <el-button type="primary" @click="addSelectedComponents" :disabled="selectedComponents.length === 0">
@@ -211,10 +211,10 @@
       </div>
     </el-dialog>
 
-    <!-- 图表配置对话�?-->
+    <!-- 图表配置对话框 -->
     <ChartConfigDialog ref="chartConfigDialogRef" @save="handleChartConfigSave" />
 
-    <!-- 组件编辑对话�?-->
+    <!-- 组件编辑对话框 -->
     <ComponentEditDialog ref="componentEditDialogRef" :server-id="serverId" @saved="handleComponentSaved" />
   </div>
 </template>
@@ -257,7 +257,7 @@ const props = defineProps({
   },
 });
 
-// 响应式状�?
+// 响应式状态
 const serverLayoutRef = ref();
 const loading = ref(false);
 const layout = ref([]);
@@ -289,23 +289,23 @@ const addForm = reactive({
   showTitle: true,
 });
 
-// 组件选择器相�?
+// 组件选择器相关
 const showComponentSelector = ref(false);
 const componentSelectorTab = ref("my");
 const myComponents = ref([]);
 const sharedComponents = ref([]);
 const selectedComponents = ref([]);
 
-// 对话框引�?
+// 对话框引用
 const chartConfigDialogRef = ref();
 const componentEditDialogRef = ref();
 
 // 组件类型选项
 const componentTypeOptions = [
   { label: "卡片", value: "card" },
-  { label: "仪表�?, value: "gauge" },
-  { label: "折线�?, value: "line" },
-  { label: "柱状�?, value: "bar" },
+  { label: "仪表盘", value: "gauge" },
+  { label: "折线图", value: "line" },
+  { label: "柱状图", value: "bar" },
   { label: "饼图", value: "pie" },
   { label: "表格", value: "table" },
 ];
@@ -318,9 +318,9 @@ const expressionTypeOptions = [
 
 // 组件选项
 const componentOptions = [
-  { label: "CPU使用�?, value: "cpu_usage" },
-  { label: "内存使用�?, value: "memory_usage" },
-  { label: "磁盘使用�?, value: "disk_usage" },
+  { label: "CPU使用率", value: "cpu_usage" },
+  { label: "内存使用率", value: "memory_usage" },
+  { label: "磁盘使用率", value: "disk_usage" },
   { label: "网络IO", value: "network_io" },
   { label: "磁盘列表", value: "disk_list" },
   { label: "系统信息", value: "system_info" },
@@ -328,30 +328,30 @@ const componentOptions = [
   { label: "系统负载", value: "load_average" },
 ];
 
-// Prometheus 示例表达�?
+// Prometheus 示例表达式
 const prometheusExamples = [
-  { label: "CPU使用�?, value: '100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)' },
-  { label: "内存使用�?, value: "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100" },
-  { label: "磁盘使用�?, value: "100 - ((node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes)" },
+  { label: "CPU使用率", value: '100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)' },
+  { label: "内存使用率", value: "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100" },
+  { label: "磁盘使用率", value: "100 - ((node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes)" },
   { label: "网络接收", value: "irate(node_network_receive_bytes_total[5m])" },
   { label: "系统负载", value: "node_load1" },
-  { label: "服务状�?, value: "up" },
+  { label: "服务状态", value: "up" },
 ];
 
 // 数值单位选项
 const valueUnitOptions = [
-  { label: "百分�?, value: "percent" },
+  { label: "百分比", value: "percent" },
   { label: "字节", value: "bytes" },
-  { label: "状�?, value: "status" },
+  { label: "状态", value: "status" },
   { label: "数量", value: "count" },
   { label: "时间", value: "time" },
 ];
 
 // 表单验证规则
 const addFormRules = {
-  title: [{ required: true, message: "请输入组件名�?, trigger: "blur" }],
+  title: [{ required: true, message: "请输入组件名称", trigger: "blur" }],
   type: [{ required: true, message: "请选择组件类型", trigger: "change" }],
-  expressionType: [{ required: true, message: "请选择表达式类�?, trigger: "change" }],
+  expressionType: [{ required: true, message: "请选择表达式类型", trigger: "change" }],
   expression: [{ required: true, message: "请输入表达式或选择组件", trigger: "blur" }],
 };
 
@@ -364,7 +364,7 @@ watch(
   { deep: true }
 );
 
-// 监听timeParams变化，更新查询时间范�?
+// 监听timeParams变化，更新查询时间范围
 watch(
   () => props.timeParams,
   (newTimeParams) => {
@@ -378,7 +378,7 @@ watch(
 
 // 生命周期
 onMounted(() => {
-  // 初始化默认时间范围（最�?小时�?
+  // 初始化默认时间范围（最近1小时）
   const end = new Date();
   const start = new Date();
   start.setTime(start.getTime() - 3600 * 1000);
@@ -397,7 +397,7 @@ onBeforeUnmount(() => {
     if (timer) clearInterval(timer);
   });
 
-  // 清理所有实时数据订�?
+  // 清理所有实时数据订阅
   realtimeUnsubscribeFunctions.value.forEach((unsubscribe) => {
     if (unsubscribe) unsubscribe();
   });
@@ -405,7 +405,7 @@ onBeforeUnmount(() => {
 });
 
 /**
- * 加载组件布局（使用新的布局API�?
+ * 加载组件布局（使用新的布局API）
  */
 const loadComponents = async () => {
   if (!props.serverId) return;
@@ -418,7 +418,7 @@ const loadComponents = async () => {
     const layoutRes = await getEnabledServerComponentLayouts(props.serverId);
 
     if (layoutRes.code === "00000" && layoutRes.data) {
-      // 2. 获取所有组件定义信�?
+      // 2. 获取所有组件定义信息
       const componentsRes = await getComponentsByServerId(props.serverId);
       const componentsMap = new Map();
 
@@ -428,13 +428,13 @@ const loadComponents = async () => {
         });
       }
 
-      // 3. 合并布局配置和组件定�?
+      // 3. 合并布局配置和组件定义
       layout.value = layoutRes.data
         .map((layoutConfig) => {
           const component = componentsMap.get(layoutConfig.monitorSysGenServerComponentId);
 
           if (!component) {
-            console.warn("找不到组件定�?", layoutConfig.monitorSysGenServerComponentId);
+            console.warn("找不到组件定义:", layoutConfig.monitorSysGenServerComponentId);
             return null;
           }
 
@@ -479,10 +479,10 @@ const loadComponents = async () => {
   } finally {
     loading.value = false;
 
-    // 延迟触发图表resize，确保所有图表正确显�?
+    // 延迟触发图表resize，确保所有图表正确显示
     nextTick(() => {
       setTimeout(() => {
-        // 触发窗口resize事件，让所有图表重新调整尺�?
+        // 触发窗口resize事件，让所有图表重新调整尺寸
         window.dispatchEvent(new Event("resize"));
       }, 200);
     });
@@ -636,29 +636,29 @@ const editComponent = (item: any) => {
 };
 
 /**
- * 删除组件（删除布局配置�?
+ * 删除组件（删除布局配置）
  */
 const removeComponent = async (item: any) => {
   try {
-    await ElMessageBox.confirm(`确定要从布局中移除组�?"${item.title}" 吗？这只会删除布局配置，不会删除组件定义。`, "移除确认", {
+    await ElMessageBox.confirm(`确定要从布局中移除组件 "${item.title}" 吗？这只会删除布局配置，不会删除组件定义。`, "移除确认", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "warning",
     });
 
-    // 删除布局配置，而不是删除组件定�?
+    // 删除布局配置，而不是删除组件定义
     const res = await deleteServerComponentLayout(item.layoutId);
 
     if (res.code === "00000") {
-      ElMessage.success("组件已从布局中移�?);
+      ElMessage.success("组件已从布局中移除");
 
-      // 从前端布局中移�?
+      // 从前端布局中移除
       const index = layout.value.findIndex((layoutItem) => layoutItem.layoutId === item.layoutId);
       if (index > -1) {
         layout.value.splice(index, 1);
       }
 
-      // 清理定时�?
+      // 清理定时器
       if (componentTimers.value[item.i]) {
         clearInterval(componentTimers.value[item.i]);
         delete componentTimers.value[item.i];
@@ -727,7 +727,7 @@ const handleComponentSaved = () => {
 };
 
 /**
- * 统一查询函数 - 支持手动查询和定时查�?
+ * 统一查询函数 - 支持手动查询和定时查询
  */
 const executeUnifiedQuery = async (item: any, timeRangeOverride?: any) => {
   if (!item.expression || !item.componentId) return;
@@ -740,7 +740,7 @@ const executeUnifiedQuery = async (item: any, timeRangeOverride?: any) => {
     const currentTimeRange = timeRangeOverride || queryTimeRange.value;
 
     if (!currentTimeRange || currentTimeRange.length !== 2) {
-      console.warn("时间范围无效，跳过查�?);
+      console.warn("时间范围无效，跳过查询");
       return;
     }
 
@@ -760,10 +760,10 @@ const executeUnifiedQuery = async (item: any, timeRangeOverride?: any) => {
 
     let result: any;
 
-    // 根据表达式类型选择不同的数据查询方�?
+    // 根据表达式类型选择不同的数据查询方式
     switch (expressionType.toUpperCase()) {
       case "REALTIME":
-        // 使用现有Socket.IO推送机制获取实时数�?
+        // 使用现有Socket.IO推送机制获取实时数据
         result = await handleRealtimeQuery(item, componentId);
         break;
 
@@ -783,7 +783,7 @@ const executeUnifiedQuery = async (item: any, timeRangeOverride?: any) => {
         break;
 
       default:
-        console.warn(`不支持的表达式类�? ${expressionType}`);
+        console.warn(`不支持的表达式类型: ${expressionType}`);
         result = await executeComponentQuery(componentId, timeRange);
     }
 
@@ -824,7 +824,7 @@ const handleRealtimeQuery = async (item: any, componentId: number) => {
       realtimeUnsubscribeFunctions.value.delete(item.i);
     }
 
-    // 订阅服务器指标数�?
+    // 订阅服务器指标数据
     const unsubscribe = serverMetrics.onServerMetrics((metrics: any, message: any) => {
       // 根据组件表达式从服务器指标中提取相应数据
       const extractedData = extractDataFromServerMetrics(metrics, item.expression);
@@ -856,7 +856,7 @@ const handleRealtimeQuery = async (item: any, componentId: number) => {
     return {
       code: "00000",
       data: {
-        message: "实时数据订阅已启动，数据将通过Socket.IO推送更�?,
+        message: "实时数据订阅已启动，数据将通过Socket.IO推送更新",
         subscribed: true,
       },
     };
@@ -870,14 +870,14 @@ const handleRealtimeQuery = async (item: any, componentId: number) => {
 };
 
 /**
- * 从服务器指标中提取组件数�?
+ * 从服务器指标中提取组件数据
  */
 const extractDataFromServerMetrics = (metrics: any, expression: string) => {
   // 根据表达式从服务器指标中提取数据
   // 这里可以根据expression的内容来决定提取哪些指标
   if (!metrics) return {};
 
-  // 示例：根据表达式关键词提取相应数�?
+  // 示例：根据表达式关键词提取相应数据
   const data: any = {};
 
   if (expression.includes("cpu") || expression.includes("CPU")) {
@@ -897,7 +897,7 @@ const extractDataFromServerMetrics = (metrics: any, expression: string) => {
     data.networkOut = metrics.networkOut || 0;
   }
 
-  // 如果没有匹配的关键词，返回所有可用指�?
+  // 如果没有匹配的关键词，返回所有可用指标
   if (Object.keys(data).length === 0) {
     return {
       cpuUsage: metrics.cpuUsage || 0,
@@ -945,10 +945,10 @@ const getComponentError = (item: any) => {
  */
 const getComponentHeight = (item: any) => {
   // GridLayout配置: row-height=30, margin=[10,10]
-  // 网格总高度计�?
+  // 网格总高度计算
   const gridHeight = item.h * 30 + (item.h - 1) * 10;
 
-  // 减去固定的高度占�?
+  // 减去固定的高度占用
   const gridItemBorder = 2; // grid-item-content的border
   const serverComponentHeader = 40; // ServerComponent头部高度
   const serverComponentBorder = 1; // ServerComponent边框
@@ -995,13 +995,13 @@ const handleChartClick = (_item: any) => {
 };
 
 /**
- * 手动查询所有组件数�?- 供父组件调用
+ * 手动查询所有组件数据 - 供父组件调用
  */
 const handleManualQuery = async () => {
-  console.log("执行手动查询，当前时间范�?", queryTimeRange.value);
+  console.log("执行手动查询，当前时间范围:", queryTimeRange.value);
 
   if (!queryTimeRange.value || queryTimeRange.value.length !== 2) {
-    console.warn("时间范围无效，无法执行查�?);
+    console.warn("时间范围无效，无法执行查询");
     return;
   }
 
@@ -1015,7 +1015,7 @@ const handleManualQuery = async () => {
  * 时间范围变化处理
  */
 const handleTimeRangeChange = (item: any, timeRange: any) => {
-  // 当单个组件的时间范围变化时，使用新的时间范围查询该组�?
+  // 当单个组件的时间范围变化时，使用新的时间范围查询该组件
   if (timeRange && timeRange.length === 2) {
     executeUnifiedQuery(item, timeRange);
   } else {
@@ -1035,16 +1035,16 @@ const loadMyComponents = async () => {
     console.log("组件定义API响应:", res);
 
     if (res.code === "00000" && res.data) {
-      console.log("获取到组件定�?", res.data.length, "个组�?);
+      console.log("获取到组件定义:", res.data.length, "个组件");
 
       // 过滤掉已经在布局中的组件
       const availableComponents = res.data.filter((component: any) => !layout.value.some((layoutItem) => layoutItem.componentId === component.monitorSysGenServerComponentId));
 
       myComponents.value = availableComponents;
-      console.log("可选组件定�?", availableComponents.length, "�?);
+      console.log("可选组件定义:", availableComponents.length, "个");
 
       if (availableComponents.length === 0) {
-        ElMessage.info("所有组件都已添加到布局�?);
+        ElMessage.info("所有组件都已添加到布局中");
       } else {
         ElMessage.success(`找到 ${availableComponents.length} 个可选组件`);
       }
@@ -1068,7 +1068,7 @@ const loadSharedComponents = async () => {
     // TODO: 实现共享组件加载逻辑
     sharedComponents.value = [];
 
-    // 打开组件选择器并切换到共享标�?
+    // 打开组件选择器并切换到共享标签
     showComponentSelector.value = true;
     componentSelectorTab.value = "shared";
   } catch (error) {
@@ -1092,7 +1092,7 @@ const toggleComponentSelection = (component: any) => {
 };
 
 /**
- * 添加选中组件（创建布局配置�?
+ * 添加选中组件（创建布局配置）
  */
 const addSelectedComponents = async () => {
   try {
@@ -1112,7 +1112,7 @@ const addSelectedComponents = async () => {
       const layoutRes = await createServerComponentLayout(props.serverId, component.monitorSysGenServerComponentId, x, y, w, h);
 
       if (layoutRes.code === "00000" && layoutRes.data) {
-        // 创建成功后，添加到前端布局�?
+        // 创建成功后，添加到前端布局中
         const componentItem = {
           i: `layout-${layoutRes.data.monitorSysGenServerComponentLayoutId}`,
           x: x,
@@ -1179,16 +1179,16 @@ const getComponentTypeTag = (type: string): "success" | "warning" | "info" | "pr
 const getComponentTypeName = (type: string) => {
   const typeMap: Record<string, string> = {
     card: "卡片",
-    gauge: "仪表�?,
-    line: "折线�?,
-    bar: "柱状�?,
+    gauge: "仪表盘",
+    line: "折线图",
+    bar: "柱状图",
     pie: "饼图",
     table: "表格",
   };
   return typeMap[type] || "未知";
 };
 
-// 监听组件选择器显示状�?
+// 监听组件选择器显示状态
 watch(
   () => showComponentSelector.value,
   (show) => {
@@ -1406,7 +1406,7 @@ defineExpose({
   margin-right: 4px;
 }
 
-/* 新增的查询控制样�?*/
+/* 新增的查询控制样式 */
 .layout-query-controls {
   display: flex;
   flex-direction: column;
@@ -1462,7 +1462,7 @@ defineExpose({
   gap: 12px;
 }
 
-/* 新增的查询控制样�?*/
+/* 新增的查询控制样式 */
 .layout-query-controls {
   display: flex;
   align-items: center;

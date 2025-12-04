@@ -17,15 +17,15 @@
           <el-descriptions-item label="脚本名称">
             {{ executionData.scriptName }}
           </el-descriptions-item>
-          <el-descriptions-item label="执行状�?>
+          <el-descriptions-item label="执行状态">
             <StatusTag :status="executionData.status" />
           </el-descriptions-item>
           <el-descriptions-item label="退出码">
             <span :class="getExitCodeClass(executionData.exitCode)">
-              {{ executionData.exitCode ?? "�? }}
+              {{ executionData.exitCode ?? "无" }}
             </span>
           </el-descriptions-item>
-          <el-descriptions-item label="开始时�?>
+          <el-descriptions-item label="开始时间">
             {{ formatTime(executionData.startTime) }}
           </el-descriptions-item>
           <el-descriptions-item label="结束时间">
@@ -34,7 +34,7 @@
           <el-descriptions-item label="执行耗时">
             {{ formatDuration(executionData.duration) }}
           </el-descriptions-item>
-          <el-descriptions-item label="执行�?>
+          <el-descriptions-item label="执行人">
             {{ executionData.executor || "系统" }}
           </el-descriptions-item>
         </el-descriptions>
@@ -108,11 +108,11 @@ const emit = defineEmits<{
   "update:modelValue": [value: boolean];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const visible = ref(false);
 const activeTab = ref("stdout");
 
-// 监听�?
+// 监听器
 watch(
   () => props.modelValue,
   (val) => {
@@ -167,7 +167,7 @@ function startPolling() {
         props.executionData.stderr =
           output.data.errorOutput ?? props.executionData.stderr;
       }
-      // 若已结束则停止轮�?
+      // 若已结束则停止轮询
       if (props.executionData.status !== "running") {
         stopPolling();
       }
@@ -198,7 +198,7 @@ const handleStop = async () => {
     if (!props.executionData?.id) return;
     const resp = await stopScriptExecution(props.executionData.id);
     if (resp.success) {
-      ElMessage.success("停止指令已发�?);
+      ElMessage.success("停止指令已发送");
     } else {
       ElMessage.error(resp.msg || "停止执行失败");
     }
@@ -214,13 +214,13 @@ const handleRerun = () => {
 const copyOutput = async (type: "stdout" | "stderr") => {
   const content = props.executionData?.[type];
   if (!content) {
-    ElMessage.warning("暂无内容可复�?);
+    ElMessage.warning("暂无内容可复制");
     return;
   }
 
   try {
     await navigator.clipboard.writeText(content);
-    ElMessage.success("内容已复制到剪贴�?);
+    ElMessage.success("内容已复制到剪贴板");
   } catch (error) {
     ElMessage.error("复制失败");
   }
@@ -229,7 +229,7 @@ const copyOutput = async (type: "stdout" | "stderr") => {
 const downloadOutput = (type: "stdout" | "stderr") => {
   const content = props.executionData?.[type];
   if (!content) {
-    ElMessage.warning("暂无内容可下�?);
+    ElMessage.warning("暂无内容可下载");
     return;
   }
 
@@ -246,11 +246,11 @@ const downloadOutput = (type: "stdout" | "stderr") => {
 
 // 工具函数
 const formatTime = (date: Date | null) => {
-  return date ? date.toLocaleString() : "�?;
+  return date ? date.toLocaleString() : "无";
 };
 
 const formatDuration = (duration: number | null) => {
-  if (!duration) return "�?;
+  if (!duration) return "无";
 
   if (duration < 1000) {
     return `${duration}ms`;
@@ -287,10 +287,10 @@ const getStatusText = (status: string) => {
   const textMap = {
     success: "执行成功",
     failed: "执行失败",
-    running: "执行�?,
-    cancelled: "已取�?,
+    running: "执行中",
+    cancelled: "已取消",
   };
-  return textMap[status] || "未知状�?;
+  return textMap[status] || "未知状态";
 };
 
 const getExitCodeClass = (exitCode: number | null) => {
@@ -300,7 +300,7 @@ const getExitCodeClass = (exitCode: number | null) => {
 </script>
 
 <style scoped lang="scss">
-// 样式与之前的设计保持一�?
+// 样式与之前的设计保持一致
 .execution-detail {
   max-height: 70vh;
   overflow-y: auto;

@@ -32,7 +32,7 @@
       <div v-else-if="loading" class="component-loading">
         <div class="loading-content">
           <IconifyIconOnline icon="ep:loading" class="loading-icon" />
-          <span class="loading-text">加载�?..</span>
+          <span class="loading-text">加载中...</span>
         </div>
       </div>
       <div v-else-if="!hasData" class="component-empty">
@@ -133,7 +133,7 @@ const emit = defineEmits(["fetchData", "editComponent", "removeComponent", "edit
 
 // 组件标题
 const title = computed(() => {
-  return props.item.title || props.item.monitorSysGenServerComponentName || "未命名组�?;
+  return props.item.title || props.item.monitorSysGenServerComponentName || "未命名组件";
 });
 
 // 图表类型
@@ -151,10 +151,10 @@ const valueUnit = computed(() => {
   return props.item.valueUnit || props.item.monitorSysGenServerDetailComponentValueUnit || "";
 });
 
-// 是否有数�?
+// 是否有数据
 const hasData = computed(() => {
-  if (props.loading) return true; // 加载中时认为有数�?
-  if (props.error) return false; // 有错误时认为无数�?
+  if (props.loading) return true; // 加载中时认为有数据
+  if (props.error) return false; // 有错误时认为无数据
 
   if (chartType.value === "table") {
     return props.tableData && props.tableData.length > 0;
@@ -164,10 +164,10 @@ const hasData = computed(() => {
     return props.chartData !== null && props.chartData !== undefined && props.chartData !== "";
   }
 
-  // 对于其他图表类型，检�?chartData 是否有有效数�?
+  // 对于其他图表类型，检查 chartData 是否有有效数据
   if (!props.chartData) return false;
 
-  // 如果 chartData 是对象且包含 error 属性，认为无数�?
+  // 如果 chartData 是对象且包含 error 属性，认为无数据
   if (typeof props.chartData === "object" && props.chartData.error) {
     return false;
   }
@@ -201,7 +201,7 @@ const tableData = computed(() => {
   return props.chartData.data || [];
 });
 
-// 表格�?
+// 表格列
 const tableColumns = computed(() => {
   return props.chartData.columns || [];
 });
@@ -211,10 +211,10 @@ const showFooter = computed(() => {
   return props.queryTime || props.refreshInterval > 0;
 });
 
-// 全屏状�?
+// 全屏状态
 const isFullscreen = ref(false);
 
-// 刷新倒计�?
+// 刷新倒计时
 const refreshCountdown = ref(0);
 const refreshTimer = ref(null);
 
@@ -255,14 +255,14 @@ onBeforeUnmount(() => {
 });
 
 /**
- * 获取数值单位标�?
+ * 获取数值单位标签
  */
 const getValueUnitLabel = unit => {
   const unitMap = {
     percent: "%",
     bytes: "B",
-    status: "状�?,
-    count: "�?,
+    status: "状态",
+    count: "个",
     time: "s"
   };
   return unitMap[unit] || unit;

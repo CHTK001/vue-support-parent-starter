@@ -2,14 +2,35 @@
 import "animate.css";
 // 引入 src/components/ReIcon/src/offlineIcon.ts 文件中所有使用addIcon添加过的本地图标
 import "@repo/components/ReIcon/src/offlineIcon";
-import { initRouter, useAppStoreHook, useConfigStore, useSettingStoreHook } from "@repo/core";
+import {
+  initRouter,
+  useAppStoreHook,
+  useConfigStore,
+  useSettingStoreHook,
+} from "@repo/core";
 import { useI18n } from "vue-i18n";
 import { useDataThemeChange } from "./hooks/useDataThemeChange";
 import { useLayout } from "./hooks/useLayout";
 import { setType } from "./types";
 
-import { deviceDetection, useDark, useGlobal, useResizeObserver } from "@pureadmin/utils";
-import { computed, defineAsyncComponent, defineComponent, h, markRaw, nextTick, onBeforeMount, onMounted, reactive, ref } from "vue";
+import {
+  deviceDetection,
+  useDark,
+  useGlobal,
+  useResizeObserver,
+} from "@pureadmin/utils";
+import {
+  computed,
+  defineAsyncComponent,
+  defineComponent,
+  h,
+  markRaw,
+  nextTick,
+  onBeforeMount,
+  onMounted,
+  reactive,
+  ref,
+} from "vue";
 //@ts-ignore
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
@@ -29,8 +50,12 @@ window.onload = () => {
     });
   });
 };
-const CardNavigation = defineAsyncComponent(() => import("./components/lay-sidebar/components/CardNavigation.vue"));
-const LayContent = defineAsyncComponent(() => import("./components/lay-content/index.vue"));
+const CardNavigation = defineAsyncComponent(
+  () => import("./components/lay-sidebar/components/CardNavigation.vue")
+);
+const LayContent = defineAsyncComponent(
+  () => import("./components/lay-content/index.vue")
+);
 const NavVertical = markRaw(NavVerticalLayout);
 const NavHorizontal = markRaw(NavHorizontalLayout);
 const NavHover = markRaw(NavHoverLayout);
@@ -48,7 +73,7 @@ initStorage();
 
 // 将layout改为字符串形式
 const layout = computed(() => {
-  return $storage?.layout?.layout || 'vertical';
+  return $storage?.layout?.layout || "vertical";
 });
 
 const isMobile = deviceDetection();
@@ -154,12 +179,11 @@ onMounted(async () => {
     try {
       useDataThemeChange().dataThemeChange($storage?.layout?.overallStyle);
     } catch (error) {
-      console.warn('Failed to call useDataThemeChange in onMounted:', error);
+      console.warn("Failed to call useDataThemeChange in onMounted:", error);
     }
     // 等待配置加载完成
     getDefaultSetting();
   });
-
 });
 
 /**
@@ -202,9 +226,6 @@ onBeforeMount(async () => {
 
   // 应用主题
   useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);
-
-  // 获取默认设置
-  getDefaultSetting();
 });
 
 const LayHeader = defineComponent({
@@ -214,12 +235,27 @@ const LayHeader = defineComponent({
       "div",
       {
         class: { "fixed-header shadow-tab": set.fixedHeader },
-        style: [set.hideTabs && layout.value === "horizontal" ? (isDark.value ? "box-shadow: 0 1px 4px #0d0d0d" : "box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)") : ""],
+        style: [
+          set.hideTabs && layout.value === "horizontal"
+            ? isDark.value
+              ? "box-shadow: 0 1px 4px #0d0d0d"
+              : "box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)"
+            : "",
+        ],
       },
       {
         default: () => [
-          !pureSetting.hiddenSideBar && (layout.value === "vertical" || layout.value === "mix" || layout.value === "hover" || layout.value === "card" || layout.value === "double") ? h(LayNavbar) : null,
-          !pureSetting.hiddenSideBar && layout.value === "horizontal" ? h(NavHorizontal) : null,
+          !pureSetting.hiddenSideBar &&
+          (layout.value === "vertical" ||
+            layout.value === "mix" ||
+            layout.value === "hover" ||
+            layout.value === "card" ||
+            layout.value === "double")
+            ? h(LayNavbar)
+            : null,
+          !pureSetting.hiddenSideBar && layout.value === "horizontal"
+            ? h(NavHorizontal)
+            : null,
           h(markRaw(LayTag)),
         ],
       }
@@ -233,7 +269,7 @@ const LayHeader = defineComponent({
   <div v-if="!isConfigLoaded" class="fullscreen-loading">
     <div class="loading-content">
       <div class="loading-spinner"></div>
-      <div class="loading-text">{{ t('system.initializing') }}</div>
+      <div class="loading-text">{{ t("system.initializing") }}</div>
     </div>
   </div>
 
@@ -255,11 +291,20 @@ const LayHeader = defineComponent({
 
     <!-- 双栏导航模式：特殊布局 -->
     <template v-else-if="layout === 'double'">
-      <div v-show="set.device === 'mobile' && set.sidebar.opened" class="app-mask"
-        @click="useAppStoreHook().toggleSideBar()" />
+      <div
+        v-show="set.device === 'mobile' && set.sidebar.opened"
+        class="app-mask"
+        @click="useAppStoreHook().toggleSideBar()"
+      />
       <div class="double-layout-container">
         <NavDouble v-show="!pureSetting.hiddenSideBar" />
-        <div :class="['main-container', 'double-main', pureSetting.hiddenSideBar ? 'main-hidden' : '']">
+        <div
+          :class="[
+            'main-container',
+            'double-main',
+            pureSetting.hiddenSideBar ? 'main-hidden' : '',
+          ]"
+        >
           <div v-if="set.fixedHeader">
             <LayHeader />
             <!-- 主体内容 -->
@@ -272,7 +317,10 @@ const LayHeader = defineComponent({
             </Suspense>
           </div>
           <el-scrollbar v-else>
-            <el-backtop :title="t('buttons.pureBackTop')" target=".main-container .el-scrollbar__wrap">
+            <el-backtop
+              :title="t('buttons.pureBackTop')"
+              target=".main-container .el-scrollbar__wrap"
+            >
               <BackTopIcon />
             </el-backtop>
             <LayHeader />
@@ -291,11 +339,24 @@ const LayHeader = defineComponent({
 
     <!-- 其他导航模式：原有逻辑 -->
     <template v-else>
-      <div v-show="set.device === 'mobile' && set.sidebar.opened" class="app-mask"
-        @click="useAppStoreHook().toggleSideBar()" />
-      <NavVertical v-show="!pureSetting.hiddenSideBar && (layout === 'vertical' || layout === 'mix')" />
+      <div
+        v-show="set.device === 'mobile' && set.sidebar.opened"
+        class="app-mask"
+        @click="useAppStoreHook().toggleSideBar()"
+      />
+      <NavVertical
+        v-show="
+          !pureSetting.hiddenSideBar &&
+          (layout === 'vertical' || layout === 'mix')
+        "
+      />
       <NavHover v-show="!pureSetting.hiddenSideBar && layout === 'hover'" />
-      <div :class="['main-container', pureSetting.hiddenSideBar ? 'main-hidden' : '']">
+      <div
+        :class="[
+          'main-container',
+          pureSetting.hiddenSideBar ? 'main-hidden' : '',
+        ]"
+      >
         <div v-if="set.fixedHeader">
           <LayHeader />
           <!-- 主体内容 -->
@@ -308,7 +369,10 @@ const LayHeader = defineComponent({
           </Suspense>
         </div>
         <el-scrollbar v-else>
-          <el-backtop :title="t('buttons.pureBackTop')" target=".main-container .el-scrollbar__wrap">
+          <el-backtop
+            :title="t('buttons.pureBackTop')"
+            target=".main-container .el-scrollbar__wrap"
+          >
             <BackTopIcon />
           </el-backtop>
           <LayHeader />
@@ -332,7 +396,8 @@ const LayHeader = defineComponent({
 <style lang="scss" scoped>
 .shadow-tab {
   --un-shadow: var(--tab-box-shadow-v2);
-  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
+  box-shadow:
+    var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
 }
 
 .app-wrapper {

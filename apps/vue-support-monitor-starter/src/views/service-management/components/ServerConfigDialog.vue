@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    title="服务器配�?
+    title="服务器配置"
     width="1200px"
     :close-on-click-modal="false"
     @close="handleClose"
@@ -180,7 +180,7 @@
       </div>
     </div>
 
-    <!-- Filter配置对话框（通用+专用�?-->
+    <!-- Filter配置对话框（通用+专用） -->
     <FilterConfigDialog
       v-model:visible="showConfigDialog"
       :filter-setting="currentFilterSetting"
@@ -283,7 +283,7 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 响应式数�?
+// 响应式数据
 const availableLoading = ref(false);
 const installedLoading = ref(false);
 const saveLoading = ref(false);
@@ -304,7 +304,7 @@ const showRequestFingerprintDialog = ref(false);
 const showDynamicExprDialog = ref(false);
 const currentFilterSetting = ref<SystemServerSetting | null>(null);
 
-// 计算属�?
+// 计算属性
 const dialogVisible = computed({
   get: () => props.visible,
   set: (value) => emit("update:visible", value),
@@ -394,7 +394,7 @@ const installFilter = async (filter: ServletFilterObject) => {
 const uninstallFilter = async (filter: SystemServerSetting) => {
   try {
     await ElMessageBox.confirm(
-      `确定要卸�?${filter.systemServerSettingName} 吗？`,
+      `确定要卸载 ${filter.systemServerSettingName} 吗？`,
       "确认卸载",
       {
         confirmButtonText: "确定",
@@ -424,7 +424,7 @@ const uninstallFilter = async (filter: SystemServerSetting) => {
   }
 };
 
-// 切换Filter状�?
+// 切换Filter状态
 const toggleFilterStatus = async (filter: SystemServerSetting) => {
   toggleLoading.value[filter.systemServerSettingId!] = true;
   try {
@@ -442,7 +442,7 @@ const toggleFilterStatus = async (filter: SystemServerSetting) => {
       ElMessage.error(response.msg || "操作失败");
     }
   } catch (error) {
-    console.error("切换Filter状态失�?", error);
+    console.error("切换Filter状态失败:", error);
     ElMessage.error("操作失败");
   } finally {
     toggleLoading.value[filter.systemServerSettingId!] = false;
@@ -488,7 +488,7 @@ const saveOrder = async () => {
 // 打开配置对话框（根据类型分发到专用页面）
 const openConfigDialog = (filter: SystemServerSetting) => {
   currentFilterSetting.value = filter;
-  // 先关闭全�?
+  // 先关闭全部
   showConfigDialog.value = false;
   showFileStorageDialog.value = false;
   showServiceDiscoveryDialog.value = false;
@@ -533,7 +533,7 @@ const openConfigDialog = (filter: SystemServerSetting) => {
   showConfigDialog.value = true;
 };
 
-// 配置成功回调（统一收口�?
+// 配置成功回调（统一收口）
 const handleConfigSuccess = () => {
   showConfigDialog.value = false;
   showFileStorageDialog.value = false;
@@ -544,13 +544,13 @@ const handleConfigSuccess = () => {
   loadInstalledFilters();
 };
 
-// 关闭对话�?
+// 关闭对话框
 const handleClose = () => {
   dialogVisible.value = false;
   emit("success");
 };
 
-// 初始�?
+// 初始化
 onMounted(() => {
   if (props.visible && props.serverId) {
     loadAvailableFilters();
@@ -558,7 +558,7 @@ onMounted(() => {
   }
 });
 
-// 监听对话框显示状�?
+// 监听对话框显示状态
 watch(
   () => props.visible,
   (visible) => {
@@ -582,64 +582,29 @@ watch(
 .installed-filters {
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  border-radius: 16px;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
   overflow: hidden;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.98) 0%,
-    rgba(248, 250, 252, 0.95) 100%
-  );
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 24px;
-  background: linear-gradient(
-    135deg,
-    rgba(248, 250, 252, 0.95) 0%,
-    rgba(241, 245, 249, 0.9) 100%
-  );
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  padding: 16px 20px;
+  background: var(--el-bg-color-overlay);
+  border-bottom: 1px solid #e4e7ed;
 
   h3 {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
-    color: #1e293b;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    &::before {
-      content: "";
-      width: 4px;
-      height: 18px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 2px;
-    }
+    color: var(--el-text-color-primary);
   }
 
   .header-actions {
     display: flex;
     gap: 8px;
-  }
-
-  :deep(.el-button) {
-    border-radius: 8px;
-  }
-
-  :deep(.el-button--primary) {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-  }
-
-  :deep(.el-button--success) {
-    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-    border: none;
   }
 }
 
@@ -647,24 +612,29 @@ watch(
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  background: rgba(248, 250, 252, 0.5);
 
+  /* 统一的细滚动条样式 */
   &::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: transparent;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(102, 126, 234, 0.3);
-    border-radius: 3px;
+    background: rgba(140, 140, 140, 0.3);
+    border-radius: 2px;
+    box-shadow: inset 0 0 6px rgba(140, 140, 140, 0.3);
 
     &:hover {
-      background: rgba(102, 126, 234, 0.5);
+      background: rgba(140, 140, 140, 0.5);
     }
   }
 
   &::-webkit-scrollbar-track {
-    background: transparent;
+    background-color: rgba(140, 140, 140, 0);
+    border-radius: 2px;
+    box-shadow: inset 0 0 6px rgba(140, 140, 140, 0);
   }
 }
 
@@ -672,145 +642,100 @@ watch(
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 18px 20px;
+  padding: 16px;
   margin-bottom: 12px;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  border-radius: 14px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(248, 250, 252, 0.9) 100%
-  );
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: var(--item-accent, transparent);
-    transition: width 0.3s ease;
-  }
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  background: var(--el-bg-color-overlay);
+  transition: all 0.3s ease;
 
   &:last-child {
     margin-bottom: 0;
   }
 
-  &.available {
-    --item-accent: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-
-    &:hover {
-      border-color: rgba(102, 126, 234, 0.4);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15);
-      transform: translateY(-2px);
-
-      &::before {
-        width: 5px;
-      }
-    }
+  &.available:hover {
+    border-color: #409eff;
+    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
   }
 
   &.installed {
-    --item-accent: linear-gradient(180deg, #10b981 0%, #34d399 100%);
-
     &:hover {
-      border-color: rgba(16, 185, 129, 0.4);
-      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.15);
-      transform: translateY(-2px);
-
-      &::before {
-        width: 5px;
-      }
+      border-color: #67c23a;
+      box-shadow: 0 2px 8px rgba(103, 194, 58, 0.1);
     }
 
     &.disabled {
       opacity: 0.6;
-      --item-accent: linear-gradient(180deg, #94a3b8 0%, #cbd5e1 100%);
+      background: var(--el-bg-color-overlay);
     }
   }
 
   .drag-handle {
     cursor: move;
-    color: #94a3b8;
-    font-size: 18px;
-    padding: 4px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
+     color: var(--el-text-color-primary);
+    font-size: 16px;
 
     &:hover {
-      color: #667eea;
-      background: rgba(102, 126, 234, 0.1);
+      color: #409eff;
     }
   }
 
   .filter-info {
     flex: 1;
-    min-width: 0;
 
     .filter-name {
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 600;
-      color: #1e293b;
-      margin-bottom: 6px;
+      color: var(--el-text-color-primary);
+      margin-bottom: 4px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-
+      gap: 8px;
+      /* 美化序号 */
       .filter-seq {
-        display: inline-flex;
+        display: inline-flex; /* 让数字水平、垂直居中 */
         align-items: center;
         justify-content: center;
-        width: 24px;
-        height: 24px;
-        border-radius: 8px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        width: 22px; /* 圆点大小 */
+        height: 22px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #409eff, #53a8ff); /* 渐变色背景 */
         color: #fff;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 600;
-        box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
-        flex-shrink: 0;
+        line-height: 1;
+        margin-right: 8px; /* 和右侧文字留点距离 */
+        box-shadow: 0 2px 4px rgba(64, 158, 255, 0.25);
+        user-select: none; /* 防止被选中 */
       }
     }
 
     .filter-type {
-      font-size: 11px;
-      color: #64748b;
-      background: linear-gradient(
-        135deg,
-        rgba(248, 250, 252, 0.9) 0%,
-        rgba(241, 245, 249, 0.8) 100%
-      );
-      border: 1px solid rgba(226, 232, 240, 0.6);
-      padding: 3px 10px;
-      border-radius: 6px;
+      font-size: 12px;
+       color: var(--el-text-color-primary);
+      background: #f0f2f5;
+      padding: 2px 8px;
+      border-radius: 4px;
       display: inline-block;
       margin-bottom: 8px;
     }
 
     .filter-description {
-      font-size: 13px;
-      color: #64748b;
-      line-height: 1.5;
+      font-size: 14px;
+      color: #606266;
+      line-height: 1.4;
     }
 
     .filter-detail {
-      margin-top: 6px;
-      font-size: 12px;
-      color: #94a3b8;
+      margin-top: 4px;
 
       .detail-icon {
-        color: #94a3b8;
+         color: var(--el-text-color-primary);
         font-size: 14px;
         cursor: help;
-        margin-right: 4px;
 
         &:hover {
-          color: #667eea;
+          color: #409eff;
         }
       }
     }
@@ -820,42 +745,14 @@ watch(
     display: flex;
     gap: 8px;
     flex-shrink: 0;
-
-    :deep(.el-button) {
-      border-radius: 8px;
-      font-weight: 500;
-    }
-
-    :deep(.el-button--primary) {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border: none;
-    }
-
-    :deep(.el-button--success) {
-      background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-      border: none;
-    }
-
-    :deep(.el-button--warning) {
-      background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
-      border: none;
-    }
-
-    :deep(.el-button--danger) {
-      background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
-      border: none;
-    }
   }
 
   .filter-name-link {
     cursor: pointer;
-    color: #667eea;
-    transition: all 0.2s ease;
-
-    &:hover {
-      color: #764ba2;
-      text-decoration: underline;
-    }
+    color: #409eff;
+  }
+  .filter-name-link:hover {
+    text-decoration: underline;
   }
 }
 
@@ -865,22 +762,7 @@ watch(
   gap: 12px;
 }
 
-:deep(.el-empty) {
-  padding: 40px 20px;
-}
-
-:deep(.el-tag--success) {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #059669;
-}
-
-:deep(.el-tag--info) {
-  background: rgba(100, 116, 139, 0.1);
-  border-color: rgba(100, 116, 139, 0.3);
-  color: #475569;
-}
-
+// 响应式
 @media (max-width: 1024px) {
   .config-container {
     grid-template-columns: 1fr;
@@ -890,18 +772,6 @@ watch(
   .available-filters,
   .installed-filters {
     height: 400px;
-  }
-
-  .filter-item {
-    flex-wrap: wrap;
-
-    .filter-actions {
-      width: 100%;
-      justify-content: flex-end;
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(226, 232, 240, 0.6);
-    }
   }
 }
 </style>

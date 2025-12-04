@@ -21,29 +21,29 @@
       </div>
     </div>
 
-    <!-- 搜索�?-->
+    <!-- 搜索栏 -->
     <div class="search-bar">
       <div class="search-left">
-        <el-input v-model="searchParams.keyword" placeholder="搜索镜像名称或标�? class="search-input" clearable @keyup.enter="handleSearch">
+        <el-input v-model="searchParams.keyword" placeholder="搜索镜像名称或标签" class="search-input" clearable @keyup.enter="handleSearch">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select v-model="searchParams.serverId" placeholder="服务�? clearable class="filter-select" @change="handleSearch">
+        <el-select v-model="searchParams.serverId" placeholder="服务器" clearable class="filter-select" @change="handleSearch">
           <el-option label="全部" value="" />
           <el-option v-for="server in serverOptions" :key="server.id" :label="server.name" :value="server.id" />
         </el-select>
-        <el-select v-model="searchParams.status" placeholder="状�? clearable class="filter-select" @change="handleSearch">
+        <el-select v-model="searchParams.status" placeholder="状态" clearable class="filter-select" @change="handleSearch">
           <el-option label="全部" value="" />
           <el-option label="可用" value="available" />
-          <el-option label="拉取�? value="pulling" />
+          <el-option label="拉取中" value="pulling" />
           <el-option label="错误" value="error" />
         </el-select>
       </div>
       <div class="search-right">
         <el-button @click="handleSyncAll" :loading="syncLoading" type="success">
           <IconifyIconOnline icon="ri:refresh-2-line" class="mr-1" />
-          同步状�?
+          同步状态
         </el-button>
         <el-button @click="handleBatchDelete" :disabled="selectedIds.length === 0" type="danger">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
@@ -82,7 +82,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="服务�? width="180">
+        <el-table-column label="服务器" width="180">
           <template #default="{ row }">
             <div class="server-info">
               <div class="server-name">{{ row.systemSoftImageServerName }}</div>
@@ -90,7 +90,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="状�? width="120">
+        <el-table-column label="状态" width="120">
           <template #default="{ row }">
             <el-tag :type="getStatusTag(row.systemSoftImageStatus)" size="small">
               {{ getStatusText(row.systemSoftImageStatus) }}
@@ -137,15 +137,15 @@
       </ScTable>
     </el-card>
 
-    <!-- 拉取镜像对话�?-->
+    <!-- 拉取镜像对话框 -->
     <PullImageDialog v-model:visible="pullDialogVisible" @success="handleDialogSuccess" />
 
-    <!-- 启动容器对话�?-->
+    <!-- 启动容器对话框 -->
     <StartContainerDialog v-model:visible="startDialogVisible" :image-data="currentImage" @success="handleDialogSuccess" />
 
-    <!-- 批量操作底部工具�?-->
+    <!-- 批量操作底部工具栏 -->
     <div v-if="selectedIds.length > 0" class="batch-actions">
-      <div class="batch-info">已选择 {{ selectedIds.length }} 个镜�?/div>
+      <div class="batch-info">已选择 {{ selectedIds.length }} 个镜像</div>
       <el-button @click="clearSelection">取消选择</el-button>
       <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
     </div>
@@ -160,7 +160,7 @@ import { onMounted, reactive, ref } from "vue";
 import PullImageDialog from "./components/PullImageDialog.vue";
 import StartContainerDialog from "./components/StartContainerDialog.vue";
 
-// 响应式数�?
+// 响应式数据
 const loading = ref(false);
 const syncLoading = ref(false);
 const selectedIds = ref<number[]>([]);
@@ -180,10 +180,10 @@ const searchParams = reactive({
 
 // 基础方法
 const handleRefresh = () => {
-  // ScTable会自动刷新数�?
+  // ScTable会自动刷新数据
 };
 const handleSearch = () => {
-  // ScTable会自动根据搜索参数刷新数�?
+  // ScTable会自动根据搜索参数刷新数据
 };
 const handleSelectionChange = (selection: SystemSoftImage[]) => {
   selectedIds.value = selection.map((item) => item.systemSoftImageId!);
@@ -199,7 +199,7 @@ const getStatusTag = (status?: string) => {
 };
 
 const getStatusText = (status?: string) => {
-  const map = { available: "可用", pulling: "拉取�?, error: "错误" };
+  const map = { available: "可用", pulling: "拉取中", error: "错误" };
   return map[status] || "未知";
 };
 
@@ -233,14 +233,14 @@ const viewImageDetail = (image: SystemSoftImage) => {
 
 const handleDelete = async (imageId: number) => {
   try {
-    await ElMessageBox.confirm("确定要删除这个镜像吗�?, "删除确认", {
+    await ElMessageBox.confirm("确定要删除这个镜像吗？", "删除确认", {
       type: "warning",
     });
 
     const response = await imageApi.deleteImage(imageId);
     if (response.code === "00000" || response.success) {
       ElMessage.success("删除成功");
-      // ScTable会自动刷新数�?
+      // ScTable会自动刷新数据
     } else {
       ElMessage.error(response.msg || "删除失败");
     }
@@ -256,13 +256,13 @@ const handleSyncAll = async () => {
     syncLoading.value = true;
     const response = await imageApi.syncImageStatus();
     if (response.code === "00000" || response.success) {
-      ElMessage.success("同步状态成�?);
-      // ScTable会自动刷新数�?
+      ElMessage.success("同步状态成功");
+      // ScTable会自动刷新数据
     } else {
       ElMessage.error(response.msg || "同步失败");
     }
   } catch (error) {
-    ElMessage.error("同步镜像状态失�?);
+    ElMessage.error("同步镜像状态失败");
   } finally {
     syncLoading.value = false;
   }
@@ -275,7 +275,7 @@ const handleBatchDelete = async () => {
   }
 
   try {
-    await ElMessageBox.confirm(`确定要删除选中�?${selectedIds.value.length} 个镜像吗？`, "批量删除确认", {
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedIds.value.length} 个镜像吗？`, "批量删除确认", {
       type: "warning",
     });
 
@@ -283,7 +283,7 @@ const handleBatchDelete = async () => {
     if (response.code === "00000" || response.success) {
       ElMessage.success("批量删除成功");
       selectedIds.value = [];
-      // ScTable会自动刷新数�?
+      // ScTable会自动刷新数据
     } else {
       ElMessage.error(response.msg || "批量删除失败");
     }
@@ -295,21 +295,21 @@ const handleBatchDelete = async () => {
 };
 
 const handleDialogSuccess = () => {
-  // ScTable会自动刷新数�?
+  // ScTable会自动刷新数据
 };
 
-// 加载服务器列�?
+// 加载服务器列表
 const loadServers = async () => {
   try {
     const response = await getServerList();
     if (response.code === "00000" || response.success) {
       serverOptions.value = response.data || [];
     } else {
-      ElMessage.error(response.msg || "加载服务器列表失�?);
+      ElMessage.error(response.msg || "加载服务器列表失败");
     }
   } catch (error) {
-    console.error("加载服务器列表失�?", error);
-    ElMessage.error("加载服务器列表失�?);
+    console.error("加载服务器列表失败:", error);
+    ElMessage.error("加载服务器列表失败");
   }
 };
 

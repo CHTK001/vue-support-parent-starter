@@ -54,7 +54,7 @@ interface ContainerAlert {
   containerId: number
 }
 
-// 响应式数�?
+// 响应式数据
 const loading = ref(false)
 const alerts = ref<ContainerAlert[]>([])
 
@@ -68,8 +68,8 @@ const fetchAlerts = async () => {
     alerts.value = [
       {
         id: '1',
-        title: 'CPU使用率过�?,
-        message: '容器 nginx-proxy 的CPU使用率超�?0%',
+        title: 'CPU使用率过高',
+        message: '容器 nginx-proxy 的CPU使用率超过90%',
         level: 'warning',
         time: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
         containerName: 'nginx-proxy',
@@ -78,7 +78,7 @@ const fetchAlerts = async () => {
       {
         id: '2',
         title: '内存不足',
-        message: '容器 mysql-db 的内存使用接近限�?,
+        message: '容器 mysql-db 的内存使用接近限制',
         level: 'error',
         time: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
         containerName: 'mysql-db',
@@ -108,12 +108,12 @@ const getAlertIcon = (level: string) => {
   return icons[level] || 'ri:information-line'
 }
 
-// 格式化时�?
+// 格式化时间
 const formatTime = (time: string) => {
   return new Date(time).toLocaleString()
 }
 
-// 组件挂载时获取数�?
+// 组件挂载时获取数据
 onMounted(() => {
   fetchAlerts()
 })

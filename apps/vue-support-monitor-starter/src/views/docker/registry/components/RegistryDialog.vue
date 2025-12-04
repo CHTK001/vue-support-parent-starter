@@ -1,38 +1,13 @@
-??<template>
-  <el-dialog
-    v-model="dialogVisible"
-    :title="isEdit ? '±à¼­²Ö¿â' : 'Ìí¼Ó²Ö¿â'"
-    width="600px"
-    @closed="handleDialogClosed"
-  >
-    <el-form
-      ref="formRef"
-      :model="formData"
-      :rules="formRules"
-      label-width="100px"
-      @submit.prevent
-    >
-      <el-form-item label="²Ö¿âÃû³Æ" prop="systemSoftRegistryName">
-        <el-input
-          v-model="formData.systemSoftRegistryName"
-          placeholder="ÇëÊäÈë²Ö¿âÃû³Æ"
-          clearable
-        />
+ï»¿ï»¿ï»¿<template>
+  <el-dialog v-model="dialogVisible" :title="isEdit ? 'ç¼–è¾‘ä»“åº“' : 'æ·»åŠ ä»“åº“'" width="600px" @closed="handleDialogClosed">
+<el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" @submit.prevent>
+      <el-form-item label="ä»“åº“åç§°" prop="systemSoftRegistryName">
+        <el-input v-model="formData.systemSoftRegistryName" placeholder="è¯·è¾“å…¥ä»“åº“åç§°" clearable />
       </el-form-item>
 
-      <el-form-item label="²Ö¿âÀàĞÍ" prop="systemSoftRegistryType">
-        <el-select
-          v-model="formData.systemSoftRegistryType"
-          placeholder="ÇëÑ¡Ôñ²Ö¿âÀàĞÍ"
-          style="width: 100%"
-          @change="handleTypeChange"
-        >
-          <el-option
-            v-for="type in registryTypes"
-            :key="type.value"
-            :label="type.label"
-            :value="type.value"
-          >
+      <el-form-item label="ä»“åº“ç±»å‹" prop="systemSoftRegistryType">
+        <el-select v-model="formData.systemSoftRegistryType" placeholder="è¯·é€‰æ‹©ä»“åº“ç±»å‹" style="width: 100%" @change="handleTypeChange">
+          <el-option v-for="type in registryTypes" :key="type.value" :label="type.label" :value="type.value">
             <div class="registry-type-option">
               <IconifyIconOnline :icon="type.icon" class="mr-2" />
               {{ type.label }}
@@ -41,20 +16,12 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="²Ö¿âµØÖ·" prop="systemSoftRegistryUrl">
-        <el-input
-          v-model="formData.systemSoftRegistryUrl"
-          placeholder="ÇëÊäÈë²Ö¿âµØÖ·"
-          clearable
-        >
+      <el-form-item label="ä»“åº“åœ°å€" prop="systemSoftRegistryUrl">
+        <el-input v-model="formData.systemSoftRegistryUrl" placeholder="è¯·è¾“å…¥ä»“åº“åœ°å€" clearable>
           <template #append>
-            <el-button
-              v-if="showTestButton"
-              @click="testConnection"
-              :loading="testLoading"
-            >
+            <el-button v-if="showTestButton" @click="testConnection" :loading="testLoading">
               <IconifyIconOnline icon="ri:test-tube-line" class="mr-1" />
-              ²âÊÔ
+              æµ‹è¯•
             </el-button>
           </template>
         </el-input>
@@ -64,90 +31,49 @@
         </div>
       </el-form-item>
 
-      <!-- ÈÏÖ¤ĞÅÏ¢ -->
+
+      <!-- è®¤è¯ä¿¡æ¯ -->
       <el-divider content-position="left">
         <span class="divider-text">
           <IconifyIconOnline icon="ri:shield-user-line" class="mr-1" />
-          ÈÏÖ¤ĞÅÏ¢£¨¿ÉÑ¡£©
+          è®¤è¯ä¿¡æ¯ï¼ˆå¯é€‰ï¼‰
         </span>
       </el-divider>
 
-      <el-form-item label="ÓÃ»§Ãû" prop="systemSoftRegistryUsername">
-        <el-input
-          v-model="formData.systemSoftRegistryUsername"
-          placeholder="ÇëÊäÈëÓÃ»§Ãû£¨¿ÉÑ¡£©"
-          clearable
-        />
+      <el-form-item label="ç”¨æˆ·å" prop="systemSoftRegistryUsername">
+        <el-input v-model="formData.systemSoftRegistryUsername" placeholder="è¯·è¾“å…¥ç”¨æˆ·åï¼ˆå¯é€‰ï¼‰" clearable />
       </el-form-item>
 
-      <el-form-item label="ÃÜÂë" prop="systemSoftRegistryPassword">
-        <el-input
-          v-model="formData.systemSoftRegistryPassword"
-          type="password"
-          placeholder="ÇëÊäÈëÃÜÂë£¨¿ÉÑ¡£©"
-          show-password
-          clearable
-        />
+      <el-form-item label="å¯†ç " prop="systemSoftRegistryPassword">
+        <el-input v-model="formData.systemSoftRegistryPassword" type="password" placeholder="è¯·è¾“å…¥å¯†ç ï¼ˆå¯é€‰ï¼‰" show-password clearable />
       </el-form-item>
 
-      <el-form-item
-        label="ÓÊÏä"
-        prop="systemSoftRegistryEmail"
-        v-if="showEmail"
-      >
-        <el-input
-          v-model="formData.systemSoftRegistryEmail"
-          placeholder="ÇëÊäÈëÓÊÏä£¨¿ÉÑ¡£©"
-          clearable
-        />
+      <el-form-item label="é‚®ç®±" prop="systemSoftRegistryEmail" v-if="showEmail">
+        <el-input v-model="formData.systemSoftRegistryEmail" placeholder="è¯·è¾“å…¥é‚®ç®±ï¼ˆå¯é€‰ï¼‰" clearable />
       </el-form-item>
 
-      <el-form-item label="ÆôÓÃ" prop="systemSoftRegistryStatus">
-        <el-switch
-          v-model="formData.systemSoftRegistryStatus"
-          :active-value="1"
-          :inactive-value="0"
-        />
+      <el-form-item label="å¯ç”¨" prop="systemSoftRegistryStatus">
+        <el-switch v-model="formData.systemSoftRegistryStatus" :active-value="1" :inactive-value="0" />
       </el-form-item>
 
-      <el-form-item label="Ö§³ÖÍ¬²½" prop="systemSoftRegistrySupportSync">
-        <el-switch
-          v-model="formData.systemSoftRegistrySupportSync"
-          :active-value="1"
-          :inactive-value="0"
-        />
+      <el-form-item label="æ”¯æŒåŒæ­¥" prop="systemSoftRegistrySupportSync">
+        <el-switch v-model="formData.systemSoftRegistrySupportSync" :active-value="1" :inactive-value="0" />
       </el-form-item>
 
-      <el-form-item label="ÃèÊö" prop="systemSoftRegistryDescription">
-        <el-input
-          v-model="formData.systemSoftRegistryDescription"
-          type="textarea"
-          :rows="3"
-          placeholder="ÇëÊäÈë²Ö¿âÃèÊö£¨¿ÉÑ¡£©"
-        />
+      <el-form-item label="æè¿°" prop="systemSoftRegistryDescription">
+        <el-input v-model="formData.systemSoftRegistryDescription" type="textarea" :rows="3" placeholder="è¯·è¾“å…¥ä»“åº“æè¿°ï¼ˆå¯é€‰ï¼‰" />
       </el-form-item>
     </el-form>
 
-    <!-- Á¬½Ó²âÊÔ½á¹û -->
-    <el-alert
-      v-if="testResult"
-      :type="testResult.success ? 'success' : 'error'"
-      :title="testResult.message"
-      show-icon
-      :closable="false"
-      class="mb-4"
-    />
+    <!-- è¿æ¥æµ‹è¯•ç»“æœ -->
+    <el-alert v-if="testResult" :type="testResult.success ? 'success' : 'error'" :title="testResult.message" show-icon :closable="false" class="mb-4" />
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleCancel">È¡Ïû</el-button>
-        <el-button
-          type="primary"
-          @click="handleConfirm"
-          :loading="confirmLoading"
-        >
+        <el-button @click="handleCancel">å–æ¶ˆ</el-button>
+        <el-button type="primary" @click="handleConfirm" :loading="confirmLoading">
           <IconifyIconOnline icon="ri:save-line" class="mr-1" />
-          {{ isEdit ? "±£´æ" : "´´½¨" }}
+          {{ isEdit ? "ä¿å­˜" : "åˆ›å»º" }}
         </el-button>
       </div>
     </template>
@@ -155,27 +81,24 @@
 </template>
 
 <script setup lang="ts">
-import {
-  registryApi as softRegistryApi,
-  type SystemSoftRegistry,
-} from "@/api/docker";
+import { registryApi as softRegistryApi, type SystemSoftRegistry } from "@/api/docker";
 import { ElMessage, FormItemRule } from "element-plus";
 import { computed, nextTick, ref, watch } from "vue";
 
 /**
- * ²Ö¿â±à¼­¶Ô»°¿ò×é¼ş
+ * ä»“åº“ç¼–è¾‘å¯¹è¯æ¡†ç»„ä»¶
  * @author CH
  * @version 1.0.0
  * @since 2025-09-20
  */
 
-// Props¶¨Òå
+// Propså®šä¹‰
 interface Props {
   visible: boolean;
   registryData?: SystemSoftRegistry | null;
 }
 
-// Emits¶¨Òå
+// Emitså®šä¹‰
 interface Emits {
   (e: "update:visible", value: boolean): void;
   (e: "success"): void;
@@ -188,22 +111,23 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>();
 
-// ÏìÓ¦Ê½Êı¾İ
+// å“åº”å¼æ•°æ®
 const formRef = ref();
 const confirmLoading = ref(false);
 const testLoading = ref(false);
 const testResult = ref<{ success: boolean; message: string } | null>(null);
 
-// ¶Ô»°¿òÏÔÊ¾×´Ì¬
+
+// å¯¹è¯æ¡†æ˜¾ç¤ºçŠ¶æ€
 const dialogVisible = computed({
   get: () => props.visible,
   set: (value) => emit("update:visible", value),
 });
 
-// ÊÇ·ñÎª±à¼­Ä£Ê½
+// æ˜¯å¦ä¸ºç¼–è¾‘æ¨¡å¼
 const isEdit = computed(() => !!props.registryData?.systemSoftRegistryId);
 
-// ±íµ¥Êı¾İ
+// è¡¨å•æ•°æ®
 const formData = ref<SystemSoftRegistry>({
   systemSoftRegistryName: "",
   systemSoftRegistryType: "docker_hub",
@@ -216,7 +140,7 @@ const formData = ref<SystemSoftRegistry>({
   systemSoftRegistryDescription: "",
 });
 
-// ²Ö¿âÀàĞÍÑ¡Ïî
+// ä»“åº“ç±»å‹é€‰é¡¹
 const registryTypes = [
   {
     value: "docker_hub",
@@ -224,64 +148,52 @@ const registryTypes = [
     icon: "ri:docker-line",
   },
   {
-    value: "github",
-    label: "GitHub (¹Ù·½¾µÏñ)",
-    icon: "ri:github-line",
-  },
-  {
     value: "aliyun",
-    label: "°¢ÀïÔÆÈİÆ÷¾µÏñ·şÎñ",
+    label: "é˜¿é‡Œäº‘å®¹å™¨é•œåƒæœåŠ¡",
     icon: "ri:cloud-line",
   },
   {
     value: "harbor",
-    label: "HarborË½ÓĞ²Ö¿â",
+    label: "Harborç§æœ‰ä»“åº“",
     icon: "ri:ship-line",
   },
   {
     value: "custom",
-    label: "×Ô¶¨Òå²Ö¿â",
+    label: "è‡ªå®šä¹‰ä»“åº“",
     icon: "ri:settings-3-line",
   },
 ];
 
-// ±íµ¥ÑéÖ¤¹æÔò
+// è¡¨å•éªŒè¯è§„åˆ™
 const formRules: Record<string, FormItemRule[]> = {
   systemSoftRegistryName: [
-    { required: true, message: "ÇëÊäÈë²Ö¿âÃû³Æ", trigger: "blur" },
-    {
-      min: 2,
-      max: 50,
-      message: "²Ö¿âÃû³Æ³¤¶ÈÔÚ 2 µ½ 50 ¸ö×Ö·û",
-      trigger: "blur",
-    },
+    { required: true, message: "è¯·è¾“å…¥ä»“åº“åç§°", trigger: "blur" },
+    { min: 2, max: 50, message: "ä»“åº“åç§°é•¿åº¦åœ¨ 2 åˆ° 50 ä¸ªå­—ç¬¦", trigger: "blur" },
   ],
-  systemSoftRegistryType: [
-    { required: true, message: "ÇëÑ¡Ôñ²Ö¿âÀàĞÍ", trigger: "change" },
-  ],
+  systemSoftRegistryType: [{ required: true, message: "è¯·é€‰æ‹©ä»“åº“ç±»å‹", trigger: "change" }],
   systemSoftRegistryUrl: [
-    { required: true, message: "ÇëÊäÈë²Ö¿âµØÖ·", trigger: "blur" },
-    { type: "url" as const, message: "ÇëÊäÈëÓĞĞ§µÄURLµØÖ·", trigger: "blur" },
+    { required: true, message: "è¯·è¾“å…¥ä»“åº“åœ°å€", trigger: "blur" },
+    { type: "url" as const, message: "è¯·è¾“å…¥æœ‰æ•ˆçš„URLåœ°å€", trigger: "blur" },
   ],
   systemSoftRegistryStatus: [
-    { required: true, message: "ÇëÑ¡ÔñÊÇ·ñÆôÓÃ", trigger: "change" },
+    { required: true, message: "è¯·é€‰æ‹©æ˜¯å¦å¯ç”¨", trigger: "change" },
   ],
   systemSoftRegistrySupportSync: [
-    { required: true, message: "ÇëÑ¡ÔñÊÇ·ñÖ§³ÖÍ¬²½", trigger: "change" },
+    { required: true, message: "è¯·é€‰æ‹©æ˜¯å¦æ”¯æŒåŒæ­¥", trigger: "change" },
   ],
 };
 
-// ¼ÆËãÊôĞÔ
+// è®¡ç®—å±æ€§
 const showEmail = computed(() => {
   return formData.value.systemSoftRegistryType === "docker_hub";
 });
 
-// ÊÇ·ñÏÔÊ¾²âÊÔ°´Å¥£¨½öÔÚ±à¼­Ä£Ê½ÏÂÏÔÊ¾£©
+// æ˜¯å¦æ˜¾ç¤ºæµ‹è¯•æŒ‰é’®ï¼ˆä»…åœ¨ç¼–è¾‘æ¨¡å¼ä¸‹æ˜¾ç¤ºï¼‰
 const showTestButton = computed(() => {
   return isEdit.value;
 });
 
-// ÖØÖÃ±íµ¥
+// é‡ç½®è¡¨å•
 const resetForm = () => {
   formData.value = {
     systemSoftRegistryName: "",
@@ -296,148 +208,130 @@ const resetForm = () => {
   } as any;
 };
 
-// »ñÈ¡URLÌáÊ¾ĞÅÏ¢
+// è·å–URLæç¤ºä¿¡æ¯
 const getUrlHint = (type?: string) => {
-  const hints: Record<string, string> = {
-    docker_hub: "Ê¾Àı: https://registry-1.docker.io",
-    github: "GitHub API µØÖ·£¬ÓÃÓÚËÑË÷ docker-library ¹Ù·½¾µÏñ",
-    aliyun: "Ê¾Àı: https://registry.cn-hangzhou.aliyuncs.com",
-    harbor: "Ê¾Àı: https://harbor.example.com",
-    custom: "Ê¾Àı: https://registry.example.com",
+  const hints = {
+    docker_hub: "ç¤ºä¾‹: https://registry-1.docker.io",
+    aliyun: "ç¤ºä¾‹: https://registry.cn-hangzhou.aliyuncs.com",
+    harbor: "ç¤ºä¾‹: https://harbor.example.com",
+    custom: "ç¤ºä¾‹: https://registry.example.com",
   };
-  return hints[type || "docker_hub"] || "ÇëÊäÈëÍêÕûµÄ²Ö¿âµØÖ·";
+  return hints[type || "docker_hub"] || "è¯·è¾“å…¥å®Œæ•´çš„ä»“åº“åœ°å€";
 };
 
-// Ä¬ÈÏ²Ö¿âµØÖ·Ó³Éä
-const defaultUrls: Record<string, string> = {
-  docker_hub: "https://registry-1.docker.io",
-  github: "https://api.github.com",
-  aliyun: "https://registry.cn-hangzhou.aliyuncs.com",
-  harbor: "",
-  custom: "",
-};
-
-// ²Ö¿âÀàĞÍ¸Ä±ä´¦Àí
+// ä»“åº“ç±»å‹æ”¹å˜å¤„ç†
 const handleTypeChange = (type: string) => {
-  // »ñÈ¡µ±Ç°URLÊÇ·ñÎªÆäËûÀàĞÍµÄÄ¬ÈÏURL
-  const currentUrl = formData.value.systemSoftRegistryUrl;
-  const isDefaultUrl = Object.values(defaultUrls).includes(currentUrl);
+  // æ ¹æ®ç±»å‹è®¾ç½®é»˜è®¤URL
+  const defaultUrls = {
+    docker_hub: "https://registry-1.docker.io",
+    aliyun: "https://registry.cn-hangzhou.aliyuncs.com",
+    harbor: "",
+    custom: "",
+  } as Record<string, string>;
 
-  // Èç¹ûµ±Ç°URLÎª¿Õ»òÊÇÄ³¸öÀàĞÍµÄÄ¬ÈÏURL£¬Ôò×Ô¶¯Ìî³äĞÂÀàĞÍµÄÄ¬ÈÏURL
-  if (!currentUrl || isDefaultUrl) {
-    formData.value.systemSoftRegistryUrl = defaultUrls[type] || "";
+  if (defaultUrls[type] && !formData.value.systemSoftRegistryUrl) {
+    formData.value.systemSoftRegistryUrl = defaultUrls[type];
   }
 
-  // Çå³ı²âÊÔ½á¹û
+  // æ¸…é™¤æµ‹è¯•ç»“æœ
   testResult.value = null;
 };
 
-// ²âÊÔÁ¬½Ó
+// æµ‹è¯•è¿æ¥
 const testConnection = async () => {
   if (!props.registryData?.systemSoftRegistryId) {
-    ElMessage.warning("ÇëÏÈ±£´æºóÔÙ²âÊÔÁ¬½Ó");
+    ElMessage.warning("è¯·å…ˆä¿å­˜åå†æµ‹è¯•è¿æ¥");
     return;
   }
   testLoading.value = true;
   testResult.value = null;
   try {
-    const response = await softRegistryApi.testRegistryConnection(
-      props.registryData.systemSoftRegistryId
-    );
+    const response = await softRegistryApi.testRegistryConnection(props.registryData.systemSoftRegistryId);
     if (response.code === "00000") {
-      testResult.value = { success: true, message: "ÒÑ·¢ÆğÁ¬½Ó²âÊÔ" };
-      ElMessage.success("ÒÑ·¢ÆğÁ¬½Ó²âÊÔ");
+      testResult.value = { success: true, message: "å·²å‘èµ·è¿æ¥æµ‹è¯•" };
+      ElMessage.success("å·²å‘èµ·è¿æ¥æµ‹è¯•");
     } else {
-      testResult.value = {
-        success: false,
-        message: response.msg || "Á¬½Ó²âÊÔÊ§°Ü",
-      };
-      ElMessage.error(response.msg || "Á¬½Ó²âÊÔÊ§°Ü");
+      testResult.value = { success: false, message: response.msg || "è¿æ¥æµ‹è¯•å¤±è´¥" };
+      ElMessage.error(response.msg || "è¿æ¥æµ‹è¯•å¤±è´¥");
     }
   } catch (error) {
-    console.error("²âÊÔÁ¬½ÓÊ§°Ü:", error);
-    testResult.value = {
-      success: false,
-      message: "Á¬½Ó²âÊÔÊ§°Ü£¬Çë¼ì²éÍøÂçºÍÅäÖÃ",
-    };
-    ElMessage.error("Á¬½Ó²âÊÔÊ§°Ü");
+    console.error("æµ‹è¯•è¿æ¥å¤±è´¥:", error);
+    testResult.value = { success: false, message: "è¿æ¥æµ‹è¯•å¤±è´¥ï¼Œè¯·æ£€æŸ¥ç½‘ç»œå’Œé…ç½®" };
+    ElMessage.error("è¿æ¥æµ‹è¯•å¤±è´¥");
   } finally {
     testLoading.value = false;
   }
 };
 
-// È·ÈÏ°´Å¥´¦Àí
+// ç¡®è®¤æŒ‰é’®å¤„ç†
 const handleConfirm = async () => {
   try {
     await formRef.value?.validate();
 
-    // ×é×°Ìá½»ÔØºÉ£º²»ÔÙ°ó¶¨·şÎñÆ÷
+    // ç»„è£…æäº¤è½½è·ï¼šä¸å†ç»‘å®šæœåŠ¡å™¨
     const payload: any = { ...(formData.value as any) };
 
     confirmLoading.value = true;
 
     if (isEdit.value) {
-      // ±à¼­Ä£Ê½
-      const response = await softRegistryApi.updateRegistry(
-        formData.value.systemSoftRegistryId!,
-        payload
-      );
+      // ç¼–è¾‘æ¨¡å¼
+      const response = await softRegistryApi.updateRegistry(formData.value.systemSoftRegistryId!, payload);
 
       if (response.code === "00000") {
-        ElMessage.success("¸üĞÂ³É¹¦");
+        ElMessage.success("æ›´æ–°æˆåŠŸ");
         emit("success");
         dialogVisible.value = false;
       } else {
-        ElMessage.error(response.msg || "¸üĞÂÊ§°Ü");
+        ElMessage.error(response.msg || "æ›´æ–°å¤±è´¥");
       }
     } else {
-      // ĞÂ½¨Ä£Ê½
+      // æ–°å»ºæ¨¡å¼
       const response = await softRegistryApi.createRegistry(payload);
 
       if (response.code === "00000") {
-        ElMessage.success("´´½¨³É¹¦");
+        ElMessage.success("åˆ›å»ºæˆåŠŸ");
         emit("success");
         dialogVisible.value = false;
       } else {
-        ElMessage.error(response.msg || "´´½¨Ê§°Ü");
+        ElMessage.error(response.msg || "åˆ›å»ºå¤±è´¥");
       }
     }
   } catch (error) {
-    console.error("±íµ¥ÑéÖ¤Ê§°Ü:", error);
+    console.error("è¡¨å•éªŒè¯å¤±è´¥:", error);
   } finally {
     confirmLoading.value = false;
   }
 };
 
-// È¡Ïû°´Å¥´¦Àí
+// å–æ¶ˆæŒ‰é’®å¤„ç†
 const handleCancel = () => {
   dialogVisible.value = false;
 };
 
-// ¶Ô»°¿ò¹Ø±Õ´¦Àí
+// å¯¹è¯æ¡†å…³é—­å¤„ç†
 const handleDialogClosed = () => {
   resetForm();
   testResult.value = null;
   formRef.value?.clearValidate();
 };
 
-// ¼àÌı²Ö¿âÊı¾İ±ä»¯
+// ç›‘å¬ä»“åº“æ•°æ®å˜åŒ–
 watch(
   () => props.registryData,
   (newData) => {
     if (newData) {
-      // ±à¼­Ä£Ê½£¬Ìî³äÊı¾İ
+      // ç¼–è¾‘æ¨¡å¼ï¼Œå¡«å……æ•°æ®
       formData.value = { ...(newData as any) };
-      // ²»ÔÙ°ó¶¨·şÎñÆ÷£¬ºöÂÔ serverId Ïà¹ØÀúÊ·Êı¾İ
+      // ä¸å†ç»‘å®šæœåŠ¡å™¨ï¼Œå¿½ç•¥ serverId ç›¸å…³å†å²æ•°æ®
     } else {
-      // ĞÂ½¨Ä£Ê½£¬ÖØÖÃ±íµ¥
+      // æ–°å»ºæ¨¡å¼ï¼Œé‡ç½®è¡¨å•
       resetForm();
     }
   },
   { immediate: true }
 );
 
-// ¼àÌı¶Ô»°¿òÏÔÊ¾×´Ì¬
+// ç›‘å¬å¯¹è¯æ¡†æ˜¾ç¤ºçŠ¶æ€
 watch(dialogVisible, (visible) => {
   if (visible) {
     testResult.value = null;

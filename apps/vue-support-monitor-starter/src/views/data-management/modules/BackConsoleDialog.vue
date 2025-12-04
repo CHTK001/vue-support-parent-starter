@@ -14,11 +14,11 @@
   </div>
 </template>
 <script lang="ts" setup>
-import "prismjs/components/prism-sql"; // �?SQL 语法文件
+import "prismjs/components/prism-sql"; // ③ SQL 语法文件
 import "prismjs/plugins/copy-to-clipboard/prism-copy-to-clipboard";
 import "prismjs/plugins/toolbar/prism-toolbar";
 import "prismjs/plugins/toolbar/prism-toolbar.css";
-import "prismjs/themes/prism-tomorrow.css"; // �?主题（任选）
+import "prismjs/themes/prism-tomorrow.css"; // ④ 主题（任选）
 import { ref, watch } from "vue";
 
 const emit = defineEmits(["update:visibe", "close"]);

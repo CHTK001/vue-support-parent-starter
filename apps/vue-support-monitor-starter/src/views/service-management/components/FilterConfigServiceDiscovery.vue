@@ -35,7 +35,7 @@
           <div class="mapping-row" v-for="(m, idx) in mappings" :key="idx">
             <el-input
               v-model="m.serviceDiscoveryName"
-              placeholder="服务�?
+              placeholder="服务名"
               style="width: 180px"
             />
             <el-input
@@ -129,7 +129,7 @@ const modeOptions = ref<Option[]>(
     },
     {
       name: "TABLE",
-      label: "表模�?,
+      label: "表模式",
       icon: "ri:table-2",
       describe: "使用数据库映射表维护服务清单",
     },
@@ -137,7 +137,7 @@ const modeOptions = ref<Option[]>(
       name: "HAZELCAST",
       label: "Hazelcast",
       icon: "devicon:apache",
-      describe: "基于Hazelcast集群的服务发�?,
+      describe: "基于Hazelcast集群的服务发现",
     },
   ].map((it) => ({ ...it, value: it.name }))
 );
@@ -215,7 +215,7 @@ async function handleSave() {
         return;
       }
     }
-    ElMessage.success("保存成功，已热应�?);
+    ElMessage.success("保存成功，已热应用");
     emit("success");
     visibleInner.value = false;
   } finally {

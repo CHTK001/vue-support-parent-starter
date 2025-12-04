@@ -55,26 +55,26 @@
                 <span class="detail-value">{{ details.applicationSoftware || 0 }}</span>
               </div>
               <div class="detail-item">
-                <span class="detail-label">开发工�?</span>
+                <span class="detail-label">开发工具:</span>
                 <span class="detail-value">{{ details.developmentTools || 0 }}</span>
               </div>
               <div class="detail-item">
-                <span class="detail-label">数据�?</span>
+                <span class="detail-label">数据库:</span>
                 <span class="detail-value">{{ details.databases || 0 }}</span>
               </div>
             </div>
           </div>
         </el-collapse-item>
         
-        <el-collapse-item title="容器状�? name="containers">
+        <el-collapse-item title="容器状态" name="containers">
           <div class="detail-section">
             <div class="detail-grid">
               <div class="detail-item">
-                <span class="detail-label">运行�?</span>
+                <span class="detail-label">运行中:</span>
                 <span class="detail-value running">{{ details.runningContainers || 0 }}</span>
               </div>
               <div class="detail-item">
-                <span class="detail-label">已停�?</span>
+                <span class="detail-label">已停止:</span>
                 <span class="detail-value stopped">{{ details.stoppedContainers || 0 }}</span>
               </div>
               <div class="detail-item">
@@ -82,7 +82,7 @@
                 <span class="detail-value error">{{ details.errorContainers || 0 }}</span>
               </div>
               <div class="detail-item">
-                <span class="detail-label">重启�?</span>
+                <span class="detail-label">重启中:</span>
                 <span class="detail-value warning">{{ details.restartingContainers || 0 }}</span>
               </div>
             </div>
@@ -93,7 +93,7 @@
           <div class="detail-section">
             <div class="resource-item">
               <div class="resource-header">
-                <span class="resource-label">CPU 使用�?/span>
+                <span class="resource-label">CPU 使用率</span>
                 <span class="resource-value">{{ (details.avgCpuUsage || 0).toFixed(1) }}%</span>
               </div>
               <el-progress 
@@ -105,7 +105,7 @@
             
             <div class="resource-item">
               <div class="resource-header">
-                <span class="resource-label">内存使用�?/span>
+                <span class="resource-label">内存使用率</span>
                 <span class="resource-value">{{ (details.avgMemoryUsage || 0).toFixed(1) }}%</span>
               </div>
               <el-progress 
@@ -118,7 +118,7 @@
             
             <div class="resource-item">
               <div class="resource-header">
-                <span class="resource-label">磁盘使用�?/span>
+                <span class="resource-label">磁盘使用率</span>
                 <span class="resource-value">{{ (details.avgDiskUsage || 0).toFixed(1) }}%</span>
               </div>
               <el-progress 

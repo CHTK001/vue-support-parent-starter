@@ -1,6 +1,6 @@
-<template>
+ï»¿<template>
   <el-dialog
-    title="Í¬²½½ø¶È"
+    title="åŒæ­¥è¿›åº¦"
     v-model="dialogVisible"
     width="700px"
     :close-on-click-modal="false"
@@ -8,10 +8,10 @@
     @close="handleClose"
   >
     <div class="sync-progress-container">
-      <!-- ÕûÌå½ø¶È -->
+      <!-- æ•´ä½“è¿›åº¦ -->
       <div class="overall-progress">
         <div class="progress-header">
-          <h4>{{ progress.title || 'ÕıÔÚÍ¬²½²Ö¿âÊı¾İ' }}</h4>
+          <h4>{{ progress.title || 'æ­£åœ¨åŒæ­¥ä»“åº“æ•°æ®' }}</h4>
           <el-tag 
             :type="getStatusType(progress.status)"
             size="small"
@@ -28,19 +28,19 @@
         />
         
         <div class="progress-info">
-          <span class="current-step">{{ progress.currentStep || '×¼±¸ÖĞ...' }}</span>
+          <span class="current-step">{{ progress.currentStep || 'å‡†å¤‡ä¸­...' }}</span>
           <span class="time-info">
-            ÒÑÓÃÊ±: {{ formatDuration(progress.elapsed || 0) }}
+            å·²ç”¨æ—¶: {{ formatDuration(progress.elapsed || 0) }}
             <span v-if="progress.estimated">
-              / Ô¤¼Æ: {{ formatDuration(progress.estimated) }}
+              / é¢„è®¡: {{ formatDuration(progress.estimated) }}
             </span>
           </span>
         </div>
       </div>
 
-      <!-- ÏêÏ¸²½Öè -->
+      <!-- è¯¦ç»†æ­¥éª¤ -->
       <div class="step-details" v-if="progress.steps && progress.steps.length > 0">
-        <h5>Í¬²½²½Öè</h5>
+        <h5>åŒæ­¥æ­¥éª¤</h5>
         <el-timeline>
           <el-timeline-item
             v-for="(step, index) in progress.steps"
@@ -72,43 +72,43 @@
         </el-timeline>
       </div>
 
-      <!-- Í¬²½Í³¼Æ -->
+      <!-- åŒæ­¥ç»Ÿè®¡ -->
       <div class="sync-stats" v-if="progress.stats">
-        <h5>Í¬²½Í³¼Æ</h5>
+        <h5>åŒæ­¥ç»Ÿè®¡</h5>
         <div class="stats-grid">
           <div class="stat-item">
             <div class="stat-value">{{ progress.stats.totalSoftware || 0 }}</div>
-            <div class="stat-label">Èí¼ş×ÜÊı</div>
+            <div class="stat-label">è½¯ä»¶æ€»æ•°</div>
           </div>
           <div class="stat-item">
             <div class="stat-value">{{ progress.stats.syncedSoftware || 0 }}</div>
-            <div class="stat-label">ÒÑÍ¬²½</div>
+            <div class="stat-label">å·²åŒæ­¥</div>
           </div>
           <div class="stat-item">
             <div class="stat-value">{{ progress.stats.newSoftware || 0 }}</div>
-            <div class="stat-label">ĞÂÔö</div>
+            <div class="stat-label">æ–°å¢</div>
           </div>
           <div class="stat-item">
             <div class="stat-value">{{ progress.stats.updatedSoftware || 0 }}</div>
-            <div class="stat-label">¸üĞÂ</div>
+            <div class="stat-label">æ›´æ–°</div>
           </div>
           <div class="stat-item">
             <div class="stat-value">{{ progress.stats.failedSoftware || 0 }}</div>
-            <div class="stat-label">Ê§°Ü</div>
+            <div class="stat-label">å¤±è´¥</div>
           </div>
         </div>
       </div>
 
-      <!-- Í¬²½ÈÕÖ¾ -->
+      <!-- åŒæ­¥æ—¥å¿— -->
       <div class="sync-logs" v-if="progress.logs && progress.logs.length > 0">
         <div class="logs-header">
-          <h5>Í¬²½ÈÕÖ¾</h5>
+          <h5>åŒæ­¥æ—¥å¿—</h5>
           <div class="logs-actions">
             <el-button size="small" @click="toggleLogDetails">
-              {{ showLogDetails ? 'Òş²Ø' : 'ÏÔÊ¾' }}ÏêÏ¸ÈÕÖ¾
+              {{ showLogDetails ? 'éšè—' : 'æ˜¾ç¤º' }}è¯¦ç»†æ—¥å¿—
             </el-button>
             <el-button size="small" @click="clearLogs">
-              Çå¿ÕÈÕÖ¾
+              æ¸…ç©ºæ—¥å¿—
             </el-button>
           </div>
         </div>
@@ -133,21 +133,21 @@
           v-if="canCancel"
           @click="handleCancel"
         >
-          È¡ÏûÍ¬²½
+          å–æ¶ˆåŒæ­¥
         </el-button>
         <el-button
           v-if="isCompleted"
           type="primary"
           @click="handleClose"
         >
-          È·¶¨
+          ç¡®å®š
         </el-button>
         <el-button
           v-if="isFailed"
           type="warning"
           @click="handleRetry"
         >
-          ÖØÊÔ
+          é‡è¯•
         </el-button>
       </div>
     </template>
@@ -157,7 +157,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 
-// Props ¶¨Òå
+// Props å®šä¹‰
 interface Props {
   visible: boolean
   progress: any
@@ -165,18 +165,18 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// Emits ¶¨Òå
+// Emits å®šä¹‰
 const emit = defineEmits<{
   'update:visible': [value: boolean]
   cancel: []
   retry: []
 }>()
 
-// ÏìÓ¦Ê½Êı¾İ
+// å“åº”å¼æ•°æ®
 const showLogDetails = ref(false)
 const maxDisplayLogs = ref(100)
 
-// ¼ÆËãÊôĞÔ
+// è®¡ç®—å±æ€§
 const dialogVisible = computed({
   get: () => props.visible,
   set: (value) => emit('update:visible', value)
@@ -204,7 +204,7 @@ const displayLogs = computed(() => {
   return logs
 })
 
-// ·½·¨¶¨Òå
+// æ–¹æ³•å®šä¹‰
 const getStatusType = (status: string) => {
   const types = {
     'pending': 'info',
@@ -218,13 +218,13 @@ const getStatusType = (status: string) => {
 
 const getStatusText = (status: string) => {
   const texts = {
-    'pending': 'µÈ´ıÖĞ',
-    'running': '½øĞĞÖĞ',
-    'completed': 'ÒÑÍê³É',
-    'failed': 'Ê§°Ü',
-    'cancelled': 'ÒÑÈ¡Ïû'
+    'pending': 'ç­‰å¾…ä¸­',
+    'running': 'è¿›è¡Œä¸­',
+    'completed': 'å·²å®Œæˆ',
+    'failed': 'å¤±è´¥',
+    'cancelled': 'å·²å–æ¶ˆ'
   }
-  return texts[status] || 'Î´Öª'
+  return texts[status] || 'æœªçŸ¥'
 }
 
 const getProgressStatus = (status: string) => {
@@ -261,15 +261,15 @@ const formatTime = (timestamp: number | string) => {
 
 const formatDuration = (seconds: number) => {
   if (seconds < 60) {
-    return `${Math.round(seconds)}Ãë`;
+    return `${Math.round(seconds)}ç§’`;
   } else if (seconds < 3600) {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.round(seconds % 60);
-    return `${minutes}·Ö${remainingSeconds}Ãë`;
+    return `${minutes}åˆ†${remainingSeconds}ç§’`;
   } else {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}Ğ¡Ê±${minutes}·ÖÖÓ`;
+    return `${hours}å°æ—¶${minutes}åˆ†é’Ÿ`;
   }
 };
 
@@ -278,8 +278,8 @@ const toggleLogDetails = () => {
 }
 
 const clearLogs = () => {
-  // Çå¿ÕÈÕÖ¾µÄÂß¼­
-  console.log('Çå¿ÕÈÕÖ¾')
+  // æ¸…ç©ºæ—¥å¿—çš„é€»è¾‘
+  console.log('æ¸…ç©ºæ—¥å¿—')
 }
 
 const handleCancel = () => {
@@ -294,7 +294,7 @@ const handleClose = () => {
   emit('update:visible', false)
 }
 
-// ¼àÌıÆ÷
+// ç›‘å¬å™¨
 watch(
   () => props.visible,
   (newVal) => {
