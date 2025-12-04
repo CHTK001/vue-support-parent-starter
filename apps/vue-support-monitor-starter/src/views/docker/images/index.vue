@@ -1,55 +1,107 @@
 <template>
   <div class="images-management">
-    <ProgressMonitor />
-
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <div class="page-title">
-          <IconifyIconOnline icon="ri:image-line" class="title-icon" />
-          <span>镜像管理</span>
+    <!-- 页面头部 - 现代化设计 -->
+    <div class="page-header-modern">
+      <div class="header-content">
+        <div class="header-left">
+          <div class="title-wrapper">
+            <div class="title-icon-box">
+              <IconifyIconOnline icon="ri:image-2-line" />
+            </div>
+            <div class="title-text">
+              <h1>镜像管理</h1>
+              <p>管理Docker镜像的拉取、安装、导入和导出</p>
+            </div>
+          </div>
         </div>
-        <div class="page-subtitle">管理Docker镜像的拉取、安装、导入和导出</div>
+        <div class="header-actions">
+          <el-button
+            @click="handleRefresh"
+            :loading="loading"
+            class="action-btn"
+          >
+            <IconifyIconOnline icon="ri:refresh-line" />
+          </el-button>
+          <el-button @click="syncVisible = true" class="action-btn sync-btn">
+            <IconifyIconOnline icon="ri:cloud-line" class="mr-1" />
+            同步
+          </el-button>
+          <el-button
+            @click="importVisible = true"
+            class="action-btn import-btn"
+          >
+            <IconifyIconOnline icon="ri:upload-2-line" class="mr-1" />
+            导入
+          </el-button>
+          <el-button
+            type="primary"
+            @click="pullVisible = true"
+            class="action-btn primary-btn"
+          >
+            <IconifyIconOnline icon="ri:download-cloud-line" class="mr-1" />
+            拉取镜像
+          </el-button>
+        </div>
       </div>
-      <div class="header-right">
-        <el-button @click="handleRefresh" :loading="loading">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-        <el-button @click="syncVisible = true" type="success" plain>
-          <IconifyIconOnline icon="ri:refresh-2-line" class="mr-1" />
-          同步镜像
-        </el-button>
-        <el-button @click="importVisible = true" type="warning" plain>
-          <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
-          导入镜像
-        </el-button>
-        <el-button type="primary" @click="pullVisible = true">
-          <IconifyIconOnline icon="ri:download-line" class="mr-1" />
-          拉取镜像
-        </el-button>
+
+      <!-- 统计卡片 -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon total">
+            <IconifyIconOnline icon="ri:stack-line" />
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ total }}</span>
+            <span class="stat-label">全部镜像</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon available">
+            <IconifyIconOnline icon="ri:checkbox-circle-line" />
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ availableCount }}</span>
+            <span class="stat-label">可用</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon pulling">
+            <IconifyIconOnline icon="ri:loader-4-line" />
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ pullingCount }}</span>
+            <span class="stat-label">拉取中</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon servers">
+            <IconifyIconOnline icon="ri:server-line" />
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ servers.length }}</span>
+            <span class="stat-label">服务器</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 搜索和分组栏 -->
-    <div class="search-bar">
-      <div class="search-left">
-        <el-input
-          v-model="searchParams.keyword"
-          placeholder="搜索镜像名称或标签"
-          class="search-input"
-          clearable
-          @keyup.enter="handleSearch"
-        >
-          <template #prefix>
-            <IconifyIconOnline icon="ri:search-line" />
-          </template>
-        </el-input>
+    <!-- 搜索和分组栏 - 现代化 -->
+    <div class="toolbar-modern">
+      <div class="search-section">
+        <div class="search-box">
+          <IconifyIconOnline icon="ri:search-line" class="search-icon" />
+          <input
+            v-model="searchParams.keyword"
+            type="text"
+            placeholder="搜索镜像名称、标签..."
+            @keyup.enter="handleSearch"
+          />
+        </div>
         <el-select
           v-model="searchParams.serverId"
-          placeholder="选择服务器"
+          placeholder="全部服务器"
           clearable
-          class="filter-select"
+          class="filter-select-modern"
           @change="handleSearch"
         >
           <el-option label="全部服务器" :value="undefined" />
@@ -62,9 +114,9 @@
         </el-select>
         <el-select
           v-model="searchParams.status"
-          placeholder="状态"
+          placeholder="全部状态"
           clearable
-          class="filter-select"
+          class="filter-select-modern"
           @change="handleSearch"
         >
           <el-option label="全部状态" :value="undefined" />
@@ -73,285 +125,338 @@
           <el-option label="错误" value="PULL_FAILED" />
         </el-select>
       </div>
-      <div class="search-right">
-        <el-radio-group
-          v-model="groupBy"
-          size="default"
-          @change="handleGroupChange"
+      <div class="view-toggle">
+        <button
+          v-for="view in viewOptions"
+          :key="view.value"
+          :class="['toggle-btn', { active: groupBy === view.value }]"
+          @click="
+            groupBy = view.value;
+            handleGroupChange();
+          "
         >
-          <el-radio-button value="server">
-            <IconifyIconOnline icon="ri:server-line" class="mr-1" />
-            按服务器分组
-          </el-radio-button>
-          <el-radio-button value="image">
-            <IconifyIconOnline icon="ri:image-line" class="mr-1" />
-            按镜像分组
-          </el-radio-button>
-          <el-radio-button value="none">
-            <IconifyIconOnline icon="ri:list-check" class="mr-1" />
-            列表视图
-          </el-radio-button>
-        </el-radio-group>
+          <IconifyIconOnline :icon="view.icon" />
+          <span>{{ view.label }}</span>
+        </button>
       </div>
     </div>
 
-    <!-- 分组显示：按服务器分组 -->
-    <div v-if="groupBy === 'server'" class="grouped-view">
-      <el-card
+    <!-- 分组显示：按服务器分组 - 现代化卡片 -->
+    <div v-if="groupBy === 'server'" class="grouped-view-modern">
+      <div
         v-for="group in groupedByServer"
         :key="group.serverId"
-        class="group-card"
-        shadow="hover"
+        class="server-group-card"
       >
-        <template #header>
-          <div class="group-header">
-            <div class="group-title">
-              <IconifyIconOnline icon="ri:server-line" class="mr-2" />
-              <span class="server-name">{{ group.serverName }}</span>
-              <el-tag size="small" type="info" class="ml-2"
-                >{{ group.images.length }} 个镜像</el-tag
-              >
+        <div class="group-header-modern">
+          <div class="group-info">
+            <div class="group-icon">
+              <IconifyIconOnline icon="ri:server-line" />
             </div>
-            <div class="group-actions">
-              <el-button
-                size="small"
-                text
-                @click="handleExportServerImages(group.serverId)"
-              >
-                <IconifyIconOnline icon="ri:download-2-line" class="mr-1" />
-                导出全部
-              </el-button>
+            <div class="group-text">
+              <h3>{{ group.serverName }}</h3>
+              <span class="group-count">{{ group.images.length }} 个镜像</span>
             </div>
           </div>
-        </template>
+          <el-dropdown trigger="click">
+            <button class="more-btn">
+              <IconifyIconOnline icon="ri:more-2-fill" />
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  @click="handleExportServerImages(group.serverId)"
+                >
+                  <IconifyIconOnline icon="ri:download-2-line" class="mr-2" />
+                  导出全部镜像
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
 
-        <div class="image-grid">
+        <div class="images-grid-modern">
           <div
             v-for="image in group.images"
             :key="image.systemSoftImageId"
-            class="image-item"
+            class="image-card-modern"
           >
-            <div class="image-item-header">
-              <div class="image-name-tag">
-                <div class="image-name">{{ image.systemSoftImageName }}</div>
-                <el-tag size="small" type="primary" effect="plain">{{
-                  image.systemSoftImageTag
-                }}</el-tag>
-              </div>
-              <el-tag
-                :type="getStatusTagType(image.systemSoftImageStatus)"
-                size="small"
+            <div class="image-card-header">
+              <div
+                class="image-icon-box"
+                :style="{
+                  background: getImageGradient(image.systemSoftImageName),
+                }"
               >
-                {{ getStatusText(image.systemSoftImageStatus) }}
-              </el-tag>
+                <IconifyIconOnline icon="ri:box-3-line" />
+              </div>
+              <div class="image-title">
+                <h4>{{ image.systemSoftImageName }}</h4>
+                <div class="image-tag-row">
+                  <span class="version-tag">{{
+                    image.systemSoftImageTag
+                  }}</span>
+                  <span
+                    :class="[
+                      'status-dot',
+                      getStatusClass(image.systemSoftImageStatus),
+                    ]"
+                  ></span>
+                </div>
+              </div>
             </div>
-            <div class="image-item-body">
-              <div class="image-meta">
-                <span class="meta-label">大小：</span>
+            <div class="image-card-body">
+              <div class="image-meta-row">
+                <IconifyIconOnline
+                  icon="ri:hard-drive-2-line"
+                  class="meta-icon"
+                />
                 <span>{{ formatSize(image.systemSoftImageSize) }}</span>
               </div>
-              <div class="image-meta">
-                <span class="meta-label">ID：</span>
-                <span class="image-id">{{
+              <div class="image-meta-row">
+                <IconifyIconOnline
+                  icon="ri:fingerprint-line"
+                  class="meta-icon"
+                />
+                <span class="image-id-text">{{
                   (image.systemSoftImageImageId || "").substring(0, 12)
                 }}</span>
               </div>
             </div>
-            <div class="image-item-actions">
-              <el-button
-                size="small"
-                type="primary"
+            <div class="image-card-actions">
+              <button
+                class="card-action-btn primary"
                 @click="openInstallContainer(image)"
               >
-                <IconifyIconOnline icon="ri:play-circle-line" class="mr-1" />
-                安装容器
-              </el-button>
-              <el-button size="small" @click="handleExportImage(image)">
-                <IconifyIconOnline icon="ri:download-2-line" class="mr-1" />
-                导出
-              </el-button>
-              <el-button
-                size="small"
-                type="danger"
+                <IconifyIconOnline icon="ri:play-circle-line" />
+                安装
+              </button>
+              <button class="card-action-btn" @click="handleExportImage(image)">
+                <IconifyIconOnline icon="ri:download-2-line" />
+              </button>
+              <button
+                class="card-action-btn danger"
                 @click="handleDeleteImage(image)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              </button>
             </div>
           </div>
         </div>
-      </el-card>
+      </div>
     </div>
 
-    <!-- 分组显示：按镜像分组 -->
-    <div v-else-if="groupBy === 'image'" class="grouped-view">
-      <el-card
+    <!-- 分组显示：按镜像分组 - 现代化 -->
+    <div v-else-if="groupBy === 'image'" class="grouped-view-modern">
+      <div
         v-for="group in groupedByImage"
         :key="group.imageName"
-        class="group-card"
-        shadow="hover"
+        class="image-group-card"
       >
-        <template #header>
-          <div class="group-header">
-            <div class="group-title">
-              <IconifyIconOnline icon="ri:image-line" class="mr-2" />
-              <span class="image-name">{{ group.imageName }}</span>
-              <el-tag size="small" type="primary" effect="plain" class="ml-2">{{
-                group.tag
-              }}</el-tag>
-              <el-tag size="small" type="info" class="ml-2"
-                >{{ group.servers.length }} 台服务器</el-tag
-              >
+        <div class="group-header-modern image-header">
+          <div class="group-info">
+            <div
+              class="group-icon image"
+              :style="{ background: getImageGradient(group.imageName) }"
+            >
+              <IconifyIconOnline icon="ri:box-3-line" />
+            </div>
+            <div class="group-text">
+              <h3>{{ group.imageName }}</h3>
+              <div class="group-tags">
+                <span class="version-tag">{{ group.tag }}</span>
+                <span class="server-count"
+                  >{{ group.servers.length }} 台服务器</span
+                >
+              </div>
             </div>
           </div>
-        </template>
+        </div>
 
-        <div class="server-grid">
+        <div class="servers-grid-modern">
           <div
             v-for="item in group.servers"
             :key="item.systemSoftImageId"
-            class="server-item"
+            class="server-card-modern"
           >
-            <div class="server-item-header">
-              <div class="server-info">
-                <IconifyIconOnline icon="ri:server-line" class="mr-1" />
-                <span>{{ item.systemSoftImageServerName }}</span>
+            <div class="server-card-header">
+              <div class="server-icon-box">
+                <IconifyIconOnline icon="ri:server-line" />
               </div>
-              <el-tag
-                :type="getStatusTagType(item.systemSoftImageStatus)"
-                size="small"
-              >
-                {{ getStatusText(item.systemSoftImageStatus) }}
-              </el-tag>
+              <div class="server-title">
+                <h4>{{ item.systemSoftImageServerName }}</h4>
+                <span
+                  :class="[
+                    'status-dot',
+                    getStatusClass(item.systemSoftImageStatus),
+                  ]"
+                ></span>
+              </div>
             </div>
-            <div class="server-item-body">
-              <div class="image-meta">
-                <span class="meta-label">大小：</span>
+            <div class="server-card-body">
+              <div class="image-meta-row">
+                <IconifyIconOnline
+                  icon="ri:hard-drive-2-line"
+                  class="meta-icon"
+                />
                 <span>{{ formatSize(item.systemSoftImageSize) }}</span>
               </div>
-              <div class="image-meta">
-                <span class="meta-label">ID：</span>
-                <span class="image-id">{{
+              <div class="image-meta-row">
+                <IconifyIconOnline
+                  icon="ri:fingerprint-line"
+                  class="meta-icon"
+                />
+                <span class="image-id-text">{{
                   (item.systemSoftImageImageId || "").substring(0, 12)
                 }}</span>
               </div>
             </div>
-            <div class="server-item-actions">
-              <el-button
-                size="small"
-                type="primary"
+            <div class="server-card-actions">
+              <button
+                class="card-action-btn primary"
                 @click="openInstallContainer(item)"
               >
-                <IconifyIconOnline icon="ri:play-circle-line" class="mr-1" />
-                安装容器
-              </el-button>
-              <el-button size="small" @click="handleExportImage(item)">
+                <IconifyIconOnline icon="ri:play-circle-line" />
+                安装
+              </button>
+              <button class="card-action-btn" @click="handleExportImage(item)">
                 <IconifyIconOnline icon="ri:download-2-line" />
-              </el-button>
-              <el-button
-                size="small"
-                type="danger"
+              </button>
+              <button
+                class="card-action-btn danger"
                 @click="handleDeleteImage(item)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              </button>
             </div>
           </div>
         </div>
-      </el-card>
+      </div>
     </div>
 
-    <!-- 列表视图 -->
-    <el-card v-else class="images-table-card">
-      <el-table
-        :data="imageList"
-        stripe
-        v-loading="loading"
-        class="images-table"
-      >
-        <el-table-column type="selection" width="55" />
+    <!-- 列表视图 - 现代化表格 -->
+    <div v-else class="list-view-modern">
+      <div class="table-wrapper">
+        <el-table
+          :data="imageList"
+          v-loading="loading"
+          class="modern-table"
+          :header-cell-style="{
+            background: 'var(--el-fill-color-light)',
+            fontWeight: 600,
+          }"
+        >
+          <el-table-column type="selection" width="50" />
 
-        <el-table-column label="镜像" min-width="200">
-          <template #default="{ row }">
-            <div class="image-info">
-              <div class="image-name">{{ row.systemSoftImageName }}</div>
-              <el-tag size="small" type="primary" effect="plain">{{
-                row.systemSoftImageTag
-              }}</el-tag>
-            </div>
-          </template>
-        </el-table-column>
+          <el-table-column label="镜像" min-width="260">
+            <template #default="{ row }">
+              <div class="table-image-cell">
+                <div
+                  class="image-icon-mini"
+                  :style="{
+                    background: getImageGradient(row.systemSoftImageName),
+                  }"
+                >
+                  <IconifyIconOnline icon="ri:box-3-line" />
+                </div>
+                <div class="image-info-cell">
+                  <span class="image-name-text">{{
+                    row.systemSoftImageName
+                  }}</span>
+                  <span class="version-tag-mini">{{
+                    row.systemSoftImageTag
+                  }}</span>
+                </div>
+              </div>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="服务器" width="180">
-          <template #default="{ row }">
-            <div class="server-info">
-              <IconifyIconOnline icon="ri:server-line" class="mr-1" />
-              {{ row.systemSoftImageServerName }}
-            </div>
-          </template>
-        </el-table-column>
+          <el-table-column label="服务器" width="180">
+            <template #default="{ row }">
+              <div class="table-server-cell">
+                <IconifyIconOnline
+                  icon="ri:server-line"
+                  class="server-icon-mini"
+                />
+                <span>{{ row.systemSoftImageServerName }}</span>
+              </div>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="大小" width="120">
-          <template #default="{ row }">
-            {{ formatSize(row.systemSoftImageSize) }}
-          </template>
-        </el-table-column>
+          <el-table-column label="大小" width="120">
+            <template #default="{ row }">
+              <span class="size-text">{{
+                formatSize(row.systemSoftImageSize)
+              }}</span>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="镜像ID" width="140">
-          <template #default="{ row }">
-            <span class="image-id">{{
-              (row.systemSoftImageImageId || "").substring(0, 12)
-            }}</span>
-          </template>
-        </el-table-column>
+          <el-table-column label="镜像ID" width="140">
+            <template #default="{ row }">
+              <span class="image-id-text">{{
+                (row.systemSoftImageImageId || "").substring(0, 12)
+              }}</span>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag
-              :type="getStatusTagType(row.systemSoftImageStatus)"
-              size="small"
-            >
-              {{ getStatusText(row.systemSoftImageStatus) }}
-            </el-tag>
-          </template>
-        </el-table-column>
+          <el-table-column label="状态" width="100">
+            <template #default="{ row }">
+              <span
+                :class="[
+                  'status-badge',
+                  getStatusClass(row.systemSoftImageStatus),
+                ]"
+              >
+                {{ getStatusText(row.systemSoftImageStatus) }}
+              </span>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="操作" width="280" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              size="small"
-              type="primary"
-              @click="openInstallContainer(row)"
-            >
-              <IconifyIconOnline icon="ri:play-circle-line" class="mr-1" />
-              安装容器
-            </el-button>
-            <el-button size="small" @click="handleExportImage(row)">
-              <IconifyIconOnline icon="ri:download-2-line" class="mr-1" />
-              导出
-            </el-button>
-            <el-button
-              size="small"
-              type="danger"
-              @click="handleDeleteImage(row)"
-            >
-              <IconifyIconOnline icon="ri:delete-bin-line" />
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <div class="table-actions">
+                <el-tooltip content="安装容器" placement="top">
+                  <button
+                    class="table-action-btn primary"
+                    @click="openInstallContainer(row)"
+                  >
+                    <IconifyIconOnline icon="ri:play-circle-line" />
+                  </button>
+                </el-tooltip>
+                <el-tooltip content="导出" placement="top">
+                  <button
+                    class="table-action-btn"
+                    @click="handleExportImage(row)"
+                  >
+                    <IconifyIconOnline icon="ri:download-2-line" />
+                  </button>
+                </el-tooltip>
+                <el-tooltip content="删除" placement="top">
+                  <button
+                    class="table-action-btn danger"
+                    @click="handleDeleteImage(row)"
+                  >
+                    <IconifyIconOnline icon="ri:delete-bin-line" />
+                  </button>
+                </el-tooltip>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
-      <el-pagination
-        v-model:current-page="searchParams.page"
-        v-model:page-size="searchParams.size"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="loadImages"
-        @current-change="loadImages"
-        class="mt-4"
-      />
-    </el-card>
+      <div class="pagination-wrapper">
+        <el-pagination
+          v-model:current-page="searchParams.page"
+          v-model:page-size="searchParams.size"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="loadImages"
+          @current-change="loadImages"
+        />
+      </div>
+    </div>
 
     <!-- 拉取镜像对话框 -->
     <PullImageDialog v-model:visible="pullVisible" @success="handleRefresh" />
@@ -374,6 +479,28 @@
       v-model:visible="importVisible"
       @success="handleImportSuccess"
     />
+
+    <!-- Socket消息进度对话框 - 镜像操作进度 -->
+    <ScSocketMessageDialog
+      ref="progressDialogRef"
+      mode="dialog"
+      layout="log"
+      position="bottom-right"
+      :title="progressTitle"
+      :event-id="progressEventId"
+      :event-name="[
+        'image-pull-progress',
+        'image-sync-progress',
+        'image-export-progress',
+        'image-import-progress',
+      ]"
+      :visible="progressVisible"
+      :width="450"
+      :dialog-height="320"
+      @update:visible="progressVisible = $event"
+      @close="handleProgressClose"
+      @data="handleProgressData"
+    />
   </div>
 </template>
 
@@ -381,13 +508,20 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { ElMessage, ElMessageBox, ElNotification } from "element-plus";
 import { useGlobalSocket, MonitorTopics } from "@repo/core";
-import { useImagePullNotification } from "@/composables/useImagePullNotification";
-import ProgressMonitor from "@/components/ProgressMonitor.vue";
 import { imageApi, getServerList, type SystemSoftImage } from "@/api/docker";
 import PullImageDialog from "./components/PullImageDialog.vue";
 import InstallContainerDialog from "./components/InstallContainerDialog.vue";
 import ImageSyncDialog from "./components/ImageSyncDialog.vue";
 import ImageImportDialog from "./components/ImageImportDialog.vue";
+import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
+
+/**
+ * 镜像管理页面 - 现代化重构版本
+ * 集成 ScSocketMessageDialog 监听后台推送消息
+ * @author CH
+ * @version 2.0.0
+ * @since 2025-12-04
+ */
 
 const loading = ref(false);
 const pullVisible = ref(false);
@@ -401,6 +535,19 @@ const imageList = ref<SystemSoftImage[]>([]);
 const servers = ref<any[]>([]);
 const total = ref(0);
 
+// Socket消息对话框相关
+const progressDialogRef = ref();
+const progressVisible = ref(false);
+const progressTitle = ref("操作进度");
+const progressEventId = ref("");
+
+// 视图切换选项
+const viewOptions = [
+  { value: "server", label: "服务器", icon: "ri:server-line" },
+  { value: "image", label: "镜像", icon: "ri:box-3-line" },
+  { value: "none", label: "列表", icon: "ri:list-check" },
+];
+
 const searchParams = ref({
   page: 1,
   size: 20,
@@ -409,12 +556,20 @@ const searchParams = ref({
   status: undefined as string | undefined,
 });
 
+// 统计数据
+const availableCount = computed(
+  () =>
+    imageList.value.filter((img) => img.systemSoftImageStatus === "AVAILABLE")
+      .length
+);
+const pullingCount = computed(
+  () =>
+    imageList.value.filter((img) => img.systemSoftImageStatus === "PULLING")
+      .length
+);
+
 // 获取全局Socket服务
 const globalSocket = useGlobalSocket();
-
-// 使用拉取通知功能
-const { showPullProgress, showPullSuccess, showPullError } =
-  useImagePullNotification();
 
 // 按服务器分组
 const groupedByServer = computed(() => {

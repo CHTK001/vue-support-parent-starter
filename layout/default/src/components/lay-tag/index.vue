@@ -613,8 +613,7 @@ const deferTag = useDefer(tagsViews?.length);
             'scroll-item is-closable',
             linkIsActive(item),
             showModel === 'chrome' && 'chrome-item',
-            showModel === 'minimal' && 'minimal-item',
-            showModel === 'rounded' && 'rounded-item',
+            showModel === 'modern' && 'modern-item',
             isFixedTag(item) && 'fixed-tag',
           ]"
           @contextmenu.prevent="openMenu(item, $event)"
@@ -755,10 +754,39 @@ const deferTag = useDefer(tagsViews?.length);
   }
 }
 
-.minimal-item,
-.rounded-item {
+/* 现代风格页签 */
+.modern-item {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(248, 250, 252, 0.95) 100%
+  );
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.3s ease;
+  }
+
   &:hover {
-    background-color: var(--el-color-primary-light-9);
+    transform: translateY(-2px);
+    box-shadow:
+      0 8px 20px rgba(var(--el-color-primary-rgb), 0.15),
+      0 4px 8px rgba(0, 0, 0, 0.06);
+    border-color: rgba(var(--el-color-primary-rgb), 0.2);
 
     .tag-title {
       color: var(--el-color-primary);
@@ -766,8 +794,48 @@ const deferTag = useDefer(tagsViews?.length);
   }
 
   &.is-active {
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 100%
+    );
+    border-color: transparent;
+    box-shadow:
+      0 4px 12px rgba(var(--el-color-primary-rgb), 0.3),
+      0 2px 4px rgba(var(--el-color-primary-rgb), 0.2);
+
+    &::before {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .tag-title {
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .el-icon-close {
+      color: rgba(255, 255, 255, 0.8);
+
+      &:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.2);
+      }
+    }
+
     &:hover {
-      background-color: var(--el-color-primary-light-8);
+      transform: translateY(-2px);
+      box-shadow:
+        0 8px 24px rgba(var(--el-color-primary-rgb), 0.4),
+        0 4px 8px rgba(var(--el-color-primary-rgb), 0.25);
+    }
+  }
+
+  .el-icon-close {
+    border-radius: 6px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(var(--el-color-primary-rgb), 0.1);
     }
   }
 }
@@ -842,14 +910,28 @@ html.dark {
     }
   }
 
-  .minimal-item,
-  .rounded-item {
+  .modern-item {
+    background: linear-gradient(
+      135deg,
+      rgba(30, 41, 59, 0.9) 0%,
+      rgba(15, 23, 42, 0.95) 100%
+    );
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.2),
+      0 1px 2px rgba(0, 0, 0, 0.1);
+
     .tag-title {
       color: var(--el-text-color-primary);
     }
 
     &:hover {
-      background-color: var(--el-bg-color-page);
+      background: linear-gradient(
+        135deg,
+        rgba(51, 65, 85, 0.9) 0%,
+        rgba(30, 41, 59, 0.95) 100%
+      );
+      border-color: rgba(var(--el-color-primary-rgb), 0.4);
 
       .tag-title {
         color: var(--el-color-primary-light-3);
@@ -857,16 +939,20 @@ html.dark {
     }
 
     &.is-active {
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 100%
+      );
+
       .tag-title {
-        color: var(--el-text-color-primary);
+        color: #fff;
       }
 
       &:hover {
-        background-color: var(--el-bg-color-page);
-
-        .tag-title {
-          color: var(--el-color-primary-light-3);
-        }
+        box-shadow:
+          0 8px 24px rgba(var(--el-color-primary-rgb), 0.35),
+          0 4px 8px rgba(0, 0, 0, 0.2);
       }
     }
   }
