@@ -1,10 +1,20 @@
 <script setup lang="ts">
 import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { ReText } from "@repo/components/ReText";
-import { resolvePath as configResolvePath, getConfig, transformI18n } from "@repo/config";
+import {
+  resolvePath as configResolvePath,
+  getConfig,
+  transformI18n,
+} from "@repo/config";
 import type { MenuType } from "@repo/core";
-import { computed, type CSSProperties, type PropType, ref, toRaw, useAttrs } from "vue";
+import {
+  computed,
+  type CSSProperties,
+  type PropType,
+  ref,
+  toRaw,
+  useAttrs,
+} from "vue";
 import { useNav } from "../../../hooks/useNav";
 import SidebarExtraIcon from "./SidebarExtraIcon.vue";
 import SidebarLinkItem from "./SidebarLinkItem.vue";
@@ -30,8 +40,8 @@ const props = defineProps({
     default: "",
   },
   expandMode: {
-    type: String as PropType<'auto' | 'manual'>,
-    default: 'auto',
+    type: String as PropType<"auto" | "manual">,
+    default: "auto",
   },
 });
 
@@ -55,9 +65,9 @@ const getSubMenuIconStyle = computed((): CSSProperties => {
 // 双栏导航的展开控制图标
 const expandCloseIcon = computed(() => {
   if (!getConfig()?.MenuArrowIconNoTransition) return "";
-  
+
   // 根据展开模式决定是否显示箭头
-  if (props.expandMode === 'manual') {
+  if (props.expandMode === "manual") {
     return {
       "expand-close-icon": useRenderIcon(EpArrowDown),
       "expand-open-icon": useRenderIcon(ArrowUp),
@@ -65,7 +75,7 @@ const expandCloseIcon = computed(() => {
       "collapse-open-icon": useRenderIcon(ArrowLeft),
     };
   }
-  
+
   // 自动展开模式下不显示箭头
   return {};
 });
@@ -110,7 +120,7 @@ const isSubMenuDisabled = computed(() => {
 
 // 自动展开模式下，子菜单默认展开
 const isSubMenuOpened = computed(() => {
-  return props.expandMode === 'auto';
+  return props.expandMode === "auto";
 });
 </script>
 
@@ -118,49 +128,84 @@ const isSubMenuOpened = computed(() => {
   <!-- 自动展开模式：使用el-menu组件，但强制展开所有子菜单 -->
   <template v-if="expandMode === 'auto'">
     <!-- 单个菜单项（没有子菜单或只有一个子菜单） -->
-    <SidebarLinkItem v-if="hasOneShowingChild(item.children, item) && (!onlyOneChild.children || onlyOneChild.noShowingChildren)" :to="{ path: resolvePath(onlyOneChild.path) }">
-      <el-menu-item :index="resolvePath(onlyOneChild.path)" :class="{ 'submenu-title-noDropdown': !isNest }" @click="handleMenuClick(onlyOneChild)">
-        <div v-if="toRaw(item?.meta?.icon)" class="sub-menu-icon" :style="getSubMenuIconStyle">
-          <component :is="useRenderIcon(toRaw(onlyOneChild?.meta?.icon) || (item?.meta && toRaw(item?.meta?.icon)))" />
+    <SidebarLinkItem
+      v-if="
+        hasOneShowingChild(item.children, item) &&
+        (!onlyOneChild.children || onlyOneChild.noShowingChildren)
+      "
+      :to="{ path: resolvePath(onlyOneChild.path) }"
+    >
+      <el-menu-item
+        :index="resolvePath(onlyOneChild.path)"
+        :class="{ 'submenu-title-noDropdown': !isNest }"
+        @click="handleMenuClick(onlyOneChild)"
+      >
+        <div
+          v-if="toRaw(item?.meta?.icon)"
+          class="sub-menu-icon"
+          :style="getSubMenuIconStyle"
+        >
+          <component
+            :is="
+              useRenderIcon(
+                toRaw(onlyOneChild?.meta?.icon) ||
+                  (item?.meta && toRaw(item?.meta?.icon))
+              )
+            "
+          />
         </div>
-        
+
         <div :style="getDivStyle">
-          <ReText
-            :tippyProps="{
-              offset: [0, -10],
-              theme: tooltipEffect,
-            }"
-            class="!w-full"
-          >
-            {{ transformI18n(onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title) }}
-            <ReMenuNewBadge :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime" :type="onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'" :customText="onlyOneChild?.meta?.badgeText || item?.meta?.badgeText" />
-          </ReText>
+          <el-text truncated class="!w-full">
+            {{
+              transformI18n(
+                onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title
+              )
+            }}
+            <ReMenuNewBadge
+              :createTime="
+                onlyOneChild?.meta?.createTime || item?.meta?.createTime
+              "
+              :type="
+                onlyOneChild?.meta?.badgeType ||
+                item?.meta?.badgeType ||
+                'primary'
+              "
+              :customText="
+                onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
+              "
+            />
+          </el-text>
           <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
         </div>
       </el-menu-item>
     </SidebarLinkItem>
-    
+
     <!-- 有子菜单的项目：使用el-sub-menu但强制展开 -->
-    <el-sub-menu v-else :index="resolvePath(item.path)" :disabled="false" popper-class="pure-scrollbar" class="auto-expand-submenu">
+    <el-sub-menu
+      v-else
+      :index="resolvePath(item.path)"
+      :disabled="false"
+      popper-class="pure-scrollbar"
+      class="auto-expand-submenu"
+    >
       <template #title>
         <div v-if="toRaw(item?.meta?.icon)" class="sub-menu-icon">
           <component :is="useRenderIcon(toRaw(item?.meta?.icon))" />
         </div>
         <div :style="getDivStyle">
-          <ReText
-            :tippyProps="{
-              offset: [0, -10],
-              theme: tooltipEffect,
-            }"
-            class="!w-full "
-          >
+          <el-text truncated class="!w-full">
             {{ transformI18n(item?.meta?.i18nKey || item?.meta?.title) }}
-            <ReMenuNewBadge :createTime="item?.meta?.createTime" :type="item?.meta?.badgeType || 'primary'" :customText="item?.meta?.badgeText" />
-          </ReText>
+            <ReMenuNewBadge
+              :createTime="item?.meta?.createTime"
+              :type="item?.meta?.badgeType || 'primary'"
+              :customText="item?.meta?.badgeText"
+            />
+          </el-text>
           <SidebarExtraIcon :extraIcon="item?.meta?.extraIcon" />
         </div>
       </template>
-      
+
       <DoubleNavSidebarItem
         v-for="child in item.children"
         :key="child.path"
@@ -177,23 +222,53 @@ const isSubMenuOpened = computed(() => {
 
   <!-- 手动展开模式：使用标准的el-sub-menu -->
   <template v-else>
-    <SidebarLinkItem v-if="hasOneShowingChild(item.children, item) && (!onlyOneChild.children || onlyOneChild.noShowingChildren)" :to="{ path: resolvePath(onlyOneChild.path) }">
-      <el-menu-item :index="resolvePath(onlyOneChild.path)" :class="{ 'submenu-title-noDropdown': !isNest }">
-        <div v-if="toRaw(item?.meta?.icon)" class="sub-menu-icon" :style="getSubMenuIconStyle">
-          <component :is="useRenderIcon(toRaw(onlyOneChild?.meta?.icon) || (item?.meta && toRaw(item?.meta?.icon)))" />
+    <SidebarLinkItem
+      v-if="
+        hasOneShowingChild(item.children, item) &&
+        (!onlyOneChild.children || onlyOneChild.noShowingChildren)
+      "
+      :to="{ path: resolvePath(onlyOneChild.path) }"
+    >
+      <el-menu-item
+        :index="resolvePath(onlyOneChild.path)"
+        :class="{ 'submenu-title-noDropdown': !isNest }"
+      >
+        <div
+          v-if="toRaw(item?.meta?.icon)"
+          class="sub-menu-icon"
+          :style="getSubMenuIconStyle"
+        >
+          <component
+            :is="
+              useRenderIcon(
+                toRaw(onlyOneChild?.meta?.icon) ||
+                  (item?.meta && toRaw(item?.meta?.icon))
+              )
+            "
+          />
         </div>
-        
+
         <div class="menu-content" :style="getDivStyle">
-          <ReText
-            :tippyProps="{
-              offset: [0, -10],
-              theme: tooltipEffect,
-            }"
-            class="!w-full "
-          >
-            {{ transformI18n(onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title) }}
-            <ReMenuNewBadge :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime" :type="onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'" :customText="onlyOneChild?.meta?.badgeText || item?.meta?.badgeText" />
-          </ReText>
+          <el-text truncated class="!w-full">
+            {{
+              transformI18n(
+                onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title
+              )
+            }}
+            <ReMenuNewBadge
+              :createTime="
+                onlyOneChild?.meta?.createTime || item?.meta?.createTime
+              "
+              :type="
+                onlyOneChild?.meta?.badgeType ||
+                item?.meta?.badgeType ||
+                'primary'
+              "
+              :customText="
+                onlyOneChild?.meta?.badgeText || item?.meta?.badgeText
+              "
+            />
+          </el-text>
           <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
         </div>
       </el-menu-item>
@@ -201,24 +276,26 @@ const isSubMenuOpened = computed(() => {
 
     <el-sub-menu v-else :index="resolvePath(item.path)">
       <template #title>
-        <div v-if="toRaw(item?.meta?.icon)" class="sub-menu-icon" :style="getSubMenuIconStyle">
+        <div
+          v-if="toRaw(item?.meta?.icon)"
+          class="sub-menu-icon"
+          :style="getSubMenuIconStyle"
+        >
           <component :is="useRenderIcon(toRaw(item?.meta?.icon))" />
         </div>
         <div :style="getDivStyle">
-          <ReText
-            :tippyProps="{
-              offset: [0, -10],
-              theme: tooltipEffect,
-            }"
-            class="!w-full "
-          >
+          <el-text truncated class="!w-full">
             {{ transformI18n(item?.meta?.i18nKey || item?.meta?.title) }}
-            <ReMenuNewBadge :createTime="item?.meta?.createTime" :type="item?.meta?.badgeType || 'primary'" :customText="item?.meta?.badgeText" />
-          </ReText>
+            <ReMenuNewBadge
+              :createTime="item?.meta?.createTime"
+              :type="item?.meta?.badgeType || 'primary'"
+              :customText="item?.meta?.badgeText"
+            />
+          </el-text>
           <SidebarExtraIcon :extraIcon="item?.meta?.extraIcon" />
         </div>
       </template>
-      
+
       <DoubleNavSidebarItem
         v-for="child in item.children"
         :key="child.path"
@@ -232,8 +309,6 @@ const isSubMenuOpened = computed(() => {
       />
     </el-sub-menu>
   </template>
-
-
 </template>
 
 <style lang="scss" scoped>
@@ -246,14 +321,9 @@ const isSubMenuOpened = computed(() => {
 
 .nest-menu {
   padding-left: 20px;
-  
+
   :deep(.el-sub-menu__icon-arrow) {
     display: none;
-  }
-}
-.router-link-exact-active{
-  .new-re-text{
-    color: #fff !important;
   }
 }
 
@@ -262,16 +332,16 @@ const isSubMenuOpened = computed(() => {
   .el-sub-menu__icon-arrow {
     display: none !important;
   }
-  
+
   // 保持所有交互功能，只是隐藏箭头
   .el-sub-menu__title {
     cursor: pointer;
   }
-  
+
   .el-menu-item {
     pointer-events: auto;
   }
-  
+
   .el-sub-menu {
     pointer-events: auto;
   }

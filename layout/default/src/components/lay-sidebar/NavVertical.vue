@@ -235,9 +235,21 @@ const defer = useDefer(menuData.value.length);
 
 :deep(.el-menu) {
   border-right: none;
-  background: transparent;
-
+  background: transparent; /* 折叠状态下菜单样式修复 */
   &.el-menu--collapse {
+    /* 没有子菜单的菜单项样式修复 */
+    .el-menu-item.submenu-title-noDropdown {
+      padding: 0 !important;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      .sub-menu-icon {
+        margin: 0 !important;
+      }
+    }
+
+    /* 选中状态样式 */
     .el-menu-item.is-active {
       background: var(--el-color-primary) !important;
       border-radius: 8px;

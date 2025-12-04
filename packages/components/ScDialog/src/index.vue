@@ -1078,14 +1078,15 @@ function restoreFromMinimized(restorePosition?: { x: number; y: number }, absolu
       if (absolutePosition) {
         // 获取对话框当前的尺寸
         const dialogWidth = target.offsetWidth;
+        const dialogHeight = target.offsetHeight;
         // 计算对话框居中时的位置
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
         const centerX = (viewportWidth - dialogWidth) / 2;
         const centerY = viewportHeight * 0.15;
-        // 计算偏移量，使对话框左上角对齐到图标位置
-        x = absolutePosition.left - centerX;
-        y = absolutePosition.top - centerY;
+        // 计算偏移量，使对话框中心对齐到图标位置
+        x = absolutePosition.left - centerX - dialogWidth / 2;
+        y = absolutePosition.top - centerY - dialogHeight / 2;
       } else {
         // 如果有指定恢复位置，使用该位置；否则使用原始位置
         x = restorePosition?.x ?? lastDialogState.value.x;

@@ -21,9 +21,16 @@
         <div class="sc-dialog-taskbar__content" :class="{ 'is-vertical': isVertical }">
           <!-- 分组项 -->
           <template v-if="groupCollapse">
-            <div v-for="group in groupedItems" :key="group.groupId" class="sc-dialog-taskbar__group" :class="{ 'is-expanded': group.expanded }">
+            <div
+              v-for="group in groupedItems"
+              :key="group.groupId"
+              class="sc-dialog-taskbar__group"
+              :class="{ 'is-expanded': group.expanded }"
+              @mouseenter="handleGroupMouseEnter(group)"
+              @mouseleave="handleGroupMouseLeave"
+            >
               <!-- 分组头部 -->
-              <div class="sc-dialog-taskbar__group-header" @click="toggleGroup(group)">
+              <div class="sc-dialog-taskbar__group-header" @click="handleGroupClick(group)">
                 <IconifyIconOnline :icon="group.groupIcon" class="sc-dialog-taskbar__group-icon" />
                 <span v-if="!isVertical" class="sc-dialog-taskbar__group-name">{{ group.groupName }}</span>
                 <span v-if="group.items.length > 1" class="sc-dialog-taskbar__group-count">
@@ -31,22 +38,23 @@
                 </span>
               </div>
 
-              <!-- 分组展开的子项 -->
-              <Transition name="taskbar-group">
-                <div v-if="group.expanded" class="sc-dialog-taskbar__group-items" :class="{ 'is-vertical': isVertical }">
-                  <div
-                    v-for="item in group.items"
-                    :key="item.id"
-                    class="sc-dialog-taskbar__item"
-                    :class="[`sc-dialog-taskbar__item--${item.type}`, { 'is-active': item.active }]"
-                    :title="item.title"
-                    @click="handleItemClick(item)"
-                  >
-                    <IconifyIconOnline :icon="item.icon" class="sc-dialog-taskbar__item-icon" />
-                    <span v-if="!isVertical" class="sc-dialog-taskbar__item-title">{{ item.title }}</span>
-                    <button class="sc-dialog-taskbar__item-close" @click.stop="handleItemClose(item)" title="关闭">
-                      <IconifyIconOnline icon="ep:close" />
-                    </button>
+              <!-- 分组预览弹窗（类似 Windows 任务栏） -->
+              <Transition name="taskbar-preview">
+                <div v-if="group.expanded" class="sc-dialog-taskbar__preview" :class="[`sc-dialog-taskbar__preview--${position}`, { 'is-vertical': isVertical }]">
+                  <div class="sc-dialog-taskbar__preview-header">
+                    <span>{{ group.groupName }}</span>
+                    <span class="sc-dialog-taskbar__preview-count">{{ group.items.length }} 个窗口</span>
+                  </div>
+                  <div class="sc-dialog-taskbar__preview-list">
+                    <div v-for="item in group.items" :key="item.id" class="sc-dialog-taskbar__preview-item" :class="[`sc-dialog-taskbar__preview-item--${item.type}`]" @click="handleItemClick(item)">
+                      <div class="sc-dialog-taskbar__preview-item-content">
+                        <IconifyIconOnline :icon="item.icon" class="sc-dialog-taskbar__preview-item-icon" />
+                        <span class="sc-dialog-taskbar__preview-item-title">{{ item.title }}</span>
+                      </div>
+                      <button class="sc-dialog-taskbar__preview-item-close" @click.stop="handleItemClose(item)" title="关闭">
+                        <IconifyIconOnline icon="ep:close" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </Transition>
@@ -54,19 +62,31 @@
           </template>
 
           <!-- 未分组项 / 所有项 -->
-          <div
-            v-for="item in displayItems"
-            :key="item.id"
-            class="sc-dialog-taskbar__item"
-            :class="[`sc-dialog-taskbar__item--${item.type}`, { 'is-active': item.active }]"
-            :title="item.title"
-            @click="handleItemClick(item)"
-          >
-            <IconifyIconOnline :icon="item.icon" class="sc-dialog-taskbar__item-icon" />
-            <span v-if="!isVertical" class="sc-dialog-taskbar__item-title">{{ item.title }}</span>
-            <button class="sc-dialog-taskbar__item-close" @click.stop="handleItemClose(item)" title="关闭">
-              <IconifyIconOnline icon="ep:close" />
-            </button>
+          <div v-for="item in displayItems" :key="item.id" class="sc-dialog-taskbar__single-item" @mouseenter="handleSingleItemMouseEnter(item)" @mouseleave="handleSingleItemMouseLeave">
+            <div class="sc-dialog-taskbar__item" :class="[`sc-dialog-taskbar__item--${item.type}`, { 'is-active': item.active }]" @click="handleItemClick(item)">
+              <IconifyIconOnline :icon="item.icon" class="sc-dialog-taskbar__item-icon" />
+              <span v-if="!isVertical" class="sc-dialog-taskbar__item-title">{{ item.title }}</span>
+              <button class="sc-dialog-taskbar__item-close" @click.stop="handleItemClose(item)" title="关闭">
+                <IconifyIconOnline icon="ep:close" />
+              </button>
+            </div>
+
+            <!-- 单项悬停预览 -->
+            <Transition name="taskbar-preview">
+              <div v-if="hoveredItemId === item.id" class="sc-dialog-taskbar__preview" :class="[`sc-dialog-taskbar__preview--${position}`]">
+                <div class="sc-dialog-taskbar__preview-list">
+                  <div class="sc-dialog-taskbar__preview-item" :class="[`sc-dialog-taskbar__preview-item--${item.type}`]" @click="handleItemClick(item)">
+                    <div class="sc-dialog-taskbar__preview-item-content">
+                      <IconifyIconOnline :icon="item.icon" class="sc-dialog-taskbar__preview-item-icon" />
+                      <span class="sc-dialog-taskbar__preview-item-title">{{ item.title }}</span>
+                    </div>
+                    <button class="sc-dialog-taskbar__preview-item-close" @click.stop="handleItemClose(item)" title="关闭">
+                      <IconifyIconOnline icon="ep:close" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Transition>
           </div>
         </div>
 
@@ -135,6 +155,7 @@ const taskbar = useTaskbar();
 const taskbarRef = ref<HTMLElement | null>(null);
 const isHovering = ref(false);
 const expandedGroups = ref<Set<string>>(new Set());
+const hoveredItemId = ref<string | null>(null);
 
 // 是否为垂直布局
 const isVertical = computed(() => props.position === "left" || props.position === "right");
@@ -189,16 +210,15 @@ const groupedItems = computed(() => {
     }
   });
 
+  // 只要有分组就显示，即使只有一个项目
   groupMap.forEach((items, groupId) => {
-    if (items.length > 1) {
-      groups.push({
-        groupId,
-        groupName: groupId,
-        groupIcon: items[0]?.icon || "ep:folder",
-        items: items.sort((a, b) => a.timestamp - b.timestamp),
-        expanded: expandedGroups.value.has(groupId)
-      });
-    }
+    groups.push({
+      groupId,
+      groupName: groupId,
+      groupIcon: items[0]?.icon || "ep:folder",
+      items: items.sort((a, b) => a.timestamp - b.timestamp),
+      expanded: expandedGroups.value.has(groupId)
+    });
   });
 
   return groups;
@@ -248,6 +268,9 @@ watch(
   }
 );
 
+// 分组预览延迟关闭定时器
+let groupHideTimer: ReturnType<typeof setTimeout> | null = null;
+
 /**
  * 切换分组展开状态
  * @param group 分组项
@@ -256,8 +279,80 @@ function toggleGroup(group: TaskbarGroupItem): void {
   if (expandedGroups.value.has(group.groupId)) {
     expandedGroups.value.delete(group.groupId);
   } else {
+    // 关闭其他分组
+    expandedGroups.value.clear();
     expandedGroups.value.add(group.groupId);
   }
+}
+
+/**
+ * 处理分组点击
+ * 如果只有一个项目，直接恢复；否则显示/隐藏预览
+ * @param group 分组项
+ */
+function handleGroupClick(group: TaskbarGroupItem): void {
+  if (group.items.length === 1) {
+    // 只有一个项目时，直接恢复
+    handleItemClick(group.items[0]);
+  } else {
+    // 多个项目时，切换预览显示
+    toggleGroup(group);
+  }
+}
+
+/**
+ * 处理分组鼠标进入
+ * @param group 分组项
+ */
+function handleGroupMouseEnter(group: TaskbarGroupItem): void {
+  // 清除隐藏定时器
+  if (groupHideTimer) {
+    clearTimeout(groupHideTimer);
+    groupHideTimer = null;
+  }
+  // 悬停时自动展开预览（无论有多少项目）
+  if (!expandedGroups.value.has(group.groupId)) {
+    // 关闭其他分组
+    expandedGroups.value.clear();
+    expandedGroups.value.add(group.groupId);
+  }
+}
+
+/**
+ * 处理分组鼠标离开
+ */
+function handleGroupMouseLeave(): void {
+  // 延迟隐藏预览，给用户时间移动到预览窗口
+  groupHideTimer = setTimeout(() => {
+    expandedGroups.value.clear();
+  }, 300);
+}
+
+// 单项悬停延迟关闭定时器
+let singleItemHideTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * 处理单个项目鼠标进入
+ * @param item 任务栏项
+ */
+function handleSingleItemMouseEnter(item: TaskbarItem): void {
+  // 清除隐藏定时器
+  if (singleItemHideTimer) {
+    clearTimeout(singleItemHideTimer);
+    singleItemHideTimer = null;
+  }
+  // 显示预览
+  hoveredItemId.value = item.id;
+}
+
+/**
+ * 处理单个项目鼠标离开
+ */
+function handleSingleItemMouseLeave(): void {
+  // 延迟隐藏预览
+  singleItemHideTimer = setTimeout(() => {
+    hoveredItemId.value = null;
+  }, 300);
 }
 
 /**
@@ -402,6 +497,11 @@ defineExpose({
     }
   }
 
+  // 单个项目容器（用于悬停预览）
+  &__single-item {
+    position: relative;
+  }
+
   // 任务栏项
   &__item {
     display: flex;
@@ -523,28 +623,154 @@ defineExpose({
       font-size: 11px;
       border-radius: 9px;
     }
+  }
 
-    &-items {
-      position: absolute;
-      bottom: 100%;
-      left: 0;
+  // 预览弹窗（类似 Windows 任务栏预览）
+  &__preview {
+    position: absolute;
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    min-width: 240px;
+    max-width: 320px;
+    z-index: 10;
+
+    // 底部任务栏时，预览在上方
+    &--bottom {
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    // 顶部任务栏时，预览在下方
+    &--top {
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    // 左侧任务栏时，预览在右侧
+    &--left {
+      left: calc(100% + 8px);
+      top: 0;
+    }
+
+    // 右侧任务栏时，预览在左侧
+    &--right {
+      right: calc(100% + 8px);
+      top: 0;
+    }
+
+    &-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+    }
+
+    &-count {
+      font-size: 12px;
+      font-weight: normal;
+      color: var(--el-text-color-secondary);
+    }
+
+    &-list {
+      padding: 8px;
       display: flex;
       flex-direction: column;
       gap: 4px;
-      padding: 8px;
-      background: var(--el-bg-color);
-      border: 1px solid var(--el-border-color-lighter);
-      border-radius: 8px;
-      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-      margin-bottom: 4px;
-      min-width: 200px;
+      max-height: 300px;
+      overflow-y: auto;
 
-      &.is-vertical {
-        left: 100%;
-        bottom: auto;
-        top: 0;
-        margin-bottom: 0;
-        margin-left: 4px;
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: var(--el-border-color);
+        border-radius: 2px;
+      }
+    }
+
+    &-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: var(--el-fill-color-light);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: var(--el-fill-color);
+
+        .sc-dialog-taskbar__preview-item-close {
+          opacity: 1;
+        }
+      }
+
+      &-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      &-icon {
+        font-size: 18px;
+        color: var(--el-text-color-primary);
+        flex-shrink: 0;
+      }
+
+      &-title {
+        font-size: 13px;
+        color: var(--el-text-color-regular);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      &-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        background: none;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        color: var(--el-text-color-secondary);
+        opacity: 0;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+
+        &:hover {
+          background: var(--el-color-danger-light-9);
+          color: var(--el-color-danger);
+        }
+      }
+
+      // 类型样式
+      &--info .sc-dialog-taskbar__preview-item-icon {
+        color: var(--el-color-info);
+      }
+      &--success .sc-dialog-taskbar__preview-item-icon {
+        color: var(--el-color-success);
+      }
+      &--warning .sc-dialog-taskbar__preview-item-icon {
+        color: var(--el-color-warning);
+      }
+      &--error .sc-dialog-taskbar__preview-item-icon {
+        color: var(--el-color-danger);
       }
     }
   }
@@ -646,15 +872,15 @@ defineExpose({
   opacity: 0;
 }
 
-// 分组展开动画
-.taskbar-group-enter-active,
-.taskbar-group-leave-active {
+// 预览弹窗动画
+.taskbar-preview-enter-active,
+.taskbar-preview-leave-active {
   transition: all 0.2s ease;
 }
 
-.taskbar-group-enter-from,
-.taskbar-group-leave-to {
+.taskbar-preview-enter-from,
+.taskbar-preview-leave-to {
   opacity: 0;
-  transform: translateY(10px);
+  transform: scale(0.95);
 }
 </style>

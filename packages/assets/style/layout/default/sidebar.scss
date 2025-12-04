@@ -198,7 +198,7 @@
       }
     }
 
-    .is-active {
+    .el-menu-item.is-active {
       color: #ffffff !important; /* 强制设置为白色确保可见性 */
       transition: color 0.3s;
     }
@@ -227,7 +227,9 @@
     }
 
     /* 有子集的激活菜单左侧小竖条 */
-    .el-menu--collapse .is-active.outer-most.el-sub-menu > .el-sub-menu__title::before {
+    .el-menu--collapse
+      .is-active.outer-most.el-sub-menu
+      > .el-sub-menu__title::before {
       position: absolute;
       top: 0;
       left: 0;
@@ -235,7 +237,11 @@
       height: 100%;
       clear: both;
       content: "";
-      background: linear-gradient(to bottom, var(--pure-theme-menu-active-before), var(--el-color-primary));
+      background: linear-gradient(
+        to bottom,
+        var(--pure-theme-menu-active-before),
+        var(--el-color-primary)
+      );
       border-radius: 0 4px 4px 0;
       transition: all var(--pure-transition-duration) ease-in-out;
       transform: translateY(0);
@@ -308,11 +314,6 @@
       &:hover {
         transform: translateX(2px);
       }
-    }
-
-    .is-active {
-      color: var(--pure-theme-sub-menu-active-text) !important;
-      transition: color 0.3s;
     }
 
     .el-menu-item.is-active.nest-menu > * {
@@ -873,7 +874,9 @@ body[layout="double"] {
 
         &.is-active {
           background: var(--el-color-primary);
-          color: var(--pure-menu-active-text-color) !important; /* 使用新定义的变量 */
+          color: var(
+            --pure-menu-active-text-color
+          ) !important; /* 使用新定义的变量 */
           box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.25);
         }
       }
