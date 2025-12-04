@@ -457,14 +457,9 @@ const markOptions = computed<Array<OptionsType>>(() => {
       value: "chrome",
     },
     {
-      label: "极简模式",
-      tip: "纯文字标签，无边框和背景，极简风格",
-      value: "minimal",
-    },
-    {
-      label: "圆角模式",
-      tip: "圆角卡片风格，现代化设计",
-      value: "rounded",
+      label: "现代风格",
+      tip: "渐变背景、阴影效果，现代化视觉体验",
+      value: "modern",
     },
   ];
 });
