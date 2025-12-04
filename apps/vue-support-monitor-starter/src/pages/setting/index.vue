@@ -38,7 +38,7 @@
           </div>
           <div class="nav-info">
             <div class="nav-name">
-              <el-radio :model-value="form.navMode" label="side"
+              <el-radio :model-value="form.navMode" value="side"
                 >侧边导航</el-radio
               >
             </div>
@@ -62,7 +62,7 @@
           </div>
           <div class="nav-info">
             <div class="nav-name">
-              <el-radio :model-value="form.navMode" label="top"
+              <el-radio :model-value="form.navMode" value="top"
                 >顶部导航</el-radio
               >
             </div>
@@ -89,7 +89,7 @@
           </div>
           <div class="nav-info">
             <div class="nav-name">
-              <el-radio :model-value="form.navMode" label="mix"
+              <el-radio :model-value="form.navMode" value="mix"
                 >混合导航</el-radio
               >
             </div>
@@ -159,124 +159,185 @@ const reset = () => {
 <style scoped lang="scss">
 .settings-page {
   min-height: 100%;
-  padding: 24px;
-  background: var(--el-bg-color-page);
+  padding: 28px;
+  background: linear-gradient(
+    135deg,
+    rgba(248, 250, 252, 0.8) 0%,
+    rgba(241, 245, 249, 0.6) 100%
+  );
 }
 
 // 页面头部
 .page-header {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   margin-bottom: 32px;
-  padding: 24px;
-  background: var(--el-bg-color);
-  border-radius: 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  padding: 28px 32px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.9) 100%
+  );
+  border-radius: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  }
 }
 
 .header-icon {
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 100%
-  );
-  border-radius: 14px;
-  font-size: 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 18px;
+  font-size: 32px;
   color: white;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 .page-title {
   margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-size: 26px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .page-subtitle {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-size: 14px;
-  color: var(--el-text-color-secondary);
+  color: #64748b;
 }
 
 // 设置区块
 .settings-section {
-  background: var(--el-bg-color);
-  border-radius: 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  padding: 24px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.9) 100%
+  );
+  border-radius: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  padding: 28px;
   margin-bottom: 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
 .section-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .section-icon {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--el-color-primary-light-9);
-  border-radius: 10px;
-  font-size: 20px;
-  color: var(--el-color-primary);
+  background: linear-gradient(
+    135deg,
+    rgba(102, 126, 234, 0.15) 0%,
+    rgba(118, 75, 162, 0.1) 100%
+  );
+  border-radius: 14px;
+  font-size: 24px;
+  color: #667eea;
 }
 
 .section-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: #1e293b;
 }
 
 .section-desc {
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: #64748b;
 }
 
 // 导航选项
 .nav-options {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 24px;
 }
 
 .nav-card {
   position: relative;
-  border: 2px solid var(--el-border-color-lighter);
+  border: 1px solid rgba(226, 232, 240, 0.8);
   border-radius: 16px;
-  padding: 16px;
+  padding: 20px;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: var(--el-bg-color);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.9) 100%
+  );
+  overflow: hidden;
 
   &:hover {
-    border-color: var(--el-color-primary-light-5);
-    transform: translateY(-2px);
+    border-color: rgba(102, 126, 234, 0.3);
+    transform: translateY(-3px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   }
 
   &.active {
-    border-color: var(--el-color-primary);
-    background: var(--el-color-primary-light-9);
+    border-color: rgba(102, 126, 234, 0.5);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(248, 250, 252, 0.95) 100%
+    );
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.12);
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    }
 
     .nav-preview {
       .preview-sidebar,
       .preview-topbar {
-        background: var(--el-color-primary);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       }
     }
   }
@@ -286,31 +347,42 @@ const reset = () => {
   position: absolute;
   top: 12px;
   right: 12px;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--el-color-primary);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 50%;
   color: white;
-  font-size: 14px;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 // 导航预览
 .nav-preview {
-  height: 100px;
-  border-radius: 10px;
+  height: 110px;
+  border-radius: 12px;
   overflow: hidden;
-  background: var(--el-fill-color-lighter);
-  margin-bottom: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(248, 250, 252, 0.9) 0%,
+    rgba(241, 245, 249, 0.8) 100%
+  );
+  margin-bottom: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
 
   &.side {
     display: flex;
 
     .preview-sidebar {
       width: 28%;
-      background: var(--el-color-primary-light-7);
+      background: linear-gradient(
+        180deg,
+        rgba(102, 126, 234, 0.3) 0%,
+        rgba(118, 75, 162, 0.2) 100%
+      );
     }
 
     .preview-main {
@@ -320,13 +392,13 @@ const reset = () => {
 
       .preview-header {
         height: 20%;
-        background: var(--el-fill-color);
-        border-bottom: 1px solid var(--el-border-color-lighter);
+        background: rgba(241, 245, 249, 0.9);
+        border-bottom: 1px solid rgba(226, 232, 240, 0.6);
       }
 
       .preview-content {
         flex: 1;
-        background: var(--el-fill-color-lighter);
+        background: rgba(248, 250, 252, 0.6);
       }
     }
   }
@@ -337,12 +409,16 @@ const reset = () => {
 
     .preview-topbar {
       height: 22%;
-      background: var(--el-color-primary-light-7);
+      background: linear-gradient(
+        90deg,
+        rgba(102, 126, 234, 0.3) 0%,
+        rgba(118, 75, 162, 0.2) 100%
+      );
     }
 
     .preview-body {
       flex: 1;
-      background: var(--el-fill-color-lighter);
+      background: rgba(248, 250, 252, 0.6);
     }
   }
 
@@ -352,7 +428,11 @@ const reset = () => {
 
     .preview-topbar {
       height: 22%;
-      background: var(--el-color-primary-light-7);
+      background: linear-gradient(
+        90deg,
+        rgba(102, 126, 234, 0.3) 0%,
+        rgba(118, 75, 162, 0.2) 100%
+      );
     }
 
     .preview-body {
@@ -361,48 +441,113 @@ const reset = () => {
 
       .preview-sidebar {
         width: 24%;
-        background: var(--el-fill-color);
-        border-right: 1px solid var(--el-border-color-lighter);
+        background: rgba(241, 245, 249, 0.9);
+        border-right: 1px solid rgba(226, 232, 240, 0.6);
       }
 
       .preview-content {
         flex: 1;
-        background: var(--el-fill-color-lighter);
+        background: rgba(248, 250, 252, 0.6);
       }
     }
   }
 }
 
 .nav-info {
+  position: relative;
+  z-index: 1;
+
   .nav-name {
     font-weight: 600;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
+
+    :deep(.el-radio) {
+      .el-radio__label {
+        font-size: 15px;
+        font-weight: 600;
+        color: #1e293b;
+      }
+
+      .el-radio__inner {
+        border-color: #667eea;
+      }
+
+      &.is-checked .el-radio__inner {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+      }
+    }
   }
 
   .nav-desc {
     margin: 0;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    line-height: 1.5;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.6;
   }
 }
 
 // 操作按钮
 .settings-actions {
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  :deep(.el-button) {
+    border-radius: 12px;
+    font-weight: 600;
+    padding: 12px 28px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  :deep(.el-button--primary) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.35);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(102, 126, 234, 0.45);
+    }
+  }
+
+  :deep(.el-button--default) {
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(248, 250, 252, 0.8) 100%
+    );
+
+    &:hover {
+      border-color: rgba(102, 126, 234, 0.4);
+      background: linear-gradient(
+        135deg,
+        rgba(102, 126, 234, 0.08) 0%,
+        rgba(118, 75, 162, 0.05) 100%
+      );
+    }
+  }
 }
 
 .settings-tip {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: var(--el-color-info-light-9);
-  border-radius: 8px;
+  gap: 10px;
+  padding: 14px 20px;
+  background: linear-gradient(
+    135deg,
+    rgba(102, 126, 234, 0.08) 0%,
+    rgba(118, 75, 162, 0.05) 100%
+  );
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: #667eea;
+
+  :deep(svg) {
+    font-size: 18px;
+  }
 }
 
 // 响应式
@@ -424,6 +569,19 @@ const reset = () => {
   .page-header {
     flex-direction: column;
     text-align: center;
+    padding: 24px 20px;
+
+    .header-icon {
+      margin-bottom: 8px;
+    }
+  }
+
+  .settings-actions {
+    flex-direction: column;
+
+    :deep(.el-button) {
+      width: 100%;
+    }
   }
 }
 </style>

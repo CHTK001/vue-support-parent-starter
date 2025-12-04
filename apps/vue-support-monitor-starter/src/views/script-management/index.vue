@@ -3,25 +3,41 @@
     <!-- 统计卡片导航 -->
     <div class="stats-section">
       <div class="stats-grid">
-        <div class="stat-item" :class="{ active: activeTab === 'list' }" @click="activeTab = 'list'">
+        <div
+          class="stat-item"
+          :class="{ active: activeTab === 'list' }"
+          @click="activeTab = 'list'"
+        >
           <div class="stat-icon">
             <IconifyIconOnline icon="ri:file-code-line" />
           </div>
           <div class="stat-label">脚本库</div>
         </div>
-        <div class="stat-item" :class="{ active: activeTab === 'running' }" @click="activeTab = 'running'">
+        <div
+          class="stat-item"
+          :class="{ active: activeTab === 'running' }"
+          @click="activeTab = 'running'"
+        >
           <div class="stat-icon running">
             <IconifyIconOnline icon="ri:play-circle-line" />
           </div>
           <div class="stat-label">运行中</div>
         </div>
-        <div class="stat-item" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
+        <div
+          class="stat-item"
+          :class="{ active: activeTab === 'history' }"
+          @click="activeTab = 'history'"
+        >
           <div class="stat-icon">
             <IconifyIconOnline icon="ri:history-line" />
           </div>
           <div class="stat-label">执行历史</div>
         </div>
-        <div class="stat-item" :class="{ active: activeTab === 'upload-records' }" @click="activeTab = 'upload-records'">
+        <div
+          class="stat-item"
+          :class="{ active: activeTab === 'upload-records' }"
+          @click="activeTab = 'upload-records'"
+        >
           <div class="stat-icon">
             <IconifyIconOnline icon="ri:upload-cloud-2-line" />
           </div>
@@ -34,7 +50,11 @@
     <div class="main-content">
       <!-- 脚本列表 -->
       <div v-show="activeTab === 'list'" class="tab-content">
-        <ScriptList @execute="handleExecuteScript" @edit="handleEditScript" @create="handleCreateScript" />
+        <ScriptList
+          @execute="handleExecuteScript"
+          @edit="handleEditScript"
+          @create="handleCreateScript"
+        />
       </div>
 
       <!-- 执行历史 -->
@@ -49,18 +69,33 @@
 
       <!-- 运行中脚本 -->
       <div v-show="activeTab === 'running'" class="tab-content">
-        <RunningScripts @stop="handleStopScript" @view-detail="handleViewExecutionDetail" />
+        <RunningScripts
+          @stop="handleStopScript"
+          @view-detail="handleViewExecutionDetail"
+        />
       </div>
     </div>
 
     <!-- 脚本编辑对话框 -->
-    <ScriptEditDialog v-model:visible="editDialogVisible" :script-data="currentScript" @save="handleSaveScript" @test="handleTestScript" />
+    <ScriptEditDialog
+      v-model:visible="editDialogVisible"
+      :script-data="currentScript"
+      @save="handleSaveScript"
+      @test="handleTestScript"
+    />
 
     <!-- 脚本执行对话框 -->
-    <ScriptExecuteDialog v-model="executeDialogVisible" :script-data="currentScript" @success="handleExecuteSuccess" />
+    <ScriptExecuteDialog
+      v-model="executeDialogVisible"
+      :script-data="currentScript"
+      @success="handleExecuteSuccess"
+    />
 
     <!-- 执行详情对话框 -->
-    <ExecutionDetailDialog v-model="detailDialogVisible" :execution-data="currentExecution" />
+    <ExecutionDetailDialog
+      v-model="detailDialogVisible"
+      :execution-data="currentExecution"
+    />
   </div>
 </template>
 
@@ -137,15 +172,25 @@ const handleViewExecutionDetail = (execution: any) => {
   const ex = execution?.raw || execution || {};
   currentExecution.value = {
     id: ex.monitorSysGenScriptExecutionId || execution.id,
-    scriptName: ex.monitorSysGenScriptId ? `脚本#${ex.monitorSysGenScriptId}` : execution.scriptName,
-    status: (ex.monitorSysGenScriptExecutionStatus || execution.status || "").toString().toLowerCase(),
-    exitCode: ex.monitorSysGenScriptExecutionExitCode ?? execution.exitCode ?? null,
-    startTime: ex.monitorSysGenScriptExecutionStartTime ? new Date(ex.monitorSysGenScriptExecutionStartTime) : execution.startTime,
-    endTime: ex.monitorSysGenScriptExecutionEndTime ? new Date(ex.monitorSysGenScriptExecutionEndTime) : execution.endTime,
-    duration: ex.monitorSysGenScriptExecutionDuration ?? execution.duration ?? null,
+    scriptName: ex.monitorSysGenScriptId
+      ? `脚本#${ex.monitorSysGenScriptId}`
+      : execution.scriptName,
+    status: (ex.monitorSysGenScriptExecutionStatus || execution.status || "")
+      .toString()
+      .toLowerCase(),
+    exitCode:
+      ex.monitorSysGenScriptExecutionExitCode ?? execution.exitCode ?? null,
+    startTime: ex.monitorSysGenScriptExecutionStartTime
+      ? new Date(ex.monitorSysGenScriptExecutionStartTime)
+      : execution.startTime,
+    endTime: ex.monitorSysGenScriptExecutionEndTime
+      ? new Date(ex.monitorSysGenScriptExecutionEndTime)
+      : execution.endTime,
+    duration:
+      ex.monitorSysGenScriptExecutionDuration ?? execution.duration ?? null,
     stdout: ex.monitorSysGenScriptExecutionStdout ?? execution.stdout ?? "",
     stderr: ex.monitorSysGenScriptExecutionStderr ?? execution.stderr ?? "",
-    executor: ex.createBy || execution.executor || ""
+    executor: ex.createBy || execution.executor || "",
   } as any;
   detailDialogVisible.value = true;
 };
@@ -156,71 +201,107 @@ const handleViewExecutionDetail = (execution: any) => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 50%, #f8fafc 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(248, 250, 252, 0.98) 0%,
+    rgba(241, 245, 249, 0.95) 100%
+  );
 
   // 统计卡片导航
   .stats-section {
-    padding: 20px 32px;
+    padding: 24px 32px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+
+    // 装饰性波纹
+    &::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.1) 0%,
+        transparent 50%
+      );
+      animation: headerShimmer 4s ease-in-out infinite;
+    }
 
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 16px;
+      position: relative;
+      z-index: 1;
 
       .stat-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 16px 20px;
-        background: white;
-        border-radius: 12px;
-        border: 2px solid transparent;
+        gap: 14px;
+        padding: 18px 24px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
         cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
         &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          transform: translateY(-3px);
+          background: rgba(255, 255, 255, 0.25);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
 
         &.active {
-          border-color: #8b5cf6;
-          background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+          background: rgba(255, 255, 255, 0.95);
+          border-color: rgba(255, 255, 255, 0.8);
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
 
           .stat-icon {
-            background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
           }
 
           .stat-label {
-            color: #8b5cf6;
-            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
           }
         }
 
         .stat-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 20px;
-          background: #f3e8ff;
-          color: #8b5cf6;
+          font-size: 22px;
+          background: rgba(255, 255, 255, 0.3);
+          color: #fff;
           transition: all 0.3s ease;
+          flex-shrink: 0;
 
           &.running {
-            animation: pulse 2s infinite;
+            animation: runningPulse 2s infinite;
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
           }
         }
 
         .stat-label {
-          font-size: 14px;
-          font-weight: 500;
-          color: #64748b;
+          font-size: 15px;
+          font-weight: 600;
+          color: #fff;
           transition: all 0.3s ease;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
       }
     }
@@ -230,22 +311,66 @@ const handleViewExecutionDetail = (execution: any) => {
   .main-content {
     flex: 1;
     overflow: hidden;
-    padding: 0 32px 20px;
+    padding: 20px 32px 24px;
 
     .tab-content {
       height: 100%;
       overflow: auto;
-      background: white;
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.98) 0%,
+        rgba(248, 250, 252, 0.95) 100%
+      );
       border-radius: 16px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      position: relative;
+      overflow: hidden;
+
+      // 装饰性顶部渐变条
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(
+          90deg,
+          #667eea 0%,
+          #764ba2 50%,
+          #f093fb 100%
+        );
+        border-radius: 16px 16px 0 0;
+      }
     }
   }
 }
 
 // 动画
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+@keyframes headerShimmer {
+  0%,
+  100% {
+    transform: translateX(-30%) translateY(-30%) rotate(0deg);
+  }
+  50% {
+    transform: translateX(30%) translateY(30%) rotate(180deg);
+  }
+}
+
+@keyframes runningPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.7);
+  }
 }
 
 // 响应式
@@ -257,11 +382,29 @@ const handleViewExecutionDetail = (execution: any) => {
       .stats-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
+
+        .stat-item {
+          padding: 14px 16px;
+
+          .stat-icon {
+            width: 38px;
+            height: 38px;
+            font-size: 18px;
+          }
+
+          .stat-label {
+            font-size: 13px;
+          }
+        }
       }
     }
 
     .main-content {
-      padding: 0 16px 16px;
+      padding: 16px;
+
+      .tab-content {
+        border-radius: 12px;
+      }
     }
   }
 }

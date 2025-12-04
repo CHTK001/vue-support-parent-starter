@@ -5,13 +5,15 @@
     width="600px"
     :close-on-click-modal="false"
     @close="handleClose"
+    class="server-form-dialog"
   >
     <el-form
       ref="formRef"
       :model="formData"
       :rules="formRules"
-      label-width="120px"
+      label-width="110px"
       label-position="right"
+      class="server-form"
     >
       <el-form-item label="服务器名称" prop="systemServerName">
         <el-input
@@ -34,12 +36,11 @@
               item.describe ? item.describe + '(' + item.name + ')' : item.name
             "
             :value="item.name"
-          >
-          </el-option>
+          />
         </el-select>
       </el-form-item>
 
-      <el-form-item label="系统服务器主机">
+      <el-form-item label="服务器主机">
         <el-input
           v-model="formData.systemServerHost"
           placeholder="请输入服务器主机"
@@ -54,15 +55,21 @@
           :max="65535"
           placeholder="请输入端口号"
           style="width: 100%"
-          @blur="checkPortAvailable"
+          @blur="checkPortAvailableHandler"
         />
         <div
           v-if="portCheckMessage"
-          :class="portCheckClass"
-          class="port-check-message"
+          :class="['port-check-message', portCheckClass]"
         >
           {{ portCheckMessage }}
         </div>
+      </el-form-item>
+
+      <el-form-item label="上下文路径" prop="systemServerContextPath">
+        <el-input
+          v-model="formData.systemServerContextPath"
+          placeholder="不填则使用默认值"
+        />
       </el-form-item>
 
       <el-form-item label="最大连接数" prop="systemServerMaxConnections">
@@ -85,14 +92,6 @@
         />
       </el-form-item>
 
-      <el-form-item label="上下文" prop="systemServerContextPath">
-        <el-input
-          v-model="formData.systemServerContextPath"
-          placeholder="不填则使用默认值"
-          style="width: 100%"
-        />
-      </el-form-item>
-
       <el-form-item label="自动启动">
         <el-switch
           v-model="formData.systemServerAutoStart"
@@ -106,7 +105,7 @@
           v-model="formData.systemServerDescription"
           type="textarea"
           :rows="3"
-          placeholder="请输入服务器描述"
+          placeholder="请输入服务器描述信息"
         />
       </el-form-item>
     </el-form>
@@ -114,7 +113,12 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" @click="handleSubmit" :loading="loading">
+        <el-button
+          type="primary"
+          @click="handleSubmit"
+          :loading="loading"
+          class="submit-btn"
+        >
           {{ isEdit ? "更新" : "创建" }}
         </el-button>
       </div>
@@ -329,5 +333,14 @@ const handleSubmit = async () => {
   &.port-error {
     color: #e6a23c;
   }
+}
+
+.submit-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7c8ff0 0%, #8b5fb8 100%);
 }
 </style>

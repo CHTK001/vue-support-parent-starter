@@ -198,24 +198,65 @@
                 </div>
               </el-popover>
             </div>
+            <!-- 分析面板 -->
+            <div
+              v-if="analyzing && Object.keys(analysisData).length"
+              class="analysis-panel"
+            >
+              <div class="analysis-title">
+                <IconifyIconOnline icon="ri:bar-chart-2-line" class="mr-1" />
+                字段分析
+              </div>
+              <div class="analysis-content">
+                <div
+                  v-for="col in visibleColumns"
+                  :key="col.name || col"
+                  class="analysis-item"
+                >
+                  <div class="analysis-col-name">{{ col.name || col }}</div>
+                  <div
+                    v-if="analysisData[col.name]?.length"
+                    class="analysis-bars"
+                  >
+                    <div
+                      v-for="b in analysisData[col.name].slice(0, 10)"
+                      :key="b.value"
+                      class="analysis-bar-item"
+                    >
+                      <el-tooltip
+                        :content="`${b.value}: ${b.count}条`"
+                        placement="top"
+                      >
+                        <div
+                          class="analysis-bar"
+                          :style="barStyle(col.name, b)"
+                          @click="toggleFilter(col.name, b.value)"
+                        >
+                          <span class="bar-label">{{ b.value || "(空)" }}</span>
+                        </div>
+                      </el-tooltip>
+                    </div>
+                  </div>
+                  <div v-else class="analysis-empty">无数据</div>
+                </div>
+              </div>
+            </div>
             <el-table
-              border
               v-if="columns.length"
-              :data="rows"
-              size="default"
+              ref="dataTableRef"
+              :data="displayRows"
               :max-height="tableMaxHeight"
+              size="small"
+              border
               :row-class-name="rowClassName"
               class="data-table"
               @cell-dblclick="handleCellDblClick"
             >
-              <!-- 序号列 -->
-              <el-table-column type="index" width="50" label="#" fixed="left" />
-              <!-- 数据列 -->
+              <el-table-column type="index" width="45" label="#" fixed="left" />
               <el-table-column
                 v-for="col in visibleColumns"
                 :key="col.name || col"
                 :prop="col.name || col"
-                :label="col.name || col"
                 :min-width="getColumnWidth(col)"
                 show-overflow-tooltip
               >
@@ -224,11 +265,9 @@
                     <div class="col-header-main">
                       <span class="col-name">{{ col.name || col }}</span>
                       <span v-if="col.isPrimary" class="col-pk-badge">PK</span>
-                      <span
-                        v-if="showDataType && col.dataType"
-                        class="col-type-badge"
-                        >{{ col.dataType }}</span
-                      >
+                    </div>
+                    <div v-if="showDataType && col.dataType" class="col-type">
+                      {{ col.dataType }}
                     </div>
                     <div
                       v-if="showTableComment && col.comment"
@@ -237,64 +276,23 @@
                     >
                       {{ col.comment }}
                     </div>
-                    <div
-                      v-if="analyzing && analysisData[col.name]?.length"
-                      class="chart mini-bar"
-                    >
-                      <div
-                        v-for="b in analysisData[col.name]"
-                        :key="b.value"
-                        class="bar-wrap"
-                      >
-                        <el-tooltip
-                          :content="barTooltip(col.name, b)"
-                          placement="top"
-                          :show-after="200"
-                        >
-                          <div
-                            class="bar"
-                            :style="barStyle(col.name, b)"
-                            @click.stop="toggleFilter(col.name, b.value)"
-                          ></div>
-                        </el-tooltip>
-                      </div>
-                    </div>
                   </div>
                 </template>
-                <template #default="{ row, $index }">
-                  <div
-                    class="cell-content"
-                    :class="{
-                      'cell-editing': isEditing($index, col.name || col),
-                    }"
-                  >
-                    <!-- 编辑模式 -->
-                    <el-input
-                      v-if="isEditing($index, col.name || col)"
-                      v-model="editingValue"
-                      size="small"
-                      autofocus
-                      @blur="handleCellBlur(row, col.name || col, $index)"
-                      @keyup.enter="
-                        handleCellBlur(row, col.name || col, $index)
-                      "
-                      @keyup.escape="cancelEdit"
-                    />
-                    <!-- 显示模式 -->
-                    <template v-else>
-                      <span
-                        v-if="showFieldComments && col.comment"
-                        class="field-comment"
-                      >
-                        {{ col.comment }}:
-                      </span>
-                      <span
-                        class="cell-value"
-                        :class="{ 'cell-null': row[col.name || col] === null }"
-                      >
-                        {{ formatCellValue(row[col.name || col]) }}
-                      </span>
-                    </template>
+                <template #default="{ row }">
+                  <div class="cell-wrapper">
+                    <span
+                      :class="{
+                        'cell-null': row[`__null__${col.name || col}`],
+                      }"
+                    >
+                      {{ row[col.name || col] }}
+                    </span>
+                    <div
+                      v-if="showFieldComments && col.comment"
+                      class="cell-comment"
+                    >
+                      {{ col.comment }}
+                    </div>
                   </div>
                 </template>
               </el-table-column>
@@ -471,6 +469,7 @@ const showEditor = ref(true);
 const showDataType = ref(false);
 const showTableComment = ref(false);
 const showFieldComments = ref(false);
+
 const columnFilterVisible = ref(false);
 const selectedColumnNames = ref<string[]>([]);
 const visibleColumns = computed(() => {
@@ -480,6 +479,44 @@ const visibleColumns = computed(() => {
     return selectedColumnNames.value.includes(colName);
   });
 });
+
+const dataTableRef = ref<any>(null);
+
+/**
+ * 获取列宽度（根据列名、类型、注释计算）
+ */
+function getColumnWidth(col: any): number {
+  const name = col.name || col;
+  let totalLen = String(name).length;
+  if (showDataType.value && col.dataType) {
+    totalLen += String(col.dataType).length + 3;
+  }
+  if (showTableComment.value && col.comment) {
+    totalLen += String(col.comment).length + 3;
+  }
+  return Math.max(80, totalLen * 8 + 20);
+}
+
+// 处理后的表格数据（将 null 转为显示文本）
+const displayRows = computed(() => {
+  // 获取所有列名
+  const colNames = columns.value.map((col: any) => col.name || col);
+
+  return rows.value.map((row: any) => {
+    const newRow: any = { ...row };
+    colNames.forEach((key: string) => {
+      const value = row[key];
+      if (value === null || value === undefined) {
+        newRow[key] = "NULL";
+        newRow[`__null__${key}`] = true;
+      } else if (typeof value === "object") {
+        newRow[key] = JSON.stringify(value);
+      }
+    });
+    return newRow;
+  });
+});
+
 const activeTab = ref<"result" | "structure">("result");
 const structureContent = ref("");
 const statusText = ref("");
@@ -510,15 +547,6 @@ function isEditing(rowIndex: number, columnName: string): boolean {
   return (
     editingRowIndex.value === rowIndex && editingColumnName.value === columnName
   );
-}
-
-/**
- * 获取列宽度
- */
-function getColumnWidth(col: any): number {
-  const name = col.name || col;
-  const len = String(name).length;
-  return Math.max(100, Math.min(200, len * 12 + 40));
 }
 
 /**
@@ -884,6 +912,43 @@ async function execute() {
   const ms = Math.round(performance.now() - start);
   statusText.value = `已返回 ${rows.value.length} 行，用时 ${ms} ms, ${data?.errorMessage || ""}`;
   activeTab.value = "result";
+
+  // 尝试加载字段信息（包含类型、注释等）
+  if (currentPath.value && columns.value.length) {
+    try {
+      const resp = await openTable(props.id, currentPath.value, 1);
+      if (resp?.data?.data) {
+        tableComment.value = resp.data.data.tableComment || "";
+        const columnInfos = resp.data.data.columns || [];
+        const columnComments = resp.data.data.columnComments || {};
+
+        // 构建列名到列信息的映射
+        const columnInfoMap: Record<string, any> = {};
+        columnInfos.forEach((info: any) => {
+          if (info.name) {
+            columnInfoMap[info.name] = info;
+          }
+        });
+
+        // 合并列信息
+        columns.value = columns.value.map((col: any) => {
+          const colName = col.name || col;
+          const info = columnInfoMap[colName] || {};
+          return {
+            ...(typeof col === "object" ? col : { name: col }),
+            dataType: info.dataType || col?.dataType || "",
+            comment:
+              columnComments[colName] || info.comment || col?.comment || "",
+            isPrimary: info.primaryKey || col?.isPrimary || false,
+            nullable: info.nullable || col?.nullable,
+            length: info.length || col?.length,
+          };
+        });
+      }
+    } catch (e) {
+      // 忽略加载失败
+    }
+  }
 }
 
 function formatSql() {
@@ -1001,8 +1066,8 @@ async function openStructureTab() {
 function barStyle(col: string, b: { value: string; count: number }) {
   const list = analysisData.value[col] || [];
   const max = Math.max(1, ...list.map((i) => i.count));
-  const h = Math.max(4, Math.round((b.count / max) * 40));
-  return { height: `${h}px` };
+  const w = Math.max(30, Math.round((b.count / max) * 120));
+  return { width: `${w}px` };
 }
 
 function barTooltip(col: string, b: { value: string; count: number }) {
@@ -1310,10 +1375,13 @@ async function openTableAndRender(hideEditor: boolean) {
       tableComment.value = resp.data.data.tableComment || "";
       // 合并字段注释
       const columnComments = resp.data.data.columnComments || {};
-      columns.value = columns.value.map((col) => ({
-        ...col,
-        comment: columnComments[col] || col.comment || "",
-      }));
+      columns.value = columns.value.map((col: any) => {
+        const colName = col.name || col;
+        return {
+          ...col,
+          comment: columnComments[colName] || col.comment || "",
+        };
+      });
     }
 
     activeTab.value = "result";
@@ -1893,39 +1961,89 @@ onMounted(async () => {
 /* 数据表格美化 - Navicat 风格 */
 .data-table {
   border-radius: 4px;
-  overflow: hidden;
+  overflow: auto;
+}
+
+.data-table :deep(.el-table__body-wrapper) {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+}
+
+.data-table :deep(.el-scrollbar__bar.is-horizontal) {
+  display: block !important;
+  height: 8px !important;
+}
+
+.data-table :deep(.el-scrollbar__bar.is-horizontal .el-scrollbar__thumb) {
+  background: #c0c4cc !important;
+}
+
+/* NULL 值样式 */
+.cell-null {
+  color: #999 !important;
+  font-style: italic !important;
+}
+
+.data-table :deep(.el-table) {
   font-family: Consolas, Monaco, "Courier New", monospace;
   font-size: 12px;
+  --el-table-row-hover-bg-color: #e3f2fd;
+  --el-table-current-row-bg-color: #bbdefb;
 }
 
 .data-table :deep(.el-table__header-wrapper th) {
   background: #f5f5f5 !important;
-  padding: 6px 8px !important;
-  height: 28px !important;
-  line-height: 16px !important;
+  padding: 4px 6px !important;
+  font-weight: 600;
+  color: #333;
+  vertical-align: top;
+}
+
+.data-table :deep(.el-table__header-wrapper .cell) {
+  padding: 4px !important;
+  line-height: 1.4 !important;
 }
 
 .data-table :deep(.el-table__body-wrapper td) {
-  padding: 4px 8px !important;
-  height: 24px !important;
-  line-height: 16px !important;
+  padding: 2px 6px !important;
+  height: 22px !important;
+  line-height: 18px !important;
+  border-bottom: 1px solid #eee !important;
+}
+
+.data-table :deep(.el-table__body-wrapper .cell) {
+  padding: 0 4px !important;
+  line-height: 18px !important;
 }
 
 .data-table :deep(.el-table__row) {
-  height: 24px !important;
+  height: 22px !important;
 }
 
 .data-table :deep(.el-table__row:hover > td) {
   background: #e3f2fd !important;
 }
 
-.data-table :deep(.el-table .cell) {
-  padding: 0 4px !important;
-  line-height: 16px !important;
+.data-table :deep(.el-table__row.current-row > td) {
+  background: #bbdefb !important;
 }
 
-.data-table :deep(.el-table__body-wrapper .el-table__row.current-row > td) {
-  background: #bbdefb !important;
+.data-table :deep(.el-table--border .el-table__cell) {
+  border-right: 1px solid #eee !important;
+}
+
+/* ScTable 特有样式 */
+.data-table :deep(.sc-table-container) {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.data-table :deep(.sc-table-header) {
+  display: none;
+}
+
+.data-table :deep(.sc-table-footer) {
+  display: none;
 }
 
 /* 列头样式 */
@@ -1971,14 +2089,32 @@ onMounted(async () => {
   text-transform: uppercase;
 }
 
+.col-type {
+  font-size: 11px;
+  color: #666;
+  font-style: italic;
+}
+
 .col-comment {
   font-size: 10px;
   color: #999;
-  max-width: 150px;
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 12px;
+}
+
+/* 单元格包装 */
+.cell-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cell-comment {
+  font-size: 10px;
+  color: #999;
+  font-style: italic;
 }
 
 /* 单元格内容 */
@@ -2037,6 +2173,94 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 分析面板 */
+.analysis-panel {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+  max-height: 200px;
+  overflow: auto;
+}
+
+.analysis-title {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 13px;
+  color: #334155;
+  margin-bottom: 10px;
+}
+
+.analysis-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.analysis-item {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 8px 12px;
+  min-width: 120px;
+  max-width: 200px;
+}
+
+.analysis-col-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.analysis-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.analysis-bar-item {
+  display: flex;
+  align-items: center;
+}
+
+.analysis-bar {
+  height: 16px;
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  min-width: 30px;
+}
+
+.analysis-bar:hover {
+  opacity: 0.8;
+  transform: scaleX(1.02);
+}
+
+.bar-label {
+  font-size: 10px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.analysis-empty {
+  font-size: 11px;
+  color: #9ca3af;
+  font-style: italic;
 }
 
 /* 分析柱状图 */
