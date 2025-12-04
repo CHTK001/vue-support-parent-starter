@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { socket } from "@repo/core";
+import { socket, MonitorTopics, parseSocketMessage } from "@repo/core";
 import { getConfig } from "@repo/config";
 import { splitToArray } from "@repo/utils";
 import type { ServerWebSocketMessage } from "@/api/server";
@@ -83,22 +83,49 @@ export function useServerWebSocket() {
 
   /**
    * 订阅服务器主题
+   * 订阅所有服务器相关的主题
    */
   const subscribeToServerTopic = () => {
     if (!stompClient.value) return;
 
-    const serverTopic = "gen/server";
+    // 订阅所有服务器相关主题
+    const serverTopics = [
+      MonitorTopics.SERVER.STATUS,
+      MonitorTopics.SERVER.METRICS,
+      MonitorTopics.SERVER.ALERT,
+      MonitorTopics.SERVER.TERMINAL,
+      MonitorTopics.SERVER.SSH_CONNECT,
+      MonitorTopics.SERVER.SSH_DISCONNECT,
+      MonitorTopics.SERVER.CONNECTION_STATUS,
+      MonitorTopics.SERVER.HEALTH,
+    ];
 
-    stompClient.value.on(serverTopic, (message: any) => {
-      try {
-        const data = JSON.parse(message.data);
-        handleServerMessage(data);
-      } catch (error) {
-        console.error("解析 WebSocket 消息失败:", error);
-      }
+    serverTopics.forEach((topic) => {
+      stompClient.value.on(topic, (rawMessage: any) => {
+        try {
+          // 使用统一的解析函数处理新格式数据
+          const parsedData = parseSocketMessage(rawMessage);
+          // 如果解析后的数据包含 data 字段，可能需要再次解析
+          let messageData = parsedData;
+          if (
+            parsedData &&
+            parsedData.data &&
+            typeof parsedData.data === "string"
+          ) {
+            try {
+              messageData = JSON.parse(parsedData.data);
+            } catch {
+              messageData = parsedData;
+            }
+          }
+          handleServerMessage(messageData);
+        } catch (error) {
+          console.error("解析 WebSocket 消息失败:", error);
+        }
+      });
     });
 
-    console.log("已订阅服务器主题:", serverTopic);
+    console.log("已订阅服务器主题:", serverTopics);
   };
 
   /**
@@ -126,7 +153,12 @@ export function useServerWebSocket() {
       // 记录未处理的消息类型
       if (!unhandledMessageTypes.has(message.messageType)) {
         unhandledMessageTypes.add(message.messageType);
-        console.warn("未找到消息类型处理器:", message.messageType, "消息内容:", message);
+        console.warn(
+          "未找到消息类型处理器:",
+          message.messageType,
+          "消息内容:",
+          message
+        );
       } else {
         console.debug("未找到消息类型处理器:", message.messageType);
       }
@@ -169,7 +201,10 @@ export function useServerWebSocket() {
         ...message,
       } as ServerWebSocketMessage;
 
-      stompClient.value.emit("gen/server", JSON.stringify(fullMessage));
+      stompClient.value.emit(
+        MonitorTopics.SERVER.STATUS,
+        JSON.stringify(fullMessage)
+      );
       return true;
     } catch (error) {
       console.error("发送 WebSocket 消息失败:", error);
@@ -214,8 +249,6 @@ export function useServerWebSocket() {
     return await connect();
   };
 
-
-
   /**
    * 获取未处理的消息类型统计
    */
@@ -249,7 +282,9 @@ export function useServerMetrics(serverId?: number) {
   /**
    * 监听服务器指标数据
    */
-  const onServerMetrics = (handler: (metrics: any, message: ServerWebSocketMessage) => void) => {
+  const onServerMetrics = (
+    handler: (metrics: any, message: ServerWebSocketMessage) => void
+  ) => {
     return onMessage(MESSAGE_TYPE.SERVER_METRICS, (message) => {
       // 如果指定了serverId，只处理对应服务器的指标
       if (serverId && message.serverId !== serverId) {
@@ -271,7 +306,14 @@ export function useServerMetrics(serverId?: number) {
  * SSH WebSocket 处理 Composable
  */
 export function useSSHWebSocket(serverId: number) {
-  const { onMessage, sendMessage, MESSAGE_TYPE, connect, disconnect, isConnected } = useServerWebSocket();
+  const {
+    onMessage,
+    sendMessage,
+    MESSAGE_TYPE,
+    connect,
+    disconnect,
+    isConnected,
+  } = useServerWebSocket();
 
   // 存储取消订阅函数，防止重复监听
   const unsubscribeFunctions = new Set<() => void>();
@@ -284,7 +326,7 @@ export function useSSHWebSocket(serverId: number) {
       disconnect();
     }
     connect();
-    
+
     return sendMessage({
       messageType: MESSAGE_TYPE.SSH_CONNECT,
       serverId,
@@ -332,16 +374,19 @@ export function useSSHWebSocket(serverId: number) {
     });
 
     // 监听 SHELL_OUTPUT 消息类型
-    const unsubscribeShellOutput = onMessage(MESSAGE_TYPE.SHELL_OUTPUT, (message) => {
-      if (message.serverId == serverId && message.data) {
-        // shell_output 消息的数据结构: { output: string, type: "output" }
-        if (typeof message.data === 'object' && message.data.output) {
-          handler(message.data.output);
-        } else if (typeof message.data === "string") {
-          handler(message.data);
+    const unsubscribeShellOutput = onMessage(
+      MESSAGE_TYPE.SHELL_OUTPUT,
+      (message) => {
+        if (message.serverId == serverId && message.data) {
+          // shell_output 消息的数据结构: { output: string, type: "output" }
+          if (typeof message.data === "object" && message.data.output) {
+            handler(message.data.output);
+          } else if (typeof message.data === "string") {
+            handler(message.data);
+          }
         }
       }
-    });
+    );
 
     // 保存取消订阅函数
     unsubscribeFunctions.add(unsubscribeSSHData);
@@ -408,11 +453,11 @@ export function useSSHWebSocket(serverId: number) {
    * 清理所有订阅
    */
   const cleanupSubscriptions = () => {
-    unsubscribeFunctions.forEach(unsubscribe => {
+    unsubscribeFunctions.forEach((unsubscribe) => {
       try {
         unsubscribe();
       } catch (error) {
-        console.warn('清理订阅时出错:', error);
+        console.warn("清理订阅时出错:", error);
       }
     });
     unsubscribeFunctions.clear();

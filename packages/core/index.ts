@@ -1,4 +1,5 @@
 export * from "./src/config/socket";
+export * from "./src/config/socketTopics";
 export * from "./src/router";
 export * from "./src/router/utils";
 export * from "./src/store";

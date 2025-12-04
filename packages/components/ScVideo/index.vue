@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch } from "vue";
 export interface Props {
-  width?: string | number // 视频播放器宽度，单位 px
-  height?: string | number // 视频播放器高度，单位 px
-  src?: string // 视频文件地址，支持网络地址 https 和相对地址
-  poster?: string // 视频封面地址，支持网络地址 https 和相对地址
-  second?: number // 在未设置封面时，自动截取视频第 second 秒对应帧作为视频封面，单位 s
-  fit?: 'none' | 'fill' | 'contain' | 'cover' // 视频封面和内容的缩放规则，参考 object-fit
-  autoplay?: boolean // 视频就绪后是否马上播放，优先级高于 preload
-  controls?: boolean // 是否向用户显示控件，比如进度条，全屏等
-  loop?: boolean // 视频播放完成后，是否循环播放
-  muted?: boolean // 是否静音
-  preload?: 'auto' | 'metadata' | 'none' // 是否在页面加载后载入视频，如果设置了 autoplay 属性，则 preload 将被忽略
-  playIcon?: boolean // 播放暂停时是否显示播放器中间的暂停图标
-  iconSize?: number // 暂停图标尺寸，单位 px
+  width?: string | number; // 视频播放器宽度，单位 px
+  height?: string | number; // 视频播放器高度，单位 px
+  src?: string; // 视频文件地址，支持网络地址 https 和相对地址
+  poster?: string; // 视频封面地址，支持网络地址 https 和相对地址
+  second?: number; // 在未设置封面时，自动截取视频第 second 秒对应帧作为视频封面，单位 s
+  fit?: "none" | "fill" | "contain" | "cover"; // 视频封面和内容的缩放规则，参考 object-fit
+  autoplay?: boolean; // 视频就绪后是否马上播放，优先级高于 preload
+  controls?: boolean; // 是否向用户显示控件，比如进度条，全屏等
+  loop?: boolean; // 视频播放完成后，是否循环播放
+  muted?: boolean; // 是否静音
+  preload?: "auto" | "metadata" | "none"; // 是否在页面加载后载入视频，如果设置了 autoplay 属性，则 preload 将被忽略
+  playIcon?: boolean; // 播放暂停时是否显示播放器中间的暂停图标
+  iconSize?: number; // 暂停图标尺寸，单位 px
 }
 const props = withDefaults(defineProps<Props>(), {
   width: 800,
@@ -28,7 +28,7 @@ const props = withDefaults(defineProps<Props>(), {
     contain: 保存原有比例，内容以包含方式缩放;
     cover: 保存原有比例，内容以覆盖方式缩放
   */
-  fit: 'contain',
+  fit: "contain",
   /*
     参考 MDN 自动播放指南：https://developer.mozilla.org/zh-CN/docs/Web/Media/Autoplay_guide
     Autoplay 功能
@@ -52,53 +52,53 @@ const props = withDefaults(defineProps<Props>(), {
     metadata: 当页面加载后仅加载视频的元数据（例如长度），建议使用 metadata，以便视频自动获取第一帧作为封面 poster
     none: 页面加载后不应加载视频
   */
-  preload: 'metadata',
+  preload: "metadata",
   playIcon: true,
   iconSize: 80
-})
-const veoRef = ref() // 视频元素模板引用，参考文档：https://developer.mozilla.org/zh-CN/docs/Web/HTML/Element/video
-const veoPoster = ref() // 自动截取视频帧生成的封面
-const playing = ref<boolean>(false) // 是否正在播放
-const originPlay = ref<boolean>(true) // 是否第一次播放
-const showPlayIcon = ref<boolean>(false) // 是否展示播放器中间的播放按钮图标
-const emits = defineEmits(['play', 'pause'])
+});
+const veoRef = ref(); // 视频元素模板引用，参考文档：https://developer.mozilla.org/zh-CN/docs/Web/HTML/Element/video
+const veoPoster = ref(); // 自动截取视频帧生成的封面
+const playing = ref<boolean>(false); // 是否正在播放
+const originPlay = ref<boolean>(true); // 是否第一次播放
+const showPlayIcon = ref<boolean>(false); // 是否展示播放器中间的播放按钮图标
+const emits = defineEmits(["play", "pause"]);
 const veoWidth = computed(() => {
-  if (typeof props.width === 'number') {
-    return `${props.width}px`
+  if (typeof props.width === "number") {
+    return `${props.width}px`;
   }
-  return props.width
-})
+  return props.width;
+});
 const veoHeight = computed(() => {
-  if (typeof props.height === 'number') {
-    return `${props.height}px`
+  if (typeof props.height === "number") {
+    return `${props.height}px`;
   }
-  return props.height
-})
+  return props.height;
+});
 watch(
   () => props.second,
   () => {
-    getPoster()
+    getPoster();
   }
-)
+);
 watch(
   () => props.autoplay,
-  (to) => {
+  to => {
     if (to) {
-      showPlayIcon.value = false
-      originPlay.value = false
-      playing.value = true
+      showPlayIcon.value = false;
+      originPlay.value = false;
+      playing.value = true;
     } else {
-      showPlayIcon.value = true
-      originPlay.value = true
-      playing.value = false
-      veoRef.value?.pause()
+      showPlayIcon.value = true;
+      originPlay.value = true;
+      playing.value = false;
+      veoRef.value?.pause();
     }
   },
   {
     immediate: true,
-    flush: 'post'
+    flush: "post"
   }
-)
+);
 /*
   自定义设置播放速度，经测试：
   在vue2中需设置：this.$refs.veoRef.playbackRate = 2
@@ -115,68 +115,64 @@ function getPoster() {
   // 在未设置封面时，自动截取视频0.5s对应帧作为视频封面
   // 由于不少视频第一帧为黑屏，故设置视频开始播放时间为0.5s，即取该时刻帧作为封面图
   if (veoRef.value) {
-    veoRef.value.currentTime = props.second
+    veoRef.value.currentTime = props.second;
     // 创建canvas元素
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
     // canvas画图
-    canvas.width = veoRef.value.videoWidth
-    canvas.height = veoRef.value.videoHeight
-    ctx?.drawImage(veoRef.value, 0, 0, canvas.width, canvas.height)
+    canvas.width = veoRef.value.videoWidth;
+    canvas.height = veoRef.value.videoHeight;
+    ctx?.drawImage(veoRef.value, 0, 0, canvas.width, canvas.height);
     // 把canvas转成base64编码格式
-    veoPoster.value = canvas.toDataURL('image/png')
+    veoPoster.value = canvas.toDataURL("image/png");
   }
 }
 function onClickPlay() {
   if (originPlay.value) {
-    originPlay.value = false
-    veoRef.value.currentTime = 0
+    originPlay.value = false;
+    veoRef.value.currentTime = 0;
   }
   if (playing.value) {
-    veoRef.value.pause()
+    veoRef.value.pause();
   } else {
-    veoRef.value.play()
+    veoRef.value.play();
   }
 }
 function onPause() {
-  playing.value = false
+  playing.value = false;
   if (props.playIcon) {
-    showPlayIcon.value = true
+    showPlayIcon.value = true;
   }
-  emits('pause')
+  emits("pause");
 }
 function onPlay() {
-  playing.value = true
+  playing.value = true;
   if (props.playIcon) {
-    showPlayIcon.value = false
+    showPlayIcon.value = false;
   }
-  emits('play')
+  emits("play");
 }
 function play() {
   if (originPlay.value) {
-    originPlay.value = false
-    veoRef.value.currentTime = 0
+    originPlay.value = false;
+    veoRef.value.currentTime = 0;
   }
   if (!playing.value) {
-    veoRef.value.play()
+    veoRef.value.play();
   }
 }
 function pause() {
   if (playing.value) {
-    veoRef.value.pause()
+    veoRef.value.pause();
   }
 }
 defineExpose({
   play,
   pause
-})
+});
 </script>
 <template>
-  <div
-    class="m-video"
-    :class="{ 'video-hover': showPlayIcon }"
-    :style="`--video-width: ${veoWidth}; --video-height: ${veoHeight}; --video-icon-scale: ${iconSize / 80};`"
-  >
+  <div class="m-video" :class="{ 'video-hover': showPlayIcon }" :style="`--video-width: ${veoWidth}; --video-height: ${veoHeight}; --video-icon-scale: ${iconSize / 80};`">
     <video
       ref="veoRef"
       class="video-element"
@@ -214,47 +210,53 @@ defineExpose({
   position: relative;
   background: #000;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   .video-element {
-    display: inline-block;
+    display: block;
     width: 100%;
     height: 100%;
-    vertical-align: bottom;
   }
+
   .icon-play {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    margin: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(var(--video-icon-scale));
     width: 80px;
     height: 80px;
-    transform: scale(var(--video-icon-scale));
     border-radius: 50%;
     background-color: rgba(0, 0, 0, 0.6);
     opacity: 0;
     pointer-events: none;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+
     .play-svg {
-      display: inline-block;
+      display: block;
       color: #fff;
       fill: currentColor;
       width: 29px;
       height: 34px;
-      margin-left: 3px;
+      margin-left: 4px;
     }
   }
+
   .icon-show {
     opacity: 1;
   }
 }
+
 .video-hover {
   &:hover {
     .icon-play {
-      background-color: rgba(0, 0, 0, 0.7);
+      background-color: rgba(0, 0, 0, 0.75);
+      transform: translate(-50%, -50%) scale(calc(var(--video-icon-scale) * 1.05));
     }
   }
 }

@@ -1,5 +1,5 @@
 import { getConfig } from "@repo/config";
-import request from "./config";
+import request from "../config";
 
 export interface SystemDataSetting {
   systemDataSettingId?: number;

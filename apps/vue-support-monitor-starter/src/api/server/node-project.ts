@@ -13,7 +13,7 @@
  */
 import { t } from "@repo/config";
 import { http } from "@repo/utils";
-import { loadRouterBase } from "./config";
+import { loadRouterBase } from "../config";
 
 /**
  * 项目列表
@@ -69,11 +69,15 @@ export function getProjectData(params, loading) {
  * @param {String} nodeId 节点 ID
  */
 export function getProjectAccessList(nodeId) {
-  return http.post("/node/manage/project-access-list", { nodeId }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
-  });
+  return http.post(
+    "/node/manage/project-access-list",
+    { nodeId },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
+    }
+  );
 }
 
 /**
@@ -502,17 +506,29 @@ export function compressFileFolder(params) {
  * 构建分组
  */
 export function getProjectGroupAll() {
-  return http.get("/node/list-project-group-all", {}, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
-  });
+  return http.get(
+    "/node/list-project-group-all",
+    {},
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
+    }
+  );
 }
 
 /**
  * 所有的运行模式
  */
-export const runModeList = ["Dsl", "ClassPath", "Jar", "JarWar", "JavaExtDirsCp", "File", "Link"];
+export const runModeList = [
+  "Dsl",
+  "ClassPath",
+  "Jar",
+  "JarWar",
+  "JavaExtDirsCp",
+  "File",
+  "Link",
+];
 
 export const runModeArray = [
   { name: "Dsl", desc: t("i18n_386edb98a5") },
@@ -537,7 +553,14 @@ export const javaModes = ["ClassPath", "Jar", "JarWar", "JavaExtDirsCp"];
 /**
  * 有状态管理的运行模式
  */
-export const noFileModes = ["ClassPath", "Jar", "JarWar", "JavaExtDirsCp", "Dsl", "Link"];
+export const noFileModes = [
+  "ClassPath",
+  "Jar",
+  "JarWar",
+  "JavaExtDirsCp",
+  "Dsl",
+  "Link",
+];
 
 /*
  * 下载导入模板

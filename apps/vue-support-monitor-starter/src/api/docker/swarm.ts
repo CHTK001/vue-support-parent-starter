@@ -10,7 +10,7 @@
 
 import { t } from "@repo/config";
 import { http } from "@repo/utils";
-import { loadRouterBase } from "./config";
+import { loadRouterBase } from "../config";
 /**
  * 容器列表
  * @param {JSON} params

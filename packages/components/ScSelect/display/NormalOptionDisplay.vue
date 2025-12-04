@@ -72,7 +72,7 @@ defineEmits<{
 <style lang="scss" scoped>
 .option-item {
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &.disabled {
     opacity: 0.5;
@@ -90,16 +90,18 @@ defineEmits<{
   }
 
   &.preview-item {
-    border-radius: 8px;
+    border-radius: 10px;
     overflow: hidden;
+    border: 2px solid transparent;
 
     &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
     }
 
     &.selected {
-      box-shadow: 0 0 0 2px var(--el-color-primary);
+      border-color: var(--el-color-primary);
+      box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.15);
     }
   }
 }
@@ -107,12 +109,14 @@ defineEmits<{
 .option-text-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin: 2px 4px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin: 3px 4px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  border: 1px solid transparent;
+  background: var(--el-bg-color);
 
   &::before {
     content: "";
@@ -121,68 +125,81 @@ defineEmits<{
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.08), transparent);
     transition: left 0.5s;
   }
 
   &:hover {
-    background-color: var(--el-fill-color-light);
-    transform: translateX(4px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-lighter) 100%);
+    border-color: var(--el-border-color-lighter);
+    transform: translateX(2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
     &::before {
       left: 100%;
     }
+
+    .option-checkbox {
+      border-color: var(--el-color-primary-light-5);
+    }
   }
 
   .option-item.selected & {
-    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
-    color: var(--el-color-primary);
+    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.08) 0%, rgba(var(--el-color-primary-rgb), 0.04) 100%);
+    border-color: var(--el-color-primary-light-5);
     border-left: 3px solid var(--el-color-primary);
-    font-weight: 500;
+
+    .option-label {
+      color: var(--el-color-primary);
+      font-weight: 600;
+    }
   }
 
   .option-checkbox {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     margin-left: auto;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid transparent;
+    border: 2px solid var(--el-border-color-light);
     border-radius: 50%;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--el-bg-color);
 
     .checkbox-checked {
-      width: 22px;
-      height: 22px;
-      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #fff;
-      font-size: 12px;
+      font-size: 11px;
       border: none;
-      box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.4);
-      animation: checkboxPop 0.2s ease;
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.35);
+      animation: checkboxPop 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
   }
 
   .option-info {
     flex: 1;
+    min-width: 0;
 
     .option-label {
       font-size: 14px;
       color: var(--el-text-color-primary);
       line-height: 1.4;
+      font-weight: 500;
+      transition: color 0.2s ease;
     }
 
     .option-description {
       font-size: 12px;
-      color: var(--el-text-color-secondary);
-      margin-top: 2px;
+      color: var(--el-text-color-placeholder);
+      margin-top: 3px;
       line-height: 1.3;
     }
   }
@@ -193,54 +210,90 @@ defineEmits<{
   width: 100%;
   display: flex;
   flex-direction: row;
-  border-radius: 8px;
+  align-items: center;
+  border-radius: 10px;
   overflow: hidden;
-  background: var(--el-fill-color-lighter);
+  background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-light) 100%);
+  padding: 10px 12px;
+  gap: 10px;
+  transition: all 0.25s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color) 100%);
+  }
 
   .preview-image {
-    width: 100%;
-    height: 100%;
+    width: 36px;
+    height: 36px;
     object-fit: cover;
     display: block;
+    border-radius: 8px;
+    flex-shrink: 0;
   }
 
   .option-overlay {
     display: flex;
     justify-content: space-between;
-    flex-direction: row;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
     gap: 10px;
 
     .option-label {
-      font-size: 12px;
-      font-weight: 500;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .selected-indicator {
       width: 20px;
       height: 20px;
-      background-color: var(--el-color-primary);
+      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--el-text-color-primary);
-      font-size: 12px;
+      color: #fff;
+      font-size: 11px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.3);
     }
   }
 }
 
 @keyframes checkboxPop {
   0% {
-    transform: scale(0.8);
+    transform: scale(0.6);
     opacity: 0;
   }
-  50% {
-    transform: scale(1.1);
+  60% {
+    transform: scale(1.15);
   }
   100% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+// 暗色模式适配
+:global(html.dark) {
+  .option-text-item {
+    background: var(--el-fill-color-darker);
+
+    &:hover {
+      background: linear-gradient(135deg, var(--el-fill-color-dark) 0%, var(--el-fill-color-darker) 100%);
+    }
+  }
+
+  .option-preview-card {
+    background: linear-gradient(135deg, var(--el-fill-color-dark) 0%, var(--el-fill-color-darker) 100%);
+
+    &:hover {
+      background: linear-gradient(135deg, var(--el-fill-color) 0%, var(--el-fill-color-dark) 100%);
+    }
   }
 }
 </style>

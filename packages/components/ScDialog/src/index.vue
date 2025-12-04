@@ -977,8 +977,10 @@ function handleMinimizedIconClick(): void {
 
 /**
  * 从最小化状态恢复
+ * @param restorePosition 可选的恢复位置（data-x, data-y 偏移量）
+ * @param absolutePosition 可选的绝对位置（图标的屏幕位置），用于计算偏移量
  */
-function restoreFromMinimized(restorePosition?: { x: number; y: number }): void {
+function restoreFromMinimized(restorePosition?: { x: number; y: number }, absolutePosition?: { left: number; top: number }): void {
   destroyMinimizedIconInteract();
   isMinimized.value = false;
   dockPosition.value = null;
@@ -988,9 +990,27 @@ function restoreFromMinimized(restorePosition?: { x: number; y: number }): void 
   nextTick(() => {
     if (dialogRef.value && lastDialogState.value) {
       const target = dialogRef.value;
-      // 如果有指定恢复位置，使用该位置；否则使用原始位置
-      const x = restorePosition?.x ?? lastDialogState.value.x;
-      const y = restorePosition?.y ?? lastDialogState.value.y;
+      let x: number;
+      let y: number;
+
+      // 如果提供了绝对位置，根据对话框的居中位置计算偏移量
+      if (absolutePosition) {
+        // 获取对话框当前的尺寸
+        const dialogWidth = target.offsetWidth;
+        // 计算对话框居中时的位置
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const centerX = (viewportWidth - dialogWidth) / 2;
+        const centerY = viewportHeight * 0.15;
+        // 计算偏移量，使对话框左上角对齐到图标位置
+        x = absolutePosition.left - centerX;
+        y = absolutePosition.top - centerY;
+      } else {
+        // 如果有指定恢复位置，使用该位置；否则使用原始位置
+        x = restorePosition?.x ?? lastDialogState.value.x;
+        y = restorePosition?.y ?? lastDialogState.value.y;
+      }
+
       target.style.transform = `translate(${x}px, ${y}px)`;
       target.setAttribute("data-x", String(x));
       target.setAttribute("data-y", String(y));
@@ -1093,9 +1113,9 @@ function initMinimizedIconInteract(): void {
           target.removeAttribute("data-x");
           target.removeAttribute("data-y");
         } else {
-          // 拖到非边缘区域，恢复对话框到原始位置（最小化前的位置）
-          // 使用 lastDialogState 中保存的原始位置，而不是当前拖拽位置
-          restoreFromMinimized();
+          // 拖到非边缘区域，恢复对话框到图标当前拖拽到的位置
+          // 传入图标的绝对位置，让对话框恢复到该位置
+          restoreFromMinimized(undefined, { left: rect.left, top: rect.top });
         }
 
         dragStartRect = null;

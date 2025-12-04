@@ -2,6 +2,70 @@ import { getToken } from "@repo/core";
 import { message, uu4 } from "@repo/utils";
 import { io } from "socket.io-client";
 import { inject, provide, ref, type InjectionKey } from "vue";
+import { SystemTopics } from "./socketTopics";
+
+/**
+ * Socket消息数据结构
+ * 后端发送的数据格式
+ */
+export interface SocketMessageWrapper {
+  data: string;
+  encrypted: boolean;
+  timestamp: string;
+  uuid?: string;
+}
+
+/**
+ * 解析Socket消息数据
+ * 处理后端发送的加密/非加密数据格式
+ *
+ * @param rawData 原始数据
+ * @returns 解析后的数据对象
+ */
+export function parseSocketMessage(rawData: any): any {
+  try {
+    // 如果是字符串，先解析为对象
+    const wrapper: SocketMessageWrapper =
+      typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+
+    // 检查是否为新格式（包含 encrypted 字段）
+    if (wrapper && typeof wrapper.encrypted === "boolean") {
+      if (wrapper.encrypted) {
+        // 加密数据，暂时返回原始数据（需要解密逻辑）
+        console.warn("收到加密数据，暂不支持前端解密");
+        return wrapper;
+      } else {
+        // 非加密数据，解析 data 字段
+        if (typeof wrapper.data === "string") {
+          try {
+            return JSON.parse(wrapper.data);
+          } catch {
+            return wrapper.data;
+          }
+        }
+        return wrapper.data;
+      }
+    }
+
+    // 兼容旧格式，直接返回
+    return wrapper;
+  } catch (error) {
+    console.error("解析Socket消息失败:", error);
+    return rawData;
+  }
+}
+
+/**
+ * Socket监听选项
+ */
+export interface SocketListenOptions {
+  /**
+   * 数据ID过滤
+   * 如果指定，只接收 dataId 匹配的消息
+   * 支持字符串或数字类型
+   */
+  dataId?: string | number;
+}
 
 /**
  * 全局Socket服务接口
@@ -14,14 +78,25 @@ export interface GlobalSocketService {
   isConnected: boolean;
   connect: () => void;
   disconnect: () => void;
-  on: (event: string, callback: Function) => void;
+  /**
+   * 监听事件
+   * @param event 事件名称
+   * @param callback 回调函数
+   * @param options 可选配置，支持 dataId 过滤
+   */
+  on: (
+    event: string,
+    callback: Function,
+    options?: SocketListenOptions
+  ) => void;
   off: (event: string) => void;
   emit: (event: string, data?: any) => void;
   close: () => void;
 }
 
 // 全局Socket注入键
-export const GlobalSocketKey: InjectionKey<GlobalSocketService> = Symbol("GlobalSocket");
+export const GlobalSocketKey: InjectionKey<GlobalSocketService> =
+  Symbol("GlobalSocket");
 
 // Socket注入键Map，用于存储多个Socket实例
 const socketKeyMap = new Map<string, InjectionKey<GlobalSocketService>>();
@@ -83,10 +158,34 @@ export function createGlobalSocketService(
 
   /**
    * 监听事件
+   * 自动解析新格式的socket消息
+   * 支持 dataId 过滤，如果指定则只接收匹配的消息
+   *
+   * @param event 事件名称
+   * @param callback 回调函数
+   * @param options 可选配置，支持 dataId 过滤
    */
-  const on = (event: string, callback: Function) => {
+  const on = (
+    event: string,
+    callback: Function,
+    options?: SocketListenOptions
+  ) => {
     if (socketInstance) {
-      socketInstance.on(event, callback);
+      socketInstance.on(event, (rawData: any) => {
+        // 解析新格式的消息数据
+        const parsedData = parseSocketMessage(rawData);
+
+        // 如果指定了 dataId，进行过滤
+        if (options?.dataId !== undefined) {
+          const messageDataId = parsedData?.dataId;
+          // 支持字符串和数字比较
+          if (String(messageDataId) !== String(options.dataId)) {
+            return; // 不匹配则跳过
+          }
+        }
+
+        callback(parsedData);
+      });
     }
   };
 
@@ -138,8 +237,18 @@ export function createGlobalSocketService(
  * @param query 查询参数
  * @param options Socket选项
  */
-export function provideGlobalSocket(urls: string[], context?: string, query?: any, options?: any) {
-  const socketService = createGlobalSocketService(urls, context, query, options);
+export function provideGlobalSocket(
+  urls: string[],
+  context?: string,
+  query?: any,
+  options?: any
+) {
+  const socketService = createGlobalSocketService(
+    urls,
+    context,
+    query,
+    options
+  );
   provide(GlobalSocketKey, socketService);
   return socketService;
 }
@@ -150,7 +259,9 @@ export function provideGlobalSocket(urls: string[], context?: string, query?: an
 export function useGlobalSocket(): GlobalSocketService {
   const socketService = inject(GlobalSocketKey);
   if (!socketService) {
-    console.log("Global Socket服务未提供，请确保在父组件中调用了provideGlobalSocket()");
+    console.log(
+      "Global Socket服务未提供，请确保在父组件中调用了provideGlobalSocket()"
+    );
     return null;
   }
   return socketService;
@@ -161,7 +272,9 @@ export function useGlobalSocket(): GlobalSocketService {
  * @param keyName Socket键名称
  * @returns InjectionKey<GlobalSocketService>
  */
-export function createSocketKey(keyName: string): InjectionKey<GlobalSocketService> {
+export function createSocketKey(
+  keyName: string
+): InjectionKey<GlobalSocketService> {
   if (!socketKeyMap.has(keyName)) {
     socketKeyMap.set(keyName, Symbol(`Socket_${keyName}`));
   }
@@ -184,7 +297,12 @@ export function provideSocket(
   options?: any
 ): GlobalSocketService {
   const socketKey = createSocketKey(keyName);
-  const socketService = createGlobalSocketService(urls, context, query, options);
+  const socketService = createGlobalSocketService(
+    urls,
+    context,
+    query,
+    options
+  );
   provide(socketKey, socketService);
   return socketService;
 }
@@ -197,15 +315,17 @@ export function useSocket(keyName?: string): GlobalSocketService | null {
   if (!keyName) {
     return useGlobalSocket();
   }
-  
+
   const socketKey = createSocketKey(keyName);
   const socketService = inject(socketKey);
-  
+
   if (!socketService) {
-    console.warn(`Socket服务"${keyName}"未提供，请确保在父组件中调用了provideSocket("${keyName}", ...)`);
+    console.warn(
+      `Socket服务"${keyName}"未提供，请确保在父组件中调用了provideSocket("${keyName}", ...)`
+    );
     return null;
   }
-  
+
   return socketService;
 }
 
@@ -253,7 +373,10 @@ export const socket = (
             return;
           }
           const line = data?.data || "";
-          if ((line.startsWith("{") || line.startsWith("[")) && (line.endsWith("]") || line.endsWith("}"))) {
+          if (
+            (line.startsWith("{") || line.startsWith("[")) &&
+            (line.endsWith("]") || line.endsWith("}"))
+          ) {
             callback(JSON.parse(line));
             return;
           }
@@ -304,7 +427,8 @@ export const socket = (
     Notification.requestPermission();
   }
 
-  socketWrapper.on("online", (data) => {
+  // 使用统一主题命名规范: system:user:online
+  socketWrapper.on(SystemTopics.USER.ONLINE, (data) => {
     // 浏览器支持且用户没有禁止浏览器通知的情况下执行
     if (window.Notification && Notification.permission !== "denied") {
       const data1 = JSON.parse(data?.data);
@@ -318,7 +442,8 @@ export const socket = (
       message(data1?.message, { type: "success" });
     }
   });
-  socketWrapper.on("offline", (data) => {
+  // 使用统一主题命名规范: system:user:offline
+  socketWrapper.on(SystemTopics.USER.OFFLINE, (data) => {
     // 浏览器支持且用户没有禁止浏览器通知的情况下执行
     if (window.Notification && Notification.permission !== "denied") {
       const data1 = JSON.parse(data?.data);

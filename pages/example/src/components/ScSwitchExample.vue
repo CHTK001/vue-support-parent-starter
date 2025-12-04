@@ -76,6 +76,63 @@
             />
           </div>
         </div>
+
+        <!-- 视觉卡片布局预览 -->
+        <h4 class="mt-4">视觉卡片布局</h4>
+        <div class="visual-card-preview">
+          <ScSwitch
+            v-model="switchValueVisualCard1"
+            layout="visual-card"
+            size="small"
+            label="灰色模式"
+            description="降低色彩饱和度"
+            active-icon="ri:contrast-2-line"
+            ribbon-color="var(--el-color-primary)"
+          />
+          <ScSwitch
+            v-model="switchValueVisualCard2"
+            layout="visual-card"
+            size="small"
+            label="色弱模式"
+            description="优化色彩对比度"
+            active-icon="ri:eye-line"
+            ribbon-color="var(--el-color-success)"
+          />
+          <ScSwitch
+            v-model="switchValueVisualCard3"
+            layout="visual-card"
+            size="small"
+            label="隐藏标签页"
+            description="隐藏后不显示标签页"
+            active-icon="ri:eye-off-line"
+            inactive-icon="ri:bookmark-line"
+            ribbon-text="隐藏"
+            ribbon-color="var(--el-color-warning)"
+          />
+          <ScSwitch
+            v-model="switchValueVisualCard4"
+            layout="visual-card"
+            size="small"
+            label="调试模式"
+            description="控制台日志显示在右上角"
+            active-icon="ri:terminal-box-line"
+            ribbon-color="var(--el-color-danger)"
+          />
+        </div>
+
+        <!-- 宽模式视觉卡片 -->
+        <h4 class="mt-4">宽模式视觉卡片</h4>
+        <div class="wide-card-preview">
+          <ScSwitch
+            v-model="switchValueVisualCardWide"
+            layout="visual-card"
+            :wide="true"
+            label="页面过渡动画"
+            description="页面切换时显示过渡动画效果"
+            active-icon="ri:loader-4-line"
+            ribbon-color="var(--el-color-primary)"
+          />
+        </div>
       </div>
 
       <!-- 右侧配置面板 -->
@@ -214,6 +271,11 @@ const switchValueDefault = ref(true);
 const switchValueCard = ref(true);
 const switchValueSlider = ref(true);
 const switchValueModern = ref(true);
+const switchValueVisualCard1 = ref(false);
+const switchValueVisualCard2 = ref(true);
+const switchValueVisualCard3 = ref(false);
+const switchValueVisualCard4 = ref(true);
+const switchValueVisualCardWide = ref(true);
 
 // 处理状态变化
 const handleChange = (value) => {
@@ -342,6 +404,25 @@ h4 {
   background-color: var(--el-bg-color);
   box-shadow: var(--el-box-shadow-lighter);
   min-width: 120px;
+}
+
+.visual-card-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background-color: var(--el-fill-color-lighter);
+}
+
+.wide-card-preview {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background-color: var(--el-fill-color-lighter);
 }
 
 .layout-title {

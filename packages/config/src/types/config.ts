@@ -17,6 +17,7 @@ export interface PlatformConfigs {
   StorageEncode?: boolean;
   ShowBarSetting?: boolean;
   ShowBarNotice?: boolean;
+  ShowBarMessage?: boolean;
   ShowLanguage?: boolean;
   ShowBarSearch?: boolean;
   StorageKey?: string;
