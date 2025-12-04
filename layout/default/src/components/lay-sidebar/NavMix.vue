@@ -74,7 +74,7 @@ watch(
   () => [route.path, usePermissionStoreHook().wholeMenus],
   () => {
     getDefaultActive(route.path);
-  },
+  }
 );
 const deferDropdown = useDefer(4);
 </script>
@@ -89,7 +89,7 @@ const deferDropdown = useDefer(4);
       ref="menuRef"
       router
       mode="horizontal"
-      popper-class="pure-scrollbar"
+      popper-class="pure-scrollbar horizontal-popper"
       class="horizontal-header-menu"
       :default-active="defaultActive"
     >
