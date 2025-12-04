@@ -1346,3 +1346,29 @@ body[layout="hover"] {
     }
   }
 }
+
+/* 移动导航布局 */
+body[layout="mobile"] {
+  .sidebar-container {
+    display: none !important;
+  }
+
+  .main-container {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .fixed-header {
+    width: 100% !important;
+    left: 0 !important;
+  }
+
+  /* 隐藏不必要的元素 */
+  .hamburger-container {
+    display: none !important;
+  }
+
+  .horizontal-header {
+    display: none !important;
+  }
+}

@@ -41,7 +41,7 @@ import MixIcon from "@repo/assets/svg/mix.svg?component";
 //@ts-ignore
 import HoverIcon from "@repo/assets/svg/hover.svg?component";
 //@ts-ignore
-import CardIcon from "@repo/assets/svg/card.svg?component";
+import MobileIcon from "@repo/assets/svg/mobile.svg?component";
 //@ts-ignore
 import DoubleIcon from "@repo/assets/svg/double.svg?component";
 
@@ -55,6 +55,7 @@ const mixRef = ref();
 const verticalRef = ref();
 const horizontalRef = ref();
 const hoverRef = ref();
+const mobileRef = ref();
 const doubleRef = ref();
 const debugConsoleRef = ref<InstanceType<typeof ScDebugConsole> | null>(null);
 
@@ -456,14 +457,9 @@ const markOptions = computed<Array<OptionsType>>(() => {
       value: "chrome",
     },
     {
-      label: "极简模式",
-      tip: "纯文字标签，无边框和背景，极简风格",
-      value: "minimal",
-    },
-    {
-      label: "圆角模式",
-      tip: "圆角卡片风格，现代化设计",
-      value: "rounded",
+      label: "现代风格",
+      tip: "渐变背景、阴影效果，现代化视觉体验",
+      value: "modern",
     },
   ];
 });
@@ -1053,25 +1049,24 @@ onUnmounted(() => {
               </div>
 
               <div
-                v-if="device !== 'mobile'"
-                ref="cardRef"
+                ref="mobileRef"
                 class="layout-mode-item"
-                :class="{ 'is-active': layoutTheme.layout === 'card' }"
+                :class="{ 'is-active': layoutTheme.layout === 'mobile' }"
                 v-tippy="{
-                  content: '以卡片形式展示所有功能模块',
+                  content: '适用于手机和平板的触控友好导航',
                   zIndex: 41000,
                 }"
-                @click="setLayoutModel('card')"
+                @click="setLayoutModel('mobile')"
               >
                 <div class="layout-mode-preview">
-                  <CardIcon />
+                  <MobileIcon />
                 </div>
                 <div class="layout-mode-info">
-                  <span class="layout-mode-name">卡片导航</span>
-                  <span class="layout-mode-desc">模块化</span>
+                  <span class="layout-mode-name">移动导航</span>
+                  <span class="layout-mode-desc">触控优化</span>
                 </div>
                 <div
-                  v-if="layoutTheme.layout === 'card'"
+                  v-if="layoutTheme.layout === 'mobile'"
                   class="layout-mode-badge"
                 >
                   <IconifyIconOnline icon="ri:check-line" />
@@ -1106,31 +1101,33 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
-        <!-- 卡片导航设置 -->
-        <div v-if="layoutTheme.layout === 'card'" class="setting-section">
+        <!-- 移动导航设置 -->
+        <div v-if="layoutTheme.layout === 'mobile'" class="setting-section">
           <div class="section-header">
             <IconifyIconOffline
-              :icon="'ri:layout-column-line'"
+              :icon="'ri:smartphone-line'"
               class="section-icon"
             />
-            <h3 class="section-title">卡片导航</h3>
-            <div class="section-description">配置卡片导航行为</div>
+            <h3 class="section-title">移动导航配置</h3>
+            <div class="section-description">为触控设备优化的导航体验</div>
           </div>
           <div class="setting-content">
-            <div class="switch-item">
-              <Segmented
-                resize
-                class="select-none modern-segmented"
-                :modelValue="
-                  cardColorMode === 'all'
-                    ? 0
-                    : cardColorMode === 'third'
-                      ? 1
-                      : 2
-                "
-                :options="cardColorOptions"
-                @change="onCardColorModeChange"
-              />
+            <div class="mobile-nav-tips">
+              <div class="tip-item">
+                <IconifyIconOnline icon="ri:gesture-line" class="tip-icon" />
+                <span>支持手势滑动操作</span>
+              </div>
+              <div class="tip-item">
+                <IconifyIconOnline icon="ri:thumb-up-line" class="tip-icon" />
+                <span>大尺寸触控区域</span>
+              </div>
+              <div class="tip-item">
+                <IconifyIconOnline
+                  icon="ri:layout-bottom-line"
+                  class="tip-icon"
+                />
+                <span>底部导航栏设计</span>
+              </div>
             </div>
           </div>
         </div>
@@ -4273,6 +4270,46 @@ onUnmounted(() => {
   font-size: 11px;
   color: var(--el-text-color-secondary);
   transition: all 0.3s ease;
+}
+
+/* 移动导航提示样式 */
+.mobile-nav-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .tip-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.08) 0%,
+      rgba(var(--el-color-primary-rgb), 0.03) 100%
+    );
+    border-radius: 12px;
+    border: 1px solid rgba(var(--el-color-primary-rgb), 0.1);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateX(4px);
+      border-color: rgba(var(--el-color-primary-rgb), 0.2);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.1);
+    }
+
+    .tip-icon {
+      font-size: 20px;
+      color: var(--el-color-primary);
+      flex-shrink: 0;
+    }
+
+    span {
+      font-size: 14px;
+      color: var(--el-text-color-primary);
+      font-weight: 500;
+    }
+  }
 }
 
 .layout-mode-badge {

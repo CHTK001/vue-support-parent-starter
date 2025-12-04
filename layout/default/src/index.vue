@@ -42,6 +42,7 @@ import NavDoubleLayout from "./components/lay-sidebar/NavDouble.vue";
 import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
 import NavHoverLayout from "./components/lay-sidebar/NavHover.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
+import NavMobileLayout from "./components/lay-sidebar/NavMobile.vue";
 import LayTag from "./components/lay-tag/index.vue";
 window.onload = () => {
   registerRequestIdleCallback(() => {
@@ -60,6 +61,7 @@ const NavVertical = markRaw(NavVerticalLayout);
 const NavHorizontal = markRaw(NavHorizontalLayout);
 const NavHover = markRaw(NavHoverLayout);
 const NavDouble = markRaw(NavDoubleLayout);
+const NavMobile = markRaw(NavMobileLayout);
 const { t } = useI18n();
 const appWrapperRef = ref();
 const { isDark } = useDark();
@@ -249,14 +251,15 @@ const LayHeader = defineComponent({
           (layout.value === "vertical" ||
             layout.value === "mix" ||
             layout.value === "hover" ||
-            layout.value === "card" ||
-            layout.value === "double")
+            layout.value === "double" ||
+            layout.value === "mobile")
             ? h(LayNavbar)
             : null,
           !pureSetting.hiddenSideBar && layout.value === "horizontal"
             ? h(NavHorizontal)
             : null,
-          h(markRaw(LayTag)),
+          // 移动导航模式下不显示标签页
+          layout.value !== "mobile" ? h(markRaw(LayTag)) : null,
         ],
       }
     );
@@ -275,18 +278,18 @@ const LayHeader = defineComponent({
 
   <!-- 页面内容 -->
   <div v-else ref="appWrapperRef" :class="['app-wrapper', set.classes]">
-    <!-- 卡片导航模式：直接渲染CardNavigation组件 -->
-    <template v-if="layout === 'card'">
-      <Suspense>
-        <template #default>
-          <CardNavigation />
-        </template>
-        <template #fallback>
-          <div class="loading-container">
-            <div class="loading-spinner"></div>
-          </div>
-        </template>
-      </Suspense>
+    <!-- 移动导航模式：底部导航栏设计 -->
+    <template v-if="layout === 'mobile'">
+      <NavMobile>
+        <div class="mobile-main-container">
+          <LayHeader />
+          <Suspense>
+            <template #default>
+              <LayContent :fixed-header="true" />
+            </template>
+          </Suspense>
+        </div>
+      </NavMobile>
     </template>
 
     <!-- 双栏导航模式：特殊布局 -->
@@ -510,6 +513,22 @@ const LayHeader = defineComponent({
 
   100% {
     transform: rotate(360deg);
+  }
+}
+
+/* 移动导航容器样式 */
+.mobile-main-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+
+  :deep(.fixed-header) {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    width: 100% !important;
+    margin-left: 0 !important;
   }
 }
 </style>
