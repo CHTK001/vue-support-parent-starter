@@ -77,6 +77,17 @@ export const MonitorTopics = {
     INSTALL_PROGRESS: "monitor:software:install_progress",
     SYNC_PROGRESS: "monitor:software:sync_progress",
   },
+  // 服务相关
+  SERVICE: {
+    START: "monitor:service:start",
+    STOP: "monitor:service:stop",
+    RESTART: "monitor:service:restart",
+    STATUS: "monitor:service:status",
+    LOG: "monitor:service:log",
+    PROGRESS: "monitor:service:progress",
+    COMPLETE: "monitor:service:complete",
+    ERROR: "monitor:service:error",
+  },
   // 操作进度
   OPERATION: {
     PROGRESS: "monitor:operation:progress",
