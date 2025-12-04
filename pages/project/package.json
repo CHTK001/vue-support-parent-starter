@@ -25,6 +25,46 @@
       "types": "./src/index.ts",
       "development": "./src/index.ts",
       "default": "./dist/index.mjs"
+    },
+    "./ProjectIndex": {
+      "types": "./src/views/project/index.vue",
+      "development": "./src/views/project/index.vue",
+      "default": "./src/views/project/index.vue"
+    },
+    "./SecretIndex": {
+      "types": "./src/views/secret/index.vue",
+      "development": "./src/views/secret/index.vue",
+      "default": "./src/views/secret/index.vue"
+    },
+    "./LlmIndex": {
+      "types": "./src/views/ai/llm-new/index.vue",
+      "development": "./src/views/ai/llm-new/index.vue",
+      "default": "./src/views/ai/llm-new/index.vue"
+    },
+    "./VincentIndex": {
+      "types": "./src/views/ai/generation/index.vue",
+      "development": "./src/views/ai/generation/index.vue",
+      "default": "./src/views/ai/generation/index.vue"
+    },
+    "./VideoIndex": {
+      "types": "./src/views/ai/video/index.vue",
+      "development": "./src/views/ai/video/index.vue",
+      "default": "./src/views/ai/video/index.vue"
+    },
+    "./ColorizationIndex": {
+      "types": "./src/views/ai/colorization/index.vue",
+      "development": "./src/views/ai/colorization/index.vue",
+      "default": "./src/views/ai/colorization/index.vue"
+    },
+    "./ResolutionIndex": {
+      "types": "./src/views/ai/resolution/index.vue",
+      "development": "./src/views/ai/resolution/index.vue",
+      "default": "./src/views/ai/resolution/index.vue"
+    },
+    "./DevicePreview": {
+      "types": "./src/views/template/device/preview/index.vue",
+      "development": "./src/views/template/device/preview/index.vue",
+      "default": "./src/views/template/device/preview/index.vue"
     }
   },
   "publishConfig": {
