@@ -1,7 +1,10 @@
 <template>
   <div class="chat-container">
     <!-- 左侧会话管理面板 -->
-    <div class="conversation-panel" :class="{ collapsed: isConversationCollapsed }">
+    <div
+      class="conversation-panel"
+      :class="{ collapsed: isConversationCollapsed }"
+    >
       <div class="conversation-header">
         <div v-if="!isConversationCollapsed" class="header-content">
           <div class="header-icon">
@@ -9,10 +12,23 @@
           </div>
           <span class="conversation-title">会话管理</span>
         </div>
-        <el-button :icon="useRenderIcon(isConversationCollapsed ? 'ep:d-arrow-right' : 'ep:d-arrow-left')" size="small" circle @click="toggleConversationPanel" class="collapse-btn" />
+        <el-button
+          :icon="
+            useRenderIcon(
+              isConversationCollapsed ? 'ep:d-arrow-right' : 'ep:d-arrow-left'
+            )
+          "
+          size="small"
+          circle
+          @click="toggleConversationPanel"
+          class="collapse-btn"
+        />
       </div>
 
-      <div v-if="!isConversationCollapsed" class="conversation-content thin-scroller">
+      <div
+        v-if="!isConversationCollapsed"
+        class="conversation-content thin-scroller"
+      >
         <!-- 快捷功能区 -->
         <div class="quick-actions">
           <div class="action-item" @click="handleNewConversation">
@@ -106,17 +122,41 @@
     <div class="chat-main" :class="{ expanded: isConversationCollapsed }">
       <!-- 消息列表区域 -->
       <div class="messages-area" ref="messagesContainer">
-        <BubbleList :list="bubbleListData" ref="messagesContainerBubbleList" maxHeight="100%" :btnLoading="isLoading && !messages.some((m) => m.streaming)" @scroll-to-bottom="scrollToBottom">
+        <BubbleList
+          :list="bubbleListData"
+          ref="messagesContainerBubbleList"
+          maxHeight="100%"
+          :btnLoading="isLoading && !messages.some((m) => m.streaming)"
+          @scroll-to-bottom="scrollToBottom"
+        >
           <template #content="{ item }">
-            <XMarkdown :markdown="item.content" class="vp-raw" :allowHtml="true" />
+            <XMarkdown
+              :markdown="item.content"
+              class="vp-raw"
+              :allowHtml="true"
+            />
           </template>
           <template #footer="{ item }" v-if="!isLoading">
             <div class="footer-container">
               <el-tooltip content="复制内容" placement="top">
-                <el-button :icon="useRenderIcon('ep:copy-document')" size="small" circle @click="handleCopyMessage(item)" />
+                <el-button
+                  :icon="useRenderIcon('ep:copy-document')"
+                  size="small"
+                  circle
+                  @click="handleCopyMessage(item)"
+                />
               </el-tooltip>
-              <el-tooltip content="重新发送" placement="top" v-if="item.type === 'sent'">
-                <el-button :icon="useRenderIcon('ep:refresh')" size="small" circle @click="handleResendMessage(item)" />
+              <el-tooltip
+                content="重新发送"
+                placement="top"
+                v-if="item.type === 'sent'"
+              >
+                <el-button
+                  :icon="useRenderIcon('ep:refresh')"
+                  size="small"
+                  circle
+                  @click="handleResendMessage(item)"
+                />
               </el-tooltip>
             </div>
           </template>
@@ -157,7 +197,12 @@
           <template #prefix>
             <div class="input-prefix">
               <el-tooltip content="上传文件" placement="top">
-                <el-upload :show-file-list="false" :before-upload="handleFileUpload" accept="image/*,.pdf,.doc,.docx,.txt,.md" class="file-upload-btn">
+                <el-upload
+                  :show-file-list="false"
+                  :before-upload="handleFileUpload"
+                  accept="image/*,.pdf,.doc,.docx,.txt,.md"
+                  class="file-upload-btn"
+                >
                   <el-button size="small" text>
                     <IconifyIconOnline icon="ri:attachment-line" />
                   </el-button>
@@ -176,7 +221,13 @@
           <template #action-list>
             <div class="action-buttons">
               <el-button circle @click="handleClearInput">
-                <svg data-v-a84afe1a="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="16" height="16">
+                <svg
+                  data-v-a84afe1a=""
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 1024 1024"
+                  width="16"
+                  height="16"
+                >
                   <path
                     fill="currentColor"
                     d="M896 448H128v192a64 64 0 0 0 64 64h192v192h256V704h192a64 64 0 0 0 64-64zm-770.752-64c0-47.552 5.248-90.24 15.552-128 14.72-54.016 42.496-107.392 83.2-160h417.28l-15.36 70.336L736 96h211.2c-24.832 42.88-41.92 96.256-51.2 160a664 664 0 0 0-6.144 128H960v256a128 128 0 0 1-128 128H704v160a32 32 0 0 1-32 32H352a32 32 0 0 1-32-32V768H192A128 128 0 0 1 64 640V384zm64 0h636.544c-2.048-45.824.256-91.584 6.848-137.216 4.48-30.848 10.688-59.776 18.688-86.784h-96.64l-221.12 141.248L561.92 160H256.512c-25.856 37.888-43.776 75.456-53.952 112.832-8.768 32.064-13.248 69.12-13.312 111.168"
@@ -185,19 +236,51 @@
               </el-button>
 
               <!-- 模型配置浮动面板 -->
-              <ScPanel v-model:visible="showModelConfig" :width="390" position="top-right" @close="showModelConfig = false">
+              <ScContainer
+                v-model:visible="showModelConfig"
+                :width="390"
+                position="top-right"
+                @close="showModelConfig = false"
+              >
                 <template #reference>
-                  <el-button circle @click="toggleModelConfig" class="config-btn" title="高级功能">
+                  <el-button
+                    circle
+                    @click="toggleModelConfig"
+                    class="config-btn"
+                    title="高级功能"
+                  >
                     <IconifyIconOnline icon="mdi:tune-variant" />
                   </el-button>
                 </template>
-                <ModelConfig :form="form" :rules="rules" :model-list="modelList" :env="env" :show-role-setting="showRoleSetting" @refresh="handleRefreshModels" @change-module="handleChangeModule" @open-module="handleOpenModule" @click-seed="handleClickSeed" @close="showModelConfig = false" />
-              </ScPanel>
+                <ModelConfig
+                  :form="form"
+                  :rules="rules"
+                  :model-list="modelList"
+                  :env="env"
+                  :show-role-setting="showRoleSetting"
+                  @refresh="handleRefreshModels"
+                  @change-module="handleChangeModule"
+                  @open-module="handleOpenModule"
+                  @click-seed="handleClickSeed"
+                  @close="showModelConfig = false"
+                />
+              </ScContainer>
 
-              <el-button v-if="isLoading" circle @click="stopGeneration" class="stop-btn">
+              <el-button
+                v-if="isLoading"
+                circle
+                @click="stopGeneration"
+                class="stop-btn"
+              >
                 <IconifyIconOnline icon="ri:stop-circle-line" />
               </el-button>
-              <el-button v-else circle @click="handleSendMessage" :disabled="!canSend" class="send-btn">
+              <el-button
+                v-else
+                circle
+                @click="handleSendMessage"
+                :disabled="!canSend"
+                class="send-btn"
+              >
                 <IconifyIconOnline icon="ep:top" />
               </el-button>
             </div>
@@ -207,13 +290,27 @@
           <template #footer>
             <div v-if="uploadedFiles.length > 0" class="file-preview-footer">
               <div class="file-list">
-                <div v-for="(file, index) in uploadedFiles" :key="index" class="file-item">
+                <div
+                  v-for="(file, index) in uploadedFiles"
+                  :key="index"
+                  class="file-item"
+                >
                   <div class="file-info">
-                    <IconifyIconOnline :icon="getFileIcon(file.type)" class="file-icon" />
+                    <IconifyIconOnline
+                      :icon="getFileIcon(file.type)"
+                      class="file-icon"
+                    />
                     <span class="file-name">{{ file.name }}</span>
-                    <span class="file-size">({{ formatFileSize(file.size) }})</span>
+                    <span class="file-size"
+                      >({{ formatFileSize(file.size) }})</span
+                    >
                   </div>
-                  <el-button size="small" text @click="removeFile(index)" class="remove-btn">
+                  <el-button
+                    size="small"
+                    text
+                    @click="removeFile(index)"
+                    class="remove-btn"
+                  >
                     <IconifyIconOnline icon="ri:close-line" />
                   </el-button>
                 </div>
@@ -221,8 +318,6 @@
             </div>
           </template>
         </EditorSender>
-
-
       </div>
     </div>
   </div>
@@ -231,14 +326,22 @@
 <script setup>
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import ScPanel from "@repo/components/ScPanel/index.vue";
+import { ScContainer } from "@repo/components/ScContainer";
 import { fetchCallStream } from "@repo/core";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { computed, nextTick, ref, watch } from "vue";
-import { createConversation, deleteConversation, getConversationList, getConversationMessages, renameConversation, saveMessages } from "../../../../api/ai/conversation";
+import {
+  createConversation,
+  deleteConversation,
+  getConversationList,
+  getConversationMessages,
+  renameConversation,
+  saveMessages,
+} from "../../../../api/ai/conversation";
 import ModelConfig from "./ModelConfig.vue";
-const aiAvatar = "https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png";
+const aiAvatar =
+  "https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png";
 const userAvatar = "https://avatars.githubusercontent.com/u/76239030?v=4";
 // Props
 const props = defineProps({
@@ -298,7 +401,13 @@ const handleCurrentChangeValue = async () => {
 const bubbleListData = computed(() => {
   return messages.value.map((message, index) => ({
     id: message.id,
-    loading: message.role === "user" ? false : message.streaming || (isLoading.value && index === messages.value.length - 1 && message.role === "assistant"),
+    loading:
+      message.role === "user"
+        ? false
+        : message.streaming ||
+          (isLoading.value &&
+            index === messages.value.length - 1 &&
+            message.role === "assistant"),
     isFog: message.role === "user" ? {} : { bgColor: "#f5f5f5" },
     content: "shadow + corner",
     typing: message.streaming || false,
@@ -311,7 +420,8 @@ const bubbleListData = computed(() => {
     content: message.content,
     placement: message.role != "user" ? "start" : "end",
     timestamp: message.timestamp,
-    avatar: message.role === "user" ? userInfo.value.avatar : botInfo.value.avatar,
+    avatar:
+      message.role === "user" ? userInfo.value.avatar : botInfo.value.avatar,
     name: message.role === "user" ? userInfo.value.name : botInfo.value.name,
     streaming: message.streaming || false,
     messageType: message.type || "text",
@@ -390,7 +500,10 @@ const handleSendMessage = async () => {
       conversationLoading.value = true;
 
       // 使用用户输入的前20个字符作为会话名称
-      const conversationTitle = currentMessage.value.length > 20 ? currentMessage.value.substring(0, 20) + "..." : currentMessage.value;
+      const conversationTitle =
+        currentMessage.value.length > 20
+          ? currentMessage.value.substring(0, 20) + "..."
+          : currentMessage.value;
 
       const newConversation = await createConversation({
         sysAiGroupName: conversationTitle,
@@ -401,7 +514,9 @@ const handleSendMessage = async () => {
         // 先重新加载会话列表
         await loadConversationList();
         // 然后选中新创建的会话，确保会话状态正确
-        const createdConversation = conversationList.value.find((c) => c.sysAiGroupId === newConversation.sysAiGroupId);
+        const createdConversation = conversationList.value.find(
+          (c) => c.sysAiGroupId === newConversation.sysAiGroupId
+        );
         if (createdConversation) {
           await handleConversationSelect(createdConversation);
         }
@@ -456,7 +571,11 @@ const sendToAI = async (prompt, files) => {
     for (const file of files) {
       const base64 = await fileToBase64(file);
       fileInfo.push({
-        type: file.type?.startsWith("image") ? "image" : file.type?.startsWith("video") ? "video" : "file",
+        type: file.type?.startsWith("image")
+          ? "image"
+          : file.type?.startsWith("video")
+            ? "video"
+            : "file",
         url: base64,
         filename: file.name,
       });
@@ -517,7 +636,9 @@ const sendToAI = async (prompt, files) => {
           // 如果对话结束
           if (data.done) {
             isLoading.value = false;
-            const aiMessage = messages.value.find((msg) => msg.id === aiMessageId);
+            const aiMessage = messages.value.find(
+              (msg) => msg.id === aiMessageId
+            );
             if (aiMessage) {
               aiMessage.streaming = false;
 
@@ -534,7 +655,9 @@ const sendToAI = async (prompt, files) => {
 
           // 更新 AI 消息内容
           if (data.output) {
-            const aiMessage = messages.value.find((msg) => msg.id === aiMessageId);
+            const aiMessage = messages.value.find(
+              (msg) => msg.id === aiMessageId
+            );
             if (aiMessage) {
               aiMessage.content += data.output;
               // 实时滚动到底部，让用户看到AI的回复
@@ -570,7 +693,9 @@ const sendToAI = async (prompt, files) => {
             message.error(`连接失败，已重试 ${maxRetries} 次，请稍后再试`);
 
             // 移除失败的消息
-            const index = messages.value.findIndex((msg) => msg.id === aiMessageId);
+            const index = messages.value.findIndex(
+              (msg) => msg.id === aiMessageId
+            );
             if (index > -1) {
               messages.value.splice(index, 1);
             }
@@ -602,7 +727,9 @@ const sendToAI = async (prompt, files) => {
           message.error(`发送失败，已重试 ${maxRetries} 次，请稍后再试`);
 
           // 移除失败的消息
-          const index = messages.value.findIndex((msg) => msg.id === aiMessageId);
+          const index = messages.value.findIndex(
+            (msg) => msg.id === aiMessageId
+          );
           if (index > -1) {
             messages.value.splice(index, 1);
           }
@@ -619,7 +746,8 @@ const sendToAI = async (prompt, files) => {
 const fileToBase64 = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result?.replace(/^data:.+;base64,/, ""));
+    reader.onload = () =>
+      resolve(reader.result?.replace(/^data:.+;base64,/, ""));
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -682,7 +810,11 @@ const formatTime = (timestamp) => {
     // 小于1天
     return `${Math.floor(diff / 3600000)}小时前`;
   } else {
-    return time.toLocaleDateString() + " " + time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return (
+      time.toLocaleDateString() +
+      " " +
+      time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    );
   }
 };
 
@@ -776,7 +908,9 @@ const openPromptTemplateDialog = () => {
     cancelButtonText: "取消",
     beforeClose: (action, instance, done) => {
       if (action === "confirm") {
-        const selectedElement = instance.$el.querySelector('.template-option[data-selected="true"]');
+        const selectedElement = instance.$el.querySelector(
+          '.template-option[data-selected="true"]'
+        );
         if (selectedElement) {
           const index = parseInt(selectedElement.getAttribute("data-index"));
           const selectedTemplate = promptTemplates.value[index];
@@ -929,7 +1063,11 @@ const handleConversationSelect = async (conversation) => {
 
     // 加载会话历史消息（支持分页）
     try {
-      const { data: pageResult } = await getConversationMessages(conversation.sysAiGroupId, 1, 100);
+      const { data: pageResult } = await getConversationMessages(
+        conversation.sysAiGroupId,
+        1,
+        100
+      );
 
       if (pageResult && pageResult.records && pageResult.records.length > 0) {
         // 将历史消息转换为前端消息格式
@@ -942,11 +1080,15 @@ const handleConversationSelect = async (conversation) => {
           streaming: false,
         }));
 
-        console.log(`加载了 ${pageResult.records.length} 条历史消息，总共 ${pageResult.total} 条`);
+        console.log(
+          `加载了 ${pageResult.records.length} 条历史消息，总共 ${pageResult.total} 条`
+        );
 
         // 如果消息很多，可以考虑实现滚动加载更多
         if (pageResult.total > pageResult.records.length) {
-          console.log(`还有 ${pageResult.total - pageResult.records.length} 条消息未加载`);
+          console.log(
+            `还有 ${pageResult.total - pageResult.records.length} 条消息未加载`
+          );
         }
       } else {
         console.log("该会话暂无历史消息");
@@ -969,7 +1111,9 @@ const handleConversationSelect = async (conversation) => {
 function handleMenuCommand(command, item) {
   console.log("内置菜单点击事件：", command, item);
   // 直接修改 item 是否生效
-  const index = conversationList.value.findIndex((itemSlef) => itemSlef.key === item.key);
+  const index = conversationList.value.findIndex(
+    (itemSlef) => itemSlef.key === item.key
+  );
   if (command === "delete") {
     if (index !== -1) {
       handleConversationDelete(conversationList.value[index]);
@@ -1083,9 +1227,13 @@ const loadConversationList = async () => {
 
   try {
     conversationLoading.value = true;
-    const { data: conversations } = await getConversationList(props.form.sysProjectId);
+    const { data: conversations } = await getConversationList(
+      props.form.sysProjectId
+    );
     conversationList.value = (conversations || []).map((conv) => {
-      const updateTime = conv.updateTime ? new Date(conv.updateTime) : new Date();
+      const updateTime = conv.updateTime
+        ? new Date(conv.updateTime)
+        : new Date();
       const now = new Date();
       const diffTime = now.getTime() - updateTime.getTime();
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -1174,7 +1322,7 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: row;
-   background: var(--el-bg-color-overlay);
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
@@ -1199,7 +1347,7 @@ defineExpose({
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid var(--el-border-color);
-       background: var(--el-bg-color-overlay);
+      background: var(--el-bg-color-overlay);
 
       .header-content {
         display: flex;
@@ -1360,7 +1508,6 @@ defineExpose({
           :deep(.conversations-list) {
             background: var(--el-bg-color-overlay) !important;
           }
-
         }
 
         .view-all {
@@ -1577,12 +1724,12 @@ defineExpose({
 
     .input-area {
       background: var(--el-bg-color-overlay);
-      border-top-color:  var(--el-border-color);
+      border-top-color: var(--el-border-color);
 
       .editor-sender {
         :deep(.editor-sender-container) {
           background: var(--el-bg-color-overlay);
-          border-color:  var(--el-border-color);
+          border-color: var(--el-border-color);
           color: var(--el-text-color-primary);
 
           &:focus-within {
