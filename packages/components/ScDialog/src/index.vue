@@ -3,7 +3,7 @@
   <el-dialog
     v-if="mode === 'element'"
     v-model="dialogVisible"
-    :title="title"
+    :title="iconMode === 'inline' && icon ? undefined : title"
     :width="width"
     :top="top"
     :modal="modal"
@@ -16,14 +16,27 @@
     :draggable="draggable"
     :center="center"
     :destroy-on-close="destroyOnClose"
-    :class="['sc-dialog', `sc-dialog--${type}`]"
+    :class="['sc-dialog', `sc-dialog--${type}`, { 'has-float-icon': icon && iconMode === 'float' }]"
     @open="$emit('open')"
     @opened="$emit('opened')"
     @close="$emit('close')"
     @closed="$emit('closed')"
   >
-    <template v-if="$slots.header" #header>
-      <slot name="header" />
+    <!-- 浮动图标（float 模式） -->
+    <template #header>
+      <div v-if="icon && iconMode === 'float'" class="sc-dialog__float-icon" :style="floatIconStyle">
+        <component :is="iconComponentName" :icon="icon" :style="{ fontSize: `${iconSize}px`, color: '#fff' }" />
+      </div>
+      <slot v-if="$slots.header" name="header" />
+      <template v-else>
+        <!-- 内联图标模式 -->
+        <div v-if="icon && iconMode === 'inline'" class="sc-dialog__header-content">
+          <component :is="iconComponentName" :icon="icon" class="sc-dialog__inline-icon" :style="{ fontSize: `${iconSize}px`, color: iconColor || typeColor }" />
+          <span class="sc-dialog__title">{{ title }}</span>
+        </div>
+        <!-- 无图标时显示默认标题 -->
+        <span v-else class="el-dialog__title">{{ title }}</span>
+      </template>
     </template>
 
     <slot />
@@ -344,7 +357,7 @@ const props = withDefaults(
     mode: "element",
     title: "",
     type: "default",
-    width: "500px",
+    width: "50%",
     top: "15vh",
     modal: true,
     appendToBody: true,
@@ -364,8 +377,8 @@ const props = withDefaults(
     cancelText: "取消",
     confirmText: "确定",
     loading: false,
-    icon: "",
-    iconMode: "inline",
+    icon: "ep:edit-pen",
+    iconMode: "float",
     iconSize: 24,
     iconColor: "",
     edgeDock: true,
@@ -1199,6 +1212,49 @@ defineExpose({
   }
   &--error .el-dialog__header {
     border-top: 3px solid var(--el-color-danger);
+  }
+
+  // 浮动图标模式（element 模式）
+  &.has-float-icon {
+    .el-dialog {
+      overflow: visible;
+      margin-top: 32px;
+    }
+
+    .el-dialog__header {
+      padding-top: 24px;
+    }
+
+    .sc-dialog__float-icon {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 1;
+    }
+  }
+
+  // 内联图标模式（element 模式）
+  .sc-dialog__header-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sc-dialog__inline-icon {
+    flex-shrink: 0;
+  }
+
+  .sc-dialog__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
   }
 }
 

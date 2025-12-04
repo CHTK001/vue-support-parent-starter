@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { nextTick, onMounted, reactive, ref, defineAsyncComponent } from "vue";
+import {
+  ElMessage,
+  ElMessageBox,
+  type FormInstance,
+  type FormRules,
+} from "element-plus";
+import { nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
+import draggable from "vuedraggable";
+
 import {
   fetchBatchUpdateForGroup,
   fetchDeleteForGroup,
@@ -11,15 +16,17 @@ import {
   type SysSettingGroup,
 } from "../api/group";
 
-// 将draggable组件改为异步组件
-const draggable = defineAsyncComponent(() => import("vuedraggable"));
-
 // 响应式数据
-const loading = ref(false);
-const dialogVisible = ref(false);
-const isEdit = ref(false);
+const loading = ref<boolean>(false);
+const dialogVisible = ref<boolean>(false);
+const isEdit = ref<boolean>(false);
 const groupList = ref<SysSettingGroup[]>([]);
-const cardContainer = ref();
+const formRef = ref<FormInstance>();
+
+// 拖拽防抖定时器
+let dragDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+// 防抖延迟时间（毫秒）
+const DRAG_DEBOUNCE_DELAY = 500;
 
 // 表单数据
 const formData = reactive<SysSettingGroup>({
@@ -28,11 +35,11 @@ const formData = reactive<SysSettingGroup>({
   sysSettingGroupIcon: "",
   sysSettingGroupEnable: true,
   sysSettingGroupRemark: "",
-  sysSettingGroupUseProjectInterface: true, // 修改为默认开启
+  sysSettingGroupUseProjectInterface: true,
 });
 
 // 表单验证规则
-const formRules = {
+const formRules: FormRules = {
   sysSettingGroupName: [
     { required: true, message: "请输入组名称", trigger: "blur" },
   ],
@@ -41,31 +48,28 @@ const formRules = {
   ],
 };
 
-const formRef = ref();
-
 /**
- * 显示加载提示
+ * 显示加载状态
  */
-const showLoading = (text?: string) => {
+const showLoading = (): void => {
   loading.value = true;
 };
 
 /**
- * 隐藏加载提示
+ * 隐藏加载状态
  */
-const hideLoading = () => {
+const hideLoading = (): void => {
   loading.value = false;
 };
 
 /**
- * 获取组列表
+ * 获取配置组列表
  */
-const getGroupList = async () => {
+const getGroupList = async (): Promise<void> => {
   try {
-    showLoading("正在加载配置组数据...");
+    showLoading();
     const { data } = await fetchListForGroup({});
     groupList.value = data || [];
-    // 数据加载完成后自动触发排序更新
     await nextTick();
   } catch (error) {
     console.error("获取组列表失败:", error);
@@ -76,38 +80,45 @@ const getGroupList = async () => {
 };
 
 /**
- * 拖拽结束处理
+ * 拖拽结束处理（防抖）
+ * 延迟触发，多次拖拽只提交最后一次
  */
-const handleDragEnd = async () => {
-  try {
-    // 更新排序字段
-    const updatedList = groupList.value.map((item, index) => ({
-      ...item,
-      sysSettingGroupSort: index + 1,
-    }));
-
-    // 批量更新到服务器
-    await handleBatchUpdate(updatedList);
-  } catch (error) {
-    console.error("拖拽排序失败:", error);
-    ElMessage.error("拖拽排序失败");
-    // 重新获取数据恢复原状态
-    await getGroupList();
+const handleDragEnd = (): void => {
+  // 清除之前的定时器
+  if (dragDebounceTimer) {
+    clearTimeout(dragDebounceTimer);
   }
+
+  // 设置新的延迟定时器
+  dragDebounceTimer = setTimeout(async () => {
+    try {
+      const updatedList = groupList.value.map((item, index) => ({
+        ...item,
+        sysSettingGroupSort: index + 1,
+      }));
+      await handleBatchUpdate(updatedList);
+    } catch (error) {
+      console.error("拖拽排序失败:", error);
+      ElMessage.error("拖拽排序失败");
+      await getGroupList();
+    }
+  }, DRAG_DEBOUNCE_DELAY);
 };
 
 /**
  * 批量更新排序
+ * @param updatedList 更新后的列表
  */
-const handleBatchUpdate = async (updatedList: SysSettingGroup[]) => {
+const handleBatchUpdate = async (
+  updatedList: SysSettingGroup[]
+): Promise<void> => {
   try {
-    showLoading("正在保存排序...");
+    showLoading();
     await fetchBatchUpdateForGroup(updatedList);
     ElMessage.success("排序更新成功");
   } catch (error) {
     console.error("批量更新失败:", error);
     ElMessage.error("排序更新失败");
-    // 重新获取数据恢复原状态
     await getGroupList();
   } finally {
     hideLoading();
@@ -117,7 +128,7 @@ const handleBatchUpdate = async (updatedList: SysSettingGroup[]) => {
 /**
  * 打开新增对话框
  */
-const handleAdd = () => {
+const handleAdd = (): void => {
   isEdit.value = false;
   resetForm();
   dialogVisible.value = true;
@@ -125,17 +136,19 @@ const handleAdd = () => {
 
 /**
  * 打开编辑对话框
+ * @param row 配置组数据
  */
-const handleEdit = (row: SysSettingGroup) => {
+const handleEdit = (row: SysSettingGroup): void => {
   isEdit.value = true;
   Object.assign(formData, row);
   dialogVisible.value = true;
 };
 
 /**
- * 删除组
+ * 删除配置组
+ * @param row 配置组数据
  */
-const handleDelete = async (row: SysSettingGroup) => {
+const handleDelete = async (row: SysSettingGroup): Promise<void> => {
   try {
     await ElMessageBox.confirm(
       `确定要删除组 "${row.sysSettingGroupName}" 吗？`,
@@ -147,12 +160,12 @@ const handleDelete = async (row: SysSettingGroup) => {
       }
     );
 
-    showLoading("正在删除配置组...");
+    showLoading();
     const res = await fetchDeleteForGroup({
       sysSettingGroupId: row.sysSettingGroupId!,
     });
 
-    if (res.code == "00000") {
+    if (res.code === "00000") {
       ElMessage.success("删除成功");
       await getGroupList();
     } else {
@@ -169,16 +182,16 @@ const handleDelete = async (row: SysSettingGroup) => {
 };
 
 /**
- * 保存组
+ * 保存配置组
  */
-const handleSave = async () => {
+const handleSave = async (): Promise<void> => {
   try {
     await formRef.value?.validate();
 
-    showLoading(isEdit.value ? "正在更新配置组..." : "正在创建配置组...");
+    showLoading();
     const res = await fetchSaveOrUpdateForGroup(formData);
 
-    if (res.code == "00000") {
+    if (res.code === "00000") {
       ElMessage.success(isEdit.value ? "更新成功" : "创建成功");
       dialogVisible.value = false;
       await getGroupList();
@@ -194,9 +207,9 @@ const handleSave = async () => {
 };
 
 /**
- * 重置表单
+ * 重置表单数据
  */
-const resetForm = () => {
+const resetForm = (): void => {
   Object.assign(formData, {
     sysSettingGroupId: undefined,
     sysSettingGroupName: "",
@@ -204,7 +217,7 @@ const resetForm = () => {
     sysSettingGroupIcon: "",
     sysSettingGroupEnable: true,
     sysSettingGroupRemark: "",
-    sysSettingGroupUseProjectInterface: true, // 修改为默认开启
+    sysSettingGroupUseProjectInterface: true,
   });
   formRef.value?.clearValidate();
 };
@@ -212,191 +225,243 @@ const resetForm = () => {
 /**
  * 关闭对话框
  */
-const handleClose = () => {
+const handleClose = (): void => {
   dialogVisible.value = false;
   resetForm();
 };
 
 // 组件挂载时获取数据
-onMounted(async () => {
+onMounted(async (): Promise<void> => {
   await getGroupList();
 });
-</script>
 
-<script lang="ts">
-import { defineComponent } from "vue";
-
-export default defineComponent({
-  components: {
-    draggable,
-  },
+// 组件卸载时清理定时器
+onUnmounted((): void => {
+  if (dragDebounceTimer) {
+    clearTimeout(dragDebounceTimer);
+    dragDebounceTimer = null;
+  }
 });
 </script>
 
 <template>
   <div class="group-management">
-    <!-- 操作栏 -->
-    <div class="toolbar">
-      <el-button
-        type="primary"
-        :icon="useRenderIcon('ri:add-line')"
-        @click="handleAdd"
-      >
-        新增配置组
-      </el-button>
-      <el-button :icon="useRenderIcon('ri:refresh-line')" @click="getGroupList">
-        刷新
-      </el-button>
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <IconifyIconOnline icon="ri:folder-settings-line" />
+        </div>
+        <div class="header-info">
+          <h1 class="header-title">配置组管理</h1>
+          <p class="header-desc">管理系统配置分组，支持拖拽排序</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <el-button class="refresh-btn" @click="getGroupList">
+          <IconifyIconOnline icon="ri:refresh-line" />
+          刷新
+        </el-button>
+        <el-button type="primary" class="add-btn" @click="handleAdd">
+          <IconifyIconOnline icon="ri:add-line" />
+          新增配置组
+        </el-button>
+      </div>
     </div>
 
     <!-- 卡片容器 -->
-    <div class="card-container">
+    <div class="card-section">
       <!-- 骨架屏 -->
-      <div v-if="loading" class="skeleton-container">
-        <el-skeleton :rows="5" animated />
+      <div v-if="loading" class="skeleton-grid">
+        <div v-for="i in 6" :key="i" class="skeleton-card">
+          <el-skeleton :rows="3" animated />
+        </div>
       </div>
 
       <!-- 内容区域 -->
-      <div v-else>
+      <template v-else>
         <draggable
+          v-if="groupList.length > 0"
           v-model="groupList"
           item-key="sysSettingGroupId"
           handle=".drag-handle"
-          animation="150"
+          :animation="200"
           ghost-class="sortable-ghost"
           chosen-class="sortable-chosen"
           drag-class="sortable-drag"
+          class="card-grid"
           @end="handleDragEnd"
-          class="draggable-container"
         >
           <template #item="{ element: item, index }">
-            <div class="group-card">
+            <div
+              class="group-card"
+              :class="{ disabled: !item.sysSettingGroupEnable }"
+            >
+              <!-- 顶部装饰条 -->
+              <div class="card-accent"></div>
+
+              <!-- 卡片头部 -->
               <div class="card-header">
-                <div class="card-title">
-                  <el-icon v-if="item.sysSettingGroupIcon" class="card-icon">
-                    <component :is="useRenderIcon(item.sysSettingGroupIcon)" />
-                  </el-icon>
-                  <span class="group-name">{{ item.sysSettingGroupName }}</span>
-                  <el-tag size="small" class="group-code">{{
-                    item.sysSettingGroupCode
-                  }}</el-tag>
-                </div>
-                <div class="card-actions">
-                  <ScSwitch
-                    v-model="item.sysSettingGroupEnable"
-                    active-text="启用"
-                    inactive-text="禁用"
-                    layout="modern"
-                    size="small"
+                <div class="card-icon-wrap">
+                  <IconifyIconOnline
+                    :icon="item.sysSettingGroupIcon || 'ri:folder-line'"
                   />
+                </div>
+                <div class="card-meta">
+                  <h3 class="card-title">{{ item.sysSettingGroupName }}</h3>
+                  <span class="card-code">{{ item.sysSettingGroupCode }}</span>
+                </div>
+                <div class="card-status">
+                  <el-tag
+                    :type="item.sysSettingGroupEnable ? 'success' : 'info'"
+                    size="small"
+                    effect="light"
+                  >
+                    {{ item.sysSettingGroupEnable ? "启用" : "禁用" }}
+                  </el-tag>
                 </div>
               </div>
 
-              <div class="card-content">
-                <p class="group-description">
-                  {{ item.sysSettingGroupRemark || "暂无描述" }}
+              <!-- 卡片内容 -->
+              <div class="card-body">
+                <p class="card-desc">
+                  {{ item.sysSettingGroupRemark || "暂无描述信息" }}
                 </p>
               </div>
 
+              <!-- 卡片底部 -->
               <div class="card-footer">
                 <div class="drag-handle">
-                  <el-icon
-                    ><component :is="useRenderIcon('ri:drag-move-line')"
-                  /></el-icon>
-                  <span class="sort-text">拖拽排序</span>
+                  <IconifyIconOnline icon="ri:draggable" />
+                  <span>拖拽排序</span>
                 </div>
-                <div class="action-buttons">
+                <div class="card-actions">
                   <el-button
-                    type="primary"
-                    link
+                    class="action-btn edit"
                     size="small"
-                    :icon="useRenderIcon('ri:edit-line')"
                     @click="handleEdit(item)"
                   >
+                    <IconifyIconOnline icon="ri:edit-line" />
                     编辑
                   </el-button>
                   <el-button
-                    type="danger"
-                    link
+                    class="action-btn delete"
                     size="small"
-                    :icon="useRenderIcon('ri:delete-bin-line')"
                     @click="handleDelete(item)"
                   >
+                    <IconifyIconOnline icon="ri:delete-bin-line" />
                     删除
                   </el-button>
                 </div>
               </div>
+
+              <!-- 排序序号 -->
+              <div class="card-index">{{ index + 1 }}</div>
             </div>
           </template>
         </draggable>
 
         <!-- 空状态 -->
-        <div v-if="!loading && groupList.length === 0" class="empty-state">
-          <el-empty description="暂无配置组数据">
-            <el-button type="primary" @click="handleAdd"
-              >创建第一个配置组</el-button
-            >
-          </el-empty>
+        <div v-else class="empty-state">
+          <div class="empty-icon">
+            <IconifyIconOnline icon="ri:folder-add-line" />
+          </div>
+          <h3 class="empty-title">暂无配置组</h3>
+          <p class="empty-desc">点击下方按钮创建第一个配置组</p>
+          <el-button type="primary" class="empty-btn" @click="handleAdd">
+            <IconifyIconOnline icon="ri:add-line" />
+            创建配置组
+          </el-button>
         </div>
-      </div>
+      </template>
     </div>
 
     <!-- 新增/编辑对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? '编辑配置组' : '新增配置组'"
-      width="500px"
+      width="520px"
+      :show-close="false"
+      class="group-dialog"
       @close="handleClose"
     >
+      <!-- 自定义头部 -->
+      <template #header>
+        <div class="dialog-header">
+          <div class="dialog-icon">
+            <IconifyIconOnline
+              :icon="isEdit ? 'ri:edit-line' : 'ri:add-line'"
+            />
+          </div>
+          <div class="dialog-title-info">
+            <h3>{{ isEdit ? "编辑配置组" : "新增配置组" }}</h3>
+            <p>{{ isEdit ? "修改配置组信息" : "创建新的配置分组" }}</p>
+          </div>
+        </div>
+      </template>
+
       <el-form
         ref="formRef"
         :model="formData"
         :rules="formRules"
-        label-width="100px"
+        label-width="90px"
+        class="group-form"
       >
         <el-form-item label="组名称" prop="sysSettingGroupName">
           <el-input
             v-model="formData.sysSettingGroupName"
             placeholder="请输入组名称"
             clearable
-          />
+          >
+            <template #prefix>
+              <IconifyIconOnline icon="ri:text" class="input-icon" />
+            </template>
+          </el-input>
         </el-form-item>
         <el-form-item label="组编码" prop="sysSettingGroupCode">
           <el-input
             v-model="formData.sysSettingGroupCode"
             placeholder="请输入组编码（唯一标识）"
             clearable
-          />
+          >
+            <template #prefix>
+              <IconifyIconOnline icon="ri:code-line" class="input-icon" />
+            </template>
+          </el-input>
         </el-form-item>
         <el-form-item label="图标">
           <el-input
             v-model="formData.sysSettingGroupIcon"
-            placeholder="请输入图标名称，如：ri:settings-line"
+            placeholder="如：ri:settings-line"
             clearable
           >
-            <template #append>
-              <el-icon v-if="formData.sysSettingGroupIcon">
-                <component :is="useRenderIcon(formData.sysSettingGroupIcon)" />
-              </el-icon>
+            <template #prefix>
+              <IconifyIconOnline icon="ri:palette-line" class="input-icon" />
+            </template>
+            <template #suffix>
+              <IconifyIconOnline
+                v-if="formData.sysSettingGroupIcon"
+                :icon="formData.sysSettingGroupIcon"
+                class="icon-preview"
+              />
             </template>
           </el-input>
         </el-form-item>
         <el-form-item label="启用状态">
-          <ScSwitch
+          <el-switch
             v-model="formData.sysSettingGroupEnable"
             active-text="启用"
             inactive-text="禁用"
-            layout="modern"
+            inline-prompt
           />
         </el-form-item>
-        <el-form-item label="使用项目接口">
-          <ScSwitch
+        <el-form-item label="项目接口">
+          <el-switch
             v-model="formData.sysSettingGroupUseProjectInterface"
             active-text="是"
             inactive-text="否"
-            layout="modern"
+            inline-prompt
           />
-          <div class="form-item-tip">开启后将使用项目组接口进行配置管理</div>
+          <span class="form-tip">开启后使用项目组接口管理</span>
         </el-form-item>
         <el-form-item label="描述">
           <el-input
@@ -404,16 +469,19 @@ export default defineComponent({
             type="textarea"
             :rows="3"
             placeholder="请输入组描述"
-            clearable
           />
         </el-form-item>
       </el-form>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="handleClose">取消</el-button>
-          <el-button type="primary" @click="handleSave">
-            {{ isEdit ? "更新" : "创建" }}
+          <el-button class="cancel-btn" @click="handleClose">
+            <IconifyIconOnline icon="ri:close-line" />
+            取消
+          </el-button>
+          <el-button type="primary" class="save-btn" @click="handleSave">
+            <IconifyIconOnline icon="ri:save-line" />
+            {{ isEdit ? "保存更改" : "创建" }}
           </el-button>
         </div>
       </template>
@@ -421,201 +489,548 @@ export default defineComponent({
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .group-management {
-  padding: 20px;
-  background: var(--el-bg-color-overlay);
+  padding: 24px;
+  min-height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(248, 250, 252, 0.8) 0%,
+    rgba(241, 245, 249, 0.6) 100%
+  );
 }
 
+// 页面头部
 .page-header {
-  margin-bottom: 20px;
-  background: var(--el-bg-color-overlay);
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.9) 100%
+  );
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px 16px 0 0;
+  }
+
+  position: relative;
 }
 
-.page-header h2 {
-  margin: 0 0 8px 0;
-  color: var(--el-text-color-primary);
-  font-size: 24px;
-  font-weight: 600;
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-.page-header p {
-  margin: 0;
-  color: var(--el-text-color-secondary);
-  font-size: 14px;
+.header-icon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 26px;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
 }
 
-.toolbar {
-  margin-bottom: 20px;
-  padding: 16px 20px;
-  background: var(--el-bg-color-overlay);
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.header-info {
+  .header-title {
+    margin: 0 0 4px 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .header-desc {
+    margin: 0;
+    font-size: 14px;
+    color: #64748b;
+  }
+}
+
+.header-actions {
   display: flex;
   gap: 12px;
 }
 
-.card-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  min-height: 200px;
-}
-
-.skeleton-container {
-  grid-column: 1 / -1;
-  padding: 20px;
-  background: var(--el-bg-color-overlay);
-  border-radius: 12px;
-}
-
-.group-card {
-  background: var(--el-bg-color-overlay);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--el-border-color);
+.refresh-btn {
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-weight: 500;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: white;
   transition: all 0.3s ease;
-  cursor: move;
-  overflow: hidden;
+
+  &:hover {
+    border-color: rgba(102, 126, 234, 0.4);
+    color: #667eea;
+  }
 }
 
-.group-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
+.add-btn {
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.45);
+  }
+}
+
+// 卡片区域
+.card-section {
+  min-height: 400px;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.skeleton-card {
+  padding: 24px;
+  background: white;
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+// 配置组卡片
+.group-card {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(248, 250, 252, 0.95) 100%
+  );
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transform: translateY(-3px);
+
+    .drag-handle {
+      color: #667eea;
+    }
+  }
+
+  &.disabled {
+    opacity: 0.7;
+
+    .card-accent {
+      background: linear-gradient(90deg, #94a3b8 0%, #cbd5e1 100%);
+    }
+  }
+}
+
+.card-accent {
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
 }
 
 .card-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--el-border-color);
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 14px;
+  padding: 20px;
 }
 
-.card-title {
+.card-icon-wrap {
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(102, 126, 234, 0.12) 0%,
+    rgba(118, 75, 162, 0.08) 100%
+  );
+  color: #667eea;
+  font-size: 22px;
+}
+
+.card-meta {
   flex: 1;
+  min-width: 0;
+
+  .card-title {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .card-code {
+    font-size: 12px;
+    color: #64748b;
+    font-family: "Monaco", "Menlo", monospace;
+  }
 }
 
-.card-icon {
-  font-size: 20px;
-  color: var(--el-color-primary);
+.card-status {
+  :deep(.el-tag) {
+    border-radius: 6px;
+    font-weight: 500;
+  }
 }
 
-.group-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
+.card-body {
+  padding: 0 20px 16px;
 
-.group-code {
-  background: var(--el-bg-color-overlay);
-  color: var(--el-color-primary);
-  border: 1px solid var(--el-border-color);
-}
-
-.card-actions {
-  display: flex;
-  align-items: center;
-}
-
-.card-content {
-  padding: 16px 20px;
-}
-
-.group-description {
-  margin: 0;
-  color: var(--el-text-color-primary);
-  font-size: 14px;
-  line-height: 1.5;
-  min-height: 21px;
+  .card-desc {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
 
 .card-footer {
-  padding: 12px 20px;
-  background: var(--el-bg-color-overlay);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 14px 20px;
+  background: rgba(248, 250, 252, 0.6);
+  border-top: 1px solid rgba(226, 232, 240, 0.6);
 }
 
 .drag-handle {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--el-text-color-primary);
-  font-size: 12px;
-  cursor: move;
-}
-
-.drag-handle:hover {
-  color: var(--el-color-primary);
-}
-
-.sort-text {
+  font-size: 13px;
+  color: #94a3b8;
+  cursor: grab;
+  transition: color 0.3s ease;
   user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
 }
 
-.action-buttons {
+.card-actions {
   display: flex;
   gap: 8px;
 }
 
-.empty-state {
-  grid-column: 1 / -1;
+.action-btn {
+  border-radius: 8px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border: none;
+  transition: all 0.3s ease;
+
+  &.edit {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+
+    &:hover {
+      background: rgba(102, 126, 234, 0.2);
+    }
+  }
+
+  &.delete {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+
+    &:hover {
+      background: rgba(239, 68, 68, 0.2);
+    }
+  }
+}
+
+.card-index {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 24px;
+  height: 24px;
   display: flex;
-  justify-content: center;
   align-items: center;
-  min-height: 300px;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(100, 116, 139, 0.1);
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+// 空状态
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.9) 100%
+  );
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    rgba(102, 126, 234, 0.12) 0%,
+    rgba(118, 75, 162, 0.08) 100%
+  );
+  color: #667eea;
+  font-size: 36px;
+  margin-bottom: 20px;
+}
+
+.empty-title {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.empty-desc {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.empty-btn {
+  border-radius: 10px;
+  padding: 10px 24px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+// 拖拽样式
+.sortable-ghost {
+  opacity: 0.4;
+  background: rgba(102, 126, 234, 0.08) !important;
+  border: 2px dashed #667eea !important;
+}
+
+.sortable-chosen {
+  transform: scale(1.02);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.25) !important;
+  z-index: 10;
+}
+
+.sortable-drag {
+  transform: scale(1.02) rotate(2deg);
+  box-shadow: 0 16px 40px rgba(102, 126, 234, 0.3) !important;
+}
+
+// 对话框
+.group-dialog {
+  :deep(.el-dialog) {
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 0;
+    margin: 0;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 24px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 0;
+  }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  background: linear-gradient(
+    135deg,
+    rgba(102, 126, 234, 0.08) 0%,
+    rgba(118, 75, 162, 0.05) 100%
+  );
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dialog-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 24px;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.35);
+}
+
+.dialog-title-info {
+  h3 {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+  }
+}
+
+.group-form {
+  :deep(.el-form-item) {
+    margin-bottom: 20px;
+  }
+
+  :deep(.el-form-item__label) {
+    font-weight: 500;
+    color: #475569;
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-textarea__inner) {
+    border-radius: 10px;
+    transition: all 0.3s ease;
+  }
+
+  :deep(.el-input__wrapper:hover),
+  :deep(.el-textarea__inner:hover) {
+    box-shadow: 0 0 0 1px #667eea inset;
+  }
+
+  :deep(.el-input__wrapper.is-focus),
+  :deep(.el-textarea__inner:focus) {
+    box-shadow:
+      0 0 0 1px #667eea inset,
+      0 0 0 3px rgba(102, 126, 234, 0.15);
+  }
+}
+
+.input-icon {
+  color: #94a3b8;
+}
+
+.icon-preview {
+  font-size: 18px;
+  color: #667eea;
+}
+
+.form-tip {
+  margin-left: 12px;
+  font-size: 12px;
+  color: #94a3b8;
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  padding: 20px 24px;
+  background: rgba(248, 250, 252, 0.8);
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
 }
 
-/* 拖拽排序样式 */
-.draggable-container {
-  display: contents;
+.cancel-btn {
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-weight: 500;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: white;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: rgba(100, 116, 139, 0.4);
+  }
 }
 
-.sortable-ghost {
-  opacity: 0.5;
-  background: var(--el-color-primary-light-9);
-  border: 2px dashed var(--el-color-primary);
+.save-btn {
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.45);
+  }
 }
 
-.sortable-chosen {
-  transform: rotate(5deg);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
+// 响应式
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
 
-.sortable-drag {
-  transform: rotate(5deg);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
+  .header-actions {
+    width: 100%;
 
-:deep(.el-switch) {
-  --el-switch-on-color: var(--el-color-success);
-  --el-switch-off-color: var(--el-border-color);
-}
+    .el-button {
+      flex: 1;
+    }
+  }
 
-:deep(.el-button--small) {
-  padding: 4px 8px;
-}
-
-:deep(.el-loading-mask) {
-  border-radius: 8px;
-}
-
-.form-item-tip {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 4px;
+  .card-grid,
+  .skeleton-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

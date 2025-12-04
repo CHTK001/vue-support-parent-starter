@@ -582,29 +582,64 @@ watch(
 .installed-filters {
   display: flex;
   flex-direction: column;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 16px;
   overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(248, 250, 252, 0.95) 100%
+  );
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  background: var(--el-bg-color-overlay);
-  border-bottom: 1px solid #e4e7ed;
+  padding: 18px 24px;
+  background: linear-gradient(
+    135deg,
+    rgba(248, 250, 252, 0.95) 0%,
+    rgba(241, 245, 249, 0.9) 100%
+  );
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
 
   h3 {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
-    color: var(--el-text-color-primary);
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &::before {
+      content: "";
+      width: 4px;
+      height: 18px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 2px;
+    }
   }
 
   .header-actions {
     display: flex;
     gap: 8px;
+  }
+
+  :deep(.el-button) {
+    border-radius: 8px;
+  }
+
+  :deep(.el-button--primary) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+  }
+
+  :deep(.el-button--success) {
+    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+    border: none;
   }
 }
 
@@ -612,29 +647,24 @@ watch(
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  background: rgba(248, 250, 252, 0.5);
 
-  /* 统一的细滚动条样式 */
   &::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-    border-radius: 2px;
-    background-color: transparent;
+    width: 6px;
+    height: 6px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(140, 140, 140, 0.3);
-    border-radius: 2px;
-    box-shadow: inset 0 0 6px rgba(140, 140, 140, 0.3);
+    background: rgba(102, 126, 234, 0.3);
+    border-radius: 3px;
 
     &:hover {
-      background: rgba(140, 140, 140, 0.5);
+      background: rgba(102, 126, 234, 0.5);
     }
   }
 
   &::-webkit-scrollbar-track {
-    background-color: rgba(140, 140, 140, 0);
-    border-radius: 2px;
-    box-shadow: inset 0 0 6px rgba(140, 140, 140, 0);
+    background: transparent;
   }
 }
 
@@ -642,100 +672,145 @@ watch(
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px;
+  padding: 18px 20px;
   margin-bottom: 12px;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  background: var(--el-bg-color-overlay);
-  transition: all 0.3s ease;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.9) 100%
+  );
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--item-accent, transparent);
+    transition: width 0.3s ease;
+  }
 
   &:last-child {
     margin-bottom: 0;
   }
 
-  &.available:hover {
-    border-color: #409eff;
-    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+  &.available {
+    --item-accent: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+
+    &:hover {
+      border-color: rgba(102, 126, 234, 0.4);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15);
+      transform: translateY(-2px);
+
+      &::before {
+        width: 5px;
+      }
+    }
   }
 
   &.installed {
+    --item-accent: linear-gradient(180deg, #10b981 0%, #34d399 100%);
+
     &:hover {
-      border-color: #67c23a;
-      box-shadow: 0 2px 8px rgba(103, 194, 58, 0.1);
+      border-color: rgba(16, 185, 129, 0.4);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.15);
+      transform: translateY(-2px);
+
+      &::before {
+        width: 5px;
+      }
     }
 
     &.disabled {
       opacity: 0.6;
-      background: var(--el-bg-color-overlay);
+      --item-accent: linear-gradient(180deg, #94a3b8 0%, #cbd5e1 100%);
     }
   }
 
   .drag-handle {
     cursor: move;
-     color: var(--el-text-color-primary);
-    font-size: 16px;
+    color: #94a3b8;
+    font-size: 18px;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
 
     &:hover {
-      color: #409eff;
+      color: #667eea;
+      background: rgba(102, 126, 234, 0.1);
     }
   }
 
   .filter-info {
     flex: 1;
+    min-width: 0;
 
     .filter-name {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
-      color: var(--el-text-color-primary);
-      margin-bottom: 4px;
+      color: #1e293b;
+      margin-bottom: 6px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      /* 美化序号 */
+      gap: 10px;
+      flex-wrap: wrap;
+
       .filter-seq {
-        display: inline-flex; /* 让数字水平、垂直居中 */
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 22px; /* 圆点大小 */
-        height: 22px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #409eff, #53a8ff); /* 渐变色背景 */
+        width: 24px;
+        height: 24px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: #fff;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
-        line-height: 1;
-        margin-right: 8px; /* 和右侧文字留点距离 */
-        box-shadow: 0 2px 4px rgba(64, 158, 255, 0.25);
-        user-select: none; /* 防止被选中 */
+        box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+        flex-shrink: 0;
       }
     }
 
     .filter-type {
-      font-size: 12px;
-       color: var(--el-text-color-primary);
-      background: #f0f2f5;
-      padding: 2px 8px;
-      border-radius: 4px;
+      font-size: 11px;
+      color: #64748b;
+      background: linear-gradient(
+        135deg,
+        rgba(248, 250, 252, 0.9) 0%,
+        rgba(241, 245, 249, 0.8) 100%
+      );
+      border: 1px solid rgba(226, 232, 240, 0.6);
+      padding: 3px 10px;
+      border-radius: 6px;
       display: inline-block;
       margin-bottom: 8px;
     }
 
     .filter-description {
-      font-size: 14px;
-      color: #606266;
-      line-height: 1.4;
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.5;
     }
 
     .filter-detail {
-      margin-top: 4px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #94a3b8;
 
       .detail-icon {
-         color: var(--el-text-color-primary);
+        color: #94a3b8;
         font-size: 14px;
         cursor: help;
+        margin-right: 4px;
 
         &:hover {
-          color: #409eff;
+          color: #667eea;
         }
       }
     }
@@ -745,14 +820,42 @@ watch(
     display: flex;
     gap: 8px;
     flex-shrink: 0;
+
+    :deep(.el-button) {
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    :deep(.el-button--primary) {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+    }
+
+    :deep(.el-button--success) {
+      background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+      border: none;
+    }
+
+    :deep(.el-button--warning) {
+      background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+      border: none;
+    }
+
+    :deep(.el-button--danger) {
+      background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+      border: none;
+    }
   }
 
   .filter-name-link {
     cursor: pointer;
-    color: #409eff;
-  }
-  .filter-name-link:hover {
-    text-decoration: underline;
+    color: #667eea;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
   }
 }
 
@@ -762,7 +865,22 @@ watch(
   gap: 12px;
 }
 
-// 响应式
+:deep(.el-empty) {
+  padding: 40px 20px;
+}
+
+:deep(.el-tag--success) {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #059669;
+}
+
+:deep(.el-tag--info) {
+  background: rgba(100, 116, 139, 0.1);
+  border-color: rgba(100, 116, 139, 0.3);
+  color: #475569;
+}
+
 @media (max-width: 1024px) {
   .config-container {
     grid-template-columns: 1fr;
@@ -772,6 +890,18 @@ watch(
   .available-filters,
   .installed-filters {
     height: 400px;
+  }
+
+  .filter-item {
+    flex-wrap: wrap;
+
+    .filter-actions {
+      width: 100%;
+      justify-content: flex-end;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(226, 232, 240, 0.6);
+    }
   }
 }
 </style>

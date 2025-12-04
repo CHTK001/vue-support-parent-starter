@@ -3,16 +3,26 @@ import { defineExpose, reactive, ref, defineAsyncComponent } from "vue";
 import { fetchUpdateSetting, fetchSaveSetting } from "../api";
 import { $t } from "@repo/config";
 import { message } from "@repo/utils";
-const ConfigValueInput = defineAsyncComponent(() => import("./ConfigValueInput.vue"));
+import ScDialog from "@repo/components/ScDialog/src/index.vue";
+
+const ConfigValueInput = defineAsyncComponent(
+  () => import("./ConfigValueInput.vue")
+);
 
 // 配置对象，包含所有状态和数据
 const config = reactive({
   visible: false,
   mode: "edit",
   rules: {
-    sysSettingName: [{ required: true, message: "请输入配置名称", trigger: "blur" }],
-    sysSettingValueType: [{ required: true, message: "请输入配置值类型", trigger: "blur" }],
-    sysSettingGroup: [{ required: true, message: "请输入配置所属分组", trigger: "blur" }],
+    sysSettingName: [
+      { required: true, message: "请输入配置名称", trigger: "blur" },
+    ],
+    sysSettingValueType: [
+      { required: true, message: "请输入配置值类型", trigger: "blur" },
+    ],
+    sysSettingGroup: [
+      { required: true, message: "请输入配置所属分组", trigger: "blur" },
+    ],
   },
   valueType: [
     { value: "String", label: "字符串" },
@@ -135,7 +145,8 @@ const resetTypeSelection = () => {
  */
 const toggleBooleanValue = () => {
   // 如果当前是true则改为false，反之亦然
-  config.data.sysSettingValue = config.data.sysSettingValue === "true" ? "false" : "true";
+  config.data.sysSettingValue =
+    config.data.sysSettingValue === "true" ? "false" : "true";
 };
 
 /**
@@ -255,15 +266,28 @@ defineExpose({
 
 <template>
   <div>
-    <el-dialog v-model="config.visible" :title="config.title" draggable :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" class="modern-dialog" @close="handleClose">
-      <!-- 类型图标 -->
-      <div class="dialog-type-icon" v-if="config.mode == 'edit' || config.mode == 'add'">
-        <IconifyIconOnline icon="ep:edit-pen" />
-      </div>
-
-      <el-form v-if="config.mode == 'edit'" ref="itemSaveRef" :rules="config.rules" :model="config.data" class="w-full modern-form" label-width="120px">
+    <ScDialog
+      v-model="config.visible"
+      :title="config.title"
+      draggable
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :destroy-on-close="true"
+      @close="handleClose"
+    >
+      <el-form
+        v-if="config.mode == 'edit'"
+        ref="itemSaveRef"
+        :rules="config.rules"
+        :model="config.data"
+        class="w-full modern-form"
+        label-width="120px"
+      >
         <el-form-item label="数据分组" prop="sysSettingGroup">
-          <el-input v-model="config.data.sysSettingGroup" placeholder="请输入配置所属分组">
+          <el-input
+            v-model="config.data.sysSettingGroup"
+            placeholder="请输入配置所属分组"
+          >
             <template #prefix>
               <IconifyIconOnline icon="ep:folder" />
             </template>
@@ -272,7 +296,10 @@ defineExpose({
         </el-form-item>
 
         <el-form-item label="名称" prop="sysSettingName">
-          <el-input v-model="config.data.sysSettingName" placeholder="请输入配置名称">
+          <el-input
+            v-model="config.data.sysSettingName"
+            placeholder="请输入配置名称"
+          >
             <template #prefix>
               <IconifyIconOnline icon="ep:edit" />
             </template>
@@ -281,30 +308,58 @@ defineExpose({
         </el-form-item>
 
         <el-form-item label="数据类型" prop="sysSettingValueType">
-          <el-select v-model="config.data.sysSettingValueType" placeholder="请选择">
-            <el-option v-for="item in config.valueType" :key="item.value" :label="item.label" :value="item.value">
+          <el-select
+            v-model="config.data.sysSettingValueType"
+            placeholder="请选择"
+          >
+            <el-option
+              v-for="item in config.valueType"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            >
               <div class="type-option">
-                <IconifyIconOnline :icon="getTypeIconName(item.value)" class="type-icon" />
+                <IconifyIconOnline
+                  :icon="getTypeIconName(item.value)"
+                  class="type-icon"
+                />
                 <span>{{ item.label }}</span>
               </div>
             </el-option>
           </el-select>
-          <div class="form-tip">选择配置项的数据类型，不同类型有不同的编辑方式</div>
+          <div class="form-tip">
+            选择配置项的数据类型，不同类型有不同的编辑方式
+          </div>
         </el-form-item>
 
         <el-form-item label="配置值" prop="sysSettingValue">
           <!-- 根据类型显示不同的输入组件 -->
-          <config-value-input v-model="config.data.sysSettingValue" :type="config.data.sysSettingValueType" :placeholder="getValuePlaceholder()" />
+          <config-value-input
+            v-model="config.data.sysSettingValue"
+            :type="config.data.sysSettingValueType"
+            :placeholder="getValuePlaceholder()"
+          />
           <div class="form-tip">{{ getValueDescription() }}</div>
         </el-form-item>
 
         <el-form-item label="描述" prop="sysSettingRemark">
-          <el-input v-model="config.data.sysSettingRemark" placeholder="请输入描述" type="textarea" :rows="3" />
-          <div class="form-tip">配置项的详细描述，帮助其他用户理解该配置的用途</div>
+          <el-input
+            v-model="config.data.sysSettingRemark"
+            placeholder="请输入描述"
+            type="textarea"
+            :rows="3"
+          />
+          <div class="form-tip">
+            配置项的详细描述，帮助其他用户理解该配置的用途
+          </div>
         </el-form-item>
 
         <el-form-item label="数据优先级" prop="sysSettingSort">
-          <el-input v-model="config.data.sysSettingSort" placeholder="请输入数据优先级" type="number">
+          <el-input
+            v-model="config.data.sysSettingSort"
+            placeholder="请输入数据优先级"
+            type="number"
+          >
             <template #prefix>
               <IconifyIconOnline icon="ep:sort" />
             </template>
@@ -314,17 +369,34 @@ defineExpose({
       </el-form>
 
       <!-- 新增表单 - 先选择类型 -->
-      <el-form v-else-if="config.mode == 'add'" ref="itemSaveRef" :rules="config.rules" :model="config.data" class="w-full modern-form" label-width="120px">
+      <el-form
+        v-else-if="config.mode == 'add'"
+        ref="itemSaveRef"
+        :rules="config.rules"
+        :model="config.data"
+        class="w-full modern-form"
+        label-width="120px"
+      >
         <!-- 类型选择步骤 -->
-        <div class="type-selection-container" v-if="!config.data.sysSettingValueType">
+        <div
+          class="type-selection-container"
+          v-if="!config.data.sysSettingValueType"
+        >
           <h3 class="type-selection-title">请选择配置类型</h3>
           <div class="type-cards">
-            <div v-for="item in config.valueType" :key="item.value" class="type-card" @click="selectType(item.value)">
+            <div
+              v-for="item in config.valueType"
+              :key="item.value"
+              class="type-card"
+              @click="selectType(item.value)"
+            >
               <div class="type-card-icon">
                 <IconifyIconOnline :icon="getTypeIconName(item.value)" />
               </div>
               <div class="type-card-label">{{ item.label }}</div>
-              <div class="type-card-desc">{{ getTypeDescription(item.value) }}</div>
+              <div class="type-card-desc">
+                {{ getTypeDescription(item.value) }}
+              </div>
             </div>
           </div>
         </div>
@@ -333,7 +405,9 @@ defineExpose({
         <template v-else>
           <div class="form-header">
             <div class="selected-type">
-              <IconifyIconOnline :icon="getTypeIconName(config.data.sysSettingValueType)" />
+              <IconifyIconOnline
+                :icon="getTypeIconName(config.data.sysSettingValueType)"
+              />
               <span>{{ getTypeLabel(config.data.sysSettingValueType) }}</span>
             </div>
             <el-button type="text" @click="resetTypeSelection">
@@ -343,7 +417,10 @@ defineExpose({
           </div>
 
           <el-form-item label="数据分组" prop="sysSettingGroup">
-            <el-input v-model="config.data.sysSettingGroup" placeholder="请输入配置所属分组">
+            <el-input
+              v-model="config.data.sysSettingGroup"
+              placeholder="请输入配置所属分组"
+            >
               <template #prefix>
                 <IconifyIconOnline icon="ep:folder" />
               </template>
@@ -352,7 +429,10 @@ defineExpose({
           </el-form-item>
 
           <el-form-item label="名称" prop="sysSettingName">
-            <el-input v-model="config.data.sysSettingName" placeholder="请输入配置名称">
+            <el-input
+              v-model="config.data.sysSettingName"
+              placeholder="请输入配置名称"
+            >
               <template #prefix>
                 <IconifyIconOnline icon="ep:edit" />
               </template>
@@ -362,17 +442,32 @@ defineExpose({
 
           <el-form-item label="配置值" prop="sysSettingValue">
             <!-- 根据类型显示不同的输入组件 -->
-            <config-value-input v-model="config.data.sysSettingValue" :type="config.data.sysSettingValueType" :placeholder="getValuePlaceholder()" />
+            <config-value-input
+              v-model="config.data.sysSettingValue"
+              :type="config.data.sysSettingValueType"
+              :placeholder="getValuePlaceholder()"
+            />
             <div class="form-tip">{{ getValueDescription() }}</div>
           </el-form-item>
 
           <el-form-item label="描述" prop="sysSettingRemark">
-            <el-input v-model="config.data.sysSettingRemark" placeholder="请输入描述" type="textarea" :rows="3" />
-            <div class="form-tip">配置项的详细描述，帮助其他用户理解该配置的用途</div>
+            <el-input
+              v-model="config.data.sysSettingRemark"
+              placeholder="请输入描述"
+              type="textarea"
+              :rows="3"
+            />
+            <div class="form-tip">
+              配置项的详细描述，帮助其他用户理解该配置的用途
+            </div>
           </el-form-item>
 
           <el-form-item label="数据优先级" prop="sysSettingSort">
-            <el-input v-model="config.data.sysSettingSort" placeholder="请输入数据优先级" type="number">
+            <el-input
+              v-model="config.data.sysSettingSort"
+              placeholder="请输入数据优先级"
+              type="number"
+            >
               <template #prefix>
                 <IconifyIconOnline icon="ep:sort" />
               </template>
@@ -388,75 +483,29 @@ defineExpose({
             <IconifyIconOnline icon="ep:close" />
             取 消
           </el-button>
-          <el-button v-if="config.mode == 'edit'" type="primary" @click="handleUpdate">
+          <el-button
+            v-if="config.mode == 'edit'"
+            type="primary"
+            @click="handleUpdate"
+          >
             <IconifyIconOnline icon="ep:check" />
             更 新
           </el-button>
-          <el-button v-if="config.mode == 'add' && config.data.sysSettingValueType" type="primary" @click="handleSave">
+          <el-button
+            v-if="config.mode == 'add' && config.data.sysSettingValueType"
+            type="primary"
+            @click="handleSave"
+          >
             <IconifyIconOnline icon="ep:plus" />
             保 存
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </ScDialog>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.modern-dialog {
-  :deep(.el-dialog) {
-    border-radius: 16px;
-    overflow: visible;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-
-    .el-dialog__header {
-      padding: 20px;
-      background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-9) 100%);
-      margin-right: 0;
-      border-bottom: 1px solid var(--el-border-color-light);
-
-      .el-dialog__title {
-        font-weight: 600;
-        font-size: 18px;
-        color: var(--el-color-primary);
-      }
-    }
-
-    .el-dialog__body {
-      padding: 30px 20px 20px;
-      max-height: 70vh;
-      overflow-y: auto;
-    }
-
-    .el-dialog__footer {
-      padding: 15px 20px;
-      border-top: 1px solid var(--el-border-color-light);
-    }
-  }
-}
-
-.dialog-type-icon {
-  position: absolute;
-  top: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background-color: var(--el-color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-  animation: bounce 1s ease-out;
-
-  :deep(svg) {
-    font-size: 24px;
-    color: var(--el-text-color-primary);
-  }
-}
-
 .modern-form {
   animation: fadeIn 0.5s ease-out;
 
@@ -634,22 +683,6 @@ defineExpose({
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes bounce {
-  0%,
-  20%,
-  50%,
-  80%,
-  100% {
-    transform: translateX(-50%) translateY(0);
-  }
-  40% {
-    transform: translateX(-50%) translateY(-20px);
-  }
-  60% {
-    transform: translateX(-50%) translateY(-10px);
   }
 }
 

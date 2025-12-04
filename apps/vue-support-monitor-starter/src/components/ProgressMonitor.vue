@@ -24,15 +24,12 @@
               <div class="operation-header">
                 <div class="operation-title">{{ operation.title }}</div>
                 <div class="operation-status">
-                  <el-tag
-                    :type="getStatusType(operation.status)"
-                    size="small"
-                  >
+                  <el-tag :type="getStatusType(operation.status)" size="small">
                     {{ getStatusText(operation.status) }}
                   </el-tag>
                 </div>
               </div>
-              
+
               <div class="operation-progress">
                 <el-progress
                   :percentage="operation.progress"
@@ -40,9 +37,9 @@
                   :stroke-width="6"
                 />
               </div>
-              
+
               <div class="operation-message">{{ operation.message }}</div>
-              
+
               <div class="operation-time">
                 开始时间: {{ formatTime(operation.startTime) }}
                 <span v-if="operation.endTime">
@@ -86,7 +83,10 @@
             </div>
           </div>
           <div v-else class="no-notifications">
-            <IconifyIconOnline icon="ri:notification-off-line" class="empty-icon" />
+            <IconifyIconOnline
+              icon="ri:notification-off-line"
+              class="empty-icon"
+            />
             <span>暂无通知</span>
           </div>
         </div>
@@ -117,10 +117,7 @@
     </div>
 
     <!-- 迷你进度条（当有活跃操作时显示在页面顶部） -->
-    <div
-      v-if="hasActiveOperations && !drawerVisible"
-      class="mini-progress-bar"
-    >
+    <div v-if="hasActiveOperations && !drawerVisible" class="mini-progress-bar">
       <div
         v-for="operation in activeOperations.slice(0, 3)"
         :key="operation.id"
@@ -128,7 +125,9 @@
       >
         <div class="mini-progress-info">
           <span class="mini-title">{{ operation.title }}</span>
-          <span class="mini-percentage">{{ operation.progress.toFixed(0) }}%</span>
+          <span class="mini-percentage"
+            >{{ operation.progress.toFixed(0) }}%</span
+          >
         </div>
         <el-progress
           :percentage="operation.progress"
@@ -142,29 +141,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
-import { useGlobalSocket } from '@repo/core'
+import { ref, computed, reactive, onMounted, onUnmounted } from "vue";
+import { useGlobalSocket } from "@repo/core";
 
 // 定义类型
 export interface OperationProgress {
-  id: string
-  type: 'pull_image' | 'start_container' | 'install_software' | 'sync_software'
-  title: string
-  status: 'pending' | 'running' | 'success' | 'error'
-  progress: number
-  message: string
-  startTime: Date
-  endTime?: Date
-  data?: any
+  id: string;
+  type: "pull_image" | "start_container" | "install_software" | "sync_software";
+  title: string;
+  status: "pending" | "running" | "success" | "error";
+  progress: number;
+  message: string;
+  startTime: Date;
+  endTime?: Date;
+  data?: any;
 }
 
 export interface ProgressNotification {
-  id: string
-  type: 'success' | 'error' | 'warning' | 'info'
-  title: string
-  message: string
-  timestamp: Date
-  duration?: number
+  id: string;
+  type: "success" | "error" | "warning" | "info";
+  title: string;
+  message: string;
+  timestamp: Date;
+  duration?: number;
 }
 
 // Socket状态
@@ -172,207 +171,385 @@ const socketState = reactive({
   connected: false,
   connecting: false,
   error: null as string | null,
-  reconnectAttempts: 0
-})
+  reconnectAttempts: 0,
+});
 
 // 进度状态
 const progressState = reactive({
   activeOperations: new Map<string, OperationProgress>(),
-  notifications: [] as ProgressNotification[]
-})
+  notifications: [] as ProgressNotification[],
+});
 
-const drawerVisible = ref(false)
+const drawerVisible = ref(false);
 
 // 计算属性
-const activeOperations = computed(() => Array.from(progressState.activeOperations.values()))
-const notifications = computed(() => progressState.notifications)
-const hasActiveOperations = computed(() => activeOperations.value.length > 0)
+const activeOperations = computed(() =>
+  Array.from(progressState.activeOperations.values())
+);
+const notifications = computed(() => progressState.notifications);
+const hasActiveOperations = computed(() => activeOperations.value.length > 0);
 
 // 方法
 const toggleDrawer = () => {
-  drawerVisible.value = !drawerVisible.value
-}
+  drawerVisible.value = !drawerVisible.value;
+};
 
 const getStatusType = (status: string) => {
   const map = {
-    pending: 'info',
-    running: 'primary', 
-    success: 'success',
-    error: 'danger'
-  }
-  return map[status] || 'info'
-}
+    pending: "info",
+    running: "primary",
+    success: "success",
+    error: "danger",
+  };
+  return map[status] || "info";
+};
 
 const getStatusText = (status: string) => {
   const map = {
-    pending: '等待中',
-    running: '进行中',
-    success: '已完成',
-    error: '失败'
-  }
-  return map[status] || '未知'
-}
+    pending: "等待中",
+    running: "进行中",
+    success: "已完成",
+    error: "失败",
+  };
+  return map[status] || "未知";
+};
 
 const getProgressStatus = (status: string) => {
-  if (status === 'success') return 'success'
-  if (status === 'error') return 'exception'
-  return undefined
-}
+  if (status === "success") return "success";
+  if (status === "error") return "exception";
+  return undefined;
+};
 
 const getNotificationIcon = (type: string) => {
   const map = {
-    success: 'ri:check-line',
-    error: 'ri:error-warning-line',
-    warning: 'ri:alert-line',
-    info: 'ri:information-line'
-  }
-  return map[type] || 'ri:notification-line'
-}
+    success: "ri:check-line",
+    error: "ri:error-warning-line",
+    warning: "ri:alert-line",
+    info: "ri:information-line",
+  };
+  return map[type] || "ri:notification-line";
+};
 
 const formatTime = (date: Date) => {
-  return date.toLocaleTimeString()
-}
+  return date.toLocaleTimeString();
+};
 
 const formatRelativeTime = (date: Date) => {
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
 
-  if (days > 0) return `${days}天前`
-  if (hours > 0) return `${hours}小时前`
-  if (minutes > 0) return `${minutes}分钟前`
-  return '刚刚'
-}
+  if (days > 0) return `${days}天前`;
+  if (hours > 0) return `${hours}小时前`;
+  if (minutes > 0) return `${minutes}分钟前`;
+  return "刚刚";
+};
 
 const getElapsedTime = (startTime: Date) => {
-  const now = new Date()
-  const diff = now.getTime() - startTime.getTime()
-  const seconds = Math.floor(diff / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
+  const now = new Date();
+  const diff = now.getTime() - startTime.getTime();
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
 
-  if (hours > 0) return `${hours}:${String(minutes % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
-  if (minutes > 0) return `${minutes}:${String(seconds % 60).padStart(2, '0')}`
-  return `${seconds}秒`
-}
+  if (hours > 0)
+    return `${hours}:${String(minutes % 60).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+  if (minutes > 0) return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
+  return `${seconds}秒`;
+};
 
 const clearAllNotifications = () => {
-  progressState.notifications = []
-}
+  progressState.notifications = [];
+};
+
+// 添加通知
+const addNotification = (
+  type: "success" | "error" | "warning" | "info",
+  title: string,
+  message: string
+) => {
+  const notification: ProgressNotification = {
+    id: `notification_${Date.now()}`,
+    type,
+    title,
+    message,
+    timestamp: new Date(),
+  };
+  progressState.notifications.unshift(notification);
+
+  // 限制通知数量
+  if (progressState.notifications.length > 50) {
+    progressState.notifications = progressState.notifications.slice(0, 50);
+  }
+};
 
 // 获取全局Socket服务
-const globalSocket = useGlobalSocket()
+const globalSocket = useGlobalSocket();
 
 // 处理Socket事件
 function setupSocketListeners() {
   if (!globalSocket) {
-    console.warn('Global Socket服务未初始化')
-    return
+    console.warn("Global Socket服务未初始化");
+    return;
   }
-  
+
   // 监听连接状态
-  globalSocket.on('connect', () => {
-    socketState.connected = true
-    socketState.connecting = false
-    socketState.reconnectAttempts = 0
-  })
-  
-  globalSocket.on('disconnect', () => {
-    socketState.connected = false
-  })
-  
-  globalSocket.on('connect_error', (error: any) => {
-    socketState.connecting = false
-    socketState.error = error?.message || '连接失败'
-    socketState.reconnectAttempts++
-  })
-  
+  globalSocket.on("connect", () => {
+    socketState.connected = true;
+    socketState.connecting = false;
+    socketState.reconnectAttempts = 0;
+  });
+
+  globalSocket.on("disconnect", () => {
+    socketState.connected = false;
+  });
+
+  globalSocket.on("connect_error", (error: any) => {
+    socketState.connecting = false;
+    socketState.error = error?.message || "连接失败";
+    socketState.reconnectAttempts++;
+  });
+
   // 监听操作进度
-  globalSocket.on('operation_progress', (data: any) => {
+  globalSocket.on("operation_progress", (data: any) => {
     const operation: OperationProgress = {
       id: data.operationId,
       type: data.type as any,
       title: data.title,
-      status: (data.status as any) || 'running',
+      status: (data.status as any) || "running",
       progress: data.progress,
       message: data.message,
-      startTime: progressState.activeOperations.get(data.operationId)?.startTime || new Date()
-    }
-    progressState.activeOperations.set(data.operationId, operation)
-  })
-  
+      startTime:
+        progressState.activeOperations.get(data.operationId)?.startTime ||
+        new Date(),
+    };
+    progressState.activeOperations.set(data.operationId, operation);
+  });
+
   // 监听操作完成
-  globalSocket.on('operation_complete', (data: any) => {
-    const operation = progressState.activeOperations.get(data.operationId)
+  globalSocket.on("operation_complete", (data: any) => {
+    const operation = progressState.activeOperations.get(data.operationId);
     if (operation) {
-      operation.status = 'success'
-      operation.progress = 100
-      operation.endTime = new Date()
-      operation.message = data.message || '操作完成'
-      
+      operation.status = "success";
+      operation.progress = 100;
+      operation.endTime = new Date();
+      operation.message = data.message || "操作完成";
+
       setTimeout(() => {
-        progressState.activeOperations.delete(data.operationId)
-      }, 5000)
+        progressState.activeOperations.delete(data.operationId);
+      }, 5000);
     }
-  })
-  
+  });
+
   // 监听操作错误
-  globalSocket.on('operation_error', (data: any) => {
-    const operation = progressState.activeOperations.get(data.operationId)
+  globalSocket.on("operation_error", (data: any) => {
+    const operation = progressState.activeOperations.get(data.operationId);
     if (operation) {
-      operation.status = 'error'
-      operation.endTime = new Date()
-      operation.message = data.error
-      
+      operation.status = "error";
+      operation.endTime = new Date();
+      operation.message = data.error;
+
       setTimeout(() => {
-        progressState.activeOperations.delete(data.operationId)
-      }, 10000)
+        progressState.activeOperations.delete(data.operationId);
+      }, 10000);
     }
-  })
-  
-  // 监听Docker镜像拉取进度
-  globalSocket.on('docker_image_pull_progress', (data: any) => {
-    const operationId = `pull_image_${data.imageId}`
+  });
+
+  // 监听Docker镜像拉取进度（兼容旧事件名）
+  globalSocket.on("docker_image_pull_progress", (data: any) => {
+    const operationId = `pull_image_${data.imageId}`;
     const operation: OperationProgress = {
       id: operationId,
-      type: 'pull_image',
+      type: "pull_image",
       title: `拉取镜像: ${data.imageName}`,
-      status: 'running',
+      status: "running",
       progress: data.progress,
       message: data.message,
-      startTime: progressState.activeOperations.get(operationId)?.startTime || new Date()
+      startTime:
+        progressState.activeOperations.get(operationId)?.startTime ||
+        new Date(),
+    };
+    progressState.activeOperations.set(operationId, operation);
+  });
+
+  // 监听Docker操作开始事件
+  globalSocket.on("docker_start", (data: any) => {
+    const operationId = `docker_${data.operation}_${data.imageName}`;
+    const operation: OperationProgress = {
+      id: operationId,
+      type: data.operation === "PULL" ? "pull_image" : "install_software",
+      title: `${data.operation === "PULL" ? "拉取" : "操作"}镜像: ${data.imageName}`,
+      status: "running",
+      progress: 0,
+      message: "正在开始...",
+      startTime: new Date(),
+    };
+    progressState.activeOperations.set(operationId, operation);
+
+    // 添加通知
+    addNotification(
+      "info",
+      "操作开始",
+      `开始${data.operation === "PULL" ? "拉取" : "处理"}镜像: ${data.imageName}`
+    );
+  });
+
+  // 监听Docker操作进度事件
+  globalSocket.on("docker_progress", (data: any) => {
+    const operationId = `docker_${data.operation}_${data.imageName}`;
+    const existing = progressState.activeOperations.get(operationId);
+
+    // 解析进度信息
+    let progress = 0;
+    let message = data.status || "处理中...";
+
+    // 尝试从progress字段解析百分比
+    if (data.progress) {
+      const match = data.progress.match(/(\d+)%/);
+      if (match) {
+        progress = parseInt(match[1], 10);
+      }
     }
-    progressState.activeOperations.set(operationId, operation)
-  })
+
+    // 如果有id字段，说明是分层下载
+    if (data.id) {
+      message = `[${data.id}] ${data.status || ""} ${data.progress || ""}`;
+    }
+
+    const operation: OperationProgress = {
+      id: operationId,
+      type: data.operation === "PULL" ? "pull_image" : "install_software",
+      title: `${data.operation === "PULL" ? "拉取" : "操作"}镜像: ${data.imageName}`,
+      status: "running",
+      progress: progress || existing?.progress || 0,
+      message: message,
+      startTime: existing?.startTime || new Date(),
+    };
+    progressState.activeOperations.set(operationId, operation);
+  });
+
+  // 监听Docker操作完成事件
+  globalSocket.on("docker_complete", (data: any) => {
+    const operationId = `docker_${data.operation}_${data.imageName}`;
+    const existing = progressState.activeOperations.get(operationId);
+
+    if (existing) {
+      existing.status = "success";
+      existing.progress = 100;
+      existing.endTime = new Date();
+      existing.message = `操作完成，耗时: ${data.duration || 0}秒`;
+
+      // 添加成功通知
+      addNotification(
+        "success",
+        "操作完成",
+        `镜像 ${data.imageName} ${data.operation === "PULL" ? "拉取" : "处理"}完成`
+      );
+
+      // 5秒后移除
+      setTimeout(() => {
+        progressState.activeOperations.delete(operationId);
+      }, 5000);
+    }
+  });
+
+  // 监听软件同步进度事件
+  globalSocket.on("software_sync_progress", (data: any) => {
+    const operationId = data.operationId || `sync_${data.serverId}`;
+    const existing = progressState.activeOperations.get(operationId);
+
+    const operation: OperationProgress = {
+      id: operationId,
+      type: "sync_software",
+      title: `同步镜像: ${data.serverName || "服务器-" + data.serverId}`,
+      status: "running",
+      progress: data.progress || 0,
+      message: data.message || "同步中...",
+      startTime: existing?.startTime || new Date(),
+    };
+    progressState.activeOperations.set(operationId, operation);
+  });
+
+  // 监听Docker操作错误事件
+  globalSocket.on("docker_error", (data: any) => {
+    const operationId = `docker_${data.operation}_${data.imageName}`;
+    const existing = progressState.activeOperations.get(operationId);
+
+    if (existing) {
+      existing.status = "error";
+      existing.endTime = new Date();
+      existing.message = data.errorMessage || "操作失败";
+
+      // 添加错误通知
+      addNotification(
+        "error",
+        "操作失败",
+        `镜像 ${data.imageName}: ${data.errorMessage || "未知错误"}`
+      );
+
+      // 10秒后移除
+      setTimeout(() => {
+        progressState.activeOperations.delete(operationId);
+      }, 10000);
+    } else {
+      // 如果没有找到对应的操作，直接创建一个错误状态的操作
+      const operation: OperationProgress = {
+        id: operationId,
+        type: "pull_image",
+        title: `镜像: ${data.imageName}`,
+        status: "error",
+        progress: 0,
+        message: data.errorMessage || "操作失败",
+        startTime: new Date(),
+        endTime: new Date(),
+      };
+      progressState.activeOperations.set(operationId, operation);
+
+      addNotification(
+        "error",
+        "操作失败",
+        `镜像 ${data.imageName}: ${data.errorMessage || "未知错误"}`
+      );
+
+      setTimeout(() => {
+        progressState.activeOperations.delete(operationId);
+      }, 10000);
+    }
+  });
 }
 
 function cleanupSocketListeners() {
-  if (!globalSocket) return
-  
-  globalSocket.off('connect')
-  globalSocket.off('disconnect')
-  globalSocket.off('connect_error')
-  globalSocket.off('operation_progress')
-  globalSocket.off('operation_complete')
-  globalSocket.off('operation_error')
-  globalSocket.off('docker_image_pull_progress')
+  if (!globalSocket) return;
+
+  globalSocket.off("connect");
+  globalSocket.off("disconnect");
+  globalSocket.off("connect_error");
+  globalSocket.off("operation_progress");
+  globalSocket.off("operation_complete");
+  globalSocket.off("operation_error");
+  globalSocket.off("docker_image_pull_progress");
+  globalSocket.off("docker_start");
+  globalSocket.off("docker_progress");
+  globalSocket.off("docker_complete");
+  globalSocket.off("docker_error");
+  globalSocket.off("software_sync_progress");
 }
 
 // 生命周期
 onMounted(() => {
-  setupSocketListeners()
-  
+  setupSocketListeners();
+
   // 更新连接状态
   if (globalSocket) {
-    socketState.connected = globalSocket.isConnected
+    socketState.connected = globalSocket.isConnected;
   }
-})
+});
 
 onUnmounted(() => {
-  cleanupSocketListeners()
-})
+  cleanupSocketListeners();
+});
 </script>
 
 <style scoped>
@@ -430,8 +607,12 @@ onUnmounted(() => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .fab-badge {

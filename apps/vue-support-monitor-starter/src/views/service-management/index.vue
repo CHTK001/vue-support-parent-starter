@@ -1,40 +1,36 @@
 <template>
   <div class="service-management-container">
     <!-- 统计卡片 -->
-    <div class="statistics-cards">
-      <el-card class="stat-card">
-        <div class="stat-content">
-          <div class="stat-icon total">
-            <IconifyIconOnline icon="ri:server-line" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ statistics.total || 0 }}</div>
-            <div class="stat-label">总服务器数</div>
-          </div>
-        </div>
-      </el-card>
-      <el-card class="stat-card">
-        <div class="stat-content">
-          <div class="stat-icon running">
-            <IconifyIconOnline icon="ri:play-circle-line" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ statistics.running || 0 }}</div>
-            <div class="stat-label">运行中</div>
-          </div>
-        </div>
-      </el-card>
-      <el-card class="stat-card">
-        <div class="stat-content">
-          <div class="stat-icon stopped">
-            <IconifyIconOnline icon="ri:stop-circle-line" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ statistics.stopped || 0 }}</div>
-            <div class="stat-label">已停止</div>
-          </div>
-        </div>
-      </el-card>
+    <div class="stats-section">
+      <div class="stats-grid">
+        <ScCard
+          layout="stats"
+          theme="primary"
+          icon="ri:server-line"
+          :value="statistics.total || 0"
+          label="总服务器数"
+          trend-icon="ri:stack-line"
+          trend-text="全部服务"
+        />
+        <ScCard
+          layout="stats"
+          theme="success"
+          icon="ri:play-circle-line"
+          :value="statistics.running || 0"
+          label="运行中"
+          trend-icon="ri:checkbox-circle-line"
+          trend-text="正常运行"
+        />
+        <ScCard
+          layout="stats"
+          theme="warning"
+          icon="ri:stop-circle-line"
+          :value="statistics.stopped || 0"
+          label="已停止"
+          trend-icon="ri:pause-circle-line"
+          trend-text="已暂停"
+        />
+      </div>
     </div>
 
     <!-- 筛选条件 -->
@@ -313,15 +309,15 @@
 
 <script setup lang="ts">
 import {
-    deleteSystemServer,
-    getAvailableServerTypes,
-    getSystemServerPage,
-    getSystemServerStatistics,
-    restartSystemServer,
-    startSystemServer,
-    stopSystemServer,
-    type SystemServer,
-    type SystemServerStatistics,
+  deleteSystemServer,
+  getAvailableServerTypes,
+  getSystemServerPage,
+  getSystemServerStatistics,
+  restartSystemServer,
+  startSystemServer,
+  stopSystemServer,
+  type SystemServer,
+  type SystemServerStatistics,
 } from "@/api/system-server";
 import { getProtocolIcon } from "@/components/protocol-icons";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -329,6 +325,7 @@ import { onMounted, reactive, ref } from "vue";
 import ServerCloneDialog from "./components/ServerCloneDialog.vue";
 import ServerConfigDialog from "./components/ServerConfigDialog.vue";
 import ServerFormDialog from "./components/ServerFormDialog.vue";
+import ScCard from "@repo/components/ScCard/index.vue";
 
 // 页面标题
 defineOptions({
@@ -647,8 +644,12 @@ onMounted(() => {
 <style lang="scss" scoped>
 .service-management-container {
   padding: 24px;
-  height: 100%;
-  background: var(--el-bg-color-overlay);
+  min-height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(248, 250, 252, 0.98) 0%,
+    rgba(241, 245, 249, 0.95) 100%
+  );
   display: flex;
   flex-direction: column;
 }
@@ -680,97 +681,97 @@ onMounted(() => {
   }
 }
 
-// 统计卡片
-.statistics-cards {
+// 统计卡片区域
+.stats-section {
+  margin-bottom: 20px;
+}
+
+.stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  margin-bottom: 24px;
+}
 
-  .stat-card {
-    border-radius: 12px;
-    border: none;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-    }
-
-    .stat-content {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-
-      .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        color: var(--el-text-color-primary);
-
-        &.total {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        &.running {
-          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        &.stopped {
-          background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-        }
-      }
-
-      .stat-info {
-        .stat-value {
-          font-size: 28px;
-          font-weight: 600;
-          color: var(--el-text-color-primary);
-          line-height: 1;
-        }
-
-        .stat-label {
-          font-size: 14px;
-           color: var(--el-text-color-primary);
-          margin-top: 4px;
-        }
-      }
-    }
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
   }
 }
 
 // 筛选卡片
 .filter-card {
   margin-bottom: 24px;
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.9) 100%
+  );
+  backdrop-filter: blur(10px);
 
   .filter-content {
-    padding: 8px 0;
+    padding: 12px 0;
 
     .el-form {
       .action-buttons {
-        margin-left: 16px;
-        padding-left: 16px;
-        border-left: 1px solid #e4e7ed;
+        margin-left: 20px;
+        padding-left: 20px;
+        border-left: 2px solid rgba(102, 126, 234, 0.2);
 
         .el-button {
-          margin-left: 8px;
-          border-radius: 8px;
+          margin-left: 10px;
+          border-radius: 10px;
           font-weight: 500;
+          transition: all 0.3s ease;
 
           &:first-child {
             margin-left: 0;
           }
+
+          &:hover {
+            transform: translateY(-2px);
+          }
+
+          &.el-button--primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+
+            &:hover {
+              box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+            }
+          }
         }
       }
     }
+  }
+
+  :deep(.el-input__wrapper) {
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: #667eea;
+    }
+
+    &.is-focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    }
+  }
+
+  :deep(.el-select .el-input__wrapper) {
+    border-radius: 10px;
   }
 }
 
@@ -779,42 +780,61 @@ onMounted(() => {
   flex: 1;
   .server-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
     margin-bottom: 24px;
   }
 
   .server-card {
-    border-radius: 8px;
-    border: 1px solid var(--el-border-color);
-     background: var(--el-bg-color-overlay);
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
+    border-radius: 18px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(248, 250, 252, 0.95) 100%
+    );
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    padding: 10px;
+    padding: 18px;
+    backdrop-filter: blur(10px);
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--card-accent, #e5e7eb);
+      transition: height 0.3s ease;
+    }
+
     &:hover {
-      transform: translateY(-2px);
-      box-shadow:
-        0 4px 6px -1px rgba(0, 0, 0, 0.1),
-        0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transform: translateY(-6px) scale(1.01);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+
+      &::before {
+        height: 5px;
+      }
     }
 
     &.server-running {
-      border-left: 3px solid #67c23a;
+      --card-accent: linear-gradient(90deg, #10b981 0%, #34d399 100%);
     }
 
     &.server-stopped {
-      border-left: 3px solid #909399;
+      --card-accent: linear-gradient(90deg, #94a3b8 0%, #cbd5e1 100%);
     }
 
     &.server-transitioning {
-      border-left: 3px solid #e6a23c;
+      --card-accent: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
       animation: pulse 2s infinite;
     }
 
     &.server-error {
-      border-left: 3px solid #f56c6c;
+      --card-accent: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
     }
 
     .server-header {
@@ -822,29 +842,37 @@ onMounted(() => {
       justify-content: space-between;
       align-items: center;
       margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.6);
 
       .server-title {
         flex: 1;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 14px;
 
         .server-icon {
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 8px;
-          background: #f1f5f9;
-          color: #64748b;
-          transition: all 0.2s ease;
+          border-radius: 12px;
+          background: linear-gradient(
+            135deg,
+            rgba(102, 126, 234, 0.1) 0%,
+            rgba(118, 75, 162, 0.08) 100%
+          );
+          color: #667eea;
+          transition: all 0.3s ease;
 
           &:hover {
-            background: #e2e8f0;
-            color: #475569;
+            background: linear-gradient(
+              135deg,
+              rgba(102, 126, 234, 0.15) 0%,
+              rgba(118, 75, 162, 0.12) 100%
+            );
+            transform: scale(1.05);
           }
 
           .protocol-icon {
@@ -859,9 +887,9 @@ onMounted(() => {
 
           h3 {
             margin: 0;
-            font-size: 16px;
+            font-size: 17px;
             font-weight: 600;
-            color: #2c3e50;
+            color: #1e293b;
             letter-spacing: -0.3px;
             white-space: nowrap;
             overflow: hidden;
@@ -869,12 +897,13 @@ onMounted(() => {
           }
 
           .el-tag {
-            margin-top: 4px;
-            font-weight: 500;
+            margin-top: 6px;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            padding: 4px 8px;
-            border-radius: 6px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
           }
         }
       }
@@ -882,14 +911,15 @@ onMounted(() => {
       .server-actions {
         margin-left: 16px;
         opacity: 0;
-        transition: opacity 0.3s ease;
+        transform: translateY(-4px);
+        transition: all 0.3s ease;
 
         .el-button {
           padding: 8px;
-          border-radius: 8px;
+          border-radius: 10px;
 
           &:hover {
-            background: rgba(0, 0, 0, 0.05);
+            background: rgba(102, 126, 234, 0.1);
           }
         }
       }
@@ -898,37 +928,49 @@ onMounted(() => {
     &:hover {
       .server-actions {
         opacity: 1;
+        transform: translateY(0);
       }
     }
 
     .server-info {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-bottom: 12px;
+      gap: 10px;
+      margin-bottom: 16px;
 
       .info-item {
-        padding: 6px;
-        background: #f8fafc;
-        border-radius: 4px;
-        transition: all 0.2s ease;
+        padding: 10px 12px;
+        background: linear-gradient(
+          135deg,
+          rgba(248, 250, 252, 0.9) 0%,
+          rgba(241, 245, 249, 0.8) 100%
+        );
+        border: 1px solid rgba(226, 232, 240, 0.6);
+        border-radius: 10px;
+        transition: all 0.3s ease;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         cursor: help;
 
         &:hover {
-          background: #f1f5f9;
+          background: linear-gradient(
+            135deg,
+            rgba(241, 245, 249, 0.95) 0%,
+            rgba(226, 232, 240, 0.9) 100%
+          );
+          border-color: rgba(102, 126, 234, 0.3);
+          transform: translateY(-2px);
         }
 
         .iconify-icon {
-          font-size: 16px;
-          color: #64748b;
+          font-size: 18px;
+          color: #667eea;
           flex-shrink: 0;
         }
 
         .info-value {
-          font-size: 12px;
+          font-size: 13px;
           color: #334155;
           font-weight: 500;
           flex: 1;
@@ -946,54 +988,62 @@ onMounted(() => {
     .server-footer {
       .server-controls {
         display: flex;
-        gap: 16px;
+        gap: 12px;
 
         .el-button {
           flex: 1;
-          border-radius: 4px;
-          font-weight: 500;
-          height: 28px;
-          font-size: 12px;
-          padding: 0 12px;
+          border-radius: 10px;
+          font-weight: 600;
+          height: 36px;
+          font-size: 13px;
+          padding: 0 16px;
           transition: all 0.3s ease;
 
+          &:hover {
+            transform: translateY(-2px);
+          }
+
           &.el-button--success {
-            background: #10b981;
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
             border: none;
-            color: var(--el-text-color-primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 
             &:hover {
-              background: #059669;
+              box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
             }
           }
 
           &.el-button--danger {
-            background: #ef4444;
+            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
             border: none;
-            color: var(--el-text-color-primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 
             &:hover {
-              background: #dc2626;
+              box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
             }
           }
 
           &.el-button--warning {
-            background: #f59e0b;
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
             border: none;
-            color: var(--el-text-color-primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 
             &:hover {
-              background: #d97706;
+              box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
             }
           }
 
           &.el-button--primary {
-            background: #3b82f6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
-            color: var(--el-text-color-primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 
             &:hover {
-              background: #2563eb;
+              box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
             }
           }
 
@@ -1107,87 +1157,44 @@ onMounted(() => {
   }
 }
 
-/* Modern enhancements for service cards */
-.server-list .server-card {
-  border-radius: 14px;
-  padding: 16px;
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
-  border: 1px solid transparent;
-  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease,
-    background 0.25s ease;
+/* 标签样式增强 */
+:deep(.el-tag--success) {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.15) 0%,
+    rgba(52, 211, 153, 0.1) 100%
+  );
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #059669;
 }
 
-.server-list .server-card::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 3px;
-  background: var(--card-accent, #e5e7eb);
+:deep(.el-tag--warning) {
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.15) 0%,
+    rgba(251, 191, 36, 0.1) 100%
+  );
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #d97706;
 }
 
-.server-list .server-card.server-running {
-  --card-accent: #10b981;
-}
-.server-list .server-card.server-stopped {
-  --card-accent: #94a3b8;
-}
-.server-list .server-card.server-transitioning {
-  --card-accent: #f59e0b;
-}
-.server-list .server-card.server-error {
-  --card-accent: #ef4444;
+:deep(.el-tag--danger) {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.15) 0%,
+    rgba(248, 113, 113, 0.1) 100%
+  );
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #dc2626;
 }
 
-.server-list .server-card:hover {
-  transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 12px 28px rgba(17, 24, 39, 0.12);
-}
-
-/* Subtle slide-in for actions */
-.server-list .server-card .server-actions {
-  opacity: 0;
-  transform: translateY(-4px);
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
-}
-.server-list .server-card:hover .server-actions {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Info grid pill look */
-.server-list .server-card .server-info .info-item {
-  background: #f8fafc;
-  border: 1px solid #eef2f7;
-  border-radius: 8px;
-  padding: 8px 10px;
-}
-.server-list .server-card .server-info .info-item:hover {
-  background: #f1f5f9;
-  border-color: #e5eaf0;
-}
-
-/* Title optics */
-.server-list .server-card .server-title-content h3 {
-  font-size: 17px;
-  letter-spacing: -0.2px;
-}
-
-/* Better buttons contrast on cards */
-.server-list .server-card .server-footer .server-controls .el-button {
-  border-radius: 8px;
-}
-
-@media (max-width: 768px) {
-  .server-list .server-card {
-    border-radius: 12px;
-    padding: 14px;
-  }
+:deep(.el-tag--info) {
+  background: linear-gradient(
+    135deg,
+    rgba(100, 116, 139, 0.15) 0%,
+    rgba(148, 163, 184, 0.1) 100%
+  );
+  border-color: rgba(100, 116, 139, 0.3);
+  color: #475569;
 }
 </style>

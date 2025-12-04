@@ -92,14 +92,32 @@
                       </div>
                     </el-option>
 
-                    <!-- 分隔线 -->
+                    <!-- 分隔线（仅在有分组时显示） -->
                     <el-option
+                      v-if="serverGroups.length > 0"
                       disabled
                       value=""
                       label=""
                       class="divider-option"
                     >
                       <div class="option-divider"></div>
+                    </el-option>
+
+                    <!-- 无分组提示 -->
+                    <el-option
+                      v-if="serverGroups.length === 0"
+                      disabled
+                      value=""
+                      label=""
+                      class="empty-tip-option"
+                    >
+                      <div class="empty-tip">
+                        <IconifyIconOnline
+                          icon="ri:information-line"
+                          class="mr-1"
+                        />
+                        暂无分组，请先新建
+                      </div>
                     </el-option>
 
                     <!-- 现有组选项 -->
@@ -609,17 +627,26 @@
 
     <template #footer>
       <div class="dialog-footer">
+        <div class="footer-tips">
+          <IconifyIconOnline icon="ri:information-line" class="tip-icon" />
+          <span>请填写完整的服务器信息</span>
+        </div>
         <div class="footer-right">
-          <el-button @click="visible = false">
+          <el-button class="cancel-btn" @click="visible = false">
             <IconifyIconOnline icon="ri:close-line" class="mr-1" />
             取消
           </el-button>
-          <el-button type="primary" :loading="loading" @click="handleSubmit">
+          <el-button
+            class="submit-btn"
+            type="primary"
+            :loading="loading"
+            @click="handleSubmit"
+          >
             <IconifyIconOnline
               :icon="mode === 'add' ? 'ri:add-line' : 'ri:save-line'"
               class="mr-1"
             />
-            {{ mode === "add" ? "新增" : "保存" }}
+            {{ mode === "add" ? "新增服务器" : "保存修改" }}
           </el-button>
         </div>
       </div>
@@ -634,19 +661,18 @@
 </template>
 
 <script setup lang="ts">
-import { type ServerProxy } from "@/api/monitor/gen/server-proxy";
+import { type ServerProxy, getServerProxyPageList } from "@/api/server/proxy";
 import {
-    type ServerDisplayData,
-    saveServer,
-    testLocalIpDetection,
-    updateServer
+  type ServerDisplayData,
+  saveServer,
+  testLocalIpDetection,
+  updateServer,
 } from "@/api/server";
 import {
-    type ServerGroup,
-    getDefaultGroup,
-    getEnabledServerGroups,
+  type ServerGroup,
+  getDefaultGroup,
+  getEnabledServerGroups,
 } from "@/api/server/group";
-import { getServerProxyPageList } from "@/api/server/proxy";
 // 服务器设置相关导入已移除，配置功能在专门的服务器配置页面中
 import { message } from "@repo/utils";
 import { computed, nextTick, reactive, ref } from "vue";
@@ -855,9 +881,6 @@ const open = async (editMode: "add" | "edit" = "add") => {
         defaultGroup.value.monitorSysGenServerGroupId || null;
     }
   }
-
-  // 加载代理列表
-  loadProxyList();
 };
 
 /**
@@ -917,11 +940,25 @@ const setData = async (data: ServerDisplayData | any) => {
 const loadServerGroups = async () => {
   try {
     const result = await getEnabledServerGroups();
-    if (result.success && result.data) {
-      serverGroups.value = result.data;
+    console.log("服务器组API响应:", JSON.stringify(result, null, 2));
+
+    // 兼容多种数据结构
+    let groups: ServerGroup[] = [];
+    if (result?.data) {
+      if (Array.isArray(result.data)) {
+        groups = result.data;
+      } else if (Array.isArray((result.data as any)?.records)) {
+        groups = (result.data as any).records;
+      } else if (Array.isArray((result.data as any)?.data)) {
+        groups = (result.data as any).data;
+      }
     }
+
+    serverGroups.value = groups;
+    console.log("解析后的服务器组列表:", groups.length, "个分组");
   } catch (error) {
     console.error("加载服务器组失败:", error);
+    serverGroups.value = [];
   }
 };
 
@@ -1499,40 +1536,75 @@ defineExpose({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-9) 0%,
-    var(--el-bg-color) 100%
-  );
+  padding: 20px 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  position: relative;
+  overflow: hidden;
+
+  // 装饰性光效
+  &::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.1) 0%,
+      transparent 60%
+    );
+    animation: shimmer 3s ease-in-out infinite;
+  }
 
   .header-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
+    position: relative;
+    z-index: 1;
 
     .header-icon {
-      font-size: 24px;
-      color: var(--el-color-primary);
+      font-size: 28px;
+      color: #fff;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
 
     .dialog-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
       margin: 0;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      letter-spacing: 0.5px;
     }
   }
 
   .close-btn {
     padding: 8px;
-    border-radius: 6px;
+    border-radius: 8px;
     transition: all 0.3s ease;
+    color: rgba(255, 255, 255, 0.8);
 
     &:hover {
-      background-color: var(--el-color-danger-light-9);
-      color: var(--el-color-danger);
+      background-color: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      transform: rotate(90deg);
     }
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    transform: translateX(-30%) translateY(-30%) rotate(0deg);
+  }
+  50% {
+    transform: translateX(30%) translateY(30%) rotate(180deg);
   }
 }
 
@@ -1952,6 +2024,16 @@ defineExpose({
   margin: 4px 0;
 }
 
+// 空分组提示样式
+.empty-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  color: var(--el-text-color-placeholder);
+  font-size: 13px;
+}
+
 // Switch 组件美化样式
 .switch-wrapper {
   display: flex;
@@ -1981,7 +2063,7 @@ defineExpose({
         width: 20px;
         height: 20px;
         border-radius: 50%;
-         background: var(--el-bg-color-overlay);
+        background: var(--el-bg-color-overlay);
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -2007,7 +2089,7 @@ defineExpose({
         border-color: transparent;
 
         .el-switch__action {
-           background: var(--el-bg-color-overlay);
+          background: var(--el-bg-color-overlay);
 
           &::before {
             opacity: 0.2;
@@ -2051,21 +2133,71 @@ defineExpose({
   height: 40px;
 }
 
-// 底部按钮区域 - 紧凑版本
+// 底部按钮区域 - 美化版本
 .dialog-footer {
   display: flex;
-  justify-content: right;
+  justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px !important;
+  gap: 16px;
+  padding: 16px 24px !important;
+  background: linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0.8) 0%,
+    rgba(241, 245, 249, 0.95) 100%
+  );
+  border-top: 1px solid rgba(226, 232, 240, 0.6);
 
-  .footer-left {
-    flex: 1;
+  .footer-tips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--el-text-color-secondary);
+    font-size: 13px;
+
+    .tip-icon {
+      color: var(--el-color-info);
+    }
   }
 
   .footer-right {
     display: flex;
     gap: 12px;
+  }
+
+  .cancel-btn {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 10px 24px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      border-color: #cbd5e1;
+      background: #f8fafc;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  .submit-btn {
+    border-radius: 10px;
+    font-weight: 600;
+    padding: 10px 28px;
+    border: none;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      background: linear-gradient(135deg, #7c8ff0 0%, #8b5fb8 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
   }
 
   .el-button {
@@ -2717,14 +2849,14 @@ defineExpose({
 // 新增样式
 .form-tip {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   margin-top: 4px;
   line-height: 1.4;
 }
 
 .help-icon {
   margin-left: 8px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   cursor: help;
 
   &:hover {
