@@ -23,7 +23,19 @@ const toggleClick = () => {
 </script>
 
 <template>
-  <div class="collapse-btn" :class="{ 'is-active': isActive }" :title="isActive ? t('buttons.pureClickCollapse') : t('buttons.pureClickExpand')" @click="toggleClick"><IconifyIconOffline :icon="isActive ? MenuFold : MenuUnfold" class="collapse-icon" />233</div>
+  <div
+    class="collapse-btn"
+    :class="{ 'is-active': isActive }"
+    :title="
+      isActive ? t('buttons.pureClickCollapse') : t('buttons.pureClickExpand')
+    "
+    @click="toggleClick"
+  >
+    <IconifyIconOffline
+      :icon="isActive ? MenuFold : MenuUnfold"
+      class="collapse-icon"
+    />
+  </div>
 </template>
 
 <style lang="scss" scoped>
