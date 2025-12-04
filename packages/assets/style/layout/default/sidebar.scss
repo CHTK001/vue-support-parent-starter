@@ -199,8 +199,14 @@
     }
 
     .el-menu-item.is-active {
-      color: #ffffff !important; /* 强制设置为白色确保可见性 */
+      color: var(--pure-menu-active-text-color) !important;
       transition: color 0.3s;
+
+      span,
+      div,
+      .el-text {
+        color: var(--pure-menu-active-text-color) !important;
+      }
     }
 
     .el-menu-item.is-active.nest-menu > * {
