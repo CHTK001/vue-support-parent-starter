@@ -13,8 +13,8 @@
           <el-date-picker
             v-model="timeRange"
             type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
+            range-separator="�?
+            start-placeholder="开始时�?
             end-placeholder="结束时间"
             value-format="X"
             :shortcuts="timeShortcuts"
@@ -22,8 +22,8 @@
           />
           
           <el-select v-model="step" placeholder="步长" style="width: 120px">
-            <el-option label="15秒" :value="15" />
-            <el-option label="30秒" :value="30" />
+            <el-option label="15�? :value="15" />
+            <el-option label="30�? :value="30" />
             <el-option label="1分钟" :value="60" />
             <el-option label="5分钟" :value="300" />
             <el-option label="15分钟" :value="900" />
@@ -48,15 +48,15 @@
             </el-tag>
           </div>
           <div class="info-item">
-            <span class="label">表达式类型:</span>
+            <span class="label">表达式类�?</span>
             <el-tag type="info" size="small">
               {{ getExpressionTypeName(component.monitorSysGenServerComponentExpressionType) }}
             </el-tag>
           </div>
           <div class="info-item">
-            <span class="label">表达式:</span>
+            <span class="label">表达�?</span>
             <el-text size="small" class="expression-text">
-              {{ component.monitorSysGenServerComponentExpression || '未设置' }}
+              {{ component.monitorSysGenServerComponentExpression || '未设�? }}
             </el-text>
           </div>
         </div>
@@ -65,7 +65,7 @@
       <!-- 查询统计 -->
       <div class="stats-section" v-if="queryStats">
         <el-tag type="success" size="small">查询时间: {{ queryStats.queryTime }}ms</el-tag>
-        <el-tag type="info" size="small">数据点: {{ queryStats.dataPoints }}</el-tag>
+        <el-tag type="info" size="small">数据�? {{ queryStats.dataPoints }}</el-tag>
         <el-tag size="small">更新时间: {{ queryStats.updateTime }}</el-tag>
       </div>
       
@@ -74,7 +74,7 @@
         <div v-if="!queryResult" class="empty-state">
           <el-empty description="请设置时间范围并点击查询">
             <el-button type="primary" @click="handleQuickQuery">
-              快速查询（最近1小时）
+              快速查询（最�?小时�?
             </el-button>
           </el-empty>
         </div>
@@ -97,7 +97,7 @@
                       {{ formatTimestamp(row.timestamp) }}
                     </template>
                   </el-table-column>
-                  <el-table-column prop="value" label="值" sortable>
+                  <el-table-column prop="value" label="�? sortable>
                     <template #default="{ row }">
                       <el-text :type="getValueType(row.value)">
                         {{ formatValue(row.value) }}
@@ -152,7 +152,7 @@ import { ElMessage } from "element-plus";
 import * as echarts from "echarts";
 import { getComponentData, getComponentRealtimeData, type ServerComponent } from "@/api/server";
 
-// 定义属性
+// 定义属�?
 const props = defineProps<{
   modelValue: boolean;
   component?: ServerComponent;
@@ -164,7 +164,7 @@ const emit = defineEmits<{
   "update:modelValue": [value: boolean];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const dialogVisible = ref(false);
 const loading = ref(false);
 const realtimeLoading = ref(false);
@@ -185,7 +185,7 @@ const queryStats = ref<{
 // 时间快捷选项
 const timeShortcuts = [
   {
-    text: '最近15分钟',
+    text: '最�?5分钟',
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -194,7 +194,7 @@ const timeShortcuts = [
     }
   },
   {
-    text: '最近1小时',
+    text: '最�?小时',
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -203,7 +203,7 @@ const timeShortcuts = [
     }
   },
   {
-    text: '最近6小时',
+    text: '最�?小时',
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -212,7 +212,7 @@ const timeShortcuts = [
     }
   },
   {
-    text: '最近24小时',
+    text: '最�?4小时',
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -222,7 +222,7 @@ const timeShortcuts = [
   }
 ];
 
-// 计算属性
+// 计算属�?
 const tableData = computed(() => {
   if (!queryResult.value?.data) return [];
   
@@ -243,7 +243,7 @@ const tableData = computed(() => {
   }];
 });
 
-// 监听对话框显示状态
+// 监听对话框显示状�?
 watch(() => props.modelValue, (val) => {
   dialogVisible.value = val;
   if (val) {
@@ -259,7 +259,7 @@ watch(dialogVisible, (val) => {
  * 初始化对话框
  */
 const initDialog = () => {
-  // 设置默认时间范围（最近1小时）
+  // 设置默认时间范围（最�?小时�?
   const end = new Date();
   const start = new Date();
   start.setTime(start.getTime() - 60 * 60 * 1000);
@@ -279,12 +279,12 @@ const initDialog = () => {
  */
 const handleQuery = async () => {
   if (!props.component?.monitorSysGenServerComponentId) {
-    ElMessage.warning("组件信息不完整");
+    ElMessage.warning("组件信息不完�?);
     return;
   }
   
   if (!timeRange.value || timeRange.value.length !== 2) {
-    ElMessage.warning("请选择有效的时间范围");
+    ElMessage.warning("请选择有效的时间范�?);
     return;
   }
 
@@ -333,7 +333,7 @@ const handleQuery = async () => {
  */
 const handleRealtime = async () => {
   if (!props.component?.monitorSysGenServerComponentId) {
-    ElMessage.warning("组件信息不完整");
+    ElMessage.warning("组件信息不完�?);
     return;
   }
 
@@ -368,7 +368,7 @@ const handleRealtime = async () => {
 };
 
 /**
- * 快速查询
+ * 快速查�?
  */
 const handleQuickQuery = () => {
   const end = new Date();
@@ -408,7 +408,7 @@ const updateChart = () => {
         return `
           <div>
             <div>时间: ${new Date(point.data[0]).toLocaleString()}</div>
-            <div>值: ${point.data[1]} ${props.component?.monitorSysGenServerComponentUnit || ''}</div>
+            <div>�? ${point.data[1]} ${props.component?.monitorSysGenServerComponentUnit || ''}</div>
           </div>
         `;
       }
@@ -428,7 +428,7 @@ const updateChart = () => {
       name: props.component?.monitorSysGenServerComponentUnit || ''
     },
     series: [{
-      name: '数值',
+      name: '数�?,
       type: 'line',
       data: generateChartData(),
       smooth: true,
@@ -468,7 +468,7 @@ const generateChartData = () => {
 const copyRawData = async () => {
   try {
     await navigator.clipboard.writeText(JSON.stringify(queryResult.value, null, 2));
-    ElMessage.success("数据已复制到剪贴板");
+    ElMessage.success("数据已复制到剪贴�?);
   } catch (error) {
     ElMessage.error("复制失败");
   }
@@ -495,7 +495,7 @@ const downloadRawData = () => {
  */
 const handleExport = () => {
   if (!queryResult.value) {
-    ElMessage.warning("暂无数据可导出");
+    ElMessage.warning("暂无数据可导�?);
     return;
   }
   
@@ -508,7 +508,7 @@ const handleExport = () => {
   ]);
   
   const csvContent = [
-    ['时间', '值', '单位', '指标'],
+    ['时间', '�?, '单位', '指标'],
     ...csvData
   ].map(row => row.join(',')).join('\n');
   
@@ -526,7 +526,7 @@ const handleExport = () => {
 };
 
 /**
- * 关闭对话框
+ * 关闭对话�?
  */
 const handleClose = () => {
   dialogVisible.value = false;
@@ -544,7 +544,7 @@ const formatTimestamp = (timestamp: number) => {
 };
 
 /**
- * 格式化值
+ * 格式化�?
  */
 const formatValue = (value: any) => {
   if (typeof value === 'number') {
@@ -554,7 +554,7 @@ const formatValue = (value: any) => {
 };
 
 /**
- * 获取值类型
+ * 获取值类�?
  */
 const getValueType = (value: any) => {
   if (typeof value === 'number') {
@@ -584,16 +584,16 @@ const getComponentTypeColor = (type: string) => {
 const getComponentTypeName = (type: string) => {
   const nameMap: Record<string, string> = {
     'card': '卡片',
-    'gauge': '仪表盘',
-    'line': '折线图',
-    'bar': '柱状图',
+    'gauge': '仪表�?,
+    'line': '折线�?,
+    'bar': '柱状�?,
     'pie': '饼图'
   };
   return nameMap[type] || '未知';
 };
 
 /**
- * 获取表达式类型名称
+ * 获取表达式类型名�?
  */
 const getExpressionTypeName = (type?: string) => {
   const typeMap: Record<string, string> = {

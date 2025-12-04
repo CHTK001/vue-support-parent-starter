@@ -17,11 +17,11 @@
             :prop="item.systemServerSettingItemName"
             :rules="getItemRules(item)"
           >
-            <!-- 字符串类型 -->
+            <!-- 字符串类�?-->
             <el-input
               v-if="item.systemServerSettingItemType === 'string' || !item.systemServerSettingItemType"
               v-model="formData[item.systemServerSettingItemName]"
-              :placeholder="item.systemServerSettingItemDescription || `请输入${item.systemServerSettingItemName}`"
+              :placeholder="item.systemServerSettingItemDescription || `请输�?{item.systemServerSettingItemName}`"
               clearable
             />
 
@@ -29,22 +29,22 @@
             <el-input-number
               v-else-if="item.systemServerSettingItemType === 'number' || item.systemServerSettingItemType === 'integer'"
               v-model="formData[item.systemServerSettingItemName]"
-              :placeholder="item.systemServerSettingItemDescription || `请输入${item.systemServerSettingItemName}`"
+              :placeholder="item.systemServerSettingItemDescription || `请输�?{item.systemServerSettingItemName}`"
               style="width: 100%"
             />
 
-            <!-- 浮点数类型 -->
+            <!-- 浮点数类�?-->
             <el-input-number
               v-else-if="item.systemServerSettingItemType === 'double' || item.systemServerSettingItemType === 'float'"
               v-model="formData[item.systemServerSettingItemName]"
               :precision="2"
               :step="0.1"
-              :placeholder="item.systemServerSettingItemDescription || `请输入${item.systemServerSettingItemName}`"
+              :placeholder="item.systemServerSettingItemDescription || `请输�?{item.systemServerSettingItemName}`"
               style="width: 100%"
             />
 
             <!-- 布尔类型 -->
-            <el-switch v-else-if="item.systemServerSettingItemType === 'boolean'" v-model="formData[item.systemServerSettingItemName]" active-text="是" inactive-text="否" />
+            <el-switch v-else-if="item.systemServerSettingItemType === 'boolean'" v-model="formData[item.systemServerSettingItemName]" active-text="�? inactive-text="�? />
 
             <!-- JSON类型 -->
             <el-input
@@ -52,19 +52,19 @@
               v-model="formData[item.systemServerSettingItemName]"
               type="textarea"
               :rows="4"
-              :placeholder="item.systemServerSettingItemDescription || `请输入JSON格式的${item.systemServerSettingItemName}`"
+              :placeholder="item.systemServerSettingItemDescription || `请输入JSON格式�?{item.systemServerSettingItemName}`"
             />
 
             <!-- 其他类型默认为字符串 -->
-            <el-input v-else v-model="formData[item.systemServerSettingItemName]" :placeholder="item.systemServerSettingItemDescription || `请输入${item.systemServerSettingItemName}`" clearable />
+            <el-input v-else v-model="formData[item.systemServerSettingItemName]" :placeholder="item.systemServerSettingItemDescription || `请输�?{item.systemServerSettingItemName}`" clearable />
 
-            <!-- 配置项描述 -->
+            <!-- 配置项描�?-->
             <div v-if="item.systemServerSettingItemDescription" class="item-description">
               {{ item.systemServerSettingItemDescription }}
             </div>
 
-            <!-- 默认值提示 -->
-            <div v-if="item.systemServerSettingItemDefaultValue" class="item-default">默认值: {{ item.systemServerSettingItemDefaultValue }}</div>
+            <!-- 默认值提�?-->
+            <div v-if="item.systemServerSettingItemDefaultValue" class="item-default">默认�? {{ item.systemServerSettingItemDefaultValue }}</div>
           </el-form-item>
         </el-form>
       </div>
@@ -72,7 +72,7 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="resetToDefaults">重置为默认值</el-button>
+        <el-button @click="resetToDefaults">重置为默认�?/el-button>
         <el-button @click="handleClose">取消</el-button>
         <el-button type="primary" :loading="saving" @click="handleSave">保存配置</el-button>
       </div>
@@ -112,20 +112,20 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const formRef = ref<FormInstance>();
 const loading = ref(false);
 const saving = ref(false);
 const configItems = ref<SystemServerSettingItem[]>([]);
 const formData = reactive<Record<string, any>>({});
 
-// 计算属性
+// 计算属�?
 const dialogVisible = computed({
   get: () => props.visible,
   set: value => emit("update:visible", value)
 });
 
-// 获取配置项验证规则
+// 获取配置项验证规�?
 const getItemRules = (item: SystemServerSettingItem): FormRules[string] => {
   const rules: any[] = [];
 
@@ -148,7 +148,7 @@ const getItemRules = (item: SystemServerSettingItem): FormRules[string] => {
   return rules;
 };
 
-// 加载配置项
+// 加载配置�?
 const loadConfigItems = async () => {
   if (!props.settingId) return;
 
@@ -158,12 +158,12 @@ const loadConfigItems = async () => {
     if (response.success) {
       configItems.value = response.data || [];
 
-      // 初始化表单数据
+      // 初始化表单数�?
       const newFormData: Record<string, any> = {};
       configItems.value.forEach(item => {
         let value = item.systemServerSettingItemValue as any;
 
-        // 根据类型转换值
+        // 根据类型转换�?
         if (item.systemServerSettingItemType === "boolean") {
           value = value === "true" || value === true;
         } else if (item.systemServerSettingItemType === "number" || item.systemServerSettingItemType === "integer") {
@@ -177,11 +177,11 @@ const loadConfigItems = async () => {
 
       Object.assign(formData, newFormData);
     } else {
-      ElMessage.error(response.msg || "加载配置项失败");
+      ElMessage.error(response.msg || "加载配置项失�?);
     }
   } catch (error) {
-    console.error("加载配置项失败:", error);
-    ElMessage.error("加载配置项失败");
+    console.error("加载配置项失�?", error);
+    ElMessage.error("加载配置项失�?);
   } finally {
     loading.value = false;
   }
@@ -198,7 +198,7 @@ watch(
   { immediate: true }
 );
 
-// 监听对话框显示状态
+// 监听对话框显示状�?
 watch(
   () => props.visible,
   visible => {
@@ -208,10 +208,10 @@ watch(
   }
 );
 
-// 重置为默认值
+// 重置为默认�?
 const resetToDefaults = async () => {
   try {
-    await ElMessageBox.confirm("确定要重置所有配置项为默认值吗？", "确认重置", {
+    await ElMessageBox.confirm("确定要重置所有配置项为默认值吗�?, "确认重置", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "warning"
@@ -266,7 +266,7 @@ const handleSave = async () => {
   }
 };
 
-// 关闭对话框
+// 关闭对话�?
 const handleClose = () => {
   dialogVisible.value = false;
 };

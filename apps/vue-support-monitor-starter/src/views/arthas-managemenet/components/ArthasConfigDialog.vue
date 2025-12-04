@@ -35,8 +35,8 @@
           :max="120000"
         />
       </el-form-item>
-      <el-form-item label="用户名">
-        <el-input v-model="form.username" placeholder="可选">
+      <el-form-item label="用户�?>
+        <el-input v-model="form.username" placeholder="可�?>
           <template #prefix>
             <IconifyIconOnline icon="ri:user-line" />
           </template>
@@ -47,7 +47,7 @@
           v-model="form.password"
           type="password"
           show-password
-          placeholder="可选"
+          placeholder="可�?
         >
           <template #prefix>
             <IconifyIconOnline icon="ri:lock-line" />
@@ -78,7 +78,7 @@ import {
   getTunnelConfig,
   setTunnelConfig,
   type ArthasTunnelConfigDto,
-} from "@/api/arthas-management";
+} from "@/api/arthas/arthas-management";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -142,7 +142,7 @@ async function save() {
     loading.value = true;
     // 保存后端可识别的字段
     const ok: any = await setTunnelConfig(props.serverId as any, form.value);
-    // 同步保存前端HTTP超时到本地
+    // 同步保存前端HTTP超时到本�?
     localStorage.setItem(HTTP_TIMEOUT_KEY, String(httpTimeout.value || 15000));
     if (ok?.success) {
       ElMessage.success("保存成功");
@@ -161,7 +161,7 @@ async function save() {
 watch(
   () => props.serverId,
   (n, o) => {
-    // 切换服务器时清空或重新加载
+    // 切换服务器时清空或重新加�?
     form.value = { address: "", username: "", password: "" };
   }
 );

@@ -7,7 +7,7 @@
     destroy-on-close
   >
     <div class="history-compare">
-      <!-- 选择对比的历史记录 -->
+      <!-- 选择对比的历史记�?-->
       <div class="compare-selector">
         <el-row :gutter="16">
           <el-col :span="12">
@@ -89,7 +89,7 @@
             @click="handleCompare"
           >
             <IconifyIconOnline icon="ri:git-compare-line" class="mr-1" />
-            开始对比
+            开始对�?
           </el-button>
         </div>
       </div>
@@ -103,7 +103,7 @@
           </h4>
           <div class="result-summary">
             <el-tag type="info" size="small">
-              共发现 {{ differences.length }} 处差异
+              共发�?{{ differences.length }} 处差�?
             </el-tag>
           </div>
         </div>
@@ -119,14 +119,14 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="基准值">
+            <el-table-column label="基准�?>
               <template #default="{ row }">
                 <div class="value-cell base-value">
                   {{ formatValue(row.baseValue) }}
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="对比值">
+            <el-table-column label="对比�?>
               <template #default="{ row }">
                 <div class="value-cell compare-value">
                   {{ formatValue(row.compareValue) }}
@@ -146,9 +146,9 @@
           </el-table>
         </div>
 
-        <!-- 无差异提示 -->
+        <!-- 无差异提�?-->
         <div class="no-differences" v-else>
-          <el-empty description="两个配置完全相同，没有发现差异" :image-size="80" />
+          <el-empty description="两个配置完全相同，没有发现差�? :image-size="80" />
         </div>
 
         <!-- 并排对比视图 -->
@@ -223,7 +223,7 @@ import {
   ChangeTypeColors
 } from "@/api/server/settingHistory";
 
-// 定义属性
+// 定义属�?
 interface Props {
   visible: boolean;
   historyList: ServerSettingHistory[];
@@ -239,14 +239,14 @@ const emit = defineEmits<{
   restore: [historyId: number];
 }>();
 
-// 响应式状态
+// 响应式状�?
 const dialogVisible = ref(false);
 const comparing = ref(false);
 const selectedHistory1 = ref<number | null>(null);
 const selectedHistory2 = ref<number | null>(null);
 const compareResult = ref<any>(null);
 
-// 计算属性
+// 计算属�?
 const historyOptions = computed(() => {
   return props.historyList.filter(h => h.settingSnapshot);
 });
@@ -288,21 +288,21 @@ const differences = computed(() => {
 });
 
 /**
- * 格式化历史记录标签
+ * 格式化历史记录标�?
  */
 const formatHistoryLabel = (history: ServerSettingHistory) => {
   return `${history.changeDescription} - ${formatTime(history.changeTime)}`;
 };
 
 /**
- * 格式化时间
+ * 格式化时�?
  */
 const formatTime = (time: string) => {
   return new Date(time).toLocaleString();
 };
 
 /**
- * 格式化值
+ * 格式化�?
  */
 const formatValue = (value: any) => {
   if (value === null) return "null";
@@ -314,7 +314,7 @@ const formatValue = (value: any) => {
 };
 
 /**
- * 格式化配置
+ * 格式化配�?
  */
 const formatConfig = (config: any) => {
   if (!config) return "";
@@ -392,7 +392,7 @@ const handleRestoreCompare = () => {
  */
 const handleClose = () => {
   emit("update:visible", false);
-  // 重置状态
+  // 重置状�?
   selectedHistory1.value = null;
   selectedHistory2.value = null;
   compareResult.value = null;

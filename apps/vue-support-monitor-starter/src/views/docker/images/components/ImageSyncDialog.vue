@@ -9,7 +9,7 @@
     class="sync-dialog"
   >
     <div class="content">
-      <!-- 同步进行中显示进度 -->
+      <!-- 同步进行中显示进�?-->
       <template v-if="syncStatus === 'syncing'">
         <div class="sync-progress-section">
           <div class="sync-header">
@@ -93,7 +93,7 @@
           <div class="error-icon">
             <IconifyIconOnline icon="ri:close-circle-fill" />
           </div>
-          <div class="error-title">同步未开始</div>
+          <div class="error-title">同步未开�?/div>
           <div class="error-message">{{ errorMessage }}</div>
         </div>
       </template>
@@ -102,7 +102,7 @@
       <template v-else>
         <div class="pane-title">
           <IconifyIconOnline icon="ri:server-line" class="mr-2" />
-          选择目标服务器
+          选择目标服务�?
         </div>
         <div class="pane-subtitle">从服务器同步Docker镜像到系统镜像库</div>
 
@@ -182,7 +182,7 @@
           </template>
           <div v-else-if="!loadingServers" class="no-servers">
             <IconifyIconOnline icon="ri:server-line" class="empty-icon" />
-            <span>暂无可用服务器</span>
+            <span>暂无可用服务�?/span>
           </div>
         </div>
 
@@ -201,7 +201,7 @@
           <el-button type="primary" @click="handleClose"> 确定 </el-button>
         </template>
         <template v-else-if="syncStatus === 'syncing'">
-          <el-button disabled> 同步进行中... </el-button>
+          <el-button disabled> 同步进行�?.. </el-button>
         </template>
         <template v-else>
           <el-button @click="visibleProxy = false">取消</el-button>
@@ -216,7 +216,7 @@
               class="mr-1"
               v-if="!syncing"
             />
-            {{ syncing ? "提交中..." : "开始同步" }}
+            {{ syncing ? "提交�?.." : "开始同�? }}
           </el-button>
         </template>
       </div>
@@ -227,11 +227,11 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { ElMessage, ElNotification } from "element-plus";
-import { getServerList, imageApi } from "@/api/docker-management";
+import { getServerList, imageApi } from "@/api/docker";
 import { useGlobalSocket } from "@repo/core";
 
 /**
- * 镜像同步对话框组件
+ * 镜像同步对话框组�?
  * @author CH
  * @version 2.0.0
  * @since 2025-01-16
@@ -269,7 +269,7 @@ const visibleProxy = computed({
   set: (v) => emit("update:visible", v),
 });
 
-// 状态
+// 状�?
 const servers = ref<any[]>([]);
 const selectedServerIds = ref<number[]>([]);
 const syncing = ref(false);
@@ -285,7 +285,7 @@ const selectedServerCount = computed(() => selectedServerIds.value.length);
 // 获取全局Socket
 const globalSocket = useGlobalSocket();
 
-// 加载服务器列表
+// 加载服务器列�?
 async function loadServers() {
   try {
     loadingServers.value = true;
@@ -296,8 +296,8 @@ async function loadServers() {
       servers.value = res || [];
     }
   } catch (error) {
-    console.error("加载服务器列表失败:", error);
-    ElMessage.error("加载服务器列表失败");
+    console.error("加载服务器列表失�?", error);
+    ElMessage.error("加载服务器列表失�?);
   } finally {
     loadingServers.value = false;
   }
@@ -305,9 +305,9 @@ async function loadServers() {
 
 // 切换服务器选择
 function toggleServerSelect(server: any) {
-  // 离线服务器不可选
+  // 离线服务器不可�?
   if (server.monitorSysGenServerConnectionStatus !== 1) {
-    ElMessage.warning("该服务器离线，无法同步");
+    ElMessage.warning("该服务器离线，无法同�?);
     return;
   }
 
@@ -320,7 +320,7 @@ function toggleServerSelect(server: any) {
   }
 }
 
-// 获取状态类型
+// 获取状态类�?
 function getStatusType(
   status: number | undefined
 ): "success" | "info" | "warning" | "danger" {
@@ -329,7 +329,7 @@ function getStatusType(
   return "info";
 }
 
-// 获取状态文本
+// 获取状态文�?
 function getStatusText(status: number | undefined): string {
   if (status === 1) return "在线";
   if (status === 0) return "离线";
@@ -346,14 +346,14 @@ async function submit() {
   try {
     syncing.value = true;
 
-    // 初始化进度
+    // 初始化进�?
     serverProgress.value = {};
     ids.forEach((id) => {
       const server = servers.value.find((s) => s.monitorSysGenServerId === id);
       serverProgress.value[id] = {
-        serverName: server?.monitorSysGenServerName || `服务器-${id}`,
+        serverName: server?.monitorSysGenServerName || `服务�?${id}`,
         progress: 0,
-        message: "等待开始...",
+        message: "等待开�?..",
       };
     });
 
@@ -361,25 +361,25 @@ async function submit() {
     const result = await imageApi.syncImages(payload);
 
     if (result.code === "00000" && result.data) {
-      // 同步任务已开始
+      // 同步任务已开�?
       currentOperationId.value = result.data.operationId;
       syncStatus.value = "syncing";
       syncResult.value = result.data as any;
 
       ElNotification.success({
-        title: "同步任务已开始",
+        title: "同步任务已开�?,
         message: "正在从服务器同步镜像，请查看进度",
         position: "bottom-right",
         duration: 3000,
       });
     } else {
-      // 同步未开始
+      // 同步未开�?
       syncStatus.value = "error";
       errorMessage.value =
-        result.msg || "同步任务未能启动，请检查服务器连接状态";
+        result.msg || "同步任务未能启动，请检查服务器连接状�?;
 
       ElNotification.error({
-        title: "同步未开始",
+        title: "同步未开�?,
         message: errorMessage.value,
         position: "bottom-right",
         duration: 5000,
@@ -391,7 +391,7 @@ async function submit() {
     errorMessage.value = error?.message || "同步请求失败，请稍后重试";
 
     ElNotification.error({
-      title: "同步未开始",
+      title: "同步未开�?,
       message: errorMessage.value,
       position: "bottom-right",
     });
@@ -409,7 +409,7 @@ function handleClose() {
   visibleProxy.value = false;
 }
 
-// 重置状态
+// 重置状�?
 function resetState() {
   syncStatus.value = "idle";
   errorMessage.value = "";
@@ -429,7 +429,7 @@ function setupSocketListeners() {
       const serverId = data.serverId;
       if (serverProgress.value[serverId]) {
         serverProgress.value[serverId].progress = data.progress || 0;
-        serverProgress.value[serverId].message = data.message || "同步中...";
+        serverProgress.value[serverId].message = data.message || "同步�?..";
       }
     }
   });
@@ -597,7 +597,7 @@ onUnmounted(() => {
   gap: 8px;
 }
 
-/* 离线服务器不可选 */
+/* 离线服务器不可�?*/
 .server-card.disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -608,7 +608,7 @@ onUnmounted(() => {
   box-shadow: none;
 }
 
-/* 空状态 */
+/* 空状�?*/
 .no-servers {
   display: flex;
   flex-direction: column;

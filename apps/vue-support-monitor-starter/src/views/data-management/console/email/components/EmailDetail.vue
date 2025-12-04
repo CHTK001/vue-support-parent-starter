@@ -77,11 +77,11 @@
       </div>
     </div>
 
-    <!-- 默认状态 -->
+    <!-- 默认状�?-->
     <div v-else class="welcome-area">
       <div class="welcome-content">
         <IconifyIconOnline icon="ri:mail-open-line" class="welcome-icon" />
-        <h3>欢迎使用邮箱控制台</h3>
+        <h3>欢迎使用邮箱控制�?/h3>
         <p>选择左侧邮件查看详情，或点击撰写邮件开始写邮件</p>
       </div>
     </div>
@@ -166,7 +166,7 @@ function parseEmailContent(content: string): string {
     return parseMultipartAlternativeContent(content);
   }
 
-  // 如果内容已经是HTML格式，进行样式隔离处理
+  // 如果内容已经是HTML格式，进行样式隔离处�?
   if (content.includes("<") && content.includes(">")) {
     return sanitizeHtmlContent(content);
   }
@@ -229,21 +229,21 @@ function parseMultipartAlternativeContent(content: string): string {
     console.warn("解析multipart/alternative邮件内容失败:", error);
   }
 
-  // 如果解析失败，返回原始内容
+  // 如果解析失败，返回原始内�?
   return content.replace(/\n/g, "<br>");
 }
 
-// 清理和隔离HTML内容，防止样式污染
+// 清理和隔离HTML内容，防止样式污�?
 function sanitizeHtmlContent(htmlContent: string): string {
-  // 移除可能影响全局样式的标签和属性
+  // 移除可能影响全局样式的标签和属�?
   let sanitized = htmlContent
     // 移除style标签
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    // 移除link标签（CSS链接）
+    // 移除link标签（CSS链接�?
     .replace(/<link[^>]*>/gi, "")
     // 移除script标签
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    // 移除内联style属性中可能影响全局的样式
+    // 移除内联style属性中可能影响全局的样�?
     .replace(
       /style\s*=\s*["'][^"']*(?:position\s*:\s*(?:fixed|absolute)|z-index\s*:|top\s*:|left\s*:|right\s*:|bottom\s*:)[^"']*["']/gi,
       ""
@@ -268,7 +268,7 @@ function sanitizeHtmlContent(htmlContent: string): string {
     }
   );
 
-  // 转换HTML内容中未被标记的纯文本链接
+  // 转换HTML内容中未被标记的纯文本链�?
   // 注意：需要避免转换已经在<a>标签内的链接
   sanitized = sanitized.replace(
     /(?!<a[^>]*>)(https?:\/\/[^\s<>"']+)(?![^<]*<\/a>)/gi,
@@ -442,7 +442,7 @@ function downloadAttachment() {
 
 /* 重置邮件内容中的所有样式，防止污染全局 */
 .email-body :deep(*) {
-  /* 重置定位相关属性 */
+  /* 重置定位相关属�?*/
   position: static !important;
   z-index: auto !important;
   top: auto !important;
@@ -451,11 +451,11 @@ function downloadAttachment() {
   bottom: auto !important;
   transform: none !important;
 
-  /* 重置尺寸相关属性 */
+  /* 重置尺寸相关属�?*/
   max-width: 100% !important;
   max-height: none !important;
 
-  /* 重置字体相关属性 */
+  /* 重置字体相关属�?*/
   font-family: inherit !important;
 
   /* 防止溢出 */
@@ -637,7 +637,7 @@ function downloadAttachment() {
   background: #fff;
 }
 
-/* 滚动条样式 */
+/* 滚动条样�?*/
 .detail-content::-webkit-scrollbar {
   width: 6px;
 }

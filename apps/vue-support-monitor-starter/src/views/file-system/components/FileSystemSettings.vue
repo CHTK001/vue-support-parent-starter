@@ -7,7 +7,7 @@
     class="settings-dialog-wrapper"
     append-to-body
   >
-    <!-- 自定义标题 -->
+    <!-- 自定义标�?-->
     <template #header>
       <div class="dialog-header">
         <div class="header-icon">
@@ -56,7 +56,7 @@
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="最大并发" prop="fileSystemSettingMergeTaskLimit">
+                <el-form-item label="最大并�? prop="fileSystemSettingMergeTaskLimit">
                   <div class="input-with-unit">
                     <el-input-number
                       v-model="formData.fileSystemSettingMergeTaskLimit"
@@ -65,14 +65,14 @@
                       :step="1"
                       controls-position="right"
                     />
-                    <span class="unit">个</span>
+                    <span class="unit">�?/span>
                   </div>
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="24">
               <el-col :span="12">
-                <el-form-item label="最大文件" prop="fileSystemSettingMaxFileSizeMb">
+                <el-form-item label="最大文�? prop="fileSystemSettingMaxFileSizeMb">
                   <div class="input-with-unit">
                     <el-input-number
                       v-model="formData.fileSystemSettingMaxFileSizeMb"
@@ -120,7 +120,7 @@
                       v-model="formData.fileSystemSettingManualMergeEnabled"
                       inline-prompt
                       active-text="开"
-                      inactive-text="关"
+                      inactive-text="�?
                     />
                     <span class="switch-desc">{{ formData.fileSystemSettingManualMergeEnabled ? '需手动触发合并' : '自动合并分片' }}</span>
                   </div>
@@ -133,7 +133,7 @@
                       v-model="formData.fileSystemSettingHttpAccessEnabled"
                       inline-prompt
                       active-text="开"
-                      inactive-text="关"
+                      inactive-text="�?
                     />
                     <span class="switch-desc">{{ formData.fileSystemSettingHttpAccessEnabled ? '允许外部访问' : '禁止外部访问' }}</span>
                   </div>
@@ -151,7 +151,7 @@
             </div>
             <div class="section-title">
               <h4>文件类型</h4>
-              <span>限制允许上传的文件格式</span>
+              <span>限制允许上传的文件格�?/span>
             </div>
           </div>
           <div class="section-body">
@@ -179,13 +179,13 @@
                 <el-option-group label="文档">
                   <el-option v-for="t in ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']" :key="t" :label="t" :value="t" />
                 </el-option-group>
-                <el-option-group label="压缩包">
+                <el-option-group label="压缩�?>
                   <el-option v-for="t in ['.zip', '.rar', '.7z', '.tar', '.gz']" :key="t" :label="t" :value="t" />
                 </el-option-group>
               </el-select>
               <div class="form-tip">
                 <IconifyIconOnline icon="ri:information-line" class="tip-icon" />
-                留空表示允许所有类型，可输入自定义扩展名
+                留空表示允许所有类型，可输入自定义扩展�?
               </div>
             </el-form-item>
           </div>
@@ -231,7 +231,7 @@ const emit = defineEmits<{
   "settings-updated": [];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const visible = ref(false);
 const saving = ref(false);
 const formRef = ref<FormInstance>();
@@ -250,7 +250,7 @@ const formData = reactive<FileSystemSetting>({
 // 默认配置备份
 const defaultConfig = reactive<FileSystemSetting>({ ...formData });
 
-// 允许类型的数组视图，与实体的逗号分隔字符串字段互转
+// 允许类型的数组视图，与实体的逗号分隔字符串字段互�?
 const allowedTypesList = computed<string[]>({
   get() {
     const v = formData.fileSystemSettingAllowedFileTypes || "";
@@ -301,17 +301,17 @@ const commonFileTypes = [
   ".rar",
   ".7z",
   ".tar",
-  ".gz", // 压缩包
+  ".gz", // 压缩�?
 ];
 
 // 表单验证规则
 const formRules: FormRules = {
   fileSystemSettingStorageRootPath: [
-    { required: true, message: "请选择文件存储根目录", trigger: "blur" },
+    { required: true, message: "请选择文件存储根目�?, trigger: "blur" },
     {
       validator: (rule, value, callback) => {
         if (!value || value.trim() === "") {
-          callback(new Error("请选择文件存储根目录"));
+          callback(new Error("请选择文件存储根目�?));
         } else {
           callback();
         }
@@ -320,12 +320,12 @@ const formRules: FormRules = {
     },
   ],
   fileSystemSettingChunkSizeMb: [
-    { required: true, message: "请设置分片大小", trigger: "blur" },
+    { required: true, message: "请设置分片大�?, trigger: "blur" },
     {
       type: "number",
       min: 1,
       max: 100,
-      message: "分片大小必须在1-100MB之间",
+      message: "分片大小必须�?-100MB之间",
       trigger: "blur",
     },
   ],
@@ -335,12 +335,12 @@ const formRules: FormRules = {
       type: "number",
       min: 1,
       max: 20,
-      message: "最大并发数必须在1-20之间",
+      message: "最大并发数必须�?-20之间",
       trigger: "blur",
     },
   ],
   fileSystemSettingMaxFileSizeMb: [
-    { required: true, message: "请设置最大文件大小", trigger: "blur" },
+    { required: true, message: "请设置最大文件大�?, trigger: "blur" },
     {
       type: "number",
       min: 1,
@@ -351,7 +351,7 @@ const formRules: FormRules = {
   ],
 };
 
-// 监听显示状态
+// 监听显示状�?
 watch(
   () => props.modelValue,
   (newVal) => {
@@ -422,7 +422,7 @@ const handleReset = () => {
 };
 
 /**
- * 关闭对话框
+ * 关闭对话�?
  */
 const handleClose = () => {
   visible.value = false;
@@ -576,7 +576,7 @@ const handleClose = () => {
   }
 }
 
-// 开关包装
+// 开关包�?
 .switch-wrapper {
   display: flex;
   align-items: center;

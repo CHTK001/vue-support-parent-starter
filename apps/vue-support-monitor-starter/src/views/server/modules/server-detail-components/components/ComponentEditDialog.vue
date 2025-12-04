@@ -1,6 +1,6 @@
 <template>
   <el-dialog v-model="visible" :title="mode === 'create' ? '创建组件' : '编辑组件'" width="1200px" :close-on-click-modal="false" destroy-on-close class="component-edit-dialog" align-center top="5vh">
-    <!-- 自定义头部 -->
+    <!-- 自定义头�?-->
     <template #header="{ titleId, titleClass }">
       <div class="dialog-header">
         <div class="header-left">
@@ -23,7 +23,7 @@
     </template>
 
     <div class="dialog-content">
-      <!-- 左侧：表单配置 -->
+      <!-- 左侧：表单配�?-->
       <div class="form-section">
         <el-form ref="formRef" :model="formData" :rules="rules" label-width="120px" v-loading="loading" class="component-form">
           <!-- 基本信息区域 -->
@@ -36,7 +36,7 @@
               <el-row :gutter="20">
                 <el-col :span="12">
                   <el-form-item label="组件名称" prop="monitorSysGenServerComponentName">
-                    <el-input v-model="formData.monitorSysGenServerComponentName" placeholder="请输入组件名称" clearable>
+                    <el-input v-model="formData.monitorSysGenServerComponentName" placeholder="请输入组件名�? clearable>
                       <template #prefix>
                         <IconifyIconOnline icon="ri:file-text-line" />
                       </template>
@@ -45,7 +45,7 @@
                 </el-col>
                 <el-col :span="12">
                   <el-form-item label="组件描述" prop="monitorSysGenServerComponentDescription">
-                    <el-input v-model="formData.monitorSysGenServerComponentDescription" placeholder="请输入组件描述" clearable>
+                    <el-input v-model="formData.monitorSysGenServerComponentDescription" placeholder="请输入组件描�? clearable>
                       <template #prefix>
                         <IconifyIconOnline icon="ri:bookmark-line" />
                       </template>
@@ -68,8 +68,8 @@
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                  <el-form-item label="表达式类型" prop="monitorSysGenServerComponentExpressionType">
-                    <el-select v-model="formData.monitorSysGenServerComponentExpressionType" placeholder="请选择表达式类型" style="width: 100%" :disabled="serverReportType !== 'prometheus'">
+                  <el-form-item label="表达式类�? prop="monitorSysGenServerComponentExpressionType">
+                    <el-select v-model="formData.monitorSysGenServerComponentExpressionType" placeholder="请选择表达式类�? style="width: 100%" :disabled="serverReportType !== 'prometheus'">
                       <el-option v-for="option in expressionTypeOptions" :key="option.value" :label="option.label" :value="option.value" />
                     </el-select>
                   </el-form-item>
@@ -78,22 +78,22 @@
             </div>
           </div>
 
-          <!-- 表达式配置区域 -->
+          <!-- 表达式配置区�?-->
           <div class="form-group">
             <div class="group-header">
               <IconifyIconOnline icon="ri:code-line" class="group-icon" />
-              <span class="group-title">{{ serverReportType === "prometheus" ? "查询表达式" : "组件选择" }}</span>
+              <span class="group-title">{{ serverReportType === "prometheus" ? "查询表达�? : "组件选择" }}</span>
             </div>
             <div class="group-content">
               <el-form-item prop="monitorSysGenServerComponentExpression">
-                <!-- Prometheus 表达式输入 -->
+                <!-- Prometheus 表达式输�?-->
                 <template v-if="serverReportType === 'prometheus'">
                   <div class="expression-editor">
                     <el-input
                       v-model="formData.monitorSysGenServerComponentExpression"
                       type="textarea"
                       :rows="6"
-                      placeholder='请输入 PromQL 查询表达式，例如：up{job="node"}'
+                      placeholder='请输�?PromQL 查询表达式，例如：up{job="node"}'
                       class="expression-input"
                     />
                     <div class="expression-examples">
@@ -124,11 +124,11 @@
                 <div class="form-actions">
                   <el-button type="primary" text @click="handleExpressionHelp">
                     <IconifyIconOnline icon="ri:question-line" class="mr-1" />
-                    {{ serverReportType === "prometheus" ? "表达式帮助" : "选择组件" }}
+                    {{ serverReportType === "prometheus" ? "表达式帮�? : "选择组件" }}
                   </el-button>
                   <el-button type="success" text @click="handleValidateExpression" v-if="serverReportType === 'prometheus'">
                     <IconifyIconOnline icon="ri:check-line" class="mr-1" />
-                    验证表达式
+                    验证表达�?
                   </el-button>
                   <el-button type="info" text @click="handlePreview">
                     <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
@@ -159,7 +159,7 @@
                 </el-col>
               </el-row>
 
-              <!-- 组件描述已在上面处理，这里移除重复 -->
+              <!-- 组件描述已在上面处理，这里移除重�?-->
 
               <el-form-item label="图表配置">
                 <el-input v-model="formData.monitorSysGenServerComponentConfig" type="textarea" :rows="4" placeholder="请输入图表配置JSON（可选）" />
@@ -172,7 +172,7 @@
         </el-form>
       </div>
 
-      <!-- 右侧：实时预览 -->
+      <!-- 右侧：实时预�?-->
       <div class="preview-section">
         <div class="preview-header">
           <IconifyIconOnline icon="ri:eye-line" class="preview-icon" />
@@ -200,7 +200,7 @@
           <el-collapse v-model="activePreviewCollapse" size="small">
             <el-collapse-item title="组件信息" name="info">
               <div class="info-item">
-                <span class="info-label">组件类型：</span>
+                <span class="info-label">组件类型�?/span>
                 <span class="info-value">{{ getComponentTypeName(formData.monitorSysGenServerComponentType) }}</span>
               </div>
               <div class="info-item">
@@ -208,8 +208,8 @@
                 <span class="info-value">{{ formData.monitorSysGenServerComponentExpressionType }}</span>
               </div>
               <div class="info-item">
-                <span class="info-label">显示标题：</span>
-                <span class="info-value">{{ formData.monitorSysGenServerComponentShowTitle ? "是" : "否" }}</span>
+                <span class="info-label">显示标题�?/span>
+                <span class="info-value">{{ formData.monitorSysGenServerComponentShowTitle ? "�? : "�? }}</span>
               </div>
             </el-collapse-item>
           </el-collapse>
@@ -234,7 +234,7 @@
     <!-- 表达式帮助对话框 -->
     <ExpressionHelpDialog ref="expressionHelpDialogRef" :server-id="serverId" @expression-selected="handleExpressionSelected" />
 
-    <!-- 组件预览对话框 -->
+    <!-- 组件预览对话�?-->
     <ComponentPreviewDialog ref="componentPreviewDialogRef" :server-id="serverId" />
   </el-dialog>
 </template>
@@ -244,11 +244,11 @@ import { ref, reactive, nextTick, computed } from "vue";
 import { message } from "@repo/utils";
 import { createServerDetailComponent, updateServerDetailComponent, validateComponentExpressionDetail, getServerInfo, type ServerDetailComponent } from "@/api/server";
 
-// 导入子组件
+// 导入子组�?
 import ExpressionHelpDialog from "./ExpressionHelpDialog.vue";
 import ComponentPreviewDialog from "./ComponentPreviewDialog.vue";
 
-// 定义属性
+// 定义属�?
 const props = defineProps<{
   serverId: number;
 }>();
@@ -258,11 +258,11 @@ const emit = defineEmits<{
   saved: [];
 }>();
 
-// 响应式状态
+// 响应式状�?
 const visible = ref(false);
 const loading = ref(false);
 const mode = ref<"create" | "edit">("create");
-const serverReportType = ref("prometheus"); // 服务器上报类型
+const serverReportType = ref("prometheus"); // 服务器上报类�?
 const previewLoading = ref(false);
 const previewData = ref<any>(null);
 const activePreviewCollapse = ref(["info"]);
@@ -270,9 +270,9 @@ const activePreviewCollapse = ref(["info"]);
 // 选项数据
 const componentTypeOptions = [
   { label: "卡片", value: "card" },
-  { label: "仪表盘", value: "gauge" },
-  { label: "折线图", value: "line" },
-  { label: "柱状图", value: "bar" },
+  { label: "仪表�?, value: "gauge" },
+  { label: "折线�?, value: "line" },
+  { label: "柱状�?, value: "bar" },
   { label: "饼图", value: "pie" },
   { label: "表格", value: "table" }
 ];
@@ -286,9 +286,9 @@ const expressionTypeOptions = computed(() => {
 });
 
 const componentOptions = [
-  { label: "CPU使用率", value: "cpu_usage" },
-  { label: "内存使用率", value: "memory_usage" },
-  { label: "磁盘使用率", value: "disk_usage" },
+  { label: "CPU使用�?, value: "cpu_usage" },
+  { label: "内存使用�?, value: "memory_usage" },
+  { label: "磁盘使用�?, value: "disk_usage" },
   { label: "网络IO", value: "network_io" },
   { label: "磁盘列表", value: "disk_list" },
   { label: "磁盘IO统计", value: "disk_io" },
@@ -301,15 +301,15 @@ const componentOptions = [
   { label: "系统负载", value: "load_average" }
 ];
 
-// Prometheus 示例表达式
+// Prometheus 示例表达�?
 const prometheusExamples = [
-  { label: "CPU使用率", value: '100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)' },
-  { label: "内存使用率", value: "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100" },
-  { label: "磁盘使用率", value: "100 - ((node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes)" },
+  { label: "CPU使用�?, value: '100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)' },
+  { label: "内存使用�?, value: "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100" },
+  { label: "磁盘使用�?, value: "100 - ((node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes)" },
   { label: "网络接收", value: "irate(node_network_receive_bytes_total[5m])" },
-  { label: "网络发送", value: "irate(node_network_transmit_bytes_total[5m])" },
+  { label: "网络发�?, value: "irate(node_network_transmit_bytes_total[5m])" },
   { label: "系统负载", value: "node_load1" },
-  { label: "服务状态", value: "up" }
+  { label: "服务状�?, value: "up" }
 ];
 
 // 表单引用
@@ -334,25 +334,25 @@ const formData = reactive<Partial<ServerDetailComponent>>({
 
 // 表单验证规则
 const rules = {
-  monitorSysGenServerComponentName: [{ required: true, message: "请输入组件名称", trigger: "blur" }],
-  monitorSysGenServerComponentDescription: [{ required: false, message: "请输入组件描述", trigger: "blur" }],
+  monitorSysGenServerComponentName: [{ required: true, message: "请输入组件名�?, trigger: "blur" }],
+  monitorSysGenServerComponentDescription: [{ required: false, message: "请输入组件描�?, trigger: "blur" }],
   monitorSysGenServerComponentType: [{ required: true, message: "请选择组件类型", trigger: "change" }],
-  monitorSysGenServerComponentExpressionType: [{ required: true, message: "请选择表达式类型", trigger: "change" }],
+  monitorSysGenServerComponentExpressionType: [{ required: true, message: "请选择表达式类�?, trigger: "change" }],
   monitorSysGenServerComponentExpression: [{ required: true, message: "请输入查询表达式", trigger: "blur" }]
 };
 
 /**
- * 打开对话框
+ * 打开对话�?
  */
 const open = (editMode: "create" | "edit" = "create", data?: ServerDetailComponent) => {
   mode.value = editMode;
   visible.value = true;
 
   if (editMode === "edit" && data) {
-    // 编辑模式，填充数据
+    // 编辑模式，填充数�?
     Object.assign(formData, data);
   } else {
-    // 创建模式，重置表单
+    // 创建模式，重置表�?
     resetForm();
   }
 
@@ -365,26 +365,26 @@ const open = (editMode: "create" | "edit" = "create", data?: ServerDetailCompone
 };
 
 /**
- * 加载服务器信息
+ * 加载服务器信�?
  */
 const loadServerInfo = async () => {
   try {
     const res = await getServerInfo(String(props.serverId));
     if (res.code === "00000" && res.data) {
       // 根据服务器的监控配置确定上报类型
-      // 这里需要根据实际的服务器数据结构调整
+      // 这里需要根据实际的服务器数据结构调�?
       const serverData = res.data as any;
-      // 检查服务器是否配置了 prometheus 上报方式
+      // 检查服务器是否配置�?prometheus 上报方式
       if (serverData.reportMethod === "prometheus" || serverData.dataReportMethod === "prometheus" || serverData.monitorSysGenServerSettingDataReportMethod === "prometheus") {
         serverReportType.value = "prometheus";
         formData.monitorSysGenServerComponentExpressionType = "PROMETHEUS";
       } else {
-        serverReportType.value = "local"; // 或其他类型
+        serverReportType.value = "local"; // 或其他类�?
         formData.monitorSysGenServerComponentExpressionType = "COMPONENT";
       }
     }
   } catch (error) {
-    console.error("加载服务器信息失败:", error);
+    console.error("加载服务器信息失�?", error);
     // 默认为非prometheus类型
     serverReportType.value = "local";
     formData.monitorSysGenServerComponentExpressionType = "COMPONENT";
@@ -460,18 +460,18 @@ const handlePreview = async () => {
 };
 
 /**
- * 表达式帮助
+ * 表达式帮�?
  */
 const handleExpressionHelp = () => {
   expressionHelpDialogRef.value?.open(formData.monitorSysGenServerComponentExpressionType, serverReportType.value);
 };
 
 /**
- * 验证表达式
+ * 验证表达�?
  */
 const handleValidateExpression = async () => {
   if (!formData.monitorSysGenServerComponentExpression) {
-    message.warning("请先输入表达式");
+    message.warning("请先输入表达�?);
     return;
   }
 
@@ -482,10 +482,10 @@ const handleValidateExpression = async () => {
     if (res.code === "00000") {
       message.success("表达式验证通过");
     } else {
-      message.error(res.msg || "表达式验证失败");
+      message.error(res.msg || "表达式验证失�?);
     }
   } catch (error) {
-    console.error("验证表达式失败:", error);
+    console.error("验证表达式失�?", error);
     message.error("验证失败");
   } finally {
     loading.value = false;
@@ -542,9 +542,9 @@ const getComponentIcon = (value: string) => {
 const getComponentTypeName = (type?: string) => {
   const typeMap: Record<string, string> = {
     card: "卡片",
-    gauge: "仪表盘",
-    line: "折线图",
-    bar: "柱状图",
+    gauge: "仪表�?,
+    line: "折线�?,
+    bar: "柱状�?,
     pie: "饼图",
     table: "表格"
   };
@@ -562,7 +562,7 @@ const handleExampleClick = (value: string) => {
  * 获取预览组件
  */
 const getPreviewComponent = (type?: string) => {
-  // 这里应该导入实际的预览组件
+  // 这里应该导入实际的预览组�?
   return "div"; // 临时返回
 };
 

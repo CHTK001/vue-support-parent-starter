@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="服务器设置"
+    title="服务器设�?
     width="800px"
     :close-on-click-modal="false"
     destroy-on-close
@@ -27,17 +27,17 @@
                   v-model="formData.monitorSysGenServerSettingMonitorEnabled"
                   :active-value="1"
                   :inactive-value="0"
-                  active-text="开启"
+                  active-text="开�?
                   inactive-text="关闭"
                 />
               </el-form-item>
 
-              <!-- 数据收集频率：仅在非API上报方式时显示 -->
+              <!-- 数据收集频率：仅在非API上报方式时显�?-->
               <el-form-item
                 v-if="
                   formData.monitorSysGenServerSettingDataReportMethod !== 'API'
                 "
-                label="数据收集频率(秒)"
+                label="数据收集频率(�?"
                 prop="monitorSysGenServerSettingDataCollectionFrequency"
               >
                 <el-input-number
@@ -58,7 +58,7 @@
               </el-form-item>
 
               <el-form-item
-                label="数据保留时间(天)"
+                label="数据保留时间(�?"
                 prop="monitorSysGenServerSettingMetricsRetentionDays"
               >
                 <el-input-number
@@ -85,7 +85,7 @@
                   v-model="formData.monitorSysGenServerSettingReportEnabled"
                   :active-value="1"
                   :inactive-value="0"
-                  active-text="开启"
+                  active-text="开�?
                   inactive-text="关闭"
                 />
               </el-form-item>
@@ -98,7 +98,7 @@
                   v-model="formData.monitorSysGenServerSettingDataReportMethod"
                   placeholder="选择上报方式"
                 >
-                  <el-option label="不上报" value="NONE" />
+                  <el-option label="不上�? value="NONE" />
                   <el-option
                     v-if="currentServer?.monitorSysGenServerIsLocal === 1"
                     label="本机上报"
@@ -157,7 +157,7 @@
                   show-icon
                   style="margin-bottom: 16px"
                 >
-                  API上报方式将通过客户端自动推送数据到服务器，无需额外配置。
+                  API上报方式将通过客户端自动推送数据到服务器，无需额外配置�?
                 </el-alert>
               </template>
             </div>
@@ -167,7 +167,7 @@
           <el-tab-pane label="指标管理" name="metrics">
             <div class="tab-content">
               <el-form-item
-                label="监控间隔(秒)"
+                label="监控间隔(�?"
                 prop="monitorSysGenServerSettingMonitorInterval"
               >
                 <el-input-number
@@ -180,7 +180,7 @@
               </el-form-item>
 
               <el-form-item
-                label="数据保留时间(天)"
+                label="数据保留时间(�?"
                 prop="monitorSysGenServerSettingMetricsRetentionDays"
               >
                 <el-input-number
@@ -207,14 +207,14 @@
                   v-model="formData.monitorSysGenServerSettingAlertEnabled"
                   :active-value="1"
                   :inactive-value="0"
-                  active-text="开启"
+                  active-text="开�?
                   inactive-text="关闭"
                 />
               </el-form-item>
 
               <template v-if="formData.monitorSysGenServerSettingAlertEnabled">
                 <el-form-item
-                  label="CPU阈值(%)"
+                  label="CPU阈�?%)"
                   prop="monitorSysGenServerSettingCpuAlertThreshold"
                 >
                   <el-input-number
@@ -229,7 +229,7 @@
                 </el-form-item>
 
                 <el-form-item
-                  label="内存阈值(%)"
+                  label="内存阈�?%)"
                   prop="monitorSysGenServerSettingMemoryAlertThreshold"
                 >
                   <el-input-number
@@ -244,7 +244,7 @@
                 </el-form-item>
 
                 <el-form-item
-                  label="磁盘阈值(%)"
+                  label="磁盘阈�?%)"
                   prop="monitorSysGenServerSettingDiskAlertThreshold"
                 >
                   <el-input-number
@@ -311,7 +311,7 @@
                   "
                   :active-value="1"
                   :inactive-value="0"
-                  active-text="开启"
+                  active-text="开�?
                   inactive-text="关闭"
                 />
               </el-form-item>
@@ -331,9 +331,9 @@
                     style="width: 200px"
                     @change="handleFileManagementModeChange"
                   >
-                    <el-option label="不启用" value="NONE" />
+                    <el-option label="不启�? value="NONE" />
                     <el-option label="SSH连接" value="SSH" />
-                    <el-option label="NODE客户端" value="NODE" />
+                    <el-option label="NODE客户�? value="NODE" />
                     <el-option label="API连接" value="API" />
                   </el-select>
                 </el-form-item>
@@ -374,7 +374,7 @@
                       style="width: 200px"
                       @change="handleApiConfigChange"
                     >
-                      <el-option label="无认证" value="NONE" />
+                      <el-option label="无认�? value="NONE" />
                       <el-option label="Basic认证" value="BASIC" />
                       <el-option label="Token认证" value="TOKEN" />
                       <el-option label="API Key认证" value="API_KEY" />
@@ -383,7 +383,7 @@
 
                   <!-- Basic认证配置 -->
                   <template v-if="apiConfig.authType === 'BASIC'">
-                    <el-form-item label="用户名">
+                    <el-form-item label="用户�?>
                       <el-input
                         v-model="apiConfig.username"
                         placeholder="请输入用户名"
@@ -396,7 +396,7 @@
                       <el-input
                         v-model="apiConfig.password"
                         type="password"
-                        placeholder="请输入密码"
+                        placeholder="请输入密�?
                         maxlength="100"
                         show-password
                         @change="handleApiConfigChange"
@@ -443,7 +443,7 @@
                   <el-divider content-position="left">通用配置</el-divider>
 
                   <el-form-item
-                    label="操作超时时间(秒)"
+                    label="操作超时时间(�?"
                     prop="monitorSysGenServerSettingFileManagementTimeout"
                   >
                     <el-input-number
@@ -458,7 +458,7 @@
                   </el-form-item>
 
                   <el-form-item
-                    label="最大重试次数(次)"
+                    label="最大重试次�?�?"
                     prop="monitorSysGenServerSettingFileManagementMaxRetries"
                   >
                     <el-input-number
@@ -480,7 +480,7 @@
           <el-tab-pane label="高级配置" name="advanced">
             <div class="tab-content">
               <el-form-item
-                label="连接超时(秒)"
+                label="连接超时(�?"
                 prop="monitorSysGenServerSettingConnectionTimeout"
               >
                 <el-input-number
@@ -493,7 +493,7 @@
               </el-form-item>
 
               <el-form-item
-                label="读取超时(秒)"
+                label="读取超时(�?"
                 prop="monitorSysGenServerSettingReadTimeout"
               >
                 <el-input-number
@@ -515,7 +515,7 @@
                   "
                   :active-value="1"
                   :inactive-value="0"
-                  active-text="开启"
+                  active-text="开�?
                   inactive-text="关闭"
                 />
               </el-form-item>
@@ -545,18 +545,18 @@
                     v-model="formData.monitorSysGenServerSettingDockerPort"
                     :min="1"
                     :max="65535"
-                    placeholder="例如：2376"
+                    placeholder="例如�?376"
                     controls-position="right"
                   />
                 </el-form-item>
 
                 <el-form-item
-                  label="API用户名"
+                  label="API用户�?
                   prop="monitorSysGenServerSettingDockerUsername"
                 >
                   <el-input
                     v-model="formData.monitorSysGenServerSettingDockerUsername"
-                    placeholder="可选"
+                    placeholder="可�?
                     clearable
                   />
                 </el-form-item>
@@ -569,13 +569,13 @@
                     v-model="formData.monitorSysGenServerSettingDockerPassword"
                     type="password"
                     show-password
-                    placeholder="可选"
+                    placeholder="可�?
                     clearable
                   />
                 </el-form-item>
 
                 <el-form-item
-                  label="连接超时(秒)"
+                  label="连接超时(�?"
                   prop="monitorSysGenServerSettingDockerConnectTimeoutMillis"
                 >
                   <el-input-number
@@ -596,7 +596,7 @@
                     v-model="
                       formData.monitorSysGenServerSettingDockerApiVersion
                     "
-                    placeholder="Docker API版本，如：1.40"
+                    placeholder="Docker API版本，如�?.40"
                     clearable
                   />
                 </el-form-item>
@@ -610,7 +610,7 @@
                   v-model="formData.monitorSysGenServerSettingLogMonitorEnabled"
                   :active-value="1"
                   :inactive-value="0"
-                  active-text="开启"
+                  active-text="开�?
                   inactive-text="关闭"
                 />
               </el-form-item>
@@ -637,13 +637,13 @@
               >
                 <el-input
                   v-model="formData.monitorSysGenServerSettingMonitorPorts"
-                  placeholder="监控的端口列表，用逗号分隔，如：80,443,3306"
+                  placeholder="监控的端口列表，用逗号分隔，如�?0,443,3306"
                   clearable
                 />
               </el-form-item>
 
               <el-form-item
-                label="自定义标签"
+                label="自定义标�?
                 prop="monitorSysGenServerSettingCustomTags"
               >
                 <el-input
@@ -698,7 +698,7 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 响应式状态
+// 响应式状�?
 const visible = ref(false);
 const loading = ref(false);
 const activeTab = ref("basic");
@@ -759,7 +759,7 @@ const formData = reactive<Partial<ServerSetting>>({
   monitorSysGenServerSettingDescription: "",
   monitorSysGenServerSettingStatus: 1,
 
-  // 文件管理配置默认值
+  // 文件管理配置默认�?
   monitorSysGenServerSettingFileManagementEnabled: 0,
   monitorSysGenServerSettingFileManagementMode: "NONE",
   monitorSysGenServerSettingFileManagementApiConfig: "",
@@ -772,7 +772,7 @@ const formData = reactive<Partial<ServerSetting>>({
   monitorSysGenServerSettingPrometheusPort: 9090,
 });
 
-// 表单验证规则 - 动态规则
+// 表单验证规则 - 动态规�?
 const rules = computed(() => {
   const baseRules: any = {
     monitorSysGenServerSettingMetricsRetentionDays: [
@@ -781,13 +781,13 @@ const rules = computed(() => {
         type: "number",
         min: 1,
         max: 365,
-        message: "数据保留时间范围 1-365 天",
+        message: "数据保留时间范围 1-365 �?,
         trigger: "blur",
       },
     ],
   };
 
-  // 仅在非API上报方式时添加数据收集频率验证
+  // 仅在非API上报方式时添加数据收集频率验�?
   if (formData.monitorSysGenServerSettingDataReportMethod !== "API") {
     baseRules.monitorSysGenServerSettingDataCollectionFrequency = [
       { required: true, message: "数据收集频率不能为空", trigger: "blur" },
@@ -795,7 +795,7 @@ const rules = computed(() => {
         type: "number",
         min: 10,
         max: 3600,
-        message: "数据收集频率范围 10-3600 秒",
+        message: "数据收集频率范围 10-3600 �?,
         trigger: "blur",
       },
     ];
@@ -805,7 +805,7 @@ const rules = computed(() => {
 });
 
 /**
- * 打开对话框
+ * 打开对话�?
  */
 const open = async (serverIdParam: number) => {
   serverId.value = serverIdParam;
@@ -816,7 +816,7 @@ const open = async (serverIdParam: number) => {
 };
 
 /**
- * 加载服务器信息
+ * 加载服务器信�?
  */
 const loadServerInfo = async () => {
   if (!serverId.value) return;
@@ -827,13 +827,13 @@ const loadServerInfo = async () => {
       currentServer.value = result.data;
     }
   } catch (error) {
-    console.error("加载服务器信息失败:", error);
-    message.error("加载服务器信息失败");
+    console.error("加载服务器信息失�?", error);
+    message.error("加载服务器信息失�?);
   }
 };
 
 /**
- * 加载服务器设置
+ * 加载服务器设�?
  */
 const loadServerSetting = async () => {
   if (!serverId.value) return;
@@ -845,8 +845,8 @@ const loadServerSetting = async () => {
       Object.assign(formData, result.data);
     }
   } catch (error) {
-    console.error("加载服务器设置失败:", error);
-    message.error("加载服务器设置失败");
+    console.error("加载服务器设置失�?", error);
+    message.error("加载服务器设置失�?);
   } finally {
     loading.value = false;
   }
@@ -854,7 +854,7 @@ const loadServerSetting = async () => {
 
 // 表单变化处理已集成到各个配置项中
 
-// 当开启 Docker 监控时，若未填写主机/端口，则默认填充当前服务器IP:2376
+// 当开�?Docker 监控时，若未填写主机/端口，则默认填充当前服务器IP:2376
 watch(
   () => formData.monitorSysGenServerSettingDockerMonitorEnabled,
   (val) => {
@@ -891,7 +891,7 @@ const dockerConnectTimeoutSecondsDialog = computed({
 });
 
 /**
- * 获取通知地址占位符
+ * 获取通知地址占位�?
  */
 const getNotificationAddressPlaceholder = () => {
   switch (formData.monitorSysGenServerSettingAlertNotificationMethod) {
@@ -916,7 +916,7 @@ const getNotificationAddressTip = () => {
     case "WEBHOOK":
       return "Webhook URL地址，用于接收告警通知的HTTP接口";
     case "SMS":
-      return "支持多个手机号码，用逗号分隔，如：13800138000,13900139000";
+      return "支持多个手机号码，用逗号分隔，如�?3800138000,13900139000";
     default:
       return "";
   }
@@ -950,7 +950,7 @@ const handleFileManagementModeChange = () => {
         );
         Object.assign(apiConfig, config);
       } catch (error) {
-        console.warn("解析API配置失败，使用默认配置:", error);
+        console.warn("解析API配置失败，使用默认配�?", error);
       }
     }
   } else {
@@ -963,7 +963,7 @@ const handleFileManagementModeChange = () => {
  * 处理API配置变化
  */
 const handleApiConfigChange = () => {
-  // 将API配置对象序列化为JSON字符串
+  // 将API配置对象序列化为JSON字符�?
   try {
     formData.monitorSysGenServerSettingFileManagementApiConfig =
       JSON.stringify(apiConfig);
@@ -999,7 +999,7 @@ const handleSubmit = async () => {
       message.error(result.msg || "保存失败");
     }
   } catch (error) {
-    console.error("保存服务器设置失败:", error);
+    console.error("保存服务器设置失�?", error);
     message.error("保存失败");
   } finally {
     loading.value = false;

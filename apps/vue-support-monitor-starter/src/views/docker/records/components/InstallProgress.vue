@@ -133,7 +133,7 @@
       </div>
     </div>
     
-    <!-- 速度和统计信息 -->
+    <!-- 速度和统计信�?-->
     <div v-if="showStats" class="progress-stats">
       <div class="stats-grid">
         <div class="stat-item">
@@ -318,9 +318,9 @@ const getStatusText = () => {
     case 'failed':
       return '安装失败';
     case 'cancelled':
-      return '已取消';
+      return '已取�?;
     default:
-      return '未知状态';
+      return '未知状�?;
   }
 };
 
@@ -353,7 +353,7 @@ const formatDuration = (seconds: number) => {
   } else if (seconds < 3600) {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.round(seconds % 60);
-    return `${minutes}分${remainingSeconds}秒`;
+    return `${minutes}�?{remainingSeconds}秒`;
   } else {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -381,7 +381,7 @@ const clearLogs = () => {
   emit('clearLogs');
 };
 
-// 自动滚动到最新日志
+// 自动滚动到最新日�?
 watch(() => props.logs.length, async () => {
   if (props.showLogs && logsContainer.value) {
     await nextTick();

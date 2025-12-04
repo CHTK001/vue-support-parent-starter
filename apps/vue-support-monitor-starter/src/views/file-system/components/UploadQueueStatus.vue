@@ -20,7 +20,7 @@ import { ScMessageDialog } from "@repo/components";
 import type { UploadQueueStatus } from "@/api/monitor/filesystem";
 
 /**
- * 上传队列状态组件
+ * 上传队列状态组�?
  * 使用ScMessageDialog组件显示上传进度
  * @author CH
  * @version 2.0.0
@@ -44,7 +44,7 @@ const emit = defineEmits<{
   "sync-task": [fileId: number];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const queueList = ref<UploadQueueStatus[]>([]);
 
 // 图标映射
@@ -55,12 +55,12 @@ const iconMap = {
   failed: "ri:error-warning-line",
 };
 
-// 状态文本映射
+// 状态文本映�?
 const statusTextMap = {
-  pending: "等待中",
-  uploading: "上传中",
-  merging: "合并中",
-  completed: "已完成",
+  pending: "等待�?,
+  uploading: "上传�?,
+  merging: "合并�?,
+  completed: "已完�?,
   failed: "失败",
 };
 
@@ -78,7 +78,7 @@ const operationList = computed(() =>
 );
 
 /**
- * 状态映射
+ * 状态映�?
  */
 const mapStatus = (status: string): "pending" | "running" | "completed" | "failed" => {
   const map: Record<string, "pending" | "running" | "completed" | "failed"> = {
@@ -91,17 +91,17 @@ const mapStatus = (status: string): "pending" | "running" | "completed" | "faile
 };
 
 /**
- * 清除已完成
+ * 清除已完�?
  */
 const handleClear = () => {
   emit("clear-completed");
 };
 
-// 监听队列状态变化
+// 监听队列状态变�?
 watch(
   () => props.queueStatus,
   (newQueueStatus) => {
-    // 将Map转换为数组
+    // 将Map转换为数�?
     queueList.value = Array.from(newQueueStatus.values());
     emit("queue-update", queueList.value);
   },
@@ -110,12 +110,12 @@ watch(
 
 // 生命周期
 onMounted(() => {
-  // 初始化队列数据
+  // 初始化队列数�?
   queueList.value = Array.from(props.queueStatus.values());
 });
 
 /**
- * 添加到队列
+ * 添加到队�?
  */
 const addToQueue = (task: UploadQueueStatus) => {
   const existingIndex = queueList.value.findIndex(
@@ -130,7 +130,7 @@ const addToQueue = (task: UploadQueueStatus) => {
 };
 
 /**
- * 从队列移除
+ * 从队列移�?
  */
 const removeFromQueue = (fileId: number) => {
   const index = queueList.value.findIndex((item) => item.fileId === fileId);
@@ -141,7 +141,7 @@ const removeFromQueue = (fileId: number) => {
 };
 
 /**
- * 更新队列状态
+ * 更新队列状�?
  */
 const updateQueueStatus = (
   fileId: number,
@@ -155,10 +155,10 @@ const updateQueueStatus = (
 };
 
 /**
- * 手动刷新队列状态
+ * 手动刷新队列状�?
  */
 const refreshQueue = () => {
-  // 从props重新获取最新数据
+  // 从props重新获取最新数�?
   queueList.value = Array.from(props.queueStatus.values());
   emit("queue-update", queueList.value);
 };

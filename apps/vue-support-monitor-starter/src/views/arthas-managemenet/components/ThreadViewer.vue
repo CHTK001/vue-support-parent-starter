@@ -1,15 +1,15 @@
 <template>
   <div class="thread-viewer">
     <div class="toolbar">
-      <el-input v-model="keyword" placeholder="按线程名称过滤" clearable style="max-width: 200px" />
+      <el-input v-model="keyword" placeholder="按线程名称过�? clearable style="max-width: 200px" />
       <el-select v-model="count" style="width: 120px">
-        <el-option :value="10" label="10条" />
-        <el-option :value="20" label="20条" />
-        <el-option :value="50" label="50条" />
+        <el-option :value="10" label="10�? />
+        <el-option :value="20" label="20�? />
+        <el-option :value="50" label="50�? />
       </el-select>
-      <el-checkbox v-model="blocking">仅阻塞</el-checkbox>
+      <el-checkbox v-model="blocking">仅阻�?/el-checkbox>
       <el-input v-model="threadId" placeholder="线程ID" style="max-width: 120px" />
-      <el-select v-model="stateFilter" placeholder="状态筛选" style="width: 140px" clearable>
+      <el-select v-model="stateFilter" placeholder="状态筛�? style="width: 140px" clearable>
         <el-option value="RUNNABLE" label="RUNNABLE" />
         <el-option value="WAITING" label="WAITING" />
         <el-option value="TIMED_WAITING" label="TIMED_WAITING" />
@@ -19,10 +19,10 @@
       </el-select>
       <el-checkbox v-model="autoRefresh">自动刷新</el-checkbox>
       <el-select v-model="refreshInterval" style="width: 120px" :disabled="!autoRefresh" placeholder="刷新间隔">
-        <el-option :value="5" label="5秒" />
-        <el-option :value="10" label="10秒" />
-        <el-option :value="30" label="30秒" />
-        <el-option :value="60" label="60秒" />
+        <el-option :value="5" label="5�? />
+        <el-option :value="10" label="10�? />
+        <el-option :value="30" label="30�? />
+        <el-option :value="60" label="60�? />
       </el-select>
       <el-button @click="clearData">清空</el-button>
       <el-button type="primary" :disabled="!nodeId" :loading="loading" @click="run">
@@ -50,7 +50,7 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="state" label="状态" width="120">
+          <el-table-column prop="state" label="状�? width="120">
             <template #default="{ row }">
               <el-tag :type="getStateType(row.state)" size="small">
                 {{ row.state }}
@@ -60,15 +60,15 @@
           <el-table-column prop="cpu" label="CPU%" width="100" sortable>
             <template #default="{ row }"> {{ (row.cpu || 0).toFixed(1) }}% </template>
           </el-table-column>
-          <el-table-column prop="priority" label="优先级" width="100" sortable />
-          <el-table-column prop="group" label="线程组" width="120" show-overflow-tooltip />
+          <el-table-column prop="priority" label="优先�? width="100" sortable />
+          <el-table-column prop="group" label="线程�? width="120" show-overflow-tooltip />
           <el-table-column prop="time" label="时间(ms)" width="120" sortable />
           <el-table-column label="阻塞信息" width="120">
             <template #default="{ row }">
               <div v-if="row.blockedCount > 0" class="blocked-info">
                 <el-tag type="warning" size="small">{{ row.blockedCount }}</el-tag>
               </div>
-              <span v-else class="blocked-info">无</span>
+              <span v-else class="blocked-info">�?/span>
             </template>
           </el-table-column>
           <el-table-column label="等待信息" width="120">
@@ -88,37 +88,37 @@
       </div>
     </div>
 
-    <!-- 堆栈跟踪对话框 -->
+    <!-- 堆栈跟踪对话�?-->
     <el-dialog v-model="stackTraceVisible" :title="`线程堆栈 - ${selectedThread?.name} (ID: ${selectedThread?.id})`" width="80%" top="5vh">
       <div v-if="selectedThread" class="stack-trace-content">
         <div class="thread-info">
           <el-descriptions :column="3" border>
             <el-descriptions-item label="线程ID">{{ selectedThread.id }}</el-descriptions-item>
             <el-descriptions-item label="线程名称">{{ selectedThread.name }}</el-descriptions-item>
-            <el-descriptions-item label="状态">
+            <el-descriptions-item label="状�?>
               <el-tag :type="getStateType(selectedThread.state)">{{ selectedThread.state }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="优先级">{{ selectedThread.priority }}</el-descriptions-item>
-            <el-descriptions-item label="线程组">{{ selectedThread.group }}</el-descriptions-item>
+            <el-descriptions-item label="优先�?>{{ selectedThread.priority }}</el-descriptions-item>
+            <el-descriptions-item label="线程�?>{{ selectedThread.group }}</el-descriptions-item>
             <el-descriptions-item label="是否守护线程">
               <el-tag :type="selectedThread.daemon ? 'info' : 'success'">
-                {{ selectedThread.daemon ? "是" : "否" }}
+                {{ selectedThread.daemon ? "�? : "�? }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="CPU使用率">{{ (selectedThread.cpu || 0).toFixed(2) }}%</el-descriptions-item>
+            <el-descriptions-item label="CPU使用�?>{{ (selectedThread.cpu || 0).toFixed(2) }}%</el-descriptions-item>
             <el-descriptions-item label="运行时间">{{ selectedThread.time }}ms</el-descriptions-item>
             <el-descriptions-item label="是否中断">
               <el-tag :type="selectedThread.interrupted ? 'danger' : 'success'">
-                {{ selectedThread.interrupted ? "是" : "否" }}
+                {{ selectedThread.interrupted ? "�? : "�? }}
               </el-tag>
             </el-descriptions-item>
           </el-descriptions>
         </div>
 
         <div v-if="selectedThread.lockInfo" class="lock-info">
-          <h4>锁信息</h4>
+          <h4>锁信�?/h4>
           <el-descriptions :column="2" border>
-            <el-descriptions-item label="锁名称">{{ selectedThread.lockName }}</el-descriptions-item>
+            <el-descriptions-item label="锁名�?>{{ selectedThread.lockName }}</el-descriptions-item>
             <el-descriptions-item label="锁拥有者ID">{{ selectedThread.lockOwnerId }}</el-descriptions-item>
           </el-descriptions>
         </div>
@@ -135,7 +135,7 @@
             </div>
           </div>
           <div v-else class="no-stack">
-            <el-empty description="无堆栈信息" />
+            <el-empty description="无堆栈信�? />
           </div>
         </div>
       </div>
@@ -144,12 +144,12 @@
 </template>
 
 <script setup lang="ts">
-import { execArthasCommand, type ArthasThreadInfo } from "@/api/arthas-http";
+import { execArthasCommand, type ArthasThreadInfo } from "@/api/arthas/arthas-http";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 const props = defineProps<{ nodeId: string }>();
 
-// 响应式数据
+// 响应式数�?
 const keyword = ref("");
 const count = ref(20);
 const blocking = ref(false);
@@ -163,7 +163,7 @@ const selectedThread = ref<ArthasThreadInfo | null>(null);
 
 // 自动刷新相关
 const autoRefresh = ref(false);
-const refreshInterval = ref(10); // 默认10秒
+const refreshInterval = ref(10); // 默认10�?
 const countdown = ref(0);
 let refreshTimer: NodeJS.Timeout | null = null;
 let countdownTimer: NodeJS.Timeout | null = null;
@@ -177,7 +177,7 @@ const filteredThreads = computed(() => {
     result = result.filter((thread) => thread.name.toLowerCase().includes(keyword.value.toLowerCase()));
   }
 
-  // 按状态过滤
+  // 按状态过�?
   if (stateFilter.value) {
     result = result.filter((thread) => thread.state === stateFilter.value);
   }
@@ -298,7 +298,7 @@ async function run() {
   }
 }
 
-// 处理行点击
+// 处理行点�?
 function handleRowClick(row: ArthasThreadInfo) {
   selectedThread.value = row;
   stackTraceVisible.value = true;
@@ -314,15 +314,15 @@ function viewStackTrace(thread: ArthasThreadInfo) {
 function startAutoRefresh() {
   if (!autoRefresh.value || !props.nodeId) return;
 
-  stopAutoRefresh(); // 先停止之前的定时器
+  stopAutoRefresh(); // 先停止之前的定时�?
 
-  // 启动倒计时
+  // 启动倒计�?
   countdown.value = refreshInterval.value;
   countdownTimer = setInterval(() => {
     countdown.value--;
     if (countdown.value <= 0) {
       run(); // 执行刷新
-      countdown.value = refreshInterval.value; // 重置倒计时
+      countdown.value = refreshInterval.value; // 重置倒计�?
     }
   }, 1000);
 }
@@ -340,7 +340,7 @@ function stopAutoRefresh() {
   countdown.value = 0;
 }
 
-// 监听自动刷新状态变化
+// 监听自动刷新状态变�?
 watch(autoRefresh, (newVal) => {
   if (newVal && props.nodeId) {
     startAutoRefresh();
@@ -352,7 +352,7 @@ watch(autoRefresh, (newVal) => {
 // 监听刷新间隔变化
 watch(refreshInterval, () => {
   if (autoRefresh.value && props.nodeId) {
-    startAutoRefresh(); // 重新启动定时器
+    startAutoRefresh(); // 重新启动定时�?
   }
 });
 
@@ -364,13 +364,13 @@ watch(
       clearData();
       stopAutoRefresh(); // 停止自动刷新
       if (n && autoRefresh.value) {
-        startAutoRefresh(); // 如果开启了自动刷新，重新启动
+        startAutoRefresh(); // 如果开启了自动刷新，重新启�?
       }
     }
   }
 );
 
-// 组件挂载时自动执行
+// 组件挂载时自动执�?
 onMounted(() => {
   if (props.nodeId) {
     run();
@@ -448,7 +448,7 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
-/* 堆栈跟踪对话框样式 */
+/* 堆栈跟踪对话框样�?*/
 .stack-trace-content {
   max-height: 70vh;
   overflow-y: auto;
@@ -529,7 +529,7 @@ onBeforeUnmount(() => {
   opacity: 0.6;
 }
 
-/* 响应式设计 */
+/* 响应式设�?*/
 @media (max-width: 768px) {
   .toolbar {
     flex-direction: column;

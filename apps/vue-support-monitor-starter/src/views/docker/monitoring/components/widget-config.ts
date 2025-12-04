@@ -1,4 +1,4 @@
-// 容器监控小组件配置
+// 容器监控小组件配�?
 export const containerMonitorWidget = {
   id: 'container-monitor',
   title: '容器监控',
@@ -13,11 +13,11 @@ export const containerMonitorWidget = {
   y: 0
 }
 
-// 主机资源监控小组件配置
+// 主机资源监控小组件配�?
 export const containerHostMonitorWidget = {
   id: 'container-host-monitor',
   title: '主机资源监控',
-  description: '监控主机CPU、内存、磁盘使用情况',
+  description: '监控主机CPU、内存、磁盘使用情�?,
   icon: 'ri:server-line',
   component: () => import('./ContainerHostMonitor.vue'),
   type: 2, // 2表示Vue组件

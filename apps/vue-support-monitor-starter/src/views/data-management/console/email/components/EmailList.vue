@@ -15,7 +15,7 @@
     </div>
 
     <div ref="listContentRef" class="list-content overflow-x-hidden" @scroll="handleScroll">
-      <!-- 加载状态 -->
+      <!-- 加载状�?-->
       <div v-if="loading" class="loading-state">
         <el-skeleton :rows="5" animated />
       </div>
@@ -59,7 +59,7 @@
         </div>
       </div>
 
-      <!-- 加载更多状态 -->
+      <!-- 加载更多状�?-->
       <div v-if="loadingMore" class="loading-more">
         <el-skeleton :rows="2" animated />
         <div class="loading-more-text">
@@ -79,16 +79,16 @@
           <template #loading>
             <IconifyIconOnline icon="ri:loader-4-line" class="loading-icon" />
           </template>
-          {{ loadingMore ? '加载中...' : '加载更多' }}
+          {{ loadingMore ? '加载�?..' : '加载更多' }}
         </el-button>
       </div>
 
       <!-- 没有更多数据提示 -->
       <div v-if="!loading && !loadingMore && hasMore === false && emailData.length > 0" class="no-more-data">
-        <div class="no-more-text">已加载全部邮件</div>
+        <div class="no-more-text">已加载全部邮�?/div>
       </div>
 
-      <!-- 空状态 -->
+      <!-- 空状�?-->
       <div v-if="!loading && emailData.length === 0" class="empty-state">
         <IconifyIconOnline icon="ri:mail-line" class="empty-icon" />
         <p class="empty-text">暂无邮件</p>
@@ -139,14 +139,14 @@ const emit = defineEmits<{
   "load-more": [];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const emailData = ref(props.emails as any);
 const selectAll = ref(false);
 const searchQuery = ref("");
 const listContentRef = ref<HTMLElement>();
 const isLoadingMore = ref(false);
 const mouseClick = ref();
-// 监听全选状态
+// 监听全选状�?
 watch(
   () => props.emails,
   v => {
@@ -214,7 +214,7 @@ function handleLoadMore() {
     isLoadingMore.value = true;
     emit("load-more");
     
-    // 防抖处理，避免重复触发
+    // 防抖处理，避免重复触�?
     setTimeout(() => {
       isLoadingMore.value = false;
     }, 1000);
@@ -228,15 +228,15 @@ function handleScroll() {
   }
 
   const { scrollTop, scrollHeight, clientHeight } = listContentRef.value;
-  const threshold = 50; // 距离底部50px时开始加载
+  const threshold = 50; // 距离底部50px时开始加�?
 
   if (scrollTop + clientHeight >= scrollHeight - threshold) {
-    // 检查是否还有更多数据
+    // 检查是否还有更多数�?
     if (props.hasMore !== false) {
       isLoadingMore.value = true;
       emit("load-more");
 
-      // 防抖处理，避免重复触发
+      // 防抖处理，避免重复触�?
       setTimeout(() => {
         isLoadingMore.value = false;
       }, 1000);
@@ -244,7 +244,7 @@ function handleScroll() {
   }
 }
 
-// 重置滚动位置（当切换文件夹时）
+// 重置滚动位置（当切换文件夹时�?
 function resetScroll() {
   if (listContentRef.value) {
     listContentRef.value.scrollTop = 0;
@@ -569,7 +569,7 @@ function formatTime(time: any) {
   right: -80px;
 }
 
-/* 滚动条样式 */
+/* 滚动条样�?*/
 .list-content::-webkit-scrollbar {
   width: 6px;
 }

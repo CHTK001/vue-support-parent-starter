@@ -39,7 +39,7 @@
                     <el-tag :type="getSeverityType(rule.severity)" size="small">
                       {{ getSeverityText(rule.severity) }}
                     </el-tag>
-                    <el-tag v-if="!rule.enabled" type="info" size="small">已禁用</el-tag>
+                    <el-tag v-if="!rule.enabled" type="info" size="small">已禁�?/el-tag>
                   </div>
                   <div class="rule-actions">
                     <el-switch
@@ -73,12 +73,12 @@
           </div>
         </el-tab-pane>
 
-        <!-- 阈值设置 -->
-        <el-tab-pane label="阈值设置" name="thresholds">
+        <!-- 阈值设�?-->
+        <el-tab-pane label="阈值设�? name="thresholds">
           <div class="thresholds-panel">
             <el-alert
-              title="阈值配置说明"
-              description="设置各项监控指标的告警阈值，当指标值超过设定阈值时将触发相应级别的告警。"
+              title="阈值配置说�?
+              description="设置各项监控指标的告警阈值，当指标值超过设定阈值时将触发相应级别的告警�?
               type="info"
               :closable="false"
               show-icon
@@ -86,17 +86,17 @@
             />
 
             <el-form :model="thresholdConfig" label-width="120px">
-              <!-- CPU阈值设置 -->
+              <!-- CPU阈值设�?-->
               <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
                     <IconifyIconOnline icon="ri:cpu-line" class="metric-icon" />
-                    <span>CPU使用率阈值</span>
+                    <span>CPU使用率阈�?/span>
                   </div>
                 </template>
                 <el-row :gutter="20">
                   <el-col :span="8">
-                    <el-form-item label="正常阈值">
+                    <el-form-item label="正常阈�?>
                       <el-input-number
                         v-model="thresholdConfig.cpu.normal"
                         :min="0"
@@ -109,7 +109,7 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="8">
-                    <el-form-item label="警告阈值">
+                    <el-form-item label="警告阈�?>
                       <el-input-number
                         v-model="thresholdConfig.cpu.warning"
                         :min="thresholdConfig.cpu.normal"
@@ -122,7 +122,7 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="8">
-                    <el-form-item label="危险阈值">
+                    <el-form-item label="危险阈�?>
                       <el-input-number
                         v-model="thresholdConfig.cpu.critical"
                         :min="thresholdConfig.cpu.warning"
@@ -137,17 +137,17 @@
                 </el-row>
               </el-card>
 
-              <!-- 内存阈值设置 -->
+              <!-- 内存阈值设�?-->
               <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
                     <IconifyIconOnline icon="ri:database-line" class="metric-icon" />
-                    <span>内存使用率阈值</span>
+                    <span>内存使用率阈�?/span>
                   </div>
                 </template>
                 <el-row :gutter="20">
                   <el-col :span="8">
-                    <el-form-item label="正常阈值">
+                    <el-form-item label="正常阈�?>
                       <el-input-number
                         v-model="thresholdConfig.memory.normal"
                         :min="0"
@@ -160,7 +160,7 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="8">
-                    <el-form-item label="警告阈值">
+                    <el-form-item label="警告阈�?>
                       <el-input-number
                         v-model="thresholdConfig.memory.warning"
                         :min="thresholdConfig.memory.normal"
@@ -173,7 +173,7 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="8">
-                    <el-form-item label="危险阈值">
+                    <el-form-item label="危险阈�?>
                       <el-input-number
                         v-model="thresholdConfig.memory.critical"
                         :min="thresholdConfig.memory.warning"
@@ -188,17 +188,17 @@
                 </el-row>
               </el-card>
 
-              <!-- 磁盘阈值设置 -->
+              <!-- 磁盘阈值设�?-->
               <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
                     <IconifyIconOnline icon="ri:hard-drive-line" class="metric-icon" />
-                    <span>磁盘使用率阈值</span>
+                    <span>磁盘使用率阈�?/span>
                   </div>
                 </template>
                 <el-row :gutter="20">
                   <el-col :span="8">
-                    <el-form-item label="正常阈值">
+                    <el-form-item label="正常阈�?>
                       <el-input-number
                         v-model="thresholdConfig.disk.normal"
                         :min="0"
@@ -211,7 +211,7 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="8">
-                    <el-form-item label="警告阈值">
+                    <el-form-item label="警告阈�?>
                       <el-input-number
                         v-model="thresholdConfig.disk.warning"
                         :min="thresholdConfig.disk.normal"
@@ -224,7 +224,7 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="8">
-                    <el-form-item label="危险阈值">
+                    <el-form-item label="危险阈�?>
                       <el-input-number
                         v-model="thresholdConfig.disk.critical"
                         :min="thresholdConfig.disk.warning"
@@ -239,17 +239,17 @@
                 </el-row>
               </el-card>
 
-              <!-- 温度阈值设置 -->
+              <!-- 温度阈值设�?-->
               <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
                     <IconifyIconOnline icon="ri:temp-hot-line" class="metric-icon" />
-                    <span>温度阈值</span>
+                    <span>温度阈�?/span>
                   </div>
                 </template>
                 <el-row :gutter="20">
                   <el-col :span="8">
-                    <el-form-item label="正常阈值">
+                    <el-form-item label="正常阈�?>
                       <el-input-number
                         v-model="thresholdConfig.temperature.normal"
                         :min="0"
@@ -262,7 +262,7 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="8">
-                    <el-form-item label="警告阈值">
+                    <el-form-item label="警告阈�?>
                       <el-input-number
                         v-model="thresholdConfig.temperature.warning"
                         :min="thresholdConfig.temperature.normal"
@@ -275,7 +275,7 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="8">
-                    <el-form-item label="危险阈值">
+                    <el-form-item label="危险阈�?>
                       <el-input-number
                         v-model="thresholdConfig.temperature.critical"
                         :min="thresholdConfig.temperature.warning"
@@ -290,17 +290,17 @@
                 </el-row>
               </el-card>
 
-              <!-- 网络阈值设置 -->
+              <!-- 网络阈值设�?-->
               <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
                     <IconifyIconOnline icon="ri:wifi-line" class="metric-icon" />
-                    <span>网络使用率阈值</span>
+                    <span>网络使用率阈�?/span>
                   </div>
                 </template>
                 <el-row :gutter="20">
                   <el-col :span="8">
-                    <el-form-item label="正常阈值">
+                    <el-form-item label="正常阈�?>
                       <el-input-number
                         v-model="thresholdConfig.network.normal"
                         :min="0"
@@ -313,7 +313,7 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="8">
-                    <el-form-item label="警告阈值">
+                    <el-form-item label="警告阈�?>
                       <el-input-number
                         v-model="thresholdConfig.network.warning"
                         :min="thresholdConfig.network.normal"
@@ -326,7 +326,7 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="8">
-                    <el-form-item label="危险阈值">
+                    <el-form-item label="危险阈�?>
                       <el-input-number
                         v-model="thresholdConfig.network.critical"
                         :min="thresholdConfig.network.warning"
@@ -342,8 +342,8 @@
               </el-card>
 
               <div class="threshold-actions">
-                <el-button @click="resetThresholds">重置为默认值</el-button>
-                <el-button type="primary" @click="saveThresholds">保存阈值配置</el-button>
+                <el-button @click="resetThresholds">重置为默认�?/el-button>
+                <el-button type="primary" @click="saveThresholds">保存阈值配�?/el-button>
               </div>
             </el-form>
           </div>
@@ -370,13 +370,13 @@
                 <!-- 邮件配置 -->
                 <template v-if="notificationConfig.methods.includes('email')">
                   <el-divider content-position="left">邮件配置</el-divider>
-                  <el-form-item label="收件人">
+                  <el-form-item label="收件�?>
                     <el-input
                       v-model="notificationConfig.email.recipients"
                       placeholder="多个邮箱用逗号分隔"
                     />
                   </el-form-item>
-                  <el-form-item label="SMTP服务器">
+                  <el-form-item label="SMTP服务�?>
                     <el-input v-model="notificationConfig.email.smtpHost" />
                   </el-form-item>
                   <el-form-item label="SMTP端口">
@@ -420,8 +420,8 @@
               <el-date-picker
                 v-model="historyFilters.dateRange"
                 type="datetimerange"
-                range-separator="至"
-                start-placeholder="开始时间"
+                range-separator="�?
+                start-placeholder="开始时�?
                 end-placeholder="结束时间"
                 size="small"
               />
@@ -445,13 +445,13 @@
                   </el-tag>
                   <span class="alert-time">{{ formatTime(alert.time) }}</span>
                   <el-tag :type="alert.resolved ? 'success' : 'danger'" size="small">
-                    {{ alert.resolved ? '已解决' : '未解决' }}
+                    {{ alert.resolved ? '已解�? : '未解�? }}
                   </el-tag>
                 </div>
                 <div class="alert-content">
                   <div class="alert-title">{{ alert.title }}</div>
                   <div class="alert-description">{{ alert.description }}</div>
-                  <div class="alert-server">服务器: {{ alert.serverName }}</div>
+                  <div class="alert-server">服务�? {{ alert.serverName }}</div>
                 </div>
               </div>
 
@@ -462,7 +462,7 @@
       </el-tabs>
     </div>
 
-    <!-- 规则编辑对话框 -->
+    <!-- 规则编辑对话�?-->
     <el-dialog
       v-model="ruleDialogVisible"
       :title="editingRuleIndex === -1 ? '新增规则' : '编辑规则'"
@@ -471,16 +471,16 @@
     >
       <el-form :model="currentRule" :rules="ruleRules" ref="ruleFormRef" label-width="80px">
         <el-form-item label="规则名称" prop="name">
-          <el-input v-model="currentRule.name" placeholder="请输入规则名称" />
+          <el-input v-model="currentRule.name" placeholder="请输入规则名�? />
         </el-form-item>
         <el-form-item label="监控指标" prop="metric">
           <el-select v-model="currentRule.metric" placeholder="选择监控指标">
-            <el-option label="CPU使用率" value="cpu_usage" />
-            <el-option label="内存使用率" value="memory_usage" />
-            <el-option label="磁盘使用率" value="disk_usage" />
+            <el-option label="CPU使用�? value="cpu_usage" />
+            <el-option label="内存使用�? value="memory_usage" />
+            <el-option label="磁盘使用�? value="disk_usage" />
             <el-option label="网络延迟" value="network_latency" />
             <el-option label="磁盘IO" value="disk_io" />
-            <el-option label="负载平均值" value="load_average" />
+            <el-option label="负载平均�? value="load_average" />
           </el-select>
         </el-form-item>
         <el-form-item label="比较操作" prop="operator">
@@ -492,7 +492,7 @@
             <el-option label="等于" value="eq" />
           </el-select>
         </el-form-item>
-        <el-form-item label="阈值" prop="threshold">
+        <el-form-item label="阈�? prop="threshold">
           <el-input-number
             v-model="currentRule.threshold"
             :min="0"
@@ -515,14 +515,14 @@
             :max="3600"
             style="width: 100%"
           />
-          <span class="duration-unit">秒</span>
+          <span class="duration-unit">�?/span>
         </el-form-item>
         <el-form-item label="描述">
           <el-input
             v-model="currentRule.description"
             type="textarea"
             :rows="3"
-            placeholder="请输入规则描述"
+            placeholder="请输入规则描�?
           />
         </el-form-item>
         <el-form-item label="启用规则">
@@ -549,7 +549,7 @@ import { ref, reactive } from "vue";
 import { message } from "@repo/utils";
 import { DEFAULT_THRESHOLDS, type MetricsThresholdConfig } from "@/utils/metricsThreshold";
 
-// 状态
+// 状�?
 const visible = ref(false);
 const activeTab = ref('rules');
 const ruleDialogVisible = ref(false);
@@ -558,28 +558,28 @@ const editingRuleIndex = ref(-1);
 // 告警规则
 const alertRules = ref<any[]>([
   {
-    name: 'CPU使用率过高',
+    name: 'CPU使用率过�?,
     metric: 'cpu_usage',
     operator: 'gt',
     threshold: 80,
     severity: 'warning',
     duration: 300,
-    description: 'CPU使用率超过80%持续5分钟',
+    description: 'CPU使用率超�?0%持续5分钟',
     enabled: true
   },
   {
-    name: '内存使用率严重',
+    name: '内存使用率严�?,
     metric: 'memory_usage',
     operator: 'gt',
     threshold: 90,
     severity: 'critical',
     duration: 60,
-    description: '内存使用率超过90%',
+    description: '内存使用率超�?0%',
     enabled: true
   }
 ]);
 
-// 当前编辑的规则
+// 当前编辑的规�?
 const currentRule = reactive({
   name: '',
   metric: '',
@@ -591,7 +591,7 @@ const currentRule = reactive({
   enabled: true
 });
 
-// 阈值配置
+// 阈值配�?
 const thresholdConfig = reactive<MetricsThresholdConfig>({
   cpu: { ...DEFAULT_THRESHOLDS.cpu },
   memory: { ...DEFAULT_THRESHOLDS.memory },
@@ -622,15 +622,15 @@ const notificationConfig = reactive({
 // 告警历史
 const alertHistory = ref<any[]>([
   {
-    title: 'CPU使用率过高',
-    description: 'server01的CPU使用率达到85%',
+    title: 'CPU使用率过�?,
+    description: 'server01的CPU使用率达�?5%',
     severity: 'warning',
     time: new Date(Date.now() - 3600000),
     serverName: 'server01',
     resolved: true
   },
   {
-    title: '内存使用率严重',
+    title: '内存使用率严�?,
     description: 'server02的内存使用率达到95%',
     severity: 'critical',
     time: new Date(Date.now() - 1800000),
@@ -639,7 +639,7 @@ const alertHistory = ref<any[]>([
   }
 ]);
 
-// 历史查询过滤器
+// 历史查询过滤�?
 const historyFilters = reactive({
   dateRange: [],
   severity: ''
@@ -648,7 +648,7 @@ const historyFilters = reactive({
 // 表单验证规则
 const ruleRules = {
   name: [
-    { required: true, message: '请输入规则名称', trigger: 'blur' }
+    { required: true, message: '请输入规则名�?, trigger: 'blur' }
   ],
   metric: [
     { required: true, message: '请选择监控指标', trigger: 'change' }
@@ -657,7 +657,7 @@ const ruleRules = {
     { required: true, message: '请选择比较操作', trigger: 'change' }
   ],
   threshold: [
-    { required: true, message: '请输入阈值', trigger: 'blur' }
+    { required: true, message: '请输入阈�?, trigger: 'blur' }
   ],
   severity: [
     { required: true, message: '请选择告警级别', trigger: 'change' }
@@ -690,7 +690,7 @@ const editRule = (index: number) => {
 
 const deleteRule = (index: number) => {
   alertRules.value.splice(index, 1);
-  message.success('规则已删除');
+  message.success('规则已删�?);
 };
 
 const updateRule = (index: number) => {
@@ -747,7 +747,7 @@ const exportRules = () => {
 
 const loadAlertHistory = () => {
   // TODO: 根据过滤条件加载告警历史
-  message.success('告警历史已刷新');
+  message.success('告警历史已刷�?);
 };
 
 const saveConfig = () => {
@@ -756,7 +756,7 @@ const saveConfig = () => {
 };
 
 /**
- * 重置阈值为默认值
+ * 重置阈值为默认�?
  */
 const resetThresholds = () => {
   Object.assign(thresholdConfig.cpu, DEFAULT_THRESHOLDS.cpu);
@@ -764,19 +764,19 @@ const resetThresholds = () => {
   Object.assign(thresholdConfig.disk, DEFAULT_THRESHOLDS.disk);
   Object.assign(thresholdConfig.temperature, DEFAULT_THRESHOLDS.temperature);
   Object.assign(thresholdConfig.network, DEFAULT_THRESHOLDS.network);
-  message.success('阈值已重置为默认值');
+  message.success('阈值已重置为默认�?);
 };
 
 /**
- * 保存阈值配置
+ * 保存阈值配�?
  */
 const saveThresholds = async () => {
   try {
-    // TODO: 调用API保存阈值配置
+    // TODO: 调用API保存阈值配�?
     // await saveThresholdConfig(thresholdConfig);
-    message.success('阈值配置保存成功');
+    message.success('阈值配置保存成�?);
   } catch (error) {
-    message.error('阈值配置保存失败');
+    message.error('阈值配置保存失�?);
   }
 };
 

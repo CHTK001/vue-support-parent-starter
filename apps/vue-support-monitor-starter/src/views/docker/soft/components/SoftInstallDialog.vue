@@ -27,11 +27,11 @@
     </template>
 
     <div class="content">
-      <!-- 选择服务器 -->
+      <!-- 选择服务�?-->
       <div class="step-pane">
         <div class="pane-title">
           <IconifyIconOnline icon="ri:server-line" class="mr-2" />
-          选择目标服务器
+          选择目标服务�?
         </div>
         <div class="server-cards">
           <div v-for="server in servers" :key="server.monitorSysGenServerId" class="server-card"
@@ -64,7 +64,7 @@
         </div>
         <div class="server-hint">
           <IconifyIconOnline icon="ri:information-line" class="mr-1" />
-          已选择 <b>{{ selectedServerCount }}</b> 台服务器，将自动拉取镜像并安装
+          已选择 <b>{{ selectedServerCount }}</b> 台服务器，将自动拉取镜像并安�?
         </div>
       </div>
 
@@ -87,7 +87,7 @@
         <div class="info-item">
           <IconifyIconOnline icon="ri:progress-5-line" class="icon" />
           <div class="info-content">
-            <div class="info-title">进度推送</div>
+            <div class="info-title">进度推�?/div>
             <div class="info-value">实时推送安装进度，请保持页面打开</div>
           </div>
         </div>
@@ -99,7 +99,7 @@
         <el-button @click="visibleProxy = false">取消</el-button>
         <el-button type="primary" :loading="installing" :disabled="selectedServerCount === 0" @click="submit">
           <IconifyIconOnline icon="ri:download-cloud-2-line" class="mr-1" v-if="!installing" />
-          {{ installing ? '安装中...' : '开始安装' }}
+          {{ installing ? '安装�?..' : '开始安�? }}
         </el-button>
       </div>
     </template>
@@ -107,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { getServerList, softwareApi } from '@/api/docker-management';
+import { getServerList, softwareApi } from '@/api/docker';
 import ScSocketEventProcess from '@repo/components/ScSocketMessageDialog/index.vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import { computed, ref, watch } from 'vue';
@@ -144,7 +144,7 @@ async function loadServers() {
       servers.value = res || [];
     }
   } catch (err) {
-    console.error('加载服务器失败', err);
+    console.error('加载服务器失�?, err);
   }
 }
 
@@ -154,23 +154,23 @@ function toggleServerSelect(id: number) {
   else selectedServerIds.value.splice(idx, 1);
 }
 
-// 获取服务器连接状态类型
+// 获取服务器连接状态类�?
 function getStatusType(status: number | undefined): 'success' | 'info' | 'warning' | 'danger' {
   switch (status) {
     case 1: return 'success';  // 在线
     case 0: return 'info';     // 离线
-    case 2: return 'warning';  // 连接中
+    case 2: return 'warning';  // 连接�?
     case 3: return 'danger';   // 连接失败
     default: return 'info';
   }
 }
 
-// 获取服务器连接状态文本
+// 获取服务器连接状态文�?
 function getStatusText(status: number | undefined): string {
   switch (status) {
     case 1: return '在线';
     case 0: return '离线';
-    case 2: return '连接中';
+    case 2: return '连接�?;
     case 3: return '失败';
     default: return '未知';
   }
@@ -187,7 +187,7 @@ function getStatusClass(status: number | undefined): string {
   }
 }
 
-// 获取进度弹框位置（多个弹框时错开显示）
+// 获取进度弹框位置（多个弹框时错开显示�?
 function getProgressPosition(index: number): 'bottom-right' | 'top-right' | 'bottom-left' | 'top-left' {
   const positions: Array<'bottom-right' | 'top-right' | 'bottom-left' | 'top-left'> = ['bottom-right', 'top-right', 'bottom-left', 'top-left'];
   return positions[index % 4];
@@ -195,7 +195,7 @@ function getProgressPosition(index: number): 'bottom-right' | 'top-right' | 'bot
 
 // 处理进度弹框关闭
 function handleProgressClose(eventId: string) {
-  // 从列表中移除该进度项，释放资源
+  // 从列表中移除该进度项，释放资�?
   const index = installProgressList.value.findIndex(item => item.eventId === eventId);
   if (index !== -1) {
     installProgressList.value.splice(index, 1);
@@ -209,13 +209,13 @@ function handleProgressData(eventId: string, data: any) {
     setTimeout(() => {
       const item = installProgressList.value.find(item => item.eventId === eventId);
       if (item) {
-        item.visible = false; // 先关闭弹框
+        item.visible = false; // 先关闭弹�?
         // 再延迟移除，确保关闭动画完成
         setTimeout(() => {
           handleProgressClose(eventId);
         }, 300);
       }
-    }, 8000); // 8秒后自动关闭并移除
+    }, 8000); // 8秒后自动关闭并移�?
   }
 }
 
@@ -238,7 +238,7 @@ async function submit() {
   try {
     installing.value = true;
     
-    // 简化的安装请求，只传 softId 和 serverIds
+    // 简化的安装请求，只�?softId �?serverIds
     const payload = {
       softId: props.soft?.systemSoftId,
       serverIds: ids,
@@ -248,7 +248,7 @@ async function submit() {
     const result = await softwareApi.installSoftware(payload as any);
     
     if (result.code === '00000' && result.data?.operationId) {
-      // 创建进度监控项
+      // 创建进度监控�?
       const serverNames = servers.value
         .filter(s => ids.includes(s.monitorSysGenServerId))
         .map(s => s.monitorSysGenServerName)
@@ -264,16 +264,16 @@ async function submit() {
       
       installProgressList.value.push(progressItem);
       
-      // 通知父组件安装开始
+      // 通知父组件安装开�?
       emit('success');
       
       ElNotification.success({
-        title: '安装已开始',
-        message: `正在 ${ids.length} 台服务器上安装 ${props.soft?.systemSoftName}`,
+        title: '安装已开�?,
+        message: `正在 ${ids.length} 台服务器上安�?${props.soft?.systemSoftName}`,
         position: 'bottom-right'
       });
       
-      // 关闭对话框
+      // 关闭对话�?
       visibleProxy.value = false;
     } else {
       ElMessage.error(result.msg || '安装失败');
@@ -282,7 +282,7 @@ async function submit() {
     console.error('安装软件失败', error);
     ElNotification.error({
       title: '安装失败',
-      message: error?.message || '请稍后重试',
+      message: error?.message || '请稍后重�?,
       position: 'bottom-right'
     });
   } finally {
@@ -345,7 +345,7 @@ async function submit() {
   gap: 8px;
 }
 
-/* 服务器卡片样式 */
+/* 服务器卡片样�?*/
 .server-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

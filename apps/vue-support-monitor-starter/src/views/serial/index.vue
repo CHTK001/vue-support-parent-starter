@@ -34,19 +34,19 @@
           <div class="flex items-center">
             <el-input
               v-model="serialInput"
-              placeholder="输入发送内容"
+              placeholder="输入发送内�?
               @keyup.enter="handleSend"
               class="flex-1"
             >
               <template #append>
                 <el-select v-model="sendMode" style="width: 120px">
-                  <el-option label="发送文本" value="text" />
+                  <el-option label="发送文�? value="text" />
                   <el-option label="发送HEX" value="hex" />
                 </el-select>
               </template>
             </el-input>
             <el-button type="primary" @click="handleSend" class="ml-2" :disabled="!isConnected">
-              发送
+              发�?
             </el-button>
             <el-button @click="clearOutput" class="ml-2">
               清空
@@ -54,14 +54,14 @@
           </div>
           <div class="send-options mt-2 flex items-center">
             <el-checkbox v-model="autoScroll">自动滚动</el-checkbox>
-            <el-checkbox v-model="addTimestamp" class="ml-4">添加时间戳</el-checkbox>
+            <el-checkbox v-model="addTimestamp" class="ml-4">添加时间�?/el-checkbox>
             <el-checkbox v-model="addNewline" class="ml-4">发送后添加换行</el-checkbox>
           </div>
         </div>
       </div>
     </el-card>
 
-    <!-- 串口设置对话框 -->
+    <!-- 串口设置对话�?-->
     <el-dialog
       v-model="settingsVisible"
       title="串口设置"
@@ -82,8 +82,8 @@
             <el-button size="small" @click="refreshPorts">刷新串口列表</el-button>
           </div>
         </el-form-item>
-        <el-form-item label="波特率">
-          <el-select v-model="serialSettings.monitorSerialBaudRate" placeholder="选择波特率" class="w-full">
+        <el-form-item label="波特�?>
+          <el-select v-model="serialSettings.monitorSerialBaudRate" placeholder="选择波特�? class="w-full">
             <el-option :value="110" label="110" />
             <el-option :value="300" label="300" />
             <el-option :value="1200" label="1200" />
@@ -100,33 +100,33 @@
             <el-option :value="921600" label="921600" />
           </el-select>
         </el-form-item>
-        <el-form-item label="数据位">
-          <el-select v-model="serialSettings.monitorSerialDataBits" placeholder="选择数据位" class="w-full">
+        <el-form-item label="数据�?>
+          <el-select v-model="serialSettings.monitorSerialDataBits" placeholder="选择数据�? class="w-full">
             <el-option :value="5" label="5" />
             <el-option :value="6" label="6" />
             <el-option :value="7" label="7" />
             <el-option :value="8" label="8" />
           </el-select>
         </el-form-item>
-        <el-form-item label="停止位">
-          <el-select v-model="serialSettings.monitorSerialStopBits" placeholder="选择停止位" class="w-full">
+        <el-form-item label="停止�?>
+          <el-select v-model="serialSettings.monitorSerialStopBits" placeholder="选择停止�? class="w-full">
             <el-option :value="1" label="1" />
             <el-option :value="1.5" label="1.5" />
             <el-option :value="2" label="2" />
           </el-select>
         </el-form-item>
-        <el-form-item label="校验位">
-          <el-select v-model="serialSettings.monitorSerialParity" placeholder="选择校验位" class="w-full">
-            <el-option value="none" label="无校验" />
-            <el-option value="even" label="偶校验" />
-            <el-option value="odd" label="奇校验" />
+        <el-form-item label="校验�?>
+          <el-select v-model="serialSettings.monitorSerialParity" placeholder="选择校验�? class="w-full">
+            <el-option value="none" label="无校�? />
+            <el-option value="even" label="偶校�? />
+            <el-option value="odd" label="奇校�? />
             <el-option value="mark" label="标记校验" />
             <el-option value="space" label="空格校验" />
           </el-select>
         </el-form-item>
-        <el-form-item label="流控制">
-          <el-select v-model="serialSettings.monitorSerialFlowControl" placeholder="选择流控制" class="w-full">
-            <el-option value="none" label="无" />
+        <el-form-item label="流控�?>
+          <el-select v-model="serialSettings.monitorSerialFlowControl" placeholder="选择流控�? class="w-full">
+            <el-option value="none" label="�? />
             <el-option value="hardware" label="硬件流控" />
             <el-option value="software" label="软件流控" />
           </el-select>
@@ -156,7 +156,7 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-// 串口状态
+// 串口状�?
 const isConnected = ref(false);
 const serialOutput = ref('');
 const serialInput = ref('');
@@ -166,7 +166,7 @@ const addTimestamp = ref(true);
 const addNewline = ref(true);
 const sendMode = ref('text');
 
-// 设置对话框
+// 设置对话�?
 const settingsVisible = ref(false);
 const availablePorts = ref([]);
 const serialSettings = reactive({
@@ -182,12 +182,12 @@ const serialSettings = reactive({
 // 模拟串口连接对象
 let serialConnection = null;
 
-// 跳转到高级管理页面
+// 跳转到高级管理页�?
 const goToManage = () => {
   router.push('/serial/manage');
 };
 
-// 加载保存的设置
+// 加载保存的设�?
 const loadSettings = async () => {
   try {
     //@ts-ignore
@@ -222,14 +222,14 @@ const saveSettings = async () => {
       sendMode: sendMode.value
     });
     settingsVisible.value = false;
-    message.success('串口设置已保存');
+    message.success('串口设置已保�?);
   } catch (error) {
     console.error('保存串口设置失败:', error);
     message.error('保存串口设置失败');
   }
 };
 
-// 打开设置对话框
+// 打开设置对话�?
 const openSerialSettings = () => {
   refreshPorts();
   settingsVisible.value = true;
@@ -238,13 +238,13 @@ const openSerialSettings = () => {
 // 刷新可用串口列表
 const refreshPorts = async () => {
   try {
-    // 这里应该调用实际的API来获取可用串口列表
+    // 这里应该调用实际的API来获取可用串口列�?
     // 模拟获取串口列表
     availablePorts.value = [
       { path: 'COM1', manufacturer: '模拟串口设备' },
       { path: 'COM2', manufacturer: '模拟串口设备' },
       { path: 'COM3', manufacturer: '模拟串口设备' },
-      { path: '/dev/ttyUSB0', manufacturer: 'USB转串口' },
+      { path: '/dev/ttyUSB0', manufacturer: 'USB转串�? },
       { path: '/dev/ttyACM0', manufacturer: 'Arduino' }
     ];
   } catch (error) {
@@ -262,7 +262,7 @@ const handleConnect = async () => {
   }
 
   try {
-    // 这里应该调用实际的API来连接串口
+    // 这里应该调用实际的API来连接串�?
     // 模拟连接
     await new Promise(resolve => setTimeout(resolve, 500));
     isConnected.value = true;
@@ -300,7 +300,7 @@ const handleDisconnect = async () => {
   }
 };
 
-// 发送数据
+// 发送数�?
 const handleSend = () => {
   if (!isConnected.value) {
     message.warning('请先连接串口');
@@ -308,23 +308,23 @@ const handleSend = () => {
   }
 
   if (!serialInput.value) {
-    message.warning('发送内容不能为空');
+    message.warning('发送内容不能为�?);
     return;
   }
 
   try {
-    // 这里应该调用实际的API来发送数据
-    // 模拟发送
+    // 这里应该调用实际的API来发送数�?
+    // 模拟发�?
     let dataToSend = serialInput.value;
     if (addNewline.value) {
       dataToSend += '\n';
     }
     
-    appendOutput('发送', dataToSend);
+    appendOutput('发�?, dataToSend);
     serialInput.value = '';
   } catch (error) {
-    console.error('发送数据失败:', error);
-    message.error('发送数据失败');
+    console.error('发送数据失�?', error);
+    message.error('发送数据失�?);
   }
 };
 
@@ -359,7 +359,7 @@ onUnmounted(() => {
   }
 });
 
-// 组件挂载时加载设置
+// 组件挂载时加载设�?
 onMounted(() => {
   loadSettings();
 });

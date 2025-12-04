@@ -19,26 +19,26 @@
           :value="imageStats.serverCount"
           label="服务器数"
           trend-icon="ri:computer-line"
-          trend-text="已连接"
+          trend-text="已连�?
         />
         <ScCard
           layout="stats"
           theme="warning"
           icon="ri:hard-drive-2-line"
           :value="formatSize(imageStats.totalSize)"
-          label="总大小"
+          label="总大�?
           trend-icon="ri:database-2-line"
           trend-text="存储占用"
         />
       </div>
     </div>
 
-    <!-- 工具栏 -->
+    <!-- 工具�?-->
     <div class="toolbar-section">
       <div class="toolbar-left">
         <el-input
           v-model="searchParams.keyword"
-          placeholder="搜索镜像名称或标签"
+          placeholder="搜索镜像名称或标�?
           class="search-input"
           clearable
           @keyup.enter="handleSearch"
@@ -49,12 +49,12 @@
         </el-input>
         <el-select
           v-model="searchParams.serverId"
-          placeholder="选择服务器"
+          placeholder="选择服务�?
           clearable
           class="filter-select"
           @change="handleSearch"
         >
-          <el-option label="全部服务器" :value="undefined" />
+          <el-option label="全部服务�? :value="undefined" />
           <el-option
             v-for="server in servers"
             :key="server.monitorSysGenServerId"
@@ -68,7 +68,7 @@
           @change="handleGroupChange"
         >
           <el-radio-button value="server">按服务器</el-radio-button>
-          <el-radio-button value="image">按镜像</el-radio-button>
+          <el-radio-button value="image">按镜�?/el-radio-button>
           <el-radio-button value="none">列表</el-radio-button>
         </el-radio-group>
       </div>
@@ -92,7 +92,7 @@
       </div>
     </div>
 
-    <!-- 分组显示：按服务器分组 -->
+    <!-- 分组显示：按服务器分�?-->
     <div v-if="groupBy === 'server'" class="grouped-view">
       <el-card
         v-for="group in groupedByServer"
@@ -106,7 +106,7 @@
               <IconifyIconOnline icon="ri:server-line" class="mr-2" />
               <span class="server-name">{{ group.serverName }}</span>
               <el-tag size="small" type="info" class="ml-2"
-                >{{ group.images.length }} 个镜像</el-tag
+                >{{ group.images.length }} 个镜�?/el-tag
               >
             </div>
             <div class="group-actions">
@@ -144,11 +144,11 @@
             </div>
             <div class="image-item-body">
               <div class="image-meta">
-                <span class="meta-label">大小：</span>
+                <span class="meta-label">大小�?/span>
                 <span>{{ formatSize(image.systemSoftImageSize) }}</span>
               </div>
               <div class="image-meta">
-                <span class="meta-label">ID：</span>
+                <span class="meta-label">ID�?/span>
                 <span class="image-id">{{
                   (image.systemSoftImageImageId || "").substring(0, 12)
                 }}</span>
@@ -223,11 +223,11 @@
             </div>
             <div class="server-item-body">
               <div class="image-meta">
-                <span class="meta-label">大小：</span>
+                <span class="meta-label">大小�?/span>
                 <span>{{ formatSize(item.systemSoftImageSize) }}</span>
               </div>
               <div class="image-meta">
-                <span class="meta-label">ID：</span>
+                <span class="meta-label">ID�?/span>
                 <span class="image-id">{{
                   (item.systemSoftImageImageId || "").substring(0, 12)
                 }}</span>
@@ -283,7 +283,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="服务器" width="180">
+        <el-table-column label="服务�? width="180">
           <template #default="{ row }">
             <div class="server-info">
               <IconifyIconOnline icon="ri:server-line" class="mr-1" />
@@ -306,7 +306,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="状态" width="100">
+        <el-table-column label="状�? width="100">
           <template #default="{ row }">
             <el-tag
               :type="getStatusTagType(row.systemSoftImageStatus)"
@@ -343,23 +343,23 @@
       </ScTable>
     </el-card>
 
-    <!-- 拉取镜像对话框 -->
+    <!-- 拉取镜像对话�?-->
     <PullImageDialog v-model:visible="pullVisible" @success="handleRefresh" />
 
-    <!-- 安装容器对话框 -->
+    <!-- 安装容器对话�?-->
     <InstallContainerDialog
       v-model:visible="installContainerVisible"
       :image="currentImage"
       @success="handleInstallSuccess"
     />
 
-    <!-- 同步镜像对话框 -->
+    <!-- 同步镜像对话�?-->
     <ImageSyncDialog
       v-model:visible="syncVisible"
       @success="handleSyncSuccess"
     />
 
-    <!-- 导入镜像对话框 -->
+    <!-- 导入镜像对话�?-->
     <ImageImportDialog
       v-model:visible="importVisible"
       @success="handleImportSuccess"
@@ -379,7 +379,7 @@ import {
   imageApi,
   getServerList,
   type SystemSoftImage,
-} from "@/api/docker-management";
+} from "@/api/docker";
 import PullImageDialog from "./components/PullImageDialog.vue";
 import InstallContainerDialog from "./components/InstallContainerDialog.vue";
 import ImageSyncDialog from "./components/ImageSyncDialog.vue";
@@ -455,7 +455,7 @@ const groupedByServer = computed(() => {
   return Array.from(groups.values());
 });
 
-// 按镜像分组
+// 按镜像分�?
 const groupedByImage = computed(() => {
   const groups = new Map<
     string,
@@ -485,7 +485,7 @@ async function loadImages() {
 
     // 根据分组模式调整查询参数
     if (groupBy.value !== "none") {
-      params.size = 1000; // 分组时加载更多数据
+      params.size = 1000; // 分组时加载更多数�?
     }
 
     const res = await imageApi.getImagePageList(params);
@@ -501,7 +501,7 @@ async function loadImages() {
   }
 }
 
-// 加载服务器列表
+// 加载服务器列�?
 async function loadServers() {
   try {
     const res: any = await getServerList();
@@ -511,7 +511,7 @@ async function loadServers() {
       servers.value = res || [];
     }
   } catch (error) {
-    console.error("加载服务器列表失败:", error);
+    console.error("加载服务器列表失�?", error);
   }
 }
 
@@ -542,7 +542,7 @@ function handleGroupChange() {
   loadImages();
 }
 
-// 打开安装容器对话框
+// 打开安装容器对话�?
 function openInstallContainer(image: SystemSoftImage) {
   currentImage.value = image;
   installContainerVisible.value = true;
@@ -551,7 +551,7 @@ function openInstallContainer(image: SystemSoftImage) {
 // 导出镜像
 async function handleExportImage(image: SystemSoftImage) {
   try {
-    ElMessage.info("正在导出镜像，请稍候...");
+    ElMessage.info("正在导出镜像，请稍�?..");
     // TODO: 调用导出镜像API
     const res = await imageApi.exportImage({
       imageId: image.systemSoftImageId!,
@@ -560,7 +560,7 @@ async function handleExportImage(image: SystemSoftImage) {
 
     if (res.code === "00000") {
       ElNotification.success({
-        title: "导出任务已创建",
+        title: "导出任务已创�?,
         message: `正在导出镜像 ${image.systemSoftImageName}:${image.systemSoftImageTag}`,
         position: "bottom-right",
       });
@@ -571,10 +571,10 @@ async function handleExportImage(image: SystemSoftImage) {
   }
 }
 
-// 导出服务器所有镜像
+// 导出服务器所有镜�?
 async function handleExportServerImages(serverId: number) {
   try {
-    ElMessage.info("正在导出服务器所有镜像，请稍候...");
+    ElMessage.info("正在导出服务器所有镜像，请稍�?..");
     // TODO: 调用批量导出API
   } catch (error: any) {
     console.error("导出失败:", error);
@@ -610,7 +610,7 @@ async function handleDeleteImage(image: SystemSoftImage) {
 function handleInstallSuccess() {
   ElNotification.success({
     title: "容器创建成功",
-    message: "容器已成功创建，可在容器管理中查看",
+    message: "容器已成功创建，可在容器管理中查�?,
     position: "bottom-right",
   });
 }
@@ -618,7 +618,7 @@ function handleInstallSuccess() {
 // 同步成功
 function handleSyncSuccess() {
   ElNotification.success({
-    title: "同步任务已创建",
+    title: "同步任务已创�?,
     message: "正在从服务器同步镜像，请在右下角查看实时进度",
     position: "bottom-right",
   });
@@ -628,14 +628,14 @@ function handleSyncSuccess() {
 // 导入成功
 function handleImportSuccess() {
   ElNotification.success({
-    title: "导入任务已创建",
+    title: "导入任务已创�?,
     message: "正在导入镜像文件，请在右下角查看实时进度",
     position: "bottom-right",
   });
   loadImages();
 }
 
-// 格式化大小
+// 格式化大�?
 function formatSize(bytes: number | undefined): string {
   if (!bytes) return "-";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -648,7 +648,7 @@ function formatSize(bytes: number | undefined): string {
   return `${size.toFixed(2)} ${units[unitIndex]}`;
 }
 
-// 获取状态标签类型
+// 获取状态标签类�?
 function getStatusTagType(
   status: string | undefined
 ): "success" | "warning" | "danger" | "info" {
@@ -664,13 +664,13 @@ function getStatusTagType(
   }
 }
 
-// 获取状态文本
+// 获取状态文�?
 function getStatusText(status: string | undefined): string {
   switch (status) {
     case "AVAILABLE":
       return "可用";
     case "PULLING":
-      return "拉取中";
+      return "拉取�?;
     case "PULL_FAILED":
       return "拉取失败";
     default:
@@ -711,7 +711,7 @@ function setupSocketListeners() {
 
   // 监听操作完成
   globalSocket.on("operation_complete", (operation: any) => {
-    console.log("✅ 操作完成:", operation);
+    console.log("�?操作完成:", operation);
 
     // 如果是镜像拉取完成，显示成功通知
     if (operation.type === "pull_image" && operation.imageName) {
@@ -726,7 +726,7 @@ function setupSocketListeners() {
 
   // 监听操作错误
   globalSocket.on("operation_error", (operation: any) => {
-    console.log("❌ 操作失败:", operation);
+    console.log("�?操作失败:", operation);
 
     // 如果是镜像拉取失败，显示错误通知
     if (operation.type === "pull_image" && operation.imageName) {
@@ -777,7 +777,7 @@ onUnmounted(() => {
   gap: 16px;
 }
 
-/* 工具栏 */
+/* 工具�?*/
 .toolbar-section {
   display: flex;
   align-items: center;
@@ -962,7 +962,7 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
-/* 服务器网格 */
+/* 服务器网�?*/
 .server-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));

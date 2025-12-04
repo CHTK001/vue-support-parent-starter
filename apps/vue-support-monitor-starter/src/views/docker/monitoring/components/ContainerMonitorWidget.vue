@@ -21,7 +21,7 @@
           </div>
           <div class="metric-info">
             <div class="metric-value">{{ formatPercent(avgCpuUsage) }}</div>
-            <div class="metric-label">CPU使用率</div>
+            <div class="metric-label">CPU使用�?/div>
           </div>
         </div>
         
@@ -31,7 +31,7 @@
           </div>
           <div class="metric-info">
             <div class="metric-value">{{ formatPercent(avgMemoryUsage) }}</div>
-            <div class="metric-label">内存使用率</div>
+            <div class="metric-label">内存使用�?/div>
           </div>
         </div>
         
@@ -51,12 +51,12 @@
           </div>
           <div class="metric-info">
             <div class="metric-value">{{ runningContainers }}</div>
-            <div class="metric-label">运行中</div>
+            <div class="metric-label">运行�?/div>
           </div>
         </div>
       </div>
       
-      <!-- 容器状态分布 -->
+      <!-- 容器状态分�?-->
       <div class="status-chart">
         <div ref="chartContainerRef" class="chart-container"></div>
       </div>
@@ -65,11 +65,11 @@
 </template>
 
 <script setup lang="ts">
-import { containerApi } from '@/api/docker-management'
+import { containerApi } from '@/api/docker'
 import * as echarts from 'echarts'
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false)
 const chartContainerRef = ref<HTMLElement>()
 let chartInstance: echarts.ECharts | null = null
@@ -80,7 +80,7 @@ const avgMemoryUsage = ref(0)
 const totalContainers = ref(0)
 const runningContainers = ref(0)
 
-// 初始化图表
+// 初始化图�?
 const initChart = () => {
   if (chartContainerRef.value) {
     chartInstance = echarts.init(chartContainerRef.value)
@@ -99,7 +99,7 @@ const updateChart = () => {
     },
     series: [
       {
-        name: '容器状态',
+        name: '容器状�?,
         type: 'pie',
         radius: ['60%', '90%'],
         avoidLabelOverlap: false,
@@ -123,8 +123,8 @@ const updateChart = () => {
           show: false
         },
         data: [
-          { value: runningContainers.value, name: '运行中', itemStyle: { color: '#67c23a' } },
-          { value: totalContainers.value - runningContainers.value, name: '其他状态', itemStyle: { color: '#909399' } }
+          { value: runningContainers.value, name: '运行�?, itemStyle: { color: '#67c23a' } },
+          { value: totalContainers.value - runningContainers.value, name: '其他状�?, itemStyle: { color: '#909399' } }
         ]
       }
     ]
@@ -138,7 +138,7 @@ const loadData = async () => {
   try {
     loading.value = true
     
-    // 获取容器状态统计
+    // 获取容器状态统�?
     const statsResponse = await containerApi.getContainerStatusStats()
     if (statsResponse.code === '00000') {
       const stats = statsResponse.data || { total: 0, running: 0 }

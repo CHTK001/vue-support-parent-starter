@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    title="服务器配置"
+    title="服务器配�?
     width="1200px"
     :close-on-click-modal="false"
     @close="handleClose"
@@ -180,7 +180,7 @@
       </div>
     </div>
 
-    <!-- Filter配置对话框（通用+专用） -->
+    <!-- Filter配置对话框（通用+专用�?-->
     <FilterConfigDialog
       v-model:visible="showConfigDialog"
       :filter-setting="currentFilterSetting"
@@ -283,7 +283,7 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const availableLoading = ref(false);
 const installedLoading = ref(false);
 const saveLoading = ref(false);
@@ -304,7 +304,7 @@ const showRequestFingerprintDialog = ref(false);
 const showDynamicExprDialog = ref(false);
 const currentFilterSetting = ref<SystemServerSetting | null>(null);
 
-// 计算属性
+// 计算属�?
 const dialogVisible = computed({
   get: () => props.visible,
   set: (value) => emit("update:visible", value),
@@ -394,7 +394,7 @@ const installFilter = async (filter: ServletFilterObject) => {
 const uninstallFilter = async (filter: SystemServerSetting) => {
   try {
     await ElMessageBox.confirm(
-      `确定要卸载 ${filter.systemServerSettingName} 吗？`,
+      `确定要卸�?${filter.systemServerSettingName} 吗？`,
       "确认卸载",
       {
         confirmButtonText: "确定",
@@ -424,7 +424,7 @@ const uninstallFilter = async (filter: SystemServerSetting) => {
   }
 };
 
-// 切换Filter状态
+// 切换Filter状�?
 const toggleFilterStatus = async (filter: SystemServerSetting) => {
   toggleLoading.value[filter.systemServerSettingId!] = true;
   try {
@@ -442,7 +442,7 @@ const toggleFilterStatus = async (filter: SystemServerSetting) => {
       ElMessage.error(response.msg || "操作失败");
     }
   } catch (error) {
-    console.error("切换Filter状态失败:", error);
+    console.error("切换Filter状态失�?", error);
     ElMessage.error("操作失败");
   } finally {
     toggleLoading.value[filter.systemServerSettingId!] = false;
@@ -488,7 +488,7 @@ const saveOrder = async () => {
 // 打开配置对话框（根据类型分发到专用页面）
 const openConfigDialog = (filter: SystemServerSetting) => {
   currentFilterSetting.value = filter;
-  // 先关闭全部
+  // 先关闭全�?
   showConfigDialog.value = false;
   showFileStorageDialog.value = false;
   showServiceDiscoveryDialog.value = false;
@@ -533,7 +533,7 @@ const openConfigDialog = (filter: SystemServerSetting) => {
   showConfigDialog.value = true;
 };
 
-// 配置成功回调（统一收口）
+// 配置成功回调（统一收口�?
 const handleConfigSuccess = () => {
   showConfigDialog.value = false;
   showFileStorageDialog.value = false;
@@ -544,13 +544,13 @@ const handleConfigSuccess = () => {
   loadInstalledFilters();
 };
 
-// 关闭对话框
+// 关闭对话�?
 const handleClose = () => {
   dialogVisible.value = false;
   emit("success");
 };
 
-// 初始化
+// 初始�?
 onMounted(() => {
   if (props.visible && props.serverId) {
     loadAvailableFilters();
@@ -558,7 +558,7 @@ onMounted(() => {
   }
 });
 
-// 监听对话框显示状态
+// 监听对话框显示状�?
 watch(
   () => props.visible,
   (visible) => {

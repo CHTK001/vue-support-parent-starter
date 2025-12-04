@@ -33,7 +33,7 @@
           <span class="unit" v-if="unit">{{ unit }}</span>
         </div>
         <div class="last-update">
-          最后更新: {{ lastUpdateTime }}
+          最后更�? {{ lastUpdateTime }}
         </div>
       </div>
     </div>
@@ -59,7 +59,7 @@ import { message } from "@repo/utils";
 import * as echarts from "echarts";
 import { executeComponentQuery, type ServerDetailComponent } from "@/api/server";
 
-// 定义属性
+// 定义属�?
 const props = defineProps<{
   componentData: ServerDetailComponent;
   serverId: number;
@@ -73,7 +73,7 @@ const emit = defineEmits<{
   refresh: [componentId: number];
 }>();
 
-// 响应式状态
+// 响应式状�?
 const loading = ref(false);
 const refreshing = ref(false);
 const data = ref<number>(0);
@@ -82,7 +82,7 @@ const refreshTimer = ref<NodeJS.Timeout>();
 const chartRef = ref<HTMLElement>();
 const chartInstance = ref<echarts.ECharts>();
 
-// 计算属性
+// 计算属�?
 const displayValue = computed(() => {
   if (data.value === null || data.value === undefined) {
     return "--";
@@ -132,7 +132,7 @@ const getColor = (value: number) => {
 };
 
 /**
- * 初始化图表
+ * 初始化图�?
  */
 const initChart = () => {
   if (!chartRef.value) return;
@@ -244,7 +244,7 @@ const loadData = async () => {
     loading.value = true;
     
     const timeRange = {
-      start: Date.now() - 5 * 60 * 1000, // 最近5分钟
+      start: Date.now() - 5 * 60 * 1000, // 最�?分钟
       end: Date.now(),
     };
 
@@ -254,7 +254,7 @@ const loadData = async () => {
     );
 
     if (res.code === "00000") {
-      // 处理返回的数据，提取数值
+      // 处理返回的数据，提取数�?
       let value = 0;
       if (Array.isArray(res.data) && res.data.length > 0) {
         value = parseFloat(res.data[0].value || res.data[0]) || 0;
@@ -276,7 +276,7 @@ const loadData = async () => {
       data.value = 0;
     }
   } catch (error) {
-    console.error("加载仪表盘数据失败:", error);
+    console.error("加载仪表盘数据失�?", error);
     data.value = 0;
   } finally {
     loading.value = false;
@@ -461,7 +461,7 @@ watch(() => data.value, () => {
   justify-content: center;
 }
 
-// 响应式设计
+// 响应式设�?
 @media (max-width: 768px) {
   .gauge-content {
     padding: 12px;

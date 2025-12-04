@@ -12,11 +12,11 @@
     
     <div class="overview-content">
       <div class="resource-grid">
-        <!-- CPU使用率 -->
+        <!-- CPU使用�?-->
         <div class="resource-card cpu">
           <div class="card-header">
             <IconifyIconOnline icon="ri:cpu-line" class="card-icon" />
-            <div class="card-title">CPU使用率</div>
+            <div class="card-title">CPU使用�?/div>
           </div>
           <div class="card-content">
             <el-progress
@@ -29,11 +29,11 @@
           </div>
         </div>
         
-        <!-- 内存使用率 -->
+        <!-- 内存使用�?-->
         <div class="resource-card memory">
           <div class="card-header">
             <IconifyIconOnline icon="ri:database-2-line" class="card-icon" />
-            <div class="card-title">内存使用率</div>
+            <div class="card-title">内存使用�?/div>
           </div>
           <div class="card-content">
             <el-progress
@@ -79,7 +79,7 @@
                 <div class="io-value">{{ formatBytes(networkRx) }}/s</div>
               </div>
               <div class="io-item">
-                <div class="io-label">发送</div>
+                <div class="io-label">发�?/div>
                 <div class="io-value">{{ formatBytes(networkTx) }}/s</div>
               </div>
             </div>
@@ -87,7 +87,7 @@
         </div>
       </div>
       
-      <!-- 资源使用趋势图 -->
+      <!-- 资源使用趋势�?-->
       <div class="trend-chart">
         <div class="chart-header">
           <div class="chart-title">资源使用趋势</div>
@@ -98,10 +98,10 @@
               @change="onTimeRangeChange"
               style="width: 120px"
             >
-              <el-option label="最近1小时" value="1h" />
-              <el-option label="最近6小时" value="6h" />
-              <el-option label="最近12小时" value="12h" />
-              <el-option label="最近24小时" value="24h" />
+              <el-option label="最�?小时" value="1h" />
+              <el-option label="最�?小时" value="6h" />
+              <el-option label="最�?2小时" value="12h" />
+              <el-option label="最�?4小时" value="24h" />
             </el-select>
           </div>
         </div>
@@ -112,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { containerApi } from '@/api/docker-management'
+import { containerApi } from '@/api/docker'
 import * as echarts from 'echarts'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 
@@ -148,7 +148,7 @@ const initTrendChart = () => {
   }
 }
 
-// 更新趋势图
+// 更新趋势�?
 const updateTrendChart = () => {
   if (!trendChartInstance) return
   
@@ -170,7 +170,7 @@ const updateTrendChart = () => {
       trigger: 'axis'
     },
     legend: {
-      data: ['CPU使用率', '内存使用率']
+      data: ['CPU使用�?, '内存使用�?]
     },
     xAxis: {
       type: 'category',
@@ -184,7 +184,7 @@ const updateTrendChart = () => {
     },
     series: [
       {
-        name: 'CPU使用率',
+        name: 'CPU使用�?,
         type: 'line',
         data: cpuData,
         smooth: true,
@@ -193,7 +193,7 @@ const updateTrendChart = () => {
         }
       },
       {
-        name: '内存使用率',
+        name: '内存使用�?,
         type: 'line',
         data: memoryData,
         smooth: true,
@@ -244,14 +244,14 @@ const refreshData = () => {
   fetchResourceData()
 }
 
-// 根据使用率获取颜色
+// 根据使用率获取颜�?
 const getUsageColor = (percentage: number) => {
   if (percentage < 50) return '#67c23a'
   if (percentage < 80) return '#e6a23c'
   return '#f56c6c'
 }
 
-// 格式化字节显示
+// 格式化字节显�?
 const formatBytes = (bytes: number) => {
   if (bytes === 0) return '0 B'
   const k = 1024
@@ -263,7 +263,7 @@ const formatBytes = (bytes: number) => {
 // 时间范围变化处理
 const onTimeRangeChange = (value: string) => {
   timeRange.value = value
-  // 这里可以重新获取历史数据并更新图表
+  // 这里可以重新获取历史数据并更新图�?
   updateTrendChart()
 }
 

@@ -18,22 +18,22 @@
         <h4 class="mb-4 font-medium">基本配置</h4>
         
         <el-form-item label="配置名称" prop="monitorSerialName">
-          <el-input v-model="serialConfig.monitorSerialName" placeholder="请输入配置名称" />
+          <el-input v-model="serialConfig.monitorSerialName" placeholder="请输入配置名�? />
         </el-form-item>
         
         <el-form-item label="描述" prop="monitorSerialDescription">
-          <el-input v-model="serialConfig.monitorSerialDescription" type="textarea" :rows="2" placeholder="请输入配置描述" />
+          <el-input v-model="serialConfig.monitorSerialDescription" type="textarea" :rows="2" placeholder="请输入配置描�? />
         </el-form-item>
         
         <el-divider />
         <h4 class="mb-4 font-medium">串口参数</h4>
         
         <el-form-item label="默认串口" prop="monitorSerialDefaultPort">
-          <el-input v-model="serialConfig.monitorSerialDefaultPort" placeholder="请输入默认串口，如COM1、/dev/ttyUSB0" />
+          <el-input v-model="serialConfig.monitorSerialDefaultPort" placeholder="请输入默认串口，如COM1�?dev/ttyUSB0" />
         </el-form-item>
         
-        <el-form-item label="默认波特率" prop="monitorSerialDefaultBaudRate">
-          <el-select v-model="serialConfig.monitorSerialDefaultBaudRate" placeholder="选择默认波特率" class="w-full">
+        <el-form-item label="默认波特�? prop="monitorSerialDefaultBaudRate">
+          <el-select v-model="serialConfig.monitorSerialDefaultBaudRate" placeholder="选择默认波特�? class="w-full">
             <el-option :value="110" label="110" />
             <el-option :value="300" label="300" />
             <el-option :value="1200" label="1200" />
@@ -51,8 +51,8 @@
           </el-select>
         </el-form-item>
         
-        <el-form-item label="默认数据位" prop="monitorSerialDefaultDataBits">
-          <el-select v-model="serialConfig.monitorSerialDefaultDataBits" placeholder="选择默认数据位" class="w-full">
+        <el-form-item label="默认数据�? prop="monitorSerialDefaultDataBits">
+          <el-select v-model="serialConfig.monitorSerialDefaultDataBits" placeholder="选择默认数据�? class="w-full">
             <el-option :value="5" label="5" />
             <el-option :value="6" label="6" />
             <el-option :value="7" label="7" />
@@ -60,27 +60,27 @@
           </el-select>
         </el-form-item>
         
-        <el-form-item label="默认停止位" prop="monitorSerialDefaultStopBits">
-          <el-select v-model="serialConfig.monitorSerialDefaultStopBits" placeholder="选择默认停止位" class="w-full">
+        <el-form-item label="默认停止�? prop="monitorSerialDefaultStopBits">
+          <el-select v-model="serialConfig.monitorSerialDefaultStopBits" placeholder="选择默认停止�? class="w-full">
             <el-option :value="1" label="1" />
             <el-option :value="1.5" label="1.5" />
             <el-option :value="2" label="2" />
           </el-select>
         </el-form-item>
         
-        <el-form-item label="默认校验位" prop="monitorSerialDefaultParity">
-          <el-select v-model="serialConfig.monitorSerialDefaultParity" placeholder="选择默认校验位" class="w-full">
-            <el-option value="none" label="无校验" />
-            <el-option value="even" label="偶校验" />
-            <el-option value="odd" label="奇校验" />
+        <el-form-item label="默认校验�? prop="monitorSerialDefaultParity">
+          <el-select v-model="serialConfig.monitorSerialDefaultParity" placeholder="选择默认校验�? class="w-full">
+            <el-option value="none" label="无校�? />
+            <el-option value="even" label="偶校�? />
+            <el-option value="odd" label="奇校�? />
             <el-option value="mark" label="标记校验" />
             <el-option value="space" label="空格校验" />
           </el-select>
         </el-form-item>
         
-        <el-form-item label="默认流控制" prop="monitorSerialDefaultFlowControl">
-          <el-select v-model="serialConfig.monitorSerialDefaultFlowControl" placeholder="选择默认流控制" class="w-full">
-            <el-option value="none" label="无" />
+        <el-form-item label="默认流控�? prop="monitorSerialDefaultFlowControl">
+          <el-select v-model="serialConfig.monitorSerialDefaultFlowControl" placeholder="选择默认流控�? class="w-full">
+            <el-option value="none" label="�? />
             <el-option value="hardware" label="硬件流控" />
             <el-option value="software" label="软件流控" />
           </el-select>
@@ -100,7 +100,7 @@
           <el-switch v-model="serialConfig.monitorSerialAutoScroll" />
         </el-form-item>
         
-        <el-form-item label="添加时间戳" prop="monitorSerialAddTimestamp">
+        <el-form-item label="添加时间�? prop="monitorSerialAddTimestamp">
           <el-switch v-model="serialConfig.monitorSerialAddTimestamp" />
         </el-form-item>
         
@@ -177,7 +177,7 @@ const serialConfig = reactive({
   ]
 });
 
-// 加载保存的配置
+// 加载保存的配�?
 const loadConfig = async () => {
   try {
     const savedConfig = await indexedDBProxy.getItem('serialGlobalConfig');
@@ -194,7 +194,7 @@ const saveConfig = async () => {
   try {
     await indexedDBProxy.setItem('serialGlobalConfig', serialConfig);
     
-    // 同时更新串口设置页面的默认值
+    // 同时更新串口设置页面的默认�?
     await indexedDBProxy.setItem('serialSettings', {
       monitorSerialPort: serialConfig.monitorSerialDefaultPort,
       monitorSerialBaudRate: serialConfig.monitorSerialDefaultBaudRate,
@@ -212,7 +212,7 @@ const saveConfig = async () => {
       sendMode: 'text'
     });
     
-    message.success('串口配置已保存');
+    message.success('串口配置已保�?);
   } catch (error) {
     console.error('保存串口配置失败:', error);
     message.error('保存串口配置失败');
@@ -234,7 +234,7 @@ const removeCommandPreset = (index: number) => {
   serialConfig.monitorSerialCommandPresets.splice(index, 1);
 };
 
-// 组件挂载时加载配置
+// 组件挂载时加载配�?
 onMounted(() => {
   loadConfig();
 });

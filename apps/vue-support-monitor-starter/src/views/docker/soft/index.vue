@@ -1,6 +1,6 @@
 <template>
   <div class="soft-management">
-    <!-- 嵌入式安装进度显示（页面顶部） -->
+    <!-- 嵌入式安装进度显示（页面顶部�?-->
     <div
       v-if="activeInstallOperations.length > 0"
       class="embedded-progress-panel"
@@ -36,7 +36,7 @@
           theme="success"
           icon="ri:checkbox-circle-line"
           :value="softStats.enabled || 0"
-          label="已启用"
+          label="已启�?
           trend-icon="ri:check-line"
           trend-text="正常运行"
         />
@@ -52,7 +52,7 @@
       </div>
     </div>
 
-    <!-- 工具栏 -->
+    <!-- 工具�?-->
     <div class="toolbar-section flex flex-row justify-between">
       <div class="toolbar-left">
         <el-input
@@ -78,7 +78,7 @@
         </el-select>
         <el-select
           v-model="params.status"
-          placeholder="状态"
+          placeholder="状�?
           clearable
           class="filter-select"
           @change="reload"
@@ -100,7 +100,7 @@
       </div>
     </div>
 
-    <!-- 软件卡片：使用 ScTable 的 card 布局 & url 模式 -->
+    <!-- 软件卡片：使�?ScTable �?card 布局 & url 模式 -->
     <ScTable
       ref="tableRef"
       :url="softwareApi.getSoftPageList"
@@ -154,7 +154,7 @@
           </div>
           <div class="soft-meta">代码：{{ row.systemSoftCode }}</div>
           <div class="soft-meta">
-            镜像：{{ row.systemSoftDockerImage || "—" }}
+            镜像：{{ row.systemSoftDockerImage || "�? }}
           </div>
           <div
             class="soft-meta"
@@ -183,7 +183,7 @@
             </el-tag>
           </div>
           <div class="soft-desc">
-            {{ row.systemSoftDesc || row.systemSoftDescription || "—" }}
+            {{ row.systemSoftDesc || row.systemSoftDescription || "�? }}
           </div>
           <div class="soft-actions">
             <el-button size="small" type="primary" plain @click="openPull(row)">
@@ -221,7 +221,7 @@
         <el-form-item label="描述">
           <el-input v-model="form.systemSoftDesc" type="textarea" :rows="3" />
         </el-form-item>
-        <el-form-item label="状态">
+        <el-form-item label="状�?>
           <el-switch
             v-model="form.systemSoftStatus"
             :active-value="1"
@@ -235,7 +235,7 @@
       </template>
     </ScDialog>
 
-    <!-- 下载镜像对话框 -->
+    <!-- 下载镜像对话�?-->
     <SoftPullDialog
       v-model:visible="pullVisible"
       :soft="currentSoft"
@@ -248,7 +248,7 @@
 </template>
 
 <script setup lang="ts">
-import { softwareApi } from "@/api/docker-management";
+import { softwareApi } from "@/api/docker";
 import { useGlobalSocket } from "@repo/core";
 import ScDialog from "@repo/components/ScDialog/src/index.vue";
 import ScSocketEventProcess from "@repo/components/ScSocketMessageDialog/index.vue";
@@ -272,7 +272,7 @@ const params = reactive<any>({
 const categories = ref<string[]>([]);
 const softStats = reactive({ total: 0, enabled: 0, official: 0 });
 
-// 活跃的安装操作列表
+// 活跃的安装操作列�?
 interface InstallOperation {
   eventId: string;
   eventName: string | string[];
@@ -281,7 +281,7 @@ interface InstallOperation {
 }
 const activeInstallOperations = ref<InstallOperation[]>([]);
 
-// 分页模式：默认 normal / 滚动 scroll
+// 分页模式：默�?normal / 滚动 scroll
 const paginationType = ref<"default" | "scroll">("default");
 const isScroll = ref(false);
 watch(isScroll, (v) => (paginationType.value = v ? "scroll" : "default"));
@@ -332,7 +332,7 @@ function setupSocketListeners() {
       operation.type === "pull_image" ||
       operation.type === "install_software"
     ) {
-      console.log("✅ 操作完成:", operation);
+      console.log("�?操作完成:", operation);
       ElNotification.success({
         title: "安装成功",
         message: `${operation.title} - ${operation.message}`,
@@ -348,7 +348,7 @@ function setupSocketListeners() {
       operation.type === "pull_image" ||
       operation.type === "install_software"
     ) {
-      console.error("❌ 操作失败:", operation);
+      console.error("�?操作失败:", operation);
       ElNotification.error({
         title: "安装失败",
         message: `${operation.title} - ${operation.message}`,
@@ -358,9 +358,9 @@ function setupSocketListeners() {
     }
   });
 
-  // 监听容器状态变化
+  // 监听容器状态变�?
   globalSocket.on("docker_container_status", (data: any) => {
-    console.log("🐳 容器状态变化:", data);
+    console.log("🐳 容器状态变�?", data);
   });
 
   // 监听软件同步进度
@@ -388,7 +388,7 @@ onMounted(() => {
   loadStats();
 });
 
-// 组件卸载时清理
+// 组件卸载时清�?
 onUnmounted(() => {
   cleanupSocketListeners();
 });
@@ -444,7 +444,7 @@ async function onSubmit() {
 }
 
 async function onDelete(row: any) {
-  await ElMessageBox.confirm(`确认删除软件【${row.systemSoftName}】?`, "提示", {
+  await ElMessageBox.confirm(`确认删除软件�?{row.systemSoftName}�?`, "提示", {
     type: "warning",
   });
   const { code, msg } = await softwareApi.deleteSoft(row.systemSoftId);
@@ -464,7 +464,7 @@ function openPull(row: any) {
 }
 function onPullSuccess() {
   ElNotification.success({
-    title: "下载任务已创建",
+    title: "下载任务已创�?,
     message: "正在下载镜像，请在右下角查看实时进度",
     duration: 4000,
     position: "bottom-right",
@@ -493,7 +493,7 @@ async function loadStats() {
   background: var(--app-bg-secondary);
 }
 
-/* 嵌入式进度面板 */
+/* 嵌入式进度面�?*/
 .embedded-progress-panel {
   margin-bottom: 16px;
   padding: 12px;
@@ -676,7 +676,7 @@ async function loadStats() {
   padding-top: 6px;
 }
 
-/* 兼容原有截断类 */
+/* 兼容原有截断�?*/
 .truncate-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

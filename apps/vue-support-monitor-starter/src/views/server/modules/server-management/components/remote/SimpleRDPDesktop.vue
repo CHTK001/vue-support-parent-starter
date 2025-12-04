@@ -16,7 +16,7 @@
           :loading="isConnecting"
           @click="connect"
         >
-          {{ isConnecting ? '连接中...' : '连接' }}
+          {{ isConnecting ? '连接�?..' : '连接' }}
         </el-button>
         
         <el-button 
@@ -47,12 +47,12 @@
       ></div>
 
       <div v-if="!isConnected && !isConnecting" class="connection-placeholder">
-        <el-empty description="点击连接按钮开始 RDP 会话" />
+        <el-empty description="点击连接按钮开�?RDP 会话" />
       </div>
 
       <div v-if="isConnecting" class="connecting-overlay">
         <el-loading-spinner />
-        <p>正在连接到 {{ props.server?.monitorSysGenServerHost }}:{{ props.server?.monitorSysGenServerPort }}</p>
+        <p>正在连接�?{{ props.server?.monitorSysGenServerHost }}:{{ props.server?.monitorSysGenServerPort }}</p>
       </div>
     </div>
   </div>
@@ -75,23 +75,23 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// 响应式数据
+// 响应式数�?
 const desktopDisplay = ref<HTMLElement>();
 const guacamoleClient = ref<SimpleGuacamoleClient | null>(null);
 const currentState = ref(GuacamoleStates.IDLE);
 const isConnecting = ref(false);
 
-// 计算属性
+// 计算属�?
 const isConnected = computed(() => currentState.value === GuacamoleStates.CONNECTED);
 
 const connectionStatus = computed(() => {
   switch (currentState.value) {
     case GuacamoleStates.CONNECTED:
-      return { type: 'success' as const, text: '已连接' };
+      return { type: 'success' as const, text: '已连�? };
     case GuacamoleStates.CONNECTING:
-      return { type: 'warning' as const, text: '连接中' };
+      return { type: 'warning' as const, text: '连接�? };
     case GuacamoleStates.DISCONNECTED:
-      return { type: 'info' as const, text: '未连接' };
+      return { type: 'info' as const, text: '未连�? };
     default:
       return { type: 'info' as const, text: '空闲' };
   }
@@ -100,14 +100,14 @@ const connectionStatus = computed(() => {
 // 方法
 const connect = async () => {
   if (!props.server || !desktopDisplay.value) {
-    ElMessage.error('服务器信息不完整或显示容器未准备好');
+    ElMessage.error('服务器信息不完整或显示容器未准备�?);
     return;
   }
 
   try {
     isConnecting.value = true;
     
-    // 创建 Guacamole 客户端配置
+    // 创建 Guacamole 客户端配�?
     const config = {
       serverId: props.server.monitorSysGenServerId,
       protocol: 'rdp' as const,
@@ -121,11 +121,11 @@ const connect = async () => {
       enableClipboard: true
     };
 
-    // 创建客户端
+    // 创建客户�?
     guacamoleClient.value = new SimpleGuacamoleClient(config, {
       onStateChange: (state: number) => {
         currentState.value = state;
-        console.log('RDP 连接状态变化:', state);
+        console.log('RDP 连接状态变�?', state);
       },
       onError: (error: any) => {
         console.error('RDP 连接错误:', error);
@@ -136,14 +136,14 @@ const connect = async () => {
         console.log('RDP 会话名称:', name);
       },
       onClipboard: (_stream: any, mimetype: string) => {
-        console.log('收到剪贴板数据:', mimetype);
+        console.log('收到剪贴板数�?', mimetype);
       }
     });
 
     // 连接到服务器
     await guacamoleClient.value.connect();
 
-    // 绑定到显示容器
+    // 绑定到显示容�?
     guacamoleClient.value.attachTo(desktopDisplay.value);
     
     ElMessage.success('RDP 连接成功');
@@ -174,7 +174,7 @@ const takeScreenshot = () => {
       link.download = `rdp-screenshot-${Date.now()}.png`;
       link.href = screenshot;
       link.click();
-      ElMessage.success('截图已保存');
+      ElMessage.success('截图已保�?);
     } else {
       ElMessage.error('截图失败');
     }
@@ -183,8 +183,8 @@ const takeScreenshot = () => {
 
 // 生命周期
 onMounted(() => {
-  console.log('SimpleRDPDesktop 组件已挂载');
-  // 移除自动连接，改为手动点击连接按钮
+  console.log('SimpleRDPDesktop 组件已挂�?);
+  // 移除自动连接，改为手动点击连接按�?
 });
 
 onUnmounted(() => {

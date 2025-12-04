@@ -8,7 +8,7 @@
             <IconifyIconOnline icon="ri:apps-2-line" class="title-icon" />
             项目管理
           </h1>
-          <p class="page-subtitle">管理和监控您的应用项目配置</p>
+          <p class="page-subtitle">管理和监控您的应用项目配�?/p>
         </div>
         <div class="stats-section">
           <div class="stat-card">
@@ -30,7 +30,7 @@
           <el-input
             v-model="query.keyword"
             class="search-input"
-            placeholder="搜索项目名称、平台..."
+            placeholder="搜索项目名称、平�?.."
             clearable
           >
             <template #prefix>
@@ -104,7 +104,7 @@
               <IconifyIconOnline icon="ri:apps-2-line" class="empty-icon" />
             </div>
             <h3 class="empty-title w-full">暂无项目配置</h3>
-            <p class="empty-description">开始创建您的第一个项目配置</p>
+            <p class="empty-description">开始创建您的第一个项目配�?/p>
             <el-button
               type="primary"
               class="empty-action"
@@ -166,7 +166,7 @@
                 <div class="metric-item">
                   <IconifyIconOnline icon="ri:time-line" class="metric-icon" />
                   <div class="metric-info">
-                    <span class="metric-label">最后更新</span>
+                    <span class="metric-label">最后更�?/span>
                     <span class="metric-value">{{
                       formatTime(item.updateTime)
                     }}</span>
@@ -175,7 +175,7 @@
                 <div class="metric-item">
                   <IconifyIconOnline icon="ri:pulse-line" class="metric-icon" />
                   <div class="metric-info">
-                    <span class="metric-label">运行状态</span>
+                    <span class="metric-label">运行状�?/span>
                     <span class="metric-value" :class="getStatusClass(item)">{{
                       getStatusText(item)
                     }}</span>
@@ -281,7 +281,7 @@ const getPlatformIcon = (platform: string) => {
   return platformMap[platform?.toLowerCase()] || "ri:code-box-line";
 };
 
-// 获取平台样式类
+// 获取平台样式�?
 const getPlatformClass = (platform: string) => {
   const classMap: Record<string, string> = {
     spring: "platform-spring",
@@ -303,7 +303,7 @@ const getStatusClass = (item: any) => {
   return "status-success";
 };
 
-// 获取状态图标
+// 获取状态图�?
 const getStatusIcon = (item: any) => {
   const statusClass = getStatusClass(item);
   const iconMap: Record<string, string> = {
@@ -314,18 +314,18 @@ const getStatusIcon = (item: any) => {
   return iconMap[statusClass] || "ri:question-line";
 };
 
-// 获取状态文本
+// 获取状态文�?
 const getStatusText = (item: any) => {
   const statusClass = getStatusClass(item);
   const textMap: Record<string, string> = {
     "status-success": "运行正常",
     "status-warning": "运行异常",
-    "status-error": "已停止",
+    "status-error": "已停�?,
   };
   return textMap[statusClass] || "未知";
 };
 
-// 格式化时间
+// 格式化时�?
 const formatTime = (time: string) => {
   if (!time) return "未知";
   const date = new Date(time);
@@ -343,7 +343,7 @@ const formatTime = (time: string) => {
 
 // 卡片点击事件
 const handleCardClick = (item: any) => {
-  // 可以添加卡片点击逻辑，比如跳转到详情页
+  // 可以添加卡片点击逻辑，比如跳转到详情�?
   console.log("Card clicked:", item);
 };
 
@@ -375,7 +375,7 @@ const handleOpenEit = (item: any) => {
 };
 
 const handleDelete = (item: any) => {
-  ElMessageBox.confirm("确定删除该配置吗？", "提示", {
+  ElMessageBox.confirm("确定删除该配置吗�?, "提示", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
     type: "warning",
@@ -471,7 +471,7 @@ const handleDelete = (item: any) => {
   font-weight: 500;
 }
 
-/* 工具栏样式 */
+/* 工具栏样�?*/
 .modern-toolbar {
   display: flex;
   align-items: center;
@@ -883,7 +883,7 @@ const handleDelete = (item: any) => {
   color: var(--el-text-color-primary);
 }
 
-/* 空状态 */
+/* 空状�?*/
 .empty-state {
   text-align: center;
   padding: 80px 20px;
@@ -919,7 +919,7 @@ const handleDelete = (item: any) => {
   font-weight: 600;
 }
 
-/* 响应式设计 */
+/* 响应式设�?*/
 @media (max-width: 768px) {
   .page-header {
     padding: 24px 16px;

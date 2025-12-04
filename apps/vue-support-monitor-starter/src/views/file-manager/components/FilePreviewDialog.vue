@@ -83,7 +83,7 @@
               <el-icon class="is-loading">
                 <Loading />
               </el-icon>
-              <span>加载中...</span>
+              <span>加载�?..</span>
             </div>
             <div v-else class="text-error">
               <IconifyIconOnline icon="ri:file-text-line" class="error-icon" />
@@ -140,7 +140,7 @@
               <el-icon class="is-loading">
                 <Loading />
               </el-icon>
-              <span>加载中...</span>
+              <span>加载�?..</span>
             </div>
             <div v-else class="code-error">
               <IconifyIconOnline icon="ri:code-line" class="error-icon" />
@@ -153,7 +153,7 @@
         <div v-else class="unsupported-preview">
           <div class="unsupported-content">
             <IconifyIconOnline icon="ri:file-unknow-line" class="unsupported-icon" />
-            <h3>无法预览此文件类型</h3>
+            <h3>无法预览此文件类�?/h3>
             <p>{{ file?.name }} ({{ getFileType(file) }})</p>
             <el-button @click="downloadFile" type="primary" size="large">
               <IconifyIconOnline icon="ri:download-line" class="btn-icon" />
@@ -211,7 +211,7 @@ const emit = defineEmits<{
   close: []
 }>()
 
-// 响应式数据
+// 响应式数�?
 const dialogVisible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
@@ -221,7 +221,7 @@ const textContent = ref('')
 const textLoading = ref(false)
 const textWrap = ref(true)
 
-// 计算属性
+// 计算属�?
 const dialogTitle = computed(() => {
   return props.file ? `预览 - ${props.file.name}` : '文件预览'
 })
@@ -347,7 +347,7 @@ const getFileIconClass = (file: FileItem | null) => {
 
 const getFileType = (file: FileItem | null) => {
   if (!file || file.isDirectory) {
-    return '文件夹'
+    return '文件�?
   }
   
   const ext = file.extension?.toLowerCase()
@@ -462,7 +462,7 @@ const downloadFile = async () => {
   
   try {
     // 这里应该调用实际的下载API
-    ElMessage.success(`开始下载 ${props.file.name}`)
+    ElMessage.success(`开始下�?${props.file.name}`)
   } catch (error) {
     ElMessage.error('下载失败')
     console.error(error)
@@ -474,7 +474,7 @@ const copyPath = async () => {
   
   try {
     await navigator.clipboard.writeText(props.file.path)
-    ElMessage.success('文件路径已复制到剪贴板')
+    ElMessage.success('文件路径已复制到剪贴�?)
   } catch (error) {
     ElMessage.error('复制失败')
     console.error(error)
@@ -486,7 +486,7 @@ const copyTextContent = async () => {
   
   try {
     await navigator.clipboard.writeText(textContent.value)
-    ElMessage.success('内容已复制到剪贴板')
+    ElMessage.success('内容已复制到剪贴�?)
   } catch (error) {
     ElMessage.error('复制失败')
     console.error(error)
@@ -587,7 +587,7 @@ watch(
             .file-type,
             .file-date {
               &::before {
-                content: '•';
+                content: '�?;
                 margin-right: 8px;
                 color: #bdc3c7;
               }
@@ -825,7 +825,7 @@ watch(
   }
 }
 
-// 响应式设计
+// 响应式设�?
 @media (max-width: 768px) {
   .file-preview-dialog {
     .preview-container {

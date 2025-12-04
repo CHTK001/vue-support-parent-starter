@@ -3,13 +3,13 @@
     <el-form :model="form" label-width="100px" :rules="rules" ref="formRef">
       <el-form-item label="同步对象" prop="type">
         <el-radio-group v-model="form.type" size="small">
-          <el-radio-button label="SERVER">服务器</el-radio-button>
+          <el-radio-button label="SERVER">服务�?/el-radio-button>
           <el-radio-button label="NODE">节点</el-radio-button>
         </el-radio-group>
       </el-form-item>
 
-      <el-form-item v-if="form.type === 'SERVER'" label="服务器" prop="serverIds">
-        <el-select v-model="form.serverIds" multiple filterable clearable placeholder="请选择服务器" style="width: 100%">
+      <el-form-item v-if="form.type === 'SERVER'" label="服务�? prop="serverIds">
+        <el-select v-model="form.serverIds" multiple filterable clearable placeholder="请选择服务�? style="width: 100%">
           <el-option v-for="opt in serverOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
         </el-select>
       </el-form-item>
@@ -29,13 +29,13 @@
       </el-form-item>
 
       <el-alert type="info" :closable="false" show-icon>
-        <template #title>源文件：{{ sourceFilePath }}（源服务器ID：{{ sourceServerId }}）</template>
+        <template #title>源文件：{{ sourceFilePath }}（源服务器ID：{{ sourceServerId }}�?/template>
       </el-alert>
     </el-form>
 
     <template #footer>
       <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="handleConfirm">开始同步</el-button>
+      <el-button type="primary" :loading="submitting" @click="handleConfirm">开始同�?/el-button>
     </template>
   </el-dialog>
 </template>
@@ -45,13 +45,13 @@ import { ref, onMounted, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { distributeFile } from "@/api/file-distribute";
 import { getServerList } from "@/api/server/index";
-import { getNodeListAll } from "@/api/node";
+import { getNodeListAll } from "@/api/server/node";
 
 interface Props {
   modelValue: boolean;
   sourceServerId: number;
   sourceFilePath: string;
-  currentPath?: string; // 可用于预填目标目录
+  currentPath?: string; // 可用于预填目标目�?
 }
 
 const props = defineProps<Props>();
@@ -72,9 +72,9 @@ const form = ref({
 });
 
 const rules = {
-  serverIds: [{ required: () => form.value.type === "SERVER", message: "请选择服务器" }],
+  serverIds: [{ required: () => form.value.type === "SERVER", message: "请选择服务�? }],
   nodeIds: [{ required: () => form.value.type === "NODE", message: "请选择节点" }],
-  dirPath: [{ required: true, message: "请输入目标目录" }]
+  dirPath: [{ required: true, message: "请输入目标目�? }]
 };
 
 onMounted(async () => {

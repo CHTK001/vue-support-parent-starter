@@ -8,9 +8,9 @@
           theme="primary"
           icon="ri:database-2-line"
           :value="fetchServerStaticData.dataSourceTotal"
-          label="数据源"
+          label="数据�?
           trend-icon="ri:server-line"
-          trend-text="全部数据源"
+          trend-text="全部数据�?
         />
         <ScCard
           layout="stats"
@@ -19,21 +19,21 @@
           :value="fetchServerStaticData.dataSourceType"
           label="类型"
           trend-icon="ri:apps-line"
-          trend-text="数据库类型"
+          trend-text="数据库类�?
         />
         <ScCard
           layout="stats"
           theme="success"
           icon="ri:refresh-line"
           :value="Object.keys(backupOn).filter((k) => backupOn[k]).length"
-          label="备份中"
+          label="备份�?
           trend-icon="ri:time-line"
-          trend-text="进行中"
+          trend-text="进行�?
         />
       </div>
     </div>
 
-    <!-- 工具栏 -->
+    <!-- 工具�?-->
     <div class="toolbar-section">
       <div class="toolbar modern-toolbar">
         <div class="left">
@@ -62,8 +62,8 @@
             />
           </el-select>
           <el-select v-model="sortKey" class="w-160 ml-8">
-            <el-option label="按名称排序" value="name" />
-            <el-option label="按类型排序" value="type" />
+            <el-option label="按名称排�? value="name" />
+            <el-option label="按类型排�? value="type" />
           </el-select>
         </div>
         <div class="right">
@@ -74,7 +74,7 @@
             class="create-btn"
           >
             <IconifyIconOnline icon="ri:add-line" />
-            新建数据源
+            新建数据�?
           </el-button>
         </div>
       </div>
@@ -93,7 +93,7 @@
         @data-loaded="onDataLoaded"
       >
         <template #empty>
-          <el-empty description="暂无数据源配置">
+          <el-empty description="暂无数据源配�?>
             <el-button type="primary" @click="openEdit()">新建配置</el-button>
           </el-empty>
         </template>
@@ -168,7 +168,7 @@
                       :content="
                         backupOn[item.systemDataSettingId!]
                           ? '停止备份'
-                          : '开始备份'
+                          : '开始备�?
                       "
                       placement="top"
                     >
@@ -216,7 +216,7 @@
                         <IconifyIconOnline icon="ri:edit-line" />
                       </el-button>
                     </el-tooltip>
-                    <el-tooltip content="删除数据源" placement="top">
+                    <el-tooltip content="删除数据�? placement="top">
                       <el-button
                         class="quick-action-btn danger"
                         size="small"
@@ -238,9 +238,9 @@
                       <IconifyIconOnline icon="ri:terminal-line" />
                     </div>
                     <div class="info-content">
-                      <div class="info-label">控制台类型</div>
+                      <div class="info-label">控制台类�?/div>
                       <div class="info-value">
-                        {{ item.systemDataSettingConsoleType || "未配置" }}
+                        {{ item.systemDataSettingConsoleType || "未配�? }}
                       </div>
                     </div>
                   </div>
@@ -257,7 +257,7 @@
                   </div>
                 </div>
 
-                <!-- 连接状态 -->
+                <!-- 连接状�?-->
                 <div class="connection-status">
                   <div
                     class="status-indicator"
@@ -277,7 +277,7 @@
               <!-- 操作按钮 -->
               <div class="enhanced-card-actions" @click.stop>
                 <div class="action-buttons">
-                  <el-tooltip content="打开控制台" placement="top">
+                  <el-tooltip content="打开控制�? placement="top">
                     <el-button
                       size="small"
                       type="primary"
@@ -295,7 +295,7 @@
       </ScTable>
     </div>
 
-    <!-- 对话框组件 -->
+    <!-- 对话框组�?-->
     <EditDialog
       v-model:visible="showEdit"
       :model-value="current"
@@ -303,7 +303,7 @@
     />
     <el-dialog
       v-model="showDoc"
-      title="数据源文档"
+      title="数据源文�?
       width="80%"
       draggable
       class="doc-dialog"
@@ -341,7 +341,7 @@ import {
   backupStatus,
   querySystemDataSeries,
   fetchServerStatic,
-} from "@/api/system-data";
+} from "@/api/data-management/system-data";
 import { useRouter } from "vue-router";
 import { ServerDataStatic } from "@/types/server-data";
 import EditDialog from "./modules/EditDialog.vue";
@@ -350,9 +350,9 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import BackConsoleDialog from "./modules/BackConsoleDialog.vue";
 import ScCard from "@repo/components/ScCard/index.vue";
 import { format } from "sql-formatter";
-import Prism from "prismjs"; // ② 高亮核心
-import "prismjs/components/prism-sql"; // ③ SQL 语法文件
-import "prismjs/themes/prism-tomorrow.css"; // ④ 主题（任选）
+import Prism from "prismjs"; // �?高亮核心
+import "prismjs/components/prism-sql"; // �?SQL 语法文件
+import "prismjs/themes/prism-tomorrow.css"; // �?主题（任选）
 
 const loading = ref(false);
 const list = ref<SystemDataSetting[]>([]);
@@ -368,7 +368,7 @@ const docUrl = ref("");
 const backupCounts = ref<Record<number, number>>({});
 const logCounts = ref<Record<number, number>>({});
 
-// 备份列表对话框
+// 备份列表对话�?
 const showBackupDialog = ref(false);
 const currentSettingIdForBackup = ref<number | null>(null);
 const backupList = ref<any[]>([]);
@@ -394,7 +394,7 @@ async function loadBackupList() {
     count: 100,
     sort: "timestamp desc",
   });
-  // 后端返回结构未知，这里尽量兼容常见字段
+  // 后端返回结构未知，这里尽量兼容常见字�?
   const items = (res?.data?.items ||
     res?.data?.data ||
     res?.data ||
@@ -411,7 +411,7 @@ const settingId = ref<number | null>(null);
 const settingType = ref<string | undefined>(undefined);
 const backupLogList = reactive<any>([]);
 const tableRef = ref();
-// 过滤与排序
+// 过滤与排�?
 const searchKey = ref("");
 const typeFilter = ref<string | "">("");
 const sortKey = ref<"name" | "type">("name");
@@ -423,7 +423,7 @@ const typeOptions = computed(
     ) as string[]
 );
 
-// 交给 ScTable 处理分页与过滤
+// 交给 ScTable 处理分页与过�?
 const queryParams = ref({
   current: 1,
   size: 20,
@@ -433,9 +433,9 @@ const queryParams = ref({
   order: "asc",
 });
 
-// 监听搜索、类型过滤、排序变化
+// 监听搜索、类型过滤、排序变�?
 watch([searchKey, typeFilter, sortKey], () => {
-  // 根据排序字段设置实际的排序参数
+  // 根据排序字段设置实际的排序参�?
   const sortField =
     sortKey.value === "name"
       ? "systemDataSettingName"
@@ -452,7 +452,7 @@ watch([searchKey, typeFilter, sortKey], () => {
 
 /**
  * 数据加载完成回调
- * 用于更新 list 和 typeOptions
+ * 用于更新 list �?typeOptions
  */
 function onDataLoaded(data: SystemDataSetting[], total: number) {
   // 更新 list 以便计算类型选项
@@ -589,7 +589,7 @@ async function remove(row: SystemDataSetting) {
   });
   const res = await deleteSystemDataSetting(row.systemDataSettingId as number);
   if (res?.success) {
-    ElMessage.success("已删除");
+    ElMessage.success("已删�?);
     load();
   }
 }
@@ -617,7 +617,7 @@ async function onUploadDriver(row: SystemDataSetting, fileEvent: any) {
       return;
     }
     if (!row.systemDataSettingId) {
-      ElMessage.warning("请先保存配置再上传驱动");
+      ElMessage.warning("请先保存配置再上传驱�?);
       return;
     }
     const res = await uploadJdbcDriver(row.systemDataSettingId, raw);
@@ -679,13 +679,13 @@ function getTypeIcon(type?: string): string {
 
 function getStatusClass(item: SystemDataSetting): string {
   // 这里可以根据实际的连接状态来判断
-  // 暂时使用随机状态作为示例
+  // 暂时使用随机状态作为示�?
   const statuses = ["connected", "disconnected", "warning"];
   return statuses[Math.floor(Math.random() * statuses.length)];
 }
 
 function getConnectionStatus(item: SystemDataSetting): string {
-  // 根据实际情况判断连接状态
+  // 根据实际情况判断连接状�?
   const hasAddress = addressOf(item) !== "-";
   const hasConsole = item.systemDataSettingConsoleType;
 
@@ -701,17 +701,17 @@ function getConnectionStatusText(item: SystemDataSetting): string {
   const status = getConnectionStatus(item);
   switch (status) {
     case "status-connected":
-      return "已连接";
+      return "已连�?;
     case "status-warning":
-      return "配置中";
+      return "配置�?;
     case "status-disconnected":
-      return "未连接";
+      return "未连�?;
     default:
       return "未知";
   }
 }
 /**
- * 服务器静态数据
+ * 服务器静态数�?
  */
 const fetchServerStaticDataFunction = () => {
   fetchServerStatic().then((res) => {
@@ -727,7 +727,7 @@ onMounted(async () => {
       list.value = res.data;
     }
   } catch (e) {
-    console.error("加载数据源列表失败", e);
+    console.error("加载数据源列表失�?, e);
   }
   load();
   fetchServerStaticDataFunction();
@@ -735,7 +735,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* 页面主容器 */
+/* 页面主容�?*/
 .data-management-page {
   padding: 0;
   display: flex;
@@ -972,7 +972,7 @@ onMounted(async () => {
   width: 160px;
 }
 
-/* 搜索框和下拉框美化 */
+/* 搜索框和下拉框美�?*/
 .modern-toolbar :deep(.el-input__wrapper) {
   border-radius: 12px;
   box-shadow: none;
@@ -1025,7 +1025,7 @@ onMounted(async () => {
   --gap: 16px;
 }
 
-/* 卡片包装器 */
+/* 卡片包装�?*/
 .enhanced-card-wrapper {
   height: 100%;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1570,7 +1570,7 @@ onMounted(async () => {
   background: rgba(244, 63, 94, 0.1);
 }
 
-/* 空状态样式 */
+/* 空状态样�?*/
 .empty-wrap {
   padding: 80px 40px;
   text-align: center;
@@ -1625,7 +1625,7 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
-/* 对话框样式 */
+/* 对话框样�?*/
 .doc-dialog :deep(.el-dialog) {
   border-radius: 16px;
   overflow: hidden;
@@ -1647,7 +1647,7 @@ onMounted(async () => {
   padding: 0;
 }
 
-/* 响应式设计 */
+/* 响应式设�?*/
 @media (max-width: 1200px) {
   .header-content {
     flex-direction: column;
@@ -1729,7 +1729,7 @@ onMounted(async () => {
   }
 }
 
-/* 工具类 */
+/* 工具�?*/
 .text-muted {
   color: var(--el-text-color-secondary);
 }

@@ -9,11 +9,11 @@
           @change="onTimeRangeChange"
           style="width: 120px"
         >
-          <el-option label="最近1小时" value="1h" />
-          <el-option label="最近6小时" value="6h" />
-          <el-option label="最近12小时" value="12h" />
-          <el-option label="最近24小时" value="24h" />
-          <el-option label="最近7天" value="7d" />
+          <el-option label="最�?小时" value="1h" />
+          <el-option label="最�?小时" value="6h" />
+          <el-option label="最�?2小时" value="12h" />
+          <el-option label="最�?4小时" value="24h" />
+          <el-option label="最�?�? value="7d" />
         </el-select>
       </div>
     </div>
@@ -22,15 +22,15 @@
     
     <div class="chart-stats" v-if="latestStats">
       <div class="stat-item">
-        <span class="stat-label">当前值:</span>
+        <span class="stat-label">当前�?</span>
         <span class="stat-value">{{ formatValue(latestStats.current) }}</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">平均值:</span>
+        <span class="stat-label">平均�?</span>
         <span class="stat-value">{{ formatValue(latestStats.average) }}</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">最大值:</span>
+        <span class="stat-label">最大�?</span>
         <span class="stat-value">{{ formatValue(latestStats.max) }}</span>
       </div>
     </div>
@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { containerApi, type ContainerStatsHistory } from '@/api/docker-management'
+import { containerApi, type ContainerStatsHistory } from '@/api/docker'
 import * as echarts from 'echarts'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 
@@ -74,7 +74,7 @@ const chartData = ref<ChartData>({ timestamps: [], values: [] })
 const latestStats = ref<StatsSummary | null>(null)
 const loading = ref(false)
 
-// 初始化图表
+// 初始化图�?
 const initChart = () => {
   if (chartContainerRef.value) {
     chartInstance = echarts.init(chartContainerRef.value)
@@ -127,7 +127,7 @@ const updateChart = () => {
   chartInstance.setOption(option)
 }
 
-// 格式化值显示
+// 格式化值显�?
 const formatValue = (value: number) => {
   switch (props.dataType) {
     case 'cpu':
@@ -144,7 +144,7 @@ const formatValue = (value: number) => {
   }
 }
 
-// 格式化字节显示
+// 格式化字节显�?
 const formatBytes = (bytes: number) => {
   if (bytes === 0) return '0 B'
   const k = 1024
@@ -167,7 +167,7 @@ const fetchStatsData = async () => {
     if (response.code === '00000') {
       const historyData = response.data
       if (historyData) {
-        // 根据数据类型提取相应的数据
+        // 根据数据类型提取相应的数�?
         const data = extractDataByType(historyData)
         chartData.value = data
         calculateStatsSummary(data)
@@ -176,7 +176,7 @@ const fetchStatsData = async () => {
     }
   } catch (error) {
     console.error('获取统计数据失败:', error)
-    // 出错时使用模拟数据
+    // 出错时使用模拟数�?
     const mockData = generateMockData()
     chartData.value = mockData
     calculateStatsSummary(mockData)
@@ -186,14 +186,14 @@ const fetchStatsData = async () => {
   }
 }
 
-// 根据时间范围解析小时数
+// 根据时间范围解析小时�?
 const parseTimeRangeToHours = (range: string): number => {
   switch (range) {
     case '1h': return 1
     case '6h': return 6
     case '12h': return 12
     case '24h': return 24
-    case '7d': return 168 // 7天
+    case '7d': return 168 // 7�?
     default: return 1
   }
 }
@@ -216,7 +216,7 @@ const generateMockData = (): ChartData => {
     const time = new Date(now.getTime() - i * 60000) // 每分钟一个点
     data.timestamps.push(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
     
-    // 根据数据类型生成不同的模拟值
+    // 根据数据类型生成不同的模拟�?
     let value = 0
     switch (props.dataType) {
       case 'cpu':
@@ -269,7 +269,7 @@ watch(() => props.containerId, () => {
   fetchStatsData()
 })
 
-// 监听数据变化并更新图表
+// 监听数据变化并更新图�?
 watch(chartData, () => {
   updateChart()
 })

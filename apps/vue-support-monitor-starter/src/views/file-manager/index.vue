@@ -5,7 +5,7 @@
       <div class="header-left">
         <h1 class="page-title">
           <IconifyIconOnline icon="ri:folder-open-line" class="title-icon" />
-          文件管理器
+          文件管理�?
         </h1>
         <div class="breadcrumb-container">
           <el-breadcrumb separator="/">
@@ -49,7 +49,7 @@
       </div>
     </div>
 
-    <!-- 工具栏 -->
+    <!-- 工具�?-->
     <div class="toolbar">
       <div class="toolbar-left">
         <el-button type="primary" @click="showUploadDialog = true" class="action-btn">
@@ -58,7 +58,7 @@
         </el-button>
         <el-button @click="showCreateFolderDialog = true" class="action-btn">
           <IconifyIconOnline icon="ri:folder-add-line" class="btn-icon" />
-          新建文件夹
+          新建文件�?
         </el-button>
         <el-divider direction="vertical" />
         <el-button
@@ -111,19 +111,19 @@
               </el-dropdown-item>
               <el-dropdown-item command="size-asc">
                 <IconifyIconOnline icon="ri:sort-asc" class="menu-icon" />
-                大小 (小到大)
+                大小 (小到�?
               </el-dropdown-item>
               <el-dropdown-item command="size-desc">
                 <IconifyIconOnline icon="ri:sort-desc" class="menu-icon" />
-                大小 (大到小)
+                大小 (大到�?
               </el-dropdown-item>
               <el-dropdown-item command="date-asc">
                 <IconifyIconOnline icon="ri:sort-asc" class="menu-icon" />
-                修改时间 (旧到新)
+                修改时间 (旧到�?
               </el-dropdown-item>
               <el-dropdown-item command="date-desc">
                 <IconifyIconOnline icon="ri:sort-desc" class="menu-icon" />
-                修改时间 (新到旧)
+                修改时间 (新到�?
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -133,7 +133,7 @@
 
     <!-- 主要内容区域 -->
     <div class="main-content">
-      <!-- 左侧目录树 -->
+      <!-- 左侧目录�?-->
       <div class="sidebar" :class="{ collapsed: sidebarCollapsed }">
         <div class="sidebar-header">
           <h3 class="sidebar-title">
@@ -182,10 +182,10 @@
         <div class="file-list-header">
           <div class="selection-info">
             <span v-if="selectedFiles.length > 0" class="selection-count">
-              已选择 {{ selectedFiles.length }} 个项目
+              已选择 {{ selectedFiles.length }} 个项�?
             </span>
             <span v-else class="item-count">
-              {{ filteredFiles.length }} 个项目
+              {{ filteredFiles.length }} 个项�?
             </span>
           </div>
           <div class="list-actions">
@@ -223,7 +223,7 @@
                     />
                     <span class="file-name">{{ row.name }}</span>
                     <el-tag v-if="row.isDirectory" size="small" class="dir-tag">
-                      文件夹
+                      文件�?
                     </el-tag>
                   </div>
                 </template>
@@ -314,7 +314,7 @@
                       <span v-if="!file.isDirectory" class="file-size">
                         {{ formatFileSize(file.size) }}
                       </span>
-                      <span v-else class="dir-indicator">文件夹</span>
+                      <span v-else class="dir-indicator">文件�?/span>
                     </div>
                   </div>
                 </div>
@@ -345,7 +345,7 @@
                       <el-dropdown-menu>
                         <el-dropdown-item command="rename">
                           <IconifyIconOnline icon="ri:edit-line" class="menu-icon" />
-                          重命名
+                          重命�?
                         </el-dropdown-item>
                         <el-dropdown-item command="delete" class="danger-item">
                           <IconifyIconOnline icon="ri:delete-bin-line" class="menu-icon" />
@@ -362,14 +362,14 @@
       </div>
     </div>
 
-    <!-- 文件预览对话框 -->
+    <!-- 文件预览对话�?-->
     <FilePreviewDialog
       v-model="showPreviewDialog"
       :file="previewFileValue"
       @close="showPreviewDialog = false"
     />
 
-    <!-- 上传文件对话框 -->
+    <!-- 上传文件对话�?-->
     <FileUploadDialog
       v-model="showUploadDialog"
       :current-path="currentPath"
@@ -422,7 +422,7 @@ interface DirectoryNode {
   children?: DirectoryNode[]
 }
 
-// 响应式数据
+// 响应式数�?
 const viewMode = ref<'list' | 'grid'>('list')
 const sidebarCollapsed = ref(false)
 const currentPath = ref('/')
@@ -433,7 +433,7 @@ const directoryTree = ref<DirectoryNode[]>([])
 const sortBy = ref('name')
 const sortOrder = ref<'asc' | 'desc'>('asc')
 
-// 对话框状态
+// 对话框状�?
 const showPreviewDialog = ref(false)
 const showUploadDialog = ref(false)
 const showCreateFolderDialog = ref(false)
@@ -452,9 +452,9 @@ const treeProps = {
   isLeaf: (data: DirectoryNode) => !data.isDirectory
 }
 
-// 计算属性
+// 计算属�?
 const breadcrumbItems = computed(() => {
-  const items = [{ name: '根目录', path: '/', icon: 'ri:home-line' }]
+  const items = [{ name: '根目�?, path: '/', icon: 'ri:home-line' }]
   if (currentPath.value !== '/') {
     const pathParts = currentPath.value.split('/').filter(Boolean)
     let currentPathBuild = ''
@@ -483,7 +483,7 @@ const filteredFiles = computed(() => {
   
   // 排序
   result.sort((a, b) => {
-    // 文件夹优先
+    // 文件夹优�?
     if (a.isDirectory && !b.isDirectory) return -1
     if (!a.isDirectory && b.isDirectory) return 1
     
@@ -556,7 +556,7 @@ const loadDirectoryTree = async () => {
     // 模拟数据
     directoryTree.value = [
       {
-        name: '根目录',
+        name: '根目�?,
         path: '/',
         isDirectory: true,
         children: [
@@ -576,7 +576,7 @@ const loadDirectoryTree = async () => {
       }
     ]
   } catch (error) {
-    ElMessage.error('加载目录树失败')
+    ElMessage.error('加载目录树失�?)
     console.error(error)
   }
 }
@@ -595,7 +595,7 @@ const handleDirectorySelect = (data: DirectoryNode) => {
 const handleNodeExpand = (data: DirectoryNode) => {
   // 懒加载子目录
   if (data.children && data.children.length === 0) {
-    // 加载子目录
+    // 加载子目�?
   }
 }
 
@@ -605,7 +605,7 @@ const handleSelectionChange = (selection: FileItem[]) => {
 
 const handleFileClick = (file: FileItem, event: MouseEvent) => {
   if (event.ctrlKey || event.metaKey) {
-    // 多选
+    // 多�?
     const index = selectedFiles.value.findIndex(f => f.path === file.path)
     if (index > -1) {
       selectedFiles.value.splice(index, 1)
@@ -613,7 +613,7 @@ const handleFileClick = (file: FileItem, event: MouseEvent) => {
       selectedFiles.value.push(file)
     }
   } else {
-    // 单选
+    // 单�?
     selectedFiles.value = [file]
   }
 }
@@ -726,7 +726,7 @@ const getFileIconClass = (file: FileItem) => {
 
 const getFileType = (file: FileItem) => {
   if (file.isDirectory) {
-    return '文件夹'
+    return '文件�?
   }
   
   const ext = file.extension?.toLowerCase()
@@ -786,7 +786,7 @@ const previewFile = (file: FileItem) => {
 const downloadFile = async (file: FileItem) => {
   try {
     // 这里应该调用实际的下载API
-    ElMessage.success(`开始下载 ${file.name}`)
+    ElMessage.success(`开始下�?${file.name}`)
   } catch (error) {
     ElMessage.error('下载失败')
     console.error(error)
@@ -798,7 +798,7 @@ const downloadSelected = async () => {
   
   try {
     // 批量下载逻辑
-    ElMessage.success(`开始下载 ${selectedFiles.value.length} 个文件`)
+    ElMessage.success(`开始下�?${selectedFiles.value.length} 个文件`)
   } catch (error) {
     ElMessage.error('批量下载失败')
     console.error(error)
@@ -813,7 +813,7 @@ const renameFile = (file: FileItem) => {
 const deleteFile = async (file: FileItem) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除 "${file.name}" 吗？`,
+      `确定要删�?"${file.name}" 吗？`,
       '确认删除',
       {
         confirmButtonText: '删除',
@@ -838,7 +838,7 @@ const deleteSelected = async () => {
   
   try {
     await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedFiles.value.length} 个项目吗？`,
+      `确定要删除选中�?${selectedFiles.value.length} 个项目吗？`,
       '确认批量删除',
       {
         confirmButtonText: '删除',
@@ -880,13 +880,13 @@ const handleFolderCreated = () => {
   showCreateFolderDialog.value = false
   refreshCurrentDirectory()
   loadDirectoryTree()
-  ElMessage.success('文件夹创建成功')
+  ElMessage.success('文件夹创建成�?)
 }
 
 const handleRenameSuccess = () => {
   showRenameDialog.value = false
   refreshCurrentDirectory()
-  ElMessage.success('重命名成功')
+  ElMessage.success('重命名成�?)
 }
 
 // 监听路径变化
@@ -1370,7 +1370,7 @@ onMounted(() => {
   }
 }
 
-// 响应式设计
+// 响应式设�?
 @media (max-width: 768px) {
   .file-manager {
     .file-manager-header {

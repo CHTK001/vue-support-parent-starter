@@ -37,8 +37,8 @@ const iconMap: Record<string, string> = {
 const textMap: Record<string, string> = {
   success: "成功",
   failed: "失败",
-  running: "运行中",
-  cancelled: "已取消",
+  running: "运行�?,
+  cancelled: "已取�?,
   timeout: "超时",
   completed: "完成",
 };

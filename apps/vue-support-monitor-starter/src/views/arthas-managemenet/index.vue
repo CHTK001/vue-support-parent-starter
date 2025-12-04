@@ -1,7 +1,7 @@
 <template>
   <div class="arthas-management">
     <div class="main-content">
-      <!-- 工具栏 -->
+      <!-- 工具�?-->
       <div class="modern-toolbar">
         <div class="toolbar-left">
           <NodeSelector
@@ -67,7 +67,7 @@
             </div>
             <div class="empty-title">尚未连接</div>
             <div class="empty-desc">
-              请选择包含 Arthas 客户端的在线节点并点击连接
+              请选择包含 Arthas 客户端的在线节点并点击连�?
             </div>
             <el-button
               v-if="selectedNode"
@@ -140,8 +140,8 @@ import ArthasConfigDialog from "@/views/arthas-managemenet/components/ArthasConf
 import {
   fetchAllOnlineNodes,
   type OnlineNodeInfo,
-} from "@/api/node-management";
-import { connectArthasNode } from "@/api/arthas-management";
+} from "@/api/server/node-management";
+import { connectArthasNode } from "@/api/arthas/arthas-management";
 
 const nodeList = ref<OnlineNodeInfo[]>([]);
 const selectedNodeId = ref<string>("");
@@ -151,7 +151,7 @@ const configVisible = ref(false);
 const activeFeature = ref("console");
 
 const features = [
-  { key: "console", title: "控制台", icon: "ri:terminal-box-line" },
+  { key: "console", title: "控制�?, icon: "ri:terminal-box-line" },
   { key: "thread", title: "线程", icon: "ri:stack-line" },
   { key: "trace", title: "链路追踪", icon: "ri:route-line" },
   { key: "jvm", title: "JVM", icon: "ri:cpu-line" },
@@ -255,7 +255,7 @@ onMounted(() => {
   flex: 1;
 }
 
-/* 工具栏 */
+/* 工具�?*/
 .modern-toolbar {
   display: flex;
   justify-content: space-between;
@@ -361,7 +361,7 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* 空状态 */
+/* 空状�?*/
 .empty-state {
   height: 100%;
   display: flex;
@@ -414,7 +414,7 @@ onMounted(() => {
   box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
 }
 
-/* 控制台包装 */
+/* 控制台包�?*/
 .console-wrap {
   height: 100%;
   display: flex;
@@ -443,7 +443,7 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-/* 响应式 */
+/* 响应�?*/
 
 @media (max-width: 768px) {
   .arthas-management {

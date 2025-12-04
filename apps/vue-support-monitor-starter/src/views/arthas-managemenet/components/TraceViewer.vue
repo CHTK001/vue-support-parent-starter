@@ -1,24 +1,24 @@
 <template>
   <div class="trace-viewer">
     <div class="toolbar">
-      <el-input v-model="classPattern" placeholder="类匹配（必填，如 com.example.service.UserService）" style="min-width: 300px" clearable>
+      <el-input v-model="classPattern" placeholder="类匹配（必填，如 com.example.service.UserService�? style="min-width: 300px" clearable>
         <template #suffix>
           <el-tooltip placement="top">
             <template #content>
               <div style="max-width: 300px">
-                <p><strong>输入要追踪的类名：</strong></p>
-                <p>• 使用具体的实现类，避免接口或抽象类</p>
-                <p>• 示例：com.example.service.UserService</p>
-                <p>• 支持通配符：com.example.service.*</p>
-                <p>• 如果提示匹配类过多，请使用更具体的类名</p>
+                <p><strong>输入要追踪的类名�?/strong></p>
+                <p>�?使用具体的实现类，避免接口或抽象�?/p>
+                <p>�?示例：com.example.service.UserService</p>
+                <p>�?支持通配符：com.example.service.*</p>
+                <p>�?如果提示匹配类过多，请使用更具体的类�?/p>
               </div>
             </template>
             <el-icon><QuestionFilled /></el-icon>
           </el-tooltip>
         </template>
       </el-input>
-      <el-input v-model="methodPattern" placeholder="方法匹配（可选，默认 *）" style="min-width: 200px" clearable />
-      <el-input v-model="condition" placeholder="条件表达式（可选，如 #cost>10）" style="min-width: 220px" clearable />
+      <el-input v-model="methodPattern" placeholder="方法匹配（可选，默认 *�? style="min-width: 200px" clearable />
+      <el-input v-model="condition" placeholder="条件表达式（可选，�?#cost>10�? style="min-width: 220px" clearable />
       <el-checkbox v-model="useRegex">正则(-E)</el-checkbox>
       <el-input-number v-model="count" :min="1" :max="1000" :step="1" controls-position="right" style="width: 120px" />
       <span class="label">-n</span>
@@ -26,10 +26,10 @@
       <span class="label">-x</span>
       <el-checkbox v-model="autoRefresh">自动刷新</el-checkbox>
       <el-select v-model="refreshInterval" style="width: 120px" placeholder="拉取间隔" title="设置结果拉取间隔（同时用于自动刷新间隔）">
-        <el-option :value="5" label="5秒" />
-        <el-option :value="10" label="10秒" />
-        <el-option :value="30" label="30秒" />
-        <el-option :value="60" label="60秒" />
+        <el-option :value="5" label="5�? />
+        <el-option :value="10" label="10�? />
+        <el-option :value="30" label="30�? />
+        <el-option :value="60" label="60�? />
       </el-select>
       <el-button @click="clearData">清空</el-button>
       <el-button type="primary" :disabled="!nodeId || !classPatternTrim || isRunning" :loading="loading" @click="run">
@@ -58,8 +58,8 @@
               <p>暂无链路追踪数据</p>
               <p class="empty-tips">
                 请设置具体的类匹配模式并点击执行<br />
-                <strong>建议：</strong>使用具体的实现类名，避免接口或抽象类<br />
-                <strong>示例：</strong>com.example.service.UserService
+                <strong>建议�?/strong>使用具体的实现类名，避免接口或抽象类<br />
+                <strong>示例�?/strong>com.example.service.UserService
               </p>
             </div>
           </template>
@@ -72,7 +72,7 @@
           <el-card shadow="never" class="stats-card">
             <div class="stats-grid">
               <div class="stat-item">
-                <span class="stat-label">总调用次数</span>
+                <span class="stat-label">总调用次�?/span>
                 <span class="stat-value">{{ traceStats.totalCount }}</span>
               </div>
               <div class="stat-item">
@@ -141,16 +141,16 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, computed } from "vue";
 import { QuestionFilled, Loading } from "@element-plus/icons-vue";
-import { getOrCreateSession, execArthasCommandAsync, pullArthasResults, interruptArthasJob, closeArthasSession } from "@/api/arthas-http";
+import { getOrCreateSession, execArthasCommandAsync, pullArthasResults, interruptArthasJob, closeArthasSession } from "@/api/arthas/arthas-http";
 
 const props = defineProps<{ nodeId: string }>();
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false);
 const error = ref("");
 const connected = ref(false);
 
-// 异步执行相关状态
+// 异步执行相关状�?
 const sessionId = ref("");
 const consumerId = ref("");
 const jobId = ref<number | null>(null);
@@ -218,7 +218,7 @@ function buildCmd(): string {
   const parts: string[] = ["trace"];
   if (useRegex.value) {
     parts.push("-E");
-    console.log("添加正则表达式参数 -E");
+    console.log("添加正则表达式参�?-E");
   } else {
     console.log("未勾选正则表达式，不添加 -E 参数");
   }
@@ -230,7 +230,7 @@ function buildCmd(): string {
   if (expand.value && expand.value > 0) parts.push("-x", String(expand.value));
 
   const cmd = parts.join(" ");
-  console.log("构建的完整命令:", cmd);
+  console.log("构建的完整命�?", cmd);
   console.log("useRegex.value:", useRegex.value);
   return cmd;
 }
@@ -246,13 +246,13 @@ function parseTraceData(output: any): TraceInfo[] {
     const results = output.body.results;
     const traces: TraceInfo[] = [];
 
-    // 查找trace类型的结果
+    // 查找trace类型的结�?
     for (const result of results) {
       if (result.type === "trace") {
-        // 检查是否有root数据（新格式）或tree数据（旧格式）
+        // 检查是否有root数据（新格式）或tree数据（旧格式�?
         const traceRoot = result.root || result.tree;
         if (traceRoot) {
-          // 解析trace树结构
+          // 解析trace树结�?
           const trace: TraceInfo = {
             className: extractClassName(traceRoot),
             methodName: extractMethodName(traceRoot),
@@ -265,7 +265,7 @@ function parseTraceData(output: any): TraceInfo[] {
           traces.push(trace);
           console.log("成功解析trace数据:", trace.className, trace.methodName);
         } else if (result.className && result.methodName) {
-          // 可能是其他格式的trace数据，尝试直接解析
+          // 可能是其他格式的trace数据，尝试直接解�?
           const trace: TraceInfo = {
             className: result.className,
             methodName: result.methodName,
@@ -278,7 +278,7 @@ function parseTraceData(output: any): TraceInfo[] {
           traces.push(trace);
           console.log("解析简单trace数据:", trace.className, trace.methodName);
         } else {
-          console.log("trace数据格式不识别:", result);
+          console.log("trace数据格式不识�?", result);
         }
       }
     }
@@ -291,7 +291,7 @@ function parseTraceData(output: any): TraceInfo[] {
   }
 }
 
-// 解析trace树结构
+// 解析trace树结�?
 function parseTraceTree(tree: any, depth: number): TraceNode[] {
   if (!tree) return [];
 
@@ -313,7 +313,7 @@ function parseTraceTree(tree: any, depth: number): TraceNode[] {
     };
     nodes.push(node);
 
-    // 递归处理子节点
+    // 递归处理子节�?
     if (tree.children && Array.isArray(tree.children)) {
       for (const child of tree.children) {
         nodes.push(...parseTraceTree(child, depth + 1));
@@ -328,7 +328,7 @@ function parseTraceTree(tree: any, depth: number): TraceNode[] {
 function extractClassName(tree: any): string {
   if (!tree) return "";
 
-  // 如果当前节点有className，直接返回
+  // 如果当前节点有className，直接返�?
   if (tree.className) return tree.className;
 
   // 如果是thread类型的根节点，查找children中的第一个method
@@ -336,7 +336,7 @@ function extractClassName(tree: any): string {
     return extractClassName(tree.children[0]);
   }
 
-  // 如果是数组，取第一个元素
+  // 如果是数组，取第一个元�?
   if (Array.isArray(tree) && tree.length > 0) {
     return extractClassName(tree[0]);
   }
@@ -344,11 +344,11 @@ function extractClassName(tree: any): string {
   return "";
 }
 
-// 从trace树中提取方法名
+// 从trace树中提取方法�?
 function extractMethodName(tree: any): string {
   if (!tree) return "";
 
-  // 如果当前节点有methodName，直接返回
+  // 如果当前节点有methodName，直接返�?
   if (tree.methodName) return tree.methodName;
 
   // 如果是thread类型的根节点，查找children中的第一个method
@@ -356,7 +356,7 @@ function extractMethodName(tree: any): string {
     return extractMethodName(tree.children[0]);
   }
 
-  // 如果是数组，取第一个元素
+  // 如果是数组，取第一个元�?
   if (Array.isArray(tree) && tree.length > 0) {
     return extractMethodName(tree[0]);
   }
@@ -381,7 +381,7 @@ function calculateStats(traces: TraceInfo[]): TraceStats | null {
   };
 }
 
-// 格式化时间
+// 格式化时�?
 function formatTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString();
 }
@@ -395,7 +395,7 @@ function expandTrace(trace: TraceInfo) {
 async function run() {
   if (!props.nodeId || !classPatternTrim.value) return;
 
-  // 如果已经在运行，先停止
+  // 如果已经在运行，先停�?
   if (isRunning.value) {
     await stopTrace();
   }
@@ -405,10 +405,10 @@ async function run() {
 
   try {
     const cmd = buildCmd();
-    console.log("开始执行trace流程，命令:", cmd);
+    console.log("开始执行trace流程，命�?", cmd);
 
-    // 1. 先获取或创建会话（不执行命令）
-    console.log("步骤1: 获取或创建会话");
+    // 1. 先获取或创建会话（不执行命令�?
+    console.log("步骤1: 获取或创建会�?);
     const sessionRes = await getOrCreateSession(props.nodeId, cmd);
 
     if (sessionRes?.success && sessionRes.data) {
@@ -421,15 +421,15 @@ async function run() {
       console.log("步骤2: 异步执行trace命令");
       const execRes = await execArthasCommandAsync(props.nodeId, cmd);
       if (execRes?.success && execRes.data) {
-        // 更新jobId（可能会有新的jobId）
+        // 更新jobId（可能会有新的jobId�?
         sessionId.value = execRes.data.sessionId;
         consumerId.value = execRes.data.consumerId;
         jobId.value = execRes.data.jobId;
         isRunning.value = true;
         console.log("命令执行成功，jobId:", jobId.value);
 
-        // 3. 开始定期拉取结果
-        console.log("步骤3: 开始定期拉取结果");
+        // 3. 开始定期拉取结�?
+        console.log("步骤3: 开始定期拉取结�?);
         startPullingResults();
         loading.value = false; // 命令执行成功，停止loading
       } else {
@@ -449,7 +449,7 @@ async function run() {
   }
 }
 
-// 开始定期拉取结果
+// 开始定期拉取结�?
 function startPullingResults() {
   if (!sessionId.value || !consumerId.value) return;
 
@@ -458,10 +458,10 @@ function startPullingResults() {
     clearInterval(pullTimer);
   }
 
-  // 立即拉取一次
+  // 立即拉取一�?
   pullResults();
 
-  // 使用页面配置的刷新间隔拉取结果
+  // 使用页面配置的刷新间隔拉取结�?
   const intervalMs = refreshInterval.value * 1000;
   console.log(`开始定时拉取，间隔: ${refreshInterval.value}秒`);
   pullTimer = setInterval(() => {
@@ -484,7 +484,7 @@ async function pullResults() {
         sessionId.value = data.sessionId;
         consumerId.value = data.consumerId;
         jobId.value = data.jobId;
-        console.log("会话已重新创建:", data.message);
+        console.log("会话已重新创�?", data.message);
         return; // 本次不处理数据，等待下次拉取
       }
 
@@ -500,7 +500,7 @@ async function pullResults() {
       // 解析trace数据
       const parsedTraces = parseTraceData(output);
 
-      // 如果有新的trace数据，添加到现有数据中
+      // 如果有新的trace数据，添加到现有数据�?
       if (parsedTraces.length > 0) {
         traces.value = [...traces.value, ...parsedTraces];
         traceStats.value = calculateStats(traces.value);
@@ -512,18 +512,18 @@ async function pullResults() {
       const enhancerResult = results.find((r: any) => r.type === "enhancer");
       const statusResult = results.find((r: any) => r.type === "status");
 
-      // 检查status错误（如命令参数错误）
+      // 检查status错误（如命令参数错误�?
       if (statusResult && statusResult.statusCode !== 0) {
         error.value = `Trace命令执行失败: ${statusResult.message}
 
 可能的原因：
-1. 命令参数格式不正确
-2. 类名或方法名不存在
+1. 命令参数格式不正�?
+2. 类名或方法名不存�?
 3. 权限不足
 
-建议：
-1. 检查类名和方法名是否正确
-2. 确保目标类已被加载
+建议�?
+1. 检查类名和方法名是否正�?
+2. 确保目标类已被加�?
 3. 检查命令参数格式`;
         await stopTrace();
         return;
@@ -533,7 +533,7 @@ async function pullResults() {
         if (enhancerResult.effect?.overLimitMsg) {
           error.value = `${enhancerResult.effect.overLimitMsg}
 
-建议解决方案：
+建议解决方案�?
 1. 使用更具体的类名，如：com.example.service.UserService
 2. 避免使用接口名或抽象类名
 3. 可以使用 -m 参数增加匹配类的限制数量
@@ -541,12 +541,12 @@ async function pullResults() {
         } else {
           error.value = "增强器执行失败，请检查类匹配模式是否正确";
         }
-        // enhancer失败时停止拉取
+        // enhancer失败时停止拉�?
         await stopTrace();
         return;
       }
 
-      // 检查job状态
+      // 检查job状�?
       const jobStatus = responseBody?.jobStatus || pullRes.data.body?.jobStatus;
       if (jobStatus === "TERMINATED") {
         // job已结束，停止拉取
@@ -556,14 +556,14 @@ async function pullResults() {
           error.value = `未获取到链路追踪数据
 
 可能的原因：
-1. 类匹配模式不正确或类不存在
-2. 方法没有被调用
-3. 方法匹配模式不正确
+1. 类匹配模式不正确或类不存�?
+2. 方法没有被调�?
+3. 方法匹配模式不正�?
 
-建议：
+建议�?
 1. 确认类名和方法名是否正确
-2. 确保在追踪期间有实际的方法调用
-3. 检查方法匹配模式（默认为 * 匹配所有方法）`;
+2. 确保在追踪期间有实际的方法调�?
+3. 检查方法匹配模式（默认�?* 匹配所有方法）`;
         }
       }
     }
@@ -579,7 +579,7 @@ async function stopTrace() {
   connected.value = false;
   loading.value = false;
 
-  // 清除拉取定时器
+  // 清除拉取定时�?
   if (pullTimer) {
     clearInterval(pullTimer);
     pullTimer = null;
@@ -608,7 +608,7 @@ async function sendStop() {
   if (sessionId.value) {
     try {
       await closeArthasSession(sessionId.value);
-      console.log("会话已关闭:", sessionId.value);
+      console.log("会话已关�?", sessionId.value);
     } catch (e) {
       console.error("关闭会话失败:", e);
     }
@@ -619,15 +619,15 @@ async function sendStop() {
 function startAutoRefresh() {
   if (!autoRefresh.value || !props.nodeId || !classPatternTrim.value) return;
 
-  stopAutoRefresh(); // 先停止之前的定时器
+  stopAutoRefresh(); // 先停止之前的定时�?
 
-  // 启动倒计时
+  // 启动倒计�?
   countdown.value = refreshInterval.value;
   countdownTimer = setInterval(() => {
     countdown.value--;
     if (countdown.value <= 0) {
       run(); // 执行追踪
-      countdown.value = refreshInterval.value; // 重置倒计时
+      countdown.value = refreshInterval.value; // 重置倒计�?
     }
   }, 1000);
 }
@@ -645,7 +645,7 @@ function stopAutoRefresh() {
   countdown.value = 0;
 }
 
-// 监听自动刷新状态变化
+// 监听自动刷新状态变�?
 watch(autoRefresh, (newVal) => {
   if (newVal && props.nodeId && classPatternTrim.value) {
     startAutoRefresh();
@@ -657,12 +657,12 @@ watch(autoRefresh, (newVal) => {
 // 监听刷新间隔变化
 watch(refreshInterval, () => {
   if (autoRefresh.value && props.nodeId && classPatternTrim.value) {
-    startAutoRefresh(); // 重新启动定时器
+    startAutoRefresh(); // 重新启动定时�?
   }
 
-  // 如果正在拉取结果，也重新启动拉取定时器
+  // 如果正在拉取结果，也重新启动拉取定时�?
   if (isRunning.value && pullTimer) {
-    console.log(`刷新间隔变更为${refreshInterval.value}秒，重新启动拉取定时器`);
+    console.log(`刷新间隔变更�?{refreshInterval.value}秒，重新启动拉取定时器`);
     startPullingResults();
   }
 });
@@ -675,31 +675,31 @@ watch(
       clearData();
       stopAutoRefresh(); // 停止自动刷新
       if (n && autoRefresh.value && classPatternTrim.value) {
-        startAutoRefresh(); // 如果开启了自动刷新，重新启动
+        startAutoRefresh(); // 如果开启了自动刷新，重新启�?
       }
     }
   }
 );
 
-// 组件挂载时自动执行
+// 组件挂载时自动执�?
 onMounted(() => {
-  // 不自动执行，需要用户设置类匹配后手动执行
+  // 不自动执行，需要用户设置类匹配后手动执�?
 });
 
 // 监控useRegex值的变化
 watch(useRegex, (newVal, oldVal) => {
-  console.log("useRegex值变化:", oldVal, "->", newVal);
-  console.log("新命令:", buildCmd());
+  console.log("useRegex值变�?", oldVal, "->", newVal);
+  console.log("新命�?", buildCmd());
 });
 
 // 组件挂载时的调试信息
 onMounted(() => {
-  console.log("TraceViewer组件已挂载");
-  console.log("useRegex初始值:", useRegex.value);
+  console.log("TraceViewer组件已挂�?);
+  console.log("useRegex初始�?", useRegex.value);
   console.log("初始命令:", buildCmd());
 });
 
-// 组件卸载时清理定时器和会话
+// 组件卸载时清理定时器和会�?
 onBeforeUnmount(async () => {
   stopAutoRefresh();
   await stopTrace();
@@ -710,7 +710,7 @@ onBeforeUnmount(async () => {
       await closeArthasSession(sessionId.value);
       console.log("页面卸载，会话已关闭:", sessionId.value);
     } catch (e) {
-      console.error("页面卸载时关闭会话失败:", e);
+      console.error("页面卸载时关闭会话失�?", e);
     }
   }
 });
@@ -975,7 +975,7 @@ onBeforeUnmount(async () => {
   }
 }
 
-/* 响应式设计 */
+/* 响应式设�?*/
 @media (max-width: 768px) {
   .toolbar {
     flex-direction: column;

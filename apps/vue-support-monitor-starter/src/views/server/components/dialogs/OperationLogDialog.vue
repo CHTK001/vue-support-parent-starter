@@ -7,15 +7,15 @@
     @close="handleClose"
   >
     <div class="operation-log">
-      <!-- 过滤器 -->
+      <!-- 过滤�?-->
       <div class="log-filters">
         <el-row :gutter="16">
           <el-col :span="5">
             <el-date-picker
               v-model="filters.dateRange"
               type="datetimerange"
-              range-separator="至"
-              start-placeholder="开始时间"
+              range-separator="�?
+              start-placeholder="开始时�?
               end-placeholder="结束时间"
               size="small"
               style="width: 100%"
@@ -51,7 +51,7 @@
           <el-col :span="4">
             <el-input
               v-model="filters.keyword"
-              placeholder="搜索关键词"
+              placeholder="搜索关键�?
               size="small"
               clearable
             />
@@ -143,7 +143,7 @@
           />
           <el-table-column
             prop="monitorSysGenServerLogHostname"
-            label="主机名"
+            label="主机�?
             width="120"
             show-overflow-tooltip
           />
@@ -206,14 +206,14 @@
           <el-col :span="4">
             <div class="stat-item">
               <div class="stat-value">{{ statistics.lastHour }}</div>
-              <div class="stat-label">最近1小时</div>
+              <div class="stat-label">最�?小时</div>
             </div>
           </el-col>
         </el-row>
       </div>
     </div>
 
-    <!-- 日志详情对话框 -->
+    <!-- 日志详情对话�?-->
     <el-dialog
       v-model="detailDialogVisible"
       title="日志详情"
@@ -225,7 +225,7 @@
           <el-descriptions-item label="记录时间">
             {{ formatTime(selectedLog.monitorSysGenServerLogCreateTime) }}
           </el-descriptions-item>
-          <el-descriptions-item label="服务器时间">
+          <el-descriptions-item label="服务器时�?>
             {{ formatTime(selectedLog.monitorSysGenServerLogServerTime) }}
           </el-descriptions-item>
           <el-descriptions-item label="日志级别">
@@ -254,13 +254,13 @@
           <el-descriptions-item label="服务器IP">
             {{ selectedLog.monitorSysGenServerLogIp || "-" }}
           </el-descriptions-item>
-          <el-descriptions-item label="主机名">
+          <el-descriptions-item label="主机�?>
             {{ selectedLog.monitorSysGenServerLogHostname || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="进程ID">
             {{ selectedLog.monitorSysGenServerLogProcessId || "-" }}
           </el-descriptions-item>
-          <el-descriptions-item label="记录器名称">
+          <el-descriptions-item label="记录器名�?>
             {{ selectedLog.monitorSysGenServerLogLogger || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="文件路径" :span="2">
@@ -332,14 +332,14 @@ const props = defineProps<{
   server?: any;
 }>();
 
-// 状态
+// 状�?
 const visible = ref(false);
 const loading = ref(false);
 const detailDialogVisible = ref(false);
 const selectedLog = ref<ServerLog | null>(null);
 const currentServerId = ref<number | null>(null);
 
-// 过滤器
+// 过滤�?
 const filters = reactive({
   dateRange: [] as Date[],
   level: "",
@@ -367,12 +367,12 @@ const statistics = reactive({
   lastHour: 0,
 });
 
-// 计算属性
+// 计算属�?
 const dialogTitle = computed(() => {
   if (props.server) {
-    return `服务器日志 - ${props.server.name}`;
+    return `服务器日�?- ${props.server.name}`;
   }
-  return "服务器日志";
+  return "服务器日�?;
 });
 
 // 方法
@@ -475,7 +475,7 @@ const resetFilters = () => {
 const clearLogs = async () => {
   try {
     if (!currentServerId.value) {
-      message.warning("请先选择服务器");
+      message.warning("请先选择服务�?);
       return;
     }
 
@@ -509,7 +509,7 @@ const clearLogs = async () => {
 const exportLogs = async () => {
   try {
     if (!currentServerId.value) {
-      message.warning("请先选择服务器");
+      message.warning("请先选择服务�?);
       return;
     }
 

@@ -23,12 +23,12 @@
             <el-descriptions-item label="镜像标签">
               {{ containerData.systemSoftContainerImageTag }}
             </el-descriptions-item>
-            <el-descriptions-item label="运行状态">
+            <el-descriptions-item label="运行状�?>
               <el-tag :type="getStatusType(containerData.systemSoftContainerStatus)">
                 {{ getStatusText(containerData.systemSoftContainerStatus) }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="服务器">
+            <el-descriptions-item label="服务�?>
               {{ containerData.systemSoftContainerServerName }}
             </el-descriptions-item>
             <el-descriptions-item label="创建时间">
@@ -41,7 +41,7 @@
               {{ containerData.systemSoftContainerRestartPolicy || '默认' }}
             </el-descriptions-item>
             <el-descriptions-item label="自动删除">
-              {{ containerData.systemSoftContainerAutoRemove ? '是' : '否' }}
+              {{ containerData.systemSoftContainerAutoRemove ? '�? : '�? }}
             </el-descriptions-item>
           </el-descriptions>
         </el-tab-pane>
@@ -70,7 +70,7 @@
             
             <div class="section-title">IP地址</div>
             <div class="ip-address">
-              {{ containerData.systemSoftContainerIpAddress || '未分配' }}
+              {{ containerData.systemSoftContainerIpAddress || '未分�? }}
             </div>
           </div>
         </el-tab-pane>
@@ -79,7 +79,7 @@
         <el-tab-pane label="资源监控" name="resources">
           <div class="resources-grid">
             <div class="resource-card">
-              <div class="resource-title">CPU使用率</div>
+              <div class="resource-title">CPU使用�?/div>
               <div class="resource-chart">
                 <el-progress
                   type="circle"
@@ -94,7 +94,7 @@
             </div>
             
             <div class="resource-card">
-              <div class="resource-title">内存使用率</div>
+              <div class="resource-title">内存使用�?/div>
               <div class="resource-chart">
                 <el-progress
                   type="circle"
@@ -112,11 +112,11 @@
               <div class="resource-title">内存使用</div>
               <div class="resource-stats">
                 <div class="stat-item">
-                  <span class="stat-label">使用：</span>
+                  <span class="stat-label">使用�?/span>
                   <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerMemoryUsageBytes || containerData.systemSoftContainerMemoryUsage || 0) }}</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label">限制：</span>
+                  <span class="stat-label">限制�?/span>
                   <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerMemoryLimit || 0) }}</span>
                 </div>
               </div>
@@ -126,11 +126,11 @@
               <div class="resource-title">磁盘IO</div>
               <div class="resource-stats">
                 <div class="stat-item">
-                  <span class="stat-label">读取：</span>
+                  <span class="stat-label">读取�?/span>
                   <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerStatsDiskRead || containerData.systemSoftContainerDiskRead || 0) }}</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label">写入：</span>
+                  <span class="stat-label">写入�?/span>
                   <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerStatsDiskWrite || containerData.systemSoftContainerDiskWrite || 0) }}</span>
                 </div>
               </div>
@@ -140,7 +140,7 @@
               <div class="resource-title">网络IO</div>
               <div class="resource-stats">
                 <div class="stat-item">
-                  <span class="stat-label">接收：</span>
+                  <span class="stat-label">接收�?/span>
                   <span class="stat-value">{{ formatBytes(containerData.systemSoftContainerStatsNetworkRxBytes || containerData.systemSoftContainerNetworkRx || 0) }}</span>
                 </div>
                 <div class="stat-item">
@@ -164,7 +164,7 @@
           </div>
         </el-tab-pane>
 
-        <!-- 卷挂载 -->
+        <!-- 卷挂�?-->
         <el-tab-pane label="存储挂载" name="volumes">
           <div class="volumes-section">
             <div v-if="containerData.systemSoftContainerVolumes" class="volumes-list">
@@ -196,24 +196,24 @@
                 {{ containerData.systemSoftContainerCommand || '默认' }}
               </el-descriptions-item>
               <el-descriptions-item label="参数">
-                {{ containerData.systemSoftContainerArgs || '无' }}
+                {{ containerData.systemSoftContainerArgs || '�? }}
               </el-descriptions-item>
               <el-descriptions-item label="网络模式">
                 {{ containerData.systemSoftContainerNetworks || '默认桥接' }}
               </el-descriptions-item>
               <el-descriptions-item label="重启策略">
-                {{ containerData.systemSoftContainerAutoRestart ? '自动重启' : '不重启' }}
+                {{ containerData.systemSoftContainerAutoRestart ? '自动重启' : '不重�? }}
               </el-descriptions-item>
               <el-descriptions-item label="CPU限制">
-                {{ containerData.systemSoftContainerCpuLimit ? `${containerData.systemSoftContainerCpuLimit} 核` : '无限制' }}
+                {{ containerData.systemSoftContainerCpuLimit ? `${containerData.systemSoftContainerCpuLimit} 核` : '无限�? }}
               </el-descriptions-item>
               <el-descriptions-item label="内存限制">
-                {{ containerData.systemSoftContainerMemoryLimit ? formatBytes(containerData.systemSoftContainerMemoryLimit) : '无限制' }}
+                {{ containerData.systemSoftContainerMemoryLimit ? formatBytes(containerData.systemSoftContainerMemoryLimit) : '无限�? }}
               </el-descriptions-item>
             </el-descriptions>
             
             <div v-if="containerData.systemSoftContainerConfig" class="config-json">
-              <div class="section-title">完整配置（JSON）</div>
+              <div class="section-title">完整配置（JSON�?/div>
               <pre class="config-code">{{ formatJson(containerData.systemSoftContainerConfig) }}</pre>
             </div>
           </div>
@@ -226,7 +226,7 @@
               <div class="chart-item">
                 <ContainerRealtimeChart 
                   :container-id="containerData.systemSoftContainerId!" 
-                  title="CPU使用率" 
+                  title="CPU使用�? 
                   data-type="cpu" 
                 />
               </div>
@@ -265,7 +265,7 @@
               <div class="chart-item">
                 <ContainerRealtimeChart 
                   :container-id="containerData.systemSoftContainerId!" 
-                  title="网络发送" 
+                  title="网络发�? 
                   data-type="networkTx" 
                 />
               </div>
@@ -288,7 +288,7 @@
 </template>
 
 <script setup lang="ts">
-import { containerApi, type SystemSoftContainer } from '@/api/docker-management'
+import { containerApi, type SystemSoftContainer } from '@/api/docker'
 import { ElMessage } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import ContainerRealtimeChart from '../../monitoring/components/ContainerRealtimeChart.vue'
@@ -327,7 +327,7 @@ const getStatusType = (status?: string) => {
 }
 
 const getStatusText = (status?: string) => {
-  const map = { running: '运行中', stopped: '已停止', paused: '暂停', restarting: '重启中', error: '错误' }
+  const map = { running: '运行�?, stopped: '已停�?, paused: '暂停', restarting: '重启�?, error: '错误' }
   return map[status] || '未知'
 }
 
@@ -406,8 +406,8 @@ const handleRefresh = async () => {
     // 修复方法调用错误，使用正确的API方法
     const response = await containerApi.getContainerById(props.containerData.systemSoftContainerId)
     if (response.code === '00000') {
-      ElMessage.success('容器数据已刷新')
-      // 这里可以触发父组件更新数据
+      ElMessage.success('容器数据已刷�?)
+      // 这里可以触发父组件更新数�?
     } else {
       ElMessage.error(response.message || '刷新失败')
     }

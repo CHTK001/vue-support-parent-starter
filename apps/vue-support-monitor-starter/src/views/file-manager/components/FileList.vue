@@ -17,7 +17,7 @@
           </el-breadcrumb>
         </div>
         <div class="selection-info" v-if="selectedFiles.length > 0">
-          <span class="selection-count">已选择 {{ selectedFiles.length }} 项</span>
+          <span class="selection-count">已选择 {{ selectedFiles.length }} �?/span>
           <el-button size="small" @click="clearSelection" class="clear-btn">
             <IconifyIconOnline icon="ri:close-line" />
             清除选择
@@ -64,12 +64,12 @@
 
     <!-- 文件列表内容 -->
     <div class="list-content" :class="{ 'grid-view': viewMode === 'grid' }">
-      <!-- 加载状态 -->
+      <!-- 加载状�?-->
       <div v-if="isLoading" class="loading-container">
         <el-skeleton :rows="8" animated />
       </div>
       
-      <!-- 空状态 -->
+      <!-- 空状�?-->
       <div v-else-if="filteredFiles.length === 0" class="empty-container">
         <div class="empty-content">
           <IconifyIconOnline icon="ri:folder-open-line" class="empty-icon" />
@@ -108,7 +108,7 @@
                 </div>
                 <div class="file-info">
                   <div class="file-name">{{ row.name }}</div>
-                  <div class="file-path" v-if="row.isDirectory">{{ row.childCount }} 项</div>
+                  <div class="file-path" v-if="row.isDirectory">{{ row.childCount }} �?/div>
                 </div>
               </div>
             </template>
@@ -160,7 +160,7 @@
                   </el-button>
                 </el-tooltip>
                 
-                <el-tooltip content="重命名" placement="top">
+                <el-tooltip content="重命�? placement="top">
                   <el-button
                     size="small"
                     circle
@@ -254,7 +254,7 @@
                     </el-dropdown-item>
                     <el-dropdown-item @click="renameFile(file)">
                       <IconifyIconOnline icon="ri:edit-line" class="menu-icon" />
-                      重命名
+                      重命�?
                     </el-dropdown-item>
                     <el-dropdown-item divided @click="deleteFile(file)">
                       <IconifyIconOnline icon="ri:delete-bin-line" class="menu-icon" />
@@ -335,7 +335,7 @@ const emit = defineEmits<{
   'refresh': []
 }>()
 
-// 响应式数据
+// 响应式数�?
 const viewMode = ref<'list' | 'grid'>('list')
 const sortBy = ref('name')
 const sortOrder = ref<'asc' | 'desc'>('asc')
@@ -343,11 +343,11 @@ const selectedFiles = ref<FileItem[]>([])
 const currentPage = ref(1)
 const pageSize = ref(50)
 
-// 计算属性
+// 计算属�?
 const breadcrumbItems = computed((): BreadcrumbItem[] => {
   const pathParts = props.currentPath.split('/').filter(part => part)
   const items: BreadcrumbItem[] = [
-    { name: '根目录', path: '/', icon: 'ri:home-line' }
+    { name: '根目�?, path: '/', icon: 'ri:home-line' }
   ]
   
   let currentPath = ''
@@ -376,7 +376,7 @@ const filteredFiles = computed(() => {
   
   // 排序
   files.sort((a, b) => {
-    // 文件夹优先
+    // 文件夹优�?
     if (a.isDirectory && !b.isDirectory) return -1
     if (!a.isDirectory && b.isDirectory) return 1
     
@@ -463,13 +463,13 @@ const getFileIconClass = (file: FileItem): string => {
 
 const getFileTypeText = (type: string): string => {
   const typeMap: Record<string, string> = {
-    folder: '文件夹',
+    folder: '文件�?,
     image: '图片',
     video: '视频',
     audio: '音频',
     document: '文档',
     pdf: 'PDF',
-    archive: '压缩包',
+    archive: '压缩�?,
     code: '代码',
     text: '文本',
     unknown: '未知'
@@ -607,7 +607,7 @@ const handleCardClick = (file: FileItem, event: MouseEvent) => {
     
     selectedFiles.value = filteredFiles.value.slice(start, end + 1)
   } else {
-    // 普通点击：单选
+    // 普通点击：单�?
     selectedFiles.value = [file]
   }
   
@@ -664,7 +664,7 @@ const renameFile = (file: FileItem) => {
 const deleteFile = async (file: FileItem) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除 "${file.name}" 吗？`,
+      `确定要删�?"${file.name}" 吗？`,
       '确认删除',
       {
         confirmButtonText: '删除',
@@ -1056,7 +1056,7 @@ watch(() => props.searchText, () => {
   }
 }
 
-// 响应式设计
+// 响应式设�?
 @media (max-width: 1200px) {
   .file-list {
     .list-content {

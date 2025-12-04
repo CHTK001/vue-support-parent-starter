@@ -1,10 +1,10 @@
 <template>
   <div class="serial-monitor-container">
-    <!-- 工具栏 -->
+    <!-- 工具�?-->
     <div class="serial-toolbar flex justify-between items-center p-3 border-b border-[var(--el-border-color-light)]">
       <div class="serial-info flex items-center">
         <el-tag :type="isConnected ? 'success' : 'info'" class="mr-2">
-          {{ isConnected ? "已连接" : "未连接" }}
+          {{ isConnected ? "已连�? : "未连�? }}
         </el-tag>
         <span v-if="serialData.monitorSerialName" class="serial-name text-sm"> {{ serialData.monitorSerialName }} ({{ serialData.monitorSerialPort || "COM1" }}) </span>
         <span v-else class="text-[var(--el-text-color-placeholder)] text-sm">未选择串口</span>
@@ -29,7 +29,7 @@
       <div class="serial-output flex-1 p-3 overflow-auto" ref="outputRef">
         <div v-if="!serialData.monitorSerialId" class="serial-empty flex flex-col items-center justify-center h-full">
           <IconifyIconOnline icon="mdi:serial-port" class="text-5xl text-[var(--el-text-color-disabled)] mb-4" />
-          <p class="text-[var(--el-text-color-placeholder)]">请从左侧列表选择一个串口</p>
+          <p class="text-[var(--el-text-color-placeholder)]">请从左侧列表选择一个串�?/p>
         </div>
         <pre v-else class="output-content" :class="{ 'text-[var(--el-text-color-placeholder)]': !isConnected }">{{ outputText }}</pre>
       </div>
@@ -37,19 +37,19 @@
       <!-- 输入区域 -->
       <div class="serial-input p-3 border-t border-[var(--el-border-color-light)]">
         <div class="flex items-center">
-          <el-input v-model="inputText" placeholder="输入发送内容" :disabled="!isConnected" @keyup.enter="handleSend" class="flex-1">
+          <el-input v-model="inputText" placeholder="输入发送内�? :disabled="!isConnected" @keyup.enter="handleSend" class="flex-1">
             <template #append>
               <el-select v-model="sendMode" style="width: 120px" :disabled="!isConnected">
-                <el-option label="发送文本" value="text" />
+                <el-option label="发送文�? value="text" />
                 <el-option label="发送HEX" value="hex" />
               </el-select>
             </template>
           </el-input>
-          <el-button type="primary" @click="handleSend" class="ml-2" :disabled="!isConnected"> 发送 </el-button>
+          <el-button type="primary" @click="handleSend" class="ml-2" :disabled="!isConnected"> 发�?</el-button>
         </div>
         <div class="send-options mt-2 flex items-center">
           <el-checkbox v-model="autoScroll" :disabled="!isConnected">自动滚动</el-checkbox>
-          <el-checkbox v-model="addTimestamp" class="ml-4" :disabled="!isConnected">添加时间戳</el-checkbox>
+          <el-checkbox v-model="addTimestamp" class="ml-4" :disabled="!isConnected">添加时间�?/el-checkbox>
           <el-checkbox v-model="addNewline" class="ml-4" :disabled="!isConnected">发送后添加换行</el-checkbox>
         </div>
 
@@ -80,7 +80,7 @@ const props = defineProps({
 
 const emit = defineEmits(["connect", "disconnect", "send"]);
 
-// 状态
+// 状�?
 const isConnected = ref(false);
 const connecting = ref(false);
 const outputText = ref("");
@@ -109,7 +109,7 @@ watch(
       loadQuickCommands();
 
       // 清空输出
-      outputText.value = `准备连接到串口: ${newData.monitorSerialPort || "COM1"}\n`;
+      outputText.value = `准备连接到串�? ${newData.monitorSerialPort || "COM1"}\n`;
     }
   },
   { deep: true }
@@ -131,7 +131,7 @@ const loadQuickCommands = async () => {
   }
 };
 
-// 切换连接状态
+// 切换连接状�?
 const toggleConnection = () => {
   if (isConnected.value) {
     handleDisconnect();
@@ -150,14 +150,14 @@ const handleConnect = async () => {
   try {
     connecting.value = true;
 
-    // 这里应该调用实际的API来连接串口
+    // 这里应该调用实际的API来连接串�?
     // 模拟连接
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     isConnected.value = true;
     appendOutput("系统", `已连接到串口 ${props.serialData.monitorSerialPort}，波特率 ${props.serialData.monitorSerialBaudRate}`);
 
-    // 发送连接事件
+    // 发送连接事�?
     emit("connect", props.serialData);
 
     // 模拟定期接收数据
@@ -200,7 +200,7 @@ const handleDisconnect = async () => {
   }
 };
 
-// 发送数据
+// 发送数�?
 const handleSend = () => {
   if (!isConnected.value) {
     message.warning("请先连接串口");
@@ -208,7 +208,7 @@ const handleSend = () => {
   }
 
   if (!inputText.value) {
-    message.warning("发送内容不能为空");
+    message.warning("发送内容不能为�?);
     return;
   }
 
@@ -216,7 +216,7 @@ const handleSend = () => {
   inputText.value = "";
 };
 
-// 发送快捷命令
+// 发送快捷命�?
 const sendQuickCommand = (command) => {
   if (!isConnected.value) {
     message.warning("请先连接串口");
@@ -226,11 +226,11 @@ const sendQuickCommand = (command) => {
   sendData(command.command, command.type, command.addNewline);
 };
 
-// 发送数据
+// 发送数�?
 const sendData = (data, mode, forceNewline = null) => {
   try {
-    // 这里应该调用实际的API来发送数据
-    // 模拟发送
+    // 这里应该调用实际的API来发送数�?
+    // 模拟发�?
     let dataToSend = data;
     const useNewline = forceNewline !== null ? forceNewline : addNewline.value;
 
@@ -238,17 +238,17 @@ const sendData = (data, mode, forceNewline = null) => {
       dataToSend += "\n";
     }
 
-    appendOutput("发送", dataToSend);
+    appendOutput("发�?, dataToSend);
 
-    // 发送数据事件
+    // 发送数据事�?
     emit("send", {
       data: dataToSend,
       mode: mode,
       serialData: props.serialData,
     });
   } catch (error) {
-    console.error("发送数据失败:", error);
-    message.error("发送数据失败");
+    console.error("发送数据失�?", error);
+    message.error("发送数据失�?);
   }
 };
 
@@ -263,7 +263,7 @@ const appendOutput = (type, data) => {
   }
 };
 
-// 滚动到底部
+// 滚动到底�?
 const scrollToBottom = () => {
   nextTick(() => {
     if (outputRef.value) {
@@ -288,7 +288,7 @@ onUnmounted(() => {
   }
 });
 
-// 组件挂载时加载设置
+// 组件挂载时加载设�?
 onMounted(() => {
   loadQuickCommands();
 });

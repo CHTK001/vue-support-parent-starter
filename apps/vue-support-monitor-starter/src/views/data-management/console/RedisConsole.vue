@@ -1,6 +1,6 @@
 <template>
   <div class="console" :style="gridStyle" @contextmenu.prevent>
-    <!-- 左侧：搜索 + 树（与 JDBC 相同接口） -->
+    <!-- 左侧：搜�?+ 树（�?JDBC 相同接口�?-->
     <div class="left overflow-auto thin-scrollbar">
       <el-input
         v-model="keyword"
@@ -41,23 +41,23 @@
       </el-tree>
     </div>
 
-    <!-- 分割条 -->
+    <!-- 分割�?-->
     <div
       class="splitter cursor-col-resize"
       @mousedown="onDragStart"
       @dblclick="resetWidth"
     />
 
-    <!-- 右侧：头部 + 内容区（按 key 类型渲染不同组件） -->
+    <!-- 右侧：头�?+ 内容区（�?key 类型渲染不同组件�?-->
     <div class="right image-paper">
       <div class="right-header">
         <div class="path" :title="currentPath || '未选择'">
           <IconifyIconOnline icon="ri:route-line" class="mr-1" />
           <span class="ellipsis">{{ currentPath || "未选择" }}</span>
           <span v-if="currentType" class="comment"
-            >• 类型：{{ currentType }}</span
+            >�?类型：{{ currentType }}</span
           >
-          <span>• TTL: {{nodeValue?.properties?.ttl}}</span>
+          <span>�?TTL: {{nodeValue?.properties?.ttl}}</span>
           <!-- <span>{{nodeValue}}</span> -->
         </div>
         <div class="toolbar">
@@ -91,7 +91,7 @@
             height="580px"
           >
             <el-table-column prop="field" label="字段" :min-width="160" />
-            <el-table-column prop="value" label="值" :min-width="240" />
+            <el-table-column prop="value" label="�? :min-width="240" />
           </el-table>
           <!-- LIST -->
           <el-table
@@ -102,7 +102,7 @@
             height="580px"
           >
             <el-table-column prop="index" label="#" width="70" />
-            <el-table-column prop="value" label="值" :min-width="240" />
+            <el-table-column prop="value" label="�? :min-width="240" />
           </el-table>
           <!-- SET -->
           <el-table
@@ -162,16 +162,16 @@ import {
   getConsoleRoot,
   getConsoleChildren,
   getConsoleNode,
-} from "@/api/system-data";
+} from "@/api/data-management/system-data";
 
 const props = defineProps<{ id: number }>();
 const treeRef = ref<any>();
 
-// 左侧树
+// 左侧�?
 const keyword = ref("");
 const treeData = ref<any[]>([]);
 const treeProps = { label: "name", children: "children", isLeaf: "leaf" };
-// 针对大量 key 的分页参数
+// 针对大量 key 的分页参�?
 const page = ref(1);
 const size = ref(200);
 
@@ -218,7 +218,7 @@ const viewerType = computed(() => {
   return "raw";
 });
 
-// 各类型派生数据
+// 各类型派生数�?
 const stringValue = ref("");
 const hashRows = ref<Array<{ field: string; value: string }>>([]);
 const listRows = ref<Array<{ index: number; value: string }>>([]);
@@ -243,7 +243,7 @@ function normalizeValueForView(val: any) {
     }
     case "hash": {
       if (Array.isArray(val)) {
-        // [[field, value], ...] 或 [{field,value}]
+        // [[field, value], ...] �?[{field,value}]
         hashRows.value = val.map((it: any) =>
           Array.isArray(it)
             ? { field: String(it[0]), value: String(it[1]) }
@@ -296,7 +296,7 @@ async function refreshValue() {
   nodeValue.value = res?.data;
   normalizeValueForView(val);
   const ms = Math.round(performance.now() - start);
-  statusText.value = `加载完成，用时 ${ms} ms`;
+  statusText.value = `加载完成，用�?${ms} ms`;
 }
 
 function pretty(val: any) {
@@ -315,13 +315,13 @@ function tryPrettyJsonString(src: string): string {
   if (!s) return src;
   const first = s[0];
   const last = s[s.length - 1];
-  // 粗略判断可能是 JSON 文本
+  // 粗略判断可能�?JSON 文本
   if ((first === "{" && last === "}") || (first === "[" && last === "]")) {
     try {
       const obj = JSON.parse(s);
       return JSON.stringify(obj, null, 2);
     } catch {
-      return src; // 非合法 JSON，原样返回
+      return src; // 非合�?JSON，原样返�?
     }
   }
   return src;
@@ -348,7 +348,7 @@ function onDragging(e: MouseEvent) {
   const dx = e.clientX - startX;
   leftWidth.value = Math.min(800, Math.max(220, startW + dx));
 }
-// 右键菜单状态
+// 右键菜单状�?
 const menuVisible = ref(false);
 const menuX = ref(0);
 const menuY = ref(0);
@@ -426,10 +426,10 @@ async function onMenuSelect(key: string) {
     const res = await getConsoleChildren(props.id, node.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
     if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
-      // 用 API 覆盖子节点，避免越刷越多
+      // �?API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node.path, records);
     } else {
-      // 兜底：直接覆盖数据
+      // 兜底：直接覆盖数�?
       node.children = records;
     }
     node.leaf = records.length === 0;
@@ -449,7 +449,7 @@ async function copyKeyName(node: any) {
 async function deleteKey(node: any) {
   if (!node?.path) return;
   try {
-    const ok = window.confirm(`确认删除 Key：${node.name} ?`);
+    const ok = window.confirm(`确认删除 Key�?{node.name} ?`);
     if (!ok) return;
     const { executeConsole } = await import("@/api/system-data");
     await executeConsole(props.id, `DEL ${node.path}`, "redis");
@@ -457,7 +457,7 @@ async function deleteKey(node: any) {
     if (currentPath.value === node.path) {
       currentPath.value = undefined;
       nodeValue.value = null;
-      statusText.value = "当前 Key 已删除";
+      statusText.value = "当前 Key 已删�?;
     }
   } catch (_) {}
 }

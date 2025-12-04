@@ -6,7 +6,7 @@
     :min-aside-width="220"
     @contextmenu.prevent
   >
-    <!-- 左侧：搜索 + 树 -->
+    <!-- 左侧：搜�?+ �?-->
     <template #aside>
       <div class="left-panel">
         <div class="panel-header">
@@ -47,7 +47,7 @@
 
     <!-- 主内容区 -->
     <div class="main-panel">
-      <!-- 头部工具栏 -->
+      <!-- 头部工具�?-->
       <div class="main-header">
         <div class="path-info">
           <IconifyIconOnline icon="ri:route-line" class="path-icon" />
@@ -61,7 +61,7 @@
         </div>
       </div>
 
-      <!-- 内容区 -->
+      <!-- 内容�?-->
       <div class="main-body">
         <template v-if="path">
           <el-input
@@ -93,7 +93,7 @@ import {
   getConsoleRoot,
   getConsoleChildren,
   getConsoleNode,
-} from "@/api/system-data";
+} from "@/api/data-management/system-data";
 
 const props = defineProps<{ id: number }>();
 const keyword = ref("");
@@ -137,20 +137,20 @@ async function refreshNode() {
   content.value = (res?.data?.properties?.data || "") as any;
   content.value = tryPrettyJsonString(content.value);
   const ms = Math.round(performance.now() - start);
-  statusText.value = `加载完成，用时 ${ms} ms`;
+  statusText.value = `加载完成，用�?${ms} ms`;
 }
 function tryPrettyJsonString(src: string): string {
   const s = (src || "").trim();
   if (!s) return src;
   const first = s[0];
   const last = s[s.length - 1];
-  // 粗略判断可能是 JSON 文本
+  // 粗略判断可能�?JSON 文本
   if ((first === "{" && last === "}") || (first === "[" && last === "]")) {
     try {
       const obj = JSON.parse(s);
       return JSON.stringify(obj, null, 2);
     } catch {
-      return src; // 非合法 JSON，原样返回
+      return src; // 非合�?JSON，原样返�?
     }
   }
   return src;
@@ -159,7 +159,7 @@ function tryPrettyJsonString(src: string): string {
 onMounted(loadRoot);
 </script>
 <style scoped lang="scss">
-/* Zookeeper 控制台容器 */
+/* Zookeeper 控制台容�?*/
 .zk-console {
   height: calc(100vh - 16px);
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
@@ -233,7 +233,7 @@ onMounted(loadRoot);
   }
 }
 
-/* 搜索框 */
+/* 搜索�?*/
 .search-input {
   :deep(.el-input__wrapper) {
     border-radius: 10px;
@@ -288,7 +288,7 @@ onMounted(loadRoot);
   white-space: nowrap;
 }
 
-/* 主内容面板 */
+/* 主内容面�?*/
 .main-panel {
   height: 100%;
   background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
@@ -300,7 +300,7 @@ onMounted(loadRoot);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* 头部工具栏 */
+/* 头部工具�?*/
 .main-header {
   display: flex;
   align-items: center;
@@ -349,7 +349,7 @@ onMounted(loadRoot);
   }
 }
 
-/* 内容区 */
+/* 内容�?*/
 .main-body {
   flex: 1;
   padding: 16px;
@@ -388,7 +388,7 @@ onMounted(loadRoot);
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
-/* 空状态美化 */
+/* 空状态美�?*/
 .main-body :deep(.el-empty) {
   padding: 60px 0;
 

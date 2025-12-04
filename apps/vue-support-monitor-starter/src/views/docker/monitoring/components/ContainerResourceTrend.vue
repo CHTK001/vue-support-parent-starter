@@ -7,10 +7,10 @@
       </div>
       <div class="header-right">
         <el-select v-model="timeRange" size="small" @change="handleTimeRangeChange">
-          <el-option label="最近1小时" value="1h" />
-          <el-option label="最近6小时" value="6h" />
-          <el-option label="最近12小时" value="12h" />
-          <el-option label="最近24小时" value="24h" />
+          <el-option label="最�?小时" value="1h" />
+          <el-option label="最�?小时" value="6h" />
+          <el-option label="最�?2小时" value="12h" />
+          <el-option label="最�?4小时" value="24h" />
         </el-select>
       </div>
     </div>
@@ -43,7 +43,7 @@ const timeRange = ref('1h')
 const chartContainerRef = ref<HTMLElement>()
 let chartInstance: echarts.ECharts | null = null
 
-// 初始化图表
+// 初始化图�?
 const initChart = () => {
   if (chartContainerRef.value) {
     chartInstance = echarts.init(chartContainerRef.value)
@@ -63,7 +63,7 @@ const updateChart = () => {
       trigger: 'axis'
     },
     legend: {
-      data: ['CPU使用率', '内存使用率', '网络接收', '网络发送']
+      data: ['CPU使用�?, '内存使用�?, '网络接收', '网络发�?]
     },
     xAxis: {
       type: 'category',
@@ -72,7 +72,7 @@ const updateChart = () => {
     yAxis: [
       {
         type: 'value',
-        name: '使用率(%)',
+        name: '使用�?%)',
         position: 'left',
         axisLabel: {
           formatter: '{value}%'
@@ -95,14 +95,14 @@ const updateChart = () => {
     ],
     series: [
       {
-        name: 'CPU使用率',
+        name: 'CPU使用�?,
         type: 'line',
         data: data.cpuUsage,
         smooth: true,
         yAxisIndex: 0
       },
       {
-        name: '内存使用率',
+        name: '内存使用�?,
         type: 'line',
         data: data.memoryUsage,
         smooth: true,
@@ -116,7 +116,7 @@ const updateChart = () => {
         yAxisIndex: 1
       },
       {
-        name: '网络发送',
+        name: '网络发�?,
         type: 'line',
         data: data.networkTx,
         smooth: true,
@@ -172,7 +172,7 @@ const handleTimeRangeChange = () => {
   updateChart()
 }
 
-// 监听数据变化并更新图表
+// 监听数据变化并更新图�?
 watch(timeRange, () => {
   updateChart()
 })

@@ -7,7 +7,7 @@
     }"
   >
     <el-container class="manage-layout rounded">
-      <!-- 顶部导航栏 -->
+      <!-- 顶部导航�?-->
       <el-header class="manage-header rounded flex items-center">
         <div class="manage-header__back cursor-pointer flex items-center hover:!text-primary transition-all duration-300" @click="router.go(-1)">
           <IconifyIconOnline icon="ep:arrow-left" class="mr-2" />
@@ -24,7 +24,7 @@
           </span>
         </div>
 
-        <!-- 右侧工具栏 -->
+        <!-- 右侧工具�?-->
         <div class="manage-header__tools ml-auto flex items-center gap-3">
           <el-tooltip content="刷新数据" placement="bottom">
             <el-button type="primary" text circle class="manage-header__btn" @click="refreshData">
@@ -32,7 +32,7 @@
             </el-button>
           </el-tooltip>
 
-          <el-tooltip :content="visible.sideShow ? '隐藏侧边栏' : '显示侧边栏'" placement="bottom">
+          <el-tooltip :content="visible.sideShow ? '隐藏侧边�? : '显示侧边�?" placement="bottom">
             <el-button type="primary" text circle class="manage-header__btn" @click="hideSide">
               <IconifyIconOnline :icon="visible.sideShow ? 'ep:d-arrow-left' : 'ep:d-arrow-right'" />
             </el-button>
@@ -46,11 +46,11 @@
         </div>
       </el-header>
 
-      <!-- 主内容区域 -->
+      <!-- 主内容区�?-->
       <el-main class="manage-main !p-[5px]">
         <div class="manage-split-pane relative">
           <splitpane :splitSet="settingLR">
-            <!-- 左侧面板：串口列表 -->
+            <!-- 左侧面板：串口列�?-->
             <template #paneL>
               <div v-if="visible.sideShow" class="manage-panel h-full">
                 <serial-list
@@ -69,7 +69,7 @@
               </div>
             </template>
 
-            <!-- 右侧面板：串口监控 -->
+            <!-- 右侧面板：串口监�?-->
             <template #paneR>
               <Suspense>
                 <template #default>
@@ -87,7 +87,7 @@
                   <div class="manage-loading flex items-center justify-center h-full">
                     <div class="manage-loading__content text-center">
                       <el-skeleton :rows="10" animated />
-                      <p class="manage-loading__text mt-4 text-text_color_secondary">正在加载数据，请稍候...</p>
+                      <p class="manage-loading__text mt-4 text-text_color_secondary">正在加载数据，请稍�?..</p>
                     </div>
                   </div>
                 </template>
@@ -98,7 +98,7 @@
       </el-main>
     </el-container>
 
-    <!-- 设置对话框 -->
+    <!-- 设置对话�?-->
     <el-dialog
       v-model="settingsDialogVisible"
       title="串口设置"
@@ -153,14 +153,14 @@ const settingsDialogVisible = ref(false);
 const availablePorts = ref([]);
 const loadingPorts = ref(false);
 
-// 界面显示状态
+// 界面显示状�?
 const visible = reactive({
-  sideShow: true // 是否显示侧边栏
+  sideShow: true // 是否显示侧边�?
 });
 
 /**
  * 计算分屏设置
- * 根据侧边栏显示状态动态调整分屏比例
+ * 根据侧边栏显示状态动态调整分屏比�?
  */
 const settingLR = computed(() => {
   return {
@@ -171,13 +171,13 @@ const settingLR = computed(() => {
 });
 
 /**
- * 切换侧边栏显示状态
+ * 切换侧边栏显示状�?
  */
 const hideSide = () => {
   visible.sideShow = !visible.sideShow;
   // 强制更新分屏设置
   nextTick(() => {
-    console.log("侧边栏状态:", visible.sideShow);
+    console.log("侧边栏状�?", visible.sideShow);
   });
 };
 
@@ -213,7 +213,7 @@ const loadSerialList = async () => {
     if (response.code === '00000') {
       serialList.value = response.data.records || [];
 
-      // 如果有串口，默认选择第一个
+      // 如果有串口，默认选择第一�?
       if (serialList.value.length > 0 && !selectedSerialId.value) {
         selectedSerialId.value = serialList.value[0].monitorSerialId;
         currentSerialData.value = serialList.value[0];
@@ -320,11 +320,11 @@ const handleDeleteSerial = async (serialId) => {
  */
 const refreshData = () => {
   loadSerialList();
-  message.success('数据已刷新');
+  message.success('数据已刷�?);
 };
 
 /**
- * 打开设置对话框
+ * 打开设置对话�?
  */
 const openSettings = () => {
   settingsDialogVisible.value = true;
@@ -349,7 +349,7 @@ const saveSettings = async () => {
       }
       
       settingsDialogVisible.value = false;
-      message.success('设置已保存');
+      message.success('设置已保�?);
     }
   } catch (error) {
     console.error('保存设置失败:', error);
@@ -374,10 +374,10 @@ const handleDisconnect = (data) => {
 };
 
 /**
- * 处理发送数据
+ * 处理发送数�?
  */
 const handleSend = (data) => {
-  console.log('发送数据:', data);
+  console.log('发送数�?', data);
   // 实际发送数据的逻辑
 };
 
@@ -391,7 +391,7 @@ const handleSaveSettings = (settings) => {
 
 // 组件挂载时初始化
 onMounted(async () => {
-  // 并行加载串口列表和可用端口
+  // 并行加载串口列表和可用端�?
   await Promise.all([
     loadSerialList(),
     loadAvailablePorts()

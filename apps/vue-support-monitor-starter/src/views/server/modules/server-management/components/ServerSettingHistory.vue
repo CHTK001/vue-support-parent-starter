@@ -1,6 +1,6 @@
 <template>
   <div class="server-setting-history">
-    <!-- 头部操作栏 -->
+    <!-- 头部操作�?-->
     <div class="history-header">
       <div class="header-left">
         <h3 class="history-title">
@@ -41,7 +41,7 @@
           <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-value">{{ statistics.totalCount || 0 }}</div>
-              <div class="stat-label">总变更次数</div>
+              <div class="stat-label">总变更次�?/div>
             </div>
             <IconifyIconOnline icon="ri:file-list-line" class="stat-icon" />
           </el-card>
@@ -76,7 +76,7 @@
       </el-row>
     </div>
 
-    <!-- 筛选条件 -->
+    <!-- 筛选条�?-->
     <div class="filter-bar">
       <el-form :model="filterForm" inline>
         <el-form-item label="变更类型">
@@ -99,8 +99,8 @@
           <el-date-picker
             v-model="filterForm.timeRange"
             type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
+            range-separator="�?
+            start-placeholder="开始时�?
             end-placeholder="结束时间"
             format="YYYY-MM-DD HH:mm:ss"
             value-format="YYYY-MM-DD HH:mm:ss"
@@ -217,14 +217,14 @@
       </div>
     </div>
 
-    <!-- 历史详情对话框 -->
+    <!-- 历史详情对话�?-->
     <HistoryDetailDialog
       v-model:visible="detailDialogVisible"
       :history-data="selectedHistory"
       @restore="handleRestoreFromDetail"
     />
 
-    <!-- 配置对比对话框 -->
+    <!-- 配置对比对话�?-->
     <HistoryCompareDialog
       v-model:visible="compareDialogVisible"
       :history-list="historyList"
@@ -268,7 +268,7 @@ const ChangeTypeColors = {
   RESTORE: "warning"
 } as const;
 
-// 定义属性
+// 定义属�?
 interface Props {
   serverId: number;
   serverInfo?: ServerInfo;
@@ -282,7 +282,7 @@ const emit = defineEmits<{
   restored: [historyId: number];
 }>();
 
-// 响应式状态
+// 响应式状�?
 const loading = ref(false);
 const exportLoading = ref(false);
 const historyList = ref<ServerSettingHistory[]>([]);
@@ -291,7 +291,7 @@ const selectedHistory = ref<ServerSettingHistory | null>(null);
 const detailDialogVisible = ref(false);
 const compareDialogVisible = ref(false);
 
-// 筛选表单
+// 筛选表�?
 const filterForm = reactive({
   changeType: "",
   timeRange: [] as string[],
@@ -349,7 +349,7 @@ const loadStatistics = async () => {
 };
 
 /**
- * 格式化时间
+ * 格式化时�?
  */
 const formatTime = (time: string) => {
   return new Date(time).toLocaleString();
@@ -395,7 +395,7 @@ const handleExport = async () => {
 };
 
 /**
- * 处理筛选
+ * 处理筛�?
  */
 const handleFilter = () => {
   pagination.page = 1;
@@ -403,7 +403,7 @@ const handleFilter = () => {
 };
 
 /**
- * 处理行点击
+ * 处理行点�?
  */
 const handleRowClick = (row: ServerSettingHistory) => {
   selectedHistory.value = row;
@@ -424,7 +424,7 @@ const handleViewDetail = (row: ServerSettingHistory) => {
 const handleRestore = async (row: ServerSettingHistory) => {
   try {
     await ElMessageBox.confirm(
-      `确定要恢复到此历史配置吗？\n变更时间：${formatTime(row.changeTime)}\n变更描述：${row.changeDescription}`,
+      `确定要恢复到此历史配置吗？\n变更时间�?{formatTime(row.changeTime)}\n变更描述�?{row.changeDescription}`,
       "确认恢复",
       {
         confirmButtonText: "确定",
@@ -434,7 +434,7 @@ const handleRestore = async (row: ServerSettingHistory) => {
     );
     
     // 简化恢复功能，只是提示用户手动恢复
-    message.info("请根据历史记录信息手动恢复配置");
+    message.info("请根据历史记录信息手动恢复配�?);
     emit("restored", row.id);
   } catch (error) {
     if (error !== "cancel") {
@@ -453,7 +453,7 @@ const handleCompare = (row: ServerSettingHistory) => {
 };
 
 /**
- * 处理从详情恢复
+ * 处理从详情恢�?
  */
 const handleRestoreFromDetail = (historyId: number) => {
   const history = historyList.value.find(h => h.monitorSysGenServerSettingHistoryId === historyId);
@@ -480,7 +480,7 @@ const handleSizeChange = (size: number) => {
 };
 
 /**
- * 处理当前页变化
+ * 处理当前页变�?
  */
 const handleCurrentChange = (page: number) => {
   pagination.page = page;
@@ -494,7 +494,7 @@ watch(() => props.serverId, () => {
   }
 }, { immediate: true });
 
-// 组件挂载时加载数据
+// 组件挂载时加载数�?
 onMounted(() => {
   if (props.serverId) {
     handleRefresh();

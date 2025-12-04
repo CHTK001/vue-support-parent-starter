@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-left">
         <h2>组件管理</h2>
-        <p class="header-desc">管理服务器监控组件，支持时间范围查询和数据分析</p>
+        <p class="header-desc">管理服务器监控组件，支持时间范围查询和数据分�?/p>
       </div>
       <div class="header-right">
         <el-button type="primary" @click="handleAddComponent">
@@ -14,14 +14,14 @@
       </div>
     </div>
 
-    <!-- 查询条件栏 -->
+    <!-- 查询条件�?-->
     <div class="query-bar">
       <div class="query-left">
-        <el-select v-model="selectedServerId" placeholder="选择服务器" style="width: 200px" @change="handleServerChange">
+        <el-select v-model="selectedServerId" placeholder="选择服务�? style="width: 200px" @change="handleServerChange">
           <el-option v-for="server in servers" :key="server.monitorSysGenServerId" :label="server.monitorSysGenServerName" :value="server.monitorSysGenServerId" />
         </el-select>
 
-        <el-date-picker v-model="timeRange" type="datetimerange" range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" value-format="X" :shortcuts="timeShortcuts" class="!w-[350px]" />
+        <el-date-picker v-model="timeRange" type="datetimerange" range-separator="�? start-placeholder="开始时�? end-placeholder="结束时间" value-format="X" :shortcuts="timeShortcuts" class="!w-[350px]" />
 
         <el-select v-model="queryStep" placeholder="步长" style="width: 100px">
           <el-option label="1分钟" :value="60" />
@@ -54,7 +54,7 @@
         <el-tag type="info" size="small">{{ queryStats.componentCount }}</el-tag>
       </div>
       <div class="stats-item">
-        <span class="stats-label">数据点:</span>
+        <span class="stats-label">数据�?</span>
         <el-tag type="warning" size="small">{{ queryStats.dataPoints }}</el-tag>
       </div>
       <div class="stats-item">
@@ -67,7 +67,7 @@
     <div class="component-list" v-loading="loading">
       <div v-if="components.length === 0" class="empty-state">
         <el-empty description="暂无组件数据">
-          <el-button type="primary" @click="handleAddComponent"> 添加第一个组件 </el-button>
+          <el-button type="primary" @click="handleAddComponent"> 添加第一个组�?</el-button>
         </el-empty>
       </div>
 
@@ -107,15 +107,15 @@
           <div class="card-content">
             <div class="component-info">
               <div class="info-item">
-                <span class="info-label">表达式:</span>
-                <span class="info-value">{{ component.monitorSysGenServerComponentExpression || "未设置" }}</span>
+                <span class="info-label">表达�?</span>
+                <span class="info-value">{{ component.monitorSysGenServerComponentExpression || "未设�? }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">单位:</span>
-                <span class="info-value">{{ component.monitorSysGenServerComponentUnit || "无" }}</span>
+                <span class="info-value">{{ component.monitorSysGenServerComponentUnit || "�? }}</span>
               </div>
               <div class="info-item">
-                <span class="info-label">状态:</span>
+                <span class="info-label">状�?</span>
                 <el-tag :type="getComponentStatusTagType(component.monitorSysGenServerComponentStatus)" size="small">
                   {{ getComponentStatusText(component.monitorSysGenServerComponentStatus) }}
                 </el-tag>
@@ -147,10 +147,10 @@
       </div>
     </div>
 
-    <!-- 组件数据查询对话框 -->
+    <!-- 组件数据查询对话�?-->
     <ComponentDataDialog v-model="dataDialogVisible" :component="selectedComponent" :server-id="selectedServerId" />
 
-    <!-- 组件编辑对话框 -->
+    <!-- 组件编辑对话�?-->
     <ComponentEditDialog v-model="editDialogVisible" :component="selectedComponent" :server-id="selectedServerId" @success="handleRefresh" />
   </div>
 </template>
@@ -164,7 +164,7 @@ import { nextTick, onMounted, reactive, ref } from "vue";
 import ComponentDataDialog from "./components/ComponentDataDialog.vue";
 import ComponentEditDialog from "./components/ComponentEditDialog.vue";
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false);
 const servers = ref<ServerInfo[]>([]);
 const components = ref<ServerComponent[]>([]);
@@ -176,7 +176,7 @@ const componentLoading = reactive<Record<number, boolean>>({});
 const chartRefs = reactive<Record<number, HTMLElement>>({});
 const charts = reactive<Record<number, echarts.ECharts>>({});
 
-// 对话框状态
+// 对话框状�?
 const dataDialogVisible = ref(false);
 const editDialogVisible = ref(false);
 const selectedComponent = ref<ServerComponent>();
@@ -192,7 +192,7 @@ const queryStats = ref<{
 // 时间快捷选项
 const timeShortcuts = [
   {
-    text: "最近1小时",
+    text: "最�?小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -201,7 +201,7 @@ const timeShortcuts = [
     },
   },
   {
-    text: "最近6小时",
+    text: "最�?小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -210,7 +210,7 @@ const timeShortcuts = [
     },
   },
   {
-    text: "最近24小时",
+    text: "最�?4小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -221,7 +221,7 @@ const timeShortcuts = [
 ];
 
 /**
- * 加载服务器列表
+ * 加载服务器列�?
  */
 const loadServers = async () => {
   try {
@@ -234,8 +234,8 @@ const loadServers = async () => {
       }
     }
   } catch (error) {
-    console.error("加载服务器列表失败:", error);
-    ElMessage.error("加载服务器列表失败");
+    console.error("加载服务器列表失�?", error);
+    ElMessage.error("加载服务器列表失�?);
   }
 };
 
@@ -264,7 +264,7 @@ const loadComponents = async () => {
  */
 const handleQuery = async () => {
   if (!selectedServerId.value) {
-    ElMessage.warning("请选择服务器");
+    ElMessage.warning("请选择服务�?);
     return;
   }
 
@@ -322,7 +322,7 @@ const setChartRef = (componentId: number, el: any) => {
 };
 
 /**
- * 更新所有图表
+ * 更新所有图�?
  */
 const updateAllCharts = () => {
   components.value.forEach((component) => {
@@ -391,7 +391,7 @@ const generateChartData = (data: any) => {
 };
 
 /**
- * 处理服务器变化
+ * 处理服务器变�?
  */
 const handleServerChange = () => {
   components.value = [];
@@ -452,8 +452,8 @@ const handleQueryComponent = async (component: ServerComponent) => {
 
   try {
     componentLoading[componentId] = true;
-    // 这里可以调用单个组件的查询接口
-    // 暂时使用批量查询的结果
+    // 这里可以调用单个组件的查询接�?
+    // 暂时使用批量查询的结�?
     ElMessage.success("查询成功");
   } catch (error) {
     console.error("查询组件失败:", error);
@@ -475,7 +475,7 @@ const handleCloneComponent = (component: ServerComponent) => {
  */
 const handleDeleteComponent = async (component: ServerComponent) => {
   try {
-    await ElMessageBox.confirm(`确定要删除组件 "${component.monitorSysGenServerComponentName}" 吗？`, "确认删除", {
+    await ElMessageBox.confirm(`确定要删除组�?"${component.monitorSysGenServerComponentName}" 吗？`, "确认删除", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "warning",
@@ -494,7 +494,7 @@ const handleDeleteComponent = async (component: ServerComponent) => {
 };
 
 /**
- * 格式化日期
+ * 格式化日�?
  */
 const formatDate = (date?: string) => {
   if (!date) return "未知";
@@ -505,7 +505,7 @@ const formatDate = (date?: string) => {
 onMounted(() => {
   loadServers();
 
-  // 设置默认时间范围（最近1小时）
+  // 设置默认时间范围（最�?小时�?
   const end = new Date();
   const start = new Date();
   start.setTime(start.getTime() - 60 * 60 * 1000);

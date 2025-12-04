@@ -3,11 +3,11 @@
     <div class="left overflow-auto thin-scrollbar" @contextmenu.prevent>
       <div class="left-header">
         <IconifyIconOnline icon="ri:database-2-line" class="header-icon" />
-        <span class="header-title">数据库对象</span>
+        <span class="header-title">数据库对�?/span>
       </div>
       <el-input
         v-model="keyword"
-        placeholder="搜索表、字段..."
+        placeholder="搜索表、字�?.."
         size="small"
         clearable
         @change="loadRoot"
@@ -62,7 +62,7 @@
           <IconifyIconOnline icon="ri:route-line" class="mr-1" />
           <span class="ellipsis">{{ currentPath || "未选择" }}</span>
           <span v-if="currentComment" class="comment" :title="currentComment"
-            >• 注释：{{ currentComment }}</span
+            >�?注释：{{ currentComment }}</span
           >
         </div>
         <div class="toolbar">
@@ -77,7 +77,7 @@
           </el-button>
           <el-button v-if="showEditor" size="small" @click="formatSql">
             <IconifyIconOnline :icon="formatIcon" class="mr-1" />
-            格式化
+            格式�?
           </el-button>
           <el-button size="small" @click="onRefreshTree">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
@@ -89,7 +89,7 @@
             @click="openTableStructure()"
           >
             <IconifyIconOnline icon="ri:tools-line" class="mr-1" />
-            设计表
+            设计�?
           </el-button>
           <el-button-group>
             <el-button
@@ -123,7 +123,7 @@
               :icon="analyzing ? 'ri:close-circle-line' : 'ri:bar-chart-2-line'"
               class="mr-1"
             />
-            {{ analyzing ? "退出分析" : "分析" }}
+            {{ analyzing ? "退出分�? : "分析" }}
           </el-button>
         </div>
       </div>
@@ -161,7 +161,7 @@
                 </template>
                 <div class="col-filter" @click.stop>
                   <div class="filter-header">
-                    <span class="filter-title">选择显示列</span>
+                    <span class="filter-title">选择显示�?/span>
                     <div class="filter-actions">
                       <el-button
                         size="small"
@@ -171,7 +171,7 @@
                           selectedColumnNames = columns.map((c) => c.name || c)
                         "
                       >
-                        全选
+                        全�?
                       </el-button>
                       <el-button
                         size="small"
@@ -232,12 +232,12 @@
                           :style="barStyle(col.name, b)"
                           @click="toggleFilter(col.name, b.value)"
                         >
-                          <span class="bar-label">{{ b.value || "(空)" }}</span>
+                          <span class="bar-label">{{ b.value || "(�?" }}</span>
                         </div>
                       </el-tooltip>
                     </div>
                   </div>
-                  <div v-else class="analysis-empty">无数据</div>
+                  <div v-else class="analysis-empty">无数�?/div>
                 </div>
               </div>
             </div>
@@ -297,7 +297,7 @@
                 </template>
               </el-table-column>
             </el-table>
-            <el-empty v-else description="无结果" />
+            <el-empty v-else description="无结�? />
           </el-tab-pane>
         </el-tabs>
       </div>
@@ -322,10 +322,10 @@
       @refresh-table="onStructureRefresh"
     />
 
-    <!-- 导入CSV对话框 -->
+    <!-- 导入CSV对话�?-->
     <el-dialog
       v-model="importCsvVisible"
-      :title="`导入CSV到 ${importCsvTableName}`"
+      :title="`导入CSV�?${importCsvTableName}`"
       width="550px"
       :close-on-click-modal="false"
       class="import-csv-dialog"
@@ -339,29 +339,29 @@
         >
           <template #title>
             使用MySQL的LOAD
-            DATA语句导入CSV文件，文件路径需要是MySQL服务器可访问的路径
+            DATA语句导入CSV文件，文件路径需要是MySQL服务器可访问的路�?
           </template>
         </el-alert>
         <el-form-item label="文件路径" required>
           <el-input
             v-model="importCsvForm.filePath"
-            placeholder="如：/tmp/data.csv 或 C:/data/import.csv"
+            placeholder="如：/tmp/data.csv �?C:/data/import.csv"
           />
         </el-form-item>
-        <el-form-item label="字段分隔符">
+        <el-form-item label="字段分隔�?>
           <el-select
             v-model="importCsvForm.fieldTerminator"
             style="width: 100%"
           >
             <el-option label="逗号 (,)" value="," />
-            <el-option label="制表符 (\\t)" value="\\t" />
+            <el-option label="制表�?(\\t)" value="\\t" />
             <el-option label="分号 (;)" value=";" />
             <el-option label="竖线 (|)" value="|" />
           </el-select>
         </el-form-item>
         <el-form-item label="行分隔符">
           <el-select v-model="importCsvForm.lineTerminator" style="width: 100%">
-            <el-option label="换行符 (\\n)" value="\\n" />
+            <el-option label="换行�?(\\n)" value="\\n" />
             <el-option label="回车换行 (\\r\\n)" value="\\r\\n" />
           </el-select>
         </el-form-item>
@@ -371,9 +371,9 @@
             :min="0"
             :max="100"
           />
-          <span class="form-tip">通常设为1跳过标题行</span>
+          <span class="form-tip">通常设为1跳过标题�?/span>
         </el-form-item>
-        <el-form-item label="字符集">
+        <el-form-item label="字符�?>
           <el-select v-model="importCsvForm.charset" style="width: 100%">
             <el-option label="UTF-8" value="utf8mb4" />
             <el-option label="GBK" value="gbk" />
@@ -386,7 +386,7 @@
         <el-button @click="importCsvVisible = false">取消</el-button>
         <el-button type="primary" @click="handleImportCsv">
           <IconifyIconOnline icon="ri:upload-2-line" class="mr-1" />
-          开始导入
+          开始导�?
         </el-button>
       </template>
     </el-dialog>
@@ -428,12 +428,12 @@ import {
   renameTable,
   backupTable,
   updateTableRow,
-} from "@/api/system-data";
+} from "@/api/data-management/system-data";
 import TableStructureDialog from "./TableStructureDialog.vue";
 
 const props = defineProps<{ id: number }>();
 
-// 使用全局Socket.IO或创建独立连接
+// 使用全局Socket.IO或创建独立连�?
 const globalSocket = inject<any>("globalSocket");
 let socketConnection: any = null;
 let unsubscribeHandlers: any[] = [];
@@ -443,13 +443,13 @@ const treeRef = ref<any>();
 const treeVersion = ref(0);
 const treeProps = { label: "name", children: "children", isLeaf: "leaf" };
 
-// 工具栏图标（格式化图标由 JS 生成选择）
+// 工具栏图标（格式化图标由 JS 生成选择�?
 const icons = {
   execute: "ri:play-circle-line",
   structure: "ri:table-2",
 } as const;
 const formatIcon = computed(() => {
-  // 简单随机切换书写笔/魔棒两种风格（可改为基于主题/偏好）
+  // 简单随机切换书写笔/魔棒两种风格（可改为基于主题/偏好�?
   return Math.random() > 0.5 ? "ri:magic-line" : "ri:pencil-ruler-2-line";
 });
 
@@ -497,9 +497,9 @@ function getColumnWidth(col: any): number {
   return Math.max(80, totalLen * 8 + 20);
 }
 
-// 处理后的表格数据（将 null 转为显示文本）
+// 处理后的表格数据（将 null 转为显示文本�?
 const displayRows = computed(() => {
-  // 获取所有列名
+  // 获取所有列�?
   const colNames = columns.value.map((col: any) => col.name || col);
 
   return rows.value.map((row: any) => {
@@ -527,7 +527,7 @@ const currentComment = ref("");
 const showStructureDialog = ref(false);
 const structureTableName = ref("");
 
-// 单元格编辑相关
+// 单元格编辑相�?
 const editingRowIndex = ref<number | null>(null);
 const editingColumnName = ref<string | null>(null);
 const editingValue = ref<string>("");
@@ -535,13 +535,13 @@ const editingOriginalValue = ref<any>(null);
 const currentTableName = ref<string>("");
 const primaryKeyColumn = ref<string>("");
 
-// 表格最大高度
+// 表格最大高�?
 const tableMaxHeight = computed(() => {
   return showEditor.value ? "calc(100vh - 450px)" : "calc(100vh - 250px)";
 });
 
 /**
- * 判断单元格是否处于编辑状态
+ * 判断单元格是否处于编辑状�?
  */
 function isEditing(rowIndex: number, columnName: string): boolean {
   return (
@@ -550,7 +550,7 @@ function isEditing(rowIndex: number, columnName: string): boolean {
 }
 
 /**
- * 格式化单元格值
+ * 格式化单元格�?
  */
 function formatCellValue(value: any): string {
   if (value === null || value === undefined) {
@@ -563,7 +563,7 @@ function formatCellValue(value: any): string {
 }
 
 /**
- * 双击单元格进入编辑模式
+ * 双击单元格进入编辑模�?
  */
 function handleCellDblClick(
   row: any,
@@ -571,7 +571,7 @@ function handleCellDblClick(
   cell: any,
   event: MouseEvent
 ) {
-  // 忽略序号列
+  // 忽略序号�?
   if (column.type === "index") return;
 
   const columnName = column.property;
@@ -580,7 +580,7 @@ function handleCellDblClick(
   const rowIndex = rows.value.indexOf(row);
   if (rowIndex === -1) return;
 
-  // 保存编辑状态
+  // 保存编辑状�?
   editingRowIndex.value = rowIndex;
   editingColumnName.value = columnName;
   editingOriginalValue.value = row[columnName];
@@ -591,29 +591,29 @@ function handleCellDblClick(
 }
 
 /**
- * 解析当前表名（从 SQL 或路径中提取）
+ * 解析当前表名（从 SQL 或路径中提取�?
  */
 function parseCurrentTableName() {
-  // 从 currentPath 中提取表名
+  // �?currentPath 中提取表�?
   if (currentPath.value) {
     const parts = currentPath.value.split("/");
     if (parts.length >= 2) {
       currentTableName.value = parts[parts.length - 1];
     }
   }
-  // 从 currentNodeData 中获取
+  // �?currentNodeData 中获�?
   if (currentNodeData.value?.name) {
     const type = (currentNodeData.value?.type || "").toString().toUpperCase();
     if (type.includes("TABLE")) {
       currentTableName.value = currentNodeData.value.name;
     }
   }
-  // 尝试从 columns 中找主键
+  // 尝试�?columns 中找主键
   const pkCol = columns.value.find((c: any) => c.isPrimary || c.primaryKey);
   if (pkCol) {
     primaryKeyColumn.value = pkCol.name || pkCol;
   } else if (columns.value.length > 0) {
-    // 默认使用第一列
+    // 默认使用第一�?
     const firstCol = columns.value[0];
     primaryKeyColumn.value = firstCol.name || firstCol;
   }
@@ -623,7 +623,7 @@ function parseCurrentTableName() {
  * 单元格失去焦点，保存修改
  */
 async function handleCellBlur(row: any, columnName: string, rowIndex: number) {
-  // 检查值是否变化
+  // 检查值是否变�?
   const newValue = editingValue.value === "" ? null : editingValue.value;
   const oldValue = editingOriginalValue.value;
 
@@ -650,9 +650,9 @@ async function handleCellBlur(row: any, columnName: string, rowIndex: number) {
         columnName: columnName,
         newValue: newValue,
       });
-      statusText.value = `已更新: ${columnName} = ${newValue === null ? "NULL" : newValue}`;
+      statusText.value = `已更�? ${columnName} = ${newValue === null ? "NULL" : newValue}`;
     } catch (e: any) {
-      // 恢复原值
+      // 恢复原�?
       row[columnName] = oldValue;
       ElMessage.error("更新失败: " + (e?.message || "未知错误"));
     }
@@ -671,7 +671,7 @@ function cancelEdit() {
   editingOriginalValue.value = null;
 }
 
-// 左右可拖拽分栏
+// 左右可拖拽分�?
 const leftWidth = ref(300);
 const isDragging = ref(false);
 const gridStyle = computed(() => ({
@@ -774,7 +774,7 @@ async function loadRoot() {
   const res = await getConsoleRoot(props.id, keyword.value);
   const records = extractArrayFromApi(res?.data);
   treeData.value = records.map(normalizeTreeNode);
-  // 强制重建树，清理已加载/展开状态，避免重复追加
+  // 强制重建树，清理已加�?展开状态，避免重复追加
   await nextTick();
   treeVersion.value++;
 }
@@ -805,11 +805,11 @@ function openTableStructure(tableName?: string) {
 }
 
 /**
- * 刷新表结构后的回调
+ * 刷新表结构后的回�?
  * @param tableName 表名
  */
 function onStructureRefresh(tableName: string) {
-  // 刷新树节点
+  // 刷新树节�?
   if (tableName) {
     loadRoot();
   }
@@ -818,7 +818,7 @@ function onStructureRefresh(tableName: string) {
 async function handleNodeClick(node: any) {
   currentNodeData.value = node;
   currentPath.value = node?.path;
-  // 若为表节点，打开表（查询+注释）
+  // 若为表节点，打开表（查询+注释�?
   const type = (node?.type || "").toString().toUpperCase();
   if (type.includes("TABLE")) {
     sql.value = `select * from ${node.name} limit 1000`;
@@ -834,12 +834,12 @@ async function handleNodeClick(node: any) {
   }
 }
 
-// 懒加载子节点（结合 hasChildren 展示展开图标）
+// 懒加载子节点（结�?hasChildren 展示展开图标�?
 const loadChildrenLazy = async (
   node: any,
   resolve: (children: any[]) => void
 ) => {
-  // 根节点（node.level === 0）直接返回已有 children
+  // 根节点（node.level === 0）直接返回已�?children
   if (!node || node.level === 0) {
     return resolve(treeData.value || []);
   }
@@ -862,7 +862,7 @@ function isTableNode(node: any): boolean {
   return type.includes("TABLE");
 }
 
-// 根据类型/层级返回 JDBC 树节点图标
+// 根据类型/层级返回 JDBC 树节点图�?
 /**
  * 根据节点元信息返回合适的图标
  */
@@ -883,7 +883,7 @@ function getJdbcNodeIcon(node: any, data: any): string {
       if (type.includes("view")) return "ri:layout-2-line";
       if (type.includes("index")) return "ri:hashtag";
     }
-    // 按层级兜底：1-库 2-表 3-列 其他-文件
+    // 按层级兜底：1-�?2-�?3-�?其他-文件
     const level = Number(node?.level || 0);
     if (level <= 1) return "ri:database-2-line";
     if (level === 2) return "ri:table-2";
@@ -910,10 +910,10 @@ async function execute() {
   rows.value = dataData?.rows || [];
   searched.value = true;
   const ms = Math.round(performance.now() - start);
-  statusText.value = `已返回 ${rows.value.length} 行，用时 ${ms} ms, ${data?.errorMessage || ""}`;
+  statusText.value = `已返�?${rows.value.length} 行，用时 ${ms} ms, ${data?.errorMessage || ""}`;
   activeTab.value = "result";
 
-  // 尝试加载字段信息（包含类型、注释等）
+  // 尝试加载字段信息（包含类型、注释等�?
   if (currentPath.value && columns.value.length) {
     try {
       const resp = await openTable(props.id, currentPath.value, 1);
@@ -922,7 +922,7 @@ async function execute() {
         const columnInfos = resp.data.data.columns || [];
         const columnComments = resp.data.data.columnComments || {};
 
-        // 构建列名到列信息的映射
+        // 构建列名到列信息的映�?
         const columnInfoMap: Record<string, any> = {};
         columnInfos.forEach((info: any) => {
           if (info.name) {
@@ -930,7 +930,7 @@ async function execute() {
           }
         });
 
-        // 合并列信息
+        // 合并列信�?
         columns.value = columns.value.map((col: any) => {
           const colName = col.name || col;
           const info = columnInfoMap[colName] || {};
@@ -959,16 +959,16 @@ function formatSql() {
     sql.value = formatted;
     statusText.value = "已格式化 SQL";
   } catch (e) {
-    statusText.value = "格式化失败";
+    statusText.value = "格式化失�?;
   }
 }
 
 function simpleSqlFormat(input: string): string {
   let s = (input || "").replace(/\r\n/g, "\n").trim();
-  // 先统一多空格为单空格（注意：简单处理，可能影响字符串字面量）
+  // 先统一多空格为单空格（注意：简单处理，可能影响字符串字面量�?
   s = s.replace(/\s+/g, " ");
 
-  // 关键词大写
+  // 关键词大�?
   const KEYWORDS = [
     "SELECT",
     "FROM",
@@ -1004,7 +1004,7 @@ function simpleSqlFormat(input: string): string {
     s = s.replace(re, kw);
   }
 
-  // 在主要关键词前断行
+  // 在主要关键词前断�?
   const BREAK_BEFORE = [
     "SELECT",
     "FROM",
@@ -1032,7 +1032,7 @@ function simpleSqlFormat(input: string): string {
     s = s.replace(re, `\n${token}`);
   }
 
-  // 逗号后换行，提升可读性
+  // 逗号后换行，提升可读�?
   s = s.replace(/,\s*/g, ",\n  ");
   // 多余空行压缩
   s = s.replace(/\n{2,}/g, "\n");
@@ -1073,9 +1073,9 @@ function barStyle(col: string, b: { value: string; count: number }) {
 function barTooltip(col: string, b: { value: string; count: number }) {
   const v =
     b.value === null || b.value === undefined || b.value === "null"
-      ? "(空)"
+      ? "(�?"
       : String(b.value);
-  return `${col}: ${v}（${b.count}）`;
+  return `${col}: ${v}�?{b.count}）`;
 }
 
 const filters = ref<Record<string, Set<string>>>({});
@@ -1138,7 +1138,7 @@ async function loadCurrentComment() {
 }
 
 /**
- * 右键菜单状态管理
+ * 右键菜单状态管�?
  */
 const menuVisible = ref(false);
 const menuX = ref(0);
@@ -1146,7 +1146,7 @@ const menuY = ref(0);
 const contextNode = ref<any | null>(null);
 
 /**
- * 判断是否为列/字段类型的叶子节点
+ * 判断是否为列/字段类型的叶子节�?
  */
 function isColumnLeaf(data: any): boolean {
   const type = (data?.type || "").toString().toLowerCase();
@@ -1159,8 +1159,8 @@ function isColumnLeaf(data: any): boolean {
 }
 
 /**
- * 构建右键菜单项
- * - 根据控制台配置和节点类型动态生成
+ * 构建右键菜单�?
+ * - 根据控制台配置和节点类型动态生�?
  */
 function buildMenuItems(type): MenuItem[] {
   const allow = (p?: boolean) => Boolean(p);
@@ -1170,10 +1170,10 @@ function buildMenuItems(type): MenuItem[] {
     items.push({ key: "refresh-node", label: "刷新", icon: "ri:refresh-line" });
   }
   if (type?.includes("TABLE")) {
-    items.push({ key: "open-table", label: "打开表", icon: "ri:table-2" });
+    items.push({ key: "open-table", label: "打开�?, icon: "ri:table-2" });
     items.push({
       key: "design-table",
-      label: "设计表",
+      label: "设计�?,
       icon: "ri:tools-line",
     });
     items.push({ key: "divider-1", label: "", divider: true });
@@ -1211,11 +1211,11 @@ function buildMenuItems(type): MenuItem[] {
   ) {
     items.push({
       key: "copy-column-name",
-      label: "复制字段名",
+      label: "复制字段�?,
       icon: "ri:file-copy-line",
     });
   }
-  // 添加注释：仅在字段（叶子列）上显示
+  // 添加注释：仅在字段（叶子列）上显�?
   if (
     allow(consoleConfig.value.jdbc?.addFieldComment) &&
     contextNode.value &&
@@ -1228,7 +1228,7 @@ function buildMenuItems(type): MenuItem[] {
       icon: "ri:chat-new-line",
     });
   }
-  // SPI 能力：重命名表 / 备份表（仅在表节点显示）
+  // SPI 能力：重命名�?/ 备份表（仅在表节点显示）
   if (type.includes("TABLE")) {
     items.push({
       key: "rename-table",
@@ -1237,7 +1237,7 @@ function buildMenuItems(type): MenuItem[] {
     });
     items.push({
       key: "backup-table",
-      label: "备份表",
+      label: "备份�?,
       icon: "ri:database-2-line",
     });
   }
@@ -1247,7 +1247,7 @@ function buildMenuItems(type): MenuItem[] {
 const menuItems = ref<MenuItem[]>([]);
 
 /**
- * 处理树节点右键事件，展示上下文菜单
+ * 处理树节点右键事件，展示上下文菜�?
  */
 function handleNodeContextMenu(event: MouseEvent, data: any) {
   contextNode.value = data;
@@ -1299,7 +1299,7 @@ async function onMenuSelect(key: string) {
       if (!contextNode.value?.path) return;
       try {
         const { value } = await ElMessageBox.prompt(
-          "请输入新表名：",
+          "请输入新表名�?,
           "重命名表",
           {
             confirmButtonText: "确定",
@@ -1331,7 +1331,7 @@ async function onMenuSelect(key: string) {
         const defaultName = `${contextNode.value.name}${yyyy}${mm}${dd}`;
         const { value } = await ElMessageBox.prompt(
           "请输入备份表名：",
-          "备份表",
+          "备份�?,
           {
             confirmButtonText: "确定",
             cancelButtonText: "取消",
@@ -1343,7 +1343,7 @@ async function onMenuSelect(key: string) {
           nodePath: contextNode.value.path,
           backupName: value.trim(),
         });
-        ElMessage.success("已发起备份");
+        ElMessage.success("已发起备�?);
         refreshNodeChildren({
           path: contextNode.value.parentPath,
         });
@@ -1362,14 +1362,14 @@ async function openTableAndRender(hideEditor: boolean) {
     currentNodeData.value = node;
     currentPath.value = node.path;
 
-    // 生成查询SQL并执行
+    // 生成查询SQL并执�?
     sql.value = `SELECT * FROM ${node.name} LIMIT 1000`;
     showEditor.value = !hideEditor;
 
     // 执行查询
     await execute();
 
-    // 加载表注释
+    // 加载表注�?
     const resp = await openTable(props.id, node.path, 1000);
     if (resp?.data?.data) {
       tableComment.value = resp.data.data.tableComment || "";
@@ -1387,12 +1387,12 @@ async function openTableAndRender(hideEditor: boolean) {
     activeTab.value = "result";
     searched.value = true;
   } catch (e: any) {
-    ElMessage.error("打开表失败: " + (e.message || e));
+    ElMessage.error("打开表失�? " + (e.message || e));
   }
 }
 
 /**
- * 显示导入CSV对话框
+ * 显示导入CSV对话�?
  */
 const importCsvVisible = ref(false);
 const importCsvTableName = ref("");
@@ -1456,10 +1456,10 @@ async function refreshNodeChildren(node: any) {
       treeRef.value &&
       typeof treeRef.value.updateKeyChildren === "function"
     ) {
-      // 用 API 覆盖子节点，避免越刷越多
+      // �?API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node?.path, records);
     } else {
-      // 兜底：直接覆盖数据
+      // 兜底：直接覆盖数�?
       node.children = records;
     }
     node.leaf = records.length === 0;
@@ -1482,10 +1482,10 @@ async function refreshContextNodeChildren() {
       treeRef.value &&
       typeof treeRef.value.updateKeyChildren === "function"
     ) {
-      // 用 API 覆盖子节点，避免越刷越多
+      // �?API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node.path, records);
     } else {
-      // 兜底：直接覆盖数据
+      // 兜底：直接覆盖数�?
       node.children = records;
     }
     node.leaf = records.length === 0;
@@ -1497,19 +1497,19 @@ async function refreshContextNodeChildren() {
 }
 
 /**
- * 查看表结构（将返回内容放置到 SQL 编辑器中展示）
+ * 查看表结构（将返回内容放置到 SQL 编辑器中展示�?
  */
 async function viewTableStructure(node: any) {
   if (!node?.path) return;
   const res = await getConsoleNode(props.id, node.path, "structure");
   const detail = res?.data?.data || "";
-  // 简单展示：放到 editor 中
+  // 简单展示：放到 editor �?
   sql.value =
     typeof detail === "string" ? detail : JSON.stringify(detail, null, 2);
 }
 
 /**
- * 复制树节点名称（通常为表名或列名）
+ * 复制树节点名称（通常为表名或列名�?
  */
 async function copyTableName(node: any) {
   const name = node?.name || "";
@@ -1530,9 +1530,9 @@ async function copyCreateSql(node: any) {
 }
 
 /**
- * 为指定字段节点添加注释
- * - 弹出输入框
- * - 提交到后端保存
+ * 为指定字段节点添加注�?
+ * - 弹出输入�?
+ * - 提交到后端保�?
  */
 async function addFieldComment(node: any) {
   if (!node?.path) return;
@@ -1544,7 +1544,7 @@ async function addFieldComment(node: any) {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         inputType: "textarea",
-        inputPlaceholder: "请输入注释...",
+        inputPlaceholder: "请输入注�?..",
         inputValue: node?.properties?.comment || "",
       }
     );
@@ -1555,7 +1555,7 @@ async function addFieldComment(node: any) {
       dataType: node.properties?.dataType,
       nullable: node.properties?.nullable,
     });
-    ElMessage.success("已保存注释");
+    ElMessage.success("已保存注�?);
     node.properties.comment = value.trim();
   } catch (_) {
     // canceled
@@ -1664,7 +1664,7 @@ onMounted(async () => {
   color: #334155;
 }
 
-/* 搜索框 */
+/* 搜索�?*/
 .search-input {
   margin-bottom: 8px;
 }
@@ -1726,7 +1726,7 @@ onMounted(async () => {
   gap: 8px;
 }
 
-/* 拖拽分割条 */
+/* 拖拽分割�?*/
 .splitter {
   width: 6px;
   cursor: col-resize;
@@ -1765,7 +1765,7 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* 右侧头部工具栏 */
+/* 右侧头部工具�?*/
 .right-header {
   display: flex;
   align-items: center;
@@ -1849,7 +1849,7 @@ onMounted(async () => {
   background: #fff;
 }
 
-/* 代码编辑器容器 */
+/* 代码编辑器容�?*/
 .right-body :deep(.code-editor) {
   border-radius: 12px;
   overflow: hidden;
@@ -1871,7 +1871,7 @@ onMounted(async () => {
   border-radius: 6px;
 }
 
-/* 结果标签页美化 */
+/* 结果标签页美�?*/
 .result-tabs {
   flex: 1 !important;
   border-radius: 12px;
@@ -1978,7 +1978,7 @@ onMounted(async () => {
   background: #c0c4cc !important;
 }
 
-/* NULL 值样式 */
+/* NULL 值样�?*/
 .cell-null {
   color: #999 !important;
   font-style: italic !important;
@@ -2104,7 +2104,7 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
-/* 单元格包装 */
+/* 单元格包�?*/
 .cell-wrapper {
   display: flex;
   flex-direction: column;
@@ -2117,7 +2117,7 @@ onMounted(async () => {
   font-style: italic;
 }
 
-/* 单元格内容 */
+/* 单元格内�?*/
 .cell-content {
   display: flex;
   align-items: center;
@@ -2263,7 +2263,7 @@ onMounted(async () => {
   font-style: italic;
 }
 
-/* 分析柱状图 */
+/* 分析柱状�?*/
 .mini-bar {
   display: inline-flex;
   align-items: flex-end;
@@ -2295,7 +2295,7 @@ onMounted(async () => {
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
 }
 
-/* 置灰行 */
+/* 置灰�?*/
 .row-dim {
   opacity: 0.35;
   transition: opacity 0.2s ease;
@@ -2305,7 +2305,7 @@ onMounted(async () => {
   opacity: 0.6;
 }
 
-/* 列筛选弹窗 */
+/* 列筛选弹�?*/
 .col-filter {
   padding: 12px;
 }
@@ -2377,7 +2377,7 @@ onMounted(async () => {
   margin-bottom: 2px;
 }
 
-/* 滚动条美化 */
+/* 滚动条美�?*/
 .thin-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -2396,7 +2396,7 @@ onMounted(async () => {
   background: #94a3b8;
 }
 
-/* 空状态美化 */
+/* 空状态美�?*/
 .result-tabs :deep(.el-empty) {
   padding: 40px 0;
 }
@@ -2426,7 +2426,7 @@ onMounted(async () => {
   animation-delay: 0.1s;
 }
 
-/* 导入CSV对话框 */
+/* 导入CSV对话�?*/
 .import-csv-dialog :deep(.el-dialog__body) {
   padding: 20px 24px;
 }

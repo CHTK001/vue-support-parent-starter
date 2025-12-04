@@ -7,8 +7,8 @@
           <el-date-picker
             v-model="timeRangeValue"
             type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
+            range-separator="�?
+            start-placeholder="开始时�?
             end-placeholder="结束时间"
             value-format="X"
             :default-time="defaultTime"
@@ -32,8 +32,8 @@
           </el-select>
 
           <el-select v-model="stepValue" placeholder="步长" style="width: 120px">
-            <el-option label="15秒" :value="15" />
-            <el-option label="30秒" :value="30" />
+            <el-option label="15�? :value="15" />
+            <el-option label="30�? :value="30" />
             <el-option label="1分钟" :value="60" />
             <el-option label="5分钟" :value="300" />
             <el-option label="15分钟" :value="900" />
@@ -43,7 +43,7 @@
 
       <div class="query-stats" v-if="queryResult">
         <el-tag type="success" size="small">查询时间: {{ queryTime }}ms</el-tag>
-        <el-tag type="info" size="small">数据点: {{ dataPointCount }}</el-tag>
+        <el-tag type="info" size="small">数据�? {{ dataPointCount }}</el-tag>
         <el-tag type="warning" size="small">更新时间: {{ lastUpdateTime }}</el-tag>
       </div>
     </div>
@@ -51,8 +51,8 @@
     <!-- 数据展示区域 -->
     <div class="query-content" v-loading="loading">
       <div v-if="!queryResult" class="empty-state">
-        <el-empty description="请选择组件并设置时间范围进行查询">
-          <el-button type="primary" @click="handleQuickQuery">快速查询（最近1小时）</el-button>
+        <el-empty description="请选择组件并设置时间范围进行查�?>
+          <el-button type="primary" @click="handleQuickQuery">快速查询（最�?小时�?/el-button>
         </el-empty>
       </div>
 
@@ -93,7 +93,7 @@
                       {{ formatTimestamp(row.timestamp) }}
                     </template>
                   </el-table-column>
-                  <el-table-column prop="value" label="值" />
+                  <el-table-column prop="value" label="�? />
                   <el-table-column prop="metric" label="指标" />
                 </el-table>
               </div>
@@ -111,12 +111,12 @@ import { ElMessage } from "element-plus";
 import * as echarts from "echarts";
 import { getComponentsByServerId, getComponentData, getComponentRealtimeData, type ServerComponent } from "@/api/server";
 
-// 定义属性
+// 定义属�?
 const props = defineProps<{
   serverId: number;
 }>();
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false);
 const components = ref<ServerComponent[]>([]);
 const selectedComponentId = ref<number>();
@@ -136,7 +136,7 @@ const defaultTime = [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59,
 // 时间快捷选项
 const dateShortcuts = [
   {
-    text: "最近15分钟",
+    text: "最�?5分钟",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -145,7 +145,7 @@ const dateShortcuts = [
     }
   },
   {
-    text: "最近1小时",
+    text: "最�?小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -154,7 +154,7 @@ const dateShortcuts = [
     }
   },
   {
-    text: "最近6小时",
+    text: "最�?小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -163,7 +163,7 @@ const dateShortcuts = [
     }
   },
   {
-    text: "最近24小时",
+    text: "最�?4小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -173,7 +173,7 @@ const dateShortcuts = [
   }
 ];
 
-// 计算属性
+// 计算属�?
 const selectedComponent = computed(() => {
   return components.value.find(c => c.monitorSysGenServerComponentId === selectedComponentId.value);
 });
@@ -181,7 +181,7 @@ const selectedComponent = computed(() => {
 const tableData = computed(() => {
   if (!queryResult.value || !queryResult.value.data) return [];
 
-  // 根据数据格式转换为表格数据
+  // 根据数据格式转换为表格数�?
   if (Array.isArray(queryResult.value.data)) {
     return queryResult.value.data.map((item: any, index: number) => ({
       timestamp: item.timestamp || Date.now() - index * 60 * 1000,
@@ -227,7 +227,7 @@ const handleQuery = async () => {
   }
 
   if (!timeRangeValue.value || timeRangeValue.value.length !== 2) {
-    ElMessage.warning("请选择有效的时间范围");
+    ElMessage.warning("请选择有效的时间范�?);
     return;
   }
 
@@ -236,7 +236,7 @@ const handleQuery = async () => {
     const startTime = parseInt(timeRangeValue.value[0]);
     const endTime = parseInt(timeRangeValue.value[1]);
 
-    // 获取选中组件的信息
+    // 获取选中组件的信�?
     const selectedComponent = components.value.find(c => c.monitorSysGenServerComponentId === selectedComponentId.value);
 
     const start = Date.now();
@@ -247,7 +247,7 @@ const handleQuery = async () => {
       // 实时数据查询
       res = await getComponentRealtimeData(selectedComponentId.value);
     } else {
-      // 其他类型使用统一的数据查询接口
+      // 其他类型使用统一的数据查询接�?
       res = await getComponentData(selectedComponentId.value, startTime, endTime, stepValue.value);
     }
 
@@ -257,7 +257,7 @@ const handleQuery = async () => {
       queryResult.value = res.data;
       lastUpdateTime.value = new Date().toLocaleTimeString();
 
-      // 计算数据点数量
+      // 计算数据点数�?
       if (Array.isArray(res.data?.data)) {
         dataPointCount.value = res.data.data.length;
       } else {
@@ -281,12 +281,12 @@ const handleQuery = async () => {
 };
 
 /**
- * 快速查询
+ * 快速查�?
  */
 const handleQuickQuery = () => {
   const end = new Date();
   const start = new Date();
-  start.setTime(start.getTime() - 60 * 60 * 1000); // 最近1小时
+  start.setTime(start.getTime() - 60 * 60 * 1000); // 最�?小时
 
   timeRangeValue.value = [Math.floor(start.getTime() / 1000).toString(), Math.floor(end.getTime() / 1000).toString()];
 
@@ -327,7 +327,7 @@ const updateChart = () => {
     },
     series: [
       {
-        name: "数值",
+        name: "数�?,
         type: "line",
         data: generateChartData()
       }
@@ -377,16 +377,16 @@ const getComponentTypeColor = (type: string) => {
 const getComponentTypeName = (type: string) => {
   const nameMap: Record<string, string> = {
     card: "卡片",
-    gauge: "仪表盘",
-    line: "折线图",
-    bar: "柱状图",
+    gauge: "仪表�?,
+    line: "折线�?,
+    bar: "柱状�?,
     pie: "饼图"
   };
   return nameMap[type] || "未知";
 };
 
 /**
- * 获取表达式类型名称
+ * 获取表达式类型名�?
  */
 const getExpressionTypeName = (type?: string) => {
   const typeMap: Record<string, string> = {

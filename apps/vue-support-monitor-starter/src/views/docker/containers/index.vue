@@ -19,7 +19,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ containerStats.running }}</div>
-            <div class="stat-label">运行中</div>
+            <div class="stat-label">运行�?/div>
           </div>
         </div>
         <div class="stat-card">
@@ -28,7 +28,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ containerStats.stopped }}</div>
-            <div class="stat-label">已停止</div>
+            <div class="stat-label">已停�?/div>
           </div>
         </div>
         <div class="stat-card">
@@ -43,12 +43,12 @@
       </div>
     </div>
 
-    <!-- 工具栏 -->
+    <!-- 工具�?-->
     <div class="toolbar-section">
       <div class="toolbar-left">
         <el-input
           v-model="searchParams.keyword"
-          placeholder="搜索容器名称或镜像"
+          placeholder="搜索容器名称或镜�?
           class="search-input"
           clearable
           @keyup.enter="handleSearch"
@@ -59,21 +59,21 @@
         </el-input>
         <el-select
           v-model="searchParams.status"
-          placeholder="运行状态"
+          placeholder="运行状�?
           clearable
           class="filter-select"
           @change="handleSearch"
         >
           <el-option label="全部" value="" />
-          <el-option label="运行中" value="running" />
-          <el-option label="已停止" value="stopped" />
+          <el-option label="运行�? value="running" />
+          <el-option label="已停�? value="stopped" />
           <el-option label="暂停" value="paused" />
-          <el-option label="重启中" value="restarting" />
+          <el-option label="重启�? value="restarting" />
           <el-option label="错误" value="error" />
         </el-select>
         <el-select
           v-model="searchParams.serverId"
-          placeholder="服务器"
+          placeholder="服务�?
           clearable
           class="filter-select"
           @change="handleSearch"
@@ -98,7 +98,7 @@
           :loading="syncLoading"
         >
           <IconifyIconOnline icon="ri:refresh-2-line" class="mr-1" />
-          同步状态
+          同步状�?
         </el-button>
         <el-button
           @click="handleBatchStart"
@@ -166,7 +166,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="运行状态" width="120">
+        <el-table-column label="运行状�? width="120">
           <template #default="{ row }">
             <el-tag
               :type="getStatusType(row.systemSoftContainerStatus)"
@@ -177,7 +177,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="服务器" width="180">
+        <el-table-column label="服务�? width="180">
           <template #default="{ row }">
             <div class="server-info">
               <div class="server-name">{{ row.systemServerId }}</div>
@@ -321,21 +321,21 @@
       </ScTable>
     </el-card>
 
-    <!-- 容器详情对话框 -->
+    <!-- 容器详情对话�?-->
     <ContainerDetailDialog
       v-model:visible="detailDialogVisible"
       :container-data="currentContainer"
     />
 
-    <!-- 容器日志对话框 -->
+    <!-- 容器日志对话�?-->
     <ContainerLogsDialog
       v-model:visible="logsDialogVisible"
       :container-data="currentContainer"
     />
 
-    <!-- 批量操作底部工具栏 -->
+    <!-- 批量操作底部工具�?-->
     <div v-if="selectedIds.length > 0" class="batch-actions">
-      <div class="batch-info">已选择 {{ selectedIds.length }} 个容器</div>
+      <div class="batch-info">已选择 {{ selectedIds.length }} 个容�?/div>
       <el-button @click="clearSelection">取消选择</el-button>
       <el-button type="success" @click="handleBatchStart">批量启动</el-button>
       <el-button type="warning" @click="handleBatchStop">批量停止</el-button>
@@ -353,14 +353,14 @@ import {
   containerApi,
   getServerList,
   type SystemSoftContainer,
-} from "@/api/docker-management";
+} from "@/api/docker";
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
 import ContainerDetailDialog from "./components/ContainerDetailDialog.vue";
 import ContainerLogsDialog from "./components/ContainerLogsDialog.vue";
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false);
 const syncLoading = ref(false);
 const selectedIds = ref<number[]>([]);
@@ -395,9 +395,9 @@ const pagination = reactive({
 });
 
 // 基础方法
-// ScTable会自动处理数据加载，此方法不再需要
+// ScTable会自动处理数据加载，此方法不再需�?
 const loadContainers = () => {
-  // 空实现，保持向后兼容性
+  // 空实现，保持向后兼容�?
 };
 
 const handleRefresh = () => loadContainers();
@@ -423,10 +423,10 @@ const getStatusType = (status?: string) => {
 
 const getStatusText = (status?: string) => {
   const map = {
-    running: "运行中",
-    stopped: "已停止",
+    running: "运行�?,
+    stopped: "已停�?,
     paused: "暂停",
-    restarting: "重启中",
+    restarting: "重启�?,
     error: "错误",
   };
   return map[status] || "未知";
@@ -466,7 +466,7 @@ const handleStart = async (container: SystemSoftContainer) => {
 
 const handleStop = async (container: SystemSoftContainer) => {
   try {
-    await ElMessageBox.confirm("确定要停止这个容器吗？", "停止确认", {
+    await ElMessageBox.confirm("确定要停止这个容器吗�?, "停止确认", {
       type: "warning",
     });
 
@@ -527,7 +527,7 @@ const handleRestart = async (container: SystemSoftContainer) => {
 const handleDelete = async (container: SystemSoftContainer) => {
   try {
     await ElMessageBox.confirm(
-      "确定要删除这个容器吗？此操作不可恢复！",
+      "确定要删除这个容器吗？此操作不可恢复�?,
       "删除确认",
       {
         type: "error",
@@ -555,13 +555,13 @@ const handleSyncStatus = async () => {
     syncLoading.value = true;
     const response = await containerApi.syncContainerStatus();
     if (response.code === "00000") {
-      ElMessage.success("容器状态同步成功");
+      ElMessage.success("容器状态同步成�?);
       loadContainers();
     } else {
       ElMessage.error(response.msg || "同步失败");
     }
   } catch (error) {
-    ElMessage.error("同步容器状态失败");
+    ElMessage.error("同步容器状态失�?);
   } finally {
     syncLoading.value = false;
   }
@@ -600,7 +600,7 @@ const handleBatchStop = async () => {
 
   try {
     await ElMessageBox.confirm(
-      `确定要停止选中的 ${selectedIds.value.length} 个容器吗？`,
+      `确定要停止选中�?${selectedIds.value.length} 个容器吗？`,
       "批量停止确认",
       {
         type: "warning",
@@ -634,7 +634,7 @@ const handleBatchDelete = async () => {
 
   try {
     await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedIds.value.length} 个容器吗？此操作不可恢复！`,
+      `确定要删除选中�?${selectedIds.value.length} 个容器吗？此操作不可恢复！`,
       "批量删除确认",
       {
         type: "error",
@@ -660,7 +660,7 @@ const handleBatchDelete = async () => {
   }
 };
 
-// 加载服务器列表
+// 加载服务器列�?
 const loadServers = async () => {
   try {
     const response = await getServerList();
@@ -668,7 +668,7 @@ const loadServers = async () => {
       serverOptions.value = response.data || [];
     }
   } catch (error) {
-    console.error("加载服务器列表失败:", error);
+    console.error("加载服务器列表失�?", error);
   }
 };
 
@@ -688,7 +688,7 @@ const loadStats = async () => {
 };
 
 onMounted(() => {
-  // Global Socket已在App层面初始化
+  // Global Socket已在App层面初始�?
   loadContainers();
   loadServers();
   loadStats();
@@ -697,22 +697,22 @@ const terminalRef = ref();
 
 async function openExec(row: any) {
   try {
-    // 获取服务器信息
+    // 获取服务器信�?
     const serverId = String(
       row.systemServerId || row.systemSoftContainerServerId || row.serverId
     );
     if (!serverId) return ElMessage.warning("缺少服务器ID");
     const { data, code, msg } = await getServerInfo(serverId);
     if (code !== 0 || !data)
-      return ElMessage.error(msg || "获取服务器信息失败");
+      return ElMessage.error(msg || "获取服务器信息失�?);
 
-    // 打开终端并设置数据
+    // 打开终端并设置数�?
     // ServerTerminalDialog 暴露 setData/open 方法
-    // 其数据结构为 monitorSysGenServer* 字段，getServerInfo 返回已兼容
+    // 其数据结构为 monitorSysGenServer* 字段，getServerInfo 返回已兼�?
     (terminalRef.value as any)?.setData?.(data);
     (terminalRef.value as any)?.open?.();
 
-    // 尝试发送 docker exec 命令
+    // 尝试发�?docker exec 命令
     const name = row.systemSoftContainerName || row.containerName || row.name;
     const shell = "/bin/sh";
     setTimeout(() => {
@@ -834,7 +834,7 @@ async function openExec(row: any) {
   margin-top: 4px;
 }
 
-/* 工具栏区域 */
+/* 工具栏区�?*/
 .toolbar-section {
   display: flex;
   justify-content: space-between;
@@ -1051,7 +1051,7 @@ async function openExec(row: any) {
   font-size: 14px;
 }
 
-/* 容器详情对话框 */
+/* 容器详情对话�?*/
 .container-detail {
   padding: 16px 0;
 }
@@ -1159,7 +1159,7 @@ async function openExec(row: any) {
   font-family: "Courier New", monospace;
 }
 
-/* 日志对话框 */
+/* 日志对话�?*/
 .logs-container {
   display: flex;
   flex-direction: column;
@@ -1221,7 +1221,7 @@ async function openExec(row: any) {
   gap: 8px;
 }
 
-/* 创建容器对话框 */
+/* 创建容器对话�?*/
 .port-mappings {
   display: flex;
   flex-direction: column;
@@ -1256,7 +1256,7 @@ async function openExec(row: any) {
   color: #606266;
 }
 
-/* 终端对话框 */
+/* 终端对话�?*/
 .terminal-container {
   display: flex;
   flex-direction: column;
@@ -1294,7 +1294,7 @@ async function openExec(row: any) {
   gap: 8px;
 }
 
-/* 卡片和表格样式 */
+/* 卡片和表格样�?*/
 .containers-card {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -1401,7 +1401,7 @@ async function openExec(row: any) {
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
-/* 进度条样式 */
+/* 进度条样�?*/
 :deep(.el-progress) {
   width: 100%;
 }
@@ -1452,7 +1452,7 @@ async function openExec(row: any) {
   color: #dc2626;
 }
 
-/* 输入框样式 */
+/* 输入框样�?*/
 :deep(.el-input__wrapper) {
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -1473,7 +1473,7 @@ async function openExec(row: any) {
   border-radius: 10px;
 }
 
-/* 响应式设计 */
+/* 响应式设�?*/
 @media (max-width: 1200px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);

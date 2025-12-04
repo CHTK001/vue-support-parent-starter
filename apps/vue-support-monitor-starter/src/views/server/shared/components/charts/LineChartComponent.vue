@@ -29,12 +29,12 @@
       <div ref="chartRef" class="line-chart"></div>
       <div class="chart-info">
         <div class="current-value">
-          <span class="label">当前值:</span>
+          <span class="label">当前�?</span>
           <span class="value">{{ displayValue }}</span>
           <span class="unit" v-if="unit">{{ unit }}</span>
         </div>
         <div class="last-update">
-          最后更新: {{ lastUpdateTime }}
+          最后更�? {{ lastUpdateTime }}
         </div>
       </div>
     </div>
@@ -60,7 +60,7 @@ import { message } from "@repo/utils";
 import * as echarts from "echarts";
 import { executeComponentQuery, type ServerDetailComponent } from "@/api/server";
 
-// 定义属性
+// 定义属�?
 const props = defineProps<{
   componentData: ServerDetailComponent;
   serverId: number;
@@ -74,7 +74,7 @@ const emit = defineEmits<{
   refresh: [componentId: number];
 }>();
 
-// 响应式状态
+// 响应式状�?
 const loading = ref(false);
 const refreshing = ref(false);
 const data = ref<Array<{ time: string; value: number }>>([]);
@@ -83,7 +83,7 @@ const refreshTimer = ref<NodeJS.Timeout>();
 const chartRef = ref<HTMLElement>();
 const chartInstance = ref<echarts.ECharts>();
 
-// 计算属性
+// 计算属�?
 const displayValue = computed(() => {
   if (data.value.length === 0) {
     return "--";
@@ -115,7 +115,7 @@ const chartConfig = computed(() => {
 const unit = computed(() => chartConfig.value.unit);
 
 /**
- * 初始化图表
+ * 初始化图�?
  */
 const initChart = () => {
   if (!chartRef.value) return;
@@ -250,7 +250,7 @@ const loadData = async () => {
     loading.value = true;
     
     const timeRange = {
-      start: Date.now() - 30 * 60 * 1000, // 最近30分钟
+      start: Date.now() - 30 * 60 * 1000, // 最�?0分钟
       end: Date.now(),
     };
 
@@ -260,7 +260,7 @@ const loadData = async () => {
     );
 
     if (res.code === "00000") {
-      // 处理返回的数据，转换为时间序列
+      // 处理返回的数据，转换为时间序�?
       let newData: Array<{ time: string; value: number }> = [];
       
       if (Array.isArray(res.data)) {
@@ -275,7 +275,7 @@ const loadData = async () => {
         for (let i = 29; i >= 0; i--) {
           newData.push({
             time: new Date(now - i * 60 * 1000).toLocaleTimeString(),
-            value: value + (Math.random() - 0.5) * value * 0.1 // 添加一些随机变化
+            value: value + (Math.random() - 0.5) * value * 0.1 // 添加一些随机变�?
           });
         }
       }
@@ -292,7 +292,7 @@ const loadData = async () => {
       data.value = [];
     }
   } catch (error) {
-    console.error("加载折线图数据失败:", error);
+    console.error("加载折线图数据失�?", error);
     data.value = [];
   } finally {
     loading.value = false;
@@ -479,7 +479,7 @@ onUnmounted(() => {
   justify-content: center;
 }
 
-// 响应式设计
+// 响应式设�?
 @media (max-width: 768px) {
   .chart-content {
     padding: 12px;

@@ -1,6 +1,6 @@
 <template>
   <div class="server-scripts">
-    <!-- 工具栏 -->
+    <!-- 工具�?-->
     <div class="toolbar">
       <div class="toolbar-left">
         <el-button type="primary" @click="$emit('create')">
@@ -42,7 +42,7 @@
           @change="handleFilter"
         >
           <el-option label="系统管理" value="system" />
-          <el-option label="监控检查" value="monitor" />
+          <el-option label="监控检�? value="monitor" />
           <el-option label="部署脚本" value="deploy" />
           <el-option label="备份脚本" value="backup" />
           <el-option label="其他" value="other" />
@@ -82,7 +82,7 @@
               {{ row.monitorSysGenServerScriptName }}
             </div>
             <div class="script-desc">
-              {{ row.monitorSysGenServerScriptDescription || "无描述" }}
+              {{ row.monitorSysGenServerScriptDescription || "无描�? }}
             </div>
             <div v-if="row.monitorSysGenServerScriptTags" class="script-tags">
               <el-tag
@@ -122,7 +122,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="状态" width="80" align="center">
+      <el-table-column label="状�? width="80" align="center">
         <template #default="{ row }">
           <el-switch
             v-model="row.monitorSysGenServerScriptStatus"
@@ -146,7 +146,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="最后执行" width="160" align="center">
+      <el-table-column label="最后执�? width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerScriptLastExecutionTime">
             {{ formatDateTime(row.monitorSysGenServerScriptLastExecutionTime) }}
@@ -155,7 +155,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="创建者" width="100" align="center">
+      <el-table-column label="创建�? width="100" align="center">
         <template #default="{ row }">
           {{ row.monitorSysGenServerScriptCreateUser }}
         </template>
@@ -193,7 +193,7 @@
                   >
                   <el-dropdown-item command="export">导出脚本</el-dropdown-item>
                   <el-dropdown-item command="validate"
-                    >语法检查</el-dropdown-item
+                    >语法检�?/el-dropdown-item
                   >
                   <el-dropdown-item command="delete" divided
                     >删除</el-dropdown-item
@@ -219,7 +219,7 @@
       />
     </div>
 
-    <!-- 脚本代码查看对话框 -->
+    <!-- 脚本代码查看对话�?-->
     <el-dialog
       v-model="codeDialogVisible"
       title="脚本代码"
@@ -246,7 +246,7 @@
       </div>
     </el-dialog>
 
-    <!-- 文件上传对话框 -->
+    <!-- 文件上传对话�?-->
     <el-dialog
       v-model="importDialogVisible"
       title="导入脚本"
@@ -261,10 +261,10 @@
         drag
       >
         <IconifyIconOnline icon="ep:upload-filled" class="upload-icon" />
-        <div class="upload-text">将脚本文件拖到此处，或<em>点击上传</em></div>
+        <div class="upload-text">将脚本文件拖到此处，�?em>点击上传</em></div>
         <template #tip>
           <div class="upload-tip">
-            支持 .sh, .py, .ps1, .bat, .js 格式的脚本文件
+            支持 .sh, .py, .ps1, .bat, .js 格式的脚本文�?
           </div>
         </template>
       </el-upload>
@@ -303,12 +303,12 @@ const emit = defineEmits<{
   delete: [script: ServerScript];
 }>();
 
-// 响应式状态
+// 响应式状�?
 const loading = ref(false);
 const scriptList = ref<ServerScript[]>([]);
 const selectedScripts = ref<ServerScript[]>([]);
 
-// 搜索和筛选
+// 搜索和筛�?
 const searchKeyword = ref("");
 const filterType = ref("");
 const filterCategory = ref("");
@@ -320,7 +320,7 @@ const pagination = reactive({
   total: 0,
 });
 
-// 对话框
+// 对话�?
 const codeDialogVisible = ref(false);
 const importDialogVisible = ref(false);
 const selectedScript = ref<ServerScript | null>(null);
@@ -389,7 +389,7 @@ const getTagList = (tags: string) => {
 };
 
 /**
- * 格式化日期时间
+ * 格式化日期时�?
  */
 const formatDateTime = (dateTime: string) => {
   return new Date(dateTime).toLocaleString();
@@ -404,7 +404,7 @@ const handleSearch = () => {
 };
 
 /**
- * 处理筛选
+ * 处理筛�?
  */
 const handleFilter = () => {
   pagination.page = 1;
@@ -433,7 +433,7 @@ const handleSelectionChange = (selection: ServerScript[]) => {
 };
 
 /**
- * 处理状态变化
+ * 处理状态变�?
  */
 const handleStatusChange = async (script: ServerScript) => {
   try {
@@ -441,11 +441,11 @@ const handleStatusChange = async (script: ServerScript) => {
       monitorSysGenServerScriptId: script.monitorSysGenServerScriptId,
       monitorSysGenServerScriptStatus: script.monitorSysGenServerScriptStatus,
     } as any);
-    message.success("状态更新成功");
+    message.success("状态更新成�?);
   } catch (error) {
-    console.error("状态更新失败:", error);
-    message.error("状态更新失败");
-    // 回滚状态
+    console.error("状态更新失�?", error);
+    message.error("状态更新失�?);
+    // 回滚状�?
     script.monitorSysGenServerScriptStatus =
       script.monitorSysGenServerScriptStatus === 1 ? 0 : 1;
   }
@@ -528,7 +528,7 @@ const handleValidateScript = async (script: ServerScript) => {
     if (res.code === "00000") {
       message.success("脚本语法检查通过");
     } else {
-      message.error(`语法检查失败: ${res.msg}`);
+      message.error(`语法检查失�? ${res.msg}`);
     }
   } catch (error) {
     console.error("验证脚本失败:", error);
@@ -542,7 +542,7 @@ const handleValidateScript = async (script: ServerScript) => {
 const handleDeleteScript = async (script: ServerScript) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除脚本 "${script.monitorSysGenServerScriptName}" 吗？`,
+      `确定要删除脚�?"${script.monitorSysGenServerScriptName}" 吗？`,
       "删除确认",
       {
         confirmButtonText: "确定",
@@ -603,7 +603,7 @@ const handleSizeChange = (size: number) => {
 };
 
 /**
- * 处理当前页变化
+ * 处理当前页变�?
  */
 const handleCurrentChange = (page: number) => {
   pagination.page = page;

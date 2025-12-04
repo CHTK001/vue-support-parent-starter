@@ -3,12 +3,12 @@
     <div class="ranking-header">
       <div class="header-left">
         <IconifyIconOnline icon="ri:bar-chart-line" class="header-icon" />
-        <span class="header-title">容器性能排行榜</span>
+        <span class="header-title">容器性能排行�?/span>
       </div>
       <div class="header-right">
         <el-select v-model="rankingType" size="small" @change="handleRankingTypeChange">
-          <el-option label="CPU使用率" value="cpu" />
-          <el-option label="内存使用率" value="memory" />
+          <el-option label="CPU使用�? value="cpu" />
+          <el-option label="内存使用�? value="memory" />
           <el-option label="网络IO" value="network" />
           <el-option label="磁盘IO" value="disk" />
         </el-select>
@@ -54,11 +54,11 @@ interface RankingItem {
   unit: string
 }
 
-// 响应式数据
+// 响应式数�?
 const rankingType = ref('cpu')
 const rankingData = ref<RankingItem[]>([])
 
-// 获取排行榜数据
+// 获取排行榜数�?
 const fetchRankingData = async () => {
   try {
     // 这里使用模拟数据，实际应用中应该从API获取真实数据
@@ -107,16 +107,16 @@ const fetchRankingData = async () => {
     
     rankingData.value = mockData
   } catch (error) {
-    console.error('获取排行榜数据失败:', error)
+    console.error('获取排行榜数据失�?', error)
   }
 }
 
-// 处理排行榜类型变化
+// 处理排行榜类型变�?
 const handleRankingTypeChange = () => {
   fetchRankingData()
 }
 
-// 根据排名获取样式类
+// 根据排名获取样式�?
 const getRankClass = (rank: number) => {
   if (rank === 1) return 'rank-first'
   if (rank === 2) return 'rank-second'
@@ -124,12 +124,12 @@ const getRankClass = (rank: number) => {
   return ''
 }
 
-// 格式化值显示
+// 格式化值显�?
 const formatValue = (value: number, unit: string) => {
   return `${value.toFixed(1)}${unit}`
 }
 
-// 组件挂载时获取数据
+// 组件挂载时获取数�?
 onMounted(() => {
   fetchRankingData()
 })

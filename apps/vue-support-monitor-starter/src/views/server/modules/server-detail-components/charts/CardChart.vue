@@ -56,7 +56,7 @@ const props = defineProps({
   }
 });
 
-// 计算属性
+// 计算属�?
 const value = computed(() => {
   return props.chartData.value ?? 0;
 });
@@ -92,7 +92,7 @@ const getValueClass = () => {
   
   if (thresholds.length === 0) return '';
   
-  // 根据阈值确定颜色
+  // 根据阈值确定颜�?
   for (const threshold of thresholds.sort((a, b) => b.value - a.value)) {
     if (val >= threshold.value) {
       if (threshold.color === '#F56C6C') return 'value-danger';

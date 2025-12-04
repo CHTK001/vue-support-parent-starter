@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    :title="`服务器监控 - ${serverInfo?.monitorSysGenServerName || '未知服务器'}`"
+    :title="`服务器监�?- ${serverInfo?.monitorSysGenServerName || '未知服务�?}`"
     width="90%"
     :close-on-click-modal="false"
     destroy-on-close
@@ -9,12 +9,12 @@
     top="5vh"
   >
     <div class="monitor-container">
-      <!-- 服务器基本信息 -->
+      <!-- 服务器基本信�?-->
       <div class="server-info-card">
         <el-card>
           <template #header>
             <div class="card-header">
-              <span>服务器信息</span>
+              <span>服务器信�?/span>
               <el-tag
                 :type="getConnectionStatusType(serverInfo?.monitorSysGenServerConnectionStatus)"
                 size="small"
@@ -26,7 +26,7 @@
           </template>
           
           <el-descriptions v-if="serverInfo" :column="3" border>
-            <el-descriptions-item label="服务器名称">
+            <el-descriptions-item label="服务器名�?>
               {{ serverInfo.monitorSysGenServerName }}
             </el-descriptions-item>
             <el-descriptions-item label="地址">
@@ -35,7 +35,7 @@
             <el-descriptions-item label="协议">
               {{ serverInfo.monitorSysGenServerProtocol }}
             </el-descriptions-item>
-            <el-descriptions-item label="监控状态">
+            <el-descriptions-item label="监控状�?>
               <el-switch
                 v-model="serverInfo.monitorSysGenServerMonitorEnabled"
                 :active-value="1"
@@ -43,11 +43,11 @@
                 @change="handleMonitorToggle"
               />
             </el-descriptions-item>
-            <el-descriptions-item label="最后连接时间">
+            <el-descriptions-item label="最后连接时�?>
               {{ formatDateTime(serverInfo.monitorSysGenServerLastConnectTime) }}
             </el-descriptions-item>
             <el-descriptions-item label="描述">
-              {{ serverInfo.monitorSysGenServerDesc || '无' }}
+              {{ serverInfo.monitorSysGenServerDesc || '�? }}
             </el-descriptions-item>
           </el-descriptions>
         </el-card>
@@ -64,7 +64,7 @@
                 </div>
                 <div class="metric-info">
                   <div class="metric-value">{{ currentMetrics.cpuUsage }}%</div>
-                  <div class="metric-label">CPU使用率</div>
+                  <div class="metric-label">CPU使用�?/div>
                 </div>
               </div>
               <ScProgress
@@ -85,7 +85,7 @@
                 </div>
                 <div class="metric-info">
                   <div class="metric-value">{{ currentMetrics.memoryUsage }}%</div>
-                  <div class="metric-label">内存使用率</div>
+                  <div class="metric-label">内存使用�?/div>
                 </div>
               </div>
               <ScProgress
@@ -106,7 +106,7 @@
                 </div>
                 <div class="metric-info">
                   <div class="metric-value">{{ currentMetrics.diskUsage }}%</div>
-                  <div class="metric-label">磁盘使用率</div>
+                  <div class="metric-label">磁盘使用�?/div>
                 </div>
               </div>
               <ScProgress
@@ -127,7 +127,7 @@
                 </div>
                 <div class="metric-info">
                   <div class="metric-value">{{ currentMetrics.loadAverage.toFixed(2) }}</div>
-                  <div class="metric-label">负载平均值</div>
+                  <div class="metric-label">负载平均�?/div>
                 </div>
               </div>
             </el-card>
@@ -142,7 +142,7 @@
             <div class="chart-container">
               <div class="chart-placeholder">
                 <p>CPU使用率趋势图</p>
-                <p>数据点数量: {{ metricsHistory.length }}</p>
+                <p>数据点数�? {{ metricsHistory.length }}</p>
               </div>
             </div>
           </el-tab-pane>
@@ -151,7 +151,7 @@
             <div class="chart-container">
               <div class="chart-placeholder">
                 <p>内存使用率趋势图</p>
-                <p>数据点数量: {{ metricsHistory.length }}</p>
+                <p>数据点数�? {{ metricsHistory.length }}</p>
               </div>
             </div>
           </el-tab-pane>
@@ -160,7 +160,7 @@
             <div class="chart-container">
               <div class="chart-placeholder">
                 <p>磁盘使用率趋势图</p>
-                <p>数据点数量: {{ metricsHistory.length }}</p>
+                <p>数据点数�? {{ metricsHistory.length }}</p>
               </div>
             </div>
           </el-tab-pane>
@@ -168,7 +168,7 @@
           <el-tab-pane label="网络监控" name="network">
             <div class="chart-container">
               <div class="chart-placeholder">
-                <p>网络流量趋势图</p>
+                <p>网络流量趋势�?/p>
                 <p>入站: {{ formatBytes(currentMetrics.networkIn) }}/s</p>
                 <p>出站: {{ formatBytes(currentMetrics.networkOut) }}/s</p>
               </div>
@@ -217,7 +217,7 @@ import { collectServerMetrics, enableServerMonitoring, disableServerMonitoring }
 import { getConnectionStatusColor, getConnectionStatusText } from "@/api/server/connection-status";
 import type { ServerInfo } from "@/api/server";
 
-// 响应式状态
+// 响应式状�?
 const visible = ref(false);
 const serverInfo = ref<ServerInfo | null>(null);
 const collecting = ref(false);
@@ -238,18 +238,18 @@ const currentMetrics = reactive({
 // 历史数据
 const metricsHistory = ref<any[]>([]);
 
-// 定时器
+// 定时�?
 let refreshTimer: NodeJS.Timeout | null = null;
 
 /**
- * 获取连接状态类型
+ * 获取连接状态类�?
  */
 const getConnectionStatusType = (status?: number) => {
   return getConnectionStatusColor(status || 0);
 };
 
 /**
- * 获取连接状态文本
+ * 获取连接状态文�?
  */
 const getConnectionStatusText = (status?: number) => {
   return getConnectionStatusText(status || 0);
@@ -259,7 +259,7 @@ const getConnectionStatusText = (status?: number) => {
  * 获取进度条颜色（支持渐变和不同指标类型）
  */
 const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
-  // 定义不同指标的阈值
+  // 定义不同指标的阈�?
   const thresholds = {
     cpu: { normal: 50, warning: 80, critical: 90 },
     memory: { normal: 60, warning: 80, critical: 90 },
@@ -269,7 +269,7 @@ const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
 
   const threshold = thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
 
-  // 返回渐变色配置
+  // 返回渐变色配�?
   return [
     { color: '#67c23a', percentage: threshold.normal },
     { color: '#e6a23c', percentage: threshold.warning },
@@ -296,7 +296,7 @@ const getProgressStages = (metricType: string) => {
 }
 
 /**
- * 格式化字节
+ * 格式化字�?
  */
 const formatBytes = (bytes: number) => {
   if (bytes === 0) return "0 B";
@@ -307,7 +307,7 @@ const formatBytes = (bytes: number) => {
 };
 
 /**
- * 格式化日期时间
+ * 格式化日期时�?
  */
 const formatDateTime = (dateTime?: string) => {
   if (!dateTime) return "从未连接";
@@ -315,7 +315,7 @@ const formatDateTime = (dateTime?: string) => {
 };
 
 /**
- * 打开对话框
+ * 打开对话�?
  */
 const open = (server: ServerInfo) => {
   serverInfo.value = server;
@@ -349,13 +349,13 @@ const loadMetrics = async () => {
       uptime: Math.floor(Math.random() * 86400),
     });
     
-    // 添加到历史记录
+    // 添加到历史记�?
     metricsHistory.value.push({
       timestamp: new Date(),
       ...currentMetrics,
     });
     
-    // 保持最近100条记录
+    // 保持最�?00条记�?
     if (metricsHistory.value.length > 100) {
       metricsHistory.value.shift();
     }
@@ -365,7 +365,7 @@ const loadMetrics = async () => {
 };
 
 /**
- * 处理监控开关
+ * 处理监控开�?
  */
 const handleMonitorToggle = async (enabled: number) => {
   if (!serverInfo.value) return;
@@ -373,15 +373,15 @@ const handleMonitorToggle = async (enabled: number) => {
   try {
     if (enabled === 1) {
       await enableServerMonitoring(serverInfo.value.monitorSysGenServerId.toString());
-      message.success("监控已启用");
+      message.success("监控已启�?);
     } else {
       await disableServerMonitoring(serverInfo.value.monitorSysGenServerId.toString());
-      message.success("监控已禁用");
+      message.success("监控已禁�?);
     }
   } catch (error) {
-    console.error("切换监控状态失败:", error);
+    console.error("切换监控状态失�?", error);
     message.error("操作失败");
-    // 回滚状态
+    // 回滚状�?
     serverInfo.value.monitorSysGenServerMonitorEnabled = enabled === 1 ? 0 : 1;
   }
 };
@@ -410,7 +410,7 @@ const handleCollectMetrics = async () => {
  */
 const handleExportData = () => {
   if (metricsHistory.value.length === 0) {
-    message.warning("暂无数据可导出");
+    message.warning("暂无数据可导�?);
     return;
   }
   
@@ -434,7 +434,7 @@ const handleExportData = () => {
  * 生成CSV内容
  */
 const generateCSV = () => {
-  const headers = ["时间", "CPU使用率", "内存使用率", "磁盘使用率", "网络入站", "网络出站", "负载平均值"];
+  const headers = ["时间", "CPU使用�?, "内存使用�?, "磁盘使用�?, "网络入站", "网络出站", "负载平均�?];
   const rows = metricsHistory.value.map(item => [
     item.timestamp.toISOString(),
     item.cpuUsage,
@@ -452,7 +452,7 @@ const generateCSV = () => {
  * 处理查看历史记录
  */
 const handleViewHistory = () => {
-  // 这里可以打开历史记录对话框或跳转到历史页面
+  // 这里可以打开历史记录对话框或跳转到历史页�?
   message.info("历史记录功能开发中");
 };
 
@@ -468,14 +468,14 @@ const handleAutoRefreshToggle = (enabled: boolean) => {
 };
 
 /**
- * 开始自动刷新
+ * 开始自动刷�?
  */
 const startAutoRefresh = () => {
   if (refreshTimer) return;
   
   refreshTimer = setInterval(() => {
     loadMetrics();
-  }, 5000); // 每5秒刷新一次
+  }, 5000); // �?秒刷新一�?
 };
 
 /**
@@ -495,7 +495,7 @@ defineExpose({
 
 // 生命周期
 onMounted(() => {
-  // 从本地存储加载自动刷新设置
+  // 从本地存储加载自动刷新设�?
   const saved = localStorage.getItem("monitor-auto-refresh");
   if (saved) {
     autoRefresh.value = JSON.parse(saved);

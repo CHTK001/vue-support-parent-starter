@@ -25,15 +25,15 @@
 
 <script setup lang="ts">
 /**
- * 输出面板（深色代码块风格）
+ * 输出面板（深色代码块风格�?
  * Props:
  *  - title: 标题
- *  - content: 文本内容（字符串）
- *  - emptyText: 无内容时的提示
- *  - error: 是否为错误输出（影响配色）
- *  - icon: 标题图标（Iconify 名称）
+ *  - content: 文本内容（字符串�?
+ *  - emptyText: 无内容时的提�?
+ *  - error: 是否为错误输出（影响配色�?
+ *  - icon: 标题图标（Iconify 名称�?
  *  - filename: 下载文件名（可选）
- *  - maxHeight: 最大高度（CSS值，默认160px）
+ *  - maxHeight: 最大高度（CSS值，默认160px�?
  */
 import { ElMessage } from "element-plus";
 
@@ -60,11 +60,11 @@ const defaultIcon = "ri:terminal-line";
 async function onCopy() {
   try {
     if (!props.content) {
-      ElMessage.warning("暂无内容可复制");
+      ElMessage.warning("暂无内容可复�?);
       return;
     }
     await navigator.clipboard.writeText(props.content);
-    ElMessage.success("内容已复制到剪贴板");
+    ElMessage.success("内容已复制到剪贴�?);
   } catch (e) {
     ElMessage.error("复制失败");
   }
@@ -73,7 +73,7 @@ async function onCopy() {
 function onDownload() {
   try {
     if (!props.content) {
-      ElMessage.warning("暂无内容可下载");
+      ElMessage.warning("暂无内容可下�?);
       return;
     }
     const blob = new Blob([props.content], { type: "text/plain" });

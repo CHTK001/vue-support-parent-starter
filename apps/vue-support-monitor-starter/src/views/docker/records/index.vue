@@ -7,7 +7,7 @@
           <IconifyIconOnline icon="ri:history-line" class="title-icon" />
           <span>安装记录</span>
         </div>
-        <div class="page-subtitle">软件安装、卸载记录管理</div>
+        <div class="page-subtitle">软件安装、卸载记录管�?/div>
       </div>
       <div class="header-right">
         <el-button @click="refreshRecords" :loading="loading">
@@ -21,20 +21,20 @@
       </div>
     </div>
 
-    <!-- 搜索和筛选 -->
+    <!-- 搜索和筛�?-->
     <div class="search-bar">
       <div class="search-left">
-        <el-input v-model="searchParams.keyword" placeholder="搜索软件名称、版本或服务器" class="search-input" clearable @keyup.enter="loadRecords">
+        <el-input v-model="searchParams.keyword" placeholder="搜索软件名称、版本或服务�? class="search-input" clearable @keyup.enter="loadRecords">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select v-model="searchParams.status" placeholder="状态" clearable class="filter-select">
+        <el-select v-model="searchParams.status" placeholder="状�? clearable class="filter-select">
           <el-option label="全部" value="" />
-          <el-option label="安装中" value="INSTALLING" />
+          <el-option label="安装�? value="INSTALLING" />
           <el-option label="成功" value="SUCCESS" />
           <el-option label="失败" value="FAILED" />
-          <el-option label="已取消" value="CANCELLED" />
+          <el-option label="已取�? value="CANCELLED" />
         </el-select>
         <el-select v-model="searchParams.installMethod" placeholder="安装方式" clearable class="filter-select">
           <el-option label="全部" value="" />
@@ -42,7 +42,7 @@
           <el-option label="Compose" value="COMPOSE" />
           <el-option label="Swarm" value="SWARM" />
         </el-select>
-        <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" format="YYYY-MM-DD" value-format="YYYY-MM-DD" @change="handleDateChange" class="date-picker" />
+        <el-date-picker v-model="dateRange" type="daterange" range-separator="�? start-placeholder="开始日�? end-placeholder="结束日期" format="YYYY-MM-DD" value-format="YYYY-MM-DD" @change="handleDateChange" class="date-picker" />
       </div>
       <div class="search-right">
         <el-button type="primary" @click="loadRecords">
@@ -86,7 +86,7 @@
         <el-table-column type="selection" width="55" />
         <el-table-column prop="systemSoftName" label="软件名称" width="150" show-overflow-tooltip />
         <el-table-column prop="version" label="版本" width="120" />
-        <el-table-column prop="serverId" label="服务器" width="180">
+        <el-table-column prop="serverId" label="服务�? width="180">
           <template #default="{ row }">
             <div class="server-info">
               <div class="server-name">{{ getServerName(row.serverId) }}</div>
@@ -99,7 +99,7 @@
             <el-tag size="small" :type="getMethodType(row.installMethod)">{{ getMethodLabel(row.installMethod) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="120">
+        <el-table-column prop="status" label="状�? width="120">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)">{{ getStatusLabel(row.status) }}</el-tag>
           </template>
@@ -136,7 +136,7 @@
             {{ formatDuration(row.startTime, row.endTime) }}
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="开始时间" width="180">
+        <el-table-column prop="createTime" label="开始时�? width="180">
           <template #default="{ row }">
             {{ formatDate(row.createTime) }}
           </template>
@@ -178,20 +178,20 @@
 
     </el-card>
 
-    <!-- 详情对话框 -->
+    <!-- 详情对话�?-->
     <el-dialog v-model="detailVisible" title="安装记录详情" width="800px" destroy-on-close>
       <div v-if="currentRecord" class="record-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="记录ID">{{ currentRecord.recordId }}</el-descriptions-item>
           <el-descriptions-item label="软件名称">{{ currentRecord.systemSoftName }}</el-descriptions-item>
           <el-descriptions-item label="版本">{{ currentRecord.version }}</el-descriptions-item>
-          <el-descriptions-item label="服务器">{{ getServerName(currentRecord.serverId) }}</el-descriptions-item>
+          <el-descriptions-item label="服务�?>{{ getServerName(currentRecord.serverId) }}</el-descriptions-item>
           <el-descriptions-item label="安装方式">{{ getMethodLabel(currentRecord.installMethod) }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
+          <el-descriptions-item label="状�?>
             <el-tag :type="getStatusType(currentRecord.status)">{{ getStatusLabel(currentRecord.status) }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="进度">{{ currentRecord.progress || 0 }}%</el-descriptions-item>
-          <el-descriptions-item label="开始时间">{{ formatDate(currentRecord.createTime) }}</el-descriptions-item>
+          <el-descriptions-item label="开始时�?>{{ formatDate(currentRecord.createTime) }}</el-descriptions-item>
           <el-descriptions-item label="结束时间">{{ formatDate(currentRecord.endTime) }}</el-descriptions-item>
           <el-descriptions-item label="耗时">{{ formatDuration(currentRecord.startTime, currentRecord.endTime) }}</el-descriptions-item>
           <el-descriptions-item label="安装参数" :span="2">
@@ -204,7 +204,7 @@
       </div>
     </el-dialog>
 
-    <!-- 日志对话框 -->
+    <!-- 日志对话�?-->
     <el-dialog v-model="logsVisible" title="安装日志" width="900px" destroy-on-close>
       <div class="logs-container">
         <div class="logs-header">
@@ -267,7 +267,7 @@ const currentRecord = ref<SystemSoftRecord | null>(null);
 const logs = ref("");
 const dateRange = ref<[string, string] | null>(null);
 
-// 页面状态
+// 页面状�?
 const loading = ref(false);
 const logsLoading = ref(false);
 const detailVisible = ref(false);
@@ -313,7 +313,7 @@ const statsData = computed(() => [
     icon: "ri:archive-line",
     type: "primary" as const,
     format: "number",
-    description: "所有安装记录的总数量",
+    description: "所有安装记录的总数�?,
   },
   {
     key: "success",
@@ -322,7 +322,7 @@ const statsData = computed(() => [
     icon: "ri:check-line",
     type: "success" as const,
     format: "number",
-    description: "成功完成的安装数量",
+    description: "成功完成的安装数�?,
     trend: { type: "up", value: "+5" },
   },
   {
@@ -332,16 +332,16 @@ const statsData = computed(() => [
     icon: "ri:close-line",
     type: "danger" as const,
     format: "number",
-    description: "安装失败的数量",
+    description: "安装失败的数�?,
   },
   {
     key: "installing",
-    label: "安装中",
+    label: "安装�?,
     value: stats.value.installingCount,
     icon: "ri:time-line",
     type: "warning" as const,
     format: "number",
-    description: "正在进行的安装数量",
+    description: "正在进行的安装数�?,
   },
 ]);
 
@@ -355,7 +355,7 @@ const statsDetails = computed(() => {
     developmentTools: Math.floor(stats.value.successCount * 0.15),
     databases: Math.floor(stats.value.successCount * 0.05),
     successRate: successRate,
-    avgInstallTime: 245, // 秒
+    avgInstallTime: 245, // �?
     totalInstallTime: stats.value.successCount * 245,
     mostInstalledCategory: "Application Software",
   };
@@ -364,7 +364,7 @@ const statsDetails = computed(() => {
 // 引用
 const logsContentRef = ref<HTMLElement>();
 
-// 数据加载（改为通过 ScTable 刷新）
+// 数据加载（改为通过 ScTable 刷新�?
 const reload = () => {
   tableRef.value?.reload?.({ ...pageParams.value, ...searchParams.value }, 1);
 };
@@ -381,7 +381,7 @@ const loadServers = async () => {
   }
 };
 
-// 搜索和筛选
+// 搜索和筛�?
 const handleDateChange = (dates: [string, string] | null) => {
   if (dates) {
     searchParams.value.startDate = dates[0];
@@ -407,7 +407,7 @@ const resetSearch = () => {
 
 const refreshRecords = async () => {
   reload();
-  message.success("记录列表已刷新");
+  message.success("记录列表已刷�?);
 };
 
 // 表格操作
@@ -443,7 +443,7 @@ const loadLogs = async (recordId: string) => {
     if (res.code === "00000") {
       logs.value = res.data || "暂无日志信息";
       await nextTick();
-      // 滚动到底部
+      // 滚动到底�?
       if (logsContentRef.value) {
         logsContentRef.value.scrollTop = logsContentRef.value.scrollHeight;
       }
@@ -461,7 +461,7 @@ const refreshLogs = async () => {
 
 const downloadLogs = () => {
   if (!logs.value) {
-    return message.warning("暂无日志可下载");
+    return message.warning("暂无日志可下�?);
   }
 
   const blob = new Blob([logs.value], { type: "text/plain" });
@@ -500,7 +500,7 @@ const retryInstall = async (record: SystemSoftRecord) => {
 
     const res = await retryInstallSoft({ recordId: record.recordId! });
     if (res.code === "00000") {
-      message.success("重试安装请求已提交");
+      message.success("重试安装请求已提�?);
       reload();
     }
   } catch (error) {
@@ -520,7 +520,7 @@ const cancelInstall = async (record: SystemSoftRecord) => {
 
     const res = await cancelInstallSoft({ recordId: record.recordId! });
     if (res.code === "00000") {
-      message.success("安装任务已取消");
+      message.success("安装任务已取�?);
       reload();
     }
   } catch (error) {
@@ -552,7 +552,7 @@ const deleteRecord = async (record: SystemSoftRecord) => {
 
 const batchDelete = async () => {
   try {
-    await ElMessageBox.confirm(`确认删除选中的 ${selectedRecords.value.length} 条记录？此操作不可恢复。`, "确认批量删除", {
+    await ElMessageBox.confirm(`确认删除选中�?${selectedRecords.value.length} 条记录？此操作不可恢复。`, "确认批量删除", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "error",
@@ -585,12 +585,12 @@ const formatDuration = (startTime: string | Date, endTime: string | Date) => {
   const duration = Math.floor((end - start) / 1000);
 
   if (duration < 60) return `${duration}秒`;
-  if (duration < 3600) return `${Math.floor(duration / 60)}分${duration % 60}秒`;
-  return `${Math.floor(duration / 3600)}时${Math.floor((duration % 3600) / 60)}分`;
+  if (duration < 3600) return `${Math.floor(duration / 60)}�?{duration % 60}秒`;
+  return `${Math.floor(duration / 3600)}�?{Math.floor((duration % 3600) / 60)}分`;
 };
 
 const formatParams = (params: string) => {
-  if (!params) return "无";
+  if (!params) return "�?;
   try {
     return JSON.stringify(JSON.parse(params), null, 2);
   } catch {
@@ -600,7 +600,7 @@ const formatParams = (params: string) => {
 
 const getServerName = (serverId: number) => {
   const server = serverOptions.value.find((s) => s.id === serverId);
-  return server?.name || `服务器${serverId}`;
+  return server?.name || `服务�?{serverId}`;
 };
 
 const getServerHost = (serverId: number) => {
@@ -638,10 +638,10 @@ const getStatusType = (status: string) => {
 
 const getStatusLabel = (status: string) => {
   const statusMap: Record<string, string> = {
-    INSTALLING: "安装中",
+    INSTALLING: "安装�?,
     SUCCESS: "成功",
     FAILED: "失败",
-    CANCELLED: "已取消",
+    CANCELLED: "已取�?,
   };
   return statusMap[status] || status;
 };
@@ -708,7 +708,7 @@ onMounted(async () => {
   gap: 12px;
 }
 
-/* 搜索栏 */
+/* 搜索�?*/
 .search-bar {
   display: flex;
   justify-content: space-between;
@@ -870,7 +870,7 @@ onMounted(async () => {
   padding: 16px 0;
 }
 
-/* 详情对话框 */
+/* 详情对话�?*/
 .record-detail {
   padding: 16px 0;
 }
@@ -898,7 +898,7 @@ onMounted(async () => {
   line-height: 1.4;
 }
 
-/* 日志对话框 */
+/* 日志对话�?*/
 .logs-container {
   display: flex;
   flex-direction: column;
@@ -973,7 +973,7 @@ onMounted(async () => {
   font-size: 12px;
 }
 
-/* 进度条样式 */
+/* 进度条样�?*/
 :deep(.el-progress) {
   width: 100%;
 }
@@ -986,7 +986,7 @@ onMounted(async () => {
   border-radius: 10px;
 }
 
-/* 响应式设计 */
+/* 响应式设�?*/
 @media (max-width: 1200px) {
   .search-left {
     flex-wrap: wrap;
