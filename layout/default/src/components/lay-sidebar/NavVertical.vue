@@ -69,15 +69,24 @@ function getSubMenuData() {
 }
 
 watch(
-  () => [route.path, usePermissionStoreHook().wholeMenus],
-  () => {
-    if (route.path.includes("/redirect")) return;
+  () => route.path,
+  (newPath) => {
+    if (newPath.includes("/redirect")) return;
     getSubMenuData();
-    menuSelect(route.path);
+    menuSelect(newPath);
+  },
+  {
+    immediate: true,
+  }
+);
+
+watch(
+  () => usePermissionStoreHook().wholeMenus,
+  () => {
+    getSubMenuData();
   },
   {
     deep: true,
-    immediate: true,
   }
 );
 

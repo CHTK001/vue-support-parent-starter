@@ -34,10 +34,6 @@
   </div>
 </template>
 
-<script setup>
-import { IconifyIconOnline } from "@repo/components";
-</script>
-
 <style lang="scss" scoped>
 .project-home {
   padding: 0;
