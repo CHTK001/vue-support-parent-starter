@@ -2,8 +2,9 @@
   <el-dialog
     v-model="dialogVisible"
     :title="isEdit ? '编辑仓库' : '添加仓库'"
-    width="640px"
+    width="720px"
     class="registry-dialog"
+    :close-on-click-modal="false"
     @closed="handleDialogClosed"
   >
     <div class="dialog-content">
@@ -169,7 +170,7 @@
             <el-input
               v-model="formData.systemSoftRegistryDescription"
               type="textarea"
-              :rows="3"
+              :rows="2"
               placeholder="输入仓库描述..."
               maxlength="200"
               show-word-limit
@@ -503,28 +504,26 @@ watch(dialogVisible, (visible) => {
 
 <style scoped>
 .dialog-content {
-  max-height: 65vh;
-  overflow-y: auto;
-  padding-right: 8px;
+  padding: 0 4px;
 }
 
 /* 类型选择卡片 */
 .type-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
 .type-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px 12px;
+  padding: 12px 8px;
   border: 2px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
 }
 
 .type-card:hover {
@@ -538,19 +537,19 @@ watch(dialogVisible, (visible) => {
 }
 
 .type-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 18px;
   color: #fff;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .type-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--app-text-primary);
 }
@@ -558,19 +557,19 @@ watch(dialogVisible, (visible) => {
 /* 表单分区 */
 .form-section {
   background: var(--el-fill-color-lighter);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 16px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
 }
 
 .section-title {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--app-text-primary);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .section-title .optional {

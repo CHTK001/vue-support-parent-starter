@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
-import { emitter, findRouteByPath, getParentPaths, usePermissionStoreHook } from "@repo/core";
+import {
+  emitter,
+  findRouteByPath,
+  getParentPaths,
+  usePermissionStoreHook,
+} from "@repo/core";
 import { useNav } from "../..//hooks/useNav";
 import type { StorageConfigs } from "@repo/config";
 import { responsiveStorageNameSpace } from "@repo/config";
@@ -14,28 +19,51 @@ import { localStorageProxy, useDefer } from "@repo/utils";
 
 const route = useRoute();
 const isShow = ref(false);
-const showLogo = ref(localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`)?.showLogo ?? true);
+const showLogo = ref(
+  localStorageProxy().getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`
+  )?.showLogo ?? true
+);
 
-const { device, pureApp, isCollapse, tooltipEffect, menuSelect, toggleSideBar } = useNav();
+const {
+  device,
+  pureApp,
+  isCollapse,
+  tooltipEffect,
+  menuSelect,
+  toggleSideBar,
+} = useNav();
 
 const subMenuData = ref([]);
 
 const menuData = computed(() => {
-  return pureApp?.layout === "mix" && device.value !== "mobile" ? subMenuData.value : usePermissionStoreHook().wholeMenus;
+  return pureApp?.layout === "mix" && device.value !== "mobile"
+    ? subMenuData.value
+    : usePermissionStoreHook().wholeMenus;
 });
 
-const loading = computed(() => (pureApp?.layout === "mix" ? false : menuData.value.length === 0 ? true : false));
+const loading = computed(() =>
+  pureApp?.layout === "mix" ? false : menuData.value.length === 0 ? true : false
+);
 
-const defaultActive = computed(() => (!isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path));
+const defaultActive = computed(() =>
+  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path
+);
 
 function getSubMenuData() {
   let path = "";
   path = defaultActive.value;
   subMenuData.value = [];
   // path的上级路由组成的数组
-  const parentPathArr = getParentPaths(path, usePermissionStoreHook().wholeMenus);
+  const parentPathArr = getParentPaths(
+    path,
+    usePermissionStoreHook().wholeMenus
+  );
   // 当前路由的父级路由信息
-  const parenetRoute = findRouteByPath(parentPathArr[0] || path, usePermissionStoreHook().wholeMenus);
+  const parenetRoute = findRouteByPath(
+    parentPathArr[0] || path,
+    usePermissionStoreHook().wholeMenus
+  );
   if (!parenetRoute?.children) return;
   subMenuData.value = parenetRoute?.children;
 }
@@ -69,17 +97,50 @@ const defer = useDefer(menuData.value.length);
 </script>
 
 <template>
-  <div v-loading="loading" :class="['sidebar-custom sidebar-container', showLogo ? 'has-logo' : 'no-logo']" @mouseenter.prevent="isShow = true" @mouseleave.prevent="isShow = false">
+  <div
+    v-loading="loading"
+    :class="[
+      'sidebar-custom sidebar-container',
+      showLogo ? 'has-logo' : 'no-logo',
+    ]"
+    @mouseenter.prevent="isShow = true"
+    @mouseleave.prevent="isShow = false"
+  >
     <LaySidebarLogo v-if="showLogo" :collapse="isCollapse" />
-    <el-scrollbar wrap-class="scrollbar-wrapper" :class="[device === 'mobile' ? 'mobile' : 'pc']">
-      <el-menu unique-opened mode="vertical" popper-class="pure-scrollbar" class="outer-most select-none" :collapse="isCollapse" :collapse-transition="false" :popper-effect="tooltipEffect" :default-active="defaultActive">
+    <el-scrollbar
+      wrap-class="scrollbar-wrapper"
+      :class="[device === 'mobile' ? 'mobile' : 'pc']"
+    >
+      <el-menu
+        unique-opened
+        mode="vertical"
+        popper-class="pure-scrollbar"
+        class="outer-most select-none"
+        :collapse="isCollapse"
+        :collapse-transition="false"
+        :popper-effect="tooltipEffect"
+        :default-active="defaultActive"
+      >
         <span v-for="(routes, index) in menuData" :key="index">
-          <LaySidebarItem :key="routes.path" :item="routes" :base-path="routes.path" class="outer-most select-none" />
+          <LaySidebarItem
+            :key="routes.path"
+            :item="routes"
+            :base-path="routes.path"
+            class="outer-most select-none"
+          />
         </span>
       </el-menu>
     </el-scrollbar>
-    <LaySidebarCenterCollapse v-if="device !== 'mobile' && (isShow || isCollapse)" :is-active="pureApp?.sidebar?.opened" @toggleClick="toggleSideBar" />
-    <LaySidebarLeftCollapse v-if="device !== 'mobile'" :is-active="pureApp?.sidebar?.opened" @toggleClick="toggleSideBar" />
+    <LaySidebarCenterCollapse
+      v-if="device !== 'mobile' && (isShow || isCollapse)"
+      :is-active="pureApp?.sidebar?.opened"
+      @toggleClick="toggleSideBar"
+    />
+    <LaySidebarLeftCollapse
+      v-if="device !== 'mobile'"
+      :is-active="pureApp?.sidebar?.opened"
+      @toggleClick="toggleSideBar"
+    />
   </div>
 </template>
 
@@ -87,7 +148,11 @@ const defer = useDefer(menuData.value.length);
 .sidebar-container {
   position: relative;
   height: 100%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0.98)
+  );
   backdrop-filter: blur(12px);
   border-right: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -107,14 +172,19 @@ const defer = useDefer(menuData.value.length);
   }
 
   .dark & {
-    background: linear-gradient(180deg, rgba(28, 28, 35, 0.95), rgba(30, 30, 40, 0.98));
+    background: linear-gradient(
+      180deg,
+      rgba(28, 28, 35, 0.95),
+      rgba(30, 30, 40, 0.98)
+    );
     border-right: 1px solid rgba(255, 255, 255, 0.05);
   }
 }
 
 .sidebar-custom {
   --un-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
+  box-shadow:
+    var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
 
   .dark & {
     --un-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -167,6 +237,19 @@ const defer = useDefer(menuData.value.length);
   border-right: none;
   background: transparent;
 
+  &.el-menu--collapse {
+    .el-menu-item.is-active {
+      background: var(--el-color-primary) !important;
+      border-radius: 8px;
+
+      .el-icon,
+      svg,
+      i {
+        color: #fff !important;
+      }
+    }
+  }
+
   .el-menu-item,
   .el-sub-menu__title {
     height: 46px;
@@ -205,10 +288,14 @@ const defer = useDefer(menuData.value.length);
       .el-menu-item {
         &.is-active {
           background: var(--el-color-primary) !important;
-          color: var(--pure-menu-active-text-color) !important; /* 使用新定义的变量 */
+          color: var(
+            --pure-menu-active-text-color
+          ) !important; /* 使用新定义的变量 */
 
           .el-icon {
-            color: var(--pure-menu-active-text-color) !important; /* 使用新定义的变量 */
+            color: var(
+              --pure-menu-active-text-color
+            ) !important; /* 使用新定义的变量 */
           }
         }
       }
@@ -268,12 +355,12 @@ const defer = useDefer(menuData.value.length);
             .el-icon {
               color: #ffffff !important; /* 强制设置为白色确保可见性 */
             }
-            
+
             svg,
             i {
               color: #ffffff !important; /* 强制设置为白色确保可见性 */
             }
-            
+
             div,
             span {
               color: #ffffff !important; /* 强制设置为白色确保可见性 */

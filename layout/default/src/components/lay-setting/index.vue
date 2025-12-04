@@ -135,18 +135,21 @@ const settings = reactive({
   hideFooter: $storage.configure.hideFooter,
   multiTagsCache: $storage.configure.multiTagsCache ?? true,
   stretch: $storage.configure.stretch,
-  keepAlive: true,
-  debugMode: false,
+  // 高级功能
+  keepAlive: $storage.configure.keepAlive ?? true,
+  debugMode: $storage.configure.debugMode ?? false,
+  // 面包屑导航
+  showBreadcrumb: $storage.configure.showBreadcrumb ?? true,
+  breadcrumbIconOnly: $storage.configure.breadcrumbIconOnly ?? false,
   // 菜单设置相关
   showNewMenu: $storage.configure.showNewMenu ?? true,
   newMenuText: $storage.configure.newMenuText ?? "new",
   newMenuTimeLimit: $storage.configure.newMenuTimeLimit ?? 168,
+  // 新菜单动画
+  newMenuAnimation: $storage.configure.newMenuAnimation ?? "bounce",
   // 双栏导航设置相关
   doubleNavExpandMode: $storage.configure.doubleNavExpandMode ?? "auto",
   doubleNavAutoExpandAll: $storage.configure.doubleNavAutoExpandAll ?? true,
-  // Logo 配置相关
-  logoSize: $storage.configure.logoSize ?? 32,
-  logoAnimation: $storage.configure.logoAnimation ?? "none",
 });
 
 /** 卡片颜色模式配置 */
@@ -692,6 +695,42 @@ function newMenuTimeLimitChange() {
   storageConfigureChange("newMenuTimeLimit", settings.newMenuTimeLimit);
 }
 
+/**
+ * 新菜单动画变更
+ */
+function newMenuAnimationChange({ option }: { option: OptionsType }) {
+  const value = option.value as string;
+  settings.newMenuAnimation = value;
+  storageConfigureChange("newMenuAnimation", value);
+}
+
+/**
+ * 面包屑导航显示变更
+ */
+function showBreadcrumbChange() {
+  storageConfigureChange("showBreadcrumb", settings.showBreadcrumb);
+  emitter.emit("breadcrumbChange", settings.showBreadcrumb);
+}
+
+/**
+ * 面包屑显示模式变更
+ */
+function breadcrumbModeChange() {
+  storageConfigureChange("breadcrumbIconOnly", settings.breadcrumbIconOnly);
+  emitter.emit(
+    "breadcrumbModeChange",
+    settings.breadcrumbIconOnly ? "icon" : "icon-text"
+  );
+}
+
+/**
+ * 组件缓存变更
+ */
+function keepAliveChange() {
+  storageConfigureChange("keepAlive", settings.keepAlive);
+  emitter.emit("keepAliveChange", settings.keepAlive);
+}
+
 function doubleNavExpandModeChange() {
   storageConfigureChange("doubleNavExpandMode", settings.doubleNavExpandMode);
 }
@@ -709,6 +748,7 @@ function doubleNavAutoExpandAllChange() {
  */
 function debugModeChange(enabled: boolean) {
   settings.debugMode = enabled;
+  storageConfigureChange("debugMode", enabled);
   if (enabled) {
     // 显示调试控制台
     nextTick(() => {
@@ -726,26 +766,7 @@ function debugModeChange(enabled: boolean) {
  */
 function handleDebugConsoleClose() {
   settings.debugMode = false;
-}
-
-/** Logo 大小变更 */
-function logoSizeChange(value: number) {
-  storageConfigureChange("logoSize", value);
-  emitter.emit("logoConfigChange", {
-    logoSize: value,
-    logoAnimation: settings.logoAnimation,
-  });
-}
-
-/** Logo 动画变更 */
-function logoAnimationChange({ option }: { option: OptionsType }) {
-  const value = option.value as string;
-  settings.logoAnimation = value;
-  storageConfigureChange("logoAnimation", value);
-  emitter.emit("logoConfigChange", {
-    logoSize: settings.logoSize,
-    logoAnimation: value,
-  });
+  storageConfigureChange("debugMode", false);
 }
 
 /** 导入设置 */
@@ -1499,57 +1520,31 @@ onUnmounted(() => {
                   ribbon-color="var(--el-color-success)"
                   @change="cardBodyChange"
                 />
-              </div>
-            </div>
 
-            <!-- Logo 设置 -->
-            <div v-if="logoVal" class="setting-group">
-              <h4 class="group-title">
-                <IconifyIconOffline
-                  :icon="'ri:image-2-line'"
-                  class="group-icon"
+                <ScSwitch
+                  v-model="settings.showBreadcrumb"
+                  layout="visual-card"
+                  size="small"
+                  label="面包屑导航"
+                  description="显示页面路径导航"
+                  active-icon="ri:navigation-line"
+                  ribbon-color="var(--el-color-success)"
+                  @change="showBreadcrumbChange"
                 />
-                Logo 配置
-              </h4>
-              <div class="logo-config-grid">
-                <div class="config-item">
-                  <label class="config-label">图片大小</label>
-                  <div class="config-control">
-                    <el-slider
-                      v-model="settings.logoSize"
-                      :min="20"
-                      :max="48"
-                      :step="2"
-                      show-input
-                      size="small"
-                      @change="logoSizeChange"
-                    />
-                  </div>
-                </div>
-                <div class="config-item">
-                  <label class="config-label">动画效果</label>
-                  <div class="config-control">
-                    <Segmented
-                      resize
-                      class="select-none modern-segmented"
-                      :modelValue="
-                        settings.logoAnimation === 'none'
-                          ? 0
-                          : settings.logoAnimation === 'pulse'
-                            ? 1
-                            : settings.logoAnimation === 'bounce'
-                              ? 2
-                              : 0
-                      "
-                      :options="[
-                        { label: '无', value: 'none' },
-                        { label: '脉冲', value: 'pulse' },
-                        { label: '弹跳', value: 'bounce' },
-                      ]"
-                      @change="logoAnimationChange"
-                    />
-                  </div>
-                </div>
+                <!-- 面包屑显示模式 -->
+                <ScSwitch
+                  v-if="settings.showBreadcrumb"
+                  v-model="settings.breadcrumbIconOnly"
+                  layout="visual-card"
+                  size="small"
+                  label="仅显示图标"
+                  description="关闭后显示图标+文字"
+                  active-icon="ri:layout-grid-line"
+                  inactive-icon="ri:text"
+                  ribbon-text="简洁"
+                  ribbon-color="var(--el-color-primary)"
+                  @change="breadcrumbModeChange"
+                />
               </div>
             </div>
 
@@ -1650,6 +1645,41 @@ onUnmounted(() => {
                 />
               </div>
             </div>
+
+            <!-- 新菜单动画设置 -->
+            <div class="setting-group">
+              <h4 class="group-title">
+                <IconifyIconOffline
+                  :icon="'ri:magic-line'"
+                  class="group-icon"
+                />
+                动画效果
+              </h4>
+              <div class="setting-content">
+                <Segmented
+                  resize
+                  class="select-none modern-segmented"
+                  :modelValue="
+                    settings.newMenuAnimation === 'none'
+                      ? 0
+                      : settings.newMenuAnimation === 'bounce'
+                        ? 1
+                        : settings.newMenuAnimation === 'pulse'
+                          ? 2
+                          : settings.newMenuAnimation === 'shake'
+                            ? 3
+                            : 1
+                  "
+                  :options="[
+                    { label: '无', tip: '不显示动画', value: 'none' },
+                    { label: '弹跳', tip: '弹跳动画效果', value: 'bounce' },
+                    { label: '脉冲', tip: '脉冲动画效果', value: 'pulse' },
+                    { label: '抖动', tip: '抖动动画效果', value: 'shake' },
+                  ]"
+                  @change="newMenuAnimationChange"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1679,6 +1709,7 @@ onUnmounted(() => {
                   description="提升页面切换速度"
                   active-icon="ri:speed-line"
                   ribbon-color="var(--el-color-success)"
+                  @change="keepAliveChange"
                 />
 
                 <ScSwitch

@@ -211,8 +211,8 @@
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { ElMessage } from "element-plus";
 import { useRenderIcon } from "../ReIcon/src/hooks";
-import Viewer from "viewerjs";
-import "viewerjs/dist/viewer.css";
+import PhotoSwipeLightbox from "photoswipe/lightbox";
+import "photoswipe/style.css";
 import ImageCompare from "./components/ImageCompare.vue";
 import ImageEditor from "./components/ImageEditor.vue";
 import ScCompare from "../ScCompare/index.vue";
@@ -358,7 +358,7 @@ const emit = defineEmits(["update:modelValue", "change", "remove", "load", "erro
 const imageRef = ref(null);
 const uploadRef = ref(null);
 const compareUploadRef = ref(null);
-const viewerInstance = ref(null);
+const lightboxInstance = ref(null);
 
 // State
 const currentImage = ref("");
@@ -468,29 +468,59 @@ const handleShow = () => {
 const handlePreview = () => {
   if (!currentImage.value) return;
 
-  const img = imageRef.value.$el.querySelector("img");
-  if (img && !viewerInstance.value) {
-    viewerInstance.value = new Viewer(img, {
-      inline: false,
-      button: true,
-      navbar: true,
-      title: true,
-      toolbar: true,
-      tooltip: true,
-      movable: true,
-      zoomable: true,
-      rotatable: true,
-      scalable: true,
-      transition: true,
-      fullscreen: true,
-      keyboard: true,
-      url: "src"
-    });
+  // 销毁之前的实例
+  if (lightboxInstance.value) {
+    lightboxInstance.value.destroy();
+    lightboxInstance.value = null;
   }
 
-  if (viewerInstance.value) {
-    viewerInstance.value.show();
-  }
+  // 构建图片数据源
+  const dataSource = computedPreviewSrcList.value.map(src => ({
+    src,
+    w: 0,
+    h: 0
+  }));
+
+  // 创建 PhotoSwipe Lightbox 实例
+  lightboxInstance.value = new PhotoSwipeLightbox({
+    dataSource,
+    pswpModule: () => import("photoswipe"),
+    showHideAnimationType: "zoom",
+    bgOpacity: 0.9,
+    padding: { top: 20, bottom: 40, left: 20, right: 20 },
+    wheelToZoom: true,
+    closeOnVerticalDrag: true,
+    pinchToClose: true,
+    closeTitle: "关闭 (Esc)",
+    zoomTitle: "缩放",
+    arrowPrevTitle: "上一张",
+    arrowNextTitle: "下一张",
+    errorMsg: "图片加载失败"
+  });
+
+  // 动态获取图片尺寸
+  lightboxInstance.value.addFilter("itemData", (itemData, index) => {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        itemData.w = img.naturalWidth;
+        itemData.h = img.naturalHeight;
+        resolve(itemData);
+      };
+      img.onerror = () => {
+        itemData.w = 800;
+        itemData.h = 600;
+        resolve(itemData);
+      };
+      img.src = itemData.src;
+    });
+  });
+
+  lightboxInstance.value.init();
+
+  // 打开指定索引的图片
+  const currentIndex = computedPreviewSrcList.value.indexOf(currentImage.value);
+  lightboxInstance.value.loadAndOpen(currentIndex >= 0 ? currentIndex : 0);
 };
 
 const handleRemoveBackground = async () => {
@@ -677,12 +707,12 @@ const handleEditorCancel = () => {
 
 // 清理函数
 const cleanup = () => {
-  if (viewerInstance.value) {
-    viewerInstance.value.destroy();
-    viewerInstance.value = null;
+  if (lightboxInstance.value) {
+    lightboxInstance.value.destroy();
+    lightboxInstance.value = null;
   }
 
-  if (currentImage.value.startsWith("blob:")) {
+  if (currentImage.value && currentImage.value.startsWith("blob:")) {
     URL.revokeObjectURL(currentImage.value);
   }
 

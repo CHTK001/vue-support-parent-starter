@@ -124,18 +124,18 @@ html.dark {
   --el-bg-color: var(--app-bg-primary);
   --el-bg-color-overlay: var(--app-bg-overlay);
   --el-bg-color-page: var(--app-bg-secondary);
-  
+
   --el-text-color-primary: var(--app-text-primary);
   --el-text-color-regular: var(--app-text-secondary);
   --el-text-color-secondary: var(--app-text-secondary);
   --el-text-color-placeholder: var(--app-text-tertiary);
   --el-text-color-disabled: var(--app-text-disabled);
-  
+
   --el-border-color: var(--app-border-primary);
   --el-border-color-light: var(--app-border-primary);
   --el-border-color-lighter: var(--app-border-secondary);
   --el-border-color-extra-light: var(--app-border-secondary);
-  
+
   --el-fill-color: var(--app-bg-secondary);
   --el-fill-color-light: var(--app-bg-tertiary);
   --el-fill-color-lighter: var(--app-bg-tertiary);
@@ -143,10 +143,10 @@ html.dark {
   --el-fill-color-dark: var(--app-bg-primary);
   --el-fill-color-darker: var(--app-bg-primary);
   --el-fill-color-blank: #000000; /* 深色主题下为黑色 */
-  
+
   /* ===== 布局背景颜色变量 Layout Background Color Variable ===== */
   --layout-bg-color: 22, 24, 29; /* 深色主题下为深灰色 */
-  
+
   /* 调整遮罩颜色以适应深色主题 */
   --el-mask-color: rgba(0, 0, 0, 0.9);
   --el-mask-color-extra-light: rgba(0, 0, 0, 0.6);
@@ -258,12 +258,6 @@ html.dark .el-button {
   --el-tabs-header-bg-color: var(--app-bg-primary);
 }
 
-/* 工具提示组件 Tooltip Component */
-.el-tooltip__popper {
-  --el-tooltip-bg-color: var(--app-bg-overlay);
-  --el-tooltip-text-color: var(--app-text-primary);
-}
-
 /* 消息提示组件 Message Component */
 .el-message {
   --el-message-bg-color: var(--app-bg-overlay);
@@ -277,3 +271,4 @@ html.dark .el-button {
   --el-notification-border-color: var(--app-border-primary);
   --el-notification-text-color: var(--app-text-primary);
 }
+

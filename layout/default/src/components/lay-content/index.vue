@@ -28,8 +28,14 @@ const { showModel } = useTags();
 //@ts-ignore
 const { $storage, $config } = useGlobal<GlobalPropertiesApi>();
 
-const isKeepAlive = computed(() => {
-  return $config?.KeepAlive;
+// 组件缓存，从配置中读取
+const isKeepAlive = ref(
+  $storage?.configure?.keepAlive ?? $config?.KeepAlive ?? true
+);
+
+// 监听 keepAlive 变更事件
+emitter.on("keepAliveChange", (value: boolean) => {
+  isKeepAlive.value = value;
 });
 
 const transitions = computed(() => {
@@ -63,6 +69,7 @@ emitter.on("hideFooterChange", (value: boolean) => {
 
 onBeforeUnmount(() => {
   emitter.off("hideFooterChange");
+  emitter.off("keepAliveChange");
 });
 
 const stretch = computed(() => {

@@ -95,7 +95,7 @@
  */
 import { ref, computed, inject, onMounted, onUnmounted, watch, nextTick, type PropType } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import { useSocket } from "@repo/core";
+import { useSocketService } from "@repo/core";
 import interact from "interactjs";
 
 interface LogItem {
@@ -117,12 +117,17 @@ interface ProgressData {
 
 type PositionType = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
+type ProtocolType = "socketio" | "rsocket";
+
 const props = defineProps({
   eventId: { type: [String, Number], required: true },
   title: { type: String, default: "同步进度" },
   icon: { type: String, default: "ri:progress-3-line" },
   eventName: { type: [String, Array] as PropType<string | string[]>, default: "progress-event" },
+  // Socket 实例标识，未配置则使用全局
   socketKey: { type: String, default: undefined },
+  // 通信协议类型
+  protocol: { type: String as PropType<ProtocolType>, default: "socketio" },
   mode: { type: String, default: "embed" },
   position: { type: String as PropType<PositionType>, default: "bottom-right" },
   visible: { type: Boolean, default: false },
@@ -140,13 +145,22 @@ const emit = defineEmits<{
   data: [data: ProgressData];
 }>();
 
+// Socket 服务接口（统一接口）
+interface SocketService {
+  on: (event: string, callback: (data: unknown) => void) => void;
+  off: (event: string) => void;
+  emit?: (event: string, data?: unknown) => void;
+  isConnected?: boolean;
+}
+
 // Socket 实例
-const socketService = ref<unknown>(null);
+const socketService = ref<SocketService | null>(null);
 
 // 进度状态
 const percentage = ref(0);
 const status = ref("waiting");
 const message = ref("");
+const currentStep = ref("");
 const showProgress = ref(false);
 const logs = ref<LogItem[]>([]);
 const progressData = ref<ProgressData>({});
@@ -276,42 +290,52 @@ const scrollToBottom = () => {
   });
 };
 
-// 监听socket事件
+/**
+ * 获取 Socket 服务
+ * 使用统一的 socketService，自动适配 Socket.IO 和 RSocket
+ */
+const getSocketInstance = (): SocketService | null => {
+  // 使用统一的 socketService
+  const service = useSocketService();
+  if (service) {
+    return service as unknown as SocketService;
+  }
+  return null;
+};
+
+/**
+ * 设置 Socket 监听器
+ * 统一接口，自动适配 Socket.IO 和 RSocket
+ */
 const setupSocketListener = () => {
   if (props.dataType !== "socket") return;
 
-  // 获取socket实例
-  if (props.socketKey) {
-    socketService.value = useSocket(props.socketKey);
-  } else {
-    // 尝试从inject获取默认socket
-    const injectedSocket = inject("socket", null);
-    socketService.value = injectedSocket ? { socket: injectedSocket } : useSocket();
-  }
+  socketService.value = getSocketInstance();
 
-  if (!socketService.value || !socketService.value.socket) {
-    console.warn("Socket service not available");
+  if (!socketService.value) {
+    console.warn("[ScSocketMessageDialog] Socket 服务不可用");
     return;
   }
 
-  // 支持多个事件名称
   const eventNames = Array.isArray(props.eventName) ? props.eventName : [props.eventName];
 
   eventNames.forEach(eventName => {
-    socketService.value.socket.on(eventName, (data: ProgressData) => {
-      handleProgressData(data);
+    socketService.value?.on(eventName, (data: unknown) => {
+      handleProgressData(data as ProgressData);
     });
   });
 };
 
-// 移除socket监听
+/**
+ * 移除 Socket 监听
+ */
 const removeSocketListener = () => {
-  if (props.dataType !== "socket" || !socketService.value || !socketService.value.socket) return;
+  if (props.dataType !== "socket" || !socketService.value) return;
 
   const eventNames = Array.isArray(props.eventName) ? props.eventName : [props.eventName];
 
   eventNames.forEach(eventName => {
-    socketService.value.socket.off(eventName);
+    socketService.value?.off(eventName);
   });
 };
 

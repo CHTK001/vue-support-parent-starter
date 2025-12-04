@@ -184,6 +184,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, type PropType } from "vue";
 import { ElDialog, ElButton } from "element-plus";
 import interact from "interactjs";
+import { useTaskbar, type TaskbarItem } from "./useTaskbar";
 
 /** 对话框模式 */
 type DialogMode = "element" | "custom";
@@ -351,6 +352,10 @@ const props = withDefaults(
     minimizeShowTitle?: boolean;
     /** 主题风格 */
     theme?: "tech" | "default";
+    /** 是否使用任务栏（开启后最小化会收缩到任务栏） */
+    useTaskbar?: boolean;
+    /** 分组标识（用于任务栏分组合并） */
+    group?: string;
   }>(),
   {
     modelValue: false,
@@ -392,7 +397,9 @@ const props = withDefaults(
     snapThreshold: 10,
     minimizeShowTitle: true,
     showAlignGuides: true,
-    theme: "default"
+    theme: "default",
+    useTaskbar: false,
+    group: ""
   }
 );
 
@@ -432,6 +439,9 @@ const alignGuides = ref<{ vertical: number[]; horizontal: number[] }>({ vertical
 // interact.js 实例
 let interactInstance: ReturnType<typeof interact> | null = null;
 let minimizedInteractInstance: ReturnType<typeof interact> | null = null;
+
+// 任务栏管理器
+const taskbar = useTaskbar();
 
 // 对话框样式
 const dialogStyle = computed(() => {
@@ -951,19 +961,90 @@ function minimizeToEdge(position: DockPosition, target: HTMLElement): void {
  */
 function handleMinimize(): void {
   if (dialogRef.value) {
-    // 最小化按钮点击时不更新 lastDialogState
-    // 直接使用已保存的拖拽位置
-    dockPosition.value = "bottom";
-    isMinimized.value = true;
-    minimizedIconPosition.value = null;
+    // 保存当前对话框状态
+    const target = dialogRef.value;
+    lastDialogState.value = {
+      x: parseFloat(target.getAttribute("data-x") || "0") || 0,
+      y: parseFloat(target.getAttribute("data-y") || "0") || 0,
+      width: target.style.width || "",
+      height: target.style.height || ""
+    };
 
-    // 初始化最小化图标的拖拽
-    nextTick(() => {
-      if (props.minimizeDraggable) {
-        initMinimizedIconInteract();
-      }
-    });
+    // 如果启用了任务栏，添加到任务栏
+    if (props.useTaskbar) {
+      minimizeToTaskbar();
+    } else {
+      // 默认最小化行为
+      dockPosition.value = "bottom";
+      isMinimized.value = true;
+      minimizedIconPosition.value = null;
+
+      // 初始化最小化图标的拖拽
+      nextTick(() => {
+        if (props.minimizeDraggable) {
+          initMinimizedIconInteract();
+        }
+      });
+    }
   }
+}
+
+/**
+ * 最小化到任务栏
+ */
+function minimizeToTaskbar(): void {
+  // 创建任务栏项
+  const taskbarItem: TaskbarItem = {
+    id: internalDialogId.value,
+    title: props.title,
+    icon: props.icon || actualMinimizeIcon.value,
+    type: props.type,
+    group: props.group || undefined,
+    active: false,
+    timestamp: Date.now(),
+    restore: () => {
+      restoreFromTaskbar();
+    },
+    close: () => {
+      dialogVisible.value = false;
+    }
+  };
+
+  // 添加到任务栏
+  taskbar.addItem(taskbarItem);
+
+  // 隐藏对话框（但不关闭）
+  isMinimized.value = true;
+  dockPosition.value = null;
+}
+
+/**
+ * 从任务栏恢复
+ */
+function restoreFromTaskbar(): void {
+  // 从任务栏移除
+  taskbar.removeItem(internalDialogId.value);
+
+  // 恢复对话框
+  isMinimized.value = false;
+
+  // 恢复对话框状态并重新初始化拖拽
+  nextTick(() => {
+    if (dialogRef.value && lastDialogState.value) {
+      const target = dialogRef.value;
+      target.style.transform = `translate(${lastDialogState.value.x}px, ${lastDialogState.value.y}px)`;
+      target.setAttribute("data-x", String(lastDialogState.value.x));
+      target.setAttribute("data-y", String(lastDialogState.value.y));
+      if (lastDialogState.value.width) {
+        target.style.width = lastDialogState.value.width;
+      }
+      if (lastDialogState.value.height) {
+        target.style.height = lastDialogState.value.height;
+      }
+    }
+    // 重新初始化 interact.js，恢复拖拽和缩放功能
+    initInteract();
+  });
 }
 
 /**
@@ -1193,10 +1274,16 @@ defineExpose({
   },
   /** 最小化对话框 */
   minimize: (position: DockPosition = "bottom") => {
-    if (dialogRef.value) {
+    if (props.useTaskbar) {
+      minimizeToTaskbar();
+    } else if (dialogRef.value) {
       minimizeToEdge(position, dialogRef.value);
     }
   },
+  /** 最小化到任务栏 */
+  minimizeToTaskbar,
+  /** 从任务栏恢复 */
+  restoreFromTaskbar,
   /** 还原对话框 */
   restore: restoreFromEdge,
   /** 最大化对话框 */

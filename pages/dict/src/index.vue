@@ -2,7 +2,6 @@
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import ScSearch from "@repo/components/ScSearch/index.vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import {
   fetchDeleteDictItem,
@@ -31,8 +30,6 @@ const onClick = (data) => {
   params.sysDictId = data.sysDictId;
   onSearch(params);
 };
-
-const columns = reactive([]);
 
 const onSearch = (query) => {
   const newParams = {};
@@ -104,15 +101,26 @@ const dialogClose = () => {
       </el-aside>
       <el-main class="dict-main">
         <el-container>
-          <el-header class="dict-header">
-            <scSearch
-              :columns="columns"
-              :onSearch="onSearch"
-              :show-number="4"
-              :onEdit="dialogOpen"
-            />
+          <el-header class="dict-header" v-if="params.sysDictId">
+            <div class="toolbar-left">
+              <!-- 过滤条件区域 -->
+            </div>
+            <div class="toolbar-right">
+              <el-button size="small" @click="onSearch({})">
+                <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+                刷新
+              </el-button>
+              <el-button
+                type="primary"
+                size="small"
+                @click="dialogOpen({}, 'save')"
+              >
+                <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+                新增
+              </el-button>
+            </div>
           </el-header>
-          <el-main class="dict-content">
+          <el-main class="dict-content thin-scroller">
             <scTable
               v-if="params.sysDictId"
               ref="tableRef"
@@ -180,7 +188,7 @@ const dialogClose = () => {
                   >
                     {{ row.sysDictItemI18n }}
                   </el-tag>
-                  <span v-else>/</span>
+                  <span v-else class="null-value">NULL</span>
                 </template>
               </el-table-column>
               <el-table-column
@@ -210,7 +218,10 @@ const dialogClose = () => {
                 align="center"
               >
                 <template #default="{ row }">
-                  {{ row.sysDictItemRemark || "/" }}
+                  <span v-if="row.sysDictItemRemark">{{
+                    row.sysDictItemRemark
+                  }}</span>
+                  <span v-else class="null-value">NULL</span>
                 </template>
               </el-table-column>
               <el-table-column label="操作" fixed="right" align="center">
@@ -359,20 +370,27 @@ const dialogClose = () => {
 }
 
 .dict-header {
-  height: auto !important;
-  padding: 20px 24px;
-  background: linear-gradient(
-    180deg,
-    var(--el-bg-color-overlay) 0%,
-    var(--el-bg-color) 100%
-  );
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  height: 48px !important;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+
+  .toolbar-left {
+    display: flex;
+    gap: 8px;
+  }
+
+  .toolbar-right {
+    display: flex;
+    gap: 8px;
+  }
 }
 
 .dict-content {
-  padding: 24px;
+  padding: 16px;
   background-color: var(--el-bg-color);
 }
 
@@ -422,6 +440,14 @@ const dialogClose = () => {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
+/* 空值样式 */
+.null-value {
+  color: var(--el-text-color-placeholder);
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.7;
+}
+
 :deep(.btn-text) {
   width: 32px;
   height: 32px;
@@ -450,29 +476,6 @@ const dialogClose = () => {
 .search-form {
   :deep(.el-form-item) {
     margin-bottom: 12px;
-  }
-}
-
-// 搜索组件美化
-:deep(.sc-search) {
-  .el-input__wrapper {
-    border-radius: 10px;
-    transition: all 0.3s ease;
-
-    &:hover,
-    &:focus-within {
-      box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.15);
-    }
-  }
-
-  .el-button {
-    border-radius: 10px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.25);
-    }
   }
 }
 </style>

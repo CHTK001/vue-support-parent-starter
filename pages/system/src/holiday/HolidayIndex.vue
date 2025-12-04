@@ -4,7 +4,14 @@ import Refresh from "@iconify-icons/line-md/backup-restore";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import ScSearch from "@repo/components/ScSearch/index.vue";
 import { message } from "@repo/utils";
-import { defineAsyncComponent, nextTick, onMounted, reactive, ref } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  nextTick,
+  onMounted,
+  reactive,
+  ref,
+} from "vue";
 import {
   fetchHolidayList,
   syncHolidayData,
@@ -29,6 +36,10 @@ const loading = ref(false);
 const syncLoading = ref(false);
 const currentYear = ref(new Date().getFullYear());
 const viewMode = ref<"table" | "calendar">("table");
+const posterMode = ref(true);
+// 海报模式开关
+const showHolidayCountdown = ref(true);
+const showWorkCountdown = ref(true);
 
 // 查询参数
 const params = reactive({
@@ -37,6 +48,62 @@ const params = reactive({
 
 // 节假日数据
 const holidayData = ref<SysHoliday[]>([]);
+
+/**
+ * 计算距离今天的天数
+ * @param dateStr 日期字符串
+ * @returns 天数差（正数为未来，负数为过去）
+ */
+const getDaysFromToday = (dateStr: string): number => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const targetDate = new Date(dateStr);
+  targetDate.setHours(0, 0, 0, 0);
+  const diffTime = targetDate.getTime() - today.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
+/**
+ * 排序后的节假日数据（倒序）
+ */
+const sortedHolidayData = computed(() => {
+  return [...holidayData.value].sort((a, b) => {
+    return (
+      new Date(b.sysHolidayDate).getTime() -
+      new Date(a.sysHolidayDate).getTime()
+    );
+  });
+});
+
+/**
+ * 最近的未来节假日
+ */
+const nearestFutureHoliday = computed(() => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const futureHolidays = holidayData.value
+    .filter((h) => new Date(h.sysHolidayDate) >= today)
+    .sort(
+      (a, b) =>
+        new Date(a.sysHolidayDate).getTime() -
+        new Date(b.sysHolidayDate).getTime()
+    );
+  return futureHolidays.length > 0 ? futureHolidays[0] : null;
+});
+
+/**
+ * 判断是否为最近的未来节假日
+ */
+const isNearestFuture = (row: SysHoliday): boolean => {
+  return nearestFutureHoliday.value?.sysHolidayDate === row.sysHolidayDate;
+};
+
+/**
+ * 判断是否为未来日期
+ */
+const isFutureDate = (dateStr: string): boolean => {
+  return getDaysFromToday(dateStr) > 0;
+};
 
 // 搜索列配置
 const columns = reactive<any>([
@@ -188,7 +255,7 @@ onMounted(() => {
                     @click="switchViewMode('table')"
                   >
                     <el-icon><ep-list /></el-icon>
-                    列表视图
+                    列表
                   </el-button>
                   <el-button
                     :type="viewMode === 'calendar' ? 'primary' : 'default'"
@@ -197,9 +264,43 @@ onMounted(() => {
                     <el-icon
                       ><component :is="useRenderIcon(Calendar)"
                     /></el-icon>
-                    日历视图
+                    日历
                   </el-button>
                 </el-button-group>
+
+                <!-- 海报模式切换 -->
+                <el-button
+                  v-if="viewMode === 'calendar'"
+                  :type="posterMode ? 'success' : 'default'"
+                  @click="posterMode = !posterMode"
+                >
+                  <IconifyIconOnline icon="mdi:image-frame" />
+                  海报
+                </el-button>
+
+                <!-- 海报模式开关 -->
+                <el-popover
+                  v-if="viewMode === 'calendar' && posterMode"
+                  placement="bottom"
+                  :width="200"
+                  trigger="click"
+                >
+                  <template #reference>
+                    <el-button>
+                      <IconifyIconOnline icon="ep:setting" />
+                    </el-button>
+                  </template>
+                  <div class="poster-settings">
+                    <div class="setting-item">
+                      <span>放假倒计时</span>
+                      <el-switch v-model="showHolidayCountdown" size="small" />
+                    </div>
+                    <div class="setting-item">
+                      <span>下班倒计时</span>
+                      <el-switch v-model="showWorkCountdown" size="small" />
+                    </div>
+                  </div>
+                </el-popover>
 
                 <!-- 同步按钮 -->
                 <el-button
@@ -225,15 +326,23 @@ onMounted(() => {
           </el-header>
 
           <!-- 主内容区域 -->
-          <el-main>
+          <el-main class="thin-scroller">
             <!-- 表格视图 -->
-            <div v-if="viewMode === 'table'" v-loading="loading">
+            <div
+              v-if="viewMode === 'table'"
+              v-loading="loading"
+              class="thin-scroller"
+            >
               <el-table
-                :data="holidayData"
+                :data="sortedHolidayData"
                 border
                 stripe
                 style="width: 100%"
                 empty-text="暂无节假日数据"
+                :row-class-name="
+                  ({ row }) =>
+                    isNearestFuture(row) ? 'nearest-future-row' : ''
+                "
               >
                 <el-table-column
                   label="序号"
@@ -253,10 +362,21 @@ onMounted(() => {
                   prop="sysHolidayDate"
                   label="日期"
                   align="center"
-                  width="120px"
+                  width="180px"
                 >
                   <template #default="{ row }">
-                    {{ formatDate(row.sysHolidayDate) }}
+                    <div class="date-cell">
+                      <span>{{ formatDate(row.sysHolidayDate) }}</span>
+                      <el-tag
+                        v-if="isNearestFuture(row)"
+                        type="success"
+                        size="small"
+                        effect="dark"
+                        class="countdown-tag"
+                      >
+                        还剩 {{ getDaysFromToday(row.sysHolidayDate) }} 天
+                      </el-tag>
+                    </div>
                   </template>
                 </el-table-column>
 
@@ -297,11 +417,18 @@ onMounted(() => {
             </div>
 
             <!-- 日历视图 -->
-            <div v-else-if="viewMode === 'calendar'" v-loading="loading">
+            <div
+              v-else-if="viewMode === 'calendar'"
+              v-loading="loading"
+              :class="{ 'poster-container': posterMode }"
+            >
               <HolidayCalendar
                 ref="calendarRef"
                 :holiday-data="holidayData"
                 :current-year="params.year"
+                :poster-mode="posterMode"
+                :show-holiday-countdown="showHolidayCountdown"
+                :show-work-countdown="showWorkCountdown"
                 @year-change="
                   (year) => {
                     params.year = year;
@@ -401,6 +528,66 @@ onMounted(() => {
 :deep(.el-select) {
   .el-select__wrapper {
     border-radius: 8px;
+  }
+}
+
+// 最近未来节假日行高亮
+:deep(.nearest-future-row) {
+  background: rgba(var(--el-color-success-rgb), 0.1) !important;
+
+  td {
+    border-color: rgba(var(--el-color-success-rgb), 0.2) !important;
+  }
+}
+
+.date-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.countdown-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+// 海报模式容器
+.poster-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: calc(100vh - 150px);
+  border-radius: 16px;
+}
+
+// 海报设置弹窗
+.poster-settings {
+  .setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--el-border-color-lighter);
+    }
+
+    span {
+      font-size: 14px;
+      color: var(--el-text-color-primary);
+    }
   }
 }
 </style>

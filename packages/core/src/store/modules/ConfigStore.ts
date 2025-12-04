@@ -3,7 +3,12 @@ import { useWatermark } from "@pureadmin/utils";
 import { localStorageProxy, loopDebugger, redirectDebugger } from "@repo/utils";
 import { defineStore } from "pinia";
 import { nextTick, ref } from "vue";
-import { provideGlobalSocket } from "../../config/socket";
+import {
+  closeGlobalSocketService,
+  getGlobalSocketService,
+  initGlobalSocketService,
+  type ProtocolType,
+} from "../../config/socketService";
 import { useUserStoreHook } from "../../store/modules/UserStore";
 import { getConfig, putConfig } from "../utils";
 import { useSettingStore } from "./SettingStore";
@@ -17,16 +22,16 @@ const { setWatermark: setPreventLocalWatermark } = useWatermark(preventLocal);
 // 百度统计初始化函数
 const initBaiduAnalytics = (hmId: string) => {
   if (!hmId) return;
-  
+
   // 避免重复加载
   if (window._hmt) return;
-  
+
   // 创建百度统计脚本
   const hmScript = document.createElement("script");
   hmScript.src = `https://hm.baidu.com/hm.js?${hmId}`;
   const firstScript = document.getElementsByTagName("script")[0];
   firstScript.parentNode.insertBefore(hmScript, firstScript);
-  
+
   // 初始化_hmt对象
   window._hmt = window._hmt || [];
 };
@@ -47,12 +52,35 @@ export const useConfigStore = defineStore({
       watermarkColor: "#409EFF",
       CodecRequestKey: null,
     },
-    socket: null,
     config: {},
+    // API接口地址，如果设置则所有HTTP请求都走这个地址
+    apiAddress: null as string | null,
   }),
   actions: {
+    /**
+     * 获取全局 Socket 服务
+     * @returns Socket 服务实例
+     */
     getSocket() {
-      return this.socket;
+      return getGlobalSocketService();
+    },
+    /**
+     * 获取API接口地址
+     * @returns API接口地址，如果未设置则返回null
+     */
+    getApiAddress(): string | null {
+      return this.apiAddress;
+    },
+    /**
+     * 设置API接口地址
+     * @param address API接口地址
+     */
+    setApiAddress(address: string | null) {
+      this.apiAddress = address;
+      // 同步到配置中
+      if (address) {
+        putConfig("ApiAddress", address);
+      }
     },
     /** 请求密钥 */
     codecRequestKey() {
@@ -70,8 +98,7 @@ export const useConfigStore = defineStore({
     },
     async close() {
       clear();
-      this.socket?.close();
-      this.socket = null;
+      closeGlobalSocketService();
     },
     async upgrade(version: any) {
       if (!version || this.version == version) {
@@ -118,7 +145,7 @@ export const useConfigStore = defineStore({
         return new Promise<void>(async (resolve) => {
           const response = await fetchSetting(this.settingGroup);
           const data = response.data; // 提取data字段
-          if(!data) {
+          if (!data) {
             resolve(null);
             return;
           }
@@ -139,7 +166,7 @@ export const useConfigStore = defineStore({
         console.error("ConfigStore.doRegister: data is not an array", data);
         return;
       }
-      
+
       data?.forEach((element) => {
         const key = element.sysSettingGroup + ":" + element.sysSettingName;
         this.config[key] = element.sysSettingConfig;
@@ -159,26 +186,63 @@ export const useConfigStore = defineStore({
         redirectDebugger();
       }
       if (this.systemSetting["config:SystemName"]) {
-        useSettingStore().setSetting("Title", this.systemSetting["config:SystemName"]);
+        useSettingStore().setSetting(
+          "Title",
+          this.systemSetting["config:SystemName"]
+        );
       }
       if (this.systemSetting["config:BaseUrl"]) {
-        useSettingStore().setSetting("BaseUrl", this.systemSetting["config:BaseUrl"]);
+        useSettingStore().setSetting(
+          "BaseUrl",
+          this.systemSetting["config:BaseUrl"]
+        );
+      }
+      // 处理 ApiAddress 配置，如果存在则所有HTTP请求都走这个接口地址
+      if (this.systemSetting["config:ApiAddress"]) {
+        this.setApiAddress(this.systemSetting["config:ApiAddress"]);
       }
       if (this.systemSetting["config:WatermarkOpen"] == "true") {
         this.openWatermark();
       }
-      if (this.systemSetting["config:SocketOpen"] == "true" && this.systemSetting["config:SocketUrl"]) {
-        this.openSocket(this.systemSetting["config:SocketUrl"]?.split(","), this.systemSetting["config:SocketPath"]);
+      if (
+        this.systemSetting["config:SocketOpen"] == "true" &&
+        this.systemSetting["config:SocketUrl"]
+      ) {
+        // 获取协议类型配置，默认 socketio
+        const protocol =
+          (this.systemSetting["config:SocketProtocol"] as ProtocolType) ||
+          "socketio";
+        this.openSocket(
+          this.systemSetting["config:SocketUrl"]?.split(","),
+          this.systemSetting["config:SocketPath"],
+          protocol
+        );
       }
       // 初始化百度统计
       if (this.systemSetting["config:BaiduHmId"]) {
         initBaiduAnalytics(this.systemSetting["config:BaiduHmId"]);
       }
     },
-    async openSocket(urls, context) {
-      this.close();
-      this.socket = provideGlobalSocket(urls, context, {});
-      this.socket.connect();
+    /**
+     * 打开 Socket 连接
+     * 通过统一的 socketService 管理，根据协议类型自动选择实现
+     *
+     * @param urls 服务器地址数组
+     * @param context 上下文路径（Socket.IO 专用）
+     * @param protocol 协议类型，默认 socketio
+     */
+    async openSocket(
+      urls: string[],
+      context?: string,
+      protocol: ProtocolType = "socketio"
+    ) {
+      // 使用统一的 socketService 初始化
+      const socket = initGlobalSocketService({
+        protocol,
+        urls,
+        context,
+      });
+      socket.connect();
     },
     async openWatermark() {
       var config = {
@@ -202,3 +266,11 @@ export const useConfigStore = defineStore({
     },
   },
 });
+
+/**
+ * 在组件外部使用 ConfigStore
+ * @returns ConfigStore 实例
+ */
+export function useConfigStoreHook() {
+  return useConfigStore();
+}

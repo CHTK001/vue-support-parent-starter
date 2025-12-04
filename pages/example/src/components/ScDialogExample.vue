@@ -77,6 +77,42 @@
               ></el-input-number>
             </el-form-item>
 
+            <el-form-item label="任务栏模式" v-if="config.mode === 'custom'">
+              <el-switch
+                v-model="config.useTaskbar"
+                active-text="启用任务栏"
+                class="mb-2 block"
+              ></el-switch>
+              <template v-if="config.useTaskbar">
+                <el-input
+                  v-model="config.group"
+                  placeholder="分组标识（可选）"
+                  class="mb-2"
+                ></el-input>
+                <el-select
+                  v-model="taskbarConfig.position"
+                  placeholder="任务栏位置"
+                  style="width: 100%"
+                  class="mb-2"
+                >
+                  <el-option label="底部" value="bottom"></el-option>
+                  <el-option label="顶部" value="top"></el-option>
+                  <el-option label="左侧" value="left"></el-option>
+                  <el-option label="右侧" value="right"></el-option>
+                </el-select>
+                <el-switch
+                  v-model="taskbarConfig.alwaysVisible"
+                  active-text="永久显示"
+                  class="mb-2 block"
+                ></el-switch>
+                <el-switch
+                  v-model="taskbarConfig.groupCollapse"
+                  active-text="分组合并"
+                  class="mb-2 block"
+                ></el-switch>
+              </template>
+            </el-form-item>
+
             <el-form-item label="图标设置" v-if="config.mode === 'custom'">
               <el-input
                 v-model="config.icon"
@@ -272,6 +308,17 @@
             </div>
           </div>
 
+          <!-- 任务栏组件 -->
+          <ScDialogTaskbar
+            v-if="config.useTaskbar"
+            :enabled="config.useTaskbar"
+            :position="taskbarConfig.position"
+            :height="taskbarConfig.height"
+            :always-visible="taskbarConfig.alwaysVisible"
+            :group-collapse="taskbarConfig.groupCollapse"
+            :auto-hide-delay="taskbarConfig.autoHideDelay"
+          />
+
           <!-- 真实对话框 -->
           <ScDialog
             v-model="dialogVisible"
@@ -296,6 +343,8 @@
             :icon="config.icon"
             :icon-mode="config.iconMode"
             :icon-size="config.iconSize"
+            :use-taskbar="config.useTaskbar"
+            :group="config.group"
             @open="handleDialogOpen"
             @opened="handleDialogOpened"
             @close="handleDialogClose"
@@ -381,6 +430,75 @@
               </div>
             </template>
           </ScDialog>
+
+          <!-- 任务栏模式的多对话框示例 -->
+          <template v-if="config.useTaskbar">
+            <div class="taskbar-demo-section">
+              <h4>任务栏多对话框示例</h4>
+              <p class="demo-desc">
+                点击按钮打开多个对话框，然后点击最小化按钮查看任务栏效果
+              </p>
+              <div class="demo-buttons">
+                <el-button type="primary" @click="taskbarDialog1 = true">
+                  <IconifyIconOnline icon="ep:setting" class="mr-1" />
+                  系统设置
+                </el-button>
+                <el-button type="success" @click="taskbarDialog2 = true">
+                  <IconifyIconOnline icon="ep:user" class="mr-1" />
+                  用户管理
+                </el-button>
+                <el-button type="warning" @click="taskbarDialog3 = true">
+                  <IconifyIconOnline icon="ep:document" class="mr-1" />
+                  文档编辑
+                </el-button>
+              </div>
+            </div>
+
+            <ScDialog
+              v-model="taskbarDialog1"
+              title="系统设置"
+              mode="custom"
+              type="info"
+              icon="ep:setting"
+              :use-taskbar="true"
+              group="系统"
+              :width="450"
+            >
+              <div class="demo-dialog-content">
+                <p>这是系统设置对话框，点击最小化按钮可收缩到任务栏</p>
+              </div>
+            </ScDialog>
+
+            <ScDialog
+              v-model="taskbarDialog2"
+              title="用户管理"
+              mode="custom"
+              type="success"
+              icon="ep:user"
+              :use-taskbar="true"
+              group="系统"
+              :width="450"
+            >
+              <div class="demo-dialog-content">
+                <p>这是用户管理对话框，与“系统设置”同属一个分组</p>
+              </div>
+            </ScDialog>
+
+            <ScDialog
+              v-model="taskbarDialog3"
+              title="文档编辑"
+              mode="custom"
+              type="warning"
+              icon="ep:document"
+              :use-taskbar="true"
+              group="编辑器"
+              :width="450"
+            >
+              <div class="demo-dialog-content">
+                <p>这是文档编辑对话框，属于另一个分组</p>
+              </div>
+            </ScDialog>
+          </template>
         </div>
       </el-col>
     </el-row>
@@ -390,6 +508,7 @@
 <script setup>
 import { ref, reactive, computed } from "vue";
 import ScDialog from "@repo/components/ScDialog/src/index.vue";
+import ScDialogTaskbar from "@repo/components/ScDialog/src/ScDialogTaskbar.vue";
 import { message } from "@repo/utils";
 import CodePreview from "./CodePreview.vue";
 
@@ -420,7 +539,24 @@ const config = reactive({
   icon: "",
   iconMode: "inline",
   iconSize: 24,
+  // 任务栏模式配置
+  useTaskbar: false,
+  group: "",
 });
+
+// 任务栏配置
+const taskbarConfig = reactive({
+  position: "bottom",
+  height: 48,
+  alwaysVisible: true,
+  groupCollapse: true,
+  autoHideDelay: 2000,
+});
+
+// 任务栏模式的多对话框示例
+const taskbarDialog1 = ref(false);
+const taskbarDialog2 = ref(false);
+const taskbarDialog3 = ref(false);
 
 // 表单数据
 const formData = reactive({
@@ -456,20 +592,29 @@ const handleDialogClosed = () => {
 
 // 生成代码示例
 const generatedCode = computed(() => {
-  // 添加注释说明选择的模式
-  const modeDescription =
-    config.mode === "custom"
-      ? "<!-- 自定义模式：使用 interact.js 实现拖拽和缩放 -->"
-      : "<!-- ElementPlus 模式：使用原生 el-dialog -->";
+  let code = "";
 
-  let code = `${modeDescription}\n<ScDialog
+  // 任务栏组件
+  if (config.mode === "custom" && config.useTaskbar) {
+    code += `<ScDialogTaskbar
+  :enabled="true"
+  position="${taskbarConfig.position}"
+  :height="${taskbarConfig.height}"
+  :always-visible="${taskbarConfig.alwaysVisible}"
+  :group-collapse="${taskbarConfig.groupCollapse}"
+/>
+
+`;
+  }
+
+  code += `<ScDialog
   v-model="dialogVisible"`;
 
   if (!config.customHeader) {
     code += `\n  title="${config.title || "对话框标题"}"`;
   }
 
-  code += `\n  width="${config.width}px"`;
+  code += `\n  :width="${config.width}"`;
   code += `\n  mode="${config.mode}"`;
 
   if (config.type !== "default") {
@@ -542,65 +687,51 @@ const generatedCode = computed(() => {
         code += `\n  :icon-size="${config.iconSize}"`;
       }
     }
+
+    // 任务栏模式
+    if (config.useTaskbar) {
+      code += `\n  :use-taskbar="true"`;
+      if (config.group) {
+        code += `\n  group="${config.group}"`;
+      }
+    }
   }
 
-  code += `>`;
+  code += `\n>`;
 
   // 自定义头部
   if (config.customHeader) {
     code += `\n  <template #header>
     <div class="custom-header">
-      <div class="header-left">
-        <IconifyIconOnline icon="ri:file-list-line" />
-        <span>${config.title || "自定义头部"}</span>
-      </div>
-      ${
-        config.showClose
-          ? `<el-button type="primary" text circle @click="dialogVisible = false">
-        <IconifyIconOnline icon="ri:close-line" />
-      </el-button>`
-          : ""
-      }
+      <IconifyIconOnline icon="ri:file-list-line" />
+      <span>${config.title || "自定义头部"}</span>
     </div>
   </template>`;
   }
 
   // 内容区域
   if (config.contentType === "text") {
-    code += `\n  <div class="dialog-content">
-    <p>${config.textContent || "这里是对话框的内容区域"}</p>
-  </div>`;
+    code += `\n  <p>${config.textContent || "这里是对话框的内容区域"}</p>`;
   } else if (config.contentType === "form") {
     code += `\n  <el-form :model="formData" label-width="80px">
     <el-form-item label="用户名">
-      <el-input v-model="formData.username"></el-input>
+      <el-input v-model="formData.username" />
     </el-form-item>
     <el-form-item label="邮箱">
-      <el-input v-model="formData.email"></el-input>
-    </el-form-item>
-    <el-form-item label="部门">
-      <el-select v-model="formData.department"></el-select>
+      <el-input v-model="formData.email" />
     </el-form-item>
   </el-form>`;
   } else if (config.contentType === "confirm") {
-    code += `\n  <div class="confirm-content">
-    <IconifyIconOnline icon="ri:error-warning-line" class="warning-icon" />
-    <div class="confirm-message">
-      <p class="confirm-title">确认操作</p>
-      <p class="confirm-desc">您确定要执行此操作吗？</p>
+    code += `\n  <div style="display: flex; align-items: center; gap: 12px;">
+    <IconifyIconOnline icon="ri:error-warning-line" style="font-size: 32px; color: var(--el-color-warning);" />
+    <div>
+      <p style="font-weight: bold; margin: 0 0 4px 0;">确认操作</p>
+      <p style="margin: 0; color: var(--el-text-color-secondary);">您确定要执行此操作吗？</p>
     </div>
   </div>`;
   }
 
-  // 底部区域
-  code += `\n  
-  <template #footer>
-    <div class="dialog-footer">
-      <el-button @click="dialogVisible = false">取消</el-button>
-      <el-button type="primary" @click="handleConfirm">确定</el-button>
-    </div>
-  </template>
-</ScDialog>`;
+  code += `\n</ScDialog>`;
 
   return code;
 });
@@ -883,6 +1014,45 @@ const generatedCode = computed(() => {
 
   .mt-4 {
     margin-top: 16px;
+  }
+
+  // 任务栏示例区域
+  .taskbar-demo-section {
+    margin-top: 24px;
+    padding: 16px;
+    background: var(--el-fill-color-light);
+    border-radius: 8px;
+
+    h4 {
+      margin: 0 0 8px 0;
+      color: var(--el-text-color-primary);
+    }
+
+    .demo-desc {
+      margin: 0 0 16px 0;
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+    }
+
+    .demo-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+
+      .mr-1 {
+        margin-right: 4px;
+      }
+    }
+  }
+
+  .demo-dialog-content {
+    padding: 16px;
+
+    p {
+      margin: 0;
+      line-height: 1.6;
+      color: var(--el-text-color-regular);
+    }
   }
 }
 
