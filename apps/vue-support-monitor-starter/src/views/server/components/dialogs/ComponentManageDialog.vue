@@ -23,7 +23,7 @@
             :loading="initLoading"
           >
             <IconifyIconOnline icon="ri:magic-line" class="mr-1" />
-            初始化默认组件
+            初始化默认组�?
           </el-button>
         </div>
         <div class="toolbar-right">
@@ -56,7 +56,7 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="monitorSysGenServerDetailComponentExpressionType" label="表达式类型" width="120">
+          <el-table-column prop="monitorSysGenServerDetailComponentExpressionType" label="表达式类�? width="120">
             <template #default="{ row }">
               <el-tag
                 :type="row.monitorSysGenServerDetailComponentExpressionType === 'PROMETHEUS' ? 'primary' : 'success'"
@@ -68,10 +68,10 @@
           </el-table-column>
           <el-table-column prop="monitorSysGenServerDetailComponentRefreshInterval" label="刷新间隔" width="100">
             <template #default="{ row }">
-              {{ row.monitorSysGenServerDetailComponentRefreshInterval }}秒
+              {{ row.monitorSysGenServerDetailComponentRefreshInterval }}�?
             </template>
           </el-table-column>
-          <el-table-column prop="monitorSysGenServerDetailComponentEnabled" label="状态" width="80">
+          <el-table-column prop="monitorSysGenServerDetailComponentEnabled" label="状�? width="80">
             <template #default="{ row }">
               <el-switch
                 v-model="row.monitorSysGenServerDetailComponentEnabled"
@@ -117,7 +117,7 @@
 
       <div class="batch-actions" v-if="selectedComponents.length > 0">
         <div class="selected-info">
-          已选择 {{ selectedComponents.length }} 个组件
+          已选择 {{ selectedComponents.length }} 个组�?
         </div>
         <div class="actions">
           <el-button
@@ -154,7 +154,7 @@
       </div>
     </template>
 
-    <!-- 组件编辑对话框 -->
+    <!-- 组件编辑对话�?-->
     <ComponentEditDialog
       ref="componentEditDialogRef"
       @success="handleComponentSaved"
@@ -173,7 +173,7 @@ import {
   type ServerDetailComponent
 } from "@/api/server";
 
-// 导入子组件
+// 导入子组�?
 import ComponentEditDialog from "./ComponentEditDialog.vue";
 
 // 定义事件
@@ -181,7 +181,7 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 响应式状态
+// 响应式状�?
 const visible = ref(false);
 const loading = ref(false);
 const initLoading = ref(false);
@@ -193,7 +193,7 @@ const searchText = ref("");
 // 组件引用
 const componentEditDialogRef = ref();
 
-// 计算属性
+// 计算属�?
 const filteredComponents = computed(() => {
   if (!searchText.value) {
     return components.value;
@@ -213,9 +213,9 @@ const filteredComponents = computed(() => {
 const getComponentTypeName = (type: string) => {
   const nameMap = {
     card: "卡片",
-    gauge: "仪表盘",
-    line: "折线图",
-    bar: "柱状图",
+    gauge: "仪表�?,
+    line: "折线�?,
+    bar: "柱状�?,
     pie: "饼图",
     table: "表格",
   };
@@ -238,7 +238,7 @@ const getComponentTypeColor = (type: string) => {
 };
 
 /**
- * 打开对话框
+ * 打开对话�?
  */
 const open = (serverIdValue: number) => {
   serverId.value = serverIdValue;
@@ -281,24 +281,24 @@ const handleAddComponent = () => {
 };
 
 /**
- * 初始化默认组件
+ * 初始化默认组�?
  */
 const handleInitDefault = async () => {
   try {
-    await messageBox.confirm("确定要初始化默认组件吗？这将添加一些预设的监控组件。", "确认操作");
+    await messageBox.confirm("确定要初始化默认组件吗？这将添加一些预设的监控组件�?, "确认操作");
     
     initLoading.value = true;
     const res = await initDefaultComponentsForServer(serverId.value);
     if (res.code === "00000") {
-      message.success("初始化默认组件成功");
+      message.success("初始化默认组件成�?);
       await loadComponents();
     } else {
-      message.error(res.msg || "初始化失败");
+      message.error(res.msg || "初始化失�?);
     }
   } catch (error) {
     if (error !== "cancel") {
-      console.error("初始化默认组件失败:", error);
-      message.error("初始化失败");
+      console.error("初始化默认组件失�?", error);
+      message.error("初始化失�?);
     }
   } finally {
     initLoading.value = false;
@@ -330,7 +330,7 @@ const handleCloneComponent = (component: ServerDetailComponent) => {
  */
 const handleDeleteComponent = async (component: ServerDetailComponent) => {
   try {
-    await messageBox.confirm(`确定要删除组件 "${component.monitorSysGenServerDetailComponentTitle}" 吗？`, "确认删除");
+    await messageBox.confirm(`确定要删除组�?"${component.monitorSysGenServerDetailComponentTitle}" 吗？`, "确认删除");
     
     const res = await deleteServerDetailComponent(component.monitorSysGenServerDetailComponentId!);
     if (res.code === "00000") {
@@ -348,7 +348,7 @@ const handleDeleteComponent = async (component: ServerDetailComponent) => {
 };
 
 /**
- * 切换组件启用状态
+ * 切换组件启用状�?
  */
 const handleToggleEnabled = async (component: ServerDetailComponent) => {
   try {
@@ -357,16 +357,16 @@ const handleToggleEnabled = async (component: ServerDetailComponent) => {
       component.monitorSysGenServerDetailComponentEnabled === 1
     );
     if (res.code === "00000") {
-      message.success(component.monitorSysGenServerDetailComponentEnabled === 1 ? "已启用" : "已禁用");
+      message.success(component.monitorSysGenServerDetailComponentEnabled === 1 ? "已启�? : "已禁�?);
     } else {
       message.error(res.msg || "操作失败");
-      // 恢复原状态
+      // 恢复原状�?
       component.monitorSysGenServerDetailComponentEnabled = component.monitorSysGenServerDetailComponentEnabled === 1 ? 0 : 1;
     }
   } catch (error) {
-    console.error("切换组件状态失败:", error);
+    console.error("切换组件状态失�?", error);
     message.error("操作失败");
-    // 恢复原状态
+    // 恢复原状�?
     component.monitorSysGenServerDetailComponentEnabled = component.monitorSysGenServerDetailComponentEnabled === 1 ? 0 : 1;
   }
 };
@@ -412,7 +412,7 @@ const handleBatchDisable = async () => {
  */
 const handleBatchDelete = async () => {
   try {
-    await messageBox.confirm(`确定要删除选中的 ${selectedComponents.value.length} 个组件吗？`, "确认删除");
+    await messageBox.confirm(`确定要删除选中�?${selectedComponents.value.length} 个组件吗？`, "确认删除");
     
     for (const component of selectedComponents.value) {
       await deleteServerDetailComponent(component.monitorSysGenServerDetailComponentId!);

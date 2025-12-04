@@ -20,7 +20,7 @@
         <el-form-item label="分组名称" prop="monitorSysGenServerGroupName">
           <el-input
             v-model="formData.monitorSysGenServerGroupName"
-            placeholder="请输入分组名称"
+            placeholder="请输入分组名�?
             clearable
             maxlength="50"
             show-word-limit
@@ -35,7 +35,7 @@
           <el-input
             v-model="formData.monitorSysGenServerGroupDesc"
             type="textarea"
-            placeholder="请输入分组描述"
+            placeholder="请输入分组描�?
             :rows="3"
             maxlength="200"
             show-word-limit
@@ -79,19 +79,19 @@
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="排序号" prop="monitorSysGenServerGroupSort">
+            <el-form-item label="排序�? prop="monitorSysGenServerGroupSort">
               <el-input-number
                 v-model="formData.monitorSysGenServerGroupSort"
                 :min="0"
                 :max="9999"
                 :step="1"
-                placeholder="排序号"
+                placeholder="排序�?
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="状态" prop="monitorSysGenServerGroupStatus">
+            <el-form-item label="状�? prop="monitorSysGenServerGroupStatus">
               <el-switch
                 v-model="formData.monitorSysGenServerGroupStatus"
                 :active-value="1"
@@ -108,11 +108,11 @@
             v-model="formData.monitorSysGenServerGroupIsDefault"
             :active-value="1"
             :inactive-value="0"
-            active-text="是"
-            inactive-text="否"
+            active-text="�?
+            inactive-text="�?
           />
           <div class="form-tip">
-            设为默认分组后，新增服务器时会自动选择此分组
+            设为默认分组后，新增服务器时会自动选择此分�?
           </div>
         </el-form-item>
 
@@ -120,7 +120,7 @@
           <el-input
             v-model="formData.monitorSysGenServerGroupRemark"
             type="textarea"
-            placeholder="请输入备注信息"
+            placeholder="请输入备注信�?
             :rows="2"
             maxlength="500"
             show-word-limit
@@ -190,7 +190,7 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 响应式状态
+// 响应式状�?
 const visible = ref(false);
 const loading = ref(false);
 const mode = ref<'add' | 'edit'>('add');
@@ -211,13 +211,13 @@ const formData = reactive({
 
 // 图标选项
 const iconOptions = [
-  { label: '文件夹', value: 'ri:folder-line' },
-  { label: '服务器', value: 'ri:server-line' },
-  { label: '云服务', value: 'ri:cloud-line' },
-  { label: '数据库', value: 'ri:database-line' },
+  { label: '文件�?, value: 'ri:folder-line' },
+  { label: '服务�?, value: 'ri:server-line' },
+  { label: '云服�?, value: 'ri:cloud-line' },
+  { label: '数据�?, value: 'ri:database-line' },
   { label: '网络', value: 'ri:global-line' },
   { label: '安全', value: 'ri:shield-line' },
-  { label: '开发', value: 'ri:code-line' },
+  { label: '开�?, value: 'ri:code-line' },
   { label: '测试', value: 'ri:test-tube-line' },
   { label: '生产', value: 'ri:rocket-line' },
   { label: '监控', value: 'ri:eye-line' },
@@ -242,8 +242,8 @@ const colorPresets = [
 // 表单验证规则
 const rules = {
   monitorSysGenServerGroupName: [
-    { required: true, message: '请输入分组名称', trigger: 'blur' },
-    { min: 1, max: 50, message: '分组名称长度在 1 到 50 个字符', trigger: 'blur' },
+    { required: true, message: '请输入分组名�?, trigger: 'blur' },
+    { min: 1, max: 50, message: '分组名称长度�?1 �?50 个字�?, trigger: 'blur' },
     {
       validator: async (rule: any, value: string, callback: any) => {
         if (!value) return callback();
@@ -251,7 +251,7 @@ const rules = {
         try {
           const result = await checkGroupNameExists(value, formData.monitorSysGenServerGroupId || undefined);
           if (result.success && result.data) {
-            callback(new Error('分组名称已存在'));
+            callback(new Error('分组名称已存�?));
           } else {
             callback();
           }
@@ -263,15 +263,15 @@ const rules = {
     }
   ],
   monitorSysGenServerGroupDesc: [
-    { max: 200, message: '分组描述最多 200 个字符', trigger: 'blur' }
+    { max: 200, message: '分组描述最�?200 个字�?, trigger: 'blur' }
   ],
   monitorSysGenServerGroupRemark: [
-    { max: 500, message: '备注最多 500 个字符', trigger: 'blur' }
+    { max: 500, message: '备注最�?500 个字�?, trigger: 'blur' }
   ]
 };
 
 /**
- * 打开对话框
+ * 打开对话�?
  */
 const open = (editMode: 'add' | 'edit' = 'add', data?: ServerGroup) => {
   mode.value = editMode;

@@ -43,7 +43,7 @@
                 "
                 class="mr-1"
               />
-              {{ isFullscreen ? "退出全屏" : "全屏" }}
+              {{ isFullscreen ? "退出全�? : "全屏" }}
             </el-button>
           </el-button-group>
         </div>
@@ -69,10 +69,10 @@
             <el-tag
               :type="connectionStatus === 'connected' ? 'success' : 'info'"
             >
-              {{ connectionStatus === "connected" ? "已连接" : "未连接" }}
+              {{ connectionStatus === "connected" ? "已连�? : "未连�? }}
             </el-tag>
             <span class="ml-2"
-              >分辨率: {{ rdpConfig.width }}x{{ rdpConfig.height }}</span
+              >分辨�? {{ rdpConfig.width }}x{{ rdpConfig.height }}</span
             >
           </div>
           <div class="rdp-actions">
@@ -82,7 +82,7 @@
               :disabled="!isConnected"
             >
               <IconifyIconOnline icon="ep:document-copy" />
-              剪贴板
+              剪贴�?
             </el-button>
             <el-button
               size="small"
@@ -122,10 +122,10 @@
             <el-tag
               :type="connectionStatus === 'connected' ? 'success' : 'info'"
             >
-              {{ connectionStatus === "connected" ? "已连接" : "未连接" }}
+              {{ connectionStatus === "connected" ? "已连�? : "未连�? }}
             </el-tag>
             <span class="ml-2"
-              >只读模式: {{ vncConfig.readOnly ? "是" : "否" }}</span
+              >只读模式: {{ vncConfig.readOnly ? "�? : "�? }}</span
             >
           </div>
           <div class="vnc-actions">
@@ -135,7 +135,7 @@
               :disabled="!isConnected || vncConfig.readOnly"
             >
               <IconifyIconOnline icon="ep:document-copy" />
-              剪贴板
+              剪贴�?
             </el-button>
             <el-button
               size="small"
@@ -164,7 +164,7 @@
         </div>
       </div>
 
-      <!-- 连接状态 -->
+      <!-- 连接状�?-->
       <div v-if="!isConnected" class="connection-overlay">
         <div class="connection-content">
           <IconifyIconOnline
@@ -186,7 +186,7 @@
       <div class="terminal-footer">
         <div class="connection-info">
           <el-tag :type="isConnected ? 'success' : 'danger'" size="small">
-            {{ isConnected ? "已连接" : "未连接" }}
+            {{ isConnected ? "已连�? : "未连�? }}
           </el-tag>
           <span class="ml-2"
             >{{ serverData.monitorSysGenServerHost }}:{{
@@ -226,7 +226,7 @@ import {
   setupFileDrop,
 } from "@/utils/guacamole";
 
-// 响应式状态
+// 响应式状�?
 const visible = ref(false);
 const connecting = ref(false);
 const isConnected = ref(false);
@@ -273,7 +273,7 @@ const getProtocolIcon = (protocol: string) => {
 };
 
 /**
- * 打开对话框
+ * 打开对话�?
  */
 const open = () => {
   visible.value = true;
@@ -299,10 +299,10 @@ const setData = (data: any) => {
 };
 
 /**
- * 初始化终端
+ * 初始化终�?
  */
 const initTerminal = () => {
-  // 清理现有 Guacamole 客户端
+  // 清理现有 Guacamole 客户�?
   if (rdpClient) {
     rdpClient.disconnect();
     rdpClient = null;
@@ -322,7 +322,7 @@ const initTerminal = () => {
 };
 
 /**
- * 初始化 SSH 终端
+ * 初始�?SSH 终端
  */
 const initSSHTerminal = () => {
   if (!terminalRef.value) return;
@@ -346,7 +346,7 @@ const initSSHTerminal = () => {
   terminal.loadAddon(fitAddon);
   terminal.loadAddon(new WebLinksAddon());
 
-  // 挂载到 DOM
+  // 挂载�?DOM
   terminal.open(terminalRef.value);
   fitAddon.fit();
 
@@ -378,7 +378,7 @@ const initSSHTerminal = () => {
 };
 
 /**
- * 初始化 RDP 终端
+ * 初始�?RDP 终端
  */
 const initRDPTerminal = () => {
   if (!rdpDisplayRef.value) return;
@@ -403,14 +403,14 @@ const initRDPTerminal = () => {
 };
 
 /**
- * 初始化 VNC 终端
+ * 初始�?VNC 终端
  */
 const initVNCTerminal = () => {
   if (!vncDisplayRef.value) return;
 
   const display = vncDisplayRef.value;
 
-  // 设置显示容器尺寸（初始尺寸，会根据服务器调整）
+  // 设置显示容器尺寸（初始尺寸，会根据服务器调整�?
   display.style.width = `${rdpConfig.width}px`;
   display.style.height = `${rdpConfig.height}px`;
 
@@ -477,13 +477,13 @@ const connectSSHWebSocket = () => {
  */
 const connectRDPWebSocket = () => {
   if (!rdpClient) {
-    message.error("RDP 客户端未初始化");
+    message.error("RDP 客户端未初始�?);
     return;
   }
 
   // 防止重复连接
   if (rdpClient.isConnected()) {
-    console.warn("RDP 客户端已连接，跳过重复连接");
+    console.warn("RDP 客户端已连接，跳过重复连�?);
     return;
   }
 
@@ -494,14 +494,14 @@ const connectRDPWebSocket = () => {
       serverData.monitorSysGenServerId
     );
 
-    // 使用 Guacamole 客户端连接
+    // 使用 Guacamole 客户端连�?
     rdpClient.connect(wsUrl, {
       width: rdpConfig.width,
       height: rdpConfig.height,
       dpi: 96,
     });
 
-    message.success("RDP 连接已启动");
+    message.success("RDP 连接已启�?);
   } catch (error) {
     console.error("RDP 连接失败:", error);
     message.error("RDP 连接失败");
@@ -513,13 +513,13 @@ const connectRDPWebSocket = () => {
  */
 const connectVNCWebSocket = () => {
   if (!vncClient) {
-    message.error("VNC 客户端未初始化");
+    message.error("VNC 客户端未初始�?);
     return;
   }
 
   // 防止重复连接
   if (vncClient.isConnected()) {
-    console.warn("VNC 客户端已连接，跳过重复连接");
+    console.warn("VNC 客户端已连接，跳过重复连�?);
     return;
   }
 
@@ -530,14 +530,14 @@ const connectVNCWebSocket = () => {
       serverData.monitorSysGenServerId
     );
 
-    // 使用 Guacamole 客户端连接
+    // 使用 Guacamole 客户端连�?
     vncClient.connect(wsUrl, {
       width: rdpConfig.width,
       height: rdpConfig.height,
       dpi: 96,
     });
 
-    message.success("VNC 连接已启动");
+    message.success("VNC 连接已启�?);
   } catch (error) {
     console.error("VNC 连接失败:", error);
     message.error("VNC 连接失败");
@@ -545,21 +545,21 @@ const connectVNCWebSocket = () => {
 };
 
 /**
- * 设置 Guacamole 事件处理器
+ * 设置 Guacamole 事件处理�?
  */
 const setupGuacamoleEventHandlers = (
   client: GuacamoleClientManager,
   protocol: "rdp" | "vnc"
 ) => {
-  // 状态变化事件
+  // 状态变化事�?
   client.setOnStateChange((state: number) => {
     const stateDesc = getStateDescription(state);
-    console.log(`${protocol.toUpperCase()} 状态变化:`, stateDesc);
+    console.log(`${protocol.toUpperCase()} 状态变�?`, stateDesc);
 
     switch (state) {
       case GuacamoleState.CONNECTING:
         connectionStatus.value = "connecting";
-        message.info(`${protocol.toUpperCase()} 连接中...`);
+        message.info(`${protocol.toUpperCase()} 连接�?..`);
         break;
       case GuacamoleState.CONNECTED:
         isConnected.value = true;
@@ -587,18 +587,18 @@ const setupGuacamoleEventHandlers = (
     );
   });
 
-  // 剪贴板事件
+  // 剪贴板事�?
   client.setOnClipboard((data: string) => {
-    console.log(`${protocol.toUpperCase()} 剪贴板数据:`, data);
-    // 将远程剪贴板数据写入本地剪贴板
+    console.log(`${protocol.toUpperCase()} 剪贴板数�?`, data);
+    // 将远程剪贴板数据写入本地剪贴�?
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard
         .writeText(data)
         .then(() => {
-          message.success("剪贴板数据已同步到本地");
+          message.success("剪贴板数据已同步到本�?);
         })
         .catch((error) => {
-          console.error("写入本地剪贴板失败:", error);
+          console.error("写入本地剪贴板失�?", error);
         });
     }
   });
@@ -637,7 +637,7 @@ const handleScreenResize = (
 };
 
 /**
- * 处理剪贴板
+ * 处理剪贴�?
  */
 const handleClipboard = async (protocol: "rdp" | "vnc") => {
   const client = protocol === "rdp" ? rdpClient : vncClient;
@@ -647,7 +647,7 @@ const handleClipboard = async (protocol: "rdp" | "vnc") => {
   }
 
   try {
-    // 读取本地剪贴板内容
+    // 读取本地剪贴板内�?
     const text = await navigator.clipboard.readText();
 
     // 发送到远程
@@ -656,7 +656,7 @@ const handleClipboard = async (protocol: "rdp" | "vnc") => {
     message.success("剪贴板内容已发送到远程");
   } catch (error) {
     message.error("读取剪贴板失败，请检查浏览器权限");
-    console.error("剪贴板操作失败:", error);
+    console.error("剪贴板操作失�?", error);
   }
 };
 
@@ -679,7 +679,7 @@ const handleScreenshot = (protocol: "rdp" | "vnc") => {
       link.href = dataUrl;
       link.click();
 
-      message.success("截图已保存");
+      message.success("截图已保�?);
     } else {
       message.error("截图失败");
     }
@@ -715,7 +715,7 @@ const handleClear = () => {
     terminal.clear();
   }
 
-  // 重新连接 RDP/VNC 以清空显示
+  // 重新连接 RDP/VNC 以清空显�?
   if (serverData.monitorSysGenServerProtocol === "RDP" && rdpClient) {
     rdpClient.disconnect();
     setTimeout(() => connectRDPWebSocket(), 1000);
@@ -743,10 +743,10 @@ const handleReconnect = async () => {
       vncClient.disconnect();
     }
 
-    // 重新连接服务器
+    // 重新连接服务�?
     const res = await connectServer(String(serverData.monitorSysGenServerId));
     if (res.code === "00000") {
-      // 重新初始化终端
+      // 重新初始化终�?
       await nextTick();
       initTerminal();
       message.success("重连成功");
@@ -762,7 +762,7 @@ const handleReconnect = async () => {
 };
 
 /**
- * 连接服务器
+ * 连接服务�?
  */
 const handleConnect = () => {
   handleReconnect();
@@ -797,7 +797,7 @@ const cleanup = () => {
     terminal = null;
   }
 
-  // 清理 Guacamole 客户端
+  // 清理 Guacamole 客户�?
   if (rdpClient) {
     rdpClient.disconnect();
     rdpClient = null;
@@ -1015,7 +1015,7 @@ defineExpose({
   }
 }
 
-/* 响应式设计 */
+/* 响应式设�?*/
 @media (max-width: 768px) {
   .terminal-dialog {
     :deep(.el-dialog) {

@@ -8,10 +8,10 @@
         </el-button>
         <el-checkbox v-model="autoRefresh">自动刷新</el-checkbox>
         <el-select v-model="refreshInterval" style="width: 120px" placeholder="刷新间隔" title="设置内存数据刷新间隔">
-          <el-option :value="5" label="5秒" />
-          <el-option :value="10" label="10秒" />
-          <el-option :value="30" label="30秒" />
-          <el-option :value="60" label="60秒" />
+          <el-option :value="5" label="5�? />
+          <el-option :value="10" label="10�? />
+          <el-option :value="30" label="30�? />
+          <el-option :value="60" label="60�? />
         </el-select>
         <el-button @click="clearData">清空</el-button>
       </div>
@@ -25,7 +25,7 @@
       <div class="memory-cards">
         <el-card class="memory-card">
           <div class="card-header">
-            <span class="card-title">堆内存</span>
+            <span class="card-title">堆内�?/span>
             <el-tag :type="getUsageType(memoryData.heap.usage)">
               {{ formatPercent(memoryData.heap.usage) }}
             </el-tag>
@@ -36,7 +36,7 @@
             </div>
             <div class="memory-details">
               <span>已用: {{ formatBytes(memoryData.heap.used) }}</span>
-              <span>最大: {{ memoryData.heap.max > 0 ? formatBytes(memoryData.heap.max) : "无限制" }}</span>
+              <span>最�? {{ memoryData.heap.max > 0 ? formatBytes(memoryData.heap.max) : "无限�? }}</span>
             </div>
           </div>
         </el-card>
@@ -54,7 +54,7 @@
             </div>
             <div class="memory-details">
               <span>已用: {{ formatBytes(memoryData.nonHeap.used) }}</span>
-              <span>最大: {{ formatBytes(memoryData.nonHeap.max) }}</span>
+              <span>最�? {{ formatBytes(memoryData.nonHeap.max) }}</span>
             </div>
           </div>
         </el-card>
@@ -72,18 +72,18 @@
             </div>
             <div class="memory-details">
               <span>已用: {{ formatBytes(memoryData.direct.used) }}</span>
-              <span>最大: {{ formatBytes(memoryData.direct.max) }}</span>
+              <span>最�? {{ formatBytes(memoryData.direct.max) }}</span>
             </div>
           </div>
         </el-card>
       </div>
     </div>
 
-    <!-- 内存池详情表格 -->
+    <!-- 内存池详情表�?-->
     <div v-if="memoryPools.length > 0" class="memory-pools">
-      <h3>内存池详情</h3>
+      <h3>内存池详�?/h3>
       <el-table :data="memoryPools" stripe>
-        <el-table-column prop="name" label="内存池名称" min-width="200" />
+        <el-table-column prop="name" label="内存池名�? min-width="200" />
         <el-table-column prop="type" label="类型" width="100">
           <template #default="{ row }">
             <el-tag :type="row.type === 'HEAP' ? 'primary' : 'info'" size="small">
@@ -91,7 +91,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="usage" label="使用率" width="120">
+        <el-table-column prop="usage" label="使用�? width="120">
           <template #default="{ row }">
             <el-tag :type="getUsageType(row.usage)" size="small">
               {{ formatPercent(row.usage) }}
@@ -103,12 +103,12 @@
             {{ formatBytes(row.used) }}
           </template>
         </el-table-column>
-        <el-table-column prop="committed" label="已提交" width="120">
+        <el-table-column prop="committed" label="已提�? width="120">
           <template #default="{ row }">
             {{ formatBytes(row.committed) }}
           </template>
         </el-table-column>
-        <el-table-column prop="max" label="最大内存" width="120">
+        <el-table-column prop="max" label="最大内�? width="120">
           <template #default="{ row }">
             {{ formatBytes(row.max) }}
           </template>
@@ -116,7 +116,7 @@
       </el-table>
     </div>
 
-    <!-- 空状态 -->
+    <!-- 空状�?-->
     <div v-if="!loading && !error && !memoryData" class="empty-state">
       <el-empty description="暂无内存数据，请点击刷新获取" />
     </div>
@@ -124,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { execArthasCommand } from "@/api/arthas-http";
+import { execArthasCommand } from "@/api/arthas/arthas-http";
 import { ref, watch, onBeforeUnmount } from "vue";
 
 const props = defineProps<{ nodeId: string }>();
@@ -152,7 +152,7 @@ interface MemoryPool {
   usage: number;
 }
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false);
 const error = ref("");
 const memoryData = ref<MemoryData | null>(null);
@@ -160,7 +160,7 @@ const memoryPools = ref<MemoryPool[]>([]);
 
 // 自动刷新相关
 const autoRefresh = ref(false);
-const refreshInterval = ref(10); // 默认10秒
+const refreshInterval = ref(10); // 默认10�?
 const countdown = ref(0);
 let refreshTimer: NodeJS.Timeout | null = null;
 let countdownTimer: NodeJS.Timeout | null = null;
@@ -189,13 +189,13 @@ function parseMemoryData(output: any): {
       return { memoryData: null, memoryPools: [] };
     }
 
-    // 后端返回的真实结构：memoryResult.memoryInfo 下包含 heap/nonheap/buffer_pool 数组
+    // 后端返回的真实结构：memoryResult.memoryInfo 下包�?heap/nonheap/buffer_pool 数组
     const info = (memoryResult as any).memoryInfo || {};
     const heapPools = Array.isArray(info.heap) ? info.heap : [];
     const nonHeapPools = Array.isArray(info.nonheap) ? info.nonheap : [];
     const bufferPools = Array.isArray(info.buffer_pool) ? info.buffer_pool : [];
 
-    // 汇总项：总堆、总非堆、直接内存
+    // 汇总项：总堆、总非堆、直接内�?
     const heapTotal = heapPools.find((p: any) => p?.name === "heap") || {};
     const nonHeapTotal = nonHeapPools.find((p: any) => p?.name === "nonheap") || {};
     const directBuffer = bufferPools.find((p: any) => p?.name === "direct") || {};
@@ -211,7 +211,7 @@ function parseMemoryData(output: any): {
         used: nonHeapTotal.used || 0,
         committed: nonHeapTotal.total || 0,
         max: nonHeapTotal.max || 0,
-        // 非堆max可能为-1，回退用total计算
+        // 非堆max可能�?1，回退用total计算
         usage: nonHeapTotal.max > 0 ? (nonHeapTotal.used / nonHeapTotal.max) * 100 : nonHeapTotal.total > 0 ? (nonHeapTotal.used / nonHeapTotal.total) * 100 : 0,
       },
       direct: {
@@ -304,14 +304,14 @@ function formatPercent(percent: number): string {
   return percent.toFixed(1) + "%";
 }
 
-// 获取使用率类型
+// 获取使用率类�?
 function getUsageType(usage: number): "danger" | "warning" | "success" {
   if (usage >= 90) return "danger";
   if (usage >= 70) return "warning";
   return "success";
 }
 
-// 获取进度条颜色
+// 获取进度条颜�?
 function getProgressColor(usage: number): string {
   if (usage >= 90) return "#f56c6c";
   if (usage >= 70) return "#e6a23c";
@@ -322,15 +322,15 @@ function getProgressColor(usage: number): string {
 function startAutoRefresh() {
   if (!autoRefresh.value || !props.nodeId) return;
 
-  stopAutoRefresh(); // 先停止之前的定时器
+  stopAutoRefresh(); // 先停止之前的定时�?
 
-  // 启动倒计时
+  // 启动倒计�?
   countdown.value = refreshInterval.value;
   countdownTimer = setInterval(() => {
     countdown.value--;
     if (countdown.value <= 0) {
       run(); // 执行刷新
-      countdown.value = refreshInterval.value; // 重置倒计时
+      countdown.value = refreshInterval.value; // 重置倒计�?
     }
   }, 1000);
 }
@@ -348,7 +348,7 @@ function stopAutoRefresh() {
   countdown.value = 0;
 }
 
-// 监听自动刷新状态变化
+// 监听自动刷新状态变�?
 watch(autoRefresh, (newVal) => {
   if (newVal && props.nodeId) {
     startAutoRefresh();
@@ -360,7 +360,7 @@ watch(autoRefresh, (newVal) => {
 // 监听刷新间隔变化
 watch(refreshInterval, () => {
   if (autoRefresh.value && props.nodeId) {
-    startAutoRefresh(); // 重新启动定时器
+    startAutoRefresh(); // 重新启动定时�?
   }
 });
 
@@ -372,7 +372,7 @@ watch(
       clearData();
       stopAutoRefresh(); // 停止自动刷新
       if (n && autoRefresh.value) {
-        startAutoRefresh(); // 如果开启了自动刷新，重新启动
+        startAutoRefresh(); // 如果开启了自动刷新，重新启�?
       }
     }
   }

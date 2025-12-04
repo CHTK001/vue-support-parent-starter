@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    :title="isEdit ? '编辑服务器' : '新增服务器'"
+    :title="isEdit ? '编辑服务�? : '新增服务�?"
     width="600px"
     :close-on-click-modal="false"
     @close="handleClose"
@@ -15,7 +15,7 @@
       label-position="right"
       class="server-form"
     >
-      <el-form-item label="服务器名称" prop="systemServerName">
+      <el-form-item label="服务器名�? prop="systemServerName">
         <el-input
           v-model="formData.systemServerName"
           placeholder="请输入服务器名称"
@@ -23,10 +23,10 @@
         />
       </el-form-item>
 
-      <el-form-item label="服务器类型" prop="systemServerType">
+      <el-form-item label="服务器类�? prop="systemServerType">
         <el-select
           v-model="formData.systemServerType"
-          placeholder="请选择服务器类型"
+          placeholder="请选择服务器类�?
           style="width: 100%"
         >
           <el-option
@@ -40,7 +40,7 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="服务器主机">
+      <el-form-item label="服务器主�?>
         <el-input
           v-model="formData.systemServerHost"
           placeholder="请输入服务器主机"
@@ -48,7 +48,7 @@
         />
       </el-form-item>
 
-      <el-form-item label="服务器端口" prop="systemServerPort">
+      <el-form-item label="服务器端�? prop="systemServerPort">
         <el-input-number
           v-model="formData.systemServerPort"
           :min="1"
@@ -65,10 +65,10 @@
         </div>
       </el-form-item>
 
-      <el-form-item label="上下文路径" prop="systemServerContextPath">
+      <el-form-item label="上下文路�? prop="systemServerContextPath">
         <el-input
           v-model="formData.systemServerContextPath"
-          placeholder="不填则使用默认值"
+          placeholder="不填则使用默认�?
         />
       </el-form-item>
 
@@ -82,12 +82,12 @@
         />
       </el-form-item>
 
-      <el-form-item label="超时时间(秒)" prop="systemServerTimeout">
+      <el-form-item label="超时时间(�?" prop="systemServerTimeout">
         <el-input-number
           v-model="formData.systemServerTimeout"
           :min="1"
           :max="3600"
-          placeholder="不填则使用默认值"
+          placeholder="不填则使用默认�?
           style="width: 100%"
         />
       </el-form-item>
@@ -95,12 +95,12 @@
       <el-form-item label="自动启动">
         <el-switch
           v-model="formData.systemServerAutoStart"
-          active-text="是"
-          inactive-text="否"
+          active-text="�?
+          inactive-text="�?
         />
       </el-form-item>
 
-      <el-form-item label="服务器描述" prop="systemServerDescription">
+      <el-form-item label="服务器描�? prop="systemServerDescription">
         <el-input
           v-model="formData.systemServerDescription"
           type="textarea"
@@ -155,13 +155,13 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const formRef = ref<FormInstance>();
 const loading = ref(false);
 const portCheckMessage = ref("");
 const portCheckClass = ref("");
 
-// 计算属性
+// 计算属�?
 const dialogVisible = computed({
   get: () => props.visible,
   set: (value) => emit("update:visible", value),
@@ -189,12 +189,12 @@ const formRules: FormRules = {
     {
       min: 2,
       max: 100,
-      message: "服务器名称长度在 2 到 100 个字符",
+      message: "服务器名称长度在 2 �?100 个字�?,
       trigger: "blur",
     },
   ],
   systemServerType: [
-    { required: true, message: "请选择服务器类型", trigger: "change" },
+    { required: true, message: "请选择服务器类�?, trigger: "change" },
   ],
   systemServerPort: [
     { required: true, message: "请输入服务器端口", trigger: "blur" },
@@ -207,7 +207,7 @@ const formRules: FormRules = {
     },
   ],
   systemServerDescription: [
-    { max: 500, message: "描述长度不能超过 500 个字符", trigger: "blur" },
+    { max: 500, message: "描述长度不能超过 500 个字�?, trigger: "blur" },
   ],
 };
 
@@ -226,7 +226,7 @@ const resetForm = () => {
   formRef.value?.clearValidate();
 };
 
-// 监听服务器数据变化
+// 监听服务器数据变�?
 watch(
   () => props.serverData,
   (newData) => {
@@ -248,13 +248,13 @@ watch(
   { immediate: true }
 );
 
-// 关闭对话框
+// 关闭对话�?
 const handleClose = () => {
   dialogVisible.value = false;
   resetForm();
 };
 
-// 检查端口可用性
+// 检查端口可用�?
 const checkPortAvailableHandler = async () => {
   if (!formData.systemServerPort) {
     portCheckMessage.value = "";
@@ -277,8 +277,8 @@ const checkPortAvailableHandler = async () => {
       }
     }
   } catch (error) {
-    console.error("检查端口失败:", error);
-    portCheckMessage.value = "检查端口失败";
+    console.error("检查端口失�?", error);
+    portCheckMessage.value = "检查端口失�?;
     portCheckClass.value = "port-error";
   }
 };

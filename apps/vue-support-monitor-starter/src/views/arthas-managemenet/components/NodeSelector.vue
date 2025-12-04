@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import type { OnlineNodeInfo } from "@/api/node-management";
+import type { OnlineNodeInfo } from "@/api/server/node-management";
 import { computed } from "vue";
 
 const props = defineProps<{

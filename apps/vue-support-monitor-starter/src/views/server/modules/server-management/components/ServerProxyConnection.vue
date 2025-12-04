@@ -7,7 +7,7 @@
           <el-tag v-if="server?.monitorSysGenServerProxyType" type="success">
             {{ server.monitorSysGenServerProxyType }}
           </el-tag>
-          <el-tag v-else type="info">无代理</el-tag>
+          <el-tag v-else type="info">无代�?/el-tag>
         </div>
       </template>
 
@@ -27,13 +27,13 @@
           <el-descriptions-item label="代理地址">
             {{ server.monitorSysGenServerProxyHost }}:{{ server.monitorSysGenServerProxyPort }}
           </el-descriptions-item>
-          <el-descriptions-item label="连接状态">
+          <el-descriptions-item label="连接状�?>
             <el-tag :type="proxyStatus.type">
               {{ proxyStatus.text }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="最后测试">
-            {{ lastTestTime || '未测试' }}
+          <el-descriptions-item label="最后测�?>
+            {{ lastTestTime || '未测�? }}
           </el-descriptions-item>
         </el-descriptions>
 
@@ -82,10 +82,10 @@
               <el-col :span="12">
                 <el-form-item label="颜色深度">
                   <el-select v-model="guacamoleOptions.colorDepth" style="width: 100%">
-                    <el-option label="256色" value="8" />
-                    <el-option label="高彩色(16位)" value="16" />
-                    <el-option label="真彩色(24位)" value="24" />
-                    <el-option label="真彩色(32位)" value="32" />
+                    <el-option label="256�? value="8" />
+                    <el-option label="高彩�?16�?" value="16" />
+                    <el-option label="真彩�?24�?" value="24" />
+                    <el-option label="真彩�?32�?" value="32" />
                   </el-select>
                 </el-form-item>
               </el-col>
@@ -118,7 +118,7 @@
               <el-switch v-model="guacamoleOptions.enableAudio" />
             </el-form-item>
             
-            <el-form-item label="启用剪贴板">
+            <el-form-item label="启用剪贴�?>
               <el-switch v-model="guacamoleOptions.enableClipboard" />
             </el-form-item>
           </el-form>
@@ -131,7 +131,7 @@
           <el-table :data="connectionHistory" size="small" max-height="200">
             <el-table-column prop="time" label="时间" width="160" />
             <el-table-column prop="type" label="类型" width="80" />
-            <el-table-column prop="status" label="状态" width="80">
+            <el-table-column prop="status" label="状�? width="80">
               <template #default="{ row }">
                 <el-tag :type="row.status === 'success' ? 'success' : 'danger'" size="small">
                   {{ row.status === 'success' ? '成功' : '失败' }}
@@ -144,7 +144,7 @@
       </div>
     </el-card>
 
-    <!-- Guacamole 连接对话框 -->
+    <!-- Guacamole 连接对话�?-->
     <el-dialog
       v-model="guacamoleDialogVisible"
       title="Guacamole 远程连接"
@@ -199,7 +199,7 @@ const emit = defineEmits<{
   'configure-proxy': [];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const testing = ref(false);
 const connecting = ref(false);
 const lastTestTime = ref<string>('');
@@ -224,7 +224,7 @@ const connectionHistory = ref<Array<{
   message: string;
 }>>([]);
 
-// 计算属性
+// 计算属�?
 const proxyStatus = computed(() => {
   // 这里可以根据实际的代理状态来返回
   return {

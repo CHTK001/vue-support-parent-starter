@@ -62,10 +62,10 @@
             </el-select>
           </el-form-item>
           
-          <el-form-item label="目标服务器" prop="serverId">
+          <el-form-item label="目标服务�? prop="serverId">
             <el-select
               v-model="form.serverId"
-              placeholder="选择安装目标服务器"
+              placeholder="选择安装目标服务�?
               style="width: 100%"
             >
               <el-option
@@ -129,7 +129,7 @@
           
           <el-form-item label="自动启动">
             <el-switch v-model="form.autoStart" />
-            <div class="form-tip">安装完成后自动启动容器</div>
+            <div class="form-tip">安装完成后自动启动容�?/div>
           </el-form-item>
           
           <el-form-item label="强制拉取">
@@ -139,7 +139,7 @@
           
           <el-form-item label="保留镜像">
             <el-switch v-model="form.keepImage" />
-            <div class="form-tip">容器删除后保留镜像文件</div>
+            <div class="form-tip">容器删除后保留镜像文�?/div>
           </el-form-item>
         </div>
       </el-form>
@@ -149,7 +149,7 @@
         <div class="section-title">安装预览</div>
         <div class="preview-info">
           <div class="preview-item">
-            <span class="preview-label">镜像名称：</span>
+            <span class="preview-label">镜像名称�?/span>
             <span class="preview-value">{{ getFullImageName() }}</span>
           </div>
           <div class="preview-item">
@@ -157,7 +157,7 @@
             <span class="preview-value">{{ getServerName() }}</span>
           </div>
           <div class="preview-item">
-            <span class="preview-label">安装方式：</span>
+            <span class="preview-label">安装方式�?/span>
             <span class="preview-value">Docker镜像安装</span>
           </div>
         </div>
@@ -168,7 +168,7 @@
       <span class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
         <el-button type="primary" @click="handleSubmit" :loading="loading">
-          开始安装
+          开始安�?
         </el-button>
       </span>
     </template>
@@ -183,7 +183,7 @@ import {
   getServerList, 
   registryApi, 
   type SystemSoft 
-} from '@/api/docker-management'
+} from '@/api/docker'
 
 interface Props {
   visible: boolean
@@ -228,7 +228,7 @@ const rules: FormRules = {
     { required: true, message: '请选择软件版本', trigger: 'change' }
   ],
   serverId: [
-    { required: true, message: '请选择目标服务器', trigger: 'change' }
+    { required: true, message: '请选择目标服务�?, trigger: 'change' }
   ]
 }
 
@@ -247,7 +247,7 @@ watch(dialogVisible, (visible) => {
 
 const loadData = async () => {
   try {
-    // 加载服务器列表
+    // 加载服务器列�?
     const serverResponse = await getServerList()
     if (serverResponse.code === '00000') {
       serverOptions.value = serverResponse.data || []
@@ -268,7 +268,7 @@ const loadVersions = async () => {
   
   try {
     versionsLoading.value = true
-    // 这里调用API获取软件的可用版本列表
+    // 这里调用API获取软件的可用版本列�?
     const response = await softwareApi.getSoftwareVersions(props.softwareData.systemSoftId!)
     if (response.code === '00000') {
       availableVersions.value = response.data || []
@@ -333,7 +333,7 @@ const handleSubmit = async () => {
         setTimeout(() => emit('success'), 1000)
       }
       
-      ElMessage.success('软件安装任务已创建，请查看进度')
+      ElMessage.success('软件安装任务已创建，请查看进�?)
       emit('success')
       handleClose()
     } else {

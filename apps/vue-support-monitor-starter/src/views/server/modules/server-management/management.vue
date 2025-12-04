@@ -5,19 +5,19 @@
       <div class="header-left">
         <h1 class="page-title">
           <IconifyIconOnline icon="ri:server-line" class="title-icon" />
-          服务器管理
+          服务器管�?
         </h1>
         <div class="page-breadcrumb">
           <el-breadcrumb separator="/">
             <el-breadcrumb-item>监控中心</el-breadcrumb-item>
-            <el-breadcrumb-item>服务器管理</el-breadcrumb-item>
+            <el-breadcrumb-item>服务器管�?/el-breadcrumb-item>
           </el-breadcrumb>
         </div>
       </div>
       <div class="header-right">
         <el-button type="primary" @click="handleAddServer">
           <IconifyIconOnline icon="ep:plus" class="mr-1" />
-          新增服务器
+          新增服务�?
         </el-button>
       </div>
     </div>
@@ -33,7 +33,7 @@
               </div>
               <div class="stats-info">
                 <div class="stats-value">{{ statistics.totalServers }}</div>
-                <div class="stats-label">总服务器数</div>
+                <div class="stats-label">总服务器�?/div>
               </div>
             </div>
           </el-card>
@@ -46,7 +46,7 @@
               </div>
               <div class="stats-info">
                 <div class="stats-value">{{ statistics.onlineServers }}</div>
-                <div class="stats-label">在线服务器</div>
+                <div class="stats-label">在线服务�?/div>
               </div>
             </div>
           </el-card>
@@ -59,7 +59,7 @@
               </div>
               <div class="stats-info">
                 <div class="stats-value">{{ statistics.offlineServers }}</div>
-                <div class="stats-label">离线服务器</div>
+                <div class="stats-label">离线服务�?/div>
               </div>
             </div>
           </el-card>
@@ -72,7 +72,7 @@
               </div>
               <div class="stats-info">
                 <div class="stats-value">{{ statistics.errorServers }}</div>
-                <div class="stats-label">异常服务器</div>
+                <div class="stats-label">异常服务�?/div>
               </div>
             </div>
           </el-card>
@@ -80,10 +80,10 @@
       </el-row>
     </div>
 
-    <!-- 功能标签页 -->
+    <!-- 功能标签�?-->
     <div class="main-content">
       <el-tabs v-model="activeTab" type="card" class="management-tabs">
-        <el-tab-pane label="服务器列表" name="servers">
+        <el-tab-pane label="服务器列�? name="servers">
           <ServerList
             ref="serverListRef"
             @edit="handleEditServer"
@@ -99,7 +99,7 @@
           />
         </el-tab-pane>
 
-        <el-tab-pane label="连接状态" name="connections">
+        <el-tab-pane label="连接状�? name="connections">
           <ServerConnectionStatusList
             ref="connectionStatusRef"
             @test="handleTestConnection"
@@ -138,7 +138,7 @@
       </el-tabs>
     </div>
 
-    <!-- 对话框组件 -->
+    <!-- 对话框组�?-->
     <ServerEditDialog ref="serverEditDialogRef" @success="handleServerSaved" />
 
     <ServerSettingDialog
@@ -155,7 +155,7 @@
 
     <ServerMonitorDialog ref="serverMonitorDialogRef" />
 
-    <!-- 文件管理对话框 -->
+    <!-- 文件管理对话�?-->
     <el-dialog
       v-model="fileManagerVisible"
       title="文件管理"
@@ -194,7 +194,7 @@ import FileUploadTasks from "./components/FileUploadTasks.vue";
 import ServerScripts from "./components/ServerScripts.vue";
 import ServerLogs from "./components/ServerLogs.vue";
 
-// 导入对话框组件
+// 导入对话框组�?
 import ServerEditDialog from "./components/ServerEditDialog.vue";
 import ServerSettingDialog from "./components/ServerSettingDialog.vue";
 import ServerConfigDialog from "./components/ServerConfigDialog.vue";
@@ -214,19 +214,19 @@ const fileUploadRef = ref();
 const serverScriptsRef = ref();
 const serverLogsRef = ref();
 
-// 对话框引用
+// 对话框引�?
 const serverEditDialogRef = ref();
 const serverSettingDialogRef = ref();
 const serverConfigDialogRef = ref();
 const serverTerminalDialogRef = ref();
 const serverMonitorDialogRef = ref();
-// 文件管理对话框状态
+// 文件管理对话框状�?
 const fileManagerVisible = ref(false);
 const currentFileManagerServer = ref(null);
 const scriptExecutorDialogRef = ref();
 const fileUploadDialogRef = ref();
 
-// 响应式状态
+// 响应式状�?
 const activeTab = ref("servers");
 const statistics = reactive({
   totalServers: 0,
@@ -250,14 +250,14 @@ const loadStatistics = async () => {
 };
 
 /**
- * 处理新增服务器
+ * 处理新增服务�?
  */
 const handleAddServer = () => {
   serverEditDialogRef.value?.open("add");
 };
 
 /**
- * 处理编辑服务器
+ * 处理编辑服务�?
  */
 const handleEditServer = (server: any) => {
   serverEditDialogRef.value?.open("edit");
@@ -265,42 +265,42 @@ const handleEditServer = (server: any) => {
 };
 
 /**
- * 处理服务器设置
+ * 处理服务器设�?
  */
 const handleServerSetting = (server: any) => {
   serverSettingDialogRef.value?.open(server.monitorSysGenServerId);
 };
 
 /**
- * 处理服务器配置管理
+ * 处理服务器配置管�?
  */
 const handleServerConfig = (server: any) => {
   serverConfigDialogRef.value?.open(server.monitorSysGenServerId);
 };
 
 /**
- * 处理删除服务器
+ * 处理删除服务�?
  */
 const handleDeleteServer = (server: any) => {
   // 删除逻辑由子组件处理
 };
 
 /**
- * 处理连接服务器
+ * 处理连接服务�?
  */
 const handleConnectServer = (server: any) => {
   serverTerminalDialogRef.value?.open(server);
 };
 
 /**
- * 处理监控服务器
+ * 处理监控服务�?
  */
 const handleMonitorServer = (server: any) => {
   serverMonitorDialogRef.value?.open(server);
 };
 
 /**
- * 处理文件管理（在当前页面打开）
+ * 处理文件管理（在当前页面打开�?
  */
 const handleFileManager = (server: any) => {
   currentFileManagerServer.value = server;
@@ -308,7 +308,7 @@ const handleFileManager = (server: any) => {
 };
 
 /**
- * 在新页面中打开文件管理器
+ * 在新页面中打开文件管理�?
  */
 const handleFileManagerNewPage = (server: any) => {
   if (!server?.monitorSysGenServerId) {
@@ -316,15 +316,15 @@ const handleFileManagerNewPage = (server: any) => {
     return;
   }
 
-  // 检查文件管理功能是否启用
+  // 检查文件管理功能是否启�?
   const fileManagementMode =
     server.fileManagementMode || server.monitorSysGenServerFileManagementMode;
   if (!fileManagementMode || fileManagementMode === "NONE") {
-    ElMessage.warning("该服务器未启用文件管理功能");
+    ElMessage.warning("该服务器未启用文件管理功�?);
     return;
   }
 
-  // 在新页面中打开文件管理器
+  // 在新页面中打开文件管理�?
   const routeData = router.resolve({
     name: "fileManager",
     params: {
@@ -336,7 +336,7 @@ const handleFileManagerNewPage = (server: any) => {
 };
 
 /**
- * 关闭文件管理对话框
+ * 关闭文件管理对话�?
  */
 const handleFileManagerClose = () => {
   fileManagerVisible.value = false;
@@ -351,7 +351,7 @@ const handleScriptExecutor = (server: any) => {
 };
 
 /**
- * 处理服务器日志
+ * 处理服务器日�?
  */
 const handleServerLogs = (server: any) => {
   activeTab.value = "logs";
@@ -393,7 +393,7 @@ const handleStartUploadTask = async (task: any) => {
   try {
     const res = await startFileUploadTask(task.monitorSysGenFileUploadTaskId);
     if (res.code === "00000") {
-      message.success("上传任务已启动");
+      message.success("上传任务已启�?);
       fileUploadRef.value?.refresh();
     } else {
       message.error(`启动失败: ${res.msg}`);
@@ -411,7 +411,7 @@ const handlePauseUploadTask = async (task: any) => {
   try {
     const res = await pauseFileUploadTask(task.monitorSysGenFileUploadTaskId);
     if (res.code === "00000") {
-      message.success("上传任务已暂停");
+      message.success("上传任务已暂�?);
       fileUploadRef.value?.refresh();
     } else {
       message.error(`暂停失败: ${res.msg}`);
@@ -429,7 +429,7 @@ const handleCancelUploadTask = async (task: any) => {
   try {
     const res = await cancelFileUploadTask(task.monitorSysGenFileUploadTaskId);
     if (res.code === "00000") {
-      message.success("上传任务已取消");
+      message.success("上传任务已取�?);
       fileUploadRef.value?.refresh();
     } else {
       message.error(`取消失败: ${res.msg}`);
@@ -490,12 +490,12 @@ const handleCleanupLogs = (days: number) => {
 };
 
 /**
- * 处理服务器保存成功
+ * 处理服务器保存成�?
  */
 const handleServerSaved = () => {
   serverListRef.value?.refresh();
   loadStatistics();
-  message.success("服务器保存成功");
+  message.success("服务器保存成�?);
 };
 
 /**

@@ -4,8 +4,8 @@
       <div class="rule-row" v-for="(r, idx) in rules" :key="idx">
         <el-select v-model="r.ipRateLimitType" style="width: 140px" placeholder="类型">
           <el-option label="限流" value="RATE_LIMIT" />
-          <el-option label="白名单" value="WHITELIST" />
-          <el-option label="黑名单" value="BLACKLIST" />
+          <el-option label="白名�? value="WHITELIST" />
+          <el-option label="黑名�? value="BLACKLIST" />
         </el-select>
         <el-input v-model="r.ipRateLimitIp" placeholder="IP或CIDR" style="width: 220px;margin-left: 8px" />
         <el-input-number v-model="r.ipRateLimitQps" :min="1" :max="100000" style="width: 140px;margin-left: 8px" :disabled="r.ipRateLimitType !== 'RATE_LIMIT'" />
@@ -62,7 +62,7 @@ async function handleSave() {
   try {
     const res = await saveIpRateLimitRules(props.serverId, props.filterSettingId, rules.value)
     if (res.success) {
-      ElMessage.success('保存成功，已热应用')
+      ElMessage.success('保存成功，已热应�?)
       emit('success')
       visibleInner.value = false
     } else { ElMessage.error(res.msg || '保存失败') }

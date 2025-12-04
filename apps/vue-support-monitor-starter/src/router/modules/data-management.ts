@@ -22,29 +22,6 @@ export default [
           showParent: true,
         },
       },
-      
-      {
-        path: "/data/analysis",
-        name: "dataAnalysis",
-        component: () => import("@/views/data-analysis/index.vue"),
-        meta: {
-          icon: "ri:bar-chart-box-line",
-          title: "数据分析",
-          showLink: true,
-          showParent: true,
-        },
-      },
-      {
-        path: "/data/sync",
-        name: "dataSync",
-        component: () => import("@/views/data-sync/index.vue"),
-        meta: {
-          icon: "ri:refresh-line",
-          title: "数据同步",
-          showLink: true,
-          showParent: true,
-        },
-      },
     ],
   },
 ];

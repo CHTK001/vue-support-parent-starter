@@ -1,6 +1,6 @@
 <template>
   <div class="server-file-upload-progress">
-    <!-- Socket.IO连接状态 -->
+    <!-- Socket.IO连接状�?-->
     <div class="connection-status">
       <el-card class="status-card" shadow="hover">
         <div class="status-content">
@@ -31,7 +31,7 @@
               </div>
               <div class="metric-content">
                 <div class="metric-value">{{ totalProgress }}%</div>
-                <div class="metric-label">总进度</div>
+                <div class="metric-label">总进�?/div>
               </div>
             </div>
             <div class="metric-card">
@@ -63,7 +63,7 @@
       </el-card>
     </div>
 
-    <!-- 队列状态 -->
+    <!-- 队列状�?-->
     <div class="queue-status">
       <el-card class="queue-card" shadow="hover">
         <template #header>
@@ -71,7 +71,7 @@
             <div class="header-icon">
               <IconifyIconOnline icon="ep:data-line" />
             </div>
-            <span class="header-title">队列状态</span>
+            <span class="header-title">队列状�?/span>
             <div class="header-badge">
               <el-badge :value="queueStatus.pendingTasks" :max="99" type="primary" />
             </div>
@@ -95,7 +95,7 @@
             </div>
             <div class="metric-info">
               <div class="metric-value">{{ queueStatus.processingTasks }}</div>
-              <div class="metric-label">处理中</div>
+              <div class="metric-label">处理�?/div>
             </div>
           </div>
 
@@ -105,7 +105,7 @@
             </div>
             <div class="metric-info">
               <div class="metric-value">{{ queueStatus.completedTasks }}</div>
-              <div class="metric-label">已完成</div>
+              <div class="metric-label">已完�?/div>
             </div>
           </div>
 
@@ -115,7 +115,7 @@
             </div>
             <div class="metric-info">
               <div class="metric-value">{{ queueStatus.throughput.toFixed(1) }}</div>
-              <div class="metric-label">吞吐量/分</div>
+              <div class="metric-label">吞吐�?�?/div>
             </div>
           </div>
         </div>
@@ -153,7 +153,7 @@
           <div class="empty-content">
             <IconifyIconOnline icon="ep:document" class="empty-icon" />
             <h3 class="empty-title">暂无活跃任务</h3>
-            <p class="empty-description">当前没有正在进行的文件上传任务</p>
+            <p class="empty-description">当前没有正在进行的文件上传任�?/p>
           </div>
         </div>
 
@@ -223,7 +223,7 @@
             </div>
             <span class="header-title">统计信息</span>
             <div class="header-actions">
-              <el-tag type="info" size="small">成功率: {{ statistics.successRate.toFixed(1) }}%</el-tag>
+              <el-tag type="info" size="small">成功�? {{ statistics.successRate.toFixed(1) }}%</el-tag>
             </div>
           </div>
         </template>
@@ -245,7 +245,7 @@
             </div>
             <div class="stat-content">
               <div class="stat-value">{{ statistics.processingCount }}</div>
-              <div class="stat-label">处理中</div>
+              <div class="stat-label">处理�?/div>
             </div>
           </div>
 
@@ -255,7 +255,7 @@
             </div>
             <div class="stat-content">
               <div class="stat-value">{{ statistics.completedCount }}</div>
-              <div class="stat-label">已完成</div>
+              <div class="stat-label">已完�?/div>
             </div>
           </div>
 
@@ -275,7 +275,7 @@
             </div>
             <div class="stat-content">
               <div class="stat-value">{{ formatFileSize(statistics.totalFileSize) }}</div>
-              <div class="stat-label">总文件大小</div>
+              <div class="stat-label">总文件大�?/div>
             </div>
           </div>
 
@@ -300,7 +300,7 @@ import { ElMessage } from "element-plus";
 import { useServerFileUpload } from "@/composables/useServerFileUpload";
 import { cancelServerFileUploadTask, TASK_STATUS } from "@/api/server-file-upload";
 
-// 使用组合式函数
+// 使用组合式函�?
 const {
   isConnected,
   connectionStatus,
@@ -324,7 +324,7 @@ const emit = defineEmits<{
   refresh: [];
 }>();
 
-// 计算属性
+// 计算属�?
 const connectionStatusClass = computed(() => {
   switch (connectionStatus.value) {
     case "CONNECTED":
@@ -354,13 +354,13 @@ const connectionStatusIcon = computed(() => {
 const connectionStatusText = computed(() => {
   switch (connectionStatus.value) {
     case "CONNECTED":
-      return "已连接";
+      return "已连�?;
     case "CONNECTING":
-      return "连接中";
+      return "连接�?;
     case "ERROR":
       return "连接错误";
     default:
-      return "未连接";
+      return "未连�?;
   }
 });
 
@@ -437,7 +437,7 @@ const handleRefreshStatistics = () => {
     socketClient.value.emit("server_file_upload_refresh_statistics", {
       timestamp: Date.now()
     });
-    ElMessage.success("已请求刷新统计信息");
+    ElMessage.success("已请求刷新统计信�?);
   } else {
     ElMessage.warning("Socket.IO未连接，无法刷新统计");
   }
@@ -469,11 +469,11 @@ const getStatusType = (status: string) => {
 
 const getStatusText = (status: string) => {
   const statusMap = {
-    [TASK_STATUS.PENDING]: "待处理",
-    [TASK_STATUS.PROCESSING]: "处理中",
-    [TASK_STATUS.COMPLETED]: "已完成",
+    [TASK_STATUS.PENDING]: "待处�?,
+    [TASK_STATUS.PROCESSING]: "处理�?,
+    [TASK_STATUS.COMPLETED]: "已完�?,
     [TASK_STATUS.FAILED]: "失败",
-    [TASK_STATUS.CANCELLED]: "已取消"
+    [TASK_STATUS.CANCELLED]: "已取�?
   };
   return statusMap[status] || status;
 };
@@ -554,7 +554,7 @@ const getProgressStatus = (status: string) => {
   align-items: center;
 }
 
-/* 连接状态样式 */
+/* 连接状态样�?*/
 .connection-status .status-content {
   display: flex;
   justify-content: space-between;
@@ -754,7 +754,7 @@ const getProgressStatus = (status: string) => {
   background: linear-gradient(135deg, #337ecc, #5dade6);
 }
 
-/* 队列状态样式 */
+/* 队列状态样�?*/
 .queue-metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -1203,7 +1203,7 @@ const getProgressStatus = (status: string) => {
    color: var(--el-text-color-primary);
 }
 
-/* 响应式设计 */
+/* 响应式设�?*/
 @media (max-width: 768px) {
   .server-file-upload-progress {
     padding: 16px;
@@ -1325,7 +1325,7 @@ const getProgressStatus = (status: string) => {
   animation-delay: 0.4s;
 }
 
-/* 进度条增强动画 */
+/* 进度条增强动�?*/
 .el-progress__bar .el-progress__bar-inner {
   background: linear-gradient(90deg, #409eff, #66b1ff, #409eff);
   background-size: 200% 100%;

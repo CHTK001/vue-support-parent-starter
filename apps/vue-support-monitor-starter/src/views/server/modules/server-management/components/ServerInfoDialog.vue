@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="服务器详情"
+    title="服务器详�?
     width="800px"
     :close-on-click-modal="false"
     destroy-on-close
@@ -17,7 +17,7 @@
         </template>
         
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="服务器名称">
+          <el-descriptions-item label="服务器名�?>
             {{ serverData.monitorSysGenServerName || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="协议类型">
@@ -32,7 +32,7 @@
           <el-descriptions-item label="端口">
             {{ serverData.monitorSysGenServerPort || "-" }}
           </el-descriptions-item>
-          <el-descriptions-item label="用户名">
+          <el-descriptions-item label="用户�?>
             {{ serverData.monitorSysGenServerUsername || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="认证方式">
@@ -40,14 +40,14 @@
               {{ serverData.monitorSysGenServerAuthType === "password" ? "密码认证" : "密钥认证" }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="状态">
+          <el-descriptions-item label="状�?>
             <el-tag :type="getStatusType(serverData.monitorSysGenServerStatus)">
               {{ getStatusText(serverData.monitorSysGenServerStatus) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="监控状态">
+          <el-descriptions-item label="监控状�?>
             <el-tag :type="serverData.monitorSysGenServerMonitorEnabled ? 'success' : 'info'">
-              {{ serverData.monitorSysGenServerMonitorEnabled ? "已启用" : "已禁用" }}
+              {{ serverData.monitorSysGenServerMonitorEnabled ? "已启�? : "已禁�? }}
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="标签" :span="2">
@@ -75,12 +75,12 @@
         </el-descriptions>
       </el-card>
 
-      <!-- 连接状态 -->
+      <!-- 连接状�?-->
       <el-card class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:link" class="mr-2" />
-            连接状态
+            连接状�?
             <el-button
               type="primary"
               size="small"
@@ -88,18 +88,18 @@
               @click="refreshStatus"
               class="ml-auto"
             >
-              刷新状态
+              刷新状�?
             </el-button>
           </div>
         </template>
         
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="连接状态">
+          <el-descriptions-item label="连接状�?>
             <el-tag :type="getConnectionStatusType(connectionStatus.status)">
               {{ getConnectionStatusText(connectionStatus.status) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="最后连接时间">
+          <el-descriptions-item label="最后连接时�?>
             {{ formatDate(connectionStatus.lastConnectTime) }}
           </el-descriptions-item>
           <el-descriptions-item label="连接次数">
@@ -136,13 +136,13 @@
           <el-descriptions-item label="系统版本">
             {{ systemInfo.osVersion || "-" }}
           </el-descriptions-item>
-          <el-descriptions-item label="主机名">
+          <el-descriptions-item label="主机�?>
             {{ systemInfo.hostname || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="CPU架构">
             {{ systemInfo.cpuArch || "-" }}
           </el-descriptions-item>
-          <el-descriptions-item label="CPU使用率">
+          <el-descriptions-item label="CPU使用�?>
             <ScProgress
               type="line"
               :percentage="Math.round(systemInfo.cpuUsage || 0)"
@@ -152,7 +152,7 @@
               :stroke-width="8"
             />
           </el-descriptions-item>
-          <el-descriptions-item label="内存使用率">
+          <el-descriptions-item label="内存使用�?>
             <ScProgress
               type="line"
               :percentage="Math.round(systemInfo.memoryUsage || 0)"
@@ -162,7 +162,7 @@
               :stroke-width="8"
             />
           </el-descriptions-item>
-          <el-descriptions-item label="磁盘使用率">
+          <el-descriptions-item label="磁盘使用�?>
             <ScProgress
               type="line"
               :percentage="Math.round(systemInfo.diskUsage || 0)"
@@ -181,12 +181,12 @@
         </el-descriptions>
       </el-card>
 
-      <!-- 最近指标 -->
+      <!-- 最近指�?-->
       <el-card v-if="recentMetrics.length > 0" class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:line-chart-line" class="mr-2" />
-            最近指标记录
+            最近指标记�?
           </div>
         </template>
         
@@ -196,7 +196,7 @@
               {{ formatDate(row.collectTime) }}
             </template>
           </el-table-column>
-          <el-table-column prop="cpuUsage" label="CPU使用率" width="120">
+          <el-table-column prop="cpuUsage" label="CPU使用�? width="120">
             <template #default="{ row }">
               <ScProgress
                 type="line"
@@ -208,7 +208,7 @@
               />
             </template>
           </el-table-column>
-          <el-table-column prop="memoryUsage" label="内存使用率" width="120">
+          <el-table-column prop="memoryUsage" label="内存使用�? width="120">
             <template #default="{ row }">
               <ScProgress
                 type="line"
@@ -220,7 +220,7 @@
               />
             </template>
           </el-table-column>
-          <el-table-column prop="diskUsage" label="磁盘使用率" width="120">
+          <el-table-column prop="diskUsage" label="磁盘使用�? width="120">
             <template #default="{ row }">
               <ScProgress
                 type="line"
@@ -232,12 +232,12 @@
               />
             </template>
           </el-table-column>
-          <el-table-column prop="networkIn" label="网络入流量" width="120">
+          <el-table-column prop="networkIn" label="网络入流�? width="120">
             <template #default="{ row }">
               {{ formatBytes(row.networkIn) }}
             </template>
           </el-table-column>
-          <el-table-column prop="networkOut" label="网络出流量" width="120">
+          <el-table-column prop="networkOut" label="网络出流�? width="120">
             <template #default="{ row }">
               {{ formatBytes(row.networkOut) }}
             </template>
@@ -275,7 +275,7 @@ const emit = defineEmits<{
   connect: [data: any];
 }>();
 
-// 响应式状态
+// 响应式状�?
 const visible = ref(false);
 const loading = ref(false);
 const statusLoading = ref(false);
@@ -288,7 +288,7 @@ const systemInfo = reactive<any>({});
 const recentMetrics = ref<any[]>([]);
 
 /**
- * 格式化日期
+ * 格式化日�?
  */
 const formatDate = (date: string | Date) => {
   if (!date) return "-";
@@ -300,7 +300,7 @@ const formatDate = (date: string | Date) => {
 };
 
 /**
- * 格式化时长
+ * 格式化时�?
  */
 const formatDuration = (seconds: number) => {
   if (!seconds || seconds <= 0) return "-";
@@ -310,7 +310,7 @@ const formatDuration = (seconds: number) => {
   const minutes = Math.floor((seconds % 3600) / 60);
 
   if (days > 0) {
-    return `${days}天${hours}小时${minutes}分钟`;
+    return `${days}�?{hours}小时${minutes}分钟`;
   } else if (hours > 0) {
     return `${hours}小时${minutes}分钟`;
   } else {
@@ -319,7 +319,7 @@ const formatDuration = (seconds: number) => {
 };
 
 /**
- * 格式化字节
+ * 格式化字�?
  */
 const formatBytes = (bytes: number) => {
   if (!bytes || bytes <= 0) return "-";
@@ -337,31 +337,31 @@ const formatBytes = (bytes: number) => {
 };
 
 /**
- * 获取状态类型
+ * 获取状态类�?
  */
 const getStatusType = (status: number) => {
   return statusMap[status]?.color || "info";
 };
 
 /**
- * 获取状态文本
+ * 获取状态文�?
  */
 const getStatusText = (status: number) => {
-  return statusMap[status]?.text || "未知状态";
+  return statusMap[status]?.text || "未知状�?;
 };
 
 /**
- * 获取连接状态类型
+ * 获取连接状态类�?
  */
 const getConnectionStatusType = (status: number) => {
   return connectionStatusMap[status]?.color || "info";
 };
 
 /**
- * 获取连接状态文本
+ * 获取连接状态文�?
  */
 const getConnectionStatusText = (status: number) => {
-  return connectionStatusMap[status]?.text || "未知状态";
+  return connectionStatusMap[status]?.text || "未知状�?;
 };
 
 /**
@@ -387,7 +387,7 @@ const getProtocolIcon = (protocol: string) => {
  * 获取进度条颜色（支持渐变和不同指标类型）
  */
 const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
-  // 定义不同指标的阈值
+  // 定义不同指标的阈�?
   const thresholds = {
     cpu: { normal: 50, warning: 80, critical: 90 },
     memory: { normal: 60, warning: 80, critical: 90 },
@@ -397,7 +397,7 @@ const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
 
   const threshold = thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
 
-  // 返回渐变色配置
+  // 返回渐变色配�?
   return [
     { color: '#67c23a', percentage: threshold.normal },
     { color: '#e6a23c', percentage: threshold.warning },
@@ -406,7 +406,7 @@ const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
 };
 
 /**
- * 打开对话框
+ * 打开对话�?
  */
 const open = () => {
   visible.value = true;
@@ -422,7 +422,7 @@ const setData = (data: any) => {
 };
 
 /**
- * 加载服务器状态
+ * 加载服务器状�?
  */
 const loadServerStatus = async () => {
   if (!serverData.monitorSysGenServerId) return;
@@ -434,7 +434,7 @@ const loadServerStatus = async () => {
       Object.assign(connectionStatus, res.data || {});
     }
   } catch (error) {
-    console.error("加载服务器状态失败:", error);
+    console.error("加载服务器状态失�?", error);
   } finally {
     statusLoading.value = false;
   }
@@ -461,7 +461,7 @@ const loadSystemInfo = async () => {
 };
 
 /**
- * 刷新状态
+ * 刷新状�?
  */
 const refreshStatus = () => {
   loadServerStatus();
@@ -475,7 +475,7 @@ const refreshSystemInfo = () => {
 };
 
 /**
- * 编辑服务器
+ * 编辑服务�?
  */
 const handleEdit = () => {
   emit("edit", serverData);
@@ -483,7 +483,7 @@ const handleEdit = () => {
 };
 
 /**
- * 连接服务器
+ * 连接服务�?
  */
 const handleConnect = async () => {
   try {
@@ -492,20 +492,20 @@ const handleConnect = async () => {
     if (res.code === "00000") {
       message.success("连接成功");
       emit("connect", serverData);
-      loadServerStatus(); // 刷新连接状态
+      loadServerStatus(); // 刷新连接状�?
     } else {
       message.error(res.msg || "连接失败");
     }
   } catch (error) {
     message.error("连接异常，请稍后重试");
-    console.error("连接服务器出错:", error);
+    console.error("连接服务器出�?", error);
   } finally {
     loading.value = false;
   };
 };
 
 /**
- * 进度阶段颜色（供 ScProgress 使用）
+ * 进度阶段颜色（供 ScProgress 使用�?
  */
 const getProgressStages = (metricType: string) => {
   const thresholds: Record<string, { normal: number; warning: number; critical: number }> = {

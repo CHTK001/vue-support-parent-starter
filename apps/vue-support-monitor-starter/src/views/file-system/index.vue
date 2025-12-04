@@ -8,7 +8,7 @@
           theme="primary"
           icon="ri:file-list-3-line"
           :value="statistics.totalFiles"
-          label="总文件"
+          label="总文�?
           trend-icon="ri:folder-line"
           trend-text="全部文件"
         />
@@ -17,7 +17,7 @@
           theme="info"
           icon="ri:hard-drive-2-line"
           :value="formatFileSize(statistics.totalSize)"
-          label="总大小"
+          label="总大�?
           trend-icon="ri:database-2-line"
           trend-text="存储空间"
         />
@@ -26,20 +26,20 @@
           theme="success"
           icon="ri:checkbox-circle-line"
           :value="statistics.completedFiles"
-          label="已完成"
+          label="已完�?
           trend-icon="ri:check-double-line"
           trend-text="合并完成"
         />
       </div>
     </div>
 
-    <!-- 工具栏 -->
+    <!-- 工具�?-->
     <div class="toolbar-section">
       <div class="toolbar modern-toolbar">
         <div class="left">
           <el-input
             v-model="searchQuery.fileName"
-            placeholder="搜索文件名..."
+            placeholder="搜索文件�?.."
             clearable
             class="w-280"
             @clear="handleSearch"
@@ -51,18 +51,18 @@
           </el-input>
           <el-select
             v-model="searchQuery.fileStatus"
-            placeholder="文件状态"
+            placeholder="文件状�?
             clearable
             class="w-160"
             @change="handleSearch"
           >
             <el-option label="全部" :value="null" />
-            <el-option label="待合并" :value="0" />
-            <el-option label="合并中" :value="1" />
-            <el-option label="已完成" :value="2" />
+            <el-option label="待合�? :value="0" />
+            <el-option label="合并�? :value="1" />
+            <el-option label="已完�? :value="2" />
             <el-option label="合并失败" :value="3" />
           </el-select>
-          <!-- 连接状态 -->
+          <!-- 连接状�?-->
           <el-tooltip :content="connectionStatusText" placement="bottom">
             <div class="connection-badge" :class="connectionStatusClass">
               <IconifyIconOnline
@@ -125,7 +125,7 @@
           </div>
         </template>
         <el-descriptions :column="4" border size="small">
-          <el-descriptions-item label="连接状态">
+          <el-descriptions-item label="连接状�?>
             <el-tag
               :type="sseState.connected ? 'success' : 'danger'"
               size="small"
@@ -134,25 +134,25 @@
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="客户端ID">{{
-            sseState.clientId || "未分配"
+            sseState.clientId || "未分�?
           }}</el-descriptions-item>
           <el-descriptions-item label="重连次数">{{
             sseState.reconnectAttempts
           }}</el-descriptions-item>
-          <el-descriptions-item label="最后心跳">
+          <el-descriptions-item label="最后心�?>
             {{
               sseState.lastHeartbeat
                 ? new Date(sseState.lastHeartbeat).toLocaleString()
-                : "无"
+                : "�?
             }}
           </el-descriptions-item>
         </el-descriptions>
       </el-card>
     </div>
 
-    <!-- 主内容区域 -->
+    <!-- 主内容区�?-->
     <div class="main-content">
-      <!-- 左侧分组树 -->
+      <!-- 左侧分组�?-->
       <div class="group-panel">
         <div class="panel-header">
           <h3>
@@ -251,7 +251,7 @@
             @selection-change="handleSelectionChange"
           >
             <el-table-column type="selection" width="50" />
-            <el-table-column label="文件名" min-width="240">
+            <el-table-column label="文件�? min-width="240">
               <template #default="{ row }">
                 <div class="file-cell">
                   <div
@@ -273,7 +273,7 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="110" align="center">
+            <el-table-column label="状�? width="110" align="center">
               <template #default="{ row }">
                 <el-tag
                   :type="getStatusType(row.fileSystemStatus)"
@@ -378,7 +378,7 @@
       </div>
     </div>
 
-    <!-- 上传对话框 -->
+    <!-- 上传对话�?-->
     <FileSystemDistributeDialog
       v-model="showDistributeDialog"
       :file="currentDistributeFile"
@@ -394,23 +394,23 @@
       @add-to-queue="handleAddToQueue"
     />
 
-    <!-- 队列状态组件 -->
+    <!-- 队列状态组�?-->
     <UploadQueueStatusComponent
       ref="queueStatusRef"
       :queue-status="queueStatus"
       @queue-update="handleQueueUpdate"
     />
 
-    <!-- 文件系统设置对话框 -->
+    <!-- 文件系统设置对话�?-->
     <FileSystemSettings
       v-model="showSettingsDialog"
       @settings-updated="handleSettingsUpdated"
     />
 
-    <!-- MD5测试对话框 -->
+    <!-- MD5测试对话�?-->
     <MD5TestDialog v-model="showMD5TestDialog" />
 
-    <!-- 分组管理对话框 -->
+    <!-- 分组管理对话�?-->
     <FileSystemGroupDialog
       ref="groupDialogRef"
       v-model="showGroupDialog"
@@ -420,7 +420,7 @@
     <!-- 移动到分组对话框 -->
     <el-dialog
       v-model="showMoveToGroupDialog"
-      title="移动文件到分组"
+      title="移动文件到分�?
       width="500px"
       :close-on-click-modal="false"
     >
@@ -440,7 +440,7 @@
               <span class="file-name">{{ file.fileSystemName }}</span>
             </div>
             <div v-if="selectedFiles.length > 5" class="more-files">
-              还有 {{ selectedFiles.length - 5 }} 个文件...
+              还有 {{ selectedFiles.length - 5 }} 个文�?..
             </div>
           </div>
         </div>
@@ -448,7 +448,7 @@
         <el-divider />
 
         <div class="group-selection">
-          <p>选择目标分组：</p>
+          <p>选择目标分组�?/p>
           <el-tree
             ref="moveGroupTreeRef"
             :data="groupTree"
@@ -534,7 +534,7 @@ const {
   MESSAGE_TYPE,
 } = useFileSystemSSE();
 
-// 响应式数据
+// 响应式数�?
 const showUploadDialog = ref(false);
 const showSettingsDialog = ref(false);
 const showMD5TestDialog = ref(false);
@@ -548,7 +548,7 @@ const groupTreeRef = ref();
 const groupDialogRef = ref();
 const selectedGroupId = ref(null);
 
-// 移动到分组相关数据
+// 移动到分组相关数�?
 const moveGroupTreeRef = ref();
 const selectedMoveGroupId = ref(null);
 const moveToGroupLoading = ref(false);
@@ -582,12 +582,12 @@ const searchQuery = reactive({
   groupId: null as number | null,
 });
 
-// SSE连接状态
+// SSE连接状�?
 const connectionStatusText = computed(() => {
-  if (sseState.value.connecting) return "连接中";
-  if (sseState.value.connected) return "已连接";
+  if (sseState.value.connecting) return "连接�?;
+  if (sseState.value.connected) return "已连�?;
   if (sseState.value.error) return "连接失败";
-  return "未连接";
+  return "未连�?;
 });
 
 const connectionStatusClass = computed(() => {
@@ -605,7 +605,7 @@ const connectionStatusIcon = computed(() => {
 });
 
 /**
- * 加载分组树
+ * 加载分组�?
  */
 const loadGroupTree = async () => {
   try {
@@ -613,10 +613,10 @@ const loadGroupTree = async () => {
     if (String(res.code) === "00000") {
       groupTree.value = res.data || [];
     } else {
-      console.error("加载分组树失败:", res.msg);
+      console.error("加载分组树失�?", res.msg);
     }
   } catch (error) {
-    console.error("加载分组树异常:", error);
+    console.error("加载分组树异�?", error);
   }
 };
 
@@ -642,7 +642,7 @@ const handleGroupSelect = (data: FileSystemGroup) => {
  * 处理分组操作成功
  */
 const handleGroupSuccess = () => {
-  // 重新加载分组树
+  // 重新加载分组�?
   loadGroupTree();
   // 重新加载文件列表
   handleSearch();
@@ -656,7 +656,7 @@ const handleMoveGroupSelect = (data: FileSystemGroup) => {
 };
 
 /**
- * 处理移动到分组
+ * 处理移动到分�?
  */
 const handleMoveToGroup = async () => {
   if (!selectedMoveGroupId.value || !selectedFiles.value.length) {
@@ -680,7 +680,7 @@ const handleMoveToGroup = async () => {
       ElMessage.error(res.msg || "移动文件失败");
     }
   } catch (error) {
-    console.error("移动文件到分组失败:", error);
+    console.error("移动文件到分组失�?", error);
     ElMessage.error("移动文件失败");
   } finally {
     moveToGroupLoading.value = false;
@@ -697,10 +697,10 @@ const handleCreateGroup = () => {
 // 生命周期
 onMounted(() => {
   loadStatistics();
-  loadGroupTree(); // 加载分组树
+  loadGroupTree(); // 加载分组�?
   connectSSE(); // 连接SSE
 
-  // 注册SSE消息处理器
+  // 注册SSE消息处理�?
   onMessage(MESSAGE_TYPE.UPLOAD_COMPLETED, () => {
     refreshData();
   });
@@ -753,7 +753,7 @@ const handleSearch = () => {
   tableRef.value?.refresh();
 };
 
-// 监听搜索条件变化，自动刷新表格
+// 监听搜索条件变化，自动刷新表�?
 watch(
   () => searchQuery,
   () => {
@@ -770,14 +770,14 @@ const handleSelectionChange = (selection: FileSystem[]) => {
 };
 
 /**
- * 格式化文件大小
+ * 格式化文件大�?
  */
 const formatFileSize = (size: number) => {
   return formatBytes(size);
 };
 
 /**
- * 格式化日期时间
+ * 格式化日期时�?
  */
 const formatDateTime = (dateTime: string) => {
   return dateTime ? dayjs(dateTime).format("YYYY-MM-DD HH:mm:ss") : "-";
@@ -799,7 +799,7 @@ const getFileIcon = (fileType: string) => {
 };
 
 /**
- * 获取状态类型
+ * 获取状态类�?
  */
 const getStatusType = (
   status: number
@@ -808,16 +808,16 @@ const getStatusType = (
     number,
     "success" | "warning" | "info" | "primary" | "danger"
   > = {
-    0: "warning", // 待合并
-    1: "primary", // 合并中
-    2: "success", // 已完成
+    0: "warning", // 待合�?
+    1: "primary", // 合并�?
+    2: "success", // 已完�?
     3: "danger", // 合并失败
   };
   return typeMap[status] || "info";
 };
 
 /**
- * 打开同步对话框
+ * 打开同步对话�?
  */
 const showDistributeDialog = ref(false);
 const currentDistributeFile = ref<FileSystem | null>(null);
@@ -827,24 +827,24 @@ const openDistribute = (file: FileSystem) => {
 };
 
 const handleDistributeSuccess = () => {
-  ElMessage.success("同步任务已完成");
+  ElMessage.success("同步任务已完�?);
 };
 
 /**
- * 获取状态文本
+ * 获取状态文�?
  */
 const getStatusText = (status: number) => {
   const textMap: Record<number, string> = {
-    0: "待合并",
-    1: "合并中",
-    2: "已完成",
+    0: "待合�?,
+    1: "合并�?,
+    2: "已完�?,
     3: "失败",
   };
   return textMap[status] || "未知";
 };
 
 /**
- * 获取状态图标
+ * 获取状态图�?
  */
 const getStatusIcon = (status: number) => {
   const iconMap: Record<number, string> = {
@@ -857,7 +857,7 @@ const getStatusIcon = (status: number) => {
 };
 
 /**
- * 获取文件类型样式类
+ * 获取文件类型样式�?
  */
 const getFileTypeClass = (fileType: string) => {
   const classMap: Record<string, string> = {
@@ -891,7 +891,7 @@ const getSelectedGroupName = () => {
 };
 
 /**
- * 清除分组筛选
+ * 清除分组筛�?
  */
 const clearGroupFilter = () => {
   selectedGroupId.value = null;
@@ -901,7 +901,7 @@ const clearGroupFilter = () => {
 };
 
 /**
- * 获取进度状态
+ * 获取进度状�?
  */
 const getProgressStatus = (status: number) => {
   if (status === 2) return "success";
@@ -936,7 +936,7 @@ const handleDownload = async (file: FileSystem) => {
 const handleDelete = async (file: FileSystem) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除文件 "${file.fileSystemName}" 吗？`,
+      `确定要删除文�?"${file.fileSystemName}" 吗？`,
       "确认删除",
       {
         type: "warning",
@@ -964,7 +964,7 @@ const handleDelete = async (file: FileSystem) => {
 const handleBatchDelete = async () => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedFiles.value.length} 个文件吗？`,
+      `确定要删除选中�?${selectedFiles.value.length} 个文件吗？`,
       "确认批量删除",
       {
         type: "warning",
@@ -1001,12 +1001,12 @@ const handleToggleHttpAccess = async (file: FileSystem) => {
         file.fileSystemHttpAccessEnabled ? "已启用HTTP访问" : "已禁用HTTP访问"
       );
     } else {
-      // 恢复原状态
+      // 恢复原状�?
       file.fileSystemHttpAccessEnabled = !file.fileSystemHttpAccessEnabled;
       ElMessage.error(res.msg || "操作失败");
     }
   } catch (error) {
-    // 恢复原状态
+    // 恢复原状�?
     file.fileSystemHttpAccessEnabled = !file.fileSystemHttpAccessEnabled;
     console.error("切换HTTP访问失败:", error);
     ElMessage.error("操作失败");
@@ -1019,7 +1019,7 @@ const handleToggleHttpAccess = async (file: FileSystem) => {
 const handleCleanExpired = async () => {
   try {
     await ElMessageBox.confirm(
-      "确定要清理过期文件吗？此操作不可恢复。",
+      "确定要清理过期文件吗？此操作不可恢复�?,
       "确认清理",
       {
         type: "warning",
@@ -1048,7 +1048,7 @@ const handleRetryMerge = async (file: FileSystem) => {
   try {
     const res = await retryMergeTask(file.fileSystemId!);
     if (res.code === "00000") {
-      ElMessage.success("重试合并任务已提交");
+      ElMessage.success("重试合并任务已提�?);
       refreshData();
     } else {
       ElMessage.error(res.msg || "重试失败");
@@ -1066,7 +1066,7 @@ const handleManualMerge = async (file: FileSystem) => {
   try {
     const res = await manualMergeFile(file.fileSystemId!);
     if (res.code === "00000") {
-      ElMessage.success("手动合并任务已提交");
+      ElMessage.success("手动合并任务已提�?);
       refreshData();
     } else {
       ElMessage.error(res.msg || "合并失败");
@@ -1085,27 +1085,27 @@ const handleUploadSuccess = () => {
 };
 
 /**
- * 处理添加到队列
+ * 处理添加到队�?
  */
 const handleAddToQueue = (task: UploadQueueStatus) => {
-  // SSE会自动更新queueStatus，这里不需要手动处理
-  console.log("添加到上传队列:", task);
+  // SSE会自动更新queueStatus，这里不需要手动处�?
+  console.log("添加到上传队�?", task);
 };
 
 /**
  * 处理队列更新
  */
 const handleQueueUpdate = (queue: UploadQueueStatus[]) => {
-  // 可以在这里处理队列状态更新
-  console.log("队列状态更新:", queue);
+  // 可以在这里处理队列状态更�?
+  console.log("队列状态更�?", queue);
 };
 
 /**
  * 处理设置更新
  */
 const handleSettingsUpdated = () => {
-  ElMessage.success("设置已更新");
-  // 可以在这里刷新相关数据
+  ElMessage.success("设置已更�?);
+  // 可以在这里刷新相关数�?
   loadStatistics();
 };
 
@@ -1146,21 +1146,21 @@ const testBackendAPI = async () => {
     if (res.code === "00000") {
       ElMessage.success("后端API连接正常");
 
-      // 测试SSE状态端点
+      // 测试SSE状态端�?
       const baseUrl = "/monitor/api";
       const statusResponse = await fetch(`${baseUrl}/v1/filesystem/sse/status`);
       console.log(
-        "SSE状态端点响应:",
+        "SSE状态端点响�?",
         statusResponse.status,
         statusResponse.statusText
       );
 
       if (statusResponse.ok) {
         const statusData = await statusResponse.json();
-        console.log("SSE状态数据:", statusData);
+        console.log("SSE状态数�?", statusData);
         ElMessage.success("SSE状态端点也正常");
       } else {
-        ElMessage.warning(`SSE状态端点返回: ${statusResponse.status}`);
+        ElMessage.warning(`SSE状态端点返�? ${statusResponse.status}`);
       }
     } else {
       ElMessage.error(`后端API错误: ${res.msg}`);
@@ -1277,7 +1277,7 @@ const testBackendAPI = async () => {
     }
   }
 
-  // 工具栏
+  // 工具�?
   .toolbar-section {
     padding: 16px 32px;
     background: rgba(255, 255, 255, 0.6);
@@ -1364,7 +1364,7 @@ const testBackendAPI = async () => {
     }
   }
 
-  // 主内容区域
+  // 主内容区�?
   .main-content {
     display: flex;
     flex-direction: row;
@@ -1486,7 +1486,7 @@ const testBackendAPI = async () => {
     }
   }
 
-  // 文件单元格
+  // 文件单元�?
   .file-cell {
     display: flex;
     align-items: center;
@@ -1553,7 +1553,7 @@ const testBackendAPI = async () => {
     }
   }
 
-  // 进度条
+  // 进度�?
   .progress-wrapper {
     display: flex;
     flex-direction: column;
@@ -1672,7 +1672,7 @@ const testBackendAPI = async () => {
   }
 }
 
-// 响应式设计 - 只在小屏幕上才变成上下布局
+// 响应式设�?- 只在小屏幕上才变成上下布局
 @media (max-width: 768px) {
   .file-system-page {
     .page-header {

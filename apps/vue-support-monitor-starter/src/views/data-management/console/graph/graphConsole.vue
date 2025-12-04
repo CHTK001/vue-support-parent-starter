@@ -16,7 +16,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import CodeEditor from "@/components/codeEditor/index.vue";
-import { executeConsole } from "@/api/system-data";
+import { executeConsole } from "@/api/data-management/system-data";
 const props = defineProps<{ id: number }>();
 const lang = ref<"cypher" | "gremlin">("cypher");
 const text = ref("MATCH (n) RETURN n LIMIT 25");

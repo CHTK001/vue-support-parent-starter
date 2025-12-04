@@ -31,13 +31,13 @@
                 {{ getComponentTypeDisplayName(testFormData.monitorSysGenServerComponentType) }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="表达式类型">
+            <el-descriptions-item label="表达式类�?>
               <el-tag type="info">
                 {{ getExpressionTypeDisplayName(testFormData.monitorSysGenServerComponentExpressionType) }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="表达式">
-              {{ testFormData.monitorSysGenServerComponentExpression || '未设置' }}
+            <el-descriptions-item label="表达�?>
+              {{ testFormData.monitorSysGenServerComponentExpression || '未设�? }}
             </el-descriptions-item>
           </el-descriptions>
         </el-card>
@@ -50,10 +50,10 @@
           
           <el-space>
             <el-button type="primary" @click="testFormToApi">
-              前端 → 后端转换
+              前端 �?后端转换
             </el-button>
             <el-button type="success" @click="testApiToForm">
-              后端 → 前端转换
+              后端 �?前端转换
             </el-button>
             <el-button @click="resetTestData">
               重置测试数据
@@ -76,7 +76,7 @@
           </template>
           
           <el-button type="warning" @click="testValidation">
-            验证数据完整性
+            验证数据完整�?
           </el-button>
           
           <div v-if="validationResult" style="margin-top: 16px">
@@ -115,7 +115,7 @@ const testFormData = reactive<ComponentFormData>({
   monitorSysGenServerComponentExpressionType: 'PROMETHEUS',
   monitorSysGenServerComponentExpression: 'up{job="node"}',
   monitorSysGenServerComponentUnit: '%',
-  monitorSysGenServerComponentDescription: '这是一个测试组件',
+  monitorSysGenServerComponentDescription: '这是一个测试组�?,
   monitorSysGenServerComponentEnabled: true
 });
 
@@ -125,20 +125,20 @@ const testApiData = reactive<ServerComponent>({
   monitorSysGenServerComponentName: '测试组件',
   monitorSysGenServerComponentType: 'card',
   monitorSysGenServerComponentStatus: 1,
-  monitorSysGenServerComponentDescription: '这是一个测试组件'
+  monitorSysGenServerComponentDescription: '这是一个测试组�?
 });
 
 const conversionResult = ref<any>(null);
 const validationResult = ref<any>(null);
 
 /**
- * 测试前端到后端转换
+ * 测试前端到后端转�?
  */
 const testFormToApi = () => {
   try {
     const result = convertFormDataToApiData(testFormData);
     conversionResult.value = result;
-    ElMessage.success('前端到后端转换成功');
+    ElMessage.success('前端到后端转换成�?);
   } catch (error) {
     console.error('转换失败:', error);
     ElMessage.error('转换失败');
@@ -146,13 +146,13 @@ const testFormToApi = () => {
 };
 
 /**
- * 测试后端到前端转换
+ * 测试后端到前端转�?
  */
 const testApiToForm = () => {
   try {
     const result = convertApiDataToFormData(testApiData);
     conversionResult.value = result;
-    ElMessage.success('后端到前端转换成功');
+    ElMessage.success('后端到前端转换成�?);
   } catch (error) {
     console.error('转换失败:', error);
     ElMessage.error('转换失败');
@@ -189,7 +189,7 @@ const resetTestData = () => {
     monitorSysGenServerComponentExpressionType: 'PROMETHEUS',
     monitorSysGenServerComponentExpression: 'up{job="node"}',
     monitorSysGenServerComponentUnit: '%',
-    monitorSysGenServerComponentDescription: '这是一个测试组件',
+    monitorSysGenServerComponentDescription: '这是一个测试组�?,
     monitorSysGenServerComponentEnabled: true
   });
   
@@ -199,13 +199,13 @@ const resetTestData = () => {
     monitorSysGenServerComponentName: '测试组件',
     monitorSysGenServerComponentType: 'card',
     monitorSysGenServerComponentStatus: 1,
-    monitorSysGenServerComponentDescription: '这是一个测试组件'
+    monitorSysGenServerComponentDescription: '这是一个测试组�?
   });
   
   conversionResult.value = null;
   validationResult.value = null;
   
-  ElMessage.info('测试数据已重置');
+  ElMessage.info('测试数据已重�?);
 };
 </script>
 

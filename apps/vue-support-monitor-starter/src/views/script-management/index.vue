@@ -11,7 +11,7 @@
           <div class="stat-icon">
             <IconifyIconOnline icon="ri:file-code-line" />
           </div>
-          <div class="stat-label">脚本库</div>
+          <div class="stat-label">脚本�?/div>
         </div>
         <div
           class="stat-item"
@@ -21,7 +21,7 @@
           <div class="stat-icon running">
             <IconifyIconOnline icon="ri:play-circle-line" />
           </div>
-          <div class="stat-label">运行中</div>
+          <div class="stat-label">运行�?/div>
         </div>
         <div
           class="stat-item"
@@ -46,7 +46,7 @@
       </div>
     </div>
 
-    <!-- 主内容区域 -->
+    <!-- 主内容区�?-->
     <div class="main-content">
       <!-- 脚本列表 -->
       <div v-show="activeTab === 'list'" class="tab-content">
@@ -67,7 +67,7 @@
         <ScriptUploadRecords />
       </div>
 
-      <!-- 运行中脚本 -->
+      <!-- 运行中脚�?-->
       <div v-show="activeTab === 'running'" class="tab-content">
         <RunningScripts
           @stop="handleStopScript"
@@ -76,7 +76,7 @@
       </div>
     </div>
 
-    <!-- 脚本编辑对话框 -->
+    <!-- 脚本编辑对话�?-->
     <ScriptEditDialog
       v-model:visible="editDialogVisible"
       :script-data="currentScript"
@@ -84,14 +84,14 @@
       @test="handleTestScript"
     />
 
-    <!-- 脚本执行对话框 -->
+    <!-- 脚本执行对话�?-->
     <ScriptExecuteDialog
       v-model="executeDialogVisible"
       :script-data="currentScript"
       @success="handleExecuteSuccess"
     />
 
-    <!-- 执行详情对话框 -->
+    <!-- 执行详情对话�?-->
     <ExecutionDetailDialog
       v-model="detailDialogVisible"
       :execution-data="currentExecution"
@@ -110,7 +110,7 @@ import RunningScripts from "./components/RunningScripts.vue";
 import ScriptExecuteDialog from "./components/ScriptExecuteDialog.vue";
 import ExecutionDetailDialog from "./components/ExecutionDetailDialog.vue";
 
-// 响应式数据
+// 响应式数�?
 const activeTab = ref("list");
 const currentScript = ref(null);
 const currentExecution = ref(null);
@@ -118,9 +118,9 @@ const editDialogVisible = ref(false);
 const executeDialogVisible = ref(false);
 const detailDialogVisible = ref(false);
 
-// 初始化
+// 初始�?
 onMounted(() => {
-  console.log("脚本管理页面初始化");
+  console.log("脚本管理页面初始�?);
 });
 
 // 事件处理
@@ -150,7 +150,7 @@ const handleSaveScript = (script: any) => {
 };
 
 const handleTestScript = (script: any) => {
-  // 测试脚本 - 可以打开执行对话框进行测试
+  // 测试脚本 - 可以打开执行对话框进行测�?
   currentScript.value = script;
   executeDialogVisible.value = true;
 };
@@ -158,7 +158,7 @@ const handleTestScript = (script: any) => {
 const handleExecuteSuccess = () => {
   ElMessage.success("脚本执行成功");
   executeDialogVisible.value = false;
-  // 切换到运行中脚本标签页
+  // 切换到运行中脚本标签�?
   activeTab.value = "running";
 };
 
@@ -168,7 +168,7 @@ const handleStopScript = (execution: any) => {
 };
 
 const handleViewExecutionDetail = (execution: any) => {
-  // 统一映射为 ExecutionDetailDialog 需要的结构
+  // 统一映射�?ExecutionDetailDialog 需要的结构
   const ex = execution?.raw || execution || {};
   currentExecution.value = {
     id: ex.monitorSysGenScriptExecutionId || execution.id,
@@ -215,7 +215,7 @@ const handleViewExecutionDetail = (execution: any) => {
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
 
-    // 装饰性波纹
+    // 装饰性波�?
     &::before {
       content: "";
       position: absolute;
@@ -307,7 +307,7 @@ const handleViewExecutionDetail = (execution: any) => {
     }
   }
 
-  // 主内容区域
+  // 主内容区�?
   .main-content {
     flex: 1;
     overflow: hidden;
@@ -373,7 +373,7 @@ const handleViewExecutionDetail = (execution: any) => {
   }
 }
 
-// 响应式
+// 响应�?
 @media (max-width: 768px) {
   .script-management-page {
     .stats-section {

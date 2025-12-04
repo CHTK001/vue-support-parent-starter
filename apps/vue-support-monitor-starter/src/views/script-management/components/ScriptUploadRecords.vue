@@ -89,13 +89,13 @@
         <template #default="{ row }">
           {{ row.monitorSysGenScriptUploadFileName }}
           <span v-if="row.monitorSysGenScriptUploadFileSize"
-            >（{{ formatBytes(row.monitorSysGenScriptUploadFileSize) }}）</span
+            >（{{ formatBytes(row.monitorSysGenScriptUploadFileSize) }}�?/span
           >
         </template>
       </el-table-column>
       <el-table-column
         prop="monitorSysGenScriptUploadStatus"
-        label="状态"
+        label="状�?
         width="100"
       >
         <template #default="{ row }">

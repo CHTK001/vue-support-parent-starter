@@ -12,7 +12,7 @@
     class="script-edit-dialog"
     @close="handleClose"
   >
-    <!-- 对话框头部 -->
+    <!-- 对话框头�?-->
     <div class="dialog-header">
       <div class="header-icon">
         <IconifyIconOnline :icon="isEdit ? 'ri:edit-line' : 'ri:add-line'" />
@@ -20,7 +20,7 @@
       <div class="header-info">
         <h3 class="header-title">{{ isEdit ? "编辑脚本" : "新建脚本" }}</h3>
         <p class="header-desc">
-          {{ isEdit ? "修改脚本配置和内容" : "创建新的自动化脚本" }}
+          {{ isEdit ? "修改脚本配置和内�? : "创建新的自动化脚�? }}
         </p>
       </div>
       <div class="header-type" v-if="scriptForm.monitorSysGenScriptType">
@@ -38,7 +38,7 @@
 
     <div class="dialog-content">
       <el-tabs v-model="activeSubTab" class="custom-tabs">
-        <!-- 子Tab：编辑 -->
+        <!-- 子Tab：编�?-->
         <el-tab-pane name="edit">
           <template #label>
             <span class="tab-label">
@@ -69,7 +69,7 @@
                     >
                       <el-input
                         v-model="scriptForm.monitorSysGenScriptName"
-                        placeholder="请输入脚本名称"
+                        placeholder="请输入脚本名�?
                         clearable
                       >
                         <template #prefix>
@@ -131,7 +131,7 @@
                         v-model="scriptForm.monitorSysGenScriptDescription"
                         type="textarea"
                         :rows="2"
-                        placeholder="请输入脚本描述"
+                        placeholder="请输入脚本描�?
                         maxlength="200"
                         show-word-limit
                       />
@@ -139,7 +139,7 @@
                   </el-col>
                   <el-col :span="8">
                     <el-form-item
-                      label="脚本状态"
+                      label="脚本状�?
                       prop="monitorSysGenScriptStatus"
                     >
                       <el-switch
@@ -158,7 +158,7 @@
             </div>
           </div>
 
-          <!-- 代码编辑器 -->
+          <!-- 代码编辑�?-->
           <div class="code-editor-section">
             <div class="section-header">
               <div class="section-title">
@@ -176,7 +176,7 @@
                 </el-button>
                 <el-button size="small" @click="formatCode" class="action-btn">
                   <IconifyIconOnline icon="ri:magic-line" />
-                  格式化
+                  格式�?
                 </el-button>
               </div>
             </div>
@@ -190,7 +190,7 @@
                 }"
                 height="320px"
                 :show-tool="true"
-                placeholder="请输入脚本内容..."
+                placeholder="请输入脚本内�?.."
               />
             </div>
           </div>
@@ -209,7 +209,7 @@
       </el-tabs>
     </div>
 
-    <!-- 对话框底部按钮 -->
+    <!-- 对话框底部按�?-->
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose" class="cancel-btn">
@@ -255,7 +255,7 @@ const emit = defineEmits<{
   test: [script: any];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const formRef = ref<FormInstance>();
 const saving = ref(false);
 const activeSubTab = ref("edit");
@@ -272,11 +272,11 @@ const scriptForm = reactive({
 // 表单验证规则
 const formRules: FormRules = {
   monitorSysGenScriptName: [
-    { required: true, message: "请输入脚本名称", trigger: "blur" },
+    { required: true, message: "请输入脚本名�?, trigger: "blur" },
     {
       min: 2,
       max: 50,
-      message: "脚本名称长度在 2 到 50 个字符",
+      message: "脚本名称长度�?2 �?50 个字�?,
       trigger: "blur",
     },
   ],
@@ -284,14 +284,14 @@ const formRules: FormRules = {
     { required: true, message: "请选择脚本类型", trigger: "change" },
   ],
   monitorSysGenScriptDescription: [
-    { max: 200, message: "描述不能超过 200 个字符", trigger: "blur" },
+    { max: 200, message: "描述不能超过 200 个字�?, trigger: "blur" },
   ],
 };
 
-// 计算属性
+// 计算属�?
 const isEdit = computed(() => !!props.scriptData?.monitorSysGenScriptId);
 
-// 监听器
+// 监听�?
 watch(
   () => props.visible,
   (newVal) => {
@@ -373,13 +373,13 @@ const getTemplate = (type: string) => {
   const templates = {
     SHELL: `#!/bin/bash
 
-# 脚本描述：${scriptForm.monitorSysGenScriptDescription || "请添加脚本描述"}
-# 作者：系统管理员
-# 创建时间：${new Date().toLocaleDateString()}
+# 脚本描述�?{scriptForm.monitorSysGenScriptDescription || "请添加脚本描�?}
+# 作者：系统管理�?
+# 创建时间�?{new Date().toLocaleDateString()}
 
-echo "开始执行脚本..."
+echo "开始执行脚�?.."
 
-# 在这里添加你的脚本内容
+# 在这里添加你的脚本内�?
 
 echo "脚本执行完成"`,
 
@@ -387,42 +387,42 @@ echo "脚本执行完成"`,
 # -*- coding: utf-8 -*-
 
 """
-脚本描述：${scriptForm.monitorSysGenScriptDescription || "请添加脚本描述"}
-作者：系统管理员
-创建时间：${new Date().toLocaleDateString()}
+脚本描述�?{scriptForm.monitorSysGenScriptDescription || "请添加脚本描�?}
+作者：系统管理�?
+创建时间�?{new Date().toLocaleDateString()}
 """
 
 import os
 import sys
 
 def main():
-    print("开始执行脚本...")
+    print("开始执行脚�?..")
 
-    # 在这里添加你的脚本内容
+    # 在这里添加你的脚本内�?
 
     print("脚本执行完成")
 
 if __name__ == "__main__":
     main()`,
 
-    POWERSHELL: `# 脚本描述：${scriptForm.monitorSysGenScriptDescription || "请添加脚本描述"}
-# 作者：系统管理员
-# 创建时间：${new Date().toLocaleDateString()}
+    POWERSHELL: `# 脚本描述�?{scriptForm.monitorSysGenScriptDescription || "请添加脚本描�?}
+# 作者：系统管理�?
+# 创建时间�?{new Date().toLocaleDateString()}
 
-Write-Host "开始执行脚本..."
+Write-Host "开始执行脚�?.."
 
-# 在这里添加你的脚本内容
+# 在这里添加你的脚本内�?
 
 Write-Host "脚本执行完成"`,
 
     BATCH: `@echo off
-REM 脚本描述：${scriptForm.monitorSysGenScriptDescription || "请添加脚本描述"}
-REM 作者：系统管理员
-REM 创建时间：${new Date().toLocaleDateString()}
+REM 脚本描述�?{scriptForm.monitorSysGenScriptDescription || "请添加脚本描�?}
+REM 作者：系统管理�?
+REM 创建时间�?{new Date().toLocaleDateString()}
 
-echo 开始执行脚本...
+echo 开始执行脚�?..
 
-REM 在这里添加你的脚本内容
+REM 在这里添加你的脚本内�?
 
 echo 脚本执行完成
 pause`,
@@ -460,7 +460,7 @@ const handleSave = async () => {
     await formRef.value.validate();
 
     if (!scriptForm.monitorSysGenScriptContent.trim()) {
-      ElMessage.warning("请输入脚本内容");
+      ElMessage.warning("请输入脚本内�?);
       return;
     }
 
@@ -521,7 +521,7 @@ const handleSave = async () => {
   }
 }
 
-// 对话框头部
+// 对话框头�?
 .dialog-header {
   display: flex;
   align-items: center;
@@ -613,7 +613,7 @@ const handleSave = async () => {
   }
 }
 
-// 对话框内容
+// 对话框内�?
 .dialog-content {
   display: flex;
   flex-direction: column;
@@ -771,7 +771,7 @@ const handleSave = async () => {
   }
 }
 
-// 代码编辑器区域
+// 代码编辑器区�?
 .code-editor-section {
   flex: 1;
   display: flex;
@@ -879,7 +879,7 @@ const handleSave = async () => {
   }
 }
 
-// 响应式
+// 响应�?
 @media (max-width: 768px) {
   .dialog-header {
     flex-wrap: wrap;

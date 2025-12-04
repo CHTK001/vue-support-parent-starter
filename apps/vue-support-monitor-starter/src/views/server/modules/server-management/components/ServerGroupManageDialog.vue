@@ -9,7 +9,7 @@
     append-to-body
   >
     <div class="dialog-content">
-      <!-- 工具栏 -->
+      <!-- 工具�?-->
       <div class="toolbar">
         <div class="toolbar-left">
           <el-button type="primary" @click="handleAdd" :icon="Plus">
@@ -92,7 +92,7 @@
             <div class="card-content">
               <div class="group-stats">
                 <div class="stat-item">
-                  <span class="stat-label">服务器数量:</span>
+                  <span class="stat-label">服务器数�?</span>
                   <span class="stat-value">{{ group.serverCount || 0 }}</span>
                 </div>
                 <div class="stat-item">
@@ -162,7 +162,7 @@
     </template>
   </el-dialog>
 
-  <!-- 分组编辑对话框 -->
+  <!-- 分组编辑对话�?-->
   <ServerGroupEditDialog ref="editDialogRef" @success="handleRefresh" />
 </template>
 
@@ -187,14 +187,14 @@ import {
 } from "@/api/server/group";
 import ServerGroupEditDialog from "../../server-group/components/ServerGroupEditDialog.vue";
 
-// 响应式状态
+// 响应式状�?
 const visible = ref(false);
 const loading = ref(false);
 const searchKeyword = ref("");
 const groups = ref<ServerGroup[]>([]);
 const editDialogRef = ref();
 
-// 计算属性
+// 计算属�?
 const filteredGroups = computed(() => {
   if (!searchKeyword.value) return groups.value;
   return groups.value.filter((group) =>
@@ -205,7 +205,7 @@ const filteredGroups = computed(() => {
 });
 
 /**
- * 打开对话框
+ * 打开对话�?
  */
 const open = () => {
   visible.value = true;
@@ -233,7 +233,7 @@ const loadGroups = async () => {
               group.serverCount = countResult.data;
             }
           } catch (error) {
-            console.error("获取分组服务器数量失败:", error);
+            console.error("获取分组服务器数量失�?", error);
           }
         }
       }
@@ -295,7 +295,7 @@ const handleSetDefault = async (group: ServerGroup) => {
 };
 
 /**
- * 切换分组状态
+ * 切换分组状�?
  */
 const handleToggleStatus = async (group: ServerGroup) => {
   try {
@@ -313,7 +313,7 @@ const handleToggleStatus = async (group: ServerGroup) => {
       message.error(result.message || "操作失败");
     }
   } catch (error) {
-    console.error("切换分组状态失败:", error);
+    console.error("切换分组状态失�?", error);
     message.error("操作失败");
   }
 };
@@ -326,7 +326,7 @@ const handleDelete = async (group: ServerGroup) => {
     if (!group.monitorSysGenServerGroupId) return;
 
     await ElMessageBox.confirm(
-      `确定要删除分组 "${group.monitorSysGenServerGroupName}" 吗？`,
+      `确定要删除分�?"${group.monitorSysGenServerGroupName}" 吗？`,
       "确认删除",
       {
         type: "warning",

@@ -15,7 +15,7 @@
             >
             {{ form.executorHandler }}
           </el-descriptions-item>
-          <el-descriptions-item label="状态代码">
+          <el-descriptions-item label="状态代�?>
             <el-tag v-if="form.jobLogTriggerCode !== '00000'" type="danger"
               >失败</el-tag
             >
@@ -27,7 +27,7 @@
           <el-descriptions-item label="执行环境">{{
             form.jobLogProfile
           }}</el-descriptions-item>
-          <el-descriptions-item label="执行服务器">{{
+          <el-descriptions-item label="执行服务�?>{{
             form.jobLogTriggerAddress
           }}</el-descriptions-item>
         </el-descriptions>

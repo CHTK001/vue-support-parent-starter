@@ -8,7 +8,7 @@
           theme="primary"
           icon="ri:server-line"
           :value="statistics.total || 0"
-          label="总服务器数"
+          label="总服务器�?
           trend-icon="ri:stack-line"
           trend-text="全部服务"
         />
@@ -17,7 +17,7 @@
           theme="success"
           icon="ri:play-circle-line"
           :value="statistics.running || 0"
-          label="运行中"
+          label="运行�?
           trend-icon="ri:checkbox-circle-line"
           trend-text="正常运行"
         />
@@ -26,18 +26,18 @@
           theme="warning"
           icon="ri:stop-circle-line"
           :value="statistics.stopped || 0"
-          label="已停止"
+          label="已停�?
           trend-icon="ri:pause-circle-line"
-          trend-text="已暂停"
+          trend-text="已暂�?
         />
       </div>
     </div>
 
-    <!-- 筛选条件 -->
+    <!-- 筛选条�?-->
     <el-card class="filter-card">
       <div class="filter-content">
         <el-form :model="queryParams" inline>
-          <el-form-item label="服务器名称">
+          <el-form-item label="服务器名�?>
             <el-input
               v-model="queryParams.serverName"
               placeholder="请输入服务器名称"
@@ -45,10 +45,10 @@
               style="width: 200px"
             />
           </el-form-item>
-          <el-form-item label="服务器类型">
+          <el-form-item label="服务器类�?>
             <el-select
               v-model="queryParams.serverType"
-              placeholder="请选择服务器类型"
+              placeholder="请选择服务器类�?
               clearable
               style="width: 200px"
             >
@@ -60,22 +60,22 @@
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="运行状态">
+          <el-form-item label="运行状�?>
             <el-select
               v-model="queryParams.status"
-              placeholder="请选择运行状态"
+              placeholder="请选择运行状�?
               clearable
               style="width: 200px"
             >
-              <el-option label="运行中" value="RUNNING" />
-              <el-option label="已停止" value="STOPPED" />
-              <el-option label="启动中" value="STARTING" />
-              <el-option label="停止中" value="STOPPING" />
+              <el-option label="运行�? value="RUNNING" />
+              <el-option label="已停�? value="STOPPED" />
+              <el-option label="启动�? value="STARTING" />
+              <el-option label="停止�? value="STOPPING" />
               <el-option label="异常" value="ERROR" />
             </el-select>
           </el-form-item>
 
-          <!-- 操作按钮组 -->
+          <!-- 操作按钮�?-->
           <el-form-item class="action-buttons">
             <el-button type="primary" @click="handleQuery">
               <IconifyIconOnline icon="ri:search-line" />
@@ -91,14 +91,14 @@
             </el-button>
             <el-button type="primary" @click="showAddDialog = true">
               <IconifyIconOnline icon="ri:add-line" />
-              新增服务器
+              新增服务�?
             </el-button>
           </el-form-item>
         </el-form>
       </div>
     </el-card>
 
-    <!-- 服务器列表 -->
+    <!-- 服务器列�?-->
     <div class="server-list">
       <ScTable
         ref="serverTable"
@@ -108,9 +108,9 @@
         layout="card"
       >
         <template #empty>
-          <el-empty description="暂无服务器数据">
+          <el-empty description="暂无服务器数�?>
             <el-button type="primary" @click="showAddDialog = true"
-              >新增服务器</el-button
+              >新增服务�?/el-button
             >
           </el-empty>
         </template>
@@ -201,12 +201,12 @@
                 class="info-item"
                 :title="
                   '最大连接数: ' +
-                  (server.systemServerMaxConnections || '无限制')
+                  (server.systemServerMaxConnections || '无限�?)
                 "
               >
                 <IconifyIconOnline icon="ri:group-line" />
                 <span class="info-value">{{
-                  server.systemServerMaxConnections || "∞"
+                  server.systemServerMaxConnections || "�?
                 }}</span>
               </div>
               <div
@@ -220,11 +220,11 @@
               </div>
               <div
                 class="info-item"
-                :title="'上下文: ' + (server.systemServerContextPath || '无')"
+                :title="'上下�? ' + (server.systemServerContextPath || '�?)"
               >
                 <IconifyIconOnline icon="ri:parentheses-fill" />
                 <span class="info-value">{{
-                  server.systemServerContextPath || "无"
+                  server.systemServerContextPath || "�?
                 }}</span>
               </div>
               <div
@@ -282,7 +282,7 @@
         </template>
       </ScTable>
     </div>
-    <!-- 新增/编辑对话框 -->
+    <!-- 新增/编辑对话�?-->
     <ServerFormDialog
       v-model:visible="showAddDialog"
       :server-data="currentServer"
@@ -290,7 +290,7 @@
       @success="handleFormSuccess"
     />
 
-    <!-- 克隆对话框 -->
+    <!-- 克隆对话�?-->
     <ServerCloneDialog
       v-model:visible="showCloneDialog"
       :source-server="currentServer"
@@ -332,7 +332,7 @@ defineOptions({
   name: "ServiceManagement",
 });
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false);
 const serverTable = ref<any>(null);
 const serverTypes = ref<string[]>([]);
@@ -344,18 +344,18 @@ const statistics = ref<SystemServerStatistics>({
 });
 const actionLoading = ref<Record<number, boolean>>({});
 
-// 表格列配置
+// 表格列配�?
 const columns = [
   {
-    label: "服务器名称",
+    label: "服务器名�?,
     prop: "systemServerName",
   },
   {
-    label: "服务器类型",
+    label: "服务器类�?,
     prop: "systemServerType",
   },
   {
-    label: "运行状态",
+    label: "运行状�?,
     prop: "systemServerStatus",
   },
 ];
@@ -375,7 +375,7 @@ const queryParams = reactive({
   status: "",
 });
 
-// 对话框状态
+// 对话框状�?
 const showAddDialog = ref(false);
 const showCloneDialog = ref(false);
 const showConfigDialog = ref(false);
@@ -399,7 +399,7 @@ const getServerCardClass = (status: string) => {
   }
 };
 
-// 获取状态标签类型
+// 获取状态标签类�?
 const getStatusTagType = (status: string) => {
   switch (status) {
     case "RUNNING":
@@ -416,17 +416,17 @@ const getStatusTagType = (status: string) => {
   }
 };
 
-// 获取状态文本
+// 获取状态文�?
 const getStatusText = (status: string) => {
   switch (status) {
     case "RUNNING":
-      return "运行中";
+      return "运行�?;
     case "STOPPED":
-      return "已停止";
+      return "已停�?;
     case "STARTING":
-      return "启动中";
+      return "启动�?;
     case "STOPPING":
-      return "停止中";
+      return "停止�?;
     case "ERROR":
       return "异常";
     default:
@@ -441,7 +441,7 @@ const handleOpen = async (server) => {
   );
 };
 
-// 加载服务器类型
+// 加载服务器类�?
 const loadServerTypes = async () => {
   try {
     const response = await getAvailableServerTypes();
@@ -450,7 +450,7 @@ const loadServerTypes = async () => {
       serverTypes.value = data;
     }
   } catch (error) {
-    console.error("加载服务器类型失败:", error);
+    console.error("加载服务器类型失�?", error);
   }
 };
 
@@ -484,69 +484,69 @@ const resetQuery = () => {
 // 刷新数据
 const refreshData = () => {
   loadStatistics();
-  serverTable.value?.reload(); // 调用 ScTable 的重新加载数据方法
+  serverTable.value?.reload(); // 调用 ScTable 的重新加载数据方�?
 };
 
-// 启动服务器
+// 启动服务�?
 const startServer = async (serverId: number) => {
   actionLoading.value[serverId] = true;
   try {
     const response = await startSystemServer(serverId);
     const { code, data, msg } = response;
     if (code === "00000") {
-      ElMessage.success("服务器启动成功");
+      ElMessage.success("服务器启动成�?);
       refreshData();
     } else {
       ElMessage.error(msg || "启动失败");
     }
   } catch (error) {
-    console.error("启动服务器失败:", error);
+    console.error("启动服务器失�?", error);
     ElMessage.error("启动失败");
   } finally {
     actionLoading.value[serverId] = false;
   }
 };
 
-// 停止服务器
+// 停止服务�?
 const stopServer = async (serverId: number) => {
   actionLoading.value[serverId] = true;
   try {
     const response = await stopSystemServer(serverId);
     const { code, data, msg } = response;
     if (code === "00000") {
-      ElMessage.success("服务器停止成功");
+      ElMessage.success("服务器停止成�?);
       refreshData();
     } else {
       ElMessage.error(msg || "停止失败");
     }
   } catch (error) {
-    console.error("停止服务器失败:", error);
+    console.error("停止服务器失�?", error);
     ElMessage.error("停止失败");
   } finally {
     actionLoading.value[serverId] = false;
   }
 };
 
-// 重启服务器
+// 重启服务�?
 const restartServer = async (serverId: number) => {
   actionLoading.value[serverId] = true;
   try {
     const response = await restartSystemServer(serverId);
     if (response.code === "00000") {
-      ElMessage.success("服务器重启成功");
+      ElMessage.success("服务器重启成�?);
       refreshData();
     } else {
       ElMessage.error(response.msg || "重启失败");
     }
   } catch (error) {
-    console.error("重启服务器失败:", error);
+    console.error("重启服务器失�?", error);
     ElMessage.error("重启失败");
   } finally {
     actionLoading.value[serverId] = false;
   }
 };
 
-// 处理服务器操作
+// 处理服务器操�?
 const handleServerAction = (command: any) => {
   // 处理对象形式的命令（编辑和克隆操作）
   if (typeof command === "object" && command !== null) {
@@ -564,7 +564,7 @@ const handleServerAction = (command: any) => {
     return;
   }
 
-  // 处理字符串形式的命令（重启和删除操作）
+  // 处理字符串形式的命令（重启和删除操作�?
   const [action, serverIdStr] = command.split("-");
   const serverId = parseInt(serverIdStr);
   switch (action) {
@@ -577,11 +577,11 @@ const handleServerAction = (command: any) => {
   }
 };
 
-// 删除服务器
+// 删除服务�?
 const handleDeleteServer = async (serverId: number) => {
   try {
     await ElMessageBox.confirm(
-      "确定要删除这个服务器配置吗？删除后无法恢复。",
+      "确定要删除这个服务器配置吗？删除后无法恢复�?,
       "确认删除",
       {
         confirmButtonText: "确定",
@@ -599,13 +599,13 @@ const handleDeleteServer = async (serverId: number) => {
     }
   } catch (error) {
     if (error !== "cancel") {
-      console.error("删除服务器失败:", error);
+      console.error("删除服务器失�?", error);
       ElMessage.error("删除失败");
     }
   }
 };
 
-// 打开服务器配置
+// 打开服务器配�?
 const openServerConfig = (serverId: number, server: SystemServer) => {
   currentServerId.value = serverId;
   currentServer.value = server;
@@ -634,7 +634,7 @@ const handleConfigSuccess = () => {
   refreshData();
 };
 
-// 初始化
+// 初始�?
 onMounted(() => {
   loadServerTypes();
   loadStatistics();
@@ -704,7 +704,7 @@ onMounted(() => {
   }
 }
 
-// 筛选卡片
+// 筛选卡�?
 .filter-card {
   margin-bottom: 24px;
   border-radius: 16px;
@@ -775,7 +775,7 @@ onMounted(() => {
   }
 }
 
-// 服务器列表
+// 服务器列�?
 .server-list {
   flex: 1;
   .server-grid {
@@ -1075,7 +1075,7 @@ onMounted(() => {
   }
 }
 
-// 响应式
+// 响应�?
 @media (max-width: 1200px) {
   .server-list {
     .server-info {

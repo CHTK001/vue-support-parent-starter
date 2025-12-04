@@ -17,7 +17,7 @@
       class="edit-form"
     >
       <div class="form-layout">
-        <!-- 左侧列 -->
+        <!-- 左侧�?-->
         <div class="form-column">
           <!-- 基础信息区域 -->
           <div class="form-section">
@@ -36,7 +36,7 @@
               <el-form-item label="类型" prop="systemDataSettingType">
                 <el-select
                   v-model="form.systemDataSettingType"
-                  placeholder="请选择数据源类型"
+                  placeholder="请选择数据源类�?
                   style="width: 100%"
                   @change="handleTypeChange"
                 >
@@ -56,10 +56,10 @@
 
               <!-- JDBC 驱动选择 -->
               <template v-if="form.systemDataSettingType === 'JDBC'">
-                <el-form-item label="数据库类型" prop="systemDataSettingDriverClass">
+                <el-form-item label="数据库类�? prop="systemDataSettingDriverClass">
                   <el-select
                     v-model="form.systemDataSettingDriverClass"
-                    placeholder="请选择数据库类型"
+                    placeholder="请选择数据库类�?
                     style="width: 100%"
                     filterable
                     @change="handleDriverChange"
@@ -82,7 +82,7 @@
                   <div class="driver-upload">
                     <el-input
                       v-model="form.systemDataSettingDriverPath"
-                      placeholder="可选，自定义驱动路径"
+                      placeholder="可选，自定义驱动路�?
                       clearable
                     />
                     <el-upload
@@ -118,14 +118,14 @@
             </div>
           </div>
 
-          <!-- 认证信息区域 - 仅远程模式 -->
+          <!-- 认证信息区域 - 仅远程模�?-->
           <div v-if="form.systemDataSettingMode === 'REMOTE'" class="form-section">
             <div class="section-title">
               <IconifyIconOnline icon="ri:shield-user-line" />
               <span>认证信息</span>
             </div>
             <div class="section-content">
-              <el-form-item :label="form.systemDataSettingType === 'EMAIL' ? '账号' : '用户名'">
+              <el-form-item :label="form.systemDataSettingType === 'EMAIL' ? '账号' : '用户�?">
                 <el-input
                   v-model="form.systemDataSettingUsername"
                   placeholder="请输入用户名"
@@ -136,11 +136,11 @@
                   </template>
                 </el-input>
               </el-form-item>
-              <el-form-item :label="form.systemDataSettingType === 'EMAIL' ? '授权码' : '密码'">
+              <el-form-item :label="form.systemDataSettingType === 'EMAIL' ? '授权�? : '密码'">
                 <el-input
                   v-model="form.systemDataSettingPassword"
                   type="password"
-                  :placeholder="form.systemDataSettingType === 'EMAIL' ? '请输入授权码' : '请输入密码'"
+                  :placeholder="form.systemDataSettingType === 'EMAIL' ? '请输入授权码' : '请输入密�?"
                   show-password
                   clearable
                 >
@@ -171,19 +171,19 @@
                   </el-form-item>
                 </el-col>
                 <el-col :span="8">
-                  <el-form-item label="控制台">
+                  <el-form-item label="控制�?>
                     <el-switch v-model="consoleEnabled" />
                   </el-form-item>
                 </el-col>
               </el-row>
-              <el-form-item v-if="form.systemDataSettingType === 'INFLUXDB'" label="数据库策略">
-                <el-input v-model="form.systemDataSettingPolicy" placeholder="策略名" />
+              <el-form-item v-if="form.systemDataSettingType === 'INFLUXDB'" label="数据库策�?>
+                <el-input v-model="form.systemDataSettingPolicy" placeholder="策略�? />
               </el-form-item>
             </div>
           </div>
         </div>
 
-        <!-- 右侧列 -->
+        <!-- 右侧�?-->
         <div class="form-column">
           <!-- 连接配置区域 - 远程模式 -->
           <div v-if="form.systemDataSettingMode === 'REMOTE'" class="form-section">
@@ -226,7 +226,7 @@
                   <el-form-item label="数据库名">
                     <el-input
                       v-model="form.systemDataSettingDatabase"
-                      placeholder="数据库名称"
+                      placeholder="数据库名�?
                       clearable
                       @blur="generateConnectionUrl"
                     >
@@ -256,7 +256,7 @@
                 <div class="url-preview">
                   <el-input
                     v-model="form.systemDataSettingServer"
-                    placeholder="自动生成或手动输入"
+                    placeholder="自动生成或手动输�?
                     clearable
                   >
                     <template #prefix>
@@ -321,7 +321,7 @@
             </div>
           </div>
 
-          <!-- 额外参数区域（仅JDBC显示） -->
+          <!-- 额外参数区域（仅JDBC显示�?-->
           <div v-if="form.systemDataSettingType === 'JDBC'" class="form-section">
             <div class="section-title">
               <IconifyIconOnline icon="ri:settings-3-line" />
@@ -350,16 +350,16 @@
               <!-- 参数列表 -->
               <div class="params-list">
                 <div v-for="(param, index) in extraParams" :key="index" class="param-item">
-                  <el-input v-model="param.key" placeholder="参数名" class="param-key" size="small" />
+                  <el-input v-model="param.key" placeholder="参数�? class="param-key" size="small" />
                   <span class="param-eq">=</span>
-                  <el-input v-model="param.value" placeholder="参数值" class="param-value" size="small" />
+                  <el-input v-model="param.value" placeholder="参数�? class="param-value" size="small" />
                   <el-button type="danger" link size="small" @click="removeExtraParam(index)">
                     <IconifyIconOnline icon="ri:delete-bin-line" />
                   </el-button>
                 </div>
                 <div v-if="extraParams.length === 0" class="no-params">
                   <IconifyIconOnline icon="ri:information-line" />
-                  <span>点击快捷标签或添加按钮</span>
+                  <span>点击快捷标签或添加按�?/span>
                 </div>
               </div>
             </div>
@@ -397,7 +397,7 @@ import {
   saveSystemDataSetting,
   type SystemDataSetting,
   uploadJdbcDriver,
-} from "@/api/system-data";
+} from "@/api/data-management/system-data";
 
 interface Props {
   visible: boolean;
@@ -452,7 +452,7 @@ const form = ref<SystemDataSetting>({
 
 // 数据源类型选项
 const systemDataSettingTypeValues = [
-  { name: "数据库(JDBC)", value: "JDBC", icon: "ri:database-line" },
+  { name: "数据�?JDBC)", value: "JDBC", icon: "ri:database-line" },
   { name: "Redis", value: "REDIS", icon: "ri:database-2-line" },
   { name: "Zookeeper", value: "ZOOKEEPER", icon: "ri:node-tree" },
   { name: "InfluxDB", value: "INFLUXDB", icon: "ri:line-chart-line" },
@@ -468,7 +468,7 @@ const modeOptions = [
 // 协议列表
 const protocolOptions = ["Jdbc", "Mysql", "Postgresql", "Sqlite", "Oracle", "Sqlserver", "Redis", "Zookeeper", "Influxdb", "Mongodb", "Kafka", "Email"];
 
-// JDBC驱动配置（包含默认端口和协议）
+// JDBC驱动配置（包含默认端口和协议�?
 const jdbcDrivers = [
   { label: "MySQL 8.x", value: "com.mysql.cj.jdbc.Driver", icon: "ri:database-line", port: 3306, protocol: "mysql", urlTemplate: "jdbc:mysql://{host}:{port}/{database}" },
   { label: "MySQL 5.x", value: "com.mysql.jdbc.Driver", icon: "ri:database-line", port: 3306, protocol: "mysql", urlTemplate: "jdbc:mysql://{host}:{port}/{database}" },
@@ -485,7 +485,7 @@ const jdbcDrivers = [
   { label: "GBase", value: "com.gbase.jdbc.Driver", icon: "ri:shield-line", port: 5258, protocol: "gbase", urlTemplate: "jdbc:gbase://{host}:{port}/{database}" },
 ];
 
-// 非JDBC类型的默认端口
+// 非JDBC类型的默认端�?
 const defaultPorts: Record<string, number> = {
   redis: 6379,
   zookeeper: 2181,
@@ -496,10 +496,10 @@ const defaultPorts: Record<string, number> = {
 // 快捷参数配置
 const quickParams: QuickParam[] = [
   { key: "useUnicode", value: "true", label: "Unicode编码" },
-  { key: "characterEncoding", value: "UTF-8", label: "UTF-8字符集" },
+  { key: "characterEncoding", value: "UTF-8", label: "UTF-8字符�? },
   { key: "serverTimezone", value: "Asia/Shanghai", label: "上海时区" },
   { key: "useSSL", value: "false", label: "禁用SSL" },
-  { key: "allowPublicKeyRetrieval", value: "true", label: "允许公钥检索" },
+  { key: "allowPublicKeyRetrieval", value: "true", label: "允许公钥检�? },
   { key: "autoReconnect", value: "true", label: "自动重连" },
   { key: "connectTimeout", value: "10000", label: "连接超时10s" },
   { key: "socketTimeout", value: "60000", label: "Socket超时60s" },
@@ -541,7 +541,7 @@ const handleTypeChange = (type: string) => {
   // 设置默认协议
   form.value.systemDataSettingProtocol = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
   
-  // 如果不是JDBC，清空驱动相关字段
+  // 如果不是JDBC，清空驱动相关字�?
   if (type !== "JDBC") {
     form.value.systemDataSettingDriverClass = "";
     form.value.systemDataSettingDriverPath = "";
@@ -595,7 +595,7 @@ const generateConnectionUrl = () => {
       const validParams = extraParams.value.filter(p => p.key && p.value);
       if (validParams.length > 0) {
         const paramStr = validParams.map(p => `${p.key}=${p.value}`).join("&");
-        // 根据不同数据库使用不同的参数分隔符
+        // 根据不同数据库使用不同的参数分隔�?
         if (driver.protocol === "sqlserver") {
           url += ";" + validParams.map(p => `${p.key}=${p.value}`).join(";");
         } else {
@@ -620,7 +620,7 @@ const rules: FormRules = {
     { required: true, message: "请填写数据源名称", trigger: "blur" },
   ],
   systemDataSettingType: [
-    { required: true, message: "请选择数据源类型", trigger: "change" },
+    { required: true, message: "请选择数据源类�?, trigger: "change" },
   ],
   systemDataSettingHost: [
     {
@@ -637,7 +637,7 @@ const rules: FormRules = {
     {
       validator: (_: any, value: any, cb: (e?: Error) => void) => {
         if (form.value.systemDataSettingMode !== "REMOTE") return cb();
-        if (!Number.isInteger(value) || value <= 0) return cb(new Error("请填写有效端口"));
+        if (!Number.isInteger(value) || value <= 0) return cb(new Error("请填写有效端�?));
         return cb();
       },
       trigger: ["blur", "change"],
@@ -647,7 +647,7 @@ const rules: FormRules = {
     {
       validator: (_: any, value: any, cb: (e?: Error) => void) => {
         if (form.value.systemDataSettingType !== "JDBC") return cb();
-        if (!(value || "").trim()) return cb(new Error("请选择数据库类型"));
+        if (!(value || "").trim()) return cb(new Error("请选择数据库类�?));
         return cb();
       },
       trigger: ["blur", "change"],
@@ -655,7 +655,7 @@ const rules: FormRules = {
   ],
 };
 
-// 初始化
+// 初始�?
 function init() {
   if (props.modelValue) {
     form.value = { ...(props.modelValue as any) };
@@ -699,7 +699,7 @@ async function handleSave() {
     await formRef.value?.validate();
     loading.value = true;
     
-    // 序列化额外参数
+    // 序列化额外参�?
     const validParams = extraParams.value.filter(p => p.key && p.value);
     const paramsObj: Record<string, string> = {};
     validParams.forEach(p => { paramsObj[p.key] = p.value; });
@@ -733,7 +733,7 @@ function handleClose() {
 async function onDriverFileChange(file: any) {
   try {
     if (!form.value.systemDataSettingId) {
-      ElMessage.warning("请先保存配置再上传驱动");
+      ElMessage.warning("请先保存配置再上传驱�?);
       return;
     }
     const raw = file?.raw as File;
@@ -760,7 +760,7 @@ function onFileSelect(file: any) {
   }
 }
 
-// 监听对话框显示
+// 监听对话框显�?
 watch(
   () => props.visible,
   (v) => {
@@ -774,7 +774,7 @@ watch(visibleInner, (v) => emit("update:visible", v));
 </script>
 
 <style scoped>
-/* 对话框样式 */
+/* 对话框样�?*/
 .data-edit-dialog :deep(.el-dialog) {
   border-radius: 16px;
   overflow: hidden;
@@ -873,7 +873,7 @@ watch(visibleInner, (v) => emit("update:visible", v));
   padding: 0 4px;
 }
 
-/* 表单项样式优化 */
+/* 表单项样式优�?*/
 .edit-form :deep(.el-form-item__label) {
   font-weight: 500;
   color: var(--el-text-color-regular);
@@ -1097,12 +1097,12 @@ watch(visibleInner, (v) => emit("update:visible", v));
   box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
 }
 
-/* 开关样式优化 */
+/* 开关样式优�?*/
 .edit-form :deep(.el-switch) {
   --el-switch-on-color: var(--el-color-primary);
 }
 
-/* 对话框底部 */
+/* 对话框底�?*/
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
@@ -1126,7 +1126,7 @@ watch(visibleInner, (v) => emit("update:visible", v));
   box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.4);
 }
 
-/* 滚动条美化 */
+/* 滚动条美�?*/
 .data-edit-dialog :deep(.el-dialog__body)::-webkit-scrollbar {
   width: 6px;
 }
@@ -1167,7 +1167,7 @@ watch(visibleInner, (v) => emit("update:visible", v));
 .form-section:nth-child(4) { animation-delay: 0.2s; }
 .form-section:nth-child(5) { animation-delay: 0.25s; }
 
-/* 响应式调整 */
+/* 响应式调�?*/
 @media (max-width: 768px) {
   .param-key {
     width: 120px;

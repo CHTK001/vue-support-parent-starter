@@ -7,7 +7,7 @@
           <IconifyIconOnline icon="ri:upload-cloud-2-line" class="upload-icon" />
           <div class="upload-text">
             <p class="primary-text">点击选择文件或拖拽文件到此处</p>
-            <p class="secondary-text">支持多文件上传，单个文件最大 100MB</p>
+            <p class="secondary-text">支持多文件上传，单个文件最�?100MB</p>
           </div>
         </div>
         <input ref="fileInputRef" type="file" multiple style="display: none" @change="handleFileSelect" />
@@ -16,7 +16,7 @@
       <!-- 文件列表 -->
       <div v-if="fileList.length" class="file-list">
         <div class="list-header">
-          <span>待上传文件 ({{ fileList.length }})</span>
+          <span>待上传文�?({{ fileList.length }})</span>
           <el-button size="small" text @click="clearFiles">
             <IconifyIconOnline icon="ri:delete-bin-line" />
             清空
@@ -60,13 +60,13 @@
               <el-option v-for="group in groupList" :key="group.fileSystemGroupId" :label="group.fileSystemGroupName" :value="group.fileSystemGroupId" />
             </el-select>
           </el-form-item>
-          <el-form-item label="并发数">
+          <el-form-item label="并发�?>
             <el-input-number v-model="uploadConfig.concurrent" :min="1" :max="5" controls-position="right" />
           </el-form-item>
           <el-form-item label="配置信息" v-if="systemConfig">
             <div class="config-info">
               <span class="config-item">分片大小: {{ systemConfig.chunkSize }}MB</span>
-              <span class="config-item">最大文件: {{ systemConfig.maxFileSize }}MB</span>
+              <span class="config-item">最大文�? {{ systemConfig.maxFileSize }}MB</span>
             </div>
           </el-form-item>
         </el-form>
@@ -77,7 +77,7 @@
       <div class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
         <el-button type="primary" :disabled="!fileList.length || uploading" :loading="uploading" @click="startUpload">
-          {{ uploading ? "上传中..." : "开始上传" }}
+          {{ uploading ? "上传�?.." : "开始上�? }}
         </el-button>
       </div>
     </template>
@@ -109,7 +109,7 @@ const emit = defineEmits<{
   "add-to-queue": [task: UploadQueueStatus];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const visible = computed({
   get: () => props.modelValue,
   set: value => emit("update:modelValue", value)
@@ -128,8 +128,8 @@ const sseUnsubscribers = ref<(() => void)[]>([]);
 
 // 上传配置
 const uploadConfig = reactive({
-  concurrent: 2, // 并发数 (默认值)
-  retryCount: 3, // 重试次数 (默认值)
+  concurrent: 2, // 并发�?(默认�?
+  retryCount: 3, // 重试次数 (默认�?
   groupId: null as number | null // 文件分组ID
 });
 
@@ -180,13 +180,13 @@ const triggerFileSelect = () => {
  * 添加文件
  */
 const addFiles = (files: File[]) => {
-  // 检查系统配置是否加载
+  // 检查系统配置是否加�?
   if (!systemConfig.value) {
-    ElMessage.error("系统配置未加载，请稍后重试");
+    ElMessage.error("系统配置未加载，请稍后重�?);
     return;
   }
 
-  const maxSize = systemConfig.value.maxFileSize * 1024 * 1024; // 转换为字节
+  const maxSize = systemConfig.value.maxFileSize * 1024 * 1024; // 转换为字�?
   const validFiles = files.filter(file => {
     if (file.size > maxSize) {
       ElMessage.warning(`文件 ${file.name} 超过 ${systemConfig.value!.maxFileSize}MB 限制，已跳过`);
@@ -200,13 +200,13 @@ const addFiles = (files: File[]) => {
   const newFiles = validFiles.filter(file => !existingNames.has(file.name));
 
   if (newFiles.length !== validFiles.length) {
-    ElMessage.warning("部分文件已存在，已跳过重复文件");
+    ElMessage.warning("部分文件已存在，已跳过重复文�?);
   }
 
   fileList.value.push(...newFiles);
 
   if (newFiles.length > 0) {
-    ElMessage.success(`已添加 ${newFiles.length} 个文件`);
+    ElMessage.success(`已添�?${newFiles.length} 个文件`);
   }
 };
 
@@ -225,7 +225,7 @@ const clearFiles = () => {
 };
 
 /**
- * 计算文件MD5哈希值
+ * 计算文件MD5哈希�?
  */
 const calculateFileMD5 = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -253,7 +253,7 @@ const calculateFileMD5 = async (file: File): Promise<string> => {
 };
 
 /**
- * 分片计算大文件MD5（用于大文件优化）
+ * 分片计算大文件MD5（用于大文件优化�?
  */
 const calculateLargeFileMD5 = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -298,7 +298,7 @@ const calculateLargeFileMD5 = async (file: File): Promise<string> => {
 };
 
 /**
- * 开始上传
+ * 开始上�?
  */
 const startUpload = async () => {
   if (!fileList.value.length) return;
@@ -312,14 +312,14 @@ const startUpload = async () => {
       currentFileName.value = file.name;
 
       await uploadSingleFile(file, (progress: number) => {
-        // 计算总体进度：当前文件在所有文件中的权重 + 当前文件的进度
+        // 计算总体进度：当前文件在所有文件中的权�?+ 当前文件的进�?
         const fileWeight = 100 / fileList.value.length;
         const totalProgress = i * fileWeight + (progress * fileWeight) / 100;
         uploadProgress.value = Math.round(totalProgress);
       });
     }
 
-    ElMessage.success("所有文件上传完成");
+    ElMessage.success("所有文件上传完�?);
     emit("upload-success");
     handleClose();
   } catch (error) {
@@ -338,7 +338,7 @@ const startUpload = async () => {
  */
 const uploadSingleFile = async (file: File, progressCallback?: (progress: number) => void) => {
   try {
-    // 显示MD5计算状态
+    // 显示MD5计算状�?
     isCalculatingMD5.value = true;
     uploadProgress.value = 0;
 
@@ -350,18 +350,18 @@ const uploadSingleFile = async (file: File, progressCallback?: (progress: number
 
     console.log(`文件 ${file.name} MD5: ${fileMd5}`);
 
-    // MD5计算完成，开始上传
+    // MD5计算完成，开始上�?
     isCalculatingMD5.value = false;
     uploadProgress.value = 0;
 
-    // 检查系统配置
+    // 检查系统配�?
     if (!systemConfig.value) {
-      throw new Error("系统配置未加载");
+      throw new Error("系统配置未加�?);
     }
 
-    const chunkSize = (systemConfig.value.chunkSize || 100) * 1024 * 1024; // 转换为字节
+    const chunkSize = (systemConfig.value.chunkSize || 100) * 1024 * 1024; // 转换为字�?
 
-    // 初始化分片上传
+    // 初始化分片上�?
     const initRes = await initChunkUpload({
       fileName: file.name,
       fileSize: file.size,
@@ -371,7 +371,7 @@ const uploadSingleFile = async (file: File, progressCallback?: (progress: number
     });
 
     if (initRes.code !== "00000" || !initRes.data) {
-      throw new Error(initRes.msg || "初始化上传失败");
+      throw new Error(initRes.msg || "初始化上传失�?);
     }
 
     const { fileId, chunkTotal, exists, message } = initRes.data;
@@ -380,13 +380,13 @@ const uploadSingleFile = async (file: File, progressCallback?: (progress: number
     if (exists) {
       console.log(`文件 ${file.name} 已存在，跳过上传: ${message}`);
 
-      // 添加到上传队列并标记为完成
+      // 添加到上传队列并标记为完�?
       const queueTask: UploadQueueStatus = {
         fileId,
         fileName: file.name,
         progress: 100,
         status: "completed",
-        message: message || "文件已存在"
+        message: message || "文件已存�?
       };
       emit("add-to-queue", queueTask);
 
@@ -401,17 +401,17 @@ const uploadSingleFile = async (file: File, progressCallback?: (progress: number
     // 设置当前文件ID，用于SSE进度监听
     currentFileId.value = fileId;
 
-    // 添加到上传队列
+    // 添加到上传队�?
     const queueTask: UploadQueueStatus = {
       fileId,
       fileName: file.name,
       progress: 0,
       status: "uploading",
-      message: "开始上传..."
+      message: "开始上�?.."
     };
     emit("add-to-queue", queueTask);
 
-    // 使用并发控制的分片上传
+    // 使用并发控制的分片上�?
     await uploadChunksWithConcurrency(file, fileId, chunkTotal, chunkSize, uploadConfig.concurrent, progressCallback);
   } finally {
     isCalculatingMD5.value = false;
@@ -419,7 +419,7 @@ const uploadSingleFile = async (file: File, progressCallback?: (progress: number
 };
 
 /**
- * 并发控制的分片上传
+ * 并发控制的分片上�?
  */
 const uploadChunksWithConcurrency = async (file: File, fileId: number, chunkTotal: number, chunkSize: number, concurrent: number, progressCallback?: (progress: number) => void) => {
   const chunkQueue: number[] = [];
@@ -430,7 +430,7 @@ const uploadChunksWithConcurrency = async (file: File, fileId: number, chunkTota
   const completedChunks = ref(0);
   const uploadPromises: Promise<void>[] = [];
 
-  // 创建指定数量的并发上传任务
+  // 创建指定数量的并发上传任�?
   for (let i = 0; i < Math.min(concurrent, chunkTotal); i++) {
     uploadPromises.push(
       uploadWorker(file, fileId, chunkSize, chunkQueue, () => {
@@ -447,7 +447,7 @@ const uploadChunksWithConcurrency = async (file: File, fileId: number, chunkTota
 };
 
 /**
- * 上传工作器 - 处理分片队列
+ * 上传工作�?- 处理分片队列
  */
 const uploadWorker = async (file: File, fileId: number, chunkSize: number, chunkQueue: number[], onChunkComplete?: () => void): Promise<void> => {
   while (chunkQueue.length > 0) {
@@ -460,7 +460,7 @@ const uploadWorker = async (file: File, fileId: number, chunkSize: number, chunk
 };
 
 /**
- * 上传文件分片（带重试机制）
+ * 上传文件分片（带重试机制�?
  */
 const uploadFileChunk = async (file: File, fileId: number, chunkNumber: number, chunkSize: number) => {
   const maxRetries = uploadConfig.retryCount;
@@ -472,22 +472,22 @@ const uploadFileChunk = async (file: File, fileId: number, chunkNumber: number, 
       const end = Math.min(start + chunkSize, file.size);
       const chunk = file.slice(start, end);
 
-      // 创建新的FormData对象，避免重用
+      // 创建新的FormData对象，避免重�?
       const formData = new FormData();
       formData.append("fileId", fileId.toString());
       formData.append("chunkNumber", chunkNumber.toString());
-      formData.append("file", chunk, `chunk_${fileId}_${chunkNumber}.bin`); // 添加文件名
+      formData.append("file", chunk, `chunk_${fileId}_${chunkNumber}.bin`); // 添加文件�?
 
       const res = await uploadChunk(formData);
       if (res.code !== "00000") {
         throw new Error(`分片${chunkNumber}上传失败: ${res.msg}`);
       }
 
-      // 上传成功，退出重试循环
+      // 上传成功，退出重试循�?
       return;
     } catch (error) {
       lastError = error as Error;
-      console.warn(`分片${chunkNumber}上传失败，尝试次数: ${attempt + 1}/${maxRetries + 1}`, error);
+      console.warn(`分片${chunkNumber}上传失败，尝试次�? ${attempt + 1}/${maxRetries + 1}`, error);
 
       // 如果不是最后一次尝试，等待一段时间后重试
       if (attempt < maxRetries) {
@@ -496,12 +496,12 @@ const uploadFileChunk = async (file: File, fileId: number, chunkNumber: number, 
     }
   }
 
-  // 所有重试都失败了
-  throw new Error(`分片${chunkNumber}上传失败，已重试${maxRetries}次: ${lastError?.message}`);
+  // 所有重试都失败�?
+  throw new Error(`分片${chunkNumber}上传失败，已重试${maxRetries}�? ${lastError?.message}`);
 };
 
 /**
- * 格式化文件大小
+ * 格式化文件大�?
  */
 const formatFileSize = (size: number) => {
   return formatBytes(size);
@@ -535,7 +535,7 @@ const getFileIcon = (fileName: string) => {
     ppt: "ri:file-ppt-line",
     pptx: "ri:file-ppt-line",
     txt: "ri:file-text-line",
-    // 压缩包
+    // 压缩�?
     zip: "ri:file-zip-line",
     rar: "ri:file-zip-line",
     "7z": "ri:file-zip-line",
@@ -610,13 +610,13 @@ const handleClose = () => {
   }
 };
 
-// 监听对话框显示状态
+// 监听对话框显示状�?
 watch(visible, newVal => {
   if (newVal) {
-    loadConfig(); // 打开时加载配置
-    loadGroupList(); // 打开时加载分组列表
+    loadConfig(); // 打开时加载配�?
+    loadGroupList(); // 打开时加载分组列�?
   } else {
-    // 关闭时清理数据
+    // 关闭时清理数�?
     fileList.value = [];
     uploading.value = false;
     uploadProgress.value = 0;
@@ -625,7 +625,7 @@ watch(visible, newVal => {
   }
 });
 
-// 组件挂载时加载配置
+// 组件挂载时加载配�?
 onMounted(() => {
   loadConfig();
   loadGroupList();
@@ -637,7 +637,7 @@ onUnmounted(() => {
 });
 
 /**
- * 设置SSE监听器
+ * 设置SSE监听�?
  */
 const setupSSEListeners = () => {
   // 监听上传进度
@@ -667,7 +667,7 @@ const setupSSEListeners = () => {
 };
 
 /**
- * 清理SSE监听器
+ * 清理SSE监听�?
  */
 const cleanupSSEListeners = () => {
   sseUnsubscribers.value.forEach(unsubscribe => unsubscribe());

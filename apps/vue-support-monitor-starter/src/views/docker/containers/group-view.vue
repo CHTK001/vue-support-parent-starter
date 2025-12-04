@@ -14,7 +14,7 @@
       <div class="header-right">
         <el-radio-group v-model="groupMode" size="default" @change="handleGroupModeChange">
           <el-radio-button label="server">按服务器分组</el-radio-button>
-          <el-radio-button label="software">按软件分组</el-radio-button>
+          <el-radio-button label="software">按软件分�?/el-radio-button>
         </el-radio-group>
         <el-button @click="handleRefresh" :loading="loading">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
@@ -23,11 +23,11 @@
       </div>
     </div>
 
-    <!-- 搜索栏 -->
+    <!-- 搜索�?-->
     <div class="search-bar">
       <el-input 
         v-model="searchKeyword" 
-        placeholder="搜索容器名称或镜像..." 
+        placeholder="搜索容器名称或镜�?.." 
         class="search-input" 
         clearable
         @input="handleSearch"
@@ -36,10 +36,10 @@
           <IconifyIconOnline icon="ri:search-line" />
         </template>
       </el-input>
-      <el-select v-model="statusFilter" placeholder="状态筛选" clearable @change="handleSearch">
+      <el-select v-model="statusFilter" placeholder="状态筛�? clearable @change="handleSearch">
         <el-option label="全部" value="" />
-        <el-option label="运行中" value="running" />
-        <el-option label="已停止" value="stopped" />
+        <el-option label="运行�? value="running" />
+        <el-option label="已停�? value="stopped" />
         <el-option label="暂停" value="paused" />
       </el-select>
     </div>
@@ -58,8 +58,8 @@
               <div class="group-header">
                 <div class="group-title">
                   <IconifyIconOnline icon="ri:server-line" class="group-icon" />
-                  <span class="group-name">{{ group.serverName || `服务器 #${group.serverId}` }}</span>
-                  <el-tag size="small" class="group-count">{{ group.containers.length }} 个容器</el-tag>
+                  <span class="group-name">{{ group.serverName || `服务�?#${group.serverId}` }}</span>
+                  <el-tag size="small" class="group-count">{{ group.containers.length }} 个容�?/el-tag>
                 </div>
                 <div class="group-actions" @click.stop>
                   <el-button 
@@ -102,7 +102,7 @@
         <el-empty v-if="serverGroups.length === 0" description="暂无容器数据" />
       </div>
 
-      <!-- 按软件分组 -->
+      <!-- 按软件分�?-->
       <div v-else class="software-groups">
         <el-collapse v-model="activeGroups" accordion>
           <el-collapse-item 
@@ -115,7 +115,7 @@
                 <div class="group-title">
                   <IconifyIconOnline icon="ri:apps-line" class="group-icon" />
                   <span class="group-name">{{ group.softName || `软件 #${group.softId}` }}</span>
-                  <el-tag size="small" class="group-count">{{ group.containers.length }} 个容器</el-tag>
+                  <el-tag size="small" class="group-count">{{ group.containers.length }} 个容�?/el-tag>
                 </div>
                 <div class="group-stats">
                   <el-tag 
@@ -123,14 +123,14 @@
                     type="success" 
                     size="small"
                   >
-                    {{ getRunningCount(group.containers) }} 运行中
+                    {{ getRunningCount(group.containers) }} 运行�?
                   </el-tag>
                   <el-tag 
                     v-if="getStoppedCount(group.containers) > 0" 
                     type="info" 
                     size="small"
                   >
-                    {{ getStoppedCount(group.containers) }} 已停止
+                    {{ getStoppedCount(group.containers) }} 已停�?
                   </el-tag>
                 </div>
               </div>
@@ -155,13 +155,13 @@
       </div>
     </div>
 
-    <!-- 容器详情对话框 -->
+    <!-- 容器详情对话�?-->
     <ContainerDetailDialog v-model:visible="detailDialogVisible" :container-data="currentContainer" />
 
-    <!-- 容器日志对话框 -->
+    <!-- 容器日志对话�?-->
     <ContainerLogsDialog v-model:visible="logsDialogVisible" :container-data="currentContainer" />
 
-    <!-- 终端对话框 -->
+    <!-- 终端对话�?-->
     <ServerTerminalDialog ref="terminalRef" />
   </div>
 </template>
@@ -174,10 +174,10 @@ import ServerTerminalDialog from '@/views/server/modules/server-management/compo
 import ContainerDetailDialog from './components/ContainerDetailDialog.vue'
 import ContainerLogsDialog from './components/ContainerLogsDialog.vue'
 import ContainerCard from './components/ContainerCard.vue'
-import { containerApi, getServerList, type SystemSoftContainer } from '@/api/docker-management'
+import { containerApi, getServerList, type SystemSoftContainer } from '@/api/docker'
 import { getServerInfo, sendServerData } from '@/api/server'
 
-// 状态
+// 状�?
 const groupMode = ref<'server' | 'software'>('server')
 const loading = ref(false)
 const searchKeyword = ref('')
@@ -186,7 +186,7 @@ const activeGroups = ref<(number | string)[]>([])
 const containerList = ref<SystemSoftContainer[]>([])
 const serverList = ref<any[]>([])
 
-// 对话框状态
+// 对话框状�?
 const detailDialogVisible = ref(false)
 const logsDialogVisible = ref(false)
 const currentContainer = ref<SystemSoftContainer | null>(null)
@@ -215,7 +215,7 @@ const serverGroups = computed<ServerGroup[]>(() => {
       const server = serverList.value.find(s => s.id === serverId)
       groups.set(serverId, {
         serverId,
-        serverName: server?.name || `服务器 #${serverId}`,
+        serverName: server?.name || `服务�?#${serverId}`,
         containers: []
       })
     }
@@ -225,7 +225,7 @@ const serverGroups = computed<ServerGroup[]>(() => {
   return Array.from(groups.values())
 })
 
-// 按软件分组
+// 按软件分�?
 const softwareGroups = computed<SoftwareGroup[]>(() => {
   const groups = new Map<number, SoftwareGroup>()
   
@@ -248,7 +248,7 @@ const softwareGroups = computed<SoftwareGroup[]>(() => {
 const filteredContainers = computed(() => {
   let result = containerList.value
   
-  // 关键词搜索
+  // 关键词搜�?
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase()
     result = result.filter(c => 
@@ -257,7 +257,7 @@ const filteredContainers = computed(() => {
     )
   }
   
-  // 状态筛选
+  // 状态筛�?
   if (statusFilter.value) {
     result = result.filter(c => c.systemSoftContainerStatus === statusFilter.value)
   }
@@ -306,7 +306,7 @@ const loadServers = async () => {
       serverList.value = response.data || []
     }
   } catch (error) {
-    console.error('加载服务器列表失败:', error)
+    console.error('加载服务器列表失�?', error)
   }
 }
 
@@ -323,7 +323,7 @@ const handleGroupModeChange = () => {
   activeGroups.value = []
 }
 
-// 组操作
+// 组操�?
 const handleGroupStartAll = async (serverId: number) => {
   const group = serverGroups.value.find(g => g.serverId === serverId)
   if (!group) return
@@ -350,7 +350,7 @@ const handleGroupStartAll = async (serverId: number) => {
     })
     
     if (response.code === '00000') {
-      ElMessage.success(`批量启动完成，成功: ${response.data.success}，失败: ${response.data.failed}`)
+      ElMessage.success(`批量启动完成，成�? ${response.data.success}，失�? ${response.data.failed}`)
       loadContainers()
     } else {
       ElMessage.error(response.msg || '批量启动失败')
@@ -386,7 +386,7 @@ const handleGroupStopAll = async (serverId: number) => {
     })
     
     if (response.code === '00000') {
-      ElMessage.success(`批量停止完成，成功: ${response.data.success}，失败: ${response.data.failed}`)
+      ElMessage.success(`批量停止完成，成�? ${response.data.success}，失�? ${response.data.failed}`)
       loadContainers()
     } else {
       ElMessage.error(response.msg || '批量停止失败')
@@ -415,7 +415,7 @@ const handleStart = async (container: SystemSoftContainer) => {
 
 const handleStop = async (container: SystemSoftContainer) => {
   try {
-    await ElMessageBox.confirm('确定要停止这个容器吗？', '停止确认', { type: 'warning' })
+    await ElMessageBox.confirm('确定要停止这个容器吗�?, '停止确认', { type: 'warning' })
     
     const response = await containerApi.stopContainer(container.systemSoftContainerId!)
     if (response.code === '00000') {
@@ -448,7 +448,7 @@ const handleRestart = async (container: SystemSoftContainer) => {
 const handleDelete = async (container: SystemSoftContainer) => {
   try {
     await ElMessageBox.confirm(
-      '确定要删除这个容器吗？此操作不可恢复！',
+      '确定要删除这个容器吗？此操作不可恢复�?,
       '删除确认',
       { type: 'error' }
     )
@@ -487,7 +487,7 @@ const handleExec = async (container: SystemSoftContainer) => {
     
     const { data, code, msg } = await getServerInfo(serverId)
     if (code !== 0 || !data) {
-      ElMessage.error(msg || '获取服务器信息失败')
+      ElMessage.error(msg || '获取服务器信息失�?)
       return
     }
     

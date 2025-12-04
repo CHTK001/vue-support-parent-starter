@@ -24,12 +24,12 @@
       <el-form-item label="容器名称" prop="containerName">
         <el-input
           v-model="form.containerName"
-          placeholder="请输入容器名称（如：my-nginx）"
+          placeholder="请输入容器名称（如：my-nginx�?
           clearable
         />
       </el-form-item>
 
-      <el-form-item label="主机名">
+      <el-form-item label="主机�?>
         <el-input
           v-model="form.hostname"
           placeholder="容器主机名（可选）"
@@ -56,7 +56,7 @@
             >
               <template #prepend>Host</template>
             </el-input>
-            <span class="port-arrow">→</span>
+            <span class="port-arrow">�?/span>
             <el-input
               v-model="port.containerPort"
               placeholder="容器端口"
@@ -97,13 +97,13 @@
           >
             <el-input
               v-model="env.name"
-              placeholder="变量名（如：MYSQL_ROOT_PASSWORD）"
+              placeholder="变量名（如：MYSQL_ROOT_PASSWORD�?
               style="flex: 1"
             >
               <template #prepend>Key</template>
             </el-input>
             <span class="env-equal">=</span>
-            <el-input v-model="env.value" placeholder="变量值" style="flex: 1">
+            <el-input v-model="env.value" placeholder="变量�? style="flex: 1">
               <template #prepend>Value</template>
             </el-input>
             <el-button type="danger" text @click="removeEnvVar(index)">
@@ -119,7 +119,7 @@
 
       <el-divider content-position="left">
         <IconifyIconOnline icon="ri:folder-line" class="mr-1" />
-        数据卷挂载
+        数据卷挂�?
       </el-divider>
 
       <el-form-item>
@@ -131,15 +131,15 @@
           >
             <el-input
               v-model="volume.hostPath"
-              placeholder="主机路径（如：/data/mysql）"
+              placeholder="主机路径（如�?data/mysql�?
               style="flex: 1"
             >
               <template #prepend>Host</template>
             </el-input>
-            <span class="volume-arrow">→</span>
+            <span class="volume-arrow">�?/span>
             <el-input
               v-model="volume.containerPath"
-              placeholder="容器路径（如：/var/lib/mysql）"
+              placeholder="容器路径（如�?var/lib/mysql�?
               style="flex: 1"
             >
               <template #prepend>Container</template>
@@ -153,7 +153,7 @@
           </div>
           <el-button size="small" type="primary" text @click="addVolumeMount">
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-            添加数据卷
+            添加数据�?
           </el-button>
         </div>
       </el-form-item>
@@ -169,9 +169,9 @@
           placeholder="选择重启策略"
           style="width: 100%"
         >
-          <el-option label="不重启" value="no" />
+          <el-option label="不重�? value="no" />
           <el-option label="总是重启" value="always" />
-          <el-option label="失败时重启" value="on-failure" />
+          <el-option label="失败时重�? value="on-failure" />
           <el-option label="除非手动停止" value="unless-stopped" />
         </el-select>
       </el-form-item>
@@ -182,9 +182,9 @@
           placeholder="选择网络模式"
           style="width: 100%"
         >
-          <el-option label="桥接（bridge）" value="bridge" />
-          <el-option label="主机（host）" value="host" />
-          <el-option label="无网络（none）" value="none" />
+          <el-option label="桥接（bridge�? value="bridge" />
+          <el-option label="主机（host�? value="host" />
+          <el-option label="无网络（none�? value="none" />
         </el-select>
       </el-form-item>
 
@@ -204,7 +204,7 @@
         />
       </el-form-item>
 
-      <el-form-item label="创建后启动">
+      <el-form-item label="创建后启�?>
         <el-switch v-model="form.autoStart" />
       </el-form-item>
     </el-form>
@@ -232,7 +232,7 @@
             class="mr-1"
             v-if="!installing"
           />
-          {{ installing ? "创建中..." : "创建容器" }}
+          {{ installing ? "创建�?.." : "创建容器" }}
         </el-button>
       </div>
     </template>
@@ -243,7 +243,7 @@
 import { ref, computed, watch } from "vue";
 import { ElMessage, ElNotification } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
-import { containerApi, type SystemSoftImage } from "@/api/docker-management";
+import { containerApi, type SystemSoftImage } from "@/api/docker";
 import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
 
 interface Props {
@@ -291,7 +291,7 @@ const form = ref({
 
 const rules: FormRules = {
   containerName: [
-    { required: true, message: "请输入容器名称", trigger: "blur" },
+    { required: true, message: "请输入容器名�?, trigger: "blur" },
     {
       pattern: /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
       message: "容器名称只能包含字母、数字、下划线、点和连字符",
@@ -324,7 +324,7 @@ function removeEnvVar(index: number) {
   form.value.envVars.splice(index, 1);
 }
 
-// 添加数据卷
+// 添加数据�?
 function addVolumeMount() {
   form.value.volumeMounts.push({
     hostPath: "",
@@ -333,7 +333,7 @@ function addVolumeMount() {
   });
 }
 
-// 删除数据卷
+// 删除数据�?
 function removeVolumeMount(index: number) {
   form.value.volumeMounts.splice(index, 1);
 }
@@ -355,7 +355,7 @@ function resetForm() {
   formRef.value?.clearValidate();
 }
 
-// 关闭对话框
+// 关闭对话�?
 function handleClose() {
   resetForm();
 }
@@ -393,7 +393,7 @@ async function submit() {
       }
     });
 
-    // 构建数据卷
+    // 构建数据�?
     const binds: string[] = [];
     form.value.volumeMounts.forEach((volume) => {
       if (volume.hostPath && volume.containerPath) {
@@ -452,7 +452,7 @@ watch(
   () => visibleProxy.value,
   (val) => {
     if (val && props.image) {
-      // 根据镜像名称预设一些默认值
+      // 根据镜像名称预设一些默认�?
       const imageName = props.image.systemSoftImageName || "";
       if (imageName.includes("mysql")) {
         form.value.portMappings = [

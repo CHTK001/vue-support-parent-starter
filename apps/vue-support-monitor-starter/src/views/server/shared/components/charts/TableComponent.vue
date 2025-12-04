@@ -57,16 +57,16 @@ const refreshing = ref(false);
 
 // 示例数据
 const tableData = ref([
-  { name: 'CPU使用率', value: '45%', status: '正常' },
-  { name: '内存使用率', value: '68%', status: '正常' },
-  { name: '磁盘使用率', value: '82%', status: '警告' },
+  { name: 'CPU使用�?, value: '45%', status: '正常' },
+  { name: '内存使用�?, value: '68%', status: '正常' },
+  { name: '磁盘使用�?, value: '82%', status: '警告' },
   { name: '网络IO', value: '1.2MB/s', status: '正常' },
 ]);
 
 const columns = computed(() => [
   { prop: 'name', label: '指标名称', width: '120' },
-  { prop: 'value', label: '当前值', width: '100' },
-  { prop: 'status', label: '状态', width: '80' },
+  { prop: 'value', label: '当前�?, width: '100' },
+  { prop: 'status', label: '状�?, width: '80' },
 ]);
 
 const handleRefresh = () => {

@@ -6,7 +6,7 @@
     :min-aside-width="220"
     @contextmenu.prevent
   >
-    <!-- 左侧：搜索 + 树 -->
+    <!-- 左侧：搜�?+ �?-->
     <template #aside>
       <div class="left-panel">
         <div class="panel-header">
@@ -52,7 +52,7 @@
 
     <!-- 主内容区 -->
     <div class="main-panel">
-      <!-- 头部工具栏 -->
+      <!-- 头部工具�?-->
       <div class="main-header">
         <div class="path-info">
           <IconifyIconOnline icon="ri:key-2-line" class="path-icon" />
@@ -80,11 +80,11 @@
         </div>
       </div>
 
-      <!-- 内容区 -->
+      <!-- 内容�?-->
       <div class="main-body">
         <template v-if="currentPath">
           <template v-if="valueTypeText">
-            <!-- valueType 分支：根据 properties.valueType 选择展示组件 -->
+            <!-- valueType 分支：根�?properties.valueType 选择展示组件 -->
             <div v-if="valueTypeName === 'boolean'" class="result-wrap">
               <el-switch v-model="vBoolean" disabled />
             </div>
@@ -99,7 +99,7 @@
               height="580px"
             >
               <el-table-column prop="index" label="#" width="70" />
-              <el-table-column prop="value" label="值" :min-width="240" />
+              <el-table-column prop="value" label="�? :min-width="240" />
             </el-table>
             <el-table
               v-else-if="
@@ -112,8 +112,8 @@
               border
               height="580px"
             >
-              <el-table-column prop="key" label="键" :min-width="160" />
-              <el-table-column prop="value" label="值" :min-width="240" />
+              <el-table-column prop="key" label="�? :min-width="160" />
+              <el-table-column prop="value" label="�? :min-width="240" />
             </el-table>
             <div v-else-if="valueTypeName === 'color'" class="result-wrap">
               <div style="display: flex; align-items: center; gap: 12px">
@@ -177,7 +177,7 @@
               height="580px"
             >
               <el-table-column prop="field" label="字段" :min-width="160" />
-              <el-table-column prop="value" label="值" :min-width="240" />
+              <el-table-column prop="value" label="�? :min-width="240" />
             </el-table>
             <!-- LIST -->
             <el-table
@@ -188,7 +188,7 @@
               height="580px"
             >
               <el-table-column prop="index" label="#" width="70" />
-              <el-table-column prop="value" label="值" :min-width="240" />
+              <el-table-column prop="value" label="�? :min-width="240" />
             </el-table>
             <!-- SET -->
             <el-table
@@ -257,22 +257,22 @@ import {
   getConsoleRoot,
   getConsoleChildren,
   getConsoleNode,
-} from "@/api/system-data";
+} from "@/api/data-management/system-data";
 
 const props = defineProps<{ id: number }>();
 
-// 使用全局Socket.IO或创建独立连接
+// 使用全局Socket.IO或创建独立连�?
 const globalSocket = inject<any>("globalSocket");
 let socketConnection: any = null;
 let unsubscribeHandlers: any[] = [];
 
 const treeRef = ref<any>();
 
-// 左侧树
+// 左侧�?
 const keyword = ref("");
 const treeData = ref<any[]>([]);
 const treeProps = { label: "name", children: "children", isLeaf: "leaf" };
-// 针对大量 key 的分页参数
+// 针对大量 key 的分页参�?
 const page = ref(1);
 const size = ref(200);
 
@@ -335,11 +335,11 @@ const vRaw = ref<any>(null);
 const secretVisible = ref(false);
 const maskedPassword = computed(() =>
   vText.value
-    ? "•".repeat(Math.min(12, Math.max(6, vText.value.length)))
-    : "••••••"
+    ? "�?.repeat(Math.min(12, Math.max(6, vText.value.length)))
+    : "•••••�?
 );
 
-// 作为兜底的 Redis 类型渲染状态
+// 作为兜底�?Redis 类型渲染状�?
 const viewerType = ref<"" | "string" | "hash" | "list" | "set" | "zset">("");
 const stringValue = ref<string>("");
 const hashRows = ref<Array<{ field: string; value: string }>>([]);
@@ -375,7 +375,7 @@ function ensureColorString(x: any): string {
   if (!s) return "#000000";
   const m = s.match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
   if (m) return s.startsWith("#") ? s : "#" + s;
-  return s; // 保留原值
+  return s; // 保留原�?
 }
 
 function normalizeByValueType(val: any) {
@@ -442,9 +442,9 @@ function normalizeByValueType(val: any) {
       return;
     }
   } catch (_) {
-    // 解析失败走默认
+    // 解析失败走默�?
   }
-  // 默认展示原始值
+  // 默认展示原始�?
   vRaw.value = val;
 }
 
@@ -562,7 +562,7 @@ async function refreshValue() {
     normalizeValueForView(val);
   }
   const ms = Math.round(performance.now() - start);
-  statusText.value = `加载完成，用时 ${ms} ms`;
+  statusText.value = `加载完成，用�?${ms} ms`;
 }
 
 function pretty(val: any) {
@@ -581,19 +581,19 @@ function tryPrettyJsonString(src: string): string {
   if (!s) return src;
   const first = s[0];
   const last = s[s.length - 1];
-  // 粗略判断可能是 JSON 文本
+  // 粗略判断可能�?JSON 文本
   if ((first === "{" && last === "}") || (first === "[" && last === "]")) {
     try {
       const obj = JSON.parse(s);
       return JSON.stringify(obj, null, 2);
     } catch {
-      return src; // 非合法 JSON，原样返回
+      return src; // 非合�?JSON，原样返�?
     }
   }
   return src;
 }
 
-// 右键菜单状态
+// 右键菜单状�?
 const menuVisible = ref(false);
 const menuX = ref(0);
 const menuY = ref(0);
@@ -673,10 +673,10 @@ async function refreshContextNodeChildren() {
       treeRef.value &&
       typeof treeRef.value.updateKeyChildren === "function"
     ) {
-      // 用 API 覆盖子节点，避免越刷越多
+      // �?API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node.path, records);
     } else {
-      // 兜底：直接覆盖数据
+      // 兜底：直接覆盖数�?
       node.children = records;
     }
     node.leaf = records.length === 0;
@@ -696,7 +696,7 @@ async function copyKeyName(node: any) {
 async function deleteKey(node: any) {
   if (!node?.path) return;
   try {
-    const ok = window.confirm(`确认删除 Key：${node.name} ?`);
+    const ok = window.confirm(`确认删除 Key�?{node.name} ?`);
     if (!ok) return;
     const { executeConsole } = await import("@/api/system-data");
     await executeConsole(props.id, `DEL ${node.path}`, "redis");
@@ -704,7 +704,7 @@ async function deleteKey(node: any) {
     if (currentPath.value === node.path) {
       currentPath.value = undefined;
       nodeValue.value = null;
-      statusText.value = "当前 Key 已删除";
+      statusText.value = "当前 Key 已删�?;
     }
   } catch (_) {}
 }
@@ -778,7 +778,7 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-/* Redis 控制台容器 */
+/* Redis 控制台容�?*/
 .redis-console {
   height: calc(100vh - 16px);
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
@@ -852,7 +852,7 @@ onMounted(async () => {
   }
 }
 
-/* 搜索框 */
+/* 搜索�?*/
 .search-input {
   :deep(.el-input__wrapper) {
     border-radius: 10px;
@@ -922,7 +922,7 @@ onMounted(async () => {
   margin-left: 8px;
 }
 
-/* 主内容面板 */
+/* 主内容面�?*/
 .main-panel {
   height: 100%;
   background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
@@ -934,7 +934,7 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* 头部工具栏 */
+/* 头部工具�?*/
 .main-header {
   display: flex;
   align-items: center;
@@ -983,7 +983,7 @@ onMounted(async () => {
   }
 }
 
-/* 内容区 */
+/* 内容�?*/
 .main-body {
   flex: 1;
   padding: 16px;
@@ -994,7 +994,7 @@ onMounted(async () => {
   background: #fff;
 }
 
-/* 结果包装器 */
+/* 结果包装�?*/
 .result-wrap {
   flex: 1;
   overflow: auto;
@@ -1047,7 +1047,7 @@ onMounted(async () => {
   }
 }
 
-/* 输入框美化 */
+/* 输入框美�?*/
 .main-body :deep(.el-textarea__inner) {
   border-radius: 10px;
   border: 1px solid #e2e8f0;
@@ -1069,7 +1069,7 @@ onMounted(async () => {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
-/* 空状态美化 */
+/* 空状态美�?*/
 .main-body :deep(.el-empty) {
   padding: 60px 0;
 

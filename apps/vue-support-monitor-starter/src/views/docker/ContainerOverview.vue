@@ -37,7 +37,7 @@
 
     <!-- 主要内容区域 -->
     <el-row :gutter="20" class="content-row">
-      <!-- 左侧：容器列表和性能排行榜 -->
+      <!-- 左侧：容器列表和性能排行�?-->
       <el-col :span="16">
         <el-card class="content-card">
           <template #header>
@@ -60,7 +60,7 @@
         <el-card class="content-card">
           <template #header>
             <div class="card-header">
-              <span>性能排行榜</span>
+              <span>性能排行�?/span>
             </div>
           </template>
 
@@ -102,7 +102,7 @@
       </el-col>
     </el-row>
 
-    <!-- 容器详情对话框 -->
+    <!-- 容器详情对话�?-->
     <ContainerDetailDialog
       v-model:visible="detailDialogVisible"
       :container-data="currentContainer"
@@ -115,7 +115,7 @@ import {
   containerApi,
   type ContainerStatusStatistics,
   type SystemSoftContainer,
-} from "@/api/docker-management";
+} from "@/api/docker";
 import { ElMessage } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
 
@@ -129,7 +129,7 @@ import ContainerResourceTrend from "./components/ContainerResourceTrend.vue";
 import ContainerStatusStats from "./components/ContainerStatusStats.vue";
 import MonitoringOverview from "./components/MonitoringOverview.vue";
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false);
 const containerList = ref<SystemSoftContainer[]>([]);
 const detailDialogVisible = ref(false);
@@ -173,7 +173,7 @@ const loadContainerList = async () => {
   }
 };
 
-// 加载容器状态统计
+// 加载容器状态统�?
 const loadContainerStats = async () => {
   try {
     const response = await containerApi.getContainerStatusStats();
@@ -181,7 +181,7 @@ const loadContainerStats = async () => {
       containerStats.value = response.data || { total: 0 };
     }
   } catch (error) {
-    console.error("加载容器状态统计失败:", error);
+    console.error("加载容器状态统计失�?", error);
   }
 };
 
@@ -217,7 +217,7 @@ const calculateOverviewStats = () => {
   overviewStats.avgCpuUsage = cpuSum / containerList.value.length;
   overviewStats.avgMemoryUsage = memorySum / containerList.value.length;
 
-  // 计算容器总数和运行中容器数
+  // 计算容器总数和运行中容器�?
   overviewStats.totalContainers = containerList.value.length;
   overviewStats.runningContainers = containerList.value.filter(
     (container) => container.systemSoftContainerStatus === "running"

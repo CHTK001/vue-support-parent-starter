@@ -2,7 +2,7 @@
   <div class="console">
     <div class="toolbar">
       <el-input v-model="topic" placeholder="主题" class="w-240" />
-      <el-input v-model="payload" placeholder="消息体" class="w-360 ml-2" />
+      <el-input v-model="payload" placeholder="消息�? class="w-360 ml-2" />
       <el-button type="primary" @click="publish">发布</el-button>
       <el-input v-model="subTopic" placeholder="订阅主题(支持通配)" class="w-240 ml-4" />
       <el-button @click="subscribe">订阅</el-button>
@@ -24,7 +24,7 @@ import { splitToArray } from '@repo/utils'
 
 const props = defineProps<{ id:number }>()
 
-// 使用全局Socket.IO或创建独立连接
+// 使用全局Socket.IO或创建独立连�?
 const globalSocket = inject<any>('globalSocket')
 let socketConnection: any = null
 let unsubscribeHandlers: any[] = []

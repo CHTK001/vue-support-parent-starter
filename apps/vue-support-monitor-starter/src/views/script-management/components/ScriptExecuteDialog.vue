@@ -8,7 +8,7 @@
     @close="handleClose"
     :show-close="false"
   >
-    <!-- 自定义头部 -->
+    <!-- 自定义头�?-->
     <template #header>
       <div class="modern-dialog-header">
         <div class="header-left">
@@ -17,7 +17,7 @@
           </div>
           <div class="header-content">
             <h2 class="dialog-title">执行脚本</h2>
-            <p class="dialog-subtitle">配置并执行您的脚本任务</p>
+            <p class="dialog-subtitle">配置并执行您的脚本任�?/p>
           </div>
         </div>
         <div class="header-actions">
@@ -70,7 +70,7 @@
             <el-radio-group v-model="targetType" size="large" class="modern-radio-group">
               <el-radio-button label="SERVER" class="target-option">
                 <IconifyIconOnline icon="ri:server-line" />
-                <span>服务器</span>
+                <span>服务�?/span>
               </el-radio-button>
               <el-radio-button label="NODE" class="target-option">
                 <IconifyIconOnline icon="ri:computer-line" />
@@ -86,7 +86,7 @@
                 v-model="selectedServerId"
                 filterable
                 clearable
-                placeholder="选择最近上传成功的服务器"
+                placeholder="选择最近上传成功的服务�?
                 class="modern-select"
                 size="large"
               >
@@ -153,14 +153,14 @@
                   v-model="executeForm.parameters"
                   type="textarea"
                   :rows="3"
-                  placeholder="请输入执行参数，多个参数用空格分隔"
+                  placeholder="请输入执行参数，多个参数用空格分�?
                   class="modern-textarea"
                   resize="none"
                 />
               </div>
             </el-form-item>
 
-            <el-form-item label="超时时间（秒）" class="form-item-half">
+            <el-form-item label="超时时间（秒�? class="form-item-half">
               <div class="input-wrapper">
                 <div class="input-icon">
                   <IconifyIconOnline icon="ri:time-line" />
@@ -315,7 +315,7 @@
             :disabled="!scriptData"
           >
             <IconifyIconOnline icon="ri:play-circle-line" />
-            {{ executionResult?.status === "running" ? "执行中..." : "开始执行" }}
+            {{ executionResult?.status === "running" ? "执行�?.." : "开始执�? }}
           </el-button>
         </div>
       </div>
@@ -343,10 +343,10 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const visible = ref(false);
 
-// 规范化脚本类型（小写），用于图标与标签样式
+// 规范化脚本类型（小写），用于图标与标签样�?
 const normalizedType = computed(() => {
   const t =
     (props.scriptData?.type ||
@@ -374,11 +374,11 @@ const executeForm = reactive({
   saveOutput: true,
 });
 
-// 加载最近上传成功的服务器/节点
+// 加载最近上传成功的服务�?节点
 const loadSuccessTargets = async () => {
   try {
     const query = { pageNum: 1, pageSize: 50 } as any;
-    // 只取当前脚本的记录
+    // 只取当前脚本的记�?
     if (props.scriptData?.monitorSysGenScriptId) {
       query.scriptId = props.scriptData.monitorSysGenScriptId;
     }
@@ -431,7 +431,7 @@ watch(
   }
 );
 
-// 监听器
+// 监听�?
 watch(
   () => props.modelValue,
   (val) => {
@@ -463,7 +463,7 @@ const handleExecute = async () => {
 
   executing.value = true;
   try {
-    // 构造参数
+    // 构造参�?
     const scriptId =
       props.scriptData.monitorSysGenScriptId || props.scriptData.id;
     const baseParams = {
@@ -481,7 +481,7 @@ const handleExecute = async () => {
         props.scriptData.monitorSysGenScriptServerId ||
         props.scriptData.serverId;
       if (!serverId) {
-        ElMessage.warning("请选择服务器");
+        ElMessage.warning("请选择服务�?);
         return;
       }
       const resp = await executeServerScript({
@@ -504,7 +504,7 @@ const handleExecute = async () => {
           stdout: ex.monitorSysGenScriptExecutionStdout,
           stderr: ex.monitorSysGenScriptExecutionStderr,
         };
-        ElMessage.success("已提交执行");
+        ElMessage.success("已提交执�?);
         emit("success");
       } else {
         throw new Error(resp.msg || "执行失败");
@@ -530,7 +530,7 @@ const handleExecute = async () => {
         timeout: baseParams.timeout,
       });
       if (resp.success) {
-        ElMessage.success("已提交执行");
+        ElMessage.success("已提交执�?);
         emit("success");
       } else {
         throw new Error(resp.msg || "执行失败");
@@ -553,7 +553,7 @@ const handleStop = async () => {
       executionResult.value.endTime = new Date();
     }
 
-    ElMessage.success("脚本执行已停止");
+    ElMessage.success("脚本执行已停�?);
   } catch (error) {
     ElMessage.error("停止脚本失败");
   } finally {
@@ -583,7 +583,7 @@ const formatDuration = (duration: number | null) => {
 const copyToClipboard = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text || '');
-    ElMessage.success('已复制到剪贴板');
+    ElMessage.success('已复制到剪贴�?);
   } catch (err) {
     console.error('复制失败:', err);
     ElMessage.error('复制失败');
@@ -634,15 +634,15 @@ const getStatusText = (status: string) => {
   const textMap = {
     success: "执行成功",
     failed: "执行失败",
-    running: "执行中",
-    cancelled: "已取消",
+    running: "执行�?,
+    cancelled: "已取�?,
   };
-  return textMap[status] || "未知状态";
+  return textMap[status] || "未知状�?;
 };
 </script>
 
 <style scoped lang="scss">
-// 主弹框样式
+// 主弹框样�?
 :deep(.modern-execute-dialog) {
   .el-dialog {
     border-radius: 16px;
@@ -665,7 +665,7 @@ const getStatusText = (status: string) => {
   }
 }
 
-// 自定义头部
+// 自定义头�?
 .modern-dialog-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: var(--el-text-color-primary);
@@ -1368,7 +1368,7 @@ const getStatusText = (status: string) => {
   }
 }
 
-// 响应式设计
+// 响应式设�?
 @media (max-width: 768px) {
   .modern-execute-content {
     padding: 20px;

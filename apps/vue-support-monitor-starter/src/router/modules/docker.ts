@@ -7,7 +7,7 @@ const dockerRoutes: RouteRecordRaw[] = [
     name: "Docker",
     meta: {
       title: "Docker管理",
-      icon: "ri:docker-line",
+      icon: "logos:docker-icon",
       alwaysShow: true,
     },
     children: [
@@ -17,7 +17,7 @@ const dockerRoutes: RouteRecordRaw[] = [
         name: "DockerContainers",
         meta: {
           title: "容器管理",
-          icon: "ri:container-line",
+          icon: "mdi:docker",
         },
       },
       {
@@ -26,7 +26,7 @@ const dockerRoutes: RouteRecordRaw[] = [
         name: "DockerImages",
         meta: {
           title: "镜像管理",
-          icon: "ri:image-line",
+          icon: "mdi:layers-outline",
         },
       },
       {
@@ -35,7 +35,7 @@ const dockerRoutes: RouteRecordRaw[] = [
         name: "DockerSoft",
         meta: {
           title: "软件管理",
-          icon: "ri:apps-line",
+          icon: "mdi:apps",
         },
       },
       {
@@ -44,25 +44,7 @@ const dockerRoutes: RouteRecordRaw[] = [
         name: "DockerRegistry",
         meta: {
           title: "仓库管理",
-          icon: "ri:database-2-line",
-        },
-      },
-      {
-        path: "/docker/monitoring",
-        component: () => import("@/views/docker/ContainerMonitoringView.vue"),
-        name: "DockerMonitoring",
-        meta: {
-          title: "容器监控",
-          icon: "ri:dashboard-line",
-        },
-      },
-      {
-        path: "/docker/overview",
-        component: () => import("@/views/docker/ContainerOverview.vue"),
-        name: "DockerOverview",
-        meta: {
-          title: "监控总览",
-          icon: "ri:bar-chart-line",
+          icon: "mdi:database-outline",
         },
       },
     ],

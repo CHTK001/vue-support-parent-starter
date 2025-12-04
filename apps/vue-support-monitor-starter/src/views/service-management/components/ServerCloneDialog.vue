@@ -1,14 +1,14 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    title="克隆服务器"
+    title="克隆服务�?
     width="500px"
     :close-on-click-modal="false"
     @close="handleClose"
   >
     <div class="clone-info" v-if="sourceServer">
       <el-alert
-        :title="`正在克隆服务器: ${sourceServer.systemServerName}`"
+        :title="`正在克隆服务�? ${sourceServer.systemServerName}`"
         type="info"
         :closable="false"
         show-icon
@@ -26,7 +26,7 @@
       <el-form-item label="新服务器名称" prop="newName">
         <el-input
           v-model="formData.newName"
-          placeholder="请输入新服务器名称"
+          placeholder="请输入新服务器名�?
           clearable
         />
       </el-form-item>
@@ -36,7 +36,7 @@
           v-model="formData.newPort"
           :min="1"
           :max="65535"
-          placeholder="请输入新端口号"
+          placeholder="请输入新端口�?
           style="width: 100%"
         />
       </el-form-item>
@@ -84,11 +84,11 @@ const emit = defineEmits<{
   'success': [];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const formRef = ref<FormInstance>();
 const loading = ref(false);
 
-// 计算属性
+// 计算属�?
 const dialogVisible = computed({
   get: () => props.visible,
   set: (value) => emit('update:visible', value)
@@ -103,11 +103,11 @@ const formData = reactive({
 // 表单验证规则
 const formRules: FormRules = {
   newName: [
-    { required: true, message: '请输入新服务器名称', trigger: 'blur' },
-    { min: 2, max: 100, message: '服务器名称长度在 2 到 100 个字符', trigger: 'blur' }
+    { required: true, message: '请输入新服务器名�?, trigger: 'blur' },
+    { min: 2, max: 100, message: '服务器名称长度在 2 �?100 个字�?, trigger: 'blur' }
   ],
   newPort: [
-    { required: true, message: '请输入新服务器端口', trigger: 'blur' },
+    { required: true, message: '请输入新服务器端�?, trigger: 'blur' },
     { type: 'number', min: 1, max: 65535, message: '端口号必须在 1-65535 之间', trigger: 'blur' }
   ]
 };
@@ -127,7 +127,7 @@ const resetForm = () => {
   formRef.value?.clearValidate();
 };
 
-// 关闭对话框
+// 关闭对话�?
 const handleClose = () => {
   dialogVisible.value = false;
   resetForm();
@@ -156,7 +156,7 @@ const handleSubmit = async () => {
       ElMessage.error(response.msg || '克隆失败');
     }
   } catch (error) {
-    console.error('克隆服务器失败:', error);
+    console.error('克隆服务器失�?', error);
     ElMessage.error('克隆失败');
   } finally {
     loading.value = false;

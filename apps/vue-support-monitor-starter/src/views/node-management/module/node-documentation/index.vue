@@ -1,6 +1,6 @@
 <template>
   <div class="node-documentation">
-    <!-- 顶部导航栏 -->
+    <!-- 顶部导航�?-->
     <div class="doc-header">
       <div class="header-left">
         <el-button @click="goBack" size="small" type="primary" plain>
@@ -64,10 +64,10 @@
             </el-select>
           </div>
 
-          <!-- 全局请求头设置 -->
+          <!-- 全局请求头设�?-->
           <div class="global-headers">
             <div class="headers-title">
-              <label class="selector-label">全局请求头:</label>
+              <label class="selector-label">全局请求�?</label>
               <el-button
                 @click="showHeaderDialog = true"
                 size="small"
@@ -92,11 +92,11 @@
               </div>
             </div>
             <div v-else class="no-headers">
-              <span class="placeholder-text">未设置全局请求头</span>
+              <span class="placeholder-text">未设置全局请求�?/span>
             </div>
           </div>
 
-          <!-- 搜索框 -->
+          <!-- 搜索�?-->
           <el-input
             v-model="searchKeyword"
             placeholder="搜索接口..."
@@ -158,7 +158,7 @@
                     <div class="api-info">
                       <div class="api-path">{{ api.path }}</div>
                       <div class="api-summary">
-                        {{ api.summary || "无描述" }}
+                        {{ api.summary || "无描�? }}
                       </div>
                     </div>
                   </div>
@@ -169,7 +169,7 @@
         </div>
       </div>
 
-      <!-- 拖拽分割线1 -->
+      <!-- 拖拽分割�? -->
       <div
         class="resize-handle resize-handle-1"
         @mousedown="startResize($event, 'sidebar')"
@@ -192,7 +192,7 @@
               </span>
               <span class="api-path">{{ selectedApi.path }}</span>
             </div>
-            <div class="api-summary">{{ selectedApi.summary || "无描述" }}</div>
+            <div class="api-summary">{{ selectedApi.summary || "无描�? }}</div>
 
             <!-- 参数控制按钮 -->
             <div class="param-controls">
@@ -202,7 +202,7 @@
                   @click="showOnlyRequired = !showOnlyRequired"
                 >
                   <i class="ri-star-line"></i>
-                  {{ showOnlyRequired ? "显示全部" : "仅必填" }}
+                  {{ showOnlyRequired ? "显示全部" : "仅必�? }}
                 </el-button>
                 <el-button @click="clearAllParams">
                   <i class="ri-delete-bin-line"></i>
@@ -241,7 +241,7 @@
                     </label>
                     <el-input
                       v-model="paramValues.path[param.name]"
-                      :placeholder="param.description || `请输入${param.name}`"
+                      :placeholder="param.description || `请输�?{param.name}`"
                       size="small"
                     />
                     <div class="param-desc">{{ param.description }}</div>
@@ -275,7 +275,7 @@
                     </label>
                     <el-input
                       v-model="paramValues.query[param.name]"
-                      :placeholder="param.description || `请输入${param.name}`"
+                      :placeholder="param.description || `请输�?{param.name}`"
                       size="small"
                     />
                     <div class="param-desc">{{ param.description }}</div>
@@ -283,8 +283,8 @@
                 </div>
               </el-tab-pane>
 
-              <!-- 请求体 -->
-              <el-tab-pane v-if="hasRequestBody" label="请求体" name="body">
+              <!-- 请求�?-->
+              <el-tab-pane v-if="hasRequestBody" label="请求�? name="body">
                 <div class="body-editor">
                   <codemirror-editor-vue3
                     v-model:value="requestBody"
@@ -312,7 +312,7 @@
         </div>
       </div>
 
-      <!-- 拖拽分割线2 -->
+      <!-- 拖拽分割�? -->
       <div
         class="resize-handle resize-handle-2"
         @mousedown="startResize($event, 'params')"
@@ -364,13 +364,13 @@
         </div>
 
         <div class="result-content">
-          <!-- 执行结果标签页 -->
+          <!-- 执行结果标签�?-->
           <div v-if="activeResultTab === 'result'">
             <div v-if="!lastResponse" class="no-result">
               <el-empty description="暂无执行结果" :image-size="100" />
             </div>
             <div v-else class="response-container">
-              <!-- 响应状态 -->
+              <!-- 响应状�?-->
               <div class="response-status">
                 <div class="status-info">
                   <span
@@ -389,12 +389,12 @@
                 </div>
               </div>
 
-              <!-- 响应头 -->
+              <!-- 响应�?-->
               <div class="response-headers">
                 <div class="section-header" @click="toggleHeadersCollapse">
                   <h4>
                     <i class="ri-file-list-3-line"></i>
-                    响应头
+                    响应�?
                     <span
                       v-if="
                         lastResponse.headers &&
@@ -460,12 +460,12 @@
                 </el-collapse-transition>
               </div>
 
-              <!-- 响应体 -->
+              <!-- 响应�?-->
               <div class="response-body">
                 <div class="section-header">
                   <h4>
                     <IconifyIconOnline icon="ri:code-box-line" />
-                    响应体
+                    响应�?
                     <span v-if="getContentType()" class="content-type-badge">
                       {{ getContentType() }}
                     </span>
@@ -532,7 +532,7 @@
                       :read-only="true"
                     />
                   </div>
-                  <!-- 纯文本内容 -->
+                  <!-- 纯文本内�?-->
                   <div v-else class="text-viewer">
                     <codemirror-editor-vue3
                       v-model:value="lastResponse.data"
@@ -545,7 +545,7 @@
               </div>
             </div>
           </div>
-          <!-- 代码示例标签页 -->
+          <!-- 代码示例标签�?-->
           <div v-if="activeResultTab === 'examples'" class="code-examples">
             <div v-if="!selectedApi" class="no-selection">
               <el-empty description="请选择一个API接口" :image-size="100" />
@@ -646,7 +646,7 @@
     <!-- 全局请求头设置对话框 -->
     <el-dialog
       v-model="showHeaderDialog"
-      title="全局请求头设置"
+      title="全局请求头设�?
       width="600px"
       :before-close="handleHeaderDialogClose"
     >
@@ -663,13 +663,13 @@
           >
             <el-input
               v-model="header.key"
-              placeholder="请求头名称"
+              placeholder="请求头名�?
               size="small"
               style="flex: 1"
             />
             <el-input
               v-model="header.value"
-              placeholder="请求头值"
+              placeholder="请求头�?
               size="small"
               style="flex: 2; margin-left: 8px"
             />
@@ -688,7 +688,7 @@
         <div class="header-actions">
           <el-button @click="addHeader" size="small" type="primary" plain>
             <i class="ri-add-line"></i>
-            添加请求头
+            添加请求�?
           </el-button>
           <el-button
             @click="addCommonHeaders"
@@ -697,13 +697,13 @@
             plain
           >
             <i class="ri-magic-line"></i>
-            添加常用请求头
+            添加常用请求�?
           </el-button>
         </div>
 
         <div class="common-headers-tips">
           <el-collapse>
-            <el-collapse-item title="常用请求头示例" name="examples">
+            <el-collapse-item title="常用请求头示�? name="examples">
               <div class="examples-list">
                 <div class="example-item">
                   <strong>Authorization:</strong> Bearer your-token-here
@@ -750,7 +750,7 @@ import {
   executeNodeApi,
   fetchNodeApiDocs,
   fetchNodeSwaggerResources,
-} from "@/api/node-documentation";
+} from "@/api/server/node-documentation";
 import CodemirrorEditorVue3 from "codemirror-editor-vue3";
 import { ElMessage } from "element-plus";
 import { computed, onMounted, reactive, ref, watch } from "vue";
@@ -760,7 +760,7 @@ import { useRoute, useRouter } from "vue-router";
 const route = useRoute();
 const router = useRouter();
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false);
 const executing = ref(false);
 const searchKeyword = ref("");
@@ -784,7 +784,7 @@ const sameNameNodes = ref<
 >([]);
 const currentNodeAddress = ref(nodeInfo.nodeAddress);
 
-// 全局请求头管理
+// 全局请求头管�?
 const globalHeaders = ref<Record<string, string>>({});
 const showHeaderDialog = ref(false);
 const tempHeaders = ref<Array<{ key: string; value: string }>>([]);
@@ -810,7 +810,7 @@ const requestBody = ref("");
 
 // 响应数据
 const lastResponse = ref<ApiResponse | null>(null);
-const headersCollapsed = ref(true); // 默认折叠响应头
+const headersCollapsed = ref(true); // 默认折叠响应�?
 
 // 布局拖拽相关
 const sidebarWidth = ref(320);
@@ -851,7 +851,7 @@ interface ApiResponse {
   duration: number;
 }
 
-// 计算属性
+// 计算属�?
 const filteredApiGroups = computed(() => {
   if (!searchKeyword.value) return apiGroups.value;
 
@@ -891,7 +891,7 @@ const filteredQueryParams = computed(() => {
 const hasRequestBody = computed(() => {
   if (!selectedApi.value) return false;
   const method = selectedApi.value.method.toUpperCase();
-  // 支持POST、PUT、PATCH、DELETE等需要请求体的方法
+  // 支持POST、PUT、PATCH、DELETE等需要请求体的方�?
   return ["POST", "PUT", "PATCH"].includes(method);
 });
 
@@ -993,7 +993,7 @@ const loadApiDocs = async () => {
       const apiList = listResponse.value.data || [];
       console.log("API列表数据:", apiList);
 
-      // 如果没有分组数据但有列表数据，将列表数据转换为分组格式
+      // 如果没有分组数据但有列表数据，将列表数据转换为分组格�?
       if (!hasValidData && apiList.length > 0) {
         apiGroups.value = convertApiListToGroups(apiList);
         hasValidData = true;
@@ -1017,11 +1017,11 @@ const loadApiDocs = async () => {
 
     // 如果三个接口都没有返回有效数据，使用模拟数据
     if (!hasValidData) {
-      console.warn("没有获取到有效的API数据，使用模拟数据");
+      console.warn("没有获取到有效的API数据，使用模拟数�?);
       apiGroups.value = createMockApiGroups();
     }
 
-    // 默认展开第一个分组
+    // 默认展开第一个分�?
     if (apiGroups.value.length > 0) {
       expandedGroups.value = [apiGroups.value[0].name];
     }
@@ -1030,7 +1030,7 @@ const loadApiDocs = async () => {
     if (hasValidData) {
       ElMessage.success("API文档加载成功");
     } else {
-      ElMessage.warning("未获取到API数据，显示模拟数据");
+      ElMessage.warning("未获取到API数据，显示模拟数�?);
     }
   } catch (error) {
     console.error("加载API文档异常:", error);
@@ -1055,7 +1055,7 @@ const toggleGroup = (groupName: string) => {
   }
 };
 
-// 生成示例请求体
+// 生成示例请求�?
 const generateExampleRequestBody = (api: ApiInfo) => {
   const method = api.method.toUpperCase();
   const path = api.path.toLowerCase();
@@ -1079,8 +1079,8 @@ const generateExampleRequestBody = (api: ApiInfo) => {
     } else if (path.includes("product") || path.includes("item")) {
       return JSON.stringify(
         {
-          name: "新产品",
-          description: "这是一个新产品的描述",
+          name: "新产�?,
+          description: "这是一个新产品的描�?,
           price: 299.99,
           category: "electronics",
           brand: "示例品牌",
@@ -1102,9 +1102,9 @@ const generateExampleRequestBody = (api: ApiInfo) => {
             },
           ],
           shippingAddress: {
-            street: "北京市朝阳区建国路1号",
+            street: "北京市朝阳区建国�?�?,
             city: "北京",
-            province: "北京市",
+            province: "北京�?,
             zipCode: "100000",
             country: "中国",
           },
@@ -1149,7 +1149,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
       return JSON.stringify(
         {
           id: 2001,
-          name: "更新的产品名称",
+          name: "更新的产品名�?,
           description: "更新后的产品描述",
           price: 399.99,
           category: "electronics",
@@ -1163,8 +1163,8 @@ const generateExampleRequestBody = (api: ApiInfo) => {
       return JSON.stringify(
         {
           id: 1,
-          name: "更新的名称",
-          description: "更新的描述",
+          name: "更新的名�?,
+          description: "更新的描�?,
           status: "updated",
           version: 2,
           updatedAt: new Date().toISOString(),
@@ -1189,7 +1189,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
         {
           price: 199.99,
           inStock: true,
-          description: "部分更新的产品描述",
+          description: "部分更新的产品描�?,
         },
         null,
         2
@@ -1198,7 +1198,7 @@ const generateExampleRequestBody = (api: ApiInfo) => {
       return JSON.stringify(
         {
           status: "updated",
-          description: "部分更新的描述",
+          description: "部分更新的描�?,
         },
         null,
         2
@@ -1220,18 +1220,18 @@ const generateExampleRequestBody = (api: ApiInfo) => {
 
 const selectApi = (api: ApiInfo) => {
   selectedApi.value = api;
-  // 重置参数值
+  // 重置参数�?
   paramValues.path = {};
   paramValues.query = {};
 
-  // 为POST/PUT/PATCH请求设置示例请求体
+  // 为POST/PUT/PATCH请求设置示例请求�?
   if (api.method !== "GET" && api.method !== "DELETE") {
     requestBody.value = generateExampleRequestBody(api);
   } else {
     requestBody.value = "";
   }
 
-  // 设置默认参数标签页
+  // 设置默认参数标签�?
   if (pathParams.value.length > 0) {
     activeParamTab.value = "path";
   } else if (queryParams.value.length > 0) {
@@ -1256,12 +1256,12 @@ const executeApi = async () => {
       pathParams: paramValues.path,
       queryParams: paramValues.query,
       requestBody: requestBody.value,
-      headers: globalHeaders.value, // 使用全局请求头
+      headers: globalHeaders.value, // 使用全局请求�?
     });
 
     const duration = Date.now() - startTime;
 
-    // 检查响应是否成功
+    // 检查响应是否成�?
     if ((response as any).success && (response as any).data) {
       const apiResponse = (response as any).data;
       lastResponse.value = {
@@ -1273,7 +1273,7 @@ const executeApi = async () => {
       };
 
       if (apiResponse.status >= 400) {
-        ElMessage.warning("请求执行完成，但返回了错误状态");
+        ElMessage.warning("请求执行完成，但返回了错误状�?);
       } else {
         ElMessage.success("API执行成功");
       }
@@ -1310,7 +1310,7 @@ const copyResponse = () => {
   navigator.clipboard
     .writeText(content)
     .then(() => {
-      ElMessage.success("响应内容已复制到剪贴板");
+      ElMessage.success("响应内容已复制到剪贴�?);
     })
     .catch(() => {
       ElMessage.error("复制失败");
@@ -1325,7 +1325,7 @@ const clearAllParams = () => {
   paramValues.path = {};
   paramValues.query = {};
   requestBody.value = "";
-  ElMessage.success("已清空所有参数");
+  ElMessage.success("已清空所有参�?);
 };
 
 const copyCodeExample = () => {
@@ -1350,7 +1350,7 @@ const copyCodeExample = () => {
   navigator.clipboard
     .writeText(code)
     .then(() => {
-      ElMessage.success("代码已复制到剪贴板");
+      ElMessage.success("代码已复制到剪贴�?);
     })
     .catch(() => {
       ElMessage.error("复制失败");
@@ -1412,10 +1412,10 @@ public class ApiClient {
     public void callApi() throws IOException {
         String url = "${url}";
 
-        // 构建请求头
+        // 构建请求�?
         Headers.Builder headersBuilder = new Headers.Builder();`;
 
-  // 添加全局请求头
+  // 添加全局请求�?
   Object.entries(globalHeaders.value).forEach(([key, value]) => {
     code += `\n        headersBuilder.add("${key}", "${value}");`;
   });
@@ -1445,7 +1445,7 @@ public class ApiClient {
     code += `
         headersBuilder.add("Content-Type", "application/json");
 
-        // 请求体
+        // 请求�?
         String jsonBody = "${bodyContent}";
         RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json"));
 
@@ -1499,7 +1499,7 @@ const callApi = async () => {
         method: '${api.method}',
         headers: {`;
 
-  // 添加全局请求头
+  // 添加全局请求�?
   Object.entries(globalHeaders.value).forEach(([key, value]) => {
     code += `\n            '${key}': '${value}',`;
   });
@@ -1555,17 +1555,17 @@ const generatePythonCode = () => {
       {} as Record<string, string>
     );
 
-  let code = `# Python - 使用 requests 库
+  let code = `# Python - 使用 requests �?
 import requests
 import json
 
 def call_api():
     url = "${url}"
 
-    # 请求头
+    # 请求�?
     headers = {`;
 
-  // 添加全局请求头
+  // 添加全局请求�?
   Object.entries(globalHeaders.value).forEach(([key, value]) => {
     code += `\n        "${key}": "${value}",`;
   });
@@ -1586,7 +1586,7 @@ def call_api():
   } else {
     code += `
 
-    # 请求体
+    # 请求�?
     data = ${requestBody.value || "{}"}
 
     response = requests.${api.method.toLowerCase()}(
@@ -1633,7 +1633,7 @@ const generateCurlCode = () => {
   let code = `curl -X ${api.method} \\
   "${url}"`;
 
-  // 添加全局请求头
+  // 添加全局请求�?
   Object.entries(globalHeaders.value).forEach(([key, value]) => {
     code += ` \\
   -H "${key}: ${value}"`;
@@ -1648,7 +1648,7 @@ const generateCurlCode = () => {
   return code;
 };
 
-// 全局请求头管理方法
+// 全局请求头管理方�?
 const addHeader = () => {
   tempHeaders.value.push({ key: "", value: "" });
 };
@@ -1691,10 +1691,10 @@ const saveHeaders = () => {
   globalHeaders.value = validHeaders;
   showHeaderDialog.value = false;
 
-  // 保存到本地存储
+  // 保存到本地存�?
   localStorage.setItem("nodeDocGlobalHeaders", JSON.stringify(validHeaders));
 
-  ElMessage.success(`已保存 ${Object.keys(validHeaders).length} 个全局请求头`);
+  ElMessage.success(`已保�?${Object.keys(validHeaders).length} 个全局请求头`);
 };
 
 const handleHeaderDialogClose = () => {
@@ -1714,7 +1714,7 @@ const loadGlobalHeaders = () => {
       globalHeaders.value = JSON.parse(saved);
     }
   } catch (error) {
-    console.error("加载全局请求头失败:", error);
+    console.error("加载全局请求头失�?", error);
   }
 };
 
@@ -1770,7 +1770,7 @@ const createMockApiGroups = (): ApiGroup[] => {
           requestBody: {
             type: "object",
             properties: {
-              username: { type: "string", description: "用户名" },
+              username: { type: "string", description: "用户�? },
               email: { type: "string", description: "邮箱地址" },
               password: { type: "string", description: "密码" },
               firstName: { type: "string", description: "名字" },
@@ -1782,7 +1782,7 @@ const createMockApiGroups = (): ApiGroup[] => {
           path: "/api/users/{id}",
           method: "PUT",
           summary: "更新用户",
-          description: "更新指定用户的信息",
+          description: "更新指定用户的信�?,
           parameters: [
             {
               name: "id",
@@ -1795,11 +1795,11 @@ const createMockApiGroups = (): ApiGroup[] => {
           requestBody: {
             type: "object",
             properties: {
-              username: { type: "string", description: "用户名" },
+              username: { type: "string", description: "用户�? },
               email: { type: "string", description: "邮箱地址" },
               firstName: { type: "string", description: "名字" },
               lastName: { type: "string", description: "姓氏" },
-              status: { type: "string", description: "用户状态" },
+              status: { type: "string", description: "用户状�? },
             },
           },
         },
@@ -1807,7 +1807,7 @@ const createMockApiGroups = (): ApiGroup[] => {
           path: "/api/users/{id}",
           method: "PATCH",
           summary: "部分更新用户",
-          description: "部分更新指定用户的信息",
+          description: "部分更新指定用户的信�?,
           parameters: [
             {
               name: "id",
@@ -1821,7 +1821,7 @@ const createMockApiGroups = (): ApiGroup[] => {
             type: "object",
             properties: {
               email: { type: "string", description: "邮箱地址" },
-              status: { type: "string", description: "用户状态" },
+              status: { type: "string", description: "用户状�? },
             },
           },
         },
@@ -1873,7 +1873,7 @@ const createMockApiGroups = (): ApiGroup[] => {
           path: "/api/products/{id}",
           method: "PUT",
           summary: "更新产品",
-          description: "更新指定产品的信息",
+          description: "更新指定产品的信�?,
           parameters: [
             {
               name: "id",
@@ -1890,7 +1890,7 @@ const createMockApiGroups = (): ApiGroup[] => {
               description: { type: "string", description: "产品描述" },
               price: { type: "number", description: "产品价格" },
               category: { type: "string", description: "产品分类" },
-              inStock: { type: "boolean", description: "是否有库存" },
+              inStock: { type: "boolean", description: "是否有库�? },
             },
           },
         },
@@ -1902,8 +1902,8 @@ const createMockApiGroups = (): ApiGroup[] => {
         {
           path: "/actuator/health",
           method: "GET",
-          summary: "健康检查",
-          description: "获取应用程序健康状态",
+          summary: "健康检�?,
+          description: "获取应用程序健康状�?,
           parameters: [],
         },
         {
@@ -1952,7 +1952,7 @@ const createMockApiGroups = (): ApiGroup[] => {
   ];
 };
 
-// 将API列表转换为分组格式
+// 将API列表转换为分组格�?
 const convertApiListToGroups = (apiList: ApiInfo[]) => {
   const groups: Record<string, ApiInfo[]> = {};
 
@@ -1986,14 +1986,14 @@ const convertApiListToGroups = (apiList: ApiInfo[]) => {
     groups[groupName].push(api);
   });
 
-  // 转换为分组数组格式
+  // 转换为分组数组格�?
   return Object.entries(groups).map(([name, apis]) => ({
     name,
     apis,
   }));
 };
 
-// 将Swagger资源转换为分组格式
+// 将Swagger资源转换为分组格�?
 const convertSwaggerResourcesToGroups = (resources: any[]) => {
   const groups: any[] = [];
 
@@ -2062,7 +2062,7 @@ const getContentType = () => {
     lastResponse.value.headers["Content-Type"] ||
     "";
 
-  // 提取主要的content-type，去掉charset等参数
+  // 提取主要的content-type，去掉charset等参�?
   return contentType.split(";")[0].trim();
 };
 
@@ -2104,7 +2104,7 @@ const getImageSrc = () => {
   }
 
   // 如果是二进制数据，需要转换为blob URL
-  // 这里简化处理，实际项目中需要根据具体情况处理
+  // 这里简化处理，实际项目中需要根据具体情况处�?
   return "";
 };
 
@@ -2112,7 +2112,7 @@ const handleImageError = () => {
   ElMessage.error("图片加载失败");
 };
 
-// 格式化响应数据
+// 格式化响应数�?
 const formattedResponseData = computed(() => {
   if (!lastResponse.value?.data) return "";
 
@@ -2137,7 +2137,7 @@ const formattedXmlData = computed(() => {
   return xml;
 });
 
-// 代码示例计算属性
+// 代码示例计算属�?
 const javaCode = computed(() => {
   const code = generateJavaCode();
   console.log("Java Code:", code);
@@ -2159,7 +2159,7 @@ const curlCode = computed(() => {
   return code;
 });
 
-// CodeMirror编辑器配置
+// CodeMirror编辑器配�?
 const jsonEditorOptions = {
   mode: "application/json",
   theme: "default",
@@ -2216,7 +2216,7 @@ const bashEditorOptions = {
   lineWrapping: true,
 };
 
-// 代码示例编辑器配置
+// 代码示例编辑器配�?
 const javaEditorOptions = {
   mode: "text/x-java",
   theme: "default",
@@ -2272,7 +2272,7 @@ const requestBodyEditorOptions = {
   tabSize: 2,
 };
 
-// 复制和下载方法
+// 复制和下载方�?
 const copyHeaders = () => {
   if (!lastResponse.value?.headers) return;
 
@@ -2346,10 +2346,10 @@ const downloadResponse = () => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  ElMessage.success(`已下载响应内容: ${filename}`);
+  ElMessage.success(`已下载响应内�? ${filename}`);
 };
 
-// 响应头折叠切换
+// 响应头折叠切�?
 const toggleHeadersCollapse = () => {
   headersCollapsed.value = !headersCollapsed.value;
 };
@@ -2396,9 +2396,9 @@ onMounted(() => {
   loadApiDocs();
 });
 
-// 监听搜索关键词变化
+// 监听搜索关键词变�?
 watch(searchKeyword, () => {
-  // 如果有搜索结果，自动展开所有分组
+  // 如果有搜索结果，自动展开所有分�?
   if (searchKeyword.value && filteredApiGroups.value.length > 0) {
     expandedGroups.value = filteredApiGroups.value.map((group) => group.name);
   }
@@ -2413,7 +2413,7 @@ watch(showHeaderDialog, (newValue) => {
         value,
       })
     );
-    // 如果没有任何请求头，添加一个空行
+    // 如果没有任何请求头，添加一个空�?
     if (tempHeaders.value.length === 0) {
       tempHeaders.value.push({ key: "", value: "" });
     }
@@ -2812,7 +2812,7 @@ watch(showHeaderDialog, (newValue) => {
       }
     }
 
-    // 拖拽分割线样式
+    // 拖拽分割线样�?
     .resize-handle {
       width: 4px;
       background: transparent;

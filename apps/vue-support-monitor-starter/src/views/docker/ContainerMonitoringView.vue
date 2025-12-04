@@ -11,7 +11,7 @@
       </div>
     </div>
     
-    <!-- 操作工具栏 -->
+    <!-- 操作工具�?-->
     <ContainerActionToolbar 
       @create="handleCreateContainer"
       @refresh="handleRefresh"
@@ -20,7 +20,7 @@
       @batch-operation="handleBatchOperation"
     />
     
-    <!-- 过滤器 -->
+    <!-- 过滤�?-->
     <ContainerFilter 
       :server-options="serverOptions"
       @apply-filter="handleApplyFilter"
@@ -74,13 +74,13 @@
       />
     </el-card>
     
-    <!-- 容器详情对话框 -->
+    <!-- 容器详情对话�?-->
     <ContainerDetailDialog
       v-model:visible="detailDialogVisible"
       :container-data="currentContainer"
     />
     
-    <!-- 容器日志对话框 -->
+    <!-- 容器日志对话�?-->
     <ContainerLogsDialog
       v-model:visible="logsDialogVisible"
       :container-data="currentContainer"
@@ -94,7 +94,7 @@ import {
     getServerList,
     type ContainerStatusStatistics,
     type SystemSoftContainer
-} from '@/api/docker-management'
+} from '@/api/docker'
 import { ElMessage } from 'element-plus'
 import { onMounted, onUnmounted, reactive, ref } from 'vue'
 
@@ -107,7 +107,7 @@ import ContainerMonitoringList from './components/ContainerMonitoringList.vue'
 import ContainerStatusStats from './components/ContainerStatusStats.vue'
 import MonitoringOverview from './components/MonitoringOverview.vue'
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false)
 const autoRefresh = ref(false)
 const containerList = ref<SystemSoftContainer[]>([])
@@ -140,7 +140,7 @@ const overviewStats = reactive({
   runningContainers: 0
 })
 
-// 定时器
+// 定时�?
 let refreshTimer: any = null
 
 // 加载容器列表
@@ -153,7 +153,7 @@ const loadContainerList = async () => {
       pageSize: pagination.pageSize 
     }
     
-    // 清理空参数
+    // 清理空参�?
     Object.keys(params).forEach(key => {
       if (params[key] === '') delete params[key]
     })
@@ -171,7 +171,7 @@ const loadContainerList = async () => {
   }
 }
 
-// 加载容器状态统计
+// 加载容器状态统�?
 const loadContainerStats = async () => {
   try {
     const response = await containerApi.getContainerStatusStats()
@@ -179,7 +179,7 @@ const loadContainerStats = async () => {
       containerStats.value = response.data || { total: 0 }
     }
   } catch (error) {
-    console.error('加载容器状态统计失败:', error)
+    console.error('加载容器状态统计失�?', error)
   }
 }
 
@@ -203,7 +203,7 @@ const calculateOverviewStats = () => {
   overviewStats.avgCpuUsage = cpuSum / containerList.value.length
   overviewStats.avgMemoryUsage = memorySum / containerList.value.length
   
-  // 计算容器总数和运行中容器数
+  // 计算容器总数和运行中容器�?
   overviewStats.totalContainers = containerList.value.length
   overviewStats.runningContainers = containerList.value.filter(
     container => container.systemSoftContainerStatus === 'running'
@@ -226,7 +226,7 @@ const handleAutoRefresh = (enabled: boolean) => {
   }
 }
 
-// 开始自动刷新
+// 开始自动刷�?
 const startAutoRefresh = () => {
   if (refreshTimer) {
     clearInterval(refreshTimer)
@@ -237,7 +237,7 @@ const startAutoRefresh = () => {
       loadContainerList()
       loadContainerStats()
     }
-  }, 5000) // 每5秒刷新一次
+  }, 5000) // �?秒刷新一�?
 }
 
 // 停止自动刷新
@@ -269,28 +269,28 @@ const handleResetFilter = () => {
 
 // 创建容器
 const handleCreateContainer = () => {
-  ElMessage.info('创建容器功能待实现')
+  ElMessage.info('创建容器功能待实�?)
 }
 
 // 导出数据
 const handleExport = () => {
-  ElMessage.info('导出数据功能待实现')
+  ElMessage.info('导出数据功能待实�?)
 }
 
 // 批量操作
 const handleBatchOperation = (command: string) => {
   switch (command) {
     case 'batchStart':
-      ElMessage.info('批量启动功能待实现')
+      ElMessage.info('批量启动功能待实�?)
       break
     case 'batchStop':
-      ElMessage.info('批量停止功能待实现')
+      ElMessage.info('批量停止功能待实�?)
       break
     case 'batchRestart':
-      ElMessage.info('批量重启功能待实现')
+      ElMessage.info('批量重启功能待实�?)
       break
     case 'batchRemove':
-      ElMessage.info('批量删除功能待实现')
+      ElMessage.info('批量删除功能待实�?)
       break
     default:
       ElMessage.warning('未知操作')
@@ -320,7 +320,7 @@ const handleCurrentChange = (page: number) => {
   loadContainerList()
 }
 
-// 加载服务器列表
+// 加载服务器列�?
 const loadServers = async () => {
   try {
     const response = await getServerList()
@@ -328,7 +328,7 @@ const loadServers = async () => {
       serverOptions.value = response.data || []
     }
   } catch (error) {
-    console.error('加载服务器列表失败:', error)
+    console.error('加载服务器列表失�?', error)
   }
 }
 

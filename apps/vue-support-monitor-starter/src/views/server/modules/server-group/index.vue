@@ -12,9 +12,9 @@
             :show-after="500"
           >
             <el-tag type="info" effect="plain" class="group-count">
-              共
+              �?
               <span class="count-num">{{ totalCount }}</span>
-              个
+              �?
             </el-tag>
           </el-tooltip>
         </h2>
@@ -29,7 +29,7 @@
       </div>
     </div>
 
-    <!-- 搜索和筛选 -->
+    <!-- 搜索和筛�?-->
     <div class="filter-bar">
       <div class="filter-left">
         <el-input
@@ -44,7 +44,7 @@
       <div class="filter-right">
         <el-select
           v-model="filterStatus"
-          placeholder="状态筛选"
+          placeholder="状态筛�?
           clearable
           style="width: 120px"
           @change="handleFilter"
@@ -102,7 +102,7 @@
             <div class="group-stats">
               <div class="stat-item">
                 <IconifyIconOnline icon="ri:server-line" class="stat-icon" />
-                <span class="stat-label">服务器:</span>
+                <span class="stat-label">服务�?</span>
                 <span class="stat-value">{{ group.serverCount || 0 }}</span>
               </div>
               <div class="stat-item">
@@ -158,7 +158,7 @@
       </div>
     </div>
 
-    <!-- 分组编辑对话框 -->
+    <!-- 分组编辑对话�?-->
     <ServerGroupEditDialog ref="editDialogRef" @success="handleRefresh" />
   </div>
 </template>
@@ -177,32 +177,32 @@ import {
 } from '@/api/server/group';
 import ServerGroupEditDialog from './components/ServerGroupEditDialog.vue';
 
-// 响应式状态
+// 响应式状�?
 const loading = ref(false);
 const searchKeyword = ref('');
 const filterStatus = ref<number | undefined>();
 const groups = ref<ServerGroup[]>([]);
 const editDialogRef = ref();
 
-// 计算属性
+// 计算属�?
 const totalCount = computed(() => groups.value.length);
 
 const filteredGroups = computed(() => {
   let result = groups.value;
   
-  // 按名称搜索
+  // 按名称搜�?
   if (searchKeyword.value) {
     result = result.filter(group =>
       group.monitorSysGenServerGroupName?.toLowerCase().includes(searchKeyword.value.toLowerCase())
     );
   }
   
-  // 按状态筛选
+  // 按状态筛�?
   if (filterStatus.value !== undefined) {
     result = result.filter(group => group.monitorSysGenServerGroupStatus === filterStatus.value);
   }
   
-  // 按排序号和创建时间排序
+  // 按排序号和创建时间排�?
   return result.sort((a, b) => {
     const sortA = a.monitorSysGenServerGroupSort || 0;
     const sortB = b.monitorSysGenServerGroupSort || 0;
@@ -232,7 +232,7 @@ const loadGroups = async () => {
               group.serverCount = countResult.data;
             }
           } catch (error) {
-            console.error('获取分组服务器数量失败:', error);
+            console.error('获取分组服务器数量失�?', error);
           }
         }
       }
@@ -260,7 +260,7 @@ const handleSearch = () => {
 };
 
 /**
- * 筛选
+ * 筛�?
  */
 const handleFilter = () => {
   // 筛选逻辑已在计算属性中处理
@@ -301,7 +301,7 @@ const handleSetDefault = async (group: ServerGroup) => {
 };
 
 /**
- * 切换分组状态
+ * 切换分组状�?
  */
 const handleToggleStatus = async (group: ServerGroup) => {
   try {
@@ -316,7 +316,7 @@ const handleToggleStatus = async (group: ServerGroup) => {
       message.error(result.message || '操作失败');
     }
   } catch (error) {
-    console.error('切换分组状态失败:', error);
+    console.error('切换分组状态失�?', error);
     message.error('操作失败');
   }
 };
@@ -329,7 +329,7 @@ const handleDelete = async (group: ServerGroup) => {
     if (!group.monitorSysGenServerGroupId) return;
     
     await ElMessageBox.confirm(
-      `确定要删除分组 "${group.monitorSysGenServerGroupName}" 吗？`,
+      `确定要删除分�?"${group.monitorSysGenServerGroupName}" 吗？`,
       '确认删除',
       {
         type: 'warning',
@@ -354,7 +354,7 @@ const handleDelete = async (group: ServerGroup) => {
 };
 
 /**
- * 格式化时间
+ * 格式化时�?
  */
 const formatTime = (time: string | undefined) => {
   if (!time) return '-';

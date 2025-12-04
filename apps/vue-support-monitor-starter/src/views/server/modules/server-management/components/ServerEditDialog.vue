@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    :title="mode === 'add' ? '新增服务器' : '编辑服务器'"
+    :title="mode === 'add' ? '新增服务�? : '编辑服务�?"
     width="80%"
     :close-on-click-modal="false"
     destroy-on-close
@@ -13,7 +13,7 @@
     :modal="true"
     :append-to-body="true"
   >
-    <!-- 自定义头部 -->
+    <!-- 自定义头�?-->
     <template #header="{ titleId, titleClass }">
       <div class="dialog-header">
         <div class="header-left">
@@ -22,7 +22,7 @@
             class="header-icon"
           />
           <span :id="titleId" :class="titleClass" class="dialog-title">
-            {{ mode === "add" ? "新增服务器" : "编辑服务器" }}
+            {{ mode === "add" ? "新增服务�? : "编辑服务�? }}
           </span>
         </div>
       </div>
@@ -39,7 +39,7 @@
       >
         <!-- 使用优雅的两列布局 -->
         <el-row :gutter="24" class="form-row">
-          <!-- 左列：基本信息 -->
+          <!-- 左列：基本信�?-->
           <el-col :span="12" class="form-column">
             <div class="form-section">
               <div class="section-header">
@@ -50,7 +50,7 @@
                 <span class="section-title">基本信息</span>
               </div>
               <div class="section-content">
-                <el-form-item label="服务器名称" prop="monitorSysGenServerName">
+                <el-form-item label="服务器名�? prop="monitorSysGenServerName">
                   <el-input
                     v-model="formData.monitorSysGenServerName"
                     placeholder="请输入服务器名称"
@@ -92,7 +92,7 @@
                       </div>
                     </el-option>
 
-                    <!-- 分隔线（仅在有分组时显示） -->
+                    <!-- 分隔线（仅在有分组时显示�?-->
                     <el-option
                       v-if="serverGroups.length > 0"
                       disabled
@@ -103,7 +103,7 @@
                       <div class="option-divider"></div>
                     </el-option>
 
-                    <!-- 无分组提示 -->
+                    <!-- 无分组提�?-->
                     <el-option
                       v-if="serverGroups.length === 0"
                       disabled
@@ -116,7 +116,7 @@
                           icon="ri:information-line"
                           class="mr-1"
                         />
-                        暂无分组，请先新建
+                        暂无分组，请先新�?
                       </div>
                     </el-option>
 
@@ -167,7 +167,7 @@
                     />
                     <span class="os-title">系统信息</span>
                     <el-tag type="success" size="small" effect="light"
-                      >自动检测</el-tag
+                      >自动检�?/el-tag
                     >
                   </div>
                   <div class="os-info-content">
@@ -222,7 +222,7 @@
                 <el-form-item label="服务器地址" prop="monitorSysGenServerHost">
                   <el-input
                     v-model="formData.monitorSysGenServerHost"
-                    placeholder="请输入IP地址或域名"
+                    placeholder="请输入IP地址或域�?
                     clearable
                     @blur="detectServerInfo"
                   >
@@ -231,7 +231,7 @@
                     </template>
                     <template #suffix>
                       <el-tooltip
-                        content="自动检测操作系统信息"
+                        content="自动检测操作系统信�?
                         placement="top"
                       >
                         <el-button
@@ -252,12 +252,12 @@
                     v-model="formData.monitorSysGenServerPort"
                     :min="1"
                     :max="65535"
-                    placeholder="端口号"
+                    placeholder="端口�?
                     style="width: 100%"
                   />
                 </el-form-item>
 
-                <el-form-item label="服务器标签" prop="monitorSysGenServerTags">
+                <el-form-item label="服务器标�? prop="monitorSysGenServerTags">
                   <el-input
                     v-model="formData.monitorSysGenServerTags"
                     placeholder="请输入标签，多个标签用逗号分隔"
@@ -268,11 +268,11 @@
                     </template>
                   </el-input>
                   <div class="form-tip">
-                    用于服务器分组和筛选，例如：生产环境,数据库服务器
+                    用于服务器分组和筛选，例如：生产环�?数据库服务器
                   </div>
                 </el-form-item>
 
-                <el-form-item label="服务器描述" prop="monitorSysGenServerDesc">
+                <el-form-item label="服务器描�? prop="monitorSysGenServerDesc">
                   <el-input
                     v-model="formData.monitorSysGenServerDesc"
                     type="textarea"
@@ -284,7 +284,7 @@
                 </el-form-item>
 
                 <!-- 服务器类型和操作系统信息 -->
-                <el-form-item label="服务器类型">
+                <el-form-item label="服务器类�?>
                   <div class="server-type-container">
                     <el-tag
                       :type="
@@ -305,8 +305,8 @@
                       />
                       {{
                         formData.monitorSysGenServerIsLocal === 1
-                          ? "本地服务器"
-                          : "远程服务器"
+                          ? "本地服务�?
+                          : "远程服务�?
                       }}
                     </el-tag>
                     <el-text size="small" type="info" class="ml-2">
@@ -348,7 +348,7 @@
                         </div>
                       </el-option>
                     </el-option-group>
-                    <el-option-group label="Linux 发行版">
+                    <el-option-group label="Linux 发行�?>
                       <el-option label="Ubuntu" value="Ubuntu">
                         <div class="os-option">
                           <IconifyIconOnline
@@ -396,19 +396,19 @@
                           <span>macOS</span>
                         </div>
                       </el-option>
-                      <el-option label="自定义" value="Custom">
+                      <el-option label="自定�? value="Custom">
                         <div class="os-option">
                           <IconifyIconOnline
                             icon="ri:settings-line"
                             class="os-option-icon"
                           />
-                          <span>自定义</span>
+                          <span>自定�?/span>
                         </div>
                       </el-option>
                     </el-option-group>
                   </el-select>
 
-                  <!-- 自定义操作系统输入 -->
+                  <!-- 自定义操作系统输�?-->
                   <el-input
                     v-if="formData.monitorSysGenServerOsType === 'Custom'"
                     v-model="formData.monitorSysGenServerOsCustom"
@@ -433,10 +433,10 @@
                   icon="ri:shield-user-line"
                   class="section-icon"
                 />
-                <span class="section-title">认证与连接</span>
+                <span class="section-title">认证与连�?/span>
               </div>
               <div class="section-content">
-                <el-form-item label="用户名" prop="monitorSysGenServerUsername">
+                <el-form-item label="用户�? prop="monitorSysGenServerUsername">
                   <el-input
                     v-model="formData.monitorSysGenServerUsername"
                     placeholder="请输入用户名"
@@ -480,7 +480,7 @@
                   <el-input
                     v-model="formData.monitorSysGenServerPassword"
                     type="password"
-                    placeholder="请输入密码"
+                    placeholder="请输入密�?
                     show-password
                     clearable
                   >
@@ -503,7 +503,7 @@
                   />
                 </el-form-item>
 
-                <el-form-item label="服务器状态">
+                <el-form-item label="服务器状�?>
                   <div class="switch-wrapper">
                     <el-switch
                       v-model="formData.monitorSysGenServerStatus"
@@ -551,7 +551,7 @@
                 </template>
 
                 <template v-if="formData.monitorSysGenServerProtocol === 'RDP'">
-                  <el-form-item label="屏幕分辨率">
+                  <el-form-item label="屏幕分辨�?>
                     <el-row :gutter="8">
                       <el-col :span="12">
                         <el-input-number
@@ -582,9 +582,9 @@
                       placeholder="选择颜色深度"
                       style="width: 100%"
                     >
-                      <el-option label="16位" value="16" />
-                      <el-option label="24位" value="24" />
-                      <el-option label="32位" value="32" />
+                      <el-option label="16�? value="16" />
+                      <el-option label="24�? value="24" />
+                      <el-option label="32�? value="32" />
                     </el-select>
                   </el-form-item>
                 </template>
@@ -610,8 +610,8 @@
                         v-model="formData.monitorSysGenServerReadOnly"
                         :active-value="1"
                         :inactive-value="0"
-                        active-text="是"
-                        inactive-text="否"
+                        active-text="�?
+                        inactive-text="�?
                       />
                     </div>
                   </el-form-item>
@@ -629,7 +629,7 @@
       <div class="dialog-footer">
         <div class="footer-tips">
           <IconifyIconOnline icon="ri:information-line" class="tip-icon" />
-          <span>请填写完整的服务器信息</span>
+          <span>请填写完整的服务器信�?/span>
         </div>
         <div class="footer-right">
           <el-button class="cancel-btn" @click="visible = false">
@@ -646,14 +646,14 @@
               :icon="mode === 'add' ? 'ri:add-line' : 'ri:save-line'"
               class="mr-1"
             />
-            {{ mode === "add" ? "新增服务器" : "保存修改" }}
+            {{ mode === "add" ? "新增服务�? : "保存修改" }}
           </el-button>
         </div>
       </div>
     </template>
   </el-dialog>
 
-  <!-- 组编辑弹框 -->
+  <!-- 组编辑弹�?-->
   <ServerGroupEditDialog
     ref="groupEditDialogRef"
     @success="handleGroupCreateSuccess"
@@ -673,12 +673,12 @@ import {
   getDefaultGroup,
   getEnabledServerGroups,
 } from "@/api/server/group";
-// 服务器设置相关导入已移除，配置功能在专门的服务器配置页面中
+// 服务器设置相关导入已移除，配置功能在专门的服务器配置页面�?
 import { message } from "@repo/utils";
 import { computed, nextTick, reactive, ref } from "vue";
 // ServerSettingDialog已移除，配置功能在专门的服务器配置页面中
 
-// 导入组编辑弹框
+// 导入组编辑弹�?
 import ServerGroupEditDialog from "../../server-group/components/ServerGroupEditDialog.vue";
 
 // 定义事件
@@ -687,7 +687,7 @@ const emit = defineEmits<{
   openConfig: [serverId: number];
 }>();
 
-// 响应式状态
+// 响应式状�?
 const visible = ref(false);
 const loading = ref(false);
 const testLoading = ref(false);
@@ -738,7 +738,7 @@ const formData = reactive({
   monitorSysGenServerOsType: "",
   monitorSysGenServerOsVersion: "",
   monitorSysGenServerOsArch: "",
-  monitorSysGenServerOsCustom: "", // 自定义操作系统名称
+  monitorSysGenServerOsCustom: "", // 自定义操作系统名�?
 });
 
 // 代理相关数据
@@ -748,7 +748,7 @@ const selectedProxy = ref<ServerProxy | null>(null);
 
 // 服务器设置数据已移至专门的服务器配置页面
 
-// 分组的代理列表
+// 分组的代理列�?
 const groupedProxyList = computed(() => {
   const groups = [
     { type: "HTTP", label: "HTTP 代理", proxies: [] as ServerProxy[] },
@@ -776,7 +776,7 @@ const groupedProxyList = computed(() => {
 // 表单验证规则
 const rules = {
   monitorSysGenServerName: [
-    { required: true, message: "服务器名称不能为空", trigger: "blur" },
+    { required: true, message: "服务器名称不能为�?, trigger: "blur" },
     {
       min: 2,
       max: 255,
@@ -789,18 +789,18 @@ const rules = {
     {
       pattern:
         /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/,
-      message: "请输入有效的IP地址或域名",
+      message: "请输入有效的IP地址或域�?,
       trigger: "blur",
     },
     { max: 255, message: "服务器主机地址最大长度要小于 255", trigger: "blur" },
   ],
   monitorSysGenServerPort: [
-    { required: true, message: "端口号不能为空", trigger: "blur" },
+    { required: true, message: "端口号不能为�?, trigger: "blur" },
     {
       type: "number" as const,
       min: 1,
       max: 65535,
-      message: "端口号范围 1-65535",
+      message: "端口号范�?1-65535",
       trigger: "blur",
     },
   ],
@@ -809,7 +809,7 @@ const rules = {
     { max: 50, message: "连接协议最大长度要小于 50", trigger: "blur" },
   ],
   monitorSysGenServerUsername: [
-    { required: true, message: "用户名不能为空", trigger: "blur" },
+    { required: true, message: "用户名不能为�?, trigger: "blur" },
     { max: 255, message: "用户名最大长度要小于 255", trigger: "blur" },
   ],
   monitorSysGenServerAuthType: [
@@ -832,7 +832,7 @@ const rules = {
     {
       validator: (_rule: any, value: string, callback: Function) => {
         if (formData.monitorSysGenServerAuthType === "key" && !value) {
-          callback(new Error("请输入私钥"));
+          callback(new Error("请输入私�?));
         } else {
           callback();
         }
@@ -858,7 +858,7 @@ const rules = {
 };
 
 /**
- * 打开对话框
+ * 打开对话�?
  */
 const open = async (editMode: "add" | "edit" = "add") => {
   mode.value = editMode;
@@ -870,11 +870,11 @@ const open = async (editMode: "add" | "edit" = "add") => {
   // 根据协议设置默认端口
   if (editMode === "add") {
     setDefaultPort();
-    // 新增模式下默认设置为在线状态
+    // 新增模式下默认设置为在线状�?
     formData.monitorSysGenServerStatus = 1;
-    // 服务器设置已移至专门的配置页面
+    // 服务器设置已移至专门的配置页�?
 
-    // 加载并设置默认分组
+    // 加载并设置默认分�?
     await loadDefaultGroup();
     if (defaultGroup.value) {
       formData.monitorSysGenServerGroupId =
@@ -890,7 +890,7 @@ const setData = async (data: ServerDisplayData | any) => {
   if (data && Object.keys(data).length > 0) {
     // 如果是ServerDisplayData类型，需要映射到表单字段
     if ("name" in data && "host" in data) {
-      // 这是ServerDisplayData类型，需要映射
+      // 这是ServerDisplayData类型，需要映�?
       Object.assign(formData, {
         monitorSysGenServerId: data.id,
         monitorSysGenServerName: data.name,
@@ -913,7 +913,7 @@ const setData = async (data: ServerDisplayData | any) => {
       // 直接赋值（兼容原有的后台数据格式）
       const mappedData = {
         ...data,
-        // 确保操作系统信息存在默认值
+        // 确保操作系统信息存在默认�?
         monitorSysGenServerOsType: data.monitorSysGenServerOsType || "",
         monitorSysGenServerOsVersion: data.monitorSysGenServerOsVersion || "",
         monitorSysGenServerOsArch: data.monitorSysGenServerOsArch || "x86_64",
@@ -925,7 +925,7 @@ const setData = async (data: ServerDisplayData | any) => {
       Object.assign(formData, mappedData);
     }
 
-    // 如果设置了操作系统类型，触发handleOsTypeChange以确保相关字段正确设置
+    // 如果设置了操作系统类型，触发handleOsTypeChange以确保相关字段正确设�?
     if (formData.monitorSysGenServerOsType) {
       handleOsTypeChange();
     }
@@ -955,7 +955,7 @@ const loadServerGroups = async () => {
     }
 
     serverGroups.value = groups;
-    console.log("解析后的服务器组列表:", groups.length, "个分组");
+    console.log("解析后的服务器组列表:", groups.length, "个分�?);
   } catch (error) {
     console.error("加载服务器组失败:", error);
     serverGroups.value = [];
@@ -984,7 +984,7 @@ const handleGroupChange = (groupId: number | string | null) => {
   if (groupId === "__CREATE_NEW_GROUP__") {
     // 重置选择
     formData.monitorSysGenServerGroupId = null;
-    // 打开新建组弹框
+    // 打开新建组弹�?
     handleCreateGroup();
     return;
   }
@@ -993,15 +993,15 @@ const handleGroupChange = (groupId: number | string | null) => {
 };
 
 /**
- * 处理新建组
+ * 处理新建�?
  */
 const handleCreateGroup = () => {
-  // 打开组编辑弹框
+  // 打开组编辑弹�?
   groupEditDialogRef.value?.open("add");
 };
 
 /**
- * 处理组创建成功
+ * 处理组创建成�?
  */
 const handleGroupCreateSuccess = () => {
   // 重新加载服务器组列表
@@ -1036,16 +1036,16 @@ const resetForm = () => {
     monitorSysGenServerColorDepth: "24",
     monitorSysGenServerVncPassword: "",
     monitorSysGenServerReadOnly: 0,
-    // 操作系统信息 - 确保所有字段都被重置
+    // 操作系统信息 - 确保所有字段都被重�?
     monitorSysGenServerOsType: "",
     monitorSysGenServerOsVersion: "",
     monitorSysGenServerOsArch: "x86_64", // 设置默认架构
     monitorSysGenServerOsCustom: "",
-    // 是否本地服务器
+    // 是否本地服务�?
     monitorSysGenServerIsLocal: 0,
   });
 
-  // 服务器设置已移至专门的配置页面
+  // 服务器设置已移至专门的配置页�?
 
   nextTick(() => {
     formRef.value?.clearValidate();
@@ -1087,7 +1087,7 @@ const handleProtocolChange = () => {
  * 处理操作系统类型变化
  */
 const handleOsTypeChange = () => {
-  // 根据操作系统类型设置默认架构和版本信息
+  // 根据操作系统类型设置默认架构和版本信�?
   const osType = formData.monitorSysGenServerOsType;
   const osTypeLower = osType.toLowerCase();
 
@@ -1116,7 +1116,7 @@ const handleOsTypeChange = () => {
     !formData.monitorSysGenServerOsVersion ||
     formData.monitorSysGenServerOsVersion === ""
   ) {
-    // 查找匹配的操作系统版本
+    // 查找匹配的操作系统版�?
     const matchedOs = Object.keys(osVersionMap).find((os) =>
       osTypeLower.includes(os.toLowerCase())
     );
@@ -1127,9 +1127,9 @@ const handleOsTypeChange = () => {
     }
   }
 
-  // 处理自定义操作系统类型
+  // 处理自定义操作系统类�?
   if (osType === "Custom") {
-    // 保持自定义名称不变
+    // 保持自定义名称不�?
     if (!formData.monitorSysGenServerOsCustom) {
       formData.monitorSysGenServerOsCustom = "";
     }
@@ -1138,7 +1138,7 @@ const handleOsTypeChange = () => {
     formData.monitorSysGenServerOsCustom = "";
   }
 
-  // 如果从检测结果获取到了操作系统信息，优先使用检测结果
+  // 如果从检测结果获取到了操作系统信息，优先使用检测结�?
   if (osInfo.value) {
     formData.monitorSysGenServerOsArch =
       osInfo.value.osArch || formData.monitorSysGenServerOsArch;
@@ -1174,21 +1174,21 @@ const detectServerInfo = async () => {
           : [],
       };
 
-      // 如果是本机服务器，设置默认配置
+      // 如果是本机服务器，设置默认配�?
       if (osInfo.value.isLocal) {
-        // 设置本地服务器默认在线
+        // 设置本地服务器默认在�?
         if (formData.monitorSysGenServerStatus !== 1) {
           formData.monitorSysGenServerStatus = 1;
-          message.success("本地服务器已设置为在线状态");
+          message.success("本地服务器已设置为在线状�?);
         }
       }
     } else {
-      message.warning("服务器信息检测失败: " + res.msg);
+      message.warning("服务器信息检测失�? " + res.msg);
       osInfo.value = null;
     }
   } catch (error) {
     console.error("检测服务器信息失败:", error);
-    message.error("检测服务器信息失败，请检查网络连接");
+    message.error("检测服务器信息失败，请检查网络连�?);
     osInfo.value = null;
   } finally {
     detectLoading.value = false;
@@ -1267,7 +1267,7 @@ const getOsIcon = (osType: string) => {
     return "ri:terminal-line";
   }
 
-  // 自定义
+  // 自定�?
   else if (osLower.includes("custom")) {
     return "ri:settings-line";
   }
@@ -1301,7 +1301,7 @@ const getProxyTypeIcon = (proxyType: string) => {
 };
 
 /**
- * 获取代理状态文本
+ * 获取代理状态文�?
  */
 const getProxyStatusText = (status: number) => {
   switch (status) {
@@ -1310,7 +1310,7 @@ const getProxyStatusText = (status: number) => {
     case 1:
       return "在线";
     case 2:
-      return "连接中";
+      return "连接�?;
     case 3:
       return "连接失败";
     default:
@@ -1376,7 +1376,7 @@ const handleSubmit = async () => {
     // 表单验证
     const isValid = await formRef.value?.validate().catch((error: any) => {
       console.log("表单验证失败:", error);
-      // 显示第一个验证错误
+      // 显示第一个验证错�?
       if (error && typeof error === "object") {
         const firstErrorField = Object.keys(error)[0];
         const firstError = error[firstErrorField];
@@ -1413,7 +1413,7 @@ const handleSubmit = async () => {
 
     // 调试信息：打印提交的数据
     console.log("提交的服务器数据:", submitData);
-    console.log("本地服务器标识:", submitData.monitorSysGenServerIsLocal);
+    console.log("本地服务器标�?", submitData.monitorSysGenServerIsLocal);
     console.log("操作系统信息:", {
       osType: submitData.monitorSysGenServerOsType,
       osVersion: submitData.monitorSysGenServerOsVersion,
@@ -1431,12 +1431,12 @@ const handleSubmit = async () => {
       visible.value = false;
       emit("success");
     } else {
-      // 显示具体的验证错误信息
+      // 显示具体的验证错误信�?
       const errorMessage = res.msg || "操作失败";
       message.error(errorMessage);
     }
   } catch (error) {
-    console.error("保存服务器配置出错:", error);
+    console.error("保存服务器配置出�?", error);
     if (error !== false) {
       // 表单验证失败时不显示错误消息
       // 检查是否是网络错误或其他API错误
@@ -1474,7 +1474,7 @@ defineExpose({
   }
 }
 
-// 对话框整体样式 - 优化无滚动条版本
+// 对话框整体样�?- 优化无滚动条版本
 .server-edit-dialog {
   :deep(.el-dialog) {
     border-radius: 16px;
@@ -1531,7 +1531,7 @@ defineExpose({
   }
 }
 
-// 自定义头部样式
+// 自定义头部样�?
 .dialog-header {
   display: flex;
   justify-content: space-between;
@@ -1541,7 +1541,7 @@ defineExpose({
   position: relative;
   overflow: hidden;
 
-  // 装饰性光效
+  // 装饰性光�?
   &::before {
     content: "";
     position: absolute;
@@ -1608,7 +1608,7 @@ defineExpose({
   }
 }
 
-// 对话框内容区域
+// 对话框内容区�?
 .dialog-content {
   padding: 16px 20px;
   flex: 1;
@@ -1676,7 +1676,7 @@ defineExpose({
   min-height: 0;
 }
 
-// 表单项样式 - 紧凑版本
+// 表单项样�?- 紧凑版本
 .server-form {
   :deep(.el-form-item) {
     margin-bottom: 10px;
@@ -1686,7 +1686,7 @@ defineExpose({
       margin-bottom: 0;
     }
 
-    // 错误状态样式
+    // 错误状态样�?
     &.is-error {
       .el-form-item__label {
         color: var(--el-color-danger);
@@ -1707,7 +1707,7 @@ defineExpose({
       }
     }
 
-    // 聚焦状态样式
+    // 聚焦状态样�?
     &.is-focus {
       .el-form-item__label {
         color: var(--el-color-primary);
@@ -1748,7 +1748,7 @@ defineExpose({
     animation: shake 0.3s ease-in-out;
   }
 
-  // 输入框样式 - 紧凑版本
+  // 输入框样�?- 紧凑版本
   :deep(.el-input__wrapper) {
     border-radius: 8px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1783,7 +1783,7 @@ defineExpose({
     }
   }
 
-  // 输入框内部文本样式
+  // 输入框内部文本样�?
   :deep(.el-input__inner) {
     font-size: 13px;
     font-weight: 500;
@@ -1793,7 +1793,7 @@ defineExpose({
     padding: 0;
   }
 
-  // 选择器样式
+  // 选择器样�?
   :deep(.el-select) {
     .el-input__wrapper {
       &:hover {
@@ -1812,7 +1812,7 @@ defineExpose({
     }
   }
 
-  // 文本域样式
+  // 文本域样�?
   :deep(.el-textarea__inner) {
     border-radius: 10px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1831,7 +1831,7 @@ defineExpose({
     }
   }
 
-  // 数字输入框样式
+  // 数字输入框样�?
   :deep(.el-input-number) {
     width: 100%;
 
@@ -2003,7 +2003,7 @@ defineExpose({
   }
 }
 
-// 分隔线样式
+// 分隔线样�?
 :deep(.divider-option) {
   .el-select-dropdown__item {
     padding: 0;
@@ -2024,7 +2024,7 @@ defineExpose({
   margin: 4px 0;
 }
 
-// 空分组提示样式
+// 空分组提示样�?
 .empty-tip {
   display: flex;
   align-items: center;
@@ -2111,7 +2111,7 @@ defineExpose({
       }
     }
 
-    // 禁用状态
+    // 禁用状�?
     &.is-disabled {
       .el-switch__core {
         opacity: 0.6;
@@ -2240,7 +2240,7 @@ defineExpose({
   }
 }
 
-// 响应式设计
+// 响应式设�?
 @media (max-width: 1600px) {
   .server-edit-dialog {
     :deep(.el-dialog) {
@@ -2669,11 +2669,11 @@ defineExpose({
   }
 }
 
-// 表单项动画 - 增强版本
+// 表单项动�?- 增强版本
 .form-section {
   animation: sectionFadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 
-  // 添加微交互效果
+  // 添加微交互效�?
   &:hover {
     .section-header .section-icon {
       transform: scale(1.1) rotate(5deg);
@@ -2682,7 +2682,7 @@ defineExpose({
   }
 }
 
-// 输入框聚焦动画
+// 输入框聚焦动�?
 .server-form {
   :deep(.el-input__wrapper) {
     &.is-focus {
@@ -2715,7 +2715,7 @@ defineExpose({
   }
 }
 
-// 操作系统信息样式 - 简化版本
+// 操作系统信息样式 - 简化版�?
 .os-info-section {
   margin-top: 12px;
   padding: 12px;

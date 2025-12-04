@@ -7,30 +7,30 @@
         {{ leftPanelMinimized ? '展开面板' : '最小化面板' }}
       </el-button>
       <el-button @click="toggleServers">
-        {{ servers.length > 0 ? '清空服务器' : '添加服务器' }}
+        {{ servers.length > 0 ? '清空服务�? : '添加服务�? }}
       </el-button>
     </div>
 
     <div class="status">
-      <p>最小化状态: {{ leftPanelMinimized }}</p>
-      <p>服务器数量: {{ servers.length }}</p>
-      <p>过滤后数量: {{ filteredServers.length }}</p>
+      <p>最小化状�? {{ leftPanelMinimized }}</p>
+      <p>服务器数�? {{ servers.length }}</p>
+      <p>过滤后数�? {{ filteredServers.length }}</p>
     </div>
 
     <!-- 模拟原始模板结构 -->
     <div class="server-list-container" :style="{ width: leftPanelMinimized ? '60px' : '400px' }">
-      <h3>服务器列表显示</h3>
+      <h3>服务器列表显�?/h3>
       
       <!-- 最小化状态下的简化服务器列表 -->
       <template v-if="leftPanelMinimized">
-        <div class="section-title">最小化状态:</div>
+        <div class="section-title">最小化状�?</div>
         
-        <!-- 最小化状态下的空状态 -->
+        <!-- 最小化状态下的空状�?-->
         <div v-if="filteredServers.length === 0" class="server-mini-empty">
           <div class="mini-empty-icon">
             <IconifyIconOnline icon="ri:server-line" />
           </div>
-          <span>暂无服务器</span>
+          <span>暂无服务�?/span>
         </div>
         
         <!-- 最小化状态下的服务器列表 -->
@@ -45,11 +45,11 @@
 
       <!-- 正常状态下的完整服务器列表 -->
       <template v-else>
-        <div class="section-title">正常状态:</div>
+        <div class="section-title">正常状�?</div>
         
-        <!-- 正常状态下的空状态 -->
-        <el-empty v-if="filteredServers.length === 0" description="暂无服务器">
-          <el-button type="primary">新增服务器</el-button>
+        <!-- 正常状态下的空状�?-->
+        <el-empty v-if="filteredServers.length === 0" description="暂无服务�?>
+          <el-button type="primary">新增服务�?/el-button>
         </el-empty>
 
         <!-- 正常状态下的服务器列表 -->
@@ -70,17 +70,17 @@
     <div class="template-logic">
       <h3>模板逻辑说明</h3>
       <div class="logic-item">
-        <strong>最小化状态 (leftPanelMinimized = true):</strong>
+        <strong>最小化状�?(leftPanelMinimized = true):</strong>
         <ul>
-          <li>如果 filteredServers.length === 0: 显示最小化空状态图标</li>
-          <li>如果 filteredServers.length > 0: 显示最小化服务器卡片</li>
+          <li>如果 filteredServers.length === 0: 显示最小化空状态图�?/li>
+          <li>如果 filteredServers.length > 0: 显示最小化服务器卡�?/li>
         </ul>
       </div>
       <div class="logic-item">
-        <strong>正常状态 (leftPanelMinimized = false):</strong>
+        <strong>正常状�?(leftPanelMinimized = false):</strong>
         <ul>
           <li>如果 filteredServers.length === 0: 显示 el-empty 组件</li>
-          <li>如果 filteredServers.length > 0: 显示完整服务器卡片列表</li>
+          <li>如果 filteredServers.length > 0: 显示完整服务器卡片列�?/li>
         </ul>
       </div>
     </div>
@@ -91,24 +91,24 @@
 import { ref, computed } from "vue";
 import { IconifyIconOnline } from "@repo/components";
 
-// 状态
+// 状�?
 const leftPanelMinimized = ref(false);
 const servers = ref([]);
 
-// 计算属性
+// 计算属�?
 const filteredServers = computed(() => {
   return servers.value;
 });
 
-// 切换服务器数据
+// 切换服务器数�?
 const toggleServers = () => {
   if (servers.value.length > 0) {
     servers.value = [];
   } else {
     servers.value = [
-      { id: '1', name: '服务器1', host: '192.168.1.1', port: 22, protocol: 'SSH' },
-      { id: '2', name: '服务器2', host: '192.168.1.2', port: 22, protocol: 'SSH' },
-      { id: '3', name: '服务器3', host: '192.168.1.3', port: 3389, protocol: 'RDP' },
+      { id: '1', name: '服务�?', host: '192.168.1.1', port: 22, protocol: 'SSH' },
+      { id: '2', name: '服务�?', host: '192.168.1.2', port: 22, protocol: 'SSH' },
+      { id: '3', name: '服务�?', host: '192.168.1.3', port: 3389, protocol: 'RDP' },
     ];
   }
 };

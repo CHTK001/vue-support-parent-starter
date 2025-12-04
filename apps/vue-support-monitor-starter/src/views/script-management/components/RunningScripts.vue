@@ -1,11 +1,11 @@
 <template>
   <div class="running-scripts">
-    <!-- 工具栏 -->
+    <!-- 工具�?-->
     <Toolbar>
       <template #left>
         <div class="running-count">
           <IconifyIconOnline icon="ri:play-circle-line" />
-          <span>运行中脚本: {{ runningScripts.length }}</span>
+          <span>运行中脚�? {{ runningScripts.length }}</span>
         </div>
       </template>
       <template #right>
@@ -25,7 +25,7 @@
       </template>
     </Toolbar>
 
-    <!-- 运行中脚本列表 -->
+    <!-- 运行中脚本列�?-->
     <div class="scripts-list" v-loading="loading">
       <div
         v-for="script in runningScripts"
@@ -39,14 +39,14 @@
             <div class="script-meta">
               <span class="execution-id">执行ID: {{ script.id }}</span>
               <span class="start-time"
-                >开始时间: {{ formatTime(script.startTime) }}</span
+                >开始时�? {{ formatTime(script.startTime) }}</span
               >
             </div>
           </div>
           <div class="script-status">
             <el-tag type="warning" size="small">
               <IconifyIconOnline icon="ri:loader-line" class="rotating" />
-              运行中
+              运行�?
             </el-tag>
           </div>
         </div>
@@ -57,7 +57,7 @@
             <span class="duration"
               >运行时长: {{ formatRunningDuration(script.startTime) }}</span
             >
-            <span class="progress-text">执行中...</span>
+            <span class="progress-text">执行�?..</span>
           </div>
           <el-progress
             :percentage="getProgressPercentage(script)"
@@ -95,15 +95,15 @@
         </div>
       </div>
 
-      <!-- 空状态 -->
+      <!-- 空状�?-->
       <div v-if="runningScripts.length === 0 && !loading" class="empty-state">
         <IconifyIconOnline icon="ri:play-circle-line" class="empty-icon" />
         <p class="empty-text">暂无运行中的脚本</p>
-        <p class="empty-desc">执行脚本后将在此处显示</p>
+        <p class="empty-desc">执行脚本后将在此处显�?/p>
       </div>
     </div>
 
-    <!-- 上传对话框 -->
+    <!-- 上传对话�?-->
     <UploadToRunningScriptDialog
       :visible="uploadDialogVisible"
       :script-id="selectedScriptId as any"
@@ -123,9 +123,9 @@ import {
 import UploadToRunningScriptDialog from "./UploadToRunningScriptDialog.vue";
 /**
  * 组件：运行中脚本
- * 职责：展示运行中执行列表、刷新、停止全部、查看详情。
- * 注意：
- *  - 轮询刷新频率：3s
+ * 职责：展示运行中执行列表、刷新、停止全部、查看详情�?
+ * 注意�?
+ *  - 轮询刷新频率�?s
  *  - 停止全部会逐个调用停止接口，失败不阻断
  */
 
@@ -135,7 +135,7 @@ const emit = defineEmits<{
   "view-detail": [script: any];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false);
 const runningScripts = ref<any[]>([]);
 
@@ -167,7 +167,7 @@ const loadRunningScripts = async () => {
       runningScripts.value = [];
     }
   } catch (error) {
-    ElMessage.error("加载运行中脚本失败");
+    ElMessage.error("加载运行中脚本失�?);
   } finally {
     loading.value = false;
   }
@@ -178,7 +178,7 @@ const { start: startAutoRefresh, stop: stopAutoRefresh } = usePolling(
   3000
 );
 
-// 初始化
+// 初始�?
 onMounted(() => {
   loadRunningScripts();
   startAutoRefresh();
@@ -210,11 +210,11 @@ const handleStopAll = async () => {
       try {
         await stopScriptExecution(id);
       } catch (e) {
-        // 忽略单个失败，继续尝试停止其它
+        // 忽略单个失败，继续尝试停止其�?
       }
     }
 
-    ElMessage.success("停止指令已发送");
+    ElMessage.success("停止指令已发�?);
     loadRunningScripts();
   } catch (error) {
     if (error !== "cancel") {
@@ -236,7 +236,7 @@ const formatRunningDuration = (startTime: Date) => {
   } else if (duration < 3600000) {
     const minutes = Math.floor(duration / 60000);
     const seconds = Math.floor((duration % 60000) / 1000);
-    return `${minutes}分${seconds}秒`;
+    return `${minutes}�?{seconds}秒`;
   } else {
     const hours = Math.floor(duration / 3600000);
     const minutes = Math.floor((duration % 3600000) / 60000);
@@ -247,7 +247,7 @@ const formatRunningDuration = (startTime: Date) => {
 const getProgressPercentage = (script: any) => {
   // 基于运行时间估算进度（UI展示用）
   const duration = Date.now() - script.startTime.getTime();
-  const maxDuration = 10 * 60 * 1000; // 假设最长10分钟
+  const maxDuration = 10 * 60 * 1000; // 假设最�?0分钟
   return Math.min((duration / maxDuration) * 100, 95);
 };
 
@@ -258,7 +258,7 @@ const getProgressStatus = (script: any) => {
   return "exception";
 };
 
-// 格式化时间
+// 格式化时�?
 const formatTime = (date: Date) => {
   return date.toLocaleString();
 };
@@ -273,7 +273,7 @@ const formatTime = (date: Date) => {
   background: transparent;
 }
 
-/* 顶部工具栏 */
+/* 顶部工具�?*/
 .toolbar {
   display: flex;
   align-items: center;
@@ -477,7 +477,7 @@ const formatTime = (date: Date) => {
   }
 }
 
-/* 空状态 */
+/* 空状�?*/
 .empty-state {
   grid-column: 1 / -1;
   text-align: center;

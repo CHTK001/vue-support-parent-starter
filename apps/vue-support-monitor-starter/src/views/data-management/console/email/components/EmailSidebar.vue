@@ -81,12 +81,12 @@ const emit = defineEmits<{
   'menu-loaded': [menuData: MenuData];
 }>();
 
-// 本地状态
+// 本地状�?
 const localFolders = ref<Folder[]>([]);
 const localTags = ref<Tag[]>([]);
 const isLoading = ref(true);
 
-// IndexedDB存储键
+// IndexedDB存储�?
 const getMenuKey = (settingId: number) => `email_menu_${settingId}`;
 
 // 从IndexedDB加载菜单数据
@@ -120,7 +120,7 @@ async function loadMenuFromDB() {
 async function saveMenuToDB(folders: Folder[], tags: Tag[]) {
   try {
     const menuKey = getMenuKey(props.settingId);
-    // 深度克隆数据，确保移除Vue响应式代理
+    // 深度克隆数据，确保移除Vue响应式代�?
     const menuData: MenuData = {
       folders: JSON.parse(JSON.stringify(folders)),
       tags: JSON.parse(JSON.stringify(tags)),
@@ -165,7 +165,7 @@ watch(
   { deep: true }
 );
 
-// 组件挂载时加载数据
+// 组件挂载时加载数�?
 onMounted(async () => {
   isLoading.value = true;
   
@@ -300,7 +300,7 @@ defineExpose({
   background: #e6a23c;
 }
 
-/* 滚动条样式 */
+/* 滚动条样�?*/
 .email-sidebar::-webkit-scrollbar {
   width: 6px;
 }
@@ -318,7 +318,7 @@ defineExpose({
   background: #a1a1a1;
 }
 
-/* 加载占位符样式 */
+/* 加载占位符样�?*/
 .loading-placeholder {
   padding: 8px 12px;
   margin: 2px 0;

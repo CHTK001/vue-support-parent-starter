@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visibleInner"
-    title="动态表达式过滤器配置"
+    title="动态表达式过滤器配�?
     width="980px"
     :close-on-click-modal="false"
     @close="handleClose"
@@ -14,23 +14,23 @@
           基础配置
         </h4>
         <div class="config-grid">
-          <el-form-item label="启用状态">
+          <el-form-item label="启用状�?>
             <el-switch v-model="config.enabled" />
           </el-form-item>
-          <el-form-item label="表达式类型">
+          <el-form-item label="表达式类�?>
             <el-select v-model="config.type" style="width: 180px">
               <el-option label="Java" value="java" />
               <el-option label="Groovy" value="groovy" />
               <el-option label="JavaScript" value="js" />
             </el-select>
           </el-form-item>
-          <el-form-item label="指纹(可选)">
+          <el-form-item label="指纹(可�?">
             <el-input v-model="config.fingerprint" placeholder="用于热重载比对的标识，可留空自动生成" />
           </el-form-item>
         </div>
       </div>
 
-      <!-- 源码编辑器 -->
+      <!-- 源码编辑�?-->
       <div class="config-section">
         <h4 class="section-title">
           <IconifyIconOnline icon="ri:code-s-slash-line" />
@@ -47,7 +47,7 @@
         </div>
         <div class="tips">
           <el-text type="info" size="small">
-            要求实现 ServletFilter 接口（或可适配），保存后会热重载到运行中的服务器。
+            要求实现 ServletFilter 接口（或可适配），保存后会热重载到运行中的服务器�?
           </el-text>
         </div>
       </div>
@@ -110,7 +110,7 @@ const placeholderText = computed(() => {
   if (config.type === 'js') {
     return '// JS 示例（需适配器支持）\nfunction doFilter(request, response, chain) {\n  chain.doFilter(request, response)\n}';
   }
-  return '在此粘贴或编写源码...'
+  return '在此粘贴或编写源�?..'
 })
 
 watch(() => props.visible, async (v) => { visibleInner.value = v; if (v) await loadData() }, { immediate: true })
@@ -134,7 +134,7 @@ async function loadData() {
 
 async function handleSave() {
   if (!config.source || !config.source.trim()) {
-    ElMessage.warning('请填写源码')
+    ElMessage.warning('请填写源�?)
     return
   }
   loading.value = true
@@ -146,7 +146,7 @@ async function handleSave() {
       fingerprint: config.fingerprint || undefined
     })
     if (res.success) {
-      ElMessage.success('动态表达式配置已保存并热应用')
+      ElMessage.success('动态表达式配置已保存并热应�?)
       emit('success')
       visibleInner.value = false
     } else {

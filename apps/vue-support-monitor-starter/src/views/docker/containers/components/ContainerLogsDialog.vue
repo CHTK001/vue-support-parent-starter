@@ -7,7 +7,7 @@
     @close="handleClose"
   >
     <div class="logs-container">
-      <!-- 日志控制栏 -->
+      <!-- 日志控制�?-->
       <div class="logs-header">
         <div class="logs-info">
           <span class="container-name">{{ containerData?.systemSoftContainerName }}</span>
@@ -30,7 +30,7 @@
             style="width: 120px"
             @change="loadLogs"
           />
-          <span class="control-label">行</span>
+          <span class="control-label">�?/span>
           <el-select
             v-model="logLevel"
             size="small"
@@ -85,11 +85,11 @@
             <span class="stat-value">{{ logStats.totalLines }}</span>
           </span>
           <span class="stat-item">
-            <span class="stat-label">错误：</span>
+            <span class="stat-label">错误�?/span>
             <span class="stat-value error">{{ logStats.errorCount }}</span>
           </span>
           <span class="stat-item">
-            <span class="stat-label">警告：</span>
+            <span class="stat-label">警告�?/span>
             <span class="stat-value warning">{{ logStats.warnCount }}</span>
           </span>
           <span class="stat-item">
@@ -125,7 +125,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { containerApi, type SystemSoftContainer } from '@/api/docker-management'
+import { containerApi, type SystemSoftContainer } from '@/api/docker'
 
 interface Props {
   visible: boolean
@@ -154,7 +154,7 @@ const logStats = reactive({
   warnCount: 0
 })
 
-// 定时器
+// 定时�?
 let refreshTimer: NodeJS.Timeout | null = null
 
 const dialogVisible = computed({
@@ -162,7 +162,7 @@ const dialogVisible = computed({
   set: (value) => emit('update:visible', value)
 })
 
-// 监听对话框状态
+// 监听对话框状�?
 watch(dialogVisible, (visible) => {
   if (visible && props.containerData) {
     loadLogs()
@@ -185,7 +185,7 @@ const getStatusType = (status?: string) => {
 }
 
 const getStatusText = (status?: string) => {
-  const map = { running: '运行中', stopped: '已停止', paused: '暂停', restarting: '重启中', error: '错误' }
+  const map = { running: '运行�?, stopped: '已停�?, paused: '暂停', restarting: '重启�?, error: '错误' }
   return map[status] || '未知'
 }
 
@@ -205,7 +205,7 @@ const loadLogs = async () => {
       updateLogStats()
       lastUpdateTime.value = new Date().toLocaleTimeString()
       
-      // 自动滚动到底部
+      // 自动滚动到底�?
       await nextTick()
       scrollToBottom()
     } else {
@@ -230,7 +230,7 @@ const updateLogStats = () => {
   const lines = logs.value.split('\n')
   logStats.totalLines = lines.length
   
-  // 统计错误和警告数量
+  // 统计错误和警告数�?
   logStats.errorCount = lines.filter(line => 
     /\b(error|ERROR|Error|exception|Exception|fatal|FATAL|Fatal)\b/.test(line)
   ).length
@@ -258,7 +258,7 @@ const startAutoRefresh = () => {
     if (autoRefresh.value && dialogVisible.value && props.containerData) {
       await loadLogs()
     }
-  }, 3000) // 每3秒刷新一次
+  }, 3000) // �?秒刷新一�?
 }
 
 const stopAutoRefresh = () => {
@@ -292,7 +292,7 @@ const clearLogs = () => {
 // 下载日志
 const downloadLogs = () => {
   if (!logs.value) {
-    ElMessage.warning('暂无日志可下载')
+    ElMessage.warning('暂无日志可下�?)
     return
   }
   

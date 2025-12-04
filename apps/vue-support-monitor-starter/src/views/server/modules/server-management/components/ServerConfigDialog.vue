@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="服务器配置管理"
+    title="服务器配置管�?
     width="90%"
     :close-on-click-modal="false"
     destroy-on-close
@@ -97,7 +97,7 @@
             <!-- 配置表单 -->
             <div
               v-loading="loadingSettings"
-              element-loading-text="加载配置中..."
+              element-loading-text="加载配置�?.."
               class="form-container"
             >
               <el-form
@@ -113,7 +113,7 @@
                   <div class="section-description">
                     <el-alert
                       title="代理配置"
-                      description="配置代理服务器以实现网络连接转发，支持HTTP、SOCKS5、SSH隧道和Guacamole等多种代理类型。"
+                      description="配置代理服务器以实现网络连接转发，支持HTTP、SOCKS5、SSH隧道和Guacamole等多种代理类型�?
                       type="info"
                       :closable="false"
                       class="mb-4"
@@ -133,7 +133,7 @@
                         @change="handleSettingChange"
                       />
                       <el-tooltip
-                        content="启用后将通过代理服务器进行连接"
+                        content="启用后将通过代理服务器进行连�?
                         placement="top"
                       >
                         <IconifyIconOnline
@@ -183,13 +183,13 @@
                         "
                         :min="1"
                         :max="65535"
-                        placeholder="端口号"
+                        placeholder="端口�?
                         style="width: 200px"
                         @change="handleSettingChange"
                       />
                     </el-form-item>
 
-                    <el-form-item label="代理用户名">
+                    <el-form-item label="代理用户�?>
                       <el-input
                         v-model="
                           settingData.monitorSysGenServerSettingProxyUsername
@@ -222,7 +222,7 @@
                     >
                       <el-alert
                         title="Guacamole代理配置"
-                        description="Guacamole代理将通过Web界面提供远程桌面连接功能，具体连接参数请在服务器详情页面中配置。"
+                        description="Guacamole代理将通过Web界面提供远程桌面连接功能，具体连接参数请在服务器详情页面中配置�?
                         type="info"
                         :closable="false"
                         class="mt-4"
@@ -239,7 +239,7 @@
                   <div class="section-description">
                     <el-alert
                       title="指标管理"
-                      description="配置服务器性能指标的收集、上报和存储策略，支持多种数据上报方式。"
+                      description="配置服务器性能指标的收集、上报和存储策略，支持多种数据上报方式�?
                       type="info"
                       :closable="false"
                       class="mb-4"
@@ -282,7 +282,7 @@
                         :min="10"
                         :max="3600"
                         :step="10"
-                        placeholder="收集频率(秒)"
+                        placeholder="收集频率(�?"
                         style="width: 200px"
                         @change="handleSettingChange"
                       />
@@ -305,7 +305,7 @@
 
                     <el-alert
                       title="指标管理说明"
-                      description="此页面主要用于查看和管理服务器的监控指标数据，包括数据查询、图表展示等功能。具体的监控参数配置请使用左侧对应的配置页面。"
+                      description="此页面主要用于查看和管理服务器的监控指标数据，包括数据查询、图表展示等功能。具体的监控参数配置请使用左侧对应的配置页面�?
                       type="success"
                       :closable="false"
                       class="mb-4"
@@ -313,7 +313,7 @@
                   </template>
                 </div>
 
-                <!-- 监控配置节 -->
+                <!-- 监控配置�?-->
                 <div
                   v-show="activeSection === 'monitor'"
                   class="config-section"
@@ -328,7 +328,7 @@
                   />
                 </div>
 
-                <!-- 告警配置节 -->
+                <!-- 告警配置�?-->
                 <div v-show="activeSection === 'alert'" class="config-section">
                   <ServerSettingForm
                     v-model="settingData"
@@ -340,7 +340,7 @@
                   />
                 </div>
 
-                <!-- Docker配置节 -->
+                <!-- Docker配置�?-->
                 <div v-show="activeSection === 'docker'" class="config-section">
                   <ServerSettingForm
                     v-model="settingData"
@@ -353,7 +353,7 @@
                   />
                 </div>
 
-                <!-- Prometheus配置节 -->
+                <!-- Prometheus配置�?-->
                 <div
                   v-show="activeSection === 'prometheus'"
                   class="config-section"
@@ -361,7 +361,7 @@
                   <div class="section-description">
                     <el-alert
                       title="Prometheus配置"
-                      description="配置Prometheus服务器连接信息，用于查询历史监控数据和指标。支持基本认证和自定义查询路径。"
+                      description="配置Prometheus服务器连接信息，用于查询历史监控数据和指标。支持基本认证和自定义查询路径�?
                       type="info"
                       show-icon
                       :closable="false"
@@ -377,7 +377,7 @@
                     @change="handleSettingChange"
                   />
                 </div>
-                <!-- 文件管理配置节 -->
+                <!-- 文件管理配置�?-->
                 <div
                   v-show="activeSection === 'filemanagement'"
                   class="config-section"
@@ -385,7 +385,7 @@
                   <div class="section-description">
                     <el-alert
                       title="文件管理配置"
-                      description="配置服务器文件管理功能，支持SSH连接、NODE客户端代理和API连接等多种方式，提供完整的文件系统访问和管理能力。"
+                      description="配置服务器文件管理功能，支持SSH连接、NODE客户端代理和API连接等多种方式，提供完整的文件系统访问和管理能力�?
                       type="info"
                       show-icon
                       :closable="false"
@@ -402,7 +402,7 @@
                     @change="handleSettingChange"
                   />
                 </div>
-                <!-- 高级配置节 -->
+                <!-- 高级配置�?-->
                 <div
                   v-show="activeSection === 'advanced'"
                   class="config-section"
@@ -417,12 +417,12 @@
                   />
                 </div>
 
-                <!-- 任务配置节 -->
+                <!-- 任务配置�?-->
                 <div v-show="activeSection === 'tasks'" class="config-section">
                   <div class="section-description">
                     <el-alert
                       title="任务配置"
-                      description="配置服务器的定时任务，包括端口检测、在线状态检测、延迟检测等功能。"
+                      description="配置服务器的定时任务，包括端口检测、在线状态检测、延迟检测等功能�?
                       type="info"
                       show-icon
                       :closable="false"
@@ -439,7 +439,7 @@
                   />
                 </div>
 
-                <!-- 清理配置节 -->
+                <!-- 清理配置�?-->
                 <div
                   v-show="activeSection === 'cleanup'"
                   class="config-section"
@@ -447,7 +447,7 @@
                   <div class="section-description">
                     <el-alert
                       title="清理配置"
-                      description="配置系统清理任务，包括日志清理、临时文件清理、WebSocket会话清理等功能。"
+                      description="配置系统清理任务，包括日志清理、临时文件清理、WebSocket会话清理等功能�?
                       type="info"
                       show-icon
                       :closable="false"
@@ -464,7 +464,7 @@
                   />
                 </div>
 
-                <!-- 配置历史节 -->
+                <!-- 配置历史�?-->
                 <div
                   v-show="activeSection === 'history'"
                   class="config-section"
@@ -520,7 +520,7 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 响应式状态
+// 响应式状�?
 const visible = ref(false);
 const loading = ref(false);
 const saving = ref(false);
@@ -531,10 +531,10 @@ const formRef = ref();
 // 服务器ID
 const serverId = ref<number | null>(null);
 
-// 当前服务器信息
+// 当前服务器信�?
 const currentServer = ref<ServerInfo | null>(null);
 
-// 服务器设置数据
+// 服务器设置数�?
 const settingData = ref<Partial<ServerSetting>>({});
 
 // 表单验证规则
@@ -549,34 +549,34 @@ const validationRules = {
       },
     ],
     monitorSysGenServerSettingProxyPort: [
-      { required: true, message: "请输入代理端口", trigger: "blur" },
+      { required: true, message: "请输入代理端�?, trigger: "blur" },
       {
         type: "number",
         min: 1,
         max: 65535,
-        message: "端口范围为1-65535",
+        message: "端口范围�?-65535",
         trigger: "blur",
       },
     ],
   },
   metrics: {
     monitorSysGenServerSettingDataCollectionFrequency: [
-      { required: true, message: "请设置收集频率", trigger: "blur" },
+      { required: true, message: "请设置收集频�?, trigger: "blur" },
       {
         type: "number",
         min: 10,
         max: 3600,
-        message: "收集频率范围为10-3600秒",
+        message: "收集频率范围�?0-3600�?,
         trigger: "blur",
       },
     ],
     monitorSysGenServerSettingMetricsRetentionDays: [
-      { required: true, message: "请设置数据保留天数", trigger: "blur" },
+      { required: true, message: "请设置数据保留天�?, trigger: "blur" },
       {
         type: "number",
         min: 1,
         max: 365,
-        message: "保留天数范围为1-365天",
+        message: "保留天数范围�?-365�?,
         trigger: "blur",
       },
     ],
@@ -604,7 +604,7 @@ const getSectionTitle = () => {
 };
 
 /**
- * 处理节切换
+ * 处理节切�?
  */
 const handleSectionChange = (section: string) => {
   activeSection.value = section;
@@ -617,7 +617,7 @@ const handleHistoryRestored = (historyId: number) => {
   message.success("配置已从历史记录恢复");
   // 重新加载当前配置
   loadServerSetting();
-  // 切换到相应的配置节以查看恢复的配置
+  // 切换到相应的配置节以查看恢复的配�?
   activeSection.value = "proxy";
 };
 
@@ -644,7 +644,7 @@ const validateCurrentSection = () => {
     validationRules[activeSection.value as keyof typeof validationRules];
   if (!currentRules) return true;
 
-  // 特殊处理代理配置节 - 只有在启用代理时才进行校验
+  // 特殊处理代理配置�?- 只有在启用代理时才进行校�?
   if (activeSection.value === "proxy") {
     const proxyEnabled =
       settingData.value.monitorSysGenServerSettingProxyEnabled;
@@ -697,7 +697,7 @@ const handleSave = async () => {
 
     saving.value = true;
 
-    // 保存服务器设置
+    // 保存服务器设�?
     const submitData = {
       ...settingData.value,
       monitorSysGenServerId: serverId.value,
@@ -722,7 +722,7 @@ const handleSave = async () => {
 };
 
 /**
- * 加载服务器信息
+ * 加载服务器信�?
  */
 const loadServerInfo = async () => {
   if (!serverId.value) return;
@@ -733,13 +733,13 @@ const loadServerInfo = async () => {
       currentServer.value = result.data;
     }
   } catch (error) {
-    console.error("加载服务器信息失败:", error);
-    message.error("加载服务器信息失败");
+    console.error("加载服务器信息失�?", error);
+    message.error("加载服务器信息失�?);
   }
 };
 
 /**
- * 加载服务器设置
+ * 加载服务器设�?
  */
 const loadServerSetting = async () => {
   if (!serverId.value) return;
@@ -750,7 +750,7 @@ const loadServerSetting = async () => {
     if (result.code === "00000" && result.data) {
       settingData.value = result.data;
     } else {
-      // 如果没有设置数据，初始化默认值
+      // 如果没有设置数据，初始化默认�?
       settingData.value = {
         monitorSysGenServerId: serverId.value,
         monitorSysGenServerSettingProxyEnabled: 0,
@@ -760,9 +760,9 @@ const loadServerSetting = async () => {
       };
     }
   } catch (error) {
-    console.error("加载服务器设置失败:", error);
-    message.error("加载服务器设置失败");
-    // 设置默认值
+    console.error("加载服务器设置失�?", error);
+    message.error("加载服务器设置失�?);
+    // 设置默认�?
     settingData.value = {
       monitorSysGenServerId: serverId.value,
       monitorSysGenServerSettingProxyEnabled: 0,
@@ -776,7 +776,7 @@ const loadServerSetting = async () => {
 };
 
 /**
- * 加载所有数据
+ * 加载所有数�?
  */
 const loadServerData = async () => {
   if (!serverId.value) {
@@ -793,7 +793,7 @@ const loadServerData = async () => {
 };
 
 /**
- * 打开对话框
+ * 打开对话�?
  */
 const open = async (id: number) => {
   serverId.value = id;
@@ -1370,7 +1370,7 @@ defineExpose({
   position: absolute;
 }
 
-/* 分割线样式 */
+/* 分割线样�?*/
 .divider-text {
   font-size: 13px;
   font-weight: 600;

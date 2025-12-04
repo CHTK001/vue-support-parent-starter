@@ -11,7 +11,7 @@
       <el-alert
         title="组件配置功能开发中"
         type="info"
-        description="此功能正在开发中，敬请期待..."
+        description="此功能正在开发中，敬请期�?.."
         show-icon
         :closable="false"
       />
@@ -40,16 +40,16 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 定义属性
+// 定义属�?
 const props = defineProps<{
   serverId?: number;
 }>();
 
-// 响应式状态
+// 响应式状�?
 const visible = ref(false);
 
 /**
- * 打开对话框
+ * 打开对话�?
  */
 const open = () => {
   visible.value = true;

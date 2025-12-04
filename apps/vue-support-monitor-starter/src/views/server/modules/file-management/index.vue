@@ -30,7 +30,7 @@ defineEmits<{
   close: [];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const serverId = ref<number>(0);
 const serverInfo = ref<any>(null);
 
@@ -39,25 +39,25 @@ const fileManagerPageRef = ref();
 
 // 处理关闭
 const handleClose = () => {
-  // 返回上一页或者跳转到服务器管理页面
+  // 返回上一页或者跳转到服务器管理页�?
   router.back();
 };
 
-// 初始化
+// 初始�?
 onMounted(async () => {
-  // 从路由参数获取 serverId
+  // 从路由参数获�?serverId
   const routeServerId = route.params.serverId;
   if (routeServerId) {
     serverId.value = Number(routeServerId);
 
-    // 根据 serverId 获取服务器信息
+    // 根据 serverId 获取服务器信�?
     try {
       const response = await getServerInfo(String(serverId.value));
       if (response.code === "00000") {
         serverInfo.value = response.data;
       }
     } catch (error) {
-      console.error("获取服务器信息失败:", error);
+      console.error("获取服务器信息失�?", error);
     }
   }
 });
@@ -67,11 +67,11 @@ onMounted(async () => {
 .file-manager {
   height: 100vh; /* 撑满整个视口高度 */
   width: 100vw; /* 撑满整个视口宽度 */
-   background: var(--el-bg-color-overlay); /* 设置背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置背景为白�?*/
   position: fixed; /* 固定定位确保撑满页面 */
   top: 0;
   left: 0;
   z-index: 1000; /* 确保在最上层 */
-  overflow: hidden; /* 防止滚动条 */
+  overflow: hidden; /* 防止滚动�?*/
 }
 </style>

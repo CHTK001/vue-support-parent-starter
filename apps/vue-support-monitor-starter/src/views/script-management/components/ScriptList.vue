@@ -54,12 +54,12 @@
           
           <el-select
             v-model="filterStatus"
-            placeholder="状态筛选"
+            placeholder="状态筛�?
             clearable
             class="modern-filter"
             size="large"
           >
-            <el-option label="全部状态" value="" />
+            <el-option label="全部状�? value="" />
             <el-option label="启用" value="ENABLED">
               <div class="option-item">
                 <IconifyIconOnline icon="ri:check-line" class="status-enabled" />
@@ -76,7 +76,7 @@
           
           <el-select
             v-model="filterCategory"
-            placeholder="分类筛选"
+            placeholder="分类筛�?
             clearable
             class="modern-filter"
             size="large"
@@ -85,7 +85,7 @@
             <el-option label="系统管理" value="system" />
             <el-option label="数据处理" value="data" />
             <el-option label="监控运维" value="monitor" />
-            <el-option label="自动化" value="automation" />
+            <el-option label="自动�? value="automation" />
           </el-select>
         </div>
       </div>
@@ -101,7 +101,7 @@
       </div>
     </div>
 
-    <!-- 现代化脚本网格 -->
+    <!-- 现代化脚本网�?-->
     <div class="modern-script-grid" v-loading="loading">
       <div
         v-for="script in filteredScripts"
@@ -179,7 +179,7 @@
             <div class="stat-item">
               <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
               <div class="stat-content">
-                <span class="stat-label">最后更新</span>
+                <span class="stat-label">最后更�?/span>
                 <span class="stat-value">{{ formatTime(
                   script.updateTime ? new Date(script.updateTime) : new Date()
                 ) }}</span>
@@ -195,7 +195,7 @@
             <div class="stat-item">
               <IconifyIconOnline icon="ri:pulse-line" class="stat-icon" />
               <div class="stat-content">
-                <span class="stat-label">运行状态</span>
+                <span class="stat-label">运行状�?/span>
                 <span class="stat-value" :class="getStatusClass(script.lastExecutionStatus)">
                   {{ getStatusText(script.lastExecutionStatus) }}
                 </span>
@@ -257,16 +257,16 @@
         </div>
       </div>
 
-      <!-- 空状态 -->
+      <!-- 空状�?-->
       <div v-if="filteredScripts.length === 0 && !loading" class="empty-state">
         <IconifyIconOnline icon="ri:file-text-line" class="empty-icon" />
         <p class="empty-text">暂无脚本</p>
         <el-button type="primary" @click="$emit('create')">
-          创建第一个脚本
+          创建第一个脚�?
         </el-button>
       </div>
     </div>
-    <!-- 上传对话框：挂在列表页，避免每卡片重复渲染 -->
+    <!-- 上传对话框：挂在列表页，避免每卡片重复渲�?-->
     <UploadToRunningScriptDialog
       :visible="uploadDialogVisible"
       :script-id="selectedScriptId as any"
@@ -293,7 +293,7 @@ const emit = defineEmits<{
   create: [];
 }>();
 
-// 上传对话框状态
+// 上传对话框状�?
 const uploadDialogVisible = ref(false);
 const selectedScriptId = ref<number | string | null>(null);
 const openUpload = (script: any) => {
@@ -301,7 +301,7 @@ const openUpload = (script: any) => {
   uploadDialogVisible.value = true;
 };
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false);
 const searchKeyword = ref("");
 const filterType = ref("");
@@ -316,7 +316,7 @@ const pagination = reactive({
   total: 0,
 });
 
-// 计算属性 - 直接使用实体字段名称，不进行映射
+// 计算属�?- 直接使用实体字段名称，不进行映射
 const filteredScripts = computed(() => {
   let result = scripts.value;
 
@@ -330,7 +330,7 @@ const filteredScripts = computed(() => {
     );
   }
 
-  // 按类型筛选
+  // 按类型筛�?
   if (filterType.value) {
     result = result.filter(
       (script) => script.monitorSysGenScriptType === filterType.value
@@ -340,7 +340,7 @@ const filteredScripts = computed(() => {
   return result;
 });
 
-// 监听器
+// 监听�?
 let searchTimer: NodeJS.Timeout;
 watch([searchKeyword, filterType, filterStatus, filterCategory], () => {
   clearTimeout(searchTimer);
@@ -350,7 +350,7 @@ watch([searchKeyword, filterType, filterStatus, filterCategory], () => {
   }, 300);
 });
 
-// 初始化
+// 初始�?
 onMounted(() => {
   loadScripts();
 });
@@ -423,7 +423,7 @@ const handleCopyScript = async (script: any) => {
 const handleDeleteScript = async (script: any) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除脚本 "${script.monitorSysGenScriptName}" 吗？`,
+      `确定要删除脚�?"${script.monitorSysGenScriptName}" 吗？`,
       "删除确认",
       {
         type: "warning",
@@ -470,7 +470,7 @@ const getScriptTypeIcon = (type: string) => {
   return iconMap[type] || 'ri:file-code-line'
 }
 
-// 处理状态变化
+// 处理状态变�?
 const handleStatusChange = async (script: any) => {
   try {
     // 这里需要调用更新脚本状态的API
@@ -478,10 +478,10 @@ const handleStatusChange = async (script: any) => {
     //   ...script,
     //   monitorSysGenScriptStatus: script.monitorSysGenScriptStatus
     // })
-    ElMessage.success('状态更新成功')
+    ElMessage.success('状态更新成�?)
   } catch (error) {
-    ElMessage.error('状态更新失败')
-    // 回滚状态
+    ElMessage.error('状态更新失�?)
+    // 回滚状�?
     script.monitorSysGenScriptStatus = script.monitorSysGenScriptStatus === 'ENABLED' ? 'DISABLED' : 'ENABLED'
   }
 }
@@ -497,18 +497,18 @@ const getStatusClass = (status: string) => {
   return statusMap[status] || 'status-unknown'
 }
 
-// 获取状态文本
+// 获取状态文�?
 const getStatusText = (status: string) => {
   const textMap: Record<string, string> = {
-    RUNNING: '运行中',
+    RUNNING: '运行�?,
     SUCCESS: '成功',
     FAILED: '失败',
-    PENDING: '等待中'
+    PENDING: '等待�?
   }
   return textMap[status] || '未知'
 }
 
-// 临时格式化时间函数
+// 临时格式化时间函�?
 const formatTime = (date: Date) => {
   return date.toLocaleString();
 };

@@ -3,9 +3,9 @@
     <!-- 控制面板 -->
     <div class="control-panel">
       <div class="control-row">
-        <el-input v-model="classPattern" placeholder="类名/通配（如 com.example.UserService 或 com.example.*Service）" style="min-width: 260px" clearable />
-        <el-input v-model="methodPattern" placeholder="方法名/通配（默认 *）" style="width: 200px" clearable />
-        <el-input v-model="condition" placeholder="条件表达式（可选，如 #cost>10）" style="min-width: 220px" clearable />
+        <el-input v-model="classPattern" placeholder="类名/通配（如 com.example.UserService �?com.example.*Service�? style="min-width: 260px" clearable />
+        <el-input v-model="methodPattern" placeholder="方法�?通配（默�?*�? style="width: 200px" clearable />
+        <el-input v-model="condition" placeholder="条件表达式（可选，�?#cost>10�? style="min-width: 220px" clearable />
         <el-checkbox v-model="useRegex">正则(-E)</el-checkbox>
         <el-input-number v-model="count" :min="1" :max="200" :step="1" controls-position="right" style="width: 140px" />
         <span class="label">-n 次数</span>
@@ -41,15 +41,15 @@
       </el-card>
     </div>
 
-    <!-- 空状态 -->
+    <!-- 空状�?-->
     <div v-if="!loading && !error && stacks.length === 0" class="empty-state">
-      <el-empty description="暂无调用路径数据，请配置类/方法并点击执行" />
+      <el-empty description="暂无调用路径数据，请配置�?方法并点击执�? />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { execArthasCommand } from "@/api/arthas-http";
+import { execArthasCommand } from "@/api/arthas/arthas-http";
 import { ref, computed } from "vue";
 
 const props = defineProps<{ nodeId: string }>();
@@ -63,7 +63,7 @@ const useRegex = ref(false);
 const count = ref(10);
 const collectMillis = ref(5000);
 
-// 状态
+// 状�?
 const loading = ref(false);
 const error = ref("");
 
@@ -145,7 +145,7 @@ async function run() {
       const items = parseStackData(res.data?.output);
       stacks.value = items;
       if (items.length === 0) {
-        error.value = "未获取到调用路径数据：请确认类/方法匹配且目标方法在收集期间被调用";
+        error.value = "未获取到调用路径数据：请确认�?方法匹配且目标方法在收集期间被调�?;
       }
     } else {
       error.value = res?.msg || "执行失败";

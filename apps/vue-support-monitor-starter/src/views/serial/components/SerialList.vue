@@ -24,7 +24,7 @@
       <el-card v-for="item in serialList" :key="item.monitorSerialId" class="serial-item mb-3 cursor-pointer" :class="{ 'serial-item-active': selectedSerialId === item.monitorSerialId }" @click="selectSerial(item.monitorSerialId)" shadow="hover">
         <div class="flex justify-between items-center">
           <div class="serial-info">
-            <div class="serial-name font-medium text-base mb-1">{{ item.monitorSerialName || "未命名串口" }}</div>
+            <div class="serial-name font-medium text-base mb-1">{{ item.monitorSerialName || "未命名串�? }}</div>
             <div class="serial-port text-[var(--el-text-color-regular)] text-sm">{{ item.monitorSerialPort || "COM1" }} - {{ item.monitorSerialBaudRate || "9600" }}波特</div>
           </div>
           <div class="serial-actions">
@@ -50,11 +50,11 @@
       </el-card>
     </div>
 
-    <!-- 添加/编辑串口对话框 -->
+    <!-- 添加/编辑串口对话�?-->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑串口' : '添加串口'" width="500px" destroy-on-close>
       <el-form ref="formRef" :model="form" label-width="100px" :rules="rules">
         <el-form-item label="串口名称" prop="monitorSerialName">
-          <el-input v-model="form.monitorSerialName" placeholder="请输入串口名称" />
+          <el-input v-model="form.monitorSerialName" placeholder="请输入串口名�? />
         </el-form-item>
 
         <el-form-item label="串口" prop="monitorSerialPort">
@@ -68,8 +68,8 @@
           </div>
         </el-form-item>
 
-        <el-form-item label="波特率" prop="monitorSerialBaudRate">
-          <el-select v-model="form.monitorSerialBaudRate" placeholder="请选择波特率" class="w-full">
+        <el-form-item label="波特�? prop="monitorSerialBaudRate">
+          <el-select v-model="form.monitorSerialBaudRate" placeholder="请选择波特�? class="w-full">
             <el-option :value="110" label="110" />
             <el-option :value="300" label="300" />
             <el-option :value="1200" label="1200" />
@@ -87,8 +87,8 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="数据位" prop="monitorSerialDataBits">
-          <el-select v-model="form.monitorSerialDataBits" placeholder="请选择数据位" class="w-full">
+        <el-form-item label="数据�? prop="monitorSerialDataBits">
+          <el-select v-model="form.monitorSerialDataBits" placeholder="请选择数据�? class="w-full">
             <el-option :value="5" label="5" />
             <el-option :value="6" label="6" />
             <el-option :value="7" label="7" />
@@ -96,27 +96,27 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="停止位" prop="monitorSerialStopBits">
-          <el-select v-model="form.monitorSerialStopBits" placeholder="请选择停止位" class="w-full">
+        <el-form-item label="停止�? prop="monitorSerialStopBits">
+          <el-select v-model="form.monitorSerialStopBits" placeholder="请选择停止�? class="w-full">
             <el-option :value="1" label="1" />
             <el-option :value="1.5" label="1.5" />
             <el-option :value="2" label="2" />
           </el-select>
         </el-form-item>
 
-        <el-form-item label="校验位" prop="monitorSerialParity">
-          <el-select v-model="form.monitorSerialParity" placeholder="请选择校验位" class="w-full">
-            <el-option value="none" label="无校验" />
-            <el-option value="even" label="偶校验" />
-            <el-option value="odd" label="奇校验" />
+        <el-form-item label="校验�? prop="monitorSerialParity">
+          <el-select v-model="form.monitorSerialParity" placeholder="请选择校验�? class="w-full">
+            <el-option value="none" label="无校�? />
+            <el-option value="even" label="偶校�? />
+            <el-option value="odd" label="奇校�? />
             <el-option value="mark" label="标记校验" />
             <el-option value="space" label="空格校验" />
           </el-select>
         </el-form-item>
 
-        <el-form-item label="流控制" prop="monitorSerialFlowControl">
-          <el-select v-model="form.monitorSerialFlowControl" placeholder="请选择流控制" class="w-full">
-            <el-option value="none" label="无" />
+        <el-form-item label="流控�? prop="monitorSerialFlowControl">
+          <el-select v-model="form.monitorSerialFlowControl" placeholder="请选择流控�? class="w-full">
+            <el-option value="none" label="�? />
             <el-option value="hardware" label="硬件流控" />
             <el-option value="software" label="软件流控" />
           </el-select>
@@ -134,11 +134,11 @@
       </template>
     </el-dialog>
 
-    <!-- 删除确认对话框 -->
+    <!-- 删除确认对话�?-->
     <el-dialog v-model="deleteDialogVisible" title="删除确认" width="400px">
       <div class="delete-confirm">
         <IconifyIconOnline icon="ep:warning" class="text-warning text-xl mr-2" />
-        <span>确定要删除此串口配置吗？此操作不可恢复。</span>
+        <span>确定要删除此串口配置吗？此操作不可恢复�?/span>
       </div>
       <template #footer>
         <span class="dialog-footer">
@@ -175,7 +175,7 @@ const props = defineProps({
 
 const emit = defineEmits(["select-serial", "add-serial", "edit-serial", "delete-serial", "refresh", "refresh-ports"]);
 
-// 状态
+// 状�?
 const loading = ref(false);
 const dialogVisible = ref(false);
 const deleteDialogVisible = ref(false);
@@ -200,13 +200,13 @@ const form = reactive({
 
 // 表单验证规则
 const rules = {
-  monitorSerialName: [{ required: true, message: "请输入串口名称", trigger: "blur" }],
-  monitorSerialPort: [{ required: true, message: "请输入串口", trigger: "blur" }],
-  monitorSerialBaudRate: [{ required: true, message: "请选择波特率", trigger: "change" }],
-  monitorSerialDataBits: [{ required: true, message: "请选择数据位", trigger: "change" }],
-  monitorSerialStopBits: [{ required: true, message: "请选择停止位", trigger: "change" }],
-  monitorSerialParity: [{ required: true, message: "请选择校验位", trigger: "change" }],
-  monitorSerialFlowControl: [{ required: true, message: "请选择流控制", trigger: "change" }],
+  monitorSerialName: [{ required: true, message: "请输入串口名�?, trigger: "blur" }],
+  monitorSerialPort: [{ required: true, message: "请输入串�?, trigger: "blur" }],
+  monitorSerialBaudRate: [{ required: true, message: "请选择波特�?, trigger: "change" }],
+  monitorSerialDataBits: [{ required: true, message: "请选择数据�?, trigger: "change" }],
+  monitorSerialStopBits: [{ required: true, message: "请选择停止�?, trigger: "change" }],
+  monitorSerialParity: [{ required: true, message: "请选择校验�?, trigger: "change" }],
+  monitorSerialFlowControl: [{ required: true, message: "请选择流控�?, trigger: "change" }],
 };
 
 // 选择串口

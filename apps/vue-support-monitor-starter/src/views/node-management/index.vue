@@ -53,14 +53,14 @@
       </div>
     </div>
 
-    <!-- 搜索和筛选 -->
+    <!-- 搜索和筛�?-->
     <div class="search-section">
       <el-card class="search-card" shadow="never">
         <div class="search-container">
           <div class="search-left">
             <el-input
               v-model="searchKeyword"
-              placeholder="搜索节点名称、IP地址或应用名称"
+              placeholder="搜索节点名称、IP地址或应用名�?
               class="search-input"
               clearable
               @input="handleSearch"
@@ -85,14 +85,14 @@
             </el-select>
             <el-select
               v-model="selectedStatus"
-              placeholder="节点状态"
+              placeholder="节点状�?
               class="status-filter"
               clearable
               @change="handleStatusFilter"
             >
               <el-option label="在线" value="ONLINE" />
               <el-option label="离线" value="OFFLINE" />
-              <el-option label="维护中" value="MAINTENANCE" />
+              <el-option label="维护�? value="MAINTENANCE" />
             </el-select>
           </div>
           <div class="search-right">
@@ -201,7 +201,7 @@
                       class="detail-icon"
                     />
                     <div class="detail-info">
-                      <span class="detail-label">连接数</span>
+                      <span class="detail-label">连接�?/span>
                       <span class="detail-value">{{
                         row.connectionCount || 0
                       }}</span>
@@ -249,7 +249,7 @@
                       class="detail-icon"
                     />
                     <div class="detail-info">
-                      <span class="detail-label">配置项</span>
+                      <span class="detail-label">配置�?/span>
                       <span class="detail-value config-value">{{
                         row.metadata.applicationActiveInclude
                       }}</span>
@@ -286,7 +286,7 @@
                   <el-button
                     @click.stop="checkNodeHealth(row)"
                     :loading="nodeCheckingStatus[row.nodeId]"
-                    title="健康检查"
+                    title="健康检�?
                   >
                     <IconifyIconOnline icon="ri:stethoscope-line" />
                   </el-button>
@@ -312,7 +312,7 @@
         @mouseleave="hideActionMenu"
       >
         <div class="menu-overlay">
-          <!-- 分页指示器 -->
+          <!-- 分页指示�?-->
           <div class="menu-pagination" v-if="totalMenuPages > 1">
             <div
               v-for="page in totalMenuPages"
@@ -382,7 +382,7 @@ import {
   apiCheckNodeHealth,
   type OnlineNodeInfo,
   type NodeStatistics,
-} from "@/api/node-management";
+} from "@/api/server/node-management";
 import { parseTime } from "@/utils/const";
 import LoggerConfig from "./module/logger-config/index.vue";
 import ScCard from "@repo/components/ScCard/index.vue";
@@ -391,7 +391,7 @@ import ScTable from "@repo/components/ScTable/index.vue";
 // 路由
 const router = useRouter();
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false);
 const nodeList = ref<OnlineNodeInfo[]>([]);
 
@@ -404,9 +404,9 @@ let hideMenuTimer: NodeJS.Timeout | null = null;
 
 // 菜单分页相关
 const currentMenuPage = ref(1);
-const itemsPerPage = 9; // 每页最多9个功能
+const itemsPerPage = 9; // 每页最�?个功�?
 
-// 节点检查状态
+// 节点检查状�?
 const nodeCheckingStatus = ref<Record<string, boolean>>({});
 const nodeStats = ref<NodeStatistics>({
   totalNodes: 0,
@@ -438,7 +438,7 @@ const animatedStats = reactive({
 
 const isCountingUp = ref(false);
 
-// 搜索和筛选
+// 搜索和筛�?
 const searchKeyword = ref("");
 
 // 日志配置组件相关
@@ -452,9 +452,9 @@ const tableHeight = ref("calc(100vh - 280px)");
 
 // 轮询相关
 let pollingTimer: NodeJS.Timeout | null = null;
-const POLLING_INTERVAL = 30000; // 30秒
+const POLLING_INTERVAL = 30000; // 30�?
 
-// 计算属性
+// 计算属�?
 const applicationList = computed(() => {
   const apps = new Set<string>();
   nodeList.value.forEach((node) => {
@@ -468,7 +468,7 @@ const applicationList = computed(() => {
 const filteredNodeList = computed(() => {
   let filtered = nodeList.value;
 
-  // 关键词搜索
+  // 关键词搜�?
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
     filtered = filtered.filter(
@@ -480,14 +480,14 @@ const filteredNodeList = computed(() => {
     );
   }
 
-  // 应用筛选
+  // 应用筛�?
   if (selectedApplication.value) {
     filtered = filtered.filter(
       (node) => node.applicationName === selectedApplication.value
     );
   }
 
-  // 状态筛选
+  // 状态筛�?
   if (selectedStatus.value) {
     filtered = filtered.filter((node) => node.status === selectedStatus.value);
   }
@@ -637,9 +637,9 @@ const getEmptyText = () => {
     selectedApplication.value ||
     selectedStatus.value
   ) {
-    return "没有找到符合条件的节点";
+    return "没有找到符合条件的节�?;
   }
-  return "暂无节点数据，请检查节点服务是否正常";
+  return "暂无节点数据，请检查节点服务是否正�?;
 };
 
 const getNodeCardClass = (node: OnlineNodeInfo) => {
@@ -680,7 +680,7 @@ const getStatusText = (status: string) => {
     case "OFFLINE":
       return "离线";
     case "MAINTENANCE":
-      return "维护中";
+      return "维护�?;
     default:
       return "未知";
   }
@@ -700,12 +700,12 @@ const getStatusIcon = (status: string) => {
 };
 
 const formatConnectTime = (time: string | null | undefined) => {
-  if (!time) return "未连接";
+  if (!time) return "未连�?;
   return parseTime(time, "{m}-{d} {h}:{i}");
 };
 
 const formatHeartbeat = (time: string | null | undefined) => {
-  if (!time) return "无心跳";
+  if (!time) return "无心�?;
   return parseTime(time, "{m}-{d} {h}:{i}");
 };
 
@@ -738,7 +738,7 @@ const showActionMenu = (node: OnlineNodeInfo, event: MouseEvent) => {
 
   hoveredNode.value = node;
   showMenu.value = true;
-  currentMenuPage.value = 1; // 重置到第一页
+  currentMenuPage.value = 1; // 重置到第一�?
 
   nextTick(() => {
     const cardElement = event.currentTarget as HTMLElement;
@@ -878,11 +878,11 @@ const checkNodeHealth = async (node: OnlineNodeInfo) => {
         `节点 ${node.nodeName || node.applicationName} 健康检查通过`
       );
     } else {
-      ElMessage.warning(`节点健康检查失败: ${response.msg}`);
+      ElMessage.warning(`节点健康检查失�? ${response.msg}`);
     }
   } catch (error) {
-    console.error("节点健康检查失败:", error);
-    ElMessage.error("节点健康检查失败");
+    console.error("节点健康检查失�?", error);
+    ElMessage.error("节点健康检查失�?);
   } finally {
     nodeCheckingStatus.value[node.nodeId] = false;
   }
@@ -939,7 +939,7 @@ const allMenuActions = [
   },
   {
     key: "health",
-    title: "健康检查",
+    title: "健康检�?,
     icon: "ri:heart-pulse-line",
     handler: checkNodeHealth,
   },
@@ -995,12 +995,12 @@ const allMenuActions = [
   },
 ];
 
-// 计算总页数
+// 计算总页�?
 const totalMenuPages = computed(() => {
   return Math.ceil(allMenuActions.length / itemsPerPage);
 });
 
-// 计算当前页的功能项
+// 计算当前页的功能�?
 const currentPageActions = computed(() => {
   const startIndex = (currentMenuPage.value - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -1107,7 +1107,7 @@ onUnmounted(() => {
     padding: 0 32px 32px;
     flex: 1;
 
-    // 表格视图节点名称单元格
+    // 表格视图节点名称单元�?
     .node-name-cell {
       display: flex;
       align-items: center;
@@ -1185,7 +1185,7 @@ onUnmounted(() => {
         opacity: 0.9;
       }
 
-      // 状态光晕效果
+      // 状态光晕效�?
       &::after {
         content: "";
         position: absolute;
@@ -1721,7 +1721,7 @@ onUnmounted(() => {
   transition: transform 0.5s ease;
 }
 
-// 响应式设计
+// 响应式设�?
 @media (max-width: 1200px) {
   .node-management-container {
     .stats-section .stats-grid {
@@ -1846,7 +1846,7 @@ onUnmounted(() => {
     position: relative;
   }
 
-  // 分页指示器
+  // 分页指示�?
   .menu-pagination {
     position: absolute;
     top: 10px;
@@ -1997,7 +1997,7 @@ onUnmounted(() => {
       bottom: -40px;
     }
 
-    // 不同功能的特定颜色主题
+    // 不同功能的特定颜色主�?
     &.api-docs:hover {
       background: rgba(34, 197, 94, 0.2);
       border-color: rgba(34, 197, 94, 0.4);
@@ -2214,7 +2214,7 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-// 日志配置菜单项样式
+// 日志配置菜单项样�?
 .action-icon.logger-config {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 

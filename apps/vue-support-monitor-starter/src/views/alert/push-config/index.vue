@@ -9,9 +9,9 @@
               icon="ri:notification-4-line"
               class="title-icon"
             />
-            告警推送配置
+            告警推送配�?
           </h1>
-          <p class="page-subtitle">管理系统告警消息的推送通道和配置</p>
+          <p class="page-subtitle">管理系统告警消息的推送通道和配�?/p>
         </div>
         <div class="header-stats">
           <div class="stat-item">
@@ -22,18 +22,18 @@
             <span class="stat-value">{{
               list.filter((i) => i.monitorSysGenAlertPushConfigEnabled).length
             }}</span>
-            <span class="stat-label">已启用</span>
+            <span class="stat-label">已启�?/span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 工具栏 -->
+    <!-- 工具�?-->
     <div class="toolbar">
       <div class="toolbar-left">
         <el-input
           v-model="search.keyword"
-          placeholder="服务器/类型/通道"
+          placeholder="服务�?类型/通道"
           clearable
           style="width: 220px"
         >
@@ -186,7 +186,7 @@
         </el-form-item>
 
         <el-divider content-position="left"
-          >不使用模板时可直接填写以下字段</el-divider
+          >不使用模板时可直接填写以下字�?/el-divider
         >
         <el-form-item label="是否启用">
           <el-switch v-model="edit.form.monitorSysGenAlertPushConfigEnabled" />
@@ -197,13 +197,13 @@
             :disabled="!!edit.form.monitorSysGenAlertPushConfigTemplateId"
           />
         </el-form-item>
-        <el-form-item label="主账号">
+        <el-form-item label="主账�?>
           <el-input
             v-model="edit.form.monitorSysGenAlertPushConfigMainAccount"
             :disabled="!!edit.form.monitorSysGenAlertPushConfigTemplateId"
           />
         </el-form-item>
-        <el-form-item label="用户名">
+        <el-form-item label="用户�?>
           <el-input
             v-model="edit.form.monitorSysGenAlertPushConfigUsername"
             :disabled="!!edit.form.monitorSysGenAlertPushConfigTemplateId"
@@ -303,7 +303,7 @@ const columns = [
     prop: "monitorSysGenAlertPushConfigEnabled",
     label: "启用",
     formatter: (_: any, row: any) =>
-      row.monitorSysGenAlertPushConfigEnabled ? "是" : "否",
+      row.monitorSysGenAlertPushConfigEnabled ? "�? : "�?,
   },
   { prop: "monitorSysGenAlertPushConfigEndpoint", label: "Endpoint" },
   { prop: "monitorSysGenAlertPushConfigRemark", label: "备注" },
@@ -364,7 +364,7 @@ async function handleSave() {
     // 校验
     const valid = await (formRef.value as any)?.validate?.();
     if (!valid && valid !== undefined) return;
-    // 校验JSON（在未选择模板时才校验）
+    // 校验JSON（在未选择模板时才校验�?
     const extra = edit.form.monitorSysGenAlertPushConfigExtra;
     if (!edit.form.monitorSysGenAlertPushConfigTemplateId && extra) {
       try {

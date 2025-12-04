@@ -25,11 +25,11 @@
             <el-option label="导出镜像" value="EXPORT_IMAGE" />
             <el-option label="删除镜像" value="DELETE_IMAGE" />
           </el-select>
-          <el-select v-model="filterStatus" placeholder="状态" clearable size="small" @change="loadHistory">
+          <el-select v-model="filterStatus" placeholder="状�? clearable size="small" @change="loadHistory">
             <el-option label="全部" :value="undefined" />
             <el-option label="成功" :value="1" />
             <el-option label="失败" :value="2" />
-            <el-option label="进行中" :value="0" />
+            <el-option label="进行�? :value="0" />
           </el-select>
         </div>
       </div>
@@ -77,12 +77,12 @@
 
             <div class="record-content">
               <div class="content-item">
-                <span class="content-label">操作消息：</span>
+                <span class="content-label">操作消息�?/span>
                 <span class="content-value">{{ record.systemSoftRecordMessage || '-' }}</span>
               </div>
 
               <div v-if="record.systemSoftRecordParams" class="content-item">
-                <span class="content-label">操作参数：</span>
+                <span class="content-label">操作参数�?/span>
                 <el-tag size="small" effect="plain" class="param-tag">
                   {{ record.systemSoftRecordParams }}
                 </el-tag>
@@ -91,7 +91,7 @@
               <div v-if="record.systemSoftRecordStatus === 1 && record.systemSoftRecordResult" class="content-item success-result">
                 <span class="content-label">
                   <IconifyIconOnline icon="ri:check-line" class="mr-1" />
-                  操作结果：
+                  操作结果�?
                 </span>
                 <span class="content-value">{{ record.systemSoftRecordResult }}</span>
               </div>
@@ -99,13 +99,13 @@
               <div v-if="record.systemSoftRecordStatus === 2 && record.systemSoftRecordErrorMessage" class="content-item error-result">
                 <span class="content-label">
                   <IconifyIconOnline icon="ri:error-warning-line" class="mr-1" />
-                  错误信息：
+                  错误信息�?
                 </span>
                 <span class="content-value">{{ record.systemSoftRecordErrorMessage }}</span>
               </div>
 
               <div v-if="record.systemSoftRecordContainerId" class="content-item">
-                <span class="content-label">容器ID：</span>
+                <span class="content-label">容器ID�?/span>
                 <span class="content-value container-id">{{ record.systemSoftRecordContainerId.substring(0, 12) }}</span>
               </div>
             </div>
@@ -136,7 +136,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import type { SystemSoftImage } from '@/api/docker-management';
+import type { SystemSoftImage } from '@/api/docker';
 
 interface SystemSoftRecord {
   systemSoftRecordId: number;
@@ -147,7 +147,7 @@ interface SystemSoftRecord {
   systemSoftRecordMessage: string;
   systemSoftRecordParams?: string;
   systemSoftRecordTime: string;
-  systemSoftRecordStatus: number; // 0: 进行中, 1: 成功, 2: 失败
+  systemSoftRecordStatus: number; // 0: 进行�? 1: 成功, 2: 失败
   systemSoftRecordUser?: string;
   systemSoftRecordContainerId?: string;
   systemSoftRecordStartTime?: string;
@@ -232,7 +232,7 @@ async function loadHistory() {
   }
 }
 
-// 格式化日期时间
+// 格式化日期时�?
 function formatDateTime(date: string | undefined): string {
   if (!date) return '-';
   return new Date(date).toLocaleString('zh-CN', {
@@ -245,14 +245,14 @@ function formatDateTime(date: string | undefined): string {
   });
 }
 
-// 格式化持续时间
+// 格式化持续时�?
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
   return `${(ms / 60000).toFixed(1)}min`;
 }
 
-// 获取时间轴类型
+// 获取时间轴类�?
 function getTimelineType(status: number): 'success' | 'warning' | 'danger' | 'info' | 'primary' {
   switch (status) {
     case 1: return 'success';
@@ -262,7 +262,7 @@ function getTimelineType(status: number): 'success' | 'warning' | 'danger' | 'in
   }
 }
 
-// 获取状态类型
+// 获取状态类�?
 function getStatusType(status: number): 'success' | 'warning' | 'danger' | 'info' {
   switch (status) {
     case 1: return 'success';
@@ -272,12 +272,12 @@ function getStatusType(status: number): 'success' | 'warning' | 'danger' | 'info
   }
 }
 
-// 获取状态文本
+// 获取状态文�?
 function getStatusText(status: number): string {
   switch (status) {
     case 1: return '成功';
     case 2: return '失败';
-    case 0: return '进行中';
+    case 0: return '进行�?;
     default: return '未知';
   }
 }

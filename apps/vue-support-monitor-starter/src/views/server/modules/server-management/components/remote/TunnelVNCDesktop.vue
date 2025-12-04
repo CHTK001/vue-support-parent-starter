@@ -1,6 +1,6 @@
 <template>
   <div class="tunnel-vnc-desktop">
-    <!-- 工具栏 -->
+    <!-- 工具�?-->
     <div class="desktop-toolbar">
       <div class="toolbar-left">
         <el-button 
@@ -11,7 +11,7 @@
           @click="connect"
         >
           <IconifyIconOnline icon="ri:play-line" class="mr-1" />
-          {{ isConnecting ? '连接中...' : '连接' }}
+          {{ isConnecting ? '连接�?..' : '连接' }}
         </el-button>
         
         <el-button 
@@ -67,7 +67,7 @@
           <h3>VNC 远程桌面</h3>
           <p>点击"连接"按钮开始连接到远程桌面</p>
           <div class="server-info">
-            <p><strong>服务器:</strong> {{ server?.monitorSysGenServerName }}</p>
+            <p><strong>服务�?</strong> {{ server?.monitorSysGenServerName }}</p>
             <p><strong>地址:</strong> {{ server?.monitorSysGenServerHost }}:{{ server?.monitorSysGenServerPort }}</p>
           </div>
         </div>
@@ -82,7 +82,7 @@
       </div>
     </div>
 
-    <!-- 连接错误对话框 -->
+    <!-- 连接错误对话�?-->
     <el-dialog
       v-model="showErrorDialog"
       title="连接错误"
@@ -124,7 +124,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// 响应式数据
+// 响应式数�?
 const desktopDisplay = ref<HTMLElement>();
 const isConnecting = ref(false);
 const isConnected = ref(false);
@@ -134,10 +134,10 @@ const showErrorDialog = ref(false);
 const errorMessage = ref('');
 const errorDetails = ref('');
 
-// Guacamole客户端
+// Guacamole客户�?
 let tunnelClient: GuacamoleTunnelClient | null = null;
 
-// 计算属性
+// 计算属�?
 const connectionStatusType = computed(() => {
   if (isConnected.value) return 'success';
   if (isConnecting.value) return 'warning';
@@ -145,22 +145,22 @@ const connectionStatusType = computed(() => {
 });
 
 const connectionStatusText = computed(() => {
-  if (isConnected.value) return '已连接';
-  if (isConnecting.value) return '连接中';
-  return '未连接';
+  if (isConnected.value) return '已连�?;
+  if (isConnecting.value) return '连接�?;
+  return '未连�?;
 });
 
 // 方法
 const connect = async () => {
   if (!props.server || !desktopDisplay.value) {
-    ElMessage.error('服务器信息不完整或显示容器未准备好');
+    ElMessage.error('服务器信息不完整或显示容器未准备�?);
     return;
   }
 
   try {
     isConnecting.value = true;
     
-    // 创建隧道客户端配置
+    // 创建隧道客户端配�?
     const config: TunnelClientConfig = {
       serverId: props.server.monitorSysGenServerId,
       protocol: 'vnc' as const,
@@ -174,11 +174,11 @@ const connect = async () => {
       readOnly: false
     };
 
-    // 创建客户端
+    // 创建客户�?
     tunnelClient = new GuacamoleTunnelClient(config, {
       onStateChange: (state: number) => {
         currentState.value = state;
-        console.log('VNC 隧道状态变化:', state);
+        console.log('VNC 隧道状态变�?', state);
         
         // 检查是否已连接
         if (tunnelClient && tunnelClient.isConnected()) {
@@ -199,7 +199,7 @@ const connect = async () => {
         console.log('VNC 会话名称:', name);
       },
       onClipboard: (_stream: any, mimetype: string) => {
-        console.log('收到剪贴板数据:', mimetype);
+        console.log('收到剪贴板数�?', mimetype);
       }
     });
 
@@ -246,7 +246,7 @@ const takeScreenshot = () => {
       link.href = screenshot;
       link.click();
       
-      ElMessage.success('截图已保存');
+      ElMessage.success('截图已保�?);
     } else {
       ElMessage.error('截图失败');
     }
@@ -278,7 +278,7 @@ const retryConnection = () => {
 
 // 生命周期
 onMounted(() => {
-  console.log('TunnelVNCDesktop 组件已挂载');
+  console.log('TunnelVNCDesktop 组件已挂�?);
 });
 
 onUnmounted(() => {

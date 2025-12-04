@@ -19,7 +19,7 @@
       <el-form-item label="平台" prop="monitorApplicationName">
         <el-input
           v-model="form.monitorApplicationName"
-          placeholder="请输入平台"
+          placeholder="请输入平�?
         >
           <template #prefix>
             <IconifyIconOnline icon="ri:apps-line" />
@@ -27,7 +27,7 @@
         </el-input>
       </el-form-item>
       <el-form-item label="名称" prop="monitorName">
-        <el-input v-model="form.monitorName" placeholder="请输入名称">
+        <el-input v-model="form.monitorName" placeholder="请输入名�?>
           <template #prefix>
             <IconifyIconOnline icon="ri:text" />
           </template>
@@ -57,7 +57,7 @@ const form = ref({
   monitorApplicationName: "",
   monitorName: "",
 });
-// 定义属性
+// 定义属�?
 interface Props {
   data: {
     monitorApplicationName: string;

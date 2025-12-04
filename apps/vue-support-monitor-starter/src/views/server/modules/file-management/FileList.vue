@@ -1,6 +1,6 @@
 <template>
   <div class="file-list">
-    <!-- 头部工具栏 -->
+    <!-- 头部工具�?-->
     <div class="list-header">
       <!-- 路径导航 -->
       <div class="path-navigation">
@@ -11,12 +11,12 @@
         </el-breadcrumb>
       </div>
 
-      <!-- 工具栏 -->
+      <!-- 工具�?-->
       <div class="toolbar">
-        <!-- 返回上一层按钮 -->
-        <el-button size="small" @click="goBack" :disabled="!canGoBack" title="返回上一层">
+        <!-- 返回上一层按�?-->
+        <el-button size="small" @click="goBack" :disabled="!canGoBack" title="返回上一�?>
           <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
-          返回上一层
+          返回上一�?
         </el-button>
 
         <!-- 操作按钮 -->
@@ -27,14 +27,14 @@
 
         <el-button size="small" @click="createFolder">
           <IconifyIconOnline icon="ri:folder-add-line" class="mr-1" />
-          新建文件夹
+          新建文件�?
         </el-button>
       </div>
     </div>
 
     <!-- 文件列表内容 -->
     <div class="list-content" v-loading="loading">
-      <!-- 空状态提示 -->
+      <!-- 空状态提�?-->
       <div v-if="!hasLoadedOnce && fileList.length === 0" class="empty-state">
         <IconifyIconOnline icon="ri:folder-open-line" class="empty-icon" />
         <p>请点击左侧文件树节点查看文件列表</p>
@@ -83,7 +83,7 @@
                     </el-dropdown-item>
                     <el-dropdown-item command="rename">
                       <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
-                      重命名
+                      重命�?
                     </el-dropdown-item>
                     <el-dropdown-item command="delete" divided>
                       <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
@@ -97,7 +97,7 @@
         </el-table>
       </div>
 
-      <!-- 空状态 -->
+      <!-- 空状�?-->
       <div v-if="fileList.length === 0 && !loading" class="empty-state">
         <IconifyIconOnline icon="ri:folder-open-line" class="empty-icon" />
         <p>此文件夹为空</p>
@@ -128,12 +128,12 @@
       </div>
       <div class="menu-item" @click="showFileProperties">
         <IconifyIconOnline icon="ri:file-info-line" class="menu-icon" />
-        <span>属性</span>
+        <span>属�?/span>
       </div>
     </div>
 
     <!-- 新建文件夹对话框 -->
-    <el-dialog v-model="createFolderVisible" title="新建文件夹" width="400px" :close-on-click-modal="false">
+    <el-dialog v-model="createFolderVisible" title="新建文件�? width="400px" :close-on-click-modal="false">
       <el-form :model="createFolderForm" label-width="80px">
         <el-form-item label="文件夹名">
           <el-input v-model="createFolderForm.name" placeholder="请输入文件夹名称" @keyup.enter="confirmCreateFolder" />
@@ -145,7 +145,7 @@
       </template>
     </el-dialog>
 
-    <!-- 文件预览对话框 -->
+    <!-- 文件预览对话�?-->
     <el-dialog
       draggable
       v-model="previewDialogVisible"
@@ -164,8 +164,8 @@
 </template>
 
 <script setup lang="ts">
-import type { FileInfo } from "@/api/file-management";
-import { createDirectory, deleteFile, downloadFile, getFileList, renameFile } from "@/api/file-management";
+import type { FileInfo } from "@/api/server/file-management";
+import { createDirectory, deleteFile, downloadFile, getFileList, renameFile } from "@/api/server/file-management";
 import { formatBytes } from "@pureadmin/utils";
 import { getConfig } from "@repo/config";
 import dayjs from "dayjs";
@@ -187,10 +187,10 @@ const emit = defineEmits<{
   "drop-upload": [targetDir: string, files: File[]];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false);
 const fileList = ref<FileInfo[]>([]);
-const hasLoadedOnce = ref(false); // 标记是否已经加载过一次
+const hasLoadedOnce = ref(false); // 标记是否已经加载过一�?
 const createFolderVisible = ref(false);
 const createFolderForm = reactive({
   name: ""
@@ -211,7 +211,7 @@ const previewFileInfo = ref<FileInfo | null>(null);
 // 路径导航
 const pathItems = computed(() => {
   const parts = props.currentPath.split("/").filter(Boolean);
-  const items = [{ name: "根目录", path: "/" }];
+  const items = [{ name: "根目�?, path: "/" }];
 
   let currentPath = "";
   parts.forEach(part => {
@@ -222,13 +222,13 @@ const pathItems = computed(() => {
   return items;
 });
 
-// 返回上一层相关
+// 返回上一层相�?
 const canGoBack = computed(() => {
   return props.currentPath !== "/" && props.currentPath !== "";
 });
 
 /**
- * 返回上一层
+ * 返回上一�?
  */
 const goBack = () => {
   if (!canGoBack.value) return;
@@ -236,7 +236,7 @@ const goBack = () => {
   const parts = props.currentPath.split("/").filter(Boolean);
   if (parts.length === 0) return;
 
-  // 移除最后一个路径部分
+  // 移除最后一个路径部�?
   parts.pop();
 
   // 构建父级路径
@@ -264,7 +264,7 @@ const loadFileList = async () => {
 
     if (res.code === "00000" && res.data?.success) {
       fileList.value = res.data.files || [];
-      hasLoadedOnce.value = true; // 标记已经加载过一次
+      hasLoadedOnce.value = true; // 标记已经加载过一�?
       console.log("FileList: File list loaded", fileList.value);
     } else {
       console.error("FileList: API error", res);
@@ -280,18 +280,18 @@ const loadFileList = async () => {
   }
 };
 
-// 移除自动加载逻辑，改为手动触发
-// 不再监听路径变化自动加载，只在用户主动点击树节点时加载
+// 移除自动加载逻辑，改为手动触�?
+// 不再监听路径变化自动加载，只在用户主动点击树节点时加�?
 
 /**
- * 格式化文件大小
+ * 格式化文件大�?
  */
 const formatFileSize = (size: number) => {
   return formatBytes(size);
 };
 
 /**
- * 格式化时间
+ * 格式化时�?
  */
 const formatTime = (time: string) => {
   return dayjs(time).format("YYYY-MM-DD HH:mm:ss");
@@ -316,7 +316,7 @@ const getFileIcon = (file: FileInfo) => {
     case "vue":
       return "ri:vuejs-line";
 
-    // Web技术
+    // Web技�?
     case "html":
     case "htm":
       return "ri:html5-line";
@@ -435,7 +435,7 @@ const getFileIcon = (file: FileInfo) => {
     case "webm":
       return "ri:video-line";
 
-    // 可执行文件
+    // 可执行文�?
     case "exe":
     case "msi":
     case "dmg":
@@ -444,7 +444,7 @@ const getFileIcon = (file: FileInfo) => {
     case "app":
       return "ri:install-line";
 
-    // 库文件
+    // 库文�?
     case "dll":
     case "so":
     case "dylib":
@@ -452,7 +452,7 @@ const getFileIcon = (file: FileInfo) => {
     case "a":
       return "ri:code-box-line";
 
-    // 数据库
+    // 数据�?
     case "db":
     case "sqlite":
     case "sql":
@@ -485,10 +485,10 @@ const handleFileClick = (file: FileInfo) => {
 const handleRowDoubleClick = (file: FileInfo) => {
   console.log("FileList: File double clicked", file);
   if (file.isDirectory) {
-    // 双击文件夹：进入文件夹
+    // 双击文件夹：进入文件�?
     emit("path-change", file.path);
   } else {
-    // 双击文件：预览文件
+    // 双击文件：预览文�?
     if (isFilePreviewable(file)) {
       previewFileInfo.value = file;
       previewDialogVisible.value = true;
@@ -532,7 +532,7 @@ const copyFilePath = async () => {
 
   try {
     await navigator.clipboard.writeText(selectedContextFile.value.path);
-    ElMessage.success("文件路径已复制到剪贴板");
+    ElMessage.success("文件路径已复制到剪贴�?);
   } catch (error) {
     console.error("复制失败:", error);
     ElMessage.error("复制失败，请手动复制");
@@ -597,7 +597,7 @@ const previewFileAction = () => {
 };
 
 /**
- * 显示文件属性
+ * 显示文件属�?
  */
 const showFileProperties = () => {
   if (!selectedContextFile.value) return;
@@ -607,7 +607,7 @@ const showFileProperties = () => {
 };
 
 /**
- * 判断文件是否可预览
+ * 判断文件是否可预�?
  */
 const isFilePreviewable = (file: FileInfo) => {
   if (file.isDirectory) return false;
@@ -617,7 +617,7 @@ const isFilePreviewable = (file: FileInfo) => {
 
   if (!ext) return false;
 
-  // 支持预览的文件格式
+  // 支持预览的文件格�?
   const previewableExtensions = [
     // 图片格式
     "jpg",
@@ -682,7 +682,7 @@ const isFilePreviewable = (file: FileInfo) => {
 };
 
 /**
- * 导航到指定路径
+ * 导航到指定路�?
  */
 const navigateToPath = (path: string) => {
   console.log("FileList: Navigate to path", path);
@@ -753,7 +753,7 @@ async function readEntriesRecursive(entries: any[]): Promise<File[]> {
 }
 
 /**
- * 重置组件状态
+ * 重置组件状�?
  */
 const resetState = () => {
   console.log("FileList: Resetting state");
@@ -762,7 +762,7 @@ const resetState = () => {
 };
 
 /**
- * 创建文件夹
+ * 创建文件�?
  */
 const createFolder = () => {
   createFolderForm.name = "";
@@ -770,7 +770,7 @@ const createFolder = () => {
 };
 
 /**
- * 确认创建文件夹
+ * 确认创建文件�?
  */
 const confirmCreateFolder = async () => {
   if (!createFolderForm.name.trim()) {
@@ -783,15 +783,15 @@ const confirmCreateFolder = async () => {
     const res = await createDirectory(props.serverId, folderPath, false);
 
     if (res.code === "00000" && res.data?.success) {
-      ElMessage.success("文件夹创建成功");
+      ElMessage.success("文件夹创建成�?);
       createFolderVisible.value = false;
       loadFileList();
     } else {
-      ElMessage.error(res.data?.message || "创建文件夹失败");
+      ElMessage.error(res.data?.message || "创建文件夹失�?);
     }
   } catch (error) {
-    console.error("FileList: 创建文件夹失败:", error);
-    ElMessage.error("创建文件夹失败");
+    console.error("FileList: 创建文件夹失�?", error);
+    ElMessage.error("创建文件夹失�?);
   }
 };
 
@@ -817,11 +817,11 @@ const handleFileAction = async (command: string, file: FileInfo) => {
 };
 
 /**
- * 重命名文件
+ * 重命名文�?
  */
 const renameFileAction = async (file: FileInfo) => {
   try {
-    const { value: newName } = await ElMessageBox.prompt("请输入新的文件名", "重命名", {
+    const { value: newName } = await ElMessageBox.prompt("请输入新的文件名", "重命�?, {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       inputValue: file.name
@@ -831,10 +831,10 @@ const renameFileAction = async (file: FileInfo) => {
       const res = await renameFile(props.serverId, file.path, newName);
 
       if (res.code === "00000" && res.data?.success) {
-        ElMessage.success("重命名成功");
+        ElMessage.success("重命名成�?);
         loadFileList();
       } else {
-        ElMessage.error(res.data?.message || "重命名失败");
+        ElMessage.error(res.data?.message || "重命名失�?);
       }
     }
   } catch (error) {
@@ -847,7 +847,7 @@ const renameFileAction = async (file: FileInfo) => {
  */
 const deleteFileAction = async (file: FileInfo) => {
   try {
-    await ElMessageBox.confirm(`确定要删除 "${file.name}" 吗？`, "删除确认", {
+    await ElMessageBox.confirm(`确定要删�?"${file.name}" 吗？`, "删除确认", {
       type: "warning",
       confirmButtonText: "确定",
       cancelButtonText: "取消"
@@ -920,7 +920,7 @@ const downloadPreviewFile = async () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        ElMessage.success("文件下载开始");
+        ElMessage.success("文件下载开�?);
       } else {
         ElMessage.error("获取下载链接失败");
       }
@@ -946,13 +946,13 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-   background: var(--el-bg-color-overlay); /* 设置文件列表背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置文件列表背景为白�?*/
 }
 
 .list-header {
   padding: 12px 16px;
   border-bottom: 1px solid var(--el-border-color-light);
-   background: var(--el-bg-color-overlay); /* 设置列表头部背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置列表头部背景为白�?*/
 }
 
 .path-navigation {
@@ -1061,7 +1061,7 @@ defineExpose({
   color: var(--el-color-primary);
 }
 
-/* 文件预览对话框样式 */
+/* 文件预览对话框样�?*/
 .file-preview-dialog {
   --dialog-border-radius: 8px;
 }
@@ -1105,7 +1105,7 @@ defineExpose({
   flex: 1;
 }
 
-/* 响应式设计 */
+/* 响应式设�?*/
 @media (max-width: 768px) {
   .file-preview-dialog :deep(.el-dialog) {
     width: 95% !important;

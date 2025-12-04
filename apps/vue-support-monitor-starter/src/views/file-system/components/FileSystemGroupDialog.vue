@@ -20,7 +20,7 @@
         <el-form-item label="分组名称" prop="fileSystemGroupName">
           <el-input
             v-model="formData.fileSystemGroupName"
-            placeholder="请输入分组名称"
+            placeholder="请输入分组名�?
             clearable
             maxlength="100"
             show-word-limit
@@ -73,7 +73,7 @@
           <div class="icon-selector">
             <el-input
               v-model="formData.fileSystemGroupIcon"
-              placeholder="请输入图标名称"
+              placeholder="请输入图标名�?
               clearable
             >
               <template #prefix>
@@ -111,12 +111,12 @@
             v-model="formData.fileSystemGroupSort"
             :min="0"
             :max="999"
-            placeholder="排序值"
+            placeholder="排序�?
             style="width: 200px"
           />
         </el-form-item>
 
-        <el-form-item label="状态" prop="fileSystemGroupStatus">
+        <el-form-item label="状�? prop="fileSystemGroupStatus">
           <el-switch
             v-model="formData.fileSystemGroupStatus"
             :active-value="1"
@@ -159,7 +159,7 @@ const emit = defineEmits<{
   success: [];
 }>();
 
-// 响应式数据
+// 响应式数�?
 const visible = ref(false);
 const isEdit = ref(false);
 const submitting = ref(false);
@@ -206,7 +206,7 @@ const colorPresets = [
   "#52C41A",
 ];
 
-// 树选择器配置
+// 树选择器配�?
 const treeSelectProps = {
   value: "fileSystemGroupId",
   label: "fileSystemGroupName",
@@ -216,15 +216,15 @@ const treeSelectProps = {
 // 表单验证规则
 const rules: FormRules = {
   fileSystemGroupName: [
-    { required: true, message: "请输入分组名称", trigger: "blur" },
-    { min: 1, max: 100, message: "分组名称长度为1-100个字符", trigger: "blur" },
+    { required: true, message: "请输入分组名�?, trigger: "blur" },
+    { min: 1, max: 100, message: "分组名称长度�?-100个字�?, trigger: "blur" },
   ],
   fileSystemGroupPath: [
-    { required: true, message: "请输入分组路径", trigger: "blur" },
-    { min: 1, max: 100, message: "分组路径长度为1-100个字符", trigger: "blur" },
+    { required: true, message: "请输入分组路�?, trigger: "blur" },
+    { min: 1, max: 100, message: "分组路径长度�?-100个字�?, trigger: "blur" },
     {
       pattern: /^[a-zA-Z0-9_-]+$/,
-      message: "分组路径只能包含字母、数字、下划线和横线",
+      message: "分组路径只能包含字母、数字、下划线和横�?,
       trigger: "blur",
     },
   ],
@@ -233,13 +233,13 @@ const rules: FormRules = {
   ],
 };
 
-// 计算属性
+// 计算属�?
 const dialogVisible = computed({
   get: () => props.modelValue,
   set: (value) => emit("update:modelValue", value),
 });
 
-// 监听对话框显示状态
+// 监听对话框显示状�?
 watch(
   () => props.modelValue,
   (newVal) => {
@@ -269,14 +269,14 @@ const loadParentGroups = async () => {
   }
 };
 
-// 打开新建对话框
+// 打开新建对话�?
 const openCreate = () => {
   isEdit.value = false;
   resetForm();
   visible.value = true;
 };
 
-// 打开编辑对话框
+// 打开编辑对话�?
 const openEdit = (group: FileSystemGroup) => {
   isEdit.value = true;
   resetForm();

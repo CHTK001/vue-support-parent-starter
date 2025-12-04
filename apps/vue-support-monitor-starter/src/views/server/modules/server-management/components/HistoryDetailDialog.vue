@@ -58,7 +58,7 @@
         </h4>
         <div class="config-snapshot">
           <el-tabs v-model="activeTab" type="card">
-            <el-tab-pane label="格式化视图" name="formatted">
+            <el-tab-pane label="格式化视�? name="formatted">
               <div class="formatted-config">
                 <el-tree
                   :data="formattedConfig"
@@ -94,15 +94,15 @@
         </h4>
         <div class="changed-fields">
           <el-table :data="changedFields" stripe>
-            <el-table-column prop="field" label="字段名" width="200" />
-            <el-table-column prop="oldValue" label="原值">
+            <el-table-column prop="field" label="字段�? width="200" />
+            <el-table-column prop="oldValue" label="原�?>
               <template #default="{ row }">
                 <div class="value-cell old-value">
                   {{ formatValue(row.oldValue) }}
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="newValue" label="新值">
+            <el-table-column prop="newValue" label="新�?>
               <template #default="{ row }">
                 <div class="value-cell new-value">
                   {{ formatValue(row.newValue) }}
@@ -123,7 +123,7 @@
           @click="handleRestore"
         >
           <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
-          恢复此配置
+          恢复此配�?
         </el-button>
       </div>
     </template>
@@ -140,7 +140,7 @@ import {
   ChangeTypeColors
 } from "@/api/server/settingHistory";
 
-// 定义属性
+// 定义属�?
 interface Props {
   visible: boolean;
   historyData: ServerSettingHistory | null;
@@ -154,19 +154,19 @@ const emit = defineEmits<{
   restore: [historyId: number];
 }>();
 
-// 响应式状态
+// 响应式状�?
 const dialogVisible = ref(false);
 const loading = ref(false);
 const activeTab = ref("formatted");
 const detailData = ref<any>(null);
 
-// 树形组件属性
+// 树形组件属�?
 const treeProps = {
   children: "children",
   label: "label"
 };
 
-// 计算属性
+// 计算属�?
 const configSnapshot = computed(() => {
   if (!props.historyData?.settingSnapshot) return null;
   try {
@@ -199,7 +199,7 @@ const changedFields = computed(() => {
 });
 
 /**
- * 转换为树形数据
+ * 转换为树形数�?
  */
 const convertToTreeData = (obj: any, parentKey = ""): any[] => {
   const result: any[] = [];
@@ -224,7 +224,7 @@ const convertToTreeData = (obj: any, parentKey = ""): any[] => {
 };
 
 /**
- * 格式化值
+ * 格式化�?
  */
 const formatValue = (value: any) => {
   if (value === null) return "null";
@@ -236,7 +236,7 @@ const formatValue = (value: any) => {
 };
 
 /**
- * 格式化时间
+ * 格式化时�?
  */
 const formatTime = (time: string) => {
   return new Date(time).toLocaleString();
@@ -265,7 +265,7 @@ const handleRestore = () => {
 const handleCopySnapshot = async () => {
   try {
     await navigator.clipboard.writeText(formattedJson.value);
-    message.success("配置快照已复制到剪贴板");
+    message.success("配置快照已复制到剪贴�?);
   } catch (error) {
     console.error("复制失败:", error);
     message.error("复制失败");

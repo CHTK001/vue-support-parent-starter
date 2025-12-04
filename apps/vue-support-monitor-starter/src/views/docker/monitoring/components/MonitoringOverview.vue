@@ -7,7 +7,7 @@
         </div>
         <div class="overview-content">
           <div class="overview-value">{{ formatPercent(avgCpuUsage) }}</div>
-          <div class="overview-label">平均CPU使用率</div>
+          <div class="overview-label">平均CPU使用�?/div>
         </div>
       </div>
       <div class="overview-card">
@@ -16,7 +16,7 @@
         </div>
         <div class="overview-content">
           <div class="overview-value">{{ formatPercent(avgMemoryUsage) }}</div>
-          <div class="overview-label">平均内存使用率</div>
+          <div class="overview-label">平均内存使用�?/div>
         </div>
       </div>
       <div class="overview-card">
@@ -34,7 +34,7 @@
         </div>
         <div class="overview-content">
           <div class="overview-value">{{ runningContainers }}</div>
-          <div class="overview-label">运行中容器</div>
+          <div class="overview-label">运行中容�?/div>
         </div>
       </div>
     </div>
@@ -129,7 +129,7 @@ const formatPercent = (value: number) => `${value.toFixed(1)}%`
   color: #909399;
 }
 
-/* 响应式设计 */
+/* 响应式设�?*/
 @media (max-width: 768px) {
   .overview-grid {
     grid-template-columns: 1fr;

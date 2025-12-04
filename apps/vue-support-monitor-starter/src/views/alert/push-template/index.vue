@@ -6,7 +6,7 @@
         <div class="title-section">
           <h1 class="page-title">
             <IconifyIconOnline icon="ri:file-list-3-line" class="title-icon" />
-            推送模板管理
+            推送模板管�?
           </h1>
           <p class="page-subtitle">管理消息推送模板，支持多种通道配置</p>
         </div>
@@ -20,13 +20,13 @@
               list.filter((i) => i.monitorSysGenMessagePushTemplateEnabled)
                 .length
             }}</span>
-            <span class="stat-label">已启用</span>
+            <span class="stat-label">已启�?/span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 工具栏 -->
+    <!-- 工具�?-->
     <div class="toolbar">
       <div class="toolbar-left">
         <el-input
@@ -99,7 +99,7 @@
         <el-button type="primary" link @click="openEdit(row)">编辑</el-button>
         <el-divider direction="vertical" />
         <el-button type="warning" link @click="handleTest(row)"
-          >测试发送</el-button
+          >测试发�?/el-button
         >
         <el-divider direction="vertical" />
         <el-popconfirm title="确认删除该模板？" @confirm="handleDelete(row)">
@@ -129,7 +129,7 @@
         >
           <el-input
             v-model="edit.form.monitorSysGenMessagePushTemplateName"
-            placeholder="请输入模板名称"
+            placeholder="请输入模板名�?
           />
         </el-form-item>
         <el-form-item
@@ -156,15 +156,15 @@
         <el-form-item label="Endpoint/Webhook">
           <el-input
             v-model="edit.form.monitorSysGenMessagePushTemplateEndpoint"
-            placeholder="https://... 或 邮箱/手机号等"
+            placeholder="https://... �?邮箱/手机号等"
           />
         </el-form-item>
-        <el-form-item label="主账号">
+        <el-form-item label="主账�?>
           <el-input
             v-model="edit.form.monitorSysGenMessagePushTemplateMainAccount"
           />
         </el-form-item>
-        <el-form-item label="用户名">
+        <el-form-item label="用户�?>
           <el-input
             v-model="edit.form.monitorSysGenMessagePushTemplateUsername"
           />
@@ -244,14 +244,14 @@ const columns = [
     prop: "monitorSysGenMessagePushTemplateEnabled",
     label: "启用",
     formatter: (_: any, row: any) =>
-      row.monitorSysGenMessagePushTemplateEnabled ? "是" : "否",
+      row.monitorSysGenMessagePushTemplateEnabled ? "�? : "�?,
   },
   {
     prop: "monitorSysGenMessagePushTemplateEndpoint",
     label: "Endpoint/Webhook",
   },
-  { prop: "monitorSysGenMessagePushTemplateMainAccount", label: "主账号" },
-  { prop: "monitorSysGenMessagePushTemplateUsername", label: "用户名" },
+  { prop: "monitorSysGenMessagePushTemplateMainAccount", label: "主账�? },
+  { prop: "monitorSysGenMessagePushTemplateUsername", label: "用户�? },
   { prop: "monitorSysGenMessagePushTemplateRemark", label: "备注" },
   { prop: "actions", label: "操作" },
 ];
@@ -260,7 +260,7 @@ const edit = reactive({ visible: false, form: {} as any });
 const formRef = ref();
 const rules = {
   monitorSysGenMessagePushTemplateName: [
-    { required: true, message: "请输入模板名称", trigger: "blur" },
+    { required: true, message: "请输入模板名�?, trigger: "blur" },
   ],
   monitorSysGenMessagePushTemplateChannel: [
     { required: true, message: "请选择通道", trigger: "change" },
@@ -342,12 +342,12 @@ async function handleTest(row: any) {
       row.monitorSysGenMessagePushTemplateId
     );
     if ((res as any).code === "00000" || (res as any).success) {
-      ElMessage.success("测试发送成功");
+      ElMessage.success("测试发送成�?);
     } else {
-      ElMessage.error((res as any).msg || "测试发送失败");
+      ElMessage.error((res as any).msg || "测试发送失�?);
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || "测试发送失败");
+    ElMessage.error(e?.message || "测试发送失�?);
   }
 }
 

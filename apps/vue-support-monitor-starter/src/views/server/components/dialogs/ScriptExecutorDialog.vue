@@ -1,14 +1,14 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="脚本执行器"
+    title="脚本执行�?
     width="800px"
     :close-on-click-modal="false"
     @close="handleClose"
   >
     <div class="script-executor">
       <el-row :gutter="20">
-        <!-- 左侧脚本编辑区 -->
+        <!-- 左侧脚本编辑�?-->
         <el-col :span="12">
           <div class="script-panel">
             <div class="panel-header">
@@ -26,7 +26,7 @@
                       <el-dropdown-item command="memory_info">内存信息</el-dropdown-item>
                       <el-dropdown-item command="process_list">进程列表</el-dropdown-item>
                       <el-dropdown-item command="network_info">网络信息</el-dropdown-item>
-                      <el-dropdown-item command="service_status">服务状态</el-dropdown-item>
+                      <el-dropdown-item command="service_status">服务状�?/el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
@@ -40,7 +40,7 @@
                   <el-option label="Shell脚本" value="shell" />
                   <el-option label="PowerShell" value="powershell" />
                   <el-option label="Python脚本" value="python" />
-                  <el-option label="批处理" value="batch" />
+                  <el-option label="批处�? value="batch" />
                 </el-select>
               </el-form-item>
               
@@ -52,7 +52,7 @@
                   :step="5"
                   style="width: 100%"
                 />
-                <span class="timeout-unit">秒</span>
+                <span class="timeout-unit">�?/span>
               </el-form-item>
             </el-form>
 
@@ -61,7 +61,7 @@
                 v-model="formData.script"
                 type="textarea"
                 :rows="15"
-                placeholder="请输入要执行的脚本内容..."
+                placeholder="请输入要执行的脚本内�?.."
                 class="script-textarea"
               />
             </div>
@@ -84,7 +84,7 @@
           </div>
         </el-col>
 
-        <!-- 右侧执行结果区 -->
+        <!-- 右侧执行结果�?-->
         <el-col :span="12">
           <div class="result-panel">
             <div class="panel-header">
@@ -95,7 +95,7 @@
               </div>
             </div>
 
-            <!-- 执行状态 -->
+            <!-- 执行状�?-->
             <div class="execution-status" v-if="executing || executionResult">
               <el-tag
                 :type="getStatusType(executionStatus)"
@@ -148,7 +148,7 @@
 
       <!-- 目标服务器选择 -->
       <div class="server-selection" v-if="!targetServer">
-        <el-divider content-position="left">目标服务器</el-divider>
+        <el-divider content-position="left">目标服务�?/el-divider>
         <el-checkbox-group v-model="selectedServers">
           <el-checkbox
             v-for="server in availableServers"
@@ -183,7 +183,7 @@ const props = defineProps<{
   servers?: any[];
 }>();
 
-// 状态
+// 状�?
 const visible = ref(false);
 const executing = ref(false);
 const executionStatus = ref<'running' | 'success' | 'error' | 'timeout'>('running');
@@ -249,7 +249,7 @@ Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, Size, FreeSpace
 echo "=== 磁盘使用情况 ==="
 df -h
 echo ""
-echo "=== 大文件查找 (>100M) ==="
+echo "=== 大文件查�?(>100M) ==="
 find / -type f -size +100M -exec ls -lh {} \\; 2>/dev/null | head -10`,
     powershell: `# 磁盘使用情况
 Write-Host "=== 磁盘使用情况 ==="
@@ -334,12 +334,12 @@ const clearOutput = () => {
 
 const executeScript = async () => {
   if (!formData.script.trim()) {
-    message.warning('请输入脚本内容');
+    message.warning('请输入脚本内�?);
     return;
   }
 
   if (!targetServer.value && selectedServers.value.length === 0) {
-    message.warning('请选择目标服务器');
+    message.warning('请选择目标服务�?);
     return;
   }
 
@@ -349,7 +349,7 @@ const executeScript = async () => {
     executionStatus.value = 'running';
     clearOutput();
     
-    addLog('info', '开始执行脚本...');
+    addLog('info', '开始执行脚�?..');
     
     const startTime = Date.now();
     
@@ -384,7 +384,7 @@ const simulateScriptExecution = async () => {
   addLog('info', '设置执行权限...');
   await new Promise(resolve => setTimeout(resolve, 200));
   
-  addLog('info', '开始执行脚本...');
+  addLog('info', '开始执行脚�?..');
   
   // 模拟输出
   const outputs = [
@@ -418,8 +418,8 @@ const stopExecution = () => {
   if (executing.value) {
     executing.value = false;
     executionStatus.value = 'error';
-    addLog('warning', '脚本执行已停止');
-    message.warning('脚本执行已停止');
+    addLog('warning', '脚本执行已停�?);
+    message.warning('脚本执行已停�?);
   }
 };
 
@@ -432,12 +432,12 @@ const downloadOutput = () => {
   link.download = `script_output_${Date.now()}.txt`;
   link.click();
   URL.revokeObjectURL(url);
-  message.success('输出结果已下载');
+  message.success('输出结果已下�?);
 };
 
 const saveScript = () => {
   // TODO: 实现脚本保存功能
-  message.success('脚本已保存');
+  message.success('脚本已保�?);
 };
 
 const addLog = (level: 'info' | 'success' | 'warning' | 'error', message: string) => {
@@ -470,12 +470,12 @@ const getStatusType = (status: string) => {
 
 const getStatusText = (status: string) => {
   const textMap = {
-    running: '执行中',
+    running: '执行�?,
     success: '执行成功',
     error: '执行失败',
     timeout: '执行超时'
   };
-  return textMap[status as keyof typeof textMap] || '未知状态';
+  return textMap[status as keyof typeof textMap] || '未知状�?;
 };
 
 const formatTime = (time: Date) => {

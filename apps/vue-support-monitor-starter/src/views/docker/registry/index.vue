@@ -17,7 +17,7 @@
           theme="success"
           icon="ri:checkbox-circle-line"
           :value="activeCount"
-          label="已激活"
+          label="已激�?
           trend-icon="ri:check-double-line"
           trend-text="可用"
         />
@@ -42,7 +42,7 @@
       </div>
     </div>
 
-    <!-- 工具栏 -->
+    <!-- 工具�?-->
     <div class="toolbar-section">
       <div class="toolbar-left">
         <el-input
@@ -65,9 +65,9 @@
         >
           <el-option label="全部类型" value="" />
           <el-option label="Docker Hub" value="docker_hub" />
-          <el-option label="阿里云" value="aliyun" />
+          <el-option label="阿里�? value="aliyun" />
           <el-option label="Harbor" value="harbor" />
-          <el-option label="自定义" value="custom" />
+          <el-option label="自定�? value="custom" />
         </el-select>
       </div>
       <div class="toolbar-right">
@@ -111,9 +111,9 @@
             effect="dark"
           >
             <IconifyIconOnline icon="ri:check-line" class="mr-1" />
-            已激活
+            已激�?
           </el-tag>
-          <el-tag v-else type="info" size="small">未激活</el-tag>
+          <el-tag v-else type="info" size="small">未激�?/el-tag>
         </template>
 
         <!-- 卡片内容 -->
@@ -180,7 +180,7 @@
                   : 'ri:toggle-line'
               "
             />
-            {{ registry.systemSoftRegistryActive === 1 ? "取消激活" : "激活" }}
+            {{ registry.systemSoftRegistryActive === 1 ? "取消激�? : "激�? }}
           </el-button>
           <el-button
             size="small"
@@ -192,7 +192,7 @@
         </template>
       </ScCard>
 
-      <!-- 空状态 -->
+      <!-- 空状�?-->
       <div
         v-if="filteredRegistries.length === 0 && !loading"
         class="empty-state"
@@ -203,14 +203,14 @@
       </div>
     </div>
 
-    <!-- 仓库编辑对话框 -->
+    <!-- 仓库编辑对话�?-->
     <RegistryDialog
       v-model:visible="dialogVisible"
       :registry-data="currentRegistry"
       @success="handleDialogSuccess"
     />
 
-    <!-- 同步进度对话框 -->
+    <!-- 同步进度对话�?-->
     <SyncProgressDialog
       v-model:visible="syncProgressVisible"
       :progress="syncProgressData"
@@ -219,7 +219,7 @@
 </template>
 
 <script setup lang="ts">
-import { registryApi, type SystemSoftRegistry } from "@/api/docker-management";
+import { registryApi, type SystemSoftRegistry } from "@/api/docker";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { computed, onMounted, reactive, ref } from "vue";
 import RegistryDialog from "./components/RegistryDialog.vue";
@@ -233,7 +233,7 @@ import ScCard from "@repo/components/ScCard/index.vue";
  * @since 2025-12-01
  */
 
-// 响应式数据
+// 响应式数�?
 const loading = ref(false);
 const dialogVisible = ref(false);
 const syncProgressVisible = ref(false);
@@ -245,13 +245,13 @@ const searchParams = reactive({
   type: "",
 });
 
-// 当前编辑的仓库
+// 当前编辑的仓�?
 const currentRegistry = ref<SystemSoftRegistry | null>(null);
 
 // 同步进度数据
 const syncProgressData = ref({});
 
-// 计算属性
+// 计算属�?
 const activeCount = computed(
   () =>
     registryList.value.filter((r) => r.systemSoftRegistryActive === 1).length
@@ -306,25 +306,25 @@ const handleSearch = () => {
   // 前端过滤，无需重新请求
 };
 
-// 打开创建对话框
+// 打开创建对话�?
 const openCreateDialog = () => {
   currentRegistry.value = null;
   dialogVisible.value = true;
 };
 
-// 打开编辑对话框
+// 打开编辑对话�?
 const openEditDialog = (registry: SystemSoftRegistry) => {
   currentRegistry.value = { ...registry };
   dialogVisible.value = true;
 };
 
-// 对话框成功回调
+// 对话框成功回�?
 const handleDialogSuccess = () => {
   loadRegistries();
   ElMessage.success("操作成功");
 };
 
-// 切换激活状态
+// 切换激活状�?
 const handleToggleActive = async (row: SystemSoftRegistry) => {
   try {
     const isActive = row.systemSoftRegistryActive === 1;
@@ -332,7 +332,7 @@ const handleToggleActive = async (row: SystemSoftRegistry) => {
       ? await registryApi.deactivateRegistry(row.systemSoftRegistryId!)
       : await registryApi.activateRegistry(row.systemSoftRegistryId!);
     if (res.code === "00000") {
-      ElMessage.success(isActive ? "已取消激活" : "已激活");
+      ElMessage.success(isActive ? "已取消激�? : "已激�?);
       loadRegistries();
     } else {
       ElMessage.error(res.msg || "操作失败");
@@ -423,9 +423,9 @@ const getRegistryTypeTag = (type?: string) => {
 const getRegistryTypeText = (type?: string) => {
   const textMap = {
     docker_hub: "Docker Hub",
-    aliyun: "阿里云",
+    aliyun: "阿里�?,
     harbor: "Harbor",
-    custom: "自定义",
+    custom: "自定�?,
   };
   return textMap[type] || "未知";
 };
@@ -460,7 +460,7 @@ const formatTime = (time?: string) => {
 
 // 生命周期
 onMounted(() => {
-  // Global Socket已在App层面初始化
+  // Global Socket已在App层面初始�?
   loadRegistries();
 });
 </script>
@@ -483,7 +483,7 @@ onMounted(() => {
   }
 }
 
-// 工具栏
+// 工具�?
 .toolbar-section {
   display: flex;
   justify-content: space-between;
@@ -548,7 +548,7 @@ onMounted(() => {
   }
 }
 
-// 空状态
+// 空状�?
 .empty-state {
   grid-column: 1 / -1;
   display: flex;
@@ -573,7 +573,7 @@ onMounted(() => {
   }
 }
 
-// 响应式
+// 响应�?
 @media (max-width: 1200px) {
   .stats-section .stats-grid {
     grid-template-columns: repeat(2, 1fr);

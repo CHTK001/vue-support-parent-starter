@@ -41,11 +41,11 @@
       </el-table-column>
     </ScTable>
 
-    <!-- 已选软件提示 -->
+    <!-- 已选软件提�?-->
     <div v-if="selectedSoftware.length > 0" class="selection-info">
       <el-alert type="success" :closable="false">
         <template #title>
-          已选择 <strong>{{ selectedSoftware.length }}</strong> 个软件
+          已选择 <strong>{{ selectedSoftware.length }}</strong> 个软�?
         </template>
       </el-alert>
     </div>
@@ -60,7 +60,7 @@
           @click="handleImport"
         >
           <IconifyIconOnline icon="ri:save-line" class="mr-1" />
-          保存选中软件（{{ selectedSoftware.length }}）
+          保存选中软件（{{ selectedSoftware.length }}�?
         </el-button>
       </div>
     </template>
@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { softwareApi } from '@/api/docker-management';
+import { softwareApi } from '@/api/docker';
 import ScTable from '@repo/components/ScTable/index.vue';
 import { ElMessage } from 'element-plus';
 import { computed, reactive, ref } from 'vue';
@@ -111,7 +111,7 @@ function handleSelectionChange(selection: any[]) {
   selectedSoftware.value = selection;
 }
 
-// 批量保存选中的软件到数据库
+// 批量保存选中的软件到数据�?
 async function handleImport() {
   if (!selectedSoftware.value.length) {
     return ElMessage.warning('请先选择要保存的软件');
@@ -138,7 +138,7 @@ async function handleImport() {
       emit('success');
       // 清空选择
       selectedSoftware.value = [];
-      // 关闭对话框
+      // 关闭对话�?
       visibleProxy.value = false;
     } else {
       ElMessage.error(res.msg || '保存失败');

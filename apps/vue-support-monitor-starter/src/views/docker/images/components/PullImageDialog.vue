@@ -34,10 +34,10 @@
         </div>
       </el-form-item>
 
-      <el-form-item label="目标服务器" prop="serverId">
+      <el-form-item label="目标服务�? prop="serverId">
         <el-select
           v-model="form.serverId"
-          placeholder="选择服务器"
+          placeholder="选择服务�?
           style="width: 100%"
         >
           <el-option
@@ -83,7 +83,7 @@
       <span class="dialog-footer">
         <el-button @click="handleClose" :disabled="pulling">取消</el-button>
         <el-button type="primary" @click="handleSubmit" :loading="pulling">
-          {{ pulling ? "拉取中..." : "开始拉取" }}
+          {{ pulling ? "拉取�?.." : "开始拉�? }}
         </el-button>
       </span>
     </template>
@@ -93,7 +93,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
-import { imageApi, getServerList, registryApi } from "@/api/docker-management";
+import { imageApi, getServerList, registryApi } from "@/api/docker";
 import { useImagePullNotification } from "@/composables/useImagePullNotification";
 import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
 
@@ -127,7 +127,7 @@ const form = reactive({
 });
 
 const rules: FormRules = {
-  serverId: [{ required: true, message: "请选择服务器", trigger: "change" }],
+  serverId: [{ required: true, message: "请选择服务�?, trigger: "change" }],
 };
 
 const dialogVisible = computed({
@@ -144,7 +144,7 @@ watch(dialogVisible, (visible) => {
 
 const loadData = async () => {
   try {
-    // 加载服务器列表
+    // 加载服务器列�?
     const serverResponse = await getServerList();
     if (serverResponse.code === "00000") {
       serverOptions.value = serverResponse.data || [];
@@ -180,7 +180,7 @@ const handleSubmit = async () => {
     if (form.fullImageName.trim()) {
       params.fullImageName = form.fullImageName.trim();
     } else {
-      // 否则使用镜像名称和标签组合
+      // 否则使用镜像名称和标签组�?
       if (!form.imageName.trim()) {
         ElMessage.error("请填写镜像名称或完整镜像名称");
         return;
@@ -203,7 +203,7 @@ const handleSubmit = async () => {
         setTimeout(() => emit("success"), 1000);
       }
 
-      ElMessage.success("镜像拉取任务已启动，请在右下角查看实时进度");
+      ElMessage.success("镜像拉取任务已启动，请在右下角查看实时进�?);
       emit("success");
       handleClose();
     } else {
