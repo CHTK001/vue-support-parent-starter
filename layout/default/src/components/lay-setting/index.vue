@@ -4096,46 +4096,88 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color-overlay);
-  border: 2px solid var(--el-border-color-lighter);
-  border-radius: 16px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 20px;
   cursor: pointer;
   overflow: hidden;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  /* 顶部光泽效果 */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.5) 0%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+    border-radius: 20px 20px 0 0;
+  }
 
   &:hover {
-    border-color: var(--el-color-primary-light-5);
-    transform: translateY(-6px);
+    transform: translateY(-8px) scale(1.02);
+    border-color: rgba(var(--el-color-primary-rgb), 0.3);
     box-shadow:
-      0 12px 32px rgba(var(--el-color-primary-rgb), 0.15),
-      0 6px 16px rgba(0, 0, 0, 0.08);
+      0 20px 40px rgba(var(--el-color-primary-rgb), 0.15),
+      0 8px 20px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
 
     .layout-mode-preview {
-      background: var(--el-color-primary-light-9);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.08) 0%,
+        rgba(var(--el-color-primary-rgb), 0.04) 100%
+      );
 
       svg {
-        transform: scale(1.05);
+        transform: scale(1.1) rotate(-3deg);
         color: var(--el-color-primary);
+        filter: drop-shadow(0 4px 8px rgba(var(--el-color-primary-rgb), 0.3));
       }
     }
 
     .layout-mode-name {
       color: var(--el-color-primary);
     }
+
+    .layout-mode-desc {
+      color: var(--el-color-primary-light-3);
+    }
   }
 
   &.is-active {
+    background: linear-gradient(
+      145deg,
+      rgba(var(--el-color-primary-rgb), 0.1) 0%,
+      rgba(var(--el-color-primary-rgb), 0.05) 100%
+    );
     border-color: var(--el-color-primary);
-    background: var(--el-color-primary-light-9);
     box-shadow:
-      0 0 0 4px rgba(var(--el-color-primary-rgb), 0.2),
-      0 8px 24px rgba(var(--el-color-primary-rgb), 0.18);
+      0 0 0 3px rgba(var(--el-color-primary-rgb), 0.15),
+      0 12px 32px rgba(var(--el-color-primary-rgb), 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
 
     .layout-mode-preview {
-      background: rgba(var(--el-color-primary-rgb), 0.08);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.12) 0%,
+        rgba(var(--el-color-primary-rgb), 0.06) 100%
+      );
 
       svg {
         color: var(--el-color-primary);
+        filter: drop-shadow(0 2px 6px rgba(var(--el-color-primary-rgb), 0.25));
       }
     }
 
@@ -4151,21 +4193,22 @@ onUnmounted(() => {
 }
 
 .layout-mode-preview {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 80px;
-  padding: 12px;
-  background: var(--el-fill-color-lighter);
-  border-bottom: 1px solid var(--el-border-color-extra-light);
-  transition: all 0.3s ease;
+  height: 85px;
+  padding: 14px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
   svg {
     width: 100%;
     height: 100%;
     max-width: 120px;
     max-height: 60px;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     color: var(--el-text-color-regular);
     border-radius: 8px;
   }
@@ -4175,8 +4218,9 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 12px 8px;
-  gap: 2px;
+  padding: 14px 10px;
+  gap: 4px;
+  background: transparent;
 }
 
 // Logo 配置样式
@@ -4262,31 +4306,55 @@ onUnmounted(() => {
 // 深色模式适配
 html.dark {
   .layout-mode-item {
-    background: var(--el-fill-color-dark);
-    border-color: var(--el-border-color-dark);
+    background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.3),
+      0 1px 3px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+    &::before {
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.03) 0%,
+        transparent 100%
+      );
+    }
 
     &:hover {
-      background: var(--el-fill-color-darker);
-      border-color: var(--el-color-primary-light-3);
+      background: linear-gradient(145deg, #334155 0%, #1e293b 100%);
+      border-color: rgba(var(--el-color-primary-rgb), 0.5);
+      box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.4),
+        0 8px 20px rgba(var(--el-color-primary-rgb), 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
     &.is-active {
-      background: rgba(var(--el-color-primary-rgb), 0.15);
+      background: linear-gradient(
+        145deg,
+        rgba(var(--el-color-primary-rgb), 0.2) 0%,
+        rgba(var(--el-color-primary-rgb), 0.1) 100%
+      );
       border-color: var(--el-color-primary);
+      box-shadow:
+        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.2),
+        0 12px 32px rgba(var(--el-color-primary-rgb), 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
 
       .layout-mode-preview svg {
-        color: #fff;
+        color: var(--el-color-primary-light-3);
       }
 
       .layout-mode-name {
-        color: #fff;
+        color: var(--el-color-primary-light-3);
       }
     }
   }
 
   .layout-mode-preview {
-    background: var(--el-fill-color-darker);
-    border-color: var(--el-border-color-dark);
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border-color: rgba(255, 255, 255, 0.05);
 
     svg {
       color: var(--el-text-color-regular);
@@ -4294,7 +4362,9 @@ html.dark {
   }
 
   .layout-mode-badge {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.5),
+      0 0 0 2px rgba(var(--el-color-primary-rgb), 0.3);
   }
 }
 

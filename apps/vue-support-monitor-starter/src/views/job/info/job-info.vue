@@ -8,7 +8,9 @@
             <IconifyIconOnline icon="ep:timer" class="title-icon" />
             调度任务管理
           </h1>
-          <p class="page-subtitle">管理和监控系统中的定时任务，支持任务的创建、编辑、启停和日志查看</p>
+          <p class="page-subtitle">
+            管理和监控系统中的定时任务，支持任务的创建、编辑、启停和日志查看
+          </p>
         </div>
         <div class="stats-section">
           <div class="stat-card">
@@ -32,48 +34,77 @@
       <div class="modern-toolbar">
         <div class="toolbar-left">
           <div class="search-container">
-            <el-input v-model="form.jobDesc" placeholder="搜索任务名称或描述..." clearable class="search-input">
+            <el-input
+              v-model="form.jobDesc"
+              placeholder="搜索任务名称或描述..."
+              clearable
+              class="search-input"
+            >
               <template #prefix>
                 <IconifyIconOnline icon="ep:search" class="search-icon" />
               </template>
             </el-input>
           </div>
-          
+
           <div class="filter-container">
-            <el-select v-model="form.jobGroup" class="group-select" placeholder="选择任务组">
+            <el-select
+              v-model="form.jobGroup"
+              class="group-select"
+              placeholder="选择任务组"
+            >
               <el-option :value="0" label="全部任务组">
                 <div class="option-item">
                   <IconifyIconOnline icon="ep:menu" class="option-icon" />
                   <span>全部任务组</span>
                 </div>
               </el-option>
-              <el-option v-for="item in executorData" :key="item.monitorId" :value="item.monitorId">
+              <el-option
+                v-for="item in executorData"
+                :key="item.monitorId"
+                :value="item.monitorId"
+              >
                 <div class="option-item">
-                  <IconifyIconOnline icon="ep:folder-opened" class="option-icon" />
+                  <IconifyIconOnline
+                    icon="ep:folder-opened"
+                    class="option-icon"
+                  />
                   <span>{{ item.monitorName }}</span>
-                  <span class="app-label">{{ item.monitorApplicationName }}</span>
+                  <span class="app-label">{{
+                    item.monitorApplicationName
+                  }}</span>
                 </div>
               </el-option>
             </el-select>
 
             <!-- 状态快捷切换 -->
             <div class="status-filter">
-              <el-button 
-                :class="['status-btn', { 'active': form.jobTriggerStatus === null }]" 
+              <el-button
+                :class="[
+                  'status-btn',
+                  { active: form.jobTriggerStatus === null },
+                ]"
                 @click="setStatus(null)"
               >
                 <IconifyIconOnline icon="ep:menu" class="btn-icon" />
                 全部
               </el-button>
-              <el-button 
-                :class="['status-btn', 'success', { 'active': form.jobTriggerStatus === 1 }]" 
+              <el-button
+                :class="[
+                  'status-btn',
+                  'success',
+                  { active: form.jobTriggerStatus === 1 },
+                ]"
                 @click="setStatus(1)"
               >
                 <IconifyIconOnline icon="ep:video-play" class="btn-icon" />
                 运行中
               </el-button>
-              <el-button 
-                :class="['status-btn', 'warning', { 'active': form.jobTriggerStatus === 0 }]" 
+              <el-button
+                :class="[
+                  'status-btn',
+                  'warning',
+                  { active: form.jobTriggerStatus === 0 },
+                ]"
                 @click="setStatus(0)"
               >
                 <IconifyIconOnline icon="ep:video-pause" class="btn-icon" />
@@ -98,12 +129,32 @@
 
     <!-- 主内容区域 -->
     <div class="job-content">
-      <ScTable ref="tableRef" v-model:page="form" class="job-table" :col-size="4" :url="loadJobData" :params="form" layout="card" cardLayout="default" @data-loaded="handleDataLoaded">
+      <ScTable
+        ref="tableRef"
+        v-model:page="form"
+        class="job-table"
+        :col-size="4"
+        :url="loadJobData"
+        :params="form"
+        layout="card"
+        cardLayout="default"
+        @data-loaded="handleDataLoaded"
+      >
         <template #default="{ row }">
-          <div class="modern-job-card" :class="{ 'card-active': row.jobTriggerStatus === 1 }">
+          <div
+            class="modern-job-card"
+            :class="{ 'card-active': row.jobTriggerStatus === 1 }"
+          >
             <!-- 状态指示器 -->
-            <div class="status-indicator" :class="row.jobTriggerStatus === 1 ? 'indicator-running' : 'indicator-stopped'"></div>
-            
+            <div
+              class="status-indicator"
+              :class="
+                row.jobTriggerStatus === 1
+                  ? 'indicator-running'
+                  : 'indicator-stopped'
+              "
+            ></div>
+
             <!-- 卡片头部 -->
             <div class="card-header">
               <div class="job-info">
@@ -115,9 +166,23 @@
                   <div class="job-handler">{{ row.jobType }}</div>
                 </div>
               </div>
-              <div class="status-badge" :class="row.jobTriggerStatus === 1 ? 'badge-running' : 'badge-stopped'">
-                <IconifyIconOnline :icon="row.jobTriggerStatus === 1 ? 'ep:success-filled' : 'ep:circle-close-filled'" class="status-icon" />
-                <span class="status-text">{{ row.jobTriggerStatus === 1 ? '运行中' : '已停止' }}</span>
+              <div
+                class="status-badge"
+                :class="
+                  row.jobTriggerStatus === 1 ? 'badge-running' : 'badge-stopped'
+                "
+              >
+                <IconifyIconOnline
+                  :icon="
+                    row.jobTriggerStatus === 1
+                      ? 'ep:success-filled'
+                      : 'ep:circle-close-filled'
+                  "
+                  class="status-icon"
+                />
+                <span class="status-text">{{
+                  row.jobTriggerStatus === 1 ? "运行中" : "已停止"
+                }}</span>
               </div>
             </div>
 
@@ -125,9 +190,12 @@
             <div class="card-content">
               <div class="schedule-expression">
                 <IconifyIconOnline icon="ep:clock" class="schedule-icon" />
-                <span class="schedule-text">{{ row.jobScheduleType }} {{ row.jobScheduleTime }}<span v-if="row.jobScheduleType === 'FIXED'">秒</span></span>
+                <span class="schedule-text"
+                  >{{ row.jobScheduleType }} {{ row.jobScheduleTime
+                  }}<span v-if="row.jobScheduleType === 'FIXED'">秒</span></span
+                >
               </div>
-              
+
               <div class="job-metadata">
                 <div class="meta-item">
                   <IconifyIconOnline icon="ep:user" class="meta-icon" />
@@ -135,7 +203,10 @@
                   <span class="meta-value">{{ row.jobAuthor }}</span>
                 </div>
                 <div class="meta-item">
-                  <IconifyIconOnline icon="ep:folder-opened" class="meta-icon" />
+                  <IconifyIconOnline
+                    icon="ep:folder-opened"
+                    class="meta-icon"
+                  />
                   <span class="meta-label">应用:</span>
                   <span class="meta-value">{{ row.jobApplicationActive }}</span>
                 </div>
@@ -148,16 +219,30 @@
 
               <div class="job-tags">
                 <el-tag size="small" class="schedule-tag">
-                  <IconifyIconOnline icon="ep:collection-tag" class="tag-icon" />
+                  <IconifyIconOnline
+                    icon="ep:collection-tag"
+                    class="tag-icon"
+                  />
                   {{ row.jobScheduleType }}
                 </el-tag>
                 <el-tag size="small" type="primary" class="glue-tag">
                   <IconifyIconOnline icon="ep:cpu" class="tag-icon" />
                   {{ row.jobGlueType }}
                 </el-tag>
-                <el-tag size="small" :type="row.jobTriggerStatus === 1 ? 'success' : 'warning'" class="status-tag">
-                  <IconifyIconOnline :icon="row.jobTriggerStatus === 1 ? 'ep:success-filled' : 'ep:warning-filled'" class="tag-icon" />
-                  {{ row.jobTriggerStatus === 1 ? '运行中' : '已停止' }}
+                <el-tag
+                  size="small"
+                  :type="row.jobTriggerStatus === 1 ? 'success' : 'warning'"
+                  class="status-tag"
+                >
+                  <IconifyIconOnline
+                    :icon="
+                      row.jobTriggerStatus === 1
+                        ? 'ep:success-filled'
+                        : 'ep:warning-filled'
+                    "
+                    class="tag-icon"
+                  />
+                  {{ row.jobTriggerStatus === 1 ? "运行中" : "已停止" }}
                 </el-tag>
               </div>
             </div>
@@ -165,49 +250,101 @@
             <!-- 卡片操作区 -->
             <div class="card-actions">
               <div class="primary-actions">
-                <el-button size="small" type="primary" class="action-btn" @click="edit(row)">
+                <el-button
+                  size="small"
+                  type="primary"
+                  class="action-btn"
+                  @click="edit(row)"
+                >
                   <IconifyIconOnline icon="ep:edit" class="action-icon" />
                   编辑
                 </el-button>
-                <el-button size="small" type="success" class="action-btn" @click="trigger(row)">
+                <el-button
+                  size="small"
+                  type="success"
+                  class="action-btn"
+                  @click="trigger(row)"
+                >
                   <IconifyIconOnline icon="ep:video-play" class="action-icon" />
                   执行
                 </el-button>
-                <el-button size="small" type="info" class="action-btn" @click="logger(row)">
+                <el-button
+                  size="small"
+                  type="info"
+                  class="action-btn"
+                  @click="logger(row)"
+                >
                   <IconifyIconOnline icon="ep:document" class="action-icon" />
                   日志
                 </el-button>
               </div>
               <div class="secondary-actions">
-                <el-dropdown trigger="click" @command="command => handleCommand(command, row)">
+                <el-dropdown
+                  trigger="click"
+                  @command="(command) => handleCommand(command, row)"
+                >
                   <el-button size="small" class="more-btn">
-                    <IconifyIconOnline icon="ep:more-filled" class="more-icon" />
+                    <IconifyIconOnline
+                      icon="ep:more-filled"
+                      class="more-icon"
+                    />
                   </el-button>
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item command="nextTriggerTime">
-                        <IconifyIconOnline icon="ep:calendar" class="dropdown-icon" />
+                        <IconifyIconOnline
+                          icon="ep:calendar"
+                          class="dropdown-icon"
+                        />
                         下次执行时间
                       </el-dropdown-item>
                       <el-dropdown-item command="jobgroupById">
-                        <IconifyIconOnline icon="ep:connection" class="dropdown-icon" />
+                        <IconifyIconOnline
+                          icon="ep:connection"
+                          class="dropdown-icon"
+                        />
                         注册节点
                       </el-dropdown-item>
-                      <el-dropdown-item v-if="!row.jobTriggerStatus || row.jobTriggerStatus == 0" divided command="start">
-                        <IconifyIconOnline icon="ep:video-play" class="dropdown-icon" />
+                      <el-dropdown-item
+                        v-if="
+                          !row.jobTriggerStatus || row.jobTriggerStatus == 0
+                        "
+                        divided
+                        command="start"
+                      >
+                        <IconifyIconOnline
+                          icon="ep:video-play"
+                          class="dropdown-icon"
+                        />
                         启动任务
                       </el-dropdown-item>
-                      <el-dropdown-item v-if="row.jobTriggerStatus == 1" divided command="stop">
-                        <IconifyIconOnline icon="ep:video-pause" class="dropdown-icon" />
+                      <el-dropdown-item
+                        v-if="row.jobTriggerStatus == 1"
+                        divided
+                        command="stop"
+                      >
+                        <IconifyIconOnline
+                          icon="ep:video-pause"
+                          class="dropdown-icon"
+                        />
                         停止任务
                       </el-dropdown-item>
                       <el-dropdown-item command="copy">
-                        <IconifyIconOnline icon="ep:copy-document" class="dropdown-icon" />
+                        <IconifyIconOnline
+                          icon="ep:copy-document"
+                          class="dropdown-icon"
+                        />
                         复制任务
                       </el-dropdown-item>
                       <el-dropdown-item divided command="delete">
-                        <IconifyIconOnline icon="ep:delete" class="dropdown-icon" style="color: var(--el-color-danger)" />
-                        <span style="color: var(--el-color-danger)">删除任务</span>
+                        <IconifyIconOnline
+                          icon="ep:delete"
+                          class="dropdown-icon"
+                          style="color: var(--el-color-danger)"
+                        />
+                        <span style="color: var(--el-color-danger)"
+                          >删除任务</span
+                        >
                       </el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
@@ -225,7 +362,13 @@
     </div>
 
     <!-- 弹窗组件 -->
-    <el-dialog v-model="triggerShow" draggable :title="triggerTitle" class="job-dialog" width="500px">
+    <el-dialog
+      v-model="triggerShow"
+      draggable
+      :title="triggerTitle"
+      class="job-dialog"
+      width="500px"
+    >
       <el-form :model="form" label-width="120px">
         <el-form-item label="任务参数">
           <el-input v-model="executorParam" type="textarea" :rows="6" />
@@ -236,21 +379,44 @@
       </el-form>
       <template #footer>
         <span class="job-dialog-footer">
-          <el-button :loading="triggerLoadding" @click="triggerShow = false">取消</el-button>
-          <el-button :loading="triggerLoadding" type="primary" @click="triggerExecute">确定</el-button>
+          <el-button :loading="triggerLoadding" @click="triggerShow = false"
+            >取消</el-button
+          >
+          <el-button
+            :loading="triggerLoadding"
+            type="primary"
+            @click="triggerExecute"
+            >确定</el-button
+          >
         </span>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="jobinfoNextTriggerTimeShow" draggable title="下一次执行时间" width="400px" class="job-dialog">
+    <el-dialog
+      v-model="jobinfoNextTriggerTimeShow"
+      draggable
+      title="下一次执行时间"
+      width="400px"
+      class="job-dialog"
+    >
       <div class="job-next-time-list">
-        <div v-for="item in jobinfoNextTriggerTimeData" :key="item" class="job-next-time-item">
+        <div
+          v-for="item in jobinfoNextTriggerTimeData"
+          :key="item"
+          class="job-next-time-item"
+        >
           {{ item }}
         </div>
       </div>
     </el-dialog>
 
-    <el-dialog v-model="jobgroupByIdShow" draggable title="注册地址" width="400px" class="job-dialog">
+    <el-dialog
+      v-model="jobgroupByIdShow"
+      draggable
+      title="注册地址"
+      width="400px"
+      class="job-dialog"
+    >
       <el-empty v-if="jobgroupByIdData.length == 0" />
       <div v-else class="job-node-list">
         <div v-for="item in jobgroupByIdData" :key="item" class="job-node-item">
@@ -265,7 +431,14 @@
 
 <script setup lang="ts">
 import { fetchAppList } from "@/api/monitor/app";
-import { fetchJobDelete, fetchJobNextTriggerTime, fetchJobPageList, fetchJobStart, fetchJobStop, fetchJobTrigger } from "@/api/monitor/job";
+import {
+  fetchJobDelete,
+  fetchJobNextTriggerTime,
+  fetchJobPageList,
+  fetchJobStart,
+  fetchJobStop,
+  fetchJobTrigger,
+} from "@/api/monitor/job";
 // import { fetchServiceList } from "@/api/monitor/service"; // 已删除服务监控功能
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -274,7 +447,9 @@ import { useRouter } from "vue-router";
 
 // 动态导入组件
 const Save = defineAsyncComponent(() => import("./save.vue"));
-const ScSelectFilter = defineAsyncComponent(() => import("@repo/components/ScSelectFilter/index.vue"));
+const ScSelectFilter = defineAsyncComponent(
+  () => import("@repo/components/ScSelectFilter/index.vue")
+);
 
 // 表格引用
 const tableRef = ref(null);
@@ -287,7 +462,7 @@ const form = reactive({
   jobDesc: undefined,
   jobGroup: 0,
   pageNum: 1,
-  pageSize: 12
+  pageSize: 12,
 });
 
 // 数据状态
@@ -300,8 +475,12 @@ const data = ref([]); // 保留data变量以供其他地方使用
 
 // 计算属性
 const totalJobs = computed(() => data.value.length);
-const runningJobs = computed(() => data.value.filter(job => job.jobTriggerStatus === 1).length);
-const stoppedJobs = computed(() => data.value.filter(job => job.jobTriggerStatus === 0).length);
+const runningJobs = computed(
+  () => data.value.filter((job) => job.jobTriggerStatus === 1).length
+);
+const stoppedJobs = computed(
+  () => data.value.filter((job) => job.jobTriggerStatus === 0).length
+);
 
 /**
  * 加载任务数据的URL函数
@@ -309,16 +488,16 @@ const stoppedJobs = computed(() => data.value.filter(job => job.jobTriggerStatus
  */
 const loadJobData = async (params) => {
   try {
-    const res = await fetchJobPageList({...form, ...params});
+    const res = await fetchJobPageList({ ...form, ...params });
     return {
       data: res?.data.data || [],
-      total: res?.data.total || 0
+      total: res?.data.total || 0,
     };
   } catch (error) {
     console.error("获取数据失败:", error);
     return {
       data: [],
-      total: 0
+      total: 0,
     };
   }
 };
@@ -340,18 +519,18 @@ const filterData = [
     options: [
       {
         label: "全部",
-        value: null
+        value: null,
       },
       {
         label: "停止",
-        value: 0
+        value: 0,
       },
       {
         label: "启动",
-        value: 1
-      }
-    ]
-  }
+        value: 1,
+      },
+    ],
+  },
 ];
 
 // 初始化数据
@@ -359,7 +538,10 @@ const initial = async () => {
   try {
     const res = await fetchAppList({});
     executorData.value = res?.data || [];
-    form.jobGroup = executorData.value && executorData.value.length == 1 ? executorData.value[0].monitorId : 0;
+    form.jobGroup =
+      executorData.value && executorData.value.length == 1
+        ? executorData.value[0].monitorId
+        : 0;
     // 触发表格刷新
     tableRef.value?.refresh();
   } catch (error) {
@@ -368,7 +550,7 @@ const initial = async () => {
 };
 
 // 搜索方法
-const search = async param => {
+const search = async (param) => {
   if (param) {
     Object.assign(form, param);
   }
@@ -377,7 +559,7 @@ const search = async param => {
 };
 
 // 过滤器变化
-const filterChange = row => {
+const filterChange = (row) => {
   form.jobTriggerStatus = row.jobTriggerStatus;
   search({});
 };
@@ -394,7 +576,7 @@ const handlerSuccess = () => {
 };
 
 // 编辑任务
-const edit = row => {
+const edit = (row) => {
   saveShow.value = true;
   setTimeout(() => {
     saveRef.value.setExecutorData(executorData.value).open("edit", row);
@@ -402,7 +584,7 @@ const edit = row => {
 };
 
 // 复制任务
-const copy = row => {
+const copy = (row) => {
   saveShow.value = true;
   setTimeout(() => {
     saveRef.value.setExecutorData(executorData.value).open("copy", row);
@@ -410,17 +592,17 @@ const copy = row => {
 };
 
 // 删除任务
-const del = async row => {
+const del = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要删除任务 "${row.jobName}" 吗？`, "提示", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
-      type: "warning"
+      type: "warning",
     });
 
     const res = await fetchJobDelete({ id: row.jobId });
     if (res.code === "00000") {
-      data.value = data.value.filter(it => it.jobId != row.jobId);
+      data.value = data.value.filter((it) => it.jobId != row.jobId);
       ElMessage.success("操作成功");
     } else {
       ElMessage.error(res.msg);
@@ -434,11 +616,11 @@ const del = async row => {
 };
 
 // 启动任务
-const start = async row => {
+const start = async (row) => {
   try {
     const res = await fetchJobStart({ jobId: row.jobId });
     if (res.code === "00000") {
-      const item = data.value.find(it => it.jobId == row.jobId);
+      const item = data.value.find((it) => it.jobId == row.jobId);
       if (item) {
         item.jobTriggerStatus = 1;
       }
@@ -453,13 +635,17 @@ const start = async row => {
 };
 
 // 停止任务（增加二次确认）
-const stop = async row => {
+const stop = async (row) => {
   try {
-    await ElMessageBox.confirm(`确定要停止任务 "${row.jobName}" 吗？`, "提示", { type: "warning", confirmButtonText: "确定", cancelButtonText: "取消" });
+    await ElMessageBox.confirm(`确定要停止任务 "${row.jobName}" 吗？`, "提示", {
+      type: "warning",
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+    });
 
     const res = await fetchJobStop({ jobId: row.jobId });
     if (res.code === "00000") {
-      const item = data.value.find(it => it.jobId == row.jobId);
+      const item = data.value.find((it) => it.jobId == row.jobId);
       if (item) {
         item.jobTriggerStatus = 0;
       }
@@ -490,7 +676,7 @@ const triggerExecute = async () => {
     const res = await fetchJobTrigger({
       id: triggerId.value,
       executorParam: executorParam.value,
-      addressList: addressList.value
+      addressList: addressList.value,
     });
 
     if (res.code === "00000") {
@@ -508,7 +694,7 @@ const triggerExecute = async () => {
 };
 
 // 触发执行
-const trigger = row => {
+const trigger = (row) => {
   triggerTitle.value = row.jobName + "(执行一次)";
   triggerShow.value = true;
   triggerId.value = row.jobId;
@@ -522,22 +708,22 @@ const jobgroupById = async (row: any) => {
 };
 
 // 查看日志
-const logger = row => {
+const logger = (row) => {
   router.push({
     path: "/job-log",
     query: {
       jobLogApp: row.jobApplicationName,
-      jobLogProfile: row.jobApplicationProfile
-    }
+      jobLogProfile: row.jobApplicationProfile,
+    },
   });
 };
 
 // 查看下一次执行时间
-const nextTriggerTime = async row => {
+const nextTriggerTime = async (row) => {
   try {
     const res = await fetchJobNextTriggerTime({
       jobScheduleType: row.jobScheduleType,
-      jobScheduleTime: row.jobScheduleTime
+      jobScheduleTime: row.jobScheduleTime,
     });
 
     if (res.code === "00000") {
@@ -554,42 +740,44 @@ const nextTriggerTime = async row => {
 
 // 获取执行器名称
 const getExecutorName = (jobGroup) => {
-  const executor = executorData.value.find(item => item.monitorId === jobGroup);
-  return executor ? executor.monitorName : '未知';
+  const executor = executorData.value.find(
+    (item) => item.monitorId === jobGroup
+  );
+  return executor ? executor.monitorName : "未知";
 };
 
 // 获取状态样式类
 const getStatusClass = (status) => {
-  return status === 1 ? 'status-running' : 'status-stopped';
+  return status === 1 ? "status-running" : "status-stopped";
 };
 
 // 获取状态图标
 const getStatusIcon = (status) => {
-  return status === 1 ? 'ep:success-filled' : 'ep:circle-close-filled';
+  return status === 1 ? "ep:success-filled" : "ep:circle-close-filled";
 };
 
 // 获取状态文本
 const getStatusText = (status) => {
-  return status === 1 ? '运行中' : '已停止';
+  return status === 1 ? "运行中" : "已停止";
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) return "-";
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
 // 处理卡片点击
 const handleCardClick = (row) => {
   // 可以添加卡片点击逻辑，比如显示详情
-  console.log('Card clicked:', row);
+  console.log("Card clicked:", row);
 };
 
 // 处理更多操作
@@ -640,12 +828,24 @@ onMounted(() => {
 
 /* 页面头部样式 */
 .page-header {
+  position: relative;
   border-radius: 20px;
-  padding: 12px;
-  margin-bottom: 12px;
+  padding: 28px 32px;
+  margin-bottom: 20px;
   color: #1f2937;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border: 1px solid var(--el-border-color-lighter);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  box-shadow:
+    0 10px 40px rgba(102, 126, 234, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+  }
 }
 
 .header-content {
@@ -663,60 +863,70 @@ onMounted(() => {
 }
 
 .page-title {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 28px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  color: var(--el-text-color-primary);
+  gap: 14px;
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0 0 10px 0;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 }
 
 .title-icon {
-  font-size: 32px;
-  color: var(--el-text-color-primary);
+  font-size: 36px;
+  color: rgba(255, 255, 255, 0.95);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .page-subtitle {
-  font-size: 16px;
-  color: var(--el-text-color-primary);
+  position: relative;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.85);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .stats-section {
+  position: relative;
   display: flex;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .stat-card {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  padding: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 18px 24px;
   text-align: center;
-  min-width: 120px;
-  transition: all 0.3s ease;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  min-width: 110px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transform: translateY(-4px) scale(1.02);
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .stat-number {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
   margin-bottom: 4px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .stat-label {
   font-size: 12px;
-  color: var(--el-text-color-primary);
+  color: rgba(255, 255, 255, 0.85);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  font-weight: 500;
 }
 
 /* 工具栏样式 */
@@ -859,7 +1069,6 @@ onMounted(() => {
   gap: 4px;
 }
 
-
 .status-btn.active {
   background: #667eea;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
@@ -935,7 +1144,9 @@ onMounted(() => {
   overflow: hidden;
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   cursor: pointer;
@@ -949,7 +1160,7 @@ onMounted(() => {
 }
 
 .modern-job-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -993,8 +1204,13 @@ onMounted(() => {
 }
 
 @keyframes pulse-running {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .card-header {
@@ -1094,7 +1310,7 @@ onMounted(() => {
 }
 
 .schedule-text {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
   font-size: 13px;
   color: var(--el-border-color-lighter);
   font-weight: 500;
@@ -1345,7 +1561,7 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .stats-section {
     width: 100%;
     justify-content: flex-start;
@@ -1356,71 +1572,71 @@ onMounted(() => {
   .job-dashboard {
     padding: 16px;
   }
-  
+
   .page-header {
     padding: 24px 20px;
   }
-  
+
   .page-title {
     font-size: 24px;
   }
-  
+
   .job-control-panel {
     padding: 20px;
   }
-  
+
   .modern-toolbar {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .toolbar-left {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .search-container {
     max-width: none;
   }
-  
+
   .filter-container {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .status-filter {
     justify-content: center;
   }
-  
+
   .toolbar-right {
     justify-content: center;
   }
-  
+
   .modern-job-card {
     padding: 20px;
   }
-  
+
   .card-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
-  
+
   .job-info {
     width: 100%;
   }
-  
+
   .card-actions {
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
   }
-  
+
   .primary-actions {
     justify-content: center;
     flex-wrap: wrap;
   }
-  
+
   .secondary-actions {
     justify-content: center;
   }
@@ -1430,15 +1646,15 @@ onMounted(() => {
   .stats-section {
     flex-direction: column;
   }
-  
+
   .stat-card {
     min-width: auto;
   }
-  
+
   .primary-actions {
     flex-direction: column;
   }
-  
+
   .action-btn {
     justify-content: center;
   }
