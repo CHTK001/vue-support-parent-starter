@@ -12,9 +12,34 @@
     }
   }
 
-  /* 修复 windows 下双滚动条问题 https://github.com/pure-admin/vue-pure-admin/pull/936#issuecomment-1968125992 */
+  /* 修复 windows 下双滚动条问题 */
   .el-popper.pure-scrollbar {
     overflow: hidden;
+  }
+
+  /* 横向菜单弹出层 - 禁用滚动条闪烁 */
+  .el-popper.horizontal-popper {
+    overflow: visible !important;
+    max-height: none !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+
+    &::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+
+    * {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+
+      &::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+      }
+    }
   }
 
   /* popper menu 超出内容区可滚动 */
@@ -363,31 +388,180 @@
       border-bottom: 2px solid var(--el-menu-active-color);
     }
 
+    /* 修复滚动条先于子菜单出现的问题 */
+    .pure-scrollbar {
+      overflow: visible !important;
+      max-height: none !important;
+    }
+
     .el-menu--popup {
-      background-color: var(--pure-theme-sub-menu-bg) !important;
-      border-radius: 8px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
+      min-width: 200px;
+      padding: 10px;
+      background: linear-gradient(
+        180deg,
+        var(--pure-theme-sub-menu-bg) 0%,
+        rgba(var(--el-color-primary-rgb), 0.02) 100%
+      ) !important;
+      backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.25),
+        0 12px 24px -8px rgba(0, 0, 0, 0.15),
+        0 4px 8px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      overflow: visible !important;
+      max-height: none !important;
+      animation: dropdownSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-origin: top center;
+
+      /* 顶部指示器 */
+      &::before {
+        content: "";
+        position: absolute;
+        top: -6px;
+        left: 50%;
+        transform: translateX(-50%) rotate(45deg);
+        width: 12px;
+        height: 12px;
+        background: var(--pure-theme-sub-menu-bg);
+        border-top: 1px solid rgba(255, 255, 255, 0.3);
+        border-left: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: -3px -3px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      /* 光泽效果 */
+      &::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50%;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.08) 0%,
+          transparent 100%
+        );
+        border-radius: 16px 16px 0 0;
+        pointer-events: none;
+      }
 
       a > .is-active.submenu-title-noDropdown {
         border-bottom: none;
       }
 
       .el-menu-item {
+        position: relative;
+        margin: 4px 0;
+        padding: 0 16px;
+        height: 44px;
+        line-height: 44px;
         color: var(--pure-theme-menu-text);
-        transition: all 0.3s ease;
+        border-radius: 10px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
 
         span {
+          position: relative;
+          z-index: 1;
           font-size: 14px;
+          font-weight: 450;
+        }
+
+        .sub-menu-icon {
+          position: relative;
+          z-index: 1;
+          margin-right: 12px;
+          transition: all 0.25s ease;
+        }
+
+        /* 悬停背景层 */
+        &::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            135deg,
+            rgba(var(--el-color-primary-rgb), 0.1) 0%,
+            rgba(var(--el-color-primary-rgb), 0.05) 100%
+          );
+          border-radius: 10px;
+          opacity: 0;
+          transform: scale(0.95);
+          transition: all 0.25s ease;
         }
 
         &:hover {
-          transform: translateX(2px);
+          transform: translateX(6px);
+          box-shadow: 0 4px 15px rgba(var(--el-color-primary-rgb), 0.15);
+
+          &::before {
+            opacity: 1;
+            transform: scale(1);
+          }
+
+          .sub-menu-icon {
+            transform: scale(1.15) rotate(-5deg);
+            color: var(--el-color-primary);
+          }
+        }
+
+        &.is-active {
+          background: linear-gradient(
+            135deg,
+            var(--el-color-primary) 0%,
+            var(--el-color-primary-light-3) 100%
+          );
+          color: #fff !important;
+          font-weight: 500;
+          box-shadow:
+            0 6px 20px rgba(var(--el-color-primary-rgb), 0.35),
+            0 2px 8px rgba(var(--el-color-primary-rgb), 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          transform: translateX(4px);
+
+          &::before {
+            display: none;
+          }
+
+          span,
+          .sub-menu-icon,
+          i,
+          svg {
+            color: #fff !important;
+          }
         }
       }
 
       .el-sub-menu__title {
+        position: relative;
+        margin: 4px 0;
+        padding: 0 16px;
+        height: 44px;
+        line-height: 44px;
         color: var(--pure-theme-menu-text);
+        border-radius: 10px;
+        transition: all 0.25s ease;
+
+        &:hover {
+          background: rgba(var(--el-color-primary-rgb), 0.08);
+          transform: translateX(4px);
+        }
+      }
+    }
+
+    /* 下拉动画 - 带弹性效果 */
+    @keyframes dropdownSlideIn {
+      0% {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.96);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
       }
     }
 
