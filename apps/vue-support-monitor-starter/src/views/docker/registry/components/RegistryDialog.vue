@@ -1,79 +1,208 @@
-﻿﻿﻿<template>
-  <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑仓库' : '添加仓库'" width="600px" @closed="handleDialogClosed">
-<el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" @submit.prevent>
-      <el-form-item label="仓库名称" prop="systemSoftRegistryName">
-        <el-input v-model="formData.systemSoftRegistryName" placeholder="请输入仓库名称" clearable />
-      </el-form-item>
-
-      <el-form-item label="仓库类型" prop="systemSoftRegistryType">
-        <el-select v-model="formData.systemSoftRegistryType" placeholder="请选择仓库类型" style="width: 100%" @change="handleTypeChange">
-          <el-option v-for="type in registryTypes" :key="type.value" :label="type.label" :value="type.value">
-            <div class="registry-type-option">
-              <IconifyIconOnline :icon="type.icon" class="mr-2" />
-              {{ type.label }}
-            </div>
-          </el-option>
-        </el-select>
-      </el-form-item>
-
-      <el-form-item label="仓库地址" prop="systemSoftRegistryUrl">
-        <el-input v-model="formData.systemSoftRegistryUrl" placeholder="请输入仓库地址" clearable>
-          <template #append>
-            <el-button v-if="showTestButton" @click="testConnection" :loading="testLoading">
-              <IconifyIconOnline icon="ri:test-tube-line" class="mr-1" />
-              测试
-            </el-button>
-          </template>
-        </el-input>
-        <div class="form-hint">
-          <IconifyIconOnline icon="ri:information-line" class="mr-1" />
-          {{ getUrlHint(formData.systemSoftRegistryType) }}
+﻿﻿<template>
+  <el-dialog
+    v-model="dialogVisible"
+    :title="isEdit ? '编辑仓库' : '添加仓库'"
+    width="640px"
+    class="registry-dialog"
+    @closed="handleDialogClosed"
+  >
+    <div class="dialog-content">
+      <!-- 仓库类型选择卡片 -->
+      <div class="type-cards">
+        <div
+          v-for="type in registryTypes"
+          :key="type.value"
+          class="type-card"
+          :class="{ active: formData.systemSoftRegistryType === type.value }"
+          @click="selectType(type.value)"
+        >
+          <div class="type-icon" :style="{ background: type.gradient }">
+            <IconifyIconOnline :icon="type.icon" />
+          </div>
+          <div class="type-name">{{ type.label }}</div>
         </div>
-      </el-form-item>
+      </div>
 
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="formRules"
+        label-position="top"
+        @submit.prevent
+      >
+        <!-- 基本信息 -->
+        <div class="form-section">
+          <div class="section-title">
+            <IconifyIconOnline icon="ri:information-line" />
+            基本信息
+          </div>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="仓库名称" prop="systemSoftRegistryName">
+                <el-input
+                  v-model="formData.systemSoftRegistryName"
+                  placeholder="输入仓库名称"
+                  clearable
+                >
+                  <template #prefix>
+                    <IconifyIconOnline icon="ri:bookmark-line" />
+                  </template>
+                </el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="仓库状态">
+                <div class="status-switch">
+                  <el-switch
+                    v-model="formData.systemSoftRegistryStatus"
+                    :active-value="1"
+                    :inactive-value="0"
+                    active-text="启用"
+                    inactive-text="禁用"
+                  />
+                </div>
+              </el-form-item>
+            </el-col>
+          </el-row>
 
-      <!-- 认证信息 -->
-      <el-divider content-position="left">
-        <span class="divider-text">
-          <IconifyIconOnline icon="ri:shield-user-line" class="mr-1" />
-          认证信息（可选）
-        </span>
-      </el-divider>
+          <el-form-item label="仓库地址" prop="systemSoftRegistryUrl">
+            <el-input
+              v-model="formData.systemSoftRegistryUrl"
+              placeholder="输入仓库地址"
+              clearable
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="ri:global-line" />
+              </template>
+              <template #append v-if="showTestButton">
+                <el-button @click="testConnection" :loading="testLoading">
+                  <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />测试连接
+                </el-button>
+              </template>
+            </el-input>
+            <div class="url-hint">
+              <IconifyIconOnline icon="ri:lightbulb-line" />
+              {{ getUrlHint(formData.systemSoftRegistryType) }}
+            </div>
+          </el-form-item>
+        </div>
 
-      <el-form-item label="用户名" prop="systemSoftRegistryUsername">
-        <el-input v-model="formData.systemSoftRegistryUsername" placeholder="请输入用户名（可选）" clearable />
-      </el-form-item>
+        <!-- 认证信息 -->
+        <div class="form-section">
+          <div class="section-title">
+            <IconifyIconOnline icon="ri:shield-user-line" />
+            认证信息
+            <span class="optional">（可选）</span>
+          </div>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="用户名" prop="systemSoftRegistryUsername">
+                <el-input
+                  v-model="formData.systemSoftRegistryUsername"
+                  placeholder="输入用户名"
+                  clearable
+                >
+                  <template #prefix>
+                    <IconifyIconOnline icon="ri:user-line" />
+                  </template>
+                </el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="密码" prop="systemSoftRegistryPassword">
+                <el-input
+                  v-model="formData.systemSoftRegistryPassword"
+                  type="password"
+                  placeholder="输入密码"
+                  show-password
+                  clearable
+                >
+                  <template #prefix>
+                    <IconifyIconOnline icon="ri:lock-line" />
+                  </template>
+                </el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item
+            label="邮箱"
+            prop="systemSoftRegistryEmail"
+            v-if="showEmail"
+          >
+            <el-input
+              v-model="formData.systemSoftRegistryEmail"
+              placeholder="输入邮箱"
+              clearable
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="ri:mail-line" />
+              </template>
+            </el-input>
+          </el-form-item>
+        </div>
 
-      <el-form-item label="密码" prop="systemSoftRegistryPassword">
-        <el-input v-model="formData.systemSoftRegistryPassword" type="password" placeholder="请输入密码（可选）" show-password clearable />
-      </el-form-item>
+        <!-- 高级设置 -->
+        <div class="form-section">
+          <div class="section-title">
+            <IconifyIconOnline icon="ri:settings-3-line" />
+            高级设置
+          </div>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="支持同步">
+                <div class="feature-toggle">
+                  <el-switch
+                    v-model="formData.systemSoftRegistrySupportSync"
+                    :active-value="1"
+                    :inactive-value="0"
+                  />
+                  <span class="toggle-text">{{
+                    formData.systemSoftRegistrySupportSync === 1
+                      ? "已启用"
+                      : "已禁用"
+                  }}</span>
+                </div>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="仓库描述" prop="systemSoftRegistryDescription">
+            <el-input
+              v-model="formData.systemSoftRegistryDescription"
+              type="textarea"
+              :rows="3"
+              placeholder="输入仓库描述..."
+              maxlength="200"
+              show-word-limit
+            />
+          </el-form-item>
+        </div>
+      </el-form>
 
-      <el-form-item label="邮箱" prop="systemSoftRegistryEmail" v-if="showEmail">
-        <el-input v-model="formData.systemSoftRegistryEmail" placeholder="请输入邮箱（可选）" clearable />
-      </el-form-item>
-
-      <el-form-item label="启用" prop="systemSoftRegistryStatus">
-        <el-switch v-model="formData.systemSoftRegistryStatus" :active-value="1" :inactive-value="0" />
-      </el-form-item>
-
-      <el-form-item label="支持同步" prop="systemSoftRegistrySupportSync">
-        <el-switch v-model="formData.systemSoftRegistrySupportSync" :active-value="1" :inactive-value="0" />
-      </el-form-item>
-
-      <el-form-item label="描述" prop="systemSoftRegistryDescription">
-        <el-input v-model="formData.systemSoftRegistryDescription" type="textarea" :rows="3" placeholder="请输入仓库描述（可选）" />
-      </el-form-item>
-    </el-form>
-
-    <!-- 连接测试结果 -->
-    <el-alert v-if="testResult" :type="testResult.success ? 'success' : 'error'" :title="testResult.message" show-icon :closable="false" class="mb-4" />
+      <!-- 连接测试结果 -->
+      <el-alert
+        v-if="testResult"
+        :type="testResult.success ? 'success' : 'error'"
+        :title="testResult.message"
+        show-icon
+        :closable="false"
+        class="test-result"
+      />
+    </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleCancel">取消</el-button>
-        <el-button type="primary" @click="handleConfirm" :loading="confirmLoading">
-          <IconifyIconOnline icon="ri:save-line" class="mr-1" />
-          {{ isEdit ? "保存" : "创建" }}
+        <el-button @click="handleCancel" size="large">取消</el-button>
+        <el-button
+          type="primary"
+          @click="handleConfirm"
+          :loading="confirmLoading"
+          size="large"
+        >
+          <IconifyIconOnline
+            :icon="isEdit ? 'ri:save-line' : 'ri:add-line'"
+            class="mr-1"
+          />
+          {{ isEdit ? "保存更改" : "创建仓库" }}
         </el-button>
       </div>
     </template>
@@ -81,7 +210,10 @@
 </template>
 
 <script setup lang="ts">
-import { registryApi as softRegistryApi, type SystemSoftRegistry } from "@/api/docker";
+import {
+  registryApi as softRegistryApi,
+  type SystemSoftRegistry,
+} from "@/api/docker";
 import { ElMessage, FormItemRule } from "element-plus";
 import { computed, nextTick, ref, watch } from "vue";
 
@@ -117,7 +249,6 @@ const confirmLoading = ref(false);
 const testLoading = ref(false);
 const testResult = ref<{ success: boolean; message: string } | null>(null);
 
-
 // 对话框显示状态
 const dialogVisible = computed({
   get: () => props.visible,
@@ -146,31 +277,48 @@ const registryTypes = [
     value: "docker_hub",
     label: "Docker Hub",
     icon: "ri:docker-line",
+    gradient: "linear-gradient(135deg, #2496ED 0%, #1a7bc9 100%)",
   },
   {
     value: "aliyun",
-    label: "阿里云容器镜像服务",
+    label: "阿里云",
     icon: "ri:cloud-line",
+    gradient: "linear-gradient(135deg, #FF6A00 0%, #e55a00 100%)",
   },
   {
     value: "harbor",
-    label: "Harbor私有仓库",
+    label: "Harbor",
     icon: "ri:ship-line",
+    gradient: "linear-gradient(135deg, #60B2FF 0%, #4a9ee6 100%)",
   },
   {
     value: "custom",
-    label: "自定义仓库",
+    label: "自定义",
     icon: "ri:settings-3-line",
+    gradient: "linear-gradient(135deg, #67C23A 0%, #52a02e 100%)",
   },
 ];
+
+// 选择仓库类型
+const selectType = (type: string) => {
+  formData.value.systemSoftRegistryType = type;
+  handleTypeChange(type);
+};
 
 // 表单验证规则
 const formRules: Record<string, FormItemRule[]> = {
   systemSoftRegistryName: [
     { required: true, message: "请输入仓库名称", trigger: "blur" },
-    { min: 2, max: 50, message: "仓库名称长度在 2 到 50 个字符", trigger: "blur" },
+    {
+      min: 2,
+      max: 50,
+      message: "仓库名称长度在 2 到 50 个字符",
+      trigger: "blur",
+    },
   ],
-  systemSoftRegistryType: [{ required: true, message: "请选择仓库类型", trigger: "change" }],
+  systemSoftRegistryType: [
+    { required: true, message: "请选择仓库类型", trigger: "change" },
+  ],
   systemSoftRegistryUrl: [
     { required: true, message: "请输入仓库地址", trigger: "blur" },
     { type: "url" as const, message: "请输入有效的URL地址", trigger: "blur" },
@@ -246,17 +394,25 @@ const testConnection = async () => {
   testLoading.value = true;
   testResult.value = null;
   try {
-    const response = await softRegistryApi.testRegistryConnection(props.registryData.systemSoftRegistryId);
+    const response = await softRegistryApi.testRegistryConnection(
+      props.registryData.systemSoftRegistryId
+    );
     if (response.code === "00000") {
       testResult.value = { success: true, message: "已发起连接测试" };
       ElMessage.success("已发起连接测试");
     } else {
-      testResult.value = { success: false, message: response.msg || "连接测试失败" };
+      testResult.value = {
+        success: false,
+        message: response.msg || "连接测试失败",
+      };
       ElMessage.error(response.msg || "连接测试失败");
     }
   } catch (error) {
     console.error("测试连接失败:", error);
-    testResult.value = { success: false, message: "连接测试失败，请检查网络和配置" };
+    testResult.value = {
+      success: false,
+      message: "连接测试失败，请检查网络和配置",
+    };
     ElMessage.error("连接测试失败");
   } finally {
     testLoading.value = false;
@@ -275,7 +431,10 @@ const handleConfirm = async () => {
 
     if (isEdit.value) {
       // 编辑模式
-      const response = await softRegistryApi.updateRegistry(formData.value.systemSoftRegistryId!, payload);
+      const response = await softRegistryApi.updateRegistry(
+        formData.value.systemSoftRegistryId!,
+        payload
+      );
 
       if (response.code === "00000") {
         ElMessage.success("更新成功");
@@ -343,29 +502,129 @@ watch(dialogVisible, (visible) => {
 </script>
 
 <style scoped>
-.registry-type-option {
-  display: flex;
-  align-items: center;
+.dialog-content {
+  max-height: 65vh;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 
-.form-hint {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--app-text-secondary);
-  display: flex;
-  align-items: center;
+/* 类型选择卡片 */
+.type-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
-.divider-text {
+.type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px;
+  border: 2px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.type-card:hover {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-fill-color-lighter);
+}
+
+.type-card.active {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.type-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
-  color: var(--app-primary);
+  justify-content: center;
+  font-size: 22px;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.type-name {
+  font-size: 13px;
   font-weight: 500;
+  color: var(--app-text-primary);
 }
 
+/* 表单分区 */
+.form-section {
+  background: var(--el-fill-color-lighter);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+  margin-bottom: 16px;
+}
+
+.section-title .optional {
+  font-weight: 400;
+  color: var(--app-text-tertiary);
+  font-size: 12px;
+}
+
+/* URL提示 */
+.url-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--app-text-tertiary);
+}
+
+/* 状态开关 */
+.status-switch {
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.feature-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-text {
+  font-size: 13px;
+  color: var(--app-text-secondary);
+}
+
+/* 测试结果 */
+.test-result {
+  margin-top: 16px;
+}
+
+/* 底部按钮 */
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .type-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>

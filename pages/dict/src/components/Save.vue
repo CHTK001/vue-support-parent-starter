@@ -7,6 +7,7 @@
       :close-on-press-escape="false"
       :destroy-on-close="true"
       draggable
+      top="10px"
       class="dict-dialog"
       @close="close"
     >

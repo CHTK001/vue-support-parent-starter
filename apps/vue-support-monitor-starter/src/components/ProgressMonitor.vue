@@ -142,7 +142,7 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted, onUnmounted } from "vue";
-import { useGlobalSocket } from "@repo/core";
+import { useGlobalSocket, MonitorTopics } from "@repo/core";
 
 // 定义类型
 export interface OperationProgress {
@@ -313,7 +313,7 @@ function setupSocketListeners() {
   });
 
   // 监听操作进度
-  globalSocket.on("operation_progress", (data: any) => {
+  globalSocket.on(MonitorTopics.OPERATION.PROGRESS, (data: any) => {
     const operation: OperationProgress = {
       id: data.operationId,
       type: data.type as any,
@@ -329,7 +329,7 @@ function setupSocketListeners() {
   });
 
   // 监听操作完成
-  globalSocket.on("operation_complete", (data: any) => {
+  globalSocket.on(MonitorTopics.OPERATION.COMPLETE, (data: any) => {
     const operation = progressState.activeOperations.get(data.operationId);
     if (operation) {
       operation.status = "success";
@@ -344,7 +344,7 @@ function setupSocketListeners() {
   });
 
   // 监听操作错误
-  globalSocket.on("operation_error", (data: any) => {
+  globalSocket.on(MonitorTopics.OPERATION.ERROR, (data: any) => {
     const operation = progressState.activeOperations.get(data.operationId);
     if (operation) {
       operation.status = "error";
@@ -357,8 +357,8 @@ function setupSocketListeners() {
     }
   });
 
-  // 监听Docker镜像拉取进度（兼容旧事件名）
-  globalSocket.on("docker_image_pull_progress", (data: any) => {
+  // 监听Docker镜像拉取进度
+  globalSocket.on(MonitorTopics.DOCKER.IMAGE_PULL_PROGRESS, (data: any) => {
     const operationId = `pull_image_${data.imageId}`;
     const operation: OperationProgress = {
       id: operationId,
@@ -375,7 +375,7 @@ function setupSocketListeners() {
   });
 
   // 监听Docker操作开始事件
-  globalSocket.on("docker_start", (data: any) => {
+  globalSocket.on(MonitorTopics.DOCKER.START, (data: any) => {
     const operationId = `docker_${data.operation}_${data.imageName}`;
     const operation: OperationProgress = {
       id: operationId,
@@ -397,7 +397,7 @@ function setupSocketListeners() {
   });
 
   // 监听Docker操作进度事件
-  globalSocket.on("docker_progress", (data: any) => {
+  globalSocket.on(MonitorTopics.DOCKER.PROGRESS, (data: any) => {
     const operationId = `docker_${data.operation}_${data.imageName}`;
     const existing = progressState.activeOperations.get(operationId);
 
@@ -431,7 +431,7 @@ function setupSocketListeners() {
   });
 
   // 监听Docker操作完成事件
-  globalSocket.on("docker_complete", (data: any) => {
+  globalSocket.on(MonitorTopics.DOCKER.COMPLETE, (data: any) => {
     const operationId = `docker_${data.operation}_${data.imageName}`;
     const existing = progressState.activeOperations.get(operationId);
 
@@ -456,7 +456,7 @@ function setupSocketListeners() {
   });
 
   // 监听软件同步进度事件
-  globalSocket.on("software_sync_progress", (data: any) => {
+  globalSocket.on(MonitorTopics.SOFTWARE.SYNC_PROGRESS, (data: any) => {
     const operationId = data.operationId || `sync_${data.serverId}`;
     const existing = progressState.activeOperations.get(operationId);
 
@@ -473,7 +473,7 @@ function setupSocketListeners() {
   });
 
   // 监听Docker操作错误事件
-  globalSocket.on("docker_error", (data: any) => {
+  globalSocket.on(MonitorTopics.DOCKER.ERROR, (data: any) => {
     const operationId = `docker_${data.operation}_${data.imageName}`;
     const existing = progressState.activeOperations.get(operationId);
 
@@ -526,15 +526,15 @@ function cleanupSocketListeners() {
   globalSocket.off("connect");
   globalSocket.off("disconnect");
   globalSocket.off("connect_error");
-  globalSocket.off("operation_progress");
-  globalSocket.off("operation_complete");
-  globalSocket.off("operation_error");
-  globalSocket.off("docker_image_pull_progress");
-  globalSocket.off("docker_start");
-  globalSocket.off("docker_progress");
-  globalSocket.off("docker_complete");
-  globalSocket.off("docker_error");
-  globalSocket.off("software_sync_progress");
+  globalSocket.off(MonitorTopics.OPERATION.PROGRESS);
+  globalSocket.off(MonitorTopics.OPERATION.COMPLETE);
+  globalSocket.off(MonitorTopics.OPERATION.ERROR);
+  globalSocket.off(MonitorTopics.DOCKER.IMAGE_PULL_PROGRESS);
+  globalSocket.off(MonitorTopics.DOCKER.START);
+  globalSocket.off(MonitorTopics.DOCKER.PROGRESS);
+  globalSocket.off(MonitorTopics.DOCKER.COMPLETE);
+  globalSocket.off(MonitorTopics.DOCKER.ERROR);
+  globalSocket.off(MonitorTopics.SOFTWARE.SYNC_PROGRESS);
 }
 
 // 生命周期

@@ -9,7 +9,7 @@
 ///
 
 import { http } from "@repo/utils";
-import { loadRouterBase } from "./config";
+import { loadRouterBase } from "../config";
 
 /**
  * 项目列表

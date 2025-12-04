@@ -128,113 +128,341 @@ const onUpdated = (data) => {
 };
 
 const findComponent = () => {
-  return groups.find((item) => item.panel.some((i) => i.key === witchPane.value))?.panel.find((item) => item.key === witchPane.value)?.component;
+  return groups
+    .find((item) => item.panel.some((i) => i.key === witchPane.value))
+    ?.panel.find((item) => item.key === witchPane.value)?.component;
 };
 </script>
 
 <template>
-  <div class="h-svh">
-    <el-container class="h-full setting">
-      <el-aside v-if="isOpen" class="pure-account-settings overflow-hidden px-2 dark:!bg-[var(--el-bg-color)] border-r-[1px] border-[var(--pure-border-color)]" :width="deviceDetection() ? '180px' : '240px'">
-        <el-menu :default-active="witchPane" class="pure-account-settings-menu">
-          <el-menu-item class="hover:!transition-all hover:!duration-200 hover:!text-base !h-[50px]" @click="router.go(-1)">
-            <div class="flex items-center">
-              <IconifyIconOffline :icon="leftLine" />
-              <span class="ml-2">{{ $t("buttons.back") }}</span>
-            </div>
-          </el-menu-item>
-          <div class="flex items-center ml-8 mt-4 mb-4">
-            <el-avatar :size="48" :src="userInfo?.avatar" />
-            <div class="ml-4 flex flex-col max-w-[130px]">
-              <ReText class="font-bold !self-baseline">
-                {{ userInfo?.sysUserNickname }}
-              </ReText>
-              <ReText class="!self-baseline" type="info">
-                {{ userInfo?.sysUserUsername }}
-              </ReText>
-            </div>
+  <div class="account-page">
+    <el-container class="account-container">
+      <!-- 侧边导航 -->
+      <el-aside
+        v-if="isOpen"
+        class="account-sidebar"
+        :width="deviceDetection() ? '200px' : '280px'"
+      >
+        <!-- 返回按钮 -->
+        <div class="sidebar-header">
+          <button class="back-btn" @click="router.go(-1)">
+            <IconifyIconOffline :icon="leftLine" class="back-icon" />
+            <span>{{ $t("buttons.back") }}</span>
+          </button>
+        </div>
+
+        <!-- 用户信息卡片 -->
+        <div class="user-card">
+          <div class="user-avatar-wrapper">
+            <el-avatar :size="64" :src="userInfo?.avatar" class="user-avatar" />
+            <span class="online-badge"></span>
           </div>
-          <el-menu-item-group v-for="group in groups" :key="group.name" :title="group.name">
-            <el-menu-item
-              v-for="item in group.panel"
-              :key="item.key"
-              :index="item.key"
-              @click="
-                () => {
-                  witchPane = item.key;
-                  if (deviceDetection()) {
-                    isOpen = !isOpen;
+          <div class="user-details">
+            <h3 class="user-nickname">{{ userInfo?.sysUserNickname }}</h3>
+            <p class="user-username">@{{ userInfo?.sysUserUsername }}</p>
+          </div>
+        </div>
+
+        <!-- 导航菜单 -->
+        <nav class="nav-menu">
+          <div v-for="group in groups" :key="group.name" class="nav-group">
+            <h4 class="group-title">{{ group.name }}</h4>
+            <ul class="group-items">
+              <li
+                v-for="item in group.panel"
+                :key="item.key"
+                :class="['nav-item', { active: witchPane === item.key }]"
+                @click="
+                  () => {
+                    witchPane = item.key;
+                    if (deviceDetection()) {
+                      isOpen = !isOpen;
+                    }
                   }
-                }
-              "
-            >
-              <div class="flex items-center z-10">
-                <el-icon><IconifyIconOffline :icon="item.icon" /></el-icon>
-                <span>{{ item.label }}</span>
-              </div>
-            </el-menu-item>
-          </el-menu-item-group>
-        </el-menu>
+                "
+              >
+                <div class="item-icon">
+                  <IconifyIconOffline :icon="item.icon" />
+                </div>
+                <span class="item-label">{{ item.label }}</span>
+                <IconifyIconOnline
+                  v-if="witchPane === item.key"
+                  icon="ri:arrow-right-s-line"
+                  class="item-arrow"
+                />
+              </li>
+            </ul>
+          </div>
+        </nav>
       </el-aside>
-      <el-main class="overflow-hidden">
-        <LaySidebarTopCollapse v-if="deviceDetection()" class="px-0" :is-active="isOpen" @toggleClick="isOpen = !isOpen" />
-        <div class="h-full overflow-hidden">
-          <component :is="findComponent()" :userInfo="userInfo" class="h-full" :class="[!deviceDetection() && 'ml-[120px]']" style="height: 90%" @updated:user="onUpdated" />
+
+      <!-- 主内容区 -->
+      <el-main class="account-main">
+        <LaySidebarTopCollapse
+          v-if="deviceDetection()"
+          class="mobile-toggle"
+          :is-active="isOpen"
+          @toggleClick="isOpen = !isOpen"
+        />
+        <div class="main-content">
+          <component
+            :is="findComponent()"
+            :userInfo="userInfo"
+            class="content-component"
+            @updated:user="onUpdated"
+          />
         </div>
       </el-main>
     </el-container>
   </div>
 </template>
 
-<style lang="scss">
-.pure-account-settings {
-  background: var(--app-bg-secondary);
+<style lang="scss" scoped>
+.account-page {
+  height: 100vh;
+  background: var(--el-bg-color-page);
 }
 
-.pure-account-settings-menu {
-  background-color: transparent;
+.account-container {
+  height: 100%;
+}
+
+// 侧边栏样式
+.account-sidebar {
+  background: var(--el-bg-color);
+  border-right: 1px solid var(--el-border-color-lighter);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
   border: none;
+  border-radius: 12px;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
 
-  .el-menu-item {
-    height: 48px !important;
-    color: var(--app-text-secondary);
-    background-color: transparent !important;
-    transition: color 0.2s;
+  &:hover {
+    background: var(--el-fill-color);
+    color: var(--el-color-primary);
 
-    &:hover {
-      color: var(--app-text-primary) !important;
-    }
-
-    &.is-active {
-      color: #fff !important;
-
-      &:hover {
-        color: #fff !important;
-      }
-
-      &::before {
-        position: absolute;
-        inset: 0 8px;
-        margin: 4px 0;
-        clear: both;
-        content: "";
-        background: var(--el-color-primary);
-        border-radius: 3px;
-      }
+    .back-icon {
+      transform: translateX(-4px);
     }
   }
+
+  .back-icon {
+    font-size: 18px;
+    transition: transform 0.2s ease;
+  }
 }
-</style>
 
-<style lang="scss" scoped>
-body[layout] {
-  .el-menu--vertical .is-active {
-    color: #fff !important;
-    transition: color 0.2s;
+// 用户卡片样式
+.user-card {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: linear-gradient(
+    180deg,
+    var(--el-color-primary-light-9) 0%,
+    transparent 100%
+  );
+}
 
-    &:hover {
-      color: #fff !important;
+.user-avatar-wrapper {
+  position: relative;
+  margin-bottom: 12px;
+
+  .user-avatar {
+    border: 3px solid var(--el-bg-color);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .online-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 14px;
+    height: 14px;
+    background: #22c55e;
+    border: 3px solid var(--el-bg-color);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+  }
+}
+
+.user-details {
+  .user-nickname {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    margin: 0 0 4px 0;
+  }
+
+  .user-username {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    margin: 0;
+  }
+}
+
+// 导航菜单样式
+.nav-menu {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.nav-group {
+  margin-bottom: 20px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.group-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 12px;
+  margin: 0;
+}
+
+.group-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin: 4px 0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--el-text-color-regular);
+
+  &:hover {
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-primary);
+
+    .item-icon {
+      transform: scale(1.1);
     }
+  }
+
+  &.active {
+    background: var(--el-color-primary);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+
+    .item-icon {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    .item-arrow {
+      opacity: 1;
+    }
+  }
+
+  .item-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: var(--el-fill-color-light);
+    font-size: 18px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .item-label {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .item-arrow {
+    font-size: 18px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+}
+
+// 主内容区样式
+.account-main {
+  background: var(--el-bg-color-page);
+  padding: 0;
+  overflow: hidden;
+}
+
+.mobile-toggle {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.main-content {
+  height: 100%;
+  padding: 24px 32px;
+  overflow-y: auto;
+
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
+}
+
+.content-component {
+  max-width: 800px;
+  margin: 0 auto;
+  height: auto !important;
+}
+
+// 深色模式适配
+html.dark {
+  .account-sidebar {
+    background: var(--el-bg-color-overlay);
+  }
+
+  .user-card {
+    background: linear-gradient(
+      180deg,
+      rgba(var(--el-color-primary-rgb), 0.1) 0%,
+      transparent 100%
+    );
+  }
+
+  .user-avatar-wrapper .user-avatar {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .nav-item.active {
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.4);
   }
 }
 </style>
