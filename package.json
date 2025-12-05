@@ -30,6 +30,7 @@
     "@iconify-icons/ri": "catalog:",
     "@iconify-icons/simple-icons": "catalog:",
     "@iconify/vue": "catalog:",
+    "@imgly/background-removal": "^1.7.0",
     "@intlify/unplugin-vue-i18n": "catalog:",
     "@layout/default": "workspace:^",
     "@layout/engine": "workspace:^",

@@ -227,7 +227,7 @@
   
   div {
     background-color: rgba(0, 0, 0, 0.7);
-    color: var(--el-text-color-primary);
+    color: #ffffff;
     padding: 3px 6px;
     border-radius: 2px;
     font-size: 12px;
@@ -267,7 +267,7 @@
 /* 测距样式 */
 .measure-segment-label .segment-distance {
   background: rgba(24, 144, 255, 0.9);
-  color: var(--el-text-color-primary);
+  color: #ffffff;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 13px;
@@ -280,7 +280,7 @@
 
 .measure-node-label .node-distance {
   background: rgba(0, 92, 175, 0.9);
-  color: var(--el-text-color-primary);
+  color: #ffffff;
   padding: 3px 7px;
   border-radius: 4px;
   font-size: 12px;
@@ -292,7 +292,7 @@
 
 .measure-total-label .total-distance-label {
   background-color: rgba(0, 177, 89, 0.9);
-  color: var(--el-text-color-primary);
+  color: #ffffff;
   padding: 5px 10px;
   border-radius: 4px;
   font-size: 14px;
@@ -370,7 +370,7 @@
 
 .ol-tooltip.ol-tooltip-measure {
   background-color: rgba(24, 144, 255, 0.9);
-  color: var(--el-text-color-primary);
+  color: #ffffff;
   padding: 6px 10px;
   border-radius: 4px;
   font-weight: bold;
