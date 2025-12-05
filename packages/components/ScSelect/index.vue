@@ -171,7 +171,22 @@
       :check-strictly="treeCheckStrictly"
       :leaf-only="treeLeafOnly"
       @change="handleChange"
-    />
+    >
+      <!-- 树节点插槽 -->
+      <template v-if="$slots['tree-node']" #default="{ node, data }">
+        <slot name="tree-node" :node="node" :data="data" :selected="isSelected(data.value)" />
+      </template>
+    </ScSelectTreeLayout>
+
+    <!-- 空状态插槽 -->
+    <div v-if="selectListOptions.length === 0 && $slots.empty" class="sc-select__empty">
+      <slot name="empty" />
+    </div>
+
+    <!-- 底部插槽 -->
+    <div v-if="$slots.footer" class="sc-select__footer">
+      <slot name="footer" :options="selectListOptions" :selected="selectValue" />
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -785,6 +800,45 @@ const handleSelect = (value: string | number) => {
 .card-selector-container {
   width: 100%;
 
+  // 头部插槽
+  .sc-select__header {
+    margin-bottom: 12px;
+  }
+
+  // 底部插槽
+  .sc-select__footer {
+    margin-top: 12px;
+  }
+
+  // 空状态插槽
+  .sc-select__empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--el-text-color-secondary);
+  }
+
+  // 自定义卡片插槽
+  .sc-select__card-slot {
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &.is-disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+
+  // 自定义药丸插槽
+  .sc-select__pill-slot {
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &.is-disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+
   // 通用图标样式
   .action-icon {
     display: inline-flex;
@@ -807,7 +861,7 @@ const handleSelect = (value: string | number) => {
     display: flex;
     flex-wrap: wrap;
     width: 100%;
-    gap: 10px !important; // 药丸布局需要更小的间距
+    gap: 10px !important;
     justify-content: flex-start;
   }
 
