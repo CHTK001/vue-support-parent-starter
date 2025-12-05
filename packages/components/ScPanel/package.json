@@ -1,0 +1,8 @@
+{
+  "name": "@repo/components/ScPanel",
+  "version": "1.0.0",
+  "description": "面板组件，支持多种主题风格",
+  "main": "index.ts",
+  "types": "index.ts",
+  "license": "MIT"
+}
