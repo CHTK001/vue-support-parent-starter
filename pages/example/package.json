@@ -40,7 +40,8 @@
     "element-plus": "catalog:",
     "unbuild": "catalog:",
     "echarts": "catalog:",
-    "leaflet":"catalog:",
+    "leaflet": "catalog:",
+    "viewerjs": "catalog:",
     "vue": "catalog:",
     "vue-i18n": "catalog:"
   },

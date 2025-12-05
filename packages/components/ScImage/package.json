@@ -5,6 +5,7 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "dependencies": {
-    "photoswipe": "^5.4.3"
+    "viewerjs": "catalog:",
+    "cropperjs": "catalog:"
   }
 }
