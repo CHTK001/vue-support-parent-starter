@@ -393,8 +393,22 @@ const components = [
   {
     name: "ScContainer",
     icon: "ri:layout-masonry-line",
-    description: "容器布局组件，支持拖拽调整大小、折叠、最大化等功能",
+    description: "布局容器组件，提供 Header、Aside、Main、Footer 布局结构",
     component: resolveComponent("./components/ScContainerExample.vue"),
+  },
+  {
+    name: "ScPanel",
+    icon: "ri:dashboard-3-line",
+    description:
+      "面板组件，支持多种主题风格（default/tech/techui/glass/neon/cyber/modern/gradient），可折叠、最大化",
+    component: resolveComponent("./components/ScPanelExample.vue"),
+  },
+  {
+    name: "ScTech",
+    icon: "ri:cpu-line",
+    description:
+      "科技风格组件集合示例，展示 TechUI 数据大屏风格的按钮、卡片、对话框等组件",
+    component: resolveComponent("./components/ScTechExample.vue"),
   },
   {
     name: "ScCompare",

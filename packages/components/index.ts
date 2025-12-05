@@ -9,8 +9,10 @@ import ScMessageDialog from "./ScMessageDialog/index.vue";
 import ScDebugConsole from "./ScDebugConsole/index.vue";
 import { ScText } from "./ScText";
 import { ScFilterBar } from "./ScFilterBar";
+import { ScContainer } from "./ScContainer";
+import { ScPanel } from "./ScPanel";
 
-export { ReMenuNewBadge, ScCard, ScTable, ScRibbon, ScProgress, ScImage, ScMessageDialog, ScDebugConsole, ScText, ScFilterBar };
+export { ReMenuNewBadge, ScCard, ScTable, ScRibbon, ScProgress, ScImage, ScMessageDialog, ScDebugConsole, ScText, ScFilterBar, ScContainer, ScPanel };
 
 export default {
   ScTable,
@@ -23,5 +25,7 @@ export default {
   ScMessageDialog,
   ScDebugConsole,
   ScText,
-  ScFilterBar
+  ScFilterBar,
+  ScContainer,
+  ScPanel
 };
