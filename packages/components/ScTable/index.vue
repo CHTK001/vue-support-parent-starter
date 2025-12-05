@@ -6,8 +6,10 @@ import { computed, defineAsyncComponent, nextTick, onActivated, onDeactivated, o
 import { columnSettingGet, columnSettingReset, columnSettingSave, config, parseData } from "./column";
 import CanvasTableView from "./components/CanvasTableView.vue";
 import CardView from "./components/CardView.vue";
+import GalleryView from "./components/GalleryView.vue";
 import ListView from "./components/ListView.vue";
 import TableView from "./components/TableView.vue";
+import TimelineView from "./components/TimelineView.vue";
 import VirtualTableView from "./components/VirtualTableView.vue";
 import WaterfallView from "./components/WaterfallView.vue";
 import Pagination from "./plugins/Pagination.vue";
@@ -106,7 +108,57 @@ const props = defineProps({
   /**
    * 是否启用十字标记（点击单元格高亮横向和纵向）
    */
-  crossHighlight: { type: Boolean, default: false }
+  crossHighlight: { type: Boolean, default: false },
+  // 时间线布局配置
+  /**
+   * 时间戳字段名
+   */
+  timestampField: { type: String, default: "createTime" },
+  /**
+   * 时间线节点大小
+   */
+  timelineSize: { type: String, default: "normal" },
+  /**
+   * 时间线节点是否空心
+   */
+  timelineHollow: { type: Boolean, default: false },
+  /**
+   * 时间戳位置
+   */
+  timelinePlacement: { type: String, default: "bottom" },
+  // 画廊布局配置
+  /**
+   * 图片字段名
+   */
+  galleryImageField: { type: String, default: "image" },
+  /**
+   * 标题字段名
+   */
+  galleryTitleField: { type: String, default: "title" },
+  /**
+   * 描述字段名
+   */
+  galleryDescField: { type: String, default: "desc" },
+  /**
+   * 是否可预览
+   */
+  galleryPreviewable: { type: Boolean, default: true },
+  /**
+   * 是否可下载
+   */
+  galleryDownloadable: { type: Boolean, default: false },
+  /**
+   * 是否可选择
+   */
+  gallerySelectable: { type: Boolean, default: false },
+  /**
+   * 是否显示信息区域
+   */
+  galleryShowInfo: { type: Boolean, default: true },
+  /**
+   * 图片宽高比
+   */
+  galleryAspectRatio: { type: String, default: "1/1" }
 });
 
 // 定义组件事件
@@ -1216,7 +1268,9 @@ const componentMap = {
   list: ListView,
   virtual: VirtualTableView,
   canvas: CanvasTableView,
-  waterfall: WaterfallView
+  waterfall: WaterfallView,
+  timeline: TimelineView,
+  gallery: GalleryView
 };
 
 // 暴露方法给父组件
