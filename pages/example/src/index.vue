@@ -391,6 +391,12 @@ const components = [
     component: resolveComponent("./components/ScCodeExample.vue"),
   },
   {
+    name: "ScContainer",
+    icon: "ri:layout-masonry-line",
+    description: "容器布局组件，支持拖拽调整大小、折叠、最大化等功能",
+    component: resolveComponent("./components/ScContainerExample.vue"),
+  },
+  {
     name: "ScCompare",
     icon: "ri:file-compare-line",
     description: "对比组件，支持文本和代码对比",

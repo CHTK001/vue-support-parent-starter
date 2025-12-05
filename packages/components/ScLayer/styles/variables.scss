@@ -5,6 +5,7 @@ $success-color: #52c41a;
 $warning-color: #faad14;
 $error-color: #f5222d;
 $background: var(--el-bg-color-overlay);
+$background-color: #ffffff;
 $border-color: #e8e8e8;
 $text-color: #333333;
 $light-text-color: #ffffff;
@@ -29,7 +30,7 @@ $transition-ease: ease-in-out;
 
 // 工具提示
 $tooltip-background: rgba(0, 0, 0, 0.75);
-$tooltip-text-color: var(--el-text-color-primary);
+$tooltip-text-color: #ffffff;
 $tooltip-border-radius: 4px;
 $tooltip-padding: 6px 10px;
 
@@ -43,4 +44,4 @@ $overview-background: rgba(255, 255, 255, 0.8);
 $coordinate-panel-background: rgba(255, 255, 255, 0.9);
 $coordinate-panel-border: 1px solid #dddddd;
 $coordinate-panel-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-$coordinate-panel-font-size: 12px; 
+$coordinate-panel-font-size: 12px;

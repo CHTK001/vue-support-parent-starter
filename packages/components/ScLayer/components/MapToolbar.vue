@@ -1,13 +1,22 @@
 /** * 地图工具栏 * 支持功能： * 1. 支持水平和垂直两种方向布局 * 2. 支持四个角落位置摆放 * 3. 支持收缩和展开 * 4. 支持子菜单和工具提示 * @author CH * @date 2025-05-12 */
 <template>
-  <div v-if="visible" :key="forceUpdateKey" :class="[toolbarClass, `size-${config.size}`]" :style="toolbarStyle"
-    @dblclick.stop.prevent @click.stop>
-    <div v-for="tool in visibleTools" :key="tool.id" class="toolbar-item"
+  <div v-if="visible" :key="forceUpdateKey" :class="[toolbarClass, `size-${config.size}`]" :style="toolbarStyle" @dblclick.stop.prevent @click.stop>
+    <div
+      v-for="tool in visibleTools"
+      :key="tool.id"
+      class="toolbar-item"
       :class="[{ active: isToolActive(tool.id) }, { 'has-submenu': (tool.type === 'menu' || tool.type === 'button') && tool.children?.length }, tool?.className || '']"
-      :data-tool-id="tool.id" @click.stop="e => handleToolClick(tool, e)" @dblclick.stop.prevent
-      @mouseenter="e => handleToolHover(tool, e, true)" @mouseleave="e => handleToolHover(tool, e, false)">
-      <span v-if="typeof (isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon) === 'string'"
-        class="svg-icon" v-html="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon" />
+      :data-tool-id="tool.id"
+      @click.stop="e => handleToolClick(tool, e)"
+      @dblclick.stop.prevent
+      @mouseenter="e => handleToolHover(tool, e, true)"
+      @mouseleave="e => handleToolHover(tool, e, false)"
+    >
+      <span
+        v-if="typeof (isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon) === 'string'"
+        class="svg-icon"
+        v-html="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon"
+      />
       <component :is="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon" v-else />
     </div>
     <div class="toolbar-collapse" :title="isCollapsed ? '展开' : '收缩'" @click.stop="toggleCollapse">
@@ -16,23 +25,19 @@
         <!-- 左侧工具栏 -->
         <div v-if="config.position.endsWith('left')" class="collapse-icon">
           <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M842.67 512L640 309.33V402.67H384V402.67H213.33V621.33H384V621.33H640V714.67L842.67 512Z"
-              fill="currentColor" />
+            <path d="M842.67 512L640 309.33V402.67H384V402.67H213.33V621.33H384V621.33H640V714.67L842.67 512Z" fill="currentColor" />
           </svg>
           <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M181.33 512L384 714.67V621.33H640V621.33H810.67V402.67H640V402.67H384V309.33L181.33 512Z"
-              fill="currentColor" />
+            <path d="M181.33 512L384 714.67V621.33H640V621.33H810.67V402.67H640V402.67H384V309.33L181.33 512Z" fill="currentColor" />
           </svg>
         </div>
         <!-- 右侧工具栏 -->
         <div v-else class="collapse-icon">
           <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M181.33 512L384 309.33V402.67H640V402.67H810.67V621.33H640V621.33H384V714.67L181.33 512Z"
-              fill="currentColor" />
+            <path d="M181.33 512L384 309.33V402.67H640V402.67H810.67V621.33H640V621.33H384V714.67L181.33 512Z" fill="currentColor" />
           </svg>
           <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M842.67 512L640 714.67V621.33H384V621.33H213.33V402.67H384V402.67H640V309.33L842.67 512Z"
-              fill="currentColor" />
+            <path d="M842.67 512L640 714.67V621.33H384V621.33H213.33V402.67H384V402.67H640V309.33L842.67 512Z" fill="currentColor" />
           </svg>
         </div>
       </template>
@@ -41,23 +46,19 @@
         <!-- 顶部工具栏 -->
         <div v-if="config.position.startsWith('top')" class="collapse-icon">
           <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M512 842.67L714.67 640H621.33V384H621.33V213.33H402.67V384H402.67V640H309.33L512 842.67Z"
-              fill="currentColor" />
+            <path d="M512 842.67L714.67 640H621.33V384H621.33V213.33H402.67V384H402.67V640H309.33L512 842.67Z" fill="currentColor" />
           </svg>
           <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M512 181.33L309.33 384H402.67V640H402.67V810.67H621.33V640H621.33V384H714.67L512 181.33Z"
-              fill="currentColor" />
+            <path d="M512 181.33L309.33 384H402.67V640H402.67V810.67H621.33V640H621.33V384H714.67L512 181.33Z" fill="currentColor" />
           </svg>
         </div>
         <!-- 底部工具栏 -->
         <div v-else class="collapse-icon">
           <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M512 181.33L309.33 384H402.67V640H402.67V810.67H621.33V640H621.33V384H714.67L512 181.33Z"
-              fill="currentColor" />
+            <path d="M512 181.33L309.33 384H402.67V640H402.67V810.67H621.33V640H621.33V384H714.67L512 181.33Z" fill="currentColor" />
           </svg>
           <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M512 842.67L714.67 640H621.33V384H621.33V213.33H402.67V384H402.67V640H309.33L512 842.67Z"
-              fill="currentColor" />
+            <path d="M512 842.67L714.67 640H621.33V384H621.33V213.33H402.67V384H402.67V640H309.33L512 842.67Z" fill="currentColor" />
           </svg>
         </div>
       </template>
@@ -65,32 +66,48 @@
   </div>
 
   <!-- 使用固定定位的子菜单 -->
-  <div v-if="submenuState.visible" class="toolbar-submenu submenu-active submenu-positioned"
-    :class="`direction-${config.direction}`" :style="{
+  <div
+    v-if="submenuState.visible"
+    class="toolbar-submenu submenu-active submenu-positioned"
+    :class="`direction-${config.direction}`"
+    :style="{
       position: 'fixed',
       top: `${submenuState.top}px`,
       left: `${submenuState.left}px`,
       zIndex: 999999
-    }" @click.stop>
-    <div v-for="subTool in submenuState.items" :key="subTool.id" class="submenu-item toolbar-item"
-      :class="[{ active: isToolActive(subTool.id) }, subTool.className]" :data-tool-id="subTool.id"
+    }"
+    @click.stop
+  >
+    <div
+      v-for="subTool in submenuState.items"
+      :key="subTool.id"
+      class="submenu-item toolbar-item"
+      :class="[{ active: isToolActive(subTool.id) }, subTool.className]"
+      :data-tool-id="subTool.id"
       @click.stop.prevent="e => handleSubmenuItemClick(submenuState.parentTool, subTool, e)"
-      @mouseenter="e => handleToolHover(subTool, e, true)" @mouseleave="e => handleToolHover(subTool, e, false)">
+      @mouseenter="e => handleToolHover(subTool, e, true)"
+      @mouseleave="e => handleToolHover(subTool, e, false)"
+    >
       <span
         v-if="typeof (isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon) === 'string'"
-        class="svg-icon" v-html="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon" />
-      <component :is="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon"
-        v-else-if="subTool.icon || (isToolActive(subTool.id) && subTool.activeIcon)" />
+        class="svg-icon"
+        v-html="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon"
+      />
+      <component :is="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon" v-else-if="subTool.icon || (isToolActive(subTool.id) && subTool.activeIcon)" />
     </div>
   </div>
 
   <!-- 使用固定定位的工具提示 -->
-  <div v-if="tooltipState.visible" class="toolbar-tooltip tooltip-positioned" :style="{
-    position: 'fixed',
-    top: `${tooltipState.top}px`,
-    left: `${tooltipState.left}px`,
-    zIndex: 999999
-  }">
+  <div
+    v-if="tooltipState.visible"
+    class="toolbar-tooltip tooltip-positioned"
+    :style="{
+      position: 'fixed',
+      top: `${tooltipState.top}px`,
+      left: `${tooltipState.left}px`,
+      zIndex: 999999
+    }"
+  >
     {{ tooltipState.text }}
   </div>
 </template>
@@ -1447,7 +1464,7 @@ defineExpose({
 /* 工具提示样式 */
 .toolbar-tooltip {
   background-color: rgba(0, 0, 0, 0.8);
-  color: var(--el-text-color-primary);
+  color: #ffffff;
   font-size: 12px;
   padding: 4px 8px;
   border-radius: 4px;

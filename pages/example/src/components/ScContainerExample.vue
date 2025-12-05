@@ -1,344 +1,246 @@
 <template>
   <div class="sc-container-example">
-    <div class="example-content">
-      <!-- 基础示例 -->
-      <div class="demo-section">
-        <h4>基础布局</h4>
-        <p class="demo-desc">
-          包含 Header、Aside、Main、Footer 四个区域，支持拖拽调整大小
-        </p>
-        <div class="demo-container">
-          <ScContainer
-            :header-height="60"
-            :aside-width="200"
-            :footer-height="50"
-            :resizable="resizable"
-            @resize="handleResize"
-          >
-            <template #header>
-              <div class="demo-header">
-                <IconifyIconOnline icon="ri:layout-top-line" />
-                <span>Header 区域 (拖拽底部边缘调整高度)</span>
-              </div>
-            </template>
-            <template #aside>
-              <div class="demo-aside">
-                <IconifyIconOnline icon="ri:layout-left-line" />
-                <span>Aside 侧边栏</span>
-                <p class="aside-tip">拖拽右侧边缘调整宽度</p>
-              </div>
-            </template>
-            <div class="demo-main">
-              <IconifyIconOnline
-                icon="ri:layout-masonry-line"
-                class="main-icon"
-              />
-              <span>Main 主内容区</span>
-              <p class="main-tip">自适应剩余空间</p>
-            </div>
-            <template #footer>
-              <div class="demo-footer">
-                <IconifyIconOnline icon="ri:layout-bottom-line" />
-                <span>Footer 区域 (拖拽顶部边缘调整高度)</span>
-              </div>
-            </template>
-          </ScContainer>
-        </div>
-      </div>
+    <!-- 基础面板 -->
+    <div class="demo-section">
+      <h4>基础面板</h4>
+      <div class="demo-row">
+        <ScPanel title="基础面板" icon="ep:document" :width="300" :height="200">
+          <p>这是一个基础面板，带有标题和图标。</p>
+        </ScPanel>
 
-      <!-- 无侧边栏示例 -->
-      <div class="demo-section">
-        <h4>无侧边栏布局</h4>
-        <p class="demo-desc">只包含 Header、Main、Footer 的简洁布局</p>
-        <div class="demo-container demo-container--small">
-          <ScContainer
-            :header-height="50"
-            :footer-height="40"
-            :resizable="resizable"
-          >
-            <template #header>
-              <div class="demo-header demo-header--simple">
-                <span>页面标题</span>
-              </div>
-            </template>
-            <div class="demo-main demo-main--simple">
-              <p>主要内容区域</p>
-            </div>
-            <template #footer>
-              <div class="demo-footer demo-footer--simple">
-                <span>© 2025 版权所有</span>
-              </div>
-            </template>
-          </ScContainer>
-        </div>
-      </div>
+        <ScPanel
+          title="无边框"
+          icon="ep:setting"
+          :width="300"
+          :height="200"
+          :border="false"
+        >
+          <p>无边框的面板样式。</p>
+        </ScPanel>
 
-      <!-- 配置面板 -->
-      <div class="config-panel">
-        <h4>配置选项</h4>
-        <el-form label-position="top" size="default">
-          <el-form-item label="启用拖拽调整">
-            <el-switch v-model="resizable" />
-          </el-form-item>
-
-          <el-form-item label="调整事件日志">
-            <div class="resize-log">
-              <div
-                v-for="(log, index) in resizeLogs"
-                :key="index"
-                class="log-item"
-              >
-                <el-tag size="small" :type="log.type">{{ log.area }}</el-tag>
-                <span>{{ log.size }}px</span>
-              </div>
-              <div v-if="resizeLogs.length === 0" class="log-empty">
-                暂无调整记录，拖拽分隔线试试
-              </div>
-            </div>
-          </el-form-item>
-        </el-form>
+        <ScPanel
+          title="无阴影"
+          icon="ep:info-filled"
+          :width="300"
+          :height="200"
+          :shadow="false"
+        >
+          <p>无阴影的面板样式。</p>
+        </ScPanel>
       </div>
     </div>
 
-    <!-- 代码示例 -->
-    <CodePreview
-      :tabs="[
-        {
-          key: 'template',
-          label: '模板',
-          icon: 'ri:code-s-slash-line',
-          language: 'vue',
-          code: codeExample,
-        },
-      ]"
-      class="mt-4"
-    />
+    <!-- 面板类型 -->
+    <div class="demo-section">
+      <h4>面板类型</h4>
+      <div class="demo-row">
+        <ScPanel title="Primary" type="primary" :width="180" :height="100">
+          <p>主要</p>
+        </ScPanel>
+        <ScPanel title="Success" type="success" :width="180" :height="100">
+          <p>成功</p>
+        </ScPanel>
+        <ScPanel title="Warning" type="warning" :width="180" :height="100">
+          <p>警告</p>
+        </ScPanel>
+        <ScPanel title="Danger" type="danger" :width="180" :height="100">
+          <p>危险</p>
+        </ScPanel>
+        <ScPanel title="Info" type="info" :width="180" :height="100">
+          <p>信息</p>
+        </ScPanel>
+      </div>
+    </div>
+
+    <!-- 折叠功能 -->
+    <div class="demo-section">
+      <h4>折叠功能</h4>
+      <div class="demo-row">
+        <ScPanel
+          v-model:collapsed="collapsed1"
+          title="可折叠面板"
+          icon="ep:folder"
+          collapsible
+          :width="350"
+        >
+          <p>点击左侧箭头可以折叠/展开此面板。</p>
+          <p>当前状态：{{ collapsed1 ? "已折叠" : "已展开" }}</p>
+        </ScPanel>
+
+        <ScPanel
+          title="默认折叠"
+          icon="ep:folder-opened"
+          collapsible
+          :collapsed="true"
+          :width="350"
+        >
+          <p>这个面板默认是折叠状态。</p>
+        </ScPanel>
+      </div>
+    </div>
+
+    <!-- 最大化功能 -->
+    <div class="demo-section">
+      <h4>最大化功能</h4>
+      <div class="demo-row">
+        <ScPanel
+          v-model:maximized="maximized1"
+          title="可最大化面板"
+          icon="ep:full-screen"
+          maximizable
+          :width="400"
+          :height="200"
+        >
+          <p>点击右上角按钮可以最大化此面板。</p>
+          <p>当前状态：{{ maximized1 ? "已最大化" : "正常" }}</p>
+        </ScPanel>
+      </div>
+    </div>
+
+    <!-- 拖拽功能 -->
+    <div class="demo-section">
+      <h4>拖拽功能</h4>
+      <div class="demo-drag-container">
+        <ScPanel
+          title="可拖拽面板"
+          icon="ep:rank"
+          draggable
+          maximizable
+          :width="280"
+          :height="180"
+          :x="30"
+          :y="30"
+        >
+          <p>拖拽头部移动面板</p>
+          <p>双击头部最大化</p>
+        </ScPanel>
+
+        <ScPanel
+          title="拖拽+调整大小"
+          icon="ep:resize"
+          draggable
+          resizable
+          :width="280"
+          :height="180"
+          :x="350"
+          :y="30"
+          :min-width="200"
+          :min-height="150"
+        >
+          <p>可拖拽移动</p>
+          <p>可调整大小</p>
+        </ScPanel>
+      </div>
+    </div>
+
+    <!-- 可调整大小 -->
+    <div class="demo-section">
+      <h4>可调整大小</h4>
+      <div class="demo-row">
+        <ScPanel
+          title="可调整大小"
+          icon="ep:resize"
+          resizable
+          :width="400"
+          :height="220"
+          :min-width="300"
+          :min-height="150"
+          :max-width="600"
+          :max-height="400"
+        >
+          <p>拖拽右侧、底部或右下角调整大小</p>
+          <p>最小：300x150，最大：600x400</p>
+        </ScPanel>
+      </div>
+    </div>
+
+    <!-- 组合使用 -->
+    <div class="demo-section">
+      <h4>组合使用</h4>
+      <div class="demo-row">
+        <ScPanel
+          title="完整功能面板"
+          icon="ep:setting"
+          type="primary"
+          collapsible
+          maximizable
+          closable
+          resizable
+          :width="450"
+          :height="280"
+          :min-width="300"
+          :min-height="200"
+        >
+          <template #actions>
+            <el-button size="small" type="primary" link>
+              <IconifyIconOnline icon="ep:refresh" />
+            </el-button>
+          </template>
+          <p>这个面板集成了所有功能：</p>
+          <ul>
+            <li>可折叠</li>
+            <li>可最大化</li>
+            <li>可关闭</li>
+            <li>可调整大小</li>
+          </ul>
+          <template #footer>
+            <el-text type="info" size="small">面板底部区域</el-text>
+          </template>
+        </ScPanel>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 /**
- * ScContainer 容器布局示例
+ * ScContainer/ScPanel 容器布局示例
  * @author CH
- * @date 2025-12-04
+ * @version 2.0.0
+ * @since 2025-12-04
+ * @since 2025-12-05 更新为 ScPanel 新功能示例
  */
-import ScContainer from "@repo/components/ScContainer";
-import { ref, computed } from "vue";
-import CodePreview from "./CodePreview.vue";
+import { ref } from "vue";
+import { ScPanel } from "@repo/components/ScContainer";
 
-// 配置选项
-const resizable = ref(true);
-const resizeLogs = ref([]);
-
-// 处理调整事件
-const handleResize = (area, size) => {
-  const typeMap = {
-    header: "primary",
-    aside: "success",
-    footer: "warning",
-  };
-
-  resizeLogs.value.unshift({
-    area,
-    size: Math.round(size),
-    type: typeMap[area] || "info",
-  });
-
-  // 只保留最近5条记录
-  if (resizeLogs.value.length > 5) {
-    resizeLogs.value.pop();
-  }
-};
-
-// 代码示例
-const codeExample = computed(() => {
-  return `<template>
-  <ScContainer
-    :header-height="60"
-    :aside-width="200"
-    :footer-height="50"
-    :resizable="${resizable.value}"
-    @resize="handleResize"
-  >
-    <template #header>
-      <div class="header">Header 区域</div>
-    </template>
-    <template #aside>
-      <div class="aside">Aside 侧边栏</div>
-    </template>
-    <div class="main">Main 主内容区</div>
-    <template #footer>
-      <div class="footer">Footer 区域</div>
-    </template>
-  </ScContainer>
-</template>
-
-<script setup>
-import ScContainer from "@repo/components/ScContainer";
-
-const handleResize = (area, size) => {
-  console.log(\`\${area} 调整为 \${size}px\`);
-};
-<\/script>`;
-});
+const collapsed1 = ref(false);
+const maximized1 = ref(false);
 </script>
 
 <style scoped>
 .sc-container-example {
-  padding: 20px 0;
-}
-
-.example-content {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  margin-bottom: 20px;
+  padding: 20px;
 }
 
 .demo-section {
-  flex: 1;
-  min-width: 300px;
+  margin-bottom: 32px;
+  padding: 20px;
+  background: var(--el-bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .demo-section h4 {
-  margin: 0 0 8px 0;
+  margin: 0 0 16px;
+  padding-bottom: 12px;
   font-size: 16px;
   font-weight: 600;
   color: var(--el-text-color-primary);
-}
-
-.demo-desc {
-  margin: 0 0 16px 0;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-
-.demo-container {
-  height: 400px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.demo-container--small {
-  height: 250px;
-}
-
-.demo-header,
-.demo-aside,
-.demo-main,
-.demo-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 100%;
-  font-size: 14px;
-  color: var(--el-text-color-regular);
-}
-
-.demo-header {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-9) 0%,
-    var(--el-color-primary-light-8) 100%
-  );
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
-.demo-aside {
-  flex-direction: column;
-  background: var(--el-fill-color-lighter);
-  border-right: 1px solid var(--el-border-color-lighter);
-}
-
-.aside-tip {
-  margin: 8px 0 0;
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
-}
-
-.demo-main {
-  flex-direction: column;
-  background: var(--el-bg-color);
-}
-
-.main-icon {
-  font-size: 32px;
-  color: var(--el-color-primary-light-5);
-  margin-bottom: 8px;
-}
-
-.main-tip {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-}
-
-.demo-footer {
-  background: var(--el-fill-color-light);
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-
-.demo-header--simple,
-.demo-footer--simple {
-  font-size: 13px;
-}
-
-.demo-main--simple {
-  font-size: 14px;
-}
-
-.config-panel {
-  width: 280px;
-  flex-shrink: 0;
-}
-
-.config-panel h4 {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.resize-log {
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 12px;
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
-}
-
-.log-item {
+.demo-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 0;
-  border-bottom: 1px dashed var(--el-border-color-lighter);
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
 }
 
-.log-item:last-child {
-  border-bottom: none;
-}
-
-.log-empty {
-  text-align: center;
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  padding: 16px 0;
-}
-
-.mt-4 {
-  margin-top: 16px;
-}
-
-@media screen and (max-width: 768px) {
-  .example-content {
-    flex-direction: column;
-  }
-
-  .config-panel {
-    width: 100%;
-  }
+.demo-drag-container {
+  position: relative;
+  height: 300px;
+  background: var(--el-fill-color-lighter);
+  border: 1px dashed var(--el-border-color);
+  border-radius: 8px;
 }
 </style>
