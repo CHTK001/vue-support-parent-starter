@@ -1,13 +1,5 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    title="图片编辑"
-    width="90%"
-    :close-on-click-modal="false"
-    :close-on-press-escape="false"
-    destroy-on-close
-    class="image-editor-dialog"
-  >
+  <el-dialog v-model="visible" title="图片编辑" width="90%" :close-on-click-modal="false" :close-on-press-escape="false" destroy-on-close class="image-editor-dialog">
     <div class="image-editor-container">
       <!-- 工具栏 -->
       <div class="editor-toolbar">
@@ -98,15 +90,14 @@
 
       <!-- 编辑区域 -->
       <div class="editor-canvas-wrapper">
-        <div ref="canvasContainer" class="canvas-container" :style="{ transform: `scale(${scale / 100})` }">
+        <!-- Cropper 模式 -->
+        <div v-show="currentTool === 'crop'" class="cropper-container">
+          <img ref="cropperImage" :src="currentImageSrc" class="cropper-image" />
+        </div>
+
+        <!-- Canvas 模式 -->
+        <div v-show="currentTool !== 'crop'" ref="canvasContainer" class="canvas-container" :style="{ transform: `scale(${scale / 100})` }">
           <canvas ref="mainCanvas" class="main-canvas"></canvas>
-          <!-- 裁剪遮罩 -->
-          <div v-if="currentTool === 'crop' && cropArea" class="crop-overlay" :style="cropOverlayStyle">
-            <div class="crop-box" :class="cropShape" :style="cropBoxStyle">
-              <!-- 裁剪框控制点 -->
-              <div v-for="handle in cropHandles" :key="handle" :class="`crop-handle crop-handle-${handle}`" @mousedown="startCropResize($event, handle)"></div>
-            </div>
-          </div>
         </div>
 
         <!-- 进度提示 -->
@@ -146,6 +137,8 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { ElMessage } from "element-plus";
 import { useRenderIcon } from "../../ReIcon/src/hooks";
+import Cropper from "cropperjs";
+import "cropperjs/dist/cropper.css";
 
 const props = defineProps({
   modelValue: {
@@ -166,6 +159,7 @@ const emit = defineEmits(["update:modelValue", "confirm", "cancel"]);
 
 // Refs
 const mainCanvas = ref(null);
+const cropperImage = ref(null);
 const canvasContainer = ref(null);
 const backgroundImageInput = ref(null);
 
@@ -186,12 +180,9 @@ const canvasContext = ref(null);
 const imageData = ref(null);
 const hasTransparentBackground = ref(false);
 
-// Crop state
-const cropArea = ref(null);
-const cropHandles = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
-const isDraggingCrop = ref(false);
-const cropResizeHandle = ref(null);
-const cropStartPos = ref({ x: 0, y: 0 });
+// Cropper instance
+let cropperInstance = null;
+const currentImageSrc = ref("");
 
 // Background
 const showBackgroundPicker = ref(false);
@@ -199,26 +190,15 @@ const backgroundColor = ref("#ffffff");
 const backgroundImage = ref(null);
 const presetColors = ["#ffffff", "#000000", "#f5f5f5", "#409eff", "#67c23a", "#e6a23c", "#f56c6c", "#909399"];
 
-// Computed
-const cropOverlayStyle = computed(() => {
-  if (!cropArea.value) return {};
-  return {
-    left: "0",
-    top: "0",
-    width: "100%",
-    height: "100%"
-  };
-});
-
-const cropBoxStyle = computed(() => {
-  if (!cropArea.value) return {};
-  const { x, y, width, height } = cropArea.value;
-  return {
-    left: `${x}px`,
-    top: `${y}px`,
-    width: `${width}px`,
-    height: `${height}px`
-  };
+// Cropper 宽高比配置
+const aspectRatioOptions = computed(() => {
+  switch (cropShape.value) {
+    case "square":
+    case "circle":
+      return 1;
+    default:
+      return NaN; // 自由比例
+  }
 });
 
 // Watch
@@ -236,11 +216,14 @@ watch(
 
 watch(visible, val => {
   emit("update:modelValue", val);
+  if (!val) {
+    destroyCropper();
+  }
 });
 
 watch(cropShape, () => {
-  if (currentTool.value === "crop") {
-    initCropArea();
+  if (currentTool.value === "crop" && cropperInstance) {
+    cropperInstance.setAspectRatio(aspectRatioOptions.value);
   }
 });
 
@@ -267,6 +250,7 @@ const initCanvas = async () => {
     // Store original and current image
     originalImage.value = img;
     currentImage.value = img;
+    currentImageSrc.value = props.imageSrc;
 
     // Check for transparency
     checkTransparency();
@@ -277,6 +261,49 @@ const initCanvas = async () => {
   };
 
   img.src = props.imageSrc;
+};
+
+/**
+ * 初始化 Cropper
+ */
+const initCropper = () => {
+  if (!cropperImage.value) return;
+
+  // 先更新图片源
+  currentImageSrc.value = mainCanvas.value?.toDataURL("image/png") || props.imageSrc;
+
+  nextTick(() => {
+    if (cropperInstance) {
+      cropperInstance.destroy();
+    }
+
+    cropperInstance = new Cropper(cropperImage.value, {
+      aspectRatio: aspectRatioOptions.value,
+      viewMode: 1,
+      dragMode: "crop",
+      autoCropArea: 0.8,
+      restore: false,
+      guides: true,
+      center: true,
+      highlight: true,
+      cropBoxMovable: true,
+      cropBoxResizable: true,
+      toggleDragModeOnDblclick: false,
+      ready() {
+        // Cropper 准备就绪
+      }
+    });
+  });
+};
+
+/**
+ * 销毁 Cropper
+ */
+const destroyCropper = () => {
+  if (cropperInstance) {
+    cropperInstance.destroy();
+    cropperInstance = null;
+  }
 };
 
 const checkTransparency = () => {
@@ -299,117 +326,22 @@ const checkTransparency = () => {
 
 const selectTool = tool => {
   if (currentTool.value === tool) {
+    // 退出裁剪模式时应用裁剪
+    if (tool === "crop" && cropperInstance) {
+      applyCrop();
+    }
     currentTool.value = null;
-    cropArea.value = null;
+    destroyCropper();
   } else {
+    // 进入裁剪模式
+    if (currentTool.value === "crop" && cropperInstance) {
+      applyCrop();
+    }
     currentTool.value = tool;
     if (tool === "crop") {
-      initCropArea();
+      initCropper();
     }
   }
-};
-
-const initCropArea = () => {
-  if (!mainCanvas.value) return;
-
-  const canvas = mainCanvas.value;
-  const width = canvas.width;
-  const height = canvas.height;
-
-  let cropWidth, cropHeight;
-
-  if (cropShape.value === "square" || cropShape.value === "circle") {
-    const size = Math.min(width, height) * 0.8;
-    cropWidth = size;
-    cropHeight = size;
-  } else {
-    cropWidth = width * 0.8;
-    cropHeight = height * 0.8;
-  }
-
-  cropArea.value = {
-    x: (width - cropWidth) / 2,
-    y: (height - cropHeight) / 2,
-    width: cropWidth,
-    height: cropHeight
-  };
-};
-
-const startCropResize = (e, handle) => {
-  e.preventDefault();
-  e.stopPropagation();
-
-  cropResizeHandle.value = handle;
-  isDraggingCrop.value = true;
-  cropStartPos.value = {
-    x: e.clientX,
-    y: e.clientY,
-    cropX: cropArea.value.x,
-    cropY: cropArea.value.y,
-    cropWidth: cropArea.value.width,
-    cropHeight: cropArea.value.height
-  };
-
-  document.addEventListener("mousemove", handleCropResize);
-  document.addEventListener("mouseup", stopCropResize);
-};
-
-const handleCropResize = e => {
-  if (!isDraggingCrop.value || !cropResizeHandle.value) return;
-
-  const deltaX = (e.clientX - cropStartPos.value.x) / (scale.value / 100);
-  const deltaY = (e.clientY - cropStartPos.value.y) / (scale.value / 100);
-
-  const { cropX, cropY, cropWidth, cropHeight } = cropStartPos.value;
-  let newX = cropX;
-  let newY = cropY;
-  let newWidth = cropWidth;
-  let newHeight = cropHeight;
-
-  const handle = cropResizeHandle.value;
-
-  // Handle resize based on handle position
-  if (handle.includes("n")) {
-    newY = cropY + deltaY;
-    newHeight = cropHeight - deltaY;
-  }
-  if (handle.includes("s")) {
-    newHeight = cropHeight + deltaY;
-  }
-  if (handle.includes("w")) {
-    newX = cropX + deltaX;
-    newWidth = cropWidth - deltaX;
-  }
-  if (handle.includes("e")) {
-    newWidth = cropWidth + deltaX;
-  }
-
-  // Maintain aspect ratio for square and circle
-  if (cropShape.value === "square" || cropShape.value === "circle") {
-    const size = Math.max(newWidth, newHeight);
-    newWidth = size;
-    newHeight = size;
-  }
-
-  // Constrain to canvas bounds
-  newX = Math.max(0, Math.min(newX, mainCanvas.value.width - newWidth));
-  newY = Math.max(0, Math.min(newY, mainCanvas.value.height - newHeight));
-  newWidth = Math.max(50, Math.min(newWidth, mainCanvas.value.width - newX));
-  newHeight = Math.max(50, Math.min(newHeight, mainCanvas.value.height - newY));
-
-  cropArea.value = {
-    x: newX,
-    y: newY,
-    width: newWidth,
-    height: newHeight
-  };
-};
-
-const stopCropResize = () => {
-  isDraggingCrop.value = false;
-  cropResizeHandle.value = null;
-  document.removeEventListener("mousemove", handleCropResize);
-  document.removeEventListener("mouseup", stopCropResize);
 };
 
 const rotate = angle => {
@@ -633,27 +565,49 @@ const updateCurrentImage = () => {
 };
 
 const applyCrop = () => {
-  if (!cropArea.value || !mainCanvas.value) return;
+  if (!cropperInstance || !mainCanvas.value) return;
+
+  // 从 cropper 获取裁剪后的 canvas
+  const croppedCanvas = cropperInstance.getCroppedCanvas({
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: "high"
+  });
+
+  if (!croppedCanvas) {
+    ElMessage.warning("请先选择裁剪区域");
+    return;
+  }
 
   const canvas = mainCanvas.value;
   const ctx = canvasContext.value;
-  const { x, y, width, height } = cropArea.value;
 
-  // Create a temporary canvas for the cropped image
-  const tempCanvas = document.createElement("canvas");
-  tempCanvas.width = width;
-  tempCanvas.height = height;
-  const tempCtx = tempCanvas.getContext("2d");
+  // 获取裁剪后的尺寸
+  const width = croppedCanvas.width;
+  const height = croppedCanvas.height;
 
-  // Handle different crop shapes
+  // 处理不同的裁剪形状
   if (cropShape.value === "circle") {
-    // Create circular clip
+    // 创建圆形裁剪
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext("2d");
     tempCtx.beginPath();
-    tempCtx.arc(width / 2, height / 2, width / 2, 0, Math.PI * 2);
+    tempCtx.arc(width / 2, height / 2, Math.min(width, height) / 2, 0, Math.PI * 2);
     tempCtx.closePath();
     tempCtx.clip();
+    tempCtx.drawImage(croppedCanvas, 0, 0);
+
+    canvas.width = width;
+    canvas.height = height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(tempCanvas, 0, 0);
   } else if (cropShape.value === "rounded") {
-    // Create rounded rectangle clip
+    // 创建圆角矩形裁剪
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext("2d");
     const radius = Math.min(width, height) * 0.1;
     tempCtx.beginPath();
     tempCtx.moveTo(radius, 0);
@@ -667,19 +621,22 @@ const applyCrop = () => {
     tempCtx.arcTo(0, 0, radius, 0, radius);
     tempCtx.closePath();
     tempCtx.clip();
+    tempCtx.drawImage(croppedCanvas, 0, 0);
+
+    canvas.width = width;
+    canvas.height = height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(tempCanvas, 0, 0);
+  } else {
+    // 矩形或正方形直接使用
+    canvas.width = width;
+    canvas.height = height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(croppedCanvas, 0, 0);
   }
 
-  // Draw cropped portion
-  tempCtx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
-
-  // Update main canvas
-  canvas.width = width;
-  canvas.height = height;
-  ctx.clearRect(0, 0, width, height);
-  ctx.drawImage(tempCanvas, 0, 0);
-
-  // Reset crop
-  cropArea.value = null;
+  // 销毁 cropper
+  destroyCropper();
   currentTool.value = null;
 
   updateCurrentImage();
@@ -687,6 +644,9 @@ const applyCrop = () => {
 };
 
 const handleReset = () => {
+  // 先销毁 cropper
+  destroyCropper();
+
   if (originalImage.value) {
     const canvas = mainCanvas.value;
     const ctx = canvasContext.value;
@@ -697,7 +657,7 @@ const handleReset = () => {
     ctx.drawImage(originalImage.value, 0, 0);
 
     currentImage.value = originalImage.value;
-    cropArea.value = null;
+    currentImageSrc.value = props.imageSrc;
     currentTool.value = null;
     scale.value = 100;
     hasTransparentBackground.value = false;
@@ -708,8 +668,8 @@ const handleReset = () => {
 };
 
 const handleConfirm = async () => {
-  // Apply crop if active
-  if (currentTool.value === "crop" && cropArea.value) {
+  // 如果正在裁剪模式，先应用裁剪
+  if (currentTool.value === "crop" && cropperInstance) {
     applyCrop();
     await nextTick();
   }
@@ -727,13 +687,14 @@ const handleConfirm = async () => {
 };
 
 const handleCancel = () => {
+  destroyCropper();
   emit("cancel");
   visible.value = false;
 };
 
 // Cleanup
 onBeforeUnmount(() => {
-  stopCropResize();
+  destroyCropper();
 });
 </script>
 
@@ -809,82 +770,19 @@ onBeforeUnmount(() => {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* 裁剪遮罩 */
-.crop-overlay {
-  position: absolute;
-  pointer-events: none;
+/* Cropper 容器 */
+.cropper-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.crop-box {
-  position: absolute;
-  border: 2px solid var(--el-color-primary);
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-  pointer-events: auto;
-  cursor: move;
-}
-
-.crop-box.circle {
-  border-radius: 50%;
-}
-
-.crop-box.rounded {
-  border-radius: 12px;
-}
-
-/* 裁剪控制点 */
-.crop-handle {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  background-color: white;
-  border: 2px solid var(--el-color-primary);
-  border-radius: 50%;
-  pointer-events: auto;
-}
-
-.crop-handle-nw {
-  top: -6px;
-  left: -6px;
-  cursor: nw-resize;
-}
-.crop-handle-n {
-  top: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  cursor: n-resize;
-}
-.crop-handle-ne {
-  top: -6px;
-  right: -6px;
-  cursor: ne-resize;
-}
-.crop-handle-e {
-  top: 50%;
-  right: -6px;
-  transform: translateY(-50%);
-  cursor: e-resize;
-}
-.crop-handle-se {
-  bottom: -6px;
-  right: -6px;
-  cursor: se-resize;
-}
-.crop-handle-s {
-  bottom: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  cursor: s-resize;
-}
-.crop-handle-sw {
-  bottom: -6px;
-  left: -6px;
-  cursor: sw-resize;
-}
-.crop-handle-w {
-  top: 50%;
-  left: -6px;
-  transform: translateY(-50%);
-  cursor: w-resize;
+.cropper-image {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* 处理进度 */
@@ -960,4 +858,3 @@ onBeforeUnmount(() => {
   }
 }
 </style>
-

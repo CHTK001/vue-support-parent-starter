@@ -79,7 +79,6 @@
     "gradient-string": "catalog:",
     "husky": "catalog:",
     "lint-staged": "catalog:",
-    "photoswipe": "^5.4.4",
     "postcss": "catalog:",
     "postcss-html": "catalog:",
     "postcss-import": "catalog:",

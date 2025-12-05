@@ -14,21 +14,21 @@
         @change="handleCompareChange"
       />
       <div v-if="!disabled" class="sc-image-actions compare-actions">
-        <el-tooltip :content="useScCompare ? '切换为滑动比较' : '切换为并排比较'" placement="top">
+        <el-tooltip :content="useScCompare ? '切换为滑动比较' : '切换为并排比较'" placement="left">
           <div class="action-btn" @click="toggleCompareMode">
             <el-icon>
               <component :is="useRenderIcon('ep:grid')" />
             </el-icon>
           </div>
         </el-tooltip>
-        <el-tooltip v-if="!useScCompare" content="切换比较方向" placement="top">
+        <el-tooltip v-if="!useScCompare" content="切换比较方向" placement="left">
           <div class="action-btn" @click="toggleCompareDirection">
             <el-icon>
               <component :is="useRenderIcon(compareDirection === 'horizontal' ? 'ep:sort' : 'ep:menu')" />
             </el-icon>
           </div>
         </el-tooltip>
-        <el-tooltip content="退出比较" placement="top">
+        <el-tooltip content="退出比较" placement="left">
           <div class="action-btn" @click="exitCompareMode">
             <el-icon>
               <component :is="useRenderIcon('ep:close')" />
@@ -95,7 +95,7 @@
 
       <!-- 操作按钮 -->
       <div v-if="!disabled && showActions" class="sc-image-actions">
-        <el-tooltip content="查看" placement="top">
+        <el-tooltip content="查看" placement="left">
           <div class="action-btn" @click="handlePreview">
             <el-icon>
               <component :is="useRenderIcon('ep:zoom-in')" />
@@ -103,7 +103,7 @@
           </div>
         </el-tooltip>
 
-        <el-tooltip content="编辑" placement="top">
+        <el-tooltip content="编辑" placement="left">
           <div class="action-btn" @click="handleEdit">
             <el-icon>
               <component :is="useRenderIcon('ep:edit')" />
@@ -111,7 +111,7 @@
           </div>
         </el-tooltip>
 
-        <el-tooltip v-if="enableCompare" content="图片比较" placement="top">
+        <el-tooltip v-if="enableCompare" content="图片比较" placement="left">
           <div class="action-btn" @click="handleStartCompare">
             <el-icon>
               <component :is="useRenderIcon('ep:picture')" />
@@ -119,7 +119,7 @@
           </div>
         </el-tooltip>
 
-        <el-tooltip v-if="enableBackgroundRemoval" content="去除背景" placement="top">
+        <el-tooltip v-if="enableBackgroundRemoval" content="去除背景" placement="left">
           <div class="action-btn" @click="handleRemoveBackground">
             <el-icon>
               <component :is="useRenderIcon('ep:magic-stick')" />
@@ -127,7 +127,7 @@
           </div>
         </el-tooltip>
 
-        <el-tooltip v-if="showDownload" content="下载" placement="top">
+        <el-tooltip v-if="showDownload" content="下载" placement="left">
           <div class="action-btn" @click="handleDownload">
             <el-icon>
               <component :is="useRenderIcon('ep:download')" />
@@ -135,7 +135,7 @@
           </div>
         </el-tooltip>
 
-        <el-tooltip content="删除" placement="top">
+        <el-tooltip content="删除" placement="left">
           <div class="action-btn delete" @click="handleRemove">
             <el-icon>
               <component :is="useRenderIcon('ep:delete')" />
@@ -211,8 +211,8 @@
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { ElMessage } from "element-plus";
 import { useRenderIcon } from "../ReIcon/src/hooks";
-import PhotoSwipeLightbox from "photoswipe/lightbox";
-import "photoswipe/style.css";
+import Viewer from "viewerjs";
+import "viewerjs/dist/viewer.css";
 import ImageCompare from "./components/ImageCompare.vue";
 import ImageEditor from "./components/ImageEditor.vue";
 import ScCompare from "../ScCompare/index.vue";
@@ -358,7 +358,7 @@ const emit = defineEmits(["update:modelValue", "change", "remove", "load", "erro
 const imageRef = ref(null);
 const uploadRef = ref(null);
 const compareUploadRef = ref(null);
-const lightboxInstance = ref(null);
+const viewerInstance = ref(null);
 
 // State
 const currentImage = ref("");
@@ -469,58 +469,66 @@ const handlePreview = () => {
   if (!currentImage.value) return;
 
   // 销毁之前的实例
-  if (lightboxInstance.value) {
-    lightboxInstance.value.destroy();
-    lightboxInstance.value = null;
+  if (viewerInstance.value) {
+    viewerInstance.value.destroy();
+    viewerInstance.value = null;
   }
 
-  // 构建图片数据源
-  const dataSource = computedPreviewSrcList.value.map(src => ({
-    src,
-    w: 0,
-    h: 0
-  }));
+  // 创建临时容器存放图片
+  const container = document.createElement("div");
+  container.style.display = "none";
+  document.body.appendChild(container);
 
-  // 创建 PhotoSwipe Lightbox 实例
-  lightboxInstance.value = new PhotoSwipeLightbox({
-    dataSource,
-    pswpModule: () => import("photoswipe"),
-    showHideAnimationType: "zoom",
-    bgOpacity: 0.9,
-    padding: { top: 20, bottom: 40, left: 20, right: 20 },
-    wheelToZoom: true,
-    closeOnVerticalDrag: true,
-    pinchToClose: true,
-    closeTitle: "关闭 (Esc)",
-    zoomTitle: "缩放",
-    arrowPrevTitle: "上一张",
-    arrowNextTitle: "下一张",
-    errorMsg: "图片加载失败"
+  // 添加图片元素
+  computedPreviewSrcList.value.forEach(src => {
+    const img = document.createElement("img");
+    img.src = src;
+    container.appendChild(img);
   });
 
-  // 动态获取图片尺寸
-  lightboxInstance.value.addFilter("itemData", (itemData, index) => {
-    return new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        itemData.w = img.naturalWidth;
-        itemData.h = img.naturalHeight;
-        resolve(itemData);
-      };
-      img.onerror = () => {
-        itemData.w = 800;
-        itemData.h = 600;
-        resolve(itemData);
-      };
-      img.src = itemData.src;
-    });
-  });
-
-  lightboxInstance.value.init();
-
-  // 打开指定索引的图片
+  // 获取当前图片索引
   const currentIndex = computedPreviewSrcList.value.indexOf(currentImage.value);
-  lightboxInstance.value.loadAndOpen(currentIndex >= 0 ? currentIndex : 0);
+
+  // 创建 Viewer 实例
+  viewerInstance.value = new Viewer(container, {
+    initialViewIndex: currentIndex >= 0 ? currentIndex : 0,
+    inline: false,
+    button: true,
+    navbar: computedPreviewSrcList.value.length > 1,
+    title: false,
+    toolbar: {
+      zoomIn: true,
+      zoomOut: true,
+      oneToOne: true,
+      reset: true,
+      prev: computedPreviewSrcList.value.length > 1,
+      play: false,
+      next: computedPreviewSrcList.value.length > 1,
+      rotateLeft: true,
+      rotateRight: true,
+      flipHorizontal: true,
+      flipVertical: true
+    },
+    tooltip: true,
+    movable: true,
+    zoomable: true,
+    rotatable: true,
+    scalable: true,
+    keyboard: true,
+    fullscreen: true,
+    zoomRatio: 0.1,
+    minZoomRatio: 0.1,
+    maxZoomRatio: 10,
+    hidden: () => {
+      // 销毁实例并移除临时容器
+      viewerInstance.value?.destroy();
+      viewerInstance.value = null;
+      container.remove();
+    }
+  });
+
+  // 显示查看器
+  viewerInstance.value.show();
 };
 
 const handleRemoveBackground = async () => {
@@ -707,9 +715,9 @@ const handleEditorCancel = () => {
 
 // 清理函数
 const cleanup = () => {
-  if (lightboxInstance.value) {
-    lightboxInstance.value.destroy();
-    lightboxInstance.value = null;
+  if (viewerInstance.value) {
+    viewerInstance.value.destroy();
+    viewerInstance.value = null;
   }
 
   if (currentImage.value && currentImage.value.startsWith("blob:")) {

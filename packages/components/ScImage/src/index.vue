@@ -58,15 +58,15 @@
 <script setup lang="ts">
 /**
  * ScImage 图片组件
- * 封装 el-image，支持 PhotoSwipe 预览和多种主题
+ * 封装 el-image，支持 Viewer.js 预览和多种主题
  * @author CH
  * @version 1.0.0
  * @since 2025-12-02
  */
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { computed, onUnmounted } from "vue";
 import type { ImageFit } from "element-plus";
-import PhotoSwipeLightbox from "photoswipe/lightbox";
-import "photoswipe/style.css";
+import Viewer from "viewerjs";
+import "viewerjs/dist/viewer.css";
 
 const props = withDefaults(
   defineProps<{
@@ -108,10 +108,8 @@ const props = withDefaults(
     downloadable?: boolean;
     /** 主题 */
     theme?: "default" | "poster" | "card" | "avatar";
-    /** 使用 PhotoSwipe */
-    usePhotoSwipe?: boolean;
-    /** PhotoSwipe 配置 */
-    photoSwipeOptions?: any;
+    /** Viewer 配置 */
+    viewerOptions?: any;
   }>(),
   {
     src: "",
@@ -132,8 +130,7 @@ const props = withDefaults(
     showMask: true,
     downloadable: true,
     theme: "default",
-    usePhotoSwipe: true,
-    photoSwipeOptions: () => ({})
+    viewerOptions: () => ({})
   }
 );
 
@@ -144,7 +141,7 @@ const emit = defineEmits<{
   download: [];
 }>();
 
-let lightbox: PhotoSwipeLightbox | null = null;
+let viewer: Viewer | null = null;
 
 const wrapperClass = computed(() => [
   `sc-image-wrapper--${props.theme}`,
@@ -161,28 +158,12 @@ const computedPreviewList = computed(() => {
 });
 
 /**
- * 初始化 PhotoSwipe
+ * 销毁 Viewer
  */
-function initPhotoSwipe(): void {
-  if (!props.usePhotoSwipe || props.previewDisabled) return;
-
-  lightbox = new PhotoSwipeLightbox({
-    gallery: ".sc-image-wrapper",
-    children: ".sc-image",
-    pswpModule: () => import("photoswipe"),
-    ...props.photoSwipeOptions
-  });
-
-  lightbox.init();
-}
-
-/**
- * 销毁 PhotoSwipe
- */
-function destroyPhotoSwipe(): void {
-  if (lightbox) {
-    lightbox.destroy();
-    lightbox = null;
+function destroyViewer(): void {
+  if (viewer) {
+    viewer.destroy();
+    viewer = null;
   }
 }
 
@@ -195,9 +176,58 @@ function handleError(event: Event): void {
 }
 
 function handlePreview(): void {
-  if (!props.previewDisabled) {
-    emit("preview");
-  }
+  if (props.previewDisabled) return;
+
+  emit("preview");
+
+  // 销毁之前的实例
+  destroyViewer();
+
+  // 创建临时容器
+  const container = document.createElement("div");
+  container.style.display = "none";
+  document.body.appendChild(container);
+
+  // 添加图片
+  computedPreviewList.value.forEach(src => {
+    const img = document.createElement("img");
+    img.src = src;
+    container.appendChild(img);
+  });
+
+  // 获取当前索引
+  const currentIndex = computedPreviewList.value.indexOf(props.src);
+
+  // 创建 Viewer 实例
+  viewer = new Viewer(container, {
+    initialViewIndex: currentIndex >= 0 ? currentIndex : 0,
+    inline: false,
+    button: true,
+    navbar: computedPreviewList.value.length > 1,
+    title: false,
+    toolbar: {
+      zoomIn: true,
+      zoomOut: true,
+      oneToOne: true,
+      reset: true,
+      prev: computedPreviewList.value.length > 1,
+      play: false,
+      next: computedPreviewList.value.length > 1,
+      rotateLeft: true,
+      rotateRight: true,
+      flipHorizontal: true,
+      flipVertical: true
+    },
+    zIndex: props.zIndex,
+    ...props.viewerOptions,
+    hidden: () => {
+      viewer?.destroy();
+      viewer = null;
+      container.remove();
+    }
+  });
+
+  viewer.show();
 }
 
 function handleDownload(): void {
@@ -210,14 +240,8 @@ function handleDownload(): void {
   }
 }
 
-onMounted(() => {
-  if (props.usePhotoSwipe) {
-    initPhotoSwipe();
-  }
-});
-
 onUnmounted(() => {
-  destroyPhotoSwipe();
+  destroyViewer();
 });
 </script>
 
