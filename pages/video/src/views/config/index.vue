@@ -4,7 +4,7 @@
     <ConfigStats :stats="stats" class="mb-6" />
 
     <!-- 同步信息监听 -->
-    <ScSocketEventProcess
+    <ScSocketMessageDialog
       v-if="showSyncDialog"
       event-id="video-sync-global"
       title="同步信息监听"
@@ -13,7 +13,9 @@
       position="bottom-right"
       layout="log"
       data-type="socket"
-      :height="400"
+      :dialog-height="400"
+      :visible="showSyncDialog"
+      @update:visible="showSyncDialog = $event"
       @close="showSyncDialog = false"
     />
 
@@ -155,8 +157,7 @@ import {
 import type { VideoSyncConfig } from "../../api/types";
 
 // 导入组件
-//@ts-ignore
-import { ScSocketEventProcess } from "@repo/components";
+import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
 import { useGlobalSocket } from "@repo/core";
 import { message } from "@repo/utils";
 import ConfigCard from "./components/ConfigCard.vue";

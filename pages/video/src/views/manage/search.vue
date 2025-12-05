@@ -1,161 +1,111 @@
 <template>
-  <div class="video-search-results">
-    <!-- 筛选条件 -->
-    <div class="filter-container">
-      <!-- 类型筛选 -->
-      <div class="filter-row">
-        <div class="filter-label">
-          <el-icon><Film /></el-icon>
-          类型:
-        </div>
-        <div class="filter-options">
-          <div v-for="type in displayedTypes" :key="type.value" :class="['filter-option', { active: selectedTypes.includes(type.value) }]" @click="handleTypeClick(type)">
-            {{ type.label }}
-          </div>
-          <div v-if="showMoreTypes" class="filter-option more" @click="toggleMoreTypes">
-            {{ showAllTypes ? "收起" : "更多" }}
-            <el-icon>
-              <component :is="showAllTypes ? 'ArrowUp' : 'ArrowDown'" />
-            </el-icon>
-          </div>
-        </div>
+  <div class="search-content">
+    <!-- 筛选栏 -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <span class="filter-label">类型</span>
+        <span
+          v-for="type in displayedTypes"
+          :key="type.value"
+          :class="[
+            'filter-tag',
+            { active: selectedTypes.includes(type.value) },
+          ]"
+          @click="handleTypeClick(type)"
+        >
+          {{ type.label }}
+        </span>
       </div>
-
-      <!-- 年代筛选 -->
-      <div class="filter-row">
-        <div class="filter-label">
-          <el-icon><Calendar /></el-icon>
-          年代:
-        </div>
-        <div class="filter-options">
-          <div v-for="year in displayedYears" :key="year.value" :class="['filter-option', { active: selectedYears.includes(year.value) }]" @click="handleYearClick(year)">
-            {{ year.label }}
-          </div>
-          <div v-if="showMoreYears" class="filter-option more" @click="toggleMoreYears">
-            {{ showAllYears ? "收起" : "更多" }}
-            <el-icon>
-              <component :is="showAllYears ? 'ArrowUp' : 'ArrowDown'" />
-            </el-icon>
-          </div>
-        </div>
+      <div class="filter-group">
+        <span class="filter-label">年份</span>
+        <span
+          v-for="year in displayedYears"
+          :key="year.value"
+          :class="[
+            'filter-tag',
+            { active: selectedYears.includes(year.value) },
+          ]"
+          @click="handleYearClick(year)"
+        >
+          {{ year.label }}
+        </span>
       </div>
-
-      <!-- 地区筛选 -->
-      <div class="filter-row">
-        <div class="filter-label">
-          <el-icon><Location /></el-icon>
-          地区:
-        </div>
-        <div class="filter-options">
-          <div v-for="district in displayedDistricts" :key="district.value" :class="['filter-option', { active: selectedDistricts.includes(district.value) }]" @click="handleDistrictClick(district)">
-            {{ district.label }}
-          </div>
-          <div v-if="showMoreDistricts" class="filter-option more" @click="toggleMoreDistricts">
-            {{ showAllDistricts ? "收起" : "更多" }}
-            <el-icon>
-              <component :is="showAllDistricts ? 'ArrowUp' : 'ArrowDown'" />
-            </el-icon>
-          </div>
-        </div>
-      </div>
-
-      <!-- 语言筛选 -->
-      <div class="filter-row">
-        <div class="filter-label">
-          <el-icon><ChatDotRound /></el-icon>
-          语言:
-        </div>
-        <div class="filter-options">
-          <div v-for="language in displayedLanguages" :key="language.value" :class="['filter-option', { active: selectedLanguages.includes(language.value) }]" @click="handleLanguageClick(language)">
-            {{ language.label }}
-          </div>
-          <div v-if="showMoreLanguages" class="filter-option more" @click="toggleMoreLanguages">
-            {{ showAllLanguages ? "收起" : "更多" }}
-            <el-icon>
-              <component :is="showAllLanguages ? 'ArrowUp' : 'ArrowDown'" />
-            </el-icon>
-          </div>
-        </div>
+      <div class="filter-group">
+        <span class="filter-label">地区</span>
+        <span
+          v-for="district in displayedDistricts"
+          :key="district.value"
+          :class="[
+            'filter-tag',
+            { active: selectedDistricts.includes(district.value) },
+          ]"
+          @click="handleDistrictClick(district)"
+        >
+          {{ district.label }}
+        </span>
       </div>
     </div>
 
-    <!-- 搜索结果 -->
-    <div class="results-container flex-1">
-      <div class="results-header">
-        <div class="results-count">
-          共找到 <span class="count">{{ totalResults }}</span> 个结果
-        </div>
-        <div class="results-controls">
-          <div class="display-mode">
-            <el-radio-group v-model="displayMode" size="small">
-              <el-radio-button label="default">默认</el-radio-button>
-              <el-radio-button label="large">大图</el-radio-button>
-            </el-radio-group>
-          </div>
-          <div class="results-sort">
-            <el-select v-model="sortBy" class="!w-[200px]">
-              <el-option @change="handleSortChange" :value="item.value" :label="item.label" v-for="item in VideoOrderByOptions">{{ item.label }}</el-option>
-            </el-select>
-          </div>
-        </div>
-      </div>
+    <!-- 结果头 -->
+    <div class="result-header">
+      <span class="result-count">共 {{ totalResults }} 部</span>
+      <el-select
+        v-model="sortBy"
+        size="small"
+        class="sort-select"
+        @change="handleSortChange"
+      >
+        <el-option
+          v-for="item in VideoOrderByOptions"
+          :key="item.value"
+          :value="item.value"
+          :label="item.label"
+        />
+      </el-select>
+    </div>
 
-      <!-- 使用 ScTable 渲染卡片结果，替换原 video-grid + 分页 -->
-      <ScTable ref="tableRef" :center="true" layout="card" :page-size="12" :col-size="6" :url="getVideoList" :params="searchParams" row-key="videoId" v-loading="loading" @data-loaded="handleDataLoaded" @row-click="handleRowClick">
-        <template #default="{ row }">
-          <div class="video-card" :class="{ 'video-card-large': displayMode === 'large' }">
-            <div class="video-cover !w-full">
-              <el-image referrerpolicy="no-referrer" v-if="row.videoCover" :src="(row.videoCover || '').split(',')[0]" fit="cover">
-                <template #error>
-                  <img :src="placeholderImage" alt="no-cover" />
-                </template>
-              </el-image>
-              <div v-else class="video-cover-placeholder">暂无封面</div>
-
-              <!-- 大图模式下的信息覆盖层 -->
-              <div v-if="displayMode === 'large'" class="video-overlay">
-                <div class="video-rating" v-if="row.videoScore">{{ row.videoScore }}分</div>
-                <div class="video-views" v-if="row.videoViews">{{ formatViews(row.videoViews) }}次播放</div>
-                <div class="video-info-overlay">
-                  <div class="video-name-overlay">{{ row.videoTitle || row.videoName }}</div>
-                  <div class="video-meta-overlay">
-                    <span v-if="row.videoYear">{{ row.videoYear }}年</span>
-                    <span v-if="row.videoDistrict"> · {{ row.videoDistrict }}</span>
-                    <span v-if="row.videoLanguage"> · {{ row.videoLanguage }}</span>
-                  </div>
-                  <div class="video-tags-overlay" v-if="row.videoType">
-                    <el-tag v-for="(tag, index) in (row.videoType || '')?.split(',')" :key="index" size="small">
-                      {{ tag }}
-                    </el-tag>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 默认模式下的评分和播放次数 -->
-              <template v-else>
-                <div class="video-rating" v-if="row.videoScore">{{ row.videoScore }}分</div>
-                <div class="video-views" v-if="row.videoViews">{{ formatViews(row.videoViews) }}次播放</div>
+    <!-- 视频列表 -->
+    <ScTable
+      ref="tableRef"
+      layout="card"
+      :page-size="18"
+      :col-size="6"
+      :url="getVideoList"
+      :params="searchParams"
+      row-key="videoId"
+      v-loading="loading"
+      @data-loaded="handleDataLoaded"
+      @row-click="handleRowClick"
+      class="video-table"
+    >
+      <template #default="{ row }">
+        <div class="video-card">
+          <div class="poster">
+            <el-image
+              v-if="row.videoCover"
+              :src="(row.videoCover || '').split(',')[0]"
+              fit="cover"
+              referrerpolicy="no-referrer"
+            >
+              <template #error>
+                <div class="poster-error">暂无封面</div>
               </template>
-            </div>
-
-            <!-- 默认模式下的信息区域 -->
-            <div v-if="displayMode === 'default'" class="video-info">
-              <div class="video-name">{{ row.videoTitle || row.videoName }}</div>
-              <div class="video-meta">
-                <span v-if="row.videoYear">{{ row.videoYear }}年</span>
-                <span v-if="row.videoDistrict"> · {{ row.videoDistrict }}</span>
-                <span v-if="row.videoLanguage"> · {{ row.videoLanguage }}</span>
-              </div>
-              <div class="video-tags" v-if="row.videoType">
-                <el-tag v-for="(tag, index) in (row.videoType || '')?.split(',')" :key="index" size="small">
-                  {{ tag }}
-                </el-tag>
-              </div>
-            </div>
+            </el-image>
+            <div v-else class="poster-error">暂无封面</div>
+            <span v-if="row.videoScore" class="score">{{
+              row.videoScore
+            }}</span>
           </div>
-        </template>
-      </ScTable>
-    </div>
+          <div class="info">
+            <h4 class="name">{{ row.videoTitle || row.videoName }}</h4>
+            <p class="meta">
+              <span v-if="row.videoYear">{{ row.videoYear }}</span>
+              <span v-if="row.videoDistrict">{{ row.videoDistrict }}</span>
+            </p>
+          </div>
+        </div>
+      </template>
+    </ScTable>
   </div>
 </template>
 
@@ -165,7 +115,11 @@ import { computed, defineExpose, nextTick, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getVideoList } from "../../api/video";
 import { placeholderImage, VideoOrderByOptions } from "../../data";
-import { generateYearOptions, movieTypes, videoCategories } from "../../data/categories";
+import {
+  generateYearOptions,
+  movieTypes,
+  videoCategories,
+} from "../../data/categories";
 import { districtOptions, languageOptions } from "../../data/videoOptions";
 const props = defineProps({
   keyword: {
@@ -188,8 +142,12 @@ const searchKeyword = ref(props.keyword);
 const categories = ref(videoCategories);
 const types = ref(movieTypes);
 const years = ref(generateYearOptions());
-const districts = ref([...districtOptions.map((item) => ({ ...item, active: false }))]);
-const languages = ref([...languageOptions.map((item) => ({ ...item, active: false }))]);
+const districts = ref([
+  ...districtOptions.map((item) => ({ ...item, active: false })),
+]);
+const languages = ref([
+  ...languageOptions.map((item) => ({ ...item, active: false })),
+]);
 
 // 筛选条件显示控制
 const showAllTypes = ref(false);
@@ -203,24 +161,36 @@ const MAX_DISPLAY_COUNT = 12;
 // 计算是否显示更多按钮
 const showMoreTypes = computed(() => types.value.length > MAX_DISPLAY_COUNT);
 const showMoreYears = computed(() => years.value.length > MAX_DISPLAY_COUNT);
-const showMoreDistricts = computed(() => districts.value.length > MAX_DISPLAY_COUNT);
-const showMoreLanguages = computed(() => languages.value.length > MAX_DISPLAY_COUNT);
+const showMoreDistricts = computed(
+  () => districts.value.length > MAX_DISPLAY_COUNT
+);
+const showMoreLanguages = computed(
+  () => languages.value.length > MAX_DISPLAY_COUNT
+);
 
 // 计算显示的筛选条件
 const displayedTypes = computed(() => {
-  return showAllTypes.value ? types.value : types.value.slice(0, MAX_DISPLAY_COUNT);
+  return showAllTypes.value
+    ? types.value
+    : types.value.slice(0, MAX_DISPLAY_COUNT);
 });
 
 const displayedYears = computed(() => {
-  return showAllYears.value ? years.value : years.value.slice(0, MAX_DISPLAY_COUNT);
+  return showAllYears.value
+    ? years.value
+    : years.value.slice(0, MAX_DISPLAY_COUNT);
 });
 
 const displayedDistricts = computed(() => {
-  return showAllDistricts.value ? districts.value : districts.value.slice(0, MAX_DISPLAY_COUNT);
+  return showAllDistricts.value
+    ? districts.value
+    : districts.value.slice(0, MAX_DISPLAY_COUNT);
 });
 
 const displayedLanguages = computed(() => {
-  return showAllLanguages.value ? languages.value : languages.value.slice(0, MAX_DISPLAY_COUNT);
+  return showAllLanguages.value
+    ? languages.value
+    : languages.value.slice(0, MAX_DISPLAY_COUNT);
 });
 
 // 已选择的筛选条件（导航菜单是单选，其他筛选条件是多选）
@@ -248,10 +218,18 @@ const searchParams = computed(() => {
     category: selectedCategories.value || undefined,
     keyword: searchKeyword.value || undefined,
     videoName: searchKeyword.value || undefined,
-    videoSubtypes: selectedTypes.value?.includes("ALL") ? undefined : selectedTypes.value?.join(","),
-    years: selectedYears.value?.includes("ALL") ? undefined : selectedYears.value?.join(","),
-    districts: selectedDistricts.value?.includes("ALL") ? undefined : selectedDistricts.value?.join(","),
-    languages: selectedLanguages.value?.includes("ALL") ? undefined : selectedLanguages.value?.join(","),
+    videoSubtypes: selectedTypes.value?.includes("ALL")
+      ? undefined
+      : selectedTypes.value?.join(","),
+    years: selectedYears.value?.includes("ALL")
+      ? undefined
+      : selectedYears.value?.join(","),
+    districts: selectedDistricts.value?.includes("ALL")
+      ? undefined
+      : selectedDistricts.value?.join(","),
+    languages: selectedLanguages.value?.includes("ALL")
+      ? undefined
+      : selectedLanguages.value?.join(","),
     sortBy: sortBy.value,
     order: sortBy.value,
   };
@@ -406,365 +384,184 @@ defineExpose({
 });
 </script>
 
-<style scoped lang="scss">
-.video-search-results {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--el-bg-color-overlay);
-  padding-top: 20px;
-  padding-bottom: 20px;
+<style scoped>
+.search-content {
+  padding: 20px 24px;
 }
 
-.search-header {
-  margin-bottom: 20px;
-}
-
-.search-box {
-  display: flex;
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.search-input {
-  flex: 1;
-}
-
-.search-input :deep(.el-input__wrapper) {
-  height: 40px;
-  border-radius: 20px 0 0 20px;
-}
-
-.search-button {
-  height: 40px;
-  border-radius: 0 20px 20px 0;
-  padding: 0 20px;
-}
-
-.category-nav {
-  display: flex;
-  background-color: var(--el-bg-color);
-  border-radius: 12px;
-  padding: 12px 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  overflow-x: auto;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.category-item {
-  display: flex;
-  align-items: center;
-  padding: 8px 16px;
-  margin: 4px 8px 4px 0;
-  font-size: 15px;
-  cursor: pointer;
-  white-space: nowrap;
-  border-radius: 30px;
-  transition: all 0.3s;
-  gap: 6px;
-
-  &:hover {
-    color: var(--el-color-primary);
-    background-color: var(--el-color-primary-light-9);
-  }
-
-  &.active {
-    color: var(--el-text-color-primary);
-    background-color: var(--el-color-primary);
-    font-weight: 500;
-    box-shadow: 0 3px 8px rgba(var(--el-color-primary-rgb), 0.25);
-  }
-}
-
-.filter-container {
-  background-color: var(--el-bg-color-overlay);
+/* 筛选栏 */
+.filter-bar {
+  background: #fff;
   border-radius: 8px;
-  margin-bottom: 10px;
-  padding: 10px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  padding: 16px 20px;
+  margin-bottom: 16px;
 }
 
-.filter-row {
+.filter-group {
   display: flex;
-  margin-bottom: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-.filter-row:last-child {
+.filter-group:last-child {
   margin-bottom: 0;
 }
 
 .filter-label {
-  display: flex;
-  align-items: center;
-  width: 80px;
-  font-size: 14px;
-  font-weight: bold;
-  color: #606266;
+  font-size: 13px;
+  color: #999;
+  width: 40px;
+  flex-shrink: 0;
 }
 
-.filter-label .el-icon {
-  margin-right: 5px;
-}
-
-.filter-options {
-  display: flex;
-  flex: 1;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.filter-option {
-  padding: 5px 12px;
-  font-size: 14px;
+.filter-tag {
+  font-size: 13px;
+  color: #666;
+  padding: 4px 12px;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
 }
 
-.filter-option:hover {
-  color: #4e6ef2;
+.filter-tag:hover {
+  color: #1890ff;
 }
 
-.filter-option.active {
-  background-color: #ecf5ff;
-  color: #4e6ef2;
+.filter-tag.active {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
 }
 
-.filter-option.more {
-  color: #4e6ef2;
-  display: flex;
-  align-items: center;
-}
-
-.filter-option.more .el-icon {
-  margin-left: 5px;
-}
-
-.results-container {
-  background-color: var(--el-bg-color-overlay);
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-}
-
-.results-header {
+/* 结果头 */
+.result-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
-.results-controls {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.result-count {
+  font-size: 13px;
+  color: #999;
 }
 
-.display-mode {
-  display: flex;
-  align-items: center;
+.sort-select {
+  width: 140px;
 }
 
-.results-count {
-  font-size: 14px;
-  color: #606266;
-}
-
-.results-count .count {
-  color: #f56c6c;
-  font-weight: bold;
-}
-
-.video-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
+/* 视频卡片 */
 .video-card {
+  background: #fff;
   border-radius: 8px;
   overflow: hidden;
-  width: 256px;
-  transition: transform 0.3s;
   cursor: pointer;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .video-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.video-cover {
+.poster {
   position: relative;
-  height: 0;
-  padding-bottom: 56.25%; /* 16:9 比例 */
+  width: 100%;
+  padding-bottom: 140%;
+  background: #f5f5f5;
   overflow: hidden;
 }
 
-.video-cover img {
+.poster :deep(.el-image) {
   position: absolute;
   top: 0;
   left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.poster :deep(.el-image img) {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.video-rating {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: #f7ba2a;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.video-views {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: var(--el-text-color-primary);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.video-info {
-  padding: 10px;
-}
-
-.video-name {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.video-meta {
-  font-size: 12px;
-   color: var(--el-text-color-primary);
-  margin-bottom: 5px;
-}
-
-.video-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.video-tags .el-tag {
-  font-size: 10px;
-  padding: 0 4px;
-  height: 20px;
-}
-
-/* 大图模式样式 */
-.video-card-large {
-  position: relative;
-  min-height: 280px;
-
-  .video-cover {
-    height: 100%;
-    min-height: 280px;
-  }
-}
-
-.video-card-large .video-cover {
-  height: 0;
-  padding-bottom: 75%; /* 4:3 比例，更大的图片 */
-}
-
-.video-overlay {
+.poster-error {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.8) 100%);
+  width: 100%;
+  height: 100%;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 12px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.video-card-large:hover .video-overlay {
-  opacity: 1;
-}
-
-.video-overlay .video-rating {
-  position: static;
-  align-self: flex-end;
-  background-color: rgba(247, 186, 42, 0.9);
-  color: var(--el-text-color-primary);
-  margin-bottom: auto;
-}
-
-.video-overlay .video-views {
-  position: static;
-  align-self: flex-end;
-  background-color: rgba(0, 0, 0, 0.8);
-  margin-top: 8px;
-}
-
-.video-info-overlay {
-  margin-top: auto;
-}
-
-.video-name-overlay {
-  font-size: 18px;
-  font-weight: bold;
-  color: var(--el-text-color-primary);
-  margin-bottom: 8px;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.video-meta-overlay {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 8px;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-.video-tags-overlay {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.video-tags-overlay .el-tag {
-  font-size: 11px;
-  padding: 2px 6px;
-  height: 22px;
-  background-color: rgba(64, 158, 255, 0.9);
-  border: none;
-  color: var(--el-text-color-primary);
-}
-
-.pagination-container {
-  display: flex;
+  align-items: center;
   justify-content: center;
-  padding-top: 20px;
+  color: #ccc;
+  font-size: 12px;
+  background: #f5f5f5;
+}
+
+.score {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffc107;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.info {
+  padding: 10px 12px;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin: 0 0 4px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  font-size: 12px;
+  color: #999;
+  margin: 0;
+  display: flex;
+  gap: 8px;
+}
+
+/* ScTable 覆盖 */
+:deep(.sc-table) {
+  background: transparent;
+}
+
+:deep(.sc-table .el-pagination) {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .search-content {
+    padding: 12px 16px;
+  }
+
+  .filter-bar {
+    padding: 12px 16px;
+  }
+
+  .filter-label {
+    width: 100%;
+    margin-bottom: 4px;
+  }
 }
 </style>

@@ -40,6 +40,31 @@ export const SystemTopics = {
 } as const;
 
 /**
+ * 服务模块主题 (service)
+ * 用于服务级别的通用功能
+ */
+export const ServiceTopics = {
+  // 消息相关
+  MESSAGE: {
+    PUSH: "service:message:push",
+    NOTIFICATION: "service:message:notification",
+    READ: "service:message:read",
+    DELETE: "service:message:delete",
+  },
+  // 操作相关
+  OPERATION: {
+    START: "service:operation:start",
+    STOP: "service:operation:stop",
+    RESTART: "service:operation:restart",
+    STATUS: "service:operation:status",
+    LOG: "service:operation:log",
+    PROGRESS: "service:operation:progress",
+    COMPLETE: "service:operation:complete",
+    ERROR: "service:operation:error",
+  },
+} as const;
+
+/**
  * 监控模块主题 (monitor)
  * 用于监控相关功能
  */
@@ -76,17 +101,6 @@ export const MonitorTopics = {
   SOFTWARE: {
     INSTALL_PROGRESS: "monitor:software:install_progress",
     SYNC_PROGRESS: "monitor:software:sync_progress",
-  },
-  // 服务相关
-  SERVICE: {
-    START: "monitor:service:start",
-    STOP: "monitor:service:stop",
-    RESTART: "monitor:service:restart",
-    STATUS: "monitor:service:status",
-    LOG: "monitor:service:log",
-    PROGRESS: "monitor:service:progress",
-    COMPLETE: "monitor:service:complete",
-    ERROR: "monitor:service:error",
   },
   // 操作进度
   OPERATION: {
@@ -140,6 +154,7 @@ export const VideoTopics = {
  */
 export const SocketTopics = {
   system: SystemTopics,
+  service: ServiceTopics,
   monitor: MonitorTopics,
   video: VideoTopics,
 } as const;
