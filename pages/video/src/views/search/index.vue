@@ -1,30 +1,31 @@
 <template>
-  <div class="video-search-container">
-    <!-- 搜索首页 -->
-    <div class="search-home">
-      <div class="search-title">视频搜索</div>
+  <div class="search-page">
+    <div class="search-container">
+      <!-- Logo -->
+      <h1 class="logo">影视搜索</h1>
+
+      <!-- 搜索框 -->
       <div class="search-box">
-        <el-input v-model="searchKeyword" placeholder="请输入视频名称、演员、导演等关键词" class="search-input" clearable @keyup.enter="handleSearch">
-          <template #prefix>
-            <IconifyIconOnline icon="ep:search" />
-          </template>
-        </el-input>
-        <el-button type="primary" class="search-button" @click="handleSearch">
-          <IconifyIconOnline icon="ep:search" />
-        </el-button>
+        <input
+          v-model="searchKeyword"
+          type="text"
+          class="search-input"
+          placeholder="输入影视名称"
+          @keyup.enter="handleSearch"
+        />
+        <button class="search-btn" @click="handleSearch">搜索</button>
       </div>
 
-      <!-- 热门搜索标签 -->
-      <div class="hot-search">
-        <div class="hot-search-title">
-          <el-icon><HotWater /></el-icon>
-          热门搜索:
-        </div>
-        <div class="hot-search-tags">
-          <el-tag v-for="item in hotSearchKeywords" :key="item.value" class="hot-tag" @click="handleHotTagClick(item.value)">
-            {{ item.label }}
-          </el-tag>
-        </div>
+      <!-- 热词 -->
+      <div class="hot-words">
+        <span
+          v-for="item in hotSearchKeywords.slice(0, 6)"
+          :key="item.value"
+          class="hot-word"
+          @click="handleHotTagClick(item.value)"
+        >
+          {{ item.label }}
+        </span>
       </div>
     </div>
   </div>
@@ -36,7 +37,12 @@ import { getConfig } from "@repo/config";
 import { getRandomString } from "@repo/utils";
 import { computed, nextTick, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { generateYearOptions, hotSearchKeywords, movieTypes, videoCategories } from "../../data/categories";
+import {
+  generateYearOptions,
+  hotSearchKeywords,
+  movieTypes,
+  videoCategories,
+} from "../../data/categories";
 import { districtOptions, languageOptions } from "../../data/videoOptions";
 
 // Element-Plus图标是全局参数，不需要导入
@@ -50,12 +56,48 @@ const ossAddress = getRandomString(config.OssAddress);
 const searchKeyword = ref("");
 const showResults = ref(false);
 
-// 分类和筛选
-const categories = ref(videoCategories);
+// 当前选中的分类
+const activeCategory = ref("all");
+
+// 分类数据
+const categories = [
+  { id: "all", name: "全部", icon: "ri:apps-line" },
+  { id: "movie", name: "电影", icon: "ri:film-line" },
+  { id: "tv", name: "电视剧", icon: "ri:tv-2-line" },
+  { id: "variety", name: "综艺", icon: "ri:star-smile-line" },
+  { id: "anime", name: "动漫", icon: "ri:ghost-smile-line" },
+  { id: "doc", name: "纪录片", icon: "ri:vidicon-line" },
+];
+
+// 获取排名样式
+const getRankClass = (index: number) => {
+  if (index === 0) return "rank-1";
+  if (index === 1) return "rank-2";
+  if (index === 2) return "rank-3";
+  return "";
+};
+
+// 处理分类选择
+const handleCategorySelect = (cat: { id: string; name: string }) => {
+  activeCategory.value = cat.id;
+  if (cat.id !== "all") {
+    searchKeyword.value = cat.name;
+    handleSearch();
+  }
+};
+
+// 原分类数据
+const videoCategories2 = ref(videoCategories);
 const types = ref(movieTypes);
 const years = ref(generateYearOptions());
-const districts = ref([{ label: "全部", value: null, active: true }, ...districtOptions.map((item) => ({ ...item, active: false }))]);
-const languages = ref([{ label: "全部", value: null, active: true }, ...languageOptions.map((item) => ({ ...item, active: false }))]);
+const districts = ref([
+  { label: "全部", value: null, active: true },
+  ...districtOptions.map((item) => ({ ...item, active: false })),
+]);
+const languages = ref([
+  { label: "全部", value: null, active: true },
+  ...languageOptions.map((item) => ({ ...item, active: false })),
+]);
 
 // 筛选条件显示控制
 const showAllTypes = ref(false);
@@ -69,24 +111,36 @@ const MAX_DISPLAY_COUNT = 12;
 // 计算是否显示更多按钮
 const showMoreTypes = computed(() => types.value.length > MAX_DISPLAY_COUNT);
 const showMoreYears = computed(() => years.value.length > MAX_DISPLAY_COUNT);
-const showMoreDistricts = computed(() => districts.value.length > MAX_DISPLAY_COUNT);
-const showMoreLanguages = computed(() => languages.value.length > MAX_DISPLAY_COUNT);
+const showMoreDistricts = computed(
+  () => districts.value.length > MAX_DISPLAY_COUNT
+);
+const showMoreLanguages = computed(
+  () => languages.value.length > MAX_DISPLAY_COUNT
+);
 
 // 计算显示的筛选条件
 const displayedTypes = computed(() => {
-  return showAllTypes.value ? types.value : types.value.slice(0, MAX_DISPLAY_COUNT);
+  return showAllTypes.value
+    ? types.value
+    : types.value.slice(0, MAX_DISPLAY_COUNT);
 });
 
 const displayedYears = computed(() => {
-  return showAllYears.value ? years.value : years.value.slice(0, MAX_DISPLAY_COUNT);
+  return showAllYears.value
+    ? years.value
+    : years.value.slice(0, MAX_DISPLAY_COUNT);
 });
 
 const displayedDistricts = computed(() => {
-  return showAllDistricts.value ? districts.value : districts.value.slice(0, MAX_DISPLAY_COUNT);
+  return showAllDistricts.value
+    ? districts.value
+    : districts.value.slice(0, MAX_DISPLAY_COUNT);
 });
 
 const displayedLanguages = computed(() => {
-  return showAllLanguages.value ? languages.value : languages.value.slice(0, MAX_DISPLAY_COUNT);
+  return showAllLanguages.value
+    ? languages.value
+    : languages.value.slice(0, MAX_DISPLAY_COUNT);
 });
 
 // 已选择的筛选条件
@@ -110,8 +164,12 @@ const searchParams = computed(() => ({
   videoTypes: selectedCategory.value || undefined,
   videoSubtypes: selectedType.value || undefined,
   videoYear: selectedYear.value || undefined,
-  videoDistrict: selectedDistricts.value?.includes(null as any) ? undefined : selectedDistricts.value?.join(","),
-  videoLanguage: selectedLanguages.value?.includes(null as any) ? undefined : selectedLanguages.value?.join(","),
+  videoDistrict: selectedDistricts.value?.includes(null as any)
+    ? undefined
+    : selectedDistricts.value?.join(","),
+  videoLanguage: selectedLanguages.value?.includes(null as any)
+    ? undefined
+    : selectedLanguages.value?.join(","),
   sortBy: sortBy.value,
   order: sortBy.value,
 }));
@@ -133,9 +191,9 @@ const toggleMoreLanguages = () => {
   showAllLanguages.value = !showAllLanguages.value;
 };
 
-// 处理分类点击
+// 处理分类点击（旧版本，保留兼容）
 const handleCategoryClick = (category: any) => {
-  categories.value.forEach((item) => {
+  videoCategories2.value.forEach((item) => {
     item.active = item.value === category.value;
   });
   selectedCategory.value = category.value;
@@ -242,9 +300,15 @@ const handleDataLoaded = (data: any, total: number) => {
 };
 
 // 生成兼容的图片OSS地址
-const createCompatibleImageUrl = (videoCover: string, videoPlatform: string) => {
+const createCompatibleImageUrl = (
+  videoCover: string,
+  videoPlatform: string
+) => {
   if (!videoCover) return null as any;
-  return ossAddress + `/video/${videoCover.replace("cover", "cover/" + videoPlatform)}`;
+  return (
+    ossAddress +
+    `/video/${videoCover.replace("cover", "cover/" + videoPlatform)}`
+  );
 };
 
 // 点击视频卡片
@@ -254,288 +318,108 @@ const handleVideoClick = (video: any) => {
 </script>
 
 <style scoped>
-.video-search-container {
-  width: 100%;
+.search-page {
   min-height: 100vh;
-  background-color: var(--el-bg-color-overlay);
-}
-
-/* 搜索首页样式 */
-.search-home {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  padding: 20px;
-  background: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-bg-color-overlay) 100%);
+  background: #fff;
 }
 
-.search-title {
-  font-size: 48px;
-  font-weight: bold;
-  color: var(--el-text-color-primary);
-  margin-bottom: 40px;
-  text-shadow: 0 2px 4px var(--el-shadow-color);
+.search-container {
+  text-align: center;
+  padding: 20px;
+}
+
+.logo {
+  font-size: 36px;
+  font-weight: 600;
+  color: #4e6ef2;
+  margin: 0 0 30px 0;
+  letter-spacing: 2px;
 }
 
 .search-box {
   display: flex;
-  width: 100%;
-  max-width: 800px;
-  margin-bottom: 30px;
+  width: 560px;
+  max-width: 100%;
+  margin: 0 auto 20px;
+  border: 1px solid #c4c7ce;
+  border-radius: 10px;
+  overflow: hidden;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.search-box:focus-within {
+  border-color: #4e6ef2;
+  box-shadow: 0 0 0 2px rgba(78, 110, 242, 0.1);
 }
 
 .search-input {
   flex: 1;
-}
-
-.search-input :deep(.el-input__wrapper) {
-  height: 56px;
-  border-radius: 28px 0 0 28px;
-  box-shadow: 0 4px 12px var(--el-shadow-color);
-}
-
-.search-button {
-  height: 56px;
-  border-radius: 0 28px 28px 0;
-  padding: 0 30px;
-  font-size: 18px;
-}
-
-.hot-search {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 800px;
-  background-color: var(--el-bg-color-overlay);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 12px var(--el-shadow-color);
-}
-
-.hot-search-title {
-  display: flex;
-  align-items: center;
+  height: 44px;
+  padding: 0 16px;
+  border: none;
+  outline: none;
   font-size: 16px;
-  font-weight: bold;
-  color:var(--el-text-color-primary);
-  margin-bottom: 15px;
+  color: #222;
 }
 
-.hot-search-title .el-icon {
-  color: var(--el-text-color-primary);
-  margin-right: 8px;
+.search-input::placeholder {
+  color: #9195a3;
 }
 
-.hot-search-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.hot-tag {
-  cursor: pointer;
-  padding: 8px 16px;
-  font-size: 14px;
-  border-radius: 20px;
-  transition: all 0.3s;
-}
-
-.hot-tag:hover {
-  background-color: var(--el-bg-color-overlay);
-  color: var(--el-text-color-primary);
-}
-
-/* 搜索结果页样式 */
-.search-results {
-  padding: 20px;
-}
-
-.category-nav {
-  display: flex;
-  background-color: var(--el-bg-color-overlay);
-  border-radius: 8px;
-  padding: 15px 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 12px var(--el-shadow-color);
-  overflow-x: auto;
-}
-
-.category-item {
-  padding: 8px 16px;
-  margin-right: 10px;
+.search-btn {
+  width: 108px;
+  height: 44px;
+  background: #4e6ef2;
+  border: none;
+  color: #fff;
   font-size: 16px;
   cursor: pointer;
-  white-space: nowrap;
-  border-radius: 20px;
-  transition: all 0.3s;
+  transition: background 0.2s;
 }
 
-.category-item:hover {
-  color: var(--el-text-color-primary);
+.search-btn:hover {
+  background: #4662d9;
 }
 
-.category-item.active {
-  background-color: var(--el-bg-color-overlay);
-  color: var(--el-button-text-color);
-}
-
-.filter-container {
-  background-color: var(--el-bg-color-overlay);
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 12px var(--el-shadow-color);
-}
-
-.filter-row {
-  display: flex;
-  margin-bottom: 15px;
-}
-
-.filter-row:last-child {
-  margin-bottom: 0;
-}
-
-.filter-label {
-  display: flex;
-  align-items: center;
-  width: 80px;
-  font-size: 14px;
-  font-weight: bold;
-  color: var(--el-text-color-primary);
-}
-
-.filter-label .el-icon {
-  margin-right: 5px;
-}
-
-.filter-options {
-  display: flex;
-  flex: 1;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.filter-option {
-  padding: 5px 12px;
-  font-size: 14px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.filter-option:hover {
-  color: var(--el-text-color-primary);
-}
-
-.filter-option.active {
-  background-color: var(--el-bg-color-overlay);
-  color: var(--el-text-color-primary);
-}
-
-.filter-option.more {
-  color: var(--el-text-color-primary);
-  display: flex;
-  align-items: center;
-}
-
-.filter-option.more .el-icon {
-  margin-left: 5px;
-}
-
-.video-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.video-card {
-  border-radius: 8px;
-  overflow: hidden;
-  transition: transform 0.3s;
-  cursor: pointer;
-}
-
-.video-card:hover {
-  transform: translateY(-5px);
-}
-
-.video-cover {
-  position: relative;
-  height: 0;
-  padding-bottom: 56.25%; /* 16:9 比例 */
-  overflow: hidden;
-}
-
-.video-cover img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.video-rating {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: var(--el-bg-color-overlay);
-  color: #f7ba2a;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.video-views {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: var(--el-text-color-primary);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.video-info {
-  padding: 10px;
-}
-
-.video-name {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.video-meta {
-  font-size: 12px;
-   color: var(--el-text-color-primary);
-  margin-bottom: 5px;
-}
-
-.video-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.video-tags .el-tag {
-  font-size: 10px;
-  padding: 0 4px;
-  height: 20px;
-}
-
-.pagination-container {
+.hot-words {
   display: flex;
   justify-content: center;
-  padding-top: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.hot-word {
+  font-size: 13px;
+  color: #9195a3;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.hot-word:hover {
+  color: #4e6ef2;
+}
+
+@media (max-width: 640px) {
+  .logo {
+    font-size: 28px;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .search-btn {
+    width: 80px;
+    font-size: 14px;
+  }
+
+  .hot-words {
+    gap: 12px;
+  }
 }
 </style>

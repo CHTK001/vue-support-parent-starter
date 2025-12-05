@@ -331,128 +331,113 @@
       </div>
     </div>
 
-    <!-- 列表视图 - 现代化表格 -->
+    <!-- 列表视图 - 使用 ScTable -->
     <div v-else class="list-view-modern">
-      <div class="table-wrapper">
-        <el-table
-          :data="imageList"
-          v-loading="loading"
-          class="modern-table"
-          :header-cell-style="{
-            background: 'var(--el-fill-color-light)',
-            fontWeight: 600,
-          }"
-        >
-          <el-table-column type="selection" width="50" />
+      <ScTable
+        ref="imageTableRef"
+        :url="imageApi.getImagePageList"
+        :params="searchParams"
+        table-name="docker-images"
+        class="modern-table"
+        :data-loaded="handleDataLoaded"
+      >
+        <el-table-column type="selection" width="50" />
 
-          <el-table-column label="镜像" min-width="260">
-            <template #default="{ row }">
-              <div class="table-image-cell">
-                <div
-                  class="image-icon-mini"
-                  :style="{
-                    background: getImageGradient(row.systemSoftImageName),
-                  }"
-                >
-                  <IconifyIconOnline icon="ri:box-3-line" />
-                </div>
-                <div class="image-info-cell">
-                  <span class="image-name-text">{{
-                    row.systemSoftImageName
-                  }}</span>
-                  <span class="version-tag-mini">{{
-                    row.systemSoftImageTag
-                  }}</span>
-                </div>
-              </div>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="服务器" width="180">
-            <template #default="{ row }">
-              <div class="table-server-cell">
-                <IconifyIconOnline
-                  icon="ri:server-line"
-                  class="server-icon-mini"
-                />
-                <span>{{ row.systemSoftImageServerName }}</span>
-              </div>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="大小" width="120">
-            <template #default="{ row }">
-              <span class="size-text">{{
-                formatSize(row.systemSoftImageSize)
-              }}</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="镜像ID" width="140">
-            <template #default="{ row }">
-              <span class="image-id-text">{{
-                (row.systemSoftImageImageId || "").substring(0, 12)
-              }}</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="状态" width="100">
-            <template #default="{ row }">
-              <span
-                :class="[
-                  'status-badge',
-                  getStatusClass(row.systemSoftImageStatus),
-                ]"
+        <el-table-column label="镜像" min-width="260">
+          <template #default="{ row }">
+            <div class="table-image-cell">
+              <div
+                class="image-icon-mini"
+                :style="{
+                  background: getImageGradient(row.systemSoftImageName),
+                }"
               >
-                {{ getStatusText(row.systemSoftImageStatus) }}
-              </span>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="操作" width="200" fixed="right">
-            <template #default="{ row }">
-              <div class="table-actions">
-                <el-tooltip content="安装容器" placement="top">
-                  <button
-                    class="table-action-btn primary"
-                    @click="openInstallContainer(row)"
-                  >
-                    <IconifyIconOnline icon="ri:play-circle-line" />
-                  </button>
-                </el-tooltip>
-                <el-tooltip content="导出" placement="top">
-                  <button
-                    class="table-action-btn"
-                    @click="handleExportImage(row)"
-                  >
-                    <IconifyIconOnline icon="ri:download-2-line" />
-                  </button>
-                </el-tooltip>
-                <el-tooltip content="删除" placement="top">
-                  <button
-                    class="table-action-btn danger"
-                    @click="handleDeleteImage(row)"
-                  >
-                    <IconifyIconOnline icon="ri:delete-bin-line" />
-                  </button>
-                </el-tooltip>
+                <IconifyIconOnline icon="ri:box-3-line" />
               </div>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
+              <div class="image-info-cell">
+                <span class="image-name-text">{{
+                  row.systemSoftImageName
+                }}</span>
+                <span class="version-tag-mini">{{
+                  row.systemSoftImageTag
+                }}</span>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
 
-      <div class="pagination-wrapper">
-        <el-pagination
-          v-model:current-page="searchParams.page"
-          v-model:page-size="searchParams.size"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadImages"
-          @current-change="loadImages"
-        />
-      </div>
+        <el-table-column label="服务器" width="180">
+          <template #default="{ row }">
+            <div class="table-server-cell">
+              <IconifyIconOnline
+                icon="ri:server-line"
+                class="server-icon-mini"
+              />
+              <span>{{ row.systemSoftImageServerName }}</span>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="大小" width="120">
+          <template #default="{ row }">
+            <span class="size-text">{{
+              formatSize(row.systemSoftImageSize)
+            }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="镜像ID" width="140">
+          <template #default="{ row }">
+            <span class="image-id-text">{{
+              (row.systemSoftImageImageId || "").substring(0, 12)
+            }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <span
+              :class="[
+                'status-badge',
+                getStatusClass(row.systemSoftImageStatus),
+              ]"
+            >
+              {{ getStatusText(row.systemSoftImageStatus) }}
+            </span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="操作" width="200" fixed="right">
+          <template #default="{ row }">
+            <div class="table-actions">
+              <el-tooltip content="安装容器" placement="top">
+                <button
+                  class="table-action-btn primary"
+                  @click="openInstallContainer(row)"
+                >
+                  <IconifyIconOnline icon="ri:play-circle-line" />
+                </button>
+              </el-tooltip>
+              <el-tooltip content="导出" placement="top">
+                <button
+                  class="table-action-btn"
+                  @click="handleExportImage(row)"
+                >
+                  <IconifyIconOnline icon="ri:download-2-line" />
+                </button>
+              </el-tooltip>
+              <el-tooltip content="删除" placement="top">
+                <button
+                  class="table-action-btn danger"
+                  @click="handleDeleteImage(row)"
+                >
+                  <IconifyIconOnline icon="ri:delete-bin-line" />
+                </button>
+              </el-tooltip>
+            </div>
+          </template>
+        </el-table-column>
+      </ScTable>
     </div>
 
     <!-- 拉取镜像对话框 -->
@@ -506,6 +491,7 @@ import InstallContainerDialog from "./components/InstallContainerDialog.vue";
 import ImageSyncDialog from "./components/ImageSyncDialog.vue";
 import ImageImportDialog from "./components/ImageImportDialog.vue";
 import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
+import ScTable from "@repo/components/ScTable/index.vue";
 
 /**
  * 镜像管理页面 - 现代化重构版本
@@ -532,6 +518,9 @@ const progressDialogRef = ref();
 const progressVisible = ref(false);
 const progressTitle = ref("操作进度");
 const progressEventId = ref("");
+
+// ScTable 引用
+const imageTableRef = ref();
 
 // Socket事件名称 - 使用 MonitorTopics 常量
 const socketEventNames = [
@@ -656,12 +645,27 @@ async function loadServers() {
 // 搜索
 function handleSearch() {
   searchParams.value.page = 1;
-  loadImages();
+  // 如果是列表视图，通过 ScTable 刷新
+  if (groupBy.value === "none" && imageTableRef.value) {
+    imageTableRef.value.refresh();
+  } else {
+    loadImages();
+  }
 }
 
 // 刷新
 function handleRefresh() {
-  loadImages();
+  if (groupBy.value === "none" && imageTableRef.value) {
+    imageTableRef.value.refresh();
+  } else {
+    loadImages();
+  }
+}
+
+// ScTable 数据加载完成回调
+function handleDataLoaded(data: SystemSoftImage[], totalCount: number) {
+  imageList.value = data || [];
+  total.value = totalCount || 0;
 }
 
 // 分组切换

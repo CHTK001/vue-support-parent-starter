@@ -1,13 +1,6 @@
 <script setup>
 import { message } from "@repo/utils";
 import { computed, onMounted, reactive } from "vue";
-import { useI18n } from "vue-i18n";
-
-// 国际化
-const { t } = useI18n();
-
-// 防抖定时器
-let debounceTimer = null;
 
 // 环境变量
 const env = reactive({
@@ -19,140 +12,30 @@ const env = reactive({
   history: [],
   apis: [
     {
-      label: "夜幕接口",
+      label: "默认接口",
       value: "1",
       url: "https://www.yemu.xyz/?url={{input}}",
     },
+    { label: "接口2", value: "2", url: "https://jx.xmflv.cc/?url={{input}}" },
     {
-      label: "通用接口1",
-      value: "1",
-      url: "https://jx.xmflv.cc/?url={{input}}",
-    },
-    {
-      label: "通用接口2",
-      value: "2",
-      url: "https://jx.aidouer.net/?url={{input}}",
-    },
-    {
-      label: "通用接口3",
+      label: "接口3",
       value: "3",
-      url: "https://jx.m3u8.tv/jiexi/?url={{input}}",
-    },
-    {
-      label: "通用接口4",
-      value: "4",
-      url: "https://www.8090g.cn/?url={{input}}",
-    },
-    {
-      label: "通用接口5",
-      value: "5",
-      url: "https://www.ckmov.vip/api.php?url={{input}}",
-    },
-    {
-      label: "通用接口6",
-      value: "6",
-      url: "https://www.pangujiexi.cc/jiexi.php?url={{input}}",
-    },
-    {
-      label: "通用接口7",
-      value: "7",
-      url: "https://parse.123mingren.com/?url={{input}}",
-    },
-    // 添加更多通用接口
-    {
-      label: "通用接口8",
-      value: "13",
-      url: "https://jx.jsonplayer.com/player/?url={{input}}",
-    },
-    {
-      label: "通用接口9",
-      value: "14",
-      url: "https://jx.bozrc.com:4433/player/?url={{input}}",
-    },
-    {
-      label: "通用接口10",
-      value: "15",
-      url: "https://jx.playerjy.com/?url={{input}}",
-    },
-    {
-      label: "爱奇艺专用",
-      value: "8",
       url: "https://jx.aidouer.net/?url={{input}}",
     },
     {
-      label: "腾讯视频专用",
-      value: "9",
+      label: "接口4",
+      value: "4",
       url: "https://jx.m3u8.tv/jiexi/?url={{input}}",
     },
-    {
-      label: "优酷专用",
-      value: "10",
-      url: "https://www.8090g.cn/?url={{input}}",
-    },
-    {
-      label: "芒果TV专用",
-      value: "11",
-      url: "https://jx.xmflv.cc/?url={{input}}",
-    },
-    {
-      label: "搜狐专用",
-      value: "12",
-      url: "https://www.pangujiexi.cc/jiexi.php?url={{input}}",
-    },
-    // 添加B站和其他视频网站专用接口
-    {
-      label: "哔哩哔哩专用1",
-      value: "16",
-      url: "https://jx.bozrc.com:4433/player/?url={{input}}",
-    },
-    {
-      label: "哔哩哔哩专用2",
-      value: "17",
-      url: "https://www.yemu.xyz/?url={{input}}",
-    },
-    {
-      label: "哔哩哔哩专用3",
-      value: "18",
-      url: "https://jx.jsonplayer.com/player/?url={{input}}",
-    },
-    {
-      label: "西瓜视频专用",
-      value: "19",
-      url: "https://www.pangujiexi.cc/jiexi.php?url={{input}}",
-    },
-    {
-      label: "1905专用",
-      value: "20",
-      url: "https://www.8090g.cn/?url={{input}}",
-    },
-    {
-      label: "PPTV专用",
-      value: "21",
-      url: "https://jx.playerjy.com/?url={{input}}",
-    },
+    { label: "接口5", value: "5", url: "https://www.8090g.cn/?url={{input}}" },
   ],
   popularSites: [
-    { name: "爱奇艺", url: "https://www.iqiyi.com/", icon: "ri:iqiyi-line" },
-    { name: "腾讯视频", url: "https://v.qq.com/", icon: "ri:tencent-qq-line" },
-    { name: "优酷", url: "https://www.youku.com/", icon: "ri:youtube-line" },
-    { name: "芒果TV", url: "https://www.mgtv.com/", icon: "ri:tv-line" },
-    { name: "搜狐视频", url: "https://tv.sohu.com/", icon: "ri:sohu-line" },
-    { name: "哔哩哔哩", url: "https://www.bilibili.com/", icon: "ri:bilibili-line" },
-    // 添加更多热门视频网站
-    { name: "西瓜视频", url: "https://www.ixigua.com/", icon: "ri:video-line" },
-    { name: "1905电影网", url: "https://www.1905.com/", icon: "ri:movie-line" },
-    { name: "PPTV", url: "https://www.pptv.com/", icon: "ri:tv-2-line" },
-  ],
-  popularSites: [
-    { name: "爱奇艺", url: "https://www.iqiyi.com/", icon: "ri:iqiyi-line" },
-    { name: "腾讯视频", url: "https://v.qq.com/", icon: "ri:tencent-qq-line" },
-    { name: "优酷", url: "https://www.youku.com/", icon: "ri:youtube-line" },
-    { name: "芒果TV", url: "https://www.mgtv.com/", icon: "ri:tv-line" },
-    { name: "搜狐视频", url: "https://tv.sohu.com/", icon: "ri:sohu-line" },
-    { name: "哔哩哔哩", url: "https://www.bilibili.com/", icon: "ri:bilibili-line" },
-    { name: "西瓜视频", url: "https://www.ixigua.com/", icon: "ri:video-line" },
-    { name: "1905电影网", url: "https://www.1905.com/", icon: "ri:movie-line" },
-    { name: "PPTV", url: "https://www.pptv.com/", icon: "ri:tv-2-line" },
+    { name: "爱奇艺", url: "https://www.iqiyi.com/" },
+    { name: "腾讯视频", url: "https://v.qq.com/" },
+    { name: "优酷", url: "https://www.youku.com/" },
+    { name: "芒果TV", url: "https://www.mgtv.com/" },
+    { name: "哔哩哔哩", url: "https://www.bilibili.com/" },
+    { name: "西瓜视频", url: "https://www.ixigua.com/" },
   ],
 });
 
@@ -160,61 +43,42 @@ const env = reactive({
 const currentParseUrl = computed(() => {
   if (!env.inputValue) return "";
   const selectedApi = env.apis.find((api) => api.value === env.selectedApi);
-  return selectedApi ? selectedApi.url.replace("{{input}}", encodeURIComponent(env.inputValue)) : "";
+  return selectedApi
+    ? selectedApi.url.replace("{{input}}", encodeURIComponent(env.inputValue))
+    : "";
 });
-
-// 防抖解析函数
-const debounceParseUrl = (value) => {
-  if (!value) return;
-
-  // 清除之前的定时器
-  if (debounceTimer) {
-    clearTimeout(debounceTimer);
-  }
-
-  // 设置新的定时器，延迟500ms执行
-  debounceTimer = setTimeout(() => {
-    if (env.inputValue) {
-      parseUrl();
-    }
-  }, 500);
-};
 
 /**
  * 解析视频URL
  */
 const parseUrl = () => {
   if (!env.inputValue) {
-    message(t("message.inputRequired") || "请输入视频链接", { type: "warning" });
+    message("请输入视频链接", { type: "warning" });
     return;
   }
 
   env.loading = true;
   try {
-    // 验证URL格式
+    // 补全URL协议
     let url = env.inputValue;
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
       url = "https://" + url;
       env.inputValue = url;
     }
 
-    // 设置当前URL
+    // 设置解析URL
     env.currentUrl = currentParseUrl.value;
 
-    // 添加到历史记录
+    // 添加历史记录
     if (!env.history.includes(env.inputValue)) {
       env.history.unshift(env.inputValue);
       if (env.history.length > 5) {
         env.history.pop();
       }
-      // 保存到本地存储
       localStorage.setItem("vip-video-history", JSON.stringify(env.history));
     }
-
-    message(t("message.parseSuccess") || "解析成功", { type: "success" });
   } catch (error) {
-    console.error("URL解析错误:", error);
-    message(t("message.parseError") || "解析失败: " + error.message, { type: "error" });
+    message("解析失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -222,7 +86,6 @@ const parseUrl = () => {
 
 /**
  * 从历史记录中选择URL
- * @param {string} url - 历史记录中的URL
  */
 const selectFromHistory = (url) => {
   env.inputValue = url;
@@ -230,66 +93,21 @@ const selectFromHistory = (url) => {
 };
 
 /**
- * 重置表单
+ * 清空输入
  */
-const resetForm = () => {
+const clearInput = () => {
   env.inputValue = "";
   env.currentUrl = "";
 };
 
 /**
- * 切换全屏模式
- */
-const toggleFullscreen = () => {
-  const iframe = document.getElementById("vip-iframe");
-  if (!iframe) return;
-
-  if (!env.fullscreen) {
-    if (iframe.requestFullscreen) {
-      iframe.requestFullscreen();
-    } else if (iframe.mozRequestFullScreen) {
-      iframe.mozRequestFullScreen();
-    } else if (iframe.webkitRequestFullscreen) {
-      iframe.webkitRequestFullscreen();
-    } else if (iframe.msRequestFullscreen) {
-      iframe.msRequestFullscreen();
-    }
-  } else {
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    } else if (document.mozCancelFullScreen) {
-      document.mozCancelFullScreen();
-    } else if (document.webkitExitFullscreen) {
-      document.webkitExitFullscreen();
-    } else if (document.msExitFullscreen) {
-      document.msExitFullscreen();
-    }
-  }
-};
-
-/**
  * 打开视频网站
- * @param {string} url - 网站URL
  */
 const openVideoSite = (url) => {
   window.open(url, "_blank");
 };
 
-// 监听全屏变化
-document.addEventListener("fullscreenchange", () => {
-  env.fullscreen = !!document.fullscreenElement;
-});
-document.addEventListener("webkitfullscreenchange", () => {
-  env.fullscreen = !!document.webkitFullscreenElement;
-});
-document.addEventListener("mozfullscreenchange", () => {
-  env.fullscreen = !!document.mozFullscreenElement;
-});
-document.addEventListener("MSFullscreenChange", () => {
-  env.fullscreen = !!document.msFullscreenElement;
-});
-
-// 组件挂载时从本地存储加载历史记录
+// 组件挂载时加载历史记录
 onMounted(() => {
   const savedHistory = localStorage.getItem("vip-video-history");
   if (savedHistory) {
@@ -303,464 +121,256 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="vip-tool overflow-y-auto thin-scroller">
-    <div class="vip-tool__content">
-      <el-row :gutter="20">
-        <!-- 输入区域 -->
-        <el-col :xs="24" :sm="24" :md="24" :lg="24">
-          <el-card class="vip-tool__input-card" shadow="hover">
-            <template #header>
-              <div class="vip-tool__card-header">
-                <IconifyIconOnline icon="ri:video-line" class="vip-tool__card-icon" />
-                <span>视频解析</span>
-              </div>
-            </template>
+  <div class="parse-page">
+    <!-- 输入区域 -->
+    <div class="input-section">
+      <h1 class="page-title">视频解析</h1>
+      <p class="page-desc">粘贴视频链接，免费观看VIP内容</p>
 
-            <el-form label-position="top">
-              <el-form-item label="解析接口">
-                <el-select v-model="env.selectedApi" class="vip-tool__select">
-                  <el-option-group label="通用接口">
-                    <el-option v-for="item in env.apis.filter((api) => (api.value <= 15 && api.value <= 7) || api.value >= 13)" :key="item.value" :label="item.label" :value="item.value" />
-                  </el-option-group>
-                  <el-option-group label="专用接口">
-                    <el-option-group label="主流视频">
-                      <el-option v-for="item in env.apis.filter((api) => api.value > 7 && api.value <= 12)" :key="item.value" :label="item.label" :value="item.value" />
-                    </el-option-group>
-                    <el-option-group label="B站专用">
-                      <el-option v-for="item in env.apis.filter((api) => api.value >= 16 && api.value <= 18)" :key="item.value" :label="item.label" :value="item.value" />
-                    </el-option-group>
-                    <el-option-group label="其他平台">
-                      <el-option v-for="item in env.apis.filter((api) => api.value >= 19 && api.value <= 21)" :key="item.value" :label="item.label" :value="item.value" />
-                    </el-option-group>
-                  </el-option-group>
-                </el-select>
-              </el-form-item>
+      <div class="input-box">
+        <el-select v-model="env.selectedApi" class="api-select">
+          <el-option
+            v-for="item in env.apis"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+        <el-input
+          v-model="env.inputValue"
+          placeholder="请粘贴视频链接，如：https://v.qq.com/..."
+          clearable
+          class="url-input"
+          @keyup.enter="parseUrl"
+        />
+        <el-button type="primary" :loading="env.loading" @click="parseUrl">
+          解析
+        </el-button>
+      </div>
 
-              <el-form-item label="视频链接">
-                <el-input v-model="env.inputValue" placeholder="请输入需要解析的视频链接，如：https://v.qq.com/x/cover/xxx.html" clearable class="vip-tool__input" @input="debounceParseUrl">
-                  <template #prefix>
-                    <IconifyIconOnline icon="ri:link" />
-                  </template>
-                </el-input>
-              </el-form-item>
+      <!-- 热门网站 -->
+      <div class="sites">
+        <span class="sites-label">快捷访问：</span>
+        <span
+          v-for="site in env.popularSites"
+          :key="site.name"
+          class="site-link"
+          @click="openVideoSite(site.url)"
+        >
+          {{ site.name }}
+        </span>
+      </div>
 
-              <div class="vip-tool__actions">
-                <el-button type="primary" :loading="env.loading" class="vip-tool__parse-btn" @click="parseUrl">
-                  <IconifyIconOnline icon="ri:play-circle-line" />
-                  <span>解析播放</span>
-                </el-button>
+      <!-- 历史记录 -->
+      <div class="history" v-if="env.history.length">
+        <span class="history-label">历史：</span>
+        <span
+          v-for="(url, index) in env.history"
+          :key="index"
+          class="history-item"
+          :class="{ active: env.inputValue === url }"
+          @click="selectFromHistory(url)"
+        >
+          {{ url.length > 40 ? url.substring(0, 40) + "..." : url }}
+        </span>
+      </div>
+    </div>
 
-                <el-button class="vip-tool__reset-btn" @click="resetForm">
-                  <IconifyIconOnline icon="ri:refresh-line" />
-                  <span>重置</span>
-                </el-button>
+    <!-- 播放器 -->
+    <div class="player-section" v-if="env.currentUrl">
+      <div class="player-wrapper">
+        <iframe
+          :src="env.currentUrl"
+          frameborder="0"
+          allowfullscreen
+          class="player-iframe"
+        />
+      </div>
+    </div>
 
-                <el-button v-if="env.currentUrl" type="success" class="vip-tool__fullscreen-btn" @click="toggleFullscreen">
-                  <IconifyIconOnline :icon="env.fullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'" />
-                  <span>{{ env.fullscreen ? "退出全屏" : "全屏播放" }}</span>
-                </el-button>
-              </div>
-            </el-form>
-
-            <!-- 历史记录 -->
-            <div class="vip-tool__history" v-if="env.history && env.history.length">
-              <span class="vip-tool__history-label">历史记录:</span>
-              <div class="vip-tool__history-items">
-                <el-tag v-for="(url, index) in env.history" :key="index" class="vip-tool__history-item" @click="selectFromHistory(url)" :effect="env.inputValue === url ? 'dark' : 'plain'">
-                  {{ url.length > 30 ? url.substring(0, 30) + "..." : url }}
-                </el-tag>
-              </div>
-            </div>
-
-            <!-- 热门网站 -->
-            <div class="vip-tool__popular-sites">
-              <span class="vip-tool__popular-sites-label">热门视频网站:</span>
-              <div class="vip-tool__popular-sites-items">
-                <el-button v-for="site in env.popularSites" :key="site.name" class="vip-tool__popular-site-btn" @click="openVideoSite(site.url)">
-                  <IconifyIconOnline :icon="site.icon" class="vip-tool__popular-site-icon" />
-                  <span>{{ site.name }}</span>
-                </el-button>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-
-        <!-- 视频播放区域 -->
-        <el-col :xs="24" :sm="24" :md="24" :lg="24" v-if="env.currentUrl">
-          <el-card class="vip-tool__player-card" shadow="hover">
-            <template #header>
-              <div class="vip-tool__card-header">
-                <IconifyIconOnline icon="ri:movie-line" class="vip-tool__card-icon" />
-                <span>视频播放</span>
-                <div class="vip-tool__player-controls">
-                  <el-button type="primary" link @click="toggleFullscreen">
-                    <IconifyIconOnline :icon="env.fullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'" />
-                  </el-button>
-                </div>
-              </div>
-            </template>
-
-            <div class="vip-tool__player-container">
-              <iframe id="vip-iframe" :src="env.currentUrl" frameborder="0" allowfullscreen class="vip-tool__player-iframe"></iframe>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
+    <!-- 空状态 -->
+    <div class="empty-state" v-else>
+      <IconifyIconOnline icon="ri:film-line" class="empty-icon" />
+      <p>粘贴视频链接开始解析</p>
     </div>
   </div>
 </template>
 
-<style lang="scss" scoped>
-.vip-tool {
-  /* 头部样式 */
-  &__header-container {
-    margin-bottom: 20px;
+<style scoped>
+.parse-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 40px 20px;
+}
+
+/* 输入区域 */
+.input-section {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.page-desc {
+  font-size: 14px;
+  color: #999;
+  margin: 0 0 32px 0;
+}
+
+/* 输入框 */
+.input-box {
+  display: flex;
+  gap: 12px;
+  background: #fff;
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.api-select {
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.url-input {
+  flex: 1;
+}
+
+/* 热门网站 */
+.sites {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sites-label {
+  font-size: 13px;
+  color: #999;
+}
+
+.site-link {
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.site-link:hover {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+/* 历史记录 */
+.history {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.history-label {
+  font-size: 12px;
+  color: #999;
+}
+
+.history-item {
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+  background: #fff;
+  border-radius: 4px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.history-item:hover,
+.history-item.active {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+/* 播放器 */
+.player-section {
+  max-width: 1000px;
+  margin: 40px auto 0;
+}
+
+.player-wrapper {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.player-iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* 空状态 */
+.empty-state {
+  max-width: 800px;
+  margin: 60px auto 0;
+  text-align: center;
+  color: #ccc;
+}
+
+.empty-icon {
+  font-size: 80px;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .parse-page {
+    padding: 20px 16px;
   }
 
-  &__header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 12px;
-    padding: 30px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    animation: slideInLeft 0.8s ease-out;
-
-    &-inner {
-      position: relative;
-      z-index: 2;
-    }
-
-    &-title {
-      font-size: 28px;
-      font-weight: 600;
-      color: #fff;
-      margin-bottom: 10px;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      animation: fadeInUp 1s ease-out 0.3s both;
-    }
-
-    &-subtitle {
-      font-size: 16px;
-      color: rgba(255, 255, 255, 0.9);
-      animation: fadeInUp 1s ease-out 0.5s both;
-    }
-
-    &-decoration {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
-
-    &-circle {
-      position: absolute;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-
-      &:nth-child(1) {
-        width: 200px;
-        height: 200px;
-        top: -100px;
-        right: -50px;
-        animation: float 15s infinite ease-in-out;
-      }
-
-      &:nth-child(2) {
-        width: 150px;
-        height: 150px;
-        bottom: -50px;
-        left: -30px;
-        animation: float 12s infinite ease-in-out reverse;
-      }
-
-      &:nth-child(3) {
-        width: 100px;
-        height: 100px;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        animation: pulse 8s infinite ease-in-out;
-      }
-    }
-  }
-
-  /* 卡片样式 */
-  &__card-header {
-    display: flex;
-    align-items: center;
-    font-size: 18px;
-    font-weight: 600;
-
-    .vip-tool__card-icon {
-      margin-right: 10px;
-      font-size: 20px;
-      color: var(--el-color-primary);
-    }
-  }
-
-  &__input-card {
-    margin-bottom: 20px;
-    animation: fadeInUp 0.5s ease-out;
-  }
-
-  &__player-card {
-    margin-bottom: 20px;
-    animation: fadeInUp 0.7s ease-out;
-
-    .vip-tool__card-header {
-      display: flex;
-      justify-content: space-between;
-
-      .vip-tool__player-controls {
-        margin-left: auto;
-      }
-    }
-  }
-
-  &__tips-card {
-    margin-bottom: 20px;
-    animation: fadeInUp 0.6s ease-out;
-  }
-
-  /* 表单样式 */
-  &__select {
-    width: 100%;
-  }
-
-  &__input {
-    width: 100%;
-  }
-
-  &__actions {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-
-    @media (max-width: 768px) {
-      flex-direction: column;
-    }
-
-    .el-button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      transition: all 0.3s ease;
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      }
-
-      .iconify {
-        font-size: 18px;
-      }
-    }
-  }
-
-  /* 历史记录样式 */
-  &__history {
-    display: flex;
-    align-items: center;
-    margin-bottom: 15px;
-
-    @media (max-width: 768px) {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    &-label {
-      margin-right: 10px;
-      color: var(--el-text-color-secondary);
-      white-space: nowrap;
-    }
-
-    &-items {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    &-item {
-      cursor: pointer;
-      transition: all 0.3s;
-
-      &:hover {
-        transform: translateY(-2px);
-      }
-    }
-  }
-
-  /* 热门网站样式 */
-  &__popular-sites {
-    display: flex;
-    align-items: center;
-
-    @media (max-width: 768px) {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    &-label {
-      margin-right: 10px;
-      color: var(--el-text-color-secondary);
-      white-space: nowrap;
-    }
-
-    &-items {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    &-btn {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-
-      .vip-tool__popular-site-icon {
-        font-size: 16px;
-      }
-    }
-  }
-
-  /* 播放器样式 */
-  &__player-container {
-    position: relative;
-    width: 100%;
-    height: 0;
-    padding-bottom: 56.25%; /* 16:9 比例 */
-    overflow: hidden;
-  }
-
-  &__player-iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border: none;
-  }
-
-  /* 使用说明样式 */
-  &__tips-content {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-
-  &__tip-item {
-    display: flex;
-    align-items: flex-start;
-
-    &--warning {
-      margin-top: 10px;
-      padding: 15px;
-      background-color: rgba(var(--el-color-warning-rgb), 0.1);
-      border-radius: 8px;
-      border-left: 3px solid var(--el-color-warning);
-    }
-  }
-
-  &__tip-number {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background-color: var(--el-color-primary);
-    color: var(--el-text-color-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    margin-right: 10px;
-    flex-shrink: 0;
-  }
-
-  &__tip-icon {
+  .page-title {
     font-size: 24px;
-    color: var(--el-color-warning);
-    margin-right: 10px;
   }
 
-  &__tip-text {
-    flex: 1;
-    line-height: 1.5;
+  .input-box {
+    flex-direction: column;
+    padding: 16px;
   }
-}
 
-/* 动画效果 */
-@keyframes pulse {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.8;
+  .api-select {
+    width: 100%;
   }
-  50% {
-    transform: translate(-50%, -50%) scale(1.1);
-    opacity: 1;
-  }
-}
 
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-20px) rotate(10deg);
-  }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .vip-tool {
-    &__header {
-      padding: 20px;
-
-      &-title {
-        font-size: 24px;
-      }
-
-      &-subtitle {
-        font-size: 14px;
-      }
-    }
-
-    &__actions {
-      flex-direction: column;
-
-      .el-button {
-        margin-bottom: 10px;
-      }
-    }
+  .sites,
+  .history {
+    justify-content: flex-start;
   }
 }
 </style>
