@@ -521,19 +521,35 @@ const dataTypeGroups = [
 ];
 
 // 需要长度的类型
-const typesNeedLength = ["CHAR", "VARCHAR", "BINARY", "VARBINARY", "TINYINT", "SMALLINT", "MEDIUMINT", "INT", "BIGINT"];
+const typesNeedLength = [
+  "CHAR",
+  "VARCHAR",
+  "BINARY",
+  "VARBINARY",
+  "TINYINT",
+  "SMALLINT",
+  "MEDIUMINT",
+  "INT",
+  "BIGINT",
+];
 // 需要小数位的类型
 const typesNeedScale = ["DECIMAL", "FLOAT", "DOUBLE"];
 
 function needsLength(dataType: string): boolean {
   if (!dataType) return false;
-  const baseType = dataType.toUpperCase().replace(/\(.*\)/, "").trim();
+  const baseType = dataType
+    .toUpperCase()
+    .replace(/\(.*\)/, "")
+    .trim();
   return typesNeedLength.includes(baseType);
 }
 
 function needsScale(dataType: string): boolean {
   if (!dataType) return false;
-  const baseType = dataType.toUpperCase().replace(/\(.*\)/, "").trim();
+  const baseType = dataType
+    .toUpperCase()
+    .replace(/\(.*\)/, "")
+    .trim();
   return typesNeedScale.includes(baseType);
 }
 
@@ -559,7 +575,7 @@ function updateFullType(row: ColumnInfo) {
 const hasChanges = computed(() => {
   if (tableCommentModified.value) return true;
   if (deletedColumns.value.length > 0) return true;
-  return columns.value.some(col => col.__isNew || col.__modified);
+  return columns.value.some((col) => col.__isNew || col.__modified);
 });
 
 watch(
@@ -636,7 +652,11 @@ async function loadStructure() {
 }
 
 // 解析fullType如VARCHAR(255)或DECIMAL(10,2)
-function parseFullType(fullType: string): { dataType: string; length?: number; scale?: number } {
+function parseFullType(fullType: string): {
+  dataType: string;
+  length?: number;
+  scale?: number;
+} {
   if (!fullType) return { dataType: "" };
   const match = fullType.match(/^(\w+)(?:\((\d+)(?:,(\d+))?\))?$/i);
   if (match) {
@@ -652,7 +672,9 @@ function parseFullType(fullType: string): { dataType: string; length?: number; s
 // 行选择
 function handleCurrentChange(row: ColumnInfo | null) {
   selectedRow.value = row;
-  selectedRowIndex.value = row ? columns.value.findIndex(c => c.__key === row.__key) : -1;
+  selectedRowIndex.value = row
+    ? columns.value.findIndex((c) => c.__key === row.__key)
+    : -1;
 }
 
 // 多选变化
@@ -674,24 +696,24 @@ function markModified(row: ColumnInfo) {
 
 // 获取行样式
 function getRowClassName({ row }: { row: ColumnInfo }) {
-  if (row.__isNew) return 'row-new';
-  if (row.__modified) return 'row-modified';
-  return '';
+  if (row.__isNew) return "row-new";
+  if (row.__modified) return "row-modified";
+  return "";
 }
 
 // 添加字段（末尾）
 function handleAddRow() {
   const newCol: ColumnInfo = {
-    name: '',
-    dataType: 'VARCHAR',
-    fullType: 'VARCHAR(255)',
+    name: "",
+    dataType: "VARCHAR",
+    fullType: "VARCHAR(255)",
     length: 255,
     nullable: true,
     notNull: false,
     primaryKey: false,
     autoIncrement: false,
-    defaultValue: '',
-    comment: '',
+    defaultValue: "",
+    comment: "",
     ordinalPosition: columns.value.length + 1,
     __key: generateKey(),
     __isNew: true,
@@ -699,24 +721,23 @@ function handleAddRow() {
   columns.value.push(newCol);
   nextTick(() => {
     tableRef.value?.setCurrentRow(newCol);
-    startEdit(columns.value.length - 1, 'name');
   });
 }
 
-// 插入字段（当前行之后?
+// 插入字段（当前行之后）
 function handleInsertRow() {
   if (selectedRowIndex.value < 0) return;
   const newCol: ColumnInfo = {
-    name: '',
-    dataType: 'VARCHAR',
-    fullType: 'VARCHAR(255)',
+    name: "",
+    dataType: "VARCHAR",
+    fullType: "VARCHAR(255)",
     length: 255,
     nullable: true,
     notNull: false,
     primaryKey: false,
     autoIncrement: false,
-    defaultValue: '',
-    comment: '',
+    defaultValue: "",
+    comment: "",
     ordinalPosition: selectedRowIndex.value + 2,
     __key: generateKey(),
     __isNew: true,
@@ -724,20 +745,22 @@ function handleInsertRow() {
   columns.value.splice(selectedRowIndex.value + 1, 0, newCol);
   nextTick(() => {
     tableRef.value?.setCurrentRow(newCol);
-    startEdit(selectedRowIndex.value + 1, 'name');
   });
 }
 
 // 删除字段（支持多选批量删除）
 async function handleDeleteRow() {
-  // 优先使用多选的行，否则使用当前选中?
-  const rowsToDelete = selectedRows.value.length > 0
-    ? selectedRows.value
-    : (selectedRow.value ? [selectedRow.value] : []);
+  // 优先使用多选的行，否则使用当前选中行
+  const rowsToDelete =
+    selectedRows.value.length > 0
+      ? selectedRows.value
+      : selectedRow.value
+        ? [selectedRow.value]
+        : [];
 
   if (rowsToDelete.length === 0) return;
 
-  const names = rowsToDelete.map(r => r.name || '(未命?').join(', ');
+  const names = rowsToDelete.map((r) => r.name || "(未命名)").join(", ");
   try {
     await ElMessageBox.confirm(
       rowsToDelete.length === 1
@@ -749,17 +772,17 @@ async function handleDeleteRow() {
 
     // 遍历删除
     for (const row of rowsToDelete) {
-      // 如果是已存在的字段，记录到删除列?
+      // 如果是已存在的字段，记录到删除列表
       if (!row.__isNew && row.__originalName) {
         deletedColumns.value.push(row.__originalName);
       }
-      const idx = columns.value.findIndex(c => c.__key === row.__key);
+      const idx = columns.value.findIndex((c) => c.__key === row.__key);
       if (idx >= 0) {
         columns.value.splice(idx, 1);
       }
     }
 
-    // 清空选中状?
+    // 清空选中状态
     selectedRowIndex.value = -1;
     selectedRow.value = null;
     selectedRows.value = [];
@@ -785,7 +808,11 @@ function handleMoveUp() {
 
 // 下移
 function handleMoveDown() {
-  if (selectedRowIndex.value < 0 || selectedRowIndex.value >= columns.value.length - 1) return;
+  if (
+    selectedRowIndex.value < 0 ||
+    selectedRowIndex.value >= columns.value.length - 1
+  )
+    return;
   const idx = selectedRowIndex.value;
   const row = columns.value[idx];
   columns.value.splice(idx, 1);
@@ -797,7 +824,7 @@ function handleMoveDown() {
   });
 }
 
-// 按索引上?
+// 按索引上移
 function handleMoveRowUp(index: number) {
   if (index <= 0) return;
   const row = columns.value[index];
@@ -811,7 +838,7 @@ function handleMoveRowUp(index: number) {
   });
 }
 
-// 按索引下?
+// 按索引下移
 function handleMoveRowDown(index: number) {
   if (index >= columns.value.length - 1) return;
   const row = columns.value[index];
@@ -845,7 +872,7 @@ function isColumnReallyModified(col: ColumnInfo): boolean {
     comment: col.comment || "",
   });
 
-  // 标准化原始数据进行比?
+  // 标准化原始数据进行比较
   const originalParsed = JSON.parse(col.__originalData);
   const originalNormalized = JSON.stringify({
     name: originalParsed.name,
@@ -863,7 +890,7 @@ function isColumnReallyModified(col: ColumnInfo): boolean {
   return currentData !== originalNormalized;
 }
 
-// 保存所有修?
+// 保存所有修改
 async function handleSaveAll() {
   if (!hasChanges.value) return;
 
@@ -879,19 +906,19 @@ async function handleSaveAll() {
       batchRequest.dropColumns = [...deletedColumns.value];
     }
 
-    // 2. 添加新字?
-    const newCols = columns.value.filter(c => c.__isNew && c.name);
+    // 2. 添加新字段
+    const newCols = columns.value.filter((c) => c.__isNew && c.name);
     if (newCols.length > 0) {
       batchRequest.addColumns = newCols.map((col, idx) => {
         updateFullType(col);
-        const colIndex = columns.value.findIndex(c => c.__key === col.__key);
-        let position = '';
-        let afterColumn = '';
+        const colIndex = columns.value.findIndex((c) => c.__key === col.__key);
+        let position = "";
+        let afterColumn = "";
 
         if (colIndex === 0) {
-          position = 'FIRST';
+          position = "FIRST";
         } else if (colIndex > 0) {
-          position = 'AFTER';
+          position = "AFTER";
           afterColumn = columns.value[colIndex - 1].name;
         }
 
@@ -908,9 +935,11 @@ async function handleSaveAll() {
     }
 
     // 3. 修改已有字段（只修改真正变化的）
-    const modifiedCols = columns.value.filter(c => c.__modified && !c.__isNew && isColumnReallyModified(c));
+    const modifiedCols = columns.value.filter(
+      (c) => c.__modified && !c.__isNew && isColumnReallyModified(c)
+    );
     if (modifiedCols.length > 0) {
-      batchRequest.modifyColumns = modifiedCols.map(col => {
+      batchRequest.modifyColumns = modifiedCols.map((col) => {
         updateFullType(col);
         return {
           oldColumnName: col.__originalName || col.name,
@@ -923,14 +952,16 @@ async function handleSaveAll() {
       });
     }
 
-    // 4. 调整字段顺序（如果有移动?
+    // 4. 调整字段顺序（如果有移动）
     const reorderCols: any[] = [];
     for (let i = 0; i < columns.value.length; i++) {
       const col = columns.value[i];
-      const originalIndex = originalColumns.value.findIndex(c => c.__originalName === col.__originalName);
+      const originalIndex = originalColumns.value.findIndex(
+        (c) => c.__originalName === col.__originalName
+      );
 
       if (!col.__isNew && originalIndex !== i && originalIndex >= 0) {
-        const position = i === 0 ? 'FIRST' : 'AFTER';
+        const position = i === 0 ? "FIRST" : "AFTER";
         const afterColumn = i > 0 ? columns.value[i - 1].name : undefined;
 
         reorderCols.push({
@@ -945,16 +976,20 @@ async function handleSaveAll() {
     }
 
     // 5. 修改表注释（如果有变化）
-    if (tableCommentModified.value && tableComment.value !== originalTableComment.value) {
+    if (
+      tableCommentModified.value &&
+      tableComment.value !== originalTableComment.value
+    ) {
       batchRequest.tableComment = tableComment.value;
     }
 
     // 检查是否有实际的修改内?
-    const hasActualChanges = batchRequest.dropColumns ||
-                             batchRequest.addColumns ||
-                             batchRequest.modifyColumns ||
-                             batchRequest.reorderColumns ||
-                             batchRequest.tableComment !== undefined;
+    const hasActualChanges =
+      batchRequest.dropColumns ||
+      batchRequest.addColumns ||
+      batchRequest.modifyColumns ||
+      batchRequest.reorderColumns ||
+      batchRequest.tableComment !== undefined;
 
     if (!hasActualChanges) {
       ElMessage.info("没有检测到实际修改");
@@ -977,15 +1012,13 @@ async function handleSaveAll() {
   }
 }
 
-// 关闭对话?
+// 关闭对话框
 async function handleClose() {
   if (hasChanges.value) {
     try {
-      await ElMessageBox.confirm(
-        "有未保存的修改，确定要关闭吗?,
-        "提示",
-        { type: "warning" }
-      );
+      await ElMessageBox.confirm("有未保存的修改，确定要关闭吗？", "提示", {
+        type: "warning",
+      });
     } catch {
       return;
     }
@@ -996,7 +1029,7 @@ async function handleClose() {
 async function copyDdl() {
   try {
     await navigator.clipboard.writeText(ddl.value);
-    ElMessage.success("已复制到剪贴?);
+    ElMessage.success("已复制到剪贴板");
   } catch {
     ElMessage.error("复制失败");
   }
