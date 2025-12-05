@@ -260,6 +260,20 @@ const components = [
     component: resolveComponent("./components/ScSelectExample.vue"),
   },
   {
+    name: "ScText",
+    icon: "ri:text",
+    description:
+      "文本组件，支持副文本、提示、编辑、复制、TypeIt打字机、远程调用等丰富功能",
+    component: resolveComponent("./components/ScTextExample.vue"),
+  },
+  {
+    name: "ScFilterBar",
+    icon: "ri:filter-3-line",
+    description:
+      "高级筛选组件，支持展开收起、快捷筛选、多种布局、字段联动、实时搜索",
+    component: resolveComponent("./components/ScFilterBarExample.vue"),
+  },
+  {
     name: "ScTree",
     icon: "carbon:tree-view-alt",
     description:

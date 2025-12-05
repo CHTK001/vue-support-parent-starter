@@ -227,6 +227,12 @@
       :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
       @success="handleConfigSuccess"
     />
+    <FilterConfigEnhancedProxy
+      v-model:visible="showEnhancedProxyDialog"
+      :server-id="props.serverId as number"
+      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
+      @success="handleConfigSuccess"
+    />
 
     <template #footer>
       <div class="dialog-footer">
@@ -262,6 +268,7 @@ import FilterConfigAddressRateLimit from "./FilterConfigAddressRateLimit.vue";
 import FilterConfigQpsRateLimit from "./FilterConfigQpsRateLimit.vue";
 import FilterConfigRequestFingerprint from "./FilterConfigRequestFingerprint.vue";
 import FilterConfigDynamicExpression from "./FilterConfigDynamicExpression.vue";
+import FilterConfigEnhancedProxy from "./FilterConfigEnhancedProxy.vue";
 import { SystemServer } from "@/api/system-server";
 
 // Props
@@ -302,6 +309,7 @@ const showAddressRateLimitDialog = ref(false);
 const showQpsRateLimitDialog = ref(false);
 const showRequestFingerprintDialog = ref(false);
 const showDynamicExprDialog = ref(false);
+const showEnhancedProxyDialog = ref(false);
 const currentFilterSetting = ref<SystemServerSetting | null>(null);
 
 // 计算属性
@@ -528,6 +536,10 @@ const openConfigDialog = (filter: SystemServerSetting) => {
     showDynamicExprDialog.value = true;
     return;
   }
+  if (type.includes("enhanced") && type.includes("proxy")) {
+    showEnhancedProxyDialog.value = true;
+    return;
+  }
 
   // 兜底：通用配置
   showConfigDialog.value = true;
@@ -540,6 +552,7 @@ const handleConfigSuccess = () => {
   showServiceDiscoveryDialog.value = false;
   showIpRateLimitDialog.value = false;
   showAddressRateLimitDialog.value = false;
+  showEnhancedProxyDialog.value = false;
   currentFilterSetting.value = null;
   loadInstalledFilters();
 };
@@ -672,7 +685,7 @@ watch(
 
   .drag-handle {
     cursor: move;
-     color: var(--el-text-color-primary);
+    color: var(--el-text-color-primary);
     font-size: 16px;
 
     &:hover {
@@ -712,7 +725,7 @@ watch(
 
     .filter-type {
       font-size: 12px;
-       color: var(--el-text-color-primary);
+      color: var(--el-text-color-primary);
       background: #f0f2f5;
       padding: 2px 8px;
       border-radius: 4px;
@@ -730,7 +743,7 @@ watch(
       margin-top: 4px;
 
       .detail-icon {
-         color: var(--el-text-color-primary);
+        color: var(--el-text-color-primary);
         font-size: 14px;
         cursor: help;
 

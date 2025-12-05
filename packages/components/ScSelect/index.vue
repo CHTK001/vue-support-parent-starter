@@ -1,5 +1,10 @@
 <template>
   <div class="card-selector-container">
+    <!-- 头部插槽 -->
+    <div v-if="$slots.header" class="sc-select__header">
+      <slot name="header" :options="selectListOptions" :selected="selectValue" />
+    </div>
+
     <!-- 原生select布局 -->
     <SelectLayout
       v-if="layout === 'select'"
@@ -13,12 +18,34 @@
       @selectAll="selectAll"
       @invertSelection="invertSelection"
       @clearSelection="clearSelection"
-    />
+    >
+      <!-- 选项插槽 -->
+      <template v-if="$slots.option" #default="{ option }">
+        <slot name="option" :option="option" :selected="isSelected(option.value)" />
+      </template>
+      <!-- 选中标签插槽 -->
+      <template v-if="$slots.tag" #tag="{ option }">
+        <slot name="tag" :option="option" />
+      </template>
+    </SelectLayout>
 
     <!-- 卡片选择器布局 -->
     <div v-else-if="layout === 'card'" class="card-selector-flex" :style="flexStyles">
+      <!-- 自定义卡片插槽 -->
+      <template v-if="$slots.card">
+        <div
+          v-for="item in selectListOptions"
+          :key="item.value"
+          class="sc-select__card-slot"
+          :class="{ 'is-selected': isSelected(item.value), 'is-disabled': isItemDisabled(item.value) }"
+          @click="!isItemDisabled(item.value) && handleSelect(item.value)"
+        >
+          <slot name="card" :item="item" :selected="isSelected(item.value)" :disabled="isItemDisabled(item.value)" />
+        </div>
+      </template>
       <!-- 使用CardLayout组件 -->
       <CardLayout
+        v-else
         v-for="item in selectListOptions"
         :key="item.value"
         :label="item.label || item.describe || item.name"
@@ -30,13 +57,35 @@
         :icon-position="iconPosition"
         :shape="shape"
         @select="handleSelect"
-      />
+      >
+        <!-- 卡片图标插槽 -->
+        <template v-if="$slots['card-icon']" #icon>
+          <slot name="card-icon" :item="item" />
+        </template>
+        <!-- 卡片内容插槽 -->
+        <template v-if="$slots['card-content']" #content>
+          <slot name="card-content" :item="item" :selected="isSelected(item.value)" />
+        </template>
+      </CardLayout>
     </div>
 
     <!-- 药丸选择器布局 -->
     <div v-else-if="layout === 'pill'" class="pill-selector-flex" :style="flexStyles">
+      <!-- 自定义药丸插槽 -->
+      <template v-if="$slots.pill">
+        <div
+          v-for="item in selectListOptions"
+          :key="item.value"
+          class="sc-select__pill-slot"
+          :class="{ 'is-selected': isSelected(item.value), 'is-disabled': isItemDisabled(item.value) }"
+          @click="!isItemDisabled(item.value) && handleSelect(item.value)"
+        >
+          <slot name="pill" :item="item" :selected="isSelected(item.value)" :disabled="isItemDisabled(item.value)" />
+        </div>
+      </template>
       <!-- 使用PillLayout组件 -->
       <PillLayout
+        v-else
         v-for="item in selectListOptions"
         :key="item.value"
         :label="item.label || item.describe || item.name"
@@ -329,25 +378,25 @@ const props = defineProps({
   treeProps: {
     type: Object,
     default: () => ({
-      children: 'children',
-      label: 'label',
-      disabled: 'disabled'
+      children: "children",
+      label: "label",
+      disabled: "disabled"
     })
   },
   // 树节点唯一标识字段
   treeNodeKey: {
     type: String,
-    default: 'value'
+    default: "value"
   },
   // 树节点图标字段
   treeIconProp: {
     type: String,
-    default: 'icon'
+    default: "icon"
   },
   // 树节点描述字段
   treeDescProp: {
     type: String,
-    default: 'desc'
+    default: "desc"
   },
   // 是否显示搜索框
   treeShowSearch: {
@@ -357,7 +406,7 @@ const props = defineProps({
   // 搜索框占位符
   treeSearchPlaceholder: {
     type: String,
-    default: '请输入关键词搜索'
+    default: "请输入关键词搜索"
   },
   // 是否显示操作栏
   treeShowActions: {

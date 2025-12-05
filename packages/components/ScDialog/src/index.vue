@@ -432,6 +432,8 @@ const isMinimized = ref(false);
 const isMaximized = ref(false);
 const dockPosition = ref<DockPosition>(null);
 const lastDialogState = ref<{ x: number; y: number; width: string; height: string } | null>(null);
+// 保存对话框的原始位置（中间位置），用于从任务栏还原
+const originalDialogState = ref<{ x: number; y: number; width: string; height: string } | null>(null);
 const preMaximizeState = ref<{ x: number; y: number; width: string; height: string } | null>(null);
 const minimizedIconPosition = ref<{ x: number; y: number } | null>(null);
 const alignGuides = ref<{ vertical: number[]; horizontal: number[] }>({ vertical: [], horizontal: [] });
@@ -690,6 +692,11 @@ function snapToOtherDialogs(x: number, y: number, width: number, height: number)
 watch(
   () => props.modelValue,
   val => {
+    // 如果当前是最小化状态且要显示，则调用还原方法
+    if (val && isMinimized.value) {
+      restoreFromMinimized();
+      return;
+    }
     dialogVisible.value = val;
   }
 );
@@ -707,6 +714,7 @@ watch(dialogVisible, val => {
     isMaximized.value = false; // 重置最大化状态
     dockPosition.value = null;
     lastDialogState.value = null;
+    originalDialogState.value = null; // 重置原始位置，以便重新记录
     preMaximizeState.value = null;
     emit("open");
     nextTick(() => {
@@ -750,12 +758,17 @@ function initInteract(): void {
           document.body.style.userSelect = "none";
           // 拖拽开始时记录当前位置
           const target = event.target as HTMLElement;
-          lastDialogState.value = {
+          const currentState = {
             x: parseFloat(target.getAttribute("data-x") || "0") || 0,
             y: parseFloat(target.getAttribute("data-y") || "0") || 0,
             width: target.style.width || "",
             height: target.style.height || ""
           };
+          lastDialogState.value = currentState;
+          // 只在第一次拖拽时保存原始位置（用于任务栏还原）
+          if (!originalDialogState.value) {
+            originalDialogState.value = { ...currentState };
+          }
         },
         move: event => {
           if (isMaximized.value) return; // 最大化时禁止拖拽
@@ -1028,18 +1041,21 @@ function restoreFromTaskbar(): void {
   // 恢复对话框
   isMinimized.value = false;
 
+  // 使用原始位置（中间位置）而不是边缘吸附后的位置
+  const stateToUse = originalDialogState.value || lastDialogState.value;
+
   // 恢复对话框状态并重新初始化拖拽
   nextTick(() => {
-    if (dialogRef.value && lastDialogState.value) {
+    if (dialogRef.value && stateToUse) {
       const target = dialogRef.value;
-      target.style.transform = `translate(${lastDialogState.value.x}px, ${lastDialogState.value.y}px)`;
-      target.setAttribute("data-x", String(lastDialogState.value.x));
-      target.setAttribute("data-y", String(lastDialogState.value.y));
-      if (lastDialogState.value.width) {
-        target.style.width = lastDialogState.value.width;
+      target.style.transform = `translate(${stateToUse.x}px, ${stateToUse.y}px)`;
+      target.setAttribute("data-x", String(stateToUse.x));
+      target.setAttribute("data-y", String(stateToUse.y));
+      if (stateToUse.width) {
+        target.style.width = stateToUse.width;
       }
-      if (lastDialogState.value.height) {
-        target.style.height = lastDialogState.value.height;
+      if (stateToUse.height) {
+        target.style.height = stateToUse.height;
       }
     }
     // 重新初始化 interact.js，恢复拖拽和缩放功能
@@ -1067,9 +1083,12 @@ function restoreFromMinimized(restorePosition?: { x: number; y: number }, absolu
   dockPosition.value = null;
   minimizedIconPosition.value = null;
 
+  // 使用原始位置（中间位置）而不是边缘吸附后的位置
+  const stateToUse = originalDialogState.value || lastDialogState.value;
+
   // 恢复对话框状态并重新初始化拖拽
   nextTick(() => {
-    if (dialogRef.value && lastDialogState.value) {
+    if (dialogRef.value && stateToUse) {
       const target = dialogRef.value;
       let x: number;
       let y: number;
@@ -1088,19 +1107,19 @@ function restoreFromMinimized(restorePosition?: { x: number; y: number }, absolu
         x = absolutePosition.left - centerX - dialogWidth / 2;
         y = absolutePosition.top - centerY - dialogHeight / 2;
       } else {
-        // 如果有指定恢复位置，使用该位置；否则使用原始位置
-        x = restorePosition?.x ?? lastDialogState.value.x;
-        y = restorePosition?.y ?? lastDialogState.value.y;
+        // 如果有指定恢复位置，使用该位置；否则使用原始位置（中间位置）
+        x = restorePosition?.x ?? stateToUse.x;
+        y = restorePosition?.y ?? stateToUse.y;
       }
 
       target.style.transform = `translate(${x}px, ${y}px)`;
       target.setAttribute("data-x", String(x));
       target.setAttribute("data-y", String(y));
-      if (lastDialogState.value.width) {
-        target.style.width = lastDialogState.value.width;
+      if (stateToUse.width) {
+        target.style.width = stateToUse.width;
       }
-      if (lastDialogState.value.height) {
-        target.style.height = lastDialogState.value.height;
+      if (stateToUse.height) {
+        target.style.height = stateToUse.height;
       }
     }
     // 重新初始化 interact.js，恢复拖拽和缩放功能
@@ -1876,99 +1895,138 @@ defineExpose({
   }
 }
 
-// 最小化动画 - 向左
+// 最小化动画 - 向左（macOS Genie 效果）
 .dialog-minimize-left-enter-active,
 .dialog-minimize-left-leave-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
 
   .sc-dialog--custom {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+    transform-origin: left center;
   }
 }
 
 .dialog-minimize-left-leave-to {
   .sc-dialog--custom {
-    transform: translateX(-100vw) scale(0.3);
+    transform: translateX(-50vw) scale(0.1) perspective(800px) rotateY(15deg);
     opacity: 0;
+    filter: blur(2px);
   }
 }
 
 .dialog-minimize-left-enter-from {
   .sc-dialog--custom {
-    transform: translateX(-100vw) scale(0.3);
+    transform: translateX(-50vw) scale(0.1) perspective(800px) rotateY(15deg);
     opacity: 0;
+    filter: blur(2px);
   }
 }
 
-// 最小化动画 - 向右
+// 最小化动画 - 向右（macOS Genie 效果）
 .dialog-minimize-right-enter-active,
 .dialog-minimize-right-leave-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
 
   .sc-dialog--custom {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+    transform-origin: right center;
   }
 }
 
 .dialog-minimize-right-leave-to {
   .sc-dialog--custom {
-    transform: translateX(100vw) scale(0.3);
+    transform: translateX(50vw) scale(0.1) perspective(800px) rotateY(-15deg);
     opacity: 0;
+    filter: blur(2px);
   }
 }
 
 .dialog-minimize-right-enter-from {
   .sc-dialog--custom {
-    transform: translateX(100vw) scale(0.3);
+    transform: translateX(50vw) scale(0.1) perspective(800px) rotateY(-15deg);
     opacity: 0;
+    filter: blur(2px);
   }
 }
 
-// 最小化动画 - 向上
+// 最小化动画 - 向上（macOS Genie 效果）
 .dialog-minimize-top-enter-active,
 .dialog-minimize-top-leave-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
 
   .sc-dialog--custom {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+    transform-origin: center top;
   }
 }
 
 .dialog-minimize-top-leave-to {
   .sc-dialog--custom {
-    transform: translateY(-100vh) scale(0.3);
+    transform: translateY(-50vh) scale(0.1) perspective(800px) rotateX(-15deg);
     opacity: 0;
+    filter: blur(2px);
   }
 }
 
 .dialog-minimize-top-enter-from {
   .sc-dialog--custom {
-    transform: translateY(-100vh) scale(0.3);
+    transform: translateY(-50vh) scale(0.1) perspective(800px) rotateX(-15deg);
     opacity: 0;
+    filter: blur(2px);
   }
 }
 
-// 最小化动画 - 向下
+// 最小化动画 - 向下（macOS Genie 效果）
 .dialog-minimize-bottom-enter-active,
 .dialog-minimize-bottom-leave-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
 
   .sc-dialog--custom {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+    transform-origin: center bottom;
   }
 }
 
 .dialog-minimize-bottom-leave-to {
   .sc-dialog--custom {
-    transform: translateY(100vh) scale(0.3);
+    transform: translateY(50vh) scale(0.1) perspective(800px) rotateX(15deg);
     opacity: 0;
+    filter: blur(2px);
   }
 }
 
 .dialog-minimize-bottom-enter-from {
   .sc-dialog--custom {
-    transform: translateY(100vh) scale(0.3);
+    transform: translateY(50vh) scale(0.1) perspective(800px) rotateX(15deg);
     opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+// 任务栏最小化动画（通用 - macOS 风格）
+.dialog-minimize-taskbar-enter-active,
+.dialog-minimize-taskbar-leave-active {
+  transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+
+  .sc-dialog--custom {
+    transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+    transform-origin: center bottom;
+  }
+}
+
+.dialog-minimize-taskbar-leave-to {
+  .sc-dialog--custom {
+    transform: translateY(calc(100vh - 60px)) scale(0.05);
+    opacity: 0;
+    filter: blur(3px);
+  }
+}
+
+.dialog-minimize-taskbar-enter-from {
+  .sc-dialog--custom {
+    transform: translateY(calc(100vh - 60px)) scale(0.05);
+    opacity: 0;
+    filter: blur(3px);
   }
 }
 </style>
