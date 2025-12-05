@@ -123,7 +123,7 @@
  * @since 2025-12-04
  */
 import { ref, computed, watch, onMounted, onUnmounted, type PropType } from "vue";
-import { useTaskbar, getTaskbarStyle, type TaskbarPosition, type TaskbarItem, type TaskbarGroupItem } from "./useTaskbar";
+import { useTaskbar, getTaskbarStyle, type TaskbarPosition, type TaskbarAlignment, type TaskbarItem, type TaskbarGroupItem } from "./useTaskbar";
 
 const props = withDefaults(
   defineProps<{
@@ -131,6 +131,8 @@ const props = withDefaults(
     enabled?: boolean;
     /** 任务栏位置 */
     position?: TaskbarPosition;
+    /** 任务栏对齐方式（start=左侧/顶部, center=居中, end=右侧/底部） */
+    alignment?: TaskbarAlignment;
     /** 任务栏宽度（横向布局时，支持 px 和百分比） */
     width?: string;
     /** 任务栏高度（纵向布局时，单位 px） */
@@ -147,7 +149,8 @@ const props = withDefaults(
   {
     enabled: true,
     position: "bottom",
-    width: "100%",
+    alignment: "center",
+    width: "auto",
     height: 48,
     alwaysVisible: true,
     autoHideDelay: 2000,
@@ -198,6 +201,7 @@ const taskbarStyle = computed(() => {
   return getTaskbarStyle({
     enabled: props.enabled,
     position: props.position,
+    alignment: props.alignment,
     width: props.width,
     height: props.height,
     alwaysVisible: props.alwaysVisible,
@@ -269,6 +273,7 @@ watch(
   () => ({
     enabled: props.enabled,
     position: props.position,
+    alignment: props.alignment,
     width: props.width,
     height: props.height,
     alwaysVisible: props.alwaysVisible,
@@ -476,6 +481,17 @@ defineExpose({
     border-radius: 8px 0 0 8px;
     border-right: none;
     box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
+  }
+
+  // 对齐方式相关的圆角调整
+  &--bottom,
+  &--top {
+    justify-content: center;
+  }
+
+  &--left,
+  &--right {
+    justify-content: center;
   }
 
   // 自动隐藏状态

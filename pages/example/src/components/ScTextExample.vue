@@ -260,6 +260,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { ScText } from "@repo/components/ScText";
 
 const editableText = ref("点击编辑这段文字");
 const textRef = ref();

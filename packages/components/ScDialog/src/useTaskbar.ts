@@ -13,6 +13,11 @@ import { ref, reactive, computed, type Ref, type ComputedRef } from "vue";
 export type TaskbarPosition = "top" | "bottom" | "left" | "right";
 
 /**
+ * 任务栏对齐方式枚举
+ */
+export type TaskbarAlignment = "start" | "center" | "end";
+
+/**
  * 任务栏配置接口
  */
 export interface TaskbarConfig {
@@ -20,6 +25,8 @@ export interface TaskbarConfig {
   enabled: boolean;
   /** 任务栏位置 */
   position: TaskbarPosition;
+  /** 任务栏对齐方式（start=左侧/顶部, center=居中, end=右侧/底部） */
+  alignment: TaskbarAlignment;
   /** 任务栏宽度（横向布局时，支持 px 和百分比） */
   width: string;
   /** 任务栏高度（纵向布局时，单位 px） */
@@ -80,7 +87,8 @@ export interface TaskbarGroupItem {
 const defaultConfig: TaskbarConfig = {
   enabled: false,
   position: "bottom",
-  width: "100%",
+  alignment: "center",
+  width: "auto",
   height: 48,
   alwaysVisible: true,
   autoHideDelay: 2000,
@@ -365,35 +373,70 @@ export function getTaskbarStyle(config: TaskbarConfig): Record<string, string> {
     zIndex: String(config.zIndex)
   };
 
+  const isHorizontal = config.position === "top" || config.position === "bottom";
+  const alignment = config.alignment || "center";
+
   // 根据位置设置样式
   switch (config.position) {
     case "top":
       style.top = "0";
-      style.left = "0";
-      style.right = "0";
       style.height = `${config.height}px`;
-      style.width = config.width;
+      // 水平对齐
+      if (alignment === "start") {
+        style.left = "0";
+      } else if (alignment === "end") {
+        style.right = "0";
+      } else {
+        style.left = "50%";
+        style.transform = "translateX(-50%)";
+      }
+      // 宽度：auto 时自适应，否则使用指定宽度
+      if (config.width !== "auto" && config.width !== "100%") {
+        style.width = config.width;
+      }
       break;
     case "bottom":
       style.bottom = "0";
-      style.left = "0";
-      style.right = "0";
       style.height = `${config.height}px`;
-      style.width = config.width;
+      // 水平对齐
+      if (alignment === "start") {
+        style.left = "0";
+      } else if (alignment === "end") {
+        style.right = "0";
+      } else {
+        style.left = "50%";
+        style.transform = "translateX(-50%)";
+      }
+      // 宽度：auto 时自适应，否则使用指定宽度
+      if (config.width !== "auto" && config.width !== "100%") {
+        style.width = config.width;
+      }
       break;
     case "left":
-      style.top = "0";
       style.left = "0";
-      style.bottom = "0";
       style.width = `${config.height}px`;
-      style.height = "100%";
+      // 垂直对齐
+      if (alignment === "start") {
+        style.top = "0";
+      } else if (alignment === "end") {
+        style.bottom = "0";
+      } else {
+        style.top = "50%";
+        style.transform = "translateY(-50%)";
+      }
       break;
     case "right":
-      style.top = "0";
       style.right = "0";
-      style.bottom = "0";
       style.width = `${config.height}px`;
-      style.height = "100%";
+      // 垂直对齐
+      if (alignment === "start") {
+        style.top = "0";
+      } else if (alignment === "end") {
+        style.bottom = "0";
+      } else {
+        style.top = "50%";
+        style.transform = "translateY(-50%)";
+      }
       break;
   }
 
