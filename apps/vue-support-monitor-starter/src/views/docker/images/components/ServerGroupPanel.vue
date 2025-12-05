@@ -1,24 +1,34 @@
 <template>
   <div class="server-group-panel">
-    <!-- 左侧服务器卡?-->
+    <!-- 左侧服务器卡片 -->
     <div class="server-sidebar">
       <div class="sidebar-header">
         <h3 class="sidebar-title">
           <IconifyIconOnline icon="ri:server-line" class="mr-2" />
-          服务器列?
+          服务器列表
         </h3>
-        <el-tooltip content="上一?>
-          <el-button size="small" circle :disabled="!canScrollUp" @click="scrollUp">
+        <el-tooltip content="上一个">
+          <el-button
+            size="small"
+            circle
+            :disabled="!canScrollUp"
+            @click="scrollUp"
+          >
             <IconifyIconOnline icon="ri:arrow-up-s-line" />
           </el-button>
         </el-tooltip>
-        <el-tooltip content="下一?>
-          <el-button size="small" circle :disabled="!canScrollDown" @click="scrollDown">
+        <el-tooltip content="下一个">
+          <el-button
+            size="small"
+            circle
+            :disabled="!canScrollDown"
+            @click="scrollDown"
+          >
             <IconifyIconOnline icon="ri:arrow-down-s-line" />
           </el-button>
         </el-tooltip>
       </div>
-      
+
       <div ref="serverListRef" class="server-list" @scroll="handleScroll">
         <div
           v-for="server in servers"
@@ -36,13 +46,13 @@
           </div>
           <div class="server-card-footer">
             <el-tag size="small" type="info">
-              {{ server.imageCount || 0 }} 个镜?
+              {{ server.imageCount || 0 }} 个镜像
             </el-tag>
             <el-tag
               size="small"
               :type="server.status === 'online' ? 'success' : 'danger'"
             >
-              {{ server.status === 'online' ? '在线' : '离线' }}
+              {{ server.status === "online" ? "在线" : "离线" }}
             </el-tag>
           </div>
         </div>
@@ -55,10 +65,10 @@
         <div class="header-left">
           <h3 class="content-title">
             <IconifyIconOnline icon="ri:image-line" class="mr-2" />
-            {{ currentServer?.name || '选择服务器 }}
+            {{ currentServer?.name || "选择服务器" }}
           </h3>
           <el-tag v-if="currentServer" size="small" type="info" class="ml-2">
-            {{ filteredImages.length }} 个镜?
+            {{ filteredImages.length }} 个镜像
           </el-tag>
         </div>
         <div class="header-right">
@@ -75,14 +85,14 @@
           </el-input>
           <el-select
             v-model="filterStatus"
-            placeholder="状?
+            placeholder="状态"
             clearable
             class="filter-select"
             @change="handleFilter"
           >
             <el-option label="全部" :value="undefined" />
             <el-option label="可用" value="AVAILABLE" />
-            <el-option label="拉取中 value="PULLING" />
+            <el-option label="拉取中" value="PULLING" />
             <el-option label="错误" value="PULL_FAILED" />
           </el-select>
         </div>
@@ -93,10 +103,16 @@
           <IconifyIconOnline icon="ri:server-line" class="empty-icon" />
           <p class="empty-text">请选择一个服务器查看镜像</p>
         </div>
-        
+
         <div v-else-if="filteredImages.length === 0" class="empty-state">
           <IconifyIconOnline icon="ri:image-line" class="empty-icon" />
-          <p class="empty-text">{{ filterKeyword || filterStatus ? '没有符合条件的镜? : '该服务器暂无镜像' }}</p>
+          <p class="empty-text">
+            {{
+              filterKeyword || filterStatus
+                ? "没有符合条件的镜像"
+                : "该服务器暂无镜像"
+            }}
+          </p>
         </div>
 
         <div v-else class="image-grid">
@@ -112,22 +128,27 @@
                   {{ image.systemSoftImageTag }}
                 </el-tag>
               </div>
-              <el-tag :type="getStatusTagType(image.systemSoftImageStatus)" size="small">
+              <el-tag
+                :type="getStatusTagType(image.systemSoftImageStatus)"
+                size="small"
+              >
                 {{ getStatusText(image.systemSoftImageStatus) }}
               </el-tag>
             </div>
-            
+
             <div class="image-card-body">
               <div class="image-meta">
-                <span class="meta-label">大小?/span>
+                <span class="meta-label">大小：</span>
                 <span>{{ formatSize(image.systemSoftImageSize) }}</span>
               </div>
               <div class="image-meta">
-                <span class="meta-label">ID?/span>
-                <span class="image-id">{{ (image.systemSoftImageImageId || '').substring(0, 12) }}</span>
+                <span class="meta-label">ID：</span>
+                <span class="image-id">{{
+                  (image.systemSoftImageImageId || "").substring(0, 12)
+                }}</span>
               </div>
               <div class="image-meta">
-                <span class="meta-label">拉取时间轴/span>
+                <span class="meta-label">拉取时间：</span>
                 <span>{{ formatDate(image.systemSoftImageLastPulled) }}</span>
               </div>
             </div>
@@ -141,25 +162,31 @@
                 <IconifyIconOnline icon="ri:play-circle-line" class="mr-1" />
                 安装容器
               </el-button>
-              <el-button
-                size="small"
-                @click="emit('viewHistory', image)"
-              >
+              <el-button size="small" @click="emit('viewHistory', image)">
                 <IconifyIconOnline icon="ri:history-line" class="mr-1" />
                 历史记录
               </el-button>
-              <el-dropdown trigger="click" @command="(cmd) => handleAction(cmd, image)">
+              <el-dropdown
+                trigger="click"
+                @command="(cmd) => handleAction(cmd, image)"
+              >
                 <el-button size="small">
                   <IconifyIconOnline icon="ri:more-2-fill" />
                 </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="export">
-                      <IconifyIconOnline icon="ri:download-2-line" class="mr-1" />
+                      <IconifyIconOnline
+                        icon="ri:download-2-line"
+                        class="mr-1"
+                      />
                       导出镜像
                     </el-dropdown-item>
                     <el-dropdown-item command="delete" divided>
-                      <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
+                      <IconifyIconOnline
+                        icon="ri:delete-bin-line"
+                        class="mr-1"
+                      />
                       删除镜像
                     </el-dropdown-item>
                   </el-dropdown-menu>
@@ -174,14 +201,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
-import type { SystemSoftImage } from '@/api/docker';
+import { ref, computed, watch, nextTick } from "vue";
+import type { SystemSoftImage } from "@/api/docker";
 
 interface Server {
   id: number;
   name: string;
   ip: string;
-  status: 'online' | 'offline';
+  status: "online" | "offline";
   imageCount?: number;
 }
 
@@ -201,7 +228,7 @@ const emit = defineEmits<{
 
 const serverListRef = ref<HTMLElement>();
 const selectedServerId = ref<number>();
-const filterKeyword = ref('');
+const filterKeyword = ref("");
 const filterStatus = ref<string>();
 
 const canScrollUp = ref(false);
@@ -209,31 +236,36 @@ const canScrollDown = ref(false);
 
 // 当前选中的服务器
 const currentServer = computed(() => {
-  return props.servers.find(s => s.id === selectedServerId.value);
+  return props.servers.find((s) => s.id === selectedServerId.value);
 });
 
 // 当前服务器的镜像
 const currentServerImages = computed(() => {
   if (!selectedServerId.value) return [];
-  return props.images.filter(img => img.systemSoftImageServerId === selectedServerId.value);
+  return props.images.filter(
+    (img) => img.systemSoftImageServerId === selectedServerId.value
+  );
 });
 
 // 过滤后的镜像
 const filteredImages = computed(() => {
   let result = currentServerImages.value;
-  
+
   if (filterKeyword.value) {
     const keyword = filterKeyword.value.toLowerCase();
-    result = result.filter(img =>
-      img.systemSoftImageName?.toLowerCase().includes(keyword) ||
-      img.systemSoftImageTag?.toLowerCase().includes(keyword)
+    result = result.filter(
+      (img) =>
+        img.systemSoftImageName?.toLowerCase().includes(keyword) ||
+        img.systemSoftImageTag?.toLowerCase().includes(keyword)
     );
   }
-  
+
   if (filterStatus.value) {
-    result = result.filter(img => img.systemSoftImageStatus === filterStatus.value);
+    result = result.filter(
+      (img) => img.systemSoftImageStatus === filterStatus.value
+    );
   }
-  
+
   return result;
 });
 
@@ -241,14 +273,14 @@ const filteredImages = computed(() => {
 function selectServer(serverId: number) {
   selectedServerId.value = serverId;
   // 清空过滤条件
-  filterKeyword.value = '';
+  filterKeyword.value = "";
   filterStatus.value = undefined;
 }
 
 // 处理滚动
 function handleScroll() {
   if (!serverListRef.value) return;
-  
+
   const el = serverListRef.value;
   canScrollUp.value = el.scrollTop > 0;
   canScrollDown.value = el.scrollTop < el.scrollHeight - el.clientHeight - 1;
@@ -257,33 +289,33 @@ function handleScroll() {
 // 向上滚动
 function scrollUp() {
   if (!serverListRef.value) return;
-  serverListRef.value.scrollBy({ top: -200, behavior: 'smooth' });
+  serverListRef.value.scrollBy({ top: -200, behavior: "smooth" });
 }
 
 // 向下滚动
 function scrollDown() {
   if (!serverListRef.value) return;
-  serverListRef.value.scrollBy({ top: 200, behavior: 'smooth' });
+  serverListRef.value.scrollBy({ top: 200, behavior: "smooth" });
 }
 
 // 处理操作
 function handleAction(command: string, image: SystemSoftImage) {
-  if (command === 'export') {
-    emit('export', image);
-  } else if (command === 'delete') {
-    emit('delete', image);
+  if (command === "export") {
+    emit("export", image);
+  } else if (command === "delete") {
+    emit("delete", image);
   }
 }
 
 // 过滤处理
 function handleFilter() {
-  // 过滤逻辑已在computed中处?
+  // 过滤逻辑已在computed中处理
 }
 
-// 格式化大?
+// 格式化大小
 function formatSize(bytes: number | undefined): string {
-  if (!bytes) return '-';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  if (!bytes) return "-";
+  const units = ["B", "KB", "MB", "GB", "TB"];
   let size = bytes;
   let unitIndex = 0;
   while (size >= 1024 && unitIndex < units.length - 1) {
@@ -293,44 +325,58 @@ function formatSize(bytes: number | undefined): string {
   return `${size.toFixed(2)} ${units[unitIndex]}`;
 }
 
-// 格式化日?
+// 格式化日期
 function formatDate(date: string | undefined): string {
-  if (!date) return '-';
-  return new Date(date).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
+  if (!date) return "-";
+  return new Date(date).toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
-// 获取状态标签类?
-function getStatusTagType(status: string | undefined): 'success' | 'warning' | 'danger' | 'info' {
+// 获取状态标签类型
+function getStatusTagType(
+  status: string | undefined
+): "success" | "warning" | "danger" | "info" {
   switch (status) {
-    case 'AVAILABLE': return 'success';
-    case 'PULLING': return 'warning';
-    case 'PULL_FAILED': return 'danger';
-    default: return 'info';
+    case "AVAILABLE":
+      return "success";
+    case "PULLING":
+      return "warning";
+    case "PULL_FAILED":
+      return "danger";
+    default:
+      return "info";
   }
 }
 
-// 获取状态文?
+// 获取状态文本
 function getStatusText(status: string | undefined): string {
   switch (status) {
-    case 'AVAILABLE': return '可用';
-    case 'PULLING': return '拉取中;
-    case 'PULL_FAILED': return '拉取失败';
-    default: return '未知';
+    case "AVAILABLE":
+      return "可用";
+    case "PULLING":
+      return "拉取中";
+    case "PULL_FAILED":
+      return "拉取失败";
+    default:
+      return "未知";
   }
 }
 
-// 监听服务器列表变化，初始化滚动状?
-watch(() => props.servers, () => {
-  nextTick(() => {
-    handleScroll();
-  });
-}, { immediate: true });
+// 监听服务器列表变化，初始化滚动状态
+watch(
+  () => props.servers,
+  () => {
+    nextTick(() => {
+      handleScroll();
+    });
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
@@ -341,7 +387,7 @@ watch(() => props.servers, () => {
   min-height: 600px;
 }
 
-/* 左侧服务器边?*/
+/* 左侧服务器边栏 */
 .server-sidebar {
   width: 280px;
   flex-shrink: 0;
@@ -392,7 +438,11 @@ watch(() => props.servers, () => {
 
 .server-card.active {
   border-color: var(--el-color-primary);
-  background: linear-gradient(135deg, rgba(99,102,241,0.05), rgba(14,165,233,0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.05),
+    rgba(14, 165, 233, 0.05)
+  );
 }
 
 .server-card-header {
@@ -552,7 +602,7 @@ watch(() => props.servers, () => {
 }
 
 .image-id {
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: "Consolas", "Monaco", monospace;
   font-size: 12px;
 }
 
@@ -562,4 +612,3 @@ watch(() => props.servers, () => {
   flex-wrap: wrap;
 }
 </style>
-

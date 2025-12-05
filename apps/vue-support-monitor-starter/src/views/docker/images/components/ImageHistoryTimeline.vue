@@ -18,18 +18,30 @@
           </div>
         </div>
         <div class="filter-bar">
-          <el-select v-model="filterType" placeholder="操作类型" clearable size="small" @change="loadHistory">
+          <el-select
+            v-model="filterType"
+            placeholder="操作类型"
+            clearable
+            size="small"
+            @change="loadHistory"
+          >
             <el-option label="全部" :value="undefined" />
             <el-option label="拉取镜像" value="PULL_IMAGE" />
             <el-option label="创建容器" value="CREATE_CONTAINER" />
             <el-option label="导出镜像" value="EXPORT_IMAGE" />
             <el-option label="删除镜像" value="DELETE_IMAGE" />
           </el-select>
-          <el-select v-model="filterStatus" placeholder="状? clearable size="small" @change="loadHistory">
+          <el-select
+            v-model="filterStatus"
+            placeholder="状态"
+            clearable
+            size="small"
+            @change="loadHistory"
+          >
             <el-option label="全部" :value="undefined" />
             <el-option label="成功" :value="1" />
             <el-option label="失败" :value="2" />
-            <el-option label="进行? :value="0" />
+            <el-option label="进行中" :value="0" />
           </el-select>
         </div>
       </div>
@@ -50,11 +62,19 @@
           :type="getTimelineType(record.systemSoftRecordStatus)"
           :hollow="record.systemSoftRecordStatus === 0"
         >
-          <el-card class="timeline-card" :class="`status-${record.systemSoftRecordStatus}`">
+          <el-card
+            class="timeline-card"
+            :class="`status-${record.systemSoftRecordStatus}`"
+          >
             <div class="record-header">
               <div class="record-title">
-                <IconifyIconOnline :icon="getOperationIcon(record.systemSoftRecordOperationType)" class="mr-2" />
-                <span class="operation-type">{{ getOperationText(record.systemSoftRecordOperationType) }}</span>
+                <IconifyIconOnline
+                  :icon="getOperationIcon(record.systemSoftRecordOperationType)"
+                  class="mr-2"
+                />
+                <span class="operation-type">{{
+                  getOperationText(record.systemSoftRecordOperationType)
+                }}</span>
                 <el-tag
                   :type="getStatusType(record.systemSoftRecordStatus)"
                   size="small"
@@ -66,7 +86,7 @@
               <div class="record-meta">
                 <span class="meta-item">
                   <IconifyIconOnline icon="ri:user-line" />
-                  {{ record.systemSoftRecordUser || '系统' }}
+                  {{ record.systemSoftRecordUser || "系统" }}
                 </span>
                 <span v-if="record.systemSoftRecordDuration" class="meta-item">
                   <IconifyIconOnline icon="ri:time-line" />
@@ -77,40 +97,72 @@
 
             <div class="record-content">
               <div class="content-item">
-                <span class="content-label">操作消息?/span>
-                <span class="content-value">{{ record.systemSoftRecordMessage || '-' }}</span>
+                <span class="content-label">操作消息：</span>
+                <span class="content-value">{{
+                  record.systemSoftRecordMessage || "-"
+                }}</span>
               </div>
 
               <div v-if="record.systemSoftRecordParams" class="content-item">
-                <span class="content-label">操作参数?/span>
+                <span class="content-label">操作参数：</span>
                 <el-tag size="small" effect="plain" class="param-tag">
                   {{ record.systemSoftRecordParams }}
                 </el-tag>
               </div>
 
-              <div v-if="record.systemSoftRecordStatus === 1 && record.systemSoftRecordResult" class="content-item success-result">
+              <div
+                v-if="
+                  record.systemSoftRecordStatus === 1 &&
+                  record.systemSoftRecordResult
+                "
+                class="content-item success-result"
+              >
                 <span class="content-label">
                   <IconifyIconOnline icon="ri:check-line" class="mr-1" />
-                  操作结果?
+                  操作结果：
                 </span>
-                <span class="content-value">{{ record.systemSoftRecordResult }}</span>
+                <span class="content-value">{{
+                  record.systemSoftRecordResult
+                }}</span>
               </div>
 
-              <div v-if="record.systemSoftRecordStatus === 2 && record.systemSoftRecordErrorMessage" class="content-item error-result">
+              <div
+                v-if="
+                  record.systemSoftRecordStatus === 2 &&
+                  record.systemSoftRecordErrorMessage
+                "
+                class="content-item error-result"
+              >
                 <span class="content-label">
-                  <IconifyIconOnline icon="ri:error-warning-line" class="mr-1" />
-                  错误信息?
+                  <IconifyIconOnline
+                    icon="ri:error-warning-line"
+                    class="mr-1"
+                  />
+                  错误信息：
                 </span>
-                <span class="content-value">{{ record.systemSoftRecordErrorMessage }}</span>
+                <span class="content-value">{{
+                  record.systemSoftRecordErrorMessage
+                }}</span>
               </div>
 
-              <div v-if="record.systemSoftRecordContainerId" class="content-item">
-                <span class="content-label">容器ID?/span>
-                <span class="content-value container-id">{{ record.systemSoftRecordContainerId.substring(0, 12) }}</span>
+              <div
+                v-if="record.systemSoftRecordContainerId"
+                class="content-item"
+              >
+                <span class="content-label">容器ID：</span>
+                <span class="content-value container-id">{{
+                  record.systemSoftRecordContainerId.substring(0, 12)
+                }}</span>
               </div>
             </div>
 
-            <div v-if="record.systemSoftRecordStartTime && record.systemSoftRecordEndTime" class="record-footer">
+            <div
+              v-if="
+                record.systemSoftRecordStartTime &&
+                record.systemSoftRecordEndTime
+              "
+              class="record-footer"
+            >
               <span class="footer-item">
                 开始：{{ formatDateTime(record.systemSoftRecordStartTime) }}
               </span>
@@ -134,9 +186,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
-import type { SystemSoftImage } from '@/api/docker';
+import { ref, watch } from "vue";
+import { ElMessage } from "element-plus";
+import type { SystemSoftImage } from "@/api/docker";
 
 interface SystemSoftRecord {
   systemSoftRecordId: number;
@@ -147,7 +199,7 @@ interface SystemSoftRecord {
   systemSoftRecordMessage: string;
   systemSoftRecordParams?: string;
   systemSoftRecordTime: string;
-  systemSoftRecordStatus: number; // 0: 进行? 1: 成功, 2: 失败
+  systemSoftRecordStatus: number; // 0: 进行中, 1: 成功, 2: 失败
   systemSoftRecordUser?: string;
   systemSoftRecordContainerId?: string;
   systemSoftRecordStartTime?: string;
@@ -164,7 +216,7 @@ interface Props {
 
 const props = defineProps<Props>();
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean];
+  "update:modelValue": [value: boolean];
 }>();
 
 const visible = ref(props.modelValue);
@@ -185,7 +237,7 @@ async function loadHistory() {
     //   operationType: filterType.value,
     //   status: filterStatus.value
     // });
-    
+
     // 模拟数据
     setTimeout(() => {
       records.value = [
@@ -193,134 +245,155 @@ async function loadHistory() {
           systemSoftRecordId: 1,
           systemSoftId: props.image!.systemSoftId!,
           systemServerId: props.image!.systemSoftImageServerId!,
-          systemSoftRecordOperationType: 'PULL_IMAGE',
-          systemSoftRecordMethod: 'pullImage',
-          systemSoftRecordMessage: '拉取镜像成功',
+          systemSoftRecordOperationType: "PULL_IMAGE",
+          systemSoftRecordMethod: "pullImage",
+          systemSoftRecordMessage: "拉取镜像成功",
           systemSoftRecordParams: `imageName=${props.image!.systemSoftImageName}, imageTag=${props.image!.systemSoftImageTag}`,
           systemSoftRecordTime: new Date().toISOString(),
           systemSoftRecordStatus: 1,
-          systemSoftRecordUser: 'admin',
+          systemSoftRecordUser: "admin",
           systemSoftRecordStartTime: new Date(Date.now() - 30000).toISOString(),
           systemSoftRecordEndTime: new Date().toISOString(),
           systemSoftRecordDuration: 30000,
-          systemSoftRecordResult: '镜像拉取完成'
+          systemSoftRecordResult: "镜像拉取完成",
         },
         {
           systemSoftRecordId: 2,
           systemSoftId: props.image!.systemSoftId!,
           systemServerId: props.image!.systemSoftImageServerId!,
-          systemSoftRecordOperationType: 'CREATE_CONTAINER',
-          systemSoftRecordMethod: 'createContainer',
-          systemSoftRecordMessage: '创建容器成功',
+          systemSoftRecordOperationType: "CREATE_CONTAINER",
+          systemSoftRecordMethod: "createContainer",
+          systemSoftRecordMessage: "创建容器成功",
           systemSoftRecordParams: `containerName=test-container`,
           systemSoftRecordTime: new Date(Date.now() - 3600000).toISOString(),
           systemSoftRecordStatus: 1,
-          systemSoftRecordUser: 'admin',
-          systemSoftRecordContainerId: 'abc123def456',
-          systemSoftRecordStartTime: new Date(Date.now() - 3600000 - 5000).toISOString(),
+          systemSoftRecordUser: "admin",
+          systemSoftRecordContainerId: "abc123def456",
+          systemSoftRecordStartTime: new Date(
+            Date.now() - 3600000 - 5000
+          ).toISOString(),
           systemSoftRecordEndTime: new Date(Date.now() - 3600000).toISOString(),
           systemSoftRecordDuration: 5000,
-          systemSoftRecordResult: '容器创建成功，ID: abc123def456'
-        }
+          systemSoftRecordResult: "容器创建成功，ID: abc123def456",
+        },
       ];
       loading.value = false;
     }, 500);
   } catch (error) {
-    console.error('加载历史记录失败:', error);
-    ElMessage.error('加载历史记录失败');
+    console.error("加载历史记录失败:", error);
+    ElMessage.error("加载历史记录失败");
     loading.value = false;
   }
 }
 
-// 格式化日期时?
+// 格式化日期时间
 function formatDateTime(date: string | undefined): string {
-  if (!date) return '-';
-  return new Date(date).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
+  if (!date) return "-";
+  return new Date(date).toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 }
 
-// 格式化持续时?
+// 格式化持续时间
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
   return `${(ms / 60000).toFixed(1)}min`;
 }
 
-// 获取时间轴类?
-function getTimelineType(status: number): 'success' | 'warning' | 'danger' | 'info' | 'primary' {
+// 获取时间轴类型
+function getTimelineType(
+  status: number
+): "success" | "warning" | "danger" | "info" | "primary" {
   switch (status) {
-    case 1: return 'success';
-    case 2: return 'danger';
-    case 0: return 'primary';
-    default: return 'info';
+    case 1:
+      return "success";
+    case 2:
+      return "danger";
+    case 0:
+      return "primary";
+    default:
+      return "info";
   }
 }
 
-// 获取状态类?
-function getStatusType(status: number): 'success' | 'warning' | 'danger' | 'info' {
+// 获取状态类型
+function getStatusType(
+  status: number
+): "success" | "warning" | "danger" | "info" {
   switch (status) {
-    case 1: return 'success';
-    case 2: return 'danger';
-    case 0: return 'warning';
-    default: return 'info';
+    case 1:
+      return "success";
+    case 2:
+      return "danger";
+    case 0:
+      return "warning";
+    default:
+      return "info";
   }
 }
 
-// 获取状态文?
+// 获取状态文本
 function getStatusText(status: number): string {
   switch (status) {
-    case 1: return '成功';
-    case 2: return '失败';
-    case 0: return '进行?;
-    default: return '未知';
+    case 1:
+      return "成功";
+    case 2:
+      return "失败";
+    case 0:
+      return "进行中";
+    default:
+      return "未知";
   }
 }
 
 // 获取操作图标
 function getOperationIcon(type: string): string {
   const icons: Record<string, string> = {
-    PULL_IMAGE: 'ri:download-cloud-line',
-    CREATE_CONTAINER: 'ri:add-box-line',
-    START_CONTAINER: 'ri:play-circle-line',
-    STOP_CONTAINER: 'ri:stop-circle-line',
-    RESTART_CONTAINER: 'ri:restart-line',
-    REMOVE_CONTAINER: 'ri:delete-bin-line',
-    EXPORT_IMAGE: 'ri:download-2-line',
-    DELETE_IMAGE: 'ri:delete-bin-2-line'
+    PULL_IMAGE: "ri:download-cloud-line",
+    CREATE_CONTAINER: "ri:add-box-line",
+    START_CONTAINER: "ri:play-circle-line",
+    STOP_CONTAINER: "ri:stop-circle-line",
+    RESTART_CONTAINER: "ri:restart-line",
+    REMOVE_CONTAINER: "ri:delete-bin-line",
+    EXPORT_IMAGE: "ri:download-2-line",
+    DELETE_IMAGE: "ri:delete-bin-2-line",
   };
-  return icons[type] || 'ri:file-list-line';
+  return icons[type] || "ri:file-list-line";
 }
 
 // 获取操作文本
 function getOperationText(type: string): string {
   const texts: Record<string, string> = {
-    PULL_IMAGE: '拉取镜像',
-    CREATE_CONTAINER: '创建容器',
-    START_CONTAINER: '启动容器',
-    STOP_CONTAINER: '停止容器',
-    RESTART_CONTAINER: '重启容器',
-    REMOVE_CONTAINER: '删除容器',
-    EXPORT_IMAGE: '导出镜像',
-    DELETE_IMAGE: '删除镜像'
+    PULL_IMAGE: "拉取镜像",
+    CREATE_CONTAINER: "创建容器",
+    START_CONTAINER: "启动容器",
+    STOP_CONTAINER: "停止容器",
+    RESTART_CONTAINER: "重启容器",
+    REMOVE_CONTAINER: "删除容器",
+    EXPORT_IMAGE: "导出镜像",
+    DELETE_IMAGE: "删除镜像",
   };
   return texts[type] || type;
 }
 
-watch(() => props.modelValue, (val) => {
-  visible.value = val;
-  if (val && props.image) {
-    loadHistory();
+watch(
+  () => props.modelValue,
+  (val) => {
+    visible.value = val;
+    if (val && props.image) {
+      loadHistory();
+    }
   }
-});
+);
 
 watch(visible, (val) => {
-  emit('update:modelValue', val);
+  emit("update:modelValue", val);
 });
 </script>
 
@@ -455,7 +528,7 @@ watch(visible, (val) => {
 }
 
 .param-tag {
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: "Consolas", "Monaco", monospace;
   font-size: 12px;
 }
 
@@ -480,7 +553,7 @@ watch(visible, (val) => {
 }
 
 .container-id {
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: "Consolas", "Monaco", monospace;
   font-size: 12px;
   color: var(--el-color-primary);
 }
@@ -500,4 +573,3 @@ watch(visible, (val) => {
   align-items: center;
 }
 </style>
-

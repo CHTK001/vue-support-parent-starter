@@ -1058,9 +1058,6 @@ importers:
       lint-staged:
         specifier: 'catalog:'
         version: 15.5.2
-      photoswipe:
-        specifier: ^5.4.4
-        version: 5.4.4
       postcss:
         specifier: 'catalog:'
         version: 8.5.6
@@ -3132,6 +3129,9 @@ importers:
       uuid:
         specifier: 'catalog:'
         version: 11.1.0
+      viewerjs:
+        specifier: 'catalog:'
+        version: 1.11.7
       vue:
         specifier: 'catalog:'
         version: 3.5.21(typescript@5.9.2)
@@ -4432,6 +4432,9 @@ importers:
       unbuild:
         specifier: 'catalog:'
         version: 2.0.0(sass@1.92.1)(typescript@5.9.2)(vue-tsc@2.2.12(typescript@5.9.2))
+      viewerjs:
+        specifier: 'catalog:'
+        version: 1.11.7
       vue:
         specifier: 'catalog:'
         version: 3.5.21(typescript@5.9.2)
@@ -15267,10 +15270,6 @@ packages:
 
   perfect-debounce@1.0.0:
     resolution: {integrity: sha512-xCy9V055GLEqoFaHoC1SoLIaLmWctgCUaBaWxDZ7/Zx4CTyX7cJQLJOok/orfjZAh9kEYpjJa4d0KcJmCbctZA==}
-
-  photoswipe@5.4.4:
-    resolution: {integrity: sha512-WNFHoKrkZNnvFFhbHL93WDkW3ifwVOXSW3w1UuZZelSmgXpIGiZSNlZJq37rR8YejqME2rHs9EhH9ZvlvFH2NA==}
-    engines: {node: '>= 0.12.0'}
 
   picocolors@0.2.1:
     resolution: {integrity: sha512-cMlDqaLEqfSaW8Z7N5Jw+lyIW869EzT73/F5lhtY9cLGoVxSXznfgfXMO0Z5K0o0Q2TkTXq+0KFsdnSe3jDViA==}
@@ -29148,8 +29147,6 @@ snapshots:
 
   perfect-debounce@1.0.0:
     optional: true
-
-  photoswipe@5.4.4: {}
 
   picocolors@0.2.1: {}
 
