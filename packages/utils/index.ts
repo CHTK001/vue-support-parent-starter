@@ -33,4 +33,7 @@ export * from "./src/url";
 export * from "./src/net";
 export * from "./src/zipdownload";
 export * from "./src/globalPolyfills";
+export * from "./src/session";
+export * from "./src/page-behavior";
+export * from "./src/performance";
 export { NProgress, Cookies, CryptoJS, date };

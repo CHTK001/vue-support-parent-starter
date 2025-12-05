@@ -1,27 +1,224 @@
-#系统名称
+# ===========================================
+# 应用程序基础配置
+# ===========================================
+# 系统名称（显示在浏览器标签页和侧边栏顶部）
 Title: 运维管理
-#是否显示左侧菜单栏
-ShowBarSetting: true
-#是否开启远程权限控制
-OpenAuth: true
-#是否自动远程菜单
-RemoteMenu: false
-#是否自动远程布局
-RemoteLayout: false
-#是否开启布局远程保存
-RemoteLayoutSave: true
-#本地组件
-LocationLayout: true
-#远程API地址
+# 平台版本号（默认: 0.7.0）
+# Version: "1.0.0"
+# 平台标识码（用于接口请求和缓存隔离，默认: system）
+# SystemCode: monitor
+# 远程API地址（后端接口基础路径，默认: 空）
 BaseUrl: /monitor/api
-#Google标签风格
-ShowModel: "chrome"
-# AccountType: tenant
-#是否开启租户登录
-OpenTenantLogin: false
-#是否开启基础登录
+# API版本号（接口版本控制，默认: 空）
+# apiVersion: v1
+
+# ===========================================
+# 角色权限配置
+# ===========================================
+# 管理员角色列表（默认: [ADMIN, SUPER_ADMIN]）
+# AdminRoles:
+#   - ADMIN
+#   - SUPER_ADMIN
+# 运维角色列表（默认: [ADMIN, SUPER_ADMIN, OPS]）
+# OpsRoles:
+#   - ADMIN
+#   - SUPER_ADMIN
+#   - OPS
+
+# ===========================================
+# 鉴权与登录配置
+# ===========================================
+# 是否开启远程权限控制（默认: true）
+OpenAuth: false
+# 是否开启动态配置面板（默认: true）
+# OpenSetting: true
+# 是否开启租户登录（默认: false）
+# OpenTenantLogin: false
+# 是否开启基础登录（默认: true）
 OpenBaseLogin: false
-#是否开启刷新token
+# 是否开启刷新token（默认: false）
 OpenShowRefreshToken: true
-#是否开启缓存加密
+
+# ===========================================
+# 布局与菜单配置
+# ===========================================
+# 是否自动远程菜单-从后端获取菜单（默认: false）
+# RemoteMenu: false
+# 是否自动远程布局-从后端获取布局配置（默认: false）
+# RemoteLayout: false
+# 是否开启布局远程保存（默认: false）
+RemoteLayoutSave: true
+# 使用本地布局组件（默认: false）
+LocationLayout: true
+# 是否开启远程动画（默认: true）
+# RemoteAnimation: true
+# 是否开启菜单动画（默认: false）
+# MenuTransition: false
+
+# ===========================================
+# 界面显示配置
+# ===========================================
+# 是否固定页头和标签页-true内容区超出出现纵向滚动条（默认: true）
+# FixedHeader: true
+# 隐藏菜单和页头-只显示标签页和内容区（默认: false）
+# HiddenSideBar: false
+# 是否隐藏标签页（默认: false）
+# HideTabs: false
+# 是否隐藏页脚（默认: true）
+# HideFooter: true
+# 是否显示Logo（默认: true）
+# ShowLogo: true
+# 侧边栏状态-true展开-false收起（默认: true）
+# SidebarStatus: true
+# 是否显示卡片边框（默认: false）
+# CardBody: false
+# 内容区边距（默认: 无）
+# contentMargin: 16
+
+# ===========================================
+# 顶部工具栏配置
+# ===========================================
+# 是否显示设置按钮（默认: false）
+ShowBarSetting: true
+# 是否显示通知按钮（默认: false）
+# ShowBarNotice: false
+# 是否显示消息按钮（默认: false）
+# ShowBarMessage: false
+# 是否显示语言切换（默认: true）
+# ShowLanguage: true
+# 是否显示搜索按钮（默认: true）
+# ShowBarSearch: true
+
+# ===========================================
+# 主题与样式配置
+# ===========================================
+# 主题模式-light浅色-dark深色（默认: light）
+# Theme: light
+# 是否开启暗黑模式（默认: false）
+# DarkMode: false
+# 整体风格-light浅色-dark深色-system跟随系统（默认: light）
+# OverallStyle: light
+# 主题色（默认: #409EFF）
+# EpThemeColor: "#409EFF"
+# 灰色模式（默认: false）
+# Grey: false
+# 色弱模式（默认: false）
+# Weak: false
+# 反色模式（默认: false）
+# Invert: false
+# 黑白模式（默认: false）
+# Monochrome: false
+# 布局圆角-像素（默认: 10）
+# LayoutRadius: 10
+# 布局模糊程度（默认: 10）
+# LayoutBlur: 10
+# 内容区是否拉伸（默认: false）
+# Stretch: false
+
+# ===========================================
+# 标签页配置
+# ===========================================
+# 标签页风格-smart灵动-card卡片-chrome谷歌-modern现代（默认: chrome）
+# ShowModel: chrome
+# 是否开启持久化标签-会缓存（默认: true）
+# MultiTagsCache: true
+# 标签页最大层级（默认: 无）
+# MaxTagsLevel: 3
+
+# ===========================================
+# 导航菜单配置
+# ===========================================
+# 导航菜单模式-vertical左侧-horizontal顶部-mix混合-double双栏-mobile移动（默认: vertical）
+# Layout: vertical
+# 菜单展开收起图标是否开启动画-如遇卡顿设置为true（默认: false）
+# MenuArrowIconNoTransition: false
+# 菜单搜索历史的最大条目（默认: 6）
+# MenuSearchHistory: 6
+
+# ===========================================
+# 缓存与存储配置
+# ===========================================
+# 是否开启缓存加密（默认: true）
 StorageEncode: false
+# 缓存加密密钥-16位（默认: 2XNN4K8LC0ELVWN4）
+# StorageKey: "2XNN4K8LC0ELVWN4"
+# 本地响应式存储的命名空间（默认: responsive-）
+# ResponsiveStorageNameSpace: "responsive-"
+# 是否开启组件缓存（默认: true）
+# KeepAlive: true
+# 是否开启动态路由缓存（默认: true）
+# CachingAsyncRoutes: true
+
+# ===========================================
+# 国际化配置
+# ===========================================
+# 默认语言-zh-CN中文-en英文（默认: zh-CN）
+# Locale: zh-CN
+# Tooltip效果-light浅色-dark深色（默认: light）
+# TooltipEffect: light
+
+# ===========================================
+# 新菜单提示配置
+# ===========================================
+# 是否显示新增菜单标识（默认: false）
+# ShowNewMenu: false
+# 新菜单显示文本（默认: 无）
+# NewMenuText: "NEW"
+# 新菜单显示时间限制-小时（默认: 无）
+# NewMenuTimeLimit: 72
+
+# ===========================================
+# 远程加载配置
+# ===========================================
+# vue3-sfc-loader加载地址（默认: https://cdn.jsdelivr.net/npm/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js）
+# SfcScriptUrl: "https://cdn.jsdelivr.net/npm/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js"
+
+# ===========================================
+# 会话配置（默认不启用）
+# 注：用户自定义建议放到系统配置中
+# ===========================================
+# Session:
+#   enable: false              # 是否启用会话超时检测
+#   timeout: 0                 # 超时时间（秒），0表示不超时
+#   warningTime: 60            # 超时前提醒时间（秒）
+#   autoLogout: false          # 超时自动登出
+
+# ===========================================
+# 请求配置（默认启用）
+# ===========================================
+Request:
+  enable: true # 是否启用请求配置
+  timeout: 30000 # 请求超时时间（毫秒）
+  retryCount: 3 # 重试次数
+  retryDelay: 1000 # 重试间隔（毫秒）
+  showLoading: true # 显示加载状态
+
+# ===========================================
+# 错误处理配置（默认不启用）
+# 注：上报到服务端有防刷机制（同一错误1分钟只上报一次）
+# ===========================================
+# ErrorHandler:
+#   enable: false              # 是否启用错误处理
+#   showNotification: true     # 显示错误通知
+#   logToConsole: true         # 输出到控制台
+#   reportToServer: false      # 上报到服务器
+#   reportUrl: "/v1/error/report"  # 上报接口地址
+
+# ===========================================
+# 页面行为配置（默认不启用）
+# 注：用户自定义建议放到系统配置中
+# ===========================================
+# PageBehavior:
+#   enable: false              # 是否启用页面行为管理
+#   rememberScroll: false      # 记住滚动位置
+#   autoRefreshInterval: 0     # 自动刷新间隔（秒），0表示不刷新
+#   confirmOnLeave: false      # 离开页面确认
+
+# ===========================================
+# 性能配置（默认启用）
+# ===========================================
+Performance:
+  enable: true # 是否启用性能优化
+  lazyLoadImages: true # 图片懒加载
+  virtualScroll: false # 虚拟滚动（组件需单独支持）
+  prefetchRoutes: true # 预加载路由

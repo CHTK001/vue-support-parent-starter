@@ -56,10 +56,85 @@ const isNoAuth = (code: string | number | null): boolean =>
 const isSuccess = (code: string | number | null): boolean =>
   code === "00000" || code === 200;
 
+/** 获取请求配置 */
+const getRequestConfig = () => {
+  const config = getConfig();
+  return {
+    timeout: config?.Request?.timeout || config?.baseHttpTimeout || 30000,
+    retryCount: config?.Request?.retryCount || 3,
+    retryDelay: config?.Request?.retryDelay || 1000,
+    showLoading: config?.Request?.showLoading !== false,
+    enable: config?.Request?.enable !== false,
+  };
+};
+
+/** 获取错误处理配置 */
+const getErrorHandlerConfig = () => {
+  const config = getConfig();
+  return {
+    enable: config?.ErrorHandler?.enable || false,
+    showNotification: config?.ErrorHandler?.showNotification !== false,
+    logToConsole: config?.ErrorHandler?.logToConsole !== false,
+    reportToServer: config?.ErrorHandler?.reportToServer || false,
+    reportUrl: config?.ErrorHandler?.reportUrl || "/v1/error/report",
+  };
+};
+
+/** 错误上报队列（防刷机制） */
+const errorReportQueue: Map<string, number> = new Map();
+const ERROR_REPORT_INTERVAL = 60000; // 同一错误1分钟内只上报一次
+
+/** 上报错误到服务器 */
+const reportErrorToServer = async (error: any, url: string) => {
+  const config = getErrorHandlerConfig();
+  if (!config.enable || !config.reportToServer) return;
+
+  // 生成错误唯一标识
+  const errorKey = `${error.code || "unknown"}_${url}`;
+  const lastReportTime = errorReportQueue.get(errorKey);
+  const now = Date.now();
+
+  // 防刷检查：同一错误1分钟内只上报一次
+  if (lastReportTime && now - lastReportTime < ERROR_REPORT_INTERVAL) {
+    return;
+  }
+
+  errorReportQueue.set(errorKey, now);
+
+  // 清理过期的错误记录
+  errorReportQueue.forEach((time, key) => {
+    if (now - time > ERROR_REPORT_INTERVAL) {
+      errorReportQueue.delete(key);
+    }
+  });
+
+  try {
+    // 使用fetch避免循环依赖
+    const baseUrl = getConfig().ApiAddress || getConfig().BaseUrl;
+    await fetch(baseUrl + config.reportUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url,
+        code: error.code,
+        message: error.msg || error.message,
+        timestamp: now,
+        userAgent: navigator.userAgent,
+        fingerprint: localStorage.getItem("visitId"),
+      }),
+    });
+  } catch (e) {
+    // 上报失败静默处理
+    if (config.logToConsole) {
+      console.warn("Error report failed:", e);
+    }
+  }
+};
+
 /** 默认请求配置 */
 const defaultConfig: AxiosRequestConfig = {
-  timeout: getConfig().baseHttpTimeout || 30000,
-  baseURL: getConfig().BaseUrl,
+  timeout: getRequestConfig().timeout,
+  baseURL: getConfig()?.BaseUrl,
   headers: {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json; charset=UTF-8",
@@ -237,6 +312,7 @@ class PureHttp {
       (error: PureHttpError) => {
         const $error = error;
         const response = error.response;
+        const errorConfig = getErrorHandlerConfig();
 
         // 关闭进度条动画
         if (getConfig().RemoteAnimation) {
@@ -245,6 +321,29 @@ class PureHttp {
 
         // 检查是否为取消的请求
         $error.isCancelRequest = Axios.isCancel($error);
+
+        // 错误处理
+        if (!$error.isCancelRequest && errorConfig.enable) {
+          // 输出到控制台
+          if (errorConfig.logToConsole) {
+            console.error("HTTP Error:", {
+              url: error.config?.url,
+              status: response?.status,
+              message: error.message,
+            });
+          }
+
+          // 上报到服务器（带防刷机制）
+          if (errorConfig.reportToServer) {
+            reportErrorToServer(
+              {
+                code: response?.status,
+                msg: error.message,
+              },
+              error.config?.url || "unknown"
+            );
+          }
+        }
 
         // 所有的响应异常 区分来源为取消请求/非取消请求
         return Promise.reject($error);

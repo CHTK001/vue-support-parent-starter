@@ -31,11 +31,28 @@
             >
               <!-- 分组头部 -->
               <div class="sc-dialog-taskbar__group-header" @click="handleGroupClick(group)">
-                <IconifyIconOnline :icon="group.groupIcon" class="sc-dialog-taskbar__group-icon" />
+                <!-- 重叠图标效果 -->
+                <div class="sc-dialog-taskbar__group-icons" :class="{ 'has-multiple': group.items.length > 1 }">
+                  <template v-for="(item, index) in group.items.slice(0, 3)" :key="item.id">
+                    <div
+                      class="sc-dialog-taskbar__group-icon-wrapper"
+                      :class="[`sc-dialog-taskbar__group-icon-wrapper--${item.type}`]"
+                      :style="{
+                        zIndex: 3 - index,
+                        marginLeft: index > 0 ? '-8px' : '0',
+                        transform: `scale(${1 - index * 0.06})`,
+                        opacity: 1 - index * 0.12
+                      }"
+                    >
+                      <IconifyIconOnline :icon="item.icon" class="sc-dialog-taskbar__group-icon" />
+                    </div>
+                  </template>
+                </div>
                 <span v-if="!isVertical" class="sc-dialog-taskbar__group-name">{{ group.groupName }}</span>
-                <span v-if="group.items.length > 1" class="sc-dialog-taskbar__group-count">
-                  {{ group.items.length }}
-                </span>
+                <!-- 数量徽章，预留给通知使用 -->
+                <!-- <span v-if="group.notificationCount" class="sc-dialog-taskbar__group-badge">
+                  {{ group.notificationCount }}
+                </span> -->
               </div>
 
               <!-- 分组预览弹窗（类似 Windows 任务栏） -->
@@ -192,6 +209,11 @@ const taskbarStyle = computed(() => {
 
 // 是否应该显示任务栏
 const shouldShow = computed(() => {
+  // 永久显示模式下，只要启用就显示
+  if (props.enabled && props.alwaysVisible) {
+    return true;
+  }
+  // 非永久显示模式下，有项目或悬停时才显示
   return props.enabled && (taskbar.hasAnyItems.value || isHovering.value);
 });
 
@@ -422,6 +444,7 @@ defineExpose({
   border: 1px solid var(--el-border-color-lighter);
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  overflow: visible;
 
   // 底部位置
   &--bottom {
@@ -471,13 +494,12 @@ defineExpose({
     gap: 8px;
     padding: 6px 12px;
     flex: 1;
-    overflow-x: auto;
-    overflow-y: hidden;
+    // 使用 clip 代替 overflow，让预览窗口可以超出容器
+    overflow: visible;
 
     &.is-vertical {
       flex-direction: column;
-      overflow-x: hidden;
-      overflow-y: auto;
+      overflow: visible;
       padding: 12px 6px;
     }
 
@@ -500,6 +522,11 @@ defineExpose({
   // 单个项目容器（用于悬停预览）
   &__single-item {
     position: relative;
+
+    // 确保预览窗口可以显示
+    &:hover {
+      z-index: 10;
+    }
   }
 
   // 任务栏项
@@ -586,6 +613,11 @@ defineExpose({
   &__group {
     position: relative;
 
+    // 确保预览窗口可以显示
+    &:hover {
+      z-index: 10;
+    }
+
     &-header {
       display: flex;
       align-items: center;
@@ -601,8 +633,53 @@ defineExpose({
       }
     }
 
+    // 重叠图标容器
+    &-icons {
+      display: flex;
+      align-items: center;
+      position: relative;
+      margin-right: 4px;
+
+      &.has-multiple {
+        margin-right: 8px;
+      }
+    }
+
+    // 图标包装器
+    &-icon-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      background: var(--el-bg-color);
+      border: 2px solid var(--el-border-color-lighter);
+      border-radius: 5px;
+      position: relative;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+      // 类型颜色
+      &--info {
+        border-color: var(--el-color-info-light-5);
+        background: var(--el-color-info-light-9);
+      }
+      &--success {
+        border-color: var(--el-color-success-light-5);
+        background: var(--el-color-success-light-9);
+      }
+      &--warning {
+        border-color: var(--el-color-warning-light-5);
+        background: var(--el-color-warning-light-9);
+      }
+      &--error {
+        border-color: var(--el-color-danger-light-5);
+        background: var(--el-color-danger-light-9);
+      }
+    }
+
     &-icon {
-      font-size: 18px;
+      font-size: 16px;
       color: var(--el-text-color-primary);
     }
 
@@ -611,17 +688,23 @@ defineExpose({
       color: var(--el-text-color-regular);
     }
 
-    &-count {
+    // 通知徽章（预留）
+    &-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-width: 18px;
-      height: 18px;
+      min-width: 16px;
+      height: 16px;
       padding: 0 4px;
-      background: var(--el-color-primary);
+      background: var(--el-color-danger);
       color: #fff;
-      font-size: 11px;
-      border-radius: 9px;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     }
   }
 
@@ -631,10 +714,10 @@ defineExpose({
     background: var(--el-bg-color);
     border: 1px solid var(--el-border-color-lighter);
     border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    min-width: 240px;
-    max-width: 320px;
-    z-index: 10;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.2);
+    min-width: 280px;
+    max-width: 400px;
+    z-index: 9999;
 
     // 底部任务栏时，预览在上方
     &--bottom {
@@ -666,9 +749,9 @@ defineExpose({
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 12px;
+      padding: 12px 16px;
       border-bottom: 1px solid var(--el-border-color-lighter);
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 500;
       color: var(--el-text-color-primary);
     }
@@ -680,11 +763,11 @@ defineExpose({
     }
 
     &-list {
-      padding: 8px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      max-height: 300px;
+      gap: 6px;
+      max-height: 400px;
       overflow-y: auto;
 
       &::-webkit-scrollbar {
@@ -701,9 +784,9 @@ defineExpose({
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 10px;
+      padding: 12px 14px;
       background: var(--el-fill-color-light);
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s ease;
 
@@ -718,19 +801,19 @@ defineExpose({
       &-content {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         flex: 1;
         overflow: hidden;
       }
 
       &-icon {
-        font-size: 18px;
+        font-size: 22px;
         color: var(--el-text-color-primary);
         flex-shrink: 0;
       }
 
       &-title {
-        font-size: 13px;
+        font-size: 14px;
         color: var(--el-text-color-regular);
         overflow: hidden;
         text-overflow: ellipsis;
@@ -741,8 +824,8 @@ defineExpose({
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 20px;
-        height: 20px;
+        width: 24px;
+        height: 24px;
         padding: 0;
         background: none;
         border: none;

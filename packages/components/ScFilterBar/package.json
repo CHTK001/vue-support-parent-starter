@@ -1,0 +1,14 @@
+{
+  "name": "@repo/components-sc-filter-bar",
+  "version": "1.0.0",
+  "description": "ScFilterBar 高级筛选组件 - 支持展开收起、快捷筛选、多种布局",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "keywords": [
+    "vue",
+    "filter",
+    "search",
+    "component",
+    "element-plus"
+  ]
+}

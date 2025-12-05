@@ -191,50 +191,40 @@ onBeforeMount(async () => {
 }
 
 .vgl-layout {
-  --vgl-placeholder-bg: #1890ff;
+  --vgl-placeholder-bg: var(--el-color-primary);
 }
 
-/* 主容器 */
 .widgets-home {
   display: flex;
   flex-direction: row;
   flex: 1;
   height: 100%;
-  background: #f5f7fa;
 }
 
-/* 内容区 */
 .widgets-content {
   flex: 1;
   overflow: auto;
   overflow-x: hidden;
-  padding: 24px;
+  padding: 15px;
 }
 
-/* 顶部标题栏 */
 .widgets-top {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fff;
-  padding: 16px 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .widgets-top-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
+  font-size: 18px;
+  font-weight: bold;
 }
 
-/* 部件展示区 */
 .widgets {
   --transform-scale: 1;
   transform-origin: top left;
-  transition: transform 0.2s ease;
-  height: calc((100% - 80px) / var(--transform-scale));
+  transition: transform 0.15s;
+  height: calc((100% - 50px) / var(--transform-scale));
   width: calc(100% / var(--transform-scale));
 }
 
@@ -248,30 +238,29 @@ onBeforeMount(async () => {
   height: 100%;
 }
 
-/* 添加部件侧边栏 */
+/* 添加部件侧边栏 - 美化 */
 .widgets-aside {
   width: 320px;
-  background: #fff;
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.06);
+  background: var(--el-bg-color);
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.08);
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid #f0f0f0;
 }
 
 .widgets-aside :deep(.el-header) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
-  height: 56px !important;
-  border-bottom: 1px solid #f0f0f0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 0 16px;
+  height: 50px !important;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-color-primary);
 }
 
 .widgets-aside-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -284,19 +273,19 @@ onBeforeMount(async () => {
 }
 
 .widgets-aside-close {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.85);
   transition: all 0.2s;
 }
 
 .widgets-aside-close:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
   color: #fff;
 }
 
@@ -313,32 +302,31 @@ onBeforeMount(async () => {
 .widgets-list-item {
   display: flex;
   align-items: center;
-  padding: 14px 16px;
+  padding: 12px 14px;
   margin-bottom: 8px;
-  border-radius: 10px;
-  background: #f8f9fc;
+  border-radius: 8px;
+  background: var(--el-fill-color-light);
   border: 1px solid transparent;
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .widgets-list-item:hover {
-  background: #fff;
-  border-color: #e8e8e8;
+  background: var(--el-bg-color);
+  border-color: var(--el-border-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transform: translateX(-2px);
 }
 
 .widgets-list-item .item-logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--el-color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  margin-right: 14px;
+  font-size: 18px;
+  margin-right: 12px;
   color: #fff;
   flex-shrink: 0;
 }
@@ -351,7 +339,7 @@ onBeforeMount(async () => {
 .widgets-list-item .item-info h2 {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--el-text-color-primary);
   margin: 0 0 4px 0;
   white-space: nowrap;
   overflow: hidden;
@@ -360,7 +348,7 @@ onBeforeMount(async () => {
 
 .widgets-list-item .item-info p {
   font-size: 12px;
-  color: #999;
+  color: var(--el-text-color-secondary);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -369,14 +357,14 @@ onBeforeMount(async () => {
 
 .widgets-list-item .item-actions {
   flex-shrink: 0;
-  margin-left: 12px;
+  margin-left: 10px;
 }
 
 .widgets-list-item .item-actions :deep(.el-button) {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 /* 底部操作栏 */
@@ -384,8 +372,8 @@ onBeforeMount(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-top: 1px solid #f0f0f0;
-  background: #fafafa;
+  border-top: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter);
 }
 
 /* 自定义模式 */
@@ -394,14 +382,12 @@ onBeforeMount(async () => {
 }
 
 .customizing .widgets-wrapper .el-col {
-  padding-bottom: 16px;
+  padding-bottom: 15px;
 }
 
 .customizing .widgets-wrapper .draggable-box {
-  border: 2px dashed #1890ff;
-  border-radius: 8px;
-  padding: 16px;
-  background: rgba(24, 144, 255, 0.02);
+  border: 1px dashed var(--el-color-primary);
+  padding: 15px;
 }
 
 .customizing .widgets-wrapper .no-widgets {
@@ -414,11 +400,10 @@ onBeforeMount(async () => {
 
 .customizing .widgets-item {
   position: relative;
-  margin-bottom: 16px;
+  margin-bottom: 15px;
   height: 100%;
 }
 
-/* 拖拽遮罩 */
 .customize-overlay {
   position: absolute;
   top: 0;
@@ -430,36 +415,32 @@ onBeforeMount(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.5);
   cursor: move;
-  border-radius: 8px;
 }
 
 .customize-overlay label {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--el-color-primary);
   color: #fff;
-  height: 44px;
-  padding: 0 28px;
-  border-radius: 22px;
-  font-size: 15px;
-  font-weight: 500;
+  height: 40px;
+  padding: 0 30px;
+  border-radius: 40px;
+  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: move;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .customize-overlay label i {
-  margin-right: 10px;
-  font-size: 20px;
+  margin-right: 15px;
+  font-size: 24px;
 }
 
 .customize-overlay .close {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 15px;
+  right: 15px;
 }
 
 .customize-overlay .close:focus,
@@ -471,33 +452,29 @@ onBeforeMount(async () => {
   opacity: 0.5;
 }
 
-/* 布局选择 */
 .selectLayout {
   width: 100%;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
 }
 
 .selectLayout-item {
   width: 60px;
   height: 60px;
-  border: 2px solid #e8e8e8;
-  padding: 6px;
+  border: 2px solid var(--el-border-color-light);
+  padding: 5px;
   cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s;
+  margin-right: 11px;
+  margin-top: 11px;
 }
 
 .selectLayout-item span {
   display: block;
-  background: #e8e8e8;
-  height: 44px;
-  border-radius: 4px;
+  background: var(--el-border-color-light);
+  height: 46px;
 }
 
 .selectLayout-item.item02 span {
-  height: 28px;
+  height: 30px;
 }
 
 .selectLayout-item.item02 .el-col:nth-child(1) span {
@@ -511,65 +488,27 @@ onBeforeMount(async () => {
 }
 
 .selectLayout-item:hover {
-  border-color: #1890ff;
+  border-color: var(--el-color-primary);
 }
 
 .selectLayout-item.active {
-  border-color: #1890ff;
-  background: rgba(24, 144, 255, 0.05);
+  border-color: var(--el-color-primary);
 }
 
 .selectLayout-item.active span {
-  background: #1890ff;
+  background: var(--el-color-primary);
 }
 
-/* 暗色模式 */
 .dark {
-  .widgets-home {
-    background: #1a1a1a;
-  }
-
-  .widgets-top {
-    background: #2b2b2b;
-  }
-
-  .widgets-top-title {
-    color: #e5e5e5;
-  }
-
   .widgets-aside {
     background: #2b2b2b;
-    border-left-color: #3a3a3a;
-  }
-
-  .widgets-aside :deep(.el-header) {
-    border-bottom-color: #3a3a3a;
-  }
-
-  .widgets-list-item {
-    background: #333;
-  }
-
-  .widgets-list-item:hover {
-    background: #3a3a3a;
-    border-color: #444;
-  }
-
-  .widgets-list-item .item-info h2 {
-    color: #e5e5e5;
   }
 
   .customize-overlay {
     background: rgba(43, 43, 43, 0.9);
   }
-
-  .widgets-aside :deep(.el-footer) {
-    background: #222;
-    border-top-color: #3a3a3a;
-  }
 }
 
-/* 响应式 */
 @media (max-width: 992px) {
   .customizing .widgets {
     transform: scale(1) !important;
@@ -581,7 +520,6 @@ onBeforeMount(async () => {
     top: 50%;
     right: 0;
     bottom: 0;
-    border-radius: 16px 16px 0 0;
   }
 
   .customizing .widgets-wrapper {

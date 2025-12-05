@@ -344,84 +344,169 @@ function removeFromBlacklist(ip: string) {
 .qps-config-container {
   max-height: 70vh;
   overflow-y: auto;
+  padding: 4px;
 }
 
 .config-section {
-  margin-bottom: 24px;
-  padding: 16px;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  background-color: #fafafa;
+  margin-bottom: 20px;
+  padding: 20px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.3s ease;
+}
+
+.config-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .section-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 0 0 16px 0;
-  font-size: 16px;
+  gap: 10px;
+  margin: 0 0 20px 0;
+  padding-bottom: 12px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+  border-bottom: 2px solid var(--el-color-primary-light-8);
+}
+
+.section-title :deep(.iconify) {
+  color: var(--el-color-primary);
+  font-size: 18px;
 }
 
 .config-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
   margin-bottom: 16px;
 }
 
+.config-grid :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+
+.config-grid :deep(.el-form-item__label) {
+  font-weight: 500;
+  color: #606266;
+}
+
 .threshold-display {
-  margin-top: 8px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--el-color-primary-light-9);
+  border-radius: 8px;
+  border-left: 3px solid var(--el-color-primary);
+}
+
+.threshold-display :deep(.el-tag) {
+  font-size: 13px;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--el-color-primary);
+  font-weight: 500;
 }
 
 .penalty-config {
   margin-top: 16px;
-  padding: 12px;
-  background-color: #f5f7fa;
-  border-radius: 6px;
+  padding: 16px;
+  background: linear-gradient(145deg, #fff7e6 0%, #fffbe6 100%);
+  border-radius: 10px;
+  border: 1px solid #ffe58f;
 }
 
 .ip-list-config {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #fafbfc;
+  border-radius: 10px;
 }
 
 .ip-list-config h5 {
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
   font-size: 14px;
   font-weight: 600;
-  color: #606266;
+  color: #303133;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ip-list-config h5::before {
+  content: "";
+  width: 4px;
+  height: 14px;
+  background: var(--el-color-primary);
+  border-radius: 2px;
 }
 
 .ip-tags {
-  margin-bottom: 12px;
-  min-height: 32px;
+  margin-bottom: 14px;
+  min-height: 36px;
+  padding: 10px;
+  background: #fff;
+  border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  border: 1px dashed #dcdfe6;
+}
+
+.ip-tags:empty::after {
+  content: "暂无数据";
+  color: #c0c4cc;
+  font-size: 13px;
+}
+
+.ip-tags :deep(.el-tag) {
+  border-radius: 6px;
+  font-size: 13px;
+  padding: 4px 10px;
 }
 
 .add-ip {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
 }
 
+.add-ip :deep(.el-input__wrapper) {
+  border-radius: 8px;
+}
+
+.add-ip :deep(.el-button) {
+  border-radius: 8px;
+}
+
 .config-preview {
-  max-height: 200px;
+  max-height: 180px;
   overflow-y: auto;
+  border-radius: 8px;
+  background: #282c34;
 }
 
 .config-preview pre {
   margin: 0;
+  padding: 16px;
   font-size: 12px;
-  line-height: 1.4;
-  color: #606266;
+  line-height: 1.6;
+  color: #abb2bf;
+  font-family: "Consolas", "Monaco", monospace;
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  padding-top: 8px;
+}
+
+.dialog-footer :deep(.el-button) {
+  border-radius: 8px;
+  padding: 10px 24px;
 }
 </style>

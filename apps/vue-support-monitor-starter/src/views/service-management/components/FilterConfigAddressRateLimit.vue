@@ -2,43 +2,108 @@
   <el-dialog
     v-model="visibleInner"
     title="地址限流配置"
-    width="760px"
+    width="800px"
     :close-on-click-modal="false"
     @close="handleClose"
+    draggable
   >
-    <div>
-      <div class="rule-row" v-for="(r, idx) in rules" :key="idx">
-        <el-select v-model="r.addressRateLimitType" style="width: 140px" placeholder="类型">
-          <el-option label="限流" value="RATE_LIMIT" />
-          <el-option label="白名单" value="WHITELIST" />
-          <el-option label="黑名单" value="BLACKLIST" />
-        </el-select>
-        <el-input
-          v-model="r.addressRateLimitAddress"
-          placeholder="地址前缀/路径（例如 /api/user）"
-          style="width: 220px; margin-left: 8px"
-        />
-        <el-input-number
-          v-model="r.addressRateLimitQps"
-          :min="1"
-          :max="100000"
-          style="width: 140px; margin-left: 8px"
-          :disabled="r.addressRateLimitType !== 'RATE_LIMIT'"
-        />
-        <el-switch v-model="r.addressRateLimitEnabled" style="margin-left: 8px" />
-        <el-button type="danger" circle style="margin-left: 8px" @click="rules.splice(idx, 1)">
-          <IconifyIconOnline icon="ri:delete-bin-line" />
+    <div class="address-limit-container">
+      <!-- 规则说明 -->
+      <div class="config-tips">
+        <IconifyIconOnline icon="ri:information-line" />
+        <span
+          >配置URL地址限流规则：可针对特定路径设置访问频率限制或黑白名单</span
+        >
+      </div>
+
+      <!-- 表头 -->
+      <div class="rule-header">
+        <span class="col-type">规则类型</span>
+        <span class="col-address">URL路径</span>
+        <span class="col-qps">QPS限制</span>
+        <span class="col-status">状态</span>
+        <span class="col-action">操作</span>
+      </div>
+
+      <!-- 规则列表 -->
+      <div class="rule-list thin-scrollbar">
+        <div class="rule-row" v-for="(r, idx) in rules" :key="idx">
+          <div class="col-type">
+            <el-select v-model="r.addressRateLimitType" placeholder="类型">
+              <el-option label="限流" value="RATE_LIMIT">
+                <span class="option-item"
+                  ><IconifyIconOnline icon="ri:speed-line" /> 限流</span
+                >
+              </el-option>
+              <el-option label="白名单" value="WHITELIST">
+                <span class="option-item"
+                  ><IconifyIconOnline icon="ri:shield-check-line" />
+                  白名单</span
+                >
+              </el-option>
+              <el-option label="黑名单" value="BLACKLIST">
+                <span class="option-item"
+                  ><IconifyIconOnline icon="ri:spam-line" /> 黑名单</span
+                >
+              </el-option>
+            </el-select>
+          </div>
+          <div class="col-address">
+            <el-input
+              v-model="r.addressRateLimitAddress"
+              placeholder="例如: /api/user 或 /admin/*"
+            />
+          </div>
+          <div class="col-qps">
+            <el-input-number
+              v-model="r.addressRateLimitQps"
+              :min="1"
+              :max="100000"
+              :disabled="r.addressRateLimitType !== 'RATE_LIMIT'"
+              controls-position="right"
+            />
+          </div>
+          <div class="col-status">
+            <el-switch
+              v-model="r.addressRateLimitEnabled"
+              active-text="启用"
+              inactive-text="禁用"
+            />
+          </div>
+          <div class="col-action">
+            <el-button
+              type="danger"
+              size="small"
+              circle
+              @click="rules.splice(idx, 1)"
+            >
+              <IconifyIconOnline icon="ri:delete-bin-line" />
+            </el-button>
+          </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-if="rules.length === 0" class="empty-state">
+          <IconifyIconOnline icon="ri:route-line" />
+          <span>暂无规则，点击下方按钮添加</span>
+        </div>
+      </div>
+
+      <!-- 添加按钮 -->
+      <div class="add-rule-btn">
+        <el-button type="primary" @click="addRule">
+          <IconifyIconOnline icon="ri:add-line" />
+          新增规则
         </el-button>
       </div>
-      <el-button type="primary" link @click="addRule">
-        <IconifyIconOnline icon="ri:add-line" />新增规则
-      </el-button>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSave">保存</el-button>
+        <el-button type="primary" :loading="loading" @click="handleSave"
+          >保存配置</el-button
+        >
       </div>
     </template>
   </el-dialog>
@@ -81,7 +146,10 @@ watch(visibleInner, (v) => emit("update:visible", v));
 async function loadData() {
   rules.value = [];
   try {
-    const res = await getAddressRateLimitRules(props.serverId, props.filterSettingId);
+    const res = await getAddressRateLimitRules(
+      props.serverId,
+      props.filterSettingId
+    );
     if (res.success && Array.isArray(res.data)) {
       rules.value = res.data;
     }
@@ -92,7 +160,7 @@ async function loadData() {
 
 function addRule() {
   rules.value.push({
-    addressRateLimitType: 'RATE_LIMIT',
+    addressRateLimitType: "RATE_LIMIT",
     addressRateLimitAddress: "",
     addressRateLimitQps: 100,
     addressRateLimitEnabled: true,
@@ -102,7 +170,11 @@ function addRule() {
 async function handleSave() {
   loading.value = true;
   try {
-    const res = await saveAddressRateLimitRules(props.serverId, props.filterSettingId, rules.value);
+    const res = await saveAddressRateLimitRules(
+      props.serverId,
+      props.filterSettingId,
+      rules.value
+    );
     if (res.success) {
       ElMessage.success("保存成功，已热应用");
       emit("success");
@@ -121,9 +193,137 @@ function handleClose() {
 </script>
 
 <style scoped>
+.address-limit-container {
+  max-height: 60vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.config-tips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: linear-gradient(145deg, #f0f9eb 0%, #f5fff0 100%);
+  border-radius: 8px;
+  border-left: 3px solid #67c23a;
+  color: #67c23a;
+  font-size: 13px;
+}
+
+.rule-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #606266;
+  margin-bottom: 12px;
+}
+
+.rule-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 320px;
+  padding-right: 4px;
+}
+
 .rule-row {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  transition: all 0.2s ease;
 }
-</style> 
+
+.rule-row:hover {
+  border-color: #67c23a;
+  box-shadow: 0 2px 8px rgba(103, 194, 58, 0.1);
+}
+
+.col-type {
+  width: 140px;
+  flex-shrink: 0;
+}
+.col-address {
+  flex: 1;
+  margin: 0 12px;
+  min-width: 180px;
+}
+.col-qps {
+  width: 130px;
+  flex-shrink: 0;
+}
+.col-status {
+  width: 100px;
+  flex-shrink: 0;
+  margin: 0 12px;
+}
+.col-action {
+  width: 50px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.col-type :deep(.el-select) {
+  width: 100%;
+}
+.col-address :deep(.el-input__wrapper) {
+  border-radius: 6px;
+}
+.col-qps :deep(.el-input-number) {
+  width: 100%;
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #909399;
+  font-size: 14px;
+  gap: 12px;
+}
+
+.empty-state :deep(.iconify) {
+  font-size: 40px;
+  color: #c0c4cc;
+}
+
+.add-rule-btn {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed #e8e8e8;
+}
+
+.add-rule-btn :deep(.el-button) {
+  width: 100%;
+  border-radius: 8px;
+  height: 40px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.dialog-footer :deep(.el-button) {
+  border-radius: 8px;
+  padding: 10px 24px;
+}
+</style>
