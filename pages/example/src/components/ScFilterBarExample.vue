@@ -137,6 +137,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { ScFilterBar } from "@repo/components/ScFilterBar";
 import type {
   FilterField,
   FilterValue,

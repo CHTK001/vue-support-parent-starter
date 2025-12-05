@@ -1,8 +1,15 @@
 import type { El } from "typeit/dist/types";
 import TypeIt, { type Options as TypeItOptions } from "typeit";
-import { type PropType, ref, defineComponent, onMounted } from "vue";
+import { type PropType, ref, defineComponent, onMounted, onUnmounted, watch } from "vue";
 
-// 打字机效果组件（配置项详情请查阅 https://www.typeitjs.com/docs/vanilla/usage#options）
+/**
+ * 打字机效果组件
+ * 配置项详情请查阅 https://www.typeitjs.com/docs/vanilla/usage#options
+ * @author CH
+ * @version 1.0.1
+ * @since 2025-12-02
+ * @since 2025-12-05 修复循环播放问题，添加实例销毁逻辑
+ */
 export default defineComponent({
   name: "TypeIt",
   props: {
@@ -28,9 +35,16 @@ export default defineComponent({
     }
 
     const typedItRef = ref<Element | null>(null);
+    let typeItInstance: TypeIt | null = null;
 
-    onMounted(() => {
-      const $typed = typedItRef.value!.querySelector(".type-it") as El;
+    /**
+     * 初始化 TypeIt 实例
+     */
+    function initTypeIt() {
+      // 先销毁旧实例
+      destroyTypeIt();
+
+      const $typed = typedItRef.value?.querySelector(".type-it") as El;
 
       if (!$typed) {
         const errorMsg =
@@ -38,13 +52,57 @@ export default defineComponent({
             ? "请确保有且只有一个具有class属性为 'type-it' 的元素"
             : "Please make sure that there is only one element with a Class attribute with 'type-it'";
         throwError(errorMsg);
+        return;
       }
 
-      const typeIt = new TypeIt($typed, props.options).go();
+      // 清空元素内容
+      $typed.innerHTML = "";
 
-      expose({
-        typeIt
-      });
+      // 创建新实例，确保 loop 选项正确传递
+      typeItInstance = new TypeIt($typed, {
+        ...props.options,
+        loop: props.options.loop ?? false
+      }).go();
+    }
+
+    /**
+     * 销毁 TypeIt 实例
+     */
+    function destroyTypeIt() {
+      if (typeItInstance) {
+        typeItInstance.destroy();
+        typeItInstance = null;
+      }
+    }
+
+    /**
+     * 重置并重新播放
+     */
+    function reset() {
+      initTypeIt();
+    }
+
+    onMounted(() => {
+      initTypeIt();
+    });
+
+    onUnmounted(() => {
+      destroyTypeIt();
+    });
+
+    // 监听 options 变化，重新初始化
+    watch(
+      () => props.options,
+      () => {
+        initTypeIt();
+      },
+      { deep: true }
+    );
+
+    expose({
+      typeIt: typeItInstance,
+      reset,
+      destroy: destroyTypeIt
     });
 
     return () => (

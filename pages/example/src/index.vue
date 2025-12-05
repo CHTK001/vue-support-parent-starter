@@ -367,12 +367,6 @@ const components = [
     component: resolveComponent("./components/ReSegmentedExample.vue"),
   },
   {
-    name: "ReSplitPane",
-    icon: "ri:split-cells-horizontal",
-    description: "分割面板组件，支持可调整大小的分割布局",
-    component: resolveComponent("./components/ReSplitPaneExample.vue"),
-  },
-  {
     name: "ReText",
     icon: "ri:text",
     description: "文本组件，支持多种文本样式和效果",
@@ -469,18 +463,6 @@ const components = [
     component: resolveComponent("./components/ScPagintionExample.vue"),
   },
   {
-    name: "ScPane",
-    icon: "ri:layout-line",
-    description: "面板组件，提供灵活的面板布局",
-    component: resolveComponent("./components/ScPaneExample.vue"),
-  },
-  {
-    name: "ScPanel",
-    icon: "ri:layout-grid-line",
-    description: "面板组件，提供多种面板样式",
-    component: resolveComponent("./components/ScPanelExample.vue"),
-  },
-  {
     name: "ScPasswordStrength",
     icon: "ri:lock-password-line",
     description: "密码强度组件，显示密码强度指示器",
@@ -533,12 +515,6 @@ const components = [
     icon: "ri:video-line",
     description: "视频播放组件，支持多种视频格式",
     component: resolveComponent("./components/ScVideoExample.vue"),
-  },
-  {
-    name: "ScWindowDialog",
-    icon: "ri:window-line",
-    description: "窗口对话框组件，提供类似操作系统窗口的体验",
-    component: resolveComponent("./components/ScWindowDialogExample.vue"),
   },
   {
     name: "Template",
