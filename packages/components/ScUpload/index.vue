@@ -4,7 +4,13 @@
       <div v-if="autoUpload" class="sc-upload__progress">
         <el-progress :percentage="file.percentage" :text-inside="true" :stroke-width="16" />
       </div>
-      <el-image class="image" :src="file.tempFile" fit="cover" />
+      <!-- 图片文件显示预览 -->
+      <el-image v-if="file.isImage || isImageFile(file.raw?.type)" class="image" :src="file.tempFile" fit="cover" />
+      <!-- 非图片文件显示文件图标 -->
+      <div v-else class="sc-upload__file-preview">
+        <el-icon class="file-icon"><component :is="useRenderIcon('ep:document')" /></el-icon>
+        <span class="file-name">{{ file.name }}</span>
+      </div>
       <div class="sc-upload__img-actions always">
         <span class="del" @click="handleRemove()">
           <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
@@ -12,16 +18,22 @@
       </div>
     </div>
     <div v-if="file && file.status == 'success'" class="sc-upload__img">
-      <el-image class="image" :src="file.url" :preview-src-list="[file.url]" fit="cover" hide-on-click-modal append-to-body :z-index="9999">
-        <template #placeholder>
-          <div class="sc-upload__img-slot">Loading...</div>
-        </template>
-
-        <template #error>
-          <img class="image" :src="file.tempFile" :preview-src-list="[file.url]" fit="cover" hide-on-click-modal append-to-body :z-index="9999" >
-          </img>
-        </template>
-      </el-image>
+      <!-- 图片文件显示预览 -->
+      <template v-if="file.isImage || isImageFile(file.raw?.type) || isImageUrl(file.url)">
+        <el-image class="image" :src="file.url" :preview-src-list="[file.url]" fit="cover" hide-on-click-modal append-to-body :z-index="9999">
+          <template #placeholder>
+            <div class="sc-upload__img-slot">Loading...</div>
+          </template>
+          <template #error>
+            <img class="image" :src="file.tempFile" fit="cover">
+          </template>
+        </el-image>
+      </template>
+      <!-- 非图片文件显示文件信息 -->
+      <div v-else class="sc-upload__file-preview">
+        <el-icon class="file-icon"><component :is="useRenderIcon('ep:document')" /></el-icon>
+        <span class="file-name">{{ file.name || '文件已上传' }}</span>
+      </div>
       <div v-if="!disabled" class="sc-upload__img-actions">
         <span class="del" @click="handleRemove()">
           <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
@@ -207,6 +219,37 @@ export default {
       if (files.length > 1) {
         files.splice(0, 1);
       }
+      
+      // 先验证文件格式
+      if (file.status == "ready") {
+        var acceptIncludes = true;
+        if (this.accept !== "*/*") {
+          acceptIncludes = this.accept.replace(/\s/g, "").split(",").includes(file.raw.type);
+        }
+        
+        if (!acceptIncludes) {
+          this.$notify.warning({
+            title: "上传文件警告",
+            message: "选择的文件格式不支持"
+          });
+          // 格式不匹配时不占用组件位置，直接清除
+          this.$nextTick(() => {
+            this.$refs.uploader.clearFiles();
+          });
+          return false;
+        }
+        
+        // 检查文件大小
+        const maxSize = file.raw.size / 1024 / 1024 < this.maxSize;
+        if (!maxSize) {
+          this.$message.warning(`上传文件大小不能超过 ${this.maxSize}MB!`);
+          this.$nextTick(() => {
+            this.$refs.uploader.clearFiles();
+          });
+          return false;
+        }
+      }
+      
       if (this.cropper && file.status == "ready") {
         const acceptIncludes = ["image/gif", "image/jpeg", "image/png"].includes(file.raw.type);
         if (!acceptIncludes) {
@@ -226,7 +269,20 @@ export default {
       this.file = file;
       if (file.status == "ready") {
         file.tempFile = URL.createObjectURL(file.raw);
+        // 判断是否是图片文件，设置图片预览标志
+        file.isImage = this.isImageFile(file.raw.type);
       }
+    },
+    // 判断是否是图片文件
+    isImageFile(type) {
+      return type && type.startsWith('image/');
+    },
+    // 判断URL是否是图片
+    isImageUrl(url) {
+      if (!url) return false;
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico'];
+      const lowerUrl = url.toLowerCase();
+      return imageExtensions.some(ext => lowerUrl.includes(ext));
     },
     before(file) {
       var acceptIncludes = !0;
@@ -478,6 +534,32 @@ export default {
 .sc-upload__uploading .image {
   width: 100%;
   height: 100%;
+}
+
+.sc-upload__file-preview {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: var(--el-fill-color-light);
+  gap: 8px;
+}
+
+.sc-upload__file-preview .file-icon {
+  font-size: 32px;
+  color: var(--el-color-primary);
+}
+
+.sc-upload__file-preview .file-name {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .sc-upload .file-empty {

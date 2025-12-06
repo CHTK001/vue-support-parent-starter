@@ -1,7 +1,74 @@
 <template>
+  <!-- Scifi 主题模式 (TechUI Scifi 风格) -->
+  <button
+    v-if="theme === 'scifi'"
+    class="sc-button sc-button--scifi-mode"
+    :class="[
+      `sc-button--${type}`,
+      `sc-button--${size}`,
+      {
+        'is-disabled': disabled,
+        'is-loading': loading,
+        'is-plain': plain,
+        'is-round': round,
+        'is-circle': circle,
+        'is-text': text,
+        'is-link': link
+      }
+    ]"
+    :disabled="disabled || loading"
+    :type="nativeType"
+    :autofocus="autofocus"
+    @click="handleClick"
+  >
+    <!-- SVG 边框 -->
+    <svg class="sc-button__scifi-border" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="scifi-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#00f6ff;stop-opacity:1" />
+          <stop offset="50%" style="stop-color:#0080ff;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#00f6ff;stop-opacity:1" />
+        </linearGradient>
+        <filter id="scifi-glow">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <rect class="scifi-rect" x="1" y="1" rx="2" ry="2" fill="none" stroke="url(#scifi-gradient)" stroke-width="1.5" filter="url(#scifi-glow)" />
+      <!-- 角标装饰 -->
+      <path class="scifi-corner scifi-corner--tl" d="M1,12 L1,1 L12,1" fill="none" stroke="#00f6ff" stroke-width="2" />
+      <path class="scifi-corner scifi-corner--tr" fill="none" stroke="#00f6ff" stroke-width="2" />
+      <path class="scifi-corner scifi-corner--bl" fill="none" stroke="#00f6ff" stroke-width="2" />
+      <path class="scifi-corner scifi-corner--br" fill="none" stroke="#00f6ff" stroke-width="2" />
+    </svg>
+    
+    <!-- 扫描线效果 -->
+    <span class="sc-button__scifi-scanline" />
+    
+    <!-- 加载图标 -->
+    <IconifyIconOnline v-if="loading" icon="eos-icons:loading" class="sc-button__loading-icon" />
+
+    <!-- 前置图标 -->
+    <IconifyIconOnline v-if="icon && !loading" :icon="icon" class="sc-button__icon" />
+
+    <!-- 按钮内容 -->
+    <span v-if="$slots.default" class="sc-button__text">
+      <slot />
+    </span>
+
+    <!-- 后置图标 -->
+    <IconifyIconOnline v-if="suffixIcon && !loading" :icon="suffixIcon" class="sc-button__suffix-icon" />
+
+    <!-- 发光层 -->
+    <span class="sc-button__scifi-glow" />
+  </button>
+
   <!-- Tech 主题模式 -->
   <button
-    v-if="theme === 'tech'"
+    v-else-if="theme === 'tech'"
     class="sc-button sc-button--tech-mode"
     :class="[
       `sc-button--${type}`,
@@ -96,9 +163,12 @@ export default defineComponent({
     },
     /**
      * 主题风格
+     * - default: Element Plus 原生风格
+     * - tech: 科技风格
+     * - scifi: 科幻风格 (TechUI Scifi 风格)
      */
     theme: {
-      type: String as PropType<"default" | "tech">,
+      type: String as PropType<"default" | "tech" | "scifi">,
       default: "default"
     },
     /**

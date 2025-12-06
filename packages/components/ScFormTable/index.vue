@@ -1,6 +1,14 @@
 <template>
   <div ref="scFormTable" class="sc-form-table">
-    <el-table ref="table" :data="data" border stripe :height="height">
+    <el-table 
+      ref="table" 
+      :data="data" 
+      border 
+      stripe 
+      :height="height"
+      :default-sort="defaultSort"
+      @sort-change="handleSortChange"
+    >
       <el-table-column type="index" width="50" fixed="left">
         <template #header>
           <el-button v-if="!hideAdd" type="primary" :icon="useRenderIcon('ep:plus')" size="small" circle @click="rowAdd" />
@@ -39,7 +47,10 @@ export default {
     dragSort: { type: Boolean, default: false },
     height: { type: Number, default: 300 },
     hideAdd: { type: Boolean, default: false },
-    hideDelete: { type: Boolean, default: false }
+    hideDelete: { type: Boolean, default: false },
+    // 排序相关
+    sortable: { type: Boolean, default: false },
+    defaultSort: { type: Object, default: () => ({}) }
   },
   data() {
     return {
@@ -102,6 +113,22 @@ export default {
     //根据index删除
     deleteRow(index) {
       this.data.splice(index, 1);
+    },
+    // 排序变化
+    handleSortChange({ column, prop, order }) {
+      this.$emit("sort-change", { column, prop, order });
+      
+      if (prop && order) {
+        const sortOrder = order === 'ascending' ? 1 : -1;
+        this.data.sort((a, b) => {
+          const aVal = a[prop];
+          const bVal = b[prop];
+          if (typeof aVal === 'number' && typeof bVal === 'number') {
+            return (aVal - bVal) * sortOrder;
+          }
+          return String(aVal).localeCompare(String(bVal)) * sortOrder;
+        });
+      }
     }
   }
 };

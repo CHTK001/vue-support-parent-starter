@@ -9,18 +9,31 @@
       :clearable="clearable"
       :filterable="filterable"
       :size="size"
-      :show-all-levels="showAllLevels"
+      :show-all-levels="showAllLevels && !showCodeOnly"
       :separator="separator"
-      :popper-class="'sc-region-popper'"
+      :collapse-tags="collapseTags"
+      :collapse-tags-tooltip="collapseTags"
+      :max-collapse-tags="maxCollapseTags"
+      :popper-class="'sc-region-popper' + (showCode ? ' show-code' : '') + (multiple ? ' is-multiple' : '')"
       @change="handleChange"
     >
       <template #default="{ node, data }">
         <div class="sc-region-node">
-          <IconifyIconOnline v-if="data.level === 1" icon="ri:map-pin-2-line" class="node-icon province" />
-          <IconifyIconOnline v-else-if="data.level === 2" icon="ri:building-line" class="node-icon city" />
-          <IconifyIconOnline v-else icon="ri:home-4-line" class="node-icon district" />
-          <span class="node-label">{{ data.name }}</span>
-          <span v-if="data.licensePlate" class="node-badge">{{ data.licensePlate }}</span>
+          <div class="node-content">
+            <IconifyIconOnline v-if="data.level === 1" icon="ri:map-pin-2-line" class="node-icon province" />
+            <IconifyIconOnline v-else-if="data.level === 2" icon="ri:building-line" class="node-icon city" />
+            <IconifyIconOnline v-else icon="ri:home-4-line" class="node-icon district" />
+            <div class="node-text">
+              <span class="node-label">{{ data.name }}</span>
+              <span v-if="showCode" class="node-code">{{ data.code }}</span>
+            </div>
+          </div>
+          <div class="node-extra">
+            <span v-if="data.licensePlate" class="node-badge">{{ data.licensePlate }}</span>
+            <span v-if="node.checked" class="node-check">
+              <IconifyIconOnline icon="ep:check" />
+            </span>
+          </div>
         </div>
       </template>
     </el-cascader>
@@ -51,12 +64,19 @@ const props = withDefaults(defineProps<RegionProps>(), {
   separator: "/",
   data: () => defaultRegionData,
   provinceCode: "",
-  defaultProvince: ""
+  defaultProvince: "",
+  checkStrictly: false,
+  showCodeOnly: false,
+  showCode: false,
+  multiple: false,
+  collapseTags: false,
+  maxCollapseTags: 1
 });
 
 const emit = defineEmits<RegionEmits>();
 
-const selectedValue = ref<string[]>(props.modelValue);
+// 根据是否多选决定值类型
+const selectedValue = ref<string[] | string[][]>(props.modelValue as any);
 
 // 根据省份代码过滤数据
 const filteredRegionData = computed(() => {
@@ -66,13 +86,15 @@ const filteredRegionData = computed(() => {
   return props.data.filter(item => item.code === props.provinceCode);
 });
 
-const cascaderProps = {
+// 级联选择器配置
+const cascaderProps = computed(() => ({
   value: "code",
-  label: "name",
+  label: props.showCodeOnly ? "code" : "name",
   children: "children",
-  checkStrictly: false,
+  checkStrictly: props.checkStrictly,
+  multiple: props.multiple,
   emitPath: true
-};
+}));
 
 watch(
   () => props.modelValue,
@@ -94,7 +116,7 @@ watch(
   }
 );
 
-const handleChange = (value: string[]) => {
+const handleChange = (value: string[] | string[][]) => {
   emit("update:modelValue", value);
   emit("change", value);
 };
@@ -190,8 +212,17 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
 .sc-region-node {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  width: 100%;
   padding: 2px 0;
+
+  .node-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
 
   .node-icon {
     font-size: 16px;
@@ -211,10 +242,33 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
     }
   }
 
+  .node-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
   .node-label {
-    flex: 1;
     font-size: 14px;
     color: var(--el-text-color-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .node-code {
+    font-size: 11px;
+    color: var(--el-text-color-placeholder);
+    font-family: "SF Mono", "Monaco", "Consolas", monospace;
+  }
+
+  .node-extra {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-left: 12px;
   }
 
   .node-badge {
@@ -224,6 +278,19 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
     background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-9) 100%);
     color: var(--el-color-primary);
     font-weight: 600;
+  }
+
+  .node-check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--el-color-primary);
+    color: #fff;
+    font-size: 12px;
+    box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.4);
   }
 }
 </style>
@@ -253,6 +320,20 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
         margin: 2px 0;
         transition: all 0.2s ease;
 
+        // 隐藏默认的对号图标
+        .el-cascader-node__prefix {
+          .el-checkbox {
+            .el-checkbox__inner::after {
+              display: none;
+            }
+          }
+        }
+
+        // 隐藏右侧默认对号
+        > .el-icon.el-icon-check {
+          display: none !important;
+        }
+
         &:hover {
           background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-lighter) 100%);
         }
@@ -271,7 +352,36 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
         .el-icon {
           color: var(--el-text-color-secondary);
         }
+
+        // 任意级选择时的单选框样式
+        .el-radio {
+          margin-right: 8px;
+          
+          .el-radio__inner {
+            border-color: var(--el-border-color);
+            
+            &::after {
+              background: var(--el-color-primary);
+            }
+          }
+          
+          &.is-checked .el-radio__inner {
+            border-color: var(--el-color-primary);
+            background: var(--el-color-primary);
+            
+            &::after {
+              background: #fff;
+            }
+          }
+        }
       }
+    }
+  }
+
+  // 显示编码时调整高度
+  &.show-code {
+    .el-cascader-node {
+      height: 52px;
     }
   }
 

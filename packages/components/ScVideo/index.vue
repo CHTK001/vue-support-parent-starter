@@ -44,7 +44,7 @@ const containerRef = ref(); // 容器引用
 const veoPoster = ref(); // 自动截取视频帧生成的封面
 const playing = ref<boolean>(false); // 是否正在播放
 const originPlay = ref<boolean>(true); // 是否第一次播放
-const showPlayIcon = ref<boolean>(false); // 是否展示播放器中间的播放按钮图标
+const showPlayIcon = ref<boolean>(true); // 是否展示播放器中间的播放按钮图标
 const showControls = ref<boolean>(false); // 是否显示控制条
 const currentTime = ref<number>(0); // 当前播放时间
 const duration = ref<number>(0); // 视频总时长
@@ -90,11 +90,12 @@ watch(
       showPlayIcon.value = true;
       originPlay.value = true;
       playing.value = false;
-      veoRef.value?.pause();
+      if (veoRef.value) {
+        veoRef.value.pause();
+      }
     }
   },
   {
-    immediate: true,
     flush: "post"
   }
 );

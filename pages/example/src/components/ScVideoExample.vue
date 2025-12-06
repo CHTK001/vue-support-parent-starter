@@ -23,6 +23,8 @@
           :src="config.src"
           :controls="config.controls"
           :autoplay="config.autoplay"
+          :width="640"
+          :height="360"
         />
       </div>
 
@@ -126,11 +128,11 @@ const codeTabs = computed(() => [
 ]);
 
 function playVideo() {
-  videoRef.value?.$el?.querySelector("video")?.play();
+  videoRef.value?.play();
 }
 
 function pauseVideo() {
-  videoRef.value?.$el?.querySelector("video")?.pause();
+  videoRef.value?.pause();
 }
 </script>
 
@@ -170,6 +172,8 @@ function pauseVideo() {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
 }
 
 .config-form {

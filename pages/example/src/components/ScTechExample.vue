@@ -352,9 +352,10 @@
  */
 import { ref } from "vue";
 import { ElMessage } from "element-plus";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import ScButton from "@repo/components/ScButton/index.vue";
 import ScCard from "@repo/components/ScCard/index.vue";
-import ScDialog from "@repo/components/ScDialog/index.vue";
+import { ScDialog } from "@repo/components/ScDialog";
 
 const showTechDialog = ref(false);
 const showTechDialog2 = ref(false);

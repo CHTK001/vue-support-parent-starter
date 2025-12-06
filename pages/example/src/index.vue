@@ -542,6 +542,12 @@ const components = [
     description: "模板组件示例，展示各种预制模板组件",
     component: resolveComponent("./components/TemplateExample.vue"),
   },
+  {
+    name: "TechUI",
+    icon: "ri:rocket-2-line",
+    description: "TechUI 科幻风格组件，基于 @techui/scifi 的科幻风格 UI 组件封装",
+    component: resolveComponent("./components/TechUIExample.vue"),
+  },
 ];
 
 // 过滤后的组件列表

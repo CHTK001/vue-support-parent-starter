@@ -95,73 +95,16 @@ const currentLanguage = computed(() => {
   return props.language;
 });
 
-// 简单的代码高亮
+// 简单的代码高亮（不使用复杂的正则，避免冲突）
 const highlightedCode = computed(() => {
-  let code = currentCode.value;
+  const code = currentCode.value;
 
-  // HTML 转义
-  code = code
+  // 直接转义并返回纯文本，不做高亮处理
+  // 避免正则冲突导致的显示问题
+  return code
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-
-  // Vue/HTML 高亮
-  if (currentLanguage.value === "vue" || currentLanguage.value === "html") {
-    // 标签
-    code = code.replace(
-      /(&lt;\/?)([\w-]+)/g,
-      '$1<span class="hl-tag">$2</span>'
-    );
-    // 属性
-    code = code.replace(/([\w-]+)(=)/g, '<span class="hl-attr">$1</span>$2');
-    // 字符串
-    code = code.replace(/(".*?"|'.*?')/g, '<span class="hl-string">$1</span>');
-    // 注释
-    code = code.replace(
-      /(&lt;!--.*?--&gt;)/gs,
-      '<span class="hl-comment">$1</span>'
-    );
-  }
-
-  // JavaScript/TypeScript 高亮
-  if (
-    currentLanguage.value === "js" ||
-    currentLanguage.value === "ts" ||
-    currentLanguage.value === "vue"
-  ) {
-    // 关键字
-    const keywords = [
-      "const",
-      "let",
-      "var",
-      "function",
-      "return",
-      "if",
-      "else",
-      "for",
-      "while",
-      "import",
-      "export",
-      "from",
-      "default",
-      "async",
-      "await",
-      "class",
-      "extends",
-      "new",
-      "this",
-      "true",
-      "false",
-      "null",
-      "undefined",
-    ];
-    keywords.forEach((kw) => {
-      const regex = new RegExp(`\\b(${kw})\\b`, "g");
-      code = code.replace(regex, '<span class="hl-keyword">$1</span>');
-    });
-  }
-
-  return code;
 });
 
 // 复制代码
@@ -286,7 +229,7 @@ watch(
   pre {
     margin: 0;
     padding: 16px;
-    background: var(--el-fill-color-lighter);
+    background: #1e1e1e;
     font-family: "Fira Code", "Monaco", "Consolas", monospace;
     font-size: 13px;
     line-height: 1.6;
@@ -294,7 +237,7 @@ watch(
   }
 
   code {
-    color: var(--el-text-color-primary);
+    color: #d4d4d4;
   }
 }
 
@@ -328,10 +271,6 @@ watch(
 
   .code-header {
     background: var(--el-fill-color-darker);
-  }
-
-  .code-content pre {
-    background: #1e1e1e;
   }
 }
 </style>
