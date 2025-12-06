@@ -11,6 +11,7 @@
     "@techui/locales": "catalog:",
     "@techui/themes": "catalog:",
     "@techui/libs": "catalog:",
-    "@techui/utils": "catalog:"
+    "@techui/utils": "catalog:",
+    "@techui/icons": "catalog:"
   }
 }

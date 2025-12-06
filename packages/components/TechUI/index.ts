@@ -7,6 +7,11 @@
  */
 
 import { App } from "vue";
+// 导入 @techui/scifi 组件库和样式
+import TechuiScifi from "@techui/scifi";
+import "@techui/scifi/dist/index.css";
+
+// 导入封装组件
 import TechButton from "./TechButton/index.vue";
 import TechPanel from "./TechPanel/index.vue";
 import TechHeader from "./TechHeader/index.vue";
@@ -24,9 +29,16 @@ export {
   TechPanelTitle 
 };
 
+// 导出原始 @techui/scifi
+export { TechuiScifi };
+
 // 默认导出，用于全局注册
 export default {
   install(app: App): void {
+    // 注册 @techui/scifi 原生组件
+    app.use(TechuiScifi);
+    
+    // 注册封装组件
     app.component("TechButton", TechButton);
     app.component("TechPanel", TechPanel);
     app.component("TechHeader", TechHeader);
