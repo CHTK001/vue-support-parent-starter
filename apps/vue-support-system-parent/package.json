@@ -110,7 +110,7 @@
     "@originjs/vite-plugin-commonjs": "catalog:",
     "@pages/dict": "workspace:^",
     "@pages/project": "workspace:^",
-    "@repo/build": "workspace:^",
+    "@repo/build-config": "workspace:^",
     "@types/gradient-string": "catalog:",
     "@types/js-cookie": "catalog:",
     "@types/markdown-it": "catalog:",

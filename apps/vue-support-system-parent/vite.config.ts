@@ -1,18 +1,27 @@
-import { getPluginsList } from "./build/plugins";
-import { include, exclude } from "./build/optimize";
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
-import { root, alias, wrapperEnv, pathResolve, __APP_INFO__ } from "./build/utils";
-import type { PluginOption } from "vite";
+import {
+  root,
+  wrapperEnv,
+  pathResolve,
+  createAlias,
+  createAppInfo,
+  getPluginsList,
+  include,
+  exclude,
+} from "@repo/build-config";
+import pkg from "./package.json";
+
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = mode;
   const env = loadEnv(newMode, root);
   console.log("当前启动模式:" + newMode);
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(env);
+
   return {
     base: VITE_PUBLIC_PATH,
     root,
     resolve: {
-      alias,
+      alias: createAlias(import.meta.url),
     },
     // 服务端渲染
     server: {
@@ -45,7 +54,14 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         },
       },
     },
-    plugins: getPluginsList(VITE_CDN, VITE_COMPRESSION) as PluginOption[],
+    plugins: getPluginsList({
+      VITE_CDN,
+      VITE_COMPRESSION,
+      i18nPaths: [
+        pathResolve("../locales/**", import.meta.url),
+        pathResolve("@repo/config/locales/**", import.meta.url),
+      ],
+    }),
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
     optimizeDeps: {
       include,
@@ -77,7 +93,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     define: {
       __INTLIFY_PROD_DEVTOOLS__: false,
       __APP_CONFIG__: JSON.stringify(env),
-      __APP_INFO__: JSON.stringify(__APP_INFO__),
+      __APP_INFO__: JSON.stringify(createAppInfo(pkg)),
       __APP_ENV__: JSON.stringify(newMode),
     },
   };

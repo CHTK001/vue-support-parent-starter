@@ -1,19 +1,21 @@
 import { type ConfigEnv, loadEnv, type UserConfigExport } from "vite";
-import { exclude, include } from "./build/optimize";
-import { getPluginsList } from "./build/plugins";
-import { alias, pathResolve, root, wrapperEnv } from "./build/utils";
-
-// 声明压缩类型
-type ViteCompression = "none" | "gzip" | "brotli" | "both" | "gzip-clear" | "brotli-clear" | "both-clear";
+import {
+  root,
+  wrapperEnv,
+  pathResolve,
+  createAlias,
+  createAppInfo,
+  getPluginsList,
+  include,
+  exclude,
+} from "@repo/build-config";
+import pkg from "./package.json";
 
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = mode;
   const env = loadEnv(newMode, root);
   console.log("当前启动模式:" + newMode);
-  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(loadEnv(mode, root));
-
-  // 确保 VITE_COMPRESSION 的类型正确
-  const compression = VITE_COMPRESSION as ViteCompression;
+  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(env);
 
   return {
     base: VITE_PUBLIC_PATH,
@@ -24,20 +26,12 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       global: "globalThis",
       __INTLIFY_PROD_DEVTOOLS__: false,
       __APP_CONFIG__: JSON.stringify(env),
-      __APP_INFO__: JSON.stringify({
-        pkg: {
-          name: "vue-support-monitor-starter",
-          version: "1.0.0",
-          dependencies: {},
-          devDependencies: {},
-        },
-        lastBuildTime: new Date().toISOString(),
-      }),
+      __APP_INFO__: JSON.stringify(createAppInfo(pkg)),
       __APP_ENV__: JSON.stringify(newMode),
     },
     root,
     resolve: {
-      alias,
+      alias: createAlias(import.meta.url),
     },
     // 服务端渲染
     server: {
@@ -73,7 +67,14 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         },
       },
     },
-    plugins: getPluginsList(VITE_CDN, compression),
+    plugins: getPluginsList({
+      VITE_CDN,
+      VITE_COMPRESSION,
+      i18nPaths: [
+        pathResolve("../locales/**", import.meta.url),
+        pathResolve("@repo/config/locales/**", import.meta.url),
+      ],
+    }),
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
     optimizeDeps: {
       include,

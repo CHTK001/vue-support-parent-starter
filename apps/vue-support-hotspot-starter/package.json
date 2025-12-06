@@ -87,6 +87,7 @@
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
     "@commitlint/types": "catalog:",
+    "@repo/build-config": "workspace:^",
     "@eslint/js": "catalog:",
     "@faker-js/faker": "catalog:",
     "@iconify-icons/devicon": "catalog:",
