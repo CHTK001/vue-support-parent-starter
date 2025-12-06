@@ -13,26 +13,26 @@
     "./utils": "./src/utils.ts"
   },
   "dependencies": {
-    "@pureadmin/utils": "^2.8.4",
-    "@vitejs/plugin-vue": "^5.2.1",
-    "@vitejs/plugin-vue-jsx": "^4.1.1",
-    "@intlify/unplugin-vue-i18n": "^6.0.8",
-    "boxen": "^7.1.1",
-    "code-inspector-plugin": "^0.19.1",
-    "dayjs": "^1.11.13",
-    "gradient-string": "^2.0.2",
-    "rollup-plugin-visualizer": "^5.14.0",
-    "vite-plugin-cdn-import": "^1.0.1",
-    "vite-plugin-compression": "^0.5.1",
-    "vite-plugin-fake-server": "^2.2.0",
-    "vite-plugin-prismjs": "^0.0.11",
-    "vite-plugin-remove-console": "^2.2.0",
-    "vite-plugin-router-warn": "^1.0.0",
-    "vite-svg-loader": "^5.1.0"
+    "@pureadmin/utils": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "@vitejs/plugin-vue-jsx": "catalog:",
+    "@intlify/unplugin-vue-i18n": "catalog:",
+    "boxen": "catalog:",
+    "code-inspector-plugin": "catalog:",
+    "dayjs": "catalog:",
+    "gradient-string": "catalog:",
+    "rollup-plugin-visualizer": "catalog:",
+    "vite-plugin-cdn-import": "catalog:",
+    "vite-plugin-compression": "catalog:",
+    "vite-plugin-fake-server": "catalog:",
+    "vite-plugin-prismjs": "catalog:",
+    "vite-plugin-remove-console": "catalog:",
+    "vite-plugin-router-warn": "catalog:",
+    "vite-svg-loader": "catalog:"
   },
   "devDependencies": {
-    "@types/gradient-string": "^1.1.6",
-    "@types/node": "^20.10.0"
+    "@types/gradient-string": "catalog:",
+    "@types/node": "catalog:"
   },
   "peerDependencies": {
     "vite": ">=5.0.0"
