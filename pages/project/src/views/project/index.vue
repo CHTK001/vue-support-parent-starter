@@ -5,25 +5,47 @@
         <el-container class="dashboard-container">
           <el-main class="dashboard-main">
             <div class="content-wrapper">
-              <ScTable ref="tableRef" layout="card" :col-size="6" :row-size="2" :url="fetchPageProject"
-                :rowClick="handleRowClick" :afterLoadedData="handleAfterLoadedData">
+              <ScTable
+                ref="tableRef"
+                layout="card"
+                :col-size="6"
+                :row-size="2"
+                :url="fetchPageProject"
+                :rowClick="handleRowClick"
+                :afterLoadedData="handleAfterLoadedData"
+              >
                 <template #default="{ row }">
-                  <div class="project-card" :class="{ 'card-loading': loading }"
-                    :style="{ '--project-icon-url': `url(${row?.sysProjectIcon})`, '--random-hue': Math.floor(Math.random() * 360) }">
+                  <div
+                    class="project-card"
+                    :class="{ 'card-loading': loading }"
+                    :style="{
+                      '--project-icon-url': `url(${row?.sysProjectIcon})`,
+                      '--random-hue': Math.floor(Math.random() * 360),
+                    }"
+                  >
                     <div class="card-glow"></div>
                     <div class="card-header">
                       <div class="project-image">
                         <div class="image-container">
-                          <el-image :src="row?.sysProjectIcon" fit="cover" lazy class="project-img">
+                          <el-image
+                            :src="row?.sysProjectIcon"
+                            fit="cover"
+                            lazy
+                            class="project-img"
+                          >
                             <template #error>
                               <div class="image-placeholder">
                                 <div class="placeholder-icon-wrapper">
                                   <el-icon class="placeholder-icon">
-                                    <component :is="useRenderIcon('ri:image-2-line')" />
+                                    <component
+                                      :is="useRenderIcon('ri:image-2-line')"
+                                    />
                                   </el-icon>
                                   <div class="icon-ripple"></div>
                                 </div>
-                                <div class="placeholder-text">{{ row?.sysProjectName }}</div>
+                                <div class="placeholder-text">
+                                  {{ row?.sysProjectName }}
+                                </div>
                               </div>
                             </template>
                           </el-image>
@@ -43,15 +65,26 @@
 
                     <div class="project-content">
                       <div class="project-header">
-                        <h3 class="project-title" :title="row?.sysProjectName">{{ row?.sysProjectName }}</h3>
+                        <h3 class="project-title" :title="row?.sysProjectName">
+                          {{ row?.sysProjectName }}
+                        </h3>
                         <div class="project-meta">
-                          <span class="project-id">#{{ row?.sysProjectId || "001" }}</span>
-                          <span class="project-date">{{ formatDate(row?.createTime) }}</span>
+                          <span class="project-id"
+                            >#{{ row?.sysProjectId || "001" }}</span
+                          >
+                          <span class="project-date">{{
+                            formatDate(row?.createTime)
+                          }}</span>
                         </div>
                       </div>
 
                       <div class="project-description">
-                        <p class="description-text">{{ row?.sysProjectDescription || "这是一个精心设计的项目，致力于提供优质的解决方案" }}</p>
+                        <p class="description-text">
+                          {{
+                            row?.sysProjectDescription ||
+                            "这是一个精心设计的项目，致力于提供优质的解决方案"
+                          }}
+                        </p>
                       </div>
 
                       <div class="project-stats">
@@ -59,35 +92,80 @@
                       </div>
                     </div>
                     <div class="project-tags">
-                      <el-tag type="primary" effect="plain" class="project-name-tag">{{ row?.sysProjectName }}</el-tag>
+                      <el-tag
+                        type="primary"
+                        effect="plain"
+                        class="project-name-tag"
+                        >{{ row?.sysProjectName }}</el-tag
+                      >
                     </div>
                     <div class="project-actions">
-                      <template v-for="(item, index) in row?.sysProjectFunction?.split(',') || []" :key="index">
-                        <el-tooltip :content="functionMap[item]?.sysDictItemName" placement="top" effect="light"
-                          :offset="8">
-                          <el-button v-if="functionMap[item]" type="primary" circle size="small" class="action-button"
-                            :icon="useRenderIcon(functionMap[item]?.sysDictItemIcon)"
-                            :style="{ animationDelay: index * 0.05 + 's' }" />
+                      <template
+                        v-for="(item, index) in row?.sysProjectFunction?.split(
+                          ','
+                        ) || []"
+                        :key="index"
+                      >
+                        <el-tooltip
+                          :content="functionMap[item]?.sysDictItemName"
+                          placement="top"
+                          effect="light"
+                          :offset="8"
+                        >
+                          <el-button
+                            v-if="functionMap[item]"
+                            type="primary"
+                            circle
+                            size="small"
+                            class="action-button"
+                            :icon="
+                              useRenderIcon(functionMap[item]?.sysDictItemIcon)
+                            "
+                            :style="{ animationDelay: index * 0.05 + 's' }"
+                          />
                         </el-tooltip>
                       </template>
                     </div>
                     <div class="more" @click.stop>
-                      <el-button-group v-if="row?.sysProjectFunction" class="ml-[1px] z-[100]">
-                        <el-button v-if="row?.source?.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')"
-                          title="设置默认" size="small" @click.stop="handleDefault(row)" />
-                        <el-dropdown class="!z-[101] border-right-color" trigger="click" placement="right"
-                          @command="handleDropdownCommand">
-                          <el-button :icon="useRenderIcon('ri:more-2-line')" size="small" title="更多" @click.stop />
+                      <el-button-group
+                        v-if="row?.sysProjectFunction"
+                        class="ml-[1px] z-[100]"
+                      >
+                        <el-button
+                          v-if="row?.source?.length > 0"
+                          :icon="useRenderIcon('ri:landscape-ai-fill')"
+                          title="设置默认"
+                          size="small"
+                          @click.stop="handleDefault(row)"
+                        />
+                        <el-dropdown
+                          class="!z-[101] border-right-color"
+                          trigger="click"
+                          placement="right"
+                          @command="handleDropdownCommand"
+                        >
+                          <el-button
+                            :icon="useRenderIcon('ri:more-2-line')"
+                            size="small"
+                            title="更多"
+                            @click.stop
+                          />
                           <template #dropdown>
                             <el-dropdown-menu>
-                              <el-dropdown-item v-if="defer(0) && row?.source?.length > 0" class="h-[32px]"
-                                :icon="useRenderIcon('ri:settings-5-line')">
+                              <el-dropdown-item
+                                v-if="defer(0) && row?.source?.length > 0"
+                                class="h-[32px]"
+                                :icon="useRenderIcon('ri:settings-5-line')"
+                              >
                                 <el-dropdown class="z-[100]" placement="right">
                                   <el-text class="w-full">设置默认</el-text>
                                   <template #dropdown>
                                     <el-dropdown-menu>
-                                      <el-dropdown-item v-for="(item1, index) in row.source" :key="index"
-                                        @click="handleUpdateDefault(row, item1)">
+                                      <el-dropdown-item
+                                        v-for="(item1, index) in row.source"
+                                        :key="index"
+                                        @click="handleUpdateDefault(row, item1)"
+                                      >
                                         {{ item1.name }}
                                         <span v-if="item1.label">√</span>
                                       </el-dropdown-item>
@@ -95,17 +173,32 @@
                                   </template>
                                 </el-dropdown>
                               </el-dropdown-item>
-                              <el-dropdown-item v-for="(item1, index) in row.source" :key="index" class="h-[32px]"
-                                :icon="useRenderIcon(item1.icon)" @click="handleEventCustom(row, item1, $event)">
+                              <el-dropdown-item
+                                v-for="(item1, index) in row.source"
+                                :key="index"
+                                class="h-[32px]"
+                                :icon="useRenderIcon(item1.icon)"
+                                @click="handleEventCustom(row, item1, $event)"
+                              >
                                 {{ item1.name }}
-                                <span v-if="item1.name.length < 4">{{ $t("message.manage") }}</span>
+                                <span v-if="item1.name.length < 4">{{
+                                  $t("message.manage")
+                                }}</span>
                               </el-dropdown-item>
-                              <el-dropdown-item v-if="defer(3)" class="h-[32px]"
+                              <el-dropdown-item
+                                v-if="defer(3)"
+                                class="h-[32px]"
                                 :icon="useRenderIcon('ep:copy-document')"
-                                @click.stop="handleCopy(row, 'save')">复制</el-dropdown-item>
-                              <el-dropdown-item v-if="defer(2)" class="h-[32px]"
+                                @click.stop="handleCopy(row, 'save')"
+                                >复制</el-dropdown-item
+                              >
+                              <el-dropdown-item
+                                v-if="defer(2)"
+                                class="h-[32px]"
                                 :icon="useRenderIcon('ri:delete-bin-6-line')"
-                                @click.prevent="handleDelete(row)">删除</el-dropdown-item>
+                                @click.prevent="handleDelete(row)"
+                                >删除</el-dropdown-item
+                              >
                             </el-dropdown-menu>
                           </template>
                         </el-dropdown>
@@ -119,8 +212,16 @@
         </el-container>
       </div>
     </div>
-    <SaveDialog ref="saveDialogRef" class="modern-dialog" @success="handleRefresh" />
-    <DefaultSetting ref="defaultSettingRef" class="modern-dialog" @success="handleRefresh" />
+    <SaveDialog
+      ref="saveDialogRef"
+      class="modern-dialog"
+      @success="handleRefresh"
+    />
+    <DefaultSetting
+      ref="defaultSettingRef"
+      class="modern-dialog"
+      @success="handleRefresh"
+    />
   </div>
 </template>
 
@@ -130,11 +231,17 @@ import { fetchListDictItem, router } from "@repo/core";
 import { deepCopy, useDefer } from "@repo/utils";
 import { ElMessage } from "element-plus";
 import { defineAsyncComponent, onMounted, reactive, ref } from "vue";
-import { fetchDeleteProject, fetchPageProject, fetchUpdateProjectDefault } from "../../api/manage/project";
+import {
+  fetchDeleteProject,
+  fetchPageProject,
+  fetchUpdateProjectDefault,
+} from "../../api/manage/project";
 import SaveDialog from "./save.vue";
 
 import { message, stringSplitToNumber } from "@repo/utils";
-const DefaultSetting = defineAsyncComponent(() => import("./defaultSetting.vue"));
+const DefaultSetting = defineAsyncComponent(
+  () => import("./defaultSetting.vue")
+);
 const form = reactive({});
 const defer = useDefer(4);
 
@@ -515,8 +622,10 @@ const eventMap = {
 };
 
 const handleEventCustom = async (row, item1, event) => {
+  // 阻止事件冒泡和默认行为
   if (event) {
     event.stopPropagation();
+    event.preventDefault();
   }
   try {
     // 检查eventMap中是否存在对应的处理函数
@@ -527,13 +636,13 @@ const handleEventCustom = async (row, item1, event) => {
 
     // 执行路由跳转
     console.log(`正在跳转到功能: ${item1.code}`, { row, item1 });
-    await eventMap[item1.code](row, item1);
-
-    // 添加延迟确保路由跳转完成
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    const routeResult = eventMap[item1.code](row, item1);
+    // 等待路由跳转完成
+    if (routeResult && routeResult.then) {
+      await routeResult;
+    }
   } catch (error) {
     console.error(`功能 ${item1.code} 跳转失败:`, error);
-    // 可以添加用户提示
     ElMessage.error(`页面跳转失败，请重试`);
   }
 };
@@ -575,8 +684,12 @@ const handleAfterLoadedData = (row, total) => {
   });
   // 更新项目统计
   projectStats.total = total;
-  projectStats.active = row.filter((item) => item.status !== "completed").length;
-  projectStats.completed = row.filter((item) => item.status === "completed").length;
+  projectStats.active = row.filter(
+    (item) => item.status !== "completed"
+  ).length;
+  projectStats.completed = row.filter(
+    (item) => item.status === "completed"
+  ).length;
 
   return row;
 };
@@ -635,7 +748,11 @@ onMounted(async () => {
   right: 0;
   bottom: 0;
   z-index: -2;
-  background: linear-gradient(135deg, var(--app-bg-secondary) 0%, var(--app-bg-tertiary) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--app-bg-secondary) 0%,
+    var(--app-bg-tertiary) 100%
+  );
 }
 
 .floating-particles {
@@ -649,7 +766,11 @@ onMounted(async () => {
 
   .particle {
     position: absolute;
-    background: linear-gradient(45deg, var(--app-primary-light), var(--app-success-light));
+    background: linear-gradient(
+      45deg,
+      var(--app-primary-light),
+      var(--app-success-light)
+    );
     border-radius: 50%;
     animation: float 4s ease-in-out infinite;
     opacity: 0.7;
@@ -666,7 +787,11 @@ onMounted(async () => {
   &.orb-1 {
     width: 300px;
     height: 300px;
-    background: linear-gradient(45deg, var(--app-primary-lighter), var(--app-success-lighter));
+    background: linear-gradient(
+      45deg,
+      var(--app-primary-lighter),
+      var(--app-success-lighter)
+    );
     top: -150px;
     left: -150px;
   }
@@ -674,7 +799,11 @@ onMounted(async () => {
   &.orb-2 {
     width: 200px;
     height: 200px;
-    background: linear-gradient(45deg, var(--app-success-lighter), var(--app-warning-lighter));
+    background: linear-gradient(
+      45deg,
+      var(--app-success-lighter),
+      var(--app-warning-lighter)
+    );
     top: 50%;
     right: -100px;
   }
@@ -682,7 +811,11 @@ onMounted(async () => {
   &.orb-3 {
     width: 250px;
     height: 250px;
-    background: linear-gradient(45deg, var(--app-warning-lighter), var(--app-primary-lighter));
+    background: linear-gradient(
+      45deg,
+      var(--app-warning-lighter),
+      var(--app-primary-lighter)
+    );
     bottom: -125px;
     left: 30%;
   }
@@ -706,7 +839,12 @@ onMounted(async () => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(90deg, transparent 0%, var(--app-primary-lighter) 50%, transparent 100%);
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--app-primary-lighter) 50%,
+      transparent 100%
+    );
     animation: shimmer 3s ease-in-out infinite;
   }
 
@@ -745,13 +883,21 @@ onMounted(async () => {
       width: 60px;
       height: 60px;
       border-radius: 16px;
-      background: linear-gradient(135deg, rgba(64, 158, 255, 0.1), rgba(103, 194, 58, 0.1));
+      background: linear-gradient(
+        135deg,
+        rgba(64, 158, 255, 0.1),
+        rgba(103, 194, 58, 0.1)
+      );
       backdrop-filter: blur(10px);
       box-shadow: 0 8px 24px var(--app-primary-lighter);
 
       .title-icon {
         font-size: 2rem;
-        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-success));
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary),
+          var(--el-color-success)
+        );
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         z-index: 2;
@@ -764,7 +910,11 @@ onMounted(async () => {
         transform: translate(-50%, -50%);
         width: 40px;
         height: 40px;
-        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-success));
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary),
+          var(--el-color-success)
+        );
         border-radius: 50%;
         opacity: 0.3;
         filter: blur(8px);
@@ -772,7 +922,6 @@ onMounted(async () => {
       }
 
       @keyframes pulse {
-
         0%,
         100% {
           transform: translate(-50%, -50%) scale(1);
@@ -791,7 +940,11 @@ onMounted(async () => {
         margin: 0;
         font-size: 2rem;
         font-weight: 700;
-        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-success));
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary),
+          var(--el-color-success)
+        );
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -887,7 +1040,11 @@ onMounted(async () => {
       padding: 12px 24px;
       border-radius: 12px;
       font-weight: 600;
-      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary),
+        var(--el-color-primary-light-3)
+      );
       border: none;
       box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
       position: relative;
@@ -905,7 +1062,12 @@ onMounted(async () => {
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
         transition: left 0.6s ease;
       }
 
@@ -942,7 +1104,11 @@ onMounted(async () => {
     -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-    background: linear-gradient(135deg, rgba(64, 158, 255, 0.9), rgba(64, 158, 255, 0.7));
+    background: linear-gradient(
+      135deg,
+      rgba(64, 158, 255, 0.9),
+      rgba(64, 158, 255, 0.7)
+    );
     color: #fff;
     text-shadow: 0 1px 2px var(--app-shadow-sm);
 
@@ -1000,7 +1166,17 @@ onMounted(async () => {
       content: "";
       position: fixed;
       inset: 0;
-      background: radial-gradient(circle at 0% 0%, rgba(var(--el-color-primary-rgb, 64, 158, 255), 0.08), transparent 50%), radial-gradient(circle at 100% 100%, rgba(var(--el-color-success-rgb, 103, 194, 58), 0.08), transparent 50%);
+      background:
+        radial-gradient(
+          circle at 0% 0%,
+          rgba(var(--el-color-primary-rgb, 64, 158, 255), 0.08),
+          transparent 50%
+        ),
+        radial-gradient(
+          circle at 100% 100%,
+          rgba(var(--el-color-success-rgb, 103, 194, 58), 0.08),
+          transparent 50%
+        );
       pointer-events: none;
       z-index: -1;
     }
@@ -1043,16 +1219,21 @@ onMounted(async () => {
 .project-card {
   position: relative;
   height: 100%;
+  min-height: 260px;
   padding: 0;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(248, 250, 252, 0.95)
+  );
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow:
-    0 8px 32px var(--app-shadow-md),
-    0 2px 8px var(--app-shadow-sm),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    0 4px 20px rgba(0, 0, 0, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--el-text-color-primary);
   overflow: hidden;
   cursor: pointer;
@@ -1064,7 +1245,11 @@ onMounted(async () => {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, hsl(calc(var(--random-hue, 200) + 180), 70%, 85%) 0%, hsl(calc(var(--random-hue, 200) + 180), 60%, 75%) 100%);
+    background: linear-gradient(
+      135deg,
+      hsl(calc(var(--random-hue, 200) + 180), 70%, 85%) 0%,
+      hsl(calc(var(--random-hue, 200) + 180), 60%, 75%) 100%
+    );
     clip-path: polygon(0% 0%, 60% 0%, 0% 60%);
     border-radius: 24px;
     z-index: -1;
@@ -1125,7 +1310,11 @@ onMounted(async () => {
       position: absolute;
       top: 12px;
       left: 12px;
-      background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-light-3));
+      background: linear-gradient(
+        135deg,
+        var(--el-color-success),
+        var(--el-color-success-light-3)
+      );
       color: var(--el-text-color-primary);
       padding: 4px 8px;
       border-radius: 8px;
@@ -1137,7 +1326,11 @@ onMounted(async () => {
   }
 
   &.card-featured {
-    background: linear-gradient(135deg, var(--app-warning-lighter), var(--app-warning-light));
+    background: linear-gradient(
+      135deg,
+      var(--app-warning-lighter),
+      var(--app-warning-light)
+    );
     border: 2px solid var(--app-warning-light);
 
     &::after {
@@ -1172,7 +1365,12 @@ onMounted(async () => {
     left: -2px;
     right: -2px;
     bottom: -2px;
-    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-success), var(--el-color-warning));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary),
+      var(--el-color-success),
+      var(--el-color-warning)
+    );
     border-radius: 26px;
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -1181,9 +1379,10 @@ onMounted(async () => {
   }
 
   &:hover {
-    transform: translateY(-8px) scale(1.02);
+    transform: translateY(-6px);
+    border-color: rgba(99, 102, 241, 0.3);
     box-shadow:
-      0 20px 40px var(--app-shadow-lg),
+      0 20px 40px rgba(99, 102, 241, 0.12),
       0 8px 16px var(--app-shadow-md),
       inset 0 1px 0 rgba(255, 255, 255, 0.9);
 
@@ -1205,7 +1404,6 @@ onMounted(async () => {
   }
 
   @keyframes pulse {
-
     0%,
     100% {
       transform: scale(1);
@@ -1217,7 +1415,6 @@ onMounted(async () => {
   }
 
   @keyframes sparkle {
-
     0%,
     100% {
       transform: rotate(0deg) scale(1);
@@ -1247,13 +1444,12 @@ onMounted(async () => {
   }
 
   .project-image {
-    aspect-ratio: 16/9;
-    border-radius: 20px 20px 0 0;
+    aspect-ratio: 9/16;
+    border-radius: 19px 19px 0 0;
     overflow: hidden;
     margin-bottom: 0;
     position: relative;
-    box-shadow: inset 0 0 0 1px var(--app-border-secondary);
-    transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: all 0.4s ease;
 
     &:hover {
       .image-overlay {
@@ -1266,7 +1462,7 @@ onMounted(async () => {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: linear-gradient(135deg, var(--app-primary-lighter) 0%, var(--app-success-lighter) 100%);
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     }
 
     .project-img {
@@ -1275,7 +1471,11 @@ onMounted(async () => {
       object-fit: cover;
       object-position: center;
       transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-      background: linear-gradient(135deg, var(--app-bg-secondary), var(--app-bg-tertiary));
+      background: linear-gradient(
+        135deg,
+        var(--app-bg-secondary),
+        var(--app-bg-tertiary)
+      );
     }
 
     .image-overlay {
@@ -1284,8 +1484,13 @@ onMounted(async () => {
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(to bottom, transparent 0%, var(--app-shadow-sm) 70%, var(--app-shadow) 100%);
-      opacity: 0.3;
+      background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.9) 100%
+      );
+      opacity: 1;
       transition: opacity 0.4s ease;
       pointer-events: none;
       z-index: 2;
@@ -1297,7 +1502,12 @@ onMounted(async () => {
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        transparent 100%
+      );
       transition: transform 0.6s ease;
       z-index: 3;
     }
@@ -1308,26 +1518,31 @@ onMounted(async () => {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: var(--el-color-primary, #409eff);
-      background: linear-gradient(135deg, var(--app-primary-lighter) 0%, var(--app-success-lighter) 100%);
+      color: rgba(255, 255, 255, 0.9);
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
       padding: 32px 20px;
 
       .placeholder-icon-wrapper {
         width: 80px;
         height: 80px;
         border-radius: 20px;
-        background: linear-gradient(135deg, var(--app-primary-light) rgba(103, 194, 58, 0.12));
+        background: rgba(255, 255, 255, 0.1);
         display: flex;
         align-items: center;
         justify-content: center;
         margin-bottom: 20px;
         transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 12px 24px rgba(255, 255, 255, 0.1);
         box-shadow: 0 12px 24px var(--app-primary-light);
       }
 
       .placeholder-icon {
         font-size: 2.5rem;
-        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-success));
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary),
+          var(--el-color-success)
+        );
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -1336,13 +1551,13 @@ onMounted(async () => {
       .placeholder-text {
         font-size: 1.1rem;
         font-weight: 600;
-        color: var(--el-text-color-primary);
+        color: rgba(255, 255, 255, 0.9);
         text-align: center;
         max-width: 90%;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        text-shadow: 0 1px 2px var(--app-shadow-sm);
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       }
     }
   }
@@ -1352,138 +1567,135 @@ onMounted(async () => {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 16px 20px 0;
+    padding: 0;
 
     .project-status {
-      position: relative;
+      position: absolute;
+      top: 12px;
+      right: 12px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: 12px;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
       backdrop-filter: blur(10px);
+      z-index: 10;
       transition: all 0.3s ease;
 
       &.status-active {
-        background: linear-gradient(135deg, var(--app-success-light), var(--app-success-lighter));
-        border: 1px solid var(--app-success-light);
-        color: var(--el-color-success);
+        background: rgba(34, 197, 94, 0.9);
+        border: none;
+        color: #fff;
       }
 
       &.status-completed {
-        background: linear-gradient(135deg, var(--app-primary-light), var(--app-primary-lighter));
-        border: 1px solid var(--app-primary-light);
-        color: var(--el-color-primary);
+        background: rgba(99, 102, 241, 0.9);
+        border: none;
+        color: #fff;
       }
 
       &.status-paused {
-        background: linear-gradient(135deg, var(--app-warning-light), var(--app-warning-lighter));
-        border: 1px solid var(--app-warning-light);
-        color: var(--el-color-warning);
+        background: rgba(245, 158, 11, 0.9);
+        border: none;
+        color: #fff;
       }
 
       &.status-error {
-        background: linear-gradient(135deg, var(--app-danger-light), var(--app-danger-lighter));
-        border: 1px solid var(--app-danger-light);
-        color: var(--el-color-danger);
+        background: rgba(239, 68, 68, 0.9);
+        border: none;
+        color: #fff;
       }
 
       .status-indicator {
         position: relative;
-        color: white;
 
         .status-dot {
-          width: 8px;
-          height: 8px;
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
-          background: white;
-          position: relative;
-          z-index: 2;
+          background: #fff;
         }
 
         .status-pulse {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: white;
-          opacity: 0.6;
-          animation: statusPulse 2s ease-in-out infinite;
+          display: none;
         }
       }
 
       .status-text {
-        font-size: 0.8rem;
+        font-size: 0.7rem;
         font-weight: 600;
-        color: white;
+        color: #fff;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
       }
     }
   }
 
   // 项目内容区域
   .project-content {
-    padding: 20px 24px;
+    padding: 12px 20px 18px;
     flex: 1;
     display: flex;
     flex-direction: column;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 1) 20%
+    );
 
     .project-header {
-      margin-bottom: 16px;
+      margin-bottom: 12px;
 
       .project-title {
-        margin: 0 0 8px 0;
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: var(--el-text-color-primary);
-        line-height: 1.3;
+        margin: 0 0 6px 0;
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: #1e293b;
+        line-height: 1.4;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        transition: color 0.3s ease;
+        transition: color 0.25s ease;
 
         &:hover {
-          color: var(--el-color-primary);
+          color: #6366f1;
         }
       }
 
       .project-meta {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
 
         .project-id {
-          font-size: 0.8rem;
-          color: var(--el-color-primary);
-          background: rgba(64, 158, 255, 0.1);
-          padding: 2px 8px;
-          border-radius: 8px;
-          font-weight: 600;
+          font-size: 0.75rem;
+          color: #6366f1;
+          background: rgba(99, 102, 241, 0.08);
+          padding: 3px 8px;
+          border-radius: 6px;
+          font-weight: 500;
         }
 
         .project-date {
-          font-size: 0.8rem;
-          color: var(--el-text-color-secondary);
-          font-weight: 500;
+          font-size: 0.75rem;
+          color: #94a3b8;
+          font-weight: 400;
         }
       }
     }
 
     .project-description {
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       flex: 1;
 
       .description-text {
         margin: 0;
-        font-size: 0.95rem;
-        color: var(--el-text-color-secondary);
+        font-size: 0.875rem;
+        color: #64748b;
         line-height: 1.6;
         display: -webkit-box;
         -webkit-line-clamp: 2;
+        line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1548,7 +1760,11 @@ onMounted(async () => {
       gap: 8px;
 
       .project-name-tag {
-        background: linear-gradient(135deg, rgba(64, 158, 255, 0.15), rgba(64, 158, 255, 0.08));
+        background: linear-gradient(
+          135deg,
+          rgba(64, 158, 255, 0.15),
+          rgba(64, 158, 255, 0.08)
+        );
         border: 1px solid rgba(64, 158, 255, 0.2);
         color: var(--el-color-primary);
         padding: 6px 12px;
@@ -1562,7 +1778,11 @@ onMounted(async () => {
         transition: all 0.3s ease;
 
         &:hover {
-          background: linear-gradient(135deg, rgba(64, 158, 255, 0.2), rgba(64, 158, 255, 0.1));
+          background: linear-gradient(
+            135deg,
+            rgba(64, 158, 255, 0.2),
+            rgba(64, 158, 255, 0.1)
+          );
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
         }
@@ -1651,7 +1871,12 @@ onMounted(async () => {
           left: -100%;
           width: 100%;
           height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent
+          );
           transition: left 0.5s ease;
         }
 
@@ -1665,34 +1890,58 @@ onMounted(async () => {
         }
 
         &[type="primary"] {
-          background: linear-gradient(135deg, rgba(64, 158, 255, 0.15), rgba(64, 158, 255, 0.08));
+          background: linear-gradient(
+            135deg,
+            rgba(64, 158, 255, 0.15),
+            rgba(64, 158, 255, 0.08)
+          );
           color: var(--el-color-primary);
           border: 1px solid rgba(64, 158, 255, 0.2);
 
           &:hover {
-            background: linear-gradient(135deg, rgba(64, 158, 255, 0.25), rgba(64, 158, 255, 0.15));
+            background: linear-gradient(
+              135deg,
+              rgba(64, 158, 255, 0.25),
+              rgba(64, 158, 255, 0.15)
+            );
             box-shadow: 0 6px 16px rgba(64, 158, 255, 0.3);
           }
         }
 
         &[type="success"] {
-          background: linear-gradient(135deg, rgba(103, 194, 58, 0.15), rgba(103, 194, 58, 0.08));
+          background: linear-gradient(
+            135deg,
+            rgba(103, 194, 58, 0.15),
+            rgba(103, 194, 58, 0.08)
+          );
           color: var(--el-color-success);
           border: 1px solid rgba(103, 194, 58, 0.2);
 
           &:hover {
-            background: linear-gradient(135deg, rgba(103, 194, 58, 0.25), rgba(103, 194, 58, 0.15));
+            background: linear-gradient(
+              135deg,
+              rgba(103, 194, 58, 0.25),
+              rgba(103, 194, 58, 0.15)
+            );
             box-shadow: 0 6px 16px rgba(103, 194, 58, 0.3);
           }
         }
 
         &[type="warning"] {
-          background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.08));
+          background: linear-gradient(
+            135deg,
+            rgba(255, 193, 7, 0.15),
+            rgba(255, 193, 7, 0.08)
+          );
           color: var(--el-color-warning);
           border: 1px solid rgba(255, 193, 7, 0.2);
 
           &:hover {
-            background: linear-gradient(135deg, rgba(255, 193, 7, 0.25), rgba(255, 193, 7, 0.15));
+            background: linear-gradient(
+              135deg,
+              rgba(255, 193, 7, 0.25),
+              rgba(255, 193, 7, 0.15)
+            );
             box-shadow: 0 6px 16px rgba(255, 193, 7, 0.3);
           }
         }
@@ -1704,7 +1953,11 @@ onMounted(async () => {
         width: 36px;
         height: 36px;
         border-radius: 12px;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.9),
+          rgba(255, 255, 255, 0.7)
+        );
         border: 1px solid rgba(0, 0, 0, 0.1);
         color: var(--el-text-color-primary);
         backdrop-filter: blur(10px);
@@ -1712,7 +1965,11 @@ onMounted(async () => {
         transition: all 0.3s ease;
 
         &:hover {
-          background: linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.9));
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 1),
+            rgba(255, 255, 255, 0.9)
+          );
           transform: translateY(-2px) scale(1.05);
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
         }
@@ -1757,7 +2014,8 @@ onMounted(async () => {
 
     .el-dialog__header {
       margin: 0;
-      border-bottom: 1px solid var(--el-border-color-lighter, rgba(0, 0, 0, 0.05));
+      border-bottom: 1px solid
+        var(--el-border-color-lighter, rgba(0, 0, 0, 0.05));
       background: var(--el-bg-color-overlay, rgba(255, 255, 255, 0.95));
     }
 
@@ -1779,20 +2037,36 @@ onMounted(async () => {
 .dark {
   .project-workspace {
     .workspace-background {
-      background: linear-gradient(135deg, var(--app-bg-primary) 0%, var(--app-bg-secondary) 100%);
+      background: linear-gradient(
+        135deg,
+        var(--app-bg-primary) 0%,
+        var(--app-bg-secondary) 100%
+      );
     }
 
     .gradient-orb {
       &.orb-1 {
-        background: linear-gradient(45deg, var(--app-primary-light), var(--app-success-light));
+        background: linear-gradient(
+          45deg,
+          var(--app-primary-light),
+          var(--app-success-light)
+        );
       }
 
       &.orb-2 {
-        background: linear-gradient(45deg, var(--app-success-light), var(--app-warning-light));
+        background: linear-gradient(
+          45deg,
+          var(--app-success-light),
+          var(--app-warning-light)
+        );
       }
 
       &.orb-3 {
-        background: linear-gradient(45deg, var(--app-warning-light), var(--app-primary-light));
+        background: linear-gradient(
+          45deg,
+          var(--app-warning-light),
+          var(--app-primary-light)
+        );
       }
     }
   }
@@ -1830,11 +2104,14 @@ onMounted(async () => {
 
     .project-image {
       .image-container {
-        background: linear-gradient(135deg, var(--app-primary-lighter) 0%, var(--app-success-lighter) 100%);
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
       }
 
       .image-placeholder {
-        background: linear-gradient(135deg, var(--app-primary-light) rgba(103, 194, 58, 0.15));
+        background: linear-gradient(
+          135deg,
+          var(--app-primary-light) rgba(103, 194, 58, 0.15)
+        );
       }
     }
 
@@ -1844,7 +2121,10 @@ onMounted(async () => {
       }
 
       .project-status {
-        background: linear-gradient(135deg, var(--app-success) rgba(103, 194, 58, 0.1));
+        background: linear-gradient(
+          135deg,
+          var(--app-success) rgba(103, 194, 58, 0.1)
+        );
         border-color: var(--app-success-light);
       }
     }
@@ -1858,6 +2138,7 @@ onMounted(async () => {
     &:hover {
       background: rgba(71, 85, 105, 0.9);
       border-color: var(--app-border-secondary);
+      color: #fff;
     }
   }
 

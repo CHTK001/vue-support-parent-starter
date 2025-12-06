@@ -634,22 +634,21 @@
 </template>
 
 <script setup lang="ts">
-import { type ServerProxy } from "@/api/monitor/gen/server-proxy";
 import {
-    type ServerDisplayData,
-    saveServer,
-    testLocalIpDetection,
-    updateServer
+  type ServerDisplayData,
+  saveServer,
+  testLocalIpDetection,
+  updateServer,
 } from "@/api/server";
 import {
-    type ServerGroup,
-    getDefaultGroup,
-    getEnabledServerGroups,
+  type ServerGroup,
+  getDefaultGroup,
+  getEnabledServerGroups,
 } from "@/api/server/group";
-import { getServerProxyPageList } from "@/api/server/proxy";
+// 代理列表接口已移除，业务已废弃
 // 服务器设置相关导入已移除，配置功能在专门的服务器配置页面中
 import { message } from "@repo/utils";
-import { computed, nextTick, reactive, ref } from "vue";
+import { nextTick, reactive, ref } from "vue";
 // ServerSettingDialog已移除，配置功能在专门的服务器配置页面中
 
 // 导入组编辑弹框
@@ -715,37 +714,7 @@ const formData = reactive({
   monitorSysGenServerOsCustom: "", // 自定义操作系统名称
 });
 
-// 代理相关数据
-const proxyList = ref<ServerProxy[]>([]);
-const proxyListLoading = ref(false);
-const selectedProxy = ref<ServerProxy | null>(null);
-
 // 服务器设置数据已移至专门的服务器配置页面
-
-// 分组的代理列表
-const groupedProxyList = computed(() => {
-  const groups = [
-    { type: "HTTP", label: "HTTP 代理", proxies: [] as ServerProxy[] },
-    { type: "SOCKS4", label: "SOCKS4 代理", proxies: [] as ServerProxy[] },
-    { type: "SOCKS5", label: "SOCKS5 代理", proxies: [] as ServerProxy[] },
-    {
-      type: "GUACAMOLE",
-      label: "Guacamole 代理",
-      proxies: [] as ServerProxy[],
-    },
-  ];
-
-  proxyList.value.forEach((proxy) => {
-    const group = groups.find(
-      (g) => g.type === proxy.monitorSysGenServerProxyType
-    );
-    if (group) {
-      group.proxies.push(proxy);
-    }
-  });
-
-  return groups.filter((group) => group.proxies.length > 0);
-});
 
 // 表单验证规则
 const rules = {
@@ -856,8 +825,7 @@ const open = async (editMode: "add" | "edit" = "add") => {
     }
   }
 
-  // 加载代理列表
-  loadProxyList();
+  // 代理列表加载已移除，业务已废弃
 };
 
 /**
@@ -1241,95 +1209,7 @@ const getOsIcon = (osType: string) => {
   }
 };
 
-/**
- * 获取代理类型图标
- */
-const getProxyTypeIcon = (proxyType: string) => {
-  switch (proxyType) {
-    case "HTTP":
-      return "ri:global-line";
-    case "SOCKS4":
-      return "ri:shield-line";
-    case "SOCKS5":
-      return "ri:shield-check-line";
-    case "GUACAMOLE":
-      return "ri:remote-control-line";
-    case "VNC":
-      return "ri:computer-line";
-    case "RDP":
-      return "ri:windows-line";
-    default:
-      return "ri:server-line";
-  }
-};
-
-/**
- * 获取代理状态文本
- */
-const getProxyStatusText = (status: number) => {
-  switch (status) {
-    case 0:
-      return "离线";
-    case 1:
-      return "在线";
-    case 2:
-      return "连接中";
-    case 3:
-      return "连接失败";
-    default:
-      return "未知";
-  }
-};
-
-/**
- * 加载代理列表
- */
-const loadProxyList = async () => {
-  try {
-    proxyListLoading.value = true;
-    // 加载所有可用的代理列表供用户选择
-    const result = await getServerProxyPageList({
-      page: 1,
-      pageSize: 1000, // 获取足够多的代理
-      params: {
-        status: 1, // 只获取启用的代理
-      },
-    });
-    if (result.code === "00000") {
-      proxyList.value = result.data?.data || [];
-    } else {
-      message.error(result.msg || "获取代理列表失败");
-    }
-  } catch (error) {
-    console.error("加载代理列表失败:", error);
-    message.error("加载代理列表失败");
-  } finally {
-    proxyListLoading.value = false;
-  }
-};
-
-/**
- * 处理代理选择变化
- */
-const handleProxyChange = (proxyId: number | null) => {
-  if (proxyId) {
-    selectedProxy.value =
-      proxyList.value.find(
-        (proxy) => proxy.monitorSysGenServerProxyId === proxyId
-      ) || null;
-  } else {
-    selectedProxy.value = null;
-  }
-};
-
-/**
- * 打开代理管理
- */
-const openProxyManagement = () => {
-  // 在新窗口中打开代理管理页面
-  const routeUrl = "/server/proxy-management";
-  window.open(routeUrl, "_blank");
-};
+// 代理相关函数已移除，业务已废弃
 
 /**
  * 提交表单
@@ -1981,7 +1861,7 @@ defineExpose({
         width: 20px;
         height: 20px;
         border-radius: 50%;
-         background: var(--el-bg-color-overlay);
+        background: var(--el-bg-color-overlay);
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -2007,7 +1887,7 @@ defineExpose({
         border-color: transparent;
 
         .el-switch__action {
-           background: var(--el-bg-color-overlay);
+          background: var(--el-bg-color-overlay);
 
           &::before {
             opacity: 0.2;
@@ -2647,84 +2527,19 @@ defineExpose({
   width: 100%;
 }
 
-// 代理选择容器样式
-.proxy-selection-container {
-  .proxy-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-  }
-}
-
-// 代理选项样式
-.proxy-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-
-  .proxy-option-icon {
-    font-size: 16px;
-    color: var(--el-color-primary);
-    flex-shrink: 0;
-  }
-
-  .proxy-name {
-    font-weight: 500;
-    color: var(--el-text-color-primary);
-    flex-shrink: 0;
-  }
-
-  .proxy-address {
-    font-size: 12px;
-    color: var(--el-text-color-regular);
-    margin-left: auto;
-    flex-shrink: 0;
-  }
-}
-
-// 选中代理信息样式
-.selected-proxy-info {
-  margin-top: 12px;
-
-  .proxy-info-details {
-    .proxy-info-item {
-      display: flex;
-      align-items: center;
-      margin-bottom: 6px;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      .label {
-        font-size: 12px;
-        color: var(--el-text-color-regular);
-        margin-right: 8px;
-        min-width: 40px;
-      }
-
-      .latency {
-        font-size: 11px;
-        color: var(--el-text-color-placeholder);
-        margin-left: 4px;
-      }
-    }
-  }
-}
+// 代理相关样式已移除，业务已废弃
 
 // 新增样式
 .form-tip {
   font-size: 12px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   margin-top: 4px;
   line-height: 1.4;
 }
 
 .help-icon {
   margin-left: 8px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   cursor: help;
 
   &:hover {
