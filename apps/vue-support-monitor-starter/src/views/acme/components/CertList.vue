@@ -49,12 +49,20 @@
     </div>
 
     <!-- 证书表格 -->
-    <el-table
+    <ScTable
+      ref="tableRef"
       v-loading="loading"
       :data="tableData"
+      :params="{}"
+      row-key="acmeCertId"
       stripe
       border
-      style="width: 100%"
+      :page-size="pagination.size"
+      :current-page="pagination.page"
+      :total="pagination.total"
+      :page-sizes="[10, 20, 50, 100]"
+      @page-change="handlePageChange"
+      @size-change="handleSizeChange"
     >
       <el-table-column prop="acmeCertId" label="ID" width="80" />
       <el-table-column
@@ -125,20 +133,7 @@
           </el-button-group>
         </template>
       </el-table-column>
-    </el-table>
-
-    <!-- 分页 -->
-    <div class="pagination-wrapper">
-      <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.size"
-        :total="pagination.total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="loadData"
-        @current-change="loadData"
-      />
-    </div>
+    </ScTable>
 
     <!-- 证书详情对话框 -->
     <CertDetailDialog
@@ -177,6 +172,7 @@ const emit = defineEmits<{
 }>();
 
 const loading = ref(false);
+const tableRef = ref();
 const tableData = ref<AcmeCertificate[]>([]);
 const detailDialogVisible = ref(false);
 const downloadDialogVisible = ref(false);
@@ -251,6 +247,23 @@ async function loadData() {
  * 搜索
  */
 function handleSearch() {
+  pagination.page = 1;
+  loadData();
+}
+
+/**
+ * 分页变化
+ */
+function handlePageChange(page: number) {
+  pagination.page = page;
+  loadData();
+}
+
+/**
+ * 每页条数变化
+ */
+function handleSizeChange(size: number) {
+  pagination.size = size;
   pagination.page = 1;
   loadData();
 }
@@ -376,10 +389,5 @@ onMounted(() => {
     font-weight: 500;
   }
 
-  .pagination-wrapper {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 16px;
-  }
 }
 </style>
