@@ -8,7 +8,8 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import { http, loadRouterBase } from "@repo/utils";
+import { http } from "@repo/utils";
+import { loadRouterBase } from "../config";
 // 导入证书
 export function certificateImportFile(formData) {
   return http.post('/certificate/import-file', formData, {

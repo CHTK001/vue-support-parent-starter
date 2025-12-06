@@ -8,7 +8,8 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import { http, loadRouterBase } from "@repo/utils";
+import { http } from "@repo/utils";
+import { loadRouterBase } from "../config";
 
 /**
  * 上传文件到 SSH 节点
