@@ -40,6 +40,12 @@ export interface PlatformConfigs {
   OpenTenantLogin?: boolean;
   /** 是否开启基础登录 */
   OpenBaseLogin?: boolean;
+  /** 配置加载失败时是否保持加载页面（默认false，失败后继续进入应用） */
+  BlockOnConfigLoadFail?: boolean;
+  /** 是否显示错误页面风格切换按钮（默认false） */
+  ShowErrorPageStyleSwitcher?: boolean;
+  /** 系统加载页面风格（默认minimal） */
+  LoadingPageStyle?: "pixel" | "space" | "minimal" | "servererror";
 
   // ===========================================
   // 布局与菜单配置
@@ -192,8 +198,8 @@ export interface PlatformConfigs {
   // ===========================================
   // 错误页面配置
   // ===========================================
-  /** 错误页面风格: pixel(像素风) | space(太空风) | minimal(极简风) */
-  ErrorPageStyle?: 'pixel' | 'space' | 'minimal';
+  /** 错误页面风格: pixel(像素恐龙) | space(太空风) | minimal(极简风) | forbidden(禁止) | notfound(迷路) | servererror(故障) */
+  ErrorPageStyle?: 'pixel' | 'space' | 'minimal' | 'forbidden' | 'notfound' | 'servererror';
 
   // ===========================================
   // 页面行为配置

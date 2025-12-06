@@ -352,6 +352,9 @@
  */
 import { ref } from "vue";
 import { ElMessage } from "element-plus";
+import ScButton from "@repo/components/ScButton/index.vue";
+import ScCard from "@repo/components/ScCard/index.vue";
+import ScDialog from "@repo/components/ScDialog/index.vue";
 
 const showTechDialog = ref(false);
 const showTechDialog2 = ref(false);

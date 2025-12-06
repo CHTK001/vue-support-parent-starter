@@ -143,14 +143,18 @@ export const useConfigStore = defineStore({
 
       if (!dataSetting) {
         return new Promise<void>(async (resolve) => {
-          const response = await fetchSetting(this.settingGroup);
-          const data = response.data; // 提取data字段
-          if (!data) {
-            resolve(null);
-            return;
+          try {
+            const response = await fetchSetting(this.settingGroup);
+            const data = response?.data; // 提取data字段
+            if (!data) {
+              resolve(null);
+              return;
+            }
+            localStorageProxy().setItem(this.storageKey, data);
+            this.doRegister(data);
+          } catch (error) {
+            console.warn("Failed to fetch remote settings:", error);
           }
-          localStorageProxy().setItem(this.storageKey, data);
-          this.doRegister(data);
           resolve(null);
         });
       }

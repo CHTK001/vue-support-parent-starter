@@ -38,6 +38,14 @@ OpenAuth: false
 OpenBaseLogin: false
 # 是否开启刷新token（默认: false）
 OpenShowRefreshToken: false
+# 配置加载失败时是否保持加载页面（默认: false，失败后继续进入应用）
+# BlockOnConfigLoadFail: false
+# 是否显示错误页面风格切换按钮（默认: false）
+ShowErrorPageStyleSwitcher: true
+# 默认错误页面风格-pixel像素恐龙-space太空-minimal极简-forbidden禁止-notfound迷路-servererror故障（默认: minimal）
+# ErrorPageStyle: minimal
+# 系统加载页面风格-pixel像素恐龙-space太空-minimal极简-servererror服务器（默认: minimal）
+# LoadingPageStyle: minimal
 
 # ===========================================
 # 布局与菜单配置
@@ -128,8 +136,8 @@ ShowBarSetting: true
 # ===========================================
 # 导航菜单配置
 # ===========================================
-# 导航菜单模式-vertical左侧-horizontal顶部-mix混合-double双栏-mobile移动（默认: vertical）
-# Layout: vertical
+# 导航菜单模式-vertical左侧-horizontal顶部-mix混合-double双栏-hover悬停（默认: vertical）
+Layout: hover
 # 菜单展开收起图标是否开启动画-如遇卡顿设置为true（默认: false）
 # MenuArrowIconNoTransition: false
 # 菜单搜索历史的最大条目（默认: 6）
