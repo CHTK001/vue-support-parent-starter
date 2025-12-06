@@ -208,6 +208,18 @@ status:
   pureNoTodo: No Todo
   pureNotify: Notify
   pureTodo: Todo
+system:
+  initializing: System initializing...
+error:
+  forbidden: Access Denied
+  forbiddenDesc: Sorry, you don't have permission to access this page
+  notFound: Page Not Found
+  notFoundDesc: Sorry, the page you visited does not exist or has been removed
+  serverError: Server Error
+  serverErrorDesc: Sorry, the server encountered some problems
+  goHome: Go Home
+  goBack: Go Back
+  pressToRetry: Press any key to retry
 sys:
   user:
     sex:
