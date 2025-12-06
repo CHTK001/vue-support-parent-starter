@@ -268,11 +268,42 @@ const LayHeader = defineComponent({
 </script>
 
 <template>
-  <!-- 全屏加载遮罩 -->
+  <!-- 全屏加载遮罩 - 像素恐龙动画 -->
   <div v-if="!isConfigLoaded" class="fullscreen-loading">
-    <div class="loading-content">
-      <div class="loading-spinner"></div>
+    <div class="loading-scene">
+      <!-- 像素云朵 -->
+      <div class="pixel-clouds">
+        <div class="pixel-cloud pixel-cloud-1"></div>
+        <div class="pixel-cloud pixel-cloud-2"></div>
+      </div>
+      
+      <!-- 像素恐龙 -->
+      <div class="dino-container">
+        <div class="pixel-dino">
+          <div class="dino-sprite"></div>
+        </div>
+      </div>
+      
+      <!-- 像素仙人掌 -->
+      <div class="cactus-container">
+        <div class="pixel-cactus"></div>
+      </div>
+      
+      <!-- 像素地面 -->
+      <div class="pixel-ground"></div>
+    </div>
+    
+    <!-- 加载信息 -->
+    <div class="loading-info">
+      <div class="loading-progress">
+        <div class="progress-bar"></div>
+      </div>
       <div class="loading-text">{{ t("system.initializing") }}</div>
+      <div class="loading-dots">
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
     </div>
   </div>
 
@@ -469,50 +500,440 @@ const LayHeader = defineComponent({
   background: var(--el-bg-color-overlay);
 }
 
-// 全屏加载遮罩样式
+// 全屏加载遮罩样式 - 真正的像素风格
 .fullscreen-loading {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: var(--el-bg-color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  backdrop-filter: blur(10px);
-}
-
-.loading-content {
+  background: #f7f7f7;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  justify-content: center;
+  z-index: 9999;
+  overflow: hidden;
+  image-rendering: pixelated;
+  
+  :global(.dark) & {
+    background: #1a1a2e;
+  }
 }
 
-.loading-spinner {
-  width: 3rem;
-  height: 3rem;
-  border: 4px solid #e5e7eb;
-  border-top: 4px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+.loading-scene {
+  position: relative;
+  width: 400px;
+  height: 180px;
+  margin-bottom: 40px;
+}
+
+// 像素云朵
+.pixel-clouds {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+}
+
+.pixel-cloud {
+  --pixel: 4px;
+  --color: #c0c0c0;
+  position: absolute;
+  width: var(--pixel);
+  height: var(--pixel);
+  background: var(--color);
+  // 像素云朵形状 (使用 box-shadow 绘制)
+  box-shadow:
+    // 第一层
+    calc(var(--pixel) * 1) 0 var(--color),
+    calc(var(--pixel) * 2) 0 var(--color),
+    calc(var(--pixel) * 3) 0 var(--color),
+    calc(var(--pixel) * 4) 0 var(--color),
+    calc(var(--pixel) * 5) 0 var(--color),
+    calc(var(--pixel) * 6) 0 var(--color),
+    // 第二层
+    calc(var(--pixel) * -1) calc(var(--pixel) * -1) var(--color),
+    0 calc(var(--pixel) * -1) var(--color),
+    calc(var(--pixel) * 1) calc(var(--pixel) * -1) var(--color),
+    calc(var(--pixel) * 2) calc(var(--pixel) * -1) var(--color),
+    calc(var(--pixel) * 5) calc(var(--pixel) * -1) var(--color),
+    calc(var(--pixel) * 6) calc(var(--pixel) * -1) var(--color),
+    calc(var(--pixel) * 7) calc(var(--pixel) * -1) var(--color);
+
+  :global(.dark) & {
+    --color: #4a4a6a;
+  }
+}
+
+.pixel-cloud-1 {
+  top: 20px;
+  right: 80px;
+  animation: cloud-move 12s linear infinite;
+}
+
+.pixel-cloud-2 {
+  top: 50px;
+  right: 200px;
+  transform: scale(0.7);
+  animation: cloud-move 16s linear infinite;
+  animation-delay: -6s;
+}
+
+// 像素恐龙容器
+.dino-container {
+  position: absolute;
+  bottom: 24px;
+  left: 60px;
+  z-index: 10;
+}
+
+.pixel-dino {
+  position: relative;
+  animation: dino-jump 0.8s ease-in-out infinite;
+}
+
+// 使用 box-shadow 绘制像素恐龙
+.dino-sprite {
+  --pixel: 4px;
+  --color: #535353;
+  position: relative;
+  width: var(--pixel);
+  height: var(--pixel);
+  background: transparent;
+  // Chrome 恐龙像素图
+  box-shadow:
+    // 头部顶端
+    calc(var(--pixel) * 5) 0 var(--color),
+    calc(var(--pixel) * 6) 0 var(--color),
+    calc(var(--pixel) * 7) 0 var(--color),
+    calc(var(--pixel) * 8) 0 var(--color),
+    calc(var(--pixel) * 9) 0 var(--color),
+    calc(var(--pixel) * 10) 0 var(--color),
+    // 头部第2行
+    calc(var(--pixel) * 4) calc(var(--pixel) * 1) var(--color),
+    calc(var(--pixel) * 5) calc(var(--pixel) * 1) var(--color),
+    calc(var(--pixel) * 6) calc(var(--pixel) * 1) var(--color),
+    calc(var(--pixel) * 7) calc(var(--pixel) * 1) var(--color),
+    calc(var(--pixel) * 8) calc(var(--pixel) * 1) var(--color),
+    calc(var(--pixel) * 9) calc(var(--pixel) * 1) var(--color),
+    calc(var(--pixel) * 10) calc(var(--pixel) * 1) var(--color),
+    calc(var(--pixel) * 11) calc(var(--pixel) * 1) var(--color),
+    // 头部第3行 (眼睛)
+    calc(var(--pixel) * 4) calc(var(--pixel) * 2) var(--color),
+    calc(var(--pixel) * 5) calc(var(--pixel) * 2) var(--color),
+    calc(var(--pixel) * 6) calc(var(--pixel) * 2) var(--color),
+    calc(var(--pixel) * 7) calc(var(--pixel) * 2) var(--color),
+    calc(var(--pixel) * 8) calc(var(--pixel) * 2) var(--color),
+    calc(var(--pixel) * 9) calc(var(--pixel) * 2) #f7f7f7, // 眼睛(白色)
+    calc(var(--pixel) * 10) calc(var(--pixel) * 2) var(--color),
+    calc(var(--pixel) * 11) calc(var(--pixel) * 2) var(--color),
+    // 头部第4行
+    calc(var(--pixel) * 4) calc(var(--pixel) * 3) var(--color),
+    calc(var(--pixel) * 5) calc(var(--pixel) * 3) var(--color),
+    calc(var(--pixel) * 6) calc(var(--pixel) * 3) var(--color),
+    calc(var(--pixel) * 7) calc(var(--pixel) * 3) var(--color),
+    calc(var(--pixel) * 8) calc(var(--pixel) * 3) var(--color),
+    calc(var(--pixel) * 9) calc(var(--pixel) * 3) var(--color),
+    calc(var(--pixel) * 10) calc(var(--pixel) * 3) var(--color),
+    calc(var(--pixel) * 11) calc(var(--pixel) * 3) var(--color),
+    // 头部第5行
+    calc(var(--pixel) * 4) calc(var(--pixel) * 4) var(--color),
+    calc(var(--pixel) * 5) calc(var(--pixel) * 4) var(--color),
+    calc(var(--pixel) * 6) calc(var(--pixel) * 4) var(--color),
+    calc(var(--pixel) * 7) calc(var(--pixel) * 4) var(--color),
+    calc(var(--pixel) * 8) calc(var(--pixel) * 4) var(--color),
+    calc(var(--pixel) * 9) calc(var(--pixel) * 4) var(--color),
+    calc(var(--pixel) * 10) calc(var(--pixel) * 4) var(--color),
+    calc(var(--pixel) * 11) calc(var(--pixel) * 4) var(--color),
+    // 脖子和身体第6行
+    calc(var(--pixel) * 2) calc(var(--pixel) * 5) var(--color),
+    calc(var(--pixel) * 3) calc(var(--pixel) * 5) var(--color),
+    calc(var(--pixel) * 4) calc(var(--pixel) * 5) var(--color),
+    calc(var(--pixel) * 5) calc(var(--pixel) * 5) var(--color),
+    calc(var(--pixel) * 6) calc(var(--pixel) * 5) var(--color),
+    // 身体第7行 (手臂)
+    calc(var(--pixel) * 1) calc(var(--pixel) * 6) var(--color),
+    calc(var(--pixel) * 2) calc(var(--pixel) * 6) var(--color),
+    calc(var(--pixel) * 3) calc(var(--pixel) * 6) var(--color),
+    calc(var(--pixel) * 4) calc(var(--pixel) * 6) var(--color),
+    calc(var(--pixel) * 5) calc(var(--pixel) * 6) var(--color),
+    calc(var(--pixel) * 6) calc(var(--pixel) * 6) var(--color),
+    calc(var(--pixel) * 7) calc(var(--pixel) * 6) var(--color),
+    // 身体第8行
+    0 calc(var(--pixel) * 7) var(--color),
+    calc(var(--pixel) * 1) calc(var(--pixel) * 7) var(--color),
+    calc(var(--pixel) * 2) calc(var(--pixel) * 7) var(--color),
+    calc(var(--pixel) * 3) calc(var(--pixel) * 7) var(--color),
+    calc(var(--pixel) * 4) calc(var(--pixel) * 7) var(--color),
+    calc(var(--pixel) * 5) calc(var(--pixel) * 7) var(--color),
+    calc(var(--pixel) * 6) calc(var(--pixel) * 7) var(--color),
+    // 身体第9行 (尾巴开始)
+    calc(var(--pixel) * -1) calc(var(--pixel) * 8) var(--color),
+    0 calc(var(--pixel) * 8) var(--color),
+    calc(var(--pixel) * 1) calc(var(--pixel) * 8) var(--color),
+    calc(var(--pixel) * 2) calc(var(--pixel) * 8) var(--color),
+    calc(var(--pixel) * 3) calc(var(--pixel) * 8) var(--color),
+    calc(var(--pixel) * 4) calc(var(--pixel) * 8) var(--color),
+    calc(var(--pixel) * 5) calc(var(--pixel) * 8) var(--color),
+    // 身体第10行
+    calc(var(--pixel) * -2) calc(var(--pixel) * 9) var(--color),
+    calc(var(--pixel) * -1) calc(var(--pixel) * 9) var(--color),
+    0 calc(var(--pixel) * 9) var(--color),
+    calc(var(--pixel) * 1) calc(var(--pixel) * 9) var(--color),
+    calc(var(--pixel) * 2) calc(var(--pixel) * 9) var(--color),
+    calc(var(--pixel) * 3) calc(var(--pixel) * 9) var(--color),
+    calc(var(--pixel) * 4) calc(var(--pixel) * 9) var(--color),
+    // 腿部第11行
+    calc(var(--pixel) * -3) calc(var(--pixel) * 10) var(--color),
+    calc(var(--pixel) * -2) calc(var(--pixel) * 10) var(--color),
+    calc(var(--pixel) * 2) calc(var(--pixel) * 10) var(--color),
+    calc(var(--pixel) * 3) calc(var(--pixel) * 10) var(--color),
+    calc(var(--pixel) * 4) calc(var(--pixel) * 10) var(--color),
+    // 腿部第12行
+    calc(var(--pixel) * -4) calc(var(--pixel) * 11) var(--color),
+    calc(var(--pixel) * 2) calc(var(--pixel) * 11) var(--color),
+    calc(var(--pixel) * 4) calc(var(--pixel) * 11) var(--color),
+    // 脚部第13行
+    calc(var(--pixel) * 2) calc(var(--pixel) * 12) var(--color),
+    calc(var(--pixel) * 3) calc(var(--pixel) * 12) var(--color),
+    calc(var(--pixel) * 4) calc(var(--pixel) * 12) var(--color),
+    calc(var(--pixel) * 5) calc(var(--pixel) * 12) var(--color);
+    
+  :global(.dark) & {
+    --color: #b0b0b0;
+  }
+
+  animation: dino-legs 0.15s steps(1) infinite;
+}
+
+// 像素仙人掌
+.cactus-container {
+  position: absolute;
+  bottom: 20px;
+  right: 0;
+  animation: cactus-run 2.5s linear infinite;
+}
+
+.pixel-cactus {
+  --pixel: 4px;
+  --color: #535353;
+  position: relative;
+  width: var(--pixel);
+  height: var(--pixel);
+  background: var(--color);
+  // 像素仙人掌形状
+  box-shadow:
+    // 主干
+    0 calc(var(--pixel) * -1) var(--color),
+    0 calc(var(--pixel) * -2) var(--color),
+    0 calc(var(--pixel) * -3) var(--color),
+    0 calc(var(--pixel) * -4) var(--color),
+    0 calc(var(--pixel) * -5) var(--color),
+    0 calc(var(--pixel) * -6) var(--color),
+    0 calc(var(--pixel) * -7) var(--color),
+    // 左臂
+    calc(var(--pixel) * -1) calc(var(--pixel) * -2) var(--color),
+    calc(var(--pixel) * -1) calc(var(--pixel) * -3) var(--color),
+    calc(var(--pixel) * -1) calc(var(--pixel) * -4) var(--color),
+    calc(var(--pixel) * -2) calc(var(--pixel) * -4) var(--color),
+    calc(var(--pixel) * -2) calc(var(--pixel) * -5) var(--color),
+    calc(var(--pixel) * -2) calc(var(--pixel) * -6) var(--color),
+    // 右臂
+    calc(var(--pixel) * 1) calc(var(--pixel) * -3) var(--color),
+    calc(var(--pixel) * 1) calc(var(--pixel) * -4) var(--color),
+    calc(var(--pixel) * 1) calc(var(--pixel) * -5) var(--color),
+    calc(var(--pixel) * 2) calc(var(--pixel) * -5) var(--color),
+    calc(var(--pixel) * 2) calc(var(--pixel) * -6) var(--color),
+    calc(var(--pixel) * 2) calc(var(--pixel) * -7) var(--color);
+    
+  :global(.dark) & {
+    --color: #b0b0b0;
+  }
+}
+
+// 像素地面
+.pixel-ground {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #535353;
+  overflow: hidden;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: repeating-linear-gradient(
+      90deg,
+      #535353 0,
+      #535353 4px,
+      transparent 4px,
+      transparent 16px
+    );
+  }
+  
+  :global(.dark) & {
+    background: #b0b0b0;
+    
+    &::after {
+      background: repeating-linear-gradient(
+        90deg,
+        #b0b0b0 0,
+        #b0b0b0 4px,
+        transparent 4px,
+        transparent 16px
+      );
+    }
+  }
+}
+
+// 加载信息
+.loading-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loading-progress {
+  width: 200px;
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+  
+  :global(.dark) & {
+    background: #3a3a5c;
+  }
+}
+
+.progress-bar {
+  height: 100%;
+  width: 30%;
+  background: linear-gradient(90deg, #535353, #757575);
+  border-radius: 2px;
+  animation: progress 2s ease-in-out infinite;
+  
+  :global(.dark) & {
+    background: linear-gradient(90deg, #a0a0a0, #c0c0c0);
+  }
 }
 
 .loading-text {
-  font-size: 1.2rem;
-  color: var(--el-text-color-primary);
+  font-size: 1rem;
   font-weight: 500;
+  color: #535353;
+  letter-spacing: 2px;
+  font-family: 'Courier New', monospace;
+  
+  :global(.dark) & {
+    color: #a0a0a0;
+  }
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
+.loading-dots {
+  display: flex;
+  gap: 8px;
+}
 
-  100% {
-    transform: rotate(360deg);
+.dot {
+  width: 8px;
+  height: 8px;
+  background: #535353;
+  border-radius: 50%;
+  animation: dot-bounce 1.4s ease-in-out infinite;
+  
+  :global(.dark) & {
+    background: #a0a0a0;
+  }
+  
+  &:nth-child(1) { animation-delay: 0s; }
+  &:nth-child(2) { animation-delay: 0.2s; }
+  &:nth-child(3) { animation-delay: 0.4s; }
+}
+
+// 像素风格动画关键帧
+@keyframes dino-jump {
+  0%, 100% { 
+    transform: translateY(0); 
+  }
+  50% { 
+    transform: translateY(-16px); 
+  }
+}
+
+@keyframes dino-legs {
+  0%, 50% {
+    // 腿部动画帧1 - 通过位移模拟
+  }
+  51%, 100% {
+    // 腿部动画帧2
+  }
+}
+
+@keyframes ground-scroll {
+  0% { 
+    transform: translateX(0); 
+  }
+  100% { 
+    transform: translateX(-28px); 
+  }
+}
+
+@keyframes cloud-move {
+  0% { 
+    transform: translateX(100px); 
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% { 
+    transform: translateX(-450px); 
+    opacity: 0;
+  }
+}
+
+@keyframes cactus-run {
+  0% { 
+    transform: translateX(120px); 
+  }
+  100% { 
+    transform: translateX(-500px); 
+  }
+}
+
+@keyframes progress {
+  0% { 
+    width: 0%; 
+    margin-left: 0; 
+  }
+  50% { 
+    width: 70%; 
+    margin-left: 15%; 
+  }
+  100% { 
+    width: 0%; 
+    margin-left: 100%; 
+  }
+}
+
+@keyframes dot-bounce {
+  0%, 80%, 100% { 
+    transform: translateY(0); 
+  }
+  40% { 
+    transform: translateY(-8px); 
   }
 }
 
