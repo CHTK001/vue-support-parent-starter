@@ -1,3 +1,24 @@
+// 在应用启动早期检测并设置深色主题与皮肤，避免FOUC问题
+(function () {
+  try {
+    // 从localStorage中读取布局配置
+    const layoutConfig = JSON.parse(localStorage.getItem("layout") || "{}");
+    // 深色模式
+    if (layoutConfig.darkMode) {
+      document.documentElement.classList.add("dark");
+    }
+    // 主题皮肤（default/flat/enhanced）
+    if (layoutConfig.themeSkin) {
+      document.documentElement.setAttribute(
+        "data-theme-skin",
+        layoutConfig.themeSkin
+      );
+    }
+  } catch (e) {
+    console.warn("Failed to set theme from localStorage:", e);
+  }
+})();
+
 import App from "./App.vue";
 import { getPlatformConfig, injectResponsiveStorage, useI18n } from "@repo/config";
 import { router, setupStore } from "@repo/core";
@@ -31,29 +52,62 @@ import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
 import VueTippy from "vue-tippy";
 
-const app = createApp(App);
+// 异步加载WASM模块
+import { initializeWasmModule } from "@repo/codec-wasm";
 
-Object.keys(directives).forEach(key => {
-  app.directive(key, (directives as { [key: string]: Directive })[key]);
-});
+// 先加载WASM模块，再启动应用
+initializeWasmModule()
+  .then(() => {
+    const app = createApp(App);
+    Object.keys(directives).forEach(key => {
+      app.directive(key, (directives as { [key: string]: Directive })[key]);
+    });
 
-app.component("IconifyIconOffline", IconifyIconOffline);
-app.component("IconifyIconOnline", IconifyIconOnline);
-app.component("FontIcon", FontIcon);
+    app.component("IconifyIconOffline", IconifyIconOffline);
+    app.component("IconifyIconOnline", IconifyIconOnline);
+    app.component("FontIcon", FontIcon);
 
-app.component("Auth", Auth);
-app.component("ScTable", ScTable);
+    app.component("Auth", Auth);
+    app.component("ScTable", ScTable);
 
-app.use(VueTippy);
+    app.use(VueTippy);
 
-getPlatformConfig(app).then(async config => {
-  setupStore(app);
-  app.use(router);
-  await router.isReady();
-  console.log("Router initialized:", router); // 构建后查看控制台输出
-  injectResponsiveStorage(app, config);
-  app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
-  // .use(PureDescriptions)
-  // .use(useEcharts);
-  app.mount("#app");
-});
+    getPlatformConfig(app).then(async config => {
+      setupStore(app);
+      app.use(router);
+      await router.isReady();
+      injectResponsiveStorage(app, config);
+      app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
+      // .use(PureDescriptions)
+      // .use(useEcharts);
+      app.mount("#app");
+    });
+  })
+  .catch((error) => {
+    console.error("Failed to initialize WASM module:", error);
+    // 即使WASM加载失败，也启动应用，但可能会缺少某些功能
+    const app = createApp(App);
+    Object.keys(directives).forEach(key => {
+      app.directive(key, (directives as { [key: string]: Directive })[key]);
+    });
+
+    app.component("IconifyIconOffline", IconifyIconOffline);
+    app.component("IconifyIconOnline", IconifyIconOnline);
+    app.component("FontIcon", FontIcon);
+
+    app.component("Auth", Auth);
+    app.component("ScTable", ScTable);
+
+    app.use(VueTippy);
+
+    getPlatformConfig(app).then(async config => {
+      setupStore(app);
+      app.use(router);
+      await router.isReady();
+      injectResponsiveStorage(app, config);
+      app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
+      // .use(PureDescriptions)
+      // .use(useEcharts);
+      app.mount("#app");
+    });
+  });
