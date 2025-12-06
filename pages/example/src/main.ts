@@ -2,7 +2,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
 import { ScMap, ScLayer } from "@repo/components";
-import TechUI from "@repo/components/TechUI";
+import { initTechUI } from "@repo/components/TechUI";
 
 import "./styles/main.css";
 import "./styles/example-common.scss";
@@ -13,8 +13,19 @@ const app = createApp(App);
 app.component("ScMap", ScMap);
 app.component("ScLayer", ScLayer);
 
-// 注册 TechUI 科幻风格组件 (包括 @techui/scifi 原生组件和封装组件)
-app.use(TechUI);
-
-app.use(router);
-app.mount("#app");
+// 异步初始化 TechUI 科幻风格组件 (包括 @techui/scifi 原生组件和封装组件)
+initTechUI(app, {
+  features: {
+    echarts: false,
+    advanced: false
+  },
+  debug: false
+}).then(() => {
+  app.use(router);
+  app.mount("#app");
+}).catch((err) => {
+  console.error("TechUI 初始化失败:", err);
+  // 即使 TechUI 初始化失败，也继续挂载应用
+  app.use(router);
+  app.mount("#app");
+});
