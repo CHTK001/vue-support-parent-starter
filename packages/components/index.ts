@@ -1,5 +1,6 @@
 import { ReMenuNewBadge } from "./MenuNewBadge";
 import { useRenderIcon } from "./ReIcon/src/hooks";
+import ReSplitPane from "./ReSplitPane/index.vue";
 import ScCard from "./ScCard/index.vue";
 import ScTable from "./ScTable/index.vue";
 import { ScRibbon } from "./ScRibbon";
@@ -12,12 +13,13 @@ import { ScFilterBar } from "./ScFilterBar";
 import { ScContainer } from "./ScContainer";
 import { ScPanel } from "./ScPanel";
 
-export { ReMenuNewBadge, ScCard, ScTable, ScRibbon, ScProgress, ScImage, ScMessageDialog, ScDebugConsole, ScText, ScFilterBar, ScContainer, ScPanel };
+export { ReMenuNewBadge, ReSplitPane, ScCard, ScTable, ScRibbon, ScProgress, ScImage, ScMessageDialog, ScDebugConsole, ScText, ScFilterBar, ScContainer, ScPanel };
 
 export default {
   ScTable,
   ScCard,
   ReMenuNewBadge,
+  ReSplitPane,
   useRenderIcon,
   ScRibbon,
   ScProgress,

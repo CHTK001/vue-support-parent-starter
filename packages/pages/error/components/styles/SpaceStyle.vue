@@ -118,6 +118,8 @@ const { t } = useI18n();
 </template>
 
 <style lang="scss" scoped>
+@use "sass:math";
+
 .space-error-container {
   position: relative;
   width: 100%;
@@ -149,10 +151,10 @@ const { t } = useI18n();
 
   @for $i from 1 through 50 {
     &:nth-child(#{$i}) {
-      top: random(100) * 1%;
-      left: random(100) * 1%;
-      animation-delay: random(30) * 0.1s;
-      opacity: random(10) * 0.1;
+      top: math.random(100) * 1%;
+      left: math.random(100) * 1%;
+      animation-delay: math.random(30) * 0.1s;
+      opacity: math.random(10) * 0.1;
     }
   }
 }

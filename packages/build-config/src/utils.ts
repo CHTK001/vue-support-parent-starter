@@ -44,7 +44,7 @@ export const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
 
 /** 设置别名（基础） */
 export const createAlias = (metaUrl: string): Record<string, string> => ({
-  "@": pathResolve("../src", metaUrl),
+  "@": pathResolve("./src", metaUrl),
 });
 
 /** 创建 APP_INFO */

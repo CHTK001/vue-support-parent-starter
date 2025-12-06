@@ -8,7 +8,8 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import { t, http } from "@repo/config";
+import { t } from "@repo/config";
+import { http } from "@repo/utils";
 
 /**
  * script 服务端中的列表
@@ -124,3 +125,89 @@ export const triggerExecTypeMap = {
   2: t("i18n_4696724ed3"),
   3: t("i18n_dba16b1b92"),
 };
+
+// ======================== 服务端脚本管理 API ========================
+
+/** 获取服务端脚本分页列表 */
+export function getServerScriptPageList(params) {
+  return http.post("/script/list", params);
+}
+
+/** 保存服务端脚本 */
+export function saveServerScript(params) {
+  return http.post("/script/save.json", params);
+}
+
+/** 更新服务端脚本 */
+export function updateServerScript(params) {
+  return http.post("/script/save.json", params);
+}
+
+/** 删除服务端脚本 */
+export function deleteServerScript(params) {
+  return http.post("/script/del.json", params);
+}
+
+/** 复制服务端脚本 */
+export function duplicateServerScript(params) {
+  return http.post("/script/copy.json", params);
+}
+
+/** 执行服务端脚本 */
+export function executeServerScript(params) {
+  return http.post("/script/exec.json", params);
+}
+
+/** 执行节点脚本 */
+export function executeNodeScript(params) {
+  return http.post("/script/node-exec.json", params);
+}
+
+/** 获取脚本执行记录分页列表 */
+export function getScriptExecutionPageList(params) {
+  return http.post("/script_log/list", params);
+}
+
+/** 获取脚本执行详情 */
+export function getScriptExecutionDetail(params) {
+  return http.get("/script_log/detail", { params });
+}
+
+/** 获取脚本执行输出 */
+export function getScriptExecutionOutput(params) {
+  return http.post("/script_log/log", params);
+}
+
+/** 获取运行中的脚本执行 */
+export function getRunningScriptExecutions(params) {
+  return http.post("/script_log/running", params);
+}
+
+/** 停止脚本执行 */
+export function stopScriptExecution(params) {
+  return http.post("/script_log/stop.json", params);
+}
+
+/** 清理过期的执行记录 */
+export function cleanExpiredExecutions(params) {
+  return http.post("/script_log/clean.json", params);
+}
+
+/** 验证脚本 */
+export function validateScript(params) {
+  return http.post("/script/validate.json", params);
+}
+
+/** 导出脚本 */
+export function exportScript(params) {
+  return http.get("/script/export", { params });
+}
+
+/** 导入脚本 */
+export function importScript(formData) {
+  return http.post("/script/import", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data;charset=UTF-8",
+    },
+  });
+}

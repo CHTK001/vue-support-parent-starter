@@ -6,7 +6,8 @@
  * @since 2025-12-06
  */
 
-import { http, loadRouterBase } from "@repo/utils";
+import { http } from "@repo/utils";
+import { loadRouterBase } from "../config";
 
 // ======================== 类型定义 ========================
 

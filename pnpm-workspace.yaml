@@ -100,10 +100,10 @@ catalog:
   "@vee-validate/zod": ^4.14.7
   "@videojs-player/vue": ^1.0.0
   "@vite-pwa/vitepress": ^0.5.3
-  "@vitejs/plugin-vue": ^6.0.2
-  "@vitejs/plugin-vue-jsx": ^5.1.2
-  "@vue/reactivity": ^3.5.25
-  "@vue/shared": ^3.5.25
+  "@vitejs/plugin-vue": ^5.2.1
+  "@vitejs/plugin-vue-jsx": ^4.1.1
+  "@vue/reactivity": ^3.5.12
+  "@vue/shared": ^3.5.12
   "@vue/test-utils": ^2.4.6
   "@vue-email/components": ^0.0.19
   "@vue-email/render": ^0.0.9
@@ -184,7 +184,7 @@ catalog:
   dotenv: ^16.4.5
   echarts: ^5.6.0
   el-table-infinite-scroll: ^3.0.6
-  element-plus: ^2.12.0
+  element-plus: ^2.10.7
   vue-element-plus-x: ^1.3.7
   "@element-plus/icons-vue": ^2.3.2
   eslint: ^9.17.0
@@ -365,13 +365,13 @@ catalog:
   ts-md5: ^1.3.1
   turbo: ^2.2.3
   typeit: ^8.8.7
-  typescript: ^5.9.3
+  typescript: ^5.7.3
   unbuild: ^2.0.0
   unplugin-element-plus: ^0.8.0
   unplugin-vue-components: ^29.0.0
   unplugin-icons: ^22.2.0
   vee-validate: ^4.14.7
-  vite: ^6.4.1
+  vite: ^6.0.7
   vite-plugin-compression: ^0.5.1
   vite-plugin-cdn-import: ^1.0.1
   vite-plugin-checker: ^0.7.2
@@ -393,7 +393,7 @@ catalog:
   video.js: ^7.21.6
   viewerjs: ^1.11.6
   vcrontab: ^0.3.5
-  vue: ^3.5.25
+  vue: ^3.5.17
   vue-demi: ^0.14.10
   vue-email: ^0.0.19
   vue-eslint-parser: ^9.4.3
@@ -403,9 +403,9 @@ catalog:
   vue-simple-calendar: ^7.2.0
   vue-i18n: ^11.0.1
   vue-json-pretty: ^2.4.0
-  vue-router: ^4.5.1
+  vue-router: ^4.5.0
   vue-tippy: ^6.6.0
-  vue-tsc: ^2.2.10
+  vue-tsc: ^2.2.0
   vue-types: ^5.1.3
   vue3-cron: ^1.1.8
   vue3-compare-image: ^1.2.5
