@@ -5,6 +5,9 @@ import { useI18n } from "vue-i18n";
 import PixelStyle from "./styles/PixelStyle.vue";
 import SpaceStyle from "./styles/SpaceStyle.vue";
 import MinimalStyle from "./styles/MinimalStyle.vue";
+import ForbiddenStyle from "./styles/ForbiddenStyle.vue";
+import NotFoundStyle from "./styles/NotFoundStyle.vue";
+import ServerErrorStyle from "./styles/ServerErrorStyle.vue";
 
 defineOptions({
   name: "ErrorPage",
@@ -13,7 +16,7 @@ defineOptions({
 const props = withDefaults(
   defineProps<{
     code: number | string;
-    style?: "pixel" | "space" | "minimal";
+    style?: "pixel" | "space" | "minimal" | "forbidden" | "notfound" | "servererror";
   }>(),
   {
     style: "pixel",
@@ -57,6 +60,9 @@ const styleComponent = computed(() => {
     pixel: PixelStyle,
     space: SpaceStyle,
     minimal: MinimalStyle,
+    forbidden: ForbiddenStyle,
+    notfound: NotFoundStyle,
+    servererror: ServerErrorStyle,
   };
   return styles[props.style] || styles.pixel;
 });

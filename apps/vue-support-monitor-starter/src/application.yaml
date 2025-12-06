@@ -37,7 +37,7 @@ OpenAuth: false
 # 是否开启基础登录（默认: true）
 OpenBaseLogin: false
 # 是否开启刷新token（默认: false）
-OpenShowRefreshToken: true
+OpenShowRefreshToken: false
 
 # ===========================================
 # 布局与菜单配置
@@ -47,7 +47,7 @@ OpenShowRefreshToken: true
 # 是否自动远程布局-从后端获取布局配置（默认: false）
 # RemoteLayout: false
 # 是否开启布局远程保存（默认: false）
-RemoteLayoutSave: true
+RemoteLayoutSave: false
 # 使用本地布局组件（默认: false）
 LocationLayout: true
 # 是否开启远程动画（默认: true）

@@ -7,8 +7,8 @@ defineOptions({
   name: "403",
 });
 
-// 从配置获取错误页面风格
-const errorPageStyle = computed(() => globalSetting.ErrorPageStyle || "pixel");
+// 403 使用禁止访问风格（锁/禁止标志）
+const errorPageStyle = computed(() => globalSetting.ErrorPageStyle || "forbidden");
 </script>
 
 <template>
