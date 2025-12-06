@@ -34,23 +34,29 @@
           </el-col>
         </el-row>
         <el-row :gutter="20" class="mt-4">
-          <el-col :span="4">
+          <el-col :span="3">
             <el-checkbox v-model="config.showHeader">显示头部</el-checkbox>
           </el-col>
-          <el-col :span="4">
+          <el-col :span="3">
             <el-checkbox v-model="config.showAside">显示侧边栏</el-checkbox>
           </el-col>
-          <el-col :span="4">
+          <el-col :span="3">
             <el-checkbox v-model="config.showRight">显示右侧栏</el-checkbox>
           </el-col>
-          <el-col :span="4">
+          <el-col :span="3">
             <el-checkbox v-model="config.showFooter">显示底部</el-checkbox>
           </el-col>
-          <el-col :span="4">
+          <el-col :span="3">
             <el-checkbox v-model="config.border">显示边框</el-checkbox>
           </el-col>
-          <el-col :span="4">
+          <el-col :span="3">
             <el-checkbox v-model="config.rounded">圆角</el-checkbox>
+          </el-col>
+          <el-col :span="3">
+            <el-checkbox v-model="config.resizable">可拖拽</el-checkbox>
+          </el-col>
+          <el-col :span="3">
+            <el-checkbox v-model="config.collapsible">可折叠</el-checkbox>
           </el-col>
         </el-row>
       </div>
@@ -65,13 +71,22 @@
       </h4>
       <div class="demo-container interactive">
         <ScContainer
+          ref="containerRef"
           :height="config.height"
           :border="config.border"
           :rounded="config.rounded"
           :aside-width="`${config.asideWidth}px`"
           :right-width="`${config.rightWidth}px`"
           :header-height="`${config.headerHeight}px`"
+          :resizable="config.resizable"
+          :collapsible="config.collapsible"
+          :aside-min-width="100"
+          :aside-max-width="400"
+          :right-min-width="100"
+          :right-max-width="400"
           shadow
+          @aside-resize="onAsideResize"
+          @right-resize="onRightResize"
         >
           <template v-if="config.showHeader" #header>
             <div class="demo-header">
@@ -80,14 +95,10 @@
             </div>
           </template>
           <template v-if="config.showAside" #aside>
-            <div 
-              class="demo-aside resizable"
-              @mousedown="startResize('aside', $event)"
-            >
+            <div class="demo-aside">
               <IconifyIconOnline icon="ri:layout-left-line" />
               <span>Aside</span>
-              <span class="size-label">{{ config.asideWidth }}px</span>
-              <div class="resize-handle right"></div>
+              <span class="size-label">拖拽分隔线调整</span>
             </div>
           </template>
           <div class="demo-main">
@@ -98,14 +109,10 @@
             </div>
           </div>
           <template v-if="config.showRight" #right>
-            <div 
-              class="demo-right resizable"
-              @mousedown="startResize('right', $event)"
-            >
-              <div class="resize-handle left"></div>
+            <div class="demo-right">
               <IconifyIconOnline icon="ri:layout-right-line" />
               <span>Right</span>
-              <span class="size-label">{{ config.rightWidth }}px</span>
+              <span class="size-label">拖拽分隔线调整</span>
             </div>
           </template>
           <template v-if="config.showFooter" #footer>
@@ -158,6 +165,8 @@
 import { ref, reactive } from "vue";
 import { ScContainer } from "@repo/components/ScContainer";
 
+const containerRef = ref();
+
 const config = reactive({
   height: 400,
   asideWidth: 200,
@@ -165,10 +174,12 @@ const config = reactive({
   headerHeight: 60,
   showHeader: true,
   showAside: true,
-  showRight: false,
+  showRight: true,
   showFooter: true,
   border: true,
   rounded: true,
+  resizable: true,
+  collapsible: true,
 });
 
 const currentPreset = ref("standard");
@@ -236,41 +247,13 @@ function applyPreset(preset) {
   config.rightWidth = preset.rightWidth;
 }
 
-// 拖拽调整大小
-let resizing = ref(null);
-let startX = 0;
-let startWidth = 0;
-
-function startResize(type, event) {
-  resizing.value = type;
-  startX = event.clientX;
-  startWidth = type === "aside" ? config.asideWidth : config.rightWidth;
-  document.addEventListener("mousemove", onResize);
-  document.addEventListener("mouseup", stopResize);
-  document.body.style.cursor = "col-resize";
-  document.body.style.userSelect = "none";
+// 拖拽事件处理
+function onAsideResize(width) {
+  config.asideWidth = width;
 }
 
-function onResize(event) {
-  if (!resizing.value) return;
-  const diff = event.clientX - startX;
-  const newWidth = resizing.value === "aside" 
-    ? Math.max(100, Math.min(300, startWidth + diff))
-    : Math.max(100, Math.min(300, startWidth - diff));
-  
-  if (resizing.value === "aside") {
-    config.asideWidth = newWidth;
-  } else {
-    config.rightWidth = newWidth;
-  }
-}
-
-function stopResize() {
-  resizing.value = null;
-  document.removeEventListener("mousemove", onResize);
-  document.removeEventListener("mouseup", stopResize);
-  document.body.style.cursor = "";
-  document.body.style.userSelect = "";
+function onRightResize(width) {
+  config.rightWidth = width;
 }
 </script>
 
@@ -390,41 +373,6 @@ function stopResize() {
     font-size: 11px;
     color: var(--el-text-color-placeholder);
     margin-top: 4px;
-  }
-  
-  &.resizable {
-    cursor: default;
-    
-    &:hover {
-      background: linear-gradient(180deg, var(--el-fill-color-light), var(--el-fill-color-lighter));
-      
-      .resize-handle {
-        opacity: 1;
-      }
-    }
-  }
-  
-  .resize-handle {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    background: var(--el-color-primary);
-    opacity: 0;
-    cursor: col-resize;
-    transition: opacity 0.2s;
-    
-    &:hover {
-      opacity: 1 !important;
-    }
-    
-    &.right {
-      right: 0;
-    }
-    
-    &.left {
-      left: 0;
-    }
   }
 }
 

@@ -43,10 +43,43 @@
     >
       <template #default="{ node, data }">
         <slot :node="node" :data="data">
-          <span class="sc-tree-node" :class="{ 'is-leaf': node.isLeaf }">
+          <span class="sc-tree-node" :class="{ 'is-leaf': node.isLeaf, 'has-toolbar': showToolbar }">
             <slot name="prefix" :node="node" :data="data"></slot>
             <span class="sc-tree-node__label">{{ node.label }}</span>
             <slot name="suffix" :node="node" :data="data"></slot>
+            
+            <!-- 节点工具栏 -->
+            <span v-if="showToolbar" class="sc-tree-node__toolbar" @click.stop>
+              <slot name="toolbar" :node="node" :data="data">
+                <el-button 
+                  v-if="toolbarButtons.includes('add')" 
+                  type="primary" 
+                  link 
+                  size="small"
+                  @click="handleToolbarAdd(node, data)"
+                >
+                  <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
+                </el-button>
+                <el-button 
+                  v-if="toolbarButtons.includes('edit')" 
+                  type="primary" 
+                  link 
+                  size="small"
+                  @click="handleToolbarEdit(node, data)"
+                >
+                  <el-icon><component :is="useRenderIcon('ep:edit')" /></el-icon>
+                </el-button>
+                <el-button 
+                  v-if="toolbarButtons.includes('delete')" 
+                  type="danger" 
+                  link 
+                  size="small"
+                  @click="handleToolbarDelete(node, data)"
+                >
+                  <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
+                </el-button>
+              </slot>
+            </span>
           </span>
         </slot>
       </template>
@@ -60,6 +93,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, nextTick, onMounted, defineOptions } from 'vue';
 import type { TreeProps, TreeNodeData, TreeKey, TreeFilterValue, TreeNode, TreeComponentInstance } from './types';
+import { useRenderIcon } from "../ReIcon/src/hooks";
 
 // 定义组件名称
 defineOptions({
@@ -190,6 +224,16 @@ const props = defineProps({
   emptyText: {
     type: String,
     default: ''
+  },
+  // 是否显示节点工具栏
+  showToolbar: {
+    type: Boolean,
+    default: false
+  },
+  // 工具栏按钮配置 ['add', 'edit', 'delete']
+  toolbarButtons: {
+    type: Array as () => string[],
+    default: () => ['add', 'edit', 'delete']
   }
 });
 
@@ -207,7 +251,11 @@ const emit = defineEmits([
   'node-drag-over',
   'node-drag-end',
   'node-drop',
-  'update:data'
+  'update:data',
+  // 工具栏事件
+  'toolbar-add',
+  'toolbar-edit',
+  'toolbar-delete'
 ]);
 
 // 引用el-tree实例
@@ -526,6 +574,19 @@ const handleNodeDrop = (draggingNode: TreeNode, dropNode: TreeNode | null, dropT
   });
 };
 
+// 工具栏操作处理
+const handleToolbarAdd = (node: TreeNode, data: TreeNodeData) => {
+  emit('toolbar-add', node, data);
+};
+
+const handleToolbarEdit = (node: TreeNode, data: TreeNodeData) => {
+  emit('toolbar-edit', node, data);
+};
+
+const handleToolbarDelete = (node: TreeNode, data: TreeNodeData) => {
+  emit('toolbar-delete', node, data);
+};
+
 // 暴露组件方法
 defineExpose({
   filter,
@@ -574,9 +635,30 @@ defineExpose({
   .sc-tree-node {
     display: flex;
     align-items: center;
+    flex: 1;
     
     &__label {
       margin: 0 4px;
+      flex: 1;
+    }
+    
+    &__toolbar {
+      display: none;
+      margin-left: auto;
+      padding-left: 8px;
+      
+      .el-button {
+        padding: 2px 4px;
+        
+        .el-icon {
+          font-size: 14px;
+        }
+      }
+    }
+    
+    &.has-toolbar:hover &__toolbar {
+      display: inline-flex;
+      gap: 2px;
     }
     
     &.is-leaf {
@@ -584,4 +666,11 @@ defineExpose({
     }
   }
 }
-</style> 
+
+// 深色模式兼容
+:deep(.el-tree-node__content:hover) {
+  .sc-tree-node__toolbar {
+    display: inline-flex;
+  }
+}
+</style>

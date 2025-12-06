@@ -212,6 +212,59 @@
       />
     </el-card>
 
+    <!-- 编辑器工具栏自定义 -->
+    <el-card class="section-card">
+      <template #header>
+        <h3><IconifyIconOnline icon="ri:tools-line" /> 编辑器工具栏自定义</h3>
+      </template>
+      <div class="demo-row">
+        <div class="demo-item">
+          <p class="demo-label">只显示裁剪和旋转</p>
+          <ScImage
+            v-model="customEditorImage1"
+            width="200px"
+            height="200px"
+            :editor-show-flip="false"
+            :editor-show-remove-background="false"
+            :editor-show-scale="false"
+            :editor-show-background-tools="false"
+          />
+        </div>
+        <div class="demo-item">
+          <p class="demo-label">禁用所有高级功能</p>
+          <ScImage
+            v-model="customEditorImage2"
+            width="200px"
+            height="200px"
+            :editor-show-upload="false"
+            :editor-show-remove-background="false"
+            :editor-show-background-tools="false"
+          />
+        </div>
+        <div class="demo-item">
+          <p class="demo-label">带上传按钮</p>
+          <ScImage
+            v-model="customEditorImage3"
+            width="200px"
+            height="200px"
+            :editor-show-upload="true"
+          />
+        </div>
+      </div>
+      <CodePreview
+        :tabs="[
+          {
+            key: 'editorToolbar',
+            label: '工具栏配置',
+            icon: 'ri:code-s-slash-line',
+            language: 'vue',
+            code: editorToolbarCode,
+          },
+        ]"
+        class="mt-3"
+      />
+    </el-card>
+
     <!-- 图片比较 -->
     <el-card class="section-card">
       <template #header>
@@ -464,6 +517,11 @@ const customImage1 = ref("");
 const customImage2 = ref("");
 const customImage3 = ref("");
 
+// 编辑器工具栏自定义示例
+const customEditorImage1 = ref("");
+const customEditorImage2 = ref("");
+const customEditorImage3 = ref("");
+
 // 事件示例
 const eventImage = ref("");
 const eventLogs = ref<Array<{ time: string; type: string; message: string }>>(
@@ -546,6 +604,32 @@ const editCode = `<ScImage
   height="300px"
   @change="handleEditChange"
 />`;
+
+const editorToolbarCode = `<!-- 只显示裁剪和旋转 -->
+<ScImage
+  v-model="image"
+  :editor-show-flip="false"
+  :editor-show-remove-background="false"
+  :editor-show-scale="false"
+  :editor-show-background-tools="false"
+/>
+
+<!-- 禁用所有高级功能 -->
+<ScImage
+  v-model="image"
+  :editor-show-upload="false"
+  :editor-show-remove-background="false"
+  :editor-show-background-tools="false"
+/>
+
+<!-- 编辑器工具栏配置属性 -->
+editorShowUpload: 显示上传按钮
+editorShowCrop: 显示裁剪按钮
+editorShowRotate: 显示旋转按钮
+editorShowFlip: 显示翻转按钮
+editorShowRemoveBackground: 显示去除背景按钮
+editorShowScale: 显示缩放滑块
+editorShowBackgroundTools: 显示背景工具`;
 
 const compareCode = `<ScImage
   v-model="compareImage"
@@ -678,6 +762,48 @@ const propsData = [
     description: "预览图片列表",
   },
   { prop: "zIndex", type: "number", default: "9999", description: "预览层级" },
+  {
+    prop: "editorShowUpload",
+    type: "boolean",
+    default: "true",
+    description: "编辑器显示上传按钮",
+  },
+  {
+    prop: "editorShowCrop",
+    type: "boolean",
+    default: "true",
+    description: "编辑器显示裁剪按钮",
+  },
+  {
+    prop: "editorShowRotate",
+    type: "boolean",
+    default: "true",
+    description: "编辑器显示旋转按钮",
+  },
+  {
+    prop: "editorShowFlip",
+    type: "boolean",
+    default: "true",
+    description: "编辑器显示翻转按钮",
+  },
+  {
+    prop: "editorShowRemoveBackground",
+    type: "boolean",
+    default: "true",
+    description: "编辑器显示去除背景按钮",
+  },
+  {
+    prop: "editorShowScale",
+    type: "boolean",
+    default: "true",
+    description: "编辑器显示缩放滑块",
+  },
+  {
+    prop: "editorShowBackgroundTools",
+    type: "boolean",
+    default: "true",
+    description: "编辑器显示背景工具",
+  },
 ];
 
 // Events 数据

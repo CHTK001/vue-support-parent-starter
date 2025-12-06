@@ -321,7 +321,7 @@ const editableText = ref("点击编辑这段文字");
 function handleEdit(value) {
   console.log("编辑完成:", value);
 }
-</script>`,
+<\/script>`,
 
   copyable: `<ScText
   text="点击右侧图标复制这段文字"
@@ -379,7 +379,7 @@ async function fetchRemoteText() {
 function handleFetchSuccess(value) {
   console.log("获取成功:", value);
 }
-</script>`,
+<\/script>`,
 
   highlight: `<ScText
   text="在这段文本中搜索关键词并高亮显示"

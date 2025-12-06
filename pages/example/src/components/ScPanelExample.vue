@@ -429,7 +429,7 @@ import { ElMessage } from "element-plus";
 function handleClose() {
   ElMessage.info("面板已关闭");
 }
-</script>`
+<\/script>`
 };
 </script>
 

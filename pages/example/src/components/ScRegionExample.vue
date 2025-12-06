@@ -1,159 +1,178 @@
 <template>
-  <div class="example-container">
-    <h2 class="example-title">ScRegion 地区选择器示例</h2>
-    <p class="example-desc">省市区三级联动选择器组件</p>
-
-    <el-divider content-position="left">功能演示</el-divider>
-
-    <div class="demo-section">
-      <div class="demo-controls">
-        <el-button type="primary" @click="setBeijing">
-          <IconifyIconOnline icon="ri:map-pin-line" class="mr-1" />
-          设置北京
-        </el-button>
-        <el-button @click="clearRegion">
-          <IconifyIconOnline icon="ri:close-line" class="mr-1" />
-          清空
-        </el-button>
+  <div class="sc-region-example">
+    <!-- 基础用法 -->
+    <DemoBlock title="基础用法" :code="codes.basic">
+      <div class="demo-row">
+        <ScRegion v-model="region1" style="width: 320px" />
+        <span class="demo-result">选中: {{ region1.length ? region1.join(' / ') : '(未选择)' }}</span>
       </div>
+    </DemoBlock>
 
-      <ScRegion v-model="config.region" />
-
-      <div class="region-info">
-        选择结果：<code>{{ config.region || "(未选择)" }}</code>
+    <!-- 任意级选择 -->
+    <DemoBlock title="任意级选择" :code="codes.checkStrictly">
+      <p class="demo-tip">启用 checkStrictly 后，可以选择任意层级（省、市、区）</p>
+      <div class="demo-row">
+        <ScRegion v-model="region2" check-strictly style="width: 320px" />
+        <span class="demo-result">选中: {{ region2.length ? region2.join(' / ') : '(未选择)' }}</span>
       </div>
-    </div>
+    </DemoBlock>
 
-    <el-divider content-position="left">代码示例</el-divider>
+    <!-- 多选 -->
+    <DemoBlock title="多选" :code="codes.multiple">
+      <p class="demo-tip">支持选择多个地区</p>
+      <div class="demo-row">
+        <ScRegion v-model="region6" multiple style="width: 400px" />
+      </div>
+      <div class="demo-result-block">
+        选中: {{ region6.length ? JSON.stringify(region6) : '(未选择)' }}
+      </div>
+    </DemoBlock>
 
-    <CodePreview :tabs="codeTabs" />
+    <!-- 多选 + 折叠标签 -->
+    <DemoBlock title="多选折叠标签" :code="codes.multipleCollapse">
+      <p class="demo-tip">多选时折叠标签，只显示指定数量</p>
+      <div class="demo-row">
+        <ScRegion 
+          v-model="region7" 
+          multiple 
+          collapse-tags 
+          :max-collapse-tags="2"
+          style="width: 400px" 
+        />
+      </div>
+    </DemoBlock>
 
-    <el-divider content-position="left">属性说明</el-divider>
+    <!-- 多选 + 任意级 -->
+    <DemoBlock title="多选 + 任意级选择" :code="codes.multipleCheckStrictly">
+      <p class="demo-tip">可以选择多个任意层级的地区</p>
+      <div class="demo-row">
+        <ScRegion 
+          v-model="region8" 
+          multiple 
+          check-strictly
+          collapse-tags
+          style="width: 400px" 
+        />
+      </div>
+    </DemoBlock>
 
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="150" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    <!-- 显示编码 -->
+    <DemoBlock title="显示编码" :code="codes.showCode">
+      <p class="demo-tip">在选项下方显示编码（灰色小字）</p>
+      <div class="demo-row">
+        <ScRegion v-model="region3" show-code style="width: 320px" />
+        <span class="demo-result">选中: {{ region3.length ? region3.join(' / ') : '(未选择)' }}</span>
+      </div>
+    </DemoBlock>
+
+    <!-- 只显示编码 -->
+    <DemoBlock title="只显示编码" :code="codes.showCodeOnly">
+      <p class="demo-tip">选择后输入框只显示编码</p>
+      <div class="demo-row">
+        <ScRegion v-model="region4" show-code-only style="width: 320px" />
+        <span class="demo-result">选中: {{ region4.length ? region4.join(' / ') : '(未选择)' }}</span>
+      </div>
+    </DemoBlock>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, computed } from "vue";
+import { ref } from "vue";
 import ScRegion from "@repo/components/ScRegion/src/index.vue";
-import CodePreview from "./CodePreview.vue";
+import DemoBlock from "./DemoBlock.vue";
 
 /**
  * ScRegion 组件示例
  * @author CH
  * @version 1.0.0
- * @since 2025-12-02
+ * @since 2025-12-06
  */
 
-const config = reactive({
-  region: "",
-});
+const region1 = ref<string[]>([]);
+const region2 = ref<string[]>([]);
+const region3 = ref<string[]>([]);
+const region4 = ref<string[]>([]);
+const region6 = ref<string[][]>([]);
+const region7 = ref<string[][]>([]);
+const region8 = ref<string[][]>([]);
 
-// 属性说明
-const propsData = [
-  {
-    name: "modelValue",
-    type: "string",
-    default: "''",
-    description: "选中的地区编码（v-model）",
-  },
-  {
-    name: "level",
-    type: "number",
-    default: "3",
-    description: "选择层级（1省、2市、3区）",
-  },
-  {
-    name: "placeholder",
-    type: "string",
-    default: "'请选择'",
-    description: "占位文本",
-  },
-];
+// 代码模板
+const codes = {
+  basic: `<ScRegion v-model="region" />
 
-// 代码示例
-const codeTabs = computed(() => [
-  {
-    key: "template",
-    label: "模板",
-    icon: "ri:code-s-slash-line",
-    language: "vue",
-    code: `<ScRegion v-model="region" />`,
-  },
-  {
-    key: "script",
-    label: "脚本",
-    icon: "ri:javascript-line",
-    language: "ts",
-    code: `import { ref } from "vue";
-import ScRegion from "@repo/components/ScRegion/src/index.vue";
+<script setup>
+import { ref } from "vue";
+const region = ref([]);
+<\/script>`,
 
-const region = ref("");`,
-  },
-]);
+  checkStrictly: `<!-- 任意级选择：可以只选省或市 -->
+<ScRegion v-model="region" check-strictly />`,
 
-function setBeijing() {
-  config.region = "110000";
-}
+  multiple: `<!-- 多选 -->
+<ScRegion v-model="regions" multiple />
 
-function clearRegion() {
-  config.region = "";
-}
+<script setup>
+import { ref } from "vue";
+// 多选时值为二维数组
+const regions = ref([]);
+<\/script>`,
+
+  multipleCollapse: `<!-- 多选 + 折叠标签 -->
+<ScRegion 
+  v-model="regions" 
+  multiple 
+  collapse-tags 
+  :max-collapse-tags="2"
+/>`,
+
+  multipleCheckStrictly: `<!-- 多选 + 任意级选择 -->
+<ScRegion 
+  v-model="regions" 
+  multiple 
+  check-strictly
+  collapse-tags
+/>`,
+
+  showCode: `<!-- 在选项下方显示编码 -->
+<ScRegion v-model="region" show-code />`,
+
+  showCodeOnly: `<!-- 选择后只显示编码 -->
+<ScRegion v-model="region" show-code-only />`
+};
 </script>
 
 <style scoped lang="scss">
-.example-container {
+.sc-region-example {
   padding: 20px;
 }
 
-.example-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: var(--el-text-color-primary);
-}
-
-.example-desc {
-  color: var(--el-text-color-secondary);
-  margin-bottom: 20px;
-}
-
-.demo-section {
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-
-.demo-controls {
+.demo-row {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
 }
 
-.region-info {
-  margin-top: 16px;
+.demo-result {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  font-family: "SF Mono", "Monaco", "Consolas", monospace;
+}
+
+.demo-tip {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.demo-result-block {
+  margin-top: 12px;
   padding: 12px;
-  background: var(--el-bg-color);
-  border-radius: 8px;
-  color: var(--el-text-color-regular);
-
-  code {
-    padding: 2px 6px;
-    background: var(--el-fill-color);
-    border-radius: 4px;
-    font-family: monospace;
-  }
-}
-
-.props-table {
-  margin-bottom: 20px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: "SF Mono", "Monaco", "Consolas", monospace;
+  color: var(--el-text-color-secondary);
+  word-break: break-all;
 }
 </style>

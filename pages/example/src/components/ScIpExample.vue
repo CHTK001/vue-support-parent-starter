@@ -1,167 +1,128 @@
 <template>
-  <div class="example-container">
-    <h2 class="example-title">ScIp IP地址显示示例</h2>
-    <p class="example-desc">用于显示 IP 地址及其归属地信息</p>
+  <div class="sc-ip-example">
+    <!-- 基础用法 -->
+    <DemoBlock title="基础用法" :code="codes.basic">
+      <p class="demo-tip">传入 IP 地址，自动查询并显示物理地址</p>
+      <div class="demo-row">
+        <ScIp ip="8.8.8.8" />
+      </div>
+    </DemoBlock>
 
-    <el-divider content-position="left">功能演示</el-divider>
+    <!-- 直接传入物理地址 -->
+    <DemoBlock title="直接传入物理地址" :code="codes.physicalAddress">
+      <p class="demo-tip">如果已知物理地址，可以直接传入，不再查询</p>
+      <div class="demo-row">
+        <ScIp ip="114.114.114.114" physical-address="中国 江苏 南京 电信" />
+      </div>
+    </DemoBlock>
 
-    <div class="demo-section">
+    <!-- 不显示原始IP -->
+    <DemoBlock title="不显示原始IP" :code="codes.hideOriginal">
+      <p class="demo-tip">只显示物理地址，不显示IP</p>
+      <div class="demo-row">
+        <ScIp ip="1.1.1.1" :show-original="false" />
+      </div>
+    </DemoBlock>
+
+    <!-- 禁用搜索链接 -->
+    <DemoBlock title="禁用搜索链接" :code="codes.noSearch">
+      <p class="demo-tip">IP地址不可点击跳转搜索</p>
+      <div class="demo-row">
+        <ScIp ip="223.5.5.5" :open-search-original="false" />
+      </div>
+    </DemoBlock>
+
+    <!-- 自定义空文本 -->
+    <DemoBlock title="自定义空文本" :code="codes.emptyText">
+      <p class="demo-tip">当无法获取物理地址时显示的文本</p>
+      <div class="demo-row">
+        <ScIp ip="192.168.1.1" empty-text="内网地址" />
+      </div>
+    </DemoBlock>
+
+    <!-- 组合使用 -->
+    <DemoBlock title="交互式演示" :code="codes.interactive">
       <div class="demo-controls">
-        <el-button type="primary" @click="setLocalIp">
-          <IconifyIconOnline icon="ri:home-line" class="mr-1" />
-          本地IP
-        </el-button>
-        <el-button @click="setGoogleDns">
-          <IconifyIconOnline icon="ri:google-line" class="mr-1" />
-          Google DNS
-        </el-button>
-        <el-button @click="setCloudflare">
-          <IconifyIconOnline icon="ri:cloud-line" class="mr-1" />
-          Cloudflare
-        </el-button>
+        <el-button size="small" @click="testIp = '8.8.8.8'">Google DNS</el-button>
+        <el-button size="small" @click="testIp = '1.1.1.1'">Cloudflare</el-button>
+        <el-button size="small" @click="testIp = '114.114.114.114'">114 DNS</el-button>
+        <el-button size="small" @click="testIp = '223.5.5.5'">阿里 DNS</el-button>
+        <el-input v-model="testIp" placeholder="输入IP" style="width: 160px; margin-left: 12px" />
       </div>
-
-      <el-form label-width="120px" class="config-form">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="IP 地址">
-              <el-input v-model="config.ip" placeholder="输入IP，如 8.8.8.8" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-
-      <el-divider content-position="left">显示效果</el-divider>
-
-      <div class="ip-display">
-        <ScIp :ip="config.ip" />
+      <div class="demo-row" style="margin-top: 16px">
+        <ScIp :ip="testIp" />
       </div>
-    </div>
-
-    <el-divider content-position="left">代码示例</el-divider>
-
-    <CodePreview :tabs="codeTabs" />
-
-    <el-divider content-position="left">属性说明</el-divider>
-
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="150" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
+    </DemoBlock>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, computed } from "vue";
+import { ref } from "vue";
 import ScIp from "@repo/components/ScIp/index.vue";
-import CodePreview from "./CodePreview.vue";
+import DemoBlock from "./DemoBlock.vue";
 
 /**
  * ScIp 组件示例
  * @author CH
  * @version 1.0.0
- * @since 2025-12-02
+ * @since 2025-12-06
  */
 
-const config = reactive({
-  ip: "8.8.8.8",
-});
+const testIp = ref("8.8.8.8");
 
-// 属性说明
-const propsData = [
-  {
-    name: "ip",
-    type: "string",
-    default: "''",
-    description: "要显示的 IP 地址",
-  },
-  {
-    name: "showLocation",
-    type: "boolean",
-    default: "true",
-    description: "是否显示归属地",
-  },
-];
+// 代码模板
+const codes = {
+  basic: `<!-- 基础用法：传入IP自动查询物理地址 -->
+<ScIp ip="8.8.8.8" />`,
 
-// 代码示例
-const codeTabs = computed(() => [
-  {
-    key: "template",
-    label: "模板",
-    icon: "ri:code-s-slash-line",
-    language: "vue",
-    code: `<ScIp ip="${config.ip}" />`,
-  },
-  {
-    key: "script",
-    label: "脚本",
-    icon: "ri:javascript-line",
-    language: "ts",
-    code: `import ScIp from "@repo/components/ScIp/index.vue";
+  physicalAddress: `<!-- 直接传入物理地址，不再查询 -->
+<ScIp 
+  ip="114.114.114.114" 
+  physical-address="中国 江苏 南京 电信" 
+/>`,
 
-// 直接传入 IP 地址即可
-const ip = "${config.ip}";`,
-  },
-]);
+  hideOriginal: `<!-- 只显示物理地址，不显示IP -->
+<ScIp ip="1.1.1.1" :show-original="false" />`,
 
-function setLocalIp() {
-  config.ip = "127.0.0.1";
-}
+  noSearch: `<!-- IP地址不可点击跳转搜索 -->
+<ScIp ip="223.5.5.5" :open-search-original="false" />`,
 
-function setGoogleDns() {
-  config.ip = "8.8.8.8";
-}
+  emptyText: `<!-- 自定义无法获取物理地址时的显示文本 -->
+<ScIp ip="192.168.1.1" empty-text="内网地址" />`,
 
-function setCloudflare() {
-  config.ip = "1.1.1.1";
-}
+  interactive: `<template>
+  <ScIp :ip="testIp" />
+</template>
+
+<script setup>
+import { ref } from "vue";
+const testIp = ref("8.8.8.8");
+<\/script>`
+};
 </script>
 
 <style scoped lang="scss">
-.example-container {
+.sc-ip-example {
   padding: 20px;
 }
 
-.example-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: var(--el-text-color-primary);
+.demo-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.example-desc {
+.demo-tip {
+  margin: 0 0 12px;
+  font-size: 13px;
   color: var(--el-text-color-secondary);
-  margin-bottom: 20px;
-}
-
-.demo-section {
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
 }
 
 .demo-controls {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-
-.config-form {
-  margin-top: 16px;
-}
-
-.ip-display {
-  padding: 16px;
-  background: var(--el-bg-color);
-  border-radius: 8px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-
-.props-table {
-  margin-bottom: 20px;
 }
 </style>

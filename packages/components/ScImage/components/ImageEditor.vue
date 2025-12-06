@@ -1,34 +1,47 @@
 <template>
-  <el-dialog v-model="visible" title="图片编辑" width="90%" :close-on-click-modal="false" :close-on-press-escape="false" destroy-on-close class="image-editor-dialog">
+  <el-dialog v-model="visible" title="图片编辑" width="90%" :close-on-click-modal="false" :close-on-press-escape="false" destroy-on-close draggable class="image-editor-dialog">
     <div class="image-editor-container">
       <!-- 工具栏 -->
       <div class="editor-toolbar">
+        <!-- 上传新图片 -->
+        <div v-if="showUpload" class="toolbar-section">
+          <el-tooltip content="上传新图片" placement="top">
+            <el-button @click="triggerUpload">
+              <el-icon>
+                <component :is="useRenderIcon('ep:upload')" />
+              </el-icon>
+              上传
+            </el-button>
+          </el-tooltip>
+          <input ref="uploadInput" type="file" accept="image/*" style="display: none" @change="handleUploadChange" />
+        </div>
+
         <!-- 基础工具 -->
         <div class="toolbar-section">
           <span class="section-title">基础工具</span>
           <el-button-group>
-            <el-tooltip content="裁剪" placement="top">
+            <el-tooltip v-if="showCrop" content="裁剪" placement="top">
               <el-button :type="currentTool === 'crop' ? 'primary' : 'default'" @click="selectTool('crop')">
                 <el-icon>
                   <component :is="useRenderIcon('ep:crop')" />
                 </el-icon>
               </el-button>
             </el-tooltip>
-            <el-tooltip content="旋转" placement="top">
+            <el-tooltip v-if="showRotate" content="旋转" placement="top">
               <el-button @click="rotate(90)">
                 <el-icon>
                   <component :is="useRenderIcon('ep:refresh-right')" />
                 </el-icon>
               </el-button>
             </el-tooltip>
-            <el-tooltip content="翻转" placement="top">
+            <el-tooltip v-if="showFlip" content="翻转" placement="top">
               <el-button @click="flip('horizontal')">
                 <el-icon>
                   <component :is="useRenderIcon('ep:sort')" />
                 </el-icon>
               </el-button>
             </el-tooltip>
-            <el-tooltip content="去除背景" placement="top">
+            <el-tooltip v-if="showRemoveBackground" content="去除背景" placement="top">
               <el-button :loading="removing" @click="removeBackground">
                 <el-icon v-if="!removing">
                   <component :is="useRenderIcon('ep:magic-stick')" />
@@ -50,7 +63,7 @@
         </div>
 
         <!-- 背景替换 -->
-        <div v-if="hasTransparentBackground" class="toolbar-section">
+        <div v-if="showBackgroundTools && hasTransparentBackground" class="toolbar-section">
           <span class="section-title">背景</span>
           <el-button-group>
             <el-tooltip content="纯色背景" placement="top">
@@ -81,7 +94,7 @@
         </div>
 
         <!-- 缩放 -->
-        <div class="toolbar-section">
+        <div v-if="showScale" class="toolbar-section">
           <span class="section-title">缩放</span>
           <el-slider v-model="scale" :min="10" :max="300" :step="10" style="width: 150px" @change="handleScaleChange" />
           <span class="scale-value">{{ scale }}%</span>
@@ -152,6 +165,35 @@ const props = defineProps({
   imageBlob: {
     type: Blob,
     default: null
+  },
+  // 工具栏自定义显示
+  showUpload: {
+    type: Boolean,
+    default: true
+  },
+  showCrop: {
+    type: Boolean,
+    default: true
+  },
+  showRotate: {
+    type: Boolean,
+    default: true
+  },
+  showFlip: {
+    type: Boolean,
+    default: true
+  },
+  showRemoveBackground: {
+    type: Boolean,
+    default: true
+  },
+  showScale: {
+    type: Boolean,
+    default: true
+  },
+  showBackgroundTools: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -162,6 +204,7 @@ const mainCanvas = ref(null);
 const cropperImage = ref(null);
 const canvasContainer = ref(null);
 const backgroundImageInput = ref(null);
+const uploadInput = ref(null);
 
 // State
 const visible = ref(props.modelValue);
@@ -493,6 +536,55 @@ const handleBackgroundImageChange = e => {
     img.src = event.target.result;
   };
   reader.readAsDataURL(file);
+};
+
+// 上传新图片
+const triggerUpload = () => {
+  uploadInput.value?.click();
+};
+
+const handleUploadChange = e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // 验证文件类型
+  if (!file.type.startsWith('image/')) {
+    ElMessage.warning('请上传图片文件');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = event => {
+    const img = new Image();
+    img.onload = () => {
+      // 重置状态
+      destroyCropper();
+      currentTool.value = null;
+      scale.value = 100;
+      
+      // 更新画布
+      const canvas = mainCanvas.value;
+      const ctx = canvasContext.value;
+      
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      
+      // 更新状态
+      originalImage.value = img;
+      currentImage.value = img;
+      currentImageSrc.value = event.target.result;
+      
+      checkTransparency();
+      ElMessage.success('图片已加载');
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+  
+  // 清空 input 以便重复选择同一文件
+  e.target.value = '';
 };
 
 const applyBackgroundColor = () => {

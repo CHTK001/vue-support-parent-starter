@@ -203,7 +203,20 @@
     </el-dialog>
 
     <!-- 图片编辑器 -->
-    <ImageEditor v-model="editorVisible" :imageSrc="currentImage" :imageBlob="originalImageBlob" @confirm="handleEditorConfirm" @cancel="handleEditorCancel" />
+    <ImageEditor 
+      v-model="editorVisible" 
+      :imageSrc="currentImage" 
+      :imageBlob="originalImageBlob" 
+      :show-upload="editorShowUpload"
+      :show-crop="editorShowCrop"
+      :show-rotate="editorShowRotate"
+      :show-flip="editorShowFlip"
+      :show-remove-background="editorShowRemoveBackground"
+      :show-scale="editorShowScale"
+      :show-background-tools="editorShowBackgroundTools"
+      @confirm="handleEditorConfirm" 
+      @cancel="handleEditorCancel" 
+    />
   </div>
 </template>
 
@@ -348,6 +361,36 @@ const props = defineProps({
         type: "image/png"
       }
     })
+  },
+
+  // 编辑器工具栏自定义
+  editorShowUpload: {
+    type: Boolean,
+    default: true
+  },
+  editorShowCrop: {
+    type: Boolean,
+    default: true
+  },
+  editorShowRotate: {
+    type: Boolean,
+    default: true
+  },
+  editorShowFlip: {
+    type: Boolean,
+    default: true
+  },
+  editorShowRemoveBackground: {
+    type: Boolean,
+    default: true
+  },
+  editorShowScale: {
+    type: Boolean,
+    default: true
+  },
+  editorShowBackgroundTools: {
+    type: Boolean,
+    default: true
   }
 });
 

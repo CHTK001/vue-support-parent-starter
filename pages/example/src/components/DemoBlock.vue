@@ -42,6 +42,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { ElMessage } from "element-plus";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 const props = defineProps<{
   title: string;

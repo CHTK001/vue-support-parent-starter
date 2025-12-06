@@ -1,0 +1,16 @@
+{
+  "name": "@repo/components-techui",
+  "version": "1.0.0",
+  "description": "TechUI 科幻风格组件封装",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "dependencies": {
+    "@techui/scifi": "catalog:",
+    "@techui/colors": "catalog:",
+    "@techui/lessmixins": "catalog:",
+    "@techui/locales": "catalog:",
+    "@techui/themes": "catalog:",
+    "@techui/libs": "catalog:",
+    "@techui/utils": "catalog:"
+  }
+}
