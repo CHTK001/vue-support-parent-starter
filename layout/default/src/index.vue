@@ -95,14 +95,6 @@ const hourRotation = computed(() => {
   return hours * 30 + minutes * 0.5; // 每小时30度，分针带动时针微动
 });
 
-// 当前时间字符串
-const currentTimeStr = computed(() => {
-  const h = currentTime.value.getHours().toString().padStart(2, '0');
-  const m = currentTime.value.getMinutes().toString().padStart(2, '0');
-  const s = currentTime.value.getSeconds().toString().padStart(2, '0');
-  return `${h}:${m}:${s}`;
-});
-
 // 启动时钟
 const startClock = () => {
   clockTimer.value = window.setInterval(() => {
@@ -402,7 +394,6 @@ const LayHeader = defineComponent({
             <circle cx="50" cy="50" r="2" fill="var(--el-color-primary, #409eff)"/>
           </svg>
         </div>
-        <div class="brand-time">{{ currentTimeStr }}</div>
         <div class="brand-text">{{ isFirstLoad ? '系统初始化' : '加载中' }}</div>
       </div>
       
@@ -965,15 +956,6 @@ const LayHeader = defineComponent({
     .second-hand {
       transition: transform 0.1s linear;
     }
-  }
-  
-  .brand-time {
-    font-size: 24px;
-    font-weight: 700;
-    font-family: "SF Mono", "Monaco", "Consolas", monospace;
-    color: var(--el-color-primary, #409eff);
-    letter-spacing: 2px;
-    text-shadow: 0 2px 4px rgba(var(--el-color-primary-rgb, 64, 158, 255), 0.2);
   }
   
   .brand-text {

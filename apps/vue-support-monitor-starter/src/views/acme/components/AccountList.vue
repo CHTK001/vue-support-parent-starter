@@ -9,7 +9,21 @@
     </div>
 
     <!-- 账户表格 -->
-    <el-table v-loading="loading" :data="tableData" stripe border>
+    <ScTable
+      ref="tableRef"
+      v-loading="loading"
+      :data="tableData"
+      :params="{}"
+      row-key="acmeAccountId"
+      stripe
+      border
+      :page-size="pagination.size"
+      :current-page="pagination.page"
+      :total="pagination.total"
+      :page-sizes="[10, 20, 50]"
+      @page-change="handlePageChange"
+      @size-change="handleSizeChange"
+    >
       <el-table-column prop="acmeAccountId" label="ID" width="80" />
       <el-table-column prop="acmeAccountEmail" label="邮箱" min-width="200" />
       <el-table-column
@@ -47,20 +61,7 @@
           </el-button-group>
         </template>
       </el-table-column>
-    </el-table>
-
-    <!-- 分页 -->
-    <div class="pagination-wrapper">
-      <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.size"
-        :total="pagination.total"
-        :page-sizes="[10, 20, 50]"
-        layout="total, sizes, prev, pager, next"
-        @size-change="loadData"
-        @current-change="loadData"
-      />
-    </div>
+    </ScTable>
 
     <!-- 账户编辑对话框 -->
     <AccountDialog
@@ -88,6 +89,7 @@ defineOptions({
 });
 
 const loading = ref(false);
+const tableRef = ref();
 const tableData = ref<AcmeAccount[]>([]);
 const dialogVisible = ref(false);
 const currentAccount = ref<AcmeAccount>();
@@ -140,6 +142,23 @@ async function loadData() {
   } finally {
     loading.value = false;
   }
+}
+
+/**
+ * 分页变化
+ */
+function handlePageChange(page: number) {
+  pagination.page = page;
+  loadData();
+}
+
+/**
+ * 每页条数变化
+ */
+function handleSizeChange(size: number) {
+  pagination.size = size;
+  pagination.page = 1;
+  loadData();
 }
 
 /**
@@ -211,12 +230,6 @@ onMounted(() => {
     white-space: nowrap;
     display: block;
     max-width: 280px;
-  }
-
-  .pagination-wrapper {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 16px;
   }
 }
 </style>
