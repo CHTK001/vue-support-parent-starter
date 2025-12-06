@@ -57,7 +57,6 @@
     "vue-i18n": "catalog:"
   },
   "devDependencies": {
-    "@repo/build": "workspace:^",
     "@repo/config": "workspace:^",
     "@repo/tailwind-config": "workspace:^",
     "@repo/tsconfig": "workspace:^",

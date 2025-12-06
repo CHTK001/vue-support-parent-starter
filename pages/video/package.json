@@ -52,7 +52,6 @@
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
     "@commitlint/types": "catalog:",
-    "@repo/build": "workspace:^",
     "@repo/config": "workspace:^",
     "@types/lodash-es": "catalog:",
     "@types/node": "catalog:",

@@ -45,7 +45,6 @@
     "@pureadmin/theme": "catalog:",
     "@pureadmin/theme-utils": "catalog:",
     "@repo/assets": "workspace:^",
-    "@repo/build": "workspace:^",
     "@repo/codec-wasm": "workspace:^",
     "@repo/components": "workspace:^",
     "@repo/config": "workspace:^",

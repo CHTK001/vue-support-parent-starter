@@ -47,7 +47,6 @@
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
     "@commitlint/types": "catalog:",
-    "@repo/build": "workspace:^",
     "@repo/config": "workspace:^",
     "@repo/tailwind-config": "workspace:^",
     "@repo/tsconfig": "workspace:^",
