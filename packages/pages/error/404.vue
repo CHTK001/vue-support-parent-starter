@@ -7,8 +7,8 @@ defineOptions({
   name: "404",
 });
 
-// 从配置获取错误页面风格
-const errorPageStyle = computed(() => globalSetting.ErrorPageStyle || "pixel");
+// 404 使用迷路风格（沙漠/路标/放大镜）
+const errorPageStyle = computed(() => globalSetting.ErrorPageStyle || "notfound");
 </script>
 
 <template>

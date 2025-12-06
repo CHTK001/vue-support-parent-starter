@@ -7,8 +7,8 @@ defineOptions({
   name: "500",
 });
 
-// 从配置获取错误页面风格
-const errorPageStyle = computed(() => globalSetting.ErrorPageStyle || "pixel");
+// 500 使用服务器错误风格（服务器/故障/代码雨）
+const errorPageStyle = computed(() => globalSetting.ErrorPageStyle || "servererror");
 </script>
 
 <template>
