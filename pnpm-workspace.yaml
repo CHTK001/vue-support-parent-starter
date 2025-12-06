@@ -359,13 +359,14 @@ catalog:
   tailwindcss: ^3.4.17
   tailwindcss-animate: ^1.0.7
   techui-vue3-lite: ^3.0.8
-  "@techui/scifi": ^1.0.0
-  "@techui/colors": ^1.0.0
-  "@techui/lessmixins": ^1.0.0
-  "@techui/locales": ^1.0.0
-  "@techui/themes": ^1.0.0
-  "@techui/libs": ^1.0.0
-  "@techui/utils": ^1.0.0
+  "@techui/scifi": ^0.0.6-alpha.1
+  "@techui/colors": ^1.0.2
+  "@techui/lessmixins": ^0.0.6
+  "@techui/locales": ^0.0.6
+  "@techui/themes": ^0.0.6
+  "@techui/libs": ^0.0.6
+  "@techui/utils": ^0.0.6
+  "@techui/icons": ^1.0.3
   tippy.js: ^6.3.7
   theme-colors: ^0.1.0
   monaco-editor: ^0.52.2
