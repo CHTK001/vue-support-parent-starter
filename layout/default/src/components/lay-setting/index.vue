@@ -142,6 +142,8 @@ const settings = reactive({
   // 面包屑导航
   showBreadcrumb: $storage.configure.showBreadcrumb ?? true,
   breadcrumbIconOnly: $storage.configure.breadcrumbIconOnly ?? false,
+  // 标签页图标
+  showTagIcon: $storage.configure.showTagIcon ?? true,
   // 菜单设置相关
   showNewMenu: $storage.configure.showNewMenu ?? true,
   newMenuText: $storage.configure.newMenuText ?? "new",
@@ -717,6 +719,14 @@ function breadcrumbModeChange() {
     "breadcrumbModeChange",
     settings.breadcrumbIconOnly ? "icon" : "icon-text"
   );
+}
+
+/**
+ * 标签页图标显示变更
+ */
+function showTagIconChange() {
+  storageConfigureChange("showTagIcon", settings.showTagIcon);
+  emitter.emit("showTagIconChange", settings.showTagIcon);
 }
 
 /**
@@ -1492,6 +1502,19 @@ onUnmounted(() => {
                   ribbon-text="隐藏"
                   ribbon-color="var(--el-color-warning)"
                   @change="tagsChange"
+                />
+
+                <ScSwitch
+                  v-if="!settings.tabsVal"
+                  v-model="settings.showTagIcon"
+                  layout="visual-card"
+                  size="small"
+                  label="标签页图标"
+                  description="在标签页显示菜单图标"
+                  active-icon="ri:apps-line"
+                  inactive-icon="ri:text"
+                  ribbon-color="var(--el-color-success)"
+                  @change="showTagIconChange"
                 />
 
                 <ScSwitch

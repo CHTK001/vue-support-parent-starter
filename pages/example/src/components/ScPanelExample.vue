@@ -1,8 +1,7 @@
 <template>
   <div class="sc-panel-example">
     <!-- 默认主题 -->
-    <div class="demo-section">
-      <h4>默认主题（基于 el-card）</h4>
+    <DemoBlock title="默认主题（基于 el-card）" :code="codes.default">
       <div class="demo-row">
         <ScPanel title="基础面板" icon="ep:document" :width="280">
           <p>这是一个基础面板</p>
@@ -19,11 +18,10 @@
           <p>点击右上角按钮最大化</p>
         </ScPanel>
       </div>
-    </div>
+    </DemoBlock>
 
     <!-- Modern 现代简约 -->
-    <div class="demo-section">
-      <h4>Modern 现代简约风格</h4>
+    <DemoBlock title="Modern 现代简约风格" :code="codes.modern">
       <div class="demo-row">
         <ScPanel
           theme="modern"
@@ -43,11 +41,10 @@
           <p>清爽的视觉效果</p>
         </ScPanel>
       </div>
-    </div>
+    </DemoBlock>
 
     <!-- Gradient 渐变主题 -->
-    <div class="demo-section">
-      <h4>Gradient 渐变主题</h4>
+    <DemoBlock title="Gradient 渐变主题" :code="codes.gradient">
       <div class="demo-row">
         <ScPanel
           theme="gradient"
@@ -59,11 +56,10 @@
           <p>适合突出显示重要内容</p>
         </ScPanel>
       </div>
-    </div>
+    </DemoBlock>
 
     <!-- TechUI 数据大屏 -->
-    <div class="demo-section demo-section--dark">
-      <h4>TechUI 数据大屏风格</h4>
+    <DemoBlock title="TechUI 数据大屏风格" :code="codes.techui" dark>
       <div class="demo-row">
         <ScPanel
           theme="techui"
@@ -72,15 +68,15 @@
           :width="350"
           :height="220"
         >
-          <div class="techui-content">
+          <div class="tech-content">
             <div class="data-item">
-              <span>CPU</span><span class="value">45.2%</span>
+              <span>CPU</span><span class="value cyan">45.2%</span>
             </div>
             <div class="data-item">
-              <span>内存</span><span class="value">6.8GB</span>
+              <span>内存</span><span class="value cyan">6.8GB</span>
             </div>
             <div class="data-item">
-              <span>网络</span><span class="value">128MB/s</span>
+              <span>网络</span><span class="value cyan">128MB/s</span>
             </div>
           </div>
         </ScPanel>
@@ -91,50 +87,68 @@
           :width="350"
           :height="220"
         >
-          <div class="techui-content">
+          <div class="tech-content">
             <div class="data-item">
-              <span>访问量</span><span class="value">12,345</span>
+              <span>访问量</span><span class="value cyan">12,345</span>
             </div>
             <div class="data-item">
-              <span>转化率</span><span class="value">23.5%</span>
+              <span>转化率</span><span class="value cyan">23.5%</span>
             </div>
             <div class="data-item">
-              <span>在线用户</span><span class="value">892</span>
+              <span>在线用户</span><span class="value cyan">892</span>
             </div>
           </div>
         </ScPanel>
       </div>
-    </div>
+    </DemoBlock>
 
     <!-- Tech 科技风格 -->
-    <div class="demo-section demo-section--dark">
-      <h4>Tech 科技风格</h4>
+    <DemoBlock title="Tech 科技风格" :code="codes.tech" dark>
       <div class="demo-row">
         <ScPanel
           theme="tech"
-          title="科技面板"
+          title="系统状态"
           icon="ep:cpu"
-          :width="300"
-          :height="180"
+          :width="350"
+          :height="220"
         >
-          <p>边角装饰设计</p>
+          <div class="tech-content">
+            <div class="data-item">
+              <span>服务器状态</span><span class="value blue">运行中</span>
+            </div>
+            <div class="data-item">
+              <span>响应时间</span><span class="value blue">32ms</span>
+            </div>
+            <div class="data-item">
+              <span>连接数</span><span class="value blue">1,234</span>
+            </div>
+          </div>
         </ScPanel>
         <ScPanel
           theme="tech"
-          title="自定义颜色"
+          title="绿色主题"
           icon="ep:setting"
-          :width="300"
-          :height="180"
+          :width="350"
+          :height="220"
           border-color="rgba(0, 255, 150, 0.4)"
         >
-          <p>绿色科技风格</p>
+          <div class="tech-content tech-content--green">
+            <div class="data-item">
+              <span>安全等级</span><span class="value green">高</span>
+            </div>
+            <div class="data-item">
+              <span>威胁检测</span><span class="value green">0</span>
+            </div>
+            <div class="data-item">
+              <span>防护状态</span><span class="value green">已启用</span>
+            </div>
+          </div>
         </ScPanel>
       </div>
-    </div>
+    </DemoBlock>
 
     <!-- Glass 玻璃拟态 -->
-    <div class="demo-section demo-section--gradient">
-      <h4>Glass 玻璃拟态</h4>
+    <DemoBlock title="Glass 玻璃拟态" :code="codes.glass" gradient>
       <div class="demo-row">
         <ScPanel
           theme="glass"
@@ -143,14 +157,13 @@
           :width="300"
           :height="160"
         >
-          <p>毛玻璃效果，适合背景图场景</p>
+          <p style="color: #fff">毛玻璃效果，适合背景图场景</p>
         </ScPanel>
       </div>
-    </div>
+    </DemoBlock>
 
     <!-- Neon 霓虹风格 -->
-    <div class="demo-section demo-section--dark">
-      <h4>Neon 霓虹风格</h4>
+    <DemoBlock title="Neon 霓虹风格" :code="codes.neon" dark>
       <div class="demo-row">
         <ScPanel
           theme="neon"
@@ -182,11 +195,10 @@
           <p>蓝色主题</p>
         </ScPanel>
       </div>
-    </div>
+    </DemoBlock>
 
     <!-- Cyber 赛博朋克 -->
-    <div class="demo-section demo-section--dark">
-      <h4>Cyber 赛博朋克风格</h4>
+    <DemoBlock title="Cyber 赛博朋克风格" :code="codes.cyber" dark>
       <div class="demo-row">
         <ScPanel
           theme="cyber"
@@ -198,11 +210,10 @@
           <p>切角设计的赛博朋克风格</p>
         </ScPanel>
       </div>
-    </div>
+    </DemoBlock>
 
     <!-- 功能组合 -->
-    <div class="demo-section">
-      <h4>功能组合</h4>
+    <DemoBlock title="功能组合" :code="codes.full">
       <div class="demo-row">
         <ScPanel
           title="完整功能"
@@ -224,7 +235,7 @@
           </template>
         </ScPanel>
       </div>
-    </div>
+    </DemoBlock>
   </div>
 </template>
 
@@ -237,45 +248,194 @@
  */
 import { ElMessage } from "element-plus";
 import { ScPanel } from "@repo/components/ScPanel";
+import DemoBlock from "./DemoBlock.vue";
 
 function handleClose() {
   ElMessage.info("面板已关闭");
 }
+
+// 代码模板
+const codes = {
+  default: `<ScPanel title="基础面板" icon="ep:document" :width="280">
+  <p>这是一个基础面板</p>
+</ScPanel>
+
+<ScPanel title="可折叠" icon="ep:folder" collapsible :width="280">
+  <p>点击左侧箭头折叠</p>
+</ScPanel>
+
+<ScPanel title="可最大化" icon="ep:full-screen" maximizable :width="280">
+  <p>点击右上角按钮最大化</p>
+</ScPanel>`,
+
+  modern: `<ScPanel theme="modern" title="现代面板" icon="ep:star-filled" :width="320">
+  <p>简洁无边框，大圆角设计</p>
+  <p>适合现代化管理后台</p>
+</ScPanel>`,
+
+  gradient: `<ScPanel theme="gradient" title="渐变面板" icon="ep:magic-stick" :width="320">
+  <p>主题色渐变背景</p>
+  <p>适合突出显示重要内容</p>
+</ScPanel>`,
+
+  techui: `<ScPanel
+  theme="techui"
+  title="系统监控"
+  icon="ep:monitor"
+  :width="350"
+  :height="220"
+>
+  <div class="tech-content">
+    <div class="data-item">
+      <span>CPU</span>
+      <span class="value">45.2%</span>
+    </div>
+    <div class="data-item">
+      <span>内存</span>
+      <span class="value">6.8GB</span>
+    </div>
+  </div>
+</ScPanel>
+
+<!-- 样式 -->
+<style>
+.tech-content .data-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0, 246, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+.tech-content .value {
+  color: #00f6ff;
+  font-weight: 600;
+  font-size: 18px;
+}
+</style>`,
+
+  tech: `<ScPanel
+  theme="tech"
+  title="系统状态"
+  icon="ep:cpu"
+  :width="350"
+  :height="220"
+>
+  <div class="tech-content">
+    <div class="data-item">
+      <span>服务器状态</span>
+      <span class="value">运行中</span>
+    </div>
+    <div class="data-item">
+      <span>响应时间</span>
+      <span class="value">32ms</span>
+    </div>
+  </div>
+</ScPanel>
+
+<!-- 自定义颜色 -->
+<ScPanel
+  theme="tech"
+  title="绿色主题"
+  icon="ep:setting"
+  :width="350"
+  border-color="rgba(0, 255, 150, 0.4)"
+>
+  <div class="tech-content">
+    <!-- 内容 -->
+  </div>
+</ScPanel>
+
+<!-- 样式 -->
+<style>
+.tech-content .data-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0, 200, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+.tech-content .value {
+  color: #00d4ff;
+  font-weight: 600;
+  font-size: 18px;
+  text-shadow: 0 0 10px rgba(0, 200, 255, 0.5);
+}
+</style>`,
+
+  glass: `<ScPanel
+  theme="glass"
+  title="玻璃面板"
+  icon="ep:magic-stick"
+  :width="300"
+  :height="160"
+>
+  <p>毛玻璃效果，适合背景图场景</p>
+</ScPanel>`,
+
+  neon: `<ScPanel
+  theme="neon"
+  title="霓虹面板"
+  icon="ep:sunny"
+  :width="260"
+  :height="160"
+>
+  <p>呼吸灯效果</p>
+</ScPanel>
+
+<!-- 自定义颜色 -->
+<ScPanel
+  theme="neon"
+  title="绿色霓虹"
+  icon="ep:star"
+  :width="260"
+  border-color="#00ff88"
+>
+  <p>自定义颜色</p>
+</ScPanel>`,
+
+  cyber: `<ScPanel
+  theme="cyber"
+  title="CYBER PANEL"
+  icon="ep:aim"
+  :width="320"
+  :height="180"
+>
+  <p>切角设计的赛博朋克风格</p>
+</ScPanel>`,
+
+  full: `<ScPanel
+  title="完整功能"
+  icon="ep:setting"
+  collapsible
+  maximizable
+  closable
+  :width="400"
+  @close="handleClose"
+>
+  <template #extra>
+    <el-button size="small" type="primary" link>
+      <IconifyIconOnline icon="ep:refresh" />
+    </el-button>
+  </template>
+  <p>集成折叠、最大化、关闭功能</p>
+  <template #footer>
+    <el-text type="info" size="small">Footer 区域</el-text>
+  </template>
+</ScPanel>
+
+<script setup>
+import { ElMessage } from "element-plus";
+
+function handleClose() {
+  ElMessage.info("面板已关闭");
+}
+</script>`
+};
 </script>
 
 <style scoped>
 .sc-panel-example {
   padding: 20px;
-}
-
-.demo-section {
-  margin-bottom: 32px;
-  padding: 24px;
-  border-radius: 8px;
-  background: var(--el-bg-color);
-}
-
-.demo-section--dark {
-  background: linear-gradient(135deg, #0a1628 0%, #1a2840 100%);
-}
-
-.demo-section--dark h4 {
-  color: #fff;
-}
-
-.demo-section--gradient {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.demo-section--gradient h4 {
-  color: #fff;
-}
-
-.demo-section h4 {
-  margin: 0 0 20px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
 }
 
 .demo-row {
@@ -285,25 +445,45 @@ function handleClose() {
   align-items: flex-start;
 }
 
-.techui-content {
+/* 科技风格内容样式 */
+.tech-content {
   padding: 8px 0;
 }
 
-.techui-content .data-item {
+.tech-content .data-item {
   display: flex;
   justify-content: space-between;
   padding: 10px 0;
-  border-bottom: 1px solid rgba(0, 246, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 200, 255, 0.1);
   color: rgba(255, 255, 255, 0.7);
 }
 
-.techui-content .data-item:last-child {
+.tech-content .data-item:last-child {
   border-bottom: none;
 }
 
-.techui-content .data-item .value {
-  color: #00f6ff;
+.tech-content .value {
   font-weight: 600;
   font-size: 18px;
+}
+
+.tech-content .value.cyan {
+  color: #00f6ff;
+  text-shadow: 0 0 10px rgba(0, 246, 255, 0.5);
+}
+
+.tech-content .value.blue {
+  color: #00d4ff;
+  text-shadow: 0 0 10px rgba(0, 200, 255, 0.5);
+}
+
+.tech-content .value.green {
+  color: #00ff96;
+  text-shadow: 0 0 10px rgba(0, 255, 150, 0.5);
+}
+
+/* 绿色主题内容 */
+.tech-content--green .data-item {
+  border-bottom-color: rgba(0, 255, 150, 0.1);
 }
 </style>

@@ -18,9 +18,11 @@ import {
   delay,
   isAllEmpty,
   isEqual,
+  useGlobal,
   useResizeObserver,
 } from "@pureadmin/utils";
 import { useDefer } from "@repo/utils";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 import ExitFullscreen from "@iconify-icons/ri/fullscreen-exit-fill";
 import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
@@ -67,6 +69,17 @@ const isShowArrow = ref(false);
 const topPath = getTopMenu()?.path;
 //@ts-ignore
 const { VITE_HIDE_HOME } = import.meta.env;
+//@ts-ignore
+const { $storage } = useGlobal<GlobalPropertiesApi>();
+
+// 标签页是否显示图标
+const showTagIcon = ref($storage.configure?.showTagIcon ?? true);
+
+// 监听标签图标设置变化
+emitter.on("showTagIconChange", (val: boolean) => {
+  showTagIcon.value = val;
+});
+
 const fixedTags = [
   ...routerArrays,
   ...usePermissionStoreHook().flatteningRoutes.filter((v) => v?.meta?.fixedTag),
@@ -588,7 +601,9 @@ onMounted(() => {
   delay().then(() => dynamicTagView());
 });
 
-onBeforeUnmount(() => {});
+onBeforeUnmount(() => {
+  emitter.off("showTagIconChange");
+});
 const defer = useDefer(multiTags?.length);
 const deferTag = useDefer(tagsViews?.length);
 </script>
@@ -622,6 +637,11 @@ const deferTag = useDefer(tagsViews?.length);
           @click="tagOnClick(item)"
         >
           <template v-if="showModel !== 'chrome' && defer(index)">
+            <component
+              v-if="showTagIcon && item.meta?.icon"
+              :is="useRenderIcon(item.meta.icon)"
+              class="tag-icon"
+            />
             <span class="tag-title">
               {{ transformI18n(item.meta.title) }}
             </span>
@@ -647,6 +667,11 @@ const deferTag = useDefer(tagsViews?.length);
             <div class="chrome-tab__bg">
               <TagChrome />
             </div>
+            <component
+              v-if="showTagIcon && item.meta?.icon"
+              :is="useRenderIcon(item.meta.icon)"
+              class="tag-icon"
+            />
             <span class="tag-title">
               {{ transformI18n(item.meta.title) }}
             </span>
@@ -731,6 +756,25 @@ const deferTag = useDefer(tagsViews?.length);
       transform: translateY(-2px);
     }
   }
+}
+
+// 标签页图标样式
+.tag-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  flex-shrink: 0;
+  opacity: 0.85;
+  transition: all 0.2s ease;
+}
+
+.scroll-item:hover .tag-icon,
+.scroll-item.is-active .tag-icon {
+  opacity: 1;
+}
+
+.chrome-tab .tag-icon {
+  margin-right: 6px;
 }
 
 .chrome-item {

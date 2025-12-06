@@ -28,6 +28,7 @@ import {
   nextTick,
   onBeforeMount,
   onMounted,
+  onUnmounted,
   reactive,
   ref,
 } from "vue";
@@ -68,6 +69,54 @@ const { isDark } = useDark();
 
 // 添加加载状态管理
 const isConfigLoaded = ref(false);
+
+// 是否首次加载（用于显示不同的加载文字）
+const isFirstLoad = ref(!sessionStorage.getItem("_app_loaded"));
+
+// 加载页面风格（从配置读取，默认简约风格）
+const loadingStyle = computed(() => getConfig().LoadingPageStyle || "minimal");
+
+// 时钟相关状态
+const currentTime = ref(new Date());
+const clockTimer = ref<number | null>(null);
+
+// 时钟指针角度计算
+const secondRotation = computed(() => {
+  return currentTime.value.getSeconds() * 6; // 每秒6度
+});
+const minuteRotation = computed(() => {
+  const minutes = currentTime.value.getMinutes();
+  const seconds = currentTime.value.getSeconds();
+  return minutes * 6 + seconds * 0.1; // 每分钟6度，秒针带动分针微动
+});
+const hourRotation = computed(() => {
+  const hours = currentTime.value.getHours() % 12;
+  const minutes = currentTime.value.getMinutes();
+  return hours * 30 + minutes * 0.5; // 每小时30度，分针带动时针微动
+});
+
+// 当前时间字符串
+const currentTimeStr = computed(() => {
+  const h = currentTime.value.getHours().toString().padStart(2, '0');
+  const m = currentTime.value.getMinutes().toString().padStart(2, '0');
+  const s = currentTime.value.getSeconds().toString().padStart(2, '0');
+  return `${h}:${m}:${s}`;
+});
+
+// 启动时钟
+const startClock = () => {
+  clockTimer.value = window.setInterval(() => {
+    currentTime.value = new Date();
+  }, 1000);
+};
+
+// 停止时钟
+const stopClock = () => {
+  if (clockTimer.value) {
+    clearInterval(clockTimer.value);
+    clockTimer.value = null;
+  }
+};
 
 const { initStorage } = useLayout();
 
@@ -162,14 +211,48 @@ useResizeObserver(appWrapperRef, (entries) => {
  * 获取系统默认配置
  */
 const getDefaultSetting = async () => {
-  await useConfigStore().load();
-  isConfigLoaded.value = true;
+  try {
+    await useConfigStore().load();
+    isConfigLoaded.value = true;
+    // 标记已加载过，下次刷新不显示"初始化"
+    sessionStorage.setItem("_app_loaded", "1");
+  } catch (error) {
+    console.warn("Failed to load config:", error);
+    // 根据配置决定是否保持加载页面
+    if (!getConfig().BlockOnConfigLoadFail) {
+      isConfigLoaded.value = true;
+      sessionStorage.setItem("_app_loaded", "1");
+    }
+  }
+};
+
+// 页面可见性变化处理
+let originalTitle = "";
+const handleVisibilityChange = () => {
+  if (document.hidden) {
+    originalTitle = document.title;
+    document.title = "👀 快回来呀~";
+  } else {
+    document.title = "🎉 欢迎回来！";
+    // 2秒后恢复原标题
+    setTimeout(() => {
+      if (!document.hidden && originalTitle) {
+        document.title = originalTitle;
+      }
+    }, 2000);
+  }
 };
 
 onMounted(async () => {
+  // 启动加载页时钟
+  startClock();
+  
   if (isMobile) {
     toggle("mobile", false);
   }
+
+  // 监听页面可见性变化
+  document.addEventListener("visibilitychange", handleVisibilityChange);
 
   // 页面加载完成后检查配置并应用
   nextTick(() => {
@@ -186,6 +269,11 @@ onMounted(async () => {
     // 等待配置加载完成
     getDefaultSetting();
   });
+});
+
+onUnmounted(() => {
+  document.removeEventListener("visibilitychange", handleVisibilityChange);
+  stopClock();
 });
 
 /**
@@ -268,41 +356,70 @@ const LayHeader = defineComponent({
 </script>
 
 <template>
-  <!-- 全屏加载遮罩 - 像素恐龙动画 -->
-  <div v-if="!isConfigLoaded" class="fullscreen-loading">
-    <div class="loading-scene">
-      <!-- 像素云朵 -->
-      <div class="pixel-clouds">
-        <div class="pixel-cloud pixel-cloud-1"></div>
-        <div class="pixel-cloud pixel-cloud-2"></div>
-      </div>
-      
-      <!-- 像素恐龙 -->
-      <div class="dino-container">
-        <div class="pixel-dino">
-          <div class="dino-sprite"></div>
-        </div>
-      </div>
-      
-      <!-- 像素仙人掌 -->
-      <div class="cactus-container">
-        <div class="pixel-cactus"></div>
-      </div>
-      
-      <!-- 像素地面 -->
-      <div class="pixel-ground"></div>
-    </div>
+  <!-- 全屏加载遮罩 -->
+  <div v-if="!isConfigLoaded" class="fullscreen-loading" :class="'loading-' + loadingStyle">
+   
     
     <!-- 加载信息 -->
     <div class="loading-info">
-      <div class="loading-progress">
-        <div class="progress-bar"></div>
+      <!-- 动态时钟 Logo -->
+      <div class="loading-brand">
+        <div class="brand-clock">
+          <svg viewBox="0 0 100 100" class="clock-svg">
+            <!-- 外圈 -->
+            <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+            <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="1" opacity="0.1"/>
+            <!-- 刻度 -->
+            <g class="clock-marks">
+              <line v-for="i in 12" :key="i" 
+                x1="50" y1="10" x2="50" :y2="i % 3 === 0 ? 16 : 14"
+                :transform="`rotate(${i * 30} 50 50)`"
+                stroke="currentColor" 
+                :stroke-width="i % 3 === 0 ? 2 : 1"
+                :opacity="i % 3 === 0 ? 0.6 : 0.3"
+              />
+            </g>
+            <!-- 时针 -->
+            <line class="clock-hand hour-hand"
+              x1="50" y1="50" x2="50" y2="28"
+              stroke="currentColor" stroke-width="3" stroke-linecap="round"
+              :transform="`rotate(${hourRotation} 50 50)`"
+            />
+            <!-- 分针 -->
+            <line class="clock-hand minute-hand"
+              x1="50" y1="50" x2="50" y2="18"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              :transform="`rotate(${minuteRotation} 50 50)`"
+            />
+            <!-- 秒针 -->
+            <line class="clock-hand second-hand"
+              x1="50" y1="55" x2="50" y2="14"
+              stroke="var(--el-color-primary, #409eff)" stroke-width="1" stroke-linecap="round"
+              :transform="`rotate(${secondRotation} 50 50)`"
+            />
+            <!-- 中心点 -->
+            <circle cx="50" cy="50" r="4" fill="currentColor"/>
+            <circle cx="50" cy="50" r="2" fill="var(--el-color-primary, #409eff)"/>
+          </svg>
+        </div>
+        <div class="brand-time">{{ currentTimeStr }}</div>
+        <div class="brand-text">{{ isFirstLoad ? '系统初始化' : '加载中' }}</div>
       </div>
-      <div class="loading-text">{{ t("system.initializing") }}</div>
-      <div class="loading-dots">
-        <span class="dot"></span>
-        <span class="dot"></span>
-        <span class="dot"></span>
+      
+      <!-- 进度条 -->
+      <div class="loading-progress">
+        <div class="progress-track">
+          <div class="progress-bar"></div>
+          <div class="progress-glow"></div>
+        </div>
+      </div>
+      
+      <!-- 状态提示 -->
+      <div class="loading-status">
+        <span class="status-text">{{ isFirstLoad ? '正在初始化核心模块' : '正在加载页面资源' }}</span>
+        <span class="status-dots">
+          <i></i><i></i><i></i>
+        </span>
       </div>
     </div>
   </div>
@@ -794,69 +911,198 @@ const LayHeader = defineComponent({
   }
 }
 
-// 加载信息
+// 加载信息 - 现代化设计
 .loading-info {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-}
-
-.loading-progress {
-  width: 200px;
-  height: 4px;
-  background: #e0e0e0;
-  border-radius: 2px;
-  overflow: hidden;
+  gap: 24px;
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   
   :global(.dark) & {
-    background: #3a3a5c;
+    background: rgba(30, 30, 50, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      0 2px 8px rgba(0, 0, 0, 0.2);
   }
 }
 
-.progress-bar {
-  height: 100%;
-  width: 30%;
-  background: linear-gradient(90deg, #535353, #757575);
-  border-radius: 2px;
-  animation: progress 2s ease-in-out infinite;
-  
-  :global(.dark) & {
-    background: linear-gradient(90deg, #a0a0a0, #c0c0c0);
-  }
-}
-
-.loading-text {
-  font-size: 1rem;
-  font-weight: 500;
-  color: #535353;
-  letter-spacing: 2px;
-  font-family: 'Courier New', monospace;
-  
-  :global(.dark) & {
-    color: #a0a0a0;
-  }
-}
-
-.loading-dots {
+// 品牌区域 - 动态时钟
+.loading-brand {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 8px;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  background: #535353;
-  border-radius: 50%;
-  animation: dot-bounce 1.4s ease-in-out infinite;
   
-  :global(.dark) & {
-    background: #a0a0a0;
+  .brand-clock {
+    width: 80px;
+    height: 80px;
+    color: #333;
+    
+    :global(.dark) & {
+      color: #e0e0e0;
+    }
+    
+    .clock-svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+    }
+    
+    .clock-hand {
+      transition: transform 0.1s cubic-bezier(0.4, 2.08, 0.55, 0.44);
+      transform-origin: 50px 50px;
+    }
+    
+    .second-hand {
+      transition: transform 0.1s linear;
+    }
   }
   
-  &:nth-child(1) { animation-delay: 0s; }
-  &:nth-child(2) { animation-delay: 0.2s; }
-  &:nth-child(3) { animation-delay: 0.4s; }
+  .brand-time {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: "SF Mono", "Monaco", "Consolas", monospace;
+    color: var(--el-color-primary, #409eff);
+    letter-spacing: 2px;
+    text-shadow: 0 2px 4px rgba(var(--el-color-primary-rgb, 64, 158, 255), 0.2);
+  }
+  
+  .brand-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    
+    :global(.dark) & {
+      color: #a0a0a0;
+    }
+  }
+}
+
+// 进度条
+.loading-progress {
+  width: 240px;
+  
+  .progress-track {
+    position: relative;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+    
+    :global(.dark) & {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+  
+  .progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 30%;
+    background: linear-gradient(90deg, 
+      var(--el-color-primary, #409eff), 
+      var(--el-color-primary-light-3, #79bbff)
+    );
+    border-radius: 3px;
+    animation: progress-slide 2s ease-in-out infinite;
+  }
+  
+  .progress-glow {
+    position: absolute;
+    top: -2px;
+    left: 0;
+    height: 10px;
+    width: 30%;
+    background: linear-gradient(90deg, 
+      transparent,
+      rgba(var(--el-color-primary-rgb, 64, 158, 255), 0.4),
+      transparent
+    );
+    filter: blur(4px);
+    animation: progress-slide 2s ease-in-out infinite;
+  }
+}
+
+// 状态提示
+.loading-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .status-text {
+    font-size: 13px;
+    color: #666;
+    letter-spacing: 1px;
+    
+    :global(.dark) & {
+      color: #a0a0a0;
+    }
+  }
+  
+  .status-dots {
+    display: flex;
+    gap: 4px;
+    
+    i {
+      width: 5px;
+      height: 5px;
+      background: var(--el-color-primary, #409eff);
+      border-radius: 50%;
+      animation: dot-wave 1.2s ease-in-out infinite;
+      
+      &:nth-child(1) { animation-delay: 0s; }
+      &:nth-child(2) { animation-delay: 0.15s; }
+      &:nth-child(3) { animation-delay: 0.3s; }
+    }
+  }
+}
+
+@keyframes icon-pulse {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes progress-slide {
+  0% { 
+    left: -30%;
+    width: 30%;
+  }
+  50% {
+    width: 50%;
+  }
+  100% { 
+    left: 100%;
+    width: 30%;
+  }
+}
+
+@keyframes dot-wave {
+  0%, 100% { 
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% { 
+    transform: translateY(-6px);
+    opacity: 1;
+  }
 }
 
 // 像素风格动画关键帧
@@ -935,6 +1181,260 @@ const LayHeader = defineComponent({
   40% { 
     transform: translateY(-8px); 
   }
+}
+
+// ==================== 太空风格加载 ====================
+.space-scene {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at bottom, #1b2838 0%, #090a0f 100%);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.stars {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+    radial-gradient(2px 2px at 40px 70px, #fff, transparent),
+    radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+    radial-gradient(2px 2px at 160px 80px, #ddd, transparent),
+    radial-gradient(1px 1px at 200px 30px, #fff, transparent),
+    radial-gradient(2px 2px at 300px 60px, #eee, transparent),
+    radial-gradient(1px 1px at 350px 20px, #fff, transparent);
+  background-size: 400px 180px;
+  animation: stars-twinkle 3s ease-in-out infinite;
+}
+
+.astronaut {
+  position: relative;
+  z-index: 2;
+  animation: astronaut-float 4s ease-in-out infinite;
+}
+
+.astronaut-body {
+  font-size: 4rem;
+  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+}
+
+.planet {
+  position: absolute;
+  bottom: 20px;
+  right: 40px;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  box-shadow: inset -10px -10px 20px rgba(0,0,0,0.4);
+}
+
+@keyframes stars-twinkle {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+@keyframes astronaut-float {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+// ==================== 简约风格加载 ====================
+.minimal-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+// 背景装饰圆
+.minimal-bg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  
+  .bg-circle {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.1;
+    
+    &.c1 {
+      width: 300px;
+      height: 300px;
+      background: linear-gradient(135deg, #409eff, #67c23a);
+      top: -100px;
+      right: -100px;
+      animation: float-circle 8s ease-in-out infinite;
+    }
+    
+    &.c2 {
+      width: 200px;
+      height: 200px;
+      background: linear-gradient(135deg, #e6a23c, #f56c6c);
+      bottom: -50px;
+      left: -50px;
+      animation: float-circle 6s ease-in-out infinite reverse;
+    }
+    
+    &.c3 {
+      width: 150px;
+      height: 150px;
+      background: linear-gradient(135deg, #909399, #409eff);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: pulse-circle 4s ease-in-out infinite;
+    }
+  }
+}
+
+// 3D立方体加载动画
+.minimal-loader {
+  perspective: 200px;
+  width: 60px;
+  height: 60px;
+}
+
+.loader-cube {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: cube-rotate 2s ease-in-out infinite;
+}
+
+.cube-face {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border: 2px solid rgba(64, 158, 255, 0.3);
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.1), rgba(103, 194, 58, 0.1));
+  backdrop-filter: blur(5px);
+  
+  &.front  { transform: rotateY(0deg) translateZ(30px); }
+  &.back   { transform: rotateY(180deg) translateZ(30px); }
+  &.right  { transform: rotateY(90deg) translateZ(30px); }
+  &.left   { transform: rotateY(-90deg) translateZ(30px); }
+  &.top    { transform: rotateX(90deg) translateZ(30px); }
+  &.bottom { transform: rotateX(-90deg) translateZ(30px); }
+  
+  :global(.dark) & {
+    border-color: rgba(64, 158, 255, 0.5);
+    background: linear-gradient(135deg, rgba(64, 158, 255, 0.2), rgba(103, 194, 58, 0.2));
+  }
+}
+
+// 波浪点动画
+.wave-dots {
+  display: flex;
+  gap: 8px;
+  
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #409eff, #67c23a);
+    animation: wave-dot 1.4s ease-in-out infinite;
+    
+    &:nth-child(1) { animation-delay: 0s; }
+    &:nth-child(2) { animation-delay: 0.1s; }
+    &:nth-child(3) { animation-delay: 0.2s; }
+    &:nth-child(4) { animation-delay: 0.3s; }
+    &:nth-child(5) { animation-delay: 0.4s; }
+  }
+}
+
+@keyframes float-circle {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(20px, -20px) scale(1.1); }
+}
+
+@keyframes pulse-circle {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.1; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.2; }
+}
+
+@keyframes cube-rotate {
+  0% { transform: rotateX(0deg) rotateY(0deg); }
+  25% { transform: rotateX(90deg) rotateY(90deg); }
+  50% { transform: rotateX(180deg) rotateY(180deg); }
+  75% { transform: rotateX(270deg) rotateY(270deg); }
+  100% { transform: rotateX(360deg) rotateY(360deg); }
+}
+
+@keyframes wave-dot {
+  0%, 100% { 
+    transform: translateY(0) scale(1);
+    opacity: 0.5;
+  }
+  50% { 
+    transform: translateY(-15px) scale(1.2);
+    opacity: 1;
+  }
+}
+
+// ==================== 服务器风格加载 ====================
+.server-scene {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+}
+
+.server-rack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  background: #0f0f23;
+  border-radius: 8px;
+  border: 2px solid #2a2a4a;
+}
+
+.server-unit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #1a1a3e;
+  border-radius: 4px;
+}
+
+.server-lights {
+  display: flex;
+  gap: 6px;
+}
+
+.server-lights .light {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: server-blink 1s ease-in-out infinite;
+  
+  &:nth-child(1) {
+    background: #4ade80;
+    animation-delay: 0s;
+  }
+  &:nth-child(2) {
+    background: #fbbf24;
+    animation-delay: 0.3s;
+  }
+  &:nth-child(3) {
+    background: #ef4444;
+    animation-delay: 0.6s;
+  }
+}
+
+@keyframes server-blink {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
 }
 
 /* 移动导航容器样式 */

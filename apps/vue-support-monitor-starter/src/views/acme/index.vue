@@ -1,60 +1,40 @@
 <template>
   <div class="acme-container">
     <!-- 统计卡片 -->
-    <el-row :gutter="16" class="stats-row">
-      <el-col :span="6">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon account">
-              <IconifyIconOnline icon="mdi:account-key" />
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.accountCount }}</div>
-              <div class="stat-label">账户总数</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon cert">
-              <IconifyIconOnline icon="mdi:certificate" />
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.validCount }}</div>
-              <div class="stat-label">有效证书</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon expiring">
-              <IconifyIconOnline icon="mdi:clock-alert" />
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.expiringCount }}</div>
-              <div class="stat-label">即将到期</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon pending">
-              <IconifyIconOnline icon="mdi:timer-sand" />
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.pendingCount }}</div>
-              <div class="stat-label">待验证</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+    <div class="stats-row">
+      <ScCard
+        layout="stats"
+        icon="mdi:account-key"
+        :value="stats.accountCount"
+        label="账户总数"
+        theme="primary"
+        size="small"
+      />
+      <ScCard
+        layout="stats"
+        icon="mdi:certificate"
+        :value="stats.validCount"
+        label="有效证书"
+        theme="success"
+        size="small"
+      />
+      <ScCard
+        layout="stats"
+        icon="mdi:clock-alert"
+        :value="stats.expiringCount"
+        label="即将到期"
+        theme="warning"
+        size="small"
+      />
+      <ScCard
+        layout="stats"
+        icon="mdi:timer-sand"
+        :value="stats.pendingCount"
+        label="待验证"
+        theme="info"
+        size="small"
+      />
+    </div>
 
     <!-- 标签页切换 -->
     <el-card class="main-card">
@@ -79,6 +59,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { getCertStats, type AcmeCertStats } from "@/api/acme";
+import ScCard from "@repo/components/ScCard/index.vue";
 import CertList from "./components/CertList.vue";
 import AccountList from "./components/AccountList.vue";
 import ApplyCertDialog from "./components/ApplyCertDialog.vue";
@@ -137,61 +118,23 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .acme-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   padding: 16px;
 
   .stats-row {
-    margin-bottom: 16px;
-  }
+    display: flex;
+    gap: 16px;
 
-  .stat-card {
-    .stat-content {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .stat-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      color: #fff;
-
-      &.account {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      }
-
-      &.cert {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      }
-
-      &.expiring {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      }
-
-      &.pending {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      }
-    }
-
-    .stat-info {
-      .stat-value {
-        font-size: 28px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-      }
-
-      .stat-label {
-        font-size: 14px;
-        color: var(--el-text-color-secondary);
-      }
+    > * {
+      flex: 1;
+      min-width: 0;
     }
   }
 
   .main-card {
+    flex: 1;
     min-height: 500px;
   }
 }

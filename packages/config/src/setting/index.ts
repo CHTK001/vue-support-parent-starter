@@ -19,6 +19,10 @@ export const globalSetting: PlatformConfigs = {
   OpenSetting: true,
   OpenTenantLogin: false,
   OpenBaseLogin: true,
+  BlockOnConfigLoadFail: false,
+  ShowErrorPageStyleSwitcher: false,
+  ErrorPageStyle: "minimal",
+  LoadingPageStyle: "minimal",
 
   // ===========================================
   // 布局与菜单配置
@@ -133,12 +137,6 @@ export const globalSetting: PlatformConfigs = {
     reportToServer: false,
     reportUrl: "/v1/error/report",
   },
-
-  // ===========================================
-  // 错误页面配置
-  // ===========================================
-  /** 错误页面风格: pixel(像素风) | space(太空风) | minimal(极简风) */
-  ErrorPageStyle: "pixel",
 
   // ===========================================
   // 页面行为配置（默认不启用）
