@@ -2,15 +2,20 @@
   "name": "@repo/build-config",
   "version": "1.0.0",
   "type": "module",
-  "main": "./src/index.ts",
+  "scripts": {
+    "build": "unbuild",
+    "stub": "unbuild --stub",
+    "install": "pnpm build"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./plugins": "./src/plugins.ts",
-    "./optimize": "./src/optimize.ts",
-    "./compress": "./src/compress.ts",
-    "./cdn": "./src/cdn.ts",
-    "./info": "./src/info.ts",
-    "./utils": "./src/utils.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
   },
   "dependencies": {
     "@pureadmin/utils": "catalog:",
@@ -32,7 +37,8 @@
   },
   "devDependencies": {
     "@types/gradient-string": "catalog:",
-    "@types/node": "catalog:"
+    "@types/node": "catalog:",
+    "unbuild": "catalog:"
   },
   "peerDependencies": {
     "vite": ">=5.0.0"
