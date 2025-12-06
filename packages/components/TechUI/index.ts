@@ -7,9 +7,8 @@
  */
 
 import { App } from "vue";
-// 导入 @techui/scifi 组件库和样式
-import TechuiScifi from "@techui/scifi";
-import "@techui/scifi/dist/index.css";
+// 导入 @techui/scifi 组件库
+import techuiScifiInit from "@techui/scifi";
 
 // 导入封装组件
 import TechButton from "./TechButton/index.vue";
@@ -29,16 +28,45 @@ export {
   TechPanelTitle 
 };
 
-// 导出原始 @techui/scifi
-export { TechuiScifi };
+// 导出原始 @techui/scifi 初始化函数
+export { techuiScifiInit };
 
-// 默认导出，用于全局注册
+/**
+ * 初始化 TechUI (包括 @techui/scifi)
+ * @param app Vue 应用实例
+ * @param options 配置选项
+ */
+export async function initTechUI(app: App, options?: {
+  license?: string | null;
+  features?: {
+    echarts?: boolean;
+    advanced?: boolean;
+  };
+  debug?: boolean;
+}): Promise<void> {
+  const { license = null, features = {}, debug = false } = options || {};
+  
+  // 初始化 @techui/scifi
+  await techuiScifiInit({
+    app,
+    license,
+    features,
+    debug
+  });
+  
+  // 注册封装组件
+  app.component("TechButton", TechButton);
+  app.component("TechPanel", TechPanel);
+  app.component("TechHeader", TechHeader);
+  app.component("TechDeco", TechDeco);
+  app.component("TechGeometry", TechGeometry);
+  app.component("TechPanelTitle", TechPanelTitle);
+}
+
+// 默认导出，用于同步注册（仅注册封装组件，不初始化 @techui/scifi）
 export default {
   install(app: App): void {
-    // 注册 @techui/scifi 原生组件
-    app.use(TechuiScifi);
-    
-    // 注册封装组件
+    // 注册封装组件（需要先调用 initTechUI 初始化 @techui/scifi）
     app.component("TechButton", TechButton);
     app.component("TechPanel", TechPanel);
     app.component("TechHeader", TechHeader);

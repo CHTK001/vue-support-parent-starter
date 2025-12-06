@@ -8,6 +8,30 @@
 pnpm install
 ```
 
+## 初始化
+
+**重要**: `@techui/scifi` 需要异步初始化，必须在应用挂载前完成。
+
+```typescript
+import { createApp } from "vue";
+import App from "./App.vue";
+import { initTechUI } from "@repo/components/TechUI";
+
+const app = createApp(App);
+
+// 异步初始化 TechUI
+initTechUI(app, {
+  license: null, // 可选，商业授权 license
+  features: {
+    echarts: false, // 是否启用 ECharts 相关组件
+    advanced: false // 是否启用高级组件
+  },
+  debug: false // 是否开启调试模式
+}).then(() => {
+  app.mount("#app");
+});
+```
+
 ## 组件列表
 
 | 组件 | 对应原组件 | 描述 |
