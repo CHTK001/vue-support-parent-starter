@@ -2528,7 +2528,7 @@ importers:
         version: 4.3.0(vue@3.5.25(typescript@5.9.3))
       '@intlify/unplugin-vue-i18n':
         specifier: 'catalog:'
-        version: 6.0.8(@vue/compiler-dom@3.5.25)(eslint@9.35.0(jiti@2.5.1))(rollup@3.29.5)(typescript@5.9.3)(vue-i18n@11.1.12(vue@3.5.25(typescript@5.9.3)))(vue@3.5.25(typescript@5.9.3))
+        version: 6.0.8(@vue/compiler-dom@3.5.25)(eslint@9.35.0(jiti@2.5.1))(rollup@4.50.1)(typescript@5.9.3)(vue-i18n@11.1.12(vue@3.5.25(typescript@5.9.3)))(vue@3.5.25(typescript@5.9.3))
       '@types/gradient-string':
         specifier: 'catalog:'
         version: 1.1.6
@@ -2615,7 +2615,7 @@ importers:
         version: 6.0.1
       rollup-plugin-visualizer:
         specifier: 'catalog:'
-        version: 5.14.0(rollup@3.29.5)
+        version: 5.14.0(rollup@4.50.1)
       sass:
         specifier: 'catalog:'
         version: 1.92.1
@@ -2648,7 +2648,7 @@ importers:
         version: 6.4.1(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1)
       vite-plugin-cdn-import:
         specifier: 'catalog:'
-        version: 1.0.1(rollup@3.29.5)(vite@6.4.1(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1))
+        version: 1.0.1(rollup@4.50.1)(vite@6.4.1(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1))
       vite-plugin-checker:
         specifier: 'catalog:'
         version: 0.7.2(eslint@9.35.0(jiti@2.5.1))(optionator@0.9.4)(stylelint@16.24.0(typescript@5.9.3))(typescript@5.9.3)(vite@6.4.1(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1))(vue-tsc@2.2.12(typescript@5.9.3))
@@ -2919,7 +2919,7 @@ importers:
     dependencies:
       '@intlify/unplugin-vue-i18n':
         specifier: 'catalog:'
-        version: 6.0.8(@vue/compiler-dom@3.5.25)(eslint@9.35.0(jiti@2.5.1))(rollup@4.50.1)(typescript@5.9.3)(vue-i18n@11.1.12(vue@3.5.25(typescript@5.9.3)))(vue@3.5.25(typescript@5.9.3))
+        version: 6.0.8(@vue/compiler-dom@3.5.25)(eslint@9.35.0(jiti@2.5.1))(rollup@3.29.5)(typescript@5.9.3)(vue-i18n@11.1.12(vue@3.5.25(typescript@5.9.3)))(vue@3.5.25(typescript@5.9.3))
       '@pureadmin/utils':
         specifier: 'catalog:'
         version: 2.6.2(echarts@5.6.0)(vue@3.5.25(typescript@5.9.3))
@@ -2943,13 +2943,13 @@ importers:
         version: 3.0.0
       rollup-plugin-visualizer:
         specifier: 'catalog:'
-        version: 5.14.0(rollup@4.50.1)
+        version: 5.14.0(rollup@3.29.5)
       vite:
         specifier: '>=5.0.0'
         version: 7.1.9(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1)
       vite-plugin-cdn-import:
         specifier: 'catalog:'
-        version: 1.0.1(rollup@4.50.1)(vite@7.1.9(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1))
+        version: 1.0.1(rollup@3.29.5)(vite@7.1.9(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1))
       vite-plugin-compression:
         specifier: 'catalog:'
         version: 0.5.1(vite@7.1.9(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1))
@@ -2975,6 +2975,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.13
+      unbuild:
+        specifier: 'catalog:'
+        version: 2.0.0(sass@1.92.1)(typescript@5.9.3)(vue-tsc@2.2.12(typescript@5.9.3))
 
   packages/codec-wasm:
     dependencies:
@@ -18748,7 +18751,7 @@ snapshots:
   '@babel/helper-member-expression-to-functions@7.27.1':
     dependencies:
       '@babel/traverse': 7.28.4
-      '@babel/types': 7.28.4
+      '@babel/types': 7.28.5
     transitivePeerDependencies:
       - supports-color
 
@@ -18786,7 +18789,7 @@ snapshots:
 
   '@babel/helper-optimise-call-expression@7.27.1':
     dependencies:
-      '@babel/types': 7.28.4
+      '@babel/types': 7.28.5
 
   '@babel/helper-plugin-utils@7.27.1': {}
 
@@ -18836,7 +18839,7 @@ snapshots:
     dependencies:
       '@babel/template': 7.27.2
       '@babel/traverse': 7.28.4
-      '@babel/types': 7.28.4
+      '@babel/types': 7.28.5
     transitivePeerDependencies:
       - supports-color
 
@@ -21832,7 +21835,7 @@ snapshots:
       estree-walker: 2.0.2
       glob: 8.1.0
       is-reference: 1.2.1
-      magic-string: 0.30.19
+      magic-string: 0.30.21
     optionalDependencies:
       rollup: 3.29.5
 
@@ -23705,7 +23708,7 @@ snapshots:
     dependencies:
       '@vitest/spy': 2.1.9
       estree-walker: 3.0.3
-      magic-string: 0.30.19
+      magic-string: 0.30.21
     optionalDependencies:
       vite: 5.4.20(@types/node@22.18.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)
 
@@ -23721,7 +23724,7 @@ snapshots:
   '@vitest/snapshot@2.1.9':
     dependencies:
       '@vitest/pretty-format': 2.1.9
-      magic-string: 0.30.19
+      magic-string: 0.30.21
       pathe: 1.1.2
 
   '@vitest/spy@2.1.9':
@@ -30650,7 +30653,7 @@ snapshots:
 
   rollup-plugin-dts@6.2.3(rollup@3.29.5)(typescript@5.9.3):
     dependencies:
-      magic-string: 0.30.19
+      magic-string: 0.30.21
       rollup: 3.29.5
       typescript: 5.9.3
     optionalDependencies:
@@ -31722,7 +31725,7 @@ snapshots:
       globby: 13.2.2
       hookable: 5.5.3
       jiti: 1.21.7
-      magic-string: 0.30.19
+      magic-string: 0.30.21
       mkdist: 1.6.0(sass@1.92.1)(typescript@5.9.3)(vue-tsc@2.2.12(typescript@5.9.3))
       mlly: 1.8.0
       pathe: 1.1.2
@@ -31743,7 +31746,7 @@ snapshots:
     dependencies:
       acorn: 8.15.0
       estree-walker: 3.0.3
-      magic-string: 0.30.19
+      magic-string: 0.30.21
       unplugin: 2.3.10
     optional: true
 
@@ -31780,7 +31783,7 @@ snapshots:
       escape-string-regexp: 5.0.0
       estree-walker: 3.0.3
       local-pkg: 1.1.2
-      magic-string: 0.30.19
+      magic-string: 0.30.21
       mlly: 1.8.0
       pathe: 2.0.3
       picomatch: 4.0.3
@@ -31875,9 +31878,9 @@ snapshots:
 
   untyped@1.5.2:
     dependencies:
-      '@babel/core': 7.28.4
+      '@babel/core': 7.28.5
       '@babel/standalone': 7.28.4
-      '@babel/types': 7.28.4
+      '@babel/types': 7.28.5
       citty: 0.1.6
       defu: 6.1.4
       jiti: 2.5.1
@@ -32032,10 +32035,10 @@ snapshots:
       - supports-color
       - terser
 
-  vite-plugin-cdn-import@1.0.1(rollup@3.29.5)(vite@6.4.1(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1)):
+  vite-plugin-cdn-import@1.0.1(rollup@3.29.5)(vite@7.1.9(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1)):
     dependencies:
       rollup-plugin-external-globals: 0.10.0(rollup@3.29.5)
-      vite-plugin-externals: 0.6.2(vite@6.4.1(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1))
+      vite-plugin-externals: 0.6.2(vite@7.1.9(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1))
     transitivePeerDependencies:
       - rollup
       - vite
@@ -32044,14 +32047,6 @@ snapshots:
     dependencies:
       rollup-plugin-external-globals: 0.10.0(rollup@4.50.1)
       vite-plugin-externals: 0.6.2(vite@6.4.1(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1))
-    transitivePeerDependencies:
-      - rollup
-      - vite
-
-  vite-plugin-cdn-import@1.0.1(rollup@4.50.1)(vite@7.1.9(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1)):
-    dependencies:
-      rollup-plugin-external-globals: 0.10.0(rollup@4.50.1)
-      vite-plugin-externals: 0.6.2(vite@7.1.9(@types/node@20.19.13)(jiti@2.5.1)(less@4.4.1)(sass@1.92.1)(terser@5.44.0)(yaml@2.8.1))
     transitivePeerDependencies:
       - rollup
       - vite
