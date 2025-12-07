@@ -77,7 +77,8 @@
     "vue3-compare-image": "catalog:",
     "vue3-puzzle-vcode": "catalog:",
     "vuedraggable": "catalog:",
-    "interactjs": "catalog:"
+    "interactjs": "catalog:",
+    "@techui/scifi": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",
