@@ -33,7 +33,8 @@
     "vite-plugin-prismjs": "catalog:",
     "vite-plugin-remove-console": "catalog:",
     "vite-plugin-router-warn": "catalog:",
-    "vite-svg-loader": "catalog:"
+    "vite-svg-loader": "catalog:",
+    "vite-plugin-top-level-await": "catalog:"
   },
   "devDependencies": {
     "@types/gradient-string": "catalog:",

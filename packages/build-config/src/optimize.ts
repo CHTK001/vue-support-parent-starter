@@ -51,12 +51,6 @@ export const include = [
   "@infectoone/vue-ganttastic",
   "@wangeditor/editor-for-vue",
   "vuedraggable/src/vuedraggable",
-  // TechUI 科幻风格组件
-  "@techui/scifi",
-  "@techui/colors",
-  "@techui/icons",
-  "@techui/libs",
-  "@techui/utils",
 ];
 
 /**
@@ -75,4 +69,6 @@ export const exclude = [
   "@iconify-icons/devicon",
   "@iconify-icons/pixelarticons",
   "@pureadmin/theme/dist/browser-utils",
+  // TechUI 使用 WASM，不要预构建
+  "@techui/scifi",
 ];

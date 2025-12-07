@@ -20,23 +20,7 @@
  * @version 1.0.0
  * @since 2025-12-06
  */
-import { computed, type Component } from "vue";
-import { 
-  scifiGeomeParallelogram, 
-  scifiGeomeRectangle, 
-  scifiGeomeTrapezoid, 
-  scifiGeomeTriangle, 
-  scifiGeomHexagon  // 注意: Hexagon 没有 'e'
-} from "@techui/scifi";
-
-// 组件映射表
-const geometryComponents: Record<string, Component> = {
-  Parallelogram: scifiGeomeParallelogram,
-  Rectangle: scifiGeomeRectangle,
-  Trapezoid: scifiGeomeTrapezoid,
-  Triangle: scifiGeomeTriangle,
-  Hexagon: scifiGeomHexagon,
-};
+import { computed, resolveComponent } from "vue";
 
 defineOptions({
   name: "TechGeometry",
@@ -75,8 +59,12 @@ const props = withDefaults(defineProps<{
 });
 
 // 根据 variant 动态选择组件
+// 注意: Hexagon 的组件名是 scifiGeomHexagon (少一个 e)
 const geometryComponent = computed(() => {
-  return geometryComponents[props.variant] || scifiGeomeRectangle;
+  const name = props.variant === "Hexagon" 
+    ? "scifiGeomHexagon" 
+    : `scifiGeome${props.variant}`;
+  return resolveComponent(name);
 });
 </script>
 

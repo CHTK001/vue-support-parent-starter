@@ -10,14 +10,7 @@
 {
   "dependencies": {
     "@repo/components": "workspace:^",
-    "@techui/scifi": "catalog:",
-    "@techui/colors": "catalog:",
-    "@techui/lessmixins": "catalog:",
-    "@techui/locales": "catalog:",
-    "@techui/themes": "catalog:",
-    "@techui/libs": "catalog:",
-    "@techui/utils": "catalog:",
-    "@techui/icons": "catalog:"
+    "@techui/scifi": "catalog:"
   }
 }
 ```
@@ -26,33 +19,20 @@
 
 ## 初始化
 
-**重要**: `@techui/scifi` 需要异步初始化，必须在应用挂载前完成。
-
 ```typescript
 import { createApp } from "vue";
 import App from "./App.vue";
 import { initTechUI } from "@repo/components/TechUI";
 
-// 手动导入 CSS 样式
+// 导入 CSS 样式 (必须)
 import "@techui/scifi/dist/index.css";
 
 const app = createApp(App);
 
-// 异步初始化 TechUI
-initTechUI(app, {
-  license: null, // 可选，商业授权 license
-  features: {
-    echarts: false, // 是否启用 ECharts 相关组件
-    advanced: false // 是否启用高级组件
-  },
-  debug: true // 开启调试模式查看日志
-}).then(() => {
-  console.log("TechUI 初始化成功");
-  app.mount("#app");
-}).catch((err) => {
-  console.error("TechUI 初始化失败:", err);
-  app.mount("#app");
-});
+// 初始化 TechUI (同步)
+initTechUI(app, { debug: true });
+
+app.mount("#app");
 ```
 
 ## 组件列表

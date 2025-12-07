@@ -13,6 +13,7 @@ import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
 import { vitePluginFakeServer } from "vite-plugin-fake-server";
 import { prismjsPlugin } from "vite-plugin-prismjs";
 import { codeInspectorPlugin } from "code-inspector-plugin";
+import topLevelAwait from "vite-plugin-top-level-await";
 
 export interface PluginsOptions {
   /** 是否启用 CDN */
@@ -38,6 +39,11 @@ export function getPluginsList(options: PluginsOptions): PluginOption[] {
     vue(),
     // jsx、tsx语法支持
     vueJsx(),
+    // WASM 顶层 await 支持
+    topLevelAwait({
+      promiseExportName: "__tla",
+      promiseImportName: (i) => `__tla_${i}`,
+    }),
     prismjsPlugin({
       languages: "all",
       plugins: [

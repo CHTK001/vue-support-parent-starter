@@ -31,13 +31,7 @@
  * @version 1.0.0
  * @since 2025-12-06
  */
-import { computed, type Component } from "vue";
-import { scifiHeaderA1, scifiHeaderA2, scifiHeaderA3, scifiHeaderA4 } from "@techui/scifi";
-
-// 组件映射表
-const headerComponents: Record<string, Component> = {
-  A1: scifiHeaderA1, A2: scifiHeaderA2, A3: scifiHeaderA3, A4: scifiHeaderA4,
-};
+import { computed, resolveComponent } from "vue";
 
 defineOptions({
   name: "TechHeader",
@@ -77,7 +71,7 @@ const props = withDefaults(defineProps<{
 
 // 根据 variant 动态选择组件
 const headerComponent = computed(() => {
-  return headerComponents[props.variant] || scifiHeaderA1;
+  return resolveComponent(`scifiHeader${props.variant}`);
 });
 </script>
 

@@ -4,8 +4,7 @@ import router from "./router";
 import { ScMap, ScLayer } from "@repo/components";
 import { initTechUI } from "@repo/components/TechUI";
 
-// 导入 TechUI 科幻风格样式
-import "@techui/scifi/dist/index.css";
+// TechUI 样式会在 @techui/scifi 导入时自动加载
 
 import "./styles/main.css";
 import "./styles/example-common.scss";
@@ -16,8 +15,15 @@ const app = createApp(App);
 app.component("ScMap", ScMap);
 app.component("ScLayer", ScLayer);
 
-// 初始化 TechUI 科幻风格组件
-initTechUI(app, { debug: true });
-
-app.use(router);
-app.mount("#app");
+// 异步初始化 TechUI (必须等待 WASM 初始化完成后再挂载应用)
+initTechUI(app, { debug: true })
+  .then(() => {
+    app.use(router);
+    app.mount("#app");
+  })
+  .catch((err) => {
+    console.error("[TechUI] 初始化失败:", err);
+    // 即使失败也挂载应用
+    app.use(router);
+    app.mount("#app");
+  });

@@ -60,9 +60,12 @@ import GlobalSocketPlugin from "./plugins/globalSocket";
 // 异步加载WASM模块
 import { initializeWasmModule } from "@repo/codec-wasm";
 
+// 导入 TechUI 初始化函数 (样式会自动导入)
+import techuiScifiInit from "@techui/scifi";
+
 // 先加载WASM模块，再启动应用
 initializeWasmModule()
-  .then(() => {
+  .then(async () => {
     const app = createApp(App);
     Object.keys(directives).forEach((key) => {
       app.directive(key, (directives as { [key: string]: Directive })[key]);
@@ -77,6 +80,20 @@ initializeWasmModule()
     app.use(VueTippy);
     // 使用 ElementPlusX
     app.use(ElementPlusX);
+
+    // 初始化 TechUI 科幻组件库 (WASM 核心)
+    try {
+      console.log("[TechUI] 开始初始化...");
+      await techuiScifiInit({
+        app,
+        license: null,
+        features: { echarts: false, advanced: false },
+        debug: true
+      });
+      console.log("[TechUI] 初始化完成");
+    } catch (err) {
+      console.error("[TechUI] 初始化失败:", err);
+    }
 
     app.config.warnHandler = (msg, instance, trace) => {
       if (msg.includes("__proxyIdCheat__")) return;
