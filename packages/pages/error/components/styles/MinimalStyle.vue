@@ -30,11 +30,9 @@ const { t } = useI18n();
 
     <!-- 主要内容 -->
     <div class="minimal-content">
-      <!-- 错误码动画 -->
+      <!-- 错误码 -->
       <div class="error-code-wrapper">
-        <div class="glitch-wrapper">
-          <span class="error-code" :data-text="code">{{ code }}</span>
-        </div>
+        <span class="error-code">{{ code }}</span>
         <div class="code-underline"></div>
       </div>
 
@@ -181,11 +179,6 @@ const { t } = useI18n();
   margin-bottom: 30px;
 }
 
-.glitch-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
 .error-code {
   font-size: 8rem;
   font-weight: 900;
@@ -195,36 +188,11 @@ const { t } = useI18n();
   -webkit-text-fill-color: transparent;
   background-clip: text;
   position: relative;
-  animation: glitch 3s infinite;
 
   :global(.dark) & {
     background: linear-gradient(135deg, #a0a0ff 0%, #c0a0ff 100%);
     -webkit-background-clip: text;
     background-clip: text;
-  }
-
-  &::before,
-  &::after {
-    content: attr(data-text);
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: inherit;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  &::before {
-    animation: glitch-1 0.3s infinite linear alternate-reverse;
-    clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
-  }
-
-  &::after {
-    animation: glitch-2 0.3s infinite linear alternate-reverse;
-    clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
   }
 }
 
@@ -432,44 +400,6 @@ const { t } = useI18n();
   }
   75% {
     transform: translate(-20px, -20px) rotate(-5deg);
-  }
-}
-
-@keyframes glitch {
-  0%,
-  90%,
-  100% {
-    transform: translate(0);
-  }
-  92% {
-    transform: translate(2px, 2px);
-  }
-  94% {
-    transform: translate(-2px, -2px);
-  }
-  96% {
-    transform: translate(2px, -2px);
-  }
-  98% {
-    transform: translate(-2px, 2px);
-  }
-}
-
-@keyframes glitch-1 {
-  0% {
-    transform: translate(-2px, 0);
-  }
-  100% {
-    transform: translate(2px, 0);
-  }
-}
-
-@keyframes glitch-2 {
-  0% {
-    transform: translate(2px, 0);
-  }
-  100% {
-    transform: translate(-2px, 0);
   }
 }
 

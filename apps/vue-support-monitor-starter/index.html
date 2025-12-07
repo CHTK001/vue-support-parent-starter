@@ -9,57 +9,10 @@
     <title>后台系统</title>
     <link rel="icon" href="/favicon.ico" />
     <script>
-      // 在页面加载早期检测并设置深色主题，避免FOUC问题
-      (function() {
-        try {
-          // 从localStorage中读取布局配置
-          const layoutConfig = JSON.parse(localStorage.getItem('layout') || '{}');
-          // 如果配置了深色模式，则添加dark类到html元素
-          if (layoutConfig.darkMode) {
-            document.documentElement.classList.add('dark');
-          }
-        } catch (e) {
-          console.warn('Failed to set dark theme from localStorage:', e);
-        }
-      })();
-      
       window.process = {};
       window.agentPath = "/agent";
       window.websocketPort="28954";
     </script>
-    <style>
-      /* 在CSS加载之前确保有正确的背景色 */
-      html, body, #app {
-        background-color: #f5f7fa; /* 默认浅色背景 */
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        padding: 0;
-      }
-      
-      /* 深色主题下的背景色 */
-      html.dark, html.dark body, html.dark #app {
-        background-color: #020409; /* 深色背景，与dark.scss中的一致 */
-      }
-      
-      /* 确保在加载过程中有正确的背景色 */
-      .app-wrapper {
-        background-color: #f5f7fa;
-      }
-      
-      html.dark .app-wrapper {
-        background-color: #020409;
-      }
-      
-      /* 确保app-main类也有正确的背景色 */
-      .app-main, .app-main-nofixed-header {
-        background-color: #f5f7fa;
-      }
-      
-      html.dark .app-main, html.dark .app-main-nofixed-header {
-        background-color: #020409;
-      }
-    </style>
   </head>
 
   <body>
@@ -74,7 +27,6 @@
           justify-content: center;
           width: 100%;
           height: 100%;
-          color: #000;
           overflow: hidden;
         }
 
