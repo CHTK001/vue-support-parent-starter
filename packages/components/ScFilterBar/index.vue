@@ -442,6 +442,50 @@ export default {
     hasMoreFields() {
       return this.fields.length > this.showNumber;
     },
+    // 内联表单过滤数据
+    inlineFilterData() {
+      const result = {};
+      Object.keys(this.formData).forEach(key => {
+        const val = this.formData[key];
+        if (val !== undefined && val !== null && val !== '') {
+          result[key] = val;
+        }
+      });
+      return result;
+    },
+    // 内联表单 SQL 表达式
+    inlineSqlExpression() {
+      const conditions = Object.entries(this.inlineFilterData)
+        .map(([field, value]) => {
+          if (typeof value === 'string') {
+            return `${field} = '${value}'`;
+          }
+          if (Array.isArray(value)) {
+            const values = value.map(v => typeof v === 'string' ? `'${v}'` : v).join(', ');
+            return `${field} IN (${values})`;
+          }
+          return `${field} = ${value}`;
+        });
+      return conditions.length > 0 
+        ? conditions.join(` ${this.logicOperator.toUpperCase()} `) 
+        : '';
+    },
+    // 内联表单 Lucene 表达式
+    inlineLuceneExpression() {
+      const conditions = Object.entries(this.inlineFilterData)
+        .map(([field, value]) => {
+          if (Array.isArray(value)) {
+            return `${field}:(${value.join(' OR ')})`;
+          }
+          if (typeof value === 'string' && value.includes(' ')) {
+            return `${field}:"${value}"`;
+          }
+          return `${field}:${value}`;
+        });
+      return conditions.length > 0 
+        ? conditions.join(` ${this.logicOperator.toUpperCase()} `) 
+        : '';
+    },
     // 抽屉过滤对象（默认格式）
     filterObj() {
       const obj = {};
@@ -604,9 +648,23 @@ export default {
           result[key] = val;
         }
       });
+      
+      // 根据格式选择返回的数据
+      let resultData;
+      switch (this.expressionFormat) {
+        case 'sql':
+          resultData = this.inlineSqlExpression;
+          break;
+        case 'lucene':
+          resultData = this.inlineLuceneExpression;
+          break;
+        default:
+          resultData = result;
+      }
+      
       this.$emit("update:modelValue", this.formData);
-      this.$emit("search", result);
-      this.$emit("filterChange", result);
+      this.$emit("search", resultData);
+      this.$emit("filterChange", resultData);
     },
     // 重置
     handleReset() {
@@ -771,8 +829,25 @@ export default {
     //立即过滤
     ok() {
       this.filterObjLength = this.filter.length;
-      // 根据格式发送不同的数据
-      this.$emit("filterChange", this.filterObj);
+      
+      // 根据格式选择返回的数据
+      let resultData;
+      switch (this.expressionFormat) {
+        case 'sql':
+          resultData = this.sqlExpression;
+          break;
+        case 'lucene':
+          resultData = this.luceneExpression;
+          break;
+        default:
+          resultData = this.filterObj;
+      }
+      
+      // 发送事件 - 与内联搜索行为一致
+      this.$emit("filterChange", resultData);
+      this.$emit("search", resultData);
+      
+      // 发送完整表达式数据
       this.$emit("expressionChange", {
         format: this.expressionFormat,
         logic: this.logicOperator,

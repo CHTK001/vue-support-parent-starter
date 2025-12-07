@@ -159,6 +159,9 @@ catalogs:
     '@tailwindcss/typography':
       specifier: ^0.5.15
       version: 0.5.16
+    '@techui/scifi':
+      specifier: ^0.0.6-alpha.1
+      version: 0.0.6-alpha.1
     '@traptitech/markdown-it-katex':
       specifier: ^3.6.0
       version: 3.6.0
@@ -3021,6 +3024,9 @@ importers:
       '@pureadmin/utils':
         specifier: 'catalog:'
         version: 2.6.2(echarts@5.6.0)(vue@3.5.25(typescript@5.9.3))
+      '@techui/scifi':
+        specifier: 'catalog:'
+        version: 0.0.6-alpha.1(typescript@5.9.3)
       '@tinymce/tinymce-vue':
         specifier: ^6.3.0
         version: 6.3.0(vue@3.5.25(typescript@5.9.3))
@@ -9727,6 +9733,30 @@ packages:
     resolution: {integrity: sha512-0wDLwCVF5V3x3b1SGXPCDcdsbDHMBe+lkFzBRaHeLvNi+nrrnZ1lA18u+OTWO8iSWU2GxUOCvlXtDuqftc1oiA==}
     peerDependencies:
       tailwindcss: '>=3.0.0 || insiders || >=4.0.0-alpha.20 || >=4.0.0-beta.1'
+
+  '@techui/colors@1.0.2':
+    resolution: {integrity: sha512-w4qwfmug49WzmLLzT+MKnqmaorqFHWaaA1T9PsOKWzauVkeFPd8210wkeHQHlu1iq3FWnx4luJwzU5k1L+sO3A==}
+
+  '@techui/icons@1.0.3':
+    resolution: {integrity: sha512-+hiySr3ch9Yp98Xnz/7DhMquHb8JNFUGwAEW7/J3NXC3IpmTDHCbpksrTboXnTf6giYUB2zvAQJu3rBpOqgjbQ==}
+
+  '@techui/lessmixins@0.0.6':
+    resolution: {integrity: sha512-NT2Gsl4z4XvLrvsBl5AIBCdB3KE8iAYgNnJHRfToNtHKx6gt4ahfsVLozqCuDuOuBTJKi9MTSxkFymSg92qvXg==}
+
+  '@techui/libs@0.0.6':
+    resolution: {integrity: sha512-5USSc4MLUkaA7yNM1uzZ5z05A1Od+8sbkJqvVtvSIw0GX+4vnlobYWx1wCRhq2D/TxkNJWqVYFQ6L1w6UOAm9w==}
+
+  '@techui/locales@0.0.6':
+    resolution: {integrity: sha512-YOskDx9hIqmR+IJSetus+3oA4jxqdO+cM+a2U7PbD/PHLtGFcs9pscWqe2eTe4ZHRnN8F+7zFOyWt79hKbRxuA==}
+
+  '@techui/scifi@0.0.6-alpha.1':
+    resolution: {integrity: sha512-YtHUfNJX1T3ZNdQA1IuUPwg/UDKtSRligetkEOpwB9J+TKPl1K7u5MaKVdNUSOfpXFSkvB5Q/AC/825VL03Q2Q==}
+
+  '@techui/themes@0.0.6':
+    resolution: {integrity: sha512-fP4b/rCrw2iDJigm751npGX2QBiagIg94SiTKzjd8RouJAoRA6LaR7+DCSVN/UjMJzSvkDIABqDzaLkC5DT5JA==}
+
+  '@techui/utils@0.0.6':
+    resolution: {integrity: sha512-5UC9lZR3fgvFwB5zGxu2MfMt5KP8djz6xXlpCl8pcDRhDiU1ESymPBxjhzRwkCfVXttr3EAnX/7xWDIfFtMAOQ==}
 
   '@tinymce/tinymce-vue@6.3.0':
     resolution: {integrity: sha512-DSP8Jhd3XqCCliTnusfbmz3D8GqQ4iRzkc4aadYHDcJPVjkaqopJ61McOdH82CSy599vGLkPjGzqJYWJkRMiUA==}
@@ -22166,6 +22196,36 @@ snapshots:
       lodash.merge: 4.6.2
       postcss-selector-parser: 6.0.10
       tailwindcss: 3.4.17(ts-node@10.9.2(@swc/core@1.13.5)(@swc/wasm@1.13.5)(@types/node@24.10.1)(typescript@5.9.3))
+
+  '@techui/colors@1.0.2': {}
+
+  '@techui/icons@1.0.3': {}
+
+  '@techui/lessmixins@0.0.6':
+    dependencies:
+      '@techui/colors': 1.0.2
+
+  '@techui/libs@0.0.6': {}
+
+  '@techui/locales@0.0.6': {}
+
+  '@techui/scifi@0.0.6-alpha.1(typescript@5.9.3)':
+    dependencies:
+      '@techui/colors': 1.0.2
+      '@techui/icons': 1.0.3
+      '@techui/lessmixins': 0.0.6
+      '@techui/libs': 0.0.6
+      '@techui/locales': 0.0.6
+      '@techui/themes': 0.0.6
+      '@techui/utils': 0.0.6
+      vue: 3.5.25(typescript@5.9.3)
+      vue-router: 4.5.1(vue@3.5.25(typescript@5.9.3))
+    transitivePeerDependencies:
+      - typescript
+
+  '@techui/themes@0.0.6': {}
+
+  '@techui/utils@0.0.6': {}
 
   '@tinymce/tinymce-vue@6.3.0(vue@3.5.25(typescript@5.9.3))':
     dependencies:

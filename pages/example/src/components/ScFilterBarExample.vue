@@ -150,7 +150,7 @@
         </h4>
         <div class="preview-content">
           <ScFilterBar
-            v-model="filterResult"
+            v-model="formData"
             :options="previewOptions"
             :show-number="config.visibleCount"
             :show-advanced="true"
@@ -169,7 +169,7 @@
         </div>
         <div class="preview-result">
           <strong>筛选值：</strong>
-          <code>{{ JSON.stringify(filterResult) }}</code>
+          <code>{{ typeof searchResult === 'string' ? searchResult : JSON.stringify(searchResult, null, 2) }}</code>
         </div>
       </div>
     </DemoBlock>
@@ -340,11 +340,12 @@ function editField(field: BuilderField) {
 }
 
 // ==================== 过滤结果 ====================
-const filterResult = ref<Record<string, unknown>>({});
+const formData = ref<Record<string, unknown>>({});  // 表单数据
+const searchResult = ref<any>("");  // 搜索结果（可以是对象或字符串）
 
 // ==================== 事件处理 ====================
-function handleFilterChange(values: Record<string, unknown>) {
-  filterResult.value = values;
+function handleFilterChange(values: any) {
+  searchResult.value = values;
   console.log("过滤:", values);
 }
 
