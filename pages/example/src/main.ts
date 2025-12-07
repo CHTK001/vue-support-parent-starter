@@ -4,6 +4,9 @@ import router from "./router";
 import { ScMap, ScLayer } from "@repo/components";
 import { initTechUI } from "@repo/components/TechUI";
 
+// TechUI 科幻风格样式
+import "@techui/scifi/dist/style.css";
+
 import "./styles/main.css";
 import "./styles/example-common.scss";
 

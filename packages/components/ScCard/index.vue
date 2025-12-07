@@ -146,10 +146,11 @@ export default defineComponent({
       default: ""
     },
     /**
-     * 主题色（panel-3d/compact/stats 布局有效）
+     * 主题色（panel-3d/compact/stats/tech 布局有效）
+     * tech布局支持: cyan, blue, green, purple, orange, red
      */
     theme: {
-      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info" | "blue" | "green" | "purple" | "orange" | "custom">,
+      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info" | "blue" | "green" | "purple" | "orange" | "cyan" | "red" | "custom">,
       default: "default"
     },
     /**
@@ -379,15 +380,33 @@ export default defineComponent({
             theme: props.theme,
             size: props.size === "normal" ? "small" : props.size
           };
-        case "tech":
+        case "tech": {
+          // 映射 ScCard 主题到 TechLayout 主题
+          const techThemeMap: Record<string, string> = {
+            default: "cyan",
+            primary: "blue",
+            success: "green",
+            warning: "orange",
+            danger: "red",
+            info: "blue",
+            blue: "blue",
+            green: "green",
+            purple: "purple",
+            orange: "orange",
+            cyan: "cyan",
+            red: "red",
+            custom: "cyan"
+          };
           return {
             ...baseProps,
             icon: props.icon,
             showHeader: props.showHeader,
             active: props.active,
-            theme: props.theme,
-            padding: props.padding
+            theme: techThemeMap[props.theme] || "cyan",
+            padding: props.padding,
+            showDataFlow: true
           };
+        }
         case "custom":
           return {
             ...baseProps,
