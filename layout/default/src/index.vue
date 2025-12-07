@@ -70,46 +70,6 @@ const { isDark } = useDark();
 // 添加加载状态管理
 const isConfigLoaded = ref(false);
 
-// 是否首次加载（用于显示不同的加载文字）
-const isFirstLoad = ref(!sessionStorage.getItem("_app_loaded"));
-
-// 加载页面风格（从配置读取，默认简约风格）
-const loadingStyle = computed(() => getConfig().LoadingPageStyle || "minimal");
-
-// 时钟相关状态
-const currentTime = ref(new Date());
-const clockTimer = ref<number | null>(null);
-
-// 时钟指针角度计算
-const secondRotation = computed(() => {
-  return currentTime.value.getSeconds() * 6; // 每秒6度
-});
-const minuteRotation = computed(() => {
-  const minutes = currentTime.value.getMinutes();
-  const seconds = currentTime.value.getSeconds();
-  return minutes * 6 + seconds * 0.1; // 每分钟6度，秒针带动分针微动
-});
-const hourRotation = computed(() => {
-  const hours = currentTime.value.getHours() % 12;
-  const minutes = currentTime.value.getMinutes();
-  return hours * 30 + minutes * 0.5; // 每小时30度，分针带动时针微动
-});
-
-// 启动时钟
-const startClock = () => {
-  clockTimer.value = window.setInterval(() => {
-    currentTime.value = new Date();
-  }, 1000);
-};
-
-// 停止时钟
-const stopClock = () => {
-  if (clockTimer.value) {
-    clearInterval(clockTimer.value);
-    clockTimer.value = null;
-  }
-};
-
 const { initStorage } = useLayout();
 
 initStorage();
@@ -203,19 +163,8 @@ useResizeObserver(appWrapperRef, (entries) => {
  * 获取系统默认配置
  */
 const getDefaultSetting = async () => {
-  try {
-    await useConfigStore().load();
-    isConfigLoaded.value = true;
-    // 标记已加载过，下次刷新不显示"初始化"
-    sessionStorage.setItem("_app_loaded", "1");
-  } catch (error) {
-    console.warn("Failed to load config:", error);
-    // 根据配置决定是否保持加载页面
-    if (!getConfig().BlockOnConfigLoadFail) {
-      isConfigLoaded.value = true;
-      sessionStorage.setItem("_app_loaded", "1");
-    }
-  }
+  await useConfigStore().load();
+  isConfigLoaded.value = true;
 };
 
 // 页面可见性变化处理
@@ -236,9 +185,6 @@ const handleVisibilityChange = () => {
 };
 
 onMounted(async () => {
-  // 启动加载页时钟
-  startClock();
-  
   if (isMobile) {
     toggle("mobile", false);
   }
@@ -265,7 +211,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener("visibilitychange", handleVisibilityChange);
-  stopClock();
 });
 
 /**
@@ -349,69 +294,10 @@ const LayHeader = defineComponent({
 
 <template>
   <!-- 全屏加载遮罩 -->
-  <div v-if="!isConfigLoaded" class="fullscreen-loading" :class="'loading-' + loadingStyle">
-   
-    
-    <!-- 加载信息 -->
-    <div class="loading-info">
-      <!-- 动态时钟 Logo -->
-      <div class="loading-brand">
-        <div class="brand-clock">
-          <svg viewBox="0 0 100 100" class="clock-svg">
-            <!-- 外圈 -->
-            <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="2" opacity="0.2"/>
-            <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="1" opacity="0.1"/>
-            <!-- 刻度 -->
-            <g class="clock-marks">
-              <line v-for="i in 12" :key="i" 
-                x1="50" y1="10" x2="50" :y2="i % 3 === 0 ? 16 : 14"
-                :transform="`rotate(${i * 30} 50 50)`"
-                stroke="currentColor" 
-                :stroke-width="i % 3 === 0 ? 2 : 1"
-                :opacity="i % 3 === 0 ? 0.6 : 0.3"
-              />
-            </g>
-            <!-- 时针 -->
-            <line class="clock-hand hour-hand"
-              x1="50" y1="50" x2="50" y2="28"
-              stroke="currentColor" stroke-width="3" stroke-linecap="round"
-              :transform="`rotate(${hourRotation} 50 50)`"
-            />
-            <!-- 分针 -->
-            <line class="clock-hand minute-hand"
-              x1="50" y1="50" x2="50" y2="18"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              :transform="`rotate(${minuteRotation} 50 50)`"
-            />
-            <!-- 秒针 -->
-            <line class="clock-hand second-hand"
-              x1="50" y1="55" x2="50" y2="14"
-              stroke="var(--el-color-primary, #409eff)" stroke-width="1" stroke-linecap="round"
-              :transform="`rotate(${secondRotation} 50 50)`"
-            />
-            <!-- 中心点 -->
-            <circle cx="50" cy="50" r="4" fill="currentColor"/>
-            <circle cx="50" cy="50" r="2" fill="var(--el-color-primary, #409eff)"/>
-          </svg>
-        </div>
-        <div class="brand-text">{{ isFirstLoad ? '系统初始化' : '加载中' }}</div>
-      </div>
-      
-      <!-- 进度条 -->
-      <div class="loading-progress">
-        <div class="progress-track">
-          <div class="progress-bar"></div>
-          <div class="progress-glow"></div>
-        </div>
-      </div>
-      
-      <!-- 状态提示 -->
-      <div class="loading-status">
-        <span class="status-text">{{ isFirstLoad ? '正在初始化核心模块' : '正在加载页面资源' }}</span>
-        <span class="status-dots">
-          <i></i><i></i><i></i>
-        </span>
-      </div>
+  <div v-if="!isConfigLoaded" class="fullscreen-loading">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">{{ t("system.initializing") }}</div>
     </div>
   </div>
 
@@ -608,24 +494,50 @@ const LayHeader = defineComponent({
   background: var(--el-bg-color-overlay);
 }
 
-// 全屏加载遮罩样式 - 真正的像素风格
+// 全屏加载遮罩样式
 .fullscreen-loading {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: #f7f7f7;
+  background: var(--el-bg-color-overlay);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  overflow: hidden;
-  image-rendering: pixelated;
-  
-  :global(.dark) & {
-    background: #1a1a2e;
+  backdrop-filter: blur(10px);
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 1.2rem;
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
   }
 }
 
