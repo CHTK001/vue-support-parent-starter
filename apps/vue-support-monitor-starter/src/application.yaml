@@ -44,8 +44,14 @@ OpenShowRefreshToken: false
 ShowErrorPageStyleSwitcher: true
 # 默认错误页面风格-pixel像素恐龙-space太空-minimal极简-forbidden禁止-notfound迷路-servererror故障（默认: minimal）
 # ErrorPageStyle: minimal
-# 系统加载页面风格-pixel像素恐龙-space太空-minimal极简-servererror服务器（默认: minimal）
-# LoadingPageStyle: minimal
+# 系统加载页面风格（默认: spinner）
+# - spinner: 简单旋转圈
+# - clock: 动态时钟
+# - pixel: 像素恐龙
+# - cube: 3D立方体
+# - dots: 波浪圆点
+# - pulse: 脉冲圆环
+# LoadingPageStyle: spinner
 
 # ===========================================
 # 布局与菜单配置
