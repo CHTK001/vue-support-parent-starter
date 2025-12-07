@@ -56,6 +56,7 @@
         :width="width"
         :icon-position="iconPosition"
         :shape="shape"
+        :theme="theme"
         @select="handleSelect"
       >
         <!-- 卡片图标插槽 -->
@@ -335,6 +336,14 @@ const props = defineProps({
     default: "rounded",
     validator: (value: string) => {
       return ["circle", "rectangle", "rounded"].includes(value);
+    }
+  },
+  // 主题样式
+  theme: {
+    type: String,
+    default: "",
+    validator: (value: string) => {
+      return ["", "techui", "glass"].includes(value);
     }
   },
   // 下拉方向

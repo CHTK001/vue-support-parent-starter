@@ -1,502 +1,344 @@
 <template>
-  <div class="sc-switch-example" :class="{ 'el-dark': isDarkMode }">
-    <div class="example-content">
-      <!-- 左侧预览区域 -->
-      <div class="preview-area">
-        <h4>组件预览</h4>
-        <div class="preview-container" :class="{ dark: isDarkMode }">
-          <div class="preview-item">
-            <ScSwitch
-              v-model="switchValue"
-              :layout="layout"
-              :size="size"
-              :disabled="disabled"
-              :loading="loading"
-              :active-text="activeText"
-              :inactive-text="inactiveText"
-              :active-color="activeColor"
-              :inactive-color="inactiveColor"
-              :active-icon="activeIcon"
-              :inactive-icon="inactiveIcon"
-              @change="handleChange"
-            />
-          </div>
-
-          <div class="result-display mt-4">
-            <el-alert
-              :title="`当前状态: ${switchValue}`"
-              type="success"
-              :closable="false"
-            />
-          </div>
-        </div>
-
-        <!-- 布局预览 -->
-        <h4 class="mt-4">布局类型预览</h4>
-        <div class="layout-preview">
-          <div class="layout-item">
-            <p class="layout-title">默认布局</p>
-            <ScSwitch
-              v-model="switchValueDefault"
-              layout="default"
-              active-text="开启"
-              inactive-text="关闭"
-            />
-          </div>
-          <div class="layout-item">
-            <p class="layout-title">卡片布局</p>
-            <ScSwitch
-              v-model="switchValueCard"
-              layout="card"
-              active-icon="ep:check"
-              inactive-icon="ep:close"
-              active-text="开启"
-              inactive-text="关闭"
-            />
-          </div>
-          <div class="layout-item">
-            <p class="layout-title">滑块布局</p>
-            <ScSwitch
-              v-model="switchValueSlider"
-              layout="slider"
-              active-text="开启"
-              inactive-text="关闭"
-              active-icon="ep:check"
-            />
-          </div>
-          <div class="layout-item">
-            <p class="layout-title">现代布局</p>
-            <ScSwitch
-              v-model="switchValueModern"
-              layout="modern"
-              active-text="ON"
-              inactive-text="OFF"
-              active-icon="ep:check"
-              inactive-icon="ep:close"
-            />
-          </div>
-        </div>
-
-        <!-- 视觉卡片布局预览 -->
-        <h4 class="mt-4">视觉卡片布局</h4>
-        <div class="visual-card-preview">
-          <ScSwitch
-            v-model="switchValueVisualCard1"
-            layout="visual-card"
-            size="small"
-            label="灰色模式"
-            description="降低色彩饱和度"
-            active-icon="ri:contrast-2-line"
-            ribbon-color="var(--el-color-primary)"
-          />
-          <ScSwitch
-            v-model="switchValueVisualCard2"
-            layout="visual-card"
-            size="small"
-            label="色弱模式"
-            description="优化色彩对比度"
-            active-icon="ri:eye-line"
-            ribbon-color="var(--el-color-success)"
-          />
-          <ScSwitch
-            v-model="switchValueVisualCard3"
-            layout="visual-card"
-            size="small"
-            label="隐藏标签页"
-            description="隐藏后不显示标签页"
-            active-icon="ri:eye-off-line"
-            inactive-icon="ri:bookmark-line"
-            ribbon-text="隐藏"
-            ribbon-color="var(--el-color-warning)"
-          />
-          <ScSwitch
-            v-model="switchValueVisualCard4"
-            layout="visual-card"
-            size="small"
-            label="调试模式"
-            description="控制台日志显示在右上角"
-            active-icon="ri:terminal-box-line"
-            ribbon-color="var(--el-color-danger)"
-          />
-        </div>
-
-        <!-- 宽模式视觉卡片 -->
-        <h4 class="mt-4">宽模式视觉卡片</h4>
-        <div class="wide-card-preview">
-          <ScSwitch
-            v-model="switchValueVisualCardWide"
-            layout="visual-card"
-            :wide="true"
-            label="页面过渡动画"
-            description="页面切换时显示过渡动画效果"
-            active-icon="ri:loader-4-line"
-            ribbon-color="var(--el-color-primary)"
-          />
-        </div>
-      </div>
-
-      <!-- 右侧配置面板 -->
+  <div class="sc-switch-example">
+    <div class="example-container">
+      <!-- 左侧：属性配置面板 -->
       <div class="config-panel">
-        <h4>配置选项</h4>
-        <el-form label-position="top" size="default">
-          <el-form-item label="布局类型">
-            <el-segmented
-              v-model="layout"
-              class="w-100"
-              :options="[
-                { value: 'default', label: '默认' },
-                { value: 'card', label: '卡片' },
-                { value: 'slider', label: '滑块' },
-                { value: 'modern', label: '现代' },
-              ]"
+        <h3 class="panel-title">
+          <IconifyIconOnline icon="ri:settings-3-line" />
+          属性配置
+        </h3>
+
+        <el-form label-position="top" size="small">
+          <el-form-item label="layout 布局类型">
+            <ScSelect
+              v-model="config.layout"
+              layout="card"
+              :options="layoutOptions"
+              :gap="6"
+              width="70px"
             />
           </el-form-item>
 
-          <el-form-item label="组件尺寸">
-            <el-radio-group v-model="size">
-              <el-radio label="small">小</el-radio>
-              <el-radio label="default">默认</el-radio>
-              <el-radio label="large">大</el-radio>
-            </el-radio-group>
+          <el-form-item label="size 尺寸">
+            <ScSelect
+              v-model="config.size"
+              layout="card"
+              :options="sizeOptions"
+              :gap="6"
+              width="70px"
+            />
           </el-form-item>
 
-          <el-form-item label="UI主题">
-            <el-radio-group v-model="isDarkMode">
-              <el-radio :label="false">亮色</el-radio>
-              <el-radio :label="true">暗色</el-radio>
-            </el-radio-group>
+          <el-form-item label="activeText 开启文本">
+            <el-input v-model="config.activeText" placeholder="开启时显示的文本" />
           </el-form-item>
 
-          <el-form-item label="开关状态">
-            <el-switch v-model="switchValue" />
+          <el-form-item label="inactiveText 关闭文本">
+            <el-input v-model="config.inactiveText" placeholder="关闭时显示的文本" />
           </el-form-item>
 
-          <el-form-item label="禁用状态">
-            <el-switch v-model="disabled" />
+          <el-form-item label="activeIcon 开启图标">
+            <ScSelect
+              v-model="config.activeIcon"
+              layout="card"
+              :options="iconOptions"
+              :gap="6"
+              width="60px"
+            />
           </el-form-item>
 
-          <el-form-item label="加载状态">
-            <el-switch v-model="loading" />
+          <el-form-item label="inactiveIcon 关闭图标">
+            <ScSelect
+              v-model="config.inactiveIcon"
+              layout="card"
+              :options="iconOptions"
+              :gap="6"
+              width="60px"
+            />
           </el-form-item>
 
-          <el-form-item label="开启文本">
-            <el-input v-model="activeText" placeholder="开启时显示的文本" />
+          <el-form-item label="activeColor 激活颜色">
+            <el-color-picker v-model="config.activeColor" />
           </el-form-item>
 
-          <el-form-item label="关闭文本">
-            <el-input v-model="inactiveText" placeholder="关闭时显示的文本" />
-          </el-form-item>
+          <el-divider />
 
-          <el-form-item label="开启图标">
-            <el-select
-              v-model="activeIcon"
-              placeholder="选择图标"
-              class="w-100"
-            >
-              <el-option label="无图标" value="" />
-              <el-option label="对勾" value="ep:check" />
-              <el-option label="打开" value="ep:open" />
-              <el-option label="灯泡" value="ep:light" />
-              <el-option label="电源" value="ep:turn-off" />
-            </el-select>
-          </el-form-item>
-
-          <el-form-item label="关闭图标">
-            <el-select
-              v-model="inactiveIcon"
-              placeholder="选择图标"
-              class="w-100"
-            >
-              <el-option label="无图标" value="" />
-              <el-option label="关闭" value="ep:close" />
-              <el-option label="关机" value="ep:turn-off" />
-              <el-option label="禁止" value="ep:remove" />
-              <el-option label="月亮" value="ep:moon" />
-            </el-select>
-          </el-form-item>
-
-          <el-form-item label="激活颜色">
-            <el-color-picker v-model="activeColor" />
-          </el-form-item>
-
-          <el-form-item label="未激活颜色">
-            <el-color-picker v-model="inactiveColor" />
-          </el-form-item>
+          <div class="switch-group">
+            <div class="switch-item">
+              <el-tooltip content="当前开关的值" placement="left">
+                <span>value 当前值</span>
+              </el-tooltip>
+              <el-switch v-model="switchValue" />
+            </div>
+            <div class="switch-item">
+              <el-tooltip content="禁用开关交互" placement="left">
+                <span>disabled 禁用</span>
+              </el-tooltip>
+              <el-switch v-model="config.disabled" />
+            </div>
+            <div class="switch-item">
+              <el-tooltip content="显示加载状态" placement="left">
+                <span>loading 加载中</span>
+              </el-tooltip>
+              <el-switch v-model="config.loading" />
+            </div>
+          </div>
         </el-form>
       </div>
-    </div>
 
-    <!-- 代码示例 -->
-    <CodePreview
-      :tabs="[
-        {
-          key: 'template',
-          label: '模板',
-          icon: 'ri:code-s-slash-line',
-          language: 'vue',
-          code: codeExample,
-        },
-      ]"
-      class="mt-4"
-    />
+      <!-- 右侧：预览和结果 -->
+      <div class="preview-panel">
+        <h3 class="panel-title">
+          <IconifyIconOnline icon="ri:eye-line" />
+          效果预览
+        </h3>
+
+        <div class="preview-area">
+          <ScSwitch
+            v-model="switchValue"
+            :layout="config.layout"
+            :size="config.size"
+            :disabled="config.disabled"
+            :loading="config.loading"
+            :active-text="config.activeText"
+            :inactive-text="config.inactiveText"
+            :active-icon="config.activeIcon"
+            :inactive-icon="config.inactiveIcon"
+            :active-color="config.activeColor"
+            @change="handleChange"
+          />
+        </div>
+
+        <div class="result-area">
+          <h4 class="result-title">
+            <IconifyIconOnline icon="ri:terminal-box-line" />
+            当前值
+          </h4>
+          <pre class="result-content">{{ switchValue }}</pre>
+        </div>
+
+        <div class="code-area">
+          <h4 class="code-title">
+            <IconifyIconOnline icon="ri:code-s-slash-line" />
+            示例代码
+          </h4>
+          <pre class="code-content"><code>{{ generatedCode }}</code></pre>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { reactive, ref, computed } from "vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
-import { ElMessage } from "element-plus";
-import { computed, ref } from "vue";
-import CodePreview from "./CodePreview.vue";
+import ScSelect from "@repo/components/ScSelect/index.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
-// 切换主题
-const toggleTheme = () => {
-  isDarkMode.value = !isDarkMode.value;
-};
+// 布局选项
+const layoutOptions = [
+  { label: "默认", value: "default", icon: "ri:toggle-line" },
+  { label: "卡片", value: "card", icon: "ri:checkbox-blank-line" },
+  { label: "滑块", value: "slider", icon: "ri:switch-line" },
+  { label: "现代", value: "modern", icon: "ri:contrast-2-line" }
+];
 
-// 配置选项
-const layout = ref("default");
-const size = ref("default");
-const disabled = ref(false);
-const loading = ref(false);
-const activeText = ref("开启");
-const inactiveText = ref("关闭");
-const activeIcon = ref("ep:check");
-const inactiveIcon = ref("ep:close");
-const activeColor = ref("#409eff");
-const inactiveColor = ref("#dcdfe6");
+// 尺寸选项
+const sizeOptions = [
+  { label: "small", value: "small", icon: "ri:subtract-line" },
+  { label: "default", value: "default", icon: "ri:checkbox-blank-line" },
+  { label: "large", value: "large", icon: "ri:add-line" }
+];
 
-// 开关状态
+// 图标选项
+const iconOptions = [
+  { label: "无", value: "", icon: "ri:close-line" },
+  { label: "勾", value: "ep:check", icon: "ri:check-line" },
+  { label: "叉", value: "ep:close", icon: "ri:close-line" },
+  { label: "开", value: "ep:open", icon: "ri:toggle-line" },
+  { label: "月", value: "ep:moon", icon: "ri:moon-line" }
+];
+
+// 配置项
+const config = reactive({
+  layout: "default" as "default" | "card" | "slider" | "modern",
+  size: "default" as "small" | "default" | "large",
+  disabled: false,
+  loading: false,
+  activeText: "开启",
+  inactiveText: "关闭",
+  activeIcon: "ep:check",
+  inactiveIcon: "ep:close",
+  activeColor: "#409eff"
+});
+
+// 开关值
 const switchValue = ref(false);
-const switchValueDefault = ref(true);
-const switchValueCard = ref(true);
-const switchValueSlider = ref(true);
-const switchValueModern = ref(true);
-const switchValueVisualCard1 = ref(false);
-const switchValueVisualCard2 = ref(true);
-const switchValueVisualCard3 = ref(false);
-const switchValueVisualCard4 = ref(true);
-const switchValueVisualCardWide = ref(true);
 
-// 处理状态变化
-const handleChange = (value) => {
-  console.log("开关状态变化:", value);
-  ElMessage.success(`开关状态变为: ${value}`);
-};
+// 处理变化
+function handleChange(val: boolean) {
+  console.log("开关状态变化:", val);
+}
 
-// 生成代码示例
-const codeExample = computed(() => {
-  let code = `<template>
-  <ScSwitch
-    v-model="value"
-    ${layout.value !== "default" ? `layout="${layout.value}"` : ""}
-    ${size.value !== "default" ? `size="${size.value}"` : ""}
-    ${disabled.value ? "disabled" : ""}
-    ${loading.value ? "loading" : ""}
-    ${activeText.value ? `active-text="${activeText.value}"` : ""}
-    ${inactiveText.value ? `inactive-text="${inactiveText.value}"` : ""}
-    ${activeIcon.value ? `active-icon="${activeIcon.value}"` : ""}
-    ${inactiveIcon.value ? `inactive-icon="${inactiveIcon.value}"` : ""}
-    ${activeColor.value !== "#409eff" ? `active-color="${activeColor.value}"` : ""}
-    ${inactiveColor.value !== "#dcdfe6" ? `inactive-color="${inactiveColor.value}"` : ""}
-    @change="handleChange"
-  />
-</template>
+// 生成示例代码
+const generatedCode = computed(() => {
+  const props: string[] = [];
+
+  if (config.layout !== "default") {
+    props.push(`layout="${config.layout}"`);
+  }
+  if (config.size !== "default") {
+    props.push(`size="${config.size}"`);
+  }
+  if (config.disabled) props.push("disabled");
+  if (config.loading) props.push("loading");
+  if (config.activeText) props.push(`active-text="${config.activeText}"`);
+  if (config.inactiveText) props.push(`inactive-text="${config.inactiveText}"`);
+  if (config.activeIcon) props.push(`active-icon="${config.activeIcon}"`);
+  if (config.inactiveIcon) props.push(`inactive-icon="${config.inactiveIcon}"`);
+  if (config.activeColor !== "#409eff") props.push(`active-color="${config.activeColor}"`);
+
+  const propsStr = props.length > 0 ? "\n  " + props.join("\n  ") + "\n" : " ";
+
+  return `<ScSwitch
+  v-model="value"${propsStr}/>
 
 <script setup>
-import { ref } from 'vue';
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
-
+import { ref } from "vue";
 const value = ref(${switchValue.value});
-
-const handleChange = (value) => {
-  console.log("开关状态变化:", value);
-};
 <\/script>`;
-
-  return code;
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .sc-switch-example {
-  padding: 20px 0;
+  padding: 20px;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-content {
-  flex: 1;
-}
-
-.card-header h3 {
-  margin: 0 0 8px 0;
-  font-size: 22px;
-}
-
-.text-secondary {
-  color: var(--el-text-color-primary);
-  margin: 0;
-}
-
-.example-content {
+.example-container {
   display: flex;
   gap: 24px;
-  margin-bottom: 20px;
-}
 
-.preview-area {
-  flex: 1;
-  min-width: 0;
+  @media (max-width: 900px) {
+    flex-direction: column;
+  }
 }
 
 .config-panel {
   width: 320px;
   flex-shrink: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 20px;
+
+  @media (max-width: 900px) {
+    width: 100%;
+  }
 }
 
-h4 {
-  margin-top: 0;
-  margin-bottom: 16px;
-  font-size: 18px;
+.preview-panel {
+  flex: 1;
+  min-width: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 20px;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--el-text-color-primary);
+
+  .iconify {
+    color: var(--el-color-primary);
+  }
 }
 
-.preview-container {
-  margin: 20px 0;
-  padding: 20px;
-  border-radius: 4px;
+.switch-group {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.preview-item {
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.layout-preview {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  margin-top: 16px;
-  padding: 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 4px;
-  background-color: var(--el-fill-color-lighter);
-}
-
-.layout-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   gap: 12px;
-  padding: 16px;
-  border-radius: 8px;
-  background-color: var(--el-bg-color);
-  box-shadow: var(--el-box-shadow-lighter);
-  min-width: 120px;
 }
 
-.visual-card-preview {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-  padding: 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  background-color: var(--el-fill-color-lighter);
+.switch-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+
+  span {
+    cursor: help;
+    border-bottom: 1px dashed var(--el-border-color);
+  }
 }
 
-.wide-card-preview {
-  margin-top: 16px;
-  padding: 16px;
-  border: 1px solid var(--el-border-color-lighter);
+.preview-area {
+  padding: 40px;
+  background: var(--el-fill-color-lighter);
   border-radius: 8px;
-  background-color: var(--el-fill-color-lighter);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100px;
 }
 
-.layout-title {
-  margin: 0;
+.result-area,
+.code-area {
+  margin-top: 20px;
+}
+
+.result-title,
+.code-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
   font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+
+  .iconify {
+    color: var(--el-color-primary);
+  }
+}
+
+.result-content {
+  margin: 0;
+  padding: 12px 16px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: "SF Mono", "Monaco", "Consolas", monospace;
   color: var(--el-text-color-regular);
 }
 
-.code-example {
-  margin-top: 16px;
-}
-
-.w-100 {
-  width: 100%;
-}
-
-.mt-4 {
-  margin-top: 16px;
-}
-
-.mt-2 {
-  margin-top: 8px;
-}
-
-.mb-3 {
-  margin-bottom: 12px;
-}
-
-pre {
-  background-color: var(--el-fill-color-light);
-  padding: 15px;
-  border-radius: 4px;
-  overflow-x: auto;
+.code-content {
   margin: 0;
-}
+  padding: 16px;
+  background: #1e1e1e;
+  border-radius: 6px;
+  overflow-x: auto;
 
-code {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-}
-
-.code-desc {
-  margin-bottom: 8px;
-}
-
-/* 暗黑模式样式 - 使用 html.dark 选择器 */
-html.dark {
-  .layout-preview {
-    background-color: var(--el-fill-color-dark);
-    border-color: var(--el-border-color);
-  }
-
-  .layout-item {
-    background-color: var(--el-bg-color-overlay);
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3);
-  }
-
-  .layout-title {
-    color: var(--el-text-color-secondary);
-  }
-
-  pre {
-    background-color: var(--el-fill-color-darker);
+  code {
+    font-size: 13px;
+    font-family: "SF Mono", "Monaco", "Consolas", monospace;
+    color: #d4d4d4;
+    line-height: 1.6;
   }
 }
 
-@media screen and (max-width: 768px) {
-  .example-content {
-    flex-direction: column;
-  }
+:deep(.el-form-item) {
+  margin-bottom: 16px;
+}
 
-  .config-panel {
-    width: 100%;
-  }
+:deep(.el-divider) {
+  margin: 16px 0;
 }
 </style>

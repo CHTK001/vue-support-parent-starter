@@ -1,104 +1,131 @@
 <template>
   <div class="sc-ip-example">
-    <!-- 基础用法 -->
-    <DemoBlock title="基础用法" :code="codes.basic">
-      <p class="demo-tip">传入 IP 地址，自动查询并显示物理地址</p>
-      <div class="demo-row">
-        <ScIp ip="8.8.8.8" />
-      </div>
-    </DemoBlock>
+    <div class="example-container">
+      <!-- 左侧：属性配置面板 -->
+      <div class="config-panel">
+        <h3 class="panel-title">
+          <IconifyIconOnline icon="ri:settings-3-line" />
+          属性配置
+        </h3>
 
-    <!-- 直接传入物理地址 -->
-    <DemoBlock title="直接传入物理地址" :code="codes.physicalAddress">
-      <p class="demo-tip">如果已知物理地址，可以直接传入，不再查询</p>
-      <div class="demo-row">
-        <ScIp ip="114.114.114.114" physical-address="中国 江苏 南京 电信" />
-      </div>
-    </DemoBlock>
+        <el-form label-position="top" size="small">
+          <el-form-item label="ip 地址">
+            <el-input v-model="config.ip" placeholder="请输入IP地址" />
+          </el-form-item>
 
-    <!-- 不显示原始IP -->
-    <DemoBlock title="不显示原始IP" :code="codes.hideOriginal">
-      <p class="demo-tip">只显示物理地址，不显示IP</p>
-      <div class="demo-row">
-        <ScIp ip="1.1.1.1" :show-original="false" />
-      </div>
-    </DemoBlock>
+          <el-form-item label="快捷选择">
+            <ScSelect
+              v-model="config.ip"
+              layout="card"
+              :options="ipPresets"
+              :gap="6"
+              width="90px"
+            />
+          </el-form-item>
 
-    <!-- 禁用搜索链接 -->
-    <DemoBlock title="禁用搜索链接" :code="codes.noSearch">
-      <p class="demo-tip">IP地址不可点击跳转搜索</p>
-      <div class="demo-row">
-        <ScIp ip="223.5.5.5" :open-search-original="false" />
-      </div>
-    </DemoBlock>
+          <el-form-item label="physicalAddress 物理地址（可选）">
+            <el-input v-model="config.physicalAddress" placeholder="直接传入则不查询" />
+          </el-form-item>
 
-    <!-- 自定义空文本 -->
-    <DemoBlock title="自定义空文本" :code="codes.emptyText">
-      <p class="demo-tip">当无法获取物理地址时显示的文本</p>
-      <div class="demo-row">
-        <ScIp ip="192.168.1.1" empty-text="内网地址" />
-      </div>
-    </DemoBlock>
+          <el-form-item label="emptyText 空文本">
+            <el-input v-model="config.emptyText" placeholder="无法获取时显示" />
+          </el-form-item>
 
-    <!-- 组合使用 -->
-    <DemoBlock title="交互式演示" :code="codes.interactive">
-      <div class="demo-controls">
-        <el-button size="small" @click="testIp = '8.8.8.8'">Google DNS</el-button>
-        <el-button size="small" @click="testIp = '1.1.1.1'">Cloudflare</el-button>
-        <el-button size="small" @click="testIp = '114.114.114.114'">114 DNS</el-button>
-        <el-button size="small" @click="testIp = '223.5.5.5'">阿里 DNS</el-button>
-        <el-input v-model="testIp" placeholder="输入IP" style="width: 160px; margin-left: 12px" />
+          <el-divider />
+
+          <div class="switch-group">
+            <div class="switch-item">
+              <el-tooltip content="是否显示原始IP地址" placement="left">
+                <span>showOriginal 显示IP</span>
+              </el-tooltip>
+              <el-switch v-model="config.showOriginal" />
+            </div>
+            <div class="switch-item">
+              <el-tooltip content="IP地址是否可点击跳转搜索" placement="left">
+                <span>openSearchOriginal 可搜索</span>
+              </el-tooltip>
+              <el-switch v-model="config.openSearchOriginal" />
+            </div>
+          </div>
+        </el-form>
       </div>
-      <div class="demo-row" style="margin-top: 16px">
-        <ScIp :ip="testIp" />
+
+      <!-- 右侧：预览和结果 -->
+      <div class="preview-panel">
+        <h3 class="panel-title">
+          <IconifyIconOnline icon="ri:eye-line" />
+          效果预览
+        </h3>
+
+        <div class="preview-area">
+          <ScIp
+            :ip="config.ip"
+            :physical-address="config.physicalAddress || undefined"
+            :show-original="config.showOriginal"
+            :open-search-original="config.openSearchOriginal"
+            :empty-text="config.emptyText"
+          />
+        </div>
+
+        <div class="code-area">
+          <h4 class="code-title">
+            <IconifyIconOnline icon="ri:code-s-slash-line" />
+            示例代码
+          </h4>
+          <pre class="code-content"><code>{{ generatedCode }}</code></pre>
+        </div>
       </div>
-    </DemoBlock>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { reactive, computed } from "vue";
 import ScIp from "@repo/components/ScIp/index.vue";
-import DemoBlock from "./DemoBlock.vue";
+import ScSelect from "@repo/components/ScSelect/index.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
-/**
- * ScIp 组件示例
- * @author CH
- * @version 1.0.0
- * @since 2025-12-06
- */
+// IP预设选项
+const ipPresets = [
+  { label: "Google", value: "8.8.8.8", icon: "ri:google-fill" },
+  { label: "Cloudflare", value: "1.1.1.1", icon: "ri:cloud-line" },
+  { label: "114 DNS", value: "114.114.114.114", icon: "ri:global-line" },
+  { label: "阿里 DNS", value: "223.5.5.5", icon: "ri:alipay-fill" },
+  { label: "内网", value: "192.168.1.1", icon: "ri:home-wifi-line" }
+];
 
-const testIp = ref("8.8.8.8");
+// 配置项
+const config = reactive({
+  ip: "8.8.8.8",
+  physicalAddress: "",
+  showOriginal: true,
+  openSearchOriginal: true,
+  emptyText: "未知"
+});
 
-// 代码模板
-const codes = {
-  basic: `<!-- 基础用法：传入IP自动查询物理地址 -->
-<ScIp ip="8.8.8.8" />`,
+// 生成示例代码
+const generatedCode = computed(() => {
+  const props: string[] = [];
 
-  physicalAddress: `<!-- 直接传入物理地址，不再查询 -->
-<ScIp 
-  ip="114.114.114.114" 
-  physical-address="中国 江苏 南京 电信" 
-/>`,
+  props.push(`ip="${config.ip}"`);
+  
+  if (config.physicalAddress) {
+    props.push(`physical-address="${config.physicalAddress}"`);
+  }
+  if (!config.showOriginal) {
+    props.push(`:show-original="false"`);
+  }
+  if (!config.openSearchOriginal) {
+    props.push(`:open-search-original="false"`);
+  }
+  if (config.emptyText !== "未知") {
+    props.push(`empty-text="${config.emptyText}"`);
+  }
 
-  hideOriginal: `<!-- 只显示物理地址，不显示IP -->
-<ScIp ip="1.1.1.1" :show-original="false" />`,
+  const propsStr = props.length > 0 ? "\n  " + props.join("\n  ") + "\n" : " ";
 
-  noSearch: `<!-- IP地址不可点击跳转搜索 -->
-<ScIp ip="223.5.5.5" :open-search-original="false" />`,
-
-  emptyText: `<!-- 自定义无法获取物理地址时的显示文本 -->
-<ScIp ip="192.168.1.1" empty-text="内网地址" />`,
-
-  interactive: `<template>
-  <ScIp :ip="testIp" />
-</template>
-
-<script setup>
-import { ref } from "vue";
-const testIp = ref("8.8.8.8");
-<\/script>`
-};
+  return `<ScIp${propsStr}/>`;
+});
 </script>
 
 <style scoped lang="scss">
@@ -106,23 +133,118 @@ const testIp = ref("8.8.8.8");
   padding: 20px;
 }
 
-.demo-row {
+.example-container {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 24px;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+  }
 }
 
-.demo-tip {
-  margin: 0 0 12px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
+.config-panel {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 20px;
+
+  @media (max-width: 900px) {
+    width: 100%;
+  }
 }
 
-.demo-controls {
+.preview-panel {
+  flex: 1;
+  min-width: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.panel-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  margin: 0 0 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+
+  .iconify {
+    color: var(--el-color-primary);
+  }
+}
+
+.switch-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.switch-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+
+  span {
+    cursor: help;
+    border-bottom: 1px dashed var(--el-border-color);
+  }
+}
+
+.preview-area {
+  padding: 40px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80px;
+}
+
+.code-area {
+  margin-top: 20px;
+}
+
+.code-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+
+  .iconify {
+    color: var(--el-color-primary);
+  }
+}
+
+.code-content {
+  margin: 0;
+  padding: 16px;
+  background: #1e1e1e;
+  border-radius: 6px;
+  overflow-x: auto;
+
+  code {
+    font-size: 13px;
+    font-family: "SF Mono", "Monaco", "Consolas", monospace;
+    color: #d4d4d4;
+    line-height: 1.6;
+  }
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 16px;
+}
+
+:deep(.el-divider) {
+  margin: 16px 0;
 }
 </style>

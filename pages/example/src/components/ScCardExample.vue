@@ -1,499 +1,475 @@
 <template>
-  <div class="sc-card-demo">
-    <!-- 统计卡片布局 -->
-    <div class="demo-section">
-      <h3 class="section-title">统计卡片布局 (stats)</h3>
-      <div class="card-row stats-row">
-        <ScCard
-          layout="stats"
-          theme="primary"
-          icon="ri:user-line"
-          :value="1234"
-          label="总用户数"
-          trend-icon="ri:arrow-up-line"
-          trend-text="+12.5%"
-        />
+  <div class="sc-card-example">
+    <div class="example-container">
+      <!-- 左侧：属性配置面板 -->
+      <div class="config-panel">
+        <h3 class="panel-title">
+          <IconifyIconOnline icon="ri:settings-3-line" />
+          属性配置
+        </h3>
 
-        <ScCard
-          layout="stats"
-          theme="success"
-          icon="ri:checkbox-circle-line"
-          :value="892"
-          label="活跃用户"
-          trend-icon="ri:pulse-line"
-          trend-text="72.3%"
-        />
+        <el-form label-position="top" size="small">
+          <el-form-item label="layout 布局类型">
+            <ScSelect
+              v-model="config.layout"
+              layout="card"
+              :options="layoutOptions"
+              :gap="6"
+              width="70px"
+              @change="handleLayoutChange"
+            />
+          </el-form-item>
 
-        <ScCard
-          layout="stats"
-          theme="warning"
-          icon="ri:shopping-cart-line"
-          :value="456"
-          label="订单数量"
-          trend-icon="ri:arrow-up-line"
-          trend-text="+8.2%"
-        />
+          <el-form-item label="theme 主题色">
+            <ScSelect
+              v-model="config.theme"
+              layout="card"
+              :options="themeOptions"
+              :gap="6"
+              width="70px"
+            />
+          </el-form-item>
 
-        <ScCard
-          layout="stats"
-          theme="danger"
-          icon="ri:error-warning-line"
-          :value="23"
-          label="异常告警"
-          trend-icon="ri:alert-line"
-          trend-text="需关注"
-        />
-      </div>
-    </div>
+          <el-form-item label="title 标题">
+            <el-input v-model="config.title" />
+          </el-form-item>
 
-    <!-- 紧凑型卡片布局 -->
-    <div class="demo-section">
-      <h3 class="section-title">紧凑型卡片布局 (compact)</h3>
-      <div class="card-row compact-row">
-        <ScCard
-          layout="compact"
-          title="Docker Registry"
-          subtitle="registry.example.com"
-          icon="ri:docker-line"
-          theme="primary"
-        >
-          <div class="info-row">
-            <IconifyIconOnline icon="ri:image-line" class="info-icon" />
-            <span class="info-text">镜像数量: 128</span>
-          </div>
-          <div class="info-row">
-            <IconifyIconOnline icon="ri:hard-drive-line" class="info-icon" />
-            <span class="info-text">存储空间: 45.6 GB</span>
-          </div>
-          <template #footer>
-            <el-button size="small" type="primary">管理</el-button>
-            <el-button size="small">同步</el-button>
-          </template>
-        </ScCard>
+          <el-form-item v-if="showSubtitle" label="subtitle 副标题">
+            <el-input v-model="config.subtitle" />
+          </el-form-item>
 
-        <ScCard
-          layout="compact"
-          title="生产节点"
-          subtitle="192.168.1.100:8080"
-          icon="ri:server-line"
-          icon-bg-color="linear-gradient(135deg, #10b981 0%, #059669 100%)"
-          theme="success"
-          :active="true"
-        >
-          <template #status>
-            <el-tag type="success" size="small">在线</el-tag>
-          </template>
-          <div class="info-row">
-            <IconifyIconOnline icon="ri:cpu-line" class="info-icon" />
-            <span class="info-text">CPU: 45%</span>
-          </div>
-          <div class="info-row">
-            <IconifyIconOnline icon="ri:database-2-line" class="info-icon" />
-            <span class="info-text">内存: 2.4 GB / 8 GB</span>
-          </div>
-          <template #footer>
-            <el-button size="small" type="primary">监控</el-button>
-            <el-button size="small">终端</el-button>
-          </template>
-        </ScCard>
+          <el-form-item label="icon 图标">
+            <el-input v-model="config.icon" placeholder="如: ri:home-line" />
+          </el-form-item>
 
-        <ScCard
-          layout="compact"
-          title="测试节点"
-          subtitle="192.168.1.101:8080"
-          icon="ri:bug-line"
-          icon-bg-color="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
-          theme="warning"
-        >
-          <template #status>
-            <el-tag type="warning" size="small">维护中</el-tag>
-          </template>
-          <div class="info-row">
-            <IconifyIconOnline icon="ri:time-line" class="info-icon" />
-            <span class="info-text">上次心跳: 5分钟前</span>
-          </div>
-          <template #footer>
-            <el-button size="small" type="warning">重启</el-button>
-          </template>
-        </ScCard>
-      </div>
-    </div>
+          <el-form-item v-if="showStatsProps" label="value 数值">
+            <el-input-number v-model="config.value" :min="0" />
+          </el-form-item>
 
-    <div class="demo-section">
-      <h3 class="section-title">默认布局</h3>
-      <div class="card-row">
-        <ScCard class="demo-card">
-          <div class="demo-content">
-            <h4>默认卡片</h4>
-            <p>这是一个默认布局的卡片，只有内容区域。</p>
-          </div>
-        </ScCard>
+          <el-form-item v-if="showStatsProps" label="label 标签">
+            <el-input v-model="config.label" />
+          </el-form-item>
 
-        <ScCard class="demo-card" :hoverable="false">
-          <div class="demo-content">
-            <h4>禁用悬停效果</h4>
-            <p>这个卡片禁用了悬停效果，不会显示边框变化和阴影。</p>
-          </div>
-        </ScCard>
+          <el-form-item v-if="showStatsProps" label="trendText 趋势文本">
+            <el-input v-model="config.trendText" />
+          </el-form-item>
 
-        <ScCard class="demo-card" shadow="always">
-          <div class="demo-content">
-            <h4>始终显示阴影</h4>
-            <p>这个卡片始终显示阴影效果，不需要悬停。</p>
-          </div>
-        </ScCard>
-      </div>
-    </div>
+          <el-form-item label="shadow 阴影">
+            <ScSelect
+              v-model="config.shadow"
+              layout="card"
+              :options="shadowOptions"
+              :gap="6"
+              width="70px"
+            />
+          </el-form-item>
 
-    <div class="demo-section">
-      <h3 class="section-title">头部内容布局</h3>
-      <div class="card-row">
-        <ScCard class="demo-card" layout="header-content" title="卡片标题">
-          <div class="demo-content">
-            <p>这是一个带有头部和内容的卡片布局。</p>
-            <p>头部包含标题和可选的操作按钮。</p>
-          </div>
-        </ScCard>
+          <el-divider />
 
-        <ScCard class="demo-card" layout="header-content" title="自定义头部">
-          <template #header-right>
-            <el-button type="primary" size="small">操作</el-button>
-          </template>
-          <div class="demo-content">
-            <p>这个卡片在头部右侧添加了自定义内容。</p>
-            <p>可以放置按钮、图标或其他操作元素。</p>
-          </div>
-        </ScCard>
-
-        <ScCard class="demo-card" layout="header-content">
-          <template #header>
-            <div class="custom-header">
-              <IconifyIconOnline icon="ep:star" class="header-icon" />
-              <span>完全自定义头部</span>
+          <div class="switch-group">
+            <div class="switch-item">
+              <el-tooltip content="鼠标悬停时显示交互效果" placement="left">
+                <span>hoverable 可悬停</span>
+              </el-tooltip>
+              <el-switch v-model="config.hoverable" />
             </div>
-          </template>
-          <div class="demo-content">
-            <p>这个卡片使用了完全自定义的头部内容。</p>
-            <p>可以根据需要设计任意头部样式。</p>
-          </div>
-        </ScCard>
-      </div>
-    </div>
-
-    <div class="demo-section">
-      <h3 class="section-title">媒体卡片布局</h3>
-      <div class="card-row">
-        <ScCard
-          class="demo-card"
-          layout="media"
-          title="媒体卡片标题"
-          subtitle="副标题内容"
-        >
-          <template #media>
-            <img src="https://via.placeholder.com/120" alt="示例图片" />
-          </template>
-          <div class="demo-content">
-            <p>这是一个媒体卡片布局，左侧为媒体内容，右侧为文本内容。</p>
-          </div>
-          <template #media-footer>
-            <el-button type="primary" size="small">查看详情</el-button>
-          </template>
-        </ScCard>
-
-        <ScCard
-          class="demo-card"
-          layout="media"
-          title="产品展示"
-          subtitle="产品描述信息"
-        >
-          <div class="demo-content">
-            <p>左侧为默认的媒体占位符，可以放置产品图片。</p>
-            <p>右侧可以放置产品描述、价格等信息。</p>
-          </div>
-          <template #media-footer>
-            <div class="media-actions">
-              <el-button size="small">收藏</el-button>
-              <el-button type="primary" size="small">购买</el-button>
+            <div class="switch-item">
+              <el-tooltip content="卡片激活/选中状态" placement="left">
+                <span>active 激活状态</span>
+              </el-tooltip>
+              <el-switch v-model="config.active" />
             </div>
-          </template>
-        </ScCard>
-
-        <ScCard class="demo-card" layout="media" title="自定义媒体内容">
-          <template #media>
-            <div class="custom-media">
-              <IconifyIconOnline icon="ep:picture" class="media-icon" />
+            <div class="switch-item" v-if="showStatsProps">
+              <el-tooltip content="数值是否有计数动画" placement="left">
+                <span>counting 计数动画</span>
+              </el-tooltip>
+              <el-switch v-model="config.counting" />
             </div>
-          </template>
-          <div class="demo-content">
-            <p>这个卡片使用了自定义的媒体内容。</p>
-            <p>可以放置图标、图表或其他视觉元素。</p>
+            <div class="switch-item" v-if="showHeaderProp">
+              <el-tooltip content="是否显示卡片头部" placement="left">
+                <span>showHeader 显示头部</span>
+              </el-tooltip>
+              <el-switch v-model="config.showHeader" />
+            </div>
           </div>
-        </ScCard>
+        </el-form>
       </div>
-    </div>
 
-    <div class="demo-section">
-      <h3 class="section-title">自定义样式</h3>
-      <div class="card-row">
-        <ScCard class="demo-card" borderRadius="16px" padding="24px">
-          <div class="demo-content">
-            <h4>自定义圆角和内边距</h4>
-            <p>这个卡片使用了更大的圆角和内边距。</p>
-          </div>
-        </ScCard>
+      <!-- 右侧：预览和结果 -->
+      <div class="preview-panel">
+        <h3 class="panel-title">
+          <IconifyIconOnline icon="ri:eye-line" />
+          效果预览
+        </h3>
 
-        <ScCard class="demo-card" type="div" border>
-          <div class="demo-content">
-            <h4>使用DIV元素</h4>
-            <p>这个卡片使用普通DIV元素而不是el-card组件。</p>
-            <p>保留了边框和悬停效果。</p>
-          </div>
-        </ScCard>
+        <div class="preview-area">
+          <ScCard
+            :layout="config.layout"
+            :theme="config.theme"
+            :title="config.title"
+            :subtitle="config.subtitle"
+            :icon="config.icon"
+            :value="config.value"
+            :label="config.label"
+            :trend-text="config.trendText"
+            :trend-icon="config.trendIcon"
+            :shadow="config.shadow"
+            :hoverable="config.hoverable"
+            :active="config.active"
+            :counting="config.counting"
+            :show-header="config.showHeader"
+            class="preview-card"
+          >
+            <!-- compact/default 布局的内容 -->
+            <template v-if="config.layout === 'compact' || config.layout === 'default'">
+              <div class="info-row">
+                <IconifyIconOnline icon="ri:time-line" class="info-icon" />
+                <span class="info-text">创建时间: 2025-12-07</span>
+              </div>
+              <div class="info-row">
+                <IconifyIconOnline icon="ri:user-line" class="info-icon" />
+                <span class="info-text">创建人: Admin</span>
+              </div>
+            </template>
 
-        <ScCard class="demo-card custom-card" type="div" :border="false">
-          <div class="demo-content">
-            <h4>完全自定义样式</h4>
-            <p>这个卡片使用DIV元素并移除了边框。</p>
-            <p>可以应用自定义的背景和样式。</p>
-          </div>
-        </ScCard>
+            <!-- compact 布局的状态和底部 -->
+            <template v-if="config.layout === 'compact'" #status>
+              <el-tag :type="config.active ? 'success' : 'info'" size="small">
+                {{ config.active ? '在线' : '离线' }}
+              </el-tag>
+            </template>
+            <template v-if="config.layout === 'compact'" #footer>
+              <el-button size="small">详情</el-button>
+              <el-button size="small" type="primary">操作</el-button>
+            </template>
+
+            <!-- media 布局的媒体内容 -->
+            <template v-if="config.layout === 'media'" #media>
+              <div class="media-placeholder">
+                <IconifyIconOnline icon="ri:image-line" />
+              </div>
+            </template>
+
+            <!-- header-content 布局的头部操作 -->
+            <template v-if="config.layout === 'header-content'" #header-right>
+              <el-button size="small" type="primary">操作</el-button>
+            </template>
+          </ScCard>
+        </div>
+
+        <div class="code-area">
+          <h4 class="code-title">
+            <IconifyIconOnline icon="ri:code-s-slash-line" />
+            示例代码
+          </h4>
+          <pre class="code-content"><code>{{ generatedCode }}</code></pre>
+        </div>
       </div>
-    </div>
-
-    <!-- 代码示例 -->
-    <div class="demo-section">
-      <h3 class="section-title">代码示例</h3>
-      <CodePreview :tabs="codeTabs" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, reactive, computed } from "vue";
 import ScCard from "@repo/components/ScCard/index.vue";
-import CodePreview from "./CodePreview.vue";
+import ScSelect from "@repo/components/ScSelect/index.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
-// 代码示例标签页
-const codeTabs = [
-  {
-    key: "stats",
-    label: "统计卡片",
-    icon: "ri:bar-chart-line",
-    language: "vue",
-    code: `<ScCard
-  layout="stats"
-  theme="primary"
-  icon="ri:user-line"
-  :value="1234"
-  label="总用户数"
-  trend-icon="ri:arrow-up-line"
-  trend-text="+12.5%"
-/>`,
-  },
-  {
-    key: "compact",
-    label: "紧凑卡片",
-    icon: "ri:layout-grid-line",
-    language: "vue",
-    code: `<ScCard
-  layout="compact"
-  title="Docker Registry"
-  subtitle="registry.example.com"
-  icon="ri:docker-line"
-  theme="primary"
->
+// 布局选项
+const layoutOptions = [
+  { label: "默认", value: "default", icon: "ri:layout-line" },
+  { label: "紧凑", value: "compact", icon: "ri:layout-grid-line" },
+  { label: "统计", value: "stats", icon: "ri:bar-chart-line" },
+  { label: "媒体", value: "media", icon: "ri:image-line" },
+  { label: "头部", value: "header-content", icon: "ri:layout-top-line" },
+  { label: "3D", value: "panel-3d", icon: "ri:box-3-line" },
+  { label: "科技", value: "tech", icon: "ri:cpu-line" }
+];
+
+// 主题选项
+const themeOptions = [
+  { label: "默认", value: "default", icon: "ri:palette-line" },
+  { label: "主色", value: "primary", icon: "ri:drop-fill" },
+  { label: "成功", value: "success", icon: "ri:checkbox-circle-fill" },
+  { label: "警告", value: "warning", icon: "ri:error-warning-fill" },
+  { label: "危险", value: "danger", icon: "ri:close-circle-fill" },
+  { label: "信息", value: "info", icon: "ri:information-fill" }
+];
+
+// 阴影选项
+const shadowOptions = [
+  { label: "始终", value: "always", icon: "ri:contrast-drop-line" },
+  { label: "悬停", value: "hover", icon: "ri:cursor-line" },
+  { label: "无", value: "never", icon: "ri:subtract-line" }
+];
+
+/**
+ * ScCard 组件示例 - 动态属性调试
+ */
+
+// 配置项
+const config = reactive({
+  layout: "compact" as "default" | "compact" | "stats" | "media" | "header-content" | "panel-3d" | "tech",
+  theme: "primary" as "default" | "primary" | "success" | "warning" | "danger" | "info",
+  title: "示例卡片",
+  subtitle: "这是副标题描述",
+  icon: "ri:folder-line",
+  value: 1234,
+  label: "总数量",
+  trendText: "+12.5%",
+  trendIcon: "ri:arrow-up-line",
+  shadow: "hover" as "always" | "hover" | "never",
+  hoverable: true,
+  active: false,
+  counting: false,
+  showHeader: true
+});
+
+// 布局切换时重置相关配置
+function handleLayoutChange(layout: string) {
+  if (layout === "stats") {
+    config.icon = "ri:bar-chart-line";
+    config.title = "";
+  } else if (layout === "compact") {
+    config.icon = "ri:folder-line";
+    config.title = "示例卡片";
+  } else if (layout === "media") {
+    config.icon = "";
+    config.title = "媒体卡片";
+  } else {
+    config.icon = "ri:home-line";
+    config.title = "卡片标题";
+  }
+}
+
+// 是否显示副标题配置
+const showSubtitle = computed(() => {
+  return ["compact", "media"].includes(config.layout);
+});
+
+// 是否显示统计相关配置
+const showStatsProps = computed(() => {
+  return config.layout === "stats";
+});
+
+// 是否显示头部开关
+const showHeaderProp = computed(() => {
+  return ["panel-3d", "tech"].includes(config.layout);
+});
+
+// 生成示例代码
+const generatedCode = computed(() => {
+  const props: string[] = [];
+
+  props.push(`layout="${config.layout}"`);
+
+  if (config.theme !== "default") {
+    props.push(`theme="${config.theme}"`);
+  }
+
+  if (config.title) {
+    props.push(`title="${config.title}"`);
+  }
+
+  if (showSubtitle.value && config.subtitle) {
+    props.push(`subtitle="${config.subtitle}"`);
+  }
+
+  if (config.icon) {
+    props.push(`icon="${config.icon}"`);
+  }
+
+  if (showStatsProps.value) {
+    props.push(`:value="${config.value}"`);
+    if (config.label) props.push(`label="${config.label}"`);
+    if (config.trendText) props.push(`trend-text="${config.trendText}"`);
+    if (config.trendIcon) props.push(`trend-icon="${config.trendIcon}"`);
+    if (config.counting) props.push("counting");
+  }
+
+  if (config.shadow !== "hover") {
+    props.push(`shadow="${config.shadow}"`);
+  }
+
+  if (!config.hoverable) props.push(":hoverable=\"false\"");
+  if (config.active) props.push("active");
+  if (showHeaderProp.value && !config.showHeader) props.push(":show-header=\"false\"");
+
+  const propsStr = props.length > 0 ? "\n  " + props.join("\n  ") + "\n" : " ";
+
+  let content = "";
+  if (config.layout === "compact") {
+    content = `
   <div class="info-row">
-    <IconifyIconOnline icon="ri:image-line" />
-    <span>镜像数量: 128</span>
+    <IconifyIconOnline icon="ri:time-line" />
+    <span>创建时间: 2025-12-07</span>
   </div>
   <template #footer>
-    <el-button size="small" type="primary">管理</el-button>
+    <el-button size="small" type="primary">操作</el-button>
   </template>
-</ScCard>`,
-  },
-  {
-    key: "media",
-    label: "媒体卡片",
-    icon: "ri:image-line",
-    language: "vue",
-    code: `<ScCard
-  layout="media"
-  title="产品展示"
-  subtitle="产品描述信息"
->
-  <template #media>
-    <img src="product.jpg" alt="产品图片" />
-  </template>
-  <div class="content">
-    <p>产品描述内容...</p>
-  </div>
-  <template #media-footer>
-    <el-button type="primary" size="small">购买</el-button>
-  </template>
-</ScCard>`,
-  },
-];
+`;
+  }
+
+  return `<ScCard${propsStr}>${content}</ScCard>`;
+});
 </script>
 
-<style lang="scss" scoped>
-.sc-card-demo {
-  padding: 24px;
+<style scoped lang="scss">
+.sc-card-example {
+  padding: 20px;
+}
 
-  .demo-title {
-    font-size: 24px;
-    font-weight: 600;
-    margin-bottom: 24px;
-    color: var(--el-text-color-primary);
+.example-container {
+  display: flex;
+  gap: 24px;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
   }
+}
 
-  .demo-section {
-    margin-bottom: 32px;
+.config-panel {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 20px;
 
-    .section-title {
-      font-size: 18px;
-      font-weight: 500;
-      margin-bottom: 16px;
-      color: var(--el-text-color-primary);
-      position: relative;
-      padding-left: 12px;
-
-      &::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 4px;
-        height: 16px;
-        width: 3px;
-        background-color: var(--el-color-primary);
-        border-radius: 2px;
-      }
-    }
-
-    .card-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-
-      @media (max-width: 1200px) {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-      }
-
-      &.stats-row {
-        grid-template-columns: repeat(4, 1fr);
-
-        @media (max-width: 1400px) {
-          grid-template-columns: repeat(2, 1fr);
-        }
-
-        @media (max-width: 768px) {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      &.compact-row {
-        grid-template-columns: repeat(3, 1fr);
-
-        @media (max-width: 1200px) {
-          grid-template-columns: repeat(2, 1fr);
-        }
-
-        @media (max-width: 768px) {
-          grid-template-columns: 1fr;
-        }
-      }
-    }
-
-    .demo-card {
-      height: 200px;
-
-      &.custom-card {
-        background: linear-gradient(
-          135deg,
-          var(--el-color-primary-light-8),
-          var(--el-color-primary-light-9)
-        );
-        border-radius: 16px;
-        box-shadow: var(--el-box-shadow);
-
-        &:hover {
-          box-shadow: var(--el-box-shadow-dark);
-          transform: translateY(-4px);
-        }
-      }
-    }
-  }
-
-  .demo-content {
-    h4 {
-      font-size: 16px;
-      font-weight: 500;
-      margin-bottom: 12px;
-      color: var(--el-text-color-primary);
-    }
-
-    p {
-      font-size: 14px;
-      color: var(--el-text-color-secondary);
-      line-height: 1.6;
-      margin-bottom: 8px;
-    }
-  }
-
-  .custom-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--el-color-primary);
-    font-weight: 500;
-
-    .header-icon {
-      font-size: 18px;
-    }
-  }
-
-  .custom-media {
+  @media (max-width: 900px) {
     width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: var(--el-color-primary-light-9);
+  }
+}
 
-    .media-icon {
-      font-size: 40px;
-      color: var(--el-color-primary);
-    }
+.preview-panel {
+  flex: 1;
+  min-width: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+
+  .iconify {
+    color: var(--el-color-primary);
+  }
+}
+
+.switch-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.switch-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+
+  span {
+    cursor: help;
+    border-bottom: 1px dashed var(--el-border-color);
+  }
+}
+
+.preview-area {
+  padding: 40px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 200px;
+}
+
+.preview-card {
+  width: 100%;
+  max-width: 360px;
+}
+
+.code-area {
+  margin-top: 20px;
+}
+
+.code-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+
+  .iconify {
+    color: var(--el-color-primary);
+  }
+}
+
+.code-content {
+  margin: 0;
+  padding: 16px;
+  background: #1e1e1e;
+  border-radius: 6px;
+  overflow-x: auto;
+
+  code {
+    font-size: 13px;
+    font-family: "SF Mono", "Monaco", "Consolas", monospace;
+    color: #d4d4d4;
+    line-height: 1.6;
+  }
+}
+
+// 预览卡片内容样式
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+
+  .info-icon {
+    color: var(--el-text-color-placeholder);
+    font-size: 14px;
   }
 
-  .media-actions {
-    display: flex;
-    gap: 8px;
+  .info-text {
+    font-size: 13px;
+    color: var(--el-text-color-regular);
   }
+}
 
-  // 紧凑型卡片的info-row样式
-  .info-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+.media-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-placeholder);
+  font-size: 32px;
+}
 
-    &:last-child {
-      margin-bottom: 0;
-    }
+:deep(.el-form-item) {
+  margin-bottom: 16px;
+}
 
-    .info-icon {
-      color: var(--el-text-color-secondary);
-      font-size: 14px;
-      flex-shrink: 0;
-    }
+:deep(.el-divider) {
+  margin: 16px 0;
+}
 
-    .info-text {
-      font-size: 13px;
-      color: var(--el-text-color-regular);
-    }
-  }
+:deep(.el-select) {
+  width: 100%;
 }
 </style>

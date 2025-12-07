@@ -176,21 +176,25 @@
         <el-form-item class="sc-filter-bar__actions" :class="{ 'sc-filter-bar__actions--inline': layout === 'inline' }">
           <!-- 展开/收起按钮 -->
           <el-button v-if="showExpand && collapsedFields.length > 0" link type="primary" @click="toggleExpand">
-            {{ isExpanded ? collapseText : expandText }}
+            <template v-if="!iconOnly">{{ isExpanded ? collapseText : expandText }}</template>
             <IconifyIconOnline :icon="isExpanded ? 'ep:arrow-up' : 'ep:arrow-down'" />
           </el-button>
 
           <!-- 搜索按钮 -->
-          <el-button v-if="showSearch" type="primary" :loading="loading" @click="handleSearch">
-            <IconifyIconOnline icon="ep:search" />
-            {{ searchText }}
-          </el-button>
+          <el-tooltip v-if="showSearch" :content="searchText" :disabled="!iconOnly" placement="top">
+            <el-button type="primary" :loading="loading" :circle="iconOnly" @click="handleSearch">
+              <IconifyIconOnline icon="ep:search" />
+              <template v-if="!iconOnly">{{ searchText }}</template>
+            </el-button>
+          </el-tooltip>
 
           <!-- 重置按钮 -->
-          <el-button v-if="showReset" @click="handleReset">
-            <IconifyIconOnline icon="ep:refresh" />
-            {{ resetText }}
-          </el-button>
+          <el-tooltip v-if="showReset" :content="resetText" :disabled="!iconOnly" placement="top">
+            <el-button :circle="iconOnly" @click="handleReset">
+              <IconifyIconOnline icon="ep:refresh" />
+              <template v-if="!iconOnly">{{ resetText }}</template>
+            </el-button>
+          </el-tooltip>
 
           <!-- 自定义操作插槽 -->
           <slot name="actions" :values="formModel" :search="handleSearch" :reset="handleReset" />
@@ -242,7 +246,8 @@ const props = withDefaults(defineProps<ScFilterBarProps>(), {
   disabled: false,
   loading: false,
   defaultExpanded: false,
-  showQuickFilters: true
+  showQuickFilters: true,
+  iconOnly: false
 });
 
 const emit = defineEmits<{
@@ -675,6 +680,25 @@ defineExpose({
 
   &__field {
     margin-bottom: 0 !important;
+    min-width: 200px;
+
+    // 确保表单控件宽度
+    :deep(.el-select),
+    :deep(.el-cascader),
+    :deep(.el-tree-select),
+    :deep(.el-date-editor),
+    :deep(.el-input),
+    :deep(.el-input-number) {
+      width: 100%;
+      min-width: 180px;
+    }
+
+    // 日期范围选择器需要更宽
+    :deep(.el-date-editor--daterange),
+    :deep(.el-date-editor--datetimerange),
+    :deep(.el-date-editor--monthrange) {
+      min-width: 260px;
+    }
 
     &--required {
       :deep(.el-form-item__label)::before {
@@ -724,6 +748,23 @@ defineExpose({
       :deep(.el-form-item) {
         margin-right: 16px;
         margin-bottom: 16px;
+
+        // 确保 inline 布局下控件有合适的宽度
+        .el-form-item__content {
+          min-width: 180px;
+
+          .el-select,
+          .el-cascader,
+          .el-tree-select,
+          .el-input {
+            width: 180px;
+          }
+
+          .el-date-editor--daterange,
+          .el-date-editor--datetimerange {
+            width: 280px;
+          }
+        }
       }
     }
   }

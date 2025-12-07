@@ -1,14 +1,17 @@
 <template>
   <div
     class="card-selector-item"
-    :class="{
-      active: isSelected,
-      disabled: isDisabled,
-      'icon-position-top': iconPosition === 'top',
-      'shape-circle': shape === 'circle',
-      'shape-rectangle': shape === 'rectangle',
-      'shape-rounded': shape === 'rounded'
-    }"
+    :class="[
+      {
+        active: isSelected,
+        disabled: isDisabled,
+        'icon-position-top': iconPosition === 'top',
+        'shape-circle': shape === 'circle',
+        'shape-rectangle': shape === 'rectangle',
+        'shape-rounded': shape === 'rounded'
+      },
+      theme ? `theme-${theme}` : ''
+    ]"
     :style="{ width }"
     @click="handleSelect"
   >
@@ -59,6 +62,13 @@ const props = defineProps({
     default: "rounded",
     validator: (value: string) => {
       return ["circle", "rectangle", "rounded"].includes(value);
+    }
+  },
+  theme: {
+    type: String,
+    default: "",
+    validator: (value: string) => {
+      return ["", "techui", "glass"].includes(value);
     }
   }
 });
@@ -244,6 +254,104 @@ const handleSelect = () => {
     &.active .card-icon {
       background-color: var(--el-color-primary-light-5);
       color: var(--el-color-white);
+    }
+  }
+}
+
+// ===== TechUI 主题 =====
+.card-selector-item.theme-techui {
+  background: linear-gradient(135deg, rgba(10, 20, 40, 0.95) 0%, rgba(20, 40, 80, 0.9) 100%);
+  border: 1px solid rgba(0, 200, 255, 0.3);
+  box-shadow: 
+    0 0 20px rgba(0, 200, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.5), transparent);
+  }
+  
+  &::after {
+    background: linear-gradient(90deg, rgba(0, 200, 255, 0.3), rgba(0, 255, 200, 0.6), rgba(0, 200, 255, 0.3));
+    height: 2px;
+  }
+
+  .card-icon {
+    background: linear-gradient(135deg, rgba(0, 200, 255, 0.2) 0%, rgba(0, 150, 200, 0.3) 100%);
+    color: #00c8ff;
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    box-shadow: 0 0 15px rgba(0, 200, 255, 0.2);
+  }
+
+  .card-label {
+    color: rgba(200, 230, 255, 0.9);
+    text-shadow: 0 0 10px rgba(0, 200, 255, 0.3);
+  }
+
+  &:hover {
+    border-color: rgba(0, 200, 255, 0.6);
+    box-shadow: 
+      0 0 30px rgba(0, 200, 255, 0.2),
+      0 8px 20px rgba(0, 0, 0, 0.3);
+    
+    .card-icon {
+      box-shadow: 0 0 25px rgba(0, 200, 255, 0.4);
+    }
+  }
+
+  &.active {
+    background: linear-gradient(135deg, rgba(0, 80, 120, 0.95) 0%, rgba(0, 50, 80, 0.9) 100%);
+    border-color: #00c8ff;
+    box-shadow: 
+      0 0 40px rgba(0, 200, 255, 0.3),
+      inset 0 0 30px rgba(0, 200, 255, 0.1);
+    
+    .card-icon {
+      background: linear-gradient(135deg, #00c8ff 0%, #0090c0 100%);
+      color: #fff;
+      box-shadow: 0 0 30px rgba(0, 200, 255, 0.5);
+    }
+    
+    .card-label {
+      color: #fff;
+      text-shadow: 0 0 15px rgba(0, 200, 255, 0.5);
+    }
+  }
+}
+
+// ===== Glass 玻璃主题 =====
+.card-selector-item.theme-glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  
+  .card-icon {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(5px);
+  }
+  
+  .card-label {
+    color: var(--el-text-color-primary);
+  }
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  
+  &.active {
+    background: rgba(var(--el-color-primary-rgb), 0.2);
+    border-color: var(--el-color-primary);
+    
+    .card-icon {
+      background: var(--el-color-primary);
+      color: #fff;
     }
   }
 }

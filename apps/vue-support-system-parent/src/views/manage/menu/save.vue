@@ -2,6 +2,7 @@
 import { fetchSaveMenu, fetchUpdateMenu } from "@/api/manage/menu";
 import { fetchListRole } from "@/api/manage/role";
 import { defineAsyncComponent, defineComponent } from "vue";
+import { QuestionFilled } from "@element-plus/icons-vue";
 
 import ReAnimateSelector from "@repo/components/ReAnimateSelector/index.vue";
 import ReCol from "@repo/components/ReCol";
@@ -9,14 +10,13 @@ import { IconSelect } from "@repo/components/ReIcon";
 import Segmented from "@repo/components/ReSegmented";
 import { transformI18n } from "@repo/config";
 import { message } from "@repo/utils";
-import ScElFormItem from "@repo/components/ScElFormItem/index.vue";
 export default defineComponent({
   components: {
     Segmented,
     IconSelect,
     ReCol,
     ReAnimateSelector,
-    ScElFormItem: defineAsyncComponent(() => import("@repo/components/ScElFormItem/index.vue")),
+    QuestionFilled,
   },
   data() {
     return {
@@ -478,11 +478,17 @@ export default defineComponent({
           </re-col>
 
           <re-col :value="12" :xs="24" :sm="24">
-            <ScElFormItem label="所属角色" tips="当选择角色后, 该菜单只针对当前角色可见">
+            <el-form-item>
+              <template #label>
+                <span>所属角色</span>
+                <el-tooltip content="当选择角色后, 该菜单只针对当前角色可见" placement="top">
+                  <el-icon style="margin-left: 4px; cursor: help;"><QuestionFilled /></el-icon>
+                </el-tooltip>
+              </template>
               <el-select v-model="dynamicTags" multiple>
                 <el-option v-for="item in roleOptions" :key="item.sysRoleId" :value="item.sysRoleCode" :label="item.sysRoleName" />
               </el-select>
-            </ScElFormItem>
+            </el-form-item>
           </re-col>
         </el-row>
       </el-form>
