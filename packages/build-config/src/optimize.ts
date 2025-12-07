@@ -51,6 +51,12 @@ export const include = [
   "@infectoone/vue-ganttastic",
   "@wangeditor/editor-for-vue",
   "vuedraggable/src/vuedraggable",
+  // TechUI 科幻风格组件
+  "@techui/scifi",
+  "@techui/colors",
+  "@techui/icons",
+  "@techui/libs",
+  "@techui/utils",
 ];
 
 /**

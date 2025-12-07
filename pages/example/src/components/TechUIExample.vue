@@ -3,16 +3,6 @@
     <h2 class="example-title">TechUI 科幻风格组件</h2>
     <p class="example-desc">基于 @techui/scifi 的科幻风格组件封装，支持多种变体和自定义配置</p>
 
-    <!-- 直接测试原生 @techui/scifi 组件 -->
-    <el-divider content-position="left">原生 @techui/scifi 组件测试</el-divider>
-    <div class="demo-section">
-      <h4>直接使用原生组件（不通过封装）</h4>
-      <div class="demo-row">
-        <scifiButtonA1>原生按钮A1</scifiButtonA1>
-        <scifiButtonA2>原生按钮A2</scifiButtonA2>
-      </div>
-    </div>
-
     <!-- TechButton 示例 -->
     <el-divider content-position="left">TechButton 科幻按钮</el-divider>
     <div class="demo-section">

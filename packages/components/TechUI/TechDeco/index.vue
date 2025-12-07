@@ -20,7 +20,13 @@
  * @version 1.0.0
  * @since 2025-12-06
  */
-import { computed, defineOptions, resolveComponent } from "vue";
+import { computed, type Component } from "vue";
+import { scifiDecoA1, scifiDecoB1, scifiDecoB2, scifiDecoB3, scifiDecoD1 } from "@techui/scifi";
+
+// 组件映射表
+const decoComponents: Record<string, Component> = {
+  A1: scifiDecoA1, B1: scifiDecoB1, B2: scifiDecoB2, B3: scifiDecoB3, D1: scifiDecoD1,
+};
 
 defineOptions({
   name: "TechDeco",
@@ -60,12 +66,7 @@ const props = withDefaults(defineProps<{
 
 // 根据 variant 动态选择组件
 const decoComponent = computed(() => {
-  const name = `scifiDeco${props.variant}`;
-  try {
-    return resolveComponent(name);
-  } catch {
-    return name;
-  }
+  return decoComponents[props.variant] || scifiDecoA1;
 });
 </script>
 

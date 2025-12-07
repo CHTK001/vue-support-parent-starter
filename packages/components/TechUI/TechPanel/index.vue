@@ -32,7 +32,21 @@
  * @version 1.0.0
  * @since 2025-12-06
  */
-import { computed, defineOptions, resolveComponent } from "vue";
+import { computed, type Component } from "vue";
+import { 
+  scifiPanelA1, scifiPanelA2, scifiPanelA3,
+  scifiPanelB1, scifiPanelB2, scifiPanelB3, scifiPanelB4,
+  scifiPanelDV1, scifiPanelDV2, scifiPanelDV3, scifiPanelDV4, scifiPanelDV5,
+  scifiPanelDV6, scifiPanelDV7, scifiPanelDV8, scifiPanelDV9
+} from "@techui/scifi";
+
+// 组件映射表
+const panelComponents: Record<string, Component> = {
+  A1: scifiPanelA1, A2: scifiPanelA2, A3: scifiPanelA3,
+  B1: scifiPanelB1, B2: scifiPanelB2, B3: scifiPanelB3, B4: scifiPanelB4,
+  DV1: scifiPanelDV1, DV2: scifiPanelDV2, DV3: scifiPanelDV3, DV4: scifiPanelDV4, DV5: scifiPanelDV5,
+  DV6: scifiPanelDV6, DV7: scifiPanelDV7, DV8: scifiPanelDV8, DV9: scifiPanelDV9,
+};
 
 defineOptions({
   name: "TechPanel",
@@ -75,12 +89,7 @@ const props = withDefaults(defineProps<{
 
 // 根据 variant 动态选择组件
 const panelComponent = computed(() => {
-  const name = `scifiPanel${props.variant}`;
-  try {
-    return resolveComponent(name);
-  } catch {
-    return name;
-  }
+  return panelComponents[props.variant] || scifiPanelA1;
 });
 </script>
 

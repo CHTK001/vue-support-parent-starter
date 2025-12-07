@@ -4,20 +4,37 @@
 
 ## 安装依赖
 
-```bash
-pnpm install
+在项目的 `package.json` 中添加 TechUI 及其依赖：
+
+```json
+{
+  "dependencies": {
+    "@repo/components": "workspace:^",
+    "@techui/scifi": "catalog:",
+    "@techui/colors": "catalog:",
+    "@techui/lessmixins": "catalog:",
+    "@techui/locales": "catalog:",
+    "@techui/themes": "catalog:",
+    "@techui/libs": "catalog:",
+    "@techui/utils": "catalog:",
+    "@techui/icons": "catalog:"
+  }
+}
 ```
+
+然后运行 `pnpm install`。
 
 ## 初始化
 
 **重要**: `@techui/scifi` 需要异步初始化，必须在应用挂载前完成。
 
-> **注意**: CSS 样式已在 `@techui/scifi` 包中自动导入 (`dist/index.css`)，无需手动导入。
-
 ```typescript
 import { createApp } from "vue";
 import App from "./App.vue";
 import { initTechUI } from "@repo/components/TechUI";
+
+// 手动导入 CSS 样式
+import "@techui/scifi/dist/index.css";
 
 const app = createApp(App);
 
@@ -28,8 +45,12 @@ initTechUI(app, {
     echarts: false, // 是否启用 ECharts 相关组件
     advanced: false // 是否启用高级组件
   },
-  debug: false // 是否开启调试模式
+  debug: true // 开启调试模式查看日志
 }).then(() => {
+  console.log("TechUI 初始化成功");
+  app.mount("#app");
+}).catch((err) => {
+  console.error("TechUI 初始化失败:", err);
   app.mount("#app");
 });
 ```
