@@ -46,7 +46,15 @@ const ssoSetting = reactive({
 });
 const loadDefaultSetting = async () => {
   const { data } = await fetchDefaultSetting();
+  // 检查 data 是否存在且为数组
+  if (!data || !Array.isArray(data)) {
+    return;
+  }
   data.forEach((element) => {
+    // 跳过空元素
+    if (!element) {
+      return;
+    }
     if (element.sysSettingGroup == "default") {
       if (element.sysSettingName === "SystemName") {
         defaultSetting.systemName = element.sysSettingValue;

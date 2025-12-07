@@ -22,7 +22,7 @@ export const globalSetting: PlatformConfigs = {
   BlockOnConfigLoadFail: false,
   ShowErrorPageStyleSwitcher: false,
   ErrorPageStyle: "minimal",
-  LoadingPageStyle: "spinner",
+  LoadingPageStyle: "minimal",
 
   // ===========================================
   // 布局与菜单配置
@@ -55,6 +55,8 @@ export const globalSetting: PlatformConfigs = {
   ShowBarMessage: false,
   ShowLanguage: true,
   ShowBarSearch: true,
+  ShowAiChat: true,
+  AiChatTheme: "default",
 
   // ===========================================
   // 主题与样式配置
