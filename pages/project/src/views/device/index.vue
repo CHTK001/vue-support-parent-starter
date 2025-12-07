@@ -172,55 +172,107 @@
                   </div>
                 </template>
                 <div class="device-popover-content">
-                  <el-form class="device-info-form" label-width="80px">
+                  <!-- 顶部状态头 -->
+                  <div class="popover-header">
+                    <div
+                      class="popover-status"
+                      :class="{ 'is-online': row.sysDeviceOnline === 1 }"
+                    >
+                      <IconifyIconOnline
+                        :icon="
+                          row.sysDeviceOnline === 1
+                            ? 'mdi:access-point'
+                            : 'mdi:access-point-off'
+                        "
+                        class="status-icon"
+                      />
+                      <span class="status-text">{{
+                        row.sysDeviceOnline === 1 ? "在线" : "离线"
+                      }}</span>
+                    </div>
+                    <div class="popover-type">
+                      <IconifyIconOnline
+                        :icon="getResourceIcon(row.sysDeviceResourceType)"
+                      />
+                      <span>{{ row.sysDeviceResourceType || "设备" }}</span>
+                    </div>
+                  </div>
+
+                  <!-- 设备信息列表 -->
+                  <div class="popover-info-list">
                     <!-- 设备序列号 -->
-                    <el-form-item label="设备序列号" class="device-info-item">
-                      <div class="device-info-value">
-                        <IconifyIconOnline
-                          icon="mdi:barcode"
-                          class="device-info-icon"
-                        />
-                        <el-text>{{
-                          row.sysDeviceSerialNumber || "暂无"
-                        }}</el-text>
+                    <div class="info-item">
+                      <div class="info-icon">
+                        <IconifyIconOnline icon="mdi:barcode-scan" />
                       </div>
-                    </el-form-item>
+                      <div class="info-content">
+                        <span class="info-label">序列号</span>
+                        <span class="info-value">{{
+                          row.sysDeviceSerialNumber || "暂无"
+                        }}</span>
+                      </div>
+                    </div>
 
                     <!-- 设备名称 -->
-                    <el-form-item label="设备名称" class="device-info-item">
-                      <div class="device-info-value">
-                        <IconifyIconOnline
-                          icon="mdi:device"
-                          class="device-info-icon"
-                        />
-                        <el-text>{{ row.sysDeviceName || "暂无" }}</el-text>
+                    <div class="info-item">
+                      <div class="info-icon">
+                        <IconifyIconOnline icon="mdi:devices" />
                       </div>
-                    </el-form-item>
+                      <div class="info-content">
+                        <span class="info-label">设备名称</span>
+                        <span class="info-value">{{
+                          row.sysDeviceName || "暂无"
+                        }}</span>
+                      </div>
+                    </div>
 
                     <!-- 设备版本 -->
-                    <el-form-item label="设备版本" class="device-info-item">
-                      <div class="device-info-value">
-                        <IconifyIconOnline
-                          icon="mdi:version"
-                          class="device-info-icon"
-                        />
-                        <el-text>{{ row.sysDeviceVersion || "暂无" }}</el-text>
+                    <div class="info-item">
+                      <div class="info-icon">
+                        <IconifyIconOnline icon="mdi:tag-outline" />
                       </div>
-                    </el-form-item>
+                      <div class="info-content">
+                        <span class="info-label">版本</span>
+                        <span class="info-value">{{
+                          row.sysDeviceVersion || "暂无"
+                        }}</span>
+                      </div>
+                    </div>
 
                     <!-- 设备管道数 -->
-                    <el-form-item label="设备管道数" class="device-info-item">
-                      <div class="device-info-value">
-                        <IconifyIconOnline
-                          icon="mdi:pipe-disconnected"
-                          class="device-info-icon"
-                        />
-                        <el-text class="device-channel-count">{{
-                          row.sysDeviceChannelCount || "0"
-                        }}</el-text>
+                    <div class="info-item">
+                      <div class="info-icon highlight">
+                        <IconifyIconOnline icon="mdi:pipe" />
                       </div>
-                    </el-form-item>
-                  </el-form>
+                      <div class="info-content">
+                        <span class="info-label">管道数</span>
+                        <span class="info-value highlight">{{
+                          row.sysDeviceChannelCount || "0"
+                        }}</span>
+                      </div>
+                    </div>
+
+                    <!-- 网络地址 -->
+                    <div class="info-item" v-if="row.sysDeviceNetAddress">
+                      <div class="info-icon">
+                        <IconifyIconOnline icon="mdi:ip-network" />
+                      </div>
+                      <div class="info-content">
+                        <span class="info-label">网络地址</span>
+                        <span class="info-value">{{
+                          row.sysDeviceNetAddress
+                        }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 底部更新时间 -->
+                  <div class="popover-footer">
+                    <IconifyIconOnline icon="mdi:clock-outline" />
+                    <span>{{
+                      row.updateTime || row.createTime || "暂无更新记录"
+                    }}</span>
+                  </div>
                 </div>
               </el-popover>
             </span>
