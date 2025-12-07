@@ -18,10 +18,10 @@ import { IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
 
 
 const ScIp = defineAsyncComponent(() => import("@repo/components/ScIp/index.vue"));
-const ScSearch = defineAsyncComponent(() => import("@repo/components/ScSearch/index.vue"));
+const ScFilterBar = defineAsyncComponent(() => import("@repo/components/ScFilterBar/index.vue"));
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 export default defineComponent({
-  components: { SaveDialog, ScSearch, ScIp },
+  components: { SaveDialog, ScFilterBar, ScIp },
   props: {
     sysDeptId: {
       type: String,
@@ -72,59 +72,49 @@ export default defineComponent({
       curRow: {},
       t: null,
       ipTable: {},
-      columns: [
+      filterOptions: [
         {
           label: "账号名称",
-          prop: "username",
-          tooltip: "账号名称最多显示20个字符",
+          value: "username",
+          type: "text",
           placeholder: "请输入账号名称",
         },
         {
           label: "账号昵称",
-          prop: "nickname",
-          tooltip: "账号昵称最多显示20个字符",
+          value: "nickname",
+          type: "text",
           placeholder: "请输入账号昵称",
         },
         {
           label: "手机号码",
-          prop: "phone",
+          value: "phone",
+          type: "text",
           placeholder: "请输入手机号码",
         },
         {
           label: "用户性别",
-          prop: "sex",
-          placeholder: "请选择性别",
+          value: "sex",
           type: "select",
-          children: [
-            {
-              value: 0,
-              label: "男",
-            },
-            {
-              value: 1,
-              label: "女",
-            },
-            {
-              value: 2,
-              label: "其他",
-            },
-          ],
+          placeholder: "请选择性别",
+          extend: {
+            data: [
+              { value: 0, label: "男" },
+              { value: 1, label: "女" },
+              { value: 2, label: "其他" },
+            ],
+          },
         },
         {
           label: "状态信息",
-          prop: "status",
-          placeholder: "请选择状态",
+          value: "status",
           type: "select",
-          children: [
-            {
-              value: 0,
-              label: "禁用",
-            },
-            {
-              value: 1,
-              label: "启用",
-            },
-          ],
+          placeholder: "请选择状态",
+          extend: {
+            data: [
+              { value: 0, label: "禁用" },
+              { value: 1, label: "启用" },
+            ],
+          },
         },
       ],
     };
@@ -239,7 +229,7 @@ export default defineComponent({
     <div class="main">
       <el-container>
         <el-header v-if="showQuery">
-          <ScSearch :columns="columns" :onSearch="onSearch" :show-number="showNumber" :onEdit="dialogOpen" />
+          <ScFilterBar :options="filterOptions" :show-number="showNumber" @search="onSearch" />
         </el-header>
         <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">

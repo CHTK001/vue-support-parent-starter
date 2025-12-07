@@ -16,6 +16,7 @@ import Panel3D from "./layouts/Panel3D.vue";
 import CompactLayout from "./layouts/Compact.vue";
 import StatsLayout from "./layouts/Stats.vue";
 import TechLayout from "./layouts/Tech.vue";
+import { getThemeConfig, type IotCardTheme } from "./themes";
 
 // 布局类型
 type LayoutType = "default" | "media" | "header-content" | "panel-3d" | "compact" | "stats" | "tech" | "custom";
@@ -152,6 +153,18 @@ export default defineComponent({
       default: "default"
     },
     /**
+     * 物联网主题
+     * weather: 天气, aircon: 空调, thermostat: 温控, lighting: 照明
+     * security: 安防, energy: 能耗, camera: 摄像头, music: 音乐
+     * curtain: 窗帘, fan: 风扇, lock: 门锁, airQuality: 空气质量
+     * humidity: 湿度, network: 网络, device: 设备, scene: 场景
+     * sensor: 传感器, battery: 电池
+     */
+    iotTheme: {
+      type: String as PropType<IotCardTheme>,
+      default: undefined
+    },
+    /**
      * 是否显示头部（仅在 layout="panel-3d" 时有效）
      */
     showHeader: {
@@ -259,6 +272,19 @@ export default defineComponent({
   },
   emits: ["click"],
   setup(props, { emit }) {
+    // IoT 主题配置
+    const iotThemeConfig = computed(() => {
+      if (props.iotTheme) {
+        return getThemeConfig(props.iotTheme);
+      }
+      return undefined;
+    });
+
+    // 根据主题计算的属性
+    const computedIcon = computed(() => iotThemeConfig.value?.icon ?? props.icon);
+    const computedTitle = computed(() => iotThemeConfig.value?.title ?? props.title);
+    const computedLayout = computed(() => iotThemeConfig.value?.layout ?? props.layout);
+
     // 根据布局类型和渲染模式决定使用哪个组件
     const renderComponent = computed(() => {
       if (props.renderAs === "el-card") {
@@ -380,7 +406,11 @@ export default defineComponent({
     return {
       renderComponent,
       componentProps,
-      handleClick
+      handleClick,
+      iotThemeConfig,
+      computedIcon,
+      computedTitle,
+      computedLayout
     };
   }
 });

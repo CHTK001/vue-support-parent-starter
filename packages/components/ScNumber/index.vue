@@ -140,6 +140,7 @@ import RateLayout from "./components/RateLayout.vue";
 import StepperLayout from "./components/StepperLayout.vue";
 import ProgressLayout from "./components/ProgressLayout.vue";
 import CircleLayout from "./components/CircleLayout.vue";
+import { getThemeConfig, type IotNumberTheme } from "./themes";
 
 export type NumberLayout = "default" | "slider" | "rate" | "stepper" | "progress" | "circle";
 export type NumberSize = "large" | "default" | "small";
@@ -159,6 +160,14 @@ interface Props {
    * - circle: 圆形进度布局
    */
   layout?: NumberLayout;
+  /**
+   * 物联网主题
+   * volume: 音量, battery: 电量, temperature: 温度, humidity: 湿度
+   * brightness: 亮度, signal: 信号, fanSpeed: 风速, timer: 定时
+   * power: 功率, current: 电流, voltage: 电压, pm25: PM2.5
+   * co2: CO2, noise: 噪音
+   */
+  iotTheme?: IotNumberTheme;
   /**
    * 尺寸
    */
@@ -374,6 +383,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   modelValue: 0,
   layout: "default",
+  iotTheme: undefined,
   size: "default",
   disabled: false,
   placeholder: "",
@@ -449,6 +459,28 @@ const currentValue = computed({
   set(val) {
     emit("update:modelValue", val);
   }
+});
+
+// 主题配置
+const themeConfig = computed(() => {
+  if (props.iotTheme) {
+    return getThemeConfig(props.iotTheme);
+  }
+  return undefined;
+});
+
+// 根据主题计算的属性
+const computedMin = computed(() => themeConfig.value?.min ?? props.min);
+const computedMax = computed(() => themeConfig.value?.max ?? props.max);
+const computedStep = computed(() => themeConfig.value?.step ?? props.step);
+const themeColor = computed(() => themeConfig.value?.color ?? props.progressColor);
+const themeIcon = computed(() => themeConfig.value?.icon ?? '');
+
+// 暴露给父组件
+defineExpose({
+  themeConfig,
+  themeIcon,
+  themeColor
 });
 
 // 处理变更事件
