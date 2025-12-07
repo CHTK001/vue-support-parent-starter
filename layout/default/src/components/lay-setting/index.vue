@@ -153,7 +153,19 @@ const settings = reactive({
   // 双栏导航设置相关
   doubleNavExpandMode: $storage.configure.doubleNavExpandMode ?? "auto",
   doubleNavAutoExpandAll: $storage.configure.doubleNavAutoExpandAll ?? true,
+  // AI 助手设置
+  aiChatTheme: $storage.configure.aiChatTheme ?? "default",
 });
+
+/** AI 助手皮肤主题选项 */
+const aiChatThemeOptions = computed<Array<OptionsType>>(() => [
+  { label: "紫色", tip: "默认紫色渐变", value: "default" },
+  { label: "蓝色", tip: "蓝色科技风", value: "blue" },
+  { label: "绿色", tip: "绿色清新风", value: "green" },
+  { label: "橙色", tip: "橙色活力风", value: "orange" },
+  { label: "粉色", tip: "粉色可爱风", value: "pink" },
+  { label: "暗黑", tip: "暗黑酷炫风", value: "dark" },
+]);
 
 /** 卡片颜色模式配置 */
 const cardColorMode = ref($storage.configure?.cardColorMode ?? "all");
@@ -749,6 +761,16 @@ function doubleNavAutoExpandAllChange() {
 }
 
 /**
+ * AI 助手皮肤主题变更
+ */
+function aiChatThemeChange({ option }: { option: OptionsType }) {
+  const value = option.value as string;
+  settings.aiChatTheme = value;
+  storageConfigureChange("aiChatTheme", value);
+  emitter.emit("aiChatThemeChange", value);
+}
+
+/**
  * 调试模式切换
  * @param enabled - 是否启用调试模式
  */
@@ -943,6 +965,38 @@ onUnmounted(() => {
                   )
               "
             />
+          </div>
+        </div>
+
+        <!-- AI 助手皮肤设置区域 -->
+        <div class="setting-section">
+          <div class="section-header">
+            <IconifyIconOffline :icon="'ri:robot-line'" class="section-icon" />
+            <h3 class="section-title">AI 助手皮肤</h3>
+            <div class="section-description">自定义 AI 助手的外观主题</div>
+          </div>
+          <div class="setting-content">
+            <div class="ai-theme-grid">
+              <div
+                v-for="theme in aiChatThemeOptions"
+                :key="theme.value"
+                class="ai-theme-item"
+                :class="[
+                  `ai-theme-${theme.value}`,
+                  { 'is-active': settings.aiChatTheme === theme.value }
+                ]"
+                @click="aiChatThemeChange({ option: theme })"
+              >
+                <div class="ai-theme-preview">
+                  <div class="ai-theme-bubble"></div>
+                  <div class="ai-theme-bot"></div>
+                </div>
+                <span class="ai-theme-label">{{ theme.label }}</span>
+                <div v-if="settings.aiChatTheme === theme.value" class="ai-theme-check">
+                  <IconifyIconOnline icon="ri:check-line" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -5193,6 +5247,138 @@ html.dark {
     .switch-card-content {
       align-items: flex-start;
     }
+  }
+}
+
+// ==================== AI 助手皮肤设置 ====================
+.ai-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.ai-theme-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 2px solid var(--el-border-color-light);
+  background: var(--el-bg-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: var(--el-border-color);
+    transform: translateY(-2px);
+  }
+  
+  &.is-active {
+    border-color: var(--el-color-primary);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+  }
+}
+
+.ai-theme-preview {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  
+  .ai-theme-bubble {
+    position: absolute;
+    width: 16px;
+    height: 12px;
+    border-radius: 6px;
+    top: 4px;
+    right: 2px;
+  }
+  
+  .ai-theme-bot {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+  }
+}
+
+// 各主题颜色
+.ai-theme-default {
+  .ai-theme-preview {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+  }
+  .ai-theme-bubble { background: linear-gradient(135deg, #667eea, #764ba2); }
+  .ai-theme-bot { background: linear-gradient(135deg, #667eea, #764ba2); }
+}
+
+.ai-theme-blue {
+  .ai-theme-preview {
+    background: linear-gradient(135deg, rgba(0, 198, 251, 0.1), rgba(0, 91, 234, 0.1));
+  }
+  .ai-theme-bubble { background: linear-gradient(135deg, #00c6fb, #005bea); }
+  .ai-theme-bot { background: linear-gradient(135deg, #00c6fb, #005bea); }
+}
+
+.ai-theme-green {
+  .ai-theme-preview {
+    background: linear-gradient(135deg, rgba(17, 153, 142, 0.1), rgba(56, 239, 125, 0.1));
+  }
+  .ai-theme-bubble { background: linear-gradient(135deg, #11998e, #38ef7d); }
+  .ai-theme-bot { background: linear-gradient(135deg, #11998e, #38ef7d); }
+}
+
+.ai-theme-orange {
+  .ai-theme-preview {
+    background: linear-gradient(135deg, rgba(240, 147, 251, 0.1), rgba(245, 87, 108, 0.1));
+  }
+  .ai-theme-bubble { background: linear-gradient(135deg, #f093fb, #f5576c); }
+  .ai-theme-bot { background: linear-gradient(135deg, #f093fb, #f5576c); }
+}
+
+.ai-theme-pink {
+  .ai-theme-preview {
+    background: linear-gradient(135deg, rgba(255, 154, 158, 0.1), rgba(254, 207, 239, 0.1));
+  }
+  .ai-theme-bubble { background: linear-gradient(135deg, #ff9a9e, #fecfef); }
+  .ai-theme-bot { background: linear-gradient(135deg, #ff9a9e, #fecfef); }
+}
+
+.ai-theme-dark {
+  .ai-theme-preview {
+    background: linear-gradient(135deg, rgba(67, 67, 67, 0.1), rgba(0, 0, 0, 0.1));
+  }
+  .ai-theme-bubble { background: linear-gradient(135deg, #434343, #000000); }
+  .ai-theme-bot { background: linear-gradient(135deg, #434343, #000000); }
+}
+
+.ai-theme-label {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+}
+
+.ai-theme-check {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--el-color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .ai-theme-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>

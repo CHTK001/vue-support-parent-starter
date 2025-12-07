@@ -44,8 +44,8 @@ export interface PlatformConfigs {
   BlockOnConfigLoadFail?: boolean;
   /** 是否显示错误页面风格切换按钮（默认false） */
   ShowErrorPageStyleSwitcher?: boolean;
-  /** 系统加载页面风格（默认spinner） */
-  LoadingPageStyle?: "spinner" | "clock" | "pixel" | "cube" | "dots" | "pulse";
+  /** 系统加载页面风格（默认minimal） */
+  LoadingPageStyle?: "pixel" | "space" | "minimal" | "servererror";
 
   // ===========================================
   // 布局与菜单配置
@@ -98,6 +98,10 @@ export interface PlatformConfigs {
   ShowLanguage?: boolean;
   /** 是否显示搜索按钮 */
   ShowBarSearch?: boolean;
+  /** 是否显示AI助手 */
+  ShowAiChat?: boolean;
+  /** AI助手皮肤主题 */
+  AiChatTheme?: "default" | "blue" | "green" | "orange" | "pink" | "dark";
 
   // ===========================================
   // 主题与样式配置

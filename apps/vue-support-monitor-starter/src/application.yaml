@@ -102,6 +102,16 @@ ShowBarSetting: true
 # ShowLanguage: true
 # 是否显示搜索按钮（默认: true）
 # ShowBarSearch: true
+# 是否显示AI助手（默认: true）
+# ShowAiChat: true
+# AI助手皮肤主题（默认: default）
+# - default: 紫色渐变
+# - blue: 蓝色科技风
+# - green: 绿色清新风
+# - orange: 橙色活力风
+# - pink: 粉色可爱风
+# - dark: 暗黑酷炫风
+# AiChatTheme: default
 
 # ===========================================
 # 主题与样式配置

@@ -14,9 +14,8 @@ import { ScContainer } from "./ScContainer";
 import { ScPanel } from "./ScPanel";
 import ScNumber from "./ScNumber/index.vue";
 import ScDictSelect from "./ScDictSelect/index.vue";
-import ScFullscreenLoading from "./ScFullscreenLoading/index.vue";
 
-export { ReMenuNewBadge, ReSplitPane, ScCard, ScTable, ScRibbon, ScProgress, ScImage, ScMessageDialog, ScDebugConsole, ScText, ScFilterBar, ScContainer, ScPanel, ScNumber, ScDictSelect, ScFullscreenLoading };
+export { ReMenuNewBadge, ReSplitPane, ScCard, ScTable, ScRibbon, ScProgress, ScImage, ScMessageDialog, ScDebugConsole, ScText, ScFilterBar, ScContainer, ScPanel, ScNumber, ScDictSelect };
 
 export default {
   ScTable,
@@ -34,6 +33,5 @@ export default {
   ScContainer,
   ScPanel,
   ScNumber,
-  ScDictSelect,
-  ScFullscreenLoading
+  ScDictSelect
 };
