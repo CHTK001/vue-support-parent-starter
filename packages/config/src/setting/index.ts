@@ -22,7 +22,7 @@ export const globalSetting: PlatformConfigs = {
   BlockOnConfigLoadFail: false,
   ShowErrorPageStyleSwitcher: false,
   ErrorPageStyle: "minimal",
-  LoadingPageStyle: "minimal",
+  LoadingPageStyle: "spinner",
 
   // ===========================================
   // 布局与菜单配置
