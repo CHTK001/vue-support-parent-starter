@@ -12,12 +12,12 @@
       <div class="demo-block__actions">
         <el-tooltip :content="showCode ? '收起代码' : '查看代码'" placement="top">
           <div class="action-btn" @click="toggleCode">
-            <IconifyIconOnline :icon="showCode ? 'ep:arrow-up' : 'ep:code'" />
+            <IconifyIconOnline :icon="showCode ? 'ri:arrow-up-s-line' : 'ri:code-s-slash-line'" />
           </div>
         </el-tooltip>
         <el-tooltip content="复制代码" placement="top">
           <div class="action-btn" @click="copyCode">
-            <IconifyIconOnline :icon="copied ? 'ep:check' : 'ep:document-copy'" />
+            <IconifyIconOnline :icon="copied ? 'ri:check-line' : 'ri:file-copy-line'" />
           </div>
         </el-tooltip>
       </div>

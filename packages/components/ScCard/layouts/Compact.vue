@@ -134,15 +134,20 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .sc-card-compact {
+  --compact-radius: 14px;
+  --compact-icon-size: 46px;
+  --compact-padding: 16px;
+  --compact-transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
   position: relative;
   background: var(--el-bg-color-overlay, #fff);
-  border-radius: 16px;
-  border: 1px solid var(--el-border-color-lighter, #e2e8f0);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--compact-radius);
+  border: 1px solid var(--el-border-color-lighter, #e4e7ed);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: var(--compact-transition);
   overflow: hidden;
 
-  // 微妙的顶部装饰线
+  // 顶部装饰渐变条
   &::before {
     content: "";
     position: absolute;
@@ -150,9 +155,24 @@ export default defineComponent({
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3), var(--el-color-primary));
+    background-size: 200% 100%;
     opacity: 0;
     transition: opacity 0.3s ease;
+  }
+
+  // 背景光晕效果
+  &::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.03) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
   }
 
   &.is-hoverable {
@@ -160,173 +180,300 @@ export default defineComponent({
 
     &:hover {
       border-color: var(--el-color-primary-light-5);
-      box-shadow: 0 8px 24px rgba(var(--el-color-primary-rgb), 0.12);
-      transform: translateY(-2px);
+      box-shadow:
+        0 12px 28px rgba(var(--el-color-primary-rgb), 0.1),
+        0 4px 12px rgba(0, 0, 0, 0.04);
+      transform: translateY(-3px);
 
       &::before {
+        opacity: 1;
+        animation: shimmer 2s linear infinite;
+      }
+
+      &::after {
         opacity: 1;
       }
 
       .sc-card-compact__icon {
-        transform: scale(1.05);
+        transform: scale(1.08) rotate(-2deg);
+        box-shadow: 0 8px 20px rgba(var(--el-color-primary-rgb), 0.35);
       }
+
+      .sc-card-compact__title {
+        color: var(--el-color-primary);
+      }
+    }
+
+    &:active {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.12);
     }
   }
 
   &.is-active {
     border-color: var(--el-color-primary);
-    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.02) 0%, transparent 100%);
+    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.03) 0%, rgba(var(--el-color-primary-rgb), 0.01) 100%);
 
     &::before {
       opacity: 1;
     }
+
+    .sc-card-compact__icon {
+      box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.3);
+    }
   }
 
-  // 主题色定义
+  // 主题色变体 mixin
   @mixin theme-variant($color-name) {
     .sc-card-compact__icon {
-      background: linear-gradient(145deg, var(--el-color-#{$color-name}) 0%, var(--el-color-#{$color-name}-light-3) 100%);
-      box-shadow: 0 4px 12px rgba(var(--el-color-#{$color-name}-rgb, 0, 0, 0), 0.2);
+      background: linear-gradient(135deg, var(--el-color-#{$color-name}) 0%, var(--el-color-#{$color-name}-light-3) 100%);
+      box-shadow: 0 4px 14px rgba(var(--el-color-#{$color-name}-rgb, 0, 0, 0), 0.25);
     }
+
     &::before {
-      background: linear-gradient(90deg, var(--el-color-#{$color-name}), var(--el-color-#{$color-name}-light-3));
+      background: linear-gradient(90deg, var(--el-color-#{$color-name}), var(--el-color-#{$color-name}-light-3), var(--el-color-#{$color-name}));
+      background-size: 200% 100%;
     }
+
+    &::after {
+      background: radial-gradient(circle, rgba(var(--el-color-#{$color-name}-rgb, 0, 0, 0), 0.04) 0%, transparent 70%);
+    }
+
     &.is-active {
       border-color: var(--el-color-#{$color-name});
-      background: linear-gradient(135deg, rgba(var(--el-color-#{$color-name}-rgb, 0, 0, 0), 0.03) 0%, transparent 100%);
+      background: linear-gradient(135deg, rgba(var(--el-color-#{$color-name}-rgb, 0, 0, 0), 0.04) 0%, transparent 100%);
     }
+
     &.is-hoverable:hover {
       border-color: var(--el-color-#{$color-name}-light-5);
-      box-shadow: 0 8px 24px rgba(var(--el-color-#{$color-name}-rgb, 0, 0, 0), 0.15);
+      box-shadow:
+        0 12px 28px rgba(var(--el-color-#{$color-name}-rgb, 0, 0, 0), 0.15),
+        0 4px 12px rgba(0, 0, 0, 0.04);
+
+      .sc-card-compact__icon {
+        box-shadow: 0 8px 20px rgba(var(--el-color-#{$color-name}-rgb, 0, 0, 0), 0.35);
+      }
+
+      .sc-card-compact__title {
+        color: var(--el-color-#{$color-name});
+      }
     }
   }
 
   &.theme--default {
     .sc-card-compact__icon {
-      background: linear-gradient(145deg, var(--el-fill-color) 0%, var(--el-fill-color-light) 100%);
+      background: linear-gradient(135deg, var(--el-fill-color-dark) 0%, var(--el-fill-color) 100%);
       color: var(--el-text-color-primary);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    &.is-hoverable:hover .sc-card-compact__icon {
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
     }
   }
 
   &.theme--primary {
     @include theme-variant(primary);
   }
+
   &.theme--success {
     @include theme-variant(success);
   }
+
   &.theme--warning {
     @include theme-variant(warning);
   }
+
   &.theme--danger {
     @include theme-variant(danger);
   }
+
   &.theme--info {
     @include theme-variant(info);
   }
 
+  // 头部区域
   &__header {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 18px 20px;
+    padding: var(--compact-padding) calc(var(--compact-padding) + 4px);
   }
 
+  // 图标容器
   &__icon {
-    width: 44px;
-    height: 44px;
+    width: var(--compact-icon-size);
+    height: var(--compact-icon-size);
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 22px;
     color: #fff;
-    background: linear-gradient(145deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
     flex-shrink: 0;
-    transition: transform 0.3s ease;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+
+    // 图标内部光效
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+      pointer-events: none;
+    }
   }
 
+  // 信息区域
   &__info {
     flex: 1;
     min-width: 0;
   }
 
+  // 标题
   &__title {
     font-size: 15px;
     font-weight: 600;
-    color: var(--el-text-color-primary, #1e293b);
+    color: var(--el-text-color-primary);
     margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     letter-spacing: -0.01em;
+    transition: color 0.25s ease;
   }
 
+  // 副标题
   &__subtitle {
     font-size: 13px;
-    color: var(--el-text-color-secondary, #64748b);
-    line-height: 1.4;
+    color: var(--el-text-color-secondary);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
+  // 状态区域
   &__status {
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
+  // 内容区域
   &__body {
-    padding: 16px 20px;
-    border-top: 1px solid var(--el-border-color-extra-light, #f1f5f9);
+    padding: var(--compact-padding) calc(var(--compact-padding) + 4px);
+    border-top: 1px solid var(--el-border-color-extra-light);
+    background: linear-gradient(180deg, var(--el-fill-color-lighter) 0%, transparent 100%);
 
+    // 信息行样式
     .info-row {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 10px;
+      padding: 6px 0;
+
+      &:first-child {
+        padding-top: 0;
+      }
 
       &:last-child {
-        margin-bottom: 0;
+        padding-bottom: 0;
       }
 
       .info-icon {
-        color: var(--el-text-color-placeholder, #94a3b8);
+        color: var(--el-text-color-placeholder);
         font-size: 15px;
         flex-shrink: 0;
+        opacity: 0.8;
+      }
+
+      .info-label {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+        min-width: 60px;
       }
 
       .info-text {
+        flex: 1;
         font-size: 13px;
-        color: var(--el-text-color-regular, #475569);
+        color: var(--el-text-color-regular);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
 
         &.muted {
-          color: var(--el-text-color-placeholder, #94a3b8);
+          color: var(--el-text-color-placeholder);
+        }
+
+        &.highlight {
+          color: var(--el-color-primary);
+          font-weight: 500;
         }
       }
     }
   }
 
+  // 底部区域
   &__footer {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 14px 20px;
-    background: var(--el-fill-color-lighter, #f8fafc);
-    border-top: 1px solid var(--el-border-color-extra-light, #f1f5f9);
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px calc(var(--compact-padding) + 4px);
+    background: var(--el-fill-color-lighter);
+    border-top: 1px solid var(--el-border-color-extra-light);
+
+    :deep(.el-button) {
+      --el-button-size: 28px;
+      font-size: 12px;
+    }
+  }
+}
+
+// 顶部装饰条动画
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
   }
 }
 
 // 暗色模式适配
 :global(html.dark) {
   .sc-card-compact {
-    border-color: var(--el-border-color-darker, #374151);
+    background: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color-darker);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+    &::after {
+      background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.06) 0%, transparent 70%);
+    }
 
     &.is-hoverable:hover {
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      box-shadow:
+        0 12px 28px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(var(--el-color-primary-rgb), 0.1);
+    }
+
+    &__body {
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, transparent 100%);
     }
 
     &__footer {
-      background: var(--el-fill-color-dark, #1f2937);
+      background: rgba(0, 0, 0, 0.15);
+      border-color: var(--el-border-color-darker);
+    }
+
+    &__icon::before {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
     }
   }
 }

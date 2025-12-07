@@ -5,7 +5,30 @@
     </div>
 
     <div class="sc-datetime-input-container">
+      <!-- 时间选择器 -->
+      <el-time-picker
+        v-if="isTimePicker"
+        ref="datePickerRef"
+        v-model="currentValue"
+        :is-range="isTimeRange"
+        :disabled="disabled"
+        :placeholder="placeholder"
+        :clearable="clearable"
+        :format="displayFormat"
+        :size="size"
+        :editable="editable"
+        :readonly="readonly"
+        :range-separator="rangeSeparator"
+        :start-placeholder="startPlaceholder"
+        :end-placeholder="endPlaceholder"
+        @change="handleChange"
+        @blur="handleBlur"
+        @focus="handleFocus"
+        @visible-change="handleVisibleChange"
+      />
+      <!-- 日期选择器 -->
       <el-date-picker
+        v-else
         ref="datePickerRef"
         v-model="currentValue"
         :type="datePickerType"
@@ -166,6 +189,16 @@ const datePickerRef = ref();
 const currentValue = ref(props.modelValue);
 const validationResult = ref<{ valid: boolean; message: string }>({ valid: true, message: "" });
 
+// 是否使用时间选择器
+const isTimePicker = computed(() => {
+  return props.type === "time" || props.type === "timerange";
+});
+
+// 是否是时间范围选择
+const isTimeRange = computed(() => {
+  return props.type === "timerange";
+});
+
 // 日期选择器类型映射
 const datePickerType = computed(() => {
   switch (props.type) {
@@ -179,8 +212,6 @@ const datePickerType = computed(() => {
       return "year";
     case "week":
       return "week";
-    case "time":
-      return "time";
     case "datetimerange":
       return "datetimerange";
     case "daterange":
@@ -189,8 +220,6 @@ const datePickerType = computed(() => {
       return "monthrange";
     case "weekrange":
       return "monthrange"; // El-date-picker不直接支持weekrange，使用monthrange代替
-    case "timerange":
-      return "timerange";
     default:
       return "date";
   }

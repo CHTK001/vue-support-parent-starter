@@ -1,53 +1,77 @@
 <template>
-  <div class="example-container">
-    <h2 class="example-title">ScSearch 搜索框示例</h2>
-    <p class="example-desc">搜索框组件，支持搜索建议、历史记录等功能</p>
+  <div class="sc-search-example">
+    <div class="example-container">
+      <!-- 左侧：属性配置面板 -->
+      <div class="config-panel">
+        <h3 class="panel-title">
+          <IconifyIconOnline icon="ri:settings-3-line" />
+          属性配置
+        </h3>
 
-    <el-divider content-position="left">功能演示</el-divider>
+        <el-form label-position="top" size="small">
+          <el-form-item label="placeholder 占位文本">
+            <el-input v-model="config.placeholder" placeholder="请输入占位文本" />
+          </el-form-item>
 
-    <div class="demo-section">
-      <div class="demo-controls">
-        <el-button type="primary" @click="doSearch">
-          <IconifyIconOnline icon="ri:search-line" class="mr-1" />
-          搜索
-        </el-button>
-        <el-button @click="clearKeyword">
-          <IconifyIconOnline icon="ri:close-line" class="mr-1" />
-          清空
-        </el-button>
+          <el-divider />
+
+          <div class="switch-group">
+            <div class="switch-item">
+              <el-tooltip content="是否可清空" placement="left">
+                <span>clearable 可清空</span>
+              </el-tooltip>
+              <el-switch v-model="config.clearable" />
+            </div>
+          </div>
+
+          <el-divider />
+
+          <div class="action-buttons">
+            <el-button type="primary" size="small" @click="doSearch">
+              <IconifyIconOnline icon="ri:search-line" />
+              搜索
+            </el-button>
+            <el-button size="small" @click="clearKeyword">
+              <IconifyIconOnline icon="ri:close-line" />
+              清空
+            </el-button>
+          </div>
+        </el-form>
       </div>
 
-      <ScSearch v-model="config.keyword" :placeholder="config.placeholder" />
+      <!-- 右侧：预览和结果 -->
+      <div class="preview-panel">
+        <h3 class="panel-title">
+          <IconifyIconOnline icon="ri:eye-line" />
+          效果预览
+        </h3>
 
-      <div class="search-info">
-        当前关键词：<code>{{ config.keyword || "(空)" }}</code>
+        <div class="preview-area">
+          <ScSearch
+            v-model="config.keyword"
+            :placeholder="config.placeholder"
+            :clearable="config.clearable"
+            @search="handleSearch"
+          />
+        </div>
+
+        <div class="result-area">
+          <h4 class="result-title">
+            <IconifyIconOnline icon="ri:terminal-box-line" />
+            当前值
+          </h4>
+          <pre class="result-content">{{ config.keyword || "(空)" }}</pre>
+        </div>
+
+        <div class="code-area">
+          <h4 class="code-title">
+            <IconifyIconOnline icon="ri:code-s-slash-line" />
+            示例代码
+          </h4>
+          <pre class="code-content"><code>{{ generatedCode }}</code></pre>
+        </div>
       </div>
-
-      <el-divider content-position="left">属性配置</el-divider>
-
-      <el-form label-width="120px" class="config-form">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="占位文本">
-              <el-input v-model="config.placeholder" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
     </div>
-
-    <el-divider content-position="left">代码示例</el-divider>
-
-    <CodePreview :tabs="codeTabs" />
-
-    <el-divider content-position="left">属性说明</el-divider>
-
-    <el-table :data="propsData" border stripe class="props-table">
-      <el-table-column prop="name" label="属性名" width="180" />
-      <el-table-column prop="type" label="类型" width="150" />
-      <el-table-column prop="default" label="默认值" width="120" />
-      <el-table-column prop="description" label="说明" />
-    </el-table>
   </div>
 </template>
 
@@ -55,65 +79,36 @@
 import { reactive, computed } from "vue";
 import { ElMessage } from "element-plus";
 import ScSearch from "@repo/components/ScSearch/index.vue";
-import CodePreview from "./CodePreview.vue";
-
-/**
- * ScSearch 组件示例
- * @author CH
- * @version 1.0.0
- * @since 2025-12-02
- */
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 const config = reactive({
   keyword: "",
   placeholder: "搜索关键字",
+  clearable: true
 });
 
-// 属性说明
-const propsData = [
-  {
-    name: "modelValue",
-    type: "string",
-    default: "''",
-    description: "搜索关键词（v-model）",
-  },
-  {
-    name: "placeholder",
-    type: "string",
-    default: "'搜索'",
-    description: "占位文本",
-  },
-  {
-    name: "clearable",
-    type: "boolean",
-    default: "true",
-    description: "是否可清空",
-  },
-];
+// 生成示例代码
+const generatedCode = computed(() => {
+  const props: string[] = [];
 
-// 代码示例
-const codeTabs = computed(() => [
-  {
-    key: "template",
-    label: "模板",
-    icon: "ri:code-s-slash-line",
-    language: "vue",
-    code: `<ScSearch v-model="keyword" placeholder="${config.placeholder}" />`,
-  },
-  {
-    key: "script",
-    label: "脚本",
-    icon: "ri:javascript-line",
-    language: "ts",
-    code: `import { ref } from "vue";
-import ScSearch from "@repo/components/ScSearch/index.vue";
+  props.push(`v-model="keyword"`);
+  if (config.placeholder !== "搜索") {
+    props.push(`placeholder="${config.placeholder}"`);
+  }
+  if (!config.clearable) {
+    props.push(`:clearable="false"`);
+  }
 
-const keyword = ref("");`,
-  },
-]);
+  const propsStr = props.join("\n  ");
+  return `<ScSearch\n  ${propsStr}\n/>`;
+});
 
 function doSearch() {
   ElMessage.success(`搜索: ${config.keyword || "(空)"}`);
+}
+
+function handleSearch(keyword: string) {
+  ElMessage.info(`触发搜索: ${keyword}`);
 }
 
 function clearKeyword() {
@@ -122,56 +117,138 @@ function clearKeyword() {
 </script>
 
 <style scoped lang="scss">
+.sc-search-example {
+  padding: 20px;
+}
+
 .example-container {
-  padding: 20px;
-}
-
-.example-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: var(--el-text-color-primary);
-}
-
-.example-desc {
-  color: var(--el-text-color-secondary);
-  margin-bottom: 20px;
-}
-
-.demo-section {
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-
-.demo-controls {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
+  gap: 24px;
 
-.search-info {
-  margin-top: 16px;
-  padding: 12px;
-  background: var(--el-bg-color);
-  border-radius: 8px;
-  color: var(--el-text-color-regular);
-
-  code {
-    padding: 2px 6px;
-    background: var(--el-fill-color);
-    border-radius: 4px;
-    font-family: monospace;
+  @media (max-width: 900px) {
+    flex-direction: column;
   }
 }
 
-.config-form {
-  margin-top: 16px;
+.config-panel {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 20px;
+
+  @media (max-width: 900px) {
+    width: 100%;
+  }
 }
 
-.props-table {
-  margin-bottom: 20px;
+.preview-panel {
+  flex: 1;
+  min-width: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+
+  .iconify {
+    color: var(--el-color-primary);
+  }
+}
+
+.switch-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.switch-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+
+  span {
+    cursor: help;
+    border-bottom: 1px dashed var(--el-border-color);
+  }
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.preview-area {
+  padding: 40px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.result-area,
+.code-area {
+  margin-top: 20px;
+}
+
+.result-title,
+.code-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+
+  .iconify {
+    color: var(--el-color-primary);
+  }
+}
+
+.result-content {
+  margin: 0;
+  padding: 12px 16px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: "SF Mono", "Monaco", "Consolas", monospace;
+  color: var(--el-text-color-regular);
+}
+
+.code-content {
+  margin: 0;
+  padding: 16px;
+  background: #1e1e1e;
+  border-radius: 6px;
+  overflow-x: auto;
+
+  code {
+    font-size: 13px;
+    font-family: "SF Mono", "Monaco", "Consolas", monospace;
+    color: #d4d4d4;
+    line-height: 1.6;
+  }
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 16px;
+}
+
+:deep(.el-divider) {
+  margin: 16px 0;
 }
 </style>

@@ -1,8 +1,9 @@
 <template>
-  <el-input-number
+  <ScNumber
     v-model="currentValue"
     class="sc-number-input"
     v-bind="$attrs"
+    :layout="layout"
     :min="min"
     :max="max"
     :step="step"
@@ -10,7 +11,9 @@
     :precision="precision"
     :controls="controls"
     :controls-position="controlsPosition"
-    @update:modelValue="handleUpdate"
+    :disabled="disabled"
+    :size="size"
+    :placeholder="placeholder"
     @change="handleChange"
     @focus="handleFocus"
     @blur="handleBlur"
@@ -19,12 +22,24 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import ScNumber from "../../ScNumber/index.vue";
+import type { NumberLayout } from "../../ScNumber/index.vue";
 
 interface Props {
   /**
    * 绑定值
    */
   modelValue?: number;
+  /**
+   * 布局模式
+   * - default: 默认数字输入框
+   * - slider: 滑块
+   * - rate: 评分
+   * - stepper: 步进器
+   * - progress: 进度条
+   * - circle: 圆形进度
+   */
+  layout?: NumberLayout;
   /**
    * 最小值
    */
@@ -69,6 +84,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: 0,
+  layout: "default",
   min: -Infinity,
   max: Infinity,
   step: 1,
@@ -89,16 +105,9 @@ const currentValue = computed({
 });
 
 /**
- * 处理值更新事件
- */
-const handleUpdate = (value: number) => {
-  emit("update:modelValue", value);
-};
-
-/**
  * 处理change事件
  */
-const handleChange = (value: number) => {
+const handleChange = (value: number | number[]) => {
   emit("change", value);
 };
 

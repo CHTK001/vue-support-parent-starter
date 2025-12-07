@@ -11,8 +11,13 @@ export interface RegionData {
   children?: RegionData[];
 }
 
+/** 数据源类型 */
+export type DataSourceType = 'custom' | 'element-china-area-data';
+
 export interface RegionProps {
-  modelValue?: string[] | string[][];
+  modelValue?: string | string[] | string[][];
+  /** 数据源类型，默认 custom 自定义 */
+  dataSource?: DataSourceType;
   placeholder?: string;
   disabled?: boolean;
   clearable?: boolean;
@@ -35,9 +40,11 @@ export interface RegionProps {
   collapseTags?: boolean;
   /** 多选时最多显示的标签数 */
   maxCollapseTags?: number;
+  /** 是否返回完整路径，默认 true；设为 false 则只返回最后一级的值 */
+  emitPath?: boolean;
 }
 
 export interface RegionEmits {
-  (e: 'update:modelValue', value: string[] | string[][]): void;
-  (e: 'change', value: string[] | string[][]): void;
+  (e: 'update:modelValue', value: string | string[] | string[][]): void;
+  (e: 'change', value: string | string[] | string[][]): void;
 }

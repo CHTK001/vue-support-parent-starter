@@ -1,1551 +1,208 @@
-<template>
-  <div class="ribbon-example">
-    <el-card class="intro-card">
-      <template #header>
-        <div class="card-header-content">
-          <IconifyIconOnline
-            icon="ri:price-tag-3-line"
-            :style="{ fontSize: '24px', color: 'var(--el-color-primary)' }"
-          />
-          <div>
-            <h2>ScRibbon 绸带组件</h2>
-            <p class="subtitle">20种精美绸带样式，支持多种颜色和尺寸</p>
-          </div>
-        </div>
-      </template>
-
-      <el-alert title="提示" type="info" :closable="false">
-        <p>
-          本组件提供20种不同风格的绸带效果，包括徽章、角标、对角线、横幅、折叠、书签、标签、悬挂、斜绶带、盾牌、波浪、箭头、圆形、星形、六边形、爆炸星、双层、梯形、三角旗和飘带等样式，适用于徽章、标签、促销标识等多种场景
-        </p>
-      </el-alert>
-    </el-card>
-
-    <!-- 1. Badge 徽章 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3><IconifyIconOnline icon="ri:medal-line" /> Badge - 徽章绸带</h3>
-      </template>
-      <div class="badge-demo">
-        <ScRibbon text="默认" variant="badge" />
-        <ScRibbon text="成功" variant="badge" color="#67c23a" />
-        <ScRibbon text="警告" variant="badge" color="#e6a23c" />
-        <ScRibbon text="危险" variant="badge" color="#f56c6c" />
-        <ScRibbon text="信息" variant="badge" color="#909399" />
-        <ScRibbon
-          text="带图标"
-          variant="badge"
-          icon="ri:star-fill"
-          color="#ff9800"
-        />
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'badge',
-            label: '徽章',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: badgeCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 2. Corner 角标 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3><IconifyIconOnline icon="ri:pushpin-line" /> Corner - 角标绸带</h3>
-      </template>
-      <div class="grid-demo">
-        <div v-for="pos in cornerPositions" :key="pos.value" class="demo-card">
-          <div class="demo-card-body">
-            <p>{{ pos.label }}</p>
-          </div>
-          <ScRibbon
-            :text="pos.text"
-            variant="corner"
-            :position="pos.value"
-            :color="pos.color"
-            :icon="pos.icon"
-          />
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'corner',
-            label: '角标',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: cornerCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 3. Diagonal 对角线 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3>
-          <IconifyIconOnline icon="ri:layout-masonry-line" /> Diagonal -
-          对角线绸带
+﻿<template>
+  <div class="sc-ribbon-example">
+    <div class="example-container">
+      <!-- 左侧：属性配置面板 -->
+      <div class="config-panel">
+        <h3 class="panel-title">
+          <IconifyIconOnline icon="ri:settings-3-line" />
+          属性配置
         </h3>
-      </template>
-      <div class="grid-demo">
-        <div
-          v-for="pos in diagonalPositions"
-          :key="pos.value"
-          class="demo-card"
-        >
-          <div class="demo-card-body">
-            <p>{{ pos.label }}</p>
-          </div>
-          <ScRibbon
-            :text="pos.text"
-            variant="diagonal"
-            :position="pos.value"
-            :color="pos.color"
-          />
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'diagonal',
-            label: '对角线',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: diagonalCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
 
-    <!-- 4. Banner 横幅 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3><IconifyIconOnline icon="ri:flag-line" /> Banner - 横幅绸带</h3>
-      </template>
-      <div class="grid-demo">
-        <div class="demo-card large">
-          <div class="demo-card-body">
+        <el-form label-position="top" size="small">
+          <el-form-item label="variant 样式类型">
+            <ScSelect 
+              v-model="config.variant" 
+              layout="dropdown" 
+              :options="variantOptions" 
+              dropdown-title="选择绸带类型"
+              dropdown-placeholder="请选择类型"
+              :dropdown-col="3"
+            />
+          </el-form-item>
+
+          <el-form-item label="position 位置" v-if="showPosition">
+            <ScSelect v-model="config.position" layout="card" :options="positionOptions" :gap="6" width="70px" />
+          </el-form-item>
+
+          <el-form-item label="size 尺寸">
+            <ScSelect v-model="config.size" layout="card" :options="sizeOptions" :gap="6" width="70px" />
+          </el-form-item>
+
+          <el-form-item label="color 颜色">
+            <ScSelect v-model="config.color" layout="card" :options="colorOptions" :gap="6" width="60px" />
+          </el-form-item>
+
+          <el-form-item label="text 文本">
+            <el-input v-model="config.text" placeholder="绸带文本" />
+          </el-form-item>
+
+          <el-form-item label="icon 图标">
+            <ScSelect v-model="config.icon" layout="card" :options="iconOptions" :gap="6" width="50px" />
+          </el-form-item>
+
+          <el-form-item label="width 宽度" v-if="showWidth">
+            <el-slider v-model="config.width" :min="50" :max="100" :format-tooltip="v => v + '%'" />
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <!-- 右侧：预览和结果 -->
+      <div class="preview-panel">
+        <h3 class="panel-title">
+          <IconifyIconOnline icon="ri:eye-line" />
+          效果预览
+        </h3>
+
+        <div class="preview-area">
+          <div class="preview-card" :class="{ 'is-shape': isShapeVariant }">
+            <template v-if="!isShapeVariant">
+              <div class="card-content">
+                <p class="card-title">示例卡片</p>
+                <p class="card-desc">查看绸带效果</p>
+              </div>
+            </template>
             <ScRibbon
-              text="活动进行中"
-              variant="banner"
-              width="80%"
-              icon="ri:fire-fill"
-              color="#ff6b6b"
+              :text="config.text"
+              :variant="config.variant"
+              :position="config.position"
+              :size="config.size"
+              :color="config.color"
+              :icon="config.icon"
+              :width="showWidth ? config.width + '%' : undefined"
             />
           </div>
         </div>
-        <div class="demo-card large">
-          <div class="demo-card-body">
-            <ScRibbon
-              text="限时优惠"
-              variant="banner"
-              width="70%"
-              icon="ri:ticket-line"
-              color="#4ecb71"
-            />
-          </div>
+
+        <div class="code-area">
+          <h4 class="code-title">
+            <IconifyIconOnline icon="ri:code-s-slash-line" />
+            示例代码
+          </h4>
+          <pre class="code-content"><code>{{ generatedCode }}</code></pre>
         </div>
       </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'banner',
-            label: '横幅',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: bannerCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 5. Folded 折叠 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3><IconifyIconOnline icon="ri:bookmark-line" /> Folded - 折叠绸带</h3>
-      </template>
-      <div class="grid-demo">
-        <div v-for="pos in foldedPositions" :key="pos.value" class="demo-card">
-          <div class="demo-card-body">
-            <p>{{ pos.label }}</p>
-          </div>
-          <ScRibbon
-            :text="pos.text"
-            variant="folded"
-            :position="pos.value"
-            :color="pos.color"
-          />
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'folded',
-            label: '折叠',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: foldedCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 6. Bookmark 书签 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3>
-          <IconifyIconOnline icon="ri:bookmark-fill" /> Bookmark - 书签绸带
-        </h3>
-      </template>
-      <div class="grid-demo">
-        <div class="demo-card">
-          <div class="demo-card-body">
-            <p>左侧书签</p>
-          </div>
-          <ScRibbon
-            text="推荐"
-            variant="bookmark"
-            position="lt"
-            color="#8b5cf6"
-            icon="ri:thumb-up-fill"
-          />
-        </div>
-        <div class="demo-card">
-          <div class="demo-card-body">
-            <p>右侧书签</p>
-          </div>
-          <ScRibbon
-            text="精选"
-            variant="bookmark"
-            position="rt"
-            color="#ec4899"
-            icon="ri:heart-fill"
-          />
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'bookmark',
-            label: '书签',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: bookmarkCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 7. Tag 标签 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3><IconifyIconOnline icon="ri:price-tag-line" /> Tag - 标签绸带</h3>
-      </template>
-      <div class="grid-demo">
-        <div class="demo-card">
-          <div class="demo-card-body">
-            <p>左侧标签</p>
-          </div>
-          <ScRibbon
-            text="-30%"
-            variant="tag"
-            position="lt"
-            color="#f59e0b"
-            size="lg"
-          />
-        </div>
-        <div class="demo-card">
-          <div class="demo-card-body">
-            <p>右侧标签</p>
-          </div>
-          <ScRibbon
-            text="NEW"
-            variant="tag"
-            position="rt"
-            color="#10b981"
-            size="lg"
-          />
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'tag',
-            label: '标签',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: tagCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 8. Hanging 悬挂 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3><IconifyIconOnline icon="ri:t-shirt-line" /> Hanging - 悬挂绸带</h3>
-      </template>
-      <div class="hanging-demo">
-        <ScRibbon
-          text="限量版"
-          variant="hanging"
-          color="#6366f1"
-          icon="ri:vip-crown-fill"
-        />
-        <ScRibbon
-          text="Best Seller"
-          variant="hanging"
-          color="#ef4444"
-          icon="ri:trophy-fill"
-          size="lg"
-        />
-        <ScRibbon text="特价" variant="hanging" color="#14b8a6" size="sm" />
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'hanging',
-            label: '悬挂',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: hangingCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 9. Sash 斜绶带 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3><IconifyIconOnline icon="ri:palette-line" /> Sash - 斜绶带</h3>
-      </template>
-      <div class="grid-demo">
-        <div class="demo-card large">
-          <div class="demo-card-body">
-            <p class="demo-title">获奖产品</p>
-          </div>
-          <ScRibbon
-            text="Winner"
-            variant="sash"
-            position="lt"
-            color="#d946ef"
-          />
-        </div>
-        <div class="demo-card large">
-          <div class="demo-card-body">
-            <p class="demo-title">畅销商品</p>
-          </div>
-          <ScRibbon
-            text="Best Seller"
-            variant="sash"
-            position="rt"
-            color="#3b82f6"
-          />
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'sash',
-            label: '斜绶带',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: sashCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 10. Shield 盾牌 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3>
-          <IconifyIconOnline icon="ri:shield-star-line" /> Shield - 盾牌绸带
-        </h3>
-      </template>
-      <div class="shield-demo">
-        <ScRibbon variant="shield" color="#8b5cf6">
-          <template #default>
-            <div class="shield-content">
-              <IconifyIconOnline
-                icon="ri:vip-crown-2-fill"
-                :style="{ fontSize: '20px' }"
-              />
-              <span>VIP</span>
-            </div>
-          </template>
-        </ScRibbon>
-        <ScRibbon variant="shield" color="#ef4444">
-          <template #default>
-            <div class="shield-content">
-              <IconifyIconOnline
-                icon="ri:award-fill"
-                :style="{ fontSize: '20px' }"
-              />
-              <span>TOP</span>
-            </div>
-          </template>
-        </ScRibbon>
-        <ScRibbon variant="shield" color="#10b981">
-          <template #default>
-            <div class="shield-content">
-              <IconifyIconOnline
-                icon="ri:medal-fill"
-                :style="{ fontSize: '20px' }"
-              />
-              <span>PRO</span>
-            </div>
-          </template>
-        </ScRibbon>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'shield',
-            label: '盾牌',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: shieldCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 尺寸对比 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3><IconifyIconOnline icon="ri:ruler-line" /> 尺寸对比 (Size)</h3>
-      </template>
-      <div class="size-demo">
-        <div class="size-group">
-          <span class="size-label">Small:</span>
-          <ScRibbon text="Small" variant="badge" size="sm" />
-          <ScRibbon
-            text="Small"
-            variant="badge"
-            size="sm"
-            color="#67c23a"
-            icon="ri:check-line"
-          />
-        </div>
-        <div class="size-group">
-          <span class="size-label">Medium:</span>
-          <ScRibbon text="Medium" variant="badge" size="md" />
-          <ScRibbon
-            text="Medium"
-            variant="badge"
-            size="md"
-            color="#e6a23c"
-            icon="ri:star-fill"
-          />
-        </div>
-        <div class="size-group">
-          <span class="size-label">Large:</span>
-          <ScRibbon text="Large" variant="badge" size="lg" />
-          <ScRibbon
-            text="Large"
-            variant="badge"
-            size="lg"
-            color="#f56c6c"
-            icon="ri:fire-fill"
-          />
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'size',
-            label: '尺寸',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: sizeCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 11. Wave 波浪 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3>
-          <IconifyIconOnline icon="ri:water-flash-line" /> Wave - 波浪绸带
-        </h3>
-      </template>
-      <div class="grid-demo">
-        <div class="demo-card large">
-          <div class="demo-card-body">
-            <ScRibbon
-              text="Summer Sale"
-              variant="wave"
-              width="85%"
-              color="#06b6d4"
-              icon="ri:sun-line"
-            />
-          </div>
-        </div>
-        <div class="demo-card large">
-          <div class="demo-card-body">
-            <ScRibbon
-              text="Ocean Theme"
-              variant="wave"
-              width="75%"
-              color="#0ea5e9"
-              size="lg"
-            />
-          </div>
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'wave',
-            label: '波浪',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: waveCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 12. Arrow 箭头 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3>
-          <IconifyIconOnline icon="ri:arrow-right-line" /> Arrow - 箭头绸带
-        </h3>
-      </template>
-      <div class="grid-demo">
-        <div class="demo-card">
-          <div class="demo-card-body">
-            <p>左侧箭头</p>
-          </div>
-          <ScRibbon
-            text="点击查看"
-            variant="arrow"
-            position="lt"
-            color="#8b5cf6"
-            icon="ri:arrow-right-s-line"
-          />
-        </div>
-        <div class="demo-card">
-          <div class="demo-card-body">
-            <p>右侧箭头</p>
-          </div>
-          <ScRibbon
-            text="立即购买"
-            variant="arrow"
-            position="rt"
-            color="#ec4899"
-            icon="ri:shopping-cart-line"
-          />
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'arrow',
-            label: '箭头',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: arrowCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 13. Circle 圆形 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3>
-          <IconifyIconOnline icon="ri:record-circle-line" /> Circle - 圆形徽章
-        </h3>
-      </template>
-      <div class="shape-demo">
-        <ScRibbon variant="circle" color="#3b82f6">
-          <template #default>
-            <div class="circle-content">
-              <IconifyIconOnline
-                icon="ri:medal-line"
-                :style="{ fontSize: '24px' }"
-              />
-              <span style="font-size: 10px">金牌</span>
-            </div>
-          </template>
-        </ScRibbon>
-        <ScRibbon variant="circle" color="#ef4444" size="lg">
-          <template #default>
-            <div class="circle-content">
-              <span style="font-size: 20px; font-weight: 800">50%</span>
-              <span style="font-size: 10px">OFF</span>
-            </div>
-          </template>
-        </ScRibbon>
-        <ScRibbon variant="circle" color="#10b981" size="sm">
-          <template #default>
-            <div class="circle-content">
-              <IconifyIconOnline
-                icon="ri:check-line"
-                :style="{ fontSize: '20px' }"
-              />
-            </div>
-          </template>
-        </ScRibbon>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'circle',
-            label: '圆形',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: circleCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 14. Star 星形 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3><IconifyIconOnline icon="ri:star-line" /> Star - 星形徽章</h3>
-      </template>
-      <div class="shape-demo">
-        <ScRibbon variant="star" color="#f59e0b">
-          <template #default>
-            <div class="star-content">
-              <span style="font-size: 16px; font-weight: 800">TOP</span>
-            </div>
-          </template>
-        </ScRibbon>
-        <ScRibbon variant="star" color="#ec4899" size="lg">
-          <template #default>
-            <div class="star-content">
-              <IconifyIconOnline
-                icon="ri:star-fill"
-                :style="{ fontSize: '28px' }"
-              />
-            </div>
-          </template>
-        </ScRibbon>
-        <ScRibbon variant="star" color="#8b5cf6">
-          <template #default>
-            <div class="star-content">
-              <span style="font-size: 14px; font-weight: 800">VIP</span>
-            </div>
-          </template>
-        </ScRibbon>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'star',
-            label: '星形',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: starCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 15. Hexagon 六边形 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3><IconifyIconOnline icon="ri:shape-line" /> Hexagon - 六边形徽章</h3>
-      </template>
-      <div class="shape-demo">
-        <ScRibbon variant="hexagon" color="#06b6d4">
-          <template #default>
-            <div class="hex-content">
-              <span style="font-size: 16px; font-weight: 800">PRO</span>
-            </div>
-          </template>
-        </ScRibbon>
-        <ScRibbon variant="hexagon" color="#10b981" size="lg">
-          <template #default>
-            <div class="hex-content">
-              <IconifyIconOnline
-                icon="ri:shield-check-fill"
-                :style="{ fontSize: '28px' }"
-              />
-            </div>
-          </template>
-        </ScRibbon>
-        <ScRibbon variant="hexagon" color="#f59e0b" size="sm">
-          <template #default>
-            <div class="hex-content">
-              <span style="font-size: 12px; font-weight: 800">NEW</span>
-            </div>
-          </template>
-        </ScRibbon>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'hexagon',
-            label: '六边形',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: hexagonCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 16. Starburst 爆炸星 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3>
-          <IconifyIconOnline icon="ri:flashlight-fill" /> Starburst - 爆炸星徽章
-          (带动画)
-        </h3>
-      </template>
-      <div class="shape-demo">
-        <ScRibbon variant="starburst" color="#ef4444">
-          <template #default>
-            <div class="burst-content">
-              <span style="font-size: 18px; font-weight: 800">HOT</span>
-            </div>
-          </template>
-        </ScRibbon>
-        <ScRibbon variant="starburst" color="#f59e0b" size="lg">
-          <template #default>
-            <div class="burst-content">
-              <IconifyIconOnline
-                icon="ri:fire-fill"
-                :style="{ fontSize: '32px' }"
-              />
-            </div>
-          </template>
-        </ScRibbon>
-        <ScRibbon variant="starburst" color="#ec4899">
-          <template #default>
-            <div class="burst-content">
-              <span style="font-size: 16px; font-weight: 800">SALE</span>
-            </div>
-          </template>
-        </ScRibbon>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'starburst',
-            label: '爆炸星',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: starburstCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 17. Double 双层 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3><IconifyIconOnline icon="ri:stack-line" /> Double - 双层绸带</h3>
-      </template>
-      <div class="grid-demo">
-        <div class="demo-card large">
-          <div class="demo-card-body">
-            <ScRibbon
-              text="双倍积分"
-              variant="double"
-              width="80%"
-              color="#8b5cf6"
-              icon="ri:gift-line"
-            />
-          </div>
-        </div>
-        <div class="demo-card large">
-          <div class="demo-card-body">
-            <ScRibbon
-              text="Premium Offer"
-              variant="double"
-              width="70%"
-              color="#3b82f6"
-              size="lg"
-            />
-          </div>
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'double',
-            label: '双层',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: doubleCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 18. Trapezoid 梯形 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3>
-          <IconifyIconOnline icon="ri:contrast-2-line" /> Trapezoid - 梯形绸带
-        </h3>
-      </template>
-      <div class="grid-demo">
-        <div class="demo-card large">
-          <div class="demo-card-body">
-            <ScRibbon
-              text="限时抢购"
-              variant="trapezoid"
-              width="75%"
-              color="#ef4444"
-              icon="ri:time-line"
-            />
-          </div>
-        </div>
-        <div class="demo-card large">
-          <div class="demo-card-body">
-            <ScRibbon
-              text="Flash Deal"
-              variant="trapezoid"
-              width="65%"
-              color="#f59e0b"
-              size="lg"
-            />
-          </div>
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'trapezoid',
-            label: '梯形',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: trapezoidCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 19. Pennant 三角旗 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3>
-          <IconifyIconOnline icon="ri:flag-2-line" /> Pennant - 三角旗绸带
-        </h3>
-      </template>
-      <div class="grid-demo">
-        <div class="demo-card">
-          <div class="demo-card-body">
-            <p>左侧三角旗</p>
-          </div>
-          <ScRibbon
-            text="优选"
-            variant="pennant"
-            position="lt"
-            color="#10b981"
-            icon="ri:trophy-line"
-          />
-        </div>
-        <div class="demo-card">
-          <div class="demo-card-body">
-            <p>右侧三角旗</p>
-          </div>
-          <ScRibbon
-            text="精品"
-            variant="pennant"
-            position="rt"
-            color="#6366f1"
-            icon="ri:gem-line"
-          />
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'pennant',
-            label: '三角旗',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: pennantCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 20. Swoosh 飘带 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3>
-          <IconifyIconOnline icon="ri:flight-takeoff-line" /> Swoosh - 飘带绸带
-        </h3>
-      </template>
-      <div class="grid-demo">
-        <div class="demo-card">
-          <div class="demo-card-body">
-            <p>左侧飘带</p>
-          </div>
-          <ScRibbon
-            text="Fresh"
-            variant="swoosh"
-            position="lt"
-            color="#14b8a6"
-            icon="ri:leaf-line"
-          />
-        </div>
-        <div class="demo-card">
-          <div class="demo-card-body">
-            <p>右侧飘带</p>
-          </div>
-          <ScRibbon
-            text="Trendy"
-            variant="swoosh"
-            position="rt"
-            color="#a855f7"
-            icon="ri:sparkles-line"
-          />
-        </div>
-      </div>
-      <CodePreview
-        :tabs="[
-          {
-            key: 'swoosh',
-            label: '飘带',
-            icon: 'ri:code-s-slash-line',
-            language: 'vue',
-            code: swooshCode,
-          },
-        ]"
-        class="mt-3"
-      />
-    </el-card>
-
-    <!-- 实际应用场景 -->
-    <el-card class="section-card">
-      <template #header>
-        <h3><IconifyIconOnline icon="ri:shopping-bag-line" /> 实际应用场景</h3>
-      </template>
-      <div class="grid-demo">
-        <!-- 商品卡片1 -->
-        <div class="product-card">
-          <div
-            class="product-image"
-            style="
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            "
-          >
-            <IconifyIconOnline
-              icon="ri:smartphone-line"
-              :style="{ fontSize: '48px', color: 'white' }"
-            />
-          </div>
-          <div class="product-info">
-            <h4>iPhone 15 Pro</h4>
-            <p class="price">¥7,999</p>
-          </div>
-          <ScRibbon
-            text="HOT"
-            variant="corner"
-            position="lt"
-            color="#f56c6c"
-            icon="ri:fire-fill"
-          />
-          <ScRibbon
-            text="Free Shipping"
-            variant="diagonal"
-            position="rb"
-            color="#67c23a"
-          />
-        </div>
-
-        <!-- 商品卡片2 -->
-        <div class="product-card">
-          <div
-            class="product-image"
-            style="
-              background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            "
-          >
-            <IconifyIconOnline
-              icon="ri:macbook-line"
-              :style="{ fontSize: '48px', color: 'white' }"
-            />
-          </div>
-          <div class="product-info">
-            <h4>MacBook Pro</h4>
-            <p class="price">¥14,999</p>
-          </div>
-          <ScRibbon
-            text="NEW"
-            variant="tag"
-            position="lt"
-            color="#3b82f6"
-            size="lg"
-          />
-          <ScRibbon
-            text="Best Choice"
-            variant="sash"
-            position="rt"
-            color="#8b5cf6"
-          />
-        </div>
-
-        <!-- 商品卡片3 -->
-        <div class="product-card">
-          <div
-            class="product-image"
-            style="
-              background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            "
-          >
-            <IconifyIconOnline
-              icon="ri:headphone-line"
-              :style="{ fontSize: '48px', color: 'white' }"
-            />
-          </div>
-          <div class="product-info">
-            <h4>AirPods Pro</h4>
-            <p class="price">¥1,999</p>
-          </div>
-          <ScRibbon
-            text="-20%"
-            variant="folded"
-            position="lt"
-            color="#ef4444"
-            size="lg"
-          />
-          <ScRibbon
-            text="推荐"
-            variant="bookmark"
-            position="rt"
-            color="#10b981"
-            icon="ri:thumb-up-fill"
-          />
-        </div>
-
-        <!-- 商品卡片4 -->
-        <div class="product-card">
-          <div
-            class="product-image"
-            style="
-              background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            "
-          >
-            <IconifyIconOnline
-              icon="ri:tablet-line"
-              :style="{ fontSize: '48px', color: 'white' }"
-            />
-          </div>
-          <div class="product-info">
-            <h4>iPad Air</h4>
-            <p class="price">¥4,799</p>
-          </div>
-          <ScRibbon
-            text="LIMITED"
-            variant="banner"
-            width="90%"
-            color="#ff6b6b"
-            icon="ri:time-line"
-          />
-        </div>
-      </div>
-    </el-card>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { reactive, computed } from "vue";
 import ScRibbon from "@repo/components/ScRibbon/index.vue";
-import CodePreview from "./CodePreview.vue";
+import ScSelect from "@repo/components/ScSelect/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 
-// 角标位置配置
-const cornerPositions = ref([
-  {
-    value: "lt" as const,
-    label: "左上角",
-    text: "NEW",
-    color: "#409eff",
-    icon: "ri:flashlight-fill",
-  },
-  {
-    value: "rt" as const,
-    label: "右上角",
-    text: "HOT",
-    color: "#f56c6c",
-    icon: "ri:fire-fill",
-  },
-  {
-    value: "lb" as const,
-    label: "左下角",
-    text: "SALE",
-    color: "#67c23a",
-    icon: "ri:price-tag-3-fill",
-  },
-  {
-    value: "rb" as const,
-    label: "右下角",
-    text: "PRO",
-    color: "#e6a23c",
-    icon: "ri:vip-crown-fill",
-  },
-]);
+// 样式选项
+const variantOptions = [
+  { label: "徽章", value: "badge", icon: "ri:price-tag-3-fill" },
+  { label: "角标", value: "corner", icon: "ri:corner-up-right-fill" },
+  { label: "对角", value: "diagonal", icon: "ri:arrow-right-up-line" },
+  { label: "横幅", value: "banner", icon: "ri:flag-fill" },
+  { label: "折叠", value: "folded", icon: "ri:bookmark-fill" },
+  { label: "书签", value: "bookmark", icon: "ri:bookmark-2-fill" },
+  { label: "标签", value: "tag", icon: "ri:price-tag-fill" },
+  { label: "悬挂", value: "hanging", icon: "ri:attachment-fill" },
+  { label: "斜绥", value: "sash", icon: "ri:award-fill" },
+  { label: "盾牌", value: "shield", icon: "ri:shield-star-fill" },
+  { label: "波浪", value: "wave", icon: "ri:water-flash-fill" },
+  { label: "箭头", value: "arrow", icon: "ri:arrow-right-fill" },
+  { label: "圆形", value: "circle", icon: "ri:checkbox-blank-circle-fill" },
+  { label: "星形", value: "star", icon: "ri:star-fill" },
+  { label: "六边形", value: "hexagon", icon: "ri:hexagon-fill" },
+  { label: "爆炸星", value: "starburst", icon: "ri:sun-fill" },
+  { label: "双层", value: "double", icon: "ri:stack-fill" },
+  { label: "梯形", value: "trapezoid", icon: "ri:trapezoid-fill" },
+  { label: "三角旗", value: "pennant", icon: "ri:flag-2-fill" },
+  { label: "飘带", value: "swoosh", icon: "ri:ribbon-fill" }
+];
 
-// 对角线位置配置
-const diagonalPositions = ref([
-  { value: "lt" as const, label: "左上角", text: "BETA", color: "#8b5cf6" },
-  { value: "rt" as const, label: "右上角", text: "ALPHA", color: "#3b82f6" },
-  { value: "lb" as const, label: "左下角", text: "DEV", color: "#10b981" },
-  { value: "rb" as const, label: "右下角", text: "PREVIEW", color: "#f59e0b" },
-]);
+// 位置选项
+const positionOptions = [
+  { label: "左上", value: "lt", icon: "ri:arrow-left-up-line" },
+  { label: "右上", value: "rt", icon: "ri:arrow-right-up-line" },
+  { label: "左下", value: "lb", icon: "ri:arrow-left-down-line" },
+  { label: "右下", value: "rb", icon: "ri:arrow-right-down-line" }
+];
 
-// 折叠位置配置
-const foldedPositions = ref([
-  { value: "lt" as const, label: "左上", text: "-50%", color: "#ef4444" },
-  { value: "rt" as const, label: "右上", text: "SALE", color: "#f59e0b" },
-  { value: "lb" as const, label: "左下", text: "OFF", color: "#8b5cf6" },
-  { value: "rb" as const, label: "右下", text: "DEAL", color: "#10b981" },
-]);
+// 尺寸选项
+const sizeOptions = [
+  { label: "小", value: "sm", icon: "ri:subtract-line" },
+  { label: "中", value: "md", icon: "ri:checkbox-blank-line" },
+  { label: "大", value: "lg", icon: "ri:add-line" }
+];
 
-// 代码示例
-const badgeCode = `<ScRibbon text="默认" variant="badge" />
-<ScRibbon text="成功" variant="badge" color="#67c23a" />
-<ScRibbon text="带图标" variant="badge" icon="ri:star-fill" color="#ff9800" />`;
+// 颜色选项
+const colorOptions = [
+  { label: "蓝", value: "#409eff", icon: "ri:drop-fill" },
+  { label: "绿", value: "#67c23a", icon: "ri:drop-fill" },
+  { label: "橙", value: "#e6a23c", icon: "ri:drop-fill" },
+  { label: "红", value: "#f56c6c", icon: "ri:drop-fill" },
+  { label: "紫", value: "#8b5cf6", icon: "ri:drop-fill" }
+];
 
-const cornerCode = `<div class="card">
-  <ScRibbon 
-    text="NEW" 
-    variant="corner" 
-    position="lt" 
-    icon="ri:flashlight-fill" 
-  />
-</div>`;
+// 图标选项
+const iconOptions = [
+  { label: "无", value: "", icon: "ri:close-line" },
+  { label: "星", value: "ri:star-fill", icon: "ri:star-fill" },
+  { label: "火", value: "ri:fire-fill", icon: "ri:fire-fill" },
+  { label: "心", value: "ri:heart-fill", icon: "ri:heart-fill" }
+];
 
-const diagonalCode = `<div class="card">
-  <ScRibbon 
-    text="BETA" 
-    variant="diagonal" 
-    position="lt" 
-    color="#8b5cf6" 
-  />
-</div>`;
+type VariantType = "badge" | "corner" | "diagonal" | "banner" | "folded" | "bookmark" | "tag" | "hanging" | "sash" | "shield" | "wave" | "arrow" | "circle" | "star" | "hexagon" | "starburst" | "double" | "trapezoid" | "pennant" | "swoosh";
+type PositionType = "lt" | "rt" | "lb" | "rb";
+type SizeType = "sm" | "md" | "lg";
 
-const bannerCode = `<div class="card">
-  <ScRibbon 
-    text="活动进行中" 
-    variant="banner" 
-    width="80%" 
-    icon="ri:fire-fill" 
-    color="#ff6b6b" 
-  />
-</div>`;
+// 配置项
+const config = reactive({
+  variant: "badge" as VariantType,
+  position: "lt" as PositionType,
+  size: "md" as SizeType,
+  color: "#409eff",
+  text: "NEW",
+  icon: "",
+  width: 80
+});
 
-const foldedCode = `<div class="card">
-  <ScRibbon 
-    text="-50%" 
-    variant="folded" 
-    position="lt" 
-    color="#ef4444" 
-  />
-</div>`;
+// 是否显示位置选项
+const showPosition = computed(() => {
+  return ["corner", "diagonal", "folded", "bookmark", "tag", "sash", "arrow", "pennant", "swoosh"].includes(config.variant);
+});
 
-const bookmarkCode = `<div class="card">
-  <ScRibbon 
-    text="推荐" 
-    variant="bookmark" 
-    position="lt" 
-    color="#8b5cf6" 
-    icon="ri:thumb-up-fill" 
-  />
-</div>`;
+// 是否显示宽度选项
+const showWidth = computed(() => {
+  return ["banner", "wave", "double", "trapezoid", "hanging"].includes(config.variant);
+});
 
-const tagCode = `<div class="card">
-  <ScRibbon 
-    text="-30%" 
-    variant="tag" 
-    position="lt" 
-    color="#f59e0b" 
-    size="lg" 
-  />
-</div>`;
+// 是否为形状类变体（独立展示，不需要容器卡片）
+const isShapeVariant = computed(() => {
+  return ["badge", "hanging", "shield", "circle", "star", "hexagon", "starburst"].includes(config.variant);
+});
 
-const hangingCode = `<ScRibbon 
-  text="限量版" 
-  variant="hanging" 
-  color="#6366f1" 
-  icon="ri:vip-crown-fill" 
-/>`;
-
-const sashCode = `<div class="card">
-  <ScRibbon 
-    text="Winner" 
-    variant="sash" 
-    position="lt" 
-    color="#d946ef" 
-  />
-</div>`;
-
-const shieldCode = `<ScRibbon variant="shield" color="#8b5cf6">
-  <template #default>
-    <div class="shield-content">
-      <IconifyIconOnline icon="ri:vip-crown-2-fill" />
-      <span>VIP</span>
-    </div>
-  </template>
-</ScRibbon>`;
-
-const sizeCode = `<ScRibbon text="Small" variant="badge" size="sm" />
-<ScRibbon text="Medium" variant="badge" size="md" />
-<ScRibbon text="Large" variant="badge" size="lg" />`;
-
-const waveCode = `<div class="card">
-  <ScRibbon 
-    text="Summer Sale" 
-    variant="wave" 
-    width="85%" 
-    color="#06b6d4" 
-    icon="ri:sun-line" 
-  />
-</div>`;
-
-const arrowCode = `<div class="card">
-  <ScRibbon 
-    text="点击查看" 
-    variant="arrow" 
-    position="lt" 
-    color="#8b5cf6" 
-    icon="ri:arrow-right-s-line" 
-  />
-</div>`;
-
-const circleCode = `<ScRibbon variant="circle" color="#ef4444" size="lg">
-  <template #default>
-    <div class="circle-content">
-      <span style="font-size: 20px; font-weight: 800">50%</span>
-      <span style="font-size: 10px">OFF</span>
-    </div>
-  </template>
-</ScRibbon>`;
-
-const starCode = `<ScRibbon variant="star" color="#f59e0b">
-  <template #default>
-    <div class="star-content">
-      <span style="font-size: 16px; font-weight: 800">TOP</span>
-    </div>
-  </template>
-</ScRibbon>`;
-
-const hexagonCode = `<ScRibbon variant="hexagon" color="#06b6d4">
-  <template #default>
-    <div class="hex-content">
-      <span style="font-size: 16px; font-weight: 800">PRO</span>
-    </div>
-  </template>
-</ScRibbon>`;
-
-const starburstCode = `<ScRibbon variant="starburst" color="#ef4444">
-  <template #default>
-    <div class="burst-content">
-      <span style="font-size: 18px; font-weight: 800">HOT</span>
-    </div>
-  </template>
-</ScRibbon>`;
-
-const doubleCode = `<div class="card">
-  <ScRibbon 
-    text="双倍积分" 
-    variant="double" 
-    width="80%" 
-    color="#8b5cf6" 
-    icon="ri:gift-line" 
-  />
-</div>`;
-
-const trapezoidCode = `<div class="card">
-  <ScRibbon 
-    text="限时抢购" 
-    variant="trapezoid" 
-    width="75%" 
-    color="#ef4444" 
-    icon="ri:time-line" 
-  />
-</div>`;
-
-const pennantCode = `<div class="card">
-  <ScRibbon 
-    text="优选" 
-    variant="pennant" 
-    position="lt" 
-    color="#10b981" 
-    icon="ri:trophy-line" 
-  />
-</div>`;
-
-const swooshCode = `<div class="card">
-  <ScRibbon 
-    text="Fresh" 
-    variant="swoosh" 
-    position="lt" 
-    color="#14b8a6" 
-    icon="ri:leaf-line" 
-  />
-</div>`;
+// 生成示例代码
+const generatedCode = computed(() => {
+  const props: string[] = [];
+  props.push(`text="${config.text}"`);
+  props.push(`variant="${config.variant}"`);
+  if (showPosition.value) props.push(`position="${config.position}"`);
+  if (config.size !== "md") props.push(`size="${config.size}"`);
+  if (config.color !== "#409eff") props.push(`color="${config.color}"`);
+  if (config.icon) props.push(`icon="${config.icon}"`);
+  if (showWidth.value) props.push(`width="${config.width}%"`);
+  return `<ScRibbon\n  ${props.join("\n  ")}\n/>`;
+});
 </script>
 
-<style scoped>
-.ribbon-example {
-  padding: 20px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.intro-card {
-  margin-bottom: 24px;
-}
-
-.card-header-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.card-header-content h2 {
-  margin: 0 0 4px 0;
-  font-size: 24px;
-  color: var(--el-text-color-primary);
-}
-
-.subtitle {
-  margin: 0;
-  font-size: 14px;
-  color: var(--el-text-color-secondary);
-}
-
-.section-card {
-  margin-bottom: 24px;
-}
-
-.section-card h3 {
-  margin: 0;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Badge Demo */
-.badge-demo {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
-}
-
-/* Grid Demo */
-.grid-demo {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-}
-
-.demo-card {
-  position: relative;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  background: var(--el-bg-color-overlay);
-  overflow: hidden;
-  transition: all 0.3s;
-}
-
-.demo-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow);
-}
-
-.demo-card.large {
-  min-height: 180px;
-}
-
-.demo-card-body {
-  height: 140px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-text-color-regular);
-  font-size: 16px;
-}
-
-.demo-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-/* Hanging Demo */
-.hanging-demo {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-}
-
-/* Shield Demo */
-.shield-demo {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 32px;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.shield-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-/* Size Demo */
-.size-demo {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.size-group {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px;
-  background: var(--el-fill-color-light);
-  border-radius: 8px;
-}
-
-.size-label {
-  font-weight: 600;
-  min-width: 80px;
-  color: var(--el-text-color-primary);
-}
-
-/* Product Card */
-.product-card {
-  position: relative;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  background: var(--el-bg-color-overlay);
-  overflow: hidden;
-  transition: all 0.3s;
-}
-
-.product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--el-box-shadow-dark);
-}
-
-.product-image {
-  height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.product-info {
-  padding: 16px;
-}
-
-.product-info h4 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-  color: var(--el-text-color-primary);
-}
-
-.price {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--el-color-primary);
-}
-
-.mt-3 {
-  margin-top: 16px;
-}
-
-/* Shape Demo */
-.shape-demo {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 32px;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  min-height: 160px;
-}
-
-.circle-content,
-.star-content,
-.hex-content,
-.burst-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
-}
-
-/* 响应式 */
-@media (max-width: 768px) {
-  .grid-demo {
-    grid-template-columns: 1fr;
-  }
-
-  .product-card {
-    max-width: 100%;
-  }
-
-  .shape-demo {
-    gap: 24px;
-  }
-}
-
-/* 深色主题适配 */
-html.dark {
-  .demo-card:hover {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-  }
-
-  .product-card:hover {
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
-  }
-
-  .size-group {
-    background: var(--el-fill-color-dark);
-  }
-}
+<style scoped lang="scss">
+.sc-ribbon-example { padding: 20px; }
+.example-container { display: flex; gap: 24px; @media (max-width: 900px) { flex-direction: column; } }
+.config-panel { width: 320px; flex-shrink: 0; background: var(--el-bg-color); border: 1px solid var(--el-border-color-lighter); border-radius: 8px; padding: 20px; @media (max-width: 900px) { width: 100%; } }
+.preview-panel { flex: 1; min-width: 0; background: var(--el-bg-color); border: 1px solid var(--el-border-color-lighter); border-radius: 8px; padding: 20px; }
+.panel-title { display: flex; align-items: center; gap: 8px; margin: 0 0 20px; font-size: 16px; font-weight: 600; color: var(--el-text-color-primary); .iconify { color: var(--el-color-primary); } }
+.preview-area { padding: 40px; background: var(--el-fill-color-lighter); border-radius: 8px; display: flex; justify-content: center; align-items: center; min-height: 200px; }
+.preview-card { position: relative; width: 280px; height: 180px; background: var(--el-bg-color); border: 1px solid var(--el-border-color-lighter); border-radius: 12px; overflow: hidden; &.is-shape { width: auto; height: auto; min-width: 100px; min-height: 100px; background: transparent; border: none; display: flex; justify-content: center; align-items: center; } }
+.card-content { padding: 20px; text-align: center; .card-title { margin: 0 0 8px; font-size: 18px; font-weight: 600; color: var(--el-text-color-primary); } .card-desc { margin: 0; font-size: 14px; color: var(--el-text-color-secondary); } }
+.code-area { margin-top: 20px; }
+.code-title { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; font-size: 14px; font-weight: 500; color: var(--el-text-color-primary); .iconify { color: var(--el-color-primary); } }
+.code-content { margin: 0; padding: 16px; background: #1e1e1e; border-radius: 6px; overflow-x: auto; code { font-size: 13px; font-family: "SF Mono", "Monaco", "Consolas", monospace; color: #d4d4d4; line-height: 1.6; } }
+:deep(.el-form-item) { margin-bottom: 16px; }
+:deep(.sc-dropdown) { width: 100%; }
 </style>

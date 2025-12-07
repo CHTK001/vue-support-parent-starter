@@ -31,6 +31,7 @@
     "cropperjs": "catalog:",
     "echarts": "catalog:",
     "echarts-gl": "catalog:",
+    "element-china-area-data": "^6.1.0",
     "el-table-infinite-scroll": "catalog:",
     "element-plus": "catalog:",
     "gcoord": "catalog:",

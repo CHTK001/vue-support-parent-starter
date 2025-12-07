@@ -441,12 +441,6 @@ const components = [
     component: resolveComponent("./components/ScEditorExample.vue"),
   },
   {
-    name: "ScElFormItem",
-    icon: "ri:input-field",
-    description: "表单项组件，增强的表单项功能",
-    component: resolveComponent("./components/ScElFormItemExample.vue"),
-  },
-  {
     name: "ScFile",
     icon: "ri:file-upload-line",
     description: "文件上传组件，支持多种文件上传方式",

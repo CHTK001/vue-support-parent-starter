@@ -52,9 +52,11 @@ import { ref, computed, watch, onMounted } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import type { RegionData, RegionProps, RegionEmits } from "./types";
 import { regionData as defaultRegionData } from "./data";
+import { getRegionDataBySource, getRegionDataBySourceSync } from "./dataSource";
 
 const props = withDefaults(defineProps<RegionProps>(), {
   modelValue: () => [],
+  dataSource: "custom",
   placeholder: "请选择地区",
   disabled: false,
   clearable: true,
@@ -70,20 +72,47 @@ const props = withDefaults(defineProps<RegionProps>(), {
   showCode: false,
   multiple: false,
   collapseTags: false,
-  maxCollapseTags: 1
+  maxCollapseTags: 1,
+  emitPath: true
 });
 
 const emit = defineEmits<RegionEmits>();
 
 // 根据是否多选决定值类型
-const selectedValue = ref<string[] | string[][]>(props.modelValue as any);
+const selectedValue = ref<string | string[] | string[][]>(props.modelValue as any);
+
+// 根据数据源加载的数据
+const loadedData = ref<RegionData[]>(getRegionDataBySourceSync(props.dataSource!, props.data));
+
+// 加载数据源
+const loadDataSource = async () => {
+  loadedData.value = await getRegionDataBySource(props.dataSource!, props.data);
+};
+
+// 监听数据源变化
+watch(
+  () => props.dataSource,
+  () => {
+    loadDataSource();
+  }
+);
+
+// 监听自定义数据变化
+watch(
+  () => props.data,
+  () => {
+    if (props.dataSource === 'custom') {
+      loadedData.value = props.data;
+    }
+  }
+);
 
 // 根据省份代码过滤数据
 const filteredRegionData = computed(() => {
   if (!props.provinceCode) {
-    return props.data;
+    return loadedData.value;
   }
-  return props.data.filter(item => item.code === props.provinceCode);
+  return loadedData.value.filter(item => item.code === props.provinceCode);
 });
 
 // 级联选择器配置
@@ -93,22 +122,23 @@ const cascaderProps = computed(() => ({
   children: "children",
   checkStrictly: props.checkStrictly,
   multiple: props.multiple,
-  emitPath: true
+  emitPath: props.emitPath
 }));
 
 watch(
   () => props.modelValue,
   newVal => {
-    selectedValue.value = newVal;
+    selectedValue.value = newVal as any;
   }
 );
 
 watch(
   () => props.data,
   newVal => {
-    // 当数据源变化时，重新设置选中值
-    if (selectedValue.value.length > 0) {
-      const newSelectedValue = findPathByCode(newVal, selectedValue.value[selectedValue.value.length - 1]);
+    // 当数据源变化时，重新设置选中值（仅单选且返回路径时）
+    if (Array.isArray(selectedValue.value) && selectedValue.value.length > 0 && !props.multiple && props.emitPath) {
+      const lastValue = selectedValue.value[selectedValue.value.length - 1] as string;
+      const newSelectedValue = findPathByCode(newVal, lastValue);
       if (newSelectedValue) {
         selectedValue.value = newSelectedValue;
       }
@@ -116,14 +146,15 @@ watch(
   }
 );
 
-const handleChange = (value: string[] | string[][]) => {
+const handleChange = (value: string | string[] | string[][]) => {
   emit("update:modelValue", value);
   emit("change", value);
 };
 
 // 设置默认省份
 const setDefaultProvince = () => {
-  if (props.defaultProvince && !selectedValue.value.length) {
+  const hasValue = Array.isArray(selectedValue.value) ? selectedValue.value.length > 0 : !!selectedValue.value;
+  if (props.defaultProvince && !hasValue) {
     const province = props.data.find(item => item.code === props.defaultProvince);
     if (province) {
       selectedValue.value = [province.code];
@@ -147,8 +178,9 @@ watch(
   }
 );
 
-// 组件挂载时设置默认省份
-onMounted(() => {
+// 组件挂载时加载数据源和设置默认省份
+onMounted(async () => {
+  await loadDataSource();
   setDefaultProvince();
 });
 
@@ -215,10 +247,11 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
   justify-content: space-between;
   width: 100%;
   padding: 2px 0;
+  line-height: 1.4;
 
   .node-content {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     flex: 1;
     min-width: 0;
@@ -228,6 +261,7 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
     font-size: 16px;
     flex-shrink: 0;
     transition: all 0.2s ease;
+    margin-top: 2px;
 
     &.province {
       color: var(--el-color-danger);
@@ -245,8 +279,9 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
   .node-text {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
     min-width: 0;
+    flex: 1;
   }
 
   .node-label {
@@ -255,12 +290,14 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.4;
   }
 
   .node-code {
     font-size: 11px;
     color: var(--el-text-color-placeholder);
     font-family: "SF Mono", "Monaco", "Consolas", monospace;
+    line-height: 1.2;
   }
 
   .node-extra {
@@ -314,6 +351,7 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
       }
 
       .el-cascader-node {
+        position: relative;
         padding: 0 12px;
         height: 40px;
         border-radius: 8px;
@@ -353,26 +391,59 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
           color: var(--el-text-color-secondary);
         }
 
-        // 任意级选择时的单选框样式
+        // 任意级选择时的单选框样式 - 隐藏 radio 让整行可点击
         .el-radio {
+          position: absolute;
+          left: 0;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          width: 100%;
+          height: 100%;
+          margin: 0;
+          z-index: 1;
+          opacity: 0;
+          cursor: pointer;
+          
+          .el-radio__input {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+          }
+          
+          .el-radio__label {
+            display: none;
+          }
+        }
+
+        // 多选时的 checkbox 样式
+        .el-checkbox {
           margin-right: 8px;
+          flex-shrink: 0;
           
-          .el-radio__inner {
-            border-color: var(--el-border-color);
-            
-            &::after {
-              background: var(--el-color-primary);
-            }
+          .el-checkbox__label {
+            display: none;
           }
-          
-          &.is-checked .el-radio__inner {
-            border-color: var(--el-color-primary);
-            background: var(--el-color-primary);
-            
-            &::after {
-              background: #fff;
-            }
-          }
+        }
+
+        // 多选时节点标签需要留出 checkbox 空间
+        .el-cascader-node__label {
+          padding-left: 0;
+        }
+      }
+    }
+  }
+
+  // 多选模式调整
+  &.is-multiple {
+    .el-cascader-menu {
+      min-width: 180px;
+
+      .el-cascader-node {
+        .el-cascader-node__prefix {
+          flex-shrink: 0;
         }
       }
     }
@@ -380,8 +451,16 @@ const findPathByCode = (data: RegionData[], targetCode: string): string[] | null
 
   // 显示编码时调整高度
   &.show-code {
-    .el-cascader-node {
-      height: 52px;
+    .el-cascader-menu .el-cascader-node {
+      height: auto;
+      min-height: 48px;
+      padding-top: 6px;
+      padding-bottom: 6px;
+
+      .el-cascader-node__label {
+        display: flex;
+        align-items: center;
+      }
     }
   }
 

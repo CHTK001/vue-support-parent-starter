@@ -12,8 +12,9 @@ import { ScText } from "./ScText";
 import { ScFilterBar } from "./ScFilterBar";
 import { ScContainer } from "./ScContainer";
 import { ScPanel } from "./ScPanel";
+import ScNumber from "./ScNumber/index.vue";
 
-export { ReMenuNewBadge, ReSplitPane, ScCard, ScTable, ScRibbon, ScProgress, ScImage, ScMessageDialog, ScDebugConsole, ScText, ScFilterBar, ScContainer, ScPanel };
+export { ReMenuNewBadge, ReSplitPane, ScCard, ScTable, ScRibbon, ScProgress, ScImage, ScMessageDialog, ScDebugConsole, ScText, ScFilterBar, ScContainer, ScPanel, ScNumber };
 
 export default {
   ScTable,
@@ -29,5 +30,6 @@ export default {
   ScText,
   ScFilterBar,
   ScContainer,
-  ScPanel
+  ScPanel,
+  ScNumber
 };

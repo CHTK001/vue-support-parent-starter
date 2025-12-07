@@ -30,26 +30,23 @@
             </el-form-item>
 
             <el-form-item label="样式">
-              <el-select
+              <ScSelect
                 v-model="config.customClass"
-                placeholder="请选择样式"
-                style="width: 100%"
-              >
-                <el-option label="默认" value=""></el-option>
-                <el-option
-                  label="主题色边框"
-                  value="primary-border"
-                ></el-option>
-                <el-option label="圆角风格" value="rounded-dialog"></el-option>
-                <el-option label="简约风格" value="minimal-dialog"></el-option>
-              </el-select>
+                layout="card"
+                :options="styleOptions"
+                :gap="6"
+                width="90px"
+              />
             </el-form-item>
 
             <el-form-item label="模式">
-              <el-radio-group v-model="config.mode" class="mb-2 block">
-                <el-radio label="element">ElementPlus</el-radio>
-                <el-radio label="custom">自定义(拖拽/缩放)</el-radio>
-              </el-radio-group>
+              <ScSelect
+                v-model="config.mode"
+                layout="card"
+                :options="modeOptions"
+                :gap="6"
+                width="100px"
+              />
             </el-form-item>
 
             <el-form-item label="缩放" v-if="config.mode === 'custom'">
@@ -139,13 +136,13 @@
             </el-form-item>
 
             <el-form-item label="对话框类型">
-              <el-radio-group v-model="config.type" class="mb-2 block">
-                <el-radio label="default">默认</el-radio>
-                <el-radio label="info">信息</el-radio>
-                <el-radio label="success">成功</el-radio>
-                <el-radio label="warning">警告</el-radio>
-                <el-radio label="error">错误</el-radio>
-              </el-radio-group>
+              <ScSelect
+                v-model="config.type"
+                layout="card"
+                :options="typeOptions"
+                :gap="6"
+                width="60px"
+              />
             </el-form-item>
 
             <el-form-item label="功能设置">
@@ -202,11 +199,14 @@
             </el-form-item>
 
             <el-form-item label="内容设置">
-              <el-radio-group v-model="config.contentType" class="mb-2 block">
-                <el-radio label="text">文本内容</el-radio>
-                <el-radio label="form">表单内容</el-radio>
-                <el-radio label="confirm">确认内容</el-radio>
-              </el-radio-group>
+              <ScSelect
+                v-model="config.contentType"
+                layout="card"
+                :options="contentOptions"
+                :gap="6"
+                width="70px"
+                class="mb-2"
+              />
 
               <template v-if="config.contentType === 'text'">
                 <el-input
@@ -509,8 +509,39 @@
 import { ref, reactive, computed } from "vue";
 import ScDialog from "@repo/components/ScDialog/src/index.vue";
 import ScDialogTaskbar from "@repo/components/ScDialog/src/ScDialogTaskbar.vue";
+import ScSelect from "@repo/components/ScSelect/index.vue";
 import { message } from "@repo/utils";
 import CodePreview from "./CodePreview.vue";
+
+// 样式选项
+const styleOptions = [
+  { label: "默认", value: "", icon: "ri:palette-line" },
+  { label: "主题色", value: "primary-border", icon: "ri:shape-line" },
+  { label: "圆角", value: "rounded-dialog", icon: "ri:checkbox-blank-circle-line" },
+  { label: "简约", value: "minimal-dialog", icon: "ri:subtract-line" }
+];
+
+// 模式选项
+const modeOptions = [
+  { label: "Element", value: "element", icon: "ri:layout-line" },
+  { label: "自定义", value: "custom", icon: "ri:drag-move-line" }
+];
+
+// 类型选项
+const typeOptions = [
+  { label: "默认", value: "default", icon: "ri:checkbox-blank-line" },
+  { label: "信息", value: "info", icon: "ri:information-line" },
+  { label: "成功", value: "success", icon: "ri:checkbox-circle-line" },
+  { label: "警告", value: "warning", icon: "ri:error-warning-line" },
+  { label: "错误", value: "error", icon: "ri:close-circle-line" }
+];
+
+// 内容选项
+const contentOptions = [
+  { label: "文本", value: "text", icon: "ri:text" },
+  { label: "表单", value: "form", icon: "ri:file-list-line" },
+  { label: "确认", value: "confirm", icon: "ri:question-line" }
+];
 
 // 对话框配置
 const config = reactive({

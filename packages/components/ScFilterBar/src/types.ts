@@ -369,6 +369,12 @@ export interface ScFilterBarProps {
    * @default true
    */
   showQuickFilters?: boolean;
+
+  /**
+   * 按钮是否只显示图标
+   * @default false
+   */
+  iconOnly?: boolean;
 }
 
 /**
