@@ -489,24 +489,12 @@ const components = [
     component: resolveComponent("./components/ScPromQLExample.vue"),
   },
   {
-    name: "ScQuery",
-    icon: "ri:search-2-line",
-    description: "查询组件，提供高级查询功能",
-    component: resolveComponent("./components/ScQueryExample.vue"),
-  },
-  {
     name: "ScRegion",
     icon: "ri:map-pin-2-line",
     description: "地区选择组件，支持省市区三级联动",
     component: resolveComponent("./components/ScRegionExample.vue"),
   },
-  {
-    name: "ScSearch",
-    icon: "ri:search-line",
-    description: "搜索组件，提供强大的搜索功能",
-    component: resolveComponent("./components/ScSearchExample.vue"),
-  },
-  {
+    {
     name: "ScSelectFilter",
     icon: "ri:filter-3-line",
     description: "选择过滤组件，提供筛选功能",

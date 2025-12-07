@@ -2,7 +2,7 @@
 import Calendar from "@iconify-icons/ep/calendar";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import ScSearch from "@repo/components/ScSearch/index.vue";
+import ScFilterBar from "@repo/components/ScFilterBar/index.vue";
 import { message } from "@repo/utils";
 import {
   computed,
@@ -105,20 +105,19 @@ const isFutureDate = (dateStr: string): boolean => {
   return getDaysFromToday(dateStr) > 0;
 };
 
-// 搜索列配置
-const columns = reactive<any>([
+// 搜索列配置（ScFilterBar格式）
+const filterOptions = reactive<any>([
   {
     label: "年份",
-    prop: "year",
+    value: "year",
     placeholder: "请选择年份",
-    width: "200px",
     type: "select",
-    children: [
-      ...Array.from({ length: 50 }, (_, i) => ({
+    extend: {
+      data: Array.from({ length: 50 }, (_, i) => ({
         label: (currentYear.value - 5 + i).toString(),
         value: currentYear.value - 5 + i,
       })),
-    ],
+    },
   },
 ]);
 
@@ -314,11 +313,10 @@ onMounted(() => {
 
               <div class="flex-1 flex items-center">
                 <div class="w-full flex items-center flex-1">
-                  <ScSearch
-                    :columns="columns"
-                    :onSearch="onSearch"
+                  <ScFilterBar
+                    :options="filterOptions"
                     :show-number="4"
-                    :loading="loading"
+                    @search="onSearch"
                   />
                 </div>
               </div>

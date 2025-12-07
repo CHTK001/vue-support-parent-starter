@@ -1,518 +1,651 @@
 <!--
- * ScFilterBar 组件示例
+ * ScFilterBar 组件示例 - 拖拽式字段配置器
  * @author CH
- * @version 1.0.0
- * @since 2025-12-05
+ * @version 2.0.0
+ * @since 2025-12-07
 -->
 <template>
-  <div class="sc-filter-bar-demo">
-    <!-- 基础用法 -->
-    <div class="demo-section">
-      <h3 class="section-title">基础用法</h3>
-      <ScFilterBar
-        v-model="filterValues1"
-        :fields="basicFields"
-        :visible-count="3"
-        @search="handleSearch"
-        @reset="handleReset"
-      />
-      <div class="demo-result">
-        <strong>筛选值：</strong>
-        <code>{{ JSON.stringify(filterValues1) }}</code>
-      </div>
-    </div>
-
-    <!-- 快捷筛选 -->
-    <div class="demo-section">
-      <h3 class="section-title">快捷筛选</h3>
-      <ScFilterBar
-        v-model="filterValues2"
-        :fields="basicFields"
-        :visible-count="2"
-        :quick-filters="quickFilters"
-        @search="handleSearch"
-        @quick-filter="handleQuickFilter"
-      />
-    </div>
-
-    <!-- 更多字段类型 -->
-    <div class="demo-section">
-      <h3 class="section-title">多种字段类型</h3>
-      <ScFilterBar
-        v-model="filterValues3"
-        :fields="advancedFields"
-        :visible-count="4"
-        layout="inline"
-        @search="handleSearch"
-      />
-    </div>
-
-    <!-- Grid 布局 -->
-    <div class="demo-section">
-      <h3 class="section-title">Grid 布局</h3>
-      <ScFilterBar
-        v-model="filterValues4"
-        :fields="gridFields"
-        layout="grid"
-        :columns="4"
-        :visible-count="8"
-        :show-expand="false"
-        border
-        background
-        @search="handleSearch"
-      />
-    </div>
-
-    <!-- 实时搜索 -->
-    <div class="demo-section">
-      <h3 class="section-title">实时搜索</h3>
-      <ScFilterBar
-        v-model="filterValues5"
-        :fields="realtimeFields"
-        :visible-count="3"
-        realtime
-        :debounce-time="500"
-        :show-search="false"
-        @search="handleRealtimeSearch"
-        @change="handleChange"
-      />
-      <div class="demo-result">
-        <strong>搜索次数：</strong> {{ searchCount }}
-      </div>
-    </div>
-
-    <!-- 自定义插槽 -->
-    <div class="demo-section">
-      <h3 class="section-title">自定义插槽</h3>
-      <ScFilterBar
-        v-model="filterValues6"
-        :fields="slotFields"
-        :visible-count="3"
-        @search="handleSearch"
-      >
-        <!-- 自定义字段 -->
-        <template #customField="{ field, value, change }">
-          <div class="custom-field">
-            <el-slider
-              v-model="filterValues6[field.prop]"
-              :min="0"
-              :max="100"
-              @change="change"
-            />
-            <span class="custom-field-value">{{ value || 0 }}%</span>
+  <div class="sc-filter-bar-example">
+    <!-- 拖拽配置器 -->
+    <DemoBlock title="🎨 拖拽式字段配置器" :code="generatedCode" dark>
+      <div class="builder-container">
+        <!-- 左侧：字段类型面板 -->
+        <div class="field-palette">
+          <div class="palette-header">
+            <h4 class="palette-title">
+              <IconifyIconOnline icon="ri:apps-line" />
+              字段类型
+            </h4>
+            <el-tooltip content="只显示图标" placement="top">
+              <el-switch v-model="config.iconOnly" size="small" />
+            </el-tooltip>
           </div>
-        </template>
+          <div class="palette-list" :class="{ 'icon-only': config.iconOnly }">
+            <div
+              v-for="type in fieldTypes"
+              :key="type.value"
+              class="palette-item"
+              draggable="true"
+              @dragstart="handleDragStart($event, type)"
+            >
+              <el-tooltip :content="type.label" :disabled="!config.iconOnly" placement="right">
+                <div class="palette-item-content">
+                  <IconifyIconOnline :icon="type.icon" />
+                  <span v-if="!config.iconOnly">{{ type.label }}</span>
+                </div>
+              </el-tooltip>
+            </div>
+          </div>
+        </div>
 
-        <!-- 自定义操作按钮 -->
-        <template #actions="{ values, search, reset }">
-          <el-button type="primary" @click="search">
-            <IconifyIconOnline icon="ep:search" />
-            高级搜索
-          </el-button>
-          <el-button @click="reset">
-            <IconifyIconOnline icon="ep:refresh" />
-            清空
-          </el-button>
-          <el-button type="success" @click="handleExport(values)">
-            <IconifyIconOnline icon="ep:download" />
-            导出
-          </el-button>
-        </template>
-      </ScFilterBar>
-    </div>
+        <!-- 中间：配置区域 -->
+        <div class="builder-main">
+          <div class="builder-header">
+            <h4>已配置字段 ({{ builderFields.length }})</h4>
+            <el-button type="danger" size="small" text @click="clearFields" :disabled="builderFields.length === 0">
+              <IconifyIconOnline icon="ri:delete-bin-line" />
+              清空
+            </el-button>
+          </div>
+          
+          <div
+            class="drop-zone"
+            :class="{ 'is-dragging': isDragging }"
+            @dragover.prevent="isDragging = true"
+            @dragleave="isDragging = false"
+            @drop="handleDrop"
+          >
+            <div v-if="builderFields.length === 0" class="drop-placeholder">
+              <IconifyIconOnline icon="ri:drag-drop-line" />
+              <span>拖拽左侧字段类型到此处</span>
+            </div>
+            <draggable
+              v-else
+              v-model="builderFields"
+              item-key="id"
+              handle=".field-handle"
+              animation="200"
+              class="field-list"
+            >
+              <template #item="{ element: field, index }">
+                <div class="field-item">
+                  <div class="field-handle">
+                    <IconifyIconOnline icon="ri:draggable" />
+                  </div>
+                  <div class="field-type-tag">
+                    <IconifyIconOnline :icon="getFieldIcon(field.type)" />
+                    <span>{{ getFieldLabel(field.type) }}</span>
+                  </div>
+                  <div class="field-info">
+                    <el-input
+                      v-model="field.label"
+                      size="small"
+                      placeholder="标签"
+                      class="field-label-input"
+                    />
+                    <el-input
+                      v-model="field.prop"
+                      size="small"
+                      placeholder="字段名"
+                      class="field-prop-input"
+                    />
+                  </div>
+                  <div class="field-actions">
+                    <el-button type="danger" size="small" text @click="removeField(index)">
+                      <IconifyIconOnline icon="ri:close-line" />
+                    </el-button>
+                  </div>
+                </div>
+              </template>
+            </draggable>
+          </div>
+        </div>
 
-    <!-- 字段联动 -->
-    <div class="demo-section">
-      <h3 class="section-title">字段联动</h3>
-      <ScFilterBar
-        v-model="filterValues7"
-        :fields="linkageFields"
-        :visible-count="3"
-        @search="handleSearch"
-        @change="handleChange"
-      />
-    </div>
+        <!-- 右侧：配置选项 -->
+        <div class="config-panel">
+          <h4 class="panel-title">
+            <IconifyIconOnline icon="ri:settings-3-line" />
+            组件配置
+          </h4>
+          <el-form label-position="top" size="small">
+            <el-form-item label="布局模式">
+              <el-radio-group v-model="config.layout">
+                <el-radio-button value="inline">行内</el-radio-button>
+                <el-radio-button value="grid">网格</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="显示数量">
+              <el-slider v-model="config.visibleCount" :min="1" :max="10" show-input />
+            </el-form-item>
+            <el-form-item label="网格列数" v-if="config.layout === 'grid'">
+              <el-slider v-model="config.columns" :min="1" :max="6" show-input />
+            </el-form-item>
+            <el-form-item label="边框">
+              <el-switch v-model="config.border" />
+            </el-form-item>
+            <el-form-item label="背景">
+              <el-switch v-model="config.background" />
+            </el-form-item>
+            <el-form-item label="实时搜索">
+              <el-switch v-model="config.realtime" />
+            </el-form-item>
+            <el-form-item label="防抖时间(ms)" v-if="config.realtime">
+              <el-input-number v-model="config.debounceTime" :min="100" :max="2000" :step="100" />
+            </el-form-item>
+            <el-form-item label="高级筛选">
+              <el-switch v-model="config.showDrawer" />
+            </el-form-item>
+            <el-form-item label="输入框宽度">
+              <el-slider v-model="config.inputWidth" :min="100" :max="300" :step="10" show-input />
+            </el-form-item>
+          </el-form>
+        </div>
+      </div>
+
+      <!-- 预览效果 - 独立整行 -->
+      <div class="preview-section" v-if="builderFields.length > 0">
+        <h4 class="preview-title">
+          <IconifyIconOnline icon="ri:eye-line" />
+          实时预览
+        </h4>
+        <div class="preview-content">
+          <ScFilterBar
+            v-model="filterResult"
+            :options="previewOptions"
+            :show-number="config.visibleCount"
+            :show-advanced="true"
+            :show-drawer="config.showDrawer"
+            :layout="config.layout"
+            :columns="config.columns"
+            :border="config.border"
+            :background="config.background"
+            :realtime="config.realtime"
+            :enable-debounce="config.realtime"
+            :debounce-delay="config.debounceTime"
+            :input-width="config.inputWidth"
+            expression-format="sql"
+            @search="handleFilterChange"
+          />
+        </div>
+        <div class="preview-result">
+          <strong>筛选值：</strong>
+          <code>{{ JSON.stringify(filterResult) }}</code>
+        </div>
+      </div>
+    </DemoBlock>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { ScFilterBar } from "@repo/components/ScFilterBar";
-import type {
-  FilterField,
-  FilterValue,
-  QuickFilter,
-} from "@repo/components/ScFilterBar";
+import { ref, reactive, computed } from "vue";
+import ScFilterBar from "@repo/components/ScFilterBar/index.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+import DemoBlock from "./DemoBlock.vue";
+import { ElMessage } from "element-plus";
+import draggable from "vuedraggable";
 
-// ==================== 筛选值 ====================
-const filterValues1 = ref<FilterValue>({});
-const filterValues2 = ref<FilterValue>({});
-const filterValues3 = ref<FilterValue>({});
-const filterValues4 = ref<FilterValue>({});
-const filterValues5 = ref<FilterValue>({});
-const filterValues6 = ref<FilterValue>({});
-const filterValues7 = ref<FilterValue>({});
-const searchCount = ref(0);
+// ==================== 类型定义 ====================
+interface FieldType {
+  value: string;
+  label: string;
+  icon: string;
+}
 
-// ==================== 字段配置 ====================
+interface BuilderField {
+  id: string;
+  type: string;
+  prop: string;
+  label: string;
+  placeholder?: string;
+  options?: Array<{ value: string | number; label: string }>;
+}
 
-/**
- * 基础字段
- */
-const basicFields: FilterField[] = [
-  {
-    prop: "keyword",
-    label: "关键词",
-    type: "input",
-    placeholder: "请输入关键词",
-  },
-  {
-    prop: "status",
-    label: "状态",
-    type: "select",
-    options: [
-      { value: 1, label: "启用" },
-      { value: 0, label: "禁用" },
-      { value: 2, label: "待审核" },
-    ],
-  },
-  {
-    prop: "type",
-    label: "类型",
-    type: "select",
-    multiple: true,
-    options: [
-      { value: "A", label: "类型A" },
-      { value: "B", label: "类型B" },
-      { value: "C", label: "类型C" },
-    ],
-  },
-  {
-    prop: "date",
-    label: "日期",
-    type: "date",
-  },
-  {
-    prop: "dateRange",
-    label: "日期范围",
-    type: "daterange",
-  },
+// ==================== 字段类型列表（基于 ScFilterBar 支持的类型）====================
+const fieldTypes: FieldType[] = [
+  { value: "text", label: "文本输入", icon: "ri:input-field" },
+  { value: "number", label: "数字", icon: "ri:hashtag" },
+  { value: "select", label: "下拉选择", icon: "ri:arrow-down-s-line" },
+  { value: "date", label: "日期", icon: "ri:calendar-line" },
+  { value: "daterange", label: "日期范围", icon: "ri:calendar-2-line" },
+  { value: "datetime", label: "日期时间", icon: "ri:calendar-check-line" },
+  { value: "datetimerange", label: "时间范围", icon: "ri:calendar-event-line" },
+  { value: "time", label: "时间", icon: "ri:time-line" },
+  { value: "switch", label: "开关", icon: "ri:toggle-line" },
+  { value: "tags", label: "标签", icon: "ri:price-tag-line" },
 ];
 
-/**
- * 快捷筛选
- */
-const quickFilters: QuickFilter[] = [
-  {
-    key: "today",
-    label: "今日",
-    value: { date: new Date().toISOString().split("T")[0] },
-    icon: "ep:calendar",
-  },
-  {
-    key: "enabled",
-    label: "已启用",
-    value: { status: 1 },
-    icon: "ep:check",
-  },
-  {
-    key: "disabled",
-    label: "已禁用",
-    value: { status: 0 },
-    icon: "ep:close",
-  },
+// ==================== 拖拽状态 ====================
+const isDragging = ref(false);
+let draggedType: FieldType | null = null;
+
+// ==================== 配置器数据 ====================
+const builderFields = ref<BuilderField[]>([]);
+const previewValues = ref<Record<string, unknown>>({});
+const config = reactive({
+  layout: "inline" as "inline" | "grid",
+  visibleCount: 4,
+  columns: 4,
+  border: false,
+  background: false,
+  realtime: false,
+  debounceTime: 300,
+  iconOnly: false,
+  showDrawer: true,
+  inputWidth: 180,
+});
+
+// ==================== ScFilterBar options 格式 ====================
+const previewOptions = computed(() => {
+  return builderFields.value.map(field => ({
+    value: field.prop,
+    label: field.label,
+    type: field.type,
+    placeholder: field.placeholder || `请输入${field.label}`,
+    extend: field.type === "select" ? {
+      data: [{ value: 1, label: "选项1" }, { value: 2, label: "选项2" }],
+      multiple: false,
+    } : undefined,
+  }));
+});
+
+// ==================== 生成代码 ====================
+const generatedCode = computed(() => {
+  if (builderFields.value.length === 0) {
+    return `<!-- 拖拽左侧字段类型到配置区域生成代码 -->`;
+  }
+  
+  const fieldsCode = builderFields.value.map(f => {
+    let code = `  { prop: "${f.prop}", label: "${f.label}", type: "${f.type}"`;
+    if (["select", "radio", "checkbox"].includes(f.type)) {
+      code += `, options: [{ value: 1, label: "选项1" }, { value: 2, label: "选项2" }]`;
+    }
+    code += " }";
+    return code;
+  }).join(",\n");
+  
+  const propsCode: string[] = [];
+  propsCode.push(`v-model="filterValues"`);
+  propsCode.push(`:fields="fields"`);
+  propsCode.push(`:visible-count="${config.visibleCount}"`);
+  if (config.layout !== "inline") propsCode.push(`layout="${config.layout}"`);
+  if (config.layout === "grid") propsCode.push(`:columns="${config.columns}"`);
+  if (config.border) propsCode.push("border");
+  if (config.background) propsCode.push("background");
+  if (config.realtime) propsCode.push("realtime");
+  if (config.realtime && config.debounceTime !== 300) propsCode.push(`:debounce-time="${config.debounceTime}"`);
+  propsCode.push(`@search="handleSearch"`);
+  
+  return `<template>
+  <ScFilterBar
+    ${propsCode.join("\n    ")}
+  />
+</template>
+
+<script setup>
+const filterValues = ref({});
+
+const fields = [
+${fieldsCode}
 ];
 
-/**
- * 高级字段
- */
-const advancedFields: FilterField[] = [
-  {
-    prop: "name",
-    label: "名称",
-    type: "input",
-  },
-  {
-    prop: "category",
-    label: "分类",
-    type: "cascader",
-    options: [
-      {
-        value: "electronics",
-        label: "电子产品",
-        children: [
-          { value: "phone", label: "手机" },
-          { value: "computer", label: "电脑" },
-        ],
-      },
-      {
-        value: "clothing",
-        label: "服装",
-        children: [
-          { value: "mens", label: "男装" },
-          { value: "womens", label: "女装" },
-        ],
-      },
-    ],
-  },
-  {
-    prop: "price",
-    label: "价格",
-    type: "number",
-    props: { min: 0, max: 10000 },
-  },
-  {
-    prop: "isActive",
-    label: "是否激活",
-    type: "switch",
-  },
-  {
-    prop: "level",
-    label: "等级",
-    type: "radio",
-    options: [
-      { value: 1, label: "普通" },
-      { value: 2, label: "VIP" },
-      { value: 3, label: "SVIP" },
-    ],
-  },
-  {
-    prop: "tags",
-    label: "标签",
-    type: "checkbox",
-    options: [
-      { value: "hot", label: "热门" },
-      { value: "new", label: "新品" },
-      { value: "sale", label: "促销" },
-    ],
-  },
-];
+function handleSearch(values) {
+  console.log("搜索:", values);
+}
+<\/script>`;
+});
 
-/**
- * Grid 布局字段
- */
-const gridFields: FilterField[] = [
-  { prop: "orderId", label: "订单号", type: "input" },
-  { prop: "userName", label: "用户名", type: "input" },
-  { prop: "phone", label: "手机号", type: "input" },
-  {
-    prop: "status",
-    label: "订单状态",
-    type: "select",
-    options: [
-      { value: 1, label: "待付款" },
-      { value: 2, label: "待发货" },
-      { value: 3, label: "已发货" },
-      { value: 4, label: "已完成" },
-    ],
-  },
-  {
-    prop: "payType",
-    label: "支付方式",
-    type: "select",
-    options: [
-      { value: 1, label: "微信" },
-      { value: 2, label: "支付宝" },
-      { value: 3, label: "银行卡" },
-    ],
-  },
-  { prop: "amount", label: "订单金额", type: "number" },
-  { prop: "createTime", label: "下单时间", type: "daterange", span: 2 },
-];
+// ==================== 拖拽处理 ====================
+function handleDragStart(event: DragEvent, type: FieldType) {
+  draggedType = type;
+  event.dataTransfer!.effectAllowed = "copy";
+}
 
-/**
- * 实时搜索字段
- */
-const realtimeFields: FilterField[] = [
-  {
-    prop: "search",
-    label: "搜索",
-    type: "input",
-    placeholder: "输入内容实时搜索",
-  },
-  {
-    prop: "category",
-    label: "分类",
-    type: "select",
-    options: [
-      { value: 1, label: "分类1" },
-      { value: 2, label: "分类2" },
-    ],
-  },
-  {
-    prop: "sort",
-    label: "排序",
-    type: "select",
-    options: [
-      { value: "asc", label: "升序" },
-      { value: "desc", label: "降序" },
-    ],
-  },
-];
+function handleDrop(event: DragEvent) {
+  event.preventDefault();
+  isDragging.value = false;
+  
+  if (draggedType) {
+    const id = `field_${Date.now()}`;
+    const count = builderFields.value.filter(f => f.type === draggedType!.value).length + 1;
+    builderFields.value.push({
+      id,
+      type: draggedType.value,
+      prop: `${draggedType.value}${count}`,
+      label: `${draggedType.label}${count}`,
+    });
+    draggedType = null;
+    ElMessage.success("字段添加成功");
+  }
+}
 
-/**
- * 插槽字段
- */
-const slotFields: FilterField[] = [
-  { prop: "name", label: "名称", type: "input" },
-  { prop: "progress", label: "进度", slot: "customField" },
-  {
-    prop: "status",
-    label: "状态",
-    type: "select",
-    options: [
-      { value: 1, label: "进行中" },
-      { value: 2, label: "已完成" },
-    ],
-  },
-];
+function getFieldIcon(type: string): string {
+  return fieldTypes.find(t => t.value === type)?.icon || "ri:input-field";
+}
 
-/**
- * 联动字段
- */
-const linkageFields: FilterField[] = [
-  {
-    prop: "province",
-    label: "省份",
-    type: "select",
-    options: [
-      { value: "guangdong", label: "广东省" },
-      { value: "zhejiang", label: "浙江省" },
-    ],
-    linkage: [
-      {
-        target: "city",
-        type: "options",
-        data: (value: unknown) => {
-          if (value === "guangdong") {
-            return [
-              { value: "guangzhou", label: "广州市" },
-              { value: "shenzhen", label: "深圳市" },
-            ];
-          } else if (value === "zhejiang") {
-            return [
-              { value: "hangzhou", label: "杭州市" },
-              { value: "ningbo", label: "宁波市" },
-            ];
-          }
-          return [];
-        },
-      },
-      {
-        target: "city",
-        type: "value",
-      },
-    ],
-  },
-  {
-    prop: "city",
-    label: "城市",
-    type: "select",
-    options: [],
-  },
-  {
-    prop: "detail",
-    label: "详细地址",
-    type: "input",
-  },
-];
+function getFieldLabel(type: string): string {
+  return fieldTypes.find(t => t.value === type)?.label || type;
+}
+
+function removeField(index: number) {
+  builderFields.value.splice(index, 1);
+}
+
+function clearFields() {
+  builderFields.value = [];
+  previewValues.value = {};
+}
+
+function editField(field: BuilderField) {
+  ElMessage.info(`编辑字段: ${field.label}`);
+}
+
+// ==================== 过滤结果 ====================
+const filterResult = ref<Record<string, unknown>>({});
 
 // ==================== 事件处理 ====================
+function handleFilterChange(values: Record<string, unknown>) {
+  filterResult.value = values;
+  console.log("过滤:", values);
+}
 
-/**
- * 搜索事件
- */
-function handleSearch(values: FilterValue): void {
+function handleSearch(values: Record<string, unknown>) {
   console.log("搜索:", values);
 }
 
-/**
- * 重置事件
- */
-function handleReset(): void {
+function handleReset() {
   console.log("重置");
-}
-
-/**
- * 快捷筛选事件
- */
-function handleQuickFilter(filter: QuickFilter): void {
-  console.log("快捷筛选:", filter);
-}
-
-/**
- * 实时搜索
- */
-function handleRealtimeSearch(values: FilterValue): void {
-  searchCount.value++;
-  console.log("实时搜索:", values);
-}
-
-/**
- * 值变化事件
- */
-function handleChange(prop: string, value: unknown, values: FilterValue): void {
-  console.log("值变化:", prop, value, values);
-}
-
-/**
- * 导出
- */
-function handleExport(values: FilterValue): void {
-  console.log("导出:", values);
 }
 </script>
 
 <style lang="scss" scoped>
-.sc-filter-bar-demo {
+.sc-filter-bar-example {
   padding: 20px;
+}
 
-  .demo-section {
-    margin-bottom: 32px;
-    padding: 20px;
-    background: var(--el-bg-color);
-    border-radius: 8px;
-    border: 1px solid var(--el-border-color-lighter);
+.builder-container {
+  display: flex;
+  gap: 20px;
+  min-height: 280px;
+  
+  @media (max-width: 1200px) {
+    flex-direction: column;
   }
+}
 
-  .section-title {
-    margin: 0 0 16px;
-    padding-bottom: 12px;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    border-bottom: 1px solid var(--el-border-color-lighter);
+// 字段类型面板
+.field-palette {
+  width: 160px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+  
+  .palette-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
   }
-
-  .demo-result {
-    margin-top: 16px;
-    padding: 12px;
-    background: var(--el-fill-color-lighter);
-    border-radius: 6px;
-    font-size: 13px;
-
-    code {
-      color: var(--el-color-primary);
-      word-break: break-all;
-    }
-  }
-
-  .custom-field {
+  
+  .palette-title {
     display: flex;
     align-items: center;
-    gap: 12px;
-    width: 200px;
-
-    .el-slider {
-      flex: 1;
-    }
-
-    &-value {
-      min-width: 40px;
-      text-align: right;
-      color: var(--el-color-primary);
-      font-weight: 600;
+    gap: 8px;
+    margin: 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .palette-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    
+    &.icon-only {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 4px;
+      
+      .palette-item {
+        padding: 6px;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+      }
     }
   }
+  
+  .palette-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(0, 200, 255, 0.1);
+    border: 1px solid rgba(0, 200, 255, 0.3);
+    border-radius: 6px;
+    color: rgba(200, 230, 255, 0.9);
+    font-size: 13px;
+    cursor: grab;
+    transition: all 0.2s;
+    
+    &:hover {
+      background: rgba(0, 200, 255, 0.2);
+      border-color: rgba(0, 200, 255, 0.5);
+      transform: translateX(4px);
+    }
+    
+    &:active {
+      cursor: grabbing;
+    }
+    
+    .palette-item-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+}
+
+// 配置主区域
+.builder-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  
+  .builder-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    h4 {
+      margin: 0;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+}
+
+// 拖放区域
+.drop-zone {
+  min-height: 120px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 2px dashed rgba(0, 200, 255, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.2s;
+  
+  &.is-dragging {
+    border-color: rgba(0, 200, 255, 0.8);
+    background: rgba(0, 200, 255, 0.1);
+  }
+  
+  .drop-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 90px;
+    color: rgba(255, 255, 255, 0.5);
+    gap: 8px;
+    
+    .iconify {
+      font-size: 32px;
+    }
+  }
+}
+
+// 字段列表
+.field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 200, 255, 0.2);
+  border-radius: 6px;
+  
+  .field-handle {
+    color: rgba(255, 255, 255, 0.4);
+    cursor: grab;
+  }
+  
+  .field-type-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(0, 200, 255, 0.2);
+    border-radius: 4px;
+    font-size: 12px;
+    color: #00c8ff;
+    white-space: nowrap;
+  }
+  
+  .field-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(0, 200, 255, 0.8);
+    
+    .field-label-input,
+    .field-prop-input {
+      width: 120px;
+      
+      :deep(.el-input__wrapper) {
+        background: rgba(0, 0, 0, 0.3);
+        border-color: rgba(0, 200, 255, 0.3);
+      }
+      
+      :deep(.el-input__inner) {
+        color: #fff;
+      }
+    }
+  }
+  
+  .field-actions {
+    display: flex;
+    gap: 4px;
+  }
+}
+
+// 预览区域（独立整行）
+.preview-section {
+  margin-top: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+  
+  .preview-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .preview-content {
+    padding: 16px;
+    background: var(--el-bg-color);
+    border-radius: 6px;
+  }
+  
+  .preview-result {
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    
+    code {
+      color: #00c8ff;
+    }
+  }
+}
+
+// 配置面板
+.config-panel {
+  width: 240px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  
+  .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  :deep(.el-form-item__label) {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+// DemoBlock 通用样式
+.demo-tip {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.demo-result {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 6px;
+  font-size: 13px;
+  
+  code {
+    color: var(--el-color-primary);
+    word-break: break-all;
+  }
+}
+
+// 列表动画
+.field-list-enter-active,
+.field-list-leave-active {
+  transition: all 0.3s ease;
+}
+
+.field-list-enter-from,
+.field-list-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
 }
 </style>

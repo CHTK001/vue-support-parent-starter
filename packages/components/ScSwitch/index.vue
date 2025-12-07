@@ -114,6 +114,7 @@ import CardLayout from "./components/CardLayout.vue";
 import SliderLayout from "./components/SliderLayout.vue";
 import ModernLayout from "./components/ModernLayout.vue";
 import VisualCardLayout from "./components/VisualCardLayout.vue";
+import { getThemeConfig, type IotSwitchTheme } from "./themes";
 
 const props = defineProps({
   /**
@@ -149,6 +150,17 @@ const props = defineProps({
     type: String,
     default: "default",
     validator: (val: string) => ["default", "card", "slider", "modern", "visual-card"].includes(val)
+  },
+  /**
+   * 物联网主题
+   * power: 电源, light: 灯光, fan: 风扇, aircon: 空调
+   * lock: 门锁, alarm: 警报, wifi: WiFi, bluetooth: 蓝牙
+   * curtain: 窗帘, heater: 加热, humidifier: 加湿器, purifier: 净化器
+   * camera: 摄像头, mute: 静音, schedule: 定时, auto: 自动
+   */
+  iotTheme: {
+    type: String as () => IotSwitchTheme,
+    default: undefined
   },
   /**
    * 尺寸
@@ -283,6 +295,33 @@ const currentValue = computed({
   set(val) {
     emit("update:modelValue", val);
   }
+});
+
+// 主题配置
+const themeConfig = computed(() => {
+  if (props.iotTheme) {
+    return getThemeConfig(props.iotTheme);
+  }
+  return undefined;
+});
+
+// 根据主题计算的属性
+const computedActiveIcon = computed(() => themeConfig.value?.activeIcon ?? props.activeIcon);
+const computedInactiveIcon = computed(() => themeConfig.value?.inactiveIcon ?? props.inactiveIcon);
+const computedActiveColor = computed(() => themeConfig.value?.activeColor ?? props.activeColor);
+const computedInactiveColor = computed(() => themeConfig.value?.inactiveColor ?? props.inactiveColor);
+const computedActiveText = computed(() => themeConfig.value?.activeText ?? props.activeText);
+const computedInactiveText = computed(() => themeConfig.value?.inactiveText ?? props.inactiveText);
+const computedLabel = computed(() => themeConfig.value?.label ?? props.label);
+const computedDescription = computed(() => themeConfig.value?.description ?? props.description);
+
+// 暴露给父组件
+defineExpose({
+  themeConfig,
+  computedActiveIcon,
+  computedInactiveIcon,
+  computedActiveColor,
+  computedInactiveColor
 });
 
 // 处理变更事件
