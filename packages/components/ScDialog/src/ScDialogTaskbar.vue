@@ -48,7 +48,7 @@
                     </div>
                   </template>
                 </div>
-                <span v-if="!isVertical" class="sc-dialog-taskbar__group-name">{{ group.groupName }}</span>
+                <!-- 分组合并开启时只显示图标，不显示分组名 -->
                 <!-- 数量徽章，预留给通知使用 -->
                 <!-- <span v-if="group.notificationCount" class="sc-dialog-taskbar__group-badge">
                   {{ group.notificationCount }}
@@ -82,7 +82,7 @@
           <div v-for="item in displayItems" :key="item.id" class="sc-dialog-taskbar__single-item" @mouseenter="handleSingleItemMouseEnter(item)" @mouseleave="handleSingleItemMouseLeave">
             <div class="sc-dialog-taskbar__item" :class="[`sc-dialog-taskbar__item--${item.type}`, { 'is-active': item.active }]" @click="handleItemClick(item)">
               <IconifyIconOnline :icon="item.icon" class="sc-dialog-taskbar__item-icon" />
-              <span v-if="!isVertical" class="sc-dialog-taskbar__item-title">{{ item.title }}</span>
+              <span v-if="!isVertical && !groupCollapse" class="sc-dialog-taskbar__item-title">{{ item.title }}</span>
               <button class="sc-dialog-taskbar__item-close" @click.stop="handleItemClose(item)" title="关闭">
                 <IconifyIconOnline icon="ep:close" />
               </button>
@@ -213,12 +213,12 @@ const taskbarStyle = computed(() => {
 
 // 是否应该显示任务栏
 const shouldShow = computed(() => {
-  // 永久显示模式下，只要启用就显示
-  if (props.enabled && props.alwaysVisible) {
-    return true;
+  // 必须启用且有项目才显示
+  if (!props.enabled || !taskbar.hasAnyItems.value) {
+    return false;
   }
-  // 非永久显示模式下，有项目或悬停时才显示
-  return props.enabled && (taskbar.hasAnyItems.value || isHovering.value);
+  // 永久显示模式或者悬停时显示
+  return props.alwaysVisible || isHovering.value;
 });
 
 // 分组后的任务栏项
