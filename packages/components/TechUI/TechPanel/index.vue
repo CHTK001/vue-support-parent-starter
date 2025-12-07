@@ -32,15 +32,15 @@
  * @version 1.0.0
  * @since 2025-12-06
  */
-import { computed, defineOptions } from "vue";
+import { computed, defineOptions, resolveComponent } from "vue";
 
 defineOptions({
   name: "TechPanel",
   inheritAttrs: false
 });
 
-// 面板变体类型
-type PanelVariant = "A1" | "A2" | "A3" | "A4" | "A5" | "B1" | "B2" | "B3" | "B4" | "B5";
+// 面板变体类型 (实际可用: A1-A3, B1-B4, DV1-DV9)
+type PanelVariant = "A1" | "A2" | "A3" | "B1" | "B2" | "B3" | "B4" | "DV1" | "DV2" | "DV3" | "DV4" | "DV5" | "DV6" | "DV7" | "DV8" | "DV9";
 
 const props = withDefaults(defineProps<{
   /** 面板变体 */
@@ -75,7 +75,12 @@ const props = withDefaults(defineProps<{
 
 // 根据 variant 动态选择组件
 const panelComponent = computed(() => {
-  return `scifiPanel${props.variant}`;
+  const name = `scifiPanel${props.variant}`;
+  try {
+    return resolveComponent(name);
+  } catch {
+    return name;
+  }
 });
 </script>
 

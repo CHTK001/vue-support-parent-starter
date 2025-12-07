@@ -20,18 +20,18 @@
  * @version 1.0.0
  * @since 2025-12-06
  */
-import { computed, defineOptions } from "vue";
+import { computed, defineOptions, resolveComponent } from "vue";
 
 defineOptions({
   name: "TechGeometry",
   inheritAttrs: false
 });
 
-// 几何变体类型
-type GeometryVariant = "A1" | "A2" | "A3" | "A4" | "A5" | "B1" | "B2" | "B3" | "B4" | "B5";
+// 几何变体类型 (对应 scifiGeome + 形状名称)
+type GeometryVariant = "Parallelogram" | "Rectangle" | "Trapezoid" | "Triangle" | "Hexagon";
 
 const props = withDefaults(defineProps<{
-  /** 几何变体 */
+  /** 几何变体: Parallelogram(平行四边形), Rectangle(矩形), Trapezoid(梯形), Triangle(三角形), Hexagon(六边形) */
   variant?: GeometryVariant;
   /** 宽度 */
   width?: string | number;
@@ -48,7 +48,7 @@ const props = withDefaults(defineProps<{
   /** 自定义类名 */
   className?: string;
 }>(), {
-  variant: "A1",
+  variant: "Rectangle",
   width: "100%",
   height: "auto",
   glow: true,
@@ -60,7 +60,12 @@ const props = withDefaults(defineProps<{
 
 // 根据 variant 动态选择组件
 const geometryComponent = computed(() => {
-  return `scifiGeome${props.variant}`;
+  const name = `scifiGeome${props.variant}`;
+  try {
+    return resolveComponent(name);
+  } catch {
+    return name;
+  }
 });
 </script>
 

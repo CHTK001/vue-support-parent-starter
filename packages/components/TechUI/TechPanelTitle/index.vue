@@ -26,15 +26,15 @@
  * @version 1.0.0
  * @since 2025-12-06
  */
-import { computed, defineOptions } from "vue";
+import { computed, defineOptions, resolveComponent } from "vue";
 
 defineOptions({
   name: "TechPanelTitle",
   inheritAttrs: false
 });
 
-// 面板标题变体类型
-type PanelTitleVariant = "A1" | "A2" | "A3" | "A4" | "A5";
+// 面板标题变体类型 (实际可用: A1-A3)
+type PanelTitleVariant = "A1" | "A2" | "A3";
 
 const props = withDefaults(defineProps<{
   /** 标题变体 */
@@ -60,7 +60,12 @@ const props = withDefaults(defineProps<{
 
 // 根据 variant 动态选择组件
 const panelTitleComponent = computed(() => {
-  return `scifiPanelTitle${props.variant}`;
+  const name = `scifiPanelTitle${props.variant}`;
+  try {
+    return resolveComponent(name);
+  } catch {
+    return name;
+  }
 });
 </script>
 

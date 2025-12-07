@@ -3,6 +3,16 @@
     <h2 class="example-title">TechUI 科幻风格组件</h2>
     <p class="example-desc">基于 @techui/scifi 的科幻风格组件封装，支持多种变体和自定义配置</p>
 
+    <!-- 直接测试原生 @techui/scifi 组件 -->
+    <el-divider content-position="left">原生 @techui/scifi 组件测试</el-divider>
+    <div class="demo-section">
+      <h4>直接使用原生组件（不通过封装）</h4>
+      <div class="demo-row">
+        <scifiButtonA1>原生按钮A1</scifiButtonA1>
+        <scifiButtonA2>原生按钮A2</scifiButtonA2>
+      </div>
+    </div>
+
     <!-- TechButton 示例 -->
     <el-divider content-position="left">TechButton 科幻按钮</el-divider>
     <div class="demo-section">
@@ -123,8 +133,8 @@
     <!-- TechPanel 示例 -->
     <el-divider content-position="left">TechPanel 科幻面板</el-divider>
     <div class="demo-section">
-      <h4>面板变体 A 系列 (variant: A1-A5)</h4>
-      <div class="demo-grid">
+      <h4>面板变体 A 系列 (variant: A1-A3)</h4>
+      <div class="demo-grid panel-grid">
         <TechPanel variant="A1" title="Panel A1" :height="180">
           <div class="panel-content">面板内容区域</div>
         </TechPanel>
@@ -134,16 +144,10 @@
         <TechPanel variant="A3" title="Panel A3" :height="180">
           <div class="panel-content">面板内容区域</div>
         </TechPanel>
-        <TechPanel variant="A4" title="Panel A4" :height="180">
-          <div class="panel-content">面板内容区域</div>
-        </TechPanel>
-        <TechPanel variant="A5" title="Panel A5" :height="180">
-          <div class="panel-content">面板内容区域</div>
-        </TechPanel>
       </div>
 
-      <h4>面板变体 B 系列 (variant: B1-B5)</h4>
-      <div class="demo-grid">
+      <h4>面板变体 B 系列 (variant: B1-B4)</h4>
+      <div class="demo-grid panel-grid">
         <TechPanel variant="B1" title="Panel B1" :height="180">
           <div class="panel-content">面板内容区域</div>
         </TechPanel>
@@ -154,9 +158,6 @@
           <div class="panel-content">面板内容区域</div>
         </TechPanel>
         <TechPanel variant="B4" title="Panel B4" :height="180">
-          <div class="panel-content">面板内容区域</div>
-        </TechPanel>
-        <TechPanel variant="B5" title="Panel B5" :height="180">
           <div class="panel-content">面板内容区域</div>
         </TechPanel>
       </div>
@@ -178,13 +179,12 @@
     <!-- TechHeader 示例 -->
     <el-divider content-position="left">TechHeader 科幻头部</el-divider>
     <div class="demo-section">
-      <h4>头部变体 (variant: A1-A5)</h4>
+      <h4>头部变体 (variant: A1-A4)</h4>
       <div class="demo-col">
         <TechHeader variant="A1" title="系统控制中心 A1" sub-title="SYSTEM CONTROL CENTER" />
         <TechHeader variant="A2" title="数据监控平台 A2" sub-title="DATA MONITORING PLATFORM" />
         <TechHeader variant="A3" title="智能分析系统 A3" sub-title="INTELLIGENT ANALYSIS SYSTEM" />
         <TechHeader variant="A4" title="资源调度中心 A4" sub-title="RESOURCE SCHEDULING CENTER" />
-        <TechHeader variant="A5" title="安全防护系统 A5" sub-title="SECURITY PROTECTION SYSTEM" />
       </div>
 
       <h4>头部自定义配置</h4>
@@ -198,13 +198,11 @@
     <!-- TechPanelTitle 示例 -->
     <el-divider content-position="left">TechPanelTitle 科幻标题</el-divider>
     <div class="demo-section">
-      <h4>标题变体 (variant: A1-A5)</h4>
+      <h4>标题变体 (variant: A1-A3)</h4>
       <div class="demo-col">
         <TechPanelTitle variant="A1" title="数据统计 A1" />
         <TechPanelTitle variant="A2" title="系统监控 A2" />
         <TechPanelTitle variant="A3" title="实时预警 A3" />
-        <TechPanelTitle variant="A4" title="性能分析 A4" />
-        <TechPanelTitle variant="A5" title="日志管理 A5" />
       </div>
 
       <h4>标题自定义配置</h4>
@@ -217,32 +215,12 @@
     <!-- TechDeco 示例 -->
     <el-divider content-position="left">TechDeco 科幻装饰</el-divider>
     <div class="demo-section">
-      <h4>装饰变体 A 系列 (variant: A1-A5)</h4>
+      <h4>可用装饰变体 (variant: A1, B1-B3, D1)</h4>
       <div class="demo-row deco-row">
         <div class="deco-item">
           <TechDeco variant="A1" :width="120" :height="40" />
           <span>Deco A1</span>
         </div>
-        <div class="deco-item">
-          <TechDeco variant="A2" :width="120" :height="40" />
-          <span>Deco A2</span>
-        </div>
-        <div class="deco-item">
-          <TechDeco variant="A3" :width="120" :height="40" />
-          <span>Deco A3</span>
-        </div>
-        <div class="deco-item">
-          <TechDeco variant="A4" :width="120" :height="40" />
-          <span>Deco A4</span>
-        </div>
-        <div class="deco-item">
-          <TechDeco variant="A5" :width="120" :height="40" />
-          <span>Deco A5</span>
-        </div>
-      </div>
-
-      <h4>装饰变体 B 系列 (variant: B1-B5)</h4>
-      <div class="demo-row deco-row">
         <div class="deco-item">
           <TechDeco variant="B1" :width="120" :height="40" />
           <span>Deco B1</span>
@@ -256,60 +234,8 @@
           <span>Deco B3</span>
         </div>
         <div class="deco-item">
-          <TechDeco variant="B4" :width="120" :height="40" />
-          <span>Deco B4</span>
-        </div>
-        <div class="deco-item">
-          <TechDeco variant="B5" :width="120" :height="40" />
-          <span>Deco B5</span>
-        </div>
-      </div>
-
-      <h4>装饰变体 C 系列 (variant: C1-C5)</h4>
-      <div class="demo-row deco-row">
-        <div class="deco-item">
-          <TechDeco variant="C1" :width="120" :height="40" />
-          <span>Deco C1</span>
-        </div>
-        <div class="deco-item">
-          <TechDeco variant="C2" :width="120" :height="40" />
-          <span>Deco C2</span>
-        </div>
-        <div class="deco-item">
-          <TechDeco variant="C3" :width="120" :height="40" />
-          <span>Deco C3</span>
-        </div>
-        <div class="deco-item">
-          <TechDeco variant="C4" :width="120" :height="40" />
-          <span>Deco C4</span>
-        </div>
-        <div class="deco-item">
-          <TechDeco variant="C5" :width="120" :height="40" />
-          <span>Deco C5</span>
-        </div>
-      </div>
-
-      <h4>装饰变体 D 系列 (variant: D1-D5)</h4>
-      <div class="demo-row deco-row">
-        <div class="deco-item">
           <TechDeco variant="D1" :width="120" :height="40" />
           <span>Deco D1</span>
-        </div>
-        <div class="deco-item">
-          <TechDeco variant="D2" :width="120" :height="40" />
-          <span>Deco D2</span>
-        </div>
-        <div class="deco-item">
-          <TechDeco variant="D3" :width="120" :height="40" />
-          <span>Deco D3</span>
-        </div>
-        <div class="deco-item">
-          <TechDeco variant="D4" :width="120" :height="40" />
-          <span>Deco D4</span>
-        </div>
-        <div class="deco-item">
-          <TechDeco variant="D5" :width="120" :height="40" />
-          <span>Deco D5</span>
         </div>
       </div>
 
@@ -333,66 +259,42 @@
     <!-- TechGeometry 示例 -->
     <el-divider content-position="left">TechGeometry 科幻几何</el-divider>
     <div class="demo-section">
-      <h4>几何变体 A 系列 (variant: A1-A5)</h4>
+      <h4>几何形状 (variant: Rectangle, Triangle, Parallelogram, Trapezoid, Hexagon)</h4>
       <div class="demo-row geometry-row">
         <div class="geometry-item">
-          <TechGeometry variant="A1" :width="100" :height="100" />
-          <span>Geometry A1</span>
+          <TechGeometry variant="Rectangle" :width="100" :height="100" />
+          <span>矩形</span>
         </div>
         <div class="geometry-item">
-          <TechGeometry variant="A2" :width="100" :height="100" />
-          <span>Geometry A2</span>
+          <TechGeometry variant="Triangle" :width="100" :height="100" />
+          <span>三角形</span>
         </div>
         <div class="geometry-item">
-          <TechGeometry variant="A3" :width="100" :height="100" />
-          <span>Geometry A3</span>
+          <TechGeometry variant="Parallelogram" :width="100" :height="100" />
+          <span>平行四边形</span>
         </div>
         <div class="geometry-item">
-          <TechGeometry variant="A4" :width="100" :height="100" />
-          <span>Geometry A4</span>
+          <TechGeometry variant="Trapezoid" :width="100" :height="100" />
+          <span>梯形</span>
         </div>
         <div class="geometry-item">
-          <TechGeometry variant="A5" :width="100" :height="100" />
-          <span>Geometry A5</span>
-        </div>
-      </div>
-
-      <h4>几何变体 B 系列 (variant: B1-B5)</h4>
-      <div class="demo-row geometry-row">
-        <div class="geometry-item">
-          <TechGeometry variant="B1" :width="100" :height="100" />
-          <span>Geometry B1</span>
-        </div>
-        <div class="geometry-item">
-          <TechGeometry variant="B2" :width="100" :height="100" />
-          <span>Geometry B2</span>
-        </div>
-        <div class="geometry-item">
-          <TechGeometry variant="B3" :width="100" :height="100" />
-          <span>Geometry B3</span>
-        </div>
-        <div class="geometry-item">
-          <TechGeometry variant="B4" :width="100" :height="100" />
-          <span>Geometry B4</span>
-        </div>
-        <div class="geometry-item">
-          <TechGeometry variant="B5" :width="100" :height="100" />
-          <span>Geometry B5</span>
+          <TechGeometry variant="Hexagon" :width="100" :height="100" />
+          <span>六边形</span>
         </div>
       </div>
 
       <h4>几何自定义配置</h4>
       <div class="demo-row geometry-row">
         <div class="geometry-item">
-          <TechGeometry variant="A1" :width="100" :height="100" :animation="false" />
+          <TechGeometry variant="Rectangle" :width="100" :height="100" :animation="false" />
           <span>无动画</span>
         </div>
         <div class="geometry-item">
-          <TechGeometry variant="A1" :width="100" :height="100" decoration-color-alt />
+          <TechGeometry variant="Rectangle" :width="100" :height="100" decoration-color-alt />
           <span>装饰色替换</span>
         </div>
         <div class="geometry-item">
-          <TechGeometry variant="A1" :width="100" :height="100" :glow-opacity="1" />
+          <TechGeometry variant="Rectangle" :width="100" :height="100" :glow-opacity="1" />
           <span>强发光</span>
         </div>
       </div>
@@ -423,7 +325,7 @@
         
         <TechPanel variant="A2" title="中间面板" :height="300" class="layout-panel center-panel">
           <div class="panel-inner center-content">
-            <TechGeometry variant="A1" :width="150" :height="150" />
+            <TechGeometry variant="Hexagon" :width="150" :height="150" />
             <div class="center-text">
               <h3>系统运行正常</h3>
               <p>SYSTEM RUNNING NORMALLY</p>
@@ -474,10 +376,18 @@
       <el-table-column prop="desc" label="说明" />
     </el-table>
 
-    <el-divider content-position="left">TechDeco / TechGeometry 属性</el-divider>
+    <el-divider content-position="left">TechDeco 属性</el-divider>
     <el-table :data="decoProps" border stripe>
       <el-table-column prop="name" label="属性" width="180" />
       <el-table-column prop="type" label="类型" width="250" />
+      <el-table-column prop="default" label="默认值" width="120" />
+      <el-table-column prop="desc" label="说明" />
+    </el-table>
+
+    <el-divider content-position="left">TechGeometry 属性</el-divider>
+    <el-table :data="geometryProps" border stripe>
+      <el-table-column prop="name" label="属性" width="180" />
+      <el-table-column prop="type" label="类型" width="350" />
       <el-table-column prop="default" label="默认值" width="120" />
       <el-table-column prop="desc" label="说明" />
     </el-table>
@@ -609,7 +519,7 @@ const buttonProps = [
 ];
 
 const panelProps = [
-  { name: "variant", type: "'A1'-'A5' | 'B1'-'B5'", default: "'A1'", desc: "面板变体样式" },
+  { name: "variant", type: "'A1'-'A3' | 'B1'-'B4' | 'DV1'-'DV9'", default: "'A1'", desc: "面板变体样式" },
   { name: "title", type: "string", default: "''", desc: "面板标题" },
   { name: "width", type: "string | number", default: "'100%'", desc: "面板宽度" },
   { name: "height", type: "string | number", default: "'auto'", desc: "面板高度" },
@@ -621,7 +531,7 @@ const panelProps = [
 ];
 
 const headerProps = [
-  { name: "variant", type: "'A1' | 'A2' | 'A3' | 'A4' | 'A5'", default: "'A1'", desc: "头部变体样式" },
+  { name: "variant", type: "'A1' | 'A2' | 'A3' | 'A4'", default: "'A1'", desc: "头部变体样式" },
   { name: "title", type: "string", default: "''", desc: "主标题" },
   { name: "subTitle", type: "string", default: "''", desc: "副标题" },
   { name: "glow", type: "boolean", default: "true", desc: "是否显示发光效果" },
@@ -632,7 +542,18 @@ const headerProps = [
 ];
 
 const decoProps = [
-  { name: "variant", type: "'A1'-'A5' | 'B1'-'B5' | 'C1'-'C5' | 'D1'-'D5'", default: "'A1'", desc: "装饰/几何变体样式" },
+  { name: "variant", type: "'A1' | 'B1'-'B3' | 'D1'", default: "'A1'", desc: "装饰变体样式" },
+  { name: "width", type: "string | number", default: "'100%'", desc: "宽度" },
+  { name: "height", type: "string | number", default: "'auto'", desc: "高度" },
+  { name: "glow", type: "boolean", default: "true", desc: "是否显示发光效果" },
+  { name: "glowOpacity", type: "number", default: "0.5", desc: "发光透明度 (0-1)" },
+  { name: "decorationColorAlt", type: "boolean", default: "false", desc: "装饰颜色替换" },
+  { name: "animation", type: "boolean", default: "true", desc: "是否启用动画效果" },
+  { name: "className", type: "string", default: "''", desc: "自定义类名" },
+];
+
+const geometryProps = [
+  { name: "variant", type: "'Rectangle' | 'Triangle' | 'Parallelogram' | 'Trapezoid' | 'Hexagon'", default: "'Rectangle'", desc: "几何形状" },
   { name: "width", type: "string | number", default: "'100%'", desc: "宽度" },
   { name: "height", type: "string | number", default: "'auto'", desc: "高度" },
   { name: "glow", type: "boolean", default: "true", desc: "是否显示发光效果" },
@@ -643,7 +564,7 @@ const decoProps = [
 ];
 
 const panelTitleProps = [
-  { name: "variant", type: "'A1' | 'A2' | 'A3' | 'A4' | 'A5'", default: "'A1'", desc: "标题变体样式" },
+  { name: "variant", type: "'A1' | 'A2' | 'A3'", default: "'A1'", desc: "标题变体样式" },
   { name: "title", type: "string", default: "''", desc: "标题文本" },
   { name: "glow", type: "boolean", default: "true", desc: "是否显示发光效果" },
   { name: "glowOpacity", type: "number", default: "0.5", desc: "发光透明度 (0-1)" },
@@ -714,6 +635,10 @@ const panelTitleProps = [
 
   &:last-child {
     margin-bottom: 0;
+  }
+  
+  &.panel-grid {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 

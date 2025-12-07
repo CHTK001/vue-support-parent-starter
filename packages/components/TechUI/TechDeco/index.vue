@@ -20,16 +20,15 @@
  * @version 1.0.0
  * @since 2025-12-06
  */
-import { computed, defineOptions } from "vue";
+import { computed, defineOptions, resolveComponent } from "vue";
 
 defineOptions({
   name: "TechDeco",
   inheritAttrs: false
 });
 
-// 装饰变体类型
-type DecoVariant = "A1" | "A2" | "A3" | "A4" | "A5" | "B1" | "B2" | "B3" | "B4" | "B5" | 
-                   "C1" | "C2" | "C3" | "C4" | "C5" | "D1" | "D2" | "D3" | "D4" | "D5";
+// 装饰变体类型 (实际可用: A1, B1-B3, D1)
+type DecoVariant = "A1" | "B1" | "B2" | "B3" | "D1";
 
 const props = withDefaults(defineProps<{
   /** 装饰变体 */
@@ -61,7 +60,12 @@ const props = withDefaults(defineProps<{
 
 // 根据 variant 动态选择组件
 const decoComponent = computed(() => {
-  return `scifiDeco${props.variant}`;
+  const name = `scifiDeco${props.variant}`;
+  try {
+    return resolveComponent(name);
+  } catch {
+    return name;
+  }
 });
 </script>
 
