@@ -7,10 +7,8 @@
  */
 
 import { App } from "vue";
-// 导入 @techui/scifi 组件库
-import techuiScifiInit from "@techui/scifi";
 
-// 导入封装组件
+// 导入封装组件 (组件内部直接导入 @techui/scifi 的原生组件)
 import TechButton from "./TechButton/index.vue";
 import TechPanel from "./TechPanel/index.vue";
 import TechHeader from "./TechHeader/index.vue";
@@ -28,31 +26,20 @@ export {
   TechPanelTitle 
 };
 
-// 导出原始 @techui/scifi 初始化函数
-export { techuiScifiInit };
-
 /**
- * 初始化 TechUI (包括 @techui/scifi)
+ * 初始化 TechUI
+ * 注册封装组件为全局组件
  * @param app Vue 应用实例
  * @param options 配置选项
  */
-export async function initTechUI(app: App, options?: {
-  license?: string | null;
-  features?: {
-    echarts?: boolean;
-    advanced?: boolean;
-  };
+export function initTechUI(app: App, options?: {
   debug?: boolean;
-}): Promise<void> {
-  const { license = null, features = {}, debug = false } = options || {};
+}): void {
+  const { debug = false } = options || {};
   
-  // 初始化 @techui/scifi
-  await techuiScifiInit({
-    app,
-    license,
-    features,
-    debug
-  });
+  if (debug) {
+    console.log("[TechUI] 开始注册组件...");
+  }
   
   // 注册封装组件
   app.component("TechButton", TechButton);
@@ -61,17 +48,15 @@ export async function initTechUI(app: App, options?: {
   app.component("TechDeco", TechDeco);
   app.component("TechGeometry", TechGeometry);
   app.component("TechPanelTitle", TechPanelTitle);
+  
+  if (debug) {
+    console.log("[TechUI] 组件注册完成");
+  }
 }
 
-// 默认导出，用于同步注册（仅注册封装组件，不初始化 @techui/scifi）
+// 默认导出，Vue 插件格式
 export default {
-  install(app: App): void {
-    // 注册封装组件（需要先调用 initTechUI 初始化 @techui/scifi）
-    app.component("TechButton", TechButton);
-    app.component("TechPanel", TechPanel);
-    app.component("TechHeader", TechHeader);
-    app.component("TechDeco", TechDeco);
-    app.component("TechGeometry", TechGeometry);
-    app.component("TechPanelTitle", TechPanelTitle);
+  install(app: App, options?: { debug?: boolean }): void {
+    initTechUI(app, options);
   }
 };

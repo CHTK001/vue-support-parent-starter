@@ -159,9 +159,30 @@ catalogs:
     '@tailwindcss/typography':
       specifier: ^0.5.15
       version: 0.5.16
+    '@techui/colors':
+      specifier: ^1.0.2
+      version: 1.0.2
+    '@techui/icons':
+      specifier: ^1.0.3
+      version: 1.0.3
+    '@techui/lessmixins':
+      specifier: ^0.0.6
+      version: 0.0.6
+    '@techui/libs':
+      specifier: ^0.0.6
+      version: 0.0.6
+    '@techui/locales':
+      specifier: ^0.0.6
+      version: 0.0.6
     '@techui/scifi':
       specifier: ^0.0.6-alpha.1
       version: 0.0.6-alpha.1
+    '@techui/themes':
+      specifier: ^0.0.6
+      version: 0.0.6
+    '@techui/utils':
+      specifier: ^0.0.6
+      version: 0.0.6
     '@traptitech/markdown-it-katex':
       specifier: ^3.6.0
       version: 3.6.0
@@ -4465,6 +4486,30 @@ importers:
       '@repo/components':
         specifier: workspace:^
         version: link:../../packages/components
+      '@techui/colors':
+        specifier: 'catalog:'
+        version: 1.0.2
+      '@techui/icons':
+        specifier: 'catalog:'
+        version: 1.0.3
+      '@techui/lessmixins':
+        specifier: 'catalog:'
+        version: 0.0.6
+      '@techui/libs':
+        specifier: 'catalog:'
+        version: 0.0.6
+      '@techui/locales':
+        specifier: 'catalog:'
+        version: 0.0.6
+      '@techui/scifi':
+        specifier: 'catalog:'
+        version: 0.0.6-alpha.1(typescript@5.9.3)
+      '@techui/themes':
+        specifier: 'catalog:'
+        version: 0.0.6
+      '@techui/utils':
+        specifier: 'catalog:'
+        version: 0.0.6
       echarts:
         specifier: 'catalog:'
         version: 5.6.0

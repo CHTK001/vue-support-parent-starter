@@ -26,7 +26,23 @@
  * @version 1.0.0
  * @since 2025-12-06
  */
-import { computed, defineOptions, resolveComponent } from "vue";
+import { computed, type Component } from "vue";
+import { 
+  scifiButtonA1, 
+  scifiButtonA2, 
+  scifiButtonA3, 
+  scifiButtonA4, 
+  scifiButtonA5 
+} from "@techui/scifi";
+
+// 组件映射表
+const buttonComponents: Record<string, Component> = {
+  A1: scifiButtonA1,
+  A2: scifiButtonA2,
+  A3: scifiButtonA3,
+  A4: scifiButtonA4,
+  A5: scifiButtonA5,
+};
 
 defineOptions({
   name: "TechButton",
@@ -79,14 +95,7 @@ const emit = defineEmits<{
 
 // 根据 variant 动态选择组件
 const buttonComponent = computed(() => {
-  const name = `scifiButton${props.variant}`;
-  // 尝试解析已注册的组件
-  try {
-    return resolveComponent(name);
-  } catch {
-    // 如果解析失败，返回字符串名称（让 Vue 自己解析）
-    return name;
-  }
+  return buttonComponents[props.variant] || scifiButtonA1;
 });
 
 const handleClick = (event: MouseEvent) => {
