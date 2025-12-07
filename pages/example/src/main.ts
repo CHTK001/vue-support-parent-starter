@@ -4,8 +4,8 @@ import router from "./router";
 import { ScMap, ScLayer } from "@repo/components";
 import { initTechUI } from "@repo/components/TechUI";
 
-// TechUI 科幻风格样式
-import "@techui/scifi/dist/style.css";
+// TechUI 科幻风格样式 (index.css 已在 @techui/scifi/index.js 中自动导入)
+// 如需手动导入: import "@techui/scifi/dist/index.css";
 
 import "./styles/main.css";
 import "./styles/example-common.scss";

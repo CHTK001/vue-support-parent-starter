@@ -26,7 +26,7 @@
  * @version 1.0.0
  * @since 2025-12-06
  */
-import { computed, defineOptions } from "vue";
+import { computed, defineOptions, resolveComponent } from "vue";
 
 defineOptions({
   name: "TechButton",
@@ -79,7 +79,14 @@ const emit = defineEmits<{
 
 // 根据 variant 动态选择组件
 const buttonComponent = computed(() => {
-  return `scifiButton${props.variant}`;
+  const name = `scifiButton${props.variant}`;
+  // 尝试解析已注册的组件
+  try {
+    return resolveComponent(name);
+  } catch {
+    // 如果解析失败，返回字符串名称（让 Vue 自己解析）
+    return name;
+  }
 });
 
 const handleClick = (event: MouseEvent) => {

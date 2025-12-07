@@ -12,13 +12,12 @@ pnpm install
 
 **重要**: `@techui/scifi` 需要异步初始化，必须在应用挂载前完成。
 
+> **注意**: CSS 样式已在 `@techui/scifi` 包中自动导入 (`dist/index.css`)，无需手动导入。
+
 ```typescript
 import { createApp } from "vue";
 import App from "./App.vue";
 import { initTechUI } from "@repo/components/TechUI";
-
-// 必须导入 @techui/scifi 样式
-import "@techui/scifi/dist/style.css";
 
 const app = createApp(App);
 
