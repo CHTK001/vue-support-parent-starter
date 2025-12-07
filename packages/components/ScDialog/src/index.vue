@@ -84,7 +84,7 @@
 
       <!-- 对话框主体 -->
       <Transition :name="minimizeTransitionName" @after-leave="handleAfterLeave">
-        <div v-if="dialogVisible && !isMinimized" class="sc-dialog-overlay" :class="{ 'has-modal': modal }" :style="{ zIndex: currentZIndex }" @click.self="handleOverlayClick">
+        <div v-if="dialogVisible && !isMinimized" class="sc-dialog-overlay" :class="{ 'has-modal': modal && !useTaskbar, 'is-taskbar-mode': useTaskbar }" :style="{ zIndex: currentZIndex }" @click.self="handleOverlayClick">
           <div
             ref="dialogRef"
             :id="internalDialogId"
@@ -100,7 +100,7 @@
               }
             ]"
             :style="dialogStyle"
-            @mousedown="handleDialogMouseDown"
+            @mousedown.capture="handleDialogMouseDown"
           >
             <!-- 浮动图标（float 模式） -->
             <div v-if="icon && iconMode === 'float'" class="sc-dialog__float-icon" :style="floatIconStyle">
@@ -356,6 +356,8 @@ const props = withDefaults(
     useTaskbar?: boolean;
     /** 分组标识（用于任务栏分组合并） */
     group?: string;
+    /** 是否允许拖出视口边界，默认 false（限制在视口内） */
+    dragOutside?: boolean;
   }>(),
   {
     modelValue: false,
@@ -399,7 +401,8 @@ const props = withDefaults(
     showAlignGuides: true,
     theme: "default",
     useTaskbar: false,
-    group: ""
+    group: "",
+    dragOutside: false
   }
 );
 
@@ -507,7 +510,9 @@ const minimizeTransitionName = computed(() => {
 
 // 实际使用的最小化图标（提供默认值）
 const actualMinimizeIcon = computed(() => {
+  // 优先级：minimizeIcon > icon > 类型默认图标
   if (props.minimizeIcon) return props.minimizeIcon;
+  if (props.icon) return props.icon;
   // 根据类型提供默认图标
   const typeIcons: Record<string, string> = {
     default: "ep:chat-dot-round",
@@ -521,9 +526,17 @@ const actualMinimizeIcon = computed(() => {
 
 /**
  * 点击对话框激活（置于顶层）
+ * 多任务栏模式下需要更新 z-index
  */
 function handleDialogMouseDown(): void {
-  currentZIndex.value = activateDialog(internalDialogId.value);
+  if (!props.useTaskbar) return;
+  
+  const newZIndex = activateDialog(internalDialogId.value);
+  currentZIndex.value = newZIndex;
+  // 直接更新 DOM，确保立即生效
+  if (dialogRef.value?.parentElement) {
+    dialogRef.value.parentElement.style.zIndex = String(newZIndex);
+  }
 }
 
 /**
@@ -751,13 +764,51 @@ function initInteract(): void {
       allowFrom: ".sc-dialog__header",
       inertia: false,
       listeners: {
+        start: () => {
+          // 拖拽开始时激活对话框（置于顶层）
+          handleDialogMouseDown();
+        },
         move: event => {
           const target = event.target as HTMLElement;
-          const x = (parseFloat(target.getAttribute("data-x") || "0") || 0) + event.dx;
-          const y = (parseFloat(target.getAttribute("data-y") || "0") || 0) + event.dy;
+          let x = (parseFloat(target.getAttribute("data-x") || "0") || 0) + event.dx;
+          let y = (parseFloat(target.getAttribute("data-y") || "0") || 0) + event.dy;
+          
+          // 边界限制（dragOutside 为 false 时限制在视窗内）
+          if (!props.dragOutside) {
+            const rect = target.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            // 计算移动后的实际位置
+            const newLeft = rect.left + event.dx;
+            const newTop = rect.top + event.dy;
+            const newRight = newLeft + rect.width;
+            const newBottom = newTop + rect.height;
+            
+            // 边界检查：保证对话框在视窗内
+            if (newTop < 0) {
+              y -= newTop; // 修正 y，使顶部不超出
+            }
+            if (newLeft < 0) {
+              x -= newLeft; // 修正 x，使左侧不超出
+            }
+            if (newRight > viewportWidth) {
+              x -= (newRight - viewportWidth); // 修正 x，使右侧不超出
+            }
+            if (newBottom > viewportHeight) {
+              y -= (newBottom - viewportHeight); // 修正 y，使底部不超出
+            }
+          }
+          
           target.style.transform = `translate(${x}px, ${y}px)`;
           target.setAttribute("data-x", String(x));
           target.setAttribute("data-y", String(y));
+        },
+        end: event => {
+          // 边缘吸附检测（mouseup 时判断，提高性能）
+          if (props.edgeDock) {
+            checkEdgeDock(event);
+          }
         }
       }
     });
@@ -775,6 +826,8 @@ function initInteract(): void {
       ],
       listeners: {
         start: event => {
+          // 缩放开始时激活对话框（置于顶层）
+          handleDialogMouseDown();
           isResizing.value = true;
           document.body.style.userSelect = "none";
           // 禁用过渡，避免缩放卡顿
@@ -788,8 +841,9 @@ function initInteract(): void {
           const { width, height } = event.rect;
           const { left, top } = event.deltaRect;
 
-          // 更新宽度状态，防止被 computed 覆盖
+          // 更新宽度和高度状态，防止被 computed 覆盖
           currentWidth.value = `${width}px`;
+          currentHeight.value = `${height}px`;
           target.style.width = `${width}px`;
           target.style.height = `${height}px`;
 
@@ -870,7 +924,8 @@ let nativeDragState: {
 } | null = null;
 
 function onHeaderMouseDown(e: MouseEvent): void {
-  // interact.js 处理拖拽，这里不需要做任何事
+  // 点击 header 时激活对话框（置于顶层）
+  handleDialogMouseDown();
 }
 
 function onDocumentMouseMove(e: MouseEvent): void {
@@ -939,6 +994,9 @@ function checkEdgeDock(event: { target: EventTarget | null; client: { x: number;
  * 最小化到边缘（拖拽到边缘时调用）
  */
 function minimizeToEdge(position: DockPosition, target: HTMLElement): void {
+  // 获取对话框的实际位置
+  const rect = target.getBoundingClientRect();
+  
   // 拖拽到边缘时，保存当前拖拽后的位置
   lastDialogState.value = {
     x: parseFloat(target.getAttribute("data-x") || "0") || 0,
@@ -949,7 +1007,29 @@ function minimizeToEdge(position: DockPosition, target: HTMLElement): void {
 
   dockPosition.value = position;
   isMinimized.value = true;
-  minimizedIconPosition.value = null;
+  
+  // 根据吸附边缘设置最小化图标位置
+  const iconSize = 48; // 图标尺寸
+  switch (position) {
+    case "left":
+      // 左侧吸附：使用左上角
+      minimizedIconPosition.value = { x: 0, y: rect.top };
+      break;
+    case "right":
+      // 右侧吸附：使用右上角
+      minimizedIconPosition.value = { x: window.innerWidth - iconSize, y: rect.top };
+      break;
+    case "top":
+      // 顶部吸附：使用对话框水平中间
+      minimizedIconPosition.value = { x: rect.left + rect.width / 2 - iconSize / 2, y: 0 };
+      break;
+    case "bottom":
+      // 底部吸附：使用对话框水平中间
+      minimizedIconPosition.value = { x: rect.left + rect.width / 2 - iconSize / 2, y: window.innerHeight - iconSize };
+      break;
+    default:
+      minimizedIconPosition.value = null;
+  }
 
   // 初始化最小化图标的拖拽
   nextTick(() => {
@@ -1149,16 +1229,16 @@ function initMinimizedIconInteract(): void {
       start: event => {
         isMinimizedDragging.value = true;
         document.body.style.userSelect = "none";
-        // 记录拖拽开始时图标的位置
         const target = event.target as HTMLElement;
         dragStartRect = target.getBoundingClientRect();
-        // 初始化 data-x 和 data-y 为 0（相对于初始位置的偏移）
-        target.setAttribute("data-x", "0");
-        target.setAttribute("data-y", "0");
+        // 使用当前的 minimizedIconPosition 作为初始值，而不是重置为 0
+        const initX = minimizedIconPosition.value?.x ?? 0;
+        const initY = minimizedIconPosition.value?.y ?? 0;
+        target.setAttribute("data-x", String(initX));
+        target.setAttribute("data-y", String(initY));
       },
       move: event => {
         const target = event.target as HTMLElement;
-        // 累加偏移量
         const currentX = parseFloat(target.getAttribute("data-x") || "0") || 0;
         const currentY = parseFloat(target.getAttribute("data-y") || "0") || 0;
         const x = currentX + event.dx;
@@ -1167,6 +1247,8 @@ function initMinimizedIconInteract(): void {
         target.style.transform = `translate(${x}px, ${y}px)`;
         target.setAttribute("data-x", String(x));
         target.setAttribute("data-y", String(y));
+        // 同步更新 minimizedIconPosition
+        minimizedIconPosition.value = { x, y };
       },
       end: event => {
         document.body.style.userSelect = "";
@@ -1391,6 +1473,11 @@ defineExpose({
   &.has-modal {
     background: rgba(0, 0, 0, 0.5);
   }
+
+  // 任务栏模式：允许点击穿透到下层对话框
+  &.is-taskbar-mode {
+    pointer-events: none;
+  }
 }
 
 .sc-dialog--custom {
@@ -1400,6 +1487,8 @@ defineExpose({
   box-shadow:
     0 12px 32px rgba(0, 0, 0, 0.1),
     0 2px 6px rgba(0, 0, 0, 0.08);
+  // 对话框本身可以点击
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   max-height: 80vh;
