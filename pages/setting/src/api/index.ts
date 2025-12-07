@@ -52,6 +52,7 @@ export const fetchSetting = (param) => {
   const params = { sysSettingGroup: param };
   return http.request<ReturnResult<Setting[]>>("get", "/v2/setting/list", {
     params,
+    timeout: 5000, // 5秒超时，避免远程服务器不通时长时间等待
   });
 };
 

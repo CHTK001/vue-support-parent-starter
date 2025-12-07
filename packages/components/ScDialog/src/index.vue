@@ -704,23 +704,27 @@ watch(dialogVisible, val => {
   emit("update:modelValue", val);
 });
 
-// 对话框显示时初始化 interact.js 并触发事件
+// 对话框显示时初始化并触发事件
 watch(dialogVisible, val => {
   if (val && props.mode === "custom") {
+    // 同步重置所有状态
     currentZIndex.value = getNextZIndex();
-    currentWidth.value = null; // 重置宽度
-    currentHeight.value = null; // 重置高度
-    isMinimized.value = false; // 重置最小化状态
-    isMaximized.value = false; // 重置最大化状态
+    currentWidth.value = null;
+    currentHeight.value = null;
+    isMinimized.value = false;
+    isMaximized.value = false;
     dockPosition.value = null;
     lastDialogState.value = null;
-    originalDialogState.value = null; // 重置原始位置，以便重新记录
+    originalDialogState.value = null;
     preMaximizeState.value = null;
     emit("open");
-    nextTick(() => {
-      // 注册对话框
+    // 使用 requestAnimationFrame 替代 nextTick，更快执行
+    requestAnimationFrame(() => {
       registerDialog(internalDialogId.value, dialogRef.value);
-      initInteract();
+      // 初始化 interact.js（拖拽或缩放）
+      if (props.draggable || props.resizable) {
+        initInteract();
+      }
       emit("opened");
     });
   } else if (!val && props.mode === "custom") {
@@ -741,80 +745,25 @@ function initInteract(): void {
 
   interactInstance = interact(dialogRef.value);
 
-  // 配置拖拽
+  // 配置拖拽 - 简化版，避免 start 时的开销
   if (props.draggable) {
     interactInstance.draggable({
       allowFrom: ".sc-dialog__header",
-      modifiers: [
-        interact.modifiers.restrict({
-          restriction: "body",
-          endOnly: false
-        })
-      ],
-      inertia: { resistance: 15, minSpeed: 200, endSpeed: 10 },
+      inertia: false,
       listeners: {
-        start: event => {
-          isDragging.value = true;
-          document.body.style.userSelect = "none";
-          // 拖拽开始时记录当前位置
-          const target = event.target as HTMLElement;
-          const currentState = {
-            x: parseFloat(target.getAttribute("data-x") || "0") || 0,
-            y: parseFloat(target.getAttribute("data-y") || "0") || 0,
-            width: target.style.width || "",
-            height: target.style.height || ""
-          };
-          lastDialogState.value = currentState;
-          // 只在第一次拖拽时保存原始位置（用于任务栏还原）
-          if (!originalDialogState.value) {
-            originalDialogState.value = { ...currentState };
-          }
-        },
         move: event => {
-          if (isMaximized.value) return; // 最大化时禁止拖拽
-
           const target = event.target as HTMLElement;
-          let x = (parseFloat(target.getAttribute("data-x") || "0") || 0) + event.dx;
-          let y = (parseFloat(target.getAttribute("data-y") || "0") || 0) + event.dy;
-
-          // 计算当前对话框的矩形
-          const rect = target.getBoundingClientRect();
-
-          // 吸附到其他对话框
-          if (props.snapToDialogs) {
-            const snapped = snapToOtherDialogs(rect.left, rect.top, rect.width, rect.height);
-            if (snapped.snapped) {
-              x = snapped.x - (rect.left - x);
-              y = snapped.y - (rect.top - y);
-            }
-          }
-
-          // 计算对齐辅助线
-          if (props.showAlignGuides) {
-            calculateAlignGuides(rect);
-          }
-
+          const x = (parseFloat(target.getAttribute("data-x") || "0") || 0) + event.dx;
+          const y = (parseFloat(target.getAttribute("data-y") || "0") || 0) + event.dy;
           target.style.transform = `translate(${x}px, ${y}px)`;
           target.setAttribute("data-x", String(x));
           target.setAttribute("data-y", String(y));
-
-          // 更新对话框位置信息
-          updateDialogRect(internalDialogId.value, target);
-        },
-        end: event => {
-          isDragging.value = false;
-          document.body.style.userSelect = "";
-          alignGuides.value = { vertical: [], horizontal: [] }; // 清除辅助线
-          // 边缘吸附检测
-          if (props.edgeDock) {
-            checkEdgeDock(event);
-          }
         }
       }
     });
   }
 
-  // 配置缩放（支持左右两侧和底部）
+  // 配置缩放
   if (props.resizable) {
     interactInstance.resizable({
       edges: { left: true, right: true, bottom: true, top: false },
@@ -825,9 +774,14 @@ function initInteract(): void {
         })
       ],
       listeners: {
-        start: () => {
+        start: event => {
           isResizing.value = true;
           document.body.style.userSelect = "none";
+          // 禁用过渡，避免缩放卡顿
+          const target = event.target as HTMLElement;
+          if (target) {
+            target.style.transition = 'none';
+          }
         },
         move: event => {
           const target = event.target as HTMLElement;
@@ -847,9 +801,14 @@ function initInteract(): void {
 
           emit("resize", { width, height });
         },
-        end: () => {
+        end: event => {
           isResizing.value = false;
           document.body.style.userSelect = "";
+          // 恢复过渡
+          const target = event.target as HTMLElement;
+          if (target) {
+            target.style.transition = '';
+          }
         }
       }
     });
@@ -901,8 +860,39 @@ function handleConfirm(): void {
   emit("confirm");
 }
 
-function onHeaderMouseDown(): void {
-  // interact.js 自动处理
+// 原生拖拽状态
+let nativeDragState: {
+  startX: number;
+  startY: number;
+  initialX: number;
+  initialY: number;
+  target: HTMLElement | null;
+} | null = null;
+
+function onHeaderMouseDown(e: MouseEvent): void {
+  // interact.js 处理拖拽，这里不需要做任何事
+}
+
+function onDocumentMouseMove(e: MouseEvent): void {
+  if (!nativeDragState || !nativeDragState.target) return;
+  
+  const dx = e.clientX - nativeDragState.startX;
+  const dy = e.clientY - nativeDragState.startY;
+  const x = nativeDragState.initialX + dx;
+  const y = nativeDragState.initialY + dy;
+  
+  const target = nativeDragState.target;
+  
+  // 直接更新位置，最简单的实现
+  target.style.transform = `translate(${x}px, ${y}px)`;
+  target.setAttribute("data-x", String(x));
+  target.setAttribute("data-y", String(y));
+}
+
+function onDocumentMouseUp(): void {
+  document.removeEventListener('mousemove', onDocumentMouseMove);
+  document.removeEventListener('mouseup', onDocumentMouseUp);
+  nativeDragState = null;
 }
 
 function handleAfterLeave(): void {
@@ -1278,6 +1268,10 @@ onMounted(() => {
 onUnmounted(() => {
   destroyInteract();
   destroyMinimizedIconInteract();
+  // 清理原生拖拽事件
+  document.removeEventListener('mousemove', onDocumentMouseMove);
+  document.removeEventListener('mouseup', onDocumentMouseUp);
+  nativeDragState = null;
 });
 
 // 暴露方法
@@ -1413,6 +1407,14 @@ defineExpose({
   &.is-dragging,
   &.is-resizing {
     user-select: none;
+    // 拖拽和缩放时禁用过渡动画，避免卡顿
+    transition: none !important;
+    // 提升层级确保流畅
+    z-index: 1;
+    
+    * {
+      transition: none !important;
+    }
   }
 
   // 浮动图标模式时增加顶部间距
@@ -1749,6 +1751,102 @@ defineExpose({
         border-bottom: 2px solid #00f6ff;
       }
     }
+
+    // 科技风输入框样式
+    .el-input__wrapper {
+      background: rgba(0, 20, 40, 0.8);
+      border: 1px solid rgba(0, 246, 255, 0.3);
+      border-radius: 2px;
+      box-shadow: 
+        0 0 10px rgba(0, 246, 255, 0.1),
+        inset 0 0 10px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+
+      &:hover {
+        border-color: rgba(0, 246, 255, 0.5);
+        box-shadow: 
+          0 0 15px rgba(0, 246, 255, 0.2),
+          inset 0 0 10px rgba(0, 0, 0, 0.3);
+      }
+
+      &.is-focus {
+        border-color: #00f6ff;
+        box-shadow: 
+          0 0 20px rgba(0, 246, 255, 0.4),
+          inset 0 0 10px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    .el-input__inner {
+      color: rgba(255, 255, 255, 0.9);
+      caret-color: #00f6ff;
+
+      &::placeholder {
+        color: rgba(0, 246, 255, 0.4);
+      }
+    }
+
+    .el-textarea__inner {
+      background: rgba(0, 20, 40, 0.8);
+      border: 1px solid rgba(0, 246, 255, 0.3);
+      border-radius: 2px;
+      color: rgba(255, 255, 255, 0.9);
+      caret-color: #00f6ff;
+      box-shadow: 
+        0 0 10px rgba(0, 246, 255, 0.1),
+        inset 0 0 10px rgba(0, 0, 0, 0.3);
+
+      &::placeholder {
+        color: rgba(0, 246, 255, 0.4);
+      }
+
+      &:hover {
+        border-color: rgba(0, 246, 255, 0.5);
+      }
+
+      &:focus {
+        border-color: #00f6ff;
+        box-shadow: 
+          0 0 20px rgba(0, 246, 255, 0.4),
+          inset 0 0 10px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    // 清除和密码按钮
+    .el-input__clear,
+    .el-input__password {
+      color: rgba(0, 246, 255, 0.6);
+
+      &:hover {
+        color: #00f6ff;
+      }
+    }
+
+    // 按钮科技风
+    .el-button {
+      background: rgba(0, 30, 60, 0.8);
+      border: 1px solid rgba(0, 246, 255, 0.3);
+      color: rgba(0, 246, 255, 0.9);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(0, 246, 255, 0.1);
+        border-color: rgba(0, 246, 255, 0.6);
+        color: #00f6ff;
+        box-shadow: 0 0 10px rgba(0, 246, 255, 0.3);
+      }
+
+      &--primary {
+        background: rgba(0, 246, 255, 0.2);
+        border-color: #00f6ff;
+        color: #00f6ff;
+
+        &:hover {
+          background: rgba(0, 246, 255, 0.3);
+          box-shadow: 0 0 15px rgba(0, 246, 255, 0.5);
+        }
+      }
+    }
   }
 }
 
@@ -1838,12 +1936,11 @@ defineExpose({
 // 对话框过渡动画
 .dialog-fade-enter-active,
 .dialog-fade-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
 
   .sc-dialog--custom {
-    transition:
-      transform 0.3s ease,
-      opacity 0.3s ease;
+    transition: opacity 0.2s ease;
+    // 不对 transform 添加过渡，避免影响拖拽性能
   }
 }
 
@@ -1852,8 +1949,8 @@ defineExpose({
   opacity: 0;
 
   .sc-dialog--custom {
-    transform: translateY(-20px);
     opacity: 0;
+    // 移除 transform 动画，只用透明度淡入淡出
   }
 }
 
