@@ -17,6 +17,9 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import { initTechUI } from "@repo/components/TechUI";
 
+// 必须导入 @techui/scifi 样式
+import "@techui/scifi/dist/style.css";
+
 const app = createApp(App);
 
 // 异步初始化 TechUI

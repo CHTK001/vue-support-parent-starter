@@ -4,8 +4,9 @@ import HeaderContentLayout from "./HeaderContent.vue";
 import Panel3D from "./Panel3D.vue";
 import CompactLayout from "./Compact.vue";
 import StatsLayout from "./Stats.vue";
+import TechLayout from "./Tech.vue";
 
-export { DefaultLayout, MediaLayout, HeaderContentLayout, Panel3D, CompactLayout, StatsLayout };
+export { DefaultLayout, MediaLayout, HeaderContentLayout, Panel3D, CompactLayout, StatsLayout, TechLayout };
 
 export default {
   DefaultLayout,
@@ -13,5 +14,6 @@ export default {
   HeaderContentLayout,
   Panel3D,
   CompactLayout,
-  StatsLayout
+  StatsLayout,
+  TechLayout
 };
