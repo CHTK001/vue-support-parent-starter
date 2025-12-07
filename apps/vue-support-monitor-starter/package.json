@@ -106,6 +106,7 @@
     "vue3-smooth-dnd": "catalog:",
     "vuedraggable": "catalog:",
     "websockify": "catalog:",
+    "@techui/scifi": "catalog:",
     "xterm": "catalog:",
     "xterm-addon-attach": "catalog:",
     "xterm-addon-fit": "catalog:",

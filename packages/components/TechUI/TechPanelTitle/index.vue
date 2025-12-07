@@ -26,13 +26,7 @@
  * @version 1.0.0
  * @since 2025-12-06
  */
-import { computed, type Component } from "vue";
-import { scifiPanelTitleA1, scifiPanelTitleA2, scifiPanelTitleA3 } from "@techui/scifi";
-
-// 组件映射表
-const panelTitleComponents: Record<string, Component> = {
-  A1: scifiPanelTitleA1, A2: scifiPanelTitleA2, A3: scifiPanelTitleA3,
-};
+import { computed, resolveComponent } from "vue";
 
 defineOptions({
   name: "TechPanelTitle",
@@ -66,7 +60,7 @@ const props = withDefaults(defineProps<{
 
 // 根据 variant 动态选择组件
 const panelTitleComponent = computed(() => {
-  return panelTitleComponents[props.variant] || scifiPanelTitleA1;
+  return resolveComponent(`scifiPanelTitle${props.variant}`);
 });
 </script>
 

@@ -11,6 +11,11 @@ const routes = [
     name: "Airline",
     component: () => import("../views/AirlineDemo.vue"),
   },
+  {
+    path: "/techui",
+    name: "TechUI",
+    component: () => import("../views/TechUIPage.vue"),
+  },
 ];
 
 const router = createRouter({

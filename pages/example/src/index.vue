@@ -116,6 +116,10 @@
 <script setup>
 import { message } from "@repo/utils";
 import { computed, defineAsyncComponent, ref, shallowRef } from "vue";
+import { useRouter } from "vue-router";
+
+// 路由
+const router = useRouter();
 
 // 搜索文本
 const searchText = ref("");
@@ -129,6 +133,12 @@ const currentComponent = shallowRef(null);
  * @param {Object} component 组件信息
  */
 const openComponentExample = (component) => {
+  // TechUI 组件在新页面打开
+  if (component.route) {
+    router.push(component.route);
+    return;
+  }
+
   try {
     // 显示加载中消息
     message("正在加载组件示例...", { type: "info", duration: 1000 });
@@ -527,8 +537,8 @@ const components = [
   {
     name: "TechUI",
     icon: "ri:rocket-2-line",
-    description: "TechUI 科幻风格组件，基于 @techui/scifi 的科幻风格 UI 组件封装",
-    component: resolveComponent("./components/TechUIExample.vue"),
+    description: "TechUI 科幻风格组件，基于 @techui/scifi 的科幻风格 UI 组件封装（独立页面）",
+    route: "/techui",  // 在独立页面中打开
   },
 ];
 
