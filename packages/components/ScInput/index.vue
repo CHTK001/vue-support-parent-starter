@@ -1,12 +1,12 @@
 <template>
-  <div class="sc-input">
+  <div class="sc-input" :class="[theme ? `sc-input--theme-${theme}` : '']">
     <component
       :is="componentMap[type]"
       v-bind="$attrs"
       :model-value="modelValue"
       :type="type"
-      :prefix-icon="prefixIcon || defaultIcon"
-      :show-prefix="showPrefix"
+      :prefix-icon="theme === 'tech' ? '' : (prefixIcon || defaultIcon)"
+      :show-prefix="theme === 'tech' ? false : showPrefix"
       :rules="rules"
       :show-validation-msg="showValidationMsg"
       :options="options"
@@ -14,6 +14,7 @@
       :data-parser="dataParser"
       :params="params"
       :loading="loading"
+      :theme="theme"
       @update:model-value="handleUpdate"
       @change="handleChange"
       @input="handleInput"
@@ -161,6 +162,12 @@ interface Props {
    * 远程查询参数
    */
   params?: Record<string, any>;
+  /**
+   * 主题风格
+   * - default: 默认风格
+   * - tech: 科技风格（无图标，霓虹边框）
+   */
+  theme?: "default" | "tech";
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -175,7 +182,8 @@ const props = withDefaults(defineProps<Props>(), {
   dataParser: undefined,
   autoLoad: true,
   fetchParams: () => ({}),
-  params: () => ({})
+  params: () => ({}),
+  theme: "default"
 });
 
 const emit = defineEmits(["update:modelValue", "change", "input", "focus", "blur", "clear", "options-loaded"]);
@@ -405,6 +413,109 @@ defineExpose({
     &:hover,
     &:focus-within {
       transform: none;
+    }
+  }
+
+  // 科技风格主题
+  &--theme-tech {
+    // 禁用默认悬停效果
+    &:hover,
+    &:focus-within {
+      transform: none;
+      filter: none;
+    }
+
+    :deep(.el-input__wrapper) {
+      background: rgba(0, 20, 40, 0.8);
+      border: 1px solid rgba(0, 246, 255, 0.3);
+      border-radius: 2px;
+      box-shadow: 
+        0 0 10px rgba(0, 246, 255, 0.1),
+        inset 0 0 10px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+
+      &:hover {
+        border-color: rgba(0, 246, 255, 0.5);
+        box-shadow: 
+          0 0 15px rgba(0, 246, 255, 0.2),
+          inset 0 0 10px rgba(0, 0, 0, 0.3);
+      }
+
+      &.is-focus {
+        border-color: #00f6ff;
+        box-shadow: 
+          0 0 20px rgba(0, 246, 255, 0.4),
+          inset 0 0 10px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    :deep(.el-input__inner) {
+      color: rgba(255, 255, 255, 0.9);
+      caret-color: #00f6ff;
+
+      &::placeholder {
+        color: rgba(0, 246, 255, 0.4);
+      }
+    }
+
+    :deep(.el-textarea__inner) {
+      background: rgba(0, 20, 40, 0.8);
+      border: 1px solid rgba(0, 246, 255, 0.3);
+      border-radius: 2px;
+      color: rgba(255, 255, 255, 0.9);
+      caret-color: #00f6ff;
+      box-shadow: 
+        0 0 10px rgba(0, 246, 255, 0.1),
+        inset 0 0 10px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+
+      &::placeholder {
+        color: rgba(0, 246, 255, 0.4);
+      }
+
+      &:hover {
+        border-color: rgba(0, 246, 255, 0.5);
+      }
+
+      &:focus {
+        border-color: #00f6ff;
+        box-shadow: 
+          0 0 20px rgba(0, 246, 255, 0.4),
+          inset 0 0 10px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    // 清除按钮样式
+    :deep(.el-input__clear) {
+      color: rgba(0, 246, 255, 0.6);
+
+      &:hover {
+        color: #00f6ff;
+      }
+    }
+
+    // 密码显示按钮
+    :deep(.el-input__password) {
+      color: rgba(0, 246, 255, 0.6);
+
+      &:hover {
+        color: #00f6ff;
+      }
+    }
+
+    // 数字输入框按钮
+    :deep(.el-input-number) {
+      .el-input-number__decrease,
+      .el-input-number__increase {
+        background: rgba(0, 30, 60, 0.8);
+        border-color: rgba(0, 246, 255, 0.3);
+        color: rgba(0, 246, 255, 0.8);
+
+        &:hover {
+          color: #00f6ff;
+          background: rgba(0, 246, 255, 0.1);
+        }
+      }
     }
   }
 }
