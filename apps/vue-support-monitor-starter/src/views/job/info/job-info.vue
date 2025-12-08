@@ -1,364 +1,354 @@
 <template>
-  <div class="job-dashboard">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="title-section">
-          <h1 class="page-title">
-            <IconifyIconOnline icon="ep:timer" class="title-icon" />
-            调度任务管理
-          </h1>
-          <p class="page-subtitle">
-            管理和监控系统中的定时任务，支持任务的创建、编辑、启停和日志查看
-          </p>
-        </div>
-        <div class="stats-section">
-          <div class="stat-card">
-            <div class="stat-number">{{ totalJobs }}</div>
-            <div class="stat-label">总任务数</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number">{{ runningJobs }}</div>
-            <div class="stat-label">运行中</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number">{{ stoppedJobs }}</div>
-            <div class="stat-label">已停止</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 顶部控制区域 -->
-    <div class="job-control-panel">
-      <div class="modern-toolbar">
-        <div class="toolbar-left">
-          <div class="search-container">
+  <div class="job-management-container">
+    <!-- 搜索和筛选 -->
+    <div class="search-section">
+      <el-card class="search-card" shadow="never">
+        <div class="search-container">
+          <div class="search-left">
             <el-input
               v-model="form.jobDesc"
-              placeholder="搜索任务名称或描述..."
-              clearable
+              placeholder="搜索任务名称或描述"
               class="search-input"
+              clearable
+              @input="handleSearch"
             >
               <template #prefix>
-                <IconifyIconOnline icon="ep:search" class="search-icon" />
+                <IconifyIconOnline icon="ri:search-line" />
               </template>
             </el-input>
-          </div>
-
-          <div class="filter-container">
             <el-select
               v-model="form.jobGroup"
-              class="group-select"
               placeholder="选择任务组"
+              class="app-filter"
+              clearable
+              @change="handleGroupFilter"
             >
-              <el-option :value="0" label="全部任务组">
-                <div class="option-item">
-                  <IconifyIconOnline icon="ep:menu" class="option-icon" />
-                  <span>全部任务组</span>
-                </div>
-              </el-option>
+              <el-option :value="0" label="全部任务组" />
               <el-option
                 v-for="item in executorData"
                 :key="item.monitorId"
+                :label="item.monitorName"
                 :value="item.monitorId"
-              >
-                <div class="option-item">
-                  <IconifyIconOnline
-                    icon="ep:folder-opened"
-                    class="option-icon"
-                  />
-                  <span>{{ item.monitorName }}</span>
-                  <span class="app-label">{{
-                    item.monitorApplicationName
-                  }}</span>
-                </div>
-              </el-option>
+              />
             </el-select>
-
-            <!-- 状态快捷切换 -->
-            <div class="status-filter">
-              <el-button
-                :class="[
-                  'status-btn',
-                  { active: form.jobTriggerStatus === null },
-                ]"
-                @click="setStatus(null)"
-              >
-                <IconifyIconOnline icon="ep:menu" class="btn-icon" />
-                全部
-              </el-button>
-              <el-button
-                :class="[
-                  'status-btn',
-                  'success',
-                  { active: form.jobTriggerStatus === 1 },
-                ]"
-                @click="setStatus(1)"
-              >
-                <IconifyIconOnline icon="ep:video-play" class="btn-icon" />
-                运行中
-              </el-button>
-              <el-button
-                :class="[
-                  'status-btn',
-                  'warning',
-                  { active: form.jobTriggerStatus === 0 },
-                ]"
-                @click="setStatus(0)"
-              >
-                <IconifyIconOnline icon="ep:video-pause" class="btn-icon" />
-                已停止
-              </el-button>
-            </div>
+            <el-select
+              v-model="form.jobTriggerStatus"
+              placeholder="任务状态"
+              class="status-filter"
+              clearable
+              @change="handleStatusFilter"
+            >
+              <el-option label="运行中" :value="1" />
+              <el-option label="已停止" :value="0" />
+            </el-select>
+          </div>
+          <div class="search-right">
+            <el-button-group class="view-toggle">
+              <el-tooltip content="刷新" placement="top">
+                <el-button type="primary" :loading="loading" @click="search">
+                  <IconifyIconOnline icon="ri:refresh-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="卡片视图" placement="top">
+                <el-button
+                  :type="viewMode === 'card' ? 'primary' : 'default'"
+                  @click="viewMode = 'card'"
+                >
+                  <IconifyIconOnline icon="ri:grid-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="列表视图" placement="top">
+                <el-button
+                  :type="viewMode === 'table' ? 'primary' : 'default'"
+                  @click="viewMode = 'table'"
+                >
+                  <IconifyIconOnline icon="ri:list-check" />
+                </el-button>
+              </el-tooltip>
+            </el-button-group>
+            <el-button type="primary" @click="add">
+              <IconifyIconOnline icon="ri:add-line" />
+              新建任务
+            </el-button>
           </div>
         </div>
-
-        <div class="toolbar-right">
-          <el-button class="search-btn" @click="search">
-            <IconifyIconOnline icon="ep:refresh" class="btn-icon" />
-            刷新
-          </el-button>
-          <el-button type="primary" class="create-btn" @click="add">
-            <IconifyIconOnline icon="ep:plus" class="btn-icon" />
-            新建任务
-          </el-button>
-        </div>
-      </div>
+      </el-card>
     </div>
 
-    <!-- 主内容区域 -->
-    <div class="job-content">
-      <ScTable
-        ref="tableRef"
-        v-model:page="form"
-        class="job-table"
-        :col-size="4"
-        :url="loadJobData"
-        :params="form"
-        layout="card"
-        cardLayout="default"
-        @data-loaded="handleDataLoaded"
-      >
-        <template #default="{ row }">
+    <!-- 任务列表 -->
+    <div class="jobs-section">
+      <div v-if="loading && jobList.length === 0" class="loading-container">
+        <div class="loading-content">
+          <el-skeleton :rows="3" animated />
+          <p class="loading-text">正在加载任务数据...</p>
+        </div>
+      </div>
+
+      <div v-else-if="filteredJobList.length === 0" class="empty-container">
+        <el-empty description="暂无任务数据" :image-size="120">
+          <template #description>
+            <p class="empty-text">{{ getEmptyText() }}</p>
+          </template>
+          <el-button type="primary" @click="search">
+            <IconifyIconOnline icon="ri:refresh-line" />
+            刷新数据
+          </el-button>
+        </el-empty>
+      </div>
+
+      <!-- 卡片视图 -->
+      <div v-else-if="viewMode === 'card'" class="jobs-grid">
+        <transition-group name="job-card" tag="div" class="grid-container">
           <div
-            class="modern-job-card"
-            :class="{ 'card-active': row.jobTriggerStatus === 1 }"
+            v-for="(job, index) in filteredJobList"
+            :key="job.jobId"
+            class="job-card-wrapper"
+            :style="{ animationDelay: `${index * 0.05}s` }"
           >
-            <!-- 状态指示器 -->
             <div
-              class="status-indicator"
-              :class="
-                row.jobTriggerStatus === 1
-                  ? 'indicator-running'
-                  : 'indicator-stopped'
-              "
-            ></div>
-
-            <!-- 卡片头部 -->
-            <div class="card-header">
-              <div class="job-info">
-                <div class="job-icon">
-                  <IconifyIconOnline icon="ep:timer" class="icon" />
+              class="job-card"
+              :class="[
+                getJobCardClass(job),
+                { 'menu-active': showMenu && hoveredJob?.jobId === job.jobId },
+              ]"
+              @mouseenter="showActionMenu(job, $event)"
+              @mouseleave="hideActionMenu"
+            >
+              <div class="card-header">
+                <div class="job-info">
+                  <div class="job-name">
+                    <IconifyIconOnline icon="ri:timer-line" class="job-icon" />
+                    <span class="name-text">{{ job.jobName }}</span>
+                  </div>
+                  <div class="job-cron">
+                    <IconifyIconOnline icon="ri:time-line" class="cron-icon" />
+                    <span
+                      >{{ job.jobScheduleType }} {{ job.jobScheduleTime }}</span
+                    >
+                  </div>
                 </div>
-                <div class="job-details">
-                  <h3 class="job-title">{{ row.jobName }}</h3>
-                  <div class="job-handler">{{ row.jobType }}</div>
+                <div class="job-status">
+                  <el-tag
+                    :type="getStatusType(job.jobTriggerStatus)"
+                    :effect="job.jobTriggerStatus === 1 ? 'dark' : 'plain'"
+                    class="status-tag"
+                  >
+                    <IconifyIconOnline
+                      :icon="getStatusIcon(job.jobTriggerStatus)"
+                    />
+                    {{ getStatusText(job.jobTriggerStatus) }}
+                  </el-tag>
                 </div>
               </div>
-              <div
-                class="status-badge"
-                :class="
-                  row.jobTriggerStatus === 1 ? 'badge-running' : 'badge-stopped'
-                "
-              >
-                <IconifyIconOnline
-                  :icon="
-                    row.jobTriggerStatus === 1
-                      ? 'ep:success-filled'
-                      : 'ep:circle-close-filled'
-                  "
-                  class="status-icon"
-                />
-                <span class="status-text">{{
-                  row.jobTriggerStatus === 1 ? "运行中" : "已停止"
-                }}</span>
+
+              <div class="card-body">
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">任务类型</span>
+                    <span class="info-value">{{ job.jobGlueType || "-" }}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">负责人</span>
+                    <span class="info-value">{{ job.jobAuthor || "-" }}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">应用</span>
+                    <span class="info-value">{{
+                      job.jobApplicationActive || "-"
+                    }}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">描述</span>
+                    <span class="info-value">{{ job.jobDesc || "-" }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-footer">
+                <div class="action-buttons">
+                  <el-tooltip content="编辑" placement="top">
+                    <el-button
+                      type="primary"
+                      size="small"
+                      circle
+                      @click.stop="edit(job)"
+                    >
+                      <IconifyIconOnline icon="ri:edit-line" />
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="执行一次" placement="top">
+                    <el-button
+                      type="success"
+                      size="small"
+                      circle
+                      @click.stop="trigger(job)"
+                    >
+                      <IconifyIconOnline icon="ri:play-line" />
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="查看日志" placement="top">
+                    <el-button
+                      type="info"
+                      size="small"
+                      circle
+                      @click.stop="logger(job)"
+                    >
+                      <IconifyIconOnline icon="ri:file-list-line" />
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip
+                    :content="job.jobTriggerStatus === 1 ? '停止' : '启动'"
+                    placement="top"
+                  >
+                    <el-button
+                      :type="job.jobTriggerStatus === 1 ? 'warning' : 'success'"
+                      size="small"
+                      circle
+                      @click.stop="
+                        job.jobTriggerStatus === 1 ? stop(job) : start(job)
+                      "
+                    >
+                      <IconifyIconOnline
+                        :icon="
+                          job.jobTriggerStatus === 1
+                            ? 'ri:pause-line'
+                            : 'ri:play-line'
+                        "
+                      />
+                    </el-button>
+                  </el-tooltip>
+                  <el-dropdown
+                    trigger="click"
+                    @command="(cmd) => handleCommand(cmd, job)"
+                  >
+                    <el-button size="small" circle @click.stop>
+                      <IconifyIconOnline icon="ri:more-line" />
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item command="nextTriggerTime">
+                          <IconifyIconOnline
+                            icon="ri:calendar-line"
+                            class="dropdown-icon"
+                          />
+                          下次执行时间
+                        </el-dropdown-item>
+                        <el-dropdown-item command="copy">
+                          <IconifyIconOnline
+                            icon="ri:file-copy-line"
+                            class="dropdown-icon"
+                          />
+                          复制任务
+                        </el-dropdown-item>
+                        <el-dropdown-item command="delete" divided>
+                          <IconifyIconOnline
+                            icon="ri:delete-bin-line"
+                            class="dropdown-icon"
+                            style="color: var(--el-color-danger)"
+                          />
+                          <span style="color: var(--el-color-danger)"
+                            >删除任务</span
+                          >
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </div>
               </div>
             </div>
+          </div>
+        </transition-group>
+      </div>
 
-            <!-- 卡片内容 -->
-            <div class="card-content">
-              <div class="schedule-expression">
-                <IconifyIconOnline icon="ep:clock" class="schedule-icon" />
-                <span class="schedule-text"
-                  >{{ row.jobScheduleType }} {{ row.jobScheduleTime
-                  }}<span v-if="row.jobScheduleType === 'FIXED'">秒</span></span
-                >
-              </div>
-
-              <div class="job-metadata">
-                <div class="meta-item">
-                  <IconifyIconOnline icon="ep:user" class="meta-icon" />
-                  <span class="meta-label">创建者:</span>
-                  <span class="meta-value">{{ row.jobAuthor }}</span>
-                </div>
-                <div class="meta-item">
-                  <IconifyIconOnline
-                    icon="ep:folder-opened"
-                    class="meta-icon"
-                  />
-                  <span class="meta-label">应用:</span>
-                  <span class="meta-value">{{ row.jobApplicationActive }}</span>
-                </div>
-                <div class="meta-item">
-                  <IconifyIconOnline icon="ep:setting" class="meta-icon" />
-                  <span class="meta-label">类型:</span>
-                  <span class="meta-value">{{ row.jobGlueType }}</span>
-                </div>
-              </div>
-
-              <div class="job-tags">
-                <el-tag size="small" class="schedule-tag">
-                  <IconifyIconOnline
-                    icon="ep:collection-tag"
-                    class="tag-icon"
-                  />
-                  {{ row.jobScheduleType }}
-                </el-tag>
-                <el-tag size="small" type="primary" class="glue-tag">
-                  <IconifyIconOnline icon="ep:cpu" class="tag-icon" />
-                  {{ row.jobGlueType }}
-                </el-tag>
+      <!-- 表格视图 -->
+      <div v-else class="jobs-table">
+        <el-card shadow="never">
+          <ScTable
+            ref="tableRef"
+            v-model:page="form"
+            :url="loadJobData"
+            :params="form"
+            layout="table"
+            @data-loaded="handleDataLoaded"
+          >
+            <el-table-column prop="jobName" label="任务名称" min-width="150" />
+            <el-table-column
+              prop="jobScheduleType"
+              label="调度类型"
+              width="100"
+            />
+            <el-table-column
+              prop="jobScheduleTime"
+              label="调度时间"
+              width="120"
+            />
+            <el-table-column prop="jobGlueType" label="任务类型" width="100" />
+            <el-table-column prop="jobAuthor" label="负责人" width="100" />
+            <el-table-column prop="jobTriggerStatus" label="状态" width="100">
+              <template #default="{ row }">
                 <el-tag
+                  :type="getStatusType(row.jobTriggerStatus)"
                   size="small"
-                  :type="row.jobTriggerStatus === 1 ? 'success' : 'warning'"
-                  class="status-tag"
                 >
-                  <IconifyIconOnline
-                    :icon="
-                      row.jobTriggerStatus === 1
-                        ? 'ep:success-filled'
-                        : 'ep:warning-filled'
-                    "
-                    class="tag-icon"
-                  />
-                  {{ row.jobTriggerStatus === 1 ? "运行中" : "已停止" }}
+                  {{ getStatusText(row.jobTriggerStatus) }}
                 </el-tag>
-              </div>
-            </div>
-
-            <!-- 卡片操作区 -->
-            <div class="card-actions">
-              <div class="primary-actions">
-                <el-button
-                  size="small"
-                  type="primary"
-                  class="action-btn"
-                  @click="edit(row)"
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="200" fixed="right">
+              <template #default="{ row }">
+                <el-button type="primary" size="small" link @click="edit(row)"
+                  >编辑</el-button
                 >
-                  <IconifyIconOnline icon="ep:edit" class="action-icon" />
-                  编辑
-                </el-button>
                 <el-button
-                  size="small"
                   type="success"
-                  class="action-btn"
-                  @click="trigger(row)"
-                >
-                  <IconifyIconOnline icon="ep:video-play" class="action-icon" />
-                  执行
-                </el-button>
-                <el-button
                   size="small"
-                  type="info"
-                  class="action-btn"
-                  @click="logger(row)"
+                  link
+                  @click="trigger(row)"
+                  >执行</el-button
                 >
-                  <IconifyIconOnline icon="ep:document" class="action-icon" />
-                  日志
-                </el-button>
-              </div>
-              <div class="secondary-actions">
+                <el-button type="info" size="small" link @click="logger(row)"
+                  >日志</el-button
+                >
                 <el-dropdown
                   trigger="click"
-                  @command="(command) => handleCommand(command, row)"
+                  @command="(cmd) => handleCommand(cmd, row)"
                 >
-                  <el-button size="small" class="more-btn">
-                    <IconifyIconOnline
-                      icon="ep:more-filled"
-                      class="more-icon"
-                    />
-                  </el-button>
+                  <el-button type="primary" size="small" link>更多</el-button>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item command="nextTriggerTime">
-                        <IconifyIconOnline
-                          icon="ep:calendar"
-                          class="dropdown-icon"
-                        />
-                        下次执行时间
-                      </el-dropdown-item>
-                      <el-dropdown-item command="jobgroupById">
-                        <IconifyIconOnline
-                          icon="ep:connection"
-                          class="dropdown-icon"
-                        />
-                        注册节点
-                      </el-dropdown-item>
                       <el-dropdown-item
-                        v-if="
-                          !row.jobTriggerStatus || row.jobTriggerStatus == 0
-                        "
-                        divided
-                        command="start"
+                        :command="row.jobTriggerStatus === 1 ? 'stop' : 'start'"
                       >
-                        <IconifyIconOnline
-                          icon="ep:video-play"
-                          class="dropdown-icon"
-                        />
-                        启动任务
+                        {{ row.jobTriggerStatus === 1 ? "停止" : "启动" }}
                       </el-dropdown-item>
-                      <el-dropdown-item
-                        v-if="row.jobTriggerStatus == 1"
-                        divided
-                        command="stop"
-                      >
-                        <IconifyIconOnline
-                          icon="ep:video-pause"
-                          class="dropdown-icon"
-                        />
-                        停止任务
-                      </el-dropdown-item>
-                      <el-dropdown-item command="copy">
-                        <IconifyIconOnline
-                          icon="ep:copy-document"
-                          class="dropdown-icon"
-                        />
-                        复制任务
-                      </el-dropdown-item>
-                      <el-dropdown-item divided command="delete">
-                        <IconifyIconOnline
-                          icon="ep:delete"
-                          class="dropdown-icon"
-                          style="color: var(--el-color-danger)"
-                        />
-                        <span style="color: var(--el-color-danger)"
-                          >删除任务</span
-                        >
+                      <el-dropdown-item command="copy">复制</el-dropdown-item>
+                      <el-dropdown-item command="delete" divided>
+                        <span style="color: var(--el-color-danger)">删除</span>
                       </el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
-              </div>
-            </div>
-          </div>
-        </template>
-        <template #empty>
-          <el-empty description="暂无任务数据" class="job-empty-state">
-            <el-button type="primary" @click="add">创建第一个任务</el-button>
-          </el-empty>
-        </template>
-      </ScTable>
+              </template>
+            </el-table-column>
+          </ScTable>
+        </el-card>
+      </div>
+
+      <!-- 卡片视图分页 -->
+      <div
+        v-if="viewMode === 'card' && filteredJobList.length > 0"
+        class="pagination-container"
+      >
+        <el-pagination
+          v-model:current-page="form.pageNum"
+          v-model:page-size="form.pageSize"
+          :page-sizes="[12, 24, 36, 48]"
+          :total="total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </div>
 
     <!-- 弹窗组件 -->
@@ -439,27 +429,31 @@ import {
   fetchJobStop,
   fetchJobTrigger,
 } from "@/api/monitor/job";
-// import { fetchServiceList } from "@/api/monitor/service"; // 已删除服务监控功能
-import ScTable from "@repo/components/ScTable/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { computed, defineAsyncComponent, onMounted, reactive, ref } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 import { useRouter } from "vue-router";
 
 // 动态导入组件
 const Save = defineAsyncComponent(() => import("./save.vue"));
-const ScSelectFilter = defineAsyncComponent(
-  () => import("@repo/components/ScSelectFilter/index.vue")
-);
 
 // 表格引用
 const tableRef = ref(null);
 const router = useRouter();
 
+// 视图模式
+const viewMode = ref<"card" | "table">("card");
+
 // 表单和分页参数
 const form = reactive({
-  mode: "card",
-  jobTriggerStatus: null,
-  jobDesc: undefined,
+  jobTriggerStatus: null as number | null,
+  jobDesc: undefined as string | undefined,
   jobGroup: 0,
   pageNum: 1,
   pageSize: 12,
@@ -467,20 +461,20 @@ const form = reactive({
 
 // 数据状态
 const loading = ref(false);
-const executorData = ref([]);
-const jobinfoNextTriggerTimeData = ref([]);
-const jobgroupByIdData = ref([]);
+const executorData = ref<any[]>([]);
+const jobinfoNextTriggerTimeData = ref<string[]>([]);
+const jobgroupByIdData = ref<any[]>([]);
 const total = ref(0);
-const data = ref([]); // 保留data变量以供其他地方使用
+const jobList = ref<any[]>([]);
 
-// 计算属性
-const totalJobs = computed(() => data.value.length);
-const runningJobs = computed(
-  () => data.value.filter((job) => job.jobTriggerStatus === 1).length
-);
-const stoppedJobs = computed(
-  () => data.value.filter((job) => job.jobTriggerStatus === 0).length
-);
+// 卡片交互状态
+const showMenu = ref(false);
+const hoveredJob = ref<any>(null);
+
+// 计算属性 - 过滤后的任务列表
+const filteredJobList = computed(() => {
+  return jobList.value;
+});
 
 /**
  * 加载任务数据的URL函数
@@ -506,68 +500,96 @@ const loadJobData = async (params) => {
  * 处理数据加载完成的回调
  */
 const handleDataLoaded = (result) => {
-  data.value = result.data;
-  total.value = result.total;
+  jobList.value = result.data || [];
+  total.value = result.total || 0;
 };
 
-// 过滤器数据
-const filterData = [
-  {
-    title: "状态",
-    key: "jobTriggerStatus",
-    multiple: false,
-    options: [
-      {
-        label: "全部",
-        value: null,
-      },
-      {
-        label: "停止",
-        value: 0,
-      },
-      {
-        label: "启动",
-        value: 1,
-      },
-    ],
-  },
-];
+// 弹窗状态
+const saveShow = ref(false);
+const triggerShow = ref(false);
+const triggerTitle = ref("");
+const triggerId = ref(0);
+const executorParam = ref("");
+const addressList = ref("");
+const triggerLoadding = ref(false);
+const jobinfoNextTriggerTimeShow = ref(false);
+const jobgroupByIdShow = ref(false);
 
 // 初始化数据
 const initial = async () => {
+  loading.value = true;
   try {
     const res = await fetchAppList({});
     executorData.value = res?.data || [];
     form.jobGroup =
-      executorData.value && executorData.value.length == 1
+      executorData.value && executorData.value.length === 1
         ? executorData.value[0].monitorId
         : 0;
-    // 触发表格刷新
-    tableRef.value?.refresh();
+    // 加载任务数据
+    await fetchJobList();
   } catch (error) {
     console.error("初始化失败:", error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 获取任务列表
+const fetchJobList = async () => {
+  loading.value = true;
+  try {
+    const res = await fetchJobPageList(form);
+    jobList.value = res?.data?.data || [];
+    total.value = res?.data?.total || 0;
+  } catch (error) {
+    console.error("获取任务列表失败:", error);
+    jobList.value = [];
+  } finally {
+    loading.value = false;
   }
 };
 
 // 搜索方法
-const search = async (param) => {
+const search = async (param?: any) => {
   if (param) {
     Object.assign(form, param);
   }
-  // 触发表格刷新
-  tableRef.value?.refresh();
+  if (viewMode.value === "card") {
+    await fetchJobList();
+  } else {
+    tableRef.value?.refresh();
+  }
 };
 
-// 过滤器变化
-const filterChange = (row) => {
-  form.jobTriggerStatus = row.jobTriggerStatus;
-  search({});
+// 搜索输入处理
+const handleSearch = () => {
+  form.pageNum = 1;
+  search();
 };
 
-// 状态快捷切换（与筛选器联动）
-const setStatus = (v: number | null) => {
-  form.jobTriggerStatus = v as any;
-  search(undefined);
+// 任务组筛选处理
+const handleGroupFilter = () => {
+  form.pageNum = 1;
+  search();
+};
+
+// 状态筛选处理
+const handleStatusFilter = () => {
+  form.pageNum = 1;
+  search();
+};
+
+// 分页大小变化
+const handleSizeChange = (size: number) => {
+  form.pageSize = size;
+  form.pageNum = 1;
+  search();
+};
+
+// 页码变化
+const handleCurrentChange = (page: number) => {
+  form.pageNum = page;
+  search();
 };
 
 // 处理成功回调
@@ -602,7 +624,7 @@ const del = async (row) => {
 
     const res = await fetchJobDelete({ id: row.jobId });
     if (res.code === "00000") {
-      data.value = data.value.filter((it) => it.jobId != row.jobId);
+      jobList.value = jobList.value.filter((it) => it.jobId != row.jobId);
       ElMessage.success("操作成功");
     } else {
       ElMessage.error(res.msg);
@@ -620,7 +642,7 @@ const start = async (row) => {
   try {
     const res = await fetchJobStart({ jobId: row.jobId });
     if (res.code === "00000") {
-      const item = data.value.find((it) => it.jobId == row.jobId);
+      const item = jobList.value.find((it) => it.jobId == row.jobId);
       if (item) {
         item.jobTriggerStatus = 1;
       }
@@ -645,7 +667,7 @@ const stop = async (row) => {
 
     const res = await fetchJobStop({ jobId: row.jobId });
     if (res.code === "00000") {
-      const item = data.value.find((it) => it.jobId == row.jobId);
+      const item = jobList.value.find((it) => it.jobId == row.jobId);
       if (item) {
         item.jobTriggerStatus = 0;
       }
@@ -753,7 +775,42 @@ const getStatusClass = (status) => {
 
 // 获取状态图标
 const getStatusIcon = (status) => {
-  return status === 1 ? "ep:success-filled" : "ep:circle-close-filled";
+  return status === 1 ? "ri:checkbox-circle-fill" : "ri:close-circle-fill";
+};
+
+// 获取状态类型
+const getStatusType = (status) => {
+  return status === 1 ? "success" : "danger";
+};
+
+// 获取卡片样式类
+const getJobCardClass = (job) => {
+  return job.jobTriggerStatus === 1 ? "card-running" : "card-stopped";
+};
+
+// 显示操作菜单
+const showActionMenu = (job: any, event: MouseEvent) => {
+  hoveredJob.value = job;
+  showMenu.value = true;
+};
+
+// 隐藏操作菜单
+const hideActionMenu = () => {
+  showMenu.value = false;
+  hoveredJob.value = null;
+};
+
+// 获取空状态文本
+const getEmptyText = () => {
+  if (form.jobDesc) {
+    return `没有找到包含 "${form.jobDesc}" 的任务`;
+  }
+  if (form.jobTriggerStatus !== null) {
+    return form.jobTriggerStatus === 1
+      ? "没有运行中的任务"
+      : "没有已停止的任务";
+  }
+  return "暂无任务数据，点击下方按钮刷新";
 };
 
 // 获取状态文本
@@ -818,677 +875,273 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-/* 基础样式 */
-.job-dashboard {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+<style scoped lang="scss">
+/* 容器样式 */
+.job-management-container {
+  padding: 24px;
+  min-height: 100vh;
+  background: var(--el-bg-color);
 }
 
-/* 页面头部样式 */
-.page-header {
-  position: relative;
-  border-radius: 20px;
-  padding: 28px 32px;
-  margin-bottom: 20px;
-  color: #1f2937;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-  box-shadow:
-    0 10px 40px rgba(102, 126, 234, 0.3),
-    0 4px 12px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-    pointer-events: none;
-  }
-}
-
-.header-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 32px;
-}
-
-.title-section {
-  flex: 1;
-  min-width: 300px;
-}
-
-.page-title {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 32px;
-  font-weight: 800;
-  margin: 0 0 10px 0;
-  color: #fff;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-}
-
-.title-icon {
-  font-size: 36px;
-  color: rgba(255, 255, 255, 0.95);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-}
-
-.page-subtitle {
-  position: relative;
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.85);
-  margin: 0;
-  line-height: 1.6;
-}
-
-.stats-section {
-  position: relative;
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.stat-card {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
-  padding: 18px 24px;
-  text-align: center;
-  min-width: 110px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.stat-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  background: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.stat-number {
-  font-size: 28px;
-  font-weight: 800;
-  color: #fff;
-  margin-bottom: 4px;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.stat-label {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.85);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: 500;
-}
-
-/* 工具栏样式 */
-.job-control-panel {
-  border-radius: 16px;
+/* 搜索区域 */
+.search-section {
   margin-bottom: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid var(--el-border-color-lighter);
-}
 
-.job-filter-section {
-  margin-bottom: 16px;
-}
+  .search-card {
+    border-radius: 16px;
+    border: 1px solid var(--el-border-color-lighter);
+    background: var(--el-bg-color);
 
-.job-filter-controls {
-  :deep(.sc-select-filter) {
-    .filter-item {
-      margin-right: 16px;
+    :deep(.el-card__body) {
+      padding: 20px 24px;
+    }
 
-      .el-select {
-        width: 140px;
+    .search-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+
+      .search-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex: 1;
+
+        .search-input {
+          width: 300px;
+
+          :deep(.el-input__wrapper) {
+            border-radius: 10px;
+          }
+        }
+
+        .app-filter,
+        .status-filter {
+          width: 150px;
+
+          :deep(.el-select__wrapper) {
+            border-radius: 10px;
+          }
+        }
+      }
+
+      .search-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .view-toggle {
+          :deep(.el-button) {
+            border-radius: 8px;
+
+            &:first-child {
+              border-top-right-radius: 0;
+              border-bottom-right-radius: 0;
+            }
+
+            &:last-child {
+              border-top-left-radius: 0;
+              border-bottom-left-radius: 0;
+            }
+
+            &:not(:first-child):not(:last-child) {
+              border-radius: 0;
+            }
+          }
+        }
       }
     }
   }
 }
 
-.job-skeleton-loader {
-  padding: 10px 0;
-}
+/* 任务列表区域 */
+.jobs-section {
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    background: var(--el-bg-color);
+    border-radius: 16px;
+    box-shadow: var(--el-box-shadow-light);
 
-.modern-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  border-radius: 16px;
-  padding: 20px 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
+    .loading-content {
+      text-align: center;
+      max-width: 400px;
 
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
-  flex-wrap: wrap;
-}
-
-.search-container {
-  flex: 1;
-  max-width: 400px;
-  min-width: 250px;
-}
-
-.search-input {
-  border-radius: 12px;
-}
-
-.search-input :deep(.el-input__wrapper) {
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--el-border-color-lighter);
-  transition: all 0.3s ease;
-}
-
-.search-input :deep(.el-input__wrapper:hover) {
-  border-color: var(--el-color-primary);
-  box-shadow: var(--el-box-shadow-light);
-}
-
-.search-input :deep(.el-input__wrapper.is-focus) {
-  border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 3px var(--el-color-primary-light-8);
-}
-
-.search-icon {
-  color: #9ca3af;
-}
-
-.filter-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.group-select {
-  min-width: 180px;
-}
-
-.group-select :deep(.el-select__wrapper) {
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.group-select :deep(.el-select__wrapper:hover) {
-  border-color: var(--el-border-color-lighter);
-}
-
-.option-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.option-icon {
-  font-size: 14px;
-  color: #667eea;
-}
-
-.app-label {
-  margin-left: auto;
-  font-size: 11px;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.status-filter {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-
-.status-btn {
-  border: none;
-  background: transparent;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.status-btn.active {
-  background: #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.status-btn.success.active {
-  background: #10b981;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-}
-
-.status-btn.warning.active {
-  background: #f59e0b;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
-}
-
-.btn-icon {
-  font-size: 14px;
-}
-
-.toolbar-right {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.search-btn {
-  border-radius: 12px;
-  padding: 10px 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.search-btn:hover {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
-}
-
-.create-btn {
-  border-radius: 12px;
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  font-weight: 600;
-  box-shadow: 0 4px 12px var(--el-shadow-color);
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.create-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-/* 主内容区域 */
-.job-content {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 任务卡片样式 */
-.modern-job-card {
-  height: 100%;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 20px;
-  overflow: hidden;
-  position: relative;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  display: flex;
-  flex-direction: column;
-  cursor: pointer;
-  padding: 24px;
-}
-
-.modern-job-card:hover {
-  transform: translateY(-8px);
-  box-shadow: var(--el-box-shadow);
-  border-color: var(--el-color-primary);
-}
-
-.modern-job-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  transition: height 0.3s ease;
-}
-
-.modern-job-card:hover::before {
-  height: 6px;
-}
-
-.card-active {
-  border-color: #10b981;
-}
-
-.card-active::before {
-  background: linear-gradient(90deg, #10b981, #059669);
-}
-
-.status-indicator {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  z-index: 2;
-}
-
-.status-indicator.indicator-running {
-  background: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-  animation: pulse-running 2s infinite;
-}
-
-.status-indicator.indicator-stopped {
-  background: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
-}
-
-@keyframes pulse-running {
-  0%,
-  100% {
-    opacity: 1;
+      .loading-text {
+        margin-top: 16px;
+        color: var(--el-text-color-secondary);
+        font-size: 14px;
+      }
+    }
   }
-  50% {
-    opacity: 0.5;
+
+  .empty-container {
+    background: var(--el-bg-color);
+    border-radius: 16px;
+    padding: 60px 20px;
+    text-align: center;
+    box-shadow: var(--el-box-shadow-light);
+
+    .empty-text {
+      color: var(--el-text-color-secondary);
+      font-size: 14px;
+      margin: 16px 0;
+    }
+  }
+
+  /* 卡片网格 */
+  .jobs-grid {
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .job-card-wrapper {
+      animation: fadeInUp 0.3s ease forwards;
+      opacity: 0;
+    }
+
+    .job-card {
+      background: var(--el-bg-color);
+      border-radius: 16px;
+      border: 1px solid var(--el-border-color-lighter);
+      padding: 20px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--el-box-shadow);
+        border-color: var(--el-color-primary-light-5);
+      }
+
+      &.card-running {
+        border-left: 4px solid var(--el-color-success);
+      }
+
+      &.card-stopped {
+        border-left: 4px solid var(--el-color-danger);
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+
+        .job-info {
+          flex: 1;
+
+          .job-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--el-text-color-primary);
+            margin-bottom: 6px;
+
+            .job-icon {
+              color: var(--el-color-primary);
+            }
+
+            .name-text {
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+          }
+
+          .job-cron {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--el-text-color-secondary);
+
+            .cron-icon {
+              font-size: 14px;
+            }
+          }
+        }
+
+        .job-status {
+          .status-tag {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          }
+        }
+      }
+
+      .card-body {
+        .info-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+
+          .info-item {
+            .info-label {
+              display: block;
+              font-size: 12px;
+              color: var(--el-text-color-secondary);
+              margin-bottom: 4px;
+            }
+
+            .info-value {
+              font-size: 13px;
+              color: var(--el-text-color-primary);
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+          }
+        }
+      }
+
+      .card-footer {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--el-border-color-lighter);
+
+        .action-buttons {
+          display: flex;
+          gap: 8px;
+          justify-content: flex-end;
+        }
+      }
+    }
+  }
+
+  /* 表格视图 */
+  .jobs-table {
+    :deep(.el-card) {
+      border-radius: 16px;
+    }
+  }
+
+  /* 分页 */
+  .pagination-container {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
   }
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-}
-
-.job-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.job-icon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-text-color-primary);
-  font-size: 20px;
-}
-
-.job-details {
-  flex: 1;
-}
-
-.job-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0 0 4px 0;
-  line-height: 1.4;
-}
-
-.job-handler {
-  font-size: 13px;
-  color: var(--el-text-color-primary);
-  background: #f3f4f6;
-  padding: 4px 8px;
-  border-radius: 6px;
-  display: inline-block;
-}
-
-.status-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.status-badge.badge-running {
-  background: rgba(16, 185, 129, 0.1);
-  color: #059669;
-  border: 1px solid rgba(16, 185, 129, 0.2);
-}
-
-.status-badge.badge-stopped {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
-  border: 1px solid rgba(239, 68, 68, 0.2);
-}
-
-.status-icon {
-  font-size: 14px;
-}
-
-.status-text {
-  font-size: 12px;
-}
-
-.card-content {
-  margin-bottom: 20px;
-}
-
-.schedule-expression {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  border-left: 4px solid var(--el-border-color-lighter);
-}
-
-.schedule-icon {
-  font-size: 16px;
-  color: var(--el-text-color-primary);
-}
-
-.schedule-text {
-  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
-  font-size: 13px;
-  color: var(--el-border-color-lighter);
-  font-weight: 500;
-}
-
-.job-metadata {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-
-.meta-icon {
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-  width: 16px;
-}
-
-.meta-label {
-  color: var(--el-text-color-primary);
-  font-weight: 500;
-  min-width: 60px;
-}
-
-.meta-value {
-  color: var(--el-text-color-primary);
-}
-
-.job-tags {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.job-tags .el-tag {
-  border-radius: 6px;
-  border: none;
-  font-size: 11px;
-  padding: 4px 8px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.tag-icon {
-  font-size: 12px;
-}
-
-.schedule-tag {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-}
-
-.glue-tag {
-  background: rgba(16, 185, 129, 0.1);
-  color: #059669;
-}
-
-.status-tag {
-  /* Element Plus tag styles will apply */
-}
-
-.card-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 16px;
-  border-top: 1px solid var(--el-text-color-primary);
-}
-
-.primary-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  border-radius: 8px;
-  font-size: 12px;
-  padding: 6px 12px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border: 1px solid transparent;
-}
-
-.action-btn:hover {
-  transform: translateY(-1px);
-}
-
-.action-icon {
-  font-size: 14px;
-}
-
-.secondary-actions {
-  display: flex;
-  align-items: center;
-}
-
-.more-btn {
-  border-radius: 8px;
-  padding: 6px;
-  border: 1px solid #e5e7eb;
-  background: var(--el-bg-color-overlay);
-  color: #6b7280;
-  transition: all 0.2s ease;
-}
-
-.more-btn:hover {
-  border-color: #667eea;
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
-}
-
-.more-icon {
-  font-size: 16px;
-}
-
+/* 下拉菜单图标 */
 .dropdown-icon {
-  font-size: 14px;
-  margin-right: 6px;
-}
-
-/* 空状态样式 */
-.job-empty-state {
-  text-align: center;
-  padding: 80px 20px;
-  color: #9ca3af;
-}
-
-.job-empty-state .empty-icon {
-  font-size: 80px;
-  margin-bottom: 20px;
-  opacity: 0.5;
-  color: #d1d5db;
-}
-
-.job-empty-state .empty-text {
-  font-size: 18px;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
-}
-
-.job-empty-state .empty-desc {
-  font-size: 14px;
-  color: #6b7280;
-  line-height: 1.5;
+  margin-right: 8px;
 }
 
 /* 弹窗样式 */
 .job-dialog {
   :deep(.el-dialog) {
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  :deep(.el-dialog__header) {
-    padding: 20px;
-    margin-right: 0;
-    border-bottom: 1px solid var(--el-border-color-lighter);
-  }
-
-  :deep(.el-dialog__body) {
-    padding: 20px;
-  }
-
-  :deep(.el-dialog__footer) {
-    padding: 16px 20px;
-    border-top: 1px solid var(--el-border-color-lighter);
+    border-radius: 16px;
   }
 }
 
@@ -1498,7 +1151,7 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-/* 下一次执行时间列表 */
+/* 下次执行时间列表 */
 .job-next-time-list {
   max-height: 300px;
   overflow-y: auto;
@@ -1506,11 +1159,10 @@ onMounted(() => {
   .job-next-time-item {
     padding: 12px;
     margin-bottom: 10px;
-    background-color: #f8fafc;
+    background: var(--el-fill-color-light);
     border-radius: 8px;
     font-family: monospace;
-    border-left: 3px solid #667eea;
-    color: #374151;
+    border-left: 3px solid var(--el-color-primary);
 
     &:last-child {
       margin-bottom: 0;
@@ -1532,131 +1184,53 @@ onMounted(() => {
   }
 }
 
-/* 表格样式 */
-.job-table {
-  background: transparent;
-
-  :deep(.sc-table-card) {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 0;
+/* 动画 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
-
-  :deep(.el-card) {
-    border-radius: 8px;
-    overflow: hidden;
-    border: none;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  }
-
-  :deep(.el-pagination) {
-    justify-content: center;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* 响应式设计 */
-@media (max-width: 1024px) {
-  .header-content {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .stats-section {
-    width: 100%;
-    justify-content: flex-start;
-  }
-}
-
+/* 响应式 */
 @media (max-width: 768px) {
-  .job-dashboard {
+  .job-management-container {
     padding: 16px;
   }
 
-  .page-header {
-    padding: 24px 20px;
+  .search-section {
+    .search-card {
+      .search-container {
+        flex-direction: column;
+        align-items: stretch;
+
+        .search-left {
+          flex-direction: column;
+
+          .search-input,
+          .app-filter,
+          .status-filter {
+            width: 100%;
+          }
+        }
+
+        .search-right {
+          justify-content: center;
+        }
+      }
+    }
   }
 
-  .page-title {
-    font-size: 24px;
-  }
-
-  .job-control-panel {
-    padding: 20px;
-  }
-
-  .modern-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .toolbar-left {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .search-container {
-    max-width: none;
-  }
-
-  .filter-container {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .status-filter {
-    justify-content: center;
-  }
-
-  .toolbar-right {
-    justify-content: center;
-  }
-
-  .modern-job-card {
-    padding: 20px;
-  }
-
-  .card-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .job-info {
-    width: 100%;
-  }
-
-  .card-actions {
-    flex-direction: column;
-    gap: 12px;
-    align-items: stretch;
-  }
-
-  .primary-actions {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .secondary-actions {
-    justify-content: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .stats-section {
-    flex-direction: column;
-  }
-
-  .stat-card {
-    min-width: auto;
-  }
-
-  .primary-actions {
-    flex-direction: column;
-  }
-
-  .action-btn {
-    justify-content: center;
+  .jobs-section {
+    .jobs-grid {
+      .grid-container {
+        grid-template-columns: 1fr;
+      }
+    }
   }
 }
 </style>
