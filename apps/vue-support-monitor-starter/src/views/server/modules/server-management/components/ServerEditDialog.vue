@@ -17,13 +17,39 @@
     <template #header="{ titleId, titleClass }">
       <div class="dialog-header">
         <div class="header-left">
-          <IconifyIconOnline
-            :icon="mode === 'add' ? 'ri:add-circle-line' : 'ri:edit-line'"
-            class="header-icon"
-          />
-          <span :id="titleId" :class="titleClass" class="dialog-title">
-            {{ mode === "add" ? "新增服务器" : "编辑服务器" }}
-          </span>
+          <div class="header-icon-wrapper">
+            <IconifyIconOnline
+              :icon="mode === 'add' ? 'ri:add-circle-line' : 'ri:edit-line'"
+              class="header-icon"
+            />
+          </div>
+          <div class="header-info">
+            <span :id="titleId" :class="titleClass" class="dialog-title">
+              {{ mode === "add" ? "新增服务器" : "编辑服务器" }}
+            </span>
+            <span class="dialog-subtitle">
+              {{
+                mode === "add"
+                  ? "添加新的服务器进行管理和监控"
+                  : "修改服务器配置信息"
+              }}
+            </span>
+          </div>
+        </div>
+        <div class="header-right">
+          <el-tag
+            v-if="mode === 'edit' && formData.monitorSysGenServerStatus === 1"
+            type="success"
+            effect="light"
+            round
+          >
+            <IconifyIconOnline icon="ri:checkbox-circle-line" class="mr-1" />
+            已启用
+          </el-tag>
+          <el-tag v-else-if="mode === 'edit'" type="info" effect="light" round>
+            <IconifyIconOnline icon="ri:close-circle-line" class="mr-1" />
+            已禁用
+          </el-tag>
         </div>
       </div>
     </template>
@@ -1374,33 +1400,111 @@ defineExpose({
   }
 }
 
-// 自定义头部样式
+// 自定义头部样式 - 美化版本
 .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: 16px 24px;
   background: linear-gradient(
     135deg,
-    var(--el-color-primary-light-9) 0%,
-    var(--el-bg-color) 100%
+    rgba(99, 102, 241, 0.08) 0%,
+    rgba(168, 85, 247, 0.05) 50%,
+    rgba(236, 72, 153, 0.03) 100%
   );
+  position: relative;
+  overflow: hidden;
+
+  // 背景装饰元素
+  &::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(
+      circle,
+      rgba(99, 102, 241, 0.1) 0%,
+      transparent 70%
+    );
+    animation: floatBubble 8s ease-in-out infinite;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -30%;
+    left: 10%;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(
+      circle,
+      rgba(168, 85, 247, 0.08) 0%,
+      transparent 70%
+    );
+    animation: floatBubble 10s ease-in-out infinite reverse;
+  }
 
   .header-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
+    position: relative;
+    z-index: 1;
 
-    .header-icon {
-      font-size: 24px;
-      color: var(--el-color-primary);
+    .header-icon-wrapper {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 100%
+      );
+      border-radius: 14px;
+      box-shadow:
+        0 8px 24px rgba(99, 102, 241, 0.3),
+        0 4px 12px rgba(99, 102, 241, 0.2);
+      animation: iconPulse 3s ease-in-out infinite;
+
+      .header-icon {
+        font-size: 24px;
+        color: white;
+      }
+    }
+
+    .header-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
     .dialog-title {
-      font-size: 18px;
-      font-weight: 600;
+      font-size: 20px;
+      font-weight: 700;
       color: var(--el-text-color-primary);
       margin: 0;
+      letter-spacing: 0.5px;
+    }
+
+    .dialog-subtitle {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+      font-weight: 400;
+    }
+  }
+
+  .header-right {
+    position: relative;
+    z-index: 1;
+
+    .el-tag {
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 500;
     }
   }
 
@@ -1674,60 +1778,106 @@ defineExpose({
   }
 }
 
-// 表单分组样式
+// 表单分组样式 - 美化版本
 .form-section {
   flex: 1;
   display: flex;
   flex-direction: column;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.8) 0%,
-    rgba(248, 250, 252, 0.9) 100%
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.95) 100%
   );
-  border-radius: 16px;
-  border: 1px solid rgba(226, 232, 240, 0.6);
-  padding: 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.5);
+  padding: 16px;
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.04),
-    0 2px 8px rgba(0, 0, 0, 0.02);
+    0 4px 24px rgba(0, 0, 0, 0.04),
+    0 2px 12px rgba(0, 0, 0, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
   min-height: 0;
-  backdrop-filter: blur(8px);
-  transition: all 0.3s ease;
+  backdrop-filter: blur(12px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+
+  // 装饰背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(
+      90deg,
+      var(--el-color-primary) 0%,
+      #8b5cf6 50%,
+      #ec4899 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
 
   &:hover {
     box-shadow:
-      0 8px 24px rgba(0, 0, 0, 0.08),
-      0 4px 12px rgba(0, 0, 0, 0.04);
-    transform: translateY(-1px);
+      0 12px 40px rgba(99, 102, 241, 0.12),
+      0 6px 20px rgba(0, 0, 0, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.2);
+
+    &::before {
+      opacity: 1;
+    }
   }
 
   .section-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
     flex-shrink: 0;
+    position: relative;
 
     .section-icon {
-      font-size: 16px;
-      color: var(--el-color-primary);
-      padding: 6px;
+      font-size: 18px;
+      color: white;
+      padding: 10px;
       background: linear-gradient(
         135deg,
-        var(--el-color-primary-light-9) 0%,
-        var(--el-color-primary-light-8) 100%
+        var(--el-color-primary) 0%,
+        #6366f1 100%
       );
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      box-shadow:
+        0 4px 12px rgba(99, 102, 241, 0.3),
+        0 2px 6px rgba(99, 102, 241, 0.2);
+      transition: all 0.3s ease;
     }
 
     .section-title {
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 15px;
+      font-weight: 700;
       color: var(--el-text-color-primary);
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
+    }
+
+    .section-badge {
+      margin-left: auto;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      background: linear-gradient(
+        135deg,
+        rgba(99, 102, 241, 0.1) 0%,
+        rgba(168, 85, 247, 0.1) 100%
+      );
+      color: var(--el-color-primary);
+      border-radius: 20px;
+      border: 1px solid rgba(99, 102, 241, 0.2);
     }
   }
 
@@ -1736,7 +1886,7 @@ defineExpose({
     overflow: visible;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     min-height: 0;
   }
 }
@@ -1931,16 +2081,38 @@ defineExpose({
   height: 40px;
 }
 
-// 底部按钮区域 - 紧凑版本
+// 底部按钮区域 - 美化版本
 .dialog-footer {
   display: flex;
-  justify-content: right;
+  justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px !important;
+  gap: 16px;
+  padding: 16px 24px !important;
+  background: linear-gradient(
+    135deg,
+    rgba(248, 250, 252, 0.98) 0%,
+    rgba(255, 255, 255, 0.98) 100%
+  );
+  border-top: 1px solid rgba(226, 232, 240, 0.6);
 
   .footer-left {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .footer-tip {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .iconify {
+        font-size: 16px;
+        color: var(--el-color-warning);
+      }
+    }
   }
 
   .footer-right {
@@ -1949,40 +2121,99 @@ defineExpose({
   }
 
   .el-button {
-    border-radius: 10px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 12px 24px;
+    font-size: 14px;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+      );
+      transition: left 0.5s ease;
+    }
 
     &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+
+      &::before {
+        left: 100%;
+      }
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &.el-button--default {
+      background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(248, 250, 252, 0.9) 100%
+      );
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      color: var(--el-text-color-primary);
+
+      &:hover {
+        border-color: var(--el-color-primary-light-5);
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 1) 0%,
+          rgba(248, 250, 252, 1) 100%
+        );
+      }
     }
 
     &.el-button--primary {
       background: linear-gradient(
         135deg,
         var(--el-color-primary) 0%,
+        #6366f1 50%,
         var(--el-color-primary-dark-2) 100%
       );
+      background-size: 200% 200%;
       border: none;
+      box-shadow:
+        0 4px 16px rgba(99, 102, 241, 0.35),
+        0 2px 8px rgba(99, 102, 241, 0.25);
 
       &:hover {
-        background: linear-gradient(
-          135deg,
-          var(--el-color-primary-light-3) 0%,
-          var(--el-color-primary) 100%
-        );
+        background-position: 100% 0;
+        box-shadow:
+          0 8px 24px rgba(99, 102, 241, 0.4),
+          0 4px 12px rgba(99, 102, 241, 0.3);
       }
     }
 
     &.el-button--success {
-      &.is-plain {
-        &:hover {
-          background-color: var(--el-color-success);
-          border-color: var(--el-color-success);
-          color: var(--el-text-color-primary);
-        }
+      background: linear-gradient(
+        135deg,
+        var(--el-color-success) 0%,
+        #10b981 100%
+      );
+      border: none;
+      color: white;
+      box-shadow:
+        0 4px 16px rgba(16, 185, 129, 0.35),
+        0 2px 8px rgba(16, 185, 129, 0.25);
+
+      &:hover {
+        box-shadow:
+          0 8px 24px rgba(16, 185, 129, 0.4),
+          0 4px 12px rgba(16, 185, 129, 0.3);
       }
     }
   }
@@ -2414,6 +2645,32 @@ defineExpose({
   }
   100% {
     background-position: 0% 50%;
+  }
+}
+
+@keyframes floatBubble {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-20px) scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes iconPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 8px 24px rgba(99, 102, 241, 0.3),
+      0 4px 12px rgba(99, 102, 241, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 12px 32px rgba(99, 102, 241, 0.4),
+      0 6px 16px rgba(99, 102, 241, 0.3);
   }
 }
 
