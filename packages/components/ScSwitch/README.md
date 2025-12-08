@@ -4,7 +4,7 @@
 
 ## 特性
 
-- 🎨 **多种布局**: 支持 `default`、`card`、`slider`、`modern` 四种布局样式
+- 🎨 **多种布局**: 支持 `default`、`card`、`slider`、`modern`、`visual-card`、`compact-card` 六种布局样式
 - 🚀 **Vue 3 + TypeScript**: 使用Composition API，提供完整的类型支持
 - 🎯 **高度可定制**: 支持自定义颜色、图标、文本、尺寸等
 - ⚡ **流畅动画**: 内置平滑过渡动画和视觉反馈
@@ -28,10 +28,10 @@ import ScSwitch from '@repo/components/ScSwitch'
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import ScSwitch from '@repo/components/ScSwitch'
+import { ref } from "vue";
+import ScSwitch from "@repo/components/ScSwitch";
 
-const switchValue = ref(false)
+const switchValue = ref(false);
 </script>
 ```
 
@@ -39,12 +39,7 @@ const switchValue = ref(false)
 
 ```vue
 <template>
-  <ScSwitch 
-    v-model="switchValue" 
-    layout="card" 
-    active-text="开启" 
-    inactive-text="关闭" 
-  />
+  <ScSwitch v-model="switchValue" layout="card" active-text="开启" inactive-text="关闭" />
 </template>
 ```
 
@@ -52,14 +47,7 @@ const switchValue = ref(false)
 
 ```vue
 <template>
-  <ScSwitch 
-    v-model="switchValue" 
-    layout="slider" 
-    active-icon="ep:check" 
-    inactive-icon="ep:close" 
-    active-text="开启"
-    inactive-text="关闭"
-  />
+  <ScSwitch v-model="switchValue" layout="slider" active-icon="ep:check" inactive-icon="ep:close" active-text="开启" inactive-text="关闭" />
 </template>
 ```
 
@@ -67,66 +55,77 @@ const switchValue = ref(false)
 
 ```vue
 <template>
-  <ScSwitch 
-    v-model="switchValue" 
-    layout="modern" 
-    active-text="ON" 
-    inactive-text="OFF" 
-    active-icon="ep:check"
-    inactive-icon="ep:close"
-  />
+  <ScSwitch v-model="switchValue" layout="modern" active-text="ON" inactive-text="OFF" active-icon="ep:check" inactive-icon="ep:close" />
 </template>
 ```
 
 ## 布局样式说明
 
 ### Default 默认布局
+
 - 基于Element Plus的el-switch组件
 - 简洁的开关样式
 - 适合大多数场景
 
 ### Card 卡片布局
+
 - 卡片式的容器设计
 - 适合表单和设置页面
 - 提供更好的视觉分组
 
 ### Slider 滑块布局
+
 - 自定义滑块设计
 - 支持图标和文本显示
 - 提供丰富的视觉反馈
 - 支持三种尺寸：small、default、large
 
 ### Modern 现代布局
+
 - 现代化的设计风格
 - 渐变背景和阴影效果
 - 平滑的动画过渡
 - 适合现代化的界面设计
 
+### Visual-Card 视觉卡片布局
+
+- 大型卡片式设计
+- 支持图标、标签、描述和角标
+- 适合功能展示和物联网场景
+- 丰富的视觉效果
+
+### Compact-Card 紧凑卡片布局
+
+- 紧凑的水平布局：图标 + 标签 + 开关
+- 适合功能开关列表和设置页面
+- 激活状态有渐变背景高亮
+- 支持悬停和交互动画
+
 ## API
 
 ### Props
 
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| modelValue | `boolean` | `false` | 开关状态，支持v-model |
-| layout | `'default' \| 'card' \| 'slider' \| 'modern'` | `'default'` | 布局类型 |
-| size | `'small' \| 'default' \| 'large'` | `'default'` | 尺寸大小（仅slider和modern布局支持） |
-| disabled | `boolean` | `false` | 是否禁用 |
-| loading | `boolean` | `false` | 是否加载中 |
-| activeText | `string` | `''` | 开启时的文字描述 |
-| inactiveText | `string` | `''` | 关闭时的文字描述 |
-| activeIcon | `string` | `''` | 开启时的图标（支持Element Plus图标） |
-| inactiveIcon | `string` | `''` | 关闭时的图标（支持Element Plus图标） |
-| activeColor | `string` | `''` | 开启时的背景色 |
-| inactiveColor | `string` | `''` | 关闭时的背景色 |
-| name | `string` | `''` | 表单项名称 |
+| 属性          | 类型                                          | 默认值      | 说明                                 |
+| ------------- | --------------------------------------------- | ----------- | ------------------------------------ |
+| modelValue    | `boolean`                                     | `false`     | 开关状态，支持v-model                |
+| layout        | `'default' \| 'card' \| 'slider' \| 'modern'` | `'default'` | 布局类型                             |
+| size          | `'small' \| 'default' \| 'large'`             | `'default'` | 尺寸大小（仅slider和modern布局支持） |
+| disabled      | `boolean`                                     | `false`     | 是否禁用                             |
+| loading       | `boolean`                                     | `false`     | 是否加载中                           |
+| activeText    | `string`                                      | `''`        | 开启时的文字描述                     |
+| inactiveText  | `string`                                      | `''`        | 关闭时的文字描述                     |
+| activeIcon    | `string`                                      | `''`        | 开启时的图标（支持Element Plus图标） |
+| inactiveIcon  | `string`                                      | `''`        | 关闭时的图标（支持Element Plus图标） |
+| activeColor   | `string`                                      | `''`        | 开启时的背景色                       |
+| inactiveColor | `string`                                      | `''`        | 关闭时的背景色                       |
+| name          | `string`                                      | `''`        | 表单项名称                           |
 
 ### Events
 
-| 事件名 | 参数 | 说明 |
-|--------|------|------|
+| 事件名            | 参数               | 说明               |
+| ----------------- | ------------------ | ------------------ |
 | update:modelValue | `(value: boolean)` | 开关状态改变时触发 |
-| change | `(value: boolean)` | 开关状态改变时触发 |
+| change            | `(value: boolean)` | 开关状态改变时触发 |
 
 ## 样式定制
 
@@ -139,12 +138,12 @@ const switchValue = ref(false)
   /* 默认布局变量 */
   --el-switch-on-color: #409eff;
   --el-switch-off-color: #dcdfe6;
-  
+
   /* 滑块布局变量 */
   --sc-switch-slider-height: 24px;
   --sc-switch-slider-width: 48px;
   --sc-switch-slider-border-radius: 12px;
-  
+
   /* 现代布局变量 */
   --sc-switch-modern-gradient-start: #667eea;
   --sc-switch-modern-gradient-end: #764ba2;
@@ -191,8 +190,8 @@ const switchValue = ref(false)
     <!-- 自定义样式 -->
     <div class="demo-section">
       <h3>自定义样式</h3>
-      <ScSwitch 
-        v-model="customValue" 
+      <ScSwitch
+        v-model="customValue"
         layout="modern"
         size="large"
         active-text="开启"
@@ -219,17 +218,17 @@ const switchValue = ref(false)
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import ScSwitch from '@repo/components/ScSwitch'
+import { ref } from "vue";
+import ScSwitch from "@repo/components/ScSwitch";
 
-const basicValue = ref(false)
-const defaultValue = ref(false)
-const cardValue = ref(true)
-const sliderValue = ref(false)
-const modernValue = ref(true)
-const customValue = ref(false)
-const disabledValue = ref(true)
-const loadingValue = ref(false)
+const basicValue = ref(false);
+const defaultValue = ref(false);
+const cardValue = ref(true);
+const sliderValue = ref(false);
+const modernValue = ref(true);
+const customValue = ref(false);
+const disabledValue = ref(true);
+const loadingValue = ref(false);
 </script>
 
 <style scoped>
@@ -262,13 +261,22 @@ const loadingValue = ref(false)
 
 ## 更新日志
 
+### v2.1.0 (2025-12-08)
+
+- ✨ 新增紧凑卡片布局 (`compact-card`)，支持图标 + 标签 + 开关的水平布局
+- 🎨 紧凑卡片布局支持激活状态渐变背景高亮
+- 📱 适合功能开关列表和设置页面场景
+- 📚 更新文档和示例
+
 ### v2.0.4 (2025-01-17)
+
 - ✨ 新增现代化布局样式 (`modern`)
 - 🎨 添加渐变背景和阴影效果
 - ⚡ 优化动画过渡效果
 - 📚 完善文档和示例
 
 ### v2.0.0 (2025-01-17)
+
 - 🚀 重构为Vue 3 Composition API
 - ✨ 新增多种布局支持
 - 🎯 增强类型定义

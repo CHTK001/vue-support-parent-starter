@@ -9,19 +9,25 @@
     <div class="config-container">
       <!-- 左侧：可用的ServletFilter -->
       <div class="available-filters">
-        <div class="section-header">
-          <h3>可用的ServletFilter</h3>
+        <div class="section-header available-header">
+          <div class="header-title">
+            <IconifyIconOnline icon="ri:apps-2-line" class="header-icon" />
+            <h3>可用的 Filter</h3>
+            <el-tag type="info" size="small" round>
+              {{ availableFilters.length }}
+            </el-tag>
+          </div>
           <el-button
             type="primary"
             size="small"
+            circle
             @click="refreshAvailableFilters"
           >
             <IconifyIconOnline icon="ri:refresh-line" />
-            刷新
           </el-button>
         </div>
 
-        <div class="filter-list thin-scrollbar" v-loading="availableLoading">
+        <el-scrollbar class="filter-scrollbar" v-loading="availableLoading">
           <div
             v-for="(filter, index) in availableFilters"
             :key="filter.type"
@@ -61,19 +67,27 @@
 
           <el-empty
             v-if="!availableLoading && availableFilters.length === 0"
-            description="暂无可用的ServletFilter"
+            description="暂无可用的 Filter"
           />
-        </div>
+        </el-scrollbar>
       </div>
 
       <!-- 右侧：已安装的ServletFilter -->
       <div class="installed-filters">
-        <div class="section-header">
-          <h3>已安装的ServletFilter</h3>
+        <div class="section-header installed-header">
+          <div class="header-title">
+            <IconifyIconOnline
+              icon="ri:stack-line"
+              class="header-icon installed-icon"
+            />
+            <h3>已安装</h3>
+            <el-tag type="success" size="small" round>
+              {{ installedFilters.length }}
+            </el-tag>
+          </div>
           <div class="header-actions">
-            <el-button size="small" @click="refreshInstalledFilters">
+            <el-button size="small" circle @click="refreshInstalledFilters">
               <IconifyIconOnline icon="ri:refresh-line" />
-              刷新
             </el-button>
             <el-button
               type="success"
@@ -87,7 +101,7 @@
           </div>
         </div>
 
-        <div class="filter-list thin-scrollbar" v-loading="installedLoading">
+        <el-scrollbar class="filter-scrollbar" v-loading="installedLoading">
           <draggable
             v-model="installedFilters"
             item-key="systemServerSettingId"
@@ -170,13 +184,13 @@
 
           <el-empty
             v-if="!installedLoading && installedFilters.length === 0"
-            description="暂无已安装的ServletFilter"
+            description="暂无已安装的 Filter"
           >
             <el-button type="primary" @click="refreshAvailableFilters">
-              安装ServletFilter
+              去安装
             </el-button>
           </el-empty>
-        </div>
+        </el-scrollbar>
       </div>
     </div>
 
@@ -233,6 +247,17 @@
       :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
       @success="handleConfigSuccess"
     />
+    <FilterConfigProxyResponse
+      v-model:visible="showProxyResponseDialog"
+      :server-id="props.serverId as number"
+      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
+      @success="handleConfigSuccess"
+    />
+    <FilterConfigViewServlet
+      v-model:visible="showViewServletDialog"
+      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
+      @success="handleConfigSuccess"
+    />
 
     <template #footer>
       <div class="dialog-footer">
@@ -269,6 +294,8 @@ import FilterConfigQpsRateLimit from "./FilterConfigQpsRateLimit.vue";
 import FilterConfigRequestFingerprint from "./FilterConfigRequestFingerprint.vue";
 import FilterConfigDynamicExpression from "./FilterConfigDynamicExpression.vue";
 import FilterConfigEnhancedProxy from "./FilterConfigEnhancedProxy.vue";
+import FilterConfigProxyResponse from "./FilterConfigProxyResponse.vue";
+import FilterConfigViewServlet from "./FilterConfigViewServlet.vue";
 import { SystemServer } from "@/api/system-server";
 
 // Props
@@ -310,6 +337,8 @@ const showQpsRateLimitDialog = ref(false);
 const showRequestFingerprintDialog = ref(false);
 const showDynamicExprDialog = ref(false);
 const showEnhancedProxyDialog = ref(false);
+const showProxyResponseDialog = ref(false);
+const showViewServletDialog = ref(false);
 const currentFilterSetting = ref<SystemServerSetting | null>(null);
 
 // 计算属性
@@ -505,6 +534,9 @@ const openConfigDialog = (filter: SystemServerSetting) => {
   showQpsRateLimitDialog.value = false;
   showRequestFingerprintDialog.value = false;
   showDynamicExprDialog.value = false;
+  showEnhancedProxyDialog.value = false;
+  showProxyResponseDialog.value = false;
+  showViewServletDialog.value = false;
 
   const type = (filter.systemServerSettingType || "").toLowerCase();
 
@@ -540,6 +572,14 @@ const openConfigDialog = (filter: SystemServerSetting) => {
     showEnhancedProxyDialog.value = true;
     return;
   }
+  if (type.includes("proxy") && type.includes("response")) {
+    showProxyResponseDialog.value = true;
+    return;
+  }
+  if (type.includes("view")) {
+    showViewServletDialog.value = true;
+    return;
+  }
 
   // 兜底：通用配置
   showConfigDialog.value = true;
@@ -552,7 +592,12 @@ const handleConfigSuccess = () => {
   showServiceDiscoveryDialog.value = false;
   showIpRateLimitDialog.value = false;
   showAddressRateLimitDialog.value = false;
+  showQpsRateLimitDialog.value = false;
+  showRequestFingerprintDialog.value = false;
+  showDynamicExprDialog.value = false;
   showEnhancedProxyDialog.value = false;
+  showProxyResponseDialog.value = false;
+  showViewServletDialog.value = false;
   currentFilterSetting.value = null;
   loadInstalledFilters();
 };
@@ -587,7 +632,7 @@ watch(
 .config-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 20px;
   height: 600px;
 }
 
@@ -595,24 +640,49 @@ watch(
 .installed-filters {
   display: flex;
   flex-direction: column;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
+  background: var(--el-bg-color);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+// 可用Filter区域
+.available-filters {
+  border: 1px solid #e0e6ed;
+}
+
+// 已安装区域
+.installed-filters {
+  border: 1px solid #d4edda;
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  background: var(--el-bg-color-overlay);
+  padding: 14px 18px;
   border-bottom: 1px solid #e4e7ed;
 
-  h3 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    h3 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .header-icon {
+    font-size: 20px;
+    color: #409eff;
+  }
+
+  .installed-icon {
+    color: #67c23a;
   }
 
   .header-actions {
@@ -621,131 +691,145 @@ watch(
   }
 }
 
-.filter-list {
+// 可用区域标题背景
+.available-header {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e6f0fa 100%);
+}
+
+// 已安装区域标题背景
+.installed-header {
+  background: linear-gradient(135deg, #f0fff4 0%, #e6f7ed 100%);
+}
+
+.filter-scrollbar {
   flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-
-  /* 统一的细滚动条样式 */
-  &::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-    border-radius: 2px;
-    background-color: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(140, 140, 140, 0.3);
-    border-radius: 2px;
-    box-shadow: inset 0 0 6px rgba(140, 140, 140, 0.3);
-
-    &:hover {
-      background: rgba(140, 140, 140, 0.5);
-    }
-  }
-
-  &::-webkit-scrollbar-track {
-    background-color: rgba(140, 140, 140, 0);
-    border-radius: 2px;
-    box-shadow: inset 0 0 6px rgba(140, 140, 140, 0);
-  }
+  padding: 12px;
 }
 
 .filter-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
   border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--el-bg-color-overlay);
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
 
   &:last-child {
     margin-bottom: 0;
   }
 
-  &.available:hover {
-    border-color: #409eff;
-    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+  &.available {
+    &:hover {
+      border-color: #a0cfff;
+      background: linear-gradient(135deg, #f5faff 0%, #eef5ff 100%);
+      box-shadow: 0 4px 12px rgba(64, 158, 255, 0.12);
+      transform: translateY(-1px);
+    }
   }
 
   &.installed {
     &:hover {
-      border-color: #67c23a;
-      box-shadow: 0 2px 8px rgba(103, 194, 58, 0.1);
+      border-color: #95d475;
+      background: linear-gradient(135deg, #f5fff7 0%, #eef9f0 100%);
+      box-shadow: 0 4px 12px rgba(103, 194, 58, 0.12);
+      transform: translateY(-1px);
     }
 
     &.disabled {
-      opacity: 0.6;
-      background: var(--el-bg-color-overlay);
+      opacity: 0.55;
+      background: #fafafa;
+      border-style: dashed;
     }
   }
 
   .drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
     cursor: move;
-    color: var(--el-text-color-primary);
+    color: #909399;
     font-size: 16px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
 
     &:hover {
       color: #409eff;
+      background: #ecf5ff;
     }
   }
 
   .filter-info {
     flex: 1;
+    min-width: 0;
 
     .filter-name {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       color: var(--el-text-color-primary);
-      margin-bottom: 4px;
+      margin-bottom: 6px;
       display: flex;
       align-items: center;
       gap: 8px;
-      /* 美化序号 */
+      flex-wrap: wrap;
+
+      // 美化序号
       .filter-seq {
-        display: inline-flex; /* 让数字水平、垂直居中 */
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 22px; /* 圆点大小 */
-        height: 22px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #409eff, #53a8ff); /* 渐变色背景 */
+        min-width: 24px;
+        height: 24px;
+        padding: 0 6px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
         color: #fff;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
         line-height: 1;
-        margin-right: 8px; /* 和右侧文字留点距离 */
-        box-shadow: 0 2px 4px rgba(64, 158, 255, 0.25);
-        user-select: none; /* 防止被选中 */
+        box-shadow: 0 2px 6px rgba(64, 158, 255, 0.3);
+        user-select: none;
       }
     }
 
     .filter-type {
-      font-size: 12px;
-      color: var(--el-text-color-primary);
-      background: #f0f2f5;
-      padding: 2px 8px;
-      border-radius: 4px;
+      font-size: 11px;
+      color: #606266;
+      background: linear-gradient(135deg, #f0f2f5 0%, #e8eaed 100%);
+      padding: 3px 10px;
+      border-radius: 10px;
       display: inline-block;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      font-family: "SF Mono", "Monaco", "Consolas", monospace;
     }
 
     .filter-description {
-      font-size: 14px;
-      color: #606266;
-      line-height: 1.4;
+      font-size: 13px;
+      color: #909399;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     .filter-detail {
-      margin-top: 4px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #909399;
+      display: flex;
+      align-items: center;
+      gap: 4px;
 
       .detail-icon {
-        color: var(--el-text-color-primary);
+        color: #c0c4cc;
         font-size: 14px;
         cursor: help;
+        transition: color 0.2s ease;
 
         &:hover {
           color: #409eff;
@@ -756,16 +840,19 @@ watch(
 
   .filter-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-shrink: 0;
   }
 
   .filter-name-link {
     cursor: pointer;
     color: #409eff;
-  }
-  .filter-name-link:hover {
-    text-decoration: underline;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: #66b1ff;
+      text-decoration: underline;
+    }
   }
 }
 

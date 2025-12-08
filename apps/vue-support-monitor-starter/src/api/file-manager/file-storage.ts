@@ -97,3 +97,37 @@ export const statusMap = {
   1: t("i18n_50940ed76f"),
   2: t("i18n_af924a1a14"),
 };
+
+/**
+ * 上传小文件参数接口
+ */
+export interface UploadSmallFileParams {
+  serverId: number;
+  bucket?: string;
+  filePath?: string;
+  file: File;
+}
+
+/**
+ * 上传小文件（10MB以内）
+ * @param params 上传参数
+ * @returns 上传结果
+ */
+export function uploadSmallFile(params: UploadSmallFileParams) {
+  const formData = new FormData();
+  formData.append("serverId", String(params.serverId));
+  if (params.bucket) {
+    formData.append("bucket", params.bucket);
+  }
+  if (params.filePath) {
+    formData.append("filePath", params.filePath);
+  }
+  formData.append("file", params.file);
+
+  return http.post("/file-storage/upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data;charset=UTF-8",
+    },
+    timeout: 60000,
+  });
+}

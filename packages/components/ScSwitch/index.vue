@@ -83,6 +83,23 @@
       @change="handleChange"
     />
 
+    <!-- 紧凑卡片布局 -->
+    <CompactCardLayout
+      v-else-if="layout === 'compact-card'"
+      v-model="currentValue"
+      :disabled="disabled"
+      :loading="loading"
+      :size="size"
+      :label="label"
+      :active-value="activeValue"
+      :inactive-value="inactiveValue"
+      :active-color="activeColor"
+      :inactive-color="inactiveColor"
+      :active-icon="activeIcon"
+      :inactive-icon="inactiveIcon"
+      @change="handleChange"
+    />
+
     <!-- 默认布局 -->
     <el-switch
       v-else
@@ -104,16 +121,18 @@
 <script setup lang="ts">
 /**
  * ScSwitch 开关组件
- * 支持多种布局模式：default、card、slider、modern、visual-card
+ * 支持多种布局模式：default、card、slider、modern、visual-card、compact-card
  * @author CH
  * @date 2025-12-02
- * @version 2.0.0
+ * @version 2.1.0
+ * @since 2.1.0 新增 compact-card 紧凑卡片布局
  */
 import { computed } from "vue";
 import CardLayout from "./components/CardLayout.vue";
 import SliderLayout from "./components/SliderLayout.vue";
 import ModernLayout from "./components/ModernLayout.vue";
 import VisualCardLayout from "./components/VisualCardLayout.vue";
+import CompactCardLayout from "./components/CompactCardLayout.vue";
 import { getThemeConfig, type IotSwitchTheme } from "./themes";
 
 const props = defineProps({
@@ -145,11 +164,12 @@ const props = defineProps({
    * - slider: 滑块布局
    * - modern: 现代布局
    * - visual-card: 视觉效果卡片布局
+   * - compact-card: 紧凑卡片布局（图标+标签+开关）
    */
   layout: {
     type: String,
     default: "default",
-    validator: (val: string) => ["default", "card", "slider", "modern", "visual-card"].includes(val)
+    validator: (val: string) => ["default", "card", "slider", "modern", "visual-card", "compact-card"].includes(val)
   },
   /**
    * 物联网主题

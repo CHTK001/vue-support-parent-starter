@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visibleInner"
     title="文件存储配置"
-    width="85%"
+    width="90%"
     top="20px"
     :close-on-click-modal="false"
     class="file-storage-dialog"
@@ -13,104 +13,225 @@
         <el-card class="global-card" shadow="never">
           <template #header>
             <div class="card-header-row">
-              <div class="card-header">全局设置（FileStorageSetting）</div>
+              <div class="card-header">
+                <IconifyIconOnline
+                  icon="ri:settings-4-line"
+                  class="header-icon"
+                />
+                全局设置
+              </div>
             </div>
           </template>
-          <el-form :model="global" label-width="140px" class="global-form">
-            <el-form-item label="开启下载"
-              ><el-switch v-model="global.openDownload"
-            /></el-form-item>
-            <el-form-item label="开启预览"
-              ><el-switch v-model="global.openPreview"
-            /></el-form-item>
-            <el-form-item label="开启插件"
-              ><el-switch v-model="global.openPlugin"
-            /></el-form-item>
-            <el-form-item label="开启设置"
-              ><el-switch v-model="global.openSetting"
-            /></el-form-item>
-            <el-form-item label="开启Range"
-              ><el-switch v-model="global.openRange"
-            /></el-form-item>
-            <el-form-item label="开启水印"
-              ><el-switch v-model="global.openWatermark"
-            /></el-form-item>
-            <el-form-item label="支持webjars"
-              ><el-switch v-model="global.openWebjars"
-            /></el-form-item>
-            <el-form-item label="支持远程文件"
-              ><el-switch v-model="global.openRemoteFile"
-            /></el-form-item>
+          <el-scrollbar class="global-scrollbar">
+            <div class="global-content">
+              <!-- 功能开关区域 -->
+              <div class="setting-section">
+                <div class="section-title">
+                  <IconifyIconOnline icon="ri:toggle-line" />
+                  <span>功能开关</span>
+                </div>
+                <div class="switch-grid">
+                  <ScSwitch
+                    v-model="global.openDownload"
+                    layout="compact-card"
+                    label="下载"
+                    active-icon="ri:download-cloud-line"
+                    size="small"
+                  />
+                  <ScSwitch
+                    v-model="global.openPreview"
+                    layout="compact-card"
+                    label="预览"
+                    active-icon="ri:eye-line"
+                    size="small"
+                  />
+                  <ScSwitch
+                    v-model="global.openPlugin"
+                    layout="compact-card"
+                    label="插件"
+                    active-icon="ri:plug-line"
+                    size="small"
+                  />
+                  <ScSwitch
+                    v-model="global.openSetting"
+                    layout="compact-card"
+                    label="设置"
+                    active-icon="ri:equalizer-line"
+                    size="small"
+                  />
+                  <ScSwitch
+                    v-model="global.openRange"
+                    layout="compact-card"
+                    label="Range"
+                    active-icon="ri:split-cells-horizontal"
+                    size="small"
+                  />
+                  <ScSwitch
+                    v-model="global.openWatermark"
+                    layout="compact-card"
+                    label="水印"
+                    active-icon="ri:drop-line"
+                    size="small"
+                  />
+                  <ScSwitch
+                    v-model="global.openWebjars"
+                    layout="compact-card"
+                    label="WebJars"
+                    active-icon="ri:javascript-line"
+                    size="small"
+                  />
+                  <ScSwitch
+                    v-model="global.openRemoteFile"
+                    layout="compact-card"
+                    label="远程文件"
+                    active-icon="ri:global-line"
+                    size="small"
+                  />
+                </div>
+              </div>
 
-            <el-form-item label="参数名（逗号分隔）" v-if="global.openSetting">
-              <el-select
-                v-model="imageSettingSelection"
-                multiple
-                filterable
-                allow-create
-                default-first-option
-                placeholder="选择或自定义参数"
+              <!-- 扩展配置区域 -->
+              <div
+                class="setting-section"
+                v-if="global.openSetting || global.openPlugin"
               >
-                <el-option
-                  v-for="opt in imageSettingOptions"
-                  :key="opt.name"
-                  :label="opt.describe || opt.name"
-                  :value="opt.name"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="插件（逗号分隔）" v-if="global.openPlugin">
-              <el-select
-                v-model="imageFilterSelection"
-                multiple
-                filterable
-                allow-create
-                default-first-option
-                placeholder="选择或自定义插件"
+                <div class="section-title">
+                  <IconifyIconOnline icon="ri:apps-line" />
+                  <span>扩展配置</span>
+                </div>
+                <div class="ext-config">
+                  <div class="config-item" v-if="global.openSetting">
+                    <label class="config-label">
+                      <IconifyIconOnline icon="ri:list-settings-line" />
+                      参数设置
+                    </label>
+                    <el-select
+                      v-model="imageSettingSelection"
+                      multiple
+                      filterable
+                      allow-create
+                      default-first-option
+                      placeholder="选择或自定义参数"
+                      class="config-select"
+                    >
+                      <el-option
+                        v-for="opt in imageSettingOptions"
+                        :key="opt.name"
+                        :label="opt.describe || opt.name"
+                        :value="opt.name"
+                      />
+                    </el-select>
+                  </div>
+                  <div class="config-item" v-if="global.openPlugin">
+                    <label class="config-label">
+                      <IconifyIconOnline icon="ri:puzzle-line" />
+                      启用插件
+                    </label>
+                    <el-select
+                      v-model="imageFilterSelection"
+                      multiple
+                      filterable
+                      allow-create
+                      default-first-option
+                      placeholder="选择或自定义插件"
+                      class="config-select"
+                    >
+                      <el-option
+                        v-for="opt in imageFilterOptions"
+                        :key="opt.name"
+                        :label="opt.describe || opt.name"
+                        :value="opt.name"
+                      />
+                    </el-select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 缓存配置 -->
+              <div class="setting-section">
+                <div class="section-title">
+                  <IconifyIconOnline icon="ri:timer-line" />
+                  <span>缓存配置</span>
+                </div>
+                <div class="cache-config">
+                  <div class="cache-item">
+                    <span class="cache-label">格式缓存时间</span>
+                    <div class="cache-input">
+                      <el-input-number
+                        v-model="global.formatCacheTimeMinutes"
+                        :min="0"
+                        :max="1440 * 7"
+                        size="small"
+                        controls-position="right"
+                      />
+                      <span class="cache-unit">分钟</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 水印配置区域 -->
+              <div
+                class="setting-section watermark-section"
+                v-if="global.openWatermark"
               >
-                <el-option
-                  v-for="opt in imageFilterOptions"
-                  :key="opt.name"
-                  :label="opt.describe || opt.name"
-                  :value="opt.name"
-                />
-              </el-select>
-            </el-form-item>
-
-            <el-form-item label="格式缓存(分钟)">
-              <el-input-number
-                v-model="global.formatCacheTimeMinutes"
-                :min="0"
-                :max="1440 * 7"
-              />
-            </el-form-item>
-
-            <el-divider content-position="left">水印</el-divider>
-            <template v-if="global.openWatermark">
-              <el-form-item label="水印内容/URL"
-                ><el-input
-                  v-model="global.watermark"
-                  placeholder="文本或图片URL"
-              /></el-form-item>
-              <el-form-item label="水印颜色"
-                ><el-input
-                  v-model="global.watermarkColor"
-                  placeholder="#RRGGBB 或 颜色名"
-              /></el-form-item>
-              <el-form-item label="水印坐标X"
-                ><el-input-number
-                  v-model="global.watermarkX"
-                  :min="-9999"
-                  :max="9999"
-              /></el-form-item>
-              <el-form-item label="水印坐标Y"
-                ><el-input-number
-                  v-model="global.watermarkY"
-                  :min="-9999"
-                  :max="9999"
-              /></el-form-item>
-            </template>
-          </el-form>
+                <div class="section-title">
+                  <IconifyIconOnline icon="ri:drop-line" />
+                  <span>水印配置</span>
+                </div>
+                <div class="watermark-config">
+                  <div class="watermark-row">
+                    <div class="watermark-item full">
+                      <label>水印内容</label>
+                      <el-input
+                        v-model="global.watermark"
+                        placeholder="文本或图片URL"
+                        size="small"
+                      >
+                        <template #prefix>
+                          <IconifyIconOnline icon="ri:text" />
+                        </template>
+                      </el-input>
+                    </div>
+                  </div>
+                  <div class="watermark-row">
+                    <div class="watermark-item">
+                      <label>颜色</label>
+                      <el-input
+                        v-model="global.watermarkColor"
+                        placeholder="#RRGGBB"
+                        size="small"
+                      >
+                        <template #prefix>
+                          <IconifyIconOnline icon="ri:palette-line" />
+                        </template>
+                      </el-input>
+                    </div>
+                    <div class="watermark-item">
+                      <label>X 坐标</label>
+                      <el-input-number
+                        v-model="global.watermarkX"
+                        :min="-9999"
+                        :max="9999"
+                        size="small"
+                        controls-position="right"
+                      />
+                    </div>
+                    <div class="watermark-item">
+                      <label>Y 坐标</label>
+                      <el-input-number
+                        v-model="global.watermarkY"
+                        :min="-9999"
+                        :max="9999"
+                        size="small"
+                        controls-position="right"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-scrollbar>
         </el-card>
       </div>
 
@@ -1409,7 +1530,7 @@ async function loadData() {
   display: grid;
   grid-template-columns: 1fr 1fr 1.5fr;
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
   padding: 8px;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-radius: 16px;
@@ -1419,7 +1540,21 @@ async function loadData() {
 .middle-col,
 .right-col {
   min-width: 0;
-  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.left-col > .el-card,
+.middle-col > .el-card,
+.right-col > .el-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.left-col :deep(.el-card__body),
+.middle-col :deep(.el-card__body),
+.right-col :deep(.el-card__body) {
+  flex: 1;
+  overflow: auto;
 }
 .global-card {
   margin-bottom: 0;
@@ -1435,12 +1570,13 @@ async function loadData() {
   transform: translateY(-2px);
 }
 .global-card :deep(.el-card__header) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-radius: 16px 16px 0 0;
   padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
 }
 .global-card .card-header {
-  color: #fff;
+  color: #334155;
 }
 .card-header {
   font-weight: 600;
@@ -1457,6 +1593,137 @@ async function loadData() {
   background: currentColor;
   border-radius: 2px;
 }
+.header-icon {
+  font-size: 18px;
+}
+.global-scrollbar {
+  height: calc(70vh - 80px);
+}
+.global-content {
+  padding: 4px;
+}
+
+/* 设置区块 */
+.setting-section {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.setting-section:last-child {
+  margin-bottom: 0;
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #e2e8f0;
+}
+.section-title .iconify {
+  font-size: 16px;
+  color: #6366f1;
+}
+
+/* 开关网格 */
+.switch-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+/* ScSwitch compact-card 布局已内置样式 */
+
+/* 扩展配置 */
+.ext-config {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.config-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+.config-label .iconify {
+  font-size: 14px;
+  color: #6366f1;
+}
+.config-select {
+  width: 100%;
+}
+
+/* 缓存配置 */
+.cache-config {
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+}
+.cache-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cache-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+.cache-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cache-unit {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* 水印配置 */
+.watermark-section {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+}
+.watermark-config {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.watermark-row {
+  display: flex;
+  gap: 12px;
+}
+.watermark-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.watermark-item.full {
+  flex: none;
+  width: 100%;
+}
+.watermark-item label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #0369a1;
+}
+.watermark-item :deep(.el-input-number) {
+  width: 100%;
+}
+
 .global-form :deep(.el-input__wrapper),
 .storage-form :deep(.el-input__wrapper) {
   border-radius: 8px;
@@ -1508,20 +1775,23 @@ async function loadData() {
   transform: translateY(-2px);
 }
 .installed-card :deep(.el-card__header) {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-radius: 16px 16px 0 0;
   padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
 }
 .installed-card .card-header {
-  color: #fff;
+  color: #334155;
 }
 .installed-card .header-actions :deep(.el-button) {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
 }
 .installed-card .header-actions :deep(.el-button:hover) {
-  background: rgba(255, 255, 255, 0.3);
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
 }
 .installed-list {
   max-height: 60vh;
