@@ -131,3 +131,59 @@ export function uploadSmallFile(params: UploadSmallFileParams) {
     timeout: 60000,
   });
 }
+
+/**
+ * 生成分享链接参数
+ */
+export interface CreateShareLinkParams {
+  serverId: number;
+  bucket: string;
+  filePath: string;
+  fileName: string;
+  /** 过期时间（分钟），0 表示永不过期 */
+  expireMinutes?: number;
+}
+
+/**
+ * 生成分享链接
+ * @param params 分享参数
+ * @returns 分享链接信息
+ */
+export function createShareLink(params: CreateShareLinkParams) {
+  return http.post("/file-storage/share/create", params);
+}
+
+/**
+ * 生成闪图参数（阅后即焚）
+ */
+export interface CreateFlashImageParams {
+  serverId: number;
+  bucket: string;
+  filePath: string;
+  fileName: string;
+}
+
+/**
+ * 生成闪图链接（阅后即焚，查看一次后自动删除）
+ * @param params 闪图参数
+ * @returns 闪图链接信息
+ */
+export function createFlashImage(params: CreateFlashImageParams) {
+  return http.post("/file-storage/flash/create", params);
+}
+
+/**
+ * 获取分享链接列表
+ * @param serverId 服务器ID
+ */
+export function getShareList(serverId: number) {
+  return http.get("/file-storage/share/list", { serverId });
+}
+
+/**
+ * 删除分享链接
+ * @param shareId 分享ID
+ */
+export function deleteShareLink(shareId: string) {
+  return http.delete(`/file-storage/share/${shareId}`);
+}
