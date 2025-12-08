@@ -4,7 +4,7 @@ export default [
     name: "example",
     meta: {
       icon: "ep:setting",
-      rank: 10299,
+      rank: 12,
       title: "测试例子",
       showLink: true,
     },

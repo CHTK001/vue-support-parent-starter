@@ -9,7 +9,7 @@ export default [
       title: "服务器管理",
       showLink: true,
       showParent: true,
-      rank: 1,
+      rank: 4,
     },
     children: [
       {
@@ -40,17 +40,6 @@ export default [
             meta: {
               icon: "ri:file-list-3-line",
               title: "文件系统管理",
-              showLink: true,
-              showParent: true,
-            },
-          },
-          {
-            path: "/server/nodes",
-            name: "serverNodes",
-            component: () => import("@/views/node-management/index.vue"),
-            meta: {
-              icon: "ri:node-tree",
-              title: "在线节点管理",
               showLink: true,
               showParent: true,
             },

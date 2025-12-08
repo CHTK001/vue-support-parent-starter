@@ -13,7 +13,7 @@ export default [
       icon: "mdi:shield-lock",
       title: "安全管理",
       showLink: true,
-      rank: 10,
+      rank: 5,
     },
     children: [
       {
