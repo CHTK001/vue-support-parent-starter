@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    title="服务器配置"
+    title="服务配置"
     width="1200px"
     :close-on-click-modal="false"
     @close="handleClose"
@@ -261,7 +261,10 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
+        <el-button @click="handleClose" class="close-btn">
+          <IconifyIconOnline icon="ri:close-line" class="mr-1" />
+          关闭
+        </el-button>
       </div>
     </template>
   </el-dialog>
@@ -308,7 +311,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   visible: false,
   serverId: null,
-  server: {} as SystemServer,
+  server: undefined,
 });
 
 // Emits
@@ -813,6 +816,7 @@ watch(
       line-height: 1.5;
       display: -webkit-box;
       -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
@@ -860,6 +864,17 @@ watch(
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+
+  .close-btn {
+    border-radius: 8px;
+    min-width: 88px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: var(--el-fill-color);
+      transform: translateY(-1px);
+    }
+  }
 }
 
 // 响应式

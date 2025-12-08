@@ -1532,8 +1532,6 @@ async function loadData() {
   gap: 20px;
   align-items: stretch;
   padding: 8px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 16px;
   min-height: 70vh;
 }
 .left-col,

@@ -5,7 +5,6 @@
     width="80%"
     :close-on-click-modal="false"
     destroy-on-close
-    class="server-edit-dialog"
     align-center
     top="5vh"
     :show-close="true"
@@ -13,47 +12,6 @@
     :modal="true"
     :append-to-body="true"
   >
-    <!-- 自定义头部 -->
-    <template #header="{ titleId, titleClass }">
-      <div class="dialog-header">
-        <div class="header-left">
-          <div class="header-icon-wrapper">
-            <IconifyIconOnline
-              :icon="mode === 'add' ? 'ri:add-circle-line' : 'ri:edit-line'"
-              class="header-icon"
-            />
-          </div>
-          <div class="header-info">
-            <span :id="titleId" :class="titleClass" class="dialog-title">
-              {{ mode === "add" ? "新增服务器" : "编辑服务器" }}
-            </span>
-            <span class="dialog-subtitle">
-              {{
-                mode === "add"
-                  ? "添加新的服务器进行管理和监控"
-                  : "修改服务器配置信息"
-              }}
-            </span>
-          </div>
-        </div>
-        <div class="header-right">
-          <el-tag
-            v-if="mode === 'edit' && formData.monitorSysGenServerStatus === 1"
-            type="success"
-            effect="light"
-            round
-          >
-            <IconifyIconOnline icon="ri:checkbox-circle-line" class="mr-1" />
-            已启用
-          </el-tag>
-          <el-tag v-else-if="mode === 'edit'" type="info" effect="light" round>
-            <IconifyIconOnline icon="ri:close-circle-line" class="mr-1" />
-            已禁用
-          </el-tag>
-        </div>
-      </div>
-    </template>
-
     <div class="dialog-content no-scrollbar">
       <el-form
         ref="formRef"
@@ -1343,183 +1301,6 @@ defineExpose({
   }
 }
 
-// 对话框整体样式 - 优化无滚动条版本
-.server-edit-dialog {
-  :deep(.el-dialog) {
-    border-radius: 16px;
-    box-shadow:
-      0 24px 48px rgba(0, 0, 0, 0.15),
-      0 8px 24px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    max-height: 98vh;
-    height: 98vh;
-    display: flex;
-    flex-direction: column;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(20px);
-    margin: 0 !important;
-  }
-
-  :deep(.el-dialog__header) {
-    padding: 0;
-    margin: 0;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-    flex-shrink: 0;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.98) 0%,
-      rgba(248, 250, 252, 0.98) 100%
-    );
-    backdrop-filter: blur(12px);
-    height: 60px;
-    display: flex;
-    align-items: center;
-  }
-
-  :deep(.el-dialog__body) {
-    padding: 0;
-    flex: 1;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  }
-
-  :deep(.el-dialog__footer) {
-    padding: 20px 24px;
-    border-top: 1px solid rgba(226, 232, 240, 0.8);
-    background: linear-gradient(
-      135deg,
-      rgba(248, 250, 252, 0.95) 0%,
-      rgba(255, 255, 255, 0.95) 100%
-    );
-    backdrop-filter: blur(10px);
-    flex-shrink: 0;
-  }
-}
-
-// 自定义头部样式 - 美化版本
-.dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  background: linear-gradient(
-    135deg,
-    rgba(99, 102, 241, 0.08) 0%,
-    rgba(168, 85, 247, 0.05) 50%,
-    rgba(236, 72, 153, 0.03) 100%
-  );
-  position: relative;
-  overflow: hidden;
-
-  // 背景装饰元素
-  &::before {
-    content: "";
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(
-      circle,
-      rgba(99, 102, 241, 0.1) 0%,
-      transparent 70%
-    );
-    animation: floatBubble 8s ease-in-out infinite;
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: -30%;
-    left: 10%;
-    width: 150px;
-    height: 150px;
-    background: radial-gradient(
-      circle,
-      rgba(168, 85, 247, 0.08) 0%,
-      transparent 70%
-    );
-    animation: floatBubble 10s ease-in-out infinite reverse;
-  }
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    position: relative;
-    z-index: 1;
-
-    .header-icon-wrapper {
-      width: 48px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary) 0%,
-        var(--el-color-primary-light-3) 100%
-      );
-      border-radius: 14px;
-      box-shadow:
-        0 8px 24px rgba(99, 102, 241, 0.3),
-        0 4px 12px rgba(99, 102, 241, 0.2);
-      animation: iconPulse 3s ease-in-out infinite;
-
-      .header-icon {
-        font-size: 24px;
-        color: white;
-      }
-    }
-
-    .header-info {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .dialog-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--el-text-color-primary);
-      margin: 0;
-      letter-spacing: 0.5px;
-    }
-
-    .dialog-subtitle {
-      font-size: 13px;
-      color: var(--el-text-color-secondary);
-      font-weight: 400;
-    }
-  }
-
-  .header-right {
-    position: relative;
-    z-index: 1;
-
-    .el-tag {
-      padding: 6px 12px;
-      font-size: 13px;
-      font-weight: 500;
-    }
-  }
-
-  .close-btn {
-    padding: 8px;
-    border-radius: 6px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      background-color: var(--el-color-danger-light-9);
-      color: var(--el-color-danger);
-    }
-  }
-}
-
 // 对话框内容区域
 .dialog-content {
   padding: 16px 20px;
@@ -2084,7 +1865,7 @@ defineExpose({
 // 底部按钮区域 - 美化版本
 .dialog-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 16px;
   padding: 16px 24px !important;
@@ -2094,26 +1875,6 @@ defineExpose({
     rgba(255, 255, 255, 0.98) 100%
   );
   border-top: 1px solid rgba(226, 232, 240, 0.6);
-
-  .footer-left {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .footer-tip {
-      font-size: 13px;
-      color: var(--el-text-color-secondary);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-
-      .iconify {
-        font-size: 16px;
-        color: var(--el-color-warning);
-      }
-    }
-  }
 
   .footer-right {
     display: flex;
