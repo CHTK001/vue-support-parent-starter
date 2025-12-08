@@ -2,20 +2,24 @@
   <el-dialog
     v-model="visible"
     title="节点配置查看"
-    width="80%"
+    width="1000px"
     :before-close="handleClose"
     append-to-body
     class="config-viewer-dialog"
+    destroy-on-close
+    top="5vh"
   >
     <template #header>
       <div class="dialog-header">
         <div class="header-info">
-          <IconifyIconOnline icon="ri:settings-3-line" class="header-icon" />
+          <div class="header-icon-wrapper">
+            <IconifyIconOnline icon="ri:settings-3-line" class="header-icon" />
+          </div>
           <div class="header-text">
-            <h3>节点配置查看</h3>
+            <h3>配置查看</h3>
             <p v-if="nodeInfo">
-              {{ nodeInfo.nodeName || nodeInfo.applicationName }}
-              ({{ nodeInfo.ipAddress }}:{{ nodeInfo.port }})
+              <span class="node-name">{{ nodeInfo.nodeName || nodeInfo.applicationName }}</span>
+              <span class="node-address">{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span>
             </p>
           </div>
         </div>
@@ -24,202 +28,245 @@
 
     <div class="config-viewer-content">
       <!-- Tab导航 -->
-      <el-tabs v-model="activeTab" type="border-card">
+      <el-tabs v-model="activeTab" class="config-tabs">
         <!-- 环境配置 -->
-        <el-tab-pane label="环境配置" name="environment">
-          <div class="tab-toolbar">
-            <el-input
-              v-model="envSearchText"
-              placeholder="搜索配置项..."
-              clearable
-              style="width: 300px"
-            >
-              <template #prefix>
-                <IconifyIconOnline icon="ri:search-line" />
-              </template>
-            </el-input>
-            <el-button
-              type="primary"
-              @click="loadEnvironment"
-              :loading="loading.env"
-            >
-              <IconifyIconOnline icon="ri:refresh-line" />
-              刷新
-            </el-button>
-          </div>
+        <el-tab-pane name="environment">
+          <template #label>
+            <div class="tab-label">
+              <IconifyIconOnline icon="ri:leaf-line" />
+              <span>环境配置</span>
+            </div>
+          </template>
+          <div class="tab-content">
+            <div class="tab-toolbar">
+              <div class="toolbar-left">
+                <el-input
+                  v-model="envSearchText"
+                  placeholder="搜索配置项..."
+                  clearable
+                  class="search-input"
+                >
+                  <template #prefix>
+                    <IconifyIconOnline icon="ri:search-line" />
+                  </template>
+                </el-input>
+                <span class="search-result" v-if="envSearchText">
+                  找到 <strong>{{ filteredEnvData.length }}</strong> 项
+                </span>
+              </div>
+              <el-button type="primary" @click="loadEnvironment" :loading="loading.env">
+                <IconifyIconOnline v-if="!loading.env" icon="ri:refresh-line" />
+                刷新
+              </el-button>
+            </div>
 
-          <div class="config-tree-wrapper">
-            <el-tree
-              v-if="filteredEnvData.length > 0"
-              :data="filteredEnvData"
-              :props="{ label: 'key', children: 'children' }"
-              default-expand-all
-              :filter-node-method="filterEnvNode"
-            >
-              <template #default="{ node, data }">
-                <div class="tree-node">
-                  <span class="node-key">{{ data.key }}</span>
-                  <span v-if="data.value !== undefined" class="node-value">
-                    {{ formatValue(data.value) }}
-                  </span>
-                </div>
-              </template>
-            </el-tree>
-            <el-empty v-else description="暂无环境配置数据" />
+            <div class="config-tree-wrapper">
+              <el-tree
+                v-if="filteredEnvData.length > 0"
+                :data="filteredEnvData"
+                :props="{ label: 'key', children: 'children' }"
+                :default-expand-all="false"
+                :default-expanded-keys="['activeProfiles']"
+                node-key="fullKey"
+                :filter-node-method="filterEnvNode"
+                class="config-tree"
+              >
+                <template #default="{ data }">
+                  <div class="tree-node">
+                    <div class="node-key-wrapper">
+                      <IconifyIconOnline 
+                        :icon="data.isProfile ? 'ri:profile-line' : (data.children ? 'ri:folder-3-line' : 'ri:code-s-slash-line')" 
+                        class="node-icon"
+                        :class="{ 'is-folder': data.children, 'is-profile': data.isProfile }"
+                      />
+                      <span class="node-key">{{ data.key }}</span>
+                      <span v-if="data.propertyCount" class="property-count">{{ data.propertyCount }} 项</span>
+                    </div>
+                    <span v-if="data.value !== undefined" class="node-value" :title="formatValue(data.value)">
+                      {{ formatValue(data.value) }}
+                    </span>
+                  </div>
+                </template>
+              </el-tree>
+              <el-empty v-else description="暂无环境配置数据" :image-size="80" />
+            </div>
           </div>
         </el-tab-pane>
 
         <!-- 配置属性 -->
-        <el-tab-pane label="配置属性" name="configProps">
-          <div class="tab-toolbar">
-            <el-input
-              v-model="propsSearchText"
-              placeholder="搜索配置项..."
-              clearable
-              style="width: 300px"
-            >
-              <template #prefix>
-                <IconifyIconOnline icon="ri:search-line" />
-              </template>
-            </el-input>
-            <el-button
-              type="primary"
-              @click="loadConfigProps"
-              :loading="loading.props"
-            >
-              <IconifyIconOnline icon="ri:refresh-line" />
-              刷新
-            </el-button>
-          </div>
+        <el-tab-pane name="configProps">
+          <template #label>
+            <div class="tab-label">
+              <IconifyIconOnline icon="ri:list-settings-line" />
+              <span>配置属性</span>
+            </div>
+          </template>
+          <div class="tab-content">
+            <div class="tab-toolbar">
+              <div class="toolbar-left">
+                <el-input
+                  v-model="propsSearchText"
+                  placeholder="搜索配置项..."
+                  clearable
+                  class="search-input"
+                >
+                  <template #prefix>
+                    <IconifyIconOnline icon="ri:search-line" />
+                  </template>
+                </el-input>
+                <span class="search-result" v-if="propsSearchText">
+                  找到 <strong>{{ filteredPropsData.length }}</strong> 项
+                </span>
+              </div>
+              <el-button type="primary" @click="loadConfigProps" :loading="loading.props">
+                <IconifyIconOnline v-if="!loading.props" icon="ri:refresh-line" />
+                刷新
+              </el-button>
+            </div>
 
-          <div class="config-tree-wrapper">
-            <el-tree
-              v-if="filteredPropsData.length > 0"
-              :data="filteredPropsData"
-              :props="{ label: 'key', children: 'children' }"
-              default-expand-all
-            >
-              <template #default="{ node, data }">
-                <div class="tree-node">
-                  <span class="node-key">{{ data.key }}</span>
-                  <span v-if="data.value !== undefined" class="node-value">
-                    {{ formatValue(data.value) }}
-                  </span>
-                </div>
-              </template>
-            </el-tree>
-            <el-empty v-else description="暂无配置属性数据" />
+            <div class="config-tree-wrapper">
+              <el-tree
+                v-if="filteredPropsData.length > 0"
+                :data="filteredPropsData"
+                :props="{ label: 'key', children: 'children' }"
+                :default-expand-all="false"
+                node-key="fullKey"
+                class="config-tree"
+              >
+                <template #default="{ data }">
+                  <div class="tree-node">
+                    <div class="node-key-wrapper">
+                      <IconifyIconOnline 
+                        :icon="data.children ? 'ri:folder-3-line' : 'ri:code-s-slash-line'" 
+                        class="node-icon"
+                        :class="{ 'is-folder': data.children }"
+                      />
+                      <span class="node-key">{{ data.key }}</span>
+                      <span v-if="data.propertyCount" class="property-count">{{ data.propertyCount }} 项</span>
+                    </div>
+                    <span v-if="data.value !== undefined" class="node-value" :title="formatValue(data.value)">
+                      {{ formatValue(data.value) }}
+                    </span>
+                  </div>
+                </template>
+              </el-tree>
+              <el-empty v-else description="暂无配置属性数据" :image-size="80" />
+            </div>
           </div>
         </el-tab-pane>
 
         <!-- 系统信息 -->
-        <el-tab-pane label="系统信息" name="systemInfo">
-          <div class="tab-toolbar">
-            <el-button
-              type="primary"
-              @click="loadSystemInfo"
-              :loading="loading.system"
-            >
-              <IconifyIconOnline icon="ri:refresh-line" />
-              刷新
-            </el-button>
-          </div>
+        <el-tab-pane name="systemInfo">
+          <template #label>
+            <div class="tab-label">
+              <IconifyIconOnline icon="ri:computer-line" />
+              <span>系统信息</span>
+            </div>
+          </template>
+          <div class="tab-content">
+            <div class="tab-toolbar">
+              <div class="toolbar-left"></div>
+              <el-button type="primary" @click="loadSystemInfo" :loading="loading.system">
+                <IconifyIconOnline v-if="!loading.system" icon="ri:refresh-line" />
+                刷新
+              </el-button>
+            </div>
 
-          <div class="system-info-wrapper">
-            <!-- 健康状态 -->
-            <el-card class="info-card" shadow="never">
-              <template #header>
+            <div class="system-info-wrapper">
+              <!-- 健康状态 -->
+              <div class="info-card">
                 <div class="card-header">
-                  <IconifyIconOnline icon="ri:heart-pulse-line" />
-                  <span>健康状态</span>
-                </div>
-              </template>
-              <div v-if="systemInfo.health" class="info-content">
-                <el-descriptions :column="2" border size="small">
-                  <el-descriptions-item label="状态">
-                    <el-tag
-                      :type="
-                        systemInfo.health.status === 'UP' ? 'success' : 'danger'
-                      "
-                    >
-                      {{ systemInfo.health.status }}
-                    </el-tag>
-                  </el-descriptions-item>
-                  <el-descriptions-item
-                    v-for="(value, key) in systemInfo.health.components || {}"
-                    :key="key"
-                    :label="key"
-                  >
-                    <el-tag
-                      size="small"
-                      :type="value?.status === 'UP' ? 'success' : 'danger'"
-                    >
-                      {{ value?.status || "N/A" }}
-                    </el-tag>
-                  </el-descriptions-item>
-                </el-descriptions>
-              </div>
-              <el-empty
-                v-else
-                description="暂无健康状态数据"
-                :image-size="60"
-              />
-            </el-card>
-
-            <!-- 应用信息 -->
-            <el-card class="info-card" shadow="never">
-              <template #header>
-                <div class="card-header">
-                  <IconifyIconOnline icon="ri:information-line" />
-                  <span>应用信息</span>
-                </div>
-              </template>
-              <div v-if="systemInfo.info" class="info-content">
-                <el-descriptions :column="1" border size="small">
-                  <el-descriptions-item
-                    v-for="(value, key) in flattenObject(systemInfo.info)"
-                    :key="key"
-                    :label="key"
-                  >
-                    {{ value }}
-                  </el-descriptions-item>
-                </el-descriptions>
-              </div>
-              <el-empty
-                v-else
-                description="暂无应用信息数据"
-                :image-size="60"
-              />
-            </el-card>
-
-            <!-- 指标信息 -->
-            <el-card class="info-card" shadow="never">
-              <template #header>
-                <div class="card-header">
-                  <IconifyIconOnline icon="ri:bar-chart-box-line" />
-                  <span>可用指标</span>
-                </div>
-              </template>
-              <div v-if="systemInfo.metrics?.names" class="info-content">
-                <div class="metrics-list">
+                  <div class="header-left">
+                    <div class="card-icon health">
+                      <IconifyIconOnline icon="ri:heart-pulse-line" />
+                    </div>
+                    <span class="card-title">健康状态</span>
+                  </div>
                   <el-tag
-                    v-for="name in systemInfo.metrics.names.slice(0, 30)"
-                    :key="name"
-                    size="small"
-                    class="metric-tag"
+                    v-if="systemInfo.health"
+                    :type="systemInfo.health.status === 'UP' ? 'success' : 'danger'"
+                    effect="dark"
+                    round
                   >
-                    {{ name }}
+                    {{ systemInfo.health.status }}
                   </el-tag>
-                  <span
-                    v-if="systemInfo.metrics.names.length > 30"
-                    class="more-hint"
-                  >
-                    +{{ systemInfo.metrics.names.length - 30 }} 更多...
+                </div>
+                <div v-if="systemInfo.health?.components" class="card-body">
+                  <div class="component-grid">
+                    <div
+                      v-for="(value, key) in systemInfo.health.components"
+                      :key="key"
+                      class="component-item"
+                      :class="{ 'is-up': value?.status === 'UP', 'is-down': value?.status !== 'UP' }"
+                    >
+                      <IconifyIconOnline 
+                        :icon="value?.status === 'UP' ? 'ri:checkbox-circle-fill' : 'ri:close-circle-fill'" 
+                        class="component-icon"
+                      />
+                      <span class="component-name">{{ key }}</span>
+                    </div>
+                  </div>
+                </div>
+                <el-empty v-else description="暂无健康状态数据" :image-size="60" />
+              </div>
+
+              <!-- 应用信息 -->
+              <div class="info-card">
+                <div class="card-header">
+                  <div class="header-left">
+                    <div class="card-icon info">
+                      <IconifyIconOnline icon="ri:information-line" />
+                    </div>
+                    <span class="card-title">应用信息</span>
+                  </div>
+                </div>
+                <div v-if="systemInfo.info" class="card-body">
+                  <div class="info-list">
+                    <div
+                      v-for="(value, key) in flattenObject(systemInfo.info)"
+                      :key="key"
+                      class="info-item"
+                    >
+                      <span class="info-label">{{ key }}</span>
+                      <span class="info-value">{{ value }}</span>
+                    </div>
+                  </div>
+                </div>
+                <el-empty v-else description="暂无应用信息数据" :image-size="60" />
+              </div>
+
+              <!-- 指标信息 -->
+              <div class="info-card metrics-card">
+                <div class="card-header">
+                  <div class="header-left">
+                    <div class="card-icon metrics">
+                      <IconifyIconOnline icon="ri:bar-chart-box-line" />
+                    </div>
+                    <span class="card-title">可用指标</span>
+                  </div>
+                  <span v-if="systemInfo.metrics?.names" class="metrics-count">
+                    {{ systemInfo.metrics.names.length }} 项
                   </span>
                 </div>
+                <div v-if="systemInfo.metrics?.names" class="card-body">
+                  <div class="metrics-list">
+                    <el-tag
+                      v-for="name in systemInfo.metrics.names.slice(0, 50)"
+                      :key="name"
+                      size="small"
+                      effect="plain"
+                      class="metric-tag"
+                    >
+                      {{ name }}
+                    </el-tag>
+                    <span v-if="systemInfo.metrics.names.length > 50" class="more-hint">
+                      +{{ systemInfo.metrics.names.length - 50 }} 更多
+                    </span>
+                  </div>
+                </div>
+                <el-empty v-else description="暂无指标数据" :image-size="60" />
               </div>
-              <el-empty v-else description="暂无指标数据" :image-size="60" />
-            </el-card>
+            </div>
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -240,6 +287,7 @@ import {
   getEnvironmentForNodeControl,
   getConfigPropsForNodeControl,
   getSystemInfoForNodeControl,
+  getHealthForNodeControl,
 } from "@/api/server/node-control";
 
 interface Props {
@@ -294,6 +342,143 @@ const objectToTree = (obj: Record<string, unknown>, parentKey = ""): any[] => {
     }
 
     result.push(node);
+  }
+
+  return result;
+};
+
+/**
+ * 将 Spring Boot Actuator 环境配置转换为树形结构
+ * Actuator /env 端点返回格式：
+ * {
+ *   "activeProfiles": ["dev"],
+ *   "propertySources": [
+ *     { "name": "systemProperties", "properties": { "java.version": { "value": "17" } } }
+ *   ]
+ * }
+ */
+const actuatorEnvToTree = (data: Record<string, unknown>): any[] => {
+  const result: any[] = [];
+
+  // 处理 activeProfiles
+  if (data.activeProfiles && Array.isArray(data.activeProfiles)) {
+    result.push({
+      key: "激活的配置文件",
+      fullKey: "activeProfiles",
+      value: (data.activeProfiles as string[]).join(", ") || "无",
+      isProfile: true,
+    });
+  }
+
+  // 处理 propertySources
+  if (data.propertySources && Array.isArray(data.propertySources)) {
+    const sources = data.propertySources as any[];
+    for (const source of sources) {
+      const sourceName = source.name || "未知来源";
+      const properties = source.properties || {};
+
+      const children: any[] = [];
+      for (const [propKey, propValue] of Object.entries(properties)) {
+        const valueObj = propValue as { value?: unknown; origin?: string };
+        children.push({
+          key: propKey,
+          fullKey: `${sourceName}.${propKey}`,
+          value: valueObj?.value,
+          origin: valueObj?.origin,
+        });
+      }
+
+      // 只添加有属性的配置源
+      if (children.length > 0) {
+        result.push({
+          key: sourceName,
+          fullKey: sourceName,
+          children,
+          propertyCount: children.length,
+        });
+      }
+    }
+  }
+
+  // 如果不是标准 Actuator 格式，回退到通用处理
+  if (result.length === 0) {
+    return objectToTree(data);
+  }
+
+  return result;
+};
+
+/**
+ * 将 Spring Boot Actuator 配置属性转换为树形结构
+ * Actuator /configprops 端点返回格式：
+ * {
+ *   "contexts": {
+ *     "application": {
+ *       "beans": {
+ *         "spring.datasource-org.springframework.boot.autoconfigure.jdbc.DataSourceProperties": {
+ *           "prefix": "spring.datasource",
+ *           "properties": { "url": "jdbc:mysql://..." }
+ *         }
+ *       }
+ *     }
+ *   }
+ * }
+ */
+const actuatorConfigPropsToTree = (data: Record<string, unknown>): any[] => {
+  const result: any[] = [];
+
+  // 处理 contexts 格式
+  if (data.contexts && typeof data.contexts === "object") {
+    const contexts = data.contexts as Record<string, any>;
+    for (const [contextName, contextData] of Object.entries(contexts)) {
+      const beans = contextData?.beans || {};
+      const children: any[] = [];
+
+      for (const [beanName, beanData] of Object.entries(beans)) {
+        const beanInfo = beanData as { prefix?: string; properties?: Record<string, unknown> };
+        const prefix = beanInfo.prefix || beanName;
+        const properties = beanInfo.properties || {};
+
+        const propChildren: any[] = [];
+        for (const [propKey, propValue] of Object.entries(properties)) {
+          if (propValue && typeof propValue === "object" && !Array.isArray(propValue)) {
+            propChildren.push({
+              key: propKey,
+              fullKey: `${prefix}.${propKey}`,
+              children: objectToTree(propValue as Record<string, unknown>, `${prefix}.${propKey}`),
+            });
+          } else {
+            propChildren.push({
+              key: propKey,
+              fullKey: `${prefix}.${propKey}`,
+              value: propValue,
+            });
+          }
+        }
+
+        if (propChildren.length > 0) {
+          children.push({
+            key: prefix,
+            fullKey: prefix,
+            children: propChildren,
+            propertyCount: propChildren.length,
+          });
+        }
+      }
+
+      if (children.length > 0) {
+        result.push({
+          key: contextName === "application" ? "应用配置" : contextName,
+          fullKey: contextName,
+          children,
+        });
+      }
+    }
+  }
+
+  // 如果不是标准格式，回退到通用处理
+  if (result.length === 0) {
+    return objectToTree(data);
   }
 
   return result;
@@ -401,7 +586,7 @@ const loadEnvironment = async () => {
       props.nodeInfo.port
     );
     if (response.success && response.data) {
-      envData.value = objectToTree(response.data);
+      envData.value = actuatorEnvToTree(response.data);
     } else {
       message.error(response.msg || "获取环境配置失败");
     }
@@ -426,7 +611,7 @@ const loadConfigProps = async () => {
       props.nodeInfo.port
     );
     if (response.success && response.data) {
-      propsData.value = objectToTree(response.data);
+      propsData.value = actuatorConfigPropsToTree(response.data);
     } else {
       message.error(response.msg || "获取配置属性失败");
     }
@@ -446,14 +631,28 @@ const loadSystemInfo = async () => {
 
   loading.system = true;
   try {
-    const response = await getSystemInfoForNodeControl(
-      props.nodeInfo.ipAddress,
-      props.nodeInfo.port
-    );
-    if (response.success && response.data) {
-      systemInfo.value = response.data;
-    } else {
-      message.error(response.msg || "获取系统信息失败");
+    // 并行请求健康状态和系统信息
+    const [healthResponse, systemResponse] = await Promise.all([
+      getHealthForNodeControl(props.nodeInfo.ipAddress, props.nodeInfo.port),
+      getSystemInfoForNodeControl(props.nodeInfo.ipAddress, props.nodeInfo.port),
+    ]);
+
+    const result: Record<string, any> = {};
+
+    // 处理健康状态
+    if (healthResponse.success && healthResponse.data) {
+      result.health = healthResponse.data;
+    }
+
+    // 处理系统信息
+    if (systemResponse.success && systemResponse.data) {
+      Object.assign(result, systemResponse.data);
+    }
+
+    systemInfo.value = result;
+
+    if (!healthResponse.success && !systemResponse.success) {
+      message.error("获取系统信息失败");
     }
   } catch (error) {
     console.error("加载系统信息失败:", error);
@@ -516,102 +715,354 @@ watch(activeTab, () => {
 
 <style lang="scss" scoped>
 .dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
   .header-info {
     display: flex;
     align-items: center;
     gap: 12px;
 
-    .header-icon {
-      font-size: 24px;
-      color: var(--el-color-primary);
+    .header-icon-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: var(--el-color-primary-light-9);
+      border-radius: 10px;
+
+      .header-icon {
+        font-size: 20px;
+        color: var(--el-color-primary);
+      }
     }
 
     .header-text {
       h3 {
         margin: 0;
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 600;
         color: var(--el-text-color-primary);
       }
 
       p {
         margin: 4px 0 0 0;
-        font-size: 14px;
+        font-size: 13px;
         color: var(--el-text-color-secondary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .node-name {
+          font-weight: 500;
+        }
+
+        .node-address {
+          font-family: "JetBrains Mono", "Consolas", monospace;
+          font-size: 12px;
+          padding: 2px 6px;
+          background: var(--el-fill-color-light);
+          border-radius: 4px;
+        }
       }
     }
   }
 }
 
 .config-viewer-content {
+  .config-tabs {
+    :deep(.el-tabs__header) {
+      margin-bottom: 0;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+    }
+
+    :deep(.el-tabs__nav-wrap::after) {
+      display: none;
+    }
+
+    :deep(.el-tabs__item) {
+      padding: 0 20px;
+      height: 44px;
+    }
+
+    .tab-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+    }
+  }
+
+  .tab-content {
+    padding-top: 16px;
+  }
+
   .tab-toolbar {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 8px;
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .search-input {
+        width: 220px;
+
+        :deep(.el-input__wrapper) {
+          border-radius: 6px;
+          background: var(--el-bg-color);
+        }
+      }
+
+      .search-result {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+
+        strong {
+          color: var(--el-color-primary);
+        }
+      }
+    }
   }
 
   .config-tree-wrapper {
-    height: 450px;
+    max-height: calc(90vh - 280px);
     overflow: auto;
-    border: 1px solid var(--el-border-color);
+    border: 1px solid var(--el-border-color-lighter);
     border-radius: 8px;
-    padding: 12px;
+    padding: 8px;
+    background: var(--el-bg-color);
+
+    .config-tree {
+      :deep(.el-tree-node__content) {
+        height: 32px;
+        border-radius: 4px;
+
+        &:hover {
+          background: var(--el-fill-color-light);
+        }
+      }
+    }
   }
 
   .tree-node {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 4px 0;
+    justify-content: space-between;
+    width: 100%;
+    padding-right: 12px;
 
-    .node-key {
-      font-weight: 500;
-      color: var(--el-text-color-primary);
+    .node-key-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .node-icon {
+        font-size: 14px;
+        color: var(--el-text-color-placeholder);
+
+        &.is-folder {
+          color: var(--el-color-warning);
+        }
+
+        &.is-profile {
+          color: var(--el-color-success);
+        }
+      }
+
+      .node-key {
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--el-text-color-primary);
+      }
+
+      .property-count {
+        font-size: 11px;
+        color: var(--el-text-color-secondary);
+        background: var(--el-fill-color-light);
+        padding: 1px 6px;
+        border-radius: 8px;
+        margin-left: 6px;
+      }
     }
 
     .node-value {
       color: var(--el-color-primary);
-      font-family: "Monaco", "Menlo", monospace;
+      font-family: "JetBrains Mono", "Consolas", monospace;
       font-size: 12px;
       max-width: 400px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      padding: 2px 8px;
+      background: var(--el-color-primary-light-9);
+      border-radius: 4px;
     }
   }
 
   .system-info-wrapper {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
 
     .info-card {
+      background: var(--el-bg-color);
+      border: 1px solid var(--el-border-color-lighter);
+      border-radius: 10px;
+      overflow: hidden;
+
+      &.metrics-card {
+        grid-column: span 2;
+      }
+
       .card-header {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 8px;
-        font-weight: 600;
-      }
+        padding: 12px 16px;
+        background: var(--el-fill-color-lighter);
+        border-bottom: 1px solid var(--el-border-color-extra-light);
 
-      .info-content {
-        max-height: 300px;
-        overflow: auto;
-      }
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
 
-      .metrics-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
+          .card-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            font-size: 14px;
 
-        .metric-tag {
-          margin: 0;
+            &.health {
+              background: var(--el-color-success-light-9);
+              color: var(--el-color-success);
+            }
+
+            &.info {
+              background: var(--el-color-primary-light-9);
+              color: var(--el-color-primary);
+            }
+
+            &.metrics {
+              background: var(--el-color-warning-light-9);
+              color: var(--el-color-warning);
+            }
+          }
+
+          .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--el-text-color-primary);
+          }
         }
 
-        .more-hint {
-          color: var(--el-text-color-secondary);
+        .metrics-count {
           font-size: 12px;
-          line-height: 24px;
+          color: var(--el-text-color-secondary);
+          padding: 2px 8px;
+          background: var(--el-fill-color);
+          border-radius: 10px;
+        }
+      }
+
+      .card-body {
+        padding: 12px 16px;
+        max-height: 200px;
+        overflow: auto;
+
+        .component-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+          gap: 8px;
+
+          .component-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+
+            &.is-up {
+              background: var(--el-color-success-light-9);
+
+              .component-icon {
+                color: var(--el-color-success);
+              }
+            }
+
+            &.is-down {
+              background: var(--el-color-danger-light-9);
+
+              .component-icon {
+                color: var(--el-color-danger);
+              }
+            }
+
+            .component-name {
+              color: var(--el-text-color-primary);
+              font-weight: 500;
+            }
+          }
+        }
+
+        .info-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+
+          .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background: var(--el-fill-color-lighter);
+            border-radius: 6px;
+
+            .info-label {
+              font-size: 12px;
+              color: var(--el-text-color-secondary);
+            }
+
+            .info-value {
+              font-size: 13px;
+              font-weight: 500;
+              color: var(--el-text-color-primary);
+              font-family: "JetBrains Mono", "Consolas", monospace;
+            }
+          }
+        }
+
+        .metrics-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+
+          .metric-tag {
+            margin: 0;
+            font-family: "JetBrains Mono", "Consolas", monospace;
+            font-size: 11px;
+          }
+
+          .more-hint {
+            display: flex;
+            align-items: center;
+            color: var(--el-text-color-secondary);
+            font-size: 12px;
+            padding: 0 8px;
+          }
         }
       }
     }
@@ -621,6 +1072,6 @@ watch(activeTab, () => {
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 </style>
