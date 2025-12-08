@@ -134,28 +134,80 @@
         </div>
       </div>
 
-      <div class="preview-body thin-scrollbar">
+      <div
+        class="preview-body thin-scrollbar"
+        :class="{ 'drag-over': isDragOver }"
+        @dragover.prevent="onDragOver"
+        @dragleave.prevent="onDragLeave"
+        @drop.prevent="onDrop"
+      >
+        <!-- 拖拽上传提示层 -->
+        <div v-if="isDragOver" class="drop-overlay">
+          <div class="drop-content">
+            <IconifyIconOnline
+              icon="ri:upload-cloud-2-line"
+              class="drop-icon"
+            />
+            <div class="drop-text">拖放文件到此处上传</div>
+            <div class="drop-hint">支持图片和小文件（10MB以内）</div>
+          </div>
+        </div>
+        <!-- 上传进度 -->
+        <div v-if="uploadingFiles.length > 0" class="upload-progress">
+          <div v-for="(f, i) in uploadingFiles" :key="i" class="upload-item">
+            <span class="upload-name">{{ f.name }}</span>
+            <el-progress
+              :percentage="f.progress"
+              :status="f.status"
+              :stroke-width="6"
+              style="flex: 1"
+            />
+          </div>
+        </div>
         <template v-if="mode === 'list'">
-          <el-table
-            :data="previewItems"
-            height="calc(100vh - 180px)"
-            size="small"
-            border
-          >
-            <el-table-column prop="name" label="名称" min-width="240" />
-            <el-table-column prop="size" label="大小" width="120" />
-            <el-table-column prop="modified" label="修改时间" width="200" />
-          </el-table>
+          <div class="list-view">
+            <div
+              v-for="it in previewItems"
+              :key="it.id"
+              :class="['list-item', getFileCategory(it)]"
+              @click="onItemClick(it)"
+            >
+              <div class="list-icon">
+                <img :src="getFileThumb(it)" alt="" />
+              </div>
+              <div class="list-info">
+                <div class="list-name" :title="it.name">{{ it.name }}</div>
+                <div class="list-meta">
+                  <el-tag
+                    :type="getFileTagType(it)"
+                    size="small"
+                    effect="plain"
+                  >
+                    {{ getFileTypeLabel(it) }}
+                  </el-tag>
+                  <span class="list-size">{{ formatSize(it.size) }}</span>
+                  <span class="list-time">{{ it.modified }}</span>
+                </div>
+              </div>
+              <div class="list-actions">
+                <el-button link size="small" @click.stop="onItemClick(it)">
+                  <IconifyIconOnline icon="ri:eye-line" />
+                </el-button>
+              </div>
+            </div>
+          </div>
         </template>
         <template v-else-if="mode === 'card'">
           <div class="card-grid">
-            <el-card
+            <div
               v-for="it in previewItems"
               :key="it.id"
-              class="file-card"
-              shadow="hover"
+              :class="['file-card', getFileCategory(it)]"
               @click="onItemClick(it)"
             >
+              <div :class="['card-badge', getFileCategory(it)]">
+                {{ getFileTypeLabel(it) }}
+              </div>
               <div class="thumb-wrap">
                 <template v-if="isImage(it)">
                   <el-image
@@ -178,14 +230,18 @@
                   </el-image>
                 </template>
                 <template v-else>
-                  <img :src="getFileThumb(it)" class="ph-img" />
+                  <div class="file-icon-wrap">
+                    <img :src="getFileThumb(it)" class="ph-img" />
+                  </div>
                 </template>
               </div>
-              <div class="meta">
-                <div class="name" :title="it.name">{{ it.name }}</div>
-                <div class="sub">{{ formatSize(it.size) }}</div>
+              <div class="card-footer">
+                <div class="card-name" :title="it.name">{{ it.name }}</div>
+                <div class="card-meta">
+                  <span class="card-size">{{ formatSize(it.size) }}</span>
+                </div>
               </div>
-            </el-card>
+            </div>
           </div>
         </template>
         <template v-else>
@@ -193,9 +249,12 @@
             <div
               v-for="it in previewItems"
               :key="it.id"
-              class="img-card"
+              :class="['img-card', getFileCategory(it)]"
               @click="onItemClick(it)"
             >
+              <div :class="['img-badge', getFileCategory(it)]">
+                {{ getFileTypeLabel(it) }}
+              </div>
               <template v-if="isImage(it)">
                 <el-image
                   :key="getImageUrl(it)"
@@ -217,11 +276,16 @@
                 </el-image>
               </template>
               <template v-else>
-                <img :src="getFileThumb(it)" alt="file" />
+                <div class="big-icon-wrap">
+                  <img :src="getFileThumb(it)" alt="file" class="big-icon" />
+                </div>
               </template>
               <div class="overlay">
                 <div class="ov-name" :title="it.name">{{ it.name }}</div>
-                <div class="ov-sub">{{ formatSize(it.size) }}</div>
+                <div class="ov-meta">
+                  <span class="ov-size">{{ formatSize(it.size) }}</span>
+                  <span class="ov-time">{{ it.modified }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -256,58 +320,31 @@ import {
   type SystemServerSetting,
 } from "@/api/system-server-setting";
 import { getSystemServerById, type SystemServer } from "@/api/system-server";
-import { fileStorageList } from "@/api/file-manager/file-storage";
-// 本地静态资源（按后缀）
-import imgFolder from "@/assets/images/folder.png";
-import imgFile from "@/assets/images/File.png";
-import imgUnknown from "@/assets/images/unknown.png";
-import imgPdf from "@/assets/images/pdf.png";
-import imgDoc from "@/assets/images/doc.png";
-import imgDocx from "@/assets/images/docx.png";
-import imgXls from "@/assets/images/xls.png";
-import imgXlsx from "@/assets/images/xlsx.png";
-import imgXlsm from "@/assets/images/xlsm.png";
-import imgPpt from "@/assets/images/ppt.png";
-import imgPptx from "@/assets/images/pptx.png";
-import imgTxt from "@/assets/images/txt.png";
-import imgMd from "@/assets/images/md.png";
-import imgCsv from "@/assets/images/csv.png";
-import imgZip from "@/assets/images/zip.png";
-import imgRar from "@/assets/images/rar.png";
-import img7z from "@/assets/images/7z.png";
-import imgGz from "@/assets/images/gz.png";
-import imgTgz from "@/assets/images/tgz.png";
-import imgBmp from "@/assets/images/bmp.png";
-import imgGif from "@/assets/images/gif.png";
-import imgPng from "@/assets/images/png.png";
-import imgJpg from "@/assets/images/jpg.png";
-import imgJpeg from "@/assets/images/jpeg.png";
-import imgWebp from "@/assets/images/webp.png";
-import imgTiff from "@/assets/images/tiff.png";
-import imgHeic from "@/assets/images/heic.png";
-import imgMp4 from "@/assets/images/mp4.png";
-import imgJar from "@/assets/images/jar.png";
-import imgJava from "@/assets/images/java.png";
-import imgExe from "@/assets/images/exe.png";
-import imgSh from "@/assets/images/sh.png";
-import imgBat from "@/assets/images/bat.png";
-import imgPy from "@/assets/images/py.png";
-import imgJs from "@/assets/images/js.png";
-import imgTs from "@/assets/images/ts.png";
-import imgCss from "@/assets/images/css.png";
-import imgScss from "@/assets/images/scss.png";
-import imgHtml from "@/assets/images/html.png";
-import imgXml from "@/assets/images/xml.png";
-import imgYaml from "@/assets/images/yaml.png";
-import imgYml from "@/assets/images/yml.png";
-import imgJson from "@/assets/images/json.png";
-import imgSql from "@/assets/images/sql.png";
-import imgSqlite from "@/assets/images/sqlite.png";
-import imgMdb from "@/assets/images/mdb.png";
-import imgLog from "@/assets/images/log.png";
-import imgOfd from "@/assets/images/OFD.png";
-import imgEml from "@/assets/images/EML.png";
-import img404 from "@/assets/images/404.webp";
+import {
+  fileStorageList,
+  uploadSmallFile,
+} from "@/api/file-manager/file-storage";
+import {
+  createFileIconManager,
+  getFileCategory as getFileCategoryUtil,
+  getFileTypeLabel as getFileTypeLabelUtil,
+  getFileTagType as getFileTagTypeUtil,
+  isImageFile,
+  type FileItem,
+  type TagType,
+} from "@repo/utils";
+
+// 批量导入所有图标图片
+const iconModules = import.meta.glob("@/assets/images/*.{png,webp,svg}", {
+  eager: true,
+  import: "default",
+}) as Record<string, string>;
+
+// 创建文件图标管理器
+const iconManager = createFileIconManager(
+  iconModules,
+  iconModules["/src/assets/images/unknown.png"] || ""
+);
 
 const serverInfo = ref<SystemServer | any>({});
 
@@ -383,83 +420,114 @@ const currentPath = ref<string>("/");
 const previewDialogVisible = ref(false);
 const previewUrl = ref("");
 
-// 图片模式占位（本地替代图）
-const IMAGE_FALLBACK_CARD = img404;
-const IMAGE_FALLBACK_BIG = img404;
-// 在线直观图标已不再使用，统一改成本地静态图（见 EXT_ICON_MAP）
+// 拖拽上传状态
+const isDragOver = ref(false);
+interface UploadingFile {
+  name: string;
+  progress: number;
+  status: "" | "success" | "exception";
+}
+const uploadingFiles = ref<UploadingFile[]>([]);
 
-// 后缀到占位图映射（小写）
-const EXT_ICON_MAP: Record<string, string> = {
-  // 文档类
-  pdf: imgPdf,
-  doc: imgDoc,
-  docx: imgDocx,
-  xls: imgXls,
-  xlsx: imgXlsx,
-  xlsm: imgXlsm,
-  ppt: imgPpt,
-  pptx: imgPptx,
-  txt: imgTxt,
-  md: imgMd,
-  csv: imgCsv,
-  // 压缩与包
-  zip: imgZip,
-  rar: imgRar,
-  "7z": img7z,
-  gz: imgGz,
-  tgz: imgTgz,
-  bz2: imgZip,
-  tar: imgZip,
-  // 图片
-  bmp: imgBmp,
-  gif: imgGif,
-  png: imgPng,
-  jpg: imgJpg,
-  jpeg: imgJpeg,
-  webp: imgWebp,
-  tiff: imgTiff,
-  heic: imgHeic,
-  // 视频/音频（示例仅 mp4，其他可按需扩展本地图）
-  mp4: imgMp4,
-  // 运行包/脚本/二进制
-  jar: imgJar,
-  exe: imgExe,
-  sh: imgSh,
-  bat: imgBat,
-  // 代码/配置
-  py: imgPy,
-  js: imgJs,
-  ts: imgTs,
-  css: imgCss,
-  scss: imgScss,
-  html: imgHtml,
-  xml: imgXml,
-  yaml: imgYaml,
-  yml: imgYml,
-  json: imgJson,
-  sql: imgSql,
-  sqlite: imgSqlite,
-  mdb: imgMdb,
-  log: imgLog,
-  ofd: imgOfd,
-  eml: imgEml,
-};
-
-// 提取后缀
-function getExt(it: any): string {
-  const direct = String(it?.ext || it?.suffix || "").toLowerCase();
-  if (direct) return direct;
-  const name = String(it?.name || "");
-  const i = name.lastIndexOf(".");
-  return i > -1 ? name.slice(i + 1).toLowerCase() : "";
+// 拖拽事件处理
+function onDragOver(e: DragEvent) {
+  isDragOver.value = true;
 }
 
-// 根据后缀选择占位
-function getFileThumb(it: any): string {
-  if (it?.directory) return imgFolder;
-  const ext = getExt(it);
-  if (!ext) return imgUnknown || imgFile;
-  return EXT_ICON_MAP[ext] || imgUnknown || imgFile;
+function onDragLeave(e: DragEvent) {
+  isDragOver.value = false;
+}
+
+async function onDrop(e: DragEvent) {
+  isDragOver.value = false;
+  const files = e.dataTransfer?.files;
+  if (!files || files.length === 0) return;
+
+  // 获取当前选中的存储配置
+  const s =
+    selectedIndex.value != null ? storages.value[selectedIndex.value] : null;
+  if (!s) {
+    ElMessage.warning("请先选择一个存储配置");
+    return;
+  }
+
+  // 最大文件大小：10MB
+  const maxSize = 10 * 1024 * 1024;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+
+    // 检查文件大小
+    if (file.size > maxSize) {
+      ElMessage.warning(`文件 ${file.name} 超过10MB限制，请使用分片上传`);
+      continue;
+    }
+
+    // 添加到上传列表
+    const uploadItem: UploadingFile = {
+      name: file.name,
+      progress: 0,
+      status: "",
+    };
+    uploadingFiles.value.push(uploadItem);
+
+    try {
+      // 模拟进度
+      uploadItem.progress = 30;
+
+      // 调用上传接口
+      const res = await uploadSmallFile({
+        serverId: serverId,
+        bucket: s.fileStorageBucket,
+        filePath: currentPath.value || "/",
+        file: file,
+      });
+
+      uploadItem.progress = 100;
+      uploadItem.status = "success";
+      ElMessage.success(`${file.name} 上传成功`);
+
+      // 刷新文件列表
+      await fetchPreviewItems();
+    } catch (err: any) {
+      uploadItem.progress = 100;
+      uploadItem.status = "exception";
+      ElMessage.error(`${file.name} 上传失败: ${err?.message || "未知错误"}`);
+    }
+
+    // 3秒后移除上传项
+    setTimeout(() => {
+      const idx = uploadingFiles.value.indexOf(uploadItem);
+      if (idx > -1) {
+        uploadingFiles.value.splice(idx, 1);
+      }
+    }, 3000);
+  }
+}
+
+// 根据文件项获取图标
+function getFileThumb(it: unknown): string {
+  return iconManager.getIcon(it as FileItem);
+}
+
+// 获取文件分类
+function getFileCategory(it: unknown): string {
+  return getFileCategoryUtil(it as FileItem);
+}
+
+// 获取文件类型标签
+function getFileTypeLabel(it: unknown): string {
+  return getFileTypeLabelUtil(it as FileItem);
+}
+
+// 获取文件标签类型（用于 el-tag）
+function getFileTagType(it: unknown): TagType {
+  return getFileTagTypeUtil(it as FileItem);
+}
+
+// 判断是否为图片
+function isImage(it: unknown): boolean {
+  return isImageFile(it as FileItem);
 }
 
 // 轻量缓存：30秒内同参命中直接返回，减少请求
@@ -564,26 +632,6 @@ function formatSize(size: number | string) {
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
   return `${(n / 1024 / 1024 / 1024).toFixed(1)} GB`;
-}
-
-function isImage(it: any) {
-  // 先尝试从ext字段获取后缀，如果没有则从文件名提取
-  let ext = String(it?.ext || it?.suffix || "").toLowerCase();
-  if (!ext) {
-    ext = getExt(it);
-  }
-  const imageExts = [
-    "jpg",
-    "jpeg",
-    "png",
-    "gif",
-    "bmp",
-    "webp",
-    "svg",
-    "tiff",
-    "heic",
-  ];
-  return imageExts.includes(ext);
 }
 
 function getImageUrl(it: any) {
@@ -803,12 +851,13 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-light);
 }
 .left-header .title {
   font-weight: 700;
   font-size: 17px;
-  color: #fff;
+  color: var(--el-text-color-primary);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -822,12 +871,9 @@ onMounted(() => {
 }
 .left-header .actions :deep(.el-button) {
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
 }
 .left-header .actions :deep(.el-button:hover) {
-  background: rgba(255, 255, 255, 0.3);
+  border-color: var(--el-color-primary);
 }
 .left-list {
   height: calc(100vh - 180px);
@@ -861,15 +907,15 @@ onMounted(() => {
   transform: translateX(4px);
 }
 .left-item:hover::before {
-  background: #6366f1;
+  background: var(--el-color-primary);
 }
 .left-item.active {
-  background: linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%);
-  border-color: #6366f1;
-  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.2);
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary);
+  box-shadow: 0 6px 24px var(--el-color-primary-light-7);
 }
 .left-item.active::before {
-  background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%);
+  background: var(--el-color-primary);
   width: 5px;
 }
 .left-item .row1 {
@@ -879,8 +925,8 @@ onMounted(() => {
   margin-bottom: 10px;
 }
 .left-item .row1 .seq {
-  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-  color: #4f46e5;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
   font-size: 11px;
   padding: 4px 10px;
   border-radius: 12px;
@@ -928,31 +974,18 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 14px;
   padding: 18px 24px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-light);
 }
 .toolbar :deep(.el-radio-group) {
   border-radius: 12px;
   overflow: hidden;
 }
-.toolbar :deep(.el-radio-button__inner) {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #fff;
-}
-.toolbar
-  :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
-  background: #fff;
-  color: #059669;
-  border-color: #fff;
-}
 .toolbar :deep(.el-button) {
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
 }
 .toolbar :deep(.el-button:hover) {
-  background: rgba(255, 255, 255, 0.3);
+  border-color: var(--el-color-primary);
 }
 .crumbs {
   display: flex;
@@ -960,49 +993,49 @@ onMounted(() => {
   gap: 10px;
 }
 .crumbs :deep(.el-button) {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
+  border-radius: 10px;
 }
 .crumbs .bc {
-  max-width: 40%;
+  max-width: 100%;
+  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .crumbs :deep(.el-breadcrumb__inner) {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--el-text-color-regular);
 }
 .crumbs :deep(.el-breadcrumb__separator) {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--el-text-color-secondary);
 }
 .crumbs .bc-item {
   cursor: pointer;
   transition: all 0.2s ease;
 }
 .crumbs .bc-item:hover :deep(.el-breadcrumb__inner) {
-  color: #fff;
+  color: var(--el-color-primary);
 }
 .server-info {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--el-fill-color-light);
   padding: 8px 14px;
   border-radius: 12px;
-  color: #fff;
+  color: var(--el-text-color-primary);
   margin-left: auto;
 }
 .server-info .iconify {
   font-size: 18px;
+  color: var(--el-color-primary);
 }
 .server-info .si-name {
   font-weight: 600;
-  color: #fff;
+  color: var(--el-text-color-primary);
 }
 .server-info .si-addr {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--el-text-color-secondary);
 }
 .spacer {
   flex: 1;
@@ -1011,6 +1044,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--el-text-color-regular);
 }
 .pager :deep(.el-select) {
   border-radius: 8px;
@@ -1019,7 +1053,191 @@ onMounted(() => {
   height: calc(100vh - 180px);
   overflow: auto;
   padding: 20px 24px;
+  position: relative;
 }
+.preview-body.drag-over {
+  background: var(--el-color-primary-light-9);
+  border: 2px dashed var(--el-color-primary);
+  border-radius: 12px;
+}
+
+/* ========== 拖拽上传样式 ========== */
+.drop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(var(--el-color-primary-rgb), 0.08);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  border-radius: 12px;
+}
+.drop-content {
+  text-align: center;
+  padding: 40px;
+  background: var(--el-bg-color);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+.drop-icon {
+  font-size: 64px;
+  color: var(--el-color-primary);
+  margin-bottom: 16px;
+}
+.drop-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 8px;
+}
+.drop-hint {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 上传进度条 */
+.upload-progress {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.upload-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--el-fill-color-light);
+  border-radius: 10px;
+}
+.upload-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========== 列表视图样式 ========== */
+.list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+.list-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--el-border-color-lighter);
+  transition: all 0.25s ease;
+}
+.list-item:hover {
+  background: var(--el-fill-color-light);
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateX(4px);
+}
+.list-item:hover::before {
+  background: var(--el-color-primary);
+}
+.list-item.folder::before {
+  background: var(--el-color-warning);
+}
+.list-item.image::before {
+  background: var(--el-color-success);
+}
+.list-item.document::before {
+  background: var(--el-color-primary);
+}
+.list-item.archive::before {
+  background: var(--el-color-danger);
+}
+.list-item.video::before {
+  background: #9333ea;
+}
+.list-item.audio::before {
+  background: #06b6d4;
+}
+.list-item.code::before {
+  background: #f59e0b;
+}
+.list-item.executable::before {
+  background: #ef4444;
+}
+.list-icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--el-fill-color-lighter);
+  border-radius: 10px;
+  padding: 8px;
+}
+.list-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.list-info {
+  flex: 1;
+  min-width: 0;
+}
+.list-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 6px;
+}
+.list-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.list-size {
+  color: var(--el-text-color-regular);
+}
+.list-time {
+  color: var(--el-text-color-placeholder);
+}
+.list-actions {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.list-item:hover .list-actions {
+  opacity: 1;
+}
+
+/* ========== 卡片视图样式 ========== */
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -1028,20 +1246,74 @@ onMounted(() => {
 .file-card {
   width: 100%;
   border-radius: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--el-border-color-lighter);
   overflow: hidden;
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  background: var(--el-bg-color);
+  position: relative;
 }
 .file-card:hover {
-  border-color: #10b981;
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.2);
+  border-color: var(--el-color-primary);
+  box-shadow: 0 8px 24px var(--el-color-primary-light-7);
   transform: translateY(-6px);
 }
+/* 卡片徽章 */
+.card-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  z-index: 10;
+  background: var(--el-fill-color);
+  color: var(--el-text-color-regular);
+}
+.card-badge.folder {
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning);
+}
+.card-badge.image {
+  background: var(--el-color-success-light-9);
+  color: var(--el-color-success);
+}
+.card-badge.document {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+.card-badge.text {
+  background: var(--el-color-info-light-9);
+  color: var(--el-color-info);
+}
+.card-badge.archive {
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+}
+.card-badge.video {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+.card-badge.audio {
+  background: #ecfeff;
+  color: #06b6d4;
+}
+.card-badge.code {
+  background: #fef3c7;
+  color: #d97706;
+}
+.card-badge.executable {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.card-badge.email {
+  background: #e0e7ff;
+  color: #4f46e5;
+}
 .thumb-wrap {
-  height: 150px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  height: 140px;
+  background: var(--el-fill-color-lighter);
   border-radius: 0;
   overflow: hidden;
   display: flex;
@@ -1049,32 +1321,40 @@ onMounted(() => {
   justify-content: center;
   position: relative;
 }
-.thumb-wrap::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.03));
-}
-.ph-img {
+.file-icon-wrap {
   width: 100%;
   height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.ph-img {
+  max-width: 80px;
+  max-height: 80px;
   object-fit: contain;
 }
-.meta {
-  margin-top: 6px;
-  font-size: 12px;
+.card-footer {
+  padding: 14px;
+  background: var(--el-bg-color);
 }
-.meta .name {
+.card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-bottom: 6px;
 }
-.meta .sub {
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-size {
+  font-size: 12px;
   color: var(--el-text-color-secondary);
-  margin-top: 2px;
 }
 
 /* 图片加载占位与错误样式 */
@@ -1103,44 +1383,116 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
   background: #fafafa;
 }
+/* ========== 大图视图样式 ========== */
 .image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
 }
 .img-card {
   position: relative;
-  height: 260px;
+  height: 240px;
   overflow: hidden;
-  border-radius: 18px;
-  border: none;
+  border-radius: 16px;
+  border: 1px solid var(--el-border-color-lighter);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  background: var(--el-fill-color-lighter);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 .img-card:hover {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  transform: translateY(-6px);
+  border-color: var(--el-color-primary-light-5);
 }
-.img-card .el-image,
-.img-card img {
+/* 大图徽章 */
+.img-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--el-text-color-regular);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.img-badge.folder {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+.img-badge.image {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+.img-badge.document {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+}
+.img-badge.text {
+  background: rgba(107, 114, 128, 0.15);
+  color: #4b5563;
+}
+.img-badge.archive {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+.img-badge.video {
+  background: rgba(147, 51, 234, 0.15);
+  color: #9333ea;
+}
+.img-badge.audio {
+  background: rgba(6, 182, 212, 0.15);
+  color: #0891b2;
+}
+.img-badge.code {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+.img-badge.executable {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+.img-badge.email {
+  background: rgba(79, 70, 229, 0.15);
+  color: #4f46e5;
+}
+.img-card .el-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
   display: block;
   transition: transform 0.4s ease;
 }
-.img-card:hover .el-image,
-.img-card:hover img {
-  transform: scale(1.05);
+.img-card:hover .el-image {
+  transform: scale(1.03);
+}
+.big-icon-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--el-fill-color-light);
+}
+.big-icon {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+.img-card:hover .big-icon {
+  transform: scale(1.1);
 }
 .overlay {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 16px;
-  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
+  padding: 14px 16px;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.75) 100%);
   color: #fff;
   transform: translateY(100%);
   transition: transform 0.3s ease;
@@ -1149,16 +1501,25 @@ onMounted(() => {
   transform: translateY(0);
 }
 .overlay .ov-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-bottom: 4px;
 }
-.overlay .ov-sub {
-  font-size: 12px;
-  opacity: 0.8;
-  margin-top: 4px;
+.overlay .ov-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  opacity: 0.85;
+}
+.overlay .ov-size {
+  font-weight: 500;
+}
+.overlay .ov-time {
+  opacity: 0.7;
 }
 @media (max-width: 1080px) {
   .fs-full {

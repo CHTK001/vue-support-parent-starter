@@ -482,7 +482,7 @@ export interface QpsRateLimitConfig {
 
 export function saveServletFilterConfig(
   settingId: number,
-  config: QpsRateLimitConfig
+  config: Record<string, unknown>
 ) {
   return request({
     url: `/system/server/setting/${settingId}/config`,
@@ -681,5 +681,71 @@ export function clearPreviewExtensionConfig(serverId: number) {
   return request({
     url: `/system/server/setting/preview-extension/${serverId}/clear`,
     method: "post",
+  });
+}
+
+// ==================== Viewer 视图查看器配置 ====================
+
+/**
+ * 视图查看器信息
+ */
+export interface ViewerInfo {
+  name: string;
+  description: string;
+  priority: number;
+  enabled: boolean;
+  supportedContentTypes: string[];
+  supportedExtensions: string[];
+  targetFormat: string;
+}
+
+/**
+ * 视图查看器配置
+ */
+export interface ViewerConfig {
+  disabledViewers: string[];
+}
+
+/**
+ * 获取可用的视图查看器列表
+ *
+ * @param settingId 配置ID
+ * @returns 查看器列表
+ */
+export function getViewerListForSetting(settingId: number) {
+  return request<ViewerInfo[]>({
+    url: `/system/server/setting/${settingId}/viewers`,
+    method: "get",
+  });
+}
+
+/**
+ * 获取视图查看器配置
+ *
+ * @param settingId 配置ID
+ * @returns 查看器配置
+ */
+export function getViewerConfigForSetting(settingId: number) {
+  return request<ViewerConfig>({
+    url: `/system/server/setting/${settingId}/viewer-config`,
+    method: "get",
+  });
+}
+
+/**
+ * 保存视图查看器配置
+ *
+ * @param settingId 配置ID
+ * @param config 查看器配置
+ * @returns 保存结果
+ */
+export function saveViewerConfigForSetting(
+  settingId: number,
+  config: ViewerConfig
+) {
+  return request({
+    url: `/system/server/setting/${settingId}/viewer-config`,
+    method: "post",
+    data: config,
   });
 }

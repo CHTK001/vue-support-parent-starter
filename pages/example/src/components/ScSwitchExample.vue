@@ -29,12 +29,28 @@
             />
           </el-form-item>
 
+          <el-form-item
+            label="label 标签文本"
+            v-if="
+              config.layout === 'compact-card' ||
+              config.layout === 'visual-card'
+            "
+          >
+            <el-input v-model="config.label" placeholder="紧凑卡片布局的标签" />
+          </el-form-item>
+
           <el-form-item label="activeText 开启文本">
-            <el-input v-model="config.activeText" placeholder="开启时显示的文本" />
+            <el-input
+              v-model="config.activeText"
+              placeholder="开启时显示的文本"
+            />
           </el-form-item>
 
           <el-form-item label="inactiveText 关闭文本">
-            <el-input v-model="config.inactiveText" placeholder="关闭时显示的文本" />
+            <el-input
+              v-model="config.inactiveText"
+              placeholder="关闭时显示的文本"
+            />
           </el-form-item>
 
           <el-form-item label="activeIcon 开启图标">
@@ -100,6 +116,7 @@
             :size="config.size"
             :disabled="config.disabled"
             :loading="config.loading"
+            :label="config.label"
             :active-text="config.activeText"
             :inactive-text="config.inactiveText"
             :active-icon="config.activeIcon"
@@ -140,14 +157,16 @@ const layoutOptions = [
   { label: "默认", value: "default", icon: "ri:toggle-line" },
   { label: "卡片", value: "card", icon: "ri:checkbox-blank-line" },
   { label: "滑块", value: "slider", icon: "ri:switch-line" },
-  { label: "现代", value: "modern", icon: "ri:contrast-2-line" }
+  { label: "现代", value: "modern", icon: "ri:contrast-2-line" },
+  { label: "视觉卡片", value: "visual-card", icon: "ri:layout-grid-line" },
+  { label: "紧凑卡片", value: "compact-card", icon: "ri:apps-line" },
 ];
 
 // 尺寸选项
 const sizeOptions = [
   { label: "small", value: "small", icon: "ri:subtract-line" },
   { label: "default", value: "default", icon: "ri:checkbox-blank-line" },
-  { label: "large", value: "large", icon: "ri:add-line" }
+  { label: "large", value: "large", icon: "ri:add-line" },
 ];
 
 // 图标选项
@@ -156,20 +175,27 @@ const iconOptions = [
   { label: "勾", value: "ep:check", icon: "ri:check-line" },
   { label: "叉", value: "ep:close", icon: "ri:close-line" },
   { label: "开", value: "ep:open", icon: "ri:toggle-line" },
-  { label: "月", value: "ep:moon", icon: "ri:moon-line" }
+  { label: "月", value: "ep:moon", icon: "ri:moon-line" },
 ];
 
 // 配置项
 const config = reactive({
-  layout: "default" as "default" | "card" | "slider" | "modern",
+  layout: "default" as
+    | "default"
+    | "card"
+    | "slider"
+    | "modern"
+    | "visual-card"
+    | "compact-card",
   size: "default" as "small" | "default" | "large",
   disabled: false,
   loading: false,
+  label: "功能开关",
   activeText: "开启",
   inactiveText: "关闭",
   activeIcon: "ep:check",
   inactiveIcon: "ep:close",
-  activeColor: "#409eff"
+  activeColor: "#409eff",
 });
 
 // 开关值
@@ -196,7 +222,8 @@ const generatedCode = computed(() => {
   if (config.inactiveText) props.push(`inactive-text="${config.inactiveText}"`);
   if (config.activeIcon) props.push(`active-icon="${config.activeIcon}"`);
   if (config.inactiveIcon) props.push(`inactive-icon="${config.inactiveIcon}"`);
-  if (config.activeColor !== "#409eff") props.push(`active-color="${config.activeColor}"`);
+  if (config.activeColor !== "#409eff")
+    props.push(`active-color="${config.activeColor}"`);
 
   const propsStr = props.length > 0 ? "\n  " + props.join("\n  ") + "\n" : " ";
 

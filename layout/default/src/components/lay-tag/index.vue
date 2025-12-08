@@ -73,7 +73,7 @@ const { VITE_HIDE_HOME } = import.meta.env;
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
 // 标签页是否显示图标
-const showTagIcon = ref($storage.configure?.showTagIcon ?? true);
+const showTagIcon = ref($storage.configure?.showTagIcon ?? false);
 
 // 监听标签图标设置变化
 emitter.on("showTagIconChange", (val: boolean) => {
@@ -773,6 +773,11 @@ const deferTag = useDefer(tagsViews?.length);
   opacity: 1;
 }
 
+// 选中状态下图标颜色为白色
+.scroll-item.is-active .tag-icon {
+  color: #fff;
+}
+
 .chrome-tab .tag-icon {
   margin-right: 6px;
 }
@@ -787,6 +792,10 @@ const deferTag = useDefer(tagsViews?.length);
   &.is-active {
     .chrome-tab {
       .tag-title {
+        color: #fff;
+      }
+
+      .tag-icon {
         color: #fff;
       }
     }
@@ -855,6 +864,10 @@ const deferTag = useDefer(tagsViews?.length);
     .tag-title {
       color: #fff;
       font-weight: 500;
+    }
+
+    .tag-icon {
+      color: #fff;
     }
 
     .el-icon-close {
@@ -942,6 +955,10 @@ html.dark {
         color: #fff;
       }
 
+      .tag-icon {
+        color: #fff;
+      }
+
       &:hover {
         .chrome-tab__bg {
           filter: brightness(1.3);
@@ -990,6 +1007,10 @@ html.dark {
       );
 
       .tag-title {
+        color: #fff;
+      }
+
+      .tag-icon {
         color: #fff;
       }
 

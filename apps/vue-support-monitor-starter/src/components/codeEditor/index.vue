@@ -4,74 +4,52 @@
     :style="{
       height: height,
     }"
+    v-loading="loading"
   >
-    <a-spin v-if="loading" :tip="$t('i18n_6a8c30bd06')" :spinning="loading">
-      <a-skeleton />
-    </a-spin>
-    <template v-else>
+    <template v-if="!loading">
       <div v-if="showTool" ref="toolBar" class="tool-bar">
         <slot name="tool_before" />
 
-        <a-space class="tool-bar-end">
-          <div>
-            {{ $t("i18n_08902526f1")
-            }}<a-select
-              v-model:value="cmOptions.theme"
-              show-search
-              :filter-option="
-                (input, option) => {
-                  const children = option.children && option.children();
-                  return (
-                    children &&
-                    children[0].children &&
-                    children[0].children
-                      .toLowerCase()
-                      .indexOf(input.toLowerCase()) >= 0
-                  );
-                }
-              "
+        <div class="tool-bar-end">
+          <div class="tool-item">
+            <span class="tool-label">{{ $t("i18n_08902526f1") }}</span>
+            <el-select
+              v-model="cmOptions.theme"
+              filterable
               :placeholder="$t('i18n_37b30fc862')"
               style="width: 150px"
-              @select="handleSelectTheme"
+              @change="handleSelectTheme"
             >
-              <a-select-option v-for="item in themeList" :key="item.theme">{{
-                item.name
-              }}</a-select-option>
-            </a-select>
+              <el-option
+                v-for="item in themeList"
+                :key="item.theme"
+                :label="item.name"
+                :value="item.theme"
+              />
+            </el-select>
           </div>
-          <div>
-            {{ $t("i18n_117a9cbc8d")
-            }}<a-select
-              v-model:value="cmOptions.mode"
-              show-search
-              :filter-option="
-                (input, option) => {
-                  const children = option.children && option.children();
-                  return (
-                    children &&
-                    children[0].children &&
-                    children[0].children
-                      .toLowerCase()
-                      .indexOf(input.toLowerCase()) >= 0
-                  );
-                }
-              "
+          <div class="tool-item">
+            <span class="tool-label">{{ $t("i18n_117a9cbc8d") }}</span>
+            <el-select
+              v-model="cmOptions.mode"
+              filterable
               :placeholder="$t('i18n_773b1a5ef6')"
               style="width: 150px"
-              @select="handleSelectMode"
+              @change="handleSelectMode"
             >
-              <a-select-option value="">{{
-                $t("i18n_773b1a5ef6")
-              }}</a-select-option>
-              <a-select-option v-for="item in modeList" :key="item.mode">{{
-                item.name
-              }}</a-select-option>
-            </a-select>
+              <el-option value="" :label="$t('i18n_773b1a5ef6')" />
+              <el-option
+                v-for="item in modeList"
+                :key="item.mode"
+                :label="item.name"
+                :value="item.mode"
+              />
+            </el-select>
           </div>
 
-          <a-tooltip>
-            <template #title>
-              <ul>
+          <el-tooltip placement="bottom">
+            <template #content>
+              <ul class="shortcut-list">
                 <li><b>Ctrl-F / Cmd-F</b>&nbsp;{{ $t("i18n_99d3e5c718") }}</li>
                 <li><b>Ctrl-G / Cmd-G</b>&nbsp;{{ $t("i18n_6292498392") }}</li>
                 <li>
@@ -93,9 +71,9 @@
                 <li><b>Alt-G</b>&nbsp;{{ $t("i18n_5fc6c33832") }}</li>
               </ul>
             </template>
-            <QuestionCircleOutlined />
-          </a-tooltip>
-        </a-space>
+            <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+          </el-tooltip>
+        </div>
       </div>
       <div :style="{ height: codeMirrorHeight }">
         <Codemirror
@@ -634,6 +612,100 @@ export default {
 .CodeMirror {
   height: 100%;
   min-height: 200px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.CodeMirror-scroll {
+  margin: 0;
+  padding: 0;
+}
+
+.CodeMirror-selected {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+.CodeMirror-selectedtext {
+  color: inherit !important;
+}
+
+.cm-matchhighlight {
+  background-color: rgba(251, 191, 36, 0.3);
+}
+
+/* 确保主题样式优先级 */
+.CodeMirror.cm-s-idea {
+  background: #fff;
+  color: #000;
+}
+
+.CodeMirror.cm-s-dracula {
+  background: #282a36;
+  color: #f8f8f2;
+}
+
+.CodeMirror.cm-s-monokai {
+  background: #272822;
+  color: #f8f8f2;
+}
+
+.CodeMirror.cm-s-material-darker {
+  background: #212121;
+  color: #eeffff;
+}
+
+/* 代码提示框样式 */
+.CodeMirror-hints {
+  z-index: 9999 !important;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 4px 0;
+  font-family: "Consolas", "Monaco", monospace;
+  font-size: 13px;
+}
+
+.CodeMirror-hint {
+  padding: 4px 12px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.CodeMirror-hint-active {
+  background: #3b82f6;
+  color: #fff;
+}
+
+/* 行号样式 */
+.CodeMirror-linenumber {
+  padding: 0 8px 0 4px;
+  min-width: 32px;
+  text-align: right;
+  color: #94a3b8;
+}
+
+/* 光标样式 */
+.CodeMirror-cursor {
+  border-left: 2px solid #3b82f6;
+}
+
+/* 当前行高亮 */
+.CodeMirror-activeline-background {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+/* 折叠代码标记 */
+.CodeMirror-foldmarker {
+  color: #3b82f6;
+  text-shadow: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* 搜索匹配高亮 */
+.cm-searching {
+  background: rgba(251, 191, 36, 0.4);
 }
 </style>
 <style scoped>
@@ -667,53 +739,56 @@ export default {
   gap: 16px;
 }
 
-.tool-bar-end > div {
+.tool-item {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.tool-label {
   font-size: 13px;
   color: #64748b;
+  white-space: nowrap;
 }
 
-/* Ant Design Select 样式覆盖 */
-:deep(.ant-select) {
-  min-width: 150px;
-}
-
-:deep(.ant-select-selector) {
-  border-radius: 6px !important;
-  border-color: #e5e7eb !important;
-  background: #fff !important;
-  height: 32px !important;
-}
-
-:deep(.ant-select-selection-item) {
-  line-height: 30px !important;
-  color: #1e293b;
-}
-
-:deep(.ant-select:hover .ant-select-selector) {
-  border-color: #3b82f6 !important;
-}
-
-:deep(.ant-select-focused .ant-select-selector) {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
-}
-
-:deep(.ant-space) {
-  gap: 16px !important;
-}
-
-:deep(.anticon) {
+.help-icon {
+  font-size: 18px;
   color: #64748b;
-  font-size: 16px;
   cursor: pointer;
   transition: color 0.2s;
 }
 
-:deep(.anticon:hover) {
+.help-icon:hover {
   color: #3b82f6;
+}
+
+.shortcut-list {
+  margin: 0;
+  padding: 0 0 0 16px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.shortcut-list li {
+  margin: 4px 0;
+}
+
+/* Element Plus Select 样式覆盖 */
+:deep(.el-select) {
+  min-width: 150px;
+}
+
+:deep(.el-select .el-input__wrapper) {
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px #e5e7eb inset;
+}
+
+:deep(.el-select .el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #3b82f6 inset;
+}
+
+:deep(.el-select .el-input.is-focus .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #3b82f6 inset;
 }
 /*
 .CodeMirror {

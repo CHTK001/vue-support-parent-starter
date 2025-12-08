@@ -49,6 +49,8 @@ import {
   IconifyIconOnline,
 } from "@repo/components/ReIcon";
 import ScTable from "@repo/components/ScTable/index.vue";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import ScCard from "@repo/components/ScCard/index.vue";
 import * as directives from "@repo/core/directives";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
@@ -76,6 +78,8 @@ initializeWasmModule()
 
     app.component("Auth", Auth);
     app.component("ScTable", ScTable);
+    app.component("ScCard", ScCard);
+    app.component("ScSwitch", ScSwitch);
 
     app.use(VueTippy);
     // 使用 ElementPlusX
@@ -88,7 +92,7 @@ initializeWasmModule()
         app,
         license: null,
         features: { echarts: false, advanced: false },
-        debug: true
+        debug: true,
       });
       console.log("[TechUI] 初始化完成");
     } catch (err) {
