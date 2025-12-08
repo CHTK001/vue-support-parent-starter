@@ -208,16 +208,6 @@ export function applySystemServerConfigChanges(id: number) {
 }
 
 /**
- * 获取运行中的服务器实例信息
- */
-export function getRunningServerInstances() {
-  return request({
-    url: "/system/server/running-instances",
-    method: "get",
-  });
-}
-
-/**
  * 克隆服务器配置（更新版本，使用新的参数格式）
  */
 export function cloneSystemServerV2(
