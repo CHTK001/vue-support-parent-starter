@@ -155,6 +155,21 @@ export const setLogLevelForNodeControl = (request: NodeControlRequest) => {
   );
 };
 
+// ==================== 健康检查 ====================
+
+/**
+ * 获取节点健康状态
+ */
+export const getHealthForNodeControl = (ipAddress: string, port: number) => {
+  return http.request<ReturnResult<Record<string, unknown>>>(
+    "get",
+    "/v1/node/control/health",
+    {
+      params: { ipAddress, port },
+    }
+  );
+};
+
 // ==================== 配置管理 ====================
 
 /**
