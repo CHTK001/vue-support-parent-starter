@@ -168,8 +168,8 @@ const featureList = computed(() => [
  * 获取状态类型
  * @param status 状态
  */
-const getStatusType = (status: string) => {
-  const statusMap: Record<string, string> = {
+const getStatusType = (status: string): "success" | "warning" | "danger" | "info" | "primary" => {
+  const statusMap: Record<string, "success" | "warning" | "danger" | "info" | "primary"> = {
     ONLINE: "success",
     OFFLINE: "danger",
     CONNECTING: "warning",

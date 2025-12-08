@@ -160,6 +160,7 @@ import {
   setLoggerLevel,
   refreshNodeLoggers,
 } from "@/api/server/node-logger-config";
+import { setNodeLogLevel } from "@/api/monitor/actuator";
 
 // 日志等级枚举
 export type LogLevel = "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE";
@@ -348,11 +349,35 @@ const handleRefresh = async () => {
   }
 };
 
+/**
+ * 更新日志器等级
+ * 优先通过 SyncServer 下发命令，失败时回退到 HTTP 方式
+ *
+ * @param logger 日志器配置
+ */
 const updateLoggerLevel = async (logger: any) => {
   if (!props.nodeInfo) return;
 
   logger.updating = true;
   try {
+    // 优先使用 SyncServer 方式下发日志等级设置命令
+    const syncResponse = await setNodeLogLevel({
+      ipAddress: props.nodeInfo.ipAddress,
+      port: props.nodeInfo.port,
+      loggerName: logger.loggerName,
+      logLevel: logger.newLevel || "",
+    });
+
+    if (syncResponse.code === "00000") {
+      logger.configuredLevel = logger.newLevel;
+      message.success("日志等级设置命令已下发");
+      // 延迟重新加载数据以获取最新状态
+      setTimeout(() => loadLoggers(), 1000);
+      return;
+    }
+
+    // SyncServer 失败时回退到 HTTP 方式
+    console.warn("SyncServer 方式失败，回退到 HTTP 方式:", syncResponse.msg);
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
       props.nodeInfo.port
@@ -366,7 +391,6 @@ const updateLoggerLevel = async (logger: any) => {
     if (response.success) {
       logger.configuredLevel = logger.newLevel;
       message.success("日志等级设置成功");
-      // 重新加载数据以获取最新状态
       await loadLoggers();
     } else {
       message.error(
