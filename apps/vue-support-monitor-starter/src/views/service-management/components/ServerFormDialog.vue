@@ -1,121 +1,187 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    :title="isEdit ? '编辑服务器' : '新增服务器'"
-    width="600px"
+    :title="isEdit ? '编辑服务' : '新增服务'"
+    width="900px"
     :close-on-click-modal="false"
     @close="handleClose"
   >
-    <el-form
-      ref="formRef"
-      :model="formData"
-      :rules="formRules"
-      label-width="120px"
-      label-position="right"
-    >
-      <el-form-item label="服务器名称" prop="systemServerName">
-        <el-input
-          v-model="formData.systemServerName"
-          placeholder="请输入服务器名称"
-          clearable
-        />
-      </el-form-item>
+    <div class="form-container">
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="formRules"
+        label-width="100px"
+        label-position="right"
+        class="server-form"
+      >
+        <el-row :gutter="24">
+          <!-- 左列：基本信息 -->
+          <el-col :span="12">
+            <div class="form-section">
+              <div class="section-header">
+                <IconifyIconOnline
+                  icon="ri:information-line"
+                  class="section-icon"
+                />
+                <span class="section-title">基本信息</span>
+              </div>
+              <div class="section-content">
+                <el-form-item label="服务名称" prop="systemServerName">
+                  <el-input
+                    v-model="formData.systemServerName"
+                    placeholder="请输入服务名称"
+                    clearable
+                  >
+                    <template #prefix>
+                      <IconifyIconOnline icon="ri:server-line" />
+                    </template>
+                  </el-input>
+                </el-form-item>
 
-      <el-form-item label="服务器类型" prop="systemServerType">
-        <el-select
-          v-model="formData.systemServerType"
-          placeholder="请选择服务器类型"
-          style="width: 100%"
-        >
-          <el-option
-            v-for="item in serverTypes"
-            :key="item.name"
-            :label="
-              item.describe ? item.describe + '(' + item.name + ')' : item.name
-            "
-            :value="item.name"
-          >
-          </el-option>
-        </el-select>
-      </el-form-item>
+                <el-form-item label="服务类型" prop="systemServerType">
+                  <el-select
+                    v-model="formData.systemServerType"
+                    placeholder="请选择服务类型"
+                    style="width: 100%"
+                  >
+                    <el-option
+                      v-for="item in serverTypes"
+                      :key="item.name"
+                      :label="
+                        item.describe
+                          ? item.describe + '(' + item.name + ')'
+                          : item.name
+                      "
+                      :value="item.name"
+                    />
+                  </el-select>
+                </el-form-item>
 
-      <el-form-item label="系统服务器主机">
-        <el-input
-          v-model="formData.systemServerHost"
-          placeholder="请输入服务器主机"
-          clearable
-        />
-      </el-form-item>
+                <el-form-item label="服务主机">
+                  <el-input
+                    v-model="formData.systemServerHost"
+                    placeholder="请输入服务主机"
+                    clearable
+                  >
+                    <template #prefix>
+                      <IconifyIconOnline icon="ri:global-line" />
+                    </template>
+                  </el-input>
+                </el-form-item>
 
-      <el-form-item label="服务器端口" prop="systemServerPort">
-        <el-input-number
-          v-model="formData.systemServerPort"
-          :min="1"
-          :max="65535"
-          placeholder="请输入端口号"
-          style="width: 100%"
-          @blur="checkPortAvailable"
-        />
-        <div
-          v-if="portCheckMessage"
-          :class="portCheckClass"
-          class="port-check-message"
-        >
-          {{ portCheckMessage }}
-        </div>
-      </el-form-item>
+                <el-form-item label="服务端口" prop="systemServerPort">
+                  <el-input-number
+                    v-model="formData.systemServerPort"
+                    :min="1"
+                    :max="65535"
+                    placeholder="端口号"
+                    style="width: 100%"
+                  />
+                  <div
+                    v-if="portCheckMessage"
+                    :class="portCheckClass"
+                    class="port-check-message"
+                  >
+                    {{ portCheckMessage }}
+                  </div>
+                </el-form-item>
 
-      <el-form-item label="最大连接数" prop="systemServerMaxConnections">
-        <el-input-number
-          v-model="formData.systemServerMaxConnections"
-          :min="1"
-          :max="10000"
-          placeholder="不填则无限制"
-          style="width: 100%"
-        />
-      </el-form-item>
+                <el-form-item label="上下文路径" prop="systemServerContextPath">
+                  <el-input
+                    v-model="formData.systemServerContextPath"
+                    placeholder="如: /api"
+                    style="width: 100%"
+                  >
+                    <template #prefix>
+                      <IconifyIconOnline icon="ri:link" />
+                    </template>
+                  </el-input>
+                </el-form-item>
+              </div>
+            </div>
+          </el-col>
 
-      <el-form-item label="超时时间(秒)" prop="systemServerTimeout">
-        <el-input-number
-          v-model="formData.systemServerTimeout"
-          :min="1"
-          :max="3600"
-          placeholder="不填则使用默认值"
-          style="width: 100%"
-        />
-      </el-form-item>
+          <!-- 右列：高级配置 -->
+          <el-col :span="12">
+            <div class="form-section">
+              <div class="section-header">
+                <IconifyIconOnline
+                  icon="ri:settings-3-line"
+                  class="section-icon advanced"
+                />
+                <span class="section-title">高级配置</span>
+              </div>
+              <div class="section-content">
+                <el-form-item
+                  label="最大连接数"
+                  prop="systemServerMaxConnections"
+                >
+                  <el-input-number
+                    v-model="formData.systemServerMaxConnections"
+                    :min="1"
+                    :max="10000"
+                    placeholder="不填则无限制"
+                    style="width: 100%"
+                  />
+                  <div class="form-tip">最大并发连接数限制</div>
+                </el-form-item>
 
-      <el-form-item label="上下文" prop="systemServerContextPath">
-        <el-input
-          v-model="formData.systemServerContextPath"
-          placeholder="不填则使用默认值"
-          style="width: 100%"
-        />
-      </el-form-item>
+                <el-form-item label="超时时间" prop="systemServerTimeout">
+                  <el-input-number
+                    v-model="formData.systemServerTimeout"
+                    :min="1"
+                    :max="3600"
+                    placeholder="秒"
+                    style="width: 100%"
+                  />
+                  <div class="form-tip">连接超时时间（秒）</div>
+                </el-form-item>
 
-      <el-form-item label="自动启动">
-        <el-switch
-          v-model="formData.systemServerAutoStart"
-          active-text="是"
-          inactive-text="否"
-        />
-      </el-form-item>
+                <el-form-item label="自动启动">
+                  <div class="switch-wrapper">
+                    <el-switch
+                      v-model="formData.systemServerAutoStart"
+                      inline-prompt
+                      active-text="开"
+                      inactive-text="关"
+                    />
+                    <span class="switch-label">系统启动时自动启动服务</span>
+                  </div>
+                </el-form-item>
 
-      <el-form-item label="服务器描述" prop="systemServerDescription">
-        <el-input
-          v-model="formData.systemServerDescription"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入服务器描述"
-        />
-      </el-form-item>
-    </el-form>
+                <el-form-item label="服务描述" prop="systemServerDescription">
+                  <el-input
+                    v-model="formData.systemServerDescription"
+                    type="textarea"
+                    :rows="4"
+                    placeholder="请输入服务描述信息"
+                  />
+                </el-form-item>
+              </div>
+            </div>
+          </el-col>
+        </el-row>
+      </el-form>
+    </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" @click="handleSubmit" :loading="loading">
-          {{ isEdit ? "更新" : "创建" }}
+        <el-button @click="handleClose" class="cancel-btn">
+          <IconifyIconOnline icon="ri:close-line" class="mr-1" />
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          @click="handleSubmit"
+          :loading="loading"
+          class="submit-btn"
+        >
+          <IconifyIconOnline
+            :icon="isEdit ? 'ri:save-line' : 'ri:add-line'"
+            class="mr-1"
+          />
+          {{ isEdit ? "保存" : "创建" }}
         </el-button>
       </div>
     </template>
@@ -308,26 +374,174 @@ const handleSubmit = async () => {
 </script>
 
 <style lang="scss" scoped>
+/* 表单容器 */
+.form-container {
+  .server-form {
+    :deep(.el-form-item) {
+      margin-bottom: 16px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    :deep(.el-form-item__label) {
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+    }
+
+    :deep(.el-input__wrapper),
+    :deep(.el-select .el-input__wrapper) {
+      border-radius: 8px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        box-shadow: 0 0 0 1px var(--el-color-primary-light-5) inset;
+      }
+    }
+
+    :deep(.el-input-number) {
+      width: 100%;
+    }
+
+    :deep(.el-switch) {
+      --el-switch-on-color: var(--el-color-primary);
+    }
+
+    :deep(.el-textarea__inner) {
+      border-radius: 8px;
+    }
+  }
+}
+
+/* 表单分区 */
+.form-section {
+  background: linear-gradient(
+    135deg,
+    var(--el-fill-color-lighter) 0%,
+    var(--el-bg-color) 100%
+  );
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  padding: 16px;
+  height: 100%;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: var(--el-color-primary-light-7);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+
+    .section-icon {
+      font-size: 18px;
+      color: var(--el-color-primary);
+      padding: 8px;
+      background: var(--el-color-primary-light-9);
+      border-radius: 8px;
+
+      &.advanced {
+        color: var(--el-color-success);
+        background: var(--el-color-success-light-9);
+      }
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .section-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+/* 表单提示 */
+.form-tip {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
+}
+
+/* 开关包装 */
+.switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .switch-label {
+    font-size: 13px;
+    color: var(--el-text-color-regular);
+  }
+}
+
+/* 底部按钮 */
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+
+  .cancel-btn {
+    border-radius: 8px;
+    min-width: 88px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: var(--el-fill-color);
+      transform: translateY(-1px);
+    }
+  }
+
+  .submit-btn {
+    border-radius: 8px;
+    min-width: 100px;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 100%
+    );
+    border: none;
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.35);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.45);
+    }
+  }
 }
 
+/* 端口检查消息 */
 .port-check-message {
   font-size: 12px;
   margin-top: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
 
   &.port-available {
     color: #67c23a;
+    background: rgba(103, 194, 58, 0.1);
   }
 
   &.port-unavailable {
     color: #f56c6c;
+    background: rgba(245, 108, 108, 0.1);
   }
 
   &.port-error {
     color: #e6a23c;
+    background: rgba(230, 162, 60, 0.1);
   }
 }
 </style>

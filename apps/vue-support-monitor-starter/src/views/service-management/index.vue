@@ -27,8 +27,18 @@
         label="已停止"
         :value="statistics.stopped || 0"
         icon="ri:stop-circle-line"
+        theme="warning"
+        :trendText="statistics.stopped > 0 ? '待启动' : '正常'"
+        hoverable
+        class="stat-card-item"
+      />
+      <ScCard
+        layout="stats"
+        label="异常"
+        :value="statistics.error || 0"
+        icon="ri:error-warning-line"
         theme="danger"
-        :trendText="statistics.stopped > 0 ? '需要关注' : '正常'"
+        :trendText="statistics.error > 0 ? '需要处理' : '无异常'"
         hoverable
         class="stat-card-item"
       />
