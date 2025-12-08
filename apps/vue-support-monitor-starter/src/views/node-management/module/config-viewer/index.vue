@@ -287,7 +287,6 @@ import {
   getEnvironmentForNodeControl,
   getConfigPropsForNodeControl,
   getSystemInfoForNodeControl,
-  getHealthForNodeControl,
 } from "@/api/server/node-control";
 
 interface Props {
@@ -631,28 +630,14 @@ const loadSystemInfo = async () => {
 
   loading.system = true;
   try {
-    // 并行请求健康状态和系统信息
-    const [healthResponse, systemResponse] = await Promise.all([
-      getHealthForNodeControl(props.nodeInfo.ipAddress, props.nodeInfo.port),
-      getSystemInfoForNodeControl(props.nodeInfo.ipAddress, props.nodeInfo.port),
-    ]);
-
-    const result: Record<string, any> = {};
-
-    // 处理健康状态
-    if (healthResponse.success && healthResponse.data) {
-      result.health = healthResponse.data;
-    }
-
-    // 处理系统信息
-    if (systemResponse.success && systemResponse.data) {
-      Object.assign(result, systemResponse.data);
-    }
-
-    systemInfo.value = result;
-
-    if (!healthResponse.success && !systemResponse.success) {
-      message.error("获取系统信息失败");
+    const response = await getSystemInfoForNodeControl(
+      props.nodeInfo.ipAddress,
+      props.nodeInfo.port
+    );
+    if (response.success && response.data) {
+      systemInfo.value = response.data;
+    } else {
+      message.error(response.msg || "获取系统信息失败");
     }
   } catch (error) {
     console.error("加载系统信息失败:", error);
@@ -714,57 +699,82 @@ watch(activeTab, () => {
 </script>
 
 <style lang="scss" scoped>
+// 对话框样式
+:deep(.config-viewer-dialog) {
+  .el-dialog__header {
+    padding: 0;
+    margin: 0;
+  }
+
+  .el-dialog__body {
+    padding: 0;
+  }
+
+  .el-dialog__footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+}
+
 .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 
   .header-info {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
 
     .header-icon-wrapper {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
-      background: var(--el-color-primary-light-9);
-      border-radius: 10px;
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.25);
 
       .header-icon {
-        font-size: 20px;
-        color: var(--el-color-primary);
+        font-size: 24px;
+        color: #fff;
       }
     }
 
     .header-text {
       h3 {
         margin: 0;
-        font-size: 16px;
+        font-size: 18px;
         font-weight: 600;
         color: var(--el-text-color-primary);
+        letter-spacing: 0.5px;
       }
 
       p {
-        margin: 4px 0 0 0;
+        margin: 6px 0 0 0;
         font-size: 13px;
         color: var(--el-text-color-secondary);
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
 
         .node-name {
-          font-weight: 500;
+          font-weight: 600;
+          color: var(--el-color-primary);
         }
 
         .node-address {
           font-family: "JetBrains Mono", "Consolas", monospace;
           font-size: 12px;
-          padding: 2px 6px;
-          background: var(--el-fill-color-light);
-          border-radius: 4px;
+          padding: 3px 10px;
+          background: var(--el-bg-color);
+          border-radius: 20px;
+          border: 1px solid var(--el-border-color-lighter);
+          color: var(--el-text-color-regular);
         }
       }
     }
@@ -772,82 +782,174 @@ watch(activeTab, () => {
 }
 
 .config-viewer-content {
+  padding: 20px;
+  background: var(--el-fill-color-extra-light);
+  min-height: 500px;
+
   .config-tabs {
+    background: var(--el-bg-color);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+
     :deep(.el-tabs__header) {
       margin-bottom: 0;
-      border-bottom: 1px solid var(--el-border-color-lighter);
+      padding: 0 16px;
+      background: var(--el-fill-color-lighter);
+      border-bottom: none;
     }
 
     :deep(.el-tabs__nav-wrap::after) {
       display: none;
     }
 
+    :deep(.el-tabs__active-bar) {
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    }
+
     :deep(.el-tabs__item) {
-      padding: 0 20px;
-      height: 44px;
+      padding: 0 24px;
+      height: 52px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+
+      &:hover {
+        color: var(--el-color-primary);
+      }
+
+      &.is-active {
+        color: var(--el-color-primary);
+        font-weight: 600;
+      }
     }
 
     .tab-label {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       font-size: 14px;
+
+      .iconify {
+        font-size: 18px;
+      }
     }
   }
 
   .tab-content {
-    padding-top: 16px;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .tab-toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-    padding: 10px 14px;
-    background: var(--el-fill-color-lighter);
-    border-radius: 8px;
+    margin-bottom: 16px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-extra-light) 100%);
+    border-radius: 12px;
+    border: 1px solid var(--el-border-color-extra-light);
 
     .toolbar-left {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 16px;
 
       .search-input {
-        width: 220px;
+        width: 280px;
 
         :deep(.el-input__wrapper) {
-          border-radius: 6px;
+          border-radius: 8px;
           background: var(--el-bg-color);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+          transition: all 0.3s ease;
+
+          &:hover,
+          &:focus-within {
+            box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.12);
+          }
+        }
+
+        :deep(.el-input__prefix) {
+          color: var(--el-text-color-placeholder);
         }
       }
 
       .search-result {
         font-size: 13px;
         color: var(--el-text-color-secondary);
+        padding: 4px 12px;
+        background: var(--el-color-primary-light-9);
+        border-radius: 20px;
 
         strong {
           color: var(--el-color-primary);
+          font-weight: 600;
         }
       }
     }
   }
 
   .config-tree-wrapper {
-    max-height: calc(90vh - 280px);
+    max-height: calc(90vh - 320px);
     overflow: auto;
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 8px;
-    padding: 8px;
+    border: 1px solid var(--el-border-color-extra-light);
+    border-radius: 12px;
+    padding: 12px;
     background: var(--el-bg-color);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.02);
+
+    // 自定义滚动条
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--el-border-color-light);
+      border-radius: 3px;
+
+      &:hover {
+        background: var(--el-border-color);
+      }
+    }
 
     .config-tree {
       :deep(.el-tree-node__content) {
-        height: 32px;
-        border-radius: 4px;
+        height: 36px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        margin-bottom: 2px;
 
         &:hover {
-          background: var(--el-fill-color-light);
+          background: var(--el-color-primary-light-9);
+        }
+      }
+
+      :deep(.el-tree-node__expand-icon) {
+        font-size: 14px;
+        color: var(--el-text-color-placeholder);
+        transition: transform 0.2s ease;
+
+        &.expanded {
+          color: var(--el-color-primary);
         }
       }
     }
@@ -858,23 +960,26 @@ watch(activeTab, () => {
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding-right: 12px;
+    padding-right: 16px;
 
     .node-key-wrapper {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
 
       .node-icon {
-        font-size: 14px;
+        font-size: 16px;
         color: var(--el-text-color-placeholder);
+        transition: all 0.2s ease;
 
         &.is-folder {
           color: var(--el-color-warning);
+          filter: drop-shadow(0 2px 4px rgba(var(--el-color-warning-rgb), 0.3));
         }
 
         &.is-profile {
           color: var(--el-color-success);
+          filter: drop-shadow(0 2px 4px rgba(var(--el-color-success-rgb), 0.3));
         }
       }
 
@@ -882,16 +987,22 @@ watch(activeTab, () => {
         font-weight: 500;
         font-size: 13px;
         color: var(--el-text-color-primary);
+        transition: color 0.2s ease;
       }
 
       .property-count {
         font-size: 11px;
-        color: var(--el-text-color-secondary);
-        background: var(--el-fill-color-light);
-        padding: 1px 6px;
-        border-radius: 8px;
-        margin-left: 6px;
+        color: var(--el-color-primary);
+        background: var(--el-color-primary-light-9);
+        padding: 2px 10px;
+        border-radius: 12px;
+        margin-left: 8px;
+        font-weight: 500;
       }
+    }
+
+    &:hover .node-key {
+      color: var(--el-color-primary);
     }
 
     .node-value {
@@ -902,22 +1013,31 @@ watch(activeTab, () => {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      padding: 2px 8px;
-      background: var(--el-color-primary-light-9);
-      border-radius: 4px;
+      padding: 4px 12px;
+      background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+      border-radius: 6px;
+      border: 1px solid var(--el-color-primary-light-7);
+      font-weight: 500;
     }
   }
 
   .system-info-wrapper {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 16px;
 
     .info-card {
       background: var(--el-bg-color);
-      border: 1px solid var(--el-border-color-lighter);
-      border-radius: 10px;
+      border: 1px solid var(--el-border-color-extra-light);
+      border-radius: 14px;
       overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+
+      &:hover {
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+        transform: translateY(-2px);
+      }
 
       &.metrics-card {
         grid-column: span 2;
@@ -927,88 +1047,126 @@ watch(activeTab, () => {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 12px 16px;
-        background: var(--el-fill-color-lighter);
+        padding: 16px 20px;
+        background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-extra-light) 100%);
         border-bottom: 1px solid var(--el-border-color-extra-light);
 
         .header-left {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
 
           .card-icon {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            font-size: 14px;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            font-size: 18px;
 
             &.health {
-              background: var(--el-color-success-light-9);
+              background: linear-gradient(135deg, var(--el-color-success-light-8) 0%, var(--el-color-success-light-9) 100%);
               color: var(--el-color-success);
+              box-shadow: 0 4px 10px rgba(var(--el-color-success-rgb), 0.2);
             }
 
             &.info {
-              background: var(--el-color-primary-light-9);
+              background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-9) 100%);
               color: var(--el-color-primary);
+              box-shadow: 0 4px 10px rgba(var(--el-color-primary-rgb), 0.2);
             }
 
             &.metrics {
-              background: var(--el-color-warning-light-9);
+              background: linear-gradient(135deg, var(--el-color-warning-light-8) 0%, var(--el-color-warning-light-9) 100%);
               color: var(--el-color-warning);
+              box-shadow: 0 4px 10px rgba(var(--el-color-warning-rgb), 0.2);
             }
           }
 
           .card-title {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             color: var(--el-text-color-primary);
+            letter-spacing: 0.3px;
           }
         }
 
         .metrics-count {
           font-size: 12px;
-          color: var(--el-text-color-secondary);
-          padding: 2px 8px;
-          background: var(--el-fill-color);
-          border-radius: 10px;
+          color: var(--el-color-warning);
+          padding: 4px 12px;
+          background: var(--el-color-warning-light-9);
+          border-radius: 20px;
+          font-weight: 500;
         }
       }
 
       .card-body {
-        padding: 12px 16px;
-        max-height: 200px;
+        padding: 16px 20px;
+        max-height: 220px;
         overflow: auto;
+
+        // 自定义滚动条
+        &::-webkit-scrollbar {
+          width: 5px;
+          height: 5px;
+        }
+
+        &::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        &::-webkit-scrollbar-thumb {
+          background: var(--el-border-color-light);
+          border-radius: 3px;
+        }
 
         .component-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-          gap: 8px;
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          gap: 10px;
 
           .component-item {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 10px;
-            border-radius: 6px;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
             font-size: 13px;
+            transition: all 0.2s ease;
+            cursor: default;
 
             &.is-up {
-              background: var(--el-color-success-light-9);
+              background: linear-gradient(135deg, var(--el-color-success-light-9) 0%, var(--el-color-success-light-8) 100%);
+              border: 1px solid var(--el-color-success-light-7);
 
               .component-icon {
                 color: var(--el-color-success);
+                filter: drop-shadow(0 2px 4px rgba(var(--el-color-success-rgb), 0.3));
+              }
+
+              &:hover {
+                background: var(--el-color-success-light-8);
               }
             }
 
             &.is-down {
-              background: var(--el-color-danger-light-9);
+              background: linear-gradient(135deg, var(--el-color-danger-light-9) 0%, var(--el-color-danger-light-8) 100%);
+              border: 1px solid var(--el-color-danger-light-7);
 
               .component-icon {
                 color: var(--el-color-danger);
+                filter: drop-shadow(0 2px 4px rgba(var(--el-color-danger-rgb), 0.3));
               }
+
+              &:hover {
+                background: var(--el-color-danger-light-8);
+              }
+            }
+
+            .component-icon {
+              font-size: 16px;
             }
 
             .component-name {
@@ -1021,26 +1179,37 @@ watch(activeTab, () => {
         .info-list {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 10px;
 
           .info-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 10px;
-            background: var(--el-fill-color-lighter);
-            border-radius: 6px;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-extra-light) 100%);
+            border-radius: 10px;
+            border: 1px solid var(--el-border-color-extra-light);
+            transition: all 0.2s ease;
+
+            &:hover {
+              background: var(--el-fill-color-light);
+              border-color: var(--el-color-primary-light-7);
+            }
 
             .info-label {
               font-size: 12px;
               color: var(--el-text-color-secondary);
+              font-weight: 500;
             }
 
             .info-value {
               font-size: 13px;
-              font-weight: 500;
+              font-weight: 600;
               color: var(--el-text-color-primary);
               font-family: "JetBrains Mono", "Consolas", monospace;
+              padding: 2px 8px;
+              background: var(--el-bg-color);
+              border-radius: 4px;
             }
           }
         }
@@ -1048,20 +1217,33 @@ watch(activeTab, () => {
         .metrics-list {
           display: flex;
           flex-wrap: wrap;
-          gap: 6px;
+          gap: 8px;
 
           .metric-tag {
             margin: 0;
             font-family: "JetBrains Mono", "Consolas", monospace;
             font-size: 11px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            cursor: default;
+
+            &:hover {
+              background: var(--el-color-primary-light-9);
+              border-color: var(--el-color-primary-light-5);
+              color: var(--el-color-primary);
+              transform: scale(1.02);
+            }
           }
 
           .more-hint {
             display: flex;
             align-items: center;
-            color: var(--el-text-color-secondary);
+            color: var(--el-color-primary);
             font-size: 12px;
-            padding: 0 8px;
+            padding: 4px 12px;
+            background: var(--el-color-primary-light-9);
+            border-radius: 20px;
+            font-weight: 500;
           }
         }
       }
@@ -1072,6 +1254,27 @@ watch(activeTab, () => {
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
+
+  .el-button {
+    min-width: 80px;
+    border-radius: 8px;
+    font-weight: 500;
+  }
+}
+
+// 响应式适配
+@media (max-width: 768px) {
+  .config-viewer-content {
+    padding: 12px;
+
+    .system-info-wrapper {
+      grid-template-columns: 1fr;
+
+      .info-card.metrics-card {
+        grid-column: span 1;
+      }
+    }
+  }
 }
 </style>
