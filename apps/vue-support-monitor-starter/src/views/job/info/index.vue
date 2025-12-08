@@ -67,161 +67,186 @@
       >
         <template #default="{ row }">
           <div class="job-card" :class="[getJobCardClass(row)]">
+            <!-- 状态指示条 -->
+            <div
+              class="status-bar"
+              :class="row.jobTriggerStatus === 1 ? 'running' : 'stopped'"
+            ></div>
+
+            <!-- 卡片头部 -->
             <div class="card-header">
-              <div class="job-info">
-                <div class="job-name">
-                  <IconifyIconOnline icon="ri:timer-line" class="job-icon" />
-                  <span class="name-text">{{ row.jobName }}</span>
-                </div>
-                <div class="job-cron">
-                  <IconifyIconOnline icon="ri:time-line" class="cron-icon" />
-                  <span
-                    >{{ row.jobScheduleType }} {{ row.jobScheduleTime }}</span
-                  >
-                </div>
-              </div>
-              <div class="job-status">
-                <el-tag
-                  :type="getStatusType(row.jobTriggerStatus)"
-                  :effect="row.jobTriggerStatus === 1 ? 'dark' : 'plain'"
-                  class="status-tag"
+              <div class="header-left">
+                <div
+                  class="job-icon-wrapper"
+                  :class="row.jobTriggerStatus === 1 ? 'active' : ''"
                 >
                   <IconifyIconOnline
-                    :icon="getStatusIcon(row.jobTriggerStatus)"
+                    icon="ri:timer-flash-line"
+                    class="job-icon"
                   />
-                  {{ getStatusText(row.jobTriggerStatus) }}
-                </el-tag>
+                  <span
+                    class="status-dot"
+                    :class="row.jobTriggerStatus === 1 ? 'online' : 'offline'"
+                  ></span>
+                </div>
+                <div class="job-title-info">
+                  <h3 class="job-name">{{ row.jobName }}</h3>
+                  <div class="job-meta">
+                    <span class="meta-item">
+                      <IconifyIconOnline icon="ri:user-3-line" />
+                      {{ row.jobAuthor || "-" }}
+                    </span>
+                    <span class="meta-divider">|</span>
+                    <span
+                      class="meta-item"
+                      :class="getEnvironmentClass(row.jobApplicationActive)"
+                    >
+                      {{ row.jobApplicationActive || "-" }}
+                    </span>
+                  </div>
+                </div>
               </div>
+              <el-dropdown
+                trigger="click"
+                @command="(cmd) => handleCommand(cmd, row)"
+                class="more-dropdown"
+              >
+                <el-button class="more-btn" @click.stop>
+                  <IconifyIconOnline icon="ri:more-2-fill" />
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu class="job-dropdown-menu">
+                    <div class="dropdown-header">
+                      <IconifyIconOnline icon="ri:settings-3-line" />
+                      <span>操作菜单</span>
+                    </div>
+                    <el-dropdown-item command="edit">
+                      <div class="dropdown-item-content">
+                        <div class="dropdown-item-icon edit">
+                          <IconifyIconOnline icon="ri:edit-line" />
+                        </div>
+                        <div class="dropdown-item-text">
+                          <span class="item-title">编辑任务</span>
+                          <span class="item-desc">修改任务配置信息</span>
+                        </div>
+                      </div>
+                    </el-dropdown-item>
+                    <el-dropdown-item command="copy">
+                      <div class="dropdown-item-content">
+                        <div class="dropdown-item-icon copy">
+                          <IconifyIconOnline icon="ri:file-copy-line" />
+                        </div>
+                        <div class="dropdown-item-text">
+                          <span class="item-title">复制任务</span>
+                          <span class="item-desc">创建任务副本</span>
+                        </div>
+                      </div>
+                    </el-dropdown-item>
+                    <el-dropdown-item command="nextTriggerTime">
+                      <div class="dropdown-item-content">
+                        <div class="dropdown-item-icon schedule">
+                          <IconifyIconOnline icon="ri:calendar-schedule-line" />
+                        </div>
+                        <div class="dropdown-item-text">
+                          <span class="item-title">执行计划</span>
+                          <span class="item-desc">查看下次执行时间</span>
+                        </div>
+                      </div>
+                    </el-dropdown-item>
+                    <el-dropdown-item command="log">
+                      <div class="dropdown-item-content">
+                        <div class="dropdown-item-icon log">
+                          <IconifyIconOnline icon="ri:file-list-3-line" />
+                        </div>
+                        <div class="dropdown-item-text">
+                          <span class="item-title">执行日志</span>
+                          <span class="item-desc">查看历史执行记录</span>
+                        </div>
+                      </div>
+                    </el-dropdown-item>
+                    <div class="dropdown-divider"></div>
+                    <el-dropdown-item command="delete">
+                      <div class="dropdown-item-content danger">
+                        <div class="dropdown-item-icon delete">
+                          <IconifyIconOnline icon="ri:delete-bin-line" />
+                        </div>
+                        <div class="dropdown-item-text">
+                          <span class="item-title">删除任务</span>
+                          <span class="item-desc">此操作不可恢复</span>
+                        </div>
+                      </div>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
             </div>
 
+            <!-- 卡片内容 -->
             <div class="card-body">
-              <div class="job-details">
-                <div class="detail-row">
-                  <div class="detail-item">
-                    <IconifyIconOnline
-                      icon="ri:code-box-line"
-                      class="detail-icon"
-                    />
-                    <div class="detail-info">
-                      <span class="detail-label">任务类型</span>
-                      <span class="detail-value">{{
-                        row.jobGlueType || "-"
-                      }}</span>
-                    </div>
-                  </div>
-                  <div class="detail-item">
-                    <IconifyIconOnline
-                      icon="ri:user-line"
-                      class="detail-icon"
-                    />
-                    <div class="detail-info">
-                      <span class="detail-label">负责人</span>
-                      <span class="detail-value">{{
-                        row.jobAuthor || "-"
-                      }}</span>
-                    </div>
-                  </div>
+              <!-- 调度信息 -->
+              <div class="schedule-info">
+                <div class="schedule-badge">
+                  <IconifyIconOnline icon="ri:time-line" />
+                  <span>{{ row.jobScheduleType }}</span>
                 </div>
-                <div class="detail-row">
-                  <div class="detail-item">
-                    <IconifyIconOnline
-                      icon="ri:apps-line"
-                      class="detail-icon"
-                    />
-                    <div class="detail-info">
-                      <span class="detail-label">应用环境</span>
-                      <span
-                        class="detail-value"
-                        :class="getEnvironmentClass(row.jobApplicationActive)"
-                      >
-                        {{ row.jobApplicationActive || "-" }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="detail-item">
-                    <IconifyIconOnline
-                      icon="ri:file-text-line"
-                      class="detail-icon"
-                    />
-                    <div class="detail-info">
-                      <span class="detail-label">描述</span>
-                      <span class="detail-value">{{ row.jobDesc || "-" }}</span>
-                    </div>
-                  </div>
+                <code class="cron-expression">{{
+                  row.jobScheduleTime || "-"
+                }}</code>
+              </div>
+
+              <!-- 任务详情 -->
+              <div class="job-details">
+                <div class="detail-item">
+                  <span class="detail-label">任务类型</span>
+                  <span class="detail-value">
+                    <el-tag size="small" effect="plain">{{
+                      row.jobGlueType || "BEAN"
+                    }}</el-tag>
+                  </span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">执行器</span>
+                  <span class="detail-value">{{
+                    getExecutorName(row.jobGroup)
+                  }}</span>
                 </div>
               </div>
             </div>
 
+            <!-- 卡片底部操作 -->
             <div class="card-footer">
-              <div class="footer-info">
-                <div class="job-group-info">
-                  <IconifyIconOnline icon="ri:folder-line" />
-                  <span>{{ getExecutorName(row.jobGroup) }}</span>
-                </div>
-              </div>
-              <div class="card-actions">
-                <el-button-group size="small">
-                  <el-button @click.stop="edit(row)" title="编辑">
-                    <IconifyIconOnline icon="ri:edit-line" />
-                  </el-button>
-                  <el-button @click.stop="trigger(row)" title="执行一次">
-                    <IconifyIconOnline icon="ri:play-line" />
-                  </el-button>
-                  <el-button @click.stop="logger(row)" title="查看日志">
-                    <IconifyIconOnline icon="ri:file-list-line" />
-                  </el-button>
-                  <el-button
-                    @click.stop="
-                      row.jobTriggerStatus === 1 ? stop(row) : start(row)
+              <el-tooltip content="执行一次" placement="top">
+                <el-button
+                  class="action-btn trigger"
+                  @click.stop="trigger(row)"
+                >
+                  <IconifyIconOnline icon="ri:flashlight-line" />
+                  <span>执行</span>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip
+                :content="row.jobTriggerStatus === 1 ? '停止任务' : '启动任务'"
+                placement="top"
+              >
+                <el-button
+                  class="action-btn power"
+                  :class="row.jobTriggerStatus === 1 ? 'stop' : 'start'"
+                  @click.stop="
+                    row.jobTriggerStatus === 1 ? stop(row) : start(row)
+                  "
+                >
+                  <IconifyIconOnline
+                    :icon="
+                      row.jobTriggerStatus === 1
+                        ? 'ri:stop-circle-line'
+                        : 'ri:play-circle-line'
                     "
-                    :title="row.jobTriggerStatus === 1 ? '停止' : '启动'"
-                  >
-                    <IconifyIconOnline
-                      :icon="
-                        row.jobTriggerStatus === 1
-                          ? 'ri:pause-line'
-                          : 'ri:play-fill'
-                      "
-                    />
-                  </el-button>
-                  <el-dropdown
-                    trigger="click"
-                    @command="(cmd) => handleCommand(cmd, row)"
-                  >
-                    <el-button @click.stop title="更多操作">
-                      <IconifyIconOnline icon="ri:more-line" />
-                    </el-button>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item command="nextTriggerTime">
-                          <IconifyIconOnline
-                            icon="ri:calendar-line"
-                            class="dropdown-icon"
-                          />
-                          下次执行时间
-                        </el-dropdown-item>
-                        <el-dropdown-item command="copy">
-                          <IconifyIconOnline
-                            icon="ri:file-copy-line"
-                            class="dropdown-icon"
-                          />
-                          复制任务
-                        </el-dropdown-item>
-                        <el-dropdown-item command="delete" divided>
-                          <IconifyIconOnline
-                            icon="ri:delete-bin-line"
-                            class="dropdown-icon"
-                            style="color: var(--el-color-danger)"
-                          />
-                          <span style="color: var(--el-color-danger)"
-                            >删除任务</span
-                          >
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
-                </el-button-group>
-              </div>
+                  />
+                  <span>{{
+                    row.jobTriggerStatus === 1 ? "停止" : "启动"
+                  }}</span>
+                </el-button>
+              </el-tooltip>
             </div>
           </div>
         </template>
@@ -636,6 +661,12 @@ const handleCommand = (command, row) => {
     case "delete":
       del(row);
       break;
+    case "edit":
+      edit(row);
+      break;
+    case "log":
+      logger(row);
+      break;
   }
 };
 
@@ -742,276 +773,279 @@ onMounted(() => {
 .jobs-section {
   flex: 1;
 
-  // 任务卡片样式
   .job-card {
     background: var(--el-bg-color);
-    border-radius: 12px;
-    padding: 0;
-    cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 16px;
     overflow: hidden;
     position: relative;
     display: flex;
     flex-direction: column;
     height: 100%;
+    border: 1px solid var(--el-border-color-lighter);
+    transition: all 0.3s ease;
 
     &:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
-      border-color: var(--el-color-primary-light-5);
-
-      .card-footer .card-actions {
-        opacity: 1;
-      }
+      transform: translateY(-6px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      border-color: var(--el-color-primary-light-3);
     }
 
     // 状态指示条
-    &::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      z-index: 1;
-    }
+    .status-bar {
+      height: 4px;
+      width: 100%;
 
-    &.job-running {
-      &::before {
-        background: var(--el-color-success);
+      &.running {
+        background: linear-gradient(90deg, #10b981, #34d399);
       }
 
-      .status-tag {
-        background: var(--el-color-success-light-9) !important;
-        color: var(--el-color-success) !important;
-        border-color: var(--el-color-success-light-5) !important;
+      &.stopped {
+        background: linear-gradient(90deg, #ef4444, #f87171);
       }
     }
 
-    &.job-stopped {
-      &::before {
-        background: var(--el-color-danger);
-      }
-
-      .status-tag {
-        background: var(--el-color-danger-light-9) !important;
-        color: var(--el-color-danger) !important;
-        border-color: var(--el-color-danger-light-5) !important;
-      }
-    }
-
+    // 卡片头部
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      padding: 16px 16px 12px;
-      border-bottom: 1px solid var(--el-border-color-extra-light);
+      padding: 16px;
 
-      .job-info {
+      .header-left {
+        display: flex;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .job-icon-wrapper {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+
+        &.active {
+          background: linear-gradient(135deg, #10b981, #059669);
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+        }
+
+        .job-icon {
+          font-size: 22px;
+          color: #fff;
+        }
+
+        .status-dot {
+          position: absolute;
+          bottom: -2px;
+          right: -2px;
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          border: 2px solid var(--el-bg-color);
+
+          &.online {
+            background: #10b981;
+          }
+
+          &.offline {
+            background: #ef4444;
+          }
+        }
+      }
+
+      .job-title-info {
         flex: 1;
         min-width: 0;
 
         .job-name {
-          display: flex;
-          align-items: center;
           font-size: 15px;
           font-weight: 600;
           color: var(--el-text-color-primary);
-          margin-bottom: 8px;
-
-          .job-icon {
-            width: 32px;
-            height: 32px;
-            margin-right: 10px;
-            background: var(--el-color-primary);
-            color: #fff;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            flex-shrink: 0;
-          }
-
-          .name-text {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
+          margin: 0 0 6px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
-        .job-cron {
-          display: inline-flex;
-          align-items: center;
-          font-size: 12px;
-          color: var(--el-text-color-secondary);
-          font-family: "SF Mono", "Monaco", "Consolas", monospace;
-          background: var(--el-fill-color-light);
-          padding: 4px 8px;
-          border-radius: 6px;
-          font-weight: 500;
-
-          .cron-icon {
-            margin-right: 4px;
-            font-size: 12px;
-            color: var(--el-text-color-placeholder);
-          }
-        }
-      }
-
-      .job-status {
-        flex-shrink: 0;
-        margin-left: 8px;
-
-        .status-tag {
-          font-weight: 500;
-          border-radius: 6px;
-          padding: 4px 10px;
-          font-size: 12px;
-          border: 1px solid;
-
-          i {
-            margin-right: 4px;
-            font-size: 12px;
-          }
-        }
-      }
-    }
-
-    .card-body {
-      padding: 12px 16px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-
-      .job-details {
-        .detail-row {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 8px;
-          margin-bottom: 8px;
-
-          &:last-child {
-            margin-bottom: 0;
-          }
-
-          .detail-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 10px;
-            background: var(--el-fill-color-lighter);
-            border-radius: 8px;
-            transition: background 0.2s ease;
-
-            &:hover {
-              background: var(--el-fill-color-light);
-            }
-
-            .detail-icon {
-              width: 24px;
-              height: 24px;
-              background: var(--el-color-primary-light-8);
-              color: var(--el-color-primary);
-              border-radius: 6px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 13px;
-              margin-right: 8px;
-              flex-shrink: 0;
-            }
-
-            .detail-info {
-              flex: 1;
-              min-width: 0;
-
-              .detail-label {
-                display: block;
-                font-size: 11px;
-                color: var(--el-text-color-placeholder);
-                line-height: 1.2;
-                font-weight: 500;
-              }
-
-              .detail-value {
-                display: block;
-                font-size: 12px;
-                font-weight: 600;
-                color: var(--el-text-color-primary);
-                line-height: 1.4;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-
-                &.env-prod {
-                  color: var(--el-color-danger);
-                }
-
-                &.env-dev {
-                  color: var(--el-color-primary);
-                }
-
-                &.env-test {
-                  color: var(--el-color-warning);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    .card-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 16px 12px;
-      background: var(--el-fill-color-lighter);
-      border-top: 1px solid var(--el-border-color-extra-light);
-      margin-top: auto;
-
-      .footer-info {
-        display: flex;
-        gap: 12px;
-        flex: 1;
-
-        .job-group-info {
+        .job-meta {
           display: flex;
           align-items: center;
+          gap: 6px;
           font-size: 12px;
           color: var(--el-text-color-secondary);
-          font-weight: 500;
 
-          i {
-            margin-right: 4px;
-            font-size: 13px;
-            color: var(--el-text-color-placeholder);
+          .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          }
+
+          .meta-divider {
+            color: var(--el-border-color);
+          }
+
+          .env-prod {
+            color: var(--el-color-danger);
+            font-weight: 600;
+          }
+          .env-dev {
+            color: var(--el-color-primary);
+            font-weight: 600;
+          }
+          .env-test {
+            color: var(--el-color-warning);
+            font-weight: 600;
           }
         }
       }
 
-      .card-actions {
-        flex-shrink: 0;
-        opacity: 0.7;
-        transition: opacity 0.2s ease;
+      .more-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: none;
+        background: var(--el-fill-color-light);
+        color: var(--el-text-color-secondary);
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        transition: all 0.2s ease;
 
-        :deep(.el-button-group) {
-          .el-button {
-            padding: 5px 8px;
-            font-size: 12px;
-            height: 28px;
-            border-color: var(--el-border-color);
-            background: var(--el-bg-color);
+        &:hover {
+          background: var(--el-color-primary-light-9);
+          color: var(--el-color-primary);
+        }
+      }
+    }
+
+    // 卡片内容
+    .card-body {
+      padding: 0 16px 16px;
+      flex: 1;
+
+      .schedule-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+
+        .schedule-badge {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 10px;
+          background: var(--el-color-primary-light-9);
+          color: var(--el-color-primary);
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 600;
+        }
+
+        .cron-expression {
+          font-family: "SF Mono", "Monaco", "Consolas", monospace;
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+          background: var(--el-fill-color-light);
+          padding: 4px 10px;
+          border-radius: 6px;
+          flex: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+
+      .job-details {
+        display: flex;
+        gap: 12px;
+
+        .detail-item {
+          flex: 1;
+          padding: 10px 12px;
+          background: var(--el-fill-color-lighter);
+          border-radius: 10px;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: var(--el-fill-color-light);
+            transform: translateX(2px);
+          }
+
+          .detail-label {
+            font-size: 11px;
+            color: var(--el-text-color-placeholder);
+            margin-bottom: 4px;
+            display: block;
+          }
+
+          .detail-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--el-text-color-primary);
+          }
+        }
+      }
+    }
+
+    // 卡片底部
+    .card-footer {
+      display: flex;
+      gap: 10px;
+      padding: 12px 16px 16px;
+
+      .action-btn {
+        flex: 1;
+        height: 38px;
+        border-radius: 10px;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.25s ease;
+
+        &:hover {
+          transform: translateY(-2px);
+        }
+
+        &.trigger {
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+          color: #fff;
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+
+          &:hover {
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+          }
+        }
+
+        &.power {
+          &.start {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 
             &:hover {
-              color: var(--el-color-primary);
-              border-color: var(--el-color-primary-light-5);
-              background: var(--el-color-primary-light-9);
+              box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
             }
+          }
 
-            i {
-              font-size: 13px;
+          &.stop {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+
+            &:hover {
+              box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
             }
           }
         }
@@ -1020,9 +1054,140 @@ onMounted(() => {
   }
 }
 
-.dropdown-icon {
-  margin-right: 6px;
-  font-size: 14px;
+// 下拉菜单样式
+:deep(.job-dropdown-menu) {
+  padding: 8px;
+  min-width: 220px;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+
+  .dropdown-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    margin-bottom: 8px;
+  }
+
+  .dropdown-divider {
+    height: 1px;
+    background: var(--el-border-color-lighter);
+    margin: 8px 0;
+  }
+
+  .el-dropdown-menu__item {
+    padding: 0;
+    border-radius: 8px;
+    margin-bottom: 4px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &:hover {
+      background: var(--el-fill-color-light);
+    }
+  }
+
+  .dropdown-item-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    width: 100%;
+
+    &.danger {
+      .dropdown-item-icon {
+        background: var(--el-color-danger-light-9);
+        color: var(--el-color-danger);
+      }
+
+      .item-title {
+        color: var(--el-color-danger);
+      }
+    }
+
+    .dropdown-item-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+
+      &.edit {
+        background: linear-gradient(
+          135deg,
+          rgba(59, 130, 246, 0.1),
+          rgba(59, 130, 246, 0.05)
+        );
+        color: #3b82f6;
+      }
+
+      &.copy {
+        background: linear-gradient(
+          135deg,
+          rgba(168, 85, 247, 0.1),
+          rgba(168, 85, 247, 0.05)
+        );
+        color: #a855f7;
+      }
+
+      &.schedule {
+        background: linear-gradient(
+          135deg,
+          rgba(34, 197, 94, 0.1),
+          rgba(34, 197, 94, 0.05)
+        );
+        color: #22c55e;
+      }
+
+      &.log {
+        background: linear-gradient(
+          135deg,
+          rgba(14, 165, 233, 0.1),
+          rgba(14, 165, 233, 0.05)
+        );
+        color: #0ea5e9;
+      }
+
+      &.delete {
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.1),
+          rgba(239, 68, 68, 0.05)
+        );
+        color: #ef4444;
+      }
+    }
+
+    .dropdown-item-text {
+      flex: 1;
+      min-width: 0;
+
+      .item-title {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        line-height: 1.3;
+      }
+
+      .item-desc {
+        display: block;
+        font-size: 11px;
+        color: var(--el-text-color-placeholder);
+        line-height: 1.3;
+        margin-top: 2px;
+      }
+    }
+  }
 }
 
 .job-dialog {
