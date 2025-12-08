@@ -154,7 +154,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import {
   getNodeLoggers,
   setLoggerLevel,
@@ -306,14 +306,14 @@ const loadLoggers = async () => {
         updating: false,
       }));
     } else {
-      ElMessage.error(
+      message.error(
         "获取日志配置失败: " + ((response as any).msg || "未知错误")
       );
       loggers.value = [];
     }
   } catch (error) {
     console.error("Load loggers error:", error);
-    ElMessage.error("网络错误，请稍后重试");
+    message.error("网络错误，请稍后重试");
     loggers.value = [];
   } finally {
     loading.value = false;
@@ -334,15 +334,15 @@ const handleRefresh = async () => {
 
     if (response.success) {
       await loadLoggers();
-      ElMessage.success("日志配置刷新成功");
+      message.success("日志配置刷新成功");
     } else {
-      ElMessage.error(
+      message.error(
         "刷新日志配置失败: " + ((response as any).msg || "未知错误")
       );
     }
   } catch (error) {
     console.error("Refresh loggers error:", error);
-    ElMessage.error("网络错误，请稍后重试");
+    message.error("网络错误，请稍后重试");
   } finally {
     loading.value = false;
   }
@@ -365,17 +365,17 @@ const updateLoggerLevel = async (logger: any) => {
 
     if (response.success) {
       logger.configuredLevel = logger.newLevel;
-      ElMessage.success("日志等级设置成功");
+      message.success("日志等级设置成功");
       // 重新加载数据以获取最新状态
       await loadLoggers();
     } else {
-      ElMessage.error(
+      message.error(
         "设置日志等级失败: " + ((response as any).msg || "未知错误")
       );
     }
   } catch (error) {
     console.error("Update logger level error:", error);
-    ElMessage.error("网络错误，请稍后重试");
+    message.error("网络错误，请稍后重试");
   } finally {
     logger.updating = false;
   }

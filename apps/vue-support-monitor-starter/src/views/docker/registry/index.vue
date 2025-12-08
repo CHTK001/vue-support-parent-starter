@@ -147,12 +147,129 @@
       :progress="syncProgressData"
     />
   </div>
+
+  <!-- 仓库列表 - 简洁表格模式 -->
+  <ScTable
+    ref="tableRef"
+    :key="tableKey"
+    :url="registryApi.pageRegistry"
+    :params="searchParams"
+    row-key="systemSoftRegistryId"
+    layout="card"
+    :col-size="4"
+    :row-size="2"
+    :page-size="4"
+    table-name="docker-registry"
+  >
+    <template #default="{ row }">
+      <div class="card-wrapper">
+        <el-card
+          class="registry-card"
+          :class="{ 'is-disabled': row.systemSoftRegistryStatus !== 1 }"
+          shadow="never"
+        >
+          <!-- 状态指示条 -->
+          <div
+            class="status-bar"
+            :class="
+              row.systemSoftRegistryStatus === 1 ? 'active' : 'inactive'
+            "
+          ></div>
+
+          <!-- 卡片头部 -->
+          <div class="card-header">
+            <div
+              class="icon-box"
+              :style="{
+                background: getRegistryGradient(row.systemSoftRegistryType),
+              }"
+            >
+              <IconifyIconOnline
+                :icon="getRegistryIcon(row.systemSoftRegistryType)"
+              />
+            </div>
+            <div class="title-section">
+              <h3 class="name">{{ row.systemSoftRegistryName }}</h3>
+              <el-tag
+                :type="getRegistryTypeTag(row.systemSoftRegistryType)"
+                size="small"
+                effect="light"
+              >
+                {{ getRegistryTypeText(row.systemSoftRegistryType) }}
+              </el-tag>
+            </div>
+            <el-switch
+              :model-value="row.systemSoftRegistryStatus === 1"
+              size="small"
+              @change="(val: boolean) => handleToggleStatus(row, val)"
+            />
+          </div>
+
+          <!-- 仓库信息 -->
+          <div class="card-body">
+            <div class="info-row">
+              <IconifyIconOnline icon="ri:global-line" class="info-icon" />
+              <el-link
+                :href="row.systemSoftRegistryUrl"
+                target="_blank"
+                type="primary"
+                class="url-link"
+                >{{ row.systemSoftRegistryUrl }}</el-link
+              >
+            </div>
+            <div class="info-row">
+              <IconifyIconOnline
+                icon="ri:shield-user-line"
+                class="info-icon"
+              />
+              <span class="info-text">{{
+                row.systemSoftRegistryUsername ? "已配置认证" : "公开访问"
+              }}</span>
+            </div>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="card-actions">
+            <el-tooltip content="编辑" placement="top">
+              <el-button size="small" circle @click="openEditDialog(row)"
+                ><IconifyIconOnline icon="ri:edit-line"
+              /></el-button>
+            </el-tooltip>
+            <el-tooltip content="删除" placement="top">
+              <el-button
+                size="small"
+                circle
+                type="danger"
+                plain
+                @click="handleDelete(row.systemSoftRegistryId)"
+                ><IconifyIconOnline icon="ri:delete-bin-line"
+              /></el-button>
+            </el-tooltip>
+          </div>
+        </el-card>
+      </div>
+    </template>
+  </ScTable>
+
+  <!-- 仓库编辑对话框 -->
+  <RegistryDialog
+    v-model:visible="dialogVisible"
+    :registry-data="currentRegistry"
+    @success="handleDialogSuccess"
+  />
+
+  <!-- 同步进度对话框 -->
+  <SyncProgressDialog
+    v-model:visible="syncProgressVisible"
+    :progress="syncProgressData"
+  />
+</div>
 </template>
 
 <script setup lang="ts">
 import { registryApi, type SystemSoftRegistry } from "@/api/docker";
 import ScTable from "@repo/components/ScTable/index.vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message, messageBox } from "@repo/utils";
 import { onMounted, reactive, ref } from "vue";
 import RegistryDialog from "./components/RegistryDialog.vue";
 import SyncProgressDialog from "./components/SyncProgressDialog.vue";
@@ -264,7 +381,7 @@ const openEditDialog = (registry: SystemSoftRegistry) => {
 // 对话框成功回调
 const handleDialogSuccess = () => {
   loadRegistries();
-  ElMessage.success("操作成功");
+  message.success("操作成功");
 };
 
 // 同步单个仓库
@@ -284,13 +401,13 @@ const handleSync = async (registryId: number) => {
         type: "registry_sync",
       };
       syncProgressVisible.value = true;
-      ElMessage.success("开始同步");
+      message.success("开始同步");
     } else {
-      ElMessage.error(response.msg || "同步失败");
+      message.error(response.msg || "同步失败");
     }
   } catch (error) {
     console.error("同步仓库失败:", error);
-    ElMessage.error("同步失败");
+    message.error("同步失败");
   } finally {
     syncLoadingMap.value[registryId] = false;
   }
@@ -299,7 +416,7 @@ const handleSync = async (registryId: number) => {
 // 同步全部仓库
 const handleSyncSelected = async () => {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning("请选择要同步的仓库");
+    message.warning("请选择要同步的仓库");
     return;
   }
   syncAllLoading.value = true;
@@ -307,9 +424,9 @@ const handleSyncSelected = async () => {
     for (const id of selectedIds.value) {
       await registryApi.syncRegistry(id);
     }
-    ElMessage.success("已提交同步请求");
+    message.success("已提交同步请求");
   } catch (e) {
-    ElMessage.error("批量同步失败");
+    message.error("批量同步失败");
   } finally {
     syncAllLoading.value = false;
   }
@@ -318,7 +435,7 @@ const handleSyncSelected = async () => {
 // 删除仓库
 const handleDelete = async (registryId: number) => {
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       "删除仓库将同时删除相关的软件信息，此操作不可恢复。确认继续？",
       "确认删除",
       {
@@ -331,15 +448,15 @@ const handleDelete = async (registryId: number) => {
     const response = await registryApi.deleteRegistry(registryId);
 
     if (response.code === "00000") {
-      ElMessage.success("删除成功");
+      message.success("删除成功");
       loadRegistries();
     } else {
-      ElMessage.error(response.msg || "删除失败");
+      message.error(response.msg || "删除失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("删除仓库失败:", error);
-      ElMessage.error("删除失败");
+      message.error("删除失败");
     }
   }
 };
@@ -347,30 +464,30 @@ const handleDelete = async (registryId: number) => {
 // 批量同步
 const handleBatchSync = async () => {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning("请选择要同步的仓库");
+    message.warning("请选择要同步的仓库");
     return;
   }
   try {
     for (const id of selectedIds.value) {
       await registryApi.syncRegistry(id);
     }
-    ElMessage.success("批量同步请求已提交");
+    message.success("批量同步请求已提交");
     clearSelection();
   } catch (error) {
     console.error("批量同步失败:", error);
-    ElMessage.error("批量同步失败");
+    message.error("批量同步失败");
   }
 };
 
 // 批量删除
 const handleBatchDelete = async () => {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning("请选择要删除的仓库");
+    message.warning("请选择要删除的仓库");
     return;
   }
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       `确认删除选中的 ${selectedIds.value.length} 个仓库？此操作不可恢复。`,
       "确认批量删除",
       {
@@ -383,16 +500,16 @@ const handleBatchDelete = async () => {
     const response = await registryApi.batchDeleteRegistries(selectedIds.value);
 
     if (response.code === "00000") {
-      ElMessage.success("批量删除成功");
+      message.success("批量删除成功");
       loadRegistries();
       clearSelection();
     } else {
-      ElMessage.error(response.msg || "批量删除失败");
+      message.error(response.msg || "批量删除失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("批量删除失败:", error);
-      ElMessage.error("批量删除失败");
+      message.error("批量删除失败");
     }
   }
 };
@@ -455,13 +572,13 @@ const handleToggleStatus = async (
       payload
     );
     if (res.code === "00000") {
-      ElMessage.success(enabled ? "已启用" : "已禁用");
+      message.success(enabled ? "已启用" : "已禁用");
       loadRegistries();
     } else {
-      ElMessage.error(res.msg || "操作失败");
+      message.error(res.msg || "操作失败");
     }
   } catch (e) {
-    ElMessage.error("操作失败");
+    message.error("操作失败");
   }
 };
 

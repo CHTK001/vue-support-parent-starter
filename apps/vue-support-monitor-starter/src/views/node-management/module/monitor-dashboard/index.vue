@@ -270,7 +270,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import {
   getNodeMetricsForNodeControl,
   type NodeMetricsDTO,
@@ -393,11 +393,11 @@ const refreshData = async () => {
       metrics.value = response.data;
       lastUpdateTime.value = Date.now();
     } else {
-      ElMessage.warning(response.msg || "暂无监控数据");
+      message.warning(response.msg || "暂无监控数据");
     }
   } catch (error) {
     console.error("刷新数据失败:", error);
-    ElMessage.error("刷新数据失败");
+    message.error("刷新数据失败");
   } finally {
     loading.value = false;
   }

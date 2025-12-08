@@ -168,7 +168,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { message, messageBox } from "@repo/utils";
 import ProgressMonitor from '@/components/ProgressMonitor.vue'
 import ServerTerminalDialog from '@/views/server/modules/server-management/components/ServerTerminalDialog.vue'
 import ContainerDetailDialog from './components/ContainerDetailDialog.vue'
@@ -290,10 +290,10 @@ const loadContainers = async () => {
     if (response.code === '00000') {
       containerList.value = response.data.records || []
     } else {
-      ElMessage.error(response.msg || '加载容器列表失败')
+      message.error(response.msg || '加载容器列表失败')
     }
   } catch (error) {
-    ElMessage.error('加载容器列表失败')
+    message.error('加载容器列表失败')
   } finally {
     loading.value = false
   }
@@ -333,12 +333,12 @@ const handleGroupStartAll = async (serverId: number) => {
   )
   
   if (stoppedContainers.length === 0) {
-    ElMessage.warning('没有需要启动的容器')
+    message.warning('没有需要启动的容器')
     return
   }
   
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       `确定要启动服务器 "${group.serverName}" 上的 ${stoppedContainers.length} 个已停止容器吗？`,
       '批量启动确认',
       { type: 'warning' }
@@ -350,14 +350,14 @@ const handleGroupStartAll = async (serverId: number) => {
     })
     
     if (response.code === '00000') {
-      ElMessage.success(`批量启动完成，成功: ${response.data.success}，失败: ${response.data.failed}`)
+      message.success(`批量启动完成，成功: ${response.data.success}，失败: ${response.data.failed}`)
       loadContainers()
     } else {
-      ElMessage.error(response.msg || '批量启动失败')
+      message.error(response.msg || '批量启动失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('批量启动容器失败')
+      message.error('批量启动容器失败')
     }
   }
 }
@@ -369,12 +369,12 @@ const handleGroupStopAll = async (serverId: number) => {
   const runningContainers = group.containers.filter(c => c.systemSoftContainerStatus === 'running')
   
   if (runningContainers.length === 0) {
-    ElMessage.warning('没有需要停止的容器')
+    message.warning('没有需要停止的容器')
     return
   }
   
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       `确定要停止服务器 "${group.serverName}" 上的 ${runningContainers.length} 个运行中容器吗？`,
       '批量停止确认',
       { type: 'warning' }
@@ -386,14 +386,14 @@ const handleGroupStopAll = async (serverId: number) => {
     })
     
     if (response.code === '00000') {
-      ElMessage.success(`批量停止完成，成功: ${response.data.success}，失败: ${response.data.failed}`)
+      message.success(`批量停止完成，成功: ${response.data.success}，失败: ${response.data.failed}`)
       loadContainers()
     } else {
-      ElMessage.error(response.msg || '批量停止失败')
+      message.error(response.msg || '批量停止失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('批量停止容器失败')
+      message.error('批量停止容器失败')
     }
   }
 }
@@ -403,30 +403,30 @@ const handleStart = async (container: SystemSoftContainer) => {
   try {
     const response = await containerApi.startContainer(container.systemSoftContainerId!)
     if (response.code === '00000') {
-      ElMessage.success('容器启动成功')
+      message.success('容器启动成功')
       loadContainers()
     } else {
-      ElMessage.error(response.msg || '容器启动失败')
+      message.error(response.msg || '容器启动失败')
     }
   } catch (error) {
-    ElMessage.error('容器启动失败')
+    message.error('容器启动失败')
   }
 }
 
 const handleStop = async (container: SystemSoftContainer) => {
   try {
-    await ElMessageBox.confirm('确定要停止这个容器吗？', '停止确认', { type: 'warning' })
+    await messageBox.confirm('确定要停止这个容器吗？', '停止确认', { type: 'warning' })
     
     const response = await containerApi.stopContainer(container.systemSoftContainerId!)
     if (response.code === '00000') {
-      ElMessage.success('容器停止成功')
+      message.success('容器停止成功')
       loadContainers()
     } else {
-      ElMessage.error(response.msg || '容器停止失败')
+      message.error(response.msg || '容器停止失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('容器停止失败')
+      message.error('容器停止失败')
     }
   }
 }
@@ -435,19 +435,19 @@ const handleRestart = async (container: SystemSoftContainer) => {
   try {
     const response = await containerApi.restartContainer(container.systemSoftContainerId!)
     if (response.code === '00000') {
-      ElMessage.success('容器重启成功')
+      message.success('容器重启成功')
       loadContainers()
     } else {
-      ElMessage.error(response.msg || '容器重启失败')
+      message.error(response.msg || '容器重启失败')
     }
   } catch (error) {
-    ElMessage.error('容器重启失败')
+    message.error('容器重启失败')
   }
 }
 
 const handleDelete = async (container: SystemSoftContainer) => {
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       '确定要删除这个容器吗？此操作不可恢复！',
       '删除确认',
       { type: 'error' }
@@ -455,14 +455,14 @@ const handleDelete = async (container: SystemSoftContainer) => {
     
     const response = await containerApi.deleteContainer(container.systemSoftContainerId!)
     if (response.code === '00000') {
-      ElMessage.success('容器删除成功')
+      message.success('容器删除成功')
       loadContainers()
     } else {
-      ElMessage.error(response.msg || '容器删除失败')
+      message.error(response.msg || '容器删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('容器删除失败')
+      message.error('容器删除失败')
     }
   }
 }
@@ -481,13 +481,13 @@ const handleExec = async (container: SystemSoftContainer) => {
   try {
     const serverId = String(container.systemServerId || container.systemSoftContainerServerId)
     if (!serverId) {
-      ElMessage.warning('缺少服务器ID')
+      message.warning('缺少服务器ID')
       return
     }
     
     const { data, code, msg } = await getServerInfo(serverId)
     if (code !== 0 || !data) {
-      ElMessage.error(msg || '获取服务器信息失败')
+      message.error(msg || '获取服务器信息失败')
       return
     }
     
@@ -501,7 +501,7 @@ const handleExec = async (container: SystemSoftContainer) => {
     }, 800)
   } catch (error) {
     console.error(error)
-    ElMessage.error('进入容器失败')
+    message.error('进入容器失败')
   }
 }
 

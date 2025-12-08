@@ -98,7 +98,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import {
   getLogFilesForNodeControl,
   getLogContentForNodeControl,
@@ -175,11 +175,11 @@ const loadLogContent = async () => {
     if (response.success && response.data) {
       logContent.value = response.data;
     } else {
-      ElMessage.error(response.msg || "获取日志内容失败");
+      message.error(response.msg || "获取日志内容失败");
     }
   } catch (error) {
     console.error("加载日志内容失败:", error);
-    ElMessage.error("加载日志内容失败");
+    message.error("加载日志内容失败");
   } finally {
     loading.value = false;
   }
@@ -192,10 +192,10 @@ const toggleAutoRefresh = () => {
   autoRefresh.value = !autoRefresh.value;
   if (autoRefresh.value) {
     startAutoRefresh();
-    ElMessage.success("已开启自动刷新");
+    message.success("已开启自动刷新");
   } else {
     stopAutoRefresh();
-    ElMessage.info("已停止自动刷新");
+    message.info("已停止自动刷新");
   }
 };
 
@@ -234,9 +234,9 @@ const scrollToBottom = () => {
 const copyLogContent = async () => {
   try {
     await navigator.clipboard.writeText(logContent.value);
-    ElMessage.success("日志内容已复制到剪贴板");
+    message.success("日志内容已复制到剪贴板");
   } catch {
-    ElMessage.error("复制失败");
+    message.error("复制失败");
   }
 };
 

@@ -235,7 +235,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import {
   getEnvironmentForNodeControl,
   getConfigPropsForNodeControl,
@@ -403,11 +403,11 @@ const loadEnvironment = async () => {
     if (response.success && response.data) {
       envData.value = objectToTree(response.data);
     } else {
-      ElMessage.error(response.msg || "获取环境配置失败");
+      message.error(response.msg || "获取环境配置失败");
     }
   } catch (error) {
     console.error("加载环境配置失败:", error);
-    ElMessage.error("加载环境配置失败");
+    message.error("加载环境配置失败");
   } finally {
     loading.env = false;
   }
@@ -428,11 +428,11 @@ const loadConfigProps = async () => {
     if (response.success && response.data) {
       propsData.value = objectToTree(response.data);
     } else {
-      ElMessage.error(response.msg || "获取配置属性失败");
+      message.error(response.msg || "获取配置属性失败");
     }
   } catch (error) {
     console.error("加载配置属性失败:", error);
-    ElMessage.error("加载配置属性失败");
+    message.error("加载配置属性失败");
   } finally {
     loading.props = false;
   }
@@ -453,11 +453,11 @@ const loadSystemInfo = async () => {
     if (response.success && response.data) {
       systemInfo.value = response.data;
     } else {
-      ElMessage.error(response.msg || "获取系统信息失败");
+      message.error(response.msg || "获取系统信息失败");
     }
   } catch (error) {
     console.error("加载系统信息失败:", error);
-    ElMessage.error("加载系统信息失败");
+    message.error("加载系统信息失败");
   } finally {
     loading.system = false;
   }
