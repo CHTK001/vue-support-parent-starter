@@ -8,7 +8,7 @@ export default [
     meta: {
       icon: "ep:folder",
       title: "项目管理",
-      rank: 5,
+      rank: 10,
     },
     children: [
       {

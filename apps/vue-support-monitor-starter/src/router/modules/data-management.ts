@@ -8,7 +8,7 @@ export default [
       icon: "ri:database-2-line",
       title: "数据管理",
       showLink: true,
-      rank: 3,
+      rank: 8,
     },
     children: [
       {

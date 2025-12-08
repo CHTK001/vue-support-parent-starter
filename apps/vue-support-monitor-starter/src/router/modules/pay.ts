@@ -7,7 +7,7 @@ export default [
     meta: {
       title: "支付管理",
       icon: "ri:wallet-3-line",
-      rank: 20
+      rank: 9,
     },
     children: [
       {
@@ -20,8 +20,8 @@ export default [
         meta: {
           title: "商户管理",
           icon: "ri:store-2-line",
-          remaining: true
-        }
+          remaining: true,
+        },
       },
       {
         path: "/pay/order",
@@ -33,9 +33,9 @@ export default [
         meta: {
           title: "订单管理",
           icon: "ep:document",
-          remaining: true
-        }
-      }
-    ]
-  }
+          remaining: true,
+        },
+      },
+    ],
+  },
 ] satisfies Array<RouteConfigsTable>;

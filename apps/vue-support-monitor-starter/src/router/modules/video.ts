@@ -13,7 +13,7 @@ const routes = [
     meta: {
       title: "视频管理",
       icon: "ep:video-play",
-      rank: 9
+      rank: 11,
     },
     children: [
       {
@@ -22,7 +22,7 @@ const routes = [
         meta: {
           title: "视频管理",
           icon: "ep:video-play",
-          rank: 9
+          rank: 9,
         },
         children: [
           {
@@ -36,8 +36,8 @@ const routes = [
               title: "视频搜索",
               icon: "ep:search",
               rank: 1,
-              remaining: true
-            }
+              remaining: true,
+            },
           },
           {
             path: "/video/search/result",
@@ -49,8 +49,8 @@ const routes = [
             meta: {
               title: "搜索结果",
               showLink: false,
-              remaining: true
-            }
+              remaining: true,
+            },
           },
           {
             path: "/video/manage/result",
@@ -62,8 +62,8 @@ const routes = [
             meta: {
               title: "搜索结果",
               showLink: false,
-              remaining: true
-            }
+              remaining: true,
+            },
           },
           {
             path: "/video/detail/result",
@@ -75,8 +75,8 @@ const routes = [
             meta: {
               title: "视频详情",
               showLink: false,
-              remaining: true
-            }
+              remaining: true,
+            },
           },
           {
             path: "/video/add",
@@ -88,8 +88,8 @@ const routes = [
             meta: {
               title: "视频详情",
               showLink: false,
-              remaining: true
-            }
+              remaining: true,
+            },
           },
           {
             path: "/video/edit",
@@ -101,8 +101,8 @@ const routes = [
             meta: {
               title: "视频详情",
               showLink: false,
-              remaining: true
-            }
+              remaining: true,
+            },
           },
           {
             path: "/video/parse",
@@ -114,8 +114,8 @@ const routes = [
             meta: {
               title: "视频解析",
               icon: "ep:link",
-              rank: 2
-            }
+              rank: 2,
+            },
           },
           {
             path: "/video/manage",
@@ -128,10 +128,10 @@ const routes = [
               title: "视频管理",
               icon: "ep:video-camera",
               rank: 3,
-              remaining: true
-            }
-          }
-        ]
+              remaining: true,
+            },
+          },
+        ],
       },
 
       {
@@ -140,7 +140,7 @@ const routes = [
         meta: {
           title: "视频源",
           icon: "ep:video-play",
-          rank: 9
+          rank: 9,
         },
         children: [
           {
@@ -153,8 +153,8 @@ const routes = [
             meta: {
               title: "视频源管理",
               icon: "ep:setting",
-              rank: 4
-            }
+              rank: 4,
+            },
           },
           {
             path: "/video/config",
@@ -166,13 +166,13 @@ const routes = [
             meta: {
               title: "视频同步配置",
               icon: "ep:setting",
-              rank: 4
-            }
-          }
-        ]
-      }
-    ]
-  }
+              rank: 4,
+            },
+          },
+        ],
+      },
+    ],
+  },
 ] satisfies Array<RouteConfigsTable>;
 
 export default routes;

@@ -8,7 +8,7 @@ export default [
       icon: "ep:monitor",
       title: "任务管理",
       showLink: true,
-      rank: 4,
+      rank: 2,
     },
     children: [
       {

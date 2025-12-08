@@ -6,7 +6,7 @@ export default [
       icon: "ri:bug-line",
       title: "Arthas 管理",
       showLink: true,
-      rank: 6,
+      rank: 7,
     },
     children: [
       {
