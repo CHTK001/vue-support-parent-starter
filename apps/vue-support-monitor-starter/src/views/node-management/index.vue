@@ -3,89 +3,53 @@
     <!-- 统计卡片 -->
     <div class="stats-section">
       <div class="stats-grid">
-        <div class="stat-card total-nodes" @click="filterByStatus('all')">
-          <div class="stat-background">
-            <div class="stat-pattern"></div>
-          </div>
-          <div class="stat-content">
-            <div class="stat-icon">
-              <IconifyIconOnline icon="ri:server-line" />
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" :class="{ counting: isCountingUp }">
-                {{ animatedStats.totalNodes }}
-              </div>
-              <div class="stat-label">总节点数</div>
-              <div class="stat-trend">
-                <IconifyIconOnline icon="ri:arrow-up-line" class="trend-icon" />
-                <span class="trend-text">实时更新</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ScCard
+          layout="stats"
+          label="总节点数"
+          :value="animatedStats.totalNodes"
+          icon="ri:server-line"
+          theme="primary"
+          trendText="实时更新"
+          hoverable
+          class="stat-card-item"
+          @click="filterByStatus('all')"
+        />
 
-        <div class="stat-card online-nodes" @click="filterByStatus('ONLINE')">
-          <div class="stat-background">
-            <div class="stat-pattern"></div>
-          </div>
-          <div class="stat-content">
-            <div class="stat-icon">
-              <IconifyIconOnline icon="ri:checkbox-circle-line" />
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" :class="{ counting: isCountingUp }">
-                {{ animatedStats.onlineNodes }}
-              </div>
-              <div class="stat-label">在线节点</div>
-              <div class="stat-trend">
-                <IconifyIconOnline icon="ri:pulse-line" class="trend-icon" />
-                <span class="trend-text">{{ getOnlineRate() }}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ScCard
+          layout="stats"
+          label="在线节点"
+          :value="animatedStats.onlineNodes"
+          icon="ri:checkbox-circle-line"
+          theme="success"
+          :trendText="`${getOnlineRate()}%`"
+          hoverable
+          class="stat-card-item"
+          @click="filterByStatus('ONLINE')"
+        />
 
-        <div class="stat-card healthy-nodes" @click="filterByStatus('healthy')">
-          <div class="stat-background">
-            <div class="stat-pattern"></div>
-          </div>
-          <div class="stat-content">
-            <div class="stat-icon">
-              <IconifyIconOnline icon="ri:heart-pulse-line" />
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" :class="{ counting: isCountingUp }">
-                {{ animatedStats.healthyNodes }}
-              </div>
-              <div class="stat-label">健康节点</div>
-              <div class="stat-trend">
-                <IconifyIconOnline icon="ri:heart-line" class="trend-icon" />
-                <span class="trend-text">{{ getHealthRate() }}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ScCard
+          layout="stats"
+          label="健康节点"
+          :value="animatedStats.healthyNodes"
+          icon="ri:heart-pulse-line"
+          theme="purple"
+          :trendText="`${getHealthRate()}%`"
+          hoverable
+          class="stat-card-item"
+          @click="filterByStatus('healthy')"
+        />
 
-        <div class="stat-card error-nodes" @click="filterByStatus('error')">
-          <div class="stat-background">
-            <div class="stat-pattern"></div>
-          </div>
-          <div class="stat-content">
-            <div class="stat-icon">
-              <IconifyIconOnline icon="ri:error-warning-line" />
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" :class="{ counting: isCountingUp }">
-                {{ animatedStats.errorNodes }}
-              </div>
-              <div class="stat-label">异常节点</div>
-              <div class="stat-trend">
-                <IconifyIconOnline icon="ri:alert-line" class="trend-icon" />
-                <span class="trend-text">需关注</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ScCard
+          layout="stats"
+          label="异常节点"
+          :value="animatedStats.errorNodes"
+          icon="ri:error-warning-line"
+          theme="danger"
+          :trendText="animatedStats.errorNodes > 0 ? '需要关注' : '正常'"
+          hoverable
+          class="stat-card-item"
+          @click="filterByStatus('error')"
+        />
       </div>
     </div>
 
@@ -430,6 +394,25 @@
       v-model="showLoggerConfigDialog"
       :node-info="selectedNodeForLogger"
     />
+
+    <!-- 日志查看组件 -->
+    <LogViewer
+      v-model="showLogViewerDialog"
+      :node-info="selectedNodeForLogViewer"
+    />
+
+    <!-- 配置查看组件 -->
+    <ConfigViewer
+      v-model="showConfigViewerDialog"
+      :node-info="selectedNodeForConfigViewer"
+    />
+
+    <!-- 重启管理组件 -->
+    <RestartManager
+      v-model="showRestartManagerDialog"
+      :node-info="selectedNodeForRestartManager"
+      @success="refreshNodes"
+    />
   </div>
 </template>
 
@@ -446,6 +429,9 @@ import {
 } from "@/api/server/node-management";
 import { parseTime } from "@/utils/const";
 import LoggerConfig from "./module/logger-config/index.vue";
+import LogViewer from "./module/log-viewer/index.vue";
+import ConfigViewer from "./module/config-viewer/index.vue";
+import RestartManager from "./module/restart-manager/index.vue";
 
 // 路由
 const router = useRouter();
@@ -503,6 +489,18 @@ const searchKeyword = ref("");
 // 日志配置组件相关
 const showLoggerConfigDialog = ref(false);
 const selectedNodeForLogger = ref<OnlineNodeInfo | null>(null);
+
+// 日志查看组件相关
+const showLogViewerDialog = ref(false);
+const selectedNodeForLogViewer = ref<OnlineNodeInfo | null>(null);
+
+// 配置查看组件相关
+const showConfigViewerDialog = ref(false);
+const selectedNodeForConfigViewer = ref<OnlineNodeInfo | null>(null);
+
+// 重启管理组件相关
+const showRestartManagerDialog = ref(false);
+const selectedNodeForRestartManager = ref<OnlineNodeInfo | null>(null);
 const selectedApplication = ref("");
 const selectedStatus = ref("");
 const viewMode = ref<"card" | "table">("card");
@@ -895,8 +893,18 @@ const openNodeDocumentation = (node: OnlineNodeInfo) => {
 const openNodeMonitoring = (node: OnlineNodeInfo) => {
   if (!node) return;
   showMenu.value = false;
-  console.log("打开监控面板:", node);
-  // TODO: 实现监控面板功能
+
+  // 打开新tab显示监控大屏
+  const routeData = router.resolve({
+    name: "nodeMonitorDashboard",
+    params: { nodeId: node.nodeId },
+    query: {
+      nodeName: node.nodeName || node.applicationName,
+      nodeAddress: `${node.ipAddress}:${node.port}`,
+    },
+  });
+
+  window.open(routeData.href, "_blank");
 };
 
 const openNodeTerminal = (node: OnlineNodeInfo) => {
@@ -916,8 +924,10 @@ const openNodeFiles = (node: OnlineNodeInfo) => {
 const openNodeLogs = (node: OnlineNodeInfo) => {
   if (!node) return;
   showMenu.value = false;
-  console.log("打开日志查看:", node);
-  // TODO: 实现日志查看功能
+
+  // 打开日志查看组件
+  showLogViewerDialog.value = true;
+  selectedNodeForLogViewer.value = node;
 };
 
 const openLoggerConfig = (node: OnlineNodeInfo) => {
@@ -932,16 +942,19 @@ const openLoggerConfig = (node: OnlineNodeInfo) => {
 const openNodeSettings = (node: OnlineNodeInfo) => {
   if (!node) return;
   showMenu.value = false;
-  console.log("打开节点配置:", node);
-  // TODO: 实现节点配置功能
+
+  // 打开配置查看组件
+  showConfigViewerDialog.value = true;
+  selectedNodeForConfigViewer.value = node;
 };
 
 const restartNode = (node: OnlineNodeInfo) => {
   if (!node) return;
   showMenu.value = false;
-  console.log("重启节点:", node);
-  // TODO: 实现节点重启功能
-  ElMessage.warning("节点重启功能开发中...");
+
+  // 打开重启管理组件
+  showRestartManagerDialog.value = true;
+  selectedNodeForRestartManager.value = node;
 };
 
 // 节点操作
@@ -1255,249 +1268,25 @@ onUnmounted(() => {
   // 统计卡片
   .stats-section {
     margin-bottom: 28px;
+    flex-shrink: 0;
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
 
-      .stat-card {
-        position: relative;
-        background: linear-gradient(
-          145deg,
-          rgba(255, 255, 255, 0.95) 0%,
-          rgba(248, 250, 252, 0.9) 100%
-        );
-        backdrop-filter: blur(20px) saturate(180%);
-        border-radius: 24px;
-        padding: 28px 32px;
+      :deep(.stat-card-item) {
         cursor: pointer;
-        transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        overflow: hidden;
-        box-shadow:
-          0 4px 24px rgba(0, 0, 0, 0.06),
-          0 1px 2px rgba(0, 0, 0, 0.04),
-          inset 0 1px 0 rgba(255, 255, 255, 0.8);
-
-        // 顶部渐变条
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 4px;
-          background: linear-gradient(
-            90deg,
-            var(--card-color-1),
-            var(--card-color-2)
-          );
-          transform: scaleX(0);
-          transform-origin: left;
-          transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        // 光泽效果
-        &::after {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(255, 255, 255, 0.4),
-            transparent
-          );
-          transition: left 0.6s ease;
-          pointer-events: none;
-        }
+        transition: all 0.3s ease;
+        min-height: 100px;
 
         &:hover {
-          transform: translateY(-8px) scale(1.02);
-          box-shadow:
-            0 20px 40px rgba(0, 0, 0, 0.12),
-            0 8px 16px rgba(0, 0, 0, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.9);
-          border-color: rgba(99, 102, 241, 0.2);
-
-          &::before {
-            transform: scaleX(1);
-          }
-
-          &::after {
-            left: 100%;
-          }
+          transform: translateY(-4px);
         }
+      }
 
-        .stat-background {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          opacity: 0.1;
-          z-index: 0;
-
-          .stat-pattern {
-            width: 100%;
-            height: 100%;
-            background-image:
-              radial-gradient(
-                circle at 20% 50%,
-                currentColor 2px,
-                transparent 2px
-              ),
-              radial-gradient(
-                circle at 80% 50%,
-                currentColor 2px,
-                transparent 2px
-              );
-            background-size: 30px 30px;
-            animation: patternMove 20s linear infinite;
-          }
-        }
-
-        .stat-content {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          align-items: center;
-
-          .stat-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 64px;
-            height: 64px;
-            border-radius: 16px;
-            margin-right: 20px;
-            font-size: 28px;
-            color: var(--el-text-color-primary);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-          }
-
-          .stat-info {
-            flex: 1;
-
-            .stat-value {
-              font-size: 32px;
-              font-weight: 700;
-              line-height: 1;
-              margin-bottom: 4px;
-              transition: all 0.3s ease;
-
-              &.counting {
-                color: #409eff;
-                transform: scale(1.1);
-              }
-            }
-
-            .stat-label {
-              font-size: 14px;
-              color: #64748b;
-              font-weight: 500;
-              margin-bottom: 8px;
-            }
-
-            .stat-trend {
-              display: flex;
-              align-items: center;
-              font-size: 12px;
-              color: #10b981;
-
-              .trend-icon {
-                margin-right: 4px;
-                font-size: 14px;
-              }
-
-              .trend-text {
-                font-weight: 500;
-              }
-            }
-          }
-        }
-
-        // 不同类型的卡片样式
-        &.total-nodes {
-          --card-color-1: #6366f1;
-          --card-color-2: #a855f7;
-
-          .stat-icon {
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
-          }
-          .stat-background {
-            color: #6366f1;
-          }
-          .stat-value {
-            background: linear-gradient(135deg, #6366f1, #a855f7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-        }
-
-        &.online-nodes {
-          --card-color-1: #10b981;
-          --card-color-2: #34d399;
-
-          .stat-icon {
-            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
-          }
-          .stat-background {
-            color: #10b981;
-          }
-          .stat-value {
-            background: linear-gradient(135deg, #10b981, #34d399);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-        }
-
-        &.healthy-nodes {
-          --card-color-1: #f59e0b;
-          --card-color-2: #fbbf24;
-
-          .stat-icon {
-            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
-            box-shadow: 0 8px 24px rgba(245, 158, 11, 0.35);
-          }
-          .stat-background {
-            color: #f59e0b;
-          }
-          .stat-value {
-            background: linear-gradient(135deg, #f59e0b, #fbbf24);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-        }
-
-        &.error-nodes {
-          --card-color-1: #ef4444;
-          --card-color-2: #f87171;
-
-          .stat-icon {
-            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
-            box-shadow: 0 8px 24px rgba(239, 68, 68, 0.35);
-            animation: error-pulse 2s ease-in-out infinite;
-          }
-          .stat-value {
-            background: linear-gradient(135deg, #ef4444, #f87171);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-          .stat-background {
-            color: #ef4444;
-          }
-        }
+      :deep(.sc-card-stats) {
+        height: 100%;
       }
     }
   }
@@ -1682,190 +1471,87 @@ onUnmounted(() => {
         }
 
         .node-card-wrapper {
-          animation: cardSlideIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) both;
+          animation: cardSlideIn 0.5s ease-out both;
 
           .node-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
+            background: #fff;
+            border-radius: 16px;
             padding: 0;
             cursor: pointer;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            border: 1px solid #e5e7eb;
             overflow: hidden;
             position: relative;
-            height: 320px;
             display: flex;
             flex-direction: column;
-            box-shadow:
-              0 8px 32px rgba(0, 0, 0, 0.12),
-              0 2px 8px rgba(0, 0, 0, 0.08);
-
-            // 移动端适配
-            @media (max-width: 768px) {
-              height: auto;
-              min-height: 280px;
-              border-radius: 20px;
-            }
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
             &:hover {
-              transform: translateY(-12px) scale(1.02);
-              box-shadow:
-                0 32px 64px rgba(0, 0, 0, 0.15),
-                0 16px 32px rgba(0, 0, 0, 0.1);
-              border-color: rgba(59, 130, 246, 0.4);
+              transform: translateY(-6px);
+              box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+              border-color: rgba(59, 130, 246, 0.3);
             }
 
             &.menu-active {
-              transform: translateY(-8px) scale(1.01);
-              box-shadow:
-                0 40px 80px rgba(0, 0, 0, 0.2),
-                0 20px 40px rgba(0, 0, 0, 0.15);
-              border-color: rgba(59, 130, 246, 0.6);
-              background: rgba(255, 255, 255, 0.98);
-
-              &::before {
-                content: "";
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(59, 130, 246, 0.05);
-                border-radius: 24px;
-                pointer-events: none;
-              }
+              transform: translateY(-4px);
+              box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+              border-color: rgba(59, 130, 246, 0.5);
             }
 
-            // 状态指示条 - 更现代的设计
+            // 状态指示条
             &::before {
               content: "";
               position: absolute;
               top: 0;
               left: 0;
               right: 0;
-              height: 6px;
+              height: 4px;
               z-index: 1;
-              border-radius: 24px 24px 0 0;
-              opacity: 0.9;
-            }
-
-            // 状态光晕效果
-            &::after {
-              content: "";
-              position: absolute;
-              top: -2px;
-              left: -2px;
-              right: -2px;
-              bottom: -2px;
-              border-radius: 26px;
-              opacity: 0;
-              transition: opacity 0.3s ease;
-              z-index: -1;
             }
 
             &.node-online {
               &::before {
-                background: linear-gradient(135deg, #10b981, #34d399, #6ee7b7);
-                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-              }
-
-              &:hover::after {
-                background: linear-gradient(
-                  135deg,
-                  rgba(16, 185, 129, 0.1),
-                  rgba(52, 211, 153, 0.1)
-                );
-                opacity: 1;
+                background: linear-gradient(90deg, #10b981, #34d399);
               }
             }
 
             &.node-offline {
               &::before {
-                background: linear-gradient(135deg, #ef4444, #f87171, #fca5a5);
-                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-              }
-
-              &:hover::after {
-                background: linear-gradient(
-                  135deg,
-                  rgba(239, 68, 68, 0.1),
-                  rgba(248, 113, 113, 0.1)
-                );
-                opacity: 1;
+                background: linear-gradient(90deg, #ef4444, #f87171);
               }
             }
 
             &.node-maintenance {
               &::before {
-                background: linear-gradient(135deg, #6b7280, #9ca3af, #d1d5db);
-                box-shadow: 0 4px 12px rgba(107, 114, 128, 0.4);
-              }
-
-              &:hover::after {
-                background: linear-gradient(
-                  135deg,
-                  rgba(107, 114, 128, 0.1),
-                  rgba(156, 163, 175, 0.1)
-                );
-                opacity: 1;
+                background: linear-gradient(90deg, #6b7280, #9ca3af);
               }
             }
 
             &.node-connecting {
               &::before {
-                background: linear-gradient(135deg, #f59e0b, #fbbf24, #fcd34d);
-                box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+                background: linear-gradient(90deg, #f59e0b, #fbbf24);
                 animation: connecting-pulse 1.5s ease-in-out infinite;
-              }
-
-              &:hover::after {
-                background: linear-gradient(
-                  135deg,
-                  rgba(245, 158, 11, 0.1),
-                  rgba(251, 191, 36, 0.1)
-                );
-                opacity: 1;
               }
             }
 
             &.node-error {
               &::before {
-                background: linear-gradient(135deg, #dc2626, #ef4444, #f87171);
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+                background: linear-gradient(90deg, #dc2626, #ef4444);
                 animation: error-flash 1s ease-in-out infinite;
-              }
-
-              &:hover::after {
-                background: linear-gradient(
-                  135deg,
-                  rgba(220, 38, 38, 0.1),
-                  rgba(239, 68, 68, 0.1)
-                );
-                opacity: 1;
               }
             }
 
             &.node-unhealthy {
               border-color: rgba(239, 68, 68, 0.3);
-
-              &:hover {
-                border-color: rgba(239, 68, 68, 0.5);
-              }
             }
 
             .card-header {
               display: flex;
               justify-content: space-between;
-              align-items: center;
-              padding: 28px 28px 20px;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-              background: linear-gradient(
-                135deg,
-                rgba(255, 255, 255, 0.9),
-                rgba(248, 250, 252, 0.8)
-              );
-              backdrop-filter: blur(10px);
+              align-items: flex-start;
+              padding: 20px 20px 16px;
+              border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+              background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
 
               .node-info {
                 flex: 1;
@@ -1874,126 +1560,64 @@ onUnmounted(() => {
                 .node-name {
                   display: flex;
                   align-items: center;
-                  font-size: 18px;
-                  font-weight: 800;
+                  font-size: 16px;
+                  font-weight: 700;
                   color: #1e293b;
                   margin-bottom: 8px;
-                  transition: all 0.3s ease;
 
                   .node-icon {
-                    width: 32px;
-                    height: 32px;
-                    margin-right: 12px;
-                    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-                    color: #ffffff;
+                    width: 36px;
+                    height: 36px;
+                    margin-right: 10px;
+                    background: linear-gradient(135deg, #3b82f6, #2563eb);
+                    color: #fff;
                     border-radius: 10px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 16px;
-                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                    font-size: 18px;
+                    flex-shrink: 0;
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
                   }
 
                   .name-text {
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
-                    background: linear-gradient(135deg, #1e293b, #475569);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                  }
-
-                  &:hover {
-                    .node-icon {
-                      transform: scale(1.1) rotate(10deg);
-                      background: linear-gradient(135deg, #2563eb, #1e40af);
-                      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
-                    }
                   }
                 }
 
                 .node-address {
-                  display: flex;
+                  display: inline-flex;
                   align-items: center;
-                  font-size: 14px;
+                  font-size: 13px;
                   color: #64748b;
-                  font-family:
-                    "JetBrains Mono", "SF Mono", "Monaco", "Menlo", monospace;
-                  transition: all 0.3s ease;
-                  background: rgba(255, 255, 255, 0.8);
-                  padding: 8px 12px;
-                  border-radius: 12px;
-                  border: 1px solid rgba(226, 232, 240, 0.6);
-                  backdrop-filter: blur(10px);
-                  font-weight: 600;
+                  font-family: "JetBrains Mono", "Consolas", monospace;
+                  background: #f1f5f9;
+                  padding: 6px 10px;
+                  border-radius: 8px;
+                  font-weight: 500;
 
                   .address-icon {
-                    margin-right: 8px;
-                    font-size: 14px;
+                    margin-right: 6px;
+                    font-size: 13px;
                     color: #94a3b8;
-                    transition: all 0.3s ease;
-                  }
-
-                  &:hover {
-                    color: #3b82f6;
-                    background: rgba(59, 130, 246, 0.1);
-                    border-color: rgba(59, 130, 246, 0.3);
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-
-                    .address-icon {
-                      color: #3b82f6;
-                      transform: scale(1.1);
-                    }
                   }
                 }
               }
 
               .node-status {
                 flex-shrink: 0;
+                margin-left: 12px;
 
                 .status-tag {
-                  font-weight: 700;
-                  border-radius: 12px;
-                  padding: 8px 16px;
-                  font-size: 13px;
-                  line-height: 1.2;
-                  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                  border: 1px solid rgba(255, 255, 255, 0.3);
-                  backdrop-filter: blur(10px);
-                  position: relative;
-                  overflow: hidden;
-
-                  &::before {
-                    content: "";
-                    position: absolute;
-                    top: 0;
-                    left: -100%;
-                    width: 100%;
-                    height: 100%;
-                    background: linear-gradient(
-                      90deg,
-                      transparent,
-                      rgba(255, 255, 255, 0.3),
-                      transparent
-                    );
-                    transition: left 0.5s ease;
-                  }
-
-                  &:hover {
-                    transform: translateY(-3px) scale(1.05);
-                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-
-                    &::before {
-                      left: 100%;
-                    }
-                  }
+                  font-weight: 600;
+                  border-radius: 8px;
+                  padding: 6px 12px;
+                  font-size: 12px;
 
                   i {
-                    margin-right: 6px;
+                    margin-right: 4px;
                     font-size: 12px;
                   }
                 }
@@ -2001,92 +1625,56 @@ onUnmounted(() => {
             }
 
             .card-body {
-              padding: 24px 28px;
+              padding: 16px 20px;
               flex: 1;
               display: flex;
               flex-direction: column;
-              background: rgba(255, 255, 255, 0.6);
-              backdrop-filter: blur(5px);
+              background: #fff;
 
               .node-details {
                 .detail-row {
-                  display: flex;
-                  gap: 16px;
-                  margin-bottom: 16px;
+                  display: grid;
+                  grid-template-columns: repeat(2, 1fr);
+                  gap: 10px;
+                  margin-bottom: 10px;
 
                   &:last-child {
                     margin-bottom: 0;
                   }
 
                   &.single {
-                    .detail-item.full-width {
-                      flex: none;
-                      width: 100%;
-                    }
+                    grid-template-columns: 1fr;
                   }
 
                   .detail-item {
-                    flex: 1;
                     display: flex;
                     align-items: center;
-                    padding: 16px 18px;
-                    background: rgba(255, 255, 255, 0.8);
-                    border-radius: 16px;
-                    border: 1px solid rgba(226, 232, 240, 0.6);
-                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                    position: relative;
-                    overflow: hidden;
-                    backdrop-filter: blur(10px);
-
-                    &::before {
-                      content: "";
-                      position: absolute;
-                      top: 0;
-                      left: 0;
-                      width: 4px;
-                      height: 100%;
-                      background: linear-gradient(
-                        180deg,
-                        #3b82f6,
-                        #1d4ed8,
-                        #1e40af
-                      );
-                      opacity: 0;
-                      transition: all 0.3s ease;
-                      border-radius: 0 4px 4px 0;
-                    }
+                    padding: 10px 12px;
+                    background: #f8fafc;
+                    border-radius: 10px;
+                    transition: all 0.25s ease;
 
                     &:hover {
-                      background: rgba(59, 130, 246, 0.1);
-                      border-color: rgba(59, 130, 246, 0.3);
-                      transform: translateY(-4px) scale(1.02);
-                      box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
+                      background: #f1f5f9;
+                      transform: translateX(2px);
+                    }
 
-                      &::before {
-                        opacity: 1;
-                      }
+                    &.full-width {
+                      grid-column: 1 / -1;
                     }
 
                     .detail-icon {
                       width: 28px;
                       height: 28px;
-                      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-                      color: #ffffff;
+                      background: linear-gradient(135deg, #3b82f6, #2563eb);
+                      color: #fff;
                       border-radius: 8px;
                       display: flex;
                       align-items: center;
                       justify-content: center;
                       font-size: 14px;
-                      margin-right: 12px;
+                      margin-right: 10px;
                       flex-shrink: 0;
-                      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-                    }
-
-                    &:hover .detail-icon {
-                      transform: scale(1.1) rotate(10deg);
-                      background: linear-gradient(135deg, #2563eb, #1e40af);
-                      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
                     }
 
                     .detail-info {
@@ -2096,56 +1684,37 @@ onUnmounted(() => {
                       .detail-label {
                         display: block;
                         font-size: 11px;
-                        color: #64748b;
+                        color: #94a3b8;
                         line-height: 1.3;
-                        margin-bottom: 4px;
-                        font-weight: 700;
-                        text-transform: uppercase;
-                        letter-spacing: 0.05em;
-                        opacity: 0.8;
+                        font-weight: 500;
                       }
 
                       .detail-value {
                         display: block;
-                        font-size: 15px;
-                        font-weight: 800;
+                        font-size: 13px;
+                        font-weight: 600;
                         color: #1e293b;
-                        line-height: 1.3;
+                        line-height: 1.4;
                         overflow: hidden;
                         text-overflow: ellipsis;
                         white-space: nowrap;
-                        background: linear-gradient(135deg, #1e293b, #475569);
-                        -webkit-background-clip: text;
-                        -webkit-text-fill-color: transparent;
-                        background-clip: text;
-
-                        &.env-up {
-                          color: #52c41a;
-                        }
-
-                        &.env-down {
-                          color: #ff4d4f;
-                        }
 
                         &.env-prod {
-                          color: #fa541c;
+                          color: #dc2626;
                         }
 
                         &.env-dev {
-                          color: #1890ff;
+                          color: #2563eb;
                         }
 
                         &.env-test {
-                          color: #722ed1;
+                          color: #7c3aed;
                         }
 
                         &.config-value {
-                          font-family: "SF Mono", "Monaco", "Menlo", monospace;
+                          font-family: "Consolas", monospace;
                           font-size: 11px;
-                          background: rgba(0, 0, 0, 0.02);
-                          padding: 2px 6px;
-                          border-radius: 4px;
-                          color: #595959;
+                          color: #64748b;
                         }
                       }
                     }
@@ -2158,61 +1727,38 @@ onUnmounted(() => {
               display: flex;
               justify-content: space-between;
               align-items: center;
-              padding: 20px 28px 24px;
-              background: linear-gradient(
-                135deg,
-                rgba(248, 250, 252, 0.9),
-                rgba(241, 245, 249, 0.8)
-              );
-              border-top: 1px solid rgba(255, 255, 255, 0.2);
+              padding: 12px 20px 16px;
+              background: #f8fafc;
+              border-top: 1px solid #e2e8f0;
               margin-top: auto;
-              backdrop-filter: blur(10px);
 
               .footer-info {
                 display: flex;
-                gap: 24px;
+                gap: 16px;
                 flex: 1;
 
                 .connect-time,
                 .last-heartbeat {
                   display: flex;
                   align-items: center;
-                  font-size: 13px;
+                  font-size: 12px;
                   color: #64748b;
-                  transition: all 0.3s ease;
-                  font-weight: 600;
-                  background: rgba(255, 255, 255, 0.6);
-                  padding: 6px 10px;
-                  border-radius: 10px;
-                  border: 1px solid rgba(226, 232, 240, 0.6);
-                  backdrop-filter: blur(5px);
-
-                  &:hover {
-                    color: #3b82f6;
-                    background: rgba(59, 130, 246, 0.1);
-                    border-color: rgba(59, 130, 246, 0.3);
-                    transform: translateY(-1px);
-                  }
+                  font-weight: 500;
 
                   i {
-                    margin-right: 8px;
+                    margin-right: 6px;
                     font-size: 14px;
-                    transition: all 0.3s ease;
-                  }
-
-                  &:hover i {
-                    transform: scale(1.1);
                   }
                 }
 
                 .last-heartbeat {
                   .heartbeat-icon {
-                    color: #ff4d4f;
+                    color: #ef4444;
                     animation: heartbeat 2s ease-in-out infinite;
                   }
 
                   .heartbeat-text {
-                    font-family: "SF Mono", "Monaco", "Menlo", monospace;
+                    font-family: "Consolas", monospace;
                   }
                 }
               }
@@ -2221,35 +1767,28 @@ onUnmounted(() => {
                 flex-shrink: 0;
 
                 :deep(.el-button-group) {
-                  border-radius: 6px;
+                  border-radius: 8px;
                   overflow: hidden;
-                  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 
                   .el-button {
                     border-radius: 0;
-                    padding: 4px 8px;
+                    padding: 6px 10px;
                     font-size: 12px;
-                    min-width: 28px;
-                    height: 28px;
-                    transition: all 0.2s ease;
+                    height: 30px;
 
                     &:first-child {
-                      border-top-left-radius: 6px;
-                      border-bottom-left-radius: 6px;
+                      border-top-left-radius: 8px;
+                      border-bottom-left-radius: 8px;
                     }
 
                     &:last-child {
-                      border-top-right-radius: 6px;
-                      border-bottom-right-radius: 6px;
-                    }
-
-                    &:hover {
-                      transform: translateY(-1px);
-                      z-index: 1;
+                      border-top-right-radius: 8px;
+                      border-bottom-right-radius: 8px;
                     }
 
                     i {
-                      font-size: 12px;
+                      font-size: 14px;
                     }
                   }
                 }
@@ -2386,7 +1925,7 @@ onUnmounted(() => {
 @media (max-width: 1200px) {
   .node-management-container {
     .stats-section .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, 1fr) !important;
     }
 
     .nodes-section .nodes-grid .grid-container {
@@ -2399,7 +1938,7 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .node-management-container {
     .stats-section .stats-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr !important;
       gap: 12px;
     }
 

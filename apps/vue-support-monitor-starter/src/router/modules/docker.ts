@@ -9,6 +9,7 @@ const dockerRoutes: RouteRecordRaw[] = [
       title: "Docker管理",
       icon: "logos:docker-icon",
       alwaysShow: true,
+      rank: 5,
     },
     children: [
       {

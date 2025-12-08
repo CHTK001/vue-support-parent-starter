@@ -12,12 +12,19 @@ export interface SystemServer {
   systemServerPort: number;
   systemServerType: string;
   systemServerContextPath: string;
-  systemServerStatus?: "STOPPED" | "RUNNING" | "STARTING" | "STOPPING" | "ERROR";
+  systemServerStatus?:
+    | "STOPPED"
+    | "RUNNING"
+    | "STARTING"
+    | "STOPPING"
+    | "ERROR";
   systemServerDescription?: string;
   systemServerConfig?: string;
   systemServerAutoStart?: boolean;
   systemServerMaxConnections?: number;
   systemServerTimeout?: number;
+  // 过滤器数量
+  filterCount?: number;
   createTime?: string;
   updateTime?: string;
 }
@@ -59,7 +66,7 @@ export function getSystemServerPage(params: SystemServerPageParams) {
   return request({
     url: "/system/server/page",
     method: "get",
-    params
+    params,
   });
 }
 
@@ -69,7 +76,7 @@ export function getSystemServerPage(params: SystemServerPageParams) {
 export function getSystemServerById(id: number) {
   return request({
     url: `/system/server/${id}`,
-    method: "get"
+    method: "get",
   });
 }
 
@@ -80,7 +87,7 @@ export function addSystemServer(data: SystemServer) {
   return request({
     url: "/system/server",
     method: "post",
-    data
+    data,
   });
 }
 
@@ -91,7 +98,7 @@ export function updateSystemServer(data: SystemServer) {
   return request({
     url: "/system/server",
     method: "put",
-    data
+    data,
   });
 }
 
@@ -101,7 +108,7 @@ export function updateSystemServer(data: SystemServer) {
 export function deleteSystemServer(id: number) {
   return request({
     url: `/system/server/${id}`,
-    method: "delete"
+    method: "delete",
   });
 }
 
@@ -111,7 +118,7 @@ export function deleteSystemServer(id: number) {
 export function startSystemServer(id: number) {
   return request({
     url: `/system/server/${id}/start`,
-    method: "post"
+    method: "post",
   });
 }
 
@@ -121,7 +128,7 @@ export function startSystemServer(id: number) {
 export function stopSystemServer(id: number) {
   return request({
     url: `/system/server/${id}/stop`,
-    method: "post"
+    method: "post",
   });
 }
 
@@ -131,7 +138,7 @@ export function stopSystemServer(id: number) {
 export function restartSystemServer(id: number) {
   return request({
     url: `/system/server/${id}/restart`,
-    method: "post"
+    method: "post",
   });
 }
 
@@ -141,7 +148,7 @@ export function restartSystemServer(id: number) {
 export function getSystemServerStatus(id: number) {
   return request({
     url: `/system/server/${id}/status`,
-    method: "get"
+    method: "get",
   });
 }
 
@@ -151,7 +158,7 @@ export function getSystemServerStatus(id: number) {
 export function getAvailableServerTypes() {
   return request({
     url: "/system/server/types",
-    method: "get"
+    method: "get",
   });
 }
 
@@ -161,7 +168,7 @@ export function getAvailableServerTypes() {
 export function getSystemServerStatistics() {
   return request({
     url: "/system/server/statistics",
-    method: "get"
+    method: "get",
   });
 }
 
@@ -172,7 +179,7 @@ export function checkPortAvailable(port: number, serverId?: number) {
   return request({
     url: "/system/server/check-port",
     method: "get",
-    params: { port, serverId }
+    params: { port, serverId },
   });
 }
 
@@ -185,8 +192,8 @@ export function cloneSystemServer(params: CloneServerParams) {
     method: "post",
     params: {
       newServerName: params.newServerName,
-      newPort: params.newPort
-    }
+      newPort: params.newPort,
+    },
   });
 }
 
@@ -196,7 +203,7 @@ export function cloneSystemServer(params: CloneServerParams) {
 export function applySystemServerConfigChanges(id: number) {
   return request({
     url: `/system/server/${id}/apply-config`,
-    method: "post"
+    method: "post",
   });
 }
 
@@ -206,35 +213,42 @@ export function applySystemServerConfigChanges(id: number) {
 export function getRunningServerInstances() {
   return request({
     url: "/system/server/running-instances",
-    method: "get"
+    method: "get",
   });
 }
 
 /**
  * 克隆服务器配置（更新版本，使用新的参数格式）
  */
-export function cloneSystemServerV2(id: number, newName: string, newPort: number) {
+export function cloneSystemServerV2(
+  id: number,
+  newName: string,
+  newPort: number
+) {
   return request({
     url: `/system/server/${id}/clone`,
     method: "post",
     params: {
       newName,
-      newPort
-    }
+      newPort,
+    },
   });
 }
 
 /**
  * 批量操作服务器
  */
-export function batchOperationSystemServer(serverIds: number[], operation: string) {
+export function batchOperationSystemServer(
+  serverIds: number[],
+  operation: string
+) {
   return request({
     url: "/system/server/batch",
     method: "post",
     params: {
       serverIds: serverIds.join(","),
-      operation
-    }
+      operation,
+    },
   });
 }
 
@@ -244,7 +258,7 @@ export function batchOperationSystemServer(serverIds: number[], operation: strin
 export function autoStartSystemServers() {
   return request({
     url: "/system/server/auto-start",
-    method: "post"
+    method: "post",
   });
 }
 
@@ -254,6 +268,59 @@ export function autoStartSystemServers() {
 export function stopAllSystemServers() {
   return request({
     url: "/system/server/stop-all",
-    method: "post"
+    method: "post",
+  });
+}
+
+/**
+ * 日志条目接口
+ */
+export interface LogEntry {
+  timestamp: string;
+  level: "DEBUG" | "INFO" | "WARN" | "ERROR";
+  logger: string;
+  message: string;
+  filterName?: string;
+  requestPath?: string;
+  requestMethod?: string;
+}
+
+/**
+ * 获取服务器日志 SSE URL
+ *
+ * @param serverId 服务器ID
+ * @returns SSE URL
+ */
+export function getServerLogSseUrl(serverId: number): string {
+  const baseUrl = import.meta.env.VITE_BASE_URL || "";
+  return `${baseUrl}/system/server/${serverId}/logs/stream`;
+}
+
+/**
+ * 获取服务器历史日志
+ *
+ * @param serverId 服务器ID
+ * @param params 查询参数
+ */
+export function getServerLogs(
+  serverId: number,
+  params?: { level?: string; limit?: number; filterName?: string }
+) {
+  return request({
+    url: `/system/server/${serverId}/logs`,
+    method: "get",
+    params,
+  });
+}
+
+/**
+ * 清空服务器日志
+ *
+ * @param serverId 服务器ID
+ */
+export function clearServerLogs(serverId: number) {
+  return request({
+    url: `/system/server/${serverId}/logs`,
+    method: "delete",
   });
 }

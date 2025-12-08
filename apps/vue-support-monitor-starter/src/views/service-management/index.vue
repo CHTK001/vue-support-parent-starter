@@ -2,39 +2,36 @@
   <div class="service-management-container">
     <!-- 统计卡片 -->
     <div class="statistics-cards">
-      <el-card class="stat-card">
-        <div class="stat-content">
-          <div class="stat-icon total">
-            <IconifyIconOnline icon="ri:server-line" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ statistics.total || 0 }}</div>
-            <div class="stat-label">总服务器数</div>
-          </div>
-        </div>
-      </el-card>
-      <el-card class="stat-card">
-        <div class="stat-content">
-          <div class="stat-icon running">
-            <IconifyIconOnline icon="ri:play-circle-line" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ statistics.running || 0 }}</div>
-            <div class="stat-label">运行中</div>
-          </div>
-        </div>
-      </el-card>
-      <el-card class="stat-card">
-        <div class="stat-content">
-          <div class="stat-icon stopped">
-            <IconifyIconOnline icon="ri:stop-circle-line" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ statistics.stopped || 0 }}</div>
-            <div class="stat-label">已停止</div>
-          </div>
-        </div>
-      </el-card>
+      <ScCard
+        layout="stats"
+        label="总服务器数"
+        :value="statistics.total || 0"
+        icon="ri:server-line"
+        theme="primary"
+        trendText="全部服务器"
+        hoverable
+        class="stat-card-item"
+      />
+      <ScCard
+        layout="stats"
+        label="运行中"
+        :value="statistics.running || 0"
+        icon="ri:play-circle-line"
+        theme="success"
+        :trendText="`${getRunningRate()}%`"
+        hoverable
+        class="stat-card-item"
+      />
+      <ScCard
+        layout="stats"
+        label="已停止"
+        :value="statistics.stopped || 0"
+        icon="ri:stop-circle-line"
+        theme="danger"
+        :trendText="statistics.stopped > 0 ? '需要关注' : '正常'"
+        hoverable
+        class="stat-card-item"
+      />
     </div>
 
     <!-- 筛选条件 -->
@@ -58,9 +55,9 @@
             >
               <el-option
                 v-for="type in serverTypes"
-                :key="type"
-                :label="type"
-                :value="type"
+                :key="getTypeValue(type)"
+                :label="getTypeLabel(type)"
+                :value="getTypeValue(type)"
               />
             </el-select>
           </el-form-item>
@@ -120,169 +117,173 @@
         </template>
 
         <template #default="{ row: server }">
-          <el-card
+          <div
             class="server-card"
             :class="getServerCardClass(server.systemServerStatus)"
           >
-            <div class="server-header">
-              <div class="server-title">
+            <!-- 顶部状态条 -->
+            <div class="status-bar"></div>
+
+            <!-- 卡片主体 -->
+            <div class="card-content">
+              <!-- 头部：图标 + 名称 + 状态 -->
+              <div class="card-header">
                 <div class="server-icon">
                   <component :is="getProtocolIcon(server.systemServerType)" />
                 </div>
-                <div class="server-title-content">
-                  <h3>{{ server.systemServerName }}</h3>
-                  <el-tag
-                    :type="getStatusTagType(server.systemServerStatus)"
-                    size="small"
-                  >
-                    {{ getStatusText(server.systemServerStatus) }}
-                  </el-tag>
+                <div class="server-meta">
+                  <h3 class="server-name">{{ server.systemServerName }}</h3>
+                  <div class="server-type">{{ server.systemServerType }}</div>
+                </div>
+                <el-tag
+                  :type="getStatusTagType(server.systemServerStatus)"
+                  size="small"
+                  class="status-tag"
+                  effect="dark"
+                >
+                  <IconifyIconOnline
+                    :icon="
+                      server.systemServerStatus === 'RUNNING'
+                        ? 'ri:checkbox-circle-fill'
+                        : 'ri:close-circle-fill'
+                    "
+                    class="status-icon"
+                  />
+                  {{ getStatusText(server.systemServerStatus) }}
+                </el-tag>
+              </div>
+
+              <!-- 核心信息区 -->
+              <div class="server-stats">
+                <div class="stat-item primary" @click="handleOpen(server)">
+                  <div class="stat-icon">
+                    <IconifyIconOnline icon="ri:global-line" />
+                  </div>
+                  <div class="stat-info">
+                    <span class="stat-value">{{
+                      server.systemServerPort
+                    }}</span>
+                    <span class="stat-label">端口</span>
+                  </div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <IconifyIconOnline icon="ri:filter-3-line" />
+                  </div>
+                  <div class="stat-info">
+                    <span class="stat-value">{{
+                      server.filterCount || 0
+                    }}</span>
+                    <span class="stat-label">过滤器</span>
+                  </div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <IconifyIconOnline icon="ri:link" />
+                  </div>
+                  <div class="stat-info">
+                    <span class="stat-value">{{
+                      server.systemServerMaxConnections || "∞"
+                    }}</span>
+                    <span class="stat-label">连接数</span>
+                  </div>
                 </div>
               </div>
-              <div class="server-actions">
-                <el-dropdown @command="handleServerAction">
-                  <el-button type="text" size="small">
-                    <IconifyIconOnline icon="ri:more-line" />
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item
-                        :command="{
-                          type: 'edit',
-                          server: server,
-                        }"
-                      >
-                        <IconifyIconOnline icon="ri:edit-line" />
-                        编辑
-                      </el-dropdown-item>
-                      <el-dropdown-item
-                        :command="{
-                          type: 'clone',
-                          server: server,
-                        }"
-                      >
-                        <IconifyIconOnline icon="ri:file-copy-line" />
-                        克隆
-                      </el-dropdown-item>
-                      <el-dropdown-item
-                        :command="`restart-${server.systemServerId}`"
-                        :disabled="server.systemServerStatus !== 'RUNNING'"
-                      >
-                        <IconifyIconOnline icon="ri:restart-line" />
-                        重启
-                      </el-dropdown-item>
-                      <el-dropdown-item
-                        :command="`delete-${server.systemServerId}`"
-                        divided
-                      >
-                        <IconifyIconOnline icon="ri:delete-bin-line" />
-                        删除
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </div>
-            </div>
 
-            <div class="server-info">
-              <div
-                class="info-item"
-                :title="'类型: ' + server.systemServerType"
-              >
-                <IconifyIconOnline icon="ri:equalizer-line" />
-                <span class="info-value">{{ server.systemServerType }}</span>
+              <!-- 详细信息 -->
+              <div class="server-details">
+                <div class="detail-item">
+                  <IconifyIconOnline icon="ri:folder-line" />
+                  <span>{{ server.systemServerContextPath || "/" }}</span>
+                </div>
+                <div class="detail-item" v-if="server.systemServerTimeout">
+                  <IconifyIconOnline icon="ri:time-line" />
+                  <span>{{ server.systemServerTimeout }}ms</span>
+                </div>
               </div>
-              <div
-                class="info-item"
-                :title="'端口: ' + server.systemServerPort"
-              >
-                <IconifyIconOnline icon="ri:door-lock-line" />
-                <span class="info-value" @click="handleOpen(server)">{{
-                  server.systemServerPort
-                }}</span>
-              </div>
-              <div
-                class="info-item"
-                :title="
-                  '最大连接数: ' +
-                  (server.systemServerMaxConnections || '无限制')
-                "
-              >
-                <IconifyIconOnline icon="ri:group-line" />
-                <span class="info-value">{{
-                  server.systemServerMaxConnections || "∞"
-                }}</span>
-              </div>
-              <div
-                class="info-item"
-                :title="'超时时间: ' + (server.systemServerTimeout || '默认')"
-              >
-                <IconifyIconOnline icon="ri:time-line" />
-                <span class="info-value">{{
-                  server.systemServerTimeout || "-"
-                }}</span>
-              </div>
-              <div
-                class="info-item"
-                :title="'上下文: ' + (server.systemServerContextPath || '无')"
-              >
-                <IconifyIconOnline icon="ri:parentheses-fill" />
-                <span class="info-value">{{
-                  server.systemServerContextPath || "无"
-                }}</span>
-              </div>
-              <div
-                class="info-item"
-                v-if="server.systemServerDescription"
-                :title="'描述: ' + server.systemServerDescription"
-              >
-                <IconifyIconOnline icon="ri:file-text-line" />
-                <span class="info-value text-ellipsis">{{
-                  server.systemServerDescription
-                }}</span>
-              </div>
-            </div>
 
-            <div class="server-footer">
-              <div class="server-controls">
+              <!-- 操作按钮 -->
+              <div class="card-actions">
                 <el-button
                   v-if="
                     server.systemServerStatus === 'STOPPED' ||
                     server.systemServerStatus === 'ERROR'
                   "
                   type="success"
-                  size="small"
                   @click="startServer(server.systemServerId)"
                   :loading="actionLoading[server.systemServerId]"
+                  class="action-btn"
                 >
-                  <IconifyIconOnline icon="ri:play-line" />
+                  <IconifyIconOnline icon="ri:play-fill" />
                   启动
                 </el-button>
                 <el-button
                   v-else-if="server.systemServerStatus === 'RUNNING'"
                   type="danger"
-                  size="small"
                   @click="stopServer(server.systemServerId)"
                   :loading="actionLoading[server.systemServerId]"
+                  class="action-btn"
                 >
-                  <IconifyIconOnline icon="ri:stop-line" />
+                  <IconifyIconOnline icon="ri:stop-fill" />
                   停止
                 </el-button>
-                <el-button v-else type="warning" size="small" disabled>
+                <el-button v-else type="warning" disabled class="action-btn">
                   {{ getStatusText(server.systemServerStatus) }}
                 </el-button>
 
-                <el-button
-                  type="primary"
-                  size="small"
-                  @click="openServerConfig(server.systemServerId, server)"
-                >
-                  <IconifyIconOnline icon="ri:settings-3-line" />
-                  设置
-                </el-button>
+                <div class="action-group">
+                  <el-tooltip content="设置" placement="top">
+                    <el-button
+                      circle
+                      @click="openServerConfig(server.systemServerId, server)"
+                    >
+                      <IconifyIconOnline icon="ri:settings-4-line" />
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="日志" placement="top">
+                    <el-button
+                      circle
+                      @click="openServerLog(server.systemServerId, server)"
+                      :disabled="server.systemServerStatus !== 'RUNNING'"
+                    >
+                      <IconifyIconOnline icon="ri:file-list-3-line" />
+                    </el-button>
+                  </el-tooltip>
+                  <el-dropdown @command="handleServerAction" trigger="click">
+                    <el-button circle>
+                      <IconifyIconOnline icon="ri:more-2-fill" />
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item :command="{ type: 'edit', server }">
+                          <IconifyIconOnline icon="ri:edit-line" /> 编辑
+                        </el-dropdown-item>
+                        <el-dropdown-item :command="{ type: 'clone', server }">
+                          <IconifyIconOnline icon="ri:file-copy-line" /> 克隆
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          :command="`restart-${server.systemServerId}`"
+                          :disabled="server.systemServerStatus !== 'RUNNING'"
+                        >
+                          <IconifyIconOnline icon="ri:restart-line" /> 重启
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          :command="`delete-${server.systemServerId}`"
+                          divided
+                        >
+                          <IconifyIconOnline
+                            icon="ri:delete-bin-line"
+                            style="color: #ef4444"
+                          />
+                          <span style="color: #ef4444">删除</span>
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </div>
               </div>
             </div>
-          </el-card>
+          </div>
         </template>
       </ScTable>
     </div>
@@ -308,20 +309,27 @@
       :server-id="currentServerId"
       @success="handleConfigSuccess"
     />
+
+    <!-- 服务器日志对话框 -->
+    <ServerLogDialog
+      v-model:visible="showLogDialog"
+      :server="currentServer"
+      :server-id="currentServerId"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import {
-    deleteSystemServer,
-    getAvailableServerTypes,
-    getSystemServerPage,
-    getSystemServerStatistics,
-    restartSystemServer,
-    startSystemServer,
-    stopSystemServer,
-    type SystemServer,
-    type SystemServerStatistics,
+  deleteSystemServer,
+  getAvailableServerTypes,
+  getSystemServerPage,
+  getSystemServerStatistics,
+  restartSystemServer,
+  startSystemServer,
+  stopSystemServer,
+  type SystemServer,
+  type SystemServerStatistics,
 } from "@/api/system-server";
 import { getProtocolIcon } from "@/components/protocol-icons";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -329,16 +337,24 @@ import { onMounted, reactive, ref } from "vue";
 import ServerCloneDialog from "./components/ServerCloneDialog.vue";
 import ServerConfigDialog from "./components/ServerConfigDialog.vue";
 import ServerFormDialog from "./components/ServerFormDialog.vue";
+import ServerLogDialog from "./components/ServerLogDialog.vue";
 
 // 页面标题
 defineOptions({
   name: "ServiceManagement",
 });
 
+// 服务器类型接口
+interface ServerType {
+  name?: string;
+  value?: string;
+  label?: string;
+}
+
 // 响应式数据
 const loading = ref(false);
 const serverTable = ref<any>(null);
-const serverTypes = ref<string[]>([]);
+const serverTypes = ref<Array<string | ServerType>>([]);
 const statistics = ref<SystemServerStatistics>({
   total: 0,
   running: 0,
@@ -346,6 +362,36 @@ const statistics = ref<SystemServerStatistics>({
   error: 0,
 });
 const actionLoading = ref<Record<number, boolean>>({});
+
+/**
+ * 获取运行中服务器占比
+ */
+const getRunningRate = () => {
+  if (statistics.value.total === 0) return 0;
+  return Math.round((statistics.value.running / statistics.value.total) * 100);
+};
+
+/**
+ * 获取服务器类型的值
+ * 兼容字符串和对象格式
+ */
+const getTypeValue = (type: string | ServerType): string => {
+  if (typeof type === "string") {
+    return type;
+  }
+  return type.value || type.name || "";
+};
+
+/**
+ * 获取服务器类型的标签
+ * 兼容字符串和对象格式
+ */
+const getTypeLabel = (type: string | ServerType): string => {
+  if (typeof type === "string") {
+    return type;
+  }
+  return type.label || type.name || type.value || "";
+};
 
 // 表格列配置
 const columns = [
@@ -382,6 +428,7 @@ const queryParams = reactive({
 const showAddDialog = ref(false);
 const showCloneDialog = ref(false);
 const showConfigDialog = ref(false);
+const showLogDialog = ref(false);
 const currentServer = ref<SystemServer | null>(null);
 const currentServerId = ref<number | null>(null);
 
@@ -615,6 +662,13 @@ const openServerConfig = (serverId: number, server: SystemServer) => {
   showConfigDialog.value = true;
 };
 
+// 打开服务器日志
+const openServerLog = (serverId: number, server: SystemServer) => {
+  currentServerId.value = serverId;
+  currentServer.value = server;
+  showLogDialog.value = true;
+};
+
 // 表单成功回调
 const handleFormSuccess = () => {
   showAddDialog.value = false;
@@ -683,64 +737,35 @@ onMounted(() => {
 // 统计卡片
 .statistics-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
   margin-bottom: 24px;
+  flex-shrink: 0;
 
-  .stat-card {
-    border-radius: 12px;
-    border: none;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  :deep(.stat-card-item) {
+    cursor: pointer;
     transition: all 0.3s ease;
+    min-height: 100px;
 
     &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+      transform: translateY(-4px);
     }
+  }
 
-    .stat-content {
-      display: flex;
-      align-items: center;
-      gap: 16px;
+  :deep(.sc-card-stats) {
+    height: 100%;
+  }
+}
 
-      .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        color: var(--el-text-color-primary);
+@media (max-width: 1200px) {
+  .statistics-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 
-        &.total {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        &.running {
-          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        &.stopped {
-          background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-        }
-      }
-
-      .stat-info {
-        .stat-value {
-          font-size: 28px;
-          font-weight: 600;
-          color: var(--el-text-color-primary);
-          line-height: 1;
-        }
-
-        .stat-label {
-          font-size: 14px;
-           color: var(--el-text-color-primary);
-          margin-top: 4px;
-        }
-      }
-    }
+@media (max-width: 768px) {
+  .statistics-cards {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -777,228 +802,246 @@ onMounted(() => {
 // 服务器列表
 .server-list {
   flex: 1;
-  .server-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 12px;
-    margin-bottom: 24px;
-  }
 
   .server-card {
-    border-radius: 8px;
-    border: 1px solid var(--el-border-color);
-     background: var(--el-bg-color-overlay);
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.08),
+      0 4px 12px rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease;
     position: relative;
-    overflow: hidden;
-    padding: 10px;
+
     &:hover {
-      transform: translateY(-2px);
-      box-shadow:
-        0 4px 6px -1px rgba(0, 0, 0, 0.1),
-        0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     }
 
-    &.server-running {
-      border-left: 3px solid #67c23a;
+    // 顶部状态条
+    .status-bar {
+      height: 4px;
+      background: linear-gradient(90deg, #e5e7eb, #f1f5f9);
+      transition: all 0.3s ease;
     }
 
-    &.server-stopped {
-      border-left: 3px solid #909399;
+    &.server-running .status-bar {
+      background: linear-gradient(90deg, #10b981, #34d399);
     }
 
-    &.server-transitioning {
-      border-left: 3px solid #e6a23c;
+    &.server-stopped .status-bar {
+      background: linear-gradient(90deg, #94a3b8, #cbd5e1);
+    }
+
+    &.server-transitioning .status-bar {
+      background: linear-gradient(90deg, #f59e0b, #fbbf24);
       animation: pulse 2s infinite;
     }
 
-    &.server-error {
-      border-left: 3px solid #f56c6c;
+    &.server-error .status-bar {
+      background: linear-gradient(90deg, #ef4444, #f87171);
     }
 
-    .server-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    // 卡片主体
+    .card-content {
+      padding: 20px;
+    }
 
-      .server-title {
+    // 头部
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+
+      .server-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: #fff;
+        font-size: 22px;
+        flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      }
+
+      .server-meta {
+        flex: 1;
+        min-width: 0;
+
+        .server-name {
+          margin: 0 0 4px;
+          font-size: 16px;
+          font-weight: 700;
+          color: #1e293b;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .server-type {
+          font-size: 12px;
+          color: #64748b;
+          font-weight: 500;
+        }
+      }
+
+      .status-tag {
+        flex-shrink: 0;
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 11px;
+        font-weight: 600;
+
+        .status-icon {
+          margin-right: 4px;
+          font-size: 12px;
+        }
+      }
+    }
+
+    // 统计信息区
+    .server-stats {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+
+      .stat-item {
         flex: 1;
         display: flex;
         align-items: center;
-        gap: 12px;
-
-        .server-icon {
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 8px;
-          background: #f1f5f9;
-          color: #64748b;
-          transition: all 0.2s ease;
-
-          &:hover {
-            background: #e2e8f0;
-            color: #475569;
-          }
-
-          .protocol-icon {
-            width: 24px;
-            height: 24px;
-          }
-        }
-
-        .server-title-content {
-          flex: 1;
-          min-width: 0;
-
-          h3 {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 600;
-            color: #2c3e50;
-            letter-spacing: -0.3px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-
-          .el-tag {
-            margin-top: 4px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 4px 8px;
-            border-radius: 6px;
-          }
-        }
-      }
-
-      .server-actions {
-        margin-left: 16px;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-
-        .el-button {
-          padding: 8px;
-          border-radius: 8px;
-
-          &:hover {
-            background: rgba(0, 0, 0, 0.05);
-          }
-        }
-      }
-    }
-
-    &:hover {
-      .server-actions {
-        opacity: 1;
-      }
-    }
-
-    .server-info {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-bottom: 12px;
-
-      .info-item {
-        padding: 6px;
+        gap: 10px;
+        padding: 12px;
         background: #f8fafc;
-        border-radius: 4px;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        cursor: help;
+        border-radius: 12px;
+        transition: all 0.25s ease;
+        cursor: default;
 
         &:hover {
           background: #f1f5f9;
         }
 
-        .iconify-icon {
-          font-size: 16px;
-          color: #64748b;
-          flex-shrink: 0;
+        &.primary {
+          cursor: pointer;
+
+          &:hover {
+            background: #eff6ff;
+
+            .stat-icon {
+              background: #2563eb;
+            }
+
+            .stat-value {
+              color: #2563eb;
+            }
+          }
         }
 
-        .info-value {
-          font-size: 12px;
-          color: #334155;
-          font-weight: 500;
-          flex: 1;
-          min-width: 0;
+        .stat-icon {
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #3b82f6;
+          color: #fff;
+          border-radius: 10px;
+          font-size: 16px;
+          flex-shrink: 0;
+          transition: all 0.25s ease;
+        }
 
-          &.text-ellipsis {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .stat-info {
+          display: flex;
+          flex-direction: column;
+
+          .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1.2;
+            transition: color 0.25s ease;
+          }
+
+          .stat-label {
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 500;
           }
         }
       }
     }
 
-    .server-footer {
-      .server-controls {
+    // 详细信息
+    .server-details {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px dashed #e5e7eb;
+
+      .detail-item {
         display: flex;
-        gap: 16px;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #64748b;
+        background: #f8fafc;
+        padding: 6px 10px;
+        border-radius: 6px;
 
-        .el-button {
-          flex: 1;
-          border-radius: 4px;
-          font-weight: 500;
-          height: 28px;
-          font-size: 12px;
-          padding: 0 12px;
-          transition: all 0.3s ease;
+        .iconify-icon {
+          font-size: 14px;
+          color: #94a3b8;
+        }
+      }
+    }
 
-          &.el-button--success {
-            background: #10b981;
-            border: none;
-            color: var(--el-text-color-primary);
+    // 操作按钮
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
 
-            &:hover {
-              background: #059669;
-            }
+      .action-btn {
+        flex: 1;
+        height: 36px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 13px;
+
+        .iconify-icon {
+          margin-right: 6px;
+          font-size: 16px;
+        }
+      }
+
+      .action-group {
+        display: flex;
+        gap: 8px;
+
+        .el-button.is-circle {
+          width: 36px;
+          height: 36px;
+          border: 1px solid #e5e7eb;
+          background: #fff;
+          color: #64748b;
+
+          &:hover:not(:disabled) {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background: #eff6ff;
           }
 
-          &.el-button--danger {
-            background: #ef4444;
-            border: none;
-            color: var(--el-text-color-primary);
-
-            &:hover {
-              background: #dc2626;
-            }
-          }
-
-          &.el-button--warning {
-            background: #f59e0b;
-            border: none;
-            color: var(--el-text-color-primary);
-
-            &:hover {
-              background: #d97706;
-            }
-          }
-
-          &.el-button--primary {
-            background: #3b82f6;
-            border: none;
-            color: var(--el-text-color-primary);
-
-            &:hover {
-              background: #2563eb;
-            }
+          &:disabled {
+            opacity: 0.5;
           }
 
           .iconify-icon {
-            margin-right: 6px;
             font-size: 16px;
           }
         }
@@ -1028,8 +1071,14 @@ onMounted(() => {
 // 响应式
 @media (max-width: 1200px) {
   .server-list {
-    .server-info {
-      grid-template-columns: 1fr;
+    .server-card {
+      .server-stats {
+        flex-wrap: wrap;
+
+        .stat-item {
+          min-width: calc(50% - 6px);
+        }
+      }
     }
   }
 }
@@ -1075,119 +1124,43 @@ onMounted(() => {
 
   .server-list {
     .server-card {
-      padding: 1rem;
+      .card-content {
+        padding: 16px;
+      }
 
-      .server-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
+      .card-header {
+        flex-wrap: wrap;
 
-        .server-title {
-          flex-direction: column;
-          align-items: flex-start;
-        }
-
-        .server-actions {
-          opacity: 1;
-          align-self: flex-end;
+        .status-tag {
+          margin-top: 8px;
+          width: 100%;
+          text-align: center;
+          justify-content: center;
         }
       }
 
-      .server-footer {
-        .server-controls {
-          flex-direction: column;
-          gap: 8px;
+      .server-stats {
+        flex-direction: column;
 
-          .el-button {
-            width: 100%;
-          }
+        .stat-item {
+          min-width: 100%;
+        }
+      }
+
+      .card-actions {
+        flex-wrap: wrap;
+
+        .action-btn {
+          flex: 1 1 100%;
+          margin-bottom: 8px;
+        }
+
+        .action-group {
+          flex: 1 1 100%;
+          justify-content: center;
         }
       }
     }
-  }
-}
-
-/* Modern enhancements for service cards */
-.server-list .server-card {
-  border-radius: 14px;
-  padding: 16px;
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
-  border: 1px solid transparent;
-  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease,
-    background 0.25s ease;
-}
-
-.server-list .server-card::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 3px;
-  background: var(--card-accent, #e5e7eb);
-}
-
-.server-list .server-card.server-running {
-  --card-accent: #10b981;
-}
-.server-list .server-card.server-stopped {
-  --card-accent: #94a3b8;
-}
-.server-list .server-card.server-transitioning {
-  --card-accent: #f59e0b;
-}
-.server-list .server-card.server-error {
-  --card-accent: #ef4444;
-}
-
-.server-list .server-card:hover {
-  transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 12px 28px rgba(17, 24, 39, 0.12);
-}
-
-/* Subtle slide-in for actions */
-.server-list .server-card .server-actions {
-  opacity: 0;
-  transform: translateY(-4px);
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
-}
-.server-list .server-card:hover .server-actions {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Info grid pill look */
-.server-list .server-card .server-info .info-item {
-  background: #f8fafc;
-  border: 1px solid #eef2f7;
-  border-radius: 8px;
-  padding: 8px 10px;
-}
-.server-list .server-card .server-info .info-item:hover {
-  background: #f1f5f9;
-  border-color: #e5eaf0;
-}
-
-/* Title optics */
-.server-list .server-card .server-title-content h3 {
-  font-size: 17px;
-  letter-spacing: -0.2px;
-}
-
-/* Better buttons contrast on cards */
-.server-list .server-card .server-footer .server-controls .el-button {
-  border-radius: 8px;
-}
-
-@media (max-width: 768px) {
-  .server-list .server-card {
-    border-radius: 12px;
-    padding: 14px;
   }
 }
 </style>

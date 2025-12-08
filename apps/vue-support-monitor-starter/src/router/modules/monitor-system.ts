@@ -9,6 +9,7 @@ export default [
       title: "服务器管理",
       showLink: true,
       showParent: true,
+      rank: 1,
     },
     children: [
       {

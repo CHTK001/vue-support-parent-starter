@@ -17,11 +17,19 @@
       </div>
 
       <el-scrollbar class="left-list thin-scrollbar">
-        <div v-for="(s, idx) in storages" :key="idx" :class="['left-item', { active: selectedIndex === idx }]" @click="selectStorage(idx)">
+        <div
+          v-for="(s, idx) in storages"
+          :key="idx"
+          :class="['left-item', { active: selectedIndex === idx }]"
+          @click="selectStorage(idx)"
+        >
           <div class="row1">
             <span class="seq">#{{ idx + 1 }}</span>
             <span class="type">{{ s.fileStorageType }}</span>
-            <el-tag size="small" :type="s.fileStorageEnabled ? 'success' : 'info'">
+            <el-tag
+              size="small"
+              :type="s.fileStorageEnabled ? 'success' : 'info'"
+            >
               {{ s.fileStorageEnabled ? "启用" : "禁用" }}
             </el-tag>
           </div>
@@ -57,9 +65,16 @@
         </el-button>
         <!-- 面包屑与上级 -->
         <div class="crumbs">
-          <el-button size="small" @click="goUp" :disabled="!canGoUp">上级</el-button>
+          <el-button size="small" @click="goUp" :disabled="!canGoUp"
+            >上级</el-button
+          >
           <el-breadcrumb separator="/" class="bc">
-            <el-breadcrumb-item v-for="(c, i) in crumbs" :key="i" @click="onCrumbClick(i)" class="bc-item">
+            <el-breadcrumb-item
+              v-for="(c, i) in crumbs"
+              :key="i"
+              @click="onCrumbClick(i)"
+              class="bc-item"
+            >
               {{ c.name || "/" }}
             </el-breadcrumb-item>
           </el-breadcrumb>
@@ -71,8 +86,17 @@
             <span class="si-name" :title="serverInfo.monitorSysGenServerName">
               {{ serverInfo.monitorSysGenServerName }}
             </span>
-            <span class="si-addr" :title="serverInfo.monitorSysGenServerHost + ':' + serverInfo.monitorSysGenServerPort">
-              {{ serverInfo.monitorSysGenServerHost }}:{{ serverInfo.monitorSysGenServerPort }}
+            <span
+              class="si-addr"
+              :title="
+                serverInfo.monitorSysGenServerHost +
+                ':' +
+                serverInfo.monitorSysGenServerPort
+              "
+            >
+              {{ serverInfo.monitorSysGenServerHost }}:{{
+                serverInfo.monitorSysGenServerPort
+              }}
             </span>
           </template>
           <template v-else>
@@ -83,21 +107,41 @@
         <div class="spacer" />
         <div class="pager">
           <span>每页</span>
-          <el-select v-model="pager.limit" size="small" style="width: 90px" @change="onLimitChange">
+          <el-select
+            v-model="pager.limit"
+            size="small"
+            style="width: 90px"
+            @change="onLimitChange"
+          >
             <el-option :value="20" label="20" />
             <el-option :value="50" label="50" />
             <el-option :value="100" label="100" />
           </el-select>
           <span>条</span>
           <span class="gap" />
-          <el-button size="small" @click="goPrevPage" :disabled="pager.page <= 1">上一页</el-button>
-          <el-button size="small" @click="goNextPage" :disabled="previewItems.length < pager.limit">下一页</el-button>
+          <el-button
+            size="small"
+            @click="goPrevPage"
+            :disabled="pager.page <= 1"
+            >上一页</el-button
+          >
+          <el-button
+            size="small"
+            @click="goNextPage"
+            :disabled="previewItems.length < pager.limit"
+            >下一页</el-button
+          >
         </div>
       </div>
 
       <div class="preview-body thin-scrollbar">
         <template v-if="mode === 'list'">
-          <el-table :data="previewItems" height="calc(100vh - 180px)" size="small" border>
+          <el-table
+            :data="previewItems"
+            height="calc(100vh - 180px)"
+            size="small"
+            border
+          >
             <el-table-column prop="name" label="名称" min-width="240" />
             <el-table-column prop="size" label="大小" width="120" />
             <el-table-column prop="modified" label="修改时间" width="200" />
@@ -105,17 +149,30 @@
         </template>
         <template v-else-if="mode === 'card'">
           <div class="card-grid">
-            <el-card v-for="it in previewItems" :key="it.id" class="file-card" shadow="hover" @click="onItemClick(it)">
+            <el-card
+              v-for="it in previewItems"
+              :key="it.id"
+              class="file-card"
+              shadow="hover"
+              @click="onItemClick(it)"
+            >
               <div class="thumb-wrap">
                 <template v-if="isImage(it)">
-                  <el-image :key="getImageUrl(it)" :src="getImageUrl(it)" fit="cover" lazy>
+                  <el-image
+                    :key="getImageUrl(it)"
+                    :src="getImageUrl(it)"
+                    fit="cover"
+                    lazy
+                  >
                     <template #placeholder>
                       <div class="img-skeleton" />
                     </template>
                     <template #error>
                       <div class="img-error">
                         <span>加载失败</span>
-                        <el-button size="small" @click.stop="retryImage(it)">重试</el-button>
+                        <el-button size="small" @click.stop="retryImage(it)"
+                          >重试</el-button
+                        >
                       </div>
                     </template>
                   </el-image>
@@ -133,16 +190,28 @@
         </template>
         <template v-else>
           <div class="image-grid">
-            <div v-for="it in previewItems" :key="it.id" class="img-card" @click="onItemClick(it)">
+            <div
+              v-for="it in previewItems"
+              :key="it.id"
+              class="img-card"
+              @click="onItemClick(it)"
+            >
               <template v-if="isImage(it)">
-                <el-image :key="getImageUrl(it)" :src="getImageUrl(it)" fit="cover" lazy>
+                <el-image
+                  :key="getImageUrl(it)"
+                  :src="getImageUrl(it)"
+                  fit="cover"
+                  lazy
+                >
                   <template #placeholder>
                     <div class="img-skeleton" />
                   </template>
                   <template #error>
                     <div class="img-error">
                       <span>加载失败</span>
-                      <el-button size="small" @click.stop="retryImage(it)">重试</el-button>
+                      <el-button size="small" @click.stop="retryImage(it)"
+                        >重试</el-button
+                      >
                     </div>
                   </template>
                 </el-image>
@@ -160,8 +229,17 @@
       </div>
     </main>
     <!-- 预览弹窗：非图片文件用 iframe 预览（?preview） -->
-    <el-dialog v-model="previewDialogVisible" width="80%" top="20px" title="预览">
-      <iframe v-if="previewUrl" :src="previewUrl" style="width: 100%; height: 70vh; border: none" />
+    <el-dialog
+      v-model="previewDialogVisible"
+      width="80%"
+      top="20px"
+      title="预览"
+    >
+      <iframe
+        v-if="previewUrl"
+        :src="previewUrl"
+        style="width: 100%; height: 70vh; border: none"
+      />
     </el-dialog>
   </div>
 </template>
@@ -171,7 +249,12 @@ import { ref, onMounted, computed } from "vue";
 import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 
-import { getFileStorageConfig, getSystemServerSettingByServerId, type FileStorageConfig, type SystemServerSetting } from "@/api/system-server-setting";
+import {
+  getFileStorageConfig,
+  getSystemServerSettingByServerId,
+  type FileStorageConfig,
+  type SystemServerSetting,
+} from "@/api/system-server-setting";
 import { getSystemServerById, type SystemServer } from "@/api/system-server";
 import { fileStorageList } from "@/api/file-manager/file-storage";
 // 本地静态资源（按后缀）
@@ -359,7 +442,7 @@ const EXT_ICON_MAP: Record<string, string> = {
   mdb: imgMdb,
   log: imgLog,
   ofd: imgOfd,
-  eml: imgEml
+  eml: imgEml,
 };
 
 // 提取后缀
@@ -380,10 +463,21 @@ function getFileThumb(it: any): string {
 }
 
 // 轻量缓存：30秒内同参命中直接返回，减少请求
-const listCache = new Map<string, { ts: number; items: any[]; marker: string }>();
+const listCache = new Map<
+  string,
+  { ts: number; items: any[]; marker: string }
+>();
 const CACHE_TTL = 30_000;
 function makeCacheKey(s: any, basePath: string, limit: number, marker: string) {
-  return [serverId, s?.fileStorageType, s?.fileStorageEndpoint, s?.fileStorageBucket, basePath, limit, marker].join("|");
+  return [
+    serverId,
+    s?.fileStorageType,
+    s?.fileStorageEndpoint,
+    s?.fileStorageBucket,
+    basePath,
+    limit,
+    marker,
+  ].join("|");
 }
 
 // 基于 marker 的分页（与后端 AbstractFileStorage#calcIndex 对齐）
@@ -395,7 +489,7 @@ function base64EncodeUtf8(input: string) {
 function hexEncode(str: string) {
   const bytes = new TextEncoder().encode(str);
   return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, "0"))
+    .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
 function makeMarker(index: number) {
@@ -416,7 +510,8 @@ function onLimitChange() {
 function goPrevPage() {
   if (pager.value.page <= 1) return;
   pager.value.page -= 1;
-  pager.value.marker = pager.value.page === 1 ? "" : makeMarker(pager.value.page);
+  pager.value.marker =
+    pager.value.page === 1 ? "" : makeMarker(pager.value.page);
   fetchPreviewItems();
 }
 function goNextPage() {
@@ -449,7 +544,7 @@ function addStorage() {
     fileStorageBucket: "",
     fileStorageAccessKey: "",
     fileStorageSecretKey: "",
-    fileStorageRegion: ""
+    fileStorageRegion: "",
   } as any);
   selectedIndex.value = storages.value.length - 1;
 }
@@ -477,7 +572,17 @@ function isImage(it: any) {
   if (!ext) {
     ext = getExt(it);
   }
-  const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "heic"];
+  const imageExts = [
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+    "bmp",
+    "webp",
+    "svg",
+    "tiff",
+    "heic",
+  ];
   return imageExts.includes(ext);
 }
 
@@ -493,13 +598,17 @@ function retryImage(it: any) {
 }
 
 function buildUrl(it: any, usePreview = false) {
-  const s = selectedIndex.value != null ? storages.value[selectedIndex.value] : storages.value[0];
+  const s =
+    selectedIndex.value != null
+      ? storages.value[selectedIndex.value]
+      : storages.value[0];
   if (!s) return "";
 
   const si = (serverInfo as any).value || {};
   const host = si.systemServerHost || si.monitorSysGenServerHost || "127.0.0.1";
   const port = si.systemServerPort || si.monitorSysGenServerPort || 8080;
-  const context = si.systemServerContextPath || si.systemServerContentPath || "";
+  const context =
+    si.systemServerContextPath || si.systemServerContentPath || "";
 
   // 构建基础URL
   const base = `http://${host}:${port}${context}`;
@@ -542,10 +651,11 @@ function onItemClick(it: any) {
 async function reload() {
   try {
     pager.value.marker = null;
-    getFileStorageConfig(serverId).then(async res => {
+    getFileStorageConfig(serverId).then(async (res) => {
       if (res?.success && Array.isArray(res.data)) {
         storages.value = res.data as any[];
-        if (!storages.value.length) ElMessage.info("当前服务器暂无已安装的存储");
+        if (!storages.value.length)
+          ElMessage.info("当前服务器暂无已安装的存储");
         selectedIndex.value = storages.value.length ? 0 : null;
         const s = storages.value[0];
         const base = s?.fileStorageBasePath || "/";
@@ -571,7 +681,10 @@ async function doPreview(idx: number) {
 
 async function fetchPreviewItems() {
   try {
-    const s = selectedIndex.value != null ? storages.value[selectedIndex.value] : storages.value[0];
+    const s =
+      selectedIndex.value != null
+        ? storages.value[selectedIndex.value]
+        : storages.value[0];
     if (!s) {
       previewItems.value = [];
       return;
@@ -579,7 +692,12 @@ async function fetchPreviewItems() {
     if (!currentPath.value) currentPath.value = s.fileStorageBasePath || "/";
 
     // 缓存命中：直接使用
-    const key = makeCacheKey(s, currentPath.value, pager.value.limit, pager.value.marker || "");
+    const key = makeCacheKey(
+      s,
+      currentPath.value,
+      pager.value.limit,
+      pager.value.marker || ""
+    );
     const now = Date.now();
     const cached = listCache.get(key);
     if (cached && now - cached.ts < CACHE_TTL) {
@@ -593,7 +711,10 @@ async function fetchPreviewItems() {
     params.append("type", s.fileStorageType || "");
     params.append("bucket", s.fileStorageBucket || "");
     params.append("endpoint", s.fileStorageEndpoint || "");
-    params.append("basePath", currentPath.value || s.fileStorageBasePath || "/");
+    params.append(
+      "basePath",
+      currentPath.value || s.fileStorageBasePath || "/"
+    );
     // 通过 limit 控制后端返回条数
     params.append("limit", String(pager.value.limit));
     // 通过 marker 控制分页游标
@@ -611,12 +732,18 @@ async function fetchPreviewItems() {
     // 仅取必要字段，避免在前端继续扩大对象
     const mapped = (items || []).map((it: any, i: number) => ({
       id: it.fileId || it.id || i,
-      name: it.name || it.filename || it.fileName || it.originalFilename || it.path || "",
+      name:
+        it.name ||
+        it.filename ||
+        it.fileName ||
+        it.originalFilename ||
+        it.path ||
+        "",
       size: it.size || it.fileSize || it.length || 0,
       modified: it.modified || it.lastModified || it.updateTime || "",
       ext: it.ext || it.suffix || "",
       filePath: it.filePath || it.parentPath || currentPath.value || "/",
-      directory: it.directory === true
+      directory: it.directory === true,
     }));
 
     previewItems.value = mapped;
@@ -646,73 +773,196 @@ onMounted(() => {
 <style scoped>
 .fs-full {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 340px 1fr;
   height: calc(100vh - 24px);
-  gap: 12px;
-  padding: 12px;
+  gap: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
 }
 .fs-left {
-  border-right: 1px solid var(--el-border-color);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  border: none;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  transition: width 0.2s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+}
+.fs-left:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
 }
 .fs-left.collapsed {
   width: 0;
   padding: 0;
   margin: 0;
+  border: none;
 }
 .left-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  padding: 20px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
 }
 .left-header .title {
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 17px;
+  color: #fff;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+}
+.left-header .title .iconify {
+  font-size: 22px;
+}
+.left-header .actions {
+  display: flex;
+  gap: 8px;
+}
+.left-header .actions :deep(.el-button) {
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+.left-header .actions :deep(.el-button:hover) {
+  background: rgba(255, 255, 255, 0.3);
 }
 .left-list {
-  height: calc(100vh - 120px);
+  height: calc(100vh - 180px);
+  padding: 12px;
 }
 .left-item {
-  padding: 8px;
-  border-bottom: 1px solid var(--el-border-color);
+  padding: 16px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e5e7eb;
   cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+.left-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: #e5e7eb;
+  transition: all 0.3s ease;
+}
+.left-item:hover {
+  background: #fff;
+  border-color: #d1d5db;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  transform: translateX(4px);
+}
+.left-item:hover::before {
+  background: #6366f1;
 }
 .left-item.active {
-  background: var(--el-color-primary-light-9);
+  background: linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%);
+  border-color: #6366f1;
+  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.2);
+}
+.left-item.active::before {
+  background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%);
+  width: 5px;
 }
 .left-item .row1 {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 .left-item .row1 .seq {
-  color: var(--el-text-color-secondary);
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  color: #4f46e5;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+.left-item .row1 .type {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 15px;
+  flex: 1;
 }
 .left-item .row2 {
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-  margin-top: 4px;
+  color: #64748b;
+  font-size: 13px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-left: 8px;
+  margin-bottom: 10px;
 }
 .left-item .row3 {
   display: flex;
   justify-content: flex-end;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px solid #e2e8f0;
 }
 .fs-right {
   min-width: 0;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  border: none;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  padding: 0;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fs-right:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
 }
 .toolbar {
   display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+.toolbar :deep(.el-radio-group) {
+  border-radius: 12px;
+  overflow: hidden;
+}
+.toolbar :deep(.el-radio-button__inner) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+.toolbar
+  :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background: #fff;
+  color: #059669;
+  border-color: #fff;
+}
+.toolbar :deep(.el-button) {
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+.toolbar :deep(.el-button:hover) {
+  background: rgba(255, 255, 255, 0.3);
 }
 .crumbs {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+}
+.crumbs :deep(.el-button) {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
 }
 .crumbs .bc {
   max-width: 40%;
@@ -720,41 +970,93 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.crumbs :deep(.el-breadcrumb__inner) {
+  color: rgba(255, 255, 255, 0.8);
+}
+.crumbs :deep(.el-breadcrumb__separator) {
+  color: rgba(255, 255, 255, 0.5);
+}
 .crumbs .bc-item {
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+.crumbs .bc-item:hover :deep(.el-breadcrumb__inner) {
+  color: #fff;
 }
 .server-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--el-text-color-secondary);
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 14px;
+  border-radius: 12px;
+  color: #fff;
+  margin-left: auto;
+}
+.server-info .iconify {
+  font-size: 18px;
 }
 .server-info .si-name {
-  font-weight: 500;
+  font-weight: 600;
+  color: #fff;
 }
 .server-info .si-addr {
   font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+.spacer {
+  flex: 1;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pager :deep(.el-select) {
+  border-radius: 8px;
 }
 .preview-body {
-  height: calc(100vh - 170px);
+  height: calc(100vh - 180px);
   overflow: auto;
+  padding: 20px 24px;
 }
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
 }
 .file-card {
   width: 100%;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+}
+.file-card:hover {
+  border-color: #10b981;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.2);
+  transform: translateY(-6px);
 }
 .thumb-wrap {
-  height: 140px;
-  background: #f7f7f7;
-  border-radius: 6px;
+  height: 150px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 0;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+.thumb-wrap::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.03));
 }
 .ph-img {
   width: 100%;
@@ -803,14 +1105,22 @@ onMounted(() => {
 }
 .image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
 }
 .img-card {
   position: relative;
-  height: 220px;
+  height: 260px;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 18px;
+  border: none;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+.img-card:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  transform: translateY(-8px) scale(1.02);
 }
 .img-card .el-image,
 .img-card img {
@@ -818,25 +1128,37 @@ onMounted(() => {
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 0.4s ease;
+}
+.img-card:hover .el-image,
+.img-card:hover img {
+  transform: scale(1.05);
 }
 .overlay {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 8px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 80%);
+  padding: 16px;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
   color: #fff;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+.img-card:hover .overlay {
+  transform: translateY(0);
 }
 .overlay .ov-name {
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .overlay .ov-sub {
   font-size: 12px;
-  opacity: 0.85;
+  opacity: 0.8;
+  margin-top: 4px;
 }
 @media (max-width: 1080px) {
   .fs-full {
