@@ -105,7 +105,7 @@
           <div class="form-label">
             <span>数据上报方式</span>
             <el-tooltip
-              content="选择监控数据的上报方式：NONE-不上报，API-通过API上报，PROMETHEUS-通过Prometheus上报"
+              content="选择监控数据的上报方式：NONE-不上报，NODE-节点上报，LOCAL-本地上报，PROMETHEUS-通过Prometheus上报"
               placement="top"
               effect="dark"
             >
@@ -120,7 +120,7 @@
           @change="handleChange"
         >
           <el-option label="不上报" value="NONE" />
-          <el-option label="API上报" value="API" />
+          <el-option label="节点上报" value="NODE" />
           <el-option label="本地上报" value="LOCAL" />
           <el-option label="Prometheus" value="PROMETHEUS" />
         </el-select>
