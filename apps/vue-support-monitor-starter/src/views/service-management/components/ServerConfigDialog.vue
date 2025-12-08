@@ -5,178 +5,173 @@
     width="1200px"
     :close-on-click-modal="false"
     @close="handleClose"
+    class="server-config-dialog"
   >
     <div class="config-container">
-      <!-- 左侧：可用的ServletFilter -->
-      <div class="available-filters">
-        <div class="section-header available-header">
-          <div class="header-title">
-            <IconifyIconOnline icon="ri:apps-2-line" class="header-icon" />
-            <h3>可用的 Filter</h3>
-            <el-tag type="info" size="small" round>
-              {{ availableFilters.length }}
-            </el-tag>
+      <!-- 左侧：可用的 Filter -->
+      <div class="panel available-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <div class="title-icon available-icon">
+              <IconifyIconOnline icon="ri:apps-2-line" />
+            </div>
+            <div class="title-text">
+              <h3>可用组件</h3>
+              <span class="subtitle">点击安装到右侧列表</span>
+            </div>
           </div>
-          <el-button
-            type="primary"
-            size="small"
-            circle
-            @click="refreshAvailableFilters"
-          >
-            <IconifyIconOnline icon="ri:refresh-line" />
-          </el-button>
+          <div class="panel-actions">
+            <el-tag type="info" size="small" effect="plain" round>
+              {{ availableFilters.length }} 个可用
+            </el-tag>
+            <el-tooltip content="刷新列表" placement="top">
+              <el-button type="primary" size="small" circle @click="refreshAvailableFilters">
+                <IconifyIconOnline icon="ri:refresh-line" />
+              </el-button>
+            </el-tooltip>
+          </div>
         </div>
 
-        <el-scrollbar class="filter-scrollbar" v-loading="availableLoading">
-          <div
-            v-for="(filter, index) in availableFilters"
-            :key="filter.type"
-            class="filter-item available"
-          >
-            <div class="filter-info">
-              <div class="filter-name">
-                <span class="filter-seq"> {{ index + 1 }}</span>
-                <span>
-                  {{ filter.describe || filter.name }}
-                </span>
-                <span class="filter-type">
-                  {{
-                    filter.describe ? filter.name : filter.describeType
-                  }}</span
+        <el-scrollbar class="panel-content" v-loading="availableLoading">
+          <div class="filter-list">
+            <div
+              v-for="(filter, index) in availableFilters"
+              :key="filter.type"
+              class="filter-card available-card"
+            >
+              <div class="card-index">{{ index + 1 }}</div>
+              <div class="card-body">
+                <div class="card-header">
+                  <span class="card-name">{{ filter.describe || filter.name }}</span>
+                  <span class="card-type">{{ filter.describe ? filter.name : filter.describeType }}</span>
+                </div>
+                <div class="card-desc" v-if="filter.describeDetail">
+                  {{ filter.describeDetail }}
+                </div>
+              </div>
+              <div class="card-action">
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="installFilter(filter)"
+                  :loading="installLoading[filter.type]"
                 >
+                  <IconifyIconOnline icon="ri:add-line" />
+                  安装
+                </el-button>
               </div>
-              <div class="filter-detail" v-if="filter.describe">
-                <el-tooltip :content="filter.describe" placement="top">
-                  <el-icon class="detail-icon"> <InfoFilled /> </el-icon>
-                </el-tooltip>
-                {{ filter.describe }}
-              </div>
-            </div>
-            <div class="filter-actions">
-              <el-button
-                type="primary"
-                size="small"
-                @click="installFilter(filter)"
-                :loading="installLoading[filter.type]"
-              >
-                <IconifyIconOnline icon="ri:download-line" />
-                安装
-              </el-button>
             </div>
           </div>
 
           <el-empty
             v-if="!availableLoading && availableFilters.length === 0"
-            description="暂无可用的 Filter"
+            description="暂无可用的组件"
+            :image-size="80"
           />
         </el-scrollbar>
       </div>
 
-      <!-- 右侧：已安装的ServletFilter -->
-      <div class="installed-filters">
-        <div class="section-header installed-header">
-          <div class="header-title">
-            <IconifyIconOnline
-              icon="ri:stack-line"
-              class="header-icon installed-icon"
-            />
-            <h3>已安装</h3>
-            <el-tag type="success" size="small" round>
-              {{ installedFilters.length }}
-            </el-tag>
+      <!-- 右侧：已安装的 Filter -->
+      <div class="panel installed-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <div class="title-icon installed-icon">
+              <IconifyIconOnline icon="ri:stack-line" />
+            </div>
+            <div class="title-text">
+              <h3>已安装</h3>
+              <span class="subtitle">拖拽调整执行顺序</span>
+            </div>
           </div>
-          <div class="header-actions">
-            <el-button size="small" circle @click="refreshInstalledFilters">
-              <IconifyIconOnline icon="ri:refresh-line" />
-            </el-button>
-            <el-button
-              type="success"
-              size="small"
-              @click="saveOrder"
-              :loading="saveLoading"
-            >
+          <div class="panel-actions">
+            <el-tag type="success" size="small" effect="plain" round>
+              {{ installedFilters.length }} 个已装
+            </el-tag>
+            <el-tooltip content="刷新列表" placement="top">
+              <el-button size="small" circle @click="refreshInstalledFilters">
+                <IconifyIconOnline icon="ri:refresh-line" />
+              </el-button>
+            </el-tooltip>
+            <el-button type="success" size="small" @click="saveOrder" :loading="saveLoading">
               <IconifyIconOnline icon="ri:save-line" />
               保存排序
             </el-button>
           </div>
         </div>
 
-        <el-scrollbar class="filter-scrollbar" v-loading="installedLoading">
+        <el-scrollbar class="panel-content" v-loading="installedLoading">
           <draggable
             v-model="installedFilters"
             item-key="systemServerSettingId"
             handle=".drag-handle"
+            class="filter-list"
             @end="handleDragEnd"
           >
-            <template #item="{ element: filter }">
+            <template #item="{ element: filter, index }">
               <div
-                class="filter-item installed"
-                :class="{ disabled: !filter.systemServerSettingEnabled }"
+                class="filter-card installed-card"
+                :class="{ 'is-disabled': !filter.systemServerSettingEnabled }"
                 @dblclick="openConfigDialog(filter)"
               >
                 <div class="drag-handle">
-                  <IconifyIconOnline icon="ri:drag-move-line" />
+                  <IconifyIconOnline icon="ri:drag-move-2-fill" />
                 </div>
-
-                <div class="filter-info">
-                  <div class="filter-name">
-                    <span
-                      class="filter-name-link"
-                      title="点击打开配置"
-                      @click="openConfigDialog(filter)"
-                    >
+                <div class="card-status">
+                  <span
+                    class="status-dot"
+                    :class="filter.systemServerSettingEnabled ? 'active' : 'inactive'"
+                  ></span>
+                </div>
+                <div class="card-body">
+                  <div class="card-header">
+                    <span class="card-name clickable" @click="openConfigDialog(filter)">
                       {{ filter.systemServerSettingName }}
                     </span>
                     <el-tag
-                      :type="
-                        filter.systemServerSettingEnabled ? 'success' : 'info'
-                      "
+                      :type="filter.systemServerSettingEnabled ? 'success' : 'info'"
                       size="small"
+                      effect="light"
                     >
-                      {{ filter.systemServerSettingEnabled ? "启用" : "禁用" }}
+                      {{ filter.systemServerSettingEnabled ? '已启用' : '已禁用' }}
                     </el-tag>
                   </div>
-                  <div class="filter-type">
-                    {{ filter.systemServerSettingType }}
+                  <div class="card-meta">
+                    <span class="meta-type">{{ filter.systemServerSettingType }}</span>
                   </div>
-                  <div class="filter-description">
+                  <div class="card-desc" v-if="filter.systemServerSettingDescription">
                     {{ filter.systemServerSettingDescription }}
                   </div>
                 </div>
-
-                <div class="filter-actions">
-                  <el-button
-                    :type="
-                      filter.systemServerSettingEnabled ? 'warning' : 'success'
-                    "
-                    size="small"
-                    @click="toggleFilterStatus(filter)"
-                    :loading="toggleLoading[filter.systemServerSettingId]"
-                  >
-                    <IconifyIconOnline
-                      :icon="
-                        filter.systemServerSettingEnabled
-                          ? 'ri:pause-line'
-                          : 'ri:play-line'
-                      "
-                    />
-                    {{ filter.systemServerSettingEnabled ? "禁用" : "启用" }}
-                  </el-button>
-
-                  <el-button size="small" @click="openConfigDialog(filter)">
-                    <IconifyIconOnline icon="ri:settings-3-line" />
-                    配置
-                  </el-button>
-
-                  <el-button
-                    type="danger"
-                    size="small"
-                    @click="uninstallFilter(filter)"
-                    :loading="uninstallLoading[filter.systemServerSettingId]"
-                  >
-                    <IconifyIconOnline icon="ri:delete-bin-line" />
-                    卸载
-                  </el-button>
+                <div class="card-actions">
+                  <el-tooltip :content="filter.systemServerSettingEnabled ? '禁用' : '启用'" placement="top">
+                    <el-button
+                      :type="filter.systemServerSettingEnabled ? 'warning' : 'success'"
+                      size="small"
+                      circle
+                      @click="toggleFilterStatus(filter)"
+                      :loading="toggleLoading[filter.systemServerSettingId]"
+                    >
+                      <IconifyIconOnline
+                        :icon="filter.systemServerSettingEnabled ? 'ri:pause-fill' : 'ri:play-fill'"
+                      />
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="配置" placement="top">
+                    <el-button size="small" circle @click="openConfigDialog(filter)">
+                      <IconifyIconOnline icon="ri:settings-3-line" />
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="卸载" placement="top">
+                    <el-button
+                      type="danger"
+                      size="small"
+                      circle
+                      @click="uninstallFilter(filter)"
+                      :loading="uninstallLoading[filter.systemServerSettingId]"
+                    >
+                      <IconifyIconOnline icon="ri:delete-bin-line" />
+                    </el-button>
+                  </el-tooltip>
                 </div>
               </div>
             </template>
@@ -184,10 +179,12 @@
 
           <el-empty
             v-if="!installedLoading && installedFilters.length === 0"
-            description="暂无已安装的 Filter"
+            description="暂无已安装的组件"
+            :image-size="80"
           >
-            <el-button type="primary" @click="refreshAvailableFilters">
-              去安装
+            <el-button type="primary" size="small" @click="refreshAvailableFilters">
+              <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
+              从左侧选择安装
             </el-button>
           </el-empty>
         </el-scrollbar>
@@ -207,7 +204,7 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose" class="close-btn">
+        <el-button @click="handleClose">
           <IconifyIconOnline icon="ri:close-line" class="mr-1" />
           关闭
         </el-button>
@@ -550,249 +547,308 @@ watch(
 </script>
 
 <style lang="scss" scoped>
+// 对话框样式
+:deep(.el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+
+  .el-dialog__header {
+    padding: 20px 24px;
+    margin: 0;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+
+    .el-dialog__title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .el-dialog__body {
+    padding: 20px;
+    background: var(--el-fill-color-lighter);
+  }
+
+  .el-dialog__footer {
+    padding: 16px 24px;
+    background: var(--el-bg-color);
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+}
+
 .config-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  height: 600px;
+  height: 580px;
 }
 
-.available-filters,
-.installed-filters {
+// 面板通用样式
+.panel {
   display: flex;
   flex-direction: column;
   border-radius: 12px;
   overflow: hidden;
   background: var(--el-bg-color);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
-// 可用Filter区域
-.available-filters {
-  border: 1px solid #e0e6ed;
+.available-panel {
+  border: 1px solid var(--el-border-color-light);
 }
 
-// 已安装区域
-.installed-filters {
-  border: 1px solid #d4edda;
+.installed-panel {
+  border: 1px solid var(--el-color-success-light-5);
 }
 
-.section-header {
+// 面板头部
+.panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 18px;
-  border-bottom: 1px solid #e4e7ed;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
 
-  .header-title {
+.available-panel .panel-header {
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
+}
+
+.installed-panel .panel-header {
+  background: linear-gradient(135deg, var(--el-color-success-light-9) 0%, var(--el-bg-color) 100%);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .title-icon {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    font-size: 20px;
 
+    &.available-icon {
+      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+    }
+
+    &.installed-icon {
+      background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-light-3) 100%);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.3);
+    }
+  }
+
+  .title-text {
     h3 {
-      margin: 0;
-      font-size: 15px;
+      margin: 0 0 2px 0;
+      font-size: 16px;
       font-weight: 600;
       color: var(--el-text-color-primary);
     }
-  }
 
-  .header-icon {
-    font-size: 20px;
-    color: #409eff;
-  }
-
-  .installed-icon {
-    color: #67c23a;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 8px;
+    .subtitle {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+    }
   }
 }
 
-// 可用区域标题背景
-.available-header {
-  background: linear-gradient(135deg, #f0f7ff 0%, #e6f0fa 100%);
-}
-
-// 已安装区域标题背景
-.installed-header {
-  background: linear-gradient(135deg, #f0fff4 0%, #e6f7ed 100%);
-}
-
-.filter-scrollbar {
-  flex: 1;
-  padding: 12px;
-}
-
-.filter-item {
+.panel-actions {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+}
+
+// 面板内容
+.panel-content {
+  flex: 1;
+  padding: 16px;
+}
+
+.filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// 卡片样式
+.filter-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 14px 16px;
-  margin-bottom: 10px;
-  border: 1px solid #e4e7ed;
   border-radius: 10px;
-  background: var(--el-bg-color-overlay);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
   transition: all 0.25s ease;
 
-  &:last-child {
-    margin-bottom: 0;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
   }
+}
 
-  &.available {
-    &:hover {
-      border-color: #a0cfff;
-      background: linear-gradient(135deg, #f5faff 0%, #eef5ff 100%);
-      box-shadow: 0 4px 12px rgba(64, 158, 255, 0.12);
-      transform: translateY(-1px);
-    }
-  }
-
-  &.installed {
-    &:hover {
-      border-color: #95d475;
-      background: linear-gradient(135deg, #f5fff7 0%, #eef9f0 100%);
-      box-shadow: 0 4px 12px rgba(103, 194, 58, 0.12);
-      transform: translateY(-1px);
-    }
-
-    &.disabled {
-      opacity: 0.55;
-      background: #fafafa;
-      border-style: dashed;
-    }
-  }
-
-  .drag-handle {
+// 可用卡片
+.available-card {
+  .card-index {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 28px;
     height: 28px;
-    cursor: move;
-    color: #909399;
-    font-size: 16px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-
-    &:hover {
-      color: #409eff;
-      background: #ecf5ff;
-    }
-  }
-
-  .filter-info {
-    flex: 1;
-    min-width: 0;
-
-    .filter-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-
-      // 美化序号
-      .filter-seq {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 24px;
-        height: 24px;
-        padding: 0 6px;
-        border-radius: 6px;
-        background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
-        color: #fff;
-        font-size: 12px;
-        font-weight: 600;
-        line-height: 1;
-        box-shadow: 0 2px 6px rgba(64, 158, 255, 0.3);
-        user-select: none;
-      }
-    }
-
-    .filter-type {
-      font-size: 11px;
-      color: #606266;
-      background: linear-gradient(135deg, #f0f2f5 0%, #e8eaed 100%);
-      padding: 3px 10px;
-      border-radius: 10px;
-      display: inline-block;
-      margin-bottom: 6px;
-      font-family: "SF Mono", "Monaco", "Consolas", monospace;
-    }
-
-    .filter-description {
-      font-size: 13px;
-      color: #909399;
-      line-height: 1.5;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .filter-detail {
-      margin-top: 6px;
-      font-size: 12px;
-      color: #909399;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-
-      .detail-icon {
-        color: #c0c4cc;
-        font-size: 14px;
-        cursor: help;
-        transition: color 0.2s ease;
-
-        &:hover {
-          color: #409eff;
-        }
-      }
-    }
-  }
-
-  .filter-actions {
-    display: flex;
-    gap: 6px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
     flex-shrink: 0;
   }
 
-  .filter-name-link {
-    cursor: pointer;
-    color: #409eff;
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    background: var(--el-color-primary-light-9);
+  }
+}
+
+// 已安装卡片
+.installed-card {
+  .drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    cursor: move;
+    color: var(--el-text-color-placeholder);
+    font-size: 16px;
+    border-radius: 6px;
+    flex-shrink: 0;
     transition: all 0.2s ease;
 
     &:hover {
-      color: #66b1ff;
-      text-decoration: underline;
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
     }
   }
+
+  .card-status {
+    flex-shrink: 0;
+
+    .status-dot {
+      display: block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+
+      &.active {
+        background: var(--el-color-success);
+        box-shadow: 0 0 8px var(--el-color-success-light-3);
+      }
+
+      &.inactive {
+        background: var(--el-text-color-placeholder);
+      }
+    }
+  }
+
+  &:hover {
+    border-color: var(--el-color-success-light-5);
+    background: var(--el-color-success-light-9);
+  }
+
+  &.is-disabled {
+    opacity: 0.6;
+    background: var(--el-fill-color-light);
+    border-style: dashed;
+
+    &:hover {
+      transform: none;
+      box-shadow: none;
+    }
+  }
+}
+
+.card-body {
+  flex: 1;
+  min-width: 0;
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+
+    .card-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+
+      &.clickable {
+        cursor: pointer;
+        color: var(--el-color-primary);
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: var(--el-color-primary-light-3);
+          text-decoration: underline;
+        }
+      }
+    }
+
+    .card-type {
+      font-size: 11px;
+      color: var(--el-text-color-secondary);
+      background: var(--el-fill-color);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-family: "SF Mono", "Monaco", "Consolas", monospace;
+    }
+  }
+
+  .card-meta {
+    margin-bottom: 4px;
+
+    .meta-type {
+      font-size: 11px;
+      color: var(--el-text-color-secondary);
+      background: var(--el-fill-color);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-family: "SF Mono", "Monaco", "Consolas", monospace;
+    }
+  }
+
+  .card-desc {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+.card-action,
+.card-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-
-  .close-btn {
-    border-radius: 8px;
-    min-width: 88px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      background: var(--el-fill-color);
-      transform: translateY(-1px);
-    }
-  }
 }
 
 // 响应式
@@ -802,9 +858,8 @@ watch(
     height: auto;
   }
 
-  .available-filters,
-  .installed-filters {
-    height: 400px;
+  .panel {
+    height: 380px;
   }
 }
 </style>
