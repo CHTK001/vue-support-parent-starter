@@ -84,7 +84,13 @@
 
       <!-- 对话框主体 -->
       <Transition :name="minimizeTransitionName" @after-leave="handleAfterLeave">
-        <div v-if="dialogVisible && !isMinimized" class="sc-dialog-overlay" :class="{ 'has-modal': modal && !useTaskbar, 'is-taskbar-mode': useTaskbar }" :style="{ zIndex: currentZIndex }" @click.self="handleOverlayClick">
+        <div
+          v-if="dialogVisible && !isMinimized"
+          class="sc-dialog-overlay"
+          :class="{ 'has-modal': modal && !useTaskbar, 'is-taskbar-mode': useTaskbar }"
+          :style="{ zIndex: currentZIndex }"
+          @click.self="handleOverlayClick"
+        >
           <div
             ref="dialogRef"
             :id="internalDialogId"
@@ -184,6 +190,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, type PropType } from "vue";
 import { ElDialog, ElButton } from "element-plus";
 import interact from "interactjs";
+import { localStorageProxy } from "@repo/utils";
 import { useTaskbar, type TaskbarItem } from "./useTaskbar";
 
 /** 对话框模式 */
@@ -358,6 +365,15 @@ const props = withDefaults(
     group?: string;
     /** 是否允许拖出视口边界，默认 false（限制在视口内） */
     dragOutside?: boolean;
+    /**
+     * 记忆功能ID
+     * 0 或空字符串：所有 ScDialog 共享配置
+     * 其他值：按 ID 独立存储配置
+     * 用于记录上次是否打开，刷新后恢复状态
+     */
+    memoryId?: string | number;
+    /** 是否启用记忆功能 */
+    memoryEnabled?: boolean;
   }>(),
   {
     modelValue: false,
@@ -402,7 +418,9 @@ const props = withDefaults(
     theme: "default",
     useTaskbar: false,
     group: "",
-    dragOutside: false
+    dragOutside: false,
+    memoryId: 0,
+    memoryEnabled: false
   }
 );
 
@@ -447,6 +465,55 @@ let minimizedInteractInstance: ReturnType<typeof interact> | null = null;
 
 // 任务栏管理器
 const taskbar = useTaskbar();
+
+// 记忆存储 key
+const memoryStorageKey = computed(() => {
+  const id = props.memoryId;
+  // 如果 memoryId 为 0 或空字符串，使用共享 key
+  if (id === 0 || id === "0" || id === "") {
+    return "sc_dialog_memory_shared";
+  }
+  return `sc_dialog_memory_${id}`;
+});
+
+/** 对话框记忆数据接口 */
+interface DialogMemory {
+  isOpen?: boolean;
+  timestamp?: number;
+}
+
+/**
+ * 从 localStorage 加载记忆状态
+ */
+function loadMemory(): void {
+  if (!props.memoryEnabled) return;
+
+  try {
+    const memory = localStorageProxy().getItem<DialogMemory>(memoryStorageKey.value);
+    if (memory && typeof memory.isOpen === "boolean") {
+      dialogVisible.value = memory.isOpen;
+      emit("update:modelValue", memory.isOpen);
+    }
+  } catch (error) {
+    console.error("加载对话框记忆失败:", error);
+  }
+}
+
+/**
+ * 保存记忆状态到 localStorage
+ */
+function saveMemory(): void {
+  if (!props.memoryEnabled) return;
+
+  try {
+    const memory = localStorageProxy().getItem<DialogMemory>(memoryStorageKey.value) || {};
+    memory.isOpen = dialogVisible.value;
+    memory.timestamp = Date.now();
+    localStorageProxy().setItem(memoryStorageKey.value, memory);
+  } catch (error) {
+    console.error("保存对话框记忆失败:", error);
+  }
+}
 
 // 对话框样式
 const dialogStyle = computed(() => {
@@ -530,7 +597,7 @@ const actualMinimizeIcon = computed(() => {
  */
 function handleDialogMouseDown(): void {
   if (!props.useTaskbar) return;
-  
+
   const newZIndex = activateDialog(internalDialogId.value);
   currentZIndex.value = newZIndex;
   // 直接更新 DOM，确保立即生效
@@ -715,6 +782,8 @@ watch(
 );
 watch(dialogVisible, val => {
   emit("update:modelValue", val);
+  // 保存记忆状态
+  saveMemory();
 });
 
 // 对话框显示时初始化并触发事件
@@ -772,19 +841,19 @@ function initInteract(): void {
           const target = event.target as HTMLElement;
           let x = (parseFloat(target.getAttribute("data-x") || "0") || 0) + event.dx;
           let y = (parseFloat(target.getAttribute("data-y") || "0") || 0) + event.dy;
-          
+
           // 边界限制（dragOutside 为 false 时限制在视窗内）
           if (!props.dragOutside) {
             const rect = target.getBoundingClientRect();
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
-            
+
             // 计算移动后的实际位置
             const newLeft = rect.left + event.dx;
             const newTop = rect.top + event.dy;
             const newRight = newLeft + rect.width;
             const newBottom = newTop + rect.height;
-            
+
             // 边界检查：保证对话框在视窗内
             if (newTop < 0) {
               y -= newTop; // 修正 y，使顶部不超出
@@ -793,13 +862,13 @@ function initInteract(): void {
               x -= newLeft; // 修正 x，使左侧不超出
             }
             if (newRight > viewportWidth) {
-              x -= (newRight - viewportWidth); // 修正 x，使右侧不超出
+              x -= newRight - viewportWidth; // 修正 x，使右侧不超出
             }
             if (newBottom > viewportHeight) {
-              y -= (newBottom - viewportHeight); // 修正 y，使底部不超出
+              y -= newBottom - viewportHeight; // 修正 y，使底部不超出
             }
           }
-          
+
           target.style.transform = `translate(${x}px, ${y}px)`;
           target.setAttribute("data-x", String(x));
           target.setAttribute("data-y", String(y));
@@ -833,7 +902,7 @@ function initInteract(): void {
           // 禁用过渡，避免缩放卡顿
           const target = event.target as HTMLElement;
           if (target) {
-            target.style.transition = 'none';
+            target.style.transition = "none";
           }
         },
         move: event => {
@@ -861,7 +930,7 @@ function initInteract(): void {
           // 恢复过渡
           const target = event.target as HTMLElement;
           if (target) {
-            target.style.transition = '';
+            target.style.transition = "";
           }
         }
       }
@@ -930,14 +999,14 @@ function onHeaderMouseDown(e: MouseEvent): void {
 
 function onDocumentMouseMove(e: MouseEvent): void {
   if (!nativeDragState || !nativeDragState.target) return;
-  
+
   const dx = e.clientX - nativeDragState.startX;
   const dy = e.clientY - nativeDragState.startY;
   const x = nativeDragState.initialX + dx;
   const y = nativeDragState.initialY + dy;
-  
+
   const target = nativeDragState.target;
-  
+
   // 直接更新位置，最简单的实现
   target.style.transform = `translate(${x}px, ${y}px)`;
   target.setAttribute("data-x", String(x));
@@ -945,8 +1014,8 @@ function onDocumentMouseMove(e: MouseEvent): void {
 }
 
 function onDocumentMouseUp(): void {
-  document.removeEventListener('mousemove', onDocumentMouseMove);
-  document.removeEventListener('mouseup', onDocumentMouseUp);
+  document.removeEventListener("mousemove", onDocumentMouseMove);
+  document.removeEventListener("mouseup", onDocumentMouseUp);
   nativeDragState = null;
 }
 
@@ -996,7 +1065,7 @@ function checkEdgeDock(event: { target: EventTarget | null; client: { x: number;
 function minimizeToEdge(position: DockPosition, target: HTMLElement): void {
   // 获取对话框的实际位置
   const rect = target.getBoundingClientRect();
-  
+
   // 拖拽到边缘时，保存当前拖拽后的位置
   lastDialogState.value = {
     x: parseFloat(target.getAttribute("data-x") || "0") || 0,
@@ -1007,7 +1076,7 @@ function minimizeToEdge(position: DockPosition, target: HTMLElement): void {
 
   dockPosition.value = position;
   isMinimized.value = true;
-  
+
   // 根据吸附边缘设置最小化图标位置
   const iconSize = 48; // 图标尺寸
   switch (position) {
@@ -1342,6 +1411,9 @@ const minimizedIconStyle = computed(() => {
 
 // 生命周期
 onMounted(() => {
+  // 加载记忆状态
+  loadMemory();
+
   if (dialogVisible.value && props.mode === "custom") {
     nextTick(() => initInteract());
   }
@@ -1351,8 +1423,8 @@ onUnmounted(() => {
   destroyInteract();
   destroyMinimizedIconInteract();
   // 清理原生拖拽事件
-  document.removeEventListener('mousemove', onDocumentMouseMove);
-  document.removeEventListener('mouseup', onDocumentMouseUp);
+  document.removeEventListener("mousemove", onDocumentMouseMove);
+  document.removeEventListener("mouseup", onDocumentMouseUp);
   nativeDragState = null;
 });
 
@@ -1500,7 +1572,7 @@ defineExpose({
     transition: none !important;
     // 提升层级确保流畅
     z-index: 1;
-    
+
     * {
       transition: none !important;
     }
@@ -1846,21 +1918,21 @@ defineExpose({
       background: rgba(0, 20, 40, 0.8);
       border: 1px solid rgba(0, 246, 255, 0.3);
       border-radius: 2px;
-      box-shadow: 
+      box-shadow:
         0 0 10px rgba(0, 246, 255, 0.1),
         inset 0 0 10px rgba(0, 0, 0, 0.3);
       transition: all 0.3s ease;
 
       &:hover {
         border-color: rgba(0, 246, 255, 0.5);
-        box-shadow: 
+        box-shadow:
           0 0 15px rgba(0, 246, 255, 0.2),
           inset 0 0 10px rgba(0, 0, 0, 0.3);
       }
 
       &.is-focus {
         border-color: #00f6ff;
-        box-shadow: 
+        box-shadow:
           0 0 20px rgba(0, 246, 255, 0.4),
           inset 0 0 10px rgba(0, 0, 0, 0.3);
       }
@@ -1881,7 +1953,7 @@ defineExpose({
       border-radius: 2px;
       color: rgba(255, 255, 255, 0.9);
       caret-color: #00f6ff;
-      box-shadow: 
+      box-shadow:
         0 0 10px rgba(0, 246, 255, 0.1),
         inset 0 0 10px rgba(0, 0, 0, 0.3);
 
@@ -1895,7 +1967,7 @@ defineExpose({
 
       &:focus {
         border-color: #00f6ff;
-        box-shadow: 
+        box-shadow:
           0 0 20px rgba(0, 246, 255, 0.4),
           inset 0 0 10px rgba(0, 0, 0, 0.3);
       }

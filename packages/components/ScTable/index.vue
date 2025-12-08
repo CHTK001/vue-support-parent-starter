@@ -158,7 +158,14 @@ const props = defineProps({
   /**
    * 图片宽高比
    */
-  galleryAspectRatio: { type: String, default: "1/1" }
+  galleryAspectRatio: { type: String, default: "1/1" },
+  /**
+   * 记忆功能ID
+   * 0 或空字符串：所有 ScTable 共享配置
+   * 其他值：按 ID 独立存储配置
+   * 用于记录上次访问的页码，刷新后恢复
+   */
+  memoryId: { type: [String, Number], default: 0 }
 });
 
 // 定义组件事件
@@ -243,6 +250,16 @@ const storageKey = computed(() => {
   return `table_config_${props.tableId || props.tableName || "default"}`;
 });
 
+// 页码记忆存储 key
+const memoryStorageKey = computed(() => {
+  const id = props.memoryId;
+  // 如果 memoryId 为 0 或空字符串，使用共享 key
+  if (id === 0 || id === "0" || id === "") {
+    return "sc_table_memory_shared";
+  }
+  return `sc_table_memory_${id}`;
+});
+
 // 计算高度
 const computedHeight = computed(() => {
   if (props.height === "auto") {
@@ -269,6 +286,38 @@ const loadConfigFromStorage = () => {
     }
   } catch (error) {
     console.error("加载表格配置失败:", error);
+  }
+};
+
+/**
+ * 从 localStorage 加载页码记忆
+ */
+const loadPageMemory = () => {
+  try {
+    const memory = localStorageProxy().getItem(memoryStorageKey.value);
+    if (memory && memory.currentPage) {
+      // 确保页码有效（大于 0）
+      const savedPage = parseInt(memory.currentPage, 10);
+      if (savedPage > 0) {
+        currentPage.value = savedPage;
+      }
+    }
+  } catch (error) {
+    console.error("加载页码记忆失败:", error);
+  }
+};
+
+/**
+ * 保存页码记忆到 localStorage
+ */
+const savePageMemory = () => {
+  try {
+    const memory = localStorageProxy().getItem(memoryStorageKey.value) || {};
+    memory.currentPage = currentPage.value;
+    memory.timestamp = Date.now();
+    localStorageProxy().setItem(memoryStorageKey.value, memory);
+  } catch (error) {
+    console.error("保存页码记忆失败:", error);
   }
 };
 
@@ -995,6 +1044,9 @@ onMounted(() => {
   // 从localStorage加载配置
   loadConfigFromStorage();
 
+  // 加载页码记忆
+  loadPageMemory();
+
   // 判断是否开启自定义列
   if (props.columns) {
     getCustomColumn();
@@ -1065,6 +1117,8 @@ const onColClick = (column, event) => {
 // 当前页变更处理
 const onCurrentChange = val => {
   currentPage.value = val;
+  // 保存页码记忆
+  savePageMemory();
   getData(true);
 };
 

@@ -496,8 +496,13 @@ const getStatusText = (status: string) => {
 
 // 打开服务
 const handleOpen = async (server) => {
+  // 0.0.0.0 表示监听所有网卡，实际访问时使用 localhost
+  const host =
+    server.systemServerHost === "0.0.0.0"
+      ? "localhost"
+      : server.systemServerHost || "localhost";
   window.open(
-    `http://${server.systemServerHost || "127.0.0.1"}:${server.systemServerPort}${server.systemServerContextPath}`
+    `http://${host}:${server.systemServerPort}${server.systemServerContextPath || ""}`
   );
 };
 

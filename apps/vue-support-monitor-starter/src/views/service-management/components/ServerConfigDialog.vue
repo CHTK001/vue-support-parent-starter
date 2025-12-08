@@ -194,67 +194,13 @@
       </div>
     </div>
 
-    <!-- Filter配置对话框（通用+专用） -->
-    <FilterConfigDialog
-      v-model:visible="showConfigDialog"
+    <!-- Filter 配置对话框（动态组件） -->
+    <component
+      :is="activeFilterComponent"
+      v-if="activeFilterComponent"
+      v-model:visible="showFilterDialog"
+      :server-id="props.serverId as number"
       :filter-setting="currentFilterSetting"
-      @success="handleConfigSuccess"
-    />
-    <FilterConfigFileStorage
-      v-model:visible="showFileStorageDialog"
-      :server-id="props.serverId as number"
-      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
-      @success="handleConfigSuccess"
-    />
-    <FilterConfigServiceDiscovery
-      v-model:visible="showServiceDiscoveryDialog"
-      :server-id="props.serverId as number"
-      @success="handleConfigSuccess"
-    />
-    <FilterConfigIpRateLimit
-      v-model:visible="showIpRateLimitDialog"
-      :server-id="props.serverId as number"
-      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
-      @success="handleConfigSuccess"
-    />
-    <FilterConfigAddressRateLimit
-      v-model:visible="showAddressRateLimitDialog"
-      :server-id="props.serverId as number"
-      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
-      @success="handleConfigSuccess"
-    />
-    <FilterConfigQpsRateLimit
-      v-model:visible="showQpsRateLimitDialog"
-      :server-id="props.serverId as number"
-      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
-      @success="handleConfigSuccess"
-    />
-    <FilterConfigRequestFingerprint
-      v-model:visible="showRequestFingerprintDialog"
-      :server-id="props.serverId as number"
-      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
-      @success="handleConfigSuccess"
-    />
-    <FilterConfigDynamicExpression
-      v-model:visible="showDynamicExprDialog"
-      :server-id="props.serverId as number"
-      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
-      @success="handleConfigSuccess"
-    />
-    <FilterConfigEnhancedProxy
-      v-model:visible="showEnhancedProxyDialog"
-      :server-id="props.serverId as number"
-      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
-      @success="handleConfigSuccess"
-    />
-    <FilterConfigProxyResponse
-      v-model:visible="showProxyResponseDialog"
-      :server-id="props.serverId as number"
-      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
-      @success="handleConfigSuccess"
-    />
-    <FilterConfigViewServlet
-      v-model:visible="showViewServletDialog"
       :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
       @success="handleConfigSuccess"
     />
@@ -271,7 +217,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, shallowRef, computed, onMounted, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { InfoFilled } from "@element-plus/icons-vue";
 import draggable from "vuedraggable";
@@ -288,7 +234,6 @@ import {
   type ServletFilterObject,
 } from "@/api/system-server-setting";
 import FilterConfigDialog from "./FilterConfigDialog.vue";
-import FilterConfigItemDialog from "./FilterConfigItemDialog.vue";
 import FilterConfigFileStorage from "./FilterConfigFileStorage.vue";
 import FilterConfigServiceDiscovery from "./FilterConfigServiceDiscovery.vue";
 import FilterConfigIpRateLimit from "./FilterConfigIpRateLimit.vue";
@@ -300,6 +245,23 @@ import FilterConfigEnhancedProxy from "./FilterConfigEnhancedProxy.vue";
 import FilterConfigProxyResponse from "./FilterConfigProxyResponse.vue";
 import FilterConfigViewServlet from "./FilterConfigViewServlet.vue";
 import { SystemServer } from "@/api/system-server";
+
+/**
+ * Filter 类型与配置组件的映射
+ * 键：类型关键字（小写），值：对应的组件
+ */
+const FILTER_COMPONENT_MAP: Record<string, any> = {
+  filestorage: FilterConfigFileStorage,
+  servicediscovery: FilterConfigServiceDiscovery,
+  ipratelimit: FilterConfigIpRateLimit,
+  addressratelimit: FilterConfigAddressRateLimit,
+  qpsratelimit: FilterConfigQpsRateLimit,
+  requestfingerprint: FilterConfigRequestFingerprint,
+  dynamicexpression: FilterConfigDynamicExpression,
+  enhancedproxy: FilterConfigEnhancedProxy,
+  proxyresponse: FilterConfigProxyResponse,
+  viewservlet: FilterConfigViewServlet,
+};
 
 // Props
 interface Props {
@@ -331,17 +293,9 @@ const toggleLoading = ref<Record<number, boolean>>({});
 const availableFilters = ref<ServletFilterObject[]>([]);
 const installedFilters = ref<SystemServerSetting[]>([]);
 
-const showConfigDialog = ref(false);
-const showFileStorageDialog = ref(false);
-const showServiceDiscoveryDialog = ref(false);
-const showIpRateLimitDialog = ref(false);
-const showAddressRateLimitDialog = ref(false);
-const showQpsRateLimitDialog = ref(false);
-const showRequestFingerprintDialog = ref(false);
-const showDynamicExprDialog = ref(false);
-const showEnhancedProxyDialog = ref(false);
-const showProxyResponseDialog = ref(false);
-const showViewServletDialog = ref(false);
+// Filter 配置对话框状态（统一管理）
+const showFilterDialog = ref(false);
+const activeFilterComponent = shallowRef<any>(null);
 const currentFilterSetting = ref<SystemServerSetting | null>(null);
 
 // 计算属性
@@ -525,82 +479,46 @@ const saveOrder = async () => {
   }
 };
 
-// 打开配置对话框（根据类型分发到专用页面）
-const openConfigDialog = (filter: SystemServerSetting) => {
-  currentFilterSetting.value = filter;
-  // 先关闭全部
-  showConfigDialog.value = false;
-  showFileStorageDialog.value = false;
-  showServiceDiscoveryDialog.value = false;
-  showIpRateLimitDialog.value = false;
-  showAddressRateLimitDialog.value = false;
-  showQpsRateLimitDialog.value = false;
-  showRequestFingerprintDialog.value = false;
-  showDynamicExprDialog.value = false;
-  showEnhancedProxyDialog.value = false;
-  showProxyResponseDialog.value = false;
-  showViewServletDialog.value = false;
+/**
+ * 根据 Filter 类型获取对应的配置组件
+ * @param filterType Filter 类型字符串
+ */
+const getFilterComponent = (filterType: string) => {
+  const type = (filterType || "").toLowerCase();
 
-  const type = (filter.systemServerSettingType || "").toLowerCase();
+  // 遍历映射表，查找匹配的组件
+  for (const [key, component] of Object.entries(FILTER_COMPONENT_MAP)) {
+    if (type.includes(key)) {
+      return component;
+    }
+  }
 
-  if (type.includes("filestorage")) {
-    showFileStorageDialog.value = true;
-    return;
-  }
-  if (type.includes("servicediscovery")) {
-    showServiceDiscoveryDialog.value = true;
-    return;
-  }
-  if (type.includes("ipratelimit")) {
-    showIpRateLimitDialog.value = true;
-    return;
-  }
-  if (type.includes("addressratelimit")) {
-    showAddressRateLimitDialog.value = true;
-    return;
-  }
-  if (type.includes("qpsratelimit")) {
-    showQpsRateLimitDialog.value = true;
-    return;
-  }
-  if (type.includes("requestfingerprint")) {
-    showRequestFingerprintDialog.value = true;
-    return;
-  }
-  if (type.includes("dynamicexpression")) {
-    showDynamicExprDialog.value = true;
-    return;
-  }
+  // 特殊处理：enhancedproxy 需要同时匹配 enhanced 和 proxy
   if (type.includes("enhanced") && type.includes("proxy")) {
-    showEnhancedProxyDialog.value = true;
-    return;
-  }
-  if (type.includes("proxy") && type.includes("response")) {
-    showProxyResponseDialog.value = true;
-    return;
-  }
-  if (type.includes("view")) {
-    showViewServletDialog.value = true;
-    return;
+    return FILTER_COMPONENT_MAP.enhancedproxy;
   }
 
-  // 兜底：通用配置
-  showConfigDialog.value = true;
+  // 兜底：通用配置组件
+  return FilterConfigDialog;
 };
 
-// 配置成功回调（统一收口）
+/**
+ * 打开配置对话框（根据类型动态加载组件）
+ */
+const openConfigDialog = (filter: SystemServerSetting) => {
+  currentFilterSetting.value = filter;
+  activeFilterComponent.value = getFilterComponent(
+    filter.systemServerSettingType || ""
+  );
+  showFilterDialog.value = true;
+};
+
+/**
+ * 配置成功回调
+ */
 const handleConfigSuccess = () => {
-  showConfigDialog.value = false;
-  showFileStorageDialog.value = false;
-  showServiceDiscoveryDialog.value = false;
-  showIpRateLimitDialog.value = false;
-  showAddressRateLimitDialog.value = false;
-  showQpsRateLimitDialog.value = false;
-  showRequestFingerprintDialog.value = false;
-  showDynamicExprDialog.value = false;
-  showEnhancedProxyDialog.value = false;
-  showProxyResponseDialog.value = false;
-  showViewServletDialog.value = false;
+  showFilterDialog.value = false;
+  activeFilterComponent.value = null;
   currentFilterSetting.value = null;
   loadInstalledFilters();
 };

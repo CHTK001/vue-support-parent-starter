@@ -60,6 +60,13 @@
                     size="small"
                   />
                   <ScSwitch
+                    v-model="global.openFormat"
+                    layout="compact-card"
+                    label="文件转化"
+                    active-icon="ri:file-transfer-line"
+                    size="small"
+                  />
+                  <ScSwitch
                     v-model="global.openRange"
                     layout="compact-card"
                     label="Range"
@@ -687,6 +694,7 @@ const global = ref({
   openPreview: true,
   openPlugin: false,
   openSetting: false,
+  openFormat: false,
   openRange: false,
   openWatermark: false,
   openWebjars: true,
@@ -694,12 +702,35 @@ const global = ref({
   pluginsStr: "",
   downloadUserAgentStr: "",
   settingsStr: "",
+  formatsStr: "",
   watermark: "",
   watermarkColor: "",
   watermarkX: 0,
   watermarkY: 0,
   formatCacheTimeMinutes: 1440,
 });
+
+/**
+ * 解析数组或字符串格式的值
+ * 支持：数组、"[GRAY,OTHER]" 字符串、"GRAY,OTHER" 逗号分隔字符串
+ * @param value 原始值
+ * @returns 逗号分隔的字符串
+ */
+function parseArrayOrString(value: any): string {
+  if (!value) return "";
+  if (Array.isArray(value)) {
+    return value.join(",");
+  }
+  if (typeof value === "string") {
+    // 去除首尾方括号，如 "[GRAY,OTHER]" -> "GRAY,OTHER"
+    let str = value.trim();
+    if (str.startsWith("[") && str.endsWith("]")) {
+      str = str.slice(1, -1);
+    }
+    return str;
+  }
+  return "";
+}
 
 const imageSettingOptions = ref<SpiOption[]>([]);
 const imageFilterOptions = ref<SpiOption[]>([]);
@@ -1100,8 +1131,9 @@ async function fetchPreviewItems() {
     previewItems.value = mapped;
     listCache.set(key, { ts: now, items: mapped, marker: pager.value.marker });
   } catch (e) {
-    // 忽略错误，保持空数据
+    console.error("获取预览文件列表失败:", e);
     previewItems.value = [];
+    ElMessage.warning("获取文件列表失败，请检查存储配置");
   } finally {
     loading.value = false;
   }
@@ -1174,15 +1206,24 @@ async function loadGlobal() {
     global.value.openWatermark = cfg.openWatermark == "true";
     global.value.openWebjars = cfg.openWebjars == "true";
     global.value.openRemoteFile = cfg.openRemoteFile == "true";
-    global.value.pluginsStr = Array.isArray(cfg.plugins)
-      ? cfg.plugins.join(",")
-      : cfg.pluginsStr || "";
+    // 处理 plugins：可能是数组、"[XXX]" 字符串或逗号分隔字符串
+    const pluginsStr = parseArrayOrString(cfg.plugins) || cfg.pluginsStr || "";
+    // 解析 plugins 中是否包含 format，设置 openFormat 开关
+    const pluginsArr = pluginsStr
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    global.value.openFormat = pluginsArr.includes("format");
+    // 从 pluginsStr 中移除 format，因为它由独立开关控制
+    global.value.pluginsStr = pluginsArr
+      .filter((s) => s !== "format")
+      .join(",");
     global.value.downloadUserAgentStr = Array.isArray(cfg.downloadUserAgent)
       ? cfg.downloadUserAgent.join(",")
       : cfg.downloadUserAgentStr || "";
-    global.value.settingsStr = Array.isArray(cfg.settings)
-      ? cfg.settings.join(",")
-      : cfg.settingsStr || "";
+    // 处理 settings：可能是数组、"[GRAY,OTHER]" 字符串或逗号分隔字符串
+    global.value.settingsStr =
+      parseArrayOrString(cfg.settings) || cfg.settingsStr || "";
     global.value.watermark = cfg.watermark || "";
     global.value.watermarkColor = cfg.watermarkColor || "";
     global.value.watermarkX = Number(cfg.watermarkX ?? 0);
@@ -1204,7 +1245,16 @@ async function saveGlobal() {
     openWatermark: !!global.value.openWatermark,
     openWebjars: !!global.value.openWebjars,
     openRemoteFile: !!global.value.openRemoteFile,
-    plugins: global.value.openPlugin ? imageFilterSelection.value : undefined,
+    // 合并 plugins：如果 openFormat 为 true，添加 "format" 到 plugins
+    plugins: (() => {
+      const arr = global.value.openPlugin
+        ? [...imageFilterSelection.value]
+        : [];
+      if (global.value.openFormat && !arr.includes("format")) {
+        arr.unshift("format");
+      }
+      return arr.length > 0 ? arr : undefined;
+    })(),
     settings: global.value.openSetting
       ? imageSettingSelection.value
       : undefined,
@@ -1567,30 +1617,6 @@ async function loadData() {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
-.global-card :deep(.el-card__header) {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 16px 16px 0 0;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
-}
-.global-card .card-header {
-  color: #334155;
-}
-.card-header {
-  font-weight: 600;
-  color: #1e293b;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.card-header::before {
-  content: "";
-  width: 4px;
-  height: 18px;
-  background: currentColor;
-  border-radius: 2px;
-}
 .header-icon {
   font-size: 18px;
 }
@@ -1772,15 +1798,6 @@ async function loadData() {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
-.installed-card :deep(.el-card__header) {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 16px 16px 0 0;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
-}
-.installed-card .card-header {
-  color: #334155;
-}
 .installed-card .header-actions :deep(.el-button) {
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -1938,7 +1955,9 @@ async function loadData() {
 .preview-panel {
   display: flex;
   flex-direction: column;
+  flex: 1;
   height: 100%;
+  min-height: 0;
 }
 
 .preview-toolbar {
@@ -1949,11 +1968,13 @@ async function loadData() {
   background: #f8fafc;
   border-radius: 12px;
   margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .preview-content {
   flex: 1;
-  max-height: 400px;
+  min-height: 200px;
+  max-height: calc(70vh - 200px);
   overflow-y: auto;
   padding: 4px;
 }
@@ -2281,14 +2302,15 @@ async function loadData() {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
-.detail-card :deep(.el-card__header) {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  border-radius: 16px 16px 0 0;
-  padding: 16px 20px;
+
+.detail-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: calc(100% - 60px);
 }
-.detail-card .card-header {
-  color: #fff;
-}
+
 .type-group {
   display: flex;
   align-items: center;

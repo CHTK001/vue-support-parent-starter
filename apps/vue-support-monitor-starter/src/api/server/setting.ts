@@ -154,6 +154,12 @@ export interface ServerSetting {
   /** 客户端健康状态超时时间 (秒) */
   monitorSysGenServerSettingClientHealthTimeout?: number;
 
+  // ==================== 健康检查和指标采集开关 ====================
+  /** 是否启用健康检查 0:否 1:是 */
+  monitorSysGenServerSettingHealthCheckEnabled?: number;
+  /** 是否启用指标采集 0:否 1:是 */
+  monitorSysGenServerSettingMetricsCollectionEnabled?: number;
+
   /** 创建时间 */
   createTime?: string;
   /** 更新时间 */
@@ -584,5 +590,95 @@ export function getAvailableNodeClients() {
   return http.request<ReturnResult<NodeClient[]>>(
     "get",
     "v1/gen/server/setting/file-management/node-clients"
+  );
+}
+
+// ==================== 健康检查和指标采集开关 API ====================
+
+/**
+ * 监控开关状态接口
+ */
+export interface MonitorSwitchStatus {
+  /** 服务器ID */
+  serverId: number;
+  /** 配置ID */
+  settingId?: number;
+  /** 是否启用健康检查 */
+  healthCheckEnabled: boolean;
+  /** 是否启用指标采集 */
+  metricsCollectionEnabled: boolean;
+  /** 是否启用监控总开关 */
+  monitorEnabled: boolean;
+}
+
+/**
+ * 切换健康检查开关
+ * @param serverId 服务器ID
+ * @param enabled 是否启用
+ * @returns 操作结果
+ */
+export function toggleHealthCheckForServer(serverId: number, enabled: boolean) {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    `v1/gen/server/setting/server/${serverId}/health-check/${enabled}`
+  );
+}
+
+/**
+ * 切换指标采集开关
+ * @param serverId 服务器ID
+ * @param enabled 是否启用
+ * @returns 操作结果
+ */
+export function toggleMetricsCollectionForServer(
+  serverId: number,
+  enabled: boolean
+) {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    `v1/gen/server/setting/server/${serverId}/metrics-collection/${enabled}`
+  );
+}
+
+/**
+ * 获取服务器监控开关状态
+ * @param serverId 服务器ID
+ * @returns 开关状态信息
+ */
+export function getMonitorSwitchStatusForServer(serverId: number) {
+  return http.request<ReturnResult<MonitorSwitchStatus>>(
+    "get",
+    `v1/gen/server/setting/server/${serverId}/monitor-switches`
+  );
+}
+
+/**
+ * 批量切换健康检查开关
+ * @param serverIds 服务器ID列表
+ * @param enabled 是否启用
+ * @returns 操作结果
+ */
+export function batchToggleHealthCheck(serverIds: number[], enabled: boolean) {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "v1/gen/server/setting/batch/health-check",
+    { data: { serverIds, enabled } }
+  );
+}
+
+/**
+ * 批量切换指标采集开关
+ * @param serverIds 服务器ID列表
+ * @param enabled 是否启用
+ * @returns 操作结果
+ */
+export function batchToggleMetricsCollection(
+  serverIds: number[],
+  enabled: boolean
+) {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "v1/gen/server/setting/batch/metrics-collection",
+    { data: { serverIds, enabled } }
   );
 }

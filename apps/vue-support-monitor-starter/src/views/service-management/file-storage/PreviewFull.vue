@@ -10,7 +10,7 @@
           <el-button size="small" type="primary" @click="addStorage">
             <IconifyIconOnline icon="ri:add-line" />
           </el-button>
-          <el-button size="small" @click="reload">
+          <el-button size="small" @click="reload()">
             <IconifyIconOnline icon="ri:refresh-line" />
           </el-button>
         </div>
@@ -193,6 +193,14 @@
                 <el-button link size="small" @click.stop="onItemClick(it)">
                   <IconifyIconOnline icon="ri:eye-line" />
                 </el-button>
+                <el-button
+                  v-if="!it.directory"
+                  link
+                  size="small"
+                  @click.stop="downloadFile(it)"
+                >
+                  <IconifyIconOnline icon="ri:download-line" />
+                </el-button>
               </div>
             </div>
           </div>
@@ -239,6 +247,15 @@
                 <div class="card-name" :title="it.name">{{ it.name }}</div>
                 <div class="card-meta">
                   <span class="card-size">{{ formatSize(it.size) }}</span>
+                  <el-button
+                    v-if="!it.directory"
+                    class="card-download"
+                    size="small"
+                    circle
+                    @click.stop="downloadFile(it)"
+                  >
+                    <IconifyIconOnline icon="ri:download-line" />
+                  </el-button>
                 </div>
               </div>
             </div>
@@ -286,6 +303,16 @@
                   <span class="ov-size">{{ formatSize(it.size) }}</span>
                   <span class="ov-time">{{ it.modified }}</span>
                 </div>
+                <el-button
+                  v-if="!it.directory"
+                  class="ov-download"
+                  size="small"
+                  type="primary"
+                  @click.stop="downloadFile(it)"
+                >
+                  <IconifyIconOnline icon="ri:download-line" />
+                  下载
+                </el-button>
               </div>
             </div>
           </div>
@@ -309,9 +336,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
-import { useRoute } from "vue-router";
+import { ref, onMounted, computed, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
+import { api as viewerApi } from "v-viewer";
+import "viewerjs/dist/viewer.css";
 
 import {
   getFileStorageConfig,
@@ -352,10 +381,33 @@ const serverInfo = ref<SystemServer | any>({});
 const serverSettings = ref<SystemServerSetting[]>([]);
 
 const route = useRoute();
+const router = useRouter();
 const serverId = Number(route.params.serverId);
+
+// 从 URL query 获取初始状态
+const initialPath = (route.query.path as string) || "/";
+const initialIdx = route.query.idx ? Number(route.query.idx) : null;
+const initialMode = (route.query.mode as "list" | "card" | "image") || "list";
 
 // 根目录（限制返回上级时不越过）
 const rootPath = ref<string>("/");
+
+/**
+ * 更新 URL query 参数（记住当前目录和存储索引）
+ */
+function updateUrlQuery() {
+  const query: Record<string, string> = {};
+  if (currentPath.value && currentPath.value !== "/") {
+    query.path = currentPath.value;
+  }
+  if (selectedIndex.value !== null && selectedIndex.value !== 0) {
+    query.idx = String(selectedIndex.value);
+  }
+  if (mode.value && mode.value !== "list") {
+    query.mode = mode.value;
+  }
+  router.replace({ query });
+}
 
 const crumbs = computed(() => {
   // 生成面包屑：/a/b/c => ['/', 'a', 'b', 'c']
@@ -410,7 +462,8 @@ function onCrumbClick(index: number) {
 const collapsed = ref(false);
 const storages = ref<FileStorageConfig[]>([]);
 const selectedIndex = ref<number | null>(null);
-const mode = ref<"list" | "card" | "image">("list");
+// 使用 URL 中保存的模式或默认列表模式
+const mode = ref<"list" | "card" | "image">(initialMode);
 const previewItems = ref<any[]>([]);
 
 // 当前目录（点击文件夹进入）
@@ -515,9 +568,19 @@ function getFileCategory(it: unknown): string {
   return getFileCategoryUtil(it as FileItem);
 }
 
-// 获取文件类型标签
+// 获取文件类型标签（代码类文件显示类型+后缀）
 function getFileTypeLabel(it: unknown): string {
-  return getFileTypeLabelUtil(it as FileItem);
+  const item = it as FileItem;
+  const label = getFileTypeLabelUtil(item);
+  const category = getFileCategoryUtil(item);
+  // 代码类文件显示后缀
+  if (category === "code") {
+    const ext = item?.ext || item?.suffix || "";
+    if (ext) {
+      return `${label} .${ext}`;
+    }
+  }
+  return label;
 }
 
 // 获取文件标签类型（用于 el-tag）
@@ -636,7 +699,9 @@ function formatSize(size: number | string) {
 
 function getImageUrl(it: any) {
   // 单独的图片URL构造（避免与iframe预览URL混淆）
-  return buildUrl(it, false);
+  const url = buildUrl(it, "raw");
+  console.log("[getImageUrl]", it?.name, "=>", url);
+  return url;
 }
 
 function retryImage(it: any) {
@@ -645,7 +710,12 @@ function retryImage(it: any) {
   // 这里保留空函数以兼容点击事件，不产生报错
 }
 
-function buildUrl(it: any, usePreview = false) {
+/**
+ * 构建文件访问 URL
+ * @param it 文件项
+ * @param urlType 类型：'raw' 原始地址, 'preview' 预览, 'download' 下载
+ */
+function buildUrl(it: any, urlType: "raw" | "preview" | "download" = "raw") {
   const s =
     selectedIndex.value != null
       ? storages.value[selectedIndex.value]
@@ -653,34 +723,69 @@ function buildUrl(it: any, usePreview = false) {
   if (!s) return "";
 
   const si = (serverInfo as any).value || {};
-  const host = si.systemServerHost || si.monitorSysGenServerHost || "127.0.0.1";
+  console.log("[buildUrl] serverInfo:", si);
+  // 0.0.0.0 表示监听所有网卡，实际访问时使用 localhost
+  const rawHost =
+    si.systemServerHost || si.monitorSysGenServerHost || "localhost";
+  const host = rawHost === "0.0.0.0" ? "localhost" : rawHost;
   const port = si.systemServerPort || si.monitorSysGenServerPort || 8080;
-  const context =
-    si.systemServerContextPath || si.systemServerContentPath || "";
+  console.log("[buildUrl] host:", host, "port:", port);
 
-  // 构建基础URL
-  const base = `http://${host}:${port}${context}`;
+  // 构建基础URL: http://ip:端口
+  const base = `http://${host}:${port}`;
 
-  // 构建文件路径
+  // 构建文件路径（相对于 basePath）
   const fileName = String(it?.name || "");
+  // 获取文件所在目录相对于根的路径
   const itemPath = String(it?.filePath || currentPath.value || "/");
-  const fullPath = joinPath(itemPath, fileName);
+  // 计算相对于 basePath 的路径
+  const basePath = s?.fileStorageBasePath || "/";
+  let relativePath = itemPath;
+  if (itemPath.startsWith(basePath)) {
+    relativePath = itemPath.substring(basePath.length) || "/";
+  }
+  const fullPath = joinPath(relativePath, fileName);
 
-  // 根据存储类型构建完整URL
+  // 根据存储类型构建完整URL: http://ip:端口/bucket/文件相对路径
   let url = "";
+  const bucket = s?.fileStorageBucket || "";
   if (s.fileStorageType === "FILESYSTEM") {
-    // 文件系统类型：直接使用文件路径
-    url = `${base}/file-storage/download${fullPath}`;
+    // 文件系统类型：/bucket/文件路径
+    url = `${base}/${bucket}${fullPath}`;
   } else {
-    // 对象存储类型：包含bucket信息
-    const bucket = s?.fileStorageBucket || "";
-    url = `${base}/file-storage/download/${bucket}${fullPath}`;
+    // 对象存储类型：/bucket/文件路径
+    url = `${base}/${bucket}${fullPath}`;
   }
 
   // 清理多余的斜杠
   url = url.replace(/([^:]\/)\/+/g, "$1");
+  console.log("当前地址:" + url);
+  // 根据类型添加参数
+  if (urlType === "preview") {
+    return `${url}?preview`;
+  } else if (urlType === "download") {
+    return `${url}?download`;
+  }
 
-  return usePreview ? `${url}?preview=true` : url;
+  return url;
+}
+
+// 获取下载地址
+function getDownloadUrl(it: any): string {
+  return buildUrl(it, "download");
+}
+
+// 下载文件
+function downloadFile(it: any) {
+  const url = getDownloadUrl(it);
+  if (!url) return;
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = it.name || "file";
+  a.target = "_blank";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 function onItemClick(it: any) {
@@ -691,27 +796,93 @@ function onItemClick(it: any) {
     fetchPreviewItems();
     return;
   }
-  // 文件：弹窗 iframe 预览
-  previewUrl.value = buildUrl(it, true);
+
+  // 图片：使用 Viewer.js 预览
+  if (isImage(it)) {
+    previewImage(it);
+    return;
+  }
+
+  // 其他文件：弹窗 iframe 预览
+  previewUrl.value = buildUrl(it, "preview");
   previewDialogVisible.value = true;
 }
 
-async function reload() {
+// 使用 Viewer.js 预览图片
+function previewImage(it: any) {
+  // 获取当前目录下所有图片
+  const images = previewItems.value.filter((item) => isImage(item));
+  const currentIndex = images.findIndex((img) => img.id === it.id);
+
+  // 构建图片 URL 列表
+  const imageUrls = images.map((img) => buildUrl(img, "raw"));
+
+  // 使用 Viewer.js API 预览
+  viewerApi({
+    options: {
+      toolbar: true,
+      title: true,
+      navbar: images.length > 1,
+      initialViewIndex: currentIndex >= 0 ? currentIndex : 0,
+      zIndex: 9999,
+    },
+    images: imageUrls,
+  });
+}
+
+async function reload(restoreFromUrl = false) {
   try {
-    pager.value.marker = null;
-    getFileStorageConfig(serverId).then(async (res) => {
-      if (res?.success && Array.isArray(res.data)) {
-        storages.value = res.data as any[];
-        if (!storages.value.length)
-          ElMessage.info("当前服务器暂无已安装的存储");
-        selectedIndex.value = storages.value.length ? 0 : null;
-        const s = storages.value[0];
+    // 清除缓存，确保刷新获取最新数据
+    listCache.clear();
+    // 刷新时保持当前页（不重置 marker 和 page）
+
+    // 保存当前状态
+    const currentIdx = selectedIndex.value;
+    const currentDir = currentPath.value;
+
+    const res = await getFileStorageConfig(serverId);
+    if (res?.success && Array.isArray(res.data)) {
+      storages.value = res.data as any[];
+      if (!storages.value.length) {
+        ElMessage.info("当前服务器暂无已安装的存储");
+        return;
+      }
+
+      // 首次加载：恢复 URL 中保存的状态
+      if (restoreFromUrl) {
+        if (initialIdx !== null && initialIdx < storages.value.length) {
+          selectedIndex.value = initialIdx;
+        } else {
+          selectedIndex.value = 0;
+        }
+        const s = storages.value[selectedIndex.value || 0];
         const base = s?.fileStorageBasePath || "/";
         rootPath.value = base;
-        currentPath.value = base;
-        await fetchPreviewItems();
+        if (initialPath && initialPath !== "/") {
+          currentPath.value = initialPath;
+        } else {
+          currentPath.value = base;
+        }
+      } else {
+        // 刷新时：保持当前状态
+        if (currentIdx !== null && currentIdx < storages.value.length) {
+          selectedIndex.value = currentIdx;
+        } else {
+          selectedIndex.value = 0;
+        }
+        const s = storages.value[selectedIndex.value || 0];
+        const base = s?.fileStorageBasePath || "/";
+        rootPath.value = base;
+        // 保持当前目录，如果当前目录有效
+        if (currentDir && currentDir !== "/") {
+          currentPath.value = currentDir;
+        } else {
+          currentPath.value = base;
+        }
       }
-    });
+
+      await fetchPreviewItems();
+    }
   } catch (e) {
     storages.value = [];
   }
@@ -723,8 +894,10 @@ async function doPreview(idx: number) {
   pager.value.marker = null;
   const base = s?.fileStorageBasePath || "/";
   rootPath.value = base;
+  // 切换存储时重置到根路径
   currentPath.value = base;
   await fetchPreviewItems();
+  // URL 会通过 watch 自动更新
 }
 
 async function fetchPreviewItems() {
@@ -750,7 +923,7 @@ async function fetchPreviewItems() {
     const cached = listCache.get(key);
     if (cached && now - cached.ts < CACHE_TTL) {
       previewItems.value = cached.items;
-      pager.value.marker = cached.marker || pager.value.marker;
+      pager.value.nextMarker = cached.marker || "";
       return;
     }
 
@@ -775,7 +948,8 @@ async function fetchPreviewItems() {
     const res = await fileStorageList(params);
     const rr = res?.data; // ReturnResult<ListObjectResult>
     const items = Array.isArray(rr?.metadata) ? rr.metadata : [];
-    pager.value.marker = rr?.marker || pager.value.marker;
+    // 保存下一页的 marker，不覆盖当前页 marker
+    pager.value.nextMarker = rr?.marker || "";
 
     // 仅取必要字段，避免在前端继续扩大对象
     const mapped = (items || []).map((it: any, i: number) => ({
@@ -795,7 +969,11 @@ async function fetchPreviewItems() {
     }));
 
     previewItems.value = mapped;
-    listCache.set(key, { ts: now, items: mapped, marker: pager.value.marker });
+    listCache.set(key, {
+      ts: now,
+      items: mapped,
+      marker: pager.value.nextMarker,
+    });
   } catch (e) {
     previewItems.value = [];
   }
@@ -814,8 +992,18 @@ const loadServerInfo = async () => {
 
 onMounted(() => {
   loadServerInfo();
-  reload();
+  // 首次加载时从 URL 恢复状态
+  reload(true);
 });
+
+// 监听路径、索引和模式变化，更新 URL query
+watch(
+  [currentPath, selectedIndex, mode],
+  () => {
+    updateUrlQuery();
+  },
+  { flush: "post" }
+);
 </script>
 
 <style scoped>
@@ -1327,12 +1515,12 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  overflow: hidden;
 }
 .ph-img {
-  max-width: 80px;
-  max-height: 80px;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .card-footer {
   padding: 14px;
@@ -1350,11 +1538,19 @@ onMounted(() => {
 .card-meta {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 .card-size {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+.card-download {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.file-card:hover .card-download {
+  opacity: 1;
 }
 
 /* 图片加载占位与错误样式 */
@@ -1383,17 +1579,17 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
   background: #fafafa;
 }
-/* ========== 大图视图样式 ========== */
+/* ========== 大图视图样式（海报比例 2:3） ========== */
 .image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
 }
 .img-card {
   position: relative;
-  height: 240px;
+  aspect-ratio: 2 / 3;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid var(--el-border-color-lighter);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
@@ -1476,15 +1672,16 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   background: var(--el-fill-color-light);
+  overflow: hidden;
 }
 .big-icon {
-  width: 80px;
-  height: 80px;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   transition: transform 0.3s ease;
 }
 .img-card:hover .big-icon {
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 .overlay {
   position: absolute;
@@ -1520,6 +1717,10 @@ onMounted(() => {
 }
 .overlay .ov-time {
   opacity: 0.7;
+}
+.overlay .ov-download {
+  margin-top: 10px;
+  width: 100%;
 }
 @media (max-width: 1080px) {
   .fs-full {
