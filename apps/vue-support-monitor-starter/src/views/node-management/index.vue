@@ -123,19 +123,13 @@
             <div class="card-header">
               <div class="node-info">
                 <div class="node-name">
-                  <IconifyIconOnline
-                    icon="ri:server-line"
-                    class="node-icon"
-                  />
+                  <IconifyIconOnline icon="ri:server-line" class="node-icon" />
                   <span class="name-text">{{
                     row.nodeName || row.applicationName
                   }}</span>
                 </div>
                 <div class="node-address">
-                  <IconifyIconOnline
-                    :icon="getOsIcon(row)"
-                    class="os-icon"
-                  />
+                  <IconifyIconOnline :icon="getOsIcon(row)" class="os-icon" />
                   <span>{{ row.ipAddress }}:{{ row.port }}</span>
                 </div>
               </div>
@@ -258,10 +252,7 @@
                   >
                     <IconifyIconOnline icon="ri:stethoscope-line" />
                   </el-button>
-                  <el-button
-                    @click.stop="viewNodeDetail(row)"
-                    title="查看详情"
-                  >
+                  <el-button @click.stop="viewNodeDetail(row)" title="查看详情">
                     <IconifyIconOnline icon="ri:eye-line" />
                   </el-button>
                 </el-button-group>
@@ -604,7 +595,10 @@ const formatConnectTime = (time: string) => {
   const now = new Date();
   // 今天的显示 HH:mm
   if (date.toDateString() === now.toDateString()) {
-    return date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString("zh-CN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
   // 非今天显示 MM-DD HH:mm
   return `${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
@@ -716,14 +710,25 @@ const getStatusIcon = (status: string) => {
  * @param node 节点信息
  */
 const getOsIcon = (node: OnlineNodeInfo) => {
-  const osName = (node.metadata?.osName || node.metadata?.os || "").toLowerCase();
+  const osName = (
+    node.metadata?.osName ||
+    node.metadata?.os ||
+    ""
+  ).toLowerCase();
   if (osName.includes("windows")) return "ri:windows-fill";
-  if (osName.includes("mac") || osName.includes("darwin")) return "ri:apple-fill";
+  if (osName.includes("mac") || osName.includes("darwin"))
+    return "ri:apple-fill";
   if (osName.includes("linux")) return "ri:ubuntu-fill";
   if (osName.includes("ubuntu")) return "ri:ubuntu-fill";
-  if (osName.includes("centos") || osName.includes("redhat") || osName.includes("fedora")) return "ri:centos-fill";
+  if (
+    osName.includes("centos") ||
+    osName.includes("redhat") ||
+    osName.includes("fedora")
+  )
+    return "ri:centos-fill";
   if (osName.includes("debian")) return "simple-icons:debian";
-  if (osName.includes("unix") || osName.includes("bsd")) return "ri:terminal-box-line";
+  if (osName.includes("unix") || osName.includes("bsd"))
+    return "ri:terminal-box-line";
   return "ri:computer-line";
 };
 
@@ -837,262 +842,91 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .node-management-container {
-  padding: 24px;
-  position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(
-      ellipse at 0% 0%,
-      rgba(99, 102, 241, 0.15) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      ellipse at 100% 0%,
-      rgba(168, 85, 247, 0.1) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      ellipse at 100% 100%,
-      rgba(236, 72, 153, 0.08) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      ellipse at 0% 100%,
-      rgba(34, 197, 94, 0.08) 0%,
-      transparent 50%
-    ),
-    linear-gradient(
-      180deg,
-      var(--el-bg-color) 0%,
-      var(--el-fill-color-lighter) 100%
-    );
-
-  // 动态网格背景
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image:
-      linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
-    background-size: 60px 60px;
-    z-index: 0;
-    animation: gridMove 20s linear infinite;
-  }
-
-  // 浮动光点效果
-  &::after {
-    content: "";
-    position: absolute;
-    top: 10%;
-    right: 10%;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(
-      circle,
-      rgba(99, 102, 241, 0.15) 0%,
-      transparent 70%
-    );
-    border-radius: 50%;
-    filter: blur(60px);
-    animation: floatGlow 8s ease-in-out infinite;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  > * {
-    position: relative;
-    z-index: 2;
-  }
-
-  // 页面标题
-  .page-header {
-    margin-bottom: 32px;
-
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(20px);
-      border-radius: 24px;
-      padding: 32px 40px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-
-      .title-section {
-        .page-title {
-          display: flex;
-          align-items: center;
-          margin: 0 0 8px 0;
-          font-size: 28px;
-          font-weight: 700;
-          color: #2c3e50;
-
-          .title-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
-            margin-right: 16px;
-            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
-
-            i {
-              font-size: 24px;
-              color: var(--el-text-color-primary);
-            }
-          }
-
-          .title-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-        }
-
-        .page-description {
-          margin: 0;
-          color: #64748b;
-          font-size: 16px;
-          line-height: 1.5;
-        }
-      }
-
-      .header-actions {
-        .refresh-btn {
-          height: 40px;
-          padding: 0 20px;
-          border-radius: 10px;
-          font-weight: 500;
-          box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
-          transition: all 0.3s ease;
-
-          &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(64, 158, 255, 0.4);
-          }
-
-          i {
-            margin-right: 6px;
-          }
-        }
-      }
-    }
-  }
+  padding: 16px;
+  background: var(--el-bg-color);
+  min-height: calc(100vh - 120px);
 
   // 统计卡片
   .stats-section {
-    margin-bottom: 28px;
-    flex-shrink: 0;
+    margin-bottom: 16px;
 
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
+      gap: 16px;
 
       :deep(.stat-card-item) {
         cursor: pointer;
-        transition: all 0.3s ease;
-        min-height: 100px;
+        transition: all 0.25s ease;
 
         &:hover {
           transform: translateY(-4px);
         }
-      }
-
-      :deep(.sc-card-stats) {
-        height: 100%;
       }
     }
   }
 
   // 搜索区域
   .search-section {
-    margin-bottom: 28px;
+    margin-bottom: 16px;
 
     .search-card {
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      background: linear-gradient(
-        145deg,
-        rgba(255, 255, 255, 0.95) 0%,
-        rgba(248, 250, 252, 0.9) 100%
-      );
-      backdrop-filter: blur(20px) saturate(180%);
-      box-shadow:
-        0 4px 24px rgba(0, 0, 0, 0.06),
-        0 1px 2px rgba(0, 0, 0, 0.04),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8);
-      transition: all 0.3s ease;
-
-      &:hover {
-        box-shadow:
-          0 8px 32px rgba(0, 0, 0, 0.1),
-          0 2px 4px rgba(0, 0, 0, 0.06),
-          inset 0 1px 0 rgba(255, 255, 255, 0.9);
-      }
+      border-radius: 12px;
+      border: none;
+      background: var(--el-bg-color);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
       :deep(.el-card__body) {
-        padding: 20px 28px;
+        padding: 16px 20px;
       }
 
       .search-container {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 20px;
+        gap: 16px;
 
         .search-left {
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 12px;
           flex: 1;
 
           .search-input {
-            width: 340px;
+            width: 280px;
 
             :deep(.el-input__wrapper) {
-              border-radius: 12px;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-              border: 1px solid rgba(0, 0, 0, 0.06);
-              transition: all 0.3s ease;
+              border-radius: 8px;
+              background: var(--el-fill-color-light);
+              box-shadow: none;
+              border: 1px solid transparent;
+              transition: all 0.2s ease;
 
               &:hover,
               &:focus-within {
-                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
-                border-color: rgba(99, 102, 241, 0.3);
+                border-color: var(--el-color-primary-light-5);
+                background: var(--el-bg-color);
               }
             }
           }
 
           .app-filter,
           .status-filter {
-            width: 160px;
+            width: 140px;
 
             :deep(.el-select__wrapper) {
-              border-radius: 12px;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-              border: 1px solid rgba(0, 0, 0, 0.06);
-              transition: all 0.3s ease;
+              border-radius: 8px;
+              background: var(--el-fill-color-light);
+              box-shadow: none;
+              border: 1px solid transparent;
+              transition: all 0.2s ease;
 
               &:hover {
-                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
-                border-color: rgba(99, 102, 241, 0.3);
+                border-color: var(--el-color-primary-light-5);
+                background: var(--el-bg-color);
               }
             }
           }
-        }
-
-        .search-right {
-          display: flex;
-          align-items: center;
         }
       }
     }
@@ -1100,48 +934,31 @@ onMounted(() => {
 
   // 节点列表区域
   .nodes-section {
-     flex: 1;
-    .loading-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 20px;
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-
-      .loading-content {
-        text-align: center;
-        max-width: 400px;
-
-        .loading-text {
-          margin-top: 16px;
-          color: #64748b;
-          font-size: 16px;
-        }
-      }
-    }
+    flex: 1;
 
     // 节点卡片样式
     .node-card {
-      background: #fff;
+      background: var(--el-bg-color);
       border-radius: 16px;
       padding: 0;
       cursor: pointer;
       transition: all 0.3s ease;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--el-border-color-lighter);
       overflow: hidden;
       position: relative;
       display: flex;
       flex-direction: column;
+      height: 100%;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
       &:hover {
         transform: translateY(-6px);
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-        border-color: rgba(59, 130, 246, 0.3);
+        border-color: var(--el-color-primary-light-3);
+
+        .card-footer .card-actions {
+          opacity: 1;
+        }
       }
 
       // 状态指示条
@@ -1169,16 +986,14 @@ onMounted(() => {
 
       &.node-connecting::before {
         background: linear-gradient(90deg, #f59e0b, #fbbf24);
-        animation: connecting-pulse 1.5s ease-in-out infinite;
       }
 
       &.node-error::before {
         background: linear-gradient(90deg, #dc2626, #ef4444);
-        animation: error-flash 1s ease-in-out infinite;
       }
 
       &.node-unhealthy {
-        border-color: rgba(239, 68, 68, 0.3);
+        border-color: var(--el-color-danger-light-5);
       }
 
       .card-header {
@@ -1186,8 +1001,7 @@ onMounted(() => {
         justify-content: space-between;
         align-items: flex-start;
         padding: 20px 20px 16px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+        border-bottom: 1px solid var(--el-border-color-extra-light);
 
         .node-info {
           flex: 1;
@@ -1198,7 +1012,7 @@ onMounted(() => {
             align-items: center;
             font-size: 16px;
             font-weight: 700;
-            color: #1e293b;
+            color: var(--el-text-color-primary);
             margin-bottom: 8px;
 
             .node-icon {
@@ -1227,9 +1041,9 @@ onMounted(() => {
             display: inline-flex;
             align-items: center;
             font-size: 13px;
-            color: #64748b;
+            color: var(--el-text-color-secondary);
             font-family: "JetBrains Mono", "Consolas", monospace;
-            background: #f1f5f9;
+            background: var(--el-fill-color-light);
             padding: 6px 10px;
             border-radius: 8px;
             font-weight: 500;
@@ -1237,7 +1051,7 @@ onMounted(() => {
             .os-icon {
               margin-right: 6px;
               font-size: 14px;
-              color: #64748b;
+              color: var(--el-text-color-secondary);
             }
           }
         }
@@ -1265,7 +1079,6 @@ onMounted(() => {
         flex: 1;
         display: flex;
         flex-direction: column;
-        background: #fff;
 
         .node-details {
           .detail-row {
@@ -1286,12 +1099,12 @@ onMounted(() => {
               display: flex;
               align-items: center;
               padding: 10px 12px;
-              background: #f8fafc;
+              background: var(--el-fill-color-lighter);
               border-radius: 10px;
               transition: all 0.25s ease;
 
               &:hover {
-                background: #f1f5f9;
+                background: var(--el-fill-color-light);
                 transform: translateX(2px);
               }
 
@@ -1320,7 +1133,7 @@ onMounted(() => {
                 .detail-label {
                   display: block;
                   font-size: 11px;
-                  color: #94a3b8;
+                  color: var(--el-text-color-placeholder);
                   line-height: 1.3;
                   font-weight: 500;
                 }
@@ -1329,28 +1142,28 @@ onMounted(() => {
                   display: block;
                   font-size: 13px;
                   font-weight: 600;
-                  color: #1e293b;
+                  color: var(--el-text-color-primary);
                   line-height: 1.4;
                   overflow: hidden;
                   text-overflow: ellipsis;
                   white-space: nowrap;
 
                   &.env-prod {
-                    color: #dc2626;
+                    color: var(--el-color-danger);
                   }
 
                   &.env-dev {
-                    color: #2563eb;
+                    color: var(--el-color-primary);
                   }
 
                   &.env-test {
-                    color: #7c3aed;
+                    color: var(--el-color-warning);
                   }
 
                   &.config-value {
                     font-family: "Consolas", monospace;
                     font-size: 11px;
-                    color: #64748b;
+                    color: var(--el-text-color-secondary);
                   }
                 }
               }
@@ -1364,8 +1177,8 @@ onMounted(() => {
         justify-content: space-between;
         align-items: center;
         padding: 12px 20px 16px;
-        background: #f8fafc;
-        border-top: 1px solid #e2e8f0;
+        background: var(--el-fill-color-lighter);
+        border-top: 1px solid var(--el-border-color-extra-light);
         margin-top: auto;
 
         .footer-info {
@@ -1378,7 +1191,7 @@ onMounted(() => {
             display: flex;
             align-items: center;
             font-size: 12px;
-            color: #64748b;
+            color: var(--el-text-color-secondary);
             font-weight: 500;
 
             i {
@@ -1389,7 +1202,7 @@ onMounted(() => {
 
           .last-heartbeat {
             .heartbeat-icon {
-              color: #ef4444;
+              color: var(--el-color-danger);
               animation: heartbeat 2s ease-in-out infinite;
             }
 
@@ -1401,6 +1214,8 @@ onMounted(() => {
 
         .card-actions {
           flex-shrink: 0;
+          opacity: 0.7;
+          transition: opacity 0.2s ease;
 
           :deep(.el-button-group) {
             border-radius: 8px;
@@ -1423,6 +1238,12 @@ onMounted(() => {
                 border-bottom-right-radius: 8px;
               }
 
+              &:hover {
+                color: var(--el-color-primary);
+                border-color: var(--el-color-primary-light-5);
+                background: var(--el-color-primary-light-9);
+              }
+
               i {
                 font-size: 14px;
               }
@@ -1431,96 +1252,6 @@ onMounted(() => {
         }
       }
     }
-  }
-}
-
-// 页面背景动画
-@keyframes gridMove {
-  0% {
-    background-position: 0 0;
-  }
-  100% {
-    background-position: 60px 60px;
-  }
-}
-
-@keyframes floatGlow {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.5;
-  }
-  50% {
-    transform: translate(-30px, 20px) scale(1.1);
-    opacity: 0.7;
-  }
-}
-
-@keyframes error-pulse {
-  0%,
-  100% {
-    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.35);
-  }
-  50% {
-    box-shadow: 0 8px 32px rgba(239, 68, 68, 0.5);
-  }
-}
-
-// 动画定义
-@keyframes cardSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes cardFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes connecting-pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.02);
-  }
-}
-
-@keyframes error-flash {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
-
-@keyframes patternMove {
-  0% {
-    background-position:
-      0 0,
-      15px 15px;
-  }
-  100% {
-    background-position:
-      30px 30px,
-      45px 45px;
   }
 }
 
@@ -1534,51 +1265,32 @@ onMounted(() => {
   }
 }
 
-// 过渡动画
-.node-card-enter-active,
-.node-card-leave-active {
-  transition: all 0.5s ease;
-}
-
-.node-card-enter-from {
-  opacity: 0;
-  transform: translateY(30px) scale(0.9);
-}
-
-.node-card-leave-to {
-  opacity: 0;
-  transform: translateY(-30px) scale(0.9);
-}
-
-.node-card-move {
-  transition: transform 0.5s ease;
-}
-
 // 响应式设计
 @media (max-width: 1200px) {
   .node-management-container {
     .stats-section .stats-grid {
-      grid-template-columns: repeat(2, 1fr) !important;
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 }
 
 @media (max-width: 768px) {
   .node-management-container {
-    padding: 16px;
+    padding: 12px;
 
     .stats-section .stats-grid {
-      grid-template-columns: 1fr !important;
-      gap: 12px;
+      grid-template-columns: 1fr;
+      gap: 10px;
     }
 
     .search-section .search-card .search-container {
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
 
       .search-left {
         width: 100%;
         flex-direction: column;
+        gap: 10px;
 
         .search-input,
         .app-filter,
@@ -1589,145 +1301,41 @@ onMounted(() => {
     }
 
     .nodes-section .node-card {
-      .card-header {
-        padding: 10px 12px;
-
-        .node-info .node-name {
-          font-size: 13px;
-          margin-bottom: 3px;
-        }
-
-        .node-info .node-address {
-          font-size: 11px;
-        }
-
-        .node-status .status-tag {
-          font-size: 10px;
-          padding: 1px 6px;
-        }
+      .card-body .node-details .detail-row {
+        grid-template-columns: 1fr;
       }
 
-      .card-body {
-        padding: 8px 12px;
-
-        .node-details .detail-row {
-          gap: 6px;
-          margin-bottom: 6px;
-
-          .detail-item {
-            padding: 4px 6px;
-
-            .detail-icon {
-              font-size: 12px;
-              margin-right: 4px;
-            }
-
-            .detail-info {
-              .detail-label {
-                font-size: 9px;
-              }
-
-              .detail-value {
-                font-size: 11px;
-              }
-            }
-          }
-        }
-      }
-
-      .card-footer {
-        padding: 6px 12px 8px;
-
-        .footer-info {
-          gap: 8px;
-
-          .connect-time,
-          .last-heartbeat {
-            font-size: 9px;
-
-            i {
-              font-size: 10px;
-            }
-          }
-        }
-
-        .card-actions :deep(.el-button-group) .el-button {
-          padding: 2px 4px;
-          min-width: 20px;
-          height: 20px;
-
-          i {
-            font-size: 10px;
-          }
-        }
+      .card-footer .card-actions {
+        opacity: 1;
       }
     }
   }
 }
 
-// 现代化的动画效果
-@keyframes cardSlideIn {
-  0% {
-    opacity: 0;
-    transform: translateY(30px) scale(0.95);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200px 0;
-  }
-  100% {
-    background-position: calc(200px + 100%) 0;
-  }
-}
-
-// 现代化的悬浮效果增强
-.node-card:hover {
-  .detail-item {
-    &:nth-child(1) {
-      transition-delay: 0ms;
-    }
-    &:nth-child(2) {
-      transition-delay: 50ms;
-    }
-    &:nth-child(3) {
-      transition-delay: 100ms;
-    }
-    &:nth-child(4) {
-      transition-delay: 150ms;
-    }
-  }
-}
-
-// 日志配置弹框样式
+// 弹框样式
 .dialog-header {
   .header-info {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 
     .header-icon {
-      font-size: 24px;
-      color: #409eff;
+      font-size: 20px;
+      color: var(--el-color-primary);
     }
 
     .header-text {
       h3 {
         margin: 0;
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 600;
         color: var(--el-text-color-primary);
       }
 
       p {
         margin: 4px 0 0 0;
-        font-size: 14px;
-        color: var(--el-text-color-primary);
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
       }
     }
   }
@@ -1743,11 +1351,11 @@ onMounted(() => {
   .logger-name {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 
     .logger-icon {
-      color: #409eff;
-      font-size: 16px;
+      color: var(--el-color-primary);
+      font-size: 14px;
     }
   }
 }
@@ -1755,7 +1363,6 @@ onMounted(() => {
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
-
 </style>
