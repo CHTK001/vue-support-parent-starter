@@ -409,25 +409,20 @@ const handleDelete = (item: any) => {
 </script>
 
 <style scoped>
-/* 页面基础样式 */
-
 /* 页面头部 */
 .page-header {
-  border-radius: 20px;
-  padding: 12px;
-  margin-bottom: 12px;
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .header-content {
-  max-width: 1400px;
-  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 32px;
+  gap: 24px;
 }
 
 .title-section {
@@ -435,59 +430,51 @@ const handleDelete = (item: any) => {
 }
 
 .page-title {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  line-height: 1.2;
+  gap: 10px;
+  color: var(--el-text-color-primary);
 }
 
 .title-icon {
-  font-size: 32px;
-  color: #3b82f6;
+  font-size: 22px;
+  color: var(--el-color-primary);
 }
 
 .page-subtitle {
-  font-size: 16px;
-  margin: 8px 0 0 0;
-  line-height: 1.4;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin: 4px 0 0 0;
 }
 
 .stats-section {
   display: flex;
-  gap: 16px;
+  gap: 12px;
 }
 
 .stat-card {
   text-align: center;
-  padding: 16px 20px;
-  background: var(--el-bg-color-overlay);
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-light);
-  min-width: 80px;
-  transition: all 0.2s ease;
-}
-
-.stat-card:hover {
-  background: var(--el-bg-color-overlay);
-  transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow-light);
+  padding: 12px 16px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 8px;
+  min-width: 72px;
 }
 
 .stat-number {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
-  color: #3b82f6;
-  line-height: 1;
-  margin-bottom: 4px;
+  color: var(--el-color-primary);
+  line-height: 1.2;
 }
 
 .stat-label {
-  font-size: 12px;
-  color: #64748b;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
   font-weight: 500;
+  margin-top: 2px;
 }
 
 /* 工具栏样式 */
@@ -495,58 +482,69 @@ const handleDelete = (item: any) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--el-bg-color-overlay);
-  padding: 20px 12px;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  flex-wrap: wrap;
-  gap: 16px;
+  background: var(--el-bg-color);
+  padding: 12px 16px;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .modern-toolbar .left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex: 1;
-  flex-wrap: wrap;
+}
+
+.modern-toolbar .right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .search-container {
   flex: 1;
-  max-width: 400px;
-}
-
-.search-input {
-  width: 100%;
-  border-radius: 12px;
+  max-width: 320px;
 }
 
 .search-input :deep(.el-input__wrapper) {
-  border-radius: 12px;
-  box-shadow: var(--el-box-shadow-light);
-  border: 1px solid var(--el-border-color-lighter);
-  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  background: var(--el-fill-color-light);
+  box-shadow: none;
+  border: 1px solid transparent;
+}
+
+.search-input :deep(.el-input__wrapper):hover,
+.search-input :deep(.el-input__wrapper):focus-within {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-bg-color);
 }
 
 .search-icon {
-  color: #667eea;
+  color: var(--el-text-color-placeholder);
 }
 
 .filter-container {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .platform-select {
-  width: 200px;
+  width: 160px;
 }
 
-.platform-select :deep(.el-input__wrapper) {
-  border-radius: 12px;
-  box-shadow: var(--el-box-shadow-light);
-  background: var(--el-bg-color-overlay);
-  backdrop-filter: blur(10px);
+.platform-select :deep(.el-select__wrapper) {
+  border-radius: 8px;
+  background: var(--el-fill-color-light);
+  box-shadow: none;
+  border: 1px solid transparent;
+}
+
+.platform-select :deep(.el-select__wrapper):hover {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-bg-color);
 }
 
 .option-item {
@@ -556,7 +554,7 @@ const handleDelete = (item: any) => {
 }
 
 .option-icon {
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .spring-icon {
@@ -569,52 +567,34 @@ const handleDelete = (item: any) => {
 
 .search-btn,
 .create-btn {
-  border-radius: 12px;
-  padding: 12px 20px;
-  font-weight: 600;
-  box-shadow: 0 4px 12px var(--el-shadow-color);
-  border: none;
-}
-
-.create-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.create-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 500;
 }
 
 .btn-icon {
-  margin-right: 6px;
-}
-
-/* 卡片网格 */
-.card-grid {
-  --gap: 20px;
+  margin-right: 4px;
 }
 
 /* 应用卡片 */
 .app-card {
   height: 100%;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 16px;
   overflow: hidden;
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  background: var(--el-bg-color);
   position: relative;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .app-card:hover {
-  border-color: var(--el-color-primary);
-  box-shadow: var(--el-box-shadow);
-  transform: translateY(-8px);
+  border-color: var(--el-color-primary-light-3);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  transform: translateY(-6px);
 }
 
 .app-card::before {
@@ -630,27 +610,27 @@ const handleDelete = (item: any) => {
 /* 状态指示器 */
 .status-indicator {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 12px;
-  height: 12px;
+  top: 12px;
+  right: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   z-index: 2;
 }
 
 .status-indicator.status-success {
   background: var(--el-color-success);
-  box-shadow: 0 0 0 3px var(--el-color-success-light-7);
+  box-shadow: 0 0 0 2px var(--el-color-success-light-8);
 }
 
 .status-indicator.status-warning {
   background: var(--el-color-warning);
-  box-shadow: 0 0 0 3px var(--el-color-warning-light-7);
+  box-shadow: 0 0 0 2px var(--el-color-warning-light-8);
 }
 
 .status-indicator.status-error {
   background: var(--el-color-danger);
-  box-shadow: 0 0 0 3px var(--el-color-danger-light-7);
+  box-shadow: 0 0 0 2px var(--el-color-danger-light-8);
 }
 
 /* 卡片头部 */
@@ -659,6 +639,7 @@ const handleDelete = (item: any) => {
   display: flex;
   align-items: flex-start;
   gap: 16px;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
 }
 
 .app-icon-wrapper {
@@ -675,7 +656,7 @@ const handleDelete = (item: any) => {
   justify-content: center;
   font-size: 20px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: #fff;
 }
 
 .app-icon-img {
@@ -683,35 +664,43 @@ const handleDelete = (item: any) => {
 }
 
 .app-icon-badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .platform-spring {
-  background: linear-gradient(135deg, #6db33f 0%, #4a7c59 100%);
+  background: linear-gradient(135deg, #6db33f, #4a7c59);
+  box-shadow: 0 4px 12px rgba(109, 179, 63, 0.3);
 }
 
 .platform-node {
-  background: linear-gradient(135deg, #339933 0%, #2d5a2d 100%);
+  background: linear-gradient(135deg, #339933, #2d5a2d);
+  box-shadow: 0 4px 12px rgba(51, 153, 51, 0.3);
 }
 
 .platform-java {
-  background: linear-gradient(135deg, #ed8b00 0%, #b8860b 100%);
+  background: linear-gradient(135deg, #ed8b00, #b8860b);
+  box-shadow: 0 4px 12px rgba(237, 139, 0, 0.3);
 }
 
 .platform-python {
-  background: linear-gradient(135deg, #3776ab 0%, #2d5a87 100%);
+  background: linear-gradient(135deg, #3776ab, #2d5a87);
+  box-shadow: 0 4px 12px rgba(55, 118, 171, 0.3);
 }
 
 .platform-go {
-  background: linear-gradient(135deg, #00add8 0%, #007d9c 100%);
+  background: linear-gradient(135deg, #00add8, #007d9c);
+  box-shadow: 0 4px 12px rgba(0, 173, 216, 0.3);
 }
 
 .platform-docker {
-  background: linear-gradient(135deg, #2496ed 0%, #1a73e8 100%);
+  background: linear-gradient(135deg, #2496ed, #1a73e8);
+  box-shadow: 0 4px 12px rgba(36, 150, 237, 0.3);
 }
 
 .platform-default {
-  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
 }
 
 .platform-icon {
@@ -720,20 +709,20 @@ const handleDelete = (item: any) => {
 
 .status-badge {
   position: absolute;
-  bottom: -4px;
-  right: -4px;
-  width: 20px;
-  height: 20px;
+  bottom: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: var(--el-bg-color-overlay);
+  background: var(--el-bg-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .status-icon {
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .status-success .status-icon {
@@ -754,10 +743,10 @@ const handleDelete = (item: any) => {
 }
 
 .app-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-  color: #1f2937;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -767,8 +756,8 @@ const handleDelete = (item: any) => {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #6b7280;
-  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
 }
 
 .platform-icon-small {
@@ -777,21 +766,29 @@ const handleDelete = (item: any) => {
 
 /* 卡片内容 */
 .card-content {
-  padding: 0 20px;
+  padding: 16px 20px;
   flex: 1;
 }
 
 .metrics-grid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .metric-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 0;
+  padding: 10px 12px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 10px;
+  transition: all 0.25s ease;
+}
+
+.metric-item:hover {
+  background: var(--el-fill-color-light);
+  transform: translateX(2px);
 }
 
 .metric-icon {
@@ -807,15 +804,14 @@ const handleDelete = (item: any) => {
 
 .metric-label {
   display: block;
-  font-size: 12px;
-  color: #6b7280;
-  margin-bottom: 2px;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
 }
 
 .metric-value {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 .metric-value.status-success {
@@ -831,44 +827,45 @@ const handleDelete = (item: any) => {
 }
 
 .metric-value.online-count {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--el-text-color-placeholder);
+}
 
-  &.has-devices {
-    color: #10b981;
-  }
+.metric-value.online-count.has-devices {
+  color: var(--el-color-success);
 }
 
 .online-icon {
-  color: #10b981;
+  color: var(--el-color-success);
 }
 
 .tags-section {
-  margin-top: 12px;
+  margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 
 .app-tag {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
+  font-size: 11px;
 }
 
 /* 卡片操作 */
 .card-actions {
-  padding: 16px 20px 20px;
-  opacity: 0;
-  transform: translateY(10px);
-  transition: all 0.3s ease;
+  padding: 12px 20px 16px;
+  background: var(--el-fill-color-lighter);
+  border-top: 1px solid var(--el-border-color-extra-light);
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
 }
 
 .app-card:hover .card-actions {
   opacity: 1;
-  transform: translateY(0);
 }
 
 .action-buttons {
@@ -903,7 +900,7 @@ const handleDelete = (item: any) => {
 
 .action-btn.primary:hover {
   background: #667eea;
-  color: var(--el-text-color-primary);
+  color: #fff;
 }
 
 .action-btn.danger {
@@ -913,55 +910,56 @@ const handleDelete = (item: any) => {
 
 .action-btn.danger:hover {
   background: #ef4444;
-  color: var(--el-text-color-primary);
+  color: #fff;
 }
 
 /* 空状态 */
 .empty-state {
   text-align: center;
   padding: 80px 20px;
-  border-radius: 20px;
-  margin: 40px;
+  border-radius: 12px;
+  margin: 0;
+  background: transparent;
 }
 
 .empty-illustration {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .empty-icon {
-  font-size: 64px;
-  color: #d1d5db;
+  font-size: 48px;
+  color: var(--el-text-color-placeholder);
 }
 
 .empty-title {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
-  color: #374151;
-  margin: 0 0 8px 0;
+  color: var(--el-text-color-primary);
+  margin: 0 0 6px 0;
 }
 
 .empty-description {
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0 0 24px 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin: 0 0 20px 0;
 }
 
 .empty-action {
-  border-radius: 12px;
-  padding: 12px 24px;
-  font-weight: 600;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-weight: 500;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
-    padding: 24px 16px;
+    padding: 12px;
   }
 
   .header-content {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: 12px;
   }
 
   .stats-section {
@@ -970,9 +968,9 @@ const handleDelete = (item: any) => {
   }
 
   .modern-toolbar {
-    padding: 0 16px;
     flex-direction: column;
     align-items: stretch;
+    padding: 12px;
   }
 
   .modern-toolbar .left {
@@ -980,16 +978,29 @@ const handleDelete = (item: any) => {
     align-items: stretch;
   }
 
+  .modern-toolbar .right {
+    justify-content: stretch;
+  }
+
+  .modern-toolbar .right .el-button {
+    flex: 1;
+  }
+
   .search-container {
     max-width: none;
   }
 
   .filter-container {
-    justify-content: space-between;
+    justify-content: stretch;
   }
 
-  .card-grid {
-    padding: 0 16px;
+  .platform-select {
+    flex: 1;
+    width: auto;
+  }
+
+  .card-actions {
+    opacity: 1;
   }
 }
 </style>
