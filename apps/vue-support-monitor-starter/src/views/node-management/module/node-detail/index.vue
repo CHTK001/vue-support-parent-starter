@@ -147,6 +147,14 @@ const featureList = computed(() => [
     disabled: false,
   },
   {
+    key: "scifiDashboard",
+    title: "科幻大屏",
+    desc: "科幻风格的节点监控可视化",
+    icon: "ri:planet-line",
+    color: "linear-gradient(135deg, #00f6ff, #0080ff)",
+    disabled: false,
+  },
+  {
     key: "healthCheck",
     title: "健康检查",
     desc: "检查节点健康状态",
@@ -229,6 +237,9 @@ const handleFeatureClick = async (item: (typeof featureList.value)[0]) => {
     case "monitor":
       openNodeMonitoring(node);
       break;
+    case "scifiDashboard":
+      openScifiDashboard(node);
+      break;
     case "healthCheck":
       await checkNodeHealth(node);
       break;
@@ -264,6 +275,22 @@ const openNodeDocumentation = (node: OnlineNodeInfo) => {
 const openNodeMonitoring = (node: OnlineNodeInfo) => {
   const routeData = router.resolve({
     name: "nodeMonitorDashboard",
+    params: { nodeId: node.nodeId },
+    query: {
+      nodeName: node.nodeName || node.applicationName,
+      nodeAddress: `${node.ipAddress}:${node.port}`,
+    },
+  });
+  window.open(routeData.href, "_blank");
+};
+
+/**
+ * 打开科幻大屏
+ * @param node 节点信息
+ */
+const openScifiDashboard = (node: OnlineNodeInfo) => {
+  const routeData = router.resolve({
+    name: "nodeScifiDashboard",
     params: { nodeId: node.nodeId },
     query: {
       nodeName: node.nodeName || node.applicationName,
