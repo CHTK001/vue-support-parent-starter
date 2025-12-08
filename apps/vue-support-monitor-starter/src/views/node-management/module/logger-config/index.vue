@@ -2,146 +2,173 @@
   <el-dialog
     v-model="visible"
     title="节点日志配置"
-    width="80%"
+    width="900px"
     :before-close="handleClose"
     append-to-body
+    class="logger-config-dialog"
+    destroy-on-close
+    top="5vh"
   >
     <template #header>
       <div class="dialog-header">
         <div class="header-info">
-          <IconifyIconOnline icon="ri:settings-4-line" class="header-icon" />
+          <div class="header-icon-wrapper">
+            <IconifyIconOnline icon="ri:file-list-3-line" class="header-icon" />
+          </div>
           <div class="header-text">
-            <h3>节点日志配置</h3>
+            <h3>日志配置</h3>
             <p v-if="nodeInfo">
-              {{ nodeInfo.nodeName || nodeInfo.applicationName }}
-              ({{ nodeInfo.ipAddress }}:{{ nodeInfo.port }})
+              <span class="node-name">{{ nodeInfo.nodeName || nodeInfo.applicationName }}</span>
+              <span class="node-address">{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span>
             </p>
+          </div>
+        </div>
+        <div class="header-stats" v-if="loggers.length > 0">
+          <div class="stat-item">
+            <span class="stat-value">{{ loggers.length }}</span>
+            <span class="stat-label">日志器</span>
           </div>
         </div>
       </div>
     </template>
 
     <div class="logger-config-content">
-      <!-- 搜索栏 -->
-      <div
-        class="search-bar"
-        style="
-          margin-bottom: 16px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        "
-      >
-        <el-input
-          v-model="searchText"
-          placeholder="搜索日志器名称..."
-          clearable
-          style="width: 300px"
-        >
-          <template #prefix>
-            <IconifyIconOnline icon="ri:search-line" />
-          </template>
-        </el-input>
-        <el-button type="primary" @click="handleRefresh" :loading="loading">
-          <IconifyIconOnline icon="ri:refresh-line" />
-          刷新配置
-        </el-button>
-        <div
-          class="search-info"
-          style=" color: var(--el-text-color-primary); font-size: 14px"
-          v-if="searchText"
-        >
-          找到 {{ filteredLoggers.length }} 个日志器
+      <!-- 工具栏 -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <el-input
+            v-model="searchText"
+            placeholder="搜索日志器..."
+            clearable
+            class="search-input"
+          >
+            <template #prefix>
+              <IconifyIconOnline icon="ri:search-line" />
+            </template>
+          </el-input>
+          <span class="search-result" v-if="searchText">
+            找到 <strong>{{ filteredLoggers.length }}</strong> 个
+          </span>
+        </div>
+        <div class="toolbar-right">
+          <el-tooltip content="刷新配置" placement="top">
+            <el-button
+              type="primary"
+              :icon="loading ? '' : undefined"
+              @click="handleRefresh"
+              :loading="loading"
+            >
+              <IconifyIconOnline v-if="!loading" icon="ri:refresh-line" />
+              刷新
+            </el-button>
+          </el-tooltip>
         </div>
       </div>
 
       <!-- 日志配置表格 -->
-      <ScTable
-        ref="tableRef"
-        :data="filteredLoggers"
-        table-name="node-logger-config"
-        :page-size="10"
-        border
-        stripe
-        height="500"
-        :loading="loading"
-        @refresh="handleRefresh"
-      >
-        <el-table-column label="日志器名称" min-width="300">
-          <template #default="{ row }">
-            <div class="logger-name">
+      <div class="table-wrapper">
+        <ScTable
+          ref="tableRef"
+          :data="filteredLoggers"
+          table-name="node-logger-config"
+          :page-size="50"
+          border
+          max-height="calc(90vh - 220px)"
+          :loading="loading"
+          @refresh="handleRefresh"
+        >
+          <el-table-column label="日志器名称" min-width="280">
+            <template #default="{ row }">
+              <div class="logger-name-cell">
+                <div class="logger-icon-wrapper" :class="{ 'is-root': row.loggerName === 'ROOT' }">
+                  <IconifyIconOnline
+                    :icon="row.loggerName === 'ROOT' ? 'ri:home-5-line' : 'ri:code-s-slash-line'"
+                  />
+                </div>
+                <span class="logger-name-text" :title="row.loggerName">
+                  {{ row.loggerName }}
+                </span>
+              </div>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="配置等级" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag
+                v-if="row.configuredLevel"
+                :type="getLevelTagType(row.configuredLevel)"
+                size="small"
+                effect="light"
+                round
+              >
+                {{ row.configuredLevel }}
+              </el-tag>
+              <span v-else class="no-config">-</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="有效等级" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag
+                :type="getLevelTagType(row.effectiveLevel)"
+                size="small"
+                effect="dark"
+                round
+              >
+                {{ row.effectiveLevel }}
+              </el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="继承" width="70" align="center">
+            <template #default="{ row }">
               <IconifyIconOnline
-                :icon="
-                  row.loggerName === 'ROOT' ? 'ri:home-line' : 'ri:folder-line'
-                "
-                class="logger-icon"
+                :icon="row.additive ? 'ri:checkbox-circle-fill' : 'ri:close-circle-line'"
+                :class="['inherit-icon', row.additive ? 'is-active' : 'is-inactive']"
               />
-              <span :title="row.loggerName">{{ row.loggerName }}</span>
-            </div>
-          </template>
-        </el-table-column>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="配置等级" width="120" align="center">
-          <template #default="{ row }">
-            <el-tag
-              v-if="row.configuredLevel"
-              :type="getLevelTagType(row.configuredLevel)"
-              size="small"
-            >
-              {{ row.configuredLevel }}
-            </el-tag>
-            <span v-else class="text-[var(--el-text-color-placeholder)]">未配置</span>
-          </template>
-        </el-table-column>
+          <el-table-column label="设置等级" width="130" align="center">
+            <template #default="{ row }">
+              <el-select
+                v-model="row.newLevel"
+                placeholder="选择"
+                size="small"
+                class="level-select"
+              >
+                <el-option
+                  v-for="level in logLevels"
+                  :key="level"
+                  :label="level"
+                  :value="level"
+                >
+                  <div class="level-option">
+                    <el-tag :type="getLevelTagType(level)" size="small" effect="light">
+                      {{ level }}
+                    </el-tag>
+                  </div>
+                </el-option>
+              </el-select>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="有效等级" width="120" align="center">
-          <template #default="{ row }">
-            <el-tag :type="getLevelTagType(row.effectiveLevel)" size="small">
-              {{ row.effectiveLevel }}
-            </el-tag>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="继承性" width="80" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.additive ? 'success' : 'info'" size="small">
-              {{ row.additive ? "是" : "否" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="新等级" width="150" align="center">
-          <template #default="{ row }">
-            <el-select
-              v-model="row.newLevel"
-              placeholder="选择等级"
-              size="small"
-              style="width: 100px"
-            >
-              <el-option
-                v-for="level in logLevels"
-                :key="level"
-                :label="level"
-                :value="level"
-              />
-            </el-select>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="操作" width="120" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              type="primary"
-              size="small"
-              :loading="row.updating"
-              :disabled="!row.newLevel || row.newLevel === row.configuredLevel"
-              @click="updateLoggerLevel(row)"
-            >
-              设置
-            </el-button>
-          </template>
-        </el-table-column>
-      </ScTable>
+          <el-table-column label="操作" width="90" align="center" fixed="right">
+            <template #default="{ row }">
+              <el-button
+                type="primary"
+                size="small"
+                :loading="row.updating"
+                :disabled="!row.newLevel || row.newLevel === row.configuredLevel"
+                @click="updateLoggerLevel(row)"
+                plain
+              >
+                应用
+              </el-button>
+            </template>
+          </el-table-column>
+        </ScTable>
+      </div>
     </div>
 
     <template #footer>
@@ -410,57 +437,199 @@ const handleClose = () => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
   .header-info {
     display: flex;
     align-items: center;
     gap: 12px;
 
-    .header-icon {
-      font-size: 24px;
-      color: #409eff;
+    .header-icon-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: var(--el-color-primary-light-9);
+      border-radius: 10px;
+
+      .header-icon {
+        font-size: 20px;
+        color: var(--el-color-primary);
+      }
     }
 
     .header-text {
       h3 {
         margin: 0;
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 600;
         color: var(--el-text-color-primary);
       }
 
       p {
         margin: 4px 0 0 0;
-        font-size: 14px;
-         color: var(--el-text-color-primary);
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .node-name {
+          font-weight: 500;
+        }
+
+        .node-address {
+          font-family: "JetBrains Mono", "Consolas", monospace;
+          font-size: 12px;
+          padding: 2px 6px;
+          background: var(--el-fill-color-light);
+          border-radius: 4px;
+        }
+      }
+    }
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 16px;
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 16px;
+      background: var(--el-fill-color-lighter);
+      border-radius: 8px;
+
+      .stat-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--el-color-primary);
+      }
+
+      .stat-label {
+        font-size: 11px;
+        color: var(--el-text-color-secondary);
+        margin-top: 2px;
       }
     }
   }
 }
 
 .logger-config-content {
-  .search-section {
+  .toolbar {
     display: flex;
+    justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 8px;
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .search-input {
+        width: 240px;
+
+        :deep(.el-input__wrapper) {
+          border-radius: 6px;
+          background: var(--el-bg-color);
+        }
+      }
+
+      .search-result {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+
+        strong {
+          color: var(--el-color-primary);
+        }
+      }
+    }
   }
 
-  .logger-name {
+  .table-wrapper {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--el-border-color-lighter);
+  }
+
+  .logger-name-cell {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 
-    .logger-icon {
-      color: #409eff;
-      font-size: 16px;
+    .logger-icon-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: var(--el-fill-color-light);
+      border-radius: 6px;
+      color: var(--el-text-color-secondary);
+      font-size: 14px;
+      flex-shrink: 0;
+
+      &.is-root {
+        background: var(--el-color-primary-light-9);
+        color: var(--el-color-primary);
+      }
     }
+
+    .logger-name-text {
+      font-family: "JetBrains Mono", "Consolas", monospace;
+      font-size: 13px;
+      color: var(--el-text-color-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .no-config {
+    color: var(--el-text-color-placeholder);
+    font-size: 14px;
+  }
+
+  .inherit-icon {
+    font-size: 18px;
+
+    &.is-active {
+      color: var(--el-color-success);
+    }
+
+    &.is-inactive {
+      color: var(--el-text-color-placeholder);
+    }
+  }
+
+  .level-select {
+    width: 100px;
+
+    :deep(.el-select__wrapper) {
+      border-radius: 6px;
+    }
+  }
+
+  .level-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 </style>

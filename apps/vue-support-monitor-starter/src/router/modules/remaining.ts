@@ -111,6 +111,17 @@ export default [
     },
   },
   {
+    path: "/node/scifi-dashboard/:nodeId",
+    name: "nodeScifiDashboard",
+    component: () =>
+      import("@/views/node-management/module/scifi-dashboard/index.vue"),
+    meta: {
+      icon: "ri:dashboard-3-line",
+      title: "科幻监控大屏",
+      showLink: false,
+    },
+  },
+  {
     path: "/file-manager/:serverId",
     name: "fileManager",
     component: () => import("@/views/server/modules/file-management/index.vue"),

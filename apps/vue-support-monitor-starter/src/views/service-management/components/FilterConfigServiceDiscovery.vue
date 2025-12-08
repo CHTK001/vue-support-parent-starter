@@ -9,105 +9,183 @@
     draggable
   >
     <div class="service-discovery-container">
+      <!-- 发现模式选择 -->
+      <div class="mode-selection">
+        <div class="mode-label">选择服务发现模式</div>
+        <div class="mode-cards">
+          <div
+            v-for="mode in modeOptions"
+            :key="mode.value"
+            class="mode-card"
+            :class="{ active: config.serviceDiscoveryMode === mode.value }"
+            @click="config.serviceDiscoveryMode = mode.value"
+          >
+            <div class="mode-card-icon">
+              <IconifyIconOnline :icon="mode.icon" />
+            </div>
+            <div class="mode-card-content">
+              <div class="mode-card-title">{{ mode.label }}</div>
+              <div class="mode-card-desc">{{ mode.describe }}</div>
+            </div>
+            <div class="mode-card-check" v-if="config.serviceDiscoveryMode === mode.value">
+              <IconifyIconOnline icon="ri:check-line" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 基础配置 -->
-      <div class="config-section">
-        <h4 class="section-title">
-          <IconifyIconOnline icon="ri:compass-discover-line" />
-          基础配置
-        </h4>
-        <div class="config-grid">
-          <el-form-item label="发现模式">
-            <ScSelect
-              v-model="config.serviceDiscoveryMode"
-              :options="modeOptions"
-              style="width: 100%"
-            />
-          </el-form-item>
-          <el-form-item label="负载均衡">
-            <ScSelect
+      <div class="config-section basic-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <IconifyIconOnline icon="ri:settings-3-line" />
+          </div>
+          <div class="section-title-text">
+            <h4>基础配置</h4>
+            <p>配置负载均衡策略和启用状态</p>
+          </div>
+        </div>
+        <div class="basic-config-row">
+          <div class="config-item">
+            <label>负载均衡策略</label>
+            <el-select
               v-model="config.serviceDiscoveryBalance"
-              :options="balanceOptions"
+              placeholder="请选择负载均衡策略"
               style="width: 100%"
-            />
-          </el-form-item>
-          <el-form-item label="启用状态">
-            <el-switch
-              v-model="config.serviceDiscoveryEnabled"
-              active-text="启用"
-              inactive-text="禁用"
-            />
-          </el-form-item>
+            >
+              <el-option
+                v-for="opt in balanceOptions"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+          </div>
+          <div class="config-item status-item">
+            <label>启用状态</label>
+            <div class="status-switch">
+              <el-switch
+                v-model="config.serviceDiscoveryEnabled"
+                inline-prompt
+                active-text="启用"
+                inactive-text="禁用"
+                style="--el-switch-on-color: #10b981; --el-switch-off-color: #ef4444"
+              />
+              <span class="status-text" :class="{ enabled: config.serviceDiscoveryEnabled }">
+                {{ config.serviceDiscoveryEnabled ? '已启用' : '已禁用' }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Monitor 服务配置 -->
       <div
         v-if="config.serviceDiscoveryMode === 'MONITOR'"
-        class="config-section monitor-section"
+        class="config-section detail-section monitor-section"
       >
-        <h4 class="section-title">
-          <IconifyIconOnline icon="ri:radar-line" />
-          Monitor 服务配置 (SyncServer)
-        </h4>
-        <div class="monitor-config-grid">
-          <el-form-item label="服务地址">
+        <div class="section-header">
+          <div class="section-icon monitor">
+            <IconifyIconOnline icon="ri:radar-line" />
+          </div>
+          <div class="section-title-text">
+            <h4>Monitor 长连接配置</h4>
+            <p>配置 SyncServer 服务端地址，使用已连接的长连接节点</p>
+          </div>
+        </div>
+        <div class="detail-config-grid">
+          <div class="config-field">
+            <label>服务地址</label>
             <el-input
               v-model="config.serviceDiscoveryMonitorHost"
               placeholder="如: localhost 或 192.168.1.100"
-            />
-          </el-form-item>
-          <el-form-item label="服务端口">
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="ri:server-line" />
+              </template>
+            </el-input>
+          </div>
+          <div class="config-field">
+            <label>服务端口</label>
             <el-input-number
               v-model="config.serviceDiscoveryMonitorPort"
               :min="1"
               :max="65535"
-              placeholder="如: 9999"
+              placeholder="9999"
               style="width: 100%"
             />
-          </el-form-item>
+          </div>
         </div>
         <div class="config-tips success">
-          <IconifyIconOnline icon="ri:check-double-line" />
-          <span
-            >推荐使用：内置的SyncServer服务发现，无需额外依赖，即开即用</span
-          >
+          <div class="tip-icon">
+            <IconifyIconOnline icon="ri:lightbulb-line" />
+          </div>
+          <div class="tip-content">
+            <strong>推荐使用</strong>
+            <span>自动发现已连接到 SyncServer 的所有节点，无需手动配置服务列表</span>
+          </div>
         </div>
       </div>
 
       <!-- Spring Bean 配置 -->
       <div
         v-else-if="config.serviceDiscoveryMode === 'SPRING'"
-        class="config-section spring-section"
+        class="config-section detail-section spring-section"
       >
-        <h4 class="section-title">
-          <IconifyIconOnline icon="devicon:spring" />
-          Spring Bean 配置
-        </h4>
-        <el-form-item label="Bean名称">
-          <ScSelect
+        <div class="section-header">
+          <div class="section-icon spring">
+            <IconifyIconOnline icon="devicon:spring" />
+          </div>
+          <div class="section-title-text">
+            <h4>Spring Bean 配置</h4>
+            <p>选择 Spring 容器中的 ServiceDiscovery 实现</p>
+          </div>
+        </div>
+        <div class="config-field" style="max-width: 400px;">
+          <label>Bean 名称</label>
+          <el-select
             v-model="config.serviceDiscoveryBeanName"
-            :options="springBeanOptions"
-            placeholder="选择或输入ServiceDiscovery Bean名称"
+            placeholder="选择或输入 Bean 名称"
             filterable
             allow-create
-            style="width: 100%; max-width: 400px"
-          />
-        </el-form-item>
-        <div class="config-tips">
-          <IconifyIconOnline icon="ri:information-line" />
-          <span>从Spring容器中获取ServiceDiscovery实现Bean</span>
+            style="width: 100%"
+          >
+            <el-option
+              v-for="opt in springBeanOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
+        </div>
+        <div class="config-tips info">
+          <div class="tip-icon">
+            <IconifyIconOnline icon="ri:information-line" />
+          </div>
+          <div class="tip-content">
+            <span>从 Spring 容器中获取 ServiceDiscovery 实现 Bean</span>
+          </div>
         </div>
       </div>
 
       <!-- 表映射配置 -->
       <div
         v-else-if="config.serviceDiscoveryMode === 'TABLE'"
-        class="config-section"
+        class="config-section detail-section table-section"
       >
-        <h4 class="section-title">
-          <IconifyIconOnline icon="ri:table-2" />
-          服务映射配置
-        </h4>
+        <div class="section-header">
+          <div class="section-icon table">
+            <IconifyIconOnline icon="ri:table-2" />
+          </div>
+          <div class="section-title-text">
+            <h4>服务映射配置</h4>
+            <p>管理服务名称与地址的映射关系</p>
+          </div>
+          <el-button type="primary" size="small" @click="addMapping" class="add-btn">
+            <IconifyIconOnline icon="ri:add-line" />
+            新增映射
+          </el-button>
+        </div>
 
         <!-- 表头 -->
         <div class="mapping-header">
@@ -119,18 +197,18 @@
         </div>
 
         <!-- 映射列表 -->
-        <div class="mapping-list thin-scrollbar">
+        <div class="mapping-list">
           <div class="mapping-row" v-for="(m, idx) in mappings" :key="idx">
             <div class="col-name">
               <el-input
                 v-model="m.serviceDiscoveryName"
-                placeholder="如: user-service"
+                placeholder="user-service"
               />
             </div>
             <div class="col-address">
               <el-input
                 v-model="m.serviceDiscoveryAddress"
-                placeholder="如: http://localhost:8080"
+                placeholder="http://localhost:8080"
               />
             </div>
             <div class="col-weight">
@@ -142,13 +220,18 @@
               />
             </div>
             <div class="col-status">
-              <el-switch v-model="m.serviceDiscoveryEnabled" />
+              <el-switch 
+                v-model="m.serviceDiscoveryEnabled" 
+                inline-prompt
+                active-text="开"
+                inactive-text="关"
+              />
             </div>
             <div class="col-action">
               <el-button
                 type="danger"
                 size="small"
-                circle
+                text
                 @click="mappings.splice(idx, 1)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
@@ -158,64 +241,83 @@
 
           <!-- 空状态 -->
           <div v-if="mappings.length === 0" class="empty-state">
-            <IconifyIconOnline icon="ri:server-line" />
-            <span>暂无服务映射，点击下方按钮添加</span>
+            <div class="empty-icon">
+              <IconifyIconOnline icon="ri:server-line" />
+            </div>
+            <div class="empty-text">
+              <span>暂无服务映射</span>
+              <p>点击右上角「新增映射」按钮添加服务</p>
+            </div>
           </div>
-        </div>
-
-        <!-- 添加按钮 -->
-        <div class="add-mapping-btn">
-          <el-button type="primary" @click="addMapping">
-            <IconifyIconOnline icon="ri:add-line" />
-            新增映射
-          </el-button>
         </div>
       </div>
 
       <!-- Hazelcast 配置 -->
       <div
         v-else-if="config.serviceDiscoveryMode === 'HAZELCAST'"
-        class="config-section hazelcast-section"
+        class="config-section detail-section hazelcast-section"
       >
-        <h4 class="section-title">
-          <IconifyIconOnline icon="simple-icons:hazelcast" />
-          Hazelcast 集群配置
-        </h4>
-        <div class="hazelcast-config-grid">
-          <el-form-item label="集群名称">
+        <div class="section-header">
+          <div class="section-icon hazelcast">
+            <IconifyIconOnline icon="simple-icons:hazelcast" />
+          </div>
+          <div class="section-title-text">
+            <h4>Hazelcast 集群配置</h4>
+            <p>配置 Hazelcast 集群连接参数</p>
+          </div>
+        </div>
+        <div class="detail-config-grid">
+          <div class="config-field">
+            <label>集群名称</label>
             <el-input
               v-model="config.serviceDiscoveryHazelcastClusterName"
               placeholder="如: dev-cluster"
-            />
-          </el-form-item>
-          <el-form-item label="成员地址">
-            <el-input
-              v-model="config.serviceDiscoveryHazelcastMembers"
-              placeholder="如: 192.168.1.100:5701,192.168.1.101:5701"
-            />
-          </el-form-item>
-          <el-form-item label="端口">
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="ri:team-line" />
+              </template>
+            </el-input>
+          </div>
+          <div class="config-field">
+            <label>端口</label>
             <el-input-number
               v-model="config.serviceDiscoveryHazelcastPort"
               :min="1"
               :max="65535"
-              placeholder="默认: 5701"
+              placeholder="5701"
               style="width: 100%"
             />
-          </el-form-item>
-          <el-form-item label="连接超时(秒)">
+          </div>
+          <div class="config-field full-width">
+            <label>成员地址</label>
+            <el-input
+              v-model="config.serviceDiscoveryHazelcastMembers"
+              placeholder="如: 192.168.1.100:5701,192.168.1.101:5701"
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="ri:links-line" />
+              </template>
+            </el-input>
+          </div>
+          <div class="config-field">
+            <label>连接超时 (秒)</label>
             <el-input-number
               v-model="config.serviceDiscoveryHazelcastTimeout"
               :min="1"
               :max="300"
-              placeholder="默认: 30"
+              placeholder="30"
               style="width: 100%"
             />
-          </el-form-item>
+          </div>
         </div>
         <div class="config-tips warning">
-          <IconifyIconOnline icon="ri:alert-line" />
-          <span>需要确保Hazelcast集群已启动，并且网络可达</span>
+          <div class="tip-icon">
+            <IconifyIconOnline icon="ri:alert-line" />
+          </div>
+          <div class="tip-content">
+            <strong>注意</strong>
+            <span>需要确保 Hazelcast 集群已启动，并且网络可达</span>
+          </div>
         </div>
       </div>
     </div>
@@ -271,15 +373,15 @@ const modeOptions = ref<Option[]>(
   [
     {
       name: "MONITOR",
-      label: "Monitor 服务",
+      label: "Monitor 长连接",
       icon: "ri:radar-line",
-      describe: "基于SyncServer的内置服务发现",
+      describe: "使用 SyncServer 长连接的在线节点",
     },
     {
       name: "SPRING",
       label: "Spring Bean",
       icon: "devicon:spring",
-      describe: "使用Spring容器中的ServiceDiscovery实现",
+      describe: "使用 Spring 容器中的 ServiceDiscovery Bean",
     },
     {
       name: "TABLE",
@@ -291,7 +393,7 @@ const modeOptions = ref<Option[]>(
       name: "HAZELCAST",
       label: "Hazelcast",
       icon: "simple-icons:hazelcast",
-      describe: "基于Hazelcast集群的服务发现",
+      describe: "基于 Hazelcast 集群的服务发现",
     },
   ].map((it) => ({ ...it, value: it.name }))
 );
@@ -442,224 +544,473 @@ async function loadSpringBeanOptions() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .service-discovery-container {
   max-height: 68vh;
   overflow-y: auto;
-  padding: 12px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 16px;
+  padding: 0;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--el-border-color-light);
+    border-radius: 3px;
+  }
 }
 
-.config-section {
+/* 模式选择卡片 */
+.mode-selection {
   margin-bottom: 20px;
-  padding: 24px;
-  border: none;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+
+  .mode-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    margin-bottom: 12px;
+  }
+
+  .mode-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .mode-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--el-bg-color);
+    border: 2px solid var(--el-border-color-light);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+
+    &:hover {
+      border-color: var(--el-color-primary-light-5);
+      background: var(--el-color-primary-light-9);
+    }
+
+    &.active {
+      border-color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+      box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.1);
+    }
+
+    .mode-card-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--el-color-primary-light-8);
+      border-radius: 10px;
+      flex-shrink: 0;
+
+      :deep(.iconify) {
+        font-size: 20px;
+        color: var(--el-color-primary);
+      }
+    }
+
+    .mode-card-content {
+      flex: 1;
+      min-width: 0;
+
+      .mode-card-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        margin-bottom: 4px;
+      }
+
+      .mode-card-desc {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+        line-height: 1.4;
+      }
+    }
+
+    .mode-card-check {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--el-color-primary);
+      border-radius: 50%;
+
+      :deep(.iconify) {
+        font-size: 12px;
+        color: #fff;
+      }
+    }
+  }
 }
 
-.config-section::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 5px;
-  height: 100%;
-  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+/* 配置区块 */
+.config-section {
+  margin-bottom: 16px;
+  padding: 20px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--el-border-color-extra-light);
+
+    .section-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      flex-shrink: 0;
+      background: var(--el-color-primary-light-9);
+
+      :deep(.iconify) {
+        font-size: 20px;
+        color: var(--el-color-primary);
+      }
+
+      &.monitor {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        :deep(.iconify) { color: #10b981; }
+      }
+
+      &.spring {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        :deep(.iconify) { color: #6ee7b7; }
+      }
+
+      &.hazelcast {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        :deep(.iconify) { color: #f59e0b; }
+      }
+
+      &.table {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        :deep(.iconify) { color: #3b82f6; }
+      }
+    }
+
+    .section-title-text {
+      flex: 1;
+
+      h4 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      p {
+        margin: 4px 0 0 0;
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+
+    .add-btn {
+      border-radius: 8px;
+    }
+  }
 }
 
-.config-section:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+/* 基础配置 */
+.basic-section {
+  .basic-config-row {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+
+    .config-item {
+      flex: 1;
+
+      label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--el-text-color-regular);
+        margin-bottom: 8px;
+      }
+
+      &.status-item {
+        flex: 0 0 180px;
+      }
+
+      .status-switch {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 32px;
+
+        .status-text {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--el-color-danger);
+
+          &.enabled {
+            color: var(--el-color-success);
+          }
+        }
+      }
+    }
+  }
 }
 
-/* Monitor 配置特殊样式 */
-.monitor-section::before {
-  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+/* 详细配置区块 */
+.detail-section {
+  .detail-config-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .config-field {
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--el-text-color-regular);
+      margin-bottom: 8px;
+    }
+
+    &.full-width {
+      grid-column: span 2;
+    }
+
+    :deep(.el-input__wrapper) {
+      border-radius: 8px;
+    }
+
+    :deep(.el-input__prefix) {
+      color: var(--el-text-color-placeholder);
+    }
+  }
 }
 
-/* Spring 配置特殊样式 */
-.spring-section::before {
-  background: linear-gradient(180deg, #6ee7b7 0%, #10b981 100%);
-}
-
-/* Hazelcast 配置特殊样式 */
-.hazelcast-section::before {
-  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
-}
-
-.monitor-config-grid,
-.hazelcast-config-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 20px 0;
-  padding-bottom: 12px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  border-bottom: 2px solid var(--el-color-primary-light-8);
-}
-
-.section-title :deep(.iconify) {
-  color: var(--el-color-primary);
-  font-size: 18px;
-}
-
-.config-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
-}
-
-.config-grid :deep(.el-form-item) {
-  margin-bottom: 0;
-}
-
+/* 提示信息 */
 .config-tips {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-  margin-top: 20px;
-  background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%);
-  border-radius: 12px;
-  border-left: 4px solid #3b82f6;
-  color: #1e40af;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.config-tips.success {
-  background: linear-gradient(145deg, #ecfdf5 0%, #d1fae5 100%);
-  border-left-color: #10b981;
-  color: #065f46;
-}
-
-.config-tips.warning {
-  background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%);
-  border-left-color: #f59e0b;
-  color: #92400e;
-}
-
-.config-tips :deep(.iconify) {
-  font-size: 18px;
-}
-
-.mapping-header {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  background: #f5f7fa;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #606266;
-  margin-bottom: 12px;
-}
-
-.mapping-list {
-  max-height: 280px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.mapping-row {
-  display: flex;
-  align-items: center;
-  padding: 14px 16px;
-  margin-bottom: 10px;
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 10px;
-  transition: all 0.2s ease;
-}
-
-.mapping-row:hover {
-  border-color: #67c23a;
-  box-shadow: 0 2px 8px rgba(103, 194, 58, 0.1);
-}
-
-.col-name {
-  width: 160px;
-  flex-shrink: 0;
-}
-.col-address {
-  flex: 1;
-  margin: 0 12px;
-  min-width: 200px;
-}
-.col-weight {
-  width: 100px;
-  flex-shrink: 0;
-}
-.col-status {
-  width: 60px;
-  flex-shrink: 0;
-  margin: 0 12px;
-}
-.col-action {
-  width: 50px;
-  flex-shrink: 0;
-  text-align: center;
-}
-
-.col-name :deep(.el-input__wrapper),
-.col-address :deep(.el-input__wrapper) {
-  border-radius: 6px;
-}
-
-.col-weight :deep(.el-input-number) {
-  width: 100%;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  color: #909399;
-  font-size: 14px;
+  align-items: flex-start;
   gap: 12px;
-}
-
-.empty-state :deep(.iconify) {
-  font-size: 40px;
-  color: #c0c4cc;
-}
-
-.add-mapping-btn {
+  padding: 14px 16px;
   margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px dashed #e8e8e8;
+  background: var(--el-color-primary-light-9);
+  border-radius: 10px;
+
+  .tip-icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--el-color-primary-light-8);
+    border-radius: 8px;
+    flex-shrink: 0;
+
+    :deep(.iconify) {
+      font-size: 16px;
+      color: var(--el-color-primary);
+    }
+  }
+
+  .tip-content {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--el-text-color-regular);
+
+    strong {
+      display: block;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+      margin-bottom: 2px;
+    }
+  }
+
+  &.success {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+
+    .tip-icon {
+      background: #a7f3d0;
+      :deep(.iconify) { color: #10b981; }
+    }
+
+    .tip-content strong { color: #065f46; }
+  }
+
+  &.warning {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+
+    .tip-icon {
+      background: #fde68a;
+      :deep(.iconify) { color: #f59e0b; }
+    }
+
+    .tip-content strong { color: #92400e; }
+  }
+
+  &.info {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+
+    .tip-icon {
+      background: #bfdbfe;
+      :deep(.iconify) { color: #3b82f6; }
+    }
+  }
 }
 
-.add-mapping-btn :deep(.el-button) {
-  width: 100%;
-  border-radius: 8px;
-  height: 40px;
+/* 表映射 */
+.table-section {
+  .mapping-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--el-fill-color-light);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .mapping-list {
+    max-height: 240px;
+    overflow-y: auto;
+    margin-top: 10px;
+
+    &::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--el-border-color-light);
+      border-radius: 3px;
+    }
+  }
+
+  .mapping-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    background: var(--el-fill-color-extra-light);
+    border: 1px solid var(--el-border-color-extra-light);
+    border-radius: 10px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: var(--el-color-primary-light-5);
+      background: var(--el-color-primary-light-9);
+    }
+  }
+
+  .col-name {
+    width: 150px;
+    flex-shrink: 0;
+  }
+
+  .col-address {
+    flex: 1;
+    margin: 0 10px;
+    min-width: 180px;
+  }
+
+  .col-weight {
+    width: 100px;
+    flex-shrink: 0;
+
+    :deep(.el-input-number) {
+      width: 100%;
+    }
+  }
+
+  .col-status {
+    width: 70px;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  .col-action {
+    width: 40px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+
+    .empty-icon {
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--el-fill-color-light);
+      border-radius: 16px;
+      margin-bottom: 16px;
+
+      :deep(.iconify) {
+        font-size: 32px;
+        color: var(--el-text-color-placeholder);
+      }
+    }
+
+    .empty-text {
+      span {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--el-text-color-secondary);
+      }
+
+      p {
+        margin: 6px 0 0 0;
+        font-size: 12px;
+        color: var(--el-text-color-placeholder);
+      }
+    }
+  }
 }
 
+/* 对话框底部 */
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-}
 
-.dialog-footer :deep(.el-button) {
-  border-radius: 8px;
-  padding: 10px 24px;
+  :deep(.el-button) {
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-weight: 500;
+  }
 }
 </style>
