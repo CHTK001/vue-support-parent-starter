@@ -2,8 +2,9 @@
   <el-dialog
     v-model="visibleInner"
     title="服务发现配置"
-    width="900px"
+    width="960px"
     :close-on-click-modal="false"
+    class="service-discovery-dialog"
     @close="handleClose"
     draggable
   >
@@ -39,20 +40,57 @@
         </div>
       </div>
 
+      <!-- Monitor 服务配置 -->
+      <div
+        v-if="config.serviceDiscoveryMode === 'MONITOR'"
+        class="config-section monitor-section"
+      >
+        <h4 class="section-title">
+          <IconifyIconOnline icon="ri:radar-line" />
+          Monitor 服务配置 (SyncServer)
+        </h4>
+        <div class="monitor-config-grid">
+          <el-form-item label="服务地址">
+            <el-input
+              v-model="config.serviceDiscoveryMonitorHost"
+              placeholder="如: localhost 或 192.168.1.100"
+            />
+          </el-form-item>
+          <el-form-item label="服务端口">
+            <el-input-number
+              v-model="config.serviceDiscoveryMonitorPort"
+              :min="1"
+              :max="65535"
+              placeholder="如: 9999"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </div>
+        <div class="config-tips success">
+          <IconifyIconOnline icon="ri:check-double-line" />
+          <span
+            >推荐使用：内置的SyncServer服务发现，无需额外依赖，即开即用</span
+          >
+        </div>
+      </div>
+
       <!-- Spring Bean 配置 -->
       <div
-        v-if="config.serviceDiscoveryMode === 'SPRING'"
-        class="config-section"
+        v-else-if="config.serviceDiscoveryMode === 'SPRING'"
+        class="config-section spring-section"
       >
         <h4 class="section-title">
           <IconifyIconOnline icon="devicon:spring" />
           Spring Bean 配置
         </h4>
         <el-form-item label="Bean名称">
-          <el-input
+          <ScSelect
             v-model="config.serviceDiscoveryBeanName"
-            placeholder="ServiceDiscovery Bean名称"
-            style="max-width: 400px"
+            :options="springBeanOptions"
+            placeholder="选择或输入ServiceDiscovery Bean名称"
+            filterable
+            allow-create
+            style="width: 100%; max-width: 400px"
           />
         </el-form-item>
         <div class="config-tips">
@@ -137,15 +175,47 @@
       <!-- Hazelcast 配置 -->
       <div
         v-else-if="config.serviceDiscoveryMode === 'HAZELCAST'"
-        class="config-section"
+        class="config-section hazelcast-section"
       >
         <h4 class="section-title">
-          <IconifyIconOnline icon="devicon:apache" />
+          <IconifyIconOnline icon="simple-icons:hazelcast" />
           Hazelcast 集群配置
         </h4>
-        <div class="config-tips">
-          <IconifyIconOnline icon="ri:information-line" />
-          <span>基于Hazelcast集群的服务发现，需配置集群连接参数</span>
+        <div class="hazelcast-config-grid">
+          <el-form-item label="集群名称">
+            <el-input
+              v-model="config.serviceDiscoveryHazelcastClusterName"
+              placeholder="如: dev-cluster"
+            />
+          </el-form-item>
+          <el-form-item label="成员地址">
+            <el-input
+              v-model="config.serviceDiscoveryHazelcastMembers"
+              placeholder="如: 192.168.1.100:5701,192.168.1.101:5701"
+            />
+          </el-form-item>
+          <el-form-item label="端口">
+            <el-input-number
+              v-model="config.serviceDiscoveryHazelcastPort"
+              :min="1"
+              :max="65535"
+              placeholder="默认: 5701"
+              style="width: 100%"
+            />
+          </el-form-item>
+          <el-form-item label="连接超时(秒)">
+            <el-input-number
+              v-model="config.serviceDiscoveryHazelcastTimeout"
+              :min="1"
+              :max="300"
+              placeholder="默认: 30"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </div>
+        <div class="config-tips warning">
+          <IconifyIconOnline icon="ri:alert-line" />
+          <span>需要确保Hazelcast集群已启动，并且网络可达</span>
         </div>
       </div>
     </div>
@@ -200,6 +270,12 @@ type Option = {
 const modeOptions = ref<Option[]>(
   [
     {
+      name: "MONITOR",
+      label: "Monitor 服务",
+      icon: "ri:radar-line",
+      describe: "基于SyncServer的内置服务发现",
+    },
+    {
       name: "SPRING",
       label: "Spring Bean",
       icon: "devicon:spring",
@@ -214,12 +290,13 @@ const modeOptions = ref<Option[]>(
     {
       name: "HAZELCAST",
       label: "Hazelcast",
-      icon: "devicon:apache",
+      icon: "simple-icons:hazelcast",
       describe: "基于Hazelcast集群的服务发现",
     },
   ].map((it) => ({ ...it, value: it.name }))
 );
 const balanceOptions = ref<Option[]>([]);
+const springBeanOptions = ref<Option[]>([]);
 
 watch(
   () => props.visible,
@@ -234,15 +311,19 @@ watch(visibleInner, (v) => emit("update:visible", v));
 async function loadData() {
   config.value = {
     serviceDiscoveryServerId: props.serverId,
-    serviceDiscoveryMode: "SPRING",
+    serviceDiscoveryMode: "MONITOR",
     serviceDiscoveryEnabled: true,
     serviceDiscoveryBalance: "weight",
+    serviceDiscoveryMonitorHost: "localhost",
+    serviceDiscoveryMonitorPort: 9999,
+    serviceDiscoveryHazelcastPort: 5701,
+    serviceDiscoveryHazelcastTimeout: 30,
   };
   mappings.value = [];
   try {
     const cfg = await getServiceDiscoveryConfig(props.serverId);
     if (cfg.success && Array.isArray(cfg.data) && cfg.data.length > 0) {
-      config.value = { ...cfg.data[0] };
+      config.value = { ...config.value, ...cfg.data[0] };
       if (config.value.serviceDiscoveryMode === "DEFAULT") {
         // 兼容旧值，转为 TABLE
         config.value.serviceDiscoveryMode = "TABLE";
@@ -257,7 +338,7 @@ async function loadData() {
         mappings.value = mp.data;
       }
     }
-    await loadBalanceOptions();
+    await Promise.all([loadBalanceOptions(), loadSpringBeanOptions()]);
   } catch (e) {
     /* ignore */
   }
@@ -335,27 +416,88 @@ async function loadBalanceOptions() {
     }
   } catch {}
 }
+
+async function loadSpringBeanOptions() {
+  try {
+    const res = await fetchOptionObjectsList({ type: "serviceDiscovery" });
+    if (res?.success) {
+      const list = (res.data || [])
+        .map((it: any) => {
+          if (typeof it === "string") return { name: it, value: it, label: it };
+          const name = it?.name ?? it?.value ?? it?.label;
+          return {
+            name,
+            value: name,
+            label: it?.label ?? name,
+            describe: it?.describe ?? it?.label,
+          };
+        })
+        .filter((it: any) => !!it.name);
+      const seen = new Set<string>();
+      springBeanOptions.value = list.filter((it: any) =>
+        seen.has(it.name) ? false : (seen.add(it.name), true)
+      );
+    }
+  } catch {}
+}
 </script>
 
 <style scoped>
 .service-discovery-container {
-  max-height: 65vh;
+  max-height: 68vh;
   overflow-y: auto;
-  padding: 4px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 16px;
 }
 
 .config-section {
   margin-bottom: 20px;
-  padding: 20px;
+  padding: 24px;
   border: none;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.3s ease;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.config-section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
 }
 
 .config-section:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Monitor 配置特殊样式 */
+.monitor-section::before {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+}
+
+/* Spring 配置特殊样式 */
+.spring-section::before {
+  background: linear-gradient(180deg, #6ee7b7 0%, #10b981 100%);
+}
+
+/* Hazelcast 配置特殊样式 */
+.hazelcast-section::before {
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+}
+
+.monitor-config-grid,
+.hazelcast-config-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
 }
 
 .section-title {
@@ -388,14 +530,31 @@ async function loadBalanceOptions() {
 .config-tips {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  margin-top: 16px;
-  background: linear-gradient(145deg, #e6f7ff 0%, #f0faff 100%);
-  border-radius: 8px;
-  border-left: 3px solid #1890ff;
-  color: #1890ff;
+  gap: 10px;
+  padding: 14px 18px;
+  margin-top: 20px;
+  background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%);
+  border-radius: 12px;
+  border-left: 4px solid #3b82f6;
+  color: #1e40af;
   font-size: 13px;
+  font-weight: 500;
+}
+
+.config-tips.success {
+  background: linear-gradient(145deg, #ecfdf5 0%, #d1fae5 100%);
+  border-left-color: #10b981;
+  color: #065f46;
+}
+
+.config-tips.warning {
+  background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%);
+  border-left-color: #f59e0b;
+  color: #92400e;
+}
+
+.config-tips :deep(.iconify) {
+  font-size: 18px;
 }
 
 .mapping-header {

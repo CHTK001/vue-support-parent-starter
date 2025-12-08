@@ -6,7 +6,7 @@ export default [
     name: "setting",
     meta: {
       icon: "ep:setting",
-      rank: 10299,
+      rank: 99,
       title: $t("buttons.monitor.setting"),
       showLink: true,
     },
@@ -17,7 +17,7 @@ export default [
         component: () => import("@pages/setting"),
         meta: {
           icon: "ep:setting",
-          rank: 10299,
+          rank: 99,
           title: $t("buttons.monitor.setting"),
           showLink: true,
           showParent: true,

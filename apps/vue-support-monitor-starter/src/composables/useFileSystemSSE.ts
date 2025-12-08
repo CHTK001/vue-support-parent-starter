@@ -371,27 +371,56 @@ export function useFileSystemSSE() {
 
       // 连接错误
       eventSource.value.onerror = (error) => {
-        state.value.connected = false;
-        state.value.connecting = false;
-        state.value.error = "连接失败";
-        console.error("文件系统SSE连接错误:", error);
+        // 检查 EventSource 的状态
+        const es = eventSource.value;
+        const readyState = es?.readyState;
+
+        console.error("文件系统SSE连接错误:", error, "readyState:", readyState);
 
         // 停止心跳
         stopHeartbeat();
 
-        // 尝试重连
-        if (state.value.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-          state.value.reconnectAttempts++;
-          console.log(
-            `文件系统SSE重连尝试 ${state.value.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`
-          );
+        // 如果连接已关闭（CLOSED = 2），清理状态
+        if (readyState === EventSource.CLOSED) {
+          state.value.connected = false;
+          state.value.connecting = false;
 
-          reconnectTimer = setTimeout(() => {
-            connect();
-          }, RECONNECT_DELAY);
-        } else {
-          console.error("文件系统SSE重连次数已达上限，停止重连");
-          ElMessage.error("文件系统连接失败，请刷新页面重试");
+          // 只有在之前是连接状态才尝试重连，避免初始连接失败时无限重连
+          if (state.value.lastHeartbeat > 0) {
+            state.value.error = "连接已断开";
+
+            // 尝试重连
+            if (state.value.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+              state.value.reconnectAttempts++;
+              console.log(
+                `文件系统SSE重连尝试 ${state.value.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`
+              );
+
+              // 清理旧的重连定时器
+              if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+              }
+
+              reconnectTimer = setTimeout(() => {
+                // 再次检查是否需要重连
+                if (!state.value.connected && !state.value.connecting) {
+                  connect();
+                }
+              }, RECONNECT_DELAY);
+            } else {
+              console.error("文件系统SSE重连次数已达上限，停止重连");
+              ElMessage.error("文件系统连接失败，请刷新页面重试");
+            }
+          } else {
+            // 初始连接失败，不自动重连
+            state.value.error = "连接失败";
+            console.warn("文件系统SSE初始连接失败，不自动重连");
+          }
+        } else if (readyState === EventSource.CONNECTING) {
+          // 正在重连中（CONNECTING = 0），等待浏览器自动重连
+          console.log("文件系统SSE正在重连中...");
+          state.value.connecting = true;
+          state.value.connected = false;
         }
       };
     } catch (error) {

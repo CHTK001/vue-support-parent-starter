@@ -328,10 +328,18 @@ export function batchUpdateServletFilterEnabled(
 export interface ServiceDiscoveryConfig {
   systemServerSettingServiceDiscoveryId?: number;
   serviceDiscoveryServerId: number;
-  serviceDiscoveryMode?: string; // SPRING/TABLE/HAZELCAST
+  serviceDiscoveryMode?: string; // MONITOR/SPRING/TABLE/HAZELCAST
   serviceDiscoveryBeanName?: string;
   serviceDiscoveryBalance?: string; // 负载均衡策略，如 weight/round/random/...
   serviceDiscoveryEnabled?: boolean;
+  // Monitor 服务配置
+  serviceDiscoveryMonitorHost?: string;
+  serviceDiscoveryMonitorPort?: number;
+  // Hazelcast 集群配置
+  serviceDiscoveryHazelcastClusterName?: string;
+  serviceDiscoveryHazelcastMembers?: string;
+  serviceDiscoveryHazelcastPort?: number;
+  serviceDiscoveryHazelcastTimeout?: number;
 }
 
 export interface ServiceDiscoveryMapping {
@@ -504,6 +512,9 @@ export function getFileStorageConfig(serverId: number) {
   });
 }
 
+/**
+ * 保存文件存储配置（新增）
+ */
 export function saveFileStorageConfig(data: FileStorageConfig) {
   return request({
     url: "/system/server/setting/file-storage/save",
@@ -512,9 +523,163 @@ export function saveFileStorageConfig(data: FileStorageConfig) {
   });
 }
 
+/**
+ * 更新文件存储配置
+ */
+export function updateFileStorageConfig(data: FileStorageConfig) {
+  return request({
+    url: "/system/server/setting/file-storage/update",
+    method: "put",
+    data,
+  });
+}
+
 export function deleteFileStorageConfig(serverId: number) {
   return request({
     url: `/system/server/setting/file-storage/${serverId}`,
     method: "delete",
+  });
+}
+
+/**
+ * 删除单个文件存储配置
+ *
+ * @param storageId 存储配置ID
+ */
+export function deleteFileStorageById(storageId: number) {
+  return request({
+    url: `/system/server/setting/file-storage/item/${storageId}`,
+    method: "delete",
+  });
+}
+
+// ==================== 扩展名预览配置 ====================
+
+/**
+ * 扩展名预览配置接口
+ */
+export interface PreviewExtensionConfig {
+  /** 服务器ID */
+  serverId: number;
+  /** 过滤器设置ID（可选，用于关联到具体的view过滤器） */
+  filterSettingId?: number;
+  /** 禁用预览的扩展名列表（黑名单） */
+  disabledExtensions: string[];
+  /** 允许预览的扩展名列表（白名单） */
+  allowedExtensions: string[];
+  /** 是否启用白名单模式（true=白名单模式，false=黑名单模式） */
+  whitelistMode: boolean;
+}
+
+/**
+ * 获取服务器的扩展名预览配置
+ *
+ * @param serverId 服务器ID
+ */
+export function getPreviewExtensionConfig(serverId: number) {
+  return request({
+    url: `/system/server/setting/preview-extension/${serverId}`,
+    method: "get",
+  });
+}
+
+/**
+ * 保存扩展名预览配置
+ *
+ * @param config 配置对象
+ */
+export function savePreviewExtensionConfig(config: PreviewExtensionConfig) {
+  return request({
+    url: "/system/server/setting/preview-extension/save",
+    method: "post",
+    data: config,
+  });
+}
+
+/**
+ * 添加禁用预览的扩展名
+ *
+ * @param serverId 服务器ID
+ * @param extensions 扩展名列表
+ */
+export function addDisabledExtensions(serverId: number, extensions: string[]) {
+  return request({
+    url: `/system/server/setting/preview-extension/${serverId}/disabled/add`,
+    method: "post",
+    data: extensions,
+  });
+}
+
+/**
+ * 移除禁用预览的扩展名
+ *
+ * @param serverId 服务器ID
+ * @param extensions 扩展名列表
+ */
+export function removeDisabledExtensions(
+  serverId: number,
+  extensions: string[]
+) {
+  return request({
+    url: `/system/server/setting/preview-extension/${serverId}/disabled/remove`,
+    method: "post",
+    data: extensions,
+  });
+}
+
+/**
+ * 添加允许预览的扩展名
+ *
+ * @param serverId 服务器ID
+ * @param extensions 扩展名列表
+ */
+export function addAllowedExtensions(serverId: number, extensions: string[]) {
+  return request({
+    url: `/system/server/setting/preview-extension/${serverId}/allowed/add`,
+    method: "post",
+    data: extensions,
+  });
+}
+
+/**
+ * 移除允许预览的扩展名
+ *
+ * @param serverId 服务器ID
+ * @param extensions 扩展名列表
+ */
+export function removeAllowedExtensions(
+  serverId: number,
+  extensions: string[]
+) {
+  return request({
+    url: `/system/server/setting/preview-extension/${serverId}/allowed/remove`,
+    method: "post",
+    data: extensions,
+  });
+}
+
+/**
+ * 设置预览模式（白名单/黑名单）
+ *
+ * @param serverId 服务器ID
+ * @param whitelistMode true=白名单模式，false=黑名单模式
+ */
+export function setPreviewMode(serverId: number, whitelistMode: boolean) {
+  return request({
+    url: `/system/server/setting/preview-extension/${serverId}/mode`,
+    method: "put",
+    params: { whitelistMode },
+  });
+}
+
+/**
+ * 清空预览扩展名配置
+ *
+ * @param serverId 服务器ID
+ */
+export function clearPreviewExtensionConfig(serverId: number) {
+  return request({
+    url: `/system/server/setting/preview-extension/${serverId}/clear`,
+    method: "post",
   });
 }

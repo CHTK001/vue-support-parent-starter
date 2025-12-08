@@ -115,12 +115,12 @@
             </el-button>
           </div>
         </template>
-  
+
         <template #default="{ row: item }">
           <div class="app-card" @click="handleCardClick(item)">
             <!-- 状态指示器 -->
             <div class="status-indicator" :class="getStatusClass(item)"></div>
-  
+
             <!-- 卡片头部 -->
             <div class="card-header">
               <div class="app-icon-wrapper">
@@ -159,10 +159,25 @@
                 </div>
               </div>
             </div>
-  
+
             <!-- 卡片内容 -->
             <div class="card-content">
               <div class="metrics-grid">
+                <div class="metric-item">
+                  <IconifyIconOnline
+                    icon="ri:server-line"
+                    class="metric-icon online-icon"
+                  />
+                  <div class="metric-info">
+                    <span class="metric-label">在线设备</span>
+                    <span
+                      class="metric-value online-count"
+                      :class="{ 'has-devices': getOnlineCount(item) > 0 }"
+                    >
+                      {{ getOnlineCount(item) }}
+                    </span>
+                  </div>
+                </div>
                 <div class="metric-item">
                   <IconifyIconOnline icon="ri:time-line" class="metric-icon" />
                   <div class="metric-info">
@@ -172,17 +187,8 @@
                     }}</span>
                   </div>
                 </div>
-                <div class="metric-item">
-                  <IconifyIconOnline icon="ri:pulse-line" class="metric-icon" />
-                  <div class="metric-info">
-                    <span class="metric-label">运行状态</span>
-                    <span class="metric-value" :class="getStatusClass(item)">{{
-                      getStatusText(item)
-                    }}</span>
-                  </div>
-                </div>
               </div>
-  
+
               <!-- 标签区域 -->
               <div class="tags-section" v-if="item.tags && item.tags.length">
                 <el-tag
@@ -195,7 +201,7 @@
                 </el-tag>
               </div>
             </div>
-  
+
             <!-- 卡片操作 -->
             <div class="card-actions" @click.stop>
               <div class="action-buttons">
@@ -208,7 +214,10 @@
                   </el-button>
                 </el-tooltip>
                 <el-tooltip content="编辑配置" placement="top">
-                  <el-button class="action-btn" @click.stop="handleOpenEit(item)">
+                  <el-button
+                    class="action-btn"
+                    @click.stop="handleOpenEit(item)"
+                  >
                     <IconifyIconOnline icon="ri:edit-line" />
                   </el-button>
                 </el-tooltip>
@@ -236,19 +245,24 @@
       :visible="editDialogStatus"
       @success="handleSuccessOpenEit"
     ></EditDialog>
+
+    <DetailDialog v-model:visible="detailDialogStatus" :data="detailData" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import EditDialog from "./modules/EditDialog.vue";
+import DetailDialog from "./modules/DetailDialog.vue";
 import { fetchAppDelete, fetchAppPageList } from "@/api/monitor/app";
 import { ElMessageBox, ElMessage } from "element-plus";
 import { message } from "@repo/utils";
 
 const tableRef = ref<any>();
 const editDialogStatus = ref(false);
+const detailDialogStatus = ref(false);
 const currentData = ref<any>();
+const detailData = ref<any>({});
 const appList = ref<any[]>([]);
 
 // 查询参数
@@ -294,12 +308,16 @@ const getPlatformClass = (platform: string) => {
   return classMap[platform?.toLowerCase()] || "platform-default";
 };
 
+// 获取在线设备数量
+const getOnlineCount = (item: any) => {
+  return item.monitorRequests?.length || 0;
+};
+
 // 获取状态样式类
 const getStatusClass = (item: any) => {
-  // 模拟状态逻辑，实际应根据真实数据判断
-  // const random = Math.random();
-  // if (random > 0.8) return 'status-error';
-  // if (random > 0.6) return 'status-warning';
+  // 根据在线设备数量判断状态
+  const count = getOnlineCount(item);
+  if (count === 0) return "status-error";
   return "status-success";
 };
 
@@ -349,7 +367,8 @@ const handleCardClick = (item: any) => {
 
 // 查看详情
 const handleViewDetail = (item: any) => {
-  message.info("查看详情功能开发中...");
+  detailData.value = item;
+  detailDialogStatus.value = true;
 };
 
 // 复制配置
@@ -809,6 +828,20 @@ const handleDelete = (item: any) => {
 
 .metric-value.status-error {
   color: var(--el-color-danger);
+}
+
+.metric-value.online-count {
+  font-size: 18px;
+  font-weight: 700;
+  color: #94a3b8;
+
+  &.has-devices {
+    color: #10b981;
+  }
+}
+
+.online-icon {
+  color: #10b981;
 }
 
 .tags-section {

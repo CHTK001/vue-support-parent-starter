@@ -6,7 +6,7 @@ export default [
       icon: "ri:bug-line",
       title: "Arthas 管理",
       showLink: true,
-      rank: 2
+      rank: 6,
     },
     children: [
       {
@@ -17,10 +17,9 @@ export default [
           icon: "ri:bug-line",
           title: "Arthas 管理",
           showLink: true,
-          showParent: true
-        }
-      }
-    ]
-  }
+          showParent: true,
+        },
+      },
+    ],
+  },
 ];
-
