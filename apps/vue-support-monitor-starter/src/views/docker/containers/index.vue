@@ -375,7 +375,7 @@ import {
   type SystemSoftContainer,
 } from "@/api/docker";
 import ScTable from "@repo/components/ScTable/index.vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message, messageBox } from "@repo/utils";
 import { computed, onMounted, reactive, ref } from "vue";
 import ContainerDetailDialog from "./components/ContainerDetailDialog.vue";
 import ContainerLogsDialog from "./components/ContainerLogsDialog.vue";
@@ -484,19 +484,19 @@ const handleStart = async (container: SystemSoftContainer) => {
       container.systemSoftContainerId!
     );
     if (response.code === "00000") {
-      ElMessage.success("容器启动成功");
+      message.success("容器启动成功");
       loadContainers();
     } else {
-      ElMessage.error(response.msg || "容器启动失败");
+      message.error(response.msg || "容器启动失败");
     }
   } catch (error) {
-    ElMessage.error("容器启动失败");
+    message.error("容器启动失败");
   }
 };
 
 const handleStop = async (container: SystemSoftContainer) => {
   try {
-    await ElMessageBox.confirm("确定要停止这个容器吗？", "停止确认", {
+    await messageBox.confirm("确定要停止这个容器吗？", "停止确认", {
       type: "warning",
     });
 
@@ -504,14 +504,14 @@ const handleStop = async (container: SystemSoftContainer) => {
       container.systemSoftContainerId!
     );
     if (response.code === "00000") {
-      ElMessage.success("容器停止成功");
+      message.success("容器停止成功");
       loadContainers();
     } else {
-      ElMessage.error(response.msg || "容器停止失败");
+      message.error(response.msg || "容器停止失败");
     }
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("容器停止失败");
+      message.error("容器停止失败");
     }
   }
 };
@@ -544,19 +544,19 @@ const handleRestart = async (container: SystemSoftContainer) => {
       container.systemSoftContainerId!
     );
     if (response.code === "00000") {
-      ElMessage.success("容器重启成功");
+      message.success("容器重启成功");
       loadContainers();
     } else {
-      ElMessage.error(response.msg || "容器重启失败");
+      message.error(response.msg || "容器重启失败");
     }
   } catch (error) {
-    ElMessage.error("容器重启失败");
+    message.error("容器重启失败");
   }
 };
 
 const handleDelete = async (container: SystemSoftContainer) => {
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       "确定要删除这个容器吗？此操作不可恢复！",
       "删除确认",
       {
@@ -568,14 +568,14 @@ const handleDelete = async (container: SystemSoftContainer) => {
       container.systemSoftContainerId!
     );
     if (response.code === "00000") {
-      ElMessage.success("容器删除成功");
+      message.success("容器删除成功");
       loadContainers();
     } else {
-      ElMessage.error(response.msg || "容器删除失败");
+      message.error(response.msg || "容器删除失败");
     }
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("容器删除失败");
+      message.error("容器删除失败");
     }
   }
 };
@@ -585,13 +585,13 @@ const handleSyncStatus = async () => {
     syncLoading.value = true;
     const response = await containerApi.syncContainerStatus();
     if (response.code === "00000") {
-      ElMessage.success("容器状态同步成功");
+      message.success("容器状态同步成功");
       loadContainers();
     } else {
-      ElMessage.error(response.msg || "同步失败");
+      message.error(response.msg || "同步失败");
     }
   } catch (error) {
-    ElMessage.error("同步容器状态失败");
+    message.error("同步容器状态失败");
   } finally {
     syncLoading.value = false;
   }
@@ -600,7 +600,7 @@ const handleSyncStatus = async () => {
 // 批量操作
 const handleBatchStart = async () => {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning("请选择要启动的容器");
+    message.warning("请选择要启动的容器");
     return;
   }
 
@@ -611,25 +611,25 @@ const handleBatchStart = async () => {
       operation: "start",
     });
     if (response.code === "00000") {
-      ElMessage.success("批量启动成功");
+      message.success("批量启动成功");
       selectedIds.value = [];
       loadContainers();
     } else {
-      ElMessage.error(response.msg || "批量启动失败");
+      message.error(response.msg || "批量启动失败");
     }
   } catch (error) {
-    ElMessage.error("批量启动容器失败");
+    message.error("批量启动容器失败");
   }
 };
 
 const handleBatchStop = async () => {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning("请选择要停止的容器");
+    message.warning("请选择要停止的容器");
     return;
   }
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       `确定要停止选中的 ${selectedIds.value.length} 个容器吗？`,
       "批量停止确认",
       {
@@ -643,27 +643,27 @@ const handleBatchStop = async () => {
       operation: "stop",
     });
     if (response.code === "00000") {
-      ElMessage.success("批量停止成功");
+      message.success("批量停止成功");
       selectedIds.value = [];
       loadContainers();
     } else {
-      ElMessage.error(response.msg || "批量停止失败");
+      message.error(response.msg || "批量停止失败");
     }
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("批量停止容器失败");
+      message.error("批量停止容器失败");
     }
   }
 };
 
 const handleBatchDelete = async () => {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning("请选择要删除的容器");
+    message.warning("请选择要删除的容器");
     return;
   }
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       `确定要删除选中的 ${selectedIds.value.length} 个容器吗？此操作不可恢复！`,
       "批量删除确认",
       {
@@ -677,15 +677,15 @@ const handleBatchDelete = async () => {
       operation: "remove",
     });
     if (response.code === "00000") {
-      ElMessage.success("批量删除成功");
+      message.success("批量删除成功");
       selectedIds.value = [];
       loadContainers();
     } else {
-      ElMessage.error(response.msg || "批量删除失败");
+      message.error(response.msg || "批量删除失败");
     }
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("批量删除容器失败");
+      message.error("批量删除容器失败");
     }
   }
 };
@@ -715,10 +715,10 @@ async function openExec(row: any) {
     const serverId = String(
       row.systemServerId || row.systemSoftContainerServerId || row.serverId
     );
-    if (!serverId) return ElMessage.warning("缺少服务器ID");
+    if (!serverId) return message.warning("缺少服务器ID");
     const { data, code, msg } = await getServerInfo(serverId);
     if (code !== 0 || !data)
-      return ElMessage.error(msg || "获取服务器信息失败");
+      return message.error(msg || "获取服务器信息失败");
 
     // 打开终端并设置数据
     // ServerTerminalDialog 暴露 setData/open 方法
@@ -736,7 +736,7 @@ async function openExec(row: any) {
     }, 800);
   } catch (e) {
     console.error(e);
-    ElMessage.error("进入容器失败");
+    message.error("进入容器失败");
   }
 }
 </script>

@@ -752,7 +752,7 @@ import {
   fetchNodeSwaggerResources,
 } from "@/api/server/node-documentation";
 import CodemirrorEditorVue3 from "codemirror-editor-vue3";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -949,7 +949,7 @@ const switchNode = async (newAddress: string) => {
   // 重新加载API文档
   await loadApiDocs();
 
-  ElMessage.success(`已切换到节点: ${newAddress}`);
+  message.success(`已切换到节点: ${newAddress}`);
 };
 
 const loadApiDocs = async () => {
@@ -1028,13 +1028,13 @@ const loadApiDocs = async () => {
 
     // 显示加载结果
     if (hasValidData) {
-      ElMessage.success("API文档加载成功");
+      message.success("API文档加载成功");
     } else {
-      ElMessage.warning("未获取到API数据，显示模拟数据");
+      message.warning("未获取到API数据，显示模拟数据");
     }
   } catch (error) {
     console.error("加载API文档异常:", error);
-    ElMessage.error("加载API文档失败: " + (error as Error).message);
+    message.error("加载API文档失败: " + (error as Error).message);
 
     // 异常时也提供模拟数据
     apiGroups.value = createMockApiGroups();
@@ -1273,9 +1273,9 @@ const executeApi = async () => {
       };
 
       if (apiResponse.status >= 400) {
-        ElMessage.warning("请求执行完成，但返回了错误状态");
+        message.warning("请求执行完成，但返回了错误状态");
       } else {
-        ElMessage.success("API执行成功");
+        message.success("API执行成功");
       }
     } else {
       // 如果响应不成功，显示错误信息
@@ -1286,7 +1286,7 @@ const executeApi = async () => {
         data: (response as any).msg || "API执行失败",
         duration,
       };
-      ElMessage.error((response as any).msg || "API执行失败");
+      message.error((response as any).msg || "API执行失败");
     }
   } catch (error: any) {
     const duration = Date.now() - startTime;
@@ -1297,7 +1297,7 @@ const executeApi = async () => {
       data: error.message || "请求执行失败",
       duration,
     };
-    ElMessage.error("请求执行失败");
+    message.error("请求执行失败");
   } finally {
     executing.value = false;
   }
@@ -1310,10 +1310,10 @@ const copyResponse = () => {
   navigator.clipboard
     .writeText(content)
     .then(() => {
-      ElMessage.success("响应内容已复制到剪贴板");
+      message.success("响应内容已复制到剪贴板");
     })
     .catch(() => {
-      ElMessage.error("复制失败");
+      message.error("复制失败");
     });
 };
 
@@ -1325,7 +1325,7 @@ const clearAllParams = () => {
   paramValues.path = {};
   paramValues.query = {};
   requestBody.value = "";
-  ElMessage.success("已清空所有参数");
+  message.success("已清空所有参数");
 };
 
 const copyCodeExample = () => {
@@ -1350,10 +1350,10 @@ const copyCodeExample = () => {
   navigator.clipboard
     .writeText(code)
     .then(() => {
-      ElMessage.success("代码已复制到剪贴板");
+      message.success("代码已复制到剪贴板");
     })
     .catch(() => {
-      ElMessage.error("复制失败");
+      message.error("复制失败");
     });
 };
 
@@ -1694,7 +1694,7 @@ const saveHeaders = () => {
   // 保存到本地存储
   localStorage.setItem("nodeDocGlobalHeaders", JSON.stringify(validHeaders));
 
-  ElMessage.success(`已保存 ${Object.keys(validHeaders).length} 个全局请求头`);
+  message.success(`已保存 ${Object.keys(validHeaders).length} 个全局请求头`);
 };
 
 const handleHeaderDialogClose = () => {
@@ -2109,7 +2109,7 @@ const getImageSrc = () => {
 };
 
 const handleImageError = () => {
-  ElMessage.error("图片加载失败");
+  message.error("图片加载失败");
 };
 
 // 格式化响应数据
@@ -2283,10 +2283,10 @@ const copyHeaders = () => {
   navigator.clipboard
     .writeText(headersText)
     .then(() => {
-      ElMessage.success("响应头已复制到剪贴板");
+      message.success("响应头已复制到剪贴板");
     })
     .catch(() => {
-      ElMessage.error("复制失败");
+      message.error("复制失败");
     });
 };
 
@@ -2303,10 +2303,10 @@ const copyResponseBody = () => {
   navigator.clipboard
     .writeText(content)
     .then(() => {
-      ElMessage.success("响应体已复制到剪贴板");
+      message.success("响应体已复制到剪贴板");
     })
     .catch(() => {
-      ElMessage.error("复制失败");
+      message.error("复制失败");
     });
 };
 
@@ -2346,7 +2346,7 @@ const downloadResponse = () => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  ElMessage.success(`已下载响应内容: ${filename}`);
+  message.success(`已下载响应内容: ${filename}`);
 };
 
 // 响应头折叠切换

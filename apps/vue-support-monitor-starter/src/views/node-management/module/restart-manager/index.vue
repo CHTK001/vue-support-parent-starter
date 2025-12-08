@@ -120,7 +120,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message, messageBox } from "@repo/utils";
 import {
   restartNodeForNodeControl,
   shutdownNodeForNodeControl,
@@ -192,11 +192,11 @@ const handleRestart = async () => {
   if (!props.nodeInfo) return;
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       `确定要重启节点 ${props.nodeInfo.applicationName} (${props.nodeInfo.ipAddress}:${props.nodeInfo.port}) 吗？`,
       "确认重启",
       {
-        confirmButtonText: "确定重启",
+        confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
       }
@@ -209,15 +209,15 @@ const handleRestart = async () => {
     );
 
     if (response.success) {
-      ElMessage.success("重启命令已发送，节点正在重启中...");
+      message.success("重启命令已发送，节点正在重启中...");
       emit("success");
     } else {
-      ElMessage.error(response.msg || "重启节点失败");
+      message.error(response.msg || "重启节点失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("重启节点失败:", error);
-      ElMessage.error("重启节点失败");
+      message.error("重启节点失败");
     }
   } finally {
     loading.restart = false;
@@ -231,14 +231,13 @@ const handleShutdown = async () => {
   if (!props.nodeInfo) return;
 
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       `确定要关闭节点 ${props.nodeInfo.applicationName} (${props.nodeInfo.ipAddress}:${props.nodeInfo.port}) 吗？关闭后需要手动重新启动！`,
       "确认关闭",
       {
-        confirmButtonText: "确定关闭",
+        confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "error",
-        confirmButtonClass: "el-button--danger",
       }
     );
 
@@ -249,15 +248,15 @@ const handleShutdown = async () => {
     );
 
     if (response.success) {
-      ElMessage.success("关闭命令已发送，节点正在关闭中...");
+      message.success("关闭命令已发送，节点正在关闭中...");
       emit("success");
     } else {
-      ElMessage.error(response.msg || "关闭节点失败");
+      message.error(response.msg || "关闭节点失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("关闭节点失败:", error);
-      ElMessage.error("关闭节点失败");
+      message.error("关闭节点失败");
     }
   } finally {
     loading.shutdown = false;

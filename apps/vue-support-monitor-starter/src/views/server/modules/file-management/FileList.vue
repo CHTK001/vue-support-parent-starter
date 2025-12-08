@@ -169,7 +169,7 @@ import { createDirectory, deleteFile, downloadFile, getFileList, renameFile } fr
 import { formatBytes } from "@pureadmin/utils";
 import { getConfig } from "@repo/config";
 import dayjs from "dayjs";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message, messageBox } from "@repo/utils";
 import { computed, reactive, ref } from "vue";
 
 // Props
@@ -268,12 +268,12 @@ const loadFileList = async () => {
       console.log("FileList: File list loaded", fileList.value);
     } else {
       console.error("FileList: API error", res);
-      ElMessage.error(res.data?.message || "加载文件列表失败");
+      message.error(res.data?.message || "加载文件列表失败");
       fileList.value = [];
     }
   } catch (error) {
     console.error("FileList: 加载文件列表失败:", error);
-    ElMessage.error("加载文件列表失败");
+    message.error("加载文件列表失败");
     fileList.value = [];
   } finally {
     loading.value = false;
@@ -493,7 +493,7 @@ const handleRowDoubleClick = (file: FileInfo) => {
       previewFileInfo.value = file;
       previewDialogVisible.value = true;
     } else {
-      ElMessage.warning("该文件类型不支持预览");
+      message.warning("该文件类型不支持预览");
     }
   }
 };
@@ -532,10 +532,10 @@ const copyFilePath = async () => {
 
   try {
     await navigator.clipboard.writeText(selectedContextFile.value.path);
-    ElMessage.success("文件路径已复制到剪贴板");
+    message.success("文件路径已复制到剪贴板");
   } catch (error) {
     console.error("复制失败:", error);
-    ElMessage.error("复制失败，请手动复制");
+    message.error("复制失败，请手动复制");
   }
 
   contextMenuVisible.value = false;
@@ -562,16 +562,16 @@ const downloadFileAction = async () => {
         link.click();
         document.body.removeChild(link);
 
-        ElMessage.success("文件下载成功");
+        message.success("文件下载成功");
       } else {
-        ElMessage.error("下载链接获取失败");
+        message.error("下载链接获取失败");
       }
     } else {
-      ElMessage.error(response.data?.message || "下载失败");
+      message.error(response.data?.message || "下载失败");
     }
   } catch (error) {
     console.error("下载文件失败:", error);
-    ElMessage.error("下载文件失败");
+    message.error("下载文件失败");
   }
 
   contextMenuVisible.value = false;
@@ -585,7 +585,7 @@ const previewFileAction = () => {
 
   // 检查文件是否可预览
   if (!isFilePreviewable(selectedContextFile.value)) {
-    ElMessage.warning("该文件类型不支持预览");
+    message.warning("该文件类型不支持预览");
     contextMenuVisible.value = false;
     return;
   }
@@ -774,7 +774,7 @@ const createFolder = () => {
  */
 const confirmCreateFolder = async () => {
   if (!createFolderForm.name.trim()) {
-    ElMessage.warning("请输入文件夹名称");
+    message.warning("请输入文件夹名称");
     return;
   }
 
@@ -783,15 +783,15 @@ const confirmCreateFolder = async () => {
     const res = await createDirectory(props.serverId, folderPath, false);
 
     if (res.code === "00000" && res.data?.success) {
-      ElMessage.success("文件夹创建成功");
+      message.success("文件夹创建成功");
       createFolderVisible.value = false;
       loadFileList();
     } else {
-      ElMessage.error(res.data?.message || "创建文件夹失败");
+      message.error(res.data?.message || "创建文件夹失败");
     }
   } catch (error) {
     console.error("FileList: 创建文件夹失败:", error);
-    ElMessage.error("创建文件夹失败");
+    message.error("创建文件夹失败");
   }
 };
 
@@ -802,7 +802,7 @@ const handleFileAction = async (command: string, file: FileInfo) => {
   console.log("FileList: File action", command, file);
   switch (command) {
     case "download":
-      ElMessage.info("下载功能开发中");
+      message.info("下载功能开发中");
       break;
     case "sync":
       emit("sync", file);
@@ -821,7 +821,7 @@ const handleFileAction = async (command: string, file: FileInfo) => {
  */
 const renameFileAction = async (file: FileInfo) => {
   try {
-    const { value: newName } = await ElMessageBox.prompt("请输入新的文件名", "重命名", {
+    const { value: newName } = await messageBox.prompt("请输入新的文件名", "重命名", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       inputValue: file.name
@@ -831,10 +831,10 @@ const renameFileAction = async (file: FileInfo) => {
       const res = await renameFile(props.serverId, file.path, newName);
 
       if (res.code === "00000" && res.data?.success) {
-        ElMessage.success("重命名成功");
+        message.success("重命名成功");
         loadFileList();
       } else {
-        ElMessage.error(res.data?.message || "重命名失败");
+        message.error(res.data?.message || "重命名失败");
       }
     }
   } catch (error) {
@@ -847,7 +847,7 @@ const renameFileAction = async (file: FileInfo) => {
  */
 const deleteFileAction = async (file: FileInfo) => {
   try {
-    await ElMessageBox.confirm(`确定要删除 "${file.name}" 吗？`, "删除确认", {
+    await messageBox.confirm(`确定要删除 "${file.name}" 吗？`, "删除确认", {
       type: "warning",
       confirmButtonText: "确定",
       cancelButtonText: "取消"
@@ -856,10 +856,10 @@ const deleteFileAction = async (file: FileInfo) => {
     const res = await deleteFile(props.serverId, file.path, file.isDirectory);
 
     if (res.code === "00000" && res.data?.success) {
-      ElMessage.success("删除成功");
+      message.success("删除成功");
       loadFileList();
     } else {
-      ElMessage.error(res.data?.message || "删除失败");
+      message.error(res.data?.message || "删除失败");
     }
   } catch (error) {
     // 用户取消
@@ -897,7 +897,7 @@ const onIframeLoad = () => {
  */
 const onIframeError = () => {
   console.error("FileList: Preview iframe load error");
-  ElMessage.error("文件预览加载失败");
+  message.error("文件预览加载失败");
 };
 
 /**
@@ -920,16 +920,16 @@ const downloadPreviewFile = async () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        ElMessage.success("文件下载开始");
+        message.success("文件下载开始");
       } else {
-        ElMessage.error("获取下载链接失败");
+        message.error("获取下载链接失败");
       }
     } else {
-      ElMessage.error(response.data?.message || "下载失败");
+      message.error(response.data?.message || "下载失败");
     }
   } catch (error) {
     console.error("下载文件失败:", error);
-    ElMessage.error("下载文件失败");
+    message.error("下载文件失败");
   }
 };
 

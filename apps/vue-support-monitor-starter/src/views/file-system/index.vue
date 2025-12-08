@@ -464,7 +464,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, computed, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message, messageBox } from "@repo/utils";
 import { formatBytes } from "@pureadmin/utils";
 import dayjs from "dayjs";
 import type {
@@ -641,7 +641,7 @@ const handleMoveToGroup = async () => {
     const res = await migrateFilesToGroup(fileIds, selectedMoveGroupId.value);
 
     if (String(res.code) === "00000") {
-      ElMessage.success(`成功移动 ${res.data} 个文件到指定分组`);
+      message.success(`成功移动 ${res.data} 个文件到指定分组`);
       showMoveToGroupDialog.value = false;
       selectedMoveGroupId.value = null;
       selectedFiles.value = [];
@@ -649,11 +649,11 @@ const handleMoveToGroup = async () => {
       handleSearch();
       loadGroupTree();
     } else {
-      ElMessage.error(res.msg || "移动文件失败");
+      message.error(res.msg || "移动文件失败");
     }
   } catch (error) {
     console.error("移动文件到分组失败:", error);
-    ElMessage.error("移动文件失败");
+    message.error("移动文件失败");
   } finally {
     moveToGroupLoading.value = false;
   }
@@ -799,7 +799,7 @@ const openDistribute = (file: FileSystem) => {
 };
 
 const handleDistributeSuccess = () => {
-  ElMessage.success("同步任务已完成");
+  message.success("同步任务已完成");
 };
 
 /**
@@ -838,10 +838,10 @@ const handleDownload = async (file: FileSystem) => {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-    ElMessage.success("下载成功");
+    message.success("下载成功");
   } catch (error) {
     console.error("下载失败:", error);
-    ElMessage.error("下载失败");
+    message.error("下载失败");
   }
 };
 
@@ -850,7 +850,7 @@ const handleDownload = async (file: FileSystem) => {
  */
 const handleDelete = async (file: FileSystem) => {
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       `确定要删除文件 "${file.fileSystemName}" 吗？`,
       "确认删除",
       {
@@ -860,15 +860,15 @@ const handleDelete = async (file: FileSystem) => {
 
     const res = await deleteFile(file.fileSystemId!);
     if (res.code === "00000") {
-      ElMessage.success("删除成功");
+      message.success("删除成功");
       refreshData();
     } else {
-      ElMessage.error(res.msg || "删除失败");
+      message.error(res.msg || "删除失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("删除失败:", error);
-      ElMessage.error("删除失败");
+      message.error("删除失败");
     }
   }
 };
@@ -878,7 +878,7 @@ const handleDelete = async (file: FileSystem) => {
  */
 const handleBatchDelete = async () => {
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       `确定要删除选中的 ${selectedFiles.value.length} 个文件吗？`,
       "确认批量删除",
       {
@@ -889,15 +889,15 @@ const handleBatchDelete = async () => {
     const fileIds = selectedFiles.value.map((f) => f.fileSystemId!);
     const res = await batchDeleteFiles(fileIds);
     if (res.code === "00000") {
-      ElMessage.success("批量删除成功");
+      message.success("批量删除成功");
       refreshData();
     } else {
-      ElMessage.error(res.msg || "批量删除失败");
+      message.error(res.msg || "批量删除失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("批量删除失败:", error);
-      ElMessage.error("批量删除失败");
+      message.error("批量删除失败");
     }
   }
 };
@@ -912,19 +912,19 @@ const handleToggleHttpAccess = async (file: FileSystem) => {
       file.fileSystemHttpAccessEnabled!
     );
     if (res.code === "00000") {
-      ElMessage.success(
+      message.success(
         file.fileSystemHttpAccessEnabled ? "已启用HTTP访问" : "已禁用HTTP访问"
       );
     } else {
       // 恢复原状态
       file.fileSystemHttpAccessEnabled = !file.fileSystemHttpAccessEnabled;
-      ElMessage.error(res.msg || "操作失败");
+      message.error(res.msg || "操作失败");
     }
   } catch (error) {
     // 恢复原状态
     file.fileSystemHttpAccessEnabled = !file.fileSystemHttpAccessEnabled;
     console.error("切换HTTP访问失败:", error);
-    ElMessage.error("操作失败");
+    message.error("操作失败");
   }
 };
 
@@ -933,7 +933,7 @@ const handleToggleHttpAccess = async (file: FileSystem) => {
  */
 const handleCleanExpired = async () => {
   try {
-    await ElMessageBox.confirm(
+    await messageBox.confirm(
       "确定要清理过期文件吗？此操作不可恢复。",
       "确认清理",
       {
@@ -943,15 +943,15 @@ const handleCleanExpired = async () => {
 
     const res = await cleanExpiredFiles();
     if (res.code === "00000") {
-      ElMessage.success(`清理完成，共清理 ${res.data} 个文件`);
+      message.success(`清理完成，共清理 ${res.data} 个文件`);
       refreshData();
     } else {
-      ElMessage.error(res.msg || "清理失败");
+      message.error(res.msg || "清理失败");
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("清理过期文件失败:", error);
-      ElMessage.error("清理失败");
+      message.error("清理失败");
     }
   }
 };
@@ -963,14 +963,14 @@ const handleRetryMerge = async (file: FileSystem) => {
   try {
     const res = await retryMergeTask(file.fileSystemId!);
     if (res.code === "00000") {
-      ElMessage.success("重试合并任务已提交");
+      message.success("重试合并任务已提交");
       refreshData();
     } else {
-      ElMessage.error(res.msg || "重试失败");
+      message.error(res.msg || "重试失败");
     }
   } catch (error) {
     console.error("重试合并失败:", error);
-    ElMessage.error("重试失败");
+    message.error("重试失败");
   }
 };
 
@@ -981,14 +981,14 @@ const handleManualMerge = async (file: FileSystem) => {
   try {
     const res = await manualMergeFile(file.fileSystemId!);
     if (res.code === "00000") {
-      ElMessage.success("手动合并任务已提交");
+      message.success("手动合并任务已提交");
       refreshData();
     } else {
-      ElMessage.error(res.msg || "合并失败");
+      message.error(res.msg || "合并失败");
     }
   } catch (error) {
     console.error("手动合并失败:", error);
-    ElMessage.error("合并失败");
+    message.error("合并失败");
   }
 };
 
@@ -1019,7 +1019,7 @@ const handleQueueUpdate = (queue: UploadQueueStatus[]) => {
  * 处理设置更新
  */
 const handleSettingsUpdated = () => {
-  ElMessage.success("设置已更新");
+  message.success("设置已更新");
   // 可以在这里刷新相关数据
   loadStatistics();
 };
@@ -1040,10 +1040,10 @@ const testSSEConnection = async () => {
       connectSSE();
     }, 1000);
 
-    ElMessage.info("正在重新建立SSE连接...");
+    message.info("正在重新建立SSE连接...");
   } catch (error) {
     console.error("测试SSE连接失败:", error);
-    ElMessage.error("测试连接失败");
+    message.error("测试连接失败");
   }
 };
 
@@ -1059,7 +1059,7 @@ const testBackendAPI = async () => {
     console.log("后端API响应:", res);
 
     if (res.code === "00000") {
-      ElMessage.success("后端API连接正常");
+      message.success("后端API连接正常");
 
       // 测试SSE状态端点
       const baseUrl = "/monitor/api";
@@ -1073,16 +1073,16 @@ const testBackendAPI = async () => {
       if (statusResponse.ok) {
         const statusData = await statusResponse.json();
         console.log("SSE状态数据:", statusData);
-        ElMessage.success("SSE状态端点也正常");
+        message.success("SSE状态端点也正常");
       } else {
-        ElMessage.warning(`SSE状态端点返回: ${statusResponse.status}`);
+        message.warning(`SSE状态端点返回: ${statusResponse.status}`);
       }
     } else {
-      ElMessage.error(`后端API错误: ${res.msg}`);
+      message.error(`后端API错误: ${res.msg}`);
     }
   } catch (error) {
     console.error("测试后端API失败:", error);
-    ElMessage.error(`后端API连接失败: ${error.message}`);
+    message.error(`后端API连接失败: ${error.message}`);
   }
 };
 </script>
