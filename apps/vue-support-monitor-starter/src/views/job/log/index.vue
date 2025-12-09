@@ -15,7 +15,7 @@
 
     <!-- 统计图表区域 -->
     <div class="chart-section">
-      <div class="chart-header">
+      <div class="chart-header" @click="showChart = !showChart">
         <div class="chart-title">
           <IconifyIconOnline
             icon="ri:bar-chart-2-line"
@@ -23,18 +23,26 @@
           />
           <span>近七日执行趋势</span>
         </div>
-        <div class="chart-legend">
-          <span class="legend-item success">
-            <span class="legend-dot"></span>成功
-          </span>
-          <span class="legend-item danger">
-            <span class="legend-dot"></span>失败
-          </span>
+        <div class="chart-right">
+          <div v-if="showChart" class="chart-legend">
+            <span class="legend-item success">
+              <span class="legend-dot"></span>成功
+            </span>
+            <span class="legend-item danger">
+              <span class="legend-dot"></span>失败
+            </span>
+          </div>
+          <IconifyIconOnline
+            :icon="showChart ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'"
+            class="toggle-icon"
+          />
         </div>
       </div>
-      <div class="chart-body">
-        <scEcharts height="120px" :option="logsChartOption" />
-      </div>
+      <transition name="slide-fade">
+        <div v-if="showChart" class="chart-body">
+          <scEcharts height="120px" :option="logsChartOption" />
+        </div>
+      </transition>
     </div>
 
     <!-- 搜索筛选区域 -->
@@ -313,6 +321,7 @@ export default {
   data() {
     return {
       showCondition: false,
+      showChart: true,
       clearType: 1,
       catStatus: false,
       loading: !1,
