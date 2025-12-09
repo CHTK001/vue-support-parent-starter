@@ -598,8 +598,9 @@ const gotoAccountSetting = () => {
     display: flex !important;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 16px !important;
+    padding: 24px !important;
     margin: 8px 10px;
+    margin-bottom: 8px;
     border-radius: 14px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -801,8 +802,8 @@ const gotoAccountSetting = () => {
     display: flex !important;
     align-items: center;
     gap: 16px;
-    padding: 16px 18px !important;
-    margin: 6px 0;
+    margin-bottom: 6px;
+    padding: 28px !important;
     border-radius: 16px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;

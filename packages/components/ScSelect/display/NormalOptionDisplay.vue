@@ -90,18 +90,18 @@ defineEmits<{
   }
 
   &.preview-item {
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
     border: 2px solid transparent;
 
     &:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     }
 
     &.selected {
       border-color: var(--el-color-primary);
-      box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.15);
+      box-shadow: 0 4px 16px var(--el-color-primary-light-7);
     }
   }
 }
@@ -109,34 +109,34 @@ defineEmits<{
 .option-text-item {
   display: flex;
   align-items: center;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border-radius: 10px;
-  margin: 3px 4px;
+  margin: 2px 0;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  overflow: hidden;
   border: 1px solid transparent;
   background: var(--el-bg-color);
 
+  // 左侧装饰条
   &::before {
-    content: "";
+    content: '';
     position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.08), transparent);
-    transition: left 0.5s;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 0;
+    background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    border-radius: 0 3px 3px 0;
+    transition: height 0.25s ease;
   }
 
   &:hover {
-    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-lighter) 100%);
+    background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-light) 100%);
     border-color: var(--el-border-color-lighter);
-    transform: translateX(2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
     &::before {
-      left: 100%;
+      height: 50%;
     }
 
     .option-checkbox {
@@ -145,9 +145,12 @@ defineEmits<{
   }
 
   .option-item.selected & {
-    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.08) 0%, rgba(var(--el-color-primary-rgb), 0.04) 100%);
+    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, rgba(var(--el-color-primary-rgb), 0.04) 100%);
     border-color: var(--el-color-primary-light-5);
-    border-left: 3px solid var(--el-color-primary);
+
+    &::before {
+      height: 70%;
+    }
 
     .option-label {
       color: var(--el-color-primary);
@@ -179,8 +182,8 @@ defineEmits<{
       color: #fff;
       font-size: 11px;
       border: none;
-      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.35);
-      animation: checkboxPop 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px var(--el-color-primary-light-5);
+      animation: checkboxPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     }
   }
 
@@ -189,17 +192,17 @@ defineEmits<{
     min-width: 0;
 
     .option-label {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--el-text-color-primary);
       line-height: 1.4;
       font-weight: 500;
-      transition: color 0.2s ease;
+      transition: all 0.25s ease;
     }
 
     .option-description {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--el-text-color-placeholder);
-      margin-top: 3px;
+      margin-top: 2px;
       line-height: 1.3;
     }
   }
@@ -211,24 +214,38 @@ defineEmits<{
   display: flex;
   flex-direction: row;
   align-items: center;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-light) 100%);
-  padding: 10px 12px;
-  gap: 10px;
-  transition: all 0.25s ease;
+  background: var(--el-fill-color-lighter);
+  padding: 10px 14px;
+  gap: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
 
   &:hover {
-    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color) 100%);
+    background: var(--el-fill-color-light);
+    border-color: var(--el-border-color-lighter);
+    transform: translateX(4px);
+  }
+
+  .option-item.selected & {
+    background: var(--el-color-primary-light-9);
+    border-color: var(--el-color-primary-light-5);
   }
 
   .preview-image {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     object-fit: cover;
     display: block;
-    border-radius: 8px;
+    border-radius: 10px;
     flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease;
+  }
+
+  &:hover .preview-image {
+    transform: scale(1.05);
   }
 
   .option-overlay {
@@ -241,36 +258,43 @@ defineEmits<{
 
     .option-label {
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 500;
       color: var(--el-text-color-primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      transition: color 0.25s ease;
+    }
+
+    .option-item.selected & .option-label {
+      color: var(--el-color-primary);
+      font-weight: 600;
     }
 
     .selected-indicator {
-      width: 20px;
-      height: 20px;
-      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+      width: 22px;
+      height: 22px;
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #fff;
-      font-size: 11px;
+      font-size: 12px;
       flex-shrink: 0;
-      box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.3);
+      box-shadow: 0 2px 8px var(--el-color-primary-light-5);
+      animation: checkboxPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     }
   }
 }
 
 @keyframes checkboxPop {
   0% {
-    transform: scale(0.6);
+    transform: scale(0);
     opacity: 0;
   }
-  60% {
-    transform: scale(1.15);
+  50% {
+    transform: scale(1.2);
   }
   100% {
     transform: scale(1);
