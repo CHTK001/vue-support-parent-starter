@@ -117,6 +117,7 @@
         :url="getSystemServerPage"
         :params="queryParams"
         layout="card"
+        :colSize="5"
       >
         <template #empty>
           <el-empty description="暂无服务器数据">
@@ -342,7 +343,8 @@ import {
   type SystemServerStatistics,
 } from "@/api/system-server";
 import { getProtocolIcon } from "@/components/protocol-icons";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
 import ServerCloneDialog from "./components/ServerCloneDialog.vue";
 import ServerConfigDialog from "./components/ServerConfigDialog.vue";
@@ -559,14 +561,14 @@ const startServer = async (serverId: number) => {
     const response = await startSystemServer(serverId);
     const { code, data, msg } = response;
     if (code === "00000") {
-      ElMessage.success("服务器启动成功");
+      message("服务器启动成功", { type: "success" });
       refreshData();
     } else {
-      ElMessage.error(msg || "启动失败");
+      message(msg || "启动失败", { type: "error" });
     }
   } catch (error) {
     console.error("启动服务器失败:", error);
-    ElMessage.error("启动失败");
+    message("启动失败", { type: "error" });
   } finally {
     actionLoading.value[serverId] = false;
   }
@@ -579,14 +581,14 @@ const stopServer = async (serverId: number) => {
     const response = await stopSystemServer(serverId);
     const { code, data, msg } = response;
     if (code === "00000") {
-      ElMessage.success("服务器停止成功");
+      message("服务器停止成功", { type: "success" });
       refreshData();
     } else {
-      ElMessage.error(msg || "停止失败");
+      message(msg || "停止失败", { type: "error" });
     }
   } catch (error) {
     console.error("停止服务器失败:", error);
-    ElMessage.error("停止失败");
+    message("停止失败", { type: "error" });
   } finally {
     actionLoading.value[serverId] = false;
   }
@@ -598,14 +600,14 @@ const restartServer = async (serverId: number) => {
   try {
     const response = await restartSystemServer(serverId);
     if (response.code === "00000") {
-      ElMessage.success("服务器重启成功");
+      message("服务器重启成功", { type: "success" });
       refreshData();
     } else {
-      ElMessage.error(response.msg || "重启失败");
+      message(response.msg || "重启失败", { type: "error" });
     }
   } catch (error) {
     console.error("重启服务器失败:", error);
-    ElMessage.error("重启失败");
+    message("重启失败", { type: "error" });
   } finally {
     actionLoading.value[serverId] = false;
   }
@@ -657,15 +659,15 @@ const handleDeleteServer = async (serverId: number) => {
 
     const response = await deleteSystemServer(serverId);
     if (response.code === "00000") {
-      ElMessage.success("删除成功");
+      message("删除成功", { type: "success" });
       refreshData();
     } else {
-      ElMessage.error(response.msg || "删除失败");
+      message(response.msg || "删除失败", { type: "error" });
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("删除服务器失败:", error);
-      ElMessage.error("删除失败");
+      message("删除失败", { type: "error" });
     }
   }
 };
@@ -820,22 +822,20 @@ onMounted(() => {
 
   .server-card {
     background: #fff;
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow:
-      0 1px 3px rgba(0, 0, 0, 0.08),
-      0 4px 12px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    transition: all 0.25s ease;
     position: relative;
 
     &:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     // 顶部状态条
     .status-bar {
-      height: 4px;
+      height: 3px;
       background: linear-gradient(90deg, #e5e7eb, #f1f5f9);
       transition: all 0.3s ease;
     }
@@ -859,28 +859,28 @@ onMounted(() => {
 
     // 卡片主体
     .card-content {
-      padding: 20px;
+      padding: 12px;
     }
 
     // 头部
     .card-header {
       display: flex;
       align-items: center;
-      gap: 14px;
-      margin-bottom: 20px;
+      gap: 10px;
+      margin-bottom: 12px;
 
       .server-icon {
-        width: 48px;
-        height: 48px;
+        width: 36px;
+        height: 36px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 12px;
+        border-radius: 8px;
         background: linear-gradient(135deg, #3b82f6, #2563eb);
         color: #fff;
-        font-size: 22px;
+        font-size: 16px;
         flex-shrink: 0;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
       }
 
       .server-meta {
@@ -888,9 +888,9 @@ onMounted(() => {
         min-width: 0;
 
         .server-name {
-          margin: 0 0 4px;
-          font-size: 16px;
-          font-weight: 700;
+          margin: 0 0 2px;
+          font-size: 13px;
+          font-weight: 600;
           color: #1e293b;
           white-space: nowrap;
           overflow: hidden;
@@ -898,7 +898,7 @@ onMounted(() => {
         }
 
         .server-type {
-          font-size: 12px;
+          font-size: 11px;
           color: #64748b;
           font-weight: 500;
         }
@@ -906,33 +906,33 @@ onMounted(() => {
 
       .status-tag {
         flex-shrink: 0;
-        border-radius: 20px;
-        padding: 4px 12px;
-        font-size: 11px;
+        border-radius: 12px;
+        padding: 2px 8px;
+        font-size: 10px;
         font-weight: 600;
 
         .status-icon {
-          margin-right: 4px;
-          font-size: 12px;
+          margin-right: 2px;
+          font-size: 10px;
         }
       }
     }
 
-    // 统计信息区
+    // 统计信息区 - 改为紧凑的网格布局
     .server-stats {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
 
       .stat-item {
-        flex: 1;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 10px;
-        padding: 12px;
+        padding: 8px 4px;
         background: #f8fafc;
-        border-radius: 12px;
-        transition: all 0.25s ease;
+        border-radius: 8px;
+        transition: all 0.2s ease;
         cursor: default;
 
         &:hover {
@@ -956,33 +956,35 @@ onMounted(() => {
         }
 
         .stat-icon {
-          width: 36px;
-          height: 36px;
+          width: 24px;
+          height: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
           background: #3b82f6;
           color: #fff;
-          border-radius: 10px;
-          font-size: 16px;
+          border-radius: 6px;
+          font-size: 12px;
           flex-shrink: 0;
-          transition: all 0.25s ease;
+          margin-bottom: 4px;
+          transition: all 0.2s ease;
         }
 
         .stat-info {
           display: flex;
           flex-direction: column;
+          align-items: center;
 
           .stat-value {
-            font-size: 18px;
+            font-size: 14px;
             font-weight: 700;
             color: #1e293b;
             line-height: 1.2;
-            transition: color 0.25s ease;
+            transition: color 0.2s ease;
           }
 
           .stat-label {
-            font-size: 11px;
+            font-size: 10px;
             color: #94a3b8;
             font-weight: 500;
           }
@@ -994,23 +996,23 @@ onMounted(() => {
     .server-details {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 20px;
-      padding-bottom: 16px;
+      gap: 6px;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
       border-bottom: 1px dashed #e5e7eb;
 
       .detail-item {
         display: flex;
         align-items: center;
-        gap: 6px;
-        font-size: 12px;
+        gap: 4px;
+        font-size: 11px;
         color: #64748b;
         background: #f8fafc;
-        padding: 6px 10px;
-        border-radius: 6px;
+        padding: 4px 6px;
+        border-radius: 4px;
 
         .iconify-icon {
-          font-size: 14px;
+          font-size: 12px;
           color: #94a3b8;
         }
       }
@@ -1020,28 +1022,29 @@ onMounted(() => {
     .card-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 6px;
 
       .action-btn {
         flex: 1;
-        height: 36px;
-        border-radius: 10px;
+        height: 28px;
+        border-radius: 6px;
         font-weight: 600;
-        font-size: 13px;
+        font-size: 11px;
+        padding: 0 8px;
 
         .iconify-icon {
-          margin-right: 6px;
-          font-size: 16px;
+          margin-right: 4px;
+          font-size: 12px;
         }
       }
 
       .action-group {
         display: flex;
-        gap: 8px;
+        gap: 4px;
 
         .el-button.is-circle {
-          width: 36px;
-          height: 36px;
+          width: 28px;
+          height: 28px;
           border: 1px solid #e5e7eb;
           background: #fff;
           color: #64748b;
@@ -1057,7 +1060,7 @@ onMounted(() => {
           }
 
           .iconify-icon {
-            font-size: 16px;
+            font-size: 12px;
           }
         }
       }

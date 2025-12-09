@@ -90,30 +90,7 @@
           </div>
           <div class="section-title-text">
             <h4>Monitor 长连接配置</h4>
-            <p>配置 SyncServer 服务端地址，使用已连接的长连接节点</p>
-          </div>
-        </div>
-        <div class="detail-config-grid">
-          <div class="config-field">
-            <label>服务地址</label>
-            <el-input
-              v-model="config.serviceDiscoveryMonitorHost"
-              placeholder="如: localhost 或 192.168.1.100"
-            >
-              <template #prefix>
-                <IconifyIconOnline icon="ri:server-line" />
-              </template>
-            </el-input>
-          </div>
-          <div class="config-field">
-            <label>服务端口</label>
-            <el-input-number
-              v-model="config.serviceDiscoveryMonitorPort"
-              :min="1"
-              :max="65535"
-              placeholder="9999"
-              style="width: 100%"
-            />
+            <p>使用已连接的长连接节点，自动发现服务</p>
           </div>
         </div>
         <div class="config-tips success">
@@ -122,7 +99,7 @@
           </div>
           <div class="tip-content">
             <strong>推荐使用</strong>
-            <span>自动发现已连接到 SyncServer 的所有节点，无需手动配置服务列表</span>
+            <span>自动发现已连接到 SyncServer 的所有节点，无需手动配置服务器地址和端口</span>
           </div>
         </div>
       </div>
@@ -335,7 +312,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import {
   getServiceDiscoveryConfig,
   saveServiceDiscoveryConfig,
@@ -460,7 +437,7 @@ async function handleSave() {
     config.value.serviceDiscoveryServerId = props.serverId;
     const res = await saveServiceDiscoveryConfig(config.value);
     if (!res.success) {
-      ElMessage.error(res.msg || "保存失败");
+      message(res.msg || "保存失败", { type: "error" });
       return;
     }
     if (
@@ -472,11 +449,11 @@ async function handleSave() {
         mappings.value
       );
       if (!r.success) {
-        ElMessage.error(r.msg || "保存映射失败");
+        message(r.msg || "保存映射失败", { type: "error" });
         return;
       }
     }
-    ElMessage.success("保存成功，已热应用");
+    message("保存成功，已热应用", { type: "success" });
     emit("success");
     visibleInner.value = false;
   } finally {
