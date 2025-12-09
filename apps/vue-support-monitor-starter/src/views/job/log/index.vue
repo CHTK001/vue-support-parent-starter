@@ -1,18 +1,5 @@
 <template>
   <div class="job-log-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="title-section">
-          <h1 class="page-title">
-            <IconifyIconOnline icon="ri:file-list-3-line" class="title-icon" />
-            任务日志
-          </h1>
-          <p class="page-subtitle">查看和管理任务执行日志记录</p>
-        </div>
-      </div>
-    </div>
-
     <!-- 统计图表区域 -->
     <div class="chart-section">
       <div class="chart-header">
@@ -563,30 +550,24 @@ export default {
 .page-header {
   background: var(--el-bg-color);
   border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 16px;
+  padding: 12px 20px;
+  margin-bottom: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .page-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   color: var(--el-text-color-primary);
 }
 
 .title-icon {
-  font-size: 22px;
+  font-size: 20px;
   color: var(--el-color-primary);
-}
-
-.page-subtitle {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  margin: 4px 0 0 0;
 }
 
 /* 图表区域 */

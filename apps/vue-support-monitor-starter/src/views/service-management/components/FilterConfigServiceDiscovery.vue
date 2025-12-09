@@ -27,7 +27,10 @@
               <div class="mode-card-title">{{ mode.label }}</div>
               <div class="mode-card-desc">{{ mode.describe }}</div>
             </div>
-            <div class="mode-card-check" v-if="config.serviceDiscoveryMode === mode.value">
+            <div
+              class="mode-card-check"
+              v-if="config.serviceDiscoveryMode === mode.value"
+            >
               <IconifyIconOnline icon="ri:check-line" />
             </div>
           </div>
@@ -69,10 +72,16 @@
                 inline-prompt
                 active-text="启用"
                 inactive-text="禁用"
-                style="--el-switch-on-color: #10b981; --el-switch-off-color: #ef4444"
+                style="
+                  --el-switch-on-color: #10b981;
+                  --el-switch-off-color: #ef4444;
+                "
               />
-              <span class="status-text" :class="{ enabled: config.serviceDiscoveryEnabled }">
-                {{ config.serviceDiscoveryEnabled ? '已启用' : '已禁用' }}
+              <span
+                class="status-text"
+                :class="{ enabled: config.serviceDiscoveryEnabled }"
+              >
+                {{ config.serviceDiscoveryEnabled ? "已启用" : "已禁用" }}
               </span>
             </div>
           </div>
@@ -89,31 +98,37 @@
             <IconifyIconOnline icon="ri:radar-line" />
           </div>
           <div class="section-title-text">
-            <h4>Monitor 长连接配置</h4>
-            <p>配置 SyncServer 服务端地址，使用已连接的长连接节点</p>
+            <h4>Monitor 自动发现</h4>
+            <p>自动使用当前监控中心已连接的节点，无需额外配置</p>
           </div>
         </div>
-        <div class="detail-config-grid">
-          <div class="config-field">
-            <label>服务地址</label>
-            <el-input
-              v-model="config.serviceDiscoveryMonitorHost"
-              placeholder="如: localhost 或 192.168.1.100"
-            >
-              <template #prefix>
-                <IconifyIconOnline icon="ri:server-line" />
-              </template>
-            </el-input>
+        <div class="monitor-info">
+          <div class="info-card">
+            <div class="info-icon">
+              <IconifyIconOnline icon="ri:check-double-line" />
+            </div>
+            <div class="info-content">
+              <div class="info-title">零配置</div>
+              <div class="info-desc">无需手动配置服务地址和端口</div>
+            </div>
           </div>
-          <div class="config-field">
-            <label>服务端口</label>
-            <el-input-number
-              v-model="config.serviceDiscoveryMonitorPort"
-              :min="1"
-              :max="65535"
-              placeholder="9999"
-              style="width: 100%"
-            />
+          <div class="info-card">
+            <div class="info-icon">
+              <IconifyIconOnline icon="ri:refresh-line" />
+            </div>
+            <div class="info-content">
+              <div class="info-title">实时同步</div>
+              <div class="info-desc">节点上下线自动更新服务列表</div>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="info-icon">
+              <IconifyIconOnline icon="ri:links-line" />
+            </div>
+            <div class="info-content">
+              <div class="info-title">长连接</div>
+              <div class="info-desc">基于 SyncServer 长连接通信</div>
+            </div>
           </div>
         </div>
         <div class="config-tips success">
@@ -122,7 +137,9 @@
           </div>
           <div class="tip-content">
             <strong>推荐使用</strong>
-            <span>自动发现已连接到 SyncServer 的所有节点，无需手动配置服务列表</span>
+            <span
+              >自动发现已连接到监控中心的所有应用节点，按应用名称分组路由</span
+            >
           </div>
         </div>
       </div>
@@ -141,7 +158,7 @@
             <p>选择 Spring 容器中的 ServiceDiscovery 实现</p>
           </div>
         </div>
-        <div class="config-field" style="max-width: 400px;">
+        <div class="config-field" style="max-width: 400px">
           <label>Bean 名称</label>
           <el-select
             v-model="config.serviceDiscoveryBeanName"
@@ -181,7 +198,12 @@
             <h4>服务映射配置</h4>
             <p>管理服务名称与地址的映射关系</p>
           </div>
-          <el-button type="primary" size="small" @click="addMapping" class="add-btn">
+          <el-button
+            type="primary"
+            size="small"
+            @click="addMapping"
+            class="add-btn"
+          >
             <IconifyIconOnline icon="ri:add-line" />
             新增映射
           </el-button>
@@ -220,8 +242,8 @@
               />
             </div>
             <div class="col-status">
-              <el-switch 
-                v-model="m.serviceDiscoveryEnabled" 
+              <el-switch
+                v-model="m.serviceDiscoveryEnabled"
                 inline-prompt
                 active-text="开"
                 inactive-text="关"
@@ -368,6 +390,7 @@ type Option = {
   value?: string;
   label?: string;
   describe?: string;
+  icon?: string;
 };
 const modeOptions = ref<Option[]>(
   [
@@ -691,22 +714,30 @@ async function loadSpringBeanOptions() {
 
       &.monitor {
         background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        :deep(.iconify) { color: #10b981; }
+        :deep(.iconify) {
+          color: #10b981;
+        }
       }
 
       &.spring {
         background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        :deep(.iconify) { color: #6ee7b7; }
+        :deep(.iconify) {
+          color: #6ee7b7;
+        }
       }
 
       &.hazelcast {
         background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        :deep(.iconify) { color: #f59e0b; }
+        :deep(.iconify) {
+          color: #f59e0b;
+        }
       }
 
       &.table {
         background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        :deep(.iconify) { color: #3b82f6; }
+        :deep(.iconify) {
+          color: #3b82f6;
+        }
       }
     }
 
@@ -770,6 +801,64 @@ async function loadSpringBeanOptions() {
             color: var(--el-color-success);
           }
         }
+      }
+    }
+  }
+}
+
+/* Monitor 信息卡片 */
+.monitor-info {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+
+  .info-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+    }
+
+    .info-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: 10px;
+      flex-shrink: 0;
+
+      :deep(.iconify) {
+        font-size: 20px;
+        color: #fff;
+      }
+    }
+
+    .info-content {
+      flex: 1;
+      min-width: 0;
+
+      .info-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #065f46;
+        margin-bottom: 2px;
+      }
+
+      .info-desc {
+        font-size: 12px;
+        color: #047857;
+        line-height: 1.4;
       }
     }
   }
@@ -851,10 +940,14 @@ async function loadSpringBeanOptions() {
 
     .tip-icon {
       background: #a7f3d0;
-      :deep(.iconify) { color: #10b981; }
+      :deep(.iconify) {
+        color: #10b981;
+      }
     }
 
-    .tip-content strong { color: #065f46; }
+    .tip-content strong {
+      color: #065f46;
+    }
   }
 
   &.warning {
@@ -862,10 +955,14 @@ async function loadSpringBeanOptions() {
 
     .tip-icon {
       background: #fde68a;
-      :deep(.iconify) { color: #f59e0b; }
+      :deep(.iconify) {
+        color: #f59e0b;
+      }
     }
 
-    .tip-content strong { color: #92400e; }
+    .tip-content strong {
+      color: #92400e;
+    }
   }
 
   &.info {
@@ -873,7 +970,9 @@ async function loadSpringBeanOptions() {
 
     .tip-icon {
       background: #bfdbfe;
-      :deep(.iconify) { color: #3b82f6; }
+      :deep(.iconify) {
+        color: #3b82f6;
+      }
     }
   }
 }

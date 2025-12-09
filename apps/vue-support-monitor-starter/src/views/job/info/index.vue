@@ -110,6 +110,7 @@
                 trigger="click"
                 @command="(cmd) => handleCommand(cmd, row)"
                 class="more-dropdown"
+                popper-class="job-dropdown-menu-popper"
               >
                 <el-button class="more-btn" @click.stop>
                   <IconifyIconOnline icon="ri:more-2-fill" />
@@ -253,66 +254,139 @@
       </ScTable>
     </div>
 
-    <!-- 弹窗组件 -->
+    <!-- 执行一次弹窗 -->
     <el-dialog
       v-model="triggerShow"
       draggable
-      :title="triggerTitle"
-      class="job-dialog"
-      width="500px"
+      append-to-body
+      class="trigger-dialog"
+      width="520px"
+      :close-on-click-modal="false"
     >
-      <el-form :model="form" label-width="120px">
-        <el-form-item label="任务参数">
-          <el-input v-model="executorParam" type="textarea" :rows="6" />
-        </el-form-item>
-        <el-form-item label="机器地址">
-          <el-input v-model="addressList" type="textarea" :rows="6" />
-        </el-form-item>
-      </el-form>
+      <template #header>
+        <div class="trigger-dialog-header">
+          <div class="header-icon">
+            <IconifyIconOnline icon="ri:flashlight-fill" />
+          </div>
+          <div class="header-info">
+            <span class="header-title">{{ triggerTitle }}</span>
+            <span class="header-subtitle">手动触发一次任务执行</span>
+          </div>
+        </div>
+      </template>
+
+      <div class="trigger-form">
+        <div class="form-section">
+          <div class="section-label">
+            <IconifyIconOnline icon="ri:code-box-line" />
+            <span>任务参数</span>
+          </div>
+          <el-input
+            v-model="executorParam"
+            type="textarea"
+            :rows="4"
+            placeholder="输入任务执行参数，JSON格式"
+            class="param-input"
+          />
+        </div>
+        <div class="form-section">
+          <div class="section-label">
+            <IconifyIconOnline icon="ri:server-line" />
+            <span>机器地址</span>
+            <span class="label-tip">可选</span>
+          </div>
+          <el-input
+            v-model="addressList"
+            type="textarea"
+            :rows="3"
+            placeholder="指定执行机器地址，留空则自动选择"
+            class="param-input"
+          />
+        </div>
+      </div>
+
       <template #footer>
-        <span class="job-dialog-footer">
-          <el-button :loading="triggerLoadding" @click="triggerShow = false"
-            >取消</el-button
-          >
+        <div class="trigger-dialog-footer">
+          <el-button @click="triggerShow = false">取消</el-button>
           <el-button
-            :loading="triggerLoadding"
             type="primary"
+            :loading="triggerLoadding"
             @click="triggerExecute"
-            >确定</el-button
           >
-        </span>
+            <IconifyIconOnline icon="ri:play-fill" />
+            <span>立即执行</span>
+          </el-button>
+        </div>
       </template>
     </el-dialog>
 
+    <!-- 下一次执行时间弹窗 -->
     <el-dialog
       v-model="jobinfoNextTriggerTimeShow"
       draggable
-      title="下一次执行时间"
-      width="400px"
-      class="job-dialog"
+      append-to-body
+      width="420px"
+      class="schedule-dialog"
     >
-      <div class="job-next-time-list">
+      <template #header>
+        <div class="schedule-dialog-header">
+          <div class="header-icon schedule">
+            <IconifyIconOnline icon="ri:calendar-schedule-fill" />
+          </div>
+          <div class="header-info">
+            <span class="header-title">执行计划</span>
+            <span class="header-subtitle">接下来 5 次执行时间</span>
+          </div>
+        </div>
+      </template>
+
+      <div class="schedule-list">
         <div
-          v-for="item in jobinfoNextTriggerTimeData"
+          v-for="(item, index) in jobinfoNextTriggerTimeData"
           :key="item"
-          class="job-next-time-item"
+          class="schedule-item"
         >
-          {{ item }}
+          <span class="schedule-index">{{ index + 1 }}</span>
+          <span class="schedule-time">{{ item }}</span>
         </div>
       </div>
     </el-dialog>
 
+    <!-- 注册地址弹窗 -->
     <el-dialog
       v-model="jobgroupByIdShow"
       draggable
-      title="注册地址"
-      width="400px"
-      class="job-dialog"
+      append-to-body
+      width="420px"
+      class="node-dialog"
     >
-      <el-empty v-if="jobgroupByIdData.length == 0" />
-      <div v-else class="job-node-list">
-        <div v-for="item in jobgroupByIdData" :key="item" class="job-node-item">
-          <el-tag effect="light">{{ item?.host }}:{{ item?.port }}</el-tag>
+      <template #header>
+        <div class="node-dialog-header">
+          <div class="header-icon node">
+            <IconifyIconOnline icon="ri:server-fill" />
+          </div>
+          <div class="header-info">
+            <span class="header-title">注册节点</span>
+            <span class="header-subtitle">当前可用的执行器节点</span>
+          </div>
+        </div>
+      </template>
+
+      <el-empty
+        v-if="jobgroupByIdData.length == 0"
+        description="暂无可用节点"
+      />
+      <div v-else class="node-list">
+        <div
+          v-for="(item, index) in jobgroupByIdData"
+          :key="index"
+          class="node-item"
+        >
+          <div class="node-status"></div>
+          <div class="node-info">
+            <span class="node-address">{{ item?.host }}</span>
+            <span class="node-port">:{{ item?.port }}</span>
+          </div>
         </div>
       </div>
     </el-dialog>
@@ -1054,35 +1128,177 @@ onMounted(() => {
   }
 }
 
-// 下拉菜单样式
-:deep(.job-dropdown-menu) {
-  padding: 8px;
-  min-width: 220px;
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+// 执行弹窗样式
+.trigger-dialog {
+  :deep(.el-dialog) {
+    border-radius: 16px;
+    overflow: hidden;
+  }
 
-  .dropdown-header {
+  :deep(.el-dialog__header) {
+    padding: 20px 24px 16px;
+    margin: 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 20px 24px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 16px 24px 20px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+}
+
+.trigger-dialog-header,
+.schedule-dialog-header,
+.node-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  .header-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--el-text-color-secondary);
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    flex-shrink: 0;
+
+    &.schedule {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
+
+    &.node {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+  }
+
+  .header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+
+    .header-subtitle {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+}
+
+.trigger-form {
+  .form-section {
+    margin-bottom: 20px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+
+      .iconify {
+        font-size: 18px;
+        color: var(--el-color-primary);
+      }
+
+      .label-tip {
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--el-text-color-placeholder);
+        padding: 2px 8px;
+        background: var(--el-fill-color-light);
+        border-radius: 4px;
+      }
+    }
+
+    .param-input {
+      :deep(.el-textarea__inner) {
+        border-radius: 10px;
+        font-family: "SF Mono", "Monaco", "Consolas", monospace;
+        font-size: 13px;
+        padding: 12px 14px;
+        background: var(--el-fill-color-lighter);
+        border: 1px solid var(--el-border-color-lighter);
+
+        &:focus {
+          border-color: var(--el-color-primary);
+          background: var(--el-bg-color);
+        }
+      }
+    }
+  }
+}
+
+.trigger-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+
+  .el-button {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 500;
+
+    &--primary {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  }
+}
+
+// 执行计划弹窗样式
+.schedule-dialog {
+  :deep(.el-dialog) {
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 20px 24px 16px;
+    margin: 0;
     border-bottom: 1px solid var(--el-border-color-lighter);
-    margin-bottom: 8px;
   }
 
-  .dropdown-divider {
-    height: 1px;
-    background: var(--el-border-color-lighter);
-    margin: 8px 0;
+  :deep(.el-dialog__body) {
+    padding: 16px 24px 24px;
   }
+}
 
-  .el-dropdown-menu__item {
-    padding: 0;
-    border-radius: 8px;
-    margin-bottom: 4px;
+.schedule-list {
+  max-height: 320px;
+  overflow-y: auto;
+
+  .schedule-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 12px;
+    transition: all 0.2s ease;
 
     &:last-child {
       margin-bottom: 0;
@@ -1090,148 +1306,110 @@ onMounted(() => {
 
     &:hover {
       background: var(--el-fill-color-light);
-    }
-  }
-
-  .dropdown-item-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    width: 100%;
-
-    &.danger {
-      .dropdown-item-icon {
-        background: var(--el-color-danger-light-9);
-        color: var(--el-color-danger);
-      }
-
-      .item-title {
-        color: var(--el-color-danger);
-      }
+      transform: translateX(4px);
     }
 
-    .dropdown-item-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
+    .schedule-index {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
       flex-shrink: 0;
-
-      &.edit {
-        background: linear-gradient(
-          135deg,
-          rgba(59, 130, 246, 0.1),
-          rgba(59, 130, 246, 0.05)
-        );
-        color: #3b82f6;
-      }
-
-      &.copy {
-        background: linear-gradient(
-          135deg,
-          rgba(168, 85, 247, 0.1),
-          rgba(168, 85, 247, 0.05)
-        );
-        color: #a855f7;
-      }
-
-      &.schedule {
-        background: linear-gradient(
-          135deg,
-          rgba(34, 197, 94, 0.1),
-          rgba(34, 197, 94, 0.05)
-        );
-        color: #22c55e;
-      }
-
-      &.log {
-        background: linear-gradient(
-          135deg,
-          rgba(14, 165, 233, 0.1),
-          rgba(14, 165, 233, 0.05)
-        );
-        color: #0ea5e9;
-      }
-
-      &.delete {
-        background: linear-gradient(
-          135deg,
-          rgba(239, 68, 68, 0.1),
-          rgba(239, 68, 68, 0.05)
-        );
-        color: #ef4444;
-      }
     }
 
-    .dropdown-item-text {
-      flex: 1;
-      min-width: 0;
+    .schedule-time {
+      font-family: "SF Mono", "Monaco", "Consolas", monospace;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+    }
+  }
+}
 
-      .item-title {
-        display: block;
-        font-size: 13px;
+// 注册节点弹窗样式
+.node-dialog {
+  :deep(.el-dialog) {
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 20px 24px 16px;
+    margin: 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 16px 24px 24px;
+  }
+}
+
+.node-list {
+  max-height: 320px;
+  overflow-y: auto;
+
+  .node-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &:hover {
+      background: var(--el-fill-color-light);
+      transform: translateX(4px);
+    }
+
+    .node-status {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+      flex-shrink: 0;
+      animation: pulse 2s infinite;
+    }
+
+    .node-info {
+      display: flex;
+      align-items: baseline;
+      font-family: "SF Mono", "Monaco", "Consolas", monospace;
+
+      .node-address {
+        font-size: 14px;
         font-weight: 600;
         color: var(--el-text-color-primary);
-        line-height: 1.3;
       }
 
-      .item-desc {
-        display: block;
-        font-size: 11px;
-        color: var(--el-text-color-placeholder);
-        line-height: 1.3;
-        margin-top: 2px;
+      .node-port {
+        font-size: 13px;
+        color: var(--el-color-primary);
+        font-weight: 500;
       }
     }
   }
 }
 
-.job-dialog {
-  :deep(.el-dialog) {
-    border-radius: 12px;
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
   }
-}
-
-.job-dialog-footer {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.job-next-time-list {
-  max-height: 280px;
-  overflow-y: auto;
-
-  .job-next-time-item {
-    padding: 10px 12px;
-    margin-bottom: 8px;
-    background: var(--el-fill-color-lighter);
-    border-radius: 6px;
-    font-family: "SF Mono", "Monaco", "Consolas", monospace;
-    font-size: 13px;
-    border-left: 3px solid var(--el-color-primary);
-    color: var(--el-text-color-regular);
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-}
-
-.job-node-list {
-  max-height: 280px;
-  overflow-y: auto;
-
-  .job-node-item {
-    margin-bottom: 8px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
+  50% {
+    opacity: 0.5;
   }
 }
 
@@ -1278,6 +1456,160 @@ onMounted(() => {
 
       .card-footer .card-actions {
         opacity: 1;
+      }
+    }
+  }
+}
+</style>
+
+<!-- 下拉菜单全局样式 - popper 渲染到 body 需要非 scoped 样式 -->
+<style lang="scss">
+.job-dropdown-menu-popper {
+  padding: 8px !important;
+  min-width: 220px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid var(--el-border-color-lighter) !important;
+  background: var(--el-bg-color) !important;
+
+  .dropdown-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    margin-bottom: 8px;
+  }
+
+  .dropdown-divider {
+    height: 1px;
+    background: var(--el-border-color-lighter);
+    margin: 8px 0;
+  }
+
+  .el-dropdown-menu {
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .el-dropdown-menu__item {
+    padding: 0;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    background: transparent;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &:not(.is-disabled):hover,
+    &:not(.is-disabled):focus {
+      background: var(--el-fill-color-light);
+      color: inherit;
+    }
+  }
+
+  .dropdown-item-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    width: 100%;
+
+    &.danger {
+      .dropdown-item-icon {
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.15),
+          rgba(239, 68, 68, 0.05)
+        );
+        color: #ef4444;
+      }
+
+      .item-title {
+        color: #ef4444;
+      }
+    }
+
+    .dropdown-item-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+
+      &.edit {
+        background: linear-gradient(
+          135deg,
+          rgba(59, 130, 246, 0.15),
+          rgba(59, 130, 246, 0.05)
+        );
+        color: #3b82f6;
+      }
+
+      &.copy {
+        background: linear-gradient(
+          135deg,
+          rgba(168, 85, 247, 0.15),
+          rgba(168, 85, 247, 0.05)
+        );
+        color: #a855f7;
+      }
+
+      &.schedule {
+        background: linear-gradient(
+          135deg,
+          rgba(34, 197, 94, 0.15),
+          rgba(34, 197, 94, 0.05)
+        );
+        color: #22c55e;
+      }
+
+      &.log {
+        background: linear-gradient(
+          135deg,
+          rgba(14, 165, 233, 0.15),
+          rgba(14, 165, 233, 0.05)
+        );
+        color: #0ea5e9;
+      }
+
+      &.delete {
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.15),
+          rgba(239, 68, 68, 0.05)
+        );
+        color: #ef4444;
+      }
+    }
+
+    .dropdown-item-text {
+      flex: 1;
+      min-width: 0;
+
+      .item-title {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        line-height: 1.3;
+      }
+
+      .item-desc {
+        display: block;
+        font-size: 11px;
+        color: var(--el-text-color-placeholder);
+        line-height: 1.3;
+        margin-top: 2px;
       }
     }
   }
