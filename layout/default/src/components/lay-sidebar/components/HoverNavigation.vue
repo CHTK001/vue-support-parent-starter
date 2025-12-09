@@ -230,9 +230,29 @@ function handleMenuHover(menu: any, event: MouseEvent) {
   const rect = event.currentTarget.getBoundingClientRect();
 
   showTimer.value = setTimeout(() => {
+    // 计算子菜单的预估高度（根据子菜单项数量估算）
+    const estimatedHeight = Math.min(500, menu.children.length * 50 + 100);
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    
+    // 计算最佳的 top 位置
+    let top = rect.top;
+    // 如果子菜单会超出屏幕底部，向上调整位置
+    if (top + estimatedHeight > viewportHeight - 20) {
+      top = Math.max(20, viewportHeight - estimatedHeight - 20);
+    }
+    
+    // 计算 left 位置，确保不超出右边界
+    let left = rect.right + 10;
+    const estimatedWidth = 400; // 子菜单预估宽度
+    if (left + estimatedWidth > viewportWidth - 20) {
+      // 如果右侧空间不够，显示在左侧
+      left = rect.left - estimatedWidth - 10;
+    }
+    
     subMenuPosition.value = {
-      top: rect.top,
-      left: rect.right + 10,
+      top: top,
+      left: left,
     };
     subMenuVisible.value = true;
   }, 150);
@@ -912,6 +932,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   position: fixed;
   z-index: 9999;
   pointer-events: auto;
+  max-height: calc(100vh - 40px);
 
   /* 添加一个透明的连接区域，方便鼠标移动 */
   &::before {
@@ -930,7 +951,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   min-width: 320px;
   max-width: 900px;
   width: fit-content;
-  max-height: 85vh;
+  max-height: calc(100vh - 60px);
   background: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.95),
@@ -977,8 +998,8 @@ const defer = useDefer(firstLevelMenus.value.length);
 }
 
 .sub-menu-content {
-  padding: 12px; // 减少内边距
-  max-height: calc(85vh - 24px); // 调整最大高度
+  padding: 12px;
+  max-height: calc(100vh - 100px);
   overflow-y: auto;
 
   /* 自定义滚动条 */
@@ -1021,34 +1042,25 @@ const defer = useDefer(firstLevelMenus.value.length);
   min-width: 160px;
 
   .column-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    color: var(--el-text-color-primary);
-    margin-bottom: 12px;
-    padding: 8px 12px;
-    background: rgba(var(--el-color-primary-rgb), 0.05);
-    border-radius: 8px;
-    border-left: 3px solid var(--el-color-primary);
+    color: var(--el-text-color-secondary);
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    background: transparent;
+    border-radius: 0;
+    border-left: none;
+    border-bottom: 1px solid var(--el-border-color-lighter);
     position: relative;
 
-    /* 浅色风格下文字为黑色 */
+    /* 浅色风格下文字 */
     html[data-theme="light"] & {
-      color: #1e293b;
+      color: #64748b;
     }
 
-    /* 深色模式下文字为白色 */
+    /* 深色模式下文字 */
     html.dark & {
-      color: #ffffff;
-    }
-
-    &::after {
-      content: "";
-      position: absolute;
-      bottom: 0;
-      left: 12px;
-      right: 12px;
-      height: 1px;
-      background: linear-gradient(90deg, var(--el-color-primary), transparent);
+      color: rgba(255, 255, 255, 0.6);
     }
   }
 

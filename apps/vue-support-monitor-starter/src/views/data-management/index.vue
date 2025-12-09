@@ -310,15 +310,36 @@
     />
     <el-dialog
       v-model="showDoc"
-      title="数据源文档"
-      width="80%"
+      width="85%"
       draggable
+      align-center
+      append-to-body
+      destroy-on-close
+      :close-on-click-modal="true"
       class="doc-dialog"
     >
-      <iframe
-        :src="docUrl"
-        style="width: 100%; height: 70vh; border: none; border-radius: 8px"
-      ></iframe>
+      <template #header>
+        <div class="doc-dialog-header">
+          <div class="header-icon">
+            <IconifyIconOnline icon="ri:file-text-line" />
+          </div>
+          <div class="header-content">
+            <span class="header-title">数据源文档</span>
+            <span class="header-subtitle">查看数据源配置和使用说明</span>
+          </div>
+        </div>
+      </template>
+      <div class="doc-iframe-container">
+        <div class="iframe-loading" v-if="docLoading">
+          <IconifyIconOnline icon="ri:loader-4-line" class="loading-icon" />
+          <span>加载中...</span>
+        </div>
+        <iframe
+          :src="docUrl"
+          class="doc-iframe"
+          @load="docLoading = false"
+        ></iframe>
+      </div>
     </el-dialog>
     <ConsoleSettingDialog
       v-model="showSetting"
@@ -374,6 +395,7 @@ const capMap = ref<
 const backupOn = ref<Record<number, boolean>>({});
 const showDoc = ref(false);
 const docUrl = ref("");
+const docLoading = ref(true);
 
 // 实时计数：备份与日志
 const backupCounts = ref<Record<number, number>>({});
@@ -579,6 +601,7 @@ async function remove(row: SystemDataSetting) {
 }
 
 function viewDocument(row: SystemDataSetting) {
+  docLoading.value = true;
   docUrl.value = getDocumentHtmlUrl(row.systemDataSettingId as number);
   showDoc.value = true;
 }
@@ -1568,5 +1591,132 @@ onMounted(() => {
 
 .mr-4 {
   margin-right: 4px;
+}
+</style>
+
+<!-- 文档对话框全局样式 -->
+<style lang="scss">
+.doc-dialog {
+  .el-dialog {
+    border-radius: 20px !important;
+    overflow: hidden;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  .el-dialog__header {
+    padding: 0 !important;
+    margin: 0 !important;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  .el-dialog__body {
+    padding: 0 !important;
+  }
+
+  .el-dialog__headerbtn {
+    top: 20px !important;
+    right: 20px !important;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    &:hover {
+      background: var(--el-color-danger-light-9);
+      transform: rotate(90deg);
+
+      .el-dialog__close {
+        color: var(--el-color-danger);
+      }
+    }
+  }
+
+  .doc-dialog-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 24px 32px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+
+    .header-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 26px;
+      box-shadow: 0 6px 20px rgba(64, 158, 255, 0.35);
+    }
+
+    .header-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .header-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+    }
+
+    .header-subtitle {
+      font-size: 14px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+
+  .doc-iframe-container {
+    position: relative;
+    width: 100%;
+    height: 75vh;
+    background: #f8fafc;
+  }
+
+  .iframe-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    z-index: 5;
+    color: var(--el-text-color-secondary);
+    font-size: 14px;
+
+    .loading-icon {
+      font-size: 32px;
+      color: var(--el-color-primary);
+      animation: docSpinner 1s linear infinite;
+    }
+  }
+
+  @keyframes docSpinner {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .doc-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
 }
 </style>
