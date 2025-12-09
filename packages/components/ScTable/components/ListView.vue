@@ -471,98 +471,177 @@ defineExpose({
 <style lang="scss" scoped>
 .list-view-container {
   position: relative;
+  padding: 12px;
 
   .list-items {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
 
   .list-item {
     display: flex;
     align-items: center;
-    border-radius: 4px;
-    transition: all 0.3s;
-    background-color: var(--el-bg-color);
-    // padding: 12px 16px;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--el-bg-color);
+    border: 2px solid var(--el-border-color-lighter);
+    position: relative;
+    overflow: hidden;
+
+    // 左侧装饰条
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 0;
+      background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      border-radius: 0 4px 4px 0;
+      transition: height 0.3s ease;
+    }
 
     &:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--el-box-shadow-light);
+      transform: translateX(4px);
+      border-color: var(--el-color-primary-light-5);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+
+      &::before {
+        height: 40%;
+      }
     }
 
     &.is-selected {
-      border: 1px solid var(--el-color-primary);
-      background-color: rgba(var(--el-color-primary-rgb), 0.05);
+      border-color: var(--el-color-primary);
+      background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
+      box-shadow: 0 4px 16px var(--el-color-primary-light-7);
+
+      &::before {
+        height: 60%;
+      }
     }
 
     .list-item-selection {
-      margin-right: 16px;
+      margin-right: 14px;
+      padding-left: 14px;
+      display: flex;
+      align-items: center;
+
+      :deep(.el-checkbox) {
+        .el-checkbox__inner {
+          border-radius: 6px;
+          width: 20px;
+          height: 20px;
+          transition: all 0.25s ease;
+
+          &::after {
+            width: 5px;
+            height: 9px;
+            left: 6px;
+            top: 2px;
+          }
+        }
+
+        &.is-checked .el-checkbox__inner {
+          background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+          border-color: var(--el-color-primary);
+          box-shadow: 0 2px 8px var(--el-color-primary-light-5);
+        }
+      }
     }
 
     .list-item-content {
       flex: 1;
+      min-width: 0;
     }
   }
 
+  // 加载指示器
   .loading-indicator {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px;
-    gap: 8px;
-    background-color: rgba(var(--el-color-primary-rgb), 0.05);
-    border-radius: 4px;
-    margin: 8px 0;
+    padding: 14px;
+    gap: 10px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+    border-radius: 10px;
+    margin: 12px 0;
+    color: var(--el-color-primary);
+    font-size: 13px;
+    font-weight: 500;
 
     .el-icon {
-      animation: rotating 2s linear infinite;
-      font-size: 16px;
+      animation: rotating 1.5s linear infinite;
+      font-size: 18px;
       color: var(--el-color-primary);
     }
   }
 
+  // 滚动提示
   .scroll-tip {
     text-align: center;
-    padding: 8px;
+    padding: 12px;
     color: var(--el-text-color-secondary);
     font-size: 13px;
     cursor: pointer;
-    transition: all 0.3s;
-    border-radius: 4px;
+    transition: all 0.3s ease;
+    border-radius: 10px;
+    margin: 8px 0;
+    background: var(--el-fill-color-light);
 
     &:hover {
-      background-color: rgba(var(--el-color-primary-rgb), 0.05);
+      background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
+      transform: translateY(-2px);
     }
   }
 
+  // 没有更多数据
   .no-more-data {
     text-align: center;
-    padding: 12px;
-    color: var(--el-text-color-secondary);
+    padding: 14px;
+    color: var(--el-text-color-placeholder);
     font-size: 13px;
-    border-top: 1px dashed var(--el-border-color-lighter);
-    margin-top: 8px;
+    margin: 12px 0;
+    background: var(--el-fill-color-lighter);
+    border-radius: 10px;
   }
 }
 
 // 暗黑模式适配
 :root[data-theme="dark"] {
-  .list-item {
-    background-color: var(--el-bg-color-overlay);
+  .list-view-container {
+    .list-item {
+      background: var(--el-bg-color-overlay);
+      border-color: var(--el-border-color-light);
 
-    &.is-selected {
-      background-color: rgba(var(--el-color-primary-rgb), 0.15);
+      &:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      }
+
+      &.is-selected {
+        background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.15) 0%, var(--el-bg-color-overlay) 100%);
+        box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.2);
+      }
     }
-  }
 
-  .loading-indicator {
-    background-color: rgba(var(--el-color-primary-rgb), 0.1);
-  }
+    .loading-indicator {
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.15), rgba(var(--el-color-primary-rgb), 0.1));
+    }
 
-  .scroll-tip:hover {
-    background-color: rgba(var(--el-color-primary-rgb), 0.1);
+    .scroll-tip {
+      background: var(--el-fill-color-dark);
+
+      &:hover {
+        background: rgba(var(--el-color-primary-rgb), 0.15);
+      }
+    }
+
+    .no-more-data {
+      background: var(--el-fill-color-darker);
+    }
   }
 }
 

@@ -262,32 +262,59 @@ const selectOption = (value: string | number) => {
 .dropdown-trigger {
   display: flex;
   align-items: center;
-  padding: 10px 14px;
-  background: var(--el-bg-color-overlay);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
+  padding: 10px 16px;
+  background: var(--el-bg-color);
+  border: 2px solid var(--el-border-color-lighter);
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 40px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-height: 44px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+
+  // 底部装饰条
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--el-color-primary-light-3), var(--el-color-primary));
+    border-radius: 2px 2px 0 0;
+    transition: width 0.3s ease;
+  }
 
   &:hover {
-    border-color: var(--el-color-primary);
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
-    transform: translateY(-1px);
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+
+    &::after {
+      width: 40%;
+    }
+
+    .dropdown-icon {
+      transform: scale(1.1);
+    }
   }
 
   &:active {
     transform: translateY(0);
-    box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.2);
   }
 
   .dropdown-icon {
-    width: 18px;
-    height: 18px;
-    margin-right: 10px;
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
     color: var(--el-color-primary);
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
   }
 
   .dropdown-text {
@@ -303,8 +330,9 @@ const selectOption = (value: string | number) => {
   .dropdown-arrow {
     width: 18px;
     height: 18px;
-    color: var(--el-text-color-regular);
+    color: var(--el-text-color-placeholder);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-left: 8px;
 
     &.rotated {
       transform: rotate(180deg);
@@ -315,17 +343,29 @@ const selectOption = (value: string | number) => {
 
 .dropdown-panel-content {
   overflow-y: auto;
-  padding: 8px;
+  padding: 12px;
+  animation: panelFadeIn 0.25s ease-out;
 
   .panel-title {
-    padding: 16px 20px 12px;
-    font-size: 10px;
+    padding: 14px 16px 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--el-text-color-primary);
     border-bottom: 1px solid var(--el-border-color-lighter);
-    background: linear-gradient(135deg, var(--el-fill-color-lighter), var(--el-fill-color-light));
-    margin: -8px -8px 8px -8px;
-    border-radius: 12px 12px 0 0;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-fill-color-lighter));
+    margin: -12px -12px 12px -12px;
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &::before {
+      content: '';
+      width: 4px;
+      height: 16px;
+      background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      border-radius: 2px;
+    }
   }
   .ss {
     height: 260px;
@@ -333,12 +373,23 @@ const selectOption = (value: string | number) => {
   .options-grid {
     display: grid;
     grid-template-columns: 1fr;
-    align-content: center;
-    gap: 4px;
+    align-content: start;
+    gap: 6px;
 
     &.has-preview {
       grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 8px;
+      gap: 10px;
+    }
+  }
+
+  @keyframes panelFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 
@@ -455,7 +506,16 @@ const selectOption = (value: string | number) => {
 .open {
   .dropdown-trigger {
     border-color: var(--el-color-primary);
-    box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+    box-shadow: 0 0 0 3px var(--el-color-primary-light-8);
+    background: linear-gradient(180deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
+
+    &::after {
+      width: 60%;
+    }
+
+    .dropdown-icon {
+      color: var(--el-color-primary);
+    }
   }
 }
 
@@ -498,12 +558,13 @@ const selectOption = (value: string | number) => {
 :global(.sc-select-popover) {
   background: var(--el-bg-color) !important;
   border: 1px solid var(--el-border-color-lighter) !important;
-  border-radius: 12px !important;
+  border-radius: 14px !important;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.12),
-    0 2px 8px rgba(0, 0, 0, 0.08) !important;
-  backdrop-filter: blur(8px);
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.06) !important;
+  backdrop-filter: blur(12px);
   padding: 0 !important;
+  overflow: hidden;
 
   &.popover-horizontal {
     min-width: 400px !important;
