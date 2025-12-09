@@ -1,256 +1,254 @@
 <template>
-  <div class="job-log-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="title-section">
-          <h1 class="page-title">
-            <IconifyIconOnline icon="ri:file-list-3-line" class="title-icon" />
-            任务日志
-          </h1>
-          <p class="page-subtitle">查看和管理任务执行日志记录</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 统计图表区域 -->
-    <div class="chart-section">
-      <div class="chart-header" @click="showChart = !showChart">
-        <div class="chart-title">
-          <IconifyIconOnline
-            icon="ri:bar-chart-2-line"
-            class="chart-title-icon"
-          />
-          <span>近七日执行趋势</span>
-        </div>
-        <div class="chart-right">
-          <div v-if="showChart" class="chart-legend">
-            <span class="legend-item success">
-              <span class="legend-dot"></span>成功
-            </span>
-            <span class="legend-item danger">
-              <span class="legend-dot"></span>失败
-            </span>
+  <div class="job-log-wrapper">
+    <div class="job-log-container">
+      <!-- 统计图表区域 -->
+      <div class="chart-section">
+        <div class="chart-header" @click="showChart = !showChart">
+          <div class="chart-title">
+            <IconifyIconOnline
+              icon="ri:bar-chart-2-line"
+              class="chart-title-icon"
+            />
+            <span>近七日执行趋势</span>
           </div>
+          <div class="chart-right">
+            <div v-if="showChart" class="chart-legend">
+              <span class="legend-item success">
+                <span class="legend-dot"></span>成功
+              </span>
+              <span class="legend-item danger">
+                <span class="legend-dot"></span>失败
+              </span>
+            </div>
+            <IconifyIconOnline
+              :icon="showChart ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'"
+              class="toggle-icon"
+            />
+          </div>
+        </div>
+        <transition name="slide-fade">
+          <div v-if="showChart" class="chart-body">
+            <scEcharts height="120px" :option="logsChartOption" />
+          </div>
+        </transition>
+      </div>
+
+      <!-- 搜索筛选区域 -->
+      <div class="search-section">
+        <div class="search-toggle" @click="showCondition = !showCondition">
+          <IconifyIconOnline icon="ri:filter-3-line" class="filter-icon" />
+          <span>筛选条件</span>
           <IconifyIconOnline
-            :icon="showChart ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'"
+            :icon="
+              showCondition ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'
+            "
             class="toggle-icon"
           />
         </div>
-      </div>
-      <transition name="slide-fade">
-        <div v-if="showChart" class="chart-body">
-          <scEcharts height="120px" :option="logsChartOption" />
-        </div>
-      </transition>
-    </div>
-
-    <!-- 搜索筛选区域 -->
-    <div class="search-section">
-      <div class="search-toggle" @click="showCondition = !showCondition">
-        <IconifyIconOnline icon="ri:filter-3-line" class="filter-icon" />
-        <span>筛选条件</span>
-        <IconifyIconOnline
-          :icon="showCondition ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'"
-          class="toggle-icon"
-        />
-      </div>
-      <transition name="slide-fade">
-        <div v-if="showCondition" class="search-filters">
-          <div class="filter-item">
-            <el-date-picker
-              v-model="date"
-              value-format="YYYY-MM-DD HH:mm:ss"
-              type="datetimerange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              class="date-picker"
-            />
-          </div>
-          <div class="filter-item">
-            <el-select
-              v-model="form.jobLogTriggerCode"
-              clearable
-              placeholder="任务状态"
-              class="filter-select"
-            >
-              <el-option value="" label="全部状态" />
-              <el-option :value="1" label="成功" />
-              <el-option :value="0" label="失败" />
-            </el-select>
-          </div>
-          <div class="filter-item">
-            <el-select
-              v-model="form.jobLogApp"
-              clearable
-              placeholder="执行器"
-              class="filter-select"
-            >
-              <el-option value="" label="全部执行器" />
-              <el-option
-                v-for="item in executorData"
-                :key="item.monitorId"
-                :value="item.monitorApplicationName"
-                :label="item.monitorName"
+        <transition name="slide-fade">
+          <div v-if="showCondition" class="search-filters">
+            <div class="filter-item">
+              <el-date-picker
+                v-model="date"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                type="datetimerange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                class="date-picker"
               />
-            </el-select>
-          </div>
-          <div class="filter-item">
-            <el-select
-              v-model="form.jobLogProfile"
-              clearable
-              placeholder="环境"
-              class="filter-select"
-            >
-              <el-option value="" label="全部环境" />
-              <el-option value="dev" label="开发" />
-              <el-option value="prod" label="生产" />
-              <el-option value="test" label="测试" />
-            </el-select>
-          </div>
-          <div class="filter-actions">
-            <el-tooltip content="搜索" placement="top">
-              <el-button type="primary" class="action-btn" @click="search">
-                <IconifyIconOnline icon="ri:search-line" />
-              </el-button>
-            </el-tooltip>
-            <el-tooltip content="清理日志" placement="top">
-              <el-button type="danger" class="action-btn" @click="clear">
-                <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
-            </el-tooltip>
-          </div>
-        </div>
-      </transition>
-    </div>
-
-    <!-- 日志表格 -->
-    <div class="table-section">
-      <scTable
-        ref="table"
-        :loading="loading"
-        :params="form"
-        :url="fetchJobLogPage"
-        stripe
-        highlightCurrentRow
-        class="log-table"
-      >
-        <el-table-column label="状态" prop="level" width="70" align="center">
-          <template #default="scope">
-            <div class="status-cell">
-              <span
-                class="status-dot"
-                :class="getStatusClass(scope.row)"
-              ></span>
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="任务ID" prop="jobLogId" width="120">
-          <template #default="scope">
-            <span class="log-id">#{{ scope.row.jobLogId }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="系统/环境" prop="jobLogApp" width="180">
-          <template #default="scope">
-            <div class="app-info">
-              <span class="app-name">{{ scope.row.jobLogApp }}</span>
-              <el-tag
-                size="small"
-                :type="getEnvType(scope.row.jobLogProfile)"
-                class="env-tag"
+            <div class="filter-item">
+              <el-select
+                v-model="form.jobLogTriggerCode"
+                clearable
+                placeholder="任务状态"
+                class="filter-select"
               >
-                {{ scope.row.jobLogProfile || "-" }}
-              </el-tag>
+                <el-option value="" label="全部状态" />
+                <el-option :value="1" label="成功" />
+                <el-option :value="0" label="失败" />
+              </el-select>
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="执行地址"
-          prop="jobLogTriggerAddress"
-          width="180"
-        >
-          <template #default="scope">
-            <ScIp
-              v-if="scope.row.jobLogTriggerAddress"
-              :ip="scope.row.jobLogTriggerAddress"
-            />
-            <span v-else class="text-placeholder">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="调度时间" prop="jobLogTriggerTime" width="180">
-          <template #default="scope">
-            <div class="time-cell">
-              <IconifyIconOnline icon="ri:time-line" class="time-icon" />
-              <span>{{ dateFormat(scope.row.jobLogTriggerTime) }}</span>
+            <div class="filter-item">
+              <el-select
+                v-model="form.jobLogApp"
+                clearable
+                placeholder="执行器"
+                class="filter-select"
+              >
+                <el-option value="" label="全部执行器" />
+                <el-option
+                  v-for="item in executorData"
+                  :key="item.monitorId"
+                  :value="item.monitorApplicationName"
+                  :label="item.monitorName"
+                />
+              </el-select>
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="调度结果"
-          prop="logMapping"
-          width="100"
-          align="center"
-        >
-          <template #default="scope">
-            <el-tag
-              :type="
-                scope.row.jobLogTriggerCode !== '00000' ? 'danger' : 'success'
-              "
-              effect="light"
-              class="result-tag"
-            >
-              <IconifyIconOnline
-                :icon="
-                  scope.row.jobLogTriggerCode !== '00000'
-                    ? 'ri:close-circle-line'
-                    : 'ri:checkbox-circle-line'
-                "
-              />
-              {{ scope.row.jobLogTriggerCode !== "00000" ? "失败" : "成功" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="执行耗时" prop="jobLogCost" width="120">
-          <template #default="scope">
-            <div class="cost-cell" :class="getCostClass(scope.row.jobLogCost)">
-              <IconifyIconOnline icon="ri:timer-line" class="cost-icon" />
-              <span>{{ scope.row.jobLogCost || 0 }} ms</span>
+            <div class="filter-item">
+              <el-select
+                v-model="form.jobLogProfile"
+                clearable
+                placeholder="环境"
+                class="filter-select"
+              >
+                <el-option value="" label="全部环境" />
+                <el-option value="dev" label="开发" />
+                <el-option value="prod" label="生产" />
+                <el-option value="test" label="测试" />
+              </el-select>
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="错误信息"
-          prop="jobLogTriggerMsg"
-          min-width="150"
-          show-overflow-tooltip
-        >
-          <template #default="scope">
-            <span v-if="scope.row.jobLogTriggerMsg" class="error-msg">{{
-              scope.row.jobLogTriggerMsg
-            }}</span>
-            <span v-else class="text-placeholder">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="140" fixed="right">
-          <template #default="scope">
-            <div class="action-cell">
-              <el-tooltip content="查看详情" placement="top">
-                <el-button class="action-btn-sm" @click="rowClick(scope.row)">
-                  <IconifyIconOnline icon="ri:eye-line" />
+            <div class="filter-actions">
+              <el-tooltip content="搜索" placement="top">
+                <el-button type="primary" class="action-btn" @click="search">
+                  <IconifyIconOnline icon="ri:search-line" />
                 </el-button>
               </el-tooltip>
-              <el-tooltip content="查看日志" placement="top">
-                <el-button class="action-btn-sm" @click="cat(scope.row)">
-                  <IconifyIconOnline icon="ri:terminal-box-line" />
+              <el-tooltip content="清理日志" placement="top">
+                <el-button type="danger" class="action-btn" @click="clear">
+                  <IconifyIconOnline icon="ri:delete-bin-line" />
                 </el-button>
               </el-tooltip>
             </div>
-          </template>
-        </el-table-column>
-      </scTable>
-    </div>
+          </div>
+        </transition>
+      </div>
 
+      <!-- 日志表格 -->
+      <div class="table-section">
+        <scTable
+          ref="table"
+          :loading="loading"
+          :params="form"
+          :url="fetchJobLogPage"
+          stripe
+          highlightCurrentRow
+          height="calc(100vh - 400px)"
+          class="log-table"
+        >
+          <el-table-column label="状态" prop="level" width="70" align="center">
+            <template #default="scope">
+              <div class="status-cell">
+                <span
+                  class="status-dot"
+                  :class="getStatusClass(scope.row)"
+                ></span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="任务ID" prop="jobLogId" width="120">
+            <template #default="scope">
+              <span class="log-id">#{{ scope.row.jobLogId }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="系统/环境" prop="jobLogApp" width="180">
+            <template #default="scope">
+              <div class="app-info">
+                <span class="app-name">{{ scope.row.jobLogApp }}</span>
+                <el-tag
+                  size="small"
+                  :type="getEnvType(scope.row.jobLogProfile)"
+                  class="env-tag"
+                >
+                  {{ scope.row.jobLogProfile || "-" }}
+                </el-tag>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="执行地址"
+            prop="jobLogTriggerAddress"
+            width="180"
+          >
+            <template #default="scope">
+              <ScIp
+                v-if="scope.row.jobLogTriggerAddress"
+                :ip="scope.row.jobLogTriggerAddress"
+              />
+              <span v-else class="text-placeholder">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="调度时间"
+            prop="jobLogTriggerTime"
+            width="180"
+          >
+            <template #default="scope">
+              <div class="time-cell">
+                <IconifyIconOnline icon="ri:time-line" class="time-icon" />
+                <span>{{ dateFormat(scope.row.jobLogTriggerTime) }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="调度结果"
+            prop="logMapping"
+            width="100"
+            align="center"
+          >
+            <template #default="scope">
+              <el-tag
+                :type="
+                  scope.row.jobLogTriggerCode !== '00000' ? 'danger' : 'success'
+                "
+                effect="light"
+                class="result-tag"
+              >
+                <IconifyIconOnline
+                  :icon="
+                    scope.row.jobLogTriggerCode !== '00000'
+                      ? 'ri:close-circle-line'
+                      : 'ri:checkbox-circle-line'
+                  "
+                />
+                {{ scope.row.jobLogTriggerCode !== "00000" ? "失败" : "成功" }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="执行耗时" prop="jobLogCost" width="120">
+            <template #default="scope">
+              <div
+                class="cost-cell"
+                :class="getCostClass(scope.row.jobLogCost)"
+              >
+                <IconifyIconOnline icon="ri:timer-line" class="cost-icon" />
+                <span>{{ scope.row.jobLogCost || 0 }} ms</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="错误信息"
+            prop="jobLogTriggerMsg"
+            min-width="150"
+            show-overflow-tooltip
+          >
+            <template #default="scope">
+              <span v-if="scope.row.jobLogTriggerMsg" class="error-msg">{{
+                scope.row.jobLogTriggerMsg
+              }}</span>
+              <span v-else class="text-placeholder">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="140" fixed="right">
+            <template #default="scope">
+              <div class="action-cell">
+                <el-tooltip content="查看详情" placement="top">
+                  <el-button class="action-btn-sm" @click="rowClick(scope.row)">
+                    <IconifyIconOnline icon="ri:eye-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="查看日志" placement="top">
+                  <el-button class="action-btn-sm" @click="cat(scope.row)">
+                    <IconifyIconOnline icon="ri:terminal-box-line" />
+                  </el-button>
+                </el-tooltip>
+              </div>
+            </template>
+          </el-table-column>
+        </scTable>
+      </div>
+    </div>
     <el-dialog v-model="clearShow" title="日志清理" @close="clearShow = !1">
       <el-form :model="form" label-width="120px">
         <el-form-item label="执行器">
@@ -562,10 +560,18 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.job-log-wrapper {
+  height: 100%;
+  overflow: hidden;
+}
+
 .job-log-container {
   padding: 16px;
   background: var(--el-bg-color-page);
-  min-height: calc(100vh - 120px);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* 页面头部 */
@@ -611,7 +617,22 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.chart-header:hover {
+  opacity: 0.8;
+}
+
+.chart-section:has(.chart-body) .chart-header {
   margin-bottom: 12px;
+}
+
+.chart-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .chart-title {
@@ -732,6 +753,37 @@ export default {
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.table-section :deep(.sc-table-container) {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.table-section :deep(.sc-table-container.auto-height) {
+  min-height: 0 !important;
+}
+
+.table-section :deep(.sc-table-wrapper) {
+  height: 100%;
+  min-height: 0;
+}
+
+.table-section :deep(.sc-table-auto-height) {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.table-section :deep(.sc-table-content-wrapper) {
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: auto !important;
 }
 
 /* 状态单元格 */
