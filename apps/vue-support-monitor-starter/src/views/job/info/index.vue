@@ -110,6 +110,7 @@
                 trigger="click"
                 @command="(cmd) => handleCommand(cmd, row)"
                 class="more-dropdown"
+                popper-class="job-dropdown-popper"
               >
                 <el-button class="more-btn" @click.stop>
                   <IconifyIconOnline icon="ri:more-2-fill" />
@@ -117,7 +118,9 @@
                 <template #dropdown>
                   <el-dropdown-menu class="job-dropdown-menu">
                     <div class="dropdown-header">
-                      <IconifyIconOnline icon="ri:settings-3-line" />
+                      <div class="header-icon">
+                        <IconifyIconOnline icon="ri:settings-3-line" />
+                      </div>
                       <span>操作菜单</span>
                     </div>
                     <el-dropdown-item command="edit">
@@ -128,6 +131,9 @@
                         <div class="dropdown-item-text">
                           <span class="item-title">编辑任务</span>
                           <span class="item-desc">修改任务配置信息</span>
+                        </div>
+                        <div class="item-arrow">
+                          <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
                     </el-dropdown-item>
@@ -140,6 +146,9 @@
                           <span class="item-title">复制任务</span>
                           <span class="item-desc">创建任务副本</span>
                         </div>
+                        <div class="item-arrow">
+                          <IconifyIconOnline icon="ri:arrow-right-s-line" />
+                        </div>
                       </div>
                     </el-dropdown-item>
                     <el-dropdown-item command="nextTriggerTime">
@@ -150,6 +159,9 @@
                         <div class="dropdown-item-text">
                           <span class="item-title">执行计划</span>
                           <span class="item-desc">查看下次执行时间</span>
+                        </div>
+                        <div class="item-arrow">
+                          <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
                     </el-dropdown-item>
@@ -162,6 +174,9 @@
                           <span class="item-title">执行日志</span>
                           <span class="item-desc">查看历史执行记录</span>
                         </div>
+                        <div class="item-arrow">
+                          <IconifyIconOnline icon="ri:arrow-right-s-line" />
+                        </div>
                       </div>
                     </el-dropdown-item>
                     <div class="dropdown-divider"></div>
@@ -173,6 +188,9 @@
                         <div class="dropdown-item-text">
                           <span class="item-title">删除任务</span>
                           <span class="item-desc">此操作不可恢复</span>
+                        </div>
+                        <div class="item-arrow danger">
+                          <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
                     </el-dropdown-item>
@@ -1054,142 +1072,6 @@ onMounted(() => {
   }
 }
 
-// 下拉菜单样式
-:deep(.job-dropdown-menu) {
-  padding: 8px;
-  min-width: 220px;
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-
-  .dropdown-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--el-text-color-secondary);
-    border-bottom: 1px solid var(--el-border-color-lighter);
-    margin-bottom: 8px;
-  }
-
-  .dropdown-divider {
-    height: 1px;
-    background: var(--el-border-color-lighter);
-    margin: 8px 0;
-  }
-
-  .el-dropdown-menu__item {
-    padding: 0;
-    border-radius: 8px;
-    margin-bottom: 4px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    &:hover {
-      background: var(--el-fill-color-light);
-    }
-  }
-
-  .dropdown-item-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    width: 100%;
-
-    &.danger {
-      .dropdown-item-icon {
-        background: var(--el-color-danger-light-9);
-        color: var(--el-color-danger);
-      }
-
-      .item-title {
-        color: var(--el-color-danger);
-      }
-    }
-
-    .dropdown-item-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      flex-shrink: 0;
-
-      &.edit {
-        background: linear-gradient(
-          135deg,
-          rgba(59, 130, 246, 0.1),
-          rgba(59, 130, 246, 0.05)
-        );
-        color: #3b82f6;
-      }
-
-      &.copy {
-        background: linear-gradient(
-          135deg,
-          rgba(168, 85, 247, 0.1),
-          rgba(168, 85, 247, 0.05)
-        );
-        color: #a855f7;
-      }
-
-      &.schedule {
-        background: linear-gradient(
-          135deg,
-          rgba(34, 197, 94, 0.1),
-          rgba(34, 197, 94, 0.05)
-        );
-        color: #22c55e;
-      }
-
-      &.log {
-        background: linear-gradient(
-          135deg,
-          rgba(14, 165, 233, 0.1),
-          rgba(14, 165, 233, 0.05)
-        );
-        color: #0ea5e9;
-      }
-
-      &.delete {
-        background: linear-gradient(
-          135deg,
-          rgba(239, 68, 68, 0.1),
-          rgba(239, 68, 68, 0.05)
-        );
-        color: #ef4444;
-      }
-    }
-
-    .dropdown-item-text {
-      flex: 1;
-      min-width: 0;
-
-      .item-title {
-        display: block;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-        line-height: 1.3;
-      }
-
-      .item-desc {
-        display: block;
-        font-size: 11px;
-        color: var(--el-text-color-placeholder);
-        line-height: 1.3;
-        margin-top: 2px;
-      }
-    }
-  }
-}
-
 .job-dialog {
   :deep(.el-dialog) {
     border-radius: 12px;
@@ -1279,6 +1161,234 @@ onMounted(() => {
       .card-footer .card-actions {
         opacity: 1;
       }
+    }
+  }
+}
+</style>
+
+<!-- 全局样式 - 下拉菜单弹出层 -->
+<style lang="scss">
+.job-dropdown-popper {
+  padding: 0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid var(--el-border-color-lighter) !important;
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+
+  .el-dropdown-menu {
+    padding: 8px;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+  }
+}
+
+.job-dropdown-menu {
+  padding: 8px;
+  min-width: 240px;
+  background: var(--el-bg-color);
+  animation: jobDropdownFadeIn 0.2s ease-out;
+
+  @keyframes jobDropdownFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .dropdown-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    margin-bottom: 8px;
+
+    .header-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 14px;
+    }
+  }
+
+  .dropdown-divider {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--el-border-color-lighter) 20%,
+      var(--el-border-color-lighter) 80%,
+      transparent
+    );
+    margin: 10px 12px;
+  }
+
+  .el-dropdown-menu__item {
+    padding: 0;
+    border-radius: 10px;
+    margin: 2px 0;
+    transition: all 0.2s ease;
+    overflow: hidden;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &:hover {
+      background: var(--el-fill-color-light);
+      transform: translateX(4px);
+
+      .dropdown-item-content {
+        .item-arrow {
+          opacity: 1;
+          transform: translateX(0);
+        }
+
+        .dropdown-item-icon {
+          transform: scale(1.05);
+        }
+      }
+    }
+
+    &:active {
+      transform: translateX(4px) scale(0.98);
+    }
+  }
+
+  .dropdown-item-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    width: 100%;
+    position: relative;
+
+    &.danger {
+      .dropdown-item-icon {
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.15),
+          rgba(239, 68, 68, 0.05)
+        );
+        color: #ef4444;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+      }
+
+      .item-title {
+        color: var(--el-color-danger);
+      }
+
+      .item-arrow {
+        color: var(--el-color-danger);
+      }
+    }
+
+    .dropdown-item-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      transition: all 0.25s ease;
+
+      &.edit {
+        background: linear-gradient(
+          135deg,
+          rgba(59, 130, 246, 0.15),
+          rgba(59, 130, 246, 0.05)
+        );
+        color: #3b82f6;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+      }
+
+      &.copy {
+        background: linear-gradient(
+          135deg,
+          rgba(168, 85, 247, 0.15),
+          rgba(168, 85, 247, 0.05)
+        );
+        color: #a855f7;
+        box-shadow: 0 4px 12px rgba(168, 85, 247, 0.15);
+      }
+
+      &.schedule {
+        background: linear-gradient(
+          135deg,
+          rgba(34, 197, 94, 0.15),
+          rgba(34, 197, 94, 0.05)
+        );
+        color: #22c55e;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+      }
+
+      &.log {
+        background: linear-gradient(
+          135deg,
+          rgba(14, 165, 233, 0.15),
+          rgba(14, 165, 233, 0.05)
+        );
+        color: #0ea5e9;
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+      }
+
+      &.delete {
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.15),
+          rgba(239, 68, 68, 0.05)
+        );
+        color: #ef4444;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+      }
+    }
+
+    .dropdown-item-text {
+      flex: 1;
+      min-width: 0;
+
+      .item-title {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        line-height: 1.3;
+        transition: color 0.2s ease;
+      }
+
+      .item-desc {
+        display: block;
+        font-size: 11px;
+        color: var(--el-text-color-placeholder);
+        line-height: 1.3;
+        margin-top: 3px;
+        transition: color 0.2s ease;
+      }
+    }
+
+    .item-arrow {
+      font-size: 16px;
+      color: var(--el-text-color-placeholder);
+      opacity: 0;
+      transform: translateX(-8px);
+      transition: all 0.25s ease;
+      flex-shrink: 0;
     }
   }
 }
