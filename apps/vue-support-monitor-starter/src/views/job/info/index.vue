@@ -306,16 +306,29 @@
       v-model="jobinfoNextTriggerTimeShow"
       draggable
       title="下一次执行时间"
-      width="400px"
-      class="job-dialog"
+      width="420px"
+      class="job-dialog next-trigger-dialog"
+      align-center
+      append-to-body
+      destroy-on-close
+      :close-on-click-modal="true"
     >
+      <template #header>
+        <div class="dialog-header">
+          <div class="header-icon">
+            <IconifyIconOnline icon="ri:calendar-schedule-line" />
+          </div>
+          <span class="header-title">下一次执行时间</span>
+        </div>
+      </template>
       <div class="job-next-time-list">
         <div
-          v-for="item in jobinfoNextTriggerTimeData"
+          v-for="(item, index) in jobinfoNextTriggerTimeData"
           :key="item"
           class="job-next-time-item"
         >
-          {{ item }}
+          <span class="time-index">{{ index + 1 }}</span>
+          <span class="time-value">{{ item }}</span>
         </div>
       </div>
     </el-dialog>
@@ -1074,7 +1087,64 @@ onMounted(() => {
 
 .job-dialog {
   :deep(.el-dialog) {
-    border-radius: 12px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 0;
+    margin: 0;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 20px;
+  }
+
+  :deep(.el-dialog__headerbtn) {
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--el-fill-color-light);
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: var(--el-fill-color);
+      transform: rotate(90deg);
+    }
+  }
+}
+
+// 执行计划弹框样式
+.next-trigger-dialog {
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+    border-bottom: 1px solid var(--el-border-color-lighter);
+
+    .header-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+    }
+
+    .header-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
   }
 }
 
@@ -1082,26 +1152,6 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-}
-
-.job-next-time-list {
-  max-height: 280px;
-  overflow-y: auto;
-
-  .job-next-time-item {
-    padding: 10px 12px;
-    margin-bottom: 8px;
-    background: var(--el-fill-color-lighter);
-    border-radius: 6px;
-    font-family: "SF Mono", "Monaco", "Consolas", monospace;
-    font-size: 13px;
-    border-left: 3px solid var(--el-color-primary);
-    color: var(--el-text-color-regular);
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
 }
 
 .job-node-list {
@@ -1186,8 +1236,10 @@ onMounted(() => {
 
 .job-dropdown-menu {
   padding: 8px;
+  padding-right: 12px;
   min-width: 240px;
   background: var(--el-bg-color);
+  overflow: hidden;
   animation: jobDropdownFadeIn 0.2s ease-out;
 
   @keyframes jobDropdownFadeIn {
@@ -1389,6 +1441,118 @@ onMounted(() => {
       transform: translateX(-8px);
       transition: all 0.25s ease;
       flex-shrink: 0;
+    }
+  }
+}
+
+// 执行计划弹框全局样式
+.next-trigger-dialog {
+  .el-dialog {
+    border-radius: 16px !important;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .el-dialog__header {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .el-dialog__body {
+    padding: 20px !important;
+  }
+
+  .el-dialog__headerbtn {
+    top: 16px !important;
+    right: 16px !important;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.8);
+    transition: all 0.2s ease;
+    z-index: 10;
+
+    &:hover {
+      background: var(--el-fill-color);
+      transform: rotate(90deg);
+    }
+  }
+
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+    border-bottom: 1px solid var(--el-border-color-lighter);
+
+    .header-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+    }
+
+    .header-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .job-next-time-list {
+    padding: 4px;
+    padding-right: 8px;
+    overflow: hidden;
+
+    .job-next-time-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      background: var(--el-fill-color-lighter);
+      border-radius: 10px;
+      transition: all 0.25s ease;
+      border: 1px solid transparent;
+
+      &:hover {
+        background: var(--el-fill-color-light);
+        border-color: var(--el-color-primary-light-5);
+        transform: translateX(4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .time-index {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .time-value {
+        font-family: "SF Mono", "Monaco", "Consolas", monospace;
+        font-size: 13px;
+        color: var(--el-text-color-primary);
+        font-weight: 500;
+      }
     }
   }
 }
