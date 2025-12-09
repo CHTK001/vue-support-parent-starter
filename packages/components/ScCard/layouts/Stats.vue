@@ -128,99 +128,118 @@ export default defineComponent({
 <style lang="scss" scoped>
 .sc-card-stats {
   position: relative;
-  border-radius: 20px;
+  border-radius: 18px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 140px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 120px;
 
   // 主题色定义
   &.theme--default {
-    background: linear-gradient(135deg, var(--el-bg-color-overlay, #fff) 0%, var(--el-fill-color-light, #f5f7fa) 100%);
-    border: 1px solid var(--el-border-color-light, #e4e7ed);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 
     .sc-card-stats__icon {
-      background: linear-gradient(135deg, var(--el-color-primary-light-7, #d9ecff) 0%, var(--el-color-primary-light-5, #a0cfff) 100%);
-      color: var(--el-color-primary, #409eff);
+      background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-7) 100%);
+      color: var(--el-color-primary);
+      box-shadow: 0 4px 12px var(--el-color-primary-light-7);
     }
 
     .sc-card-stats__value {
-      color: var(--el-text-color-primary, #303133);
+      color: var(--el-text-color-primary);
       text-shadow: none;
     }
 
     .sc-card-stats__label {
-      color: var(--el-text-color-secondary, #909399);
+      color: var(--el-text-color-secondary);
     }
 
     .sc-card-stats__trend {
-      color: var(--el-text-color-regular, #606266);
+      color: var(--el-text-color-regular);
     }
 
     &.is-hoverable:hover {
-      border-color: var(--el-color-primary-light-5, #a0cfff);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-      transform: translateY(-6px) scale(1.01);
+      border-color: var(--el-color-primary-light-5);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      transform: translateY(-4px);
+
+      .sc-card-stats__icon {
+        transform: scale(1.08);
+        box-shadow: 0 6px 16px var(--el-color-primary-light-5);
+      }
     }
   }
 
   &.theme--blue {
-    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #60a5fa 100%);
+    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.25);
   }
   &.theme--green {
-    background: linear-gradient(135deg, #065f46 0%, #10b981 100%);
+    background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+    box-shadow: 0 4px 20px rgba(5, 150, 105, 0.25);
   }
   &.theme--purple {
-    background: linear-gradient(135deg, #5b21b6 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 50%, #a78bfa 100%);
+    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.25);
   }
   &.theme--orange {
-    background: linear-gradient(135deg, #c2410c 0%, #f97316 100%);
+    background: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #fb923c 100%);
+    box-shadow: 0 4px 20px rgba(234, 88, 12, 0.25);
   }
   &.theme--primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #818cf8 50%, #a5b4fc 100%);
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.25);
   }
   &.theme--success {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.25);
   }
   &.theme--warning {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #fbbf24 100%);
+    box-shadow: 0 4px 20px rgba(217, 119, 6, 0.25);
   }
   &.theme--danger {
-    background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%);
+    box-shadow: 0 4px 20px rgba(220, 38, 38, 0.25);
   }
   &.theme--info {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #22d3ee 100%);
+    box-shadow: 0 4px 20px rgba(8, 145, 178, 0.25);
   }
 
   &.is-hoverable:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+
+    .sc-card-stats__icon {
+      transform: scale(1.1) rotate(5deg);
+    }
   }
 
   &.is-active {
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4), 0 16px 40px rgba(0, 0, 0, 0.2);
   }
 
   // 尺寸定义
   &.size--small {
-    min-height: 100px;
-    border-radius: 16px;
+    min-height: 90px;
+    border-radius: 14px;
 
     .sc-card-stats__content {
-      padding: 16px;
-      gap: 14px;
+      padding: 14px 16px;
+      gap: 12px;
     }
 
     .sc-card-stats__icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      font-size: 22px;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      font-size: 20px;
     }
 
     .sc-card-stats__value {
-      font-size: 24px;
+      font-size: 22px;
       margin-bottom: 2px;
     }
 
@@ -239,40 +258,40 @@ export default defineComponent({
   }
 
   &.size--normal {
-    min-height: 140px;
+    min-height: 120px;
   }
 
   &.size--large {
-    min-height: 180px;
-    border-radius: 24px;
+    min-height: 160px;
+    border-radius: 20px;
 
     .sc-card-stats__content {
-      padding: 32px;
-      gap: 24px;
+      padding: 28px;
+      gap: 20px;
     }
 
     .sc-card-stats__icon {
-      width: 72px;
-      height: 72px;
-      border-radius: 20px;
-      font-size: 36px;
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      font-size: 32px;
     }
 
     .sc-card-stats__value {
-      font-size: 42px;
-      margin-bottom: 6px;
+      font-size: 38px;
+      margin-bottom: 4px;
     }
 
     .sc-card-stats__label {
-      font-size: 16px;
-      margin-bottom: 10px;
+      font-size: 15px;
+      margin-bottom: 8px;
     }
 
     .sc-card-stats__trend {
-      font-size: 14px;
+      font-size: 13px;
 
       .trend-icon {
-        font-size: 16px;
+        font-size: 14px;
       }
     }
   }
@@ -284,16 +303,17 @@ export default defineComponent({
     right: 0;
     bottom: 0;
     overflow: hidden;
+    pointer-events: none;
   }
 
   &__pattern {
     position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 100%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-    animation: patternRotate 20s linear infinite;
+    top: -30%;
+    right: -30%;
+    width: 80%;
+    height: 160%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, transparent 60%);
+    animation: patternFloat 15s ease-in-out infinite;
   }
 
   &__content {
@@ -301,28 +321,24 @@ export default defineComponent({
     z-index: 1;
     display: flex;
     align-items: center;
-    padding: 24px;
-    gap: 20px;
+    padding: 20px;
+    gap: 16px;
   }
 
   &__icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
     background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
+    font-size: 26px;
     color: #fff;
     flex-shrink: 0;
-    transition: all 0.3s ease;
-
-    .sc-card-stats:hover & {
-      transform: scale(1.1) rotate(5deg);
-      background: rgba(255, 255, 255, 0.3);
-    }
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   &__info {
@@ -331,12 +347,13 @@ export default defineComponent({
   }
 
   &__value {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 700;
     color: #fff;
     line-height: 1.2;
-    margin-bottom: 4px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    letter-spacing: -0.5px;
 
     &.counting {
       animation: countPulse 0.3s ease;
@@ -344,35 +361,42 @@ export default defineComponent({
   }
 
   &__label {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
     font-weight: 500;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
+    letter-spacing: 0.2px;
   }
 
   &__trend {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.75);
+    gap: 4px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.15);
+    padding: 3px 8px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
 
     .trend-icon {
-      font-size: 14px;
+      font-size: 12px;
     }
 
     .trend-text {
-      font-weight: 500;
+      font-weight: 600;
     }
   }
 }
 
-@keyframes patternRotate {
-  0% {
-    transform: rotate(0deg);
+@keyframes patternFloat {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.8;
   }
-  100% {
-    transform: rotate(360deg);
+  50% {
+    transform: translate(-10px, 10px) scale(1.05);
+    opacity: 1;
   }
 }
 

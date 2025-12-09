@@ -19,11 +19,13 @@
   >
     <!-- 左侧图标+标签 -->
     <div class="sc-switch-compact__info">
-      <div v-if="currentIcon || loading" class="sc-switch-compact__icon">
-        <el-icon v-if="loading" class="is-loading">
-          <Loading />
-        </el-icon>
-        <IconifyIconOnline v-else :icon="currentIcon" />
+      <div v-if="currentIcon || loading" class="sc-switch-compact__icon-wrapper">
+        <div class="sc-switch-compact__icon">
+          <el-icon v-if="loading" class="is-loading">
+            <Loading />
+          </el-icon>
+          <IconifyIconOnline v-else :icon="currentIcon" />
+        </div>
       </div>
       <span v-if="label" class="sc-switch-compact__label">{{ label }}</span>
     </div>
@@ -188,31 +190,71 @@ const handleSwitchChange = (val: boolean) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  background: var(--inactive-bg);
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  padding: 12px 14px;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  border: 2px solid var(--el-border-color-lighter);
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
+  position: relative;
+  overflow: hidden;
+
+  // 左侧装饰条
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 0;
+    background: var(--active-color);
+    border-radius: 0 3px 3px 0;
+    transition: height 0.3s ease;
+  }
 
   &:hover {
-    border-color: #c7d2fe;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    transform: translateX(2px);
+
+    &::before {
+      height: 40%;
+    }
+
+    .sc-switch-compact__icon-wrapper {
+      transform: scale(1.05);
+    }
   }
 
   &.is-checked {
     border-color: var(--active-color);
     background: var(--active-bg);
+
+    &::before {
+      height: 60%;
+    }
+
+    .sc-switch-compact__icon-wrapper {
+      background: var(--active-color);
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+    }
   }
 
   &.is-disabled {
     cursor: not-allowed;
-    opacity: 0.6;
+    opacity: 0.5;
 
     &:hover {
-      border-color: #e5e7eb;
+      border-color: var(--el-border-color-lighter);
       box-shadow: none;
+      transform: none;
+
+      &::before {
+        height: 0;
+      }
     }
   }
 
@@ -222,9 +264,13 @@ const handleSwitchChange = (val: boolean) => {
 
   // 尺寸变体
   &--small {
-    padding: 8px 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
 
-    .sc-switch-compact__icon {
+    .sc-switch-compact__icon-wrapper {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
       font-size: 14px;
     }
 
@@ -234,9 +280,12 @@ const handleSwitchChange = (val: boolean) => {
   }
 
   &--default {
-    padding: 10px 12px;
+    padding: 12px 14px;
 
-    .sc-switch-compact__icon {
+    .sc-switch-compact__icon-wrapper {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
       font-size: 16px;
     }
 
@@ -246,9 +295,12 @@ const handleSwitchChange = (val: boolean) => {
   }
 
   &--large {
-    padding: 12px 14px;
+    padding: 14px 16px;
 
-    .sc-switch-compact__icon {
+    .sc-switch-compact__icon-wrapper {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
       font-size: 18px;
     }
 
@@ -261,7 +313,7 @@ const handleSwitchChange = (val: boolean) => {
   &__info {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
 
   &__icon {
@@ -269,22 +321,45 @@ const handleSwitchChange = (val: boolean) => {
     align-items: center;
     justify-content: center;
     color: var(--active-color);
-    transition: color 0.25s ease;
+    transition: all 0.3s ease;
 
     .is-loading {
       animation: rotating 1.5s linear infinite;
     }
   }
 
+  // 图标包装器
+  &__icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--el-fill-color-light);
+    color: var(--active-color);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
   &__label {
     font-weight: 500;
-    color: #475569;
+    color: var(--el-text-color-primary);
     transition: color 0.25s ease;
   }
 
   &.is-checked {
     .sc-switch-compact__label {
-      color: #1e293b;
+      color: var(--el-text-color-primary);
+      font-weight: 600;
+    }
+  }
+
+  // 开关样式优化
+  :deep(.el-switch) {
+    --el-switch-on-color: var(--active-color);
+    
+    .el-switch__core {
+      border-radius: 20px;
     }
   }
 }
