@@ -40,6 +40,14 @@
           <h3 class="feature-title">节假日管理</h3>
           <p class="feature-desc">管理系统节假日配置</p>
         </router-link>
+
+        <router-link to="/system/file" class="feature-card">
+          <div class="feature-icon-wrapper">
+            <IconifyIconOnline icon="ri:folder-upload-line" class="feature-icon" />
+          </div>
+          <h3 class="feature-title">文件管理</h3>
+          <p class="feature-desc">单机文件上传与管理</p>
+        </router-link>
       </div>
     </div>
   </div>

@@ -43,6 +43,9 @@
     },
     "./src/holiday/HolidayCalendar.vue": {
       "default": "./src/holiday/HolidayCalendar.vue"
+    },
+    "./src/file/FileIndex.vue": {
+      "default": "./src/file/FileIndex.vue"
     }
   },
   "publishConfig": {
@@ -60,7 +63,8 @@
     "vue": "catalog:",
     "vue-json-pretty": "catalog:",
     "lunisolar": "catalog:",
-    "vue-i18n": "catalog:"
+    "vue-i18n": "catalog:",
+    "spark-md5": "^3.0.2"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",

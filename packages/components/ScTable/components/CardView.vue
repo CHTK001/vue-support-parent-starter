@@ -543,38 +543,95 @@ const handleMenuAction = action => {
 
 <style lang="scss" scoped>
 .card-view-container {
-  .is-always-shadow-item {
-    box-shadow: var(--el-box-shadow-light);
+  // 卡片阴影样式
+  .is-always-shadow {
+    border-radius: 14px;
+    overflow: hidden;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      transform: translateY(-6px);
+      
+      .is-always-shadow-item {
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+      }
+    }
   }
+
+  .is-always-shadow-item {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    border-radius: 14px;
+    border: 1px solid var(--el-border-color-lighter);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--el-bg-color);
+    overflow: hidden;
+  }
+
   .card-col {
     margin-bottom: 16px;
     min-height: 100px;
+
+    // 卡片悬停效果
+    &:hover {
+      .is-always-shadow-item {
+        border-color: var(--el-color-primary-light-5);
+      }
+    }
   }
 
   .card-item {
     height: 100%;
-    transition: all 0.3s;
-    border: 1px solid var(--el-border-color-lighter);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid var(--el-border-color-lighter);
+    border-radius: 14px;
+    background: var(--el-bg-color);
+    overflow: hidden;
+    position: relative;
+
+    // 底部装饰条
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--el-color-primary-light-3), var(--el-color-primary));
+      border-radius: 3px 3px 0 0;
+      transition: width 0.3s ease;
+    }
 
     &:hover {
-      transform: translateY(-5px);
-      box-shadow: var(--el-box-shadow-light);
+      transform: translateY(-6px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+      border-color: var(--el-color-primary-light-5);
+
+      &::after {
+        width: 40%;
+      }
     }
 
     &.is-selected {
       border-color: var(--el-color-primary);
-      box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.3);
+      box-shadow: 0 4px 16px var(--el-color-primary-light-7);
+      background: linear-gradient(180deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
+
+      &::after {
+        width: 60%;
+      }
     }
 
     .card-header {
       display: flex;
       align-items: center;
       gap: 12px;
+      padding: 16px 16px 12px;
 
       .card-title {
         flex: 1;
-        font-weight: bold;
-        font-size: 16px;
+        font-weight: 600;
+        font-size: 15px;
         color: var(--el-text-color-primary);
         overflow: hidden;
         text-overflow: ellipsis;
@@ -585,7 +642,8 @@ const handleMenuAction = action => {
     .card-content {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
+      padding: 0 16px 16px;
 
       .card-field {
         display: flex;
@@ -594,68 +652,106 @@ const handleMenuAction = action => {
         .field-label {
           width: 80px;
           color: var(--el-text-color-secondary);
-          font-size: 14px;
+          font-size: 13px;
+          flex-shrink: 0;
         }
 
         .field-value {
           flex: 1;
           color: var(--el-text-color-primary);
           word-break: break-all;
+          font-size: 13px;
         }
       }
     }
 
     .card-actions {
-      margin-top: 16px;
-      padding-top: 16px;
-      border-top: 1px solid var(--el-border-color-lighter);
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: var(--el-fill-color-lighter);
       display: flex;
       justify-content: flex-end;
       gap: 8px;
     }
   }
 
+  // 加载状态
   .loading-more {
-    margin-top: 10px;
-    padding: 8px 0;
-    background-color: rgba(var(--el-color-primary-rgb), 0.05);
-    border-radius: 4px;
+    margin: 16px 0;
+    padding: 12px 0;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+    border-radius: 10px;
+    color: var(--el-color-primary);
+    font-size: 13px;
+    font-weight: 500;
 
     svg {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
     }
   }
 
+  // 滚动提示
   .scroll-tip,
   .no-more {
-    margin-top: 10px;
-    padding: 8px 0;
-    border-top: 1px dashed var(--el-border-color-lighter);
+    margin: 16px 0;
+    padding: 10px 0;
     cursor: pointer;
-    transition: all 0.3s;
-    border-radius: 4px;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    font-size: 13px;
+    background: var(--el-fill-color-light);
 
     &:hover {
-      background-color: rgba(var(--el-color-primary-rgb), 0.05);
+      background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
+      transform: translateY(-2px);
+    }
+  }
+
+  .no-more {
+    cursor: default;
+    opacity: 0.7;
+
+    &:hover {
+      transform: none;
     }
   }
 }
 
 // 暗黑模式适配
 :root[data-theme="dark"] {
-  .card-item {
-    background-color: var(--el-bg-color-overlay);
-
-    &.is-selected {
-      box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.5);
+  .card-view-container {
+    .is-always-shadow-item {
+      background: var(--el-bg-color-overlay);
+      border-color: var(--el-border-color-light);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
     }
-  }
 
-  .scroll-tip:hover,
-  .loading-more {
-    background-color: rgba(var(--el-color-primary-rgb), 0.1);
+    .is-always-shadow:hover .is-always-shadow-item {
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-item {
+      background: var(--el-bg-color-overlay);
+
+      &.is-selected {
+        box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.3);
+        background: linear-gradient(180deg, rgba(var(--el-color-primary-rgb), 0.1) 0%, var(--el-bg-color-overlay) 100%);
+      }
+
+      .card-actions {
+        background: rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    .loading-more {
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.15), rgba(var(--el-color-primary-rgb), 0.1));
+    }
+
+    .scroll-tip:hover {
+      background: rgba(var(--el-color-primary-rgb), 0.15);
+    }
   }
 }
 
