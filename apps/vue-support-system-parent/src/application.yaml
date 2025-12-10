@@ -31,13 +31,13 @@ AutoErrorMessage: true
 # 鉴权与登录配置
 # ===========================================
 # 是否开启远程权限控制（默认: true）
-OpenAuth: false
+OpenAuth: true
 # 是否开启动态配置面板（默认: true）
 # OpenSetting: true
 # 是否开启租户登录（默认: false）
 OpenTenantLogin: false
 # 是否开启基础登录（默认: true）
-OpenBaseLogin: false
+OpenBaseLogin: true
 # 是否开启刷新token（默认: false）
 OpenShowRefreshToken: true
 # 配置加载失败时是否保持加载页面（默认: false，失败后继续进入应用）
@@ -65,7 +65,7 @@ OpenSettingLlm: true
 # 布局与菜单配置
 # ===========================================
 # 是否自动远程菜单-从后端获取菜单（默认: false）
-RemoteMenu: false
+RemoteMenu: true
 # 是否自动远程布局-从后端获取布局配置（默认: false）
 RemoteLayout: false
 # 是否开启布局远程保存（默认: false）
