@@ -21,9 +21,7 @@
     <div class="sc-switch-compact__info">
       <div v-if="currentIcon || loading" class="sc-switch-compact__icon-wrapper">
         <div class="sc-switch-compact__icon">
-          <el-icon v-if="loading" class="is-loading">
-            <Loading />
-          </el-icon>
+          <IconifyIconOnline v-if="loading" icon="ep:loading" class="is-loading" />
           <IconifyIconOnline v-else :icon="currentIcon" />
         </div>
       </div>
@@ -53,7 +51,6 @@
  * @version 1.0.0
  */
 import { computed } from "vue";
-import { Loading } from "@element-plus/icons-vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 interface Props {
@@ -202,7 +199,7 @@ const handleSwitchChange = (val: boolean) => {
 
   // 左侧装饰条
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     left: 0;
     top: 50%;
@@ -357,7 +354,7 @@ const handleSwitchChange = (val: boolean) => {
   // 开关样式优化
   :deep(.el-switch) {
     --el-switch-on-color: var(--active-color);
-    
+
     .el-switch__core {
       border-radius: 20px;
     }

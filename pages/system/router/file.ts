@@ -11,7 +11,7 @@ const routes = [
     path: "/file",
     name: "FileManagement",
     component: async () => {
-      const LayoutDefault = await import("../src/file/FileIndex.vue");
+      const LayoutDefault = await import("../src/file/index.vue");
       return LayoutDefault;
     },
     meta: {

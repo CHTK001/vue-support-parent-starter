@@ -303,6 +303,7 @@ onMounted(() => {
 
                 <!-- 同步按钮 -->
                 <el-button
+                  v-auth="'holiday:sync'"
                   type="primary"
                   :loading="syncLoading"
                   @click="handleSync"

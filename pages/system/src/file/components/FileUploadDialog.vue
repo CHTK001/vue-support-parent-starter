@@ -1,0 +1,733 @@
+<template>
+  <el-dialog
+    v-model="visible"
+    title="上传文件"
+    width="800px"
+    destroy-on-close
+    :close-on-click-modal="false"
+    class="upload-dialog"
+  >
+    <!-- 上传配置 -->
+    <div class="upload-config">
+      <el-form :model="config" label-width="100px" inline>
+        <el-form-item label="目标分组">
+          <el-select
+            v-model="config.groupId"
+            placeholder="选择分组"
+            style="width: 160px"
+          >
+            <el-option
+              v-for="group in groups"
+              :key="group.sysFileSystemGroupId"
+              :label="group.sysFileSystemGroupName"
+              :value="group.sysFileSystemGroupId"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="上传方式">
+          <el-radio-group
+            v-model="config.uploadMode"
+            :disabled="!setting?.sysFileSystemSettingChunkEnabled"
+          >
+            <el-radio value="normal">普通上传</el-radio>
+            <el-radio value="chunk">分片上传</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item
+          v-if="
+            config.uploadMode === 'chunk' &&
+            setting?.sysFileSystemSettingAutoMergeEnabled
+          "
+          label="自动合并"
+        >
+          <ScSwitch v-model="config.autoMerge" />
+        </el-form-item>
+      </el-form>
+    </div>
+
+    <!-- 上传区域 -->
+    <div
+      class="upload-area"
+      :class="{ 'is-dragover': isDragover }"
+      @dragover.prevent="handleDragover"
+      @dragleave.prevent="handleDragleave"
+      @drop.prevent="handleDrop"
+      @paste="handlePaste"
+      @click="triggerFileSelect"
+    >
+      <input
+        ref="fileInputRef"
+        type="file"
+        multiple
+        :accept="acceptTypes"
+        style="display: none"
+        @change="handleFileSelect"
+      />
+      <div class="upload-content">
+        <IconifyIconOnline
+          :icon="isDragover ? 'ri:download-2-line' : 'ri:upload-cloud-2-line'"
+          class="upload-icon"
+        />
+        <div class="upload-text">
+          <p class="main-text">拖拽文件到此处，或点击选择文件</p>
+          <p class="sub-text">
+            支持 Ctrl+V 粘贴 | 单文件最大
+            {{ setting?.sysFileSystemSettingMaxFileSizeMb || 1024 }}MB
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div v-if="fileList.length > 0" class="file-list">
+      <div class="list-header">
+        <span class="file-count">已选择 {{ fileList.length }} 个文件</span>
+        <span class="total-size">总大小: {{ formatTotalSize }}</span>
+        <el-button type="danger" link @click="clearFiles">
+          <IconifyIconOnline icon="ri:delete-bin-line" />
+          清空
+        </el-button>
+      </div>
+
+      <div class="file-items">
+        <div
+          v-for="(file, index) in fileList"
+          :key="index"
+          class="file-item"
+          :class="`status-${file.status}`"
+        >
+          <div class="file-preview">
+            <img
+              v-if="file.previewUrl"
+              :src="file.previewUrl"
+              class="preview-image"
+              @click="showImageEditor(file)"
+            />
+            <IconifyIconOnline
+              v-else
+              :icon="getFileIcon(file.file.type)"
+              class="preview-icon"
+            />
+          </div>
+
+          <div class="file-info">
+            <div class="file-name">{{ file.file.name }}</div>
+            <div class="file-meta">
+              <span>{{ formatFileSize(file.file.size) }}</span>
+              <span v-if="file.status !== 'pending'" class="file-status">
+                {{ getStatusText(file.status) }}
+              </span>
+            </div>
+            <el-progress
+              v-if="file.status === 'uploading'"
+              :percentage="file.progress"
+              :stroke-width="4"
+              :show-text="false"
+            />
+          </div>
+
+          <div class="file-actions">
+            <el-button
+              v-if="file.previewUrl"
+              type="primary"
+              circle
+              size="small"
+              @click="showImageEditor(file)"
+            >
+              <IconifyIconOnline icon="ri:crop-line" />
+            </el-button>
+            <el-button
+              v-if="file.status !== 'uploading'"
+              type="danger"
+              circle
+              size="small"
+              @click="removeFile(index)"
+            >
+              <IconifyIconOnline icon="ri:close-line" />
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 图片裁剪对话框 -->
+    <ImageCropDialog
+      v-model="showCropDialog"
+      :image-url="currentCropImage"
+      @cropped="handleImageCropped"
+    />
+
+    <template #footer>
+      <div class="dialog-footer">
+        <div class="footer-stats">
+          <span v-if="uploadStats.total > 0">
+            成功: {{ uploadStats.success }} / 失败: {{ uploadStats.error }} /
+            总计: {{ uploadStats.total }}
+          </span>
+        </div>
+        <div class="footer-buttons">
+          <el-button @click="visible = false">取消</el-button>
+          <el-button
+            type="primary"
+            :disabled="fileList.length === 0"
+            :loading="isUploading"
+            @click="startUpload"
+          >
+            {{ isUploading ? "上传中..." : "开始上传" }}
+          </el-button>
+        </div>
+      </div>
+    </template>
+  </el-dialog>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, computed, watch } from "vue";
+import { ElMessage } from "element-plus";
+import SparkMD5 from "spark-md5";
+import {
+  uploadFile,
+  createUploadTask,
+  uploadTaskPart,
+  type SysFileSystemSetting,
+  type SysFileSystemGroup,
+} from "../../api/file";
+import ImageCropDialog from "./ImageCropDialog.vue";
+
+interface FileItem {
+  file: File;
+  status: "pending" | "uploading" | "success" | "error";
+  progress: number;
+  previewUrl?: string;
+  result?: { url?: string };
+}
+
+interface Props {
+  modelValue: boolean;
+  setting?: SysFileSystemSetting;
+  groups: SysFileSystemGroup[];
+}
+
+const props = defineProps<Props>();
+const emit = defineEmits<{
+  "update:modelValue": [value: boolean];
+  uploaded: [];
+}>();
+
+const visible = computed({
+  get: () => props.modelValue,
+  set: (val) => emit("update:modelValue", val),
+});
+
+// 状态
+const fileInputRef = ref<HTMLInputElement>();
+const isDragover = ref(false);
+const isUploading = ref(false);
+const fileList = ref<FileItem[]>([]);
+const showCropDialog = ref(false);
+const currentCropImage = ref("");
+const currentCropIndex = ref(-1);
+
+// 配置
+const config = reactive({
+  groupId: undefined as number | undefined,
+  uploadMode: "normal" as "normal" | "chunk",
+  autoMerge: true,
+});
+
+// 统计
+const uploadStats = reactive({
+  total: 0,
+  success: 0,
+  error: 0,
+});
+
+// 计算属性
+const acceptTypes = computed(() => {
+  const types = props.setting?.sysFileSystemSettingAllowedTypes;
+  if (!types) return "*";
+  return types
+    .split(",")
+    .map((t) => `.${t.trim()}`)
+    .join(",");
+});
+
+const formatTotalSize = computed(() => {
+  const total = fileList.value.reduce((sum, item) => sum + item.file.size, 0);
+  return formatFileSize(total);
+});
+
+// 方法
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
+
+const getFileIcon = (type: string): string => {
+  if (type.startsWith("image/")) return "ri:image-line";
+  if (type.startsWith("video/")) return "ri:video-line";
+  if (type.startsWith("audio/")) return "ri:music-line";
+  if (type.includes("pdf")) return "ri:file-pdf-line";
+  if (type.includes("word")) return "ri:file-word-line";
+  if (type.includes("excel") || type.includes("sheet"))
+    return "ri:file-excel-line";
+  if (type.includes("zip") || type.includes("rar")) return "ri:file-zip-line";
+  return "ri:file-line";
+};
+
+const getStatusText = (status: string): string => {
+  const map: Record<string, string> = {
+    pending: "待上传",
+    uploading: "上传中",
+    success: "上传成功",
+    error: "上传失败",
+  };
+  return map[status] || "";
+};
+
+// 文件选择
+const triggerFileSelect = () => fileInputRef.value?.click();
+
+const handleFileSelect = (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  if (input.files) {
+    addFiles(Array.from(input.files));
+  }
+  input.value = "";
+};
+
+// 拖拽
+const handleDragover = () => (isDragover.value = true);
+const handleDragleave = () => (isDragover.value = false);
+const handleDrop = (event: DragEvent) => {
+  isDragover.value = false;
+  if (event.dataTransfer?.files) {
+    addFiles(Array.from(event.dataTransfer.files));
+  }
+};
+
+// 粘贴
+const handlePaste = (event: ClipboardEvent) => {
+  const items = event.clipboardData?.items;
+  if (!items) return;
+
+  const files: File[] = [];
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].kind === "file") {
+      const file = items[i].getAsFile();
+      if (file) files.push(file);
+    }
+  }
+  if (files.length > 0) {
+    addFiles(files);
+  }
+};
+
+// 添加文件
+const addFiles = (files: File[]) => {
+  const maxSize =
+    (props.setting?.sysFileSystemSettingMaxFileSizeMb || 1024) * 1024 * 1024;
+
+  for (const file of files) {
+    if (file.size > maxSize) {
+      ElMessage.warning(`文件 ${file.name} 超过大小限制`);
+      continue;
+    }
+
+    const item: FileItem = {
+      file,
+      status: "pending",
+      progress: 0,
+    };
+
+    // 图片预览
+    if (file.type.startsWith("image/")) {
+      item.previewUrl = URL.createObjectURL(file);
+    }
+
+    fileList.value.push(item);
+  }
+};
+
+// 移除文件
+const removeFile = (index: number) => {
+  const item = fileList.value[index];
+  if (item.previewUrl) {
+    URL.revokeObjectURL(item.previewUrl);
+  }
+  fileList.value.splice(index, 1);
+};
+
+// 清空文件
+const clearFiles = () => {
+  fileList.value.forEach((item) => {
+    if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+  });
+  fileList.value = [];
+};
+
+// 图片裁剪
+const showImageEditor = (file: FileItem) => {
+  const index = fileList.value.indexOf(file);
+  if (index > -1 && file.previewUrl) {
+    currentCropIndex.value = index;
+    currentCropImage.value = file.previewUrl;
+    showCropDialog.value = true;
+  }
+};
+
+const handleImageCropped = async (blob: Blob) => {
+  if (currentCropIndex.value > -1) {
+    const item = fileList.value[currentCropIndex.value];
+    const newFile = new File([blob], item.file.name, { type: blob.type });
+
+    if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+
+    item.file = newFile;
+    item.previewUrl = URL.createObjectURL(blob);
+  }
+};
+
+// 计算 MD5
+const calculateMD5 = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const spark = new SparkMD5.ArrayBuffer();
+    const reader = new FileReader();
+    const chunkSize = 2 * 1024 * 1024;
+    let currentChunk = 0;
+    const chunks = Math.ceil(file.size / chunkSize);
+
+    reader.onload = (e) => {
+      spark.append(e.target?.result as ArrayBuffer);
+      currentChunk++;
+      if (currentChunk < chunks) {
+        loadNext();
+      } else {
+        resolve(spark.end());
+      }
+    };
+    reader.onerror = () => reject(reader.error);
+
+    const loadNext = () => {
+      const start = currentChunk * chunkSize;
+      const end = Math.min(start + chunkSize, file.size);
+      reader.readAsArrayBuffer(file.slice(start, end));
+    };
+    loadNext();
+  });
+};
+
+// 普通上传
+const uploadSingleFile = async (item: FileItem) => {
+  item.status = "uploading";
+  item.progress = 0;
+
+  try {
+    const res = await uploadFile(
+      {
+        fileBucket: "default",
+        fileName: item.file.name,
+        ossType: "FILESYSTEM",
+      },
+      item.file
+    );
+
+    if (res.code === 200) {
+      item.status = "success";
+      item.progress = 100;
+      item.result = res.data;
+    } else {
+      item.status = "error";
+      ElMessage.error(res.msg || "上传失败");
+    }
+  } catch {
+    item.status = "error";
+  }
+};
+
+// 分片上传
+const uploadChunkedFile = async (item: FileItem) => {
+  item.status = "uploading";
+  item.progress = 0;
+
+  try {
+    const fileMd5 = await calculateMD5(item.file);
+    const fileName = item.file.name;
+    const fileType = fileName.substring(fileName.lastIndexOf(".") + 1);
+    const chunkSize =
+      (props.setting?.sysFileSystemSettingChunkSizeMb || 100) * 1024 * 1024;
+
+    // 创建任务
+    const taskRes = await createUploadTask({
+      fileName,
+      fileMd5,
+      fileType,
+      fileBucket: "default",
+      ssoType: "FILESYSTEM",
+      fileSize: item.file.size,
+    });
+
+    if (taskRes.code !== 200 || !taskRes.data) {
+      throw new Error(taskRes.msg || "创建任务失败");
+    }
+
+    const taskId = taskRes.data.taskId;
+
+    // 秒传
+    if (taskRes.data.url) {
+      item.status = "success";
+      item.progress = 100;
+      item.result = { url: taskRes.data.url };
+      ElMessage.success("文件秒传成功");
+      return;
+    }
+
+    // 分片上传
+    const totalChunks = Math.ceil(item.file.size / chunkSize);
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, item.file.size);
+      const chunk = item.file.slice(start, end);
+
+      const partRes = await uploadTaskPart(
+        { taskId, partNumber: i + 1 },
+        chunk
+      );
+      if (partRes.code !== 200) {
+        throw new Error(partRes.msg || `分片 ${i + 1} 上传失败`);
+      }
+
+      item.progress = Math.round(((i + 1) / totalChunks) * 100);
+    }
+
+    item.status = "success";
+    item.progress = 100;
+  } catch (e: unknown) {
+    item.status = "error";
+    const message = e instanceof Error ? e.message : "上传失败";
+    ElMessage.error(message);
+  }
+};
+
+// 开始上传
+const startUpload = async () => {
+  if (fileList.value.length === 0) return;
+
+  isUploading.value = true;
+  uploadStats.total = fileList.value.length;
+  uploadStats.success = 0;
+  uploadStats.error = 0;
+
+  const pending = fileList.value.filter((f) => f.status === "pending");
+
+  for (const item of pending) {
+    if (
+      config.uploadMode === "chunk" &&
+      props.setting?.sysFileSystemSettingChunkEnabled
+    ) {
+      await uploadChunkedFile(item);
+    } else {
+      await uploadSingleFile(item);
+    }
+
+    if (item.status === "success") {
+      uploadStats.success++;
+    } else if (item.status === "error") {
+      uploadStats.error++;
+    }
+  }
+
+  isUploading.value = false;
+
+  if (uploadStats.success > 0) {
+    ElMessage.success(`成功上传 ${uploadStats.success} 个文件`);
+    emit("uploaded");
+  }
+  if (uploadStats.error > 0) {
+    ElMessage.warning(`${uploadStats.error} 个文件上传失败`);
+  }
+};
+
+// 监听关闭清理
+watch(visible, (val) => {
+  if (!val) {
+    clearFiles();
+    uploadStats.total = 0;
+    uploadStats.success = 0;
+    uploadStats.error = 0;
+  }
+});
+</script>
+
+<style lang="scss" scoped>
+.upload-dialog {
+  :deep(.el-dialog__body) {
+    padding: 16px 20px;
+  }
+}
+
+.upload-config {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 8px;
+}
+
+.upload-area {
+  border: 2px dashed var(--el-border-color);
+  border-radius: 12px;
+  padding: 48px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--el-fill-color-lighter);
+
+  &:hover,
+  &.is-dragover {
+    border-color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+  }
+
+  .upload-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .upload-icon {
+    font-size: 48px;
+    color: var(--el-color-primary);
+  }
+
+  .main-text {
+    margin: 0;
+    font-size: 16px;
+    color: var(--el-text-color-primary);
+  }
+
+  .sub-text {
+    margin: 0;
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.file-list {
+  margin-top: 20px;
+
+  .list-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+  }
+
+  .file-items {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 8px;
+    border: 1px solid transparent;
+
+    &.status-success {
+      border-color: var(--el-color-success-light-5);
+      background: var(--el-color-success-light-9);
+    }
+
+    &.status-error {
+      border-color: var(--el-color-danger-light-5);
+      background: var(--el-color-danger-light-9);
+    }
+
+    &.status-uploading {
+      border-color: var(--el-color-primary-light-5);
+    }
+  }
+
+  .file-preview {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--el-fill-color-light);
+    flex-shrink: 0;
+
+    .preview-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      cursor: pointer;
+    }
+
+    .preview-icon {
+      font-size: 24px;
+      color: var(--el-color-primary);
+    }
+  }
+
+  .file-info {
+    flex: 1;
+    min-width: 0;
+
+    .file-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .file-meta {
+      display: flex;
+      gap: 12px;
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+
+      .file-status {
+        color: var(--el-color-primary);
+      }
+    }
+  }
+
+  .file-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .footer-stats {
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+  }
+
+  .footer-buttons {
+    display: flex;
+    gap: 12px;
+  }
+}
+</style>

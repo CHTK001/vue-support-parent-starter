@@ -16,6 +16,91 @@ export interface SysFileUploadRequest {
 }
 
 /**
+ * 文件系统配置接口
+ */
+export interface SysFileSystemSetting {
+  sysFileSystemSettingId?: number;
+  sysFileSystemSettingName?: string;
+  sysFileSystemSettingChunkEnabled?: boolean;
+  sysFileSystemSettingChunkSizeMb?: number;
+  sysFileSystemSettingAutoMergeEnabled?: boolean;
+  sysFileSystemSettingMergeTaskLimit?: number;
+  sysFileSystemSettingManualMergeEnabled?: boolean;
+  sysFileSystemSettingHttpServerEnabled?: boolean;
+  sysFileSystemSettingHttpServerPort?: number;
+  sysFileSystemSettingHttpServerHost?: string;
+  sysFileSystemSettingHttpServerContext?: string;
+  sysFileSystemSettingDownloadEnabled?: boolean;
+  sysFileSystemSettingPreviewEnabled?: boolean;
+  sysFileSystemSettingHttpAccessDomain?: string;
+  sysFileSystemSettingAllowedTypes?: string;
+  sysFileSystemSettingMaxFileSizeMb?: number;
+  sysFileSystemSettingStorageRootPath?: string;
+  sysFileSystemSettingTempPath?: string;
+  sysFileSystemSettingRetentionDays?: number;
+  sysFileSystemSettingEnabled?: boolean;
+  sysFileSystemSettingDefaultStorageType?: string;
+  sysFileSystemSettingRemark?: string;
+}
+
+/**
+ * 文件系统分组接口
+ */
+export interface SysFileSystemGroup {
+  sysFileSystemGroupId?: number;
+  sysFileSystemGroupName?: string;
+  sysFileSystemGroupParentId?: number;
+  sysFileSystemGroupPath?: string;
+  sysFileSystemGroupFullPath?: string;
+  sysFileSystemGroupLevel?: number;
+  sysFileSystemGroupTreePath?: string;
+  sysFileSystemGroupDescription?: string;
+  sysFileSystemGroupIsDefault?: boolean;
+  sysFileSystemGroupSort?: number;
+  sysFileSystemGroupStatus?: number;
+  sysFileSystemGroupIcon?: string;
+  sysFileSystemGroupColor?: string;
+  children?: SysFileSystemGroup[];
+  fileCount?: number;
+}
+
+/**
+ * 文件系统文件接口
+ */
+export interface SysFileSystem {
+  sysFileSystemId?: number;
+  sysFileSystemTid?: string;
+  sysFileSystemBucket?: string;
+  sysFileSystemName?: string;
+  sysFileSystemOriginalName?: string;
+  sysFileSystemType?: string;
+  sysFileSystemExtension?: string;
+  sysFileSystemPath?: string;
+  sysFileSystemSize?: number;
+  sysFileSystemMd5?: string;
+  sysFileSystemChunkTotal?: number;
+  sysFileSystemChunkUploaded?: number;
+  sysFileSystemChunkSize?: number;
+  sysFileSystemStatus?: number;
+  sysFileSystemHttpEnabled?: boolean;
+  sysFileSystemHttpUrl?: string;
+  sysFileSystemGroupId?: number;
+  sysFileSystemSummary?: string;
+  createTime?: string;
+}
+
+/**
+ * 文件统计接口
+ */
+export interface FileStats {
+  totalCount: number;
+  pendingMergeCount: number;
+  errorCount: number;
+  completedCount: number;
+  uploadingCount: number;
+}
+
+/**
  * 分片任务创建请求接口
  * @author CH
  * @since 2024/12/4
@@ -105,9 +190,6 @@ export interface PutObjectResult {
  * @param request 上传请求参数
  * @param file 文件
  * @returns 上传结果
- * @author CH
- * @since 2024/12/4
- * @version 1.0.0
  */
 export const uploadFile = (
   request: SysFileUploadRequest,
@@ -123,7 +205,7 @@ export const uploadFile = (
     formData.append("ossType", request.ossType);
   }
 
-  return http.request<PutObjectResult>("put", "/v2/file/upload", {
+  return http.request("put", "/v2/file/upload", {
     data: formData,
     headers: {
       "Content-Type": "multipart/form-data",
@@ -135,14 +217,11 @@ export const uploadFile = (
  * 创建分片上传任务
  * @param request 任务创建请求
  * @returns 任务创建响应
- * @author CH
- * @since 2024/12/4
- * @version 1.0.0
  */
 export const createUploadTask = (
   request: SysFileUploadTaskRequest
 ): Promise<ReturnResult<SysFileUploadTaskResponse>> => {
-  return http.request<SysFileUploadTaskResponse>("post", "/v2/file/task/create", {
+  return http.request("post", "/v2/file/task/create", {
     data: request,
   });
 };
@@ -152,9 +231,6 @@ export const createUploadTask = (
  * @param request 分片上传请求
  * @param file 分片文件
  * @returns 分片上传响应
- * @author CH
- * @since 2024/12/4
- * @version 1.0.0
  */
 export const uploadTaskPart = (
   request: SysFileUploadTaskPartRequest,
@@ -165,10 +241,170 @@ export const uploadTaskPart = (
   formData.append("taskId", request.taskId);
   formData.append("partNumber", String(request.partNumber));
 
-  return http.request<SysFileUploadTaskPartResponse>("post", "/v2/file/task/upload", {
+  return http.request("post", "/v2/file/task/upload", {
     data: formData,
     headers: {
       "Content-Type": "multipart/form-data",
     },
   });
+};
+
+// ==================== 配置管理接口 ====================
+
+/**
+ * 获取文件系统配置
+ * @returns 当前启用的配置
+ */
+export const getFileSystemSetting = (): Promise<
+  ReturnResult<SysFileSystemSetting>
+> => {
+  return http.request("get", "/v2/file/setting");
+};
+
+/**
+ * 更新文件系统配置
+ * @param setting 配置信息
+ * @returns 更新结果
+ */
+export const updateFileSystemSetting = (
+  setting: SysFileSystemSetting
+): Promise<ReturnResult<boolean>> => {
+  return http.request("put", "/v2/file/setting", {
+    data: setting,
+  });
+};
+
+/**
+ * 切换文件服务开关
+ * @param enabled 是否启用
+ * @returns 操作结果
+ */
+export const toggleFileServer = (
+  enabled: boolean
+): Promise<ReturnResult<boolean>> => {
+  return http.request("post", "/v2/file/setting/toggle-server", {
+    params: { enabled },
+  });
+};
+
+// ==================== 统计接口 ====================
+
+/**
+ * 获取文件统计信息
+ * @returns 统计数据
+ */
+export const getFileStats = (): Promise<ReturnResult<FileStats>> => {
+  return http.request("get", "/v2/file/stats");
+};
+
+// ==================== 文件列表接口 ====================
+
+/**
+ * 文件列表查询参数
+ */
+export interface FileListParams {
+  page?: number;
+  size?: number;
+  groupId?: number;
+  status?: number;
+  keyword?: string;
+}
+
+/**
+ * 分页结果
+ */
+export interface PageData<T> {
+  records: T[];
+  total: number;
+  size: number;
+  current: number;
+  pages: number;
+}
+
+/**
+ * 分页查询文件列表
+ * @param params 查询参数
+ * @returns 文件列表
+ */
+export const getFileList = (
+  params: FileListParams
+): Promise<ReturnResult<PageData<SysFileSystem>>> => {
+  return http.request("get", "/v2/file/list", { params });
+};
+
+/**
+ * 手动合并文件
+ * @param fileId 文件ID
+ * @returns 操作结果
+ */
+export const mergeFile = (fileId: number): Promise<ReturnResult<boolean>> => {
+  return http.request("post", `/v2/file/merge/${fileId}`);
+};
+
+/**
+ * 删除文件
+ * @param fileId 文件ID
+ * @returns 操作结果
+ */
+export const deleteFile = (fileId: number): Promise<ReturnResult<boolean>> => {
+  return http.request("delete", `/v2/file/${fileId}`);
+};
+
+// ==================== 分组管理接口 ====================
+
+/**
+ * 获取分组树
+ * @returns 分组树列表
+ */
+export const getGroupTree = (): Promise<ReturnResult<SysFileSystemGroup[]>> => {
+  return http.request("get", "/v2/file/group/tree");
+};
+
+/**
+ * 获取分组列表
+ * @returns 分组列表
+ */
+export const getGroupList = (): Promise<ReturnResult<SysFileSystemGroup[]>> => {
+  return http.request("get", "/v2/file/group/list");
+};
+
+/**
+ * 新增分组
+ * @param group 分组信息
+ * @returns 操作结果
+ */
+export const addGroup = (
+  group: SysFileSystemGroup
+): Promise<ReturnResult<SysFileSystemGroup>> => {
+  return http.request("post", "/v2/file/group", { data: group });
+};
+
+/**
+ * 更新分组
+ * @param group 分组信息
+ * @returns 操作结果
+ */
+export const updateGroup = (
+  group: SysFileSystemGroup
+): Promise<ReturnResult<boolean>> => {
+  return http.request("put", "/v2/file/group", { data: group });
+};
+
+/**
+ * 删除分组
+ * @param groupId 分组ID
+ * @returns 操作结果
+ */
+export const deleteGroup = (
+  groupId: number
+): Promise<ReturnResult<boolean>> => {
+  return http.request("delete", `/v2/file/group/${groupId}`);
+};
+
+/**
+ * 初始化默认分组
+ * @returns 操作结果
+ */
+export const initDefaultGroups = (): Promise<ReturnResult<boolean>> => {
+  return http.request("post", "/v2/file/group/init");
 };

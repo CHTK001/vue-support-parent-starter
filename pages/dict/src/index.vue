@@ -106,11 +106,16 @@ const dialogClose = () => {
               <!-- 过滤条件区域 -->
             </div>
             <div class="toolbar-right">
-              <el-button size="small" @click="onSearch({})">
+              <el-button
+                v-auth="'dict:list'"
+                size="small"
+                @click="onSearch({})"
+              >
                 <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
                 刷新
               </el-button>
               <el-button
+                v-auth="'dict:add'"
                 type="primary"
                 size="small"
                 @click="dialogOpen({}, 'save')"
@@ -227,11 +232,13 @@ const dialogClose = () => {
               <el-table-column label="操作" fixed="right" align="center">
                 <template #default="{ row }">
                   <el-button
+                    v-auth="'dict:setting'"
                     class="btn-text"
                     :icon="useRenderIcon('ep:setting')"
                     @click="handleSetting(row)"
                   ></el-button>
                   <el-button
+                    v-auth="'dict:edit'"
                     class="btn-text"
                     :icon="useRenderIcon(EditPen)"
                     @click="dialogOpen(row, 'edit')"
@@ -243,6 +250,7 @@ const dialogClose = () => {
                   >
                     <template #reference>
                       <el-button
+                        v-auth="'dict:delete'"
                         type="danger"
                         class="btn-text"
                         :icon="useRenderIcon(Delete)"
