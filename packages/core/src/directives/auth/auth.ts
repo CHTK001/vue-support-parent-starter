@@ -10,11 +10,12 @@ import { useUserStoreHook } from "../../store/modules/UserStore";
 export default {
   mounted(el, binding) {
     const roles = useUserStoreHook().roles || [];
-    const adminRoles = getConfig().AdminRoles || [];
-    if (adminRoles.filter((it) => roles.includes(it)).length > 0) {
+    // admin 和 superadmin 角色不受权限限制
+    if (roles.includes("admin") || roles.includes("superadmin")) {
       return;
     }
     const permissions = useUserStoreHook().perms || [];
-    if (!permissions.some((v) => v === binding.value)) el.parentNode.removeChild(el);
+    if (!permissions.some((v) => v === binding.value))
+      el.parentNode.removeChild(el);
   },
 };
