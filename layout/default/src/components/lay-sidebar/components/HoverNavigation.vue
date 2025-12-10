@@ -234,14 +234,14 @@ function handleMenuHover(menu: any, event: MouseEvent) {
     const estimatedHeight = Math.min(500, menu.children.length * 50 + 100);
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
-    
+
     // 计算最佳的 top 位置
     let top = rect.top;
     // 如果子菜单会超出屏幕底部，向上调整位置
     if (top + estimatedHeight > viewportHeight - 20) {
       top = Math.max(20, viewportHeight - estimatedHeight - 20);
     }
-    
+
     // 计算 left 位置，确保不超出右边界
     let left = rect.right + 10;
     const estimatedWidth = 400; // 子菜单预估宽度
@@ -249,7 +249,7 @@ function handleMenuHover(menu: any, event: MouseEvent) {
       // 如果右侧空间不够，显示在左侧
       left = rect.left - estimatedWidth - 10;
     }
-    
+
     subMenuPosition.value = {
       top: top,
       left: left,
@@ -791,6 +791,8 @@ const defer = useDefer(firstLevelMenus.value.length);
   overflow: hidden;
   z-index: 10;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
 
   /* 收缩状态 */
   &.collapsed {
@@ -812,17 +814,25 @@ const defer = useDefer(firstLevelMenus.value.length);
     }
   }
 
+  /* el-scrollbar 填充剩余空间，为底部收缩按钮预留40px */
+  :deep(.el-scrollbar) {
+    flex: 1;
+    min-height: 0;
+    /* 底部预留收缩按钮空间 */
+    margin-bottom: 40px;
+  }
+
   &.has-logo {
-    .scrollbar-wrapper {
-      height: calc(100% - 100px);
-      /* 为logo和收缩按钮预留空间 */
+    /* logo(48px) + 收缩按钮(40px) = 88px */
+    :deep(.el-scrollbar) {
+      height: calc(100vh - 88px);
     }
   }
 
   &.no-logo {
-    .scrollbar-wrapper {
-      height: calc(100% - 40px);
-      /* 为收缩按钮预留空间 */
+    /* 只有收缩按钮(40px) */
+    :deep(.el-scrollbar) {
+      height: calc(100vh - 40px);
     }
   }
 

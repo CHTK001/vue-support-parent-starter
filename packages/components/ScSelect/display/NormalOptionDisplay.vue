@@ -1,23 +1,20 @@
 <template>
   <div class="option-item" :class="{ selected: isSelected, disabled: isItemDisabled, 'preview-item': option.preview }" @click.stop="$emit('select', option.value)">
-    <div v-if="option.preview || option.icon" class="option-preview-card flex flex-row gap-1 p-4 m-3">
+    <div v-if="option.preview || option.icon" class="option-preview-card">
       <!-- 自定义内容插槽 -->
       <slot name="content" :option="option" :isSelected="isSelected">
-        <img
-          :src="option.preview || option.icon"
-          :alt="option.label"
-          class="preview-image"
-          :style="{
-            width: option?.image?.width || '20px',
-            height: option?.image?.height || '20px'
-          }"
-        />
+        <div class="preview-icon-wrapper">
+          <IconRenderer :icon="option.icon || option.preview || 'ri:image-line'" class="option-icon" />
+        </div>
       </slot>
-      <div class="option-overlay flex flex-row">
+      <div class="option-overlay">
         <div class="option-label truncate">
-          <el-tooltip :content="option.description || option.name">
+          <el-tooltip v-if="option.description || option.name" :content="option.description || option.name">
             {{ option.label || option.name }}
           </el-tooltip>
+          <template v-else>
+            {{ option.label || option.name }}
+          </template>
         </div>
         <div v-if="isSelected" class="selected-indicator">
           <IconRenderer icon="ri:check-line" />
@@ -119,7 +116,7 @@ defineEmits<{
 
   // 左侧装饰条
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     left: 0;
     top: 50%;
@@ -221,11 +218,11 @@ defineEmits<{
   gap: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid transparent;
+  min-width: 0;
 
   &:hover {
     background: var(--el-fill-color-light);
     border-color: var(--el-border-color-lighter);
-    transform: translateX(4px);
   }
 
   .option-item.selected & {
@@ -233,18 +230,25 @@ defineEmits<{
     border-color: var(--el-color-primary-light-5);
   }
 
-  .preview-image {
+  .preview-icon-wrapper {
     width: 40px;
     height: 40px;
-    object-fit: cover;
-    display: block;
-    border-radius: 10px;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+    position: relative;
   }
 
-  &:hover .preview-image {
+  .option-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--el-color-primary);
+  }
+
+  &:hover .preview-icon-wrapper {
     transform: scale(1.05);
   }
 
@@ -255,6 +259,7 @@ defineEmits<{
     flex: 1;
     min-width: 0;
     gap: 10px;
+    overflow: hidden;
 
     .option-label {
       font-size: 13px;
@@ -264,6 +269,8 @@ defineEmits<{
       overflow: hidden;
       text-overflow: ellipsis;
       transition: color 0.25s ease;
+      flex: 1;
+      min-width: 0;
     }
 
     .option-item.selected & .option-label {
