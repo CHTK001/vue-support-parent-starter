@@ -33,32 +33,40 @@
     <div class="stats-section">
       <div class="stats-grid">
         <ScCard
-          mode="stats"
-          title="文件总数"
+          layout="stats"
+          label="文件总数"
           :value="stats.totalCount"
           icon="ri:file-3-line"
-          color="#3b82f6"
+          theme="primary"
+          size="small"
+          hoverable
         />
         <ScCard
-          mode="stats"
-          title="已完成"
+          layout="stats"
+          label="已完成"
           :value="stats.completedCount"
           icon="ri:checkbox-circle-line"
-          color="#10b981"
+          theme="success"
+          size="small"
+          hoverable
         />
         <ScCard
-          mode="stats"
-          title="待合并"
+          layout="stats"
+          label="待合并"
           :value="stats.pendingMergeCount"
           icon="ri:time-line"
-          color="#f59e0b"
+          theme="warning"
+          size="small"
+          hoverable
         />
         <ScCard
-          mode="stats"
-          title="上传失败"
+          layout="stats"
+          label="上传失败"
           :value="stats.errorCount"
           icon="ri:error-warning-line"
-          color="#ef4444"
+          theme="danger"
+          size="small"
+          hoverable
         />
       </div>
     </div>

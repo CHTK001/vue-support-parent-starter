@@ -63,6 +63,24 @@ onMounted(() => {
 onBeforeUnmount(() => {
   emitter.off("logoConfigChange");
 });
+
+// 判断当前环境
+const currentEnv = import.meta.env.MODE || "production";
+const isDevelopment = currentEnv === "development" || import.meta.env.DEV;
+const isTest = currentEnv === "test";
+const showEnvBadge = computed(() => isDevelopment || isTest);
+
+// 获取环境标识文本
+const envBadgeText = computed(() => {
+  if (isDevelopment) {
+    return "DEV";
+  }
+  return "TEST";
+});
+
+const envBadgeClass = computed(() => {
+  return isDevelopment ? "env-dev" : "env-test";
+});
 </script>
 
 <template>
@@ -84,6 +102,10 @@ onBeforeUnmount(() => {
         <span class="sidebar-title" v-if="layout !== 'double'">
           <TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" />
         </span>
+        <!-- 环境标识 -->
+        <span v-if="showEnvBadge" class="env-badge" :class="envBadgeClass">
+          {{ envBadgeText }}
+        </span>
       </router-link>
       <router-link
         v-else
@@ -100,6 +122,10 @@ onBeforeUnmount(() => {
         />
         <span class="sidebar-title" v-if="layout !== 'double'">
           <TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" />
+        </span>
+        <!-- 环境标识 -->
+        <span v-if="showEnvBadge" class="env-badge" :class="envBadgeClass">
+          {{ envBadgeText }}
         </span>
       </router-link>
     </transition>
@@ -137,6 +163,28 @@ onBeforeUnmount(() => {
       text-overflow: ellipsis;
       white-space: nowrap;
       transition: all 0.3s ease;
+    }
+
+    .env-badge {
+      margin-left: 8px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 10px;
+      color: #fff;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+
+      &.env-dev {
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
+        animation: envPulse 2s ease-in-out infinite;
+      }
+
+      &.env-test {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+      }
     }
   }
 
@@ -191,6 +239,18 @@ onBeforeUnmount(() => {
   }
   75% {
     transform: translateY(-2px);
+  }
+}
+
+@keyframes envPulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    opacity: 0.85;
+    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.6);
   }
 }
 </style>
