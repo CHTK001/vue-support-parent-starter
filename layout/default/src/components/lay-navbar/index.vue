@@ -43,10 +43,6 @@ emitter.on("breadcrumbChange", (value: boolean) => {
 onBeforeUnmount(() => {
   emitter.off("breadcrumbChange");
 });
-
-// 判断是否为开发环境
-const isDevelopment =
-  import.meta.env.MODE === "development" || import.meta.env.DEV;
 </script>
 
 <template>
@@ -58,12 +54,6 @@ const isDevelopment =
       :is-active="pureApp.sidebar.opened"
       @toggleClick="toggleSideBar"
     />
-
-    <!-- 开发环境标识 -->
-    <div v-if="isDevelopment" class="dev-environment-badge">
-      <IconifyIconOnline icon="ri:code-s-slash-line" />
-      <span>开发环境</span>
-    </div>
 
     <!-- 面包屑导航 -->
     <LaySidebarBreadCrumb
@@ -102,22 +92,6 @@ const isDevelopment =
   display: flex;
   align-items: center;
   position: relative;
-
-  // 添加顶部装饰线
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(
-      90deg,
-      rgba(var(--el-color-primary-rgb), 0.1) 0%,
-      rgba(var(--el-color-primary-rgb), 0.3) 50%,
-      rgba(var(--el-color-primary-rgb), 0.1) 100%
-    );
-  }
 
   // 汉堡菜单容器美化
   .hamburger-container {
@@ -216,33 +190,22 @@ const isDevelopment =
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  // 开发环境标识
-  .dev-environment-badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    margin-left: 16px;
-    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
-    color: #fff;
-    font-size: 13px;
-    font-weight: 600;
-    border-radius: 20px;
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
-    animation: devBadgePulse 2s ease-in-out infinite;
-
-    svg {
-      font-size: 16px;
+  // 响应式设计
+  @media (max-width: 768px) {
+    .vertical-header-right {
+      min-width: auto;
+      padding-right: 12px;
+      gap: 8px;
     }
-  }
 
-  @keyframes devBadgePulse {
-    0%,
-    100% {
-      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    .breadcrumb-container {
+      margin-left: 12px;
+      padding: 0 12px;
     }
-    50% {
-      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
+
+    .hamburger-container {
+      padding: 0 12px;
+      margin: 0 4px;
     }
   }
 }

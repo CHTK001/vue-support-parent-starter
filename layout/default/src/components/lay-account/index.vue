@@ -220,11 +220,35 @@ const findComponent = () => {
 <style lang="scss" scoped>
 .account-page {
   height: 100vh;
-  background: var(--el-bg-color-page);
+  background: linear-gradient(
+    135deg,
+    var(--el-bg-color-page) 0%,
+    var(--el-fill-color-lighter) 100%
+  );
+  position: relative;
+  overflow: hidden;
+
+  // 背景装饰
+  &::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 60%;
+    height: 120%;
+    background: radial-gradient(
+      circle,
+      rgba(var(--el-color-primary-rgb), 0.03) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
 }
 
 .account-container {
   height: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 // 侧边栏样式
@@ -234,10 +258,11 @@ const findComponent = () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.04);
 }
 
 .sidebar-header {
-  padding: 16px 20px;
+  padding: 20px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
@@ -245,20 +270,32 @@ const findComponent = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 12px 18px;
   border: none;
-  border-radius: 12px;
-  background: var(--el-fill-color-light);
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    var(--el-fill-color-light) 0%,
+    var(--el-fill-color-lighter) 100%
+  );
   color: var(--el-text-color-regular);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
+  border: 1px solid transparent;
 
   &:hover {
-    background: var(--el-fill-color);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-color-primary-light-8) 100%
+    );
     color: var(--el-color-primary);
+    border-color: var(--el-color-primary-light-5);
+    transform: translateX(-4px);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
 
     .back-icon {
       transform: translateX(-4px);
@@ -267,13 +304,13 @@ const findComponent = () => {
 
   .back-icon {
     font-size: 18px;
-    transition: transform 0.2s ease;
+    transition: transform 0.3s ease;
   }
 }
 
 // 用户卡片样式
 .user-card {
-  padding: 24px 20px;
+  padding: 32px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -284,27 +321,62 @@ const findComponent = () => {
     var(--el-color-primary-light-9) 0%,
     transparent 100%
   );
+  position: relative;
+
+  // 装饰元素
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--el-color-primary-light-5),
+      transparent
+    );
+  }
 }
 
 .user-avatar-wrapper {
   position: relative;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 
   .user-avatar {
-    border: 3px solid var(--el-bg-color);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border: 4px solid var(--el-bg-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 12px 32px rgba(var(--el-color-primary-rgb), 0.2);
+    }
   }
 
   .online-badge {
     position: absolute;
-    bottom: 4px;
-    right: 4px;
-    width: 14px;
-    height: 14px;
+    bottom: 6px;
+    right: 6px;
+    width: 16px;
+    height: 16px;
     background: #22c55e;
     border: 3px solid var(--el-bg-color);
     border-radius: 50%;
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+    animation: onlinePulse 2s ease-in-out infinite;
+  }
+
+  @keyframes onlinePulse {
+    0%,
+    100% {
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.8);
+    }
   }
 }
 
@@ -358,30 +430,75 @@ const findComponent = () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
-  margin: 4px 0;
-  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 6px 0;
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--el-text-color-regular);
+  position: relative;
+  overflow: hidden;
+
+  // 左侧装饰条
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 0;
+    background: linear-gradient(
+      180deg,
+      var(--el-color-primary),
+      var(--el-color-primary-light-3)
+    );
+    border-radius: 0 3px 3px 0;
+    transition: height 0.3s ease;
+  }
 
   &:hover {
-    background: var(--el-fill-color-light);
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color-light) 0%,
+      var(--el-fill-color-lighter) 100%
+    );
     color: var(--el-text-color-primary);
+    transform: translateX(4px);
+
+    &::before {
+      height: 60%;
+    }
 
     .item-icon {
-      transform: scale(1.1);
+      transform: scale(1.1) rotate(5deg);
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary-light-9),
+        var(--el-color-primary-light-8)
+      );
     }
   }
 
   &.active {
-    background: var(--el-color-primary);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 100%
+    );
     color: #fff;
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+    box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.35);
+    transform: translateX(6px);
+
+    &::before {
+      height: 80%;
+      background: rgba(255, 255, 255, 0.3);
+    }
 
     .item-icon {
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.25);
       color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .item-arrow {
@@ -429,18 +546,59 @@ const findComponent = () => {
 
 .main-content {
   height: 100%;
-  padding: 24px 32px;
+  padding: 40px 60px;
   overflow-y: auto;
+  background: var(--el-bg-color);
+  border-radius: 24px 0 0 0;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.04);
 
   @media (max-width: 768px) {
-    padding: 16px;
+    padding: 20px;
+    border-radius: 0;
   }
 }
 
 .content-component {
-  max-width: 800px;
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
   height: auto !important;
+
+  // 移除内容组件的卡片样式，让子组件自己控制
+  :deep(h3) {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--el-border-color-lighter);
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 60px;
+      height: 2px;
+      background: var(--el-color-primary);
+    }
+  }
+
+  :deep(.el-form) {
+    .el-form-item {
+      margin-bottom: 24px;
+    }
+
+    .el-form-item__label {
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+  }
 }
 
 // 深色模式适配
