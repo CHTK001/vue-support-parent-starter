@@ -103,7 +103,7 @@ ShowBarSetting: true
 # 是否显示搜索按钮（默认: true）
 # ShowBarSearch: true
 # 是否显示AI助手（默认: true）
-ShowAiChat: false
+# ShowAiChat: false
 # AI助手皮肤主题（默认: default）
 # - default: 紫色渐变
 # - blue: 蓝色科技风
