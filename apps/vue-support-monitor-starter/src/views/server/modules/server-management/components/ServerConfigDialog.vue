@@ -1,23 +1,40 @@
 <template>
   <el-dialog
     v-model="visible"
-    width="90%"
+    width="1200px"
     :close-on-click-modal="false"
     destroy-on-close
-    top="10px"
+    top="5vh"
     class="server-config-dialog"
   >
     <template #header>
       <div class="dialog-header">
-        <div class="header-icon">
-          <IconifyIconOnline icon="ri:settings-3-line" />
+        <div class="header-left">
+          <div class="header-icon-box">
+            <IconifyIconOnline icon="ri:settings-3-line" class="header-icon" />
+          </div>
+          <div class="header-info">
+            <span class="header-title">服务器配置</span>
+            <span v-if="currentServer" class="header-subtitle">
+              {{ currentServer.monitorSysGenServerName }} ·
+              {{ currentServer.monitorSysGenServerHost }}
+            </span>
+          </div>
         </div>
-        <div class="header-text">
-          <span class="header-title">服务器配置管理</span>
-          <span class="header-subtitle" v-if="currentServer">
-            {{ currentServer.monitorSysGenServerName }} -
-            {{ currentServer.monitorSysGenServerHost }}
-          </span>
+        <div class="header-right" v-if="activeSection !== 'history'">
+          <el-button size="small" @click="handleReset">
+            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+            重置
+          </el-button>
+          <el-button
+            size="small"
+            type="danger"
+            plain
+            @click="handleDisableAllSwitches"
+          >
+            <IconifyIconOnline icon="ri:toggle-line" class="mr-1" />
+            一键关闭
+          </el-button>
         </div>
       </div>
     </template>
@@ -25,22 +42,6 @@
       <div class="config-container">
         <!-- 左侧导航 -->
         <div class="config-nav">
-          <div class="server-info" v-if="currentServer">
-            <div class="server-title">
-              <div class="server-icon-wrapper">
-                <IconifyIconOnline icon="ri:server-line" class="server-icon" />
-              </div>
-              <div class="server-details">
-                <div class="server-name">
-                  {{ currentServer.monitorSysGenServerName }}
-                </div>
-                <div class="server-host">
-                  {{ currentServer.monitorSysGenServerHost }}
-                </div>
-              </div>
-            </div>
-          </div>
-
           <el-menu
             v-model="activeSection"
             mode="vertical"
@@ -50,10 +51,6 @@
             <el-menu-item index="proxy">
               <IconifyIconOnline icon="ri:global-line" />
               <span>代理设置</span>
-            </el-menu-item>
-            <el-menu-item index="metrics">
-              <IconifyIconOnline icon="ri:bar-chart-line" />
-              <span>指标管理</span>
             </el-menu-item>
             <el-menu-item index="monitor">
               <IconifyIconOnline icon="ri:eye-line" />
@@ -65,27 +62,19 @@
             </el-menu-item>
             <el-menu-item index="docker">
               <IconifyIconOnline icon="simple-icons:docker" />
-              <span>Docker配置</span>
+              <span>Docker</span>
             </el-menu-item>
             <el-menu-item index="filemanagement">
               <IconifyIconOnline icon="ri:folder-line" />
               <span>文件管理</span>
             </el-menu-item>
-            <!-- <el-menu-item index="prometheus">
-              <IconifyIconOnline icon="ri:bar-chart-line" />
-              <span>Prometheus配置</span>
-            </el-menu-item> -->
             <el-menu-item index="advanced">
               <IconifyIconOnline icon="ri:tools-line" />
               <span>高级配置</span>
             </el-menu-item>
             <el-menu-item index="tasks">
-              <IconifyIconOnline icon="ri:timer-line" />
-              <span>任务配置</span>
-            </el-menu-item>
-            <el-menu-item index="cleanup">
-              <IconifyIconOnline icon="ri:delete-bin-line" />
-              <span>清理配置</span>
+              <IconifyIconOnline icon="ri:plug-line" />
+              <span>端口配置</span>
             </el-menu-item>
             <el-menu-item index="history">
               <IconifyIconOnline icon="ri:history-line" />
@@ -96,425 +85,247 @@
 
         <!-- 右侧配置内容 -->
         <div class="config-content">
-          <el-card class="config-card">
-            <template #header>
-              <div class="card-header">
-                <span class="card-title">{{ getSectionTitle() }}</span>
-                <div class="card-actions" v-if="activeSection !== 'history'">
-                  <el-button @click="handleReset" plain size="small">
-                    <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-                    重置
-                  </el-button>
-                </div>
-              </div>
-            </template>
-
-            <!-- 配置表单 -->
-            <div
-              v-loading="loadingSettings"
-              element-loading-text="加载配置中..."
-              class="form-container"
-            >
-              <el-form
-                ref="formRef"
-                :model="settingData"
-                label-width="160px"
-                size="default"
-                class="config-form"
-                :disabled="loadingSettings"
-              >
-                <!-- 代理配置 -->
-                <div v-show="activeSection === 'proxy'" class="config-section">
-                  <div class="section-description">
-                    <el-alert
-                      title="代理配置"
-                      description="配置代理服务器以实现网络连接转发，支持HTTP、SOCKS5、SSH隧道和Guacamole等多种代理类型。"
-                      type="info"
-                      :closable="false"
-                      class="mb-4"
-                    />
-                  </div>
-
-                  <el-form-item label="启用代理">
-                    <div class="switch-wrapper">
-                      <el-switch
-                        v-model="
-                          settingData.monitorSysGenServerSettingProxyEnabled
-                        "
-                        :active-value="1"
-                        :inactive-value="0"
-                        active-text="启用"
-                        inactive-text="禁用"
-                        @change="handleSettingChange"
-                      />
-                      <el-tooltip
-                        content="启用后将通过代理服务器进行连接"
-                        placement="top"
-                      >
-                        <IconifyIconOnline
-                          icon="ri:question-line"
-                          class="help-icon"
-                        />
-                      </el-tooltip>
-                    </div>
-                  </el-form-item>
-
-                  <template
-                    v-if="
-                      settingData.monitorSysGenServerSettingProxyEnabled === 1
-                    "
-                  >
-                    <el-form-item label="代理类型">
-                      <el-select
-                        v-model="
-                          settingData.monitorSysGenServerSettingProxyType
-                        "
-                        placeholder="选择代理类型"
-                        style="width: 200px !important"
-                        @change="handleSettingChange"
-                      >
-                        <el-option label="HTTP代理" value="HTTP" />
-                        <el-option label="SOCKS5代理" value="SOCKS5" />
-                        <el-option label="SSH隧道" value="SSH_TUNNEL" />
-                        <el-option label="Guacamole代理" value="GUACAMOLE" />
-                      </el-select>
-                    </el-form-item>
-
-                    <el-form-item label="代理地址">
-                      <el-input
-                        v-model="
-                          settingData.monitorSysGenServerSettingProxyHost
-                        "
-                        placeholder="请输入代理服务器地址"
-                        style="width: 300px"
-                        @change="handleSettingChange"
-                      />
-                    </el-form-item>
-
-                    <el-form-item label="代理端口">
-                      <el-input-number
-                        v-model="
-                          settingData.monitorSysGenServerSettingProxyPort
-                        "
-                        :min="1"
-                        :max="65535"
-                        placeholder="端口号"
-                        style="width: 200px"
-                        @change="handleSettingChange"
-                      />
-                    </el-form-item>
-
-                    <el-form-item label="代理用户名">
-                      <el-input
-                        v-model="
-                          settingData.monitorSysGenServerSettingProxyUsername
-                        "
-                        placeholder="代理用户名（可选）"
-                        style="width: 200px"
-                        @change="handleSettingChange"
-                      />
-                    </el-form-item>
-
-                    <el-form-item label="代理密码">
-                      <el-input
-                        v-model="
-                          settingData.monitorSysGenServerSettingProxyPassword
-                        "
-                        type="password"
-                        placeholder="代理密码（可选）"
-                        show-password
-                        style="width: 200px"
-                        @change="handleSettingChange"
-                      />
-                    </el-form-item>
-
-                    <!-- GUACAMOLE特殊配置说明 -->
-                    <template
-                      v-if="
-                        settingData.monitorSysGenServerSettingProxyType ===
-                        'GUACAMOLE'
-                      "
-                    >
-                      <el-alert
-                        title="Guacamole代理配置"
-                        description="Guacamole代理将通过Web界面提供远程桌面连接功能，具体连接参数请在服务器详情页面中配置。"
-                        type="info"
-                        :closable="false"
-                        class="mt-4"
-                      />
-                    </template>
-                  </template>
-                </div>
-
-                <!-- 指标管理 -->
-                <div
-                  v-show="activeSection === 'metrics'"
-                  class="config-section"
-                >
-                  <div class="section-description">
-                    <el-alert
-                      title="指标管理"
-                      description="配置服务器性能指标的收集、上报和存储策略，支持多种数据上报方式。"
-                      type="info"
-                      :closable="false"
-                      class="mb-4"
-                    />
-                  </div>
-
-                  <el-form-item label="指标收集">
-                    <div class="switch-wrapper">
-                      <el-switch
-                        v-model="
-                          settingData.monitorSysGenServerSettingMonitorEnabled
-                        "
-                        :active-value="1"
-                        :inactive-value="0"
-                        active-text="启用"
-                        inactive-text="禁用"
-                      />
-                      <el-tooltip
-                        content="启用后将收集服务器性能指标"
-                        placement="top"
-                      >
-                        <IconifyIconOnline
-                          icon="ri:question-line"
-                          class="help-icon"
-                        />
-                      </el-tooltip>
-                    </div>
-                  </el-form-item>
-
-                  <template
-                    v-if="
-                      settingData.monitorSysGenServerSettingMonitorEnabled === 1
-                    "
-                  >
-                    <el-form-item label="收集频率">
-                      <el-input-number
-                        v-model="
-                          settingData.monitorSysGenServerSettingDataCollectionFrequency
-                        "
-                        :min="10"
-                        :max="3600"
-                        :step="10"
-                        placeholder="收集频率(秒)"
-                        style="width: 200px"
-                        @change="handleSettingChange"
-                      />
-                      <span class="form-tip">秒，建议值：30</span>
-                    </el-form-item>
-
-                    <el-form-item label="数据保留天数">
-                      <el-input-number
-                        v-model="
-                          settingData.monitorSysGenServerSettingMetricsRetentionDays
-                        "
-                        :min="1"
-                        :max="365"
-                        placeholder="保留天数"
-                        style="width: 200px"
-                        @change="handleSettingChange"
-                      />
-                      <span class="form-tip">天，建议值：30</span>
-                    </el-form-item>
-
-                    <el-alert
-                      title="指标管理说明"
-                      description="此页面主要用于查看和管理服务器的监控指标数据，包括数据查询、图表展示等功能。具体的监控参数配置请使用左侧对应的配置页面。"
-                      type="success"
-                      :closable="false"
-                      class="mb-4"
-                    />
-                  </template>
-                </div>
-
-                <!-- 监控配置节 -->
-                <div
-                  v-show="activeSection === 'monitor'"
-                  class="config-section"
-                >
-                  <ServerSettingForm
-                    v-model="settingData"
-                    section="monitor"
-                    :is-local-server="
-                      currentServer?.monitorSysGenServerIsLocal === 1
-                    "
-                    @change="handleSettingChange"
-                  />
-                </div>
-
-                <!-- 告警配置节 -->
-                <div v-show="activeSection === 'alert'" class="config-section">
-                  <ServerSettingForm
-                    v-model="settingData"
-                    section="alert"
-                    :is-local-server="
-                      currentServer?.monitorSysGenServerIsLocal === 1
-                    "
-                    @change="handleSettingChange"
-                  />
-                </div>
-
-                <!-- Docker配置节 -->
-                <div v-show="activeSection === 'docker'" class="config-section">
-                  <ServerSettingForm
-                    v-model="settingData"
-                    section="docker"
-                    :is-local-server="
-                      currentServer?.monitorSysGenServerIsLocal === 1
-                    "
-                    :server-host="currentServer?.monitorSysGenServerHost"
-                    @change="handleSettingChange"
-                  />
-                </div>
-
-                <!-- Prometheus配置节 -->
-                <div
-                  v-show="activeSection === 'prometheus'"
-                  class="config-section"
-                >
-                  <div class="section-description">
-                    <el-alert
-                      title="Prometheus配置"
-                      description="配置Prometheus服务器连接信息，用于查询历史监控数据和指标。支持基本认证和自定义查询路径。"
-                      type="info"
-                      show-icon
-                      :closable="false"
-                      class="mb-4"
-                    />
-                  </div>
-                  <ServerSettingForm
-                    v-model="settingData"
-                    section="prometheus"
-                    :is-local-server="
-                      currentServer?.monitorSysGenServerIsLocal === 1
-                    "
-                    @change="handleSettingChange"
-                  />
-                </div>
-                <!-- 文件管理配置节 -->
-                <div
-                  v-show="activeSection === 'filemanagement'"
-                  class="config-section"
-                >
-                  <div class="section-description">
-                    <el-alert
-                      title="文件管理配置"
-                      description="配置服务器文件管理功能，支持SSH连接、NODE客户端代理和API连接等多种方式，提供完整的文件系统访问和管理能力。"
-                      type="info"
-                      show-icon
-                      :closable="false"
-                      class="mb-4"
-                    />
-                  </div>
-                  <ServerSettingForm
-                    v-model="settingData"
-                    section="filemanagement"
-                    :is-local-server="
-                      currentServer?.monitorSysGenServerIsLocal === 1
-                    "
-                    :simple-style="true"
-                    @change="handleSettingChange"
-                  />
-                </div>
-                <!-- 高级配置节 -->
-                <div
-                  v-show="activeSection === 'advanced'"
-                  class="config-section"
-                >
-                  <ServerSettingForm
-                    v-model="settingData"
-                    section="advanced"
-                    :is-local-server="
-                      currentServer?.monitorSysGenServerIsLocal === 1
-                    "
-                    @change="handleSettingChange"
-                  />
-                </div>
-
-                <!-- 任务配置节 -->
-                <div v-show="activeSection === 'tasks'" class="config-section">
-                  <div class="section-description">
-                    <el-alert
-                      title="任务配置"
-                      description="配置服务器的定时任务，包括端口检测、在线状态检测、延迟检测等功能。"
-                      type="info"
-                      show-icon
-                      :closable="false"
-                      class="mb-4"
-                    />
-                  </div>
-                  <ServerSettingForm
-                    v-model="settingData"
-                    section="tasks"
-                    :is-local-server="
-                      currentServer?.monitorSysGenServerIsLocal === 1
-                    "
-                    @change="handleSettingChange"
-                  />
-                </div>
-
-                <!-- 清理配置节 -->
-                <div
-                  v-show="activeSection === 'cleanup'"
-                  class="config-section"
-                >
-                  <div class="section-description">
-                    <el-alert
-                      title="清理配置"
-                      description="配置系统清理任务，包括日志清理、临时文件清理、WebSocket会话清理等功能。"
-                      type="info"
-                      show-icon
-                      :closable="false"
-                      class="mb-4"
-                    />
-                  </div>
-                  <ServerSettingForm
-                    v-model="settingData"
-                    section="cleanup"
-                    :is-local-server="
-                      currentServer?.monitorSysGenServerIsLocal === 1
-                    "
-                    @change="handleSettingChange"
-                  />
-                </div>
-
-                <!-- 配置历史节 -->
-                <div
-                  v-show="activeSection === 'history'"
-                  class="config-section"
-                >
-                  <ServerSettingHistory
-                    v-if="serverId && activeSection === 'history'"
-                    :server-id="serverId"
-                    :server-info="currentServer"
-                    @restored="handleHistoryRestored"
-                  />
-                </div>
-              </el-form>
+          <div class="content-header">
+            <div class="content-title-wrapper">
+              <IconifyIconOnline
+                :icon="getSectionIcon()"
+                class="section-icon"
+              />
+              <span class="content-title">{{ getSectionTitle() }}</span>
             </div>
-          </el-card>
+            <span class="content-desc">{{ getSectionDesc() }}</span>
+          </div>
+
+          <!-- 配置表单 -->
+          <div
+            v-loading="loadingSettings"
+            element-loading-text="加载配置中..."
+            class="form-container"
+          >
+            <el-form
+              ref="formRef"
+              :model="settingData"
+              label-width="140px"
+              size="default"
+              class="config-form"
+              :disabled="loadingSettings"
+            >
+              <!-- 代理配置 -->
+              <div v-show="activeSection === 'proxy'" class="config-section">
+                <el-form-item label="启用代理">
+                  <div class="switch-wrapper">
+                    <el-switch
+                      v-model="
+                        settingData.monitorSysGenServerSettingProxyEnabled
+                      "
+                      :active-value="1"
+                      :inactive-value="0"
+                      active-text="启用"
+                      inactive-text="禁用"
+                      @change="handleSettingChange"
+                    />
+                    <el-tooltip
+                      content="启用后将通过代理服务器进行连接"
+                      placement="top"
+                    >
+                      <IconifyIconOnline
+                        icon="ri:question-line"
+                        class="help-icon"
+                      />
+                    </el-tooltip>
+                  </div>
+                </el-form-item>
+
+                <template
+                  v-if="
+                    settingData.monitorSysGenServerSettingProxyEnabled === 1
+                  "
+                >
+                  <el-form-item label="代理类型">
+                    <el-select
+                      v-model="settingData.monitorSysGenServerSettingProxyType"
+                      placeholder="选择代理类型"
+                      @change="handleSettingChange"
+                    >
+                      <el-option label="HTTP代理" value="HTTP" />
+                      <el-option label="SOCKS5代理" value="SOCKS5" />
+                      <el-option label="SSH隧道" value="SSH_TUNNEL" />
+                      <el-option label="Guacamole代理" value="GUACAMOLE" />
+                    </el-select>
+                  </el-form-item>
+
+                  <el-row :gutter="20">
+                    <el-col :span="14">
+                      <el-form-item label="代理地址">
+                        <el-input
+                          v-model="
+                            settingData.monitorSysGenServerSettingProxyHost
+                          "
+                          placeholder="代理服务器地址"
+                          @change="handleSettingChange"
+                        />
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="10">
+                      <el-form-item label="端口">
+                        <el-input-number
+                          v-model="
+                            settingData.monitorSysGenServerSettingProxyPort
+                          "
+                          :min="1"
+                          :max="65535"
+                          placeholder="端口"
+                          controls-position="right"
+                          style="width: 100%"
+                          @change="handleSettingChange"
+                        />
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+
+                  <el-row :gutter="20">
+                    <el-col :span="12">
+                      <el-form-item label="用户名">
+                        <el-input
+                          v-model="
+                            settingData.monitorSysGenServerSettingProxyUsername
+                          "
+                          placeholder="可选"
+                          @change="handleSettingChange"
+                        />
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="密码">
+                        <el-input
+                          v-model="
+                            settingData.monitorSysGenServerSettingProxyPassword
+                          "
+                          type="password"
+                          placeholder="可选"
+                          show-password
+                          @change="handleSettingChange"
+                        />
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+
+                  <div
+                    v-if="
+                      settingData.monitorSysGenServerSettingProxyType ===
+                      'GUACAMOLE'
+                    "
+                    class="config-tip"
+                  >
+                    <IconifyIconOnline icon="ri:information-line" />
+                    <span>Guacamole代理将通过Web界面提供远程桌面连接功能</span>
+                  </div>
+                </template>
+              </div>
+
+              <!-- 监控配置节 -->
+              <div v-show="activeSection === 'monitor'" class="config-section">
+                <ServerSettingForm
+                  v-model="settingData"
+                  section="monitor"
+                  :is-local-server="
+                    currentServer?.monitorSysGenServerIsLocal === 1
+                  "
+                  @change="handleSettingChange"
+                />
+              </div>
+
+              <!-- 告警配置节 -->
+              <div v-show="activeSection === 'alert'" class="config-section">
+                <ServerSettingForm
+                  v-model="settingData"
+                  section="alert"
+                  :is-local-server="
+                    currentServer?.monitorSysGenServerIsLocal === 1
+                  "
+                  @change="handleSettingChange"
+                />
+              </div>
+
+              <!-- Docker配置节 -->
+              <div v-show="activeSection === 'docker'" class="config-section">
+                <ServerSettingForm
+                  v-model="settingData"
+                  section="docker"
+                  :is-local-server="
+                    currentServer?.monitorSysGenServerIsLocal === 1
+                  "
+                  :server-host="currentServer?.monitorSysGenServerHost"
+                  @change="handleSettingChange"
+                />
+              </div>
+
+              <!-- 文件管理配置节 -->
+              <div
+                v-show="activeSection === 'filemanagement'"
+                class="config-section"
+              >
+                <ServerSettingForm
+                  v-model="settingData"
+                  section="filemanagement"
+                  :is-local-server="
+                    currentServer?.monitorSysGenServerIsLocal === 1
+                  "
+                  :simple-style="true"
+                  @change="handleSettingChange"
+                />
+              </div>
+
+              <!-- 高级配置节 -->
+              <div v-show="activeSection === 'advanced'" class="config-section">
+                <ServerSettingForm
+                  v-model="settingData"
+                  section="advanced"
+                  :is-local-server="
+                    currentServer?.monitorSysGenServerIsLocal === 1
+                  "
+                  @change="handleSettingChange"
+                />
+              </div>
+
+              <!-- 端口配置节 -->
+              <div v-show="activeSection === 'tasks'" class="config-section">
+                <ServerSettingForm
+                  v-model="settingData"
+                  section="tasks"
+                  :is-local-server="
+                    currentServer?.monitorSysGenServerIsLocal === 1
+                  "
+                  @change="handleSettingChange"
+                />
+              </div>
+
+              <!-- 配置历史节 -->
+              <div v-show="activeSection === 'history'" class="config-section">
+                <ServerSettingHistory
+                  v-if="serverId && activeSection === 'history'"
+                  :server-id="serverId"
+                  :server-info="currentServer"
+                  @restored="handleHistoryRestored"
+                />
+              </div>
+            </el-form>
+          </div>
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false" class="cancel-btn">
-          <IconifyIconOnline icon="ri:close-line" class="mr-1" />
-          关闭
+        <el-button @click="visible = false">关闭</el-button>
+        <el-button
+          v-if="activeSection !== 'history'"
+          type="primary"
+          :loading="saving"
+          @click="handleSave"
+        >
+          保存配置
         </el-button>
-        <template v-if="activeSection !== 'history'">
-          <el-button
-            type="primary"
-            :loading="saving"
-            @click="handleSave"
-            class="save-btn"
-          >
-            <IconifyIconOnline icon="ri:save-line" class="mr-1" />
-            保存配置
-          </el-button>
-        </template>
       </div>
     </template>
   </el-dialog>
@@ -528,6 +339,7 @@ import {
   type ServerSetting,
 } from "@/api/server/setting";
 import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { defineAsyncComponent, ref } from "vue";
 
 // 异步组件
@@ -609,22 +421,54 @@ const validationRules = {
 /**
  * 获取当前节的标题
  */
-const getSectionTitle = () => {
-  const titles = {
-    proxy: "代理设置",
-    metrics: "指标管理",
-    monitor: "监控配置",
-    alert: "告警配置",
-    docker: "Docker配置",
-    filemanagement: "文件管理配置",
-    prometheus: "Prometheus配置",
-    advanced: "高级配置",
-    tasks: "任务配置",
-    cleanup: "清理配置",
-    history: "配置历史",
-  };
-  return titles[activeSection.value] || "配置";
+// 配置项元数据（包含详细说明）
+const sectionMeta = {
+  proxy: {
+    title: "代理设置",
+    icon: "ri:global-line",
+    desc: "配置代理服务器连接，支持 HTTP、SOCKS5、SSH隧道等多种代理方式",
+  },
+  monitor: {
+    title: "监控配置",
+    icon: "ri:eye-line",
+    desc: "配置数据上报方式和监控参数",
+  },
+  alert: {
+    title: "告警配置",
+    icon: "ri:alarm-warning-line",
+    desc: "设置告警阈值和通知方式",
+  },
+  docker: {
+    title: "Docker",
+    icon: "simple-icons:docker",
+    desc: "配置 Docker 容器监控和管理",
+  },
+  filemanagement: {
+    title: "文件管理",
+    icon: "ri:folder-line",
+    desc: "配置远程文件系统访问方式",
+  },
+  advanced: {
+    title: "高级配置",
+    icon: "ri:tools-line",
+    desc: "连接超时、重试策略等高级参数",
+  },
+  tasks: {
+    title: "端口配置",
+    icon: "ri:plug-line",
+    desc: "配置端口监控、在线检测、延迟检测等",
+  },
+  history: {
+    title: "配置历史",
+    icon: "ri:history-line",
+    desc: "查看和恢复历史配置",
+  },
 };
+
+const getSectionTitle = () => sectionMeta[activeSection.value]?.title || "配置";
+const getSectionIcon = () =>
+  sectionMeta[activeSection.value]?.icon || "ri:settings-line";
+const getSectionDesc = () => sectionMeta[activeSection.value]?.desc || "";
 
 /**
  * 处理节切换
@@ -650,6 +494,54 @@ const handleHistoryRestored = (historyId: number) => {
 const handleSettingChange = () => {
   // 当表单数据变化时触发，settingData已经通过v-model自动更新
   console.log("设置数据变化:", settingData.value);
+};
+
+/**
+ * 一键关闭所有开关配置
+ */
+const handleDisableAllSwitches = async () => {
+  try {
+    await ElMessageBox.confirm(
+      "确定要关闭所有开关配置吗？此操作将禁用监控、告警、Docker、文件管理等所有功能开关。",
+      "一键关闭确认",
+      {
+        confirmButtonText: "确定关闭",
+        cancelButtonText: "取消",
+        type: "warning",
+      }
+    );
+
+    // 关闭所有 Enabled 类型的开关
+    settingData.value = {
+      ...settingData.value,
+      // 基础监控开关
+      monitorSysGenServerSettingMonitorEnabled: 0,
+      monitorSysGenServerSettingReportEnabled: 0,
+      monitorSysGenServerSettingAlertEnabled: 0,
+      // Docker 相关
+      monitorSysGenServerSettingDockerEnabled: 0,
+      monitorSysGenServerSettingDockerMonitorEnabled: 0,
+      monitorSysGenServerSettingDockerTlsEnabled: 0,
+      // 代理配置
+      monitorSysGenServerSettingProxyEnabled: 0,
+      // Prometheus 相关
+      monitorSysGenServerSettingPrometheusAuthEnabled: 0,
+      // 检测配置
+      monitorSysGenServerSettingOnlineCheckEnabled: 0,
+      monitorSysGenServerSettingLatencyCheckEnabled: 0,
+      // 文件管理
+      monitorSysGenServerSettingFileManagementEnabled: 0,
+      // 健康检查和指标采集
+      monitorSysGenServerSettingHealthCheckEnabled: 0,
+      monitorSysGenServerSettingMetricsCollectionEnabled: 0,
+      // 自动恢复通知
+      monitorSysGenServerSettingAutoRecoveryNotificationEnabled: 0,
+    };
+
+    message.success("已关闭所有开关配置，请点击保存按钮提交更改");
+  } catch {
+    // 用户取消操作
+  }
 };
 
 /**
@@ -836,49 +728,59 @@ defineExpose({
 .dialog-header {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
 
-  .header-icon {
-    width: 48px;
-    height: 48px;
+  .header-left {
     display: flex;
     align-items: center;
-    justify-content: center;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary) 0%,
-      #6366f1 100%
-    );
-    border-radius: 14px;
-    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    gap: 14px;
 
-    .iconify {
-      font-size: 26px;
-      color: #fff;
+    .header-icon-box {
+      width: 42px;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 100%
+      );
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+
+      .header-icon {
+        font-size: 22px;
+        color: #fff;
+      }
+    }
+
+    .header-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .header-title {
+        font-size: 17px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      .header-subtitle {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+      }
     }
   }
 
-  .header-text {
+  .header-right {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-
-    .header-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--el-text-color-primary);
-      letter-spacing: -0.5px;
-    }
-
-    .header-subtitle {
-      font-size: 13px;
-      color: var(--el-text-color-secondary);
-    }
+    gap: 8px;
   }
 }
 
 .dialog-content {
-  height: 70vh;
+  height: 68vh;
   overflow: hidden;
 }
 
@@ -888,75 +790,24 @@ defineExpose({
   gap: 0;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .config-nav {
-  width: 240px;
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-  border-right: 1px solid var(--el-border-color-lighter);
+  width: 200px;
+  background: var(--el-fill-color-lighter);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-}
-
-.server-info {
-  padding: 20px 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
-}
-
-.server-title {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.server-icon-wrapper {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-  border-radius: 12px;
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
-}
-
-.server-icon {
-  font-size: 22px;
-  color: #fff;
-}
-
-.server-details {
-  flex: 1;
-  overflow: hidden;
-}
-
-.server-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.server-host {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-family: "Monaco", "Menlo", monospace;
+  border-right: 1px solid var(--el-border-color-lighter);
 }
 
 .config-menu {
   border: none;
   flex: 1;
   background: transparent;
-  padding: 12px 0;
+  padding: 12px 8px;
   overflow-y: auto;
 
   &::-webkit-scrollbar {
@@ -973,49 +824,50 @@ defineExpose({
   flex: 1;
   overflow: hidden;
   background: var(--el-bg-color);
-}
-
-.config-card {
-  height: 100%;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.card-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+}
+
+.content-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   padding: 16px 24px;
-  background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
   border-bottom: 1px solid var(--el-border-color-lighter);
-}
+  background: linear-gradient(
+    180deg,
+    var(--el-fill-color-lighter) 0%,
+    var(--el-bg-color) 100%
+  );
+  flex-shrink: 0;
 
-.card-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  .content-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 
-  &::before {
-    content: "";
-    width: 4px;
-    height: 18px;
-    background: linear-gradient(
-      180deg,
-      var(--el-color-primary) 0%,
-      #8b5cf6 100%
-    );
-    border-radius: 2px;
+    .section-icon {
+      font-size: 20px;
+      color: var(--el-color-primary);
+    }
+
+    .content-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .content-desc {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    margin-left: 30px;
   }
 }
 
 .form-container {
-  position: relative;
-  min-height: 200px;
-  height: calc(100% - 60px);
+  flex: 1;
+  overflow: hidden;
 }
 
 .config-form {
@@ -1031,79 +883,69 @@ defineExpose({
     background: var(--el-border-color);
     border-radius: 3px;
   }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 .config-section {
-  max-width: 860px;
-
-  .section-description {
-    margin-bottom: 24px;
-
-    .el-alert {
-      border-radius: 12px;
-      border: none;
-      background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
-      padding: 16px 20px;
-
-      :deep(.el-alert__title) {
-        font-weight: 600;
-        font-size: 14px;
-        color: #1e40af;
-      }
-
-      :deep(.el-alert__description) {
-        color: #3b82f6;
-        line-height: 1.6;
-        margin-top: 6px;
-      }
-    }
-  }
+  max-width: 800px;
 
   .switch-wrapper {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 
     .help-icon {
       font-size: 15px;
-      color: var(--el-text-color-secondary);
+      color: var(--el-text-color-placeholder);
       cursor: help;
-      transition: all 0.3s;
+      transition: color 0.2s;
 
       &:hover {
-        color: #409eff;
+        color: var(--el-color-primary);
       }
     }
   }
 }
 
-.form-tip {
-  margin-left: 10px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
-  padding: 2px 8px;
-  border-radius: 4px;
+.config-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--el-color-primary-light-9);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--el-color-primary);
+  margin-top: 12px;
+  border: 1px solid var(--el-color-primary-light-7);
+
+  .iconify {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
 }
 
 // 菜单项样式
 :deep(.el-menu-item) {
-  border-radius: 10px;
-  margin: 4px 12px;
-  height: 44px;
-  line-height: 44px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 14px;
+  border-radius: 8px;
+  margin: 3px 0;
+  height: 42px;
+  line-height: 42px;
+  transition: all 0.25s ease;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
 
   .iconify {
     font-size: 18px;
     margin-right: 10px;
-    transition: all 0.3s;
+    transition: transform 0.2s;
   }
 
   &:hover {
-    background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
-    transform: translateX(4px);
+    background: var(--el-fill-color);
     color: var(--el-color-primary);
 
     .iconify {
@@ -1113,318 +955,65 @@ defineExpose({
 }
 
 :deep(.el-menu-item.is-active) {
-  background: linear-gradient(135deg, var(--el-color-primary) 0%, #8b5cf6 100%);
-  color: #fff;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 100%
+  ) !important;
+  color: #fff !important;
   font-weight: 500;
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.35);
+
+  span {
+    color: #fff !important;
+  }
 
   .iconify {
-    color: #fff;
+    color: #fff !important;
   }
 
   &:hover {
-    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
-    transform: translateX(4px);
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-dark-2) 0%,
+      var(--el-color-primary) 100%
+    ) !important;
+    color: #fff !important;
   }
-}
-
-:deep(.el-card__header) {
-  padding: 0;
-  border: none;
-}
-
-:deep(.el-card__body) {
-  padding: 0;
-  height: calc(100% - 60px);
-  overflow: hidden;
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 16px;
-  padding-top: 8px;
-
-  .cancel-btn {
-    border-radius: 10px;
-    min-width: 100px;
-    height: 40px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    border: 1px solid var(--el-border-color);
-
-    &:hover {
-      background: var(--el-fill-color-light);
-      border-color: var(--el-border-color-darker);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-  }
-
-  .save-btn {
-    border-radius: 10px;
-    min-width: 120px;
-    height: 40px;
-    font-weight: 500;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary) 0%,
-      #8b5cf6 100%
-    );
-    border: none;
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.45);
-      background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
-    }
-
-    &:active {
-      transform: translateY(0);
-    }
-  }
+  gap: 12px;
 }
 
-/* 表单元素美化 */
+// 表单样式
+:deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
 :deep(.el-form-item__label) {
   font-weight: 500;
   color: var(--el-text-color-primary);
 }
 
-:deep(.el-input) {
-  .el-input__wrapper {
-    border-radius: 6px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      box-shadow: 0 0 0 1px #c0c4cc inset;
-    }
-
-    &.is-focus {
-      box-shadow: 0 0 0 1px #409eff inset;
-    }
-  }
-}
-
 :deep(.el-select) {
-  .el-input__wrapper {
-    border-radius: 6px;
-  }
+  width: 220px;
 }
 
-:deep(.el-input-number) {
-  .el-input__wrapper {
-    border-radius: 6px;
+:deep(.el-input__wrapper),
+:deep(.el-input-number .el-input__wrapper) {
+  border-radius: 8px;
+  transition: all 0.2s;
+
+  &:hover {
+    box-shadow: 0 0 0 1px var(--el-border-color-hover) inset;
   }
 }
 
 :deep(.el-switch) {
-  .el-switch__core {
-    border-radius: 12px;
-  }
-}
-
-.config-section {
-  :deep(.el-row) {
-    .el-col {
-      .form-tip {
-        font-size: 11px;
-        color: var(--el-text-color-primary);
-        margin-top: 4px;
-        text-align: center;
-      }
-    }
-  }
-}
-
-.config-card {
-  :deep(.el-card__body) {
-    animation: fadeInUp 0.3s ease-out;
-  }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 数据采集方式选择样式 */
-.report-method-wrapper {
-  .report-method-selector {
-    .method-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 16px;
-
-      .method-card {
-        position: relative;
-        cursor: pointer;
-        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-
-        &:hover:not(.disabled) {
-          transform: translateY(-4px) scale(1.02);
-
-          .card-content {
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-            border-color: #409eff;
-          }
-        }
-
-        &.selected {
-          .card-content {
-            background: linear-gradient(135deg, #ecf5ff 0%, #e1f3d8 100%);
-            border-color: #409eff;
-            border-width: 2px;
-            box-shadow: 0 6px 20px rgba(64, 158, 255, 0.25);
-
-            .card-title {
-              color: #409eff;
-              font-weight: 600;
-            }
-
-            .card-badge {
-              opacity: 1;
-              transform: scale(1);
-            }
-          }
-        }
-
-        &.disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .card-content {
-          padding: 20px;
-          border: 1px solid #e4e7ed;
-          border-radius: 12px;
-          background: var(--el-bg-color-overlay);
-          transition: all 0.3s ease;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-
-          .card-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-            position: relative;
-
-            .card-icon {
-              font-size: 24px;
-              transition: all 0.3s ease;
-
-              &.none {
-                color: var(--el-text-color-primary);
-              }
-
-              &.local {
-                color: #67c23a;
-              }
-
-              &.api {
-                color: #409eff;
-              }
-
-              &.prometheus {
-                color: #e6a23c;
-              }
-            }
-
-            .card-title {
-              font-size: 16px;
-              font-weight: 500;
-              color: var(--el-text-color-primary);
-              transition: all 0.3s ease;
-              flex: 1;
-            }
-
-            .card-badge {
-              position: absolute;
-              right: 0;
-              top: -2px;
-              width: 24px;
-              height: 24px;
-              background: var(--el-bg-color-overlay);
-              border-radius: 50%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              color: var(--el-text-color-primary);
-              font-size: 12px;
-              opacity: 0;
-              transform: scale(0);
-              transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            }
-          }
-
-          .card-desc {
-            font-size: 13px;
-            color: #606266;
-            line-height: 1.5;
-            margin-bottom: 12px;
-            flex: 1;
-          }
-
-          .card-features {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-
-            .feature-tag {
-              padding: 2px 8px;
-              background: #f0f2f5;
-              border-radius: 12px;
-              font-size: 11px;
-              color: #606266;
-              transition: all 0.3s ease;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  .method-description {
-    margin-top: 20px;
-  }
-}
-
-/* 卡片动画 */
-.method-card-move,
-.method-card-enter-active,
-.method-card-leave-active {
-  transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.method-card-enter-from {
-  opacity: 0;
-  transform: translateY(30px) scale(0.9);
-}
-
-.method-card-leave-to {
-  opacity: 0;
-  transform: translateY(-30px) scale(0.9);
-}
-
-.method-card-leave-active {
-  position: absolute;
-}
-
-/* 分割线样式 */
-.divider-text {
-  font-size: 13px;
-  font-weight: 600;
-  color: #606266;
+  --el-switch-on-color: var(--el-color-primary);
 }
 </style>
 
@@ -1434,40 +1023,36 @@ defineExpose({
   .el-dialog {
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   }
 
   .el-dialog__header {
     padding: 20px 24px;
     margin: 0;
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    background: var(--el-bg-color);
     border-bottom: 1px solid var(--el-border-color-lighter);
   }
 
   .el-dialog__headerbtn {
     top: 20px;
     right: 20px;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    transition: all 0.3s;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    transition: all 0.2s;
 
     &:hover {
       background: var(--el-fill-color);
-      transform: rotate(90deg);
-    }
-
-    .el-dialog__close {
-      font-size: 18px;
     }
   }
 
   .el-dialog__body {
-    padding: 20px 24px;
+    padding: 20px;
+    background: var(--el-fill-color-lighter);
   }
 
   .el-dialog__footer {
-    padding: 16px 24px 20px;
+    padding: 16px 24px;
     background: var(--el-bg-color);
     border-top: 1px solid var(--el-border-color-lighter);
   }
