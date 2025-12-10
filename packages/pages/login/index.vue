@@ -1,10 +1,23 @@
 <script setup>
-import { useDataThemeChange, useLayout, useNav, useTranslationLang } from "@layout/default";
+import {
+  useDataThemeChange,
+  useLayout,
+  useNav,
+  useTranslationLang,
+} from "@layout/default";
 import { fetchDefaultSetting } from "@pages/setting";
 import { getConfig, setConfig } from "@repo/config";
 import { fetchVerifyCode } from "@repo/core";
 import { getParameter } from "@repo/utils";
-import { computed, defineAsyncComponent, markRaw, onBeforeMount, reactive, ref, toRaw } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  markRaw,
+  onBeforeMount,
+  reactive,
+  ref,
+  toRaw,
+} from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import ThirdParty from "./components/thirdParty.vue";
@@ -80,7 +93,8 @@ const loadDefaultSetting = async () => {
         defaultSetting.OpenThirdPartyLogin = _val;
         return;
       }
-      defaultSetting[element.sysSettingName] = element.sysSettingValue === "true";
+      defaultSetting[element.sysSettingName] =
+        element.sysSettingValue === "true";
     } else if (element.sysSettingGroup === "sso") {
       const _val = element.sysSettingValue === "true";
       ssoSetting[element.sysSettingName] = _val;
@@ -133,6 +147,24 @@ const getSwitchLoginType = () => {
   }
 };
 loginType.value = getSwitchLoginType();
+
+// 判断当前环境
+const currentEnv = import.meta.env.MODE || "production";
+const isDevelopment = currentEnv === "development" || import.meta.env.DEV;
+const isTest = currentEnv === "test";
+const showEnvBadge = computed(() => isDevelopment || isTest);
+
+// 获取环境标识文本
+const envBadgeText = computed(() => {
+  if (isDevelopment) {
+    return "开发环境";
+  }
+  return "测试环境";
+});
+
+const envBadgeClass = computed(() => {
+  return isDevelopment ? "env-dev" : "env-test";
+});
 </script>
 
 <template>
@@ -147,9 +179,26 @@ loginType.value = getSwitchLoginType();
     <!-- 顶部工具栏 -->
     <div class="modern-toolbar">
       <div class="toolbar-content">
+        <!-- 环境标识 -->
+        <div v-if="showEnvBadge" class="env-badge" :class="envBadgeClass">
+          <IconifyIconOnline
+            :icon="isDevelopment ? 'ri:code-s-slash-line' : 'ri:test-tube-line'"
+          />
+          <span>{{ envBadgeText }}</span>
+        </div>
+
+        <div class="toolbar-spacer"></div>
+
         <!-- 主题切换 -->
         <div class="theme-switch-container">
-          <el-switch v-model="dataTheme" inline-prompt :active-icon="dayIcon" :inactive-icon="darkIcon" @change="dataThemeChange" class="modern-theme-switch" />
+          <el-switch
+            v-model="dataTheme"
+            inline-prompt
+            :active-icon="dayIcon"
+            :inactive-icon="darkIcon"
+            @change="dataThemeChange"
+            class="modern-theme-switch"
+          />
         </div>
 
         <!-- 语言切换 -->
@@ -159,12 +208,30 @@ loginType.value = getSwitchLoginType();
           </div>
           <template #dropdown>
             <el-dropdown-menu class="modern-dropdown-menu">
-              <el-dropdown-item :style="getDropdownItemStyle(locale, 'zh-CN')" :class="getDropdownItemClass(locale, 'zh-CN')" @click="translationCh" class="dropdown-item">
-                <IconifyIconOffline v-show="locale === 'zh-CN'" class="check-icon" icon="@iconify-icons/ep/check" />
+              <el-dropdown-item
+                :style="getDropdownItemStyle(locale, 'zh-CN')"
+                :class="getDropdownItemClass(locale, 'zh-CN')"
+                @click="translationCh"
+                class="dropdown-item"
+              >
+                <IconifyIconOffline
+                  v-show="locale === 'zh-CN'"
+                  class="check-icon"
+                  icon="@iconify-icons/ep/check"
+                />
                 <span>简体中文</span>
               </el-dropdown-item>
-              <el-dropdown-item :style="getDropdownItemStyle(locale, 'en-US')" :class="getDropdownItemClass(locale, 'en-US')" @click="translationEn" class="dropdown-item">
-                <IconifyIconOffline v-show="locale === 'en-US'" class="check-icon" icon="@iconify-icons/ep/check" />
+              <el-dropdown-item
+                :style="getDropdownItemStyle(locale, 'en-US')"
+                :class="getDropdownItemClass(locale, 'en-US')"
+                @click="translationEn"
+                class="dropdown-item"
+              >
+                <IconifyIconOffline
+                  v-show="locale === 'en-US'"
+                  class="check-icon"
+                  icon="@iconify-icons/ep/check"
+                />
                 <span>English</span>
               </el-dropdown-item>
             </el-dropdown-menu>
@@ -188,13 +255,24 @@ loginType.value = getSwitchLoginType();
         <div class="form-section">
           <div class="form-wrapper">
             <!-- 登录表单 -->
-            <BaseLayout v-if="loginType == 1 || loginType == 2" :accountType="loginType" :defaultSetting="defaultSetting" :ssoSetting="ssoSetting" class="login-form-component" />
+            <BaseLayout
+              v-if="loginType == 1 || loginType == 2"
+              :accountType="loginType"
+              :defaultSetting="defaultSetting"
+              :ssoSetting="ssoSetting"
+              class="login-form-component"
+            />
 
             <!-- 登录类型选择 -->
             <div v-if="openSwitchLoginType" class="login-type-selector">
               <div class="selector-title">选择登录方式</div>
               <div class="selector-options">
-                <div v-if="defaultSetting.OpenBaseLogin" class="option-card" :class="{ active: loginType == 1 }" @click="handleChangeLoginType(1)">
+                <div
+                  v-if="defaultSetting.OpenBaseLogin"
+                  class="option-card"
+                  :class="{ active: loginType == 1 }"
+                  @click="handleChangeLoginType(1)"
+                >
                   <div class="option-icon-wrapper">
                     <el-icon class="option-icon">
                       <component :is="useRenderIcon('ep:user')" />
@@ -206,7 +284,12 @@ loginType.value = getSwitchLoginType();
                   </div>
                 </div>
 
-                <div v-if="defaultSetting.OpenTenantLogin" class="option-card" :class="{ active: loginType == 2 }" @click="handleChangeLoginType(2)">
+                <div
+                  v-if="defaultSetting.OpenTenantLogin"
+                  class="option-card"
+                  :class="{ active: loginType == 2 }"
+                  @click="handleChangeLoginType(2)"
+                >
                   <div class="option-icon-wrapper">
                     <el-icon class="option-icon">
                       <component :is="useRenderIcon('ep:office-building')" />
@@ -259,7 +342,12 @@ loginType.value = getSwitchLoginType();
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1) 0%, var(--el-bg-color-page) 50%, rgba(var(--el-color-primary-rgb), 0.05) 100%);
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.1) 0%,
+      var(--el-bg-color-page) 50%,
+      rgba(var(--el-color-primary-rgb), 0.05) 100%
+    );
     backdrop-filter: blur(8px);
   }
 
@@ -269,7 +357,22 @@ loginType.value = getSwitchLoginType();
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: radial-gradient(circle at 20% 80%, var(--el-color-primary-light-9) 0%, transparent 50%), radial-gradient(circle at 80% 20%, var(--el-color-primary-light-8) 0%, transparent 50%), radial-gradient(circle at 40% 40%, var(--el-color-primary-light-9) 0%, transparent 50%);
+    background-image:
+      radial-gradient(
+        circle at 20% 80%,
+        var(--el-color-primary-light-9) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 20%,
+        var(--el-color-primary-light-8) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 40% 40%,
+        var(--el-color-primary-light-9) 0%,
+        transparent 50%
+      );
     animation: float 20s ease-in-out infinite;
   }
 }
@@ -297,6 +400,48 @@ loginType.value = getSwitchLoginType();
     &:hover {
       box-shadow: var(--el-box-shadow);
       transform: translateY(-2px);
+    }
+  }
+
+  .toolbar-spacer {
+    flex: 1;
+  }
+
+  // 环境标识
+  .env-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+
+    svg {
+      font-size: 14px;
+    }
+
+    &.env-dev {
+      background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+      animation: envBadgePulse 2s ease-in-out infinite;
+    }
+
+    &.env-test {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    }
+  }
+
+  @keyframes envBadgePulse {
+    0%,
+    100% {
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    }
+    50% {
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
     }
   }
 
@@ -440,7 +585,12 @@ loginType.value = getSwitchLoginType();
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--el-fill-color-extra-light) 0%, var(--el-fill-color-lighter) 50%, var(--el-fill-color-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-fill-color-extra-light) 0%,
+    var(--el-fill-color-lighter) 50%,
+    var(--el-fill-color-light) 100%
+  );
   position: relative;
   overflow: hidden;
 
@@ -472,7 +622,11 @@ loginType.value = getSwitchLoginType();
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, var(--el-color-primary-light-9) 0%, transparent 60%);
+    background: radial-gradient(
+      circle,
+      var(--el-color-primary-light-9) 0%,
+      transparent 60%
+    );
     animation: rotate 30s linear infinite;
     z-index: 1;
   }
@@ -535,7 +689,12 @@ loginType.value = getSwitchLoginType();
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(45deg, transparent 0%, var(--el-color-primary-light-9) 50%, transparent 100%);
+    background: linear-gradient(
+      45deg,
+      transparent 0%,
+      var(--el-color-primary-light-9) 50%,
+      transparent 100%
+    );
     opacity: 0.3;
     z-index: 1;
   }
@@ -580,7 +739,12 @@ loginType.value = getSwitchLoginType();
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, var(--el-color-primary-light-9), transparent);
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--el-color-primary-light-9),
+          transparent
+        );
         transition: left 0.5s ease;
       }
 
