@@ -56,11 +56,15 @@ export function deleteScript(params) {
  * params.id 编辑修改时判断 ID
  */
 export function unbindScript(params) {
-  return http.get("/script/unbind.json", { params }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
-  });
+  return http.get(
+    "/script/unbind.json",
+    { params },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
+    }
+  );
 }
 
 // 脚本模版日志列表
@@ -92,19 +96,27 @@ export function scriptLog(params) {
 }
 
 export function syncToWorkspace(params) {
-  return http.get("/script/sync-to-workspace", { params }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
-  });
+  return http.get(
+    "/script/sync-to-workspace",
+    { params },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
+    }
+  );
 }
 
 export function getScriptItem(params) {
-  return http.get("/script/get", { params }, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
-  });
+  return http.get(
+    "/script/get",
+    { params },
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      },
+    }
+  );
 }
 
 /**
@@ -130,22 +142,22 @@ export const triggerExecTypeMap = {
 
 /** 获取服务端脚本分页列表 */
 export function getServerScriptPageList(params) {
-  return http.post("/script/list", params);
+  return http.post("/script/page", params);
 }
 
-/** 保存服务端脚本 */
+/** 保存服务端脚本（创建） */
 export function saveServerScript(params) {
-  return http.post("/script/save.json", params);
+  return http.post("/script", params);
 }
 
 /** 更新服务端脚本 */
 export function updateServerScript(params) {
-  return http.post("/script/save.json", params);
+  return http.put("/script", params);
 }
 
 /** 删除服务端脚本 */
-export function deleteServerScript(params) {
-  return http.post("/script/del.json", params);
+export function deleteServerScript(scriptId: number) {
+  return http.delete(`/script/${scriptId}`);
 }
 
 /** 复制服务端脚本 */

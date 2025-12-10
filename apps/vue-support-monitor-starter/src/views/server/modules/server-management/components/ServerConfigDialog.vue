@@ -1,12 +1,26 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="服务器配置管理"
     width="90%"
     :close-on-click-modal="false"
     destroy-on-close
     top="10px"
+    class="server-config-dialog"
   >
+    <template #header>
+      <div class="dialog-header">
+        <div class="header-icon">
+          <IconifyIconOnline icon="ri:settings-3-line" />
+        </div>
+        <div class="header-text">
+          <span class="header-title">服务器配置管理</span>
+          <span class="header-subtitle" v-if="currentServer">
+            {{ currentServer.monitorSysGenServerName }} -
+            {{ currentServer.monitorSysGenServerHost }}
+          </span>
+        </div>
+      </div>
+    </template>
     <div class="dialog-content" v-loading="loading">
       <div class="config-container">
         <!-- 左侧导航 -->
@@ -817,7 +831,52 @@ defineExpose({
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+// 对话框头部样式
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  .header-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary) 0%,
+      #6366f1 100%
+    );
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+
+    .iconify {
+      font-size: 26px;
+      color: #fff;
+    }
+  }
+
+  .header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .header-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+      letter-spacing: -0.5px;
+    }
+
+    .header-subtitle {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+}
+
 .dialog-content {
   height: 70vh;
   overflow: hidden;
@@ -827,15 +886,14 @@ defineExpose({
   display: flex;
   height: 100%;
   gap: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .config-nav {
-  width: 220px;
-  background: linear-gradient(
-    180deg,
-    var(--el-fill-color-light) 0%,
-    var(--el-bg-color) 100%
-  );
+  width: 240px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   border-right: 1px solid var(--el-border-color-lighter);
   display: flex;
   flex-direction: column;
@@ -845,36 +903,28 @@ defineExpose({
 .server-info {
   padding: 20px 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-9) 0%,
-    var(--el-fill-color-light) 100%
-  );
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
 }
 
 .server-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .server-icon-wrapper {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 100%
-  );
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
 }
 
 .server-icon {
-  font-size: 20px;
+  font-size: 22px;
   color: #fff;
 }
 
@@ -884,7 +934,7 @@ defineExpose({
 }
 
 .server-name {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary);
   margin-bottom: 4px;
@@ -899,35 +949,67 @@ defineExpose({
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: "Monaco", "Menlo", monospace;
 }
 
 .config-menu {
   border: none;
   flex: 1;
   background: transparent;
+  padding: 12px 0;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--el-border-color);
+    border-radius: 2px;
+  }
 }
 
 .config-content {
   flex: 1;
   overflow: hidden;
+  background: var(--el-bg-color);
 }
 
 .config-card {
   height: 100%;
   border: none;
   border-radius: 0;
+  box-shadow: none;
 }
 
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .card-title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &::before {
+    content: "";
+    width: 4px;
+    height: 18px;
+    background: linear-gradient(
+      180deg,
+      var(--el-color-primary) 0%,
+      #8b5cf6 100%
+    );
+    border-radius: 2px;
+  }
 }
 
 .form-container {
@@ -937,30 +1019,42 @@ defineExpose({
 }
 
 .config-form {
-  padding: 20px;
+  padding: 24px;
   height: 100%;
   overflow: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--el-border-color);
+    border-radius: 3px;
+  }
 }
 
 .config-section {
-  max-width: 800px;
+  max-width: 860px;
 
   .section-description {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 
     .el-alert {
-      border-radius: 8px;
+      border-radius: 12px;
       border: none;
-      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+      padding: 16px 20px;
 
       :deep(.el-alert__title) {
         font-weight: 600;
-        color: #0369a1;
+        font-size: 14px;
+        color: #1e40af;
       }
 
       :deep(.el-alert__description) {
-        color: #0284c7;
-        line-height: 1.5;
+        color: #3b82f6;
+        line-height: 1.6;
+        margin-top: 6px;
       }
     }
   }
@@ -968,13 +1062,13 @@ defineExpose({
   .switch-wrapper {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 
     .help-icon {
-      font-size: 14px;
-      color: var(--el-text-color-primary);
+      font-size: 15px;
+      color: var(--el-text-color-secondary);
       cursor: help;
-      transition: color 0.3s;
+      transition: all 0.3s;
 
       &:hover {
         color: #409eff;
@@ -984,31 +1078,59 @@ defineExpose({
 }
 
 .form-tip {
-  margin-left: 8px;
+  margin-left: 10px;
   font-size: 12px;
-  color: var(--el-text-color-primary);
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
+// 菜单项样式
 :deep(.el-menu-item) {
-  border-radius: 8px;
-  margin: 4px 8px;
-  transition: all 0.3s ease;
+  border-radius: 10px;
+  margin: 4px 12px;
+  height: 44px;
+  line-height: 44px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 14px;
+
+  .iconify {
+    font-size: 18px;
+    margin-right: 10px;
+    transition: all 0.3s;
+  }
 
   &:hover {
-    background-color: #f5f7fa;
+    background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
     transform: translateX(4px);
+    color: var(--el-color-primary);
+
+    .iconify {
+      transform: scale(1.1);
+    }
   }
 }
 
 :deep(.el-menu-item.is-active) {
-  background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
-  color: var(--el-text-color-primary);
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, #8b5cf6 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  font-weight: 500;
+
+  .iconify {
+    color: #fff;
+  }
 
   &:hover {
-    background: linear-gradient(135deg, #337ecc 0%, #529b2e 100%);
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
     transform: translateX(4px);
   }
+}
+
+:deep(.el-card__header) {
+  padding: 0;
+  border: none;
 }
 
 :deep(.el-card__body) {
@@ -1020,34 +1142,47 @@ defineExpose({
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 16px;
+  padding-top: 8px;
 
   .cancel-btn {
-    border-radius: 8px;
-    min-width: 88px;
+    border-radius: 10px;
+    min-width: 100px;
+    height: 40px;
+    font-weight: 500;
     transition: all 0.3s ease;
+    border: 1px solid var(--el-border-color);
 
     &:hover {
-      background: var(--el-fill-color);
-      transform: translateY(-1px);
+      background: var(--el-fill-color-light);
+      border-color: var(--el-border-color-darker);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
   }
 
   .save-btn {
-    border-radius: 8px;
-    min-width: 110px;
+    border-radius: 10px;
+    min-width: 120px;
+    height: 40px;
+    font-weight: 500;
     background: linear-gradient(
       135deg,
       var(--el-color-primary) 0%,
-      var(--el-color-primary-light-3) 100%
+      #8b5cf6 100%
     );
     border: none;
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.35);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
     transition: all 0.3s ease;
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.45);
+      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.45);
+      background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    }
+
+    &:active {
+      transform: translateY(0);
     }
   }
 }
@@ -1118,29 +1253,6 @@ defineExpose({
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-.config-menu {
-  :deep(.el-menu-item) {
-    transition: all 0.3s ease;
-    border-radius: 8px;
-    margin: 4px 8px;
-
-    &:hover {
-      background-color: #f0f9ff;
-      transform: translateX(4px);
-    }
-
-    &.is-active {
-      background: linear-gradient(135deg, #ecf5ff 0%, #e1f3d8 100%);
-      color: #409eff;
-      font-weight: 600;
-
-      .iconify {
-        color: #409eff;
-      }
-    }
   }
 }
 
@@ -1313,5 +1425,51 @@ defineExpose({
   font-size: 13px;
   font-weight: 600;
   color: #606266;
+}
+</style>
+
+<!-- 全局对话框样式 -->
+<style lang="scss">
+.server-config-dialog {
+  .el-dialog {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+
+  .el-dialog__header {
+    padding: 20px 24px;
+    margin: 0;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  .el-dialog__headerbtn {
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    transition: all 0.3s;
+
+    &:hover {
+      background: var(--el-fill-color);
+      transform: rotate(90deg);
+    }
+
+    .el-dialog__close {
+      font-size: 18px;
+    }
+  }
+
+  .el-dialog__body {
+    padding: 20px 24px;
+  }
+
+  .el-dialog__footer {
+    padding: 16px 24px 20px;
+    background: var(--el-bg-color);
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
 }
 </style>

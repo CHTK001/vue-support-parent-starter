@@ -1,10 +1,10 @@
 <template>
   <div class="account-list">
-    <!-- 工具栏 -->
+    <!-- 工具栏（保留刷新功能，添加账户已移到顶部） -->
     <div class="toolbar">
-      <el-tooltip content="添加账户" placement="top">
-        <el-button type="primary" @click="handleAdd">
-          <IconifyIconOnline icon="mdi:plus" />
+      <el-tooltip content="刷新" placement="top">
+        <el-button type="primary" @click="refresh">
+          <IconifyIconOnline icon="mdi:refresh" />
         </el-button>
       </el-tooltip>
     </div>
@@ -143,14 +143,6 @@ function getStatusType(
 function getStatusLabel(status: string) {
   const item = ACCOUNT_STATUS.find((s) => s.value === status);
   return item?.label || status || "未知";
-}
-
-/**
- * 添加账户
- */
-function handleAdd() {
-  currentAccount.value = undefined;
-  dialogVisible.value = true;
 }
 
 /**

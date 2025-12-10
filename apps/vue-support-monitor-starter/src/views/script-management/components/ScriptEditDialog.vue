@@ -167,6 +167,7 @@ const emit = defineEmits<{
 // 响应式数据
 const formRef = ref<FormInstance>();
 const saving = ref(false);
+const activeSubTab = ref("edit");
 
 const scriptForm = reactive({
   monitorSysGenScriptId: null as number | null,
@@ -204,6 +205,9 @@ watch(
   () => props.visible,
   (newVal) => {
     if (newVal) {
+      // 重置 Tab 到编辑页
+      activeSubTab.value = "edit";
+
       if (props.scriptData) {
         // 编辑模式
         Object.assign(scriptForm, {
@@ -218,11 +222,12 @@ watch(
             props.scriptData.monitorSysGenScriptStatus || "ENABLED",
         });
       } else {
-        // 新建模式
+        // 新建模式 - 重置表单并加载默认模板
         resetForm();
       }
     }
-  }
+  },
+  { immediate: true }
 );
 
 // 方法
@@ -354,17 +359,20 @@ const handleSave = async () => {
 
     saving.value = true;
 
-    const scriptData = {
-      monitorSysGenScriptId: scriptForm.monitorSysGenScriptId || undefined,
+    const scriptData: Record<string, unknown> = {
       monitorSysGenScriptName: scriptForm.monitorSysGenScriptName,
       monitorSysGenScriptDescription: scriptForm.monitorSysGenScriptDescription,
       monitorSysGenScriptContent: scriptForm.monitorSysGenScriptContent,
       monitorSysGenScriptType: scriptForm.monitorSysGenScriptType,
-      monitorSysGenScriptLanguage: scriptForm.monitorSysGenScriptType,
       monitorSysGenScriptVersion: "1.0.0",
       monitorSysGenScriptTimeout: 300,
       monitorSysGenScriptStatus: scriptForm.monitorSysGenScriptStatus,
     };
+
+    // 编辑模式时添加 ID
+    if (scriptForm.monitorSysGenScriptId) {
+      scriptData.monitorSysGenScriptId = scriptForm.monitorSysGenScriptId;
+    }
 
     const response = scriptForm.monitorSysGenScriptId
       ? await updateServerScript(scriptData)
@@ -377,11 +385,13 @@ const handleSave = async () => {
       emit("save", { ...scriptForm });
       handleClose();
     } else {
-      ElMessage.error("保存脚本失败");
+      ElMessage.error(response.msg || "保存脚本失败");
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("保存脚本失败:", error);
-    ElMessage.error("保存脚本失败");
+    const errorMsg =
+      error?.response?.data?.msg || error?.message || "保存脚本失败";
+    ElMessage.error(errorMsg);
   } finally {
     saving.value = false;
   }

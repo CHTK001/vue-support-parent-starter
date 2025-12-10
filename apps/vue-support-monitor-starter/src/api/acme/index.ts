@@ -209,44 +209,71 @@ export function getCertOrders(certId: number) {
 
 // ======================== 常量定义 ========================
 
-/** ACME 服务器列表 */
-export const ACME_SERVERS = [
-  // Let's Encrypt - 最流行的免费证书颁发机构
+/** ACME 服务器分组列表 */
+export const ACME_SERVER_GROUPS = [
   {
-    label: "Let's Encrypt (生产)",
-    value: "https://acme-v02.api.letsencrypt.org/directory",
+    label: "国内推荐",
+    options: [{ label: "HiCA", value: "https://acme.hi.cn/directory" }],
   },
   {
-    label: "Let's Encrypt (测试)",
-    value: "https://acme-staging-v02.api.letsencrypt.org/directory",
+    label: "免费证书",
+    options: [
+      {
+        label: "Let's Encrypt (生产)",
+        value: "https://acme-v02.api.letsencrypt.org/directory",
+      },
+      {
+        label: "Let's Encrypt (测试)",
+        value: "https://acme-staging-v02.api.letsencrypt.org/directory",
+      },
+      { label: "ZeroSSL", value: "https://acme.zerossl.com/v2/DV90" },
+      {
+        label: "Buypass (生产)",
+        value: "https://api.buypass.com/acme/directory",
+      },
+      {
+        label: "Buypass (测试)",
+        value: "https://api.test4.buypass.no/acme/directory",
+      },
+    ],
   },
-  // ZeroSSL - 免费SSL证书
-  { label: "ZeroSSL", value: "https://acme.zerossl.com/v2/DV90" },
-  // Buypass - 挪威证书颁发机构
-  { label: "Buypass (生产)", value: "https://api.buypass.com/acme/directory" },
   {
-    label: "Buypass (测试)",
-    value: "https://api.test4.buypass.no/acme/directory",
+    label: "Google",
+    options: [
+      {
+        label: "Google Trust Services",
+        value: "https://dv.acme-v02.api.pki.goog/directory",
+      },
+      {
+        label: "Google Trust Services (测试)",
+        value: "https://dv.acme-v02.test-api.pki.goog/directory",
+      },
+    ],
   },
-  // Google Trust Services - Google 证书颁发机构
   {
-    label: "Google Trust Services",
-    value: "https://dv.acme-v02.api.pki.goog/directory",
+    label: "商业证书",
+    options: [
+      { label: "SSL.com (RSA)", value: "https://acme.ssl.com/sslcom-dv-rsa" },
+      { label: "SSL.com (ECC)", value: "https://acme.ssl.com/sslcom-dv-ecc" },
+      {
+        label: "DigiCert",
+        value: "https://acme.digicert.com/v2/acme/directory",
+      },
+      { label: "Sectigo", value: "https://acme.sectigo.com/v2/DV" },
+    ],
   },
   {
-    label: "Google Trust Services (测试)",
-    value: "https://dv.acme-v02.test-api.pki.goog/directory",
+    label: "测试环境",
+    options: [
+      { label: "Pebble (本地测试)", value: "https://localhost:14000/dir" },
+    ],
   },
-  // SSL.com - 商业证书颁发机构
-  { label: "SSL.com", value: "https://acme.ssl.com/sslcom-dv-rsa" },
-  { label: "SSL.com (ECC)", value: "https://acme.ssl.com/sslcom-dv-ecc" },
-  // DigiCert - 商业证书颁发机构
-  { label: "DigiCert", value: "https://acme.digicert.com/v2/acme/directory" },
-  // Sectigo - 商业证书颁发机构
-  { label: "Sectigo", value: "https://acme.sectigo.com/v2/DV" },
-  // Pebble - 本地测试用
-  { label: "Pebble (本地测试)", value: "https://localhost:14000/dir" },
 ];
+
+/** ACME 服务器扁平列表（兼容旧代码） */
+export const ACME_SERVERS = ACME_SERVER_GROUPS.flatMap(
+  (group) => group.options
+);
 
 /** 验证类型 */
 export const CHALLENGE_TYPES = [

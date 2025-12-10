@@ -26,21 +26,37 @@
       </div>
     </div>
 
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" class="cert-form">
+    <el-form
+      ref="formRef"
+      :model="form"
+      :rules="rules"
+      label-width="100px"
+      class="cert-form"
+    >
       <!-- ACME 账户 -->
       <el-form-item label="ACME账户" prop="acmeAccountId">
         <el-select
           v-model="form.acmeAccountId"
           placeholder="请选择ACME账户"
           style="width: 100%"
-          :empty-text="accountList.length === 0 ? '暂无账户，请先创建' : '无数据'"
+          popper-class="account-select-dropdown"
+          :empty-text="
+            accountList.length === 0 ? '暂无账户，请先创建' : '无数据'
+          "
         >
           <el-option
             v-for="item in accountList"
             :key="item.acmeAccountId"
             :label="item.acmeAccountEmail"
             :value="item.acmeAccountId"
-          />
+          >
+            <div class="account-option">
+              <el-tag size="small" type="primary" effect="plain">
+                {{ getServerName(item.acmeAccountServer) }}
+              </el-tag>
+              <span class="account-email">{{ item.acmeAccountEmail }}</span>
+            </div>
+          </el-option>
         </el-select>
         <div class="field-desc">
           <IconifyIconOnline icon="mdi:information-outline" />
@@ -50,10 +66,7 @@
 
       <!-- 主域名 -->
       <el-form-item label="主域名" prop="primaryDomain">
-        <el-input
-          v-model="form.primaryDomain"
-          placeholder="example.com"
-        >
+        <el-input v-model="form.primaryDomain" placeholder="example.com">
           <template #prefix>
             <IconifyIconOnline icon="mdi:web" />
           </template>
@@ -62,7 +75,7 @@
           <IconifyIconOnline icon="mdi:information-outline" />
           <span>
             证书的主域名，支持格式：
-            <code>example.com</code>（单域名）或 
+            <code>example.com</code>（单域名）或
             <code>*.example.com</code>（泛域名）
           </span>
         </div>
@@ -84,7 +97,8 @@
           <IconifyIconOnline icon="mdi:information-outline" />
           <span>
             SAN（Subject Alternative Name）备用域名，一张证书可包含多个域名。
-            例如同时保护 <code>www.example.com</code> 和 <code>api.example.com</code>
+            例如同时保护 <code>www.example.com</code> 和
+            <code>api.example.com</code>
           </span>
         </div>
       </el-form-item>
@@ -100,7 +114,10 @@
         >
           <template #card="{ item, selected }">
             <div class="challenge-card" :class="{ active: selected }">
-              <div class="card-icon" :class="item.value === 'HTTP-01' ? 'http' : 'dns'">
+              <div
+                class="card-icon"
+                :class="item.value === 'HTTP-01' ? 'http' : 'dns'"
+              >
                 <IconifyIconOnline :icon="item.icon" />
               </div>
               <div class="card-content">
@@ -126,25 +143,37 @@
             <div class="guide-step">
               <span class="step-badge">1</span>
               <div class="step-content">
-                <p>提交申请后，系统会生成一个<strong>唯一的验证 Token</strong>（由 ACME 服务器自动生成）</p>
+                <p>
+                  提交申请后，系统会生成一个<strong>唯一的验证 Token</strong
+                  >（由 ACME 服务器自动生成）
+                </p>
               </div>
             </div>
             <div class="guide-step">
               <span class="step-badge">2</span>
               <div class="step-content">
                 <p>您需要在 Web 服务器上创建验证文件，路径为：</p>
-                <code class="code-block">http://{{ form.primaryDomain || '您的域名' }}/.well-known/acme-challenge/[TOKEN]</code>
+                <code class="code-block"
+                  >http://{{
+                    form.primaryDomain || "您的域名"
+                  }}/.well-known/acme-challenge/[TOKEN]</code
+                >
               </div>
             </div>
             <div class="guide-step">
               <span class="step-badge">3</span>
               <div class="step-content">
-                <p>文件内容为系统提供的验证字符串，ACME 服务器会通过 HTTP 请求访问该文件来验证域名所有权</p>
+                <p>
+                  文件内容为系统提供的验证字符串，ACME 服务器会通过 HTTP
+                  请求访问该文件来验证域名所有权
+                </p>
               </div>
             </div>
             <div class="guide-note">
               <IconifyIconOnline icon="mdi:lightbulb-outline" />
-              <span>提示：HTTP-01 不支持泛域名证书，泛域名请使用 DNS-01 验证</span>
+              <span
+                >提示：HTTP-01 不支持泛域名证书，泛域名请使用 DNS-01 验证</span
+              >
             </div>
           </div>
         </template>
@@ -157,25 +186,36 @@
             <div class="guide-step">
               <span class="step-badge">1</span>
               <div class="step-content">
-                <p>提交申请后，系统会生成一个<strong>唯一的验证值</strong>（由 ACME 服务器自动生成）</p>
+                <p>
+                  提交申请后，系统会生成一个<strong>唯一的验证值</strong>（由
+                  ACME 服务器自动生成）
+                </p>
               </div>
             </div>
             <div class="guide-step">
               <span class="step-badge">2</span>
               <div class="step-content">
                 <p>您需要在 DNS 服务商处添加一条 TXT 记录：</p>
-                <code class="code-block">_acme-challenge.{{ form.primaryDomain || '您的域名' }}  TXT  [验证值]</code>
+                <code class="code-block"
+                  >_acme-challenge.{{ form.primaryDomain || "您的域名" }} TXT
+                  [验证值]</code
+                >
               </div>
             </div>
             <div class="guide-step">
               <span class="step-badge">3</span>
               <div class="step-content">
-                <p>DNS 记录生效后（通常需要几分钟到几小时），ACME 服务器会查询该记录来验证域名所有权</p>
+                <p>
+                  DNS 记录生效后（通常需要几分钟到几小时），ACME
+                  服务器会查询该记录来验证域名所有权
+                </p>
               </div>
             </div>
             <div class="guide-note success">
               <IconifyIconOnline icon="mdi:check-circle-outline" />
-              <span>优点：DNS-01 支持泛域名证书，且无需在 Web 服务器上配置</span>
+              <span
+                >优点：DNS-01 支持泛域名证书，且无需在 Web 服务器上配置</span
+              >
             </div>
           </div>
         </template>
@@ -201,23 +241,24 @@ import ScSelect from "@repo/components/ScSelect/index.vue";
 import {
   getAccountList,
   applyCert,
+  ACME_SERVERS,
   type AcmeAccount,
 } from "@/api/acme";
 
 // 验证类型选项
 const challengeOptions = [
-  { 
-    label: "HTTP-01", 
-    value: "HTTP-01", 
+  {
+    label: "HTTP-01",
+    value: "HTTP-01",
     icon: "mdi:web",
-    desc: "文件验证"
+    desc: "文件验证",
   },
-  { 
-    label: "DNS-01", 
-    value: "DNS-01", 
+  {
+    label: "DNS-01",
+    value: "DNS-01",
     icon: "mdi:dns",
-    desc: "DNS记录验证"
-  }
+    desc: "DNS记录验证",
+  },
 ];
 
 defineOptions({
@@ -251,7 +292,12 @@ const form = reactive({
 
 const rules: FormRules = {
   acmeAccountId: [
-    { required: true, message: "请选择ACME账户", trigger: "change", type: "number" },
+    {
+      required: true,
+      message: "请选择ACME账户",
+      trigger: "change",
+      type: "number",
+    },
   ],
   primaryDomain: [
     { required: true, message: "请输入主域名", trigger: "blur" },
@@ -266,6 +312,14 @@ const rules: FormRules = {
     { required: true, message: "请选择验证类型", trigger: "change" },
   ],
 };
+
+/**
+ * 获取服务器名称
+ */
+function getServerName(url: string): string {
+  const server = ACME_SERVERS.find((s) => s.value === url);
+  return server?.label || "未知服务器";
+}
 
 /**
  * 加载账户列表
@@ -574,6 +628,17 @@ onMounted(() => {
   }
 }
 
+// 账户选项样式
+.account-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .account-email {
+    color: var(--el-text-color-regular);
+  }
+}
+
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
@@ -582,5 +647,18 @@ onMounted(() => {
 
 .mr-1 {
   margin-right: 4px;
+}
+</style>
+
+<!-- 全局样式：账户下拉菜单宽度 -->
+<style lang="scss">
+.account-select-dropdown {
+  min-width: 400px !important;
+
+  .el-select-dropdown__item {
+    padding: 8px 16px;
+    height: auto;
+    line-height: 1.5;
+  }
 }
 </style>

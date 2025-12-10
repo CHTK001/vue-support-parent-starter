@@ -789,10 +789,11 @@ const rules = {
  */
 const open = async (editMode: "add" | "edit" = "add") => {
   mode.value = editMode;
-  visible.value = true;
 
-  // 加载服务器组列表
+  // 先加载服务器组列表，再显示对话框
   await loadServerGroups();
+
+  visible.value = true;
 
   // 根据协议设置默认端口
   if (editMode === "add") {
@@ -869,11 +870,15 @@ const setData = async (data: ServerDisplayData | any) => {
 const loadServerGroups = async () => {
   try {
     const result = await getEnabledServerGroups();
+    console.log("[ServerEditDialog] 服务器组加载结果:", result);
     if (result.success && result.data) {
       serverGroups.value = result.data;
+      console.log("[ServerEditDialog] 服务器组列表:", serverGroups.value);
+    } else {
+      console.warn("[ServerEditDialog] 服务器组加载失败或数据为空:", result);
     }
   } catch (error) {
-    console.error("加载服务器组失败:", error);
+    console.error("[ServerEditDialog] 加载服务器组失败:", error);
   }
 };
 
