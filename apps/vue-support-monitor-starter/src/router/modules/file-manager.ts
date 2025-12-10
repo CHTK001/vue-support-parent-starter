@@ -20,7 +20,7 @@ export default [
       {
         path: "/file/manager",
         name: "fileManagerIndex",
-        component: () => import("@/views/file-manager/index.vue"),
+        component: () => import("@repo/system/SystemFileSystem"),
         meta: {
           icon: "ri:file-list-3-line",
           title: "文件存储",
