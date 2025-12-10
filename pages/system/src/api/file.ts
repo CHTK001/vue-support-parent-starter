@@ -274,16 +274,42 @@ export const updateFileSystemSetting = (
   });
 };
 
+// ==================== 服务器控制接口 ====================
+
 /**
- * 切换文件服务开关
- * @param enabled 是否启用
+ * 启动文件服务器
  * @returns 操作结果
  */
-export const toggleFileServer = (
-  enabled: boolean
+export const startFileServer = (): Promise<ReturnResult<boolean>> => {
+  return http.request("post", "/v2/file/server/start");
+};
+
+/**
+ * 停止文件服务器
+ * @returns 操作结果
+ */
+export const stopFileServer = (): Promise<ReturnResult<boolean>> => {
+  return http.request("post", "/v2/file/server/stop");
+};
+
+/**
+ * 获取文件服务器状态
+ * @returns 服务器状态（running/stopped）
+ */
+export const getFileServerStatus = (): Promise<ReturnResult<string>> => {
+  return http.request("get", "/v2/file/server/status");
+};
+
+/**
+ * 检查端口是否可用
+ * @param port 端口号
+ * @returns 是否可用
+ */
+export const checkPortAvailable = (
+  port: number
 ): Promise<ReturnResult<boolean>> => {
-  return http.request("post", "/v2/file/setting/toggle-server", {
-    params: { enabled },
+  return http.request("get", "/v2/file/server/check-port", {
+    params: { port },
   });
 };
 

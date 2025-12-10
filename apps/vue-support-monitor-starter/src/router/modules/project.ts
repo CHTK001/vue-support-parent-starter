@@ -1,4 +1,8 @@
 import type { RouteConfigsTable } from "@repo/core";
+import { getConfig } from "@repo/config";
+
+// 读取配置，判断是否显示 AI 功能
+const showAiChat = getConfig("ShowAiChat") ?? false;
 
 export default [
   {
@@ -18,6 +22,7 @@ export default [
         meta: {
           icon: "ep:folder",
           title: "大语言模型",
+          showLink: showAiChat,
         },
         children: [
           {
@@ -40,6 +45,7 @@ export default [
         meta: {
           icon: "ep:folder",
           title: "文生图模型",
+          showLink: showAiChat,
         },
         children: [
           {
