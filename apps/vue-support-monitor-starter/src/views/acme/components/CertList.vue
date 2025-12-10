@@ -37,14 +37,11 @@
         </el-form-item>
       </el-form>
       <div class="toolbar-right">
-        <el-button type="primary" @click="emit('apply')">
-          <IconifyIconOnline icon="mdi:plus" />
-          申请证书
-        </el-button>
-        <el-button @click="handleRenewCheck">
-          <IconifyIconOnline icon="mdi:autorenew" />
-          检查续签
-        </el-button>
+        <el-tooltip content="检查续签" placement="top">
+          <el-button type="primary" @click="handleRenewCheck">
+            <IconifyIconOnline icon="mdi:autorenew" />
+          </el-button>
+        </el-tooltip>
       </div>
     </div>
 
@@ -167,10 +164,6 @@ defineOptions({
   name: "CertList",
 });
 
-const emit = defineEmits<{
-  apply: [];
-}>();
-
 const loading = ref(false);
 const tableRef = ref();
 const tableData = ref<AcmeCertificate[]>([]);
@@ -193,9 +186,16 @@ const pagination = reactive({
 /**
  * 获取状态类型
  */
-function getStatusType(status: string) {
+function getStatusType(
+  status: string
+): "success" | "warning" | "danger" | "info" | "primary" {
   const item = CERT_STATUS.find((s) => s.value === status);
-  return item?.type || "info";
+  return (item?.type || "info") as
+    | "success"
+    | "warning"
+    | "danger"
+    | "info"
+    | "primary";
 }
 
 /**
@@ -388,6 +388,5 @@ onMounted(() => {
     color: var(--el-color-danger);
     font-weight: 500;
   }
-
 }
 </style>

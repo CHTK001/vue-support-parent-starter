@@ -56,18 +56,33 @@
           v-model="form.acmeAccountServer"
           placeholder="请选择ACME服务器"
           class="form-select"
+          :popper-options="{
+            modifiers: [
+              { name: 'computeStyles', options: { adaptive: false } },
+            ],
+          }"
+          popper-class="acme-server-dropdown"
         >
-          <el-option
-            v-for="item in ACME_SERVERS"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
+          <el-option-group
+            v-for="group in ACME_SERVER_GROUPS"
+            :key="group.label"
+            :label="group.label"
           >
-            <div class="server-option">
-              <IconifyIconOnline icon="mdi:shield-check" class="option-icon" />
-              <span>{{ item.label }}</span>
-            </div>
-          </el-option>
+            <el-option
+              v-for="item in group.options"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            >
+              <div class="server-option">
+                <IconifyIconOnline
+                  icon="mdi:shield-check"
+                  class="option-icon"
+                />
+                <span>{{ item.label }}</span>
+              </div>
+            </el-option>
+          </el-option-group>
         </el-select>
       </el-form-item>
 
@@ -118,7 +133,12 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
-import { saveAccount, ACME_SERVERS, type AcmeAccount } from "@/api/acme";
+import {
+  saveAccount,
+  ACME_SERVER_GROUPS,
+  ACME_SERVERS,
+  type AcmeAccount,
+} from "@/api/acme";
 
 defineOptions({
   name: "AccountDialog",
@@ -337,5 +357,22 @@ watch(
 
 .submit-btn {
   min-width: 120px;
+}
+</style>
+
+<!-- 全局样式：下拉菜单宽度 -->
+<style lang="scss">
+.acme-server-dropdown {
+  min-width: 480px !important;
+
+  .el-select-dropdown__item {
+    padding: 8px 16px;
+  }
+
+  .el-select-group__title {
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    padding-left: 16px;
+  }
 }
 </style>

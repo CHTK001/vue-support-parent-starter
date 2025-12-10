@@ -72,7 +72,12 @@
                 show-alpha
                 :predefine="colorPresets"
               />
-              <span class="color-preview" :style="{ backgroundColor: formData.monitorSysGenServerGroupColor }"></span>
+              <span
+                class="color-preview"
+                :style="{
+                  backgroundColor: formData.monitorSysGenServerGroupColor,
+                }"
+              ></span>
             </el-form-item>
           </el-col>
         </el-row>
@@ -135,12 +140,18 @@
           <div class="preview-card">
             <IconifyIconOnline
               :icon="formData.monitorSysGenServerGroupIcon || 'ri:folder-line'"
-              :style="{ color: formData.monitorSysGenServerGroupColor || '#409eff' }"
+              :style="{
+                color: formData.monitorSysGenServerGroupColor || '#409eff',
+              }"
               class="preview-icon"
             />
             <div class="preview-info">
-              <div class="preview-name">{{ formData.monitorSysGenServerGroupName || '分组名称' }}</div>
-              <div class="preview-desc">{{ formData.monitorSysGenServerGroupDesc || '分组描述' }}</div>
+              <div class="preview-name">
+                {{ formData.monitorSysGenServerGroupName || "分组名称" }}
+              </div>
+              <div class="preview-desc">
+                {{ formData.monitorSysGenServerGroupDesc || "分组描述" }}
+              </div>
             </div>
             <div class="preview-badges">
               <el-tag
@@ -152,11 +163,19 @@
                 默认
               </el-tag>
               <el-tag
-                :type="formData.monitorSysGenServerGroupStatus === 1 ? 'success' : 'danger'"
+                :type="
+                  formData.monitorSysGenServerGroupStatus === 1
+                    ? 'success'
+                    : 'danger'
+                "
                 size="small"
                 effect="light"
               >
-                {{ formData.monitorSysGenServerGroupStatus === 1 ? '启用' : '禁用' }}
+                {{
+                  formData.monitorSysGenServerGroupStatus === 1
+                    ? "启用"
+                    : "禁用"
+                }}
               </el-tag>
             </div>
           </div>
@@ -168,7 +187,7 @@
       <div class="dialog-footer">
         <el-button @click="visible = false">取消</el-button>
         <el-button type="primary" :loading="loading" @click="handleSubmit">
-          {{ mode === 'add' ? '新增' : '保存' }}
+          {{ mode === "add" ? "新增" : "保存" }}
         </el-button>
       </div>
     </template>
@@ -176,14 +195,14 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, reactive, ref } from 'vue';
-import { message } from '@repo/utils';
+import { nextTick, reactive, ref } from "vue";
+import { message } from "@repo/utils";
 import {
   type ServerGroup,
   createServerGroup,
   updateServerGroup,
-  checkGroupNameExists
-} from '@/api/server/group';
+  checkGroupNameExists,
+} from "@/api/server/group";
 
 // 定义事件
 const emit = defineEmits<{
@@ -193,91 +212,107 @@ const emit = defineEmits<{
 // 响应式状态
 const visible = ref(false);
 const loading = ref(false);
-const mode = ref<'add' | 'edit'>('add');
+const mode = ref<"add" | "edit">("add");
 const formRef = ref();
 
 // 表单数据
 const formData = reactive({
   monitorSysGenServerGroupId: null as number | null,
-  monitorSysGenServerGroupName: '',
-  monitorSysGenServerGroupDesc: '',
-  monitorSysGenServerGroupIcon: 'ri:folder-line',
-  monitorSysGenServerGroupColor: '#409eff',
+  monitorSysGenServerGroupName: "",
+  monitorSysGenServerGroupDesc: "",
+  monitorSysGenServerGroupIcon: "ri:folder-line",
+  monitorSysGenServerGroupColor: "#409eff",
   monitorSysGenServerGroupStatus: 1,
   monitorSysGenServerGroupIsDefault: 0,
   monitorSysGenServerGroupSort: 0,
-  monitorSysGenServerGroupRemark: ''
+  monitorSysGenServerGroupRemark: "",
 });
 
 // 图标选项
 const iconOptions = [
-  { label: '文件夹', value: 'ri:folder-line' },
-  { label: '服务器', value: 'ri:server-line' },
-  { label: '云服务', value: 'ri:cloud-line' },
-  { label: '数据库', value: 'ri:database-line' },
-  { label: '网络', value: 'ri:global-line' },
-  { label: '安全', value: 'ri:shield-line' },
-  { label: '开发', value: 'ri:code-line' },
-  { label: '测试', value: 'ri:test-tube-line' },
-  { label: '生产', value: 'ri:rocket-line' },
-  { label: '监控', value: 'ri:eye-line' },
-  { label: '工具', value: 'ri:tools-line' },
-  { label: '设置', value: 'ri:settings-line' }
+  { label: "文件夹", value: "ri:folder-line" },
+  { label: "服务器", value: "ri:server-line" },
+  { label: "云服务", value: "ri:cloud-line" },
+  { label: "数据库", value: "ri:database-line" },
+  { label: "网络", value: "ri:global-line" },
+  { label: "安全", value: "ri:shield-line" },
+  { label: "开发", value: "ri:code-line" },
+  { label: "测试", value: "ri:test-tube-line" },
+  { label: "生产", value: "ri:rocket-line" },
+  { label: "监控", value: "ri:eye-line" },
+  { label: "工具", value: "ri:tools-line" },
+  { label: "设置", value: "ri:settings-line" },
 ];
 
 // 颜色预设
 const colorPresets = [
-  '#409eff',
-  '#67c23a',
-  '#e6a23c',
-  '#f56c6c',
-  '#909399',
-  '#c71585',
-  '#ff6347',
-  '#32cd32',
-  '#1e90ff',
-  '#ff1493'
+  "#409eff",
+  "#67c23a",
+  "#e6a23c",
+  "#f56c6c",
+  "#909399",
+  "#c71585",
+  "#ff6347",
+  "#32cd32",
+  "#1e90ff",
+  "#ff1493",
 ];
 
 // 表单验证规则
 const rules = {
   monitorSysGenServerGroupName: [
-    { required: true, message: '请输入分组名称', trigger: 'blur' },
-    { min: 1, max: 50, message: '分组名称长度在 1 到 50 个字符', trigger: 'blur' },
+    { required: true, message: "请输入分组名称", trigger: "blur" },
+    {
+      min: 1,
+      max: 50,
+      message: "分组名称长度在 1 到 50 个字符",
+      trigger: "blur",
+    },
     {
       validator: async (rule: any, value: string, callback: any) => {
         if (!value) return callback();
-        
+
         try {
-          const result = await checkGroupNameExists(value, formData.monitorSysGenServerGroupId || undefined);
-          if (result.success && result.data) {
-            callback(new Error('分组名称已存在'));
+          const excludeId = formData.monitorSysGenServerGroupId || undefined;
+          console.log(
+            "[分组名称校验] 检查名称:",
+            value,
+            ", 排除ID:",
+            excludeId,
+            ", 模式:",
+            mode.value
+          );
+          const result = await checkGroupNameExists(value, excludeId);
+          console.log("[分组名称校验] 校验结果:", result);
+          if (result.success && result.data === true) {
+            callback(new Error("分组名称已存在"));
           } else {
             callback();
           }
         } catch (error) {
+          console.error("[分组名称校验] 错误:", error);
           callback();
         }
       },
-      trigger: 'blur'
-    }
+      trigger: "blur",
+    },
   ],
   monitorSysGenServerGroupDesc: [
-    { max: 200, message: '分组描述最多 200 个字符', trigger: 'blur' }
+    { max: 200, message: "分组描述最多 200 个字符", trigger: "blur" },
   ],
   monitorSysGenServerGroupRemark: [
-    { max: 500, message: '备注最多 500 个字符', trigger: 'blur' }
-  ]
+    { max: 500, message: "备注最多 500 个字符", trigger: "blur" },
+  ],
 };
 
 /**
  * 打开对话框
  */
-const open = (editMode: 'add' | 'edit' = 'add', data?: ServerGroup) => {
+const open = (editMode: "add" | "edit" = "add", data?: ServerGroup) => {
   mode.value = editMode;
   visible.value = true;
-  
-  if (editMode === 'edit' && data) {
+
+  if (editMode === "edit" && data) {
     setData(data);
   } else {
     resetForm();
@@ -290,14 +325,17 @@ const open = (editMode: 'add' | 'edit' = 'add', data?: ServerGroup) => {
 const setData = (data: ServerGroup) => {
   Object.assign(formData, {
     monitorSysGenServerGroupId: data.monitorSysGenServerGroupId,
-    monitorSysGenServerGroupName: data.monitorSysGenServerGroupName || '',
-    monitorSysGenServerGroupDesc: data.monitorSysGenServerGroupDesc || '',
-    monitorSysGenServerGroupIcon: data.monitorSysGenServerGroupIcon || 'ri:folder-line',
-    monitorSysGenServerGroupColor: data.monitorSysGenServerGroupColor || '#409eff',
+    monitorSysGenServerGroupName: data.monitorSysGenServerGroupName || "",
+    monitorSysGenServerGroupDesc: data.monitorSysGenServerGroupDesc || "",
+    monitorSysGenServerGroupIcon:
+      data.monitorSysGenServerGroupIcon || "ri:folder-line",
+    monitorSysGenServerGroupColor:
+      data.monitorSysGenServerGroupColor || "#409eff",
     monitorSysGenServerGroupStatus: data.monitorSysGenServerGroupStatus ?? 1,
-    monitorSysGenServerGroupIsDefault: data.monitorSysGenServerGroupIsDefault ?? 0,
+    monitorSysGenServerGroupIsDefault:
+      data.monitorSysGenServerGroupIsDefault ?? 0,
     monitorSysGenServerGroupSort: data.monitorSysGenServerGroupSort ?? 0,
-    monitorSysGenServerGroupRemark: data.monitorSysGenServerGroupRemark || ''
+    monitorSysGenServerGroupRemark: data.monitorSysGenServerGroupRemark || "",
   });
 };
 
@@ -307,16 +345,16 @@ const setData = (data: ServerGroup) => {
 const resetForm = () => {
   Object.assign(formData, {
     monitorSysGenServerGroupId: null,
-    monitorSysGenServerGroupName: '',
-    monitorSysGenServerGroupDesc: '',
-    monitorSysGenServerGroupIcon: 'ri:folder-line',
-    monitorSysGenServerGroupColor: '#409eff',
+    monitorSysGenServerGroupName: "",
+    monitorSysGenServerGroupDesc: "",
+    monitorSysGenServerGroupIcon: "ri:folder-line",
+    monitorSysGenServerGroupColor: "#409eff",
     monitorSysGenServerGroupStatus: 1,
     monitorSysGenServerGroupIsDefault: 0,
     monitorSysGenServerGroupSort: 0,
-    monitorSysGenServerGroupRemark: ''
+    monitorSysGenServerGroupRemark: "",
   });
-  
+
   nextTick(() => {
     formRef.value?.clearValidate();
   });
@@ -330,28 +368,30 @@ const handleSubmit = async () => {
     // 表单验证
     const isValid = await formRef.value?.validate().catch(() => false);
     if (!isValid) return;
-    
+
     loading.value = true;
-    
+
     const submitData = { ...formData };
-    
+
     let result;
-    if (mode.value === 'add') {
+    if (mode.value === "add") {
       result = await createServerGroup(submitData);
     } else {
       result = await updateServerGroup(submitData);
     }
-    
+
     if (result.success) {
-      message.success(`${mode.value === 'add' ? '新增' : '编辑'}分组成功`);
+      message.success(`${mode.value === "add" ? "新增" : "编辑"}分组成功`);
       visible.value = false;
-      emit('success');
+      emit("success");
     } else {
-      message.error(result.message || `${mode.value === 'add' ? '新增' : '编辑'}分组失败`);
+      message.error(
+        result.message || `${mode.value === "add" ? "新增" : "编辑"}分组失败`
+      );
     }
   } catch (error) {
-    console.error('提交分组失败:', error);
-    message.error(`${mode.value === 'add' ? '新增' : '编辑'}分组失败`);
+    console.error("提交分组失败:", error);
+    message.error(`${mode.value === "add" ? "新增" : "编辑"}分组失败`);
   } finally {
     loading.value = false;
   }
@@ -360,7 +400,7 @@ const handleSubmit = async () => {
 // 暴露方法
 defineExpose({
   open,
-  setData
+  setData,
 });
 </script>
 
@@ -377,12 +417,12 @@ defineExpose({
       display: flex;
       align-items: center;
       gap: 8px;
-      
+
       .iconify {
         font-size: 16px;
       }
     }
-    
+
     .color-preview {
       display: inline-block;
       width: 20px;
@@ -391,26 +431,26 @@ defineExpose({
       margin-left: 8px;
       border: 1px solid var(--el-border-color);
     }
-    
+
     .form-tip {
       font-size: 12px;
       color: var(--el-text-color-secondary);
       margin-top: 4px;
     }
   }
-  
+
   .preview-section {
     margin-top: 24px;
     padding-top: 20px;
     border-top: 1px solid var(--el-border-color-light);
-    
+
     .preview-title {
       font-size: 14px;
       font-weight: 600;
       color: var(--el-text-color-primary);
       margin-bottom: 12px;
     }
-    
+
     .group-preview {
       .preview-card {
         display: flex;
@@ -420,29 +460,29 @@ defineExpose({
         background: var(--el-fill-color-extra-light);
         border-radius: 8px;
         border: 1px solid var(--el-border-color-light);
-        
+
         .preview-icon {
           font-size: 24px;
           flex-shrink: 0;
         }
-        
+
         .preview-info {
           flex: 1;
           min-width: 0;
-          
+
           .preview-name {
             font-size: 16px;
             font-weight: 600;
             color: var(--el-text-color-primary);
             margin-bottom: 4px;
           }
-          
+
           .preview-desc {
             font-size: 12px;
             color: var(--el-text-color-secondary);
           }
         }
-        
+
         .preview-badges {
           display: flex;
           gap: 8px;

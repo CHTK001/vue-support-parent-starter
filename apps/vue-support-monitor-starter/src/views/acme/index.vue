@@ -38,20 +38,42 @@
 
     <!-- 标签页切换 -->
     <el-card class="main-card">
-      <el-tabs v-model="activeTab">
-        <el-tab-pane label="证书列表" name="certs">
-          <CertList ref="certListRef" @apply="handleApplyCert" />
-        </el-tab-pane>
-        <el-tab-pane label="账户管理" name="accounts">
-          <AccountList ref="accountListRef" />
-        </el-tab-pane>
-      </el-tabs>
+      <div class="tabs-header">
+        <el-tabs v-model="activeTab" class="tabs-content">
+          <el-tab-pane label="证书列表" name="certs" />
+          <el-tab-pane label="账户管理" name="accounts" />
+        </el-tabs>
+        <div class="tabs-actions">
+          <el-button type="primary" @click="handleApplyCert">
+            <IconifyIconOnline icon="mdi:certificate-outline" />
+            申请证书
+          </el-button>
+          <el-button @click="handleAddAccount">
+            <IconifyIconOnline icon="mdi:account-plus" />
+            添加账户
+          </el-button>
+        </div>
+      </div>
+      <!-- 证书列表内容 -->
+      <div v-show="activeTab === 'certs'">
+        <CertList ref="certListRef" />
+      </div>
+      <!-- 账户管理内容 -->
+      <div v-show="activeTab === 'accounts'">
+        <AccountList ref="accountListRef" />
+      </div>
     </el-card>
 
     <!-- 申请证书对话框 -->
     <ApplyCertDialog
       v-model:visible="applyDialogVisible"
       @success="handleApplySuccess"
+    />
+
+    <!-- 添加账户对话框 -->
+    <AccountDialog
+      v-model:visible="accountDialogVisible"
+      @success="handleAccountSuccess"
     />
   </div>
 </template>
@@ -63,6 +85,7 @@ import ScCard from "@repo/components/ScCard/index.vue";
 import CertList from "./components/CertList.vue";
 import AccountList from "./components/AccountList.vue";
 import ApplyCertDialog from "./components/ApplyCertDialog.vue";
+import AccountDialog from "./components/AccountDialog.vue";
 
 defineOptions({
   name: "AcmeCertManagement",
@@ -72,6 +95,7 @@ const activeTab = ref("certs");
 const certListRef = ref();
 const accountListRef = ref();
 const applyDialogVisible = ref(false);
+const accountDialogVisible = ref(false);
 
 const stats = ref<AcmeCertStats>({
   accountCount: 0,
@@ -104,11 +128,26 @@ function handleApplyCert() {
 }
 
 /**
+ * 打开添加账户对话框
+ */
+function handleAddAccount() {
+  accountDialogVisible.value = true;
+}
+
+/**
  * 申请成功回调
  */
 function handleApplySuccess() {
   loadStats();
   certListRef.value?.refresh();
+}
+
+/**
+ * 账户添加成功回调
+ */
+function handleAccountSuccess() {
+  loadStats();
+  accountListRef.value?.refresh();
 }
 
 onMounted(() => {
@@ -136,6 +175,32 @@ onMounted(() => {
   .main-card {
     flex: 1;
     min-height: 500px;
+
+    .tabs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+
+      .tabs-content {
+        flex: 1;
+
+        :deep(.el-tabs__header) {
+          margin-bottom: 0;
+        }
+
+        :deep(.el-tabs__nav-wrap::after) {
+          display: none;
+        }
+      }
+
+      .tabs-actions {
+        display: flex;
+        gap: 12px;
+        padding-bottom: 10px;
+      }
+    }
   }
 }
 </style>
