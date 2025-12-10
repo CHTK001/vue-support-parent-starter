@@ -44,6 +44,18 @@ export default [
         },
       },
       {
+        path: "/filesystem/index",
+        name: "FileSystemIndex",
+        component: async () => {
+          const { SystemFileSystem } = await import("@pages/system");
+          return SystemFileSystem;
+        },
+        meta: {
+          title: "文件管理",
+          icon: "ep:files",
+        },
+      },
+      {
         path: "/log/system/index",
         name: "LogSystemIndex",
         component: async () => {
@@ -52,7 +64,7 @@ export default [
         },
         meta: {
           title: "系统日志",
-          icon: "ep:files",
+          icon: "simple-icons:logstash",
         },
       },
     ],

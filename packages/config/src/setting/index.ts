@@ -55,7 +55,7 @@ export const globalSetting: PlatformConfigs = {
   ShowBarMessage: false,
   ShowLanguage: true,
   ShowBarSearch: true,
-  ShowAiChat: true,
+  ShowAiChat: false,
   AiChatTheme: "default",
 
   // ===========================================
