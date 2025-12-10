@@ -119,12 +119,14 @@
     z-index: 2000;
     width: $sideBarWidth !important;
     height: 100%;
-    overflow: visible;
+    overflow: hidden;
     font-size: 0;
     background: var(--pure-theme-menu-bg) !important;
     border-right: 1px solid rgba(0, 0, 0, 0.03);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
     backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
 
     /* 展开动画 */
     transition:
@@ -133,6 +135,12 @@
 
     .scrollbar-wrapper {
       overflow-x: hidden !important;
+    }
+
+    /* 确保滚动条容器正确填充剩余空间 */
+    .el-scrollbar {
+      flex: 1;
+      min-height: 0;
     }
 
     .el-scrollbar__bar.is-vertical {
@@ -960,9 +968,28 @@ body[layout="double"] {
     background: var(--pure-theme-menu-bg);
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
     border-right: 1px solid var(--el-border-color-light);
+    overflow: hidden;
   }
 
   .double-nav-left {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    /* 左栏滚动条高度 */
+    .el-scrollbar {
+      flex: 1;
+      height: 0;
+    }
+
+    &.has-logo .el-scrollbar {
+      height: calc(100% - 60px);
+    }
+
+    &.no-logo .el-scrollbar {
+      height: 100%;
+    }
     width: $leftPanelWidth;
     background: var(--pure-theme-sidebar-logo);
     border-right: 1px solid var(--el-border-color-light);
@@ -1031,9 +1058,30 @@ body[layout="double"] {
   .double-nav-right {
     flex: 1;
     width: $rightPanelWidth;
-    background: linear-gradient(180deg, var(--pure-theme-menu-bg) 0%, rgba(var(--el-color-primary-rgb), 0.02) 100%);
+    height: 100%;
+    background: linear-gradient(
+      180deg,
+      var(--pure-theme-menu-bg) 0%,
+      rgba(var(--el-color-primary-rgb), 0.02) 100%
+    );
     overflow: hidden;
     position: relative;
+    display: flex;
+    flex-direction: column;
+
+    /* 右栏滚动条高度 */
+    .el-scrollbar {
+      flex: 1;
+      height: 0;
+    }
+
+    &.has-logo .el-scrollbar {
+      height: calc(100% - 60px);
+    }
+
+    &.no-logo .el-scrollbar {
+      height: 100%;
+    }
 
     /* 顶部装饰线 */
     &::before {
@@ -1043,7 +1091,12 @@ body[layout="double"] {
       left: 16px;
       right: 16px;
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.2), transparent);
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(var(--el-color-primary-rgb), 0.2),
+        transparent
+      );
     }
 
     .sub-menu-list {
@@ -1067,7 +1120,11 @@ body[layout="double"] {
           content: "";
           position: absolute;
           inset: 0;
-          background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.08) 0%, rgba(var(--el-color-primary-rgb), 0.03) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(var(--el-color-primary-rgb), 0.08) 0%,
+            rgba(var(--el-color-primary-rgb), 0.03) 100%
+          );
           opacity: 0;
           transition: opacity 0.3s ease;
           border-radius: 12px;
@@ -1087,7 +1144,11 @@ body[layout="double"] {
         }
 
         &.is-active {
-          background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+          background: linear-gradient(
+            135deg,
+            var(--el-color-primary) 0%,
+            var(--el-color-primary-light-3) 100%
+          );
           color: var(--pure-menu-active-text-color) !important;
           box-shadow:
             0 4px 12px rgba(var(--el-color-primary-rgb), 0.3),
@@ -1129,7 +1190,11 @@ body[layout="double"] {
         }
 
         &.is-opened > .el-sub-menu__title {
-          background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.12) 0%, rgba(var(--el-color-primary-rgb), 0.06) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(var(--el-color-primary-rgb), 0.12) 0%,
+            rgba(var(--el-color-primary-rgb), 0.06) 100%
+          );
           font-weight: 500;
 
           .sub-menu-icon {
