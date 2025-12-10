@@ -236,7 +236,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from "vue";
-import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { message } from "@repo/utils";
+import { type FormInstance, type FormRules } from "element-plus";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import {
   getAccountList,
@@ -345,11 +346,11 @@ async function handleSubmit() {
   submitting.value = true;
   try {
     await applyCert(form);
-    ElMessage.success("证书申请已提交，请完成域名验证");
+    message("证书申请已提交，请完成域名验证", { type: "success" });
     dialogVisible.value = false;
     emit("success");
   } catch (error) {
-    ElMessage.error("申请失败");
+    message("申请失败", { type: "error" });
   } finally {
     submitting.value = false;
   }

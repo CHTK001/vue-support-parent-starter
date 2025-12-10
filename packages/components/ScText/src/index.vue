@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted, h, type VNode } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import TypeIt from "typeit";
 import type { ScTextProps, ScTextType, ScTextSize, ScTextEffect, TypeItInstance } from "./types";
 
@@ -337,10 +337,10 @@ async function copyText(): Promise<void> {
   const text = props.copyText || props.text || "";
   try {
     await navigator.clipboard.writeText(text);
-    ElMessage.success(props.copySuccessText);
+    message(props.copySuccessText, { type: "success" });
     emit("copy", text);
   } catch {
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 }
 

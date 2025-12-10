@@ -47,7 +47,7 @@
 <script setup>
 import { ref } from "vue";
 import ScPromQL from "./index.vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 // 自定义 PromQL 示例
 const customExamples = [
@@ -89,25 +89,16 @@ const selectedQuery = ref("");
 // 处理选择查询的事件
 const handleSelectQuery = query => {
   selectedQuery.value = query;
-  ElMessage({
-    message: "已选择查询，可以点击执行按钮来模拟执行",
-    type: "success"
-  });
+  message("已选择查询，可以点击执行按钮来模拟执行", { type: "success" });
 };
 
 // 模拟执行查询
 const executeQuery = () => {
-  ElMessage({
-    message: "正在执行查询: " + selectedQuery.value,
-    type: "info"
-  });
+  message("正在执行查询: " + selectedQuery.value, { type: "info" });
 
   // 这里可以添加实际的查询执行逻辑，例如调用 Prometheus API
   setTimeout(() => {
-    ElMessage({
-      message: "查询执行完成！",
-      type: "success"
-    });
+    message("查询执行完成！", { type: "success" });
   }, 1500);
 };
 </script>

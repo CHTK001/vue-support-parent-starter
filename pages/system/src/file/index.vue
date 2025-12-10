@@ -2,13 +2,6 @@
   <div class="file-management">
     <!-- 页面头部 -->
     <div class="page-header">
-      <div class="header-left">
-        <h1 class="page-title">
-          <IconifyIconOnline icon="ri:folder-cloud-line" class="title-icon" />
-          文件管理1
-        </h1>
-        <p class="page-subtitle">文件上传、存储与管理</p>
-      </div>
       <div class="header-right">
         <el-button
           v-auth="'file:upload'"
@@ -633,39 +626,18 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .file-management {
-  padding: 24px;
+  padding: 16px;
   background: var(--el-bg-color-page);
-  min-height: calc(100vh - 100px);
+  height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
 }
 
 .page-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-
-  .header-left {
-    .page-title {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 0 0 8px 0;
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
-
-      .title-icon {
-        font-size: 28px;
-        color: var(--el-color-primary);
-      }
-    }
-
-    .page-subtitle {
-      margin: 0;
-      font-size: 14px;
-      color: var(--el-text-color-secondary);
-    }
-  }
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 16px;
 
   .header-right {
     display: flex;
@@ -716,6 +688,8 @@ onMounted(() => {
   background: var(--el-bg-color);
   border-radius: 12px;
   overflow: hidden;
+  flex: 1;
+  min-height: 0;
 }
 
 .file-name-cell {

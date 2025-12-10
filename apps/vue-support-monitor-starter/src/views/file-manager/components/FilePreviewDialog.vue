@@ -178,7 +178,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
+import { message } from "@repo/utils";
 import { Loading } from '@element-plus/icons-vue'
 import { formatBytes } from '@pureadmin/utils'
 import dayjs from 'dayjs'
@@ -462,9 +462,9 @@ const downloadFile = async () => {
   
   try {
     // 这里应该调用实际的下载API
-    ElMessage.success(`开始下载 ${props.file.name}`)
+    message(`开始下载 ${props.file.name}`, { type: "success" })
   } catch (error) {
-    ElMessage.error('下载失败')
+    message('下载失败', { type: "error" })
     console.error(error)
   }
 }
@@ -474,9 +474,9 @@ const copyPath = async () => {
   
   try {
     await navigator.clipboard.writeText(props.file.path)
-    ElMessage.success('文件路径已复制到剪贴板')
+    message('文件路径已复制到剪贴板', { type: "success" })
   } catch (error) {
-    ElMessage.error('复制失败')
+    message('复制失败', { type: "error" })
     console.error(error)
   }
 }
@@ -486,9 +486,9 @@ const copyTextContent = async () => {
   
   try {
     await navigator.clipboard.writeText(textContent.value)
-    ElMessage.success('内容已复制到剪贴板')
+    message('内容已复制到剪贴板', { type: "success" })
   } catch (error) {
-    ElMessage.error('复制失败')
+    message('复制失败', { type: "error" })
     console.error(error)
   }
 }

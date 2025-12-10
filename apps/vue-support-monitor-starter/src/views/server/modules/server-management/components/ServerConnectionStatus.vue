@@ -57,7 +57,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { testServerConnection } from "@/api/server";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
@@ -166,7 +166,7 @@ const formatTime = (time: string | Date) => {
 // 测试连接
 const testConnection = async () => {
   if (!props.serverId) {
-    ElMessage.warning("服务器ID不能为空");
+    message("服务器ID不能为空", { type: "warning" });
     return;
   }
 
@@ -177,18 +177,18 @@ const testConnection = async () => {
     const result = await testServerConnection(props.serverId.toString());
 
     if (result.data) {
-      ElMessage.success("连接测试成功");
+      message("连接测试成功", { type: "success" });
       emit("statusChange", CONNECTION_STATUS.ONLINE);
       emit("testComplete", true);
     } else {
       const errorMsg = result.msg || "连接测试失败";
-      ElMessage.error(errorMsg);
+      message(errorMsg, { type: "error" });
       emit("statusChange", CONNECTION_STATUS.FAILED, errorMsg);
       emit("testComplete", false, errorMsg);
     }
   } catch (error: any) {
     const errorMsg = error.message || "连接测试异常";
-    ElMessage.error(errorMsg);
+    message(errorMsg, { type: "error" });
     emit("statusChange", CONNECTION_STATUS.FAILED, errorMsg);
     emit("testComplete", false, errorMsg);
   } finally {

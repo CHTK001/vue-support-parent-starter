@@ -154,7 +154,7 @@ const addRecipient = (type, value) => {
   // 简单的邮箱验证
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(value)) {
-    ElMessage.warning("请输入有效的邮箱地址");
+    message("请输入有效的邮箱地址", { type: "warning" });
     return;
   }
 
@@ -237,12 +237,12 @@ const formatFileSize = (bytes) => {
 const sendEmail = () => {
   // 验证表单
   if (emailForm.value.emailRecipients.emailTo.length === 0) {
-    ElMessage.warning("请至少添加一个收件人");
+    message("请至少添加一个收件人", { type: "warning" });
     return;
   }
 
   if (!emailForm.value.emailSubject) {
-    ElMessage.warning("请输入邮件主题");
+    message("请输入邮件主题", { type: "warning" });
     return;
   }
 

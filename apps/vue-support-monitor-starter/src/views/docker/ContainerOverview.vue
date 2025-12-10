@@ -116,7 +116,7 @@ import {
     type ContainerStatusStatistics,
     type SystemSoftContainer
 } from '@/api/docker'
-import { ElMessage } from 'element-plus'
+import { message } from "@repo/utils";
 import { onMounted, reactive, ref } from 'vue'
 
 // 导入组件
@@ -167,7 +167,7 @@ const loadContainerList = async () => {
       calculateOverviewStats()
     }
   } catch (error) {
-    ElMessage.error('加载容器列表失败')
+    message('加载容器列表失败', { type: "error" })
   } finally {
     loading.value = false
   }

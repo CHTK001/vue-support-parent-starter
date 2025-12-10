@@ -6,7 +6,7 @@
  */
 
 import { ref, reactive } from 'vue';
-import { ElMessage } from 'element-plus';
+import { message } from "@repo/utils";
 // import { io, Socket } from 'socket.io-client';
 
 // Socket连接状态
@@ -133,13 +133,13 @@ class WebRTCSocketService {
       setTimeout(() => {
         this.status.value = SocketStatus.CONNECTED;
         this.emit('user-online', { userInfo: this.currentUser.value });
-        ElMessage.success('WebRTC服务连接成功');
+        message('WebRTC服务连接成功', { type: "success" });
       }, 1000);
       
     } catch (error) {
       console.error('Socket连接失败:', error);
       this.status.value = SocketStatus.ERROR;
-      ElMessage.error('WebRTC服务连接失败');
+      message('WebRTC服务连接失败', { type: "error" });
       throw error;
     }
   }
@@ -409,7 +409,7 @@ class WebRTCSocketService {
     // 错误处理
     this.socket.on('error', (data: any) => {
       console.error('Socket错误:', data);
-      ElMessage.error(data.message || '发生未知错误');
+      message(data.message || '发生未知错误', { type: "error" });
     });
     
     // 通知处理
@@ -417,16 +417,16 @@ class WebRTCSocketService {
       console.log('收到通知:', data);
       switch (data.type) {
         case 'success':
-          ElMessage.success(data.message);
+          message(data.message, { type: "success" });
           break;
         case 'warning':
-          ElMessage.warning(data.message);
+          message(data.message, { type: "warning" });
           break;
         case 'error':
-          ElMessage.error(data.message);
+          message(data.message, { type: "error" });
           break;
         default:
-          ElMessage.info(data.message);
+          message(data.message, { type: "info" });
       }
     });
     

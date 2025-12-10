@@ -106,7 +106,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import ScUpload from "@repo/components/ScUpload/index.vue";
 import DemoBlock from "./DemoBlock.vue";
 
@@ -149,7 +149,7 @@ const handleFileSelect = (file: any) => {
 const handleManualUpload = () => {
   if (manualUploadRef.value) {
     manualUploadRef.value.submit();
-    ElMessage.success("开始上传");
+    message("开始上传", { type: "success" });
   }
 };
 

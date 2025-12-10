@@ -379,7 +379,8 @@ import { useRouter } from "vue-router";
 import { ServerDataStatic } from "@/types/server-data";
 import EditDialog from "./modules/EditDialog.vue";
 import ConsoleSettingDialog from "./modules/ConsoleSettingDialog.vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import BackConsoleDialog from "./modules/BackConsoleDialog.vue";
 import { format } from "sql-formatter";
 import Prism from "prismjs"; // ② 高亮核心
@@ -586,7 +587,7 @@ function openSetting(row: SystemDataSetting) {
 }
 
 function onSavedSetting() {
-  ElMessage.success("已保存控制台设置");
+  message("已保存控制台设置", { type: "success" });
 }
 
 async function remove(row: SystemDataSetting) {
@@ -595,7 +596,7 @@ async function remove(row: SystemDataSetting) {
   });
   const res = await deleteSystemDataSetting(row.systemDataSettingId as number);
   if (res?.success) {
-    ElMessage.success("已删除");
+    message("已删除", { type: "success" });
     load();
   }
 }
@@ -611,7 +612,7 @@ async function toggleBackup(row: SystemDataSetting) {
   const on = backupOn.value[id];
   const res = on ? await stopBackup(id) : await startBackup(id);
   if (!res?.success) {
-    ElMessage.error(res?.msg || "操作失败");
+    message(res?.msg || "操作失败", { type: "error" });
     return;
   }
   backupOn.value[id] = !on;
@@ -624,17 +625,17 @@ async function onUploadDriver(row: SystemDataSetting, fileEvent: any) {
       return;
     }
     if (!row.systemDataSettingId) {
-      ElMessage.warning("请先保存配置再上传驱动");
+      message("请先保存配置再上传驱动", { type: "warning" });
       return;
     }
     const res = await uploadJdbcDriver(row.systemDataSettingId, raw);
     if (!res?.success) {
-      ElMessage.error(res?.msg || "上传失败");
+      message(res?.msg || "上传失败", { type: "error" });
       return;
     }
-    ElMessage.success("上传成功");
+    message("上传成功", { type: "success" });
   } catch (e: any) {
-    ElMessage.error(e?.message || "上传失败");
+    message(e?.message || "上传失败", { type: "error" });
   }
 }
 

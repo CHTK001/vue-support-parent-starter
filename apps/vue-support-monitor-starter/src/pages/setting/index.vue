@@ -124,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { onMounted, reactive } from "vue";
 
 type NavMode = "side" | "top" | "mix";
@@ -146,13 +146,13 @@ onMounted(() => {
 
 const save = () => {
   localStorage.setItem(STORAGE_KEY, form.navMode);
-  ElMessage.success("已保存导航模式");
+  message("已保存导航模式", { type: "success" });
 };
 
 const reset = () => {
   form.navMode = "side";
   localStorage.removeItem(STORAGE_KEY);
-  ElMessage.success("已重置导航模式");
+  message("已重置导航模式", { type: "success" });
 };
 </script>
 

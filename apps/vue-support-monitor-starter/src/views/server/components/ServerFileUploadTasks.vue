@@ -149,7 +149,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import {
   getServerFileUploadTaskPage,
   startServerFileUploadTask,
@@ -243,7 +244,7 @@ const loadTaskList = async () => {
     pagination.total = data.total;
   } catch (error: any) {
     console.error("加载任务列表失败:", error);
-    ElMessage.error(error.message || "加载任务列表失败");
+    message(error.message || "加载任务列表失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -278,7 +279,7 @@ const handleCreateTask = () => {
 };
 
 const handleUploadSuccess = (task: ServerFileUploadTask) => {
-  ElMessage.success("上传任务创建成功");
+  message("上传任务创建成功", { type: "success" });
   loadTaskList();
   emit("taskUpdated");
 };
@@ -286,11 +287,11 @@ const handleUploadSuccess = (task: ServerFileUploadTask) => {
 const handleStartTask = async (task: ServerFileUploadTask) => {
   try {
     await startServerFileUploadTask(task.monitorSysGenServerFileUploadTaskId);
-    ElMessage.success("任务启动成功");
+    message("任务启动成功", { type: "success" });
     loadTaskList();
     emit("taskUpdated");
   } catch (error: any) {
-    ElMessage.error(error.message || "启动任务失败");
+    message(error.message || "启动任务失败", { type: "error" });
   }
 };
 
@@ -301,12 +302,12 @@ const handleCancelTask = async (task: ServerFileUploadTask) => {
     });
 
     await cancelServerFileUploadTask(task.monitorSysGenServerFileUploadTaskId);
-    ElMessage.success("任务取消成功");
+    message("任务取消成功", { type: "success" });
     loadTaskList();
     emit("taskUpdated");
   } catch (error: any) {
     if (error !== "cancel") {
-      ElMessage.error(error.message || "取消任务失败");
+      message(error.message || "取消任务失败", { type: "error" });
     }
   }
 };
@@ -314,11 +315,11 @@ const handleCancelTask = async (task: ServerFileUploadTask) => {
 const handleRetryTask = async (task: ServerFileUploadTask) => {
   try {
     await retryServerFileUploadTask(task.monitorSysGenServerFileUploadTaskId);
-    ElMessage.success("任务重试成功");
+    message("任务重试成功", { type: "success" });
     loadTaskList();
     emit("taskUpdated");
   } catch (error: any) {
-    ElMessage.error(error.message || "重试任务失败");
+    message(error.message || "重试任务失败", { type: "error" });
   }
 };
 
@@ -329,12 +330,12 @@ const handleDeleteTask = async (task: ServerFileUploadTask) => {
     });
 
     await deleteServerFileUploadTask(task.monitorSysGenServerFileUploadTaskId);
-    ElMessage.success("任务删除成功");
+    message("任务删除成功", { type: "success" });
     loadTaskList();
     emit("taskUpdated");
   } catch (error: any) {
     if (error !== "cancel") {
-      ElMessage.error(error.message || "删除任务失败");
+      message(error.message || "删除任务失败", { type: "error" });
     }
   }
 };
@@ -353,12 +354,12 @@ const handleBatchCancel = async () => {
     const taskIds = selectedTasks.value.map(task => task.monitorSysGenServerFileUploadTaskId);
     await batchCancelTasks(taskIds);
 
-    ElMessage.success("批量取消成功");
+    message("批量取消成功", { type: "success" });
     loadTaskList();
     emit("taskUpdated");
   } catch (error: any) {
     if (error !== "cancel") {
-      ElMessage.error(error.message || "批量取消失败");
+      message(error.message || "批量取消失败", { type: "error" });
     }
   }
 };
@@ -372,12 +373,12 @@ const handleBatchRetry = async () => {
     const taskIds = selectedTasks.value.map(task => task.monitorSysGenServerFileUploadTaskId);
     await batchRetryTasks(taskIds);
 
-    ElMessage.success("批量重试成功");
+    message("批量重试成功", { type: "success" });
     loadTaskList();
     emit("taskUpdated");
   } catch (error: any) {
     if (error !== "cancel") {
-      ElMessage.error(error.message || "批量重试失败");
+      message(error.message || "批量重试失败", { type: "error" });
     }
   }
 };
@@ -393,12 +394,12 @@ const handleBatchDelete = async () => {
 
     await Promise.all(promises);
 
-    ElMessage.success("批量删除成功");
+    message("批量删除成功", { type: "success" });
     loadTaskList();
     emit("taskUpdated");
   } catch (error: any) {
     if (error !== "cancel") {
-      ElMessage.error(error.message || "批量删除失败");
+      message(error.message || "批量删除失败", { type: "error" });
     }
   }
 };

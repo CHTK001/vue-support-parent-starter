@@ -64,7 +64,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
-import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { message } from "@repo/utils";
+import { type FormInstance, type FormRules } from "element-plus";
 import { cloneSystemServer, type SystemServer } from "@/api/system-server";
 
 // Props
@@ -150,14 +151,14 @@ const handleSubmit = async () => {
     );
     
     if (response.success) {
-      ElMessage.success('克隆成功');
+      message('克隆成功', { type: "success" });
       emit('success');
     } else {
-      ElMessage.error(response.msg || '克隆失败');
+      message(response.msg || '克隆失败', { type: "error" });
     }
   } catch (error) {
     console.error('克隆服务器失败:', error);
-    ElMessage.error('克隆失败');
+    message('克隆失败', { type: "error" });
   } finally {
     loading.value = false;
   }

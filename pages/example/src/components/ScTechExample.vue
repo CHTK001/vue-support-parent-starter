@@ -351,7 +351,7 @@
  * @version 1.0.0
  */
 import { ref } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import ScButton from "@repo/components/ScButton/index.vue";
 import ScCard from "@repo/components/ScCard/index.vue";
@@ -367,7 +367,7 @@ const config = ref({
 });
 
 const handleSave = () => {
-  ElMessage.success("配置保存成功");
+  message("配置保存成功", { type: "success" });
   showTechDialog.value = false;
 };
 </script>

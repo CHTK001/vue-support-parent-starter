@@ -7,7 +7,7 @@
 
 import { ref, reactive, onUnmounted } from "vue";
 import { WebSocketManager } from "@/utils/websocket";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { getWebSocketTopics } from "@/api/soft";
 
 // WebSocket消息类型
@@ -230,7 +230,7 @@ export function useSoftWebSocket() {
         onMaxReconnectAttemptsReached: () => {
           console.error('软件管理WebSocket重连次数已达上限');
           state.error = '连接失败，请刷新页面重试';
-          ElMessage.error('WebSocket连接失败，实时功能不可用');
+          message('WebSocket连接失败，实时功能不可用', { type: "error" });
         }
       });
       

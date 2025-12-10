@@ -84,7 +84,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import ScMessageDialog from "@repo/components/ScMessageDialog/index.vue";
 import CodePreview from "./CodePreview.vue";
 
@@ -238,7 +238,7 @@ function addOperation() {
     createdAt: Date.now(),
   });
 
-  ElMessage.success("已添加新操作");
+  message("已添加新操作", { type: "success" });
 }
 
 function simulateProgress() {
@@ -264,7 +264,7 @@ function simulateProgress() {
           status: "completed",
         };
         clearInterval(interval);
-        ElMessage.success(`操作 ${current.title} 完成`);
+        message(`操作 ${current.title} 完成`, { type: "success" });
       } else {
         operations.value[idx] = { ...current, progress: newProgress };
       }
@@ -274,18 +274,18 @@ function simulateProgress() {
 
 function clearOperations() {
   operations.value = [];
-  ElMessage.info("已清空所有操作");
+  message("已清空所有操作", { type: "info" });
 }
 
 function handleClear() {
   operations.value = operations.value.filter(
     (op) => op.status === "pending" || op.status === "running"
   );
-  ElMessage.success("已清除已完成的操作");
+  message("已清除已完成的操作", { type: "success" });
 }
 
 function handleDialogClose() {
-  ElMessage.info("对话框已关闭");
+  message("对话框已关闭", { type: "info" });
 }
 </script>
 

@@ -325,7 +325,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted, computed } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { executeServerScript, executeNodeScript } from "@/api/server/script";
 import { fetchScriptUploadRecords } from "@/api/script-upload";
 
@@ -457,7 +457,7 @@ const resetForm = () => {
 
 const handleExecute = async () => {
   if (!props.scriptData) {
-    ElMessage.warning("请选择要执行的脚本");
+    message("请选择要执行的脚本", { type: "warning" });
     return;
   }
 
@@ -481,7 +481,7 @@ const handleExecute = async () => {
         props.scriptData.monitorSysGenScriptServerId ||
         props.scriptData.serverId;
       if (!serverId) {
-        ElMessage.warning("请选择服务器");
+        message("请选择服务器", { type: "warning" });
         return;
       }
       const resp = await executeServerScript({
@@ -504,7 +504,7 @@ const handleExecute = async () => {
           stdout: ex.monitorSysGenScriptExecutionStdout,
           stderr: ex.monitorSysGenScriptExecutionStderr,
         };
-        ElMessage.success("已提交执行");
+        message("已提交执行", { type: "success" });
         emit("success");
       } else {
         throw new Error(resp.msg || "执行失败");
@@ -520,7 +520,7 @@ const handleExecute = async () => {
         "SHELL";
       const nodeId = selectedNodeId.value;
       if (!nodeId) {
-        ElMessage.warning("请选择节点");
+        message("请选择节点", { type: "warning" });
         return;
       }
       const resp = await executeNodeScript({
@@ -530,14 +530,14 @@ const handleExecute = async () => {
         timeout: baseParams.timeout,
       });
       if (resp.success) {
-        ElMessage.success("已提交执行");
+        message("已提交执行", { type: "success" });
         emit("success");
       } else {
         throw new Error(resp.msg || "执行失败");
       }
     }
   } catch (error: any) {
-    ElMessage.error(error?.message || "脚本执行失败");
+    message(error?.message || "脚本执行失败", { type: "error" });
   } finally {
     executing.value = false;
   }
@@ -553,9 +553,9 @@ const handleStop = async () => {
       executionResult.value.endTime = new Date();
     }
 
-    ElMessage.success("脚本执行已停止");
+    message("脚本执行已停止", { type: "success" });
   } catch (error) {
-    ElMessage.error("停止脚本失败");
+    message("停止脚本失败", { type: "error" });
   } finally {
     stopping.value = false;
   }
@@ -583,10 +583,10 @@ const formatDuration = (duration: number | null) => {
 const copyToClipboard = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text || '');
-    ElMessage.success('已复制到剪贴板');
+    message('已复制到剪贴板', { type: "success" });
   } catch (err) {
     console.error('复制失败:', err);
-    ElMessage.error('复制失败');
+    message('复制失败', { type: "error" });
   }
 };
 

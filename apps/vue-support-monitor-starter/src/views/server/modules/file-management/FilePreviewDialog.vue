@@ -150,7 +150,7 @@ import {
 } from "@/api/server/file-management";
 import { formatBytes } from "@pureadmin/utils";
 import dayjs from "dayjs";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { computed, nextTick, ref, watch } from "vue";
 
 // Props
@@ -432,13 +432,13 @@ const downloadFile = async () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      ElMessage.success("文件下载开始");
+      message("文件下载开始", { type: "success" });
     } else {
-      ElMessage.error(response.message || "文件下载失败");
+      message(response.message || "文件下载失败", { type: "error" });
     }
   } catch (err: any) {
     console.error("Download file error:", err);
-    ElMessage.error(err.message || "文件下载失败");
+    message(err.message || "文件下载失败", { type: "error" });
   }
 };
 
@@ -446,7 +446,7 @@ const downloadFile = async () => {
  * 编辑文件
  */
 const editFile = () => {
-  ElMessage.info("文件编辑功能开发中...");
+  message("文件编辑功能开发中...", { type: "info" });
   // TODO: 实现文件编辑功能
 };
 

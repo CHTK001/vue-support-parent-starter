@@ -362,7 +362,8 @@ import {
   fetchJobStop,
   fetchJobTrigger,
 } from "@/api/monitor/job";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { defineAsyncComponent, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
@@ -496,15 +497,15 @@ const del = async (row) => {
 
     const res = await fetchJobDelete({ id: row.jobId });
     if (res.code === "00000") {
-      ElMessage.success("操作成功");
+      message("操作成功", { type: "success" });
       tableRef.value?.reload?.();
     } else {
-      ElMessage.error(res.msg);
+      message(res.msg, { type: "error" });
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("删除失败:", error);
-      ElMessage.error("删除失败");
+      message("删除失败", { type: "error" });
     }
   }
 };
@@ -514,14 +515,14 @@ const start = async (row) => {
   try {
     const res = await fetchJobStart({ jobId: row.jobId });
     if (res.code === "00000") {
-      ElMessage.success("操作成功");
+      message("操作成功", { type: "success" });
       tableRef.value?.reload?.();
     } else {
-      ElMessage.error(res.msg);
+      message(res.msg, { type: "error" });
     }
   } catch (error) {
     console.error("启动失败:", error);
-    ElMessage.error("启动失败");
+    message("启动失败", { type: "error" });
   }
 };
 
@@ -536,15 +537,15 @@ const stop = async (row) => {
 
     const res = await fetchJobStop({ jobId: row.jobId });
     if (res.code === "00000") {
-      ElMessage.success("操作成功");
+      message("操作成功", { type: "success" });
       tableRef.value?.reload?.();
     } else {
-      ElMessage.error(res.msg);
+      message(res.msg, { type: "error" });
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("停止失败:", error);
-      ElMessage.error("停止失败");
+      message("停止失败", { type: "error" });
     }
   }
 };
@@ -568,14 +569,14 @@ const triggerExecute = async () => {
     });
 
     if (res.code === "00000") {
-      ElMessage.success("操作成功");
+      message("操作成功", { type: "success" });
       triggerShow.value = false;
     } else {
-      ElMessage.error(res.msg);
+      message(res.msg, { type: "error" });
     }
   } catch (error) {
     console.error("执行失败:", error);
-    ElMessage.error("执行失败");
+    message("执行失败", { type: "error" });
   } finally {
     triggerLoadding.value = false;
   }
@@ -590,7 +591,7 @@ const trigger = (row) => {
 
 // 查看注册节点
 const jobgroupById = async (row: any) => {
-  ElMessage.info("服务节点信息功能已移除");
+  message("服务节点信息功能已移除", { type: "info" });
   jobgroupByIdData.value = [];
   jobgroupByIdShow.value = true;
 };
@@ -618,11 +619,11 @@ const nextTriggerTime = async (row) => {
       jobinfoNextTriggerTimeData.value = res.data;
       jobinfoNextTriggerTimeShow.value = true;
     } else {
-      ElMessage.error(res.msg);
+      message(res.msg, { type: "error" });
     }
   } catch (error) {
     console.error("获取执行时间失败:", error);
-    ElMessage.error("获取执行时间失败");
+    message("获取执行时间失败", { type: "error" });
   }
 };
 

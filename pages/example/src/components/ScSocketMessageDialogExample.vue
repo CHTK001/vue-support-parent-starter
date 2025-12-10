@@ -134,7 +134,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
 import CodePreview from "./CodePreview.vue";
 
@@ -278,7 +278,7 @@ function showDialog() {
 function simulateProgress() {
   const dialogRef = currentDialogRef.value;
   if (!dialogRef) {
-    ElMessage.warning("请先显示对话框");
+    message("请先显示对话框", { type: "warning" });
     return;
   }
 
@@ -300,7 +300,7 @@ function simulateProgress() {
         status: "success",
       });
 
-      ElMessage.success("进度模拟完成");
+      message("进度模拟完成", { type: "success" });
     } else {
       dialogRef.updateProgress({
         eventId,
@@ -315,7 +315,7 @@ function simulateProgress() {
 function addLog() {
   const dialogRef = currentDialogRef.value;
   if (!dialogRef) {
-    ElMessage.warning("请先显示对话框");
+    message("请先显示对话框", { type: "warning" });
     return;
   }
 
@@ -333,16 +333,16 @@ function addLog() {
   const message = messages[Math.floor(Math.random() * messages.length)];
   dialogRef.addLog(message, Math.floor(Math.random() * 3));
 
-  ElMessage.info("已添加日志");
+  message("已添加日志", { type: "info" });
 }
 
 function resetDialog() {
   currentDialogRef.value?.resetProgress();
-  ElMessage.info("已重置");
+  message("已重置", { type: "info" });
 }
 
 function handleClose() {
-  ElMessage.info("对话框已关闭");
+  message("对话框已关闭", { type: "info" });
 }
 </script>
 

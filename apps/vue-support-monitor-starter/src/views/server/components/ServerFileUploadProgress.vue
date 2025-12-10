@@ -296,7 +296,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { useServerFileUpload } from "@/composables/useServerFileUpload";
 import { cancelServerFileUploadTask, TASK_STATUS } from "@/api/server-file-upload";
 
@@ -437,18 +437,18 @@ const handleRefreshStatistics = () => {
     socketClient.value.emit("server_file_upload_refresh_statistics", {
       timestamp: Date.now()
     });
-    ElMessage.success("已请求刷新统计信息");
+    message("已请求刷新统计信息", { type: "success" });
   } else {
-    ElMessage.warning("Socket.IO未连接，无法刷新统计");
+    message("Socket.IO未连接，无法刷新统计", { type: "warning" });
   }
 };
 
 const handleCancelTask = async (taskId: number) => {
   try {
     await cancelServerFileUploadTask(taskId);
-    ElMessage.success("任务取消成功");
+    message("任务取消成功", { type: "success" });
   } catch (error: any) {
-    ElMessage.error(error.message || "取消任务失败");
+    message(error.message || "取消任务失败", { type: "error" });
   }
 };
 

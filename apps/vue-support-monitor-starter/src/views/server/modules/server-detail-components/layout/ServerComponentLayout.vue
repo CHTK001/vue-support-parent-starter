@@ -235,7 +235,8 @@ import {
 } from "@/api/server";
 import { useServerMetrics } from "@/composables/useServerWebSocket";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { GridItem, GridLayout } from "grid-layout-plus";
 import { defineExpose, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import ChartConfigDialog from "../components/ChartConfigDialog.vue";
@@ -475,7 +476,7 @@ const loadComponents = async () => {
     }
   } catch (error) {
     console.error("加载组件布局失败:", error);
-    ElMessage.error("加载组件布局失败");
+    message("加载组件布局失败", { type: "error" });
   } finally {
     loading.value = false;
 
@@ -526,14 +527,14 @@ const saveConfigToServer = async () => {
     const res = await batchUpdateLayoutPositions(layoutUpdates);
 
     if (res.code === "00000") {
-      ElMessage.success("布局保存成功");
+      message("布局保存成功", { type: "success" });
       layoutChanged.value = false;
     } else {
-      ElMessage.error(res.msg || "保存布局失败");
+      message(res.msg || "保存布局失败", { type: "error" });
     }
   } catch (error) {
     console.error("保存布局失败:", error);
-    ElMessage.error("保存布局失败");
+    message("保存布局失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -569,16 +570,16 @@ const addComponent = async () => {
     const res = await createServerDetailComponent(componentData);
 
     if (res.code === "00000") {
-      ElMessage.success("组件添加成功");
+      message("组件添加成功", { type: "success" });
       showAddComponentDrawer.value = false;
       resetAddForm();
       await loadComponents();
     } else {
-      ElMessage.error(res.msg || "添加失败");
+      message(res.msg || "添加失败", { type: "error" });
     }
   } catch (error) {
     console.error("添加组件失败:", error);
-    ElMessage.error("添加组件失败");
+    message("添加组件失败", { type: "error" });
   } finally {
     addLoading.value = false;
   }
@@ -650,7 +651,7 @@ const removeComponent = async (item: any) => {
     const res = await deleteServerComponentLayout(item.layoutId);
 
     if (res.code === "00000") {
-      ElMessage.success("组件已从布局中移除");
+      message("组件已从布局中移除", { type: "success" });
 
       // 从前端布局中移除
       const index = layout.value.findIndex((layoutItem) => layoutItem.layoutId === item.layoutId);
@@ -669,12 +670,12 @@ const removeComponent = async (item: any) => {
         await loadMyComponents();
       }
     } else {
-      ElMessage.error(res.msg || "移除失败");
+      message(res.msg || "移除失败", { type: "error" });
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("移除组件失败:", error);
-      ElMessage.error("移除组件失败");
+      message("移除组件失败", { type: "error" });
     }
   }
 };
@@ -704,18 +705,18 @@ const handleChartConfigSave = async (item: any, config: any) => {
     } as any);
 
     if (res.code === "00000") {
-      ElMessage.success("图表配置保存成功");
+      message("图表配置保存成功", { type: "success" });
       // 更新本地数据
       const layoutItem = layout.value.find((l) => l.componentId === item.componentId);
       if (layoutItem) {
         layoutItem.chartConfig = JSON.stringify(config);
       }
     } else {
-      ElMessage.error(res.msg || "保存失败");
+      message(res.msg || "保存失败", { type: "error" });
     }
   } catch (error) {
     console.error("保存图表配置失败:", error);
-    ElMessage.error("保存图表配置失败");
+    message("保存图表配置失败", { type: "error" });
   }
 };
 
@@ -1044,19 +1045,19 @@ const loadMyComponents = async () => {
       console.log("可选组件定义:", availableComponents.length, "个");
 
       if (availableComponents.length === 0) {
-        ElMessage.info("所有组件都已添加到布局中");
+        message("所有组件都已添加到布局中", { type: "info" });
       } else {
-        ElMessage.success(`找到 ${availableComponents.length} 个可选组件`);
+        message(`找到 ${availableComponents.length} 个可选组件`, { type: "success" });
       }
     } else {
       console.warn("API返回错误:", res);
       myComponents.value = [];
-      ElMessage.warning(res.msg || "获取组件定义失败");
+      message(res.msg || "获取组件定义失败", { type: "warning" });
     }
   } catch (error) {
     console.error("加载组件定义失败:", error);
     myComponents.value = [];
-    ElMessage.error("加载组件定义失败: " + ((error as any).message || "未知错误"));
+    message("加载组件定义失败: " + ((error as any, { type: "error" }).message || "未知错误"));
   }
 };
 
@@ -1073,7 +1074,7 @@ const loadSharedComponents = async () => {
     componentSelectorTab.value = "shared";
   } catch (error) {
     console.error("加载共享组件失败:", error);
-    ElMessage.error("加载共享组件失败");
+    message("加载共享组件失败", { type: "error" });
   }
 };
 
@@ -1140,19 +1141,19 @@ const addSelectedComponents = async () => {
         await loadComponentData(componentItem);
       } else {
         console.error("创建布局配置失败:", layoutRes);
-        ElMessage.error(`创建组件 ${component.monitorSysGenServerComponentName} 的布局配置失败`);
+        message(`创建组件 ${component.monitorSysGenServerComponentName} 的布局配置失败`, { type: "error" });
       }
     }
 
     showComponentSelector.value = false;
     selectedComponents.value = [];
-    ElMessage.success(`成功添加 ${selectedItems.length} 个组件`);
+    message(`成功添加 ${selectedItems.length} 个组件`, { type: "success" });
 
     // 重新加载可用组件列表
     await loadMyComponents();
   } catch (error) {
     console.error("添加组件失败:", error);
-    ElMessage.error("添加组件失败");
+    message("添加组件失败", { type: "error" });
   } finally {
     loading.value = false;
   }

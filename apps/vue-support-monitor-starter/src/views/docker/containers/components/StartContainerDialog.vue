@@ -198,7 +198,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { message } from "@repo/utils";
+import { type FormInstance, type FormRules } from 'element-plus'
 import { containerApi, type SystemSoftImage } from '@/api/docker'
 
 interface Props {
@@ -333,14 +334,14 @@ const handleSubmit = async () => {
         setTimeout(() => emit('success'), 1000)
       }
       
-      ElMessage.success('容器启动任务已创建，请查看进度')
+      message('容器启动任务已创建，请查看进度', { type: "success" })
       emit('success')
       handleClose()
     } else {
-      ElMessage.error(response.message || '容器启动失败')
+      message(response.message || '容器启动失败', { type: "error" })
     }
   } catch (error) {
-    ElMessage.error('容器启动失败')
+    message('容器启动失败', { type: "error" })
   } finally {
     loading.value = false
   }

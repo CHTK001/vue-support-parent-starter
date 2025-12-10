@@ -222,7 +222,7 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { useRenderIcon } from "../ReIcon/src/hooks";
 import Viewer from "viewerjs";
 import "viewerjs/dist/viewer.css";
@@ -467,13 +467,13 @@ const handleChange = file => {
   const isValidType = props.accept.split(",").some(type => file.raw.type === type.trim());
 
   if (!isValidType) {
-    ElMessage.warning("请上传正确格式的图片");
+    message("请上传正确格式的图片", { type: "warning" });
     return;
   }
 
   const isValidSize = file.size / 1024 / 1024 < props.maxSize;
   if (!isValidSize) {
-    ElMessage.warning(`图片大小不能超过 ${props.maxSize}MB`);
+    message(`图片大小不能超过 ${props.maxSize}MB`, { type: "warning" });
     return;
   }
 
@@ -493,7 +493,7 @@ const handleLoad = e => {
 
 const handleError = e => {
   emit("error", e);
-  ElMessage.error("图片加载失败");
+  message("图片加载失败", { type: "error" });
 };
 
 const handleSwitch = index => {
@@ -623,7 +623,7 @@ const handleRemoveBackground = async () => {
     processingText.value = "处理完成";
 
     emit("backgroundRemoved", blob, newUrl);
-    ElMessage.success("背景去除成功");
+    message("背景去除成功", { type: "success" });
 
     setTimeout(() => {
       processing.value = false;
@@ -632,7 +632,7 @@ const handleRemoveBackground = async () => {
     }, 500);
   } catch (error) {
     console.error("Background removal error:", error);
-    ElMessage.error("背景去除失败: " + error.message);
+    message("背景去除失败: " + error.message, { type: "error" });
     processing.value = false;
     processingProgress.value = 0;
     processingText.value = "";
@@ -649,7 +649,7 @@ const handleDownload = () => {
   link.click();
   document.body.removeChild(link);
 
-  ElMessage.success("开始下载");
+  message("开始下载", { type: "success" });
 };
 
 const handleRemove = () => {
@@ -674,7 +674,7 @@ const handleRemove = () => {
 // 图片比较相关方法
 const handleStartCompare = () => {
   if (!currentImage.value) {
-    ElMessage.warning("请先上传图片");
+    message("请先上传图片", { type: "warning" });
     return;
   }
   compareDialogVisible.value = true;
@@ -685,7 +685,7 @@ const handleCompareImageChange = file => {
   const isValidType = props.accept.split(",").some(type => file.raw.type === type.trim());
 
   if (!isValidType) {
-    ElMessage.warning("请上传正确格式的图片");
+    message("请上传正确格式的图片", { type: "warning" });
     return;
   }
 
@@ -701,7 +701,7 @@ const confirmCompare = () => {
   compareDialogVisible.value = false;
 
   emit("compareStart", currentImage.value, compareImage.value);
-  ElMessage.success("已进入比较模式");
+  message("已进入比较模式", { type: "success" });
 };
 
 const exitCompareMode = () => {
@@ -732,7 +732,7 @@ const handleCompareChange = value => {
 // 编辑器相关方法
 const handleEdit = () => {
   if (!currentImage.value) {
-    ElMessage.warning("请先上传图片");
+    message("请先上传图片", { type: "warning" });
     return;
   }
   editorVisible.value = true;
@@ -749,7 +749,7 @@ const handleEditorConfirm = (blob, url) => {
 
   emit("change", url);
   emit("update:modelValue", url);
-  ElMessage.success("图片编辑成功");
+  message("图片编辑成功", { type: "success" });
 };
 
 const handleEditorCancel = () => {

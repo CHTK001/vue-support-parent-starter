@@ -349,7 +349,7 @@
 
 <script setup>
 import { ref, reactive, shallowRef, onBeforeUnmount, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
+import { message } from "@repo/utils";
 import ScEditor from './index.vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 
@@ -486,7 +486,7 @@ const setBasicContent = () => {
 
 const getBasicContent = () => {
   console.log('基础编辑器内容：', basicContent.value)
-  ElMessage.success('内容已输出到控制台')
+  message('内容已输出到控制台', { type: "success" })
   addLog('getBasicContent', '获取基础编辑器内容')
 }
 
@@ -511,10 +511,10 @@ const submitForm = () => {
   formRef.value.validate((valid) => {
     if (valid) {
       console.log('表单数据：', formData)
-      ElMessage.success('表单提交成功！')
+      message('表单提交成功！', { type: "success" })
       addLog('submitForm', '表单提交成功')
     } else {
-      ElMessage.error('表单验证失败！')
+      message('表单验证失败！', { type: "error" })
       addLog('submitForm', '表单验证失败')
     }
   })

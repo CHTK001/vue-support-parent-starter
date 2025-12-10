@@ -95,7 +95,7 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
-import { ElMessage } from 'element-plus';
+import { message } from "@repo/utils";
 import {
   convertFormDataToApiData,
   convertApiDataToFormData,
@@ -138,10 +138,10 @@ const testFormToApi = () => {
   try {
     const result = convertFormDataToApiData(testFormData);
     conversionResult.value = result;
-    ElMessage.success('前端到后端转换成功');
+    message('前端到后端转换成功', { type: "success" });
   } catch (error) {
     console.error('转换失败:', error);
-    ElMessage.error('转换失败');
+    message('转换失败', { type: "error" });
   }
 };
 
@@ -152,10 +152,10 @@ const testApiToForm = () => {
   try {
     const result = convertApiDataToFormData(testApiData);
     conversionResult.value = result;
-    ElMessage.success('后端到前端转换成功');
+    message('后端到前端转换成功', { type: "success" });
   } catch (error) {
     console.error('转换失败:', error);
-    ElMessage.error('转换失败');
+    message('转换失败', { type: "error" });
   }
 };
 
@@ -168,13 +168,13 @@ const testValidation = () => {
     validationResult.value = result;
     
     if (result.isValid) {
-      ElMessage.success('数据验证通过');
+      message('数据验证通过', { type: "success" });
     } else {
-      ElMessage.error('数据验证失败');
+      message('数据验证失败', { type: "error" });
     }
   } catch (error) {
     console.error('验证失败:', error);
-    ElMessage.error('验证失败');
+    message('验证失败', { type: "error" });
   }
 };
 
@@ -205,7 +205,7 @@ const resetTestData = () => {
   conversionResult.value = null;
   validationResult.value = null;
   
-  ElMessage.info('测试数据已重置');
+  message('测试数据已重置', { type: "info" });
 };
 </script>
 

@@ -82,7 +82,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { message } from "@repo/utils";
+import { type FormInstance, type FormRules } from 'element-plus'
 import { imageApi, getServerList, registryApi } from '@/api/docker'
 import { useImagePullNotification } from '@/composables/useImagePullNotification'
 
@@ -169,7 +170,7 @@ const handleSubmit = async () => {
     } else {
       // 否则使用镜像名称和标签组合
       if (!form.imageName.trim()) {
-        ElMessage.error('请填写镜像名称或完整镜像名称')
+        message('请填写镜像名称或完整镜像名称', { type: "error" })
         return
       }
       params.imageName = form.imageName.trim()
@@ -190,14 +191,14 @@ const handleSubmit = async () => {
         setTimeout(() => emit('success'), 1000)
       }
       
-      ElMessage.success('镜像拉取任务已启动，请在右下角查看实时进度')
+      message('镜像拉取任务已启动，请在右下角查看实时进度', { type: "success" })
       emit('success')
       handleClose()
     } else {
-      ElMessage.error(response.message || '镜像拉取失败')
+      message(response.message || '镜像拉取失败', { type: "error" })
     }
   } catch (error) {
-    ElMessage.error('镜像拉取失败')
+    message('镜像拉取失败', { type: "error" })
   } finally {
     loading.value = false
   }

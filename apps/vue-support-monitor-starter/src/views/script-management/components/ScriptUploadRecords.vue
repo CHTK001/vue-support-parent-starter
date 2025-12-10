@@ -145,7 +145,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import dayjs from "dayjs";
 import { fetchScriptUploadRecords } from "@/api/script-upload";
 import { formatBytes } from "@pureadmin/utils";
@@ -194,11 +194,11 @@ const reload = async () => {
       list.value = res.data.records || [];
       total.value = res.data.total || 0;
     } else {
-      ElMessage.error(res.msg || "加载失败");
+      message(res.msg || "加载失败", { type: "error" });
     }
   } catch (e) {
     console.error(e);
-    ElMessage.error("加载失败");
+    message("加载失败", { type: "error" });
   } finally {
     loading.value = false;
   }

@@ -114,7 +114,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import ServerComponentLayout from "./ServerComponentLayout.vue";
 
@@ -323,7 +323,7 @@ const getTimeRangeParams = () => {
  */
 const toggleEditMode = () => {
   editMode.value = !editMode.value;
-  ElMessage.success(`已切换到${editMode.value ? "编辑" : "预览"}模式`);
+  message(`已切换到${editMode.value ? "编辑" : "预览"}模式`, { type: "success" });
 };
 
 /**
@@ -380,10 +380,10 @@ const handleManualQuery = async () => {
 
     updateMetrics();
     lastUpdateTime.value = new Date().toLocaleString();
-    ElMessage.success("数据查询完成");
+    message("数据查询完成", { type: "success" });
   } catch (error) {
     console.error("查询数据失败:", error);
-    ElMessage.error("数据查询失败");
+    message("数据查询失败", { type: "error" });
   } finally {
     refreshing.value = false;
   }
@@ -448,10 +448,10 @@ const handleExport = () => {
     a.click();
     URL.revokeObjectURL(url);
 
-    ElMessage.success("配置导出成功");
+    message("配置导出成功", { type: "success" });
   } catch (error) {
     console.error("导出配置失败:", error);
-    ElMessage.error("导出配置失败");
+    message("导出配置失败", { type: "error" });
   }
 };
 

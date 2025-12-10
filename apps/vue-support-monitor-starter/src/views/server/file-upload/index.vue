@@ -131,7 +131,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 // 移除 @element-plus/icons-vue 导入，使用全局 IconifyIconOnline 组件
 import {
   getServerFileUploadTaskStatistics,
@@ -199,7 +199,7 @@ const loadSshServers = async () => {
     sshServers.value = data.records || [];
   } catch (error: any) {
     console.error("加载SSH服务器列表失败:", error);
-    ElMessage.error("加载SSH服务器列表失败");
+    message("加载SSH服务器列表失败", { type: "error" });
   }
 };
 
@@ -233,7 +233,7 @@ const handleCreateTask = () => {
 };
 
 const handleUploadSuccess = () => {
-  ElMessage.success("上传任务创建成功");
+  message("上传任务创建成功", { type: "success" });
   loadStatistics();
   taskManagerRef.value?.handleRefresh();
 };
@@ -262,7 +262,7 @@ const handleViewTaskDetail = async (taskId: number) => {
     // 这里可以打开任务详情对话框或跳转到详情页面
     console.log("任务详情:", data);
   } catch (error: any) {
-    ElMessage.error(error.message || "获取任务详情失败");
+    message(error.message || "获取任务详情失败", { type: "error" });
   }
 };
 

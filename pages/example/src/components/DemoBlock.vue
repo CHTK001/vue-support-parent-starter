@@ -41,7 +41,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 const props = defineProps<{
@@ -62,12 +62,12 @@ async function copyCode() {
   try {
     await navigator.clipboard.writeText(props.code);
     copied.value = true;
-    ElMessage.success("代码已复制到剪贴板");
+    message("代码已复制到剪贴板", { type: "success" });
     setTimeout(() => {
       copied.value = false;
     }, 2000);
   } catch {
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 }
 </script>

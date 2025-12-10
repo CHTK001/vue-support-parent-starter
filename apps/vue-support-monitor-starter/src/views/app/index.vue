@@ -255,7 +255,7 @@ import { ref, computed, onMounted } from "vue";
 import EditDialog from "./modules/EditDialog.vue";
 import DetailDialog from "./modules/DetailDialog.vue";
 import { fetchAppDelete, fetchAppPageList } from "@/api/monitor/app";
-import { ElMessageBox, ElMessage } from "element-plus";
+import { ElMessageBox} from "element-plus";
 import { message } from "@repo/utils";
 
 const tableRef = ref<any>();

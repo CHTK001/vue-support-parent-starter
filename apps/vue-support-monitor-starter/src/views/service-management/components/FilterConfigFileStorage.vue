@@ -657,9 +657,8 @@ import {
 import DirectorySelector from "@/views/file-system/components/DirectorySelector.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { message } from "@repo/utils";
-import {
-  ElMessage,
-  ElMessageBox,
+import { message } from "@repo/utils";
+import { ElMessageBox,
   type FormInstance,
   type FormRules,
 } from "element-plus";
@@ -839,16 +838,16 @@ async function testConnection(idx: number) {
   if (!storage) return;
 
   try {
-    ElMessage.info("正在测试连接...");
+    message("正在测试连接...", { type: "info" });
     // 这里可以调用后端测试连接的接口
     // const result = await testStorageConnection(storage);
 
     // 模拟测试结果
     setTimeout(() => {
-      ElMessage.success("连接测试成功");
+      message("连接测试成功", { type: "success" });
     }, 1000);
   } catch (error) {
-    ElMessage.error("连接测试失败: " + error.message);
+    message("连接测试失败: " + error.message, { type: "error" });
   }
 }
 
@@ -1133,7 +1132,7 @@ async function fetchPreviewItems() {
   } catch (e) {
     console.error("获取预览文件列表失败:", e);
     previewItems.value = [];
-    ElMessage.warning("获取文件列表失败，请检查存储配置");
+    message("获取文件列表失败，请检查存储配置", { type: "warning" });
   } finally {
     loading.value = false;
   }
@@ -1163,11 +1162,11 @@ async function removeStorage(idx: number) {
           storage.systemServerSettingFileStorageId
         );
         if (!res.success) {
-          ElMessage.error(res.msg || "删除失败");
+          message(res.msg || "删除失败", { type: "error" });
           return;
         }
       } catch (err) {
-        ElMessage.error("删除存储失败，请稍后重试");
+        message("删除存储失败，请稍后重试", { type: "error" });
         return;
       }
     }
@@ -1187,7 +1186,7 @@ async function removeStorage(idx: number) {
     // 关闭预览模式
     rightPreview.value.visible = false;
 
-    ElMessage.success("存储已移除");
+    message("存储已移除", { type: "success" });
   } catch {
     // 用户取消删除，不做任何操作
   }
@@ -1455,11 +1454,11 @@ async function handleSave() {
       }
     }
 
-    ElMessage.success({ message: "保存成功，已热应用" });
+    message({ message: "保存成功，已热应用" }, { type: "success" });
     emit("success");
     visibleInner.value = false;
   } catch (e: any) {
-    ElMessage.error(e?.message || "保存失败");
+    message(e?.message || "保存失败", { type: "error" });
   } finally {
     loading.value = false;
   }

@@ -394,7 +394,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { 
   TechButton, 
   TechPanel, 
@@ -406,7 +406,7 @@ import {
 import CodePreview from "./CodePreview.vue";
 
 const handleClick = (variant: string) => {
-  ElMessage.success(`点击了 ${variant} 按钮`);
+  message(`点击了 ${variant} 按钮`, { type: "success" });
 };
 
 // 代码示例

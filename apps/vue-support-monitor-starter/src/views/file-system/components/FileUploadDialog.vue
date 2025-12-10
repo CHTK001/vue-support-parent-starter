@@ -86,7 +86,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { formatBytes } from "@pureadmin/utils";
 import SparkMD5 from "spark-md5";
 import { initChunkUpload, uploadChunk, checkUploadStatus, getFileSystemConfig } from "@/api/monitor/filesystem";
@@ -182,14 +182,14 @@ const triggerFileSelect = () => {
 const addFiles = (files: File[]) => {
   // 检查系统配置是否加载
   if (!systemConfig.value) {
-    ElMessage.error("系统配置未加载，请稍后重试");
+    message("系统配置未加载，请稍后重试", { type: "error" });
     return;
   }
 
   const maxSize = systemConfig.value.maxFileSize * 1024 * 1024; // 转换为字节
   const validFiles = files.filter(file => {
     if (file.size > maxSize) {
-      ElMessage.warning(`文件 ${file.name} 超过 ${systemConfig.value!.maxFileSize}MB 限制，已跳过`);
+      message(`文件 ${file.name} 超过 ${systemConfig.value!.maxFileSize}MB 限制，已跳过`, { type: "warning" });
       return false;
     }
     return true;
@@ -200,13 +200,13 @@ const addFiles = (files: File[]) => {
   const newFiles = validFiles.filter(file => !existingNames.has(file.name));
 
   if (newFiles.length !== validFiles.length) {
-    ElMessage.warning("部分文件已存在，已跳过重复文件");
+    message("部分文件已存在，已跳过重复文件", { type: "warning" });
   }
 
   fileList.value.push(...newFiles);
 
   if (newFiles.length > 0) {
-    ElMessage.success(`已添加 ${newFiles.length} 个文件`);
+    message(`已添加 ${newFiles.length} 个文件`, { type: "success" });
   }
 };
 
@@ -319,12 +319,12 @@ const startUpload = async () => {
       });
     }
 
-    ElMessage.success("所有文件上传完成");
+    message("所有文件上传完成", { type: "success" });
     emit("upload-success");
     handleClose();
   } catch (error) {
     console.error("上传失败:", error);
-    ElMessage.error("上传失败");
+    message("上传失败", { type: "error" });
   } finally {
     uploading.value = false;
     uploadProgress.value = 0;
@@ -651,14 +651,14 @@ const setupSSEListeners = () => {
   const unsubscribeCompleted = props.onMessage(props.MESSAGE_TYPE.UPLOAD_COMPLETED, (message: any) => {
     if (message.data?.fileId === currentFileId.value) {
       uploadProgress.value = 100;
-      ElMessage.success(message.data.message || "文件上传完成");
+      message(message.data.message || "文件上传完成", { type: "success" });
     }
   });
 
   // 监听上传失败
   const unsubscribeFailed = props.onMessage(props.MESSAGE_TYPE.UPLOAD_FAILED, (message: any) => {
     if (message.data?.fileId === currentFileId.value) {
-      ElMessage.error(message.data.message || "文件上传失败");
+      message(message.data.message || "文件上传失败", { type: "error" });
     }
   });
 

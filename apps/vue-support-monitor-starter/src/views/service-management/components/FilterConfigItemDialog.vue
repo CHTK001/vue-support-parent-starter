@@ -82,7 +82,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox, type FormInstance, type FormRules } from "element-plus";
 import {
   getSystemServerSettingItemBySettingId,
   batchUpdateSystemServerSettingItemValues,
@@ -177,11 +178,11 @@ const loadConfigItems = async () => {
 
       Object.assign(formData, newFormData);
     } else {
-      ElMessage.error(response.msg || "加载配置项失败");
+      message(response.msg || "加载配置项失败", { type: "error" });
     }
   } catch (error) {
     console.error("加载配置项失败:", error);
-    ElMessage.error("加载配置项失败");
+    message("加载配置项失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -221,15 +222,15 @@ const resetToDefaults = async () => {
     const response = await batchResetSystemServerSettingItemsToDefault(itemIds);
 
     if (response.success) {
-      ElMessage.success("重置成功");
+      message("重置成功", { type: "success" });
       loadConfigItems(); // 重新加载数据
     } else {
-      ElMessage.error(response.msg || "重置失败");
+      message(response.msg || "重置失败", { type: "error" });
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("重置失败:", error);
-      ElMessage.error("重置失败");
+      message("重置失败", { type: "error" });
     }
   }
 };
@@ -253,14 +254,14 @@ const handleSave = async () => {
     const response = await batchUpdateSystemServerSettingItemValues(updates);
 
     if (response.success) {
-      ElMessage.success("保存成功");
+      message("保存成功", { type: "success" });
       emit("success");
     } else {
-      ElMessage.error(response.msg || "保存失败");
+      message(response.msg || "保存失败", { type: "error" });
     }
   } catch (error) {
     console.error("保存配置失败:", error);
-    ElMessage.error("保存失败");
+    message("保存失败", { type: "error" });
   } finally {
     saving.value = false;
   }

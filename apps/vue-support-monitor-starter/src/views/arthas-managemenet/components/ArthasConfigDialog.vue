@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { getTunnelConfig, setTunnelConfig, type ArthasTunnelConfigDto } from "@/api/arthas/arthas-management";
 
 const props = defineProps<{
@@ -70,10 +70,10 @@ async function onOpen() {
       const t = Number(localStorage.getItem(HTTP_TIMEOUT_KEY) || httpTimeout.value || 15000);
       httpTimeout.value = isNaN(t) ? 15000 : t;
     } else {
-      ElMessage.error(res?.msg || "获取配置失败");
+      message(res?.msg || "获取配置失败", { type: "error" });
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || "获取配置异常");
+    message(e?.message || "获取配置异常", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -88,14 +88,14 @@ async function save() {
     // 同步保存前端HTTP超时到本地
     localStorage.setItem(HTTP_TIMEOUT_KEY, String(httpTimeout.value || 15000));
     if (ok?.success) {
-      ElMessage.success("保存成功");
+      message("保存成功", { type: "success" });
       emit("saved");
       close();
     } else {
-      ElMessage.error(ok?.msg || "保存失败");
+      message(ok?.msg || "保存失败", { type: "error" });
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || "保存异常");
+    message(e?.message || "保存异常", { type: "error" });
   } finally {
     loading.value = false;
   }

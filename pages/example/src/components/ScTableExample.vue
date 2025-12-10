@@ -467,7 +467,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import CodePreview from "./CodePreview.vue";
 
@@ -643,7 +643,7 @@ const getRandomDate = () => {
 
 // Canvas表格行点击处理
 const handleCanvasRowClick = (row) => {
-  ElMessage.success(`点击了Canvas表格行：${row.name}`);
+  message(`点击了Canvas表格行：${row.name}`, { type: "success" });
 };
 
 // 编辑按钮点击处理
@@ -673,14 +673,14 @@ const mockDragSortUrl = async (sortData) => {
 // 拖拽排序变化处理
 const handleDragSortChange = (sortInfo) => {
   console.log("拖拽排序变化:", sortInfo);
-  ElMessage.info(
+  message(
     `将第 ${sortInfo.oldIndex + 1} 行移动到第 ${sortInfo.newIndex + 1} 行`
-  );
+  , { type: "info" });
 };
 
 // 拖拽排序保存成功处理
 const handleDragSortSuccess = (result) => {
-  ElMessage.success("排序保存成功");
+  message("排序保存成功", { type: "success" });
   console.log("排序保存结果:", result);
 };
 
@@ -692,7 +692,7 @@ const handleContextMenu = (row, column, event) => {
       name: "查看详情",
       icon: "ep:view",
       handle: () => {
-        ElMessage.info("查看行详情：" + row.name);
+        message("查看行详情：" + row.name, { type: "info" });
       },
     },
     {
@@ -710,21 +710,21 @@ const handleContextMenu = (row, column, event) => {
           name: "导出",
           icon: "ep:download",
           handle: () => {
-            ElMessage.success("导出数据：" + row.name);
+            message("导出数据：" + row.name, { type: "success" });
           },
         },
         {
           name: "分享",
           icon: "ep:share",
           handle: () => {
-            ElMessage.success("分享数据：" + row.name);
+            message("分享数据：" + row.name, { type: "success" });
           },
         },
         {
           name: "打印",
           icon: "ep:printer",
           handle: () => {
-            ElMessage.success("打印数据：" + row.name);
+            message("打印数据：" + row.name, { type: "success" });
           },
         },
       ],
@@ -737,7 +737,7 @@ const handleContextMenu = (row, column, event) => {
       icon: "ep:copy-document",
       handle: () => {
         navigator.clipboard.writeText(row.id).then(() => {
-          ElMessage.success("已复制ID到剪贴板");
+          message("已复制ID到剪贴板", { type: "success" });
         });
       },
     },
@@ -806,7 +806,7 @@ const handleContextMenu = (row, column, event) => {
       name: "查看详情",
       icon: "ep:view",
       handle: () => {
-        ElMessage.info("查看行详情：" + row.name);
+        message("查看行详情：" + row.name, { type: "info" });
       }
     },
     {
@@ -824,21 +824,21 @@ const handleContextMenu = (row, column, event) => {
           name: "导出",
           icon: "ep:download",
           handle: () => {
-            ElMessage.success("导出数据：" + row.name);
+            message("导出数据：" + row.name, { type: "success" });
           }
         },
         {
           name: "分享",
           icon: "ep:share",
           handle: () => {
-            ElMessage.success("分享数据：" + row.name);
+            message("分享数据：" + row.name, { type: "success" });
           }
         },
         {
           name: "打印",
           icon: "ep:printer",
           handle: () => {
-            ElMessage.success("打印数据：" + row.name);
+            message("打印数据：" + row.name, { type: "success" });
           }
         }
       ]
@@ -851,7 +851,7 @@ const handleContextMenu = (row, column, event) => {
       icon: "ep:copy-document",
       handle: () => {
         navigator.clipboard.writeText(row.id).then(() => {
-          ElMessage.success("已复制ID到剪贴板");
+          message("已复制ID到剪贴板", { type: "success" });
         });
       }
     },

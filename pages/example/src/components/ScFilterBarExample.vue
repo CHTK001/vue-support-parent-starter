@@ -181,7 +181,7 @@ import { ref, reactive, computed } from "vue";
 import ScFilterBar from "@repo/components/ScFilterBar/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import DemoBlock from "./DemoBlock.vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import draggable from "vuedraggable";
 
 // ==================== 类型定义 ====================
@@ -314,7 +314,7 @@ function handleDrop(event: DragEvent) {
       label: `${draggedType.label}${count}`,
     });
     draggedType = null;
-    ElMessage.success("字段添加成功");
+    message("字段添加成功", { type: "success" });
   }
 }
 
@@ -336,7 +336,7 @@ function clearFields() {
 }
 
 function editField(field: BuilderField) {
-  ElMessage.info(`编辑字段: ${field.label}`);
+  message(`编辑字段: ${field.label}`, { type: "info" });
 }
 
 // ==================== 过滤结果 ====================

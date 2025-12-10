@@ -158,7 +158,7 @@
 import { ref, reactive } from 'vue'
 import { Document, Folder, User, Edit, Delete, View, Setting, Download, Share, Copy } from '@element-plus/icons-vue'
 import ScContextMenu from './index.vue'
-import { ElMessage } from 'element-plus'
+import { message } from "@repo/utils";
 
 // 响应式数据
 const contextMenuRef = ref()
@@ -183,7 +183,7 @@ const recordAction = (action, data = null) => {
     data,
     time: new Date().toLocaleString()
   }
-  ElMessage.success(`执行操作：${action}`)
+  message(`执行操作：${action}`, { type: "success" })
 }
 
 // 基础菜单配置

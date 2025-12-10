@@ -152,7 +152,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import CodeEditor from "@/components/codeEditor/index.vue";
 import {
   getServletFilterConfig,
@@ -326,13 +326,13 @@ async function handleSave() {
   // 验证
   if (config.phase === "before" || config.phase === "both") {
     if (!config.beforeScript?.trim()) {
-      ElMessage.warning("请填写请求前脚本");
+      message("请填写请求前脚本", { type: "warning" });
       return;
     }
   }
   if (config.phase === "after" || config.phase === "both") {
     if (!config.afterScript?.trim()) {
-      ElMessage.warning("请填写响应后脚本");
+      message("请填写响应后脚本", { type: "warning" });
       return;
     }
   }
@@ -351,14 +351,14 @@ async function handleSave() {
       debug: config.debug,
     });
     if (res.success) {
-      ElMessage.success("代理响应脚本配置已保存并热应用");
+      message("代理响应脚本配置已保存并热应用", { type: "success" });
       emit("success");
       visibleInner.value = false;
     } else {
-      ElMessage.error(res.msg || "保存失败");
+      message(res.msg || "保存失败", { type: "error" });
     }
   } catch (e) {
-    ElMessage.error("保存失败");
+    message("保存失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -367,7 +367,7 @@ async function handleSave() {
 // 重置配置
 function handleReset() {
   Object.assign(config, { ...defaultConfig });
-  ElMessage.success("已重置为默认配置");
+  message("已重置为默认配置", { type: "success" });
 }
 
 function handleClose() {

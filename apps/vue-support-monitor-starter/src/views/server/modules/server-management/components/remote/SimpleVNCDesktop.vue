@@ -60,7 +60,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { ElMessage } from 'element-plus';
+import { message } from "@repo/utils";
 import SimpleGuacamoleClient, { GuacamoleStates } from '@/utils/guacamole/simple-client';
 interface Props {
   server: {
@@ -100,7 +100,7 @@ const connectionStatus = computed(() => {
 // 方法
 const connect = async () => {
   if (!props.server || !desktopDisplay.value) {
-    ElMessage.error('服务器信息不完整或显示容器未准备好');
+    message('服务器信息不完整或显示容器未准备好', { type: "error" });
     return;
   }
 
@@ -126,7 +126,7 @@ const connect = async () => {
       },
       onError: (error: any) => {
         console.error('VNC 连接错误:', error);
-        ElMessage.error(`连接错误: ${error.message || error}`);
+        message(`连接错误: ${error.message || error}`, { type: "error" });
         isConnecting.value = false;
       },
       onName: (name: string) => {
@@ -143,11 +143,11 @@ const connect = async () => {
     // 绑定到显示容器
     guacamoleClient.value.attachTo(desktopDisplay.value);
     
-    ElMessage.success('VNC 连接成功');
+    message('VNC 连接成功', { type: "success" });
     
   } catch (error) {
     console.error('VNC 连接失败:', error);
-    ElMessage.error(`连接失败: ${error}`);
+    message(`连接失败: ${error}`, { type: "error" });
   } finally {
     isConnecting.value = false;
   }
@@ -159,7 +159,7 @@ const disconnect = () => {
     guacamoleClient.value = null;
   }
   currentState.value = GuacamoleStates.DISCONNECTED;
-  ElMessage.success('已断开 VNC 连接');
+  message('已断开 VNC 连接', { type: "success" });
 };
 
 const takeScreenshot = () => {
@@ -171,9 +171,9 @@ const takeScreenshot = () => {
       link.download = `vnc-screenshot-${Date.now()}.png`;
       link.href = screenshot;
       link.click();
-      ElMessage.success('截图已保存');
+      message('截图已保存', { type: "success" });
     } else {
-      ElMessage.error('截图失败');
+      message('截图失败', { type: "error" });
     }
   }
 };

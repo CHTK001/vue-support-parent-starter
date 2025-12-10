@@ -231,7 +231,7 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import type { PropType } from "vue";
 import { computed, defineExpose, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ConfigObject } from "../composables/ConfigObject";
@@ -393,7 +393,7 @@ const handleInput = () => {
         // 检查 searchObject 是否已初始化
         if (!searchObject) {
           console.error("搜索对象未初始化，请确保在使用搜索功能前调用 setSearchObject 方法");
-          ElMessage.error("搜索功能未准备好，请稍后再试");
+          message("搜索功能未准备好，请稍后再试", { type: "error" });
           return;
         }
 
@@ -402,9 +402,9 @@ const handleInput = () => {
         if (handler && handler.validateInput && !handler.validateInput(searchText.value)) {
           // 为导航搜索类型提供特殊提示
           if (currentSearchType.value === SearchType.NAVIGATION) {
-            ElMessage.warning('请按照"起点-终点"的格式输入，例如：北京-上海');
+            message('请按照"起点-终点"的格式输入，例如：北京-上海', { type: "warning" });
           } else {
-            ElMessage.warning("请输入有效的搜索内容");
+            message("请输入有效的搜索内容", { type: "warning" });
           }
           return;
         }
@@ -432,11 +432,11 @@ const handleInput = () => {
 
         // 如果是导航搜索，并且有结果，显示特殊提示
         if (currentSearchType.value === SearchType.NAVIGATION && searchResults.length > 0) {
-          ElMessage.info("请选择起点和终点以创建导航路线");
+          message("请选择起点和终点以创建导航路线", { type: "info" });
         }
       } catch (error) {
         console.error("搜索失败:", error);
-        ElMessage.error("搜索失败: " + (error.message || "未知错误"));
+        message("搜索失败: " + (error.message || "未知错误", { type: "error" }));
         results.value = [];
         showResults.value = true; // 搜索失败时也显示空结果
       }
@@ -776,7 +776,7 @@ const createRouteNavigation = async () => {
   console.log("开始创建导航路线");
 
   if (!startPointId.value || !endPointId.value) {
-    ElMessage.warning("请先设置起点和终点");
+    message("请先设置起点和终点", { type: "warning" });
     return;
   }
 
@@ -784,7 +784,7 @@ const createRouteNavigation = async () => {
     // 检查 ShapeObject 是否已初始化
     if (searchObject.checkShapeObject && !searchObject.checkShapeObject()) {
       console.error("ShapeObject 未初始化，可能无法绘制路线");
-      ElMessage.warning("地图绘制组件未准备好，路线可能无法正确显示");
+      message("地图绘制组件未准备好，路线可能无法正确显示", { type: "warning" });
     }
 
     // 调用导航方法
@@ -804,7 +804,7 @@ const createRouteNavigation = async () => {
     // 检查是否有路径数据
     if (!navigationResponse || !navigationResponse.route || !navigationResponse.route.paths || navigationResponse.route.paths.length === 0) {
       console.error("导航响应中没有有效的路径数据");
-      ElMessage.error("未能获取到有效的导航路径");
+      message("未能获取到有效的导航路径", { type: "error" });
       return;
     }
 
@@ -900,12 +900,12 @@ const createRouteNavigation = async () => {
       showRouteDetails.value = true;
     }
 
-    ElMessage.success("导航路线已生成");
+    message("导航路线已生成", { type: "success" });
     // 检查路线详情面板可见性
     setTimeout(checkRouteDetailsVisibility, 100);
   } catch (error) {
     console.error("创建导航路线失败:", error);
-    ElMessage.error("创建导航路线失败");
+    message("创建导航路线失败", { type: "error" });
   }
 };
 
@@ -1146,14 +1146,14 @@ const handleNavInputChange = () => {
 // 处理导航搜索
 const handleNavSearch = async () => {
   if (!navStartPoint.value.trim() || !navEndPoint.value.trim()) {
-    ElMessage.warning("请输入起点和终点");
+    message("请输入起点和终点", { type: "warning" });
     return;
   }
 
   try {
     if (!searchObject) {
       console.error("搜索对象未初始化，请确保在使用搜索功能前调用 setSearchObject 方法");
-      ElMessage.error("搜索功能未准备好，请稍后再试");
+      message("搜索功能未准备好，请稍后再试", { type: "error" });
       return;
     }
 
@@ -1174,11 +1174,11 @@ const handleNavSearch = async () => {
     emit("search", searchResults);
 
     if (searchResults.length > 0) {
-      ElMessage.info("请选择起点和终点以创建导航路线");
+      message("请选择起点和终点以创建导航路线", { type: "info" });
     }
   } catch (error) {
     console.error("导航搜索失败:", error);
-    ElMessage.error("导航搜索失败: " + (error.message || "未知错误"));
+    message("导航搜索失败: " + (error.message || "未知错误", { type: "error" }));
     results.value = [];
     showResults.value = true;
   }

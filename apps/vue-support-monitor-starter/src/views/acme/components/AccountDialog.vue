@@ -132,7 +132,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
-import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { message } from "@repo/utils";
+import { type FormInstance, type FormRules } from "element-plus";
 import {
   saveAccount,
   ACME_SERVER_GROUPS,
@@ -195,11 +196,11 @@ async function handleSubmit() {
       ...form,
       acmeAccountId: props.account?.acmeAccountId,
     });
-    ElMessage.success(isEdit.value ? "保存成功" : "添加成功");
+    message(isEdit.value ? "保存成功" : "添加成功", { type: "success" });
     dialogVisible.value = false;
     emit("success");
   } catch (error) {
-    ElMessage.error("保存失败");
+    message("保存失败", { type: "error" });
   } finally {
     submitting.value = false;
   }

@@ -101,7 +101,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { ElMessage, ElNotification } from "element-plus";
+import { message } from "@repo/utils";
+import { ElNotification } from "element-plus";
 import { getServerList, imageApi } from "@/api/docker";
 
 interface Props {
@@ -138,7 +139,7 @@ async function loadServers() {
     }
   } catch (error) {
     console.error("加载服务器列表失败:", error);
-    ElMessage.error("加载服务器列表失败");
+    message("加载服务器列表失败", { type: "error" });
   }
 }
 
@@ -172,7 +173,7 @@ function getStatusText(status: number | undefined): string {
 async function submit() {
   const ids = selectedServerIds.value || [];
   if (!ids.length) {
-    return ElMessage.warning("请选择至少一台服务器");
+    return message("请选择至少一台服务器", { type: "warning" });
   }
 
   try {
@@ -217,15 +218,15 @@ async function submit() {
 
       // 显示同步摘要
       if (data.statusSummary) {
-        ElMessage.success(data.statusSummary);
+        message(data.statusSummary, { type: "success" });
       } else {
-        ElMessage.success("同步任务已启动");
+        message("同步任务已启动", { type: "success" });
       }
 
       emit("success");
       visibleProxy.value = false;
     } else {
-      ElMessage.error(result.msg || "同步失败");
+      message(result.msg || "同步失败", { type: "error" });
     }
   } catch (error: any) {
     console.error("同步镜像失败", error);

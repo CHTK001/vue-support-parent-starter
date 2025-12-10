@@ -6,7 +6,7 @@
  */
 
 import { ref, reactive, onUnmounted } from 'vue';
-import { ElMessage } from 'element-plus';
+import { message } from "@repo/utils";
 import { joinRoom, leaveRoom, type RoomInfo, type WebRTCUser } from '@/api/webrtc';
 
 // WebRTC配置
@@ -188,10 +188,10 @@ export function useWebRTCCall() {
       });
       
       inCall.value = true;
-      ElMessage.success('通话已开始');
+      message('通话已开始', { type: "success" });
     } catch (error) {
       console.error('发起通话失败:', error);
-      ElMessage.error('发起通话失败');
+      message('发起通话失败', { type: "error" });
       throw error;
     } finally {
       isConnecting.value = false;
@@ -226,10 +226,10 @@ export function useWebRTCCall() {
       });
       
       inCall.value = true;
-      ElMessage.success('已接听通话');
+      message('已接听通话', { type: "success" });
     } catch (error) {
       console.error('接听通话失败:', error);
-      ElMessage.error('接听通话失败');
+      message('接听通话失败', { type: "error" });
       throw error;
     } finally {
       isConnecting.value = false;
@@ -276,10 +276,10 @@ export function useWebRTCCall() {
       currentRoom.value = null;
       remoteUser.value = null;
       
-      ElMessage.success('通话已结束');
+      message('通话已结束', { type: "success" });
     } catch (error) {
       console.error('结束通话失败:', error);
-      ElMessage.error('结束通话失败');
+      message('结束通话失败', { type: "error" });
     }
   };
   

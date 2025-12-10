@@ -92,7 +92,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { ElMessage } from 'element-plus';
+import { message } from "@repo/utils";
 import SimpleRDPDesktop from './SimpleRDPDesktop.vue';
 import SimpleVNCDesktop from './SimpleVNCDesktop.vue';
 
@@ -143,7 +143,7 @@ const selectProtocol = (protocol: 'rdp' | 'vnc' ) => {
   selectedProtocol.value = protocol;
   emit('protocol-change', protocol);
 
-  ElMessage.success(`已选择 ${protocol.toUpperCase()} 协议`);
+  message(`已选择 ${protocol.toUpperCase(, { type: "success" })} 协议`);
 };
 
 const goBack = () => {

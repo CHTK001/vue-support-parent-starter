@@ -388,7 +388,8 @@
  * @since 2025-11-30
  */
 import { ref, watch, computed, nextTick } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import {
   getTableStructure,
   getCreateTableDdl,
@@ -647,7 +648,7 @@ async function loadStructure() {
     }
     deletedColumns.value = [];
   } catch (e: any) {
-    ElMessage.error("加载表结构失败: " + e.message);
+    message("加载表结构失败: " + e.message, { type: "error" });
   }
 }
 
@@ -992,7 +993,7 @@ async function handleSaveAll() {
       batchRequest.tableComment !== undefined;
 
     if (!hasActualChanges) {
-      ElMessage.info("没有检测到实际修改");
+      message("没有检测到实际修改", { type: "info" });
       return;
     }
 
@@ -1000,13 +1001,13 @@ async function handleSaveAll() {
     console.log("批量修改请求:", JSON.stringify(batchRequest, null, 2));
     await batchModifyTableStructure(props.settingId, batchRequest);
 
-    ElMessage.success("保存成功");
+    message("保存成功", { type: "success" });
     // 重置删除列表
     deletedColumns.value = [];
     await loadStructure();
     emit("refreshTable", props.tableName);
   } catch (e: any) {
-    ElMessage.error("保存失败: " + (e.message || e));
+    message("保存失败: " + (e.message || e, { type: "error" }));
   } finally {
     saving.value = false;
   }
@@ -1029,9 +1030,9 @@ async function handleClose() {
 async function copyDdl() {
   try {
     await navigator.clipboard.writeText(ddl.value);
-    ElMessage.success("已复制到剪贴板");
+    message("已复制到剪贴板", { type: "success" });
   } catch {
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 }
 </script>

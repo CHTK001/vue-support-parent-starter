@@ -2,7 +2,7 @@
 import { onMounted, ref, computed, watch, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import { message } from "@repo/utils";
-import { ElMessageBox, ElMessage } from "element-plus";
+import { ElMessageBox} from "element-plus";
 import { 
   getSoftVersionPageList, 
   type SystemSoft, 
@@ -500,7 +500,7 @@ const setupWebSocketHandlers = () => {
     const container = containerList.value.find(c => c.containerId === containerId);
     if (container) {
       container.systemSoftContainerStatus = status;
-      ElMessage.success(`容器 ${container.systemSoftContainerName} 状态已更新: ${status}`);
+      message(`容器 ${container.systemSoftContainerName} 状态已更新: ${status}`, { type: "success" });
     }
   });
   
@@ -528,14 +528,14 @@ const setupWebSocketHandlers = () => {
   
   // 安装完成处理
   onMessage(SOFT_WS_MESSAGE_TYPE.INSTALL_COMPLETED, (message: SoftWebSocketMessage) => {
-    ElMessage.success('软件安装完成');
+    message('软件安装完成', { type: "success" });
     loadContainers(); // 重新加载容器列表
     loadInstallRecords(); // 重新加载安装记录
   });
   
   // 安装失败处理
   onMessage(SOFT_WS_MESSAGE_TYPE.INSTALL_FAILED, (message: SoftWebSocketMessage) => {
-    ElMessage.error(`软件安装失败: ${(message as any).error || '未知错误'}`);
+    message(`软件安装失败: ${(message as any, { type: "error" }).error || '未知错误'}`);
     loadInstallRecords(); // 重新加载安装记录
   });
 };

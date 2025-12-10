@@ -137,7 +137,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, onBeforeUnmount, inject } from "vue";
 import CommonContextMenu, { type MenuItem } from "@/components/CommonContextMenu.vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { socket } from "@repo/core";
 import { getConfig } from "@repo/config";
 import { splitToArray } from "@repo/utils";
@@ -594,9 +594,9 @@ onMounted(async () => {
             console.log('Status update:', data.content);
             statusText.value = data.content || '';
           } else if (data.messageType === 'log') {
-            ElMessage.info(data.content || '');
+            message(data.content || '', { type: "info" });
           } else if (data.messageType === 'error') {
-            ElMessage.error(data.content || '操作出现错误');
+            message(data.content || '操作出现错误', { type: "error" });
           }
         } catch (error) {
           console.error('Error processing console message:', error);
@@ -608,7 +608,7 @@ onMounted(async () => {
       if (data.settingId === props.id && data.type === 'redis') {
         try {
           console.log('Redis Console log:', data);
-          ElMessage.info(data.content || '');
+          message(data.content || '', { type: "info" });
         } catch (error) {
           console.error('Error processing log message:', error);
         }

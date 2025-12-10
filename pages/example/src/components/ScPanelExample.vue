@@ -246,12 +246,12 @@
  * @version 1.0.0
  * @since 2025-12-05
  */
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { ScPanel } from "@repo/components/ScPanel";
 import DemoBlock from "./DemoBlock.vue";
 
 function handleClose() {
-  ElMessage.info("面板已关闭");
+  message("面板已关闭", { type: "info" });
 }
 
 // 代码模板
@@ -424,10 +424,10 @@ const codes = {
 </ScPanel>
 
 <script setup>
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 function handleClose() {
-  ElMessage.info("面板已关闭");
+  message("面板已关闭", { type: "info" });
 }
 <\/script>`
 };

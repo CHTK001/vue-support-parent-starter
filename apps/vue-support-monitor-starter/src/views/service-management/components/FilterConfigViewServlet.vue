@@ -134,7 +134,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import {
   getViewerListForSetting,
   saveViewerConfigForSetting,
@@ -173,7 +173,7 @@ async function loadData() {
       viewerList.value = res.data;
     }
   } catch (e) {
-    ElMessage.error("加载视图查看器列表失败");
+    message("加载视图查看器列表失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -198,14 +198,14 @@ async function handleSave() {
     });
 
     if (res.success) {
-      ElMessage.success("视图查看器配置已保存并热应用");
+      message("视图查看器配置已保存并热应用", { type: "success" });
       emit("success");
       handleClose();
     } else {
-      ElMessage.error(res.msg || "保存失败");
+      message(res.msg || "保存失败", { type: "error" });
     }
   } catch (e) {
-    ElMessage.error("保存视图查看器配置失败");
+    message("保存视图查看器配置失败", { type: "error" });
   } finally {
     saving.value = false;
   }

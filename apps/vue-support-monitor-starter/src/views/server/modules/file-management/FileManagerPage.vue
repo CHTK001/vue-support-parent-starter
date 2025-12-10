@@ -121,7 +121,8 @@ import type { FileInfo } from "@/api/server/file-management";
 import { uploadServerFileWithProgress } from "@/api/server/upload";
 import { useFileSystemSSE } from "@/composables/useFileSystemSSE";
 import UploadQueueStatusComponent from "@/views/file-system/components/UploadQueueStatus.vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import FileDetailContent from "./FileDetailContent.vue";
 import FileList from "./FileList.vue";
@@ -157,7 +158,7 @@ const presetFiles = ref<File[]>([]);
 function handleSyncTask(fileId: number) {
   const meta = manager.getTaskMeta?.(fileId);
   if (!meta?.file) {
-    ElMessage.warning("无法获取原始文件，无法同步");
+    message("无法获取原始文件，无法同步", { type: "warning" });
     return;
   }
   // 预填文件到对话框，用户选择目标服务器/节点后执行
@@ -184,7 +185,7 @@ function openDistribute(file: FileInfo) {
 
 // 分发完成回调（关闭对话框并刷新列表）
 function handleDistributeSuccess() {
-  ElMessage.success("同步任务已完成");
+  message("同步任务已完成", { type: "success" });
   showDistributeDialog.value = false;
   fileListRef.value?.refreshList?.();
 }
@@ -374,7 +375,7 @@ const handleListRefresh = () => {
 const handleFileUpdated = () => {
   // 刷新文件列表
   fileListRef.value?.refreshList();
-  ElMessage.success("文件更新成功");
+  message("文件更新成功", { type: "success" });
 };
 
 /**
@@ -382,7 +383,7 @@ const handleFileUpdated = () => {
  */
 async function handleDropUpload(targetDir: string, files: File[]) {
   if (!props.serverId) {
-    ElMessage.warning("请先选择服务器");
+    message("请先选择服务器", { type: "warning" });
     return;
   }
   if (!targetDir) targetDir = currentPath.value || "/";
@@ -444,13 +445,13 @@ const handleFileDetailPreview = (file: FileInfo) => {
 const handleFileDetailDownload = (file: FileInfo) => {
   // TODO: 实现文件下载功能
   console.log("Download file:", file);
-  ElMessage.info("下载功能开发中...");
+  message("下载功能开发中...", { type: "info" });
 };
 
 const handleFileDetailDelete = (file: FileInfo) => {
   // TODO: 实现文件删除功能
   console.log("Delete file:", file);
-  ElMessage.info("删除功能开发中...");
+  message("删除功能开发中...", { type: "info" });
   // 删除成功后关闭详情面板
   detailVisible.value = false;
 };

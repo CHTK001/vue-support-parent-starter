@@ -141,7 +141,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
-import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { message } from "@repo/utils";
+import { type FormInstance, type FormRules } from "element-plus";
 import {
   createGroup,
   updateGroup,
@@ -316,15 +317,15 @@ const handleSubmit = async () => {
     const res = await apiCall(formData);
 
     if (res.code === "00000" || res.code === 0) {
-      ElMessage.success(isEdit.value ? "更新分组成功" : "创建分组成功");
+      message(isEdit.value ? "更新分组成功" : "创建分组成功", { type: "success" });
       handleClose();
       emit("success");
     } else {
-      ElMessage.error(res.msg || "操作失败");
+      message(res.msg || "操作失败", { type: "error" });
     }
   } catch (error) {
     console.error("提交失败:", error);
-    ElMessage.error("操作失败");
+    message("操作失败", { type: "error" });
   } finally {
     submitting.value = false;
   }

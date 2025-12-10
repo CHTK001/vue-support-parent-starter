@@ -179,7 +179,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
-import { ElMessage } from 'element-plus';
+import { message } from "@repo/utils";
 import IconifyIconOnline from "@repo/components/ReIcon/src/iconifyIconOnline";
 import {
   getGuacamoleProxyUrl,
@@ -252,13 +252,13 @@ const testProxyConnection = async () => {
     lastTestTime.value = historyItem.time;
     
     if (res.code === '00000') {
-      ElMessage.success('代理连接测试成功');
+      message('代理连接测试成功', { type: "success" });
     } else {
-      ElMessage.error(`代理连接测试失败: ${res.msg}`);
+      message(`代理连接测试失败: ${res.msg}`, { type: "error" });
     }
   } catch (error) {
     console.error('测试代理连接失败:', error);
-    ElMessage.error('测试代理连接失败');
+    message('测试代理连接失败', { type: "error" });
     
     connectionHistory.value.unshift({
       time: new Date().toLocaleString(),
@@ -289,9 +289,9 @@ const connectGuacamole = async () => {
         message: '连接建立成功'
       });
       
-      ElMessage.success('Guacamole 连接建立成功');
+      message('Guacamole 连接建立成功', { type: "success" });
     } else {
-      ElMessage.error(`连接失败: ${res.msg}`);
+      message(`连接失败: ${res.msg}`, { type: "error" });
       
       connectionHistory.value.unshift({
         time: new Date().toLocaleString(),
@@ -302,7 +302,7 @@ const connectGuacamole = async () => {
     }
   } catch (error) {
     console.error('连接 Guacamole 失败:', error);
-    ElMessage.error('连接 Guacamole 失败');
+    message('连接 Guacamole 失败', { type: "error" });
     
     connectionHistory.value.unshift({
       time: new Date().toLocaleString(),

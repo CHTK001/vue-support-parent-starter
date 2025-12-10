@@ -693,10 +693,10 @@ const columnSettingSaveHandler = async column => {
   try {
     await columnSettingSave(props.tableName, column);
   } catch (error) {
-    ElMessage.error("保存失败");
+    message("保存失败", { type: "error" });
     columnSettingRef.value.isSave = false;
   }
-  ElMessage.success("保存成功");
+  message("保存成功", { type: "success" });
   columnSettingRef.value.isSave = false;
 };
 
@@ -708,7 +708,7 @@ const columnSettingBackHandler = async () => {
     userColumn.value = column;
     columnSettingRef.value.usercolumn = JSON.parse(JSON.stringify(userColumn.value || []));
   } catch (error) {
-    ElMessage.error("重置失败");
+    message("重置失败", { type: "error" });
     columnSettingRef.value.isSave = false;
   }
   columnSettingRef.value.isSave = false;

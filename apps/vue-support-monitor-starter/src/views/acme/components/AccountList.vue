@@ -101,7 +101,8 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import {
   getAccountPage,
   deleteAccount,
@@ -164,11 +165,11 @@ async function handleDelete(row: AcmeAccount) {
       { type: "warning" }
     );
     await deleteAccount(row.acmeAccountId!);
-    ElMessage.success("删除成功");
+    message("删除成功", { type: "success" });
     tableRef.value?.refresh();
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("删除失败，该账户可能有关联的证书");
+      message("删除失败，该账户可能有关联的证书", { type: "error" });
     }
   }
 }

@@ -265,7 +265,8 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted, computed, onBeforeUnmount, nextTick, inject } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import CodeEditor from "@/components/codeEditor/index.vue";
 import { socket } from "@repo/core";
 import { getConfig } from "@repo/config";
@@ -901,7 +902,7 @@ async function onMenuSelect(key: string) {
           nodePath: contextNode.value.path,
           newName: value.trim(),
         });
-        ElMessage.success("已重命名");
+        message("已重命名", { type: "success" });
         contextNode.value.name = value.trim();
         refreshNodeChildren({
           path: contextNode.value.parentPath,
@@ -932,7 +933,7 @@ async function onMenuSelect(key: string) {
           nodePath: contextNode.value.path,
           backupName: value.trim(),
         });
-        ElMessage.success("已发起备份");
+        message("已发起备份", { type: "success" });
         refreshNodeChildren({
           path: contextNode.value.parentPath,
         });
@@ -1066,7 +1067,7 @@ async function addFieldComment(node: any) {
       dataType: node.properties?.dataType,
       nullable: node.properties?.nullable,
     });
-    ElMessage.success("已保存注释");
+    message("已保存注释", { type: "success" });
     node.properties.comment = value.trim();
   } catch (_) {
     // canceled
@@ -1095,9 +1096,9 @@ onMounted(async () => {
           if (data.messageType === 'status') {
             statusText.value = data.content || '';
           } else if (data.messageType === 'log') {
-            ElMessage.info(data.content || '');
+            message(data.content || '', { type: "info" });
           } else if (data.messageType === 'error') {
-            ElMessage.error(data.content || '操作出现错误');
+            message(data.content || '操作出现错误', { type: "error" });
           }
         } catch (error) {
           console.error('Error processing console message:', error);
@@ -1109,7 +1110,7 @@ onMounted(async () => {
       if (data.settingId === props.id && data.type === 'jdbc') {
         try {
           console.log('JDBC Console log:', data);
-          ElMessage.info(data.content || '');
+          message(data.content || '', { type: "info" });
         } catch (error) {
           console.error('Error processing log message:', error);
         }

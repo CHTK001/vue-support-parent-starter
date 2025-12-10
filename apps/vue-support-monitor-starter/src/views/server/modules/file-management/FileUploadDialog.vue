@@ -192,7 +192,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { formatBytes } from "@pureadmin/utils";
 import { uploadFile } from "@/api/server/file-management";
 

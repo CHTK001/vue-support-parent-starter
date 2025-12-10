@@ -124,7 +124,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onUnmounted, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
+import { message } from "@repo/utils";
 import { containerApi, type SystemSoftContainer } from '@/api/docker'
 
 interface Props {
@@ -209,10 +209,10 @@ const loadLogs = async () => {
       await nextTick()
       scrollToBottom()
     } else {
-      ElMessage.error(response.msg || '获取日志失败')
+      message(response.msg || '获取日志失败', { type: "error" })
     }
   } catch (error) {
-    ElMessage.error('获取容器日志失败')
+    message('获取容器日志失败', { type: "error" })
   } finally {
     loading.value = false
   }
@@ -292,7 +292,7 @@ const clearLogs = () => {
 // 下载日志
 const downloadLogs = () => {
   if (!logs.value) {
-    ElMessage.warning('暂无日志可下载')
+    message('暂无日志可下载', { type: "warning" })
     return
   }
   
@@ -310,13 +310,13 @@ const downloadLogs = () => {
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
   
-  ElMessage.success('日志文件下载成功')
+  message('日志文件下载成功', { type: "success" })
 }
 
 // 新窗口打开
 const openInNewWindow = () => {
   if (!logs.value) {
-    ElMessage.warning('暂无日志内容')
+    message('暂无日志内容', { type: "warning" })
     return
   }
   
