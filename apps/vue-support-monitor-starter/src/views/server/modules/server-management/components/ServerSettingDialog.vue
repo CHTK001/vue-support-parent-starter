@@ -647,33 +647,6 @@
             </div>
 
             <el-form-item
-              label="启用日志监控"
-              prop="monitorSysGenServerSettingLogMonitorEnabled"
-            >
-              <el-switch
-                v-model="formData.monitorSysGenServerSettingLogMonitorEnabled"
-                :active-value="1"
-                :inactive-value="0"
-                inline-prompt
-                active-text="开"
-                inactive-text="关"
-              />
-            </el-form-item>
-
-            <el-form-item
-              v-if="formData.monitorSysGenServerSettingLogMonitorEnabled"
-              label="日志文件路径"
-              prop="monitorSysGenServerSettingLogFilePaths"
-            >
-              <el-input
-                v-model="formData.monitorSysGenServerSettingLogFilePaths"
-                type="textarea"
-                :rows="3"
-                placeholder="日志文件路径，多个路径用换行分隔"
-              />
-            </el-form-item>
-
-            <el-form-item
               label="监控端口"
               prop="monitorSysGenServerSettingMonitorPorts"
             >
@@ -803,8 +776,6 @@ const formData = reactive<Partial<ServerSetting>>({
   monitorSysGenServerSettingDiskAlertThreshold: 80,
   monitorSysGenServerSettingAlertNotificationMethod: "EMAIL",
   monitorSysGenServerSettingAlertNotificationAddress: "",
-  monitorSysGenServerSettingConnectionTimeout: 30,
-  monitorSysGenServerSettingReadTimeout: 30,
   monitorSysGenServerSettingDockerMonitorEnabled: 0,
   monitorSysGenServerSettingDockerHost: "127.0.0.1",
   monitorSysGenServerSettingDockerPort: 2376,
@@ -812,8 +783,6 @@ const formData = reactive<Partial<ServerSetting>>({
   monitorSysGenServerSettingDockerUsername: "",
   monitorSysGenServerSettingDockerPassword: "",
   monitorSysGenServerSettingDockerConnectTimeoutMillis: 30000,
-  monitorSysGenServerSettingLogMonitorEnabled: 0,
-  monitorSysGenServerSettingLogFilePaths: "",
   monitorSysGenServerSettingMonitorPorts: "",
   monitorSysGenServerSettingCustomTags: "",
   monitorSysGenServerSettingDescription: "",

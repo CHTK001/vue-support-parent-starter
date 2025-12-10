@@ -15,7 +15,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
+        <ScSwitch
           v-model="formData.monitorSysGenServerSettingMonitorEnabled"
           :active-value="1"
           :inactive-value="0"
@@ -29,9 +29,9 @@
       <el-form-item prop="monitorSysGenServerSettingHealthCheckEnabled">
         <template #label>
           <div class="form-label">
-            <span>健康检查</span>
+            <span>健康检测</span>
             <el-tooltip
-              content="开启后将定期检查服务器的健康状态，包括连接状态、响应时间等指标"
+              content="开启后将定期检测服务器的连接状态和响应延迟，用于判断服务器是否在线"
               placement="top"
               effect="dark"
             >
@@ -39,7 +39,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
+        <ScSwitch
           v-model="formData.monitorSysGenServerSettingHealthCheckEnabled"
           :active-value="1"
           :inactive-value="0"
@@ -47,6 +47,35 @@
           inactive-text="关闭"
           @change="handleChange"
         />
+      </el-form-item>
+
+      <!-- 检测间隔（健康检测开启时显示） -->
+      <el-form-item
+        v-if="formData.monitorSysGenServerSettingHealthCheckEnabled === 1"
+        prop="monitorSysGenServerSettingMonitorInterval"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>检测间隔</span>
+            <el-tooltip
+              content="后台定时检测服务器连接状态的间隔时间，值越小检测越频繁"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingMonitorInterval"
+          :min="30"
+          :max="3600"
+          :step="30"
+          placeholder="检测间隔(秒)"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="form-tip">秒，建议值：60-300</span>
       </el-form-item>
 
       <!-- 指标采集开关 -->
@@ -63,7 +92,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
+        <ScSwitch
           v-model="formData.monitorSysGenServerSettingMetricsCollectionEnabled"
           :active-value="1"
           :inactive-value="0"
@@ -73,99 +102,17 @@
         />
       </el-form-item>
 
-      <!-- 监控间隔：从指标管理迁移过来 -->
-      <el-form-item prop="monitorSysGenServerSettingMonitorInterval">
-        <template #label>
-          <div class="form-label">
-            <span>监控间隔</span>
-            <el-tooltip
-              content="后台定时任务检查服务器状态的间隔时间，影响告警检测和状态更新的及时性"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingMonitorInterval"
-          :min="30"
-          :max="3600"
-          :step="30"
-          placeholder="监控间隔(秒)"
-          style="width: 200px"
-          @change="handleChange"
-        />
-        <span class="form-tip">秒，建议值：60-300</span>
-      </el-form-item>
-
-      <!-- 数据上报方式 -->
-      <el-form-item prop="monitorSysGenServerSettingDataReportMethod">
-        <template #label>
-          <div class="form-label">
-            <span>数据上报方式</span>
-            <el-tooltip
-              content="选择监控数据的上报方式：NONE-不上报，NODE-节点上报，LOCAL-本地上报，PROMETHEUS-通过Prometheus上报"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-select
-          v-model="formData.monitorSysGenServerSettingDataReportMethod"
-          placeholder="请选择上报方式"
-          style="width: 200px"
-          @change="handleChange"
-        >
-          <el-option label="不上报" value="NONE" />
-          <el-option label="节点上报" value="NODE" />
-          <el-option label="本地上报" value="LOCAL" />
-          <el-option label="Prometheus" value="PROMETHEUS" />
-        </el-select>
-        <span class="form-tip">选择合适的数据上报方式</span>
-      </el-form-item>
-
-      <!-- 指标保留天数 -->
-      <el-form-item prop="monitorSysGenServerSettingMetricsRetentionDays">
-        <template #label>
-          <div class="form-label">
-            <span>指标保留天数</span>
-            <el-tooltip
-              content="历史监控数据的保留时间，超过此时间的数据将被自动清理"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingMetricsRetentionDays"
-          :min="1"
-          :max="365"
-          :step="1"
-          placeholder="保留天数"
-          style="width: 200px"
-          @change="handleChange"
-        />
-        <span class="form-tip">天，建议值：30-90</span>
-      </el-form-item>
-
-      <!-- Prometheus配置 - 当选择Prometheus上报方式时显示 -->
-      <div
-        v-if="
-          formData.monitorSysGenServerSettingDataReportMethod === 'PROMETHEUS'
-        "
-        class="prometheus-basic-config"
+      <!-- 指标采集相关配置（开启指标采集时显示） -->
+      <template
+        v-if="formData.monitorSysGenServerSettingMetricsCollectionEnabled === 1"
       >
-        <el-form-item prop="monitorSysGenServerSettingPrometheusHost">
+        <!-- 指标上报方式 -->
+        <el-form-item prop="monitorSysGenServerSettingDataReportMethod">
           <template #label>
             <div class="form-label">
-              <span>Prometheus主机</span>
+              <span>指标上报方式</span>
               <el-tooltip
-                content="Prometheus服务器的主机地址，例如：localhost 或 192.168.1.100"
+                content="选择指标数据的上报方式"
                 placement="top"
                 effect="dark"
               >
@@ -173,22 +120,205 @@
               </el-tooltip>
             </div>
           </template>
-          <el-input
-            v-model="formData.monitorSysGenServerSettingPrometheusHost"
-            placeholder="localhost"
-            clearable
+          <ScSelect
+            layout="select"
+            v-model="formData.monitorSysGenServerSettingDataReportMethod"
+            placeholder="请选择上报方式"
             style="width: 200px"
             @change="handleChange"
-          />
-          <span class="form-tip">Prometheus服务器地址</span>
+          >
+            <el-option label="不上报" value="NONE" />
+            <el-option label="节点上报" value="NODE" />
+            <el-option label="本地采集" value="LOCAL" />
+            <el-option label="Prometheus" value="PROMETHEUS" />
+          </ScSelect>
         </el-form-item>
 
-        <el-form-item prop="monitorSysGenServerSettingPrometheusPort">
+        <!-- 指标上报方式说明卡片 -->
+        <div class="report-method-tips">
+          <div
+            v-if="
+              formData.monitorSysGenServerSettingDataReportMethod === 'NONE'
+            "
+            class="method-tip-card"
+          >
+            <div class="tip-header">
+              <IconifyIconOnline
+                icon="ri:close-circle-line"
+                class="tip-icon none"
+              />
+              <span class="tip-title">不上报</span>
+            </div>
+            <p class="tip-content">
+              不收集和上报任何监控数据，服务器仅作为管理对象存在。
+            </p>
+          </div>
+
+          <div
+            v-if="
+              formData.monitorSysGenServerSettingDataReportMethod === 'NODE'
+            "
+            class="method-tip-card"
+          >
+            <div class="tip-header">
+              <IconifyIconOnline
+                icon="ri:upload-cloud-line"
+                class="tip-icon node"
+              />
+              <span class="tip-title">节点上报</span>
+            </div>
+            <p class="tip-content">
+              需要在目标服务器上部署
+              <strong>监控客户端（Agent）</strong>，客户端会定期采集
+              CPU、内存、磁盘、网络等指标数据， 并通过 WebSocket
+              主动上报到监控平台。
+            </p>
+            <div class="tip-features">
+              <span class="feature-tag">实时性高</span>
+              <span class="feature-tag">数据准确</span>
+              <span class="feature-tag">支持离线检测</span>
+              <span class="feature-tag">需部署Agent</span>
+            </div>
+          </div>
+
+          <div
+            v-if="
+              formData.monitorSysGenServerSettingDataReportMethod === 'LOCAL'
+            "
+            class="method-tip-card"
+          >
+            <div class="tip-header">
+              <IconifyIconOnline icon="ri:server-line" class="tip-icon local" />
+              <span class="tip-title">本地采集</span>
+            </div>
+            <p class="tip-content">
+              监控平台主动通过
+              <strong>SSH 连接</strong>
+              到目标服务器执行命令采集数据，无需在目标服务器部署任何程序。
+              需要配置服务器的 SSH 连接信息（用户名、密码/密钥）。
+            </p>
+            <div class="tip-features">
+              <span class="feature-tag">无需Agent</span>
+              <span class="feature-tag">部署简单</span>
+              <span class="feature-tag">需SSH权限</span>
+              <span class="feature-tag">适合少量服务器</span>
+            </div>
+          </div>
+
+          <div
+            v-if="
+              formData.monitorSysGenServerSettingDataReportMethod ===
+              'PROMETHEUS'
+            "
+            class="method-tip-card"
+          >
+            <div class="tip-header">
+              <IconifyIconOnline
+                icon="simple-icons:prometheus"
+                class="tip-icon prometheus"
+              />
+              <span class="tip-title">Prometheus</span>
+            </div>
+            <p class="tip-content">
+              通过
+              <strong>Prometheus</strong> 查询监控数据。需要目标服务器已部署
+              node_exporter 等采集器， 并配置 Prometheus 服务器地址。适合已有
+              Prometheus 监控体系的环境。
+            </p>
+            <div class="tip-features">
+              <span class="feature-tag">企业级方案</span>
+              <span class="feature-tag">数据丰富</span>
+              <span class="feature-tag">需Prometheus环境</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 采集指标类型 -->
+        <el-form-item>
           <template #label>
             <div class="form-label">
-              <span>Prometheus端口</span>
+              <span>采集指标</span>
               <el-tooltip
-                content="Prometheus服务器的端口号，默认为9090"
+                content="选择需要采集的指标类型，默认采集全部指标"
+                placement="top"
+                effect="dark"
+              >
+                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+              </el-tooltip>
+            </div>
+          </template>
+          <div class="metrics-checkbox-group">
+            <el-checkbox
+              v-model="formData.monitorSysGenServerSettingCollectCpu"
+              :true-value="1"
+              :false-value="0"
+              @change="handleChange"
+            >
+              <span class="checkbox-label">
+                <IconifyIconOnline icon="ri:cpu-line" class="checkbox-icon" />
+                CPU
+              </span>
+            </el-checkbox>
+            <el-checkbox
+              v-model="formData.monitorSysGenServerSettingCollectMemory"
+              :true-value="1"
+              :false-value="0"
+              @change="handleChange"
+            >
+              <span class="checkbox-label">
+                <IconifyIconOnline icon="ri:ram-2-line" class="checkbox-icon" />
+                内存
+              </span>
+            </el-checkbox>
+            <el-checkbox
+              v-model="formData.monitorSysGenServerSettingCollectDisk"
+              :true-value="1"
+              :false-value="0"
+              @change="handleChange"
+            >
+              <span class="checkbox-label">
+                <IconifyIconOnline
+                  icon="ri:hard-drive-2-line"
+                  class="checkbox-icon"
+                />
+                磁盘
+              </span>
+            </el-checkbox>
+            <el-checkbox
+              v-model="formData.monitorSysGenServerSettingCollectNetwork"
+              :true-value="1"
+              :false-value="0"
+              @change="handleChange"
+            >
+              <span class="checkbox-label">
+                <IconifyIconOnline icon="ri:wifi-line" class="checkbox-icon" />
+                网络
+              </span>
+            </el-checkbox>
+            <el-checkbox
+              v-model="formData.monitorSysGenServerSettingCollectProcess"
+              :true-value="1"
+              :false-value="0"
+              @change="handleChange"
+            >
+              <span class="checkbox-label">
+                <IconifyIconOnline
+                  icon="ri:terminal-box-line"
+                  class="checkbox-icon"
+                />
+                进程
+              </span>
+            </el-checkbox>
+          </div>
+        </el-form-item>
+
+        <!-- 指标保留天数 -->
+        <el-form-item prop="monitorSysGenServerSettingMetricsRetentionDays">
+          <template #label>
+            <div class="form-label">
+              <span>指标保留天数</span>
+              <el-tooltip
+                content="历史监控数据的保留时间，超过此时间的数据将被自动清理"
                 placement="top"
                 effect="dark"
               >
@@ -197,17 +327,79 @@
             </div>
           </template>
           <el-input-number
-            v-model="formData.monitorSysGenServerSettingPrometheusPort"
+            v-model="formData.monitorSysGenServerSettingMetricsRetentionDays"
             :min="1"
-            :max="65535"
+            :max="365"
             :step="1"
-            placeholder="9090"
+            placeholder="保留天数"
             style="width: 200px"
             @change="handleChange"
           />
-          <span class="form-tip">端口号，默认9090</span>
+          <span class="form-tip">天，建议值：30-90</span>
         </el-form-item>
-      </div>
+
+        <!-- Prometheus配置 - 当选择Prometheus上报方式时显示 -->
+        <div
+          v-if="
+            formData.monitorSysGenServerSettingDataReportMethod === 'PROMETHEUS'
+          "
+          class="prometheus-basic-config"
+        >
+          <el-form-item prop="monitorSysGenServerSettingPrometheusHost">
+            <template #label>
+              <div class="form-label">
+                <span>Prometheus主机</span>
+                <el-tooltip
+                  content="Prometheus服务器的主机地址，例如：localhost 或 192.168.1.100"
+                  placement="top"
+                  effect="dark"
+                >
+                  <IconifyIconOnline
+                    icon="ri:question-line"
+                    class="help-icon"
+                  />
+                </el-tooltip>
+              </div>
+            </template>
+            <el-input
+              v-model="formData.monitorSysGenServerSettingPrometheusHost"
+              placeholder="localhost"
+              clearable
+              style="width: 200px"
+              @change="handleChange"
+            />
+            <span class="form-tip">Prometheus服务器地址</span>
+          </el-form-item>
+
+          <el-form-item prop="monitorSysGenServerSettingPrometheusPort">
+            <template #label>
+              <div class="form-label">
+                <span>Prometheus端口</span>
+                <el-tooltip
+                  content="Prometheus服务器的端口号，默认为9090"
+                  placement="top"
+                  effect="dark"
+                >
+                  <IconifyIconOnline
+                    icon="ri:question-line"
+                    class="help-icon"
+                  />
+                </el-tooltip>
+              </div>
+            </template>
+            <el-input-number
+              v-model="formData.monitorSysGenServerSettingPrometheusPort"
+              :min="1"
+              :max="65535"
+              :step="1"
+              placeholder="9090"
+              style="width: 200px"
+              @change="handleChange"
+            />
+            <span class="form-tip">端口号，默认9090</span>
+          </el-form-item>
+        </div>
+      </template>
     </div>
 
     <!-- 告警配置 -->
@@ -225,7 +417,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
+        <ScSwitch
           v-model="formData.monitorSysGenServerSettingAlertEnabled"
           :active-value="1"
           :inactive-value="0"
@@ -251,7 +443,8 @@
             </el-tooltip>
           </div>
         </template>
-        <el-select
+        <ScSelect
+          layout="select"
           v-model="formData.monitorSysGenServerSettingAlertNotificationMethod"
           placeholder="请选择告警方式"
           style="width: 200px !important"
@@ -264,7 +457,7 @@
           <el-option label="企业微信" value="WECHAT" />
           <el-option label="网页推送" value="WEB_PUSH" />
           <el-option label="Webhook" value="WEBHOOK" />
-        </el-select>
+        </ScSelect>
       </el-form-item>
 
       <el-form-item
@@ -510,7 +703,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
+        <ScSwitch
           v-model="
             formData.monitorSysGenServerSettingAutoRecoveryNotificationEnabled
           "
@@ -538,7 +731,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
+        <ScSwitch
           v-model="formData.monitorSysGenServerSettingDockerEnabled"
           :active-value="1"
           :inactive-value="0"
@@ -564,7 +757,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
+        <ScSwitch
           v-model="formData.monitorSysGenServerSettingDockerMonitorEnabled"
           :active-value="1"
           :inactive-value="0"
@@ -590,7 +783,8 @@
             </el-tooltip>
           </div>
         </template>
-        <el-select
+        <ScSelect
+          layout="select"
           v-model="formData.monitorSysGenServerSettingDockerConnectionType"
           placeholder="请选择连接方式"
           style="width: 200px !important"
@@ -598,8 +792,62 @@
         >
           <el-option label="Shell命令" value="SHELL" />
           <el-option label="Docker API" value="API" />
-        </el-select>
+        </ScSelect>
       </el-form-item>
+
+      <!-- Docker连接方式说明 -->
+      <div
+        v-if="formData.monitorSysGenServerSettingDockerEnabled === 1"
+        class="report-method-tips"
+      >
+        <div
+          v-if="
+            formData.monitorSysGenServerSettingDockerConnectionType === 'SHELL'
+          "
+          class="method-tip-card"
+        >
+          <div class="tip-header">
+            <IconifyIconOnline icon="ri:terminal-line" class="tip-icon local" />
+            <span class="tip-title">Shell命令方式</span>
+          </div>
+          <p class="tip-content">
+            通过
+            <strong>SSH 执行 docker 命令</strong>
+            获取容器信息。需要目标服务器上的用户有执行 docker 命令的权限（加入
+            docker 用户组）。
+          </p>
+          <div class="tip-features">
+            <span class="feature-tag">配置简单</span>
+            <span class="feature-tag">无需开放端口</span>
+            <span class="feature-tag">需docker权限</span>
+          </div>
+        </div>
+
+        <div
+          v-if="
+            formData.monitorSysGenServerSettingDockerConnectionType === 'API'
+          "
+          class="method-tip-card"
+        >
+          <div class="tip-header">
+            <IconifyIconOnline
+              icon="simple-icons:docker"
+              class="tip-icon node"
+            />
+            <span class="tip-title">Docker API方式</span>
+          </div>
+          <p class="tip-content">
+            通过 <strong>Docker Remote API</strong> 连接。需要在目标服务器上开启
+            Docker API（通常是 2375/2376 端口），支持 TLS 加密。
+          </p>
+          <div class="tip-features">
+            <span class="feature-tag">功能完整</span>
+            <span class="feature-tag">性能更好</span>
+            <span class="feature-tag">需开放API端口</span>
+            <span class="feature-tag">建议启用TLS</span>
+          </div>
+        </div>
+      </div>
 
       <el-form-item
         v-show="
@@ -791,7 +1039,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
+        <ScSwitch
           v-model="formData.monitorSysGenServerSettingDockerTlsEnabled"
           :active-value="1"
           :inactive-value="0"
@@ -817,7 +1065,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
+        <ScSwitch
           v-model="formData.monitorSysGenServerSettingProxyEnabled"
           :active-value="1"
           :inactive-value="0"
@@ -843,7 +1091,8 @@
             </el-tooltip>
           </div>
         </template>
-        <el-select
+        <ScSelect
+          layout="select"
           v-model="formData.monitorSysGenServerSettingProxyType"
           placeholder="请选择代理类型"
           style="width: 200px !important"
@@ -852,7 +1101,7 @@
           <el-option label="HTTP代理" value="HTTP" />
           <el-option label="SOCKS5代理" value="SOCKS5" />
           <el-option label="Guacamole代理" value="GUACAMOLE" />
-        </el-select>
+        </ScSelect>
       </el-form-item>
 
       <el-form-item
@@ -964,12 +1213,14 @@
 
     <!-- 高级配置 -->
     <div v-if="section === 'advanced'" class="setting-section">
-      <el-form-item prop="monitorSysGenServerSettingLogMonitorEnabled">
+      <el-form-item
+        prop="monitorSysGenServerSettingPerformanceSuggestionEnabled"
+      >
         <template #label>
           <div class="form-label">
-            <span>日志监控</span>
+            <span>性能优化建议</span>
             <el-tooltip
-              content="开启后将监控指定的系统日志文件，检测异常日志和错误信息"
+              content="开启后系统将根据监控数据分析服务器性能瓶颈并提供优化建议"
               placement="top"
               effect="dark"
             >
@@ -977,8 +1228,10 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingLogMonitorEnabled"
+        <ScSwitch
+          v-model="
+            formData.monitorSysGenServerSettingPerformanceSuggestionEnabled
+          "
           :active-value="1"
           :inactive-value="0"
           active-text="开启"
@@ -986,33 +1239,11 @@
           @change="handleChange"
         />
       </el-form-item>
+    </div>
 
-      <el-form-item
-        v-show="formData.monitorSysGenServerSettingLogMonitorEnabled"
-        prop="monitorSysGenServerSettingLogFilePaths"
-      >
-        <template #label>
-          <div class="form-label">
-            <span>日志文件路径</span>
-            <el-tooltip
-              content="需要监控的日志文件路径，支持通配符，多个路径用换行分隔，如：/var/log/nginx/*.log"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingLogFilePaths"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入日志文件路径，多个路径用换行分隔&#10;如：/var/log/nginx/access.log&#10;/var/log/nginx/error.log"
-          maxlength="1000"
-          @change="handleChange"
-        />
-      </el-form-item>
-
+    <!-- 端口配置 -->
+    <div v-if="section === 'tasks'" class="setting-section">
+      <!-- 端口监控开关 -->
       <el-form-item prop="monitorSysGenServerSettingPortMonitorEnabled">
         <template #label>
           <div class="form-label">
@@ -1026,7 +1257,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
+        <ScSwitch
           v-model="formData.monitorSysGenServerSettingPortMonitorEnabled"
           :active-value="1"
           :inactive-value="0"
@@ -1036,6 +1267,7 @@
         />
       </el-form-item>
 
+      <!-- 监控端口列表 -->
       <el-form-item
         v-show="formData.monitorSysGenServerSettingPortMonitorEnabled"
         prop="monitorSysGenServerSettingMonitorPorts"
@@ -1060,88 +1292,11 @@
         />
       </el-form-item>
 
-      <el-form-item prop="monitorSysGenServerSettingConnectionTimeout">
-        <template #label>
-          <div class="form-label">
-            <span>连接超时时间</span>
-            <el-tooltip
-              content="建立连接的最大等待时间，超过此时间将认为连接失败，建议15-60秒"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingConnectionTimeout"
-          :min="5"
-          :max="300"
-          :step="5"
-          placeholder="连接超时时间(秒)"
-          style="width: 200px"
-          @change="handleChange"
-        />
-        <span class="form-tip">秒，建议值：15-60</span>
-      </el-form-item>
-
-      <el-form-item prop="monitorSysGenServerSettingReadTimeout">
-        <template #label>
-          <div class="form-label">
-            <span>读取超时时间</span>
-            <el-tooltip
-              content="数据读取的最大等待时间，超过此时间将认为读取失败，建议30-120秒"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingReadTimeout"
-          :min="10"
-          :max="600"
-          :step="10"
-          placeholder="读取超时时间(秒)"
-          style="width: 200px"
-          @change="handleChange"
-        />
-        <span class="form-tip">秒，建议值：30-120</span>
-      </el-form-item>
-
+      <!-- 端口检测间隔 -->
       <el-form-item
-        prop="monitorSysGenServerSettingPerformanceSuggestionEnabled"
+        v-show="formData.monitorSysGenServerSettingPortMonitorEnabled"
+        prop="monitorSysGenServerSettingPortCheckInterval"
       >
-        <template #label>
-          <div class="form-label">
-            <span>性能优化建议</span>
-            <el-tooltip
-              content="开启后系统将根据监控数据分析服务器性能瓶颈并提供优化建议"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-switch
-          v-model="
-            formData.monitorSysGenServerSettingPerformanceSuggestionEnabled
-          "
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
-      </el-form-item>
-    </div>
-
-    <!-- 任务配置 -->
-    <div v-if="section === 'tasks'" class="setting-section">
-      <!-- 端口检测配置 -->
-      <el-form-item prop="monitorSysGenServerSettingPortCheckInterval">
         <template #label>
           <div class="form-label">
             <span>端口检测间隔</span>
@@ -1179,7 +1334,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
+        <ScSwitch
           v-model="formData.monitorSysGenServerSettingOnlineCheckEnabled"
           :active-value="1"
           :inactive-value="0"
@@ -1230,7 +1385,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
+        <ScSwitch
           v-model="formData.monitorSysGenServerSettingLatencyCheckEnabled"
           :active-value="1"
           :inactive-value="0"
@@ -1265,335 +1420,6 @@
           @change="handleChange"
         />
         <span class="unit">秒</span>
-      </el-form-item>
-    </div>
-
-    <!-- 清理配置 -->
-    <div v-if="section === 'cleanup'" class="setting-section">
-      <!-- 日志清理 -->
-      <el-form-item prop="monitorSysGenServerSettingLogCleanupEnabled">
-        <template #label>
-          <div class="form-label">
-            <span>日志清理</span>
-            <el-tooltip
-              content="定期清理过期的日志文件"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingLogCleanupEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
-      </el-form-item>
-
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingLogCleanupEnabled === 1"
-        prop="monitorSysGenServerSettingLogRetentionDays"
-      >
-        <template #label>
-          <div class="form-label">
-            <span>日志保留天数</span>
-            <el-tooltip
-              content="日志文件的保留天数，超过此天数的日志将被清理"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingLogRetentionDays"
-          :min="1"
-          :max="365"
-          :step="1"
-          style="width: 200px"
-          @change="handleChange"
-        />
-        <span class="unit">天</span>
-      </el-form-item>
-
-      <!-- 临时文件清理 -->
-      <el-form-item prop="monitorSysGenServerSettingTempFileCleanupEnabled">
-        <template #label>
-          <div class="form-label">
-            <span>临时文件清理</span>
-            <el-tooltip
-              content="定期清理临时文件和缓存"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingTempFileCleanupEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
-      </el-form-item>
-
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingTempFileCleanupEnabled === 1"
-        prop="monitorSysGenServerSettingTempFileRetentionHours"
-      >
-        <template #label>
-          <div class="form-label">
-            <span>临时文件保留时间</span>
-            <el-tooltip
-              content="临时文件的保留时间，超过此时间的文件将被清理"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingTempFileRetentionHours"
-          :min="1"
-          :max="168"
-          :step="1"
-          style="width: 200px"
-          @change="handleChange"
-        />
-        <span class="unit">小时</span>
-      </el-form-item>
-
-      <!-- WebSocket会话清理 -->
-      <el-form-item prop="monitorSysGenServerSettingWebSocketCleanupEnabled">
-        <template #label>
-          <div class="form-label">
-            <span>WebSocket会话清理</span>
-            <el-tooltip
-              content="定期清理无效的WebSocket连接"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingWebSocketCleanupEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
-      </el-form-item>
-
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingWebSocketCleanupEnabled === 1"
-        prop="monitorSysGenServerSettingWebSocketCleanupInterval"
-      >
-        <template #label>
-          <div class="form-label">
-            <span>会话清理间隔</span>
-            <el-tooltip
-              content="WebSocket会话清理的时间间隔，单位：分钟"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingWebSocketCleanupInterval"
-          :min="1"
-          :max="60"
-          :step="1"
-          style="width: 200px"
-          @change="handleChange"
-        />
-        <span class="unit">分钟</span>
-      </el-form-item>
-
-      <!-- 文件上传队列处理 -->
-      <el-form-item prop="monitorSysGenServerSettingFileUploadEnabled">
-        <template #label>
-          <div class="form-label">
-            <span>文件上传队列处理</span>
-            <el-tooltip
-              content="启用文件上传队列的自动处理功能"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingFileUploadEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
-      </el-form-item>
-
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
-        prop="monitorSysGenServerSettingFileUploadInterval"
-      >
-        <template #label>
-          <div class="form-label">
-            <span>队列处理间隔</span>
-            <el-tooltip
-              content="文件上传队列处理的时间间隔，单位：秒"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingFileUploadInterval"
-          :min="5"
-          :max="300"
-          :step="5"
-          style="width: 200px"
-          @change="handleChange"
-        />
-        <span class="unit">秒</span>
-      </el-form-item>
-
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
-        prop="monitorSysGenServerSettingFileUploadStatusCheckInterval"
-      >
-        <template #label>
-          <div class="form-label">
-            <span>状态检查间隔</span>
-            <el-tooltip
-              content="文件上传任务状态检查的时间间隔，单位：秒"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input-number
-          v-model="
-            formData.monitorSysGenServerSettingFileUploadStatusCheckInterval
-          "
-          :min="10"
-          :max="600"
-          :step="10"
-          style="width: 200px"
-          @change="handleChange"
-        />
-        <span class="unit">秒</span>
-      </el-form-item>
-
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
-        prop="monitorSysGenServerSettingFileUploadCleanupInterval"
-      >
-        <template #label>
-          <div class="form-label">
-            <span>临时文件清理间隔</span>
-            <el-tooltip
-              content="文件上传临时文件清理的时间间隔，单位：小时"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingFileUploadCleanupInterval"
-          :min="1"
-          :max="24"
-          :step="1"
-          style="width: 200px"
-          @change="handleChange"
-        />
-        <span class="unit">小时</span>
-      </el-form-item>
-
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
-        prop="monitorSysGenServerSettingFileUploadTimeout"
-      >
-        <template #label>
-          <div class="form-label">
-            <span>上传超时时间</span>
-            <el-tooltip
-              content="文件上传任务的超时时间，单位：分钟"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingFileUploadTimeout"
-          :min="5"
-          :max="120"
-          :step="5"
-          style="width: 200px"
-          @change="handleChange"
-        />
-        <span class="unit">分钟</span>
-      </el-form-item>
-
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
-        prop="monitorSysGenServerSettingFileUploadMaxRetries"
-      >
-        <template #label>
-          <div class="form-label">
-            <span>最大重试次数</span>
-            <el-tooltip
-              content="文件上传失败时的最大重试次数"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingFileUploadMaxRetries"
-          :min="0"
-          :max="10"
-          :step="1"
-          style="width: 200px"
-          @change="handleChange"
-        />
-        <span class="unit">次</span>
-      </el-form-item>
-
-      <!-- 清除配置按钮 -->
-      <el-form-item>
-        <el-button type="danger" @click="clearAllSettings">
-          <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-          清除所有配置
-        </el-button>
-        <el-button type="warning" @click="resetToDefault">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          重置为默认值
-        </el-button>
       </el-form-item>
     </div>
 
@@ -1632,7 +1458,7 @@
               </el-tooltip>
             </div>
           </template>
-          <el-switch
+          <ScSwitch
             v-model="formData.monitorSysGenServerSettingFileManagementEnabled"
             :active-value="1"
             :inactive-value="0"
@@ -1659,7 +1485,8 @@
               </el-tooltip>
             </div>
           </template>
-          <el-select
+          <ScSelect
+            layout="select"
             v-model="formData.monitorSysGenServerSettingFileManagementMode"
             placeholder="请选择文件管理模式"
             @change="handleFileManagementModeChange"
@@ -1668,9 +1495,83 @@
             <el-option v-if="isLocalServer" label="本地连接" value="LOCAL" />
             <el-option label="SSH连接" value="SSH" />
             <el-option label="NODE客户端" value="NODE" />
-            <el-option label="API接口" value="API" />
-          </el-select>
+          </ScSelect>
         </el-form-item>
+
+        <!-- 文件管理模式说明卡片 -->
+        <div
+          v-if="formData.monitorSysGenServerSettingFileManagementEnabled === 1"
+          class="report-method-tips"
+        >
+          <div
+            v-if="
+              formData.monitorSysGenServerSettingFileManagementMode === 'LOCAL'
+            "
+            class="method-tip-card"
+          >
+            <div class="tip-header">
+              <IconifyIconOnline
+                icon="ri:computer-line"
+                class="tip-icon local"
+              />
+              <span class="tip-title">本地连接</span>
+            </div>
+            <p class="tip-content">
+              直接访问本机文件系统，仅适用于监控平台部署在目标服务器上的场景。无需额外配置。
+            </p>
+          </div>
+
+          <div
+            v-if="
+              formData.monitorSysGenServerSettingFileManagementMode === 'SSH'
+            "
+            class="method-tip-card"
+          >
+            <div class="tip-header">
+              <IconifyIconOnline
+                icon="ri:terminal-box-line"
+                class="tip-icon node"
+              />
+              <span class="tip-title">SSH连接</span>
+            </div>
+            <p class="tip-content">
+              通过
+              <strong>SSH 协议</strong>
+              连接服务器进行文件操作。需要在服务器基础信息中配置 SSH
+              连接参数（端口、用户名、密码/密钥）。
+            </p>
+            <div class="tip-features">
+              <span class="feature-tag">安全加密</span>
+              <span class="feature-tag">无需Agent</span>
+              <span class="feature-tag">需SSH权限</span>
+            </div>
+          </div>
+
+          <div
+            v-if="
+              formData.monitorSysGenServerSettingFileManagementMode === 'NODE'
+            "
+            class="method-tip-card"
+          >
+            <div class="tip-header">
+              <IconifyIconOnline
+                icon="ri:upload-cloud-line"
+                class="tip-icon node"
+              />
+              <span class="tip-title">NODE客户端</span>
+            </div>
+            <p class="tip-content">
+              通过部署在目标服务器上的
+              <strong>监控客户端（Agent）</strong>
+              进行文件操作。需要客户端在线且启用文件管理功能。
+            </p>
+            <div class="tip-features">
+              <span class="feature-tag">性能优秀</span>
+              <span class="feature-tag">功能完整</span>
+              <span class="feature-tag">需部署Agent</span>
+            </div>
+          </div>
+        </div>
 
         <!-- NODE客户端选择 -->
         <el-form-item
@@ -1692,7 +1593,8 @@
               </el-tooltip>
             </div>
           </template>
-          <el-select
+          <ScSelect
+            layout="select"
             v-model="
               formData.monitorSysGenServerSettingFileManagementNodeClient
             "
@@ -1706,171 +1608,13 @@
               :label="`${client.name} (${client.address})`"
               :value="client.serverId"
             />
-          </el-select>
+          </ScSelect>
           <div class="form-item-help">
             <el-button size="small" type="primary" link @click="loadNodeClients"
               >刷新客户端列表</el-button
             >
           </div>
         </el-form-item>
-
-        <!-- API配置 -->
-        <div
-          v-if="
-            formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
-            formData.monitorSysGenServerSettingFileManagementMode === 'API'
-          "
-          class="api-config-section"
-        >
-          <el-divider content-position="left">API连接配置</el-divider>
-
-          <!-- API主机 -->
-          <el-form-item>
-            <template #label>
-              <div class="form-label">
-                <span>API主机</span>
-                <el-tooltip
-                  content="文件管理API服务器的主机地址"
-                  placement="top"
-                  effect="dark"
-                >
-                  <IconifyIconOnline
-                    icon="ri:question-line"
-                    class="help-icon"
-                  />
-                </el-tooltip>
-              </div>
-            </template>
-            <el-input
-              v-model="apiConfig.apiHost"
-              placeholder="localhost"
-              @input="handleApiConfigChange"
-            />
-          </el-form-item>
-
-          <!-- API端口 -->
-          <el-form-item>
-            <template #label>
-              <div class="form-label">
-                <span>API端口</span>
-              </div>
-            </template>
-            <el-input-number
-              v-model="apiConfig.apiPort"
-              :min="1"
-              :max="65535"
-              placeholder="8080"
-              @change="handleApiConfigChange"
-            />
-          </el-form-item>
-
-          <!-- 基础路径 -->
-          <el-form-item>
-            <template #label>
-              <div class="form-label">
-                <span>基础路径</span>
-              </div>
-            </template>
-            <el-input
-              v-model="apiConfig.basePath"
-              placeholder="/api/file"
-              @input="handleApiConfigChange"
-            />
-          </el-form-item>
-
-          <!-- HTTPS -->
-          <el-form-item>
-            <template #label>
-              <div class="form-label">
-                <span>使用HTTPS</span>
-              </div>
-            </template>
-            <el-switch
-              v-model="apiConfig.useHttps"
-              @change="handleApiConfigChange"
-            />
-          </el-form-item>
-
-          <!-- 认证类型 -->
-          <el-form-item>
-            <template #label>
-              <div class="form-label">
-                <span>认证类型</span>
-              </div>
-            </template>
-            <el-select
-              v-model="apiConfig.authType"
-              @change="handleApiConfigChange"
-            >
-              <el-option label="无认证" value="NONE" />
-              <el-option label="基础认证" value="BASIC" />
-              <el-option label="Token认证" value="TOKEN" />
-              <el-option label="API Key" value="API_KEY" />
-            </el-select>
-          </el-form-item>
-
-          <!-- 基础认证 -->
-          <div v-if="apiConfig.authType === 'BASIC'">
-            <el-form-item>
-              <template #label>
-                <span>用户名</span>
-              </template>
-              <el-input
-                v-model="apiConfig.username"
-                @input="handleApiConfigChange"
-              />
-            </el-form-item>
-            <el-form-item>
-              <template #label>
-                <span>密码</span>
-              </template>
-              <el-input
-                v-model="apiConfig.password"
-                type="password"
-                show-password
-                @input="handleApiConfigChange"
-              />
-            </el-form-item>
-          </div>
-
-          <!-- Token认证 -->
-          <el-form-item v-if="apiConfig.authType === 'TOKEN'">
-            <template #label>
-              <span>Token</span>
-            </template>
-            <el-input
-              v-model="apiConfig.token"
-              type="password"
-              show-password
-              @input="handleApiConfigChange"
-            />
-          </el-form-item>
-
-          <!-- API Key认证 -->
-          <div v-if="apiConfig.authType === 'API_KEY'">
-            <el-form-item>
-              <template #label>
-                <span>API Key</span>
-              </template>
-              <el-input
-                v-model="apiConfig.apiKey"
-                type="password"
-                show-password
-                @input="handleApiConfigChange"
-              />
-            </el-form-item>
-            <el-form-item>
-              <template #label>
-                <span>API Key Header</span>
-              </template>
-              <el-input
-                v-model="apiConfig.apiKeyHeader"
-                placeholder="X-API-Key"
-                @input="handleApiConfigChange"
-              />
-            </el-form-item>
-          </div>
-        </div>
 
         <!-- 高级配置 -->
         <div
@@ -2096,7 +1840,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-switch
+        <ScSwitch
           v-model="formData.monitorSysGenServerSettingPrometheusAuthEnabled"
           :active-value="1"
           :inactive-value="0"
@@ -2218,8 +1962,7 @@ const props = defineProps<{
     | "prometheus"
     | "filemanagement"
     | "advanced"
-    | "tasks"
-    | "cleanup";
+    | "tasks";
   isLocalServer?: boolean;
   serverId?: number;
   /** 简洁样式：用于在配置对话框中与其他分节保持一致的风格 */
@@ -2285,10 +2028,7 @@ const DEFAULT_VALUES = {
   monitorSysGenServerSettingProxyType: "HTTP",
 
   // 高级配置默认值
-  monitorSysGenServerSettingLogMonitorEnabled: 0,
   monitorSysGenServerSettingPortMonitorEnabled: 0,
-  monitorSysGenServerSettingConnectionTimeout: 30,
-  monitorSysGenServerSettingReadTimeout: 60,
   monitorSysGenServerSettingPerformanceSuggestionEnabled: 1,
 
   // 文件上传配置默认值
@@ -2299,20 +2039,14 @@ const DEFAULT_VALUES = {
   monitorSysGenServerSettingFileUploadTimeout: 30,
   monitorSysGenServerSettingFileUploadMaxRetries: 3,
 
-  // 任务配置默认值
+  // 端口配置默认值
+  monitorSysGenServerSettingPortMonitorEnabled: 0,
+  monitorSysGenServerSettingMonitorPorts: "",
   monitorSysGenServerSettingPortCheckInterval: 60,
   monitorSysGenServerSettingOnlineCheckEnabled: 1,
   monitorSysGenServerSettingOnlineCheckInterval: 30,
   monitorSysGenServerSettingLatencyCheckEnabled: 1,
   monitorSysGenServerSettingLatencyCheckInterval: 60,
-
-  // 清理配置默认值
-  monitorSysGenServerSettingLogCleanupEnabled: 1,
-  monitorSysGenServerSettingLogRetentionDays: 7,
-  monitorSysGenServerSettingTempFileCleanupEnabled: 1,
-  monitorSysGenServerSettingTempFileRetentionHours: 24,
-  monitorSysGenServerSettingWebSocketCleanupEnabled: 1,
-  monitorSysGenServerSettingWebSocketCleanupInterval: 10,
 
   // 文件管理配置默认值
   monitorSysGenServerSettingFileManagementEnabled: 0,
@@ -2739,6 +2473,7 @@ const testFileManagementConnection = async () => {
 </script>
 
 <style scoped>
+:deep(.sc-select),
 :deep(.el-select__wrapper) {
   width: 100%;
 }
@@ -2807,6 +2542,113 @@ const testFileManagementConnection = async () => {
   margin-left: 8px;
   font-size: 12px;
   color: var(--el-text-color-primary);
+}
+
+/* 数据上报方式说明卡片样式 */
+.report-method-tips {
+  margin: 16px 0 24px;
+}
+
+.method-tip-card {
+  padding: 16px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.method-tip-card .tip-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.method-tip-card .tip-icon {
+  font-size: 22px;
+}
+
+.method-tip-card .tip-icon.none {
+  color: var(--el-text-color-secondary);
+}
+
+.method-tip-card .tip-icon.node {
+  color: var(--el-color-primary);
+}
+
+.method-tip-card .tip-icon.local {
+  color: var(--el-color-success);
+}
+
+.method-tip-card .tip-icon.prometheus {
+  color: #e6522c;
+}
+
+.method-tip-card .tip-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.method-tip-card .tip-content {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  line-height: 1.7;
+  margin: 0 0 12px;
+}
+
+.method-tip-card .tip-content strong {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.method-tip-card .tip-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.method-tip-card .feature-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+
+/* 采集指标复选框组样式 */
+.metrics-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.metrics-checkbox-group .el-checkbox {
+  margin-right: 0;
+}
+
+.metrics-checkbox-group .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metrics-checkbox-group .checkbox-icon {
+  font-size: 16px;
+  color: var(--el-color-primary);
 }
 
 :deep(.el-form-item) {
