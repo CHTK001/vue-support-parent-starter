@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, onMounted, computed } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import Prism from "prismjs";
 import "prismjs/themes/prism-tomorrow.css";
 import "prismjs/plugins/line-numbers/prism-line-numbers.css";
@@ -97,9 +97,9 @@ const testRegex = () => {
     addToHistory("测试正则表达式", env.pattern, env.flags, env.testText);
 
     if (matches.length === 0) {
-      ElMessage.warning("未找到匹配项");
+      message("未找到匹配项", { type: "warning" });
     } else {
-      ElMessage.success(`找到 ${matches.length} 个匹配项`);
+      message(`找到 ${matches.length} 个匹配项`, { type: "success" });
     }
 
     // 高亮显示
@@ -108,7 +108,7 @@ const testRegex = () => {
     }, 0);
   } catch (error) {
     console.error("正则表达式测试错误:", error);
-    ElMessage.error(error.message || "正则表达式测试失败");
+    message(error.message || "正则表达式测试失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -135,7 +135,7 @@ const replaceText = () => {
     // 添加到历史记录
     addToHistory("替换文本", env.pattern, env.flags, env.testText, env.replaceText);
 
-    ElMessage.success("文本替换成功");
+    message("文本替换成功", { type: "success" });
 
     // 高亮显示
     setTimeout(() => {
@@ -143,7 +143,7 @@ const replaceText = () => {
     }, 0);
   } catch (error) {
     console.error("文本替换错误:", error);
-    ElMessage.error(error.message || "文本替换失败");
+    message(error.message || "文本替换失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -171,9 +171,9 @@ const extractMatches = () => {
     addToHistory("提取匹配项", env.pattern, env.flags, env.testText);
 
     if (matches.length === 0) {
-      ElMessage.warning("未找到匹配项");
+      message("未找到匹配项", { type: "warning" });
     } else {
-      ElMessage.success(`提取了 ${matches.length} 个匹配项`);
+      message(`提取了 ${matches.length} 个匹配项`, { type: "success" });
     }
 
     // 高亮显示
@@ -182,7 +182,7 @@ const extractMatches = () => {
     }, 0);
   } catch (error) {
     console.error("提取匹配项错误:", error);
-    ElMessage.error(error.message || "提取匹配项失败");
+    message(error.message || "提取匹配项失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -210,9 +210,9 @@ const splitText = () => {
     addToHistory("分割文本", env.pattern, env.flags, env.testText);
 
     if (parts.length <= 1) {
-      ElMessage.warning("文本未被分割");
+      message("文本未被分割", { type: "warning" });
     } else {
-      ElMessage.success(`文本被分割为 ${parts.length} 部分`);
+      message(`文本被分割为 ${parts.length} 部分`, { type: "success" });
     }
 
     // 高亮显示
@@ -221,7 +221,7 @@ const splitText = () => {
     }, 0);
   } catch (error) {
     console.error("分割文本错误:", error);
-    ElMessage.error(error.message || "分割文本失败");
+    message(error.message || "分割文本失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -243,7 +243,7 @@ const executeOperation = () => {
       splitText();
       break;
     default:
-      ElMessage.warning("请选择操作类型");
+      message("请选择操作类型", { type: "warning" });
   }
 };
 
@@ -259,7 +259,7 @@ const applyExample = (example) => {
     Prism.highlightAll();
   }, 0);
 
-  ElMessage.success("已应用示例");
+  message("已应用示例", { type: "success" });
 };
 
 // 应用常用正则表达式
@@ -271,7 +271,7 @@ const applyCommonPattern = (pattern) => {
     Prism.highlightAll();
   }, 0);
 
-  ElMessage.success(`已应用"${pattern.name}"正则表达式`);
+  message(`已应用"${pattern.name}"正则表达式`, { type: "success" });
 };
 
 // 添加到历史记录
@@ -315,7 +315,7 @@ const loadFromHistory = (item) => {
     Prism.highlightAll();
   }, 0);
 
-  ElMessage.success("已从历史记录加载");
+  message("已从历史记录加载", { type: "success" });
 };
 
 // 复制到剪贴板
@@ -323,10 +323,10 @@ const copyToClipboard = (text) => {
   navigator.clipboard
     .writeText(text)
     .then(() => {
-      ElMessage.success("复制成功");
+      message("复制成功", { type: "success" });
     })
     .catch(() => {
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     });
 };
 
@@ -340,7 +340,7 @@ const clearForm = () => {
   env.results.extracted = [];
   env.results.split = [];
 
-  ElMessage.success("已清空");
+  message("已清空", { type: "success" });
 };
 
 // 获取正则表达式语法说明

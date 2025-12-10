@@ -137,7 +137,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import {
   fetchLimitRecordPage,
@@ -183,10 +184,10 @@ const getData = async () => {
       tableData.value = res.data.records;
       pagination.total = res.data.total;
     } else {
-      ElMessage.error(res.msg || "获取数据失败");
+      message(res.msg || "获取数据失败", { type: "error" });
     }
   } catch (error) {
-    ElMessage.error("获取数据失败");
+    message("获取数据失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -223,13 +224,13 @@ const handleDelete = (row: SysLimitRecord) => {
       try {
         const res = await deleteLimitRecord(row.sysLimitRecordId!);
         if (res.success) {
-          ElMessage.success("删除成功");
+          message("删除成功", { type: "success" });
           getData();
         } else {
-          ElMessage.error(res.msg || "删除失败");
+          message(res.msg || "删除失败", { type: "error" });
         }
       } catch (error) {
-        ElMessage.error("删除失败");
+        message("删除失败", { type: "error" });
       }
     })
     .catch(() => {
@@ -240,7 +241,7 @@ const handleDelete = (row: SysLimitRecord) => {
 // 批量删除
 const handleBatchDelete = () => {
   if (selectedRows.value.length === 0) {
-    ElMessage.warning("请先选择要删除的记录");
+    message("请先选择要删除的记录", { type: "warning" });
     return;
   }
 
@@ -256,13 +257,13 @@ const handleBatchDelete = () => {
         const ids = selectedRows.value.map((item) => item.sysLimitRecordId!);
         const res = await deleteBatchLimitRecord(ids);
         if (res.success) {
-          ElMessage.success("批量删除成功");
+          message("批量删除成功", { type: "success" });
           getData();
         } else {
-          ElMessage.error(res.msg || "批量删除失败");
+          message(res.msg || "批量删除失败", { type: "error" });
         }
       } catch (error) {
-        ElMessage.error("批量删除失败");
+        message("批量删除失败", { type: "error" });
       }
     })
     .catch(() => {

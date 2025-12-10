@@ -1,5 +1,5 @@
 <script setup>
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import Prism from "prismjs";
 import "prismjs/components/prism-css";
 import "prismjs/components/prism-java";
@@ -306,7 +306,7 @@ const saveToLocalStorage = () => {
     localStorage.setItem("markdown-editor-filename", env.currentFileName);
     localStorage.setItem("markdown-editor-settings", JSON.stringify(env.settings));
     env.unsavedChanges = false;
-    ElMessage.success("已自动保存");
+    message("已自动保存", { type: "success" });
   } catch (e) {
     console.error("保存到本地存储失败:", e);
   }
@@ -368,7 +368,7 @@ const loadFromHistory = (item) => {
   env.markdownText = item.content;
   env.currentFileName = item.filename;
   updatePreview();
-  ElMessage.success("已从历史记录加载");
+  message("已从历史记录加载", { type: "success" });
 };
 
 // 复制到剪贴板
@@ -376,10 +376,10 @@ const copyToClipboard = (text) => {
   navigator.clipboard
     .writeText(text)
     .then(() => {
-      ElMessage.success("复制成功");
+      message("复制成功", { type: "success" });
     })
     .catch(() => {
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     });
 };
 
@@ -394,7 +394,7 @@ const exportMarkdown = () => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  ElMessage.success("导出成功");
+  message("导出成功", { type: "success" });
 };
 
 // 导出HTML文件
@@ -463,7 +463,7 @@ const exportHtml = () => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  ElMessage.success("导出成功");
+  message("导出成功", { type: "success" });
 };
 
 // 导入Markdown文件
@@ -476,7 +476,7 @@ const importMarkdown = (event) => {
     env.markdownText = e.target.result;
     env.currentFileName = file.name;
     updatePreview();
-    ElMessage.success("导入成功");
+    message("导入成功", { type: "success" });
     // 重置文件输入，以便可以重复导入相同的文件
     event.target.value = "";
   };
@@ -488,17 +488,17 @@ const clearEditor = () => {
   env.markdownText = "";
   env.currentFileName = "untitled.md";
   updatePreview();
-  ElMessage.success("已清空编辑器");
+  message("已清空编辑器", { type: "success" });
 };
 
 // 应用模板
 const applyTemplate = (template) => {
   if (env.markdownText && env.unsavedChanges) {
-    ElMessage.warning("您有未保存的更改，应用模板将覆盖当前内容");
+    message("您有未保存的更改，应用模板将覆盖当前内容", { type: "warning" });
   }
   env.markdownText = template.content;
   updatePreview();
-  ElMessage.success(`已应用"${template.name}"模板`);
+  message(`已应用"${template.name}"模板`, { type: "success" });
 };
 
 // 插入工具栏项

@@ -87,7 +87,8 @@
 
 <script setup lang="ts">
 // 已使用 IconifyIconOnline 替代 Element Plus 图标
-import { ElMessage, ElNotification } from "element-plus";
+import { message } from "@repo/utils";
+import { ElNotification } from "element-plus";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { findOnlineResources } from "../../api/online";
@@ -187,7 +188,7 @@ const downloadFile = async (item: VideoItem) => {
     });
   } catch (error) {
     console.error("下载失败:", error);
-    ElMessage.error("下载失败: " + error);
+    message("下载失败: " + error, { type: "error" });
   } finally {
     // 延迟移除下载状态，避免用户看不到反馈
     setTimeout(() => {

@@ -114,7 +114,7 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 // 图片数据
 const originalImage = ref({
@@ -176,12 +176,12 @@ const handleFileChange = (file) => {
   const isLt10M = file.raw.size / 1024 / 1024 < 10;
 
   if (!isImage) {
-    ElMessage.error("只能上传图片文件!");
+    message("只能上传图片文件!", { type: "error" });
     return;
   }
 
   if (!isLt10M) {
-    ElMessage.error("图片大小不能超过10MB!");
+    message("图片大小不能超过10MB!", { type: "error" });
     return;
   }
 
@@ -277,7 +277,7 @@ const compressImage = async () => {
     );
   } catch (error) {
     console.error("压缩图片失败:", error);
-    ElMessage.error("压缩图片失败，请重试");
+    message("压缩图片失败，请重试", { type: "error" });
     isCompressing.value = false;
   }
 };

@@ -176,7 +176,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { useClipboard } from "@vueuse/core";
 
 // 复制功能
@@ -431,7 +431,7 @@ const handleInput = () => {
 // 复制结果
 const copyResult = async () => {
   if (resultDisplay.value.length === 0) {
-    ElMessage.warning("没有可复制的内容");
+    message("没有可复制的内容", { type: "warning" });
     return;
   }
 
@@ -441,7 +441,7 @@ const copyResult = async () => {
     await copyText(textToCopy, true);
   } catch (error) {
     console.error("复制失败:", error);
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 };
 
@@ -458,11 +458,11 @@ const pasteText = async () => {
     if (text) {
       inputText.value = text;
       convert();
-      ElMessage.success("已从剪贴板粘贴文本");
+      message("已从剪贴板粘贴文本", { type: "success" });
     }
   } catch (error) {
     console.error("粘贴失败:", error);
-    ElMessage.error("无法从剪贴板粘贴文本");
+    message("无法从剪贴板粘贴文本", { type: "error" });
   }
 };
 
@@ -504,26 +504,26 @@ const handleFileChange = (file) => {
   const isText = file.raw.type === "text/plain" || file.name.endsWith(".txt");
 
   if (!isText) {
-    ElMessage.error("请上传TXT文本文件");
+    message("请上传TXT文本文件", { type: "error" });
     selectedFile.value = null;
     return;
   }
 
   if (file.raw.size > 5 * 1024 * 1024) {
     // 5MB
-    ElMessage.error("文件大小不能超过5MB");
+    message("文件大小不能超过5MB", { type: "error" });
     selectedFile.value = null;
     return;
   }
 
   selectedFile.value = file.raw;
-  ElMessage.success("文件已选择: " + file.name);
+  message("文件已选择: " + file.name, { type: "success" });
 };
 
 // 批量处理文件
 const processBatch = () => {
   if (!selectedFile.value) {
-    ElMessage.warning("请先选择文件");
+    message("请先选择文件", { type: "warning" });
     return;
   }
 
@@ -553,11 +553,11 @@ const processBatch = () => {
     convertType.value = currentType;
     Object.assign(options, currentOptions);
 
-    ElMessage.success("文件处理完成");
+    message("文件处理完成", { type: "success" });
   };
 
   reader.onerror = () => {
-    ElMessage.error("读取文件失败");
+    message("读取文件失败", { type: "error" });
   };
 
   reader.readAsText(selectedFile.value);
@@ -566,7 +566,7 @@ const processBatch = () => {
 // 下载结果
 const downloadResult = () => {
   if (!batchResult.value) {
-    ElMessage.warning("没有可下载的内容");
+    message("没有可下载的内容", { type: "warning" });
     return;
   }
 
@@ -581,7 +581,7 @@ const downloadResult = () => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  ElMessage.success("文件已开始下载");
+  message("文件已开始下载", { type: "success" });
 };
 
 // 监听输入变化

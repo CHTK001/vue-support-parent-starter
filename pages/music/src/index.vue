@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, nextTick } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import MusicHeader from "./components/MusicHeader.vue";
 import MusicSidebar from "./components/MusicSidebar.vue";
 import MusicPlayer from "./components/MusicPlayer.vue";
@@ -133,14 +133,14 @@ const initData = async () => {
     }
   } catch (error) {
     console.error("初始化数据失败:", error);
-    ElMessage.error("初始化数据失败，请刷新页面重试");
+    message("初始化数据失败，请刷新页面重试", { type: "error" });
   }
 };
 
 // 搜索音乐
 const searchMusic = async () => {
   if (!env.keyword.trim()) {
-    ElMessage.warning("请输入搜索关键词");
+    message("请输入搜索关键词", { type: "warning" });
     return;
   }
 
@@ -163,11 +163,11 @@ const searchMusic = async () => {
       // 添加到搜索历史
       addToSearchHistory(env.keyword);
     } else {
-      ElMessage.error("搜索失败，请稍后重试");
+      message("搜索失败，请稍后重试", { type: "error" });
     }
   } catch (error) {
     console.error("搜索失败:", error);
-    ElMessage.error("搜索失败，请稍后重试");
+    message("搜索失败，请稍后重试", { type: "error" });
   } finally {
     env.searchLoading = false;
   }
@@ -197,7 +197,7 @@ const addToSearchHistory = (keyword: string) => {
 const clearSearchHistory = () => {
   env.searchHistory = [];
   localStorage.removeItem("music-search-history");
-  ElMessage.success("搜索历史已清空");
+  message("搜索历史已清空", { type: "success" });
 };
 
 // 播放音乐
@@ -234,14 +234,14 @@ const playMusic = async (music: MusicInfo) => {
         if (audioRef.value) {
           audioRef.value.play().catch((error) => {
             console.error("播放失败:", error);
-            ElMessage.error("播放失败，请稍后重试");
+            message("播放失败，请稍后重试", { type: "error" });
           });
         }
       });
     }
   } catch (error) {
     console.error("获取音乐详情失败:", error);
-    ElMessage.error("获取音乐详情失败，请稍后重试");
+    message("获取音乐详情失败，请稍后重试", { type: "error" });
   }
 };
 
@@ -260,14 +260,14 @@ const loadPlaylistDetail = async (playlistId: string) => {
     }
   } catch (error) {
     console.error("加载歌单详情失败:", error);
-    ElMessage.error("加载歌单详情失败，请稍后重试");
+    message("加载歌单详情失败，请稍后重试", { type: "error" });
   }
 };
 
 // 播放歌单
 const playPlaylist = (songs: MusicInfo[]) => {
   if (songs.length === 0) {
-    ElMessage.warning("歌单中没有歌曲");
+    message("歌单中没有歌曲", { type: "warning" });
     return;
   }
 

@@ -3,7 +3,21 @@
     <!-- 视频播放器 -->
     <div class="player-wrapper" ref="playerContainer">
       <div class="video-container" ref="videoContainer">
-        <video ref="videoElement" class="video-player" controls preload="metadata" :poster="videoPoster" @loadstart="onLoadStart" @loadedmetadata="onLoadedMetadata" @canplay="onCanPlay" @error="onError" @timeupdate="onTimeUpdate" @ended="onEnded">您的浏览器不支持视频播放</video>
+        <video
+          ref="videoElement"
+          class="video-player"
+          controls
+          preload="metadata"
+          :poster="videoPoster"
+          @loadstart="onLoadStart"
+          @loadedmetadata="onLoadedMetadata"
+          @canplay="onCanPlay"
+          @error="onError"
+          @timeupdate="onTimeUpdate"
+          @ended="onEnded"
+        >
+          您的浏览器不支持视频播放
+        </video>
 
         <!-- 加载状态 -->
         <div v-if="loading" class="loading-overlay">
@@ -39,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import Hls from "hls.js";
 import { nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -221,7 +235,7 @@ const onTimeUpdate = () => {
 
 const onEnded = () => {
   console.log("视频播放结束");
-  ElMessage.info("视频播放完毕");
+  message("视频播放完毕", { type: "info" });
 };
 
 // 格式化时间

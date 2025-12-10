@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue";
 import { useClipboard } from "@vueuse/core";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 const { copy } = useClipboard();
 
@@ -197,7 +197,7 @@ const convertUnit = () => {
     env.loading = true;
 
     if (!env.inputValue) {
-      ElMessage.warning("请输入要转换的数值");
+      message("请输入要转换的数值", { type: "warning" });
       env.loading = false;
       return;
     }
@@ -205,7 +205,7 @@ const convertUnit = () => {
     const value = parseFloat(env.inputValue);
 
     if (isNaN(value)) {
-      ElMessage.warning("请输入有效的数值");
+      message("请输入有效的数值", { type: "warning" });
       env.loading = false;
       return;
     }
@@ -266,7 +266,7 @@ const convertUnit = () => {
     addToHistory(value, fromUnitLabel, formattedResult, toUnitLabel);
   } catch (error) {
     console.error("转换错误:", error);
-    ElMessage.error("转换失败: " + error.message);
+    message("转换失败: " + error.message, { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -324,11 +324,11 @@ const swapUnits = () => {
 const copyToClipboard = (text) => {
   copy(text)
     .then(() => {
-      ElMessage.success("已复制到剪贴板");
+      message("已复制到剪贴板", { type: "success" });
     })
     .catch((err) => {
       console.error("复制失败:", err);
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     });
 };
 

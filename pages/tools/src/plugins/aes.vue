@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue";
 import { useClipboard } from "@vueuse/core";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import CryptoJS from "crypto-js";
 
 const { copy } = useClipboard();
@@ -92,19 +92,19 @@ const encrypt = () => {
     env.loading = true;
 
     if (!env.inputText) {
-      ElMessage.warning("请输入要加密的内容");
+      message("请输入要加密的内容", { type: "warning" });
       env.loading = false;
       return;
     }
 
     if (!env.key) {
-      ElMessage.warning("请输入密钥");
+      message("请输入密钥", { type: "warning" });
       env.loading = false;
       return;
     }
 
     if (env.mode !== "ECB" && !env.iv) {
-      ElMessage.warning("CBC模式需要提供初始向量(IV)");
+      message("CBC模式需要提供初始向量(IV, { type: "warning" })");
       env.loading = false;
       return;
     }
@@ -136,10 +136,10 @@ const encrypt = () => {
     // 添加到历史记录
     addToHistory("加密", env.inputText, env.outputText);
 
-    ElMessage.success("加密成功");
+    message("加密成功", { type: "success" });
   } catch (error) {
     console.error("加密错误:", error);
-    ElMessage.error("加密失败: " + error.message);
+    message("加密失败: " + error.message, { type: "error" });
     env.outputText = "";
   } finally {
     env.loading = false;
@@ -152,19 +152,19 @@ const decrypt = () => {
     env.loading = true;
 
     if (!env.inputText) {
-      ElMessage.warning("请输入要解密的内容");
+      message("请输入要解密的内容", { type: "warning" });
       env.loading = false;
       return;
     }
 
     if (!env.key) {
-      ElMessage.warning("请输入密钥");
+      message("请输入密钥", { type: "warning" });
       env.loading = false;
       return;
     }
 
     if (env.mode !== "ECB" && !env.iv) {
-      ElMessage.warning("CBC模式需要提供初始向量(IV)");
+      message("CBC模式需要提供初始向量(IV, { type: "warning" })");
       env.loading = false;
       return;
     }
@@ -204,10 +204,10 @@ const decrypt = () => {
     // 添加到历史记录
     addToHistory("解密", env.inputText, env.outputText);
 
-    ElMessage.success("解密成功");
+    message("解密成功", { type: "success" });
   } catch (error) {
     console.error("解密错误:", error);
-    ElMessage.error("解密失败: " + error.message);
+    message("解密失败: " + error.message, { type: "error" });
     env.outputText = "";
   } finally {
     env.loading = false;
@@ -227,11 +227,11 @@ const handleAction = () => {
 const copyToClipboard = (text) => {
   copy(text)
     .then(() => {
-      ElMessage.success("已复制到剪贴板");
+      message("已复制到剪贴板", { type: "success" });
     })
     .catch((err) => {
       console.error("复制失败:", err);
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     });
 };
 

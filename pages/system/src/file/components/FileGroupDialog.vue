@@ -162,7 +162,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import {
   addGroup,
@@ -245,11 +246,11 @@ const handleSave = async () => {
       }
 
       if (res.code === 200) {
-        ElMessage.success("保存成功");
+        message("保存成功", { type: "success" });
         showEditDialog.value = false;
         emit("saved");
       } else {
-        ElMessage.error(res.msg || "保存失败");
+        message(res.msg || "保存失败", { type: "error" });
       }
     } finally {
       saving.value = false;
@@ -267,10 +268,10 @@ const handleDelete = async (row: SysFileSystemGroup) => {
     });
     const res = await deleteGroup(row.sysFileSystemGroupId);
     if (res.code === 200) {
-      ElMessage.success("删除成功");
+      message("删除成功", { type: "success" });
       emit("saved");
     } else {
-      ElMessage.error(res.msg || "删除失败");
+      message(res.msg || "删除失败", { type: "error" });
     }
   } catch {
     // 取消
@@ -287,10 +288,10 @@ const handleInitDefault = async () => {
     );
     const res = await initDefaultGroups();
     if (res.code === 200) {
-      ElMessage.success("初始化成功");
+      message("初始化成功", { type: "success" });
       emit("saved");
     } else {
-      ElMessage.error(res.msg || "初始化失败");
+      message(res.msg || "初始化失败", { type: "error" });
     }
   } catch {
     // 取消

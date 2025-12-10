@@ -177,7 +177,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import draggable from "vuedraggable";
 
 // 当前活动标签
@@ -286,7 +286,7 @@ const addToFavorites = () => {
   if (!favoriteColors.value.includes(currentColor.value)) {
     favoriteColors.value.push(currentColor.value);
     localStorage.setItem("favoriteColors", JSON.stringify(favoriteColors.value));
-    ElMessage.success("已添加到收藏");
+    message("已添加到收藏", { type: "success" });
   }
 };
 
@@ -294,7 +294,7 @@ const addToFavorites = () => {
 const removeFromFavorites = (index) => {
   favoriteColors.value.splice(index, 1);
   localStorage.setItem("favoriteColors", JSON.stringify(favoriteColors.value));
-  ElMessage.success("已从收藏中移除");
+  message("已从收藏中移除", { type: "success" });
 };
 
 // 选择收藏的颜色
@@ -307,10 +307,10 @@ const copyToClipboard = (text) => {
   navigator.clipboard
     .writeText(text)
     .then(() => {
-      ElMessage.success("已复制到剪贴板");
+      message("已复制到剪贴板", { type: "success" });
     })
     .catch(() => {
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     });
 };
 

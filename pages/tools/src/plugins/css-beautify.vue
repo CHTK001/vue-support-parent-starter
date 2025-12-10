@@ -180,7 +180,7 @@
 
 <script setup>
 import { ref, watch, onMounted, nextTick } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { useClipboard } from "@vueuse/core";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 
@@ -402,7 +402,7 @@ const formatCss = () => {
     }
   } catch (error) {
     console.error("CSS 格式化失败:", error);
-    ElMessage.error("CSS 格式化失败，请检查代码是否有语法错误");
+    message("CSS 格式化失败，请检查代码是否有语法错误", { type: "error" });
   }
 };
 
@@ -417,16 +417,16 @@ const autoFormat = () => {
 // 复制代码
 const copyCode = async () => {
   if (!formattedCss.value) {
-    ElMessage.warning("没有可复制的内容");
+    message("没有可复制的内容", { type: "warning" });
     return;
   }
 
   try {
     await copyText(formattedCss.value);
-    ElMessage.success("已成功复制到剪贴板");
+    message("已成功复制到剪贴板", { type: "success" });
   } catch (error) {
     console.error("复制失败:", error);
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 };
 

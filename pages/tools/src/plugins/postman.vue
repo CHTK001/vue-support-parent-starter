@@ -4,7 +4,7 @@ import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 import { http } from "@repo/utils";
 import { saveAs } from "file-saver";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 // 国际化
 const { t } = useI18n();

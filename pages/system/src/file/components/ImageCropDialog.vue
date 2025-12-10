@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import Cropper from "cropperjs";
 import "cropperjs/dist/cropper.css";
 
@@ -185,9 +185,9 @@ const handleCrop = () => {
       if (blob) {
         emit("cropped", blob);
         visible.value = false;
-        ElMessage.success("裁剪成功");
+        message("裁剪成功", { type: "success" });
       } else {
-        ElMessage.error("裁剪失败");
+        message("裁剪失败", { type: "error" });
       }
     },
     "image/png",

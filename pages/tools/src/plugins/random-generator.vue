@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue";
 import { useClipboard } from "@vueuse/core";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 const { copy } = useClipboard();
 
@@ -159,7 +159,7 @@ const generateRandomString = () => {
     }
 
     if (!charset) {
-      ElMessage.warning("请至少选择一种字符类型");
+      message("请至少选择一种字符类型", { type: "warning" });
       env.loading = false;
       return;
     }
@@ -184,10 +184,10 @@ const generateRandomString = () => {
     // 添加到历史记录
     addToHistory("string", results, config);
 
-    ElMessage.success("生成成功");
+    message("生成成功", { type: "success" });
   } catch (error) {
     console.error("生成错误:", error);
-    ElMessage.error("生成失败: " + error.message);
+    message("生成失败: " + error.message, { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -224,10 +224,10 @@ const generateUUID = () => {
     // 添加到历史记录
     addToHistory("uuid", results, config);
 
-    ElMessage.success("生成成功");
+    message("生成成功", { type: "success" });
   } catch (error) {
     console.error("生成错误:", error);
-    ElMessage.error("生成失败: " + error.message);
+    message("生成失败: " + error.message, { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -241,13 +241,13 @@ const generateRandomNumber = () => {
     const config = env.numberConfig;
 
     if (config.min > config.max) {
-      ElMessage.warning("最小值不能大于最大值");
+      message("最小值不能大于最大值", { type: "warning" });
       env.loading = false;
       return;
     }
 
     if (config.unique && config.count > config.max - config.min + 1) {
-      ElMessage.warning(`在范围 ${config.min}-${config.max} 内无法生成 ${config.count} 个唯一数字`);
+      message(`在范围 ${config.min}-${config.max} 内无法生成 ${config.count} 个唯一数字`, { type: "warning" });
       env.loading = false;
       return;
     }
@@ -290,10 +290,10 @@ const generateRandomNumber = () => {
     // 添加到历史记录
     addToHistory("number", results, config);
 
-    ElMessage.success("生成成功");
+    message("生成成功", { type: "success" });
   } catch (error) {
     console.error("生成错误:", error);
-    ElMessage.error("生成失败: " + error.message);
+    message("生成失败: " + error.message, { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -381,18 +381,18 @@ const applyPreset = (preset) => {
 const copyToClipboard = (text) => {
   copy(text)
     .then(() => {
-      ElMessage.success("已复制到剪贴板");
+      message("已复制到剪贴板", { type: "success" });
     })
     .catch((err) => {
       console.error("复制失败:", err);
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     });
 };
 
 // 复制所有结果
 const copyAllResults = () => {
   if (env.outputResults.length === 0) {
-    ElMessage.warning("没有可复制的结果");
+    message("没有可复制的结果", { type: "warning" });
     return;
   }
 

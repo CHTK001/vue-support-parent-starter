@@ -25,17 +25,12 @@
               filterable
               :multiple="field.extend?.multiple"
               :remote="!!field.extend?.request"
-              :remote-method="(query) => handleRemoteSearch(field, query)"
+              :remote-method="query => handleRemoteSearch(field, query)"
               :loading="selectLoadingMap[field.value]"
               @change="onRealtimeChange"
-              @visible-change="(visible) => handleSelectVisible(field, visible)"
+              @visible-change="visible => handleSelectVisible(field, visible)"
             >
-              <el-option
-                v-for="opt in getSelectOptions(field)"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
+              <el-option v-for="opt in getSelectOptions(field)" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
             <!-- 日期 -->
             <el-date-picker
@@ -76,19 +71,9 @@
               @change="onRealtimeChange"
             />
             <!-- 时间 -->
-            <el-time-picker
-              v-else-if="field.type === 'time'"
-              v-model="formData[field.value]"
-              value-format="HH:mm:ss"
-              :placeholder="field.placeholder || '请选择时间'"
-              @change="onRealtimeChange"
-            />
+            <el-time-picker v-else-if="field.type === 'time'" v-model="formData[field.value]" value-format="HH:mm:ss" :placeholder="field.placeholder || '请选择时间'" @change="onRealtimeChange" />
             <!-- 开关 -->
-            <el-switch
-              v-else-if="field.type === 'switch'"
-              v-model="formData[field.value]"
-              @change="onRealtimeChange"
-            />
+            <el-switch v-else-if="field.type === 'switch'" v-model="formData[field.value]" @change="onRealtimeChange" />
             <!-- 标签 -->
             <el-select
               v-else-if="field.type === 'tags'"
@@ -101,35 +86,26 @@
               @change="onRealtimeChange"
             />
             <!-- 数字 -->
-            <el-input-number
-              v-else-if="field.type === 'number'"
-              v-model="formData[field.value]"
-              :placeholder="field.placeholder"
-              controls-position="right"
-              @change="onRealtimeChange"
-            />
+            <el-input-number v-else-if="field.type === 'number'" v-model="formData[field.value]" :placeholder="field.placeholder" controls-position="right" @change="onRealtimeChange" />
           </el-form-item>
         </template>
-        
+
         <!-- 操作按钮 -->
         <el-form-item class="filter-actions">
           <el-button type="primary" @click="handleSearch">
-            <el-icon><Search /></el-icon>
+            <IconifyIconOnline icon="ep:search" />
             搜索
           </el-button>
           <el-button @click="handleReset">
-            <el-icon><Refresh /></el-icon>
+            <IconifyIconOnline icon="ep:refresh" />
             重置
           </el-button>
           <el-button v-if="showAdvanced && hasMoreFields" text @click="toggleExpand">
-            {{ isExpanded ? '收起' : '展开' }}
-            <el-icon>
-              <ArrowUp v-if="isExpanded" />
-              <ArrowDown v-else />
-            </el-icon>
+            {{ isExpanded ? "收起" : "展开" }}
+            <IconifyIconOnline :icon="isExpanded ? 'ep:arrow-up' : 'ep:arrow-down'" />
           </el-button>
           <el-button v-if="showDrawer" text type="primary" @click="openFilter">
-            <el-icon><Filter /></el-icon>
+            <IconifyIconOnline icon="ep:filter" />
             高级筛选
           </el-button>
         </el-form-item>
@@ -289,22 +265,14 @@
         <!-- 表达式预览 -->
         <div v-if="filter.length > 0 && expressionFormat !== 'default'" class="expression-preview">
           <div class="expression-label">
-            <span>{{ expressionFormat === 'sql' ? 'SQL' : 'Lucene' }} 表达式：</span>
+            <span>{{ expressionFormat === "sql" ? "SQL" : "Lucene" }} 表达式：</span>
           </div>
-          <el-input
-            type="textarea"
-            :value="filterExpression"
-            :rows="2"
-            readonly
-            class="expression-input"
-          />
+          <el-input type="textarea" :value="filterExpression" :rows="2" readonly class="expression-input" />
         </div>
         <el-footer class="filter-footer">
           <el-button type="primary" :disabled="filter.length <= 0" @click="handleFilter">立即过滤</el-button>
           <el-button @click="clear">清空过滤</el-button>
-          <el-button v-if="filter.length > 0" text type="info" @click="copyExpression">
-            复制表达式
-          </el-button>
+          <el-button v-if="filter.length > 0" text type="info" @click="copyExpression">复制表达式</el-button>
         </el-footer>
       </el-container>
     </el-drawer>
@@ -314,17 +282,11 @@
 <script>
 import pySelect from "./pySelect.vue";
 import { debounce } from "lodash-es";
-import { Search, Refresh, ArrowUp, ArrowDown, Filter } from "@element-plus/icons-vue";
 
 export default {
   name: "ScFilterBar",
   components: {
-    pySelect,
-    Search,
-    Refresh,
-    ArrowUp,
-    ArrowDown,
-    Filter
+    pySelect
   },
   props: {
     // 过滤字段配置
@@ -403,30 +365,30 @@ export default {
     // 容器类名
     containerClass() {
       return {
-        'has-border': this.border,
-        'has-background': this.background
+        "has-border": this.border,
+        "has-background": this.background
       };
     },
     // 表单类名
     formClass() {
       return {
-        'is-grid': this.layout === 'grid'
+        "is-grid": this.layout === "grid"
       };
     },
     // 网格样式
     gridStyle() {
-      if (this.layout === 'grid') {
+      if (this.layout === "grid") {
         return {
-          display: 'grid',
+          display: "grid",
           gridTemplateColumns: `repeat(${this.columns}, 1fr)`,
-          gap: '12px'
+          gap: "12px"
         };
       }
       return {};
     },
     // 输入框宽度值
     inputWidthValue() {
-      if (typeof this.inputWidth === 'number') {
+      if (typeof this.inputWidth === "number") {
         return `${this.inputWidth}px`;
       }
       return this.inputWidth;
@@ -447,7 +409,7 @@ export default {
       const result = {};
       Object.keys(this.formData).forEach(key => {
         const val = this.formData[key];
-        if (val !== undefined && val !== null && val !== '') {
+        if (val !== undefined && val !== null && val !== "") {
           result[key] = val;
         }
       });
@@ -455,42 +417,36 @@ export default {
     },
     // 内联表单 SQL 表达式
     inlineSqlExpression() {
-      const conditions = Object.entries(this.inlineFilterData)
-        .map(([field, value]) => {
-          if (typeof value === 'string') {
-            return `${field} = '${value}'`;
-          }
-          if (Array.isArray(value)) {
-            const values = value.map(v => typeof v === 'string' ? `'${v}'` : v).join(', ');
-            return `${field} IN (${values})`;
-          }
-          return `${field} = ${value}`;
-        });
-      return conditions.length > 0 
-        ? conditions.join(` ${this.logicOperator.toUpperCase()} `) 
-        : '';
+      const conditions = Object.entries(this.inlineFilterData).map(([field, value]) => {
+        if (typeof value === "string") {
+          return `${field} = '${value}'`;
+        }
+        if (Array.isArray(value)) {
+          const values = value.map(v => (typeof v === "string" ? `'${v}'` : v)).join(", ");
+          return `${field} IN (${values})`;
+        }
+        return `${field} = ${value}`;
+      });
+      return conditions.length > 0 ? conditions.join(` ${this.logicOperator.toUpperCase()} `) : "";
     },
     // 内联表单 Lucene 表达式
     inlineLuceneExpression() {
-      const conditions = Object.entries(this.inlineFilterData)
-        .map(([field, value]) => {
-          if (Array.isArray(value)) {
-            return `${field}:(${value.join(' OR ')})`;
-          }
-          if (typeof value === 'string' && value.includes(' ')) {
-            return `${field}:"${value}"`;
-          }
-          return `${field}:${value}`;
-        });
-      return conditions.length > 0 
-        ? conditions.join(` ${this.logicOperator.toUpperCase()} `) 
-        : '';
+      const conditions = Object.entries(this.inlineFilterData).map(([field, value]) => {
+        if (Array.isArray(value)) {
+          return `${field}:(${value.join(" OR ")})`;
+        }
+        if (typeof value === "string" && value.includes(" ")) {
+          return `${field}:"${value}"`;
+        }
+        return `${field}:${value}`;
+      });
+      return conditions.length > 0 ? conditions.join(` ${this.logicOperator.toUpperCase()} `) : "";
     },
     // 抽屉过滤对象（默认格式）
     filterObj() {
       const obj = {};
       this.filter.forEach(item => {
-        if (item.value !== undefined && item.value !== null && item.value !== '') {
+        if (item.value !== undefined && item.value !== null && item.value !== "") {
           obj[item.field.value] = {
             value: item.value,
             operator: item.operator,
@@ -503,88 +459,86 @@ export default {
     // SQL 表达式
     sqlExpression() {
       const conditions = this.filter
-        .filter(item => item.value !== undefined && item.value !== null && item.value !== '')
+        .filter(item => item.value !== undefined && item.value !== null && item.value !== "")
         .map(item => {
           const field = item.field.value;
           const op = item.operator;
           let value = item.value;
-          
+
           // 处理不同运算符
-          if (op === 'is null' || op === 'is not null') {
+          if (op === "is null" || op === "is not null") {
             return `${field} ${op}`;
           }
-          if (op === 'like' || op === 'not like') {
+          if (op === "like" || op === "not like") {
             return `${field} ${op} '%${value}%'`;
           }
-          if (op === 'in' || op === 'not in') {
+          if (op === "in" || op === "not in") {
             const values = Array.isArray(value) ? value : [value];
-            return `${field} ${op} (${values.map(v => typeof v === 'string' ? `'${v}'` : v).join(', ')})`;
+            return `${field} ${op} (${values.map(v => (typeof v === "string" ? `'${v}'` : v)).join(", ")})`;
           }
           // 字符串值加引号
-          if (typeof value === 'string') {
+          if (typeof value === "string") {
             value = `'${value}'`;
           }
           return `${field} ${op} ${value}`;
         });
-      
-      return conditions.length > 0 
-        ? conditions.join(` ${this.logicOperator.toUpperCase()} `) 
-        : '';
+
+      return conditions.length > 0 ? conditions.join(` ${this.logicOperator.toUpperCase()} `) : "";
     },
     // Lucene 表达式
     luceneExpression() {
       const conditions = this.filter
-        .filter(item => item.value !== undefined && item.value !== null && item.value !== '')
+        .filter(item => item.value !== undefined && item.value !== null && item.value !== "")
         .map(item => {
           const field = item.field.value;
           const op = item.operator;
           let value = item.value;
-          
+
           // Lucene 格式转换
-          if (op === 'is null') {
+          if (op === "is null") {
             return `-${field}:*`;
           }
-          if (op === 'is not null') {
+          if (op === "is not null") {
             return `${field}:*`;
           }
-          if (op === '=' || op === 'like') {
+          if (op === "=" || op === "like") {
             return `${field}:${value}`;
           }
-          if (op === '!=' || op === 'not like') {
+          if (op === "!=" || op === "not like") {
             return `-${field}:${value}`;
           }
-          if (op === '>') {
+          if (op === ">") {
             return `${field}:{${value} TO *}`;
           }
-          if (op === '>=') {
+          if (op === ">=") {
             return `${field}:[${value} TO *]`;
           }
-          if (op === '<') {
+          if (op === "<") {
             return `${field}:{* TO ${value}}`;
           }
-          if (op === '<=') {
+          if (op === "<=") {
             return `${field}:[* TO ${value}]`;
           }
-          if (op === 'in') {
+          if (op === "in") {
             const values = Array.isArray(value) ? value : [value];
-            return `${field}:(${values.join(' OR ')})`;
+            return `${field}:(${values.join(" OR ")})`;
           }
-          if (op === 'not in') {
+          if (op === "not in") {
             const values = Array.isArray(value) ? value : [value];
-            return `-${field}:(${values.join(' OR ')})`;
+            return `-${field}:(${values.join(" OR ")})`;
           }
           return `${field}:${value}`;
         });
-      
-      const connector = this.logicOperator === 'or' ? ' OR ' : ' AND ';
-      return conditions.length > 0 ? conditions.join(connector) : '';
+
+      const connector = this.logicOperator === "or" ? " OR " : " AND ";
+      return conditions.length > 0 ? conditions.join(connector) : "";
     },
     // 根据格式返回表达式
     filterExpression() {
       switch (this.expressionFormat) {
-        case 'sql':
+        case "sql":
           return this.sqlExpression;
-        case 'lucene':
+        case "lucene":
           return this.luceneExpression;
         default:
           return this.filterObj;
@@ -644,24 +598,24 @@ export default {
       const result = {};
       Object.keys(this.formData).forEach(key => {
         const val = this.formData[key];
-        if (val !== undefined && val !== null && val !== '') {
+        if (val !== undefined && val !== null && val !== "") {
           result[key] = val;
         }
       });
-      
+
       // 根据格式选择返回的数据
       let resultData;
       switch (this.expressionFormat) {
-        case 'sql':
+        case "sql":
           resultData = this.inlineSqlExpression;
           break;
-        case 'lucene':
+        case "lucene":
           resultData = this.inlineLuceneExpression;
           break;
         default:
           resultData = result;
       }
-      
+
       this.$emit("update:modelValue", this.formData);
       this.$emit("search", resultData);
       this.$emit("filterChange", resultData);
@@ -706,13 +660,13 @@ export default {
     async handleRemoteSearch(field, query) {
       if (!field.extend?.request) return;
       if (!query && !field.extend?.loadOnEmpty) return;
-      
+
       this.$set(this.selectLoadingMap, field.value, true);
       try {
         const data = await field.extend.request(query);
         this.$set(this.selectOptionsMap, field.value, data || []);
       } catch (error) {
-        console.error('Remote search error:', error);
+        console.error("Remote search error:", error);
         this.$set(this.selectOptionsMap, field.value, []);
       } finally {
         this.$set(this.selectLoadingMap, field.value, false);
@@ -723,19 +677,19 @@ export default {
       if (!field.extend?.request) return;
       // 如果已加载过，跳过
       if (this.selectOptionsMap[field.value]) return;
-      
+
       this.$set(this.selectLoadingMap, field.value, true);
       try {
         const data = await field.extend.request();
         this.$set(this.selectOptionsMap, field.value, data || []);
       } catch (error) {
-        console.error('Load remote data error:', error);
+        console.error("Load remote data error:", error);
         this.$set(this.selectOptionsMap, field.value, []);
       } finally {
         this.$set(this.selectLoadingMap, field.value, false);
       }
     },
-    
+
     // ========== 抽屉过滤方法 ==========
     //打开过滤器
     openFilter() {
@@ -829,24 +783,24 @@ export default {
     //立即过滤
     ok() {
       this.filterObjLength = this.filter.length;
-      
+
       // 根据格式选择返回的数据
       let resultData;
       switch (this.expressionFormat) {
-        case 'sql':
+        case "sql":
           resultData = this.sqlExpression;
           break;
-        case 'lucene':
+        case "lucene":
           resultData = this.luceneExpression;
           break;
         default:
           resultData = this.filterObj;
       }
-      
+
       // 发送事件 - 与内联搜索行为一致
       this.$emit("filterChange", resultData);
       this.$emit("search", resultData);
-      
+
       // 发送完整表达式数据
       this.$emit("expressionChange", {
         format: this.expressionFormat,
@@ -868,14 +822,12 @@ export default {
     },
     // 复制表达式到剪贴板
     async copyExpression() {
-      const text = typeof this.filterExpression === 'string' 
-        ? this.filterExpression 
-        : JSON.stringify(this.filterExpression, null, 2);
+      const text = typeof this.filterExpression === "string" ? this.filterExpression : JSON.stringify(this.filterExpression, null, 2);
       try {
         await navigator.clipboard.writeText(text);
-        this.$message.success('表达式已复制到剪贴板');
+        this.$message.success("表达式已复制到剪贴板");
       } catch (err) {
-        this.$message.error('复制失败');
+        this.$message.error("复制失败");
       }
     },
     //保存常用
@@ -1046,7 +998,7 @@ export default {
 }
 
 .expression-input :deep(.el-textarea__inner) {
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: "Consolas", "Monaco", monospace;
   font-size: 12px;
   background: var(--el-bg-color);
 }
