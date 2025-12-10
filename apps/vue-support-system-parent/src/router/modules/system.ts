@@ -32,6 +32,15 @@ export default [
         }
       },
       {
+        path: "/system/feedback",
+        name: "FeedbackManagement",
+        component: () => import("@/views/manage/feedback/FeedbackIndex.vue"),
+        meta: {
+          title: "意见反馈",
+          showParent: true
+        }
+      },
+      {
         path: "/system/holiday",
         name: "HolidayManagement",
         component: () => import("@pages/system/src/holiday/HolidayIndex.vue"),

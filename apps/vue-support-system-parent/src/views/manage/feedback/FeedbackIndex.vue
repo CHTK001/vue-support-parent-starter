@@ -1,14 +1,176 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { reactive, ref, computed, nextTick, defineAsyncComponent } from "vue";
-import { fetchPageFeedback, fetchIssueFeedback } from "@/api/manage/feedback";
+import { reactive, ref, computed, nextTick, defineAsyncComponent, onMounted } from "vue";
+import { fetchPageFeedback, fetchIssueFeedback, fetchFeedbackStatistic } from "@/api/manage/feedback";
 import { getTimeAgo } from "@repo/utils";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import { debounce } from "@pureadmin/utils";
 import { ElMessage } from "element-plus";
+import * as echarts from "echarts";
 
 // 详情弹窗组件
 const DetailDialog = defineAsyncComponent(() => import("./FeedbackDetail.vue"));
+
+// 图表引用
+const pieChartRef = ref(null);
+const lineChartRef = ref(null);
+let pieChart = null;
+let lineChart = null;
+
+// 统计数据
+const statisticData = reactive({
+  total: 0,
+  pending: 0,
+  resolved: 0,
+  typeStatistics: [],
+  trendStatistics: []
+});
+
+/**
+ * 加载统计数据
+ */
+const loadStatistic = async () => {
+  try {
+    const res = await fetchFeedbackStatistic();
+    if (res.code === 200 && res.data) {
+      Object.assign(statisticData, res.data);
+      renderPieChart();
+      renderLineChart();
+    }
+  } catch (error) {
+    console.error("加载统计数据失败", error);
+  }
+};
+
+/**
+ * 渲染饼图
+ */
+const renderPieChart = () => {
+  if (!pieChartRef.value) return;
+  if (!pieChart) {
+    pieChart = echarts.init(pieChartRef.value);
+  }
+  const colorMap = {
+    SUGGESTION: "#409EFF",
+    BUG: "#F56C6C",
+    OTHER: "#909399"
+  };
+  const option = {
+    tooltip: {
+      trigger: "item",
+      formatter: "{b}: {c} ({d}%)"
+    },
+    legend: {
+      orient: "vertical",
+      right: 10,
+      top: "center"
+    },
+    series: [
+      {
+        name: "反馈类型",
+        type: "pie",
+        radius: ["40%", "70%"],
+        center: ["40%", "50%"],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 10,
+          borderColor: "#fff",
+          borderWidth: 2
+        },
+        label: {
+          show: false,
+          position: "center"
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 16,
+            fontWeight: "bold"
+          }
+        },
+        labelLine: {
+          show: false
+        },
+        data: statisticData.typeStatistics.map((item) => ({
+          value: item.value,
+          name: item.name,
+          itemStyle: { color: colorMap[item.type] || "#67C23A" }
+        }))
+      }
+    ]
+  };
+  pieChart.setOption(option);
+};
+
+/**
+ * 渲染曲线图
+ */
+const renderLineChart = () => {
+  if (!lineChartRef.value) return;
+  if (!lineChart) {
+    lineChart = echarts.init(lineChartRef.value);
+  }
+  const option = {
+    tooltip: {
+      trigger: "axis"
+    },
+    grid: {
+      left: "3%",
+      right: "4%",
+      bottom: "3%",
+      containLabel: true
+    },
+    xAxis: {
+      type: "category",
+      boundaryGap: false,
+      data: statisticData.trendStatistics.map((item) => item.date),
+      axisLabel: {
+        interval: 4
+      }
+    },
+    yAxis: {
+      type: "value",
+      minInterval: 1
+    },
+    series: [
+      {
+        name: "反馈数量",
+        type: "line",
+        smooth: true,
+        areaStyle: {
+          color: {
+            type: "linear",
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: "rgba(64, 158, 255, 0.3)" },
+              { offset: 1, color: "rgba(64, 158, 255, 0.05)" }
+            ]
+          }
+        },
+        lineStyle: {
+          color: "#409EFF",
+          width: 2
+        },
+        itemStyle: {
+          color: "#409EFF"
+        },
+        data: statisticData.trendStatistics.map((item) => item.count)
+      }
+    ]
+  };
+  lineChart.setOption(option);
+};
+
+onMounted(() => {
+  loadStatistic();
+  window.addEventListener("resize", () => {
+    pieChart?.resize();
+    lineChart?.resize();
+  });
+});
 
 // 搜索表单
 const form = reactive({
@@ -199,6 +361,36 @@ const closeDetail = () => {
         </div>
       </el-header>
 
+      <!-- 统计图表区域 -->
+      <div class="feedback-charts">
+        <!-- 统计卡片 -->
+        <div class="feedback-stats">
+          <div class="stat-card stat-total">
+            <div class="stat-value">{{ statisticData.total }}</div>
+            <div class="stat-label">总反馈数</div>
+          </div>
+          <div class="stat-card stat-pending">
+            <div class="stat-value">{{ statisticData.pending }}</div>
+            <div class="stat-label">待处理</div>
+          </div>
+          <div class="stat-card stat-resolved">
+            <div class="stat-value">{{ statisticData.resolved }}</div>
+            <div class="stat-label">已处理</div>
+          </div>
+        </div>
+        <!-- 图表 -->
+        <div class="charts-container">
+          <div class="chart-box">
+            <div class="chart-title">反馈类型分布</div>
+            <div ref="pieChartRef" class="chart-content"></div>
+          </div>
+          <div class="chart-box">
+            <div class="chart-title">近30天反馈趋势</div>
+            <div ref="lineChartRef" class="chart-content"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- 主体表格区域 -->
       <el-main class="feedback-main-content">
         <div class="feedback-content">
@@ -332,9 +524,87 @@ const closeDetail = () => {
   gap: 8px;
 }
 
+// 图表区域样式
+.feedback-charts {
+  padding: 16px;
+  background-color: var(--app-bg-primary);
+  border-bottom: 1px solid var(--app-border-primary);
+}
+
+.feedback-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  flex: 1;
+  padding: 16px 20px;
+  border-radius: 8px;
+  text-align: center;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--app-shadow-md);
+  }
+}
+
+.stat-total {
+  background: linear-gradient(135deg, #409EFF 0%, #66b1ff 100%);
+  color: #fff;
+}
+
+.stat-pending {
+  background: linear-gradient(135deg, #E6A23C 0%, #f0c78a 100%);
+  color: #fff;
+}
+
+.stat-resolved {
+  background: linear-gradient(135deg, #67C23A 0%, #95d475 100%);
+  color: #fff;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 14px;
+  margin-top: 4px;
+  opacity: 0.9;
+}
+
+.charts-container {
+  display: flex;
+  gap: 16px;
+}
+
+.chart-box {
+  flex: 1;
+  background-color: var(--app-bg-secondary, #fff);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: var(--app-shadow-sm);
+}
+
+.chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+  margin-bottom: 12px;
+}
+
+.chart-content {
+  height: 200px;
+  width: 100%;
+}
+
 .feedback-main-content {
   padding: 0 !important;
-  height: calc(100% - 80px);
+  flex: 1;
   overflow: hidden;
 }
 

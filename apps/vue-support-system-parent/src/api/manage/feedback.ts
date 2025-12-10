@@ -39,3 +39,33 @@ export const fetchIssueFeedback = (data: any) => {
     data
   });
 };
+
+/**
+ * 统计类型定义
+ */
+export type TypeStatistic = {
+  name: string;
+  type: string;
+  value: number;
+};
+
+export type TrendStatistic = {
+  date: string;
+  count: number;
+};
+
+export type FeedbackStatistic = {
+  typeStatistics: TypeStatistic[];
+  trendStatistics: TrendStatistic[];
+  total: number;
+  pending: number;
+  resolved: number;
+};
+
+/**
+ * 获取反馈统计数据
+ * @returns 统计数据
+ */
+export const fetchFeedbackStatistic = () => {
+  return http.request<ReturnResult<FeedbackStatistic>>("get", "/v2/feedback/statistic");
+};
