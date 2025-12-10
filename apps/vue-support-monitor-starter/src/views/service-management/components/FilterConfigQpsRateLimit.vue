@@ -194,7 +194,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import {
   getServletFilterConfig,
   saveServletFilterConfig,
@@ -271,15 +271,15 @@ async function handleSave() {
   try {
     const res = await saveServletFilterConfig(props.filterSettingId, config);
     if (res.success) {
-      ElMessage.success("QPS限流配置保存成功，已热应用");
+      message("QPS限流配置保存成功，已热应用", { type: "success" });
       emit("success");
       visibleInner.value = false;
     } else {
-      ElMessage.error(res.msg || "保存失败");
+      message(res.msg || "保存失败", { type: "error" });
     }
   } catch (error) {
     console.error("保存QPS配置失败:", error);
-    ElMessage.error("保存失败");
+    message("保存失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -308,7 +308,7 @@ function addToWhitelist() {
       config.whitelistIps.push(newWhitelistIp.value.trim());
       newWhitelistIp.value = "";
     } else {
-      ElMessage.warning("IP已存在于白名单中");
+      message("IP已存在于白名单中", { type: "warning" });
     }
   }
 }
@@ -327,7 +327,7 @@ function addToBlacklist() {
       config.blacklistIps.push(newBlacklistIp.value.trim());
       newBlacklistIp.value = "";
     } else {
-      ElMessage.warning("IP已存在于黑名单中");
+      message("IP已存在于黑名单中", { type: "warning" });
     }
   }
 }

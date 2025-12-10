@@ -1948,7 +1948,8 @@ import {
   getAvailableNodeClients,
   testFileManagementConnection as testFileManagementConnectionApi,
 } from "@/api/server/setting";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { nextTick, reactive, ref, watch, computed } from "vue";
 
 // 定义属性
@@ -2292,10 +2293,10 @@ const clearAllSettings = () => {
       });
 
       handleChange();
-      ElMessage.success("配置已清除");
+      message("配置已清除", { type: "success" });
     })
     .catch(() => {
-      ElMessage.info("已取消清除操作");
+      message("已取消清除操作", { type: "info" });
     });
 };
 
@@ -2312,10 +2313,10 @@ const resetToDefault = () => {
       // 重置为默认值
       Object.assign(formData, DEFAULT_VALUES);
       handleChange();
-      ElMessage.success("配置已重置为默认值");
+      message("配置已重置为默认值", { type: "success" });
     })
     .catch(() => {
-      ElMessage.info("已取消重置操作");
+      message("已取消重置操作", { type: "info" });
     });
 };
 
@@ -2324,7 +2325,7 @@ const resetToDefault = () => {
  */
 const testPrometheusConnection = async () => {
   if (!formData.monitorSysGenServerSettingPrometheusUrl) {
-    ElMessage.warning("请先配置Prometheus服务器URL");
+    message("请先配置Prometheus服务器URL", { type: "warning" });
     return;
   }
 
@@ -2335,10 +2336,10 @@ const testPrometheusConnection = async () => {
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // 模拟成功
-    ElMessage.success("Prometheus连接测试成功");
+    message("Prometheus连接测试成功", { type: "success" });
   } catch (error) {
     console.error("Prometheus连接测试失败:", error);
-    ElMessage.error("Prometheus连接测试失败，请检查配置");
+    message("Prometheus连接测试失败，请检查配置", { type: "error" });
   } finally {
     testingConnection.value = false;
   }
@@ -2401,7 +2402,7 @@ const loadNodeClients = async () => {
       nodeClients.value = response.data;
     } else {
       nodeClients.value = [];
-      ElMessage.warning("未找到可用的NODE客户端");
+      message("未找到可用的NODE客户端", { type: "warning" });
     }
 
     // 如果已有选择的客户端，更新选中状态
@@ -2415,7 +2416,7 @@ const loadNodeClients = async () => {
     }
   } catch (error) {
     console.error("加载NODE客户端列表失败:", error);
-    ElMessage.error("加载NODE客户端列表失败");
+    message("加载NODE客户端列表失败", { type: "error" });
     nodeClients.value = [];
   } finally {
     loadingNodeClients.value = false;
@@ -2443,7 +2444,7 @@ const handleApiConfigChange = () => {
  */
 const testFileManagementConnection = async () => {
   if (!formData.monitorSysGenServerId) {
-    ElMessage.warning("请先保存服务器信息");
+    message("请先保存服务器信息", { type: "warning" });
     return;
   }
 
@@ -2457,13 +2458,13 @@ const testFileManagementConnection = async () => {
     );
 
     if (result.data) {
-      ElMessage.success("文件管理连接测试成功");
+      message("文件管理连接测试成功", { type: "success" });
     } else {
-      ElMessage.error("文件管理连接测试失败，请检查配置");
+      message("文件管理连接测试失败，请检查配置", { type: "error" });
     }
   } catch (error) {
     console.error("文件管理连接测试失败:", error);
-    ElMessage.error("文件管理连接测试失败，请检查配置");
+    message("文件管理连接测试失败，请检查配置", { type: "error" });
   } finally {
     testingFileManagement.value = false;
   }

@@ -483,7 +483,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { ElMessage, ElMessageBox, ElNotification } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox, ElNotification } from "element-plus";
 import { useGlobalSocket, MonitorTopics } from "@repo/core";
 import { imageApi, getServerList, type SystemSoftImage } from "@/api/docker";
 import PullImageDialog from "./components/PullImageDialog.vue";
@@ -622,7 +623,7 @@ async function loadImages() {
     }
   } catch (error) {
     console.error("加载镜像列表失败:", error);
-    ElMessage.error("加载镜像列表失败");
+    message("加载镜像列表失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -688,7 +689,7 @@ function openInstallContainer(image: SystemSoftImage) {
 // 导出镜像
 async function handleExportImage(image: SystemSoftImage) {
   try {
-    ElMessage.info("正在导出镜像，请稍候...");
+    message("正在导出镜像，请稍候...", { type: "info" });
     // TODO: 调用导出镜像API
     const res = await imageApi.exportImage({
       imageId: image.systemSoftImageId!,
@@ -704,18 +705,18 @@ async function handleExportImage(image: SystemSoftImage) {
     }
   } catch (error: any) {
     console.error("导出镜像失败:", error);
-    ElMessage.error(error?.message || "导出镜像失败");
+    message(error?.message || "导出镜像失败", { type: "error" });
   }
 }
 
 // 导出服务器所有镜像
 async function handleExportServerImages(serverId: number) {
   try {
-    ElMessage.info("正在导出服务器所有镜像，请稍候...");
+    message("正在导出服务器所有镜像，请稍候...", { type: "info" });
     // TODO: 调用批量导出API
   } catch (error: any) {
     console.error("导出失败:", error);
-    ElMessage.error(error?.message || "导出失败");
+    message(error?.message || "导出失败", { type: "error" });
   }
 }
 
@@ -730,15 +731,15 @@ async function handleDeleteImage(image: SystemSoftImage) {
 
     const res = await imageApi.deleteImage(image.systemSoftImageId!);
     if (res.code === "00000") {
-      ElMessage.success("删除成功");
+      message("删除成功", { type: "success" });
       loadImages();
     } else {
-      ElMessage.error(res.msg || "删除失败");
+      message(res.msg || "删除失败", { type: "error" });
     }
   } catch (error: any) {
     if (error !== "cancel") {
       console.error("删除镜像失败:", error);
-      ElMessage.error(error?.message || "删除失败");
+      message(error?.message || "删除失败", { type: "error" });
     }
   }
 }

@@ -111,7 +111,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import {
   getAddressRateLimitRules,
   saveAddressRateLimitRules,
@@ -176,11 +176,11 @@ async function handleSave() {
       rules.value
     );
     if (res.success) {
-      ElMessage.success("保存成功，已热应用");
+      message("保存成功，已热应用", { type: "success" });
       emit("success");
       visibleInner.value = false;
     } else {
-      ElMessage.error(res.msg || "保存失败");
+      message(res.msg || "保存失败", { type: "error" });
     }
   } finally {
     loading.value = false;

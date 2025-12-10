@@ -141,7 +141,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, nextTick } from "vue";
-import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { message } from "@repo/utils";
+import { type FormInstance, type FormRules } from "element-plus";
 import ScriptUploadRecords from "./ScriptUploadRecords.vue";
 import { saveServerScript, updateServerScript } from "@/api/server/script";
 import CodeEditor from "@/components/codeEditor/index.vue";
@@ -335,7 +336,7 @@ const handleTypeChange = () => {
 };
 
 const formatCode = () => {
-  ElMessage.info("代码格式化功能开发中");
+  message("代码格式化功能开发中", { type: "info" });
 };
 
 const handleContentChange = (newContent: string) => {
@@ -353,7 +354,7 @@ const handleSave = async () => {
     await formRef.value.validate();
 
     if (!scriptForm.monitorSysGenScriptContent.trim()) {
-      ElMessage.warning("请输入脚本内容");
+      message("请输入脚本内容", { type: "warning" });
       return;
     }
 
@@ -379,19 +380,19 @@ const handleSave = async () => {
       : await saveServerScript(scriptData);
 
     if (response.success) {
-      ElMessage.success(
+      message(
         scriptForm.monitorSysGenScriptId ? "脚本更新成功" : "脚本保存成功"
-      );
+      , { type: "success" });
       emit("save", { ...scriptForm });
       handleClose();
     } else {
-      ElMessage.error(response.msg || "保存脚本失败");
+      message(response.msg || "保存脚本失败", { type: "error" });
     }
   } catch (error: any) {
     console.error("保存脚本失败:", error);
     const errorMsg =
       error?.response?.data?.msg || error?.message || "保存脚本失败";
-    ElMessage.error(errorMsg);
+    message(errorMsg, { type: "error" });
   } finally {
     saving.value = false;
   }

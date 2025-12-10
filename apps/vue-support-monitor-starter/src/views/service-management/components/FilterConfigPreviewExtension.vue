@@ -211,7 +211,8 @@ import {
   clearPreviewExtensionConfig,
   type PreviewExtensionConfig,
 } from "@/api/system-server-setting";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { computed, ref, watch } from "vue";
 
 interface Props {
@@ -280,9 +281,9 @@ async function loadConfig() {
  * 模式变更
  */
 function onModeChange() {
-  ElMessage.info(
+  message(
     config.value.whitelistMode ? "已切换到白名单模式" : "已切换到黑名单模式"
-  );
+  , { type: "info" });
 }
 
 /**
@@ -293,7 +294,7 @@ function addDisabledExtension() {
   if (!ext) return;
 
   if (config.value.disabledExtensions.includes(ext)) {
-    ElMessage.warning(`扩展名 .${ext} 已存在`);
+    message(`扩展名 .${ext} 已存在`, { type: "warning" });
     return;
   }
 
@@ -331,7 +332,7 @@ function addAllowedExtension() {
   if (!ext) return;
 
   if (config.value.allowedExtensions.includes(ext)) {
-    ElMessage.warning(`扩展名 .${ext} 已存在`);
+    message(`扩展名 .${ext} 已存在`, { type: "warning" });
     return;
   }
 
@@ -369,14 +370,14 @@ async function handleSave() {
   try {
     const res = await savePreviewExtensionConfig(config.value);
     if (res.success) {
-      ElMessage.success("保存成功");
+      message("保存成功", { type: "success" });
       emit("success");
       visibleInner.value = false;
     } else {
-      ElMessage.error(res.msg || "保存失败");
+      message(res.msg || "保存失败", { type: "error" });
     }
   } catch (e) {
-    ElMessage.error("保存失败，请稍后重试");
+    message("保存失败，请稍后重试", { type: "error" });
   } finally {
     saving.value = false;
   }
@@ -397,7 +398,7 @@ async function handleClear() {
 
     // 同步到后端
     await clearPreviewExtensionConfig(props.serverId);
-    ElMessage.success("配置已清空");
+    message("配置已清空", { type: "success" });
   } catch {
     // 用户取消
   }

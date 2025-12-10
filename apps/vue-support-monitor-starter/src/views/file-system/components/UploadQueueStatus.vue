@@ -118,7 +118,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import type { UploadQueueStatus } from "@/api/monitor/filesystem";
 
 // Props
@@ -231,7 +231,7 @@ const refreshQueue = () => {
  */
 const pauseAll = () => {
   // TODO: 实现暂停逻辑
-  ElMessage.info("暂停功能开发中");
+  message("暂停功能开发中", { type: "info" });
 };
 
 /**
@@ -239,7 +239,7 @@ const pauseAll = () => {
  */
 const resumeAll = () => {
   // TODO: 实现继续逻辑
-  ElMessage.info("继续功能开发中");
+  message("继续功能开发中", { type: "info" });
 };
 
 /**

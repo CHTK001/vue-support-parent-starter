@@ -182,7 +182,7 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { message } from "@repo/utils";
 import { getServerStatistics } from "@/api/server";
 // import { startFileUploadTask, pauseFileUploadTask, cancelFileUploadTask } from "@/api/server";
@@ -312,7 +312,7 @@ const handleFileManager = (server: any) => {
  */
 const handleFileManagerNewPage = (server: any) => {
   if (!server?.monitorSysGenServerId) {
-    ElMessage.warning("服务器ID无效");
+    message("服务器ID无效", { type: "warning" });
     return;
   }
 
@@ -320,7 +320,7 @@ const handleFileManagerNewPage = (server: any) => {
   const fileManagementMode =
     server.fileManagementMode || server.monitorSysGenServerFileManagementMode;
   if (!fileManagementMode || fileManagementMode === "NONE") {
-    ElMessage.warning("该服务器未启用文件管理功能");
+    message("该服务器未启用文件管理功能", { type: "warning" });
     return;
   }
 

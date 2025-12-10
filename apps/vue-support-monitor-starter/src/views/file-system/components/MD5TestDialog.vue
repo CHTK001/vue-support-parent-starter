@@ -70,7 +70,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { formatBytes } from "@pureadmin/utils";
 import SparkMD5 from "spark-md5";
 
@@ -215,14 +215,14 @@ const calculateMD5 = async () => {
 
     // 验证结果一致性
     if (hash1 === hash2) {
-      ElMessage.success("MD5计算完成，两种方法结果一致");
+      message("MD5计算完成，两种方法结果一致", { type: "success" });
     } else {
-      ElMessage.error("警告：两种方法计算结果不一致！");
+      message("警告：两种方法计算结果不一致！", { type: "error" });
     }
 
   } catch (error) {
     console.error("MD5计算失败:", error);
-    ElMessage.error("MD5计算失败");
+    message("MD5计算失败", { type: "error" });
   } finally {
     isCalculating.value = false;
     progress.value = 0;
@@ -235,9 +235,9 @@ const calculateMD5 = async () => {
 const copyToClipboard = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text);
-    ElMessage.success("已复制到剪贴板");
+    message("已复制到剪贴板", { type: "success" });
   } catch (error) {
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 };
 

@@ -266,7 +266,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { ElMessage, ElNotification } from "element-plus";
+import { message } from "@repo/utils";
+import { ElNotification } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import { containerApi, type SystemSoftImage } from "@/api/docker";
 import { useDockerOperationStore } from "@/stores/dockerOperation";
@@ -436,7 +437,7 @@ const handleClose = () => {
 // 提交创建容器
 const submit = async () => {
   if (!props.image) {
-    ElMessage.warning("请选择镜像");
+    message("请选择镜像", { type: "warning" });
     return;
   }
 
@@ -515,7 +516,7 @@ const submit = async () => {
 
     operationStore.failOperation(operationId, e.message || "创建失败");
 
-    ElMessage.error(e.message || "创建容器失败");
+    message(e.message || "创建容器失败", { type: "error" });
     installing.value = false;
   }
 };

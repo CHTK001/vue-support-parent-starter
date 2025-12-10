@@ -43,6 +43,10 @@ emitter.on("breadcrumbChange", (value: boolean) => {
 onBeforeUnmount(() => {
   emitter.off("breadcrumbChange");
 });
+
+// 判断是否为开发环境
+const isDevelopment =
+  import.meta.env.MODE === "development" || import.meta.env.DEV;
 </script>
 
 <template>
@@ -54,6 +58,12 @@ onBeforeUnmount(() => {
       :is-active="pureApp.sidebar.opened"
       @toggleClick="toggleSideBar"
     />
+
+    <!-- 开发环境标识 -->
+    <div v-if="isDevelopment" class="dev-environment-badge">
+      <IconifyIconOnline icon="ri:code-s-slash-line" />
+      <span>开发环境</span>
+    </div>
 
     <!-- 面包屑导航 -->
     <LaySidebarBreadCrumb
@@ -204,6 +214,36 @@ onBeforeUnmount(() => {
     border-radius: 8px;
     backdrop-filter: blur(10px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  // 开发环境标识
+  .dev-environment-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    margin-left: 16px;
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    animation: devBadgePulse 2s ease-in-out infinite;
+
+    svg {
+      font-size: 16px;
+    }
+  }
+
+  @keyframes devBadgePulse {
+    0%,
+    100% {
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    }
+    50% {
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
+    }
   }
 }
 

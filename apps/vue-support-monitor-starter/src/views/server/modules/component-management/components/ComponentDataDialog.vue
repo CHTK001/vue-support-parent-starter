@@ -148,7 +148,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import * as echarts from "echarts";
 import { getComponentData, getComponentRealtimeData, type ServerComponent } from "@/api/server";
 
@@ -279,12 +279,12 @@ const initDialog = () => {
  */
 const handleQuery = async () => {
   if (!props.component?.monitorSysGenServerComponentId) {
-    ElMessage.warning("组件信息不完整");
+    message("组件信息不完整", { type: "warning" });
     return;
   }
   
   if (!timeRange.value || timeRange.value.length !== 2) {
-    ElMessage.warning("请选择有效的时间范围");
+    message("请选择有效的时间范围", { type: "warning" });
     return;
   }
 
@@ -316,13 +316,13 @@ const handleQuery = async () => {
       await nextTick();
       updateChart();
       
-      ElMessage.success("查询成功");
+      message("查询成功", { type: "success" });
     } else {
-      ElMessage.error(res.msg || "查询失败");
+      message(res.msg || "查询失败", { type: "error" });
     }
   } catch (error) {
     console.error("查询失败:", error);
-    ElMessage.error("查询失败");
+    message("查询失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -333,7 +333,7 @@ const handleQuery = async () => {
  */
 const handleRealtime = async () => {
   if (!props.component?.monitorSysGenServerComponentId) {
-    ElMessage.warning("组件信息不完整");
+    message("组件信息不完整", { type: "warning" });
     return;
   }
 
@@ -355,13 +355,13 @@ const handleRealtime = async () => {
       await nextTick();
       updateChart();
       
-      ElMessage.success("获取实时数据成功");
+      message("获取实时数据成功", { type: "success" });
     } else {
-      ElMessage.error(res.msg || "获取实时数据失败");
+      message(res.msg || "获取实时数据失败", { type: "error" });
     }
   } catch (error) {
     console.error("获取实时数据失败:", error);
-    ElMessage.error("获取实时数据失败");
+    message("获取实时数据失败", { type: "error" });
   } finally {
     realtimeLoading.value = false;
   }
@@ -468,9 +468,9 @@ const generateChartData = () => {
 const copyRawData = async () => {
   try {
     await navigator.clipboard.writeText(JSON.stringify(queryResult.value, null, 2));
-    ElMessage.success("数据已复制到剪贴板");
+    message("数据已复制到剪贴板", { type: "success" });
   } catch (error) {
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 };
 
@@ -495,7 +495,7 @@ const downloadRawData = () => {
  */
 const handleExport = () => {
   if (!queryResult.value) {
-    ElMessage.warning("暂无数据可导出");
+    message("暂无数据可导出", { type: "warning" });
     return;
   }
   
@@ -522,7 +522,7 @@ const handleExport = () => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   
-  ElMessage.success("数据导出成功");
+  message("数据导出成功", { type: "success" });
 };
 
 /**

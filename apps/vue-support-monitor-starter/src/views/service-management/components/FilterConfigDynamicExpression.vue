@@ -81,7 +81,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import CodeEditor from "@/components/codeEditor/index.vue";
 import {
   getServletFilterConfig,
@@ -158,7 +158,7 @@ async function loadData() {
 
 async function handleSave() {
   if (!config.source || !config.source.trim()) {
-    ElMessage.warning("请填写源码");
+    message("请填写源码", { type: "warning" });
     return;
   }
   loading.value = true;
@@ -170,14 +170,14 @@ async function handleSave() {
       fingerprint: config.fingerprint || undefined,
     });
     if (res.success) {
-      ElMessage.success("动态表达式配置已保存并热应用");
+      message("动态表达式配置已保存并热应用", { type: "success" });
       emit("success");
       visibleInner.value = false;
     } else {
-      ElMessage.error(res.msg || "保存失败");
+      message(res.msg || "保存失败", { type: "error" });
     }
   } catch (e) {
-    ElMessage.error("保存失败");
+    message("保存失败", { type: "error" });
   } finally {
     loading.value = false;
   }

@@ -160,7 +160,8 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, watch, nextTick } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { message } from "@repo/utils";
+import { ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 
 // Props
@@ -282,13 +283,13 @@ const handleSubmit = async () => {
       addToFavorites: formData.addToFavorites
     })
     
-    ElMessage.success(`文件夹 "${formData.folderName}" 创建成功`)
+    message(`文件夹 "${formData.folderName}" 创建成功`, { type: "success" })
     emit('folder-created', fullPath.value)
     handleClose()
     
   } catch (error: any) {
     if (error !== 'cancel') {
-      ElMessage.error(error.message || '创建文件夹失败')
+      message(error.message || '创建文件夹失败', { type: "error" })
       console.error('创建文件夹失败:', error)
     }
   } finally {

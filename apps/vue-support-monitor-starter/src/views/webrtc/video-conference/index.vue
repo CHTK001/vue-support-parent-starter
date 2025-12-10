@@ -396,7 +396,8 @@
 
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
+import { message } from "@repo/utils";
+import { ElMessageBox, type FormInstance } from 'element-plus';
 import {
   VideoCamera,
   VideoCameraFilled,
@@ -552,13 +553,13 @@ const createConference = async () => {
     }
     
     const { data } = await createRoom(params);
-    ElMessage.success('会议创建成功');
+    message('会议创建成功', { type: "success" });
     
     // 自动加入创建的会议
     await joinConferenceRoom(data.roomId, params.password);
   } catch (error) {
     console.error('创建会议失败:', error);
-    ElMessage.error('创建会议失败');
+    message('创建会议失败', { type: "error" });
   } finally {
     creating.value = false;
   }
@@ -569,17 +570,17 @@ const createConference = async () => {
  */
 const joinConference = async () => {
   if (!joinForm.roomId) {
-    ElMessage.warning('请输入会议ID');
+    message('请输入会议ID', { type: "warning" });
     return;
   }
   
   try {
     joining.value = true;
     await joinConferenceRoom(joinForm.roomId, joinForm.password);
-    ElMessage.success('加入会议成功');
+    message('加入会议成功', { type: "success" });
   } catch (error) {
     console.error('加入会议失败:', error);
-    ElMessage.error('加入会议失败');
+    message('加入会议失败', { type: "error" });
   } finally {
     joining.value = false;
   }
@@ -591,10 +592,10 @@ const joinConference = async () => {
 const quickJoinConference = async (room: RoomInfo) => {
   try {
     await joinConferenceRoom(room.roomId);
-    ElMessage.success('加入会议成功');
+    message('加入会议成功', { type: "success" });
   } catch (error) {
     console.error('加入会议失败:', error);
-    ElMessage.error('加入会议失败');
+    message('加入会议失败', { type: "error" });
   }
 };
 
@@ -610,7 +611,7 @@ const loadActiveConferences = async () => {
     activeConferences.value = data.records;
   } catch (error) {
     console.error('加载会议列表失败:', error);
-    ElMessage.error('加载会议列表失败');
+    message('加载会议列表失败', { type: "error" });
   }
 };
 
@@ -660,7 +661,7 @@ const handleParticipantAction = async (command: string, participant: any) => {
   switch (command) {
     case 'mute':
       // TODO: 实现静音参与者
-      ElMessage.success(`已静音 ${participant.username}`);
+      message(`已静音 ${participant.username}`, { type: "success" });
       break;
     case 'kick':
       try {
@@ -674,7 +675,7 @@ const handleParticipantAction = async (command: string, participant: any) => {
           }
         );
         // TODO: 实现移除参与者
-        ElMessage.success(`已移除 ${participant.username}`);
+        message(`已移除 ${participant.username}`, { type: "success" });
       } catch (error) {
         // 用户取消
       }
@@ -688,9 +689,9 @@ const handleParticipantAction = async (command: string, participant: any) => {
 const copyInviteLink = async () => {
   try {
     await navigator.clipboard.writeText(inviteLink.value);
-    ElMessage.success('邀请链接已复制到剪贴板');
+    message('邀请链接已复制到剪贴板', { type: "success" });
   } catch (error) {
-    ElMessage.error('复制失败');
+    message('复制失败', { type: "error" });
   }
 };
 
@@ -699,12 +700,12 @@ const copyInviteLink = async () => {
  */
 const sendInvitations = () => {
   if (selectedInviteUsers.value.length === 0) {
-    ElMessage.warning('请选择要邀请的用户');
+    message('请选择要邀请的用户', { type: "warning" });
     return;
   }
   
   // TODO: 实现发送邀请逻辑
-  ElMessage.success(`已向 ${selectedInviteUsers.value.length} 位用户发送邀请`);
+  message(`已向 ${selectedInviteUsers.value.length} 位用户发送邀请`, { type: "success" });
   showInvite.value = false;
   selectedInviteUsers.value = [];
 };

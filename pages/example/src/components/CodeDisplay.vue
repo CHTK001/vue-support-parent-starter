@@ -58,7 +58,7 @@
 <script setup>
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { computed, ref, watch } from "vue";
 
 // Props
@@ -137,10 +137,10 @@ const copyCode = async () => {
       copying.value = false;
     }, 2000);
 
-    ElMessage.success("代码已复制到剪贴板");
+    message("代码已复制到剪贴板", { type: "success" });
   } catch (err) {
     console.error("复制失败:", err);
-    ElMessage.error("复制失败，请手动复制");
+    message("复制失败，请手动复制", { type: "error" });
     copying.value = false;
   }
 };

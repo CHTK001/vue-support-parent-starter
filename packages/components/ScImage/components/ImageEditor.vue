@@ -148,7 +148,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { useRenderIcon } from "../../ReIcon/src/hooks";
 import Cropper from "cropperjs";
 import "cropperjs/dist/cropper.css";
@@ -300,7 +300,7 @@ const initCanvas = async () => {
   };
 
   img.onerror = () => {
-    ElMessage.error("图片加载失败");
+    message("图片加载失败", { type: "error" });
   };
 
   img.src = props.imageSrc;
@@ -420,7 +420,7 @@ const rotate = angle => {
 
   // Update current image from canvas
   updateCurrentImage();
-  ElMessage.success("旋转成功");
+  message("旋转成功", { type: "success" });
 };
 
 const flip = direction => {
@@ -444,7 +444,7 @@ const flip = direction => {
   ctx.restore();
 
   updateCurrentImage();
-  ElMessage.success("翻转成功");
+  message("翻转成功", { type: "success" });
 };
 
 const removeBackground = async () => {
@@ -497,7 +497,7 @@ const removeBackground = async () => {
       processingProgress.value = 100;
       processingText.value = "处理完成";
 
-      ElMessage.success("背景去除成功");
+      message("背景去除成功", { type: "success" });
 
       setTimeout(() => {
         processing.value = false;
@@ -510,7 +510,7 @@ const removeBackground = async () => {
     img.src = URL.createObjectURL(resultBlob);
   } catch (error) {
     console.error("Background removal error:", error);
-    ElMessage.error("背景去除失败: " + error.message);
+    message("背景去除失败: " + error.message, { type: "error" });
     processing.value = false;
     removing.value = false;
     processingProgress.value = 0;
@@ -549,7 +549,7 @@ const handleUploadChange = e => {
 
   // 验证文件类型
   if (!file.type.startsWith('image/')) {
-    ElMessage.warning('请上传图片文件');
+    message('请上传图片文件', { type: "warning" });
     return;
   }
 
@@ -577,7 +577,7 @@ const handleUploadChange = e => {
       currentImageSrc.value = event.target.result;
       
       checkTransparency();
-      ElMessage.success('图片已加载');
+      message('图片已加载', { type: "success" });
     };
     img.src = event.target.result;
   };
@@ -609,7 +609,7 @@ const applyBackgroundColor = () => {
 
   updateCurrentImage();
   showBackgroundPicker.value = false;
-  ElMessage.success("背景颜色已应用");
+  message("背景颜色已应用", { type: "success" });
 };
 
 const applyBackgroundImage = () => {
@@ -633,12 +633,12 @@ const applyBackgroundImage = () => {
   ctx.drawImage(tempCanvas, 0, 0);
 
   updateCurrentImage();
-  ElMessage.success("背景图片已应用");
+  message("背景图片已应用", { type: "success" });
 };
 
 const clearBackground = () => {
   // This would require re-removing the background or resetting to the version with transparent background
-  ElMessage.info("请先去除背景后再应用新背景");
+  message("请先去除背景后再应用新背景", { type: "info" });
 };
 
 const handleScaleChange = () => {
@@ -666,7 +666,7 @@ const applyCrop = () => {
   });
 
   if (!croppedCanvas) {
-    ElMessage.warning("请先选择裁剪区域");
+    message("请先选择裁剪区域", { type: "warning" });
     return;
   }
 
@@ -732,7 +732,7 @@ const applyCrop = () => {
   currentTool.value = null;
 
   updateCurrentImage();
-  ElMessage.success("裁剪成功");
+  message("裁剪成功", { type: "success" });
 };
 
 const handleReset = () => {
@@ -755,7 +755,7 @@ const handleReset = () => {
     hasTransparentBackground.value = false;
 
     checkTransparency();
-    ElMessage.success("已重置");
+    message("已重置", { type: "success" });
   }
 };
 

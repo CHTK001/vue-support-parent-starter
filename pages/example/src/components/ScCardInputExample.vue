@@ -184,7 +184,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import ScInput from "@repo/components/ScInput/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { InputType } from "@repo/components/ScInput/types";
@@ -366,7 +366,7 @@ const handleValueChange = (value) => {
 
 // 处理change事件
 const handleChange = (value) => {
-  ElMessage.success(`选择的值已变更为: ${value}`);
+  message(`选择的值已变更为: ${value}`, { type: "success" });
 };
 
 // 远程数据获取函数

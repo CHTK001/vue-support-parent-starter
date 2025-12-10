@@ -338,7 +338,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { api as viewerApi } from "v-viewer";
 import "viewerjs/dist/viewer.css";
 
@@ -500,7 +500,7 @@ async function onDrop(e: DragEvent) {
   const s =
     selectedIndex.value != null ? storages.value[selectedIndex.value] : null;
   if (!s) {
-    ElMessage.warning("请先选择一个存储配置");
+    message("请先选择一个存储配置", { type: "warning" });
     return;
   }
 
@@ -512,7 +512,7 @@ async function onDrop(e: DragEvent) {
 
     // 检查文件大小
     if (file.size > maxSize) {
-      ElMessage.warning(`文件 ${file.name} 超过10MB限制，请使用分片上传`);
+      message(`文件 ${file.name} 超过10MB限制，请使用分片上传`, { type: "warning" });
       continue;
     }
 
@@ -538,14 +538,14 @@ async function onDrop(e: DragEvent) {
 
       uploadItem.progress = 100;
       uploadItem.status = "success";
-      ElMessage.success(`${file.name} 上传成功`);
+      message(`${file.name} 上传成功`, { type: "success" });
 
       // 刷新文件列表
       await fetchPreviewItems();
     } catch (err: any) {
       uploadItem.progress = 100;
       uploadItem.status = "exception";
-      ElMessage.error(`${file.name} 上传失败: ${err?.message || "未知错误"}`);
+      message(`${file.name} 上传失败: ${err?.message || "未知错误"}`, { type: "error" });
     }
 
     // 3秒后移除上传项
@@ -844,7 +844,7 @@ async function reload(restoreFromUrl = false) {
     if (res?.success && Array.isArray(res.data)) {
       storages.value = res.data as any[];
       if (!storages.value.length) {
-        ElMessage.info("当前服务器暂无已安装的存储");
+        message("当前服务器暂无已安装的存储", { type: "info" });
         return;
       }
 
@@ -986,7 +986,7 @@ const loadServerInfo = async () => {
       serverInfo.value = res.data;
     }
   } catch (e) {
-    ElMessage.error(e.message);
+    message(e.message, { type: "error" });
   }
 };
 

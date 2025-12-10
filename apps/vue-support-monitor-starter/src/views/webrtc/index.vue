@@ -129,7 +129,7 @@
 
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { message } from "@repo/utils";
 import {
   VideoCamera,
   User,
@@ -235,7 +235,7 @@ const loadSystemStats = async () => {
     systemStats.value = data;
   } catch (error) {
     console.error('加载系统统计数据失败:', error);
-    ElMessage.error('加载系统统计数据失败');
+    message('加载系统统计数据失败', { type: "error" });
   }
 };
 
@@ -259,7 +259,7 @@ const refreshMonitoring = async () => {
     loadSystemStats(),
     loadRealtimeData()
   ]);
-  ElMessage.success('数据已刷新');
+  message('数据已刷新', { type: "success" });
 };
 
 /**

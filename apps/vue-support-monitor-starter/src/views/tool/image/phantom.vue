@@ -32,7 +32,7 @@ const handleRightChange = async file => {
  */
 const handleGenerate = async () => {
   if (!leftFile.value || !rightFile.value) {
-    ElMessage.warning("请先上传两张图片");
+    message("请先上传两张图片", { type: "warning" });
     return;
   }
 
@@ -45,7 +45,7 @@ const handleGenerate = async () => {
     const res = await fetchToolPhantom(form);
     sourceImage.value = "data:image/png;base64," + res.data;
   } catch (error) {
-    ElMessage.error("生成图片失败");
+    message("生成图片失败", { type: "error" });
   } finally {
     loading.value = false;
   }

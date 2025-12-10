@@ -107,7 +107,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import * as echarts from "echarts";
 import { getComponentsByServerId, getComponentData, getComponentRealtimeData, type ServerComponent } from "@/api/server";
 
@@ -213,7 +213,7 @@ const loadComponents = async () => {
     }
   } catch (error) {
     console.error("加载组件列表失败:", error);
-    ElMessage.error("加载组件列表失败");
+    message("加载组件列表失败", { type: "error" });
   }
 };
 
@@ -222,12 +222,12 @@ const loadComponents = async () => {
  */
 const handleQuery = async () => {
   if (!selectedComponentId.value) {
-    ElMessage.warning("请选择要查询的组件");
+    message("请选择要查询的组件", { type: "warning" });
     return;
   }
 
   if (!timeRangeValue.value || timeRangeValue.value.length !== 2) {
-    ElMessage.warning("请选择有效的时间范围");
+    message("请选择有效的时间范围", { type: "warning" });
     return;
   }
 
@@ -268,13 +268,13 @@ const handleQuery = async () => {
       await nextTick();
       updateChart();
 
-      ElMessage.success("查询成功");
+      message("查询成功", { type: "success" });
     } else {
-      ElMessage.error(res.msg || "查询失败");
+      message(res.msg || "查询失败", { type: "error" });
     }
   } catch (error) {
     console.error("查询失败:", error);
-    ElMessage.error("查询失败");
+    message("查询失败", { type: "error" });
   } finally {
     loading.value = false;
   }

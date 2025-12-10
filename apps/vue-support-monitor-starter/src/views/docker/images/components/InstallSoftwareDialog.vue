@@ -177,7 +177,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { message } from "@repo/utils";
+import { type FormInstance, type FormRules } from 'element-plus'
 import { 
   softwareApi, 
   getServerList, 
@@ -333,14 +334,14 @@ const handleSubmit = async () => {
         setTimeout(() => emit('success'), 1000)
       }
       
-      ElMessage.success('软件安装任务已创建，请查看进度')
+      message('软件安装任务已创建，请查看进度', { type: "success" })
       emit('success')
       handleClose()
     } else {
-      ElMessage.error(response.message || '软件安装失败')
+      message(response.message || '软件安装失败', { type: "error" })
     }
   } catch (error) {
-    ElMessage.error('软件安装失败')
+    message('软件安装失败', { type: "error" })
   } finally {
     loading.value = false
   }

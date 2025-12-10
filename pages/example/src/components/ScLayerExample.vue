@@ -556,7 +556,7 @@ const MarkerClusterMode = {
 // 引入飞线图类型定义
 import type { FlightLinePoint, FlightLineConfig, FlightLineData } from '@repo/components/ScLayer/types/flightline';
 // 引入Element Plus组件
-import { ElMessage } from 'element-plus';
+import { message } from "@repo/utils";
 
 // 地图实例引用
 const layerRef = ref(null);
@@ -2803,7 +2803,7 @@ function toggleMarkerGroupVisibility(groupName: string) {
 // 循环切换不同分组的可见性
 function toggleGroupVisibility() {
   if (!layerRef.value || markerGroups.value.length === 0) {
-    ElMessage.warning('没有可用的标记点分组');
+    message('没有可用的标记点分组', { type: "warning" });
     return;
   }
   

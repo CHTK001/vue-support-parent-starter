@@ -109,7 +109,7 @@
 
 <script setup lang="ts">
 import { containerApi, getServerList, type ContainerStatusStatistics, type SystemSoftContainer } from '@/api/docker'
-import { ElMessage } from 'element-plus'
+import { message } from "@repo/utils";
 import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import ContainerDetailDialog from '../containers/components/ContainerDetailDialog.vue'
 import ContainerMonitoringList from './components/ContainerMonitoringList.vue'
@@ -166,7 +166,7 @@ const loadMonitoringData = async () => {
       calculateOverviewStats()
     }
   } catch (error) {
-    ElMessage.error('加载监控数据失败')
+    message('加载监控数据失败', { type: "error" })
   } finally {
     loading.value = false
   }

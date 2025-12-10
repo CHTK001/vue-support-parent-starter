@@ -6,7 +6,7 @@
  */
 
 import { ref, reactive, computed, onUnmounted } from 'vue';
-import { ElMessage } from 'element-plus';
+import { message } from "@repo/utils";
 import { joinRoom, leaveRoom, type RoomInfo, type WebRTCUser } from '@/api/webrtc';
 
 // WebRTC配置
@@ -200,10 +200,10 @@ export function useWebRTCConference() {
       
       inConference.value = true;
       startConferenceTimer();
-      ElMessage.success('已加入会议');
+      message('已加入会议', { type: "success" });
     } catch (error) {
       console.error('加入会议失败:', error);
-      ElMessage.error('加入会议失败');
+      message('加入会议失败', { type: "error" });
       throw error;
     } finally {
       isConnecting.value = false;
@@ -256,10 +256,10 @@ export function useWebRTCConference() {
       conferenceDuration.value = 0;
       currentRoom.value = null;
       
-      ElMessage.success('已离开会议');
+      message('已离开会议', { type: "success" });
     } catch (error) {
       console.error('离开会议失败:', error);
-      ElMessage.error('离开会议失败');
+      message('离开会议失败', { type: "error" });
     }
   };
   
@@ -386,11 +386,11 @@ export function useWebRTCConference() {
           userId: currentUser.value?.userId
         });
         
-        ElMessage.success('屏幕共享已开始');
+        message('屏幕共享已开始', { type: "success" });
       }
     } catch (error) {
       console.error('开始屏幕共享失败:', error);
-      ElMessage.error('开始屏幕共享失败');
+      message('开始屏幕共享失败', { type: "error" });
     }
   };
   
@@ -436,10 +436,10 @@ export function useWebRTCConference() {
         userId: currentUser.value?.userId
       });
       
-      ElMessage.success('屏幕共享已停止');
+      message('屏幕共享已停止', { type: "success" });
     } catch (error) {
       console.error('停止屏幕共享失败:', error);
-      ElMessage.error('停止屏幕共享失败');
+      message('停止屏幕共享失败', { type: "error" });
     }
   };
   

@@ -150,7 +150,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { ElMessage, ElNotification } from 'element-plus';
+import { message } from "@repo/utils";
+import { ElNotification } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { containerApi, type SystemSoftImage } from '@/api/docker';
 
@@ -255,7 +256,7 @@ async function submit() {
     await formRef.value.validate();
 
     if (!props.image) {
-      return ElMessage.error('未选择镜像');
+      return message('未选择镜像', { type: "error" });
     }
 
     installing.value = true;
@@ -314,7 +315,7 @@ async function submit() {
       emit('success');
       visibleProxy.value = false;
     } else {
-      ElMessage.error(result.msg || '创建失败');
+      message(result.msg || '创建失败', { type: "error" });
     }
   } catch (error: any) {
     if (error !== 'cancel') {

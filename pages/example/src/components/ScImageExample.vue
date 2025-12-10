@@ -488,7 +488,7 @@ import { ref } from "vue";
 import ScImage from "@repo/components/ScImage/index.vue";
 import CodePreview from "./CodePreview.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 // 基础示例
 const basicImage = ref("");
@@ -535,17 +535,17 @@ const handleImageChange = (url: string) => {
 
 const handleEditChange = (url: string) => {
   console.log("Image edited:", url);
-  ElMessage.success("图片已更新");
+  message("图片已更新", { type: "success" });
 };
 
 const handleCompareStart = (img1: string, img2: string) => {
   console.log("Compare started:", img1, img2);
-  ElMessage.info("已进入比较模式");
+  message("已进入比较模式", { type: "info" });
 };
 
 const handleCompareEnd = () => {
   console.log("Compare ended");
-  ElMessage.info("已退出比较模式");
+  message("已退出比较模式", { type: "info" });
 };
 
 const handleCompareChange = (value: number) => {
@@ -554,7 +554,7 @@ const handleCompareChange = (value: number) => {
 
 const handleBackgroundRemoved = (blob: Blob, url: string) => {
   console.log("Background removed:", blob, url);
-  ElMessage.success("背景已去除");
+  message("背景已去除", { type: "success" });
 };
 
 const addEventLog = (type: string, message: string) => {

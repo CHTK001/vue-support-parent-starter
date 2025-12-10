@@ -83,11 +83,11 @@ const loadAccounts = async () => {
     if (response.success) {
       accounts.value = response.data;
     } else {
-      ElMessage.error(response.message || '获取邮箱账户失败');
+      message(response.message || '获取邮箱账户失败', { type: "error" });
     }
   } catch (error) {
     console.error('加载邮箱账户出错:', error);
-    ElMessage.error('获取邮箱账户失败');
+    message('获取邮箱账户失败', { type: "error" });
   } finally {
     loadingAccounts.value = false;
   }
@@ -101,11 +101,11 @@ const loadFolders = async () => {
     if (response.success) {
       folders.value = response.data;
     } else {
-      ElMessage.error(response.message || '获取邮件文件夹失败');
+      message(response.message || '获取邮件文件夹失败', { type: "error" });
     }
   } catch (error) {
     console.error('加载邮件文件夹出错:', error);
-    ElMessage.error('获取邮件文件夹失败');
+    message('获取邮件文件夹失败', { type: "error" });
   } finally {
     loadingFolders.value = false;
   }
@@ -119,11 +119,11 @@ const loadLabels = async () => {
     if (response.success) {
       labels.value = response.data;
     } else {
-      ElMessage.error(response.message || '获取邮件标签失败');
+      message(response.message || '获取邮件标签失败', { type: "error" });
     }
   } catch (error) {
     console.error('加载邮件标签出错:', error);
-    ElMessage.error('获取邮件标签失败');
+    message('获取邮件标签失败', { type: "error" });
   } finally {
     loadingLabels.value = false;
   }
@@ -149,11 +149,11 @@ const loadEmails = async () => {
       emails.value = response.data.data;
       totalEmails.value = response.data.total;
     } else {
-      ElMessage.error(response.message || '获取邮件列表失败');
+      message(response.message || '获取邮件列表失败', { type: "error" });
     }
   } catch (error) {
     console.error('加载邮件列表出错:', error);
-    ElMessage.error('获取邮件列表失败');
+    message('获取邮件列表失败', { type: "error" });
   } finally {
     loadingEmails.value = false;
   }
@@ -180,11 +180,11 @@ const loadEmailDetail = async (emailId) => {
       // 更新文件夹未读计数
       updateFolderUnreadCount(selectedFolderId.value, -1);
     } else {
-      ElMessage.error(response.message || '获取邮件详情失败');
+      message(response.message || '获取邮件详情失败', { type: "error" });
     }
   } catch (error) {
     console.error('加载邮件详情出错:', error);
-    ElMessage.error('获取邮件详情失败');
+    message('获取邮件详情失败', { type: "error" });
   } finally {
     loadingEmailDetail.value = false;
   }
@@ -242,13 +242,13 @@ const handleStarEmail = async (emailId, isStarred) => {
         selectedEmail.value.emailIsStarred = isStarred;
       }
       
-      ElMessage.success(isStarred ? '已添加星标' : '已取消星标');
+      message(isStarred ? '已添加星标' : '已取消星标', { type: "success" });
     } else {
-      ElMessage.error(response.message || '操作失败');
+      message(response.message || '操作失败', { type: "error" });
     }
   } catch (error) {
     console.error('标记星标出错:', error);
-    ElMessage.error('操作失败');
+    message('操作失败', { type: "error" });
   }
 };
 
@@ -268,13 +268,13 @@ const handleMarkImportant = async (emailId, isImportant) => {
         selectedEmail.value.emailIsImportant = isImportant;
       }
       
-      ElMessage.success(isImportant ? '已标记为重要' : '已取消重要标记');
+      message(isImportant ? '已标记为重要' : '已取消重要标记', { type: "success" });
     } else {
-      ElMessage.error(response.message || '操作失败');
+      message(response.message || '操作失败', { type: "error" });
     }
   } catch (error) {
     console.error('标记重要出错:', error);
-    ElMessage.error('操作失败');
+    message('操作失败', { type: "error" });
   }
 };
 
@@ -297,13 +297,13 @@ const handleMarkRead = async (emailId, isRead) => {
       // 更新文件夹未读计数
       updateFolderUnreadCount(selectedFolderId.value, isRead ? -1 : 1);
       
-      ElMessage.success(isRead ? '已标记为已读' : '已标记为未读');
+      message(isRead ? '已标记为已读' : '已标记为未读', { type: "success" });
     } else {
-      ElMessage.error(response.message || '操作失败');
+      message(response.message || '操作失败', { type: "error" });
     }
   } catch (error) {
     console.error('标记已读/未读出错:', error);
-    ElMessage.error('操作失败');
+    message('操作失败', { type: "error" });
   }
 };
 
@@ -359,13 +359,13 @@ const handleDeleteEmail = async (emailId) => {
         showEmailDetail.value = false;
       }
       
-      ElMessage.success('邮件已删除');
+      message('邮件已删除', { type: "success" });
     } else {
-      ElMessage.error(response.message || '删除失败');
+      message(response.message || '删除失败', { type: "error" });
     }
   } catch (error) {
     console.error('删除邮件出错:', error);
-    ElMessage.error('删除失败');
+    message('删除失败', { type: "error" });
   }
 };
 
@@ -401,13 +401,13 @@ const handleAddLabel = async (emailId, labelId) => {
         labels.value[labelIndex].emailLabelCount++;
       }
       
-      ElMessage.success('已添加标签');
+      message('已添加标签', { type: "success" });
     } else {
-      ElMessage.error(response.message || '添加标签失败');
+      message(response.message || '添加标签失败', { type: "error" });
     }
   } catch (error) {
     console.error('添加标签出错:', error);
-    ElMessage.error('添加标签失败');
+    message('添加标签失败', { type: "error" });
   }
 };
 
@@ -433,13 +433,13 @@ const handleRemoveLabel = async (emailId, labelId) => {
         labels.value[labelIndex].emailLabelCount--;
       }
       
-      ElMessage.success('已移除标签');
+      message('已移除标签', { type: "success" });
     } else {
-      ElMessage.error(response.message || '移除标签失败');
+      message(response.message || '移除标签失败', { type: "error" });
     }
   } catch (error) {
     console.error('移除标签出错:', error);
-    ElMessage.error('移除标签失败');
+    message('移除标签失败', { type: "error" });
   }
 };
 
@@ -470,13 +470,13 @@ const handleMoveToFolder = async (emailId, folderId) => {
         folders.value[newFolderIndex].emailFolderCount++;
       }
       
-      ElMessage.success('邮件已移动');
+      message('邮件已移动', { type: "success" });
     } else {
-      ElMessage.error(response.message || '移动失败');
+      message(response.message || '移动失败', { type: "error" });
     }
   } catch (error) {
     console.error('移动邮件出错:', error);
-    ElMessage.error('移动失败');
+    message('移动失败', { type: "error" });
   }
 };
 
@@ -493,18 +493,18 @@ const handleSendEmail = async (emailData) => {
     const response = await sendEmail(emailData);
     if (response.success) {
       showComposer.value = false;
-      ElMessage.success('邮件已发送');
+      message('邮件已发送', { type: "success" });
       
       // 如果当前在已发送文件夹，刷新列表
       if (selectedFolderId.value === 'sent') {
         loadEmails();
       }
     } else {
-      ElMessage.error(response.message || '发送失败');
+      message(response.message || '发送失败', { type: "error" });
     }
   } catch (error) {
     console.error('发送邮件出错:', error);
-    ElMessage.error('发送失败');
+    message('发送失败', { type: "error" });
   }
 };
 
@@ -514,18 +514,18 @@ const handleSaveDraft = async (emailData) => {
     const response = await saveDraft(emailData);
     if (response.success) {
       showComposer.value = false;
-      ElMessage.success('草稿已保存');
+      message('草稿已保存', { type: "success" });
       
       // 如果当前在草稿箱，刷新列表
       if (selectedFolderId.value === 'drafts') {
         loadEmails();
       }
     } else {
-      ElMessage.error(response.message || '保存失败');
+      message(response.message || '保存失败', { type: "error" });
     }
   } catch (error) {
     console.error('保存草稿出错:', error);
-    ElMessage.error('保存失败');
+    message('保存失败', { type: "error" });
   }
 };
 

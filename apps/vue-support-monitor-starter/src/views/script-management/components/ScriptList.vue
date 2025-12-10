@@ -277,7 +277,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, reactive } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import UploadToRunningScriptDialog from "./UploadToRunningScriptDialog.vue";
 import {
   getServerScriptPageList,
@@ -370,11 +371,11 @@ const loadScripts = async () => {
       scripts.value = response.data.records;
       pagination.total = response.data.total;
     } else {
-      ElMessage.error("加载脚本列表失败");
+      message("加载脚本列表失败", { type: "error" });
     }
   } catch (error) {
     console.error("加载脚本列表失败:", error);
-    ElMessage.error("加载脚本列表失败");
+    message("加载脚本列表失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -409,14 +410,14 @@ const handleCopyScript = async (script: any) => {
   try {
     const response = await duplicateServerScript(script.monitorSysGenScriptId);
     if (response.success) {
-      ElMessage.success("脚本复制成功");
+      message("脚本复制成功", { type: "success" });
       loadScripts(); // 重新加载列表
     } else {
-      ElMessage.error("复制脚本失败");
+      message("复制脚本失败", { type: "error" });
     }
   } catch (error) {
     console.error("复制脚本失败:", error);
-    ElMessage.error("脚本复制失败");
+    message("脚本复制失败", { type: "error" });
   }
 };
 
@@ -434,15 +435,15 @@ const handleDeleteScript = async (script: any) => {
 
     const response = await deleteServerScript(script.monitorSysGenScriptId);
     if (response.success) {
-      ElMessage.success("脚本删除成功");
+      message("脚本删除成功", { type: "success" });
       loadScripts(); // 重新加载列表
     } else {
-      ElMessage.error("删除脚本失败");
+      message("删除脚本失败", { type: "error" });
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("删除脚本失败:", error);
-      ElMessage.error("脚本删除失败");
+      message("脚本删除失败", { type: "error" });
     }
   }
 };
@@ -478,9 +479,9 @@ const handleStatusChange = async (script: any) => {
     //   ...script,
     //   monitorSysGenScriptStatus: script.monitorSysGenScriptStatus
     // })
-    ElMessage.success('状态更新成功')
+    message('状态更新成功', { type: "success" })
   } catch (error) {
-    ElMessage.error('状态更新失败')
+    message('状态更新失败', { type: "error" })
     // 回滚状态
     script.monitorSysGenScriptStatus = script.monitorSysGenScriptStatus === 'ENABLED' ? 'DISABLED' : 'ENABLED'
   }

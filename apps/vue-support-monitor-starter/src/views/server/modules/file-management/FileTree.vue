@@ -95,7 +95,8 @@
 <script setup lang="ts">
 import type { FileInfo } from "@/api/server/file-management";
 import { createDirectory, getFileList, getFileTree } from "@/api/server/file-management";
-import { ElMessage, ElTree } from "element-plus";
+import { message } from "@repo/utils";
+import { ElTree } from "element-plus";
 import { nextTick, onMounted, reactive, ref, watch } from "vue";
 
 // Props
@@ -174,12 +175,12 @@ const loadRootNode = async () => {
       rootNodeData.value = rootData;
     } else {
       console.error("FileTree: API error", res);
-      ElMessage.error(res.data?.message || "加载文件树失败");
+      message(res.data?.message || "加载文件树失败", { type: "error" });
       rootNodeData.value = [];
     }
   } catch (error) {
     console.error("FileTree: 加载文件树失败:", error);
-    ElMessage.error("加载文件树失败");
+    message("加载文件树失败", { type: "error" });
     rootNodeData.value = [];
   } finally {
     loading.value = false;
@@ -612,7 +613,7 @@ const createFolder = (parentNode: FileInfo) => {
  */
 const confirmCreateFolder = async () => {
   if (!createFolderForm.name.trim()) {
-    ElMessage.warning("请输入文件夹名称");
+    message("请输入文件夹名称", { type: "warning" });
     return;
   }
 
@@ -621,15 +622,15 @@ const confirmCreateFolder = async () => {
     const res = await createDirectory(props.serverId, folderPath, false);
 
     if (res.code === "00000" && res.data?.success) {
-      ElMessage.success("文件夹创建成功");
+      message("文件夹创建成功", { type: "success" });
       createFolderVisible.value = false;
       refreshTree();
     } else {
-      ElMessage.error(res.data?.message || "创建文件夹失败");
+      message(res.data?.message || "创建文件夹失败", { type: "error" });
     }
   } catch (error) {
     console.error("FileTree: 创建文件夹失败:", error);
-    ElMessage.error("创建文件夹失败");
+    message("创建文件夹失败", { type: "error" });
   }
 };
 

@@ -21,7 +21,7 @@
 
 <script setup lang="ts">
 import { reactive } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import scWorkflow from "@repo/components/ScWorkflow/index.vue";
 import CodePreview from "./CodePreview.vue";
 

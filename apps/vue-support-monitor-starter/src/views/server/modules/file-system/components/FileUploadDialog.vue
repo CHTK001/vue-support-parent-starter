@@ -113,7 +113,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { formatBytes } from "@pureadmin/utils";
 import SparkMD5 from "spark-md5";
 import {
@@ -197,16 +197,16 @@ const triggerFileSelect = () => {
 const addFiles = (files: File[]) => {
   // 检查系统配置是否加载
   if (!systemConfig.value) {
-    ElMessage.error("系统配置未加载，请稍后重试");
+    message("系统配置未加载，请稍后重试", { type: "error" });
     return;
   }
 
   const maxSize = systemConfig.value.maxFileSize * 1024 * 1024; // 转换为字节
   const validFiles = files.filter((file) => {
     if (file.size > maxSize) {
-      ElMessage.warning(
+      message(
         `文件 ${file.name} 超过 ${systemConfig.value!.maxFileSize}MB 限制，已跳过`
-      );
+      , { type: "warning" });
       return false;
     }
     return true;
@@ -217,13 +217,13 @@ const addFiles = (files: File[]) => {
   const newFiles = validFiles.filter((file) => !existingNames.has(file.name));
 
   if (newFiles.length !== validFiles.length) {
-    ElMessage.warning("部分文件已存在，已跳过重复文件");
+    message("部分文件已存在，已跳过重复文件", { type: "warning" });
   }
 
   fileList.value.push(...newFiles);
 
   if (newFiles.length > 0) {
-    ElMessage.success(`已添加 ${newFiles.length} 个文件`);
+    message(`已添加 ${newFiles.length} 个文件`, { type: "success" });
   }
 };
 
@@ -282,12 +282,12 @@ const startUpload = async () => {
       await uploadSingleFile(file);
     }
 
-    ElMessage.success("所有文件上传完成");
+    message("所有文件上传完成", { type: "success" });
     emit("upload-success");
     handleClose();
   } catch (error) {
     console.error("上传失败:", error);
-    ElMessage.error("上传失败");
+    message("上传失败", { type: "error" });
   } finally {
     uploading.value = false;
   }
@@ -324,7 +324,7 @@ const uploadSingleFile = async (file: File) => {
   // 如果文件已存在，直接返回成功
   if (exists) {
     console.log(`文件 ${file.name} 已存在，跳过上传: ${message}`);
-    ElMessage.success(`文件 ${file.name} 已存在，无需重复上传`);
+    message(`文件 ${file.name} 已存在，无需重复上传`, { type: "success" });
     return; // 直接返回，不进行分片上传
   }
 
@@ -427,7 +427,7 @@ const loadConfig = async () => {
     }
   } catch (error) {
     console.error("加载配置失败:", error);
-    ElMessage.error("加载配置失败");
+    message("加载配置失败", { type: "error" });
   }
 };
 

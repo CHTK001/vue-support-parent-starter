@@ -173,7 +173,8 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage, ElTree } from 'element-plus'
+import { message } from "@repo/utils";
+import { ElTree } from 'element-plus'
 import type { ElTreeNode } from 'element-plus/es/components/tree/src/model/node'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
@@ -282,7 +283,7 @@ const loadNode = async (node: ElTreeNode, resolve: (data: DirectoryNode[]) => vo
     }
   } catch (error) {
     console.error('加载目录数据失败:', error)
-    ElMessage.error('加载目录失败')
+    message('加载目录失败', { type: "error" })
     resolve([])
   }
 }
@@ -419,9 +420,9 @@ const refreshTree = async () => {
       treeRef.value.setData(rootData)
     }
     
-    ElMessage.success('目录刷新成功')
+    message('目录刷新成功', { type: "success" })
   } catch (error) {
-    ElMessage.error('刷新目录失败')
+    message('刷新目录失败', { type: "error" })
   } finally {
     isLoading.value = false
   }
@@ -464,9 +465,9 @@ const refreshNode = async (node: ElTreeNode, data: DirectoryNode) => {
     node.expand()
     
     emit('node-refresh', data.path)
-    ElMessage.success('节点刷新成功')
+    message('节点刷新成功', { type: "success" })
   } catch (error) {
-    ElMessage.error('刷新节点失败')
+    message('刷新节点失败', { type: "error" })
   }
 }
 
@@ -496,9 +497,9 @@ const refreshNodeInContext = () => {
 const copyPath = () => {
   if (contextMenuNode.value) {
     navigator.clipboard.writeText(contextMenuNode.value.path).then(() => {
-      ElMessage.success('路径已复制到剪贴板')
+      message('路径已复制到剪贴板', { type: "success" })
     }).catch(() => {
-      ElMessage.error('复制路径失败')
+      message('复制路径失败', { type: "error" })
     })
   }
 }
@@ -506,7 +507,7 @@ const copyPath = () => {
 const showProperties = () => {
   if (contextMenuNode.value) {
     // 显示属性对话框
-    ElMessage.info('属性功能开发中...')
+    message('属性功能开发中...', { type: "info" })
   }
 }
 

@@ -233,7 +233,7 @@ export default defineComponent({
      */
     value: {
       type: [String, Number],
-      default: ""
+      default: 0
     },
     /**
      * 标签（仅在 layout="stats" 时有效）

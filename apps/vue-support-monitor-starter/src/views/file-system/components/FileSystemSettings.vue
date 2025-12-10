@@ -195,7 +195,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from "vue";
-import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { message } from "@repo/utils";
+import { type FormInstance, type FormRules } from "element-plus";
 import type { FileSystemSetting } from "@/api/monitor/filesystem";
 import {
   getFileSystemConfig,
@@ -362,7 +363,7 @@ const loadConfig = async () => {
     }
   } catch (error) {
     console.error("加载配置失败:", error);
-    ElMessage.error("加载配置失败");
+    message("加载配置失败", { type: "error" });
   }
 };
 
@@ -380,16 +381,16 @@ const handleSave = async () => {
 
     const result = await updateFileSystemConfig(formData);
     if (result.code === "00000") {
-      ElMessage.success("设置保存成功");
+      message("设置保存成功", { type: "success" });
       Object.assign(defaultConfig, formData);
       emit("settings-updated");
       handleClose();
     } else {
-      ElMessage.error((result as any).msg || "保存设置失败");
+      message((result as any, { type: "error" }).msg || "保存设置失败");
     }
   } catch (error) {
     console.error("保存设置失败:", error);
-    ElMessage.error("保存设置失败");
+    message("保存设置失败", { type: "error" });
   } finally {
     saving.value = false;
   }

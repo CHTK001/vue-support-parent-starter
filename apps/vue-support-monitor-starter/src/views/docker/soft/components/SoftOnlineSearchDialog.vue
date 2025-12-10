@@ -120,7 +120,7 @@
 <script setup lang="ts">
 import { softwareApi } from "@/api/docker";
 import ScTable from "@repo/components/ScTable/index.vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { computed, reactive, ref } from "vue";
 
 interface Props {
@@ -186,13 +186,13 @@ async function handleImportSingle(row: any) {
     };
     const res = await softwareApi.importOnlineSoftware(payload);
     if (res.code === "00000") {
-      ElMessage.success(`已添加 ${row.systemSoftName} 到软件库`);
+      message(`已添加 ${row.systemSoftName} 到软件库`, { type: "success" });
       emit("success");
     } else {
-      ElMessage.error(res.msg || "添加失败");
+      message(res.msg || "添加失败", { type: "error" });
     }
   } catch (e) {
-    ElMessage.error("添加失败");
+    message("添加失败", { type: "error" });
   } finally {
     saving.value = false;
   }
@@ -200,7 +200,7 @@ async function handleImportSingle(row: any) {
 
 async function handleImport() {
   const selection = tableRef.value?.getSelection?.() || [];
-  if (!selection.length) return ElMessage.warning("请选择要导入的软件");
+  if (!selection.length) return message("请选择要导入的软件", { type: "warning" });
   try {
     saving.value = true;
     const payload = {
@@ -215,14 +215,14 @@ async function handleImport() {
     };
     const res = await softwareApi.importOnlineSoftware(payload);
     if (res.code === "00000") {
-      ElMessage.success(res.msg || "已异步提交保存任务");
+      message(res.msg || "已异步提交保存任务", { type: "success" });
       emit("success");
       visibleProxy.value = false;
     } else {
-      ElMessage.error(res.msg || "保存失败");
+      message(res.msg || "保存失败", { type: "error" });
     }
   } catch (e) {
-    ElMessage.error("保存失败（接口不可用）");
+    message("保存失败（接口不可用）", { type: "error" });
   } finally {
     saving.value = false;
   }

@@ -148,7 +148,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import {
   getCertPage,
   deleteCert,
@@ -304,11 +305,11 @@ async function handleRenew(row: AcmeCertificate) {
       { type: "warning" }
     );
     await renewCert(row.acmeCertId!);
-    ElMessage.success("续签请求已提交");
+    message("续签请求已提交", { type: "success" });
     loadData();
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("续签失败");
+      message("续签失败", { type: "error" });
     }
   }
 }
@@ -324,11 +325,11 @@ async function handleDelete(row: AcmeCertificate) {
       { type: "warning" }
     );
     await deleteCert(row.acmeCertId!);
-    ElMessage.success("删除成功");
+    message("删除成功", { type: "success" });
     loadData();
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("删除失败");
+      message("删除失败", { type: "error" });
     }
   }
 }
@@ -339,9 +340,9 @@ async function handleDelete(row: AcmeCertificate) {
 async function handleRenewCheck() {
   try {
     await triggerRenewCheck();
-    ElMessage.success("续签检查已触发");
+    message("续签检查已触发", { type: "success" });
   } catch (error) {
-    ElMessage.error("续签检查失败");
+    message("续签检查失败", { type: "error" });
   }
 }
 

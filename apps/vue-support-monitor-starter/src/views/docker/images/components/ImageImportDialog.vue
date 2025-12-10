@@ -135,7 +135,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { ElMessage, ElNotification } from 'element-plus';
+import { message } from "@repo/utils";
+import { ElNotification } from 'element-plus';
 import type { UploadFile } from 'element-plus';
 import { getServerList, imageApi } from '@/api/docker';
 
@@ -190,7 +191,7 @@ async function loadServers() {
     }
   } catch (error) {
     console.error('加载服务器列表失败:', error);
-    ElMessage.error('加载服务器列表失败');
+    message('加载服务器列表失败', { type: "error" });
   }
 }
 
@@ -259,10 +260,10 @@ function reset() {
 // 提交
 async function submit() {
   if (!selectedServerId.value) {
-    return ElMessage.warning('请选择服务器');
+    return message('请选择服务器', { type: "warning" });
   }
   if (fileList.value.length === 0) {
-    return ElMessage.warning('请选择文件');
+    return message('请选择文件', { type: "warning" });
   }
 
   try {
@@ -285,7 +286,7 @@ async function submit() {
       emit('success');
       visibleProxy.value = false;
     } else {
-      ElMessage.error(result.msg || '导入失败');
+      message(result.msg || '导入失败', { type: "error" });
     }
   } catch (error: any) {
     console.error('导入镜像失败', error);

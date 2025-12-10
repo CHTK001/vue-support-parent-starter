@@ -394,7 +394,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { message } from "@repo/utils";
+import { ElMessageBox } from 'element-plus'
 import { formatBytes } from '@pureadmin/utils'
 import dayjs from 'dayjs'
 
@@ -542,7 +543,7 @@ const loadDirectory = async (path: string) => {
       }
     ]
   } catch (error) {
-    ElMessage.error('加载目录失败')
+    message('加载目录失败', { type: "error" })
     console.error(error)
   }
 }
@@ -576,7 +577,7 @@ const loadDirectoryTree = async () => {
       }
     ]
   } catch (error) {
-    ElMessage.error('加载目录树失败')
+    message('加载目录树失败', { type: "error" })
     console.error(error)
   }
 }
@@ -786,9 +787,9 @@ const previewFile = (file: FileItem) => {
 const downloadFile = async (file: FileItem) => {
   try {
     // 这里应该调用实际的下载API
-    ElMessage.success(`开始下载 ${file.name}`)
+    message(`开始下载 ${file.name}`, { type: "success" })
   } catch (error) {
-    ElMessage.error('下载失败')
+    message('下载失败', { type: "error" })
     console.error(error)
   }
 }
@@ -798,9 +799,9 @@ const downloadSelected = async () => {
   
   try {
     // 批量下载逻辑
-    ElMessage.success(`开始下载 ${selectedFiles.value.length} 个文件`)
+    message(`开始下载 ${selectedFiles.value.length} 个文件`, { type: "success" })
   } catch (error) {
-    ElMessage.error('批量下载失败')
+    message('批量下载失败', { type: "error" })
     console.error(error)
   }
 }
@@ -823,11 +824,11 @@ const deleteFile = async (file: FileItem) => {
     )
     
     // 这里应该调用实际的删除API
-    ElMessage.success('删除成功')
+    message('删除成功', { type: "success" })
     refreshCurrentDirectory()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      message('删除失败', { type: "error" })
       console.error(error)
     }
   }
@@ -848,12 +849,12 @@ const deleteSelected = async () => {
     )
     
     // 这里应该调用实际的批量删除API
-    ElMessage.success('批量删除成功')
+    message('批量删除成功', { type: "success" })
     selectedFiles.value = []
     refreshCurrentDirectory()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('批量删除失败')
+      message('批量删除失败', { type: "error" })
       console.error(error)
     }
   }
@@ -873,20 +874,20 @@ const handleFileAction = (command: string, file: FileItem) => {
 const handleUploadSuccess = () => {
   showUploadDialog.value = false
   refreshCurrentDirectory()
-  ElMessage.success('文件上传成功')
+  message('文件上传成功', { type: "success" })
 }
 
 const handleFolderCreated = () => {
   showCreateFolderDialog.value = false
   refreshCurrentDirectory()
   loadDirectoryTree()
-  ElMessage.success('文件夹创建成功')
+  message('文件夹创建成功', { type: "success" })
 }
 
 const handleRenameSuccess = () => {
   showRenameDialog.value = false
   refreshCurrentDirectory()
-  ElMessage.success('重命名成功')
+  message('重命名成功', { type: "success" })
 }
 
 // 监听路径变化

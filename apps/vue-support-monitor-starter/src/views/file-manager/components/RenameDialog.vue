@@ -163,7 +163,8 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, watch, nextTick } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { message } from "@repo/utils";
+import { ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 
 // 文件信息接口
@@ -375,7 +376,7 @@ const handleSubmit = async () => {
     
     // 处理冲突
     if (conflictInfo.value.hasConflict && formData.conflictAction === 'cancel') {
-      ElMessage.warning('请选择冲突处理方式')
+      message('请选择冲突处理方式', { type: "warning" })
       return
     }
     
@@ -391,12 +392,12 @@ const handleSubmit = async () => {
       createBackup: formData.createBackup
     })
     
-    ElMessage.success(`文件重命名成功`)
+    message(`文件重命名成功`, { type: "success" })
     emit('file-renamed', props.fileInfo.name, formData.newName.trim())
     handleClose()
     
   } catch (error: any) {
-    ElMessage.error(error.message || '重命名失败')
+    message(error.message || '重命名失败', { type: "error" })
     console.error('重命名失败:', error)
   } finally {
     isRenaming.value = false

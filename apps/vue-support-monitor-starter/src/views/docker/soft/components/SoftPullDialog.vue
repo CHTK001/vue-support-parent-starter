@@ -59,7 +59,8 @@
 <script setup lang="ts">
 import { imageApi, type SystemSoft } from "@/api/docker";
 import { useDockerOperationStore } from "@/stores/dockerOperation";
-import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { message } from "@repo/utils";
+import { type FormInstance, type FormRules } from "element-plus";
 import { computed, onMounted, reactive, ref } from "vue";
 import { http, type ReturnResult } from "@repo/utils";
 
@@ -139,7 +140,7 @@ const handlePull = async () => {
   }
 
   if (!props.soft?.systemSoftId || !form.serverId) {
-    ElMessage.warning("请选择软件和服务器");
+    message("请选择软件和服务器", { type: "warning" });
     return;
   }
 
@@ -169,16 +170,16 @@ const handlePull = async () => {
 
     if (res.code === "00000") {
       operationStore.completeOperation(operationId);
-      ElMessage.success("镜像下载任务已提交");
+      message("镜像下载任务已提交", { type: "success" });
       emit("success");
       visibleProxy.value = false;
     } else {
       operationStore.failOperation(operationId, res.msg || "下载失败");
-      ElMessage.error(res.msg || "下载失败");
+      message(res.msg || "下载失败", { type: "error" });
     }
   } catch (e: any) {
     operationStore.failOperation(operationId, e.message || "下载失败");
-    ElMessage.error(e.message || "下载失败");
+    message(e.message || "下载失败", { type: "error" });
   } finally {
     loading.value = false;
   }

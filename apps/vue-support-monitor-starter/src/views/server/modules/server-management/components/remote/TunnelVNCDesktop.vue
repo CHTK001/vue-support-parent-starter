@@ -113,7 +113,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { message } from "@repo/utils";
+import { ElMessageBox } from 'element-plus';
 import { GuacamoleTunnelClient } from '@/utils/guacamole/tunnel-client';
 import type { TunnelClientConfig } from '@/utils/guacamole/tunnel-client';
 
@@ -153,7 +154,7 @@ const connectionStatusText = computed(() => {
 // 方法
 const connect = async () => {
   if (!props.server || !desktopDisplay.value) {
-    ElMessage.error('服务器信息不完整或显示容器未准备好');
+    message('服务器信息不完整或显示容器未准备好', { type: "error" });
     return;
   }
 
@@ -210,7 +211,7 @@ const connect = async () => {
     await nextTick();
     tunnelClient.attachTo(desktopDisplay.value);
     
-    ElMessage.success('VNC 隧道连接成功');
+    message('VNC 隧道连接成功', { type: "success" });
     
   } catch (error) {
     console.error('VNC 隧道连接失败:', error);
@@ -233,7 +234,7 @@ const disconnect = () => {
     desktopDisplay.value.innerHTML = '';
   }
   
-  ElMessage.info('VNC 连接已断开');
+  message('VNC 连接已断开', { type: "info" });
 };
 
 const takeScreenshot = () => {
@@ -246,9 +247,9 @@ const takeScreenshot = () => {
       link.href = screenshot;
       link.click();
       
-      ElMessage.success('截图已保存');
+      message('截图已保存', { type: "success" });
     } else {
-      ElMessage.error('截图失败');
+      message('截图失败', { type: "error" });
     }
   }
 };

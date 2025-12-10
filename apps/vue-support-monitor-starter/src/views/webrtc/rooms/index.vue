@@ -218,7 +218,8 @@
 
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
+import { message } from "@repo/utils";
+import { ElMessageBox, type FormInstance } from 'element-plus';
 import {
   Plus,
   Search,
@@ -311,7 +312,7 @@ const loadRoomList = async () => {
     pagination.total = data.total;
   } catch (error) {
     console.error('加载房间列表失败:', error);
-    ElMessage.error('加载房间列表失败');
+    message('加载房间列表失败', { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -371,12 +372,12 @@ const handleCreateRoom = async () => {
     }
     
     await createRoom(params);
-    ElMessage.success('房间创建成功');
+    message('房间创建成功', { type: "success" });
     showCreateDialog.value = false;
     loadRoomList();
   } catch (error) {
     console.error('创建房间失败:', error);
-    ElMessage.error('创建房间失败');
+    message('创建房间失败', { type: "error" });
   } finally {
     createLoading.value = false;
   }
@@ -422,16 +423,16 @@ const handleJoinRoom = async () => {
     
     const { data } = await joinRoomApi(params);
     if (data.success) {
-      ElMessage.success('加入房间成功');
+      message('加入房间成功', { type: "success" });
       showJoinDialog.value = false;
       // 跳转到房间页面
       router.push(`/webrtc/room/${selectedRoom.value.roomId}`);
     } else {
-      ElMessage.error(data.message || '加入房间失败');
+      message(data.message || '加入房间失败', { type: "error" });
     }
   } catch (error) {
     console.error('加入房间失败:', error);
-    ElMessage.error('加入房间失败');
+    message('加入房间失败', { type: "error" });
   } finally {
     joinLoading.value = false;
     joinForm.password = '';
@@ -482,15 +483,15 @@ const handleDeleteRoom = async (room: RoomInfo) => {
     
     const { data } = await deleteRoom(room.roomId);
     if (data.success) {
-      ElMessage.success('房间删除成功');
+      message('房间删除成功', { type: "success" });
       loadRoomList();
     } else {
-      ElMessage.error(data.message || '删除房间失败');
+      message(data.message || '删除房间失败', { type: "error" });
     }
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除房间失败:', error);
-      ElMessage.error('删除房间失败');
+      message('删除房间失败', { type: "error" });
     }
   }
 };

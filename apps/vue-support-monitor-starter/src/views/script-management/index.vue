@@ -104,7 +104,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import ScriptList from "./components/ScriptList.vue";
 import ScriptEditDialog from "./components/ScriptEditDialog.vue";
 import ScriptHistory from "./components/ScriptHistory.vue";
@@ -128,7 +128,7 @@ onMounted(() => {
 
 // 事件处理
 const handleRefresh = () => {
-  ElMessage.success("刷新成功");
+  message("刷新成功", { type: "success" });
   // TODO: 刷新当前标签页的数据
 };
 
@@ -148,7 +148,7 @@ const handleExecuteScript = (script: any) => {
 };
 
 const handleSaveScript = (script: any) => {
-  ElMessage.success("脚本保存成功");
+  message("脚本保存成功", { type: "success" });
   // TODO: 刷新脚本列表
 };
 
@@ -159,14 +159,14 @@ const handleTestScript = (script: any) => {
 };
 
 const handleExecuteSuccess = () => {
-  ElMessage.success("脚本执行成功");
+  message("脚本执行成功", { type: "success" });
   executeDialogVisible.value = false;
   // 切换到运行中脚本标签页
   activeTab.value = "running";
 };
 
 const handleStopScript = (execution: any) => {
-  ElMessage.success("脚本停止成功");
+  message("脚本停止成功", { type: "success" });
   // TODO: 停止脚本执行
 };
 

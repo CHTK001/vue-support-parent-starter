@@ -58,7 +58,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import ScEditor from "@repo/components/ScEditor/index.vue";
 import CodePreview from "./CodePreview.vue";
 
@@ -129,16 +129,16 @@ const content = ref("<p>编辑器内容</p>");`,
 function insertText() {
   content.value +=
     "<p>新插入的文本内容 - " + new Date().toLocaleTimeString() + "</p>";
-  ElMessage.success("已插入文本");
+  message("已插入文本", { type: "success" });
 }
 
 function clearContent() {
   content.value = "";
-  ElMessage.info("已清空内容");
+  message("已清空内容", { type: "info" });
 }
 
 function getContent() {
-  ElMessage.success("内容已输出到控制台");
+  message("内容已输出到控制台", { type: "success" });
   console.log("编辑器内容:", content.value);
 }
 </script>

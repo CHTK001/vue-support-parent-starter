@@ -233,7 +233,8 @@ import ProgressMonitor from "@/components/ProgressMonitor.vue";
 import { useGlobalSocket, MonitorTopics } from "@repo/core";
 import ScDialog from "@repo/components/ScDialog/src/index.vue";
 import ScTable from "@repo/components/ScTable/index.vue";
-import { ElMessage, ElMessageBox, ElNotification } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox, ElNotification } from "element-plus";
 import { onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import SoftInstallDialog from "./components/SoftInstallDialog.vue";
 import SoftOnlineSearchDialog from "./components/SoftOnlineSearchDialog.vue";
@@ -382,20 +383,20 @@ async function onSubmit() {
   if (id) {
     const { code, msg } = await softwareApi.updateSoft(id, { ...form });
     if (code === 0) {
-      ElMessage.success("更新成功");
+      message("更新成功", { type: "success" });
       editVisible.value = false;
       reload();
     } else {
-      ElMessage.error(msg || "更新失败");
+      message(msg || "更新失败", { type: "error" });
     }
   } else {
     const { code, msg } = await softwareApi.createSoft({ ...form });
     if (code === 0) {
-      ElMessage.success("新增成功");
+      message("新增成功", { type: "success" });
       editVisible.value = false;
       reload();
     } else {
-      ElMessage.error(msg || "新增失败");
+      message(msg || "新增失败", { type: "error" });
     }
   }
 }
@@ -406,10 +407,10 @@ async function onDelete(row: any) {
   });
   const { code, msg } = await softwareApi.deleteSoft(row.systemSoftId);
   if (code === 0) {
-    ElMessage.success("删除成功");
+    message("删除成功", { type: "success" });
     reload();
   } else {
-    ElMessage.error(msg || "删除失败");
+    message(msg || "删除失败", { type: "error" });
   }
 }
 

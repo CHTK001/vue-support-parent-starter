@@ -95,7 +95,7 @@ import {
     type ContainerStatusStatistics,
     type SystemSoftContainer
 } from '@/api/docker'
-import { ElMessage } from 'element-plus'
+import { message } from "@repo/utils";
 import { onMounted, onUnmounted, reactive, ref } from 'vue'
 
 // 导入组件
@@ -165,7 +165,7 @@ const loadContainerList = async () => {
       calculateOverviewStats()
     }
   } catch (error) {
-    ElMessage.error('加载容器列表失败')
+    message('加载容器列表失败', { type: "error" })
   } finally {
     loading.value = false
   }
@@ -269,31 +269,31 @@ const handleResetFilter = () => {
 
 // 创建容器
 const handleCreateContainer = () => {
-  ElMessage.info('创建容器功能待实现')
+  message('创建容器功能待实现', { type: "info" })
 }
 
 // 导出数据
 const handleExport = () => {
-  ElMessage.info('导出数据功能待实现')
+  message('导出数据功能待实现', { type: "info" })
 }
 
 // 批量操作
 const handleBatchOperation = (command: string) => {
   switch (command) {
     case 'batchStart':
-      ElMessage.info('批量启动功能待实现')
+      message('批量启动功能待实现', { type: "info" })
       break
     case 'batchStop':
-      ElMessage.info('批量停止功能待实现')
+      message('批量停止功能待实现', { type: "info" })
       break
     case 'batchRestart':
-      ElMessage.info('批量重启功能待实现')
+      message('批量重启功能待实现', { type: "info" })
       break
     case 'batchRemove':
-      ElMessage.info('批量删除功能待实现')
+      message('批量删除功能待实现', { type: "info" })
       break
     default:
-      ElMessage.warning('未知操作')
+      message('未知操作', { type: "warning" })
   }
 }
 

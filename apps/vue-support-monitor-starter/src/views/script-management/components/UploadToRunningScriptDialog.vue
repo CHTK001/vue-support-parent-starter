@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { getServerList } from "@/api/server/index";
 import { getNodeListAll } from "@/api/server/node";
@@ -155,10 +155,10 @@ const handleConfirm = async () => {
       );
     }
 
-    ElMessage.success("已提交上传任务");
+    message("已提交上传任务", { type: "success" });
     emit("update:visible", false);
   } catch (e: any) {
-    ElMessage.error(e?.message || "提交失败");
+    message(e?.message || "提交失败", { type: "error" });
   } finally {
     submitting.value = false;
   }

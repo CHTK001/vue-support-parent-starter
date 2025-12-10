@@ -42,7 +42,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { getServerList } from "@/api/server/index";
 import { getNodeListAll } from "@/api/server/node";
 import { distributeFileSystemFile } from "@/api/monitor/filesystem";
@@ -110,7 +110,7 @@ async function loadNodeOptions() {
 async function handleConfirm() {
   await formRef.value?.validate();
   if (!props.file?.fileSystemId) {
-    ElMessage.warning("未选择文件");
+    message("未选择文件", { type: "warning" });
     return;
   }
   submitting.value = true;
@@ -125,14 +125,14 @@ async function handleConfirm() {
 
     const resp: any = await distributeFileSystemFile(req);
     if (resp.code === "00000" && resp.data?.success) {
-      ElMessage.success(resp.data?.message || "同步任务完成");
+      message(resp.data?.message || "同步任务完成", { type: "success" });
       emit("success");
       visible.value = false;
     } else {
-      ElMessage.error(resp.msg || resp.data?.message || "同步失败");
+      message(resp.msg || resp.data?.message || "同步失败", { type: "error" });
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || "同步失败");
+    message(e?.message || "同步失败", { type: "error" });
   } finally {
     submitting.value = false;
   }

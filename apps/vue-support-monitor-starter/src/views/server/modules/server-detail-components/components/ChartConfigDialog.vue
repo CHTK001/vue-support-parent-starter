@@ -150,7 +150,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, nextTick } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import * as echarts from "echarts";
 
@@ -387,9 +387,9 @@ const removeThreshold = (index: number) => {
 const validateConfig = () => {
   try {
     JSON.parse(customConfigStr.value);
-    ElMessage.success("配置格式正确");
+    message("配置格式正确", { type: "success" });
   } catch (e) {
-    ElMessage.error("配置格式错误：" + e.message);
+    message("配置格式错误：" + e.message, { type: "error" });
   }
 };
 
@@ -436,9 +436,9 @@ const handleSave = () => {
     
     emit("save", currentItem.value, finalConfig);
     visible.value = false;
-    ElMessage.success("配置保存成功");
+    message("配置保存成功", { type: "success" });
   } catch (e) {
-    ElMessage.error("保存失败：" + e.message);
+    message("保存失败：" + e.message, { type: "error" });
   } finally {
     saving.value = false;
   }

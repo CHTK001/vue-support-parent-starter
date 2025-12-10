@@ -115,7 +115,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import Toolbar from "./Toolbar.vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import {
   getRunningScriptExecutions,
   stopScriptExecution,
@@ -167,7 +168,7 @@ const loadRunningScripts = async () => {
       runningScripts.value = [];
     }
   } catch (error) {
-    ElMessage.error("加载运行中脚本失败");
+    message("加载运行中脚本失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -214,11 +215,11 @@ const handleStopAll = async () => {
       }
     }
 
-    ElMessage.success("停止指令已发送");
+    message("停止指令已发送", { type: "success" });
     loadRunningScripts();
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("停止脚本失败");
+      message("停止脚本失败", { type: "error" });
     }
   }
 };

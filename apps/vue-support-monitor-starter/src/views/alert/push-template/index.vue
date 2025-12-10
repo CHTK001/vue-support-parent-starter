@@ -92,7 +92,7 @@
 import { ref, reactive, onMounted } from "vue";
 import DataTable from "@/components/common/DataTable.vue";
 import { fetchAlertPushTemplatePage, fetchAlertPushTemplateSave, fetchAlertPushTemplateDelete, fetchAlertPushTemplateTestSend } from "@/api/monitor/alert-push";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 const tableRef = ref();
 const loading = ref(false);
@@ -157,20 +157,20 @@ async function handleSave() {
       try {
         JSON.parse(extra);
       } catch {
-        return ElMessage.error("扩展参数必须是合法JSON");
+        return message("扩展参数必须是合法JSON", { type: "error" });
       }
     }
     loading.value = true;
     const res = await fetchAlertPushTemplateSave(edit.form);
     if ((res as any).code === "00000" || (res as any).success) {
-      ElMessage.success("保存成功");
+      message("保存成功", { type: "success" });
       edit.visible = false;
       load();
     } else {
-      ElMessage.error((res as any).msg || "保存失败");
+      message((res as any, { type: "error" }).msg || "保存失败");
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || "保存失败");
+    message(e?.message || "保存失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -181,13 +181,13 @@ async function handleDelete(row: any) {
     loading.value = true;
     const res = await fetchAlertPushTemplateDelete(row.monitorSysGenMessagePushTemplateId);
     if ((res as any).code === "00000" || (res as any).success) {
-      ElMessage.success("删除成功");
+      message("删除成功", { type: "success" });
       load();
     } else {
-      ElMessage.error((res as any).msg || "删除失败");
+      message((res as any, { type: "error" }).msg || "删除失败");
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || "删除失败");
+    message(e?.message || "删除失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -210,12 +210,12 @@ async function handleTest(row: any) {
   try {
     const res = await fetchAlertPushTemplateTestSend(row.monitorSysGenMessagePushTemplateId);
     if ((res as any).code === "00000" || (res as any).success) {
-      ElMessage.success("测试发送成功");
+      message("测试发送成功", { type: "success" });
     } else {
-      ElMessage.error((res as any).msg || "测试发送失败");
+      message((res as any, { type: "error" }).msg || "测试发送失败");
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || "测试发送失败");
+    message(e?.message || "测试发送失败", { type: "error" });
   }
 }
 

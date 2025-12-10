@@ -215,7 +215,8 @@ import {
   registryApi as softRegistryApi,
   type SystemSoftRegistry,
 } from "@/api/docker";
-import { ElMessage, FormItemRule } from "element-plus";
+import { message } from "@repo/utils";
+import { FormItemRule } from "element-plus";
 import { computed, nextTick, ref, watch } from "vue";
 
 /**
@@ -389,7 +390,7 @@ const handleTypeChange = (type: string) => {
 // 测试连接
 const testConnection = async () => {
   if (!props.registryData?.systemSoftRegistryId) {
-    ElMessage.warning("请先保存后再测试连接");
+    message("请先保存后再测试连接", { type: "warning" });
     return;
   }
   testLoading.value = true;
@@ -400,13 +401,13 @@ const testConnection = async () => {
     );
     if (response.code === "00000") {
       testResult.value = { success: true, message: "已发起连接测试" };
-      ElMessage.success("已发起连接测试");
+      message("已发起连接测试", { type: "success" });
     } else {
       testResult.value = {
         success: false,
         message: response.msg || "连接测试失败",
       };
-      ElMessage.error(response.msg || "连接测试失败");
+      message(response.msg || "连接测试失败", { type: "error" });
     }
   } catch (error) {
     console.error("测试连接失败:", error);
@@ -414,7 +415,7 @@ const testConnection = async () => {
       success: false,
       message: "连接测试失败，请检查网络和配置",
     };
-    ElMessage.error("连接测试失败");
+    message("连接测试失败", { type: "error" });
   } finally {
     testLoading.value = false;
   }
@@ -438,22 +439,22 @@ const handleConfirm = async () => {
       );
 
       if (response.code === "00000") {
-        ElMessage.success("更新成功");
+        message("更新成功", { type: "success" });
         emit("success");
         dialogVisible.value = false;
       } else {
-        ElMessage.error(response.msg || "更新失败");
+        message(response.msg || "更新失败", { type: "error" });
       }
     } else {
       // 新建模式
       const response = await softRegistryApi.createRegistry(payload);
 
       if (response.code === "00000") {
-        ElMessage.success("创建成功");
+        message("创建成功", { type: "success" });
         emit("success");
         dialogVisible.value = false;
       } else {
-        ElMessage.error(response.msg || "创建失败");
+        message(response.msg || "创建失败", { type: "error" });
       }
     }
   } catch (error) {

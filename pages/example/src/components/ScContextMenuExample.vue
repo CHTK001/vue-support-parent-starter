@@ -55,7 +55,7 @@
 import { ref, reactive, computed } from "vue";
 import ScContextMenu from "@repo/components/ScContextMenu/index.vue";
 import CodePreview from "./CodePreview.vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 const menuRef = ref();
 
@@ -67,12 +67,12 @@ const menus = computed(() => [
   {
     name: "查看",
     icon: config.showIcon ? "ep:view" : "",
-    handle: () => ElMessage.info("点击了查看"),
+    handle: () => message("点击了查看", { type: "info" }),
   },
   {
     name: "编辑",
     icon: config.showIcon ? "ep:edit" : "",
-    handle: () => ElMessage.info("点击了编辑"),
+    handle: () => message("点击了编辑", { type: "info" }),
   },
   { type: "LINE" },
   {
@@ -82,12 +82,12 @@ const menus = computed(() => [
       {
         name: "导出",
         icon: config.showIcon ? "ep:download" : "",
-        handle: () => ElMessage.info("点击了导出"),
+        handle: () => message("点击了导出", { type: "info" }),
       },
       {
         name: "删除",
         icon: config.showIcon ? "ep:delete" : "",
-        handle: () => ElMessage.warning("点击了删除"),
+        handle: () => message("点击了删除", { type: "warning" }),
       },
     ],
   },

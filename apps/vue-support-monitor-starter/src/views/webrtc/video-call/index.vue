@@ -280,7 +280,8 @@
  */
 
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { message } from "@repo/utils";
+import { ElMessageBox } from 'element-plus';
 import {
   VideoCamera,
   VideoCameraFilled,
@@ -366,7 +367,7 @@ const loadOnlineUsers = async () => {
     onlineUsers.value = data.records.filter(user => user.status === 'online');
   } catch (error) {
     console.error('加载在线用户失败:', error);
-    ElMessage.error('加载在线用户失败');
+    message('加载在线用户失败', { type: "error" });
   }
 };
 
@@ -375,7 +376,7 @@ const loadOnlineUsers = async () => {
  */
 const initiateCall = async () => {
   if (!callForm.targetUserId) {
-    ElMessage.warning('请选择要通话的用户');
+    message('请选择要通话的用户', { type: "warning" });
     return;
   }
   
@@ -385,7 +386,7 @@ const initiateCall = async () => {
     await startCall(callForm.targetUserId);
   } catch (error) {
     console.error('发起通话失败:', error);
-    ElMessage.error('发起通话失败');
+    message('发起通话失败', { type: "error" });
   } finally {
     initiating.value = false;
   }
@@ -412,7 +413,7 @@ const callUser = (userId: string) => {
  */
 const loadCallHistory = () => {
   // TODO: 实现加载通话历史的逻辑
-  ElMessage.success('通话历史已刷新');
+  message('通话历史已刷新', { type: "success" });
 };
 
 /**
@@ -435,7 +436,7 @@ const getMediaDevices = async () => {
 const applySettings = () => {
   // TODO: 实现应用设置的逻辑
   showSettings.value = false;
-  ElMessage.success('设置已应用');
+  message('设置已应用', { type: "success" });
 };
 
 /**

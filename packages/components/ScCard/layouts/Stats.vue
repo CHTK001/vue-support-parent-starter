@@ -25,14 +25,6 @@
         <div class="sc-card-stats__label">
           <slot name="label">{{ label }}</slot>
         </div>
-
-        <!-- 趋势/描述 -->
-        <div v-if="$slots.trend || trendIcon || trendText" class="sc-card-stats__trend">
-          <slot name="trend">
-            <IconifyIconOnline v-if="trendIcon" :icon="trendIcon" class="trend-icon" />
-            <span v-if="trendText" class="trend-text">{{ trendText }}</span>
-          </slot>
-        </div>
       </div>
     </div>
   </div>
@@ -63,26 +55,12 @@ export default defineComponent({
      */
     value: {
       type: [String, Number],
-      default: ""
+      default: 0
     },
     /**
      * 标签
      */
     label: {
-      type: String,
-      default: ""
-    },
-    /**
-     * 趋势图标
-     */
-    trendIcon: {
-      type: String,
-      default: ""
-    },
-    /**
-     * 趋势文本
-     */
-    trendText: {
       type: String,
       default: ""
     },
@@ -155,10 +133,6 @@ export default defineComponent({
       color: var(--el-text-color-secondary);
     }
 
-    .sc-card-stats__trend {
-      color: var(--el-text-color-regular);
-    }
-
     &.is-hoverable:hover {
       border-color: var(--el-color-primary-light-5);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
@@ -218,7 +192,9 @@ export default defineComponent({
   }
 
   &.is-active {
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4), 0 16px 40px rgba(0, 0, 0, 0.2);
+    box-shadow:
+      0 0 0 3px rgba(255, 255, 255, 0.4),
+      0 16px 40px rgba(0, 0, 0, 0.2);
   }
 
   // 尺寸定义
@@ -245,15 +221,6 @@ export default defineComponent({
 
     .sc-card-stats__label {
       font-size: 12px;
-      margin-bottom: 4px;
-    }
-
-    .sc-card-stats__trend {
-      font-size: 11px;
-
-      .trend-icon {
-        font-size: 12px;
-      }
     }
   }
 
@@ -284,15 +251,6 @@ export default defineComponent({
 
     .sc-card-stats__label {
       font-size: 15px;
-      margin-bottom: 8px;
-    }
-
-    .sc-card-stats__trend {
-      font-size: 13px;
-
-      .trend-icon {
-        font-size: 14px;
-      }
     }
   }
 
@@ -390,7 +348,8 @@ export default defineComponent({
 }
 
 @keyframes patternFloat {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
     opacity: 0.8;
   }

@@ -430,7 +430,8 @@
 
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { message } from "@repo/utils";
+import { ElMessageBox } from 'element-plus';
 import {
   Monitor,
   User,
@@ -570,10 +571,10 @@ const startShare = async () => {
       // TODO: 设置预览流
     }
     
-    ElMessage.success('屏幕共享已开始');
+    message('屏幕共享已开始', { type: "success" });
   } catch (error) {
     console.error('开始屏幕共享失败:', error);
-    ElMessage.error('开始屏幕共享失败');
+    message('开始屏幕共享失败', { type: "error" });
   } finally {
     starting.value = false;
   }
@@ -595,11 +596,11 @@ const stopShare = async () => {
     );
     
     await stopScreenShare();
-    ElMessage.success('屏幕共享已停止');
+    message('屏幕共享已停止', { type: "success" });
   } catch (error) {
     if (error !== 'cancel') {
       console.error('停止屏幕共享失败:', error);
-      ElMessage.error('停止屏幕共享失败');
+      message('停止屏幕共享失败', { type: "error" });
     }
   }
 };
@@ -610,10 +611,10 @@ const stopShare = async () => {
 const pauseShare = async () => {
   try {
     await pauseScreenShare();
-    ElMessage.success(isPaused.value ? '屏幕共享已暂停' : '屏幕共享已恢复');
+    message(isPaused.value ? '屏幕共享已暂停' : '屏幕共享已恢复', { type: "success" });
   } catch (error) {
     console.error('暂停/恢复共享失败:', error);
-    ElMessage.error('操作失败');
+    message('操作失败', { type: "error" });
   }
 };
 
@@ -629,17 +630,17 @@ const togglePreview = () => {
  */
 const joinWatch = async () => {
   if (!joinForm.shareId) {
-    ElMessage.warning('请输入共享ID');
+    message('请输入共享ID', { type: "warning" });
     return;
   }
   
   try {
     joining.value = true;
     // TODO: 实现加入观看逻辑
-    ElMessage.success('加入观看成功');
+    message('加入观看成功', { type: "success" });
   } catch (error) {
     console.error('加入观看失败:', error);
-    ElMessage.error('加入观看失败');
+    message('加入观看失败', { type: "error" });
   } finally {
     joining.value = false;
   }
@@ -651,10 +652,10 @@ const joinWatch = async () => {
 const quickJoinWatch = async (share: any) => {
   try {
     // TODO: 实现快速加入观看逻辑
-    ElMessage.success('加入观看成功');
+    message('加入观看成功', { type: "success" });
   } catch (error) {
     console.error('加入观看失败:', error);
-    ElMessage.error('加入观看失败');
+    message('加入观看失败', { type: "error" });
   }
 };
 
@@ -674,11 +675,11 @@ const kickViewer = async (viewer: any) => {
     );
     
     // TODO: 实现移除观看者逻辑
-    ElMessage.success(`已移除观看者 ${viewer.username}`);
+    message(`已移除观看者 ${viewer.username}`, { type: "success" });
   } catch (error) {
     if (error !== 'cancel') {
       console.error('移除观看者失败:', error);
-      ElMessage.error('移除观看者失败');
+      message('移除观看者失败', { type: "error" });
     }
   }
 };
@@ -689,10 +690,10 @@ const kickViewer = async (viewer: any) => {
 const loadActiveShares = async () => {
   try {
     // TODO: 实现加载活跃共享列表
-    ElMessage.success('刷新成功');
+    message('刷新成功', { type: "success" });
   } catch (error) {
     console.error('加载活跃共享列表失败:', error);
-    ElMessage.error('加载失败');
+    message('加载失败', { type: "error" });
   }
 };
 
@@ -714,9 +715,9 @@ const loadAvailableUsers = async () => {
 const copyShareLink = async () => {
   try {
     await navigator.clipboard.writeText(shareLink.value);
-    ElMessage.success('共享链接已复制到剪贴板');
+    message('共享链接已复制到剪贴板', { type: "success" });
   } catch (error) {
-    ElMessage.error('复制失败');
+    message('复制失败', { type: "error" });
   }
 };
 
@@ -725,12 +726,12 @@ const copyShareLink = async () => {
  */
 const sendInvitations = () => {
   if (selectedInviteUsers.value.length === 0) {
-    ElMessage.warning('请选择要邀请的用户');
+    message('请选择要邀请的用户', { type: "warning" });
     return;
   }
   
   // TODO: 实现发送邀请逻辑
-  ElMessage.success(`已向 ${selectedInviteUsers.value.length} 位用户发送邀请`);
+  message(`已向 ${selectedInviteUsers.value.length} 位用户发送邀请`, { type: "success" });
   showInvite.value = false;
   selectedInviteUsers.value = [];
 };
@@ -740,7 +741,7 @@ const sendInvitations = () => {
  */
 const applySettings = () => {
   // TODO: 实现应用设置逻辑
-  ElMessage.success('设置已应用');
+  message('设置已应用', { type: "success" });
   showSettings.value = false;
 };
 

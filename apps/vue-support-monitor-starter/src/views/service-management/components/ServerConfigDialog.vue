@@ -215,7 +215,8 @@
 
 <script setup lang="ts">
 import { ref, shallowRef, computed, onMounted, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { InfoFilled } from "@element-plus/icons-vue";
 import draggable from "vuedraggable";
 import {
@@ -320,11 +321,11 @@ const loadAvailableFilters = async () => {
         );
       });
     } else {
-      ElMessage.error(response.msg || "加载可用Filter失败");
+      message(response.msg || "加载可用Filter失败", { type: "error" });
     }
   } catch (error) {
     console.error("加载可用Filter失败:", error);
-    ElMessage.error("加载失败");
+    message("加载失败", { type: "error" });
   } finally {
     availableLoading.value = false;
   }
@@ -339,11 +340,11 @@ const loadInstalledFilters = async () => {
     if (response.success) {
       installedFilters.value = response.data;
     } else {
-      ElMessage.error(response.msg || "加载已安装Filter失败");
+      message(response.msg || "加载已安装Filter失败", { type: "error" });
     }
   } catch (error) {
     console.error("加载已安装Filter失败:", error);
-    ElMessage.error("加载失败");
+    message("加载失败", { type: "error" });
   } finally {
     installedLoading.value = false;
   }
@@ -368,14 +369,14 @@ const installFilter = async (filter: ServletFilterObject) => {
     const response = await installServletFilter(props.serverId, filter.name);
 
     if (response.success) {
-      ElMessage.success("安装成功");
+      message("安装成功", { type: "success" });
       loadInstalledFilters();
     } else {
-      ElMessage.error(response.msg || "安装失败");
+      message(response.msg || "安装失败", { type: "error" });
     }
   } catch (error) {
     console.error("安装Filter失败:", error);
-    ElMessage.error("安装失败");
+    message("安装失败", { type: "error" });
   } finally {
     installLoading.value[filter.type] = false;
   }
@@ -400,15 +401,15 @@ const uninstallFilter = async (filter: SystemServerSetting) => {
       filter.systemServerSettingId!
     );
     if (response.success) {
-      ElMessage.success("卸载成功");
+      message("卸载成功", { type: "success" });
       loadInstalledFilters();
     } else {
-      ElMessage.error(response.msg || "卸载失败");
+      message(response.msg || "卸载失败", { type: "error" });
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("卸载Filter失败:", error);
-      ElMessage.error("卸载失败");
+      message("卸载失败", { type: "error" });
     }
   } finally {
     uninstallLoading.value[filter.systemServerSettingId!] = false;
@@ -425,16 +426,16 @@ const toggleFilterStatus = async (filter: SystemServerSetting) => {
     const response = await apiCall(filter.systemServerSettingId!);
 
     if (response.success) {
-      ElMessage.success(
+      message(
         filter.systemServerSettingEnabled ? "禁用成功" : "启用成功"
-      );
+      , { type: "success" });
       loadInstalledFilters();
     } else {
-      ElMessage.error(response.msg || "操作失败");
+      message(response.msg || "操作失败", { type: "error" });
     }
   } catch (error) {
     console.error("切换Filter状态失败:", error);
-    ElMessage.error("操作失败");
+    message("操作失败", { type: "error" });
   } finally {
     toggleLoading.value[filter.systemServerSettingId!] = false;
   }
@@ -464,13 +465,13 @@ const saveOrder = async () => {
       settingOrders
     );
     if (response.success) {
-      ElMessage.success("排序保存成功");
+      message("排序保存成功", { type: "success" });
     } else {
-      ElMessage.error(response.msg || "保存失败");
+      message(response.msg || "保存失败", { type: "error" });
     }
   } catch (error) {
     console.error("保存排序失败:", error);
-    ElMessage.error("保存失败");
+    message("保存失败", { type: "error" });
   } finally {
     saveLoading.value = false;
   }

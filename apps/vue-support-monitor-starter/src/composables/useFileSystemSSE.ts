@@ -1,5 +1,5 @@
 import { ref, reactive, onUnmounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import type {
   FileSystemRealtimeStatus,
   UploadQueueStatus,
@@ -175,7 +175,7 @@ export function useFileSystemSSE() {
         queueStatus.value.set(data.fileId, status);
       }
     }
-    ElMessage.success(data.message || "文件上传完成");
+    message(data.message || "文件上传完成", { type: "success" });
   };
 
   /**
@@ -190,7 +190,7 @@ export function useFileSystemSSE() {
         queueStatus.value.set(data.fileId, status);
       }
     }
-    ElMessage.error(data.message || "文件上传失败");
+    message(data.message || "文件上传失败", { type: "error" });
   };
 
   /**
@@ -219,7 +219,7 @@ export function useFileSystemSSE() {
         queueStatus.value.set(data.fileId, status);
       }
     }
-    ElMessage.success(data.message || "文件合并完成");
+    message(data.message || "文件合并完成", { type: "success" });
   };
 
   /**
@@ -234,7 +234,7 @@ export function useFileSystemSSE() {
         queueStatus.value.set(data.fileId, status);
       }
     }
-    ElMessage.error(data.message || "文件合并失败");
+    message(data.message || "文件合并失败", { type: "error" });
   };
 
   /**
@@ -270,7 +270,7 @@ export function useFileSystemSSE() {
    */
   const handleError = (data: any) => {
     console.error("文件系统SSE错误:", data);
-    ElMessage.error(data.message || "系统错误");
+    message(data.message || "系统错误", { type: "error" });
   };
 
   /**
@@ -409,7 +409,7 @@ export function useFileSystemSSE() {
               }, RECONNECT_DELAY);
             } else {
               console.error("文件系统SSE重连次数已达上限，停止重连");
-              ElMessage.error("文件系统连接失败，请刷新页面重试");
+              message("文件系统连接失败，请刷新页面重试", { type: "error" });
             }
           } else {
             // 初始连接失败，不自动重连

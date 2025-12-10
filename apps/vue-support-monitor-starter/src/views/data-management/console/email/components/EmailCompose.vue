@@ -37,7 +37,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import CodeEditor from "@/components/codeEditor/index.vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 // 定义接口
 interface ComposeForm {
@@ -82,7 +82,7 @@ watch(() => props.initialForm, (newForm) => {
 // 方法
 function handleSend() {
   if (!form.value.to || !form.value.subject) {
-    ElMessage.warning("请填写收件人和主题");
+    message("请填写收件人和主题", { type: "warning" });
     return;
   }
   emit('send', { ...form.value });

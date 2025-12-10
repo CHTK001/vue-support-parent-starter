@@ -42,7 +42,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { distributeFile } from "@/api/file-distribute";
 import { getServerList } from "@/api/server/index";
 import { getNodeListAll } from "@/api/server/node";
@@ -124,14 +124,14 @@ async function handleConfirm() {
 
     const resp: any = await distributeFile(req);
     if (resp.code === "00000" && resp.data?.success) {
-      ElMessage.success(resp.data?.message || "同步任务完成");
+      message(resp.data?.message || "同步任务完成", { type: "success" });
       emit("success");
       visible.value = false;
     } else {
-      ElMessage.error(resp.msg || resp.data?.message || "同步失败");
+      message(resp.msg || resp.data?.message || "同步失败", { type: "error" });
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || "同步失败");
+    message(e?.message || "同步失败", { type: "error" });
   } finally {
     submitting.value = false;
   }

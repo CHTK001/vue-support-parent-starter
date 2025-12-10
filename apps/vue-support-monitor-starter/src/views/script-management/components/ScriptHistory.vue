@@ -144,7 +144,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import Toolbar from "./Toolbar.vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
 import {
   getScriptExecutionPageList,
@@ -258,11 +259,11 @@ const loadExecutions = async () => {
       executions.value = response.data.records;
       total.value = response.data.total;
     } else {
-      ElMessage.error("获取执行历史失败");
+      message("获取执行历史失败", { type: "error" });
     }
   } catch (error) {
     console.error("加载执行历史失败:", error);
-    ElMessage.error("加载执行历史失败");
+    message("加载执行历史失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -286,14 +287,14 @@ const handleClearHistory = async () => {
 
     const response = await cleanExpiredExecutions(30);
     if (response.success) {
-      ElMessage.success(`清理了 ${response.data} 条过期记录`);
+      message(`清理了 ${response.data} 条过期记录`, { type: "success" });
       loadExecutions(); // 重新加载数据
     } else {
-      ElMessage.error("清理执行历史失败");
+      message("清理执行历史失败", { type: "error" });
     }
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("清理执行历史失败");
+      message("清理执行历史失败", { type: "error" });
     }
   }
 };
@@ -301,14 +302,14 @@ const handleClearHistory = async () => {
 const handleStopExecution = async (execution: any) => {
   try {
     execution.status = "cancelled";
-    ElMessage.success("脚本执行已停止");
+    message("脚本执行已停止", { type: "success" });
   } catch (error) {
-    ElMessage.error("停止脚本执行失败");
+    message("停止脚本执行失败", { type: "error" });
   }
 };
 
 const handleRerun = (execution: ScriptExecution) => {
-  ElMessage.info("重新执行功能开发中");
+  message("重新执行功能开发中", { type: "info" });
 };
 
 // 查看详情

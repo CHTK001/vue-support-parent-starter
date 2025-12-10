@@ -40,7 +40,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 /**
  * 代码预览组件
@@ -112,12 +112,12 @@ async function copyCode() {
   try {
     await navigator.clipboard.writeText(currentCode.value);
     copied.value = true;
-    ElMessage.success("代码已复制到剪贴板");
+    message("代码已复制到剪贴板", { type: "success" });
     setTimeout(() => {
       copied.value = false;
     }, 2000);
   } catch (err) {
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 }
 

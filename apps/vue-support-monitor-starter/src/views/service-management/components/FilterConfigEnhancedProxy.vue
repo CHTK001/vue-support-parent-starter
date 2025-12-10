@@ -244,7 +244,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import {
   getServletFilterConfig,
   saveServletFilterConfig,
@@ -349,15 +349,15 @@ async function handleSave() {
       config as any
     );
     if (res.success) {
-      ElMessage.success("增强代理配置保存成功，已热重载");
+      message("增强代理配置保存成功，已热重载", { type: "success" });
       emit("success");
       visibleInner.value = false;
     } else {
-      ElMessage.error(res.msg || "保存失败");
+      message(res.msg || "保存失败", { type: "error" });
     }
   } catch (error) {
     console.error("保存增强代理配置失败:", error);
-    ElMessage.error("保存失败");
+    message("保存失败", { type: "error" });
   } finally {
     loading.value = false;
   }

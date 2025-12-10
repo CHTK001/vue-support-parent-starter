@@ -92,7 +92,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { saveServerScript, updateServerScript } from "@/api/server/script";
 
 // Props
@@ -238,7 +238,7 @@ const handleTypeChange = () => {
 
 const formatCode = () => {
   // 简单的代码格式化
-  ElMessage.info("代码格式化功能开发中");
+  message("代码格式化功能开发中", { type: "info" });
 };
 
 const handleContentChange = () => {
@@ -247,12 +247,12 @@ const handleContentChange = () => {
 
 const handleSave = async () => {
   if (!scriptForm.value.name) {
-    ElMessage.warning("请输入脚本名称");
+    message("请输入脚本名称", { type: "warning" });
     return;
   }
 
   if (!scriptForm.value.content.trim()) {
-    ElMessage.warning("请输入脚本内容");
+    message("请输入脚本内容", { type: "warning" });
     return;
   }
 
@@ -284,20 +284,20 @@ const handleSave = async () => {
     }
 
     if (response.success) {
-      ElMessage.success(scriptForm.value.id ? "脚本更新成功" : "脚本保存成功");
+      message(scriptForm.value.id ? "脚本更新成功" : "脚本保存成功", { type: "success" });
       emit("save", { ...scriptForm.value });
     } else {
-      ElMessage.error("保存脚本失败");
+      message("保存脚本失败", { type: "error" });
     }
   } catch (error) {
     console.error("保存脚本失败:", error);
-    ElMessage.error("保存脚本失败");
+    message("保存脚本失败", { type: "error" });
   }
 };
 
 const handleExecute = () => {
   if (!scriptForm.value.content.trim()) {
-    ElMessage.warning("请输入脚本内容");
+    message("请输入脚本内容", { type: "warning" });
     return;
   }
 

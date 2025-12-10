@@ -289,7 +289,7 @@
  */
 
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { House, VideoCamera, User, Timer, Refresh, Search, Download } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
 import { getSystemStatistics, getRoomStatistics, getRoomHistory, type SystemStatistics, type RoomStatistics } from "@/api/webrtc/statistics";
@@ -598,7 +598,7 @@ const loadSystemStatistics = async () => {
     systemStats.value = data;
   } catch (error) {
     console.error("加载系统统计失败:", error);
-    ElMessage.error("加载系统统计失败");
+    message("加载系统统计失败", { type: "error" });
   }
 };
 
@@ -617,7 +617,7 @@ const loadRoomStatistics = async () => {
     pagination.total = data.total;
   } catch (error) {
     console.error("加载房间统计失败:", error);
-    ElMessage.error("加载房间统计失败");
+    message("加载房间统计失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -629,7 +629,7 @@ const loadRoomStatistics = async () => {
 const refreshRoomTypeChart = () => {
   if (roomTypeChart) {
     // TODO: 重新加载数据并更新图表
-    ElMessage.success("图表已刷新");
+    message("图表已刷新", { type: "success" });
   }
 };
 
@@ -731,7 +731,7 @@ const viewRoomHistory = async (room: any) => {
     initRoomHistoryChart();
   } catch (error) {
     console.error("加载房间历史失败:", error);
-    ElMessage.error("加载房间历史失败");
+    message("加载房间历史失败", { type: "error" });
   }
 };
 
@@ -789,7 +789,7 @@ const initRoomHistoryChart = () => {
  */
 const exportStatistics = () => {
   // TODO: 实现导出功能
-  ElMessage.success("导出功能开发中");
+  message("导出功能开发中", { type: "success" });
 };
 
 /**
@@ -797,7 +797,7 @@ const exportStatistics = () => {
  */
 const refreshStatistics = async () => {
   await Promise.all([loadSystemStatistics(), loadRoomStatistics()]);
-  ElMessage.success("数据已刷新");
+  message("数据已刷新", { type: "success" });
 };
 
 /**

@@ -48,7 +48,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { getServerList } from "@/api/server/index";
 import { getNodeListAll } from "@/api/server/node";
 import { uploadServerFileWithProgress } from "@/api/server/upload";
@@ -167,7 +167,7 @@ function updateTask(id: number, updates: Partial<UploadQueueStatus>) {
 async function handleConfirm() {
   await formRef.value?.validate();
   if (!form.value.files?.length) {
-    ElMessage.warning("请选择要上传的文件");
+    message("请选择要上传的文件", { type: "warning" });
     return;
   }
   submitting.value = true;
@@ -243,11 +243,11 @@ async function handleConfirm() {
     }
 
     props.enqueue?.(tasks);
-    ElMessage.success("上传任务已加入队列");
+    message("上传任务已加入队列", { type: "success" });
     emit("success");
     visible.value = false;
   } catch (e: any) {
-    ElMessage.error(e?.message || "上传失败");
+    message(e?.message || "上传失败", { type: "error" });
   } finally {
     submitting.value = false;
   }

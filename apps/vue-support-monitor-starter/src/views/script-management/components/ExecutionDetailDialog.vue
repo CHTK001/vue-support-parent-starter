@@ -86,7 +86,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import {
   getScriptExecutionDetail,
   getScriptExecutionOutput,
@@ -198,38 +198,38 @@ const handleStop = async () => {
     if (!props.executionData?.id) return;
     const resp = await stopScriptExecution(props.executionData.id);
     if (resp.success) {
-      ElMessage.success("停止指令已发送");
+      message("停止指令已发送", { type: "success" });
     } else {
-      ElMessage.error(resp.msg || "停止执行失败");
+      message(resp.msg || "停止执行失败", { type: "error" });
     }
   } catch (e) {
-    ElMessage.error("停止执行失败");
+    message("停止执行失败", { type: "error" });
   }
 };
 
 const handleRerun = () => {
-  ElMessage.info("重新执行功能开发中");
+  message("重新执行功能开发中", { type: "info" });
 };
 
 const copyOutput = async (type: "stdout" | "stderr") => {
   const content = props.executionData?.[type];
   if (!content) {
-    ElMessage.warning("暂无内容可复制");
+    message("暂无内容可复制", { type: "warning" });
     return;
   }
 
   try {
     await navigator.clipboard.writeText(content);
-    ElMessage.success("内容已复制到剪贴板");
+    message("内容已复制到剪贴板", { type: "success" });
   } catch (error) {
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 };
 
 const downloadOutput = (type: "stdout" | "stderr") => {
   const content = props.executionData?.[type];
   if (!content) {
-    ElMessage.warning("暂无内容可下载");
+    message("暂无内容可下载", { type: "warning" });
     return;
   }
 
@@ -241,7 +241,7 @@ const downloadOutput = (type: "stdout" | "stderr") => {
   link.click();
   URL.revokeObjectURL(url);
 
-  ElMessage.success("下载成功");
+  message("下载成功", { type: "success" });
 };
 
 // 工具函数

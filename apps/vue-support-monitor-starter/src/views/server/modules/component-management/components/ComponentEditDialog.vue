@@ -91,7 +91,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { message } from "@repo/utils";
+import { type FormInstance, type FormRules } from "element-plus";
 import {
   createServerComponent,
   updateServerComponent,
@@ -206,7 +207,7 @@ const handleSubmit = async () => {
     // 使用工具函数验证数据
     const validation = validateComponentData(formData.value);
     if (!validation.isValid) {
-      ElMessage.error(validation.errors.join(', '));
+      message(validation.errors.join(', ', { type: "error" }));
       return;
     }
 
@@ -223,27 +224,27 @@ const handleSubmit = async () => {
       );
 
       if (res.code === "00000") {
-        ElMessage.success("更新成功");
+        message("更新成功", { type: "success" });
         emit("success");
         handleClose();
       } else {
-        ElMessage.error(res.msg || "更新失败");
+        message(res.msg || "更新失败", { type: "error" });
       }
     } else {
       // 创建组件
       const res = await createServerComponent(submitData);
 
       if (res.code === "00000") {
-        ElMessage.success("创建成功");
+        message("创建成功", { type: "success" });
         emit("success");
         handleClose();
       } else {
-        ElMessage.error(res.msg || "创建失败");
+        message(res.msg || "创建失败", { type: "error" });
       }
     }
   } catch (error) {
     console.error("提交失败:", error);
-    ElMessage.error("操作失败");
+    message("操作失败", { type: "error" });
   } finally {
     loading.value = false;
   }

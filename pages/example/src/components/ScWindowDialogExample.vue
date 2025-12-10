@@ -585,7 +585,7 @@
 <script setup>
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import ScWindowDialog from "@repo/components/ScWindowDialog/index.vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { computed, ref } from "vue";
 import CodePreview from "./CodePreview.vue";
 
@@ -775,11 +775,11 @@ const resetSettings = () => {
     emailNotification: false,
     soundNotification: true,
   };
-  ElMessage.success("设置已重置");
+  message("设置已重置", { type: "success" });
 };
 
 const saveSettings = () => {
-  ElMessage.success("设置已保存");
+  message("设置已保存", { type: "success" });
   customVisible.value = false;
 };
 
@@ -790,16 +790,16 @@ const resetForm = () => {
 const submitForm = () => {
   formRef.value?.validate((valid) => {
     if (valid) {
-      ElMessage.success("表单提交成功");
+      message("表单提交成功", { type: "success" });
       formVisible.value = false;
     } else {
-      ElMessage.error("请检查表单填写");
+      message("请检查表单填写", { type: "error" });
     }
   });
 };
 
 const handleConfirm = () => {
-  ElMessage.success("删除操作已确认");
+  message("删除操作已确认", { type: "success" });
   confirmVisible.value = false;
 };
 
@@ -829,7 +829,7 @@ const clearAllDialogs = () => {
   multipleDialogs.value = [];
   autoShrinkVisible.value = false;
   activationDemoVisible.value = false;
-  ElMessage.success("所有对话框已关闭");
+  message("所有对话框已关闭", { type: "success" });
 };
 
 const removeDialog = (id) => {

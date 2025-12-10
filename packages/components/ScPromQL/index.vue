@@ -82,7 +82,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessage } from 'element-plus';
+import { message } from "@repo/utils";
 import { CopyDocument, Check, Search } from '@element-plus/icons-vue';
 
 const props = defineProps({

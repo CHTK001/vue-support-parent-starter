@@ -137,7 +137,7 @@ import {
   getSystemServerSettingItemBySettingId,
   type SystemServerSettingItem,
 } from "@/api/system-server-setting-item";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { computed, ref, watch } from "vue";
 
 interface Props {
@@ -224,11 +224,11 @@ async function handleSave() {
   try {
     const res = await batchSaveSystemServerSettingItems(settingId.value, items);
     if (res.success) {
-      ElMessage.success("保存成功，已热应用");
+      message("保存成功，已热应用", { type: "success" });
       emit("success");
       visibleInner.value = false;
     } else {
-      ElMessage.error(res.msg || "保存失败");
+      message(res.msg || "保存失败", { type: "error" });
     }
   } finally {
     saving.value = false;

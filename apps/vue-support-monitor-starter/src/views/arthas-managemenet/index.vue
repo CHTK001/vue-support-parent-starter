@@ -88,7 +88,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import NodeSelector from "@/views/arthas-managemenet/components/NodeSelector.vue";
 import FeatureMenu from "@/views/arthas-managemenet/components/FeatureMenu.vue";
 import TerminalConsole from "@/views/arthas-managemenet/components/TerminalConsole.vue";
@@ -153,7 +153,7 @@ async function reloadNodes() {
       }
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || "加载在线节点失败");
+    message(e?.message || "加载在线节点失败", { type: "error" });
   }
 }
 
@@ -171,15 +171,15 @@ async function connectNode() {
       consoleUrlRef.value = url;
       connected.value = !!url || true;
       activeFeature.value = "console";
-      ElMessage.success("连接成功");
+      message("连接成功", { type: "success" });
     } else {
       consoleUrlRef.value = "";
       connected.value = false;
-      ElMessage.error(res?.msg || "连接失败");
+      message(res?.msg || "连接失败", { type: "error" });
     }
   } catch (e: any) {
     connected.value = false;
-    ElMessage.error(e?.message || "连接异常");
+    message(e?.message || "连接异常", { type: "error" });
   }
 }
 

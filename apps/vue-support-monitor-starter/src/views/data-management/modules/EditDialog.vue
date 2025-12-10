@@ -328,7 +328,8 @@
 // 3) JDBC 驱动与驱动文件：仅当协议为 jdbc 时显示。
 
 import { computed, ref, watch, nextTick } from "vue";
-import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { message } from "@repo/utils";
+import { type FormInstance, type FormRules } from "element-plus";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import {
   saveSystemDataSetting,
@@ -598,15 +599,15 @@ async function handleSave() {
     const payload = { ...(form.value as any) };
     const res = await saveSystemDataSetting(payload);
     if (!res || (res as any).success === false) {
-      ElMessage.error((res as any)?.msg || "保存失败");
+      message((res as any, { type: "error" })?.msg || "保存失败");
       return;
     }
-    ElMessage.success("保存成功");
+    message("保存成功", { type: "success" });
     emit("success");
     visibleInner.value = false;
   } catch (e: any) {
     if (e) {
-      ElMessage.error(e?.message || "保存失败");
+      message(e?.message || "保存失败", { type: "error" });
     }
   } finally {
     loading.value = false;
@@ -620,7 +621,7 @@ function handleClose() {
 async function onDriverFileChange(file: any) {
   try {
     if (!form.value.systemDataSettingId) {
-      ElMessage.warning("请先保存配置再上传驱动");
+      message("请先保存配置再上传驱动", { type: "warning" });
       return;
     }
     const raw = file?.raw as File;
@@ -630,15 +631,15 @@ async function onDriverFileChange(file: any) {
       raw
     );
     if (!res || (res as any).success === false) {
-      ElMessage.error((res as any)?.msg || "上传失败");
+      message((res as any, { type: "error" })?.msg || "上传失败");
       return;
     }
     if ((res as any).data) {
       (form.value as any).systemDataSettingDriverPath = (res as any).data;
     }
-    ElMessage.success("上传成功");
+    message("上传成功", { type: "success" });
   } catch (e: any) {
-    ElMessage.error(e?.message || "上传失败");
+    message(e?.message || "上传失败", { type: "error" });
   }
 }
 </script>

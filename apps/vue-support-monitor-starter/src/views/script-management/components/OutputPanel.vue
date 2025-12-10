@@ -35,7 +35,7 @@
  *  - filename: 下载文件名（可选）
  *  - maxHeight: 最大高度（CSS值，默认160px）
  */
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 interface Props {
   title: string;
@@ -60,20 +60,20 @@ const defaultIcon = "ri:terminal-line";
 async function onCopy() {
   try {
     if (!props.content) {
-      ElMessage.warning("暂无内容可复制");
+      message("暂无内容可复制", { type: "warning" });
       return;
     }
     await navigator.clipboard.writeText(props.content);
-    ElMessage.success("内容已复制到剪贴板");
+    message("内容已复制到剪贴板", { type: "success" });
   } catch (e) {
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 }
 
 function onDownload() {
   try {
     if (!props.content) {
-      ElMessage.warning("暂无内容可下载");
+      message("暂无内容可下载", { type: "warning" });
       return;
     }
     const blob = new Blob([props.content], { type: "text/plain" });
@@ -83,9 +83,9 @@ function onDownload() {
     link.download = props.filename || `${props.title}_${Date.now()}.txt`;
     link.click();
     URL.revokeObjectURL(url);
-    ElMessage.success("下载成功");
+    message("下载成功", { type: "success" });
   } catch (e) {
-    ElMessage.error("下载失败");
+    message("下载失败", { type: "error" });
   }
 }
 </script>

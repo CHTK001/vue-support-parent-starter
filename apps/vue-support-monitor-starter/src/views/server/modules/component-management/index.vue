@@ -159,7 +159,8 @@
 import { deleteServerComponent, getBatchComponentData, getComponentsByServerId, getServerList, ServerInfo, type ServerComponent } from "@/api/server";
 import { getComponentStatusTagType, getComponentStatusText, getComponentTypeDisplayName, getComponentTypeTagColor, getExpressionTypeDisplayName } from "@/utils/component-field-mapping";
 import * as echarts from "echarts";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { nextTick, onMounted, reactive, ref } from "vue";
 import ComponentDataDialog from "./components/ComponentDataDialog.vue";
 import ComponentEditDialog from "./components/ComponentEditDialog.vue";
@@ -235,7 +236,7 @@ const loadServers = async () => {
     }
   } catch (error) {
     console.error("加载服务器列表失败:", error);
-    ElMessage.error("加载服务器列表失败");
+    message("加载服务器列表失败", { type: "error" });
   }
 };
 
@@ -253,7 +254,7 @@ const loadComponents = async () => {
     }
   } catch (error) {
     console.error("加载组件列表失败:", error);
-    ElMessage.error("加载组件列表失败");
+    message("加载组件列表失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -264,12 +265,12 @@ const loadComponents = async () => {
  */
 const handleQuery = async () => {
   if (!selectedServerId.value) {
-    ElMessage.warning("请选择服务器");
+    message("请选择服务器", { type: "warning" });
     return;
   }
 
   if (!timeRange.value || timeRange.value.length !== 2) {
-    ElMessage.warning("请选择时间范围");
+    message("请选择时间范围", { type: "warning" });
     return;
   }
 
@@ -300,13 +301,13 @@ const handleQuery = async () => {
       await nextTick();
       updateAllCharts();
 
-      ElMessage.success("查询成功");
+      message("查询成功", { type: "success" });
     } else {
-      ElMessage.error(res.msg || "查询失败");
+      message(res.msg || "查询失败", { type: "error" });
     }
   } catch (error) {
     console.error("查询失败:", error);
-    ElMessage.error("查询失败");
+    message("查询失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -446,7 +447,7 @@ const handleQueryComponent = async (component: ServerComponent) => {
   const componentId = component.monitorSysGenServerComponentId!;
 
   if (!timeRange.value || timeRange.value.length !== 2) {
-    ElMessage.warning("请先设置时间范围");
+    message("请先设置时间范围", { type: "warning" });
     return;
   }
 
@@ -454,10 +455,10 @@ const handleQueryComponent = async (component: ServerComponent) => {
     componentLoading[componentId] = true;
     // 这里可以调用单个组件的查询接口
     // 暂时使用批量查询的结果
-    ElMessage.success("查询成功");
+    message("查询成功", { type: "success" });
   } catch (error) {
     console.error("查询组件失败:", error);
-    ElMessage.error("查询组件失败");
+    message("查询组件失败", { type: "error" });
   } finally {
     componentLoading[componentId] = false;
   }
@@ -467,7 +468,7 @@ const handleQueryComponent = async (component: ServerComponent) => {
  * 处理克隆组件
  */
 const handleCloneComponent = (component: ServerComponent) => {
-  ElMessage.info("克隆功能开发中");
+  message("克隆功能开发中", { type: "info" });
 };
 
 /**
@@ -483,10 +484,10 @@ const handleDeleteComponent = async (component: ServerComponent) => {
 
     const res = await deleteServerComponent(component.monitorSysGenServerComponentId!);
     if (res.code === "00000") {
-      ElMessage.success("删除成功");
+      message("删除成功", { type: "success" });
       handleRefresh();
     } else {
-      ElMessage.error(res.msg || "删除失败");
+      message(res.msg || "删除失败", { type: "error" });
     }
   } catch (error) {
     // 用户取消删除

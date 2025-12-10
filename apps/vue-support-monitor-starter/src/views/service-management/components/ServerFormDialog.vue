@@ -190,7 +190,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
-import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { message } from "@repo/utils";
+import { type FormInstance, type FormRules } from "element-plus";
 import {
   addSystemServer,
   updateSystemServer,
@@ -359,14 +360,14 @@ const handleSubmit = async () => {
     const response = await apiCall(formData);
 
     if (response.success) {
-      ElMessage.success(isEdit.value ? "更新成功" : "创建成功");
+      message(isEdit.value ? "更新成功" : "创建成功", { type: "success" });
       emit("success");
     } else {
-      ElMessage.error(response.msg || "操作失败");
+      message(response.msg || "操作失败", { type: "error" });
     }
   } catch (error) {
     console.error("提交表单失败:", error);
-    ElMessage.error("操作失败");
+    message("操作失败", { type: "error" });
   } finally {
     loading.value = false;
   }

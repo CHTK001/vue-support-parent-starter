@@ -187,7 +187,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import type { SystemSoftImage } from "@/api/docker";
 
 interface SystemSoftRecord {
@@ -281,7 +281,7 @@ async function loadHistory() {
     }, 500);
   } catch (error) {
     console.error("加载历史记录失败:", error);
-    ElMessage.error("加载历史记录失败");
+    message("加载历史记录失败", { type: "error" });
     loading.value = false;
   }
 }

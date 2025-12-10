@@ -289,7 +289,7 @@
 
 <script setup lang="ts">
 import { containerApi, type SystemSoftContainer } from '@/api/docker'
-import { ElMessage } from 'element-plus'
+import { message } from "@repo/utils";
 import { computed, ref, watch } from 'vue'
 import ContainerRealtimeChart from '../../monitoring/components/ContainerRealtimeChart.vue'
 
@@ -406,13 +406,13 @@ const handleRefresh = async () => {
     // 修复方法调用错误，使用正确的API方法
     const response = await containerApi.getContainerById(props.containerData.systemSoftContainerId)
     if (response.code === '00000') {
-      ElMessage.success('容器数据已刷新')
+      message('容器数据已刷新', { type: "success" })
       // 这里可以触发父组件更新数据
     } else {
-      ElMessage.error(response.message || '刷新失败')
+      message(response.message || '刷新失败', { type: "error" })
     }
   } catch (error) {
-    ElMessage.error('刷新容器数据失败')
+    message('刷新容器数据失败', { type: "error" })
   } finally {
     refreshing.value = false
   }

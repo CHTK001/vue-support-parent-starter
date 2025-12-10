@@ -176,7 +176,8 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { message } from "@repo/utils";
+import { ElMessageBox } from 'element-plus'
 import type { UploadFile, UploadFiles, UploadInstance } from 'element-plus'
 import { formatBytes } from '@pureadmin/utils'
 
@@ -359,13 +360,13 @@ const handleFileRemove = (file: UploadFile, files: UploadFiles) => {
 const beforeUpload = (file: File) => {
   // 检查文件大小
   if (file.size > maxSize) {
-    ElMessage.error(`文件 ${file.name} 大小超过 ${maxSizeText} 限制`)
+    message(`文件 ${file.name} 大小超过 ${maxSizeText} 限制`, { type: "error" })
     return false
   }
   
   // 检查文件类型（可选）
   // if (!allowedTypes.includes(file.type)) {
-  //   ElMessage.error(`不支持的文件类型: ${file.type}`)
+  //   message(`不支持的文件类型: ${file.type}`, { type: "error" })
   //   return false
   // }
   
@@ -396,10 +397,10 @@ const handleUploadSuccess = (response: any, file: UploadFile) => {
     const errorCount = fileList.value.filter(f => f.status === 'error').length
     
     if (errorCount === 0) {
-      ElMessage.success(`所有文件上传成功 (${successCount}个)`)
+      message(`所有文件上传成功 (${successCount}个, { type: "success" })`)
       emit('upload-success')
     } else {
-      ElMessage.warning(`上传完成: 成功 ${successCount}个, 失败 ${errorCount}个`)
+      message(`上传完成: 成功 ${successCount}个, 失败 ${errorCount}个`, { type: "warning" })
     }
   }
 }
@@ -412,7 +413,7 @@ const handleUploadError = (error: any, file: UploadFile) => {
   }
   updateUploadStats()
   
-  ElMessage.error(`文件 ${file.name} 上传失败`)
+  message(`文件 ${file.name} 上传失败`, { type: "error" })
 }
 
 const removeFile = (index: number) => {
@@ -422,7 +423,7 @@ const removeFile = (index: number) => {
 
 const clearAllFiles = async () => {
   if (isUploading.value) {
-    ElMessage.warning('上传进行中，无法清空文件列表')
+    message('上传进行中，无法清空文件列表', { type: "warning" })
     return
   }
   
@@ -447,7 +448,7 @@ const clearAllFiles = async () => {
 
 const startUpload = () => {
   if (fileList.value.length === 0) {
-    ElMessage.warning('请先选择要上传的文件')
+    message('请先选择要上传的文件', { type: "warning" })
     return
   }
   

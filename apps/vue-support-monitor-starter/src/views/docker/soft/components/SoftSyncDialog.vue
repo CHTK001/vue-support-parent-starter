@@ -91,7 +91,8 @@
 
 <script setup lang="ts">
 import { getServerList, softwareApi } from '@/api/docker';
-import { ElMessage, ElNotification } from 'element-plus';
+import { message } from "@repo/utils";
+import { ElNotification } from 'element-plus';
 import { computed, ref, watch } from 'vue';
 
 interface Props { visible: boolean }
@@ -171,7 +172,7 @@ watch(() => visibleProxy.value, (val) => {
 async function submit() {
   const ids = selectedServerIds.value || [];
   if (!ids.length) {
-    return ElMessage.warning('请选择至少一台服务器');
+    return message('请选择至少一台服务器', { type: "warning" });
   }
   
   try {
@@ -190,7 +191,7 @@ async function submit() {
       // 关闭对话框
       visibleProxy.value = false;
     } else {
-      ElMessage.error(result.msg || '同步失败');
+      message(result.msg || '同步失败', { type: "error" });
     }
   } catch (error: any) {
     console.error('同步镜像失败', error);

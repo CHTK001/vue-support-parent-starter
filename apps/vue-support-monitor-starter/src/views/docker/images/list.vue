@@ -155,7 +155,8 @@
 <script setup lang="ts">
 import { getServerList, imageApi, type SystemSoftImage } from "@/api/docker";
 import ScTable from "@repo/components/ScTable/index.vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
 import PullImageDialog from "./components/PullImageDialog.vue";
 import StartContainerDialog from "./components/StartContainerDialog.vue";
@@ -228,7 +229,7 @@ const openStartDialog = (image: SystemSoftImage) => {
 };
 
 const viewImageDetail = (image: SystemSoftImage) => {
-  ElMessage.info("镜像详情功能开发中...");
+  message("镜像详情功能开发中...", { type: "info" });
 };
 
 const handleDelete = async (imageId: number) => {
@@ -239,14 +240,14 @@ const handleDelete = async (imageId: number) => {
 
     const response = await imageApi.deleteImage(imageId);
     if (response.code === "00000" || response.success) {
-      ElMessage.success("删除成功");
+      message("删除成功", { type: "success" });
       // ScTable会自动刷新数据
     } else {
-      ElMessage.error(response.msg || "删除失败");
+      message(response.msg || "删除失败", { type: "error" });
     }
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("删除镜像失败");
+      message("删除镜像失败", { type: "error" });
     }
   }
 };
@@ -256,13 +257,13 @@ const handleSyncAll = async () => {
     syncLoading.value = true;
     const response = await imageApi.syncImageStatus();
     if (response.code === "00000" || response.success) {
-      ElMessage.success("同步状态成功");
+      message("同步状态成功", { type: "success" });
       // ScTable会自动刷新数据
     } else {
-      ElMessage.error(response.msg || "同步失败");
+      message(response.msg || "同步失败", { type: "error" });
     }
   } catch (error) {
-    ElMessage.error("同步镜像状态失败");
+    message("同步镜像状态失败", { type: "error" });
   } finally {
     syncLoading.value = false;
   }
@@ -270,7 +271,7 @@ const handleSyncAll = async () => {
 
 const handleBatchDelete = async () => {
   if (selectedIds.value.length === 0) {
-    ElMessage.warning("请选择要删除的镜像");
+    message("请选择要删除的镜像", { type: "warning" });
     return;
   }
 
@@ -281,15 +282,15 @@ const handleBatchDelete = async () => {
 
     const response = await imageApi.batchDeleteImages(selectedIds.value);
     if (response.code === "00000" || response.success) {
-      ElMessage.success("批量删除成功");
+      message("批量删除成功", { type: "success" });
       selectedIds.value = [];
       // ScTable会自动刷新数据
     } else {
-      ElMessage.error(response.msg || "批量删除失败");
+      message(response.msg || "批量删除失败", { type: "error" });
     }
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("批量删除镜像失败");
+      message("批量删除镜像失败", { type: "error" });
     }
   }
 };
@@ -305,11 +306,11 @@ const loadServers = async () => {
     if (response.code === "00000" || response.success) {
       serverOptions.value = response.data || [];
     } else {
-      ElMessage.error(response.msg || "加载服务器列表失败");
+      message(response.msg || "加载服务器列表失败", { type: "error" });
     }
   } catch (error) {
     console.error("加载服务器列表失败:", error);
-    ElMessage.error("加载服务器列表失败");
+    message("加载服务器列表失败", { type: "error" });
   }
 };
 
