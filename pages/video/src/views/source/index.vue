@@ -134,7 +134,8 @@
  * @version 1.0.0
  * @since 2024-12-19
  */
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { onMounted, onUnmounted, ref } from "vue";
 import {
   deleteSource,
@@ -227,11 +228,11 @@ const deleteSourceItem = (source: VideoSource) => {
     .then(() => {
       deleteSource(source.videoSourceId)
         .then(() => {
-          ElMessage.success("删除成功");
+          message("删除成功", { type: "success" });
           refreshSources();
         })
         .catch((error) => {
-          ElMessage.error(error.message || "删除失败");
+          message(error.message || "删除失败", { type: "error" });
         });
     })
     .catch(() => {
@@ -243,10 +244,10 @@ const deleteSourceItem = (source: VideoSource) => {
  * 测试连接
  */
 const testConnection = (source: VideoSource) => {
-  ElMessage.info("正在测试连接...");
+  message("正在测试连接...", { type: "info" });
   // TODO: 实现连接测试逻辑
   setTimeout(() => {
-    ElMessage.success("连接测试成功");
+    message("连接测试成功", { type: "success" });
   }, 2000);
 };
 
@@ -282,11 +283,11 @@ const toggleSourceStatus = (source: VideoSource, enable: boolean) => {
 
   updateSource(updatedSource)
     .then(() => {
-      ElMessage.success(enable ? "启用成功" : "禁用成功");
+      message(enable ? "启用成功" : "禁用成功", { type: "success" });
       refreshSources();
     })
     .catch((error) => {
-      ElMessage.error(error.message || "操作失败");
+      message(error.message || "操作失败", { type: "error" });
     });
 };
 
@@ -299,13 +300,13 @@ const handleSubmit = (sourceData: VideoSource) => {
 
   apiCall(sourceData)
     .then(() => {
-      ElMessage.success(isEdit ? "更新成功" : "添加成功");
+      message(isEdit ? "更新成功" : "添加成功", { type: "success" });
       showAddDialog.value = false;
       editingSource.value = null;
       refreshSources();
     })
     .catch((error) => {
-      ElMessage.error(error.message || "操作失败");
+      message(error.message || "操作失败", { type: "error" });
     });
 };
 

@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, onMounted, computed, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import Prism from "prismjs";
 import "prismjs/themes/prism-tomorrow.css";
 import "prismjs/plugins/line-numbers/prism-line-numbers.css";
@@ -204,13 +204,13 @@ const compareTexts = () => {
     // 添加到历史记录
     addToHistory();
 
-    ElMessage.success("文本比较完成");
+    message("文本比较完成", { type: "success" });
 
     // 高亮显示
     highlightCode();
   } catch (error) {
     console.error("文本比较错误:", error);
-    ElMessage.error(error.message || "文本比较失败");
+    message(error.message || "文本比较失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -233,7 +233,7 @@ const applyExample = (example) => {
   // 高亮显示
   highlightCode();
 
-  ElMessage.success("已应用示例");
+  message("已应用示例", { type: "success" });
 };
 
 // 添加到历史记录
@@ -273,7 +273,7 @@ const loadFromHistory = (item) => {
   // 高亮显示
   highlightCode();
 
-  ElMessage.success("已从历史记录加载");
+  message("已从历史记录加载", { type: "success" });
 };
 
 // 复制到剪贴板
@@ -281,10 +281,10 @@ const copyToClipboard = (text) => {
   navigator.clipboard
     .writeText(text)
     .then(() => {
-      ElMessage.success("复制成功");
+      message("复制成功", { type: "success" });
     })
     .catch(() => {
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     });
 };
 
@@ -295,7 +295,7 @@ const clearForm = () => {
   env.diffResult = "";
   env.unifiedDiff = "";
 
-  ElMessage.success("已清空");
+  message("已清空", { type: "success" });
 };
 
 // 交换文本
@@ -304,7 +304,7 @@ const swapTexts = () => {
   env.originalText = env.modifiedText;
   env.modifiedText = temp;
 
-  ElMessage.success("文本已交换");
+  message("文本已交换", { type: "success" });
 };
 
 // 获取语言图标

@@ -247,7 +247,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import type { FormInstance, FormRules } from "element-plus";
 import {
   updateFileSystemSetting,
@@ -307,11 +307,11 @@ const handleStartServer = async () => {
   serverLoading.value = true;
   startFileServer()
     .then((res) => {
-      ElMessage.success("服务启动成功");
+      message("服务启动成功", { type: "success" });
       serverStatus.value = "running";
     })
     .catch((err) => {
-      ElMessage.error(err.message || "服务启动失败");
+      message(err.message || "服务启动失败", { type: "error" });
     })
     .finally(() => {
       serverLoading.value = false;
@@ -323,11 +323,11 @@ const handleStopServer = async () => {
   serverLoading.value = true;
   stopFileServer()
     .then((res) => {
-      ElMessage.success("服务停止成功");
+      message("服务停止成功", { type: "success" });
       serverStatus.value = "stopped";
     })
     .catch((err) => {
-      ElMessage.error(err.message || "服务停止失败");
+      message(err.message || "服务停止失败", { type: "error" });
     })
     .finally(() => {
       serverLoading.value = false;
@@ -375,11 +375,11 @@ const handleSubmit = async () => {
     try {
       const res = await updateFileSystemSetting(formData.value);
       if (res.code === 200) {
-        ElMessage.success("保存成功");
+        message("保存成功", { type: "success" });
         emit("saved");
         visible.value = false;
       } else {
-        ElMessage.error(res.msg || "保存失败");
+        message(res.msg || "保存失败", { type: "error" });
       }
     } finally {
       loading.value = false;

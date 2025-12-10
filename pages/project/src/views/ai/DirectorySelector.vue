@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { formatBytes } from "@pureadmin/utils";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { computed, onMounted, ref, watch } from "vue";
 import {
   getDirectories,
@@ -95,7 +95,7 @@ const loadNode = async (node: any, resolve: Function) => {
         }));
         resolve(driveNodes);
       } else {
-        ElMessage.error(res.msg || "获取磁盘驱动器失败");
+        message(res.msg || "获取磁盘驱动器失败", { type: "error" });
         resolve([]);
       }
     } else {
@@ -112,13 +112,13 @@ const loadNode = async (node: any, resolve: Function) => {
         }));
         resolve(dirNodes);
       } else {
-        ElMessage.error(res.msg || "获取目录列表失败");
+        message(res.msg || "获取目录列表失败", { type: "error" });
         resolve([]);
       }
     }
   } catch (error) {
     console.error("加载节点数据失败:", error);
-    ElMessage.error("加载数据失败");
+    message("加载数据失败", { type: "error" });
     resolve([]);
   }
 };

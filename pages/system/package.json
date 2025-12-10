@@ -58,7 +58,7 @@
   "dependencies": {
     "@pureadmin/utils": "catalog:",
     "@repo/components": "workspace:^",
-    "cropperjs": "^2.1.0",
+    "cropperjs": "^1.6.2",
     "element-plus": "catalog:",
     "lunisolar": "catalog:",
     "spark-md5": "^3.0.2",

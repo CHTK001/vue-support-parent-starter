@@ -245,7 +245,7 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { computed, nextTick, reactive, ref, watch } from "vue";
 import { fetchSaveProject, fetchUpdateProject } from "../../api/manage/project";
 
@@ -409,7 +409,7 @@ const handleImageError = (event) => {
 };
 
 const handleUploadIcon = () => {
-  ElMessage.info("图标上传功能开发中...");
+  message("图标上传功能开发中...", { type: "info" });
 };
 
 // 重置表单

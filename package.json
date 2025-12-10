@@ -145,5 +145,8 @@
         "eslint": "9"
       }
     }
+  },
+  "dependencies": {
+    "cropperjs": "^2.1.0"
   }
 }

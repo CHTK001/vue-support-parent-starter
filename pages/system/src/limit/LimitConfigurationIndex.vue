@@ -318,7 +318,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from "vue";
-import { ElMessage, ElMessageBox, type FormInstance } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox, type FormInstance } from "element-plus";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import {
@@ -399,10 +400,10 @@ const getData = async () => {
       tableData.value = res.data.records;
       pagination.total = res.data.total;
     } else {
-      ElMessage.error(res.msg || "获取数据失败");
+      message(res.msg || "获取数据失败", { type: "error" });
     }
   } catch (error) {
-    ElMessage.error("获取数据失败");
+    message("获取数据失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -462,13 +463,13 @@ const handleDelete = (row: SysLimitConfiguration) => {
           row.sysLimitConfigurationId!
         );
         if (res.success) {
-          ElMessage.success("删除成功");
+          message("删除成功", { type: "success" });
           getData();
         } else {
-          ElMessage.error(res.msg || "删除失败");
+          message(res.msg || "删除失败", { type: "error" });
         }
       } catch (error) {
-        ElMessage.error("删除失败");
+        message("删除失败", { type: "error" });
       }
     })
     .catch(() => {
@@ -491,14 +492,14 @@ const handleSubmit = async () => {
         }
 
         if (res.success) {
-          ElMessage.success(`${isEdit.value ? "更新" : "新增"}成功`);
+          message(`${isEdit.value ? "更新" : "新增"}成功`, { type: "success" });
           dialogVisible.value = false;
           getData();
         } else {
-          ElMessage.error(res.msg || `${isEdit.value ? "更新" : "新增"}失败`);
+          message(res.msg || `${isEdit.value ? "更新" : "新增"}失败`, { type: "error" });
         }
       } catch (error) {
-        ElMessage.error(`${isEdit.value ? "更新" : "新增"}失败`);
+        message(`${isEdit.value ? "更新" : "新增"}失败`, { type: "error" });
       }
     }
   });

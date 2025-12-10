@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 // 响应式数据
 const env = reactive({
@@ -294,10 +294,10 @@ const parseIP = () => {
       });
     }
 
-    ElMessage.success("解析成功");
+    message("解析成功", { type: "success" });
   } catch (error) {
     console.error("IP解析错误:", error);
-    ElMessage.error("解析失败: " + error.message);
+    message("解析失败: " + error.message, { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -381,7 +381,7 @@ const getIPv6RangeInfo = (ipv6) => {
 const calculateSubnetDivision = (networkAddress, cidr) => {
   const count = env.subnetDivision.count;
   if (count < 2 || count > 256) {
-    ElMessage.warning("子网数量必须在2-256之间");
+    message("子网数量必须在2-256之间", { type: "warning" });
     return;
   }
 
@@ -390,7 +390,7 @@ const calculateSubnetDivision = (networkAddress, cidr) => {
   const newCidr = parseInt(cidr, 10) + bitsNeeded;
 
   if (newCidr > 30) {
-    ElMessage.warning("子网划分后CIDR超过30，不建议使用");
+    message("子网划分后CIDR超过30，不建议使用", { type: "warning" });
   }
 
   // 计算子网
@@ -474,10 +474,10 @@ const calculateSupernetting = () => {
     const newNetwork = `${newNetworkOctets.join(".")}/${newCidr}`;
     env.supernetting.result = newNetwork;
 
-    ElMessage.success("超网计算成功");
+    message("超网计算成功", { type: "success" });
   } catch (error) {
     console.error("超网计算错误:", error);
-    ElMessage.error("计算失败: " + error.message);
+    message("计算失败: " + error.message, { type: "error" });
   }
 };
 
@@ -502,17 +502,17 @@ const copyToClipboard = (text) => {
   navigator.clipboard
     .writeText(text)
     .then(() => {
-      ElMessage.success("复制成功");
+      message("复制成功", { type: "success" });
     })
     .catch(() => {
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     });
 };
 
 // 复制所有结果
 const copyAllResults = () => {
   if (env.outputResults.length === 0) {
-    ElMessage.warning("没有可复制的结果");
+    message("没有可复制的结果", { type: "warning" });
     return;
   }
 

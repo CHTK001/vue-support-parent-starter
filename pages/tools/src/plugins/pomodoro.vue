@@ -249,7 +249,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
-import { ElMessage, ElNotification } from "element-plus";
+import { message } from "@repo/utils";
+import { ElNotification } from "element-plus";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 
 // 状态变量

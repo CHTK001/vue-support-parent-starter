@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { reactive, ref, watch } from "vue";
 import { addSyncConfig, updateSyncConfig } from "../../../api/config";
 import { getSourceList } from "../../../api/source";
@@ -161,13 +161,13 @@ const handleSave = () => {
 
       apiCall
         .then((result) => {
-          ElMessage.success(props.editing ? "配置更新成功" : "配置添加成功");
+          message(props.editing ? "配置更新成功" : "配置添加成功", { type: "success" });
           emit("success");
           handleClose();
         })
         .catch((error) => {
           console.error("保存配置失败:", error);
-          ElMessage.error("操作失败，请重试");
+          message("操作失败，请重试", { type: "error" });
         })
         .finally(() => {
           saving.value = false;

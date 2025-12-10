@@ -144,7 +144,7 @@
 <script setup lang="ts">
 // 直接使用IconifyIconOnline组件，无需变量赋值
 import ScTable from "@repo/components/ScTable/index.vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
 import { onMounted, onUnmounted, reactive, ref } from "vue";
 import {
   deleteSyncConfig,
@@ -330,7 +330,7 @@ const handleSync = (config: VideoSyncConfig) => {
   executeSyncConfig(config.videoSyncConfigId!)
     .then(() => {
       // 成功回调，不需要判断code
-      ElMessage.success("同步任务已启动");
+      message("同步任务已启动", { type: "success" });
       config.videoSyncConfigStatus = "START"; // 同步中状态
       handleSearch();
     })
@@ -396,14 +396,14 @@ const handleStop = (config: VideoSyncConfig) => {
       stopSyncTask(config.videoSyncConfigId!)
         .then(() => {
           // 成功回调，不需要判断code
-          ElMessage.success("同步任务已停止");
+          message("同步任务已停止", { type: "success" });
           config.videoSyncConfigStatus = "STOP"; // 恢复为启用状态
           updateStats();
           handleSearch();
         })
         .catch((error) => {
           console.error("停止同步任务失败:", error);
-          ElMessage.error("停止同步任务失败");
+          message("停止同步任务失败", { type: "error" });
         });
     })
     .catch(() => {
@@ -419,12 +419,12 @@ const toggleConfigStatus = (config: VideoSyncConfig, enable: boolean) => {
     .then(() => {
       // 成功回调，不需要判断code
       config.videoSyncConfigEnable = enable ? !0 : !1;
-      ElMessage.success(`${enable ? "启用" : "禁用"}成功`);
+      message(`${enable ? "启用" : "禁用"}成功`, { type: "success" });
       updateStats();
     })
     .catch((error) => {
       console.error(`${enable ? "启用" : "禁用"}配置失败:`, error);
-      ElMessage.error(`${enable ? "启用" : "禁用"}配置失败`);
+      message(`${enable ? "启用" : "禁用"}配置失败`, { type: "error" });
     });
 };
 
@@ -446,14 +446,14 @@ const deleteConfig = (config: VideoSyncConfig) => {
       deleteSyncConfig(config.videoSyncConfigId!)
         .then(() => {
           // 成功回调，不需要判断code
-          ElMessage.success("删除成功");
+          message("删除成功", { type: "success" });
           if (tableRef.value && tableRef.value.refresh) {
             tableRef.value.refresh();
           }
         })
         .catch((error) => {
           console.error("删除配置失败:", error);
-          ElMessage.error("删除配置失败");
+          message("删除配置失败", { type: "error" });
         });
     })
     .catch(() => {
@@ -465,15 +465,15 @@ const deleteConfig = (config: VideoSyncConfig) => {
  * 测试连接
  */
 const testConnection = (config: VideoSyncConfig) => {
-  ElMessage.info("正在测试连接...");
+  message("正在测试连接...", { type: "info" });
   testSyncConfig(config)
     .then(() => {
       // 成功回调，不需要判断code
-      ElMessage.success("连接测试成功");
+      message("连接测试成功", { type: "success" });
     })
     .catch((error) => {
       console.error("测试连接失败:", error);
-      ElMessage.error("测试连接失败");
+      message("测试连接失败", { type: "error" });
     });
 };
 
@@ -501,10 +501,10 @@ const copyUrl = (url: string) => {
   navigator.clipboard
     .writeText(url)
     .then(() => {
-      ElMessage.success("URL已复制到剪贴板");
+      message("URL已复制到剪贴板", { type: "success" });
     })
     .catch((error) => {
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     });
 };
 
@@ -520,7 +520,7 @@ const refreshLogs = () => {
  */
 const clearLogs = () => {
   syncLogs.value = [];
-  ElMessage.success("日志已清空");
+  message("日志已清空", { type: "success" });
 };
 
 // 工具方法已移至各个组件内部

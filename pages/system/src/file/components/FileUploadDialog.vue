@@ -183,7 +183,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import SparkMD5 from "spark-md5";
 import {
   uploadFile,
@@ -333,7 +333,7 @@ const addFiles = (files: File[]) => {
 
   for (const file of files) {
     if (file.size > maxSize) {
-      ElMessage.warning(`文件 ${file.name} 超过大小限制`);
+      message(`文件 ${file.name} 超过大小限制`, { type: "warning" });
       continue;
     }
 
@@ -441,7 +441,7 @@ const uploadSingleFile = async (item: FileItem) => {
       item.result = res.data;
     } else {
       item.status = "error";
-      ElMessage.error(res.msg || "上传失败");
+      message(res.msg || "上传失败", { type: "error" });
     }
   } catch {
     item.status = "error";
@@ -481,7 +481,7 @@ const uploadChunkedFile = async (item: FileItem) => {
       item.status = "success";
       item.progress = 100;
       item.result = { url: taskRes.data.url };
-      ElMessage.success("文件秒传成功");
+      message("文件秒传成功", { type: "success" });
       return;
     }
 
@@ -508,7 +508,7 @@ const uploadChunkedFile = async (item: FileItem) => {
   } catch (e: unknown) {
     item.status = "error";
     const message = e instanceof Error ? e.message : "上传失败";
-    ElMessage.error(message);
+    message(message, { type: "error" });
   }
 };
 
@@ -543,11 +543,11 @@ const startUpload = async () => {
   isUploading.value = false;
 
   if (uploadStats.success > 0) {
-    ElMessage.success(`成功上传 ${uploadStats.success} 个文件`);
+    message(`成功上传 ${uploadStats.success} 个文件`, { type: "success" });
     emit("uploaded");
   }
   if (uploadStats.error > 0) {
-    ElMessage.warning(`${uploadStats.error} 个文件上传失败`);
+    message(`${uploadStats.error} 个文件上传失败`, { type: "warning" });
   }
 };
 

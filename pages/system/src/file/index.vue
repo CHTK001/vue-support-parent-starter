@@ -322,7 +322,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { useUserStoreHook } from "@repo/core";
 import {
   getFileStats,
@@ -554,10 +555,10 @@ const handleMerge = async (file: SysFileSystem) => {
     });
     const res = await mergeFile(file.sysFileSystemId);
     if (res.code === 200) {
-      ElMessage.success("已触发合并任务");
+      message("已触发合并任务", { type: "success" });
       refresh();
     } else {
-      ElMessage.error(res.msg || "操作失败");
+      message(res.msg || "操作失败", { type: "error" });
     }
   } catch {
     // 取消
@@ -573,10 +574,10 @@ const handleDelete = async (file: SysFileSystem) => {
     });
     const res = await deleteFile(file.sysFileSystemId);
     if (res.code === 200) {
-      ElMessage.success("删除成功");
+      message("删除成功", { type: "success" });
       refresh();
     } else {
-      ElMessage.error(res.msg || "删除失败");
+      message(res.msg || "删除失败", { type: "error" });
     }
   } catch {
     // 取消
@@ -595,9 +596,9 @@ const handleCopyUrl = async (file: SysFileSystem) => {
   if (file.sysFileSystemHttpUrl) {
     try {
       await navigator.clipboard.writeText(file.sysFileSystemHttpUrl);
-      ElMessage.success("已复制到剪贴板");
+      message("已复制到剪贴板", { type: "success" });
     } catch {
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     }
   }
 };

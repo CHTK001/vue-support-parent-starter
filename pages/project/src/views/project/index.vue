@@ -229,7 +229,7 @@
 import { useRenderIcon } from "@repo/components";
 import { fetchListDictItem, router } from "@repo/core";
 import { deepCopy, useDefer } from "@repo/utils";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { defineAsyncComponent, onMounted, reactive, ref } from "vue";
 import {
   fetchDeleteProject,
@@ -643,7 +643,7 @@ const handleEventCustom = async (row, item1, event) => {
     }
   } catch (error) {
     console.error(`功能 ${item1.code} 跳转失败:`, error);
-    ElMessage.error(`页面跳转失败，请重试`);
+    message(`页面跳转失败，请重试`, { type: "error" });
   }
 };
 

@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 // 响应式数据
 const env = reactive({
@@ -155,7 +155,7 @@ const convertBase = () => {
     addToHistory(env.inputValue, env.inputBase, env.outputResults);
   } catch (error) {
     console.error("进制转换错误:", error);
-    ElMessage.error(error.message || "进制转换失败");
+    message(error.message || "进制转换失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -199,7 +199,7 @@ const loadFromHistory = (item) => {
   env.inputBase = item.inputBase;
   env.outputResults = item.results;
 
-  ElMessage.success("已从历史记录加载");
+  message("已从历史记录加载", { type: "success" });
 };
 
 // 复制到剪贴板
@@ -207,10 +207,10 @@ const copyToClipboard = (text) => {
   navigator.clipboard
     .writeText(text)
     .then(() => {
-      ElMessage.success("复制成功");
+      message("复制成功", { type: "success" });
     })
     .catch(() => {
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     });
 };
 
@@ -219,7 +219,7 @@ const clearForm = () => {
   env.inputValue = "";
   env.outputResults = [];
 
-  ElMessage.success("已清空");
+  message("已清空", { type: "success" });
 };
 
 // 切换显示扩展进制
@@ -251,10 +251,10 @@ const convertChar = () => {
     }
 
     env.charOutput = result;
-    ElMessage.success("字符转换成功");
+    message("字符转换成功", { type: "success" });
   } catch (error) {
     console.error("字符转换错误:", error);
-    ElMessage.error(error.message || "字符转换失败");
+    message(error.message || "字符转换失败", { type: "error" });
   }
 };
 

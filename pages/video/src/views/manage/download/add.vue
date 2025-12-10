@@ -6,15 +6,20 @@
     </div>
 
     <div class="download-add-content">
-      <AddDownloadLink :mode="mode" :initial-data="initialData" :video-id="videoId" @success="handleSuccess" />
+      <AddDownloadLink
+        :mode="mode"
+        :initial-data="initialData"
+        :video-id="videoId"
+        @success="handleSuccess"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { message } from "@repo/utils";
+import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
 import AddDownloadLink from "../components/AddDownloadLink.vue";
 import type { DownloadItem } from "../../../types/upload";
 
@@ -48,14 +53,14 @@ const goBack = () => {
 
 // 处理提交成功
 const handleSuccess = (data: DownloadItem) => {
-  ElMessage.success(mode.value === "add" ? "添加成功" : "更新成功");
+  message(mode.value === "add" ? "添加成功" : "更新成功", { type: "success" });
 
   // 如果是编辑模式，返回列表页
   if (mode.value === "edit") {
     goBack();
   } else {
     // 如果是添加模式，可以继续添加或返回列表
-    ElMessage.info("可以继续添加下载链接或返回列表");
+    message("可以继续添加下载链接或返回列表", { type: "info" });
   }
 };
 
@@ -69,7 +74,7 @@ const handleSuccess = (data: DownloadItem) => {
 //     // }
 //   } catch (error) {
 //     console.error("加载下载链接数据出错:", error);
-//     ElMessage.error("加载数据失败");
+//     message("加载数据失败", { type: "error" });
 //   }
 // };
 </script>
@@ -104,7 +109,11 @@ const handleSuccess = (data: DownloadItem) => {
       left: 0;
       width: 40px;
       height: 3px;
-      background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      background: linear-gradient(
+        90deg,
+        var(--el-color-primary),
+        var(--el-color-primary-light-3)
+      );
       border-radius: 3px;
     }
   }

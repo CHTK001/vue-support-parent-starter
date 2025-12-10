@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { ElMessage } from 'element-plus';
+import { message } from '@repo/utils';
 
 /**
  * 剪贴板操作 Hook
@@ -49,7 +49,7 @@ export default function useClipboard() {
       copyError.value = null;
       
       if (showSuccessMsg) {
-        ElMessage.success('已复制到剪贴板');
+        message('已复制到剪贴板', { type: 'success' });
       }
       
       return true;
@@ -58,7 +58,7 @@ export default function useClipboard() {
       copied.value = false;
       copyError.value = error.message;
       
-      ElMessage.error(`复制失败: ${error.message}`);
+      message(`复制失败: ${error.message}`, { type: 'error' });
       return false;
     }
   };
@@ -102,7 +102,7 @@ export default function useClipboard() {
       return text;
     } catch (error) {
       console.error('从剪贴板获取内容失败:', error);
-      ElMessage.error(`获取剪贴板内容失败: ${error.message}`);
+      message(`获取剪贴板内容失败: ${error.message}`, { type: 'error' });
       return '';
     }
   };

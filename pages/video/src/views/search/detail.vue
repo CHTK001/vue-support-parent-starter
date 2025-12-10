@@ -20,8 +20,15 @@
         <!-- 左侧海报和播放区域 -->
         <div class="poster-section">
           <div class="video-poster">
-            <img :src="videoDetail.poster || '/placeholder-video.jpg'" :alt="videoDetail.title" />
-            <div class="poster-overlay" @click="playVideo" v-if="videoDetail.playUrl">
+            <img
+              :src="videoDetail.poster || '/placeholder-video.jpg'"
+              :alt="videoDetail.title"
+            />
+            <div
+              class="poster-overlay"
+              @click="playVideo"
+              v-if="videoDetail.playUrl"
+            >
               <IconifyIconOnline icon="ep:video-play" class="play-icon" />
               <span class="play-text">立即播放</span>
             </div>
@@ -47,11 +54,19 @@
           <div class="title-section">
             <h1 class="video-title">{{ videoDetail.title }}</h1>
             <div class="basic-info">
-              <el-tag type="primary" size="large">{{ videoDetail.type }}</el-tag>
+              <el-tag type="primary" size="large">{{
+                videoDetail.type
+              }}</el-tag>
               <el-tag size="large">{{ videoDetail.year }}</el-tag>
               <el-tag size="large">{{ videoDetail.region }}</el-tag>
-              <el-tag size="large" v-if="videoDetail.language">{{ videoDetail.language }}</el-tag>
-              <el-tag size="large" :type="videoDetail.status === '已完结' ? 'success' : 'warning'" v-if="videoDetail.status">
+              <el-tag size="large" v-if="videoDetail.language">{{
+                videoDetail.language
+              }}</el-tag>
+              <el-tag
+                size="large"
+                :type="videoDetail.status === '已完结' ? 'success' : 'warning'"
+                v-if="videoDetail.status"
+              >
                 {{ videoDetail.status }}
               </el-tag>
             </div>
@@ -66,7 +81,10 @@
               <el-descriptions-item label="导演" v-if="videoDetail.director">
                 {{ videoDetail.director }}
               </el-descriptions-item>
-              <el-descriptions-item label="主演" v-if="videoDetail.cast && videoDetail.cast.length > 0">
+              <el-descriptions-item
+                label="主演"
+                v-if="videoDetail.cast && videoDetail.cast.length > 0"
+              >
                 {{ videoDetail.cast.join("、") }}
               </el-descriptions-item>
               <el-descriptions-item label="类型">
@@ -94,20 +112,37 @@
           </div>
 
           <!-- 下载地址 -->
-          <div class="download-section" v-if="videoDetail.downloadUrls && videoDetail.downloadUrls.length > 0">
+          <div
+            class="download-section"
+            v-if="
+              videoDetail.downloadUrls && videoDetail.downloadUrls.length > 0
+            "
+          >
             <h3>下载地址</h3>
             <div class="download-list">
-              <div v-for="(download, index) in videoDetail.downloadUrls" :key="index" class="download-item">
+              <div
+                v-for="(download, index) in videoDetail.downloadUrls"
+                :key="index"
+                class="download-item"
+              >
                 <div class="download-info">
                   <span class="download-quality">{{ download.quality }}</span>
                   <span class="download-url">{{ download.url }}</span>
                 </div>
                 <div class="download-actions">
-                  <el-button type="primary" size="small" @click="copyDownloadUrl(download.url)">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="copyDownloadUrl(download.url)"
+                  >
                     <IconifyIconOnline icon="ep:copy-document" />
                     复制链接
                   </el-button>
-                  <el-button type="success" size="small" @click="downloadVideo(download.url)">
+                  <el-button
+                    type="success"
+                    size="small"
+                    @click="downloadVideo(download.url)"
+                  >
                     <IconifyIconOnline icon="ep:download" />
                     下载
                   </el-button>
@@ -118,7 +153,12 @@
 
           <!-- 操作按钮 -->
           <div class="action-section">
-            <el-button type="primary" size="large" @click="playVideo" v-if="videoDetail.playUrl">
+            <el-button
+              type="primary"
+              size="large"
+              @click="playVideo"
+              v-if="videoDetail.playUrl"
+            >
               <IconifyIconOnline icon="ep:video-play" />
               在线播放
             </el-button>
@@ -145,7 +185,7 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -210,17 +250,29 @@ const loadVideoDetail = async (id: string) => {
       language: "国语",
       status: "已完结",
       downloadUrls: [
-        { quality: "4K超清 (3.2GB)", url: "https://download1.example.com/liulangdiqiu2_4k.mp4" },
-        { quality: "1080P高清 (1.8GB)", url: "https://download2.example.com/liulangdiqiu2_1080p.mp4" },
-        { quality: "720P标清 (1.2GB)", url: "https://download3.example.com/liulangdiqiu2_720p.mp4" },
-        { quality: "480P流畅 (800MB)", url: "https://download4.example.com/liulangdiqiu2_480p.mp4" },
+        {
+          quality: "4K超清 (3.2GB)",
+          url: "https://download1.example.com/liulangdiqiu2_4k.mp4",
+        },
+        {
+          quality: "1080P高清 (1.8GB)",
+          url: "https://download2.example.com/liulangdiqiu2_1080p.mp4",
+        },
+        {
+          quality: "720P标清 (1.2GB)",
+          url: "https://download3.example.com/liulangdiqiu2_720p.mp4",
+        },
+        {
+          quality: "480P流畅 (800MB)",
+          url: "https://download4.example.com/liulangdiqiu2_480p.mp4",
+        },
       ],
       playUrl: "https://play.example.com/video1",
     };
 
     videoDetail.value = mockDetail;
   } catch (error) {
-    ElMessage.error("加载视频详情失败");
+    message("加载视频详情失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -239,9 +291,9 @@ const playVideo = () => {
 const copyDownloadUrl = async (url: string) => {
   try {
     await navigator.clipboard.writeText(url);
-    ElMessage.success("下载链接已复制到剪贴板");
+    message("下载链接已复制到剪贴板", { type: "success" });
   } catch (error) {
-    ElMessage.error("复制失败，请手动复制");
+    message("复制失败，请手动复制", { type: "error" });
   }
 };
 
@@ -250,13 +302,13 @@ const downloadVideo = (url: string) => {
 };
 
 const addToFavorites = () => {
-  ElMessage.success("已添加到收藏夹");
+  message("已添加到收藏夹", { type: "success" });
 };
 
 const shareVideo = () => {
   const shareUrl = window.location.href;
   copyDownloadUrl(shareUrl);
-  ElMessage.success("分享链接已复制到剪贴板");
+  message("分享链接已复制到剪贴板", { type: "success" });
 };
 
 const formatViews = (views: number) => {
@@ -464,7 +516,7 @@ const formatViews = (views: number) => {
 
 .download-url {
   font-size: 13px;
-   color: var(--el-text-color-primary);
+  color: var(--el-text-color-primary);
   font-family: monospace;
 }
 

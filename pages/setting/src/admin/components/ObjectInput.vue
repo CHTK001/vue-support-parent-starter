@@ -22,7 +22,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 /**
  * 组件属性定义
@@ -111,7 +111,7 @@ const formatJson = () => {
     const formatted = JSON.stringify(parsed, null, 2);
     jsonString.value = formatted;
     emit("update:modelValue", formatted);
-    ElMessage.success("JSON已格式化");
+    message("JSON已格式化", { type: "success" });
   } catch (e) {
     error.value = "格式化失败，请检查JSON格式";
   }
@@ -126,7 +126,7 @@ const compactJson = () => {
     const compact = JSON.stringify(parsed);
     jsonString.value = compact;
     emit("update:modelValue", compact);
-    ElMessage.success("JSON已压缩");
+    message("JSON已压缩", { type: "success" });
   } catch (e) {
     error.value = "压缩失败，请检查JSON格式";
   }

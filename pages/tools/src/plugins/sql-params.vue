@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import Prism from "prismjs";
 import "prismjs/components/prism-sql.min.js";
@@ -193,10 +193,10 @@ const fillSQLParams = () => {
       Prism.highlightAll();
     }, 0);
 
-    ElMessage.success("SQL参数填充成功");
+    message("SQL参数填充成功", { type: "success" });
   } catch (error) {
     console.error("SQL参数填充错误:", error);
-    ElMessage.error(error.message || "参数填充失败");
+    message(error.message || "参数填充失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -258,7 +258,7 @@ const loadFromHistory = (item) => {
     Prism.highlightAll();
   }, 0);
 
-  ElMessage.success("已从历史记录加载");
+  message("已从历史记录加载", { type: "success" });
 };
 
 // 应用模板
@@ -267,7 +267,7 @@ const applyTemplate = (template) => {
   env.paramsInput = template.params;
   env.paramsType = template.type;
 
-  ElMessage.success("已应用模板");
+  message("已应用模板", { type: "success" });
 };
 
 // 复制到剪贴板
@@ -275,17 +275,17 @@ const copyToClipboard = (text) => {
   navigator.clipboard
     .writeText(text)
     .then(() => {
-      ElMessage.success("复制成功");
+      message("复制成功", { type: "success" });
     })
     .catch(() => {
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     });
 };
 
 // 格式化SQL
 const formatSQL = () => {
   if (!env.inputSQL) {
-    ElMessage.warning("请先输入SQL语句");
+    message("请先输入SQL语句", { type: "warning" });
     return;
   }
 
@@ -296,10 +296,10 @@ const formatSQL = () => {
       indent: env.formatOptions.indent,
     });
 
-    ElMessage.success("SQL格式化成功");
+    message("SQL格式化成功", { type: "success" });
   } catch (e) {
     console.error("SQL格式化错误:", e);
-    ElMessage.error("SQL格式化失败: " + e.message);
+    message("SQL格式化失败: " + e.message, { type: "error" });
   }
 };
 
@@ -309,7 +309,7 @@ const clearForm = () => {
   env.paramsInput = "";
   env.outputSQL = "";
 
-  ElMessage.success("已清空");
+  message("已清空", { type: "success" });
 };
 
 // 组件挂载时初始化
@@ -413,7 +413,7 @@ const parseMybatisLog = () => {
     // 关闭MyBatis日志输入框
     env.mybatisLog.enabled = false;
 
-    ElMessage.success("MyBatis日志解析成功");
+    message("MyBatis日志解析成功", { type: "success" });
 
     // 自动填充参数
     setTimeout(() => {
@@ -421,7 +421,7 @@ const parseMybatisLog = () => {
     }, 100);
   } catch (error) {
     console.error("MyBatis日志解析错误:", error);
-    ElMessage.error(error.message || "日志解析失败");
+    message(error.message || "日志解析失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -1125,7 +1125,7 @@ Parameters: 123(Integer)</code></pre>
 // 复制所有结果
 const copyAllResults = () => {
   if (!env.outputSQL) {
-    ElMessage.warning("没有可复制的结果");
+    message("没有可复制的结果", { type: "warning" });
     return;
   }
 

@@ -139,7 +139,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { useClipboard } from "@vueuse/core";
 
 // 密码生成选项
@@ -170,7 +170,7 @@ const similarChars = "iIlL1oO0";
 const generatePassword = () => {
   // 至少要选择一种字符类型
   if (!includeUppercase.value && !includeLowercase.value && !includeNumbers.value && !includeSymbols.value) {
-    ElMessage.warning("请至少选择一种字符类型");
+    message("请至少选择一种字符类型", { type: "warning" });
     includeUppercase.value = true;
     return;
   }
@@ -190,7 +190,7 @@ const generatePassword = () => {
 
   // 如果排除重复字符，但字符集太小
   if (excludeDuplicates.value && charset.length < passwordLength.value) {
-    ElMessage.warning(`无法生成 ${passwordLength.value} 个不重复字符的密码，可用字符集只有 ${charset.length} 个字符`);
+    message(`无法生成 ${passwordLength.value} 个不重复字符的密码，可用字符集只有 ${charset.length} 个字符`, { type: "warning" });
     excludeDuplicates.value = false;
     return;
   }
@@ -242,16 +242,16 @@ const generateBatch = () => {
 // 复制密码
 const copyPassword = async () => {
   if (!generatedPassword.value) {
-    ElMessage.warning("请先生成密码");
+    message("请先生成密码", { type: "warning" });
     return;
   }
 
   try {
     await copyText(generatedPassword.value);
-    ElMessage.success("密码已复制到剪贴板");
+    message("密码已复制到剪贴板", { type: "success" });
   } catch (error) {
     console.error("复制失败:", error);
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 };
 
@@ -259,27 +259,27 @@ const copyPassword = async () => {
 const copyBatchPassword = async (password) => {
   try {
     await copyText(password);
-    ElMessage.success("密码已复制到剪贴板");
+    message("密码已复制到剪贴板", { type: "success" });
   } catch (error) {
     console.error("复制失败:", error);
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 };
 
 // 复制所有批量生成的密码
 const copyAllPasswords = async () => {
   if (batchPasswords.value.length === 0) {
-    ElMessage.warning("没有可复制的密码");
+    message("没有可复制的密码", { type: "warning" });
     return;
   }
 
   try {
     const text = batchPasswords.value.join("\n");
     await copyText(text);
-    ElMessage.success("所有密码已复制到剪贴板");
+    message("所有密码已复制到剪贴板", { type: "success" });
   } catch (error) {
     console.error("复制失败:", error);
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 };
 

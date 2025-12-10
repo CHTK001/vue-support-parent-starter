@@ -149,7 +149,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 
 const router = useRouter();
@@ -258,7 +259,7 @@ const pasteUrl = async () => {
       parseForm.url = text;
     }
   } catch (error) {
-    ElMessage.warning("无法访问剪贴板，请手动粘贴链接");
+    message("无法访问剪贴板，请手动粘贴链接", { type: "warning" });
   }
 };
 
@@ -312,9 +313,9 @@ const handleParse = async () => {
         // 保存到本地存储
         saveHistoryToLocalStorage();
 
-        ElMessage.success("解析成功！");
+        message("解析成功！", { type: "success" });
       } catch (error) {
-        ElMessage.error("解析失败，请尝试更换解析接口");
+        message("解析失败，请尝试更换解析接口", { type: "error" });
         console.error("解析错误:", error);
       } finally {
         parsing.value = false;
@@ -340,9 +341,9 @@ const copyPlayUrl = async () => {
 
   try {
     await navigator.clipboard.writeText(parseResult.value.playUrl);
-    ElMessage.success("播放链接已复制到剪贴板");
+    message("播放链接已复制到剪贴板", { type: "success" });
   } catch (error) {
-    ElMessage.error("复制失败，请手动复制");
+    message("复制失败，请手动复制", { type: "error" });
   }
 };
 
@@ -355,7 +356,7 @@ const openInNewTab = () => {
 // 添加到收藏
 const addToFavorites = () => {
   if (!parseResult.value) return;
-  ElMessage.success("已添加到收藏");
+  message("已添加到收藏", { type: "success" });
   // 实际实现收藏功能的代码
 };
 
@@ -393,7 +394,7 @@ const removeFromHistory = (item) => {
     .then(() => {
       parseHistory.value = parseHistory.value.filter((record) => record.id !== item.id);
       saveHistoryToLocalStorage();
-      ElMessage.success("已从历史记录中删除");
+      message("已从历史记录中删除", { type: "success" });
     })
     .catch(() => {});
 };

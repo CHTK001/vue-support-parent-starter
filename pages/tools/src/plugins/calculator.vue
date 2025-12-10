@@ -355,7 +355,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import { useClipboard } from "@vueuse/core";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 
@@ -565,7 +565,7 @@ const calculateResult = () => {
       currentExpression.value = currentResult.value.toString();
     }
   } catch (error) {
-    ElMessage.error("计算错误: " + error.message);
+    message("计算错误: " + error.message, { type: "error" });
   }
 };
 
@@ -590,16 +590,16 @@ const backspace = () => {
 // 复制结果
 const copyResult = async () => {
   if (!currentResult.value) {
-    ElMessage.warning("没有可复制的结果");
+    message("没有可复制的结果", { type: "warning" });
     return;
   }
 
   try {
     await copyText(currentResult.value.toString());
-    ElMessage.success("结果已复制到剪贴板");
+    message("结果已复制到剪贴板", { type: "success" });
   } catch (error) {
     console.error("复制失败:", error);
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 };
 
@@ -607,10 +607,10 @@ const copyResult = async () => {
 const copyHistoryItem = async (item) => {
   try {
     await copyText(`${item.expression} = ${item.result}`);
-    ElMessage.success("已复制到剪贴板");
+    message("已复制到剪贴板", { type: "success" });
   } catch (error) {
     console.error("复制失败:", error);
-    ElMessage.error("复制失败");
+    message("复制失败", { type: "error" });
   }
 };
 
@@ -628,7 +628,7 @@ const clearHistory = () => {
 // 切换弧度/角度模式
 const convertToRad = () => {
   isInRadianMode.value = !isInRadianMode.value;
-  ElMessage.info(`已切换到${isInRadianMode.value ? "弧度" : "角度"}模式`);
+  message(`已切换到${isInRadianMode.value ? "弧度" : "角度"}模式`, { type: "info" });
 };
 
 // 切换内存面板
@@ -640,9 +640,9 @@ const toggleMemory = () => {
 const addToMemory = () => {
   if (currentResult.value !== "" && !isNaN(currentResult.value)) {
     memory.value.push(parseFloat(currentResult.value));
-    ElMessage.success("已添加到内存");
+    message("已添加到内存", { type: "success" });
   } else {
-    ElMessage.warning("没有有效的结果可添加");
+    message("没有有效的结果可添加", { type: "warning" });
   }
 };
 
@@ -655,13 +655,13 @@ const recallMemory = (value) => {
 // 从内存中移除
 const removeFromMemory = (index) => {
   memory.value.splice(index, 1);
-  ElMessage.success("已从内存移除");
+  message("已从内存移除", { type: "success" });
 };
 
 // 清空内存
 const clearMemory = () => {
   memory.value = [];
-  ElMessage.success("内存已清空");
+  message("内存已清空", { type: "success" });
 };
 
 // 阶乘函数

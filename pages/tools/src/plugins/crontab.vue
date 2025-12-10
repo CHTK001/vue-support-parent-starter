@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue";
 import { useClipboard } from "@vueuse/core";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import ScCron from "@repo/components/ScCron/index.vue";
 
 const { copy } = useClipboard();
@@ -136,7 +136,7 @@ const calculateNextExecutions = async () => {
     }
     env.nextExecutions = _result.data;
   } catch (error) {
-    ElMessage.error("Cron 表达式解析错误: " + error.message);
+    message("Cron 表达式解析错误: " + error.message, { type: "error" });
     env.nextExecutions = [];
   } finally {
     env.loading = false;
@@ -161,7 +161,7 @@ const updateUIFromCron = () => {
       env.weekday = parts[4];
     }
   } catch (error) {
-    ElMessage.error("解析Cron表达式失败");
+    message("解析Cron表达式失败", { type: "error" });
   }
 };
 
@@ -169,11 +169,11 @@ const updateUIFromCron = () => {
 const copyToClipboard = (text) => {
   copy(text)
     .then(() => {
-      ElMessage.success("已复制到剪贴板");
+      message("已复制到剪贴板", { type: "success" });
     })
     .catch((err) => {
       console.error("复制失败:", err);
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     });
 };
 

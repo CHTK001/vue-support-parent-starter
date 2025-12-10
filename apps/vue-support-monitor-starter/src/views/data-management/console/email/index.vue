@@ -1,10 +1,11 @@
 <template>
-  <div class="page"><EmailConsole :id="id" /></div>
+  <div class="page">
+    <el-empty description="邮件控制台功能开发中" />
+  </div>
 </template>
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import EmailConsole from "@/views/data-management/console/email/emailConsole.vue";
 const id = computed(() => Number(useRoute().query.id));
 </script>
 <style scoped>

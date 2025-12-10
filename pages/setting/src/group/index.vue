@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import {
-  ElMessage,
-  ElMessageBox,
+import { message } from "@repo/utils";
+import { ElMessageBox,
   type FormInstance,
   type FormRules,
 } from "element-plus";
@@ -73,7 +72,7 @@ const getGroupList = async (): Promise<void> => {
     await nextTick();
   } catch (error) {
     console.error("获取组列表失败:", error);
-    ElMessage.error("获取组列表失败");
+    message("获取组列表失败", { type: "error" });
   } finally {
     hideLoading();
   }
@@ -99,7 +98,7 @@ const handleDragEnd = (): void => {
       await handleBatchUpdate(updatedList);
     } catch (error) {
       console.error("拖拽排序失败:", error);
-      ElMessage.error("拖拽排序失败");
+      message("拖拽排序失败", { type: "error" });
       await getGroupList();
     }
   }, DRAG_DEBOUNCE_DELAY);
@@ -115,10 +114,10 @@ const handleBatchUpdate = async (
   try {
     showLoading();
     await fetchBatchUpdateForGroup(updatedList);
-    ElMessage.success("排序更新成功");
+    message("排序更新成功", { type: "success" });
   } catch (error) {
     console.error("批量更新失败:", error);
-    ElMessage.error("排序更新失败");
+    message("排序更新失败", { type: "error" });
     await getGroupList();
   } finally {
     hideLoading();
@@ -166,15 +165,15 @@ const handleDelete = async (row: SysSettingGroup): Promise<void> => {
     });
 
     if (res.code === "00000") {
-      ElMessage.success("删除成功");
+      message("删除成功", { type: "success" });
       await getGroupList();
     } else {
-      ElMessage.error(res.msg || "删除失败");
+      message(res.msg || "删除失败", { type: "error" });
     }
   } catch (error) {
     if (error !== "cancel") {
       console.error("删除失败:", error);
-      ElMessage.error("删除失败");
+      message("删除失败", { type: "error" });
     }
   } finally {
     hideLoading();
@@ -192,15 +191,15 @@ const handleSave = async (): Promise<void> => {
     const res = await fetchSaveOrUpdateForGroup(formData);
 
     if (res.code === "00000") {
-      ElMessage.success(isEdit.value ? "更新成功" : "创建成功");
+      message(isEdit.value ? "更新成功" : "创建成功", { type: "success" });
       dialogVisible.value = false;
       await getGroupList();
     } else {
-      ElMessage.error(res.msg || "保存失败");
+      message(res.msg || "保存失败", { type: "error" });
     }
   } catch (error) {
     console.error("保存失败:", error);
-    ElMessage.error("保存失败");
+    message("保存失败", { type: "error" });
   } finally {
     hideLoading();
   }

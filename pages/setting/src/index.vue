@@ -7,7 +7,8 @@ const GroupManagement = defineAsyncComponent(() => import("./group/index.vue"));
 
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { localStorageProxy } from "@repo/utils";
-import { ElMessage, ElLoading } from "element-plus";
+import { message } from "@repo/utils";
+import { ElLoading } from "element-plus";
 import { useI18n } from "vue-i18n";
 import { fetchListForGroup, type SysSettingGroup } from "./api/group";
 const localStorageProxyObject = localStorageProxy();
@@ -153,13 +154,13 @@ const onRowClick = async (it) => {
     // 数据验证：确保item存在且有必要的属性
     if (!item) {
       console.error('未找到对应的配置项:', _tabValue);
-      ElMessage.error('配置项不存在，请刷新页面重试');
+      message('配置项不存在，请刷新页面重试', { type: "error" });
       return;
     }
 
     if (!item.group) {
       console.error('配置项缺少group属性:', item);
-      ElMessage.error('配置项数据异常，请联系管理员');
+      message('配置项数据异常，请联系管理员', { type: "error" });
       return;
     }
 
@@ -190,7 +191,7 @@ const onRowClick = async (it) => {
           }
 
           if (!saveLayoutRef.value) {
-            ElMessage.error('组件加载超时，请刷新页面重试');
+            message('组件加载超时，请刷新页面重试', { type: "error" });
             componentLoadStatus.retryCount = 0; // 重置重试计数
             return;
           }
@@ -209,7 +210,7 @@ const onRowClick = async (it) => {
         await saveLayoutRef.value.open();
       } catch (error) {
         console.error('打开设置布局失败:', error);
-        ElMessage.error('打开设置页面失败，请重试');
+        message('打开设置页面失败，请重试', { type: "error" });
         componentLoadStatus.retryCount = 0; // 重置重试计数
       }
     }
@@ -305,7 +306,7 @@ const loadProductsConfig = async () => {
     // 接口异常时使用默认配置
     productsConfig.splice(0, productsConfig.length, ...defaultProductsConfig);
     console.error("加载配置组失败:", error);
-    ElMessage.warning("加载配置组失败，使用默认配置");
+    message("加载配置组失败，使用默认配置", { type: "warning" });
   } finally {
     // 隐藏加载提示
     loadingState.loadingInstance = false;

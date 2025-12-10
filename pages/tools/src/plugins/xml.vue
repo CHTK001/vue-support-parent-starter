@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 import Prism from "prismjs";
 // 修改导入方式，使用动态导入
 import "prismjs/themes/prism-tomorrow.css";
@@ -126,10 +126,10 @@ const formatXML = () => {
       Prism.highlightAll();
     }, 0);
 
-    ElMessage.success("XML格式化成功");
+    message("XML格式化成功", { type: "success" });
   } catch (error) {
     console.error("XML格式化错误:", error);
-    ElMessage.error(error.message || "XML格式化失败");
+    message(error.message || "XML格式化失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -154,10 +154,10 @@ const minifyXML = () => {
       Prism.highlightAll();
     }, 0);
 
-    ElMessage.success("XML压缩成功");
+    message("XML压缩成功", { type: "success" });
   } catch (error) {
     console.error("XML压缩错误:", error);
-    ElMessage.error(error.message || "XML压缩失败");
+    message(error.message || "XML压缩失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -193,10 +193,10 @@ const validateXML = () => {
       Prism.highlightAll();
     }, 0);
 
-    ElMessage.success("XML验证通过");
+    message("XML验证通过", { type: "success" });
   } catch (error) {
     console.error("XML验证错误:", error);
-    ElMessage.error(error.message || "XML验证失败");
+    message(error.message || "XML验证失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -229,10 +229,10 @@ const xml2json = () => {
     // 添加到历史记录
     addToHistory("XML转JSON", env.inputXML, env.convertOptions.outputJSON);
 
-    ElMessage.success("XML转JSON成功");
+    message("XML转JSON成功", { type: "success" });
   } catch (error) {
     console.error("XML转JSON错误:", error);
-    ElMessage.error(error.message || "XML转JSON失败");
+    message(error.message || "XML转JSON失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -265,10 +265,10 @@ const json2xml = () => {
       Prism.highlightAll();
     }, 0);
 
-    ElMessage.success("JSON转XML成功");
+    message("JSON转XML成功", { type: "success" });
   } catch (error) {
     console.error("JSON转XML错误:", error);
-    ElMessage.error(error.message || "JSON转XML失败");
+    message(error.message || "JSON转XML失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -337,9 +337,9 @@ const queryXPath = () => {
     env.xpathOptions.results = results;
 
     if (results.length === 0) {
-      ElMessage.warning("XPath查询未找到匹配结果");
+      message("XPath查询未找到匹配结果", { type: "warning" });
     } else {
-      ElMessage.success(`XPath查询成功，找到 ${results.length} 个结果`);
+      message(`XPath查询成功，找到 ${results.length} 个结果`, { type: "success" });
     }
 
     // 高亮显示
@@ -348,7 +348,7 @@ const queryXPath = () => {
     }, 0);
   } catch (error) {
     console.error("XPath查询错误:", error);
-    ElMessage.error(error.message || "XPath查询失败");
+    message(error.message || "XPath查询失败", { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -505,7 +505,7 @@ const loadFromHistory = (item) => {
     Prism.highlightAll();
   }, 0);
 
-  ElMessage.success("已从历史记录加载");
+  message("已从历史记录加载", { type: "success" });
 };
 
 // 应用示例
@@ -517,7 +517,7 @@ const applyExample = (example) => {
     Prism.highlightAll();
   }, 0);
 
-  ElMessage.success("已应用示例");
+  message("已应用示例", { type: "success" });
 };
 
 // 复制到剪贴板
@@ -525,10 +525,10 @@ const copyToClipboard = (text) => {
   navigator.clipboard
     .writeText(text)
     .then(() => {
-      ElMessage.success("复制成功");
+      message("复制成功", { type: "success" });
     })
     .catch(() => {
-      ElMessage.error("复制失败");
+      message("复制失败", { type: "error" });
     });
 };
 
@@ -541,7 +541,7 @@ const clearForm = () => {
   env.xpathOptions.query = "";
   env.xpathOptions.results = [];
 
-  ElMessage.success("已清空");
+  message("已清空", { type: "success" });
 };
 
 // 执行操作
@@ -566,7 +566,7 @@ const executeOperation = () => {
       queryXPath();
       break;
     default:
-      ElMessage.warning("请选择操作类型");
+      message("请选择操作类型", { type: "warning" });
   }
 };
 
