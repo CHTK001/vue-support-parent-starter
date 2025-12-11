@@ -697,6 +697,19 @@ export interface ViewerInfo {
   supportedContentTypes: string[];
   supportedExtensions: string[];
   targetFormat: string;
+  // OnlyOffice特有配置
+  serverUrl?: string;
+  jwtSecret?: string;
+  jwtEnabled?: boolean;
+}
+
+/**
+ * OnlyOffice配置
+ */
+export interface OnlyOfficeViewerConfig {
+  serverUrl?: string;
+  jwtSecret?: string;
+  jwtEnabled?: boolean;
 }
 
 /**
@@ -704,6 +717,8 @@ export interface ViewerInfo {
  */
 export interface ViewerConfig {
   disabledViewers: string[];
+  // OnlyOffice配置
+  onlyoffice?: OnlyOfficeViewerConfig;
 }
 
 /**
