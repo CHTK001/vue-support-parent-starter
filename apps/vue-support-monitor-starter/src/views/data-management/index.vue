@@ -379,8 +379,7 @@ import { useRouter } from "vue-router";
 import { ServerDataStatic } from "@/types/server-data";
 import EditDialog from "./modules/EditDialog.vue";
 import ConsoleSettingDialog from "./modules/ConsoleSettingDialog.vue";
-import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import BackConsoleDialog from "./modules/BackConsoleDialog.vue";
 import { format } from "sql-formatter";
 import Prism from "prismjs"; // ② 高亮核心
@@ -587,7 +586,7 @@ function openSetting(row: SystemDataSetting) {
 }
 
 function onSavedSetting() {
-  message("已保存控制台设置", { type: "success" });
+  ElMessage.success("已保存控制台设置");
 }
 
 async function remove(row: SystemDataSetting) {
@@ -596,7 +595,7 @@ async function remove(row: SystemDataSetting) {
   });
   const res = await deleteSystemDataSetting(row.systemDataSettingId as number);
   if (res?.success) {
-    message("已删除", { type: "success" });
+    ElMessage.success("已删除");
     load();
   }
 }
@@ -612,7 +611,7 @@ async function toggleBackup(row: SystemDataSetting) {
   const on = backupOn.value[id];
   const res = on ? await stopBackup(id) : await startBackup(id);
   if (!res?.success) {
-    message(res?.msg || "操作失败", { type: "error" });
+    ElMessage.error(res?.msg || "操作失败");
     return;
   }
   backupOn.value[id] = !on;
@@ -625,17 +624,17 @@ async function onUploadDriver(row: SystemDataSetting, fileEvent: any) {
       return;
     }
     if (!row.systemDataSettingId) {
-      message("请先保存配置再上传驱动", { type: "warning" });
+      ElMessage.warning("请先保存配置再上传驱动");
       return;
     }
     const res = await uploadJdbcDriver(row.systemDataSettingId, raw);
     if (!res?.success) {
-      message(res?.msg || "上传失败", { type: "error" });
+      ElMessage.error(res?.msg || "上传失败");
       return;
     }
-    message("上传成功", { type: "success" });
+    ElMessage.success("上传成功");
   } catch (e: any) {
-    message(e?.message || "上传失败", { type: "error" });
+    ElMessage.error(e?.message || "上传失败");
   }
 }
 

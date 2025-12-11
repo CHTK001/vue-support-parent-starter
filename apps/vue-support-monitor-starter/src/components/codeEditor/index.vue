@@ -377,8 +377,23 @@ export default {
         extraKeys: {
           "Ctrl-Space": "autocomplete",
           "Alt-/": "autocomplete",
+          Tab: (cm) => {
+            // Tab 键触发自动补全或缩进
+            if (cm.somethingSelected()) {
+              cm.indentSelection("add");
+            } else {
+              const cursor = cm.getCursor();
+              const token = cm.getTokenAt(cursor);
+              // 如果当前有输入内容，触发自动补全
+              if (token.string && token.string.trim()) {
+                cm.execCommand("autocomplete");
+              } else {
+                cm.replaceSelection("  ");
+              }
+            }
+          },
           ".": (cm) => {
-            // 输入点号后触发自动补全
+            // 输入点号后触发自动补全（表名.字段名）
             cm.replaceSelection(".");
             if (
               cm.getOption("mode") === "sql" ||
@@ -391,6 +406,10 @@ export default {
         hintOptions: {
           completeSingle: false,
           tables: {},
+          // 自定义提示函数
+          hint: (cm, options) => {
+            return CodeMirror.hint.sql(cm, options);
+          },
         },
       },
       modeList: modes,

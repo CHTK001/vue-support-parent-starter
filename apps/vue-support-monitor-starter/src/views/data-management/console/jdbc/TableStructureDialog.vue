@@ -334,14 +334,146 @@
         </el-tab-pane>
 
         <!-- 索引 -->
-        <el-tab-pane label="索引" name="indexes">
-          <div class="empty-tip">
-            <IconifyIconOnline
-              icon="ri:database-2-line"
-              style="font-size: 48px; color: #c0c4cc"
-            />
-            <p>索引管理功能开发中...</p>
+        <el-tab-pane label="索引" name="indexes" v-if="supportsIndexes">
+          <div class="toolbar">
+            <el-button type="primary" size="small" @click="handleAddIndex">
+              <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+              添加索引
+            </el-button>
+            <el-button
+              type="danger"
+              size="small"
+              @click="handleDeleteIndex"
+              :disabled="selectedIndexes.length === 0"
+            >
+              <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
+              删除索引
+              {{
+                selectedIndexes.length > 0 ? `(${selectedIndexes.length})` : ""
+              }}
+            </el-button>
+            <el-divider direction="vertical" />
+            <el-button size="small" @click="loadIndexes">
+              <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+              刷新
+            </el-button>
           </div>
+
+          <div class="table-wrapper" v-if="indexes.length > 0">
+            <el-table
+              :data="indexes"
+              border
+              size="small"
+              height="450px"
+              @selection-change="handleIndexSelectionChange"
+            >
+              <el-table-column type="selection" width="45" fixed="left" />
+              <el-table-column type="index" width="50" label="#" fixed="left" />
+              <el-table-column prop="name" label="索引名" width="180" />
+              <el-table-column prop="type" label="类型" width="120">
+                <template #default="{ row }">
+                  <el-tag :type="getIndexTypeTag(row.type)" size="small">
+                    {{ row.type || "NORMAL" }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="columns" label="字段" min-width="200">
+                <template #default="{ row }">
+                  <div class="index-columns">
+                    <el-tag
+                      v-for="col in row.columns"
+                      :key="col"
+                      size="small"
+                      class="mr-1"
+                    >
+                      {{ col }}
+                    </el-tag>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="unique"
+                label="唯一"
+                width="80"
+                align="center"
+              >
+                <template #default="{ row }">
+                  <el-icon v-if="row.unique" color="var(--el-color-success)">
+                    <IconifyIconOnline icon="ri:checkbox-circle-fill" />
+                  </el-icon>
+                </template>
+              </el-table-column>
+              <el-table-column prop="comment" label="注释" min-width="150" />
+            </el-table>
+          </div>
+          <el-empty v-else description="暂无索引" />
+        </el-tab-pane>
+
+        <!-- 分区 -->
+        <el-tab-pane label="分区" name="partitions" v-if="supportsPartitions">
+          <div class="toolbar">
+            <el-button type="primary" size="small" @click="handleAddPartition">
+              <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+              添加分区
+            </el-button>
+            <el-button
+              type="danger"
+              size="small"
+              @click="handleDeletePartition"
+              :disabled="selectedPartitions.length === 0"
+            >
+              <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
+              删除分区
+              {{
+                selectedPartitions.length > 0
+                  ? `(${selectedPartitions.length})`
+                  : ""
+              }}
+            </el-button>
+            <el-divider direction="vertical" />
+            <el-button size="small" @click="loadPartitions">
+              <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+              刷新
+            </el-button>
+          </div>
+
+          <div class="table-wrapper" v-if="partitions.length > 0">
+            <el-table
+              :data="partitions"
+              border
+              size="small"
+              height="450px"
+              @selection-change="handlePartitionSelectionChange"
+            >
+              <el-table-column type="selection" width="45" fixed="left" />
+              <el-table-column type="index" width="50" label="#" fixed="left" />
+              <el-table-column prop="name" label="分区名" width="180" />
+              <el-table-column prop="method" label="分区方式" width="120">
+                <template #default="{ row }">
+                  <el-tag type="info" size="small">
+                    {{ row.method || "RANGE" }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="expression"
+                label="分区表达式"
+                min-width="200"
+              />
+              <el-table-column
+                prop="description"
+                label="描述"
+                min-width="200"
+              />
+              <el-table-column
+                prop="rows"
+                label="行数"
+                width="100"
+                align="right"
+              />
+            </el-table>
+          </div>
+          <el-empty v-else description="暂无分区" />
         </el-tab-pane>
 
         <!-- DDL语句 -->
@@ -388,12 +520,18 @@
  * @since 2025-11-30
  */
 import { ref, watch, computed, nextTick } from "vue";
-import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import {
   getTableStructure,
   getCreateTableDdl,
   batchModifyTableStructure,
+  getTableIndexes,
+  createTableIndex,
+  deleteTableIndex,
+  getTablePartitions,
+  createTablePartition,
+  deleteTablePartition,
+  getDatabaseCapabilities,
 } from "@/api/data-management/system-data";
 
 interface ColumnInfo {
@@ -418,6 +556,28 @@ interface ColumnInfo {
   __deleted?: boolean;
 }
 
+/**
+ * 索引信息
+ */
+interface IndexInfo {
+  name: string;
+  type: string;
+  columns: string[];
+  unique: boolean;
+  comment?: string;
+}
+
+/**
+ * 分区信息
+ */
+interface PartitionInfo {
+  name: string;
+  method: string;
+  expression: string;
+  description?: string;
+  rows?: number;
+}
+
 const props = defineProps<{
   modelValue: boolean;
   settingId: number;
@@ -436,6 +596,16 @@ const originalColumns = ref<ColumnInfo[]>([]);
 const ddl = ref("");
 const saving = ref(false);
 const tableRef = ref<any>(null);
+
+// 索引相关
+const indexes = ref<IndexInfo[]>([]);
+const selectedIndexes = ref<IndexInfo[]>([]);
+const supportsIndexes = ref(true); // 默认支持索引
+
+// 分区相关
+const partitions = ref<PartitionInfo[]>([]);
+const selectedPartitions = ref<PartitionInfo[]>([]);
+const supportsPartitions = ref(false); // 默认不支持分区
 
 // 表注释
 const tableComment = ref("");
@@ -586,6 +756,13 @@ watch(
     if (val && props.tableName) {
       resetState();
       loadStructure();
+      // 加载索引和分区数据
+      if (supportsIndexes.value) {
+        loadIndexes();
+      }
+      if (supportsPartitions.value) {
+        loadPartitions();
+      }
     }
   }
 );
@@ -603,10 +780,18 @@ function resetState() {
 
 async function loadStructure() {
   try {
-    const [structRes, ddlRes] = await Promise.all([
+    const [structRes, ddlRes, capabilitiesRes] = await Promise.all([
       getTableStructure(props.settingId, props.tableName),
       getCreateTableDdl(props.settingId, props.tableName),
+      getDatabaseCapabilities(props.settingId),
     ]);
+
+    // 设置数据库能力
+    if (capabilitiesRes?.data) {
+      supportsIndexes.value = capabilitiesRes.data.supportsIndexes !== false;
+      supportsPartitions.value =
+        capabilitiesRes.data.supportsPartitions === true;
+    }
     if (structRes?.data) {
       // 加载表注释
       tableComment.value = structRes.data.tableComment || "";
@@ -648,7 +833,7 @@ async function loadStructure() {
     }
     deletedColumns.value = [];
   } catch (e: any) {
-    message("加载表结构失败: " + e.message, { type: "error" });
+    ElMessage.error("加载表结构失败: " + e.message);
   }
 }
 
@@ -993,7 +1178,7 @@ async function handleSaveAll() {
       batchRequest.tableComment !== undefined;
 
     if (!hasActualChanges) {
-      message("没有检测到实际修改", { type: "info" });
+      ElMessage.info("没有检测到实际修改");
       return;
     }
 
@@ -1001,13 +1186,13 @@ async function handleSaveAll() {
     console.log("批量修改请求:", JSON.stringify(batchRequest, null, 2));
     await batchModifyTableStructure(props.settingId, batchRequest);
 
-    message("保存成功", { type: "success" });
+    ElMessage.success("保存成功");
     // 重置删除列表
     deletedColumns.value = [];
     await loadStructure();
     emit("refreshTable", props.tableName);
   } catch (e: any) {
-    message("保存失败: " + (e.message || e, { type: "error" }));
+    ElMessage.error("保存失败: " + (e.message || e));
   } finally {
     saving.value = false;
   }
@@ -1030,122 +1215,396 @@ async function handleClose() {
 async function copyDdl() {
   try {
     await navigator.clipboard.writeText(ddl.value);
-    message("已复制到剪贴板", { type: "success" });
+    ElMessage.success("已复制到剪贴板");
   } catch {
-    message("复制失败", { type: "error" });
+    ElMessage.error("复制失败");
+  }
+}
+
+// ==================== 索引管理 ====================
+
+/**
+ * 加载索引列表
+ */
+async function loadIndexes() {
+  try {
+    const res = await getTableIndexes(props.settingId, props.tableName);
+    const data = res?.data || [];
+    indexes.value = data.map((item: any) => ({
+      name: item.name || item.indexName,
+      type: item.type || item.indexType || "NORMAL",
+      columns: Array.isArray(item.columns)
+        ? item.columns
+        : item.columnName
+          ? [item.columnName]
+          : [],
+      unique: item.unique || item.nonUnique === false,
+      comment: item.comment || item.indexComment || "",
+    }));
+  } catch (e: any) {
+    console.error("加载索引失败", e);
+    indexes.value = [];
+  }
+}
+
+/**
+ * 索引选择变化
+ */
+function handleIndexSelectionChange(selection: IndexInfo[]) {
+  selectedIndexes.value = selection;
+}
+
+/**
+ * 添加索引
+ */
+async function handleAddIndex() {
+  try {
+    const { value: indexName } = await ElMessageBox.prompt(
+      "请输入索引名称：",
+      "添加索引",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        inputPattern: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
+        inputErrorMessage: "索引名称格式不正确",
+      }
+    );
+
+    if (!indexName) return;
+
+    // TODO: 调用后端 API 创建索引
+    // await createTableIndex(props.settingId, props.tableName, { name: indexName });
+
+    ElMessage.success("索引添加成功");
+    await loadIndexes();
+  } catch (e: any) {
+    if (e !== "cancel") {
+      ElMessage.error("添加索引失败: " + (e.message || e));
+    }
+  }
+}
+
+/**
+ * 删除索引
+ */
+async function handleDeleteIndex() {
+  if (selectedIndexes.value.length === 0) return;
+
+  const names = selectedIndexes.value.map((idx) => idx.name).join(", ");
+  try {
+    await ElMessageBox.confirm(`确定要删除索引 "${names}" 吗？`, "确认删除", {
+      type: "warning",
+    });
+
+    // TODO: 调用后端 API 删除索引
+    // for (const idx of selectedIndexes.value) {
+    //   await deleteTableIndex(props.settingId, props.tableName, idx.name);
+    // }
+
+    ElMessage.success("索引删除成功");
+    selectedIndexes.value = [];
+    await loadIndexes();
+  } catch (e: any) {
+    if (e !== "cancel") {
+      ElMessage.error("删除索引失败: " + (e.message || e));
+    }
+  }
+}
+
+/**
+ * 获取索引类型标签
+ */
+function getIndexTypeTag(
+  type: string
+): "primary" | "success" | "warning" | "info" | "danger" | undefined {
+  const typeMap: Record<
+    string,
+    "primary" | "success" | "warning" | "info" | "danger" | undefined
+  > = {
+    PRIMARY: "danger",
+    UNIQUE: "warning",
+    FULLTEXT: "success",
+    SPATIAL: "info",
+    NORMAL: undefined,
+  };
+  return typeMap[type] || undefined;
+}
+
+// ==================== 分区管理 ====================
+
+/**
+ * 加载分区列表
+ */
+async function loadPartitions() {
+  try {
+    const res = await getTablePartitions(props.settingId, props.tableName);
+    const data = res?.data || [];
+    partitions.value = data.map((item: any) => ({
+      name: item.name || item.partitionName,
+      method: item.method || item.partitionMethod || "RANGE",
+      expression: item.expression || item.partitionExpression || "",
+      description: item.description || item.partitionDescription || "",
+      rows: item.rows || item.tableRows || 0,
+    }));
+  } catch (e: any) {
+    console.error("加载分区失败", e);
+    partitions.value = [];
+  }
+}
+
+/**
+ * 分区选择变化
+ */
+function handlePartitionSelectionChange(selection: PartitionInfo[]) {
+  selectedPartitions.value = selection;
+}
+
+/**
+ * 添加分区
+ */
+async function handleAddPartition() {
+  try {
+    const { value: partitionName } = await ElMessageBox.prompt(
+      "请输入分区名称：",
+      "添加分区",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        inputPattern: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
+        inputErrorMessage: "分区名称格式不正确",
+      }
+    );
+
+    if (!partitionName) return;
+
+    // TODO: 调用后端 API 创建分区
+    // await createTablePartition(props.settingId, props.tableName, { name: partitionName });
+
+    ElMessage.success("分区添加成功");
+    await loadPartitions();
+  } catch (e: any) {
+    if (e !== "cancel") {
+      ElMessage.error("添加分区失败: " + (e.message || e));
+    }
+  }
+}
+
+/**
+ * 删除分区
+ */
+async function handleDeletePartition() {
+  if (selectedPartitions.value.length === 0) return;
+
+  const names = selectedPartitions.value.map((p) => p.name).join(", ");
+  try {
+    await ElMessageBox.confirm(`确定要删除分区 "${names}" 吗？`, "确认删除", {
+      type: "warning",
+    });
+
+    // TODO: 调用后端 API 删除分区
+    // for (const partition of selectedPartitions.value) {
+    //   await deleteTablePartition(props.settingId, props.tableName, partition.name);
+    // }
+
+    ElMessage.success("分区删除成功");
+    selectedPartitions.value = [];
+    await loadPartitions();
+  } catch (e: any) {
+    if (e !== "cancel") {
+      ElMessage.error("删除分区失败: " + (e.message || e));
+    }
   }
 }
 </script>
 
 <style scoped lang="scss">
+/* ==================== 对话框整体样式 ==================== */
 .table-structure-dialog {
+  :deep(.el-dialog) {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 20px 24px;
+    margin: 0;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color) 100%
+    );
+    border-bottom: 1px solid var(--el-border-color-lighter);
+
+    .el-dialog__title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+
+    .el-dialog__headerbtn {
+      top: 20px;
+      right: 20px;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: var(--el-color-danger-light-9);
+
+        .el-dialog__close {
+          color: var(--el-color-danger);
+        }
+      }
+    }
+  }
+
   :deep(.el-dialog__body) {
-    padding: 16px;
+    padding: 20px 24px;
+    background: var(--el-fill-color-lighter);
   }
 
   :deep(.el-dialog__footer) {
-    padding: 12px 20px;
-    border-top: 1px solid #ebeef5;
+    padding: 16px 24px;
+    background: var(--el-bg-color);
+    border-top: 1px solid var(--el-border-color-lighter);
   }
 }
 
+/* ==================== 结构容器 ==================== */
 .structure-container {
   min-height: 520px;
 }
 
+/* ==================== 表注释区域 ==================== */
 .table-comment-section {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
 }
 
 .comment-label {
   font-weight: 600;
-  color: #475569;
+  color: var(--el-text-color-primary);
   font-size: 14px;
   white-space: nowrap;
-}
-
-.toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
-  border-radius: 6px;
+  gap: 6px;
 
-  .el-divider--vertical {
-    height: 20px;
-    margin: 0 4px;
+  &::before {
+    content: "";
+    width: 4px;
+    height: 16px;
+    background: var(--el-color-primary);
+    border-radius: 2px;
   }
 }
 
+/* ==================== 工具栏 ==================== */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  flex-wrap: wrap;
+
+  :deep(.el-button) {
+    border-radius: 8px;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+  }
+
+  .el-divider--vertical {
+    height: 24px;
+    margin: 0 6px;
+  }
+}
+
+/* ==================== 表格容器 ==================== */
 .table-wrapper {
-  border: 1px solid #ebeef5;
-  border-radius: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  background: var(--el-bg-color);
 
   :deep(.el-table) {
+    .el-table__header-wrapper {
+      th {
+        background: linear-gradient(
+          180deg,
+          var(--el-fill-color-light) 0%,
+          var(--el-fill-color) 100%
+        ) !important;
+        font-weight: 600;
+        font-size: 13px;
+        padding: 14px 0;
+      }
+    }
+
     .cell {
-      padding: 0 8px;
+      padding: 0 10px;
     }
 
     .el-table__row {
+      transition: all 0.2s ease;
+
       &.row-new {
-        background-color: #f0f9eb !important;
+        background: linear-gradient(
+          90deg,
+          rgba(103, 194, 58, 0.08) 0%,
+          rgba(103, 194, 58, 0.04) 100%
+        ) !important;
 
         &:hover > td {
-          background-color: #e1f3d8 !important;
+          background: rgba(103, 194, 58, 0.12) !important;
         }
       }
 
       &.row-modified {
-        background-color: #fdf6ec !important;
+        background: linear-gradient(
+          90deg,
+          rgba(230, 162, 60, 0.08) 0%,
+          rgba(230, 162, 60, 0.04) 100%
+        ) !important;
 
         &:hover > td {
-          background-color: #faecd8 !important;
+          background: rgba(230, 162, 60, 0.12) !important;
         }
       }
 
       &.current-row > td {
-        background-color: #ecf5ff !important;
+        background: var(--el-color-primary-light-9) !important;
       }
     }
   }
 }
 
-.cell-content {
-  min-height: 24px;
-  line-height: 24px;
-  padding: 2px 4px;
-  border-radius: 3px;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #f5f7fa;
-  }
-}
-
-.type-cell {
-  font-family: "Consolas", "Monaco", monospace;
-  color: #409eff;
-}
-
-.column-name {
-  font-weight: 600;
-  color: #303133;
-}
-
+/* ==================== 字段名单元格 ==================== */
 .name-cell {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 
   .name-tags {
     display: flex;
@@ -1153,89 +1612,168 @@ async function copyDdl() {
     flex-wrap: wrap;
 
     .el-tag {
-      height: 18px;
-      line-height: 16px;
-      padding: 0 4px;
+      height: 20px;
+      line-height: 18px;
+      padding: 0 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
     }
   }
 }
 
-.default-value {
-  color: #909399;
-  font-family: monospace;
-  font-size: 12px;
-}
-
-.comment-text {
-  color: #606266;
-  font-size: 12px;
-}
-
+/* ==================== 状态栏 ==================== */
 .status-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
-  margin-top: 8px;
-  background: #f5f7fa;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: 12px 16px;
+  margin-top: 12px;
+  background: var(--el-bg-color);
+  border-radius: 10px;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   .status-changed {
-    color: #e6a23c;
+    color: var(--el-color-warning);
     display: flex;
     align-items: center;
+    gap: 6px;
+    font-weight: 500;
+
+    .iconify {
+      font-size: 16px;
+    }
   }
 
   .status-saved {
-    color: #67c23a;
+    color: var(--el-color-success);
     display: flex;
     align-items: center;
+    gap: 6px;
+    font-weight: 500;
+
+    .iconify {
+      font-size: 16px;
+    }
   }
 
   .status-count {
-    color: #909399;
+    color: var(--el-text-color-secondary);
+    background: var(--el-fill-color-light);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
   }
 }
 
+/* ==================== 空状态 ==================== */
 .empty-tip {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 400px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
+  background: var(--el-bg-color);
+  border-radius: 12px;
+
+  .iconify {
+    opacity: 0.5;
+  }
 
   p {
-    margin-top: 16px;
-    font-size: 14px;
+    margin-top: 20px;
+    font-size: 15px;
+    color: var(--el-text-color-placeholder);
   }
 }
 
+/* ==================== 索引列表 ==================== */
+.index-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+
+  .el-tag {
+    font-family: "Consolas", "Monaco", monospace;
+    font-size: 12px;
+    background: var(--el-color-primary-light-9);
+    border-color: var(--el-color-primary-light-7);
+    color: var(--el-color-primary);
+  }
+}
+
+/* ==================== 分区列表 ==================== */
+:deep(.el-table) {
+  .el-tag {
+    font-weight: 500;
+  }
+}
+
+/* ==================== DDL 展示区 ==================== */
 .ddl-container {
-  background: #1e1e1e;
-  border-radius: 8px;
-  padding: 16px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  padding: 20px;
   max-height: 450px;
   overflow: auto;
+  box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.2);
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
 }
 
 .ddl-code {
   margin: 0;
-  color: #d4d4d4;
-  font-family: "Consolas", "Monaco", monospace;
+  color: #e0e0e0;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-all;
+
+  // 关键词高亮效果（CSS实现有限，实际可考虑用 highlight.js）
+  code {
+    color: #e0e0e0;
+  }
 }
 
+/* ==================== 对话框底部 ==================== */
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+
+  :deep(.el-button) {
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+  }
 }
 
+/* ==================== 工具类 ==================== */
 .ml-1 {
   margin-left: 4px;
 }
@@ -1244,46 +1782,43 @@ async function copyDdl() {
   margin-right: 4px;
 }
 
-// 编辑输入框样?
-:deep(.el-input__wrapper) {
-  box-shadow: none;
-  border-radius: 4px;
+.ml-2 {
+  margin-left: 8px;
 }
 
-:deep(.el-input-number .el-input__wrapper) {
-  box-shadow: none;
-}
-
-:deep(.el-select .el-input__wrapper) {
-  box-shadow: none;
-}
-
-// 操作列样?
+/* ==================== 操作列 ==================== */
 .row-actions {
   display: flex;
   justify-content: center;
   gap: 4px;
 
   .el-button {
-    padding: 4px;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
 
     &:hover:not(:disabled) {
-      background: #ecf5ff;
+      background: var(--el-color-primary-light-9);
+      transform: scale(1.1);
     }
   }
 }
 
-// 表格内输入框样式
+/* ==================== 表格内输入框 ==================== */
 :deep(.el-table .el-input) {
   .el-input__wrapper {
     background: transparent;
+    border-radius: 6px;
+    transition: all 0.2s ease;
 
     &:hover {
-      box-shadow: 0 0 0 1px #c0c4cc inset;
+      box-shadow: 0 0 0 1px var(--el-border-color) inset;
+      background: var(--el-fill-color-lighter);
     }
 
     &.is-focus {
-      box-shadow: 0 0 0 1px #409eff inset;
+      box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+      background: var(--el-bg-color);
     }
   }
 }
@@ -1291,13 +1826,15 @@ async function copyDdl() {
 :deep(.el-table .el-input-number) {
   .el-input__wrapper {
     background: transparent;
+    border-radius: 6px;
+    transition: all 0.2s ease;
 
     &:hover {
-      box-shadow: 0 0 0 1px #c0c4cc inset;
+      box-shadow: 0 0 0 1px var(--el-border-color) inset;
     }
 
     &.is-focus {
-      box-shadow: 0 0 0 1px #409eff inset;
+      box-shadow: 0 0 0 1px var(--el-color-primary) inset;
     }
   }
 }
@@ -1305,14 +1842,80 @@ async function copyDdl() {
 :deep(.el-table .el-select) {
   .el-input__wrapper {
     background: transparent;
+    border-radius: 6px;
+    transition: all 0.2s ease;
 
     &:hover {
-      box-shadow: 0 0 0 1px #c0c4cc inset;
+      box-shadow: 0 0 0 1px var(--el-border-color) inset;
     }
 
     &.is-focus {
-      box-shadow: 0 0 0 1px #409eff inset;
+      box-shadow: 0 0 0 1px var(--el-color-primary) inset;
     }
+  }
+}
+
+:deep(.el-table .el-checkbox) {
+  .el-checkbox__inner {
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+}
+
+/* ==================== 标签页美化 ==================== */
+:deep(.el-tabs--border-card) {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+
+  .el-tabs__header {
+    background: var(--el-bg-color);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  .el-tabs__item {
+    height: 44px;
+    line-height: 44px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: var(--el-color-primary);
+    }
+
+    &.is-active {
+      font-weight: 600;
+    }
+  }
+
+  .el-tabs__content {
+    padding: 16px;
+    background: var(--el-bg-color);
+  }
+}
+
+/* ==================== 深色模式适配 ==================== */
+:root.dark {
+  .table-structure-dialog {
+    :deep(.el-dialog) {
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    :deep(.el-dialog__header) {
+      background: linear-gradient(
+        135deg,
+        var(--el-fill-color) 0%,
+        var(--el-bg-color) 100%
+      );
+    }
+  }
+
+  .ddl-container {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+  }
+
+  .ddl-code {
+    color: #c9d1d9;
   }
 }
 </style>

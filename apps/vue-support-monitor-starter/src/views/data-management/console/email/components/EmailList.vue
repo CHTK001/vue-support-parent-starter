@@ -99,7 +99,7 @@
 
 <script setup lang="ts">
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { message } from "@repo/utils";
+import { ElMessage } from "element-plus";
 import { ref, watch } from "vue";
 
 // 定义接口
@@ -176,7 +176,7 @@ function handleSelectAll() {
 function handleDeleteSelected() {
   const selectedEmails = props.emails.filter(email => email.selected);
   if (selectedEmails.length === 0) {
-    message("请先选择要删除的邮件", { type: "warning" });
+    ElMessage.warning("请先选择要删除的邮件");
     return;
   }
   emit("emails-delete", selectedEmails);
@@ -185,7 +185,7 @@ function handleDeleteSelected() {
 function handleStarSelected() {
   const selectedEmails = props.emails.filter(email => email.selected);
   if (selectedEmails.length === 0) {
-    message("请先选择要标星的邮件", { type: "warning" });
+    ElMessage.warning("请先选择要标星的邮件");
     return;
   }
   emit("emails-star", selectedEmails);
@@ -194,7 +194,7 @@ function handleStarSelected() {
 function handleMarkAsRead() {
   const selectedEmails = props.emails.filter(email => email.selected);
   if (selectedEmails.length === 0) {
-    message("请先选择要标记的邮件", { type: "warning" });
+    ElMessage.warning("请先选择要标记的邮件");
     return;
   }
   emit("emails-mark-read", selectedEmails);

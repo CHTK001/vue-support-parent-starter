@@ -16,7 +16,7 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, inject } from 'vue'
-import { message } from "@repo/utils";
+import { ElMessage } from 'element-plus'
 import { executeConsole } from '@/api/data-management/system-data'
 import { socket } from '@repo/core'
 import { getConfig } from '@repo/config'
@@ -65,9 +65,9 @@ onMounted(async () => {
               payload: data.content || data.payload || ''
             })
           } else if (data.messageType === 'log') {
-            message(data.content || '', { type: "info" })
+            ElMessage.info(data.content || '')
           } else if (data.messageType === 'error') {
-            message(data.content || '操作出现错误', { type: "error" })
+            ElMessage.error(data.content || '操作出现错误')
           }
         } catch (error) {
           console.error('Error processing console message:', error)
@@ -79,7 +79,7 @@ onMounted(async () => {
       if (data.settingId === props.id && data.type === 'mqtt') {
         try {
           console.log('MQTT Console log:', data)
-          message(data.content || '', { type: "info" })
+          ElMessage.info(data.content || '')
         } catch (error) {
           console.error('Error processing log message:', error)
         }

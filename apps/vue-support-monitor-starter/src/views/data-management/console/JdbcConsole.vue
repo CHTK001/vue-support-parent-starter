@@ -265,8 +265,7 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted, computed, onBeforeUnmount, nextTick } from "vue";
-import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import CodeEditor from "@/components/codeEditor/index.vue";
 // request不再直接使用，统一在system-data.ts封装
 import {
@@ -870,7 +869,7 @@ async function onMenuSelect(key: string) {
           nodePath: contextNode.value.path,
           newName: value.trim(),
         });
-        message("已重命名", { type: "success" });
+        ElMessage.success("已重命名");
         contextNode.value.name = value.trim();
         refreshNodeChildren({
           path: contextNode.value.parentPath
@@ -897,7 +896,7 @@ async function onMenuSelect(key: string) {
           nodePath: contextNode.value.path,
           backupName: value.trim(),
         });
-        message("已发起备份", { type: "success" });
+        ElMessage.success("已发起备份");
         refreshNodeChildren({
           path: contextNode.value.parentPath
         });
@@ -1025,7 +1024,7 @@ async function addFieldComment(node: any) {
       dataType: node.properties?.dataType,
       nullable: node.properties?.nullable,
     });
-    message("已保存注释", { type: "success" });
+    ElMessage.success("已保存注释");
     node.properties.comment = value.trim();
   } catch (_) {
     // canceled

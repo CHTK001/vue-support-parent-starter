@@ -1,14 +1,21 @@
 <template>
   <div class="console" :style="gridStyle">
     <div class="left overflow-auto thin-scrollbar" @contextmenu.prevent>
+      <div class="search-header">
+        <div class="search-title">
+          <IconifyIconOnline icon="ri:database-2-line" class="title-icon" />
+          <span>数据库结构</span>
+        </div>
+      </div>
       <el-input
         v-model="keyword"
-        placeholder="搜索..."
-        size="small"
+        placeholder="搜索表名、字段名..."
+        size="default"
         clearable
         @change="loadRoot"
+        class="search-input"
       >
-        <template #append>
+        <template #prefix>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
       </el-input>
@@ -112,6 +119,19 @@
             />
             {{ analyzing ? "退出分析" : "分析" }}
           </el-button>
+          <el-button
+            size="small"
+            :type="paginationEnabled ? 'primary' : 'default'"
+            @click="togglePagination"
+          >
+            <IconifyIconOnline
+              :icon="
+                paginationEnabled ? 'ri:list-ordered' : 'ri:list-unordered'
+              "
+              class="mr-1"
+            />
+            {{ paginationEnabled ? "分页" : "不分页" }}
+          </el-button>
         </div>
       </div>
       <div class="right-body">
@@ -121,6 +141,7 @@
           :showTool="false"
           :height="'200px'"
           :options="{ mode: 'sql' }"
+          :sqlHintTables="sqlHintTables"
         />
         <el-tabs
           v-model="activeTab"
@@ -246,6 +267,21 @@
               </el-table-column>
             </el-table>
             <el-empty v-else description="无结果" />
+            <!-- 分页组件 -->
+            <div
+              v-if="paginationEnabled && columns.length"
+              class="pagination-wrapper"
+            >
+              <el-pagination
+                v-model:current-page="currentPage"
+                v-model:page-size="pageSize"
+                :page-sizes="[50, 100, 200, 500]"
+                :total="total"
+                layout="total, sizes, prev, pager, next, jumper"
+                @current-change="handlePageChange"
+                @size-change="handleSizeChange"
+              />
+            </div>
           </el-tab-pane>
         </el-tabs>
       </div>
@@ -261,13 +297,27 @@
       @select="onMenuSelect"
       @close="menuVisible = false"
     />
+    <!-- 表结构设计对话框 -->
+    <TableStructureDialog
+      v-model="structureDialogVisible"
+      :setting-id="props.id"
+      :table-name="structureTableName"
+      @refresh-table="handleTableStructureRefresh"
+    />
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount, nextTick, inject } from "vue";
-import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
+import {
+  ref,
+  onMounted,
+  computed,
+  onBeforeUnmount,
+  nextTick,
+  inject,
+} from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
 import CodeEditor from "@/components/codeEditor/index.vue";
+import TableStructureDialog from "./TableStructureDialog.vue";
 import { socket } from "@repo/core";
 import { getConfig } from "@repo/config";
 import { splitToArray } from "@repo/utils";
@@ -297,7 +347,7 @@ import {
 const props = defineProps<{ id: number }>();
 
 // 使用全局Socket.IO或创建独立连接
-const globalSocket = inject<any>('globalSocket');
+const globalSocket = inject<any>("globalSocket");
 let socketConnection: any = null;
 let unsubscribeHandlers: any[] = [];
 
@@ -342,6 +392,17 @@ const structureContent = ref("");
 const statusText = ref("");
 const currentNodeData = ref<any | null>(null);
 const currentComment = ref("");
+const structureDialogVisible = ref(false);
+const structureTableName = ref("");
+
+// SQL 自动提示数据
+const sqlHintTables = ref<Record<string, string[]>>({});
+
+// 分页相关
+const paginationEnabled = ref(false);
+const currentPage = ref(1);
+const pageSize = ref(100);
+const total = ref(0);
 
 // 左右可拖拽分栏
 const leftWidth = ref(300);
@@ -378,16 +439,16 @@ function resetWidth() {
 
 onBeforeUnmount(() => {
   onDragEnd();
-  
+
   // 清理Socket.IO事件监听
-  unsubscribeHandlers.forEach(handler => handler());
+  unsubscribeHandlers.forEach((handler) => handler());
   unsubscribeHandlers = [];
-  
+
   // 如果是独立连接，断开连接
   if (socketConnection && !globalSocket?.value) {
     socketConnection.disconnect();
   }
-  
+
   socketConnection = null;
 });
 
@@ -528,21 +589,58 @@ function getJdbcNodeIcon(node: any, data: any): string {
 async function execute() {
   const start = performance.now();
   searched.value = false;
+  const pagination = paginationEnabled.value
+    ? { page: currentPage.value, size: pageSize.value, enabled: true }
+    : undefined;
   const res = await executeConsole(
     props.id,
     sql.value,
     "sql",
-    currentPath.value
+    currentPath.value,
+    pagination
   );
   const data = res?.data;
   const dataData = data?.data || {};
   columns.value = dataData?.columns || [];
   await Promise.resolve();
   rows.value = dataData?.rows || [];
+  // 更新分页总数
+  if (paginationEnabled.value) {
+    total.value = dataData?.total || 0;
+  }
   searched.value = true;
   const ms = Math.round(performance.now() - start);
-  statusText.value = `已返回 ${rows.value.length} 行，用时 ${ms} ms, ${data?.errorMessage || ""}`;
+  const totalInfo = paginationEnabled.value ? `，共 ${total.value} 条` : "";
+  statusText.value = `已返回 ${rows.value.length} 行${totalInfo}，用时 ${ms} ms${data?.errorMessage ? ", " + data.errorMessage : ""}`;
   activeTab.value = "result";
+}
+
+/**
+ * 分页切换
+ */
+function handlePageChange(page: number) {
+  currentPage.value = page;
+  execute();
+}
+
+/**
+ * 每页数量切换
+ */
+function handleSizeChange(size: number) {
+  pageSize.value = size;
+  currentPage.value = 1;
+  execute();
+}
+
+/**
+ * 分页开关切换
+ */
+function togglePagination() {
+  paginationEnabled.value = !paginationEnabled.value;
+  currentPage.value = 1;
+  if (searched.value) {
+    execute();
+  }
 }
 
 function formatSql() {
@@ -902,7 +1000,7 @@ async function onMenuSelect(key: string) {
           nodePath: contextNode.value.path,
           newName: value.trim(),
         });
-        message("已重命名", { type: "success" });
+        ElMessage.success("已重命名");
         contextNode.value.name = value.trim();
         refreshNodeChildren({
           path: contextNode.value.parentPath,
@@ -933,7 +1031,7 @@ async function onMenuSelect(key: string) {
           nodePath: contextNode.value.path,
           backupName: value.trim(),
         });
-        message("已发起备份", { type: "success" });
+        ElMessage.success("已发起备份");
         refreshNodeChildren({
           path: contextNode.value.parentPath,
         });
@@ -945,15 +1043,13 @@ async function onMenuSelect(key: string) {
 
 async function openTableAndRender(hideEditor: boolean) {
   const node = contextNode.value;
-  if (!node?.path) return;
-  const resp = await openTable(props.id, node.path, 100);
-  columns.value = resp?.data?.data?.columns || [];
-  rows.value = [];
-  await Promise.resolve();
-  rows.value = resp?.data?.data?.rows || [];
-  tableComment.value = resp?.data?.data?.tableComment || "";
-  activeTab.value = "result";
-  showEditor.value = !hideEditor ? true : false;
+  if (!node?.name) return;
+  // 使用 SQL 查询方式打开表，与点击表节点行为一致
+  currentPath.value = node?.path;
+  currentNodeData.value = node;
+  sql.value = `SELECT * FROM ${node.name} LIMIT 1000`;
+  showEditor.value = !hideEditor;
+  await execute();
 }
 
 /**
@@ -1009,15 +1105,20 @@ async function refreshContextNodeChildren() {
 }
 
 /**
- * 查看表结构（将返回内容放置到 SQL 编辑器中展示）
+ * 查看表结构（打开表结构设计对话框）
  */
-async function viewTableStructure(node: any) {
-  if (!node?.path) return;
-  const res = await getConsoleNode(props.id, node.path, "structure");
-  const detail = res?.data?.data || "";
-  // 简单展示：放到 editor 中
-  sql.value =
-    typeof detail === "string" ? detail : JSON.stringify(detail, null, 2);
+function viewTableStructure(node: any) {
+  if (!node?.name) return;
+  structureTableName.value = node.name;
+  structureDialogVisible.value = true;
+}
+
+/**
+ * 刷新表结构后的回调
+ */
+function handleTableStructureRefresh(tableName: string) {
+  // 刷新树节点
+  loadRoot();
 }
 
 /**
@@ -1067,7 +1168,7 @@ async function addFieldComment(node: any) {
       dataType: node.properties?.dataType,
       nullable: node.properties?.nullable,
     });
-    message("已保存注释", { type: "success" });
+    ElMessage.success("已保存注释");
     node.properties.comment = value.trim();
   } catch (_) {
     // canceled
@@ -1076,7 +1177,7 @@ async function addFieldComment(node: any) {
 
 onMounted(async () => {
   await Promise.all([loadConsoleConfig(), loadRoot()]);
-  
+
   // 建立Socket.IO连接
   if (globalSocket?.value) {
     // 使用全局Socket.IO连接
@@ -1086,207 +1187,1039 @@ onMounted(async () => {
     const config = getConfig();
     socketConnection = socket(splitToArray(config.SocketUrl), undefined, {});
   }
-  
+
   if (socketConnection) {
     // 监听系统数据监听事件
     const listenHandler = (data: any) => {
-      if (data.settingId === props.id && data.type === 'jdbc') {
+      if (data.settingId === props.id && data.type === "jdbc") {
         try {
-          console.log('JDBC Console received message:', data);
-          if (data.messageType === 'status') {
-            statusText.value = data.content || '';
-          } else if (data.messageType === 'log') {
-            message(data.content || '', { type: "info" });
-          } else if (data.messageType === 'error') {
-            message(data.content || '操作出现错误', { type: "error" });
+          console.log("JDBC Console received message:", data);
+          if (data.messageType === "status") {
+            statusText.value = data.content || "";
+          } else if (data.messageType === "log") {
+            ElMessage.info(data.content || "");
+          } else if (data.messageType === "error") {
+            ElMessage.error(data.content || "操作出现错误");
           }
         } catch (error) {
-          console.error('Error processing console message:', error);
+          console.error("Error processing console message:", error);
         }
       }
     };
-    
+
     const logHandler = (data: any) => {
-      if (data.settingId === props.id && data.type === 'jdbc') {
+      if (data.settingId === props.id && data.type === "jdbc") {
         try {
-          console.log('JDBC Console log:', data);
-          message(data.content || '', { type: "info" });
+          console.log("JDBC Console log:", data);
+          ElMessage.info(data.content || "");
         } catch (error) {
-          console.error('Error processing log message:', error);
+          console.error("Error processing log message:", error);
         }
       }
     };
-    
-    socketConnection.on('system/data/listen', listenHandler);
-    socketConnection.on('system/data/log', logHandler);
-    
+
+    socketConnection.on("system/data/listen", listenHandler);
+    socketConnection.on("system/data/log", logHandler);
+
     unsubscribeHandlers.push(
-      () => socketConnection.off('system/data/listen', listenHandler),
-      () => socketConnection.off('system/data/log', logHandler)
+      () => socketConnection.off("system/data/listen", listenHandler),
+      () => socketConnection.off("system/data/log", logHandler)
     );
   }
 });
 </script>
 <style scoped lang="scss">
+/* ==================== 主布局 ==================== */
 .console {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 300px 6px 1fr;
   height: calc(100vh - 16px);
   overflow: hidden;
+  gap: 0;
+  background: var(--el-bg-color-page);
+  padding: 12px;
 }
 
+/* ==================== 左侧树面板 ==================== */
 .left {
-  border: 1px solid #eee;
-  border-radius: 8px;
-  padding: 8px;
+  background: var(--el-bg-color);
+  border-radius: 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
+  border: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+
+  // 背景装饰
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(
+      180deg,
+      var(--el-color-primary-light-9) 0%,
+      transparent 100%
+    );
+    opacity: 0.3;
+    z-index: 0;
+  }
+
+  &:hover {
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.12),
+      0 0 0 1px rgba(0, 0, 0, 0.04);
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+// 搜索标题
+.search-header {
+  margin-bottom: 16px;
+}
+
+.search-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  padding: 8px 0;
+
+  .title-icon {
+    font-size: 24px;
+    color: var(--el-color-primary);
+    animation: rotate 20s linear infinite;
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+// 搜索输入框
+.search-input {
+  margin-bottom: 16px;
+
+  :deep(.el-input__wrapper) {
+    border-radius: 12px;
+    background: var(--el-fill-color-lighter);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+    border: 1px solid transparent;
+    padding: 8px 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      border-color: var(--el-color-primary-light-5);
+      background: var(--el-bg-color);
+      box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.04),
+        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.05);
+    }
+
+    &.is-focus {
+      border-color: var(--el-color-primary);
+      background: var(--el-bg-color);
+      box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.04),
+        0 0 0 4px rgba(var(--el-color-primary-rgb), 0.1);
+      transform: translateY(-1px);
+    }
+  }
+
+  :deep(.el-input__prefix) {
+    color: var(--el-text-color-placeholder);
+    font-size: 16px;
+  }
+
+  :deep(.el-input__suffix) {
+    .el-input__clear {
+      font-size: 14px;
+    }
+  }
 }
 
 .tree {
-  margin-top: 8px;
   flex: 1;
   overflow: auto;
+  padding: 4px;
+
+  // 树节点美化
+  :deep(.el-tree) {
+    background: transparent;
+
+    .el-tree-node {
+      position: relative;
+
+      &:focus > .el-tree-node__content {
+        background: var(--el-color-primary-light-9);
+      }
+    }
+
+    .el-tree-node__content {
+      height: 40px;
+      border-radius: 10px;
+      margin: 3px 0;
+      padding: 0 12px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+
+      // 悬停效果
+      &:hover {
+        background: linear-gradient(
+          90deg,
+          var(--el-fill-color-light) 0%,
+          var(--el-fill-color-lighter) 100%
+        );
+        transform: translateX(4px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+        &::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 3px;
+          background: var(--el-color-primary);
+          border-radius: 0 2px 2px 0;
+        }
+      }
+
+      // 图标美化
+      .iconify {
+        font-size: 18px;
+        transition: all 0.2s ease;
+      }
+    }
+
+    // 当前选中节点
+    .el-tree-node.is-current > .el-tree-node__content {
+      background: linear-gradient(
+        90deg,
+        var(--el-color-primary-light-9) 0%,
+        var(--el-color-primary-light-9) 100%
+      );
+      color: var(--el-color-primary);
+      font-weight: 600;
+      box-shadow:
+        0 2px 8px rgba(var(--el-color-primary-rgb), 0.15),
+        inset 0 0 0 1px rgba(var(--el-color-primary-rgb), 0.1);
+
+      &::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--el-color-primary);
+        border-radius: 0 2px 2px 0;
+        box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.5);
+      }
+
+      .iconify {
+        color: var(--el-color-primary);
+        transform: scale(1.1);
+      }
+    }
+
+    // 展开图标
+    .el-tree-node__expand-icon {
+      color: var(--el-text-color-secondary);
+      font-size: 14px;
+      transition: transform 0.3s ease;
+
+      &.is-leaf {
+        color: transparent;
+      }
+
+      &.expanded {
+        transform: rotate(90deg);
+      }
+    }
+
+    // 子节点缩进美化
+    .el-tree-node__children {
+      .el-tree-node__content {
+        &::after {
+          content: "";
+          position: absolute;
+          left: 8px;
+          top: -10px;
+          width: 1px;
+          height: calc(100% + 10px);
+          background: var(--el-border-color-lighter);
+        }
+      }
+    }
+  }
 }
 
-.left-toolbar {
-  margin-top: 6px;
-  display: flex;
-  gap: 6px;
+/* ==================== 拖拽分割条 ==================== */
+.splitter {
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  position: relative;
+  transition: all 0.2s ease;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 40px;
+    background: var(--el-border-color-light);
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &:hover::after {
+    opacity: 1;
+    background: var(--el-color-primary-light-5);
+  }
 }
 
+/* ==================== 右侧主面板 ==================== */
 .right {
-  border: 1px solid #eee;
-  border-radius: 8px;
+  background: var(--el-bg-color);
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
+  border: none;
+  position: relative;
+
+  // 背景装饰
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(
+      circle,
+      rgba(var(--el-color-primary-rgb), 0.05) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
 }
 
 .right-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px;
-  border-bottom: 1px solid #eee;
-  background: var(--el-fill-color-lighter);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: linear-gradient(
+    135deg,
+    var(--el-bg-color) 0%,
+    var(--el-fill-color-lighter) 50%,
+    var(--el-bg-color) 100%
+  );
+  flex-wrap: wrap;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
 }
 
 .right-header .path {
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: var(--el-text-color-secondary);
+  gap: 10px;
+  color: var(--el-text-color-regular);
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--el-bg-color);
+  padding: 8px 16px;
+  border-radius: 10px;
+  max-width: 450px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .iconify {
+    color: var(--el-color-primary);
+    font-size: 18px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .right-header .comment {
   margin-left: 8px;
-  color: var(--el-text-color-regular);
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.right-header .toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar :deep(.el-button) {
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition:
+      width 0.6s,
+      height 0.6s;
+  }
+
+  &:active::before {
+    width: 300px;
+    height: 300px;
+  }
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.toolbar :deep(.el-button--primary) {
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 100%
+  );
+  border: none;
+}
+
+.toolbar :deep(.el-button--danger) {
+  background: linear-gradient(
+    135deg,
+    var(--el-color-danger) 0%,
+    var(--el-color-danger-light-3) 100%
+  );
+  border: none;
+}
+
+.toolbar :deep(.el-button-group) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.right-header .toolbar :deep(.el-button-group .el-button) {
+  border-radius: 0;
+  margin: 0;
+
+  &:first-child {
+    border-radius: 10px 0 0 10px;
+  }
+
+  &:last-child {
+    border-radius: 0 10px 10px 0;
+  }
+}
+
+.right-header .toolbar :deep(.el-button-group .el-button--primary) {
+  background: var(--el-color-primary);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.1);
 }
 
 .ellipsis {
-  max-width: 520px;
+  max-width: 300px;
   overflow: hidden;
-
-  /* 拖拽分割条 */
-  .splitter {
-    width: 6px;
-    cursor: col-resize;
-    background: var(--el-border-color-lighter);
-    border-left: 1px solid var(--el-border-color-lighter);
-    border-right: 1px solid var(--el-border-color-lighter);
-  }
-
-  .splitter:hover {
-    background: var(--el-border-color);
-  }
-
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+/* ==================== 右侧内容区 ==================== */
 .right-body {
-  padding: 8px;
+  padding: 16px;
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   overflow: hidden;
+  background: var(--el-fill-color-lighter);
 }
 
-.result {
-  flex: 1;
-  overflow: auto;
-  display: flex;
-  flex-direction: row;
-  align-content: end;
+/* ==================== 代码编辑器美化 ==================== */
+.right-body :deep(.code-mirror-div) {
+  border-radius: 12px;
+  border: none;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  background: #1e1e1e;
+  position: relative;
 
-  .result-content-toolbar {
-    width: 100%;
-    line-height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: end;
-    padding: 0px 10px 0px 10px;
+  // 代码编辑器装饰
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
 
-    &:hover {
-      background-color: #f0f2f5;
-    }
-
-    .item {
-      cursor: pointer;
-    }
+  .CodeMirror {
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    font-size: 14px;
+    line-height: 1.6;
   }
 }
 
+/* ==================== 结果标签页 ==================== */
 .result-tabs {
   flex: 1 !important;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  background: var(--el-bg-color);
+
+  :deep(.el-tabs__header) {
+    margin: 0;
+    background: linear-gradient(
+      180deg,
+      var(--el-bg-color) 0%,
+      var(--el-fill-color-lighter) 100%
+    );
+    border-radius: 12px 12px 0 0;
+    padding: 8px 0;
+  }
+
+  :deep(.el-tabs__nav-wrap) {
+    padding: 0 16px;
+  }
+
+  :deep(.el-tabs__item) {
+    height: 44px;
+    line-height: 44px;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0 20px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+
+    &:hover {
+      color: var(--el-color-primary);
+      background: var(--el-fill-color-lighter);
+      border-radius: 8px;
+    }
+
+    &.is-active {
+      font-weight: 600;
+      color: var(--el-color-primary);
+
+      // 活跃指示条
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60%;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          var(--el-color-primary) 50%,
+          transparent 100%
+        );
+        border-radius: 2px 2px 0 0;
+        animation: slideIn 0.3s ease;
+      }
+    }
+  }
+
+  :deep(.el-tabs__content) {
+    padding: 0;
+    background: var(--el-bg-color);
+    border-radius: 0 0 12px 12px;
+  }
+
+  :deep(.el-tab-pane) {
+    padding: 16px;
+    animation: fadeIn 0.3s ease;
+  }
 }
 
-.result-tabs :deep(.el-tabs__content) {
-  padding: 0;
+@keyframes slideIn {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 60%;
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==================== 结果展示区 ==================== */
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .result-content-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 8px 12px;
+    background: var(--el-fill-color-light);
+    border-radius: 8px;
+    gap: 8px;
+  }
+}
+
+/* ==================== 表格美化 ==================== */
+:deep(.el-table) {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
+  background: var(--el-bg-color);
+
+  .el-table__header-wrapper {
+    th {
+      background: linear-gradient(
+        135deg,
+        var(--el-fill-color-light) 0%,
+        var(--el-fill-color) 50%,
+        var(--el-fill-color-light) 100%
+      ) !important;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--el-text-color-primary);
+      padding: 14px 0;
+      letter-spacing: 0.3px;
+      border-bottom: 2px solid var(--el-border-color-lighter);
+      position: relative;
+
+      // 表头装饰
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          var(--el-color-primary-light-7) 50%,
+          transparent 100%
+        );
+      }
+    }
+  }
+
+  .el-table__body-wrapper {
+    td {
+      padding: 12px 0;
+      font-size: 13px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    tr {
+      transition: all 0.3s ease;
+
+      &:hover td {
+        background: linear-gradient(
+          90deg,
+          var(--el-color-primary-light-9) 0%,
+          var(--el-fill-color-lighter) 100%
+        ) !important;
+        transform: scale(1.001);
+      }
+
+      // 条纹效果
+      &:nth-child(even) td {
+        background: rgba(0, 0, 0, 0.01);
+      }
+    }
+  }
+
+  .el-table__empty-block {
+    min-height: 300px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 12px;
+    margin: 16px;
+  }
+
+  // 边框美化
+  .el-table__border-left-patch,
+  .el-table__border-right-patch {
+    background: var(--el-border-color-lighter);
+  }
 }
 
 .col-header {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
+  gap: 4px;
+
+  .hidden-note {
+    font-size: 11px;
+    color: var(--el-text-color-placeholder);
+  }
 }
 
+/* ==================== 数据分析柱状图 ==================== */
 .mini-bar {
   display: inline-flex;
   align-items: flex-end;
-  gap: 2px;
-  height: 42px;
-  margin-left: 6px;
+  gap: 3px;
+  height: 36px;
+  padding: 4px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 6px;
 }
 
 .mini-bar .bar {
-  width: 6px;
-  background: var(--el-color-primary);
-  border-radius: 2px;
+  width: 8px;
+  background: linear-gradient(
+    180deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-light-3) 100%
+  );
+  border-radius: 4px 4px 0 0;
   cursor: pointer;
-  opacity: 0.8;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: linear-gradient(
+      180deg,
+      var(--el-color-primary-dark-2) 0%,
+      var(--el-color-primary) 100%
+    );
+    transform: scaleX(1.2);
+  }
 }
 
 .row-dim {
-  opacity: 0.4;
+  opacity: 0.35;
+  background: var(--el-fill-color-light) !important;
 }
 
-.image-paper {
-  background:
-    linear-gradient(transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 / 100% 40px,
-    linear-gradient(90deg, transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 /
-      40px 100%,
-    linear-gradient(#fff, #fff);
+/* ==================== 分页组件 ==================== */
+.pagination-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(
+    180deg,
+    var(--el-fill-color-lighter) 0%,
+    var(--el-bg-color) 100%
+  );
+  border-top: 1px solid var(--el-border-color-lighter);
+  border-radius: 0 0 12px 12px;
+
+  :deep(.el-pagination) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .el-pagination__total {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--el-text-color-regular);
+      background: var(--el-fill-color-light);
+      padding: 6px 12px;
+      border-radius: 20px;
+    }
+
+    .el-pagination__sizes {
+      .el-select {
+        .el-input__wrapper {
+          border-radius: 8px;
+          transition: all 0.2s ease;
+
+          &:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          }
+        }
+      }
+    }
+
+    .el-pager li {
+      border-radius: 8px;
+      margin: 0 3px;
+      min-width: 36px;
+      height: 36px;
+      line-height: 36px;
+      font-weight: 500;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      &:hover:not(.is-active) {
+        background: var(--el-fill-color-light);
+        color: var(--el-color-primary);
+        transform: scale(1.1);
+      }
+
+      &.is-active {
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary) 0%,
+          var(--el-color-primary-light-3) 100%
+        );
+        color: #fff;
+        box-shadow:
+          0 4px 12px rgba(var(--el-color-primary-rgb), 0.3),
+          inset 0 -2px 0 rgba(0, 0, 0, 0.1);
+        transform: scale(1.05);
+      }
+    }
+
+    .btn-prev,
+    .btn-next {
+      border-radius: 8px;
+      min-width: 36px;
+      height: 36px;
+      transition: all 0.2s ease;
+      background: var(--el-fill-color-lighter);
+
+      &:hover:not(:disabled) {
+        background: var(--el-fill-color-light);
+        transform: scale(1.1);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+      }
+    }
+
+    .el-pagination__jump {
+      .el-input__wrapper {
+        border-radius: 8px;
+      }
+    }
+  }
 }
 
+/* ==================== 状态栏 ==================== */
 .right-status {
-  height: 28px;
-  border-top: 1px solid #eee;
+  height: 40px;
+  border-top: 1px solid var(--el-border-color-lighter);
   display: flex;
   align-items: center;
-  padding: 0 8px;
-  color: var(--el-text-color-secondary);
+  padding: 0 20px;
+  background: linear-gradient(
+    135deg,
+    var(--el-bg-color) 0%,
+    var(--el-fill-color-lighter) 50%,
+    var(--el-bg-color) 100%
+  );
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+  font-weight: 500;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+
+  // 背景动画
+  &::before {
+    content: "";
+    position: absolute;
+    left: -100%;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(var(--el-color-primary-rgb), 0.05) 50%,
+      transparent 100%
+    );
+    animation: shimmer 3s infinite;
+  }
+
+  // 状态指示灯
+  &::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background: var(--el-color-success);
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 3px rgba(var(--el-color-success-rgb), 0.2),
+      0 0 8px rgba(var(--el-color-success-rgb), 0.4);
+    animation: statusPulse 2s infinite;
+  }
+
+  span {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes statusPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+/* ==================== 列筛选弹窗 ==================== */
+.col-filter {
+  .ops {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  :deep(.el-checkbox) {
+    display: flex;
+    margin-right: 0;
+    margin-bottom: 8px;
+
+    .el-checkbox__label {
+      font-size: 13px;
+    }
+  }
+}
+
+/* ==================== 滚动条美化 ==================== */
+.thin-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--el-border-color-light);
+    border-radius: 3px;
+
+    &:hover {
+      background: var(--el-border-color);
+    }
+  }
+}
+
+/* ==================== 深色模式适配 ==================== */
+:root.dark {
+  .console {
+    background: var(--el-bg-color-page);
+  }
+
+  .left,
+  .right {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    border-color: var(--el-border-color);
+  }
+
+  .right-header {
+    background: linear-gradient(
+      180deg,
+      var(--el-bg-color) 0%,
+      var(--el-fill-color) 100%
+    );
+  }
+
+  :deep(.el-table) {
+    .el-table__header-wrapper th {
+      background: linear-gradient(
+        180deg,
+        var(--el-fill-color) 0%,
+        var(--el-fill-color-dark) 100%
+      ) !important;
+    }
+  }
 }
 </style>
