@@ -301,7 +301,7 @@ const handleStatusChange = async (script: Script) => {
           : ScriptStatus.ENABLED;
     }
   } catch (error) {
-    message("状态更新失败", { type: "error" });
+    ElMessage.error("状态更新失败");
     script.monitorSysGenScriptStatus =
       script.monitorSysGenScriptStatus === ScriptStatus.ENABLED
         ? ScriptStatus.DISABLED
@@ -338,7 +338,7 @@ const handleCopy = async (script: Script) => {
       ElMessage.error("脚本复制失败");
     }
   } catch (error) {
-    message("脚本复制失败", { type: "error" });
+    ElMessage.error("脚本复制失败");
   }
 };
 
@@ -362,11 +362,11 @@ const handleDelete = async (script: Script) => {
       ElMessage.success("脚本删除成功");
       loadScripts();
     } else {
-      message("脚本删除失败", { type: "error" });
+      ElMessage.error("脚本删除失败");
     }
   } catch (error) {
     if (error !== "cancel") {
-      message("脚本删除失败", { type: "error" });
+      ElMessage.error("脚本删除失败");
     }
   }
 };
