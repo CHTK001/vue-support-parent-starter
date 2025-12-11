@@ -390,7 +390,7 @@ const formatTime = (time: string | undefined) => {
 @import "./styles/mixins.scss";
 
 .simple-script-management {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: $bg-secondary;
@@ -471,6 +471,7 @@ const formatTime = (time: string | undefined) => {
 // 脚本列表
 .script-list {
   flex: 1;
+  min-height: 400px;
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -564,6 +565,7 @@ const formatTime = (time: string | undefined) => {
     grid-column: 1 / -1;
     @include flex-center;
     flex-direction: column;
+    min-height: 400px;
     padding: $spacing-4xl;
     background: $bg-primary;
     border-radius: $radius-xl;
