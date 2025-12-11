@@ -67,6 +67,55 @@
           </div>
           <div class="viewer-body">
             <div class="viewer-desc">{{ viewer.description }}</div>
+            <!-- OnlyOffice 服务器配置 -->
+            <div v-if="isOnlyOfficeViewer(viewer)" class="onlyoffice-config">
+              <el-alert
+                type="warning"
+                :closable="false"
+                class="server-warning"
+                show-icon
+              >
+                <template #title>
+                  <span>此查看器需要部署 OnlyOffice Document Server 才能使用</span>
+                </template>
+              </el-alert>
+              <div class="config-form">
+                <div class="config-item">
+                  <span class="config-label">服务器地址:</span>
+                  <el-input
+                    v-model="viewer.serverUrl"
+                    placeholder="如: http://localhost:8080"
+                    size="small"
+                    :disabled="!viewer.enabled"
+                    clearable
+                  >
+                    <template #prepend>
+                      <IconifyIconOnline icon="ri:server-line" />
+                    </template>
+                  </el-input>
+                </div>
+                <div class="config-item">
+                  <span class="config-label">JWT密钥:</span>
+                  <el-input
+                    v-model="viewer.jwtSecret"
+                    placeholder="可选，如果OnlyOffice启用了JWT验证"
+                    size="small"
+                    :disabled="!viewer.enabled"
+                    show-password
+                    clearable
+                  />
+                </div>
+                <div class="config-item">
+                  <el-checkbox
+                    v-model="viewer.jwtEnabled"
+                    :disabled="!viewer.enabled"
+                    size="small"
+                  >
+                    启用JWT验证
+                  </el-checkbox>
+                </div>
+              </div>
+            </div>
             <div class="viewer-meta">
               <div class="meta-item" v-if="viewer.supportedExtensions?.length">
                 <span class="meta-label">支持扩展名:</span>
@@ -179,6 +228,11 @@ async function loadData() {
   }
 }
 
+// 判断是否是OnlyOffice查看器
+function isOnlyOfficeViewer(viewer: ViewerInfo) {
+  return viewer.name?.toLowerCase().includes("onlyoffice");
+}
+
 // 切换查看器状态
 function handleViewerToggle(viewer: ViewerInfo) {
   viewer.enabled = !viewer.enabled;
@@ -193,8 +247,21 @@ async function handleSave() {
       .filter((v) => !v.enabled)
       .map((v) => v.name);
 
+    // 收集OnlyOffice配置
+    const onlyofficeViewer = viewerList.value.find((v) =>
+      isOnlyOfficeViewer(v)
+    );
+    const onlyofficeConfig = onlyofficeViewer
+      ? {
+          serverUrl: onlyofficeViewer.serverUrl,
+          jwtSecret: onlyofficeViewer.jwtSecret,
+          jwtEnabled: onlyofficeViewer.jwtEnabled,
+        }
+      : undefined;
+
     const res = await saveViewerConfigForSetting(props.filterSettingId, {
       disabledViewers,
+      onlyoffice: onlyofficeConfig,
     });
 
     if (res.success) {
@@ -351,5 +418,45 @@ watch(
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+// OnlyOffice配置区域样式
+.onlyoffice-config {
+  margin: 12px 0;
+  padding: 12px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+  border: 1px dashed var(--el-border-color);
+
+  .server-warning {
+    margin-bottom: 12px;
+
+    :deep(.el-alert__title) {
+      font-size: 12px;
+    }
+  }
+
+  .config-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .config-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .config-label {
+      min-width: 80px;
+      font-size: 13px;
+      color: var(--el-text-color-regular);
+    }
+
+    .el-input {
+      flex: 1;
+      max-width: 400px;
+    }
+  }
 }
 </style>
