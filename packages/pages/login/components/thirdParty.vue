@@ -26,21 +26,21 @@ export default defineComponent({
     return {
       thirdParty: [
         {
-          title: "Gitee",
+          title: "gitee",
           key: "Gitee",
           displayName: "Gitee 登录",
           icon: "simple-icons:gitee",
           className: "gitee",
         },
         {
-          title: "Github",
+          title: "github",
           key: "Github",
           displayName: "GitHub 登录",
           icon: "mdi:github",
           className: "github",
         },
         {
-          title: "Wechat",
+          title: "wechat",
           key: "Wechat",
           displayName: "微信登录",
           icon: "ri:wechat-fill",
