@@ -56,6 +56,8 @@ const defaultSetting = reactive({
 });
 const ssoSetting = reactive({
   Gitee: false,
+  Github: false,
+  Wechat: false,
 });
 const loadDefaultSetting = async () => {
   const { data } = await fetchDefaultSetting();
