@@ -1,0 +1,386 @@
+/**
+ * 脚本管理模块样式混合
+ * 可复用的样式模式
+ */
+
+@import './variables.scss';
+
+// ==================== 布局混合 ====================
+
+/**
+ * Flexbox 居中
+ */
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/**
+ * Flexbox 垂直居中
+ */
+@mixin flex-align-center {
+  display: flex;
+  align-items: center;
+}
+
+/**
+ * Flexbox 水平分布
+ */
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/**
+ * 绝对居中
+ */
+@mixin absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+// ==================== 文本混合 ====================
+
+/**
+ * 文本省略
+ */
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/**
+ * 多行文本省略
+ */
+@mixin text-ellipsis-multiline($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/**
+ * 渐变文字
+ */
+@mixin gradient-text($gradient: $primary-gradient) {
+  background: $gradient;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// ==================== 卡片混合 ====================
+
+/**
+ * 基础卡片样式
+ */
+@mixin card-base {
+  background: $bg-primary;
+  border: 1px solid $border-light;
+  border-radius: $card-radius;
+  padding: $card-padding;
+  box-shadow: $card-shadow;
+  transition: all $transition-slow;
+}
+
+/**
+ * 卡片悬停效果
+ */
+@mixin card-hover {
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $card-shadow-hover;
+    border-color: rgba($primary-color, 0.3);
+  }
+}
+
+/**
+ * 完整卡片样式
+ */
+@mixin card {
+  @include card-base;
+  @include card-hover;
+}
+
+// ==================== 按钮混合 ====================
+
+/**
+ * 基础按钮样式
+ */
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  padding: $button-padding-md;
+  border-radius: $button-radius;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-base;
+  line-height: 1;
+  cursor: pointer;
+  transition: all $transition-base;
+  border: none;
+  outline: none;
+  user-select: none;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/**
+ * 主要按钮样式
+ */
+@mixin button-primary {
+  @include button-base;
+  background: $primary-gradient;
+  color: #ffffff;
+  box-shadow: $shadow-primary;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: $shadow-primary-hover;
+    filter: brightness(1.05);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+/**
+ * 次要按钮样式
+ */
+@mixin button-secondary {
+  @include button-base;
+  background: $bg-secondary;
+  color: $text-primary;
+  border: 1px solid $border-light;
+
+  &:hover:not(:disabled) {
+    background: $bg-tertiary;
+    border-color: $border-medium;
+    transform: translateY(-1px);
+  }
+}
+
+// ==================== 输入框混合 ====================
+
+/**
+ * 基础输入框样式
+ */
+@mixin input-base {
+  width: 100%;
+  padding: $input-padding;
+  border: 1px solid $input-border;
+  border-radius: $input-radius;
+  font-size: $font-size-base;
+  color: $text-primary;
+  background: $bg-primary;
+  transition: all $transition-base;
+
+  &::placeholder {
+    color: $text-tertiary;
+  }
+
+  &:hover {
+    border-color: $border-medium;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $input-focus-border;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+
+  &:disabled {
+    background: $bg-tertiary;
+    color: $text-disabled;
+    cursor: not-allowed;
+  }
+}
+
+// ==================== 滚动条混合 ====================
+
+/**
+ * 自定义滚动条
+ */
+@mixin scrollbar($width: 8px, $track-color: $bg-tertiary, $thumb-color: $border-medium) {
+  &::-webkit-scrollbar {
+    width: $width;
+    height: $width;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $track-color;
+    border-radius: $width / 2;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $thumb-color;
+    border-radius: $width / 2;
+    transition: background $transition-base;
+
+    &:hover {
+      background: darken($thumb-color, 10%);
+    }
+  }
+}
+
+// ==================== 响应式混合 ====================
+
+/**
+ * 媒体查询 - 小屏幕及以上
+ */
+@mixin sm-up {
+  @media (min-width: $breakpoint-sm) {
+    @content;
+  }
+}
+
+/**
+ * 媒体查询 - 中等屏幕及以上
+ */
+@mixin md-up {
+  @media (min-width: $breakpoint-md) {
+    @content;
+  }
+}
+
+/**
+ * 媒体查询 - 大屏幕及以上
+ */
+@mixin lg-up {
+  @media (min-width: $breakpoint-lg) {
+    @content;
+  }
+}
+
+/**
+ * 媒体查询 - 超大屏幕及以上
+ */
+@mixin xl-up {
+  @media (min-width: $breakpoint-xl) {
+    @content;
+  }
+}
+
+/**
+ * 媒体查询 - 小屏幕及以下
+ */
+@mixin sm-down {
+  @media (max-width: ($breakpoint-sm - 1)) {
+    @content;
+  }
+}
+
+/**
+ * 媒体查询 - 中等屏幕及以下
+ */
+@mixin md-down {
+  @media (max-width: ($breakpoint-md - 1)) {
+    @content;
+  }
+}
+
+// ==================== 动画混合 ====================
+
+/**
+ * 淡入动画
+ */
+@mixin fade-in($duration: $transition-base) {
+  animation: fadeIn $duration ease-in;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/**
+ * 滑入动画
+ */
+@mixin slide-in-up($duration: $transition-slow) {
+  animation: slideInUp $duration $transition-cubic;
+
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/**
+ * 缩放动画
+ */
+@mixin scale-in($duration: $transition-base) {
+  animation: scaleIn $duration $transition-cubic;
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
+// ==================== 工具混合 ====================
+
+/**
+ * 清除浮动
+ */
+@mixin clearfix {
+  &::after {
+    content: '';
+    display: table;
+    clear: both;
+  }
+}
+
+/**
+ * 隐藏文本
+ */
+@mixin hide-text {
+  text-indent: -9999px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/**
+ * 背景图片居中
+ */
+@mixin bg-cover {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/**
+ * 毛玻璃效果
+ */
+@mixin glass-effect($blur: 20px, $opacity: 0.95) {
+  background: rgba(255, 255, 255, $opacity);
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+}

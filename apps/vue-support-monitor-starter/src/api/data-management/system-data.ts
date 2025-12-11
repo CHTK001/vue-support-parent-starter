@@ -270,16 +270,32 @@ export function getConsoleNode(
   });
 }
 
+/**
+ * 执行控制台命令
+ * @param settingId 设置ID
+ * @param command 命令内容
+ * @param type 命令类型
+ * @param queryId 查询ID
+ * @param pagination 分页参数（可选）
+ */
 export function executeConsole(
   settingId: number,
   command: string,
   type: string = "sql",
-  queryId?: string
+  queryId?: string,
+  pagination?: { page: number; size: number; enabled: boolean }
 ) {
+  const params: Record<string, unknown> = { type, queryId };
+  if (pagination?.enabled) {
+    // 后端 MetadataQuery 使用 pageNumber、pageSize、pageable
+    params.pageNumber = pagination.page;
+    params.pageSize = pagination.size;
+    params.pageable = true;
+  }
   return request({
     url: `/system/data/console/${settingId}/execute`,
     method: "post",
-    params: { type, queryId: queryId },
+    params,
     data: command,
   });
 }
@@ -305,6 +321,114 @@ export function backupTable(
     url: `/system/data/console/${settingId}/table/backup`,
     method: "post",
     data: payload,
+  });
+}
+
+// ==================== 索引管理 ====================
+
+/**
+ * 获取表索引列表
+ */
+export function getTableIndexes(settingId: number, tableName: string) {
+  return request({
+    url: `/system/data/console/${settingId}/table/indexes`,
+    method: "get",
+    params: { tableName },
+  });
+}
+
+/**
+ * 创建索引
+ */
+export function createTableIndex(
+  settingId: number,
+  payload: {
+    tableName: string;
+    indexName: string;
+    columns: string[];
+    unique?: boolean;
+    indexType?: string;
+    comment?: string;
+  }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/indexes`,
+    method: "post",
+    data: payload,
+  });
+}
+
+/**
+ * 删除索引
+ */
+export function deleteTableIndex(
+  settingId: number,
+  tableName: string,
+  indexName: string
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/indexes`,
+    method: "delete",
+    params: { tableName, indexName },
+  });
+}
+
+// ==================== 分区管理 ====================
+
+/**
+ * 获取表分区列表
+ */
+export function getTablePartitions(settingId: number, tableName: string) {
+  return request({
+    url: `/system/data/console/${settingId}/table/partitions`,
+    method: "get",
+    params: { tableName },
+  });
+}
+
+/**
+ * 创建分区
+ */
+export function createTablePartition(
+  settingId: number,
+  payload: {
+    tableName: string;
+    partitionName: string;
+    method: string;
+    expression: string;
+    description?: string;
+  }
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/partitions`,
+    method: "post",
+    data: payload,
+  });
+}
+
+/**
+ * 删除分区
+ */
+export function deleteTablePartition(
+  settingId: number,
+  tableName: string,
+  partitionName: string
+) {
+  return request({
+    url: `/system/data/console/${settingId}/table/partitions`,
+    method: "delete",
+    params: { tableName, partitionName },
+  });
+}
+
+/**
+ * 检测数据库能力
+ * 返回数据库是否支持索引和分区功能
+ */
+export function getDatabaseCapabilities(settingId: number) {
+  return request({
+    url: `/system/data/console/${settingId}/table/capabilities`,
+    method: "get",
   });
 }
 
