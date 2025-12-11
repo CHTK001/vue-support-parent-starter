@@ -91,6 +91,10 @@ export interface FileSystemSetting {
   fileSystemSettingMergeTaskLimit?: number;
   fileSystemSettingManualMergeEnabled?: boolean;
   fileSystemSettingDownloadEnabled?: boolean;
+  fileSystemSettingPreviewEnabled?: boolean;
+  fileSystemSettingWebjarEnabled?: boolean;
+  fileSystemSettingRemoteFileEnabled?: boolean;
+  fileSystemSettingViewEnabled?: boolean;
   fileSystemSettingHttpAccessEnabled?: boolean;
   fileSystemSettingHttpAccessDomain?: string;
   fileSystemSettingAllowedFileTypes?: string; // 逗号分隔，如 "*.jpg,*.png"

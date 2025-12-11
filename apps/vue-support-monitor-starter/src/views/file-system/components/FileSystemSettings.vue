@@ -135,6 +135,65 @@
 
           <el-row :gutter="16">
             <el-col :span="12">
+              <el-form-item label="文件下载">
+                <el-switch
+                  v-model="formData.fileSystemSettingDownloadEnabled"
+                  active-text="启用"
+                  inactive-text="禁用"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="文件预览">
+                <el-switch
+                  v-model="formData.fileSystemSettingPreviewEnabled"
+                  active-text="启用"
+                  inactive-text="禁用"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="Webjar支持">
+                <el-switch
+                  v-model="formData.fileSystemSettingWebjarEnabled"
+                  active-text="启用"
+                  inactive-text="禁用"
+                />
+                <div class="form-item-tip">启用后支持 Webjar 资源访问</div>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="远程文件">
+                <el-switch
+                  v-model="formData.fileSystemSettingRemoteFileEnabled"
+                  active-text="启用"
+                  inactive-text="禁用"
+                />
+                <div class="form-item-tip">启用后支持远程文件访问</div>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="视图预览">
+                <el-switch
+                  v-model="formData.fileSystemSettingViewEnabled"
+                  active-text="启用"
+                  inactive-text="禁用"
+                />
+                <div class="form-item-tip">启用后支持 Office 文档等格式转换预览</div>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="16">
+            <el-col :span="12">
               <!-- 存储配额（后端未持久化，临时下线）
               <el-form-item label="存储配额" prop="storageQuota">
                 <el-input-number
@@ -225,6 +284,11 @@ const formData = reactive<FileSystemSetting>({
   fileSystemSettingMergeTaskLimit: 3,
   fileSystemSettingManualMergeEnabled: false,
   fileSystemSettingHttpAccessEnabled: false,
+  fileSystemSettingDownloadEnabled: true,
+  fileSystemSettingPreviewEnabled: true,
+  fileSystemSettingWebjarEnabled: false,
+  fileSystemSettingRemoteFileEnabled: false,
+  fileSystemSettingViewEnabled: true,
   fileSystemSettingAllowedFileTypes: "*",
   fileSystemSettingMaxFileSizeMb: 100,
   fileSystemSettingStorageRootPath: "",
