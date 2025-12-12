@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useGlobal } from "@pureadmin/utils";
-import { usePermissionStoreHook } from "@repo/core";
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { usePermissionStoreHook, useMultiTagsStoreHook } from "@repo/core";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import LayTool from "../../lay-tool/index.vue";
 import LaySidebarBreadCrumb from "./SidebarBreadCrumb.vue";
@@ -133,13 +133,32 @@ function handleCardClick(menu: any) {
     return;
   }
 
-  // 清除nav参数并跳转到目标路由
-  const currentUrl = new URL(window.location.href);
-  currentUrl.searchParams.delete("nav");
-  currentUrl.pathname = menu.path;
-  window.history.pushState({}, "", currentUrl.toString());
-  // 使用Vue Router进行路由跳转
-  router.push(menu.path);
+  // 先添加标签到 store
+  const tagData = {
+    path: menu.path,
+    name: menu.name,
+    meta: menu.meta,
+    query: {},
+    params: {}
+  };
+  
+  const multiTagsStore = useMultiTagsStoreHook();
+  const exists = multiTagsStore.multiTags.some(tag => tag.path === menu.path);
+  
+  if (!exists) {
+    multiTagsStore.handleTags("push", tagData);
+  }
+  
+  // 等待标签添加完成后再跳转路由
+  nextTick(() => {
+    // 清除nav参数并跳转到目标路由
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.delete("nav");
+    currentUrl.pathname = menu.path;
+    window.history.pushState({}, "", currentUrl.toString());
+    // 使用Vue Router进行路由跳转
+    router.push(menu.path);
+  });
 }
 
 // 处理子菜单点击
@@ -160,8 +179,27 @@ function handleSubMenuClick(subMenu: any) {
       window.open(fullUrl, "_blank");
     }
   } else {
-    // 在新标签页中打开子菜单链接
-    window.open("/" + router.resolve(subMenu.path).href, "_blank");
+    // 先添加标签到 store
+    const tagData = {
+      path: subMenu.path,
+      name: subMenu.name,
+      meta: subMenu.meta,
+      query: {},
+      params: {}
+    };
+    
+    const multiTagsStore = useMultiTagsStoreHook();
+    const exists = multiTagsStore.multiTags.some(tag => tag.path === subMenu.path);
+    
+    if (!exists) {
+      multiTagsStore.handleTags("push", tagData);
+    }
+    
+    // 等待标签添加完成后再跳转路由
+    nextTick(() => {
+      // 在新标签页中打开子菜单链接
+      window.open("/" + router.resolve(subMenu.path).href, "_blank");
+    });
   }
 
   hoveredMenu.value = null;

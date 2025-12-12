@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { emitter, usePermissionStoreHook } from "@repo/core";
+import { emitter, usePermissionStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import { indexedDBProxy, useDefer } from "@repo/utils";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useNav } from "../../../hooks/useNav";
 import LaySidebarLeftCollapse from "./SidebarLeftCollapse.vue";
@@ -416,8 +416,27 @@ function handleSubMenuClick(menu: any, event?: Event) {
       window.open(fullUrl, "_blank");
     }
   } else {
-    // 正常的Vue router导航
-    router.push(menu.path);
+    // 正常的Vue router导航：先添加标签，再跳转路由
+    const tagData = {
+      path: menu.path,
+      name: menu.name,
+      meta: menu.meta,
+      query: {},
+      params: {}
+    };
+    
+    // 先添加标签到 store
+    const multiTagsStore = useMultiTagsStoreHook();
+    const exists = multiTagsStore.multiTags.some(tag => tag.path === menu.path);
+    
+    if (!exists) {
+      multiTagsStore.handleTags("push", tagData);
+    }
+    
+    // 等待标签添加完成后再跳转路由
+    nextTick(() => {
+      router.push(menu.path);
+    });
   }
 }
 
