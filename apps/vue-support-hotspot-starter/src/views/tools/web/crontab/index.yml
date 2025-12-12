@@ -1,4 +1,0 @@
-icon: "ep:clock"
-title: $t("tools.web.crontab")
-showLink: true
-showParent: true

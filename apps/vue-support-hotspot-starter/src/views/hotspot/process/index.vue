@@ -195,8 +195,8 @@ const initialContainer = () => {
   initial();
 };
 const initial = async () => {
-  http.request("get", (window.agentPath || "/agent") + "/server_info", {}).then(res => {
-    update(res?.response?.data);
+  http.request("get", (window.agentPath || "/agent") + "/server", {}).then(res => {
+    update(res?.data || []);
   });
 };
 onMounted(async () => {
