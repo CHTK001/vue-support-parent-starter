@@ -133,12 +133,11 @@ const isSubMenuOpened = computed(() => {
         hasOneShowingChild(item.children, item) &&
         (!onlyOneChild.children || onlyOneChild.noShowingChildren)
       "
-      :to="{ path: resolvePath(onlyOneChild.path) }"
+      :to="onlyOneChild"
     >
       <el-menu-item
         :index="resolvePath(onlyOneChild.path)"
         :class="{ 'submenu-title-noDropdown': !isNest }"
-        @click="handleMenuClick(onlyOneChild)"
       >
         <div
           v-if="toRaw(item?.meta?.icon)"
@@ -227,7 +226,7 @@ const isSubMenuOpened = computed(() => {
         hasOneShowingChild(item.children, item) &&
         (!onlyOneChild.children || onlyOneChild.noShowingChildren)
       "
-      :to="{ path: resolvePath(onlyOneChild.path) }"
+      :to="onlyOneChild"
     >
       <el-menu-item
         :index="resolvePath(onlyOneChild.path)"
