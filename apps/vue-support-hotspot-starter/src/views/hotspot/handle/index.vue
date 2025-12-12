@@ -61,7 +61,6 @@
 
 <script setup>
 import { http } from "@repo/utils";
-import $ from "jquery";
 import { onBeforeMount, reactive } from "vue";
 
 function scrollToElement(element) {
@@ -92,9 +91,7 @@ onBeforeMount(async () => {
     let split = xhr1.split("----");
     data.title = split[0] + split[1];
     split = split.slice(2);
-    let $stream = $("#result > .v1");
     let arr = [];
-    $stream.empty();
     let _index = 0;
     for (let item of split) {
       if (!item.trim()) {

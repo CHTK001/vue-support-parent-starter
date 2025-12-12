@@ -87,3 +87,53 @@ export function checkScriptName(scriptName: string, excludeId?: number) {
     params: { scriptName, excludeId },
   });
 }
+
+/**
+ * 脚本执行参数接口
+ */
+export interface ScriptExecuteParams {
+  /** 脚本ID */
+  scriptId: number;
+  /** 服务器ID */
+  serverId: number;
+  /** 执行方式: SSH, NODE */
+  executeMethod: "SSH" | "NODE";
+  /** 执行参数（可选） */
+  params?: Record<string, string>;
+}
+
+/**
+ * 脚本执行结果接口
+ */
+export interface ScriptExecuteResult {
+  /** 是否成功 */
+  success: boolean;
+  /** 执行输出 */
+  output?: string;
+  /** 错误信息 */
+  errorMessage?: string;
+  /** 执行时间（毫秒） */
+  executionTime?: number;
+  /** 退出码 */
+  exitCode?: number;
+}
+
+/**
+ * 执行脚本
+ * @param params 执行参数
+ */
+export function executeScript(params: ScriptExecuteParams) {
+  return http.post("/script/execute", params);
+}
+
+/**
+ * 获取脚本执行历史
+ * @param scriptId 脚本ID
+ * @param page 页码
+ * @param pageSize 每页数量
+ */
+export function getScriptExecuteHistory(scriptId: number, page: number = 1, pageSize: number = 10) {
+  return http.get(`/script/${scriptId}/history`, {
+    params: { page, pageSize },
+  });
+}

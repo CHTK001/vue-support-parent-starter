@@ -137,6 +137,11 @@
               @change="handleStatusChange(row)"
             />
             <div class="action-buttons">
+              <el-tooltip content="运行" placement="top">
+                <el-button text circle type="success" @click="handleRun(row)">
+                  <IconifyIconOnline icon="ri:play-line" />
+                </el-button>
+              </el-tooltip>
               <el-tooltip content="编辑" placement="top">
                 <el-button text circle @click="handleEdit(row)">
                   <IconifyIconOnline icon="ri:edit-line" />
@@ -177,6 +182,13 @@
       :script-data="currentScript"
       @save="handleSaveSuccess"
     />
+
+    <!-- 服务器选择对话框 -->
+    <ServerSelectDialog
+      v-model:visible="serverSelectVisible"
+      :script-data="currentScript"
+      @executed="handleExecuteSuccess"
+    />
   </div>
 </template>
 
@@ -185,6 +197,7 @@ import { ref, reactive } from "vue";
 import { ElMessageBox } from "element-plus";
 import { message } from "@repo/utils";
 import ScriptEditDialog from "./components/ScriptEditDialog.vue";
+import ServerSelectDialog from "./components/ServerSelectDialog.vue";
 import * as ScriptAPI from "@/api/server/script-management";
 import type { Script } from "./types";
 import { ScriptStatus } from "./types";
@@ -194,6 +207,7 @@ import { getScriptTypeIcon } from "./utils";
 const tableRef = ref();
 const currentScript = ref<Script | null>(null);
 const editDialogVisible = ref(false);
+const serverSelectVisible = ref(false);
 const totalCount = ref(0);
 const enabledCount = ref(0);
 
@@ -349,6 +363,17 @@ const handleSaveSuccess = () => {
   editDialogVisible.value = false;
   tableRef.value?.refresh();
   message("脚本保存成功", { type: "success" });
+};
+
+// 运行脚本
+const handleRun = (script: Script) => {
+  currentScript.value = script;
+  serverSelectVisible.value = true;
+};
+
+// 执行成功回调
+const handleExecuteSuccess = () => {
+  message("脚本执行任务已提交", { type: "success" });
 };
 
 // 格式化时间
