@@ -24,15 +24,35 @@
           <el-table-column type="index" label="#" width="60" align="center" />
           <el-table-column prop="id" label="线程ID" width="100" align="center">
             <template #default="{ row }">
-              <el-tag size="small">{{ row.id }}</el-tag>
+              <el-tooltip placement="top">
+                <template #content>
+                  <div style="max-width: 300px">
+                    <div><strong>线程ID:</strong> {{ row.id }}</div>
+                    <div><strong>状态:</strong> {{ row.state }}</div>
+                    <div v-if="row.lockOwnerId > 0"><strong>锁拥有者ID:</strong> {{ row.lockOwnerId }}</div>
+                  </div>
+                </template>
+                <el-tag size="small">{{ row.id }}</el-tag>
+              </el-tooltip>
             </template>
           </el-table-column>
           <el-table-column prop="name" label="线程名称" min-width="250">
             <template #default="{ row }">
-              <div class="flex items-center gap-2">
-                <IconifyIconOnline icon="ri:thread-line" class="text-primary" />
-                <span class="font-medium">{{ row.name }}</span>
-              </div>
+              <el-tooltip placement="top">
+                <template #content>
+                  <div style="max-width: 400px">
+                    <div><strong>线程名称:</strong> {{ row.name }}</div>
+                    <div><strong>是否守护线程:</strong> {{ row.daemon ? '是' : '否' }}</div>
+                    <div v-if="row.inNative"><strong>在Native方法中:</strong> 是</div>
+                    <div v-if="row.suspended"><strong>已暂停:</strong> 是</div>
+                    <div v-if="row.lockName"><strong>锁名称:</strong> {{ row.lockName }}</div>
+                  </div>
+                </template>
+                <div class="flex items-center gap-2">
+                  <IconifyIconOnline icon="ri:thread-line" class="text-primary" />
+                  <span class="font-medium">{{ row.name }}</span>
+                </div>
+              </el-tooltip>
             </template>
           </el-table-column>
           <el-table-column prop="state" label="状态" width="120" align="center">
@@ -42,7 +62,18 @@
           </el-table-column>
           <el-table-column prop="cpu" label="CPU使用率" width="120" align="center">
             <template #default="{ row }">
-              <span class="font-mono font-semibold">{{ row.cpu }}%</span>
+              <el-tooltip placement="top">
+                <template #content>
+                  <div style="max-width: 300px">
+                    <div><strong>CPU使用率:</strong> {{ row.cpu }}%</div>
+                    <div><strong>阻塞次数:</strong> {{ row.blockedCount }}</div>
+                    <div><strong>阻塞时间:</strong> {{ row.blockedTime }}ms</div>
+                    <div><strong>等待次数:</strong> {{ row.waitedCount }}</div>
+                    <div><strong>等待时间:</strong> {{ row.waitedTime }}ms</div>
+                  </div>
+                </template>
+                <span class="font-mono font-semibold">{{ row.cpu }}%</span>
+              </el-tooltip>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="120" align="center" fixed="right">
