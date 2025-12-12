@@ -69,7 +69,7 @@ const ruleForm = reactive({
   username: getConfig().defaultUsername,
   password: getConfig().defaultPassword,
   verifyCode: "",
-  tenantId: "",
+  tenantCode: "",
 });
 
 const openVcode = ref(false);
@@ -164,7 +164,7 @@ const onLogin = async (formEl) => {
           verifyCodeKey: ruleForm.verifyCode,
           verifyCodeUlid: defaultVerifyCode.value.verifyCodeUlid,
           loginType: "WEB",
-          tenantId: ruleForm.tenantId,
+          tenantCode: ruleForm.tenantCode,
           accountType: props.accountType == 2 ? "tenant" : null,
         })
         .then((res) => {
@@ -494,12 +494,12 @@ onBeforeUnmount(() => {
         <!-- 表单区域 -->
         <div class="form-section">
           <el-form ref="ruleFormRef" :model="ruleForm" :rules="loginRules" size="large" class="modern-form">
-            <!-- 租户ID字段 -->
+            <!-- 租户编码字段 -->
             <Motion :delay="150" v-if="defaultSetting.OpenTenantLogin && defaultSetting.OpenTenantLoginRequire && props.accountType == 2">
               <div class="form-field-wrapper">
-                <label class="field-label">租户标识</label>
+                <label class="field-label">租户编码</label>
                 <el-form-item
-                  prop="tenantId"
+                  prop="tenantCode"
                   :rules="[
                     {
                       required: true,
@@ -509,7 +509,7 @@ onBeforeUnmount(() => {
                   ]"
                   class="modern-form-item"
                 >
-                  <el-input v-model="ruleForm.tenantId" clearable :disabled="loading" :placeholder="t('login.pureTenant')" :prefix-icon="useRenderIcon('ri:lock-fill')" class="modern-input" />
+                  <el-input v-model="ruleForm.tenantCode" clearable :disabled="loading" :placeholder="t('login.pureTenantCode')" :prefix-icon="useRenderIcon('ri:building-fill')" class="modern-input" />
                 </el-form-item>
               </div>
             </Motion>
