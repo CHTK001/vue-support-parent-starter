@@ -25,7 +25,7 @@ export default [
       {
         path: "/project/manage",
         name: "ProjectManage",
-        component: () => import("@pages/project/ProjectIndex"),
+        component: () => import("@pages/project").then(m => m.ProjectIndex),
         meta: {
           title: "项目管理",
           showLink: false
@@ -34,7 +34,7 @@ export default [
       {
         path: "/project/secret",
         name: "ProjectSecret",
-        component: () => import("@pages/project/SecretIndex"),
+        component: () => import("@pages/project").then(m => m.SecretIndex),
         meta: {
           title: "密钥管理",
           showLink: false
@@ -43,7 +43,7 @@ export default [
       {
         path: "/project/ai/llm",
         name: "ProjectAiLlm",
-        component: () => import("@pages/project/LlmIndex"),
+        component: () => import("@pages/project").then(m => m.LlmNewIndex),
         meta: {
           title: "大语言模型",
           showLink: false
@@ -52,7 +52,7 @@ export default [
       {
         path: "/project/ai/vincent",
         name: "ProjectAiVincent",
-        component: () => import("@pages/project/VincentIndex"),
+        component: () => import("@pages/project").then(m => m.VincentIndex),
         meta: {
           title: "图像生成",
           showLink: false
@@ -61,7 +61,7 @@ export default [
       {
         path: "/project/ai/video",
         name: "ProjectAiVideo",
-        component: () => import("@pages/project/VideoIndex"),
+        component: () => import("@pages/project").then(m => m.VideoIndex),
         meta: {
           title: "视频生成",
           showLink: false
@@ -70,7 +70,7 @@ export default [
       {
         path: "/project/ai/colorization",
         name: "ProjectAiColorization",
-        component: () => import("@pages/project/ColorizationIndex"),
+        component: () => import("@pages/project").then(m => m.ColorizationIndex),
         meta: {
           title: "图像上色",
           showLink: false
@@ -79,7 +79,7 @@ export default [
       {
         path: "/project/ai/resolution",
         name: "ProjectAiResolution",
-        component: () => import("@pages/project/ResolutionIndex"),
+        component: () => import("@pages/project").then(m => m.ResolutionIndex),
         meta: {
           title: "图像分辨率增强",
           showLink: false

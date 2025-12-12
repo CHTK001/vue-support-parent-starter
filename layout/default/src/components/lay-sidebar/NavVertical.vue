@@ -121,6 +121,7 @@ const defer = useDefer(menuData.value.length);
       :class="[device === 'mobile' ? 'mobile' : 'pc']"
     >
       <el-menu
+        router
         unique-opened
         mode="vertical"
         popper-class="pure-scrollbar"
@@ -129,7 +130,6 @@ const defer = useDefer(menuData.value.length);
         :collapse-transition="false"
         :popper-effect="tooltipEffect"
         :default-active="defaultActive"
-        @select="menuSelect"
       >
         <span v-for="(routes, index) in menuData" :key="index">
           <LaySidebarItem

@@ -28,7 +28,7 @@ export default [
   {
     path: "/CameraPreview",
     name: "CameraPreview",
-    component: () => import("@pages/project/DevicePreview"),
+    component: () => import("@pages/project").then(m => m.DevicePreview),
     meta: {
       title: $t("buttons.accountSetting"),
       showLink: false
