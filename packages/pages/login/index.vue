@@ -8,7 +8,7 @@ import {
 import { fetchDefaultSetting } from "@pages/setting";
 import { getConfig, setConfig } from "@repo/config";
 import { fetchVerifyCode } from "@repo/core";
-import { getParameter } from "@repo/utils";
+import { getParameter, localStorageProxy } from "@repo/utils";
 import {
   computed,
   defineAsyncComponent,
@@ -21,6 +21,7 @@ import {
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import ThirdParty from "./components/thirdParty.vue";
+import ThemeSwitcher from "./components/ThemeSwitcher.vue";
 import { bg, illustration } from "./utils/static";
 import { getLoginTheme } from "./themes";
 
@@ -34,8 +35,13 @@ defineOptions({
 });
 
 // 获取主题配置（从 application.yml 或默认配置）
-const themeConfig = getConfig("LoginTheme") || "modern";
+// 优先使用本地存储的主题偏好，其次使用配置文件
+const localStorageProxyObject = localStorageProxy();
+const THEME_STORAGE_KEY = "login-theme-preference";
+const savedTheme = localStorageProxyObject.getItem(THEME_STORAGE_KEY);
+const themeConfig = savedTheme || getConfig("LoginTheme") || "modern";
 const enableFestival = getConfig("EnableFestivalTheme") !== false;
+const enableThemeSwitcher = getConfig("EnableLoginThemeSwitcher") !== false;
 const currentTheme = getLoginTheme(themeConfig, enableFestival);
 const ThemeComponent = defineAsyncComponent(currentTheme.component);
 
@@ -198,6 +204,9 @@ const envBadgeClass = computed(() => {
         </div>
 
         <div class="toolbar-spacer"></div>
+
+        <!-- 主题切换器 -->
+        <ThemeSwitcher v-if="enableThemeSwitcher" style="margin-right: 15px" />
 
         <!-- 主题切换 -->
         <div class="theme-switch-container">

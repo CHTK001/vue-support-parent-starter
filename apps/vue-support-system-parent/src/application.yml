@@ -10,4 +10,8 @@ EnableFestivalTheme: true
 # 开启后，管理员可以在系统配置页面手动切换登录主题
 EnableThemeManagement: true
 
+# 是否在登录页面显示主题切换器
+# 开启后，用户可以在登录页面直接切换主题（使用本地存储）
+EnableLoginThemeSwitcher: true
+
 # 其他配置...
