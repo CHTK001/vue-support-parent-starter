@@ -13,6 +13,9 @@
           <el-tooltip content="刷新" placement="top">
             <el-button type="primary" :icon="Refresh" :loading="loading" @click="loadTopologyData" />
           </el-tooltip>
+          <el-tooltip content="适应画布" placement="top">
+            <el-button :icon="FullScreen" @click="fitView" />
+          </el-tooltip>
           <el-tooltip content="重置视图" placement="top">
             <el-button :icon="RefreshRight" @click="resetView" />
           </el-tooltip>
@@ -104,7 +107,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
-import { Refresh, RefreshRight } from "@element-plus/icons-vue";
+import { Refresh, RefreshRight, FullScreen } from "@element-plus/icons-vue";
 import { message } from "@repo/utils";
 import {
   getServiceTopologyForAgent,
@@ -112,7 +115,7 @@ import {
   type TopologyNode,
   type TopologyEdge,
 } from "@/api/server/agent-data";
-import * as echarts from "echarts";
+import G6, { type Graph, type IEdge } from "@antv/g6";
 
 // 数据
 const topologyData = ref<ServiceTopologyData>({
@@ -121,9 +124,9 @@ const topologyData = ref<ServiceTopologyData>({
 });
 const loading = ref(false);
 
-// 图表
+// G6 图实例
 const graphContainer = ref<HTMLElement | null>(null);
-let chartInstance: echarts.ECharts | null = null;
+let graphInstance: Graph | null = null;
 
 // 详情
 const detailVisible = ref(false);
@@ -159,112 +162,238 @@ const loadTopologyData = async () => {
 };
 
 /**
- * 渲染图谱
+ * 注册线条流动动画
+ */
+const registerEdgeAnimation = () => {
+  G6.registerEdge(
+    "flow-line",
+    {
+      afterDraw(cfg, group) {
+        if (!cfg || !group) return;
+        
+        const shape = group.get("children")[0];
+        if (!shape) return;
+
+        const startPoint = shape.getPoint(0);
+        const endPoint = shape.getPoint(1);
+        
+        // 创建流动的圆点
+        const circle = group.addShape("circle", {
+          attrs: {
+            x: startPoint.x,
+            y: startPoint.y,
+            fill: "#1890ff",
+            r: 4,
+            shadowColor: "#1890ff",
+            shadowBlur: 10,
+          },
+          name: "flow-circle",
+        });
+
+        // 执行动画
+        circle.animate(
+          (ratio: number) => {
+            const point = shape.getPoint(ratio);
+            return {
+              x: point.x,
+              y: point.y,
+            };
+          },
+          {
+            repeat: true,
+            duration: 2000,
+            easing: "easeLinear",
+          }
+        );
+      },
+    },
+    "quadratic"
+  );
+};
+
+/**
+ * 渲染 G6 图谱
  */
 const renderGraph = () => {
   if (!graphContainer.value || topologyData.value.nodes.length === 0) return;
 
-  if (!chartInstance) {
-    chartInstance = echarts.init(graphContainer.value);
-  }
+  // 注册动画边
+  registerEdgeAnimation();
 
+  const width = graphContainer.value.clientWidth || 800;
+  const height = graphContainer.value.clientHeight || 600;
+
+  // 构建 G6 数据
   const nodes = topologyData.value.nodes.map((node) => ({
     id: node.id,
-    name: node.label,
-    symbolSize: 50,
-    category: 0,
-    label: {
-      show: true,
-      position: "bottom" as const,
-      formatter: node.label,
+    label: node.label,
+    type: "circle",
+    size: 60,
+    style: {
+      fill: "#409EFF",
+      stroke: "#1677ff",
+      lineWidth: 2,
+      shadowColor: "rgba(64, 158, 255, 0.3)",
+      shadowBlur: 10,
     },
-    itemStyle: {
-      color: "#409EFF",
+    labelCfg: {
+      position: "bottom" as const,
+      offset: 10,
+      style: {
+        fill: "#333",
+        fontSize: 12,
+        fontWeight: 500,
+      },
     },
   }));
 
   const edges = topologyData.value.edges.map((edge) => ({
     source: edge.source,
     target: edge.target,
-    value: edge.callCount,
-    lineStyle: {
-      width: Math.min(edge.callCount / 10 + 1, 5),
-      curveness: 0.2,
+    type: "flow-line",
+    label: `${edge.callCount}`,
+    style: {
+      stroke: "#91d5ff",
+      lineWidth: Math.min(edge.callCount / 10 + 1, 5),
+      endArrow: {
+        path: G6.Arrow.triangle(8, 10, 5),
+        fill: "#91d5ff",
+      },
     },
-    label: {
-      show: true,
-      formatter: `${edge.callCount}`,
-      fontSize: 10,
+    labelCfg: {
+      autoRotate: true,
+      style: {
+        fill: "#666",
+        fontSize: 10,
+        background: {
+          fill: "#fff",
+          padding: [2, 4, 2, 4],
+          radius: 2,
+        },
+      },
     },
   }));
 
-  const option: echarts.EChartsOption = {
-    tooltip: {
-      trigger: "item",
-      formatter: (params: unknown) => {
-        const p = params as { dataType: string; data: { name?: string; source?: string; target?: string; value?: number } };
-        if (p.dataType === "node") {
-          return `<b>${p.data.name}</b>`;
-        }
-        if (p.dataType === "edge") {
-          return `${p.data.source} → ${p.data.target}<br/>调用次数: ${p.data.value}`;
-        }
-        return "";
+  // 销毁旧实例
+  if (graphInstance) {
+    graphInstance.destroy();
+  }
+
+  // 创建 G6 图实例
+  graphInstance = new G6.Graph({
+    container: graphContainer.value,
+    width,
+    height,
+    fitView: true,
+    fitViewPadding: 50,
+    animate: true,
+    modes: {
+      default: ["drag-canvas", "zoom-canvas", "drag-node"],
+    },
+    layout: {
+      type: "force",
+      preventOverlap: true,
+      nodeStrength: -300,
+      edgeStrength: 0.1,
+      linkDistance: 200,
+      nodeSpacing: 50,
+    },
+    defaultNode: {
+      type: "circle",
+      size: 60,
+      style: {
+        fill: "#409EFF",
+        stroke: "#1677ff",
+        lineWidth: 2,
       },
     },
-    series: [
-      {
-        type: "graph",
-        layout: "force",
-        animation: true,
-        data: nodes,
-        links: edges,
-        roam: true,
-        draggable: true,
-        force: {
-          repulsion: 300,
-          gravity: 0.1,
-          edgeLength: 150,
-        },
-        emphasis: {
-          focus: "adjacency",
-          lineStyle: {
-            width: 5,
-          },
-        },
-        edgeSymbol: ["none", "arrow"],
-        edgeSymbolSize: [0, 10],
-        lineStyle: {
-          color: "#aaa",
-          opacity: 0.6,
-        },
+    defaultEdge: {
+      type: "flow-line",
+      style: {
+        stroke: "#91d5ff",
+        lineWidth: 2,
       },
-    ],
-  };
+    },
+    nodeStateStyles: {
+      hover: {
+        fill: "#69c0ff",
+        shadowColor: "rgba(64, 158, 255, 0.6)",
+        shadowBlur: 20,
+      },
+      selected: {
+        fill: "#1890ff",
+        stroke: "#096dd9",
+        lineWidth: 3,
+      },
+    },
+    edgeStateStyles: {
+      hover: {
+        stroke: "#1890ff",
+        lineWidth: 3,
+      },
+    },
+  });
 
-  chartInstance.setOption(option);
+  // 加载数据
+  graphInstance.data({ nodes, edges });
+  graphInstance.render();
 
-  chartInstance.on("click", (params: unknown) => {
-    const p = params as { dataType: string; data: { id?: string } };
-    if (p.dataType === "node" && p.data?.id) {
-      const node = topologyData.value.nodes.find((n) => n.id === p.data.id);
+  // 节点点击事件
+  graphInstance.on("node:click", (evt) => {
+    const nodeId = evt.item?.getID();
+    if (nodeId) {
+      const node = topologyData.value.nodes.find((n) => n.id === nodeId);
       if (node) {
         selectedNode.value = node;
         detailVisible.value = true;
       }
     }
   });
+
+  // 节点悬停效果
+  graphInstance.on("node:mouseenter", (evt) => {
+    const node = evt.item;
+    if (node) {
+      graphInstance?.setItemState(node, "hover", true);
+    }
+  });
+
+  graphInstance.on("node:mouseleave", (evt) => {
+    const node = evt.item;
+    if (node) {
+      graphInstance?.setItemState(node, "hover", false);
+    }
+  });
+
+  // 边悬停效果
+  graphInstance.on("edge:mouseenter", (evt) => {
+    const edge = evt.item;
+    if (edge) {
+      graphInstance?.setItemState(edge, "hover", true);
+    }
+  });
+
+  graphInstance.on("edge:mouseleave", (evt) => {
+    const edge = evt.item;
+    if (edge) {
+      graphInstance?.setItemState(edge, "hover", false);
+    }
+  });
+};
+
+/**
+ * 适应画布
+ */
+const fitView = () => {
+  graphInstance?.fitView(50);
 };
 
 /**
  * 重置视图
  */
 const resetView = () => {
-  if (chartInstance) {
-    chartInstance.dispatchAction({
-      type: "restore",
-    });
-  }
+  graphInstance?.fitCenter();
+  graphInstance?.zoom(1);
 };
 
 /**
@@ -288,7 +417,12 @@ const formatTime = (timestamp: number): string => {
  * 窗口大小变化
  */
 const handleResize = () => {
-  chartInstance?.resize();
+  if (graphInstance && graphContainer.value) {
+    const width = graphContainer.value.clientWidth;
+    const height = graphContainer.value.clientHeight;
+    graphInstance.changeSize(width, height);
+    graphInstance.fitCenter();
+  }
 };
 
 onMounted(() => {
@@ -298,7 +432,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener("resize", handleResize);
-  chartInstance?.dispose();
+  graphInstance?.destroy();
 });
 </script>
 
