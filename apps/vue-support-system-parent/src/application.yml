@@ -1,0 +1,9 @@
+# 登录页面主题配置
+# 主题选项: modern(现代简约), tech(科技未来), business(商务专业), random(随机)
+LoginTheme: modern
+
+# 是否启用节日主题（自动检测节日并应用对应主题）
+# 节日主题优先级高于 LoginTheme 配置
+EnableFestivalTheme: true
+
+# 其他配置...
