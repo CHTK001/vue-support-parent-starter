@@ -28,7 +28,7 @@ export default [
   {
     path: "/CameraPreview",
     name: "CameraPreview",
-    component: () => import("@pages/project").then(m => m.DevicePreview),
+    component: () => import("../../../../../pages/project/src/views/template/device/preview/index.vue"),
     meta: {
       title: $t("buttons.accountSetting"),
       showLink: false

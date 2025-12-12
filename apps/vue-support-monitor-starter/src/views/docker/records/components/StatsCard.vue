@@ -287,7 +287,7 @@ const formatDuration = (seconds: number) => {
 }
 
 .stat-item.info {
-  border-left- color: var(--el-text-color-primary);
+  border-left-color: var(--el-text-color-primary);
 }
 
 .stat-icon {
