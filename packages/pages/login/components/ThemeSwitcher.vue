@@ -1,79 +1,101 @@
 <!--
- * 登录页面主题切换器
+ * 登录页面主题切换器 - 卡片式设计
  * @author CH
  * @date 2025-12-12
- * @version 1.0.0
+ * @version 2.0.0
  -->
 <template>
   <div class="theme-switcher">
-    <el-dropdown trigger="click" @command="handleThemeChange">
-      <div class="switcher-trigger">
-        <IconifyIconOnline :icon="currentThemeIcon" class="theme-icon" />
-        <span class="theme-text">{{ currentThemeName }}</span>
-        <IconifyIconOnline icon="ep:arrow-down" class="arrow-icon" />
-      </div>
-      <template #dropdown>
-        <el-dropdown-menu class="theme-dropdown-menu">
-          <!-- 常规主题 -->
-          <el-dropdown-item
-            v-for="theme in regularThemes"
-            :key="theme.key"
-            :command="theme.key"
-            :class="{ 'is-active': currentTheme === theme.key }"
-          >
-            <div class="theme-option">
-              <IconifyIconOnline :icon="theme.icon" class="option-icon" />
-              <div class="option-info">
-                <div class="option-name">{{ theme.name }}</div>
-                <div class="option-desc">{{ theme.description }}</div>
+    <!-- 触发器 -->
+    <div class="switcher-trigger" @click="togglePanel">
+      <IconifyIconOnline :icon="currentThemeIcon" class="theme-icon" />
+      <span class="theme-text">{{ currentThemeName }}</span>
+      <IconifyIconOnline 
+        icon="ep:arrow-down" 
+        class="arrow-icon" 
+        :class="{ 'is-open': isPanelOpen }"
+      />
+    </div>
+
+    <!-- 主题选择面板 -->
+    <Teleport to="body">
+      <Transition name="panel-fade">
+        <div v-if="isPanelOpen" class="theme-panel-overlay" @click="closePanel">
+          <div class="theme-panel" @click.stop>
+            <!-- 面板头部 -->
+            <div class="panel-header">
+              <div class="header-title">
+                <IconifyIconOnline icon="ri:palette-line" />
+                <span>选择主题</span>
               </div>
-              <IconifyIconOnline
-                v-if="currentTheme === theme.key"
-                icon="ep:check"
-                class="check-icon"
-              />
+              <el-button circle size="small" @click="closePanel">
+                <IconifyIconOnline icon="ep:close" />
+              </el-button>
             </div>
-          </el-dropdown-item>
 
-          <el-divider style="margin: 8px 0" />
-
-          <!-- 节日主题 -->
-          <el-dropdown-item
-            v-for="theme in festivalThemes"
-            :key="theme.key"
-            :command="theme.key"
-            :class="{ 'is-active': currentTheme === theme.key }"
-          >
-            <div class="theme-option">
-              <IconifyIconOnline :icon="theme.icon" class="option-icon" />
-              <div class="option-info">
-                <div class="option-name">
-                  {{ theme.name }}
-                  <el-tag size="small" type="warning" style="margin-left: 5px">节日</el-tag>
+            <!-- 常规主题 -->
+            <div class="theme-section">
+              <div class="section-title">常规主题</div>
+              <div class="theme-grid">
+                <div
+                  v-for="theme in regularThemes"
+                  :key="theme.key"
+                  class="theme-card"
+                  :class="{ 'is-active': currentTheme === theme.key }"
+                  @click="selectTheme(theme.key)"
+                >
+                  <div class="card-icon">
+                    <IconifyIconOnline :icon="theme.icon" />
+                  </div>
+                  <div class="card-name">{{ theme.name }}</div>
+                  <div class="card-desc">{{ theme.description }}</div>
+                  <div v-if="currentTheme === theme.key" class="card-check">
+                    <IconifyIconOnline icon="ep:check" />
+                  </div>
                 </div>
-                <div class="option-desc">{{ theme.description }}</div>
               </div>
-              <IconifyIconOnline
-                v-if="currentTheme === theme.key"
-                icon="ep:check"
-                class="check-icon"
-              />
             </div>
-          </el-dropdown-item>
-        </el-dropdown-menu>
-      </template>
-    </el-dropdown>
+
+            <!-- 节日主题 -->
+            <div class="theme-section">
+              <div class="section-title">
+                <span>节日主题</span>
+                <el-tag size="small" type="warning">特别</el-tag>
+              </div>
+              <div class="theme-grid">
+                <div
+                  v-for="theme in festivalThemes"
+                  :key="theme.key"
+                  class="theme-card festival"
+                  :class="{ 'is-active': currentTheme === theme.key }"
+                  @click="selectTheme(theme.key)"
+                >
+                  <div class="card-icon">
+                    <IconifyIconOnline :icon="theme.icon" />
+                  </div>
+                  <div class="card-name">{{ theme.name }}</div>
+                  <div class="card-desc">{{ theme.description }}</div>
+                  <div v-if="currentTheme === theme.key" class="card-check">
+                    <IconifyIconOnline icon="ep:check" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 import { localStorageProxy } from "@repo/utils";
 
 /**
  * @author CH
  * @date 2025-12-12
- * @version 1.0.0
+ * @version 2.0.0
  */
 defineOptions({
   name: "ThemeSwitcher",
@@ -83,6 +105,9 @@ const emit = defineEmits(["theme-change"]);
 
 const localStorageProxyObject = localStorageProxy();
 const THEME_STORAGE_KEY = "login-theme-preference";
+
+// 面板显示状态
+const isPanelOpen = ref(false);
 
 // 常规主题列表
 const regularThemes = [
@@ -177,19 +202,45 @@ const loadThemePreference = () => {
   }
 };
 
-// 主题切换处理
-const handleThemeChange = (themeKey: string) => {
+// 切换面板
+const togglePanel = () => {
+  isPanelOpen.value = !isPanelOpen.value;
+};
+
+// 关闭面板
+const closePanel = () => {
+  isPanelOpen.value = false;
+};
+
+// 选择主题
+const selectTheme = (themeKey: string) => {
   currentTheme.value = themeKey;
   // 保存到本地存储
   localStorageProxyObject.setItem(THEME_STORAGE_KEY, themeKey);
   // 通知父组件
   emit("theme-change", themeKey);
+  // 关闭面板
+  closePanel();
   // 刷新页面以应用新主题
-  window.location.reload();
+  setTimeout(() => {
+    window.location.reload();
+  }, 300);
+};
+
+// ESC 键关闭
+const handleEscape = (e: KeyboardEvent) => {
+  if (e.key === "Escape" && isPanelOpen.value) {
+    closePanel();
+  }
 };
 
 onMounted(() => {
   loadThemePreference();
+  document.addEventListener("keydown", handleEscape);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("keydown", handleEscape);
 });
 </script>
 
@@ -216,10 +267,6 @@ onMounted(() => {
     border-color: rgba(255, 255, 255, 0.35);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-
-    .arrow-icon {
-      transform: translateY(2px);
-    }
   }
 
   &:active {
@@ -244,138 +291,193 @@ onMounted(() => {
     font-size: 14px;
     color: var(--el-text-color-secondary);
     transition: transform 0.3s ease;
+
+    &.is-open {
+      transform: rotate(180deg);
+    }
   }
 }
 
-:deep(.theme-dropdown-menu) {
-  min-width: 320px;
-  padding: 12px;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  border: 1px solid var(--el-border-color-lighter);
+// 面板遮罩
+.theme-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
 
-  .el-dropdown-menu__item {
-    padding: 0;
-    height: auto;
-    line-height: normal;
-    border-radius: 8px;
-    margin-bottom: 6px;
+// 主题面板
+.theme-panel {
+  background: var(--el-bg-color);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 900px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: panelSlideIn 0.3s ease;
+
+  // 面板头部
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    position: sticky;
+    top: 0;
+    background: var(--el-bg-color);
+    z-index: 1;
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+
+      :deep(.iconify) {
+        font-size: 24px;
+        color: var(--el-color-primary);
+      }
+    }
+  }
+
+  // 主题分区
+  .theme-section {
+    padding: 24px;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--el-border-color-lighter);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+      margin-bottom: 16px;
+    }
+
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 16px;
+    }
+  }
+
+  // 主题卡片
+  .theme-card {
+    position: relative;
+    padding: 20px 16px;
+    border: 2px solid var(--el-border-color);
+    border-radius: 12px;
+    cursor: pointer;
     transition: all 0.3s ease;
+    background: var(--el-bg-color);
+    text-align: center;
 
-    &:last-child {
-      margin-bottom: 0;
+    &:hover {
+      border-color: var(--el-color-primary);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+      .card-icon {
+        transform: scale(1.1);
+      }
     }
 
     &.is-active {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary-light-9) 0%,
-        var(--el-color-primary-light-8) 100%
-      );
-      border: 1px solid var(--el-color-primary-light-5);
+      border-color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+
+      .card-name {
+        color: var(--el-color-primary);
+        font-weight: 600;
+      }
     }
 
-    &:hover {
-      background: var(--el-fill-color-light);
-      transform: translateX(4px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    &.festival {
+      border-style: dashed;
     }
-  }
 
-  .el-divider {
-    margin: 12px 0;
-    border-color: var(--el-border-color-lighter);
-  }
-}
+    .card-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      transition: transform 0.3s ease;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    }
 
-.theme-option {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 12px;
-  width: 100%;
-  position: relative;
-  overflow: hidden;
-
-  // 添加渐变背景效果
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 4px;
-    height: 100%;
-    background: linear-gradient(
-      to bottom,
-      var(--el-color-primary),
-      var(--el-color-primary-light-3)
-    );
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  .option-icon {
-    font-size: 32px;
-    flex-shrink: 0;
-    transition: transform 0.3s ease;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-  }
-
-  .option-info {
-    flex: 1;
-    min-width: 0;
-
-    .option-name {
-      font-size: 15px;
-      font-weight: 600;
+    .card-name {
+      font-size: 14px;
+      font-weight: 500;
       color: var(--el-text-color-primary);
       margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      letter-spacing: 0.3px;
     }
 
-    .option-desc {
+    .card-desc {
       font-size: 12px;
       color: var(--el-text-color-secondary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1.5;
-    }
-  }
-
-  .check-icon {
-    font-size: 20px;
-    color: var(--el-color-primary);
-    flex-shrink: 0;
-    animation: checkBounce 0.5s ease;
-  }
-
-  // hover 效果
-  &:hover {
-    .option-icon {
-      transform: scale(1.1) rotate(5deg);
     }
 
-    &::before {
-      opacity: 1;
+    .card-check {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+      background: var(--el-color-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      animation: checkBounce 0.5s ease;
     }
   }
 }
 
-// 选中状态的特殊效果
-.is-active .theme-option {
-  &::before {
+// 动画
+.panel-fade-enter-active,
+.panel-fade-leave-active {
+  transition: opacity 0.3s ease;
+
+  .theme-panel {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+}
+
+.panel-fade-enter-from,
+.panel-fade-leave-to {
+  opacity: 0;
+
+  .theme-panel {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+@keyframes panelSlideIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
     opacity: 1;
-  }
-
-  .option-icon {
-    transform: scale(1.05);
-  }
-
-  .option-name {
-    color: var(--el-color-primary);
   }
 }
 
@@ -400,6 +502,27 @@ html.dark {
     &:hover {
       background: rgba(0, 0, 0, 0.3);
       border-color: rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+// 响应式
+@media (max-width: 768px) {
+  .theme-panel {
+    max-width: 100%;
+    max-height: 90vh;
+
+    .theme-section .theme-grid {
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 12px;
+    }
+
+    .theme-card {
+      padding: 16px 12px;
+
+      .card-icon {
+        font-size: 40px;
+      }
     }
   }
 }
