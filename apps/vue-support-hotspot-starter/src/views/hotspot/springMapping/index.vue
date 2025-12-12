@@ -117,7 +117,14 @@ const handleInfo = row => {
 onBeforeMount(async () => {
   http.get((window.agentPath || "/agent") + "/spring-mapping-data").then(res => {
     // 后端返回的是 { data: [...], total: 10 }
-    data.value = res.data || [];
+    // 需要提取 data 字段中的数组
+    if (res && typeof res === 'object' && Array.isArray(res.data)) {
+      data.value = res.data;
+    } else if (Array.isArray(res)) {
+      data.value = res;
+    } else {
+      data.value = [];
+    }
   });
 });
 </script>
