@@ -1,4 +1,0 @@
-icon: "ri:qr-code-line"
-title: $t("tools.web.qrcode")
-showLink: true
-showParent: true
