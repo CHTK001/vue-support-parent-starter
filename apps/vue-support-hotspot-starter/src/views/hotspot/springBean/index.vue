@@ -37,15 +37,29 @@
         <el-table-column prop="id" label="ID" width="100" />
         <el-table-column prop="name" label="Bean 名称" min-width="200">
           <template #default="{ row }">
-            <div class="bean-name">
-              <IconifyIconOnline icon="ri:code-box-line" class="bean-icon" />
-              <span>{{ row.name }}</span>
-            </div>
+            <el-tooltip placement="top">
+              <template #content>
+                <div style="max-width: 400px">
+                  <div><strong>Bean 名称:</strong> {{ row.name }}</div>
+                  <div><strong>类名:</strong> {{ row.className }}</div>
+                  <div v-if="row.resource"><strong>资源:</strong> {{ row.resource }}</div>
+                </div>
+              </template>
+              <div class="bean-name">
+                <IconifyIconOnline icon="ri:code-box-line" class="bean-icon" />
+                <span>{{ row.name }}</span>
+              </div>
+            </el-tooltip>
           </template>
         </el-table-column>
         <el-table-column prop="className" label="类名" min-width="300">
           <template #default="{ row }">
-            <el-tooltip :content="row.className" placement="top" :show-after="500">
+            <el-tooltip placement="top" :show-after="300">
+              <template #content>
+                <div style="max-width: 500px; word-break: break-all">
+                  {{ row.className }}
+                </div>
+              </template>
               <span class="class-name">{{ row.className }}</span>
             </el-tooltip>
           </template>

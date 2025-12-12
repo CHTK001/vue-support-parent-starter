@@ -128,7 +128,7 @@ const settings = reactive({
   doubleNavAutoExpandAll: $storage.configure.doubleNavAutoExpandAll ?? true,
   // AI 助手设置
   aiChatTheme: $storage.configure.aiChatTheme ?? "default",
-  // 主题管理设置
+  // 主题皮肤设置
   enableFestivalTheme: getConfig().EnableFestivalTheme ?? true,
 });
 
@@ -1084,12 +1084,12 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- 主题管理功能区域 -->
+        <!-- 主题皮肤功能区域 -->
         <div v-if="getConfig().EnableThemeManagement !== false" class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline :icon="'ri:settings-3-line'" class="section-icon" />
-            <h3 class="section-title">主题管理</h3>
-            <div class="section-description">管理和配置系统主题</div>
+            <IconifyIconOffline :icon="'ri:palette-fill'" class="section-icon" />
+            <h3 class="section-title">主题皮肤</h3>
+            <div class="section-description">管理和配置系统皮肤主题</div>
           </div>
           <div class="setting-content">
             <!-- 节日主题自动切换开关 -->
