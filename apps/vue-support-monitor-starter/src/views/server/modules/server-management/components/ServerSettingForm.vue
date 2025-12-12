@@ -1050,6 +1050,145 @@
       </el-form-item>
     </div>
 
+    <!-- 脚本执行配置 -->
+    <div v-if="section === 'script'" class="setting-section">
+      <el-form-item prop="monitorSysGenServerSettingScriptEnabled">
+        <template #label>
+          <div class="form-label">
+            <span>启用脚本执行</span>
+            <el-tooltip
+              content="开启后允许在该服务器上执行脚本，用于自动化运维任务"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <ScSwitch
+          v-model="formData.monitorSysGenServerSettingScriptEnabled"
+          :active-value="1"
+          :inactive-value="0"
+          active-text="开启"
+          inactive-text="关闭"
+          @change="handleChange"
+        />
+      </el-form-item>
+
+      <template v-if="formData.monitorSysGenServerSettingScriptEnabled === 1">
+        <el-form-item prop="monitorSysGenServerSettingScriptExecuteMethod">
+          <template #label>
+            <div class="form-label">
+              <span>执行方式</span>
+              <el-tooltip
+                content="选择脚本的执行方式：SSH通过SSH连接执行，NODE通过代理节点执行"
+                placement="top"
+                effect="dark"
+              >
+                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+              </el-tooltip>
+            </div>
+          </template>
+          <el-radio-group
+            v-model="formData.monitorSysGenServerSettingScriptExecuteMethod"
+            @change="handleChange"
+          >
+            <el-radio-button value="SSH">
+              <IconifyIconOnline icon="ri:terminal-line" class="mr-1" />
+              SSH 执行
+            </el-radio-button>
+            <el-radio-button value="NODE">
+              <IconifyIconOnline icon="ri:server-line" class="mr-1" />
+              NODE 代理
+            </el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+
+        <!-- 执行方式说明 -->
+        <div class="execute-method-tips">
+          <div
+            v-if="formData.monitorSysGenServerSettingScriptExecuteMethod === 'SSH'"
+            class="method-tip-card"
+          >
+            <div class="tip-header">
+              <IconifyIconOnline icon="ri:terminal-line" class="tip-icon ssh" />
+              <span class="tip-title">SSH 执行</span>
+            </div>
+            <div class="tip-content">
+              <p>通过 SSH 协议直接连接到服务器执行脚本</p>
+              <ul>
+                <li>需要服务器的 SSH 连接信息</li>
+                <li>支持所有类型的脚本</li>
+                <li>实时获取执行输出</li>
+              </ul>
+            </div>
+          </div>
+          <div
+            v-else-if="formData.monitorSysGenServerSettingScriptExecuteMethod === 'NODE'"
+            class="method-tip-card"
+          >
+            <div class="tip-header">
+              <IconifyIconOnline icon="ri:server-line" class="tip-icon node" />
+              <span class="tip-title">NODE 代理</span>
+            </div>
+            <div class="tip-content">
+              <p>通过部署在服务器上的 NODE 代理服务执行脚本</p>
+              <ul>
+                <li>需要在服务器上安装 NODE 代理</li>
+                <li>更安全，不暴露 SSH 端口</li>
+                <li>支持任务队列和异步执行</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <el-form-item prop="monitorSysGenServerSettingScriptTimeout">
+          <template #label>
+            <div class="form-label">
+              <span>执行超时</span>
+              <el-tooltip
+                content="脚本执行的最大超时时间，超过该时间将自动终止"
+                placement="top"
+                effect="dark"
+              >
+                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+              </el-tooltip>
+            </div>
+          </template>
+          <el-input-number
+            v-model="formData.monitorSysGenServerSettingScriptTimeout"
+            :min="10"
+            :max="3600"
+            :step="30"
+            placeholder="超时时间(秒)"
+            style="width: 200px"
+            @change="handleChange"
+          />
+          <span class="form-tip">秒，建议值：300</span>
+        </el-form-item>
+
+        <el-form-item prop="monitorSysGenServerSettingScriptWorkDir">
+          <template #label>
+            <div class="form-label">
+              <span>工作目录</span>
+              <el-tooltip
+                content="脚本执行时的默认工作目录"
+                placement="top"
+                effect="dark"
+              >
+                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+              </el-tooltip>
+            </div>
+          </template>
+          <el-input
+            v-model="formData.monitorSysGenServerSettingScriptWorkDir"
+            placeholder="/home/user 或留空使用默认目录"
+            @change="handleChange"
+          />
+        </el-form-item>
+      </template>
+    </div>
+
     <!-- 代理配置 -->
     <div v-if="section === 'proxy'" class="setting-section">
       <el-form-item prop="monitorSysGenServerSettingProxyEnabled">
@@ -1959,6 +2098,7 @@ const props = defineProps<{
     | "monitor"
     | "alert"
     | "docker"
+    | "script"
     | "proxy"
     | "prometheus"
     | "filemanagement"
@@ -2028,8 +2168,13 @@ const DEFAULT_VALUES = {
   monitorSysGenServerSettingProxyEnabled: 0,
   monitorSysGenServerSettingProxyType: "HTTP",
 
+  // 脚本执行配置默认值
+  monitorSysGenServerSettingScriptEnabled: 0,
+  monitorSysGenServerSettingScriptExecuteMethod: "SSH",
+  monitorSysGenServerSettingScriptTimeout: 300,
+  monitorSysGenServerSettingScriptWorkDir: "",
+
   // 高级配置默认值
-  monitorSysGenServerSettingPortMonitorEnabled: 0,
   monitorSysGenServerSettingPerformanceSuggestionEnabled: 1,
 
   // 文件上传配置默认值
@@ -2586,6 +2731,25 @@ const testFileManagementConnection = async () => {
 
 .method-tip-card .tip-icon.node {
   color: var(--el-color-primary);
+}
+
+.method-tip-card .tip-icon.ssh {
+  color: var(--el-color-success);
+}
+
+.execute-method-tips {
+  margin-bottom: 16px;
+}
+
+.execute-method-tips .method-tip-card .tip-content ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.execute-method-tips .method-tip-card .tip-content ul li {
+  margin-bottom: 4px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
 }
 
 .method-tip-card .tip-icon.local {
