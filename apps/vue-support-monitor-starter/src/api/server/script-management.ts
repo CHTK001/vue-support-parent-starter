@@ -13,10 +13,10 @@ import { http } from "@repo/utils";
 export interface ScriptQueryParams {
   page: number;
   pageSize: number;
-  monitorSysGenScriptName?: string;
-  monitorSysGenScriptType?: string;
-  monitorSysGenScriptStatus?: string;
-  monitorSysGenScriptCategory?: string;
+  scriptName?: string;
+  scriptType?: string;
+  scriptStatus?: number;
+  scriptCategory?: string;
 }
 
 /**
@@ -63,8 +63,10 @@ export function batchDeleteScripts(scriptIds: number[]) {
 
 /**
  * 更新脚本状态
+ * @param scriptId 脚本 ID
+ * @param status 状态（0: 禁用, 1: 启用）
  */
-export function updateScriptStatus(scriptId: number, status: string) {
+export function updateScriptStatus(scriptId: number, status: number) {
   return http.put(`/script/${scriptId}/status`, null, { params: { status } });
 }
 
