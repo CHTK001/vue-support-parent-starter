@@ -183,30 +183,43 @@ onMounted(() => {
 .switcher-trigger {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  gap: 10px;
+  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
-    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+    .arrow-icon {
+      transform: translateY(2px);
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 
   .theme-icon {
-    font-size: 20px;
+    font-size: 22px;
     color: var(--el-color-primary);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    transition: transform 0.3s ease;
   }
 
   .theme-text {
     font-size: 14px;
     color: var(--el-text-color-primary);
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.5px;
   }
 
   .arrow-icon {
@@ -217,34 +230,77 @@ onMounted(() => {
 }
 
 :deep(.theme-dropdown-menu) {
-  min-width: 280px;
-  padding: 8px;
+  min-width: 320px;
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--el-border-color-lighter);
 
   .el-dropdown-menu__item {
     padding: 0;
     height: auto;
     line-height: normal;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    transition: all 0.3s ease;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
 
     &.is-active {
-      background: var(--el-color-primary-light-9);
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary-light-9) 0%,
+        var(--el-color-primary-light-8) 100%
+      );
+      border: 1px solid var(--el-color-primary-light-5);
     }
 
     &:hover {
       background: var(--el-fill-color-light);
+      transform: translateX(4px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
+  }
+
+  .el-divider {
+    margin: 12px 0;
+    border-color: var(--el-border-color-lighter);
   }
 }
 
 .theme-option {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 14px;
+  padding: 14px 12px;
   width: 100%;
+  position: relative;
+  overflow: hidden;
+
+  // 添加渐变背景效果
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(
+      to bottom,
+      var(--el-color-primary),
+      var(--el-color-primary-light-3)
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
 
   .option-icon {
-    font-size: 28px;
+    font-size: 32px;
     flex-shrink: 0;
+    transition: transform 0.3s ease;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
   }
 
   .option-info {
@@ -252,12 +308,13 @@ onMounted(() => {
     min-width: 0;
 
     .option-name {
-      font-size: 14px;
-      font-weight: 500;
+      font-size: 15px;
+      font-weight: 600;
       color: var(--el-text-color-primary);
-      margin-bottom: 2px;
+      margin-bottom: 4px;
       display: flex;
       align-items: center;
+      letter-spacing: 0.3px;
     }
 
     .option-desc {
@@ -266,13 +323,53 @@ onMounted(() => {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      line-height: 1.5;
     }
   }
 
   .check-icon {
-    font-size: 18px;
+    font-size: 20px;
     color: var(--el-color-primary);
     flex-shrink: 0;
+    animation: checkBounce 0.5s ease;
+  }
+
+  // hover 效果
+  &:hover {
+    .option-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+
+    &::before {
+      opacity: 1;
+    }
+  }
+}
+
+// 选中状态的特殊效果
+.is-active .theme-option {
+  &::before {
+    opacity: 1;
+  }
+
+  .option-icon {
+    transform: scale(1.05);
+  }
+
+  .option-name {
+    color: var(--el-color-primary);
+  }
+}
+
+@keyframes checkBounce {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 
