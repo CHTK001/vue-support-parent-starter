@@ -202,15 +202,33 @@ const regularThemes = [
 // 节日主题列表
 const festivalThemes = [
   {
+    key: "new-year",
+    name: "元旦主题",
+    description: "新年新气象，烟花纸屑",
+    isFestival: true,
+  },
+  {
     key: "spring-festival",
     name: "春节主题",
     description: "喜庆祥和，红灯笼烟花",
     isFestival: true,
   },
   {
+    key: "valentines-day",
+    name: "情人节主题",
+    description: "浪漫甜蜜，爱心玫瑰",
+    isFestival: true,
+  },
+  {
     key: "mid-autumn",
     name: "中秋主题",
     description: "月圆人团圆，星空月亮",
+    isFestival: true,
+  },
+  {
+    key: "national-day",
+    name: "国庆主题",
+    description: "祝福祖国，红旗飘扬",
     isFestival: true,
   },
   {
@@ -245,8 +263,11 @@ const getThemeIcon = (themeKey: string) => {
     tech: "ri:rocket-line",
     business: "ri:briefcase-line",
     random: "ri:shuffle-line",
+    "new-year": "noto:party-popper",
     "spring-festival": "noto:firecracker",
+    "valentines-day": "noto:red-heart",
     "mid-autumn": "noto:full-moon",
+    "national-day": "twemoji:flag-china",
     christmas: "noto:christmas-tree",
   };
   return iconMap[themeKey] || "ri:palette-line";

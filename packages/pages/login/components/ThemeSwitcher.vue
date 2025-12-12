@@ -115,16 +115,34 @@ const regularThemes = [
 // 节日主题列表
 const festivalThemes = [
   {
+    key: "new-year",
+    name: "元旦",
+    description: "新年新气象",
+    icon: "noto:party-popper",
+  },
+  {
     key: "spring-festival",
     name: "春节",
     description: "喜庆祥和",
     icon: "noto:firecracker",
   },
   {
+    key: "valentines-day",
+    name: "情人节",
+    description: "浪漫甜蜜",
+    icon: "noto:red-heart",
+  },
+  {
     key: "mid-autumn",
     name: "中秋",
     description: "月圆人团圆",
     icon: "noto:full-moon",
+  },
+  {
+    key: "national-day",
+    name: "国庆",
+    description: "祝福祖国",
+    icon: "twemoji:flag-china",
   },
   {
     key: "christmas",
