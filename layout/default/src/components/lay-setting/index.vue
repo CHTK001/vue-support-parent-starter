@@ -73,34 +73,6 @@ const {
   setLayoutThemeColor,
 } = useDataThemeChange();
 
-/* 主题皮肤：默认/扁平化/现代化 */
-const themeSkin = ref<string>($storage?.layout?.themeSkin ?? "default");
-const themeSkinOptions = computed<Array<OptionsType>>(() => [
-  { label: "默认", tip: "保留当前风格", value: "default" },
-  { label: "扁平化", tip: "去除渐变与阴影，简洁风格", value: "flat" },
-  { label: "现代化", tip: "圆角与微阴影，现代设计", value: "modern" },
-]);
-
-function setThemeSkin(skin: string) {
-  themeSkin.value = skin;
-  document.documentElement.setAttribute("data-theme-skin", skin);
-  $storage.layout = {
-    ...$storage.layout,
-    layout: layoutTheme.value.layout,
-    theme: layoutTheme.value.theme,
-    darkMode: $storage.layout?.darkMode,
-    sidebarStatus: $storage.layout?.sidebarStatus,
-    epThemeColor: $storage.layout?.epThemeColor,
-    themeColor: $storage.layout?.themeColor,
-    overallStyle: $storage.layout?.overallStyle,
-    themeSkin: skin,
-  };
-}
-
-// 初始化 data-theme-skin
-if (themeSkin.value) {
-  document.documentElement.setAttribute("data-theme-skin", themeSkin.value);
-}
 
 /* body添加layout属性，作用于src/style/sidebar.scss */
 if (unref(layoutTheme)) {
@@ -156,6 +128,8 @@ const settings = reactive({
   doubleNavAutoExpandAll: $storage.configure.doubleNavAutoExpandAll ?? true,
   // AI 助手设置
   aiChatTheme: $storage.configure.aiChatTheme ?? "default",
+  // 主题管理设置
+  enableFestivalTheme: getConfig().EnableFestivalTheme ?? true,
 });
 
 /** AI 助手皮肤主题选项 */
@@ -196,6 +170,54 @@ const getThemeColorStyle = computed(() => {
     return { background: color };
   };
 });
+
+/**
+ * 节日主题列表
+ */
+const festivalThemesList = computed(() => [
+  {
+    color: "#f5222d",
+    themeColor: "dusk",
+    name: "春节",
+    description: "热情洋溢的红色主题",
+    icon: "noto:firecracker",
+  },
+  {
+    color: "#eb2f96",
+    themeColor: "pink",
+    name: "情人节",
+    description: "活力四射的粉色主题",
+    icon: "noto:red-heart",
+  },
+  {
+    color: "#13c2c2",
+    themeColor: "mingQing",
+    name: "中秋",
+    description: "清新自然的青色主题",
+    icon: "noto:full-moon",
+  },
+  {
+    color: "#fa541c",
+    themeColor: "volcano",
+    name: "国庆",
+    description: "温暖活力的橙色主题",
+    icon: "twemoji:flag-china",
+  },
+  {
+    color: "#722ed1",
+    themeColor: "saucePurple",
+    name: "圣诞",
+    description: "神秘优雅的紫色主题",
+    icon: "noto:christmas-tree",
+  },
+  {
+    color: "#1b2a47",
+    themeColor: "default",
+    name: "元旦",
+    description: "专业稳重的深蓝主题",
+    icon: "noto:party-popper",
+  },
+]);
 
 /** 当网页整体为暗色风格时不显示亮白色主题配色切换选项 */
 const showThemeColors = computed(() => {
@@ -258,6 +280,73 @@ const monochromeChange = (value: boolean): void => {
   const htmlEl = document.querySelector("html");
   toggleClass(settings.monochromeVal, "html-monochrome", htmlEl);
   storageConfigureChange("monochrome", value);
+};
+
+/** 节日主题自动切换设置 */
+const festivalThemeChange = (value: boolean): void => {
+  storageConfigureChange("enableFestivalTheme", value);
+};
+
+/**
+ * 切换系统主题皮肤
+ * @param themeKey 主题键值
+ */
+const switchSystemTheme = (themeKey: string): void => {
+  const htmlEl = document.documentElement;
+  
+  // 移除所有主题类
+  const themeClasses = [
+    "theme-christmas",
+    "theme-spring-festival",
+    "theme-valentines-day",
+    "theme-mid-autumn",
+    "theme-national-day",
+    "theme-new-year",
+  ];
+  
+  themeClasses.forEach((cls) => {
+    htmlEl.classList.remove(cls);
+  });
+  
+  // 添加新主题类
+  if (themeKey !== "default") {
+    htmlEl.classList.add(`theme-${themeKey}`);
+    
+    // 加载主题样式表
+    loadThemeStylesheet(themeKey);
+  } else {
+    // 移除主题样式表
+    const existingLink = document.getElementById("layout-theme-stylesheet");
+    if (existingLink) {
+      existingLink.remove();
+    }
+  }
+  
+  // 保存到本地存储
+  storageConfigureChange("systemTheme", themeKey);
+};
+
+/**
+ * 加载主题样式表
+ * @param themeKey 主题键值
+ */
+const loadThemeStylesheet = (themeKey: string): void => {
+  // 移除现有的主题样式表
+  const existingLink = document.getElementById("layout-theme-stylesheet");
+  if (existingLink) {
+    existingLink.remove();
+  }
+
+  // 如果是默认主题，不需要加载额外样式
+  if (themeKey === "default") {
+    return;
+  }
+
+  const link = document.createElement("link");
+  link.id = "layout-theme-stylesheet";
+  link.rel = "stylesheet";
+  link.href = `/themes/${themeKey}.css`;
+  document.head.appendChild(link);
 };
 
 /** 隐藏标签页设置 */
@@ -901,7 +990,7 @@ onUnmounted(() => {
         </div>
 
         <!-- 主题色设置区域 -->
-        <div class="setting-section">
+        <div v-if="themeColors && themeColors.length > 0" class="setting-section">
           <div class="section-header">
             <IconifyIconOffline :icon="'ri:drop-line'" class="section-icon" />
             <h3 class="section-title">{{ t("panel.pureThemeColor") }}</h3>
@@ -939,33 +1028,52 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- 主题皮肤设置区域 -->
-        <div class="setting-section">
+        <!-- 主题管理功能区域 -->
+        <div v-if="getConfig().EnableThemeManagement !== false" class="setting-section">
           <div class="section-header">
-            <IconifyIconOffline
-              :icon="'ri:contrast-drop-2-line'"
-              class="section-icon"
-            />
-            <h3 class="section-title">主题皮肤</h3>
-            <div class="section-description">
-              与主题色兼容：仅改变风格，不改变颜色
-            </div>
+            <IconifyIconOffline :icon="'ri:settings-3-line'" class="section-icon" />
+            <h3 class="section-title">主题管理</h3>
+            <div class="section-description">管理和配置系统主题</div>
           </div>
           <div class="setting-content">
-            <Segmented
-              resize
-              class="select-none modern-segmented"
-              :modelValue="
-                themeSkin === 'default' ? 0 : themeSkin === 'flat' ? 1 : 2
-              "
-              :options="themeSkinOptions"
-              @change="
-                ({ option, index }) =>
-                  setThemeSkin(
-                    index === 0 ? 'default' : index === 1 ? 'flat' : 'modern'
-                  )
-              "
-            />
+            <!-- 节日主题自动切换开关 -->
+            <div class="switch-card-grid">
+              <ScSwitch
+                v-model="settings.enableFestivalTheme"
+                layout="visual-card"
+                size="small"
+                label="节日主题自动切换"
+                description="根据日期自动切换节日主题"
+                active-icon="ri:calendar-event-line"
+                @change="festivalThemeChange"
+              />
+            </div>
+
+            <!-- 当未开启自动切换时，显示节日主题手动选择 -->
+            <div v-if="!settings.enableFestivalTheme" class="festival-themes-section">
+              <div class="festival-themes-title">
+                <IconifyIconOnline icon="noto:party-popper" class="festival-icon" />
+                <span>节日主题</span>
+              </div>
+              <div class="theme-grid">
+                <div
+                  v-for="theme in festivalThemesList"
+                  :key="theme.themeColor"
+                  class="theme-card festival"
+                  :class="{ 'is-active': theme.themeColor === layoutTheme.theme }"
+                  @click="switchSystemTheme(theme.themeColor)"
+                >
+                  <div class="card-icon">
+                    <IconifyIconOnline :icon="theme.icon" />
+                  </div>
+                  <div class="card-name">{{ theme.name }}</div>
+                  <div class="card-desc">{{ theme.description }}</div>
+                  <div v-if="theme.themeColor === layoutTheme.theme" class="card-check">
+                    <IconifyIconOnline icon="ep:check" />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -4042,6 +4150,250 @@ onUnmounted(() => {
   100% {
     opacity: 0;
     transform: scale(1.1);
+  }
+}
+
+// 节日主题部分样式
+.festival-themes-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--el-border-color-lighter);
+
+  .festival-themes-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    margin-bottom: 16px;
+
+    .festival-icon {
+      font-size: 18px;
+    }
+  }
+}
+
+// 主题卡片网格
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+// 主题卡片样式
+.theme-card {
+  position: relative;
+  padding: 20px 16px;
+  border: 2px solid var(--el-border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--el-bg-color);
+  text-align: center;
+
+  &:hover {
+    border-color: var(--el-color-primary);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+    .card-icon {
+      transform: scale(1.1);
+    }
+  }
+
+  &.is-active {
+    border-color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+
+    .card-name {
+      color: var(--el-color-primary);
+      font-weight: 600;
+    }
+  }
+
+  &.festival {
+    border-style: dashed;
+  }
+
+  .card-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    transition: transform 0.3s ease;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  }
+
+  .card-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+    margin-bottom: 4px;
+  }
+
+  .card-desc {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+
+  .card-check {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    background: var(--el-color-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    animation: checkBounce 0.5s ease;
+  }
+}
+
+// 检查动画
+@keyframes checkBounce {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.festival-theme-item {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 2px solid var(--el-border-color-light);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.12),
+    0 3px 8px rgba(0, 0, 0, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+
+  // 基础光泽效果
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0.1) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  // 悬停效果
+  &:hover {
+    transform: translateY(-8px) scale(1.15);
+    box-shadow:
+      0 12px 32px rgba(0, 0, 0, 0.25),
+      0 6px 16px rgba(0, 0, 0, 0.18),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    border-color: var(--el-color-primary-light-7);
+
+    .shine-effect {
+      opacity: 1;
+      transform: translateX(100%);
+    }
+
+    .selection-indicator {
+      transform: scale(1.2);
+    }
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  // 点击效果
+  &:active {
+    transform: translateY(-4px) scale(1.1);
+  }
+
+  // 选中状态
+  &.is-selected {
+    border-color: var(--el-color-primary);
+    box-shadow:
+      0 0 0 4px rgba(var(--el-color-primary-rgb), 0.4),
+      0 12px 32px rgba(var(--el-color-primary-rgb), 0.35),
+      0 6px 16px rgba(var(--el-color-primary-rgb), 0.25),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    transform: translateY(-4px) scale(1.1);
+
+    .selection-indicator {
+      opacity: 1;
+      transform: scale(1.15);
+
+      .check-ring {
+        background: var(--el-color-white);
+        border-color: var(--el-color-primary);
+        transform: scale(1.15);
+
+        .check-icon {
+          opacity: 1;
+          transform: scale(1.15);
+          color: var(--el-color-primary);
+        }
+      }
+    }
+
+    // 选中状态的脉冲动画
+    &::after {
+      content: "";
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      right: -3px;
+      bottom: -3px;
+      border-radius: 10px;
+      border: 2px solid var(--el-color-primary);
+      opacity: 0;
+      animation: pulse-ring 1.5s infinite;
+      pointer-events: none;
+      z-index: 10;
+    }
+  }
+
+  // 暗色主题适配
+  .dark & {
+    border-color: var(--el-border-color);
+    box-shadow:
+      0 6px 16px rgba(0, 0, 0, 0.5),
+      0 3px 8px rgba(0, 0, 0, 0.4),
+      0 1px 0 rgba(255, 255, 255, 0.1) inset;
+
+    &:hover {
+      border-color: var(--el-color-primary-light-4);
+      box-shadow:
+        0 12px 32px rgba(0, 0, 0, 0.6),
+        0 6px 16px rgba(0, 0, 0, 0.5),
+        0 1px 0 rgba(255, 255, 255, 0.15) inset;
+    }
+
+    &.is-selected {
+      box-shadow:
+        0 0 0 4px rgba(var(--el-color-primary-rgb), 0.4),
+        0 12px 32px rgba(var(--el-color-primary-rgb), 0.5),
+        0 6px 16px rgba(var(--el-color-primary-rgb), 0.4),
+        0 1px 0 rgba(255, 255, 255, 0.15) inset;
+    }
   }
 }
 

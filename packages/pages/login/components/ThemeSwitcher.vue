@@ -1,90 +1,91 @@
 <!--
- * 登录页面主题切换器 - 卡片式设计
+ * 登录页面主题切换器 - 下拉菜单式设计
  * @author CH
  * @date 2025-12-12
- * @version 2.0.0
+ * @version 2.1.0
  -->
 <template>
   <div class="theme-switcher">
-    <!-- 触发器 -->
-    <div class="switcher-trigger" @click="togglePanel">
-      <IconifyIconOnline :icon="currentThemeIcon" class="theme-icon" />
-      <span class="theme-text">{{ currentThemeName }}</span>
-      <IconifyIconOnline 
-        icon="ep:arrow-down" 
-        class="arrow-icon" 
-        :class="{ 'is-open': isPanelOpen }"
-      />
-    </div>
+    <!-- 下拉菜单触发器 -->
+    <el-dropdown
+      trigger="click"
+      popper-class="theme-dropdown-popper"
+    >
+      <div class="switcher-trigger">
+        <IconifyIconOnline :icon="currentThemeIcon" class="theme-icon" />
+        <span class="theme-text">{{ currentThemeName }}</span>
+        <IconifyIconOnline 
+          icon="ri:arrow-down-s-line" 
+          class="arrow-icon"
+        />
+      </div>
+      <template #dropdown>
+        <el-dropdown-menu class="theme-menu">
+          <!-- 菜单头部 -->
+          <div class="menu-header">
+            <IconifyIconOnline icon="ri:palette-line" />
+            <span>{{ t("theme.selectTheme") }}</span>
+          </div>
 
-    <!-- 主题选择面板 -->
-    <Teleport to="body">
-      <Transition name="panel-fade">
-        <div v-if="isPanelOpen" class="theme-panel-overlay" @click="closePanel">
-          <div class="theme-panel" @click.stop>
-            <!-- 面板头部 -->
-            <div class="panel-header">
-              <div class="header-title">
-                <IconifyIconOnline icon="ri:palette-line" />
-                <span>{{ t("theme.selectTheme") }}</span>
-              </div>
-              <el-button circle size="small" @click="closePanel">
-                <IconifyIconOnline icon="ep:close" />
-              </el-button>
-            </div>
-
-            <!-- 常规主题 -->
-            <div class="theme-section">
-              <div class="section-title">{{ t("theme.regularThemes") }}</div>
-              <div class="theme-grid">
-                <div
-                  v-for="theme in regularThemes"
-                  :key="theme.key"
-                  class="theme-card"
-                  :class="{ 'is-active': currentTheme === theme.key }"
-                  @click="selectTheme(theme.key)"
-                >
-                  <div class="card-icon">
-                    <IconifyIconOnline :icon="theme.icon" />
-                  </div>
-                  <div class="card-name">{{ theme.name }}</div>
-                  <div class="card-desc">{{ theme.description }}</div>
-                  <div v-if="currentTheme === theme.key" class="card-check">
-                    <IconifyIconOnline icon="ep:check" />
-                  </div>
+          <!-- 常规主题分组 -->
+          <div class="theme-group">
+            <div class="group-title">{{ t("theme.regularThemes") }}</div>
+            <div class="theme-items">
+              <el-dropdown-item
+                v-for="theme in regularThemes"
+                :key="theme.key"
+                class="theme-item"
+                :class="{ 'is-active': currentTheme === theme.key }"
+                @click="selectTheme(theme.key)"
+              >
+                <div class="item-icon">
+                  <IconifyIconOnline :icon="theme.icon" />
                 </div>
-              </div>
-            </div>
-
-            <!-- 节日主题 -->
-            <div class="theme-section">
-              <div class="section-title">
-                <span>{{ t("theme.festivalThemes") }}</span>
-                <el-tag size="small" type="warning">{{ t("theme.festivalTag") }}</el-tag>
-              </div>
-              <div class="theme-grid">
-                <div
-                  v-for="theme in festivalThemes"
-                  :key="theme.key"
-                  class="theme-card festival"
-                  :class="{ 'is-active': currentTheme === theme.key }"
-                  @click="selectTheme(theme.key)"
-                >
-                  <div class="card-icon">
-                    <IconifyIconOnline :icon="theme.icon" />
-                  </div>
-                  <div class="card-name">{{ theme.name }}</div>
-                  <div class="card-desc">{{ theme.description }}</div>
-                  <div v-if="currentTheme === theme.key" class="card-check">
-                    <IconifyIconOnline icon="ep:check" />
-                  </div>
+                <div class="item-content">
+                  <span class="item-name">{{ theme.name }}</span>
+                  <span class="item-desc">{{ theme.description }}</span>
                 </div>
-              </div>
+                <IconifyIconOnline 
+                  v-show="currentTheme === theme.key"
+                  icon="ep:check" 
+                  class="item-check"
+                />
+              </el-dropdown-item>
             </div>
           </div>
-        </div>
-      </Transition>
-    </Teleport>
+
+          <!-- 节日主题分组 -->
+          <div class="theme-group">
+            <div class="group-title">
+              <span>{{ t("theme.festivalThemes") }}</span>
+              <el-tag size="small" type="warning">{{ t("theme.festivalTag") }}</el-tag>
+            </div>
+            <div class="theme-items">
+              <el-dropdown-item
+                v-for="theme in festivalThemes"
+                :key="theme.key"
+                class="theme-item festival"
+                :class="{ 'is-active': currentTheme === theme.key }"
+                @click="selectTheme(theme.key)"
+              >
+                <div class="item-icon">
+                  <IconifyIconOnline :icon="theme.icon" />
+                </div>
+                <div class="item-content">
+                  <span class="item-name">{{ theme.name }}</span>
+                  <span class="item-desc">{{ theme.description }}</span>
+                </div>
+                <IconifyIconOnline 
+                  v-show="currentTheme === theme.key"
+                  icon="ep:check" 
+                  class="item-check"
+                />
+              </el-dropdown-item>
+            </div>
+          </div>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
   </div>
 </template>
 
@@ -108,10 +109,9 @@ const { t } = useI18n();
 const localStorageProxyObject = localStorageProxy();
 const THEME_STORAGE_KEY = "login-theme-preference";
 
-// 面板显示状态
-const isPanelOpen = ref(false);
-
-// 常规主题列表
+/**
+ * 常规主题列表
+ */
 const regularThemes = computed(() => [
   {
     key: "modern",
@@ -139,7 +139,9 @@ const regularThemes = computed(() => [
   },
 ]);
 
-// 节日主题列表
+/**
+ * 节日主题列表
+ */
 const festivalThemes = computed(() => [
   {
     key: "new-year",
@@ -179,24 +181,35 @@ const festivalThemes = computed(() => [
   },
 ]);
 
+/**
+ * 所有主题列表
+ */
 const allThemes = computed(() => [...regularThemes.value, ...festivalThemes.value]);
 
-// 当前主题
+/**
+ * 当前选中的主题
+ */
 const currentTheme = ref("modern");
 
-// 当前主题名称
+/**
+ * 当前主题名称
+ */
 const currentThemeName = computed(() => {
   const theme = allThemes.value.find((t) => t.key === currentTheme.value);
   return theme ? theme.name : t("theme.themes.modern.name");
 });
 
-// 当前主题图标
+/**
+ * 当前主题图标
+ */
 const currentThemeIcon = computed(() => {
   const theme = allThemes.value.find((t) => t.key === currentTheme.value);
   return theme ? theme.icon : "ri:palette-line";
 });
 
-// 加载保存的主题偏好
+/**
+ * 加载保存的主题偏好
+ */
 const loadThemePreference = () => {
   const savedTheme = localStorageProxyObject.getItem(THEME_STORAGE_KEY) as string;
   if (savedTheme && allThemes.value.find((t) => t.key === savedTheme)) {
@@ -204,45 +217,28 @@ const loadThemePreference = () => {
   }
 };
 
-// 切换面板
-const togglePanel = () => {
-  isPanelOpen.value = !isPanelOpen.value;
-};
-
-// 关闭面板
-const closePanel = () => {
-  isPanelOpen.value = false;
-};
-
-// 选择主题
+/**
+ * 选择主题
+ * @param themeKey 主题键值
+ */
 const selectTheme = (themeKey: string) => {
   currentTheme.value = themeKey;
   // 保存到本地存储
   localStorageProxyObject.setItem(THEME_STORAGE_KEY, themeKey);
   // 通知父组件
   emit("theme-change", themeKey);
-  // 关闭面板
-  closePanel();
   // 刷新页面以应用新主题
   setTimeout(() => {
     window.location.reload();
   }, 300);
 };
 
-// ESC 键关闭
-const handleEscape = (e: KeyboardEvent) => {
-  if (e.key === "Escape" && isPanelOpen.value) {
-    closePanel();
-  }
-};
-
 onMounted(() => {
   loadThemePreference();
-  document.addEventListener("keydown", handleEscape);
 });
 
 onUnmounted(() => {
-  document.removeEventListener("keydown", handleEscape);
+  // 清理资源
 });
 </script>
 
@@ -251,239 +247,271 @@ onUnmounted(() => {
   position: relative;
 }
 
+/**
+ * 下拉菜单触发器样式
+ */
 .switcher-trigger {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 18px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 10px;
+  gap: 12px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 28px;
+  background: linear-gradient(
+    135deg,
+    var(--el-fill-color-lighter) 0%,
+    var(--el-fill-color-light) 100%
+  );
+  border: 1px solid var(--el-border-color-lighter);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.35);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  /* 光泽效果 */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    transition: left 0.5s ease;
   }
 
-  &:active {
-    transform: translateY(0);
+  &:hover {
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color-light) 0%,
+      var(--el-fill-color) 100%
+    );
+    border-color: rgba(var(--el-color-primary-rgb), 0.3);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.1),
+      0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
+    transform: translateY(-1px);
+
+    &::before {
+      left: 100%;
+    }
   }
 
   .theme-icon {
-    font-size: 22px;
+    font-size: 18px;
     color: var(--el-color-primary);
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
     transition: transform 0.3s ease;
+    flex-shrink: 0;
   }
 
   .theme-text {
-    font-size: 14px;
-    color: var(--el-text-color-primary);
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.5px;
+    color: var(--el-text-color-primary);
+    letter-spacing: 0.2px;
   }
 
   .arrow-icon {
     font-size: 14px;
-    color: var(--el-text-color-secondary);
-    transition: transform 0.3s ease;
+    color: var(--el-text-color-placeholder);
+    transition: all 0.3s ease;
+    margin-left: 4px;
+  }
+}
+</style>
 
-    &.is-open {
-      transform: rotate(180deg);
-    }
+<style lang="scss">
+/**
+ * 下拉菜单全局样式
+ */
+.theme-dropdown-popper {
+  .el-dropdown-menu {
+    padding: 0;
+    border-radius: 20px;
+    border: none;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.15),
+      0 8px 20px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+    min-width: 320px;
+    backdrop-filter: blur(20px);
   }
 }
 
-// 面板遮罩
-.theme-panel-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  z-index: 3000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
+.theme-menu {
+  padding: 0 !important;
 
-// 主题面板
-.theme-panel {
-  background: var(--el-bg-color);
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-width: 900px;
-  width: 100%;
-  max-height: 80vh;
-  overflow-y: auto;
-  animation: panelSlideIn 0.3s ease;
-
-  // 面板头部
-  .panel-header {
+  /**
+   * 菜单头部样式
+   */
+  .menu-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
+    gap: 10px;
+    padding: 16px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
     border-bottom: 1px solid var(--el-border-color-lighter);
-    position: sticky;
-    top: 0;
-    background: var(--el-bg-color);
-    z-index: 1;
-
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
-
-      :deep(.iconify) {
-        font-size: 24px;
-        color: var(--el-color-primary);
-      }
-    }
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color-lighter) 0%,
+      var(--el-fill-color-light) 100%
+    );
   }
 
-  // 主题分区
-  .theme-section {
-    padding: 24px;
+  /**
+   * 主题分组样式
+   */
+  .theme-group {
+    padding: 8px 10px;
 
     &:not(:last-child) {
       border-bottom: 1px solid var(--el-border-color-lighter);
     }
 
-    .section-title {
+    .group-title {
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-size: 16px;
+      gap: 8px;
+      padding: 12px 16px 8px;
+      font-size: 12px;
       font-weight: 600;
-      color: var(--el-text-color-primary);
-      margin-bottom: 16px;
+      color: var(--el-text-color-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    .theme-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 16px;
+    .theme-items {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
   }
 
-  // 主题卡片
-  .theme-card {
-    position: relative;
-    padding: 20px 16px;
-    border: 2px solid var(--el-border-color);
+  /**
+   * 主题项目样式
+   */
+  .theme-item {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+    padding: 16px !important;
+    margin: 0 !important;
     border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background: var(--el-bg-color);
-    text-align: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.08) 0%,
+        transparent 100%
+      );
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
 
     &:hover {
-      border-color: var(--el-color-primary);
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      background: var(--el-fill-color-light);
+      transform: translateX(4px);
 
-      .card-icon {
+      &::before {
+        opacity: 1;
+      }
+
+      .item-icon {
         transform: scale(1.1);
       }
     }
 
     &.is-active {
-      border-color: var(--el-color-primary);
-      background: var(--el-color-primary-light-9);
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.12) 0%,
+        rgba(var(--el-color-primary-rgb), 0.06) 100%
+      );
+      border: 1px solid rgba(var(--el-color-primary-rgb), 0.2);
 
-      .card-name {
+      .item-name {
         color: var(--el-color-primary);
         font-weight: 600;
       }
+
+      .item-check {
+        animation: check-pop 0.3s ease;
+      }
     }
 
-    &.festival {
-      border-style: dashed;
-    }
-
-    .card-icon {
-      font-size: 48px;
-      margin-bottom: 12px;
-      transition: transform 0.3s ease;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-    }
-
-    .card-name {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--el-text-color-primary);
-      margin-bottom: 4px;
-    }
-
-    .card-desc {
-      font-size: 12px;
-      color: var(--el-text-color-secondary);
-    }
-
-    .card-check {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 24px;
-      height: 24px;
-      background: var(--el-color-primary);
-      border-radius: 50%;
+    .item-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      font-size: 20px;
+      background: var(--el-fill-color);
+      color: var(--el-text-color-secondary);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      flex-shrink: 0;
+    }
+
+    .item-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+    }
+
+    .item-name {
       font-size: 14px;
-      animation: checkBounce 0.5s ease;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+      transition: color 0.3s;
+    }
+
+    .item-desc {
+      font-size: 11px;
+      color: var(--el-text-color-secondary);
+      line-height: 1.3;
+    }
+
+    .item-check {
+      font-size: 18px;
+      color: var(--el-color-primary);
+      filter: drop-shadow(0 2px 4px rgba(var(--el-color-primary-rgb), 0.3));
     }
   }
 }
 
-// 动画
-.panel-fade-enter-active,
-.panel-fade-leave-active {
-  transition: opacity 0.3s ease;
+/**
+ * 深色模式适配
+ */
+html.dark {
+  .theme-dropdown-popper .el-dropdown-menu {
+    background: var(--el-bg-color-overlay);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  }
 
-  .theme-panel {
-    transition: transform 0.3s ease, opacity 0.3s ease;
+  .theme-menu .menu-header {
+    background: var(--el-fill-color-dark);
   }
 }
 
-.panel-fade-enter-from,
-.panel-fade-leave-to {
-  opacity: 0;
-
-  .theme-panel {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-}
-
-@keyframes panelSlideIn {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes checkBounce {
+/**
+ * 动画定义
+ */
+@keyframes check-pop {
   0% {
     transform: scale(0);
   }
@@ -492,40 +520,6 @@ onUnmounted(() => {
   }
   100% {
     transform: scale(1);
-  }
-}
-
-// 暗色模式适配
-html.dark {
-  .switcher-trigger {
-    background: rgba(0, 0, 0, 0.2);
-    border-color: rgba(255, 255, 255, 0.1);
-
-    &:hover {
-      background: rgba(0, 0, 0, 0.3);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-  }
-}
-
-// 响应式
-@media (max-width: 768px) {
-  .theme-panel {
-    max-width: 100%;
-    max-height: 90vh;
-
-    .theme-section .theme-grid {
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 12px;
-    }
-
-    .theme-card {
-      padding: 16px 12px;
-
-      .card-icon {
-        font-size: 40px;
-      }
-    }
   }
 }
 </style>

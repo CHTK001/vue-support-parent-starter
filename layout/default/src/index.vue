@@ -1451,4 +1451,58 @@ const LayHeader = defineComponent({
     margin-left: 0 !important;
   }
 }
+
+// ==================== 节日主题皮肤 ====================
+
+// 圣诞主题
+:global(.theme-christmas) {
+  --theme-primary: #c41e3a;
+  --theme-secondary: #165b33;
+  --theme-accent: #ffd700;
+  --theme-background: #f5f5f5;
+  
+  :deep(.el-color-primary) {
+    color: var(--theme-primary);
+  }
+}
+
+// 春节主题
+:global(.theme-spring-festival) {
+  --theme-primary: #f5222d;
+  --theme-secondary: #ffd700;
+  --theme-accent: #ff6b6b;
+  --theme-background: #fff8f0;
+}
+
+// 情人节主题
+:global(.theme-valentines-day) {
+  --theme-primary: #eb2f96;
+  --theme-secondary: #ff69b4;
+  --theme-accent: #ff1493;
+  --theme-background: #fff0f5;
+}
+
+// 中秋主题
+:global(.theme-mid-autumn) {
+  --theme-primary: #13c2c2;
+  --theme-secondary: #20b2aa;
+  --theme-accent: #ffd700;
+  --theme-background: #f0f8ff;
+}
+
+// 国庆主题
+:global(.theme-national-day) {
+  --theme-primary: #fa541c;
+  --theme-secondary: #ff7a45;
+  --theme-accent: #ffd700;
+  --theme-background: #fff7f0;
+}
+
+// 元旦主题
+:global(.theme-new-year) {
+  --theme-primary: #1b2a47;
+  --theme-secondary: #409eff;
+  --theme-accent: #ffd700;
+  --theme-background: #f0f5ff;
+}
 </style>
