@@ -355,30 +355,28 @@ const handleSave = async () => {
 </script>
 
 <style scoped lang="scss">
-@import "../styles/variables.scss";
-@import "../styles/mixins.scss";
-
 .simple-script-dialog {
   :deep(.el-dialog) {
-    border-radius: $radius-xl;
+    border-radius: 16px;
     overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   }
 
   :deep(.el-dialog__header) {
-    background: $primary-gradient;
+    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
     color: white;
-    padding: $spacing-xl $spacing-2xl;
+    padding: 20px 24px;
     margin: 0;
 
     .el-dialog__title {
-      font-size: $font-size-xl;
-      font-weight: $font-weight-semibold;
+      font-size: 18px;
+      font-weight: 600;
       color: white;
     }
 
     .el-dialog__headerbtn {
-      top: $spacing-xl;
-      right: $spacing-2xl;
+      top: 20px;
+      right: 24px;
 
       .el-dialog__close {
         color: white;
@@ -395,7 +393,19 @@ const handleSave = async () => {
     padding: 0;
     max-height: 80vh;
     overflow-y: auto;
-    @include scrollbar;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--el-border-color);
+      border-radius: 3px;
+    }
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 0;
   }
 }
 
@@ -405,52 +415,96 @@ const handleSave = async () => {
 }
 
 .script-form {
-  padding: $spacing-2xl;
-  border-bottom: 1px solid $border-light;
-  background: $bg-secondary;
+  padding: 24px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter);
+
+  :deep(.el-form-item__label) {
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-textarea__inner),
+  :deep(.el-select__wrapper) {
+    border-radius: 8px;
+  }
 
   .option-item {
-    @include flex-align-center;
-    gap: $spacing-sm;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .iconify {
+      font-size: 16px;
+    }
   }
 }
 
 .code-editor-section {
-  padding: $spacing-2xl;
+  padding: 24px;
+  background: var(--el-bg-color);
 
   .section-header {
-    @include flex-between;
-    margin-bottom: $spacing-lg;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
 
     h4 {
       margin: 0;
-      font-size: $font-size-lg;
-      font-weight: $font-weight-semibold;
-      color: $text-primary;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      &::before {
+        content: "";
+        display: block;
+        width: 4px;
+        height: 18px;
+        background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
+        border-radius: 2px;
+      }
     }
 
     .editor-actions {
       display: flex;
-      gap: $spacing-sm;
+      gap: 8px;
+
+      .el-button {
+        border-radius: 8px;
+      }
     }
   }
 
   .code-editor-wrapper {
-    border: 1px solid $border-light;
-    border-radius: $radius-lg;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 12px;
     overflow: hidden;
     background: var(--el-bg-color-overlay);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
 }
 
 .dialog-footer {
-  @include flex-between;
-  padding: $spacing-xl $spacing-2xl;
-  background: $bg-secondary;
-  border-top: 1px solid $border-light;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  background: var(--el-fill-color-lighter);
+  border-top: 1px solid var(--el-border-color-lighter);
 
   .el-button {
     min-width: 100px;
+    border-radius: 8px;
+    height: 40px;
+
+    &.el-button--primary {
+      box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+    }
   }
 }
 </style>

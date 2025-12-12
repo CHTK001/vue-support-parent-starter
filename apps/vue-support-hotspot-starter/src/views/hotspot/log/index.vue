@@ -60,10 +60,10 @@
   </div>
 </template>
 <script setup>
-import { http } from "@repo/utils";
 import { nextTick, ref, onUnmounted, reactive, onMounted } from "vue";
 import { AnsiUp } from "ansi_up";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { wsService } from "@/utils/websocket";
 
 const ansiUp = new AnsiUp();
 const form = reactive({
@@ -73,18 +73,14 @@ const dataList = reactive([]);
 const config = reactive({
   lock: true
 });
-let pollingTimer = null;
-let lastLogId = 0;
+let unsubscribe = null;
 
-// 获取日志数据
-const fetchLogData = async () => {
-  try {
-    const res = await http.get((window.agentPath || "/agent") + "/log");
-    if (res?.data?.data) {
-      const newLogs = res.data.data;
-      newLogs.forEach(log => {
-        dataList.push({ data: log });
-      });
+// 处理 WebSocket 消息
+const handleWsMessage = message => {
+  if (message.event === "AGENT_LOG") {
+    try {
+      const logData = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
+      dataList.push({ data: logData });
       // 限制最大记录数
       while (dataList.length > 10000) {
         dataList.shift();
@@ -98,23 +94,9 @@ const fetchLogData = async () => {
           }
         });
       }
+    } catch (error) {
+      console.error("解析日志失败:", error);
     }
-  } catch (error) {
-    console.error("获取日志失败:", error);
-  }
-};
-
-// 启动轮询
-const startPolling = () => {
-  fetchLogData();
-  pollingTimer = setInterval(fetchLogData, 2000);
-};
-
-// 停止轮询
-const stopPolling = () => {
-  if (pollingTimer) {
-    clearInterval(pollingTimer);
-    pollingTimer = null;
   }
 };
 
@@ -138,11 +120,14 @@ const filter = row => {
 };
 
 onMounted(() => {
-  startPolling();
+  // 订阅日志消息
+  unsubscribe = wsService.subscribe("LOG", "AGENT_LOG", handleWsMessage);
 });
 
 onUnmounted(() => {
-  stopPolling();
+  if (unsubscribe) {
+    unsubscribe();
+  }
 });
 </script>
 <style scoped lang="scss">

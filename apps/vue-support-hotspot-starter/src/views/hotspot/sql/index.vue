@@ -66,8 +66,6 @@
 </template>
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { useConfigStore } from "@repo/core";
-import { AnsiUp } from "ansi_up";
 import Prism from "prismjs";
 import "prismjs/components/prism-http.min.js";
 import "prismjs/components/prism-sql.min.js";
@@ -76,74 +74,48 @@ import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/themes/prism-tomorrow.min.css";
 import { format } from "sql-formatter";
-import { nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
+import { nextTick, onMounted, onUnmounted, reactive } from "vue";
+import { wsService } from "@/utils/websocket";
 
-const heartbeatInterval = 30 * 1000; // 心跳间隔为30秒
-const heartbeatTimeout = 60 * 1000; // 心跳超时时间为60秒
-let heartbeatIntervalId, heartbeatTimeoutId;
-
-// 心跳检测启动函数
-const startHeartbeat = () => {
-  heartbeatIntervalId = setInterval(function () {
-    socketClient.value.send("ping"); // 发送心跳包
-
-    // 重置心跳超时定时器
-    clearTimeout(heartbeatTimeoutId);
-    heartbeatTimeoutId = setTimeout(function () {
-      console.log("Heartbeat timeout, closing the connection.");
-      socketClient.value?.close(); // 超时未收到响应，关闭连接
-      openSocket("ws://127.0.0.1:" + window.websocketPort);
-      // 这里可以添加重新连接的逻辑
-    }, heartbeatTimeout);
-  }, heartbeatInterval);
-};
-
-const handleOpen = () => {
-  console.log("WebSocket connection established.");
-  startHeartbeat();
-};
-
-const handleClose = () => {
-  console.log("WebSocket connection closed.");
-  clearInterval(heartbeatIntervalId);
-  clearTimeout(heartbeatTimeoutId);
-};
-// 判断消息是否为pong消息
-function isPongMessage(message) {
-  return message === "pong";
-}
-const timeLayoutRef = ref(null);
-const openLogTime = ref(false);
-const openLog = async () => {
-  openLogTime.value = true;
-  await nextTick();
-  timeLayoutRef.value.open();
-};
-// 引入Prism.js
-
-const ansiUp = new AnsiUp();
 const form = reactive({
   message: null
 });
-const socketClient = ref();
-const eventName = ref("message");
-const sqlPre = ref();
-const useConfigStoreObject = useConfigStore();
 const dataList = reactive([]);
 const config = reactive({
-  lock: true
+  lock: true,
+  mainData: null
 });
-const closeSocket = async () => {
-  socketClient.value?.close();
-  socketClient.value = null;
+let unsubscribe = null;
+
+// 处理 WebSocket 消息
+const handleWsMessage = message => {
+  if (message.event === "AGENT_SQL") {
+    try {
+      const sqlData = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
+      dataList.push({ data: sqlData });
+      // 限制最大记录数
+      while (dataList.length > 10000) {
+        dataList.shift();
+      }
+      // 自动滚动到底部
+      if (config.lock) {
+        nextTick(() => {
+          const container = document.querySelector("#containerRef");
+          if (container) {
+            container.scrollTop = container.scrollHeight;
+          }
+        });
+      }
+    } catch (error) {
+      console.error("解析 SQL 数据失败:", error);
+    }
+  }
 };
 
 const handleEventOne = row => {
   config.mainData = row;
   setTimeout(async () => {
     Prism.highlightAll();
-    // 假设你的SQL代码在模板的pre标签中
-    // 使用Prism.highlightElement来高亮代码
     try {
       document.querySelectorAll("pre code").forEach(ele => {
         Prism.highlightElement(ele);
@@ -151,65 +123,30 @@ const handleEventOne = row => {
     } catch (error) {}
   }, 300);
 };
-const ansiToHtml = ansiString => {
-  return ansiUp.ansi_to_html(ansiString);
-};
-const openSocket = async urls => {
-  closeSocket();
-  socketClient.value = new WebSocket(urls);
-  socketClient.value.onmessage = handleEvent;
-  socketClient.value.onopen = handleOpen;
-  socketClient.value.onclose = handleClose;
-};
+
 const getData = data => {
-  return data.filter(item => {
-    return filter(item);
-  });
+  return data.filter(item => filter(item));
 };
+
 const filter = row => {
   if (!form.message) {
     return true;
   }
-
-  if (!row?.data?.message) {
+  if (!row?.data?.sql) {
     return false;
   }
-  return row.data.message?.indexOf(form.message) > -1;
-};
-const handleEvent = async row => {
-  try {
-    row.data.text().then(data => {
-      if (isPongMessage(data)) {
-        // 重置心跳超时定时器
-        return;
-      }
-      var item;
-      try {
-        item = JSON.parse(data);
-      } catch (error) {}
-
-      if ("AGENT_SQL" !== item.event || !filter(item)) {
-        return;
-      }
-      dataList.push(item);
-      if (dataList.length > 10000) {
-        dataList.shift();
-      }
-      if (config.lock == true) {
-        document.querySelector("#containerRef").scrollTop = document.querySelector("#containerRef").scrollHeight;
-      }
-      // console.log(dataList);
-    });
-  } catch (error) {
-    return;
-  }
+  return row.data.sql?.indexOf(form.message) > -1;
 };
 
-onMounted(async () => {
-  openSocket("ws://127.0.0.1:" + window.websocketPort);
+onMounted(() => {
+  // 订阅 SQL 消息
+  unsubscribe = wsService.subscribe("SQL", "AGENT_SQL", handleWsMessage);
 });
+
 onUnmounted(() => {
-  closeSocket();
+  if (unsubscribe) {
+    unsubscribe();
+  }
 });
 </script>
 <style scoped lang="scss">
