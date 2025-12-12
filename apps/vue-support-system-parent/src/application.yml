@@ -6,4 +6,8 @@ LoginTheme: modern
 # 节日主题优先级高于 LoginTheme 配置
 EnableFestivalTheme: true
 
+# 是否在系统配置中显示主题管理功能
+# 开启后，管理员可以在系统配置页面手动切换登录主题
+EnableThemeManagement: true
+
 # 其他配置...

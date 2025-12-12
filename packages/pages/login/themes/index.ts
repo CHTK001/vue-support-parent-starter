@@ -85,8 +85,11 @@ export const getLoginTheme = (
     return loginThemes[randomIndex];
   }
 
-  // 查找指定主题
-  const theme = loginThemes.find((t) => t.key === themeKey);
+  // 查找指定主题（包括常规主题和节日主题）
+  let theme = loginThemes.find((t) => t.key === themeKey);
+  if (!theme) {
+    theme = festivalThemes.find((t) => t.key === themeKey);
+  }
   return theme || loginThemes[0];
 };
 
