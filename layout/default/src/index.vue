@@ -351,6 +351,13 @@ const LayHeader = defineComponent({
             : null,
           // 移动导航模式下不显示标签页
           layout.value !== "mobile" ? h(markRaw(LayTag)) : null,
+          // 春节灯笼装饰
+          h('div', {
+            class: 'spring-festival-lanterns',
+            style: {
+              display: 'none'
+            }
+          }),
         ],
       }
     );

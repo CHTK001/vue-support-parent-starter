@@ -37,15 +37,30 @@
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="路由路径" min-width="220">
           <template #default="{ row }">
-            <div class="route-path">
-              <IconifyIconOnline icon="ri:link" class="route-icon" />
-              <span class="path-text">{{ row.name }}</span>
-            </div>
+            <el-tooltip placement="top">
+              <template #content>
+                <div style="max-width: 400px">
+                  <div><strong>路由路径:</strong> {{ row.name }}</div>
+                  <div><strong>处理类:</strong> {{ row.className }}</div>
+                  <div v-if="row.method"><strong>处理方法:</strong> {{ row.method }}</div>
+                </div>
+              </template>
+              <div class="route-path">
+                <IconifyIconOnline icon="ri:link" class="route-icon" />
+                <span class="path-text">{{ row.name }}</span>
+              </div>
+            </el-tooltip>
           </template>
         </el-table-column>
         <el-table-column prop="className" label="处理类" min-width="300">
           <template #default="{ row }">
-            <el-tooltip :content="row.className" placement="top" :show-after="500">
+            <el-tooltip placement="top" :show-after="300">
+              <template #content>
+                <div style="max-width: 500px; word-break: break-all">
+                  <div><strong>完整类名:</strong> {{ row.className }}</div>
+                  <div v-if="row.method"><strong>方法名:</strong> {{ row.method }}</div>
+                </div>
+              </template>
               <span class="class-name">{{ row.className }}</span>
             </el-tooltip>
           </template>

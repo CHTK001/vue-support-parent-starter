@@ -65,36 +65,18 @@ function handleClick(event: Event) {
     return;
   }
   
-  // 普通菜单点击：先添加标签，再跳转路由
+  // 普通菜单点击：直接跳转路由，由路由守卫统一处理 tag 添加
   if (!isExternalLink.value && "meta" in props.to && "name" in props.to) {
     event.preventDefault();
     
     const menuItem = props.to as MenuType;
-    const tagData = {
-      path: menuItem.path,
-      name: menuItem.name,
-      meta: menuItem.meta,
-      query: {},
-      params: {}
-    };
     
-    // 先添加标签到 store
-    const multiTagsStore = useMultiTagsStoreHook();
-    const multiTags = multiTagsStore.multiTags;
-    const exists = Array.isArray(multiTags) && multiTags.some(tag => tag.path === menuItem.path);
-    
-    if (!exists) {
-      multiTagsStore.handleTags("push", tagData);
+    // 直接跳转路由
+    if (menuItem.name) {
+      router.push({ name: menuItem.name });
+    } else {
+      router.push({ path: menuItem.path });
     }
-    
-    // 等待标签添加完成后再跳转路由
-    nextTick(() => {
-      if (menuItem.name) {
-        router.push({ name: menuItem.name });
-      } else {
-        router.push({ path: menuItem.path });
-      }
-    });
   }
 }
 

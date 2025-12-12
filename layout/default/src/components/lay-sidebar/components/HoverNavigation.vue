@@ -416,27 +416,8 @@ function handleSubMenuClick(menu: any, event?: Event) {
       window.open(fullUrl, "_blank");
     }
   } else {
-    // 正常的Vue router导航：先添加标签，再跳转路由
-    const tagData = {
-      path: menu.path,
-      name: menu.name,
-      meta: menu.meta,
-      query: {},
-      params: {}
-    };
-    
-    // 先添加标签到 store
-    const multiTagsStore = useMultiTagsStoreHook();
-    const exists = multiTagsStore.multiTags.some(tag => tag.path === menu.path);
-    
-    if (!exists) {
-      multiTagsStore.handleTags("push", tagData);
-    }
-    
-    // 等待标签添加完成后再跳转路由
-    nextTick(() => {
-      router.push(menu.path);
-    });
+    // 直接跳转路由，由路由守卫统一处理 tag 添加
+    router.push(menu.path);
   }
 }
 
