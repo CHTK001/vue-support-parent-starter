@@ -353,10 +353,7 @@ const LayHeader = defineComponent({
           layout.value !== "mobile" ? h(markRaw(LayTag)) : null,
           // 春节灯笼装饰
           h('div', {
-            class: 'spring-festival-lanterns',
-            style: {
-              display: 'none'
-            }
+            class: 'spring-festival-lanterns'
           }),
         ],
       }
