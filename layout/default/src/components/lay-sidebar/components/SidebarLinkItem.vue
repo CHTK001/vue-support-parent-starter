@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { isUrl } from "@pureadmin/utils";
 import type { MenuType } from "@repo/core";
-import { computed } from "vue";
+import { computed, nextTick } from "vue";
 import { useRouter } from "vue-router";
+import { useMultiTagsStoreHook } from "@repo/core";
 
 const props = defineProps<{
   to: MenuType | { path: string };
@@ -61,6 +62,39 @@ function handleClick(event: Event) {
       const fullUrl = `${window.location.origin}/#/remaining-component/${componentPath}`;
       window.open(fullUrl, "_blank");
     }
+    return;
+  }
+  
+  // 普通菜单点击：先添加标签，再跳转路由
+  if (!isExternalLink.value && "meta" in props.to && "name" in props.to) {
+    event.preventDefault();
+    
+    const menuItem = props.to as MenuType;
+    const tagData = {
+      path: menuItem.path,
+      name: menuItem.name,
+      meta: menuItem.meta,
+      query: {},
+      params: {}
+    };
+    
+    // 先添加标签到 store
+    const multiTagsStore = useMultiTagsStoreHook();
+    const multiTags = multiTagsStore.multiTags;
+    const exists = Array.isArray(multiTags) && multiTags.some(tag => tag.path === menuItem.path);
+    
+    if (!exists) {
+      multiTagsStore.handleTags("push", tagData);
+    }
+    
+    // 等待标签添加完成后再跳转路由
+    nextTick(() => {
+      if (menuItem.name) {
+        router.push({ name: menuItem.name });
+      } else {
+        router.push({ path: menuItem.path });
+      }
+    });
   }
 }
 

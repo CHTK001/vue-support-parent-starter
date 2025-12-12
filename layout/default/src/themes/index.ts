@@ -22,10 +22,10 @@ export const layoutThemes: LayoutTheme[] = [
     description: "默认主题皮肤",
   },
   {
-    name: "圣诞",
-    key: "christmas",
-    description: "圣诞主题皮肤，温馨浪漫",
-    stylesheet: "christmas.css",
+    name: "元旦",
+    key: "new-year",
+    description: "元旦主题皮肤，新年新气象",
+    stylesheet: "new-year.css",
   },
   {
     name: "春节",
@@ -52,10 +52,10 @@ export const layoutThemes: LayoutTheme[] = [
     stylesheet: "national-day.css",
   },
   {
-    name: "元旦",
-    key: "new-year",
-    description: "元旦主题皮肤，新年新气象",
-    stylesheet: "new-year.css",
+    name: "圣诞",
+    key: "christmas",
+    description: "圣诞主题皮肤，温馨浪漫",
+    stylesheet: "christmas.css",
   },
 ];
 
@@ -92,4 +92,45 @@ export const loadThemeStylesheet = (themeKey: string): void => {
     link.href = `/themes/${theme.stylesheet}`;
     document.head.appendChild(link);
   }
+};
+
+/**
+ * 检测当前是否为节日期间，自动返回对应的主题
+ */
+export const detectFestivalTheme = (): LayoutTheme | null => {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+
+  // 元旦（1月1日-1月3日）
+  if (month === 1 && day >= 1 && day <= 3) {
+    return layoutThemes.find((t) => t.key === "new-year") || null;
+  }
+
+  // 春节（农历正月初一前后15天，这里简化为公历1月20日-2月20日）
+  if ((month === 1 && day >= 20) || (month === 2 && day <= 20)) {
+    return layoutThemes.find((t) => t.key === "spring-festival") || null;
+  }
+
+  // 情人节（2月14日前后3天）
+  if (month === 2 && day >= 12 && day <= 16) {
+    return layoutThemes.find((t) => t.key === "valentines-day") || null;
+  }
+
+  // 中秋（农历八月十五前后7天，这里简化为公历9月10日-9月25日）
+  if (month === 9 && day >= 10 && day <= 25) {
+    return layoutThemes.find((t) => t.key === "mid-autumn") || null;
+  }
+
+  // 国庆节（10月1日-10月7日）
+  if (month === 10 && day >= 1 && day <= 7) {
+    return layoutThemes.find((t) => t.key === "national-day") || null;
+  }
+
+  // 圣诞（12月15日-12月31日）
+  if (month === 12 && day >= 15) {
+    return layoutThemes.find((t) => t.key === "christmas") || null;
+  }
+
+  return null;
 };

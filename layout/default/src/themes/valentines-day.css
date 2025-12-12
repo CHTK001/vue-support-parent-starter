@@ -1,0 +1,127 @@
+/**
+ * 情人节主题皮肤
+ * @author CH
+ * @date 2025-12-13
+ */
+
+/* 情人节主题颜色 */
+:root.theme-valentines-day {
+  --el-color-primary: #eb2f96;
+  --el-color-primary-light-3: #f04fa8;
+  --el-color-primary-light-5: #f56fb9;
+  --el-color-primary-light-7: #fa8fcb;
+  --el-color-primary-light-8: #fcafdc;
+  --el-color-primary-light-9: #fdcfed;
+  
+  --theme-primary: #eb2f96;
+  --theme-secondary: #ff6b9d;
+  --theme-accent: #ffc0cb;
+  --theme-background: #fff5f7;
+}
+
+/* 情人节主题 - 导航栏背景 */
+.theme-valentines-day :deep(.lay-navbar) {
+  background: linear-gradient(135deg, #eb2f96 0%, #ff6b9d 100%);
+  box-shadow: 0 4px 12px rgba(235, 47, 150, 0.3);
+}
+
+/* 情人节主题 - 侧边栏 */
+.theme-valentines-day :deep(.nav-vertical),
+.theme-valentines-day :deep(.nav-horizontal),
+.theme-valentines-day :deep(.nav-hover),
+.theme-valentines-day :deep(.nav-double) {
+  background: linear-gradient(180deg, #fff5f7 0%, #ffe6f0 100%);
+}
+
+/* 情人节主题 - 菜单项悬停效果 */
+.theme-valentines-day :deep(.nav-vertical .el-menu-item:hover),
+.theme-valentines-day :deep(.nav-vertical .el-sub-menu__title:hover) {
+  background-color: rgba(235, 47, 150, 0.1) !important;
+  color: #eb2f96 !important;
+}
+
+/* 情人节主题 - 菜单项选中效果 */
+.theme-valentines-day :deep(.nav-vertical .el-menu-item.is-active),
+.theme-valentines-day :deep(.nav-vertical .el-sub-menu__title.is-active) {
+  background-color: rgba(235, 47, 150, 0.15) !important;
+  color: #eb2f96 !important;
+  border-left: 3px solid #eb2f96 !important;
+}
+
+/* 情人节主题 - 按钮 */
+.theme-valentines-day :deep(.el-button--primary) {
+  background-color: #eb2f96;
+  border-color: #eb2f96;
+}
+
+.theme-valentines-day :deep(.el-button--primary:hover) {
+  background-color: #f04fa8;
+  border-color: #f04fa8;
+}
+
+/* 情人节主题 - 标签页 */
+.theme-valentines-day :deep(.el-tabs__nav-wrap::after) {
+  background-color: rgba(235, 47, 150, 0.2);
+}
+
+.theme-valentines-day :deep(.el-tabs__item.is-active) {
+  color: #eb2f96;
+  border-bottom-color: #eb2f96;
+}
+
+/* 情人节主题 - 卡片 */
+.theme-valentines-day :deep(.el-card) {
+  border: 1px solid rgba(235, 47, 150, 0.1);
+  box-shadow: 0 2px 8px rgba(235, 47, 150, 0.08);
+}
+
+/* 情人节主题 - 输入框焦点 */
+.theme-valentines-day :deep(.el-input__inner:focus),
+.theme-valentines-day :deep(.el-textarea__inner:focus) {
+  border-color: #eb2f96;
+  box-shadow: 0 0 0 2px rgba(235, 47, 150, 0.2);
+}
+
+/* 情人节主题 - 进度条 */
+.theme-valentines-day :deep(.el-progress__bar) {
+  background-color: #eb2f96;
+}
+
+/* 情人节主题 - 加载条 */
+.theme-valentines-day :deep(.el-loading-mask) {
+  background-color: rgba(235, 47, 150, 0.1);
+}
+
+/* 情人节主题 - 装饰元素 */
+.theme-valentines-day::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #eb2f96, #ff6b9d, #ffc0cb, #eb2f96);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* 情人节主题 - 爱心装饰动画 */
+.theme-valentines-day::after {
+  content: "💕";
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  font-size: 24px;
+  animation: heartBeat 1.5s ease-in-out infinite;
+  z-index: 9998;
+  pointer-events: none;
+}
+
+@keyframes heartBeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}

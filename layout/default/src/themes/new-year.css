@@ -1,0 +1,129 @@
+/**
+ * 元旦主题皮肤
+ * @author CH
+ * @date 2025-12-13
+ */
+
+/* 元旦主题颜色 */
+:root.theme-new-year {
+  --el-color-primary: #1890ff;
+  --el-color-primary-light-3: #40a9ff;
+  --el-color-primary-light-5: #69c0ff;
+  --el-color-primary-light-7: #91d5ff;
+  --el-color-primary-light-8: #bae7ff;
+  --el-color-primary-light-9: #d6f0ff;
+  
+  --theme-primary: #1890ff;
+  --theme-secondary: #722ed1;
+  --theme-accent: #b37feb;
+  --theme-background: #f0f5ff;
+}
+
+/* 元旦主题 - 导航栏背景 */
+.theme-new-year :deep(.lay-navbar) {
+  background: linear-gradient(135deg, #1890ff 0%, #722ed1 100%);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+}
+
+/* 元旦主题 - 侧边栏 */
+.theme-new-year :deep(.nav-vertical),
+.theme-new-year :deep(.nav-horizontal),
+.theme-new-year :deep(.nav-hover),
+.theme-new-year :deep(.nav-double) {
+  background: linear-gradient(180deg, #f0f5ff 0%, #e6f7ff 100%);
+}
+
+/* 元旦主题 - 菜单项悬停效果 */
+.theme-new-year :deep(.nav-vertical .el-menu-item:hover),
+.theme-new-year :deep(.nav-vertical .el-sub-menu__title:hover) {
+  background-color: rgba(24, 144, 255, 0.1) !important;
+  color: #1890ff !important;
+}
+
+/* 元旦主题 - 菜单项选中效果 */
+.theme-new-year :deep(.nav-vertical .el-menu-item.is-active),
+.theme-new-year :deep(.nav-vertical .el-sub-menu__title.is-active) {
+  background-color: rgba(24, 144, 255, 0.15) !important;
+  color: #1890ff !important;
+  border-left: 3px solid #1890ff !important;
+}
+
+/* 元旦主题 - 按钮 */
+.theme-new-year :deep(.el-button--primary) {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+.theme-new-year :deep(.el-button--primary:hover) {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
+}
+
+/* 元旦主题 - 标签页 */
+.theme-new-year :deep(.el-tabs__nav-wrap::after) {
+  background-color: rgba(24, 144, 255, 0.2);
+}
+
+.theme-new-year :deep(.el-tabs__item.is-active) {
+  color: #1890ff;
+  border-bottom-color: #1890ff;
+}
+
+/* 元旦主题 - 卡片 */
+.theme-new-year :deep(.el-card) {
+  border: 1px solid rgba(24, 144, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.08);
+}
+
+/* 元旦主题 - 输入框焦点 */
+.theme-new-year :deep(.el-input__inner:focus),
+.theme-new-year :deep(.el-textarea__inner:focus) {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* 元旦主题 - 进度条 */
+.theme-new-year :deep(.el-progress__bar) {
+  background-color: #1890ff;
+}
+
+/* 元旦主题 - 加载条 */
+.theme-new-year :deep(.el-loading-mask) {
+  background-color: rgba(24, 144, 255, 0.1);
+}
+
+/* 元旦主题 - 装饰元素 */
+.theme-new-year::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #1890ff, #722ed1, #b37feb, #1890ff);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* 元旦主题 - 烟花装饰 */
+.theme-new-year::after {
+  content: "🎉";
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  font-size: 32px;
+  animation: fireworks 2s ease-in-out infinite;
+  z-index: 9998;
+  pointer-events: none;
+}
+
+@keyframes fireworks {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3) rotate(180deg);
+    opacity: 0.8;
+  }
+}

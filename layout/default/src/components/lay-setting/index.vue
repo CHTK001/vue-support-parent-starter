@@ -176,46 +176,46 @@ const getThemeColorStyle = computed(() => {
  */
 const festivalThemesList = computed(() => [
   {
+    color: "#1890ff",
+    themeColor: "new-year",
+    name: "元旦",
+    description: "新年新气象，蓝紫渐变",
+    icon: "noto:party-popper",
+  },
+  {
     color: "#f5222d",
-    themeColor: "dusk",
+    themeColor: "spring-festival",
     name: "春节",
-    description: "热情洋溢的红色主题",
+    description: "喜庆祥和的红色主题",
     icon: "noto:firecracker",
   },
   {
     color: "#eb2f96",
-    themeColor: "pink",
+    themeColor: "valentines-day",
     name: "情人节",
-    description: "活力四射的粉色主题",
+    description: "浪漫甜蜜的粉色主题",
     icon: "noto:red-heart",
   },
   {
     color: "#13c2c2",
-    themeColor: "mingQing",
+    themeColor: "mid-autumn",
     name: "中秋",
-    description: "清新自然的青色主题",
+    description: "月圆人团圆的青色主题",
     icon: "noto:full-moon",
   },
   {
     color: "#fa541c",
-    themeColor: "volcano",
+    themeColor: "national-day",
     name: "国庆",
-    description: "温暖活力的橙色主题",
+    description: "祝福祖国的橙色主题",
     icon: "twemoji:flag-china",
   },
   {
-    color: "#722ed1",
-    themeColor: "saucePurple",
+    color: "#c41e3a",
+    themeColor: "christmas",
     name: "圣诞",
-    description: "神秘优雅的紫色主题",
+    description: "温馨浪漫的圣诞主题",
     icon: "noto:christmas-tree",
-  },
-  {
-    color: "#1b2a47",
-    themeColor: "default",
-    name: "元旦",
-    description: "专业稳重的深蓝主题",
-    icon: "noto:party-popper",
   },
 ]);
 
@@ -292,6 +292,7 @@ const festivalThemeChange = (value: boolean): void => {
  * @param themeKey 主题键值
  */
 const switchSystemTheme = (themeKey: string): void => {
+  console.log('🎨 切换主题:', themeKey);
   const htmlEl = document.documentElement;
   
   // 移除所有主题类
@@ -308,9 +309,14 @@ const switchSystemTheme = (themeKey: string): void => {
     htmlEl.classList.remove(cls);
   });
   
+  console.log('✅ 已移除所有主题类');
+  
   // 添加新主题类
   if (themeKey !== "default") {
-    htmlEl.classList.add(`theme-${themeKey}`);
+    const themeClass = `theme-${themeKey}`;
+    htmlEl.classList.add(themeClass);
+    console.log('✅ 已添加主题类:', themeClass);
+    console.log('🔍 当前 HTML 类名:', htmlEl.className);
     
     // 加载主题样式表
     loadThemeStylesheet(themeKey);
@@ -319,11 +325,19 @@ const switchSystemTheme = (themeKey: string): void => {
     const existingLink = document.getElementById("layout-theme-stylesheet");
     if (existingLink) {
       existingLink.remove();
+      console.log('✅ 已移除主题样式表');
     }
   }
   
   // 保存到本地存储
   storageConfigureChange("systemTheme", themeKey);
+  console.log('💾 已保存主题到本地存储:', themeKey);
+  
+  // 发送主题切换事件
+  emitter.emit("systemThemeChange", themeKey);
+  
+  // 显示成功消息
+  ElMessage.success(`已切换到${themeKey === 'default' ? '默认' : ''}主题`);
 };
 
 /**
@@ -331,14 +345,18 @@ const switchSystemTheme = (themeKey: string): void => {
  * @param themeKey 主题键值
  */
 const loadThemeStylesheet = (themeKey: string): void => {
+  console.log('📄 开始加载主题样式表:', themeKey);
+  
   // 移除现有的主题样式表
   const existingLink = document.getElementById("layout-theme-stylesheet");
   if (existingLink) {
     existingLink.remove();
+    console.log('✅ 已移除旧的样式表');
   }
 
   // 如果是默认主题，不需要加载额外样式
   if (themeKey === "default") {
+    console.log('ℹ️ 默认主题，不需要加载样式表');
     return;
   }
 
@@ -346,7 +364,19 @@ const loadThemeStylesheet = (themeKey: string): void => {
   link.id = "layout-theme-stylesheet";
   link.rel = "stylesheet";
   link.href = `/themes/${themeKey}.css`;
+  
+  // 添加加载事件监听
+  link.onload = () => {
+    console.log('✅ 主题样式表加载成功:', link.href);
+  };
+  
+  link.onerror = () => {
+    console.error('❌ 主题样式表加载失败:', link.href);
+    ElMessage.error('主题样式加载失败，请检查文件是否存在');
+  };
+  
   document.head.appendChild(link);
+  console.log('🔗 已添加样式表到 head:', link.href);
 };
 
 /** 隐藏标签页设置 */
@@ -633,6 +663,29 @@ function watchSystemThemeChange() {
   mediaQueryList.addEventListener("change", updateTheme);
 }
 
+/**
+ * 初始化主题
+ */
+const initializeTheme = () => {
+  const savedTheme = $storage.configure?.systemTheme;
+  
+  if (settings.enableFestivalTheme) {
+    // 如果开启了自动切换，检测节日主题
+    const { detectFestivalTheme } = require("../../themes");
+    const festivalTheme = detectFestivalTheme();
+    
+    if (festivalTheme) {
+      switchSystemTheme(festivalTheme.key);
+      return;
+    }
+  }
+  
+  // 应用保存的主题或默认主题
+  if (savedTheme && savedTheme !== "default") {
+    switchSystemTheme(savedTheme);
+  }
+};
+
 onBeforeMount(() => {
   /* 初始化系统配置 */
   nextTick(() => {
@@ -647,6 +700,9 @@ onBeforeMount(() => {
       document.querySelector("html")?.classList.add("html-monochrome");
     settings.tabsVal && tagsChange();
     settings.hideFooter && hideFooterChange();
+    
+    // 初始化主题
+    initializeTheme();
   });
 });
 
@@ -1049,10 +1105,34 @@ onUnmounted(() => {
               />
             </div>
 
-            <!-- 当未开启自动切换时，显示节日主题手动选择 -->
-            <div v-if="!settings.enableFestivalTheme" class="festival-themes-section">
+            <!-- 主题选择区域 -->
+            <div class="festival-themes-section">
               <div class="festival-themes-title">
-                <IconifyIconOnline icon="noto:party-popper" class="festival-icon" />
+                <IconifyIconOnline icon="ri:palette-line" class="festival-icon" />
+                <span>{{ settings.enableFestivalTheme ? '当前主题（自动切换中）' : '选择主题' }}</span>
+              </div>
+              
+              <!-- 默认主题 -->
+              <div class="theme-grid">
+                <div
+                  class="theme-card default"
+                  :class="{ 'is-active': $storage.configure?.systemTheme === 'default' || !$storage.configure?.systemTheme }"
+                  @click="switchSystemTheme('default')"
+                >
+                  <div class="card-icon">
+                    <IconifyIconOnline icon="ri:contrast-2-line" />
+                  </div>
+                  <div class="card-name">默认主题</div>
+                  <div class="card-desc">系统默认配色方案</div>
+                  <div v-if="$storage.configure?.systemTheme === 'default' || !$storage.configure?.systemTheme" class="card-check">
+                    <IconifyIconOnline icon="ep:check" />
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 节日主题 -->
+              <div class="festival-themes-subtitle">
+                <IconifyIconOnline icon="noto:party-popper" />
                 <span>节日主题</span>
               </div>
               <div class="theme-grid">
@@ -1060,15 +1140,18 @@ onUnmounted(() => {
                   v-for="theme in festivalThemesList"
                   :key="theme.themeColor"
                   class="theme-card festival"
-                  :class="{ 'is-active': theme.themeColor === layoutTheme.theme }"
-                  @click="switchSystemTheme(theme.themeColor)"
+                  :class="{ 
+                    'is-active': $storage.configure?.systemTheme === theme.themeColor,
+                    'is-disabled': settings.enableFestivalTheme
+                  }"
+                  @click="!settings.enableFestivalTheme && switchSystemTheme(theme.themeColor)"
                 >
                   <div class="card-icon">
                     <IconifyIconOnline :icon="theme.icon" />
                   </div>
                   <div class="card-name">{{ theme.name }}</div>
                   <div class="card-desc">{{ theme.description }}</div>
-                  <div v-if="theme.themeColor === layoutTheme.theme" class="card-check">
+                  <div v-if="$storage.configure?.systemTheme === theme.themeColor" class="card-check">
                     <IconifyIconOnline icon="ep:check" />
                   </div>
                 </div>
@@ -4172,6 +4255,19 @@ onUnmounted(() => {
       font-size: 18px;
     }
   }
+  
+  .festival-themes-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    margin-top: 24px;
+    margin-bottom: 12px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--el-border-color-lighter);
+  }
 }
 
 // 主题卡片网格
@@ -4211,6 +4307,21 @@ onUnmounted(() => {
     .card-name {
       color: var(--el-color-primary);
       font-weight: 600;
+    }
+  }
+
+  &.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    
+    &:hover {
+      border-color: var(--el-border-color);
+      transform: none;
+      box-shadow: none;
+      
+      .card-icon {
+        transform: none;
+      }
     }
   }
 

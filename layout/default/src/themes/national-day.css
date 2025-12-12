@@ -1,0 +1,127 @@
+/**
+ * 国庆主题皮肤
+ * @author CH
+ * @date 2025-12-13
+ */
+
+/* 国庆主题颜色 */
+:root.theme-national-day {
+  --el-color-primary: #fa541c;
+  --el-color-primary-light-3: #ff7a45;
+  --el-color-primary-light-5: #ff9c6e;
+  --el-color-primary-light-7: #ffbb96;
+  --el-color-primary-light-8: #ffd8bf;
+  --el-color-primary-light-9: #ffe7d9;
+  
+  --theme-primary: #fa541c;
+  --theme-secondary: #faad14;
+  --theme-accent: #ffd666;
+  --theme-background: #fff7e6;
+}
+
+/* 国庆主题 - 导航栏背景 */
+.theme-national-day :deep(.lay-navbar) {
+  background: linear-gradient(135deg, #fa541c 0%, #ff7a45 100%);
+  box-shadow: 0 4px 12px rgba(250, 84, 28, 0.3);
+}
+
+/* 国庆主题 - 侧边栏 */
+.theme-national-day :deep(.nav-vertical),
+.theme-national-day :deep(.nav-horizontal),
+.theme-national-day :deep(.nav-hover),
+.theme-national-day :deep(.nav-double) {
+  background: linear-gradient(180deg, #fff7e6 0%, #fff0d6 100%);
+}
+
+/* 国庆主题 - 菜单项悬停效果 */
+.theme-national-day :deep(.nav-vertical .el-menu-item:hover),
+.theme-national-day :deep(.nav-vertical .el-sub-menu__title:hover) {
+  background-color: rgba(250, 84, 28, 0.1) !important;
+  color: #fa541c !important;
+}
+
+/* 国庆主题 - 菜单项选中效果 */
+.theme-national-day :deep(.nav-vertical .el-menu-item.is-active),
+.theme-national-day :deep(.nav-vertical .el-sub-menu__title.is-active) {
+  background-color: rgba(250, 84, 28, 0.15) !important;
+  color: #fa541c !important;
+  border-left: 3px solid #fa541c !important;
+}
+
+/* 国庆主题 - 按钮 */
+.theme-national-day :deep(.el-button--primary) {
+  background-color: #fa541c;
+  border-color: #fa541c;
+}
+
+.theme-national-day :deep(.el-button--primary:hover) {
+  background-color: #ff7a45;
+  border-color: #ff7a45;
+}
+
+/* 国庆主题 - 标签页 */
+.theme-national-day :deep(.el-tabs__nav-wrap::after) {
+  background-color: rgba(250, 84, 28, 0.2);
+}
+
+.theme-national-day :deep(.el-tabs__item.is-active) {
+  color: #fa541c;
+  border-bottom-color: #fa541c;
+}
+
+/* 国庆主题 - 卡片 */
+.theme-national-day :deep(.el-card) {
+  border: 1px solid rgba(250, 84, 28, 0.1);
+  box-shadow: 0 2px 8px rgba(250, 84, 28, 0.08);
+}
+
+/* 国庆主题 - 输入框焦点 */
+.theme-national-day :deep(.el-input__inner:focus),
+.theme-national-day :deep(.el-textarea__inner:focus) {
+  border-color: #fa541c;
+  box-shadow: 0 0 0 2px rgba(250, 84, 28, 0.2);
+}
+
+/* 国庆主题 - 进度条 */
+.theme-national-day :deep(.el-progress__bar) {
+  background-color: #fa541c;
+}
+
+/* 国庆主题 - 加载条 */
+.theme-national-day :deep(.el-loading-mask) {
+  background-color: rgba(250, 84, 28, 0.1);
+}
+
+/* 国庆主题 - 装饰元素 */
+.theme-national-day::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #fa541c, #ff7a45, #faad14, #fa541c);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* 国庆主题 - 国旗装饰 */
+.theme-national-day::after {
+  content: "🇨🇳";
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  font-size: 32px;
+  animation: flagWave 2s ease-in-out infinite;
+  z-index: 9998;
+  pointer-events: none;
+}
+
+@keyframes flagWave {
+  0%, 100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
