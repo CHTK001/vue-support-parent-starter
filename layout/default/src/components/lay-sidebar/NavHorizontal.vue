@@ -61,6 +61,7 @@ nextTick(() => {
       popper-class="pure-scrollbar horizontal-popper"
       class="horizontal-header-menu"
       :default-active="defaultActive"
+      @select="menuSelect"
     >
       <span
         v-for="(route, index) in usePermissionStoreHook().wholeMenus"
