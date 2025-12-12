@@ -4590,9 +4590,6 @@ importers:
       '@intlify/unplugin-vue-i18n':
         specifier: 'catalog:'
         version: 6.0.8(@vue/compiler-dom@3.5.25)(eslint@9.35.0(jiti@2.5.1))(rollup@4.50.1)(typescript@5.9.3)(vue-i18n@11.1.12(vue@3.5.25(typescript@5.9.3)))(vue@3.5.25(typescript@5.9.3))
-      '@pages/example':
-        specifier: workspace:^
-        version: 'link:'
       '@pureadmin/theme':
         specifier: 'catalog:'
         version: 3.3.0
@@ -5668,6 +5665,9 @@ importers:
       '@repo/components':
         specifier: workspace:^
         version: link:../../packages/components
+      '@vueuse/core':
+        specifier: 'catalog:'
+        version: 12.8.2(typescript@5.9.3)
       echarts:
         specifier: 'catalog:'
         version: 5.6.0
@@ -5716,6 +5716,9 @@ importers:
       vue-i18n:
         specifier: 'catalog:'
         version: 11.1.12(vue@3.5.25(typescript@5.9.3))
+      vue-router:
+        specifier: 'catalog:'
+        version: 4.5.1(vue@3.5.25(typescript@5.9.3))
     devDependencies:
       '@commitlint/cli':
         specifier: 'catalog:'
@@ -6320,9 +6323,6 @@ importers:
       '@intlify/unplugin-vue-i18n':
         specifier: 'catalog:'
         version: 6.0.8(@vue/compiler-dom@3.5.25)(eslint@9.35.0(jiti@2.5.1))(rollup@4.50.1)(typescript@5.9.3)(vue-i18n@11.1.12(vue@3.5.25(typescript@5.9.3)))(vue@3.5.25(typescript@5.9.3))
-      '@pages/tools':
-        specifier: workspace:^
-        version: 'link:'
       '@pureadmin/theme':
         specifier: 'catalog:'
         version: 3.3.0

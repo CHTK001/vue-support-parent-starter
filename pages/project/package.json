@@ -93,7 +93,9 @@
     "video.js": "catalog:",
     "vue": "catalog:",
     "vue-files-preview": "catalog:",
-    "vue-i18n": "catalog:"
+    "vue-i18n": "catalog:",
+    "vue-router": "catalog:",
+    "@vueuse/core": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",

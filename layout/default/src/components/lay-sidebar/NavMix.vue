@@ -51,6 +51,7 @@ const {
   gotoAccountSetting,
   getDropdownItemStyle,
   getDropdownItemClass,
+  menuSelect,
 } = useNav();
 
 function getDefaultActive(routePath) {
@@ -92,6 +93,7 @@ const deferDropdown = useDefer(4);
       popper-class="pure-scrollbar horizontal-popper"
       class="horizontal-header-menu"
       :default-active="defaultActive"
+      @select="menuSelect"
     >
       <el-menu-item
         v-for="route in usePermissionStoreHook().wholeMenus"
