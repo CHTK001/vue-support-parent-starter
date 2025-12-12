@@ -89,6 +89,58 @@ export function checkScriptName(scriptName: string, excludeId?: number) {
 }
 
 /**
+ * 脚本执行记录接口
+ */
+export interface ScriptExecuteRecord {
+  /** 记录ID */
+  monitorSysGenScriptExecuteRecordId: number;
+  /** 脚本ID */
+  monitorSysGenScriptId: number;
+  /** 脚本名称 */
+  monitorSysGenScriptName?: string;
+  /** 脚本类型 */
+  monitorSysGenScriptType?: string;
+  /** 脚本内容 */
+  monitorSysGenScriptContent?: string;
+  /** 执行方式: SSH, NODE */
+  monitorSysGenScriptExecuteMethod: "SSH" | "NODE";
+  /** 执行服务器ID列表（逗号分隔） */
+  monitorSysGenScriptExecuteServerIds: string;
+  /** 执行服务器名称列表（逗号分隔） */
+  monitorSysGenScriptExecuteServerNames?: string;
+  /** 执行时间 */
+  monitorSysGenScriptExecuteTime: string;
+  /** 执行结果: SUCCESS, FAILED, RUNNING, TIMEOUT */
+  monitorSysGenScriptExecuteResult: "SUCCESS" | "FAILED" | "RUNNING" | "TIMEOUT";
+  /** 执行输出 */
+  monitorSysGenScriptExecuteOutput?: string;
+  /** 错误信息 */
+  monitorSysGenScriptExecuteError?: string;
+  /** 耗时（毫秒） */
+  monitorSysGenScriptExecuteDuration?: number;
+  /** 退出码 */
+  monitorSysGenScriptExecuteExitCode?: number;
+  /** 执行人 */
+  monitorSysGenScriptExecuteUser?: string;
+  /** 创建时间 */
+  createTime?: string;
+}
+
+/**
+ * 脚本执行记录查询参数
+ */
+export interface ScriptExecuteRecordQueryParams {
+  page: number;
+  pageSize: number;
+  scriptId?: number;
+  scriptName?: string;
+  executeMethod?: string;
+  executeResult?: string;
+  startTime?: string;
+  endTime?: string;
+}
+
+/**
  * 脚本执行参数接口
  */
 export interface ScriptExecuteParams {
@@ -127,7 +179,7 @@ export function executeScript(params: ScriptExecuteParams) {
 }
 
 /**
- * 获取脚本执行历史
+ * 获取脚本执行历史（按脚本ID）
  * @param scriptId 脚本ID
  * @param page 页码
  * @param pageSize 每页数量
@@ -135,5 +187,47 @@ export function executeScript(params: ScriptExecuteParams) {
 export function getScriptExecuteHistory(scriptId: number, page: number = 1, pageSize: number = 10) {
   return http.get(`/script/${scriptId}/history`, {
     params: { page, pageSize },
+  });
+}
+
+/**
+ * 分页查询脚本执行记录
+ * @param params 查询参数
+ */
+export function getScriptExecuteRecordPage(params: ScriptExecuteRecordQueryParams) {
+  return http.post("/script/execute-record/page", params);
+}
+
+/**
+ * 获取执行记录详情
+ * @param recordId 记录ID
+ */
+export function getScriptExecuteRecordDetail(recordId: number) {
+  return http.get(`/script/execute-record/${recordId}`);
+}
+
+/**
+ * 删除执行记录
+ * @param recordId 记录ID
+ */
+export function deleteScriptExecuteRecord(recordId: number) {
+  return http.delete(`/script/execute-record/${recordId}`);
+}
+
+/**
+ * 批量删除执行记录
+ * @param recordIds 记录ID列表
+ */
+export function batchDeleteScriptExecuteRecords(recordIds: number[]) {
+  return http.delete("/script/execute-record/batch", { data: recordIds });
+}
+
+/**
+ * 清空脚本执行记录
+ * @param scriptId 脚本ID（可选，不传则清空所有）
+ */
+export function clearScriptExecuteRecords(scriptId?: number) {
+  return http.delete("/script/execute-record/clear", {
+    params: { scriptId },
   });
 }
