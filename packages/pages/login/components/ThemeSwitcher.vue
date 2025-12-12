@@ -26,7 +26,7 @@
             <div class="panel-header">
               <div class="header-title">
                 <IconifyIconOnline icon="ri:palette-line" />
-                <span>选择主题</span>
+                <span>{{ t("theme.selectTheme") }}</span>
               </div>
               <el-button circle size="small" @click="closePanel">
                 <IconifyIconOnline icon="ep:close" />
@@ -35,7 +35,7 @@
 
             <!-- 常规主题 -->
             <div class="theme-section">
-              <div class="section-title">常规主题</div>
+              <div class="section-title">{{ t("theme.regularThemes") }}</div>
               <div class="theme-grid">
                 <div
                   v-for="theme in regularThemes"
@@ -59,8 +59,8 @@
             <!-- 节日主题 -->
             <div class="theme-section">
               <div class="section-title">
-                <span>节日主题</span>
-                <el-tag size="small" type="warning">特别</el-tag>
+                <span>{{ t("theme.festivalThemes") }}</span>
+                <el-tag size="small" type="warning">{{ t("theme.festivalTag") }}</el-tag>
               </div>
               <div class="theme-grid">
                 <div
@@ -91,6 +91,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { localStorageProxy } from "@repo/utils";
+import { useI18n } from "vue-i18n";
 
 /**
  * @author CH
@@ -102,6 +103,7 @@ defineOptions({
 });
 
 const emit = defineEmits(["theme-change"]);
+const { t } = useI18n();
 
 const localStorageProxyObject = localStorageProxy();
 const THEME_STORAGE_KEY = "login-theme-preference";
@@ -110,94 +112,94 @@ const THEME_STORAGE_KEY = "login-theme-preference";
 const isPanelOpen = ref(false);
 
 // 常规主题列表
-const regularThemes = [
+const regularThemes = computed(() => [
   {
     key: "modern",
-    name: "现代简约",
-    description: "简洁大方",
+    name: t("theme.themes.modern.name"),
+    description: t("theme.themes.modern.desc"),
     icon: "ri:layout-line",
   },
   {
     key: "tech",
-    name: "科技未来",
-    description: "科技感十足",
+    name: t("theme.themes.tech.name"),
+    description: t("theme.themes.tech.desc"),
     icon: "ri:rocket-line",
   },
   {
     key: "business",
-    name: "商务专业",
-    description: "专业稳重",
+    name: t("theme.themes.business.name"),
+    description: t("theme.themes.business.desc"),
     icon: "ri:briefcase-line",
   },
   {
     key: "random",
-    name: "随机主题",
-    description: "每次随机",
+    name: t("theme.themes.random.name"),
+    description: t("theme.themes.random.desc"),
     icon: "ri:shuffle-line",
   },
-];
+]);
 
 // 节日主题列表
-const festivalThemes = [
+const festivalThemes = computed(() => [
   {
     key: "new-year",
-    name: "元旦",
-    description: "新年新气象",
+    name: t("theme.themes.newYear.name"),
+    description: t("theme.themes.newYear.desc"),
     icon: "noto:party-popper",
   },
   {
     key: "spring-festival",
-    name: "春节",
-    description: "喜庆祥和",
+    name: t("theme.themes.springFestival.name"),
+    description: t("theme.themes.springFestival.desc"),
     icon: "noto:firecracker",
   },
   {
     key: "valentines-day",
-    name: "情人节",
-    description: "浪漫甜蜜",
+    name: t("theme.themes.valentinesDay.name"),
+    description: t("theme.themes.valentinesDay.desc"),
     icon: "noto:red-heart",
   },
   {
     key: "mid-autumn",
-    name: "中秋",
-    description: "月圆人团圆",
+    name: t("theme.themes.midAutumn.name"),
+    description: t("theme.themes.midAutumn.desc"),
     icon: "noto:full-moon",
   },
   {
     key: "national-day",
-    name: "国庆",
-    description: "祝福祖国",
+    name: t("theme.themes.nationalDay.name"),
+    description: t("theme.themes.nationalDay.desc"),
     icon: "twemoji:flag-china",
   },
   {
     key: "christmas",
-    name: "圣诞",
-    description: "温馨浪漫",
+    name: t("theme.themes.christmas.name"),
+    description: t("theme.themes.christmas.desc"),
     icon: "noto:christmas-tree",
   },
-];
+]);
 
-const allThemes = [...regularThemes, ...festivalThemes];
+const allThemes = computed(() => [...regularThemes.value, ...festivalThemes.value]);
 
 // 当前主题
 const currentTheme = ref("modern");
 
 // 当前主题名称
 const currentThemeName = computed(() => {
-  const theme = allThemes.find((t) => t.key === currentTheme.value);
-  return theme ? theme.name : "现代简约";
+  const theme = allThemes.value.find((t) => t.key === currentTheme.value);
+  return theme ? theme.name : t("theme.themes.modern.name");
 });
 
 // 当前主题图标
 const currentThemeIcon = computed(() => {
-  const theme = allThemes.find((t) => t.key === currentTheme.value);
+  const theme = allThemes.value.find((t) => t.key === currentTheme.value);
   return theme ? theme.icon : "ri:palette-line";
 });
 
 // 加载保存的主题偏好
 const loadThemePreference = () => {
   const savedTheme = localStorageProxyObject.getItem(THEME_STORAGE_KEY) as string;
-  if (savedTheme && allThemes.find((t) => t.key === savedTheme)) {
+  if (savedTheme && allThemes.value.find((t) => t.key === savedTheme)) {
     currentTheme.value = savedTheme;
   }
 };

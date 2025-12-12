@@ -130,6 +130,43 @@ login:
   unbindFailure: 解绑失败
   unbindSuccess: 解绑成功
   verifyCode: 请输入校验码
+theme:
+  selectTheme: 选择主题
+  regularThemes: 常规主题
+  festivalThemes: 节日主题
+  festivalTag: 特别
+  currentTheme: 当前主题
+  themes:
+    modern:
+      name: 现代简约
+      desc: 简洁大方
+    tech:
+      name: 科技未来
+      desc: 科技感十足
+    business:
+      name: 商务专业
+      desc: 专业稳重
+    random:
+      name: 随机主题
+      desc: 每次随机
+    newYear:
+      name: 元旦
+      desc: 新年新气象
+    springFestival:
+      name: 春节
+      desc: 喜庆祥和
+    valentinesDay:
+      name: 情人节
+      desc: 浪漫甜蜜
+    midAutumn:
+      name: 中秋
+      desc: 月圆人团圆
+    nationalDay:
+      name: 国庆
+      desc: 祝福祖国
+    christmas:
+      name: 圣诞
+      desc: 温馨浪漫
 menu:
   produce-service: 产品与服务
   produce-star: 我的收藏

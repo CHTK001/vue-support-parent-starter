@@ -96,6 +96,43 @@ login:
   unbindFailure: Unbinding failed
   unbindSuccess: Unbind successfully
   verifyCode: Please enter the verification code
+theme:
+  selectTheme: Select Theme
+  regularThemes: Regular Themes
+  festivalThemes: Festival Themes
+  festivalTag: Special
+  currentTheme: Current Theme
+  themes:
+    modern:
+      name: Modern
+      desc: Simple & Elegant
+    tech:
+      name: Tech
+      desc: Futuristic
+    business:
+      name: Business
+      desc: Professional
+    random:
+      name: Random
+      desc: Randomize
+    newYear:
+      name: New Year
+      desc: Fresh Start
+    springFestival:
+      name: Spring Festival
+      desc: Festive
+    valentinesDay:
+      name: Valentine's Day
+      desc: Romantic
+    midAutumn:
+      name: Mid-Autumn
+      desc: Reunion
+    nationalDay:
+      name: National Day
+      desc: Patriotic
+    christmas:
+      name: Christmas
+      desc: Cozy
 menus:
   pureAbnormal: Abnormal Page
   pureDept: dept Manage
