@@ -124,9 +124,10 @@ import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 import { format } from "sql-formatter";
-import { dateFormat, http } from "@repo/utils";
+import { dateFormat } from "@repo/utils";
 import { nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { wsService } from "@/utils/websocket";
 
 const config = reactive({
   dialogVisible: false,
@@ -134,47 +135,27 @@ const config = reactive({
 });
 
 const dataList = reactive([]);
-let pollingTimer = null;
 const datav = ref(false);
 const defaultProps = {
   children: "children",
   label: "description"
 };
 
-// 获取链路追踪数据
-const fetchTraceData = async () => {
-  try {
-    const res = await http.get((window.agentPath || "/agent") + "/trace");
-    if (res?.data?.data) {
-      const newData = res.data.data;
-      // 合并新数据
-      newData.forEach(item => {
-        const exists = dataList.find(d => d.linkId === item.linkId);
-        if (!exists) {
-          dataList.unshift(item);
-        }
-      });
+let unsubscribe = null;
+
+// 处理 WebSocket 消息
+const handleWsMessage = message => {
+  if (message.event === "AGENT_TRACE") {
+    try {
+      const traceData = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
+      dataList.unshift(traceData);
       // 限制最大记录数
       while (dataList.length > 1000) {
         dataList.pop();
       }
+    } catch (error) {
+      console.error("解析链路数据失败:", error);
     }
-  } catch (error) {
-    console.error("获取链路数据失败:", error);
-  }
-};
-
-// 启动轮询
-const startPolling = () => {
-  fetchTraceData();
-  pollingTimer = setInterval(fetchTraceData, 3000);
-};
-
-// 停止轮询
-const stopPolling = () => {
-  if (pollingTimer) {
-    clearInterval(pollingTimer);
-    pollingTimer = null;
   }
 };
 
@@ -193,11 +174,14 @@ const handleShowTrack = async data => {
 };
 
 onMounted(() => {
-  startPolling();
+  // 订阅链路追踪消息
+  unsubscribe = wsService.subscribe("TRACE", "AGENT_TRACE", handleWsMessage);
 });
 
 onUnmounted(() => {
-  stopPolling();
+  if (unsubscribe) {
+    unsubscribe();
+  }
 });
 </script>
 <style scoped lang="scss">

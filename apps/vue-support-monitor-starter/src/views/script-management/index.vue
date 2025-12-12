@@ -1,182 +1,175 @@
 <template>
-  <div class="simple-script-management">
-    <!-- 头部工具栏 -->
-    <div class="header-toolbar">
-      <div class="toolbar-left">
-        <h2 class="page-title">
-          <IconifyIconOnline icon="ri:code-s-slash-line" />
-          <span>脚本管理</span>
-        </h2>
-        <div class="toolbar-stats">
-          <span class="stat-item">
-            <IconifyIconOnline icon="ri:file-list-line" />
-            总计: {{ pagination.total }}
-          </span>
-          <span class="stat-item">
-            <IconifyIconOnline icon="ri:check-line" />
-            启用: {{ enabledCount }}
-          </span>
+  <div class="script-management-page">
+    <!-- 使用 ScTable 卡片模式 -->
+    <ScTable
+      ref="tableRef"
+      :url="fetchScripts"
+      :params="queryParams"
+      layout="card"
+      :col-size="3"
+      table-name="script-management"
+      :page-size="12"
+      :page-sizes="[12, 24, 48, 96]"
+      row-key="monitorSysGenScriptId"
+      @loaded="handleDataLoaded"
+    >
+      <!-- 工具栏 -->
+      <template #toolbar>
+        <div class="toolbar-wrapper">
+          <div class="toolbar-left">
+            <div class="page-header">
+              <div class="header-icon">
+                <IconifyIconOnline icon="ri:code-s-slash-line" />
+              </div>
+              <div class="header-text">
+                <h2>脚本管理</h2>
+                <p>管理和执行服务器脚本</p>
+              </div>
+            </div>
+            <div class="stats-wrapper">
+              <div class="stat-badge">
+                <IconifyIconOnline icon="ri:file-list-3-line" />
+                <span>总计 {{ totalCount }}</span>
+              </div>
+              <div class="stat-badge success">
+                <IconifyIconOnline icon="ri:checkbox-circle-line" />
+                <span>启用 {{ enabledCount }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="toolbar-right">
+            <el-input
+              v-model="queryParams.scriptName"
+              placeholder="搜索脚本..."
+              clearable
+              class="search-input"
+              @input="handleSearch"
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="ri:search-line" />
+              </template>
+            </el-input>
+            <el-select
+              v-model="queryParams.scriptType"
+              placeholder="类型"
+              clearable
+              class="filter-select"
+              @change="handleFilter"
+            >
+              <el-option label="Shell" value="shell" />
+              <el-option label="Python" value="python" />
+              <el-option label="PowerShell" value="powershell" />
+              <el-option label="Batch" value="batch" />
+              <el-option label="JavaScript" value="javascript" />
+              <el-option label="SQL" value="sql" />
+            </el-select>
+            <el-select
+              v-model="queryParams.scriptStatus"
+              placeholder="状态"
+              clearable
+              class="filter-select"
+              @change="handleFilter"
+            >
+              <el-option label="启用" :value="1" />
+              <el-option label="禁用" :value="0" />
+            </el-select>
+            <el-button type="primary" @click="handleCreate">
+              <IconifyIconOnline icon="ri:add-line" />
+              新建脚本
+            </el-button>
+          </div>
         </div>
-      </div>
-      <div class="toolbar-right">
-        <el-button type="primary" size="large" @click="handleCreate">
-          <IconifyIconOnline icon="ri:add-line" />
-          <span>新建脚本</span>
-        </el-button>
-      </div>
-    </div>
+      </template>
 
-    <!-- 搜索和筛选栏 -->
-    <div class="filter-bar">
-      <el-input
-        v-model="searchKeyword"
-        placeholder="搜索脚本名称或描述..."
-        clearable
-        size="large"
-        class="search-input"
-        @input="handleSearch"
-      >
-        <template #prefix>
-          <IconifyIconOnline icon="ri:search-line" />
-        </template>
-      </el-input>
+      <!-- 卡片内容 -->
+      <template #default="{ row }">
+        <div class="script-card" @click="handleEdit(row)">
+          <!-- 状态指示条 -->
+          <div
+            class="status-bar"
+            :class="{ active: row.monitorSysGenScriptStatus === 'ENABLED' }"
+          />
 
-      <el-select
-        v-model="filterType"
-        placeholder="脚本类型"
-        clearable
-        size="large"
-        class="filter-select"
-        @change="handleFilter"
-      >
-        <el-option label="全部类型" value="" />
-        <el-option label="Shell" value="SHELL" />
-        <el-option label="Python" value="PYTHON" />
-        <el-option label="PowerShell" value="POWERSHELL" />
-        <el-option label="Batch" value="BATCH" />
-        <el-option label="JavaScript" value="JAVASCRIPT" />
-        <el-option label="SQL" value="SQL" />
-      </el-select>
-
-      <el-select
-        v-model="filterStatus"
-        placeholder="状态"
-        clearable
-        size="large"
-        class="filter-select"
-        @change="handleFilter"
-      >
-        <el-option label="全部状态" value="" />
-        <el-option label="启用" value="ENABLED" />
-        <el-option label="禁用" value="DISABLED" />
-      </el-select>
-
-      <el-button size="large" @click="handleRefresh">
-        <IconifyIconOnline icon="ri:refresh-line" />
-      </el-button>
-    </div>
-
-    <!-- 脚本列表 -->
-    <div class="script-list" v-loading="loading">
-      <div
-        v-for="script in scripts"
-        :key="script.monitorSysGenScriptId"
-        class="script-card"
-        @click="handleEdit(script)"
-      >
-        <!-- 卡片头部 -->
-        <div class="card-header">
-          <div class="script-icon">
-            <IconifyIconOnline
-              :icon="getScriptTypeIcon(script.monitorSysGenScriptType)"
-            />
+          <!-- 卡片头部 -->
+          <div class="card-header">
+            <div class="script-icon" :class="getIconClass(row.monitorSysGenScriptType)">
+              <IconifyIconOnline :icon="getScriptTypeIcon(row.monitorSysGenScriptType)" />
+            </div>
+            <div class="script-meta">
+              <h3 class="script-name">{{ row.monitorSysGenScriptName }}</h3>
+              <p class="script-desc">{{ row.monitorSysGenScriptDescription || '暂无描述' }}</p>
+            </div>
           </div>
-          <div class="script-info">
-            <h3 class="script-name">{{ script.monitorSysGenScriptName }}</h3>
-            <p class="script-description">
-              {{ script.monitorSysGenScriptDescription || "暂无描述" }}
-            </p>
+
+          <!-- 卡片内容 -->
+          <div class="card-body">
+            <div class="info-row">
+              <span class="info-label">
+                <IconifyIconOnline icon="ri:code-box-line" />
+                类型
+              </span>
+              <el-tag size="small" :type="getTypeTagType(row.monitorSysGenScriptType)">
+                {{ row.monitorSysGenScriptType }}
+              </el-tag>
+            </div>
+            <div class="info-row">
+              <span class="info-label">
+                <IconifyIconOnline icon="ri:time-line" />
+                更新时间
+              </span>
+              <span class="info-value">{{ formatTime(row.updateTime) }}</span>
+            </div>
+            <div class="info-row" v-if="row.monitorSysGenScriptCategory">
+              <span class="info-label">
+                <IconifyIconOnline icon="ri:folder-line" />
+                分类
+              </span>
+              <span class="info-value">{{ row.monitorSysGenScriptCategory }}</span>
+            </div>
           </div>
-          <div class="card-actions" @click.stop>
+
+          <!-- 卡片底部 -->
+          <div class="card-footer" @click.stop>
             <el-switch
-              v-model="script.monitorSysGenScriptStatus"
+              v-model="row.monitorSysGenScriptStatus"
               active-value="ENABLED"
               inactive-value="DISABLED"
-              @change="handleStatusChange(script)"
+              @change="handleStatusChange(row)"
             />
-            <el-dropdown @command="(cmd) => handleAction(cmd, script)">
-              <el-button type="text" class="more-btn">
-                <IconifyIconOnline icon="ri:more-2-fill" />
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="edit">
-                    <IconifyIconOnline icon="ri:edit-line" />
-                    编辑
-                  </el-dropdown-item>
-                  <el-dropdown-item command="copy">
-                    <IconifyIconOnline icon="ri:file-copy-line" />
-                    复制
-                  </el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>
-                    <IconifyIconOnline icon="ri:delete-bin-line" />
-                    删除
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <div class="action-buttons">
+              <el-tooltip content="编辑" placement="top">
+                <el-button text circle @click="handleEdit(row)">
+                  <IconifyIconOnline icon="ri:edit-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="复制" placement="top">
+                <el-button text circle @click="handleCopy(row)">
+                  <IconifyIconOnline icon="ri:file-copy-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="删除" placement="top">
+                <el-button text circle type="danger" @click="handleDelete(row)">
+                  <IconifyIconOnline icon="ri:delete-bin-line" />
+                </el-button>
+              </el-tooltip>
+            </div>
           </div>
         </div>
-
-        <!-- 卡片底部 -->
-        <div class="card-footer">
-          <div class="meta-info">
-            <span class="meta-item">
-              <IconifyIconOnline icon="ri:code-box-line" />
-              {{ script.monitorSysGenScriptType }}
-            </span>
-            <span class="meta-item">
-              <IconifyIconOnline icon="ri:time-line" />
-              {{ formatTime(script.updateTime) }}
-            </span>
-          </div>
-          <el-tag
-            :type="
-              script.monitorSysGenScriptStatus === 'ENABLED'
-                ? 'success'
-                : 'info'
-            "
-            size="small"
-          >
-            {{
-              script.monitorSysGenScriptStatus === "ENABLED" ? "启用" : "禁用"
-            }}
-          </el-tag>
-        </div>
-      </div>
+      </template>
 
       <!-- 空状态 -->
-      <div v-if="scripts.length === 0 && !loading" class="empty-state">
-        <IconifyIconOnline icon="ri:file-text-line" class="empty-icon" />
-        <p class="empty-text">暂无脚本</p>
-        <el-button type="primary" @click="handleCreate">
-          创建第一个脚本
-        </el-button>
-      </div>
-    </div>
-
-    <!-- 分页 -->
-    <div class="pagination-bar" v-if="pagination.total > 0">
-      <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.pageSize"
-        :total="pagination.total"
-        :page-sizes="[12, 24, 48, 96]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @current-change="loadScripts"
-        @size-change="loadScripts"
-      />
-    </div>
+      <template #empty>
+        <div class="empty-state">
+          <IconifyIconOnline icon="ri:file-code-line" class="empty-icon" />
+          <p class="empty-title">暂无脚本</p>
+          <p class="empty-desc">点击"新建脚本"创建第一个脚本</p>
+          <el-button type="primary" @click="handleCreate">
+            <IconifyIconOnline icon="ri:add-line" />
+            新建脚本
+          </el-button>
+        </div>
+      </template>
+    </ScTable>
 
     <!-- 脚本编辑对话框 -->
     <ScriptEditDialog
@@ -188,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive } from "vue";
 import { ElMessageBox } from "element-plus";
 import { message } from "@repo/utils";
 import ScriptEditDialog from "./components/ScriptEditDialog.vue";
@@ -198,55 +191,32 @@ import { ScriptStatus } from "./types";
 import { getScriptTypeIcon } from "./utils";
 
 // 响应式数据
-const loading = ref(false);
-const searchKeyword = ref("");
-const filterType = ref("");
-const filterStatus = ref("");
-const scripts = ref<Script[]>([]);
+const tableRef = ref();
 const currentScript = ref<Script | null>(null);
 const editDialogVisible = ref(false);
+const totalCount = ref(0);
+const enabledCount = ref(0);
 
-// 分页数据
-const pagination = reactive({
-  page: 1,
-  pageSize: 12,
-  total: 0,
+// 查询参数
+const queryParams = reactive({
+  scriptName: "",
+  scriptType: "",
+  scriptStatus: undefined as number | undefined,
 });
 
-// 计算属性
-const enabledCount = computed(() => {
-  return scripts.value.filter((s) => s.monitorSysGenScriptStatus === "ENABLED")
-    .length;
-});
-
-// 初始化
-onMounted(() => {
-  loadScripts();
-});
-
-// 加载脚本列表
-const loadScripts = async () => {
+// 数据获取函数（供 ScTable 使用）
+const fetchScripts = async (params: any) => {
   try {
-    loading.value = true;
-    // 转换状态值：前端用 ENABLED/DISABLED，后端用 1/0
-    let statusValue: number | undefined;
-    if (filterStatus.value === "ENABLED") {
-      statusValue = 1;
-    } else if (filterStatus.value === "DISABLED") {
-      statusValue = 0;
-    }
-
     const response: any = await ScriptAPI.getScriptPage({
-      page: pagination.page,
-      pageSize: pagination.pageSize,
-      scriptName: searchKeyword.value || undefined,
-      scriptType: filterType.value?.toLowerCase() || undefined,
-      scriptStatus: statusValue,
+      page: params.page,
+      pageSize: params.pageSize,
+      scriptName: queryParams.scriptName || undefined,
+      scriptType: queryParams.scriptType || undefined,
+      scriptStatus: queryParams.scriptStatus,
     });
 
     if (response.success) {
-      // 转换后端返回的状态值为前端格式
-      scripts.value = (response.data.records || []).map((item: any) => ({
+      const records = (response.data.records || []).map((item: any) => ({
         ...item,
         monitorSysGenScriptStatus:
           item.monitorSysGenScriptStatus?.code === 1 ||
@@ -255,38 +225,38 @@ const loadScripts = async () => {
             ? "ENABLED"
             : "DISABLED",
       }));
-      pagination.total = response.data.total;
-    } else {
-      message(response.msg || "加载脚本列表失败", { type: "error" });
+      return {
+        data: records,
+        total: response.data.total || 0,
+      };
     }
+    return { data: [], total: 0 };
   } catch (error) {
     console.error("加载脚本列表失败:", error);
-    message("加载脚本列表失败", { type: "error" });
-  } finally {
-    loading.value = false;
+    return { data: [], total: 0 };
   }
 };
 
+// 数据加载完成回调
+const handleDataLoaded = (data: any) => {
+  totalCount.value = data.total || 0;
+  enabledCount.value = (data.data || []).filter(
+    (s: Script) => s.monitorSysGenScriptStatus === "ENABLED"
+  ).length;
+};
+
 // 搜索
-let searchTimer: NodeJS.Timeout;
+let searchTimer: ReturnType<typeof setTimeout>;
 const handleSearch = () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
-    pagination.page = 1;
-    loadScripts();
+    tableRef.value?.refresh();
   }, 300);
 };
 
 // 筛选
 const handleFilter = () => {
-  pagination.page = 1;
-  loadScripts();
-};
-
-// 刷新
-const handleRefresh = () => {
-  loadScripts();
-  message("刷新成功", { type: "success" });
+  tableRef.value?.refresh();
 };
 
 // 创建脚本
@@ -304,7 +274,6 @@ const handleEdit = (script: Script) => {
 // 状态切换
 const handleStatusChange = async (script: Script) => {
   try {
-    // 转换状态值：前端用 ENABLED/DISABLED，后端用 1/0
     const statusValue = script.monitorSysGenScriptStatus === ScriptStatus.ENABLED ? 1 : 0;
     const response: any = await ScriptAPI.updateScriptStatus(
       script.monitorSysGenScriptId!,
@@ -314,7 +283,6 @@ const handleStatusChange = async (script: Script) => {
       message("状态更新成功", { type: "success" });
     } else {
       message("状态更新失败", { type: "error" });
-      // 回滚状态
       script.monitorSysGenScriptStatus =
         script.monitorSysGenScriptStatus === ScriptStatus.ENABLED
           ? ScriptStatus.DISABLED
@@ -329,21 +297,6 @@ const handleStatusChange = async (script: Script) => {
   }
 };
 
-// 操作菜单
-const handleAction = async (command: string, script: Script) => {
-  switch (command) {
-    case "edit":
-      handleEdit(script);
-      break;
-    case "copy":
-      await handleCopy(script);
-      break;
-    case "delete":
-      await handleDelete(script);
-      break;
-  }
-};
-
 // 复制脚本
 const handleCopy = async (script: Script) => {
   try {
@@ -353,7 +306,7 @@ const handleCopy = async (script: Script) => {
     );
     if (response.success) {
       message("脚本复制成功", { type: "success" });
-      loadScripts();
+      tableRef.value?.refresh();
     } else {
       message("脚本复制失败", { type: "error" });
     }
@@ -380,7 +333,7 @@ const handleDelete = async (script: Script) => {
     );
     if (response.success) {
       message("脚本删除成功", { type: "success" });
-      loadScripts();
+      tableRef.value?.refresh();
     } else {
       message("脚本删除失败", { type: "error" });
     }
@@ -394,259 +347,354 @@ const handleDelete = async (script: Script) => {
 // 保存成功回调
 const handleSaveSuccess = () => {
   editDialogVisible.value = false;
-  loadScripts();
+  tableRef.value?.refresh();
   message("脚本保存成功", { type: "success" });
 };
 
 // 格式化时间
 const formatTime = (time: string | undefined) => {
   if (!time) return "未知";
-  return new Date(time).toLocaleString("zh-CN");
+  const date = new Date(time);
+  return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
+};
+
+// 获取图标样式类
+const getIconClass = (type: string) => {
+  const typeMap: Record<string, string> = {
+    SHELL: "shell",
+    PYTHON: "python",
+    POWERSHELL: "powershell",
+    BATCH: "batch",
+    JAVASCRIPT: "javascript",
+    SQL: "sql",
+  };
+  return typeMap[type?.toUpperCase()] || "default";
+};
+
+// 获取类型标签颜色
+const getTypeTagType = (type: string): "primary" | "success" | "warning" | "info" | "danger" => {
+  const typeMap: Record<string, "primary" | "success" | "warning" | "info" | "danger"> = {
+    SHELL: "success",
+    PYTHON: "primary",
+    POWERSHELL: "info",
+    BATCH: "warning",
+    JAVASCRIPT: "warning",
+    SQL: "danger",
+  };
+  return typeMap[type?.toUpperCase()] || "info";
 };
 </script>
 
 <style scoped lang="scss">
-@import "./styles/variables.scss";
-@import "./styles/mixins.scss";
-
-.simple-script-management {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: $bg-secondary;
-  padding: $spacing-2xl;
-  gap: $spacing-2xl;
+.script-management-page {
+  min-height: 100%;
+  padding: 20px;
+  background: var(--el-bg-color-page);
 }
 
-// 头部工具栏
-.header-toolbar {
-  @include flex-between;
-  background: $bg-primary;
-  padding: $spacing-2xl;
-  border-radius: $radius-xl;
-  box-shadow: $shadow-card;
+// 工具栏
+.toolbar-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 0;
 
   .toolbar-left {
     display: flex;
     align-items: center;
-    gap: $spacing-2xl;
+    gap: 24px;
 
-    .page-title {
-      @include flex-align-center;
-      gap: $spacing-md;
-      margin: 0;
-      font-size: $font-size-2xl;
-      font-weight: $font-weight-bold;
-      color: $text-primary;
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
 
-      .iconify {
-        font-size: 28px;
-        color: $primary-color;
+      .header-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+        color: white;
+        font-size: 22px;
+        box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+      }
+
+      .header-text {
+        h2 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+        }
+
+        p {
+          margin: 2px 0 0 0;
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+        }
       }
     }
 
-    .toolbar-stats {
+    .stats-wrapper {
       display: flex;
-      gap: $spacing-xl;
+      gap: 12px;
 
-      .stat-item {
-        @include flex-align-center;
-        gap: $spacing-sm;
-        font-size: $font-size-base;
-        color: $text-secondary;
+      .stat-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: var(--el-fill-color-light);
+        border-radius: 20px;
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
 
         .iconify {
-          color: $primary-color;
+          font-size: 14px;
+        }
+
+        &.success {
+          background: var(--el-color-success-light-9);
+          color: var(--el-color-success);
         }
       }
     }
   }
 
   .toolbar-right {
-    .el-button {
-      @include button-primary;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .search-input {
+      width: 200px;
+    }
+
+    .filter-select {
+      width: 120px;
     }
   }
 }
 
-// 筛选栏
-.filter-bar {
-  display: flex;
-  gap: $spacing-md;
-  background: $bg-primary;
-  padding: $spacing-xl;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-sm;
+// 脚本卡片
+.script-card {
+  position: relative;
+  height: 100%;
+  background: var(--el-bg-color);
+  border-radius: 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
 
-  .search-input {
-    flex: 1;
-    max-width: 400px;
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    border-color: var(--el-color-primary-light-5);
   }
 
-  .filter-select {
-    width: 150px;
+  .status-bar {
+    height: 4px;
+    background: var(--el-fill-color-light);
+    transition: background 0.3s;
+
+    &.active {
+      background: linear-gradient(90deg, var(--el-color-success), var(--el-color-success-light-3));
+    }
   }
-}
 
-// 脚本列表
-.script-list {
-  flex: 1;
-  min-height: 400px;
-  overflow-y: auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: $spacing-xl;
-  align-content: start;
-  @include scrollbar;
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 16px 12px;
 
-  .script-card {
-    @include card;
-    cursor: pointer;
-    padding: $spacing-xl;
-
-    .card-header {
+    .script-icon {
       display: flex;
-      gap: $spacing-md;
-      margin-bottom: $spacing-lg;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      color: white;
+      font-size: 20px;
+      flex-shrink: 0;
 
-      .script-icon {
-        @include flex-center;
-        width: 48px;
-        height: 48px;
-        border-radius: $radius-lg;
-        background: $primary-gradient;
-        color: white;
-        font-size: 24px;
-        flex-shrink: 0;
+      &.shell {
+        background: linear-gradient(135deg, #10b981, #34d399);
       }
 
-      .script-info {
-        flex: 1;
-        min-width: 0;
-
-        .script-name {
-          @include text-ellipsis;
-          margin: 0 0 $spacing-xs 0;
-          font-size: $font-size-lg;
-          font-weight: $font-weight-semibold;
-          color: $text-primary;
-        }
-
-        .script-description {
-          @include text-ellipsis-multiline(2);
-          margin: 0;
-          font-size: $font-size-sm;
-          color: $text-secondary;
-          line-height: $line-height-relaxed;
-        }
+      &.python {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
       }
 
-      .card-actions {
-        display: flex;
-        align-items: flex-start;
-        gap: $spacing-sm;
-        flex-shrink: 0;
+      &.powershell {
+        background: linear-gradient(135deg, #6366f1, #818cf8);
+      }
 
-        .more-btn {
-          padding: $spacing-sm;
-          color: $text-secondary;
+      &.batch {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      }
 
-          &:hover {
-            color: $primary-color;
-          }
-        }
+      &.javascript {
+        background: linear-gradient(135deg, #eab308, #facc15);
+      }
+
+      &.sql {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+      }
+
+      &.default {
+        background: linear-gradient(135deg, #6b7280, #9ca3af);
       }
     }
 
-    .card-footer {
-      @include flex-between;
-      padding-top: $spacing-md;
-      border-top: 1px solid $border-light;
+    .script-meta {
+      flex: 1;
+      min-width: 0;
 
-      .meta-info {
-        display: flex;
-        gap: $spacing-lg;
+      .script-name {
+        margin: 0 0 4px 0;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
 
-        .meta-item {
-          @include flex-align-center;
-          gap: $spacing-xs;
-          font-size: $font-size-xs;
-          color: $text-tertiary;
-
-          .iconify {
-            font-size: 14px;
-          }
-        }
+      .script-desc {
+        margin: 0;
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        line-height: 1.5;
       }
     }
   }
 
-  .empty-state {
-    grid-column: 1 / -1;
-    @include flex-center;
-    flex-direction: column;
-    min-height: 400px;
-    padding: $spacing-4xl;
-    background: $bg-primary;
-    border-radius: $radius-xl;
-    box-shadow: $shadow-sm;
+  .card-body {
+    padding: 0 16px 12px;
 
-    .empty-icon {
-      font-size: 80px;
-      color: $text-tertiary;
-      margin-bottom: $spacing-xl;
-      opacity: 0.5;
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--el-border-color-lighter);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .info-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+
+        .iconify {
+          font-size: 14px;
+        }
+      }
+
+      .info-value {
+        font-size: 12px;
+        color: var(--el-text-color-primary);
+        font-family: "JetBrains Mono", monospace;
+      }
     }
+  }
 
-    .empty-text {
-      font-size: $font-size-lg;
-      color: $text-secondary;
-      margin: 0 0 $spacing-xl 0;
+  .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--el-fill-color-lighter);
+    border-top: 1px solid var(--el-border-color-lighter);
+
+    .action-buttons {
+      display: flex;
+      gap: 4px;
+
+      .el-button {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+
+        &:hover {
+          background: var(--el-fill-color);
+        }
+      }
     }
   }
 }
 
-// 分页栏
-.pagination-bar {
-  @include flex-center;
-  background: $bg-primary;
-  padding: $spacing-xl;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-sm;
+// 空状态
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  .empty-icon {
+    font-size: 64px;
+    color: var(--el-text-color-placeholder);
+    margin-bottom: 16px;
+  }
+
+  .empty-title {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+  }
+
+  .empty-desc {
+    margin: 0 0 20px 0;
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+  }
 }
 
 // 响应式
-@include md-down {
-  .simple-script-management {
-    padding: $spacing-lg;
-  }
-
-  .header-toolbar {
+@media (max-width: 768px) {
+  .toolbar-wrapper {
     flex-direction: column;
     align-items: stretch;
-    gap: $spacing-lg;
 
     .toolbar-left {
       flex-direction: column;
       align-items: flex-start;
     }
-  }
 
-  .filter-bar {
-    flex-wrap: wrap;
+    .toolbar-right {
+      flex-wrap: wrap;
 
-    .search-input {
-      flex: 1 1 100%;
-      max-width: none;
+      .search-input {
+        flex: 1;
+        min-width: 150px;
+      }
+
+      .filter-select {
+        flex: 1;
+        min-width: 100px;
+      }
     }
-
-    .filter-select {
-      flex: 1;
-    }
-  }
-
-  .script-list {
-    grid-template-columns: 1fr;
   }
 }
 </style>
