@@ -27,6 +27,7 @@ const layout = reactive({
   sms: defineAsyncComponent(() => import("./layout/sms.vue")),
   email: defineAsyncComponent(() => import("./layout/email.vue")),
   group: GroupManagement,
+  theme: defineAsyncComponent(() => import("./layout/theme.vue")),
 });
 
 // 抽屉显示状态控制
@@ -51,6 +52,15 @@ const defaultProductsConfig = [
     isSetup: true,
     type: 5,
     icon: "ri:airplay-fill",
+    hide: false,
+  },
+  {
+    group: "theme",
+    description: "管理登录页面主题",
+    name: "主题管理",
+    isSetup: true,
+    type: 6,
+    icon: "ri:palette-line",
     hide: false,
   },
 ];
