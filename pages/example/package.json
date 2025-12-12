@@ -68,7 +68,6 @@
     "@iconify-icons/simple-icons": "catalog:",
     "@iconify/vue": "catalog:",
     "@intlify/unplugin-vue-i18n": "catalog:",
-    "@pages/example": "workspace:^",
     "@pureadmin/theme": "catalog:",
     "@types/gradient-string": "catalog:",
     "@types/js-cookie": "catalog:",
