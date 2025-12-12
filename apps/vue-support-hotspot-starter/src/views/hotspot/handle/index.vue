@@ -84,65 +84,62 @@ const handleClick = async index => {
 };
 
 onBeforeMount(async () => {
-  http.get((window.agentPath || "/agent") + "/process").then(res => {
+  http.get((window.agentPath || "/agent") + "/handle").then(res => {
     const json = res.data;
     const arr = [];
-    let _index = 0;
-
-    // 基本进程信息
-    arr.push({
-      index: _index++,
-      id: "process_info",
-      title: `<span style='color:var(--el-color-primary);'>进程信息</span>`,
-      code: `进程名称: ${json.name}\nPID: ${json.pid}\nJVM: ${json.vmName} ${json.vmVersion}\n厂商: ${json.vmVendor}\n处理器数: ${json.availableProcessors}`
-    });
-
-    // 内存信息
-    if (json.memory) {
-      const mem = json.memory;
-      const formatBytes = (bytes) => {
-        if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + " GB";
-        if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + " MB";
-        return (bytes / 1024).toFixed(2) + " KB";
-      };
-      arr.push({
-        index: _index++,
-        id: "memory_info",
-        title: `<span style='color:var(--el-color-success);'>内存使用</span>`,
-        code: `最大内存: ${formatBytes(mem.maxMemory)}\n已分配: ${formatBytes(mem.totalMemory)}\n已使用: ${formatBytes(mem.usedMemory)}\n空闲: ${formatBytes(mem.freeMemory)}\n使用率: ${((mem.usedMemory / mem.maxMemory) * 100).toFixed(2)}%`
+    
+    // 处理句柄数据
+    if (json.data && json.data.length > 0) {
+      json.data.forEach((item, index) => {
+        // 解析消息，提取资源类型
+        const message = item.message || "";
+        let resourceType = "未知资源";
+        let resourceColor = "var(--el-text-color-regular)";
+        
+        if (message.includes("FileChannel")) {
+          resourceType = "文件通道";
+          resourceColor = "var(--el-color-primary)";
+        } else if (message.includes("socket")) {
+          resourceType = "Socket 连接";
+          resourceColor = "var(--el-color-success)";
+        } else if (message.includes("Pipe")) {
+          resourceType = "管道";
+          resourceColor = "var(--el-color-warning)";
+        } else if (message.includes("selector")) {
+          resourceType = "选择器";
+          resourceColor = "var(--el-color-info)";
+        } else if (message.includes("Opened")) {
+          resourceType = "文件句柄";
+          resourceColor = "var(--el-color-danger)";
+        }
+        
+        // 格式化堆栈信息
+        let stackTrace = "";
+        if (item.stack && item.stack.length > 0) {
+          stackTrace = item.stack.map(s => {
+            if (typeof s === "string") {
+              return `  at ${s}`;
+            }
+            return `  at ${s.className || ""}.${s.methodName || ""}(${s.fileName || ""}:${s.lineNumber || ""})`;
+          }).join("\n");
+        }
+        
+        arr.push({
+          index: index,
+          id: item.id || `handle_${index}`,
+          title: `<span style='color:${resourceColor};'>${resourceType}</span>`,
+          code: `${message}\n\n调用堆栈:\n${stackTrace || "无堆栈信息"}`
+        });
       });
     }
-
-    // 启动参数
-    if (json.inputArguments && json.inputArguments.length > 0) {
-      arr.push({
-        index: _index++,
-        id: "jvm_args",
-        title: `<span style='color:var(--el-color-warning);'>JVM 启动参数</span>`,
-        code: json.inputArguments.join("\n")
-      });
-    }
-
-    // 运行时间
-    const formatDuration = (ms) => {
-      const seconds = Math.floor(ms / 1000);
-      const minutes = Math.floor(seconds / 60);
-      const hours = Math.floor(minutes / 60);
-      const days = Math.floor(hours / 24);
-      if (days > 0) return `${days}天 ${hours % 24}小时 ${minutes % 60}分钟`;
-      if (hours > 0) return `${hours}小时 ${minutes % 60}分钟 ${seconds % 60}秒`;
-      if (minutes > 0) return `${minutes}分钟 ${seconds % 60}秒`;
-      return `${seconds}秒`;
-    };
-    arr.push({
-      index: _index++,
-      id: "uptime",
-      title: `<span style='color:var(--el-color-info);'>运行时间</span>`,
-      code: `启动时间: ${new Date(json.startTime).toLocaleString()}\n运行时长: ${formatDuration(json.uptime)}`
-    });
-
-    data.title = `<strong>JVM 进程信息</strong> - PID: ${json.pid}`;
+    
+    const total = json.total || arr.length;
+    const agentStatus = json.agentInstalled ? "已安装" : "未安装";
+    data.title = `<strong>句柄监控</strong> - 发现 <span style='color:var(--el-color-danger);'>${total}</span> 个打开的句柄 (Agent: ${agentStatus})`;
     data.data = arr;
+  }).catch(() => {
+    data.title = "<strong>句柄监控</strong> - 无法获取数据";
+    data.data = [];
   });
 });
 </script>

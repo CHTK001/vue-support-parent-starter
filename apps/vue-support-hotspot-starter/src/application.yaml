@@ -13,3 +13,4 @@ RemoteLayout:
 AutoRouter: false
 #路由模式; AUTO = AutoRouter = true; MIX = AUTO + NORMAL
 RouterModule: MIX
+StorageEncode: false

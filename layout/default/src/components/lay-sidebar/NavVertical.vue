@@ -129,6 +129,7 @@ const defer = useDefer(menuData.value.length);
         :collapse-transition="false"
         :popper-effect="tooltipEffect"
         :default-active="defaultActive"
+        @select="menuSelect"
       >
         <span v-for="(routes, index) in menuData" :key="index">
           <LaySidebarItem

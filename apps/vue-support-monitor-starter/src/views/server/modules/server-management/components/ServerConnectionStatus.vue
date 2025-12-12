@@ -82,9 +82,9 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  connectionStatus: CONNECTION_STATUS.OFFLINE,
+  connectionStatus: 0,
   autoRefresh: false,
-  refreshInterval: 30000 // 30秒
+  refreshInterval: 30000
 });
 
 // Emits
