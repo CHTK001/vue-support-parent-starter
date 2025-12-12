@@ -60,51 +60,56 @@ const ssoSetting = reactive({
   Wechat: false,
 });
 const loadDefaultSetting = async () => {
-  const { data } = await fetchDefaultSetting();
-  // 检查 data 是否存在且为数组
-  if (!data || !Array.isArray(data)) {
-    return;
-  }
-  data.forEach((element) => {
-    // 跳过空元素
-    if (!element) {
+  try {
+    const { data } = await fetchDefaultSetting();
+    // 检查 data 是否存在且为数组
+    if (!data || !Array.isArray(data)) {
       return;
     }
-    if (element.sysSettingGroup == "default") {
-      if (element.sysSettingName === "SystemName") {
-        defaultSetting.systemName = element.sysSettingValue;
-        setConfig("Title", defaultSetting.systemName);
+    data.forEach((element) => {
+      // 跳过空元素
+      if (!element) {
         return;
       }
-      if (element.sysSettingName === "CheckCodeOpen") {
-        defaultSetting.openVerifyCode = element.sysSettingValue === "true";
-        return;
-      }
+      if (element.sysSettingGroup == "default") {
+        if (element.sysSettingName === "SystemName") {
+          defaultSetting.systemName = element.sysSettingValue;
+          setConfig("Title", defaultSetting.systemName);
+          return;
+        }
+        if (element.sysSettingName === "CheckCodeOpen") {
+          defaultSetting.openVerifyCode = element.sysSettingValue === "true";
+          return;
+        }
 
-      if (element.sysSettingName === "CheckTotpCodeOpen") {
-        defaultSetting.checkTotpOpen = element.sysSettingValue === "true";
-        return;
-      }
+        if (element.sysSettingName === "CheckTotpCodeOpen") {
+          defaultSetting.checkTotpOpen = element.sysSettingValue === "true";
+          return;
+        }
 
-      if (element.sysSettingName === "SlidingBlockOpen") {
-        defaultSetting.openVcode = element.sysSettingValue === "true";
-        return;
-      }
-      if (element.sysSettingName === "OpenThirdPartyLogin") {
+        if (element.sysSettingName === "SlidingBlockOpen") {
+          defaultSetting.openVcode = element.sysSettingValue === "true";
+          return;
+        }
+        if (element.sysSettingName === "OpenThirdPartyLogin") {
+          const _val = element.sysSettingValue === "true";
+          defaultSetting.OpenThirdPartyLogin = _val;
+          return;
+        }
+        defaultSetting[element.sysSettingName] =
+          element.sysSettingValue === "true";
+      } else if (element.sysSettingGroup === "sso") {
         const _val = element.sysSettingValue === "true";
-        defaultSetting.OpenThirdPartyLogin = _val;
-        return;
+        ssoSetting[element.sysSettingName] = _val;
       }
-      defaultSetting[element.sysSettingName] =
-        element.sysSettingValue === "true";
-    } else if (element.sysSettingGroup === "sso") {
-      const _val = element.sysSettingValue === "true";
-      ssoSetting[element.sysSettingName] = _val;
-    }
-  });
+    });
 
-  if (defaultSetting.openVerifyCode) {
-    await getVerifyCode();
+    if (defaultSetting.openVerifyCode) {
+      await getVerifyCode();
+    }
+  } catch (error) {
+    // 接口异常时静默处理，保证登录页面正常显示
+    console.warn("获取默认配置失败:", error);
   }
 };
 
@@ -147,8 +152,9 @@ const getSwitchLoginType = () => {
   if (defaultSetting.OpenTenantLogin) {
     return 2;
   }
+  // 默认返回普通登录类型，确保登录框能正常显示
+  return 1;
 };
-loginType.value = getSwitchLoginType();
 
 // 判断当前环境
 const currentEnv = import.meta.env.MODE || "production";
