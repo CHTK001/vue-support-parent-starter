@@ -494,21 +494,11 @@ onBeforeUnmount(() => {
         <!-- 表单区域 -->
         <div class="form-section">
           <el-form ref="ruleFormRef" :model="ruleForm" :rules="loginRules" size="large" class="modern-form">
-            <!-- 租户编码字段 -->
-            <Motion :delay="150" v-if="defaultSetting.OpenTenantLogin && defaultSetting.OpenTenantLoginRequire && props.accountType == 2">
+            <!-- 租户编码字段（非必填） -->
+            <Motion :delay="150" v-if="defaultSetting.OpenTenantLogin && props.accountType == 2">
               <div class="form-field-wrapper">
-                <label class="field-label">租户编码</label>
-                <el-form-item
-                  prop="tenantCode"
-                  :rules="[
-                    {
-                      required: true,
-                      message: transformI18n($t('login.pureTenantReg')),
-                      trigger: 'blur',
-                    },
-                  ]"
-                  class="modern-form-item"
-                >
+                <label class="field-label">租户编码 <span class="optional-hint">(选填)</span></label>
+                <el-form-item prop="tenantCode" class="modern-form-item">
                   <el-input v-model="ruleForm.tenantCode" clearable :disabled="loading" :placeholder="t('login.pureTenantCode')" :prefix-icon="useRenderIcon('ri:building-fill')" class="modern-input" />
                 </el-form-item>
               </div>
@@ -994,6 +984,12 @@ onBeforeUnmount(() => {
           writing-mode: horizontal-tb;
           min-width: 80px;
           flex-shrink: 0;
+
+          .optional-hint {
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--el-text-color-secondary);
+          }
         }
 
         .modern-form-item {
