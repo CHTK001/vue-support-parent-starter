@@ -124,7 +124,7 @@
 /* 灯笼元素 */
 .theme-spring-festival .spring-festival-lanterns::before,
 .theme-spring-festival .spring-festival-lanterns::after {
-    content: "";
+    content: "🏮";
     font-size: 48px;
     animation: lanternSwing 3s ease-in-out infinite;
     filter: drop-shadow(0 4px 12px rgba(245, 34, 45, 0.6));

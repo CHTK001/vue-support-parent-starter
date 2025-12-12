@@ -116,7 +116,8 @@ const handleInfo = row => {
 
 onBeforeMount(async () => {
   http.get((window.agentPath || "/agent") + "/spring-mapping-data").then(res => {
-    data.value = res.data.data || [];
+    // 后端返回的是 { data: [...], total: 10 }
+    data.value = res.data || [];
   });
 });
 </script>

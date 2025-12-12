@@ -128,8 +128,8 @@ const settings = reactive({
   doubleNavAutoExpandAll: $storage.configure.doubleNavAutoExpandAll ?? true,
   // AI 助手设置
   aiChatTheme: $storage.configure.aiChatTheme ?? "default",
-  // 主题皮肤设置
-  enableFestivalTheme: getConfig().EnableFestivalTheme ?? true,
+  // 主题皮肤设置（优先从本地存储读取，其次从配置文件，最后默认为 true）
+  enableFestivalTheme: $storage.configure?.enableFestivalTheme ?? (getConfig().EnableFestivalTheme ?? true),
 });
 
 /** AI 助手皮肤主题选项 */
