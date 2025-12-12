@@ -566,6 +566,8 @@ onClickOutside(contextmenuRef, closeMenu, {
 
 watch(route, () => {
   activeIndex.value = -1;
+  // 路由变化时自动添加标签
+  dynamicRouteTag(route.path);
   dynamicTagView();
 });
 

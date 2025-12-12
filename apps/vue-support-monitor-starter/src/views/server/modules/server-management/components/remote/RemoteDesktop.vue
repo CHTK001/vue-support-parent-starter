@@ -143,7 +143,7 @@ const selectProtocol = (protocol: 'rdp' | 'vnc' ) => {
   selectedProtocol.value = protocol;
   emit('protocol-change', protocol);
 
-  message(`已选择 ${protocol.toUpperCase(, { type: "success" })} 协议`);
+  message(`已选择 ${protocol.toUpperCase()} 协议`, { type: "success" });
 };
 
 const goBack = () => {

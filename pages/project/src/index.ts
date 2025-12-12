@@ -15,6 +15,7 @@ import LlmNewIndex from "./views/ai/llm-new/index.vue";
 import ResolutionIndex from "./views/ai/resolution/index.vue";
 import VideoIndex from "./views/ai/video/index.vue";
 import DeviceIndex from "./views/device/index.vue";
+import DevicePreview from "./views/template/device/preview/index.vue";
 import DeviceTemplate from "./views/template/device/index.vue";
 import EmailTemplate from "./views/template/email/index.vue";
 import SmsTemplate from "./views/template/sms/index.vue";
@@ -26,6 +27,7 @@ export default LayoutDefault;
 export {
   ColorizationIndex,
   DeviceIndex,
+  DevicePreview,
   DeviceTemplate,
   EmailTemplate,
   // 人脸检测
