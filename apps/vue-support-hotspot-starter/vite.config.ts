@@ -43,10 +43,12 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     css: {
       preprocessorOptions: {
         scss: {
+          api: 'modern-compiler',
           additionalData: `
             @use "@repo/assets/style/layout/default/variables.scss" as *;
             @use "@repo/assets/style/layout/default/mixin.scss";
           `,
+          silenceDeprecations: ['mixed-decls', 'color-functions', 'global-builtin', 'import'],
         },
       },
     },

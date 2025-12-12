@@ -31,7 +31,7 @@ import "@wangeditor/editor/dist/css/style.css";
 import { Editor, Toolbar } from "@wangeditor/editor-for-vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { computed, ref, shallowRef, onBeforeUnmount, watch, onMounted } from "vue";
-import { validate } from "../utils/validate";
+import { validate } from "../validation";
 import type { IDomEditor, IEditorConfig, IToolbarConfig } from "@wangeditor/editor";
 
 interface Props {
@@ -292,8 +292,9 @@ defineExpose({
   :deep(.w-e-toolbar) {
     border: none;
     background-color: transparent;
+  }
+}
 
-{{ ... }
 .sc-richtext-editor {
   :deep(.w-e-text-container) {
     border: none;
@@ -307,69 +308,36 @@ defineExpose({
     .w-e-text {
       padding: 16px;
       font-size: 14px;
-{{ ... }
+      line-height: 1.8;
+      color: var(--el-text-color-primary);
+
+      blockquote {
+        border-left: 4px solid var(--el-color-primary-light-3);
         padding: 12px 16px;
         margin: 16px 0;
         border-radius: 0 8px 8px 0;
       }
-
-      code {
-        background-color: var(--el-fill-color-light);
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-        font-size: 0.9em;
-      }
-
-      pre {
-        background-color: var(--el-fill-color-light);
-        padding: 16px;
-        border-radius: 8px;
-        overflow-x: auto;
-
-        code {
-          background: none;
-          padding: 0;
-        }
-      }
-
-      table {
-        border-collapse: collapse;
-        width: 100%;
-        margin: 16px 0;
-
-        th, td {
-          border: 1px solid var(--el-border-color-light);
-          padding: 8px 12px;
-          text-align: left;
-        }
-
-        th {
-          background-color: var(--el-fill-color-light);
-          font-weight: 600;
-        }
-      }
     }
   }
+}
 
-  // 禁用状态
-  &--disabled {
-    :deep(.w-e-text-container) {
-      background-color: var(--el-fill-color-light);
-      cursor: not-allowed;
+// 禁用状态
+.sc-richtext-editor--disabled {
+  :deep(.w-e-text-container) {
+    background-color: var(--el-fill-color-light);
+    cursor: not-allowed;
 
-      .w-e-text {
-        color: var(--el-text-color-disabled);
-      }
+    .w-e-text {
+      color: var(--el-text-color-disabled);
     }
   }
+}
 
-  // 验证失败状态
-  &--invalid {
-    .sc-richtext-input-container {
-      border-color: var(--el-color-danger);
-      animation: shake 0.5s ease-in-out;
-    }
+// 验证失败状态
+.sc-richtext-editor--invalid {
+  .sc-richtext-input-container {
+    border-color: var(--el-color-danger);
+    animation: shake 0.5s ease-in-out;
   }
 }
 
@@ -380,7 +348,6 @@ defineExpose({
   padding: 8px 16px;
   background-color: rgba(245, 108, 108, 0.05);
   border-top: 1px solid rgba(245, 108, 108, 0.2);
-{{ ... }
 }
 
 // 动画定义
