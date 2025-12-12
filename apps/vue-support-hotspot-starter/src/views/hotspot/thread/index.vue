@@ -89,8 +89,8 @@ const handleInfo = row => {
 };
 
 onBeforeMount(async () => {
-  http.get((window.agentPath || "/agent") + "/thread_info").then(res => {
-    data.value = res.data.data || [];
+  http.get((window.agentPath || "/agent") + "/thread").then(res => {
+    data.value = res.data || [];
   });
 });
 </script>
