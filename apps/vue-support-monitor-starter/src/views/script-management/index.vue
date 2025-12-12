@@ -77,6 +77,10 @@
               <IconifyIconOnline icon="ri:add-line" />
               新建脚本
             </el-button>
+            <el-button @click="handleViewAllRecords">
+              <IconifyIconOnline icon="ri:history-line" />
+              执行记录
+            </el-button>
           </div>
         </div>
       </template>
@@ -142,6 +146,11 @@
                   <IconifyIconOnline icon="ri:play-line" />
                 </el-button>
               </el-tooltip>
+              <el-tooltip content="历史记录" placement="top">
+                <el-button text circle @click="handleViewRecords(row)">
+                  <IconifyIconOnline icon="ri:history-line" />
+                </el-button>
+              </el-tooltip>
               <el-tooltip content="编辑" placement="top">
                 <el-button text circle @click="handleEdit(row)">
                   <IconifyIconOnline icon="ri:edit-line" />
@@ -189,6 +198,12 @@
       :script-data="currentScript"
       @executed="handleExecuteSuccess"
     />
+
+    <!-- 执行记录对话框 -->
+    <ExecuteRecordDialog
+      v-model:visible="executeRecordVisible"
+      :script-id="currentScriptIdForRecord"
+    />
   </div>
 </template>
 
@@ -198,6 +213,7 @@ import { ElMessageBox } from "element-plus";
 import { message } from "@repo/utils";
 import ScriptEditDialog from "./components/ScriptEditDialog.vue";
 import ServerSelectDialog from "./components/ServerSelectDialog.vue";
+import ExecuteRecordDialog from "./components/ExecuteRecordDialog.vue";
 import * as ScriptAPI from "@/api/server/script-management";
 import type { Script } from "./types";
 import { ScriptStatus } from "./types";
@@ -208,6 +224,8 @@ const tableRef = ref();
 const currentScript = ref<Script | null>(null);
 const editDialogVisible = ref(false);
 const serverSelectVisible = ref(false);
+const executeRecordVisible = ref(false);
+const currentScriptIdForRecord = ref<number | undefined>(undefined);
 const totalCount = ref(0);
 const enabledCount = ref(0);
 
@@ -374,6 +392,18 @@ const handleRun = (script: Script) => {
 // 执行成功回调
 const handleExecuteSuccess = () => {
   message("脚本执行任务已提交", { type: "success" });
+};
+
+// 查看所有执行记录
+const handleViewAllRecords = () => {
+  currentScriptIdForRecord.value = undefined;
+  executeRecordVisible.value = true;
+};
+
+// 查看单个脚本的执行记录
+const handleViewRecords = (script: Script) => {
+  currentScriptIdForRecord.value = script.monitorSysGenScriptId;
+  executeRecordVisible.value = true;
 };
 
 // 格式化时间
