@@ -221,37 +221,68 @@ const envBadgeClass = computed(() => {
         </div>
 
         <!-- 语言切换 -->
-        <el-dropdown trigger="click" class="modern-lang-dropdown">
+        <el-dropdown
+          trigger="click"
+          popper-class="lang-dropdown-popper"
+        >
           <div class="lang-trigger">
-            <globalization class="lang-icon" />
+            <div class="lang-icon-wrapper">
+              <IconifyIconOnline icon="ri:translate-2" class="lang-main-icon" />
+            </div>
+            <div class="lang-info">
+              <span class="lang-name">{{
+                locale === "zh-CN" ? "简体中文" : "English"
+              }}</span>
+              <span class="lang-role">{{
+                locale === "zh-CN" ? "语言" : "Language"
+              }}</span>
+            </div>
+            <span class="dropdown-arrow-wrapper">
+              <IconifyIconOnline
+                icon="ri:arrow-down-s-line"
+                class="dropdown-arrow"
+              />
+            </span>
           </div>
           <template #dropdown>
-            <el-dropdown-menu class="modern-dropdown-menu">
+            <el-dropdown-menu class="lang-menu">
+              <div class="lang-header">
+                <IconifyIconOnline icon="ri:global-line" />
+                <span>选择语言</span>
+              </div>
               <el-dropdown-item
-                :style="getDropdownItemStyle(locale, 'zh-CN')"
-                :class="getDropdownItemClass(locale, 'zh-CN')"
+                :class="['lang-item', { active: locale === 'zh-CN' }]"
                 @click="translationCh"
-                class="dropdown-item"
               >
-                <IconifyIconOffline
+                <div class="lang-item-content">
+                  <span class="lang-flag">🇨🇳</span>
+                  <div class="lang-item-info">
+                    <span class="lang-item-name">简体中文</span>
+                    <span class="lang-item-desc">Simplified Chinese</span>
+                  </div>
+                </div>
+                <IconifyIconOnline
                   v-show="locale === 'zh-CN'"
-                  class="check-icon"
-                  icon="@iconify-icons/ep/check"
+                  class="lang-check"
+                  icon="ep:check"
                 />
-                <span>简体中文</span>
               </el-dropdown-item>
               <el-dropdown-item
-                :style="getDropdownItemStyle(locale, 'en-US')"
-                :class="getDropdownItemClass(locale, 'en-US')"
+                :class="['lang-item', { active: locale === 'en-US' }]"
                 @click="translationEn"
-                class="dropdown-item"
               >
-                <IconifyIconOffline
+                <div class="lang-item-content">
+                  <span class="lang-flag">🇺🇸</span>
+                  <div class="lang-item-info">
+                    <span class="lang-item-name">English</span>
+                    <span class="lang-item-desc">United States</span>
+                  </div>
+                </div>
+                <IconifyIconOnline
                   v-show="locale === 'en-US'"
-                  class="check-icon"
-                  icon="@iconify-icons/ep/check"
+                  class="lang-check"
+                  icon="ep:check"
                 />
-                <span>English</span>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -469,82 +500,132 @@ const envBadgeClass = computed(() => {
     }
   }
 
-  // 现代化语言下拉菜单
-  .modern-lang-dropdown {
-    .lang-trigger {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: var(--el-fill-color-extra-light);
-      border: 1px solid var(--el-border-color-lighter);
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // 语言切换触发器 - 统一为头像风格
+  .lang-trigger {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 14px 6px 6px;
+    border-radius: 28px;
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color-lighter) 0%,
+      var(--el-fill-color-light) 100%
+    );
+    border: 1px solid var(--el-border-color-lighter);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
 
-      &:hover {
-        background: var(--el-color-primary-light-9);
-        border-color: var(--el-color-primary-light-7);
-        transform: scale(1.05);
-      }
+    /* 光泽效果 */
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+      );
+      transition: left 0.5s ease;
+    }
 
-      .lang-icon {
-        width: 20px;
-        height: 20px;
-        color: var(--el-text-color-regular);
-        transition: all 0.3s ease;
+    &:hover {
+      background: linear-gradient(
+        135deg,
+        var(--el-fill-color-light) 0%,
+        var(--el-fill-color) 100%
+      );
+      border-color: rgba(var(--el-color-primary-rgb), 0.3);
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.1),
+        0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
+      transform: translateY(-1px);
 
-        &:hover {
-          color: var(--el-color-primary);
-        }
+      &::before {
+        left: 100%;
       }
     }
 
-    :deep(.el-dropdown-menu) {
-      background: var(--el-bg-color-overlay);
-      border: 1px solid var(--el-border-color-lighter);
-      border-radius: 12px;
-      padding: 8px;
-      box-shadow: var(--el-box-shadow);
-      backdrop-filter: blur(20px);
-      min-width: 160px;
+    .lang-icon-wrapper {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 100%
+      );
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
 
-      .el-dropdown-menu__item {
-        padding: 12px 16px;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-        margin: 2px 0;
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--el-text-color-regular);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        text-align: left;
-        writing-mode: horizontal-tb;
-
-        &:hover {
-          background: var(--el-color-primary-light-9);
-          color: var(--el-color-primary);
-          transform: translateX(4px);
-        }
-
-        .check-icon {
-          font-size: 16px;
-          color: var(--el-color-primary);
-          opacity: 0;
-          transition: all 0.3s ease;
-
-          &:not(:empty) {
-            opacity: 1;
-          }
-        }
-
-        span {
-          flex: 1;
-        }
+      .lang-main-icon {
+        font-size: 16px;
+        color: #fff;
       }
+    }
+
+    .lang-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.3;
+    }
+
+    .lang-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+      letter-spacing: 0.2px;
+    }
+
+    .lang-role {
+      font-size: 11px;
+      color: var(--el-text-color-secondary);
+      font-weight: 500;
+    }
+
+    .dropdown-arrow-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: linear-gradient(
+        135deg,
+        var(--el-fill-color) 0%,
+        var(--el-fill-color-light) 100%
+      );
+      margin-left: 4px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dropdown-arrow {
+      font-size: 14px;
+      color: var(--el-text-color-placeholder);
+      transition: all 0.3s ease;
+    }
+  }
+
+  &:focus-within .dropdown-arrow-wrapper {
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-8) 0%,
+      var(--el-color-primary-light-9) 100%
+    );
+    box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.2);
+
+    .dropdown-arrow {
+      color: var(--el-color-primary);
     }
   }
 }
@@ -973,6 +1054,173 @@ const envBadgeClass = computed(() => {
         border-radius: 10px; // 从12px减少到10px
       }
     }
+  }
+}
+</style>
+
+<style lang="scss">
+/**
+ * 语言下拉菜单全局样式
+ */
+.lang-dropdown-popper {
+  .el-dropdown-menu {
+    padding: 0;
+    border-radius: 20px;
+    border: none;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.15),
+      0 8px 20px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+    min-width: 240px;
+    backdrop-filter: blur(20px);
+  }
+}
+
+.lang-menu {
+  padding: 0 !important;
+
+  /**
+   * 菜单头部样式
+   */
+  .lang-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color-lighter) 0%,
+      var(--el-fill-color-light) 100%
+    );
+  }
+
+  /**
+   * 语言项目样式
+   */
+  .lang-item {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px !important;
+    margin: 8px 10px;
+    margin-bottom: 8px;
+    border-radius: 14px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.08) 0%,
+        transparent 100%
+      );
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    &:hover {
+      background: var(--el-fill-color-light);
+      transform: translateX(4px);
+
+      &::before {
+        opacity: 1;
+      }
+
+      .lang-flag {
+        transform: scale(1.1);
+      }
+    }
+
+    &.active {
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.12) 0%,
+        rgba(var(--el-color-primary-rgb), 0.06) 100%
+      );
+      border: 1px solid rgba(var(--el-color-primary-rgb), 0.2);
+
+      .lang-item-name {
+        color: var(--el-color-primary);
+        font-weight: 600;
+      }
+
+      .lang-check {
+        animation: check-pop 0.3s ease;
+      }
+    }
+
+    .lang-item-content {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .lang-flag {
+      font-size: 28px;
+      line-height: 1;
+      transition: transform 0.3s ease;
+    }
+
+    .lang-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .lang-item-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+    }
+
+    .lang-item-desc {
+      font-size: 11px;
+      color: var(--el-text-color-secondary);
+    }
+
+    .lang-check {
+      font-size: 20px;
+      color: var(--el-color-primary);
+      filter: drop-shadow(0 2px 4px rgba(var(--el-color-primary-rgb), 0.3));
+    }
+  }
+}
+
+/**
+ * 动画定义
+ */
+@keyframes check-pop {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/**
+ * 深色模式适配
+ */
+html.dark {
+  .lang-dropdown-popper .el-dropdown-menu {
+    background: var(--el-bg-color-overlay);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  }
+
+  .lang-menu .lang-header {
+    background: var(--el-fill-color-dark);
   }
 }
 </style>
