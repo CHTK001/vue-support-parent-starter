@@ -40,6 +40,13 @@ export const loginThemes: LoginTheme[] = [
 // 节日主题
 export const festivalThemes: LoginTheme[] = [
   {
+    name: "元旦",
+    key: "new-year",
+    description: "元旦主题，新年新气象",
+    // @ts-ignore
+    component: () => import("./festival/new-year.vue"),
+  },
+  {
     name: "春节",
     key: "spring-festival",
     description: "春节主题，喜庆祥和",
@@ -47,11 +54,25 @@ export const festivalThemes: LoginTheme[] = [
     component: () => import("./festival/spring-festival.vue"),
   },
   {
+    name: "情人节",
+    key: "valentines-day",
+    description: "情人节主题，浪漫甜蜜",
+    // @ts-ignore
+    component: () => import("./festival/valentines-day.vue"),
+  },
+  {
     name: "中秋",
     key: "mid-autumn",
     description: "中秋主题，月圆人团圆",
     // @ts-ignore
     component: () => import("./festival/mid-autumn.vue"),
+  },
+  {
+    name: "国庆",
+    key: "national-day",
+    description: "国庆主题，祝福祖国",
+    // @ts-ignore
+    component: () => import("./festival/national-day.vue"),
   },
   {
     name: "圣诞",
@@ -101,19 +122,34 @@ const detectFestivalTheme = (): LoginTheme | null => {
   const month = now.getMonth() + 1;
   const day = now.getDate();
 
+  // 元旦（1月1日-1月3日）
+  if (month === 1 && day >= 1 && day <= 3) {
+    return festivalThemes[0]; // 元旦主题
+  }
+
   // 春节（农历正月初一前后15天，这里简化为公历1月20日-2月20日）
   if ((month === 1 && day >= 20) || (month === 2 && day <= 20)) {
-    return festivalThemes[0]; // 春节主题
+    return festivalThemes[1]; // 春节主题
+  }
+
+  // 情人节（2月14日前后7天）
+  if (month === 2 && day >= 10 && day <= 16) {
+    return festivalThemes[2]; // 情人节主题
   }
 
   // 中秋（农历八月十五前后7天，这里简化为公历9月10日-9月25日）
   if (month === 9 && day >= 10 && day <= 25) {
-    return festivalThemes[1]; // 中秋主题
+    return festivalThemes[3]; // 中秋主题
+  }
+
+  // 国庆节（10月1日-10月7日）
+  if (month === 10 && day >= 1 && day <= 7) {
+    return festivalThemes[4]; // 国庆主题
   }
 
   // 圣诞（12月15日-12月31日）
   if (month === 12 && day >= 15) {
-    return festivalThemes[2]; // 圣诞主题
+    return festivalThemes[5]; // 圣诞主题
   }
 
   return null;
