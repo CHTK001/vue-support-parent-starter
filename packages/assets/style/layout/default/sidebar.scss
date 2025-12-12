@@ -977,6 +977,12 @@ body[layout="double"] {
     flex-direction: column;
     overflow: hidden;
 
+    width: $leftPanelWidth;
+    background: var(--pure-theme-sidebar-logo);
+    border-right: 1px solid var(--el-border-color-light);
+    transition: all var(--pure-transition-duration) ease;
+    flex-shrink: 0;
+
     /* 左栏滚动条高度 */
     .el-scrollbar {
       flex: 1;
@@ -990,11 +996,6 @@ body[layout="double"] {
     &.no-logo .el-scrollbar {
       height: 100%;
     }
-    width: $leftPanelWidth;
-    background: var(--pure-theme-sidebar-logo);
-    border-right: 1px solid var(--el-border-color-light);
-    transition: all var(--pure-transition-duration) ease;
-    flex-shrink: 0;
 
     .first-level-menu {
       padding: 8px 0;

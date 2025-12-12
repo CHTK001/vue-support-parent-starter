@@ -86,6 +86,7 @@
     "rimraf": "catalog:",
     "rollup-plugin-visualizer": "catalog:",
     "sass": "^1.77.8",
+    "sass-embedded": "^1.96.0",
     "sass-loader": "catalog:",
     "stylelint": "catalog:",
     "stylelint-config-recess-order": "catalog:",
@@ -147,6 +148,7 @@
     }
   },
   "dependencies": {
+    "@microsoft/fetch-event-source": "^2.0.1",
     "cropperjs": "^2.1.0"
   }
 }
