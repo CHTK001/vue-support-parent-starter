@@ -349,27 +349,36 @@ const getTagType = (tag) => {
 
 // 获取快速操作
 const getQuickActions = (row) => {
+  const viewHandler = (r) => {
+    console.log("查看", r);
+  };
+  const editHandler = (r) => {
+    handleSave("edit", r);
+  };
+  const deployHandler = (r) => {
+    console.log("部署", r);
+  };
   return [
     {
       key: "view",
       type: "primary",
       icon: useRenderIcon("ri:eye-line"),
       title: "查看详情",
-      handler: (row) => console.log("查看", row),
+      handler: viewHandler,
     },
     {
       key: "edit",
       type: "success",
       icon: useRenderIcon("ri:edit-line"),
       title: "编辑项目",
-      handler: (row) => handleSave("edit", row),
+      handler: editHandler,
     },
     {
       key: "deploy",
       type: "warning",
       icon: useRenderIcon("ri:rocket-line"),
       title: "部署项目",
-      handler: (row) => console.log("部署", row),
+      handler: deployHandler,
     },
   ];
 };

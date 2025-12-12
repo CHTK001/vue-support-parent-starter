@@ -69,8 +69,8 @@ const { t } = useI18n();
 const appWrapperRef = ref();
 const { isDark } = useDark();
 
-// 添加加载状态管理
-const isConfigLoaded = ref(false);
+// 添加加载状态管理（默认为 true，不显示加载遮罩）
+const isConfigLoaded = ref(true);
 
 // 是否首次加载（用于显示不同的加载文字）
 const isFirstLoad = ref(!sessionStorage.getItem("_app_loaded"));

@@ -8,7 +8,7 @@ Title: 运维管理
 # 平台标识码（用于接口请求和缓存隔离，默认: system）
 # SystemCode: monitor
 # 远程API地址（后端接口基础路径，默认: 空）
-BaseUrl: /agent
+BaseUrl: /
 # API版本号（接口版本控制，默认: 空）
 # apiVersion: v1
 

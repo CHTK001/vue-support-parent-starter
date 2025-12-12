@@ -225,6 +225,7 @@ const defer = useDefer(firstLevelMenus.value.length);
         <el-menu
           v-if="doubleNavConfig.expandMode === 'auto'"
           :key="selectedFirstLevelMenu?.path || 'default'"
+          router
           :unique-opened="false"
           mode="vertical"
           popper-class="pure-scrollbar"
@@ -234,7 +235,6 @@ const defer = useDefer(firstLevelMenus.value.length);
           :popper-effect="tooltipEffect"
           :default-active="defaultActive"
           :default-openeds="defaultOpeneds"
-          @select="menuSelect"
         >
           <span v-for="(routes, index) in subMenuData" :key="index">
             <DoubleNavSidebarItem :key="routes.path" :item="routes" :base-path="routes.path" :expand-mode="doubleNavConfig.expandMode" class="sub-menu-item select-none" @menu-click="handleSubMenuClick" @favorite-toggle="handleFavoriteToggle" />
@@ -245,6 +245,7 @@ const defer = useDefer(firstLevelMenus.value.length);
         <el-menu
           v-else
           :key="selectedFirstLevelMenu?.path || 'default'"
+          router
           :unique-opened="false"
           mode="vertical"
           popper-class="pure-scrollbar"
@@ -254,7 +255,6 @@ const defer = useDefer(firstLevelMenus.value.length);
           :popper-effect="tooltipEffect"
           :default-active="defaultActive"
           :default-openeds="defaultOpeneds"
-          @select="menuSelect"
         >
           <span v-for="(routes, index) in subMenuData" :key="index">
             <DoubleNavSidebarItem :key="routes.path" :item="routes" :base-path="routes.path" :expand-mode="doubleNavConfig.expandMode" class="sub-menu-item select-none" @menu-click="handleSubMenuClick" @favorite-toggle="handleFavoriteToggle" />
