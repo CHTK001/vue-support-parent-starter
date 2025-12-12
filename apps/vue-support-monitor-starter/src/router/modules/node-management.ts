@@ -76,18 +76,6 @@ export default [
           showParent: true,
         },
       },
-      {
-        path: "/node/log",
-        name: "nodeLog",
-        component: () =>
-          import("@/views/node-management/module/node-log/index.vue"),
-        meta: {
-          icon: "ri:file-text-line",
-          title: "实时日志",
-          showLink: true,
-          showParent: true,
-        },
-      },
     ],
   },
 ];
