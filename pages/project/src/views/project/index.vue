@@ -228,8 +228,7 @@
 <script setup>
 import { useRenderIcon } from "@repo/components";
 import { fetchListDictItem, router } from "@repo/core";
-import { deepCopy, useDefer } from "@repo/utils";
-import { message } from "@repo/utils";
+import { deepCopy, message, stringSplitToNumber, useDefer } from "@repo/utils";
 import { defineAsyncComponent, onMounted, reactive, ref } from "vue";
 import {
   fetchDeleteProject,
@@ -237,8 +236,6 @@ import {
   fetchUpdateProjectDefault,
 } from "../../api/manage/project";
 import SaveDialog from "./save.vue";
-
-import { message, stringSplitToNumber } from "@repo/utils";
 const DefaultSetting = defineAsyncComponent(
   () => import("./defaultSetting.vue")
 );
