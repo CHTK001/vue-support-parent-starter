@@ -90,7 +90,23 @@ const handleInfo = row => {
 
 onBeforeMount(async () => {
   http.get((window.agentPath || "/agent") + "/thread").then(res => {
-    data.value = res.data || [];
+    // 映射后端返回的字段名到前端使用的字段名
+    data.value = (res.data || []).map(thread => ({
+      id: thread.threadId,
+      name: thread.threadName,
+      state: thread.threadState,
+      cpu: 0, // ThreadInfoDTO 中没有 CPU 信息，默认为 0
+      blockedCount: thread.blockedCount || 0,
+      blockedTime: thread.blockedTime || 0,
+      waitedCount: thread.waitedCount || 0,
+      waitedTime: thread.waitedTime || 0,
+      lockName: thread.lockName,
+      lockOwnerId: thread.lockOwnerId,
+      lockOwnerName: thread.lockOwnerName,
+      inNative: thread.inNative,
+      suspended: thread.suspended,
+      stackTrace: thread.stackTrace || []
+    }));
   });
 });
 </script>
