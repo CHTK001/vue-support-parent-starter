@@ -58,11 +58,12 @@ export const fetchSetting = (param) => {
 
 /** 获取系统配置 */
 export const fetchDefaultSetting = () => {
-  return new Promise((resolve) => {
-    resolve(
-      http.request<ReturnResult<Setting[]>>("get", "/v2/setting/default") || {
-        data: [],
-      }
-    );
-  });
+  return http
+    .request<ReturnResult<Setting[]>>("get", "/v2/setting/default", {
+      timeout: 5000, // 5秒超时，避免长时间等待
+    })
+    .catch(() => {
+      // 接口异常时返回空数据，保证登录页面正常显示
+      return { data: [] };
+    });
 };
