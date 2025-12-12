@@ -189,7 +189,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
 import ScriptEditDialog from "./components/ScriptEditDialog.vue";
 import * as ScriptAPI from "@/api/server/script-management";
 import type { Script } from "./types";
@@ -227,23 +228,40 @@ onMounted(() => {
 const loadScripts = async () => {
   try {
     loading.value = true;
+    // 转换状态值：前端用 ENABLED/DISABLED，后端用 1/0
+    let statusValue: number | undefined;
+    if (filterStatus.value === "ENABLED") {
+      statusValue = 1;
+    } else if (filterStatus.value === "DISABLED") {
+      statusValue = 0;
+    }
+
     const response: any = await ScriptAPI.getScriptPage({
       page: pagination.page,
       pageSize: pagination.pageSize,
-      monitorSysGenScriptName: searchKeyword.value || undefined,
-      monitorSysGenScriptType: filterType.value || undefined,
-      monitorSysGenScriptStatus: filterStatus.value || undefined,
+      scriptName: searchKeyword.value || undefined,
+      scriptType: filterType.value?.toLowerCase() || undefined,
+      scriptStatus: statusValue,
     });
 
     if (response.success) {
-      scripts.value = response.data.records;
+      // 转换后端返回的状态值为前端格式
+      scripts.value = (response.data.records || []).map((item: any) => ({
+        ...item,
+        monitorSysGenScriptStatus:
+          item.monitorSysGenScriptStatus?.code === 1 ||
+          item.monitorSysGenScriptStatus === "ENABLED" ||
+          item.monitorSysGenScriptStatus === 1
+            ? "ENABLED"
+            : "DISABLED",
+      }));
       pagination.total = response.data.total;
     } else {
-      ElMessage.error(response.msg || "加载脚本列表失败");
+      message(response.msg || "加载脚本列表失败", { type: "error" });
     }
   } catch (error) {
     console.error("加载脚本列表失败:", error);
-    ElMessage.error("加载脚本列表失败");
+    message("加载脚本列表失败", { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -268,7 +286,7 @@ const handleFilter = () => {
 // 刷新
 const handleRefresh = () => {
   loadScripts();
-  ElMessage.success("刷新成功");
+  message("刷新成功", { type: "success" });
 };
 
 // 创建脚本
@@ -286,14 +304,16 @@ const handleEdit = (script: Script) => {
 // 状态切换
 const handleStatusChange = async (script: Script) => {
   try {
+    // 转换状态值：前端用 ENABLED/DISABLED，后端用 1/0
+    const statusValue = script.monitorSysGenScriptStatus === ScriptStatus.ENABLED ? 1 : 0;
     const response: any = await ScriptAPI.updateScriptStatus(
       script.monitorSysGenScriptId!,
-      script.monitorSysGenScriptStatus
+      statusValue
     );
     if (response.success) {
-      ElMessage.success("状态更新成功");
+      message("状态更新成功", { type: "success" });
     } else {
-      ElMessage.error("状态更新失败");
+      message("状态更新失败", { type: "error" });
       // 回滚状态
       script.monitorSysGenScriptStatus =
         script.monitorSysGenScriptStatus === ScriptStatus.ENABLED
@@ -301,7 +321,7 @@ const handleStatusChange = async (script: Script) => {
           : ScriptStatus.ENABLED;
     }
   } catch (error) {
-    ElMessage.error("状态更新失败");
+    message("状态更新失败", { type: "error" });
     script.monitorSysGenScriptStatus =
       script.monitorSysGenScriptStatus === ScriptStatus.ENABLED
         ? ScriptStatus.DISABLED
@@ -332,13 +352,13 @@ const handleCopy = async (script: Script) => {
       `${script.monitorSysGenScriptName}_副本`
     );
     if (response.success) {
-      ElMessage.success("脚本复制成功");
+      message("脚本复制成功", { type: "success" });
       loadScripts();
     } else {
-      ElMessage.error("脚本复制失败");
+      message("脚本复制失败", { type: "error" });
     }
   } catch (error) {
-    ElMessage.error("脚本复制失败");
+    message("脚本复制失败", { type: "error" });
   }
 };
 
@@ -359,14 +379,14 @@ const handleDelete = async (script: Script) => {
       script.monitorSysGenScriptId!
     );
     if (response.success) {
-      ElMessage.success("脚本删除成功");
+      message("脚本删除成功", { type: "success" });
       loadScripts();
     } else {
-      ElMessage.error("脚本删除失败");
+      message("脚本删除失败", { type: "error" });
     }
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("脚本删除失败");
+      message("脚本删除失败", { type: "error" });
     }
   }
 };
@@ -375,7 +395,7 @@ const handleDelete = async (script: Script) => {
 const handleSaveSuccess = () => {
   editDialogVisible.value = false;
   loadScripts();
-  ElMessage.success("脚本保存成功");
+  message("脚本保存成功", { type: "success" });
 };
 
 // 格式化时间
