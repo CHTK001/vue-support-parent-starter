@@ -296,6 +296,20 @@
       @open-log-viewer="openNodeLogs"
       @open-config-viewer="openNodeSettings"
       @open-restart-manager="restartNode"
+      @open-my-batis-config="openMyBatisConfig"
+      @open-url-qps="openUrlQps"
+    />
+
+    <!-- MyBatis 配置组件 -->
+    <MyBatisConfig
+      v-model="showMyBatisConfigDialog"
+      :node-info="selectedNodeForMyBatis"
+    />
+
+    <!-- URL QPS 统计组件 -->
+    <UrlQps
+      v-model="showUrlQpsDialog"
+      :node-info="selectedNodeForUrlQps"
     />
   </div>
 </template>
@@ -316,6 +330,8 @@ import LogViewer from "./module/log-viewer/index.vue";
 import ConfigViewer from "./module/config-viewer/index.vue";
 import RestartManager from "./module/restart-manager/index.vue";
 import NodeDetail from "./module/node-detail/index.vue";
+import MyBatisConfig from "./module/mybatis-config/index.vue";
+import UrlQps from "./module/url-qps/index.vue";
 // 路由
 const router = useRouter();
 
@@ -388,6 +404,14 @@ const selectedNodeForRestartManager = ref<OnlineNodeInfo | null>(null);
 // 节点详情组件相关
 const showNodeDetailDialog = ref(false);
 const selectedNodeForDetail = ref<OnlineNodeInfo | null>(null);
+
+// MyBatis 配置组件相关
+const showMyBatisConfigDialog = ref(false);
+const selectedNodeForMyBatis = ref<OnlineNodeInfo | null>(null);
+
+// URL QPS 统计组件相关
+const showUrlQpsDialog = ref(false);
+const selectedNodeForUrlQps = ref<OnlineNodeInfo | null>(null);
 
 const selectedApplication = ref("");
 const selectedStatus = ref("");
@@ -803,6 +827,22 @@ const restartNode = (node: OnlineNodeInfo) => {
   // 打开重启管理组件
   showRestartManagerDialog.value = true;
   selectedNodeForRestartManager.value = node;
+};
+
+const openMyBatisConfig = (node: OnlineNodeInfo) => {
+  if (!node) return;
+
+  // 打开 MyBatis 配置组件
+  showMyBatisConfigDialog.value = true;
+  selectedNodeForMyBatis.value = node;
+};
+
+const openUrlQps = (node: OnlineNodeInfo) => {
+  if (!node) return;
+
+  // 打开 URL QPS 统计组件
+  showUrlQpsDialog.value = true;
+  selectedNodeForUrlQps.value = node;
 };
 
 // 节点操作

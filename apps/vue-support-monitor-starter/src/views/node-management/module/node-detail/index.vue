@@ -90,6 +90,10 @@ const emit = defineEmits<{
   (e: "openConfigViewer", node: OnlineNodeInfo): void;
   /** 打开重启管理 */
   (e: "openRestartManager", node: OnlineNodeInfo): void;
+  /** 打开 MyBatis 配置 */
+  (e: "openMyBatisConfig", node: OnlineNodeInfo): void;
+  /** 打开 URL QPS 统计 */
+  (e: "openUrlQps", node: OnlineNodeInfo): void;
 }>();
 
 const visible = defineModel<boolean>({ default: false });
@@ -170,6 +174,22 @@ const featureList = computed(() => [
     color: "linear-gradient(135deg, #ef4444, #dc2626)",
     disabled: false,
   },
+  {
+    key: "mybatis",
+    title: "MyBatis 配置",
+    desc: "查看和刷新 MyBatis Mapper 配置",
+    icon: "ri:database-2-line",
+    color: "linear-gradient(135deg, #14b8a6, #0d9488)",
+    disabled: false,
+  },
+  {
+    key: "urlQps",
+    title: "URL QPS 统计",
+    desc: "查看 URL 请求统计和映射",
+    icon: "ri:bar-chart-2-line",
+    color: "linear-gradient(135deg, #f97316, #ea580c)",
+    disabled: false,
+  },
 ]);
 
 /**
@@ -245,6 +265,14 @@ const handleFeatureClick = async (item: (typeof featureList.value)[0]) => {
       break;
     case "restart":
       emit("openRestartManager", node);
+      handleClose();
+      break;
+    case "mybatis":
+      emit("openMyBatisConfig", node);
+      handleClose();
+      break;
+    case "urlQps":
+      emit("openUrlQps", node);
       handleClose();
       break;
   }
