@@ -1,0 +1,9 @@
+{
+  "name": "@pages/login-themes",
+  "version": "1.0.0",
+  "description": "登录页面主题系统",
+  "main": "index.ts",
+  "types": "index.ts",
+  "author": "CH",
+  "license": "MIT"
+}

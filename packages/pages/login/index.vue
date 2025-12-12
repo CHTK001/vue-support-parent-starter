@@ -22,6 +22,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import ThirdParty from "./components/thirdParty.vue";
 import { bg, illustration } from "./utils/static";
+import { getLoginTheme } from "./themes";
 
 import darkIcon from "@repo/assets/svg/dark.svg?component";
 import dayIcon from "@repo/assets/svg/day.svg?component";
@@ -31,6 +32,13 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 defineOptions({
   name: "Login",
 });
+
+// 获取主题配置（从 application.yml 或默认配置）
+const themeConfig = getConfig("LoginTheme") || "modern";
+const enableFestival = getConfig("EnableFestivalTheme") !== false;
+const currentTheme = getLoginTheme(themeConfig, enableFestival);
+const ThemeComponent = defineAsyncComponent(currentTheme.component);
+
 const BaseLayout = defineAsyncComponent(() => import("./layout/base.vue"));
 const redirectParam = getParameter("redirectParam");
 const ThirdPartyLayout = markRaw(ThirdParty);
@@ -176,15 +184,9 @@ const envBadgeClass = computed(() => {
 </script>
 
 <template>
-  <div class="modern-login-page">
-    <!-- 动态背景 -->
-    <div class="background-container">
-      <img :src="bg" class="login-bg" />
-      <div class="background-overlay"></div>
-      <div class="background-particles"></div>
-    </div>
-
+  <component :is="ThemeComponent">
     <!-- 顶部工具栏 -->
+    <template #toolbar>
     <div class="modern-toolbar">
       <div class="toolbar-content">
         <!-- 环境标识 -->
@@ -247,32 +249,21 @@ const envBadgeClass = computed(() => {
         </el-dropdown>
       </div>
     </div>
+    </template>
 
-    <!-- 主要内容区 -->
-    <div class="login-main-container">
-      <div class="modern-content-box">
-        <!-- 左侧插图区域 -->
-        <div class="illustration-section">
-          <div class="illustration-content">
-            <component :is="toRaw(illustration)" class="main-illustration" />
-            <div class="illustration-decoration"></div>
-          </div>
-        </div>
+    <!-- 表单内容 -->
+    <template #form>
+      <!-- 登录表单 -->
+      <BaseLayout
+        v-if="loginType == 1 || loginType == 2"
+        :accountType="loginType"
+        :defaultSetting="defaultSetting"
+        :ssoSetting="ssoSetting"
+        class="login-form-component"
+      />
 
-        <!-- 右侧表单区域 -->
-        <div class="form-section">
-          <div class="form-wrapper">
-            <!-- 登录表单 -->
-            <BaseLayout
-              v-if="loginType == 1 || loginType == 2"
-              :accountType="loginType"
-              :defaultSetting="defaultSetting"
-              :ssoSetting="ssoSetting"
-              class="login-form-component"
-            />
-
-            <!-- 登录类型选择 -->
-            <div v-if="openSwitchLoginType" class="login-type-selector">
+      <!-- 登录类型选择 -->
+      <div v-if="openSwitchLoginType" class="login-type-selector">
               <div class="selector-title">选择登录方式</div>
               <div class="selector-options">
                 <div
@@ -307,14 +298,11 @@ const envBadgeClass = computed(() => {
                     <div class="option-title">租户登录</div>
                     <div class="option-desc">租户账号/手机号登录</div>
                   </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </component>
 </template>
 
 <style lang="scss" scoped>
