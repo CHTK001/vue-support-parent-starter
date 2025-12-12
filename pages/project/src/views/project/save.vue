@@ -245,7 +245,6 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
-import { message } from "@repo/utils";
 import { computed, nextTick, reactive, ref, watch } from "vue";
 import { fetchSaveProject, fetchUpdateProject } from "../../api/manage/project";
 
