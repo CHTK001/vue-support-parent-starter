@@ -84,33 +84,64 @@ const handleClick = async index => {
 };
 
 onBeforeMount(async () => {
-  http.get((window.agentPath || "/agent") + "/stream_data").then(res => {
-    let json = res.data;
-    let xhr1 = json["data"];
-    let xhr2 = json["title"];
-    let split = xhr1.split("----");
-    data.title = split[0] + split[1];
-    split = split.slice(2);
-    let arr = [];
+  http.get((window.agentPath || "/agent") + "/process").then(res => {
+    const json = res.data;
+    const arr = [];
     let _index = 0;
-    for (let item of split) {
-      if (!item.trim()) {
-        continue;
-      }
 
-      let index = item.indexOf("</span>");
-      let id = undefined;
-      if (index > -1) {
-        id = item.substring(0, index).replace("Opend <span style='color:red;'>", "").replaceAll("\\", "_").replaceAll(".", "_").replaceAll(":", "_").replaceAll("\s+", "_").replaceAll("/", "_").trim();
-      }
+    // 基本进程信息
+    arr.push({
+      index: _index++,
+      id: "process_info",
+      title: `<span style='color:var(--el-color-primary);'>进程信息</span>`,
+      code: `进程名称: ${json.name}\nPID: ${json.pid}\nJVM: ${json.vmName} ${json.vmVersion}\n厂商: ${json.vmVendor}\n处理器数: ${json.availableProcessors}`
+    });
+
+    // 内存信息
+    if (json.memory) {
+      const mem = json.memory;
+      const formatBytes = (bytes) => {
+        if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + " GB";
+        if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + " MB";
+        return (bytes / 1024).toFixed(2) + " KB";
+      };
       arr.push({
         index: _index++,
-        id: id,
-        code: item,
-        title: item?.trim()?.split("\n")[0]
+        id: "memory_info",
+        title: `<span style='color:var(--el-color-success);'>内存使用</span>`,
+        code: `最大内存: ${formatBytes(mem.maxMemory)}\n已分配: ${formatBytes(mem.totalMemory)}\n已使用: ${formatBytes(mem.usedMemory)}\n空闲: ${formatBytes(mem.freeMemory)}\n使用率: ${((mem.usedMemory / mem.maxMemory) * 100).toFixed(2)}%`
       });
     }
 
+    // 启动参数
+    if (json.inputArguments && json.inputArguments.length > 0) {
+      arr.push({
+        index: _index++,
+        id: "jvm_args",
+        title: `<span style='color:var(--el-color-warning);'>JVM 启动参数</span>`,
+        code: json.inputArguments.join("\n")
+      });
+    }
+
+    // 运行时间
+    const formatDuration = (ms) => {
+      const seconds = Math.floor(ms / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+      if (days > 0) return `${days}天 ${hours % 24}小时 ${minutes % 60}分钟`;
+      if (hours > 0) return `${hours}小时 ${minutes % 60}分钟 ${seconds % 60}秒`;
+      if (minutes > 0) return `${minutes}分钟 ${seconds % 60}秒`;
+      return `${seconds}秒`;
+    };
+    arr.push({
+      index: _index++,
+      id: "uptime",
+      title: `<span style='color:var(--el-color-info);'>运行时间</span>`,
+      code: `启动时间: ${new Date(json.startTime).toLocaleString()}\n运行时长: ${formatDuration(json.uptime)}`
+    });
+
+    data.title = `<strong>JVM 进程信息</strong> - PID: ${json.pid}`;
     data.data = arr;
   });
 });
