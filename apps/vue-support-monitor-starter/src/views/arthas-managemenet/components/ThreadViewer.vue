@@ -252,10 +252,10 @@ function parseThreadData(output: any): ArthasThreadInfo[] {
       stackTrace: thread.stackTrace || [],
       suspended: thread.suspended,
       time: thread.time,
-      waitedCount: thread.waitedCount,
-      waitedTime: thread.waitedTime,
-      blockedCount: thread.blockedCount,
-      blockedTime: thread.blockedTime,
+      waitedCount: thread.waitedCount || 0,
+      waitedTime: thread.waitedTime || 0,
+      blockedCount: thread.blockedCount || 0,
+      blockedTime: thread.blockedTime || 0,
     }));
   } catch (e) {
     console.error("解析线程数据失败:", e);
