@@ -1,8 +1,7 @@
 <script>
 import { fetchSaveMenu, fetchUpdateMenu } from "@/api/manage/menu";
 import { fetchListRole } from "@/api/manage/role";
-import { defineAsyncComponent, defineComponent } from "vue";
-import { QuestionFilled } from "@element-plus/icons-vue";
+import { defineAsyncComponent, defineComponent, h } from "vue";
 
 import ReAnimateSelector from "@repo/components/ReAnimateSelector/index.vue";
 import ReCol from "@repo/components/ReCol";
@@ -10,6 +9,13 @@ import { IconSelect } from "@repo/components/ReIcon";
 import Segmented from "@repo/components/ReSegmented";
 import { transformI18n } from "@repo/config";
 import { message } from "@repo/utils";
+
+const QuestionFilled = defineComponent({
+  render() {
+    return h("i", { class: "ep:question-filled" });
+  }
+});
+
 export default defineComponent({
   components: {
     Segmented,
