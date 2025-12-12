@@ -74,7 +74,7 @@
  * @since 2025-12-01
  * @updated 2025-12-02 简化架构，完全由 interact.js 控制
  */
-import { computed, ref, onMounted, onUnmounted, nextTick, CSSProperties } from "vue";
+import { computed, ref, onMounted, onUnmounted, nextTick, watch, CSSProperties } from "vue";
 import interact from "interactjs";
 
 // 类型定义
@@ -126,11 +126,13 @@ const emit = defineEmits<{
 }>();
 
 // 状态
-const isVisible = ref(true);
 const dialogRef = ref<HTMLElement | null>(null);
 let interactInstance: ReturnType<typeof interact> | null = null;
 
 // 计算属性
+// 只有当有操作时才显示组件
+const isVisible = computed(() => props.operations.length > 0);
+
 const activeCount = computed(() => props.operations.filter(op => op.status === "pending" || op.status === "running").length);
 
 const completedCount = computed(() => props.operations.filter(op => op.status === "completed" || op.status === "failed").length);
@@ -219,13 +221,8 @@ function destroyInteract(): void {
 // 事件处理
 const handleClear = () => emit("clear");
 const handleClose = () => {
-  isVisible.value = false;
+  // 不再需要手动设置 isVisible，因为它现在是 computed
   emit("close");
-};
-
-const show = () => {
-  isVisible.value = true;
-  nextTick(() => initInteract());
 };
 
 // 工具函数
@@ -263,11 +260,25 @@ function adjustColor(hex: string, amount: number): string {
 }
 
 // 生命周期
-onMounted(() => nextTick(() => initInteract()));
+onMounted(() => {
+  if (isVisible.value) {
+    nextTick(() => initInteract());
+  }
+});
+
 onUnmounted(() => destroyInteract());
 
+// 监听组件显示状态，当组件显示时初始化 interact
+watch(isVisible, (newVal) => {
+  if (newVal) {
+    nextTick(() => initInteract());
+  } else {
+    destroyInteract();
+  }
+});
+
 // 暴露方法
-defineExpose({ show, handleClose, handleClear, isVisible });
+defineExpose({ handleClose, handleClear, isVisible });
 </script>
 
 <style scoped lang="scss">
