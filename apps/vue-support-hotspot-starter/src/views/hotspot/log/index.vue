@@ -60,129 +60,89 @@
   </div>
 </template>
 <script setup>
-import { useConfigStore } from "@repo/core";
-import { nextTick, ref, onUnmounted, watch, computed, reactive, markRaw, onMounted } from "vue";
+import { http } from "@repo/utils";
+import { nextTick, ref, onUnmounted, reactive, onMounted } from "vue";
 import { AnsiUp } from "ansi_up";
-
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-const heartbeatInterval = 30 * 1000; // 心跳间隔为30秒
-const heartbeatTimeout = 60 * 1000; // 心跳超时时间为60秒
-let heartbeatIntervalId, heartbeatTimeoutId;
-
-// 心跳检测启动函数
-const startHeartbeat = () => {
-  heartbeatIntervalId = setInterval(function () {
-    socketClient.value.send("ping"); // 发送心跳包
-
-    // 重置心跳超时定时器
-    clearTimeout(heartbeatTimeoutId);
-    heartbeatTimeoutId = setTimeout(function () {
-      console.log("Heartbeat timeout, closing the connection.");
-      socketClient.value?.close(); // 超时未收到响应，关闭连接
-      openSocket("ws://127.0.0.1:" + window.websocketPort);
-      // 这里可以添加重新连接的逻辑
-    }, heartbeatTimeout);
-  }, heartbeatInterval);
-};
-
-const handleOpen = () => {
-  console.log("WebSocket connection established.");
-  startHeartbeat();
-};
-
-const handleClose = () => {
-  console.log("WebSocket connection closed.");
-  clearInterval(heartbeatIntervalId);
-  clearTimeout(heartbeatTimeoutId);
-};
-// 判断消息是否为pong消息
-function isPongMessage(message) {
-  return message === "pong";
-}
-const timeLayoutRef = ref(null);
-const openLogTime = ref(false);
-const openLog = async () => {
-  openLogTime.value = true;
-  await nextTick();
-  timeLayoutRef.value.open();
-};
-// 引入Prism.js
 
 const ansiUp = new AnsiUp();
 const form = reactive({
   message: null
 });
-const socketClient = ref();
-const eventName = ref("message");
-const sqlPre = ref();
-const useConfigStoreObject = useConfigStore();
 const dataList = reactive([]);
 const config = reactive({
   lock: true
 });
-const closeSocket = async () => {
-  socketClient.value?.close();
-  socketClient.value = null;
+let pollingTimer = null;
+let lastLogId = 0;
+
+// 获取日志数据
+const fetchLogData = async () => {
+  try {
+    const res = await http.get((window.agentPath || "/agent") + "/log");
+    if (res?.data?.data) {
+      const newLogs = res.data.data;
+      newLogs.forEach(log => {
+        dataList.push({ data: log });
+      });
+      // 限制最大记录数
+      while (dataList.length > 10000) {
+        dataList.shift();
+      }
+      // 自动滚动到底部
+      if (config.lock) {
+        nextTick(() => {
+          const container = document.querySelector("#containerRef");
+          if (container) {
+            container.scrollTop = container.scrollHeight;
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.error("获取日志失败:", error);
+  }
 };
+
+// 启动轮询
+const startPolling = () => {
+  fetchLogData();
+  pollingTimer = setInterval(fetchLogData, 2000);
+};
+
+// 停止轮询
+const stopPolling = () => {
+  if (pollingTimer) {
+    clearInterval(pollingTimer);
+    pollingTimer = null;
+  }
+};
+
 const ansiToHtml = ansiString => {
+  if (!ansiString) return "";
   return ansiUp.ansi_to_html(ansiString);
 };
-const openSocket = async urls => {
-  closeSocket();
-  socketClient.value = new WebSocket(urls);
-  socketClient.value.onmessage = handleEvent;
-  socketClient.value.onopen = handleOpen;
-  socketClient.value.onclose = handleClose;
-};
+
 const getData = data => {
-  return data.filter(item => {
-    return filter(item);
-  });
+  return data.filter(item => filter(item));
 };
+
 const filter = row => {
   if (!form.message) {
     return true;
   }
-
   if (!row?.data?.message) {
     return false;
   }
   return row.data.message?.indexOf(form.message) > -1;
 };
-const handleEvent = async row => {
-  try {
-    row.data.text().then(data => {
-      if (isPongMessage(data)) {
-        // 重置心跳超时定时器
-        return;
-      }
-      var item;
-      try {
-        item = JSON.parse(data);
-      } catch (error) {}
 
-      if ("AGENT_LOG" !== item.event || !filter(item)) {
-        return;
-      }
-      dataList.push(item);
-      if (dataList.length > 10000) {
-        dataList.shift();
-      }
-      if (config.lock == true) {
-        document.querySelector("#containerRef").scrollTop = document.querySelector("#containerRef").scrollHeight;
-      }
-      // console.log(dataList);
-    });
-  } catch (error) {
-    return;
-  }
-};
-
-onMounted(async () => {
-  openSocket("ws://127.0.0.1:" + window.websocketPort);
+onMounted(() => {
+  startPolling();
 });
+
 onUnmounted(() => {
-  closeSocket();
+  stopPolling();
 });
 </script>
 <style scoped lang="scss">

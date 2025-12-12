@@ -36,6 +36,10 @@
             <span class="stat-value">{{ summary.successRate || '0%' }}</span>
             <span class="stat-label">成功率</span>
           </div>
+          <div class="stat-item time" v-if="summary.lastUpdateTime">
+            <span class="stat-value">{{ formatTime(summary.lastUpdateTime) }}</span>
+            <span class="stat-label">最新更新</span>
+          </div>
         </div>
       </div>
     </template>
@@ -311,6 +315,18 @@ const encodeNodeUrl = (ip: string, port: number): string => {
 };
 
 /**
+ * 格式化时间
+ */
+const formatTime = (timestamp?: number): string => {
+  if (!timestamp) return "-";
+  const date = new Date(timestamp);
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const seconds = date.getSeconds().toString().padStart(2, "0");
+  return `${hours}:${minutes}:${seconds}`;
+};
+
+/**
  * 格式化数字
  */
 const formatNumber = (num?: number): string => {
@@ -408,12 +424,16 @@ const clearing = ref(false);
 const searchText = ref("");
 const mappingSearchText = ref("");
 
-// 过滤后的 QPS 数据
+// 过滤后的 QPS 数据（按 QPS 降序排序）
 const filteredQpsData = computed(() => {
-  if (!searchText.value) return qpsData.value;
-  return qpsData.value.filter((item) =>
-    item.url?.toLowerCase().includes(searchText.value.toLowerCase())
-  );
+  let data = qpsData.value;
+  if (searchText.value) {
+    data = data.filter((item) =>
+      item.url?.toLowerCase().includes(searchText.value.toLowerCase())
+    );
+  }
+  // 按 QPS 降序排序
+  return [...data].sort((a, b) => (b.qps || 0) - (a.qps || 0));
 });
 
 // 过滤后的映射数据
@@ -659,6 +679,12 @@ const handleClose = () => {
 
       &.success .stat-value {
         color: var(--el-color-success);
+      }
+
+      &.time .stat-value {
+        font-family: "JetBrains Mono", "Consolas", monospace;
+        font-size: 14px;
+        color: var(--el-text-color-secondary);
       }
     }
   }

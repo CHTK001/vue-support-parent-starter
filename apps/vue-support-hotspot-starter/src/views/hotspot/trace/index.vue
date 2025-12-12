@@ -124,64 +124,58 @@ import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 import { format } from "sql-formatter";
-import { useConfigStore } from "@repo/core";
-import { dateFormat } from "@repo/utils";
-import { AnsiUp } from "ansi_up";
+import { dateFormat, http } from "@repo/utils";
 import { nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-const timeLayoutRef = ref(null);
-const openLogTime = ref(false);
+
 const config = reactive({
   dialogVisible: false,
   dialogDetailData: {}
 });
-const heartbeatInterval = 30 * 1000; // 心跳间隔为30秒
-const heartbeatTimeout = 60 * 1000; // 心跳超时时间为60秒
-let heartbeatIntervalId, heartbeatTimeoutId;
 
-// 心跳检测启动函数
-const startHeartbeat = () => {
-  heartbeatIntervalId = setInterval(function () {
-    socketClient.value.send("ping"); // 发送心跳包
-
-    // 重置心跳超时定时器
-    clearTimeout(heartbeatTimeoutId);
-    heartbeatTimeoutId = setTimeout(function () {
-      console.log("Heartbeat timeout, closing the connection.");
-      socketClient.value?.close(); // 超时未收到响应，关闭连接
-      openSocket("ws://127.0.0.1:" + window.websocketPort);
-      // 这里可以添加重新连接的逻辑
-    }, heartbeatTimeout);
-  }, heartbeatInterval);
-};
-
-const handleOpen = () => {
-  console.log("WebSocket connection established.");
-  startHeartbeat();
-};
-
-const handleClose = () => {
-  console.log("WebSocket connection closed.");
-  clearInterval(heartbeatIntervalId);
-  clearTimeout(heartbeatTimeoutId);
-};
-// 判断消息是否为pong消息
-function isPongMessage(message) {
-  return message === "pong";
-}
-
-const ansiUp = new AnsiUp();
-const form = reactive({
-  message: null
-});
-const socketClient = ref();
-const eventName = ref("message");
-const sqlPre = ref();
-const useConfigStoreObject = useConfigStore();
 const dataList = reactive([]);
-const closeSocket = async () => {
-  socketClient.value?.close();
-  socketClient.value = null;
+let pollingTimer = null;
+const datav = ref(false);
+const defaultProps = {
+  children: "children",
+  label: "description"
+};
+
+// 获取链路追踪数据
+const fetchTraceData = async () => {
+  try {
+    const res = await http.get((window.agentPath || "/agent") + "/trace");
+    if (res?.data?.data) {
+      const newData = res.data.data;
+      // 合并新数据
+      newData.forEach(item => {
+        const exists = dataList.find(d => d.linkId === item.linkId);
+        if (!exists) {
+          dataList.unshift(item);
+        }
+      });
+      // 限制最大记录数
+      while (dataList.length > 1000) {
+        dataList.pop();
+      }
+    }
+  } catch (error) {
+    console.error("获取链路数据失败:", error);
+  }
+};
+
+// 启动轮询
+const startPolling = () => {
+  fetchTraceData();
+  pollingTimer = setInterval(fetchTraceData, 3000);
+};
+
+// 停止轮询
+const stopPolling = () => {
+  if (pollingTimer) {
+    clearInterval(pollingTimer);
+    pollingTimer = null;
+  }
 };
 
 const handleShowTrack = async data => {
@@ -190,8 +184,6 @@ const handleShowTrack = async data => {
   await nextTick();
   setTimeout(async () => {
     Prism.highlightAll();
-    // 假设你的SQL代码在模板的pre标签中
-    // 使用Prism.highlightElement来高亮代码
     try {
       document.querySelectorAll("pre code").forEach(ele => {
         Prism.highlightElement(ele);
@@ -199,57 +191,13 @@ const handleShowTrack = async data => {
     } catch (error) {}
   }, 300);
 };
-const openSocket = async urls => {
-  closeSocket();
-  socketClient.value = new WebSocket(urls);
-  socketClient.value.onmessage = handleEvent;
-  socketClient.value.onopen = handleOpen;
-  socketClient.value.onclose = handleClose;
-};
-const filter = row => {
-  if (!form.message) {
-    return true;
-  }
 
-  if (!row.message) {
-    return false;
-  }
-  return row?.message?.indexOf(form.message) > -1;
-};
-const handleEvent = async row => {
-  try {
-    row.data.text().then(data => {
-      if (isPongMessage(data)) {
-        // 重置心跳超时定时器
-        return;
-      }
-      var item;
-      try {
-        item = JSON.parse(data);
-      } catch (error) {}
-
-      if ("AGENT_TRACE" !== item.event || !filter(item)) {
-        return;
-      }
-      try {
-        const it = JSON.parse(item.data);
-        dataList.unshift(it);
-        console.log(it);
-        if (dataList.length > 10000) {
-          dataList.pop();
-        }
-      } catch (error) {}
-    });
-  } catch (error) {
-    return;
-  }
-};
-
-onMounted(async () => {
-  openSocket("ws://127.0.0.1:" + window.websocketPort);
+onMounted(() => {
+  startPolling();
 });
+
 onUnmounted(() => {
-  closeSocket();
+  stopPolling();
 });
 </script>
 <style scoped lang="scss">
