@@ -4,6 +4,7 @@ import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { deepCopy, localStorageProxy, paginate } from "@repo/utils";
 import { computed, defineAsyncComponent, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { columnSettingGet, columnSettingReset, columnSettingSave, config, parseData } from "./column";
+import { useKeyboard } from "./composables/useKeyboard";
 import CanvasTableView from "./components/CanvasTableView.vue";
 import CardView from "./components/CardView.vue";
 import GalleryView from "./components/GalleryView.vue";
@@ -165,7 +166,19 @@ const props = defineProps({
    * 其他值：按 ID 独立存储配置
    * 用于记录上次访问的页码，刷新后恢复
    */
-  memoryId: { type: [String, Number], default: 0 }
+  memoryId: { type: [String, Number], default: 0 },
+  /**
+   * 是否启用快捷键
+   */
+  keyboardEnabled: { type: Boolean, default: true },
+  /**
+   * ScFilterBar筛选条件
+   */
+  filterConditions: { type: Object, default: () => ({}) },
+  /**
+   * 是否启用列宽自适应
+   */
+  autoColumnWidth: { type: Boolean, default: false }
 });
 
 // 定义组件事件
@@ -180,7 +193,8 @@ const emit = defineEmits([
   "drag-sort-change", // 拖拽排序变化
   "drag-sort-save", // 拖拽排序保存
   "drag-sort-success", // 拖拽排序保存成功
-  "drag-sort-error" // 拖拽排序保存失败
+  "drag-sort-error", // 拖拽排序保存失败
+  "keyboard-delete" // 快捷键删除事件
 ]);
 
 // 拖拽排序相关状态
@@ -980,6 +994,36 @@ const getSelection = () => {
   return Object.values(selectCacheData.value).flat();
 };
 
+// 集成快捷键支持
+if (props.keyboardEnabled) {
+  useKeyboard({
+    enabled: props.keyboardEnabled,
+    onCopy: () => {
+      // 复制选中的数据
+      const selection = getSelection();
+      if (selection && selection.length > 0) {
+        const text = JSON.stringify(selection, null, 2);
+        navigator.clipboard?.writeText(text);
+      }
+    },
+    onSelectAll: () => {
+      // 全选
+      scTable.value?.toggleAllSelection();
+    },
+    onDelete: () => {
+      // 删除选中项 - 触发事件由用户处理
+      const selection = getSelection();
+      if (selection && selection.length > 0) {
+        emit("keyboard-delete", selection);
+      }
+    },
+    onEscape: () => {
+      // 取消选择
+      scTable.value?.clearSelection();
+    }
+  });
+}
+
 // 监听属性变化
 watch(
   () => props.params,
@@ -987,6 +1031,22 @@ watch(
     tableParams.value = newValue;
   },
   { immediate: true, deep: true }
+);
+
+// 监听ScFilterBar筛选条件变化
+watch(
+  () => props.filterConditions,
+  newValue => {
+    if (newValue && Object.keys(newValue).length > 0) {
+      // 合并筛选条件到请求参数
+      Object.assign(tableParams.value, newValue);
+      // 重置到第一页并刷新
+      currentPage.value = 1;
+      clearNamespaceCache();
+      getData(true);
+    }
+  },
+  { deep: true }
 );
 
 // 监听是否开启定时刷新
@@ -1329,6 +1389,86 @@ const getTableConfig = () => {
   return configState;
 };
 
+// 列宽自适应功能
+const autoFitColumnWidth = (columnProp) => {
+  if (!scTable.value) return;
+  
+  nextTick(() => {
+    const table = scTable.value.$el;
+    if (!table) return;
+    
+    // 查找列
+    const columns = table.querySelectorAll('.el-table__header-wrapper th');
+    const cells = table.querySelectorAll('.el-table__body-wrapper td');
+    
+    // 计算每列的最大宽度
+    const columnWidths = new Map();
+    
+    cells.forEach(cell => {
+      const prop = cell.dataset.columnProp || cell.className;
+      const width = cell.scrollWidth + 20; // 加上内边距
+      
+      if (!columnWidths.has(prop) || columnWidths.get(prop) < width) {
+        columnWidths.set(prop, width);
+      }
+    });
+    
+    // 应用宽度
+    if (columnProp) {
+      // 单列自适应
+      const column = userColumn.value.find(col => col.prop === columnProp);
+      if (column && columnWidths.has(columnProp)) {
+        column.width = columnWidths.get(columnProp);
+      }
+    } else {
+      // 所有列自适应
+      userColumn.value.forEach(column => {
+        if (columnWidths.has(column.prop)) {
+          column.width = columnWidths.get(column.prop);
+        }
+      });
+    }
+    
+    // 保存列宽到localStorage
+    try {
+      const currentConfig = localStorageProxy().getItem(storageKey.value) || {};
+      const columnWidthConfig = {};
+      userColumn.value.forEach(col => {
+        if (col.width) {
+          columnWidthConfig[col.prop] = col.width;
+        }
+      });
+      localStorageProxy().setItem(storageKey.value, {
+        ...currentConfig,
+        columnWidths: columnWidthConfig
+      });
+    } catch (error) {
+      console.error('保存列宽失败:', error);
+    }
+    
+    // 重新渲染
+    toggleIndex.value += 1;
+  });
+};
+
+// 重置列宽
+const resetColumnWidth = () => {
+  userColumn.value.forEach(col => {
+    delete col.width;
+  });
+  
+  // 清除localStorage中的列宽
+  try {
+    const currentConfig = localStorageProxy().getItem(storageKey.value) || {};
+    delete currentConfig.columnWidths;
+    localStorageProxy().setItem(storageKey.value, currentConfig);
+  } catch (error) {
+    console.error('重置列宽失败:', error);
+  }
+  
+  toggleIndex.value += 1;
+};
+
 // 处理列表视图中加载页面的事件
 const onLoadPage = page => {
   currentPage.value = 1;
@@ -1396,7 +1536,10 @@ defineExpose({
   cancelDragSort,
   dragSortPending,
   dragChangeCount,
-  dragSortLoading
+  dragSortLoading,
+  // 列宽自适应
+  autoFitColumnWidth,
+  resetColumnWidth
 });
 </script>
 

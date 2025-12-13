@@ -12,7 +12,7 @@
         :size="config.size"
         :border="config.border"
         :stripe="config.stripe"
-        :height="undefined"
+        :height="tableHeight"
         :max-height="undefined"
         :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod"
         :highlight-current-row="config.crossHighlight"
@@ -202,9 +202,20 @@ const scrollWrapperStyle = computed(() => {
   };
 });
 
-// 直接使用 100% 作为表格高度，让它填充滚动容器
+// 计算表格高度，处理各种高度值
 const tableHeight = computed(() => {
-  return "100%";
+  // 如果 height 未定义、为 null、为 undefined、为 'auto'，返回 undefined 让表格自适应内容高度
+  if (!props.height || props.height === "auto" || props.height === "null") {
+    return undefined;
+  }
+  
+  // 如果是数字，添加 px 单位
+  if (typeof props.height === "number") {
+    return `${props.height}px`;
+  }
+  
+  // 如果是字符串（如 "500px"、"100%" 等），直接返回
+  return props.height;
 });
 
 // 方法
