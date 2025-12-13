@@ -193,6 +193,10 @@ const scTableMain = ref(null);
 const scTable = ref(null);
 const columnSettingRef = ref(null);
 
+// 全局内存缓存（按组件ID或共享）
+// 使用 globalThis 确保浏览器/SSR 环境兼容
+const GLOBAL_CACHE = (globalThis.__SC_TABLE_CACHE__ = globalThis.__SC_TABLE_CACHE__ || new Map());
+
 // 响应式数据
 const scPageSize = ref(props.pageSize);
 const scPageSizes = ref(props.pageSizes);
@@ -211,7 +215,6 @@ const userColumn = ref(props.columns);
 const selectCacheData = ref({});
 const customColumnShow = ref(false);
 const summary = ref({});
-const cacheData = ref({});
 const filterParams = ref({}); // 存储当前的过滤参数
 const isLoading = ref(false); // 是否正在加载中，避免重复加载
 const observerRef = ref(null); // 用于存储IntersectionObserver实例
@@ -227,12 +230,11 @@ const configState = reactive({
   draggable: props.draggable,
   crossHighlight: props.crossHighlight,
   cacheEnabled: false,
-  cachePageCount: 3
+  cachePageCount: 3,
+  // 新增：页码缓存开关
+  pageMemoryEnabled: false
 });
 
-// 缓存相关状态
-const dataCache = ref(new Map()); // 缓存的数据，key为页码
-const cacheTotalCount = ref(0); // 缓存的总数
 
 const customCountDownTime = ref(10);
 const timer = ref(null);
@@ -246,15 +248,21 @@ const countDown = computed(() => {
   };
 });
 
+// 配置存储key - 统一使用ID
 const storageKey = computed(() => {
-  return `table_config_${props.tableId || props.tableName || "default"}`;
+  const id = props.tableId || props.memoryId;
+  // 如果没有ID,使用共享key
+  if (!id || id === 0 || id === "0" || id === "") {
+    return "sc_table_config_shared";
+  }
+  return `sc_table_config_${id}`;
 });
 
-// 页码记忆存储 key
+// 页码记忆存储key - 统一使用ID
 const memoryStorageKey = computed(() => {
-  const id = props.memoryId;
-  // 如果 memoryId 为 0 或空字符串，使用共享 key
-  if (id === 0 || id === "0" || id === "") {
+  const id = props.tableId || props.memoryId;
+  // 如果没有ID,使用共享key
+  if (!id || id === 0 || id === "0" || id === "") {
     return "sc_table_memory_shared";
   }
   return `sc_table_memory_${id}`;
@@ -262,11 +270,38 @@ const memoryStorageKey = computed(() => {
 
 // 计算高度
 const computedHeight = computed(() => {
-  if (props.height === "auto") {
-    return "100%";
+  // 当 height 为 auto 或未设置时，返回 undefined 让表格自适应
+  if (props.height === "auto" || !props.height) {
+    return undefined;
   }
+  
+  // 如果是数字，添加 px 单位
+  if (typeof props.height === "number") {
+    return `${props.height}px`;
+  }
+  
+  // 直接返回字符串值
   return props.height;
 });
+
+// 组件缓存命名空间（组件ID优先，其次表名，否则 shared）
+const cacheNamespaceKey = computed(() => {
+  return props.tableId || props.tableName || "shared";
+});
+
+const getNamespaceCache = () => {
+  const key = cacheNamespaceKey.value;
+  let ns = GLOBAL_CACHE.get(key);
+  if (!ns) {
+    ns = new Map();
+    GLOBAL_CACHE.set(key, ns);
+  }
+  return ns;
+};
+
+const clearNamespaceCache = () => {
+  GLOBAL_CACHE.delete(cacheNamespaceKey.value);
+};
 
 // 从localStorage加载配置
 const loadConfigFromStorage = () => {
@@ -281,6 +316,7 @@ const loadConfigFromStorage = () => {
         configState.draggable = savedConfig.table.draggable !== undefined ? savedConfig.table.draggable : configState.draggable;
         configState.crossHighlight = savedConfig.table.crossHighlight !== undefined ? savedConfig.table.crossHighlight : configState.crossHighlight;
         configState.cacheEnabled = savedConfig.table.cacheEnabled !== undefined ? savedConfig.table.cacheEnabled : configState.cacheEnabled;
+        configState.pageMemoryEnabled = savedConfig.table.pageMemoryEnabled !== undefined ? savedConfig.table.pageMemoryEnabled : configState.pageMemoryEnabled;
         configState.cachePageCount = savedConfig.table.cachePageCount !== undefined ? savedConfig.table.cachePageCount : configState.cachePageCount;
       }
     }
@@ -293,6 +329,7 @@ const loadConfigFromStorage = () => {
  * 从 localStorage 加载页码记忆
  */
 const loadPageMemory = () => {
+  if (!configState.pageMemoryEnabled) return;
   try {
     const memory = localStorageProxy().getItem(memoryStorageKey.value);
     if (memory && memory.currentPage) {
@@ -311,6 +348,7 @@ const loadPageMemory = () => {
  * 保存页码记忆到 localStorage
  */
 const savePageMemory = () => {
+  if (!configState.pageMemoryEnabled) return;
   try {
     const memory = localStorageProxy().getItem(memoryStorageKey.value) || {};
     memory.currentPage = currentPage.value;
@@ -431,36 +469,32 @@ const getPageSize = () => {
   if (props.layout == "card") {
     return rowSize.value * colSize.value;
   }
-  // 优先使用配置面板的缓存设置
-  if (configState.cacheEnabled && configState.cachePageCount > 1) {
-    return scPageSize.value * configState.cachePageCount;
-  }
-  // 兼容旧的 props 缓存配置
-  if (props.cacheable && props.cachePage > 0) {
-    return scPageSize.value * props.cachePage;
-  }
+  // 每次仅请求当前页大小，缓存逻辑在点击分页后保存当前页数据
   return scPageSize.value;
 };
-
 /**
  * 获取远程数据
  */
 const getRemoteData = async isLoading => {
-  if (cacheData.value[currentPage.value]) {
-    tableData.value = cacheData.value[currentPage.value];
+  const ns = getNamespaceCache();
+  
+  // 如果启用缓存且命中缓存,直接返回缓存数据
+  if (configState.cacheEnabled && ns.has(currentPage.value)) {
+    tableData.value = ns.get(currentPage.value);
+    loading.value = false;
+    loaded();
     return;
   }
 
-  cacheData.value = {};
   loading.value = isLoading;
   var reqData = {
     [config.request.page]: currentPage.value,
-    [config.request.pageSize]: getPageSize(),
+    [config.request.pageSize]: configState.cacheEnabled ? getPageSize() * 3 : getPageSize(),
     [config.request.prop]: prop.value,
     [config.request.order]: order.value
   };
 
-  // 如果开启了过滤参数携带，将过滤参数添加到请求中
+  // 如果开启了过滤参数携带,将过滤参数添加到请求中
   if (props.filterToParams && Object.keys(filterParams.value).length > 0) {
     Object.assign(reqData, filterParams.value);
   }
@@ -517,34 +551,29 @@ const rebuildCache = async response => {
     newData = handleSorted(response.rows || []);
   }
 
-  // 处理滚动分页模式
-  if (props.paginationType === "scroll" && props.layout === "card" && currentPage.value > 1) {
-    // 滚动分页模式下，追加新数据而不是替换
-    tableData.value = [...tableData.value, ...newData];
+  const ns = getNamespaceCache();
+
+  // 启用数据缓存:预取3页数据并分别缓存
+  if (configState.cacheEnabled) {
+    const size = getPageSize();
+    // 将预取的3页数据分别存入缓存
+    for (let i = 0; i < 3; i++) {
+      const pageNo = currentPage.value + i;
+      const slice = newData.slice(i * size, (i + 1) * size);
+      if (slice && slice.length > 0) {
+        ns.set(pageNo, slice);
+      }
+    }
+    // 当前页从缓存中取数据
+    tableData.value = ns.get(currentPage.value) || [];
   } else {
-    // 普通模式，直接替换数据
+    // 未启用缓存:直接显示数据
     tableData.value = newData;
   }
 
-  // 处理缓存逻辑（支持配置面板的缓存设置和旧的 props 配置）
-  const isCacheEnabled = configState.cacheEnabled || props.cacheable;
-  const cachePageCount = configState.cacheEnabled ? configState.cachePageCount : props.cachePage;
-
-  if (isCacheEnabled && cachePageCount > 1) {
-    for (var index = 0; index < cachePageCount; index++) {
-      cacheData.value[currentPage.value + index] = tableData.value.slice(index * scPageSize.value, (index + 1) * scPageSize.value);
-    }
-
-    // 在非滚动分页模式下才替换为缓存数据
-    if (props.paginationType !== "scroll" || props.layout !== "card") {
-      tableData.value = handleSorted(cacheData.value[currentPage.value]);
-    }
-  }
-
-  if (currentPage.value == 1) {
-    total.value = response.total || 0;
-    summary.value = response.summary || {};
-  }
+  // 更新总数与汇总
+  total.value = response.total || 0;
+  summary.value = response.summary || {};
   loading.value = false;
   resetSelectedValue();
 };
@@ -642,6 +671,7 @@ const removeScrollObserver = () => {
 const refresh = () => {
   scTable.value?.clearSelection();
   clearSelectionValue();
+  clearNamespaceCache();
   getData(true);
 };
 
@@ -651,6 +681,7 @@ const upData = (params, page = 1) => {
   scTable.value?.clearSelection();
   clearSelectionValue();
   Object.assign(tableParams.value, params || {});
+  clearNamespaceCache();
   getData(true);
 };
 
@@ -675,9 +706,11 @@ const reload = (params, page = 1) => {
     // scTable.value?.clearSort();
     // scTable.value?.clearFilter();
     clearSelectionValue();
+    clearNamespaceCache();
     getData(true);
     return false;
   }
+  clearNamespaceCache();
   getData(true);
 };
 
@@ -1090,6 +1123,11 @@ const onCustomColumn = () => {
   customColumnShow.value = true;
 };
 
+// 打开列设置(由Pagination组件触发)
+const openColumnSetting = () => {
+  // Pagination组件自行处理,此处无需操作
+};
+
 const onColumnSave = async data => {
   await columnSettingSave(props.tableName, data);
   customColumnShow.value = false;
@@ -1126,6 +1164,7 @@ const onCurrentChange = val => {
 const onSizeChange = val => {
   scPageSize.value = val;
   currentPage.value = 1;
+  clearNamespaceCache();
   getData(true);
 };
 
@@ -1203,14 +1242,17 @@ const saveConfig = config => {
     // 处理缓存配置
     if (config.config.cacheEnabled !== undefined) {
       configState.cacheEnabled = config.config.cacheEnabled;
-      // 如果关闭缓存，清空缓存数据
+      // 如果关闭缓存,清空缓存数据
       if (!config.config.cacheEnabled) {
-        dataCache.value.clear();
-        cacheTotalCount.value = 0;
+        clearNamespaceCache();
       }
     }
     if (config.config.cachePageCount !== undefined) {
       configState.cachePageCount = config.config.cachePageCount;
+    }
+    // 处理页码缓存配置
+    if (config.config.pageMemoryEnabled !== undefined) {
+      configState.pageMemoryEnabled = config.config.pageMemoryEnabled;
     }
 
     // 处理卡片布局的行列数设置
@@ -1294,7 +1336,8 @@ const getTableConfig = () => {
 
 // 处理列表视图中加载页面的事件
 const onLoadPage = page => {
-  currentPage.value = page;
+  currentPage.value = 1;
+  clearNamespaceCache();
   getData(true);
 };
 
