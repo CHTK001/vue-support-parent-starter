@@ -290,9 +290,18 @@ const festivalThemeChange = (value: boolean): void => {
 /**
  * 切换系统主题皮肤
  * @param themeKey 主题键值
+ * @param showMessage 是否显示消息，默认为true
  */
-const switchSystemTheme = (themeKey: string): void => {
+const switchSystemTheme = (themeKey: string, showMessage: boolean = true): void => {
   console.log('🎨 切换主题:', themeKey);
+  
+  // 检查是否已经是当前主题，避免重复切换
+  const currentTheme = $storage.configure?.systemTheme || 'default';
+  if (currentTheme === themeKey) {
+    console.log('ℹ️ 已经是当前主题，跳过切换');
+    return;
+  }
+  
   const htmlEl = document.documentElement;
   
   // 移除所有主题类
@@ -336,8 +345,11 @@ const switchSystemTheme = (themeKey: string): void => {
   // 发送主题切换事件
   emitter.emit("systemThemeChange", themeKey);
   
-  // 显示成功消息
-  ElMessage.success(`已切换到${themeKey === 'default' ? '默认' : ''}主题`);
+  // 只在明确要求显示消息时才显示
+  if (showMessage) {
+    const themeName = themeKey === 'default' ? '默认' : festivalThemesList.find(t => t.themeColor === themeKey)?.name || themeKey;
+    ElMessage.success(`已切换到${themeName}主题`);
+  }
 };
 
 /**
@@ -675,14 +687,14 @@ const initializeTheme = () => {
     const festivalTheme = detectFestivalTheme();
     
     if (festivalTheme) {
-      switchSystemTheme(festivalTheme.key);
+      switchSystemTheme(festivalTheme.key, false); // 初始化时不显示消息
       return;
     }
   }
   
   // 应用保存的主题或默认主题
   if (savedTheme && savedTheme !== "default") {
-    switchSystemTheme(savedTheme);
+    switchSystemTheme(savedTheme, false); // 初始化时不显示消息
   }
 };
 
