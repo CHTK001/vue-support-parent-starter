@@ -1,5 +1,6 @@
 <template>
   <div
+    class="header-container-with-decoration"
     :class="{ 'fixed-header shadow-tab': set.fixedHeader }"
     :style="[
       set.hideTabs && layout.includes('horizontal')
@@ -30,18 +31,32 @@
     <div v-else class="header-only-tags">
       <LayTag v-if="defer(2)" />
     </div>
+    
+    <!-- 主题装饰元素 -->
+    <ThemeDecoration
+      v-for="(decoration, index) in headerDecorations"
+      :key="`header-decoration-${index}`"
+      :config="decoration"
+      :index="index"
+      :visible="true"
+    />
   </div>
 </template>
 <script setup lang="ts">
 import LayNavbar from "../lay-navbar/index.vue";
 import NavHorizontal from "../lay-sidebar/NavHorizontal.vue";
 import LayTag from "../lay-tag/index.vue";
-import { useAppStoreHook, useSettingStoreHook } from "@repo/core";
+import { emitter, useAppStoreHook, useSettingStoreHook } from "@repo/core";
 import { useDark, useGlobal } from "@pureadmin/utils";
-import { computed, reactive } from "vue";
+import { computed, onBeforeUnmount, reactive, ref } from "vue";
 import { useLayout } from "../../hooks/useLayout";
 import { setType } from "../../types";
 import { useDefer } from "@repo/utils";
+
+// 导入主题装饰功能
+import ThemeDecoration from "../ThemeDecoration.vue";
+import { getComponentDecorations } from "../../themes/decorations";
+import type { DecorationConfig } from "../../themes/decorations";
 
 const { layout } = useLayout();
 const { isDark } = useDark();
@@ -76,6 +91,20 @@ const set: setType = reactive({
     return $storage?.configure.hideTabs;
   }),
 });
+
+// === 主题装饰功能 ===
+const currentTheme = ref<string>($storage.configure?.systemTheme || 'default');
+const headerDecorations = computed<DecorationConfig[]>(() => {
+  return getComponentDecorations(currentTheme.value, 'lay-header');
+});
+
+emitter.on("systemThemeChange", (themeKey: string) => {
+  currentTheme.value = themeKey;
+});
+
+onBeforeUnmount(() => {
+  emitter.off("systemThemeChange");
+});
 </script>
 
 <style lang="scss" scoped>
@@ -84,8 +113,9 @@ const set: setType = reactive({
   position: fixed;
   top: 0;
   right: 0;
+  left: 0;
   z-index: 999;
-  width: calc(100% - var(--pure-left-width));
+  width: 100%;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   background: rgba(255, 255, 255, 0.95);
