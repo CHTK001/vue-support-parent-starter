@@ -38,19 +38,6 @@ watch(useMultiTagsStoreHook().multiTags, (tags: any) => {
 watch(
   () => props.currRoute.fullPath,
   (path) => {
-    // 确保在路由路径变化时保持深色主题
-    try {
-      const storage = localStorage.getItem("layout");
-      if (storage) {
-        const layoutConfig = JSON.parse(storage);
-        if (layoutConfig.darkMode) {
-          document.documentElement.classList.add("dark");
-        }
-      }
-    } catch (e) {
-      console.warn("Failed to set dark theme from localStorage:", e);
-    }
-    
     const multiTags = useMultiTagsStoreHook().multiTags as RouteRecordRaw[];
     const iframeTags = multiTags?.filter((i) => i.meta?.frameSrc);
     if (keep.value) {

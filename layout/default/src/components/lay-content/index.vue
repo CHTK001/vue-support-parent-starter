@@ -119,20 +119,7 @@ const getSectionStyle = computed(() => {
   ];
 });
 
-onMounted(async () => {
-  // 确保在组件挂载时保持深色主题
-  try {
-    const storage = localStorage.getItem("layout");
-    if (storage) {
-      const layoutConfig = JSON.parse(storage);
-      if (layoutConfig.darkMode) {
-        document.documentElement.classList.add("dark");
-      }
-    }
-  } catch (e) {
-    console.warn("Failed to set dark theme from localStorage:", e);
-  }
-
+onMounted(() => {
   nextTick(() => {
     document.body.style.setProperty("height", "100vh");
     document.body.style.setProperty("overflow", "hidden");
@@ -156,19 +143,6 @@ const transitionMain = defineComponent({
     },
   },
   render() {
-    // 确保在路由切换动画期间保持深色主题
-    try {
-      const storage = localStorage.getItem("layout");
-      if (storage) {
-        const layoutConfig = JSON.parse(storage);
-        if (layoutConfig.darkMode) {
-          document.documentElement.classList.add("dark");
-        }
-      }
-    } catch (e) {
-      console.warn("Failed to set dark theme from localStorage:", e);
-    }
-
     const menuTransition = $storage.configure.menuTransition;
     const transitionName = menuTransition
       ? transitions.value(this.route)?.name || "fade-transform"
@@ -197,8 +171,8 @@ const transitionMain = defineComponent({
           : leaveTransition
             ? `animate__animated ${leaveTransition}`
             : undefined,
-        mode: "out-in",
-        appear: true,
+        mode: "in-out",
+        appear: false,
       },
       {
         default: () => [this.$slots.default()],
@@ -215,7 +189,7 @@ const router = useRouter();
     :class="[fixedHeader ? 'app-main' : 'app-main-nofixed-header']"
     :style="getSectionStyle"
   >
-    <router-view :key="$route.fullPath">
+    <router-view>
       <template #default="{ Component, route }">
         <LayFrame :currComp="Component" :currRoute="route">
           <template #default="{ Comp, fullPath, frameInfo }">
@@ -247,7 +221,7 @@ const router = useRouter();
                   :style="{
                     height: 'calc(100% - ' + contentMargin * 2 + 'px)',
                     'border-radius': layoutRadius + 'px  !important',
-                    margin: contentMargin + 'px',
+                    margin: contentMargin + 'px'
                   }"
                 >
                   <transitionMain :route="route">
@@ -257,7 +231,7 @@ const router = useRouter();
                     >
                       <component
                         :is="Comp"
-                        :key="fullPath"
+                        :key="route.name"
                         :frameInfo="frameInfo"
                         class="main-content"
                       />
@@ -265,7 +239,7 @@ const router = useRouter();
                     <component
                       :is="Comp"
                       v-else
-                      :key="fullPath"
+                      :key="route.name"
                       :frameInfo="frameInfo"
                       class="main-content"
                     />
@@ -275,7 +249,7 @@ const router = useRouter();
                   v-else
                   class="h-full layout sidebar-custom"
                   shadow="never"
-                  :style="{
+:style="{
                     margin: contentMargin + 'px',
                     height: 'calc(100% - ' + contentMargin * 2 + 'px)',
                     'border-radius': layoutRadius + 'px !important',
@@ -288,7 +262,7 @@ const router = useRouter();
                     >
                       <component
                         :is="Comp"
-                        :key="fullPath"
+                        :key="route.name"
                         :frameInfo="frameInfo"
                         class="main-content"
                         :style="{ 'border-radius': layoutRadius + 'px' }"
@@ -297,7 +271,7 @@ const router = useRouter();
                     <component
                       :is="Comp"
                       v-else
-                      :key="fullPath"
+                      :key="route.name"
                       :frameInfo="frameInfo"
                       class="main-content"
                       :style="{ 'border-radius': layoutRadius + 'px' }"
@@ -316,7 +290,7 @@ const router = useRouter();
                 :style="{
                   height: 'calc(100% - ' + contentMargin * 2 + 'px)',
                   'border-radius': layoutRadius + 'px  !important',
-                  margin: contentMargin + 'px',
+                  margin: contentMargin + 'px'
                 }"
               >
                 <transitionMain :route="route">
@@ -326,7 +300,7 @@ const router = useRouter();
                   >
                     <component
                       :is="Comp"
-                      :key="fullPath"
+                      :key="route.name"
                       :frameInfo="frameInfo"
                       class="main-content"
                     />
@@ -334,7 +308,7 @@ const router = useRouter();
                   <component
                     :is="Comp"
                     v-else
-                    :key="fullPath"
+                    :key="route.name"
                     :frameInfo="frameInfo"
                     class="main-content"
                   />
@@ -347,7 +321,7 @@ const router = useRouter();
                 :style="{
                   height: 'calc(100% - ' + contentMargin * 2 + 'px)',
                   margin: contentMargin + 'px',
-                  'border-radius': layoutRadius + 'px  !important',
+                  'border-radius': layoutRadius + 'px  !important'
                 }"
               >
                 <transitionMain :route="route">
@@ -357,7 +331,7 @@ const router = useRouter();
                   >
                     <component
                       :is="Comp"
-                      :key="fullPath"
+                      :key="route.name"
                       :frameInfo="frameInfo"
                       class="main-content"
                       :style="{ 'border-radius': layoutRadius + 'px' }"
@@ -366,7 +340,7 @@ const router = useRouter();
                   <component
                     :is="Comp"
                     v-else
-                    :key="fullPath"
+                    :key="route.name"
                     :frameInfo="frameInfo"
                     class="main-content"
                     :style="{ 'border-radius': layoutRadius + 'px' }"
@@ -408,23 +382,9 @@ const router = useRouter();
   width: 100%;
   height: 100vh;
   overflow-x: hidden;
-  background: linear-gradient(
-    135deg,
-    rgba(245, 247, 250, 0.8),
-    rgba(240, 242, 245, 0.9)
-  );
-
-  /* 默认深色背景，防止FOUC */
-  html.dark & {
-    background: linear-gradient(
-      135deg,
-      rgba(22, 24, 29, 0.8),
-      rgba(26, 28, 35, 0.9)
-    );
-  }
-
-  /* 确保在深色模式下有默认背景色 */
   background: var(--el-bg-color-page);
+  transition: background-color 0.2s ease;
+
   html.dark & {
     background: var(--el-bg-color);
   }
@@ -435,24 +395,9 @@ const router = useRouter();
   display: flex;
   flex-direction: column;
   width: 100%;
-  background: linear-gradient(
-    135deg,
-    rgba(245, 247, 250, 0.8),
-    rgba(240, 242, 245, 0.9)
-  );
-  backdrop-filter: blur(20px);
+  background: var(--el-bg-color-page);
+  transition: background-color 0.2s ease;
 
-  /* 默认深色背景，防止FOUC */
-  html.dark & {
-    background: linear-gradient(
-      135deg,
-      rgba(22, 24, 29, 0.8),
-      rgba(26, 28, 35, 0.9)
-    );
-  }
-
-  /* 确保在深色模式下有默认背景色 */
-  background-color: var(--el-bg-color-page);
   html.dark & {
     background: var(--el-bg-color);
   }
@@ -461,13 +406,8 @@ const router = useRouter();
 .main-content {
   height: 100%;
   position: relative;
-  // padding: 0px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  /* 确保主内容区域也有正确的背景色 */
-  background: var(--el-bg-color-page);
-  html.dark & {
-    background: var(--el-bg-color);
-  }
+  background: transparent;
+  transition: opacity 0.2s ease;
 }
 
 :deep(.el-card__body) {
@@ -475,23 +415,9 @@ const router = useRouter();
 }
 
 .bg-layout {
-  --un-bg-opacity: 1;
-  background-color: rgb(var(--layout-bg-color) / var(--un-bg-opacity));
-  transition: background-color 0.3s;
-  /* 确保背景覆盖整个区域 */
   height: 100%;
   width: 100%;
-
-  /* 深色主题下的背景色 */
-  html.dark & {
-    background-color: rgb(var(--layout-bg-color) / var(--un-bg-opacity));
-  }
-
-  /* 确保在深色模式下有明确的背景色 */
-  background-color: var(--el-bg-color-page);
-  html.dark & {
-    background: var(--el-bg-color);
-  }
+  background: transparent;
 }
 
 :deep(.el-backtop) {
@@ -558,16 +484,16 @@ const router = useRouter();
 
 :deep(.fade-transform-enter-active),
 :deep(.fade-transform-leave-active) {
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 :deep(.fade-transform-enter-from) {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateX(10px);
 }
 
 :deep(.fade-transform-leave-to) {
   opacity: 0;
-  transform: translateY(-20px);
+  transform: translateX(-10px);
 }
 </style>
