@@ -294,12 +294,30 @@ const syncTableWidth = () => {
   const tableEl = scTable.value.$el;
   const headerTable = tableEl.querySelector(".el-table__header");
   const bodyTable = tableEl.querySelector(".el-table__body");
+  const headerWrapper = tableEl.querySelector(".el-table__header-wrapper");
+  const bodyWrapper = tableEl.querySelector(".el-table__body-wrapper");
 
-  if (headerTable && bodyTable) {
-    // 确保表头和表体宽度一致
-    const width = Math.max(headerTable.offsetWidth, bodyTable.offsetWidth);
-    headerTable.style.width = `${width}px`;
-    bodyTable.style.width = `${width}px`;
+  if (headerTable && bodyTable && headerWrapper && bodyWrapper) {
+    // 获取容器宽度
+    const containerWidth = tableEl.offsetWidth;
+    const headerTableWidth = headerTable.scrollWidth;
+    const bodyTableWidth = bodyTable.scrollWidth;
+    
+    // 只有当内容宽度超出容器宽度时才设置固定宽度
+    const maxTableWidth = Math.max(headerTableWidth, bodyTableWidth);
+    
+    if (maxTableWidth > containerWidth) {
+      // 内容超出，需要横向滚动
+      headerTable.style.width = `${maxTableWidth}px`;
+      bodyTable.style.width = `${maxTableWidth}px`;
+    } else {
+      // 内容未超出，使用100%自适应
+      headerTable.style.width = "100%";
+      bodyTable.style.width = "100%";
+      // 确保滚动条隐藏
+      headerWrapper.style.overflowX = "hidden";
+      bodyWrapper.style.overflowX = "hidden";
+    }
   }
 };
 
@@ -818,14 +836,24 @@ defineExpose({
 
     /* 保持表头和表体滚动同步 */
     .el-table__body {
-      width: 100%;
-      min-width: 100%;
+      width: 100% !important;
+      min-width: 100% !important;
     }
 
     .el-table__header {
-      width: 100%;
-      min-width: 100%;
+      width: 100% !important;
+      min-width: 100% !important;
     }
+  }
+
+  /* 防止不必要的横向滚动条 */
+  :deep(.el-table__inner-wrapper) {
+    width: 100% !important;
+  }
+
+  :deep(.el-table__body-wrapper)::-webkit-scrollbar-track,
+  :deep(.el-table__header-wrapper)::-webkit-scrollbar-track {
+    background: transparent;
   }
 
   // 拖拽相关样式
