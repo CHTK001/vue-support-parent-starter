@@ -1681,6 +1681,10 @@ defineExpose({
   }
   .sc-table-auto-height {
     flex: 1;
+    min-height: 0; /* 关键属性：允许flex子项收缩 */
+    overflow: hidden; /* 防止内容溢出 */
+    display: flex;
+    flex-direction: column;
   }
 }
 
