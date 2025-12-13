@@ -915,11 +915,6 @@ const onDragSortChange = sortInfo => {
 
   // 触发排序变化事件
   emit("drag-sort-change", sortInfo);
-
-  // 判断是否需要立即提交
-  if (props.dragInteractionCount === 1 && props.dragSortUrl) {
-    saveDragSort();
-  }
 };
 
 /**
@@ -1409,7 +1404,7 @@ defineExpose({
   <div ref="scTableMain" class="sc-table-container" :class="{ 'auto-height': height === 'auto' }">
     <div class="sc-table-wrapper">
       <!-- 拖拽排序操作栏 - 显示在表头上方 -->
-      <div v-if="draggable && dragSortPending && dragInteractionCount > 1" class="sc-table-drag-actions">
+      <div v-if="configState.draggable && dragSortPending" class="sc-table-drag-actions">
         <div class="drag-action-info">
           <IconifyIconOnline icon="ep:sort" />
           <span>已拖拽 {{ dragChangeCount }} 次，排序已变更</span>
@@ -1459,7 +1454,7 @@ defineExpose({
           :gap="waterfallGap"
           :estimated-item-height="estimatedItemHeight"
           :buffer-size="bufferSize"
-          :draggable="draggable"
+          :draggable="configState.draggable"
           :drag-row-key="dragRowKey"
           :drag-handle-width="dragHandleWidth"
           @row-click="onRowClick"
@@ -1562,39 +1557,121 @@ defineExpose({
   }
 }
 
-// 拖拽排序操作栏样式
+// 拖拽排序操作栏样式 - 现代化设计
 .sc-table-drag-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, var(--el-color-warning-light-9) 0%, var(--el-color-warning-light-8) 100%);
-  border-radius: 8px;
-  margin-bottom: 12px;
-  border: 1px solid var(--el-color-warning-light-5);
+  padding: 16px 20px;
+  background: linear-gradient(135deg, 
+    var(--el-color-warning-light-9) 0%, 
+    var(--el-color-warning-light-8) 50%,
+    var(--el-color-warning-light-9) 100%);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border: 2px solid var(--el-color-warning-light-5);
+  box-shadow: 0 4px 16px rgba(230, 162, 60, 0.15);
+  animation: slideDown 0.3s ease-out;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+  }
 
   .drag-action-info {
     display: flex;
     align-items: center;
-    gap: 8px;
-    color: var(--el-color-warning);
+    gap: 12px;
+    color: var(--el-color-warning-dark-2);
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+    
+    svg {
+      font-size: 20px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    span {
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    }
   }
 
   .drag-action-buttons {
     display: flex;
-    gap: 8px;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+    
+    .el-button {
+      font-weight: 500;
+      border-radius: 8px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
   }
 }
 
 .sc-table-pagination-wrapper {
-  flex-shrink: 0; /* 防止分页区域被压缩 */
+  flex-shrink: 0;
   padding: 10px 0;
   width: 100%;
   padding-top: 16px;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  background: var(--app-bg-overlay);
+  transition: box-shadow 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
 }
 
 /* 确保表格内容区域不会被分页挤压 */

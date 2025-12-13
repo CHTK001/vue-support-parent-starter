@@ -143,11 +143,15 @@ watch(
         size: newValue.size || tableConfigData.value.size,
         rowSize: props.rowSize,
         colSize: props.colSize,
-        cardLayout: props.cardLayout
+        cardLayout: props.cardLayout,
+        draggable: newValue.draggable ?? tableConfigData.value.draggable,
+        crossHighlight: newValue.crossHighlight ?? tableConfigData.value.crossHighlight,
+        cacheEnabled: newValue.cacheEnabled ?? tableConfigData.value.cacheEnabled,
+        pageMemoryEnabled: newValue.pageMemoryEnabled ?? tableConfigData.value.pageMemoryEnabled
       };
     }
   },
-  { deep: true }
+  { deep: true, immediate: true }
 );
 
 watch(
@@ -375,22 +379,24 @@ onMounted(() => {
 
           <div class="settings-body">
             <!-- 表格尺寸设置 -->
-            <div class="setting-item">
-              <div class="setting-label">
-                <IconifyIconOnline icon="ep:zoom-in" class="setting-icon" />
-                <span>表格尺寸</span>
-              </div>
-              <div class="setting-control">
-                <el-segmented
-                  v-model="tableConfigData.size"
-                  :options="[
-                    { label: '大号', value: 'large' },
-                    { label: '默认', value: 'default' },
-                    { label: '小号', value: 'small' }
-                  ]"
-                  size="small"
-                  @change="handleTableSizeChange"
-                />
+            <div class="setting-item full-width">
+              <div class="setting-label-vertical">
+                <div class="label-row">
+                  <IconifyIconOnline icon="ep:zoom-in" class="setting-icon" />
+                  <span>表格尺寸</span>
+                </div>
+                <div class="setting-control-full">
+                  <el-segmented
+                    :model-value="tableConfigData.size"
+                    :options="[
+                      { label: '大号', value: 'large' },
+                      { label: '默认', value: 'default' },
+                      { label: '小号', value: 'small' }
+                    ]"
+                    size="default"
+                    @change="handleTableSizeChange"
+                  />
+                </div>
               </div>
             </div>
 
@@ -401,7 +407,7 @@ onMounted(() => {
                 <span>显示边框</span>
               </div>
               <div class="setting-control">
-                <el-switch v-model="tableConfigData.border" @change="handleBorderChange" />
+                <el-switch :model-value="tableConfigData.border" @change="handleBorderChange" />
               </div>
             </div>
 
@@ -412,7 +418,7 @@ onMounted(() => {
                 <span>斑马纹样式</span>
               </div>
               <div class="setting-control">
-                <el-switch v-model="tableConfigData.stripe" @change="handleStripeChange" />
+                <el-switch :model-value="tableConfigData.stripe" @change="handleStripeChange" />
               </div>
             </div>
 
@@ -426,7 +432,7 @@ onMounted(() => {
                 <span>启用拖拽排序</span>
               </div>
               <div class="setting-control">
-                <el-switch v-model="tableConfigData.draggable" @change="handleDraggableChange" />
+                <el-switch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
               </div>
             </div>
 
@@ -437,7 +443,7 @@ onMounted(() => {
                 <span>单元格十字标记</span>
               </div>
               <div class="setting-control">
-                <el-switch v-model="tableConfigData.crossHighlight" @change="handleCrossHighlightChange" />
+                <el-switch :model-value="tableConfigData.crossHighlight" @change="handleCrossHighlightChange" />
               </div>
             </div>
 
@@ -445,27 +451,30 @@ onMounted(() => {
             <div class="settings-divider"></div>
 
             <!-- 缓存设置：数据缓存（固定预取3页） -->
-            <div class="setting-item">
+            <div class="setting-item-with-tooltip">
               <div class="setting-label">
                 <IconifyIconOnline icon="ep:document-copy" class="setting-icon" />
-                <span>启用数据缓存（预取3页）</span>
-                <el-tooltip content="开启后会预加载多页数据到缓存，翻页时优先使用缓存" placement="top">
+                <span>数据缓存</span>
+                <el-tooltip content="开启后会预加载3页数据到缓存，翻页时优先使用缓存" placement="top" :show-after="200">
                   <IconifyIconOnline icon="ep:question-filled" class="help-icon" />
                 </el-tooltip>
               </div>
               <div class="setting-control">
-                <el-switch v-model="tableConfigData.cacheEnabled" @change="handleCacheEnabledChange" />
+                <el-switch :model-value="tableConfigData.cacheEnabled" @change="handleCacheEnabledChange" />
               </div>
             </div>
 
             <!-- 页码缓存开关 -->
-            <div class="setting-item">
+            <div class="setting-item-with-tooltip">
               <div class="setting-label">
                 <IconifyIconOnline icon="ep:collection" class="setting-icon" />
-                <span>页码缓存（刷新/重新查询从缓存页码开始）</span>
+                <span>页码记忆</span>
+                <el-tooltip content="开启后，刷新或重新查询时从上次访问的页码开始" placement="top" :show-after="200">
+                  <IconifyIconOnline icon="ep:question-filled" class="help-icon" />
+                </el-tooltip>
               </div>
               <div class="setting-control">
-                <el-switch v-model="tableConfigData.pageMemoryEnabled" @change="handlePageMemoryEnabledChange" />
+                <el-switch :model-value="tableConfigData.pageMemoryEnabled" @change="handlePageMemoryEnabledChange" />
               </div>
             </div>
           </div>
@@ -531,26 +540,85 @@ onMounted(() => {
 
 .table-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
+  
+  .el-button {
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--el-border-color-lighter);
+    
+    &:hover {
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border-color: var(--el-color-primary);
+    }
+    
+    &:active {
+      transform: translateY(0) scale(1);
+    }
+  }
 }
 
-// 表格设置容器样式
+// 表格设置容器样式 - 现代化设计
 .table-settings-container {
-  padding: 4px;
+  padding: 16px;
+  max-height: 560px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: var(--el-fill-color-lighter);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--el-fill-color-dark);
+    border-radius: 3px;
+    
+    &:hover {
+      background: var(--el-color-primary-light-5);
+    }
+  }
 }
 
 .settings-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, 
+    var(--el-color-primary-light-9) 0%, 
+    var(--el-color-primary-light-8) 50%,
+    var(--el-color-primary-light-9) 100%);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: settingsShimmer 3s infinite;
+  }
 
   .settings-icon {
-    font-size: 20px;
+    font-size: 24px;
     color: var(--el-color-primary);
+    animation: rotate 3s linear infinite;
+    position: relative;
+    z-index: 1;
   }
 
   .settings-title {
@@ -558,40 +626,144 @@ onMounted(() => {
     font-size: 16px;
     font-weight: 600;
     color: var(--el-text-color-primary);
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@keyframes settingsShimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
 .settings-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .setting-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 14px 16px;
   background: var(--el-fill-color-light);
-  border-radius: 8px;
-  transition: all 0.2s;
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
 
   &:hover {
-    background: var(--el-fill-color);
+    background: linear-gradient(135deg, var(--el-fill-color) 0%, var(--el-fill-color-light) 100%);
+    border-color: var(--el-color-primary-light-7);
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+  }
+  
+  &:active {
+    transform: translateX(2px) scale(0.98);
+  }
+}
+
+.setting-item-with-tooltip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--el-fill-color-light);
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+
+  &:hover {
+    background: linear-gradient(135deg, var(--el-fill-color) 0%, var(--el-fill-color-light) 100%);
+    border-color: var(--el-color-primary-light-7);
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+  }
+  
+  &:active {
+    transform: translateX(2px) scale(0.98);
+  }
+}
+
+.setting-item.full-width {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.setting-label-vertical {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .label-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--el-text-color-regular);
+    font-weight: 500;
+  }
+}
+
+.setting-control-full {
+  width: 100%;
+  
+  :deep(.el-segmented) {
+    width: 100%;
   }
 }
 
 .setting-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 14px;
   color: var(--el-text-color-regular);
+  font-weight: 500;
+  flex: 1;
 
   .setting-icon {
-    font-size: 16px;
-    color: var(--el-text-color-secondary);
+    font-size: 18px;
+    color: var(--el-color-primary);
+    transition: transform 0.3s ease;
   }
+  
+  .help-icon {
+    font-size: 15px;
+    color: var(--el-text-color-placeholder);
+    cursor: help;
+    margin-left: 4px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      color: var(--el-color-primary);
+      transform: scale(1.15);
+    }
+  }
+}
+
+.setting-item:hover .setting-icon,
+.setting-item-with-tooltip:hover .setting-icon {
+  transform: scale(1.1) rotate(5deg);
 }
 
 .setting-control {
@@ -599,8 +771,14 @@ onMounted(() => {
 }
 
 .settings-divider {
-  height: 1px;
-  background: var(--el-border-color-lighter);
-  margin: 4px 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--el-color-primary-light-8) 20%,
+    var(--el-color-primary-light-7) 50%,
+    var(--el-color-primary-light-8) 80%,
+    transparent 100%);
+  margin: 12px 0;
+  border-radius: 1px;
 }
 </style>
