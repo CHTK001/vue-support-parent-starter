@@ -25,7 +25,9 @@ const props = defineProps({
     default: () => ({
       border: false,
       stripe: false,
-      size: "default"
+      size: "default",
+      cacheEnabled: false,
+      pageMemoryEnabled: false
     })
   },
   // 卡片布局相关配置
@@ -74,7 +76,7 @@ const tableConfigData = ref({
   draggable: false,
   crossHighlight: false,
   cacheEnabled: false,
-  cachePageCount: 3
+  pageMemoryEnabled: false
 });
 
 // columnSetting组件的引用
@@ -102,7 +104,7 @@ const getTableConfig = () => {
     draggable: props.tableConfig.draggable ?? false,
     crossHighlight: props.tableConfig.crossHighlight ?? false,
     cacheEnabled: props.tableConfig.cacheEnabled ?? false,
-    cachePageCount: props.tableConfig.cachePageCount ?? 3
+    pageMemoryEnabled: props.tableConfig.pageMemoryEnabled ?? false
   };
 };
 
@@ -220,6 +222,12 @@ const handleCacheEnabledChange = value => {
 // 监听缓存页数变更
 const handleCachePageCountChange = value => {
   tableConfigData.value.cachePageCount = value;
+  emit("save-config", { type: "table", config: tableConfigData.value });
+};
+
+// 监听页码缓存变更
+const handlePageMemoryEnabledChange = value => {
+  tableConfigData.value.pageMemoryEnabled = value;
   emit("save-config", { type: "table", config: tableConfigData.value });
 };
 
@@ -436,11 +444,11 @@ onMounted(() => {
             <!-- 分隔线 -->
             <div class="settings-divider"></div>
 
-            <!-- 缓存设置 -->
+            <!-- 缓存设置：数据缓存（固定预取3页） -->
             <div class="setting-item">
               <div class="setting-label">
                 <IconifyIconOnline icon="ep:document-copy" class="setting-icon" />
-                <span>启用数据缓存</span>
+                <span>启用数据缓存（预取3页）</span>
                 <el-tooltip content="开启后会预加载多页数据到缓存，翻页时优先使用缓存" placement="top">
                   <IconifyIconOnline icon="ep:question-filled" class="help-icon" />
                 </el-tooltip>
@@ -450,14 +458,14 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- 缓存页数设置 -->
-            <div v-if="tableConfigData.cacheEnabled" class="setting-item">
+            <!-- 页码缓存开关 -->
+            <div class="setting-item">
               <div class="setting-label">
-                <IconifyIconOnline icon="ep:files" class="setting-icon" />
-                <span>预加载页数</span>
+                <IconifyIconOnline icon="ep:collection" class="setting-icon" />
+                <span>页码缓存（刷新/重新查询从缓存页码开始）</span>
               </div>
               <div class="setting-control">
-                <el-input-number v-model="tableConfigData.cachePageCount" :min="2" :max="10" size="small" controls-position="right" @change="handleCachePageCountChange" />
+                <el-switch v-model="tableConfigData.pageMemoryEnabled" @change="handlePageMemoryEnabledChange" />
               </div>
             </div>
           </div>
