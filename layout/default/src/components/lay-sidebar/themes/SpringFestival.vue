@@ -38,6 +38,44 @@ import BaseSidebar from './BaseSidebar.vue';
       z-index: 1;
     }
     
+    // Logo 区域样式 - 春节主题
+    .sidebar-logo-container {
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.9) 0%, rgba(178, 34, 34, 0.9) 100%);
+      border-bottom: 2px solid rgba(255, 215, 0, 0.4);
+      position: relative;
+      
+      // 金色顶边装饰
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #FFD700 30%, #FFA500 50%, #FFD700 70%, transparent);
+      }
+      
+      .sidebar-logo-link {
+        .sidebar-title {
+          color: #FFD700 !important;
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+          font-weight: 700;
+        }
+        
+        img {
+          filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.3));
+        }
+        
+        // 环境标识春节风格
+        .env-badge {
+          background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+          color: #8B0000 !important;
+          box-shadow: 0 2px 6px rgba(255, 215, 0, 0.5);
+          border: 1px solid rgba(220, 20, 60, 0.3);
+        }
+      }
+    }
+    
     // 菜单样式
     .el-menu {
       background: transparent !important;

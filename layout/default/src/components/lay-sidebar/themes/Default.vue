@@ -21,6 +21,22 @@ import BaseSidebar from "./BaseSidebar.vue";
     backdrop-filter: blur(12px);
     border-right: 1px solid rgba(0, 0, 0, 0.05) !important;
     
+    // Logo 区域样式
+    .sidebar-logo-container {
+      background: transparent;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      
+      .sidebar-logo-link {
+        .sidebar-title {
+          color: var(--el-text-color-primary);
+        }
+        
+        img {
+          filter: none;
+        }
+      }
+    }
+    
     .el-menu {
       background: transparent !important;
     }
