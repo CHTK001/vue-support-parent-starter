@@ -185,11 +185,28 @@ const handleShowTrack = async data => {
   }, 300);
 };
 
+// 获取历史追踪记录
+const fetchHistory = async () => {
+  try {
+    const response = await fetch("/agent/api/trace?action=list&limit=100");
+    const data = await response.json();
+    if (data.traces && Array.isArray(data.traces)) {
+      // 清空并添加历史数据
+      dataList.length = 0;
+      data.traces.forEach(trace => dataList.push(trace));
+    }
+  } catch (error) {
+    console.error("获取链路历史失败:", error);
+  }
+};
+
 onMounted(() => {
   // 连接 WebSocket
   wsService.connect();
   // 订阅链路追踪消息
   unsubscribe = wsService.subscribe("TRACE", "AGENT_TRACE", handleWsMessage);
+  // 加载历史数据
+  fetchHistory();
 });
 
 onUnmounted(() => {
