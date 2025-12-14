@@ -61,6 +61,35 @@ import BaseSidebar from "./BaseSidebar.vue";
         color: #fff !important;
       }
     }
+    
+    // 底部折叠按钮
+    .left-collapse {
+      background: var(--el-bg-color-overlay);
+      border-top: 1px solid var(--el-border-color-light);
+      
+      &:hover {
+        background: var(--el-color-primary-light-9);
+      }
+      
+      &.collapsed-state {
+        background: var(--el-color-primary-light-8);
+        border-top: 2px solid var(--el-color-primary);
+      }
+      
+      svg {
+        color: var(--el-text-color-primary);
+      }
+    }
+    
+    // 中间折叠按钮
+    .center-collapse {
+      background: var(--el-bg-color-overlay);
+      border-color: var(--el-border-color-light);
+      
+      svg {
+        color: var(--el-text-color-primary);
+      }
+    }
   }
 }
 
