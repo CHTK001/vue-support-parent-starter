@@ -144,6 +144,70 @@ import BaseSidebar from './BaseSidebar.vue';
       color: #FFF !important;
       font-weight: 700;
     }
+    
+    // 底部折叠按钮 - 春节主题
+    .left-collapse {
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.95) 0%, rgba(178, 34, 34, 0.95) 100%) !important;
+      border-top: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 0 -2px 8px rgba(220, 20, 60, 0.3) !important;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #FFD700 30%, #FFA500 50%, #FFD700 70%, transparent);
+      }
+      
+      &:hover {
+        background: linear-gradient(135deg, rgba(220, 20, 60, 0.95) 0%, rgba(178, 34, 34, 0.95) 100%) !important;
+        box-shadow: 0 -4px 12px rgba(255, 215, 0, 0.4) !important;
+      }
+      
+      &.collapsed-state {
+        background: linear-gradient(135deg, #DC143C 0%, #B22222 100%) !important;
+        border-top: 2px solid #FFD700 !important;
+        
+        &::before {
+          background: #FFD700;
+          width: 30px;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+      }
+      
+      svg {
+        color: #FFD700 !important;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+      }
+      
+      &:hover svg {
+        color: #FFF !important;
+      }
+    }
+    
+    // 中间折叠按钮 - 春节主题
+    .center-collapse {
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.95) 0%, rgba(178, 34, 34, 0.95) 100%) !important;
+      border: 2px solid rgba(255, 215, 0, 0.5) !important;
+      box-shadow: 0 2px 8px rgba(220, 20, 60, 0.4);
+      
+      &:hover {
+        background: linear-gradient(135deg, rgba(220, 20, 60, 0.95) 0%, rgba(178, 34, 34, 0.95) 100%) !important;
+        border-color: #FFD700 !important;
+        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.5);
+      }
+      
+      svg {
+        color: #FFD700 !important;
+      }
+      
+      &:hover svg {
+        color: #FFF !important;
+      }
+    }
   }
 }
 </style>
