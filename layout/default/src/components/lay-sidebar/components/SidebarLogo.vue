@@ -5,7 +5,6 @@
  * @author CH
  * @date 2025-12-02
  */
-import TypeIt from "@repo/components/ReTypeit";
 import { getTopMenu } from "@repo/core";
 import { emitter } from "@repo/core";
 import { responsiveStorageNameSpace } from "@repo/config";
@@ -100,10 +99,10 @@ const envBadgeClass = computed(() => {
           :style="logoStyle"
         />
         <span class="sidebar-title" v-if="layout !== 'double'">
-          <TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" />
+          {{ title }}
         </span>
-        <!-- 环境标识 -->
-        <span v-if="showEnvBadge" class="env-badge" :class="envBadgeClass">
+        <!-- 环境标识 - 双栏模式下不显示 -->
+        <span v-if="showEnvBadge && layout !== 'double'" class="env-badge" :class="envBadgeClass">
           {{ envBadgeText }}
         </span>
       </router-link>
@@ -121,10 +120,10 @@ const envBadgeClass = computed(() => {
           :style="logoStyle"
         />
         <span class="sidebar-title" v-if="layout !== 'double'">
-          <TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" />
+          {{ title }}
         </span>
-        <!-- 环境标识 -->
-        <span v-if="showEnvBadge" class="env-badge" :class="envBadgeClass">
+        <!-- 环境标识 - 双栏模式下不显示 -->
+        <span v-if="showEnvBadge && layout !== 'double'" class="env-badge" :class="envBadgeClass">
           {{ envBadgeText }}
         </span>
       </router-link>

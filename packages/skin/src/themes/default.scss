@@ -1,0 +1,195 @@
+/**
+ * 默认主题样式
+ */
+
+// 通用基础样式 - 可被其他主题继承
+%navbar-base {
+  height: 48px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+%header-container-base {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+// 使用 data-skin 属性选择器
+html[data-skin="default"] {
+  // Header 容器样式
+  .header-container-with-decoration {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+
+    &.shadow-tab {
+      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+    }
+  }
+  
+  // Sidebar 侧边栏样式 - 激活菜单左边框标记
+  .sidebar-container-with-decoration,
+  .sidebar-container {
+    :deep(.el-menu-item),
+    :deep(.el-sub-menu__title) {
+      position: relative;
+      transition: all 0.3s ease;
+      
+      &.is-active {
+        // 左侧醒目边框 - 使用主题色
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 4px;
+          background: linear-gradient(
+            to bottom,
+            var(--el-color-primary-light-3),
+            var(--el-color-primary),
+            var(--el-color-primary-dark-2)
+          );
+          border-radius: 0 4px 4px 0;
+          box-shadow: 
+            2px 0 8px rgba(64, 158, 255, 0.4),
+            inset 1px 0 0 rgba(255, 255, 255, 0.3);
+          animation: pulseGlow 2s ease-in-out infinite;
+        }
+      }
+    }
+    
+    // 子菜单激活状态
+    :deep(.el-sub-menu) {
+      .el-menu {
+        .el-menu-item {
+          &.is-active {
+            &::before {
+              left: 0;
+              width: 3px;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // 双栏导航激活标记
+  .double-nav-container,
+  .double-nav-with-decoration {
+    .double-nav-left {
+      .first-level-menu {
+        .el-menu-item {
+          &.is-active {
+            &::before {
+              content: '';
+              position: absolute;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 4px;
+              background: linear-gradient(
+                to bottom,
+                var(--el-color-primary-light-3),
+                var(--el-color-primary),
+                var(--el-color-primary-dark-2)
+              );
+              border-radius: 0 4px 4px 0;
+              box-shadow: 2px 0 8px rgba(64, 158, 255, 0.4);
+            }
+          }
+        }
+      }
+    }
+    
+    .double-nav-right {
+      .sub-menu-list {
+        :deep(.el-menu-item) {
+          &.is-active {
+            &::before {
+              content: '';
+              position: absolute;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 3px;
+              background: linear-gradient(
+                to bottom,
+                var(--el-color-primary-light-3),
+                var(--el-color-primary)
+              );
+              border-radius: 0 4px 4px 0;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // 边框发光动画
+  @keyframes pulseGlow {
+    0%, 100% {
+      box-shadow: 
+        2px 0 8px rgba(64, 158, 255, 0.4),
+        inset 1px 0 0 rgba(255, 255, 255, 0.3);
+    }
+    50% {
+      box-shadow: 
+        2px 0 12px rgba(64, 158, 255, 0.6),
+        inset 1px 0 0 rgba(255, 255, 255, 0.5);
+    }
+  }
+}
+
+// 暗色模式
+html[data-skin="default"].dark {
+  .header-container-with-decoration {
+    background: rgba(18, 18, 23, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+    &.shadow-tab {
+      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+    }
+  }
+  
+  // 暗色模式下的激活边框
+  .sidebar-container-with-decoration,
+  .sidebar-container {
+    :deep(.el-menu-item),
+    :deep(.el-sub-menu__title) {
+      &.is-active {
+        &::before {
+          background: linear-gradient(
+            to bottom,
+            var(--el-color-primary-light-5),
+            var(--el-color-primary-light-3),
+            var(--el-color-primary)
+          );
+          box-shadow: 
+            2px 0 12px rgba(64, 158, 255, 0.6),
+            inset 1px 0 0 rgba(255, 255, 255, 0.4);
+        }
+      }
+    }
+  }
+  
+  @keyframes pulseGlow {
+    0%, 100% {
+      box-shadow: 
+        2px 0 12px rgba(64, 158, 255, 0.6),
+        inset 1px 0 0 rgba(255, 255, 255, 0.4);
+    }
+    50% {
+      box-shadow: 
+        2px 0 16px rgba(64, 158, 255, 0.8),
+        inset 1px 0 0 rgba(255, 255, 255, 0.6);
+    }
+  }
+}

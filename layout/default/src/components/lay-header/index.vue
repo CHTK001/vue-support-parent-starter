@@ -1,7 +1,7 @@
 <template>
   <div
     class="header-container-with-decoration"
-    :class="{ 'fixed-header shadow-tab': set.fixedHeader }"
+    :class="{ 'fixed-header': set.fixedHeader, 'shadow-tab': set.fixedHeader }"
     :style="[
       set.hideTabs && layout.includes('horizontal')
         ? 'box-shadow: var(--el-box-shadow-light)'
@@ -107,9 +107,30 @@ onBeforeUnmount(() => {
 });
 </script>
 
+<script lang="ts">
+// 导入集中的主题皮肤样式
+import '@repo/skin';
+</script>
+
 <style lang="scss" scoped>
-// 现代化固定头部样式
-.fixed-header {
+// 基础容器样式
+.header-container-with-decoration {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  
+  // 确保 shadow-tab 的 padding 为 0
+  &.shadow-tab {
+    padding: 0 !important;
+  }
+  
+  // 确保 fixed-header 和 shadow-tab 组合时 padding 也为 0
+  &.fixed-header.shadow-tab {
+    padding: 0 !important;
+  }
+}
+
+// 头部容器样式优化
+.header-only-tags {
   position: fixed;
   top: 0;
   right: 0;
@@ -117,25 +138,6 @@ onBeforeUnmount(() => {
   z-index: 999;
   width: 100%;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-
-  &.shadow-tab {
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
-    transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  // 暗色主题适配
-  .dark & {
-    background: rgba(18, 18, 23, 0.95);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-
-    &.shadow-tab {
-      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
-    }
-  }
 
   // 响应式适配
   @media (max-width: 768px) {
@@ -143,7 +145,7 @@ onBeforeUnmount(() => {
     left: 0;
   }
 }
-
+</style>
 // 头部容器样式优化
 .header-only-tags {
   position: relative;

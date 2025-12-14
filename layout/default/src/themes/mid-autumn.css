@@ -1,22 +1,78 @@
+
+/* ========================================
+   组件级深度定制（全局选择器版本）
+   ======================================== */
+.theme-mid-autumn .modern-navbar,
+.theme-mid-autumn .lay-navbar { background: var(--theme-gradient-primary); border-bottom: 2px solid var(--theme-secondary); }
+.theme-mid-autumn .header-container-with-decoration { background: linear-gradient(180deg, rgba(240,245,255,0.9), rgba(230,247,255,0.95)); }
+.theme-mid-autumn .sidebar-container-with-decoration,
+.theme-mid-autumn .sidebar-container { background: linear-gradient(180deg, rgba(240,245,255,0.98), rgba(230,247,255,0.98)); border-right: 2px solid rgba(19,194,194,0.08); }
+.theme-mid-autumn .tags-view { background: var(--theme-gradient-soft); }
+.theme-mid-autumn .tags-view .tab { border: 1px solid rgba(19,194,194,0.15); }
+.theme-mid-autumn .tags-view .tab.is-active { border-color: var(--theme-secondary); }
+.theme-mid-autumn .tool-bar .tool-item { border: 1px solid rgba(19,194,194,0.12); }
+.theme-mid-autumn .app-main,
+.theme-mid-autumn .app-main-nofixed-header { background-image: radial-gradient(circle at 15% 20%, rgba(19,194,194,0.05) 0%, transparent 50%), radial-gradient(circle at 90% 85%, rgba(250,173,20,0.05) 0%, transparent 55%); }
+.theme-mid-autumn .lay-footer,
+.theme-mid-autumn .footer-container { background: linear-gradient(180deg, rgba(240,245,255,0.95), rgba(230,247,255,0.95)); border-top: 2px solid rgba(19,194,194,0.08); }
+.theme-mid-autumn .search-footer .icon { color: var(--theme-primary); }
+
 /**
  * 中秋主题皮肤
  * @author CH
  * @date 2025-12-13
  */
 
-/* 中秋主题颜色 */
+/* ========================================
+   中秋主题完整CSS变量体系
+   ======================================== */
 :root.theme-mid-autumn {
+  /* Element Plus 主色 */
   --el-color-primary: #13c2c2;
   --el-color-primary-light-3: #36cfc9;
   --el-color-primary-light-5: #5cdbd3;
   --el-color-primary-light-7: #87e8de;
   --el-color-primary-light-8: #b5f5ec;
   --el-color-primary-light-9: #d6f7f5;
+  --el-color-primary-dark-2: #08979c;
   
-  --theme-primary: #13c2c2;
-  --theme-secondary: #faad14;
-  --theme-accent: #ffd666;
-  --theme-background: #f0f5ff;
+  /* 主题主色调 */
+  --theme-primary: #13c2c2;        /* 青色 */
+  --theme-secondary: #faad14;      /* 金黄色 */
+  --theme-accent: #ffd666;         /* 明黄色 */
+  --theme-moon: #fffaf0;           /* 月光白 */
+  
+  /* 背景色系 */
+  --theme-bg-base: #f0f5ff;        /* 基础背景 */
+  --theme-bg-light: #ffffff;       /* 浅色背景 */
+  --theme-bg-dark: #003a8c;        /* 深色背景 */
+  --theme-bg-soft: #e6f7ff;        /* 柔和背景 */
+  --theme-bg-overlay: rgba(19, 194, 194, 0.03);  /* 覆盖层 */
+  
+  /* 装饰色 */
+  --theme-glow-gold: rgba(250, 173, 20, 0.6);    /* 金色辉光 */
+  --theme-glow-cyan: rgba(19, 194, 194, 0.4);    /* 青色辉光 */
+  --theme-border-primary: rgba(19, 194, 194, 0.2);  /* 主边框 */
+  --theme-border-light: rgba(19, 194, 194, 0.1);    /* 浅边框 */
+  
+  /* 阴影 */
+  --theme-shadow-sm: 0 2px 8px rgba(19, 194, 194, 0.1);
+  --theme-shadow-md: 0 4px 16px rgba(19, 194, 194, 0.15);
+  --theme-shadow-lg: 0 8px 24px rgba(19, 194, 194, 0.2);
+  --theme-shadow-gold: 0 4px 12px rgba(250, 173, 20, 0.3);
+  --theme-shadow-moon: 0 8px 32px rgba(255, 250, 240, 0.6);
+  
+  /* 渐变 */
+  --theme-gradient-primary: linear-gradient(135deg, #13c2c2 0%, #36cfc9 100%);
+  --theme-gradient-secondary: linear-gradient(135deg, #faad14 0%, #ffd666 100%);
+  --theme-gradient-moon: linear-gradient(135deg, #fffaf0 0%, #ffd666 100%);
+  --theme-gradient-soft: linear-gradient(180deg, rgba(240, 245, 255, 0.95) 0%, rgba(230, 247, 255, 0.95) 100%);
+  --theme-gradient-overlay: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 245, 255, 0.9) 100%);
+  
+  /* 文字色 */
+  --theme-text-primary: #13c2c2;
+  --theme-text-gold: #d4af37;
+  --theme-text-dark: #2c3e50;
 }
 
 /* 中秋主题 - 导航栏背景 */
@@ -124,4 +180,47 @@
   50% {
     filter: brightness(1.2) drop-shadow(0 0 20px rgba(250, 173, 20, 0.8));
   }
+}
+
+/* ========================================
+   组件级深度定制（导航/头部/侧边/标签/工具/内容/页脚等）
+   ======================================== */
+/* 导航栏 */
+.theme-mid-autumn :deep(.modern-navbar),
+.theme-mid-autumn :deep(.lay-navbar) {
+  background: var(--theme-gradient-primary);
+  border-bottom: 2px solid var(--theme-secondary);
+}
+/* 头部容器 */
+.theme-mid-autumn :deep(.header-container-with-decoration) {
+  background: linear-gradient(180deg, rgba(240,245,255,0.9), rgba(230,247,255,0.95));
+}
+/* 侧边栏 */
+.theme-mid-autumn :deep(.sidebar-container-with-decoration),
+.theme-mid-autumn :deep(.sidebar-container) {
+  background: linear-gradient(180deg, rgba(240,245,255,0.98), rgba(230,247,255,0.98));
+  border-right: 2px solid rgba(19, 194, 194, 0.08);
+}
+/* 标签页 */
+.theme-mid-autumn :deep(.tags-view) { background: var(--theme-gradient-soft); }
+.theme-mid-autumn :deep(.tags-view .tab) { border: 1px solid rgba(19, 194, 194, 0.15); }
+.theme-mid-autumn :deep(.tags-view .tab.is-active) { border-color: var(--theme-secondary); }
+/* 工具栏 */
+.theme-mid-autumn :deep(.tool-bar .tool-item) { border: 1px solid rgba(19,194,194,0.12); }
+/* 内容背景点缀 */
+.theme-mid-autumn :deep(.app-main),
+.theme-mid-autumn :deep(.app-main-nofixed-header) {
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(19, 194, 194, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 90% 85%, rgba(250, 173, 20, 0.05) 0%, transparent 55%);
+}
+/* 页脚 */
+.theme-mid-autumn :deep(.lay-footer),
+.theme-mid-autumn :deep(.footer-container) {
+  background: linear-gradient(180deg, rgba(240,245,255,0.95), rgba(230,247,255,0.95));
+  border-top: 2px solid rgba(19,194,194,0.08);
+}
+/* 搜索弹窗底部图标色 */
+.theme-mid-autumn :deep(.search-footer .icon) {
+  color: var(--theme-primary);
 }

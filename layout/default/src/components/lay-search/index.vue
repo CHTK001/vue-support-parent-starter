@@ -10,13 +10,23 @@ function handleSearch() {
 
 <template>
   <div>
-    <div class="search-container w-[40px] h-[48px] flex-c cursor-pointer navbar-bg-hover" @click="handleSearch">
+    <div class="search-container flex-c cursor-pointer navbar-bg-hover" @click="handleSearch">
       <IconifyIconOffline icon="ri:search-line" />
     </div>
     <SearchModal v-model:value="show" />
   </div>
 </template>
 <style scoped lang="scss">
+.search-container {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
 .search-container,
 :deep(.search-container) {
   svg {

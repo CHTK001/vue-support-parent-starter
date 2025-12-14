@@ -23,7 +23,11 @@ import { useRouter } from "vue-router";
 import ThirdParty from "./components/thirdParty.vue";
 import ThemeSwitcher from "./components/ThemeSwitcher.vue";
 import { bg, illustration } from "./utils/static";
-import { getLoginTheme } from "./themes";
+import { getLoginTheme as getLoginThemeComponent } from "./themes";
+import {
+  getThemeConfig,
+  type ThemeConfig,
+} from "./utils/themeConfig";
 
 import darkIcon from "@repo/assets/svg/dark.svg?component";
 import dayIcon from "@repo/assets/svg/day.svg?component";
@@ -34,15 +38,21 @@ defineOptions({
   name: "Login",
 });
 
-// 获取主题配置（从 application.yml 或默认配置）
-// 优先使用本地存储的主题偏好，其次使用配置文件
-const localStorageProxyObject = localStorageProxy();
-const THEME_STORAGE_KEY = "login-theme-preference";
-const savedTheme = localStorageProxyObject.getItem(THEME_STORAGE_KEY);
-const themeConfig = savedTheme || getConfig("LoginTheme") || "modern";
-const enableFestival = getConfig("EnableFestivalTheme") !== false;
+// 获取主题配置
+const storedConfig = getThemeConfig();
+const themeConfig = storedConfig.LoginTheme;
+const enableFestival = storedConfig.EnableFestivalTheme;
 const enableThemeSwitcher = getConfig("EnableLoginThemeSwitcher") !== false;
-const currentTheme = getLoginTheme(themeConfig, enableFestival);
+
+console.debug("[Login] Theme config:", {
+  loginTheme: themeConfig,
+  enableFestival,
+  enableThemeSwitcher,
+});
+
+const currentTheme = getLoginThemeComponent(themeConfig, enableFestival);
+console.debug("[Login] Theme component loaded:", currentTheme.key || currentTheme.name);
+
 const ThemeComponent = defineAsyncComponent(currentTheme.component);
 
 const BaseLayout = defineAsyncComponent(() => import("./layout/base.vue"));

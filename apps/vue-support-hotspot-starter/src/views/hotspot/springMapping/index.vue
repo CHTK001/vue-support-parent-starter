@@ -17,6 +17,34 @@
       </div>
     </div>
 
+    <!-- 容器 QPS 统计卡片 -->
+    <el-row :gutter="20" class="stats-row">
+      <el-col :span="6" v-for="container in containerStats" :key="container.type">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-header">
+            <IconifyIconOnline :icon="container.icon" class="stat-icon" />
+            <span class="stat-label">{{ container.label }}</span>
+          </div>
+          <div class="stat-content">
+            <div class="stat-item">
+              <span class="stat-value">{{ container.qps }}</span>
+              <span class="stat-unit">QPS</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-value">{{ formatNumber(container.totalRequests) }}</span>
+              <span class="stat-unit">总请求</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-value">{{ container.activeConnections }}</span>
+              <span class="stat-unit">活跃连接</span>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
     <!-- 数据卡片 -->
     <el-card class="modern-card" shadow="hover">
       <template #header>
@@ -95,12 +123,18 @@
 
 <script setup>
 import { http } from "@repo/utils";
-import { computed, onBeforeMount, ref } from "vue";
+import { computed, onBeforeMount, onUnmounted, ref } from "vue";
 
 const data = ref([]);
 const infoVisible = ref(false);
 const info = ref("");
 const searchKeyword = ref("");
+const containerStats = ref([
+  { type: 'TOMCAT', label: 'Tomcat', icon: 'logos:tomcat', qps: 0, totalRequests: 0, activeConnections: 0 },
+  { type: 'UNDERTOW', label: 'Undertow', icon: 'simple-icons:undertow', qps: 0, totalRequests: 0, activeConnections: 0 },
+  { type: 'JETTY', label: 'Jetty', icon: 'simple-icons:eclipsejetty', qps: 0, totalRequests: 0, activeConnections: 0 },
+  { type: 'NETTY', label: 'Netty', icon: 'simple-icons:netty', qps: 0, totalRequests: 0, activeConnections: 0 }
+]);
 
 // 过滤后的数据
 const filteredData = computed(() => {
@@ -114,18 +148,70 @@ const handleInfo = row => {
   infoVisible.value = true;
 };
 
+// 格式化数字
+const formatNumber = num => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num;
+};
+
+// 加载容器 QPS 统计
+const loadContainerStats = async () => {
+  try {
+    const res = await http.get((window.agentPath || "/agent") + "/api/qps?action=current");
+    if (res && res.data && res.data.status === 'ok') {
+      const statsData = res.data.data;
+      containerStats.value.forEach(container => {
+        const stat = statsData[container.type];
+        if (stat) {
+          container.qps = stat.qps || 0;
+          container.totalRequests = stat.totalRequests || 0;
+          container.activeConnections = stat.activeConnections || 0;
+        }
+      });
+    }
+  } catch (err) {
+    console.error('加载容器统计失败:', err);
+  }
+};
+
+// 定时刷新统计数据
+let statsTimer = null;
+const startStatsPolling = () => {
+  loadContainerStats();
+  statsTimer = setInterval(loadContainerStats, 3000); // 每 3 秒刷新一次
+};
+
+// 清理定时器
+const stopStatsPolling = () => {
+  if (statsTimer) {
+    clearInterval(statsTimer);
+    statsTimer = null;
+  }
+};
+
 onBeforeMount(async () => {
   http.get((window.agentPath || "/agent") + "/spring-mapping-data").then(res => {
     // 后端返回的是 { data: [...], total: 10 }
     // 需要提取 data 字段中的数组
-    if (res && typeof res === 'object' && Array.isArray(res.data)) {
-      data.value = res.data;
+    if (res && typeof res === 'object' && Array.isArray(res.data.data)) {
+      data.value = res.data.data;
     } else if (Array.isArray(res)) {
       data.value = res;
     } else {
       data.value = [];
     }
   });
+  
+  // 启动统计数据轮询
+  startStatsPolling();
+});
+
+onUnmounted(() => {
+  stopStatsPolling();
 });
 </script>
 <style lang="scss" scoped>
@@ -133,6 +219,74 @@ onBeforeMount(async () => {
   padding: 20px;
   min-height: 100%;
   background: var(--el-bg-color-page);
+}
+
+.stats-row {
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+  
+  :deep(.el-card__body) {
+    padding: 16px;
+  }
+  
+  .stat-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    
+    .stat-icon {
+      font-size: 24px;
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+  
+  .stat-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    .stat-item {
+      flex: 1;
+      text-align: center;
+      
+      .stat-value {
+        display: block;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--el-color-primary);
+        margin-bottom: 4px;
+      }
+      
+      .stat-unit {
+        display: block;
+        font-size: 11px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+    
+    .stat-divider {
+      width: 1px;
+      height: 32px;
+      background: var(--el-border-color-lighter);
+    }
+  }
 }
 
 .page-header {

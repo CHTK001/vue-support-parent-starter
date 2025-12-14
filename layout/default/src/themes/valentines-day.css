@@ -1,3 +1,22 @@
+
+/* ========================================
+   组件级深度定制（全局选择器版本）
+   ======================================== */
+.theme-valentines-day .modern-navbar,
+.theme-valentines-day .lay-navbar { background: linear-gradient(135deg, #eb2f96 0%, #ff6b9d 100%); border-bottom: 2px solid #ffc0cb; }
+.theme-valentines-day .header-container-with-decoration { background: linear-gradient(180deg, rgba(255,245,247,0.92), rgba(255,230,240,0.96)); }
+.theme-valentines-day .sidebar-container-with-decoration,
+.theme-valentines-day .sidebar-container { background: linear-gradient(180deg, rgba(255,245,247,0.98), rgba(255,230,240,0.98)); border-right: 2px solid rgba(235,47,150,0.08); }
+.theme-valentines-day .tags-view { background: linear-gradient(180deg, rgba(255,245,247,0.95), #fff); }
+.theme-valentines-day .tags-view .tab { border: 1px solid rgba(235,47,150,0.15); }
+.theme-valentines-day .tags-view .tab.is-active { border-color: #ffc0cb; }
+.theme-valentines-day .tool-bar .tool-item { border: 1px solid rgba(235,47,150,0.12); }
+.theme-valentines-day .app-main,
+.theme-valentines-day .app-main-nofixed-header { background-image: radial-gradient(circle at 12% 18%, rgba(235,47,150,0.05) 0%, transparent 50%), radial-gradient(circle at 92% 86%, rgba(255,192,203,0.06) 0%, transparent 55%); }
+.theme-valentines-day .lay-footer,
+.theme-valentines-day .footer-container { background: linear-gradient(180deg, rgba(255,245,247,0.95), rgba(255,230,240,0.95)); border-top: 2px solid rgba(235,47,150,0.08); }
+.theme-valentines-day .search-footer .icon { color: #eb2f96; }
+
 /**
  * 情人节主题皮肤
  * @author CH
@@ -125,3 +144,36 @@
     transform: scale(1.2);
   }
 }
+
+/* ========================================
+   组件级深度定制
+   ======================================== */
+.theme-valentines-day :deep(.modern-navbar),
+.theme-valentines-day :deep(.lay-navbar) {
+  background: linear-gradient(135deg, #eb2f96 0%, #ff6b9d 100%);
+  border-bottom: 2px solid #ffc0cb;
+}
+.theme-valentines-day :deep(.header-container-with-decoration) {
+  background: linear-gradient(180deg, rgba(255,245,247,0.92), rgba(255,230,240,0.96));
+}
+.theme-valentines-day :deep(.sidebar-container-with-decoration),
+.theme-valentines-day :deep(.sidebar-container) {
+  background: linear-gradient(180deg, rgba(255,245,247,0.98), rgba(255,230,240,0.98));
+  border-right: 2px solid rgba(235,47,150,0.08);
+}
+.theme-valentines-day :deep(.tags-view) { background: linear-gradient(180deg, rgba(255,245,247,0.95), #fff); }
+.theme-valentines-day :deep(.tags-view .tab) { border: 1px solid rgba(235,47,150,0.15); }
+.theme-valentines-day :deep(.tags-view .tab.is-active) { border-color: #ffc0cb; }
+.theme-valentines-day :deep(.tool-bar .tool-item) { border: 1px solid rgba(235,47,150,0.12); }
+.theme-valentines-day :deep(.app-main),
+.theme-valentines-day :deep(.app-main-nofixed-header) {
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(235,47,150,0.05) 0%, transparent 50%),
+    radial-gradient(circle at 92% 86%, rgba(255,192,203,0.06) 0%, transparent 55%);
+}
+.theme-valentines-day :deep(.lay-footer),
+.theme-valentines-day :deep(.footer-container) {
+  background: linear-gradient(180deg, rgba(255,245,247,0.95), rgba(255,230,240,0.95));
+  border-top: 2px solid rgba(235,47,150,0.08);
+}
+.theme-valentines-day :deep(.search-footer .icon) { color: #eb2f96; }

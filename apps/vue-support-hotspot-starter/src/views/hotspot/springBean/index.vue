@@ -117,8 +117,8 @@ onBeforeMount(async () => {
   http.get((window.agentPath || "/agent") + "/spring-bean-data").then(res => {
     // 后端返回的是 { data: [...], total: 10 }
     // 需要提取 data 字段中的数组
-    if (res && typeof res === 'object' && Array.isArray(res.data)) {
-      data.value = res.data;
+    if (res && typeof res === 'object' && Array.isArray(res.data.data)) {
+      data.value = res.data.data;
     } else if (Array.isArray(res)) {
       data.value = res;
     } else {

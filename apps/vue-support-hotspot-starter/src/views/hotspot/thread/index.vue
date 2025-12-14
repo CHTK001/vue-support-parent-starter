@@ -20,7 +20,7 @@
 
     <div class="flex-1 overflow-hidden">
       <el-card class="h-full" shadow="never">
-        <el-table :data="data" border stripe style="width: 100%" row-key="id" height="100%">
+        <el-table :data="data" border stripe style="width: 100%" row-key="id" max-height="calc(100vh - 280px)">
           <el-table-column type="index" label="#" width="60" align="center" />
           <el-table-column prop="id" label="线程ID" width="100" align="center">
             <template #default="{ row }">

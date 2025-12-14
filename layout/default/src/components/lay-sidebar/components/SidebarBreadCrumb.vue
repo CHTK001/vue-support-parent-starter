@@ -346,20 +346,100 @@ watch(
   font-size: 14px;
 }
 
-// 面包屑动画
+// 面包屑动画 - 禁用以消除闪烁
 .breadcrumb-enter-active,
 .breadcrumb-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: none !important;
 }
 
 .breadcrumb-enter-from,
 .breadcrumb-leave-active {
-  opacity: 0;
-  transform: translateX(20px);
+  opacity: 1;
+  transform: none;
 }
 
 .breadcrumb-leave-active {
-  position: absolute;
+  position: static;
+}
+
+// 春节主题适配
+html.theme-spring-festival {
+  .breadcrumb-wrapper {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 250, 240, 0.9));
+    border-radius: 19px;
+    padding: 0 12px;
+    box-shadow: 
+      0 2px 8px rgba(220, 20, 60, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  .home-icon {
+    background: linear-gradient(135deg, rgba(220, 20, 60, 0.1), rgba(255, 215, 0, 0.1));
+    color: #DC143C;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+
+    &:hover {
+      background: linear-gradient(135deg, rgba(220, 20, 60, 0.2), rgba(255, 215, 0, 0.2));
+      color: #B22222;
+      border-color: rgba(255, 215, 0, 0.5);
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+    }
+  }
+
+  .breadcrumb-divider {
+    color: rgba(220, 20, 60, 0.5);
+  }
+
+  .breadcrumb-link {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 250, 240, 0.85));
+    border-color: rgba(255, 215, 0, 0.3);
+    color: #8B0000;
+    font-family: 'STKaiti', 'KaiTi', 'SimKai', serif;
+
+    &:hover {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 250, 240, 0.95));
+      border-color: rgba(255, 215, 0, 0.5);
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+
+      .breadcrumb-text {
+        color: #DC143C;
+      }
+
+      .breadcrumb-icon {
+        color: #DC143C;
+      }
+    }
+
+    &.is-current {
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      border-color: rgba(220, 20, 60, 0.4);
+      box-shadow: 
+        0 4px 16px rgba(255, 215, 0, 0.4),
+        inset 0 2px 4px rgba(255, 255, 255, 0.5);
+
+      .breadcrumb-text {
+        color: #8B0000;
+        font-weight: 700;
+      }
+
+      .breadcrumb-icon {
+        color: #8B0000;
+      }
+    }
+  }
+
+  .breadcrumb-separator {
+    color: rgba(220, 20, 60, 0.5);
+    font-weight: 700;
+  }
+
+  .breadcrumb-text {
+    color: #8B0000;
+  }
+
+  .breadcrumb-icon {
+    color: rgba(139, 0, 0, 0.8);
+  }
 }
 
 // 深色主题适配

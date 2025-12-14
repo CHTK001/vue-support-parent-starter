@@ -1,0 +1,164 @@
+/**
+ * 春节主题 - 标签页春联样式
+ * 覆盖默认主题的部分样式，实现春节装饰效果
+ */
+
+/* 春节主题标签页容器 */
+html[data-skin="spring-festival"] .tags-view,
+html[data-skin="spring-festival"] .shadow-tab {
+  background: linear-gradient(180deg, #fff5f0 0%, #ffffff 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  position: relative !important;
+  z-index: 1000 !important; /* 高于装饰元素 */
+}
+
+/* 隐藏 Chrome 样式的背景图 */
+html[data-skin="spring-festival"] .chrome-tab__bg,
+html[data-skin="spring-festival"] .chrome-tab__bg svg {
+  display: none !important;
+}
+
+/* 春联样式的标签项 - 所有模式 */
+html[data-skin="spring-festival"] .scroll-item,
+html[data-skin="spring-festival"] .chrome-item,
+html[data-skin="spring-festival"] .modern-item {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(180deg, #DC143C, #B22222) !important;
+  color: #FFD700 !important;
+  border: 2px solid #8B0000 !important;
+  border-radius: 6px !important;
+  padding: 4px 12px !important;
+  margin: 0 6px !important;
+  font-weight: 600 !important;
+  font-family: 'STKaiti', 'KaiTi', 'SimKai', serif !important;
+  box-shadow: 
+    0 2px 8px rgba(220, 20, 60, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.3s ease !important;
+  
+  /* 金色装饰边 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #FFD700, transparent, #FFD700);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+}
+
+/* Chrome 标签额外设置 */
+html[data-skin="spring-festival"] .chrome-tab {
+  background: transparent !important;
+}
+
+html[data-skin="spring-festival"] .chrome-tab-divider {
+  display: none !important;
+}
+
+html[data-skin="spring-festival"] .chrome-close-btn {
+  color: currentColor !important;
+  opacity: 0.7;
+}
+
+/* 标签悬停效果 */
+html[data-skin="spring-festival"] .scroll-item:hover,
+html[data-skin="spring-festival"] .chrome-item:hover,
+html[data-skin="spring-festival"] .modern-item:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 
+    0 4px 12px rgba(220, 20, 60, 0.4),
+    0 0 20px rgba(255, 215, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  
+  &::before {
+    opacity: 0.6;
+  }
+}
+
+/* 激活状态的标签 */
+html[data-skin="spring-festival"] .scroll-item.is-active,
+html[data-skin="spring-festival"] .scroll-item.active,
+html[data-skin="spring-festival"] .chrome-item.is-active,
+html[data-skin="spring-festival"] .modern-item.is-active {
+  background: linear-gradient(180deg, #FFD700, #FFA500) !important;
+  color: #8B0000 !important;
+  border: 2px solid #DC143C !important;
+  font-weight: 700 !important;
+  box-shadow: 
+    0 4px 16px rgba(255, 215, 0, 0.5),
+    inset 0 2px 4px rgba(255, 255, 255, 0.5),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 标签文字 */
+html[data-skin="spring-festival"] .scroll-item .tag-title,
+html[data-skin="spring-festival"] .chrome-item .tag-title,
+html[data-skin="spring-festival"] .modern-item .tag-title {
+  color: inherit !important;
+  letter-spacing: 1px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.4 !important;
+  height: 100%;
+}
+
+/* 关闭按钮 */
+html[data-skin="spring-festival"] .scroll-item .el-icon-close,
+html[data-skin="spring-festival"] .scroll-item .chrome-close-btn {
+  color: currentColor !important;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+html[data-skin="spring-festival"] .scroll-item .el-icon-close:hover,
+html[data-skin="spring-festival"] .scroll-item .chrome-close-btn:hover {
+  opacity: 1;
+}
+
+/* 箭头按钮 */
+html[data-skin="spring-festival"] .arrow-left,
+html[data-skin="spring-festival"] .arrow-right {
+  background: rgba(220, 20, 60, 0.1) !important;
+  color: #DC143C !important;
+  border: 1px solid rgba(220, 20, 60, 0.2) !important;
+  transition: all 0.2s ease;
+}
+
+html[data-skin="spring-festival"] .arrow-left:hover,
+html[data-skin="spring-festival"] .arrow-right:hover {
+  background: rgba(220, 20, 60, 0.2) !important;
+  color: #B22222 !important;
+}
+
+/* 右键菜单 */
+html[data-skin="spring-festival"] .contextmenu {
+  background: #fff !important;
+  border: 2px solid rgba(220, 20, 60, 0.3) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+html[data-skin="spring-festival"] .contextmenu .menu-item:hover {
+  background: rgba(220, 20, 60, 0.1) !important;
+  color: #DC143C !important;
+}
+
+/* 确保所有模式下标签图标颜色一致 */
+html[data-skin="spring-festival"] .scroll-item .tag-icon,
+html[data-skin="spring-festival"] .chrome-item .tag-icon,
+html[data-skin="spring-festival"] .modern-item .tag-icon {
+  color: inherit !important;
+}

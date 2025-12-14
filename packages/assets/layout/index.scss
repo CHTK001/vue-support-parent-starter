@@ -32,18 +32,21 @@
     position: relative;
     display: inline-block;
     height: 34px;
-    padding-left: 6px;
+    padding: 0 12px 0 6px;
     line-height: 34px;
     cursor: pointer;
     transition: all 0.4s;
+
+    &:first-child {
+      padding: 0 12px;
+    }
 
     &:not(:first-child) {
       padding-right: 24px;
     }
 
     &.chrome-item {
-      padding-right: 0;
-      padding-left: 0;
+      padding: 0 12px;
       margin-right: -18px;
       box-shadow: none;
       &.is-active .tag-title {
@@ -180,7 +183,7 @@
 
         &.chrome-item {
           &:nth-child(1) {
-            padding: 0;
+            padding: 0 12px;
           }
         }
       }
