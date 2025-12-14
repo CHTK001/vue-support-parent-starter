@@ -1,0 +1,492 @@
+/**
+ * 设置面板 - 春节主题样式
+ * 喜庆祥和的红色调设计
+ */
+
+// 春节主题变量
+$spring-red: #DC143C;
+$spring-red-light: #FF4D4F;
+$spring-red-dark: #B22222;
+$spring-gold: #FFD700;
+$spring-gold-light: #FFED4E;
+$spring-gold-dark: #FFA500;
+
+// 灯笼摆动动画
+@keyframes lantern-swing {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+// 金光闪烁动画
+@keyframes gold-shimmer {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+// 春节主题 - 设置面板容器
+html[data-skin="spring-festival"] {
+  .modern-setting-container {
+    padding: 20px;
+    background: linear-gradient(180deg,
+      rgba(255, 248, 240, 0.98) 0%,
+      rgba(255, 240, 230, 0.95) 100%
+    );
+    min-height: 100%;
+    position: relative;
+    
+    // 顶部金色装饰线
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg,
+        transparent,
+        #{$spring-gold} 20%,
+        #{$spring-gold-light} 50%,
+        #{$spring-gold} 80%,
+        transparent
+      );
+      animation: gold-shimmer 2s ease-in-out infinite;
+    }
+    
+    // 设置区块 - 春节风格
+    .setting-section {
+      margin-bottom: 24px;
+      padding: 20px;
+      background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(255, 250, 245, 0.9) 100%
+      );
+      border-radius: 16px;
+      border: 2px solid rgba($spring-red, 0.15);
+      box-shadow:
+        0 4px 16px rgba($spring-red, 0.08),
+        0 2px 8px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      
+      // 左上角红色装饰
+      &::before {
+        content: '';
+        position: absolute;
+        top: -20px;
+        left: -20px;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg,
+          rgba($spring-red, 0.15) 0%,
+          transparent 70%
+        );
+        border-radius: 50%;
+        pointer-events: none;
+      }
+      
+      &:hover {
+        border-color: rgba($spring-red, 0.3);
+        box-shadow:
+          0 8px 24px rgba($spring-red, 0.15),
+          0 4px 12px rgba($spring-gold, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 1);
+        transform: translateY(-2px);
+      }
+      
+      // 区块头部 - 春节风格
+      .section-header {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid rgba($spring-gold, 0.3);
+        position: relative;
+        
+        // 底部金色渐变装饰
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 60px;
+          height: 2px;
+          background: linear-gradient(90deg,
+            #{$spring-gold},
+            #{$spring-gold-light},
+            transparent
+          );
+        }
+        
+        .section-icon {
+          width: 24px;
+          height: 24px;
+          color: #{$spring-red};
+          background: linear-gradient(135deg,
+            rgba($spring-red, 0.12) 0%,
+            rgba($spring-gold, 0.08) 100%
+          );
+          padding: 6px;
+          border-radius: 10px;
+          box-sizing: content-box;
+          transition: all 0.3s ease;
+          border: 1px solid rgba($spring-gold, 0.3);
+        }
+        
+        .section-title {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 700;
+          color: #{$spring-red-dark};
+          letter-spacing: 0.5px;
+          text-shadow: 0 1px 2px rgba($spring-gold, 0.2);
+        }
+        
+        .section-description {
+          width: 100%;
+          font-size: 13px;
+          color: rgba($spring-red-dark, 0.7);
+          margin-top: 4px;
+        }
+      }
+      
+      &:hover .section-icon {
+        transform: scale(1.1) rotate(-5deg);
+        background: linear-gradient(135deg,
+          rgba($spring-red, 0.2) 0%,
+          rgba($spring-gold, 0.15) 100%
+        );
+        box-shadow: 0 2px 8px rgba($spring-red, 0.2);
+      }
+    }
+    
+    // 主题色选择器 - 春节风格
+    .theme-color-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 8px 0;
+    }
+    
+    .theme-color-item {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+      border: 2px solid rgba($spring-gold, 0.3);
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        right: 2px;
+        height: 40%;
+        background: linear-gradient(180deg,
+          rgba(255, 255, 255, 0.5) 0%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        border-radius: 50% 50% 40% 40%;
+        pointer-events: none;
+      }
+      
+      &:hover {
+        transform: scale(1.15);
+        border-color: #{$spring-gold};
+        box-shadow:
+          0 6px 20px rgba($spring-red, 0.3),
+          0 2px 8px rgba($spring-gold, 0.2);
+      }
+      
+      &.is-selected {
+        transform: scale(1.1);
+        border-color: #{$spring-gold};
+        box-shadow:
+          0 0 0 3px #fff,
+          0 0 0 5px #{$spring-red},
+          0 0 0 7px #{$spring-gold},
+          0 8px 24px rgba($spring-red, 0.4);
+        
+        .selection-indicator {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      
+      .selection-indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0;
+        transition: all 0.3s ease;
+        
+        .check-ring {
+          width: 20px;
+          height: 20px;
+          background: linear-gradient(135deg, #{$spring-gold}, #{$spring-gold-light});
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 8px rgba($spring-red, 0.3);
+          
+          .check-icon {
+            width: 14px;
+            height: 14px;
+            color: #{$spring-red-dark};
+          }
+        }
+      }
+    }
+    
+    // 布局模式选择 - 春节风格
+    .layout-mode-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 16px;
+      padding: 8px 0;
+    }
+    
+    .layout-mode-item {
+      position: relative;
+      padding: 16px 12px;
+      background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(255, 250, 245, 0.9) 100%
+      );
+      border: 2px solid rgba($spring-red, 0.1);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: center;
+      
+      &:hover {
+        border-color: rgba($spring-red, 0.4);
+        transform: translateY(-4px);
+        box-shadow:
+          0 8px 24px rgba($spring-red, 0.15),
+          0 4px 12px rgba($spring-gold, 0.1);
+      }
+      
+      &.is-active {
+        border-color: #{$spring-red};
+        background: linear-gradient(135deg,
+          rgba($spring-red, 0.08) 0%,
+          rgba($spring-gold, 0.05) 100%
+        );
+        box-shadow:
+          0 4px 16px rgba($spring-red, 0.25),
+          0 0 0 1px rgba($spring-gold, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        
+        &::after {
+          content: '✓';
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          width: 20px;
+          height: 20px;
+          background: linear-gradient(135deg, #{$spring-red}, #{$spring-red-light});
+          border: 2px solid #{$spring-gold};
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          font-size: 10px;
+          font-weight: bold;
+          box-shadow: 0 2px 6px rgba($spring-red, 0.4);
+        }
+      }
+      
+      .layout-mode-preview {
+        width: 60px;
+        height: 45px;
+        margin: 0 auto 10px;
+        
+        svg {
+          width: 100%;
+          height: 100%;
+          color: rgba($spring-red-dark, 0.5);
+          transition: color 0.3s ease;
+        }
+      }
+      
+      &.is-active .layout-mode-preview svg {
+        color: #{$spring-red};
+        filter: drop-shadow(0 2px 4px rgba($spring-red, 0.3));
+      }
+      
+      .layout-mode-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #{$spring-red-dark};
+      }
+    }
+    
+    // 开关卡片网格 - 春节风格
+    .switch-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    
+    // 滑块设置项 - 春节风格
+    .slider-setting-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg,
+        rgba($spring-red, 0.05) 0%,
+        rgba($spring-gold, 0.03) 100%
+      );
+      border: 1px solid rgba($spring-gold, 0.2);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background: linear-gradient(135deg,
+          rgba($spring-red, 0.08) 0%,
+          rgba($spring-gold, 0.05) 100%
+        );
+        border-color: rgba($spring-gold, 0.4);
+      }
+      
+      .slider-label {
+        min-width: 100px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #{$spring-red-dark};
+      }
+      
+      .el-slider {
+        flex: 1;
+        
+        .el-slider__runway {
+          background: rgba($spring-red, 0.15);
+        }
+        
+        .el-slider__bar {
+          background: linear-gradient(90deg, #{$spring-red}, #{$spring-red-light});
+        }
+        
+        .el-slider__button {
+          border-color: #{$spring-red};
+          box-shadow: 0 2px 6px rgba($spring-red, 0.3);
+        }
+      }
+      
+      .slider-value {
+        min-width: 50px;
+        text-align: right;
+        font-size: 13px;
+        font-weight: 700;
+        color: #{$spring-red};
+        text-shadow: 0 1px 2px rgba($spring-gold, 0.3);
+      }
+    }
+    
+    // 自动主题状态卡片 - 春节风格
+    .auto-theme-status {
+      .status-card {
+        background: linear-gradient(135deg,
+          rgba($spring-red, 0.08) 0%,
+          rgba($spring-gold, 0.05) 100%
+        );
+        border: 2px solid rgba($spring-gold, 0.4);
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        gap: 14px;
+        
+        .status-icon {
+          width: 44px;
+          height: 44px;
+          background: linear-gradient(135deg, #{$spring-red}, #{$spring-red-light});
+          border: 2px solid #{$spring-gold};
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          font-size: 22px;
+          box-shadow:
+            0 4px 12px rgba($spring-red, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        
+        .status-content {
+          flex: 1;
+          
+          .status-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #{$spring-red-dark};
+            margin-bottom: 4px;
+          }
+          
+          .status-desc {
+            font-size: 13px;
+            color: rgba($spring-red-dark, 0.7);
+            margin-bottom: 8px;
+          }
+          
+          .status-current {
+            font-size: 13px;
+            
+            .label {
+              color: rgba($spring-red-dark, 0.6);
+            }
+            
+            .value {
+              color: #{$spring-red};
+              font-weight: 700;
+              padding: 2px 10px;
+              background: linear-gradient(135deg, #{$spring-gold}, #{$spring-gold-light});
+              border-radius: 12px;
+              margin-left: 4px;
+            }
+          }
+        }
+      }
+    }
+    
+    // 节日装饰提示 - 春节风格
+    .festival-decoration-tip {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg,
+        rgba($spring-gold, 0.1) 0%,
+        rgba($spring-gold-light, 0.05) 100%
+      );
+      border: 1px solid rgba($spring-gold, 0.4);
+      border-radius: 10px;
+      margin-bottom: 16px;
+      
+      .tip-icon {
+        color: #{$spring-gold-dark};
+        font-size: 18px;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+      
+      span {
+        font-size: 13px;
+        color: #{$spring-red-dark};
+        line-height: 1.5;
+      }
+    }
+  }
+}
