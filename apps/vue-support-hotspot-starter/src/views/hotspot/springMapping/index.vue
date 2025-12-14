@@ -93,7 +93,24 @@
             </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column prop="resource" label="资源" min-width="180">
+        <el-table-column prop="qps" label="QPS" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.qps > 0 ? 'success' : 'info'" effect="plain" size="small">
+              {{ row.qps || 0 }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="totalRequests" label="总请求" width="120">
+          <template #default="{ row }">
+            {{ formatNumber(row.totalRequests || 0) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="avgDuration" label="平均耗时(ms)" width="120">
+          <template #default="{ row }">
+            {{ row.avgDuration ? row.avgDuration.toFixed(2) : '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="resource" label="资源" min-width="120">
           <template #default="{ row }">
             <el-tag v-if="row.resource" type="info" effect="plain" size="small">
               {{ row.resource }}
@@ -101,7 +118,7 @@
             <span v-else class="text-placeholder">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleInfo(row)">
               <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
