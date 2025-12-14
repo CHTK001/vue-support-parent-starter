@@ -160,7 +160,12 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted } from "vue";
 import { message } from "@repo/utils";
-import { fetchSetting, fetchUpdateBatchSetting } from "../api";
+import {
+  getThemeConfig,
+  saveThemeConfig,
+  resetThemeConfig,
+  type ThemeConfig,
+} from "@pages/login/utils/themeConfig";
 
 /**
  * @author CH
@@ -312,54 +317,33 @@ const handleFestivalToggle = (value: boolean) => {
 };
 
 // 加载配置
-const loadConfig = async () => {
-  try {
-    const { data } = await fetchSetting("theme");
-    if (data && Array.isArray(data)) {
-      data.forEach((item) => {
-        if (item.sysSettingName === "LoginTheme") {
-          themeConfig.LoginTheme = item.sysSettingValue || "modern";
-          originalConfig.LoginTheme = item.sysSettingValue || "modern";
-        } else if (item.sysSettingName === "EnableFestivalTheme") {
-          themeConfig.EnableFestivalTheme = item.sysSettingValue === "true";
-          originalConfig.EnableFestivalTheme = item.sysSettingValue === "true";
-        }
-      });
-    }
-  } catch (error) {
-    console.error("加载主题配置失败:", error);
-  }
+const loadConfig = () => {
+  const stored = getThemeConfig();
+  themeConfig.LoginTheme = stored.LoginTheme;
+  themeConfig.EnableFestivalTheme = stored.EnableFestivalTheme;
+  originalConfig.LoginTheme = stored.LoginTheme;
+  originalConfig.EnableFestivalTheme = stored.EnableFestivalTheme;
+  console.debug("[ThemeManagement] Config loaded:", stored);
 };
 
 // 保存配置
-const handleSave = async () => {
+const handleSave = () => {
   saving.value = true;
   try {
-    const settings = [
-      {
-        sysSettingName: "LoginTheme",
-        sysSettingValue: themeConfig.LoginTheme,
-        sysSettingGroup: "theme",
-        sysSettingRemark: "登录页面主题",
-      },
-      {
-        sysSettingName: "EnableFestivalTheme",
-        sysSettingValue: themeConfig.EnableFestivalTheme.toString(),
-        sysSettingGroup: "theme",
-        sysSettingRemark: "是否启用节日主题",
-      },
-    ];
-
-    await fetchUpdateBatchSetting(settings);
+    // 保存到本地存储
+    saveThemeConfig({
+      LoginTheme: themeConfig.LoginTheme,
+      EnableFestivalTheme: themeConfig.EnableFestivalTheme,
+    });
     
     // 更新原始配置
     originalConfig.LoginTheme = themeConfig.LoginTheme;
     originalConfig.EnableFestivalTheme = themeConfig.EnableFestivalTheme;
     
-    message("保存成功，重新登录后生效", { type: "success" });
+    message("保存成功", { type: "success" });
   } catch (error) {
     message("保存失败", { type: "error" });
-    console.error("保存主题配置失败:", error);
+    console.error("[ThemeManagement] Save failed:", error);
   } finally {
     saving.value = false;
   }
@@ -486,16 +470,34 @@ onMounted(() => {
     color: white;
   }
 
+  // 元旦主题预览
+  .preview-new-year {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffa500 100%);
+    color: #ff6b6b;
+  }
+
   // 春节主题预览
   .preview-spring-festival {
     background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 50%, #ffa07a 100%);
     color: #ffd700;
   }
 
+  // 情人节主题预览
+  .preview-valentines-day {
+    background: linear-gradient(135deg, #ff69b4 0%, #ff1493 50%, #c71585 100%);
+    color: #ffe4e1;
+  }
+
   // 中秋主题预览
   .preview-mid-autumn {
     background: linear-gradient(to bottom, #0a1128 0%, #1a2a4a 50%, #2a3a5a 100%);
     color: #ffe4b3;
+  }
+
+  // 国庆主题预览
+  .preview-national-day {
+    background: linear-gradient(135deg, #de2910 0%, #ff4444 50%, #ffaa00 100%);
+    color: #ffd700;
   }
 
   // 圣诞主题预览

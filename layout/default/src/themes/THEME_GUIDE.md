@@ -11,14 +11,20 @@
 ```
 layout/default/src/themes/
 ├── index.ts                    # 主题配置和核心逻辑
+├── decorations.ts              # 主题装饰配置（新）
 ├── README.md                   # 基础说明文档
 ├── THEME_GUIDE.md             # 完整指南（本文件）
 ├── christmas.css              # 圣诞主题样式
 ├── spring-festival.css        # 春节主题样式
 ├── valentines-day.css         # 情人节主题样式
 ├── mid-autumn.css             # 中秋主题样式
-├── national-day.css           # 国庆主题样式
 └── new-year.css               # 元旦主题样式
+
+layout/default/src/components/
+├── ThemeDecoration.vue         # 主题装饰组件（新）
+├── lay-tag/                    # 标签栏（支持装饰）
+├── lay-header/                 # 顶部导航（支持装饰）
+└── lay-sidebar/                # 侧边栏（支持装饰）
 ```
 
 ### 主题类型
@@ -36,7 +42,6 @@ layout/default/src/themes/
 - **春节**：1月20日-2月20日（简化的农历日期）
 - **情人节**：2月12日-2月16日
 - **中秋**：9月10日-9月25日（简化的农历日期）
-- **国庆**：10月1日-10月7日
 - **圣诞**：12月15日-12月31日
 
 ### 2. 手动主题切换
@@ -51,6 +56,131 @@ layout/default/src/themes/
 ### 3. 主题持久化
 
 用户选择的主题会保存到本地存储，刷新页面后保持选择的主题。
+
+### 4. 主题装饰系统（新功能）
+
+系统支持为主题添加动态装饰元素，增强节日氛围：
+
+- **装饰配置**：通过 `decorations.ts` 集中管理所有主题的装饰元素
+- **装饰组件**：`ThemeDecoration.vue` 负责渲染装饰元素
+- **多位置支持**：可在标签栏、导航栏、侧边栏添加装饰
+- **动画效果**：内置多种动画（摇摆、飘落、闪烁等）
+- **灵活定位**：支持自定义位置、大小、层级
+
+**装饰示例**：
+- 春节主题：标签栏下方挂灯笼、侧边栏两侧对联、顶部烟花
+- 圣诞主题：标签栏下方圣诞树和圣诞老人、顶部雪花飘落
+
+## 主题装饰系统详解
+
+### 装饰配置文件（decorations.ts）
+
+该文件定义了每个主题在不同组件位置的装饰元素：
+
+```typescript
+export interface ThemeDecorationConfig {
+  emoji: string;           // 装饰符号（emoji、图片URL或HTML）
+  size?: string;           // 装饰大小，如 '32px'
+  animation?: string;      // 动画类型：swing/wave/float/twinkle等
+  customPosition?: {       // 自定义位置（相对定位）
+    top?: string;
+    bottom?: string;       // 推荐使用负值挂在组件下方
+    left?: string;
+    right?: string;
+  };
+  zIndex?: number;         // 层级，确保不被遮挡
+}
+
+export interface ThemeDecorations {
+  'lay-tag'?: ThemeDecorationConfig[];    // 标签栏装饰
+  'lay-header'?: ThemeDecorationConfig[]; // 顶部导航装饰
+  'lay-sidebar'?: ThemeDecorationConfig[];// 侧边栏装饰
+}
+```
+
+### 装饰定位策略
+
+**重要**：为了避免装饰元素撑高组件或被内容遮挡，遵循以下定位原则：
+
+1. **使用 bottom 负值挂载**：
+   ```typescript
+   customPosition: {
+     bottom: '-50px',  // 挂在组件下方50px
+     left: '20px'
+   }
+   ```
+
+2. **设置高 z-index**：
+   - lay-tag 装饰：`zIndex: 9999`（需要在内容区上方）
+   - lay-header 装饰：`zIndex: 1000`
+   - lay-sidebar 装饰：`zIndex: 50`
+
+3. **组件容器设置**：
+   - 容器需设置 `overflow: visible` 以显示溢出的装饰
+   - 容器需设置 `position: relative` 作为定位参考
+
+### 装饰动画类型
+
+系统内置以下动画效果：
+
+- **swing**：摇摆效果（适合灯笼、铃铛）
+- **wave**：飘扬效果（适合旗帜）
+- **float**：漂浮效果（适合气球、云朵）
+- **twinkle**：闪烁效果（适合星星）
+- **snowfall**：飘落效果（适合雪花）
+- **bounce**：弹跳效果（适合礼物盒）
+
+### 配置示例
+
+```typescript
+// decorations.ts
+import type { ThemeDecorations } from './types';
+
+export const themeDecorations: Record<string, ThemeDecorations> = {
+  'spring-festival': {
+    'lay-tag': [
+      {
+        emoji: '🏮',
+        size: '40px',
+        animation: 'swing',
+        customPosition: { bottom: '-50px', left: '20px' },
+        zIndex: 9999,
+      },
+      {
+        emoji: '🏮',
+        size: '40px',
+        animation: 'swing',
+        customPosition: { bottom: '-50px', right: '20px' },
+        zIndex: 9999,
+      },
+    ],
+    'lay-header': [
+      {
+        emoji: '🎆',
+        size: '32px',
+        animation: 'twinkle',
+        customPosition: { top: '10px', right: '20px' },
+        zIndex: 1000,
+      },
+    ],
+  },
+};
+```
+
+### ThemeDecoration 组件
+
+该组件负责渲染装饰元素，无需手动使用，已集成到核心布局组件中。
+
+**自动集成**：
+- `lay-tag/index.vue`：在标签栏容器中自动加载装饰
+- `lay-header/index.vue`：在导航栏中自动加载装饰
+- `lay-sidebar/*`：在各类侧边栏中自动加载装饰
+
+**工作原理**：
+1. 组件通过 `provide/inject` 获取当前主题
+2. 从 `decorations.ts` 读取对应的装饰配置
+3. 为每个装饰元素创建 DOM 节点并应用样式
+4. 自动添加动画类名
 
 ## 添加新主题
 
@@ -182,7 +312,53 @@ if (month === 10 && day >= 25 && day <= 31) {
 }
 ```
 
-### 步骤 4：更新设置界面
+### 步骤 4：添加装饰配置（推荐）
+
+在 `themes/decorations.ts` 中添加主题装饰：
+
+```typescript
+export const themeDecorations: Record<string, ThemeDecorations> = {
+  // ... 现有主题
+  'halloween': {
+    'lay-tag': [
+      {
+        emoji: '🎃',
+        size: '38px',
+        animation: 'swing',
+        customPosition: { bottom: '-48px', left: '20px' },
+        zIndex: 9999,
+      },
+      {
+        emoji: '👻',
+        size: '36px',
+        animation: 'float',
+        customPosition: { bottom: '-48px', right: '20px' },
+        zIndex: 9999,
+      },
+    ],
+    'lay-header': [
+      {
+        emoji: '🦇',
+        size: '28px',
+        animation: 'float',
+        customPosition: { top: '15px', right: '30px' },
+        zIndex: 1000,
+      },
+    ],
+    'lay-sidebar': [
+      {
+        emoji: '🕷️',
+        size: '24px',
+        animation: 'twinkle',
+        customPosition: { top: '20px', left: '10px' },
+        zIndex: 50,
+      },
+    ],
+  },
+};
+```
+
+### 步骤 5：更新设置界面
 
 在 `lay-setting/index.vue` 的 `festivalThemesList` 中添加：
 
@@ -195,6 +371,67 @@ if (month === 10 && day >= 25 && day <= 31) {
   icon: "noto:jack-o-lantern",
 }
 ```
+
+## 装饰开发最佳实践
+
+### 1. 数量控制
+
+- **每个位置 2-3 个装饰元素**：避免过度装饰导致视觉混乱
+- **对称布局**：左右各一个，保持视觉平衡
+- **分层次**：主要装饰大而明显，次要装饰小而精致
+
+### 2. 尺寸规范
+
+- **lay-tag 装饰**：36-42px（较大，需要明显）
+- **lay-header 装饰**：28-36px（中等）
+- **lay-sidebar 装饰**：20-28px（较小，不影响菜单）
+
+### 3. 定位规范
+
+**标签栏装饰（lay-tag）**：
+```typescript
+// ✅ 正确：使用 bottom 负值挂在下方
+customPosition: { bottom: '-50px', left: '20px' }
+zIndex: 9999  // 必须高于内容区
+
+// ❌ 错误：使用 top 会撑高标签栏
+customPosition: { top: '45px', left: '20px' }
+```
+
+**导航栏装饰（lay-header）**：
+```typescript
+// ✅ 在导航栏内部定位
+customPosition: { top: '10px', right: '20px' }
+zIndex: 1000
+```
+
+**侧边栏装饰（lay-sidebar）**：
+```typescript
+// ✅ 在侧边栏顶部或底部
+customPosition: { top: '20px', left: '10px' }
+zIndex: 50
+```
+
+### 4. 动画选择
+
+- **悬挂物品**（灯笼、铃铛）：`swing`
+- **布料**（旗帜、对联）：`wave`
+- **轻盈物体**（气球、云朵）：`float`
+- **光效**（星星、烟花）：`twinkle`
+- **粒子**（雪花、花瓣）：`snowfall`
+
+### 5. 性能优化
+
+- **使用 CSS 动画**：避免 JavaScript 动画，使用 `@keyframes`
+- **GPU 加速**：动画使用 `transform` 而非 `top/left`
+- **控制动画数量**：同时运行的动画不超过 10 个
+- **禁用时卸载**：主题切换时及时清理装饰元素
+
+### 6. 可访问性
+
+- **不遮挡交互元素**：装饰不能覆盖按钮、链接等
+- **使用 pointer-events: none**：装饰元素不响应鼠标事件
+- **语义化**：装饰元素添加 `aria-hidden="true"`
 
 ## 主题样式规范
 
@@ -478,6 +715,8 @@ A: 使用更具体的选择器或增加选择器优先级，必要时使用 `!im
 
 ## 最佳实践
 
+### 主题开发
+
 1. **命名规范**：使用有意义的主题键值，如 `spring-festival` 而不是 `theme1`
 2. **文件组织**：每个主题一个独立的 CSS 文件
 3. **注释完整**：添加作者、日期、版本等信息
@@ -485,6 +724,16 @@ A: 使用更具体的选择器或增加选择器优先级，必要时使用 `!im
 5. **性能优化**：避免过度使用复杂的 CSS 选择器和动画
 6. **版本控制**：使用 Git 管理主题文件的变更
 7. **文档更新**：添加新主题时同步更新文档
+
+### 装饰开发
+
+1. **先配置后样式**：先在 `decorations.ts` 定义装饰，再在 CSS 中调整动画
+2. **左右对称**：装饰元素左右对称布局，视觉更和谐
+3. **适度装饰**：不超过 6 个装饰元素，避免视觉疲劳
+4. **测试定位**：确保装饰不遮挡文字、不撑高容器
+5. **动画流畅**：动画时长 2-4 秒，帧率 60fps
+6. **主题一致**：装饰元素与主题色彩、氛围保持一致
+7. **响应式适配**：在小屏幕上自动隐藏或缩小装饰元素
 
 ## 技术栈
 
@@ -505,6 +754,18 @@ A: 使用更具体的选择器或增加选择器优先级，必要时使用 `!im
 5. 提交 Pull Request，并附上主题预览截图
 
 ## 更新日志
+
+### v2.0.0 (2025-12-13)
+
+- ✅ 实现主题装饰系统架构
+- ✅ 创建 `decorations.ts` 装饰配置文件
+- ✅ 开发 `ThemeDecoration.vue` 通用装饰组件
+- ✅ 集成装饰系统到 lay-tag、lay-header、lay-sidebar
+- ✅ 为所有主题添加装饰配置（灯笼、旗帜、雪花等）
+- ✅ 实现多种动画效果（摇摆、飘扬、闪烁、飘落）
+- ✅ 优化装饰定位策略（bottom 负值 + 高 z-index）
+- ✅ 增强主题 CSS 文件（组件容器、粒子效果、交互动画）
+- ✅ 完善文档（装饰系统使用指南、最佳实践）
 
 ### v1.0.0 (2025-12-13)
 

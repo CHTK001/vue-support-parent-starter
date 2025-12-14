@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { emitter, usePermissionStoreHook, useMultiTagsStoreHook } from "@repo/core";
-import { indexedDBProxy, useDefer } from "@repo/utils";
+import { indexedDBProxy, localStorageProxy, useDefer } from "@repo/utils";
+import type { StorageConfigs } from "@repo/config";
+import { responsiveStorageNameSpace } from "@repo/config";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useNav } from "../../../hooks/useNav";
 import LaySidebarLeftCollapse from "./SidebarLeftCollapse.vue";
 import LaySidebarLogo from "./SidebarLogo.vue";
+
+// 导入主题装饰功能
+import ThemeDecoration from "../../ThemeDecoration.vue";
+import { getComponentDecorations } from "../../../themes/decorations";
+import type { DecorationConfig } from "../../../themes/decorations";
 
 // Props
 interface Props {
@@ -483,9 +490,23 @@ watch(
   }
 );
 
+// === 主题装饰功能 ===
+const currentTheme = ref<string>(
+  localStorageProxy().getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`
+  )?.systemTheme || 'default'
+);
+const sidebarDecorations = computed<DecorationConfig[]>(() => {
+  return getComponentDecorations(currentTheme.value, 'lay-sidebar');
+});
+
 onMounted(async () => {
   emitter.on("logoChange", (key) => {
     // 这里可以处理logo变化，但由于logo是通过props传入的，可能不需要
+  });
+  
+  emitter.on("systemThemeChange", (themeKey: string) => {
+    currentTheme.value = themeKey;
   });
 
   // 加载收藏菜单
@@ -497,6 +518,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   emitter.off("logoChange");
+  emitter.off("systemThemeChange");
   clearTimers(); // 清理定时器
 });
 
@@ -507,7 +529,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   <!-- 悬浮导航模式 -->
   <div
     :class="[
-      'sidebar-hover-container',
+      'sidebar-hover-container sidebar-hover-with-decoration',
       props.showLogo ? 'has-logo' : 'no-logo',
       isHoverCollapsed ? 'collapsed' : 'expanded',
     ]"
@@ -771,6 +793,15 @@ const defer = useDefer(firstLevelMenus.value.length);
     <LaySidebarLeftCollapse
       :is-active="!isHoverCollapsed"
       @toggleClick="toggleHoverSideBar"
+    />
+    
+    <!-- 主题装饰元素 -->
+    <ThemeDecoration
+      v-for="(decoration, index) in sidebarDecorations"
+      :key="`hover-nav-decoration-${index}`"
+      :config="decoration"
+      :index="index"
+      :visible="true"
     />
   </div>
 </template>

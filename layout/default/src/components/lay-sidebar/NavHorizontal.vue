@@ -1,14 +1,20 @@
 <script setup lang="ts">
 import { isAllEmpty } from "@pureadmin/utils";
-import { usePermissionStoreHook } from "@repo/core";
-import { computed, nextTick, ref, watch } from "vue";
+import { emitter, usePermissionStoreHook } from "@repo/core";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useNav } from "../../hooks/useNav";
 import { useTranslationLang } from "../../hooks/useTranslationLang";
 import LaySidebarItem from "./components/SidebarItem.vue";
 //@ts-ignore
-import { getConfig } from "@repo/config";
-import { useDefer } from "@repo/utils";
+import { getConfig, responsiveStorageNameSpace } from "@repo/config";
+import type { StorageConfigs } from "@repo/config";
+import { localStorageProxy, useDefer } from "@repo/utils";
 import LayTool from "../lay-tool/index.vue";
+
+// 导入主题装饰功能
+import ThemeDecoration from "../ThemeDecoration.vue";
+import { getComponentDecorations } from "../../themes/decorations";
+import type { DecorationConfig } from "../../themes/decorations";
 
 const menuRef = ref();
 
@@ -40,6 +46,26 @@ const defaultActive = computed(() =>
   !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path
 );
 
+// === 主题装饰功能 ===
+const currentTheme = ref<string>(
+  localStorageProxy().getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`
+  )?.systemTheme || 'default'
+);
+const sidebarDecorations = computed<DecorationConfig[]>(() => {
+  return getComponentDecorations(currentTheme.value, 'lay-sidebar');
+});
+
+onMounted(() => {
+  emitter.on("systemThemeChange", (themeKey: string) => {
+    currentTheme.value = themeKey;
+  });
+});
+
+onBeforeUnmount(() => {
+  emitter.off("systemThemeChange");
+});
+
 const defer = useDefer(usePermissionStoreHook().wholeMenus.length);
 nextTick(() => {
   menuRef.value?.handleResize();
@@ -49,7 +75,7 @@ nextTick(() => {
 <template>
   <div
     v-loading="usePermissionStoreHook().wholeMenus.length === 0"
-    class="horizontal-header"
+    class="horizontal-header horizontal-with-decoration"
   >
     <div class="horizontal-header-left" @click="backTopMenu">
       <img :src="getLogo()" alt="logo" />
@@ -78,6 +104,15 @@ nextTick(() => {
     <div class="horizontal-header-right">
       <LayTool />
     </div>
+    
+    <!-- 主题装饰元素 -->
+    <ThemeDecoration
+      v-for="(decoration, index) in sidebarDecorations"
+      :key="`horizontal-decoration-${index}`"
+      :config="decoration"
+      :index="index"
+      :visible="true"
+    />
   </div>
 </template>
 

@@ -1,3 +1,22 @@
+
+/* ========================================
+   组件级深度定制（全局选择器版本）
+   ======================================== */
+.theme-christmas .modern-navbar,
+.theme-christmas .lay-navbar { background: linear-gradient(135deg, #c41e3a 0%, #165b33 100%); border-bottom: 2px solid #ffd700; }
+.theme-christmas .header-container-with-decoration { background: linear-gradient(180deg, rgba(245,245,245,0.92), rgba(239,239,239,0.96)); }
+.theme-christmas .sidebar-container-with-decoration,
+.theme-christmas .sidebar-container { background: linear-gradient(180deg, rgba(245,245,245,0.98), rgba(239,239,239,0.98)); border-right: 2px solid rgba(196,30,58,0.08); }
+.theme-christmas .tags-view { background: linear-gradient(180deg, rgba(245,245,245,0.95), #fff); }
+.theme-christmas .tags-view .tab { border: 1px solid rgba(196,30,58,0.15); }
+.theme-christmas .tags-view .tab.is-active { border-color: #ffd700; }
+.theme-christmas .tool-bar .tool-item { border: 1px solid rgba(196,30,58,0.12); }
+.theme-christmas .app-main,
+.theme-christmas .app-main-nofixed-header { background-image: radial-gradient(circle at 10% 20%, rgba(196,30,58,0.04) 0%, transparent 50%), radial-gradient(circle at 92% 85%, rgba(22,91,51,0.05) 0%, transparent 55%); }
+.theme-christmas .lay-footer,
+.theme-christmas .footer-container { background: linear-gradient(180deg, rgba(245,245,245,0.95), rgba(239,239,239,0.95)); border-top: 2px solid rgba(196,30,58,0.08); }
+.theme-christmas .search-footer .icon { color: #c41e3a; }
+
 /**
  * 圣诞主题皮肤
  * @author CH
@@ -104,3 +123,36 @@
   z-index: 9999;
   pointer-events: none;
 }
+
+/* ========================================
+   组件级深度定制
+   ======================================== */
+.theme-christmas :deep(.modern-navbar),
+.theme-christmas :deep(.lay-navbar) {
+  background: linear-gradient(135deg, #c41e3a 0%, #165b33 100%);
+  border-bottom: 2px solid #ffd700;
+}
+.theme-christmas :deep(.header-container-with-decoration) {
+  background: linear-gradient(180deg, rgba(245,245,245,0.92), rgba(239,239,239,0.96));
+}
+.theme-christmas :deep(.sidebar-container-with-decoration),
+.theme-christmas :deep(.sidebar-container) {
+  background: linear-gradient(180deg, rgba(245,245,245,0.98), rgba(239,239,239,0.98));
+  border-right: 2px solid rgba(196,30,58,0.08);
+}
+.theme-christmas :deep(.tags-view) { background: linear-gradient(180deg, rgba(245,245,245,0.95), #fff); }
+.theme-christmas :deep(.tags-view .tab) { border: 1px solid rgba(196,30,58,0.15); }
+.theme-christmas :deep(.tags-view .tab.is-active) { border-color: #ffd700; }
+.theme-christmas :deep(.tool-bar .tool-item) { border: 1px solid rgba(196,30,58,0.12); }
+.theme-christmas :deep(.app-main),
+.theme-christmas :deep(.app-main-nofixed-header) {
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(196,30,58,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 92% 85%, rgba(22,91,51,0.05) 0%, transparent 55%);
+}
+.theme-christmas :deep(.lay-footer),
+.theme-christmas :deep(.footer-container) {
+  background: linear-gradient(180deg, rgba(245,245,245,0.95), rgba(239,239,239,0.95));
+  border-top: 2px solid rgba(196,30,58,0.08);
+}
+.theme-christmas :deep(.search-footer .icon) { color: #c41e3a; }

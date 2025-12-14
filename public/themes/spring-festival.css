@@ -106,38 +106,30 @@
     box-shadow: 0 2px 8px rgba(245, 34, 45, 0.5);
 }
 
-/* 春节主题 - 灯笼装饰容器 */
-.theme-spring-festival .spring-festival-lanterns {
-    display: flex !important;
-    position: fixed;
-    top: 48px;
-    left: 0;
-    right: 0;
-    height: 80px;
-    justify-content: space-around;
-    align-items: flex-start;
-    pointer-events: none;
-    z-index: 999;
-    padding: 0 10%;
-}
-
-/* 灯笼元素 */
-.theme-spring-festival .spring-festival-lanterns::before,
-.theme-spring-festival .spring-festival-lanterns::after {
+/* 春节主题 - 左侧灯笼装饰 */
+.theme-spring-festival body::before {
     content: "🏮";
+    position: fixed;
+    top: 60px;
+    left: 5%;
     font-size: 48px;
     animation: lanternSwing 3s ease-in-out infinite;
     filter: drop-shadow(0 4px 12px rgba(245, 34, 45, 0.6));
+    pointer-events: none;
+    z-index: 9998;
 }
 
-/* 左侧灯笼延迟动画 */
-.theme-spring-festival .spring-festival-lanterns::before {
-    animation-delay: 0s;
-}
-
-/* 右侧灯笼延迟动画 */
-.theme-spring-festival .spring-festival-lanterns::after {
-    animation-delay: 1.5s;
+/* 春节主题 - 右侧灯笼装饰 */
+.theme-spring-festival body::after {
+    content: "🏮";
+    position: fixed;
+    top: 60px;
+    right: 5%;
+    font-size: 48px;
+    animation: lanternSwing 3s ease-in-out infinite 1.5s;
+    filter: drop-shadow(0 4px 12px rgba(245, 34, 45, 0.6));
+    pointer-events: none;
+    z-index: 9998;
 }
 
 /* 灯笼摆动动画 */

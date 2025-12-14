@@ -11,7 +11,6 @@ import {
   onMounted,
   onBeforeUnmount,
   ref,
-  Transition,
 } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
@@ -101,18 +100,6 @@ const getSectionStyle = computed(() => {
   }
 
   return [
-    hideTabs.value && isVerticalLayout.value ? "padding-top: 48px;" : "",
-    !hideTabs.value && isVerticalLayout.value
-      ? showModel.value == "chrome"
-        ? "padding-top: 85px;"
-        : "padding-top: 81px;"
-      : "",
-    hideTabs.value && !isVerticalLayout.value ? "padding-top: 48px;" : "",
-    !hideTabs.value && !isVerticalLayout.value
-      ? showModel.value == "chrome"
-        ? "padding-top: 85px;"
-        : "padding-top: 81px;"
-      : "",
     props.fixedHeader
       ? ""
       : `padding-top: 0;${hideTabs.value ? "min-height: calc(100vh - 48px);" : "min-height: calc(100vh - 86px);"}`,
@@ -135,6 +122,7 @@ onMounted(() => {
   });
 });
 
+// 禁用过渡动画，直接渲染内容
 const transitionMain = defineComponent({
   props: {
     route: {
@@ -143,41 +131,8 @@ const transitionMain = defineComponent({
     },
   },
   render() {
-    const menuTransition = $storage.configure.menuTransition;
-    const transitionName = menuTransition
-      ? transitions.value(this.route)?.name || "fade-transform"
-      : "";
-    const enterTransition = menuTransition
-      ? transitions.value(this.route)?.enterTransition
-      : "";
-    const leaveTransition = menuTransition
-      ? transitions.value(this.route)?.leaveTransition
-      : "";
-    return h(
-      Transition,
-      {
-        name: !menuTransition
-          ? ""
-          : enterTransition
-            ? "pure-classes-transition"
-            : transitionName,
-        enterActiveClass: !menuTransition
-          ? ""
-          : enterTransition
-            ? `animate__animated ${enterTransition}`
-            : undefined,
-        leaveActiveClass: !menuTransition
-          ? ""
-          : leaveTransition
-            ? `animate__animated ${leaveTransition}`
-            : undefined,
-        mode: "in-out",
-        appear: false,
-      },
-      {
-        default: () => [this.$slots.default()],
-      }
-    );
+    // 直接返回内容，不使用 Transition 组件
+    return this.$slots.default?.();
   },
 });
 
@@ -380,8 +335,9 @@ const router = useRouter();
 .app-main {
   position: relative;
   width: 100%;
-  height: 100vh;
+  height: 100%;
   overflow-x: hidden;
+  z-index: 1; // 降低层级，让标签栏装饰可见
   background: var(--el-bg-color-page);
   transition: background-color 0.2s ease;
 
@@ -406,6 +362,7 @@ const router = useRouter();
 .main-content {
   height: 100%;
   position: relative;
+  z-index: 1; // 降低内容区层级
   background: transparent;
   transition: opacity 0.2s ease;
 }
@@ -482,18 +439,5 @@ const router = useRouter();
   }
 }
 
-:deep(.fade-transform-enter-active),
-:deep(.fade-transform-leave-active) {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-:deep(.fade-transform-enter-from) {
-  opacity: 0;
-  transform: translateX(10px);
-}
-
-:deep(.fade-transform-leave-to) {
-  opacity: 0;
-  transform: translateX(-10px);
-}
+/* 移除冗余的过渡样式定义，使用全局的 transition.scss */
 </style>

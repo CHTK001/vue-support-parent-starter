@@ -28,32 +28,30 @@
 
     <!-- 表格区域 -->
     <div class="flex-1 overflow-hidden">
-      <el-card shadow="never" class="h-full">
-        <ScTable ref="tableRef" :url="fetchData" fixed :filter="filter" height="100%">
-          <el-table-column type="index" label="#" width="60" align="center" />
-          <el-table-column label="类名" prop="name" min-width="300">
-            <template #default="{ row }">
-              <div class="flex items-center gap-2">
-                <IconifyIconOnline icon="ri:code-box-line" class="text-primary" />
-                <span v-html="row.name" class="font-mono text-sm" />
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="已加载数" prop="count" width="120" align="center">
-            <template #default="{ row }">
-              <el-tag type="info" size="small">{{ row.count }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120" align="center" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="handleView(row)">
-                <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
-                查看
-              </el-button>
-            </template>
-          </el-table-column>
-        </ScTable>
-      </el-card>
+      <ScTable ref="tableRef" :url="fetchData" fixed :filter="filter" :page-size="10" height="100%">
+        <el-table-column type="index" label="#" width="60" align="center" />
+        <el-table-column label="类名" prop="name" min-width="300">
+          <template #default="{ row }">
+            <div class="flex items-center gap-2">
+              <IconifyIconOnline icon="ri:code-box-line" class="text-primary" />
+              <span v-html="row.name" class="font-mono text-sm" />
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="已加载数" prop="count" width="120" align="center">
+          <template #default="{ row }">
+            <el-tag type="info" size="small">{{ row.count }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="120" align="center" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="handleView(row)">
+              <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
+              查看
+            </el-button>
+          </template>
+        </el-table-column>
+      </ScTable>
     </div>
 
     <el-dialog v-model="config.visibleCfrVisible" title="详情" draggable :close-on-click-modal="false" @close="handleClose">

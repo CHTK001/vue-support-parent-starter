@@ -12,7 +12,9 @@ import Check from "@iconify-icons/ep/check";
 import Restore from "@iconify-icons/line-md/backup-restore";
 import { getConfig } from "@repo/config";
 import { useDefer } from "@repo/utils";
-import { router } from "@repo/core";
+import { router, emitter } from "@repo/core";
+import { ref, onBeforeUnmount } from "vue";
+import { useGlobal } from "@pureadmin/utils";
 
 const {
   logout,
@@ -25,6 +27,23 @@ const {
 
 const { t, locale, translationCh, translationEn } = useTranslationLang();
 const deferLang = useDefer(2);
+
+// 获取当前主题
+const { $storage } = useGlobal<GlobalPropertiesApi>();
+const currentTheme = ref<string>($storage.configure?.systemTheme || 'default');
+
+// 监听主题切换
+emitter.on("systemThemeChange", (themeKey: string) => {
+  currentTheme.value = themeKey;
+});
+
+// 判断是否为春节主题
+const isSpringFestival = () => currentTheme.value === 'spring-festival';
+
+// 清理事件监听
+onBeforeUnmount(() => {
+  emitter.off("systemThemeChange");
+});
 
 /**
  * 跳转到账户设置页面
@@ -227,11 +246,12 @@ const gotoAccountSetting = () => {
     <!-- 系统设置 -->
     <span
       v-if="getConfig().ShowBarSetting"
-      class="tool-item setting-btn"
+      :class="['tool-item', 'setting-btn', { 'fu-setting': isSpringFestival() }]"
       :title="t('buttons.pureOpenSystemSet')"
       @click="onPanel"
     >
-      <IconifyIconOffline :icon="Setting" />
+      <template v-if="isSpringFestival()">福</template>
+      <IconifyIconOffline v-else :icon="Setting" />
     </span>
   </div>
 </template>
@@ -311,6 +331,123 @@ const gotoAccountSetting = () => {
     :deep(svg) {
       animation: spin 3s linear infinite;
     }
+  }
+}
+
+.fu-setting {
+  font-family: 'STKaiti', 'KaiTi', 'SimKai', serif;
+  font-size: 18px;
+  font-weight: 900;
+  color: #DC143C;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(220, 20, 60, 0.1));
+  border: 1.5px solid rgba(220, 20, 60, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.3), rgba(220, 20, 60, 0.15));
+    color: #B22222;
+    border-color: rgba(220, 20, 60, 0.5);
+    animation: fu-glow 2s ease-in-out infinite;
+  }
+}
+
+/* 春节主题下的福字设置按钮 - 增强对比度 */
+html.theme-spring-festival .fu-setting,
+html[data-skin="spring-festival"] .fu-setting {
+  color: #FFD700 !important;
+  background: linear-gradient(135deg, rgba(139, 0, 0, 0.9), rgba(178, 34, 34, 0.85)) !important;
+  border: 2px solid rgba(255, 215, 0, 0.6) !important;
+  text-shadow: 
+    0 0 8px rgba(255, 215, 0, 0.8),
+    0 2px 4px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 
+    0 2px 8px rgba(220, 20, 60, 0.4),
+    inset 0 1px 2px rgba(255, 215, 0, 0.3) !important;
+
+  &:hover {
+    background: radial-gradient(circle, rgba(220, 20, 60, 0.95), rgba(139, 0, 0, 0.9)) !important;
+    color: #FFF !important;
+    border-color: rgba(255, 215, 0, 0.9) !important;
+    box-shadow: 
+      0 4px 16px rgba(255, 215, 0, 0.5),
+      inset 0 1px 2px rgba(255, 255, 255, 0.3) !important;
+  }
+}
+
+/* 春节主题下的搜索按钮 - 与设置按钮一致 */
+html[data-skin="spring-festival"] #header-search {
+  color: #FFD700 !important;
+  background: linear-gradient(135deg, rgba(139, 0, 0, 0.9), rgba(178, 34, 34, 0.85)) !important;
+  border: 2px solid rgba(255, 215, 0, 0.6) !important;
+  box-shadow: 
+    0 2px 8px rgba(220, 20, 60, 0.4),
+    inset 0 1px 2px rgba(255, 215, 0, 0.3) !important;
+
+  svg {
+    color: #FFD700 !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)) !important;
+  }
+
+  &:hover {
+    background: radial-gradient(circle, rgba(220, 20, 60, 0.95), rgba(139, 0, 0, 0.9)) !important;
+    color: #FFF !important;
+    border-color: rgba(255, 215, 0, 0.9) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 
+      0 4px 16px rgba(255, 215, 0, 0.5),
+      inset 0 1px 2px rgba(255, 255, 255, 0.3) !important;
+
+    svg {
+      color: #FFF !important;
+      filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.6)) !important;
+    }
+  }
+
+  &:active {
+    transform: translateY(0) !important;
+  }
+}
+
+/* 春节主题下的全屏按钮 - 与设置按钮一致 */
+html[data-skin="spring-festival"] #full-screen {
+  color: #FFD700 !important;
+  background: linear-gradient(135deg, rgba(139, 0, 0, 0.9), rgba(178, 34, 34, 0.85)) !important;
+  border: 2px solid rgba(255, 215, 0, 0.6) !important;
+  box-shadow: 
+    0 2px 8px rgba(220, 20, 60, 0.4),
+    inset 0 1px 2px rgba(255, 215, 0, 0.3) !important;
+
+  svg {
+    color: #FFD700 !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)) !important;
+  }
+
+  &:hover {
+    background: radial-gradient(circle, rgba(220, 20, 60, 0.95), rgba(139, 0, 0, 0.9)) !important;
+    color: #FFF !important;
+    border-color: rgba(255, 215, 0, 0.9) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 
+      0 4px 16px rgba(255, 215, 0, 0.5),
+      inset 0 1px 2px rgba(255, 255, 255, 0.3) !important;
+
+    svg {
+      color: #FFF !important;
+      filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.6)) !important;
+    }
+  }
+
+  &:active {
+    transform: translateY(0) !important;
+  }
+}
+
+@keyframes fu-glow {
+  0%, 100% {
+    text-shadow: 0 0 8px rgba(220, 20, 60, 0.6), 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    text-shadow: 0 0 16px rgba(220, 20, 60, 0.8), 0 0 24px rgba(255, 215, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 }
 

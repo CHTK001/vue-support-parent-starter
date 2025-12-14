@@ -300,7 +300,21 @@ function getNewUrl(reg) {
   return url;
 }
 
-onBeforeMount(async () => {
+// 应用初始主题 - 只在应用首次加载时执行
+// 在 setup 顶层执行，但不使用异步导入
+if (!window.__THEME_INITIALIZED__) {
+  try {
+    // 直接操作 DOM，不依赖模块导入
+    const systemTheme = $storage?.configure?.systemTheme || 'default';
+    console.log('🎨 首次初始化主题:', systemTheme);
+    document.documentElement.setAttribute('data-skin', systemTheme);
+    window.__THEME_INITIALIZED__ = true;
+  } catch (error) {
+    console.error('主题初始化失败:', error);
+  }
+}
+
+onBeforeMount(() => {
   // 处理URL参数
   let url = getNewUrl(/[^\w](redirectParam)=?([^&|^#]*)/g);
   if (url != document.location.href) {
@@ -316,8 +330,8 @@ onBeforeMount(async () => {
   if ($storage?.layout?.layout) {
     document.body.setAttribute("layout", $storage.layout.layout);
   }
-
-  // 应用主题
+  
+  // 应用颜色主题（light/dark）
   useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);
 });
 
@@ -351,10 +365,6 @@ const LayHeader = defineComponent({
             : null,
           // 移动导航模式下不显示标签页
           layout.value !== "mobile" ? h(markRaw(LayTag)) : null,
-          // 春节灯笼装饰
-          h('div', {
-            class: 'spring-festival-lanterns'
-          }),
         ],
       }
     );
@@ -437,11 +447,7 @@ const LayHeader = defineComponent({
       <NavMobile>
         <div class="mobile-main-container">
           <LayHeader />
-          <Suspense>
-            <template #default>
-              <LayContent :fixed-header="true" />
-            </template>
-          </Suspense>
+          <LayContent :fixed-header="true" />
         </div>
       </NavMobile>
     </template>
@@ -456,24 +462,20 @@ const LayHeader = defineComponent({
       <div class="double-layout-container">
         <NavDouble v-show="!pureSetting.hiddenSideBar" />
         <div
-          :class="[
+:class="[
             'main-container',
             'double-main',
             pureSetting.hiddenSideBar ? 'main-hidden' : '',
           ]"
         >
-          <div v-if="set.fixedHeader">
+          <div v-if="set.fixedHeader" style="display: flex; flex-direction: column; flex: 1">
             <LayHeader />
             <!-- 主体内容 -->
-            <Suspense>
-              <template #default>
-                <div>
-                  <LayContent :fixed-header="set.fixedHeader" />
-                </div>
-              </template>
-            </Suspense>
+            <div style="flex: 1">
+              <LayContent :fixed-header="set.fixedHeader" />
+            </div>
           </div>
-          <el-scrollbar v-else>
+          <el-scrollbar v-else style="flex: 1">
             <el-backtop
               :title="t('buttons.pureBackTop')"
               target=".main-container .el-scrollbar__wrap"
@@ -482,13 +484,9 @@ const LayHeader = defineComponent({
             </el-backtop>
             <LayHeader />
             <!-- 主体内容 -->
-            <Suspense>
-              <template #default>
-                <div>
-                  <LayContent :fixed-header="set.fixedHeader" />
-                </div>
-              </template>
-            </Suspense>
+            <div style="flex: 1">
+              <LayContent :fixed-header="set.fixedHeader" />
+            </div>
           </el-scrollbar>
         </div>
       </div>
@@ -509,23 +507,19 @@ const LayHeader = defineComponent({
       />
       <NavHover v-show="!pureSetting.hiddenSideBar && layout === 'hover'" />
       <div
-        :class="[
+:class="[
           'main-container',
           pureSetting.hiddenSideBar ? 'main-hidden' : '',
         ]"
       >
-        <div v-if="set.fixedHeader">
+        <div v-if="set.fixedHeader" style="display: flex; flex-direction: column; flex: 1">
           <LayHeader />
           <!-- 主体内容 -->
-          <Suspense>
-            <template #default>
-              <div>
-                <LayContent :fixed-header="set.fixedHeader" />
-              </div>
-            </template>
-          </Suspense>
+          <div style="flex: 1">
+            <LayContent :fixed-header="set.fixedHeader" />
+          </div>
         </div>
-        <el-scrollbar v-else>
+        <el-scrollbar v-else style="flex: 1">
           <el-backtop
             :title="t('buttons.pureBackTop')"
             target=".main-container .el-scrollbar__wrap"
@@ -534,13 +528,9 @@ const LayHeader = defineComponent({
           </el-backtop>
           <LayHeader />
           <!-- 主体内容 -->
-          <Suspense>
-            <template #default>
-              <div>
-                <LayContent :fixed-header="set.fixedHeader" />
-              </div>
-            </template>
-          </Suspense>
+          <div style="flex: 1">
+            <LayContent :fixed-header="set.fixedHeader" />
+          </div>
         </el-scrollbar>
       </div>
     </template>
@@ -561,18 +551,18 @@ const LayHeader = defineComponent({
   --un-shadow: var(--tab-box-shadow-v2);
   box-shadow:
     var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
+  padding: 0 !important;
+}
+
+.fixed-header {
+  padding: 0 !important;
 }
 
 .app-wrapper {
   position: relative;
+  display: flex;
   width: 100%;
   height: 100%;
-
-  &::after {
-    display: table;
-    clear: both;
-    content: "";
-  }
 
   &.mobile.openSidebar {
     position: fixed;
@@ -604,6 +594,14 @@ const LayHeader = defineComponent({
 
 .bg-bg_color {
   background-color: var(--el-bg-color) !important;
+}
+
+// 主容器样式
+.main-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 
 // 双栏导航布局容器
@@ -1448,9 +1446,6 @@ const LayHeader = defineComponent({
   overflow: hidden;
 
   :deep(.fixed-header) {
-    position: sticky;
-    top: 0;
-    z-index: 100;
     width: 100% !important;
     margin-left: 0 !important;
   }
@@ -1494,13 +1489,6 @@ const LayHeader = defineComponent({
   --theme-background: #f0f8ff;
 }
 
-// 国庆主题
-:global(.theme-national-day) {
-  --theme-primary: #fa541c;
-  --theme-secondary: #ff7a45;
-  --theme-accent: #ffd700;
-  --theme-background: #fff7f0;
-}
 
 // 元旦主题
 :global(.theme-new-year) {

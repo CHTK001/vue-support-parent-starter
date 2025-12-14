@@ -7,7 +7,7 @@ export default {
   redirect: "/hotspot/process",
   meta: {
     icon: "simple-icons:traccar",
-    title: "hotspot",
+    title: "后台管理",
     rank: 1
   },
   children: [
@@ -82,12 +82,42 @@ export default {
       }
     },
     {
-      path: "/hotspot/table",
-      name: "HotspotTable",
-      component: () => import("@/views/hotspot/table/index.vue"),
+      path: "/hotspot/httpPerf",
+      name: "HotspotHttpPerf",
+      component: () => import("@/views/hotspot/httpPerf/index.vue"),
       meta: {
-        icon: "ri:table-2",
-        title: "表管理",
+        icon: "mdi:speedometer",
+        title: "HTTP性能",
+        showParent: true
+      }
+    },
+    {
+      path: "/hotspot/exceptions",
+      name: "HotspotExceptions",
+      component: () => import("@/views/hotspot/exceptions/index.vue"),
+      meta: {
+        icon: "mdi:alert-circle",
+        title: "异常监控",
+        showParent: true
+      }
+    },
+    {
+      path: "/hotspot/jfr",
+      name: "HotspotJfr",
+      component: () => import("@/views/hotspot/jfr/index.vue"),
+      meta: {
+        icon: "mdi:rocket-launch",
+        title: "JFR监控",
+        showParent: true
+      }
+    },
+    {
+      path: "/hotspot/arthas",
+      name: "HotspotArthas",
+      component: () => import("@/views/hotspot/arthas/index.vue"),
+      meta: {
+        icon: "mdi:wrench",
+        title: "Arthas诊断",
         showParent: true
       }
     },

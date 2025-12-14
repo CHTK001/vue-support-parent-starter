@@ -1,0 +1,1059 @@
+/**
+ * 春节主题样式
+ * 继承 default.scss 中的基础样式
+ */
+
+// 使用 data-skin 属性选择器
+html[data-skin="spring-festival"] {
+  // Header 容器样式 - 继承默认并修改为红色
+  .header-container-with-decoration,
+  div.header-container-with-decoration {
+    @extend %header-container-base;
+    background: linear-gradient(180deg, #DC143C, #B22222) !important;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.3) !important;
+    box-shadow: 0 2px 8px rgba(139, 0, 0, 0.3) !important;
+    
+    // 金色顶边
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(to right, 
+        transparent, 
+        #FFD700 10%, 
+        #FFA500 50%, 
+        #FFD700 90%, 
+        transparent
+      );
+      z-index: 1;
+    }
+
+    &.shadow-tab {
+      box-shadow: 0 2px 8px rgba(139, 0, 0, 0.3);
+    }
+  }
+
+  // Navbar 样式 - 与 tag 标签完全一致的红色渐变 (匹配 BaseNavbar 结构)
+  // 多个选择器确保能匹配到
+  .base-navbar.spring-festival-navbar,
+  .spring-festival-navbar,
+  div.spring-festival-navbar,
+  div.base-navbar.spring-festival-navbar,
+  .base-navbar[class*="spring-festival"],
+  [class*="spring-festival-navbar"] {
+    @extend %navbar-base;
+    // 与 tag 标签完全相同: linear-gradient(180deg, #DC143C, #B22222)
+    background: linear-gradient(180deg, #DC143C, #B22222) !important;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.3) !important;
+    position: relative;
+    
+    // 装饰纹样
+    .decor-pattern {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 50px,
+        rgba(255, 215, 0, 0.05) 50px,
+        rgba(255, 215, 0, 0.05) 51px
+      );
+      pointer-events: none;
+    }
+    
+    .hamburger-container {
+      height: 40px;
+      line-height: 40px;
+      cursor: pointer;
+      padding: 0 16px;
+      margin: 0 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: all 0.2s ease;
+      z-index: 10;
+      color: #fff;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 215, 0, 0.5);
+      }
+    }
+    
+    .vertical-header-right {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 280px;
+      padding-right: 0 !important; // 移除右侧 padding
+      gap: 12px;
+      margin-left: auto;
+      z-index: 10;
+      
+      // 工具按钮美化 - 与福字一样的样式（红色背景金色文字）
+      :deep(.tool-item) {
+        background: linear-gradient(180deg, #DC143C, #B22222);
+        border: 2px solid rgba(255, 215, 0, 0.6);
+        color: #FFD700;
+        font-weight: 700;
+        backdrop-filter: blur(8px);
+        box-shadow: 
+          0 2px 8px rgba(0, 0, 0, 0.3),
+          0 0 0 1px rgba(255, 215, 0, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        
+        &:hover {
+          background: linear-gradient(180deg, #FF1744, #DC143C);
+          border-color: rgba(255, 215, 0, 0.8);
+          color: #FFF;
+          box-shadow: 
+            0 4px 16px rgba(255, 215, 0, 0.5),
+            0 2px 8px rgba(220, 20, 60, 0.4),
+            inset 0 2px 4px rgba(255, 255, 255, 0.3);
+          transform: translateY(-2px);
+        }
+        
+        &:active {
+          transform: translateY(0);
+        }
+        
+        svg {
+          color: #FFD700;
+          filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+        }
+        
+        &:hover svg {
+          color: #FFF;
+          filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.6));
+        }
+      }
+      
+      // 搜索按钮 - 红色底金色边，与设置按钮一致
+      #header-search,
+      :deep(#header-search) {
+        color: #FFD700 !important;
+        background: linear-gradient(135deg, rgba(139, 0, 0, 0.9), rgba(178, 34, 34, 0.85)) !important;
+        border: 2px solid rgba(255, 215, 0, 0.6) !important;
+        box-shadow: 
+          0 2px 8px rgba(220, 20, 60, 0.4),
+          inset 0 1px 2px rgba(255, 215, 0, 0.3) !important;
+        
+        svg {
+          color: #FFD700 !important;
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)) !important;
+          transition: all 0.3s ease !important;
+        }
+        
+        &:hover {
+          background: radial-gradient(circle, rgba(220, 20, 60, 0.95), rgba(139, 0, 0, 0.9)) !important;
+          color: #FFF !important;
+          border-color: rgba(255, 215, 0, 0.9) !important;
+          transform: translateY(-2px) !important;
+          box-shadow: 
+            0 4px 16px rgba(255, 215, 0, 0.5),
+            inset 0 1px 2px rgba(255, 255, 255, 0.3) !important;
+          
+          svg {
+            color: #FFF !important;
+            filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.6)) !important;
+          }
+        }
+        
+        &:active {
+          transform: translateY(0) !important;
+        }
+      }
+      
+      // 全屏按钮 - 红色底金色边，与设置按钮一致
+      #full-screen,
+      :deep(#full-screen) {
+        color: #FFD700 !important;
+        background: linear-gradient(135deg, rgba(139, 0, 0, 0.9), rgba(178, 34, 34, 0.85)) !important;
+        border: 2px solid rgba(255, 215, 0, 0.6) !important;
+        box-shadow: 
+          0 2px 8px rgba(220, 20, 60, 0.4),
+          inset 0 1px 2px rgba(255, 215, 0, 0.3) !important;
+        
+        svg {
+          color: #FFD700 !important;
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)) !important;
+          transition: all 0.3s ease !important;
+        }
+        
+        &:hover {
+          background: radial-gradient(circle, rgba(220, 20, 60, 0.95), rgba(139, 0, 0, 0.9)) !important;
+          color: #FFF !important;
+          border-color: rgba(255, 215, 0, 0.9) !important;
+          transform: translateY(-2px) !important;
+          box-shadow: 
+            0 4px 16px rgba(255, 215, 0, 0.5),
+            inset 0 1px 2px rgba(255, 255, 255, 0.3) !important;
+          
+          svg {
+            color: #FFF !important;
+            filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.6)) !important;
+          }
+        }
+        
+        &:active {
+          transform: translateY(0) !important;
+        }
+      }
+    }
+    
+    .breadcrumb-container {
+      margin-left: 20px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      border-radius: 19px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 250, 240, 0.95));
+      backdrop-filter: blur(10px);
+      box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 215, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      border: 1.5px solid rgba(255, 215, 0, 0.4);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 10;
+      
+      &:hover {
+        box-shadow: 
+          0 4px 16px rgba(255, 215, 0, 0.4),
+          0 2px 8px rgba(220, 20, 60, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 1);
+        transform: translateY(-2px);
+        border-color: rgba(255, 215, 0, 0.6);
+      }
+      
+      // 面包屑内容样式
+      :deep(.el-breadcrumb__item) {
+        .el-breadcrumb__inner {
+          color: #8B0000;
+          font-weight: 600;
+          transition: all 0.2s ease;
+          
+          &:hover {
+            color: #DC143C;
+          }
+        }
+        
+        &:last-child .el-breadcrumb__inner {
+          color: #DC143C;
+          font-weight: 700;
+        }
+      }
+      
+      :deep(.el-breadcrumb__separator) {
+        color: rgba(220, 20, 60, 0.5);
+        font-weight: 700;
+      }
+    }
+  }
+  
+  // Sidebar 容器样式
+  .sidebar-container-with-decoration,
+  .sidebar-container {
+    background: linear-gradient(135deg, rgba(220, 20, 60, 0.98) 0%, rgba(178, 34, 34, 0.98) 100%) !important;
+    border-right: 2px solid rgba(255, 215, 0, 0.3) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    
+    // 菜单项样式
+    :deep(.el-menu) {
+      background: transparent !important;
+      border-right: none;
+    }
+    
+    :deep(.el-menu-item),
+    :deep(.el-sub-menu__title) {
+      color: #FFD700 !important;
+      background: linear-gradient(135deg, rgba(220, 20, 60, 0.6) 0%, rgba(178, 34, 34, 0.6) 100%) !important;
+      margin: 4px 8px;
+      border-radius: 8px;
+      position: relative;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(255, 215, 0, 0.2) !important;
+      
+      &:hover {
+        background: linear-gradient(135deg, rgba(220, 20, 60, 0.8) 0%, rgba(178, 34, 34, 0.8) 100%) !important;
+        color: #FFF !important;
+        border-color: rgba(255, 215, 0, 0.4) !important;
+        transform: translateX(2px);
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, rgba(220, 20, 60, 0.95) 0%, rgba(178, 34, 34, 0.95) 100%) !important;
+        color: #FFF !important;
+        border: 2px solid rgba(255, 215, 0, 0.6) !important;
+        box-shadow: 
+          0 2px 8px rgba(0, 0, 0, 0.3),
+          0 0 0 1px rgba(255, 215, 0, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        
+        // 左侧春联装饰
+        &::before {
+          content: '';
+          position: absolute;
+          left: -8px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 6px;
+          height: 80%;
+          background: linear-gradient(to bottom, #FFD700, #FFA500);
+          border-radius: 3px;
+          box-shadow: 
+            0 0 8px rgba(255, 215, 0, 0.6),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        
+        // 底部小灯笼装饰
+        &::after {
+          content: '🏮';
+          position: absolute;
+          bottom: -4px;
+          right: 8px;
+          font-size: 12px;
+          animation: swingLantern 3s ease-in-out infinite;
+          filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.4));
+        }
+      }
+      
+      .el-icon,
+      svg {
+        color: #FFD700 !important;
+      }
+      
+      &:hover .el-icon,
+      &:hover svg,
+      &.is-active .el-icon,
+      &.is-active svg {
+        color: #FFF !important;
+      }
+      
+      span,
+      div {
+        color: inherit !important;
+      }
+    }
+    
+    // 子菜单展开后的样式
+    :deep(.el-sub-menu) {
+      .el-menu {
+        background: rgba(0, 0, 0, 0.1) !important;
+        
+        .el-menu-item {
+          padding-left: 40px !important;
+          
+          &.is-active {
+            &::before {
+              left: -4px;
+              width: 4px;
+              height: 60%;
+            }
+            
+            &::after {
+              font-size: 10px;
+              bottom: -3px;
+              right: 6px;
+            }
+          }
+        }
+      }
+    }
+    
+    // 滚动条样式
+    :deep(.el-scrollbar__bar) {
+      background: rgba(255, 215, 0, 0.3);
+      
+      &.is-horizontal {
+        display: none;
+      }
+    }
+  }
+  
+  // 灯笼摆动动画
+  @keyframes swingLantern {
+    0%, 100% {
+      transform: rotate(-5deg);
+    }
+    50% {
+      transform: rotate(5deg);
+    }
+  }
+  
+  // Tag 标签页样式
+  .tags-view {
+    background: linear-gradient(135deg, rgba(220, 20, 60, 0.95) 0%, rgba(178, 34, 34, 0.95) 100%) !important;
+    border-top: 2px solid rgba(255, 215, 0, 0.3) !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2) !important;
+    
+    // 左右箭头按钮
+    .arrow-left,
+    .arrow-right {
+      background: linear-gradient(135deg, #DC143C, #B22222) !important;
+      border: 2px solid rgba(255, 215, 0, 0.6) !important;
+      color: #FFD700 !important;
+      width: 32px !important;
+      height: 32px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 50% !important;
+      cursor: pointer !important;
+      transition: all 0.3s ease !important;
+      box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 215, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+      z-index: 10 !important;
+      
+      svg {
+        color: #FFD700 !important;
+        font-size: 18px !important;
+        filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5)) !important;
+      }
+      
+      &:hover {
+        background: linear-gradient(135deg, #FF1744, #DC143C) !important;
+        border-color: rgba(255, 215, 0, 0.8) !important;
+        transform: scale(1.1) !important;
+        box-shadow: 
+          0 4px 16px rgba(255, 215, 0, 0.5),
+          0 2px 8px rgba(220, 20, 60, 0.4),
+          inset 0 2px 4px rgba(255, 255, 255, 0.3) !important;
+        
+        svg {
+          color: #FFF !important;
+          filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.6)) !important;
+        }
+      }
+      
+      &:active {
+        transform: scale(1) !important;
+      }
+    }
+    
+    .arrow-left {
+      position: absolute !important;
+      left: 8px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      
+      &:hover {
+        transform: translateY(-50%) scale(1.1) !important;
+      }
+      
+      &:active {
+        transform: translateY(-50%) scale(1) !important;
+      }
+    }
+    
+    .arrow-right {
+      position: absolute !important;
+      right: 48px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      
+      &:hover {
+        transform: translateY(-50%) scale(1.1) !important;
+      }
+      
+      &:active {
+        transform: translateY(-50%) scale(1) !important;
+      }
+    }
+    
+    // 下拉菜单按钮
+    .arrow-down {
+      background: linear-gradient(135deg, #DC143C, #B22222) !important;
+      border: 2px solid rgba(255, 215, 0, 0.6) !important;
+      color: #FFD700 !important;
+      width: 32px !important;
+      height: 32px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 50% !important;
+      cursor: pointer !important;
+      transition: all 0.3s ease !important;
+      box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 215, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+      
+      svg {
+        color: #FFD700 !important;
+        font-size: 18px !important;
+        filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5)) !important;
+      }
+      
+      &:hover {
+        background: linear-gradient(135deg, #FF1744, #DC143C) !important;
+        border-color: rgba(255, 215, 0, 0.8) !important;
+        transform: scale(1.1) !important;
+        box-shadow: 
+          0 4px 16px rgba(255, 215, 0, 0.5),
+          0 2px 8px rgba(220, 20, 60, 0.4),
+          inset 0 2px 4px rgba(255, 255, 255, 0.3) !important;
+        
+        svg {
+          color: #FFF !important;
+          filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.6)) !important;
+        }
+      }
+      
+      &:active {
+        transform: scale(1) !important;
+      }
+    }
+    
+    // 标签项样式
+    .scroll-item {
+      background: linear-gradient(135deg, rgba(220, 20, 60, 0.8), rgba(178, 34, 34, 0.8)) !important;
+      color: #FFD700 !important;
+      border: 1px solid rgba(255, 215, 0, 0.4) !important;
+      margin: 0 4px !important;
+      transition: all 0.3s ease !important;
+      
+      &:hover {
+        background: linear-gradient(135deg, rgba(220, 20, 60, 0.9), rgba(178, 34, 34, 0.9)) !important;
+        border-color: rgba(255, 215, 0, 0.6) !important;
+        transform: translateY(-2px) !important;
+      }
+      
+      &.active {
+        background: linear-gradient(135deg, #DC143C, #B22222) !important;
+        color: #FFF !important;
+        border-color: #FFD700 !important;
+        box-shadow: 
+          0 2px 8px rgba(0, 0, 0, 0.3),
+          0 0 0 1px rgba(255, 215, 0, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+      }
+      
+      .tag-icon,
+      .tag-title {
+        color: inherit !important;
+      }
+      
+      .el-icon-close {
+        color: #FFD700 !important;
+        transition: all 0.3s ease !important;
+        
+        &:hover {
+          color: #FFF !important;
+          background: rgba(255, 255, 255, 0.2) !important;
+          border-radius: 50% !important;
+        }
+      }
+    }
+  }
+  
+  // Logo 区域样式 - 增强选择器权重
+  .sidebar-logo-container,
+  div.sidebar-logo-container {
+    background: linear-gradient(135deg, rgba(220, 20, 60, 0.95) 0%, rgba(178, 34, 34, 0.95) 100%) !important;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.3) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    
+    .sidebar-logo-link {
+      .sidebar-title {
+        color: #FFD700 !important;
+        font-weight: 700 !important;
+        text-shadow: 
+          0 1px 3px rgba(0, 0, 0, 0.3),
+          0 0 10px rgba(255, 215, 0, 0.2) !important;
+        
+        &:hover {
+          color: #FFF !important;
+          text-shadow: 
+            0 2px 4px rgba(0, 0, 0, 0.4),
+            0 0 15px rgba(255, 215, 0, 0.4) !important;
+        }
+      }
+      
+      img {
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
+        
+        &:hover {
+          filter: drop-shadow(0 3px 6px rgba(255, 215, 0, 0.4)) !important;
+        }
+      }
+      
+      .env-badge {
+        background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+        border: 1px solid rgba(255, 215, 0, 0.5) !important;
+        box-shadow: 
+          0 2px 6px rgba(255, 215, 0, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+        color: #8B0000 !important;
+        font-weight: 700 !important;
+        
+        &.env-dev,
+        &.env-test {
+          animation: springFestivalEnvPulse 2s ease-in-out infinite !important;
+        }
+      }
+    }
+  }
+  
+  @keyframes springFestivalEnvPulse {
+    0%, 100% {
+      box-shadow: 
+        0 2px 6px rgba(255, 215, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+    50% {
+      box-shadow: 
+        0 4px 12px rgba(255, 215, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+  }
+  
+  // 水平导航栏样式
+  .horizontal-header,
+  .horizontal-with-decoration {
+    background: linear-gradient(180deg, #DC143C, #B22222) !important;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.3) !important;
+    box-shadow: 0 2px 8px rgba(139, 0, 0, 0.3) !important;
+    position: relative;
+    
+    // 金色顶边
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(to right, 
+        transparent, 
+        #FFD700 10%, 
+        #FFA500 50%, 
+        #FFD700 90%, 
+        transparent
+      );
+      z-index: 1;
+    }
+    
+    // Logo 区域
+    .horizontal-header-left {
+      color: #FFD700 !important;
+      font-weight: 700 !important;
+      text-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.3),
+        0 0 10px rgba(255, 215, 0, 0.2) !important;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        color: #FFF !important;
+        text-shadow: 
+          0 2px 4px rgba(0, 0, 0, 0.4),
+          0 0 15px rgba(255, 215, 0, 0.4) !important;
+      }
+      
+      img {
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
+        
+        &:hover {
+          filter: drop-shadow(0 3px 6px rgba(255, 215, 0, 0.4)) !important;
+        }
+      }
+      
+      span {
+        color: #FFD700 !important;
+        font-weight: 700 !important;
+      }
+    }
+    
+    // 水平菜单样式
+    .horizontal-header-menu {
+      background: transparent !important;
+      border: none !important;
+      
+      :deep(.el-menu-item) {
+        color: #FFD700 !important;
+        background: transparent !important;
+        border-bottom: 3px solid transparent !important;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          color: #FFF !important;
+          background: rgba(255, 215, 0, 0.15) !important;
+          border-bottom-color: rgba(255, 215, 0, 0.5) !important;
+        }
+        
+        &.is-active {
+          color: #FFF !important;
+          background: rgba(255, 215, 0, 0.25) !important;
+          border-bottom-color: #FFD700 !important;
+          font-weight: 700;
+        }
+        
+        .el-icon,
+        svg {
+          color: #FFD700 !important;
+        }
+        
+        &:hover .el-icon,
+        &:hover svg,
+        &.is-active .el-icon,
+        &.is-active svg {
+          color: #FFF !important;
+        }
+      }
+      
+      :deep(.el-sub-menu__title) {
+        color: #FFD700 !important;
+        background: transparent !important;
+        border-bottom: 3px solid transparent !important;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          color: #FFF !important;
+          background: rgba(255, 215, 0, 0.15) !important;
+          border-bottom-color: rgba(255, 215, 0, 0.5) !important;
+        }
+        
+        .el-icon,
+        svg {
+          color: #FFD700 !important;
+        }
+        
+        &:hover .el-icon,
+        &:hover svg {
+          color: #FFF !important;
+        }
+      }
+      
+      :deep(.el-sub-menu.is-active) {
+        > .el-sub-menu__title {
+          color: #FFF !important;
+          background: rgba(255, 215, 0, 0.25) !important;
+          border-bottom-color: #FFD700 !important;
+          font-weight: 700;
+        }
+      }
+    }
+    
+    // 右侧工具栏
+    .horizontal-header-right {
+      :deep(.tool-item) {
+        background: linear-gradient(180deg, #DC143C, #B22222);
+        border: 2px solid rgba(255, 215, 0, 0.6);
+        color: #FFD700;
+        font-weight: 700;
+        backdrop-filter: blur(8px);
+        box-shadow: 
+          0 2px 8px rgba(0, 0, 0, 0.3),
+          0 0 0 1px rgba(255, 215, 0, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        
+        &:hover {
+          background: linear-gradient(180deg, #FF1744, #DC143C);
+          border-color: rgba(255, 215, 0, 0.8);
+          color: #FFF;
+          box-shadow: 
+            0 4px 16px rgba(255, 215, 0, 0.5),
+            0 2px 8px rgba(220, 20, 60, 0.4),
+            inset 0 2px 4px rgba(255, 255, 255, 0.3);
+          transform: translateY(-2px);
+        }
+        
+        svg {
+          color: #FFD700;
+          filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+        }
+        
+        &:hover svg {
+          color: #FFF;
+          filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.6));
+        }
+      }
+    }
+  }
+  
+  // 移动端导航样式
+  .mobile-nav-layout {
+    .mobile-bottom-nav {
+      background: linear-gradient(180deg, #DC143C, #B22222) !important;
+      border-top: 2px solid rgba(255, 215, 0, 0.3) !important;
+      box-shadow: 0 -2px 8px rgba(139, 0, 0, 0.3) !important;
+      
+      .nav-item {
+        color: #FFD700 !important;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          color: #FFF !important;
+          background: rgba(255, 215, 0, 0.15) !important;
+        }
+        
+        &.is-active {
+          color: #FFF !important;
+          background: rgba(255, 215, 0, 0.25) !important;
+          font-weight: 700;
+          
+          .nav-icon {
+            color: #FFF !important;
+          }
+        }
+        
+        .nav-icon {
+          color: #FFD700 !important;
+        }
+        
+        .nav-label {
+          color: inherit !important;
+        }
+      }
+    }
+    
+    // 抽屉菜单样式
+    :deep(.el-drawer) {
+      background: linear-gradient(135deg, rgba(220, 20, 60, 0.98) 0%, rgba(178, 34, 34, 0.98) 100%) !important;
+      
+      .el-drawer__header {
+        color: #FFD700 !important;
+        border-bottom: 2px solid rgba(255, 215, 0, 0.3) !important;
+      }
+      
+      .el-menu {
+        background: transparent !important;
+        
+        .el-menu-item {
+          color: #FFD700 !important;
+          
+          &:hover {
+            background: rgba(255, 215, 0, 0.15) !important;
+            color: #FFF !important;
+          }
+          
+          &.is-active {
+            background: rgba(255, 215, 0, 0.25) !important;
+            color: #FFF !important;
+            border-right: 3px solid #FFD700;
+          }
+        }
+      }
+    }
+  }
+  
+  // 双栏导航样式
+  .double-nav-container,
+  .double-nav-with-decoration {
+    // 左栏样式
+    .double-nav-left {
+      background: linear-gradient(135deg, rgba(220, 20, 60, 0.98) 0%, rgba(178, 34, 34, 0.98) 100%) !important;
+      border-right: 2px solid rgba(255, 215, 0, 0.3) !important;
+      
+      .first-level-menu {
+        background: transparent !important;
+        
+        .el-menu-item {
+          color: #FFD700 !important;
+          background: transparent !important;
+          transition: all 0.3s ease;
+          
+          &:hover {
+            background: rgba(255, 215, 0, 0.15) !important;
+            color: #FFF !important;
+            
+            .menu-icon-only {
+              color: #FFF !important;
+              
+              svg, i {
+                color: #FFF !important;
+              }
+            }
+          }
+          
+          &.is-active {
+            background: rgba(255, 215, 0, 0.25) !important;
+            color: #FFF !important;
+            border-right: 3px solid #FFD700;
+            
+            .menu-icon-only {
+              color: #FFF !important;
+              
+              svg, i {
+                color: #FFF !important;
+              }
+            }
+            
+            &:hover {
+              .menu-icon-only {
+                color: #FFF !important;
+                
+                svg, i {
+                  color: #FFF !important;
+                }
+              }
+            }
+          }
+          
+          .menu-icon-only {
+            color: #FFD700 !important;
+            
+            svg, i {
+              color: #FFD700 !important;
+            }
+          }
+        }
+      }
+    }
+    
+    // 右栏样式
+    .double-nav-right {
+      background: linear-gradient(135deg, rgba(220, 20, 60, 0.95) 0%, rgba(178, 34, 34, 0.95) 100%) !important;
+      border-right: 2px solid rgba(255, 215, 0, 0.3) !important;
+      
+      .sub-menu-list {
+        background: transparent !important;
+        
+        :deep(.el-menu-item),
+        :deep(.el-sub-menu__title) {
+          color: #FFD700 !important;
+          background: transparent !important;
+          
+          &:hover {
+            background: rgba(255, 215, 0, 0.15) !important;
+            color: #FFF !important;
+          }
+          
+          &.is-active {
+            background: rgba(255, 215, 0, 0.25) !important;
+            color: #FFF !important;
+            border-right: 3px solid #FFD700;
+          }
+          
+          .el-icon,
+          svg {
+            color: #FFD700 !important;
+          }
+          
+          &:hover .el-icon,
+          &:hover svg,
+          &.is-active .el-icon,
+          &.is-active svg {
+            color: #FFF !important;
+          }
+        }
+        
+        :deep(.el-sub-menu.is-active) {
+          > .el-sub-menu__title {
+            color: #FFF !important;
+            background: rgba(255, 215, 0, 0.25) !important;
+            font-weight: 700;
+          }
+        }
+      }
+    }
+  }
+  
+  // 悬浮导航样式
+  .hover-nav-container {
+    background: linear-gradient(135deg, rgba(220, 20, 60, 0.98) 0%, rgba(178, 34, 34, 0.98) 100%) !important;
+    border-right: 2px solid rgba(255, 215, 0, 0.3) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    
+    // 一级菜单项
+    .hover-menu-item {
+      color: #FFD700 !important;
+      background: transparent !important;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background: rgba(255, 215, 0, 0.15) !important;
+        color: #FFF !important;
+        
+        .menu-icon,
+        .menu-label {
+          color: #FFF !important;
+        }
+        
+        svg, i {
+          color: #FFF !important;
+        }
+      }
+      
+      &.is-active {
+        background: rgba(255, 215, 0, 0.25) !important;
+        color: #FFF !important;
+        border-right: 3px solid #FFD700;
+        
+        .menu-icon,
+        .menu-label {
+          color: #FFF !important;
+        }
+        
+        svg, i {
+          color: #FFF !important;
+        }
+      }
+      
+      .menu-icon {
+        color: #FFD700 !important;
+        
+        svg, i {
+          color: #FFD700 !important;
+        }
+      }
+      
+      .menu-label {
+        color: #FFD700 !important;
+      }
+    }
+    
+    // 悬浮子菜单容器
+    .hover-submenu-container {
+      background: linear-gradient(135deg, rgba(220, 20, 60, 0.95) 0%, rgba(178, 34, 34, 0.95) 100%) !important;
+      border: 2px solid rgba(255, 215, 0, 0.3) !important;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 215, 0, 0.2) !important;
+      
+      .submenu-group-title {
+        color: #FFD700 !important;
+        font-weight: 700;
+        border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+      }
+      
+      .submenu-item {
+        color: #FFD700 !important;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          background: rgba(255, 215, 0, 0.15) !important;
+          color: #FFF !important;
+          
+          svg, i {
+            color: #FFF !important;
+          }
+        }
+        
+        &.is-active {
+          background: rgba(255, 215, 0, 0.25) !important;
+          color: #FFF !important;
+          font-weight: 700;
+          
+          svg, i {
+            color: #FFF !important;
+          }
+        }
+        
+        svg, i {
+          color: #FFD700 !important;
+        }
+      }
+    }
+  }
+}

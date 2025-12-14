@@ -1,0 +1,17 @@
+/**
+ * 赛博朋克内测主题样式
+ */
+
+// 使用 data-skin 属性选择器
+html[data-skin="cyberpunk"] {
+  // Header 容器样式
+  .header-container-with-decoration {
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+
+    &.shadow-tab {
+      box-shadow: 0 2px 20px rgba(0, 255, 255, 0.2);
+    }
+  }
+}

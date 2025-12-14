@@ -17,6 +17,11 @@ import LaySidebarLeftCollapse from "./components/SidebarLeftCollapse.vue";
 import LaySidebarCenterCollapse from "./components/SidebarCenterCollapse.vue";
 import { localStorageProxy, useDefer } from "@repo/utils";
 
+// 导入主题装饰功能
+import ThemeDecoration from "../ThemeDecoration.vue";
+import { getComponentDecorations } from "../../themes/decorations";
+import type { DecorationConfig } from "../../themes/decorations";
+
 const route = useRoute();
 const isShow = ref(false);
 const showLogo = ref(
@@ -90,17 +95,32 @@ watch(
   }
 );
 
+// === 主题装饰功能 ===
+const currentTheme = ref<string>(
+  localStorageProxy().getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`
+  )?.systemTheme || 'default'
+);
+const sidebarDecorations = computed<DecorationConfig[]>(() => {
+  return getComponentDecorations(currentTheme.value, 'lay-sidebar');
+});
+
 onMounted(() => {
   getSubMenuData();
 
   emitter.on("logoChange", (key) => {
     showLogo.value = key;
   });
+  
+  emitter.on("systemThemeChange", (themeKey: string) => {
+    currentTheme.value = themeKey;
+  });
 });
 
 onBeforeUnmount(() => {
-  // 解绑`logoChange`公共事件，防止多次触发
+  // 解绑`logoChange`公共事件,防止多次触发
   emitter.off("logoChange");
+  emitter.off("systemThemeChange");
 });
 const defer = useDefer(menuData.value.length);
 </script>
@@ -108,6 +128,7 @@ const defer = useDefer(menuData.value.length);
 <template>
   <div
     v-loading="loading"
+    class="sidebar-container-with-decoration"
     :class="[
       'sidebar-custom sidebar-container',
       showLogo ? 'has-logo' : 'no-logo',
@@ -122,7 +143,6 @@ const defer = useDefer(menuData.value.length);
     >
       <el-menu
         router
-        unique-opened
         mode="vertical"
         popper-class="pure-scrollbar"
         class="outer-most select-none"
@@ -151,6 +171,15 @@ const defer = useDefer(menuData.value.length);
       :is-active="pureApp?.sidebar?.opened"
       @toggleClick="toggleSideBar"
     />
+    
+    <!-- 主题装饰元素 -->
+    <ThemeDecoration
+      v-for="(decoration, index) in sidebarDecorations"
+      :key="`sidebar-decoration-${index}`"
+      :config="decoration"
+      :index="index"
+      :visible="true"
+    />
   </div>
 </template>
 
@@ -165,7 +194,7 @@ const defer = useDefer(menuData.value.length);
   );
   backdrop-filter: blur(12px);
   border-right: 1px solid rgba(0, 0, 0, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: none !important; // 禁用过渡动画
   overflow: hidden;
   z-index: 10;
 

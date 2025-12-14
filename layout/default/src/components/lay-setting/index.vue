@@ -15,6 +15,7 @@ import {
 import { useI18n } from "vue-i18n";
 import { useNav } from "../../hooks/useNav";
 import LayPanel from "../lay-panel/index.vue";
+import { getAvailableThemes, ThemeType } from "../../themes";
 
 import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
@@ -23,6 +24,7 @@ import ScRibbon from "@repo/components/ScRibbon/index.vue";
 import ScDebugConsole from "@repo/components/ScDebugConsole/index.vue";
 import { ElMessage } from "element-plus";
 import { useDataThemeChange } from "../../hooks/useDataThemeChange";
+import LayThemeSwitcher from "../lay-theme-switcher/index.vue";
 
 import Check from "@iconify-icons/ep/check";
 import LeftArrow from "@iconify-icons/ri/arrow-left-s-line";
@@ -172,52 +174,41 @@ const getThemeColorStyle = computed(() => {
 });
 
 /**
- * 节日主题列表
+ * 获取当前环境和用户信息
  */
-const festivalThemesList = computed(() => [
-  {
-    color: "#1890ff",
-    themeColor: "new-year",
-    name: "元旦",
-    description: "新年新气象，蓝紫渐变",
-    icon: "noto:party-popper",
-  },
-  {
-    color: "#f5222d",
-    themeColor: "spring-festival",
-    name: "春节",
-    description: "喜庆祥和的红色主题",
-    icon: "noto:firecracker",
-  },
-  {
-    color: "#eb2f96",
-    themeColor: "valentines-day",
-    name: "情人节",
-    description: "浪漫甜蜜的粉色主题",
-    icon: "noto:red-heart",
-  },
-  {
-    color: "#13c2c2",
-    themeColor: "mid-autumn",
-    name: "中秋",
-    description: "月圆人团圆的青色主题",
-    icon: "noto:full-moon",
-  },
-  {
-    color: "#fa541c",
-    themeColor: "national-day",
-    name: "国庆",
-    description: "祝福祖国的橙色主题",
-    icon: "twemoji:flag-china",
-  },
-  {
-    color: "#c41e3a",
-    themeColor: "christmas",
-    name: "圣诞",
-    description: "温馨浪漫的圣诞主题",
-    icon: "noto:christmas-tree",
-  },
-]);
+const currentEnv = import.meta.env.MODE || 'production';
+const isDevelopment = currentEnv === 'development' || import.meta.env.DEV;
+const isTest = currentEnv === 'test';
+
+// 获取用户角色列表（从 $storage 或其他地方获取）
+const userRoles = computed(() => {
+  // TODO: 从用户存储或状态管理中获取用户角色
+  // 这里作为示例，你需要根据实际情况调整
+  const roles = $storage?.user?.roles || $storage?.userInfo?.roles || [];
+  return Array.isArray(roles) ? roles : [];
+});
+
+/**
+ * 显示的主题列表（根据自动切换开关、环境和权限过滤）
+ */
+const festivalThemesList = computed(() => {
+  const themes = getAvailableThemes(
+    settings.enableFestivalTheme,
+    userRoles.value,
+    isDevelopment,
+    isTest
+  );
+  
+  // 转换为设置面板需要的格式
+  return themes.map(t => ({
+    color: t.color || '#409EFF',
+    themeColor: t.key,
+    name: t.name,
+    description: t.description,
+    icon: t.icon || 'ri:palette-line',
+    type: t.type,
+  }));
+});
 
 /** 当网页整体为暗色风格时不显示亮白色主题配色切换选项 */
 const showThemeColors = computed(() => {
@@ -285,6 +276,21 @@ const monochromeChange = (value: boolean): void => {
 /** 节日主题自动切换设置 */
 const festivalThemeChange = (value: boolean): void => {
   storageConfigureChange("enableFestivalTheme", value);
+  
+  if (value) {
+    // 开启自动切换，检测并应用节日主题
+    const { detectFestivalTheme } = require("../../themes");
+    const festivalTheme = detectFestivalTheme();
+    
+    if (festivalTheme) {
+      switchSystemTheme(festivalTheme.key, true);
+    } else {
+      ElMessage.info("当前不在节日期间");
+    }
+  } else {
+    // 关闭自动切换，但不移除当前主题，用户需要手动切换回默认主题
+    ElMessage.success("已关闭节日主题自动切换，当前主题保持不变");
+  }
 };
 
 /**
@@ -304,39 +310,11 @@ const switchSystemTheme = (themeKey: string, showMessage: boolean = true): void 
   
   const htmlEl = document.documentElement;
   
-  // 移除所有主题类
-  const themeClasses = [
-    "theme-christmas",
-    "theme-spring-festival",
-    "theme-valentines-day",
-    "theme-mid-autumn",
-    "theme-national-day",
-    "theme-new-year",
-  ];
+  // 使用 data-skin 属性而不是 class
+  htmlEl.setAttribute('data-skin', themeKey);
+  console.log(`✅ 主题已应用: data-skin="${themeKey}"`);
   
-  themeClasses.forEach((cls) => {
-    htmlEl.classList.remove(cls);
-  });
-  
-  console.log('✅ 已移除所有主题类');
-  
-  // 添加新主题类
-  if (themeKey !== "default") {
-    const themeClass = `theme-${themeKey}`;
-    htmlEl.classList.add(themeClass);
-    console.log('✅ 已添加主题类:', themeClass);
-    console.log('🔍 当前 HTML 类名:', htmlEl.className);
-    
-    // 加载主题样式表
-    loadThemeStylesheet(themeKey);
-  } else {
-    // 移除主题样式表
-    const existingLink = document.getElementById("layout-theme-stylesheet");
-    if (existingLink) {
-      existingLink.remove();
-      console.log('✅ 已移除主题样式表');
-    }
-  }
+  // 不再需要动态加载CSS，所有主题样式已在 @repo/skin 中
   
   // 保存到本地存储
   storageConfigureChange("systemTheme", themeKey);
@@ -604,7 +582,7 @@ const markOptions = computed<Array<OptionsType>>(() => {
     },
     {
       label: "现代风格",
-      tip: "渐变背景、阴影效果，现代化视觉体验",
+      tip: "渐变背景、立体阴影，精致现代化风格",
       value: "modern",
     },
   ];
@@ -688,6 +666,7 @@ const initializeTheme = () => {
     
     if (festivalTheme) {
       switchSystemTheme(festivalTheme.key, false); // 初始化时不显示消息
+      console.log('🎉 检测到节日主题，自动应用:', festivalTheme.name);
       return;
     }
   }
@@ -695,6 +674,9 @@ const initializeTheme = () => {
   // 应用保存的主题或默认主题
   if (savedTheme && savedTheme !== "default") {
     switchSystemTheme(savedTheme, false); // 初始化时不显示消息
+    console.log('🎨 应用保存的主题:', savedTheme);
+  } else {
+    console.log('✅ 使用默认主题');
   }
 };
 
@@ -1111,63 +1093,50 @@ onUnmounted(() => {
                 layout="visual-card"
                 size="small"
                 label="节日主题自动切换"
-                description="根据日期自动切换节日主题"
+                description="自动检测并应用节日主题，关闭后需手动切换主题"
                 active-icon="ri:calendar-event-line"
                 @change="festivalThemeChange"
               />
             </div>
+            
+            <!-- 节日装饰显示提示 -->
+            <div v-if="!settings.enableFestivalTheme" class="festival-decoration-tip">
+              <IconifyIconOffline :icon="'ri:information-line'" class="tip-icon" />
+              <span>关闭自动切换后，节日装饰元素仍会显示，但不会自动切换主题样式</span>
+            </div>
+            
+            <!-- 开启自动切换时：显示当前生效的主题提示 -->
+            <div v-if="settings.enableFestivalTheme" class="auto-theme-status">
+              <div class="status-card">
+                <div class="status-icon">
+                  <IconifyIconOffline :icon="'ri:calendar-check-line'" />
+                </div>
+                <div class="status-content">
+                  <div class="status-title">自动主题已启用</div>
+                  <div class="status-desc">系统将根据当前日期自动应用节日主题，节日主题已隐藏</div>
+                  <div class="status-current">
+                    <span class="label">当前主题：</span>
+                    <span class="value">
+                      {{ 
+                        $storage.configure?.systemTheme === 'default' 
+                          ? '默认' 
+                          : festivalThemesList.find(t => t.themeColor === $storage.configure?.systemTheme)?.name || $storage.configure?.systemTheme
+                      }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-            <!-- 主题选择区域 -->
+            <!-- 主题选择区域 - 始终显示，但根据自动切换开关过滤主题 -->
             <div class="festival-themes-section">
-              <div class="festival-themes-title">
-                <IconifyIconOnline icon="ri:palette-line" class="festival-icon" />
-                <span>{{ settings.enableFestivalTheme ? '当前主题（自动切换中）' : '选择主题' }}</span>
-              </div>
-              
-              <!-- 默认主题 -->
-              <div class="theme-grid">
-                <div
-                  class="theme-card default"
-                  :class="{ 'is-active': $storage.configure?.systemTheme === 'default' || !$storage.configure?.systemTheme }"
-                  @click="switchSystemTheme('default')"
-                >
-                  <div class="card-icon">
-                    <IconifyIconOnline icon="ri:contrast-2-line" />
-                  </div>
-                  <div class="card-name">默认主题</div>
-                  <div class="card-desc">系统默认配色方案</div>
-                  <div v-if="$storage.configure?.systemTheme === 'default' || !$storage.configure?.systemTheme" class="card-check">
-                    <IconifyIconOnline icon="ep:check" />
-                  </div>
-                </div>
-              </div>
-              
-              <!-- 节日主题 -->
-              <div class="festival-themes-subtitle">
-                <IconifyIconOnline icon="noto:party-popper" />
-                <span>节日主题</span>
-              </div>
-              <div class="theme-grid">
-                <div
-                  v-for="theme in festivalThemesList"
-                  :key="theme.themeColor"
-                  class="theme-card festival"
-                  :class="{ 
-                    'is-active': $storage.configure?.systemTheme === theme.themeColor,
-                    'is-disabled': settings.enableFestivalTheme
-                  }"
-                  @click="!settings.enableFestivalTheme && switchSystemTheme(theme.themeColor)"
-                >
-                  <div class="card-icon">
-                    <IconifyIconOnline :icon="theme.icon" />
-                  </div>
-                  <div class="card-name">{{ theme.name }}</div>
-                  <div class="card-desc">{{ theme.description }}</div>
-                  <div v-if="$storage.configure?.systemTheme === theme.themeColor" class="card-check">
-                    <IconifyIconOnline icon="ep:check" />
-                  </div>
-                </div>
-              </div>
+              <LayThemeSwitcher
+                :themes="festivalThemesList"
+                :showMeta="true"
+                :persist="false"
+                :modelValue="$storage.configure?.systemTheme || 'default'"
+                @change="(key:string) => switchSystemTheme(key)"
+              />
             </div>
           </div>
         </div>
@@ -1638,11 +1607,9 @@ onUnmounted(() => {
                     ? 1
                     : markValue === 'chrome'
                       ? 2
-                      : markValue === 'minimal'
+                      : markValue === 'modern'
                         ? 3
-                        : markValue === 'rounded'
-                          ? 4
-                          : 0
+                        : 0
               "
               :options="markOptions"
               @change="onChange"
@@ -5725,6 +5692,175 @@ html.dark {
 
     .switch-card-content {
       align-items: flex-start;
+    }
+  }
+}
+
+// 节日装饰提示样式
+.festival-decoration-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--el-color-info-rgb), 0.08) 0%,
+    rgba(var(--el-color-info-rgb), 0.04) 100%
+  );
+  border-left: 3px solid var(--el-color-info);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  line-height: 1.6;
+  transition: all 0.3s ease;
+  
+  .tip-icon {
+    flex-shrink: 0;
+    font-size: 16px;
+    color: var(--el-color-info);
+    margin-top: 2px;
+  }
+  
+  span {
+    flex: 1;
+  }
+  
+  &:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-info-rgb), 0.12) 0%,
+      rgba(var(--el-color-info-rgb), 0.06) 100%
+    );
+  }
+}
+
+// 深色主题下的节日装饰提示
+html.dark {
+  .festival-decoration-tip {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-info-rgb), 0.15) 0%,
+      rgba(var(--el-color-info-rgb), 0.08) 100%
+    );
+    
+    &:hover {
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-info-rgb), 0.2) 0%,
+        rgba(var(--el-color-info-rgb), 0.12) 100%
+      );
+    }
+  }
+}
+
+// 自动主题状态卡片样式
+.auto-theme-status {
+  margin-top: 16px;
+}
+
+.status-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--el-color-success-rgb), 0.08) 0%,
+    rgba(var(--el-color-success-rgb), 0.04) 100%
+  );
+  border: 1px solid rgba(var(--el-color-success-rgb), 0.2);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-success-rgb), 0.12) 0%,
+      rgba(var(--el-color-success-rgb), 0.06) 100%
+    );
+    border-color: rgba(var(--el-color-success-rgb), 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.15);
+  }
+  
+  .status-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-success) 0%,
+      var(--el-color-success-light-3) 100%
+    );
+    color: #fff;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.3);
+  }
+  
+  .status-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .status-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+  
+  .status-desc {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.5;
+  }
+  
+  .status-current {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-top: 4px;
+    background: rgba(var(--el-color-success-rgb), 0.08);
+    border-radius: 8px;
+    font-size: 13px;
+    
+    .label {
+      color: var(--el-text-color-secondary);
+    }
+    
+    .value {
+      font-weight: 600;
+      color: var(--el-color-success);
+    }
+  }
+}
+
+// 深色主题下的自动主题状态
+html.dark {
+  .status-card {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-success-rgb), 0.15) 0%,
+      rgba(var(--el-color-success-rgb), 0.08) 100%
+    );
+    
+    &:hover {
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-success-rgb), 0.2) 0%,
+        rgba(var(--el-color-success-rgb), 0.12) 100%
+      );
+    }
+    
+    .status-current {
+      background: rgba(var(--el-color-success-rgb), 0.15);
     }
   }
 }

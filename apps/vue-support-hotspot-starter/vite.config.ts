@@ -48,7 +48,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
             @use "@repo/assets/style/layout/default/variables.scss" as *;
             @use "@repo/assets/style/layout/default/mixin.scss";
           `,
-          silenceDeprecations: ['mixed-decls', 'color-functions', 'global-builtin', 'import'],
+          silenceDeprecations: ['color-functions', 'global-builtin', 'import'],
         },
       },
     },

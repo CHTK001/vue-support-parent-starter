@@ -55,6 +55,9 @@ export const useConfigStore = defineStore({
     config: {},
     // API接口地址，如果设置则所有HTTP请求都走这个地址
     apiAddress: null as string | null,
+    // 加载状态标志，防止重复加载
+    isLoaded: false,
+    isLoading: false,
   }),
   actions: {
     /**
@@ -119,6 +122,8 @@ export const useConfigStore = defineStore({
     },
     async clear() {
       localStorageProxy().removeItem(this.storageKey);
+      this.isLoaded = false;
+      this.isLoading = false;
       this.close();
     },
     async reset() {
@@ -127,11 +132,21 @@ export const useConfigStore = defineStore({
     },
     /** 登入 */
     async load() {
-      if (!config.OpenSetting) {
+      // 如果已经加载过或正在加载中，直接返回
+      if (this.isLoaded || this.isLoading) {
         return;
       }
-      this.version = localStorageProxy().getItem(this.storageVersionKey);
-      let dataSetting = localStorageProxy().getItem(this.storageKey);
+      
+      if (!config.OpenSetting) {
+        this.isLoaded = true;
+        return;
+      }
+      
+      this.isLoading = true;
+      
+      try {
+        this.version = localStorageProxy().getItem(this.storageVersionKey);
+        let dataSetting = localStorageProxy().getItem(this.storageKey);
       // 验证从localStorage获取的数据是否为有效数组
       if (typeof dataSetting === "string") {
         try {
@@ -141,28 +156,40 @@ export const useConfigStore = defineStore({
         }
       }
 
-      if (!dataSetting) {
-        return new Promise<void>(async (resolve) => {
-          try {
-            const response = await fetchSetting(this.settingGroup);
-            const data = response?.data; // 提取data字段
-            if (!data) {
-              resolve(null);
-              return;
+        if (!dataSetting) {
+          return new Promise<void>(async (resolve) => {
+            try {
+              const response = await fetchSetting(this.settingGroup);
+              const data = response?.data; // 提取data字段
+              if (!data) {
+                this.isLoaded = true;
+                this.isLoading = false;
+                resolve(null);
+                return;
+              }
+              localStorageProxy().setItem(this.storageKey, data);
+              await this.doRegister(data);
+              this.isLoaded = true;
+            } catch (error) {
+              console.warn("Failed to fetch remote settings:", error);
+            } finally {
+              this.isLoading = false;
             }
-            localStorageProxy().setItem(this.storageKey, data);
-            this.doRegister(data);
-          } catch (error) {
-            console.warn("Failed to fetch remote settings:", error);
-          }
+            resolve(null);
+          });
+        }
+
+        return new Promise<void>(async (resolve) => {
+          await this.doRegister(dataSetting);
+          this.isLoaded = true;
+          this.isLoading = false;
           resolve(null);
         });
+      } catch (error) {
+        console.error("Failed to load config:", error);
+        this.isLoading = false;
+        throw error;
       }
-
-      return new Promise<void>(async (resolve) => {
-        this.doRegister(dataSetting);
-        resolve(null);
-      });
     },
     async doRegister(data) {
       // 确保data是数组格式
@@ -179,6 +206,10 @@ export const useConfigStore = defineStore({
           this.systemSetting[key] = element.sysSettingVersion;
         } else {
           this.systemSetting[key] = element.sysSettingValue;
+        }
+        // 添加日志便于调试，特别是主题相关配置
+        if (element.sysSettingGroup === "theme") {
+          console.debug(`[ConfigStore] Theme setting loaded: ${element.sysSettingName} = ${element.sysSettingValue}`);
         }
       });
       this.version = this.systemSetting["config:Version"] || "1";

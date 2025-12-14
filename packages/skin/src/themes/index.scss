@@ -1,0 +1,26 @@
+/**
+ * 主题皮肤样式集合
+ * 集中导入所有主题样式
+ */
+
+// 全局样式 - 适用于所有主题
+.shadow-tab,
+.fixed-header.shadow-tab,
+div.shadow-tab {
+  padding: 0 !important;
+}
+
+// 默认主题
+@import './default.scss';
+
+// 节日主题
+@import './spring-festival.scss';
+
+// 内测主题
+@import './cyberpunk.scss';
+
+// 其他节日主题（预留）
+// @import './christmas.scss';
+// @import './mid-autumn.scss';
+// @import './new-year.scss';
+// @import './valentines-day.scss';
