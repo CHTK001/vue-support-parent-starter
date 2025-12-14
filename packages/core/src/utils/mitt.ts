@@ -13,6 +13,7 @@ type Events = {
   breadcrumbChange: boolean;
   breadcrumbModeChange: string;
   keepAliveChange: boolean;
+  systemThemeChange: string;
 };
 
 export const emitter: Emitter<Events> = mitt<Events>();
