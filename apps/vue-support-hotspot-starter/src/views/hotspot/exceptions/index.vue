@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import { ElMessage } from "element-plus";
+import { wsService } from "@/utils/websocket";
 
 const loading = ref(false);
 const exceptions = ref<any[]>([]);
@@ -8,6 +9,28 @@ const stats = ref<any[]>([]);
 const activeTab = ref("list");
 const selectedEx = ref<any>(null);
 const dialogVisible = ref(false);
+let unsubscribe: (() => void) | null = null;
+let refreshTimer: ReturnType<typeof setInterval> | null = null;
+
+// WebSocket 连接状态
+const wsConnected = computed(() => wsService.connected.value);
+
+// 处理 WebSocket 消息 - 异常数据推送
+const handleWsMessage = (message: any) => {
+  if (message.event === "EXCEPTION_UPDATE") {
+    try {
+      const exData = message.data;
+      // 添加到列表开头
+      exceptions.value.unshift(exData);
+      // 限制最大记录数
+      while (exceptions.value.length > 200) {
+        exceptions.value.pop();
+      }
+    } catch (error) {
+      console.error("解析异常数据失败:", error);
+    }
+  }
+};
 
 // 获取最近异常列表
 const fetchExceptions = async () => {
@@ -69,9 +92,23 @@ const fetchData = () => {
 };
 
 onMounted(() => {
+  // 连接 WebSocket
+  wsService.connect();
+  // 订阅异常数据推送
+  unsubscribe = wsService.subscribe("EXCEPTION", "EXCEPTION_UPDATE", handleWsMessage);
+  // 加载历史数据
   fetchData();
   // 每30秒刷新一次
-  setInterval(fetchData, 30000);
+  refreshTimer = setInterval(fetchData, 30000);
+});
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe();
+  }
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+  }
 });
 </script>
 
@@ -81,9 +118,17 @@ onMounted(() => {
       <template #header>
         <div class="card-header">
           <span>异常监控</span>
-          <el-button type="primary" size="small" @click="clearStats">
-            清除统计
-          </el-button>
+          <div class="header-actions">
+            <el-tag :type="wsConnected ? 'success' : 'danger'" size="small">
+              {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
+            </el-tag>
+            <el-button type="info" size="small" @click="fetchData" :loading="loading">
+              刷新
+            </el-button>
+            <el-button type="primary" size="small" @click="clearStats">
+              清除统计
+            </el-button>
+          </div>
         </div>
       </template>
 
@@ -204,6 +249,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
 }
 
 .exception-detail {
