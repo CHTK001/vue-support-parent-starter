@@ -1,41 +1,68 @@
 /**
  * 主题组件Hook
  * 提供主题组件动态加载功能
+ * 支持多层监听机制确保实时响应主题切换
  */
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 import { emitter } from "@repo/core";
 
 export function useThemeComponent(themeComponents: Record<string, any>, defaultComponent: any) {
   const { $storage } = useGlobal<any>();
   
+  // 使用 computed 来响应式读取 storage 中的主题值
+  const storageTheme = computed(() => $storage?.configure?.systemTheme || 'default');
+  
   // 获取当前主题
-  const currentTheme = ref<string>($storage?.configure?.systemTheme || 'default');
-  console.log('🚀 useThemeComponent 初始化 - 主题:', currentTheme.value);
+  const currentTheme = ref<string>(storageTheme.value);
   
   // 动态选择当前主题组件
   const CurrentComponent = computed(() => {
     const component = themeComponents[currentTheme.value] || defaultComponent;
-    console.log('🎨 useThemeComponent - 计算组件, 主题:', currentTheme.value, '找到组件:', !!component);
     return component;
   });
   
-  // 监听主题变化
+  // 主题变化处理函数
   const handleThemeChange = (themeKey: string) => {
-    console.log('🔄 useThemeComponent - 收到主题变化事件:', themeKey, '当前主题:', currentTheme.value);
     if (currentTheme.value !== themeKey) {
       currentTheme.value = themeKey;
-      console.log('✅ 主题已更新为:', currentTheme.value);
     }
   };
   
-  // 立即注册事件监听
+  // 1. emitter 事件监听
   emitter.on("systemThemeChange", handleThemeChange);
-  console.log('📡 已注册 systemThemeChange 事件监听');
+  
+  // 2. 监听 storage 变化作为备用机制
+  watch(storageTheme, (newTheme) => {
+    if (newTheme && newTheme !== currentTheme.value) {
+      currentTheme.value = newTheme;
+    }
+  }, { immediate: false });
+  
+  // 3. MutationObserver 监听 data-skin 属性变化作为最终保障
+  let observer: MutationObserver | null = null;
+  
+  onMounted(() => {
+    observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-skin') {
+          const newTheme = document.documentElement.getAttribute('data-skin') || 'default';
+          if (newTheme !== currentTheme.value) {
+            currentTheme.value = newTheme;
+          }
+        }
+      });
+    });
+    
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-skin']
+    });
+  });
   
   onBeforeUnmount(() => {
     emitter.off("systemThemeChange", handleThemeChange);
-    console.log('🧹 已注销 systemThemeChange 事件监听');
+    observer?.disconnect();
   });
   
   return {
