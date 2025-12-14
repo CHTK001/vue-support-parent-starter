@@ -10,6 +10,9 @@
         </div>
       </div>
       <div class="header-right">
+        <el-tag :type="wsConnected ? 'success' : 'danger'" effect="light" size="small" class="mr-2">
+          {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
+        </el-tag>
         <el-tag type="success" effect="light" size="large" round>
           <IconifyIconOnline icon="ri:links-line" class="mr-1" />
           共 {{ data.length }} 个映射
@@ -141,11 +144,31 @@
 <script setup>
 import { http } from "@repo/utils";
 import { computed, onBeforeMount, onUnmounted, ref } from "vue";
+import { wsService } from "@/utils/websocket";
 
 const data = ref([]);
 const infoVisible = ref(false);
 const info = ref("");
 const searchKeyword = ref("");
+let wsUnsubscribe = null;
+
+// WebSocket 连接状态
+const wsConnected = computed(() => wsService.connected.value);
+
+// 处理 WebSocket 消息 - 路由映射数据推送
+const handleWsMessage = (message) => {
+  if (message.event === "SPRING_MAPPING_UPDATE") {
+    try {
+      const newData = message.data;
+      if (Array.isArray(newData)) {
+        data.value = newData;
+      }
+    } catch (error) {
+      console.error("解析路由映射数据失败:", error);
+    }
+  }
+};
+
 const containerStats = ref([
   { type: 'TOMCAT', label: 'Tomcat', icon: 'logos:tomcat', qps: 0, totalRequests: 0, activeConnections: 0 },
   { type: 'UNDERTOW', label: 'Undertow', icon: 'simple-icons:undertow', qps: 0, totalRequests: 0, activeConnections: 0 },
@@ -211,6 +234,11 @@ const stopStatsPolling = () => {
 };
 
 onBeforeMount(async () => {
+  // 连接 WebSocket
+  wsService.connect();
+  // 订阅路由映射数据推送
+  wsUnsubscribe = wsService.subscribe("SPRING", "SPRING_MAPPING_UPDATE", handleWsMessage);
+  
   http.get((window.agentPath || "/agent") + "/spring-mapping-data").then(res => {
     // 后端返回的是 { data: [...], total: 10 }
     // 需要提取 data 字段中的数组
@@ -229,6 +257,9 @@ onBeforeMount(async () => {
 
 onUnmounted(() => {
   stopStatsPolling();
+  if (wsUnsubscribe) {
+    wsUnsubscribe();
+  }
 });
 </script>
 <style lang="scss" scoped>
