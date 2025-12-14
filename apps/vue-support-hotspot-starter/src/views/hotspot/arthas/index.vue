@@ -13,7 +13,7 @@ const gcInfo = ref<any>({});
 const fetchJvmInfo = async () => {
   loading.value = true;
   try {
-    const response = await fetch("/api/arthas?action=jvm");
+    const response = await fetch("/agent/api/arthas?action=jvm");
     const data = await response.json();
     jvmInfo.value = data;
   } catch (error) {
@@ -28,7 +28,7 @@ const fetchJvmInfo = async () => {
 const fetchThreadInfo = async () => {
   loading.value = true;
   try {
-    const response = await fetch("/api/arthas?action=thread");
+    const response = await fetch("/agent/api/arthas?action=thread");
     const data = await response.json();
     threadInfo.value = data;
   } catch (error) {
@@ -43,7 +43,7 @@ const fetchThreadInfo = async () => {
 const fetchMemoryInfo = async () => {
   loading.value = true;
   try {
-    const response = await fetch("/api/arthas?action=memory");
+    const response = await fetch("/agent/api/arthas?action=memory");
     const data = await response.json();
     memoryInfo.value = data;
   } catch (error) {
@@ -58,7 +58,7 @@ const fetchMemoryInfo = async () => {
 const fetchGcInfo = async () => {
   loading.value = true;
   try {
-    const response = await fetch("/api/arthas?action=gc");
+    const response = await fetch("/agent/api/arthas?action=gc");
     const data = await response.json();
     gcInfo.value = data;
   } catch (error) {

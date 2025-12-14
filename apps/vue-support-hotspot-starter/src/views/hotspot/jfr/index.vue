@@ -9,7 +9,7 @@ const status = ref<any>({});
 // 获取JFR状态
 const fetchStatus = async () => {
   try {
-    const response = await fetch("/api/jfr?action=status");
+    const response = await fetch("/agent/api/jfr?action=status");
     const data = await response.json();
     status.value = data;
   } catch (error) {
@@ -21,7 +21,7 @@ const fetchStatus = async () => {
 const fetchRecordings = async () => {
   loading.value = true;
   try {
-    const response = await fetch("/api/jfr?action=list");
+    const response = await fetch("/agent/api/jfr?action=list");
     const data = await response.json();
     recordings.value = data.recordings || [];
   } catch (error) {
@@ -42,7 +42,7 @@ const startRecording = async () => {
   })
     .then(async ({ value }) => {
       try {
-        await fetch(`/api/jfr?action=start&duration=${value}`);
+        await fetch(`/agent/api/jfr?action=start&duration=${value}`);
         ElMessage.success("JFR录制已开始");
         fetchRecordings();
         fetchStatus();
@@ -57,7 +57,7 @@ const startRecording = async () => {
 // 停止录制
 const stopRecording = async (id: number) => {
   try {
-    await fetch(`/api/jfr?action=stop&id=${id}`);
+    await fetch(`/agent/api/jfr?action=stop&id=${id}`);
     ElMessage.success("录制已停止");
     fetchRecordings();
     fetchStatus();
@@ -70,7 +70,7 @@ const stopRecording = async (id: number) => {
 // 下载录制文件
 const downloadRecording = async (id: number) => {
   try {
-    const response = await fetch(`/api/jfr?action=dump&id=${id}`);
+    const response = await fetch(`/agent/api/jfr?action=dump&id=${id}`);
     const data = await response.json();
     if (data.file) {
       ElMessage.success(`录制文件已保存: ${data.file}`);

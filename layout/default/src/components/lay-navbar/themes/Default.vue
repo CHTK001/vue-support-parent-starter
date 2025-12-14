@@ -3,5 +3,5 @@ import BaseNavbar from './BaseNavbar.vue';
 </script>
 
 <template>
-  <BaseNavbar theme-class="modern-navbar" />
+  <BaseNavbar theme-class="default-navbar" />
 </template>

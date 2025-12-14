@@ -1,30 +1,189 @@
 <script setup lang="ts">
-import { useThemeComponent } from "../../hooks/useThemeComponent";
-import DefaultSidebar from "./themes/Default.vue";
-import SpringFestivalSidebar from "./themes/SpringFestival.vue";
-import CyberpunkSidebar from "./themes/Cyberpunk.vue";
+import { useRoute } from "vue-router";
+import {
+  emitter,
+  findRouteByPath,
+  getParentPaths,
+  usePermissionStoreHook,
+} from "@repo/core";
+import { useNav } from "../..//hooks/useNav";
+import type { StorageConfigs } from "@repo/config";
+import { responsiveStorageNameSpace } from "@repo/config";
+import { isAllEmpty } from "@pureadmin/utils";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import LaySidebarLogo from "./components/SidebarLogo.vue";
+import LaySidebarItem from "./components/SidebarItem.vue";
+import LaySidebarLeftCollapse from "./components/SidebarLeftCollapse.vue";
+import LaySidebarCenterCollapse from "./components/SidebarCenterCollapse.vue";
+import { localStorageProxy, useDefer } from "@repo/utils";
 
-// 主题组件映射
-const themeComponents = {
-  'default': DefaultSidebar,
-  'spring-festival': SpringFestivalSidebar,
-  'cyberpunk': CyberpunkSidebar,
-  // 其他主题组件
-  // 'christmas': ChristmasSidebar,
-  // 'mid-autumn': MidAutumnSidebar,
-  // 'new-year': NewYearSidebar,
-  // 'valentines-day': ValentinesDaySidebar,
-};
+// 导入主题装饰功能
+import ThemeDecoration from "../ThemeDecoration.vue";
+import { getComponentDecorations } from "../../themes/decorations";
+import type { DecorationConfig } from "../../themes/decorations";
 
-const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultSidebar);
+const route = useRoute();
+const isShow = ref(false);
+const showLogo = ref(
+  localStorageProxy().getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`
+  )?.showLogo ?? true
+);
+
+const {
+  device,
+  pureApp,
+  isCollapse,
+  tooltipEffect,
+  menuSelect,
+  toggleSideBar,
+} = useNav();
+
+const subMenuData = ref([]);
+
+const menuData = computed(() => {
+  return pureApp?.layout === "mix" && device.value !== "mobile"
+    ? subMenuData.value
+    : usePermissionStoreHook().wholeMenus;
+});
+
+const loading = computed(() =>
+  pureApp?.layout === "mix" ? false : menuData.value.length === 0 ? true : false
+);
+
+const defaultActive = computed(() =>
+  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path
+);
+
+function getSubMenuData() {
+  let path = "";
+  path = defaultActive.value;
+  subMenuData.value = [];
+  // path的上级路由组成的数组
+  const parentPathArr = getParentPaths(
+    path,
+    usePermissionStoreHook().wholeMenus
+  );
+  // 当前路由的父级路由信息
+  const parenetRoute = findRouteByPath(
+    parentPathArr[0] || path,
+    usePermissionStoreHook().wholeMenus
+  );
+  if (!parenetRoute?.children) return;
+  subMenuData.value = parenetRoute?.children;
+}
+
+watch(
+  () => route.path,
+  (newPath) => {
+    if (newPath.includes("/redirect")) return;
+    getSubMenuData();
+    menuSelect(newPath);
+  },
+  {
+    immediate: true,
+  }
+);
+
+watch(
+  () => usePermissionStoreHook().wholeMenus,
+  () => {
+    getSubMenuData();
+  },
+  {
+    deep: true,
+  }
+);
+
+// === 主题装饰功能 ===
+const currentTheme = ref<string>(
+  localStorageProxy().getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`
+  )?.systemTheme || 'default'
+);
+const sidebarDecorations = computed<DecorationConfig[]>(() => {
+  return getComponentDecorations(currentTheme.value, 'lay-sidebar');
+});
+
+onMounted(() => {
+  getSubMenuData();
+
+  emitter.on("logoChange", (key) => {
+    showLogo.value = key;
+  });
+  
+  emitter.on("systemThemeChange", (themeKey: string) => {
+    currentTheme.value = themeKey;
+  });
+});
+
+onBeforeUnmount(() => {
+  // 解绑`logoChange`公共事件,防止多次触发
+  emitter.off("logoChange");
+  emitter.off("systemThemeChange");
+});
+const defer = useDefer(menuData.value.length);
 </script>
 
 <template>
-  <component :is="CurrentComponent" :key="currentTheme" />
+  <div
+    v-loading="loading"
+    class="sidebar-container-with-decoration"
+    :class="[
+      'sidebar-custom sidebar-container',
+      showLogo ? 'has-logo' : 'no-logo',
+    ]"
+    @mouseenter.prevent="isShow = true"
+    @mouseleave.prevent="isShow = false"
+  >
+    <LaySidebarLogo v-if="showLogo" :collapse="isCollapse" />
+    <el-scrollbar
+      wrap-class="scrollbar-wrapper"
+      :class="[device === 'mobile' ? 'mobile' : 'pc']"
+    >
+      <el-menu
+        router
+        mode="vertical"
+        popper-class="pure-scrollbar"
+        class="outer-most select-none"
+        :collapse="isCollapse"
+        :collapse-transition="false"
+        :popper-effect="tooltipEffect"
+        :default-active="defaultActive"
+      >
+        <span v-for="(routes, index) in menuData" :key="index">
+          <LaySidebarItem
+            :key="routes.path"
+            :item="routes"
+            :base-path="routes.path"
+            class="outer-most select-none"
+          />
+        </span>
+      </el-menu>
+    </el-scrollbar>
+    <LaySidebarCenterCollapse
+      v-if="device !== 'mobile' && (isShow || isCollapse)"
+      :is-active="pureApp?.sidebar?.opened"
+      @toggleClick="toggleSideBar"
+    />
+    <LaySidebarLeftCollapse
+      v-if="device !== 'mobile'"
+      :is-active="pureApp?.sidebar?.opened"
+      @toggleClick="toggleSideBar"
+    />
+    
+    <!-- 主题装饰元素 -->
+    <ThemeDecoration
+      v-for="(decoration, index) in sidebarDecorations"
+      :key="`sidebar-decoration-${index}`"
+      :config="decoration"
+      :index="index"
+      :visible="true"
+    />
+  </div>
 </template>
 
 <style lang="scss" scoped>
-// 样式已移至 BaseSidebar.vue
 .sidebar-container {
   position: relative;
   height: 100%;
