@@ -39,9 +39,13 @@
               </template>
             </el-input>
             <div class="control-buttons">
-              <el-button v-if="config.lock" type="primary" circle :icon="useRenderIcon('ep:lock')" @click="config.lock = false" title="解锁滚动" />
-              <el-button v-else circle :icon="useRenderIcon('ep:unlock')" @click="config.lock = true" title="锁定滚动" />
+              <el-button v-if="config.lock" type="primary" circle :icon="useRenderIcon('ep:lock')" @click="config.lock = false" title="已开启自动滚动，点击停止" />
+              <el-button v-else type="info" circle :icon="useRenderIcon('ep:unlock')" @click="config.lock = true" title="已停止自动滚动，点击开启" />
+              <el-button circle type="success" :icon="useRenderIcon('ep:bottom')" @click="scrollToBottom" title="滚动到底部" />
               <el-button circle type="danger" :icon="useRenderIcon('ep:delete-filled')" @click="dataList.length = 0" title="清空日志" />
+              <el-tag :type="wsConnected ? 'success' : 'danger'" size="small" class="ml-2">
+                {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
+              </el-tag>
             </div>
           </div>
           <!-- 日志列表 -->
@@ -60,7 +64,7 @@
   </div>
 </template>
 <script setup>
-import { nextTick, ref, onUnmounted, reactive, onMounted } from "vue";
+import { nextTick, ref, onUnmounted, reactive, onMounted, computed } from "vue";
 import { AnsiUp } from "ansi_up";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { wsService } from "@/utils/websocket";
@@ -74,6 +78,19 @@ const config = reactive({
   lock: true
 });
 let unsubscribe = null;
+
+// WebSocket 连接状态
+const wsConnected = computed(() => wsService.connected.value);
+
+// 滚动到底部
+const scrollToBottom = () => {
+  nextTick(() => {
+    const container = document.querySelector("#containerRef");
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  });
+};
 
 // 处理 WebSocket 消息
 const handleWsMessage = message => {
@@ -120,6 +137,8 @@ const filter = row => {
 };
 
 onMounted(() => {
+  // 连接 WebSocket
+  wsService.connect();
   // 订阅日志消息
   unsubscribe = wsService.subscribe("LOG", "AGENT_LOG", handleWsMessage);
 });

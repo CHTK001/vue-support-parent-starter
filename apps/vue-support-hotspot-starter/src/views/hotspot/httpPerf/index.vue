@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import { ElMessage } from "element-plus";
+import { wsService } from "@/utils/websocket";
 
 const loading = ref(false);
 const summary = ref<any>({});
@@ -8,6 +9,26 @@ const topEndpoints = ref<any[]>([]);
 const slowEndpoints = ref<any[]>([]);
 const errorEndpoints = ref<any[]>([]);
 const activeTab = ref("summary");
+let unsubscribe: (() => void) | null = null;
+let refreshTimer: ReturnType<typeof setInterval> | null = null;
+
+// WebSocket 连接状态
+const wsConnected = computed(() => wsService.connected.value);
+
+// 处理 WebSocket 消息 - HTTP 性能数据推送
+const handleWsMessage = (message: any) => {
+  if (message.event === "HTTP_PERF_UPDATE") {
+    try {
+      const data = message.data;
+      if (data.summary) summary.value = data.summary;
+      if (data.topEndpoints) topEndpoints.value = data.topEndpoints;
+      if (data.slowEndpoints) slowEndpoints.value = data.slowEndpoints;
+      if (data.errorEndpoints) errorEndpoints.value = data.errorEndpoints;
+    } catch (error) {
+      console.error("解析HTTP性能数据失败:", error);
+    }
+  }
+};
 
 // 获取汇总数据
 const fetchSummary = async () => {
@@ -90,9 +111,23 @@ const fetchData = () => {
 };
 
 onMounted(() => {
+  // 连接 WebSocket
+  wsService.connect();
+  // 订阅 HTTP 性能数据推送
+  unsubscribe = wsService.subscribe("PERFORMANCE", "HTTP_PERF_UPDATE", handleWsMessage);
+  // 初始加载数据
   fetchData();
-  // 每30秒刷新一次
-  setInterval(fetchData, 30000);
+  // 每10秒刷新一次
+  refreshTimer = setInterval(fetchData, 10000);
+});
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe();
+  }
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+  }
 });
 </script>
 
@@ -102,9 +137,17 @@ onMounted(() => {
       <template #header>
         <div class="card-header">
           <span>HTTP性能汇总</span>
-          <el-button type="primary" size="small" @click="clearStats">
-            清除统计
-          </el-button>
+          <div class="header-actions">
+            <el-tag :type="wsConnected ? 'success' : 'danger'" size="small">
+              {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
+            </el-tag>
+            <el-button type="info" size="small" @click="fetchData" :loading="loading">
+              刷新
+            </el-button>
+            <el-button type="primary" size="small" @click="clearStats">
+              清除统计
+            </el-button>
+          </div>
         </div>
       </template>
       <el-row :gutter="20">
@@ -217,6 +260,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
 }
 
 .stat-item {

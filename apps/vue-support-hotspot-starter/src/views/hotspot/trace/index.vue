@@ -15,6 +15,10 @@
             <div class="stat-number">{{ dataList.length }}</div>
             <div class="stat-label">追踪记录</div>
           </div>
+          <el-tag :type="wsConnected ? 'success' : 'danger'" size="large" class="ws-status">
+            {{ wsConnected ? 'WebSocket 已连接' : 'WebSocket 未连接' }}
+          </el-tag>
+          <el-button type="danger" size="small" @click="clearData">清空数据</el-button>
         </div>
       </div>
     </div>
@@ -125,7 +129,7 @@ import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 import { format } from "sql-formatter";
 import { dateFormat } from "@repo/utils";
-import { nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
+import { nextTick, onMounted, onUnmounted, reactive, ref, computed } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { wsService } from "@/utils/websocket";
 
@@ -142,6 +146,14 @@ const defaultProps = {
 };
 
 let unsubscribe = null;
+
+// WebSocket 连接状态
+const wsConnected = computed(() => wsService.connected.value);
+
+// 清空数据
+const clearData = () => {
+  dataList.length = 0;
+};
 
 // 处理 WebSocket 消息
 const handleWsMessage = message => {
@@ -174,6 +186,8 @@ const handleShowTrack = async data => {
 };
 
 onMounted(() => {
+  // 连接 WebSocket
+  wsService.connect();
   // 订阅链路追踪消息
   unsubscribe = wsService.subscribe("TRACE", "AGENT_TRACE", handleWsMessage);
 });
