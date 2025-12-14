@@ -13,7 +13,7 @@ const activeTab = ref("summary");
 const fetchSummary = async () => {
   loading.value = true;
   try {
-    const response = await fetch("/api/http-perf?action=summary");
+    const response = await fetch("/agent/api/http-perf?action=summary");
     const data = await response.json();
     summary.value = data;
   } catch (error) {
@@ -28,7 +28,7 @@ const fetchSummary = async () => {
 const fetchTopEndpoints = async () => {
   loading.value = true;
   try {
-    const response = await fetch("/api/http-perf?action=top&limit=20");
+    const response = await fetch("/agent/api/http-perf?action=top&limit=20");
     const data = await response.json();
     topEndpoints.value = data.endpoints || [];
   } catch (error) {
@@ -43,7 +43,7 @@ const fetchTopEndpoints = async () => {
 const fetchSlowEndpoints = async () => {
   loading.value = true;
   try {
-    const response = await fetch("/api/http-perf?action=slow&limit=20");
+    const response = await fetch("/agent/api/http-perf?action=slow&limit=20");
     const data = await response.json();
     slowEndpoints.value = data.endpoints || [];
   } catch (error) {
@@ -58,7 +58,7 @@ const fetchSlowEndpoints = async () => {
 const fetchErrorEndpoints = async () => {
   loading.value = true;
   try {
-    const response = await fetch("/api/http-perf?action=errors&limit=20");
+    const response = await fetch("/agent/api/http-perf?action=errors&limit=20");
     const data = await response.json();
     errorEndpoints.value = data.endpoints || [];
   } catch (error) {
@@ -72,7 +72,7 @@ const fetchErrorEndpoints = async () => {
 // 清除统计
 const clearStats = async () => {
   try {
-    await fetch("/api/http-perf?action=clear");
+    await fetch("/agent/api/http-perf?action=clear");
     ElMessage.success("统计数据已清除");
     fetchData();
   } catch (error) {

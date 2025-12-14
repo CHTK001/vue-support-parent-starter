@@ -1,27 +1,23 @@
 <script setup lang="ts">
-import { defineAsyncComponent } from "vue";
-import { localStorageProxy } from "@repo/utils";
-import type { StorageConfigs } from "@repo/config";
-import { responsiveStorageNameSpace } from "@repo/config";
+import { useThemeComponent } from "../../hooks/useThemeComponent";
+import DefaultTag from "./themes/Default.vue";
+import SpringFestivalTag from "./themes/SpringFestival.vue";
 
-// 动态加载主题组件
-function useThemeComponent() {
-  const systemTheme = localStorageProxy().getItem<StorageConfigs>(
-    `${responsiveStorageNameSpace()}configure`
-  )?.systemTheme || 'default';
-  
-  const themeMap: Record<string, any> = {
-    'spring-festival': defineAsyncComponent(() => import('./themes/SpringFestival.vue')),
-    'default': defineAsyncComponent(() => import('./themes/Default.vue')),
-  };
-  
-  return themeMap[systemTheme] || themeMap['default'];
-}
+// 主题组件映射
+const themeComponents = {
+  'default': DefaultTag,
+  'spring-festival': SpringFestivalTag,
+  // 其他主题组件
+  // 'cyberpunk': CyberpunkTag,
+  // 'christmas': ChristmasTag,
+  // 'mid-autumn': MidAutumnTag,
+  // 'new-year': NewYearTag,
+  // 'valentines-day': ValentinesDayTag,
+};
 
-const TagThemeComponent = useThemeComponent();
-
+const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultTag);
 </script>
 
 <template>
-  <component :is="TagThemeComponent" />
+  <component :is="CurrentComponent" :key="currentTheme" />
 </template>

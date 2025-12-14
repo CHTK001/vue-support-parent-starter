@@ -33,7 +33,7 @@
         </div>
       </template>
 
-      <el-table :data="filteredData" style="width: 100%" row-key="id" stripe highlight-current-row class="modern-table">
+      <el-table :data="filteredData" style="width: 100%" row-key="id" stripe highlight-current-row class="modern-table" max-height="600">
         <el-table-column prop="id" label="ID" width="100" />
         <el-table-column prop="name" label="Bean 名称" min-width="200">
           <template #default="{ row }">

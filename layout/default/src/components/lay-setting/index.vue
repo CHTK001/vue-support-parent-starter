@@ -325,7 +325,7 @@ const switchSystemTheme = (themeKey: string, showMessage: boolean = true): void 
   
   // 只在明确要求显示消息时才显示
   if (showMessage) {
-    const themeName = themeKey === 'default' ? '默认' : festivalThemesList.find(t => t.themeColor === themeKey)?.name || themeKey;
+    const themeName = themeKey === 'default' ? '默认' : festivalThemesList.value.find(t => t.themeColor === themeKey)?.name || themeKey;
     ElMessage.success(`已切换到${themeName}主题`);
   }
 };

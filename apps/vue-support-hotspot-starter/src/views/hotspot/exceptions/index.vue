@@ -13,7 +13,7 @@ const dialogVisible = ref(false);
 const fetchExceptions = async () => {
   loading.value = true;
   try {
-    const response = await fetch("/api/exceptions?action=list&limit=100");
+    const response = await fetch("/agent/api/exceptions?action=list&limit=100");
     const data = await response.json();
     exceptions.value = data.exceptions || [];
   } catch (error) {
@@ -28,7 +28,7 @@ const fetchExceptions = async () => {
 const fetchStats = async () => {
   loading.value = true;
   try {
-    const response = await fetch("/api/exceptions?action=stats");
+    const response = await fetch("/agent/api/exceptions?action=stats");
     const data = await response.json();
     stats.value = data.statistics || [];
   } catch (error) {
@@ -53,7 +53,7 @@ const formatTime = (timestamp: number) => {
 // 清除统计
 const clearStats = async () => {
   try {
-    await fetch("/api/exceptions?action=clear");
+    await fetch("/agent/api/exceptions?action=clear");
     ElMessage.success("异常统计已清除");
     fetchData();
   } catch (error) {

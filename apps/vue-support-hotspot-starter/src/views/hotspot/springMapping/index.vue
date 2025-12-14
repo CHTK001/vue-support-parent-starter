@@ -61,7 +61,7 @@
         </div>
       </template>
 
-      <el-table :data="filteredData" style="width: 100%" row-key="id" stripe highlight-current-row class="modern-table">
+      <el-table :data="filteredData" style="width: 100%" row-key="id" stripe highlight-current-row class="modern-table" max-height="600">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="路由路径" min-width="220">
           <template #default="{ row }">

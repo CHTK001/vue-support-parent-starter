@@ -5,14 +5,31 @@ import LaySidebarTopCollapse from "../../lay-sidebar/components/SidebarTopCollap
 import LayNavMix from "../../lay-sidebar/NavMix.vue";
 //@ts-ignore
 import LayTool from "../../lay-tool/index.vue";
-import { useGlobal } from "@pureadmin/utils";
+import { useGlobal, useDark } from "@pureadmin/utils";
 import { emitter } from "@repo/core";
-import { onBeforeUnmount, ref } from "vue";
+import { onBeforeUnmount, ref, computed } from "vue";
 
 // 接收主题类名
 const props = defineProps<{
   themeClass?: string;
 }>();
+
+const { isDark } = useDark();
+
+// 根据主题计算背景样式
+const navbarStyle = computed(() => {
+  if (props.themeClass === 'spring-festival-navbar') {
+    return {
+      background: 'linear-gradient(180deg, #DC143C, #B22222)',
+      borderBottom: '2px solid rgba(255, 215, 0, 0.3)'
+    };
+  }
+  // 默认主题
+  return {
+    background: isDark.value ? 'rgba(18, 18, 23, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+    borderBottom: isDark.value ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)'
+  };
+});
 
 const {
   layout,
@@ -34,10 +51,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div 
-    :class="['base-navbar', themeClass]"
-    :style="themeClass === 'spring-festival-navbar' ? 'background: linear-gradient(180deg, #DC143C, #B22222) !important; border-bottom: 2px solid rgba(255, 215, 0, 0.3) !important;' : ''"
-  >
+  <div :class="['base-navbar', themeClass]" :style="navbarStyle">
     <!-- 装饰元素 -->
     <div class="decor-pattern"></div>
     
@@ -78,7 +92,17 @@ onBeforeUnmount(() => {
   align-items: center;
   position: relative;
   height: 48px;
-  // 主题特定样式由全局 SCSS 控制
+  // 默认背景样式
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  
+  .dark & {
+    background: rgba(18, 18, 23, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  
+  // 主题特定样式由全局 SCSS 覆盖
   
   .decor-pattern {
     position: absolute;
