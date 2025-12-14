@@ -1,6 +1,6 @@
 /**
- * 默认主题 - 标签页基础样式
- * 所有主题共享的基础样式，特定主题可覆盖
+ * 默认主题 - 标签页美化样式
+ * 现代化设计，精致细腻的视觉效果
  */
 
 // 动画定义
@@ -14,28 +14,64 @@
   to { width: 0; }
 }
 
+@keyframes tag-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(var(--el-color-primary-rgb), 0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 // 标签页容器基础样式
 .tags-view {
   position: relative;
   display: flex;
   align-items: center;
   width: 100%;
-  font-size: 14px;
+  height: 42px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--el-text-color-primary);
-  background: #fff;
-  box-shadow: 0 0 1px #888;
+  background: linear-gradient(180deg, 
+    rgba(255, 255, 255, 0.98) 0%, 
+    rgba(248, 250, 252, 0.95) 100%
+  );
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 0 4px;
   
   .scroll-item {
     position: relative;
-    display: inline-block;
-    height: 34px;
-    padding-left: 6px;
-    line-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 10px;
+    margin: 0 3px;
+    line-height: 30px;
     cursor: pointer;
-    transition: all 0.4s;
+    border-radius: 8px;
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.9) 0%, 
+      rgba(248, 250, 252, 0.85) 100%
+    );
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 
+      0 1px 3px rgba(0, 0, 0, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:not(:first-child) {
-      padding-right: 24px;
+      padding-right: 28px;
+    }
+
+    &:first-child {
+      margin-left: 6px;
     }
 
     &.chrome-item {
@@ -43,33 +79,59 @@
       padding-left: 0;
       margin-right: -18px;
       box-shadow: none;
+      background: transparent;
+      border: none;
     }
 
     .el-icon-close {
       position: absolute;
       top: 50%;
+      right: 6px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 18px;
-      height: 18px;
-      color: var(--el-color-primary);
+      width: 16px;
+      height: 16px;
+      color: var(--el-text-color-secondary);
       cursor: pointer;
-      border-radius: 4px;
-      transition: background-color 0.12s, color 0.12s;
+      border-radius: 50%;
+      transition: all 0.2s ease;
       transform: translate(0, -50%);
+      opacity: 0.6;
+
+      svg {
+        width: 12px;
+        height: 12px;
+      }
 
       &:hover {
-        color: rgb(0 0 0 / 88%) !important;
-        background-color: rgb(0 0 0 / 6%);
+        color: #fff !important;
+        background: var(--el-color-primary);
+        opacity: 1;
+        transform: translate(0, -50%) scale(1.1);
       }
     }
   }
 
+  .tag-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 5px;
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+    transition: all 0.2s ease;
+  }
+
   .tag-title {
-    padding: 0 4px;
-    color: var(--el-text-color-primary);
+    padding: 0 2px;
+    color: var(--el-text-color-regular);
     text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    transition: color 0.2s ease;
   }
 
   .scroll-container {
@@ -240,29 +302,94 @@
   opacity: 0.5;
 }
 
+// 悬停状态
+.scroll-item:not(.is-active):hover {
+  background: linear-gradient(135deg, 
+    rgba(var(--el-color-primary-rgb), 0.08) 0%, 
+    rgba(var(--el-color-primary-rgb), 0.04) 100%
+  );
+  border-color: rgba(var(--el-color-primary-rgb), 0.2);
+  box-shadow: 
+    0 4px 12px rgba(var(--el-color-primary-rgb), 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+
+  .tag-icon {
+    color: var(--el-color-primary);
+    transform: scale(1.1);
+  }
+
+  .tag-title {
+    color: var(--el-color-primary);
+  }
+}
+
 // 激活状态
 .scroll-item.is-active {
   position: relative;
-  color: #fff;
-  background: var(--el-color-primary);
-  box-shadow: 0 0 0.7px #888;
+  background: linear-gradient(135deg, 
+    var(--el-color-primary) 0%, 
+    var(--el-color-primary-light-3) 100%
+  );
+  border-color: transparent;
+  box-shadow: 
+    0 4px 14px rgba(var(--el-color-primary-rgb), 0.35),
+    0 2px 6px rgba(var(--el-color-primary-rgb), 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, 
+      rgba(255, 255, 255, 0.15) 0%, 
+      rgba(255, 255, 255, 0) 100%
+    );
+    border-radius: 8px 8px 0 0;
+    pointer-events: none;
+  }
+
+  .tag-icon {
+    color: rgba(255, 255, 255, 0.9);
+  }
 
   .tag-title {
     color: #fff !important;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   .el-icon-close {
-    color: #fff !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    opacity: 1;
 
     &:hover {
-      color: #fff !important;
-      background-color: rgba(255, 255, 255, 0.2);
+      color: var(--el-color-primary) !important;
+      background: rgba(255, 255, 255, 0.95);
+      transform: translate(0, -50%) scale(1.15) rotate(90deg);
     }
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 6px 20px rgba(var(--el-color-primary-rgb), 0.4),
+      0 3px 10px rgba(var(--el-color-primary-rgb), 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 
   // Chrome 模式特殊处理
   &.chrome-item {
     background: transparent !important;
+    box-shadow: none;
+    
+    &::before {
+      display: none;
+    }
     
     .chrome-tab {
       z-index: 10;
@@ -274,6 +401,11 @@
 
     .tag-title {
       color: var(--el-color-primary) !important;
+      text-shadow: none;
+    }
+
+    .tag-icon {
+      color: var(--el-color-primary);
     }
 
     .chrome-close-btn {
@@ -291,7 +423,7 @@
   }
 }
 
-// 箭头按钮
+// 箭头按钮 - 精致圆形设计
 .arrow-left,
 .arrow-right,
 .arrow-down {
@@ -299,62 +431,84 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 34px;
-  color: var(--el-text-color-primary);
-  border-radius: 6px;
-  transition: all 0.2s ease;
+  width: 28px;
+  height: 28px;
+  color: var(--el-text-color-secondary);
+  border-radius: 50%;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.9) 0%, 
+    rgba(248, 250, 252, 0.8) 100%
+  );
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 
+    0 2px 6px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  flex-shrink: 0;
 
   svg {
-    width: 18px;
-    height: 18px;
-    transition: transform 0.2s ease;
+    width: 16px;
+    height: 16px;
+    transition: all 0.25s ease;
   }
 
   &:hover {
-    background: rgba(var(--el-color-primary-rgb), 0.08);
-    color: var(--el-color-primary);
+    background: linear-gradient(135deg, 
+      var(--el-color-primary) 0%, 
+      var(--el-color-primary-light-3) 100%
+    );
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 
+      0 4px 12px rgba(var(--el-color-primary-rgb), 0.3),
+      0 2px 6px rgba(var(--el-color-primary-rgb), 0.2);
+    transform: scale(1.08);
 
     svg {
-      transform: scale(1.15);
+      transform: scale(1.1);
     }
   }
 
   &:active {
-    background: rgba(var(--el-color-primary-rgb), 0.12);
     transform: scale(0.95);
+    box-shadow: 
+      0 2px 6px rgba(var(--el-color-primary-rgb), 0.25),
+      inset 0 1px 2px rgba(0, 0, 0, 0.1);
   }
 }
 
 .arrow-left {
-  margin-right: 4px;
+  margin-right: 6px;
+  margin-left: 4px;
 
   &:hover {
     cursor: w-resize;
 
     svg {
-      transform: scale(1.15) translateX(-1px);
+      transform: scale(1.1) translateX(-2px);
     }
   }
 }
 
 .arrow-right {
-  margin-left: 4px;
-  margin-right: 4px;
+  margin-left: 6px;
+  margin-right: 6px;
 
   &:hover {
     cursor: e-resize;
 
     svg {
-      transform: scale(1.15) translateX(1px);
+      transform: scale(1.1) translateX(2px);
     }
   }
 }
 
 .arrow-down {
+  margin-right: 8px;
+
   &:hover svg {
-    transform: scale(1.15) rotate(180deg);
+    transform: scale(1.1) rotate(180deg);
   }
 }
 
