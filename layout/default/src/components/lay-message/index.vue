@@ -1058,9 +1058,10 @@ html[data-skin="spring-festival"] {
   .message-dropdown-popper {
     .el-dropdown-menu {
       background: linear-gradient(180deg, $spring-red 0%, $spring-red-dark 100%) !important;
-      border: 1px solid $spring-border !important;
+      border: 2px solid $spring-gold !important;
       box-shadow:
-        0 0 30px rgba(255, 215, 0, 0.15),
+        0 0 20px rgba(255, 215, 0, 0.4),
+        0 0 40px rgba(255, 215, 0, 0.2),
         0 20px 60px rgba(0, 0, 0, 0.4) !important;
       border-radius: 12px !important;
       overflow: hidden;
