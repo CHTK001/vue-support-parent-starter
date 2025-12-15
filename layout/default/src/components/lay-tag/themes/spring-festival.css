@@ -27,7 +27,7 @@ html[data-skin="spring-festival"] .modern-item {
   align-items: center !important;
   justify-content: center !important;
   background: linear-gradient(180deg, #DC143C, #B22222) !important;
-  color: #FFD700 !important;
+  color: #ffffff !important;
   border: 2px solid #8B0000 !important;
   border-radius: 6px !important;
   padding: 4px 12px !important;
@@ -83,7 +83,7 @@ html[data-skin="spring-festival"] .modern-item:hover {
   }
 }
 
-/* 激活状态的标签 */
+/* 激活状态的标签 - 金色背景配深红文字 */
 html[data-skin="spring-festival"] .scroll-item.is-active,
 html[data-skin="spring-festival"] .scroll-item.active,
 html[data-skin="spring-festival"] .chrome-item.is-active,

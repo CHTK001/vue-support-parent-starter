@@ -1,54 +1,143 @@
-/* 圣诞主题标签页样式 */
-html[data-skin="christmas"] {
-  /* 标签页容器 */
-  .tags-view {
-    background: linear-gradient(180deg, #1b5e20, #145214) !important;
-    border-bottom: 2px solid rgba(255, 215, 0, 0.3) !important;
-  }
+/**
+ * 圣诞主题 - 标签页样式
+ * 圣诞绿配金色和红色的设计
+ */
 
-  /* 标签项 */
-  .tags-view .scroll-item {
-    background: rgba(0, 0, 0, 0.2) !important;
-    border: 1px solid rgba(255, 215, 0, 0.3) !important;
-    color: #ffffff !important;
-    border-radius: 4px !important;
-  }
+/* 圣诞主题标签页容器 */
+html[data-skin="christmas"] .tags-view,
+html[data-skin="christmas"] .shadow-tab {
+  background: linear-gradient(180deg, #e8f5e9 0%, #ffffff 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
 
-  .tags-view .scroll-item:hover {
-    background: rgba(198, 40, 40, 0.6) !important;
-    border-color: rgba(255, 215, 0, 0.5) !important;
-    color: #ffffff !important;
-  }
+/* 隐藏 Chrome 样式的背景图 */
+html[data-skin="christmas"] .chrome-tab__bg,
+html[data-skin="christmas"] .chrome-tab__bg svg {
+  display: none !important;
+}
 
-  .tags-view .scroll-item.is-active {
-    background: linear-gradient(135deg, #c62828, #e53935) !important;
-    border: 2px solid #ffd700 !important;
-    color: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(198, 40, 40, 0.4) !important;
-  }
+/* 圣诞样式的标签项 - 所有模式 */
+html[data-skin="christmas"] .scroll-item,
+html[data-skin="christmas"] .chrome-item,
+html[data-skin="christmas"] .modern-item {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(180deg, #1b5e20, #2e7d32) !important;
+  color: #ffffff !important;
+  border: 2px solid #145214 !important;
+  border-radius: 6px !important;
+  padding: 4px 12px !important;
+  margin: 0 6px !important;
+  font-weight: 600 !important;
+  box-shadow: 
+    0 2px 8px rgba(27, 94, 32, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  transition: none !important;
+}
 
-  /* 关闭按钮 */
-  .tags-view .scroll-item .el-icon-close {
-    color: rgba(255, 255, 255, 0.7) !important;
-  }
+/* Chrome 标签额外设置 */
+html[data-skin="christmas"] .chrome-tab {
+  background: transparent !important;
+}
 
-  .tags-view .scroll-item:hover .el-icon-close,
-  .tags-view .scroll-item.is-active .el-icon-close {
-    color: #ffffff !important;
-  }
+html[data-skin="christmas"] .chrome-tab-divider {
+  display: none !important;
+}
 
-  /* 右侧操作按钮 */
-  .tags-view .more-btn-wrapper {
-    background: linear-gradient(180deg, #145214, #0d3d0d) !important;
-    border-left: 1px solid rgba(255, 215, 0, 0.3) !important;
-  }
+html[data-skin="christmas"] .chrome-close-btn {
+  color: currentColor !important;
+  opacity: 0.7;
+}
 
-  .tags-view .more-btn-wrapper .more-btn {
-    color: #ffd700 !important;
-  }
+/* 标签悬停效果 */
+html[data-skin="christmas"] .scroll-item:hover,
+html[data-skin="christmas"] .chrome-item:hover,
+html[data-skin="christmas"] .modern-item:hover {
+  transform: none !important;
+  box-shadow: 
+    0 2px 8px rgba(27, 94, 32, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
 
-  .tags-view .more-btn-wrapper .more-btn:hover {
-    background: rgba(198, 40, 40, 0.6) !important;
-    color: #ffffff !important;
-  }
+/* 激活状态的标签 - 红色背景配金色文字 */
+html[data-skin="christmas"] .scroll-item.is-active,
+html[data-skin="christmas"] .scroll-item.active,
+html[data-skin="christmas"] .chrome-item.is-active,
+html[data-skin="christmas"] .modern-item.is-active {
+  background: linear-gradient(180deg, #c62828, #e53935) !important;
+  color: #ffd700 !important;
+  border: 2px solid #ffd700 !important;
+  font-weight: 700 !important;
+  box-shadow: 
+    0 4px 16px rgba(198, 40, 40, 0.5),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 标签文字 */
+html[data-skin="christmas"] .scroll-item .tag-title,
+html[data-skin="christmas"] .chrome-item .tag-title,
+html[data-skin="christmas"] .modern-item .tag-title {
+  color: inherit !important;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.4 !important;
+  height: 100%;
+}
+
+/* 关闭按钮 */
+html[data-skin="christmas"] .scroll-item .el-icon-close,
+html[data-skin="christmas"] .scroll-item .chrome-close-btn {
+  color: currentColor !important;
+  opacity: 0.7;
+  transition: none;
+}
+
+html[data-skin="christmas"] .scroll-item .el-icon-close:hover,
+html[data-skin="christmas"] .scroll-item .chrome-close-btn:hover {
+  opacity: 1;
+}
+
+/* 箭头按钮 */
+html[data-skin="christmas"] .arrow-left,
+html[data-skin="christmas"] .arrow-right {
+  background: rgba(27, 94, 32, 0.1) !important;
+  color: #1b5e20 !important;
+  border: 1px solid rgba(27, 94, 32, 0.2) !important;
+  transition: none;
+}
+
+html[data-skin="christmas"] .arrow-left:hover,
+html[data-skin="christmas"] .arrow-right:hover {
+  background: rgba(27, 94, 32, 0.2) !important;
+  color: #2e7d32 !important;
+}
+
+/* 右键菜单 */
+html[data-skin="christmas"] .contextmenu {
+  background: #fff !important;
+  border: 2px solid rgba(27, 94, 32, 0.3) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+html[data-skin="christmas"] .contextmenu .menu-item:hover {
+  background: rgba(27, 94, 32, 0.1) !important;
+  color: #1b5e20 !important;
+}
+
+/* 确保所有模式下标签图标颜色一致 */
+html[data-skin="christmas"] .scroll-item .tag-icon,
+html[data-skin="christmas"] .chrome-item .tag-icon,
+html[data-skin="christmas"] .modern-item .tag-icon {
+  color: inherit !important;
 }
