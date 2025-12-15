@@ -465,6 +465,315 @@ const defer = useDefer(firstLevelMenus.value.length);
 </style>
 
 <style lang="scss">
+// ==================== 春节主题样式 ====================
+html[data-skin="spring-festival"] {
+  $spring-red: #dc143c;
+  $spring-red-dark: #b22222;
+  $spring-gold: #ffd700;
+  $spring-gold-light: #ffa500;
+  $spring-border: rgba(255, 215, 0, 0.5);
+
+  // 双栏导航容器
+  .double-nav-container {
+    // 左栏
+    .double-nav-left {
+      background: linear-gradient(135deg, rgba(220, 20, 60, 0.98), rgba(178, 34, 34, 0.98)) !important;
+      border-right: 3px solid $spring-border !important;
+
+      // Logo区域
+      .sidebar-logo-container {
+        background: linear-gradient(135deg, rgba(139, 0, 0, 0.9), rgba(178, 34, 34, 0.9)) !important;
+        border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
+
+        .sidebar-title {
+          color: $spring-gold !important;
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+      }
+
+      // 一级菜单
+      .first-level-menu {
+        .el-menu-item {
+          color: $spring-gold !important;
+
+          .menu-icon-only {
+            svg,
+            i {
+              color: $spring-gold !important;
+            }
+          }
+
+          &:hover {
+            background: linear-gradient(135deg, rgba(220, 20, 60, 0.9), rgba(178, 34, 34, 0.9)) !important;
+            color: #fff !important;
+
+            .menu-icon-only svg,
+            .menu-icon-only i {
+              color: #fff !important;
+            }
+          }
+
+          &.is-active {
+            background: linear-gradient(135deg, $spring-gold, $spring-gold-light) !important;
+            color: #8b0000 !important;
+            border: 2px solid $spring-red !important;
+            font-weight: 700;
+            box-shadow:
+              0 4px 16px rgba(255, 215, 0, 0.5),
+              0 0 20px rgba(255, 215, 0, 0.3) !important;
+
+            .menu-icon-only svg,
+            .menu-icon-only i {
+              color: #8b0000 !important;
+            }
+          }
+        }
+      }
+    }
+
+    // 右栏
+    .double-nav-right {
+      background: linear-gradient(135deg, rgba(178, 34, 34, 0.95), rgba(139, 0, 0, 0.95)) !important;
+
+      // 子菜单列表
+      .sub-menu-list {
+        .el-menu-item {
+          color: $spring-gold !important;
+          background: linear-gradient(135deg, rgba(139, 0, 0, 0.7), rgba(178, 34, 34, 0.7)) !important;
+          border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
+          border-radius: 8px !important;
+          margin: 4px 8px !important;
+
+          .el-icon,
+          svg {
+            color: $spring-gold !important;
+          }
+
+          &:hover {
+            background: linear-gradient(135deg, rgba(220, 20, 60, 0.9), rgba(178, 34, 34, 0.9)) !important;
+            border-color: rgba(255, 215, 0, 0.6) !important;
+            color: #fff !important;
+          }
+
+          &.is-active {
+            background: linear-gradient(135deg, $spring-gold, $spring-gold-light) !important;
+            border: 2px solid $spring-red !important;
+            color: #8b0000 !important;
+            font-weight: 700;
+            box-shadow:
+              0 4px 16px rgba(255, 215, 0, 0.5),
+              0 0 20px rgba(255, 215, 0, 0.3) !important;
+
+            .el-icon,
+            svg {
+              color: #8b0000 !important;
+            }
+          }
+        }
+
+        .el-sub-menu__title {
+          color: $spring-gold !important;
+          background: linear-gradient(135deg, rgba(139, 0, 0, 0.5), rgba(178, 34, 34, 0.5)) !important;
+          border-radius: 8px !important;
+          margin: 4px 8px !important;
+
+          .el-icon,
+          svg {
+            color: $spring-gold !important;
+          }
+
+          &:hover {
+            background: linear-gradient(135deg, rgba(220, 20, 60, 0.7), rgba(178, 34, 34, 0.7)) !important;
+            color: #fff !important;
+          }
+        }
+
+        .el-sub-menu.is-active > .el-sub-menu__title {
+          color: #fff !important;
+          font-weight: 700;
+        }
+      }
+    }
+
+    // 折叠按钮
+    .double-nav-collapse {
+      .left-collapse {
+        background: linear-gradient(135deg, rgba(139, 0, 0, 0.95), rgba(178, 34, 34, 0.95)) !important;
+        border-top: 2px solid $spring-border !important;
+
+        svg {
+          color: $spring-gold !important;
+        }
+
+        &:hover {
+          background: linear-gradient(135deg, rgba(220, 20, 60, 0.95), rgba(178, 34, 34, 0.95)) !important;
+
+          svg {
+            color: #fff !important;
+          }
+        }
+      }
+    }
+  }
+}
+
+// ==================== 赛博朋克主题样式 ====================
+html[data-skin="cyberpunk"] {
+  $cyber-cyan: #00ffff;
+  $cyber-magenta: #ff00ff;
+  $cyber-dark: #0a0a12;
+  $cyber-dark-light: #12121f;
+  $cyber-border: rgba(0, 255, 255, 0.3);
+
+  // 双栏导航容器
+  .double-nav-container {
+    // 左栏
+    .double-nav-left {
+      background: linear-gradient(180deg, rgba(10, 10, 18, 0.95), rgba(18, 18, 31, 0.95)) !important;
+      border-right: 2px solid $cyber-border !important;
+
+      // Logo区域
+      .sidebar-logo-container {
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.98), rgba(18, 18, 31, 0.98)) !important;
+        border-bottom: 1px solid $cyber-border !important;
+
+        .sidebar-title {
+          color: $cyber-cyan !important;
+          text-shadow: 0 0 5px rgba(0, 255, 255, 0.5), 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+      }
+
+      // 一级菜单
+      .first-level-menu {
+        .el-menu-item {
+          color: $cyber-cyan !important;
+
+          .menu-icon-only {
+            svg,
+            i {
+              color: $cyber-cyan !important;
+              filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+            }
+          }
+
+          &:hover {
+            background: rgba(0, 255, 255, 0.1) !important;
+            color: #fff !important;
+
+            .menu-icon-only svg,
+            .menu-icon-only i {
+              color: #fff !important;
+            }
+          }
+
+          &.is-active {
+            background: rgba(0, 255, 255, 0.1) !important;
+            color: #fff !important;
+            border-color: $cyber-cyan !important;
+            box-shadow:
+              0 0 15px rgba(0, 255, 255, 0.3),
+              inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
+
+            .menu-icon-only svg,
+            .menu-icon-only i {
+              color: #fff !important;
+              filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+            }
+          }
+        }
+      }
+    }
+
+    // 右栏
+    .double-nav-right {
+      background: linear-gradient(180deg, rgba(18, 18, 31, 0.95), rgba(10, 10, 18, 0.95)) !important;
+
+      // 子菜单列表
+      .sub-menu-list {
+        .el-menu-item {
+          color: $cyber-cyan !important;
+          background: rgba(10, 10, 18, 0.6) !important;
+          border: 1px solid rgba(0, 255, 255, 0.2) !important;
+          border-radius: 4px !important;
+          margin: 4px 8px !important;
+
+          .el-icon,
+          svg {
+            color: $cyber-cyan !important;
+            filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+          }
+
+          &:hover {
+            background: rgba(0, 255, 255, 0.1) !important;
+            border-color: $cyber-cyan !important;
+            color: #fff !important;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3) !important;
+          }
+
+          &.is-active {
+            background: rgba(0, 255, 255, 0.1) !important;
+            border-color: $cyber-cyan !important;
+            color: #fff !important;
+            box-shadow:
+              0 0 15px rgba(0, 255, 255, 0.3),
+              inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
+
+            .el-icon,
+            svg {
+              color: #fff !important;
+              filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+            }
+          }
+        }
+
+        .el-sub-menu__title {
+          color: $cyber-cyan !important;
+          background: rgba(10, 10, 18, 0.4) !important;
+          border-radius: 4px !important;
+          margin: 4px 8px !important;
+
+          .el-icon,
+          svg {
+            color: $cyber-cyan !important;
+          }
+
+          &:hover {
+            background: rgba(0, 255, 255, 0.1) !important;
+            color: #fff !important;
+          }
+        }
+
+        .el-sub-menu.is-active > .el-sub-menu__title {
+          color: #fff !important;
+          font-weight: 600;
+          text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+        }
+      }
+    }
+
+    // 折叠按钮
+    .double-nav-collapse {
+      .left-collapse {
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.98), rgba(18, 18, 31, 0.98)) !important;
+        border-top: 1px solid $cyber-border !important;
+
+        svg {
+          color: $cyber-cyan !important;
+          filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+        }
+
+        &:hover {
+          background: rgba(0, 255, 255, 0.1) !important;
+
+          svg {
+            color: #fff !important;
+          }
+        }
+      }
+    }
+  }
+}
+
 // ==================== 中秋主题样式 ====================
 html[data-skin="mid-autumn"] {
   $mid-blue: #1a237e;
