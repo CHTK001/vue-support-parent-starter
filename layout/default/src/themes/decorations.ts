@@ -22,6 +22,8 @@ export interface DecorationConfig {
   type: DecorationType;
   /** 显示位置 */
   position: DecorationPosition;
+  /** 定位类型（默认 absolute，可设为 fixed） */
+  positionType?: 'absolute' | 'fixed';
   /** 自定义位置（当position为custom时使用） */
   customPosition?: {
     top?: string;
@@ -81,35 +83,37 @@ export const springFestivalDecorations: ThemeDecorationConfig = {
   enabled: true,
   decorations: [
     {
-      target: 'lay-tag',
+      target: 'global',
       elements: [
-        // 左侧灯笼 - 挂在标签栏底部下方
+        // 左侧灯笼 - 使用 fixed 定位挂在页面顶部左侧
         {
           content: '🏮',
           type: 'emoji',
           position: 'custom',
-          customPosition: { bottom: '-75px', left: '50px' },  // 往下移动，不遮挡标签
-          size: '60px',
+          positionType: 'fixed',
+          customPosition: { top: '60px', left: '20px' },
+          size: '55px',
           animation: 'swing',
           animationDuration: 3,
           animationDelay: 0,
           interactive: true,
           hoverAnimation: 'bounce',
-          zIndex: 500, // 低于tags-view(1000)，高于content
+          zIndex: 9999,
         },
-        // 右侧灯笼 - 挂在标签栏底部下方
+        // 右侧灯笼 - 使用 fixed 定位挂在页面顶部右侧
         {
           content: '🏮',
           type: 'emoji',
           position: 'custom',
-          customPosition: { bottom: '-75px', right: '50px' },  // 往下移动，不遮挡标签
-          size: '60px',
+          positionType: 'fixed',
+          customPosition: { top: '60px', right: '20px' },
+          size: '55px',
           animation: 'swing',
           animationDuration: 2.8,
           animationDelay: 0.5,
           interactive: true,
           hoverAnimation: 'bounce',
-          zIndex: 500, // 低于tags-view(1000)，高于content
+          zIndex: 9999,
         }
       ]
     },

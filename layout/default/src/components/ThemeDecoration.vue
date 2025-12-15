@@ -48,6 +48,9 @@ const isClicking = ref(false);
 const decorationStyle = computed(() => {
   const style: Record<string, string> = {};
   
+  // 定位类型（支持 fixed 和 absolute）
+  const posType = props.config.positionType || 'absolute';
+  
   // 位置
   if (props.config.position === 'custom' && props.config.customPosition) {
     const { top, bottom, left, right } = props.config.customPosition;
@@ -55,10 +58,10 @@ const decorationStyle = computed(() => {
     if (bottom) style.bottom = bottom;
     if (left) style.left = left;
     if (right) style.right = right;
-    style.position = 'absolute';
+    style.position = posType;
   } else {
     // 预设位置
-    style.position = 'absolute';
+    style.position = posType;
     switch (props.config.position) {
       case 'top':
         style.top = '0';
