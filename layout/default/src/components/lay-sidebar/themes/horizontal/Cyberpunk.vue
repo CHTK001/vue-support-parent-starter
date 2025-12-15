@@ -68,17 +68,28 @@ $cyber-border: rgba(0, 255, 255, 0.25);
       }
     }
     
+    // 横向菜单样式
     .horizontal-header-menu {
       background: transparent !important;
+      border-bottom: none !important;
+      
+      // el-menu 本身
+      &.el-menu {
+        background: transparent !important;
+        --el-menu-bg-color: transparent !important;
+      }
       
       .el-menu-item,
       .el-sub-menu__title {
         color: $cyber-cyan !important;
+        background: transparent !important;
         border-radius: 4px;
         margin: 0 4px;
+        border-bottom: none !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         
+        // 底部指示线
         &::after {
           content: '';
           position: absolute;
@@ -120,6 +131,27 @@ $cyber-border: rgba(0, 255, 255, 0.25);
           color: $cyber-cyan !important;
           filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
         }
+        
+        span {
+          color: inherit !important;
+        }
+      }
+      
+      // 子菜单样式
+      .el-sub-menu {
+        .el-sub-menu__title {
+          color: $cyber-cyan !important;
+          background: transparent !important;
+          
+          .el-sub-menu__icon-arrow {
+            color: $cyber-cyan !important;
+          }
+        }
+        
+        &.is-active > .el-sub-menu__title {
+          color: #fff !important;
+          background: rgba(0, 255, 255, 0.15) !important;
+        }
       }
     }
     
@@ -133,6 +165,43 @@ $cyber-border: rgba(0, 255, 255, 0.25);
         &:hover {
           color: #fff !important;
           filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.6));
+        }
+      }
+    }
+  }
+}
+</style>
+
+<style lang="scss">
+// 赛博朋克主题 - 横向导航弹出菜单样式
+html[data-skin="cyberpunk"] {
+  .horizontal-popper {
+    background: rgba(10, 10, 18, 0.98) !important;
+    border: 1px solid rgba(0, 255, 255, 0.25) !important;
+    box-shadow: 
+      0 4px 30px rgba(0, 255, 255, 0.2),
+      0 0 40px rgba(0, 0, 0, 0.5) !important;
+    
+    .el-menu {
+      background: transparent !important;
+      
+      .el-menu-item,
+      .el-sub-menu__title {
+        color: #00ffff !important;
+        background: transparent !important;
+        
+        &:hover {
+          background: rgba(0, 255, 255, 0.1) !important;
+          color: #fff !important;
+        }
+        
+        &.is-active {
+          background: rgba(0, 255, 255, 0.15) !important;
+          color: #fff !important;
+        }
+        
+        .el-icon, svg {
+          color: #00ffff !important;
         }
       }
     }
