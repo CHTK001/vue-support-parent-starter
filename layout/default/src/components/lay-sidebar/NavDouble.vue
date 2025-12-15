@@ -463,3 +463,150 @@ const defer = useDefer(firstLevelMenus.value.length);
   transition: all 0.3s ease;
 }
 </style>
+
+<style lang="scss">
+// ==================== 中秋主题样式 ====================
+html[data-skin="mid-autumn"] {
+  $mid-blue: #1a237e;
+  $mid-blue-light: #283593;
+  $mid-gold: #ffd54f;
+  $mid-gold-light: #ffecb3;
+  $mid-cyan: #00bcd4;
+  $mid-border: rgba(255, 213, 79, 0.3);
+
+  // 双栏导航容器
+  .double-nav-container {
+    // 左栏
+    .double-nav-left {
+      background: linear-gradient(180deg, $mid-blue, $mid-blue-light) !important;
+      border-right: 2px solid $mid-border !important;
+
+      // Logo区域
+      .sidebar-logo-container {
+        background: linear-gradient(135deg, rgba(13, 27, 66, 0.95), rgba($mid-blue, 0.95)) !important;
+        border-bottom: 2px solid $mid-border !important;
+
+        .sidebar-title {
+          color: $mid-gold !important;
+        }
+      }
+
+      // 一级菜单
+      .first-level-menu {
+        .el-menu-item {
+          color: $mid-gold-light !important;
+
+          .menu-icon-only {
+            svg,
+            i {
+              color: $mid-gold !important;
+            }
+          }
+
+          &:hover {
+            background: rgba($mid-gold, 0.15) !important;
+            color: #fff !important;
+
+            .menu-icon-only svg,
+            .menu-icon-only i {
+              color: #fff !important;
+            }
+          }
+
+          &.is-active {
+            background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
+            color: $mid-blue !important;
+            box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
+
+            .menu-icon-only svg,
+            .menu-icon-only i {
+              color: $mid-blue !important;
+            }
+          }
+        }
+      }
+    }
+
+    // 右栏
+    .double-nav-right {
+      background: linear-gradient(180deg, rgba($mid-blue, 0.95), rgba($mid-blue-light, 0.95)) !important;
+
+      // 子菜单列表
+      .sub-menu-list {
+        .el-menu-item {
+          color: $mid-gold-light !important;
+          background: rgba(26, 35, 126, 0.4) !important;
+          border: 1px solid rgba($mid-gold, 0.2) !important;
+          border-radius: 6px !important;
+          margin: 4px 8px !important;
+
+          .el-icon,
+          svg {
+            color: $mid-gold !important;
+          }
+
+          &:hover {
+            background: rgba($mid-gold, 0.15) !important;
+            border-color: $mid-gold !important;
+            color: #fff !important;
+          }
+
+          &.is-active {
+            background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
+            border-color: $mid-cyan !important;
+            color: $mid-blue !important;
+            box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
+
+            .el-icon,
+            svg {
+              color: $mid-blue !important;
+            }
+          }
+        }
+
+        .el-sub-menu__title {
+          color: $mid-gold-light !important;
+          background: rgba(26, 35, 126, 0.3) !important;
+          border-radius: 6px !important;
+          margin: 4px 8px !important;
+
+          .el-icon,
+          svg {
+            color: $mid-gold !important;
+          }
+
+          &:hover {
+            background: rgba($mid-gold, 0.1) !important;
+            color: #fff !important;
+          }
+        }
+
+        .el-sub-menu.is-active > .el-sub-menu__title {
+          color: $mid-gold !important;
+          font-weight: 600;
+        }
+      }
+    }
+
+    // 折叠按钮
+    .double-nav-collapse {
+      .left-collapse {
+        background: linear-gradient(135deg, rgba(13, 27, 66, 0.95), rgba($mid-blue, 0.95)) !important;
+        border-top: 2px solid $mid-border !important;
+
+        svg {
+          color: $mid-gold !important;
+        }
+
+        &:hover {
+          background: rgba($mid-gold, 0.15) !important;
+
+          svg {
+            color: #fff !important;
+          }
+        }
+      }
+    }
+  }
+}
+</style>
