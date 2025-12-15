@@ -1565,4 +1565,282 @@ html[data-skin="mid-autumn"] {
   }
 }
 
+// ==================== 圣诞主题样式 ====================
+html[data-skin="christmas"] {
+  $xmas-green: #1b5e20;
+  $xmas-green-light: #2e7d32;
+  $xmas-red: #c62828;
+  $xmas-red-light: #e53935;
+  $xmas-gold: #ffd700;
+  $xmas-white: #ffffff;
+  $xmas-border: rgba(255, 215, 0, 0.3);
+  $xmas-border-hover: rgba(255, 215, 0, 0.5);
+
+  // 消息触发按钮
+  .message-trigger {
+    background: rgba(27, 94, 32, 0.6) !important;
+    border: 1px solid $xmas-border !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(255, 215, 0, 0.15) !important;
+    transition: all 0.25s ease !important;
+
+    &:hover {
+      background: rgba(27, 94, 32, 0.8) !important;
+      border-color: $xmas-border-hover !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), 0 0 18px rgba(255, 215, 0, 0.25) !important;
+      transform: translateY(-2px);
+
+      .message-icon {
+        color: $xmas-gold !important;
+        filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
+      }
+    }
+
+    .message-icon {
+      color: $xmas-gold !important;
+      filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.4));
+    }
+
+    // Badge 样式
+    .el-badge__content {
+      background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
+      border: none !important;
+      box-shadow: 0 0 10px rgba(198, 40, 40, 0.5);
+    }
+  }
+
+  // 消息下拉面板
+  .message-dropdown-popper {
+    .el-dropdown-menu {
+      background: linear-gradient(180deg, $xmas-green 0%, $xmas-green-light 100%) !important;
+      border: 2px solid $xmas-gold !important;
+      box-shadow:
+        0 0 20px rgba(255, 215, 0, 0.4),
+        0 0 40px rgba(198, 40, 40, 0.2),
+        0 20px 60px rgba(0, 0, 0, 0.4) !important;
+      border-radius: 12px !important;
+      overflow: hidden;
+    }
+  }
+
+  .message-panel {
+    background: transparent !important;
+    position: relative;
+  }
+
+  .panel-header {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(198, 40, 40, 0.1) 100%) !important;
+    border-bottom: 1px solid $xmas-border !important;
+    position: relative;
+
+    // 底部金色线
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, $xmas-gold 30%, $xmas-white 50%, $xmas-gold 70%, transparent);
+    }
+
+    .header-title {
+      color: $xmas-gold !important;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      font-weight: 600;
+    }
+
+    .el-button {
+      color: rgba(255, 255, 255, 0.9) !important;
+
+      &:hover {
+        color: $xmas-gold !important;
+      }
+    }
+  }
+
+  .panel-body {
+    .loading-wrapper {
+      color: $xmas-gold !important;
+    }
+  }
+
+  .message-item {
+    background: rgba(27, 94, 32, 0.4) !important;
+    border: 1px solid rgba(255, 215, 0, 0.2) !important;
+    border-radius: 10px !important;
+    margin: 4px 0 !important;
+    transition: all 0.3s ease !important;
+
+    &:hover {
+      background: rgba(255, 215, 0, 0.15) !important;
+      border-color: $xmas-gold !important;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.2) !important;
+      transform: translateX(4px);
+    }
+
+    &.unread {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(198, 40, 40, 0.15) 100%) !important;
+      border-color: rgba(255, 215, 0, 0.35) !important;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(198, 40, 40, 0.2) 100%) !important;
+      }
+    }
+
+    .item-avatar .default-avatar {
+      background: linear-gradient(135deg, $xmas-red, $xmas-gold) !important;
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+    }
+
+    .item-title {
+      color: #fff !important;
+    }
+
+    .item-desc {
+      color: rgba(255, 255, 255, 0.8) !important;
+    }
+
+    .item-time {
+      color: rgba(255, 215, 0, 0.7) !important;
+    }
+
+    .unread-dot {
+      background: $xmas-red !important;
+      box-shadow: 0 0 8px rgba(198, 40, 40, 0.6);
+    }
+  }
+
+  .panel-footer {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(198, 40, 40, 0.08) 100%) !important;
+    border-top: 1px solid $xmas-border !important;
+    position: relative;
+
+    // 顶部金色线
+    &::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, $xmas-gold 30%, $xmas-white 50%, $xmas-gold 70%, transparent);
+    }
+
+    .el-button {
+      color: rgba(255, 255, 255, 0.9) !important;
+
+      &:hover {
+        color: $xmas-gold !important;
+      }
+
+      &[type="primary"] {
+        color: $xmas-gold !important;
+
+        &:hover {
+          color: #fff !important;
+          text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+        }
+      }
+    }
+  }
+
+  // 消息中心 Drawer
+  .message-center-drawer {
+    .el-drawer {
+      background: linear-gradient(180deg, $xmas-green 0%, $xmas-green-light 100%) !important;
+    }
+
+    .el-drawer__header {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(198, 40, 40, 0.1) 100%) !important;
+      border-bottom: 1px solid $xmas-border !important;
+    }
+
+    .drawer-title {
+      color: $xmas-gold !important;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .el-tabs__item {
+      color: rgba(255, 255, 255, 0.8) !important;
+
+      &.is-active {
+        color: $xmas-gold !important;
+      }
+
+      &:hover {
+        color: #fff !important;
+      }
+    }
+
+    .el-tabs__active-bar {
+      background: linear-gradient(90deg, $xmas-gold, $xmas-red) !important;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    .drawer-actions {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(198, 40, 40, 0.08) 100%) !important;
+      border-bottom-color: $xmas-border !important;
+
+      .el-button {
+        background: rgba(27, 94, 32, 0.4) !important;
+        border: 1px solid rgba(255, 215, 0, 0.25) !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+
+        &:hover:not(:disabled) {
+          background: rgba(255, 215, 0, 0.15) !important;
+          border-color: $xmas-gold !important;
+          color: $xmas-gold !important;
+          box-shadow: 0 0 12px rgba(255, 215, 0, 0.25);
+        }
+
+        &:disabled {
+          opacity: 0.4;
+        }
+      }
+    }
+
+    .drawer-message-item {
+      background: rgba(27, 94, 32, 0.4) !important;
+      border: 1px solid rgba(255, 215, 0, 0.2) !important;
+
+      &:hover {
+        border-color: $xmas-gold !important;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+      }
+
+      &.unread {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.12) 0%, rgba(198, 40, 40, 0.15) 100%) !important;
+        border-left: 3px solid $xmas-gold !important;
+      }
+
+      .msg-avatar .default-avatar {
+        background: linear-gradient(135deg, $xmas-red, $xmas-gold) !important;
+        box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+      }
+
+      .msg-title {
+        color: #fff !important;
+      }
+
+      .msg-time {
+        color: rgba(255, 215, 0, 0.7) !important;
+      }
+
+      .msg-content {
+        color: rgba(255, 255, 255, 0.8) !important;
+      }
+
+      .msg-actions .el-button {
+        color: rgba(255, 255, 255, 0.9) !important;
+
+        &:hover {
+          color: $xmas-gold !important;
+          filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));
+        }
+      }
+    }
+  }
+}
+
 </style>
