@@ -56,6 +56,9 @@ emitter.on("showFullscreenChange", (val: boolean) => {
 // 判断是否为春节主题
 const isSpringFestival = () => currentTheme.value === 'spring-festival';
 
+// 判断是否为中秋主题
+const isMidAutumn = () => currentTheme.value === 'mid-autumn';
+
 // 清理事件监听
 onBeforeUnmount(() => {
   emitter.off("systemThemeChange");
@@ -259,11 +262,12 @@ const gotoAccountSetting = () => {
     <!-- 系统设置 -->
     <span
       v-if="getConfig().ShowBarSetting"
-      :class="['tool-item', 'setting-btn', { 'fu-setting': isSpringFestival() }]"
+      :class="['tool-item', 'setting-btn', { 'fu-setting': isSpringFestival(), 'mooncake-setting': isMidAutumn() }]"
       :title="t('buttons.pureOpenSystemSet')"
       @click="onPanel"
     >
       <template v-if="isSpringFestival()">福</template>
+      <template v-else-if="isMidAutumn()">🥮</template>
       <IconifyIconOffline v-else :icon="Setting" />
     </span>
   </div>
@@ -364,6 +368,33 @@ const gotoAccountSetting = () => {
     color: #B22222;
     border-color: rgba(220, 20, 60, 0.5);
     animation: fu-glow 2s ease-in-out infinite;
+  }
+}
+
+// 中秋主题 - 月饼设置按钮
+.mooncake-setting {
+  font-size: 20px;
+  background: linear-gradient(135deg, rgba(255, 213, 79, 0.2), rgba(26, 35, 126, 0.15));
+  border: 1.5px solid rgba(255, 213, 79, 0.4);
+  box-shadow: 0 2px 8px rgba(26, 35, 126, 0.2);
+
+  &:hover {
+    background: radial-gradient(circle, rgba(255, 213, 79, 0.35), rgba(26, 35, 126, 0.2));
+    border-color: rgba(255, 213, 79, 0.6);
+    transform: translateY(-2px) rotate(15deg);
+    box-shadow: 
+      0 4px 16px rgba(255, 213, 79, 0.4),
+      0 0 20px rgba(255, 213, 79, 0.2);
+    animation: mooncake-glow 2s ease-in-out infinite;
+  }
+}
+
+@keyframes mooncake-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px rgba(255, 213, 79, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(255, 213, 79, 0.8)) drop-shadow(0 0 20px rgba(26, 35, 126, 0.4));
   }
 }
 
