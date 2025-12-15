@@ -104,6 +104,9 @@ const settings = reactive({
   weakVal: $storage.configure.weak,
   invertVal: $storage.configure.invert ?? false,
   monochromeVal: $storage.configure.monochrome ?? false,
+  highContrastVal: $storage.configure.highContrast ?? false,
+  eyeProtectionVal: $storage.configure.eyeProtection ?? false,
+  reduceMotionVal: $storage.configure.reduceMotion ?? false,
   tabsVal: $storage.configure.hideTabs,
   cardBody: $storage.configure.cardBody,
   showLogo: $storage.configure.showLogo,
@@ -114,11 +117,20 @@ const settings = reactive({
   // 高级功能
   keepAlive: $storage.configure.keepAlive ?? true,
   debugMode: $storage.configure.debugMode ?? false,
+  errorReport: $storage.configure.errorReport ?? false,
   // 面包屑导航
   showBreadcrumb: $storage.configure.showBreadcrumb ?? true,
   breadcrumbIconOnly: $storage.configure.breadcrumbIconOnly ?? false,
   // 标签页图标
   showTagIcon: $storage.configure.showTagIcon ?? true,
+  // 界面元素显示
+  showSearch: $storage.configure.showSearch ?? true,
+  showFullscreen: $storage.configure.showFullscreen ?? true,
+  fixedHeader: $storage.configure.fixedHeader ?? true,
+  // 功能设置
+  confirmOnLeave: $storage.configure.confirmOnLeave ?? false,
+  rememberScroll: $storage.configure.rememberScroll ?? true,
+  enableShortcuts: $storage.configure.enableShortcuts ?? true,
   // 菜单设置相关
   showNewMenu: $storage.configure.showNewMenu ?? true,
   newMenuText: $storage.configure.newMenuText ?? "new",
@@ -243,6 +255,7 @@ const layoutBlurChange = (value: number): void => {
 /** 切换菜单动画设置 */
 const menuTransitionChange = (value: boolean): void => {
   storageConfigureChange("menuTransition", value);
+  emitter.emit("menuTransitionChange", value);
 };
 
 /** 灰色模式设置 */
@@ -271,6 +284,27 @@ const monochromeChange = (value: boolean): void => {
   const htmlEl = document.querySelector("html");
   toggleClass(settings.monochromeVal, "html-monochrome", htmlEl);
   storageConfigureChange("monochrome", value);
+};
+
+/** 高对比度模式设置 */
+const highContrastChange = (value: boolean): void => {
+  const htmlEl = document.querySelector("html");
+  toggleClass(settings.highContrastVal, "html-high-contrast", htmlEl);
+  storageConfigureChange("highContrast", value);
+};
+
+/** 护眼模式设置 */
+const eyeProtectionChange = (value: boolean): void => {
+  const htmlEl = document.querySelector("html");
+  toggleClass(settings.eyeProtectionVal, "html-eye-protection", htmlEl);
+  storageConfigureChange("eyeProtection", value);
+};
+
+/** 动画减弱模式设置 */
+const reduceMotionChange = (value: boolean): void => {
+  const htmlEl = document.querySelector("html");
+  toggleClass(settings.reduceMotionVal, "html-reduce-motion", htmlEl);
+  storageConfigureChange("reduceMotion", value);
 };
 
 /** 节日主题自动切换设置 */
@@ -692,6 +726,12 @@ onBeforeMount(() => {
       document.querySelector("html")?.classList.add("html-invert");
     settings.monochromeVal &&
       document.querySelector("html")?.classList.add("html-monochrome");
+    settings.highContrastVal &&
+      document.querySelector("html")?.classList.add("html-high-contrast");
+    settings.eyeProtectionVal &&
+      document.querySelector("html")?.classList.add("html-eye-protection");
+    settings.reduceMotionVal &&
+      document.querySelector("html")?.classList.add("html-reduce-motion");
     settings.tabsVal && tagsChange();
     settings.hideFooter && hideFooterChange();
     
@@ -774,6 +814,11 @@ function resetToDefault() {
     layoutBlur: 10,
     greyVal: false,
     weakVal: false,
+    invertVal: false,
+    monochromeVal: false,
+    highContrastVal: false,
+    eyeProtectionVal: false,
+    reduceMotionVal: false,
     tabsVal: false,
     cardBody: true,
     showLogo: true,
@@ -784,6 +829,13 @@ function resetToDefault() {
     keepAlive: true,
     debugMode: false,
   });
+
+  // 重置视觉效果
+  invertChange(false);
+  monochromeChange(false);
+  highContrastChange(false);
+  eyeProtectionChange(false);
+  reduceMotionChange(false);
 
   // 重置卡片颜色模式
   cardColorMode.value = "all";
@@ -882,12 +934,135 @@ function showTagIconChange() {
 }
 
 /**
+ * 搜索框显示变更
+ */
+function showSearchChange() {
+  storageConfigureChange("showSearch", settings.showSearch);
+  emitter.emit("showSearchChange", settings.showSearch);
+}
+
+/**
+ * 全屏按钮显示变更
+ */
+function showFullscreenChange() {
+  storageConfigureChange("showFullscreen", settings.showFullscreen);
+  emitter.emit("showFullscreenChange", settings.showFullscreen);
+}
+
+/**
+ * 固定头部变更
+ */
+function fixedHeaderChange() {
+  storageConfigureChange("fixedHeader", settings.fixedHeader);
+  emitter.emit("fixedHeaderChange", settings.fixedHeader);
+}
+
+/**
+ * 页面离开确认变更
+ */
+function confirmOnLeaveChange() {
+  storageConfigureChange("confirmOnLeave", settings.confirmOnLeave);
+  emitter.emit("confirmOnLeaveChange", settings.confirmOnLeave);
+}
+
+/**
+ * 记住滚动位置变更
+ */
+function rememberScrollChange() {
+  storageConfigureChange("rememberScroll", settings.rememberScroll);
+  emitter.emit("rememberScrollChange", settings.rememberScroll);
+}
+
+/**
+ * 快捷键开关变更
+ */
+function enableShortcutsChange() {
+  storageConfigureChange("enableShortcuts", settings.enableShortcuts);
+  emitter.emit("enableShortcutsChange", settings.enableShortcuts);
+}
+
+/**
  * 组件缓存变更
  */
 function keepAliveChange() {
   storageConfigureChange("keepAlive", settings.keepAlive);
   emitter.emit("keepAliveChange", settings.keepAlive);
 }
+
+/**
+ * 错误上报变更
+ */
+function errorReportChange() {
+  storageConfigureChange("errorReport", settings.errorReport);
+  emitter.emit("errorReportChange", settings.errorReport);
+  // 如果启用错误上报，初始化错误监听
+  if (settings.errorReport) {
+    initErrorReporting();
+  }
+}
+
+/**
+ * 初始化错误上报
+ */
+function initErrorReporting() {
+  const reportUrl = getConfig().ErrorHandler?.reportUrl;
+  if (!reportUrl) return;
+  
+  // 全局错误捕获
+  window.onerror = (message, source, lineno, colno, error) => {
+    reportError({
+      type: 'javascript',
+      message: String(message),
+      source,
+      lineno,
+      colno,
+      stack: error?.stack,
+    });
+    return false;
+  };
+  
+  // Promise 拒绝捕获
+  window.onunhandledrejection = (event) => {
+    reportError({
+      type: 'promise',
+      message: event.reason?.message || String(event.reason),
+      stack: event.reason?.stack,
+    });
+  };
+}
+
+/**
+ * 上报错误到服务器
+ */
+async function reportError(errorInfo: Record<string, any>) {
+  const reportUrl = getConfig().ErrorHandler?.reportUrl;
+  if (!reportUrl || !settings.errorReport) return;
+  
+  try {
+    await fetch(reportUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...errorInfo,
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString(),
+      }),
+    });
+  } catch (e) {
+    console.error('错误上报失败:', e);
+  }
+}
+
+// 是否配置了错误上报地址
+const hasErrorReportUrl = computed(() => {
+  return !!getConfig().ErrorHandler?.reportUrl;
+});
+
+// 是否启用了存储加密（从配置文件读取）
+const storageEncryptEnabled = computed(() => {
+  return getConfig().StorageEncode ?? false;
+});
 
 function doubleNavExpandModeChange() {
   storageConfigureChange("doubleNavExpandMode", settings.doubleNavExpandMode);
@@ -1695,6 +1870,38 @@ onUnmounted(() => {
                   active-icon="ri:drop-line"
                   @change="monochromeChange"
                 />
+
+                <ScSwitch
+                  v-model="settings.highContrastVal"
+                  layout="visual-card"
+                  size="small"
+                  label="高对比度"
+                  description="增强文字清晰度"
+                  active-icon="ri:contrast-line"
+                  @change="highContrastChange"
+                />
+
+                <ScSwitch
+                  v-model="settings.eyeProtectionVal"
+                  layout="visual-card"
+                  size="small"
+                  label="护眼模式"
+                  description="降低蓝光保护视力"
+                  active-icon="ri:eye-2-line"
+                  ribbon-text="护眼"
+                  ribbon-color="var(--el-color-success)"
+                  @change="eyeProtectionChange"
+                />
+
+                <ScSwitch
+                  v-model="settings.reduceMotionVal"
+                  layout="visual-card"
+                  size="small"
+                  label="动画减弱"
+                  description="减少界面动画效果"
+                  active-icon="ri:pause-circle-line"
+                  @change="reduceMotionChange"
+                />
               </div>
             </div>
 
@@ -1793,6 +2000,39 @@ onUnmounted(() => {
                   ribbon-color="var(--el-color-primary)"
                   @change="breadcrumbModeChange"
                 />
+
+                <ScSwitch
+                  v-model="settings.showSearch"
+                  layout="visual-card"
+                  size="small"
+                  label="搜索框"
+                  description="显示顶部搜索框"
+                  active-icon="ri:search-line"
+                  ribbon-color="var(--el-color-success)"
+                  @change="showSearchChange"
+                />
+
+                <ScSwitch
+                  v-model="settings.showFullscreen"
+                  layout="visual-card"
+                  size="small"
+                  label="全屏按钮"
+                  description="显示全屏切换按钮"
+                  active-icon="ri:fullscreen-line"
+                  ribbon-color="var(--el-color-success)"
+                  @change="showFullscreenChange"
+                />
+
+                <ScSwitch
+                  v-model="settings.fixedHeader"
+                  layout="visual-card"
+                  size="small"
+                  label="固定头部"
+                  description="滚动时固定顶部导航"
+                  active-icon="ri:pushpin-line"
+                  ribbon-color="var(--el-color-primary)"
+                  @change="fixedHeaderChange"
+                />
               </div>
             </div>
 
@@ -1805,16 +2045,51 @@ onUnmounted(() => {
                 />
                 功能设置
               </h4>
-              <ScSwitch
-                v-model="settings.multiTagsCache"
-                layout="visual-card"
-                size="small"
-                :label="t('panel.pureMultiTagsCache')"
-                description="持久化保存已打开的标签页"
-                active-icon="ri:save-line"
-                ribbon-color="var(--el-color-warning)"
-                @change="multiTagsCacheChange"
-              />
+              <div class="switch-card-grid">
+                <ScSwitch
+                  v-model="settings.multiTagsCache"
+                  layout="visual-card"
+                  size="small"
+                  :label="t('panel.pureMultiTagsCache')"
+                  description="持久化保存已打开的标签页"
+                  active-icon="ri:save-line"
+                  ribbon-color="var(--el-color-warning)"
+                  @change="multiTagsCacheChange"
+                />
+
+                <ScSwitch
+                  v-model="settings.confirmOnLeave"
+                  layout="visual-card"
+                  size="small"
+                  label="离开确认"
+                  description="离开页面时提示确认"
+                  active-icon="ri:question-line"
+                  ribbon-color="var(--el-color-warning)"
+                  @change="confirmOnLeaveChange"
+                />
+
+                <ScSwitch
+                  v-model="settings.rememberScroll"
+                  layout="visual-card"
+                  size="small"
+                  label="记住滚动"
+                  description="记忆页面滚动位置"
+                  active-icon="ri:bookmark-line"
+                  ribbon-color="var(--el-color-success)"
+                  @change="rememberScrollChange"
+                />
+
+                <ScSwitch
+                  v-model="settings.enableShortcuts"
+                  layout="visual-card"
+                  size="small"
+                  label="快捷键"
+                  description="启用键盘快捷键"
+                  active-icon="ri:keyboard-line"
+                  ribbon-color="var(--el-color-success)"
+                  @change="enableShortcutsChange"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -1979,6 +2254,29 @@ onUnmounted(() => {
                   active-icon="ri:terminal-box-line"
                   ribbon-color="var(--el-color-warning)"
                   @change="debugModeChange"
+                />
+
+                <ScSwitch
+                  v-if="hasErrorReportUrl"
+                  v-model="settings.errorReport"
+                  layout="visual-card"
+                  size="small"
+                  label="错误上报"
+                  description="自动上报错误信息"
+                  active-icon="ri:bug-line"
+                  ribbon-color="var(--el-color-danger)"
+                  @change="errorReportChange"
+                />
+
+                <ScSwitch
+                  v-model="storageEncryptEnabled"
+                  layout="visual-card"
+                  size="small"
+                  label="存储加密"
+                  description="加密本地存储数据（配置文件控制）"
+                  active-icon="ri:lock-line"
+                  ribbon-color="var(--el-color-success)"
+                  disabled
                 />
               </div>
             </div>

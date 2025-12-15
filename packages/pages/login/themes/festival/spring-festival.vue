@@ -68,6 +68,8 @@ defineOptions({
 </script>
 
 <style lang="scss" scoped>
+@use "sass:math";
+
 .spring-festival-login-page {
   min-height: 100vh;
   position: relative;
@@ -245,10 +247,10 @@ defineOptions({
 
       @for $i from 1 through 30 {
         &:nth-child(#{$i}) {
-          left: random(100) * 1%;
-          animation-delay: random(10) * 0.1s;
-          font-size: (random(10) + 15) * 1px;
-          animation-duration: (random(5) + 8) * 1s;
+          left: math.random(100) * 1%;
+          animation-delay: math.random(10) * 0.1s;
+          font-size: (math.random(10) + 15) * 1px;
+          animation-duration: (math.random(5) + 8) * 1s;
         }
       }
     }

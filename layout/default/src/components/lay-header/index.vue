@@ -135,7 +135,7 @@ import '@repo/skin';
   top: 0;
   right: 0;
   left: 0;
-  z-index: 999;
+  z-index: 0; // 系统框架层级统一为 0
   width: 100%;
   overflow: hidden;
 

@@ -80,9 +80,51 @@ html.dark svg {
   fill: #ffffff;
 }
 
-/* 色弱模式 */
+/* 色弱模式 - 优化的色觉辅助滤镜 */
 .html-weakness {
-  filter: invert(80%);
+  /* 红绿色盲辅助：提高红绿色对比度 */
+  filter: saturate(1.4) contrast(1.1) hue-rotate(-10deg);
+}
+
+/* 高对比度模式 */
+.html-high-contrast {
+  filter: contrast(1.4) saturate(1.2);
+  
+  /* 增强文字可读性 */
+  * {
+    text-shadow: none !important;
+  }
+}
+
+/* 护眼模式 - 降低蓝光 */
+.html-eye-protection {
+  filter: sepia(0.15) saturate(0.9) brightness(0.95);
+  
+  /* 降低蓝色分量 */
+  &::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 180, 100, 0.08);
+    pointer-events: none;
+    z-index: 99999;
+  }
+}
+
+/* 动画减弱模式 - 无障碍支持 */
+.html-reduce-motion {
+  /* 减少所有动画 */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .fullscreen {

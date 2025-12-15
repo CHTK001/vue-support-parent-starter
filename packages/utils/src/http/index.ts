@@ -48,6 +48,21 @@ export interface ReturnResult<E> {
   success: boolean;
 }
 
+/** 分页结果类型 */
+export interface PageResult<T> {
+  code: string | number;
+  msg: string;
+  message: string;
+  data: {
+    records: T[];
+    total: number;
+    size: number;
+    current: number;
+    pages: number;
+  };
+  success: boolean;
+}
+
 /** 无权限状态码判断 */
 const isNoAuth = (code: string | number | null): boolean =>
   code === "C0403S0000" || code === 403;

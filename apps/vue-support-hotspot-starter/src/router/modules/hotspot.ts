@@ -112,16 +112,6 @@ export default {
       }
     },
     {
-      path: "/hotspot/arthas",
-      name: "HotspotArthas",
-      component: () => import("@/views/hotspot/arthas/index.vue"),
-      meta: {
-        icon: "mdi:wrench",
-        title: "Arthas诊断",
-        showParent: true
-      }
-    },
-    {
       path: "/hotspot/trace",
       name: "HotspotTrace",
       component: () => import("@/views/hotspot/trace/index.vue"),

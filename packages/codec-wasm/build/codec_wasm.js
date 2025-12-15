@@ -136,30 +136,6 @@ export function dealloc(ptr, size) {
 /**
  * @param {number} data_ptr
  * @param {number} data_len
- * @param {number} key_ptr
- * @param {number} key_len
- * @returns {number}
- */
-export function aes_encrypt(data_ptr, data_len, key_ptr, key_len) {
-    const ret = wasm.aes_encrypt(data_ptr, data_len, key_ptr, key_len);
-    return ret >>> 0;
-}
-
-/**
- * @param {number} encrypted_data_ptr
- * @param {number} encrypted_data_len
- * @param {number} key_ptr
- * @param {number} key_len
- * @returns {number}
- */
-export function aes_decrypt(encrypted_data_ptr, encrypted_data_len, key_ptr, key_len) {
-    const ret = wasm.aes_decrypt(encrypted_data_ptr, encrypted_data_len, key_ptr, key_len);
-    return ret >>> 0;
-}
-
-/**
- * @param {number} data_ptr
- * @param {number} data_len
  * @returns {number}
  */
 export function sm3_hash(data_ptr, data_len) {
@@ -184,20 +160,44 @@ export function md5_hash(data_ptr, data_len) {
  * @param {number} key_len
  * @returns {number}
  */
+export function aes_encrypt(data_ptr, data_len, key_ptr, key_len) {
+    const ret = wasm.aes_encrypt(data_ptr, data_len, key_ptr, key_len);
+    return ret >>> 0;
+}
+
+/**
+ * @param {number} data_ptr
+ * @param {number} data_len
+ * @param {number} key_ptr
+ * @param {number} key_len
+ * @returns {number}
+ */
+export function aes_decrypt(data_ptr, data_len, key_ptr, key_len) {
+    const ret = wasm.aes_decrypt(data_ptr, data_len, key_ptr, key_len);
+    return ret >>> 0;
+}
+
+/**
+ * @param {number} data_ptr
+ * @param {number} data_len
+ * @param {number} key_ptr
+ * @param {number} key_len
+ * @returns {number}
+ */
 export function sm4_encrypt(data_ptr, data_len, key_ptr, key_len) {
     const ret = wasm.sm4_encrypt(data_ptr, data_len, key_ptr, key_len);
     return ret >>> 0;
 }
 
 /**
- * @param {number} encrypted_data_ptr
- * @param {number} encrypted_data_len
+ * @param {number} data_ptr
+ * @param {number} data_len
  * @param {number} key_ptr
  * @param {number} key_len
  * @returns {number}
  */
-export function sm4_decrypt(encrypted_data_ptr, encrypted_data_len, key_ptr, key_len) {
-    const ret = wasm.sm4_decrypt(encrypted_data_ptr, encrypted_data_len, key_ptr, key_len);
+export function sm4_decrypt(data_ptr, data_len, key_ptr, key_len) {
+    const ret = wasm.sm4_decrypt(data_ptr, data_len, key_ptr, key_len);
     return ret >>> 0;
 }
 
@@ -212,38 +212,74 @@ export function generate_sm2_key_pair() {
 /**
  * @param {number} data_ptr
  * @param {number} data_len
- * @param {number} public_key_ptr
- * @param {number} public_key_len
+ * @param {number} pubkey_ptr
+ * @param {number} pubkey_len
  * @returns {number}
  */
-export function sm2_encrypt(data_ptr, data_len, public_key_ptr, public_key_len) {
-    const ret = wasm.sm2_encrypt(data_ptr, data_len, public_key_ptr, public_key_len);
+export function sm2_encrypt(data_ptr, data_len, pubkey_ptr, pubkey_len) {
+    const ret = wasm.sm2_encrypt(data_ptr, data_len, pubkey_ptr, pubkey_len);
     return ret >>> 0;
 }
 
 /**
- * @param {number} encrypted_data_ptr
- * @param {number} encrypted_data_len
- * @param {number} private_key_ptr
- * @param {number} private_key_len
+ * @param {number} data_ptr
+ * @param {number} data_len
+ * @param {number} privkey_ptr
+ * @param {number} privkey_len
  * @returns {number}
  */
-export function sm2_decrypt(encrypted_data_ptr, encrypted_data_len, private_key_ptr, private_key_len) {
-    const ret = wasm.sm2_decrypt(encrypted_data_ptr, encrypted_data_len, private_key_ptr, private_key_len);
+export function sm2_decrypt(data_ptr, data_len, privkey_ptr, privkey_len) {
+    const ret = wasm.sm2_decrypt(data_ptr, data_len, privkey_ptr, privkey_len);
     return ret >>> 0;
 }
 
 /**
- * @param {number} response_data_ptr
- * @param {number} response_data_len
- * @param {number} origin_ptr
- * @param {number} origin_len
+ * @param {number} data_ptr
+ * @param {number} data_len
+ * @param {number} privkey_ptr
+ * @param {number} privkey_len
+ * @returns {number}
+ */
+export function generate_sign(data_ptr, data_len, privkey_ptr, privkey_len) {
+    const ret = wasm.generate_sign(data_ptr, data_len, privkey_ptr, privkey_len);
+    return ret >>> 0;
+}
+
+/**
+ * @param {number} data_ptr
+ * @param {number} data_len
+ * @param {number} sig_ptr
+ * @param {number} sig_len
+ * @param {number} pubkey_ptr
+ * @param {number} pubkey_len
+ * @returns {boolean}
+ */
+export function verify_sign(data_ptr, data_len, sig_ptr, sig_len, pubkey_ptr, pubkey_len) {
+    const ret = wasm.verify_sign(data_ptr, data_len, sig_ptr, sig_len, pubkey_ptr, pubkey_len);
+    return ret !== 0;
+}
+
+/**
+ * @param {number} data_ptr
+ * @param {number} data_len
+ * @returns {number}
+ */
+export function uu3_decrypt_simple(data_ptr, data_len) {
+    const ret = wasm.uu3_decrypt_simple(data_ptr, data_len);
+    return ret >>> 0;
+}
+
+/**
+ * @param {number} data_ptr
+ * @param {number} data_len
+ * @param {number} _origin_ptr
+ * @param {number} _origin_len
  * @param {number} ts_ptr
  * @param {number} ts_len
  * @returns {number}
  */
-export function uu1_decrypt_response(response_data_ptr, response_data_len, origin_ptr, origin_len, ts_ptr, ts_len) {
-    const ret = wasm.uu1_decrypt_response(response_data_ptr, response_data_len, origin_ptr, origin_len, ts_ptr, ts_len);
+export function uu1_decrypt_response(data_ptr, data_len, _origin_ptr, _origin_len, ts_ptr, ts_len) {
+    const ret = wasm.uu1_decrypt_response(data_ptr, data_len, _origin_ptr, _origin_len, ts_ptr, ts_len);
     return ret >>> 0;
 }
 
@@ -266,14 +302,14 @@ export function uu1_decrypt_response_object_with_arraybuffer(response) {
 }
 
 /**
- * @param {number} request_data_ptr
- * @param {number} request_data_len
+ * @param {number} data_ptr
+ * @param {number} data_len
  * @param {number} key_ptr
  * @param {number} key_len
  * @returns {number}
  */
-export function uu2_encrypt_request(request_data_ptr, request_data_len, key_ptr, key_len) {
-    const ret = wasm.uu2_encrypt_request(request_data_ptr, request_data_len, key_ptr, key_len);
+export function uu2_encrypt_request(data_ptr, data_len, key_ptr, key_len) {
+    const ret = wasm.uu2_encrypt_request(data_ptr, data_len, key_ptr, key_len);
     return ret >>> 0;
 }
 
@@ -287,114 +323,78 @@ export function uu2_process_request(request) {
 }
 
 /**
- * @param {number} encrypted_data_ptr
- * @param {number} encrypted_data_len
- * @returns {number}
- */
-export function uu3_decrypt_simple(encrypted_data_ptr, encrypted_data_len) {
-    const ret = wasm.uu3_decrypt_simple(encrypted_data_ptr, encrypted_data_len);
-    return ret >>> 0;
-}
-
-/**
- * @param {number} response_data_ptr
- * @param {number} response_data_len
+ * @param {number} data_ptr
+ * @param {number} data_len
  * @param {number} _uuid_ptr
  * @param {number} _uuid_len
- * @param {number} timestamp_ptr
- * @param {number} timestamp_len
+ * @param {number} ts_ptr
+ * @param {number} ts_len
  * @returns {number}
  */
-export function uu4_decrypt_response(response_data_ptr, response_data_len, _uuid_ptr, _uuid_len, timestamp_ptr, timestamp_len) {
-    const ret = wasm.uu4_decrypt_response(response_data_ptr, response_data_len, _uuid_ptr, _uuid_len, timestamp_ptr, timestamp_len);
+export function uu4_decrypt_response(data_ptr, data_len, _uuid_ptr, _uuid_len, ts_ptr, ts_len) {
+    const ret = wasm.uu4_decrypt_response(data_ptr, data_len, _uuid_ptr, _uuid_len, ts_ptr, ts_len);
+    return ret >>> 0;
+}
+
+/**
+ * @param {number} key_ptr
+ * @param {number} key_len
+ * @param {number} arg2
+ * @param {number} arg3
+ * @returns {number}
+ */
+export function encrypt_storage_key(key_ptr, key_len, arg2, arg3) {
+    const ret = wasm.encrypt_storage_key(key_ptr, key_len, arg2, arg3);
+    return ret >>> 0;
+}
+
+/**
+ * @param {number} val_ptr
+ * @param {number} val_len
+ * @param {number} arg2
+ * @param {number} arg3
+ * @param {number} arg4
+ * @param {number} arg5
+ * @param {number} arg6
+ * @param {number} arg7
+ * @param {number} arg8
+ * @param {number} arg9
+ * @returns {number}
+ */
+export function encrypt_storage_value(val_ptr, val_len, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) {
+    const ret = wasm.decrypt_storage_value(val_ptr, val_len, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+    return ret >>> 0;
+}
+
+/**
+ * @param {number} val_ptr
+ * @param {number} val_len
+ * @param {number} arg2
+ * @param {number} arg3
+ * @param {number} arg4
+ * @param {number} arg5
+ * @param {number} arg6
+ * @param {number} arg7
+ * @param {number} arg8
+ * @param {number} arg9
+ * @returns {number}
+ */
+export function decrypt_storage_value(val_ptr, val_len, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) {
+    const ret = wasm.decrypt_storage_value(val_ptr, val_len, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
     return ret >>> 0;
 }
 
 /**
  * @param {number} data_ptr
  * @param {number} data_len
- * @param {number} private_key_ptr
- * @param {number} private_key_len
+ * @param {number} pubkey_ptr
+ * @param {number} pubkey_len
+ * @param {number} privkey_ptr
+ * @param {number} privkey_len
  * @returns {number}
  */
-export function generate_sign(data_ptr, data_len, private_key_ptr, private_key_len) {
-    const ret = wasm.generate_sign(data_ptr, data_len, private_key_ptr, private_key_len);
-    return ret >>> 0;
-}
-
-/**
- * @param {number} data_ptr
- * @param {number} data_len
- * @param {number} signature_ptr
- * @param {number} signature_len
- * @param {number} public_key_ptr
- * @param {number} public_key_len
- * @returns {boolean}
- */
-export function verify_sign(data_ptr, data_len, signature_ptr, signature_len, public_key_ptr, public_key_len) {
-    const ret = wasm.verify_sign(data_ptr, data_len, signature_ptr, signature_len, public_key_ptr, public_key_len);
-    return ret !== 0;
-}
-
-/**
- * @param {number} _key_ptr
- * @param {number} _key_len
- * @param {number} _system_code_ptr
- * @param {number} _system_code_len
- * @returns {number}
- */
-export function encrypt_storage_key(_key_ptr, _key_len, _system_code_ptr, _system_code_len) {
-    const ret = wasm.encrypt_storage_key(_key_ptr, _key_len, _system_code_ptr, _system_code_len);
-    return ret >>> 0;
-}
-
-/**
- * @param {number} _value_ptr
- * @param {number} _value_len
- * @param {number} _key_ptr
- * @param {number} _key_len
- * @param {number} _system_code_ptr
- * @param {number} _system_code_len
- * @param {number} _storage_key_ptr
- * @param {number} _storage_key_len
- * @param {number} _storage_encode_ptr
- * @param {number} _storage_encode_len
- * @returns {number}
- */
-export function encrypt_storage_value(_value_ptr, _value_len, _key_ptr, _key_len, _system_code_ptr, _system_code_len, _storage_key_ptr, _storage_key_len, _storage_encode_ptr, _storage_encode_len) {
-    const ret = wasm.decrypt_storage_value(_value_ptr, _value_len, _key_ptr, _key_len, _system_code_ptr, _system_code_len, _storage_key_ptr, _storage_key_len, _storage_encode_ptr, _storage_encode_len);
-    return ret >>> 0;
-}
-
-/**
- * @param {number} _value_ptr
- * @param {number} _value_len
- * @param {number} _key_ptr
- * @param {number} _key_len
- * @param {number} _system_code_ptr
- * @param {number} _system_code_len
- * @param {number} _storage_key_ptr
- * @param {number} _storage_key_len
- * @param {number} _storage_encode_ptr
- * @param {number} _storage_encode_len
- * @returns {number}
- */
-export function decrypt_storage_value(_value_ptr, _value_len, _key_ptr, _key_len, _system_code_ptr, _system_code_len, _storage_key_ptr, _storage_key_len, _storage_encode_ptr, _storage_encode_len) {
-    const ret = wasm.decrypt_storage_value(_value_ptr, _value_len, _key_ptr, _key_len, _system_code_ptr, _system_code_len, _storage_key_ptr, _storage_key_len, _storage_encode_ptr, _storage_encode_len);
-    return ret >>> 0;
-}
-
-/**
- * @param {number} data_ptr
- * @param {number} data_len
- * @param {number} public_key_ptr
- * @param {number} public_key_len
- * @param {number} private_key_ptr
- * @param {number} private_key_len
- * @returns {number}
- */
-export function custom_encrypt_with_codec_keypair(data_ptr, data_len, public_key_ptr, public_key_len, private_key_ptr, private_key_len) {
-    const ret = wasm.custom_encrypt_with_codec_keypair(data_ptr, data_len, public_key_ptr, public_key_len, private_key_ptr, private_key_len);
+export function custom_encrypt_with_codec_keypair(data_ptr, data_len, pubkey_ptr, pubkey_len, privkey_ptr, privkey_len) {
+    const ret = wasm.custom_encrypt_with_codec_keypair(data_ptr, data_len, pubkey_ptr, pubkey_len, privkey_ptr, privkey_len);
     return ret >>> 0;
 }
 
@@ -455,14 +455,6 @@ function __wbg_get_imports() {
         const ret = Reflect.get(arg0, arg1);
         return ret;
     }, arguments) };
-    imports.wbg.__wbg_getindex_61bb13d19869849b = function(arg0, arg1) {
-        const ret = arg0[arg1 >>> 0];
-        return ret;
-    };
-    imports.wbg.__wbg_has_b89e451f638123e3 = function() { return handleError(function (arg0, arg1) {
-        const ret = Reflect.has(arg0, arg1);
-        return ret;
-    }, arguments) };
     imports.wbg.__wbg_instanceof_ArrayBuffer_67f3012529f6a2dd = function(arg0) {
         let result;
         try {
@@ -483,10 +475,6 @@ function __wbg_get_imports() {
         const ret = result;
         return ret;
     };
-    imports.wbg.__wbg_isArray_52653600d4b65388 = function(arg0) {
-        const ret = Array.isArray(arg0);
-        return ret;
-    };
     imports.wbg.__wbg_length_6bb7e81f9d7713e4 = function(arg0) {
         const ret = arg0.length;
         return ret;
@@ -497,14 +485,6 @@ function __wbg_get_imports() {
     };
     imports.wbg.__wbg_new_19c25a3f2fa63a02 = function() {
         const ret = new Object();
-        return ret;
-    };
-    imports.wbg.__wbg_new_1f3a344cf3123716 = function() {
-        const ret = new Array();
-        return ret;
-    };
-    imports.wbg.__wbg_new_638ebfaedbf32a5e = function(arg0) {
-        const ret = new Uint8Array(arg0);
         return ret;
     };
     imports.wbg.__wbg_newnoargs_254190557c45b4ec = function(arg0, arg1) {
@@ -537,10 +517,6 @@ function __wbg_get_imports() {
     };
     imports.wbg.__wbg_prototypesetcall_3d4a26c1ed734349 = function(arg0, arg1, arg2) {
         Uint8Array.prototype.set.call(getArrayU8FromWasm0(arg0, arg1), arg2);
-    };
-    imports.wbg.__wbg_push_330b2eb93e4e1212 = function(arg0, arg1) {
-        const ret = arg0.push(arg1);
-        return ret;
     };
     imports.wbg.__wbg_randomFillSync_ac0988aba3254290 = function() { return handleError(function (arg0, arg1) {
         arg0.randomFillSync(arg1);
@@ -585,10 +561,6 @@ function __wbg_get_imports() {
         const v = arg0;
         const ret = typeof(v) === 'boolean' ? v : undefined;
         return isLikeNone(ret) ? 0xFFFFFF : ret ? 1 : 0;
-    };
-    imports.wbg.__wbg_wbindgenisfalsy_03f4059e2ea4ee87 = function(arg0) {
-        const ret = !arg0;
-        return ret;
     };
     imports.wbg.__wbg_wbindgenisfunction_8cee7dce3725ae74 = function(arg0) {
         const ret = typeof(arg0) === 'function';

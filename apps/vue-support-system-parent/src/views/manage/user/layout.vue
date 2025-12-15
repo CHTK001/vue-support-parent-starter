@@ -2,8 +2,8 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent, defineComponent, markRaw, ref } from "vue";
 
-import { fetchDeleteUser, fetchPageUser, fetchUpdateUser } from "@repo/core";
-import { getPhysicalAddressByIp, getTimeAgo, message } from "@repo/utils";
+import { fetchDeleteUser, fetchPageUser, fetchUpdateUser, fetchExportUsers, fetchDownloadUserTemplate, fetchImportUsers } from "@repo/core";
+import { getTimeAgo, message } from "@repo/utils";
 import Search from "@iconify-icons/ep/search";
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
@@ -71,7 +71,8 @@ export default defineComponent({
       treeData: [],
       curRow: {},
       t: null,
-      ipTable: {},
+      importLoading: false,
+      exportLoading: false,
       filterOptions: [
         {
           label: "账号名称",
@@ -210,8 +211,57 @@ export default defineComponent({
       this.visible.role = true;
       this.curRow = row;
     },
-    async handleOpenIpAddress(ip) {
-      window.open(`https://www.baidu.com/s?wd=${ip}&from=t-io`, "_blank");
+    async handleExportUsers() {
+      this.exportLoading = true;
+      try {
+        const response = await fetchExportUsers(this.form);
+        const blob = new Blob([response], { type: 'text/csv;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `users_${Date.now()}.csv`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        message('导出成功', { type: 'success' });
+      } catch (error) {
+        message('导出失败', { type: 'error' });
+      } finally {
+        this.exportLoading = false;
+      }
+    },
+    async handleDownloadTemplate() {
+      try {
+        const response = await fetchDownloadUserTemplate();
+        const blob = new Blob([response], { type: 'text/csv;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'user_import_template.csv';
+        link.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        message('下载模板失败', { type: 'error' });
+      }
+    },
+    async handleImportUsers(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      this.importLoading = true;
+      try {
+        const { code, data } = await fetchImportUsers(file);
+        if (code === '00000') {
+          message(data || '导入成功', { type: 'success' });
+          this.$refs.table.reload();
+        }
+      } catch (error) {
+        message('导入失败', { type: 'error' });
+      } finally {
+        this.importLoading = false;
+        event.target.value = '';
+      }
+    },
+    triggerImport() {
+      this.$refs.importInput.click();
     },
     async drawClose() {
       this.visible.role = false;
@@ -229,7 +279,31 @@ export default defineComponent({
     <div class="main">
       <el-container>
         <el-header v-if="showQuery">
-          <ScFilterBar :options="filterOptions" :show-number="showNumber" @search="onSearch" />
+          <div class="flex items-center justify-between">
+            <ScFilterBar :options="filterOptions" :show-number="showNumber" @search="onSearch" class="flex-1" />
+            <div v-if="showTool" class="flex items-center gap-2 ml-4">
+              <el-button type="primary" :icon="Edit" @click="dialogOpen({}, 'save')">{{ $t('buttons.add') }}</el-button>
+              <el-dropdown trigger="click">
+                <el-button>
+                  <IconifyIconOnline icon="ep:download" class="mr-1" />导入导出
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item @click="handleExportUsers">
+                      <IconifyIconOnline icon="ep:download" class="mr-1" />导出用户
+                    </el-dropdown-item>
+                    <el-dropdown-item @click="handleDownloadTemplate">
+                      <IconifyIconOnline icon="ep:document" class="mr-1" />下载模板
+                    </el-dropdown-item>
+                    <el-dropdown-item @click="triggerImport">
+                      <IconifyIconOnline icon="ep:upload" class="mr-1" />导入用户
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+              <input ref="importInput" type="file" accept=".csv" style="display: none" @change="handleImportUsers" />
+            </div>
+          </div>
         </el-header>
         <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">
@@ -359,6 +433,24 @@ export default defineComponent({
 </template>
 
 <style scoped lang="scss">
+// 用户管理页面美化样式
+.main.background-color {
+  height: 100%;
+  background-color: var(--el-bg-color);
+
+  > .main {
+    height: 100%;
+    border-radius: var(--el-border-radius-base);
+    overflow: hidden;
+    box-shadow: var(--el-box-shadow-light);
+    transition: all 0.3s ease;
+
+    &:hover {
+      box-shadow: var(--el-box-shadow);
+    }
+  }
+}
+
 :deep(.el-dropdown-menu__item i) {
   margin: 0;
 }
@@ -371,23 +463,146 @@ export default defineComponent({
 
 :deep(.el-header) {
   --el-header-height: unset;
+  padding: 16px 20px;
+  background-color: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background-image: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-bg-color-page) 100%);
+}
+
+:deep(.el-main) {
+  padding: 16px;
+  background-color: var(--el-bg-color-page);
+}
+
+// 表格容器样式
+:deep(.h-full) {
+  background-color: var(--el-bg-color);
+  border-radius: var(--el-border-radius-base);
+  box-shadow: var(--el-box-shadow-lighter);
+  overflow: hidden;
+}
+
+// 表格美化
+:deep(.el-table) {
+  .el-table__header {
+    th {
+      background-color: var(--el-fill-color-light) !important;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .el-table__row {
+    transition: all 0.3s;
+
+    &:hover {
+      background-color: var(--el-fill-color-light) !important;
+      transform: translateY(-1px);
+    }
+
+    &:nth-child(even) {
+      background-color: var(--el-fill-color-lighter);
+    }
+  }
+}
+
+// 按钮悬浮效果
+:deep(.el-button) {
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 }
 
 .left-panel {
   width: 81%;
 }
 
+// 用户头像颜色
 .bg-red-type {
-  background: #ff4949;
-  color: var(--el-text-color-primary);
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(255, 73, 73, 0.3);
 }
 
 .bg-blue-type {
-  background: #3a8ee6;
-  color: var(--el-text-color-primary);
+  background: linear-gradient(135deg, #54a0ff 0%, #2e86de 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(58, 142, 230, 0.3);
 }
 
 .bg-gray-type {
-  background: #c0c4cc;
+  background: linear-gradient(135deg, #dfe6e9 0%, #b2bec3 100%);
+  color: #636e72;
+}
+
+// 标签美化
+:deep(.el-tag) {
+  border-radius: 4px;
+  font-weight: 500;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+// 开关美化
+:deep(.el-switch) {
+  --el-switch-on-color: #13ce66;
+  --el-switch-off-color: #ff4949;
+}
+
+// 操作按钮美化
+.btn-text {
+  transition: all 0.3s;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+}
+
+// 时间显示美化
+.text-gray-400 {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+// 暗色主题适配
+:root[data-theme='dark'] {
+  .main.background-color {
+    > .main {
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  :deep(.el-header) {
+    background-color: var(--el-bg-color-overlay);
+    background-image: linear-gradient(135deg, var(--el-bg-color-overlay) 0%, var(--el-bg-color) 100%);
+  }
+
+  :deep(.h-full) {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  :deep(.el-table) {
+    .el-table__header {
+      th {
+        background-color: var(--el-fill-color) !important;
+      }
+    }
+
+    .el-table__row {
+      &:nth-child(even) {
+        background-color: var(--el-fill-color);
+      }
+    }
+  }
+
+  .bg-red-type {
+    box-shadow: 0 2px 8px rgba(255, 73, 73, 0.4);
+  }
+
+  .bg-blue-type {
+    box-shadow: 0 2px 8px rgba(58, 142, 230, 0.4);
+  }
 }
 </style>

@@ -58,6 +58,8 @@ defineOptions({
 </script>
 
 <style lang="scss" scoped>
+@use "sass:math";
+
 .national-day-login-page {
   min-height: 100vh;
   position: relative;
@@ -149,8 +151,8 @@ defineOptions({
 
       @for $i from 1 through 6 {
         &:nth-child(#{$i}) {
-          top: random(50) + 10%;
-          left: random(80) + 10%;
+          top: math.random(50) + 10%;
+          left: math.random(80) + 10%;
           animation-delay: ($i * 0.5s);
         }
       }

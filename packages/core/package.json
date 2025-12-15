@@ -11,6 +11,10 @@
       "types": "./index.ts",
       "default": "./index.ts"
     },
+    "./*": {
+      "types": "./*",
+      "default": "./*"
+    },
     "./router": {
       "types": "./src/types/router.d.ts"
     },

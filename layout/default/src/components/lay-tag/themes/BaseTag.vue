@@ -176,6 +176,7 @@ const handleScroll = (offset: number): void => {
 };
 
 const handleWheel = (event: WheelEvent): void => {
+  // 即时滚动（无过渡动画）
   isScrolling.value = true;
   const scrollIntensity = Math.abs(event.deltaX) + Math.abs(event.deltaY);
   let offset = 0;
@@ -184,26 +185,10 @@ const handleWheel = (event: WheelEvent): void => {
   } else {
     offset = scrollIntensity > 0 ? -scrollIntensity : -100;
   }
-
-  smoothScroll(offset);
+  handleScroll(offset);
 };
 
-const smoothScroll = (offset: number): void => {
-  const scrollAmount = 20;
-  let remaining = Math.abs(offset);
-
-  const scrollStep = () => {
-    const scrollOffset = Math.sign(offset) * Math.min(scrollAmount, remaining);
-    handleScroll(scrollOffset);
-    remaining -= Math.abs(scrollOffset);
-
-    if (remaining > 0) {
-      requestAnimationFrame(scrollStep);
-    }
-  };
-
-  requestAnimationFrame(scrollStep);
-};
+// 取消平滑滚动动画，使用即时滚动
 
 function dynamicRouteTag(value: string): void {
   const hasValue = multiTags.value.some((item) => {
@@ -525,6 +510,9 @@ onClickOutside(contextmenuRef, closeMenu, {
 });
 
 watch(route, () => {
+  // 忽略 redirect 路径，避免刷新时闪烁
+  if (route.path.startsWith('/redirect')) return;
+  
   activeIndex.value = -1;
   dynamicRouteTag(route.path);
   dynamicTagView();
@@ -587,6 +575,8 @@ const deferTag = useDefer(tagsViews?.length);
             linkIsActive(item),
             showModel === 'chrome' && 'chrome-item',
             showModel === 'modern' && 'modern-item',
+            showModel === 'card' && 'card-item',
+            showModel === 'smart' && 'smart-item',
             isFixedTag(item) && 'fixed-tag',
           ]"
           @contextmenu.prevent="openMenu(item, $event)"
@@ -649,32 +639,31 @@ const deferTag = useDefer(tagsViews?.length);
       <IconifyIconOffline :icon="ArrowRightSLine" @click="handleScroll(-200)" />
     </span>
     
-    <!-- 右键菜单 -->
-    <transition name="el-zoom-in-top">
-      <ul
-        v-show="visible"
-        ref="contextmenuRef"
-        :key="Math.random()"
-        :style="getContextMenuStyle"
-        class="contextmenu"
+    <!-- 右键菜单（去除过渡动画，直接显示/隐藏） -->
+    <ul
+      v-show="visible"
+      ref="contextmenuRef"
+      :key="Math.random()"
+      :style="getContextMenuStyle"
+      class="contextmenu"
+    >
+      <div
+        v-for="(item, key) in tagsViews.slice(0, 6)"
+        :key="key"
+        style="display: flex; align-items: center"
       >
-        <div
-          v-for="(item, key) in tagsViews.slice(0, 6)"
-          :key="key"
-          style="display: flex; align-items: center"
-        >
-          <li v-if="item.show" @click="selectTag(key, item)">
-            <IconifyIconOffline :icon="item.icon" />
-            {{ transformI18n(item.text) }}
-          </li>
-        </div>
-      </ul>
-    </transition>
+        <li v-if="item.show" @click="selectTag(key, item)">
+          <IconifyIconOffline :icon="item.icon" />
+          {{ transformI18n(item.text) }}
+        </li>
+      </div>
+    </ul>
     
     <!-- 右侧功能按钮 -->
     <el-dropdown
       trigger="click"
       placement="bottom-end"
+      popper-class="tag-function-dropdown-popper"
       @command="handleCommand"
     >
       <span class="arrow-down">
@@ -705,6 +694,6 @@ const deferTag = useDefer(tagsViews?.length);
 .tags-view {
   position: relative;
   overflow: visible !important;
-  z-index: 9999 !important;
+  z-index: 0;
 }
 </style>

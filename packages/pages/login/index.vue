@@ -24,10 +24,7 @@ import ThirdParty from "./components/thirdParty.vue";
 import ThemeSwitcher from "./components/ThemeSwitcher.vue";
 import { bg, illustration } from "./utils/static";
 import { getLoginTheme as getLoginThemeComponent } from "./themes";
-import {
-  getThemeConfig,
-  type ThemeConfig,
-} from "./utils/themeConfig";
+import { getThemeConfig } from "./utils/themeConfig";
 
 import darkIcon from "@repo/assets/svg/dark.svg?component";
 import dayIcon from "@repo/assets/svg/day.svg?component";

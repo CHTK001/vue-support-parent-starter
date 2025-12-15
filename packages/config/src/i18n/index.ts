@@ -134,7 +134,7 @@ export function transformI18n(message: any = "") {
 
   if (key && flatI18n("zh-CN").has(key)) {
     return i18n.global.t.call(i18n.global.locale, message);
-  } else if (!key && Object.hasOwn(siphonI18n("zh-CN"), message)) {
+  } else if (!key && Object.prototype.hasOwnProperty.call(siphonI18n("zh-CN"), message)) {
     // 兼容非嵌套形式的国际化写法
     return i18n.global.t.call(i18n.global.locale, message);
   } else {

@@ -471,7 +471,7 @@ const closeDetail = () => {
 
 .feedback-main {
   height: 100%;
-  background-color: var(--app-bg-primary);
+  background-color: var(--el-bg-color);
   animation: feedback-fade-in 0.5s ease-out;
   overflow-x: hidden;
 }
@@ -480,16 +480,21 @@ const closeDetail = () => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  border-radius: 8px;
-  box-shadow: var(--app-shadow);
+  border-radius: var(--el-border-radius-base);
+  box-shadow: var(--el-box-shadow-light);
   overflow: hidden;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: var(--el-box-shadow);
+  }
 }
 
 .feedback-header {
-  padding: 16px;
-  background-color: var(--app-bg-primary);
-  border-bottom: 1px solid var(--app-border-primary);
-  box-shadow: var(--app-shadow-sm);
+  padding: 16px 20px;
+  background-color: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background-image: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-bg-color-page) 100%);
   height: auto !important;
   display: flex;
   align-items: center;
@@ -527,8 +532,8 @@ const closeDetail = () => {
 // 图表区域样式
 .feedback-charts {
   padding: 16px;
-  background-color: var(--app-bg-primary);
-  border-bottom: 1px solid var(--app-border-primary);
+  background-color: var(--el-bg-color-page);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .feedback-stats {
@@ -543,10 +548,11 @@ const closeDetail = () => {
   border-radius: 8px;
   text-align: center;
   transition: all 0.3s ease;
+  box-shadow: var(--el-box-shadow-lighter);
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--app-shadow-md);
+    transform: translateY(-4px);
+    box-shadow: var(--el-box-shadow);
   }
 }
 
@@ -584,16 +590,21 @@ const closeDetail = () => {
 
 .chart-box {
   flex: 1;
-  background-color: var(--app-bg-secondary, #fff);
+  background-color: var(--el-bg-color);
   border-radius: 8px;
   padding: 16px;
-  box-shadow: var(--app-shadow-sm);
+  box-shadow: var(--el-box-shadow-lighter);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: var(--el-box-shadow-light);
+  }
 }
 
 .chart-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--app-text-primary);
+  color: var(--el-text-color-primary);
   margin-bottom: 12px;
 }
 
@@ -603,14 +614,19 @@ const closeDetail = () => {
 }
 
 .feedback-main-content {
-  padding: 0 !important;
+  padding: 16px !important;
   flex: 1;
   overflow: hidden;
+  background-color: var(--el-bg-color-page);
 }
 
 .feedback-content {
   height: 100%;
   width: 100%;
+  background-color: var(--el-bg-color);
+  border-radius: var(--el-border-radius-base);
+  box-shadow: var(--el-box-shadow-lighter);
+  overflow: hidden;
 }
 
 .feedback-table {
@@ -620,12 +636,78 @@ const closeDetail = () => {
   :deep(.el-table) {
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: var(--app-shadow-sm);
 
-    tr {
+    .el-table__header {
+      th {
+        background-color: var(--el-fill-color-light) !important;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+    }
+
+    .el-table__row {
       transition: all 0.3s ease;
+      cursor: pointer;
+
       &:hover {
-        background-color: var(--app-primary-shadow-sm) !important;
+        background-color: var(--el-fill-color-light) !important;
+        transform: translateY(-1px);
+      }
+
+      &:nth-child(even) {
+        background-color: var(--el-fill-color-lighter);
+      }
+    }
+  }
+}
+
+// 按钮悬浮效果
+:deep(.el-button) {
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// 时间显示美化
+.text-gray-400 {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+// 暗色主题适配
+:root[data-theme='dark'] {
+  .feedback-container {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .feedback-header {
+    background-color: var(--el-bg-color-overlay);
+    background-image: linear-gradient(135deg, var(--el-bg-color-overlay) 0%, var(--el-bg-color) 100%);
+  }
+
+  .chart-box {
+    background-color: var(--el-bg-color-overlay);
+  }
+
+  .feedback-content {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .feedback-table {
+    :deep(.el-table) {
+      .el-table__header {
+        th {
+          background-color: var(--el-fill-color) !important;
+        }
+      }
+
+      .el-table__row {
+        &:nth-child(even) {
+          background-color: var(--el-fill-color);
+        }
       }
     }
   }

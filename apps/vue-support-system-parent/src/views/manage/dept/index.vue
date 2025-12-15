@@ -297,3 +297,153 @@ onMounted(async () => {
     <SaveDialog ref="saveDialogRef" @success="loadData"></SaveDialog>
   </div>
 </template>
+
+<style scoped lang="scss">
+// 部门管理页面美化样式
+.fullscreen {
+  height: 100%;
+  background-color: var(--el-bg-color);
+  border-radius: var(--el-border-radius-base);
+  box-shadow: var(--el-box-shadow-light);
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: var(--el-box-shadow);
+  }
+}
+
+// 页头样式
+:deep(.el-header) {
+  padding: 16px 20px;
+  background-color: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background-image: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-bg-color-page) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.left-panel {
+  flex: 1;
+}
+
+.right-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .right-panel-search {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+// 表格美化
+:deep(.el-table) {
+  background-color: var(--el-bg-color);
+  border-radius: var(--el-border-radius-base);
+
+  .el-table__header {
+    th {
+      background-color: var(--el-fill-color-light) !important;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .el-table__row {
+    cursor: pointer;
+    transition: all 0.3s;
+
+    &:hover {
+      background-color: var(--el-fill-color-light) !important;
+      transform: translateY(-1px);
+    }
+
+    &:nth-child(even) {
+      background-color: var(--el-fill-color-lighter);
+    }
+  }
+}
+
+// 按钮悬浮效果
+:deep(.el-button) {
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// 标签美化
+:deep(.el-tag) {
+  border-radius: 4px;
+  font-weight: 500;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+// 分段选择器美化
+:deep(.el-segmented) {
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+// 操作按钮美化
+.btn-text {
+  transition: all 0.3s;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+}
+
+// 时间显示美化
+.text-gray-400 {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+// 部门代码样式
+.el-form-item-msg {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background-color: var(--el-fill-color-lighter);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+// 暗色主题适配
+:root[data-theme='dark'] {
+  .fullscreen {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  :deep(.el-header) {
+    background-color: var(--el-bg-color-overlay);
+    background-image: linear-gradient(135deg, var(--el-bg-color-overlay) 0%, var(--el-bg-color) 100%);
+  }
+
+  :deep(.el-table) {
+    .el-table__header {
+      th {
+        background-color: var(--el-fill-color) !important;
+      }
+    }
+
+    .el-table__row {
+      &:nth-child(even) {
+        background-color: var(--el-fill-color);
+      }
+    }
+  }
+
+  .el-form-item-msg {
+    background-color: var(--el-fill-color);
+  }
+}
+</style>

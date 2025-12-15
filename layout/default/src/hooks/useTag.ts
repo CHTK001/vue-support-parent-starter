@@ -90,6 +90,11 @@ export function useTags() {
   ]);
 
   function conditionHandle(item, previous, next) {
+    // 处理刷新时的 redirect 路径，避免闪烁
+    const currentPath = route.path.startsWith('/redirect') 
+      ? route.path.replace('/redirect', '') 
+      : route.path;
+    
     if (isBoolean(route?.meta?.showLink) && route?.meta?.showLink === false) {
       if (Object.keys(route.query).length > 0) {
         return isEqual(route.query, item.query) ? previous : next;
@@ -97,7 +102,7 @@ export function useTags() {
         return isEqual(route.params, item.params) ? previous : next;
       }
     } else {
-      return route.path === item.path ? previous : next;
+      return currentPath === item.path ? previous : next;
     }
   }
 
@@ -129,7 +134,6 @@ export function useTags() {
   const getTabStyle = computed((): CSSProperties => {
     return {
       transform: `translateX(${translateX.value}px)`,
-      transition: isScrolling.value ? "none" : "transform 0.5s ease-in-out",
     };
   });
 
@@ -143,46 +147,14 @@ export function useTags() {
 
   /** 鼠标移入添加激活样式 */
   function onMouseenter(index) {
+    // 仅更新激活索引，不触发任何样式动画
     if (index) activeIndex.value = index;
-    if (unref(showModel) === "smart") {
-      if (hasClass(instance.refs["schedule" + index][0], "schedule-active")) return;
-      toggleClass(true, "schedule-in", instance.refs["schedule" + index][0]);
-      toggleClass(false, "schedule-out", instance.refs["schedule" + index][0]);
-    } else if (unref(showModel) === "minimal") {
-      if (hasClass(instance.refs["dynamic" + index][0], "is-active")) return;
-      toggleClass(true, "minimal-in", instance.refs["dynamic" + index][0]);
-      toggleClass(false, "minimal-out", instance.refs["dynamic" + index][0]);
-    } else if (unref(showModel) === "rounded") {
-      if (hasClass(instance.refs["dynamic" + index][0], "is-active")) return;
-      toggleClass(true, "rounded-in", instance.refs["dynamic" + index][0]);
-      toggleClass(false, "rounded-out", instance.refs["dynamic" + index][0]);
-    } else {
-      if (hasClass(instance.refs["dynamic" + index][0], "is-active")) return;
-      toggleClass(true, "card-in", instance.refs["dynamic" + index][0]);
-      toggleClass(false, "card-out", instance.refs["dynamic" + index][0]);
-    }
   }
 
   /** 鼠标移出恢复默认样式 */
   function onMouseleave(index) {
+    // 移出时仅恢复索引，不触发任何样式动画
     activeIndex.value = -1;
-    if (unref(showModel) === "smart") {
-      if (hasClass(instance.refs["schedule" + index][0], "schedule-active")) return;
-      toggleClass(false, "schedule-in", instance.refs["schedule" + index][0]);
-      toggleClass(true, "schedule-out", instance.refs["schedule" + index][0]);
-    } else if (unref(showModel) === "minimal") {
-      if (hasClass(instance.refs["dynamic" + index][0], "is-active")) return;
-      toggleClass(false, "minimal-in", instance.refs["dynamic" + index][0]);
-      toggleClass(true, "minimal-out", instance.refs["dynamic" + index][0]);
-    } else if (unref(showModel) === "rounded") {
-      if (hasClass(instance.refs["dynamic" + index][0], "is-active")) return;
-      toggleClass(false, "rounded-in", instance.refs["dynamic" + index][0]);
-      toggleClass(true, "rounded-out", instance.refs["dynamic" + index][0]);
-    } else {
-      if (hasClass(instance.refs["dynamic" + index][0], "is-active")) return;
-      toggleClass(false, "card-in", instance.refs["dynamic" + index][0]);
-      toggleClass(true, "card-out", instance.refs["dynamic" + index][0]);
-    }
   }
 
   function onContentFullScreen() {

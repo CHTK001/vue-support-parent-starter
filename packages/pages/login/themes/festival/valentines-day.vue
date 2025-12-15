@@ -54,6 +54,8 @@ defineOptions({
 </script>
 
 <style lang="scss" scoped>
+@use "sass:math";
+
 .valentines-day-login-page {
   min-height: 100vh;
   position: relative;
@@ -81,12 +83,12 @@ defineOptions({
 
       @for $i from 1 through 20 {
         &:nth-child(#{$i}) {
-          left: random(100) * 1%;
-          top: random(100) * 1%;
-          animation-delay: random(80) * 0.1s;
-          animation-duration: (random(40) + 60) * 0.1s;
-          font-size: (random(20) + 20) * 1px;
-          opacity: random(50) * 0.01 + 0.3;
+          left: math.random(100) * 1%;
+          top: math.random(100) * 1%;
+          animation-delay: math.random(80) * 0.1s;
+          animation-duration: (math.random(40) + 60) * 0.1s;
+          font-size: (math.random(20) + 20) * 1px;
+          opacity: math.random(50) * 0.01 + 0.3;
         }
       }
     }

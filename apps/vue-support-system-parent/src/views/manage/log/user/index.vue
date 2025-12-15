@@ -7,8 +7,10 @@ import { computed, defineAsyncComponent, nextTick, reactive, ref, watch } from "
 import { fetchPageUserLog } from "@repo/core";
 // 引入国际化转换函数
 import { transformI18n } from "@repo/config";
-// 引入根据 IP 获取物理地址和计算时间差的工具函数
-import { getPhysicalAddressByIp, getTimeAgo } from "@repo/utils";
+// 引入计算时间差的工具函数
+import { getTimeAgo } from "@repo/utils";
+// 引入ScIp组件
+import ScIp from "@repo/components/ScIp/index.vue";
 // 引入刷新图标
 import Refresh from "@iconify-icons/line-md/backup-restore";
 // 引入防抖函数
@@ -80,18 +82,6 @@ watch(
 const formRef = ref();
 // 定义表格的引用
 const table = ref(null);
-// 定义 IP 地址对应的物理地址映射表
-const ipTable = reactive({});
-
-/**
- * 根据 IP 地址注册物理地址
- * @param {string} ip - IP 地址
- */
-const registerPhysicalAddressByIp = async (ip) => {
-  getPhysicalAddressByIp(ip).then((res) => {
-    ipTable[ip] = res;
-  });
-};
 
 /**
  * 重置表单并重新搜索
@@ -123,13 +113,6 @@ const openDetail = async (row) => {
   detailRef.value.setData(row).open("view");
 };
 
-/**
- * 打开百度搜索该 IP 地址的页面
- * @param {string} ip - IP 地址
- */
-const handleOpenIpAddress = async (ip) => {
-  window.open(`https://www.baidu.com/s?wd=${ip}&from=t-io`, "_blank");
-};
 
 // 定义内容区域的引用
 const contentRef = ref();
@@ -216,25 +199,18 @@ const moduleOptions = reactive([
                   <span class="log-module-text">{{ transform(row.sysLogFrom) }}</span>
                 </template>
               </el-table-column>
-              <!-- 请求 IP 列，显示物理地址和 IP 地址 -->
-              <el-table-column label="请求IP" prop="sysLogIp" align="left" show-overflow-tooltip min-width="160px">
+              <!-- 请求 IP 列，使用ScIp组件显示 -->
+              <el-table-column label="请求IP" prop="sysLogIp" align="left" show-overflow-tooltip min-width="200px">
                 <template #default="{ row }">
-                  <div v-if="!row.sysLogAddress">
-                    <span v-if="row.sysLogIp && registerPhysicalAddressByIp(row.sysLogIp)">{{ ipTable[row.sysLogIp] ||
-      "-" }}</span>
-                    <span v-else>-</span>
-                    <br />
-                    <span class="text-blue-400 cursor-pointer" @click.stop="handleOpenIpAddress(row.sysLogIp)">{{
-      row.sysLogIp || "-" }}</span>
-                  </div>
-                  <div v-else>
-                    <span v-if="row.sysLogIp">{{ row.sysLogAddress || "-" }}</span>
-                    <span v-else>-</span>
-                    <br />
-                    <span class="text-blue-400 cursor-pointer" @click.stop="handleOpenIpAddress(row.sysLogIp)">{{
-      row.sysLogIp || "-" }}</span>
-                  </div>
-                  <span class="text-gray-400">{{ row.sysLogIsp }}</span>
+                  <ScIp 
+                    :ip="row.sysLogIp" 
+                    :physical-address="row.sysLogAddress" 
+                    size="small"
+                    :show-icon="false"
+                    :copyable="true"
+                    :open-search-original="true"
+                  />
+                  <div v-if="row.sysLogIsp" class="text-gray-400 text-xs mt-1">{{ row.sysLogIsp }}</div>
                 </template>
               </el-table-column>
               <!-- 地址列 -->

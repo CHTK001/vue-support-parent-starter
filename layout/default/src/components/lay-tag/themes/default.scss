@@ -64,7 +64,6 @@
     box-shadow: 
       0 1px 3px rgba(0, 0, 0, 0.04),
       inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:not(:first-child) {
       padding-right: 28px;
@@ -95,7 +94,7 @@
       color: var(--el-text-color-secondary);
       cursor: pointer;
       border-radius: 50%;
-      transition: all 0.2s ease;
+      transition: none;
       transform: translate(0, -50%);
       opacity: 0.6;
 
@@ -108,7 +107,7 @@
         color: #fff !important;
         background: var(--el-color-primary);
         opacity: 1;
-        transform: translate(0, -50%) scale(1.1);
+        transform: translate(0, -50%);
       }
     }
   }
@@ -120,7 +119,7 @@
     margin-right: 5px;
     font-size: 14px;
     color: var(--el-text-color-secondary);
-    transition: all 0.2s ease;
+    transition: none;
   }
 
   .tag-title {
@@ -131,7 +130,7 @@
     font-weight: 500;
     letter-spacing: 0.2px;
     white-space: nowrap;
-    transition: color 0.2s ease;
+    transition: none;
   }
 
   .scroll-container {
@@ -156,8 +155,6 @@
       list-style: none;
 
       .scroll-item {
-        transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
-
         &:nth-child(1) {
           padding: 0 12px;
         }
@@ -202,18 +199,16 @@
       margin: 2px 0;
       cursor: pointer;
       border-radius: 6px;
-      transition: all 0.2s ease;
+      transition: none;
       font-weight: 500;
 
       &:hover {
         color: var(--el-color-primary);
         background: rgba(var(--el-color-primary-rgb), 0.08);
-        padding-left: 16px;
       }
 
       &:active {
-        padding-left: 16px;
-        transform: scale(0.98);
+        transform: none;
       }
 
       svg {
@@ -221,11 +216,11 @@
         margin-right: 10px;
         width: 16px;
         height: 16px;
-        transition: transform 0.2s ease;
+        transition: none;
       }
 
       &:hover svg {
-        transform: scale(1.1);
+        transform: none;
       }
     }
   }
@@ -252,7 +247,7 @@
       margin-right: 10px;
       width: 16px;
       height: 16px;
-      transition: transform 0.2s ease;
+      transition: none;
     }
   }
 }
@@ -263,21 +258,19 @@
   margin: 2px 0;
   border-radius: 6px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: none;
 
   &:not(.is-disabled):hover {
     color: var(--el-color-primary);
     background: rgba(var(--el-color-primary-rgb), 0.08);
-    padding-left: 16px;
 
     svg {
-      transform: scale(1.1);
+      transform: none;
     }
   }
 
   &:active {
-    padding-left: 16px;
-    transform: scale(0.98);
+    transform: none;
   }
 }
 
@@ -309,15 +302,12 @@
     rgba(var(--el-color-primary-rgb), 0.04) 100%
   );
   border-color: rgba(var(--el-color-primary-rgb), 0.2);
-  box-shadow: 
-    0 4px 12px rgba(var(--el-color-primary-rgb), 0.1),
-    0 2px 6px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  transform: translateY(-2px);
+  box-shadow: none;
+  transform: none;
 
   .tag-icon {
     color: var(--el-color-primary);
-    transform: scale(1.1);
+    transform: none;
   }
 
   .tag-title {
@@ -375,11 +365,8 @@
   }
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 
-      0 6px 20px rgba(var(--el-color-primary-rgb), 0.4),
-      0 3px 10px rgba(var(--el-color-primary-rgb), 0.25),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transform: none;
+    box-shadow: none;
   }
 
   // Chrome 模式特殊处理
@@ -396,23 +383,23 @@
     }
 
     .chrome-tab__bg {
-      color: var(--el-color-primary-light-9) !important;
+      color: var(--el-color-primary) !important;
     }
 
     .tag-title {
-      color: var(--el-color-primary) !important;
+      color: #fff !important;
       text-shadow: none;
     }
 
     .tag-icon {
-      color: var(--el-color-primary);
+      color: #fff;
     }
 
     .chrome-close-btn {
-      color: var(--el-color-primary);
+      color: rgba(255, 255, 255, 0.85);
 
       &:hover {
-        background-color: var(--el-color-primary);
+        background-color: rgba(255, 255, 255, 0.2);
         color: #fff;
       }
     }
@@ -443,14 +430,14 @@
   box-shadow: 
     0 2px 6px rgba(0, 0, 0, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: none;
   cursor: pointer;
   flex-shrink: 0;
 
   svg {
     width: 16px;
     height: 16px;
-    transition: all 0.25s ease;
+    transition: none;
   }
 
   &:hover {
@@ -460,21 +447,17 @@
     );
     border-color: transparent;
     color: #fff;
-    box-shadow: 
-      0 4px 12px rgba(var(--el-color-primary-rgb), 0.3),
-      0 2px 6px rgba(var(--el-color-primary-rgb), 0.2);
-    transform: scale(1.08);
+    box-shadow: none;
+    transform: none;
 
     svg {
-      transform: scale(1.1);
+      transform: none;
     }
   }
 
   &:active {
-    transform: scale(0.95);
-    box-shadow: 
-      0 2px 6px rgba(var(--el-color-primary-rgb), 0.25),
-      inset 0 1px 2px rgba(0, 0, 0, 0.1);
+    transform: none;
+    box-shadow: none;
   }
 }
 
@@ -486,7 +469,7 @@
     cursor: w-resize;
 
     svg {
-      transform: scale(1.1) translateX(-2px);
+      transform: none;
     }
   }
 }
@@ -499,7 +482,7 @@
     cursor: e-resize;
 
     svg {
-      transform: scale(1.1) translateX(2px);
+      transform: none;
     }
   }
 }
@@ -508,7 +491,123 @@
   margin-right: 8px;
 
   &:hover svg {
-    transform: scale(1.1) rotate(180deg);
+    transform: none;
+  }
+}
+
+/* 卡片风格标签 - 方正简洁 */
+.card-item {
+  border-radius: 4px !important;
+  background: var(--el-bg-color) !important;
+  border: 1px solid var(--el-border-color-light) !important;
+  box-shadow: none !important;
+  
+  &:hover {
+    border-color: var(--el-color-primary-light-5) !important;
+    background: var(--el-color-primary-light-9) !important;
+    
+    .tag-title {
+      color: var(--el-color-primary);
+    }
+  }
+  
+  &.is-active {
+    background: var(--el-color-primary-light-9) !important;
+    border-color: var(--el-color-primary) !important;
+    border-left: 3px solid var(--el-color-primary) !important;
+    
+    .tag-title {
+      color: var(--el-color-primary) !important;
+      font-weight: 600;
+    }
+    
+    .tag-icon {
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+/* 灵动风格标签 - 简约底部进度条 */
+.smart-item {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  
+  &:hover {
+    background: rgba(var(--el-color-primary-rgb), 0.04) !important;
+  }
+  
+  &.is-active {
+    background: transparent !important;
+    
+    .tag-title {
+      color: var(--el-color-primary) !important;
+      font-weight: 600;
+    }
+    
+    .tag-icon {
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+/* 卡片风格标签 - 方正简洁 */
+.card-item {
+  border-radius: 4px !important;
+  background: var(--el-bg-color) !important;
+  border: 1px solid var(--el-border-color-light) !important;
+  box-shadow: none !important;
+  
+  &:hover {
+    border-color: var(--el-color-primary-light-5) !important;
+    background: var(--el-color-primary-light-9) !important;
+    transform: none !important;
+    
+    .tag-title {
+      color: var(--el-color-primary);
+    }
+  }
+  
+  &.is-active {
+    background: var(--el-color-primary-light-9) !important;
+    border-color: var(--el-color-primary) !important;
+    border-left: 3px solid var(--el-color-primary) !important;
+    
+    .tag-title {
+      color: var(--el-color-primary) !important;
+      font-weight: 600;
+    }
+    
+    .tag-icon {
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+/* 灵动风格标签 - 简约底部进度条 */
+.smart-item {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  
+  &:hover {
+    background: rgba(var(--el-color-primary-rgb), 0.04) !important;
+    transform: none !important;
+  }
+  
+  &.is-active {
+    background: transparent !important;
+    
+    .tag-title {
+      color: var(--el-color-primary) !important;
+      font-weight: 600;
+    }
+    
+    .tag-icon {
+      color: var(--el-color-primary);
+    }
   }
 }
 
@@ -549,7 +648,7 @@
   width: 100%;
   height: 2px;
   background: var(--el-color-primary);
-  animation: schedule-in-width 200ms ease-in;
+  animation: none !important;
 }
 
 /* 灵动模式下鼠标移出隐藏蓝色进度条 */
@@ -560,7 +659,7 @@
   width: 0;
   height: 2px;
   background: var(--el-color-primary);
-  animation: schedule-out-width 200ms ease-in;
+  animation: none !important;
 }
 
 /* 谷歌风格的页签 */
@@ -632,8 +731,8 @@
 /* 卡片风格 - 简洁现代 */
 .scroll-item {
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transform: none;
+    box-shadow: none;
   }
 }
 
@@ -661,7 +760,7 @@
     0 2px 8px rgba(0, 0, 0, 0.04),
     0 1px 3px rgba(0, 0, 0, 0.02),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: none;
   overflow: visible;
 
   // 顶部高光
@@ -686,7 +785,7 @@
     height: 2px;
     background: transparent;
     border-radius: 0 0 10px 10px;
-    transition: all 0.3s ease;
+    transition: none;
   }
 
   .tag-title {
@@ -695,19 +794,12 @@
   }
 
   &:hover {
-    transform: translateY(-3px);
-    box-shadow: 
-      0 8px 24px rgba(var(--el-color-primary-rgb), 0.12),
-      0 4px 12px rgba(0, 0, 0, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    transform: none;
+    box-shadow: none;
     border-color: rgba(var(--el-color-primary-rgb), 0.15);
 
     &::after {
-      background: linear-gradient(90deg, 
-        transparent, 
-        rgba(var(--el-color-primary-rgb), 0.3), 
-        transparent
-      );
+      background: transparent;
     }
 
     .tag-title {
@@ -758,21 +850,18 @@
     }
 
     &:hover {
-      transform: translateY(-3px);
-      box-shadow: 
-        0 10px 32px rgba(var(--el-color-primary-rgb), 0.35),
-        0 5px 16px rgba(var(--el-color-primary-rgb), 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      transform: none;
+      box-shadow: none;
     }
   }
 
   .el-icon-close {
     border-radius: 6px;
-    transition: all 0.2s ease;
+    transition: none;
 
     &:hover {
       background: rgba(var(--el-color-primary-rgb), 0.12);
-      transform: rotate(90deg);
+      transform: none;
     }
   }
 }
@@ -786,15 +875,15 @@ html.dark {
       color: var(--el-text-color-primary);
     }
     
-    &:hover {
-      background-color: var(--el-bg-color-page);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      
-      .tag-title {
-        color: var(--el-text-color-primary);
-      }
+  &:hover {
+    background-color: var(--el-bg-color-page);
+    transform: none;
+    box-shadow: none;
+    
+    .tag-title {
+      color: var(--el-text-color-primary);
     }
+  }
     
     &.is-active {
       background-color: var(--app-bg-overlay);
@@ -805,8 +894,8 @@ html.dark {
       
       &:hover {
         background-color: var(--el-bg-color-page);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        transform: none;
+        box-shadow: none;
         
         .tag-title {
           color: var(--el-text-color-primary);
@@ -820,9 +909,9 @@ html.dark {
       color: var(--el-text-color-primary);
     }
     
-    &:hover {
+      &:hover {
       .chrome-tab__bg {
-        filter: brightness(1.2);
+        filter: none;
       }
       
       .tag-title {
@@ -841,11 +930,11 @@ html.dark {
       
       &:hover {
         .chrome-tab__bg {
-          filter: brightness(1.3);
+          filter: none;
         }
         
         .tag-title {
-          color: #fff;
+          color: var(--el-text-color-primary);
         }
       }
     }

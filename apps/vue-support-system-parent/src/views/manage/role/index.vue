@@ -165,17 +165,177 @@ const contentRef = ref();
 </template>
 
 <style scoped lang="scss">
+// 角色管理页面美化样式
+.overflow-hidden {
+  height: 100%;
+  background-color: var(--el-bg-color);
+
+  > .main {
+    height: 100%;
+    border-radius: var(--el-border-radius-base);
+    overflow: hidden;
+    box-shadow: var(--el-box-shadow-light);
+    transition: all 0.3s ease;
+
+    &:hover {
+      box-shadow: var(--el-box-shadow);
+    }
+  }
+}
+
 :deep(.el-dropdown-menu__item i) {
   margin: 0;
 }
 
-.search-form {
-  :deep(.el-form-item) {
-    margin-bottom: 12px;
+// 页头样式
+:deep(.el-header) {
+  padding: 16px 20px;
+  background-color: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background-image: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-bg-color-page) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.left-panel {
+  flex: 1;
+}
+
+.right-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .right-panel-search {
+    display: flex;
+    gap: 8px;
   }
 }
 
+.search-form {
+  :deep(.el-form-item) {
+    margin-bottom: 0;
+  }
+
+  :deep(.el-input) {
+    transition: all 0.3s ease;
+
+    &:focus-within {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+// 主体区域
+:deep(.el-main.nopadding) {
+  padding: 16px;
+  background-color: var(--el-bg-color-page);
+}
+
+// 表格容器
+:deep(.h-full.flex) {
+  > div {
+    background-color: var(--el-bg-color);
+    border-radius: var(--el-border-radius-base);
+    box-shadow: var(--el-box-shadow-lighter);
+    overflow: hidden;
+  }
+}
+
+// 表格美化
+:deep(.el-table) {
+  .el-table__header {
+    th {
+      background-color: var(--el-fill-color-light) !important;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .el-table__row {
+    transition: all 0.3s;
+
+    &:hover {
+      background-color: var(--el-fill-color-light) !important;
+      transform: translateY(-1px);
+    }
+
+    &:nth-child(even) {
+      background-color: var(--el-fill-color-lighter);
+    }
+  }
+}
+
+// 按钮悬浮效果
+:deep(.el-button) {
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// 标签美化
+:deep(.el-tag) {
+  border-radius: 4px;
+  font-weight: 500;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+// 开关美化
 .h-fit {
   height: fit-content !important;
+}
+
+:deep(.el-switch) {
+  --el-switch-on-color: #13ce66;
+  --el-switch-off-color: #ff4949;
+}
+
+// 操作按钮美化
+.btn-text {
+  transition: all 0.3s;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+}
+
+// 暗色主题适配
+:root[data-theme='dark'] {
+  .overflow-hidden {
+    > .main {
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  :deep(.el-header) {
+    background-color: var(--el-bg-color-overlay);
+    background-image: linear-gradient(135deg, var(--el-bg-color-overlay) 0%, var(--el-bg-color) 100%);
+  }
+
+  :deep(.h-full.flex) {
+    > div {
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  :deep(.el-table) {
+    .el-table__header {
+      th {
+        background-color: var(--el-fill-color) !important;
+      }
+    }
+
+    .el-table__row {
+      &:nth-child(even) {
+        background-color: var(--el-fill-color);
+      }
+    }
+  }
 }
 </style>

@@ -9,7 +9,7 @@ html[data-skin="spring-festival"] .shadow-tab {
   background: linear-gradient(180deg, #fff5f0 0%, #ffffff 100%) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
   position: relative !important;
-  z-index: 1000 !important; /* 高于装饰元素 */
+  z-index: 10 !important; /* 保持在装饰元素之上，但不影响弹层 */
 }
 
 /* 隐藏 Chrome 样式的背景图 */
@@ -37,7 +37,7 @@ html[data-skin="spring-festival"] .modern-item {
   box-shadow: 
     0 2px 8px rgba(220, 20, 60, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-  transition: all 0.3s ease !important;
+  transition: none !important;
   
   /* 金色装饰边 */
   &::before {
@@ -51,7 +51,7 @@ html[data-skin="spring-festival"] .modern-item {
     background: linear-gradient(135deg, #FFD700, transparent, #FFD700);
     z-index: -1;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: none;
   }
 }
 
@@ -73,14 +73,13 @@ html[data-skin="spring-festival"] .chrome-close-btn {
 html[data-skin="spring-festival"] .scroll-item:hover,
 html[data-skin="spring-festival"] .chrome-item:hover,
 html[data-skin="spring-festival"] .modern-item:hover {
-  transform: translateY(-2px) !important;
+  transform: none !important;
   box-shadow: 
-    0 4px 12px rgba(220, 20, 60, 0.4),
-    0 0 20px rgba(255, 215, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+    0 2px 8px rgba(220, 20, 60, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
   
   &::before {
-    opacity: 0.6;
+    opacity: 0;
   }
 }
 
@@ -121,7 +120,7 @@ html[data-skin="spring-festival"] .scroll-item .el-icon-close,
 html[data-skin="spring-festival"] .scroll-item .chrome-close-btn {
   color: currentColor !important;
   opacity: 0.7;
-  transition: opacity 0.2s ease;
+  transition: none;
 }
 
 html[data-skin="spring-festival"] .scroll-item .el-icon-close:hover,
@@ -135,7 +134,7 @@ html[data-skin="spring-festival"] .arrow-right {
   background: rgba(220, 20, 60, 0.1) !important;
   color: #DC143C !important;
   border: 1px solid rgba(220, 20, 60, 0.2) !important;
-  transition: all 0.2s ease;
+  transition: none;
 }
 
 html[data-skin="spring-festival"] .arrow-left:hover,

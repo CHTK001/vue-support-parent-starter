@@ -18,7 +18,7 @@
     "baseUrl": ".",
     "allowJs": true,
     "resolveJsonModule": true,
-    "lib": ["ESNext", "DOM"],
+    "lib": ["ESNext", "DOM", "ES2022"],
     "paths": {
       "@/*": ["src/*"],
       "@build/*": ["build/*"],
