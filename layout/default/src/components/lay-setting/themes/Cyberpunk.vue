@@ -26,8 +26,8 @@ $cyber-border: rgba(0, 255, 255, 0.25);
 $cyber-border-hover: rgba(0, 255, 255, 0.45);
 
 // 赛博朋克主题设置面板样式
-html[data-skin="cyberpunk"] {
-  .cyberpunk-setting {
+// 使用全局选择器覆盖 scoped 样式
+html[data-skin="cyberpunk"] .cyberpunk-setting-wrapper {
     // 容器背景
     .modern-setting-container {
       background: linear-gradient(
@@ -165,7 +165,7 @@ html[data-skin="cyberpunk"] {
     }
 
     // Segmented 组件
-    :deep(.layui-segmented) {
+    .layui-segmented {
       background: rgba(10, 10, 18, 0.8) !important;
       border: 1px solid $cyber-border !important;
       border-radius: 10px !important;
@@ -224,7 +224,7 @@ html[data-skin="cyberpunk"] {
     }
 
     // 开关卡片
-    :deep(.sc-switch-visual-card) {
+    .sc-switch-visual-card {
       background: rgba(10, 10, 18, 0.7) !important;
       border: 1px solid $cyber-border !important;
       
@@ -324,8 +324,8 @@ html[data-skin="cyberpunk"] {
     }
 
     // 输入框
-    :deep(.el-input),
-    :deep(.el-input-number) {
+    .el-input,
+    .el-input-number {
       .el-input__wrapper {
         background: rgba(10, 10, 18, 0.8) !important;
         border: 1px solid $cyber-border !important;
@@ -429,7 +429,7 @@ html[data-skin="cyberpunk"] {
     }
 
     // Radio 组件
-    :deep(.el-radio-group) {
+    .el-radio-group {
       .el-radio {
         color: $cyber-cyan !important;
         
@@ -453,7 +453,7 @@ html[data-skin="cyberpunk"] {
     }
 
     // Tooltip
-    :deep(.el-tooltip__trigger) {
+    .el-tooltip__trigger {
       color: $cyber-cyan !important;
     }
   }
