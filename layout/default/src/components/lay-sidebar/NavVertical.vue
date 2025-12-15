@@ -3,15 +3,16 @@ import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultSidebar from "./themes/Default.vue";
 import SpringFestivalSidebar from "./themes/SpringFestival.vue";
 import CyberpunkSidebar from "./themes/Cyberpunk.vue";
+import MidAutumnSidebar from "./themes/MidAutumn.vue";
 
 // 主题组件映射
 const themeComponents = {
   'default': DefaultSidebar,
   'spring-festival': SpringFestivalSidebar,
   'cyberpunk': CyberpunkSidebar,
+  'mid-autumn': MidAutumnSidebar,
   // 其他主题组件
   // 'christmas': ChristmasSidebar,
-  // 'mid-autumn': MidAutumnSidebar,
   // 'new-year': NewYearSidebar,
   // 'valentines-day': ValentinesDaySidebar,
 };
