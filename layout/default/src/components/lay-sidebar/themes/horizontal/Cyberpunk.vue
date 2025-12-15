@@ -19,7 +19,6 @@ $cyber-border: rgba(0, 255, 255, 0.25);
 
 .cyberpunk-horizontal-wrapper {
   width: 100%;
-  height: 100%;
   position: relative;
   
   :deep(.cyberpunk-horizontal) {
