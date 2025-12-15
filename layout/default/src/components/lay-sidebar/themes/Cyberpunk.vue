@@ -237,80 +237,31 @@ $cyber-shadow: rgba(0, 255, 255, 0.4);
       background: rgba(0, 255, 255, 0.08) !important;
     }
     
-    // 垂直导航展开的子菜单容器
+    // 垂直导航展开的子菜单容器 - 保持默认尺寸，只修改颜色
     .el-sub-menu .el-menu {
       background: rgba(5, 5, 12, 0.6) !important;
-      padding: 4px 0 !important;
-      margin: 2px 0 !important;
-      border-radius: 4px;
-      border-left: 1px solid rgba(0, 255, 255, 0.15);
-      margin-left: 16px !important;
       
-      // 子菜单项 - 与父菜单完全一致的尺寸
+      // 子菜单项 - 只修改颜色样式
       .el-menu-item {
-        margin: 4px 8px !important;
-        padding: 0 20px !important;
-        height: var(--el-menu-item-height, 56px) !important;
-        line-height: var(--el-menu-item-height, 56px) !important;
-        font-size: var(--el-menu-item-font-size, 14px) !important;
-        border-radius: 4px !important;
-        background: rgba(10, 10, 18, 0.6) !important;
-        border: 1px solid rgba(0, 255, 255, 0.2) !important;
         color: $cyber-cyan !important;
-        font-weight: 500;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        position: relative;
-        overflow: hidden;
+        background: transparent !important;
         
         &:hover {
           background: rgba(0, 255, 255, 0.1) !important;
-          border-color: $cyber-cyan !important;
           color: #fff !important;
-          transform: translateX(4px) !important;
-          box-shadow: 
-            0 0 15px rgba(0, 255, 255, 0.3),
-            inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
         }
         
-        // 激活状态 - 与一级菜单统一
         &.is-active {
           background: linear-gradient(135deg, rgba(0, 255, 255, 0.2) 0%, rgba(255, 0, 255, 0.15) 100%) !important;
-          border: 1px solid $cyber-cyan !important;
           color: #fff !important;
-          font-weight: 700;
-          box-shadow: 
-            0 0 20px rgba(0, 255, 255, 0.4),
-            0 0 40px rgba(255, 0, 255, 0.2),
-            inset 0 0 20px rgba(0, 255, 255, 0.1) !important;
           
           .el-icon, svg, span, div {
             color: #fff !important;
-            text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
-          }
-          
-          .el-icon, svg {
-            filter: drop-shadow(0 0 6px $cyber-cyan);
-          }
-          
-          // 左侧霓虹指示条
-          &::after {
-            content: '';
-            position: absolute;
-            left: -1px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 3px;
-            height: 60%;
-            background: linear-gradient(to bottom, $cyber-cyan, $cyber-magenta, $cyber-cyan);
-            border-radius: 2px;
-            box-shadow: 0 0 10px $cyber-cyan, 0 0 20px $cyber-magenta;
-            animation: cyber-indicator-pulse 1.5s ease-in-out infinite;
           }
         }
         
         .el-icon, svg {
           color: $cyber-cyan !important;
-          filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
         }
         
         span, div {
@@ -320,25 +271,12 @@ $cyber-shadow: rgba(0, 255, 255, 0.4);
       
       // 嵌套子菜单标题
       .el-sub-menu__title {
-        margin: 4px 8px !important;
-        padding: 0 20px !important;
-        height: var(--el-menu-item-height, 56px) !important;
-        line-height: var(--el-menu-item-height, 56px) !important;
-        font-size: var(--el-menu-item-font-size, 14px) !important;
-        border-radius: 4px !important;
-        background: rgba(10, 10, 18, 0.6) !important;
-        border: 1px solid rgba(0, 255, 255, 0.2) !important;
         color: $cyber-cyan !important;
-        font-weight: 500;
+        background: transparent !important;
         
         &:hover {
           background: rgba(0, 255, 255, 0.1) !important;
-          border-color: $cyber-cyan !important;
           color: #fff !important;
-          transform: translateX(4px) !important;
-          box-shadow: 
-            0 0 15px rgba(0, 255, 255, 0.3),
-            inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
         }
       }
     }
