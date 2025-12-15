@@ -189,52 +189,29 @@ $cyber-shadow: rgba(0, 255, 255, 0.4);
       }
     }
     
-    // 激活状态
+    // 激活状态 - 与悬停样式一致
     .el-menu-item.is-active {
-      background: linear-gradient(135deg, 
-        rgba(0, 255, 255, 0.2) 0%, 
-        rgba(255, 0, 255, 0.15) 100%
-      ) !important;
+      background: rgba(0, 255, 255, 0.1) !important;
       color: #fff !important;
-      border: 1px solid $cyber-cyan !important;
-      font-weight: 700;
+      border-color: $cyber-cyan !important;
       box-shadow: 
-        0 0 20px rgba(0, 255, 255, 0.4),
-        0 0 40px rgba(255, 0, 255, 0.2),
-        inset 0 0 20px rgba(0, 255, 255, 0.1);
+        0 0 15px rgba(0, 255, 255, 0.3),
+        inset 0 0 15px rgba(0, 255, 255, 0.1);
       
       .el-icon, svg, span, div {
         color: #fff !important;
-        text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
       }
       
       .el-icon, svg {
-        filter: drop-shadow(0 0 6px $cyber-cyan);
-      }
-      
-      // 左侧霓虹指示条
-      &::after {
-        content: '';
-        position: absolute;
-        left: -1px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 3px;
-        height: 60%;
-        background: linear-gradient(to bottom, $cyber-cyan, $cyber-magenta, $cyber-cyan);
-        border-radius: 2px;
-        box-shadow: 0 0 10px $cyber-cyan, 0 0 20px $cyber-magenta;
-        animation: cyber-indicator-pulse 1.5s ease-in-out infinite;
+        filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
       }
     }
     
     // 子菜单样式
     .el-sub-menu.is-active > .el-sub-menu__title {
       color: #fff !important;
-      font-weight: 700;
-      text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
-      border-color: rgba(0, 255, 255, 0.4) !important;
-      background: rgba(0, 255, 255, 0.08) !important;
+      border-color: $cyber-cyan !important;
+      background: rgba(0, 255, 255, 0.1) !important;
     }
     
     // 垂直导航展开的子菜单容器 - 保持默认尺寸，只修改颜色
@@ -252,7 +229,7 @@ $cyber-shadow: rgba(0, 255, 255, 0.4);
         }
         
         &.is-active {
-          background: linear-gradient(135deg, rgba(0, 255, 255, 0.2) 0%, rgba(255, 0, 255, 0.15) 100%) !important;
+          background: rgba(0, 255, 255, 0.1) !important;
           color: #fff !important;
           
           .el-icon, svg, span, div {
