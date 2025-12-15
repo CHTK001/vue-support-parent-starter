@@ -1,70 +1,130 @@
 <script setup lang="ts">
-import { ref, onBeforeUnmount, watch, computed } from "vue";
-import { useGlobal } from "@pureadmin/utils";
+import { useI18n } from "vue-i18n";
 import { emitter } from "@repo/core";
-import DefaultPanel from "./themes/Default.vue";
-import SpringFestivalPanel from "./themes/SpringFestival.vue";
-import CyberpunkPanel from "./themes/Cyberpunk.vue";
+import { onClickOutside } from "@vueuse/core";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { useDataThemeChange } from "../../hooks/useDataThemeChange";
+import CloseIcon from "@iconify-icons/ep/close";
 
-const { $storage } = useGlobal<any>();
+const target = ref(null);
+const show = ref<Boolean>(false);
 
-// 使用 computed 来响应式读取 storage 中的主题值
-const storageTheme = computed(() => $storage?.configure?.systemTheme || 'default');
-const currentTheme = ref<string>(storageTheme.value);
+const iconClass = computed(() => {
+  return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
+});
 
-console.log('🚀 lay-panel 初始主题:', currentTheme.value);
+const { t } = useI18n();
+const { onReset } = useDataThemeChange();
 
-const handleThemeChange = (themeKey: string) => {
-  console.log('🎨 lay-panel 收到主题变化:', themeKey);
-  currentTheme.value = themeKey;
-};
-
-// 监听 emitter 事件
-emitter.on("systemThemeChange", handleThemeChange);
-
-// 同时监听 storage 变化作为备用机制
-watch(storageTheme, (newTheme) => {
-  if (newTheme && newTheme !== currentTheme.value) {
-    console.log('🔄 lay-panel 检测到 storage 主题变化:', newTheme);
-    currentTheme.value = newTheme;
-  }
-}, { immediate: false });
-
-// 监听 data-skin 属性变化作为最终保障
-const observer = new MutationObserver((mutations) => {
-  mutations.forEach((mutation) => {
-    if (mutation.type === 'attributes' && mutation.attributeName === 'data-skin') {
-      const newTheme = document.documentElement.getAttribute('data-skin') || 'default';
-      if (newTheme !== currentTheme.value) {
-        console.log('🔄 lay-panel 检测到 data-skin 属性变化:', newTheme);
-        currentTheme.value = newTheme;
-      }
-    }
+onClickOutside(target, (event: any) => {
+  if (event.clientX > target.value.offsetLeft) return;
+  show.value = false;
+  // 发射面板关闭事件
+  emitter.emit("settingPanelClosed");
+});
+onMounted(() => {
+  emitter.on("openPanel", () => {
+    show.value = true;
   });
 });
 
-observer.observe(document.documentElement, {
-  attributes: true,
-  attributeFilter: ['data-skin']
-});
-
 onBeforeUnmount(() => {
-  emitter.off("systemThemeChange", handleThemeChange);
-  observer.disconnect();
+  // 解绑`openPanel`公共事件，防止多次触发
+  emitter.off("openPanel");
 });
 </script>
 
 <template>
-  <DefaultPanel v-if="currentTheme === 'default'">
-    <slot />
-  </DefaultPanel>
-  <SpringFestivalPanel v-else-if="currentTheme === 'spring-festival'">
-    <slot />
-  </SpringFestivalPanel>
-  <CyberpunkPanel v-else-if="currentTheme === 'cyberpunk'">
-    <slot />
-  </CyberpunkPanel>
-  <DefaultPanel v-else>
-    <slot />
-  </DefaultPanel>
+  <div :class="{ show }">
+    <div class="right-panel-background" />
+    <div ref="target" class="right-panel bg-bg_color">
+      <div class="project-configuration border-b-[1px] border-solid border-[var(--pure-border-color)]">
+        <h4 class="dark:text-white">
+          {{ t("panel.pureSystemSet") }}
+        </h4>
+        <span
+          v-tippy="{
+            content: t('panel.pureCloseSystemSet'),
+            placement: 'bottom-start',
+            zIndex: 41000,
+          }"
+          :class="iconClass"
+        >
+          <IconifyIconOffline class="dark:text-white" width="18px" height="18px" :icon="CloseIcon" @click="() => { show = !show; emitter.emit('settingPanelClosed'); }" />
+        </span>
+      </div>
+      <el-scrollbar>
+        <slot />
+      </el-scrollbar>
+
+      <div class="flex justify-end p-3 border-t-[1px] border-solid border-[var(--pure-border-color)]">
+        <el-button
+          v-tippy="{
+            content: t('panel.pureClearCacheAndToLogin'),
+            placement: 'left-start',
+            zIndex: 41000,
+          }"
+          type="danger"
+          text
+          bg
+          @click="onReset"
+        >
+          {{ t("panel.pureClearCache") }}
+        </el-button>
+      </div>
+    </div>
+  </div>
 </template>
+
+<style lang="scss" scoped>
+:deep(.el-scrollbar) {
+  height: calc(100vh - 110px);
+}
+
+.right-panel-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  background: rgb(0 0 0 / 20%);
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
+}
+
+.right-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 40000;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 0 15px 0 rgb(0 0 0 / 5%);
+  transition: all 0.25s cubic-bezier(0.7, 0.3, 0.1, 1);
+  transform: translate(100%);
+}
+
+.show {
+  transition: all 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
+
+  .right-panel-background {
+    z-index: 20000;
+    width: 100%;
+    height: 100%;
+    opacity: 1;
+  }
+
+  .right-panel {
+    transform: translate(0);
+  }
+}
+
+.project-configuration {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+}
+.bg-bg_color {
+  background-color: var(--el-bg-color) !important;
+}
+</style>
