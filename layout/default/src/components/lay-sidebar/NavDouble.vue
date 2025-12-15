@@ -468,129 +468,147 @@ const defer = useDefer(firstLevelMenus.value.length);
 // ==================== 春节主题样式 ====================
 html[data-skin="spring-festival"] {
   $spring-red: #dc143c;
-  $spring-red-dark: #b22222;
+  $spring-red-dark: #8b0000;
   $spring-gold: #ffd700;
-  $spring-gold-light: #ffa500;
-  $spring-border: rgba(255, 215, 0, 0.5);
+  $spring-gold-light: #ffe066;
+  $spring-border: rgba(255, 215, 0, 0.4);
 
   // 双栏导航容器
   .double-nav-container {
-    // 左栏
+    // 左栏 - 深红色背景
     .double-nav-left {
-      background: linear-gradient(135deg, rgba(220, 20, 60, 0.98), rgba(178, 34, 34, 0.98)) !important;
-      border-right: 3px solid $spring-border !important;
+      background: linear-gradient(180deg, #8b0000 0%, #6b0000 100%) !important;
+      border-right: 2px solid $spring-border !important;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3) !important;
 
       // Logo区域
       .sidebar-logo-container {
-        background: linear-gradient(135deg, rgba(139, 0, 0, 0.9), rgba(178, 34, 34, 0.9)) !important;
-        border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
+        background: linear-gradient(180deg, rgba(139, 0, 0, 0.95), rgba(100, 0, 0, 0.95)) !important;
+        border-bottom: 1px solid $spring-border !important;
 
         .sidebar-title {
           color: $spring-gold !important;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
       }
 
-      // 一级菜单
+      // 一级菜单 - 简洁图标样式
       .first-level-menu {
         .el-menu-item {
-          color: $spring-gold !important;
+          color: rgba(255, 215, 0, 0.85) !important;
+          background: transparent !important;
+          border-radius: 8px !important;
+          margin: 4px 6px !important;
+          transition: all 0.25s ease;
 
           .menu-icon-only {
             svg,
             i {
-              color: $spring-gold !important;
+              color: rgba(255, 215, 0, 0.85) !important;
+              font-size: 20px;
             }
           }
 
           &:hover {
-            background: linear-gradient(135deg, rgba(220, 20, 60, 0.9), rgba(178, 34, 34, 0.9)) !important;
-            color: #fff !important;
+            background: rgba(255, 215, 0, 0.15) !important;
+            color: $spring-gold !important;
 
             .menu-icon-only svg,
             .menu-icon-only i {
-              color: #fff !important;
+              color: $spring-gold !important;
             }
           }
 
           &.is-active {
-            background: linear-gradient(135deg, $spring-gold, $spring-gold-light) !important;
-            color: #8b0000 !important;
-            border: 2px solid $spring-red !important;
-            font-weight: 700;
-            box-shadow:
-              0 4px 16px rgba(255, 215, 0, 0.5),
-              0 0 20px rgba(255, 215, 0, 0.3) !important;
+            background: linear-gradient(135deg, $spring-gold, #ffc107) !important;
+            color: $spring-red-dark !important;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4) !important;
 
             .menu-icon-only svg,
             .menu-icon-only i {
-              color: #8b0000 !important;
+              color: $spring-red-dark !important;
             }
           }
         }
       }
     }
 
-    // 右栏
+    // 右栏 - 渐变红色背景
     .double-nav-right {
-      background: linear-gradient(135deg, rgba(178, 34, 34, 0.95), rgba(139, 0, 0, 0.95)) !important;
+      background: linear-gradient(180deg, #a01010 0%, #800000 100%) !important;
+      border-left: 1px solid rgba(255, 215, 0, 0.2) !important;
 
       // 子菜单列表
       .sub-menu-list {
+        .el-menu {
+          background: transparent !important;
+        }
+
         .el-menu-item {
-          color: $spring-gold !important;
-          background: linear-gradient(135deg, rgba(139, 0, 0, 0.7), rgba(178, 34, 34, 0.7)) !important;
-          border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
-          border-radius: 8px !important;
-          margin: 4px 8px !important;
+          color: rgba(255, 255, 255, 0.9) !important;
+          background: rgba(0, 0, 0, 0.15) !important;
+          border: none !important;
+          border-left: 3px solid transparent !important;
+          border-radius: 0 6px 6px 0 !important;
+          margin: 2px 8px 2px 0 !important;
+          padding-left: 16px !important;
+          transition: all 0.25s ease;
 
           .el-icon,
           svg {
-            color: $spring-gold !important;
+            color: rgba(255, 215, 0, 0.7) !important;
           }
 
           &:hover {
-            background: linear-gradient(135deg, rgba(220, 20, 60, 0.9), rgba(178, 34, 34, 0.9)) !important;
-            border-color: rgba(255, 215, 0, 0.6) !important;
+            background: rgba(255, 215, 0, 0.1) !important;
+            border-left-color: rgba(255, 215, 0, 0.5) !important;
             color: #fff !important;
-          }
-
-          &.is-active {
-            background: linear-gradient(135deg, $spring-gold, $spring-gold-light) !important;
-            border: 2px solid $spring-red !important;
-            color: #8b0000 !important;
-            font-weight: 700;
-            box-shadow:
-              0 4px 16px rgba(255, 215, 0, 0.5),
-              0 0 20px rgba(255, 215, 0, 0.3) !important;
 
             .el-icon,
             svg {
-              color: #8b0000 !important;
+              color: $spring-gold !important;
+            }
+          }
+
+          &.is-active {
+            background: rgba(255, 215, 0, 0.2) !important;
+            border-left: 3px solid $spring-gold !important;
+            color: $spring-gold !important;
+            font-weight: 600;
+
+            .el-icon,
+            svg {
+              color: $spring-gold !important;
             }
           }
         }
 
         .el-sub-menu__title {
-          color: $spring-gold !important;
-          background: linear-gradient(135deg, rgba(139, 0, 0, 0.5), rgba(178, 34, 34, 0.5)) !important;
-          border-radius: 8px !important;
+          color: rgba(255, 215, 0, 0.9) !important;
+          background: transparent !important;
+          border-radius: 6px !important;
           margin: 4px 8px !important;
+          font-weight: 500;
+
+          .el-icon,
+          svg {
+            color: rgba(255, 215, 0, 0.8) !important;
+          }
+
+          &:hover {
+            background: rgba(255, 215, 0, 0.1) !important;
+            color: $spring-gold !important;
+          }
+        }
+
+        .el-sub-menu.is-active > .el-sub-menu__title {
+          color: $spring-gold !important;
+          font-weight: 600;
 
           .el-icon,
           svg {
             color: $spring-gold !important;
           }
-
-          &:hover {
-            background: linear-gradient(135deg, rgba(220, 20, 60, 0.7), rgba(178, 34, 34, 0.7)) !important;
-            color: #fff !important;
-          }
-        }
-
-        .el-sub-menu.is-active > .el-sub-menu__title {
-          color: #fff !important;
-          font-weight: 700;
         }
       }
     }
@@ -598,18 +616,18 @@ html[data-skin="spring-festival"] {
     // 折叠按钮
     .double-nav-collapse {
       .left-collapse {
-        background: linear-gradient(135deg, rgba(139, 0, 0, 0.95), rgba(178, 34, 34, 0.95)) !important;
-        border-top: 2px solid $spring-border !important;
+        background: linear-gradient(180deg, #6b0000, #500000) !important;
+        border-top: 1px solid $spring-border !important;
 
         svg {
-          color: $spring-gold !important;
+          color: rgba(255, 215, 0, 0.8) !important;
         }
 
         &:hover {
-          background: linear-gradient(135deg, rgba(220, 20, 60, 0.95), rgba(178, 34, 34, 0.95)) !important;
+          background: rgba(255, 215, 0, 0.15) !important;
 
           svg {
-            color: #fff !important;
+            color: $spring-gold !important;
           }
         }
       }
