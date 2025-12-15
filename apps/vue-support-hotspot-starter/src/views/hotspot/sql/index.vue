@@ -89,7 +89,7 @@ let unsubscribe = null;
 
 // 处理 WebSocket 消息
 const handleWsMessage = message => {
-  if (message.event === "AGENT_SQL") {
+  if (message.event === "SQL_RECORD") {
     try {
       const sqlData = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
       dataList.push({ data: sqlData });
@@ -140,7 +140,7 @@ const filter = row => {
 
 onMounted(() => {
   // 订阅 SQL 消息
-  unsubscribe = wsService.subscribe("SQL", "AGENT_SQL", handleWsMessage);
+  unsubscribe = wsService.subscribe("SQL", "SQL_RECORD", handleWsMessage);
 });
 
 onUnmounted(() => {

@@ -8,8 +8,7 @@ import { http } from "@repo/utils";
 import { Graph } from "@antv/g6";
 import { Md5 } from "ts-md5";
 
-import { Circle } from "@antv/g6";
-import { CubicHorizontal, ExtensionCategory, register, subStyleProps } from "@antv/g6";
+import { CubicHorizontal, ExtensionCategory, register } from "@antv/g6";
 import { onMounted, onUnmounted, ref } from "vue";
 
 import { wsService } from "@/utils/websocket";
@@ -40,16 +39,16 @@ onUnmounted(() => {
   }
 });
 
+// 带流动虚线动画的边
 class FlyMarkerCubic extends CubicHorizontal {
-  getMarkerStyle(attributes) {
-    return { r: 1, fill: "#c3d5f9", offsetPath: this.shapeMap.key, ...subStyleProps(attributes, "marker") };
-  }
-
   onCreate() {
-    const marker = this.upsert("marker", Circle, this.getMarkerStyle(this.attributes), this);
-    marker.animate([{ offsetDistance: 0 }, { offsetDistance: 1 }], {
-      duration: 3000,
-      iterations: Infinity
+    const shape = this.shapeMap.key;
+    if (!shape) return;
+    // 使用 lineDashOffset 动画实现流动效果
+    shape.animate([{ lineDashOffset: 0 }, { lineDashOffset: -20 }], {
+      duration: 500,
+      iterations: Infinity,
+      easing: "linear"
     });
   }
 }
@@ -78,7 +77,11 @@ const initialContainer = () => {
     edge: {
       type: "fly-marker-cubic",
       style: {
-        lineDash: [10, 10]
+        lineWidth: 1,
+        lineDash: [5, 5],
+        endArrow: true,
+        endArrowSize: 4,
+        endArrowFill: "#1890ff"
       }
     },
     node: {
@@ -246,13 +249,14 @@ const refresh = async data => {
         count: data.count
       });
   }
-  edges = [
-    ...graph.value.getEdgeData(),
-    {
+  edges = [...graph.value.getEdgeData()];
+  // 过滤自己与自己关联的数据
+  if (sourceNodeId !== targetNodeId) {
+    edges.push({
       source: sourceNodeId,
       target: targetNodeId
-    }
-  ];
+    });
+  }
 
   graph.value.setData({
     nodes,

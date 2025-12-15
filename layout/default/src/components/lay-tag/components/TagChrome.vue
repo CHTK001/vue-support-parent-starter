@@ -84,21 +84,21 @@
   // 激活状态的Chrome标签页
   &.is-active {
     .tag-title {
-      color: var(--cb-color-text-white) !important;
+      color: #fff !important;
     }
     
     .chrome-tab__bg {
-      color: var(--cb-color-bg-brand) !important;
+      color: var(--el-color-primary) !important;
     }
     
     // 激活状态悬停时不改变背景色
     &:hover {
       .chrome-tab__bg {
-        color: var(--cb-color-bg-brand) !important;
+        color: var(--el-color-primary) !important;
       }
       
       .tag-title {
-        color: var(--cb-color-text-white) !important;
+        color: #fff !important;
       }
     }
   }

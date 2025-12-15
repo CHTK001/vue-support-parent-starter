@@ -11,12 +11,34 @@ import {
   onMounted,
   onBeforeUnmount,
   ref,
+  Transition,
 } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useTags } from "../../hooks/useTag";
 import LayFooter from "../lay-footer/index.vue";
 import LayFrame from "../lay-frame/index.vue";
+
+// 离开确认功能
+let beforeUnloadHandler: ((e: BeforeUnloadEvent) => string) | null = null;
+
+const enableConfirmOnLeave = () => {
+  if (!beforeUnloadHandler) {
+    beforeUnloadHandler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+    window.addEventListener("beforeunload", beforeUnloadHandler);
+  }
+};
+
+const disableConfirmOnLeave = () => {
+  if (beforeUnloadHandler) {
+    window.removeEventListener("beforeunload", beforeUnloadHandler);
+    beforeUnloadHandler = null;
+  }
+};
 
 const props = defineProps({
   fixedHeader: Boolean,
@@ -61,14 +83,41 @@ const layoutBlur = computed(() => {
 
 const hideFooter = ref($storage?.configure.hideFooter ?? false);
 
+// 菜单过渡动画配置
+const menuTransition = ref($storage?.configure?.menuTransition ?? false);
+
+// 监听菜单过渡动画变更
+emitter.on("menuTransitionChange", (value: boolean) => {
+  menuTransition.value = value;
+});
+
 // 监听页脚显示/隐藏事件
 emitter.on("hideFooterChange", (value: boolean) => {
   hideFooter.value = value;
 });
 
+// 离开确认功能 - 从存储中读取初始值
+const confirmOnLeave = ref($storage?.configure?.confirmOnLeave ?? false);
+if (confirmOnLeave.value) {
+  enableConfirmOnLeave();
+}
+
+// 监听离开确认设置变化
+emitter.on("confirmOnLeaveChange", (value: boolean) => {
+  confirmOnLeave.value = value;
+  if (value) {
+    enableConfirmOnLeave();
+  } else {
+    disableConfirmOnLeave();
+  }
+});
+
 onBeforeUnmount(() => {
   emitter.off("hideFooterChange");
   emitter.off("keepAliveChange");
+  emitter.off("menuTransitionChange");
+  emitter.off("confirmOnLeaveChange");
+  disableConfirmOnLeave();
 });
 
 const stretch = computed(() => {
@@ -122,7 +171,7 @@ onMounted(() => {
   });
 });
 
-// 禁用过渡动画，直接渲染内容
+// 根据配置启用过渡动画
 const transitionMain = defineComponent({
   props: {
     route: {
@@ -130,9 +179,36 @@ const transitionMain = defineComponent({
       required: true,
     },
   },
-  render() {
-    // 直接返回内容，不使用 Transition 组件
-    return this.$slots.default?.();
+  setup(props, { slots }) {
+    // 获取过渡动画名称
+    const getTransitionName = computed(() => {
+      if (!menuTransition.value) return undefined;
+      // 支持路由级别的自定义过渡动画
+      const routeTransition = props.route?.meta?.transition;
+      if (routeTransition) return routeTransition;
+      // 默认使用 fade-slide 过渡
+      return "fade-slide";
+    });
+
+    return () => {
+      const content = slots.default?.();
+      
+      // 如果未启用过渡动画，直接返回内容
+      if (!menuTransition.value) {
+        return content;
+      }
+      
+      // 启用过渡动画
+      return h(
+        Transition,
+        {
+          name: getTransitionName.value,
+          mode: "out-in",
+          appear: true,
+        },
+        () => content
+      );
+    };
   },
 });
 
@@ -337,7 +413,7 @@ const router = useRouter();
   width: 100%;
   height: 100%;
   overflow-x: hidden;
-  z-index: 1; // 降低层级，让标签栏装饰可见
+  z-index: 0; // 系统框架层级统一为 0，避免与弹层冲突
   background: var(--el-bg-color-page);
   transition: background-color 0.2s ease;
 
@@ -362,7 +438,7 @@ const router = useRouter();
 .main-content {
   height: 100%;
   position: relative;
-  z-index: 1; // 降低内容区层级
+  z-index: 0; // 系统框架层级统一为 0
   background: transparent;
   transition: opacity 0.2s ease;
 }

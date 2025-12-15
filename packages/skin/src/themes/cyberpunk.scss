@@ -1,17 +1,430 @@
 /**
- * 赛博朋克内测主题样式
+ * 赛博朋克主题（深度定制）
+ * 参考 spring-festival.scss 的覆盖范围，提供 Header / Navbar / Sidebar / Tags / 多布局 /
+ * 语言选择与个人信息下拉菜单 等整体风格。
  */
 
-// 使用 data-skin 属性选择器
+// 使用 data-skin 作为主题入口（不依赖 class）
 html[data-skin="cyberpunk"] {
-  // Header 容器样式
-  .header-container-with-decoration {
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+  // 基础色板（仅本文件内使用变量）
+  $cyan: #00ffff;
+  $magenta: #ff00ff;
+  $purple: #7c4dff;
+  $blueDark: #0b1020; // 背景深色
+  $blueDarker: #070b17;
+  $glassBg: rgba(10, 14, 25, 0.7);
+  $glassBorder: rgba(0, 255, 255, 0.25);
+  $glassBorderHover: rgba(0, 255, 255, 0.45);
+  $shadowCyan: 0 8px 24px rgba(0, 255, 255, 0.18);
 
-    &.shadow-tab {
-      box-shadow: 0 2px 20px rgba(0, 255, 255, 0.2);
+  // 全局背景微调（仅容器型）
+  .header-container-with-decoration,
+  div.header-container-with-decoration {
+    position: relative;
+    background: linear-gradient(135deg, rgba(5, 8, 18, 0.95), rgba(12, 20, 40, 0.95));
+    border-bottom: 1px solid rgba(0, 255, 255, 0.25);
+    backdrop-filter: blur(18px);
+
+    // 顶部霓虹条
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, $cyan 20%, $magenta 50%, $cyan 80%, transparent);
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+      animation: cyber-neon-pulse 2s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    &.shadow-tab { box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25), 0 2px 18px rgba(0, 255, 255, 0.18); }
+  }
+
+  // Navbar 区域（通用覆盖，配合组件内样式）
+  .base-navbar,
+  .cyberpunk-navbar,
+  div.base-navbar {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(20, 24, 44, 0.95)) !important;
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.25);
+
+    .vertical-header-right {
+      :deep(.tool-item) {
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid $glassBorder;
+        color: $cyan;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(0, 255, 255, 0.18);
+        transition: all .25s ease;
+
+        &:hover {
+          background: rgba(0, 0, 0, 0.7);
+          border-color: $glassBorderHover;
+          color: $cyan;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), 0 0 18px rgba(0, 255, 255, 0.28);
+          transform: translateY(-2px);
+
+          svg { color: $cyan; text-shadow: 0 0 8px rgba(0, 255, 255, .6); }
+        }
+
+        svg { color: $cyan; }
+      }
+
+      // 关键按钮给更强视觉
+      #header-search, :deep(#header-search),
+      #full-screen, :deep(#full-screen) {
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.08), rgba(255, 0, 255, 0.08));
+        border: 1px solid $glassBorder;
+        color: $cyan !important;
+
+        &:hover {
+          background: linear-gradient(135deg, rgba(0, 255, 255, 0.16), rgba(255, 0, 255, 0.16));
+          border-color: $glassBorderHover;
+        }
+      }
+    }
+
+    // 面包屑（与组件内样式互补）
+    .breadcrumb-container {
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid $glassBorder;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, .3), 0 0 12px rgba(0, 255, 255, .15);
+
+      :deep(.el-breadcrumb__inner) { color: $cyan; font-weight: 500; }
+      :deep(.el-breadcrumb__separator) { color: rgba(0, 255, 255, .45); }
+    }
+  }
+
+  // Sidebar
+  .sidebar-container-with-decoration,
+  .sidebar-container,
+  .cyberpunk-sidebar {
+    position: relative;
+    background: linear-gradient(160deg, $blueDarker, $blueDark) !important;
+    border-right: 2px solid rgba(0, 255, 255, 0.22) !important;
+    box-shadow: inset -1px 0 0 rgba(0, 255, 255, 0.12);
+
+    // 右缘扫描线
+    &::before {
+      content: '';
+      position: absolute; top: 0; right: 0; width: 2px; height: 100%;
+      background: linear-gradient(180deg, transparent, rgba(0, 255, 255, 0.35), transparent);
+      animation: cyber-scan-vert 3s linear infinite;
+      pointer-events: none;
+    }
+
+    // 菜单样式
+    :deep(.el-menu) { background: transparent !important; border-right: none; }
+
+    :deep(.el-menu-item),
+    :deep(.el-sub-menu__title) {
+      margin: 4px 8px; border-radius: 8px; position: relative;
+      color: rgba(255, 255, 255, 0.85) !important;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)) !important;
+      border: 1px solid rgba(0, 255, 255, 0.12);
+      transition: all .25s ease;
+
+      // 顶部细高光
+      &::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(0,255,255,.25), transparent); }
+
+      &:hover {
+        border-color: rgba(0, 255, 255, 0.35) !important;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25), 0 0 12px rgba(0, 255, 255, 0.18);
+        transform: translateX(4px) scale(1.01);
+      }
+
+      .el-icon, svg { color: $cyan !important; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+      span, div { color: inherit !important; }
+
+      &.is-active {
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.18), rgba(255, 0, 255, 0.12)) !important;
+        color: #fff !important; border: 1px solid rgba(0, 255, 255, 0.5) !important;
+        box-shadow: 0 4px 16px rgba(0, 255, 255, 0.25), inset 0 0 0 1px rgba(255, 0, 255, 0.15);
+
+        // 左侧霓虹条
+        &::after {
+          content: '';
+          position: absolute; left: -2px; top: 50%; transform: translateY(-50%);
+          width: 4px; height: 70%; border-radius: 2px;
+          background: linear-gradient(180deg, $cyan, $magenta);
+          box-shadow: 0 0 10px rgba(0, 255, 255, 0.7), 0 0 12px rgba(255, 0, 255, 0.45);
+        }
+
+        .el-icon, svg, span, div { color: #fff !important; }
+      }
+    }
+
+  // 展开子菜单的内层菜单样式
+    :deep(.el-sub-menu .el-menu) { background: rgba(0, 0, 0, 0.12) !important; }
+
+    // 滚动条
+    :deep(.el-scrollbar__bar) { background: rgba(0, 255, 255, 0.25); }
+  }
+
+  // ==================== 子菜单弹出层（teleported 到 body） ====================
+  .pure-scrollbar,
+  .el-menu--popup,
+  .el-menu--popup-container {
+    // 弹出层容器背景
+    &.el-menu {
+      background: rgba(10, 14, 25, 0.96) !important;
+      border: 1px solid rgba(0, 255, 255, 0.3) !important;
+      border-radius: 8px !important;
+      box-shadow:
+        0 0 30px rgba(0, 255, 255, 0.2),
+        0 0 60px rgba(255, 0, 255, 0.1),
+        0 15px 50px rgba(0, 0, 0, 0.5) !important;
+      backdrop-filter: blur(16px);
+      overflow: hidden;
+      padding: 6px !important;
+      position: relative;
+
+      // 扫描线效果
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 255, 255, 0.015) 2px,
+          rgba(0, 255, 255, 0.015) 4px
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      // 顶部霓虹边线
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, $cyan 20%, $magenta 50%, $cyan 80%, transparent);
+        z-index: 1;
+      }
+    }
+
+    // 子菜单项样式
+    .el-menu-item,
+    .el-sub-menu__title {
+      margin: 4px 2px !important;
+      border-radius: 6px !important;
+      position: relative;
+      z-index: 1;
+      color: $cyan !important;
+      background: rgba(10, 10, 18, 0.5) !important;
+      border: 1px solid rgba(0, 255, 255, 0.15) !important;
+      transition: all 0.25s ease !important;
+      padding: 0 16px !important;
+      height: 42px !important;
+      line-height: 42px !important;
+
+      // 顶部高光
+      &::before {
+        content: '';
+        position: absolute;
+        left: 10%;
+        right: 10%;
+        top: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+        opacity: 0;
+        transition: opacity 0.25s ease;
+      }
+
+      &:hover {
+        background: rgba(0, 255, 255, 0.12) !important;
+        border-color: $cyan !important;
+        color: #fff !important;
+        box-shadow:
+          0 0 15px rgba(0, 255, 255, 0.25),
+          inset 0 0 15px rgba(0, 255, 255, 0.05) !important;
+        transform: translateX(4px) !important;
+
+        &::before {
+          opacity: 1;
+        }
+      }
+
+      // 图标样式
+      .el-icon, svg {
+        color: $cyan !important;
+        filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+        margin-right: 8px;
+      }
+
+      span {
+        color: inherit !important;
+        font-family: 'Rajdhani', 'Roboto', sans-serif;
+        letter-spacing: 0.5px;
+      }
+
+      // 激活状态
+      &.is-active {
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.2) 0%, rgba(255, 0, 255, 0.12) 100%) !important;
+        color: #fff !important;
+        border: 1px solid $cyan !important;
+        font-weight: 600;
+        box-shadow:
+          0 0 20px rgba(0, 255, 255, 0.35),
+          0 0 40px rgba(255, 0, 255, 0.15),
+          inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
+
+        .el-icon, svg {
+          filter: drop-shadow(0 0 6px $cyan);
+        }
+
+        // 左侧霓虹指示条
+        &::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 3px;
+          height: 50%;
+          background: linear-gradient(to bottom, $cyan, $magenta, $cyan);
+          border-radius: 2px;
+          box-shadow: 0 0 8px $cyan, 0 0 15px $magenta;
+        }
+      }
+    }
+
+    // 子菜单展开箭头
+    .el-sub-menu__icon-arrow {
+      color: $cyan !important;
+      filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+    }
+
+    // 嵌套子菜单
+    .el-menu--inline {
+      background: rgba(5, 5, 12, 0.6) !important;
+      border-radius: 6px;
+      margin: 4px 0;
+      padding: 4px !important;
+      border: 1px solid rgba(0, 255, 255, 0.1);
+
+      .el-menu-item {
+        padding-left: 40px !important;
+      }
+    }
+  }
+
+  // Tags 区域
+  .tags-view {
+    background: linear-gradient(135deg, rgba(10, 14, 25, 0.95), rgba(15, 20, 35, 0.95)) !important;
+    border-top: 1px solid rgba(0, 255, 255, 0.25) !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, .25);
+
+    .arrow-left, .arrow-right, .arrow-down {
+      background: rgba(0, 0, 0, 0.6) !important; color: $cyan !important;
+      border: 1px solid $glassBorder !important; width: 30px !important; height: 30px !important;
+      display: flex !important; align-items: center !important; justify-content: center !important;
+      border-radius: 50% !important; transition: all .25s ease !important;
+      svg { color: $cyan !important; }
+      &:hover { border-color: $glassBorderHover !important; transform: scale(1.08) !important; box-shadow: $shadowCyan; }
+    }
+
+    .scroll-item, .chrome-item, .modern-item {
+      background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1)) !important;
+      color: rgba(255, 255, 255, 0.85) !important; border: 1px solid rgba(0, 255, 255, 0.2) !important;
+      margin: 0 4px !important; transition: all .25s ease !important;
+      &:hover { border-color: $glassBorderHover !important; transform: translateY(-2px) !important; }
+      &.active { background: linear-gradient(135deg, rgba(0,255,255,.18), rgba(255,0,255,.12)) !important; color: #fff !important; }
+      .tag-icon, .tag-title { color: inherit !important; }
+      .el-icon-close { color: $cyan !important; &:hover { color: #fff !important; background: rgba(0,255,255,.2) !important; border-radius: 50% !important; } }
+    }
+  }
+
+  // 水平导航（Horizontal）
+  .horizontal-header, .horizontal-with-decoration {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(20, 24, 44, 0.95)) !important;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.25) !important;
+    position: relative;
+    &::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, $cyan, $magenta, transparent); box-shadow: 0 0 10px rgba(0,255,255,.6); animation: cyber-neon-pulse 2.2s ease-in-out infinite; }
+
+    .horizontal-header-left { color: $cyan !important; font-weight: 700; text-shadow: 0 0 8px rgba(0,255,255,.3); }
+
+    .horizontal-header-menu {
+      :deep(.el-menu-item), :deep(.el-sub-menu__title) {
+        color: rgba(255,255,255,.85) !important; background: transparent !important; border-bottom: 2px solid transparent !important;
+        &:hover { color: #fff !important; background: rgba(0,255,255,.08) !important; border-bottom-color: rgba(0,255,255,.4) !important; }
+        &.is-active { color: #fff !important; background: rgba(0,255,255,.12) !important; border-bottom-color: $cyan !important; font-weight: 700; }
+        svg { color: $cyan !important; }
+      }
+    }
+
+    .horizontal-header-right { :deep(.tool-item) { background: rgba(0,0,0,.55); border: 1px solid $glassBorder; color: $cyan; &:hover { border-color: $glassBorderHover; box-shadow: $shadowCyan; } } }
+  }
+
+  // 移动端底部导航
+  .mobile-nav-layout {
+    .mobile-bottom-nav {
+      background: linear-gradient(135deg, rgba(0,0,0,.9), rgba(16, 18, 35, .95)) !important;
+      border-top: 1px solid rgba(0,255,255,.25) !important;
+      .nav-item { color: $cyan !important; &:hover { background: rgba(0,255,255,.08) !important; color: #fff !important; } &.is-active { color: #fff !important; background: rgba(0,255,255,.12) !important; font-weight: 700; } .nav-icon { color: $cyan !important; } }
+    }
+
+    :deep(.el-drawer) {
+      background: linear-gradient(135deg, rgba(0,0,0,.95), rgba(16, 18, 35, .95)) !important;
+      .el-drawer__header { color: $cyan !important; border-bottom: 1px solid rgba(0,255,255,.25) !important; }
+      .el-menu { background: transparent !important; .el-menu-item { color: rgba(255,255,255,.85) !important; &:hover { background: rgba(0,255,255,.08) !important; color: #fff !important; } &.is-active { background: rgba(0,255,255,.12) !important; color: #fff !important; border-right: 3px solid $cyan; } } }
+    }
+  }
+
+  // 语言选择（Lang）和个人信息（User）下拉：赛博朋克主题专属覆盖
+  // 这些 popper 节点通常挂在 body 上，因此必须使用全局选择器并以 html[data-skin] 作为父选择器
+  .lang-style {
+    .lang-icon-wrapper { background: radial-gradient(circle at 30% 30%, rgba(0,255,255,.9), rgba(255,0,255,.7) 60%, rgba(0,0,0,.9)) !important; box-shadow: 0 4px 16px rgba(0,255,255,.35), 0 0 12px rgba(255,0,255,.25); }
+  }
+
+  .lang-dropdown-popper {
+    .el-dropdown-menu { background: rgba(5, 8, 18, 0.92); border: 1px solid $glassBorder; box-shadow: 0 20px 60px rgba(0,0,0,.45), 0 8px 20px rgba(0,255,255,.15); }
+    .lang-menu {
+      .lang-header { color: rgba(255,255,255,.75); border-bottom: 1px solid rgba(0,255,255,.2); background: linear-gradient(135deg, rgba(0,0,0,.6), rgba(12,20,40,.6)); }
+      .lang-item { background: linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border: 1px solid rgba(0,255,255,.15);
+        &:hover { background: linear-gradient(135deg, rgba(0,255,255,.08), rgba(255,0,255,.08)); border-color: $glassBorderHover; box-shadow: $shadowCyan; }
+        &.active { background: linear-gradient(135deg, rgba(0,255,255,.16), rgba(255,0,255,.12)); border-color: $glassBorderHover; }
+        .lang-name { color: #fff; }
+        .lang-desc { color: rgba(255,255,255,.6); }
+        .lang-check { color: $cyan; text-shadow: 0 0 8px rgba(0,255,255,.6); }
+      }
+    }
+  }
+
+  .user-trigger { background: linear-gradient(135deg, rgba(0,0,0,.65), rgba(10,14,25,.7)) !important; border: 1px solid $glassBorder !important;
+    &:hover { border-color: $glassBorderHover !important; box-shadow: $shadowCyan; }
+    .avatar-img { border-color: rgba(255,255,255,.9) !important; box-shadow: 0 2px 10px rgba(0,0,0,.35), 0 0 12px rgba(0,255,255,.25) !important; }
+    .status-dot { background: linear-gradient(135deg, #00ffa3, #00d084) !important; box-shadow: 0 0 0 2px rgba(0,255,163,.2); }
+  }
+
+  .user-dropdown-popper {
+    .el-dropdown-menu { background: rgba(5, 8, 18, 0.92); border: 1px solid $glassBorder; box-shadow: 0 25px 80px rgba(0,0,0,.5), 0 10px 30px rgba(0,255,255,.12); }
+    .user-menu {
+      .menu-header { background: radial-gradient(1200px 200px at -10% -50%, rgba(0,255,255,.35), transparent 40%), linear-gradient(135deg, rgba(0,0,0,.8), rgba(12,20,40,.8));
+        .header-avatar { border: 3px solid rgba(255,255,255,.95); box-shadow: 0 8px 24px rgba(0,0,0,.25), 0 0 0 4px rgba(0,255,255,.15); }
+        .header-name { color: #fff; }
+        .header-status { color: rgba(255,255,255,.85); &::before { background: linear-gradient(135deg, #00ffa3, #00d084); box-shadow: 0 0 0 3px rgba(0,255,163,.25), 0 0 12px rgba(0,255,163,.6); } }
+      }
+      .menu-item { background: linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border: 1px solid rgba(0,255,255,.12);
+        &:hover { background: linear-gradient(135deg, rgba(0,255,255,.08), rgba(255,0,255,.08)); border-color: $glassBorderHover; box-shadow: $shadowCyan; }
+        .item-icon { background: linear-gradient(135deg, $cyan, $magenta); color: #0a0d14; box-shadow: 0 6px 16px rgba(0,255,255,.25), 0 2px 6px rgba(255,0,255,.2); }
+        .item-title { color: #fff; }
+        .item-desc { color: rgba(255,255,255,.65); }
+        .item-arrow { color: rgba(255,255,255,.55); }
+      }
+      .menu-footer { background: linear-gradient(135deg, rgba(0,0,0,.6), rgba(12,20,40,.6)); border-top: 1px solid rgba(0,255,255,.18); }
+      .logout-item { &:hover { background: rgba(255, 77, 77, .08); color: #ff4d4f; } }
     }
   }
 }
+
+@keyframes cyber-neon-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .8; } }
+@keyframes cyber-scan-vert { 0% { background-position: 0 0; } 100% { background-position: 0 200%; } }

@@ -49,8 +49,8 @@ const toggleClick = () => {
 .center-collapse {
   position: absolute;
   top: 50%;
-  right: 2px;
-  z-index: 1002;
+  right: -12px;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -60,7 +60,9 @@ const toggleClick = () => {
   background: var(--el-bg-color-overlay);
   border: 1px solid var(--pure-border-color);
   border-radius: 4px;
-  transform: translate(12px, -50%);
+  transform: translateY(-50%);
+  pointer-events: auto;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
 
   >svg {
     color: var(--el-text-color-primary)

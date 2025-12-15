@@ -95,13 +95,13 @@
       margin: 0 4px;
       background: rgba(var(--el-color-primary-rgb), 0.05);
       border: 1px solid transparent;
-      transition: var(--modern-transition);
+      transition: none;
 
       &:hover {
         background: rgba(var(--el-color-primary-rgb), 0.1);
         border-color: rgba(var(--el-color-primary-rgb), 0.2);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+        transform: none;
+        box-shadow: none;
       }
 
       &.is-active {
@@ -134,11 +134,11 @@
     .arrow-down {
       background: rgba(var(--el-color-primary-rgb), 0.08);
       border-radius: var(--modern-radius-sm);
-      transition: var(--modern-transition);
+      transition: none;
 
       &:hover {
         background: rgba(var(--el-color-primary-rgb), 0.15);
-        transform: scale(1.1);
+        transform: none;
       }
     }
   }

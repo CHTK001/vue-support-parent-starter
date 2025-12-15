@@ -51,6 +51,9 @@ defineOptions({
 </script>
 
 <style lang="scss" scoped>
+@use "sass:math";
+@use "sass:list";
+
 .christmas-login-page {
   min-height: 100vh;
   position: relative;
@@ -80,10 +83,10 @@ defineOptions({
 
       @for $i from 1 through 50 {
         &:nth-child(#{$i}) {
-          left: random(100) * 1%;
-          animation-delay: random(10) * 0.1s;
-          font-size: (random(10) + 15) * 1px;
-          animation-duration: (random(5) + 8) * 1s;
+          left: math.random(100) * 1%;
+          animation-delay: math.random(10) * 0.1s;
+          font-size: (math.random(10) + 15) * 1px;
+          animation-duration: (math.random(5) + 8) * 1s;
         }
       }
     }
@@ -108,8 +111,8 @@ defineOptions({
       @for $i from 1 through 20 {
         &:nth-child(#{$i}) {
           $colors: #ff0000, #00ff00, #0000ff, #ffff00, #ff00ff;
-          background: nth($colors, ($i % 5) + 1);
-          box-shadow: 0 0 20px nth($colors, ($i % 5) + 1);
+          background: list.nth($colors, ($i % 5) + 1);
+          box-shadow: 0 0 20px list.nth($colors, ($i % 5) + 1);
           animation-delay: ($i * 0.1s);
         }
       }

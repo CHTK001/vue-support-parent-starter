@@ -322,9 +322,8 @@ $dino-color-dark: #a0a0a0;
 // 游戏场景
 .game-scene {
   position: relative;
-  width: 500px;
+  width: 100%;
   height: 300px;
-  max-width: 100%;
 }
 
 // 像素云朵 - 使用box-shadow绘制

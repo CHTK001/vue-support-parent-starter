@@ -7,5 +7,5 @@ import BaseTag from './BaseTag.vue';
 </template>
 
 <style lang="scss">
-@import './default.scss';
+@use './default.scss';
 </style>

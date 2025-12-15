@@ -10,7 +10,6 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { getConfig, transformI18n } from "@repo/config";
 import { nextTick, onMounted, ref, toRaw, watch } from "vue";
 import { useTranslationLang } from "../../hooks/useTranslationLang";
-import LayNotice from "../lay-notice/index.vue";
 import LaySearch from "../lay-search/index.vue";
 import LaySidebarExtraIcon from "./components/SidebarExtraIcon.vue";
 import LaySidebarFullScreen from "./components/SidebarFullScreen.vue";

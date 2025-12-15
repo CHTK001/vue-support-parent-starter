@@ -45,20 +45,21 @@ const getNoDropdownStyle = computed((): CSSProperties => {
     width: "100%",
     display: "flex",
     alignItems: "center",
+    justifyContent: isCollapse.value && layout.value !== "horizontal" ? "center" : "flex-start",
   };
 });
 
 const getSubMenuIconStyle = computed((): CSSProperties => {
+  // 收缩状态下统一居中，保证有/无子菜单的图标对齐
+  const isCollapsed = isCollapse.value && layout.value !== "horizontal";
   return {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    margin:
-      layout.value === "horizontal"
-        ? "0 5px 0 0"
-        : isCollapse.value
-          ? "0 auto"
-          : "0 5px 0 0",
+    width: "18px",
+    height: "18px",
+    flexShrink: 0,
+    margin: isCollapsed ? "0" : "0 5px 0 0",
   };
 });
 

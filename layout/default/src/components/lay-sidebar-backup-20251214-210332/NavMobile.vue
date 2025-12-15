@@ -304,7 +304,7 @@ watch(
   padding: 0 8px;
   padding-bottom: env(safe-area-inset-bottom);
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
-  z-index: 1000;
+  z-index: 100;
 }
 
 .nav-item {

@@ -61,6 +61,8 @@ defineOptions({
 </script>
 
 <style lang="scss" scoped>
+@use "sass:math";
+
 .mid-autumn-login-page {
   min-height: 100vh;
   position: relative;
@@ -160,10 +162,10 @@ defineOptions({
 
       @for $i from 1 through 50 {
         &:nth-child(#{$i}) {
-          top: random(100) * 1%;
-          left: random(100) * 1%;
-          animation-delay: random(30) * 0.1s;
-          font-size: (random(8) + 8) * 1px;
+          top: math.random(100) * 1%;
+          left: math.random(100) * 1%;
+          animation-delay: math.random(30) * 0.1s;
+          font-size: (math.random(8) + 8) * 1px;
         }
       }
     }

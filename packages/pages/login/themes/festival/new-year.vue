@@ -61,6 +61,9 @@ defineOptions({
 </script>
 
 <style lang="scss" scoped>
+@use "sass:math";
+@use "sass:list";
+
 .new-year-login-page {
   min-height: 100vh;
   position: relative;
@@ -90,10 +93,10 @@ defineOptions({
 
       @for $i from 1 through 8 {
         &:nth-child(#{$i}) {
-          top: random(60) + 10%;
-          left: random(80) + 10%;
+          top: math.random(60) + 10%;
+          left: math.random(80) + 10%;
           animation-delay: ($i * 0.5s);
-          background: hsl(random(360), 100%, 60%);
+          background: hsl(math.random(360), 100%, 60%);
           box-shadow: 0 0 30px currentColor;
         }
       }
@@ -114,12 +117,12 @@ defineOptions({
 
       @for $i from 1 through 50 {
         &:nth-child(#{$i}) {
-          left: random(100) * 1%;
-          animation-delay: random(50) * 0.1s;
-          animation-duration: (random(30) + 30) * 0.1s;
+          left: math.random(100) * 1%;
+          animation-delay: math.random(50) * 0.1s;
+          animation-duration: (math.random(30) + 30) * 0.1s;
           $colors: #ff6b6b, #4ecdc4, #45b7d1, #f7b731, #5f27cd, #00d2d3;
-          background: nth($colors, ($i % 6) + 1);
-          transform: rotate(random(360) * 1deg);
+          background: list.nth($colors, ($i % 6) + 1);
+          transform: rotate(math.random(360) * 1deg);
         }
       }
     }

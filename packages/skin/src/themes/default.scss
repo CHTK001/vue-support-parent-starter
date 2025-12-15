@@ -169,7 +169,8 @@ html[data-skin="default"] {
         > div {
           width: 100% !important;
           flex: none !important;
-          display: block;
+          display: flex;
+          justify-content: center;
         }
         
         .sub-menu-icon {
@@ -239,6 +240,94 @@ html[data-skin="default"] {
       
       &::-webkit-scrollbar-track {
         background-color: transparent;
+      }
+    }
+  }
+  
+  // 收缩状态下弹出子菜单的样式（全局popper）
+  .el-popper.pure-scrollbar {
+    .el-menu--popup {
+      background: var(--pure-theme-sub-menu-bg) !important;
+      border-radius: 12px;
+      box-shadow: 
+        0 12px 32px rgba(0, 0, 0, 0.15),
+        0 4px 16px rgba(0, 0, 0, 0.1),
+        0 2px 8px rgba(0, 0, 0, 0.08),
+        0 0 1px rgba(0, 0, 0, 0.1);
+      min-width: 180px;
+      padding: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      
+      .el-menu-item {
+        height: 44px;
+        line-height: 44px;
+        margin: 4px 0;
+        padding: 0 16px;
+        border-radius: 6px;
+        color: var(--pure-theme-menu-text);
+        transition: all 0.25s ease;
+        
+        span,
+        div,
+        .el-text {
+          font-size: 14px;
+          color: var(--pure-theme-menu-text);
+        }
+        
+        .sub-menu-icon {
+          margin-right: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          flex-shrink: 0;
+        }
+        
+        &:hover {
+          background: rgba(var(--el-color-primary-rgb), 0.08);
+          transform: translateX(4px);
+        }
+        
+        &.is-active {
+          background: var(--el-color-primary) !important;
+          color: var(--pure-menu-active-text-color) !important;
+          box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.25);
+          
+          span,
+          div,
+          .el-text,
+          .el-icon,
+          svg,
+          i {
+            color: var(--pure-menu-active-text-color) !important;
+          }
+        }
+      }
+      
+      // 弹出子菜单内的子菜单标题
+      .el-sub-menu__title {
+        height: 44px;
+        line-height: 44px;
+        margin: 4px 0;
+        padding: 0 16px;
+        border-radius: 6px;
+        color: var(--pure-theme-menu-text);
+        
+        .sub-menu-icon {
+          margin-right: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          flex-shrink: 0;
+        }
+        
+        &:hover {
+          background: rgba(var(--el-color-primary-rgb), 0.08);
+        }
       }
     }
   }
@@ -357,6 +446,17 @@ html[data-skin="default"].dark {
             inset 1px 0 0 rgba(255, 255, 255, 0.4);
         }
       }
+    }
+  }
+  
+  // 暗色模式下的弹出子菜单样式
+  .el-popper.pure-scrollbar {
+    .el-menu--popup {
+      background: rgba(30, 30, 40, 0.98) !important;
+      box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
   }
   

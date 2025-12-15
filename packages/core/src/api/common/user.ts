@@ -156,3 +156,30 @@ export const refreshTokenApi = (data?: object) => {
     data,
   });
 };
+
+/** 导出用户列表 */
+export const fetchExportUsers = (params?: object) => {
+  return http.request<Blob>("get", "/v2/user/export", {
+    params,
+    responseType: "blob",
+  });
+};
+
+/** 下载用户导入模板 */
+export const fetchDownloadUserTemplate = () => {
+  return http.request<Blob>("get", "/v2/user/template", {
+    responseType: "blob",
+  });
+};
+
+/** 导入用户 */
+export const fetchImportUsers = (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return http.request<ReturnResult<string>>("post", "/v2/user/import", {
+    data: formData,
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};

@@ -617,6 +617,14 @@ const LayHeader = defineComponent({
   }
 }
 
+// 悬停导航布局（hover）- fixed-header 样式
+.app-wrapper.hover {
+  :deep(.fixed-header) {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+}
+
 // 异步组件加载状态样式
 .loading-container {
   display: flex;

@@ -56,7 +56,7 @@ onBeforeUnmount(() => {
 
 <style lang="scss">
 // 先导入基础样式
-@import './default.scss';
+@use './default.scss';
 // 再导入春节主题覆盖样式
-@import './spring-festival.css';
+@use './spring-festival.css';
 </style>

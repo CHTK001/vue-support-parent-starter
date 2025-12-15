@@ -1456,7 +1456,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 1000;
+  z-index: 100;
   transition: all 0.3s ease;
   box-shadow: -2px 0 6px rgba(0, 0, 0, 0.1);
 
@@ -1491,7 +1491,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   align-items: center;
   padding: 0 8px 0 4px;
   cursor: pointer;
-  z-index: 1000;
+  z-index: 100;
   transition: all 0.3s ease;
   box-shadow: -2px 0 6px rgba(0, 0, 0, 0.1);
   white-space: nowrap;

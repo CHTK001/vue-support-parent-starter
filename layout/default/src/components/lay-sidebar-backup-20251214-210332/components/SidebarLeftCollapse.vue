@@ -59,7 +59,7 @@ const toggleClick = () => {
   height: 40px;
   line-height: 40px;
   box-shadow: 0 0 6px -3px var(--el-color-primary);
-  z-index: 10000;
+  z-index: 100;
   /* 确保收缩按钮在悬浮菜单弹出层之上 */
   pointer-events: auto;
   /* 确保可以接收鼠标事件 */

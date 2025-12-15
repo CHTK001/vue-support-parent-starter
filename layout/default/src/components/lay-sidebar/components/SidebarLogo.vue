@@ -193,7 +193,8 @@ const envBadgeClass = computed(() => {
       justify-content: center;
       padding-left: 0;
 
-      .sidebar-title {
+      .sidebar-title,
+      .env-badge {
         display: none;
       }
 
