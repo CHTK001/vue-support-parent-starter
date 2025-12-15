@@ -31,9 +31,7 @@ onMounted(() => {
       
       <!-- 中间装饰组 -->
       <div class="center-decoration">
-        <span class="mooncake mooncake-left">🥮</span>
         <span class="moon">🌕</span>
-        <span class="mooncake mooncake-right">🥮</span>
       </div>
       
       <!-- 云朵 -->
@@ -87,22 +85,9 @@ onMounted(() => {
       gap: 16px;
       
       .moon {
-        font-size: 28px;
+        font-size: 32px;
         animation: glow 3s ease-in-out infinite;
         filter: drop-shadow(0 0 15px rgba(255, 213, 79, 0.8)) drop-shadow(0 0 30px rgba(255, 213, 79, 0.4));
-      }
-      
-      .mooncake {
-        font-size: 18px;
-        filter: drop-shadow(0 0 4px rgba(255, 213, 79, 0.5));
-        
-        &.mooncake-left {
-          animation: float-left 3s ease-in-out infinite;
-        }
-        
-        &.mooncake-right {
-          animation: float-right 3s ease-in-out infinite;
-        }
       }
     }
     
@@ -145,15 +130,6 @@ onMounted(() => {
   }
 }
 
-@keyframes float-left {
-  0%, 100% { transform: translateY(0) rotate(-5deg); }
-  50% { transform: translateY(-2px) rotate(0deg); }
-}
-
-@keyframes float-right {
-  0%, 100% { transform: translateY(0) rotate(5deg); }
-  50% { transform: translateY(-2px) rotate(0deg); }
-}
 
 @keyframes drift-left {
   0% { transform: translateY(-50%) translateX(0); opacity: 0.4; }
