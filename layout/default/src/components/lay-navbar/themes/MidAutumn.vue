@@ -31,9 +31,9 @@ onMounted(() => {
       
       <!-- 中间装饰组 -->
       <div class="center-decoration">
-        <span class="rabbit">🐰</span>
+        <span class="mooncake mooncake-left">🥮</span>
         <span class="moon">🌕</span>
-        <span class="mooncake">🥮</span>
+        <span class="mooncake mooncake-right">🥮</span>
       </div>
       
       <!-- 云朵 -->
@@ -86,12 +86,6 @@ onMounted(() => {
       align-items: center;
       gap: 16px;
       
-      .rabbit {
-        font-size: 20px;
-        animation: hop 2s ease-in-out infinite;
-        filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
-      }
-      
       .moon {
         font-size: 28px;
         animation: glow 3s ease-in-out infinite;
@@ -99,9 +93,16 @@ onMounted(() => {
       }
       
       .mooncake {
-        font-size: 20px;
-        animation: float 3s ease-in-out infinite;
+        font-size: 18px;
         filter: drop-shadow(0 0 4px rgba(255, 213, 79, 0.5));
+        
+        &.mooncake-left {
+          animation: float-left 3s ease-in-out infinite;
+        }
+        
+        &.mooncake-right {
+          animation: float-right 3s ease-in-out infinite;
+        }
       }
     }
     
@@ -144,14 +145,14 @@ onMounted(() => {
   }
 }
 
-@keyframes hop {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+@keyframes float-left {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-2px) rotate(0deg); }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-2px) rotate(5deg); }
+@keyframes float-right {
+  0%, 100% { transform: translateY(0) rotate(5deg); }
+  50% { transform: translateY(-2px) rotate(0deg); }
 }
 
 @keyframes drift-left {
