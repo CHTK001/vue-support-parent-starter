@@ -1308,4 +1308,254 @@ html[data-skin="mid-autumn"] {
     }
   }
 }
+
+// ==================== 圣诞主题下拉样式 ====================
+html[data-skin="christmas"] {
+  // 圣诞颜色变量
+  $xmas-green: #1b5e20;
+  $xmas-green-light: #2e7d32;
+  $xmas-red: #c62828;
+  $xmas-red-light: #e53935;
+  $xmas-gold: #ffd700;
+  $xmas-white: #ffffff;
+  $xmas-border: rgba(255, 215, 0, 0.4);
+
+  // 语言下拉菜单 - 圣诞主题
+  .lang-dropdown-popper {
+    .el-dropdown-menu {
+      background: linear-gradient(180deg, $xmas-green 0%, $xmas-green-light 100%) !important;
+      border: 2px solid $xmas-gold !important;
+      box-shadow:
+        0 0 20px rgba(255, 215, 0, 0.3),
+        0 0 40px rgba(198, 40, 40, 0.15),
+        0 20px 60px rgba(0, 0, 0, 0.4) !important;
+      border-radius: 12px !important;
+      overflow: hidden;
+    }
+  }
+
+  .lang-menu {
+    background: transparent !important;
+
+    .lang-header {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(27, 94, 32, 0.2) 100%) !important;
+      border-bottom: 1px solid $xmas-border !important;
+      color: $xmas-gold !important;
+      position: relative;
+
+      // 底部金色线
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, $xmas-gold 30%, $xmas-white 50%, $xmas-gold 70%, transparent);
+      }
+
+      svg {
+        color: $xmas-gold !important;
+        filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
+      }
+    }
+
+    .lang-item {
+      background: rgba(27, 94, 32, 0.4) !important;
+      border: 1px solid rgba(255, 215, 0, 0.2) !important;
+      margin: 8px 10px !important;
+      border-radius: 8px !important;
+      transition: all 0.3s ease !important;
+
+      &:hover {
+        background: rgba(255, 215, 0, 0.15) !important;
+        border-color: $xmas-gold !important;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.25) !important;
+        transform: translateX(4px) !important;
+
+        .lang-name {
+          color: $xmas-gold !important;
+        }
+      }
+
+      &.active {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(198, 40, 40, 0.2) 100%) !important;
+        border: 1px solid $xmas-gold !important;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.3) !important;
+
+        .lang-name {
+          color: $xmas-gold !important;
+          font-weight: 700 !important;
+        }
+
+        .lang-check {
+          color: $xmas-gold !important;
+          filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6)) !important;
+        }
+      }
+
+      .lang-flag {
+        filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.3));
+      }
+
+      .lang-name {
+        color: rgba(255, 255, 255, 0.95) !important;
+      }
+
+      .lang-desc {
+        color: rgba(255, 215, 0, 0.7) !important;
+      }
+    }
+  }
+
+  // 用户下拉菜单 - 圣诞主题
+  .user-dropdown-popper {
+    .el-dropdown-menu {
+      background: linear-gradient(180deg, $xmas-green 0%, $xmas-green-light 100%) !important;
+      border: 2px solid $xmas-gold !important;
+      box-shadow:
+        0 0 20px rgba(255, 215, 0, 0.3),
+        0 0 40px rgba(198, 40, 40, 0.15),
+        0 25px 80px rgba(0, 0, 0, 0.4) !important;
+      border-radius: 16px !important;
+      overflow: hidden;
+    }
+  }
+
+  .user-menu {
+    background: transparent !important;
+
+    .menu-header {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(198, 40, 40, 0.15) 100%) !important;
+      border-bottom: 1px solid $xmas-border;
+      position: relative;
+
+      // 底部金色线
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, $xmas-gold 20%, $xmas-white 50%, $xmas-gold 80%, transparent);
+      }
+
+      .header-avatar {
+        border-color: $xmas-gold !important;
+        box-shadow:
+          0 0 15px rgba(255, 215, 0, 0.4),
+          0 8px 24px rgba(0, 0, 0, 0.3) !important;
+
+        &:hover {
+          box-shadow:
+            0 0 20px rgba(255, 215, 0, 0.6),
+            0 8px 24px rgba(0, 0, 0, 0.3) !important;
+        }
+      }
+
+      .header-name {
+        color: $xmas-gold !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        font-weight: 600;
+      }
+
+      .header-status {
+        color: rgba(255, 255, 255, 0.9) !important;
+
+        &::before {
+          background: linear-gradient(135deg, #4ade80, #22c55e) !important;
+          box-shadow:
+            0 0 0 3px rgba(74, 222, 128, 0.2),
+            0 0 10px rgba(74, 222, 128, 0.4) !important;
+        }
+      }
+    }
+
+    .menu-item {
+      background: rgba(27, 94, 32, 0.4) !important;
+      border: 1px solid rgba(255, 215, 0, 0.2) !important;
+      margin: 6px 10px !important;
+      border-radius: 10px !important;
+      transition: all 0.3s ease !important;
+
+      &:hover {
+        background: rgba(255, 215, 0, 0.15) !important;
+        border-color: $xmas-gold !important;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.25) !important;
+        transform: translateX(4px) !important;
+
+        .item-title {
+          color: $xmas-gold !important;
+        }
+
+        .item-arrow {
+          color: $xmas-gold !important;
+        }
+      }
+
+      .item-icon {
+        box-shadow: 0 0 12px rgba(255, 215, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+      }
+
+      .account-icon {
+        background: linear-gradient(135deg, $xmas-gold, #daa520) !important;
+        color: $xmas-green !important;
+      }
+
+      .cache-icon {
+        background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
+        color: #fff !important;
+      }
+
+      .item-title {
+        color: rgba(255, 255, 255, 0.95) !important;
+      }
+
+      .item-desc {
+        color: rgba(255, 215, 0, 0.7) !important;
+      }
+    }
+
+    .menu-footer {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(198, 40, 40, 0.1) 100%) !important;
+      border-top: 1px solid $xmas-border !important;
+      position: relative;
+
+      // 顶部金色线
+      &::before {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, $xmas-gold 30%, $xmas-white 50%, $xmas-gold 70%, transparent);
+      }
+    }
+
+    .logout-item {
+      background: rgba(198, 40, 40, 0.3) !important;
+      border: 1px solid rgba(255, 100, 100, 0.3) !important;
+      color: rgba(255, 200, 200, 0.9) !important;
+      border-radius: 10px !important;
+
+      .logout-icon {
+        color: rgba(255, 200, 200, 0.9) !important;
+      }
+
+      &:hover {
+        background: rgba(255, 100, 100, 0.25) !important;
+        border-color: rgba(255, 150, 150, 0.5) !important;
+        color: #fff !important;
+        box-shadow: 0 0 15px rgba(255, 100, 100, 0.25) !important;
+        transform: scale(1.02) !important;
+
+        .logout-icon {
+          color: #fff !important;
+        }
+      }
+    }
+  }
+}
 </style>
