@@ -4,6 +4,7 @@ import DefaultMix from "./themes/mix/Default.vue";
 import SpringFestivalMix from "./themes/mix/SpringFestival.vue";
 import CyberpunkMix from "./themes/mix/Cyberpunk.vue";
 import MidAutumnMix from "./themes/mix/MidAutumn.vue";
+import ChristmasMix from "./themes/mix/Christmas.vue";
 
 // 主题组件映射
 const themeComponents = {
@@ -11,8 +12,7 @@ const themeComponents = {
   'spring-festival': SpringFestivalMix,
   'cyberpunk': CyberpunkMix,
   'mid-autumn': MidAutumnMix,
-  // 其他主题组件
-  // 'christmas': ChristmasMix,
+  'christmas': ChristmasMix,
 };
 
 const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultMix);

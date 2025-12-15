@@ -2043,4 +2043,176 @@ html[data-skin="mid-autumn"] {
     }
   }
 }
+
+// ==================== 圣诞主题样式 ====================
+html[data-skin="christmas"] {
+  $xmas-green: #1b5e20;
+  $xmas-green-light: #2e7d32;
+  $xmas-red: #c62828;
+  $xmas-red-light: #e53935;
+  $xmas-gold: #ffd700;
+  $xmas-white: #ffffff;
+  $xmas-border: rgba(255, 215, 0, 0.4);
+
+  // 悬停导航容器
+  .sidebar-hover-container {
+    background: linear-gradient(180deg, $xmas-green, darken($xmas-green, 5%)) !important;
+    border-right: 3px solid $xmas-border !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+
+    // Logo区域
+    .sidebar-logo-container {
+      background: linear-gradient(180deg, darken($xmas-green, 8%), darken($xmas-green, 5%)) !important;
+      border-bottom: 2px solid $xmas-border !important;
+
+      .sidebar-title {
+        color: $xmas-white !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    // 一级菜单项
+    .first-level-menu-item {
+      color: $xmas-white !important;
+      border: 1.5px solid rgba($xmas-gold, 0.3) !important;
+      background: rgba(darken($xmas-green, 5%), 0.6) !important;
+
+      .menu-icon {
+        color: $xmas-gold !important;
+      }
+
+      .menu-title {
+        color: $xmas-white !important;
+      }
+
+      &:hover {
+        background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+        border-color: rgba($xmas-gold, 0.5) !important;
+        box-shadow: 0 4px 12px rgba($xmas-red, 0.3) !important;
+
+        .menu-icon,
+        .menu-title {
+          color: $xmas-white !important;
+        }
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
+        border: 2px solid $xmas-gold !important;
+        box-shadow: 0 4px 16px rgba($xmas-red, 0.5) !important;
+
+        .menu-icon,
+        .menu-title {
+          color: $xmas-white !important;
+        }
+      }
+    }
+
+    // 折叠按钮
+    .hover-collapse-btn,
+    .sidebar-collapse-btn {
+      background: linear-gradient(180deg, darken($xmas-green, 8%), darken($xmas-green, 10%)) !important;
+      border-top: 2px solid $xmas-border !important;
+
+      .collapse-icon,
+      .sidebar-collapse-icon {
+        color: $xmas-gold !important;
+      }
+
+      .collapse-text {
+        color: $xmas-white !important;
+      }
+
+      &:hover {
+        background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+
+        .collapse-icon,
+        .sidebar-collapse-icon {
+          color: $xmas-white !important;
+        }
+      }
+    }
+  }
+
+  // 子菜单弹出层
+  .sub-menu-popup {
+    .sub-menu-container {
+      background: linear-gradient(180deg, $xmas-green, darken($xmas-green, 5%)) !important;
+      border: 2px solid $xmas-gold !important;
+      box-shadow:
+        0 4px 20px rgba($xmas-gold, 0.3),
+        0 20px 60px rgba(0, 0, 0, 0.4) !important;
+
+      // 列标题
+      .column-title {
+        color: $xmas-gold !important;
+        border-bottom: 1px solid rgba($xmas-gold, 0.3) !important;
+      }
+
+      // 菜单项
+      .menu-item {
+        background: rgba(darken($xmas-green, 5%), 0.6) !important;
+        border: 1.5px solid rgba($xmas-gold, 0.3) !important;
+        color: $xmas-white !important;
+
+        &:hover {
+          background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+          border-color: rgba($xmas-gold, 0.5) !important;
+          color: $xmas-white !important;
+          box-shadow: 0 4px 12px rgba($xmas-red, 0.3) !important;
+        }
+
+        &.is-active {
+          background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
+          border: 2px solid $xmas-gold !important;
+          color: $xmas-white !important;
+          box-shadow: 0 4px 16px rgba($xmas-red, 0.5) !important;
+        }
+      }
+
+      // 收藏按钮
+      .favorite-btn {
+        background: rgba($xmas-gold, 0.2) !important;
+        border-color: rgba($xmas-gold, 0.3) !important;
+
+        svg {
+          color: $xmas-gold !important;
+        }
+
+        &:hover {
+          background: rgba($xmas-gold, 0.3) !important;
+        }
+      }
+
+      // 收藏菜单项
+      .favorite-menu-item {
+        background: rgba(darken($xmas-green, 5%), 0.6) !important;
+        color: $xmas-white !important;
+
+        .favorite-menu-icon {
+          color: $xmas-gold !important;
+          background: rgba($xmas-gold, 0.2) !important;
+        }
+
+        &:hover {
+          background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+          border-color: rgba($xmas-gold, 0.5) !important;
+        }
+      }
+
+      // 空收藏提示
+      .empty-favorites {
+        color: rgba($xmas-white, 0.8) !important;
+
+        .empty-icon {
+          color: rgba($xmas-gold, 0.5) !important;
+        }
+
+        p {
+          color: $xmas-white !important;
+        }
+      }
+    }
+  }
+}
 </style>

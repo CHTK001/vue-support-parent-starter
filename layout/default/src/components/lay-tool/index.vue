@@ -6,6 +6,7 @@ import DefaultTool from "./themes/Default.vue";
 import SpringFestivalTool from "./themes/SpringFestival.vue";
 import CyberpunkTool from "./themes/Cyberpunk.vue";
 import MidAutumnTool from "./themes/MidAutumn.vue";
+import ChristmasTool from "./themes/Christmas.vue";
 
 const { $storage } = useGlobal<any>();
 
@@ -60,6 +61,7 @@ onBeforeUnmount(() => {
   <SpringFestivalTool v-else-if="currentTheme === 'spring-festival'" />
   <CyberpunkTool v-else-if="currentTheme === 'cyberpunk'" />
   <MidAutumnTool v-else-if="currentTheme === 'mid-autumn'" />
+  <ChristmasTool v-else-if="currentTheme === 'christmas'" />
   <DefaultTool v-else />
 </template>
 

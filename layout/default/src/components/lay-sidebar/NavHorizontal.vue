@@ -4,6 +4,7 @@ import DefaultHorizontal from "./themes/horizontal/Default.vue";
 import SpringFestivalHorizontal from "./themes/horizontal/SpringFestival.vue";
 import CyberpunkHorizontal from "./themes/horizontal/Cyberpunk.vue";
 import MidAutumnHorizontal from "./themes/horizontal/MidAutumn.vue";
+import ChristmasHorizontal from "./themes/horizontal/Christmas.vue";
 
 // 主题组件映射
 const themeComponents = {
@@ -11,8 +12,7 @@ const themeComponents = {
   'spring-festival': SpringFestivalHorizontal,
   'cyberpunk': CyberpunkHorizontal,
   'mid-autumn': MidAutumnHorizontal,
-  // 其他主题组件
-  // 'christmas': ChristmasHorizontal,
+  'christmas': ChristmasHorizontal,
 };
 
 const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultHorizontal);

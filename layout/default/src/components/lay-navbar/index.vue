@@ -6,6 +6,7 @@ import DefaultNavbar from "./themes/Default.vue";
 import SpringFestivalNavbar from "./themes/SpringFestival.vue";
 import CyberpunkNavbar from "./themes/Cyberpunk.vue";
 import MidAutumnNavbar from "./themes/MidAutumn.vue";
+import ChristmasNavbar from "./themes/Christmas.vue";
 
 const { $storage } = useGlobal<any>();
 
@@ -60,5 +61,6 @@ onBeforeUnmount(() => {
   <SpringFestivalNavbar v-else-if="currentTheme === 'spring-festival'" />
   <CyberpunkNavbar v-else-if="currentTheme === 'cyberpunk'" />
   <MidAutumnNavbar v-else-if="currentTheme === 'mid-autumn'" />
+  <ChristmasNavbar v-else-if="currentTheme === 'christmas'" />
   <DefaultNavbar v-else />
 </template>

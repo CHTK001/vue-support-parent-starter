@@ -936,4 +936,151 @@ html[data-skin="mid-autumn"] {
     }
   }
 }
+
+// ==================== 圣诞主题样式 ====================
+html[data-skin="christmas"] {
+  $xmas-green: #1b5e20;
+  $xmas-green-light: #2e7d32;
+  $xmas-red: #c62828;
+  $xmas-red-light: #e53935;
+  $xmas-gold: #ffd700;
+  $xmas-white: #ffffff;
+  $xmas-border: rgba(255, 215, 0, 0.4);
+
+  // 双栏导航容器
+  .double-nav-container {
+    // 左栏
+    .double-nav-left {
+      background: linear-gradient(180deg, $xmas-green, darken($xmas-green, 5%)) !important;
+      border-right: 3px solid $xmas-border !important;
+
+      // Logo区域
+      .sidebar-logo-container {
+        background: linear-gradient(180deg, darken($xmas-green, 8%), darken($xmas-green, 5%)) !important;
+        border-bottom: 2px solid $xmas-border !important;
+
+        .sidebar-title {
+          color: $xmas-white !important;
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+      }
+
+      // 一级菜单
+      .first-level-menu {
+        .el-menu-item {
+          color: $xmas-white !important;
+
+          .menu-icon-only {
+            svg,
+            i {
+              color: $xmas-gold !important;
+            }
+          }
+
+          &:hover {
+            background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+            color: $xmas-white !important;
+
+            .menu-icon-only svg,
+            .menu-icon-only i {
+              color: $xmas-white !important;
+            }
+          }
+
+          &.is-active {
+            background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
+            color: $xmas-white !important;
+            box-shadow: 0 4px 16px rgba($xmas-red, 0.5) !important;
+
+            .menu-icon-only svg,
+            .menu-icon-only i {
+              color: $xmas-white !important;
+            }
+          }
+        }
+      }
+    }
+
+    // 右栏
+    .double-nav-right {
+      background: linear-gradient(180deg, $xmas-green-light, $xmas-green) !important;
+
+      // 子菜单列表
+      .sub-menu-list {
+        .el-menu-item {
+          color: $xmas-white !important;
+          background: rgba(darken($xmas-green, 5%), 0.6) !important;
+          border: 1.5px solid rgba($xmas-gold, 0.3) !important;
+          border-radius: 6px !important;
+          margin: 4px 8px !important;
+
+          .el-icon,
+          svg {
+            color: $xmas-gold !important;
+          }
+
+          &:hover {
+            background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+            border-color: rgba($xmas-gold, 0.5) !important;
+            color: $xmas-white !important;
+          }
+
+          &.is-active {
+            background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
+            border: 2px solid $xmas-gold !important;
+            color: $xmas-white !important;
+            box-shadow: 0 4px 16px rgba($xmas-red, 0.5) !important;
+
+            .el-icon,
+            svg {
+              color: $xmas-white !important;
+            }
+          }
+        }
+
+        .el-sub-menu__title {
+          color: $xmas-white !important;
+          background: rgba(darken($xmas-green, 5%), 0.4) !important;
+          border-radius: 6px !important;
+          margin: 4px 8px !important;
+
+          .el-icon,
+          svg {
+            color: $xmas-gold !important;
+          }
+
+          &:hover {
+            background: linear-gradient(135deg, rgba($xmas-red, 0.6), rgba($xmas-red-light, 0.5)) !important;
+            color: $xmas-white !important;
+          }
+        }
+
+        .el-sub-menu.is-active > .el-sub-menu__title {
+          color: $xmas-white !important;
+          font-weight: 600;
+        }
+      }
+    }
+
+    // 折叠按钮
+    .double-nav-collapse {
+      .left-collapse {
+        background: linear-gradient(180deg, darken($xmas-green, 8%), darken($xmas-green, 10%)) !important;
+        border-top: 2px solid $xmas-border !important;
+
+        svg {
+          color: $xmas-gold !important;
+        }
+
+        &:hover {
+          background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+
+          svg {
+            color: $xmas-white !important;
+          }
+        }
+      }
+    }
+  }
+}
 </style>
