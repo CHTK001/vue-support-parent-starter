@@ -1,0 +1,54 @@
+/* 圣诞主题标签页样式 */
+html[data-skin="christmas"] {
+  /* 标签页容器 */
+  .tags-view {
+    background: linear-gradient(180deg, #1b5e20, #145214) !important;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.3) !important;
+  }
+
+  /* 标签项 */
+  .tags-view .scroll-item {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(255, 215, 0, 0.3) !important;
+    color: #ffffff !important;
+    border-radius: 4px !important;
+  }
+
+  .tags-view .scroll-item:hover {
+    background: rgba(198, 40, 40, 0.6) !important;
+    border-color: rgba(255, 215, 0, 0.5) !important;
+    color: #ffffff !important;
+  }
+
+  .tags-view .scroll-item.is-active {
+    background: linear-gradient(135deg, #c62828, #e53935) !important;
+    border: 2px solid #ffd700 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(198, 40, 40, 0.4) !important;
+  }
+
+  /* 关闭按钮 */
+  .tags-view .scroll-item .el-icon-close {
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+
+  .tags-view .scroll-item:hover .el-icon-close,
+  .tags-view .scroll-item.is-active .el-icon-close {
+    color: #ffffff !important;
+  }
+
+  /* 右侧操作按钮 */
+  .tags-view .more-btn-wrapper {
+    background: linear-gradient(180deg, #145214, #0d3d0d) !important;
+    border-left: 1px solid rgba(255, 215, 0, 0.3) !important;
+  }
+
+  .tags-view .more-btn-wrapper .more-btn {
+    color: #ffd700 !important;
+  }
+
+  .tags-view .more-btn-wrapper .more-btn:hover {
+    background: rgba(198, 40, 40, 0.6) !important;
+    color: #ffffff !important;
+  }
+}
