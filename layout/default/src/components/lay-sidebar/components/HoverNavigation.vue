@@ -1517,6 +1517,367 @@ const defer = useDefer(firstLevelMenus.value.length);
 </style>
 
 <style lang="scss">
+// ==================== 春节主题样式 ====================
+html[data-skin="spring-festival"] {
+  $spring-red: #dc143c;
+  $spring-red-dark: #b22222;
+  $spring-gold: #ffd700;
+  $spring-gold-light: #ffa500;
+  $spring-border: rgba(255, 215, 0, 0.5);
+
+  // 悬停导航容器
+  .sidebar-hover-container {
+    background: linear-gradient(135deg, rgba(220, 20, 60, 0.98), rgba(178, 34, 34, 0.98)) !important;
+    border-right: 3px solid $spring-border !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+
+    // Logo区域
+    .sidebar-logo-container {
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.9), rgba(178, 34, 34, 0.9)) !important;
+      border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
+
+      .sidebar-title {
+        color: $spring-gold !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    // 一级菜单项
+    .first-level-menu-item {
+      color: $spring-gold !important;
+      border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.7), rgba(178, 34, 34, 0.7)) !important;
+
+      .menu-icon {
+        color: $spring-gold !important;
+      }
+
+      .menu-title {
+        color: $spring-gold !important;
+      }
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(220, 20, 60, 0.9), rgba(178, 34, 34, 0.9)) !important;
+        border-color: rgba(255, 215, 0, 0.6) !important;
+        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
+        transform: translateX(4px) scale(1.02);
+
+        .menu-icon,
+        .menu-title {
+          color: #fff !important;
+        }
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, $spring-gold, $spring-gold-light) !important;
+        border: 2px solid $spring-red !important;
+        font-weight: 700;
+        box-shadow:
+          0 4px 16px rgba(255, 215, 0, 0.5),
+          0 0 20px rgba(255, 215, 0, 0.3) !important;
+
+        .menu-icon,
+        .menu-title {
+          color: #8b0000 !important;
+        }
+      }
+    }
+
+    // 折叠按钮
+    .hover-collapse-btn,
+    .sidebar-collapse-btn {
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.95), rgba(178, 34, 34, 0.95)) !important;
+      border-top: 2px solid $spring-border !important;
+
+      .collapse-icon,
+      .sidebar-collapse-icon {
+        color: $spring-gold !important;
+      }
+
+      .collapse-text {
+        color: $spring-gold !important;
+      }
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(220, 20, 60, 0.95), rgba(178, 34, 34, 0.95)) !important;
+
+        .collapse-icon,
+        .sidebar-collapse-icon {
+          color: #fff !important;
+        }
+      }
+    }
+  }
+
+  // 子菜单弹出层
+  .sub-menu-popup {
+    .sub-menu-container {
+      background: linear-gradient(135deg, rgba(220, 20, 60, 0.98), rgba(178, 34, 34, 0.98)) !important;
+      border: 3px solid $spring-gold !important;
+      box-shadow:
+        0 4px 16px rgba(255, 215, 0, 0.3),
+        0 20px 60px rgba(0, 0, 0, 0.4) !important;
+
+      // 列标题
+      .column-title {
+        color: $spring-gold !important;
+        border-bottom: 1px solid rgba(255, 215, 0, 0.3) !important;
+      }
+
+      // 菜单项
+      .menu-item {
+        background: linear-gradient(135deg, rgba(139, 0, 0, 0.7), rgba(178, 34, 34, 0.7)) !important;
+        border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
+        color: $spring-gold !important;
+
+        &:hover {
+          background: linear-gradient(135deg, rgba(220, 20, 60, 0.9), rgba(178, 34, 34, 0.9)) !important;
+          border-color: rgba(255, 215, 0, 0.6) !important;
+          color: #fff !important;
+          box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
+        }
+
+        &.is-active {
+          background: linear-gradient(135deg, $spring-gold, $spring-gold-light) !important;
+          border: 2px solid $spring-red !important;
+          color: #8b0000 !important;
+          font-weight: 700;
+          box-shadow:
+            0 4px 16px rgba(255, 215, 0, 0.5),
+            0 0 20px rgba(255, 215, 0, 0.3) !important;
+        }
+      }
+
+      // 收藏按钮
+      .favorite-btn {
+        background: rgba(255, 215, 0, 0.2) !important;
+        border-color: rgba(255, 215, 0, 0.3) !important;
+
+        svg {
+          color: $spring-gold !important;
+        }
+
+        &:hover {
+          background: rgba(255, 215, 0, 0.3) !important;
+        }
+      }
+
+      // 收藏菜单项
+      .favorite-menu-item {
+        background: linear-gradient(135deg, rgba(139, 0, 0, 0.7), rgba(178, 34, 34, 0.7)) !important;
+        color: $spring-gold !important;
+
+        .favorite-menu-icon {
+          color: $spring-gold !important;
+          background: rgba(255, 215, 0, 0.2) !important;
+        }
+
+        &:hover {
+          background: linear-gradient(135deg, rgba(220, 20, 60, 0.9), rgba(178, 34, 34, 0.9)) !important;
+          border-color: rgba(255, 215, 0, 0.6) !important;
+        }
+      }
+
+      // 空收藏提示
+      .empty-favorites {
+        color: rgba(255, 215, 0, 0.8) !important;
+
+        .empty-icon {
+          color: rgba(255, 215, 0, 0.5) !important;
+        }
+
+        p {
+          color: $spring-gold !important;
+        }
+      }
+    }
+  }
+}
+
+// ==================== 赛博朋克主题样式 ====================
+html[data-skin="cyberpunk"] {
+  $cyber-cyan: #00ffff;
+  $cyber-magenta: #ff00ff;
+  $cyber-dark: #0a0a12;
+  $cyber-dark-light: #12121f;
+  $cyber-border: rgba(0, 255, 255, 0.3);
+
+  // 悬停导航容器
+  .sidebar-hover-container {
+    background: linear-gradient(180deg, rgba(10, 10, 18, 0.95), rgba(18, 18, 31, 0.95)) !important;
+    border-right: 2px solid $cyber-border !important;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.15) !important;
+
+    // Logo区域
+    .sidebar-logo-container {
+      background: linear-gradient(135deg, rgba(10, 10, 18, 0.98), rgba(18, 18, 31, 0.98)) !important;
+      border-bottom: 1px solid $cyber-border !important;
+
+      .sidebar-title {
+        color: $cyber-cyan !important;
+        text-shadow: 0 0 5px rgba(0, 255, 255, 0.5), 0 0 10px rgba(0, 255, 255, 0.3);
+      }
+    }
+
+    // 一级菜单项
+    .first-level-menu-item {
+      color: $cyber-cyan !important;
+      border: 1px solid rgba(0, 255, 255, 0.2) !important;
+      background: rgba(10, 10, 18, 0.6) !important;
+
+      .menu-icon {
+        color: $cyber-cyan !important;
+        filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+      }
+
+      .menu-title {
+        color: $cyber-cyan !important;
+      }
+
+      &:hover {
+        background: rgba(0, 255, 255, 0.1) !important;
+        border-color: $cyber-cyan !important;
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.3) !important;
+        transform: translateX(4px);
+
+        .menu-icon,
+        .menu-title {
+          color: #fff !important;
+        }
+      }
+
+      &.is-active {
+        background: rgba(0, 255, 255, 0.1) !important;
+        border-color: $cyber-cyan !important;
+        box-shadow:
+          0 0 15px rgba(0, 255, 255, 0.3),
+          inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
+
+        .menu-icon,
+        .menu-title {
+          color: #fff !important;
+        }
+
+        .menu-icon {
+          filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+        }
+      }
+    }
+
+    // 折叠按钮
+    .hover-collapse-btn,
+    .sidebar-collapse-btn {
+      background: linear-gradient(135deg, rgba(10, 10, 18, 0.98), rgba(18, 18, 31, 0.98)) !important;
+      border-top: 1px solid $cyber-border !important;
+
+      .collapse-icon,
+      .sidebar-collapse-icon {
+        color: $cyber-cyan !important;
+        filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+      }
+
+      .collapse-text {
+        color: $cyber-cyan !important;
+      }
+
+      &:hover {
+        background: rgba(0, 255, 255, 0.1) !important;
+        border-color: $cyber-cyan !important;
+
+        .collapse-icon,
+        .sidebar-collapse-icon {
+          color: #fff !important;
+        }
+      }
+    }
+  }
+
+  // 子菜单弹出层
+  .sub-menu-popup {
+    .sub-menu-container {
+      background: linear-gradient(180deg, rgba(10, 10, 18, 0.98), rgba(18, 18, 31, 0.98)) !important;
+      border: 2px solid $cyber-cyan !important;
+      box-shadow:
+        0 0 30px rgba(0, 255, 255, 0.3),
+        0 20px 60px rgba(0, 0, 0, 0.5) !important;
+
+      // 列标题
+      .column-title {
+        color: $cyber-cyan !important;
+        border-bottom: 1px solid $cyber-border !important;
+        text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+      }
+
+      // 菜单项
+      .menu-item {
+        background: rgba(10, 10, 18, 0.6) !important;
+        border: 1px solid rgba(0, 255, 255, 0.2) !important;
+        color: $cyber-cyan !important;
+
+        &:hover {
+          background: rgba(0, 255, 255, 0.1) !important;
+          border-color: $cyber-cyan !important;
+          color: #fff !important;
+          box-shadow: 0 0 15px rgba(0, 255, 255, 0.3) !important;
+        }
+
+        &.is-active {
+          background: rgba(0, 255, 255, 0.1) !important;
+          border-color: $cyber-cyan !important;
+          color: #fff !important;
+          box-shadow:
+            0 0 15px rgba(0, 255, 255, 0.3),
+            inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
+        }
+      }
+
+      // 收藏按钮
+      .favorite-btn {
+        background: rgba(0, 255, 255, 0.1) !important;
+        border-color: rgba(0, 255, 255, 0.3) !important;
+
+        svg {
+          color: $cyber-cyan !important;
+        }
+
+        &:hover {
+          background: rgba(0, 255, 255, 0.2) !important;
+          box-shadow: 0 0 10px rgba(0, 255, 255, 0.3) !important;
+        }
+      }
+
+      // 收藏菜单项
+      .favorite-menu-item {
+        background: rgba(10, 10, 18, 0.6) !important;
+        color: $cyber-cyan !important;
+
+        .favorite-menu-icon {
+          color: $cyber-cyan !important;
+          background: rgba(0, 255, 255, 0.1) !important;
+        }
+
+        &:hover {
+          background: rgba(0, 255, 255, 0.1) !important;
+          border-color: $cyber-cyan !important;
+        }
+      }
+
+      // 空收藏提示
+      .empty-favorites {
+        color: rgba(0, 255, 255, 0.8) !important;
+
+        .empty-icon {
+          color: rgba(0, 255, 255, 0.5) !important;
+        }
+
+        p {
+          color: $cyber-cyan !important;
+        }
+      }
+    }
+  }
+}
+
 // ==================== 中秋主题样式 ====================
 html[data-skin="mid-autumn"] {
   $mid-blue: #1a237e;
