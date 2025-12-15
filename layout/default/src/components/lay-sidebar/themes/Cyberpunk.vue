@@ -207,11 +207,23 @@ $cyber-shadow: rgba(0, 255, 255, 0.4);
       }
     }
     
-    // 子菜单样式
+    // 子菜单样式 - 当子菜单项选中时，父级菜单显示激活样式
     .el-sub-menu.is-active > .el-sub-menu__title {
       color: #fff !important;
       border-color: $cyber-cyan !important;
       background: rgba(0, 255, 255, 0.1) !important;
+      box-shadow: 
+        0 0 15px rgba(0, 255, 255, 0.3),
+        inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
+      
+      .el-icon, svg {
+        color: #fff !important;
+        filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+      }
+      
+      span, div {
+        color: #fff !important;
+      }
     }
     
     // 垂直导航展开的子菜单容器 - 保持默认尺寸，只修改颜色
