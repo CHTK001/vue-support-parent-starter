@@ -205,6 +205,11 @@ $cyber-shadow: rgba(0, 255, 255, 0.4);
       .el-icon, svg {
         filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
       }
+      
+      // nest-menu 激活时不显示 ::before 背景
+      &.nest-menu::before {
+        background: none !important;
+      }
     }
     
     // 子菜单样式 - 当子菜单项选中时，父级菜单显示激活样式
