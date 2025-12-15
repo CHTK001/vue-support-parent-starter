@@ -1515,3 +1515,171 @@ const defer = useDefer(firstLevelMenus.value.length);
   }
 }
 </style>
+
+<style lang="scss">
+// ==================== 中秋主题样式 ====================
+html[data-skin="mid-autumn"] {
+  $mid-blue: #1a237e;
+  $mid-blue-light: #283593;
+  $mid-gold: #ffd54f;
+  $mid-gold-light: #ffecb3;
+  $mid-cyan: #00bcd4;
+  $mid-border: rgba(255, 213, 79, 0.3);
+
+  // 悬停导航容器
+  .sidebar-hover-container {
+    background: linear-gradient(180deg, $mid-blue, $mid-blue-light) !important;
+    border-right: 2px solid $mid-border !important;
+    box-shadow: 0 0 20px rgba(26, 35, 126, 0.3) !important;
+
+    // Logo区域
+    .sidebar-logo-container {
+      background: linear-gradient(135deg, rgba(13, 27, 66, 0.95), rgba($mid-blue, 0.95)) !important;
+      border-bottom: 2px solid $mid-border !important;
+
+      .sidebar-title {
+        color: $mid-gold !important;
+      }
+    }
+
+    // 一级菜单项
+    .first-level-menu-item {
+      color: $mid-gold-light !important;
+      border: 1px solid rgba($mid-gold, 0.2) !important;
+      background: rgba(26, 35, 126, 0.4) !important;
+
+      .menu-icon {
+        color: $mid-gold !important;
+      }
+
+      .menu-title {
+        color: $mid-gold-light !important;
+      }
+
+      &:hover {
+        background: rgba($mid-gold, 0.15) !important;
+        border-color: $mid-gold !important;
+        box-shadow: 0 0 15px rgba($mid-gold, 0.25) !important;
+
+        .menu-icon,
+        .menu-title {
+          color: #fff !important;
+        }
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
+        border-color: $mid-cyan !important;
+        box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
+
+        .menu-icon,
+        .menu-title {
+          color: $mid-blue !important;
+        }
+      }
+    }
+
+    // 折叠按钮
+    .hover-collapse-btn,
+    .sidebar-collapse-btn {
+      background: linear-gradient(135deg, $mid-blue, $mid-blue-light) !important;
+      border-color: $mid-border !important;
+
+      .collapse-icon,
+      .sidebar-collapse-icon {
+        color: $mid-gold !important;
+      }
+
+      .collapse-text {
+        color: $mid-gold-light !important;
+      }
+
+      &:hover {
+        background: rgba($mid-gold, 0.2) !important;
+        border-color: $mid-gold !important;
+      }
+    }
+  }
+
+  // 子菜单弹出层
+  .sub-menu-popup {
+    .sub-menu-container {
+      background: linear-gradient(180deg, $mid-blue, $mid-blue-light) !important;
+      border: 2px solid $mid-gold !important;
+      box-shadow:
+        0 0 20px rgba($mid-gold, 0.3),
+        0 20px 60px rgba(0, 0, 0, 0.4) !important;
+
+      // 列标题
+      .column-title {
+        color: $mid-gold !important;
+        border-bottom: 1px solid $mid-border !important;
+      }
+
+      // 菜单项
+      .menu-item {
+        background: rgba(26, 35, 126, 0.4) !important;
+        border: 1px solid rgba($mid-gold, 0.2) !important;
+        color: rgba(255, 255, 255, 0.95) !important;
+
+        &:hover {
+          background: rgba($mid-gold, 0.15) !important;
+          border-color: $mid-gold !important;
+          color: $mid-gold !important;
+          box-shadow: 0 0 12px rgba($mid-gold, 0.25) !important;
+        }
+
+        &.is-active {
+          background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
+          border-color: $mid-cyan !important;
+          color: $mid-blue !important;
+          box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
+        }
+      }
+
+      // 收藏按钮
+      .favorite-btn {
+        background: rgba($mid-gold, 0.2) !important;
+        border-color: rgba($mid-gold, 0.3) !important;
+
+        svg {
+          color: $mid-gold !important;
+        }
+
+        &:hover {
+          background: rgba($mid-gold, 0.3) !important;
+        }
+      }
+
+      // 收藏菜单项
+      .favorite-menu-item {
+        background: rgba(26, 35, 126, 0.4) !important;
+        color: rgba(255, 255, 255, 0.95) !important;
+
+        .favorite-menu-icon {
+          color: $mid-gold !important;
+          background: rgba($mid-gold, 0.2) !important;
+        }
+
+        &:hover {
+          background: rgba($mid-gold, 0.15) !important;
+          border-color: $mid-gold !important;
+        }
+      }
+
+      // 空收藏提示
+      .empty-favorites {
+        color: rgba($mid-gold-light, 0.8) !important;
+
+        .empty-icon {
+          color: rgba($mid-gold, 0.5) !important;
+        }
+
+        p {
+          color: $mid-gold-light !important;
+        }
+      }
+    }
+  }
+}
+</style>
