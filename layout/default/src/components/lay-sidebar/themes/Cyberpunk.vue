@@ -246,12 +246,13 @@ $cyber-shadow: rgba(0, 255, 255, 0.4);
       border-left: 1px solid rgba(0, 255, 255, 0.15);
       margin-left: 16px !important;
       
-      // 子菜单项 - 与一级菜单统一样式
+      // 子菜单项 - 与父菜单完全一致的尺寸
       .el-menu-item {
         margin: 4px 8px !important;
-        padding: 0 16px !important;
-        height: 40px !important;
-        line-height: 40px !important;
+        padding: 0 20px !important;
+        height: var(--el-menu-item-height, 56px) !important;
+        line-height: var(--el-menu-item-height, 56px) !important;
+        font-size: var(--el-menu-item-font-size, 14px) !important;
         border-radius: 4px !important;
         background: rgba(10, 10, 18, 0.6) !important;
         border: 1px solid rgba(0, 255, 255, 0.2) !important;
@@ -320,9 +321,10 @@ $cyber-shadow: rgba(0, 255, 255, 0.4);
       // 嵌套子菜单标题
       .el-sub-menu__title {
         margin: 4px 8px !important;
-        padding: 0 16px !important;
-        height: 40px !important;
-        line-height: 40px !important;
+        padding: 0 20px !important;
+        height: var(--el-menu-item-height, 56px) !important;
+        line-height: var(--el-menu-item-height, 56px) !important;
+        font-size: var(--el-menu-item-font-size, 14px) !important;
         border-radius: 4px !important;
         background: rgba(10, 10, 18, 0.6) !important;
         border: 1px solid rgba(0, 255, 255, 0.2) !important;
