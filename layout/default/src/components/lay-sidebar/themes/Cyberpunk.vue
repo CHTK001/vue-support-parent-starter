@@ -210,6 +210,11 @@ $cyber-shadow: rgba(0, 255, 255, 0.4);
       &.nest-menu::before {
         background: none !important;
       }
+      
+      // submenu-title-noDropdown.outer-most 激活时不显示 ::before 背景
+      &.submenu-title-noDropdown.outer-most::before {
+        background: none !important;
+      }
     }
     
     // 子菜单样式 - 当子菜单项选中时，父级菜单显示激活样式
