@@ -17,6 +17,7 @@ export * from "./src/api/common/user-log";
 export * from "./src/api/common/totp";
 export * from "./src/api/common/project";
 export * from "./src/api/common/common";
+export * from "./src/api/message";
 
 import { useAppStoreHook } from "./src/store/modules/AppStore";
 export * from "./src/store/modules/ConfigStore";
@@ -29,6 +30,7 @@ export * from "./src/store/modules/LayoutStore";
 export * from "./src/store/modules/SettingStore";
 export * from "./src/store/modules/UserStore";
 export * from "./src/store/modules/WeatherStore";
+export * from "./src/store/modules/MessageStore";
 export * from "./src/utils/auth";
 export * from "./src/utils/mitt";
 export * from "./src/utils/fingerprintjs2";
