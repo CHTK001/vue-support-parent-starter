@@ -41,7 +41,7 @@
                 <li v-for="(item, index) in getData(dataList)" :key="index" class="sql-item">
                   <el-button class="sql-button" @click="handleEventOne(item)">
                     <span class="sql-index">{{ index + 1 }}</span>
-                    <span class="sql-table">{{ item?.data?.tables?.[0] || "SQL" }}</span>
+                    <span class="sql-content">{{ item?.data?.sql || "SQL" }}</span>
                   </el-button>
                 </li>
               </ul>
@@ -289,10 +289,16 @@ onUnmounted(() => {
     flex-shrink: 0;
   }
 
-  .sql-table {
+  .sql-content {
     flex: 1;
     text-align: left;
-    font-weight: 600;
+    font-weight: 500;
+    font-size: 12px;
+    font-family: "Courier New", monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--el-text-color-regular);
   }
 }
 
