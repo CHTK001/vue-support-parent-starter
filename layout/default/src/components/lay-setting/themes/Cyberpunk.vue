@@ -451,6 +451,243 @@ $cyber-border-hover: rgba(0, 255, 255, 0.45);
   :deep(.el-tooltip__trigger) {
     color: $cyber-cyan !important;
   }
+
+  // 设置内容区域
+  :deep(.setting-content) {
+    color: $cyber-cyan;
+  }
+
+  // 开关组件网格
+  :deep(.switch-card-grid) {
+    .sc-switch-visual-card {
+      background: rgba(10, 10, 18, 0.7) !important;
+      border: 1px solid $cyber-border !important;
+      
+      .switch-label {
+        color: $cyber-cyan !important;
+      }
+      
+      .switch-description {
+        color: rgba(0, 255, 255, 0.5) !important;
+      }
+      
+      &:hover {
+        border-color: $cyber-border-hover !important;
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.2) !important;
+      }
+      
+      &.is-active {
+        border-color: $cyber-cyan !important;
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.12) 0%, rgba(255, 0, 255, 0.08) 100%) !important;
+        box-shadow: 0 0 25px rgba(0, 255, 255, 0.3) !important;
+        
+        .switch-label {
+          color: #fff !important;
+          text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+        }
+      }
+    }
+  }
+
+  // 设置分组
+  :deep(.setting-group) {
+    h4.group-title {
+      color: $cyber-cyan !important;
+      text-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+      
+      .group-icon {
+        color: $cyber-magenta !important;
+        filter: drop-shadow(0 0 5px rgba(255, 0, 255, 0.4));
+      }
+    }
+  }
+
+  // 布局参数网格
+  :deep(.layout-params-grid) {
+    .param-item {
+      .param-label {
+        color: $cyber-cyan !important;
+      }
+    }
+  }
+
+  // 拉伸按钮
+  :deep(.stretch-button) {
+    background: rgba(10, 10, 18, 0.8) !important;
+    border: 1px solid $cyber-border !important;
+    
+    &:hover {
+      border-color: $cyber-cyan !important;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.3) !important;
+    }
+    
+    .stretch-indicator {
+      background: linear-gradient(90deg, $cyber-cyan, $cyber-magenta) !important;
+      
+      svg {
+        color: #fff !important;
+      }
+      
+      .stretch-line {
+        background: rgba(255, 255, 255, 0.8) !important;
+      }
+    }
+  }
+
+  // AI 主题网格
+  :deep(.ai-theme-grid) {
+    .ai-theme-item {
+      background: rgba(10, 10, 18, 0.7) !important;
+      border: 1px solid $cyber-border !important;
+      
+      .ai-theme-label {
+        color: $cyber-cyan !important;
+      }
+      
+      &:hover {
+        border-color: $cyber-border-hover !important;
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.2) !important;
+      }
+      
+      &.is-active {
+        border-color: $cyber-cyan !important;
+        box-shadow: 0 0 25px rgba(0, 255, 255, 0.4) !important;
+        
+        .ai-theme-label {
+          color: #fff !important;
+          text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+        }
+        
+        .ai-theme-check {
+          background: linear-gradient(135deg, $cyber-cyan, $cyber-magenta) !important;
+          box-shadow: 0 0 10px rgba(0, 255, 255, 0.5) !important;
+        }
+      }
+    }
+  }
+
+  // 节日主题区域
+  :deep(.festival-themes-section) {
+    .theme-switcher-item {
+      background: rgba(10, 10, 18, 0.7) !important;
+      border: 1px solid $cyber-border !important;
+      
+      &:hover {
+        border-color: $cyber-border-hover !important;
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.2) !important;
+      }
+      
+      &.is-active {
+        border-color: $cyber-cyan !important;
+        box-shadow: 0 0 25px rgba(0, 255, 255, 0.4) !important;
+      }
+    }
+  }
+
+  // 自动主题状态卡片
+  :deep(.auto-theme-status) {
+    .status-card {
+      background: rgba(10, 10, 18, 0.7) !important;
+      border: 1px solid $cyber-border !important;
+      
+      .status-icon {
+        color: $cyber-cyan !important;
+        background: rgba(0, 255, 255, 0.1) !important;
+      }
+      
+      .status-title {
+        color: $cyber-cyan !important;
+      }
+      
+      .status-desc {
+        color: rgba(0, 255, 255, 0.6) !important;
+      }
+      
+      .status-current {
+        .label {
+          color: rgba(0, 255, 255, 0.6) !important;
+        }
+        .value {
+          color: $cyber-magenta !important;
+        }
+      }
+    }
+  }
+
+  // 节日装饰提示
+  :deep(.festival-decoration-tip) {
+    background: rgba(10, 10, 18, 0.7) !important;
+    border: 1px solid rgba(255, 0, 255, 0.3) !important;
+    color: rgba(255, 0, 255, 0.8) !important;
+    
+    .tip-icon {
+      color: $cyber-magenta !important;
+    }
+  }
+
+  // 新菜单设置区域
+  :deep(.new-menu-settings) {
+    .input-item {
+      .input-label {
+        color: $cyber-cyan !important;
+      }
+      
+      .input-desc {
+        color: rgba(0, 255, 255, 0.5) !important;
+      }
+    }
+  }
+
+  // Element Plus 选择器
+  :deep(.el-select) {
+    .el-select__wrapper {
+      background: rgba(10, 10, 18, 0.8) !important;
+      border: 1px solid $cyber-border !important;
+      box-shadow: none !important;
+      
+      &:hover {
+        border-color: $cyber-border-hover !important;
+      }
+      
+      &.is-focus {
+        border-color: $cyber-cyan !important;
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.2) !important;
+      }
+    }
+    
+    .el-select__selected-item {
+      color: $cyber-cyan !important;
+    }
+    
+    .el-select__suffix {
+      color: $cyber-cyan !important;
+    }
+  }
+
+  // Element Plus 开关
+  :deep(.el-switch) {
+    .el-switch__core {
+      background: rgba(10, 10, 18, 0.8) !important;
+      border: 1px solid $cyber-border !important;
+    }
+    
+    &.is-checked .el-switch__core {
+      background: linear-gradient(90deg, $cyber-cyan, $cyber-magenta) !important;
+      border-color: $cyber-cyan !important;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.4) !important;
+    }
+  }
+
+  // 所有文本颜色
+  :deep(label),
+  :deep(.label) {
+    color: $cyber-cyan !important;
+  }
+
+  :deep(.description),
+  :deep(.desc) {
+    color: rgba(0, 255, 255, 0.5) !important;
+  }
 }
 
 // 动画 - 需要放在 scoped 外面或使用 :global
