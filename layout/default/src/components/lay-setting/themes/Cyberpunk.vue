@@ -27,7 +27,10 @@ $cyber-border-hover: rgba(0, 255, 255, 0.45);
 
 // 赛博朋克主题设置面板样式
 // 使用全局选择器覆盖 scoped 样式
-html[data-skin="cyberpunk"] .cyberpunk-setting-wrapper {
+// 注意：BaseSetting 中的 themeClass 会加到 base-setting-wrapper 上
+// 使用多层选择器增加优先级
+html[data-skin="cyberpunk"] .cyberpunk-setting-wrapper .base-setting-wrapper.cyberpunk-setting,
+html[data-skin="cyberpunk"] .cyberpunk-setting {
     // 容器背景
     .modern-setting-container {
       background: linear-gradient(
