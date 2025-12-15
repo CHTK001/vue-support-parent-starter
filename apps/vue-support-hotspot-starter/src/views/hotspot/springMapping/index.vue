@@ -49,7 +49,7 @@
     </el-row>
 
     <!-- 数据卡片 -->
-    <el-card class="modern-card" shadow="hover">
+    <el-card class="modern-card table-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">
@@ -64,7 +64,7 @@
         </div>
       </template>
 
-      <el-table :data="filteredData" style="width: 100%" row-key="id" stripe highlight-current-row class="modern-table" max-height="600">
+      <el-table :data="filteredData" style="width: 100%" row-key="id" stripe highlight-current-row class="modern-table" height="calc(100vh - 450px)">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="路由路径" min-width="220">
           <template #default="{ row }">
@@ -264,9 +264,12 @@ onUnmounted(() => {
 </script>
 <style lang="scss" scoped>
 .page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   padding: 20px;
-  min-height: 100%;
   background: var(--el-bg-color-page);
+  overflow: hidden;
 }
 
 .stats-row {
@@ -381,6 +384,19 @@ onUnmounted(() => {
   border-radius: 12px;
   border: none;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.table-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  
+  :deep(.el-card__body) {
+    flex: 1;
+    overflow: hidden;
+    padding: 0;
+  }
 
   :deep(.el-card__header) {
     padding: 16px 20px;
