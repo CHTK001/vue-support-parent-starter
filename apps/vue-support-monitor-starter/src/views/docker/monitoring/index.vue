@@ -1,32 +1,36 @@
 <template>
   <div class="container-monitoring">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <div class="page-title">
-          <IconifyIconOnline icon="ri:dashboard-line" class="title-icon" />
-          <span>容器监控</span>
+    <!-- 现代化页面头部 -->
+    <div class="modern-header">
+      <div class="header-content">
+        <div class="header-info">
+          <div class="icon-wrapper">
+            <IconifyIconOnline icon="ri:dashboard-line" class="header-icon" />
+          </div>
+          <div class="title-wrapper">
+            <h1 class="page-title">容器监控</h1>
+            <p class="page-subtitle">实时监控容器资源使用情况</p>
+          </div>
         </div>
-        <div class="page-subtitle">实时监控容器资源使用情况</div>
-      </div>
-      <div class="header-right">
-        <el-button @click="handleRefresh" :loading="loading">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-        <el-button type="success" @click="handleAutoRefresh">
-          <IconifyIconOnline 
-            :icon="autoRefresh ? 'ri:pause-line' : 'ri:play-line'" 
-            class="mr-1" 
-          />
-          {{ autoRefresh ? '暂停' : '自动刷新' }}
-        </el-button>
+        <div class="header-actions">
+          <el-button @click="handleRefresh" :loading="loading" class="action-btn">
+            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+            刷新
+          </el-button>
+          <el-button type="success" @click="handleAutoRefresh" class="action-btn">
+            <IconifyIconOnline 
+              :icon="autoRefresh ? 'ri:pause-line' : 'ri:play-line'" 
+              class="mr-1" 
+            />
+            {{ autoRefresh ? '暂停' : '自动刷新' }}
+          </el-button>
+        </div>
       </div>
     </div>
 
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <div class="search-left">
+    <!-- 工具栏 -->
+    <div class="toolbar-section">
+      <div class="toolbar-left">
         <el-input
           v-model="searchParams.keyword"
           placeholder="搜索容器名称或镜像"
@@ -67,6 +71,10 @@
             :value="server.id"
           />
         </el-select>
+        <el-button type="primary" @click="handleSearch">
+          <IconifyIconOnline icon="ri:search-line" class="mr-1" />
+          搜索
+        </el-button>
       </div>
     </div>
 
@@ -281,97 +289,177 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .container-monitoring {
-  padding: 20px;
+  padding: 0;
   background: var(--app-bg-secondary);
-  min-height: calc(100vh - 60px);
+  min-height: 100vh;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-  padding: 20px;
-  background: var(--app-card-bg);
-  border-radius: 8px;
-  box-shadow: var(--app-card-shadow);
+// 现代化头部
+.modern-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 28px 32px;
+  color: #fff;
+  margin-bottom: 0;
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .header-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .icon-wrapper {
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+
+    .header-icon {
+      font-size: 28px;
+      color: #fff;
+    }
+  }
+
+  .title-wrapper {
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0 0 4px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      opacity: 0.85;
+      margin: 0;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+
+    .action-btn {
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+    }
+  }
 }
 
-.page-title {
+// 工具栏
+.toolbar-section {
   display: flex;
   align-items: center;
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--app-text-primary);
-}
-
-.title-icon {
-  margin-right: 8px;
-  color: var(--app-primary);
-}
-
-.page-subtitle {
-  color: var(--app-text-secondary);
-  margin-top: 8px;
-  font-size: 14px;
-}
-
-.header-right {
-  display: flex;
-  gap: 12px;
-}
-
-.search-bar {
-  display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 16px;
-  background: var(--app-card-bg);
-  border-radius: 8px;
-  box-shadow: var(--app-card-shadow);
-}
+  padding: 16px 32px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 
-.search-left {
-  display: flex;
-  gap: 12px;
-}
-
-.search-input {
-  width: 280px;
-}
-
-.filter-select {
-  width: 140px;
-}
-
-/* 监控表格 */
-.monitoring-table-card {
-  background: var(--app-card-bg);
-  border-radius: 8px;
-  box-shadow: var(--app-card-shadow);
-}
-
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .search-left {
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     flex-wrap: wrap;
   }
-  
+
   .search-input {
-    width: 240px;
+    width: 280px;
+
+    :deep(.el-input__wrapper) {
+      border-radius: 10px;
+    }
   }
-  
+
   .filter-select {
-    width: 120px;
+    width: 140px;
+
+    :deep(.el-input__wrapper) {
+      border-radius: 10px;
+    }
+  }
+}
+
+// 卡片区域
+:deep(.el-card) {
+  margin: 16px 32px;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+// 监控表格
+.monitoring-table-card {
+  margin: 16px 32px 32px;
+}
+
+// 响应式设计
+@media (max-width: 1200px) {
+  .toolbar-section .toolbar-left {
+    .search-input {
+      width: 220px;
+    }
+    
+    .filter-select {
+      width: 120px;
+    }
   }
 }
 
 @media (max-width: 768px) {
-  .container-monitoring {
-    padding: 12px;
+  .modern-header {
+    padding: 20px;
+
+    .header-content {
+      flex-direction: column;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .header-actions {
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+  }
+
+  .toolbar-section {
+    padding: 16px;
+
+    .toolbar-left {
+      flex-direction: column;
+      width: 100%;
+
+      .search-input,
+      .filter-select {
+        width: 100%;
+      }
+    }
+  }
+
+  :deep(.el-card) {
+    margin: 12px 16px;
+  }
+
+  .monitoring-table-card {
+    margin: 12px 16px 16px;
   }
   
   .page-header {

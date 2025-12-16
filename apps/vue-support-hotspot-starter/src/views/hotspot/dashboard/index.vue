@@ -20,8 +20,8 @@ const wsConnected = computed(() => wsService.connected.value);
 // 获取系统信息
 const fetchSystemInfo = async () => {
   try {
-    const res = await http.get((window.agentPath || "/agent") + "/system");
-    systemInfo.value = res.data || {};
+    const res = await http.get((window.agentPath || "/agent") + "/api/system");
+    systemInfo.value = res || {};
   } catch (error) {
     console.error("获取系统信息失败:", error);
   }
@@ -30,8 +30,8 @@ const fetchSystemInfo = async () => {
 // 获取JVM信息
 const fetchJvmInfo = async () => {
   try {
-    const res = await http.get((window.agentPath || "/agent") + "/jvm");
-    jvmInfo.value = res.data || {};
+    const res = await http.get((window.agentPath || "/agent") + "/api/jvm");
+    jvmInfo.value = res || {};
   } catch (error) {
     console.error("获取JVM信息失败:", error);
   }

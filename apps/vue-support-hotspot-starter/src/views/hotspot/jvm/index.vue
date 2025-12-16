@@ -11,8 +11,8 @@ let refreshTimer: ReturnType<typeof setInterval> | null = null;
 const fetchJvmInfo = async () => {
   loading.value = true;
   try {
-    const res = await http.get((window.agentPath || "/agent") + "/jvm");
-    jvmInfo.value = res.data || {};
+    const res = await http.get((window.agentPath || "/agent") + "/api/jvm");
+    jvmInfo.value = res || {};
   } catch (error) {
     console.error("获取JVM信息失败:", error);
   } finally {
@@ -68,7 +68,7 @@ const formatTime = (timestamp: number) => {
 // 触发GC
 const triggerGC = async () => {
   try {
-    await http.post((window.agentPath || "/agent") + "/jvm?action=gc");
+    await http.get((window.agentPath || "/agent") + "/api/jvm?action=gc");
     ElMessage.success("GC已触发");
     setTimeout(fetchJvmInfo, 1000);
   } catch (error) {
@@ -91,33 +91,78 @@ onUnmounted(() => {
 
 <template>
   <div class="page-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <IconifyIconOnline icon="ri:cpu-line" class="header-icon" />
-        <div class="header-info">
-          <h2 class="header-title">JVM 监控</h2>
-          <p class="header-desc">实时监控 JVM 内存、GC 和运行时状态</p>
-        </div>
-      </div>
-      <div class="header-right">
-        <div class="stat-card">
-          <div class="stat-number">{{ heapUsedPercent }}%</div>
-          <div class="stat-label">堆内存</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">{{ jvmInfo.threadCount || 0 }}</div>
-          <div class="stat-label">线程数</div>
-        </div>
-        <el-button type="info" @click="fetchJvmInfo" :loading="loading">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-        <el-button type="warning" @click="triggerGC">
-          <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-          触发GC
-        </el-button>
-      </div>
+    <!-- 关键指标卡片 -->
+    <el-row :gutter="20" class="stats-row">
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper primary">
+              <IconifyIconOnline icon="ri:stack-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ heapUsedPercent }}%</div>
+              <div class="stat-label">堆内存使用</div>
+              <div class="stat-detail">{{ formatBytes(jvmInfo.heapMemoryUsed) }} / {{ formatBytes(jvmInfo.heapMemoryMax) }}</div>
+            </div>
+          </div>
+          <el-progress :percentage="heapUsedPercent" :stroke-width="6" :show-text="false" 
+            :color="heapUsedPercent > 80 ? '#F56C6C' : heapUsedPercent > 60 ? '#E6A23C' : '#67C23A'" />
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper success">
+              <IconifyIconOnline icon="ri:cpu-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ jvmInfo.threadCount || 0 }}</div>
+              <div class="stat-label">活跃线程</div>
+              <div class="stat-detail">峰值: {{ jvmInfo.peakThreadCount || 0 }}</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper warning">
+              <IconifyIconOnline icon="ri:code-box-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ jvmInfo.loadedClassCount || 0 }}</div>
+              <div class="stat-label">已加载类</div>
+              <div class="stat-detail">卸载: {{ jvmInfo.unloadedClassCount || 0 }}</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper danger">
+              <IconifyIconOnline icon="ri:recycle-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ (jvmInfo.youngGcCount || 0) + (jvmInfo.fullGcCount || 0) }}</div>
+              <div class="stat-label">GC 次数</div>
+              <div class="stat-detail">Full GC: {{ jvmInfo.fullGcCount || 0 }}</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- 操作按钮 -->
+    <div class="action-bar">
+      <el-button type="info" @click="fetchJvmInfo" :loading="loading">
+        <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+        刷新
+      </el-button>
+      <el-button type="warning" @click="triggerGC">
+        <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
+        触发GC
+      </el-button>
     </div>
 
     <!-- 内存监控 -->
@@ -312,69 +357,81 @@ onUnmounted(() => {
   background: var(--el-bg-color-page);
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.stats-row {
   margin-bottom: 20px;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, var(--el-color-success-light-9) 0%, var(--el-color-success-light-8) 100%);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
 
-  .header-left {
+.stat-card {
+  border-radius: 12px;
+  border: none;
+
+  :deep(.el-card__body) {
+    padding: 20px;
+  }
+
+  .stat-content {
     display: flex;
     align-items: center;
     gap: 16px;
-
-    .header-icon {
-      font-size: 40px;
-      color: var(--el-color-success);
-      padding: 12px;
-      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
-      border-radius: 12px;
-    }
-
-    .header-info {
-      .header-title {
-        margin: 0 0 4px 0;
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-      }
-
-      .header-desc {
-        margin: 0;
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-      }
-    }
+    margin-bottom: 12px;
   }
 
-  .header-right {
+  .stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: center;
 
-    .stat-card {
-      background: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      text-align: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    &.primary {
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
+      .stat-icon { color: var(--el-color-primary); }
+    }
+    &.success {
+      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+      .stat-icon { color: var(--el-color-success); }
+    }
+    &.warning {
+      background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+      .stat-icon { color: var(--el-color-warning); }
+    }
+    &.danger {
+      background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
+      .stat-icon { color: var(--el-color-danger); }
+    }
 
-      .stat-number {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--el-color-success);
-      }
-
-      .stat-label {
-        font-size: 11px;
-        color: var(--el-text-color-secondary);
-      }
+    .stat-icon {
+      font-size: 24px;
     }
   }
+
+  .stat-info {
+    flex: 1;
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+    }
+
+    .stat-detail {
+      font-size: 11px;
+      color: var(--el-text-color-placeholder);
+      margin-top: 2px;
+    }
+  }
+}
+
+.action-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .content-row {
@@ -457,16 +514,7 @@ html.dark {
     background: var(--el-bg-color-page);
   }
 
-  .page-header {
-    background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-
-    .header-right .stat-card {
-      background: var(--el-bg-color);
-    }
-  }
-
-  .modern-card {
+  .stat-card, .modern-card {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 }
