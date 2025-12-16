@@ -209,6 +209,218 @@ $xmas-border: rgba(255, 215, 0, 0.4);
         color: $xmas-white !important;
       }
     }
+    
+    // 垂直导航展开的子菜单容器
+    .el-sub-menu .el-menu {
+      background: rgba(darken($xmas-green, 8%), 0.8) !important;
+      
+      // 子菜单项
+      .el-menu-item {
+        color: $xmas-white !important;
+        background: transparent !important;
+        border: none !important;
+        margin: 2px 8px !important;
+        
+        &:hover {
+          background: rgba($xmas-red, 0.6) !important;
+          color: $xmas-white !important;
+        }
+        
+        &.is-active {
+          background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
+          color: $xmas-white !important;
+          border-left: 3px solid $xmas-gold !important;
+          
+          .el-icon, svg, span, div {
+            color: $xmas-white !important;
+          }
+        }
+        
+        .el-icon, svg {
+          color: $xmas-gold !important;
+        }
+        
+        span, div {
+          color: inherit !important;
+        }
+      }
+      
+      // 嵌套子菜单标题
+      .el-sub-menu__title {
+        color: $xmas-white !important;
+        background: transparent !important;
+        border: none !important;
+        
+        &:hover {
+          background: rgba($xmas-red, 0.6) !important;
+          color: $xmas-white !important;
+        }
+      }
+    }
+  }
+}
+</style>
+
+<style lang="scss">
+// 子菜单弹出层全局样式（teleport 到 body，必须是全局样式）
+// 仅在圣诞主题下生效
+html[data-skin="christmas"] {
+  $xmas-green: #1b5e20;
+  $xmas-green-light: #2e7d32;
+  $xmas-red: #c62828;
+  $xmas-red-light: #e53935;
+  $xmas-gold: #ffd700;
+  $xmas-white: #ffffff;
+  $xmas-border: rgba(255, 215, 0, 0.4);
+
+  // 子菜单弹出层容器
+  .pure-scrollbar.el-menu--vertical,
+  .el-menu--popup-container .el-menu--popup,
+  .el-menu--popup {
+    background: linear-gradient(180deg, $xmas-green 0%, darken($xmas-green, 5%) 100%) !important;
+    border: 2px solid $xmas-border !important;
+    border-radius: 8px !important;
+    box-shadow:
+      0 0 20px rgba($xmas-gold, 0.2),
+      0 15px 40px rgba(0, 0, 0, 0.4) !important;
+    overflow: hidden !important;
+    padding: 6px !important;
+    position: relative;
+
+    // 顶部金色装饰线
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, $xmas-gold 30%, $xmas-red 50%, $xmas-gold 70%, transparent);
+      z-index: 1;
+    }
+
+    // 子菜单项 - 与一级菜单统一样式
+    .el-menu-item {
+      margin: 4px 6px !important;
+      padding: 0 16px !important;
+      height: 40px !important;
+      line-height: 40px !important;
+      border-radius: 8px !important;
+      background: rgba(darken($xmas-green, 5%), 0.6) !important;
+      border: 1.5px solid rgba($xmas-gold, 0.25) !important;
+      color: $xmas-white !important;
+      font-weight: 500;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      position: relative;
+      z-index: 1;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+        color: $xmas-white !important;
+        border-color: rgba($xmas-gold, 0.5) !important;
+        transform: translateX(4px) !important;
+        box-shadow:
+          0 4px 12px rgba($xmas-red, 0.3),
+          0 2px 8px rgba(0, 0, 0, 0.2) !important;
+      }
+
+      // 图标样式
+      .el-icon,
+      svg,
+      .sub-menu-icon {
+        color: $xmas-gold !important;
+        margin-right: 8px;
+      }
+
+      // 文字
+      span,
+      .el-text {
+        color: inherit !important;
+      }
+
+      // 激活状态 - 与一级菜单统一
+      &.is-active {
+        background: linear-gradient(135deg, $xmas-red 0%, $xmas-red-light 100%) !important;
+        color: $xmas-white !important;
+        border: 2px solid $xmas-gold !important;
+        font-weight: 700;
+        box-shadow:
+          0 4px 16px rgba($xmas-red, 0.5),
+          0 0 20px rgba($xmas-gold, 0.3) !important;
+
+        .el-icon,
+        svg,
+        .sub-menu-icon {
+          color: $xmas-white !important;
+        }
+
+        span, .el-text {
+          color: $xmas-white !important;
+        }
+
+        // 左侧金色装饰条
+        &::after {
+          content: '';
+          position: absolute;
+          left: -2px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 4px;
+          height: 70%;
+          background: linear-gradient(to bottom, $xmas-gold, #ffeb3b, $xmas-gold);
+          border-radius: 2px;
+          box-shadow: 0 0 8px rgba($xmas-gold, 0.8);
+        }
+      }
+    }
+
+    // 嵌套子菜单标题 - 与一级菜单统一
+    .el-sub-menu__title {
+      margin: 4px 6px !important;
+      padding: 0 16px !important;
+      height: 40px !important;
+      line-height: 40px !important;
+      border-radius: 8px !important;
+      background: rgba(darken($xmas-green, 5%), 0.6) !important;
+      border: 1.5px solid rgba($xmas-gold, 0.25) !important;
+      color: $xmas-white !important;
+      font-weight: 500;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      position: relative;
+      z-index: 1;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+        color: $xmas-white !important;
+        border-color: rgba($xmas-gold, 0.5) !important;
+        transform: translateX(4px) !important;
+        box-shadow:
+          0 4px 12px rgba($xmas-red, 0.3),
+          0 2px 8px rgba(0, 0, 0, 0.2) !important;
+      }
+
+      .el-icon,
+      svg {
+        color: $xmas-gold !important;
+      }
+
+      span {
+        color: inherit !important;
+      }
+
+      // 展开箭头
+      .el-sub-menu__icon-arrow {
+        color: $xmas-gold !important;
+      }
+    }
+
+    // 激活的子菜单标题
+    .el-sub-menu.is-active > .el-sub-menu__title {
+      color: $xmas-white !important;
+      background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+      border-color: rgba($xmas-gold, 0.5) !important;
+      font-weight: 700;
+    }
   }
 }
 </style>
