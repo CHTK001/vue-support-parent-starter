@@ -41,6 +41,45 @@ interface NetworkStatus {
   lastChecked: Date | null;
 }
 
+// IP 服务列表，按优先级排序
+const IP_SERVICES = [
+  {
+    url: "https://api.ipify.org?format=json",
+    parseIP: (data: any) => data.ip,
+    parseDetails: () => null
+  },
+  {
+    url: "https://ipinfo.io/json",
+    parseIP: (data: any) => data.ip,
+    parseDetails: (data: any) => ({
+      country: data.country || "",
+      region: data.region || "",
+      city: data.city || "",
+      isp: data.org || "",
+      org: data.org || "",
+      asn: "",
+      timezone: data.timezone || "",
+      latitude: 0,
+      longitude: 0
+    })
+  },
+  {
+    url: "https://api.ip.sb/geoip",
+    parseIP: (data: any) => data.ip,
+    parseDetails: (data: any) => ({
+      country: data.country || "",
+      region: data.region || "",
+      city: data.city || "",
+      isp: data.isp || "",
+      org: data.organization || "",
+      asn: data.asn?.toString() || "",
+      timezone: data.timezone || "",
+      latitude: data.latitude || 0,
+      longitude: data.longitude || 0
+    })
+  }
+];
+
 /**
  * 获取当前 IP 地址及相关信息
  * @returns {Promise<{ip: string, details: IPDetails | null, networkStatus: NetworkStatus}>} IP信息对象
@@ -51,7 +90,11 @@ export const getCurrentIP = async (): Promise<{
   networkStatus: NetworkStatus;
 }> => {
   // 初始化返回对象
-  const result = {
+  const result: {
+    ip: string;
+    details: IPDetails | null;
+    networkStatus: NetworkStatus;
+  } = {
     ip: "",
     details: null,
     networkStatus: {
@@ -61,8 +104,6 @@ export const getCurrentIP = async (): Promise<{
     }
   };
   
-  let loading = true;
-  
   try {
     // 检查网络连接
     const isOnline = await checkPublicNetwork();
@@ -70,29 +111,48 @@ export const getCurrentIP = async (): Promise<{
 
     if (!isOnline) {
       result.ip = "离线状态";
-      loading = false;
       return result;
     }
 
-    // 获取公网IP - 使用国内可访问的接口
-    const response = await fetch("https://ip.useragentinfo.com/json");
-    const data = await response.json();
-    result.ip = data.ip || data.ipaddress;
-
-    // 检查是否为公网IP
-    result.networkStatus.isPublic = !isPrivateIP(result.ip);
-
-    // 获取IP地理位置信息
-    result.details = data;
-    result.networkStatus.lastChecked = new Date();
+    // 尝试多个 IP 服务
+    for (const service of IP_SERVICES) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
+        
+        const response = await fetch(service.url, {
+          signal: controller.signal,
+          headers: { 'Accept': 'application/json' }
+        });
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          result.ip = service.parseIP(data);
+          
+          if (result.ip) {
+            // 检查是否为公网IP
+            result.networkStatus.isPublic = !isPrivateIP(result.ip);
+            // 获取IP地理位置信息
+            result.details = service.parseDetails(data);
+            result.networkStatus.lastChecked = new Date();
+            return result;
+          }
+        }
+      } catch (e) {
+        // 当前服务失败，尝试下一个
+        console.warn(`IP 服务 ${service.url} 失败:`, e);
+        continue;
+      }
+    }
     
+    // 所有服务都失败
+    result.ip = "获取失败";
     return result;
   } catch (error) {
     console.error("获取 IP 地址失败:", error);
     result.ip = "获取失败";
     return result;
-  } finally {
-    loading = false;
   }
 };
 /**
