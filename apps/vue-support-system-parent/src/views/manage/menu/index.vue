@@ -47,20 +47,38 @@
         </div>
         <!-- 表格头部 -->
         <el-header class="menu-header">
-          <div class="header-title">
-            <IconifyIconOnline icon="mdi:menu" />
+          <div class="header-left">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="搜索菜单名称/路由"
+              clearable
+              class="search-input"
+              @input="handleSearch"
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="ri:search-line" />
+              </template>
+            </el-input>
           </div>
           <div class="header-actions">
+            <!-- 展开/折叠全部 -->
+            <el-tooltip :content="isExpanded ? '折叠全部' : '展开全部'" placement="top">
+              <el-button @click="toggleExpandAll">
+                <IconifyIconOnline :icon="isExpanded ? 'ri:collapse-diagonal-line' : 'ri:expand-diagonal-line'" />
+              </el-button>
+            </el-tooltip>
             <!-- 刷新按钮 -->
-            <el-button type="primary" :loading="loading.query" class="refresh-btn" @click="onSearch">
-              <IconifyIconOnline icon="mdi:refresh" />
-            </el-button>
-
+            <el-tooltip content="刷新" placement="top">
+              <el-button type="primary" :loading="loading.query" @click="onSearch">
+                <IconifyIconOnline icon="ri:refresh-line" />
+              </el-button>
+            </el-tooltip>
             <!-- 添加菜单按钮 -->
-            <el-button v-if="getConfig().AccountType != 'tenant'" type="default" class="add-btn"
-              @click="dialogOpen({ sysMenuType: 0 }, 'save')">
-              <IconifyIconOnline icon="mdi:plus" />
-            </el-button>
+            <el-tooltip v-if="getConfig().AccountType != 'tenant'" content="添加菜单" placement="top">
+              <el-button type="success" @click="dialogOpen({ sysMenuType: 0 }, 'save')">
+                <IconifyIconOnline icon="ri:add-line" />
+              </el-button>
+            </el-tooltip>
           </div>
         </el-header>
 
@@ -71,7 +89,16 @@
             <el-skeleton v-if="loading.query" animated :rows="6" />
 
             <!-- 表格 -->
-            <el-table v-else :data="tableData" row-key="sysMenuId" border class="menu-table" @row-click="getOpenDetail">
+            <el-table 
+              v-else 
+              ref="menuTableRef"
+              :data="filteredTableData" 
+              row-key="sysMenuId" 
+              border 
+              class="menu-table" 
+              :default-expand-all="isExpanded"
+              @row-click="getOpenDetail"
+            >
               <!-- 菜单名称列 -->
               <el-table-column prop="sysMenuTitle" label="菜单名称" min-width="220" show-overflow-tooltip>
                 <template #default="{ row }">
@@ -186,7 +213,7 @@
 
 <script setup lang="ts">
 // 引入 Vue 相关的 API
-import { nextTick, reactive, ref } from "vue";
+import { nextTick, reactive, ref, computed } from "vue";
 
 // 引入图标
 // 引入保存对话框组件
@@ -218,6 +245,66 @@ const visible = reactive({
 const loading = reactive({
   query: false,
 });
+
+// 搜索关键词
+const searchKeyword = ref('');
+
+// 是否展开全部
+const isExpanded = ref(false);
+
+// 表格引用
+const menuTableRef = ref();
+
+/**
+ * 切换展开/折叠全部
+ */
+const toggleExpandAll = () => {
+  isExpanded.value = !isExpanded.value;
+  // 刷新表格以应用新的展开状态
+  onSearch();
+};
+
+/**
+ * 过滤表格数据
+ */
+const filteredTableData = computed(() => {
+  if (!searchKeyword.value) {
+    return tableData.value;
+  }
+  const keyword = searchKeyword.value.toLowerCase();
+  
+  const filterTree = (items: any[]): any[] => {
+    return items.reduce((acc, item) => {
+      const title = (item.sysMenuTitle || '').toLowerCase();
+      const name = (item.sysMenuName || '').toLowerCase();
+      const path = (item.sysMenuPath || '').toLowerCase();
+      const matches = title.includes(keyword) || name.includes(keyword) || path.includes(keyword);
+      
+      if (item.children?.length) {
+        const filteredChildren = filterTree(item.children);
+        if (filteredChildren.length > 0 || matches) {
+          acc.push({ ...item, children: filteredChildren });
+        }
+      } else if (matches) {
+        acc.push({ ...item });
+      }
+      
+      return acc;
+    }, []);
+  };
+  
+  return filterTree(tableData.value);
+});
+
+/**
+ * 处理搜索
+ */
+const handleSearch = () => {
+  // 搜索时自动展开全部
+  if (searchKeyword.value) {
+    isExpanded.value = true;
+  }
+};
 
 // 统计数据
 const stats = reactive({
@@ -544,29 +631,19 @@ const getMenuTypeTag = (type) => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 64px;
-    padding: 0 20px;
+    height: auto !important;
+    padding: 16px 20px;
     background-color: var(--el-bg-color);
     border-bottom: 1px solid var(--el-border-color-lighter);
-    // 添加渐变背景
-    background-image: linear-gradient(to right, var(--el-bg-color), var(--el-bg-color-page));
+    gap: 16px;
 
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
+    .header-left {
+      flex: 1;
+      max-width: 300px;
 
-      .iconify {
-        font-size: 24px;
-        color: var(--el-color-primary);
-        // 添加图标悬浮效果
-        transition: transform 0.3s ease;
-
-        &:hover {
-          transform: scale(1.1);
+      .search-input {
+        :deep(.el-input__wrapper) {
+          border-radius: 8px;
         }
       }
     }
@@ -574,13 +651,12 @@ const getMenuTypeTag = (type) => {
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
 
       .el-button {
         display: flex;
         align-items: center;
-        gap: 4px;
-        // 添加按钮悬浮效果
+        justify-content: center;
         transition: all 0.3s ease;
 
         &:hover {
