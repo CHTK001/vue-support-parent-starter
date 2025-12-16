@@ -33,7 +33,7 @@ const searchKeyword = ref("");
 const selectedCategory = ref("all");
 
 // 设置项
-const showTime = ref(false); // 是否显示时间，默认不显示
+const showHeaderInfo = ref(false); // 是否显示头部信息（欢迎语、时间、统计），默认不显示
 
 // 当前时间
 const currentTime = ref(new Date());
@@ -186,8 +186,8 @@ onUnmounted(() => {
   >
     <div class="widgets-content">
       <!-- 优化后的头部区域 -->
-      <div class="widgets-header">
-        <div class="header-left">
+      <div class="widgets-header" :class="{ 'header-compact': !showHeaderInfo }">
+        <div class="header-left" v-if="showHeaderInfo">
           <div class="header-greeting">
             <div class="greeting-text">
               <span class="greeting-hello">{{ greeting }}，</span>
@@ -196,14 +196,17 @@ onUnmounted(() => {
             <div class="greeting-subtitle">{{ $t("buttons.board") }}</div>
           </div>
         </div>
-        <div class="header-center" v-if="showTime">
+        <div class="header-left" v-else>
+          <div class="header-title">{{ $t("buttons.board") }}</div>
+        </div>
+        <div class="header-center" v-if="showHeaderInfo">
           <div class="header-time">
             <div class="time-display">{{ formattedTime }}</div>
             <div class="date-display">{{ formattedDate }}</div>
           </div>
         </div>
         <div class="header-right">
-          <div class="header-stats" v-if="customizing.hasLayout">
+          <div class="header-stats" v-if="showHeaderInfo && customizing.hasLayout">
             <div class="stat-item">
               <span class="stat-value">{{ widgetStats.active }}</span>
               <span class="stat-label">已添加</span>
@@ -351,7 +354,7 @@ onUnmounted(() => {
       <!-- 底部操作 -->
       <div class="aside-footer">
         <div class="footer-settings">
-          <el-checkbox v-model="showTime" size="small">显示时间</el-checkbox>
+          <el-checkbox v-model="showHeaderInfo" size="small">显示头部信息</el-checkbox>
         </div>
         <el-button size="small" @click="backDefault()">
           <el-icon class="mr-1"><component :is="useRenderIcon('ep:refresh')" /></el-icon>
@@ -424,6 +427,16 @@ onUnmounted(() => {
     font-size: 14px;
     color: var(--el-text-color-secondary);
   }
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.header-compact {
+  padding: 14px 24px;
 }
 
 .header-center {
