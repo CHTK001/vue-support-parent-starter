@@ -147,10 +147,19 @@ $xmas-border: rgba(255, 215, 0, 0.4);
       }
     }
     
-    // 子菜单样式
+    // 子菜单样式 - 当子菜单项选中时，父级菜单显示激活样式
     .el-sub-menu.is-active > .el-sub-menu__title {
       color: $xmas-white !important;
+      background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+      border-color: rgba($xmas-gold, 0.5) !important;
       font-weight: 700;
+      box-shadow: 
+        0 4px 12px rgba($xmas-red, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.2) !important;
+      
+      .el-icon, svg {
+        color: $xmas-white !important;
+      }
     }
     
     // 底部折叠按钮
