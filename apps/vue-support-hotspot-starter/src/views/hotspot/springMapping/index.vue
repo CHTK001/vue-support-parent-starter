@@ -1,5 +1,29 @@
 <template>
   <div class="page-container">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <IconifyIconOnline icon="ri:git-branch-line" class="header-icon" />
+        <div class="header-info">
+          <h2 class="header-title">Spring 映射管理</h2>
+          <p class="header-desc">查看和监控 Spring MVC 路由映射及 QPS 统计</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="stat-card mini">
+          <div class="stat-number">{{ data.length }}</div>
+          <div class="stat-label">路由总数</div>
+        </div>
+        <el-tag :type="wsConnected ? 'success' : 'danger'" effect="light" size="large">
+          {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
+        </el-tag>
+        <el-button type="info" @click="refreshData" :loading="loading">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+      </div>
+    </div>
+
     <!-- 容器 QPS 统计卡片 -->
     <el-row :gutter="20" class="stats-row">
       <el-col :span="6" v-for="container in containerStats" :key="container.type">
@@ -128,6 +152,8 @@ import { computed, onBeforeMount, onUnmounted, ref } from "vue";
 import { wsService } from "@/utils/websocket";
 
 const data = ref([]);
+const loading = ref(false);
+let qpsRefreshTimer = null;
 const infoVisible = ref(false);
 const info = ref("");
 const searchKeyword = ref("");
@@ -233,6 +259,48 @@ const formatNumber = num => {
   return num;
 };
 
+// 刷新数据
+const refreshData = async () => {
+  loading.value = true;
+  try {
+    const res = await http.get((window.agentPath || "/agent") + "/spring-mapping-data");
+    if (res && typeof res === 'object' && Array.isArray(res.data.data)) {
+      data.value = res.data.data;
+    } else if (Array.isArray(res)) {
+      data.value = res;
+    } else {
+      data.value = [];
+    }
+  } catch (error) {
+    console.error("刷新数据失败:", error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 轮询QPS数据（作为WebSocket备份）
+const fetchQpsData = async () => {
+  try {
+    const res = await http.get((window.agentPath || "/agent") + "/container-qps");
+    if (res && res.data && res.data.status === 'ok') {
+      const statsData = res.data.data;
+      if (res.data.currentContainer) {
+        currentContainer.value = res.data.currentContainer;
+      }
+      containerStats.value.forEach(container => {
+        const stat = statsData[container.type];
+        if (stat) {
+          container.qps = stat.qps || 0;
+          container.totalRequests = stat.totalRequests || 0;
+          container.activeConnections = stat.activeConnections || 0;
+        }
+      });
+    }
+  } catch (error) {
+    // 静默失败，不影响WebSocket推送
+  }
+};
+
 onBeforeMount(async () => {
   // 连接 WebSocket
   wsService.connect();
@@ -243,17 +311,12 @@ onBeforeMount(async () => {
   // 订阅单个路由 QPS 推送
   wsUnsubscribeMappingQps = wsService.subscribe("SERVER", "MAPPING_QPS_UPDATE", handleMappingQpsMessage);
   
-  http.get((window.agentPath || "/agent") + "/spring-mapping-data").then(res => {
-    // 后端返回的是 { data: [...], total: 10 }
-    // 需要提取 data 字段中的数组
-    if (res && typeof res === 'object' && Array.isArray(res.data.data)) {
-      data.value = res.data.data;
-    } else if (Array.isArray(res)) {
-      data.value = res;
-    } else {
-      data.value = [];
-    }
-  });
+  // 初始加载数据
+  refreshData();
+  // 初始加载QPS数据
+  fetchQpsData();
+  // 设置QPS轮询定时器（每5秒，作为WebSocket备份）
+  qpsRefreshTimer = setInterval(fetchQpsData, 5000);
 });
 
 onUnmounted(() => {
@@ -266,6 +329,9 @@ onUnmounted(() => {
   if (wsUnsubscribeMappingQps) {
     wsUnsubscribeMappingQps();
   }
+  if (qpsRefreshTimer) {
+    clearInterval(qpsRefreshTimer);
+  }
 });
 </script>
 <style lang="scss" scoped>
@@ -276,6 +342,71 @@ onUnmounted(() => {
   padding: 20px;
   background: var(--el-bg-color-page);
   overflow: hidden;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, var(--el-color-success-light-9) 0%, var(--el-color-success-light-8) 100%);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .header-icon {
+      font-size: 40px;
+      color: var(--el-color-success);
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+      border-radius: 12px;
+    }
+
+    .header-info {
+      .header-title {
+        margin: 0 0 4px 0;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      .header-desc {
+        margin: 0;
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .stat-card.mini {
+      background: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+      .stat-number {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--el-color-success);
+      }
+
+      .stat-label {
+        font-size: 11px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
 }
 
 .stats-row {

@@ -1,200 +1,195 @@
-<script>
-import { defineComponent } from "vue";
-
-import SaveDialog from "./save.vue";
-import Delete from "@iconify-icons/ep/delete";
-import EditPen from "@iconify-icons/ep/edit-pen";
-import Refresh from "@iconify-icons/line-md/backup-restore";
-import Plus from "@iconify-icons/line-md/plus";
-import Minus from "@iconify-icons/line-md/minus";
-
-import { debounce } from "@pureadmin/utils";
+<script setup lang="ts">
+import { defineAsyncComponent, nextTick, onMounted, reactive, ref, watch } from "vue";
 import { fetchListDept, fetchDeleteDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
-import { transformI18n as useI18nMethod } from "@repo/config";
-import { useRenderIcon as useRenderIconMethod } from "@repo/components/ReIcon/src/hooks";
+import { transformI18n } from "@repo/config";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { useI18n } from "vue-i18n";
 
-export default defineComponent({
-  name: "DeptLayout",
-  components: { SaveDialog, IconifyIconOnline },
-  props: {
-    nodeClick: {
-      type: Function,
-      default: () => {}
-    }
-  },
-  data() {
-    return {
-      icon: {
-        Delete: Delete,
-        EditPen: EditPen,
-        Refresh: Refresh,
-        Plus: Plus,
-        Minus: Minus
-      },
-      dicFilterText: "",
-      visible: {
-        save: false
-      },
-      loading: {
-        query: false
-      },
-      saveDialogParams: {
-        mode: "save"
-      },
-      params: {
-        sysDeptId: null
-      },
-      tableData: [],
-      // 统计数据
-      stats: {
-        total: 0,
-        topLevel: 0,
-        subLevel: 0
-      }
-    };
-  },
-  watch: {
-    dicFilterText(val) {
-      this.$refs.treeRef.filter(val);
-    }
-  },
-  mounted() {
-    this.icon.Delete = this.useRenderIcon(Delete);
-    this.icon.EditPen = this.useRenderIcon(EditPen);
-    this.icon.Plus = this.useRenderIcon(Plus);
-    this.icon.Minus = this.useRenderIcon(Minus);
-    this.onSearch();
-  },
-  methods: {
-    useRenderIcon(v) {
-      return useRenderIconMethod(v);
-    },
-    useI18n(v) {
-      return useI18nMethod(v);
-    },
-    async doChange(data, form) {
-      if (!data) {
-        return;
-      }
-      const item = data.filter(item => item.sysMenuId === form.sysMenuId);
-      if (null != item && item.length > 0) {
-        Object.assign(item[0], form);
-        return true;
-      }
-      for (var i = 0; i < data.length; i++) {
-        if (this.doChange(data[i]?.children, form)) {
-          break;
-        }
-      }
+// Props
+const props = defineProps<{
+  nodeClick?: (params: any) => void;
+}>();
+
+// 异步加载对话框
+const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
+
+const { t } = useI18n();
+
+// Refs
+const treeRef = ref();
+const saveDialogRef = ref();
+
+// 状态
+const dicFilterText = ref('');
+const tableData = ref<any[]>([]);
+
+const visible = reactive({
+  save: false
+});
+
+const loading = reactive({
+  query: false
+});
+
+const saveDialogParams = reactive({
+  mode: 'save' as 'save' | 'edit'
+});
+
+const params = reactive({
+  sysDeptId: null as string | null
+});
+
+// 统计数据
+const stats = reactive({
+  total: 0,
+  topLevel: 0,
+  subLevel: 0
+});
+
+// 监听搜索关键字
+watch(dicFilterText, (val) => {
+  treeRef.value?.filter(val);
+});
+
+// i18n 方法
+const useI18nText = (key: string) => {
+  return transformI18n(key);
+};
+
+// 更新树节点数据
+const doChange = (data: any[], form: any): boolean => {
+  if (!data) return false;
+  
+  const item = data.find(item => item.sysMenuId === form.sysMenuId);
+  if (item) {
+    Object.assign(item, form);
+    return true;
+  }
+  
+  for (const it of data) {
+    if (it.children && doChange(it.children, form)) {
       return true;
-    },
-    async onSuccess(mode, form) {
-      if (mode == "edit") {
-        const item = this.tableData.filter(item => item.sysMenuId === form.sysMenuId);
-        if (null != item && item.length > 0) {
-          Object.assign(item[0], form);
-          return;
-        }
-        for (var i = 0; i < this.tableData.length; i++) {
-          if (this.doChange(this.tableData[i]?.children, form)) {
-            break;
-          }
-        }
-
-        return;
-      }
-      this.onSearch();
-    },
-    async onClick(node) {
-      this.params.sysDeptId = node?.sysDeptId;
-      this.nodeClick(this.params);
-    },
-    // 计算部门统计
-    calcStats(data) {
-      let total = 0;
-      let topLevel = 0;
-      let subLevel = 0;
-      
-      const countDepts = (items, isTop = true) => {
-        items.forEach(item => {
-          if (item.sysDeptId) {
-            total++;
-            if (isTop) topLevel++;
-            else subLevel++;
-          }
-          if (item.children?.length) {
-            countDepts(item.children, false);
-          }
-        });
-      };
-      
-      countDepts(data);
-      this.stats.total = total;
-      this.stats.topLevel = topLevel;
-      this.stats.subLevel = subLevel;
-    },
-    async onSearch() {
-      this.loading.query = true;
-      fetchListDept(this.params)
-        .then(res => {
-          const { data, code } = res;
-          const arr = [];
-          arr.push({
-            sysDeptId: null,
-            sysDeptName: "全部",
-            sysDeptCode: "ALL"
-          });
-          arr.push(...data);
-          this.tableData = arr;
-          this.calcStats(data);
-          return;
-        })
-        .catch(error => {
-          message(this.useI18n("message.queryFailed"), { type: "error" });
-        })
-        .finally(() => {
-          this.loading.query = false;
-        });
-    },
-    async onDelete(row) {
-      try {
-        const { code } = await fetchDeleteDept(row.sysMenuId);
-        this.onSearch();
-        message(this.t("message.deleteSuccess"), { type: "success" });
-        return;
-      } catch (error) {}
-    },
-    async dialogClose() {
-      this.saveDialogParams.mode = "save";
-      this.visible.save = false;
-      this.$nextTick(() => {
-        this.onSearch();
-      });
-    },
-    filterNode(value, data) {
-      if (!value) {
-        return true;
-      }
-      var targetText = data.sysDeptName + data.sysDeptCode;
-      return targetText.indexOf(value) !== -1;
-    },
-    async dialogOpen(item, mode = "save" | "edit") {
-      this.saveDialogParams.mode = mode;
-      this.visible.save = true;
-      this.$nextTick(() => {
-        this.$refs.saveDialog.setData(item).setTableData(this.tableData).open(mode);
-      });
-    },
-    async getOpenDetail(row, column, event) {
-      if (row.children && column?.label != "操作") {
-        if (event.currentTarget.querySelector(".el-table__expand-icon")) {
-          event.currentTarget.querySelector(".el-table__expand-icon").click();
-        }
-      }
     }
   }
+  return false;
+};
+
+// 保存成功回调
+const onSuccess = (mode: string, form: any) => {
+  if (mode === 'edit') {
+    const item = tableData.value.find(item => item.sysMenuId === form.sysMenuId);
+    if (item) {
+      Object.assign(item, form);
+      return;
+    }
+    for (const it of tableData.value) {
+      if (it.children && doChange(it.children, form)) {
+        break;
+      }
+    }
+    return;
+  }
+  onSearch();
+};
+
+// 节点点击
+const onClick = (node: any) => {
+  params.sysDeptId = node?.sysDeptId;
+  props.nodeClick?.(params);
+};
+
+// 计算部门统计
+const calcStats = (data: any[]) => {
+  let total = 0;
+  let topLevel = 0;
+  let subLevel = 0;
+  
+  const countDepts = (items: any[], isTop = true) => {
+    items.forEach(item => {
+      if (item.sysDeptId) {
+        total++;
+        if (isTop) topLevel++;
+        else subLevel++;
+      }
+      if (item.children?.length) {
+        countDepts(item.children, false);
+      }
+    });
+  };
+  
+  countDepts(data);
+  stats.total = total;
+  stats.topLevel = topLevel;
+  stats.subLevel = subLevel;
+};
+
+// 搜索查询
+const onSearch = async () => {
+  loading.query = true;
+  try {
+    const res = await fetchListDept(params);
+    const { data } = res;
+    const arr: any[] = [
+      {
+        sysDeptId: null,
+        sysDeptName: '全部',
+        sysDeptCode: 'ALL'
+      }
+    ];
+    arr.push(...(data || []));
+    tableData.value = arr;
+    calcStats(data || []);
+  } catch (error) {
+    message(useI18nText('message.queryFailed'), { type: 'error' });
+  } finally {
+    loading.query = false;
+  }
+};
+
+// 删除部门
+const onDelete = async (row: any) => {
+  try {
+    await fetchDeleteDept(row.sysDeptId);
+    onSearch();
+    message(t('message.deleteSuccess'), { type: 'success' });
+  } catch (error) {
+    console.error('删除失败', error);
+  }
+};
+
+// 关闭对话框
+const dialogClose = async () => {
+  saveDialogParams.mode = 'save';
+  visible.save = false;
+  await nextTick();
+  onSearch();
+};
+
+// 树节点过滤
+const filterNode = (value: string, data: any) => {
+  if (!value) return true;
+  const targetText = (data.sysDeptName || '') + (data.sysDeptCode || '');
+  return targetText.indexOf(value) !== -1;
+};
+
+// 打开对话框
+const dialogOpen = async (item: any, mode: 'save' | 'edit' = 'save') => {
+  saveDialogParams.mode = mode;
+  visible.save = true;
+  await nextTick();
+  saveDialogRef.value?.setData(item)?.setTableData(tableData.value)?.open(mode);
+};
+
+// 初始化
+onMounted(() => {
+  onSearch();
+});
+
+// 暴露给父组件
+defineExpose({
+  onSearch
 });
 </script>
 <template>
