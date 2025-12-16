@@ -108,3 +108,21 @@ export const fetchUpdateServiceModuleStatus = (sysServiceModuleId: number, statu
     params: { sysServiceModuleId, status },
   });
 };
+
+/**
+ * 服务模块统计数据
+ */
+export interface ServiceModuleStats {
+  total: number;
+  enabled: number;
+  disabled: number;
+  apiCount: number;
+  serviceCount: number;
+}
+
+/**
+ * 获取服务模块统计数据
+ */
+export const fetchServiceModuleStats = () => {
+  return http.request<ReturnResult<ServiceModuleStats>>("get", "/v2/service/module/stats");
+};

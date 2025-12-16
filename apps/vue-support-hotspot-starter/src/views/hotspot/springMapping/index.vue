@@ -133,6 +133,7 @@ const info = ref("");
 const searchKeyword = ref("");
 let wsUnsubscribeMappings = null;
 let wsUnsubscribeQps = null;
+let wsUnsubscribeMappingQps = null;
 
 // WebSocket 连接状态
 const wsConnected = computed(() => wsService.connected.value);
@@ -177,6 +178,29 @@ const handleQpsMessage = (message) => {
   }
 };
 
+// 处理 WebSocket 消息 - 单个路由 QPS 推送
+const handleMappingQpsMessage = (message) => {
+  if (message.event === "MAPPING_QPS_UPDATE") {
+    try {
+      const qpsData = message.data;
+      if (qpsData && qpsData.mappingId) {
+        // 查找并更新对应路由的 QPS 数据
+        const item = data.value.find(d => {
+          const mappingId = d.method ? `${d.method}#${d.name}` : d.name;
+          return mappingId === qpsData.mappingId || d.name === qpsData.url;
+        });
+        if (item) {
+          item.qps = qpsData.qps || 0;
+          item.totalRequests = qpsData.totalRequests || 0;
+          item.avgDuration = qpsData.avgDuration || 0;
+        }
+      }
+    } catch (error) {
+      console.error("解析路由 QPS 数据失败:", error);
+    }
+  }
+};
+
 // 当前容器类型
 const currentContainer = ref(null);
 
@@ -216,6 +240,8 @@ onBeforeMount(async () => {
   wsUnsubscribeMappings = wsService.subscribe("SPRING", "SPRING_MAPPING_UPDATE", handleMappingMessage);
   // 订阅容器 QPS 统计推送
   wsUnsubscribeQps = wsService.subscribe("SERVER", "CONTAINER_QPS_UPDATE", handleQpsMessage);
+  // 订阅单个路由 QPS 推送
+  wsUnsubscribeMappingQps = wsService.subscribe("SERVER", "MAPPING_QPS_UPDATE", handleMappingQpsMessage);
   
   http.get((window.agentPath || "/agent") + "/spring-mapping-data").then(res => {
     // 后端返回的是 { data: [...], total: 10 }
@@ -236,6 +262,9 @@ onUnmounted(() => {
   }
   if (wsUnsubscribeQps) {
     wsUnsubscribeQps();
+  }
+  if (wsUnsubscribeMappingQps) {
+    wsUnsubscribeMappingQps();
   }
 });
 </script>

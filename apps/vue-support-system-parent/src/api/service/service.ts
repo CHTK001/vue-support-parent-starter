@@ -122,3 +122,19 @@ export const fetchBindServiceModules = (data: { sysServiceId: number; sysService
     data,
   });
 };
+
+/**
+ * 服务统计数据
+ */
+export interface ServiceStats {
+  total: number;
+  enabled: number;
+  disabled: number;
+}
+
+/**
+ * 获取服务统计数据
+ */
+export const fetchServiceStats = () => {
+  return http.request<ReturnResult<ServiceStats>>("get", "/v2/service/stats");
+};

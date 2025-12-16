@@ -30,24 +30,35 @@ provide('themeSidebarItem', ChristmasSidebarItem);
       :is-nest="isNest"
       :base-path="basePath"
     >
-      <!-- 圣诞树装饰插槽 -->
+      <!-- 圣诞树背景装饰插槽 -->
       <template #activeDecoration="{ isActive }">
-        <div v-if="isActive" class="christmas-decoration">
-          <svg class="christmas-tree" viewBox="0 0 32 16" xmlns="http://www.w3.org/2000/svg">
-            <!-- 树干 -->
-            <rect x="14" y="12" width="4" height="4" fill="#8B4513"/>
-            <!-- 树叶层 -->
-            <polygon points="16,0 24,6 20,6 26,10 22,10 28,14 4,14 10,10 6,10 12,6 8,6" fill="#1b5e20"/>
-            <!-- 装饰球 -->
-            <circle cx="12" cy="10" r="1.5" fill="#c62828"/>
-            <circle cx="20" cy="8" r="1.5" fill="#ffd700"/>
-            <circle cx="16" cy="12" r="1.5" fill="#c62828"/>
-            <circle cx="18" cy="6" r="1" fill="#ffd700"/>
-            <!-- 星星 -->
-            <polygon points="16,0 17,3 20,3 17.5,5 18.5,8 16,6 13.5,8 14.5,5 12,3 15,3" fill="#ffd700" class="tree-star"/>
+        <div v-if="isActive" class="christmas-tree-bg">
+          <!-- 左侧圣诞树 -->
+          <svg class="tree tree-left" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="20,0 40,40 30,40 20,50 10,40 0,40" fill="#2e7d32" opacity="0.9"/>
+            <polygon points="20,8 35,35 28,35 20,45 12,35 5,35" fill="#388e3c"/>
+            <circle cx="15" cy="25" r="3" fill="#c62828"/>
+            <circle cx="25" cy="20" r="2.5" fill="#ffd700"/>
+            <circle cx="20" cy="32" r="2" fill="#c62828"/>
+            <polygon points="20,0 22,6 26,6 23,9 24,13 20,10 16,13 17,9 14,6 18,6" fill="#ffd700" class="star"/>
           </svg>
-          <span class="sparkle sparkle-1">✨</span>
-          <span class="sparkle sparkle-2">⭐</span>
+          <!-- 右侧圣诞树 -->
+          <svg class="tree tree-right" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="20,0 40,40 30,40 20,50 10,40 0,40" fill="#2e7d32" opacity="0.9"/>
+            <polygon points="20,8 35,35 28,35 20,45 12,35 5,35" fill="#388e3c"/>
+            <circle cx="25" cy="25" r="3" fill="#ffd700"/>
+            <circle cx="15" cy="20" r="2.5" fill="#c62828"/>
+            <circle cx="20" cy="32" r="2" fill="#ffd700"/>
+            <polygon points="20,0 22,6 26,6 23,9 24,13 20,10 16,13 17,9 14,6 18,6" fill="#ffd700" class="star"/>
+          </svg>
+          <!-- 中间雪花装饰 -->
+          <div class="snow-particles">
+            <span class="snow">❄</span>
+            <span class="snow">❄</span>
+            <span class="snow">❄</span>
+          </div>
+          <!-- 底部雪地 -->
+          <div class="snow-ground"></div>
         </div>
       </template>
     </BaseSidebarItem>
@@ -94,30 +105,28 @@ $xmas-border: rgba(255, 215, 0, 0.4);
     }
     
     &.is-active {
-      background: linear-gradient(135deg, $xmas-red 0%, $xmas-red-light 100%) !important;
+      background: transparent !important;
       color: $xmas-white !important;
       border: 2px solid $xmas-gold !important;
       font-weight: 700;
       box-shadow: 
-        0 4px 16px rgba($xmas-red, 0.5),
+        0 4px 16px rgba($xmas-green, 0.5),
         0 0 20px rgba($xmas-gold, 0.3);
+      overflow: hidden;
       
-      .el-icon, svg, span, div {
-        color: $xmas-white !important;
+      .sub-menu-icon, .el-icon {
+        position: relative;
+        z-index: 2;
       }
       
-      // 左侧金色装饰条
-      &::after {
-        content: '';
-        position: absolute;
-        left: -2px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 4px;
-        height: 70%;
-        background: linear-gradient(to bottom, $xmas-gold, #ffeb3b, $xmas-gold);
-        border-radius: 2px;
-        box-shadow: 0 0 8px rgba($xmas-gold, 0.8);
+      .el-icon, svg {
+        color: $xmas-gold !important;
+      }
+      
+      span, div {
+        color: $xmas-white !important;
+        position: relative;
+        z-index: 2;
       }
     }
   }
@@ -203,63 +212,114 @@ $xmas-border: rgba(255, 215, 0, 0.4);
   }
 }
 
-// 圣诞树装饰样式
-.christmas-decoration {
+// 圣诞树背景装饰样式
+.christmas-tree-bg {
   position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+  inset: 0;
   pointer-events: none;
-  z-index: 10;
-  display: flex;
-  align-items: center;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 6px;
+  background: linear-gradient(135deg, 
+    rgba(27, 94, 32, 0.95) 0%, 
+    rgba(46, 125, 50, 0.9) 50%,
+    rgba(27, 94, 32, 0.95) 100%
+  );
   
-  .christmas-tree {
-    width: 28px;
-    height: 14px;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-    animation: treeGlow 2s ease-in-out infinite;
+  // 圣诞树
+  .tree {
+    position: absolute;
+    bottom: -5px;
+    height: 42px;
+    width: auto;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
     
-    .tree-star {
+    &.tree-left {
+      left: 2px;
+      animation: treeSwayLeft 3s ease-in-out infinite;
+    }
+    
+    &.tree-right {
+      right: 2px;
+      animation: treeSwayRight 3s ease-in-out infinite;
+    }
+    
+    .star {
       animation: starTwinkle 1.5s ease-in-out infinite;
     }
   }
   
-  .sparkle {
+  // 雪花粒子
+  .snow-particles {
     position: absolute;
-    font-size: 8px;
-    animation: sparkleFloat 2s ease-in-out infinite;
+    inset: 0;
     
-    &.sparkle-1 {
-      top: -4px;
-      right: -2px;
-      animation-delay: 0s;
+    .snow {
+      position: absolute;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 8px;
+      animation: snowFall 4s linear infinite;
+      
+      &:nth-child(1) {
+        left: 20%;
+        animation-delay: 0s;
+      }
+      &:nth-child(2) {
+        left: 50%;
+        animation-delay: 1.5s;
+        font-size: 6px;
+      }
+      &:nth-child(3) {
+        left: 75%;
+        animation-delay: 3s;
+        font-size: 10px;
+      }
     }
-    
-    &.sparkle-2 {
-      bottom: -4px;
-      left: -2px;
-      animation-delay: 0.5s;
-    }
+  }
+  
+  // 底部雪地
+  .snow-ground {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(to top, 
+      rgba(255, 255, 255, 0.9) 0%, 
+      rgba(255, 255, 255, 0.4) 60%,
+      transparent 100%
+    );
+    border-radius: 0 0 6px 6px;
   }
 }
 
-@keyframes treeGlow {
-  0%, 100% {
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 4px rgba(255, 215, 0, 0.3));
-  }
-  50% {
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
-  }
+@keyframes treeSwayLeft {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+
+@keyframes treeSwayRight {
+  0%, 100% { transform: rotate(2deg); }
+  50% { transform: rotate(-2deg); }
 }
 
 @keyframes starTwinkle {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(0.8); }
+  50% { opacity: 0.5; transform: scale(0.8); }
 }
 
-@keyframes sparkleFloat {
-  0%, 100% { opacity: 0.6; transform: translateY(0) scale(1); }
-  50% { opacity: 1; transform: translateY(-2px) scale(1.2); }
+@keyframes snowFall {
+  0% { 
+    top: -10px; 
+    opacity: 0;
+    transform: translateX(0);
+  }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { 
+    top: 100%; 
+    opacity: 0;
+    transform: translateX(10px);
+  }
 }
 </style>
