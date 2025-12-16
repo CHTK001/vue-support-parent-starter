@@ -53,61 +53,55 @@ $mid-autumn-orange: #ff8f00;
 $mid-autumn-white: #ffffff;
 $mid-autumn-border: rgba(255, 213, 79, 0.4);
 
+// 月光 SVG 背景
+$moon-normal: url('./assets/mid-autumn-menu-normal.svg');
+$moon-active: url('./assets/mid-autumn-menu-active.svg');
+
 .mid-autumn-sidebar-item-wrapper {
   :deep(.sidebar-menu-item) {
     color: $mid-autumn-gold !important;
-    background: linear-gradient(135deg, rgba($mid-autumn-navy, 0.9), rgba($mid-autumn-navy-light, 0.8)) !important;
+    background: $moon-normal !important;
+    background-size: 100% 100% !important;
+    background-repeat: no-repeat !important;
     margin: 4px 8px;
-    border-radius: 8px;
-    border: 1.5px solid $mid-autumn-border !important;
-    font-weight: 500;
+    border-radius: 4px;
+    border: none !important;
+    font-weight: 600;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     
     &:hover {
-      background: linear-gradient(135deg, rgba($mid-autumn-navy-light, 0.95), rgba(#3949ab, 0.85)) !important;
-      color: $mid-autumn-white !important;
-      border-color: $mid-autumn-gold !important;
-      transform: translateX(4px) scale(1.02);
-      box-shadow: 
-        0 4px 16px rgba($mid-autumn-navy, 0.4),
-        0 0 20px rgba($mid-autumn-gold, 0.2);
+      transform: translateX(2px);
+      filter: brightness(1.1);
+      box-shadow: 0 4px 12px rgba($mid-autumn-navy, 0.4);
     }
     
     .el-icon, svg {
       color: $mid-autumn-gold !important;
+      position: relative;
+      z-index: 2;
     }
     
     span, div {
       color: inherit !important;
+      position: relative;
+      z-index: 2;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
     
     &.is-active {
-      background: linear-gradient(135deg, $mid-autumn-navy-light 0%, #3949ab 100%) !important;
-      color: $mid-autumn-white !important;
-      border: 2px solid $mid-autumn-gold !important;
+      background: $moon-active !important;
+      background-size: 100% 100% !important;
+      background-repeat: no-repeat !important;
+      color: $mid-autumn-navy !important;
       font-weight: 700;
       box-shadow: 
-        0 4px 20px rgba($mid-autumn-navy, 0.5),
-        0 0 30px rgba($mid-autumn-gold, 0.3),
-        inset 0 0 20px rgba($mid-autumn-gold, 0.1);
+        0 4px 16px rgba($mid-autumn-gold, 0.5),
+        0 0 20px rgba($mid-autumn-gold, 0.3);
       
       .el-icon, svg, span, div {
-        color: $mid-autumn-white !important;
-      }
-      
-      // 左侧金色装饰条
-      &::after {
-        content: '';
-        position: absolute;
-        left: -2px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 4px;
-        height: 70%;
-        background: linear-gradient(to bottom, $mid-autumn-gold, $mid-autumn-gold-light, $mid-autumn-gold);
-        border-radius: 2px;
-        box-shadow: 0 0 8px rgba($mid-autumn-gold, 0.8);
+        color: $mid-autumn-navy !important;
+        text-shadow: 0 1px 2px rgba($mid-autumn-gold, 0.5);
       }
     }
   }
@@ -115,18 +109,18 @@ $mid-autumn-border: rgba(255, 213, 79, 0.4);
   :deep(.sidebar-sub-menu) {
     .el-sub-menu__title {
       color: $mid-autumn-gold !important;
-      background: linear-gradient(135deg, rgba($mid-autumn-navy, 0.9), rgba($mid-autumn-navy-light, 0.8)) !important;
+      background: $moon-normal !important;
+      background-size: 100% 100% !important;
+      background-repeat: no-repeat !important;
       margin: 4px 8px;
-      border-radius: 8px;
-      border: 1.5px solid $mid-autumn-border !important;
-      font-weight: 500;
+      border-radius: 4px;
+      border: none !important;
+      font-weight: 600;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       
       &:hover {
-        background: linear-gradient(135deg, rgba($mid-autumn-navy-light, 0.95), rgba(#3949ab, 0.85)) !important;
-        color: $mid-autumn-white !important;
-        border-color: $mid-autumn-gold !important;
-        transform: translateX(4px) scale(1.02);
+        transform: translateX(2px);
+        filter: brightness(1.1);
       }
       
       .el-icon, svg {
@@ -135,13 +129,14 @@ $mid-autumn-border: rgba(255, 213, 79, 0.4);
     }
     
     &.is-active > .el-sub-menu__title {
-      color: $mid-autumn-white !important;
-      background: linear-gradient(135deg, rgba($mid-autumn-navy-light, 0.95), rgba(#3949ab, 0.85)) !important;
-      border-color: $mid-autumn-gold !important;
+      background: $moon-active !important;
+      background-size: 100% 100% !important;
+      background-repeat: no-repeat !important;
+      color: $mid-autumn-navy !important;
       font-weight: 700;
       
       .el-icon, svg {
-        color: $mid-autumn-white !important;
+        color: $mid-autumn-navy !important;
       }
     }
     
@@ -150,25 +145,31 @@ $mid-autumn-border: rgba(255, 213, 79, 0.4);
       
       .el-menu-item {
         color: $mid-autumn-gold !important;
-        background: linear-gradient(135deg, rgba($mid-autumn-navy, 0.9), rgba($mid-autumn-navy-light, 0.8)) !important;
-        border: 1.5px solid $mid-autumn-border !important;
-        border-radius: 8px;
+        background: $moon-normal !important;
+        background-size: 100% 100% !important;
+        background-repeat: no-repeat !important;
+        border: none !important;
+        border-radius: 4px;
         margin: 4px 8px !important;
         
         &:hover {
-          background: linear-gradient(135deg, rgba($mid-autumn-navy-light, 0.95), rgba(#3949ab, 0.85)) !important;
-          color: $mid-autumn-white !important;
-          border-color: $mid-autumn-gold !important;
+          filter: brightness(1.1);
         }
         
         &.is-active {
-          background: linear-gradient(135deg, $mid-autumn-navy-light, #3949ab) !important;
-          color: $mid-autumn-white !important;
-          border: 2px solid $mid-autumn-gold !important;
+          background: $moon-active !important;
+          background-size: 100% 100% !important;
+          background-repeat: no-repeat !important;
+          color: $mid-autumn-navy !important;
         }
         
         .el-icon, svg {
           color: $mid-autumn-gold !important;
+        }
+        
+        &.is-active .el-icon,
+        &.is-active svg {
+          color: $mid-autumn-navy !important;
         }
       }
     }
