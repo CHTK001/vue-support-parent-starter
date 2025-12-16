@@ -904,18 +904,4 @@ onUnmounted(() => {
     display: none;
   }
 }
-
-
-  .customizing .widgets-aside {
-    width: 100%;
-    position: absolute;
-    top: 50%;
-    right: 0;
-    bottom: 0;
-  }
-
-  .customizing .widgets-wrapper {
-    margin-right: 0;
-  }
-}
 </style>
