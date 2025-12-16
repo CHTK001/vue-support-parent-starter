@@ -50,7 +50,6 @@ onBeforeUnmount(() => {
 <style lang="scss" scoped>
 .spring-festival-tag-wrapper {
   width: 100%;
-  height: 100%;
 }
 </style>
 

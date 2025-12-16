@@ -11,7 +11,6 @@ import BaseTag from './BaseTag.vue';
 <style lang="scss" scoped>
 .christmas-tag-wrapper {
   width: 100%;
-  height: 100%;
 }
 </style>
 

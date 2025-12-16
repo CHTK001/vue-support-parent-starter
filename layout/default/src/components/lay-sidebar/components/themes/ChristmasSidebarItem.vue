@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import { provide, useRoute, computed } from 'vue';
+import { provide } from 'vue';
 import type { MenuType } from "@repo/core";
 import type { PropType } from "vue";
 import BaseSidebarItem from '../BaseSidebarItem.vue';
-import { resolvePath as configResolvePath } from "@repo/config";
-
-const route = useRoute();
 
 const props = defineProps({
   item: {
@@ -24,22 +21,6 @@ const props = defineProps({
 // 提供自身作为主题 SidebarItem（用于子菜单递归）
 import ChristmasSidebarItem from './ChristmasSidebarItem.vue';
 provide('themeSidebarItem', ChristmasSidebarItem);
-
-// 计算路径
-function resolvePath(routePath: string) {
-  const httpReg = /^http(s?):\/\//;
-  if (httpReg.test(routePath) || httpReg.test(props.basePath)) {
-    return routePath || props.basePath;
-  }
-  return configResolvePath(props.basePath, routePath);
-}
-
-// 计算当前菜单项是否激活
-const isMenuActive = computed(() => {
-  const currentPath = route.path;
-  const itemPath = resolvePath(props.item?.path || '');
-  return currentPath === itemPath || currentPath.startsWith(itemPath + '/');
-});
 </script>
 
 <template>
