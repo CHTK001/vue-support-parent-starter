@@ -1,0 +1,267 @@
+// 标签页主题皮肤覆盖样式
+// 当应用了主题皮肤时，重置默认的主题色样式，让主题组件自己的样式生效
+
+html[data-skin]:not([data-skin=""]):not([data-skin="default"]) {
+  /* 标签页容器样式重置 */
+  .tags-view {
+    /* 移除默认背景渐变 */
+    background: transparent !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* 标签项样式重置 */
+  .scroll-item {
+    /* 移除默认背景渐变和边框 */
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+
+    /* 移除悬停效果 */
+    &:not(.is-active):hover {
+      background: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      transform: none !important;
+
+      .tag-icon {
+        color: inherit !important;
+        transform: none !important;
+      }
+
+      .tag-title {
+        color: inherit !important;
+      }
+    }
+
+    /* 移除激活状态的默认主题色样式 */
+    &.is-active {
+      background: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+
+      /* 移除高光伪元素 */
+      &::before {
+        display: none !important;
+      }
+
+      .tag-icon {
+        color: inherit !important;
+      }
+
+      .tag-title {
+        color: inherit !important;
+        text-shadow: none !important;
+      }
+
+      .el-icon-close {
+        color: inherit !important;
+
+        &:hover {
+          background: transparent !important;
+          transform: translate(0, -50%) !important;
+        }
+      }
+
+      &:hover {
+        transform: none !important;
+        box-shadow: none !important;
+      }
+    }
+
+    /* Chrome 模式特殊处理 */
+    &.chrome-item {
+      &.is-active {
+        .chrome-tab__bg {
+          color: inherit !important;
+        }
+
+        .tag-title {
+          color: inherit !important;
+          text-shadow: none !important;
+        }
+
+        .tag-icon {
+          color: inherit !important;
+        }
+
+        .chrome-close-btn {
+          color: inherit !important;
+
+          &:hover {
+            background-color: transparent !important;
+            color: inherit !important;
+          }
+        }
+      }
+    }
+  }
+
+  /* 箭头按钮样式重置 */
+  .arrow-left,
+  .arrow-right,
+  .arrow-down {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+
+    &:hover {
+      background: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      transform: none !important;
+
+      svg {
+        transform: none !important;
+      }
+    }
+
+    &:active {
+      transform: none !important;
+      box-shadow: none !important;
+    }
+  }
+
+  /* 右键菜单样式重置 */
+  .contextmenu {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+
+    li {
+      &:hover {
+        color: inherit !important;
+        background: transparent !important;
+      }
+    }
+  }
+
+  /* 卡片风格样式重置 */
+  .card-item {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+
+    &:hover {
+      border-color: transparent !important;
+      background: transparent !important;
+      transform: none !important;
+
+      .tag-title {
+        color: inherit !important;
+      }
+    }
+
+    &.is-active {
+      background: transparent !important;
+      border-color: transparent !important;
+
+      .tag-title {
+        color: inherit !important;
+      }
+
+      .tag-icon {
+        color: inherit !important;
+      }
+    }
+  }
+
+  /* 灵动风格样式重置 */
+  .smart-item {
+    &:hover {
+      background: transparent !important;
+      transform: none !important;
+    }
+
+    &.is-active {
+      background: transparent !important;
+
+      .tag-title {
+        color: inherit !important;
+      }
+
+      .tag-icon {
+        color: inherit !important;
+      }
+    }
+  }
+
+  /* 灵动模式进度条样式重置 */
+  .schedule-active,
+  .schedule-in,
+  .schedule-out {
+    background: transparent !important;
+  }
+
+  /* 现代风格样式重置 */
+  .modern-item {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+
+    &::before {
+      display: none !important;
+    }
+
+    &::after {
+      display: none !important;
+    }
+
+    &:hover {
+      transform: none !important;
+      box-shadow: none !important;
+      border-color: transparent !important;
+
+      &::after {
+        background: transparent !important;
+      }
+
+      .tag-title {
+        color: inherit !important;
+      }
+    }
+
+    &.is-active {
+      background: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+
+      &::before {
+        display: none !important;
+      }
+
+      &::after {
+        display: none !important;
+      }
+
+      .tag-title {
+        color: inherit !important;
+        text-shadow: none !important;
+      }
+
+      .el-icon-close {
+        color: inherit !important;
+
+        &:hover {
+          color: inherit !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+      }
+
+      &:hover {
+        transform: none !important;
+        box-shadow: none !important;
+      }
+    }
+
+    .el-icon-close {
+      &:hover {
+        background: transparent !important;
+        transform: none !important;
+      }
+    }
+  }
+}
