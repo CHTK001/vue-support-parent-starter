@@ -208,6 +208,156 @@ import BaseSidebar from './BaseSidebar.vue';
         color: #FFF !important;
       }
     }
+    
+    // 垂直导航展开的子菜单容器
+    .el-sub-menu .el-menu {
+      background: rgba(139, 0, 0, 0.6) !important;
+      
+      .el-menu-item {
+        color: #FFD700 !important;
+        background: transparent !important;
+        border: none !important;
+        margin: 2px 8px !important;
+        
+        &:hover {
+          background: rgba(220, 20, 60, 0.6) !important;
+          color: #FFF !important;
+        }
+        
+        &.is-active {
+          background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+          color: #8B0000 !important;
+          border-left: 3px solid #DC143C !important;
+          
+          .el-icon, svg, span, div {
+            color: #8B0000 !important;
+          }
+        }
+        
+        .el-icon, svg {
+          color: #FFD700 !important;
+        }
+      }
+    }
+  }
+}
+</style>
+
+<style lang="scss">
+// 子菜单弹出层全局样式（teleport 到 body）
+html[data-skin="spring-festival"] {
+  .pure-scrollbar.el-menu--vertical,
+  .el-menu--popup-container .el-menu--popup,
+  .el-menu--popup {
+    background: linear-gradient(135deg, rgba(220, 20, 60, 0.98) 0%, rgba(178, 34, 34, 0.98) 100%) !important;
+    border: 2px solid rgba(255, 215, 0, 0.5) !important;
+    border-radius: 8px !important;
+    box-shadow:
+      0 0 20px rgba(255, 215, 0, 0.2),
+      0 15px 40px rgba(0, 0, 0, 0.4) !important;
+    overflow: hidden !important;
+    padding: 6px !important;
+    position: relative;
+
+    // 顶部金色装饰线
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #FFD700 30%, #FFA500 50%, #FFD700 70%, transparent);
+      z-index: 1;
+    }
+
+    .el-menu-item {
+      margin: 4px 6px !important;
+      padding: 0 16px !important;
+      height: 40px !important;
+      line-height: 40px !important;
+      border-radius: 8px !important;
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.7) 0%, rgba(178, 34, 34, 0.7) 100%) !important;
+      border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
+      color: #FFD700 !important;
+      font-weight: 500;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      position: relative;
+      z-index: 1;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(220, 20, 60, 0.9) 0%, rgba(178, 34, 34, 0.9) 100%) !important;
+        color: #FFF !important;
+        border-color: rgba(255, 215, 0, 0.6) !important;
+        transform: translateX(4px) !important;
+        box-shadow:
+          0 4px 12px rgba(255, 215, 0, 0.3),
+          0 2px 8px rgba(220, 20, 60, 0.4) !important;
+      }
+
+      .el-icon, svg, .sub-menu-icon {
+        color: #FFD700 !important;
+        margin-right: 8px;
+      }
+
+      span, .el-text {
+        color: inherit !important;
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+        color: #8B0000 !important;
+        border: 2px solid #DC143C !important;
+        font-weight: 700;
+        box-shadow:
+          0 4px 16px rgba(255, 215, 0, 0.5),
+          0 0 20px rgba(255, 215, 0, 0.3) !important;
+
+        .el-icon, svg, .sub-menu-icon, span, .el-text {
+          color: #8B0000 !important;
+        }
+
+        &::after {
+          content: '';
+          position: absolute;
+          left: -2px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 4px;
+          height: 70%;
+          background: linear-gradient(to bottom, #DC143C, #B22222, #DC143C);
+          border-radius: 2px;
+          box-shadow: 0 0 8px rgba(220, 20, 60, 0.8);
+        }
+      }
+    }
+
+    .el-sub-menu__title {
+      margin: 4px 6px !important;
+      padding: 0 16px !important;
+      height: 40px !important;
+      line-height: 40px !important;
+      border-radius: 8px !important;
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.7) 0%, rgba(178, 34, 34, 0.7) 100%) !important;
+      border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
+      color: #FFD700 !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(220, 20, 60, 0.9) 0%, rgba(178, 34, 34, 0.9) 100%) !important;
+        color: #FFF !important;
+        border-color: rgba(255, 215, 0, 0.6) !important;
+        transform: translateX(4px) !important;
+      }
+
+      .el-icon, svg {
+        color: #FFD700 !important;
+      }
+
+      .el-sub-menu__icon-arrow {
+        color: #FFD700 !important;
+      }
+    }
   }
 }
 </style>

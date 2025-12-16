@@ -245,6 +245,162 @@ $mid-border: rgba(255, 213, 79, 0.3);
         color: #FFF !important;
       }
     }
+    
+    // 垂直导航展开的子菜单容器
+    .el-sub-menu .el-menu {
+      background: rgba(13, 27, 66, 0.8) !important;
+      
+      .el-menu-item {
+        color: $mid-gold-light !important;
+        background: transparent !important;
+        border: none !important;
+        margin: 2px 8px !important;
+        
+        &:hover {
+          background: rgba($mid-blue, 0.6) !important;
+          color: #FFF !important;
+        }
+        
+        &.is-active {
+          background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
+          color: $mid-blue !important;
+          border-left: 3px solid $mid-cyan !important;
+          
+          .el-icon, svg, span, div {
+            color: $mid-blue !important;
+          }
+        }
+        
+        .el-icon, svg {
+          color: $mid-gold !important;
+        }
+      }
+    }
+  }
+}
+</style>
+
+<style lang="scss">
+// 子菜单弹出层全局样式（teleport 到 body）
+html[data-skin="mid-autumn"] {
+  $mid-blue: #1a237e;
+  $mid-blue-light: #283593;
+  $mid-gold: #ffd54f;
+  $mid-gold-light: #ffecb3;
+  $mid-cyan: #00bcd4;
+
+  .pure-scrollbar.el-menu--vertical,
+  .el-menu--popup-container .el-menu--popup,
+  .el-menu--popup {
+    background: linear-gradient(135deg, rgba($mid-blue, 0.98) 0%, rgba($mid-blue-light, 0.98) 100%) !important;
+    border: 2px solid rgba($mid-gold, 0.4) !important;
+    border-radius: 8px !important;
+    box-shadow:
+      0 0 25px rgba($mid-gold, 0.15),
+      0 15px 40px rgba(0, 0, 0, 0.4) !important;
+    overflow: hidden !important;
+    padding: 6px !important;
+    position: relative;
+
+    // 顶部金色装饰线
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, $mid-cyan 20%, $mid-gold 50%, $mid-cyan 80%, transparent);
+      z-index: 1;
+    }
+
+    .el-menu-item {
+      margin: 4px 6px !important;
+      padding: 0 16px !important;
+      height: 40px !important;
+      line-height: 40px !important;
+      border-radius: 8px !important;
+      background: linear-gradient(135deg, rgba(13, 27, 66, 0.7) 0%, rgba($mid-blue-light, 0.7) 100%) !important;
+      border: 1.5px solid rgba($mid-gold, 0.25) !important;
+      color: $mid-gold-light !important;
+      font-weight: 500;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      position: relative;
+      z-index: 1;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba($mid-blue, 0.9) 0%, rgba($mid-blue-light, 0.9) 100%) !important;
+        color: #FFF !important;
+        border-color: rgba($mid-gold, 0.5) !important;
+        transform: translateX(4px) !important;
+        box-shadow:
+          0 4px 12px rgba($mid-gold, 0.25),
+          0 2px 8px rgba($mid-blue, 0.4) !important;
+      }
+
+      .el-icon, svg, .sub-menu-icon {
+        color: $mid-gold !important;
+        margin-right: 8px;
+      }
+
+      span, .el-text {
+        color: inherit !important;
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, $mid-gold 0%, $mid-gold-light 100%) !important;
+        color: $mid-blue !important;
+        border: 2px solid $mid-cyan !important;
+        font-weight: 700;
+        box-shadow:
+          0 4px 16px rgba($mid-gold, 0.5),
+          0 0 20px rgba($mid-gold, 0.3) !important;
+
+        .el-icon, svg, .sub-menu-icon, span, .el-text {
+          color: $mid-blue !important;
+        }
+
+        &::after {
+          content: '';
+          position: absolute;
+          left: -2px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 4px;
+          height: 70%;
+          background: linear-gradient(to bottom, $mid-cyan, #26c6da, $mid-cyan);
+          border-radius: 2px;
+          box-shadow: 0 0 8px rgba($mid-cyan, 0.8);
+        }
+      }
+    }
+
+    .el-sub-menu__title {
+      margin: 4px 6px !important;
+      padding: 0 16px !important;
+      height: 40px !important;
+      line-height: 40px !important;
+      border-radius: 8px !important;
+      background: linear-gradient(135deg, rgba(13, 27, 66, 0.7) 0%, rgba($mid-blue-light, 0.7) 100%) !important;
+      border: 1.5px solid rgba($mid-gold, 0.25) !important;
+      color: $mid-gold-light !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba($mid-blue, 0.9) 0%, rgba($mid-blue-light, 0.9) 100%) !important;
+        color: #FFF !important;
+        border-color: rgba($mid-gold, 0.5) !important;
+        transform: translateX(4px) !important;
+      }
+
+      .el-icon, svg {
+        color: $mid-gold !important;
+      }
+
+      .el-sub-menu__icon-arrow {
+        color: $mid-gold !important;
+      }
+    }
   }
 }
 </style>
