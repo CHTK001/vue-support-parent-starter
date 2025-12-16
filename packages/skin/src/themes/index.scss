@@ -10,17 +10,16 @@ div.shadow-tab {
   padding: 0 !important;
 }
 
+// 基础重置样式 - 所有主题皮肤共用
+@import './base-override.scss';
+
 // 默认主题
 @import './default.scss';
 
 // 节日主题
 @import './spring-festival.scss';
+@import './christmas.scss';
+@import './mid-autumn.scss';
 
 // 内测主题
 @import './cyberpunk.scss';
-
-// 其他节日主题（预留）
-// @import './christmas.scss';
-// @import './mid-autumn.scss';
-// @import './new-year.scss';
-// @import './valentines-day.scss';

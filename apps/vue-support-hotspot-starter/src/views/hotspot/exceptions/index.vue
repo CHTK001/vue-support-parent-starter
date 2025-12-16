@@ -113,27 +113,47 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="exceptions-container">
-    <el-card>
+  <div class="page-container">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <IconifyIconOnline icon="ri:bug-line" class="header-icon" />
+        <div class="header-info">
+          <h2 class="header-title">异常监控</h2>
+          <p class="header-desc">实时监控和分析应用异常信息</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="stat-card">
+          <div class="stat-number">{{ exceptions.length }}</div>
+          <div class="stat-label">异常记录</div>
+        </div>
+        <el-tag :type="wsConnected ? 'success' : 'danger'" effect="light" size="large">
+          {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
+        </el-tag>
+        <el-button type="info" @click="fetchData" :loading="loading">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+        <el-button type="danger" @click="clearStats">
+          <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
+          清除
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 内容卡片 -->
+    <el-card class="modern-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <span>异常监控</span>
-          <div class="header-actions">
-            <el-tag :type="wsConnected ? 'success' : 'danger'" size="small">
-              {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
-            </el-tag>
-            <el-button type="info" size="small" @click="fetchData" :loading="loading">
-              刷新
-            </el-button>
-            <el-button type="primary" size="small" @click="clearStats">
-              清除统计
-            </el-button>
-          </div>
+          <span class="card-title">
+            <IconifyIconOnline icon="ri:list-check-2" class="card-icon" />
+            异常列表
+          </span>
         </div>
       </template>
 
-      <el-tabs v-model="activeTab">
-        <el-tab-pane label="异常列表" name="list">
+      <el-tabs v-model="activeTab" class="modern-tabs">
           <el-table
             :data="exceptions"
             v-loading="loading"
@@ -201,7 +221,6 @@ onUnmounted(() => {
               </template>
             </el-table-column>
           </el-table>
-        </el-tab-pane>
       </el-tabs>
     </el-card>
 
@@ -241,19 +260,106 @@ onUnmounted(() => {
 </template>
 
 <style scoped lang="scss">
-.exceptions-container {
+.page-container {
   padding: 20px;
+  min-height: 100%;
+  background: var(--el-bg-color-page);
 }
 
-.card-header {
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  
-  .header-actions {
+  margin-bottom: 20px;
+  padding: 20px 24px;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+  .header-left {
     display: flex;
-    gap: 8px;
     align-items: center;
+    gap: 16px;
+
+    .header-icon {
+      font-size: 40px;
+      color: var(--el-color-danger);
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
+      border-radius: 12px;
+    }
+
+    .header-info {
+      .header-title {
+        margin: 0 0 4px 0;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      .header-desc {
+        margin: 0;
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .stat-card {
+      background: linear-gradient(135deg, var(--el-color-danger-light-9), var(--el-color-danger-light-8));
+      padding: 12px 20px;
+      border-radius: 8px;
+      text-align: center;
+
+      .stat-number {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--el-color-danger);
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
+}
+
+.modern-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+  :deep(.el-card__header) {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  .card-header {
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+
+      .card-icon {
+        font-size: 18px;
+        color: var(--el-color-danger);
+      }
+    }
+  }
+}
+
+.modern-tabs {
+  :deep(.el-tabs__header) {
+    margin-bottom: 16px;
   }
 }
 
@@ -263,18 +369,36 @@ onUnmounted(() => {
 
     h4 {
       margin-bottom: 10px;
-      color: #333;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
     }
 
     pre {
-      background-color: #f5f7fa;
-      padding: 15px;
-      border-radius: 4px;
+      background: var(--el-fill-color-lighter);
+      padding: 16px;
+      border-radius: 8px;
       overflow-x: auto;
+      font-family: "Monaco", "Menlo", monospace;
       font-size: 12px;
-      line-height: 1.5;
-      color: #e74c3c;
+      line-height: 1.6;
+      color: var(--el-color-danger);
     }
+  }
+}
+
+// 深色主题适配
+html.dark {
+  .page-container {
+    background: var(--el-bg-color-page);
+  }
+
+  .page-header {
+    background: var(--el-bg-color);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .modern-card {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 }
 </style>

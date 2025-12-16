@@ -183,3 +183,36 @@ export const fetchImportUsers = (file: File) => {
     },
   });
 };
+
+/** 重置用户密码 */
+export const fetchResetPassword = (userId: number | string) => {
+  return http.request<ReturnResult<string>>("get", "/v2/user/reset", {
+    params: { userId },
+  });
+};
+
+/** 批量删除用户 */
+export const fetchBatchDeleteUsers = (userIds: (number | string)[]) => {
+  return http.request<ReturnResult<boolean>>("delete", "/v2/user/batch/delete", {
+    data: { userIds },
+  });
+};
+
+/** 批量更新用户状态 */
+export const fetchBatchUpdateUserStatus = (userIds: (number | string)[], status: number) => {
+  return http.request<ReturnResult<boolean>>("put", "/v2/user/batch/status", {
+    data: { userIds, status },
+  });
+};
+
+/** 上传头像 */
+export const fetchUploadAvatar = (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return http.request<ReturnResult<{ url: string }>>("put", "/v2/file/upload", {
+    data: formData,
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};

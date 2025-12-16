@@ -1,32 +1,13 @@
 <template>
   <div class="page-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <IconifyIconOnline icon="ri:route-line" class="header-icon" />
-        <div class="header-info">
-          <h2 class="header-title">Spring 路由映射</h2>
-          <p class="header-desc">查看 Spring MVC 控制器映射信息</p>
-        </div>
-      </div>
-      <div class="header-right">
-        <el-tag :type="wsConnected ? 'success' : 'danger'" effect="light" size="small" class="mr-2">
-          {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
-        </el-tag>
-        <el-tag type="success" effect="light" size="large" round>
-          <IconifyIconOnline icon="ri:links-line" class="mr-1" />
-          共 {{ data.length }} 个映射
-        </el-tag>
-      </div>
-    </div>
-
     <!-- 容器 QPS 统计卡片 -->
     <el-row :gutter="20" class="stats-row">
       <el-col :span="6" v-for="container in containerStats" :key="container.type">
-        <el-card class="stat-card" shadow="hover">
+        <el-card class="stat-card" :class="{ 'current-container': container.type === currentContainer }" shadow="hover">
           <div class="stat-header">
             <IconifyIconOnline :icon="container.icon" class="stat-icon" />
             <span class="stat-label">{{ container.label }}</span>
+            <el-tag v-if="container.type === currentContainer" type="success" size="small" effect="dark" class="current-tag">当前容器</el-tag>
           </div>
           <div class="stat-content">
             <div class="stat-item">
@@ -150,13 +131,14 @@ const data = ref([]);
 const infoVisible = ref(false);
 const info = ref("");
 const searchKeyword = ref("");
-let wsUnsubscribe = null;
+let wsUnsubscribeMappings = null;
+let wsUnsubscribeQps = null;
 
 // WebSocket 连接状态
 const wsConnected = computed(() => wsService.connected.value);
 
 // 处理 WebSocket 消息 - 路由映射数据推送
-const handleWsMessage = (message) => {
+const handleMappingMessage = (message) => {
   if (message.event === "SPRING_MAPPING_UPDATE") {
     try {
       const newData = message.data;
@@ -168,6 +150,35 @@ const handleWsMessage = (message) => {
     }
   }
 };
+
+// 处理 WebSocket 消息 - 容器 QPS 统计推送
+const handleQpsMessage = (message) => {
+  if (message.event === "CONTAINER_QPS_UPDATE") {
+    try {
+      const res = message.data;
+      if (res && res.status === 'ok') {
+        const statsData = res.data;
+        // 获取当前容器类型
+        if (res.currentContainer) {
+          currentContainer.value = res.currentContainer;
+        }
+        containerStats.value.forEach(container => {
+          const stat = statsData[container.type];
+          if (stat) {
+            container.qps = stat.qps || 0;
+            container.totalRequests = stat.totalRequests || 0;
+            container.activeConnections = stat.activeConnections || 0;
+          }
+        });
+      }
+    } catch (error) {
+      console.error("解析容器 QPS 数据失败:", error);
+    }
+  }
+};
+
+// 当前容器类型
+const currentContainer = ref(null);
 
 const containerStats = ref([
   { type: 'TOMCAT', label: 'Tomcat', icon: 'logos:tomcat', qps: 0, totalRequests: 0, activeConnections: 0 },
@@ -198,46 +209,13 @@ const formatNumber = num => {
   return num;
 };
 
-// 加载容器 QPS 统计
-const loadContainerStats = async () => {
-  try {
-    const res = await http.get((window.agentPath || "/agent") + "/api/qps?action=current");
-    if (res && res.data && res.data.status === 'ok') {
-      const statsData = res.data.data;
-      containerStats.value.forEach(container => {
-        const stat = statsData[container.type];
-        if (stat) {
-          container.qps = stat.qps || 0;
-          container.totalRequests = stat.totalRequests || 0;
-          container.activeConnections = stat.activeConnections || 0;
-        }
-      });
-    }
-  } catch (err) {
-    console.error('加载容器统计失败:', err);
-  }
-};
-
-// 定时刷新统计数据
-let statsTimer = null;
-const startStatsPolling = () => {
-  loadContainerStats();
-  statsTimer = setInterval(loadContainerStats, 3000); // 每 3 秒刷新一次
-};
-
-// 清理定时器
-const stopStatsPolling = () => {
-  if (statsTimer) {
-    clearInterval(statsTimer);
-    statsTimer = null;
-  }
-};
-
 onBeforeMount(async () => {
   // 连接 WebSocket
   wsService.connect();
   // 订阅路由映射数据推送
-  wsUnsubscribe = wsService.subscribe("SPRING", "SPRING_MAPPING_UPDATE", handleWsMessage);
+  wsUnsubscribeMappings = wsService.subscribe("SPRING", "SPRING_MAPPING_UPDATE", handleMappingMessage);
+  // 订阅容器 QPS 统计推送
+  wsUnsubscribeQps = wsService.subscribe("SERVER", "CONTAINER_QPS_UPDATE", handleQpsMessage);
   
   http.get((window.agentPath || "/agent") + "/spring-mapping-data").then(res => {
     // 后端返回的是 { data: [...], total: 10 }
@@ -250,15 +228,14 @@ onBeforeMount(async () => {
       data.value = [];
     }
   });
-  
-  // 启动统计数据轮询
-  startStatsPolling();
 });
 
 onUnmounted(() => {
-  stopStatsPolling();
-  if (wsUnsubscribe) {
-    wsUnsubscribe();
+  if (wsUnsubscribeMappings) {
+    wsUnsubscribeMappings();
+  }
+  if (wsUnsubscribeQps) {
+    wsUnsubscribeQps();
   }
 });
 </script>
@@ -280,11 +257,20 @@ onUnmounted(() => {
   border-radius: 12px;
   border: none;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
   
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+  
+  &.current-container {
+    border: 2px solid var(--el-color-success);
+    box-shadow: 0 4px 16px rgba(var(--el-color-success-rgb), 0.2);
+    
+    .stat-header .stat-label {
+      color: var(--el-color-success);
+    }
   }
   
   :deep(.el-card__body) {
@@ -296,6 +282,7 @@ onUnmounted(() => {
     align-items: center;
     gap: 8px;
     margin-bottom: 12px;
+    flex-wrap: wrap;
     
     .stat-icon {
       font-size: 24px;
@@ -305,6 +292,10 @@ onUnmounted(() => {
       font-size: 14px;
       font-weight: 600;
       color: var(--el-text-color-primary);
+    }
+    
+    .current-tag {
+      margin-left: auto;
     }
   }
   
@@ -336,46 +327,6 @@ onUnmounted(() => {
       width: 1px;
       height: 32px;
       background: var(--el-border-color-lighter);
-    }
-  }
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 20px 24px;
-  background: var(--el-bg-color);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-
-    .header-icon {
-      font-size: 40px;
-      color: var(--el-color-success);
-      padding: 12px;
-      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
-      border-radius: 12px;
-    }
-
-    .header-info {
-      .header-title {
-        margin: 0 0 4px 0;
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-      }
-
-      .header-desc {
-        margin: 0;
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-      }
     }
   }
 }
@@ -494,13 +445,12 @@ html.dark {
     background: var(--el-bg-color-page);
   }
 
-  .page-header {
-    background: var(--el-bg-color);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-  }
-
   .modern-card {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .stat-card.current-container {
+    box-shadow: 0 4px 16px rgba(var(--el-color-success-rgb), 0.3);
   }
 }
 </style>

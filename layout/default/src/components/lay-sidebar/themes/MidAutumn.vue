@@ -46,7 +46,7 @@ $mid-border: rgba(255, 213, 79, 0.3);
       z-index: 1;
     }
     
-    // Logo 区域样式 - 中秋主题
+    // Logo 区域样式 - 中秋主题（使用月饼替换 Logo）
     .sidebar-logo-container {
       background: linear-gradient(135deg, rgba(13, 27, 66, 0.95) 0%, rgba($mid-blue, 0.95) 100%);
       border-bottom: 2px solid $mid-border;
@@ -64,14 +64,33 @@ $mid-border: rgba(255, 213, 79, 0.3);
       }
       
       .sidebar-logo-link {
+        position: relative;
+        
         .sidebar-title {
           color: $mid-gold !important;
           text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 10px rgba($mid-gold, 0.3);
           font-weight: 700;
+          margin-left: 40px !important; // 给月饼腐出空间
         }
         
+        // 隐藏原始 Logo
         img {
-          filter: drop-shadow(0 2px 4px rgba($mid-gold, 0.3));
+          opacity: 0;
+          width: 0 !important;
+          height: 0 !important;
+          margin: 0 !important;
+        }
+        
+        // 用伪元素显示月饼 Logo
+        &::before {
+          content: '🥮';
+          font-size: 32px;
+          position: absolute;
+          left: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          filter: drop-shadow(0 2px 6px rgba($mid-gold, 0.6));
+          animation: mooncakeFloat 3s ease-in-out infinite;
         }
         
         // 环境标识中秋风格
@@ -81,6 +100,16 @@ $mid-border: rgba(255, 213, 79, 0.3);
           box-shadow: 0 2px 6px rgba($mid-gold, 0.5);
           border: 1px solid rgba($mid-blue, 0.3);
         }
+      }
+    }
+    
+    // 月饼浮动动画
+    @keyframes mooncakeFloat {
+      0%, 100% {
+        transform: translateY(-50%);
+      }
+      50% {
+        transform: translateY(calc(-50% - 3px));
       }
     }
     

@@ -5,8 +5,6 @@
 @use "sidebar";
 @use "el-ui";
 @use "../theme-skin/index" as themeSkin;
-// 导入主题皮肤覆盖样式
-@use "../skin-override/index" as skinOverride;
 // 导入颜色系统
 @use "../../colors/index" as colors;
 // 导入Element Plus主题覆盖

@@ -132,55 +132,92 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="http-perf-container">
-    <el-card class="summary-card">
-      <template #header>
-        <div class="card-header">
-          <span>HTTP性能汇总</span>
-          <div class="header-actions">
-            <el-tag :type="wsConnected ? 'success' : 'danger'" size="small">
-              {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
-            </el-tag>
-            <el-button type="info" size="small" @click="fetchData" :loading="loading">
-              刷新
-            </el-button>
-            <el-button type="primary" size="small" @click="clearStats">
-              清除统计
-            </el-button>
-          </div>
+  <div class="page-container">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <IconifyIconOnline icon="ri:speed-line" class="header-icon" />
+        <div class="header-info">
+          <h2 class="header-title">HTTP 性能监控</h2>
+          <p class="header-desc">实时监控和分析 HTTP 接口性能</p>
         </div>
-      </template>
-      <el-row :gutter="20">
-        <el-col :span="6">
-          <div class="stat-item">
-            <div class="stat-label">总请求数</div>
-            <div class="stat-value">{{ summary.totalRequests || 0 }}</div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="stat-item">
-            <div class="stat-label">总错误数</div>
-            <div class="stat-value error">{{ summary.totalErrors || 0 }}</div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="stat-item">
-            <div class="stat-label">平均耗时(ms)</div>
-            <div class="stat-value">{{ summary.avgDuration || 0 }}</div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="stat-item">
-            <div class="stat-label">错误率(%)</div>
-            <div class="stat-value error">
-              {{ (summary.errorRate || 0).toFixed(2) }}
+      </div>
+      <div class="header-right">
+        <el-tag :type="wsConnected ? 'success' : 'danger'" effect="light" size="large">
+          {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
+        </el-tag>
+        <el-button type="info" @click="fetchData" :loading="loading">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+        <el-button type="danger" @click="clearStats">
+          <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
+          清除
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <el-row :gutter="16" class="stats-row">
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper primary">
+              <IconifyIconOnline icon="ri:send-plane-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ summary.totalRequests || 0 }}</div>
+              <div class="stat-label">总请求数</div>
             </div>
           </div>
-        </el-col>
-      </el-row>
-    </el-card>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper danger">
+              <IconifyIconOnline icon="ri:error-warning-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value error">{{ summary.totalErrors || 0 }}</div>
+              <div class="stat-label">总错误数</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper warning">
+              <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ summary.avgDuration || 0 }}</div>
+              <div class="stat-label">平均耗时(ms)</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper" :class="(summary.errorRate || 0) > 5 ? 'danger' : 'success'">
+              <IconifyIconOnline icon="ri:percent-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" :class="{ error: (summary.errorRate || 0) > 5 }">
+                {{ (summary.errorRate || 0).toFixed(2) }}%
+              </div>
+              <div class="stat-label">错误率</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
 
-    <el-tabs v-model="activeTab" class="tabs-container">
+    <!-- 内容卡片 -->
+    <el-card class="modern-card" shadow="hover">
+      <el-tabs v-model="activeTab" class="modern-tabs">
       <el-tab-pane label="Top接口" name="top">
         <el-table :data="topEndpoints" v-loading="loading" stripe>
           <el-table-column prop="method" label="方法" width="80" />
@@ -243,63 +280,166 @@ onUnmounted(() => {
           </el-table-column>
         </el-table>
       </el-tab-pane>
-    </el-tabs>
+      </el-tabs>
+    </el-card>
   </div>
 </template>
 
 <style scoped lang="scss">
-.http-perf-container {
+.page-container {
   padding: 20px;
+  min-height: 100%;
+  background: var(--el-bg-color-page);
 }
 
-.summary-card {
-  margin-bottom: 20px;
-}
-
-.card-header {
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  
-  .header-actions {
+  margin-bottom: 20px;
+  padding: 20px 24px;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+  .header-left {
     display: flex;
-    gap: 8px;
     align-items: center;
+    gap: 16px;
+
+    .header-icon {
+      font-size: 40px;
+      color: var(--el-color-primary);
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
+      border-radius: 12px;
+    }
+
+    .header-info {
+      .header-title {
+        margin: 0 0 4px 0;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      .header-desc {
+        margin: 0;
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 }
 
-.stat-item {
-  text-align: center;
-  padding: 10px;
+.stats-row {
+  margin-bottom: 20px;
+}
 
-  .stat-label {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 8px;
+.stat-card {
+  border-radius: 12px;
+  border: none;
+  
+  :deep(.el-card__body) {
+    padding: 20px;
   }
 
-  .stat-value {
-    font-size: 24px;
-    font-weight: bold;
-    color: #409eff;
+  .stat-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
 
-    &.error {
-      color: #f56c6c;
+  .stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.primary {
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
+      .stat-icon { color: var(--el-color-primary); }
+    }
+    &.danger {
+      background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
+      .stat-icon { color: var(--el-color-danger); }
+    }
+    &.warning {
+      background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+      .stat-icon { color: var(--el-color-warning); }
+    }
+    &.success {
+      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+      .stat-icon { color: var(--el-color-success); }
+    }
+
+    .stat-icon {
+      font-size: 24px;
+    }
+  }
+
+  .stat-info {
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+      margin-bottom: 4px;
+
+      &.error {
+        color: var(--el-color-danger);
+      }
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
     }
   }
 }
 
-.tabs-container {
-  margin-top: 20px;
+.modern-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.modern-tabs {
+  :deep(.el-tabs__header) {
+    margin-bottom: 16px;
+  }
 }
 
 .error {
-  color: #f56c6c;
-  font-weight: bold;
+  color: var(--el-color-danger);
+  font-weight: 600;
 }
 
 .slow {
-  color: #e6a23c;
-  font-weight: bold;
+  color: var(--el-color-warning);
+  font-weight: 600;
+}
+
+// 深色主题适配
+html.dark {
+  .page-container {
+    background: var(--el-bg-color-page);
+  }
+
+  .page-header {
+    background: var(--el-bg-color);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .stat-card, .modern-card {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  }
 }
 </style>

@@ -1,0 +1,185 @@
+/**
+ * 基础重置样式 - 所有主题皮肤共用
+ * 当应用了主题皮肤时，重置默认的主题色样式，让主题组件自己的样式生效
+ */
+
+html[data-skin]:not([data-skin=""]):not([data-skin="default"]) {
+  // ==================== 侧边栏菜单激活背景重置 ====================
+  // 使用高优先级选择器覆盖 sidebar.scss 中的样式
+  
+  // 覆盖 sidebar.scss 第240-249行: .el-menu-item.is-active.nest-menu::before
+  .sidebar-container .el-menu-item.is-active.nest-menu::before {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  
+  // 覆盖 sidebar.scss 第285-294行: .is-active.submenu-title-noDropdown.outer-most::before
+  .sidebar-container .is-active.submenu-title-noDropdown.outer-most::before {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  
+  // 覆盖 sidebar.scss 第259-277行: 折叠菜单的左侧竖条
+  .sidebar-container .el-menu--collapse .is-active.outer-most.el-sub-menu > .el-sub-menu__title::before {
+    background: transparent !important;
+  }
+  
+  // ==================== 垂直弹出菜单重置 ====================
+  // 覆盖 sidebar.scss 第342-355行: .el-menu--vertical .el-menu--popup .el-menu-item.is-active
+  .el-menu--vertical .el-menu--popup .el-menu-item.is-active {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  
+  // 覆盖 sidebar.scss 第424-432行: .el-menu--vertical .el-menu-item.is-active.nest-menu::before
+  .el-menu--vertical .el-menu-item.is-active.nest-menu::before {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  
+  // ==================== 水平弹出菜单重置 ====================
+  // 覆盖 sidebar.scss 第581-605行: .el-menu--horizontal .el-menu--popup .el-menu-item.is-active
+  .el-menu--horizontal .el-menu--popup .el-menu-item.is-active {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  
+  // 覆盖 sidebar.scss 第669-676行: .el-menu--horizontal .el-menu-item.is-active.nest-menu::before
+  .el-menu--horizontal .el-menu-item.is-active.nest-menu::before {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  
+  // ==================== 弹出层容器重置 ====================
+  .el-menu--popup,
+  .el-menu--popup-container .el-menu--popup,
+  .pure-scrollbar.el-menu--vertical {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    
+    &.el-menu {
+      background: transparent !important;
+    }
+    
+    .el-menu-item {
+      background: transparent !important;
+      box-shadow: none !important;
+      
+      &::before {
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+      
+      &:hover { 
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+      
+      &.is-active {
+        background: transparent !important; 
+        box-shadow: none !important;
+        
+        &::before {
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+      }
+    }
+    
+    .el-sub-menu__title {
+      background: transparent !important;
+      &:hover { background: transparent !important; }
+    }
+  }
+  
+  // ==================== 双栏导航重置 ====================
+  .double-nav-left .first-level-menu .el-menu-item {
+    background: transparent !important;
+    &::before { display: none !important; }
+    &:hover { background: transparent !important; }
+    &.is-active { background: transparent !important; box-shadow: none !important; }
+  }
+
+  .double-nav-right {
+    background: transparent !important;
+    &::before { display: none !important; }
+    .sub-menu-list {
+      .el-menu-item {
+        background: transparent !important;
+        &::before, &::after { display: none !important; }
+        &:hover { transform: none !important; background: transparent !important; }
+        &.is-active { background: transparent !important; box-shadow: none !important; }
+      }
+      .el-sub-menu__title {
+        background: transparent !important;
+        &:hover { background: transparent !important; transform: none !important; }
+      }
+      .el-sub-menu.is-opened > .el-sub-menu__title { background: transparent !important; }
+      .nest-menu .el-menu-item::after { display: none !important; }
+    }
+  }
+
+  // ==================== 标签页基础重置 ====================
+  .tags-view {
+    background: transparent !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .scroll-item {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+
+    &:not(.is-active):hover {
+      background: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    &.is-active {
+      background: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      &::before { display: none !important; }
+    }
+  }
+
+  .arrow-left, .arrow-right, .arrow-down {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    &:hover { background: transparent !important; }
+  }
+
+  .contextmenu {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .card-item, .smart-item, .modern-item, .chrome-item {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    &::before, &::after { display: none !important; }
+    &.is-active { background: transparent !important; }
+  }
+
+  // Chrome 标签特殊重置
+  .chrome-tab__bg,
+  .chrome-tab__bg svg {
+    display: none !important;
+  }
+
+  .chrome-tab-divider {
+    display: none !important;
+  }
+
+  .schedule-active, .schedule-in, .schedule-out {
+    background: transparent !important;
+  }
+}
