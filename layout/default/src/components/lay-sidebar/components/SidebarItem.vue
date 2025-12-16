@@ -6,8 +6,11 @@ import {
   resolvePath as configResolvePath,
   getConfig,
   transformI18n,
+  responsiveStorageNameSpace,
 } from "@repo/config";
+import type { StorageConfigs } from "@repo/config";
 import type { MenuType } from "@repo/core";
+import { emitter } from "@repo/core";
 import {
   computed,
   type CSSProperties,
@@ -15,8 +18,11 @@ import {
   ref,
   toRaw,
   useAttrs,
+  onMounted,
+  onBeforeUnmount,
 } from "vue";
 import { useNav } from "../../../hooks/useNav";
+import { localStorageProxy } from "@repo/utils";
 import SidebarExtraIcon from "./SidebarExtraIcon.vue";
 import SidebarLinkItem from "./SidebarLinkItem.vue";
 import ThemeMenuActiveIndicator from "./ThemeMenuActiveIndicator.vue";
@@ -27,6 +33,34 @@ import ArrowUp from "@iconify-icons/ep/arrow-up-bold";
 
 const attrs = useAttrs();
 const { layout, isCollapse, tooltipEffect, getDivStyle } = useNav();
+
+// 主题感知
+const currentTheme = ref<string>(
+  localStorageProxy().getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`
+  )?.systemTheme || 'default'
+);
+
+// 主题类名映射
+const themeClassMap: Record<string, string> = {
+  'christmas': 'theme-christmas',
+  'spring-festival': 'theme-spring-festival',
+  'mid-autumn': 'theme-mid-autumn',
+  'cyberpunk': 'theme-cyberpunk',
+  'default': 'theme-default',
+};
+
+const themeClass = computed(() => themeClassMap[currentTheme.value] || 'theme-default');
+
+onMounted(() => {
+  emitter.on('systemThemeChange', (themeKey: string) => {
+    currentTheme.value = themeKey;
+  });
+});
+
+onBeforeUnmount(() => {
+  emitter.off('systemThemeChange');
+});
 const route = useRoute();
 
 const props = defineProps({
@@ -127,7 +161,7 @@ function resolvePath(routePath: string) {
   >
     <el-menu-item
       :index="resolvePath(onlyOneChild.path)"
-      :class="{ 'submenu-title-noDropdown': !isNest }"
+      :class="['sidebar-menu-item', themeClass, { 'submenu-title-noDropdown': !isNest }]"
       :style="getNoDropdownStyle"
       v-bind="attrs"
     >
@@ -197,6 +231,7 @@ function resolvePath(routePath: string) {
     ref="subMenu"
     teleported
     :index="resolvePath(item.path)"
+    :class="['sidebar-sub-menu', themeClass]"
     v-bind="expandCloseIcon"
   >
     <template #title>
@@ -248,3 +283,40 @@ function resolvePath(routePath: string) {
     </span>
   </el-sub-menu>
 </template>
+
+<style lang="scss" scoped>
+// 基础菜单项样式
+.sidebar-menu-item,
+.sidebar-sub-menu {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+// ==================== 圣诞主题 ====================
+.theme-christmas {
+  &.is-active {
+    // 圣诞树装饰在 ThemeMenuActiveIndicator 中实现
+  }
+}
+
+// ==================== 春节主题 ====================
+.theme-spring-festival {
+  &.is-active {
+    // 灯笼装饰在 ThemeMenuActiveIndicator 中实现
+  }
+}
+
+// ==================== 中秋主题 ====================
+.theme-mid-autumn {
+  &.is-active {
+    // 月亮装饰在 ThemeMenuActiveIndicator 中实现
+  }
+}
+
+// ==================== 赛博朋克主题 ====================
+.theme-cyberpunk {
+  &.is-active {
+    // 霓虹装饰在 ThemeMenuActiveIndicator 中实现
+  }
+}
+</style>
