@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRoute } from "vue-router";
 import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import {
@@ -18,6 +19,7 @@ import {
 import { useNav } from "../../../hooks/useNav";
 import SidebarExtraIcon from "./SidebarExtraIcon.vue";
 import SidebarLinkItem from "./SidebarLinkItem.vue";
+import ThemeMenuActiveIndicator from "./ThemeMenuActiveIndicator.vue";
 import EpArrowDown from "@iconify-icons/ep/arrow-down-bold";
 import ArrowLeft from "@iconify-icons/ep/arrow-left-bold";
 import ArrowRight from "@iconify-icons/ep/arrow-right-bold";
@@ -25,6 +27,7 @@ import ArrowUp from "@iconify-icons/ep/arrow-up-bold";
 
 const attrs = useAttrs();
 const { layout, isCollapse, tooltipEffect, getDivStyle } = useNav();
+const route = useRoute();
 
 const props = defineProps({
   item: {
@@ -38,6 +41,13 @@ const props = defineProps({
     type: String,
     default: "",
   },
+});
+
+// 计算当前菜单项是否激活
+const isMenuActive = computed(() => {
+  const currentPath = route.path;
+  const itemPath = resolvePath(props.item?.path || '');
+  return currentPath === itemPath || currentPath.startsWith(itemPath + '/');
 });
 
 const getNoDropdownStyle = computed((): CSSProperties => {
@@ -178,6 +188,8 @@ function resolvePath(routePath: string) {
           <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
         </div>
       </template>
+      <!-- 主题特色激活装饰 -->
+      <ThemeMenuActiveIndicator :is-active="isMenuActive" />
     </el-menu-item>
   </SidebarLinkItem>
   <el-sub-menu

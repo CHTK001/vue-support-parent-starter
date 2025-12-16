@@ -260,7 +260,7 @@ export default defineComponent({
                 <div class="custom-tree-node">
                   <div class="node-content">
                     <div class="node-icon" :class="data.sysDeptId ? (node.childNodes?.length > 0 ? 'has-children' : 'leaf') : 'all'">
-                      <IconifyIconOnline :icon="data.sysDeptId ? (node.childNodes?.length > 0 ? 'ri:folder-3-line' : 'ri:building-line') : 'ri:stack-line'" />
+                      <IconifyIconOnline :icon="data.sysDeptIcon || (data.sysDeptId ? (node.childNodes?.length > 0 ? 'ri:folder-3-line' : 'ri:building-line') : 'ri:stack-line')" />
                     </div>
                     <div class="node-info">
                       <span class="node-label">{{ data.sysDeptName }}</span>

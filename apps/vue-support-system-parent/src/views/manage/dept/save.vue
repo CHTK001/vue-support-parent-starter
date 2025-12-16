@@ -2,8 +2,10 @@
 import { defineComponent } from "vue";
 import { fetchSaveDept, fetchUpdateDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
+import { IconSelect, IconifyIconOnline } from "@repo/components/ReIcon";
 
 export default defineComponent({
+  components: { IconSelect, IconifyIconOnline },
   data() {
     return {
       form: {
@@ -11,6 +13,7 @@ export default defineComponent({
         sysDeptName: "",
         sysDeptPid: "",
         sysDeptTreeId: "",
+        sysDeptIcon: "",
       },
       visible: false,
       rules: {
@@ -118,6 +121,12 @@ export default defineComponent({
           <el-col :span="12">
             <el-form-item label="机构编码" prop="sysDeptCode">
               <el-input v-model="form.sysDeptCode" placeholder="请输入机构编码" :maxlength="20" show-word-limit />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="12">
+            <el-form-item label="机构图标" prop="sysDeptIcon">
+              <IconSelect v-model="form.sysDeptIcon" />
             </el-form-item>
           </el-col>
 

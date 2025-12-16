@@ -7,12 +7,13 @@ import { debounce } from "@pureadmin/utils";
 import { getTimeAgo } from "@repo/utils";
 // 导入渲染图标的钩子函数
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 // 导入路由实例
 import { router } from "@repo/core";
 // 导入Base64编码库
 import { Base64 } from "js-base64";
 // 导入Vue的响应式和生命周期相关API
-import { defineAsyncComponent, onMounted, reactive, shallowRef } from "vue";
+import { defineAsyncComponent, onMounted, reactive, shallowRef, computed } from "vue";
 // 导入获取权限标签的钩子函数
 import { getPermissionLabel } from "./hook";
 
@@ -28,6 +29,42 @@ const PermissionDialog = defineAsyncComponent(() => import("./permission.vue"));
 const env = reactive({
   loading: false,
 });
+
+// 统计数据
+const stats = reactive({
+  total: 0,
+  topLevel: 0,
+  subLevel: 0,
+  enabled: 0
+});
+
+/**
+ * 计算部门统计数据
+ */
+const calcStats = (data: any[]) => {
+  let total = 0;
+  let topLevel = 0;
+  let subLevel = 0;
+  let enabled = 0;
+
+  const countDepts = (items: any[], isTop = true) => {
+    items.forEach(item => {
+      total++;
+      if (isTop) topLevel++;
+      else subLevel++;
+      if (item.sysDeptStatus === 0) enabled++;
+      if (item.children?.length) {
+        countDepts(item.children, false);
+      }
+    });
+  };
+
+  countDepts(data);
+  stats.total = total;
+  stats.topLevel = topLevel;
+  stats.subLevel = subLevel;
+  stats.enabled = enabled;
+};
 
 // 浅引用，用于存储表格数据
 const tableData = shallowRef([]);
@@ -52,6 +89,8 @@ const loadData = async () => {
     const res = await fetchListDept(form);
     // 将获取到的数据赋值给表格数据
     tableData.value = res.data;
+    // 计算统计数据
+    calcStats(res.data);
   } catch (error) {
     // 处理请求错误
     console.error("获取部门列表数据失败:", error);
@@ -157,140 +196,175 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="fullscreen p-1 overflow-hidden">
+  <div class="dept-page">
     <!-- 权限对话框组件 -->
     <PermissionDialog ref="permissionDialogRef"></PermissionDialog>
     <!-- 骨架屏组件，在数据加载时显示 -->
     <el-skeleton :loading="env.loading" animated>
       <template #default>
-        <!-- 页面头部 -->
-        <el-header>
-          <div class="left-panel">
-            <!-- 搜索表单，暂时注释掉 -->
-            <!-- <el-form :model="form" :inline="true">
-              <el-form-item label="机构名称">
-                <el-input v-model="form.sysDeptName" placeholder="机构名称" clearable></el-input>
-              </el-form-item>
-            </el-form> -->
-          </div>
-          <div class="right-panel">
-            <div class="right-panel-search">
-              <!-- 搜索按钮，点击后调用加载数据函数，并进行防抖处理 -->
-              <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="debounce(loadData, 1000, true)" />
-              <!-- 新增部门按钮，点击后打开保存对话框 -->
-              <el-button :icon="useRenderIcon('ep:plus')" @click="handleEdit({}, 'save')" />
+        <div class="dept-wrapper">
+          <!-- 统计面板 -->
+          <div class="dept-stats">
+            <div class="stat-item">
+              <div class="stat-icon total">
+                <IconifyIconOnline icon="ri:building-line" :size="28" />
+              </div>
+              <div class="stat-info">
+                <span class="stat-value">{{ stats.total }}</span>
+                <span class="stat-label">全部部门</span>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon top">
+                <IconifyIconOnline icon="ri:building-2-line" :size="28" />
+              </div>
+              <div class="stat-info">
+                <span class="stat-value">{{ stats.topLevel }}</span>
+                <span class="stat-label">一级部门</span>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon sub">
+                <IconifyIconOnline icon="ri:building-4-line" :size="28" />
+              </div>
+              <div class="stat-info">
+                <span class="stat-value">{{ stats.subLevel }}</span>
+                <span class="stat-label">子部门</span>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon enabled">
+                <IconifyIconOnline icon="ri:checkbox-circle-line" :size="28" />
+              </div>
+              <div class="stat-info">
+                <span class="stat-value">{{ stats.enabled }}</span>
+                <span class="stat-label">已启用</span>
+              </div>
             </div>
           </div>
-        </el-header>
-        <!-- 表格组件，显示部门列表数据 -->
-        <ScTable class="overflow-auto" ref="tableRef" :data="tableData" row-key="sysDeptId" @row-click="handleOpenDetail">
-          <!-- 表格列，显示部门ID -->
-          <el-table-column label="" prop="sysDeptIds"></el-table-column>
-          <!-- 表格列，显示部门名称 -->
-          <el-table-column label="机构名称" prop="sysDeptName" width="300px">
-            <template #default="{ row }">
-              <div class="flex justify-between items-start">
-                <p>
-                  <!-- 显示部门名称 -->
-                  {{ row.sysDeptName }}
-                  <!-- 显示部门排序，若无则显示0 -->
-                  <el-tag size="small" class="ml-1">{{ row.sysDeptSort || 0 }}</el-tag>
-                </p>
-                <div class="el-form-item-msg">
-                  <!-- 显示部门代码 -->
-                  <span>{{ row.sysDeptCode }}</span>
-                </div>
+          <!-- 页面头部 -->
+          <el-header class="dept-header">
+            <div class="left-panel">
+              <el-form :model="form" :inline="true" class="search-form">
+                <el-form-item label="机构名称">
+                  <el-input v-model="form.sysDeptName" placeholder="机构名称" clearable class="!w-[180px]" />
+                </el-form-item>
+              </el-form>
+            </div>
+            <div class="right-panel">
+              <div class="right-panel-search">
+                <!-- 搜索按钮，点击后调用加载数据函数，并进行防抖处理 -->
+                <el-button type="primary" :icon="useRenderIcon('ri:search-line')" @click="debounce(loadData, 1000, true)" />
+                <el-button :icon="useRenderIcon('ep:refresh')" @click="loadData" />
+                <!-- 新增部门按钮，点击后打开保存对话框 -->
+                <el-button :icon="useRenderIcon('ep:plus')" @click="handleEdit({}, 'save')" />
               </div>
-            </template>
-          </el-table-column>
-          <!-- 表格列，显示部门权限 -->
-          <el-table-column label="权限" prop="sysDeptPermission" width="180px">
-            <template #default="{ row }">
-              <!-- 若未设置权限则显示提示信息，否则显示权限标签 -->
-              <el-tag>{{ !row.sysDeptDataPermission ? "未设置权限" : getPermissionLabel(row.sysDeptDataPermission) }}</el-tag>
-            </template>
-          </el-table-column>
-          <!-- 表格列，显示部门路径 -->
-          <el-table-column label="路径" prop="sysDeptTreeId"></el-table-column>
-          <!-- 表格列，显示部门是否禁用状态 -->
-          <el-table-column label="是否禁用" prop="sysDeptStatus" width="220px">
-            <template #default="{ row }">
-              <!-- 分段选择器，用于切换部门启用或禁用状态 -->
-              <el-segmented
-                @change="handleUpdate(row)"
-                v-model="row.sysDeptStatus"
-                :options="[
-                  {
-                    label: '启用',
-                    value: 0,
-                  },
-                  {
-                    label: '禁用',
-                    value: 1,
-                  },
-                ]"
-              >
-              </el-segmented>
-            </template>
-          </el-table-column>
-          <!-- 表格列，显示部门创建时间 -->
-          <el-table-column label="创建时间" prop="createTime" width="220px">
-            <template #default="{ row }">
-              <div>
-                <!-- 显示相对时间 -->
-                <span>{{ getTimeAgo(row.createTime) }}</span>
-                <br />
-                <!-- 显示具体时间 -->
-                <span class="text-gray-400">{{ row.createTime }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <!-- 表格列，显示部门更新时间 -->
-          <el-table-column label="更新时间" prop="updateTime" width="220px">
-            <template #default="{ row }">
-              <div>
-                <!-- 显示相对时间 -->
-                <span>{{ getTimeAgo(row.updateTime) }}</span>
-                <br />
-                <!-- 显示具体时间 -->
-                <span class="text-gray-400">{{ row.updateTime }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <!-- 表格列，显示部门备注 -->
-          <el-table-column label="备注" prop="sysDeptRemark" show-overflow-tooltip />
-          <!-- 表格列，显示操作按钮 -->
-          <el-table-column label="操作" width="280px" fixed="right">
-            <template #default="{ row }">
-              <!-- 编辑按钮，点击后打开编辑对话框 -->
-              <el-button class="btn-text" :icon="useRenderIcon('ep:edit-pen')" @click="handleEdit(row, 'edit')"></el-button>
-              <!-- 新增子部门按钮，点击后打开保存对话框 -->
-              <el-button
-                class="btn-text"
-                :icon="useRenderIcon('line-md:plus')"
-                @click="
-                  handleEdit(
-                    {
-                      sysDeptPid: row.sysDeptId,
-                    },
-                    'save'
-                  )
-                "
-              ></el-button>
-              <!-- 搜索用户按钮，点击后跳转到用户页面 -->
-              <el-button class="btn-text" :icon="useRenderIcon('line-md:account')" @click="handleSearchUser(row)"></el-button>
-              <!-- 打开权限设置对话框按钮 -->
-              <el-button class="btn-text" type="primary" :icon="useRenderIcon('ep:menu')" @click="handleOpenPermission(row)"></el-button>
-              <!-- 删除确认弹窗，确认后删除部门 -->
-              <el-popconfirm :title="$t('message.confimDelete')" @confirm="handleDelete(row)">
-                <template #reference>
-                  <!-- 删除按钮 -->
-                  <el-button class="btn-text" type="danger" :icon="useRenderIcon('ep:delete')"></el-button>
+            </div>
+          </el-header>
+          <!-- 表格组件，显示部门列表数据 -->
+          <div class="table-container">
+            <ScTable ref="tableRef" :data="tableData" row-key="sysDeptId" @row-click="handleOpenDetail">
+              <!-- 表格列，显示部门ID -->
+              <el-table-column label="" prop="sysDeptIds" width="60"></el-table-column>
+              <!-- 表格列，显示部门名称 -->
+              <el-table-column label="机构名称" prop="sysDeptName" min-width="280">
+                <template #default="{ row }">
+                  <div class="dept-name-cell">
+                    <div class="dept-icon" :class="row.children?.length > 0 ? 'has-children' : 'leaf'">
+                      <IconifyIconOnline :icon="row.sysDeptIcon || (row.children?.length > 0 ? 'ri:folder-3-fill' : 'ri:building-fill')" />
+                    </div>
+                    <div class="dept-info">
+                      <div class="dept-title">
+                        <span class="dept-name">{{ row.sysDeptName }}</span>
+                        <el-tag v-if="row.sysDeptSort" size="small" type="info" effect="light" class="ml-2">排序: {{ row.sysDeptSort }}</el-tag>
+                      </div>
+                      <div class="dept-code">{{ row.sysDeptCode }}</div>
+                    </div>
+                  </div>
                 </template>
-              </el-popconfirm>
-            </template>
-          </el-table-column>
-        </ScTable>
+              </el-table-column>
+              <!-- 表格列，显示部门权限 -->
+              <el-table-column label="数据权限" prop="sysDeptPermission" width="150" align="center">
+                <template #default="{ row }">
+                  <el-tag :type="row.sysDeptDataPermission ? 'success' : 'info'" effect="light">
+                    {{ !row.sysDeptDataPermission ? "未设置" : getPermissionLabel(row.sysDeptDataPermission) }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <!-- 表格列，显示部门路径 -->
+              <el-table-column label="路径" prop="sysDeptTreeId" min-width="120" show-overflow-tooltip></el-table-column>
+              <!-- 表格列，显示部门状态 -->
+              <el-table-column label="状态" prop="sysDeptStatus" width="100" align="center">
+                <template #default="{ row }">
+                  <el-switch
+                    v-model="row.sysDeptStatus"
+                    :active-value="0"
+                    :inactive-value="1"
+                    @change="handleUpdate(row)"
+                    style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                  />
+                </template>
+              </el-table-column>
+              <!-- 表格列，显示部门创建时间 -->
+              <el-table-column label="创建时间" prop="createTime" width="180">
+                <template #default="{ row }">
+                  <div class="time-cell">
+                    <span class="time-ago">{{ getTimeAgo(row.createTime) }}</span>
+                    <span class="time-exact">{{ row.createTime }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+              <!-- 表格列，显示部门备注 -->
+              <el-table-column label="备注" prop="sysDeptRemark" min-width="120" show-overflow-tooltip>
+                <template #default="{ row }">
+                  <span v-if="row.sysDeptRemark">{{ row.sysDeptRemark }}</span>
+                  <span v-else class="text-placeholder">-</span>
+                </template>
+              </el-table-column>
+              <!-- 表格列，显示操作按钮 -->
+              <el-table-column label="操作" width="200" fixed="right" align="center">
+                <template #default="{ row }">
+                  <div class="action-buttons">
+                    <!-- 编辑按钮 -->
+                    <el-tooltip content="编辑" placement="top">
+                      <el-button type="primary" link @click.stop="handleEdit(row, 'edit')">
+                        <IconifyIconOnline icon="ri:edit-line" />
+                      </el-button>
+                    </el-tooltip>
+                    <!-- 新增子部门按钮 -->
+                    <el-tooltip content="添加子部门" placement="top">
+                      <el-button type="success" link @click.stop="handleEdit({ sysDeptPid: row.sysDeptId }, 'save')">
+                        <IconifyIconOnline icon="ri:add-line" />
+                      </el-button>
+                    </el-tooltip>
+                    <!-- 查看用户按钮 -->
+                    <el-tooltip content="查看部门用户" placement="top">
+                      <el-button type="warning" link @click.stop="handleSearchUser(row)">
+                        <IconifyIconOnline icon="ri:user-line" />
+                      </el-button>
+                    </el-tooltip>
+                    <!-- 权限设置按钮 -->
+                    <el-tooltip content="数据权限" placement="top">
+                      <el-button type="info" link @click.stop="handleOpenPermission(row)">
+                        <IconifyIconOnline icon="ri:shield-user-line" />
+                      </el-button>
+                    </el-tooltip>
+                    <!-- 删除确认弹窗 -->
+                    <el-popconfirm :title="$t('message.confimDelete')" @confirm="handleDelete(row)">
+                      <template #reference>
+                        <el-tooltip content="删除" placement="top">
+                          <el-button type="danger" link @click.stop>
+                            <IconifyIconOnline icon="ri:delete-bin-line" />
+                          </el-button>
+                        </el-tooltip>
+                      </template>
+                    </el-popconfirm>
+                  </div>
+                </template>
+              </el-table-column>
+            </ScTable>
+          </div>
+        </div>
       </template>
     </el-skeleton>
     <!-- 保存对话框组件 -->
@@ -300,25 +374,102 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 // 部门管理页面美化样式
-.fullscreen {
+.dept-page {
+  height: 100%;
+  padding: 8px;
+  background-color: var(--el-bg-color-page);
+}
+
+.dept-wrapper {
   height: 100%;
   background-color: var(--el-bg-color);
   border-radius: var(--el-border-radius-base);
   box-shadow: var(--el-box-shadow-light);
   overflow: hidden;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
 
   &:hover {
     box-shadow: var(--el-box-shadow);
   }
 }
 
+// 统计面板
+.dept-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 20px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-icon {
+      width: 52px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      color: #fff;
+
+      &.total {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      &.top {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      }
+
+      &.sub {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      }
+
+      &.enabled {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      }
+    }
+
+    .stat-info {
+      display: flex;
+      flex-direction: column;
+
+      .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--el-text-color-primary);
+        line-height: 1.2;
+      }
+
+      .stat-label {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+        margin-top: 4px;
+      }
+    }
+  }
+}
+
 // 页头样式
-:deep(.el-header) {
-  padding: 16px 20px;
+.dept-header {
+  padding: 16px 20px !important;
+  height: auto !important;
   background-color: var(--el-bg-color);
   border-bottom: 1px solid var(--el-border-color-lighter);
-  background-image: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-bg-color-page) 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -330,6 +481,12 @@ onMounted(async () => {
   flex: 1;
 }
 
+.search-form {
+  :deep(.el-form-item) {
+    margin-bottom: 0;
+  }
+}
+
 .right-panel {
   display: flex;
   align-items: center;
@@ -339,6 +496,100 @@ onMounted(async () => {
     display: flex;
     gap: 8px;
   }
+}
+
+// 表格容器
+.table-container {
+  flex: 1;
+  overflow: hidden;
+  padding: 16px;
+}
+
+// 部门名称单元格
+.dept-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .dept-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 20px;
+    flex-shrink: 0;
+
+    &.has-children {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    &.leaf {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+  }
+
+  .dept-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .dept-title {
+      display: flex;
+      align-items: center;
+    }
+
+    .dept-name {
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+    }
+
+    .dept-code {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+}
+
+// 时间单元格
+.time-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .time-ago {
+    font-size: 13px;
+    color: var(--el-text-color-primary);
+  }
+
+  .time-exact {
+    font-size: 11px;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+// 操作按钮
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+
+  .el-button {
+    font-size: 16px;
+    transition: all 0.3s;
+
+    &:hover {
+      transform: scale(1.15);
+    }
+  }
+}
+
+// 占位符文本
+.text-placeholder {
+  color: var(--el-text-color-placeholder);
 }
 
 // 表格美化
@@ -360,7 +611,6 @@ onMounted(async () => {
 
     &:hover {
       background-color: var(--el-fill-color-light) !important;
-      transform: translateY(-1px);
     }
 
     &:nth-child(even) {
@@ -370,7 +620,7 @@ onMounted(async () => {
 }
 
 // 按钮悬浮效果
-:deep(.el-button) {
+:deep(.el-button:not(.is-link)) {
   transition: all 0.3s ease;
 
   &:hover {
@@ -383,49 +633,52 @@ onMounted(async () => {
 :deep(.el-tag) {
   border-radius: 4px;
   font-weight: 500;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
-// 分段选择器美化
-:deep(.el-segmented) {
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-}
-
-// 操作按钮美化
-.btn-text {
-  transition: all 0.3s;
-
-  &:hover {
-    transform: scale(1.1);
+// 响应式适配
+@media (max-width: 1200px) {
+  .dept-stats {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-// 时间显示美化
-.text-gray-400 {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
+@media (max-width: 768px) {
+  .dept-stats {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 12px;
+    gap: 12px;
 
-// 部门代码样式
-.el-form-item-msg {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  background-color: var(--el-fill-color-lighter);
-  padding: 2px 6px;
-  border-radius: 4px;
+    .stat-item {
+      padding: 12px;
+
+      .stat-icon {
+        width: 44px;
+        height: 44px;
+      }
+
+      .stat-info .stat-value {
+        font-size: 20px;
+      }
+    }
+  }
 }
 
 // 暗色主题适配
 :root[data-theme='dark'] {
-  .fullscreen {
+  .dept-wrapper {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 
-  :deep(.el-header) {
+  .dept-stats {
+    background: var(--el-bg-color-overlay);
+
+    .stat-item {
+      background: var(--el-fill-color);
+    }
+  }
+
+  .dept-header {
     background-color: var(--el-bg-color-overlay);
-    background-image: linear-gradient(135deg, var(--el-bg-color-overlay) 0%, var(--el-bg-color) 100%);
   }
 
   :deep(.el-table) {
@@ -440,10 +693,6 @@ onMounted(async () => {
         background-color: var(--el-fill-color);
       }
     }
-  }
-
-  .el-form-item-msg {
-    background-color: var(--el-fill-color);
   }
 }
 </style>
