@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="moonlightMenuBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd54f"/>
+      <stop offset="50%" stop-color="#ffca28"/>
+      <stop offset="100%" stop-color="#ffd54f"/>
+    </linearGradient>
+    <radialGradient id="fullMoonMenuGlow" cx="90%" cy="50%" r="35%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="menuMoonGlow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- 发光背景 -->
+  <rect x="0" y="0" width="200" height="40" rx="5" fill="url(#moonlightMenuBg)" filter="url(#menuMoonGlow)"/>
+  <!-- 主背景 -->
+  <rect x="1" y="1" width="198" height="38" rx="4" fill="url(#moonlightMenuBg)"/>
+  <!-- 深蓝边框 -->
+  <rect x="0.5" y="0.5" width="199" height="39" rx="4.5" fill="none" stroke="#1a237e" stroke-width="1.5"/>
+  <!-- 月亮光晕 -->
+  <circle cx="185" cy="20" r="20" fill="url(#fullMoonMenuGlow)"/>
+  <!-- 满月 -->
+  <circle cx="185" cy="20" r="14" fill="white" opacity="0.9" filter="url(#menuMoonGlow)"/>
+  <circle cx="182" cy="17" r="3" fill="#ffd54f" opacity="0.25"/>
+  <circle cx="188" cy="22" r="2" fill="#ffd54f" opacity="0.2"/>
+  <!-- 祥云装饰 -->
+  <ellipse cx="25" cy="20" rx="12" ry="4" fill="#1a237e" opacity="0.12"/>
+  <ellipse cx="70" cy="12" rx="8" ry="2.5" fill="#1a237e" opacity="0.08"/>
+  <ellipse cx="120" cy="30" rx="10" ry="3" fill="#1a237e" opacity="0.1"/>
+  <!-- 星星 -->
+  <text x="15" y="32" font-size="6" fill="#1a237e" opacity="0.35">✦</text>
+  <text x="95" y="10" font-size="5" fill="#1a237e" opacity="0.25">✧</text>
+  <text x="145" y="28" font-size="4" fill="#1a237e" opacity="0.3">✦</text>
+  <!-- 顶部闪光 -->
+  <rect x="15" y="2" width="40" height="2" rx="1" fill="white" opacity="0.5"/>
+</svg>

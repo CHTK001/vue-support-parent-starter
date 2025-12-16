@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 32" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="nightSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a237e"/>
+      <stop offset="100%" stop-color="#283593"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffd54f" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ffd54f" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- 主背景 - 夜空 -->
+  <rect x="1" y="1" width="118" height="30" rx="4" fill="url(#nightSky)"/>
+  <!-- 金边 -->
+  <rect x="0.5" y="0.5" width="119" height="31" rx="4.5" fill="none" stroke="#ffd54f" stroke-width="1" opacity="0.5"/>
+  <!-- 月亮光晕 -->
+  <circle cx="100" cy="16" r="14" fill="url(#moonGlow)"/>
+  <!-- 月牙 -->
+  <circle cx="102" cy="16" r="8" fill="#ffd54f" opacity="0.9"/>
+  <circle cx="106" cy="14" r="7" fill="url(#nightSky)"/>
+  <!-- 星星 -->
+  <text x="12" y="12" font-size="6" fill="#ffd54f" opacity="0.7">✦</text>
+  <text x="30" y="24" font-size="5" fill="#ffd54f" opacity="0.5">✧</text>
+  <text x="50" y="10" font-size="4" fill="#ffd54f" opacity="0.6">✦</text>
+  <text x="70" y="26" font-size="5" fill="#ffd54f" opacity="0.5">✧</text>
+  <!-- 云朵 -->
+  <ellipse cx="25" cy="22" rx="12" ry="4" fill="white" opacity="0.1"/>
+  <ellipse cx="65" cy="8" rx="10" ry="3" fill="white" opacity="0.08"/>
+</svg>
