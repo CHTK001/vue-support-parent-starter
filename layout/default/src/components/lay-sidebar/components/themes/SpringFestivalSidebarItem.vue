@@ -52,61 +52,56 @@ $spring-gold-light: #ffeb3b;
 $spring-white: #ffffff;
 $spring-border: rgba(255, 215, 0, 0.5);
 
+// 春联 SVG 背景
+$couplet-normal: url('./assets/spring-couplet-menu-normal.svg');
+$couplet-active: url('./assets/spring-couplet-menu-active.svg');
+
 .spring-festival-sidebar-item-wrapper {
   :deep(.sidebar-menu-item) {
     color: $spring-gold !important;
-    background: linear-gradient(135deg, rgba($spring-red-dark, 0.8), rgba($spring-red, 0.7)) !important;
+    background: $couplet-normal !important;
+    background-size: 100% 100% !important;
+    background-repeat: no-repeat !important;
     margin: 4px 8px;
-    border-radius: 8px;
-    border: 1.5px solid rgba($spring-gold, 0.4) !important;
-    font-weight: 500;
+    border-radius: 4px;
+    border: none !important;
+    font-weight: 600;
+    font-family: 'STKaiti', 'KaiTi', 'SimKai', serif;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     
     &:hover {
-      background: linear-gradient(135deg, rgba($spring-red, 0.9), rgba($spring-red-light, 0.8)) !important;
-      color: $spring-white !important;
-      border-color: $spring-gold !important;
-      transform: translateX(4px) scale(1.02);
-      box-shadow: 
-        0 4px 16px rgba($spring-red, 0.4),
-        0 0 20px rgba($spring-gold, 0.2);
+      transform: translateX(2px);
+      filter: brightness(1.1);
+      box-shadow: 0 4px 12px rgba($spring-red, 0.3);
     }
     
     .el-icon, svg {
       color: $spring-gold !important;
+      position: relative;
+      z-index: 2;
     }
     
     span, div {
       color: inherit !important;
+      position: relative;
+      z-index: 2;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
     
     &.is-active {
-      background: linear-gradient(135deg, $spring-red 0%, $spring-red-light 100%) !important;
-      color: $spring-white !important;
-      border: 2px solid $spring-gold !important;
+      background: $couplet-active !important;
+      background-size: 100% 100% !important;
+      background-repeat: no-repeat !important;
+      color: #8B0000 !important;
       font-weight: 700;
       box-shadow: 
-        0 4px 20px rgba($spring-red, 0.5),
-        0 0 30px rgba($spring-gold, 0.3),
-        inset 0 0 20px rgba($spring-gold, 0.1);
+        0 4px 16px rgba($spring-gold, 0.5),
+        0 0 20px rgba($spring-gold, 0.3);
       
       .el-icon, svg, span, div {
-        color: $spring-white !important;
-      }
-      
-      // 左侧金色装饰条
-      &::after {
-        content: '';
-        position: absolute;
-        left: -2px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 4px;
-        height: 70%;
-        background: linear-gradient(to bottom, $spring-gold, $spring-gold-light, $spring-gold);
-        border-radius: 2px;
-        box-shadow: 0 0 8px rgba($spring-gold, 0.8);
+        color: #8B0000 !important;
+        text-shadow: 0 1px 2px rgba(255, 215, 0, 0.5);
       }
     }
   }
@@ -114,18 +109,19 @@ $spring-border: rgba(255, 215, 0, 0.5);
   :deep(.sidebar-sub-menu) {
     .el-sub-menu__title {
       color: $spring-gold !important;
-      background: linear-gradient(135deg, rgba($spring-red-dark, 0.8), rgba($spring-red, 0.7)) !important;
+      background: $couplet-normal !important;
+      background-size: 100% 100% !important;
+      background-repeat: no-repeat !important;
       margin: 4px 8px;
-      border-radius: 8px;
-      border: 1.5px solid rgba($spring-gold, 0.4) !important;
-      font-weight: 500;
+      border-radius: 4px;
+      border: none !important;
+      font-weight: 600;
+      font-family: 'STKaiti', 'KaiTi', 'SimKai', serif;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       
       &:hover {
-        background: linear-gradient(135deg, rgba($spring-red, 0.9), rgba($spring-red-light, 0.8)) !important;
-        color: $spring-white !important;
-        border-color: $spring-gold !important;
-        transform: translateX(4px) scale(1.02);
+        transform: translateX(2px);
+        filter: brightness(1.1);
       }
       
       .el-icon, svg {
@@ -134,13 +130,14 @@ $spring-border: rgba(255, 215, 0, 0.5);
     }
     
     &.is-active > .el-sub-menu__title {
-      color: $spring-white !important;
-      background: linear-gradient(135deg, rgba($spring-red, 0.9), rgba($spring-red-light, 0.8)) !important;
-      border-color: $spring-gold !important;
+      background: $couplet-active !important;
+      background-size: 100% 100% !important;
+      background-repeat: no-repeat !important;
+      color: #8B0000 !important;
       font-weight: 700;
       
       .el-icon, svg {
-        color: $spring-white !important;
+        color: #8B0000 !important;
       }
     }
     
@@ -149,25 +146,32 @@ $spring-border: rgba(255, 215, 0, 0.5);
       
       .el-menu-item {
         color: $spring-gold !important;
-        background: linear-gradient(135deg, rgba($spring-red-dark, 0.8), rgba($spring-red, 0.7)) !important;
-        border: 1.5px solid rgba($spring-gold, 0.4) !important;
-        border-radius: 8px;
+        background: $couplet-normal !important;
+        background-size: 100% 100% !important;
+        background-repeat: no-repeat !important;
+        border: none !important;
+        border-radius: 4px;
         margin: 4px 8px !important;
+        font-family: 'STKaiti', 'KaiTi', 'SimKai', serif;
         
         &:hover {
-          background: linear-gradient(135deg, rgba($spring-red, 0.9), rgba($spring-red-light, 0.8)) !important;
-          color: $spring-white !important;
-          border-color: $spring-gold !important;
+          filter: brightness(1.1);
         }
         
         &.is-active {
-          background: linear-gradient(135deg, $spring-red, $spring-red-light) !important;
-          color: $spring-white !important;
-          border: 2px solid $spring-gold !important;
+          background: $couplet-active !important;
+          background-size: 100% 100% !important;
+          background-repeat: no-repeat !important;
+          color: #8B0000 !important;
         }
         
         .el-icon, svg {
           color: $spring-gold !important;
+        }
+        
+        &.is-active .el-icon,
+        &.is-active svg {
+          color: #8B0000 !important;
         }
       }
     }
