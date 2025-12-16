@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import BaseSidebar from "./BaseSidebar.vue";
+import DefaultSidebarItem from '../components/themes/DefaultSidebarItem.vue';
 </script>
 
 <template>
   <div class="default-sidebar-wrapper">
-    <BaseSidebar theme-class="default-sidebar" />
+    <BaseSidebar 
+      theme-class="default-sidebar" 
+      :sidebar-item-component="DefaultSidebarItem" 
+    />
   </div>
 </template>
 

@@ -10,9 +10,9 @@ import { useNav } from "../../../hooks/useNav";
 import type { StorageConfigs } from "@repo/config";
 import { responsiveStorageNameSpace } from "@repo/config";
 import { isAllEmpty } from "@pureadmin/utils";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch, type Component, provide } from "vue";
 import LaySidebarLogo from "../components/SidebarLogo.vue";
-import LaySidebarItem from "../components/SidebarItem.vue";
+import DefaultSidebarItem from "../components/themes/DefaultSidebarItem.vue";
 import LaySidebarLeftCollapse from "../components/SidebarLeftCollapse.vue";
 import LaySidebarCenterCollapse from "../components/SidebarCenterCollapse.vue";
 import { localStorageProxy, useDefer } from "@repo/utils";
@@ -22,10 +22,17 @@ import ThemeDecoration from "../../ThemeDecoration.vue";
 import { getComponentDecorations } from "../../../themes/decorations";
 import type { DecorationConfig } from "../../../themes/decorations";
 
-// 接收主题类名
+// 接收主题类名和主题 SidebarItem 组件
 const props = defineProps<{
   themeClass?: string;
+  sidebarItemComponent?: Component;
 }>();
+
+// 计算实际使用的 SidebarItem 组件
+const ThemeSidebarItem = computed(() => props.sidebarItemComponent || DefaultSidebarItem);
+
+// 提供给子组件（用于递归渲染）
+provide('themeSidebarItem', ThemeSidebarItem);
 
 const route = useRoute();
 const isShow = ref(false);
@@ -160,7 +167,8 @@ const defer = useDefer(menuData.value.length);
         :default-active="defaultActive"
       >
         <span v-for="(routes, index) in menuData" :key="index">
-          <LaySidebarItem
+          <component
+            :is="ThemeSidebarItem"
             :key="routes.path"
             :item="routes"
             :base-path="routes.path"

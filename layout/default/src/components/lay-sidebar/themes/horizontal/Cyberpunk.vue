@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import BaseHorizontal from './BaseHorizontal.vue';
+import CyberpunkSidebarItem from '../../components/themes/CyberpunkSidebarItem.vue';
 </script>
 
 <template>
   <div class="cyberpunk-horizontal-wrapper">
-    <BaseHorizontal theme-class="cyberpunk-horizontal" />
+    <BaseHorizontal 
+      theme-class="cyberpunk-horizontal" 
+      :sidebar-item-component="CyberpunkSidebarItem" 
+    />
   </div>
 </template>
 

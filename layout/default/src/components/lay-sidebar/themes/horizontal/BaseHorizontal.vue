@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { isAllEmpty } from "@pureadmin/utils";
 import { emitter, usePermissionStoreHook } from "@repo/core";
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, type Component, provide } from "vue";
 import { useNav } from "../../../../hooks/useNav";
 import { useTranslationLang } from "../../../../hooks/useTranslationLang";
-import LaySidebarItem from "../../components/SidebarItem.vue";
+import DefaultSidebarItem from "../../components/themes/DefaultSidebarItem.vue";
 //@ts-ignore
 import { getConfig, responsiveStorageNameSpace } from "@repo/config";
 import type { StorageConfigs } from "@repo/config";
@@ -16,10 +16,17 @@ import ThemeDecoration from "../../../ThemeDecoration.vue";
 import { getComponentDecorations } from "../../../../themes/decorations";
 import type { DecorationConfig } from "../../../../themes/decorations";
 
-// 接收主题类名
+// 接收主题类名和主题 SidebarItem 组件
 const props = defineProps<{
   themeClass?: string;
+  sidebarItemComponent?: Component;
 }>();
+
+// 计算实际使用的 SidebarItem 组件
+const ThemeSidebarItem = computed(() => props.sidebarItemComponent || DefaultSidebarItem);
+
+// 提供给子组件（用于递归渲染）
+provide('themeSidebarItem', ThemeSidebarItem);
 
 const menuRef = ref();
 
@@ -98,7 +105,8 @@ nextTick(() => {
         v-for="(route, index) in usePermissionStoreHook().wholeMenus"
         :key="index"
       >
-        <LaySidebarItem
+        <component
+          :is="ThemeSidebarItem"
           v-if="defer(index)"
           :key="route.path"
           :item="route"

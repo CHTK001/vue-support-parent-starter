@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import BaseHorizontal from './BaseHorizontal.vue';
+import MidAutumnSidebarItem from '../../components/themes/MidAutumnSidebarItem.vue';
 </script>
 
 <template>
   <div class="mid-autumn-horizontal-wrapper">
-    <BaseHorizontal theme-class="mid-autumn-horizontal" />
+    <BaseHorizontal 
+      theme-class="mid-autumn-horizontal" 
+      :sidebar-item-component="MidAutumnSidebarItem" 
+    />
   </div>
 </template>
 

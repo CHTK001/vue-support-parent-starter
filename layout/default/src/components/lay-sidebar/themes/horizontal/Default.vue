@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import BaseHorizontal from './BaseHorizontal.vue';
+import DefaultSidebarItem from '../../components/themes/DefaultSidebarItem.vue';
 </script>
 
 <template>
-  <BaseHorizontal theme-class="default-horizontal" />
+  <BaseHorizontal 
+    theme-class="default-horizontal" 
+    :sidebar-item-component="DefaultSidebarItem" 
+  />
 </template>
 
 <style lang="scss" scoped>

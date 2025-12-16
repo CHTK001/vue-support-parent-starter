@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import BaseSidebar from './BaseSidebar.vue';
+import CyberpunkSidebarItem from '../components/themes/CyberpunkSidebarItem.vue';
 </script>
 
 <template>
   <div class="cyberpunk-sidebar-wrapper">
-    <BaseSidebar theme-class="cyberpunk-sidebar" />
+    <BaseSidebar 
+      theme-class="cyberpunk-sidebar" 
+      :sidebar-item-component="CyberpunkSidebarItem" 
+    />
   </div>
 </template>
 
