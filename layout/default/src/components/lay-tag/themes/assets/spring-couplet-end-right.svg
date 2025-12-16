@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 32" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="100%" stop-color="#E6B800"/>
+    </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#DC143C"/>
+      <stop offset="100%" stop-color="#B22222"/>
+    </linearGradient>
+  </defs>
+  <!-- 金边底框 -->
+  <rect x="0.5" y="0.5" width="15" height="31" rx="3" fill="url(#gold)" stroke="#8B0000" stroke-width="0.5"/>
+  <!-- 红色内层 -->
+  <rect x="2" y="2" width="12" height="28" rx="2" fill="url(#red)"/>
+  <!-- 七巧云纹装饰（对称） -->
+  <path d="M12 8c-2 0-2-2-4-2s-2 2-4 2" fill="none" stroke="#FCE38A" stroke-width="0.8" stroke-linecap="round" opacity="0.6"/>
+  <path d="M12 16c-2 0-2-2-4-2s-2 2-4 2" fill="none" stroke="#FCE38A" stroke-width="0.8" stroke-linecap="round" opacity="0.6"/>
+  <path d="M12 24c-2 0-2-2-4-2s-2 2-4 2" fill="none" stroke="#FCE38A" stroke-width="0.8" stroke-linecap="round" opacity="0.6"/>
+</svg>
