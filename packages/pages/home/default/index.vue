@@ -32,6 +32,9 @@ const customizing = reactive({
 const searchKeyword = ref("");
 const selectedCategory = ref("all");
 
+// 设置项
+const showTime = ref(false); // 是否显示时间，默认不显示
+
 // 当前时间
 const currentTime = ref(new Date());
 let timeInterval = null;
@@ -193,7 +196,7 @@ onUnmounted(() => {
             <div class="greeting-subtitle">{{ $t("buttons.board") }}</div>
           </div>
         </div>
-        <div class="header-center">
+        <div class="header-center" v-if="showTime">
           <div class="header-time">
             <div class="time-display">{{ formattedTime }}</div>
             <div class="date-display">{{ formattedDate }}</div>
@@ -347,6 +350,9 @@ onUnmounted(() => {
       
       <!-- 底部操作 -->
       <div class="aside-footer">
+        <div class="footer-settings">
+          <el-checkbox v-model="showTime" size="small">显示时间</el-checkbox>
+        </div>
         <el-button size="small" @click="backDefault()">
           <el-icon class="mr-1"><component :is="useRenderIcon('ep:refresh')" /></el-icon>
           {{ $t("buttons.default") }}
@@ -751,7 +757,19 @@ onUnmounted(() => {
   border-top: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-lighter);
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  
+  .footer-settings {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    
+    :deep(.el-checkbox) {
+      margin-right: 0;
+    }
+  }
   
   :deep(.el-button) {
     padding: 8px 20px;
