@@ -1,29 +1,33 @@
 <template>
   <div class="records-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <div class="page-title">
-          <IconifyIconOnline icon="ri:history-line" class="title-icon" />
-          <span>安装记录</span>
+    <!-- 现代化页面头部 -->
+    <div class="modern-header">
+      <div class="header-content">
+        <div class="header-info">
+          <div class="icon-wrapper">
+            <IconifyIconOnline icon="ri:history-line" class="header-icon" />
+          </div>
+          <div class="title-wrapper">
+            <h1 class="page-title">安装记录</h1>
+            <p class="page-subtitle">软件安装、卸载记录管理</p>
+          </div>
         </div>
-        <div class="page-subtitle">软件安装、卸载记录管理</div>
-      </div>
-      <div class="header-right">
-        <el-button @click="refreshRecords" :loading="loading">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-        <el-button type="primary" @click="exportRecords">
-          <IconifyIconOnline icon="ri:download-line" class="mr-1" />
-          导出
-        </el-button>
+        <div class="header-actions">
+          <el-button @click="refreshRecords" :loading="loading" class="action-btn">
+            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+            刷新
+          </el-button>
+          <el-button type="primary" @click="exportRecords" class="action-btn">
+            <IconifyIconOnline icon="ri:download-line" class="mr-1" />
+            导出
+          </el-button>
+        </div>
       </div>
     </div>
 
-    <!-- 搜索和筛选 -->
-    <div class="search-bar">
-      <div class="search-left">
+    <!-- 工具栏 -->
+    <div class="toolbar-section">
+      <div class="toolbar-left">
         <el-input v-model="searchParams.keyword" placeholder="搜索软件名称、版本或服务器" class="search-input" clearable @keyup.enter="loadRecords">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
@@ -43,8 +47,6 @@
           <el-option label="Swarm" value="SWARM" />
         </el-select>
         <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" format="YYYY-MM-DD" value-format="YYYY-MM-DD" @change="handleDateChange" class="date-picker" />
-      </div>
-      <div class="search-right">
         <el-button type="primary" @click="loadRecords">
           <IconifyIconOnline icon="ri:search-line" class="mr-1" />
           搜索
@@ -659,163 +661,137 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .records-page {
-  padding: 16px;
+  padding: 0;
   background: var(--app-bg-secondary);
-  min-height: calc(100vh - 60px);
+  min-height: 100vh;
 }
 
-/* 页面头部 */
-.page-header {
+// 现代化头部
+.modern-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 28px 32px;
+  color: #fff;
+  margin-bottom: 0;
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .header-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .icon-wrapper {
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+
+    .header-icon {
+      font-size: 28px;
+      color: #fff;
+    }
+  }
+
+  .title-wrapper {
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0 0 4px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      opacity: 0.85;
+      margin: 0;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+
+    .action-btn {
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+    }
+  }
+}
+
+// 工具栏
+.toolbar-section {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding: 20px;
-  background: var(--app-card-bg);
-  border-radius: 8px;
-  box-shadow: var(--app-card-shadow);
+  padding: 16px 32px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    width: 280px;
+
+    :deep(.el-input__wrapper) {
+      border-radius: 10px;
+    }
+  }
+
+  .filter-select {
+    width: 140px;
+
+    :deep(.el-input__wrapper) {
+      border-radius: 10px;
+    }
+  }
+
+  .date-picker {
+    width: 260px;
+
+    :deep(.el-range-input) {
+      font-size: 13px;
+    }
+  }
 }
 
-.header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+// 统计区域
+.stats-section {
+  padding: 16px 32px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--app-text-primary);
-}
-
-.title-icon {
-  font-size: 24px;
-  color: var(--app-primary);
-}
-
-.page-subtitle {
-  font-size: 14px;
-  color: var(--app-text-secondary);
-}
-
-.header-right {
-  display: flex;
-  gap: 12px;
-}
-
-/* 搜索栏 */
-.search-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
-  padding: 16px;
-  background: var(--app-card-bg);
-  border-radius: 8px;
-  box-shadow: var(--app-card-shadow);
-}
-
-.search-left {
-  display: flex;
-  gap: 12px;
-  flex: 1;
-}
-
-.search-input {
-  width: 280px;
-}
-
-.filter-select {
-  width: 140px;
-}
-
-.date-picker {
-  width: 240px;
-}
-
-.search-right {
-  display: flex;
-  gap: 8px;
-}
-
-/* 统计信息 */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 20px;
-  background: var(--app-card-bg);
-  border-radius: 8px;
-  box-shadow: var(--app-card-shadow);
-  transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-
-.stat-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  color: var(--el-text-color-primary);
-  font-size: 24px;
-}
-
-.stat-icon.success {
-  background: linear-gradient(135deg, #67c23a, #85ce61);
-}
-
-.stat-icon.warning {
-  background: linear-gradient(135deg, #e6a23c, #f0c78a);
-}
-
-.stat-icon.danger {
-  background: linear-gradient(135deg, #f56c6c, #f89898);
-}
-
-.stat-icon.info {
-  background: linear-gradient(135deg, var(--app-primary), #79bbff);
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--app-text-primary);
-  line-height: 1;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: var(--app-text-secondary);
-}
-
-/* 记录卡片 */
+// 记录卡片
 .records-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0 32px 32px;
+  border-radius: 14px;
+  overflow: hidden;
 }
 
 .card-header {
@@ -986,83 +962,72 @@ onMounted(async () => {
   border-radius: 10px;
 }
 
-/* 响应式设计 */
+// 响应式设计
 @media (max-width: 1200px) {
-  .search-left {
-    flex-wrap: wrap;
-  }
+  .toolbar-section .toolbar-left {
+    .search-input {
+      width: 220px;
+    }
 
-  .search-input {
-    width: 240px;
-  }
+    .filter-select {
+      width: 120px;
+    }
 
-  .filter-select {
-    width: 120px;
-  }
-
-  .date-picker {
-    width: 200px;
+    .date-picker {
+      width: 220px;
+    }
   }
 }
 
 @media (max-width: 768px) {
-  .records-page {
-    padding: 12px;
+  .modern-header {
+    padding: 20px;
+
+    .header-content {
+      flex-direction: column;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .header-actions {
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
   }
 
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+  .toolbar-section {
+    padding: 16px;
+
+    .toolbar-left {
+      flex-direction: column;
+      width: 100%;
+
+      .search-input,
+      .filter-select,
+      .date-picker {
+        width: 100%;
+      }
+    }
   }
 
-  .search-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .search-left {
-    flex-direction: column;
-  }
-
-  .search-input,
-  .filter-select,
-  .date-picker {
-    width: 100%;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-
-  .stat-card {
+  .stats-section {
     padding: 16px;
   }
 
-  .stat-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-  }
-
-  .stat-value {
-    font-size: 20px;
+  .records-card {
+    margin: 0 16px 16px;
   }
 }
 
 @media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .header-right {
+  .modern-header .header-actions {
     flex-direction: column;
     width: 100%;
-  }
 
-  .search-right {
-    flex-direction: column;
+    .action-btn {
+      width: 100%;
+    }
   }
 }
 </style>

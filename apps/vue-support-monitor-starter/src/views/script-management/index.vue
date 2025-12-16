@@ -1,5 +1,133 @@
 <template>
   <div class="script-management-page">
+    <!-- 现代化页面头部 -->
+    <div class="modern-header">
+      <div class="header-content">
+        <div class="header-left">
+          <div class="header-icon-wrapper">
+            <IconifyIconOnline icon="ri:code-s-slash-fill" class="header-main-icon" />
+          </div>
+          <div class="header-text">
+            <h1 class="header-title">脚本管理</h1>
+            <p class="header-desc">管理和执行服务器运维脚本</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <el-button @click="handleViewAllRecords" class="action-btn">
+            <IconifyIconOnline icon="ri:history-line" />
+            <span>执行记录</span>
+          </el-button>
+          <el-button type="primary" @click="handleCreate" class="action-btn">
+            <IconifyIconOnline icon="ri:add-line" />
+            <span>新建脚本</span>
+          </el-button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="stats-section">
+      <div class="stat-card total">
+        <div class="stat-icon-bg">
+          <IconifyIconOnline icon="ri:file-code-fill" />
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ totalCount }}</span>
+          <span class="stat-label">脚本总数</span>
+        </div>
+      </div>
+      <div class="stat-card enabled">
+        <div class="stat-icon-bg">
+          <IconifyIconOnline icon="ri:checkbox-circle-fill" />
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ enabledCount }}</span>
+          <span class="stat-label">已启用</span>
+        </div>
+      </div>
+      <div class="stat-card disabled">
+        <div class="stat-icon-bg">
+          <IconifyIconOnline icon="ri:close-circle-fill" />
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ totalCount - enabledCount }}</span>
+          <span class="stat-label">已禁用</span>
+        </div>
+      </div>
+      <div class="stat-card types">
+        <div class="stat-icon-bg">
+          <IconifyIconOnline icon="ri:stack-fill" />
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">6</span>
+          <span class="stat-label">脚本类型</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar-section">
+      <div class="toolbar-left">
+        <el-input
+          v-model="queryParams.scriptName"
+          placeholder="搜索脚本名称..."
+          class="search-input"
+          clearable
+          @input="handleSearch"
+        >
+          <template #prefix>
+            <IconifyIconOnline icon="ri:search-line" />
+          </template>
+        </el-input>
+        <el-select
+          v-model="queryParams.scriptType"
+          placeholder="脚本类型"
+          clearable
+          class="filter-select"
+          @change="handleFilter"
+        >
+          <el-option label="Shell" value="SHELL">
+            <span class="type-option"><IconifyIconOnline icon="ri:terminal-line" class="mr-2" />Shell</span>
+          </el-option>
+          <el-option label="Python" value="PYTHON">
+            <span class="type-option"><IconifyIconOnline icon="ri:file-code-line" class="mr-2" />Python</span>
+          </el-option>
+          <el-option label="PowerShell" value="POWERSHELL">
+            <span class="type-option"><IconifyIconOnline icon="ri:windows-line" class="mr-2" />PowerShell</span>
+          </el-option>
+          <el-option label="Batch" value="BATCH">
+            <span class="type-option"><IconifyIconOnline icon="ri:file-text-line" class="mr-2" />Batch</span>
+          </el-option>
+          <el-option label="JavaScript" value="JAVASCRIPT">
+            <span class="type-option"><IconifyIconOnline icon="ri:javascript-line" class="mr-2" />JavaScript</span>
+          </el-option>
+          <el-option label="SQL" value="SQL">
+            <span class="type-option"><IconifyIconOnline icon="ri:database-2-line" class="mr-2" />SQL</span>
+          </el-option>
+        </el-select>
+        <el-select
+          v-model="queryParams.scriptStatus"
+          placeholder="状态"
+          clearable
+          class="filter-select"
+          @change="handleFilter"
+        >
+          <el-option label="启用" :value="1">
+            <span class="status-option"><span class="status-dot enabled" />启用</span>
+          </el-option>
+          <el-option label="禁用" :value="0">
+            <span class="status-option"><span class="status-dot disabled" />禁用</span>
+          </el-option>
+        </el-select>
+      </div>
+      <div class="toolbar-right">
+        <el-button @click="tableRef?.refresh()">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+      </div>
+    </div>
+
     <!-- 使用 ScTable 卡片模式 -->
     <ScTable
       ref="tableRef"
@@ -13,77 +141,6 @@
       row-key="monitorSysGenScriptId"
       @loaded="handleDataLoaded"
     >
-      <!-- 工具栏 -->
-      <template #toolbar>
-        <div class="toolbar-wrapper">
-          <div class="toolbar-left">
-            <div class="page-header">
-              <div class="header-icon">
-                <IconifyIconOnline icon="ri:code-s-slash-line" />
-              </div>
-              <div class="header-text">
-                <h2>脚本管理</h2>
-                <p>管理和执行服务器脚本</p>
-              </div>
-            </div>
-            <div class="stats-wrapper">
-              <div class="stat-badge">
-                <IconifyIconOnline icon="ri:file-list-3-line" />
-                <span>总计 {{ totalCount }}</span>
-              </div>
-              <div class="stat-badge success">
-                <IconifyIconOnline icon="ri:checkbox-circle-line" />
-                <span>启用 {{ enabledCount }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="toolbar-right">
-            <el-input
-              v-model="queryParams.scriptName"
-              placeholder="搜索脚本..."
-              clearable
-              class="search-input"
-              @input="handleSearch"
-            >
-              <template #prefix>
-                <IconifyIconOnline icon="ri:search-line" />
-              </template>
-            </el-input>
-            <el-select
-              v-model="queryParams.scriptType"
-              placeholder="类型"
-              clearable
-              class="filter-select"
-              @change="handleFilter"
-            >
-              <el-option label="Shell" value="shell" />
-              <el-option label="Python" value="python" />
-              <el-option label="PowerShell" value="powershell" />
-              <el-option label="Batch" value="batch" />
-              <el-option label="JavaScript" value="javascript" />
-              <el-option label="SQL" value="sql" />
-            </el-select>
-            <el-select
-              v-model="queryParams.scriptStatus"
-              placeholder="状态"
-              clearable
-              class="filter-select"
-              @change="handleFilter"
-            >
-              <el-option label="启用" :value="1" />
-              <el-option label="禁用" :value="0" />
-            </el-select>
-            <el-button type="primary" @click="handleCreate">
-              <IconifyIconOnline icon="ri:add-line" />
-              新建脚本
-            </el-button>
-            <el-button @click="handleViewAllRecords">
-              <IconifyIconOnline icon="ri:history-line" />
-              执行记录
-            </el-button>
-          </div>
-        </div>
-      </template>
 
       <!-- 卡片内容 -->
       <template #default="{ row }">
@@ -447,91 +504,225 @@ const getTypeTagType = (type: string): "primary" | "success" | "warning" | "info
   background: var(--el-bg-color-page);
 }
 
+// 现代化页面头部
+.modern-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .header-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 14px;
+    backdrop-filter: blur(10px);
+
+    .header-main-icon {
+      font-size: 28px;
+      color: white;
+    }
+  }
+
+  .header-text {
+    .header-title {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: white;
+      letter-spacing: -0.5px;
+    }
+
+    .header-desc {
+      margin: 4px 0 0;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 40px;
+      padding: 0 20px;
+      border-radius: 10px;
+      font-weight: 500;
+      transition: all 0.2s;
+
+      &:not(.el-button--primary) {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: white;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.25);
+          border-color: rgba(255, 255, 255, 0.5);
+        }
+      }
+
+      &.el-button--primary {
+        background: white;
+        border-color: white;
+        color: #667eea;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.9);
+        }
+      }
+    }
+  }
+}
+
+// 统计卡片
+.stats-section {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+
+  .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: var(--el-bg-color);
+    border-radius: 14px;
+    border: 1px solid var(--el-border-color-lighter);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-icon-bg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      font-size: 24px;
+    }
+
+    .stat-info {
+      display: flex;
+      flex-direction: column;
+
+      .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1.2;
+        color: var(--el-text-color-primary);
+      }
+
+      .stat-label {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+        margin-top: 2px;
+      }
+    }
+
+    &.total .stat-icon-bg {
+      background: linear-gradient(135deg, #667eea20, #764ba220);
+      color: #667eea;
+    }
+
+    &.enabled .stat-icon-bg {
+      background: linear-gradient(135deg, #10b98120, #34d39920);
+      color: #10b981;
+    }
+
+    &.disabled .stat-icon-bg {
+      background: linear-gradient(135deg, #f5920b20, #fbbf2420);
+      color: #f59e0b;
+    }
+
+    &.types .stat-icon-bg {
+      background: linear-gradient(135deg, #6366f120, #818cf820);
+      color: #6366f1;
+    }
+  }
+}
+
 // 工具栏
-.toolbar-wrapper {
+.toolbar-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding: 16px 0;
+  padding: 16px 20px;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  margin-bottom: 20px;
 
   .toolbar-left {
     display: flex;
     align-items: center;
-    gap: 24px;
-
-    .page-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      .header-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
-        color: white;
-        font-size: 22px;
-        box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
-      }
-
-      .header-text {
-        h2 {
-          margin: 0;
-          font-size: 18px;
-          font-weight: 600;
-          color: var(--el-text-color-primary);
-        }
-
-        p {
-          margin: 2px 0 0 0;
-          font-size: 12px;
-          color: var(--el-text-color-secondary);
-        }
-      }
-    }
-
-    .stats-wrapper {
-      display: flex;
-      gap: 12px;
-
-      .stat-badge {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        background: var(--el-fill-color-light);
-        border-radius: 20px;
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-
-        .iconify {
-          font-size: 14px;
-        }
-
-        &.success {
-          background: var(--el-color-success-light-9);
-          color: var(--el-color-success);
-        }
-      }
-    }
+    gap: 12px;
   }
 
   .toolbar-right {
     display: flex;
     align-items: center;
     gap: 12px;
+  }
 
-    .search-input {
-      width: 200px;
+  .search-input {
+    width: 240px;
+
+    :deep(.el-input__wrapper) {
+      border-radius: 8px;
+    }
+  }
+
+  .filter-select {
+    width: 140px;
+
+    :deep(.el-select__wrapper) {
+      border-radius: 8px;
+    }
+  }
+
+  .type-option,
+  .status-option {
+    display: flex;
+    align-items: center;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+
+    &.enabled {
+      background: #10b981;
     }
 
-    .filter-select {
-      width: 120px;
+    &.disabled {
+      background: #f59e0b;
     }
   }
 }
@@ -727,29 +918,64 @@ const getTypeTagType = (type: string): "primary" | "success" | "warning" | "info
 }
 
 // 响应式
-@media (max-width: 768px) {
-  .toolbar-wrapper {
-    flex-direction: column;
-    align-items: stretch;
+@media (max-width: 1200px) {
+  .stats-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 
-    .toolbar-left {
+@media (max-width: 768px) {
+  .modern-header {
+    padding: 20px;
+
+    .header-content {
       flex-direction: column;
+      gap: 16px;
       align-items: flex-start;
     }
 
-    .toolbar-right {
-      flex-wrap: wrap;
+    .header-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
 
-      .search-input {
-        flex: 1;
-        min-width: 150px;
-      }
+  .stats-section {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
 
-      .filter-select {
-        flex: 1;
-        min-width: 100px;
+    .stat-card {
+      padding: 16px;
+
+      .stat-info .stat-value {
+        font-size: 24px;
       }
     }
+  }
+
+  .toolbar-section {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+
+    .toolbar-left {
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      width: 100%;
+    }
+
+    .filter-select {
+      flex: 1;
+      min-width: 100px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-section {
+    grid-template-columns: 1fr;
   }
 }
 </style>

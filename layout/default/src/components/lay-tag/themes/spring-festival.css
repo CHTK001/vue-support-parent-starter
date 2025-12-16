@@ -18,10 +18,9 @@ html[data-skin="spring-festival"] .chrome-tab__bg svg {
   display: none !important;
 }
 
-/* 春联样式的标签项 - 所有模式 */
+/* 春联样式的标签项 - 不再依赖 showModel 类名 */
 html[data-skin="spring-festival"] .scroll-item,
-html[data-skin="spring-festival"] .chrome-item,
-html[data-skin="spring-festival"] .modern-item {
+html[data-skin="spring-festival"] .spring-couplet-item {
   position: relative;
   display: inline-flex !important;
   align-items: center !important;
@@ -31,7 +30,7 @@ html[data-skin="spring-festival"] .modern-item {
   border: 2px solid #8B0000 !important;
   border-radius: 6px !important;
   padding: 6px 18px !important; /* 留出端帽空间 */
-  margin: 0 6px !important;
+  margin: 0 12px !important;
   font-weight: 600 !important;
   font-family: 'STKaiti', 'KaiTi', 'SimKai', serif !important;
   box-shadow: 
@@ -68,6 +67,7 @@ html[data-skin="spring-festival"] .modern-item {
 /* Chrome 标签额外设置 */
 html[data-skin="spring-festival"] .chrome-tab {
   background: transparent !important;
+  padding: 0 !important;
 }
 
 html[data-skin="spring-festival"] .chrome-tab-divider {
@@ -81,8 +81,7 @@ html[data-skin="spring-festival"] .chrome-close-btn {
 
 /* 标签悬停效果 */
 html[data-skin="spring-festival"] .scroll-item:hover,
-html[data-skin="spring-festival"] .chrome-item:hover,
-html[data-skin="spring-festival"] .modern-item:hover {
+html[data-skin="spring-festival"] .spring-couplet-item:hover {
   transform: translateY(-1px) !important;
   box-shadow: 
     0 4px 10px rgba(220, 20, 60, 0.35),
@@ -92,8 +91,8 @@ html[data-skin="spring-festival"] .modern-item:hover {
 /* 激活状态的标签 - 金色背景配深红文字 */
 html[data-skin="spring-festival"] .scroll-item.is-active,
 html[data-skin="spring-festival"] .scroll-item.active,
-html[data-skin="spring-festival"] .chrome-item.is-active,
-html[data-skin="spring-festival"] .modern-item.is-active {
+html[data-skin="spring-festival"] .spring-couplet-item.is-active,
+html[data-skin="spring-festival"] .spring-couplet-item.active {
   background: linear-gradient(180deg, #FFD700, #FFA500) !important;
   color: #8B0000 !important;
   border: 2px solid #DC143C !important;
@@ -106,8 +105,7 @@ html[data-skin="spring-festival"] .modern-item.is-active {
 
 /* 标签文字 */
 html[data-skin="spring-festival"] .scroll-item .tag-title,
-html[data-skin="spring-festival"] .chrome-item .tag-title,
-html[data-skin="spring-festival"] .modern-item .tag-title {
+html[data-skin="spring-festival"] .spring-couplet-item .tag-title {
   color: inherit !important;
   letter-spacing: 1px;
   display: inline-flex;
@@ -161,9 +159,14 @@ html[data-skin="spring-festival"] .contextmenu .menu-item:hover {
   color: #DC143C !important;
 }
 
-/* 确保所有模式下标签图标颜色一致 */
+/* 确保标签图标颜色一致 */
 html[data-skin="spring-festival"] .scroll-item .tag-icon,
-html[data-skin="spring-festival"] .chrome-item .tag-icon,
-html[data-skin="spring-festival"] .modern-item .tag-icon {
+html[data-skin="spring-festival"] .spring-couplet-item .tag-icon {
   color: inherit !important;
+}
+
+/* 隐藏灵动模式底部线条（防止 showModel 全局状态影响） */
+html[data-skin="spring-festival"] .scroll-item .schedule-active,
+html[data-skin="spring-festival"] .spring-couplet-item .schedule-active {
+  display: none !important;
 }
