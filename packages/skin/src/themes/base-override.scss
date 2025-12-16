@@ -24,74 +24,9 @@ html[data-skin]:not([data-skin=""]):not([data-skin="default"]) {
     background: transparent !important;
   }
   
-  // ==================== 垂直弹出菜单重置 ====================
-  // 覆盖 sidebar.scss 第342-355行: .el-menu--vertical .el-menu--popup .el-menu-item.is-active
-  .el-menu--vertical .el-menu--popup .el-menu-item.is-active {
-    background: transparent !important;
-    box-shadow: none !important;
-  }
-  
-  // 覆盖 sidebar.scss 第424-432行: .el-menu--vertical .el-menu-item.is-active.nest-menu::before
-  .el-menu--vertical .el-menu-item.is-active.nest-menu::before {
-    background: transparent !important;
-    box-shadow: none !important;
-  }
-  
-  // ==================== 水平弹出菜单重置 ====================
-  // 覆盖 sidebar.scss 第581-605行: .el-menu--horizontal .el-menu--popup .el-menu-item.is-active
-  .el-menu--horizontal .el-menu--popup .el-menu-item.is-active {
-    background: transparent !important;
-    box-shadow: none !important;
-  }
-  
-  // 覆盖 sidebar.scss 第669-676行: .el-menu--horizontal .el-menu-item.is-active.nest-menu::before
-  .el-menu--horizontal .el-menu-item.is-active.nest-menu::before {
-    background: transparent !important;
-    box-shadow: none !important;
-  }
-  
-  // ==================== 弹出层容器重置 ====================
-  .el-menu--popup,
-  .el-menu--popup-container .el-menu--popup,
-  .pure-scrollbar.el-menu--vertical {
-    background: transparent !important;
-    box-shadow: none !important;
-    border: none !important;
-    
-    &.el-menu {
-      background: transparent !important;
-    }
-    
-    .el-menu-item {
-      background: transparent !important;
-      box-shadow: none !important;
-      
-      &::before {
-        background: transparent !important;
-        box-shadow: none !important;
-      }
-      
-      &:hover { 
-        background: transparent !important;
-        box-shadow: none !important;
-      }
-      
-      &.is-active {
-        background: transparent !important; 
-        box-shadow: none !important;
-        
-        &::before {
-          background: transparent !important;
-          box-shadow: none !important;
-        }
-      }
-    }
-    
-    .el-sub-menu__title {
-      background: transparent !important;
-      &:hover { background: transparent !important; }
-    }
-  }
+  // ==================== 弹出菜单样式 ====================
+  // 注意：弹出菜单的样式完全由各主题SCSS文件单独定义
+  // 不在这里重置弹出菜单的激活状态，确保主题样式能正确应用
   
   // ==================== 双栏导航重置 ====================
   .double-nav-left .first-level-menu .el-menu-item {
