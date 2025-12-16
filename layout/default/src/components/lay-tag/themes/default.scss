@@ -464,27 +464,11 @@
 .arrow-left {
   margin-right: 6px;
   margin-left: 4px;
-
-  &:hover {
-    cursor: w-resize;
-
-    svg {
-      transform: none;
-    }
-  }
 }
 
 .arrow-right {
   margin-left: 6px;
   margin-right: 6px;
-
-  &:hover {
-    cursor: e-resize;
-
-    svg {
-      transform: none;
-    }
-  }
 }
 
 .arrow-down {

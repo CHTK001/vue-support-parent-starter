@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" preserveAspectRatio="none">
+  <defs>
+    <!-- 树叶渐变 -->
+    <linearGradient id="treeGradientActive" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#145214"/>
+      <stop offset="30%" stop-color="#1b5e20"/>
+      <stop offset="60%" stop-color="#2e7d32"/>
+      <stop offset="100%" stop-color="#1b5e20"/>
+    </linearGradient>
+    <!-- 树干渐变 -->
+    <linearGradient id="trunkGradientActive" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8d6e63"/>
+      <stop offset="100%" stop-color="#5d4037"/>
+    </linearGradient>
+    <!-- 雪地渐变 -->
+    <linearGradient id="snowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e3f2fd"/>
+    </linearGradient>
+    <!-- 发光效果 -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- 雪地底层 -->
+  <ellipse cx="120" cy="46" rx="120" ry="6" fill="url(#snowGradient)" opacity="0.9"/>
+  <ellipse cx="60" cy="45" rx="40" ry="4" fill="#fff"/>
+  <ellipse cx="180" cy="45" rx="50" ry="5" fill="#fff"/>
+  
+  <!-- 横向圣诞树主体 -->
+  <path d="
+    M 2,20
+    L 20,8 L 16,20 
+    L 38,2 L 32,20 
+    L 55,-2 L 48,20
+    L 175,0
+    L 175,40
+    L 48,20
+    L 55,42 L 32,20
+    L 38,38 L 16,20
+    L 20,32
+    L 2,20
+    Z" 
+    fill="url(#treeGradientActive)"
+  />
+  
+  <!-- 树干 -->
+  <rect x="175" y="10" width="63" height="20" rx="3" fill="url(#trunkGradientActive)"/>
+  <rect x="178" y="13" width="57" height="14" rx="2" fill="#a1887f" opacity="0.5"/>
+  
+  <!-- 树顶星星（带发光） -->
+  <polygon 
+    points="8,20 10,16 14,16 11,13 12,9 8,12 4,9 5,13 2,16 6,16" 
+    fill="#ffd700" 
+    stroke="#ffb300" 
+    stroke-width="0.5"
+    filter="url(#glow)"
+  />
+  
+  <!-- 装饰球（带发光效果） -->
+  <!-- 第一层 -->
+  <circle cx="22" cy="13" r="3.5" fill="#e53935" filter="url(#glow)"/>
+  <circle cx="22" cy="27" r="3.5" fill="#ffd700" filter="url(#glow)"/>
+  
+  <!-- 第二层 -->
+  <circle cx="42" cy="7" r="3" fill="#ffd700" filter="url(#glow)"/>
+  <circle cx="42" cy="33" r="3" fill="#e53935" filter="url(#glow)"/>
+  
+  <!-- 第三层 -->
+  <circle cx="65" cy="4" r="3.5" fill="#e53935" filter="url(#glow)"/>
+  <circle cx="65" cy="36" r="3.5" fill="#ffd700" filter="url(#glow)"/>
+  
+  <!-- 中间区域 -->
+  <circle cx="95" cy="3" r="3" fill="#ffd700" filter="url(#glow)"/>
+  <circle cx="95" cy="37" r="3" fill="#e53935" filter="url(#glow)"/>
+  
+  <circle cx="125" cy="2" r="3" fill="#e53935" filter="url(#glow)"/>
+  <circle cx="125" cy="38" r="3" fill="#ffd700" filter="url(#glow)"/>
+  
+  <circle cx="155" cy="3" r="2.5" fill="#ffd700" filter="url(#glow)"/>
+  <circle cx="155" cy="37" r="2.5" fill="#e53935" filter="url(#glow)"/>
+  
+  <!-- 树干上的雪 -->
+  <ellipse cx="190" cy="11" rx="15" ry="3" fill="#fff" opacity="0.8"/>
+  <ellipse cx="220" cy="12" rx="12" ry="2.5" fill="#fff" opacity="0.7"/>
+  
+  <!-- 树枝上的雪堆 -->
+  <ellipse cx="25" cy="8" rx="8" ry="2" fill="#fff" opacity="0.8"/>
+  <ellipse cx="55" cy="0" rx="12" ry="3" fill="#fff" opacity="0.75"/>
+  <ellipse cx="100" cy="2" rx="15" ry="2.5" fill="#fff" opacity="0.7"/>
+  <ellipse cx="145" cy="1" rx="12" ry="2" fill="#fff" opacity="0.7"/>
+</svg>

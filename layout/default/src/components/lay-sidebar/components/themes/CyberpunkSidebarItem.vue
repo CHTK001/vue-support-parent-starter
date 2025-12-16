@@ -169,23 +169,31 @@ $cyber-border: rgba(0, 255, 255, 0.4);
       
       .el-menu-item {
         color: $cyber-cyan !important;
-        background: transparent !important;
-        border: none !important;
-        margin: 2px 8px !important;
+        background: linear-gradient(135deg, rgba($cyber-dark, 0.95), rgba($cyber-dark-light, 0.9)) !important;
+        border: 1px solid $cyber-border !important;
+        border-radius: 4px;
+        margin: 4px 8px !important;
+        font-family: 'Orbitron', 'Courier New', monospace;
+        text-transform: uppercase;
+        letter-spacing: 1px;
         
         &:hover {
-          background: rgba($cyber-dark-light, 0.6) !important;
+          background: linear-gradient(135deg, rgba($cyber-dark-light, 0.95), rgba(#16213e, 0.9)) !important;
           color: $cyber-white !important;
-          box-shadow: 0 0 8px rgba($cyber-cyan, 0.3);
+          border-color: $cyber-cyan !important;
+          box-shadow: 
+            0 0 10px rgba($cyber-cyan, 0.5),
+            0 0 20px rgba($cyber-cyan, 0.3);
         }
         
         &.is-active {
-          background: linear-gradient(135deg, rgba($cyber-dark-light, 0.9), rgba(#16213e, 0.85)) !important;
+          background: linear-gradient(135deg, rgba($cyber-dark-light, 0.98), rgba(#16213e, 0.95)) !important;
           color: $cyber-white !important;
-          border-left: 3px solid $cyber-cyan !important;
+          border: 2px solid $cyber-cyan !important;
           box-shadow: 
-            0 0 10px rgba($cyber-cyan, 0.4),
-            inset 0 0 8px rgba($cyber-cyan, 0.1);
+            0 0 15px rgba($cyber-cyan, 0.6),
+            0 0 30px rgba($cyber-magenta, 0.3),
+            inset 0 0 15px rgba($cyber-cyan, 0.15);
         }
         
         .el-icon, svg {

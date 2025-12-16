@@ -149,19 +149,21 @@ $spring-border: rgba(255, 215, 0, 0.5);
       
       .el-menu-item {
         color: $spring-gold !important;
-        background: transparent !important;
-        border: none !important;
-        margin: 2px 8px !important;
+        background: linear-gradient(135deg, rgba($spring-red-dark, 0.8), rgba($spring-red, 0.7)) !important;
+        border: 1.5px solid rgba($spring-gold, 0.4) !important;
+        border-radius: 8px;
+        margin: 4px 8px !important;
         
         &:hover {
-          background: rgba($spring-red, 0.6) !important;
+          background: linear-gradient(135deg, rgba($spring-red, 0.9), rgba($spring-red-light, 0.8)) !important;
           color: $spring-white !important;
+          border-color: $spring-gold !important;
         }
         
         &.is-active {
           background: linear-gradient(135deg, $spring-red, $spring-red-light) !important;
           color: $spring-white !important;
-          border-left: 3px solid $spring-gold !important;
+          border: 2px solid $spring-gold !important;
         }
         
         .el-icon, svg {
