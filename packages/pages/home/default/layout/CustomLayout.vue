@@ -137,6 +137,10 @@ const handleRemove = async (key) => {
 
 <style scoped lang="scss">
 /* Grid Layout 样式 */
+:deep(.vgl-item) {
+  transition: none !important;
+}
+
 :deep(.vgl-item__resizer) {
   z-index: 99;
   width: 16px !important;
@@ -145,11 +149,6 @@ const handleRemove = async (key) => {
   right: 4px !important;
   background: var(--el-color-primary);
   border-radius: 4px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-:deep(.vgl-item:hover .vgl-item__resizer) {
   opacity: 1;
 }
 
@@ -180,7 +179,8 @@ const handleRemove = async (key) => {
   overflow: hidden;
   background: var(--el-bg-color);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
+  transition: box-shadow 0.2s ease;
+  will-change: transform;
 }
 
 .widgets-item:hover {
@@ -222,16 +222,13 @@ const handleRemove = async (key) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.9);
   cursor: move;
   border: 2px dashed var(--el-color-primary-light-3);
   border-radius: 12px;
-  transition: all 0.2s ease;
 }
 
 .widgets-item:hover .customize-overlay {
-  background: rgba(255, 255, 255, 0.9);
   border-color: var(--el-color-primary);
 }
 
