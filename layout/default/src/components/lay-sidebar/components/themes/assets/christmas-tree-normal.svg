@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 44" preserveAspectRatio="none">
+  <defs>
+    <!-- 树叶渐变 -->
+    <linearGradient id="treeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#145214"/>
+      <stop offset="30%" stop-color="#1b5e20"/>
+      <stop offset="60%" stop-color="#2e7d32"/>
+      <stop offset="100%" stop-color="#1b5e20"/>
+    </linearGradient>
+    <!-- 树干渐变 -->
+    <linearGradient id="trunkGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8d6e63"/>
+      <stop offset="100%" stop-color="#5d4037"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- 横向圣诞树主体 - 左尖右宽的层次状树形 -->
+  <path d="
+    M 2,22
+    L 20,10 L 16,22 
+    L 38,4 L 32,22 
+    L 55,0 L 48,22
+    L 175,2
+    L 175,42
+    L 48,22
+    L 55,44 L 32,22
+    L 38,40 L 16,22
+    L 20,34
+    L 2,22
+    Z" 
+    fill="url(#treeGradient)"
+  />
+  
+  <!-- 树干 -->
+  <rect x="175" y="12" width="63" height="20" rx="3" fill="url(#trunkGradient)"/>
+  <rect x="178" y="15" width="57" height="14" rx="2" fill="#a1887f" opacity="0.5"/>
+  
+  <!-- 树顶星星 -->
+  <polygon 
+    points="8,22 10,18 14,18 11,15 12,11 8,14 4,11 5,15 2,18 6,18" 
+    fill="#ffd700" 
+    stroke="#ffb300" 
+    stroke-width="0.5"
+  />
+  
+  <!-- 装饰球 - 交替红金分布在树叶边缘 -->
+  <!-- 第一层 -->
+  <circle cx="22" cy="15" r="3.5" fill="#e53935"/>
+  <circle cx="22" cy="29" r="3.5" fill="#ffd700"/>
+  
+  <!-- 第二层 -->
+  <circle cx="42" cy="9" r="3" fill="#ffd700"/>
+  <circle cx="42" cy="35" r="3" fill="#e53935"/>
+  
+  <!-- 第三层 -->
+  <circle cx="65" cy="6" r="3.5" fill="#e53935"/>
+  <circle cx="65" cy="38" r="3.5" fill="#ffd700"/>
+  
+  <!-- 中间区域 -->
+  <circle cx="95" cy="5" r="3" fill="#ffd700"/>
+  <circle cx="95" cy="39" r="3" fill="#e53935"/>
+  
+  <circle cx="125" cy="4" r="3" fill="#e53935"/>
+  <circle cx="125" cy="40" r="3" fill="#ffd700"/>
+  
+  <circle cx="155" cy="5" r="2.5" fill="#ffd700"/>
+  <circle cx="155" cy="39" r="2.5" fill="#e53935"/>
+</svg>

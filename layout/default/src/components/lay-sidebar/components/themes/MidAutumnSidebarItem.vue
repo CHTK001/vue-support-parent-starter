@@ -150,19 +150,21 @@ $mid-autumn-border: rgba(255, 213, 79, 0.4);
       
       .el-menu-item {
         color: $mid-autumn-gold !important;
-        background: transparent !important;
-        border: none !important;
-        margin: 2px 8px !important;
+        background: linear-gradient(135deg, rgba($mid-autumn-navy, 0.9), rgba($mid-autumn-navy-light, 0.8)) !important;
+        border: 1.5px solid $mid-autumn-border !important;
+        border-radius: 8px;
+        margin: 4px 8px !important;
         
         &:hover {
-          background: rgba($mid-autumn-navy-light, 0.6) !important;
+          background: linear-gradient(135deg, rgba($mid-autumn-navy-light, 0.95), rgba(#3949ab, 0.85)) !important;
           color: $mid-autumn-white !important;
+          border-color: $mid-autumn-gold !important;
         }
         
         &.is-active {
           background: linear-gradient(135deg, $mid-autumn-navy-light, #3949ab) !important;
           color: $mid-autumn-white !important;
-          border-left: 3px solid $mid-autumn-gold !important;
+          border: 2px solid $mid-autumn-gold !important;
         }
         
         .el-icon, svg {
