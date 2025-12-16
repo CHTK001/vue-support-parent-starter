@@ -2,7 +2,7 @@
   <div class="user-save-container">
     <el-dialog v-model="visible" :title="title" :close-on-click-modal="false" :close-on-press-escape="false"
       :destroy-on-close="true" draggable width="800px" class="user-dialog" @close="close">
-      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px"
+      <el-form ref="dialogFormRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px"
         class="user-form">
         <el-row :gutter="20">
           <!-- 头像区域 -->
@@ -168,228 +168,235 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, toRaw } from "vue";
+<script setup lang="ts">
+import { ref, reactive } from "vue";
 import { fetchUpdateUser, fetchSaveUser, fetchUploadAvatar } from "@repo/core";
 import { message } from "@repo/utils";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { Md5 } from "ts-md5";
 import { REGEXP_PWD } from "@repo/pages/login/utils/rule";
 import { $t, transformI18n } from "@repo/config";
-import { debounce, throttle } from "@pureadmin/utils";
 import { fetchListRole } from "@/api/manage/role";
-import { clearObject } from "@repo/config";
 import Segmented from "@repo/components/ReSegmented";
 
-export default defineComponent({
-  components: { Segmented, IconifyIconOnline },
-  data() {
-    return {
-      // 表单数据
-      form: {
-        sysUserUsername: "",
-        sysUserNickname: "",
-        sysUserPassword: "",
-        sysUserPhone: "",
-        sysUserEmail: "",
-        sysUserAvatar: "",
-        sysUserSex: 1,
-        sysUserStatus: 1,
-        sysUserRemark: "",
-        roleIds: [], // 用户角色ID列表
+// Types
+interface UserForm {
+  sysUserUsername: string;
+  sysUserNickname: string;
+  sysUserPassword: string | null;
+  sysUserPhone: string;
+  sysUserEmail: string;
+  sysUserAvatar: string;
+  sysUserSex: number;
+  sysUserStatus: number;
+  sysUserRemark: string;
+  roleIds: number[];
+  userRoles?: { sysRoleId: number }[];
+}
+
+// Emits
+const emit = defineEmits<{
+  (e: "success"): void;
+}>();
+
+// Refs
+const dialogFormRef = ref();
+
+// Reactive state
+const form = ref<UserForm>({
+  sysUserUsername: "",
+  sysUserNickname: "",
+  sysUserPassword: "",
+  sysUserPhone: "",
+  sysUserEmail: "",
+  sysUserAvatar: "",
+  sysUserSex: 1,
+  sysUserStatus: 1,
+  sysUserRemark: "",
+  roleIds: [],
+});
+
+const avatarLoading = ref(false);
+const visible = ref(false);
+const loading = ref(false);
+const title = ref("");
+const mode = ref("save");
+const roleOptions = ref<any[]>([]);
+
+// Reactive rules (需要动态修改)
+const rules = reactive<Record<string, any>>({
+  sysUserUsername: [{ required: true, message: "请输入账号名称", trigger: "blur" }],
+});
+
+// Static options
+const statusOptions = [
+  { label: "开启", value: 1 },
+  { label: "禁用", value: 0 },
+];
+
+const sexOptions = [
+  { label: "男", value: 1 },
+  { label: "女", value: 0 },
+  { label: "其他", value: 2 },
+];
+
+// Methods
+const close = async () => {
+  visible.value = false;
+  loading.value = false;
+  delete rules["sysUserPassword"];
+};
+
+const setData = (data: any) => {
+  form.value = data;
+  // 提取用户角色ID
+  form.value.roleIds = data?.userRoles?.map((item: any) => item.sysRoleId) || [];
+  // 获取角色列表
+  fetchListRole({}).then((res) => {
+    roleOptions.value = res.data;
+  });
+};
+
+const getAvatarClass = () => {
+  const sex = form.value.sysUserSex;
+  if (sex === 1) return 'avatar-male';
+  if (sex === 0) return 'avatar-female';
+  return 'avatar-other';
+};
+
+const getAvatarText = () => {
+  const name = form.value.sysUserNickname || form.value.sysUserUsername || '';
+  return name ? name[0].toUpperCase() : '?';
+};
+
+const handleAvatarChange = async (uploadFile: any) => {
+  if (!uploadFile.raw) return;
+  
+  // 检查文件类型
+  const isImage = uploadFile.raw.type.startsWith('image/');
+  if (!isImage) {
+    message('请上传图片文件', { type: 'warning' });
+    return;
+  }
+  
+  // 检查文件大小 (2MB)
+  if (uploadFile.raw.size > 2 * 1024 * 1024) {
+    message('头像文件不能超过2MB', { type: 'warning' });
+    return;
+  }
+  
+  avatarLoading.value = true;
+  try {
+    const res = await fetchUploadAvatar(uploadFile.raw);
+    if (res?.code === '00000' && res?.data?.url) {
+      form.value.sysUserAvatar = res.data.url;
+      message('头像上传成功', { type: 'success' });
+    } else {
+      message(res?.msg || '头像上传失败', { type: 'error' });
+    }
+  } catch (error) {
+    message('头像上传失败', { type: 'error' });
+  } finally {
+    avatarLoading.value = false;
+  }
+};
+
+const open = async (modeValue = "save") => {
+  visible.value = true;
+  mode.value = modeValue;
+  title.value = modeValue == "save" ? "新增用户" : "编辑用户";
+
+  // 编辑模式下清空密码
+  if (mode.value === "edit") {
+    form.value.sysUserPassword = null;
+  }
+
+  // 新增模式下添加密码验证规则
+  if (mode.value === "save") {
+    rules["sysUserPassword"] = [
+      {
+        required: true,
+        message: transformI18n($t("login.purePassWordReg")),
+        trigger: "blur",
       },
-      avatarLoading: false,
-      visible: false,
-      // 表单验证规则
-      rules: {
-        sysUserUsername: [{ required: true, message: "请输入账号名称", trigger: "blur" }],
+      { min: 6, message: "密码长度不能小于6位", trigger: "blur" },
+      { max: 20, message: "密码长度不能大于20位", trigger: "blur" },
+      {
+        pattern: REGEXP_PWD,
+        message: transformI18n($t("login.purePassWordRuleReg")),
+        trigger: "blur",
       },
-      loading: false,
-      title: "",
-      mode: "save",
-      // 用户状态选项
-      statusOptions: [
-        {
-          label: "开启",
-          value: 1,
-        },
-        {
-          label: "禁用",
-          value: 0,
-        },
-      ],
-      // 性别选项
-      sexOptions: [
-        {
-          label: "男",
-          value: 1,
-        },
-        {
-          label: "女",
-          value: 0,
-        },
-        {
-          label: "其他",
-          value: 2,
-        },
-      ],
-      roleOptions: [], // 角色选项列表
-    };
-  },
-  methods: {
-    // 关闭对话框
-    async close() {
-      this.visible = false;
-      this.loading = false;
-      delete this.rules["sysUserPassword"];
-    },
-    // 设置表单数据
-    setData(data) {
-      this.form = data;
-      // 提取用户角色ID
-      this.form.roleIds = data?.userRoles?.map((item) => item.sysRoleId);
-      // 获取角色列表
-      fetchListRole({}).then((res) => {
-        this.roleOptions = res.data;
+    ];
+  }
+};
+
+const submit = () => {
+  // 如果昵称为空，使用用户名作为昵称
+  if (!form.value.sysUserNickname) {
+    form.value.sysUserNickname = form.value.sysUserUsername;
+  }
+
+  // 验证密码格式
+  if (form.value.sysUserPassword) {
+    if (!REGEXP_PWD.test(form.value.sysUserPassword)) {
+      message(transformI18n($t("login.purePassWordRuleReg")), {
+        type: "error",
       });
-      return this;
-    },
-    // 头像背景色
-    getAvatarClass() {
-      const sex = this.form.sysUserSex;
-      if (sex === 1) return 'avatar-male';
-      if (sex === 0) return 'avatar-female';
-      return 'avatar-other';
-    },
-    // 头像文字
-    getAvatarText() {
-      const name = this.form.sysUserNickname || this.form.sysUserUsername || '';
-      return name ? name[0].toUpperCase() : '?';
-    },
-    // 处理头像变化
-    async handleAvatarChange(uploadFile) {
-      if (!uploadFile.raw) return;
-      
-      // 检查文件类型
-      const isImage = uploadFile.raw.type.startsWith('image/');
-      if (!isImage) {
-        message('请上传图片文件', { type: 'warning' });
-        return;
+      return;
+    }
+  }
+
+  dialogFormRef.value.validate(async (valid: boolean) => {
+    if (valid) {
+      loading.value = true;
+      let res: any = {};
+      // 创建新表单对象，避免修改原始数据
+      const newFrom: any = {
+        sysUserPassword: null,
+        roleIds: null,
+        updateRole: true,
+      };
+      Object.assign(newFrom, form.value);
+
+      // 密码加密
+      if (newFrom.sysUserPassword) {
+        newFrom.sysUserPassword = Md5.hashStr(newFrom.sysUserPassword);
       }
-      
-      // 检查文件大小 (2MB)
-      if (uploadFile.raw.size > 2 * 1024 * 1024) {
-        message('头像文件不能超过2MB', { type: 'warning' });
-        return;
+
+      // 设置角色ID
+      if (form.value.roleIds.length > 0) {
+        newFrom.roleIds = form.value.roleIds;
       }
-      
-      this.avatarLoading = true;
+
       try {
-        const res = await fetchUploadAvatar(uploadFile.raw);
-        if (res?.code === '00000' && res?.data?.url) {
-          this.form.sysUserAvatar = res.data.url;
-          message('头像上传成功', { type: 'success' });
+        // 根据模式选择保存或更新操作
+        if (mode.value === "save") {
+          res = await fetchSaveUser(newFrom);
+        } else if (mode.value === "edit") {
+          res = await fetchUpdateUser(newFrom);
+        }
+
+        if (res.code == "00000") {
+          message(mode.value === "save" ? "添加成功" : "更新成功", { type: "success" });
+          emit("success");
+          visible.value = false;
         } else {
-          message(res?.msg || '头像上传失败', { type: 'error' });
+          message(res.msg, { type: "error" });
         }
       } catch (error) {
-        message('头像上传失败', { type: 'error' });
+        message("操作失败", { type: "error" });
       } finally {
-        this.avatarLoading = false;
+        loading.value = false;
       }
-    },
-    // 打开对话框
-    async open(mode = "save") {
-      this.visible = true;
-      this.mode = mode;
-      this.title = mode == "save" ? "新增用户" : "编辑用户";
+    }
+  });
+};
 
-      // 编辑模式下清空密码
-      if (this.mode === "edit") {
-        this.form.sysUserPassword = null;
-      }
-
-      // 新增模式下添加密码验证规则
-      if (this.mode === "save") {
-        this.rules["sysUserPassword"] = [
-          {
-            required: true,
-            message: transformI18n($t("login.purePassWordReg")),
-            trigger: "blur",
-          },
-          { min: 6, message: "密码长度不能小于6位", trigger: "blur" },
-          { max: 20, message: "密码长度不能大于20位", trigger: "blur" },
-          {
-            pattern: REGEXP_PWD,
-            message: transformI18n($t("login.purePassWordRuleReg")),
-            trigger: "blur",
-          },
-        ];
-      }
-    },
-    // 提交表单
-    submit() {
-      // 如果昵称为空，使用用户名作为昵称
-      if (!this.form.sysUserNickname) {
-        this.form.sysUserNickname = this.form.sysUserUsername;
-      }
-
-      // 验证密码格式
-      if (this.form.sysUserPassword) {
-        if (!REGEXP_PWD.test(this.form.sysUserPassword)) {
-          message(transformI18n($t("login.purePassWordRuleReg")), {
-            type: "error",
-          });
-          return;
-        }
-      }
-
-      this.$refs.dialogForm.validate(async (valid) => {
-        if (valid) {
-          this.loading = true;
-          var res: any = {};
-          // 创建新表单对象，避免修改原始数据
-          const newFrom = {
-            sysUserPassword: null,
-            roleIds: null,
-            updateRole: true,
-          };
-          Object.assign(newFrom, this.form);
-
-          // 密码加密
-          if (newFrom.sysUserPassword) {
-            newFrom.sysUserPassword = Md5.hashStr(newFrom.sysUserPassword);
-          }
-
-          // 设置角色ID
-          if (this.form.roleIds.length > 0) {
-            newFrom.roleIds = this.form.roleIds;
-          }
-
-          try {
-            // 根据模式选择保存或更新操作
-            if (this.mode === "save") {
-              res = await fetchSaveUser(newFrom);
-            } else if (this.mode === "edit") {
-              res = await fetchUpdateUser(newFrom);
-            }
-
-            if (res.code == "00000") {
-              message(this.mode === "save" ? "添加成功" : "更新成功", { type: "success" });
-              this.$emit("success");
-              this.visible = false;
-            } else {
-              message(res.msg, { type: "error" });
-            }
-          } catch (error) {
-            message("操作失败", { type: "error" });
-          } finally {
-            this.loading = false;
-          }
-        }
-      });
-    },
-  },
+// Expose methods to parent
+defineExpose({
+  close,
+  setData,
+  open,
 });
 </script>
 

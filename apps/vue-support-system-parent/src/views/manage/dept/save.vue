@@ -1,95 +1,144 @@
-<script>
-import { defineComponent } from "vue";
+<script setup lang="ts">
+import { reactive, ref } from "vue";
 import { fetchSaveDept, fetchUpdateDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
 import { IconSelect, IconifyIconOnline } from "@repo/components/ReIcon";
+import { transformI18n } from "@repo/config";
 
-export default defineComponent({
-  components: { IconSelect, IconifyIconOnline },
-  data() {
-    return {
-      form: {
-        sysDeptId: "",
-        sysDeptName: "",
-        sysDeptPid: "",
-        sysDeptTreeId: "",
-        sysDeptIcon: "",
-      },
-      visible: false,
-      rules: {
-        sysDeptName: [
-          { required: true, message: "请输入机构名称", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
-        ],
-        sysDeptCode: [
-          { required: true, message: "请输入机构编码", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
-        ],
-        sysDeptStatus: [{ required: true, message: "请选择是否禁用", trigger: "blur" }],
-      },
-      loading: false,
-      title: "",
-      mode: "save",
-      treeData: [],
-      defaultProps: {
-        value: "sysDeptId",
-        label: "sysDeptName",
-        children: "children",
-        emitPath: false,
-        checkStrictly: true,
-      },
-      checked: [],
-    };
-  },
-  methods: {
-    async close() {
-      this.visible = false;
-      this.loading = false;
-      this.form = {};
-    },
-    setData(data) {
-      Object.assign(this.form, data);
-      this.checked.push(data.sysDeptPid);
-      console.log(this.checked);
-      return this;
-    },
-    setTableData(data) {
-      Object.assign(this.treeData, data);
-      return this;
-    },
-    async open(mode = "save") {
-      this.visible = true;
-      this.mode = mode;
-      this.title = mode == "save" ? "新增" : "编辑";
-      if (this.mode == "save") {
-        this.form.sysDeptSort = 0;
-      }
-    },
-    renderContent(h, { node, data }) {
-      return node.data?.sysDeptName;
-    },
-    submit() {
-      this.$refs.dialogForm.validate(async (valid) => {
-        if (valid) {
-          this.loading = true;
-          var res = {};
-          if (this.mode === "save") {
-            res = await fetchSaveDept(this.form);
-          } else if (this.mode === "edit") {
-            res = await fetchUpdateDept(this.form);
-          }
+// Emits
+const emit = defineEmits<{
+  (e: 'success'): void;
+}>();
 
-          if (res.code == "00000") {
-            this.$emit("success");
-            this.visible = false;
-          } else {
-            message(res.msg, { type: "error" });
-          }
+// Refs
+const dialogFormRef = ref();
+
+// 状态
+const visible = ref(false);
+const loading = ref(false);
+const title = ref('');
+const mode = ref<'save' | 'edit'>('save');
+const treeData = ref<any[]>([]);
+const checked = ref<any[]>([]);
+
+// 表单数据
+const form = reactive({
+  sysDeptId: '',
+  sysDeptName: '',
+  sysDeptPid: '',
+  sysDeptTreeId: '',
+  sysDeptIcon: '',
+  sysDeptCode: '',
+  sysDeptPrincipal: '',
+  sysDeptContact: '',
+  sysDeptSort: 0,
+  sysDeptStatus: 0,
+  sysDeptRemark: ''
+});
+
+// 验证规则
+const rules = {
+  sysDeptName: [
+    { required: true, message: '请输入机构名称', trigger: 'blur' },
+    { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
+  ],
+  sysDeptCode: [
+    { required: true, message: '请输入机构编码', trigger: 'blur' },
+    { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
+  ],
+  sysDeptStatus: [{ required: true, message: '请选择是否禁用', trigger: 'blur' }]
+};
+
+// 级联选择器配置
+const defaultProps = {
+  value: 'sysDeptId',
+  label: 'sysDeptName',
+  children: 'children',
+  emitPath: false,
+  checkStrictly: true
+};
+
+// i18n
+const transformI18nValue = (value: string) => transformI18n(value);
+
+// 关闭对话框
+const close = () => {
+  visible.value = false;
+  loading.value = false;
+  // 重置表单
+  Object.assign(form, {
+    sysDeptId: '',
+    sysDeptName: '',
+    sysDeptPid: '',
+    sysDeptTreeId: '',
+    sysDeptIcon: '',
+    sysDeptCode: '',
+    sysDeptPrincipal: '',
+    sysDeptContact: '',
+    sysDeptSort: 0,
+    sysDeptStatus: 0,
+    sysDeptRemark: ''
+  });
+};
+
+// 设置数据
+const setData = (data: any) => {
+  Object.assign(form, data);
+  if (data.sysDeptPid) {
+    checked.value = [data.sysDeptPid];
+  }
+  return { setTableData, open };
+};
+
+// 设置树数据
+const setTableData = (data: any[]) => {
+  treeData.value = data || [];
+  return { setData, open };
+};
+
+// 打开对话框
+const open = (m: 'save' | 'edit' = 'save') => {
+  visible.value = true;
+  mode.value = m;
+  title.value = m === 'save' ? '新增' : '编辑';
+  if (m === 'save') {
+    form.sysDeptSort = 0;
+  }
+};
+
+// 提交表单
+const submit = () => {
+  dialogFormRef.value?.validate(async (valid: boolean) => {
+    if (valid) {
+      loading.value = true;
+      try {
+        let res: any = {};
+        if (mode.value === 'save') {
+          res = await fetchSaveDept(form);
+        } else {
+          res = await fetchUpdateDept(form);
         }
-        this.loading = false;
-      });
-    },
-  },
+
+        if (res.code === '00000') {
+          emit('success');
+          visible.value = false;
+        } else {
+          message(res.msg, { type: 'error' });
+        }
+      } catch (error) {
+        console.error('保存失败', error);
+      } finally {
+        loading.value = false;
+      }
+    }
+  });
+};
+
+// 暴露给父组件
+defineExpose({
+  setData,
+  setTableData,
+  open
 });
 </script>
 <template>
@@ -110,7 +159,7 @@ export default defineComponent({
           <span>{{ title }}部门</span>
         </div>
       </template>
-      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="dept-form">
+      <el-form ref="dialogFormRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="dept-form">
         <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item label="父级机构" prop="sysDeptPid">

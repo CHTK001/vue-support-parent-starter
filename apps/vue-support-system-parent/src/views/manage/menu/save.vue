@@ -1,7 +1,7 @@
-<script>
+<script setup lang="ts">
 import { fetchSaveMenu, fetchUpdateMenu } from "@/api/manage/menu";
 import { fetchListRole } from "@/api/manage/role";
-import { defineAsyncComponent, defineComponent, h } from "vue";
+import { ref, reactive, computed, onMounted, nextTick, h, defineComponent } from "vue";
 
 import ReAnimateSelector from "@repo/components/ReAnimateSelector/index.vue";
 import ReCol from "@repo/components/ReCol";
@@ -16,300 +16,196 @@ const QuestionFilled = defineComponent({
   }
 });
 
-export default defineComponent({
-  components: {
-    Segmented,
-    IconSelect,
-    ReCol,
-    ReAnimateSelector,
-    QuestionFilled,
-  },
-  data() {
-    return {
-      dynamicTags: [],
-      form: {},
-      visible: false,
-      loading: false,
-      title: "",
-      mode: "save",
-      showParentOptions: [
-        {
-          label: "显示",
-          tip: "会显示父级菜单",
-          value: true,
-        },
-        {
-          label: "隐藏",
-          tip: "不会显示父级菜单",
-          value: false,
-        },
-      ],
-      hiddenTagOptions: [
-        {
-          label: "允许",
-          tip: "当前菜单名称或自定义信息允许添加到标签页",
-          value: false,
-        },
-        {
-          label: "禁止",
-          tip: "当前菜单名称或自定义信息禁止添加到标签页",
-          value: true,
-        },
-      ],
-      menuTypeOptions: [
-        {
-          label: "菜单",
-          value: 0,
-        },
-        {
-          label: "iframe",
-          value: 1,
-        },
-        {
-          label: "外链",
-          value: 2,
-        },
-        {
-          label: "按钮",
-          value: 3,
-        },
-      ],
-      keepAliveOptions: [
-        {
-          label: "缓存",
-          tip: "会保存该页面的整体状态，刷新后会清空状态",
-          value: true,
-        },
-        {
-          label: "不缓存",
-          tip: "不会保存该页面的整体状态",
-          value: false,
-        },
-      ],
-      fixedTagOptions: [
-        {
-          label: "固定",
-          tip: "当前菜单名称固定显示在标签页且不可关闭",
-          value: true,
-        },
-        {
-          label: "不固定",
-          tip: "当前菜单名称不固定显示在标签页且可关闭",
-          value: false,
-        },
-      ],
-      frameLoadingOptions: [
-        {
-          label: "开启",
-          tip: "有首次加载动画",
-          value: true,
-        },
-        {
-          label: "关闭",
-          tip: "无首次加载动画",
-          value: false,
-        },
-      ],
-      showLinkOptions: [
-        {
-          label: "显示",
-          tip: "会在菜单中显示",
-          value: true,
-        },
-        {
-          label: "隐藏",
-          tip: "不会在菜单中显示",
-          value: false,
-        },
-      ],
-      roleOptions: [],
-      tableData: [],
-      props: {
-        value: "sysMenuId",
-        label: "sysMenuTitle",
-        emitPath: false,
-        checkStrictly: true,
-      },
-      inputValue: "",
-      inputVisible: false,
-    };
-  },
-  computed: {
-    rules() {
-      if (this.form.sysMenuType == 0) {
-        return {
-          sysMenuTitle: [
-            {
-              required: true,
-              message: transformI18n("rules.sysMenuTitle"),
-              trigger: "blur",
-            },
-          ],
-          sysMenuName: [
-            {
-              required: true,
-              message: transformI18n("rules.sysMenuName"),
-              trigger: "blur",
-            },
-          ],
-          sysMenuPath: [
-            {
-              required: true,
-              message: transformI18n("rules.sysMenuPath"),
-              trigger: "blur",
-            },
-          ],
-          sysMenuComponent: [
-            {
-              required: true,
-              message: transformI18n("rules.sysMenuComponent"),
-              trigger: "blur",
-            },
-          ],
-          sysMenuPerm: [
-            {
-              required: true,
-              message: transformI18n("rules.sysMenuPerm"),
-              trigger: "blur",
-            },
-          ],
-        };
-      }
-      if (this.form.sysMenuType == 1 || this.form.sysMenuType == 2) {
-        return {
-          sysMenuTitle: [
-            {
-              required: true,
-              message: transformI18n("rules.sysMenuTitle"),
-              trigger: "blur",
-            },
-          ],
-          sysMenuName: [
-            {
-              required: true,
-              message: transformI18n("rules.sysMenuName"),
-              trigger: "blur",
-            },
-          ],
-          sysMenuPath: [
-            {
-              required: true,
-              message: transformI18n("rules.sysMenuPath"),
-              trigger: "blur",
-            },
-          ],
-          sysMenuPerm: [
-            {
-              required: true,
-              message: transformI18n("rules.sysMenuPerm"),
-              trigger: "blur",
-            },
-          ],
-        };
-      }
-      return {
-        sysMenuTitle: [
-          {
-            required: true,
-            message: transformI18n("rules.sysMenuTitle"),
-            trigger: "blur",
-          },
-        ],
-        sysMenuPerm: [
-          {
-            required: true,
-            message: transformI18n("rules.sysMenuPerm"),
-            trigger: "blur",
-          },
-        ],
-      };
-    },
-  },
-  mounted() {
-    this.initialRole();
-  },
-  methods: {
-    async initialRole() {
-      this.roleOptions.push({
-        sysRoleId: 1,
-        sysRoleCode: "SUPER_ADMIN",
-        sysRoleName: "超级管理员",
-      });
-      fetchListRole({}).then((res) => {
-        this.roleOptions.push(...res.data);
-      });
-    },
-    async close() {
-      this.visible = false;
-      this.loading = false;
-      this.tableData = [];
-      this.$nextTick(() => {
-        this.$refs?.dialogForm.resetFields();
-      });
-      this.reset();
-    },
-    reset() {
-      this.dynamicTags.length = 0;
-      this.form = {};
-    },
-    clickNode($event) {
-      $event.target.parentElement.parentElement.firstElementChild.click();
-    },
-    setTableData(data) {
-      Object.assign(this.tableData, data || []);
-      return this;
-    },
-    setData(data) {
-      this.form = data;
-      this.dynamicTags = !this.form.sysMenuRole ? [] : this.form.sysMenuRole?.split(",");
-      return this;
-    },
-    async open(mode = "save") {
-      this.visible = true;
-      this.mode = mode;
-      this.title = mode == "save" ? "新增" : "编辑";
-      if (mode == "save") {
-        this.form.sysMenuSort = 1;
-      } else if (!this.form.sysMenuSort) {
-        this.form.sysMenuSort = 0;
-      }
-    },
-    transformI18nValue(value) {
-      return transformI18n(value);
-    },
-    submit() {
-      this.$refs.dialogForm.validate(async (valid) => {
-        if (valid) {
-          this.loading = true;
-          if (this.dynamicTags) {
-            this.form.sysMenuRole = this.dynamicTags.join(",");
-          }
-          try {
-            let res = {};
-            if (this.mode === "save") {
-              res = await fetchSaveMenu(this.form);
-            } else if (this.mode === "edit") {
-              res = await fetchUpdateMenu(this.form);
-            }
+// Emits
+const emit = defineEmits<{
+  (e: "success", mode: string, form: any): void;
+}>();
 
-            if (res.code == "00000") {
-              this.$emit("success", this.mode, this.form);
-              this.visible = false;
-            } else {
-              message(res.msg, { type: "error" });
-            }
-          } catch (error) {}
+// Refs
+const dialogFormRef = ref();
+
+// Reactive state
+const dynamicTags = ref<string[]>([]);
+const form = ref<any>({});
+const visible = ref(false);
+const loading = ref(false);
+const title = ref("");
+const mode = ref("save");
+const roleOptions = ref<any[]>([]);
+const tableData = ref<any[]>([]);
+const inputValue = ref("");
+const inputVisible = ref(false);
+
+// Static options
+const showParentOptions = [
+  { label: "显示", tip: "会显示父级菜单", value: true },
+  { label: "隐藏", tip: "不会显示父级菜单", value: false },
+];
+
+const hiddenTagOptions = [
+  { label: "允许", tip: "当前菜单名称或自定义信息允许添加到标签页", value: false },
+  { label: "禁止", tip: "当前菜单名称或自定义信息禁止添加到标签页", value: true },
+];
+
+const menuTypeOptions = [
+  { label: "菜单", value: 0 },
+  { label: "iframe", value: 1 },
+  { label: "外链", value: 2 },
+  { label: "按钮", value: 3 },
+];
+
+const keepAliveOptions = [
+  { label: "缓存", tip: "会保存该页面的整体状态，刷新后会清空状态", value: true },
+  { label: "不缓存", tip: "不会保存该页面的整体状态", value: false },
+];
+
+const fixedTagOptions = [
+  { label: "固定", tip: "当前菜单名称固定显示在标签页且不可关闭", value: true },
+  { label: "不固定", tip: "当前菜单名称不固定显示在标签页且可关闭", value: false },
+];
+
+const frameLoadingOptions = [
+  { label: "开启", tip: "有首次加载动画", value: true },
+  { label: "关闭", tip: "无首次加载动画", value: false },
+];
+
+const showLinkOptions = [
+  { label: "显示", tip: "会在菜单中显示", value: true },
+  { label: "隐藏", tip: "不会在菜单中显示", value: false },
+];
+
+const props = {
+  value: "sysMenuId",
+  label: "sysMenuTitle",
+  emitPath: false,
+  checkStrictly: true,
+};
+
+// Computed rules
+const rules = computed(() => {
+  if (form.value.sysMenuType == 0) {
+    return {
+      sysMenuTitle: [{ required: true, message: transformI18n("rules.sysMenuTitle"), trigger: "blur" }],
+      sysMenuName: [{ required: true, message: transformI18n("rules.sysMenuName"), trigger: "blur" }],
+      sysMenuPath: [{ required: true, message: transformI18n("rules.sysMenuPath"), trigger: "blur" }],
+      sysMenuComponent: [{ required: true, message: transformI18n("rules.sysMenuComponent"), trigger: "blur" }],
+      sysMenuPerm: [{ required: true, message: transformI18n("rules.sysMenuPerm"), trigger: "blur" }],
+    };
+  }
+  if (form.value.sysMenuType == 1 || form.value.sysMenuType == 2) {
+    return {
+      sysMenuTitle: [{ required: true, message: transformI18n("rules.sysMenuTitle"), trigger: "blur" }],
+      sysMenuName: [{ required: true, message: transformI18n("rules.sysMenuName"), trigger: "blur" }],
+      sysMenuPath: [{ required: true, message: transformI18n("rules.sysMenuPath"), trigger: "blur" }],
+      sysMenuPerm: [{ required: true, message: transformI18n("rules.sysMenuPerm"), trigger: "blur" }],
+    };
+  }
+  return {
+    sysMenuTitle: [{ required: true, message: transformI18n("rules.sysMenuTitle"), trigger: "blur" }],
+    sysMenuPerm: [{ required: true, message: transformI18n("rules.sysMenuPerm"), trigger: "blur" }],
+  };
+});
+
+// Methods
+const initialRole = async () => {
+  roleOptions.value.push({
+    sysRoleId: 1,
+    sysRoleCode: "SUPER_ADMIN",
+    sysRoleName: "超级管理员",
+  });
+  fetchListRole({}).then((res) => {
+    roleOptions.value.push(...res.data);
+  });
+};
+
+const reset = () => {
+  dynamicTags.value.length = 0;
+  form.value = {};
+};
+
+const close = async () => {
+  visible.value = false;
+  loading.value = false;
+  tableData.value = [];
+  nextTick(() => {
+    dialogFormRef.value?.resetFields();
+  });
+  reset();
+};
+
+const clickNode = ($event: MouseEvent) => {
+  const target = $event.target as HTMLElement;
+  target.parentElement?.parentElement?.firstElementChild?.dispatchEvent(new Event('click'));
+};
+
+const setTableData = (data: any[]) => {
+  Object.assign(tableData.value, data || []);
+};
+
+const setData = (data: any) => {
+  form.value = data;
+  dynamicTags.value = !form.value.sysMenuRole ? [] : form.value.sysMenuRole?.split(",");
+};
+
+const open = async (modeValue = "save") => {
+  visible.value = true;
+  mode.value = modeValue;
+  title.value = modeValue == "save" ? "新增" : "编辑";
+  if (modeValue == "save") {
+    form.value.sysMenuSort = 1;
+  } else if (!form.value.sysMenuSort) {
+    form.value.sysMenuSort = 0;
+  }
+};
+
+const transformI18nValue = (value: string) => {
+  return transformI18n(value);
+};
+
+const submit = () => {
+  dialogFormRef.value.validate(async (valid: boolean) => {
+    if (valid) {
+      loading.value = true;
+      if (dynamicTags.value) {
+        form.value.sysMenuRole = dynamicTags.value.join(",");
+      }
+      try {
+        let res: any = {};
+        if (mode.value === "save") {
+          res = await fetchSaveMenu(form.value);
+        } else if (mode.value === "edit") {
+          res = await fetchUpdateMenu(form.value);
         }
-        this.loading = false;
-      });
-    },
-  },
+
+        if (res.code == "00000") {
+          emit("success", mode.value, form.value);
+          visible.value = false;
+        } else {
+          message(res.msg, { type: "error" });
+        }
+      } catch (error) {}
+    }
+    loading.value = false;
+  });
+};
+
+// Lifecycle
+onMounted(() => {
+  initialRole();
+});
+
+// Expose methods to parent
+defineExpose({
+  close,
+  setData,
+  setTableData,
+  open,
 });
 </script>
 <template>
   <div>
     <el-dialog v-model="visible" top="10px" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
-      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
+      <el-form ref="dialogFormRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row :gutter="30">
           <re-col>
             <el-form-item label="菜单类型">

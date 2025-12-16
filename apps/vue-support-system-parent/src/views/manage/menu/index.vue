@@ -213,11 +213,10 @@
 
 <script setup lang="ts">
 // 引入 Vue 相关的 API
-import { nextTick, reactive, ref, computed } from "vue";
+import { nextTick, reactive, ref, computed, defineAsyncComponent } from "vue";
 
-// 引入图标
-// 引入保存对话框组件
-import SaveDialog from "./save.vue";
+// 异步加载保存对话框组件（对话框类组件适合异步加载）
+const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 
 // 引入菜单相关的 API
 import { fetchDeleteMenu, fetchListMenu } from "@/api/manage/menu";

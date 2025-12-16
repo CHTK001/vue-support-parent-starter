@@ -194,7 +194,7 @@ defineExpose({
 </script>
 <template>
   <div class="dept-container">
-    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSuccess" @close="dialogClose" />
+    <SaveDialog v-if="visible.save" ref="saveDialogRef" :mode="saveDialogParams.mode" @success="onSuccess" @close="dialogClose" />
     <div class="dept-wrapper">
       <el-container>
         <!-- 统计面板 -->
@@ -228,7 +228,7 @@ defineExpose({
           </div>
         </div>
         <el-header class="dept-header">
-          <el-input v-model="dicFilterText" :placeholder="useI18n('input.keywordSearch')" clearable class="search-input">
+          <el-input v-model="dicFilterText" :placeholder="useI18nText('input.keywordSearch')" clearable class="search-input">
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
@@ -286,7 +286,7 @@ defineExpose({
         <el-footer class="dept-footer">
           <el-button type="primary" class="add-btn" @click="dialogOpen({}, 'save')">
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-            {{ useI18n("buttons.addDept") }}
+            {{ useI18nText('buttons.addDept') }}
           </el-button>
         </el-footer>
       </el-container>
