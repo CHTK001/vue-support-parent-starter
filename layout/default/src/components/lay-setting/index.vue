@@ -173,6 +173,12 @@ const getThemeColorStyle = computed(() => {
   };
 });
 
+// 是否为默认主题：仅默认主题显示主题色与页签风格设置
+const isDefaultTheme = computed(() => {
+  const key = $storage.configure?.systemTheme || 'default';
+  return key === 'default';
+});
+
 /**
  * 获取当前环境和用户信息
  */
@@ -1039,8 +1045,8 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- 主题色设置区域 -->
-        <div v-if="themeColors && themeColors.length > 0" class="setting-section">
+        <!-- 主题色设置区域（仅默认主题显示） -->
+        <div v-if="isDefaultTheme && themeColors && themeColors.length > 0" class="setting-section">
           <div class="section-header">
             <IconifyIconOffline :icon="'ri:drop-line'" class="section-icon" />
             <h3 class="section-title">{{ t("panel.pureThemeColor") }}</h3>
@@ -1587,8 +1593,8 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- 标签页样式设置区域 -->
-        <div class="setting-section">
+        <!-- 标签页样式设置区域（仅默认主题显示） -->
+        <div v-if="isDefaultTheme" class="setting-section">
           <div class="section-header">
             <IconifyIconOffline
               :icon="'ri:price-tag-3-line'"
