@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import BaseSidebar from './BaseSidebar.vue';
+import SpringFestivalSidebarItem from '../components/themes/SpringFestivalSidebarItem.vue';
 </script>
 
 <template>
   <div class="spring-festival-sidebar-wrapper">
-    <BaseSidebar theme-class="spring-festival-sidebar" />
+    <BaseSidebar 
+      theme-class="spring-festival-sidebar" 
+      :sidebar-item-component="SpringFestivalSidebarItem" 
+    />
   </div>
 </template>
 

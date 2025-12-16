@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import BaseHorizontal from './BaseHorizontal.vue';
+import ChristmasSidebarItem from '../../components/themes/ChristmasSidebarItem.vue';
 </script>
 
 <template>
   <div class="christmas-horizontal-wrapper">
-    <BaseHorizontal theme-class="christmas-horizontal" />
+    <BaseHorizontal 
+      theme-class="christmas-horizontal" 
+      :sidebar-item-component="ChristmasSidebarItem" 
+    />
   </div>
 </template>
 

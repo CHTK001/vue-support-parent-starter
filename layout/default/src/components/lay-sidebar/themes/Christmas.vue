@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import BaseSidebar from './BaseSidebar.vue';
+import ChristmasSidebarItem from '../components/themes/ChristmasSidebarItem.vue';
 </script>
 
 <template>
   <div class="christmas-sidebar-wrapper">
-    <BaseSidebar theme-class="christmas-sidebar" />
+    <BaseSidebar 
+      theme-class="christmas-sidebar" 
+      :sidebar-item-component="ChristmasSidebarItem" 
+    />
   </div>
 </template>
 

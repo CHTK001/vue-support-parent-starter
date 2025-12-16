@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import BaseHorizontal from './BaseHorizontal.vue';
+import SpringFestivalSidebarItem from '../../components/themes/SpringFestivalSidebarItem.vue';
 </script>
 
 <template>
   <div class="spring-festival-horizontal-wrapper">
-    <BaseHorizontal theme-class="spring-festival-horizontal" />
+    <BaseHorizontal 
+      theme-class="spring-festival-horizontal" 
+      :sidebar-item-component="SpringFestivalSidebarItem" 
+    />
   </div>
 </template>
 
