@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, ref, onMounted } from "vue";
 import { message } from "@repo/utils";
-import { useI18n } from "@repo/config";
+import { useI18n } from "vue-i18n";
 import { dateFormat } from "@repo/utils";
 
 // 国际化
