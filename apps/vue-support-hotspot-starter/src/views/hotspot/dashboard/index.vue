@@ -138,26 +138,6 @@ onUnmounted(() => {
 
 <template>
   <div class="page-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <IconifyIconOnline icon="ri:dashboard-line" class="header-icon" />
-        <div class="header-info">
-          <h2 class="header-title">系统概览</h2>
-          <p class="header-desc">应用性能监控和热点分析仪表盘</p>
-        </div>
-      </div>
-      <div class="header-right">
-        <el-tag :type="wsConnected ? 'success' : 'danger'" effect="light" size="large">
-          {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
-        </el-tag>
-        <el-button type="info" @click="refreshAll" :loading="loading">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-      </div>
-    </div>
-
     <!-- 关键指标卡片 -->
     <el-row :gutter="20" class="stats-row">
       <el-col :span="6">
@@ -306,52 +286,6 @@ onUnmounted(() => {
   padding: 20px;
   min-height: 100%;
   background: var(--el-bg-color-page);
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-
-    .header-icon {
-      font-size: 40px;
-      color: var(--el-color-primary);
-      padding: 12px;
-      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
-      border-radius: 12px;
-    }
-
-    .header-info {
-      .header-title {
-        margin: 0 0 4px 0;
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-      }
-
-      .header-desc {
-        margin: 0;
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-      }
-    }
-  }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
 }
 
 .stats-row {

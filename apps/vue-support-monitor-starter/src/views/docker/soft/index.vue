@@ -1,38 +1,82 @@
 <template>
   <div class="soft-management">
     <ProgressMonitor />
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <div class="page-title">
-          <IconifyIconOnline icon="ri:apps-line" class="title-icon" />
-          <span>软件库</span>
+    <!-- 现代化页面头部 -->
+    <div class="modern-header">
+      <div class="header-content">
+        <div class="header-info">
+          <div class="icon-wrapper">
+            <IconifyIconOnline icon="ri:apps-2-line" class="header-icon" />
+          </div>
+          <div class="title-wrapper">
+            <h1 class="page-title">软件库</h1>
+            <p class="page-subtitle">从仓库检索并管理可安装的软件</p>
+          </div>
         </div>
-        <div class="page-subtitle">从仓库检索并管理可安装的软件</div>
-      </div>
-      <div class="header-right">
-        <el-button @click="reload">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-        <el-button @click="syncVisible = true" type="success" plain>
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          同步镜像
-        </el-button>
-        <el-button @click="onlineVisible = true">
-          <IconifyIconOnline icon="ri:search-eye-line" class="mr-1" />
-          在线搜索
-        </el-button>
-        <el-button type="primary" v-admin @click="openEdit()">
-          <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-          新增软件
-        </el-button>
+        <div class="header-actions">
+          <el-button @click="reload" class="action-btn">
+            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+            刷新
+          </el-button>
+          <el-button @click="syncVisible = true" type="success" plain class="action-btn">
+            <IconifyIconOnline icon="ri:cloud-line" class="mr-1" />
+            同步镜像
+          </el-button>
+          <el-button @click="onlineVisible = true" class="action-btn">
+            <IconifyIconOnline icon="ri:search-eye-line" class="mr-1" />
+            在线搜索
+          </el-button>
+          <el-button type="primary" v-admin @click="openEdit()" class="action-btn">
+            <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+            新增软件
+          </el-button>
+        </div>
       </div>
     </div>
 
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <div class="search-left">
+    <!-- 统计卡片区域 -->
+    <div class="stats-section">
+      <div class="stat-card">
+        <div class="stat-icon total">
+          <IconifyIconOnline icon="ri:apps-line" />
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.total }}</span>
+          <span class="stat-label">软件总数</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon enabled">
+          <IconifyIconOnline icon="ri:checkbox-circle-line" />
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.enabled }}</span>
+          <span class="stat-label">已启用</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon disabled">
+          <IconifyIconOnline icon="ri:close-circle-line" />
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.disabled }}</span>
+          <span class="stat-label">已禁用</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon official">
+          <IconifyIconOnline icon="ri:verified-badge-line" />
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.official }}</span>
+          <span class="stat-label">官方软件</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar-section">
+      <div class="toolbar-left">
         <el-input
           v-model="params.keyword"
           placeholder="搜索名称/代码"
@@ -64,9 +108,7 @@
           <el-option label="启用" :value="1" />
           <el-option label="禁用" :value="0" />
         </el-select>
-      </div>
-      <div class="search-right">
-        <el-button @click="reload">
+        <el-button type="primary" @click="reload">
           <IconifyIconOnline icon="ri:search-2-line" class="mr-1" />
           搜索
         </el-button>
@@ -252,6 +294,14 @@ const params = reactive<any>({
 });
 const categories = ref<string[]>([]);
 
+// 统计数据
+const stats = reactive({
+  total: 0,
+  enabled: 0,
+  disabled: 0,
+  official: 0,
+});
+
 // 分页模式：默认 normal / 滚动 scroll
 const paginationType = ref<"default" | "scroll">("default");
 const isScroll = ref(false);
@@ -344,6 +394,8 @@ function cleanupSocketListeners() {
 onMounted(() => {
   // 设置Socket事件监听
   setupSocketListeners();
+  // 加载统计数据
+  loadStats();
 });
 
 // 组件卸载时清理
@@ -351,8 +403,25 @@ onUnmounted(() => {
   cleanupSocketListeners();
 });
 
-function reload() {
+async function reload() {
   tableRef.value?.reload?.(params, 1);
+  await loadStats();
+}
+
+// 加载统计数据
+async function loadStats() {
+  try {
+    const { code, data } = await softwareApi.getSoftPageList({ page: 1, size: 1000 });
+    if (code === 0 && data?.records) {
+      const list = data.records;
+      stats.total = list.length;
+      stats.enabled = list.filter((s: any) => s.systemSoftStatus === 1).length;
+      stats.disabled = list.filter((s: any) => s.systemSoftStatus === 0).length;
+      stats.official = list.filter((s: any) => s.systemSoftIsOfficial === 1).length;
+    }
+  } catch (e) {
+    console.error('加载统计数据失败', e);
+  }
 }
 
 // 编辑
@@ -441,194 +510,335 @@ function onSyncSuccess() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .soft-management {
-  padding: 20px;
+  padding: 0;
   background: var(--app-bg-secondary);
+  min-height: 100vh;
 }
 
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-.header-left .page-title {
-  display: flex;
-  align-items: center;
-  font-size: 20px;
-  font-weight: 600;
-}
-.title-icon {
-  margin-right: 8px;
-}
-.page-subtitle {
-  color: var(--app-text-secondary);
-  font-size: 12px;
+// 现代化头部
+.modern-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 28px 32px;
+  color: #fff;
+  margin-bottom: 0;
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .header-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .icon-wrapper {
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+
+    .header-icon {
+      font-size: 28px;
+      color: #fff;
+    }
+  }
+
+  .title-wrapper {
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0 0 4px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      opacity: 0.85;
+      margin: 0;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+
+    .action-btn {
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+    }
+  }
 }
 
-.search-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  border-radius: 12px;
-  background: linear-gradient(
-    90deg,
-    rgba(99, 102, 241, 0.08),
-    rgba(14, 165, 233, 0.08)
-  );
-  margin-bottom: 16px;
-}
-.search-input {
-  width: 280px;
-}
-.filter-select {
-  width: 160px;
-  margin-left: 8px;
-}
-
-.soft-card {
+// 统计卡片区域
+.stats-section {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  padding: 24px 32px;
   background: var(--el-bg-color);
-  border-radius: 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease;
-  padding: 14px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+
+  .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 14px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+
+      &.total {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+      }
+
+      &.enabled {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: #fff;
+      }
+
+      &.disabled {
+        background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+        color: #fff;
+      }
+
+      &.official {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: #fff;
+      }
+    }
+
+    .stat-info {
+      display: flex;
+      flex-direction: column;
+
+      .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--el-text-color-primary);
+        line-height: 1.2;
+      }
+
+      .stat-label {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+        margin-top: 4px;
+      }
+    }
+  }
 }
-.soft-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
-  border-color: var(--el-color-primary-light-5);
-}
-.soft-card-header {
+
+// 工具栏
+.toolbar-section {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
-}
-.soft-card-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.soft-badges {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.soft-card-icon {
-  font-size: 22px;
-  color: var(--el-color-primary);
-}
-.name {
-  font-weight: 600;
-}
-.soft-meta {
-  color: var(--app-text-secondary);
-  font-size: 12px;
-  margin-bottom: 6px;
-}
-.soft-desc {
-  color: var(--app-text-secondary);
-  line-height: 1.5;
-  min-height: 36px;
-}
-.soft-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
+  padding: 16px 32px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .search-input {
+    width: 280px;
+
+    :deep(.el-input__wrapper) {
+      border-radius: 10px;
+    }
+  }
+
+  .filter-select {
+    width: 140px;
+
+    :deep(.el-input__wrapper) {
+      border-radius: 10px;
+    }
+  }
 }
 
-.filter-select {
-  width: 160px;
+// 卡片容器
+:deep(.sc-table-card-grid) {
+  padding: 24px 32px;
 }
 
-/* 卡片样式 */
+// 软件卡片
 .soft-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: var(--app-card-bg);
-  border: 1px solid var(--app-card-border);
-  border-radius: 10px;
-  padding: 14px;
-  transition:
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
-}
+  gap: 10px;
+  background: var(--el-bg-color);
+  border-radius: 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s ease;
+  padding: 18px;
+  height: 100%;
 
-.soft-card:hover {
-  box-shadow: var(--app-card-shadow);
-  transform: translateY(-2px);
-}
-
-.soft-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.soft-card-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.soft-card-icon {
-  font-size: 18px;
-  color: var(--app-primary);
-}
-
-.soft-card .name {
-  font-weight: 600;
-  color: var(--app-text-primary);
-}
-
-.soft-meta {
-  font-size: 12px;
-  color: var(--app-text-secondary);
-}
-
-.soft-desc {
-  color: var(--app-text-secondary);
-  font-size: 13px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.soft-actions {
-  display: flex;
-  gap: 8px;
-  padding-top: 6px;
-}
-
-/* 兼容原有截断类 */
-.truncate-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-@media (max-width: 768px) {
-  .search-bar {
-    flex-direction: column;
-    align-items: stretch;
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+    border-color: var(--el-color-primary-light-5);
   }
 
-  .search-left {
+  .soft-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .soft-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .soft-card-icon {
+    font-size: 24px;
+    color: var(--el-color-primary);
+  }
+
+  .name {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--el-text-color-primary);
+  }
+
+  .soft-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     flex-wrap: wrap;
   }
 
-  .search-input,
-  .filter-select {
-    width: 100%;
+  .soft-meta {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    display: flex;
+    align-items: center;
+  }
+
+  .soft-desc {
+    color: var(--el-text-color-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex: 1;
+  }
+
+  .soft-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--el-border-color-lighter);
+    margin-top: auto;
+  }
+}
+
+// 响应式
+@media (max-width: 1200px) {
+  .stats-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .modern-header {
+    padding: 20px;
+
+    .header-content {
+      flex-direction: column;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .header-actions {
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+  }
+
+  .stats-section {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 16px;
+
+    .stat-card {
+      padding: 16px;
+
+      .stat-info .stat-value {
+        font-size: 24px;
+      }
+    }
+  }
+
+  .toolbar-section {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+
+    .toolbar-left {
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .search-input {
+      width: 100%;
+    }
+
+    .filter-select {
+      flex: 1;
+      min-width: 100px;
+    }
+  }
+
+  :deep(.sc-table-card-grid) {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-section {
+    grid-template-columns: 1fr;
   }
 }
 </style>

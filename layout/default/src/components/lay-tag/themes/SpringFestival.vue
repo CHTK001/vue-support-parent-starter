@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import BaseTag from './BaseTag.vue';
+/**
+ * 春节主题标签页
+ * 使用专属 SpringFestivalTag 组件，不依赖 showModel
+ */
+import SpringFestivalTag from './SpringFestivalTag.vue';
 import ThemeDecoration from '../../ThemeDecoration.vue';
 import { getComponentDecorations } from '../../../themes/decorations';
 import type { DecorationConfig } from '../../../themes/decorations';
@@ -34,7 +38,8 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="spring-festival-tag-wrapper">
-    <BaseTag theme-class="spring-festival-tag" />
+    <!-- 使用专属标签组件，不依赖 showModel -->
+    <SpringFestivalTag />
     
     <!-- 主题装饰元素 -->
     <ThemeDecoration
@@ -51,11 +56,4 @@ onBeforeUnmount(() => {
 .spring-festival-tag-wrapper {
   width: 100%;
 }
-</style>
-
-<style lang="scss">
-// 先导入基础样式
-@use './default.scss';
-// 再导入春节主题覆盖样式
-@use './spring-festival.css';
 </style>

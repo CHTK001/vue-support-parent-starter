@@ -175,7 +175,8 @@ export interface ScriptExecuteResult {
  * @param params 执行参数
  */
 export function executeScript(params: ScriptExecuteParams) {
-  return http.post("/script/execute", params);
+  const { scriptId, ...requestDTO } = params;
+  return http.post(`/script/${scriptId}/execute`, requestDTO);
 }
 
 /**
@@ -195,7 +196,16 @@ export function getScriptExecuteHistory(scriptId: number, page: number = 1, page
  * @param params 查询参数
  */
 export function getScriptExecuteRecordPage(params: ScriptExecuteRecordQueryParams) {
-  return http.post("/script/execute-record/page", params);
+  return http.get("/script/execution/history", {
+    params: {
+      scriptId: params.scriptId,
+      status: params.executeResult,
+      pageNum: params.page,
+      pageSize: params.pageSize,
+      startTime: params.startTime,
+      endTime: params.endTime,
+    },
+  });
 }
 
 /**
@@ -203,7 +213,7 @@ export function getScriptExecuteRecordPage(params: ScriptExecuteRecordQueryParam
  * @param recordId 记录ID
  */
 export function getScriptExecuteRecordDetail(recordId: number) {
-  return http.get(`/script/execute-record/${recordId}`);
+  return http.get(`/script/execution/${recordId}`);
 }
 
 /**
@@ -211,7 +221,7 @@ export function getScriptExecuteRecordDetail(recordId: number) {
  * @param recordId 记录ID
  */
 export function deleteScriptExecuteRecord(recordId: number) {
-  return http.delete(`/script/execute-record/${recordId}`);
+  return http.delete(`/script/execution/batch`, { data: [recordId] });
 }
 
 /**
@@ -224,10 +234,10 @@ export function batchDeleteScriptExecuteRecords(recordIds: number[]) {
 
 /**
  * 清空脚本执行记录
- * @param scriptId 脚本ID（可选，不传则清空所有）
+ * @param days 保留天数，默认30天
  */
-export function clearScriptExecuteRecords(scriptId?: number) {
-  return http.delete("/script/execute-record/clear", {
-    params: { scriptId },
+export function clearScriptExecuteRecords(days: number = 30) {
+  return http.delete("/script/execution/clean", {
+    params: { days },
   });
 }
