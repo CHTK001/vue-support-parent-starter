@@ -1,6 +1,7 @@
 <script setup>
 // 引入 ReIcon 组件的钩子函数，用于渲染图标
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 // 引入 Vue 的响应式和生命周期相关函数
 import { computed, defineAsyncComponent, nextTick, reactive, ref, watch } from "vue";
 // 引入获取用户日志分页数据的 API 函数
@@ -121,6 +122,23 @@ const moduleOptions = reactive([
   { label: transformI18n("module.login"), value: "LOGIN" },
   { label: transformI18n("module.logout"), value: "LOGOUT" },
 ]);
+
+// 统计数据
+const stats = reactive({
+  total: 0,
+  success: 0,
+  failed: 0,
+  todayCount: 0,
+});
+
+// 数据加载完成回调
+const onDataLoaded = (data, total) => {
+  stats.total = total || 0;
+  stats.success = data?.filter(item => item.sysLogStatus === 1)?.length || 0;
+  stats.failed = data?.filter(item => item.sysLogStatus === 0)?.length || 0;
+  const today = new Date().toISOString().split('T')[0];
+  stats.todayCount = data?.filter(item => item.createTime?.startsWith(today))?.length || 0;
+};
 </script>
 
 <template>
@@ -128,6 +146,45 @@ const moduleOptions = reactive([
     <!-- 详情页组件，根据 visible.detail 控制显示 -->
     <DetailLayout v-if="visible.detail" ref="detailRef" :moduleOptions="moduleOptions" />
     <el-container class="log-container">
+      <!-- 统计面板 -->
+      <div class="log-stats">
+        <div class="stat-item">
+          <div class="stat-icon total">
+            <IconifyIconOnline icon="ri:file-list-3-line" :size="28" />
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ stats.total }}</span>
+            <span class="stat-label">全部日志</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon success">
+            <IconifyIconOnline icon="ri:checkbox-circle-line" :size="28" />
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ stats.success }}</span>
+            <span class="stat-label">登录成功</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon failed">
+            <IconifyIconOnline icon="ri:close-circle-line" :size="28" />
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ stats.failed }}</span>
+            <span class="stat-label">登录失败</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon today">
+            <IconifyIconOnline icon="ri:calendar-check-line" :size="28" />
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ stats.todayCount }}</span>
+            <span class="stat-label">今日登录</span>
+          </div>
+        </div>
+      </div>
       <!-- 头部搜索区域 -->
       <el-header class="log-header">
         <div class="log-left-panel">
@@ -190,7 +247,7 @@ const moduleOptions = reactive([
         <div ref="contentRef" class="log-content">
           <div :class="[visible.role ? 'log-table-container-narrow' : 'log-table-container-full']">
             <!-- 表格组件 -->
-            <ScTable ref="table" :url="fetchPageUserLog" :rowClick="openDetail" class="log-table">
+            <ScTable ref="table" :url="fetchPageUserLog" :rowClick="openDetail" @data-loaded="onDataLoaded" class="log-table">
               <!-- 表格列保持不变 -->
               <el-table-column label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip
                 min-width="120px" />
@@ -283,6 +340,75 @@ const moduleOptions = reactive([
   to {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+// 统计面板样式
+.log-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      color: #fff;
+
+      &.total {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      &.success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      }
+
+      &.failed {
+        background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+      }
+
+      &.today {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      }
+    }
+
+    .stat-info {
+      display: flex;
+      flex-direction: column;
+
+      .stat-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--el-text-color-primary);
+        line-height: 1.2;
+      }
+
+      .stat-label {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+        margin-top: 2px;
+      }
+    }
   }
 }
 
@@ -498,5 +624,52 @@ const moduleOptions = reactive([
   background-color: var(--el-bg-color);
   animation: log-fade-in 0.5s ease-out;
   overflow-x: hidden; // 隐藏横向滚动条
+}
+
+// 响应式适配
+@media (max-width: 1200px) {
+  .log-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .log-stats {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 12px;
+    gap: 12px;
+
+    .stat-item {
+      padding: 12px;
+
+      .stat-icon {
+        width: 40px;
+        height: 40px;
+      }
+
+      .stat-info .stat-value {
+        font-size: 18px;
+      }
+    }
+  }
+}
+
+// 暗色主题适配
+:root[data-theme='dark'] {
+  .log-stats {
+    background: var(--el-bg-color-overlay);
+
+    .stat-item {
+      background: var(--el-fill-color);
+    }
+  }
+
+  .log-header {
+    background-color: var(--el-bg-color-overlay);
+  }
+
+  .log-search-form {
+    background-color: var(--el-bg-color-overlay);
+  }
 }
 </style>

@@ -1,10 +1,41 @@
 <template>
   <div class="user-save-container">
     <el-dialog v-model="visible" :title="title" :close-on-click-modal="false" :close-on-press-escape="false"
-      :destroy-on-close="true" draggable class="user-dialog" @close="close">
+      :destroy-on-close="true" draggable width="800px" class="user-dialog" @close="close">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px"
         class="user-form">
         <el-row :gutter="20">
+          <!-- 头像区域 -->
+          <el-col :span="24">
+            <div class="avatar-section">
+              <div class="avatar-wrapper">
+                <el-upload
+                  class="avatar-uploader"
+                  action="#"
+                  :show-file-list="false"
+                  :auto-upload="false"
+                  :on-change="handleAvatarChange"
+                  accept="image/*"
+                >
+                  <div class="avatar-container">
+                    <el-avatar v-if="form.sysUserAvatar" :size="100" :src="form.sysUserAvatar" />
+                    <div v-else class="avatar-placeholder" :class="getAvatarClass()">
+                      {{ getAvatarText() }}
+                    </div>
+                    <div class="avatar-overlay">
+                      <IconifyIconOnline icon="ri:camera-line" :size="24" />
+                      <span>更换头像</span>
+                    </div>
+                  </div>
+                </el-upload>
+                <div class="avatar-info">
+                  <h3>{{ form.sysUserNickname || form.sysUserUsername || '新用户' }}</h3>
+                  <p>{{ form.sysUserEmail || '未设置邮箱' }}</p>
+                </div>
+              </div>
+            </div>
+          </el-col>
+
           <!-- 基本信息区域 -->
           <div class="form-section">
             <div class="section-title">
@@ -12,7 +43,7 @@
               <span>基本信息</span>
             </div>
 
-            <el-col :span="24">
+            <el-col :span="12">
               <el-form-item label="账号名称" prop="sysUserUsername">
                 <el-input v-model="form.sysUserUsername" placeholder="请输入账号名称" class="custom-input">
                   <template #prefix>
@@ -22,7 +53,7 @@
               </el-form-item>
             </el-col>
 
-            <el-col :span="24">
+            <el-col :span="12">
               <el-form-item label="用户昵称" prop="sysUserNickname">
                 <el-input v-model="form.sysUserNickname" placeholder="请输入用户昵称" class="custom-input">
                   <template #prefix>
@@ -32,7 +63,7 @@
               </el-form-item>
             </el-col>
 
-            <el-col :span="24">
+            <el-col :span="12">
               <el-form-item label="登录密码" prop="sysUserPassword">
                 <el-input v-model="form.sysUserPassword" placeholder="请输入登录密码" type="password" show-password
                   class="custom-input">
@@ -40,19 +71,41 @@
                     <IconifyIconOnline icon="mdi:lock" />
                   </template>
                 </el-input>
-                <div class="form-item-help" v-if="mode === 'save'">
-                  密码需包含字母、数字，长度6-20位
-                </div>
               </el-form-item>
             </el-col>
 
-            <el-col :span="24">
+            <el-col :span="12">
               <el-form-item label="手机号" prop="sysUserPhone">
                 <el-input v-model="form.sysUserPhone" placeholder="请输入手机号" class="custom-input">
                   <template #prefix>
                     <IconifyIconOnline icon="mdi:phone" />
                   </template>
                 </el-input>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12">
+              <el-form-item label="邮箱地址" prop="sysUserEmail">
+                <el-input v-model="form.sysUserEmail" placeholder="请输入邮箱地址" class="custom-input">
+                  <template #prefix>
+                    <IconifyIconOnline icon="mdi:email" />
+                  </template>
+                </el-input>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12">
+              <el-form-item label="性别" prop="sysUserSex">
+                <el-segmented v-model="form.sysUserSex" :options="sexOptions" class="custom-segmented">
+                  <template #default="{ item }">
+                    <div class="segmented-item">
+                      <IconifyIconOnline
+                        :icon="item.value === 1 ? 'mdi:gender-male' : item.value === 0 ? 'mdi:gender-female' : 'mdi:gender-non-binary'"
+                        class="segmented-icon" />
+                      <span>{{ item.label }}</span>
+                    </div>
+                  </template>
+                </el-segmented>
               </el-form-item>
             </el-col>
           </div>
@@ -64,7 +117,7 @@
               <span>角色与状态</span>
             </div>
 
-            <el-col :span="24">
+            <el-col :span="12">
               <el-form-item label="角色" prop="roleIds">
                 <el-select v-model="form.roleIds" placeholder="请选择角色" class="custom-select" clearable multiple
                   collapse-tags collapse-tags-tooltip>
@@ -83,31 +136,16 @@
               </el-form-item>
             </el-col>
 
-            <el-col :span="24">
-              <el-form-item label="是否开启" prop="sysUserStatus">
-                <el-segmented v-model="form.sysUserStatus" :options="statusOptions" class="custom-segmented" />
-              </el-form-item>
-            </el-col>
-
             <el-col :span="12">
-              <el-form-item label="性别" prop="sysUserSex">
-                <el-segmented v-model="form.sysUserSex" :options="sexOptions" class="custom-segmented">
-                  <template #default="{ item }">
-                    <div class="segmented-item">
-                      <IconifyIconOnline
-                        :icon="item.value === 1 ? 'mdi:gender-male' : item.value === 0 ? 'mdi:gender-female' : 'mdi:gender-non-binary'"
-                        class="segmented-icon" />
-                      <span>{{ item.label }}</span>
-                    </div>
-                  </template>
-                </el-segmented>
+              <el-form-item label="用户状态" prop="sysUserStatus">
+                <el-segmented v-model="form.sysUserStatus" :options="statusOptions" class="custom-segmented" />
               </el-form-item>
             </el-col>
 
             <el-col :span="24">
               <el-form-item label="备注" prop="sysUserRemark">
                 <el-input v-model="form.sysUserRemark" placeholder="请输入备注" type="textarea" :rows="3"
-                  class="custom-textarea" />
+                  class="custom-textarea" maxlength="200" show-word-limit />
               </el-form-item>
             </el-col>
           </div>
@@ -132,8 +170,9 @@
 
 <script lang="ts">
 import { defineComponent, toRaw } from "vue";
-import { fetchUpdateUser, fetchSaveUser } from "@repo/core";
+import { fetchUpdateUser, fetchSaveUser, fetchUploadAvatar } from "@repo/core";
 import { message } from "@repo/utils";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { Md5 } from "ts-md5";
 import { REGEXP_PWD } from "@repo/pages/login/utils/rule";
 import { $t, transformI18n } from "@repo/config";
@@ -143,7 +182,7 @@ import { clearObject } from "@repo/config";
 import Segmented from "@repo/components/ReSegmented";
 
 export default defineComponent({
-  components: { Segmented },
+  components: { Segmented, IconifyIconOnline },
   data() {
     return {
       // 表单数据
@@ -152,11 +191,14 @@ export default defineComponent({
         sysUserNickname: "",
         sysUserPassword: "",
         sysUserPhone: "",
-        sysUserSex: "",
+        sysUserEmail: "",
+        sysUserAvatar: "",
+        sysUserSex: 1,
         sysUserStatus: 1,
         sysUserRemark: "",
         roleIds: [], // 用户角色ID列表
       },
+      avatarLoading: false,
       visible: false,
       // 表单验证规则
       rules: {
@@ -211,6 +253,50 @@ export default defineComponent({
         this.roleOptions = res.data;
       });
       return this;
+    },
+    // 头像背景色
+    getAvatarClass() {
+      const sex = this.form.sysUserSex;
+      if (sex === 1) return 'avatar-male';
+      if (sex === 0) return 'avatar-female';
+      return 'avatar-other';
+    },
+    // 头像文字
+    getAvatarText() {
+      const name = this.form.sysUserNickname || this.form.sysUserUsername || '';
+      return name ? name[0].toUpperCase() : '?';
+    },
+    // 处理头像变化
+    async handleAvatarChange(uploadFile) {
+      if (!uploadFile.raw) return;
+      
+      // 检查文件类型
+      const isImage = uploadFile.raw.type.startsWith('image/');
+      if (!isImage) {
+        message('请上传图片文件', { type: 'warning' });
+        return;
+      }
+      
+      // 检查文件大小 (2MB)
+      if (uploadFile.raw.size > 2 * 1024 * 1024) {
+        message('头像文件不能超过2MB', { type: 'warning' });
+        return;
+      }
+      
+      this.avatarLoading = true;
+      try {
+        const res = await fetchUploadAvatar(uploadFile.raw);
+        if (res?.code === '00000' && res?.data?.url) {
+          this.form.sysUserAvatar = res.data.url;
+          message('头像上传成功', { type: 'success' });
+        } else {
+          message(res?.msg || '头像上传失败', { type: 'error' });
+        }
+      } catch (error) {
+        message('头像上传失败', { type: 'error' });
+      } finally {
+        this.avatarLoading = false;
+      }
     },
     // 打开对话框
     async open(mode = "save") {
@@ -335,13 +421,116 @@ export default defineComponent({
     }
   }
 
+  .avatar-section {
+    margin-bottom: 24px;
+    padding: 24px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+
+    .avatar-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+
+      .avatar-uploader {
+        cursor: pointer;
+      }
+
+      .avatar-container {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+
+        &:hover {
+          transform: scale(1.05);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+
+          .avatar-overlay {
+            opacity: 1;
+          }
+        }
+
+        .el-avatar {
+          width: 100%;
+          height: 100%;
+        }
+
+        .avatar-placeholder {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 36px;
+          font-weight: bold;
+          color: #fff;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+          &.avatar-male {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+          }
+
+          &.avatar-female {
+            background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
+          }
+
+          &.avatar-other {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          }
+        }
+
+        .avatar-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+
+          span {
+            font-size: 12px;
+            margin-top: 4px;
+          }
+        }
+      }
+
+      .avatar-info {
+        h3 {
+          margin: 0 0 4px;
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+        }
+
+        p {
+          margin: 0;
+          font-size: 14px;
+          color: var(--el-text-color-secondary);
+        }
+      }
+    }
+  }
+
   .user-form {
     .form-section {
       margin-bottom: 24px;
-      padding: 16px;
-      width: 50%;
+      padding: 20px;
+      width: 100%;
       background: var(--el-bg-color-overlay);
-      border-radius: 8px;
+      border-radius: 12px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
       transition: all 0.3s ease;
 
@@ -458,6 +647,10 @@ export default defineComponent({
 // 暗色主题适配
 :root[data-theme='dark'] {
   .user-save-container {
+    .avatar-section {
+      background: linear-gradient(135deg, rgba(64, 158, 255, 0.15) 0%, rgba(64, 158, 255, 0.05) 100%);
+    }
+
     .form-section {
       background: var(--el-bg-color-overlay);
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);

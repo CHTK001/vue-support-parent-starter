@@ -1,0 +1,589 @@
+/**
+ * 中秋主题样式
+ * 深蓝夜空 + 金黄月光 + 宁静风格
+ */
+
+// 中秋色板
+$mid-blue: #1a237e;
+$mid-blue-light: #283593;
+$mid-gold: #ffd54f;
+$mid-gold-light: #ffecb3;
+$mid-cyan: #00bcd4;
+$mid-white: #ffffff;
+
+html[data-skin="mid-autumn"] {
+  // ==================== Header 容器样式 ====================
+  .header-container-with-decoration,
+  div.header-container-with-decoration {
+    background: linear-gradient(180deg, $mid-blue, darken($mid-blue, 5%)) !important;
+    border-bottom: 2px solid rgba($mid-gold, 0.4) !important;
+    box-shadow: 0 2px 8px rgba($mid-blue, 0.3) !important;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, $mid-gold 20%, $mid-cyan 50%, $mid-gold 80%, transparent);
+      z-index: 1;
+    }
+
+    &.shadow-tab {
+      box-shadow: 0 2px 8px rgba($mid-blue, 0.3);
+    }
+  }
+
+  // ==================== Navbar 样式 ====================
+  .base-navbar,
+  .mid-autumn-navbar,
+  div.base-navbar {
+    background: linear-gradient(180deg, $mid-blue, darken($mid-blue, 5%)) !important;
+    border-bottom: 2px solid rgba($mid-gold, 0.4) !important;
+
+    .vertical-header-right {
+      :deep(.tool-item) {
+        background: linear-gradient(180deg, $mid-blue, darken($mid-blue, 8%));
+        border: 2px solid rgba($mid-gold, 0.5);
+        color: $mid-gold;
+
+        &:hover {
+          background: linear-gradient(180deg, $mid-blue-light, $mid-blue);
+          border-color: $mid-gold;
+          color: $mid-white;
+        }
+
+        svg { color: $mid-gold; }
+        &:hover svg { color: $mid-white; }
+      }
+
+      #header-search, :deep(#header-search),
+      #full-screen, :deep(#full-screen) {
+        color: $mid-gold !important;
+        background: linear-gradient(135deg, darken($mid-blue, 8%), $mid-blue) !important;
+        border: 2px solid rgba($mid-gold, 0.5) !important;
+
+        svg { color: $mid-gold !important; }
+
+        &:hover {
+          background: linear-gradient(135deg, $mid-blue-light, $mid-blue) !important;
+          border-color: $mid-gold !important;
+          svg { color: $mid-white !important; }
+        }
+      }
+    }
+
+    .breadcrumb-container {
+      background: rgba($mid-white, 0.95);
+      border: 1.5px solid rgba($mid-gold, 0.4);
+      box-shadow: 0 2px 8px rgba($mid-blue, 0.1);
+
+      :deep(.el-breadcrumb__inner) { color: $mid-blue; font-weight: 600; }
+      :deep(.el-breadcrumb__separator) { color: rgba($mid-blue, 0.5); }
+    }
+  }
+
+  // ==================== Sidebar 样式 ====================
+  .sidebar-container-with-decoration,
+  .sidebar-container,
+  .mid-autumn-sidebar {
+    background: linear-gradient(135deg, $mid-blue 0%, darken($mid-blue, 8%) 100%) !important;
+    border-right: 3px solid rgba($mid-gold, 0.4) !important;
+    position: relative;
+    overflow: hidden;
+    
+    // 月亮装饰 - 右上角
+    &::after {
+      content: '🌕';
+      position: absolute;
+      top: 60px;
+      right: -20px;
+      font-size: 100px;
+      opacity: 0.12;
+      pointer-events: none;
+      z-index: 0;
+      filter: drop-shadow(0 0 30px rgba($mid-gold, 0.4));
+      animation: moonGlow 4s ease-in-out infinite;
+    }
+    
+    // 星星装饰
+    &::before {
+      content: '✨';
+      position: absolute;
+      top: 30%;
+      left: 15%;
+      font-size: 16px;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+      animation: starTwinkle 2s ease-in-out infinite;
+    }
+
+    :deep(.el-menu) { background: transparent !important; border-right: none; position: relative; z-index: 1; }
+
+    :deep(.el-menu-item),
+    :deep(.el-sub-menu__title) {
+      color: $mid-gold !important;
+      background: linear-gradient(180deg, $mid-blue 0%, $mid-blue-light 100%) !important;
+      margin: 4px 8px;
+      border-radius: 8px;
+      border: 2px solid darken($mid-blue, 5%) !important;
+      transition: all 0.3s ease;
+      position: relative;
+      z-index: 1;
+
+      &:hover {
+        background: linear-gradient(180deg, $mid-blue-light 0%, $mid-blue 100%) !important;
+        color: $mid-white !important;
+        border-color: $mid-gold !important;
+        transform: translateX(4px);
+        box-shadow: 0 2px 12px rgba($mid-gold, 0.3);
+      }
+
+      &.is-active {
+        background: linear-gradient(180deg, $mid-gold, $mid-gold-light) !important;
+        color: $mid-blue !important;
+        border: 2px solid $mid-cyan !important;
+        box-shadow: 0 4px 16px rgba($mid-gold, 0.5);
+
+        &::after {
+          content: '🌕';
+          position: absolute;
+          right: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          font-size: 14px;
+        }
+      }
+
+      .el-icon, svg { color: $mid-gold-light !important; }
+      &:hover .el-icon, &:hover svg { color: $mid-white !important; }
+      &.is-active .el-icon, &.is-active svg { color: $mid-blue-light !important; }
+      span, div { color: inherit !important; }
+    }
+    
+    // 滚动条也要在装饰上方
+    :deep(.el-scrollbar) {
+      position: relative;
+      z-index: 1;
+    }
+  }
+  
+  // 月亮发光动画
+  @keyframes moonGlow {
+    0%, 100% {
+      opacity: 0.12;
+      filter: drop-shadow(0 0 30px rgba($mid-gold, 0.4));
+    }
+    50% {
+      opacity: 0.2;
+      filter: drop-shadow(0 0 50px rgba($mid-gold, 0.6)) drop-shadow(0 0 80px rgba($mid-gold, 0.3));
+    }
+  }
+  
+  // 星星闪烁动画
+  @keyframes starTwinkle {
+    0%, 100% {
+      opacity: 0.3;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.6;
+      transform: scale(1.2);
+    }
+  }
+
+  // ==================== 标签页特色样式 ====================
+  .tags-view {
+    background: linear-gradient(180deg, darken($mid-blue, 3%) 0%, $mid-blue 100%) !important;
+    border-bottom: 2px solid rgba($mid-gold, 0.3) !important;
+    box-shadow: 0 2px 8px rgba($mid-blue, 0.2) !important;
+    position: relative;
+
+    // 顶部金蓝装饰线
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, $mid-gold 20%, $mid-cyan 50%, $mid-gold 80%, transparent);
+      z-index: 10;
+    }
+    
+    // 底部星星装饰
+    &::after {
+      content: '✨ 🌙 ✨';
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      letter-spacing: 15px;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+  }
+
+  .scroll-item,
+  .chrome-item,
+  .modern-item,
+  .card-item,
+  .smart-item {
+    background: linear-gradient(180deg, $mid-blue 0%, $mid-blue-light 100%) !important;
+    border: 2px solid rgba($mid-gold, 0.25) !important;
+    border-radius: 8px !important;
+    color: $mid-gold !important;
+    position: relative;
+    overflow: hidden;
+    
+    // 左侧月光装饰条
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(to bottom, $mid-gold, $mid-cyan, $mid-gold);
+      opacity: 0.4;
+      transition: all 0.3s ease;
+    }
+
+    .tag-title {
+      color: $mid-gold !important;
+      font-weight: 500 !important;
+      padding-left: 4px;
+    }
+
+    .tag-icon { color: $mid-gold-light !important; }
+
+    &:hover {
+      background: linear-gradient(180deg, $mid-blue-light 0%, $mid-blue 100%) !important;
+      border-color: $mid-gold !important;
+      box-shadow: 0 4px 16px rgba($mid-gold, 0.3) !important;
+      transform: translateY(-1px);
+      
+      &::before {
+        opacity: 0.8;
+        width: 4px;
+      }
+      
+      .tag-title, .tag-icon { color: $mid-white !important; }
+    }
+
+    &.is-active,
+    &.active {
+      background: linear-gradient(180deg, $mid-gold 0%, $mid-gold-light 100%) !important;
+      border: 2px solid $mid-cyan !important;
+      box-shadow: 
+        0 4px 20px rgba($mid-gold, 0.5),
+        0 0 30px rgba($mid-gold, 0.25),
+        inset 0 2px 4px rgba($mid-white, 0.5) !important;
+      
+      &::before {
+        width: 4px;
+        opacity: 1;
+        background: $mid-cyan;
+        box-shadow: 0 0 10px rgba($mid-cyan, 0.8);
+      }
+
+      .tag-title {
+        color: $mid-blue !important;
+        font-weight: 700 !important;
+        text-shadow: 0 1px 0 rgba($mid-white, 0.5) !important;
+      }
+
+      .tag-icon { 
+        color: $mid-blue-light !important;
+        filter: drop-shadow(0 0 4px rgba($mid-cyan, 0.6));
+      }
+
+      .el-icon-close,
+      .chrome-close-btn {
+        color: $mid-blue !important;
+        &:hover {
+          color: $mid-white !important;
+          background: $mid-blue !important;
+          border-radius: 50%;
+        }
+      }
+    }
+    
+    .chrome-close-btn {
+      color: $mid-gold !important;
+    }
+  }
+
+  // 箭头按钮 - 中秋风格
+  .arrow-left, .arrow-right, .arrow-down {
+    background: linear-gradient(135deg, $mid-blue, $mid-blue-light) !important;
+    border: 2px solid rgba($mid-gold, 0.4) !important;
+    border-radius: 50% !important;
+    color: $mid-gold !important;
+    width: 28px !important;
+    height: 28px !important;
+    transition: all 0.3s ease !important;
+
+    &:hover {
+      background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
+      border-color: $mid-cyan !important;
+      color: $mid-blue !important;
+      transform: scale(1.1);
+      box-shadow: 0 2px 12px rgba($mid-gold, 0.4);
+    }
+    
+    svg {
+      color: inherit !important;
+    }
+  }
+
+  // 右键菜单
+  .contextmenu {
+    background: linear-gradient(180deg, $mid-blue 0%, $mid-blue-light 100%) !important;
+    border: 2px solid $mid-gold !important;
+    box-shadow: 0 4px 20px rgba($mid-blue, 0.3) !important;
+
+    li {
+      color: $mid-gold !important;
+      &:hover {
+        background: rgba($mid-gold, 0.2) !important;
+        color: $mid-white !important;
+      }
+    }
+  }
+
+  // 灵动模式进度条
+  .schedule-active, .schedule-in {
+    background: linear-gradient(90deg, $mid-gold, $mid-cyan) !important;
+    box-shadow: 0 0 10px rgba($mid-gold, 0.6) !important;
+  }
+
+  // ==================== 嵌套菜单激活背景 - 高优先级覆盖 ====================
+  // 覆盖 body[layout=vertical] .sidebar-container .el-menu-item.is-active.nest-menu::before
+  .sidebar-container .el-menu-item.is-active.nest-menu::before {
+    background: linear-gradient(180deg, $mid-gold, $mid-gold-light) !important;
+    box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
+  }
+  
+  .sidebar-container .el-menu-item.is-active.nest-menu > * {
+    color: $mid-blue !important;
+  }
+  
+  // 覆盖无子菜单的激活背景
+  .sidebar-container .is-active.submenu-title-noDropdown.outer-most::before {
+    background: linear-gradient(180deg, $mid-gold, $mid-gold-light) !important;
+    box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
+  }
+  
+  .sidebar-container .is-active.submenu-title-noDropdown.outer-most > * {
+    color: $mid-blue !important;
+  }
+  
+  // 覆盖折叠菜单的左侧竖条
+  .sidebar-container .el-menu--collapse .is-active.outer-most.el-sub-menu > .el-sub-menu__title::before {
+    background: linear-gradient(to bottom, $mid-gold, $mid-cyan) !important;
+  }
+  
+  // 覆盖垂直弹出菜单激活状态
+  .el-menu--vertical .el-menu--popup .el-menu-item.is-active {
+    background: linear-gradient(180deg, $mid-gold, $mid-gold-light) !important;
+    color: $mid-blue !important;
+    box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
+    
+    span, div, .el-text, .el-icon, svg, i {
+      color: $mid-blue !important;
+    }
+  }
+  
+  .el-menu--vertical .el-menu-item.is-active.nest-menu::before {
+    background: linear-gradient(180deg, $mid-gold, $mid-gold-light) !important;
+    box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
+  }
+  
+  // 覆盖水平弹出菜单激活状态
+  .el-menu--horizontal .el-menu--popup .el-menu-item.is-active {
+    background: linear-gradient(180deg, $mid-gold, $mid-gold-light) !important;
+    color: $mid-blue !important;
+    box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
+    
+    span, div, .el-text, .el-icon, svg, i {
+      color: $mid-blue !important;
+    }
+  }
+  
+  .el-menu--horizontal .el-menu-item.is-active.nest-menu::before {
+    background: linear-gradient(180deg, $mid-gold, $mid-gold-light) !important;
+    box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
+  }
+
+  // ==================== 子菜单弹出层（teleported 到 body） ====================
+  .pure-scrollbar,
+  .el-menu--popup,
+  .el-menu--popup-container {
+    // 弹出层容器背景
+    &.el-menu {
+      background: linear-gradient(180deg, $mid-blue, darken($mid-blue, 5%)) !important;
+      border: 2px solid $mid-gold !important;
+      border-radius: 12px !important;
+      box-shadow: 
+        0 8px 32px rgba($mid-blue, 0.4),
+        0 0 25px rgba($mid-gold, 0.15) !important;
+      backdrop-filter: blur(12px);
+      overflow: hidden;
+      padding: 6px !important;
+      position: relative;
+
+      // 顶部金青色渐变装饰线
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, $mid-cyan 20%, $mid-gold 50%, $mid-cyan 80%, transparent);
+        z-index: 1;
+      }
+    }
+
+    // 子菜单项样式
+    .el-menu-item,
+    .el-sub-menu__title {
+      margin: 4px 2px !important;
+      border-radius: 8px !important;
+      position: relative;
+      z-index: 1;
+      color: $mid-gold !important;
+      background: rgba(darken($mid-blue, 5%), 0.6) !important;
+      border: 1.5px solid rgba($mid-gold, 0.25) !important;
+      transition: all 0.3s ease !important;
+      padding: 0 16px !important;
+      height: 42px !important;
+      line-height: 42px !important;
+
+      &:hover {
+        background: rgba($mid-blue-light, 0.9) !important;
+        border-color: $mid-gold !important;
+        color: $mid-white !important;
+        box-shadow: 0 4px 12px rgba($mid-gold, 0.3) !important;
+        transform: translateX(4px) !important;
+      }
+
+      // 图标样式
+      .el-icon, svg {
+        color: $mid-gold !important;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+        margin-right: 8px;
+      }
+
+      span, div {
+        color: inherit !important;
+      }
+      
+      &:hover .el-icon, &:hover svg {
+        color: $mid-white !important;
+      }
+
+      // 激活状态
+      &.is-active {
+        background: linear-gradient(135deg, $mid-gold 0%, $mid-gold-light 100%) !important;
+        color: $mid-blue !important;
+        border: 2px solid $mid-cyan !important;
+        font-weight: 700 !important;
+        box-shadow: 
+          0 4px 16px rgba($mid-gold, 0.5),
+          0 0 20px rgba($mid-gold, 0.3) !important;
+        transform: translateX(4px) !important;
+
+        span, div {
+          color: $mid-blue !important;
+        }
+
+        .el-icon, svg {
+          color: $mid-blue !important;
+          filter: drop-shadow(0 0 4px rgba($mid-blue, 0.6));
+        }
+
+        // 左侧金色指示条
+        &::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 4px;
+          height: 60%;
+          background: linear-gradient(to bottom, $mid-cyan, $mid-gold);
+          border-radius: 2px;
+          box-shadow: 0 0 8px rgba($mid-gold, 0.8);
+        }
+      }
+    }
+
+    // 子菜单展开箭头
+    .el-sub-menu__icon-arrow {
+      color: $mid-gold !important;
+    }
+
+    // 嵌套子菜单
+    .el-menu--inline {
+      background: rgba(darken($mid-blue, 8%), 0.4) !important;
+      border-radius: 6px;
+      margin: 4px 0;
+      padding: 4px !important;
+
+      .el-menu-item {
+        padding-left: 40px !important;
+      }
+    }
+  }
+
+  // ==================== Logo 区域（月饼替换） ====================
+  .sidebar-logo-container {
+    background: linear-gradient(135deg, $mid-blue 0%, darken($mid-blue, 5%) 100%) !important;
+    border-bottom: 2px solid rgba($mid-gold, 0.3) !important;
+
+    .sidebar-logo-link {
+      position: relative;
+      
+      .sidebar-title {
+        color: $mid-gold !important;
+        font-weight: 700 !important;
+        margin-left: 40px !important;
+      }
+      
+      // 隐藏原始 Logo
+      img {
+        opacity: 0;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+      }
+      
+      // 用伪元素显示月饼 Logo
+      &::before {
+        content: '🥮';
+        font-size: 32px;
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        filter: drop-shadow(0 2px 6px rgba($mid-gold, 0.6));
+        animation: mooncakeFloat 3s ease-in-out infinite;
+      }
+    }
+  }
+}
+
+// 月饼浮动动画
+@keyframes mooncakeFloat {
+  0%, 100% {
+    transform: translateY(-50%);
+  }
+  50% {
+    transform: translateY(calc(-50% - 3px));
+  }
+}

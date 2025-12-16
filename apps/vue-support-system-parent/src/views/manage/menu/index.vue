@@ -6,6 +6,45 @@
 
     <div class="menu-wrapper">
       <el-container>
+        <!-- 统计面板 -->
+        <div class="menu-stats">
+          <div class="stat-item">
+            <div class="stat-icon total">
+              <IconifyIconOnline icon="ri:menu-line" :size="24" />
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ stats.total }}</span>
+              <span class="stat-label">全部菜单</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon directory">
+              <IconifyIconOnline icon="ri:folder-line" :size="24" />
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ stats.directories }}</span>
+              <span class="stat-label">目录</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon menu">
+              <IconifyIconOnline icon="ri:file-list-line" :size="24" />
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ stats.menus }}</span>
+              <span class="stat-label">菜单</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon button">
+              <IconifyIconOnline icon="ri:cursor-line" :size="24" />
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ stats.buttons }}</span>
+              <span class="stat-label">按钮</span>
+            </div>
+          </div>
+        </div>
         <!-- 表格头部 -->
         <el-header class="menu-header">
           <div class="header-title">
@@ -179,6 +218,63 @@ const visible = reactive({
 const loading = reactive({
   query: false,
 });
+
+// 统计数据
+const stats = reactive({
+  total: 0,
+  directories: 0,
+  menus: 0,
+  iframes: 0,
+  links: 0,
+  buttons: 0
+});
+
+/**
+ * 计算菜单统计数据
+ */
+const calcStats = (data: any[]) => {
+  let total = 0;
+  let directories = 0;
+  let menus = 0;
+  let iframes = 0;
+  let links = 0;
+  let buttons = 0;
+
+  const countMenus = (items: any[]) => {
+    items.forEach(item => {
+      total++;
+      switch (item.sysMenuType) {
+        case 0:
+          if (item.children?.length > 0) {
+            directories++;
+          } else {
+            menus++;
+          }
+          break;
+        case 1:
+          iframes++;
+          break;
+        case 2:
+          links++;
+          break;
+        case 3:
+          buttons++;
+          break;
+      }
+      if (item.children?.length) {
+        countMenus(item.children);
+      }
+    });
+  };
+
+  countMenus(data);
+  stats.total = total;
+  stats.directories = directories;
+  stats.menus = menus;
+  stats.iframes = iframes;
+  stats.links = links;
+  stats.buttons = buttons;
+};
 // 定义表单引用
 const formRef = ref();
 // 定义表格引用
@@ -253,6 +349,7 @@ const onSearch = debounce(
       .then((res) => {
         const { data, code } = res;
         tableData.value = data;
+        calcStats(data);
         return;
       })
       .finally(() => {
@@ -336,6 +433,93 @@ const getMenuTypeTag = (type) => {
 :deep(.cell:first-child) {
   display: flex;
   align-items: center;
+}
+
+// 统计面板
+.menu-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 20px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      color: #fff;
+
+      &.total {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      &.directory {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      }
+
+      &.menu {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      }
+
+      &.button {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      }
+    }
+
+    .stat-info {
+      display: flex;
+      flex-direction: column;
+
+      .stat-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--el-text-color-primary);
+        line-height: 1.2;
+      }
+
+      .stat-label {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+        margin-top: 4px;
+      }
+    }
+  }
+}
+
+// 响应式适配
+@media (max-width: 1200px) {
+  .menu-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .menu-stats {
+    grid-template-columns: 1fr;
+    padding: 12px;
+
+    .stat-item {
+      padding: 12px;
+    }
+  }
 }
 
 .menu-container {
@@ -572,6 +756,14 @@ const getMenuTypeTag = (type) => {
 
 // 暗色主题适配
 :root[data-theme='dark'] {
+  .menu-stats {
+    background: var(--el-bg-color-overlay);
+
+    .stat-item {
+      background: var(--el-fill-color);
+    }
+  }
+
   .menu-container {
     .menu-wrapper {
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);

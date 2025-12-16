@@ -441,6 +441,186 @@ html[data-skin="spring-festival"] {
       }
     }
   }
+
+  // ==================== 嵌套菜单激活背景 - 高优先级覆盖 ====================
+  // 覆盖 body[layout=vertical] .sidebar-container .el-menu-item.is-active.nest-menu::before
+  .sidebar-container .el-menu-item.is-active.nest-menu::before {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.5) !important;
+  }
+  
+  .sidebar-container .el-menu-item.is-active.nest-menu > * {
+    color: #6B0000 !important;
+  }
+  
+  // 覆盖无子菜单的激活背景
+  .sidebar-container .is-active.submenu-title-noDropdown.outer-most::before {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.5) !important;
+  }
+  
+  .sidebar-container .is-active.submenu-title-noDropdown.outer-most > * {
+    color: #6B0000 !important;
+  }
+  
+  // 覆盖折叠菜单的左侧竖条
+  .sidebar-container .el-menu--collapse .is-active.outer-most.el-sub-menu > .el-sub-menu__title::before {
+    background: linear-gradient(to bottom, #FFD700, #FFA500) !important;
+  }
+  
+  // 覆盖垂直弹出菜单激活状态
+  .el-menu--vertical .el-menu--popup .el-menu-item.is-active {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+    color: #6B0000 !important;
+    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.5) !important;
+    
+    span, div, .el-text, .el-icon, svg, i {
+      color: #6B0000 !important;
+    }
+  }
+  
+  .el-menu--vertical .el-menu-item.is-active.nest-menu::before {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.5) !important;
+  }
+  
+  // 覆盖水平弹出菜单激活状态
+  .el-menu--horizontal .el-menu--popup .el-menu-item.is-active {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+    color: #6B0000 !important;
+    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.5) !important;
+    
+    span, div, .el-text, .el-icon, svg, i {
+      color: #6B0000 !important;
+    }
+  }
+  
+  .el-menu--horizontal .el-menu-item.is-active.nest-menu::before {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.5) !important;
+  }
+
+  // ==================== 子菜单弹出层（teleported 到 body） ====================
+  .pure-scrollbar,
+  .el-menu--popup,
+  .el-menu--popup-container {
+    // 弹出层容器背景
+    &.el-menu {
+      background: linear-gradient(135deg, rgba(220, 20, 60, 0.98) 0%, rgba(178, 34, 34, 0.98) 100%) !important;
+      border: 2px solid rgba(255, 215, 0, 0.5) !important;
+      border-radius: 8px !important;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(255, 215, 0, 0.15) !important;
+      backdrop-filter: blur(12px);
+      overflow: hidden;
+      padding: 6px !important;
+      position: relative;
+
+      // 顶部金色装饰线
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #FFD700 20%, #DC143C 50%, #FFD700 80%, transparent);
+        z-index: 1;
+      }
+    }
+
+    // 子菜单项样式
+    .el-menu-item,
+    .el-sub-menu__title {
+      margin: 4px 2px !important;
+      border-radius: 6px !important;
+      position: relative;
+      z-index: 1;
+      color: #FFD700 !important;
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.7) 0%, rgba(178, 34, 34, 0.7) 100%) !important;
+      border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
+      transition: all 0.3s ease !important;
+      padding: 0 16px !important;
+      height: 42px !important;
+      line-height: 42px !important;
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(220, 20, 60, 0.95) 0%, rgba(178, 34, 34, 0.95) 100%) !important;
+        border-color: #FFD700 !important;
+        color: #FFF !important;
+        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
+        transform: translateX(4px) !important;
+      }
+
+      // 图标样式
+      .el-icon, svg {
+        color: #FFD700 !important;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+        margin-right: 8px;
+      }
+
+      span, div {
+        color: inherit !important;
+      }
+      
+      &:hover .el-icon, &:hover svg {
+        color: #FFF !important;
+      }
+
+      // 激活状态
+      &.is-active {
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+        color: #6B0000 !important;
+        border: 2px solid #DC143C !important;
+        font-weight: 700 !important;
+        box-shadow: 
+          0 4px 16px rgba(255, 215, 0, 0.5),
+          inset 0 2px 4px rgba(255, 255, 255, 0.5) !important;
+        transform: translateX(4px) !important;
+
+        span, div {
+          color: #6B0000 !important;
+        }
+
+        .el-icon, svg {
+          color: #6B0000 !important;
+          filter: drop-shadow(0 1px 2px rgba(220, 20, 60, 0.5));
+        }
+
+        // 左侧红色指示条
+        &::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 4px;
+          height: 60%;
+          background: linear-gradient(to bottom, #DC143C, #B22222);
+          border-radius: 2px;
+          box-shadow: 0 0 8px rgba(220, 20, 60, 0.8);
+        }
+      }
+    }
+
+    // 子菜单展开箭头
+    .el-sub-menu__icon-arrow {
+      color: #FFD700 !important;
+    }
+
+    // 嵌套子菜单
+    .el-menu--inline {
+      background: rgba(139, 0, 0, 0.3) !important;
+      border-radius: 6px;
+      margin: 4px 0;
+      padding: 4px !important;
+
+      .el-menu-item {
+        padding-left: 40px !important;
+      }
+    }
+  }
   
   // 灯笼摆动动画
   @keyframes swingLantern {
@@ -578,48 +758,108 @@ html[data-skin="spring-festival"] {
       }
     }
     
-    // 标签项样式
+    // 标签项样式 - 所有模式
     .scroll-item,
     .chrome-item,
-    .modern-item {
-      background: linear-gradient(135deg, rgba(220, 20, 60, 0.8), rgba(178, 34, 34, 0.8)) !important;
-      color: #FFD700 !important;
-      border: 1px solid rgba(255, 215, 0, 0.4) !important;
-      margin: 0 4px !important;
-      padding: 0 !important;
-      transition: all 0.3s ease !important;
+    .modern-item,
+    .card-item,
+    .smart-item {
+      background: linear-gradient(180deg, #DC143C, #B22222) !important;
+      color: #ffffff !important;
+      border: 2px solid #8B0000 !important;
+      border-radius: 6px !important;
+      margin: 0 6px !important;
+      font-weight: 600 !important;
+      font-family: 'STKaiti', 'KaiTi', 'SimKai', serif !important;
+      box-shadow: 
+        0 2px 8px rgba(220, 20, 60, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+      
+      .tag-title {
+        color: #ffffff !important;
+        letter-spacing: 1px !important;
+      }
+      
+      .tag-icon {
+        color: #FFD700 !important;
+      }
       
       &:hover {
-        background: linear-gradient(135deg, rgba(220, 20, 60, 0.9), rgba(178, 34, 34, 0.9)) !important;
-        border-color: rgba(255, 215, 0, 0.6) !important;
-        transform: translateY(-2px) !important;
-      }
-      
-      &.active {
-        background: linear-gradient(135deg, #DC143C, #B22222) !important;
-        color: #FFF !important;
+        background: linear-gradient(180deg, lighten(#DC143C, 5%), #DC143C) !important;
         border-color: #FFD700 !important;
+        box-shadow: 0 4px 12px rgba(220, 20, 60, 0.4) !important;
+        
+        .tag-title {
+          color: #FFD700 !important;
+        }
+      }
+      
+      // 激活状态 - 金色背景配深红文字
+      &.is-active,
+      &.active {
+        background: linear-gradient(180deg, #FFD700, #FFA500) !important;
+        color: #8B0000 !important;
+        border: 2px solid #DC143C !important;
+        font-weight: 700 !important;
         box-shadow: 
-          0 2px 8px rgba(0, 0, 0, 0.3),
-          0 0 0 1px rgba(255, 215, 0, 0.3),
-          inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+          0 4px 16px rgba(255, 215, 0, 0.5),
+          inset 0 2px 4px rgba(255, 255, 255, 0.5),
+          inset 0 -2px 4px rgba(0, 0, 0, 0.2) !important;
+        
+        .tag-title {
+          color: #8B0000 !important;
+          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+        }
+        
+        .tag-icon {
+          color: #DC143C !important;
+        }
+        
+        .el-icon-close,
+        .chrome-close-btn {
+          color: #8B0000 !important;
+          
+          &:hover {
+            color: #ffffff !important;
+            background: rgba(220, 20, 60, 0.8) !important;
+          }
+        }
       }
       
-      .tag-icon,
-      .tag-title {
-        color: inherit !important;
-      }
-      
-      .el-icon-close {
-        color: #FFD700 !important;
-        transition: all 0.3s ease !important;
+      .el-icon-close,
+      .chrome-close-btn {
+        color: rgba(255, 255, 255, 0.8) !important;
         
         &:hover {
-          color: #FFF !important;
+          color: #ffffff !important;
           background: rgba(255, 255, 255, 0.2) !important;
           border-radius: 50% !important;
         }
       }
+    }
+    
+    // 右键菜单
+    .contextmenu {
+      background: linear-gradient(180deg, #DC143C, #B22222) !important;
+      border: 2px solid #FFD700 !important;
+      box-shadow: 0 4px 20px rgba(220, 20, 60, 0.4) !important;
+      border-radius: 8px !important;
+      
+      li {
+        color: #ffffff !important;
+        font-family: 'STKaiti', 'KaiTi', serif !important;
+        
+        &:hover {
+          background: rgba(255, 215, 0, 0.2) !important;
+          color: #FFD700 !important;
+        }
+      }
+    }
+    
+    // 灵动模式进度条
+    .schedule-active, .schedule-in {
+      background: linear-gradient(90deg, #DC143C, #FFD700) !important;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.6) !important;
     }
   }
   
