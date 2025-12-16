@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 const loading = ref(false);
 const recordings = ref<any[]>([]);
 const status = ref<any>({});
+let refreshTimer: ReturnType<typeof setInterval> | null = null;
 
 // 获取JFR状态
 const fetchStatus = async () => {
@@ -95,70 +96,129 @@ const formatSize = (bytes: number) => {
   return (bytes / Math.pow(k, i)).toFixed(2) + " " + sizes[i];
 };
 
-onMounted(() => {
+// 刷新所有数据
+const refreshAll = () => {
   fetchStatus();
   fetchRecordings();
+};
+
+onMounted(() => {
+  refreshAll();
   // 每30秒刷新一次
-  setInterval(() => {
-    fetchStatus();
-    fetchRecordings();
-  }, 30000);
+  refreshTimer = setInterval(refreshAll, 30000);
+});
+
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+  }
 });
 </script>
 
 <template>
-  <div class="jfr-container">
-    <el-card class="status-card">
+  <div class="page-container">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <IconifyIconOnline icon="ri:record-circle-line" class="header-icon" />
+        <div class="header-info">
+          <h2 class="header-title">JFR 性能录制</h2>
+          <p class="header-desc">JDK Flight Recorder 性能分析工具</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="stat-card">
+          <div class="stat-number">{{ status.activeRecordings || 0 }}</div>
+          <div class="stat-label">活跃录制</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{{ recordings.length }}</div>
+          <div class="stat-label">录制总数</div>
+        </div>
+        <el-tag :type="status.available ? 'success' : 'danger'" effect="light" size="large">
+          {{ status.available ? 'JFR可用' : 'JFR不可用' }}
+        </el-tag>
+        <el-button type="info" @click="refreshAll" :loading="loading">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+        <el-button type="primary" @click="startRecording">
+          <IconifyIconOnline icon="ri:play-circle-line" class="mr-1" />
+          开始录制
+        </el-button>
+      </div>
+    </div>
+
+    <!-- JFR状态卡片 -->
+    <el-card class="modern-card status-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <span>JFR状态</span>
-          <el-button type="primary" size="small" @click="startRecording">
-            <el-icon><VideoPlay /></el-icon>
-            开始录制
-          </el-button>
+          <span class="card-title">
+            <IconifyIconOnline icon="ri:information-line" class="card-icon" />
+            JFR 状态
+          </span>
         </div>
       </template>
-      <el-descriptions :column="3" border>
+      <el-descriptions :column="4" border>
         <el-descriptions-item label="JFR支持">
-          <el-tag :type="status.available ? 'success' : 'danger'">
+          <el-tag :type="status.available ? 'success' : 'danger'" effect="plain">
             {{ status.available ? "可用" : "不可用" }}
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="活跃录制">
-          {{ status.activeRecordings || 0 }}
+          <span class="highlight-number">{{ status.activeRecordings || 0 }}</span>
         </el-descriptions-item>
         <el-descriptions-item label="Java版本">
           {{ status.javaVersion || "N/A" }}
         </el-descriptions-item>
+        <el-descriptions-item label="录制总数">
+          <span class="highlight-number">{{ recordings.length }}</span>
+        </el-descriptions-item>
       </el-descriptions>
     </el-card>
 
-    <el-card class="recordings-card">
+    <!-- 录制列表卡片 -->
+    <el-card class="modern-card recordings-card" shadow="hover">
       <template #header>
-        <span>录制列表</span>
+        <div class="card-header">
+          <span class="card-title">
+            <IconifyIconOnline icon="ri:list-check-2" class="card-icon" />
+            录制列表
+          </span>
+        </div>
       </template>
-      <el-table :data="recordings" v-loading="loading" stripe>
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="name" label="名称" min-width="200" />
-        <el-table-column prop="state" label="状态" width="120">
+      <el-table :data="recordings" v-loading="loading" stripe class="modern-table" max-height="400">
+        <el-table-column prop="id" label="ID" width="80" align="center" />
+        <el-table-column prop="name" label="名称" min-width="200">
           <template #default="{ row }">
-            <el-tag :type="row.state === 'RUNNING' ? 'success' : 'info'">
+            <div class="flex items-center gap-2">
+              <IconifyIconOnline icon="ri:file-chart-line" class="text-primary" />
+              <span>{{ row.name }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="state" label="状态" width="120" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.state === 'RUNNING' ? 'success' : 'info'" effect="plain">
               {{ row.state }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="duration" label="时长(秒)" width="120" />
+        <el-table-column prop="duration" label="时长(秒)" width="100" align="center" />
         <el-table-column prop="startTime" label="开始时间" width="180">
           <template #default="{ row }">
             {{ row.startTime ? formatTime(row.startTime) : "-" }}
           </template>
         </el-table-column>
-        <el-table-column prop="size" label="大小" width="120">
+        <el-table-column prop="size" label="大小" width="100" align="center">
           <template #default="{ row }">
-            {{ row.size ? formatSize(row.size) : "-" }}
+            <el-tag v-if="row.size" type="info" effect="plain" size="small">
+              {{ formatSize(row.size) }}
+            </el-tag>
+            <span v-else class="text-placeholder">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="180" align="center" fixed="right">
           <template #default="{ row }">
             <el-button
               v-if="row.state === 'RUNNING'"
@@ -166,6 +226,7 @@ onMounted(() => {
               size="small"
               @click="stopRecording(row.id)"
             >
+              <IconifyIconOnline icon="ri:stop-circle-line" class="mr-1" />
               停止
             </el-button>
             <el-button
@@ -174,40 +235,188 @@ onMounted(() => {
               size="small"
               @click="downloadRecording(row.id)"
             >
+              <IconifyIconOnline icon="ri:download-line" class="mr-1" />
               导出
             </el-button>
           </template>
         </el-table-column>
       </el-table>
+      <el-empty v-if="recordings.length === 0" description="暂无录制记录" />
     </el-card>
 
-    <el-card class="info-card">
+    <!-- 使用说明卡片 -->
+    <el-card class="modern-card info-card" shadow="hover">
       <template #header>
-        <span>使用说明</span>
+        <div class="card-header">
+          <span class="card-title">
+            <IconifyIconOnline icon="ri:question-line" class="card-icon" />
+            使用说明
+          </span>
+        </div>
       </template>
       <el-alert
         type="info"
         :closable="false"
-        description="JDK Flight Recorder (JFR) 是一个内置于JVM的性能分析工具，可以收集详细的诊断和性能数据。需要Java 11+支持。"
-      />
+        show-icon
+      >
+        <template #title>
+          <span class="alert-title">JDK Flight Recorder (JFR)</span>
+        </template>
+        <template #default>
+          <p class="alert-content">
+            JFR 是一个内置于 JVM 的性能分析工具，可以收集详细的诊断和性能数据。需要 Java 11+ 支持。
+            录制的数据可以使用 JDK Mission Control 或其他工具进行分析。
+          </p>
+        </template>
+      </el-alert>
     </el-card>
   </div>
 </template>
 
 <style scoped lang="scss">
-.jfr-container {
+.page-container {
   padding: 20px;
+  min-height: 100%;
+  background: var(--el-bg-color-page);
 }
 
-.status-card,
-.recordings-card,
-.info-card {
-  margin-bottom: 20px;
-}
-
-.card-header {
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, var(--el-color-warning-light-9) 0%, var(--el-color-warning-light-8) 100%);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .header-icon {
+      font-size: 40px;
+      color: var(--el-color-warning);
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+      border-radius: 12px;
+    }
+
+    .header-info {
+      .header-title {
+        margin: 0 0 4px 0;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      .header-desc {
+        margin: 0;
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .stat-card {
+      background: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+      .stat-number {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--el-color-warning);
+      }
+
+      .stat-label {
+        font-size: 11px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
+}
+
+.modern-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  margin-bottom: 20px;
+
+  :deep(.el-card__header) {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  .card-header {
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+
+      .card-icon {
+        font-size: 18px;
+        color: var(--el-color-warning);
+      }
+    }
+  }
+}
+
+.modern-table {
+  :deep(th.el-table__cell) {
+    background: var(--el-fill-color-lighter);
+    font-weight: 600;
+  }
+}
+
+.highlight-number {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+}
+
+.text-placeholder {
+  color: var(--el-text-color-placeholder);
+}
+
+.alert-title {
+  font-weight: 600;
+}
+
+.alert-content {
+  margin: 8px 0 0 0;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+}
+
+// 深色主题适配
+html.dark {
+  .page-container {
+    background: var(--el-bg-color-page);
+  }
+
+  .page-header {
+    background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+
+    .header-right .stat-card {
+      background: var(--el-bg-color);
+    }
+  }
+
+  .modern-card {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  }
 }
 </style>

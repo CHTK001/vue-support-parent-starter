@@ -4,13 +4,23 @@ export default {
   path: "/hotspot",
   name: "hotspot",
   component: () => import("@layout/default"),
-  redirect: "/hotspot/process",
+  redirect: "/hotspot/dashboard",
   meta: {
     icon: "simple-icons:traccar",
     title: "后台管理",
     rank: 1
   },
   children: [
+    {
+      path: "/hotspot/dashboard",
+      name: "HotspotDashboard",
+      component: () => import("@/views/hotspot/dashboard/index.vue"),
+      meta: {
+        icon: "ri:dashboard-line",
+        title: "系统概览",
+        showParent: true
+      }
+    },
     {
       path: "/hotspot/process",
       name: "HotspotProcess",
@@ -128,6 +138,26 @@ export default {
       meta: {
         icon: "simple-icons:logitech",
         title: "日志管理",
+        showParent: true
+      }
+    },
+    {
+      path: "/hotspot/jvm",
+      name: "HotspotJvm",
+      component: () => import("@/views/hotspot/jvm/index.vue"),
+      meta: {
+        icon: "ri:stack-line",
+        title: "JVM监控",
+        showParent: true
+      }
+    },
+    {
+      path: "/hotspot/hotswap",
+      name: "HotspotHotswap",
+      component: () => import("@/views/hotspot/hotswap/index.vue"),
+      meta: {
+        icon: "ri:refresh-line",
+        title: "热重载",
         showParent: true
       }
     }
