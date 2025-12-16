@@ -1,17 +1,37 @@
 <script setup>
-import { defineAsyncComponent, reactive, ref } from "vue";
+import { defineAsyncComponent, reactive, ref, computed } from "vue";
 import { GridLayout } from "grid-layout-plus";
 import Widgets from "@repo/assets/svg/no-widgets.svg?component";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useLayoutLayoutStore } from "@repo/core";
+
 const loadingCollection = {};
 const userLayoutObject = useLayoutLayoutStore();
+
 const props = defineProps({
   modelValue: {
     type: Boolean,
     default: false,
   },
 });
+
+/**
+ * 获取部件标题
+ * @param key 部件key
+ */
+const getWidgetTitle = (key) => {
+  const comp = userLayoutObject.getComponent(key);
+  return comp?.sysSfcChineseName || comp?.sysSfcName || '未命名部件';
+};
+
+/**
+ * 获取部件类型标签
+ * @param item 部件项
+ */
+const getTypeLabel = (item) => {
+  return item.type === 1 ? '本地' : '远程';
+};
+
 /**
  * 隐藏组件
  * @param key 隐藏组件
@@ -22,43 +42,91 @@ const handleRemove = async (key) => {
 </script>
 <template>
   <div class="customizing h-full">
-    <GridLayout class="!h-full" :row-height="200" v-model:layout="userLayoutObject.layout" :is-draggable="props.modelValue" :is-resizable="props.modelValue" vertical-compact use-css-transforms>
+    <GridLayout 
+      class="!h-full grid-layout-container" 
+      :row-height="200" 
+      v-model:layout="userLayoutObject.layout" 
+      :is-draggable="props.modelValue" 
+      :is-resizable="props.modelValue" 
+      vertical-compact 
+      use-css-transforms
+    >
       <template #item="{ item }">
         <div class="item">
           <div class="widgets-item">
-            <div class="h-full">
+            <!-- 部件内容 -->
+            <div class="widget-content h-full">
               <el-skeleton class="h-full" :loading="userLayoutObject.isLoaded(item, loadingCollection)" animated>
                 <template #template>
                   <div class="!w-full !h-full" style="width: 100% !important">
                     <div class="!h-full" v-if="(item.type == 1 && props.modelValue) || !props.modelValue || userLayoutObject.loadRemoteComponent(item.id)">
                       <keep-alive class="!h-full">
-                        <component class="!h-full" :is="userLayoutObject.loadComponent(item.id)" :frameInfo="userLayoutObject.loadFrameInfo(item.id)" :key="userLayoutObject.loadFrameInfo(item.id).key" @loaded="() => userLayoutObject.loaded(item.id, loadingCollection)" />
+                        <component 
+                          class="!h-full" 
+                          :is="userLayoutObject.loadComponent(item.id)" 
+                          :frameInfo="userLayoutObject.loadFrameInfo(item.id)" 
+                          :key="userLayoutObject.loadFrameInfo(item.id).key" 
+                          @loaded="() => userLayoutObject.loaded(item.id, loadingCollection)" 
+                        />
                       </keep-alive>
                     </div>
-                    <div v-else-if="props.modelValue" class="relative h-full">
-                      <component class="w-full !h-full" :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon)" />
+                    <div v-else-if="props.modelValue" class="widget-placeholder">
+                      <el-icon :size="48" color="var(--el-color-primary-light-5)">
+                        <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon || 'ri:apps-line')" />
+                      </el-icon>
+                      <span class="placeholder-text">{{ getWidgetTitle(item.id) }}</span>
                     </div>
                   </div>
                 </template>
               </el-skeleton>
             </div>
+            
+            <!-- 编辑模式遮罩层 -->
             <div v-if="props.modelValue" class="customize-overlay">
-              <el-button-group class="close">
-                <el-button
-                  v-if="item.type != 1"
-                  type="primary"
-                  plain
-                  size="small"
-                  :icon="!userLayoutObject.loadRemoteComponent(item.id) ? useRenderIcon('ri:eye-close-line') : useRenderIcon('ri:eye-line')"
-                  @click="userLayoutObject.loadRemoteComponent(item.id, !userLayoutObject.loadRemoteComponent(item.id))"
-                />
-                <el-button type="danger" plain :icon="useRenderIcon('ep:close')" size="small" @click="handleRemove(item.id)" />
-              </el-button-group>
-              <label>
-                <el-icon>
-                  <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon)" />
-                </el-icon>
-              </label>
+              <!-- 操作按钮组 -->
+              <div class="overlay-actions">
+                <el-tooltip content="预览/隐藏" placement="top" v-if="item.type != 1">
+                  <el-button
+                    :type="userLayoutObject.loadRemoteComponent(item.id) ? 'primary' : 'info'"
+                    circle
+                    size="small"
+                    @click="userLayoutObject.loadRemoteComponent(item.id, !userLayoutObject.loadRemoteComponent(item.id))"
+                  >
+                    <el-icon>
+                      <component :is="useRenderIcon(userLayoutObject.loadRemoteComponent(item.id) ? 'ri:eye-line' : 'ri:eye-close-line')" />
+                    </el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="移除部件" placement="top">
+                  <el-button type="danger" circle size="small" @click="handleRemove(item.id)">
+                    <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
+                  </el-button>
+                </el-tooltip>
+              </div>
+              
+              <!-- 拖拽区域 -->
+              <div class="drag-area">
+                <div class="drag-icon">
+                  <el-icon :size="28">
+                    <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon || 'ri:apps-line')" />
+                  </el-icon>
+                </div>
+                <div class="drag-info">
+                  <span class="drag-title">{{ getWidgetTitle(item.id) }}</span>
+                  <el-tag size="small" :type="item.type === 1 ? 'success' : 'primary'" class="drag-type">
+                    {{ getTypeLabel(item) }}
+                  </el-tag>
+                </div>
+                <div class="drag-hint">
+                  <el-icon :size="14"><component :is="useRenderIcon('ri:drag-move-2-line')" /></el-icon>
+                  <span>拖拽移动</span>
+                </div>
+              </div>
+              
+              <!-- 调整大小提示 -->
+              <div class="resize-hint">
+                <el-icon :size="12"><component :is="useRenderIcon('ri:expand-diagonal-line')" /></el-icon>
+              </div>
             </div>
           </div>
         </div>
@@ -68,281 +136,239 @@ const handleRemove = async (key) => {
 </template>
 
 <style scoped lang="scss">
+/* Grid Layout 样式 */
 :deep(.vgl-item__resizer) {
   z-index: 99;
+  width: 16px !important;
+  height: 16px !important;
+  bottom: 4px !important;
+  right: 4px !important;
+  background: var(--el-color-primary);
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+:deep(.vgl-item:hover .vgl-item__resizer) {
+  opacity: 1;
 }
 
 .vgl-layout {
-  --vgl-placeholder-bg: green;
+  --vgl-placeholder-bg: var(--el-color-primary-light-7);
 }
 
-.widgets-home {
-  display: flex;
-  flex-direction: row;
-  flex: 1;
-  height: 100%;
+:deep(.vgl-item--placeholder) {
+  border: 2px dashed var(--el-color-primary);
+  border-radius: 12px;
+  background: var(--el-color-primary-light-9) !important;
 }
 
-.widgets-content {
-  flex: 1;
-  overflow: auto;
-  overflow-x: hidden;
-  padding: 15px;
+/* 基础布局 */
+.grid-layout-container {
+  padding: 8px;
 }
 
-.widgets-aside {
-  width: 360px;
-  background: #fff;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  position: relative;
-  overflow: auto;
-}
-
-.widgets-aside-title {
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.widgets-aside-title i {
-  margin-right: 10px;
-  font-size: 18px;
-}
-
-.widgets-aside-close {
-  font-size: 18px;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 3px;
-  cursor: pointer;
-}
-
-.widgets-aside-close:hover {
-  background: rgba(180, 180, 180, 0.1);
-}
-
-.widgets-top {
-  margin-bottom: 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.widgets-top-title {
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.widgets {
-  --transform-scale: 1;
-  transform-origin: top left;
-  transition: transform 0.15s;
-  height: calc((100% - 50px) / var(--transform-scale));
-  width: calc(100% / var(--transform-scale));
-}
-
-.item,
-.widgets > .widgets-wrapper {
+.item {
   width: 100%;
   height: 100%;
 }
 
-.draggable-box {
-  height: 100%;
-}
-
-.customizing .widgets-wrapper {
-  margin-right: -360px;
-}
-
-.customizing .widgets-wrapper .el-col {
-  padding-bottom: 15px;
-}
-
-.customizing .widgets-wrapper .draggable-box {
-  border: 1px dashed var(--el-color-primary);
-  padding: 15px;
-}
-
-.customizing .widgets-wrapper .no-widgets {
-  display: none;
-}
-.item .widgets-item {
-  height: 100%;
-}
-.customizing .widgets-item {
+.widgets-item {
   position: relative;
-  margin-bottom: 15px;
   height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--el-bg-color);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
 }
 
+.widgets-item:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* 部件内容 */
+.widget-content {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* 占位符样式 */
+.widget-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: linear-gradient(135deg, var(--el-fill-color-light), var(--el-fill-color));
+  gap: 12px;
+  
+  .placeholder-text {
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+    font-weight: 500;
+  }
+}
+
+/* 编辑模式遮罩层 */
 .customize-overlay {
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 1;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
   cursor: move;
+  border: 2px dashed var(--el-color-primary-light-3);
+  border-radius: 12px;
+  transition: all 0.2s ease;
 }
 
-.customize-overlay label {
-  background: var(--el-color-primary);
-  color: #fff;
-  height: 40px;
-  padding: 0 30px;
-  border-radius: 40px;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: move;
+.widgets-item:hover .customize-overlay {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: var(--el-color-primary);
 }
 
-.customize-overlay label i {
-  margin-right: 15px;
-  font-size: 24px;
-}
-
-.customize-overlay .close {
+/* 操作按钮组 */
+.overlay-actions {
   position: absolute;
-  top: 15px;
-  right: 15px;
-}
-
-.customize-overlay .close:focus,
-.customize-overlay .close:hover {
-  background: var(--el-button-hover-color);
-}
-
-.widgets-list {
-}
-
-.widgets-list-item {
+  top: 12px;
+  right: 12px;
   display: flex;
-  flex-direction: row;
-  padding: 15px;
-  align-items: center;
+  gap: 8px;
+  z-index: 11;
+  
+  :deep(.el-button) {
+    width: 32px;
+    height: 32px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
 }
 
-.widgets-list-item .item-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(180, 180, 180, 0.1);
+/* 拖拽区域 */
+.drag-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+}
+
+.drag-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--el-color-primary-light-7), var(--el-color-primary-light-5));
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  margin-right: 15px;
-  color: #6a8bad;
+  color: var(--el-color-primary);
+  margin-bottom: 4px;
 }
 
-.widgets-list-item .item-info {
-  flex: 1;
+.drag-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 
-.widgets-list-item .item-info h2 {
-  font-size: 16px;
-  font-weight: normal;
-  cursor: default;
+.drag-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.widgets-list-item .item-info p {
+.drag-type {
+  border-radius: 4px;
+}
+
+.drag-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
-  color: #999;
-  cursor: default;
+  color: var(--el-text-color-placeholder);
+  margin-top: 8px;
 }
 
-.widgets-list-item:hover {
-  background: rgba(180, 180, 180, 0.1);
+/* 调整大小提示 */
+.resize-hint {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-color-primary);
+  opacity: 0.6;
 }
 
+/* 深色模式 */
+.dark {
+  .widgets-item {
+    background: var(--el-bg-color);
+  }
+  
+  .customize-overlay {
+    background: rgba(30, 30, 30, 0.9);
+    backdrop-filter: blur(8px);
+  }
+  
+  .widgets-item:hover .customize-overlay {
+    background: rgba(30, 30, 30, 0.95);
+  }
+  
+  .widget-placeholder {
+    background: linear-gradient(135deg, var(--el-fill-color), var(--el-fill-color-dark));
+  }
+  
+  .drag-icon {
+    background: linear-gradient(135deg, var(--el-color-primary-dark-2), var(--el-color-primary));
+    color: #fff;
+  }
+}
+
+/* 拖拽幽灵样式 */
 .widgets-wrapper .sortable-ghost {
   opacity: 0.5;
 }
 
-.selectLayout {
-  width: 100%;
-  display: flex;
-}
-
-.selectLayout-item {
-  width: 60px;
-  height: 60px;
-  border: 2px solid var(--el-border-color-light);
-  padding: 5px;
-  cursor: pointer;
-  margin-right: 11px;
-  margin-top: 11px;
-}
-
-.selectLayout-item span {
-  display: block;
-  background: var(--el-border-color-light);
-  height: 46px;
-}
-
-.selectLayout-item.item02 span {
-  height: 30px;
-}
-
-.selectLayout-item.item02 .el-col:nth-child(1) span {
-  height: 14px;
-  margin-bottom: 2px;
-}
-
-.selectLayout-item.item03 span {
-  height: 14px;
-  margin-bottom: 2px;
-}
-
-.selectLayout-item:hover {
-  border-color: var(--el-color-primary);
-}
-
-.selectLayout-item.active {
-  border-color: var(--el-color-primary);
-}
-
-.selectLayout-item.active span {
-  background: var(--el-color-primary);
-}
-
-.dark {
-  .widgets-aside {
-    background: #2b2b2b;
+/* 响应式 */
+@media (max-width: 768px) {
+  .drag-area {
+    padding: 12px;
   }
-
-  .customize-overlay {
-    background: rgba(43, 43, 43, 0.9);
+  
+  .drag-icon {
+    width: 44px;
+    height: 44px;
   }
-}
-
-@media (max-width: 992px) {
-  .customizing .widgets {
-    transform: scale(1) !important;
+  
+  .drag-title {
+    font-size: 13px;
   }
-
-  .customizing .widgets-aside {
-    width: 100%;
-    position: absolute;
-    top: 50%;
-    right: 0;
-    bottom: 0;
-  }
-
-  .customizing .widgets-wrapper {
-    margin-right: 0;
+  
+  .overlay-actions :deep(.el-button) {
+    width: 28px;
+    height: 28px;
   }
 }
 </style>

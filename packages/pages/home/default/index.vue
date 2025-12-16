@@ -1,17 +1,22 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { getConfig } from "@repo/config";
-import { useLayoutLayoutStore } from "@repo/core";
+import { useLayoutLayoutStore, useUserStoreHook } from "@repo/core";
 import {
+  computed,
   defineAsyncComponent,
   nextTick,
   onBeforeMount,
+  onMounted,
+  onUnmounted,
   reactive,
+  ref,
   shallowRef,
 } from "vue";
 
 const widgets = shallowRef();
 const userLayoutObject = useLayoutLayoutStore();
+const userStore = useUserStoreHook();
 
 const CustomLayout = defineAsyncComponent(
   () => import("./layout/CustomLayout.vue")
@@ -21,6 +26,97 @@ const openLocationLayout = getConfig().LocationLayout;
 const customizing = reactive({
   customizing: false,
   hasLayout: openRemoteLayout || openLocationLayout,
+});
+
+// 搜索和筛选
+const searchKeyword = ref("");
+const selectedCategory = ref("all");
+
+// 当前时间
+const currentTime = ref(new Date());
+let timeInterval = null;
+
+// 格式化时间
+const formattedTime = computed(() => {
+  const date = currentTime.value;
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+});
+
+const formattedDate = computed(() => {
+  const date = currentTime.value;
+  const weekDays = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const weekDay = weekDays[date.getDay()];
+  return `${month}月${day}日 ${weekDay}`;
+});
+
+// 获取欢迎语
+const greeting = computed(() => {
+  const hour = currentTime.value.getHours();
+  if (hour < 6) return "凌晨好";
+  if (hour < 9) return "早上好";
+  if (hour < 12) return "上午好";
+  if (hour < 14) return "中午好";
+  if (hour < 17) return "下午好";
+  if (hour < 19) return "傍晚好";
+  return "晚上好";
+});
+
+// 统计信息
+const widgetStats = computed(() => {
+  const total = userLayoutObject.allCompsList()?.length || 0;
+  const active = userLayoutObject.layout?.length || 0;
+  const available = userLayoutObject.myCompsList()?.length || 0;
+  return { total, active, available };
+});
+
+// 部件分类
+const categories = computed(() => {
+  const cats = new Map();
+  cats.set("all", { label: "全部", count: 0 });
+  
+  userLayoutObject.allCompsList()?.forEach((item) => {
+    cats.get("all").count++;
+    const type = item.type === 1 ? "local" : "remote";
+    if (!cats.has(type)) {
+      cats.set(type, { label: type === "local" ? "本地部件" : "远程部件", count: 0 });
+    }
+    cats.get(type).count++;
+  });
+  
+  return Array.from(cats.entries()).map(([key, value]) => ({
+    value: key,
+    ...value,
+  }));
+});
+
+// 过滤后的部件列表
+const filteredWidgetList = computed(() => {
+  let list = userLayoutObject.myCompsList() || [];
+  
+  // 按分类筛选
+  if (selectedCategory.value !== "all") {
+    list = list.filter((item) => {
+      if (selectedCategory.value === "local") return item.type === 1;
+      if (selectedCategory.value === "remote") return item.type !== 1;
+      return true;
+    });
+  }
+  
+  // 按关键词搜索
+  if (searchKeyword.value) {
+    const keyword = searchKeyword.value.toLowerCase();
+    list = list.filter(
+      (item) =>
+        item.title?.toLowerCase().includes(keyword) ||
+        item.description?.toLowerCase().includes(keyword)
+    );
+  }
+  
+  return list;
 });
 
 const handeCustom = async () => {
@@ -60,8 +156,21 @@ const handleUpdate = async () => {
   widgets.value.style.removeProperty("transform");
   userLayoutObject.saveLayout();
 };
+
 onBeforeMount(async () => {
   useLayoutLayoutStore().load();
+});
+
+onMounted(() => {
+  timeInterval = setInterval(() => {
+    currentTime.value = new Date();
+  }, 1000);
+});
+
+onUnmounted(() => {
+  if (timeInterval) {
+    clearInterval(timeInterval);
+  }
 });
 </script>
 <template>
@@ -73,48 +182,84 @@ onBeforeMount(async () => {
     ]"
   >
     <div class="widgets-content">
-      <div class="widgets-top">
-        <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
-        <div class="widgets-top-actions">
-          <div v-if="customizing.hasLayout">
+      <!-- 优化后的头部区域 -->
+      <div class="widgets-header">
+        <div class="header-left">
+          <div class="header-greeting">
+            <div class="greeting-text">
+              <span class="greeting-hello">{{ greeting }}，</span>
+              <span class="greeting-name">{{ userStore?.username || '用户' }}</span>
+            </div>
+            <div class="greeting-subtitle">{{ $t("buttons.board") }}</div>
+          </div>
+        </div>
+        <div class="header-center">
+          <div class="header-time">
+            <div class="time-display">{{ formattedTime }}</div>
+            <div class="date-display">{{ formattedDate }}</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="header-stats" v-if="customizing.hasLayout">
+            <div class="stat-item">
+              <span class="stat-value">{{ widgetStats.active }}</span>
+              <span class="stat-label">已添加</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-value">{{ widgetStats.available }}</span>
+              <span class="stat-label">可用</span>
+            </div>
+          </div>
+          <div class="header-actions" v-if="customizing.hasLayout">
             <el-button
               v-if="customizing.customizing"
               type="primary"
               :icon="useRenderIcon('ep:check')"
               round
               @click="handleUpdate"
-              >{{ $t("buttons.finish") }}</el-button
-            >
+            >{{ $t("buttons.finish") }}</el-button>
             <el-button
               v-else
               type="primary"
               :icon="useRenderIcon('ep:edit')"
               round
               @click="handeCustom"
-              >{{ $t("buttons.custom") }}</el-button
-            >
+            >{{ $t("buttons.custom") }}</el-button>
           </div>
         </div>
       </div>
+      
+      <!-- 部件内容区域 -->
       <div ref="widgets" class="widgets">
         <div class="widgets-wrapper">
-          <div v-if="!customizing.hasLayout">
-            <el-empty
-              :image="widgetsImage"
-              :description="$t('message.noPlugin')"
-              :image-size="280"
-            />
+          <div v-if="!customizing.hasLayout" class="empty-state">
+            <div class="empty-icon">
+              <el-icon :size="64">
+                <component :is="useRenderIcon('ri:dashboard-3-line')" />
+              </el-icon>
+            </div>
+            <div class="empty-title">暂无可用部件</div>
+            <div class="empty-desc">{{ $t('message.noPlugin') }}</div>
           </div>
           <div v-else class="h-full">
             <div
               v-if="!userLayoutObject.hasSettingCompent()"
-              class="no-widgets"
+              class="empty-state"
             >
-              <el-empty
-                :image="widgetsImage"
-                :description="$t('message.noPlugin')"
-                :image-size="280"
-              />
+              <div class="empty-icon">
+                <el-icon :size="64">
+                  <component :is="useRenderIcon('ri:apps-2-add-line')" />
+                </el-icon>
+              </div>
+              <div class="empty-title">开始自定义您的仪表板</div>
+              <div class="empty-desc">点击右上角「自定义」按钮添加部件</div>
+              <el-button type="primary" round @click="handeCustom" class="empty-action">
+                <el-icon class="mr-1">
+                  <component :is="useRenderIcon('ep:plus')" />
+                </el-icon>
+                添加部件
+              </el-button>
             </div>
             <CustomLayout
               v-else
@@ -124,63 +269,89 @@ onBeforeMount(async () => {
         </div>
       </div>
     </div>
+    
+    <!-- 优化后的部件选择侧边栏 -->
     <div v-if="customizing.customizing" class="widgets-aside">
-      <el-container>
-        <el-header>
-          <div class="widgets-aside-title">
-            <el-icon>
-              <component :is="useRenderIcon('ep:circle-plus-filled')" />
+      <div class="aside-header">
+        <div class="aside-title">
+          <el-icon :size="20">
+            <component :is="useRenderIcon('ri:apps-2-add-line')" />
+          </el-icon>
+          <span>添加部件</span>
+        </div>
+        <div class="aside-close" @click="handleClose()">
+          <el-icon :size="18">
+            <component :is="useRenderIcon('ep:close')" />
+          </el-icon>
+        </div>
+      </div>
+      
+      <!-- 搜索栏 -->
+      <div class="aside-search">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索部件..."
+          clearable
+          :prefix-icon="useRenderIcon('ep:search')"
+        />
+      </div>
+      
+      <!-- 分类筛选 -->
+      <div class="aside-categories">
+        <el-radio-group v-model="selectedCategory" size="small">
+          <el-radio-button
+            v-for="cat in categories"
+            :key="cat.value"
+            :value="cat.value"
+          >
+            {{ cat.label }} ({{ cat.count }})
+          </el-radio-button>
+        </el-radio-group>
+      </div>
+      
+      <!-- 部件列表 -->
+      <div class="aside-list">
+        <div v-if="filteredWidgetList.length === 0" class="list-empty">
+          <el-icon :size="40" color="var(--el-text-color-placeholder)">
+            <component :is="useRenderIcon('ri:inbox-line')" />
+          </el-icon>
+          <p>没有找到匹配的部件</p>
+        </div>
+        <div
+          v-for="item in filteredWidgetList"
+          :key="item.key"
+          class="widget-card"
+          @click="push(item)"
+        >
+          <div class="widget-card-icon">
+            <el-icon :size="24">
+              <component :is="useRenderIcon(item.icon || 'ri:apps-line')" />
             </el-icon>
-            {{ $t("message.addWidget") }}
           </div>
-          <div class="widgets-aside-close" @click="handleClose()">
-            <el-icon>
-              <component :is="useRenderIcon('ep:close')" />
-            </el-icon>
-          </div>
-        </el-header>
-        <el-main class="nopadding">
-          <div class="widgets-list">
-            <div
-              v-if="!userLayoutObject.hasMyCompsList()"
-              class="widgets-list-nodata"
-            >
-              <el-empty
-                :description="$t('message.noPlugin')"
-                :image-size="60"
-              />
-            </div>
-            <div
-              v-for="item in userLayoutObject.myCompsList()"
-              :key="item.title"
-              class="widgets-list-item"
-            >
-              <div class="item-logo">
-                <el-icon>
-                  <component :is="useRenderIcon(item.icon)" />
-                </el-icon>
-              </div>
-              <div class="item-info">
-                <h2>{{ item.title }}</h2>
-                <p>{{ item.description }}</p>
-              </div>
-              <div class="item-actions">
-                <el-button
-                  type="primary"
-                  :icon="useRenderIcon('ep:plus')"
-                  size="small"
-                  @click="push(item)"
-                />
-              </div>
+          <div class="widget-card-content">
+            <div class="widget-card-title">{{ item.title }}</div>
+            <div class="widget-card-desc">{{ item.description || '暂无描述' }}</div>
+            <div class="widget-card-meta">
+              <el-tag size="small" :type="item.type === 1 ? 'success' : 'primary'">
+                {{ item.type === 1 ? '本地' : '远程' }}
+              </el-tag>
             </div>
           </div>
-        </el-main>
-        <el-footer style="height: 51px; background-color: var(--el-bg-color)">
-          <el-button size="small" @click="backDefault()">{{
-            $t("buttons.default")
-          }}</el-button>
-        </el-footer>
-      </el-container>
+          <div class="widget-card-action">
+            <el-button type="primary" circle size="small">
+              <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
+            </el-button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 底部操作 -->
+      <div class="aside-footer">
+        <el-button size="small" @click="backDefault()">
+          <el-icon class="mr-1"><component :is="useRenderIcon('ep:refresh')" /></el-icon>
+          {{ $t("buttons.default") }}
+        </el-button>
+      </div>
     </div>
   </div>
 </template>
@@ -199,33 +370,133 @@ onBeforeMount(async () => {
   flex-direction: row;
   flex: 1;
   height: 100%;
+  background: var(--el-bg-color-page);
 }
 
 .widgets-content {
   flex: 1;
   overflow: auto;
   overflow-x: hidden;
-  padding: 15px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
 }
 
-.widgets-top {
-  margin-bottom: 15px;
+/* 头部区域 */
+.widgets-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 20px 24px;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
-.widgets-top-title {
-  font-size: 18px;
-  font-weight: bold;
+.header-left {
+  flex: 1;
 }
 
+.header-greeting {
+  .greeting-text {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    margin-bottom: 4px;
+    
+    .greeting-hello {
+      color: var(--el-color-primary);
+    }
+    
+    .greeting-name {
+      color: var(--el-text-color-primary);
+    }
+  }
+  
+  .greeting-subtitle {
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.header-time {
+  text-align: center;
+  
+  .time-display {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--el-text-color-primary);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 2px;
+  }
+  
+  .date-display {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    margin-top: 2px;
+  }
+}
+
+.header-right {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 20px;
+}
+
+.header-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background: var(--el-fill-color-light);
+  border-radius: 8px;
+  
+  .stat-item {
+    text-align: center;
+    
+    .stat-value {
+      display: block;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--el-color-primary);
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+  
+  .stat-divider {
+    width: 1px;
+    height: 30px;
+    background: var(--el-border-color-light);
+  }
+}
+
+.header-actions {
+  :deep(.el-button) {
+    padding: 10px 20px;
+    font-weight: 500;
+  }
+}
+
+/* 部件内容区域 */
 .widgets {
   --transform-scale: 1;
   transform-origin: top left;
   transition: transform 0.15s;
-  height: calc((100% - 50px) / var(--transform-scale));
-  width: calc(100% / var(--transform-scale));
+  flex: 1;
+  min-height: 0;
 }
 
 .item,
@@ -238,147 +509,258 @@ onBeforeMount(async () => {
   height: 100%;
 }
 
-/* 添加部件侧边栏 - 美化 */
-.widgets-aside {
-  width: 320px;
-  background: var(--el-bg-color);
-  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.08);
-  position: relative;
-  overflow: hidden;
+/* 空状态 */
+.empty-state {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
+  text-align: center;
+  padding: 40px;
+  
+  .empty-icon {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-7));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    color: var(--el-color-primary);
+  }
+  
+  .empty-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    margin-bottom: 8px;
+  }
+  
+  .empty-desc {
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+    margin-bottom: 24px;
+  }
+  
+  .empty-action {
+    padding: 12px 28px;
+    font-size: 15px;
+  }
 }
 
-.widgets-aside :deep(.el-header) {
+/* 部件选择侧边栏 */
+.widgets-aside {
+  width: 360px;
+  background: var(--el-bg-color);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+
+.aside-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 16px;
-  height: 50px !important;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-color-primary);
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
+  color: #fff;
 }
 
-.widgets-aside-title {
-  font-size: 14px;
-  font-weight: 500;
+.aside-title {
   display: flex;
   align-items: center;
-  color: #fff;
-  gap: 8px;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
 }
 
-.widgets-aside-title i {
-  font-size: 18px;
-}
-
-.widgets-aside-close {
-  width: 28px;
-  height: 28px;
+.aside-close {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.85);
   transition: all 0.2s;
+  color: rgba(255, 255, 255, 0.85);
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+  }
 }
 
-.widgets-aside-close:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+.aside-search {
+  padding: 16px 20px 12px;
+  
+  :deep(.el-input__wrapper) {
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px var(--el-border-color) inset;
+    
+    &:hover, &.is-focus {
+      box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+    }
+  }
 }
 
-/* 部件列表 */
-.widgets-list {
-  padding: 12px;
+.aside-categories {
+  padding: 0 20px 16px;
+  
+  :deep(.el-radio-group) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  :deep(.el-radio-button) {
+    .el-radio-button__inner {
+      border-radius: 16px !important;
+      border: 1px solid var(--el-border-color) !important;
+      padding: 6px 14px;
+      font-size: 12px;
+    }
+    
+    &.is-active .el-radio-button__inner {
+      background: var(--el-color-primary);
+      border-color: var(--el-color-primary) !important;
+    }
+  }
 }
 
-.widgets-list-nodata {
+.aside-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px 20px;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--el-border-color);
+    border-radius: 3px;
+  }
+}
+
+.list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 40px 20px;
-  text-align: center;
+  color: var(--el-text-color-placeholder);
+  
+  p {
+    margin-top: 12px;
+    font-size: 14px;
+  }
 }
 
-.widgets-list-item {
+.widget-card {
   display: flex;
   align-items: center;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-  border-radius: 8px;
-  background: var(--el-fill-color-light);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: var(--el-fill-color-lighter);
   border: 1px solid transparent;
-  transition: all 0.2s ease;
   cursor: pointer;
+  transition: all 0.25s ease;
+  
+  &:hover {
+    background: var(--el-bg-color);
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+    
+    .widget-card-action .el-button {
+      background: var(--el-color-primary);
+      border-color: var(--el-color-primary);
+    }
+  }
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
-.widgets-list-item:hover {
-  background: var(--el-bg-color);
-  border-color: var(--el-border-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.widgets-list-item .item-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: var(--el-color-primary);
+.widget-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--el-color-primary-light-7), var(--el-color-primary-light-5));
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  margin-right: 12px;
-  color: #fff;
+  color: var(--el-color-primary);
   flex-shrink: 0;
+  margin-right: 14px;
 }
 
-.widgets-list-item .item-info {
+.widget-card-content {
   flex: 1;
   min-width: 0;
 }
 
-.widgets-list-item .item-info h2 {
+.widget-card-title {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--el-text-color-primary);
-  margin: 0 0 4px 0;
+  margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.widgets-list-item .item-info p {
+.widget-card-desc {
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-bottom: 6px;
 }
 
-.widgets-list-item .item-actions {
+.widget-card-meta {
+  :deep(.el-tag) {
+    border-radius: 4px;
+    font-size: 11px;
+    padding: 0 6px;
+    height: 20px;
+  }
+}
+
+.widget-card-action {
   flex-shrink: 0;
-  margin-left: 10px;
+  margin-left: 12px;
+  
+  :deep(.el-button) {
+    width: 32px;
+    height: 32px;
+    transition: all 0.2s;
+  }
 }
 
-.widgets-list-item .item-actions :deep(.el-button) {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border-radius: 6px;
-}
-
-/* 底部操作栏 */
-.widgets-aside :deep(.el-footer) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.aside-footer {
+  padding: 16px 20px;
   border-top: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-lighter);
+  display: flex;
+  justify-content: center;
+  
+  :deep(.el-button) {
+    padding: 8px 20px;
+  }
 }
 
 /* 自定义模式 */
 .customizing .widgets-wrapper {
-  margin-right: -320px;
+  margin-right: -360px;
 }
 
 .customizing .widgets-wrapper .el-col {
@@ -452,67 +834,77 @@ onBeforeMount(async () => {
   opacity: 0.5;
 }
 
-.selectLayout {
-  width: 100%;
-  display: flex;
-}
-
-.selectLayout-item {
-  width: 60px;
-  height: 60px;
-  border: 2px solid var(--el-border-color-light);
-  padding: 5px;
-  cursor: pointer;
-  margin-right: 11px;
-  margin-top: 11px;
-}
-
-.selectLayout-item span {
-  display: block;
-  background: var(--el-border-color-light);
-  height: 46px;
-}
-
-.selectLayout-item.item02 span {
-  height: 30px;
-}
-
-.selectLayout-item.item02 .el-col:nth-child(1) span {
-  height: 14px;
-  margin-bottom: 2px;
-}
-
-.selectLayout-item.item03 span {
-  height: 14px;
-  margin-bottom: 2px;
-}
-
-.selectLayout-item:hover {
-  border-color: var(--el-color-primary);
-}
-
-.selectLayout-item.active {
-  border-color: var(--el-color-primary);
-}
-
-.selectLayout-item.active span {
-  background: var(--el-color-primary);
-}
-
+/* 深色模式 */
 .dark {
   .widgets-aside {
-    background: #2b2b2b;
+    background: var(--el-bg-color);
   }
-
+  
   .customize-overlay {
-    background: rgba(43, 43, 43, 0.9);
+    background: rgba(0, 0, 0, 0.6);
+  }
+  
+  .widget-card:hover {
+    background: var(--el-fill-color);
+  }
+  
+  .empty-state .empty-icon {
+    background: linear-gradient(135deg, var(--el-color-primary-dark-2), var(--el-color-primary));
+    color: #fff;
+  }
+}
+
+/* 响应式 */
+@media (max-width: 1200px) {
+  .header-center {
+    display: none;
   }
 }
 
 @media (max-width: 992px) {
+  .widgets-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
   .customizing .widgets {
     transform: scale(1) !important;
   }
+  
+  .customizing .widgets-aside {
+    width: 100%;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    bottom: 0;
+    border-radius: 16px 16px 0 0;
+  }
+  
+  .customizing .widgets-wrapper {
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .widgets-content {
+    padding: 12px;
+  }
+  
+  .widgets-header {
+    padding: 16px;
+  }
+  
+  .header-stats {
+    display: none;
+  }
+}
+
 
   .customizing .widgets-aside {
     width: 100%;
