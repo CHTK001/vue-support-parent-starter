@@ -98,12 +98,23 @@
   .fixed-header {
     position: sticky;
     top: 0;
-    z-index: 0;
+    z-index: 1;
     width: 100%;
-
-    /* fixed-header 属性巨动画 */
     transition: box-shadow 0.3s ease;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    // 底部阴影 - 与侧边栏一致
+    box-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      0 2px 4px rgba(0, 0, 0, 0.04),
+      0 4px 8px rgba(0, 0, 0, 0.05),
+      0 8px 16px rgba(0, 0, 0, 0.06);
+    
+    .dark & {
+      box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.1),
+        0 2px 4px rgba(0, 0, 0, 0.15),
+        0 4px 8px rgba(0, 0, 0, 0.2),
+        0 8px 16px rgba(0, 0, 0, 0.25);
+    }
   }
 
   .main-hidden {
@@ -114,18 +125,31 @@
 
   .sidebar-container {
     position: relative;
-    z-index: 0;
+    z-index: 1;
     width: $sideBarWidth !important;
     height: 100%;
     overflow: visible;
     font-size: 0;
     background: var(--pure-theme-menu-bg) !important;
     border-right: 1px solid rgba(0, 0, 0, 0.03);
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    // 右侧阴影 - 与顶部导航一致
+    box-shadow: 
+      1px 0 2px rgba(0, 0, 0, 0.03),
+      2px 0 4px rgba(0, 0, 0, 0.04),
+      4px 0 8px rgba(0, 0, 0, 0.05),
+      8px 0 16px rgba(0, 0, 0, 0.06);
     backdrop-filter: blur(12px);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
+    
+    .dark & {
+      box-shadow: 
+        1px 0 2px rgba(0, 0, 0, 0.1),
+        2px 0 4px rgba(0, 0, 0, 0.15),
+        4px 0 8px rgba(0, 0, 0, 0.2),
+        8px 0 16px rgba(0, 0, 0, 0.25);
+    }
 
     /* 展开动画 */
     transition:
@@ -1063,9 +1087,24 @@ body[layout="double"] {
     width: $sideBarWidth;
     height: 100vh;
     background: var(--pure-theme-menu-bg);
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    // 右侧阴影 - 与顶部导航一致
+    box-shadow: 
+      1px 0 2px rgba(0, 0, 0, 0.03),
+      2px 0 4px rgba(0, 0, 0, 0.04),
+      4px 0 8px rgba(0, 0, 0, 0.05),
+      8px 0 16px rgba(0, 0, 0, 0.06);
     border-right: 1px solid var(--el-border-color-light);
     overflow: hidden;
+    position: relative;
+    z-index: 1;
+    
+    .dark & {
+      box-shadow: 
+        1px 0 2px rgba(0, 0, 0, 0.1),
+        2px 0 4px rgba(0, 0, 0, 0.15),
+        4px 0 8px rgba(0, 0, 0, 0.2),
+        8px 0 16px rgba(0, 0, 0, 0.25);
+    }
   }
 
   .double-nav-left {
@@ -1458,10 +1497,24 @@ body[layout="hover"] {
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 0;
+    z-index: 1;
     width: $sideBarWidth;
     height: 100vh;
     transition: all var(--pure-transition-duration) ease;
+    // 右侧阴影 - 与顶部导航一致
+    box-shadow: 
+      1px 0 2px rgba(0, 0, 0, 0.03),
+      2px 0 4px rgba(0, 0, 0, 0.04),
+      4px 0 8px rgba(0, 0, 0, 0.05),
+      8px 0 16px rgba(0, 0, 0, 0.06);
+    
+    .dark & {
+      box-shadow: 
+        1px 0 2px rgba(0, 0, 0, 0.1),
+        2px 0 4px rgba(0, 0, 0, 0.15),
+        4px 0 8px rgba(0, 0, 0, 0.2),
+        8px 0 16px rgba(0, 0, 0, 0.25);
+    }
   }
 
   .fixed-header {
