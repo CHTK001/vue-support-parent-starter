@@ -35,45 +35,47 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div :class="{ show }">
-    <div class="right-panel-background" />
-    <div ref="target" class="right-panel bg-bg_color">
-      <div class="project-configuration border-b-[1px] border-solid border-[var(--pure-border-color)]">
-        <h4 class="dark:text-white">
-          {{ t("panel.pureSystemSet") }}
-        </h4>
-        <span
-          v-tippy="{
-            content: t('panel.pureCloseSystemSet'),
-            placement: 'bottom-start',
-            zIndex: 41000,
-          }"
-          :class="iconClass"
-        >
-          <IconifyIconOffline class="dark:text-white" width="18px" height="18px" :icon="CloseIcon" @click="() => { show = !show; emitter.emit('settingPanelClosed'); }" />
-        </span>
-      </div>
-      <el-scrollbar>
-        <slot />
-      </el-scrollbar>
+  <Teleport to="body">
+    <div :class="{ show }">
+      <div class="right-panel-background" />
+      <div ref="target" class="right-panel bg-bg_color">
+        <div class="project-configuration border-b-[1px] border-solid border-[var(--pure-border-color)]">
+          <h4 class="dark:text-white">
+            {{ t("panel.pureSystemSet") }}
+          </h4>
+          <span
+            v-tippy="{
+              content: t('panel.pureCloseSystemSet'),
+              placement: 'bottom-start',
+              zIndex: 41000,
+            }"
+            :class="iconClass"
+          >
+            <IconifyIconOffline class="dark:text-white" width="18px" height="18px" :icon="CloseIcon" @click="() => { show = !show; emitter.emit('settingPanelClosed'); }" />
+          </span>
+        </div>
+        <el-scrollbar>
+          <slot />
+        </el-scrollbar>
 
-      <div class="flex justify-end p-3 border-t-[1px] border-solid border-[var(--pure-border-color)]">
-        <el-button
-          v-tippy="{
-            content: t('panel.pureClearCacheAndToLogin'),
-            placement: 'left-start',
-            zIndex: 41000,
-          }"
-          type="danger"
-          text
-          bg
-          @click="onReset"
-        >
-          {{ t("panel.pureClearCache") }}
-        </el-button>
+        <div class="flex justify-end p-3 border-t-[1px] border-solid border-[var(--pure-border-color)]">
+          <el-button
+            v-tippy="{
+              content: t('panel.pureClearCacheAndToLogin'),
+              placement: 'left-start',
+              zIndex: 41000,
+            }"
+            type="danger"
+            text
+            bg
+            @click="onReset"
+          >
+            {{ t("panel.pureClearCache") }}
+          </el-button>
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <style lang="scss" scoped>
