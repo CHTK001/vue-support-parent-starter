@@ -820,7 +820,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   border-right: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
-  z-index: 10;
+  z-index: 0; // 布局组件 z-index 统一为 0，避免遮挡对话框
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
@@ -971,7 +971,7 @@ const defer = useDefer(firstLevelMenus.value.length);
 
 .sub-menu-popup {
   position: fixed;
-  z-index: 9999;
+  z-index: 100; // 子菜单弹出层保持一定层级但不要太高，避免遮挡对话框
   pointer-events: auto;
   max-height: calc(100vh - 40px);
 
@@ -1517,6 +1517,8 @@ const defer = useDefer(firstLevelMenus.value.length);
 </style>
 
 <style lang="scss">
+@use "sass:color";
+
 // ==================== 春节主题样式 ====================
 html[data-skin="spring-festival"] {
   $spring-red: #dc143c;
@@ -2056,13 +2058,13 @@ html[data-skin="christmas"] {
 
   // 悬停导航容器
   .sidebar-hover-container {
-    background: linear-gradient(180deg, $xmas-green, darken($xmas-green, 5%)) !important;
+    background: linear-gradient(180deg, $xmas-green, color.adjust($xmas-green, $lightness: -5%)) !important;
     border-right: 3px solid $xmas-border !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 
     // Logo区域
     .sidebar-logo-container {
-      background: linear-gradient(180deg, darken($xmas-green, 8%), darken($xmas-green, 5%)) !important;
+      background: linear-gradient(180deg, color.adjust($xmas-green, $lightness: -8%), color.adjust($xmas-green, $lightness: -5%)) !important;
       border-bottom: 2px solid $xmas-border !important;
 
       .sidebar-title {
@@ -2075,7 +2077,7 @@ html[data-skin="christmas"] {
     .first-level-menu-item {
       color: $xmas-white !important;
       border: 1.5px solid rgba($xmas-gold, 0.3) !important;
-      background: rgba(darken($xmas-green, 5%), 0.6) !important;
+      background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
 
       .menu-icon {
         color: $xmas-gold !important;
@@ -2111,7 +2113,7 @@ html[data-skin="christmas"] {
     // 折叠按钮
     .hover-collapse-btn,
     .sidebar-collapse-btn {
-      background: linear-gradient(180deg, darken($xmas-green, 8%), darken($xmas-green, 10%)) !important;
+      background: linear-gradient(180deg, color.adjust($xmas-green, $lightness: -8%), color.adjust($xmas-green, $lightness: -10%)) !important;
       border-top: 2px solid $xmas-border !important;
 
       .collapse-icon,
@@ -2137,7 +2139,7 @@ html[data-skin="christmas"] {
   // 子菜单弹出层
   .sub-menu-popup {
     .sub-menu-container {
-      background: linear-gradient(180deg, $xmas-green, darken($xmas-green, 5%)) !important;
+      background: linear-gradient(180deg, $xmas-green, color.adjust($xmas-green, $lightness: -5%)) !important;
       border: 2px solid $xmas-gold !important;
       box-shadow:
         0 4px 20px rgba($xmas-gold, 0.3),
@@ -2151,7 +2153,7 @@ html[data-skin="christmas"] {
 
       // 菜单项
       .menu-item {
-        background: rgba(darken($xmas-green, 5%), 0.6) !important;
+        background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
         border: 1.5px solid rgba($xmas-gold, 0.3) !important;
         color: $xmas-white !important;
 
@@ -2186,7 +2188,7 @@ html[data-skin="christmas"] {
 
       // 收藏菜单项
       .favorite-menu-item {
-        background: rgba(darken($xmas-green, 5%), 0.6) !important;
+        background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
         color: $xmas-white !important;
 
         .favorite-menu-icon {

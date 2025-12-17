@@ -361,13 +361,17 @@ watch(visibleCount, () => {
   :deep(.custom-menu-item),
   :deep(.custom-sub-menu) {
     flex-shrink: 0;
-    height: 56px;
-    margin: 0;
+    height: 56px !important;
+    margin: 0 !important;
+    padding: 0 16px;
+    border-radius: 0;
   }
   
   :deep(.custom-sub-menu__title) {
-    height: 56px;
-    margin: 0;
+    height: 56px !important;
+    margin: 0 !important;
+    padding: 0 16px;
+    border-radius: 0;
   }
 }
 
