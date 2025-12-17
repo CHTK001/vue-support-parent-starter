@@ -1,6 +1,6 @@
 /**
  * 元旦主题 - 自定义弹出菜单样式
- * 冰蓝色主题
+ * 冰蓝色主题，支持通过类名或 data-skin 选择器应用
  */
 
 // 颜色变量
@@ -14,93 +14,133 @@ $ice-darker: #1E5F8C;
 $frost-purple: #E0E7F5;
 $frost-white: #FFFFFF;
 
-// 元旦主题弹出层样式
-html[data-skin="new-year"] {
-  // 弹出层容器
-  .custom-sub-menu__popper {
-    background: linear-gradient(180deg, rgba($ice-lightest, 0.98), rgba($frost-purple, 0.96)) !important;
-    border: 1px solid rgba($ice-medium, 0.25) !important;
-    border-radius: 12px !important;
-    box-shadow: 0 8px 32px rgba($ice-deep, 0.15) !important;
-    backdrop-filter: blur(16px);
-    
-    // 顶部冰晶线
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, $ice-medium 20%, $ice-primary 50%, $ice-medium 80%, transparent);
-      border-radius: 12px 12px 0 0;
-    }
-  }
+// 弹出层样式 mixin
+@mixin new-year-popper-styles {
+  background: linear-gradient(180deg, rgba($ice-lightest, 0.98), rgba($frost-purple, 0.96)) !important;
+  border: 1px solid rgba($ice-medium, 0.25) !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 8px 32px rgba($ice-deep, 0.15),
+    0 4px 16px rgba($ice-primary, 0.1),
+    inset 0 1px 0 rgba($frost-white, 0.5) !important;
+  backdrop-filter: blur(16px);
+  padding: 8px !important;
+  overflow: visible;
   
-  // 菜单项样式
+  // 顶部冰晶线
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12px;
+    right: 12px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, $ice-medium 20%, $ice-primary 50%, $ice-medium 80%, transparent);
+    border-radius: 0 0 2px 2px;
+  }
+}
+
+// 弹出层内菜单项样式 mixin
+@mixin new-year-popper-menu-items {
   .custom-menu-item {
-    color: $ice-darker !important;
-    background: rgba($frost-white, 0.6) !important;
-    border: 1px solid transparent !important;
-    border-radius: 6px !important;
-    transition: all 0.25s ease !important;
+    height: 40px;
+    padding: 0 14px;
+    margin: 3px 0;
+    color: $ice-darker;
+    background: transparent;
+    border-radius: 8px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     
     .menu-icon {
-      color: $ice-primary !important;
+      color: $ice-primary;
+    }
+    
+    .menu-title {
+      font-size: 14px;
+      font-weight: 500;
     }
     
     &:hover:not(.is-disabled) {
-      background: rgba($ice-medium, 0.15) !important;
-      border-color: rgba($ice-primary, 0.3) !important;
-      color: $ice-deep !important;
+      background: rgba($ice-medium, 0.15);
+      color: $ice-deep;
+      transform: translateX(2px);
       
       .menu-icon {
-        color: $ice-deep !important;
+        color: $ice-deep;
       }
     }
     
     &.is-active {
-      background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
-      border-color: rgba($ice-deep, 0.2) !important;
-      color: $frost-white !important;
-      box-shadow: 0 4px 16px rgba($ice-primary, 0.3) !important;
+      background: linear-gradient(135deg, $ice-primary, $ice-medium);
+      color: $frost-white;
+      box-shadow: 0 3px 12px rgba($ice-primary, 0.35);
       
       .menu-icon, .menu-title {
-        color: $frost-white !important;
+        color: $frost-white;
       }
     }
     
     &.is-disabled {
-      color: rgba($ice-darker, 0.4) !important;
-      background: rgba($frost-white, 0.3) !important;
+      color: rgba($ice-darker, 0.4);
+      background: rgba($frost-white, 0.3);
     }
   }
   
-  // 子菜单标题样式
-  .custom-sub-menu__title {
-    color: $ice-darker !important;
-    
-    .menu-icon {
-      color: $ice-primary !important;
-    }
-    
-    &:hover {
-      background: rgba($ice-medium, 0.12) !important;
-      color: $ice-deep !important;
+  // 子菜单样式
+  .custom-sub-menu {
+    .custom-sub-menu__title {
+      height: 40px;
+      padding: 0 14px;
+      margin: 3px 0;
+      border-radius: 8px;
+      color: $ice-darker;
       
       .menu-icon {
-        color: $ice-deep !important;
+        color: $ice-primary;
+      }
+      
+      .custom-sub-menu__icon-arrow {
+        color: $ice-primary;
+      }
+      
+      &:hover {
+        background: rgba($ice-medium, 0.12);
+        color: $ice-deep;
+        
+        .menu-icon {
+          color: $ice-deep;
+        }
+      }
+    }
+    
+    &.is-active > .custom-sub-menu__title {
+      background: linear-gradient(135deg, $ice-primary, $ice-medium);
+      color: $frost-white;
+      box-shadow: 0 3px 12px rgba($ice-primary, 0.35);
+      
+      .menu-icon, .menu-title, .custom-sub-menu__icon-arrow {
+        color: $frost-white;
       }
     }
   }
-  
-  .custom-sub-menu.is-active > .custom-sub-menu__title {
-    background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
-    color: $frost-white !important;
-    box-shadow: 0 4px 16px rgba($ice-primary, 0.3) !important;
-    
-    .menu-icon, .menu-title, .custom-sub-menu__icon-arrow {
-      color: $frost-white !important;
-    }
+}
+
+// === 通过类名应用样式（用于 Teleport 到 body 的弹出层） ===
+.new-year-custom-popper {
+  @include new-year-popper-styles;
+  @include new-year-popper-menu-items;
+}
+
+// 嵌套弹出层（二级及以上）
+.new-year-custom-popper .custom-sub-menu__popper {
+  @include new-year-popper-styles;
+  @include new-year-popper-menu-items;
+}
+
+// === 通过 data-skin 应用样式（兼容全局主题切换） ===
+html[data-skin="new-year"] {
+  .custom-sub-menu__popper {
+    @include new-year-popper-styles;
+    @include new-year-popper-menu-items;
   }
 }

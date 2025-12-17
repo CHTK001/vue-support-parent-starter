@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import BaseMix from './BaseMix.vue';
+import BaseCustomMix from './BaseCustomMix.vue';
 </script>
 
 <template>
   <div class="new-year-mix-wrapper">
-    <BaseMix theme-class="new-year-mix" />
+    <BaseCustomMix 
+      theme-class="new-year-mix" 
+      menu-item-class="new-year-mix-item"
+    />
   </div>
 </template>
 
@@ -18,6 +21,7 @@ $ice-primary: #4EA8DE;
 $ice-deep: #2A7AB8;
 $ice-darker: #1E5F8C;
 $frost-purple: #E0E7F5;
+$frost-white: #FFFFFF;
 
 .new-year-mix-wrapper {
   width: 100%;
@@ -50,79 +54,6 @@ $frost-purple: #E0E7F5;
       z-index: 10;
     }
     
-    .horizontal-header-left {
-      span {
-        color: $ice-deep !important;
-        text-shadow: 0 1px 2px rgba($ice-medium, 0.3);
-        font-weight: 600;
-      }
-      
-      img {
-        filter: drop-shadow(0 2px 6px rgba($ice-primary, 0.25));
-      }
-    }
-    
-    .horizontal-header-menu {
-      background: transparent !important;
-      
-      .el-menu-item,
-      .el-sub-menu__title {
-        color: $ice-darker !important;
-        background: transparent !important;
-        border-radius: 8px;
-        margin: 0 4px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        font-weight: 500;
-        
-        &::after {
-          content: '';
-          position: absolute;
-          bottom: 0;
-          left: 50%;
-          width: 0;
-          height: 2px;
-          background: linear-gradient(90deg, $ice-primary, $ice-medium);
-          transform: translateX(-50%);
-          transition: width 0.3s ease;
-          border-radius: 1px;
-        }
-        
-        &:hover {
-          background: rgba($ice-medium, 0.15) !important;
-          color: $ice-deep !important;
-          
-          &::after {
-            width: 80%;
-          }
-        }
-        
-        &.is-active {
-          background: linear-gradient(135deg, rgba($ice-primary, 0.15), rgba($ice-medium, 0.1)) !important;
-          color: $ice-deep !important;
-          font-weight: 600;
-          
-          &::after {
-            width: 100%;
-            box-shadow: 0 0 8px rgba($ice-primary, 0.4);
-          }
-        }
-        
-        .el-icon, svg {
-          color: $ice-primary !important;
-        }
-        
-        &:hover .el-icon, &:hover svg {
-          color: $ice-deep !important;
-        }
-      }
-      
-      .el-sub-menu.is-active > .el-sub-menu__title {
-        color: $ice-deep !important;
-        background: rgba($ice-medium, 0.12) !important;
-      }
-    }
-    
     .horizontal-header-right {
       color: $ice-darker;
       
@@ -131,6 +62,69 @@ $frost-purple: #E0E7F5;
         
         &:hover {
           color: $ice-deep !important;
+        }
+      }
+    }
+    
+    // 自定义菜单项样式
+    .custom-menu-item {
+      color: $ice-darker;
+      background: transparent;
+      border-radius: 8px;
+      margin: 0 4px;
+      padding: 0 16px;
+      height: 40px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      
+      // 底部指示线
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(90deg, $ice-primary, $ice-medium);
+        transform: translateX(-50%);
+        transition: width 0.3s ease;
+        border-radius: 1px;
+      }
+      
+      .menu-icon {
+        color: $ice-primary;
+      }
+      
+      .menu-title {
+        font-weight: 500;
+      }
+      
+      &:hover {
+        background: rgba($ice-medium, 0.15);
+        color: $ice-deep;
+        
+        &::after {
+          width: 80%;
+        }
+        
+        .menu-icon {
+          color: $ice-deep;
+        }
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, $ice-primary, $ice-medium);
+        color: $frost-white;
+        box-shadow: 0 3px 12px rgba($ice-primary, 0.35);
+        
+        &::after {
+          width: 100%;
+          background: rgba($frost-white, 0.6);
+          box-shadow: 0 0 8px rgba($frost-white, 0.4);
+        }
+        
+        .menu-icon, .menu-title {
+          color: $frost-white;
         }
       }
     }

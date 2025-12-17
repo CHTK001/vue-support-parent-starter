@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import BaseHorizontal from './BaseHorizontal.vue';
-import NewYearSidebarItem from '../../components/themes/NewYearSidebarItem.vue';
+import BaseCustomHorizontal from './BaseCustomHorizontal.vue';
+import NewYearCustomSidebarItem from '../../components/custom-menu/themes/NewYearCustomSidebarItem.vue';
+
+// 引入元旦主题弹出层样式
+import '../../components/custom-menu/themes/new-year.scss';
 </script>
 
 <template>
   <div class="new-year-horizontal-wrapper">
-    <BaseHorizontal 
+    <BaseCustomHorizontal 
       theme-class="new-year-horizontal" 
-      :sidebar-item-component="NewYearSidebarItem" 
+      popper-class="new-year-custom-popper"
+      :sidebar-item-component="NewYearCustomSidebarItem" 
     />
   </div>
 </template>
