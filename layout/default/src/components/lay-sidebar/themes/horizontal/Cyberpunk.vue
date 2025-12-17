@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import BaseHorizontal from './BaseHorizontal.vue';
-import CyberpunkSidebarItem from '../../components/themes/CyberpunkSidebarItem.vue';
+import BaseCustomHorizontal from './BaseCustomHorizontal.vue';
+import CyberpunkCustomSidebarItem from '../../components/custom-menu/themes/CyberpunkCustomSidebarItem.vue';
+
+// 引入赛博朋克主题弹出层样式
+import '../../components/custom-menu/themes/cyberpunk.scss';
 </script>
 
 <template>
   <div class="cyberpunk-horizontal-wrapper">
-    <BaseHorizontal 
+    <BaseCustomHorizontal 
       theme-class="cyberpunk-horizontal" 
-      :sidebar-item-component="CyberpunkSidebarItem" 
+      popper-class="cyberpunk-custom-popper"
+      :sidebar-item-component="CyberpunkCustomSidebarItem" 
     />
   </div>
 </template>

@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import BaseHorizontal from './BaseHorizontal.vue';
-import MidAutumnSidebarItem from '../../components/themes/MidAutumnSidebarItem.vue';
+import BaseCustomHorizontal from './BaseCustomHorizontal.vue';
+import MidAutumnCustomSidebarItem from '../../components/custom-menu/themes/MidAutumnCustomSidebarItem.vue';
+
+// 引入中秋主题弹出层样式
+import '../../components/custom-menu/themes/mid-autumn.scss';
 </script>
 
 <template>
   <div class="mid-autumn-horizontal-wrapper">
-    <BaseHorizontal 
+    <BaseCustomHorizontal 
       theme-class="mid-autumn-horizontal" 
-      :sidebar-item-component="MidAutumnSidebarItem" 
+      popper-class="mid-autumn-custom-popper"
+      :sidebar-item-component="MidAutumnCustomSidebarItem" 
     />
   </div>
 </template>

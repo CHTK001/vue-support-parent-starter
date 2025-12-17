@@ -1,0 +1,109 @@
+/**
+ * 春节主题 - 自定义弹出菜单样式
+ * 中国红配金色
+ */
+
+$spring-red: #DC143C;
+$spring-red-dark: #B22222;
+$spring-gold: #FFD700;
+
+.spring-festival-custom-popper {
+  background: linear-gradient(180deg, rgba($spring-red, 0.98), rgba($spring-red-dark, 0.98)) !important;
+  border: 2px solid rgba($spring-gold, 0.4) !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 8px 32px rgba($spring-red-dark, 0.3),
+    0 0 20px rgba($spring-gold, 0.15),
+    inset 0 1px 0 rgba($spring-gold, 0.3) !important;
+  padding: 8px !important;
+  
+  // 顶部金色装饰线
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12px;
+    right: 12px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, $spring-gold 30%, rgba(255, 255, 255, 0.8) 50%, $spring-gold 70%, transparent);
+    border-radius: 0 0 2px 2px;
+  }
+  
+  .custom-menu-item {
+    height: 40px;
+    padding: 0 14px;
+    margin: 3px 0;
+    color: rgba(255, 255, 255, 0.95);
+    background: transparent;
+    border-radius: 6px;
+    transition: all 0.25s ease;
+    
+    .menu-icon {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    &:hover:not(.is-disabled) {
+      background: rgba($spring-gold, 0.15);
+      color: $spring-gold;
+      
+      .menu-icon {
+        color: $spring-gold;
+      }
+    }
+    
+    &.is-active {
+      background: linear-gradient(135deg, $spring-gold, #FFA500);
+      color: $spring-red-dark;
+      box-shadow: 0 3px 12px rgba($spring-gold, 0.4);
+      
+      .menu-icon, .menu-title {
+        color: $spring-red-dark;
+      }
+    }
+  }
+  
+  .custom-sub-menu {
+    .custom-sub-menu__title {
+      height: 40px;
+      padding: 0 14px;
+      margin: 3px 0;
+      border-radius: 6px;
+      color: rgba(255, 255, 255, 0.95);
+      
+      .menu-icon {
+        color: rgba(255, 255, 255, 0.9);
+      }
+      
+      .custom-sub-menu__icon-arrow {
+        color: rgba(255, 255, 255, 0.8);
+      }
+      
+      &:hover {
+        background: rgba($spring-gold, 0.12);
+        color: $spring-gold;
+        
+        .menu-icon {
+          color: $spring-gold;
+        }
+      }
+    }
+    
+    &.is-active > .custom-sub-menu__title {
+      background: linear-gradient(135deg, $spring-gold, #FFA500);
+      color: $spring-red-dark;
+      box-shadow: 0 3px 12px rgba($spring-gold, 0.4);
+      
+      .menu-icon, .menu-title, .custom-sub-menu__icon-arrow {
+        color: $spring-red-dark;
+      }
+    }
+  }
+}
+
+.spring-festival-custom-popper .custom-sub-menu__popper {
+  background: linear-gradient(180deg, rgba($spring-red, 0.98), rgba($spring-red-dark, 0.98)) !important;
+  border: 1px solid rgba($spring-gold, 0.3) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 24px rgba($spring-red-dark, 0.25) !important;
+  padding: 6px !important;
+}
