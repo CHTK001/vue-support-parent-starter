@@ -1,12 +1,7 @@
 <template>
   <div
     class="header-container-with-decoration"
-    :class="{ 'fixed-header': set.fixedHeader, 'shadow-tab': set.fixedHeader }"
-    :style="[
-      set.hideTabs && layout.includes('horizontal')
-        ? 'box-shadow: var(--el-box-shadow-light)'
-        : '',
-    ]"
+    :class="{ 'fixed-header': set.fixedHeader }"
   >
     <!-- 纵向和混合布局的导航栏 -->
     <div
@@ -117,202 +112,14 @@ import '@repo/skin';
 .header-container-with-decoration {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  
-  // 确保 shadow-tab 的 padding 为 0
-  &.shadow-tab {
-    padding: 0 !important;
-  }
-  
-  // 确保 fixed-header 和 shadow-tab 组合时 padding 也为 0
-  &.fixed-header.shadow-tab {
-    padding: 0 !important;
-  }
+  background: var(--el-bg-color);
 }
 
-// 头部容器样式优化
-.header-only-tags {
-  position: fixed;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: 0; // 系统框架层级统一为 0
-  width: 100%;
-  overflow: hidden;
-
-  // 响应式适配
-  @media (max-width: 768px) {
-    width: 100%;
-    left: 0;
-  }
-}
-</style>
 // 头部容器样式优化
 .header-only-tags {
   position: relative;
   min-height: 48px;
   background: transparent;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      rgba(64, 158, 255, 0.1) 0%,
-      rgba(64, 158, 255, 0.2) 50%,
-      rgba(64, 158, 255, 0.1) 100%
-    );
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      rgba(0, 0, 0, 0.02) 0%,
-      rgba(0, 0, 0, 0.06) 50%,
-      rgba(0, 0, 0, 0.02) 100%
-    );
-  }
-
-  .dark & {
-    &::before {
-      background: linear-gradient(
-        90deg,
-        rgba(64, 158, 255, 0.15) 0%,
-        rgba(64, 158, 255, 0.25) 50%,
-        rgba(64, 158, 255, 0.15) 100%
-      );
-    }
-
-    &::after {
-      background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.02) 0%,
-        rgba(255, 255, 255, 0.06) 50%,
-        rgba(255, 255, 255, 0.02) 100%
-      );
-    }
-  }
-}
-
-// 深度样式优化
-:deep(.el-header) {
-  padding: 0;
-  height: auto;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  .header-container {
-    display: flex;
-    align-items: center;
-    padding: 0 20px;
-    height: 100%;
-    min-height: 48px;
-
-    .left-content {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .right-content {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-  }
-}
-
-// 导航容器现代化样式
-.nav-container {
-  position: relative;
-  min-height: 48px;
-  background: transparent;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      rgba(0, 0, 0, 0.02) 0%,
-      rgba(0, 0, 0, 0.06) 50%,
-      rgba(0, 0, 0, 0.02) 100%
-    );
-  }
-
-  .dark & {
-    &::after {
-      background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.02) 0%,
-        rgba(255, 255, 255, 0.06) 50%,
-        rgba(255, 255, 255, 0.02) 100%
-      );
-    }
-  }
-}
-
-// 响应式设计优化
-@media (max-width: 1024px) {
-  :deep(.el-header) {
-    .header-container {
-      padding: 0 16px;
-      gap: 12px;
-
-      .left-content {
-        gap: 12px;
-      }
-
-      .right-content {
-        gap: 16px;
-      }
-    }
-  }
-}
-
-@media (max-width: 768px) {
-  :deep(.el-header) {
-    .header-container {
-      padding: 0 12px;
-
-      .left-content {
-        gap: 8px;
-      }
-
-      .right-content {
-        gap: 12px;
-      }
-    }
-  }
-}
-
-// 动画增强
-.fixed-header {
-  animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    transform: translateY(-100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
 }
 </style>
+

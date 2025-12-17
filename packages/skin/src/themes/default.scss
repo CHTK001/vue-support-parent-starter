@@ -23,15 +23,58 @@
 
 // 使用 data-skin 属性选择器
 html[data-skin="default"] {
-  // Header 容器样式
-  .header-container-with-decoration {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
+  // ==================== 导航阴影定义 ====================
+  .fixed-header {
+    box-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      0 2px 4px rgba(0, 0, 0, 0.04),
+      0 4px 8px rgba(0, 0, 0, 0.05),
+      0 8px 16px rgba(0, 0, 0, 0.06);
     border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-
-    &.shadow-tab {
-      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+    
+    // 底部渐变阴影增强立体感
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, transparent 100%);
+      pointer-events: none;
     }
+  }
+
+  // 侧边栏悬浮导航右侧阴影
+  .sidebar-hover-container {
+    position: relative;
+    z-index: 1;
+    box-shadow: 
+      1px 0 2px rgba(0, 0, 0, 0.03),
+      2px 0 4px rgba(0, 0, 0, 0.04),
+      4px 0 8px rgba(0, 0, 0, 0.05),
+      8px 0 16px rgba(0, 0, 0, 0.06);
+    
+    // 右侧渐变阴影增强立体感
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: -1px;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(90deg, rgba(0, 0, 0, 0.04) 0%, transparent 100%);
+      pointer-events: none;
+    }
+  }
+
+  // Header 容器样式 - 立体层次感
+  .header-container-with-decoration {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    position: relative;
+
   }
   
   // Navbar 样式
@@ -401,13 +444,36 @@ html[data-skin="default"] {
 
 // 暗色模式
 html[data-skin="default"].dark {
-  .header-container-with-decoration {
-    background: rgba(18, 18, 23, 0.95);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-
-    &.shadow-tab {
-      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+  // 导航阴影 - 暗色模式
+  .fixed-header {
+    box-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.1),
+      0 2px 4px rgba(0, 0, 0, 0.15),
+      0 4px 8px rgba(0, 0, 0, 0.2),
+      0 8px 16px rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    
+    &::after {
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, transparent 100%);
     }
+  }
+
+  // 侧边栏悬浮导航右侧阴影 - 暗色模式
+  .sidebar-hover-container {
+    box-shadow: 
+      1px 0 2px rgba(0, 0, 0, 0.1),
+      2px 0 4px rgba(0, 0, 0, 0.15),
+      4px 0 8px rgba(0, 0, 0, 0.2),
+      8px 0 16px rgba(0, 0, 0, 0.25);
+    
+    &::after {
+      background: linear-gradient(90deg, rgba(0, 0, 0, 0.2) 0%, transparent 100%);
+    }
+  }
+
+  .header-container-with-decoration {
+    background: rgba(18, 18, 23, 0.98);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
   
   // 暗色模式下的 Navbar 样式
