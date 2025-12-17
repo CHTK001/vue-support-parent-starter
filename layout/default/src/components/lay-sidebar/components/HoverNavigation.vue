@@ -2217,4 +2217,187 @@ html[data-skin="christmas"] {
     }
   }
 }
+
+// ==================== 元旦主题样式 ====================
+html[data-skin="new-year"] {
+  // 元旦冰雪主题色
+  $ice-lightest: #F5FBFF;
+  $ice-light: #B8E0F2;
+  $ice-medium: #7CC2E8;
+  $ice-primary: #4EA8DE;
+  $ice-deep: #2A7AB8;
+  $ice-darker: #1E5F8C;
+  $frost-white: #FFFFFF;
+  $frost-purple: #E0E7F5;
+  $ice-border: rgba(78, 168, 222, 0.3);
+
+  // 悬停导航容器
+  .sidebar-hover-container {
+    background: linear-gradient(180deg, rgba($ice-lightest, 0.98), rgba($frost-purple, 0.95)) !important;
+    border-right: 2px solid $ice-border !important;
+    box-shadow: 0 4px 20px rgba($ice-deep, 0.15) !important;
+    backdrop-filter: blur(12px);
+
+    // Logo区域
+    .sidebar-logo-container {
+      background: linear-gradient(180deg, rgba($frost-white, 0.95), rgba($ice-lightest, 0.9)) !important;
+      border-bottom: 1px solid rgba($ice-medium, 0.3) !important;
+
+      .sidebar-title {
+        color: $ice-darker !important;
+        text-shadow: 0 1px 2px rgba($ice-deep, 0.2);
+      }
+    }
+
+    // 一级菜单项
+    .first-level-menu-item {
+      color: $ice-darker !important;
+      border: 1px solid rgba($ice-medium, 0.25) !important;
+      background: rgba($frost-white, 0.7) !important;
+      border-radius: 8px;
+
+      .menu-icon {
+        color: $ice-primary !important;
+      }
+
+      .menu-title {
+        color: $ice-darker !important;
+      }
+
+      &:hover {
+        background: rgba($ice-medium, 0.2) !important;
+        border-color: rgba($ice-primary, 0.4) !important;
+        box-shadow: 0 4px 12px rgba($ice-primary, 0.2) !important;
+        transform: translateX(4px);
+
+        .menu-icon,
+        .menu-title {
+          color: $ice-deep !important;
+        }
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
+        border: 2px solid rgba($frost-white, 0.5) !important;
+        font-weight: 700;
+        box-shadow:
+          0 4px 16px rgba($ice-primary, 0.4),
+          0 0 20px rgba($ice-medium, 0.3) !important;
+
+        .menu-icon,
+        .menu-title {
+          color: $frost-white !important;
+        }
+      }
+    }
+
+    // 折叠按钮
+    .hover-collapse-btn,
+    .sidebar-collapse-btn {
+      background: linear-gradient(180deg, rgba($frost-white, 0.95), rgba($ice-lightest, 0.9)) !important;
+      border-top: 1px solid rgba($ice-medium, 0.3) !important;
+
+      .collapse-icon,
+      .sidebar-collapse-icon {
+        color: $ice-primary !important;
+      }
+
+      .collapse-text {
+        color: $ice-darker !important;
+      }
+
+      &:hover {
+        background: rgba($ice-medium, 0.2) !important;
+
+        .collapse-icon,
+        .sidebar-collapse-icon {
+          color: $ice-deep !important;
+        }
+      }
+    }
+  }
+
+  // 子菜单弹出层
+  .sub-menu-popup {
+    .sub-menu-container {
+      background: linear-gradient(180deg, rgba($ice-lightest, 0.98), rgba($frost-purple, 0.95)) !important;
+      border: 2px solid rgba($ice-primary, 0.3) !important;
+      box-shadow:
+        0 8px 32px rgba($ice-deep, 0.2),
+        0 20px 60px rgba(0, 0, 0, 0.15) !important;
+      backdrop-filter: blur(12px);
+
+      // 列标题
+      .column-title {
+        color: $ice-deep !important;
+        border-bottom: 1px solid rgba($ice-medium, 0.3) !important;
+      }
+
+      // 菜单项
+      .menu-item {
+        background: rgba($frost-white, 0.7) !important;
+        border: 1px solid rgba($ice-medium, 0.25) !important;
+        color: $ice-darker !important;
+        border-radius: 8px;
+
+        &:hover {
+          background: rgba($ice-medium, 0.2) !important;
+          border-color: rgba($ice-primary, 0.4) !important;
+          color: $ice-deep !important;
+          box-shadow: 0 4px 12px rgba($ice-primary, 0.2) !important;
+        }
+
+        &.is-active {
+          background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
+          border: 2px solid rgba($frost-white, 0.5) !important;
+          color: $frost-white !important;
+          box-shadow: 0 4px 16px rgba($ice-primary, 0.4) !important;
+        }
+      }
+
+      // 收藏按钮
+      .favorite-btn {
+        background: rgba($ice-primary, 0.15) !important;
+        border-color: rgba($ice-primary, 0.3) !important;
+
+        svg {
+          color: $ice-primary !important;
+        }
+
+        &:hover {
+          background: rgba($ice-primary, 0.25) !important;
+        }
+      }
+
+      // 收藏菜单项
+      .favorite-menu-item {
+        background: rgba($frost-white, 0.7) !important;
+        color: $ice-darker !important;
+
+        .favorite-menu-icon {
+          color: $ice-primary !important;
+          background: rgba($ice-primary, 0.15) !important;
+        }
+
+        &:hover {
+          background: rgba($ice-medium, 0.2) !important;
+          border-color: rgba($ice-primary, 0.4) !important;
+        }
+      }
+
+      // 空收藏提示
+      .empty-favorites {
+        color: rgba($ice-darker, 0.8) !important;
+
+        .empty-icon {
+          color: rgba($ice-primary, 0.5) !important;
+        }
+
+        p {
+          color: $ice-deep !important;
+        }
+      }
+    }
+  }
+}
 </style>
