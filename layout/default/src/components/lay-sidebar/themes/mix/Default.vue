@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import BaseMix from './BaseMix.vue';
+import BaseCustomMix from './BaseCustomMix.vue';
 </script>
 
 <template>
-  <BaseMix />
+  <BaseCustomMix theme-class="default-mix" />
 </template>

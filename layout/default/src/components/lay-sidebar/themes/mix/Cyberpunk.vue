@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import BaseMix from './BaseMix.vue';
+import BaseCustomMix from './BaseCustomMix.vue';
 </script>
 
 <template>
   <div class="cyberpunk-mix-wrapper">
-    <BaseMix theme-class="cyberpunk-mix" />
+    <BaseCustomMix 
+      theme-class="cyberpunk-mix" 
+      menu-item-class="cyberpunk-mix-item"
+    />
   </div>
 </template>
 
@@ -51,58 +54,65 @@ $cyber-border: rgba(0, 255, 255, 0.25);
       z-index: 10;
     }
     
-    .horizontal-header-menu {
-      background: transparent !important;
+    .custom-menu-item {
+      color: $cyber-cyan;
+      border-radius: 4px;
+      margin: 0 4px;
+      padding: 0 16px;
+      height: 40px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
       
-      .el-menu-item,
-      .el-sub-menu__title {
-        color: $cyber-cyan !important;
-        border-radius: 4px;
-        margin: 0 4px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(90deg, $cyber-cyan, $cyber-magenta);
+        transform: translateX(-50%);
+        transition: width 0.3s ease;
+      }
+      
+      .menu-icon {
+        color: $cyber-cyan;
+        filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+      }
+      
+      &:hover {
+        background: rgba(0, 255, 255, 0.1);
+        color: #fff;
+        box-shadow: 
+          0 0 15px rgba(0, 255, 255, 0.2),
+          inset 0 0 15px rgba(0, 255, 255, 0.05);
         
         &::after {
-          content: '';
-          position: absolute;
-          bottom: 0;
-          left: 50%;
-          width: 0;
-          height: 2px;
-          background: linear-gradient(90deg, $cyber-cyan, $cyber-magenta);
-          transform: translateX(-50%);
-          transition: width 0.3s ease;
+          width: 80%;
+        }
+      }
+      
+      &.is-active {
+        background: rgba(0, 255, 255, 0.15);
+        color: #fff;
+        box-shadow: 
+          0 0 20px rgba(0, 255, 255, 0.3),
+          inset 0 0 20px rgba(0, 255, 255, 0.08);
+        
+        &::after {
+          width: 100%;
+          box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
         }
         
-        &:hover {
-          background: rgba(0, 255, 255, 0.1) !important;
-          color: #fff !important;
-          box-shadow: 
-            0 0 15px rgba(0, 255, 255, 0.2),
-            inset 0 0 15px rgba(0, 255, 255, 0.05);
-          
-          &::after {
-            width: 80%;
-          }
+        .menu-icon {
+          color: #fff;
         }
-        
-        &.is-active {
-          background: rgba(0, 255, 255, 0.15) !important;
-          color: #fff !important;
-          box-shadow: 
-            0 0 20px rgba(0, 255, 255, 0.3),
-            inset 0 0 20px rgba(0, 255, 255, 0.08);
-          
-          &::after {
-            width: 100%;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-          }
-        }
-        
-        .el-icon, svg {
-          color: $cyber-cyan !important;
-          filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
-        }
+      }
+    }
+    
+    .custom-sub-menu.more-menu {
+      .custom-sub-menu-title {
+        color: $cyber-cyan;
       }
     }
     

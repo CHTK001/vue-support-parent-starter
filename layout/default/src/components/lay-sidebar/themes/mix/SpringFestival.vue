@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import BaseMix from './BaseMix.vue';
+import BaseCustomMix from './BaseCustomMix.vue';
 </script>
 
 <template>
   <div class="spring-festival-mix-wrapper">
-    <BaseMix theme-class="spring-festival-mix" />
+    <BaseCustomMix 
+      theme-class="spring-festival-mix" 
+      menu-item-class="spring-festival-mix-item"
+    />
   </div>
 </template>
 
@@ -23,23 +26,41 @@ $spring-gold: #FFD700;
     background: linear-gradient(180deg, $spring-red, $spring-red-dark) !important;
     border-bottom: 2px solid rgba($spring-gold, 0.3) !important;
     
-    .horizontal-header-menu {
-      background: transparent !important;
+    .custom-menu-item {
+      color: rgba(255, 255, 255, 0.9);
+      border-radius: 6px;
+      margin: 0 4px;
+      padding: 0 16px;
+      height: 40px;
+      transition: all 0.3s ease;
       
-      .el-menu-item,
-      .el-sub-menu__title {
-        color: rgba(255, 255, 255, 0.9) !important;
+      .menu-icon {
+        color: $spring-gold;
+      }
+      
+      &:hover {
+        background: rgba($spring-gold, 0.15);
+        color: $spring-gold;
         
-        &:hover {
-          background: rgba($spring-gold, 0.15) !important;
-          color: $spring-gold !important;
+        .menu-icon {
+          color: $spring-gold;
         }
+      }
+      
+      &.is-active {
+        background: rgba($spring-gold, 0.2);
+        color: $spring-gold;
+        border-bottom: 2px solid $spring-gold;
         
-        &.is-active {
-          background: rgba($spring-gold, 0.2) !important;
-          color: $spring-gold !important;
-          border-bottom: 2px solid $spring-gold;
+        .menu-icon {
+          color: $spring-gold;
         }
+      }
+    }
+    
+    .custom-sub-menu.more-menu {
+      .custom-sub-menu-title {
+        color: rgba(255, 255, 255, 0.9);
       }
     }
     
