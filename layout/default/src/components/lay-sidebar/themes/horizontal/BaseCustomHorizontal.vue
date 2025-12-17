@@ -2,6 +2,7 @@
 /**
  * 横向导航基础组件 - 使用自定义菜单
  * 完全用 div 替代 el-menu，避免样式冲突
+ * 使用 ResizeObserver + 防抖监听宽度变化
  */
 import { computed, ref, provide, onMounted, onBeforeUnmount, nextTick, watch, type Component } from 'vue';
 import { useRoute } from 'vue-router';
@@ -39,10 +40,12 @@ const defaultActive = computed(() =>
 );
 
 // === 菜单溢出处理 ===
+const headerRef = ref<HTMLElement | null>(null);
 const menuContainerRef = ref<HTMLElement | null>(null);
-const visibleCount = ref(5); // 可见菜单数量，初始为5个
-const MENU_ITEM_WIDTH = 100; // 每个菜单项的估算宽度（保守估计）
-const MORE_MENU_WIDTH = 70; // "更多"菜单的宽度
+const rightToolbarRef = ref<HTMLElement | null>(null);
+const visibleCount = ref(999); // 可见菜单数量，初始全部显示
+const MORE_MENU_WIDTH = 80; // "更多"菜单的宽度
+const LOGO_WIDTH = 210; // Logo 区域的估算宽度
 
 // 全部菜单
 const allMenus = computed(() => usePermissionStoreHook().wholeMenus);
@@ -63,80 +66,125 @@ const overflowMenus = computed(() => {
   return allMenus.value.slice(visibleCount.value);
 });
 
-// 获取容器 DOM 元素
-function getContainerEl(): HTMLElement | null {
+// 获取菜单容器 DOM 元素
+function getMenuContainerEl(): HTMLElement | null {
   if (!menuContainerRef.value) return null;
-  // 如果是组件实例，获取其 $el
   if ('$el' in menuContainerRef.value) {
     return (menuContainerRef.value as any).$el as HTMLElement;
   }
   return menuContainerRef.value as HTMLElement;
 }
 
-// 计算可见菜单数量
-let retryTimer: ReturnType<typeof setTimeout> | null = null;
-
-function calcVisibleCount(retryCount = 0) {
-  const containerEl = getContainerEl();
-  if (!containerEl) {
-    // 如果容器还不存在，稍后重试
-    if (retryCount < 5) {
-      retryTimer = setTimeout(() => calcVisibleCount(retryCount + 1), 100);
-    }
+// 计算可见菜单数量 - 基于实际测量
+function calcVisibleCount() {
+  if (!headerRef.value) {
     return;
   }
   
-  const containerWidth = containerEl.clientWidth;
   const totalMenus = allMenus.value.length;
-  
-  // 如果容器宽度为0，稍后重试
-  if (containerWidth === 0 && retryCount < 5) {
-    retryTimer = setTimeout(() => calcVisibleCount(retryCount + 1), 100);
+  if (totalMenus === 0) {
     return;
   }
   
-  // 如果没有菜单，稍后重试
-  if (totalMenus === 0 && retryCount < 5) {
-    retryTimer = setTimeout(() => calcVisibleCount(retryCount + 1), 100);
+  // 获取整个 header 的宽度
+  const headerWidth = headerRef.value.clientWidth;
+  if (headerWidth === 0) {
+    return;
+  }
+  
+  // 获取右侧工具栏的实际宽度
+  const rightToolbarWidth = rightToolbarRef.value?.offsetWidth || 300;
+  
+  // 计算菜单区域的可用宽度 = header宽度 - Logo宽度 - 右侧工具栏宽度 - padding
+  const padding = 32; // 左右 padding
+  const menuMargin = 32; // 菜单区域的 margin
+  const availableWidth = headerWidth - LOGO_WIDTH - rightToolbarWidth - padding - menuMargin;
+  
+  if (availableWidth <= 0) {
+    visibleCount.value = 1;
+    return;
+  }
+  
+  // 获取菜单容器
+  const menuContainerEl = getMenuContainerEl();
+  
+  // 获取所有菜单项元素并计算宽度
+  const itemWidths: number[] = [];
+  
+  if (menuContainerEl) {
+    const menuItems = menuContainerEl.querySelectorAll(':scope > .custom-menu-item, :scope > .custom-sub-menu:not(.more-menu)');
+    menuItems.forEach((item) => {
+      const el = item as HTMLElement;
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      const marginLeft = parseFloat(style.marginLeft) || 0;
+      const marginRight = parseFloat(style.marginRight) || 0;
+      itemWidths.push(rect.width + marginLeft + marginRight);
+    });
+  }
+  
+  // 如果没有测量到宽度，使用估算值
+  const estimatedItemWidth = 100;
+  
+  if (itemWidths.length === 0 || itemWidths.every(w => w === 0)) {
+    const safeWidth = availableWidth - MORE_MENU_WIDTH - 20;
+    const count = Math.floor(safeWidth / estimatedItemWidth);
+    visibleCount.value = Math.max(1, Math.min(count, totalMenus));
     return;
   }
   
   // 计算可以容纳的菜单数量
-  let count = totalMenus;
+  let usedWidth = 0;
+  let count = 0;
+  const safetyMargin = 30; // 安全边距
   
-  // 如果所有菜单都能显示，就不需要"更多"
-  if (totalMenus * MENU_ITEM_WIDTH <= containerWidth) {
-    visibleCount.value = totalMenus;
-    return;
+  for (let i = 0; i < totalMenus; i++) {
+    const itemWidth = itemWidths[i] || estimatedItemWidth;
+    const remainingMenus = totalMenus - i - 1;
+    const needMoreMenu = remainingMenus > 0;
+    const reservedWidth = needMoreMenu ? MORE_MENU_WIDTH + safetyMargin : 0;
+    
+    if (usedWidth + itemWidth + reservedWidth <= availableWidth) {
+      usedWidth += itemWidth;
+      count++;
+    } else {
+      break;
+    }
   }
   
-  // 需要预留"更多"菜单的空间
-  const availableWidth = containerWidth - MORE_MENU_WIDTH;
-  count = Math.floor(availableWidth / MENU_ITEM_WIDTH);
-  
-  // 至少显示1个菜单
   visibleCount.value = Math.max(1, count);
+}
+
+// 防抖的计算函数（150ms 防抖）
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+function debouncedCalcVisibleCount() {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+  debounceTimer = setTimeout(() => {
+    calcVisibleCount();
+  }, 150);
 }
 
 // 监听容器尺寸变化
 let resizeObserver: ResizeObserver | null = null;
+let initTimer: ReturnType<typeof setTimeout> | null = null;
+let recalcTimer: ReturnType<typeof setTimeout> | null = null;
 
 function setupResizeObserver() {
-  const containerEl = getContainerEl();
-  if (!containerEl) {
-    // 如果容器还不存在，稍后重试
-    setTimeout(() => setupResizeObserver(), 100);
+  if (!headerRef.value) {
+    initTimer = setTimeout(() => setupResizeObserver(), 100);
     return;
   }
   
-  // 清理旧的 observer
   resizeObserver?.disconnect();
   
   resizeObserver = new ResizeObserver(() => {
-    calcVisibleCount();
+    debouncedCalcVisibleCount();
   });
   
-  resizeObserver.observe(containerEl);
+  // 监听整个 header 的尺寸变化
+  resizeObserver.observe(headerRef.value);
 }
 
 // === 主题装饰功能 ===
@@ -157,28 +205,58 @@ onMounted(() => {
   
   nextTick(() => {
     setupResizeObserver();
-    calcVisibleCount();
+    // 初始计算延迟执行，等待 DOM 完全渲染
+    setTimeout(() => calcVisibleCount(), 200);
   });
 });
 
 onBeforeUnmount(() => {
   emitter.off("systemThemeChange");
   resizeObserver?.disconnect();
-  if (retryTimer) {
-    clearTimeout(retryTimer);
+  if (initTimer) {
+    clearTimeout(initTimer);
+  }
+  if (recalcTimer) {
+    clearTimeout(recalcTimer);
+  }
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
   }
 });
 
 // 监听菜单数据变化
 watch(allMenus, () => {
   nextTick(() => {
-    calcVisibleCount();
+    // 先显示全部，然后重新计算
+    visibleCount.value = allMenus.value.length;
+    setTimeout(() => calcVisibleCount(), 100);
   });
+}, { immediate: false });
+
+// 监听 visibleCount 变化，重新计算（因为 DOM 变化后宽度可能不同）
+watch(visibleCount, () => {
+  if (recalcTimer) clearTimeout(recalcTimer);
+  recalcTimer = setTimeout(() => {
+    const menuContainerEl = getMenuContainerEl();
+    if (menuContainerEl) {
+      // 二次验证，确保计算正确
+      const items = menuContainerEl.querySelectorAll(':scope > .custom-menu-item, :scope > .custom-sub-menu');
+      let totalWidth = 0;
+      items.forEach(item => {
+        totalWidth += (item as HTMLElement).offsetWidth;
+      });
+      // 如果超出容器宽度，需要减少显示数量
+      if (totalWidth > menuContainerEl.clientWidth && visibleCount.value > 1) {
+        visibleCount.value--;
+      }
+    }
+  }, 50);
 });
 </script>
 
 <template>
   <div
+    ref="headerRef"
     v-loading="usePermissionStoreHook().wholeMenus.length === 0"
     :class="['horizontal-header', 'horizontal-custom-menu', themeClass]"
   >
@@ -213,16 +291,10 @@ watch(allMenus, () => {
         :popper-class="popperClass"
         popper-direction="bottom"
         class="more-menu"
+        hide-arrow
       >
         <template #title>
-          <div class="menu-item-content">
-            <span class="menu-title">更多</span>
-            <span class="more-icon">
-              <svg viewBox="0 0 1024 1024" width="14" height="14">
-                <path fill="currentColor" d="M512 768a42.666667 42.666667 0 0 1-30.165333-12.501333l-384-384a42.666667 42.666667 0 0 1 60.330666-60.330667L512 665.002667l353.834667-353.834667a42.666667 42.666667 0 0 1 60.330666 60.330667l-384 384A42.666667 42.666667 0 0 1 512 768z" />
-              </svg>
-            </span>
-          </div>
+          <span class="menu-title">...</span>
         </template>
         
         <!-- 溢出的菜单项 -->
@@ -239,7 +311,7 @@ watch(allMenus, () => {
     </CustomMenu>
     
     <!-- 右侧工具栏 -->
-    <div class="horizontal-header-right">
+    <div ref="rightToolbarRef" class="horizontal-header-right">
       <LayTool />
     </div>
     
@@ -308,6 +380,7 @@ watch(allMenus, () => {
   min-width: 0;
   height: 100%;
   margin: 0 16px;
+  overflow: hidden; // 隐藏溢出部分
   
   // 确保菜单项不会被压缩
   :deep(.custom-menu-item),
@@ -322,33 +395,17 @@ watch(allMenus, () => {
   justify-content: flex-end;
   flex-shrink: 0;
   gap: 4px;
+  min-width: auto; // 不设置最小宽度，让菜单有更多空间
   color: var(--pure-theme-sub-menu-active-text);
 }
 
 // "更多"菜单样式
 .more-menu {
   flex-shrink: 0;
-  margin-left: auto; // 推到右侧确保可见
-  
-  .menu-item-content {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
   
   .menu-title {
     font-size: 14px;
     font-weight: 500;
-  }
-  
-  .more-icon {
-    display: flex;
-    align-items: center;
-    transition: transform 0.3s ease;
-  }
-  
-  &.is-open .more-icon {
-    transform: rotate(180deg);
   }
 }
 </style>

@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import BaseMix from './BaseMix.vue';
+import BaseCustomMix from './BaseCustomMix.vue';
 </script>
 
 <template>
   <div class="mid-autumn-mix-wrapper">
-    <BaseMix theme-class="mid-autumn-mix" />
+    <BaseCustomMix 
+      theme-class="mid-autumn-mix" 
+      menu-item-class="mid-autumn-mix-item"
+    />
   </div>
 </template>
 
@@ -24,23 +27,41 @@ $mid-gold-light: #ffecb3;
     background: linear-gradient(180deg, $mid-blue, $mid-blue-light) !important;
     border-bottom: 2px solid rgba($mid-gold, 0.3) !important;
     
-    .horizontal-header-menu {
-      background: transparent !important;
+    .custom-menu-item {
+      color: rgba(255, 255, 255, 0.9);
+      border-radius: 6px;
+      margin: 0 4px;
+      padding: 0 16px;
+      height: 40px;
+      transition: all 0.3s ease;
       
-      .el-menu-item,
-      .el-sub-menu__title {
-        color: rgba(255, 255, 255, 0.9) !important;
+      .menu-icon {
+        color: $mid-gold-light;
+      }
+      
+      &:hover {
+        background: rgba($mid-gold, 0.15);
+        color: $mid-gold;
         
-        &:hover {
-          background: rgba($mid-gold, 0.15) !important;
-          color: $mid-gold !important;
+        .menu-icon {
+          color: $mid-gold;
         }
+      }
+      
+      &.is-active {
+        background: rgba($mid-gold, 0.2);
+        color: $mid-gold;
+        border-bottom: 2px solid $mid-gold;
         
-        &.is-active {
-          background: rgba($mid-gold, 0.2) !important;
-          color: $mid-gold !important;
-          border-bottom: 2px solid $mid-gold;
+        .menu-icon {
+          color: $mid-gold;
         }
+      }
+    }
+    
+    .custom-sub-menu.more-menu {
+      .custom-sub-menu-title {
+        color: rgba(255, 255, 255, 0.9);
       }
     }
     
