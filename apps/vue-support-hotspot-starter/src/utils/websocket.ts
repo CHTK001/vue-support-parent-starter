@@ -26,13 +26,31 @@ class WebSocketService {
   /**
    * 连接 WebSocket
    */
-  connect(url?: string) {
+  async connect(url?: string) {
     if (this.socket?.readyState === WebSocket.OPEN || this.isConnecting) {
       return;
     }
 
     this.isConnecting = true;
-    const wsUrl = url || `ws://127.0.0.1:${(window as any).websocketPort || 28954}`;
+    
+    // 动态获取 WebSocket 端口
+    let wsUrl = url;
+    if (!wsUrl) {
+      try {
+        const agentPath = (window as any).agentPath || "/agent";
+        const response = await fetch(`${agentPath}/websocket-config`);
+        const config = await response.json();
+        if (config.port) {
+          // 使用当前页面的 host
+          const host = window.location.hostname || "127.0.0.1";
+          wsUrl = `ws://${host}:${config.port}`;
+        }
+      } catch (e) {
+        console.warn("[获取 WebSocket 配置失败]", e);
+      }
+      // 回退默认值
+      wsUrl = wsUrl || `ws://${window.location.hostname || "127.0.0.1"}:${(window as any).websocketPort || 28954}`;
+    }
 
     try {
       this.socket = new WebSocket(wsUrl);

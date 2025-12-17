@@ -21,7 +21,6 @@ import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScRibbon from "@repo/components/ScRibbon/index.vue";
-import ScDebugConsole from "@repo/components/ScDebugConsole/index.vue";
 import { ElMessage } from "element-plus";
 import { useDataThemeChange } from "../../hooks/useDataThemeChange";
 import LayThemeSwitcher from "../lay-theme-switcher/index.vue";
@@ -60,7 +59,6 @@ const horizontalRef = ref();
 const hoverRef = ref();
 const mobileRef = ref();
 const doubleRef = ref();
-const debugConsoleRef = ref<InstanceType<typeof ScDebugConsole> | null>(null);
 
 // 存储 tippy 实例的数组，用于组件销毁时清理
 const tippyInstances = ref([]);
@@ -412,9 +410,9 @@ function logoChange() {
 }
 /** 卡片Body */
 function cardBodyChange() {
-  unref(cardBodyVal)
-    ? storageConfigureChange("cardBody", true)
-    : storageConfigureChange("cardBody", false);
+  const value = unref(cardBodyVal);
+  storageConfigureChange("cardBody", value);
+  emitter.emit("cardBodyChange", value);
 }
 
 /** 卡片颜色模式变更 */
@@ -923,25 +921,15 @@ function aiChatThemeChange({ option }: { option: OptionsType }) {
 function debugModeChange(enabled: boolean) {
   settings.debugMode = enabled;
   storageConfigureChange("debugMode", enabled);
-  if (enabled) {
-    // 显示调试控制台
-    nextTick(() => {
-      debugConsoleRef.value?.show();
-    });
-  } else {
-    // 关闭调试控制台
-    debugConsoleRef.value?.handleClose();
-  }
+  // 发送事件到主布局组件控制调试控制台
+  emitter.emit("debugModeChange", enabled);
 }
 
-/**
- * 调试控制台关闭回调
- * 当用户关闭调试控制台时，自动关闭调试模式
- */
-function handleDebugConsoleClose() {
-  settings.debugMode = false;
-  storageConfigureChange("debugMode", false);
-}
+// 监听调试模式状态变更（从主布局组件发出）
+emitter.on("debugModeChanged", (enabled: boolean) => {
+  settings.debugMode = enabled;
+  storageConfigureChange("debugMode", enabled);
+});
 
 /** 导入设置 */
 function importSettings() {
@@ -2018,12 +2006,6 @@ onUnmounted(() => {
       </div>
     </LayPanel>
 
-    <!-- 调试控制台 -->
-    <ScDebugConsole
-      v-if="settings.debugMode"
-      ref="debugConsoleRef"
-      @close="handleDebugConsoleClose"
-    />
   </div>
 </template>
 

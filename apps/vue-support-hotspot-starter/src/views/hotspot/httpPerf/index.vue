@@ -8,9 +8,7 @@ const summary = ref<any>({});
 const topEndpoints = ref<any[]>([]);
 const slowEndpoints = ref<any[]>([]);
 const errorEndpoints = ref<any[]>([]);
-const activeTab = ref("summary");
 let unsubscribe: (() => void) | null = null;
-let refreshTimer: ReturnType<typeof setInterval> | null = null;
 
 // WebSocket 连接状态
 const wsConnected = computed(() => wsService.connected.value);
@@ -117,16 +115,11 @@ onMounted(() => {
   unsubscribe = wsService.subscribe("PERFORMANCE", "HTTP_PERF_UPDATE", handleWsMessage);
   // 初始加载数据
   fetchData();
-  // 每10秒刷新一次
-  refreshTimer = setInterval(fetchData, 10000);
 });
 
 onUnmounted(() => {
   if (unsubscribe) {
     unsubscribe();
-  }
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
   }
 });
 </script>
@@ -215,73 +208,97 @@ onUnmounted(() => {
       </el-col>
     </el-row>
 
-    <!-- 内容卡片 -->
+    <!-- Top接口 -->
     <el-card class="modern-card" shadow="hover">
-      <el-tabs v-model="activeTab" class="modern-tabs">
-      <el-tab-pane label="Top接口" name="top">
-        <el-table :data="topEndpoints" v-loading="loading" stripe>
-          <el-table-column prop="method" label="方法" width="80" />
-          <el-table-column prop="url" label="URL" min-width="200" />
-          <el-table-column prop="totalRequests" label="请求数" width="100" />
-          <el-table-column prop="avgDuration" label="平均耗时(ms)" width="120">
-            <template #default="{ row }">
-              {{ row.avgDuration.toFixed(2) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="p50" label="P50(ms)" width="100" />
-          <el-table-column prop="p90" label="P90(ms)" width="100" />
-          <el-table-column prop="p95" label="P95(ms)" width="100" />
-          <el-table-column prop="p99" label="P99(ms)" width="100" />
-          <el-table-column prop="errorRate" label="错误率(%)" width="100">
-            <template #default="{ row }">
-              <span :class="{ error: row.errorRate > 0 }">
-                {{ row.errorRate.toFixed(2) }}
-              </span>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
-
-      <el-tab-pane label="慢接口" name="slow">
-        <el-table :data="slowEndpoints" v-loading="loading" stripe>
-          <el-table-column prop="method" label="方法" width="80" />
-          <el-table-column prop="url" label="URL" min-width="200" />
-          <el-table-column prop="avgDuration" label="平均耗时(ms)" width="120">
-            <template #default="{ row }">
-              <span class="slow">{{ row.avgDuration.toFixed(2) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="maxDuration" label="最大耗时(ms)" width="120" />
-          <el-table-column prop="p95" label="P95(ms)" width="100" />
-          <el-table-column prop="p99" label="P99(ms)" width="100" />
-          <el-table-column prop="totalRequests" label="请求数" width="100" />
-        </el-table>
-      </el-tab-pane>
-
-      <el-tab-pane label="错误接口" name="errors">
-        <el-table :data="errorEndpoints" v-loading="loading" stripe>
-          <el-table-column prop="method" label="方法" width="80" />
-          <el-table-column prop="url" label="URL" min-width="200" />
-          <el-table-column prop="errorCount" label="错误数" width="100">
-            <template #default="{ row }">
-              <span class="error">{{ row.errorCount }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="errorRate" label="错误率(%)" width="100">
-            <template #default="{ row }">
-              <span class="error">{{ row.errorRate.toFixed(2) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="totalRequests" label="总请求数" width="100" />
-          <el-table-column prop="avgDuration" label="平均耗时(ms)" width="120">
-            <template #default="{ row }">
-              {{ row.avgDuration.toFixed(2) }}
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
-      </el-tabs>
+      <template #header>
+        <div class="card-header">
+          <span class="card-title">
+            <IconifyIconOnline icon="ri:bar-chart-line" class="card-icon" />
+            Top 接口
+          </span>
+          <el-tag type="info" effect="plain">{{ topEndpoints.length }} 条</el-tag>
+        </div>
+      </template>
+      <el-table :data="topEndpoints" v-loading="loading" stripe max-height="300">
+        <el-table-column prop="method" label="方法" width="80" />
+        <el-table-column prop="url" label="URL" min-width="200" />
+        <el-table-column prop="totalRequests" label="请求数" width="100" />
+        <el-table-column prop="avgDuration" label="平均耗时(ms)" width="120">
+          <template #default="{ row }">
+            {{ row.avgDuration?.toFixed(2) || 0 }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="p50" label="P50" width="80" />
+        <el-table-column prop="p90" label="P90" width="80" />
+        <el-table-column prop="p99" label="P99" width="80" />
+        <el-table-column prop="errorRate" label="错误率(%)" width="100">
+          <template #default="{ row }">
+            <span :class="{ error: row.errorRate > 0 }">
+              {{ row.errorRate?.toFixed(2) || 0 }}
+            </span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-if="topEndpoints.length === 0" description="暂无数据" :image-size="60" />
     </el-card>
+
+    <!-- 慢接口 + 错误接口 -->
+    <el-row :gutter="16">
+      <el-col :span="12">
+        <el-card class="modern-card" shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <span class="card-title">
+                <IconifyIconOnline icon="ri:time-line" class="card-icon warning" />
+                慢接口
+              </span>
+              <el-tag type="warning" effect="plain">{{ slowEndpoints.length }} 条</el-tag>
+            </div>
+          </template>
+          <el-table :data="slowEndpoints" v-loading="loading" stripe max-height="280">
+            <el-table-column prop="method" label="方法" width="70" />
+            <el-table-column prop="url" label="URL" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="avgDuration" label="平均(ms)" width="90">
+              <template #default="{ row }">
+                <span class="slow">{{ row.avgDuration?.toFixed(0) || 0 }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="maxDuration" label="最大(ms)" width="90" />
+            <el-table-column prop="totalRequests" label="请求数" width="80" />
+          </el-table>
+          <el-empty v-if="slowEndpoints.length === 0" description="暂无慢接口" :image-size="60" />
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card class="modern-card" shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <span class="card-title">
+                <IconifyIconOnline icon="ri:error-warning-line" class="card-icon danger" />
+                错误接口
+              </span>
+              <el-tag type="danger" effect="plain">{{ errorEndpoints.length }} 条</el-tag>
+            </div>
+          </template>
+          <el-table :data="errorEndpoints" v-loading="loading" stripe max-height="280">
+            <el-table-column prop="method" label="方法" width="70" />
+            <el-table-column prop="url" label="URL" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="errorCount" label="错误数" width="80">
+              <template #default="{ row }">
+                <span class="error">{{ row.errorCount }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="errorRate" label="错误率(%)" width="90">
+              <template #default="{ row }">
+                <span class="error">{{ row.errorRate?.toFixed(2) || 0 }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="totalRequests" label="请求数" width="80" />
+          </el-table>
+          <el-empty v-if="errorEndpoints.length === 0" description="暂无错误接口" :image-size="60" />
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
@@ -409,11 +426,34 @@ onUnmounted(() => {
   border-radius: 12px;
   border: none;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
+  margin-bottom: 16px;
 
-.modern-tabs {
-  :deep(.el-tabs__header) {
-    margin-bottom: 16px;
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+
+      .card-icon {
+        font-size: 18px;
+        color: var(--el-color-primary);
+
+        &.warning { color: var(--el-color-warning); }
+        &.danger { color: var(--el-color-danger); }
+      }
+    }
+  }
+
+  :deep(.el-card__header) {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
   }
 }
 

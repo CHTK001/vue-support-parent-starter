@@ -68,6 +68,29 @@ export default [
           },
         ],
       },
+      {
+        path: "/config-management",
+        name: "configManagement",
+        meta: {
+          icon: "ri:settings-4-line",
+          title: "配置管理",
+          showLink: true,
+          showParent: true,
+        },
+        children: [
+          {
+            path: "/config-list",
+            name: "config-list",
+            component: () => import("@/views/config-management/index.vue"),
+            meta: {
+              icon: "ri:list-settings-line",
+              title: "配置列表",
+              showLink: true,
+              showParent: true,
+            },
+          },
+        ],
+      },
     ],
   },
 ];

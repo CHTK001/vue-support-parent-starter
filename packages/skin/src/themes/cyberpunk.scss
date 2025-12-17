@@ -1,43 +1,63 @@
 /**
- * 赛博朋克主题（深度定制）
- * 参考 spring-festival.scss 的覆盖范围，提供 Header / Navbar / Sidebar / Tags / 多布局 /
- * 语言选择与个人信息下拉菜单 等整体风格。
+ * 赛博朋克主题（深度定制 - 优化版）
+ * 提供 Header / Navbar / Sidebar / Tags / 多布局 / 下拉菜单等整体风格
+ * 特点：霓虹灯边框、扫描线效果、流光动画、电路纹理
  */
 
-// 使用 data-skin 作为主题入口（不依赖 class）
+// 使用 data-skin 作为主题入口
 html[data-skin="cyberpunk"] {
-  // 基础色板（仅本文件内使用变量）
+  // 基础色板 - 优化版
   $cyan: #00ffff;
   $magenta: #ff00ff;
-  $purple: #7c4dff;
-  $blueDark: #0b1020; // 背景深色
-  $blueDarker: #070b17;
-  $glassBg: rgba(10, 14, 25, 0.7);
-  $glassBorder: rgba(0, 255, 255, 0.25);
-  $glassBorderHover: rgba(0, 255, 255, 0.45);
-  $shadowCyan: 0 8px 24px rgba(0, 255, 255, 0.18);
+  $purple: #a855f7;
+  $blueDark: #050510;
+  $blueDarker: #030308;
+  $glassBg: rgba(5, 5, 16, 0.92);
+  $glassBorder: rgba(0, 255, 255, 0.3);
+  $glassBorderHover: rgba(0, 255, 255, 0.5);
+  $shadowCyan: 0 8px 30px rgba(0, 255, 255, 0.2);
 
   // 全局背景微调（仅容器型）
   .header-container-with-decoration,
   div.header-container-with-decoration {
     position: relative;
-    background: linear-gradient(135deg, rgba(5, 8, 18, 0.95), rgba(12, 20, 40, 0.95));
-    border-bottom: 1px solid rgba(0, 255, 255, 0.25);
-    backdrop-filter: blur(18px);
+    background: linear-gradient(
+      135deg, 
+      rgba(5, 5, 16, 0.97) 0%, 
+      rgba(10, 10, 26, 0.97) 50%,
+      rgba(5, 5, 16, 0.97) 100%
+    );
+    border-bottom: 1px solid $glassBorder;
+    backdrop-filter: blur(16px);
 
-    // 顶部霓虹条
+    // 顶部霓虹条 - 增强流光效果
     &::before {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, $cyan 20%, $magenta 50%, $cyan 80%, transparent);
-      box-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
-      animation: cyber-neon-pulse 2s ease-in-out infinite;
+      height: 3px;
+      background: linear-gradient(
+        90deg, 
+        transparent 0%,
+        $cyan 15%,
+        $magenta 35%,
+        $purple 50%,
+        $magenta 65%,
+        $cyan 85%,
+        transparent 100%
+      );
+      box-shadow: 
+        0 0 15px rgba(0, 255, 255, 0.8),
+        0 0 30px rgba(255, 0, 255, 0.4);
+      animation: cyber-neon-pulse 2.5s ease-in-out infinite;
       pointer-events: none;
     }
 
-    &.shadow-tab { box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25), 0 2px 18px rgba(0, 255, 255, 0.18); }
+    &.shadow-tab { 
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3), 
+        0 4px 24px rgba(0, 255, 255, 0.15); 
+    }
   }
 
   // Navbar 区域（通用覆盖，配合组件内样式）

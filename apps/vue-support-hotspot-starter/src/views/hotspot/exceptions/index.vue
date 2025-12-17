@@ -114,33 +114,64 @@ onUnmounted(() => {
 
 <template>
   <div class="page-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <IconifyIconOnline icon="ri:bug-line" class="header-icon" />
-        <div class="header-info">
-          <h2 class="header-title">异常监控</h2>
-          <p class="header-desc">实时监控和分析应用异常信息</p>
-        </div>
-      </div>
-      <div class="header-right">
-        <div class="stat-card">
-          <div class="stat-number">{{ exceptions.length }}</div>
-          <div class="stat-label">异常记录</div>
-        </div>
-        <el-tag :type="wsConnected ? 'success' : 'danger'" effect="light" size="large">
-          {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
-        </el-tag>
-        <el-button type="info" @click="fetchData" :loading="loading">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-        <el-button type="danger" @click="clearStats">
-          <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-          清除
-        </el-button>
-      </div>
-    </div>
+    <!-- 统计卡片 -->
+    <el-row :gutter="20" class="stats-row">
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper danger">
+              <IconifyIconOnline icon="ri:bug-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ exceptions.length }}</div>
+              <div class="stat-label">异常记录</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper warning">
+              <IconifyIconOnline icon="ri:bar-chart-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ stats.length }}</div>
+              <div class="stat-label">异常类型</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div :class="['stat-icon-wrapper', wsConnected ? 'success' : 'danger']">
+              <IconifyIconOnline icon="ri:wifi-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ wsConnected ? '已连接' : '未连接' }}</div>
+              <div class="stat-label">WebSocket 状态</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper info">
+              <IconifyIconOnline icon="ri:settings-3-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-actions">
+                <el-button type="primary" size="small" @click="fetchData" :loading="loading">刷新</el-button>
+                <el-button type="danger" size="small" @click="clearStats">清除</el-button>
+              </div>
+              <div class="stat-label">操作</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
 
     <!-- 内容卡片 -->
     <el-card class="modern-card" shadow="hover">
@@ -266,66 +297,75 @@ onUnmounted(() => {
   background: var(--el-bg-color-page);
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.stats-row {
   margin-bottom: 20px;
-  padding: 20px 24px;
-  background: var(--el-bg-color);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
 
-  .header-left {
+.stat-card {
+  border-radius: 12px;
+  border: none;
+
+  :deep(.el-card__body) {
+    padding: 20px;
+  }
+
+  .stat-content {
     display: flex;
     align-items: center;
     gap: 16px;
+  }
 
-    .header-icon {
-      font-size: 40px;
-      color: var(--el-color-danger);
-      padding: 12px;
+  .stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.primary {
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
+      .stat-icon { color: var(--el-color-primary); }
+    }
+    &.success {
+      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+      .stat-icon { color: var(--el-color-success); }
+    }
+    &.warning {
+      background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+      .stat-icon { color: var(--el-color-warning); }
+    }
+    &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
-      border-radius: 12px;
+      .stat-icon { color: var(--el-color-danger); }
+    }
+    &.info {
+      background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
+      .stat-icon { color: var(--el-color-info); }
     }
 
-    .header-info {
-      .header-title {
-        margin: 0 0 4px 0;
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-      }
-
-      .header-desc {
-        margin: 0;
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-      }
+    .stat-icon {
+      font-size: 24px;
     }
   }
 
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  .stat-info {
+    flex: 1;
 
-    .stat-card {
-      background: linear-gradient(135deg, var(--el-color-danger-light-9), var(--el-color-danger-light-8));
-      padding: 12px 20px;
-      border-radius: 8px;
-      text-align: center;
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+    }
 
-      .stat-number {
-        font-size: 24px;
-        font-weight: 700;
-        color: var(--el-color-danger);
-      }
+    .stat-label {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+    }
 
-      .stat-label {
-        font-size: 12px;
-        color: var(--el-text-color-secondary);
-      }
+    .stat-actions {
+      display: flex;
+      gap: 8px;
     }
   }
 }
@@ -392,12 +432,7 @@ html.dark {
     background: var(--el-bg-color-page);
   }
 
-  .page-header {
-    background: var(--el-bg-color);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-  }
-
-  .modern-card {
+  .stat-card, .modern-card {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 }

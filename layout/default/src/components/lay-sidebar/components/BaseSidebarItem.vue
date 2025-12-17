@@ -253,7 +253,7 @@ function resolvePath(routePath: string) {
       <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item?.meta?.extraIcon" />
     </template>
 
-    <span v-for="(child, index) in item.children" :key="child.path">
+    <div v-for="(child, index) in item.children" :key="child.path" class="submenu-item-wrapper">
       <component
         :is="ThemeSidebarItem"
         :key="child.path"
@@ -262,7 +262,7 @@ function resolvePath(routePath: string) {
         :base-path="resolvePath(child.path)"
         class="nest-menu"
       />
-    </span>
+    </div>
   </el-sub-menu>
 </template>
 
@@ -271,5 +271,11 @@ function resolvePath(routePath: string) {
 .sidebar-sub-menu {
   position: relative;
   transition: all 0.3s ease;
+}
+
+// 子菜单包裹器透明
+.submenu-item-wrapper {
+  background: transparent !important;
+  display: block;
 }
 </style>

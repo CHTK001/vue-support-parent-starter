@@ -65,36 +65,52 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="scss" scoped>
+// 赛博朋克 Navbar 优化版
+$cyber-cyan: #00ffff;
+$cyber-magenta: #ff00ff;
+$cyber-purple: #a855f7;
+
 .cyberpunk-navbar {
   width: 100%;
   height: 56px;
   display: flex;
   align-items: center;
   position: relative;
-  background: 
-    linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(20, 20, 40, 0.95) 100%);
+  background: linear-gradient(
+    135deg, 
+    rgba(5, 5, 16, 0.98) 0%, 
+    rgba(15, 15, 35, 0.98) 50%,
+    rgba(5, 5, 16, 0.98) 100%
+  );
   overflow: hidden;
+  backdrop-filter: blur(12px);
   
-  // 顶部霓虹灯条
+  // 顶部霓虹灯条 - 增强流光效果
   &::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 2px;
-    background: linear-gradient(to right, 
-      transparent, 
-      #00ffff 20%, 
-      #ff00ff 50%, 
-      #00ffff 80%, 
-      transparent
+    height: 3px;
+    background: linear-gradient(
+      90deg, 
+      transparent 0%,
+      $cyber-cyan 15%,
+      $cyber-magenta 35%,
+      $cyber-purple 50%,
+      $cyber-magenta 65%,
+      $cyber-cyan 85%,
+      transparent 100%
     );
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
-    animation: neonPulse 2s ease-in-out infinite;
+    box-shadow: 
+      0 0 15px rgba(0, 255, 255, 0.8),
+      0 0 30px rgba(255, 0, 255, 0.4),
+      0 0 45px rgba(0, 255, 255, 0.2);
+    animation: neonPulse 2.5s ease-in-out infinite;
   }
   
-  // 底部边框
+  // 底部边框 - 渐变线
   &::after {
     content: '';
     position: absolute;
@@ -102,14 +118,17 @@ onBeforeUnmount(() => {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(to right, 
-      transparent, 
-      rgba(0, 255, 255, 0.5) 50%, 
-      transparent
+    background: linear-gradient(
+      90deg, 
+      transparent 0%,
+      rgba(0, 255, 255, 0.4) 20%,
+      rgba(255, 0, 255, 0.3) 50%,
+      rgba(0, 255, 255, 0.4) 80%,
+      transparent 100%
     );
   }
   
-  // 扫描线效果
+  // 扫描线效果 - 更快速更微妙
   .scan-line {
     position: absolute;
     top: 0;
@@ -119,34 +138,39 @@ onBeforeUnmount(() => {
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(0, 255, 255, 0.1) 50%,
+      rgba(0, 255, 255, 0.08) 45%,
+      rgba(255, 0, 255, 0.05) 50%,
+      rgba(0, 255, 255, 0.08) 55%,
       transparent 100%
     );
-    animation: scan 3s linear infinite;
+    animation: scan 4s linear infinite;
     pointer-events: none;
   }
   
-  // 电路纹理
+  // 电路纹理 - 更精细
   .circuit-pattern {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: 
+    background: 
       repeating-linear-gradient(
         0deg,
         transparent,
-        transparent 2px,
-        rgba(0, 255, 255, 0.03) 2px,
-        rgba(0, 255, 255, 0.03) 4px
+        transparent 1px,
+        rgba(0, 255, 255, 0.02) 1px,
+        rgba(0, 255, 255, 0.02) 2px
       ),
-      repeating-linear-gradient(
-        90deg,
-        transparent,
-        transparent 2px,
-        rgba(255, 0, 255, 0.03) 2px,
-        rgba(255, 0, 255, 0.03) 4px
+      radial-gradient(
+        ellipse at 20% 50%,
+        rgba(0, 255, 255, 0.05) 0%,
+        transparent 40%
+      ),
+      radial-gradient(
+        ellipse at 80% 50%,
+        rgba(255, 0, 255, 0.03) 0%,
+        transparent 40%
       );
     pointer-events: none;
   }
@@ -207,24 +231,45 @@ onBeforeUnmount(() => {
 
   .breadcrumb-container {
     margin-left: 20px;
-    height: 36px;
+    height: 38px;
     display: flex;
     align-items: center;
-    padding: 0 18px;
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 255, 255, 0.3);
+    padding: 0 20px;
+    border-radius: 10px;
+    background: linear-gradient(
+      135deg,
+      rgba(5, 5, 16, 0.85) 0%,
+      rgba(10, 10, 26, 0.8) 100%
+    );
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 255, 255, 0.35);
     box-shadow: 
-      0 2px 8px rgba(0, 0, 0, 0.3),
-      0 0 10px rgba(0, 255, 255, 0.2),
-      inset 0 1px 0 rgba(0, 255, 255, 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      0 4px 16px rgba(0, 0, 0, 0.35),
+      0 0 15px rgba(0, 255, 255, 0.15),
+      inset 0 1px 0 rgba(0, 255, 255, 0.15);
+    transition: all 0.25s ease;
     z-index: 10;
     position: relative;
     overflow: hidden;
     
+    // 顶部微光
     &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(0, 255, 255, 0.4) 50%,
+        transparent
+      );
+    }
+    
+    // 悬停闪光
+    &::after {
       content: '';
       position: absolute;
       top: 0;
@@ -237,45 +282,48 @@ onBeforeUnmount(() => {
         rgba(0, 255, 255, 0.1),
         transparent
       );
-      transition: left 0.5s ease;
+      transition: left 0.4s ease;
     }
     
     &:hover {
-      border-color: rgba(0, 255, 255, 0.6);
+      border-color: $cyber-cyan;
       box-shadow: 
-        0 4px 16px rgba(0, 255, 255, 0.3),
-        0 0 20px rgba(0, 255, 255, 0.3),
-        inset 0 1px 0 rgba(0, 255, 255, 0.3);
+        0 6px 24px rgba(0, 255, 255, 0.35),
+        0 0 30px rgba(0, 255, 255, 0.25),
+        inset 0 0 20px rgba(0, 255, 255, 0.08);
       transform: translateY(-2px);
       
-      &::before {
+      &::after {
         left: 100%;
       }
     }
     
     :deep(.el-breadcrumb__item) {
       .el-breadcrumb__inner {
-        color: #00ffff;
+        color: $cyber-cyan;
         font-weight: 500;
-        text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+        font-family: 'Rajdhani', sans-serif;
+        letter-spacing: 0.5px;
+        text-shadow: 0 0 6px rgba(0, 255, 255, 0.5);
         transition: all 0.2s ease;
         
         &:hover {
-          color: #00ffff;
-          text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+          color: #fff;
+          text-shadow: 0 0 12px rgba(0, 255, 255, 0.8);
         }
       }
       
       &:last-child .el-breadcrumb__inner {
-        color: #ff00ff;
+        color: $cyber-magenta;
         font-weight: 600;
-        text-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
+        text-shadow: 0 0 6px rgba(255, 0, 255, 0.5);
       }
     }
     
     :deep(.el-breadcrumb__separator) {
-      color: rgba(0, 255, 255, 0.5);
+      color: rgba(0, 255, 255, 0.4);
       font-weight: 400;
+      text-shadow: 0 0 4px rgba(0, 255, 255, 0.3);
     }
   }
   

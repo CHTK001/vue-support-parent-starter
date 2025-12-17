@@ -301,10 +301,18 @@ watch(
   align-items: center;
   background: var(--el-bg-color);
   border-top: 1px solid var(--el-border-color-lighter);
-  padding: 0 8px;
+  padding: 0 4px;
   padding-bottom: env(safe-area-inset-bottom);
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
   z-index: 100;
+  gap: 2px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .nav-item {
@@ -312,14 +320,16 @@ watch(
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex: 1;
+  flex: 1 0 auto;
+  min-width: 56px;
+  max-width: 80px;
   height: 100%;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
-  padding: 8px 4px;
-  border-radius: 12px;
-  margin: 4px;
+  padding: 6px 2px;
+  border-radius: 10px;
+  margin: 3px 1px;
 
   &::before {
     content: "";
@@ -361,13 +371,14 @@ watch(
 }
 
 .nav-label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--el-text-color-regular);
   transition: all 0.3s ease;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 60px;
+  max-width: 52px;
+  line-height: 1.2;
 }
 
 /* 设置按钮样式 */

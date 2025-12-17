@@ -8,7 +8,7 @@ import DefaultSidebarItem from "../../components/themes/DefaultSidebarItem.vue";
 //@ts-ignore
 import { getConfig, responsiveStorageNameSpace } from "@repo/config";
 import type { StorageConfigs } from "@repo/config";
-import { localStorageProxy, useDefer } from "@repo/utils";
+import { localStorageProxy } from "@repo/utils";
 import LayTool from "../../../lay-tool/index.vue";
 
 // 导入主题装饰功能
@@ -78,7 +78,6 @@ onBeforeUnmount(() => {
   emitter.off("systemThemeChange");
 });
 
-const defer = useDefer(usePermissionStoreHook().wholeMenus.length);
 nextTick(() => {
   menuRef.value?.handleResize();
 });
@@ -101,18 +100,13 @@ nextTick(() => {
       class="horizontal-header-menu"
       :default-active="defaultActive"
     >
-      <span
+      <component
+        :is="ThemeSidebarItem"
         v-for="(route, index) in usePermissionStoreHook().wholeMenus"
-        :key="index"
-      >
-        <component
-          :is="ThemeSidebarItem"
-          v-if="defer(index)"
-          :key="route.path"
-          :item="route"
-          :base-path="route.path"
-        />
-      </span>
+        :key="route.path"
+        :item="route"
+        :base-path="route.path"
+      />
     </el-menu>
     <div class="horizontal-header-right">
       <LayTool />

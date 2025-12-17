@@ -36,7 +36,8 @@ html[data-skin="mid-autumn"] .modern-item {
   margin: 0 8px !important;
   font-weight: 600 !important;
   box-shadow: 0 2px 8px rgba(26, 35, 126, 0.3) !important;
-  transition: all 0.2s ease !important;
+  transition: none !important;
+  min-width: fit-content !important;
 }
 
 /* Chrome 标签额外设置 */
@@ -57,7 +58,6 @@ html[data-skin="mid-autumn"] .chrome-close-btn {
 html[data-skin="mid-autumn"] .scroll-item:hover,
 html[data-skin="mid-autumn"] .chrome-item:hover,
 html[data-skin="mid-autumn"] .modern-item:hover {
-  transform: translateY(-1px) !important;
   box-shadow: 0 4px 12px rgba(26, 35, 126, 0.4) !important;
   filter: brightness(1.05);
 }
@@ -122,12 +122,17 @@ html[data-skin="mid-autumn"] .arrow-right:hover {
 
 /* 右键菜单 */
 html[data-skin="mid-autumn"] .contextmenu {
+  z-index: 9999 !important;
   background: #fff !important;
   border: 2px solid rgba(26, 35, 126, 0.3) !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
 }
 
-html[data-skin="mid-autumn"] .contextmenu .menu-item:hover {
+html[data-skin="mid-autumn"] .contextmenu li {
+  cursor: pointer !important;
+}
+
+html[data-skin="mid-autumn"] .contextmenu li:hover {
   background: rgba(26, 35, 126, 0.1) !important;
   color: #1a237e !important;
 }

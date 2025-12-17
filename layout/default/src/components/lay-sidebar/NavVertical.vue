@@ -5,6 +5,7 @@ import SpringFestivalSidebar from "./themes/SpringFestival.vue";
 import CyberpunkSidebar from "./themes/Cyberpunk.vue";
 import MidAutumnSidebar from "./themes/MidAutumn.vue";
 import ChristmasSidebar from "./themes/Christmas.vue";
+import NewYearSidebar from "./themes/NewYear.vue";
 
 // 主题组件映射
 const themeComponents = {
@@ -13,6 +14,7 @@ const themeComponents = {
   'cyberpunk': CyberpunkSidebar,
   'mid-autumn': MidAutumnSidebar,
   'christmas': ChristmasSidebar,
+  'new-year': NewYearSidebar,
 };
 
 const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultSidebar);

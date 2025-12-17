@@ -1,0 +1,206 @@
+/**
+ * 元旦主题标签样式 - 冰雪蓝白清新现代风
+ * 设计理念：冰晶玻璃感、轻盈纯净
+ */
+
+/* 元旦主题标签容器 */
+.new-year-tag {
+  background: linear-gradient(135deg, rgba(245, 251, 255, 0.98) 0%, rgba(232, 244, 252, 0.95) 100%);
+  border-bottom: 1px solid rgba(124, 194, 232, 0.2);
+  position: relative;
+  overflow: visible !important;
+  backdrop-filter: blur(12px);
+}
+
+/* 元旦标签项样式 */
+.new-year-tag .scroll-item.new-year-item {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(124, 194, 232, 0.25);
+  border-radius: 8px;
+  color: #1E5F8C;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  backdrop-filter: blur(8px);
+}
+
+.new-year-tag .scroll-item.new-year-item:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #4EA8DE;
+  box-shadow: 0 4px 16px rgba(78, 168, 222, 0.2);
+  transform: translateY(-1px);
+}
+
+.new-year-tag .scroll-item.new-year-item.is-active {
+  background: linear-gradient(135deg, #4EA8DE 0%, #7CC2E8 100%);
+  border-color: #2A7AB8;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(78, 168, 222, 0.35);
+}
+
+.new-year-tag .scroll-item.new-year-item.is-active:hover {
+  background: linear-gradient(135deg, #7CC2E8 0%, #A3D5F0 100%);
+  transform: translateY(-1px);
+}
+
+/* 标签图标 */
+.new-year-tag .scroll-item.new-year-item .tag-icon {
+  margin-right: 4px;
+  font-size: 14px;
+  color: #4EA8DE;
+}
+
+.new-year-tag .scroll-item.new-year-item.is-active .tag-icon {
+  color: #fff;
+}
+
+/* 关闭按钮样式 */
+.new-year-tag .scroll-item.new-year-item .el-icon-close {
+  color: #7CC2E8;
+  transition: all 0.2s ease;
+}
+
+.new-year-tag .scroll-item.new-year-item:hover .el-icon-close {
+  color: #4EA8DE;
+}
+
+.new-year-tag .scroll-item.new-year-item.is-active .el-icon-close {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.new-year-tag .scroll-item.new-year-item.is-active:hover .el-icon-close {
+  color: #fff;
+}
+
+/* 箭头按钮样式 */
+.new-year-tag .arrow-left,
+.new-year-tag .arrow-right,
+.new-year-tag .arrow-down {
+  color: #4EA8DE;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(124, 194, 232, 0.2);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.new-year-tag .arrow-left:hover,
+.new-year-tag .arrow-right:hover,
+.new-year-tag .arrow-down:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #4EA8DE;
+  color: #2A7AB8;
+  box-shadow: 0 2px 8px rgba(78, 168, 222, 0.2);
+}
+
+/* 右键菜单样式 */
+.new-year-tag .contextmenu {
+  background: linear-gradient(180deg, rgba(245, 251, 255, 0.98), rgba(224, 231, 245, 0.96));
+  border: 1px solid rgba(124, 194, 232, 0.25);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(42, 122, 184, 0.15);
+  backdrop-filter: blur(16px);
+}
+
+.new-year-tag .contextmenu li {
+  color: #1E5F8C;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  margin: 2px 4px;
+}
+
+.new-year-tag .contextmenu li:hover {
+  background: rgba(78, 168, 222, 0.12);
+  color: #2A7AB8;
+}
+
+/* 固定标签样式 */
+.new-year-tag .scroll-item.new-year-item.fixed-tag {
+  background: rgba(184, 224, 242, 0.35);
+  border-color: rgba(124, 194, 232, 0.35);
+}
+
+.new-year-tag .scroll-item.new-year-item.fixed-tag:hover {
+  background: rgba(184, 224, 242, 0.5);
+  border-color: #4EA8DE;
+}
+
+/* ==================== 右侧功能按钮下拉菜单 (Teleport 到 body) ==================== */
+html[data-skin="new-year"] .tag-function-dropdown-popper .el-dropdown-menu {
+  background: linear-gradient(180deg, rgba(245, 251, 255, 0.98), rgba(224, 231, 245, 0.96)) !important;
+  border: 1px solid rgba(124, 194, 232, 0.25) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(42, 122, 184, 0.15) !important;
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  padding: 6px !important;
+  position: relative;
+}
+
+/* 顶部冰晶线 */
+html[data-skin="new-year"] .tag-function-dropdown-popper .el-dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #7CC2E8 20%, #4EA8DE 50%, #7CC2E8 80%, transparent);
+  z-index: 1;
+}
+
+html[data-skin="new-year"] .tag-function-dropdown-popper .el-dropdown-menu__item {
+  color: #1E5F8C !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  margin: 2px 0 !important;
+  padding: 8px 16px !important;
+  transition: all 0.25s ease !important;
+  position: relative;
+  z-index: 1;
+}
+
+html[data-skin="new-year"] .tag-function-dropdown-popper .el-dropdown-menu__item .el-icon,
+html[data-skin="new-year"] .tag-function-dropdown-popper .el-dropdown-menu__item svg {
+  color: #4EA8DE !important;
+  margin-right: 8px;
+}
+
+html[data-skin="new-year"] .tag-function-dropdown-popper .el-dropdown-menu__item:hover:not(.is-disabled) {
+  background: rgba(78, 168, 222, 0.12) !important;
+  border-color: rgba(78, 168, 222, 0.3) !important;
+  color: #2A7AB8 !important;
+  box-shadow: 0 2px 8px rgba(78, 168, 222, 0.15) !important;
+}
+
+html[data-skin="new-year"] .tag-function-dropdown-popper .el-dropdown-menu__item:hover:not(.is-disabled) .el-icon,
+html[data-skin="new-year"] .tag-function-dropdown-popper .el-dropdown-menu__item:hover:not(.is-disabled) svg {
+  color: #2A7AB8 !important;
+}
+
+/* 禁用状态 */
+html[data-skin="new-year"] .tag-function-dropdown-popper .el-dropdown-menu__item.is-disabled {
+  color: rgba(30, 95, 140, 0.4) !important;
+  background: rgba(255, 255, 255, 0.3) !important;
+  cursor: not-allowed;
+}
+
+html[data-skin="new-year"] .tag-function-dropdown-popper .el-dropdown-menu__item.is-disabled .el-icon,
+html[data-skin="new-year"] .tag-function-dropdown-popper .el-dropdown-menu__item.is-disabled svg {
+  color: rgba(78, 168, 222, 0.4) !important;
+}
+
+/* 分隔线样式 */
+html[data-skin="new-year"] .tag-function-dropdown-popper .el-dropdown-menu__item--divided {
+  margin-top: 6px !important;
+}
+
+html[data-skin="new-year"] .tag-function-dropdown-popper .el-dropdown-menu__item--divided::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124, 194, 232, 0.4) 20%, #4EA8DE 50%, rgba(124, 194, 232, 0.4) 80%, transparent) !important;
+}

@@ -10,9 +10,10 @@ const systemInfo = ref<any>({});
 const jvmInfo = ref<any>({});
 const recentTraces = ref<any[]>([]);
 const recentExceptions = ref<any[]>([]);
-let refreshTimer: ReturnType<typeof setInterval> | null = null;
 let unsubscribeTrace: (() => void) | null = null;
 let unsubscribeException: (() => void) | null = null;
+let unsubscribeJvm: (() => void) | null = null;
+let unsubscribeSystem: (() => void) | null = null;
 
 // WebSocket 连接状态
 const wsConnected = computed(() => wsService.connected.value);
@@ -46,12 +47,36 @@ const formatBytes = (bytes: number) => {
   return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
 };
 
-// 计算内存使用百分比
+// 计算堆内存使用百分比
 const memoryPercent = computed(() => {
   const used = jvmInfo.value?.heapMemoryUsed || 0;
   const max = jvmInfo.value?.heapMemoryMax || 1;
   return Math.round((used / max) * 100);
 });
+
+// CPU 使用率
+const cpuPercent = computed(() => {
+  return systemInfo.value?.processCpuLoad || 0;
+});
+
+// 物理内存使用百分比
+const physicalMemoryPercent = computed(() => {
+  const total = systemInfo.value?.totalPhysicalMemory || 1;
+  const used = systemInfo.value?.usedPhysicalMemory || 0;
+  return Math.round((used / total) * 100);
+});
+
+// 格式化运行时长
+const formatUptime = (ms: number) => {
+  if (!ms) return "-";
+  const seconds = Math.floor(ms / 1000);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return `${days}天${hours}小时`;
+  if (hours > 0) return `${hours}小时${minutes}分`;
+  return `${minutes}分钟`;
+};
 
 // 处理链路追踪消息
 const handleTraceMessage = (message: any) => {
@@ -79,6 +104,30 @@ const handleExceptionMessage = (message: any) => {
       }
     } catch (error) {
       console.error("解析异常数据失败:", error);
+    }
+  }
+};
+
+// 处理 JVM 信息消息
+const handleJvmMessage = (message: any) => {
+  if (message.event === "JVM_INFO") {
+    try {
+      const data = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
+      jvmInfo.value = data;
+    } catch (error) {
+      console.error("解析JVM数据失败:", error);
+    }
+  }
+};
+
+// 处理系统信息消息
+const handleSystemMessage = (message: any) => {
+  if (message.event === "SYSTEM_INFO") {
+    try {
+      const data = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
+      systemInfo.value = data;
+    } catch (error) {
+      console.error("解析系统数据失败:", error);
     }
   }
 };
@@ -119,19 +168,22 @@ onMounted(() => {
   // 订阅消息
   unsubscribeTrace = wsService.subscribe("TRACE", "AGENT_TRACE", handleTraceMessage);
   unsubscribeException = wsService.subscribe("EXCEPTION", "EXCEPTION_UPDATE", handleExceptionMessage);
-  // 每10秒刷新一次
-  refreshTimer = setInterval(refreshAll, 10000);
+  unsubscribeJvm = wsService.subscribe("JVM", "JVM_INFO", handleJvmMessage);
+  unsubscribeSystem = wsService.subscribe("PERFORMANCE", "SYSTEM_INFO", handleSystemMessage);
 });
 
 onUnmounted(() => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-  }
   if (unsubscribeTrace) {
     unsubscribeTrace();
   }
   if (unsubscribeException) {
     unsubscribeException();
+  }
+  if (unsubscribeJvm) {
+    unsubscribeJvm();
+  }
+  if (unsubscribeSystem) {
+    unsubscribeSystem();
   }
 });
 </script>
@@ -163,6 +215,56 @@ onUnmounted(() => {
               <IconifyIconOnline icon="ri:cpu-line" class="stat-icon" />
             </div>
             <div class="stat-info">
+              <div class="stat-value">{{ cpuPercent }}%</div>
+              <div class="stat-label">CPU 使用率</div>
+              <div class="stat-detail">核心: {{ systemInfo.availableProcessors || 0 }}</div>
+            </div>
+          </div>
+          <el-progress :percentage="cpuPercent" :stroke-width="6" :show-text="false" 
+            :color="cpuPercent > 80 ? '#F56C6C' : cpuPercent > 60 ? '#E6A23C' : '#67C23A'" />
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper warning">
+              <IconifyIconOnline icon="ri:hard-drive-2-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ physicalMemoryPercent }}%</div>
+              <div class="stat-label">物理内存</div>
+              <div class="stat-detail">{{ formatBytes(systemInfo.usedPhysicalMemory) }} / {{ formatBytes(systemInfo.totalPhysicalMemory) }}</div>
+            </div>
+          </div>
+          <el-progress :percentage="physicalMemoryPercent" :stroke-width="6" :show-text="false" 
+            :color="physicalMemoryPercent > 80 ? '#F56C6C' : physicalMemoryPercent > 60 ? '#E6A23C' : '#409EFF'" />
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper danger">
+              <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ formatUptime(systemInfo.uptime) }}</div>
+              <div class="stat-label">运行时长</div>
+              <div class="stat-detail">PID: {{ systemInfo.pid || '-' }}</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- JVM 指标卡片 -->
+    <el-row :gutter="20" class="stats-row">
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper info">
+              <IconifyIconOnline icon="ri:stack-overflow-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
               <div class="stat-value">{{ jvmInfo.threadCount || 0 }}</div>
               <div class="stat-label">活跃线程</div>
               <div class="stat-detail">峰值: {{ jvmInfo.peakThreadCount || 0 }}</div>
@@ -173,7 +275,7 @@ onUnmounted(() => {
       <el-col :span="6">
         <el-card class="stat-card" shadow="hover">
           <div class="stat-content">
-            <div class="stat-icon-wrapper warning">
+            <div class="stat-icon-wrapper success">
               <IconifyIconOnline icon="ri:code-box-line" class="stat-icon" />
             </div>
             <div class="stat-info">
@@ -187,13 +289,27 @@ onUnmounted(() => {
       <el-col :span="6">
         <el-card class="stat-card" shadow="hover">
           <div class="stat-content">
-            <div class="stat-icon-wrapper danger">
+            <div class="stat-icon-wrapper warning">
               <IconifyIconOnline icon="ri:recycle-line" class="stat-icon" />
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ (jvmInfo.youngGcCount || 0) + (jvmInfo.fullGcCount || 0) }}</div>
               <div class="stat-label">GC 次数</div>
               <div class="stat-detail">Full GC: {{ jvmInfo.fullGcCount || 0 }}</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper primary">
+              <IconifyIconOnline icon="ri:server-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value text-sm">{{ systemInfo.hostname || '-' }}</div>
+              <div class="stat-label">主机名</div>
+              <div class="stat-detail">{{ systemInfo.hostAddress || '-' }}</div>
             </div>
           </div>
         </el-card>
@@ -331,6 +447,10 @@ onUnmounted(() => {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
       .stat-icon { color: var(--el-color-danger); }
     }
+    &.info {
+      background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
+      .stat-icon { color: var(--el-color-info); }
+    }
 
     .stat-icon {
       font-size: 24px;
@@ -344,6 +464,10 @@ onUnmounted(() => {
       font-size: 24px;
       font-weight: 700;
       color: var(--el-text-color-primary);
+
+      &.text-sm {
+        font-size: 16px;
+      }
     }
 
     .stat-label {

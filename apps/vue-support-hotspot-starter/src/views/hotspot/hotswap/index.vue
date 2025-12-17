@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import { http } from "@repo/utils";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { wsService } from "@/utils/websocket";
 
 const loading = ref(false);
+let unsubscribe: (() => void) | null = null;
 const status = ref<any>({});
 const classList = ref<any[]>([]);
 const searchKeyword = ref("");
@@ -101,71 +103,114 @@ const refreshAll = () => {
   fetchClassList();
 };
 
+// 重载单个类
+const reloadSingleClass = async (className: string) => {
+  try {
+    await ElMessageBox.confirm(`确定要重载类 ${className} 吗？`, "确认重载", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning"
+    });
+    await http.post((window.agentPath || "/agent") + `/hotswap?action=reload&className=${className}`);
+    ElMessage.success("重载成功");
+    fetchClassList();
+  } catch (error: any) {
+    if (error !== "cancel") {
+      ElMessage.error("重载失败");
+    }
+  }
+};
+
+// 处理 WebSocket 消息
+const handleWsMessage = (message: any) => {
+  if (message.event === "HOTSWAP_STATUS") {
+    try {
+      const wsData = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
+      status.value = wsData.status || {};
+      if (wsData.classes) {
+        classList.value = wsData.classes;
+      }
+    } catch (error) {
+      console.error("解析热重载数据失败:", error);
+    }
+  }
+};
+
 onMounted(() => {
   fetchStatus();
   fetchClassList();
+  // 订阅 WebSocket 消息
+  wsService.connect();
+  unsubscribe = wsService.subscribe("JVM", "HOTSWAP_STATUS", handleWsMessage);
+});
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe();
+  }
 });
 </script>
 
 <template>
   <div class="page-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <IconifyIconOnline icon="ri:refresh-line" class="header-icon" />
-        <div class="header-info">
-          <h2 class="header-title">热重载管理</h2>
-          <p class="header-desc">管理应用类的热重载和实时更新</p>
-        </div>
-      </div>
-      <div class="header-right">
-        <div class="stat-card">
-          <div class="stat-number">{{ status.loadedClassCount || 0 }}</div>
-          <div class="stat-label">已加载类</div>
-        </div>
-        <el-tag :type="status.enabled ? 'success' : 'danger'" effect="light" size="large">
-          {{ status.enabled ? '热重载已启用' : '热重载未启用' }}
-        </el-tag>
-        <el-button type="info" @click="refreshAll" :loading="loading">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-        <el-button type="primary" @click="reloadClass">
-          <IconifyIconOnline icon="ri:upload-2-line" class="mr-1" />
-          手动重载
-        </el-button>
-      </div>
-    </div>
-
-    <!-- 状态卡片 -->
-    <el-card class="modern-card status-card" shadow="hover">
-      <template #header>
-        <div class="card-header">
-          <span class="card-title">
-            <IconifyIconOnline icon="ri:information-line" class="card-icon" />
-            热重载状态
-          </span>
-        </div>
-      </template>
-      <el-descriptions :column="4" border>
-        <el-descriptions-item label="热重载">
-          <el-tag :type="status.enabled ? 'success' : 'danger'" effect="plain">
-            {{ status.enabled ? "已启用" : "未启用" }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="Instrumentation">
-          <el-tag :type="status.instrumentation ? 'success' : 'info'" effect="plain">
-            {{ status.instrumentation ? "可用" : "不可用" }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="已加载类数">
-          <span class="highlight-number">{{ status.loadedClassCount || 0 }}</span>
-        </el-descriptions-item>
-        <el-descriptions-item label="更新时间">
-          {{ status.timestamp ? new Date(status.timestamp).toLocaleString("zh-CN") : "-" }}
-        </el-descriptions-item>
-      </el-descriptions>
-    </el-card>
+    <!-- 统计卡片 -->
+    <el-row :gutter="20" class="stats-row">
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper primary">
+              <IconifyIconOnline icon="ri:stack-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ status.loadedClassCount || 0 }}</div>
+              <div class="stat-label">已加载类</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div :class="['stat-icon-wrapper', status.enabled ? 'success' : 'danger']">
+              <IconifyIconOnline icon="ri:refresh-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ status.enabled ? '已启用' : '未启用' }}</div>
+              <div class="stat-label">热重载状态</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div :class="['stat-icon-wrapper', status.instrumentation ? 'success' : 'info']">
+              <IconifyIconOnline icon="ri:tools-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ status.instrumentation ? '可用' : '不可用' }}</div>
+              <div class="stat-label">Instrumentation</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper warning">
+              <IconifyIconOnline icon="ri:upload-2-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <el-button type="primary" size="small" @click="reloadClass">
+                <IconifyIconOnline icon="ri:upload-2-line" class="mr-1" />
+                手动重载
+              </el-button>
+              <div class="stat-label">操作</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
 
     <!-- 类列表卡片 -->
     <el-card class="modern-card class-list-card" shadow="hover">
@@ -191,6 +236,10 @@ onMounted(() => {
             <el-button @click="reloadFromFile">
               <IconifyIconOnline icon="ri:file-upload-line" class="mr-1" />
               从文件重载
+            </el-button>
+            <el-button type="info" @click="refreshAll" :loading="loading">
+              <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+              刷新
             </el-button>
           </div>
         </div>
@@ -262,29 +311,6 @@ onMounted(() => {
   </div>
 </template>
 
-<script>
-export default {
-  methods: {
-    reloadSingleClass(className) {
-      this.$confirm(`确定要重载类 ${className} 吗？`, "确认重载", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning"
-      })
-        .then(async () => {
-          try {
-            await http.post((window.agentPath || "/agent") + `/hotswap?action=reload&className=${className}`);
-            this.$message.success("重载成功");
-          } catch (error) {
-            this.$message.error("重载失败");
-          }
-        })
-        .catch(() => {});
-    }
-  }
-};
-</script>
-
 <style scoped lang="scss">
 .page-container {
   padding: 20px;
@@ -292,67 +318,70 @@ export default {
   background: var(--el-bg-color-page);
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.stats-row {
   margin-bottom: 20px;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
 
-  .header-left {
+.stat-card {
+  border-radius: 12px;
+  border: none;
+
+  :deep(.el-card__body) {
+    padding: 20px;
+  }
+
+  .stat-content {
     display: flex;
     align-items: center;
     gap: 16px;
+  }
 
-    .header-icon {
-      font-size: 40px;
-      color: var(--el-color-primary);
-      padding: 12px;
+  .stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
-      border-radius: 12px;
+      .stat-icon { color: var(--el-color-primary); }
+    }
+    &.success {
+      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+      .stat-icon { color: var(--el-color-success); }
+    }
+    &.warning {
+      background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+      .stat-icon { color: var(--el-color-warning); }
+    }
+    &.danger {
+      background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
+      .stat-icon { color: var(--el-color-danger); }
+    }
+    &.info {
+      background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
+      .stat-icon { color: var(--el-color-info); }
     }
 
-    .header-info {
-      .header-title {
-        margin: 0 0 4px 0;
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-      }
-
-      .header-desc {
-        margin: 0;
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-      }
+    .stat-icon {
+      font-size: 24px;
     }
   }
 
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  .stat-info {
+    flex: 1;
 
-    .stat-card {
-      background: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      text-align: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+    }
 
-      .stat-number {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--el-color-primary);
-      }
-
-      .stat-label {
-        font-size: 11px;
-        color: var(--el-text-color-secondary);
-      }
+    .stat-label {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
     }
   }
 }
@@ -454,16 +483,7 @@ html.dark {
     background: var(--el-bg-color-page);
   }
 
-  .page-header {
-    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-
-    .header-right .stat-card {
-      background: var(--el-bg-color);
-    }
-  }
-
-  .modern-card {
+  .stat-card, .modern-card {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 }

@@ -70,15 +70,6 @@ export const layoutThemes: LayoutTheme[] = [
     icon: "noto:firecracker",
   },
   {
-    name: "情人节",
-    key: "valentines-day",
-    description: "浪漫甜蜜的粉色主题",
-    type: ThemeType.FESTIVAL,
-    stylesheet: "valentines-day.css",
-    color: "#eb2f96",
-    icon: "noto:red-heart",
-  },
-  {
     name: "中秋",
     key: "mid-autumn",
     description: "月圆人团圆的青色主题",
@@ -132,7 +123,6 @@ export const loadThemeStylesheet = async (themeKey: string): Promise<void> => {
 export const THEME_CLASS_LIST = [
   'theme-christmas',
   'theme-spring-festival',
-  'theme-valentines-day',
   'theme-mid-autumn',
   'theme-new-year',
   'theme-cyberpunk',
@@ -246,11 +236,6 @@ export const detectFestivalTheme = (): LayoutTheme | null => {
   // 春节（农历正月初一前后15天，这里简化为公历1月20日-2月20日）
   if ((month === 1 && day >= 20) || (month === 2 && day <= 20)) {
     return layoutThemes.find((t) => t.key === "spring-festival") || null;
-  }
-
-  // 情人节（2月14日前后3天）
-  if (month === 2 && day >= 12 && day <= 16) {
-    return layoutThemes.find((t) => t.key === "valentines-day") || null;
   }
 
   // 中秋（农历八月十五前后7天，这里简化为公历9月10日-9月25日）

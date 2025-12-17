@@ -29,12 +29,7 @@ provide('themeSidebarItem', ChristmasSidebarItem);
       :item="item"
       :is-nest="isNest"
       :base-path="basePath"
-    >
-      <!-- 选中状态底部雪地装饰 -->
-      <template #activeDecoration="{ isActive }">
-        <div v-if="isActive" class="snow-ground-decoration"></div>
-      </template>
-    </BaseSidebarItem>
+    />
   </div>
 </template>
 
@@ -193,9 +188,107 @@ $tree-svg-active: url('./assets/christmas-tree-active.svg');
     }
   }
 }
+</style>
 
-// 激活状态的雪地已经在 SVG 背景中实现，不需要额外装饰
-.snow-ground-decoration {
-  display: none;
+<style lang="scss">
+// 圣诞主题 - 横向导航弹出菜单样式（组件化）
+$xmas-green: #1b5e20;
+$xmas-green-light: #2e7d32;
+$xmas-red: #c62828;
+$xmas-red-light: #e53935;
+$xmas-gold: #ffd700;
+$xmas-white: #ffffff;
+
+html[data-skin="christmas"] {
+  .el-popper.horizontal-popper {
+    background: rgba($xmas-green, 0.98) !important;
+    border: 1px solid rgba($xmas-gold, 0.4) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  }
+  
+  .horizontal-popper,
+  .el-menu--horizontal .el-menu--popup,
+  .el-menu--horizontal .el-menu--popup-container {
+    > .el-menu {
+      background: transparent !important;
+    }
+    
+    .el-menu-item {
+      height: 44px;
+      line-height: 44px;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 6px;
+      margin: 4px 0;
+      padding: 0 16px;
+      color: $xmas-white !important;
+      font-size: 14px;
+      transition: all 0.25s ease;
+      
+      .el-icon, svg {
+        color: $xmas-gold !important;
+      }
+      
+      span, div {
+        color: inherit !important;
+        font-size: 14px;
+      }
+      
+      &:hover {
+        background: rgba($xmas-gold, 0.1) !important;
+        color: $xmas-white !important;
+        transform: translateX(4px);
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
+        color: $xmas-white !important;
+        box-shadow: 0 2px 8px rgba($xmas-red, 0.4);
+        
+        .el-icon, svg, span, div {
+          color: $xmas-white !important;
+        }
+      }
+    }
+    
+    .el-sub-menu__title {
+      height: 44px;
+      line-height: 44px;
+      color: $xmas-white !important;
+      background: transparent !important;
+      border-radius: 6px;
+      margin: 4px 0;
+      padding: 0 16px;
+      
+      span, div {
+        color: $xmas-gold !important;
+        font-size: 14px;
+      }
+      
+      .el-icon, svg, .el-sub-menu__icon-arrow {
+        color: $xmas-gold !important;
+      }
+      
+      &:hover {
+        background: rgba($xmas-gold, 0.08) !important;
+      }
+    }
+    
+    .el-sub-menu.is-active > .el-sub-menu__title {
+      background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
+      color: $xmas-white !important;
+      box-shadow: 0 2px 8px rgba($xmas-red, 0.4);
+      
+      span, div, .el-icon, svg, .el-sub-menu__icon-arrow {
+        color: $xmas-white !important;
+      }
+    }
+    
+    .el-sub-menu > .el-menu {
+      background: transparent !important;
+      padding: 4px 0 4px 8px;
+      border-left: 1px solid rgba($xmas-gold, 0.2);
+    }
+  }
 }
 </style>

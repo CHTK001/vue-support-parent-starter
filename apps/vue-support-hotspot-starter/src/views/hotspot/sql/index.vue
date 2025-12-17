@@ -1,67 +1,59 @@
 <template>
   <div class="page flex flex-col h-full">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="title-section">
-          <h1 class="page-title">
-            <IconifyIconOnline icon="ri:database-2-line" class="title-icon" />
-            SQL 监控
-          </h1>
-          <p class="page-subtitle">实时监控和分析 SQL 执行情况</p>
-        </div>
-        <div class="stats-section">
-          <div class="stat-card">
-            <div class="stat-number">{{ dataList.length }}</div>
-            <div class="stat-label">SQL 记录</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- 内容区域 -->
-    <div class="flex-1 overflow-hidden">
-      <el-card shadow="never" class="h-full">
-        <div class="sql-container">
-          <!-- 控制按钮 -->
-          <div class="control-buttons">
-            <el-button v-if="config.lock" type="primary" circle :icon="useRenderIcon('ep:lock')" @click="config.lock = false" title="解锁滚动" />
-            <el-button v-else circle :icon="useRenderIcon('ep:unlock')" @click="config.lock = true" title="锁定滚动" />
-            <el-button circle type="danger" :icon="useRenderIcon('ep:delete-filled')" @click="dataList.length = 0" title="清空记录" />
+    <el-card shadow="hover" class="content-card">
+      <template #header>
+        <div class="card-header">
+          <div class="header-left">
+            <IconifyIconOnline icon="ri:database-2-line" class="header-icon" />
+            <span>SQL 监控</span>
+            <el-tag type="info" size="small">{{ dataList.length }} 条记录</el-tag>
           </div>
-
-          <el-row :gutter="16" class="h-full">
-            <!-- SQL 列表 -->
-            <el-col :span="8" class="h-full">
-              <div class="section-header">
-                <IconifyIconOnline icon="ri:list-check" class="section-icon" />
-                <span>SQL 列表</span>
+          <div class="header-actions">
+            <el-button v-if="config.lock" type="primary" size="small" @click="config.lock = false">
+              <IconifyIconOnline icon="ri:lock-line" class="mr-1" />锁定滚动
+            </el-button>
+            <el-button v-else size="small" @click="config.lock = true">
+              <IconifyIconOnline icon="ri:lock-unlock-line" class="mr-1" />解锁滚动
+            </el-button>
+            <el-button type="danger" size="small" @click="dataList.length = 0">
+              <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />清空
+            </el-button>
+          </div>
+        </div>
+      </template>
+      <div class="sql-container">
+        <el-row :gutter="16" class="h-full">
+          <!-- SQL 列表 -->
+          <el-col :span="8" class="sql-list-col">
+            <div class="section-header">
+              <IconifyIconOnline icon="ri:list-check" class="section-icon" />
+              <span>SQL 列表</span>
+            </div>
+            <div id="containerRef" class="sql-list">
+              <div v-for="(item, index) in getData(dataList)" :key="index" class="sql-item" @click="handleEventOne(item)">
+                <span class="sql-index">{{ index + 1 }}</span>
+                <span class="sql-content">{{ item?.data?.sql || "SQL" }}</span>
               </div>
-              <ul id="containerRef" class="sql-list">
-                <li v-for="(item, index) in getData(dataList)" :key="index" class="sql-item">
-                  <el-button class="sql-button" @click="handleEventOne(item)">
-                    <span class="sql-index">{{ index + 1 }}</span>
-                    <span class="sql-content">{{ item?.data?.sql || "SQL" }}</span>
-                  </el-button>
-                </li>
-              </ul>
-            </el-col>
+            </div>
+          </el-col>
 
-            <!-- SQL 详情 -->
-            <el-col :span="16" class="h-full">
+          <!-- SQL 详情 -->
+          <el-col :span="16" class="sql-detail-col">
+            <div class="section-header">
+              <IconifyIconOnline icon="ri:code-box-line" class="section-icon" />
+              <span>SQL 详情</span>
+            </div>
+            <div class="sql-detail-wrapper">
               <div v-if="config.mainData" class="sql-detail">
-                <div class="section-header">
-                  <IconifyIconOnline icon="ri:code-box-line" class="section-icon" />
-                  <span>SQL 语句</span>
-                </div>
                 <pre class="sql-code"><code class="language-sql">{{ format(config.mainData?.data?.sql || "SELECT 1") }}</code></pre>
               </div>
               <el-empty v-else description="请选择 SQL 记录查看详情" />
-            </el-col>
-          </el-row>
-        </div>
-      </el-card>
-    </div>
+            </div>
+          </el-col>
+        </el-row>
+      </div>
+    </el-card>
   </div>
 </template>
 <script setup>
@@ -151,122 +143,108 @@ onUnmounted(() => {
 </script>
 <style scoped lang="scss">
 .page {
-  padding: 0;
+  padding: 20px;
   background: var(--el-bg-color-page);
 }
 
-.page-header {
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
-  padding: 24px 32px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+.content-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+
+  :deep(.el-card__header) {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  :deep(.el-card__body) {
+    flex: 1;
+    padding: 16px;
+    overflow: hidden;
+  }
 }
 
-.header-content {
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
 
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0 0 8px 0;
-
-  .title-icon {
-    font-size: 28px;
-    color: var(--el-color-primary);
-  }
-}
-
-.page-subtitle {
-  color: var(--el-text-color-regular);
-  font-size: 14px;
-  margin: 0;
-}
-
-.stats-section {
-  display: flex;
-  gap: 16px;
-}
-
-.stat-card {
-  background: white;
-  padding: 16px 24px;
-  border-radius: 8px;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-  .stat-number {
-    font-size: 28px;
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
     font-weight: 600;
-    color: var(--el-color-primary);
-    margin-bottom: 4px;
+
+    .header-icon {
+      font-size: 20px;
+      color: var(--el-color-primary);
+    }
   }
 
-  .stat-label {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
+  .header-actions {
+    display: flex;
+    gap: 8px;
   }
 }
 
 .sql-container {
   height: 100%;
-  position: relative;
 }
 
-.control-buttons {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 10;
+.sql-list-col, .sql-detail-col {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  height: 100%;
 }
 
 .section-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: var(--el-fill-color-light);
-  border-radius: 4px;
+  border-radius: 6px;
   margin-bottom: 12px;
   font-weight: 600;
+  font-size: 14px;
   color: var(--el-text-color-primary);
+  flex-shrink: 0;
 
   .section-icon {
-    font-size: 18px;
+    font-size: 16px;
     color: var(--el-color-primary);
   }
 }
 
 .sql-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  height: calc(100% - 60px);
+  flex: 1;
   overflow-y: auto;
+  padding-right: 8px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--el-border-color);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 .sql-item {
-  margin-bottom: 8px;
-}
-
-.sql-button {
-  width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: white;
-  border: 1px solid var(--el-border-color);
-  border-radius: 4px;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
 
@@ -279,11 +257,12 @@ onUnmounted(() => {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
     background: var(--el-color-primary-light-9);
     color: var(--el-color-primary);
-    border-radius: 50%;
+    border-radius: 4px;
     font-size: 12px;
     font-weight: 600;
     flex-shrink: 0;
@@ -291,10 +270,8 @@ onUnmounted(() => {
 
   .sql-content {
     flex: 1;
-    text-align: left;
-    font-weight: 500;
     font-size: 12px;
-    font-family: "Courier New", monospace;
+    font-family: "Monaco", "Menlo", monospace;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -302,28 +279,39 @@ onUnmounted(() => {
   }
 }
 
+.sql-detail-wrapper {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .sql-detail {
-  height: 100%;
+  flex: 1;
+  overflow: auto;
 }
 
 .sql-code {
-  background: var(--el-fill-color-light);
+  background: var(--el-fill-color-lighter);
   padding: 16px;
-  border-radius: 4px;
-  font-family: "Courier New", monospace;
+  border-radius: 6px;
+  font-family: "Monaco", "Menlo", monospace;
   font-size: 13px;
   line-height: 1.6;
-  overflow-x: auto;
-  max-height: calc(100% - 60px);
+  overflow: auto;
   margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
-:deep(.el-card) {
-  border-radius: 8px;
+// 深色主题
+ html.dark {
+  .content-card {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  }
 
-  .el-card__body {
-    height: 100%;
-    padding: 16px;
+  .sql-item {
+    background: var(--el-bg-color);
   }
 }
 </style>

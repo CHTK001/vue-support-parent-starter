@@ -29,17 +29,7 @@ provide('themeSidebarItem', MidAutumnSidebarItem);
       :item="item"
       :is-nest="isNest"
       :base-path="basePath"
-    >
-      <!-- 月亮装饰插槽 -->
-      <template #activeDecoration="{ isActive }">
-        <div v-if="isActive" class="mid-autumn-decoration">
-          <div class="moon-glow"></div>
-          <span class="moon">🌕</span>
-          <span class="star star-1">✨</span>
-          <span class="star star-2">⭐</span>
-        </div>
-      </template>
-    </BaseSidebarItem>
+    />
   </div>
 </template>
 
@@ -175,73 +165,106 @@ $moon-active: url('./assets/mid-autumn-menu-active.svg');
     }
   }
 }
+</style>
 
-// 月亮装饰样式
-.mid-autumn-decoration {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  .moon-glow {
-    position: absolute;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 213, 79, 0.6) 0%, transparent 70%);
-    animation: moonGlow 3s ease-in-out infinite;
+<style lang="scss">
+// 中秋主题 - 横向导航弹出菜单样式（组件化）
+$mid-blue: #1a237e;
+$mid-blue-light: #283593;
+$mid-gold: #ffd54f;
+$mid-gold-light: #ffecb3;
+$mid-cyan: #00bcd4;
+
+html[data-skin="mid-autumn"] {
+  .el-popper.horizontal-popper {
+    background: rgba(13, 27, 66, 0.98) !important;
+    border: 1px solid rgba($mid-gold, 0.3) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
   }
   
-  .moon {
-    font-size: 16px;
-    position: relative;
-    z-index: 1;
-    filter: drop-shadow(0 0 4px rgba(255, 213, 79, 0.8));
-    animation: moonFloat 4s ease-in-out infinite;
-  }
-  
-  .star {
-    position: absolute;
-    font-size: 8px;
-    animation: starTwinkle 2s ease-in-out infinite;
-    
-    &.star-1 {
-      top: -6px;
-      right: -4px;
-      animation-delay: 0.3s;
+  .horizontal-popper,
+  .el-menu--horizontal .el-menu--popup,
+  .el-menu--horizontal .el-menu--popup-container {
+    > .el-menu {
+      background: transparent !important;
     }
     
-    &.star-2 {
-      bottom: -6px;
-      left: -4px;
-      animation-delay: 0.8s;
+    .el-menu-item {
+      height: 44px;
+      line-height: 44px;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 6px;
+      margin: 4px 0;
+      padding: 0 16px;
+      color: $mid-gold-light !important;
+      font-size: 14px;
+      transition: all 0.25s ease;
+      
+      .el-icon, svg {
+        color: $mid-gold !important;
+      }
+      
+      span, div {
+        color: inherit !important;
+        font-size: 14px;
+      }
+      
+      &:hover {
+        background: rgba($mid-gold, 0.1) !important;
+        color: #fff !important;
+        transform: translateX(4px);
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
+        color: $mid-blue !important;
+        box-shadow: 0 2px 8px rgba($mid-gold, 0.4);
+        
+        .el-icon, svg, span, div {
+          color: $mid-blue !important;
+        }
+      }
+    }
+    
+    .el-sub-menu__title {
+      height: 44px;
+      line-height: 44px;
+      color: $mid-gold !important;
+      background: transparent !important;
+      border-radius: 6px;
+      margin: 4px 0;
+      padding: 0 16px;
+      
+      span, div {
+        color: $mid-gold !important;
+        font-size: 14px;
+      }
+      
+      .el-icon, svg, .el-sub-menu__icon-arrow {
+        color: $mid-gold !important;
+      }
+      
+      &:hover {
+        background: rgba($mid-gold, 0.08) !important;
+      }
+    }
+    
+    .el-sub-menu.is-active > .el-sub-menu__title {
+      background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
+      color: $mid-blue !important;
+      box-shadow: 0 2px 8px rgba($mid-gold, 0.4);
+      
+      span, div, .el-icon, svg, .el-sub-menu__icon-arrow {
+        color: $mid-blue !important;
+      }
+    }
+    
+    .el-sub-menu > .el-menu {
+      background: transparent !important;
+      padding: 4px 0 4px 8px;
+      border-left: 1px solid rgba($mid-gold, 0.2);
     }
   }
-}
-
-@keyframes moonGlow {
-  0%, 100% { 
-    transform: scale(1); 
-    opacity: 0.6; 
-  }
-  50% { 
-    transform: scale(1.3); 
-    opacity: 0.9; 
-  }
-}
-
-@keyframes moonFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-}
-
-@keyframes starTwinkle {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.2); }
 }
 </style>

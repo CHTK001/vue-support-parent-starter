@@ -19,6 +19,29 @@
 .manage-main {
   background: var(--app-bg-page);
   color: var(--app-text-primary);
+  
+  /* 滚动条样式 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-scrollbar-thumb) var(--app-scrollbar-track);
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: var(--app-scrollbar-track);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--app-scrollbar-thumb);
+    border-radius: 3px;
+    
+    &:hover {
+      background: var(--app-scrollbar-thumb-hover);
+    }
+  }
 }
 
 /* ===== 卡片和面板 ===== */

@@ -13,6 +13,7 @@ import { useI18n } from "vue-i18n";
 import { useDataThemeChange } from "./hooks/useDataThemeChange";
 import { useLayout } from "./hooks/useLayout";
 import { setType } from "./types";
+import ScDebugConsole from "@repo/components/ScDebugConsole/index.vue";
 
 import {
   deviceDetection,
@@ -115,11 +116,9 @@ const stopClock = () => {
 // AI 助手皮肤主题（初始化后在 onMounted 中设置正确的值）
 const aiChatTheme = ref(getConfig().AiChatTheme || "default");
 
-// 监听 AI 助手皮肤变更
-//@ts-ignore
-emitter.on("aiChatThemeChange", (theme: string) => {
-  aiChatTheme.value = theme;
-});
+// 调试模式状态
+const debugMode = ref(false);
+const debugConsoleRef = ref<InstanceType<typeof ScDebugConsole> | null>(null);
 
 const { initStorage } = useLayout();
 
@@ -133,6 +132,33 @@ const layout = computed(() => {
 const isMobile = deviceDetection();
 const pureSetting = useSettingStoreHook();
 const { $storage } = useGlobal<any>();
+
+// 从本地存储初始化调试模式状态
+debugMode.value = $storage?.configure?.debugMode ?? false;
+
+// 监听 AI 助手皮肤变更
+//@ts-ignore
+emitter.on("aiChatThemeChange", (theme: string) => {
+  aiChatTheme.value = theme;
+});
+
+// 监听调试模式变更
+emitter.on("debugModeChange", (enabled: boolean) => {
+  debugMode.value = enabled;
+  if (enabled) {
+    nextTick(() => {
+      debugConsoleRef.value?.show();
+    });
+  } else {
+    debugConsoleRef.value?.handleClose();
+  }
+});
+
+// 调试控制台关闭回调
+function handleDebugConsoleClose() {
+  debugMode.value = false;
+  emitter.emit("debugModeChanged", false);
+}
 
 const set: setType = reactive({
   sidebar: computed(() => {
@@ -542,6 +568,13 @@ const LayHeader = defineComponent({
     <LayAiChat 
       :visible="getConfig().ShowAiChat !== false" 
       :theme="aiChatTheme"
+    />
+
+    <!-- 调试控制台 - 独立于设置面板 -->
+    <ScDebugConsole
+      v-if="debugMode"
+      ref="debugConsoleRef"
+      @close="handleDebugConsoleClose"
     />
   </div>
 </template>

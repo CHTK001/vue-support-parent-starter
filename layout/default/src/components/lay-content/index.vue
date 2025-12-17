@@ -224,95 +224,83 @@ const router = useRouter();
       <template #default="{ Component, route }">
         <LayFrame :currComp="Component" :currRoute="route">
           <template #default="{ Comp, fullPath, frameInfo }">
-            <el-scrollbar
+            <div
               v-if="fixedHeader"
-              :wrap-style="{
-                display: 'flex',
-                'flex-wrap': 'wrap',
+              class="content-area"
+              :style="{
                 'max-width': getMainWidth,
                 margin: '0 auto',
-                transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-              }"
-              :view-style="{
-                display: 'flex',
-                flex: 'auto',
-                overflow: 'hidden',
-                'flex-direction': 'column',
               }"
             >
               <el-backtop
+                v-if="cardBody"
                 :title="t('buttons.pureBackTop')"
-                target=".app-main .el-scrollbar__wrap"
+                target=".content-area .sidebar-custom"
               />
-              <div class="grow bg-layout">
-                <el-card
-                  v-if="cardBody"
-                  class="layout sidebar-custom"
-                  shadow="never"
-                  :style="{
-                    height: 'calc(100% - ' + contentMargin * 2 + 'px)',
-                    'border-radius': layoutRadius + 'px  !important',
-                    margin: contentMargin + 'px'
-                  }"
-                >
-                  <transitionMain :route="route">
-                    <keep-alive
-                      v-if="isKeepAlive"
-                      :include="usePermissionStoreHook().cachePageList"
-                    >
-                      <component
-                        :is="Comp"
-                        :key="route.name"
-                        :frameInfo="frameInfo"
-                        class="main-content"
-                      />
-                    </keep-alive>
+              <el-card
+                v-if="cardBody"
+                class="layout sidebar-custom thin-scroller"
+                shadow="never"
+                :style="{
+                  height: 'calc(100vh - 86px - ' + contentMargin * 2 + 'px)',
+                  'border-radius': layoutRadius + 'px  !important',
+                  margin: contentMargin + 'px'
+                }"
+              >
+                <transitionMain :route="route">
+                  <keep-alive
+                    v-if="isKeepAlive"
+                    :include="usePermissionStoreHook().cachePageList"
+                  >
                     <component
                       :is="Comp"
-                      v-else
                       :key="route.name"
                       :frameInfo="frameInfo"
                       class="main-content"
                     />
-                  </transitionMain>
-                </el-card>
-                <div
-                  v-else
-                  class="h-full layout sidebar-custom"
-                  shadow="never"
-:style="{
-                    margin: contentMargin + 'px',
-                    height: 'calc(100% - ' + contentMargin * 2 + 'px)',
-                    'border-radius': layoutRadius + 'px !important',
-                  }"
-                >
-                  <transitionMain :route="route">
-                    <keep-alive
-                      v-if="isKeepAlive"
-                      :include="usePermissionStoreHook().cachePageList"
-                    >
-                      <component
-                        :is="Comp"
-                        :key="route.name"
-                        :frameInfo="frameInfo"
-                        class="main-content"
-                        :style="{ 'border-radius': layoutRadius + 'px' }"
-                      />
-                    </keep-alive>
+                  </keep-alive>
+                  <component
+                    :is="Comp"
+                    v-else
+                    :key="route.name"
+                    :frameInfo="frameInfo"
+                    class="main-content"
+                  />
+                </transitionMain>
+              </el-card>
+              <el-scrollbar
+                v-else
+                class="content-scrollbar no-card-mode"
+                :style="{
+                  margin: contentMargin + 'px',
+                  height: 'calc(100vh - 86px - ' + contentMargin * 2 + 'px)',
+                  'border-radius': layoutRadius + 'px !important',
+                }"
+              >
+                <transitionMain :route="route">
+                  <keep-alive
+                    v-if="isKeepAlive"
+                    :include="usePermissionStoreHook().cachePageList"
+                  >
                     <component
                       :is="Comp"
-                      v-else
                       :key="route.name"
                       :frameInfo="frameInfo"
                       class="main-content"
                       :style="{ 'border-radius': layoutRadius + 'px' }"
                     />
-                  </transitionMain>
-                </div>
-              </div>
-
-              <LayFooter v-if="!hideFooter" />
-            </el-scrollbar>
+                  </keep-alive>
+                  <component
+                    :is="Comp"
+                    v-else
+                    :key="route.name"
+                    :frameInfo="frameInfo"
+                    class="main-content"
+                    :style="{ 'border-radius': layoutRadius + 'px' }"
+                  />
+                </transitionMain>
+              </el-scrollbar>
+            </div>
             <div v-else class="grow bg-layout">
               <el-card
                 v-if="cardBody"
@@ -347,7 +335,7 @@ const router = useRouter();
               </el-card>
               <div
                 v-else
-                class="h-full layout sidebar-custom"
+                class="h-full layout sidebar-custom no-card-mode"
                 shadow="never"
                 :style="{
                   height: 'calc(100% - ' + contentMargin * 2 + 'px)',
@@ -390,12 +378,18 @@ const router = useRouter();
 </template>
 
 <style lang="scss" scoped>
+.content-area {
+  height: 100%;
+  width: 100%;
+}
+
 .sidebar-custom {
   background: var(--el-bg-color);
   border: 1px solid var(--el-card-border-color);
   border-radius: var(--el-card-border-radius);
   color: var(--el-text-color-primary);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.04),
@@ -405,6 +399,22 @@ const router = useRouter();
     box-shadow:
       0 4px 16px rgba(0, 0, 0, 0.15),
       0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.content-scrollbar {
+  background: transparent;
+}
+
+/* 非卡片内容模式：去除边框和背景 */
+.no-card-mode {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+
+  :deep(.page-container),
+  :deep(.main-content) {
+    border: 0 !important;
   }
 }
 
@@ -436,15 +446,22 @@ const router = useRouter();
 }
 
 .main-content {
-  height: 100%;
+  min-height: 100%;
+  height: auto;
   position: relative;
-  z-index: 0; // 系统框架层级统一为 0
+  z-index: 0;
   background: transparent;
   transition: opacity 0.2s ease;
 }
 
 :deep(.el-card__body) {
-  height: calc(100% - 0px);
+  height: auto;
+  min-height: 100%;
+}
+
+:deep(.page-container) {
+  height: auto !important;
+  min-height: 100%;
 }
 
 .bg-layout {

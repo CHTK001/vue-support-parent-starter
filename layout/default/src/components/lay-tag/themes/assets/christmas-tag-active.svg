@@ -1,15 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 32" preserveAspectRatio="none">
   <defs>
-    <linearGradient id="redBgActive" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="redBoxBg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#e53935"/>
       <stop offset="100%" stop-color="#c62828"/>
     </linearGradient>
-    <linearGradient id="greenRibbon" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#43a047"/>
-      <stop offset="100%" stop-color="#2e7d32"/>
+    <linearGradient id="lidGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ef5350"/>
+      <stop offset="100%" stop-color="#c62828"/>
     </linearGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+    <linearGradient id="greenRibbonOpen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#66bb6a"/>
+      <stop offset="100%" stop-color="#43a047"/>
+    </linearGradient>
+    <linearGradient id="starGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffd700"/>
+      <stop offset="100%" stop-color="#ffa000"/>
+    </linearGradient>
+    <filter id="glowOpen">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
       <feMerge>
         <feMergeNode in="coloredBlur"/>
         <feMergeNode in="SourceGraphic"/>
@@ -17,23 +25,33 @@
     </filter>
   </defs>
   <!-- 发光边框 -->
-  <rect x="0" y="0" width="120" height="32" rx="5" fill="none" stroke="#ffd700" stroke-width="2" filter="url(#glow)"/>
-  <!-- 主背景 -->
-  <rect x="1" y="1" width="118" height="30" rx="4" fill="url(#redBgActive)"/>
+  <rect x="0" y="6" width="120" height="26" rx="4" fill="none" stroke="#ffd700" stroke-width="2" filter="url(#glowOpen)"/>
+  <!-- 礼物盒底部 -->
+  <rect x="1" y="7" width="118" height="24" rx="3" fill="url(#redBoxBg)"/>
   <!-- 金边 -->
-  <rect x="0.5" y="0.5" width="119" height="31" rx="4.5" fill="none" stroke="#ffd700" stroke-width="2"/>
-  <!-- 横向丝带 -->
-  <rect x="0" y="13" width="120" height="6" fill="url(#greenRibbon)"/>
-  <!-- 竖向丝带 -->
-  <rect x="57" y="0" width="6" height="32" fill="url(#greenRibbon)"/>
-  <!-- 蝴蝶结 -->
-  <ellipse cx="60" cy="16" rx="8" ry="5" fill="#2e7d32"/>
-  <circle cx="60" cy="16" r="3" fill="#ffd700" filter="url(#glow)"/>
+  <rect x="0.5" y="6.5" width="119" height="25" rx="3.5" fill="none" stroke="#ffd700" stroke-width="1.5"/>
+  <!-- 竖向丝带（盒子部分） -->
+  <rect x="57" y="7" width="6" height="24" fill="url(#greenRibbonOpen)"/>
+  <!-- 打开的盒盖（斜向上方） -->
+  <g transform="rotate(-15, 60, 8)">
+    <rect x="5" y="0" width="110" height="10" rx="2" fill="url(#lidGradient)"/>
+    <rect x="5" y="0" width="110" height="10" rx="2" fill="none" stroke="#ffd700" stroke-width="1"/>
+    <!-- 盒盖上的丝带 -->
+    <rect x="55" y="0" width="10" height="10" fill="url(#greenRibbonOpen)"/>
+    <!-- 蝴蝶结 -->
+    <ellipse cx="60" cy="2" rx="12" ry="4" fill="#43a047"/>
+    <ellipse cx="52" cy="0" rx="6" ry="3" fill="#66bb6a" transform="rotate(-20, 52, 0)"/>
+    <ellipse cx="68" cy="0" rx="6" ry="3" fill="#66bb6a" transform="rotate(20, 68, 0)"/>
+    <circle cx="60" cy="2" r="2" fill="#ffd700"/>
+  </g>
+  <!-- 内部发光效果（礼物光芒） -->
+  <ellipse cx="60" cy="12" rx="25" ry="8" fill="#ffd700" opacity="0.3" filter="url(#glowOpen)"/>
+  <!-- 星星飞出效果 -->
+  <text x="30" y="8" font-size="8" fill="#ffd700" filter="url(#glowOpen)">★</text>
+  <text x="85" y="6" font-size="6" fill="#ffd700" filter="url(#glowOpen)">☆</text>
+  <text x="20" y="5" font-size="5" fill="#ffeb3b">✧</text>
+  <text x="95" y="4" font-size="5" fill="#ffeb3b">✧</text>
   <!-- 雪花装饰 -->
-  <text x="8" y="12" font-size="8" fill="#ffd700" opacity="0.9">❄</text>
-  <text x="105" y="12" font-size="8" fill="#ffd700" opacity="0.9">❄</text>
-  <text x="8" y="28" font-size="8" fill="#ffd700" opacity="0.9">❄</text>
-  <text x="105" y="28" font-size="8" fill="#ffd700" opacity="0.9">❄</text>
-  <!-- 顶部闪光 -->
-  <rect x="10" y="2" width="25" height="2" rx="1" fill="white" opacity="0.4"/>
+  <text x="8" y="26" font-size="7" fill="#ffd700" opacity="0.8">❄</text>
+  <text x="105" y="26" font-size="7" fill="#ffd700" opacity="0.8">❄</text>
 </svg>
