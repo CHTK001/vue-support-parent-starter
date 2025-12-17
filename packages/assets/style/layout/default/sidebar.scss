@@ -98,7 +98,7 @@
   .fixed-header {
     position: sticky;
     top: 0;
-    z-index: 1999;
+    z-index: 0;
     width: 100%;
 
     /* fixed-header 属性巨动画 */
@@ -114,7 +114,7 @@
 
   .sidebar-container {
     position: relative;
-    z-index: 2000;
+    z-index: 0;
     width: $sideBarWidth !important;
     height: 100%;
     overflow: visible;
@@ -837,7 +837,7 @@
       top: 0;
       bottom: 0;
       left: 0;
-      z-index: 2001;
+      z-index: 0;
       width: $sideBarWidth;
       transition: transform var(--pure-transition-duration);
     }
@@ -1416,7 +1416,7 @@ body[layout="double"] {
       position: fixed;
       top: 0;
       left: 0;
-      z-index: 2001;
+      z-index: 0;
       transition: transform var(--pure-transition-duration);
     }
 
@@ -1458,7 +1458,7 @@ body[layout="hover"] {
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 1001;
+    z-index: 0;
     width: $sideBarWidth;
     height: 100vh;
     transition: all var(--pure-transition-duration) ease;
@@ -1475,7 +1475,7 @@ body[layout="hover"] {
 
   /* 子菜单弹出层样式 */
   .sub-menu-popup {
-    z-index: 9999 !important;
+    z-index: 100 !important;
 
     .sub-menu-container {
       backdrop-filter: blur(20px);
