@@ -538,31 +538,6 @@ const defer = useDefer(firstLevelMenus.value.length);
   >
     <LaySidebarLogo v-if="props.showLogo" :collapse="isHoverCollapsed" />
 
-    <!-- 导航栏左侧的收缩按钮 -->
-    <div
-      v-show="isShow"
-      class="sidebar-collapse-btn"
-      @click="toggleHoverSideBar"
-    >
-      <IconifyIconOffline
-        icon="ri:arrow-left-s-line"
-        :style="{ transform: isHoverCollapsed ? 'rotate(180deg)' : 'none' }"
-        class="sidebar-collapse-icon"
-      />
-    </div>
-
-    <!-- 悬浮时显示的收缩按钮 -->
-    <div v-show="isShow" class="hover-collapse-btn" @click="toggleHoverSideBar">
-      <IconifyIconOffline
-        icon="ri:arrow-left-s-line"
-        :style="{ transform: isHoverCollapsed ? 'rotate(180deg)' : 'none' }"
-        class="collapse-icon"
-      />
-      <span class="collapse-text">{{
-        isHoverCollapsed ? "点击展开" : "点击折叠"
-      }}</span>
-    </div>
-
     <el-scrollbar
       wrap-class="scrollbar-wrapper"
       :class="[device === 'mobile' ? 'mobile' : 'pc']"
@@ -819,9 +794,8 @@ const defer = useDefer(firstLevelMenus.value.length);
   backdrop-filter: blur(12px);
   border-right: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-  z-index: 0; // 布局组件 z-index 统一为 0，避免遮挡对话框
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  overflow-x: visible;
+  overflow-y: hidden;
   display: flex;
   flex-direction: column;
 
@@ -845,7 +819,7 @@ const defer = useDefer(firstLevelMenus.value.length);
     }
   }
 
-  /* el-scrollbar 填充剩余空间，为底部收缩按钮预留40px */
+  /* el-scrollbar 填充剩余空间，为底部收缩按钮预畀40px */
   :deep(.el-scrollbar) {
     flex: 1;
     min-height: 0;
@@ -874,7 +848,6 @@ const defer = useDefer(firstLevelMenus.value.length);
       rgba(30, 30, 40, 0.98)
     );
     border-right: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
 }
 
