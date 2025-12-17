@@ -40,7 +40,8 @@ const defaultActive = computed(() =>
 
 // === 菜单溢出处理 ===
 const menuContainerRef = ref<HTMLElement | null>(null);
-const visibleCount = ref(999); // 可见菜单数量
+const visibleCount = ref(0); // 可见菜单数量，初始为0避免闪烁
+const isCalculated = ref(false); // 是否已计算
 const MENU_ITEM_WIDTH = 120; // 每个菜单项的估算宽度
 const MORE_MENU_WIDTH = 80; // "更多"菜单的宽度
 
@@ -49,6 +50,10 @@ const allMenus = computed(() => usePermissionStoreHook().wholeMenus);
 
 // 可见菜单
 const visibleMenus = computed(() => {
+  // 如果还没计算完成，显示所有菜单（防止闪烁）
+  if (!isCalculated.value) {
+    return allMenus.value;
+  }
   if (visibleCount.value >= allMenus.value.length) {
     return allMenus.value;
   }
@@ -57,48 +62,91 @@ const visibleMenus = computed(() => {
 
 // 溢出菜单（放入"更多"）
 const overflowMenus = computed(() => {
+  if (!isCalculated.value) {
+    return [];
+  }
   if (visibleCount.value >= allMenus.value.length) {
     return [];
   }
   return allMenus.value.slice(visibleCount.value);
 });
 
+// 获取容器 DOM 元素
+function getContainerEl(): HTMLElement | null {
+  if (!menuContainerRef.value) return null;
+  // 如果是组件实例，获取其 $el
+  if ('$el' in menuContainerRef.value) {
+    return (menuContainerRef.value as any).$el as HTMLElement;
+  }
+  return menuContainerRef.value as HTMLElement;
+}
+
 // 计算可见菜单数量
-function calcVisibleCount() {
-  if (!menuContainerRef.value) return;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+function calcVisibleCount(retryCount = 0) {
+  const containerEl = getContainerEl();
+  if (!containerEl) {
+    // 如果容器还不存在，稍后重试
+    if (retryCount < 5) {
+      retryTimer = setTimeout(() => calcVisibleCount(retryCount + 1), 100);
+    }
+    return;
+  }
   
-  const containerWidth = menuContainerRef.value.clientWidth;
+  const containerWidth = containerEl.clientWidth;
   const totalMenus = allMenus.value.length;
   
+  // 如果容器宽度为0，稍后重试
+  if (containerWidth === 0 && retryCount < 5) {
+    retryTimer = setTimeout(() => calcVisibleCount(retryCount + 1), 100);
+    return;
+  }
+  
+  // 如果没有菜单，稍后重试
+  if (totalMenus === 0 && retryCount < 5) {
+    retryTimer = setTimeout(() => calcVisibleCount(retryCount + 1), 100);
+    return;
+  }
+  
   // 计算可以容纳的菜单数量
-  let availableWidth = containerWidth;
-  let count = 0;
+  let count = totalMenus;
   
   // 如果所有菜单都能显示，就不需要"更多"
   if (totalMenus * MENU_ITEM_WIDTH <= containerWidth) {
     visibleCount.value = totalMenus;
+    isCalculated.value = true;
     return;
   }
   
   // 需要预留"更多"菜单的空间
-  availableWidth -= MORE_MENU_WIDTH;
+  const availableWidth = containerWidth - MORE_MENU_WIDTH;
   count = Math.floor(availableWidth / MENU_ITEM_WIDTH);
   
   // 至少显示1个菜单
   visibleCount.value = Math.max(1, count);
+  isCalculated.value = true;
 }
 
 // 监听容器尺寸变化
 let resizeObserver: ResizeObserver | null = null;
 
 function setupResizeObserver() {
-  if (!menuContainerRef.value) return;
+  const containerEl = getContainerEl();
+  if (!containerEl) {
+    // 如果容器还不存在，稍后重试
+    setTimeout(() => setupResizeObserver(), 100);
+    return;
+  }
+  
+  // 清理旧的 observer
+  resizeObserver?.disconnect();
   
   resizeObserver = new ResizeObserver(() => {
     calcVisibleCount();
   });
   
-  resizeObserver.observe(menuContainerRef.value);
+  resizeObserver.observe(containerEl);
 }
 
 // === 主题装饰功能 ===
@@ -126,6 +174,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   emitter.off("systemThemeChange");
   resizeObserver?.disconnect();
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+  }
 });
 
 // 监听菜单数据变化
