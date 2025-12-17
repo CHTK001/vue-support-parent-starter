@@ -1560,4 +1560,271 @@ html[data-skin="christmas"] {
     }
   }
 }
+
+// ==================== 元旦主题下拉样式 ====================
+html[data-skin="new-year"] {
+  // 元旦冰雪主题色
+  $ice-lightest: #F5FBFF;
+  $ice-light: #B8E0F2;
+  $ice-medium: #7CC2E8;
+  $ice-primary: #4EA8DE;
+  $ice-deep: #2A7AB8;
+  $ice-darker: #1E5F8C;
+  $frost-white: #FFFFFF;
+  $frost-purple: #E0E7F5;
+  $ice-border: rgba(78, 168, 222, 0.4);
+
+  // 语言下拉菜单 - 元旦主题
+  .lang-dropdown-popper {
+    .el-dropdown-menu {
+      background: linear-gradient(180deg, rgba($ice-lightest, 0.98) 0%, rgba($frost-purple, 0.95) 100%) !important;
+      border: 2px solid $ice-border !important;
+      box-shadow:
+        0 0 20px rgba($ice-primary, 0.2),
+        0 0 40px rgba($ice-deep, 0.1),
+        0 20px 60px rgba(0, 0, 0, 0.15) !important;
+      border-radius: 16px !important;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+  }
+
+  .lang-menu {
+    background: transparent !important;
+
+    .lang-header {
+      background: linear-gradient(135deg, rgba($frost-white, 0.8) 0%, rgba($ice-lightest, 0.6) 100%) !important;
+      border-bottom: 1px solid rgba($ice-medium, 0.3) !important;
+      color: $ice-deep !important;
+      position: relative;
+
+      // 底部装饰线
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, $ice-primary 30%, $ice-medium 50%, $ice-primary 70%, transparent);
+      }
+
+      svg {
+        color: $ice-primary !important;
+        filter: drop-shadow(0 0 4px rgba($ice-primary, 0.4));
+      }
+    }
+
+    .lang-item {
+      background: rgba($frost-white, 0.7) !important;
+      border: 1px solid rgba($ice-medium, 0.25) !important;
+      margin: 8px 10px !important;
+      border-radius: 10px !important;
+      transition: all 0.3s ease !important;
+
+      &:hover {
+        background: rgba($ice-medium, 0.2) !important;
+        border-color: $ice-primary !important;
+        box-shadow: 0 4px 15px rgba($ice-primary, 0.2) !important;
+        transform: translateX(4px) !important;
+
+        .lang-name {
+          color: $ice-deep !important;
+        }
+      }
+
+      &.active {
+        background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
+        border: 2px solid rgba($frost-white, 0.5) !important;
+        box-shadow: 0 4px 20px rgba($ice-primary, 0.35) !important;
+
+        .lang-name {
+          color: $frost-white !important;
+          font-weight: 700 !important;
+        }
+
+        .lang-desc {
+          color: rgba($frost-white, 0.8) !important;
+        }
+
+        .lang-check {
+          color: $frost-white !important;
+          filter: drop-shadow(0 0 6px rgba($frost-white, 0.6)) !important;
+        }
+      }
+
+      .lang-flag {
+        filter: drop-shadow(0 2px 4px rgba($ice-deep, 0.2));
+      }
+
+      .lang-name {
+        color: $ice-darker !important;
+      }
+
+      .lang-desc {
+        color: rgba($ice-deep, 0.7) !important;
+      }
+    }
+  }
+
+  // 用户下拉菜单 - 元旦主题
+  .user-dropdown-popper {
+    .el-dropdown-menu {
+      background: linear-gradient(180deg, rgba($ice-lightest, 0.98) 0%, rgba($frost-purple, 0.95) 100%) !important;
+      border: 2px solid $ice-border !important;
+      box-shadow:
+        0 0 20px rgba($ice-primary, 0.2),
+        0 0 40px rgba($ice-deep, 0.1),
+        0 25px 80px rgba(0, 0, 0, 0.15) !important;
+      border-radius: 20px !important;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+  }
+
+  .user-menu {
+    background: transparent !important;
+
+    .menu-header {
+      background: linear-gradient(135deg, $ice-primary 0%, $ice-medium 50%, $ice-light 100%) !important;
+      border-bottom: 1px solid rgba($ice-medium, 0.3);
+      position: relative;
+
+      // 底部装饰线
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, $frost-white 20%, rgba($ice-medium, 0.8) 50%, $frost-white 80%, transparent);
+      }
+
+      // 沙雪背景纹理
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='3' cy='3' r='1'/%3E%3Ccircle cx='13' cy='13' r='1'/%3E%3C/g%3E%3C/svg%3E");
+        pointer-events: none;
+      }
+
+      .header-avatar {
+        border-color: $frost-white !important;
+        box-shadow:
+          0 0 15px rgba($frost-white, 0.5),
+          0 8px 24px rgba($ice-deep, 0.3) !important;
+
+        &:hover {
+          box-shadow:
+            0 0 20px rgba($frost-white, 0.7),
+            0 8px 24px rgba($ice-deep, 0.3) !important;
+        }
+      }
+
+      .header-name {
+        color: $frost-white !important;
+        text-shadow: 0 1px 3px rgba($ice-deep, 0.3);
+        font-weight: 700;
+      }
+
+      .header-status {
+        color: rgba($frost-white, 0.95) !important;
+
+        &::before {
+          background: linear-gradient(135deg, #4ade80, #22c55e) !important;
+          box-shadow:
+            0 0 0 3px rgba(74, 222, 128, 0.3),
+            0 0 10px rgba(74, 222, 128, 0.5) !important;
+        }
+      }
+    }
+
+    .menu-item {
+      background: rgba($frost-white, 0.7) !important;
+      border: 1px solid rgba($ice-medium, 0.25) !important;
+      margin: 6px 10px !important;
+      border-radius: 12px !important;
+      transition: all 0.3s ease !important;
+
+      &:hover {
+        background: rgba($ice-medium, 0.2) !important;
+        border-color: $ice-primary !important;
+        box-shadow: 0 4px 15px rgba($ice-primary, 0.2) !important;
+        transform: translateX(4px) !important;
+
+        .item-title {
+          color: $ice-deep !important;
+        }
+
+        .item-arrow {
+          color: $ice-primary !important;
+        }
+      }
+
+      .item-icon {
+        box-shadow: 0 4px 12px rgba($ice-deep, 0.2), 0 2px 6px rgba($ice-primary, 0.15) !important;
+      }
+
+      .account-icon {
+        background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
+        color: $frost-white !important;
+      }
+
+      .cache-icon {
+        background: linear-gradient(135deg, $ice-deep, $ice-darker) !important;
+        color: $frost-white !important;
+      }
+
+      .item-title {
+        color: $ice-darker !important;
+      }
+
+      .item-desc {
+        color: rgba($ice-deep, 0.7) !important;
+      }
+    }
+
+    .menu-footer {
+      background: linear-gradient(135deg, rgba($frost-white, 0.6) 0%, rgba($ice-lightest, 0.4) 100%) !important;
+      border-top: 1px solid rgba($ice-medium, 0.3) !important;
+      position: relative;
+
+      // 顶部装饰线
+      &::before {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, $ice-primary 30%, $ice-medium 50%, $ice-primary 70%, transparent);
+      }
+    }
+
+    .logout-item {
+      background: rgba($frost-white, 0.6) !important;
+      border: 1px solid rgba(239, 68, 68, 0.25) !important;
+      color: rgba(220, 38, 38, 0.9) !important;
+      border-radius: 12px !important;
+
+      .logout-icon {
+        color: rgba(220, 38, 38, 0.9) !important;
+      }
+
+      &:hover {
+        background: rgba(239, 68, 68, 0.1) !important;
+        border-color: rgba(239, 68, 68, 0.4) !important;
+        color: #dc2626 !important;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15) !important;
+        transform: scale(1.02) !important;
+
+        .logout-icon {
+          color: #dc2626 !important;
+        }
+      }
+    }
+  }
+}
 </style>
