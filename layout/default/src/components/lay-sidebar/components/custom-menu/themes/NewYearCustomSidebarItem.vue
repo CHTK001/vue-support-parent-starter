@@ -204,10 +204,10 @@ $frost-purple: #E0E7F5;
 // 子菜单样式
 .new-year-sub-menu {
   --custom-menu-text-color: #{$ice-darker};
-  --custom-menu-item-hover-bg: rgba(#{red($ice-medium)}, #{green($ice-medium)}, #{blue($ice-medium)}, 0.12);
+  --custom-menu-item-hover-bg: rgba(#{color.channel($ice-medium, 'red', $space: rgb)}, #{color.channel($ice-medium, 'green', $space: rgb)}, #{color.channel($ice-medium, 'blue', $space: rgb)}, 0.12);
   --custom-menu-item-hover-color: #{$ice-deep};
   --custom-menu-sub-active-color: #{$ice-deep};
-  --custom-menu-sub-active-bg: rgba(#{red($ice-medium)}, #{green($ice-medium)}, #{blue($ice-medium)}, 0.15);
+  --custom-menu-sub-active-bg: rgba(#{color.channel($ice-medium, 'red', $space: rgb)}, #{color.channel($ice-medium, 'green', $space: rgb)}, #{color.channel($ice-medium, 'blue', $space: rgb)}, 0.15);
   
   margin: 2px 4px;
   

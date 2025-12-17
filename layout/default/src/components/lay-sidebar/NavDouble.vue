@@ -298,6 +298,8 @@ const defer = useDefer(firstLevelMenus.value.length);
 </template>
 
 <style lang="scss" scoped>
+@use "sass:color";
+
 // 双栏导航容器基础样式
 .double-nav-container {
   position: relative;
@@ -1367,12 +1369,12 @@ html[data-skin="christmas"] {
   .double-nav-container {
     // 左栏
     .double-nav-left {
-      background: linear-gradient(180deg, $xmas-green, darken($xmas-green, 5%)) !important;
+      background: linear-gradient(180deg, $xmas-green, color.adjust($xmas-green, $lightness: -5%)) !important;
       border-right: 3px solid $xmas-border !important;
 
       // Logo区域
       .sidebar-logo-container {
-        background: linear-gradient(180deg, darken($xmas-green, 8%), darken($xmas-green, 5%)) !important;
+        background: linear-gradient(180deg, color.adjust($xmas-green, $lightness: -8%), color.adjust($xmas-green, $lightness: -5%)) !important;
         border-bottom: 2px solid $xmas-border !important;
 
         .sidebar-title {
@@ -1596,7 +1598,7 @@ html[data-skin="christmas"] {
     // 折叠按钮
     .double-nav-collapse {
       .left-collapse {
-        background: linear-gradient(180deg, darken($xmas-green, 8%), darken($xmas-green, 10%)) !important;
+        background: linear-gradient(180deg, color.adjust($xmas-green, $lightness: -8%), color.adjust($xmas-green, $lightness: -10%)) !important;
         border-top: 2px solid $xmas-border !important;
 
         svg {
