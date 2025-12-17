@@ -168,23 +168,22 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <el-dropdown
-    ref="dropdownRef"
-    trigger="click"
-    placement="bottom-end"
-    popper-class="message-dropdown-popper"
-  >
-    <span class="message-trigger">
-      <el-badge
-        :value="unreadCount > 0 ? unreadCount : ''"
-        :max="99"
-        :hidden="unreadCount === 0"
-      >
-        <div class="message-icon-wrapper">
-          <IconifyIconOffline :icon="MessageIcon" class="message-icon" />
-        </div>
-      </el-badge>
-    </span>
+  <div>
+    <el-dropdown
+      ref="dropdownRef"
+      trigger="click"
+      placement="bottom-end"
+      popper-class="message-dropdown-popper"
+    >
+      <div class="message-container flex-c cursor-pointer navbar-bg-hover">
+        <el-badge
+          :value="unreadCount > 0 ? unreadCount : ''"
+          :max="99"
+          :hidden="unreadCount === 0"
+        >
+          <IconifyIconOffline :icon="MessageIcon" />
+        </el-badge>
+      </div>
     <template #dropdown>
       <div class="message-panel">
         <!-- 头部 -->
@@ -249,10 +248,10 @@ onUnmounted(() => {
         </div>
       </div>
     </template>
-  </el-dropdown>
+    </el-dropdown>
 
-  <!-- 消息中心 Drawer - 使用 Teleport 避免父元素堆叠上下文限制 -->
-  <Teleport to="body">
+    <!-- 消息中心 Drawer - 使用 Teleport 避免父元素堆叠上下文限制 -->
+    <Teleport to="body">
     <el-drawer
       v-model="drawerVisible"
       title="消息中心"
@@ -338,39 +337,26 @@ onUnmounted(() => {
       </div>
     </el-scrollbar>
     </el-drawer>
-  </Teleport>
+    </Teleport>
+  </div>
 </template>
 
 <style lang="scss" scoped>
-.message-trigger {
+.message-container {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  font-size: 18px;
+}
 
-  &:hover {
-    background: var(--el-fill-color-light);
-
-    .message-icon {
-      color: var(--el-color-primary);
-    }
+.message-container,
+:deep(.message-container) {
+  svg {
+    background: transparent !important;
   }
-}
-
-.message-icon-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.message-icon {
-  font-size: 20px;
-  color: var(--el-text-color-regular);
-  transition: color 0.2s ease;
 }
 </style>
 

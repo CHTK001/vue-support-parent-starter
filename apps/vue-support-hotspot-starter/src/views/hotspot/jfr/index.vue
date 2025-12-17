@@ -304,68 +304,65 @@ onUnmounted(() => {
 
 <template>
   <div class="page-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <IconifyIconOnline icon="ri:record-circle-line" class="header-icon" />
-        <div class="header-info">
-          <h2 class="header-title">JFR 性能录制</h2>
-          <p class="header-desc">JDK Flight Recorder 性能分析工具</p>
-        </div>
-      </div>
-      <div class="header-right">
-        <div class="stat-card running">
-          <div class="stat-number">{{ status.runningRecordings || 0 }}</div>
-          <div class="stat-label">录制中</div>
-        </div>
-        <div class="stat-card stopped">
-          <div class="stat-number">{{ status.stoppedRecordings || 0 }}</div>
-          <div class="stat-label">已停止</div>
-        </div>
-        <el-tag :type="wsConnected ? 'success' : 'danger'" effect="light" size="large">
-          {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
-        </el-tag>
-        <el-tag :type="status.available ? 'success' : 'danger'" effect="light" size="large">
-          {{ status.available ? 'JFR可用' : 'JFR不可用' }}
-        </el-tag>
-        <el-button type="info" @click="refreshAll" :loading="loading">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-        <el-button type="primary" @click="openNewRecordingDialog" :disabled="!status.available">
-          <IconifyIconOnline icon="ri:play-circle-line" class="mr-1" />
-          新建录制
-        </el-button>
-      </div>
-    </div>
-
-    <!-- JFR状态卡片 -->
-    <el-card class="modern-card status-card" shadow="hover">
-      <template #header>
-        <div class="card-header">
-          <span class="card-title">
-            <IconifyIconOnline icon="ri:information-line" class="card-icon" />
-            JFR 状态
-          </span>
-        </div>
-      </template>
-      <el-descriptions :column="4" border>
-        <el-descriptions-item label="JFR支持">
-          <el-tag :type="status.available ? 'success' : 'danger'" effect="plain">
-            {{ status.available ? "可用" : "不可用" }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="录制中">
-          <span class="highlight-number success">{{ status.runningRecordings || 0 }}</span>
-        </el-descriptions-item>
-        <el-descriptions-item label="已停止">
-          <span class="highlight-number">{{ status.stoppedRecordings || 0 }}</span>
-        </el-descriptions-item>
-        <el-descriptions-item label="录制总数">
-          <span class="highlight-number primary">{{ status.activeRecordings || 0 }}</span>
-        </el-descriptions-item>
-      </el-descriptions>
-    </el-card>
+    <!-- 关键指标卡片 -->
+    <el-row :gutter="20" class="stats-row">
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper success">
+              <IconifyIconOnline icon="ri:record-circle-fill" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ status.runningRecordings || 0 }}</div>
+              <div class="stat-label">录制中</div>
+              <div class="stat-detail">活跃录制数量</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper info">
+              <IconifyIconOnline icon="ri:stop-circle-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ status.stoppedRecordings || 0 }}</div>
+              <div class="stat-label">已停止</div>
+              <div class="stat-detail">可导出录制</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper primary">
+              <IconifyIconOnline icon="ri:list-check-2" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ status.activeRecordings || 0 }}</div>
+              <div class="stat-label">录制总数</div>
+              <div class="stat-detail">所有录制任务</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper" :class="status.available ? 'success' : 'danger'">
+              <IconifyIconOnline icon="ri:checkbox-circle-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ status.available ? 'JFR可用' : '不可用' }}</div>
+              <div class="stat-label">JFR 状态</div>
+              <div class="stat-detail">Java 11+</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
 
     <!-- 录制列表卡片 -->
     <el-card class="modern-card recordings-card" shadow="hover">
@@ -586,79 +583,81 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .page-container {
   padding: 20px;
-  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
   background: var(--el-bg-color-page);
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.stats-row {
   margin-bottom: 20px;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, var(--el-color-warning-light-9) 0%, var(--el-color-warning-light-8) 100%);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
 
-  .header-left {
+.stat-card {
+  border-radius: 12px;
+  border: none;
+
+  :deep(.el-card__body) {
+    padding: 20px;
+  }
+
+  .stat-content {
     display: flex;
     align-items: center;
     gap: 16px;
+  }
 
-    .header-icon {
-      font-size: 40px;
-      color: var(--el-color-warning);
-      padding: 12px;
+  .stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.primary {
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
+      .stat-icon { color: var(--el-color-primary); }
+    }
+    &.success {
+      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+      .stat-icon { color: var(--el-color-success); }
+    }
+    &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
-      border-radius: 12px;
+      .stat-icon { color: var(--el-color-warning); }
+    }
+    &.danger {
+      background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
+      .stat-icon { color: var(--el-color-danger); }
+    }
+    &.info {
+      background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
+      .stat-icon { color: var(--el-color-info); }
     }
 
-    .header-info {
-      .header-title {
-        margin: 0 0 4px 0;
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-      }
-
-      .header-desc {
-        margin: 0;
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-      }
+    .stat-icon {
+      font-size: 24px;
     }
   }
 
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  .stat-info {
+    flex: 1;
 
-    .stat-card {
-      background: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      text-align: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+    }
 
-      .stat-number {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--el-color-warning);
-      }
+    .stat-label {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+    }
 
-      &.running .stat-number {
-        color: var(--el-color-success);
-      }
-
-      &.stopped .stat-number {
-        color: var(--el-color-info);
-      }
-
-      .stat-label {
-        font-size: 11px;
-        color: var(--el-text-color-secondary);
-      }
+    .stat-detail {
+      font-size: 11px;
+      color: var(--el-text-color-placeholder);
+      margin-top: 2px;
     }
   }
 }
@@ -685,7 +684,7 @@ onUnmounted(() => {
 
       .card-icon {
         font-size: 18px;
-        color: var(--el-color-warning);
+        color: var(--el-color-primary);
       }
     }
   }
@@ -772,16 +771,7 @@ html.dark {
     background: var(--el-bg-color-page);
   }
 
-  .page-header {
-    background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-
-    .header-right .stat-card {
-      background: var(--el-bg-color);
-    }
-  }
-
-  .modern-card {
+  .stat-card, .modern-card {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 }

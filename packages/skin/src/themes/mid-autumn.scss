@@ -587,3 +587,36 @@ html[data-skin="mid-autumn"] {
     transform: translateY(calc(-50% - 3px));
   }
 }
+
+html[data-skin="mid-autumn"] {
+  // ==================== 内容区域样式 ====================
+  .sidebar-custom {
+    border: 2px solid rgba($mid-gold, 0.25) !important;
+    box-shadow: 
+      0 4px 20px rgba($mid-blue, 0.15),
+      0 0 30px rgba($mid-gold, 0.08) !important;
+    background: var(--el-bg-color) !important;
+    
+    // 顶部装饰线
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, $mid-gold 20%, $mid-cyan 50%, $mid-gold 80%, transparent);
+      z-index: 1;
+    }
+  }
+  
+  .no-card-mode.sidebar-custom {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    
+    &::before {
+      display: none;
+    }
+  }
+}

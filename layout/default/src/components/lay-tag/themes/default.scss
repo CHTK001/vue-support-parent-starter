@@ -175,6 +175,7 @@
   /* 右键菜单 */
   .contextmenu {
     position: absolute;
+    z-index: 9999;
     padding: 8px;
     margin: 0;
     font-size: 13px;
@@ -360,7 +361,7 @@
     &:hover {
       color: var(--el-color-primary) !important;
       background: rgba(255, 255, 255, 0.95);
-      transform: translate(0, -50%) scale(1.15) rotate(90deg);
+      transform: translate(0, -50%);
     }
   }
 

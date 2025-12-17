@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import BaseTag from './BaseTag.vue';
+/**
+ * 中秋主题标签页
+ * 使用专属 MidAutumnTag 组件，不依赖 showModel
+ */
+import MidAutumnTag from './MidAutumnTag.vue';
 import ThemeDecoration from '../../ThemeDecoration.vue';
 import { getComponentDecorations } from '../../../themes/decorations';
 import type { DecorationConfig } from '../../../themes/decorations';
@@ -34,7 +38,8 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="mid-autumn-tag-wrapper">
-    <BaseTag theme-class="mid-autumn-tag" />
+    <!-- 使用专属标签组件，不依赖 showModel -->
+    <MidAutumnTag />
     
     <!-- 主题装饰元素 -->
     <ThemeDecoration
@@ -51,11 +56,4 @@ onBeforeUnmount(() => {
 .mid-autumn-tag-wrapper {
   width: 100%;
 }
-</style>
-
-<style lang="scss">
-// 先导入基础样式
-@use './default.scss';
-// 再导入中秋主题覆盖样式
-@use './mid-autumn.css';
 </style>

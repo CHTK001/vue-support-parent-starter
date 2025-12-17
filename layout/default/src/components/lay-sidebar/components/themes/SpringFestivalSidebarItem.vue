@@ -29,16 +29,7 @@ provide('themeSidebarItem', SpringFestivalSidebarItem);
       :item="item"
       :is-nest="isNest"
       :base-path="basePath"
-    >
-      <!-- 灯笼装饰插槽 -->
-      <template #activeDecoration="{ isActive }">
-        <div v-if="isActive" class="spring-festival-decoration">
-          <span class="lantern">🏮</span>
-          <div class="gold-line"></div>
-          <span class="sparkle">✨</span>
-        </div>
-      </template>
-    </BaseSidebarItem>
+    />
   </div>
 </template>
 
@@ -177,55 +168,105 @@ $couplet-active: url('./assets/spring-couplet-menu-active.svg');
     }
   }
 }
+</style>
 
-// 灯笼装饰样式
-.spring-festival-decoration {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  
-  .lantern {
-    font-size: 16px;
-    animation: lanternSwing 2s ease-in-out infinite;
-    transform-origin: top center;
-    filter: drop-shadow(0 2px 4px rgba(220, 20, 60, 0.5));
+<style lang="scss">
+// 春节主题 - 横向导航弹出菜单样式（组件化）
+$spring-red: #DC143C;
+$spring-red-dark: #B22222;
+$spring-gold: #FFD700;
+
+html[data-skin="spring-festival"] {
+  .el-popper.horizontal-popper {
+    background: rgba(139, 0, 0, 0.98) !important;
+    border: 1px solid rgba($spring-gold, 0.4) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
   }
   
-  .gold-line {
-    position: absolute;
-    left: -20px;
-    width: 16px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #ffd700, transparent);
-    animation: goldShimmer 1.5s ease-in-out infinite;
+  .horizontal-popper,
+  .el-menu--horizontal .el-menu--popup,
+  .el-menu--horizontal .el-menu--popup-container {
+    > .el-menu {
+      background: transparent !important;
+    }
+    
+    .el-menu-item {
+      height: 44px;
+      line-height: 44px;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 6px;
+      margin: 4px 0;
+      padding: 0 16px;
+      color: $spring-gold !important;
+      font-family: 'STKaiti', 'KaiTi', 'SimKai', serif;
+      font-size: 14px;
+      transition: all 0.25s ease;
+      
+      .el-icon, svg {
+        color: $spring-gold !important;
+      }
+      
+      span, div {
+        color: inherit !important;
+        font-size: 14px;
+      }
+      
+      &:hover {
+        background: rgba($spring-gold, 0.1) !important;
+        color: #fff !important;
+        transform: translateX(4px);
+      }
+      
+      &.is-active {
+        background: linear-gradient(135deg, $spring-gold, #FFA500) !important;
+        color: #8B0000 !important;
+        box-shadow: 0 2px 8px rgba($spring-gold, 0.4);
+        
+        .el-icon, svg, span, div {
+          color: #8B0000 !important;
+        }
+      }
+    }
+    
+    .el-sub-menu__title {
+      height: 44px;
+      line-height: 44px;
+      color: $spring-gold !important;
+      background: transparent !important;
+      border-radius: 6px;
+      margin: 4px 0;
+      padding: 0 16px;
+      
+      span, div {
+        color: $spring-gold !important;
+        font-size: 14px;
+      }
+      
+      .el-icon, svg, .el-sub-menu__icon-arrow {
+        color: $spring-gold !important;
+      }
+      
+      &:hover {
+        background: rgba($spring-gold, 0.08) !important;
+      }
+    }
+    
+    .el-sub-menu.is-active > .el-sub-menu__title {
+      background: linear-gradient(135deg, $spring-gold, #FFA500) !important;
+      color: #8B0000 !important;
+      box-shadow: 0 2px 8px rgba($spring-gold, 0.4);
+      
+      span, div, .el-icon, svg, .el-sub-menu__icon-arrow {
+        color: #8B0000 !important;
+      }
+    }
+    
+    .el-sub-menu > .el-menu {
+      background: transparent !important;
+      padding: 4px 0 4px 8px;
+      border-left: 1px solid rgba($spring-gold, 0.2);
+    }
   }
-  
-  .sparkle {
-    position: absolute;
-    font-size: 8px;
-    top: -4px;
-    right: -4px;
-    animation: sparkleFloat 2s ease-in-out infinite;
-  }
-}
-
-@keyframes lanternSwing {
-  0%, 100% { transform: rotate(-5deg); }
-  50% { transform: rotate(5deg); }
-}
-
-@keyframes goldShimmer {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
-}
-
-@keyframes sparkleFloat {
-  0%, 100% { opacity: 0.6; transform: translateY(0) scale(1); }
-  50% { opacity: 1; transform: translateY(-2px) scale(1.2); }
 }
 </style>

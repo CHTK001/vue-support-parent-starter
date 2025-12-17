@@ -94,9 +94,11 @@
 
 <script setup>
 import { http } from "@repo/utils";
-import { computed, onBeforeMount, ref } from "vue";
+import { computed, onBeforeMount, onUnmounted, ref } from "vue";
+import { wsService } from "@/utils/websocket";
 
 const data = ref([]);
+let unsubscribe = null;
 const infoVisible = ref(false);
 const info = ref("");
 const searchKeyword = ref("");
@@ -113,18 +115,44 @@ const handleInfo = row => {
   infoVisible.value = true;
 };
 
+// 解析 Bean 数据
+const parseBeanData = res => {
+  if (res && typeof res === 'object' && Array.isArray(res.data)) {
+    data.value = res.data;
+  } else if (res && typeof res === 'object' && Array.isArray(res.data?.data)) {
+    data.value = res.data.data;
+  } else if (Array.isArray(res)) {
+    data.value = res;
+  } else {
+    data.value = [];
+  }
+};
+
+// 处理 WebSocket 消息
+const handleWsMessage = message => {
+  if (message.event === "SPRING_BEAN_UPDATE") {
+    try {
+      const wsData = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
+      parseBeanData(wsData);
+    } catch (error) {
+      console.error("解析 Bean 数据失败:", error);
+    }
+  }
+};
+
 onBeforeMount(async () => {
   http.get((window.agentPath || "/agent") + "/spring-bean-data").then(res => {
-    // 后端返回的是 { data: [...], total: 10 }
-    // 需要提取 data 字段中的数组
-    if (res && typeof res === 'object' && Array.isArray(res.data.data)) {
-      data.value = res.data.data;
-    } else if (Array.isArray(res)) {
-      data.value = res;
-    } else {
-      data.value = [];
-    }
+    parseBeanData(res.data);
   });
+  // 订阅 WebSocket 消息
+  wsService.connect();
+  unsubscribe = wsService.subscribe("SPRING", "SPRING_BEAN_UPDATE", handleWsMessage);
+});
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe();
+  }
 });
 </script>
 

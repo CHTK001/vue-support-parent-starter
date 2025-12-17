@@ -64,9 +64,11 @@
 
 <script setup>
 import { http } from "@repo/utils";
-import { onBeforeMount, ref } from "vue";
+import { onBeforeMount, onUnmounted, ref } from "vue";
+import { wsService } from "@/utils/websocket";
 
 const data = ref([]);
+let unsubscribe = null;
 const infoVisible = ref(false);
 const info = ref("");
 
@@ -75,10 +77,31 @@ const handleInfo = row => {
   infoVisible.value = true;
 };
 
+// 处理 WebSocket 消息
+const handleWsMessage = message => {
+  if (message.event === "TABLE_INFO") {
+    try {
+      const wsData = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
+      data.value = wsData.data || wsData || [];
+    } catch (error) {
+      console.error("解析表信息失败:", error);
+    }
+  }
+};
+
 onBeforeMount(async () => {
   http.get((window.agentPath || "/agent") + "/table_info").then(res => {
     data.value = res.data.data || [];
   });
+  // 订阅 WebSocket 消息
+  wsService.connect();
+  unsubscribe = wsService.subscribe("SQL", "TABLE_INFO", handleWsMessage);
+});
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe();
+  }
 });
 </script>
 <style lang="scss" scoped>

@@ -2,21 +2,34 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { http } from "@repo/utils";
 import { ElMessage } from "element-plus";
+import { wsService } from "@/utils/websocket";
 
 const loading = ref(false);
 const jvmInfo = ref<any>({});
-let refreshTimer: ReturnType<typeof setInterval> | null = null;
+let unsubscribe: (() => void) | null = null;
 
 // 获取JVM信息
 const fetchJvmInfo = async () => {
   loading.value = true;
   try {
-    const res = await http.get((window.agentPath || "/agent") + "/api/jvm");
-    jvmInfo.value = res || {};
+    const res = await http.get((window.agentPath || "/agent") + "/jvm");
+    jvmInfo.value = res?.data || res || {};
   } catch (error) {
     console.error("获取JVM信息失败:", error);
   } finally {
     loading.value = false;
+  }
+};
+
+// 处理 WebSocket 消息
+const handleWsMessage = (message: any) => {
+  if (message.event === "JVM_INFO") {
+    try {
+      const data = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
+      jvmInfo.value = data;
+    } catch (error) {
+      console.error("解析JVM数据失败:", error);
+    }
   }
 };
 
@@ -68,7 +81,7 @@ const formatTime = (timestamp: number) => {
 // 触发GC
 const triggerGC = async () => {
   try {
-    await http.get((window.agentPath || "/agent") + "/api/jvm?action=gc");
+    await http.get((window.agentPath || "/agent") + "/jvm?action=gc");
     ElMessage.success("GC已触发");
     setTimeout(fetchJvmInfo, 1000);
   } catch (error) {
@@ -77,14 +90,16 @@ const triggerGC = async () => {
 };
 
 onMounted(() => {
+  // 初始加载数据
   fetchJvmInfo();
-  // 每5秒刷新一次
-  refreshTimer = setInterval(fetchJvmInfo, 5000);
+  // 订阅 WebSocket 消息
+  wsService.connect();
+  unsubscribe = wsService.subscribe("JVM", "JVM_INFO", handleWsMessage);
 });
 
 onUnmounted(() => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
+  if (unsubscribe) {
+    unsubscribe();
   }
 });
 </script>
@@ -353,7 +368,8 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .page-container {
   padding: 20px;
-  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
   background: var(--el-bg-color-page);
 }
 

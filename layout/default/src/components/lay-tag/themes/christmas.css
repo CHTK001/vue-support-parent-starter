@@ -36,7 +36,8 @@ html[data-skin="christmas"] .modern-item {
   margin: 0 8px !important;
   font-weight: 600 !important;
   box-shadow: 0 2px 8px rgba(27, 94, 32, 0.3) !important;
-  transition: all 0.2s ease !important;
+  transition: none !important;
+  min-width: fit-content !important;
 }
 
 /* Chrome 标签额外设置 */
@@ -57,7 +58,6 @@ html[data-skin="christmas"] .chrome-close-btn {
 html[data-skin="christmas"] .scroll-item:hover,
 html[data-skin="christmas"] .chrome-item:hover,
 html[data-skin="christmas"] .modern-item:hover {
-  transform: translateY(-1px) !important;
   box-shadow: 0 4px 12px rgba(27, 94, 32, 0.4) !important;
   filter: brightness(1.05);
 }
@@ -122,12 +122,17 @@ html[data-skin="christmas"] .arrow-right:hover {
 
 /* 右键菜单 */
 html[data-skin="christmas"] .contextmenu {
+  z-index: 9999 !important;
   background: #fff !important;
   border: 2px solid rgba(27, 94, 32, 0.3) !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
 }
 
-html[data-skin="christmas"] .contextmenu .menu-item:hover {
+html[data-skin="christmas"] .contextmenu li {
+  cursor: pointer !important;
+}
+
+html[data-skin="christmas"] .contextmenu li:hover {
   background: rgba(27, 94, 32, 0.1) !important;
   color: #1b5e20 !important;
 }

@@ -1,13 +1,16 @@
 <template>
   <div class="new-year-login-page">
-    <!-- 元旦背景 -->
+    <!-- 冰雪背景 -->
     <div class="festival-background">
-      <div class="fireworks-container">
-        <div class="firework" v-for="i in 8" :key="i"></div>
+      <!-- 雪花容器 -->
+      <div class="snowflakes-container">
+        <div class="snowflake" v-for="i in 40" :key="i"></div>
       </div>
-      <div class="confetti-container">
-        <div class="confetti" v-for="i in 50" :key="i"></div>
-      </div>
+      <!-- 冰晶光晕 -->
+      <div class="ice-glow glow-1"></div>
+      <div class="ice-glow glow-2"></div>
+      <div class="ice-glow glow-3"></div>
+      <!-- 年份数字 -->
       <div class="numbers-container">
         <div class="number">2</div>
         <div class="number">0</div>
@@ -26,19 +29,19 @@
         <div class="decoration-section">
           <div class="decoration-content">
             <div class="festival-icon">
-              <IconifyIconOnline icon="noto:party-popper" class="icon-main" />
+              <span class="icon-snowflake">❄</span>
             </div>
             <h1 class="festival-title">新年快乐</h1>
             <p class="festival-greeting">Happy New Year 2026</p>
             <div class="festival-elements">
-              <div class="element-item">🎉</div>
-              <div class="element-item">🎊</div>
-              <div class="element-item">🥂</div>
-              <div class="element-item">🎆</div>
+              <div class="element-item">❄️</div>
+              <div class="element-item">✨</div>
+              <div class="element-item">💎</div>
+              <div class="element-item">⭐</div>
             </div>
             <div class="countdown-text">
               <p>新的一年</p>
-              <p>新的开始</p>
+              <p>新的希望</p>
             </div>
           </div>
         </div>
@@ -64,11 +67,21 @@ defineOptions({
 @use "sass:math";
 @use "sass:list";
 
+// 冰雪色板
+$ice-lightest: #F5FBFF;
+$ice-lighter: #E8F4FC;
+$ice-light: #B8E0F2;
+$ice-medium: #7CC2E8;
+$ice-primary: #4EA8DE;
+$ice-deep: #2A7AB8;
+$ice-darker: #1E5F8C;
+$frost-purple: #E0E7F5;
+
 .new-year-login-page {
   min-height: 100vh;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background: linear-gradient(135deg, $ice-lightest 0%, $ice-lighter 30%, $ice-light 60%, $ice-medium 100%);
 }
 
 .festival-background {
@@ -78,84 +91,96 @@ defineOptions({
   width: 100%;
   height: 100%;
   z-index: 0;
+  overflow: hidden;
 
-  .fireworks-container {
+  // 雪花容器
+  .snowflakes-container {
     position: absolute;
     width: 100%;
     height: 100%;
+    pointer-events: none;
 
-    .firework {
+    .snowflake {
       position: absolute;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      animation: fireworkBurst 3s ease-out infinite;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 14px;
+      top: -20px;
+      animation: snowfall linear infinite;
+      text-shadow: 0 0 8px rgba($ice-primary, 0.5);
 
-      @for $i from 1 through 8 {
+      &::before {
+        content: '❄';
+      }
+
+      @for $i from 1 through 40 {
         &:nth-child(#{$i}) {
-          top: math.random(60) + 10%;
-          left: math.random(80) + 10%;
-          animation-delay: ($i * 0.5s);
-          background: hsl(math.random(360), 100%, 60%);
-          box-shadow: 0 0 30px currentColor;
+          left: math.random(100) * 1%;
+          font-size: (math.random(12) + 8) * 1px;
+          opacity: math.random(50) / 100 + 0.5;
+          animation-duration: (math.random(15) + 10) * 1s;
+          animation-delay: math.random(100) * 0.1s;
         }
       }
     }
   }
 
-  .confetti-container {
+  // 冰晶光晕效果
+  .ice-glow {
     position: absolute;
-    width: 100%;
-    height: 100%;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.5;
+    animation: glowPulse 6s ease-in-out infinite;
 
-    .confetti {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      top: -10px;
-      animation: confettiFall 5s linear infinite;
+    &.glow-1 {
+      width: 400px;
+      height: 400px;
+      top: 10%;
+      left: 10%;
+      background: radial-gradient(circle, rgba($ice-primary, 0.4), transparent);
+      animation-delay: 0s;
+    }
 
-      @for $i from 1 through 50 {
-        &:nth-child(#{$i}) {
-          left: math.random(100) * 1%;
-          animation-delay: math.random(50) * 0.1s;
-          animation-duration: (math.random(30) + 30) * 0.1s;
-          $colors: #ff6b6b, #4ecdc4, #45b7d1, #f7b731, #5f27cd, #00d2d3;
-          background: list.nth($colors, ($i % 6) + 1);
-          transform: rotate(math.random(360) * 1deg);
-        }
-      }
+    &.glow-2 {
+      width: 500px;
+      height: 500px;
+      bottom: 10%;
+      right: 5%;
+      background: radial-gradient(circle, rgba($ice-medium, 0.35), transparent);
+      animation-delay: 2s;
+    }
+
+    &.glow-3 {
+      width: 300px;
+      height: 300px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba($frost-purple, 0.3), transparent);
+      animation-delay: 4s;
     }
   }
 
   .numbers-container {
     position: absolute;
-    top: 15%;
+    top: 12%;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 20px;
-    opacity: 0.15;
+    gap: 24px;
+    opacity: 0.1;
 
     .number {
-      font-size: 150px;
+      font-size: 140px;
       font-weight: 900;
-      color: white;
-      text-shadow: 0 0 40px rgba(255, 255, 255, 0.5);
-      animation: numberFloat 4s ease-in-out infinite;
+      color: $ice-deep;
+      text-shadow: 0 0 60px rgba($ice-primary, 0.4);
+      animation: numberFloat 5s ease-in-out infinite;
 
-      &:nth-child(1) {
-        animation-delay: 0s;
-      }
-      &:nth-child(2) {
-        animation-delay: 0.2s;
-      }
-      &:nth-child(3) {
-        animation-delay: 0.4s;
-      }
-      &:nth-child(4) {
-        animation-delay: 0.6s;
-      }
+      &:nth-child(1) { animation-delay: 0s; }
+      &:nth-child(2) { animation-delay: 0.3s; }
+      &:nth-child(3) { animation-delay: 0.6s; }
+      &:nth-child(4) { animation-delay: 0.9s; }
     }
   }
 }
@@ -172,28 +197,31 @@ defineOptions({
 
 .festival-content-box {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1100px;
   display: flex;
-  background: rgba(255, 255, 255, 0.95);
-  border: 3px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba($ice-medium, 0.25);
   border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3),
-    0 0 40px rgba(118, 75, 162, 0.3);
+  box-shadow: 
+    0 20px 60px rgba($ice-deep, 0.15),
+    0 0 40px rgba($ice-primary, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
   overflow: hidden;
-  min-height: 600px;
-  backdrop-filter: blur(10px);
+  min-height: 580px;
+  backdrop-filter: blur(20px);
 }
 
 .decoration-section {
   flex: 1;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, $ice-primary 0%, $ice-medium 50%, $ice-light 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 60px;
+  padding: 50px;
   position: relative;
   overflow: hidden;
 
+  // 冰晶纹理背景
   &::before {
     content: "";
     position: absolute;
@@ -201,13 +229,21 @@ defineOptions({
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 30px,
-        rgba(255, 255, 255, 0.05) 30px,
-        rgba(255, 255, 255, 0.05) 60px
-      );
+    background-image: 
+      radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 35%);
+  }
+
+  // 雪花装饰
+  &::after {
+    content: '❄';
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    font-size: 80px;
+    opacity: 0.15;
+    color: #fff;
+    animation: snowflakeRotate 20s linear infinite;
   }
 
   .decoration-content {
@@ -217,66 +253,62 @@ defineOptions({
     color: #fff;
 
     .festival-icon {
-      margin-bottom: 30px;
+      margin-bottom: 24px;
 
-      .icon-main {
-        font-size: 120px;
-        filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.6));
-        animation: iconSpin 3s ease-in-out infinite;
+      .icon-snowflake {
+        font-size: 100px;
+        display: inline-block;
+        filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8));
+        animation: snowflakeFloat 4s ease-in-out infinite;
       }
     }
 
     .festival-title {
-      font-size: 56px;
-      font-weight: 900;
-      margin-bottom: 15px;
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 12px;
       color: #fff;
-      text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3),
-        0 0 30px rgba(255, 255, 255, 0.5);
-      letter-spacing: 4px;
-      animation: titlePulse 2s ease-in-out infinite;
+      text-shadow: 
+        0 2px 4px rgba($ice-darker, 0.3),
+        0 0 40px rgba(255, 255, 255, 0.5);
+      letter-spacing: 6px;
     }
 
     .festival-greeting {
-      font-size: 24px;
-      margin-bottom: 40px;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-      letter-spacing: 2px;
+      font-size: 20px;
+      margin-bottom: 36px;
+      text-shadow: 0 1px 2px rgba($ice-darker, 0.2);
+      letter-spacing: 3px;
       font-weight: 300;
+      opacity: 0.9;
     }
 
     .festival-elements {
       display: flex;
       justify-content: center;
-      gap: 30px;
-      margin-bottom: 40px;
+      gap: 24px;
+      margin-bottom: 36px;
 
       .element-item {
-        font-size: 60px;
-        animation: elementBounce 1.5s ease-in-out infinite;
+        font-size: 44px;
+        animation: elementFloat 3s ease-in-out infinite;
+        filter: drop-shadow(0 2px 8px rgba($ice-darker, 0.2));
 
-        &:nth-child(1) {
-          animation-delay: 0s;
-        }
-        &:nth-child(2) {
-          animation-delay: 0.2s;
-        }
-        &:nth-child(3) {
-          animation-delay: 0.4s;
-        }
-        &:nth-child(4) {
-          animation-delay: 0.6s;
-        }
+        &:nth-child(1) { animation-delay: 0s; }
+        &:nth-child(2) { animation-delay: 0.3s; }
+        &:nth-child(3) { animation-delay: 0.6s; }
+        &:nth-child(4) { animation-delay: 0.9s; }
       }
     }
 
     .countdown-text {
       p {
-        font-size: 28px;
+        font-size: 22px;
         font-weight: 300;
-        margin: 10px 0;
-        letter-spacing: 3px;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        margin: 8px 0;
+        letter-spacing: 4px;
+        text-shadow: 0 1px 2px rgba($ice-darker, 0.2);
+        opacity: 0.95;
       }
     }
   }
@@ -287,121 +319,133 @@ defineOptions({
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 60px;
-  background: #fff;
+  padding: 50px;
+  background: rgba(255, 255, 255, 0.98);
 }
 
 .form-wrapper {
   width: 100%;
-  max-width: 420px;
+  max-width: 400px;
 }
 
-@keyframes fireworkBurst {
+// 动画定义
+@keyframes snowfall {
   0% {
-    transform: scale(0);
+    transform: translateY(-20px) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
     opacity: 1;
   }
-  50% {
+  90% {
     opacity: 1;
   }
   100% {
-    transform: scale(30);
+    transform: translateY(100vh) rotate(720deg);
     opacity: 0;
   }
 }
 
-@keyframes confettiFall {
-  0% {
-    transform: translateY(-10px) rotate(0deg);
+@keyframes glowPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
   }
-  100% {
-    transform: translateY(100vh) rotate(720deg);
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
   }
 }
 
 @keyframes numberFloat {
-  0%,
-  100% {
+  0%, 100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-30px);
+    transform: translateY(-20px);
   }
 }
 
-@keyframes iconSpin {
-  0%,
-  100% {
-    transform: rotate(0deg) scale(1);
-  }
-  50% {
-    transform: rotate(10deg) scale(1.1);
-  }
-}
-
-@keyframes titlePulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-}
-
-@keyframes elementBounce {
-  0%,
-  100% {
+@keyframes snowflakeFloat {
+  0%, 100% {
     transform: translateY(0) rotate(0deg);
   }
+  25% {
+    transform: translateY(-8px) rotate(10deg);
+  }
   50% {
-    transform: translateY(-20px) rotate(15deg);
+    transform: translateY(0) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-5px) rotate(-10deg);
   }
 }
 
+@keyframes snowflakeRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes elementFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+// 响应式
 @media (max-width: 768px) {
   .festival-content-box {
     flex-direction: column;
     min-height: auto;
+    max-width: 500px;
   }
 
   .decoration-section {
-    padding: 40px 20px;
+    padding: 40px 24px;
 
     .decoration-content {
-      .festival-icon .icon-main {
-        font-size: 80px;
+      .festival-icon .icon-snowflake {
+        font-size: 70px;
       }
 
       .festival-title {
-        font-size: 40px;
+        font-size: 36px;
+        letter-spacing: 4px;
       }
 
       .festival-greeting {
-        font-size: 18px;
+        font-size: 16px;
+        margin-bottom: 28px;
       }
 
       .festival-elements {
-        gap: 20px;
+        gap: 18px;
 
         .element-item {
-          font-size: 45px;
+          font-size: 36px;
         }
       }
 
       .countdown-text p {
-        font-size: 20px;
+        font-size: 18px;
       }
     }
   }
 
   .form-section {
-    padding: 40px 20px;
+    padding: 40px 24px;
   }
 
   .numbers-container {
     .number {
-      font-size: 80px;
+      font-size: 70px;
     }
   }
 }

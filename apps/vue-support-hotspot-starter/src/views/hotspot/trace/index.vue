@@ -1,27 +1,60 @@
 <template>
   <div class="page flex flex-col h-full">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="title-section">
-          <h1 class="page-title">
-            <IconifyIconOnline icon="ri:route-line" class="title-icon" />
-            链路追踪
-          </h1>
-          <p class="page-subtitle">实时查看请求调用链和执行路径</p>
-        </div>
-        <div class="stats-section">
-          <div class="stat-card">
-            <div class="stat-number">{{ dataList.length }}</div>
-            <div class="stat-label">追踪记录</div>
+    <!-- 统计卡片 -->
+    <el-row :gutter="20" class="stats-row">
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper primary">
+              <IconifyIconOnline icon="ri:route-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ dataList.length }}</div>
+              <div class="stat-label">追踪记录</div>
+            </div>
           </div>
-          <el-tag :type="wsConnected ? 'success' : 'danger'" size="large" class="ws-status">
-            {{ wsConnected ? 'WebSocket 已连接' : 'WebSocket 未连接' }}
-          </el-tag>
-          <el-button type="danger" size="small" @click="clearData">清空数据</el-button>
-        </div>
-      </div>
-    </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div :class="['stat-icon-wrapper', wsConnected ? 'success' : 'danger']">
+              <IconifyIconOnline icon="ri:wifi-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ wsConnected ? '已连接' : '未连接' }}</div>
+              <div class="stat-label">WebSocket 状态</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper warning">
+              <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">实时</div>
+              <div class="stat-label">数据推送</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper danger">
+              <IconifyIconOnline icon="ri:delete-bin-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <el-button type="danger" size="small" @click="clearData">清空数据</el-button>
+              <div class="stat-label">操作</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
 
     <!-- 内容区域 -->
     <div class="flex-1 overflow-hidden">
@@ -217,67 +250,76 @@ onUnmounted(() => {
 </script>
 <style scoped lang="scss">
 .page {
-  padding: 0;
+  padding: 20px;
   background: var(--el-bg-color-page);
 }
 
-.page-header {
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
-  padding: 24px 32px;
-  border-radius: 8px;
+.stats-row {
   margin-bottom: 16px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0 0 8px 0;
-
-  .title-icon {
-    font-size: 28px;
-    color: var(--el-color-primary);
-  }
-}
-
-.page-subtitle {
-  color: var(--el-text-color-regular);
-  font-size: 14px;
-  margin: 0;
-}
-
-.stats-section {
-  display: flex;
-  gap: 16px;
+  flex-shrink: 0;
 }
 
 .stat-card {
-  background: white;
-  padding: 16px 24px;
-  border-radius: 8px;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  border: none;
 
-  .stat-number {
-    font-size: 28px;
-    font-weight: 600;
-    color: var(--el-color-primary);
-    margin-bottom: 4px;
+  :deep(.el-card__body) {
+    padding: 20px;
   }
 
-  .stat-label {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
+  .stat-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.primary {
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
+      .stat-icon { color: var(--el-color-primary); }
+    }
+    &.success {
+      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+      .stat-icon { color: var(--el-color-success); }
+    }
+    &.warning {
+      background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+      .stat-icon { color: var(--el-color-warning); }
+    }
+    &.danger {
+      background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
+      .stat-icon { color: var(--el-color-danger); }
+    }
+    &.info {
+      background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
+      .stat-icon { color: var(--el-color-info); }
+    }
+
+    .stat-icon {
+      font-size: 24px;
+    }
+  }
+
+  .stat-info {
+    flex: 1;
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+    }
   }
 }
 

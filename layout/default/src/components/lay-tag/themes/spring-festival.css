@@ -149,12 +149,17 @@ html[data-skin="spring-festival"] .arrow-right:hover {
 
 /* 右键菜单 */
 html[data-skin="spring-festival"] .contextmenu {
+  z-index: 9999 !important;
   background: #fff !important;
   border: 2px solid rgba(220, 20, 60, 0.3) !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
 }
 
-html[data-skin="spring-festival"] .contextmenu .menu-item:hover {
+html[data-skin="spring-festival"] .contextmenu li {
+  cursor: pointer !important;
+}
+
+html[data-skin="spring-festival"] .contextmenu li:hover {
   background: rgba(220, 20, 60, 0.1) !important;
   color: #DC143C !important;
 }

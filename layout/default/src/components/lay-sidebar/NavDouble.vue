@@ -349,7 +349,7 @@ const defer = useDefer(firstLevelMenus.value.length);
     }
   }
 
-  // 第一列图标样式
+  // 第一列图标样式 - 增强可见性
   .first-level-menu {
     .el-menu-item {
       display: flex;
@@ -357,39 +357,73 @@ const defer = useDefer(firstLevelMenus.value.length);
       align-items: center;
       padding: 0 !important;
       height: 56px;
-      color: var(--app-text-primary); /* 未选中状态为黑色 */
+      color: var(--el-text-color-primary);
+      transition: all 0.25s ease;
+      border-radius: 8px;
+      margin: 4px 6px;
+
+      // 图标容器增强
+      .menu-icon-only {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        transition: all 0.25s ease;
+        
+        svg,
+        i {
+          font-size: 22px;
+          width: 22px;
+          height: 22px;
+          color: var(--el-text-color-primary);
+          opacity: 0.85;
+          transition: all 0.25s ease;
+        }
+      }
 
       &:hover {
-        color: #000000; /* 悬停时保持黑色 */
+        background: var(--el-fill-color-light);
+        
+        .menu-icon-only {
+          svg,
+          i {
+            opacity: 1;
+            transform: scale(1.1);
+          }
+        }
         
         /* 深色主题下悬停样式 */
         html.dark & {
-          color: #ffffff; /* 悬停时保持白色 */
+          background: rgba(255, 255, 255, 0.08);
           
-          .menu-icon-only {
-            color: #ffffff; /* 悬停时保持白色 */
-            
-            svg,
-            i {
-              color: #ffffff; /* 悬停时保持白色 */
-            }
+          .menu-icon-only svg,
+          .menu-icon-only i {
+            color: #ffffff;
           }
         }
       }
 
       &.is-active {
-        color: #ffffff !important; /* 强制设置为白色确保可见性 */
+        background: var(--el-color-primary) !important;
+        box-shadow: 0 2px 12px rgba(var(--el-color-primary-rgb), 0.35);
         
-        /* 悬停时也保持白色 */
+        .menu-icon-only {
+          svg,
+          i {
+            color: #ffffff !important;
+            opacity: 1;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+          }
+        }
+        
         &:hover {
-          color: #ffffff !important; /* 强制设置为白色确保可见性 */
-          
           .menu-icon-only {
-            color: #ffffff !important; /* 强制设置为白色确保可见性 */
-            
             svg,
             i {
-              color: #ffffff !important; /* 强制设置为白色确保可见性 */
+              color: #ffffff !important;
+              transform: scale(1.1);
             }
           }
         }
@@ -538,76 +572,173 @@ html[data-skin="spring-festival"] {
       background: linear-gradient(180deg, #a01010 0%, #800000 100%) !important;
       border-left: 1px solid rgba(255, 215, 0, 0.2) !important;
 
-      // 子菜单列表
+      // 子菜单列表 - 参考垂直导航样式
       .sub-menu-list {
+        padding: 8px !important;
+        
         .el-menu {
           background: transparent !important;
         }
 
         .el-menu-item {
-          color: rgba(255, 255, 255, 0.9) !important;
-          background: rgba(0, 0, 0, 0.15) !important;
+          height: 46px !important;
+          color: $spring-gold !important;
+          background: transparent !important;
           border: none !important;
-          border-left: 3px solid transparent !important;
-          border-radius: 0 6px 6px 0 !important;
-          margin: 2px 8px 2px 0 !important;
-          padding-left: 16px !important;
-          transition: all 0.25s ease;
+          border-radius: 8px !important;
+          margin: 4px 8px !important;
+          padding: 0 16px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+          // 文字样式 - 与垂直导航一致
+          span, div, .el-text {
+            height: 46px !important;
+            line-height: 46px !important;
+            font-size: 14px !important;
+            letter-spacing: 0.3px !important;
+            color: $spring-gold !important;
+          }
 
           .el-icon,
           svg {
-            color: rgba(255, 215, 0, 0.7) !important;
+            color: $spring-gold !important;
+            margin-right: 8px;
           }
 
           &:hover {
-            background: rgba(255, 215, 0, 0.1) !important;
-            border-left-color: rgba(255, 215, 0, 0.5) !important;
+            background: rgba(255, 215, 0, 0.15) !important;
+            transform: translateX(2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             color: #fff !important;
+
+            span, div, .el-text {
+              color: #fff !important;
+            }
 
             .el-icon,
             svg {
-              color: $spring-gold !important;
+              color: #fff !important;
             }
           }
 
+          // 选中状态 - 与垂直导航一致（金色背景深红文字）
           &.is-active {
-            background: rgba(255, 215, 0, 0.2) !important;
-            border-left: 3px solid $spring-gold !important;
-            color: $spring-gold !important;
+            background: linear-gradient(135deg, $spring-gold 0%, #FFA500 100%) !important;
+            color: $spring-red-dark !important;
             font-weight: 600;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4) !important;
+
+            span, div, .el-text {
+              color: $spring-red-dark !important;
+            }
 
             .el-icon,
             svg {
-              color: $spring-gold !important;
+              color: $spring-red-dark !important;
             }
           }
         }
 
+        // 父菜单标题 - 与垂直导航一致（红色渐变背景 + 金色边框）
         .el-sub-menu__title {
-          color: rgba(255, 215, 0, 0.9) !important;
-          background: transparent !important;
-          border-radius: 6px !important;
+          height: 46px !important;
+          color: $spring-gold !important;
+          background: linear-gradient(135deg, rgba(139, 0, 0, 0.7) 0%, rgba(178, 34, 34, 0.7) 100%) !important;
+          border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
+          border-radius: 8px !important;
           margin: 4px 8px !important;
+          padding: 0 16px !important;
           font-weight: 500;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+          // 文字样式
+          span, div, .el-text {
+            height: 46px !important;
+            line-height: 46px !important;
+            font-size: 14px !important;
+            letter-spacing: 0.3px !important;
+            color: $spring-gold !important;
+          }
 
           .el-icon,
           svg {
-            color: rgba(255, 215, 0, 0.8) !important;
+            color: $spring-gold !important;
+            margin-right: 8px;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
           }
 
           &:hover {
-            background: rgba(255, 215, 0, 0.1) !important;
-            color: $spring-gold !important;
+            background: linear-gradient(135deg, rgba(220, 20, 60, 0.9) 0%, rgba(178, 34, 34, 0.9) 100%) !important;
+            border-color: rgba(255, 215, 0, 0.6) !important;
+            transform: translateX(2px);
+            color: #fff !important;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+            
+            span, div, .el-text, .el-icon, svg {
+              color: #fff !important;
+            }
           }
         }
 
         .el-sub-menu.is-active > .el-sub-menu__title {
-          color: $spring-gold !important;
+          color: #fff !important;
           font-weight: 600;
+          background: linear-gradient(135deg, rgba(220, 20, 60, 0.95) 0%, rgba(178, 34, 34, 0.95) 100%) !important;
+          border-color: $spring-gold !important;
+          box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+
+          span, div, .el-text {
+            color: #fff !important;
+          }
 
           .el-icon,
           svg {
+            color: #fff !important;
+          }
+        }
+        
+        // 嵌套子菜单样式
+        .el-sub-menu .el-menu {
+          background: transparent !important;
+          
+          .el-menu-item {
+            height: 44px !important;
             color: $spring-gold !important;
+            background: transparent !important;
+            border: none !important;
+            border-radius: 8px !important;
+            margin: 2px 8px 2px 16px !important;
+            padding: 0 16px !important;
+            
+            span, div, .el-text {
+              height: 44px !important;
+              line-height: 44px !important;
+              font-size: 14px !important;
+              color: $spring-gold !important;
+            }
+            
+            .el-icon, svg {
+              color: $spring-gold !important;
+            }
+            
+            &:hover {
+              background: rgba(255, 215, 0, 0.15) !important;
+              color: #fff !important;
+              
+              span, div, .el-text, .el-icon, svg {
+                color: #fff !important;
+              }
+            }
+            
+            &.is-active {
+              background: linear-gradient(135deg, $spring-gold 0%, #FFA500 100%) !important;
+              color: $spring-red-dark !important;
+              box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4) !important;
+              
+              span, div, .el-text, .el-icon, svg {
+                color: $spring-red-dark !important;
+              }
+            }
           }
         }
       }
@@ -661,110 +792,287 @@ html[data-skin="cyberpunk"] {
         }
       }
 
-      // 一级菜单
+      // 一级菜单 - 增强霓虹图标效果
       .first-level-menu {
         .el-menu-item {
           color: $cyber-cyan !important;
+          background: transparent !important;
+          border-radius: 10px !important;
+          margin: 6px 8px !important;
+          position: relative;
+          overflow: hidden;
+
+          // 悬停闪烁背景
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(0, 255, 255, 0.2),
+              transparent
+            );
+            transition: left 0.5s ease;
+          }
 
           .menu-icon-only {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            
             svg,
             i {
+              font-size: 24px;
+              width: 24px;
+              height: 24px;
               color: $cyber-cyan !important;
-              filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+              filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.6));
+              transition: all 0.3s ease;
             }
           }
 
           &:hover {
-            background: rgba(0, 255, 255, 0.1) !important;
+            background: rgba(0, 255, 255, 0.12) !important;
             color: #fff !important;
+            box-shadow: 
+              0 0 20px rgba(0, 255, 255, 0.25),
+              inset 0 0 15px rgba(0, 255, 255, 0.08);
 
-            .menu-icon-only svg,
-            .menu-icon-only i {
-              color: #fff !important;
+            &::before {
+              left: 100%;
+            }
+
+            .menu-icon-only {
+              svg,
+              i {
+                color: #fff !important;
+                filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8));
+                transform: scale(1.15);
+              }
             }
           }
 
           &.is-active {
-            background: rgba(0, 255, 255, 0.1) !important;
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.12)) !important;
             color: #fff !important;
-            border-color: $cyber-cyan !important;
+            border: 1px solid $cyber-cyan !important;
             box-shadow:
-              0 0 15px rgba(0, 255, 255, 0.3),
-              inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
+              0 0 20px rgba(0, 255, 255, 0.4),
+              0 0 40px rgba(255, 0, 255, 0.2),
+              inset 0 0 20px rgba(0, 255, 255, 0.1) !important;
 
-            .menu-icon-only svg,
-            .menu-icon-only i {
-              color: #fff !important;
-              filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+            // 左侧霓虹指示条
+            &::after {
+              content: '';
+              position: absolute;
+              left: -1px;
+              top: 50%;
+              transform: translateY(-50%);
+              width: 3px;
+              height: 60%;
+              background: linear-gradient(to bottom, $cyber-cyan, $cyber-magenta, $cyber-cyan);
+              border-radius: 2px;
+              box-shadow: 0 0 10px $cyber-cyan, 0 0 20px $cyber-magenta;
+              animation: cyber-nav-pulse 1.5s ease-in-out infinite;
+            }
+
+            .menu-icon-only {
+              svg,
+              i {
+                color: #fff !important;
+                filter: drop-shadow(0 0 8px $cyber-cyan);
+              }
             }
           }
         }
       }
     }
 
-    // 右栏
+    @keyframes cyber-nav-pulse {
+      0%, 100% { opacity: 0.8; height: 60%; }
+      50% { opacity: 1; height: 70%; }
+    }
+
+    // 右栏 - 参考垂直导航样式
     .double-nav-right {
       background: linear-gradient(180deg, rgba(18, 18, 31, 0.95), rgba(10, 10, 18, 0.95)) !important;
 
-      // 子菜单列表
+      // 子菜单列表 - 参考垂直导航样式
       .sub-menu-list {
+        padding: 8px !important;
+        
         .el-menu-item {
+          height: 46px !important;
           color: $cyber-cyan !important;
-          background: rgba(10, 10, 18, 0.6) !important;
-          border: 1px solid rgba(0, 255, 255, 0.2) !important;
-          border-radius: 4px !important;
+          background: transparent !important;
+          border: none !important;
+          border-radius: 8px !important;
           margin: 4px 8px !important;
+          padding: 0 16px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+          // 文字样式 - 与垂直导航一致
+          span, div, .el-text {
+            height: 46px !important;
+            line-height: 46px !important;
+            font-size: 14px !important;
+            letter-spacing: 0.3px !important;
+            color: $cyber-cyan !important;
+          }
 
           .el-icon,
           svg {
             color: $cyber-cyan !important;
             filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+            margin-right: 8px;
           }
 
           &:hover {
             background: rgba(0, 255, 255, 0.1) !important;
-            border-color: $cyber-cyan !important;
+            transform: translateX(2px);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
             color: #fff !important;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3) !important;
-          }
 
-          &.is-active {
-            background: rgba(0, 255, 255, 0.1) !important;
-            border-color: $cyber-cyan !important;
-            color: #fff !important;
-            box-shadow:
-              0 0 15px rgba(0, 255, 255, 0.3),
-              inset 0 0 15px rgba(0, 255, 255, 0.1) !important;
+            span, div, .el-text {
+              color: #fff !important;
+            }
 
             .el-icon,
             svg {
               color: #fff !important;
-              filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
+            }
+          }
+
+          // 选中状态 - 与垂直导航一致（霸虹背景）
+          &.is-active {
+            background: linear-gradient(135deg, $cyber-cyan 0%, $cyber-magenta 100%) !important;
+            color: #fff !important;
+            font-weight: 600;
+            box-shadow: 
+              0 0 20px rgba(0, 255, 255, 0.4),
+              0 2px 8px rgba(255, 0, 255, 0.3) !important;
+
+            span, div, .el-text {
+              color: #fff !important;
+              text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+            }
+
+            .el-icon,
+            svg {
+              color: #fff !important;
+              filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
             }
           }
         }
 
+        // 父菜单标题 - 与垂直导航一致（暗色渐变背景 + 霸虹边框）
         .el-sub-menu__title {
+          height: 46px !important;
           color: $cyber-cyan !important;
-          background: rgba(10, 10, 18, 0.4) !important;
-          border-radius: 4px !important;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)) !important;
+          border: 1px solid rgba(0, 255, 255, 0.2) !important;
+          border-radius: 8px !important;
           margin: 4px 8px !important;
+          padding: 0 16px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+          // 文字样式
+          span, div, .el-text {
+            height: 46px !important;
+            line-height: 46px !important;
+            font-size: 14px !important;
+            letter-spacing: 0.3px !important;
+            color: $cyber-cyan !important;
+          }
 
           .el-icon,
           svg {
             color: $cyber-cyan !important;
+            margin-right: 8px;
+            filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.5));
           }
 
           &:hover {
             background: rgba(0, 255, 255, 0.1) !important;
+            border-color: rgba(0, 255, 255, 0.4) !important;
+            transform: translateX(2px);
             color: #fff !important;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+            
+            span, div, .el-text, .el-icon, svg {
+              color: #fff !important;
+            }
           }
         }
 
         .el-sub-menu.is-active > .el-sub-menu__title {
           color: #fff !important;
           font-weight: 600;
+          background: linear-gradient(135deg, rgba(0, 255, 255, 0.18), rgba(255, 0, 255, 0.12)) !important;
+          border-color: rgba(0, 255, 255, 0.5) !important;
+          box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
           text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+          
+          span, div, .el-text {
+            color: #fff !important;
+          }
+          
+          .el-icon, svg {
+            color: #fff !important;
+          }
+        }
+        
+        // 嵌套子菜单样式
+        .el-sub-menu .el-menu {
+          background: transparent !important;
+          
+          .el-menu-item {
+            height: 44px !important;
+            color: $cyber-cyan !important;
+            background: transparent !important;
+            border: none !important;
+            border-radius: 8px !important;
+            margin: 2px 8px 2px 16px !important;
+            padding: 0 16px !important;
+            
+            span, div, .el-text {
+              height: 44px !important;
+              line-height: 44px !important;
+              font-size: 14px !important;
+              color: $cyber-cyan !important;
+            }
+            
+            .el-icon, svg {
+              color: $cyber-cyan !important;
+            }
+            
+            &:hover {
+              background: rgba(0, 255, 255, 0.1) !important;
+              color: #fff !important;
+              
+              span, div, .el-text, .el-icon, svg {
+                color: #fff !important;
+              }
+            }
+            
+            &.is-active {
+              background: linear-gradient(135deg, $cyber-cyan 0%, $cyber-magenta 100%) !important;
+              color: #fff !important;
+              box-shadow: 0 0 15px rgba(0, 255, 255, 0.3) !important;
+              
+              span, div, .el-text, .el-icon, svg {
+                color: #fff !important;
+              }
+            }
+          }
         }
       }
     }
@@ -854,35 +1162,65 @@ html[data-skin="mid-autumn"] {
       }
     }
 
-    // 右栏
+    // 右栏 - 参考垂直导航样式
     .double-nav-right {
       background: linear-gradient(180deg, rgba($mid-blue, 0.95), rgba($mid-blue-light, 0.95)) !important;
 
-      // 子菜单列表
+      // 子菜单列表 - 参考垂直导航样式
       .sub-menu-list {
+        padding: 8px !important;
+        
         .el-menu-item {
-          color: $mid-gold-light !important;
-          background: rgba(26, 35, 126, 0.4) !important;
-          border: 1px solid rgba($mid-gold, 0.2) !important;
-          border-radius: 6px !important;
+          height: 46px !important;
+          color: $mid-gold !important;
+          background: transparent !important;
+          border: none !important;
+          border-radius: 8px !important;
           margin: 4px 8px !important;
+          padding: 0 16px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+          // 文字样式 - 与垂直导航一致
+          span, div, .el-text {
+            height: 46px !important;
+            line-height: 46px !important;
+            font-size: 14px !important;
+            letter-spacing: 0.3px !important;
+            color: $mid-gold !important;
+          }
 
           .el-icon,
           svg {
             color: $mid-gold !important;
+            margin-right: 8px;
           }
 
           &:hover {
             background: rgba($mid-gold, 0.15) !important;
-            border-color: $mid-gold !important;
+            transform: translateX(2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             color: #fff !important;
+
+            span, div, .el-text {
+              color: #fff !important;
+            }
+
+            .el-icon,
+            svg {
+              color: #fff !important;
+            }
           }
 
+          // 选中状态 - 与垂直导航一致（金色背景深蓝文字）
           &.is-active {
-            background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
-            border-color: $mid-cyan !important;
+            background: linear-gradient(135deg, $mid-gold 0%, $mid-gold-light 100%) !important;
             color: $mid-blue !important;
-            box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(255, 213, 79, 0.4) !important;
+
+            span, div, .el-text {
+              color: $mid-blue !important;
+            }
 
             .el-icon,
             svg {
@@ -891,26 +1229,104 @@ html[data-skin="mid-autumn"] {
           }
         }
 
+        // 父菜单标题 - 与垂直导航一致（深蓝背景 + 金色边框）
         .el-sub-menu__title {
-          color: $mid-gold-light !important;
-          background: rgba(26, 35, 126, 0.3) !important;
-          border-radius: 6px !important;
+          height: 46px !important;
+          color: $mid-gold !important;
+          background: rgba(26, 35, 126, 0.5) !important;
+          border: 1px solid rgba($mid-gold, 0.25) !important;
+          border-radius: 8px !important;
           margin: 4px 8px !important;
+          padding: 0 16px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+          // 文字样式
+          span, div, .el-text {
+            height: 46px !important;
+            line-height: 46px !important;
+            font-size: 14px !important;
+            letter-spacing: 0.3px !important;
+            color: $mid-gold !important;
+          }
 
           .el-icon,
           svg {
             color: $mid-gold !important;
+            margin-right: 8px;
           }
 
           &:hover {
-            background: rgba($mid-gold, 0.1) !important;
+            background: rgba($mid-gold, 0.2) !important;
+            border-color: $mid-gold !important;
+            transform: translateX(2px);
             color: #fff !important;
+            box-shadow: 0 2px 8px rgba(255, 213, 79, 0.3);
+            
+            span, div, .el-text, .el-icon, svg {
+              color: #fff !important;
+            }
           }
         }
 
         .el-sub-menu.is-active > .el-sub-menu__title {
-          color: $mid-gold !important;
+          color: #fff !important;
           font-weight: 600;
+          background: rgba($mid-gold, 0.3) !important;
+          border-color: $mid-gold !important;
+          box-shadow: 0 2px 8px rgba(255, 213, 79, 0.4);
+          
+          span, div, .el-text {
+            color: #fff !important;
+          }
+          
+          .el-icon, svg {
+            color: #fff !important;
+          }
+        }
+        
+        // 嵌套子菜单样式
+        .el-sub-menu .el-menu {
+          background: transparent !important;
+          
+          .el-menu-item {
+            height: 44px !important;
+            color: $mid-gold !important;
+            background: transparent !important;
+            border: none !important;
+            border-radius: 8px !important;
+            margin: 2px 8px 2px 16px !important;
+            padding: 0 16px !important;
+            
+            span, div, .el-text {
+              height: 44px !important;
+              line-height: 44px !important;
+              font-size: 14px !important;
+              color: $mid-gold !important;
+            }
+            
+            .el-icon, svg {
+              color: $mid-gold !important;
+            }
+            
+            &:hover {
+              background: rgba($mid-gold, 0.15) !important;
+              color: #fff !important;
+              
+              span, div, .el-text, .el-icon, svg {
+                color: #fff !important;
+              }
+            }
+            
+            &.is-active {
+              background: linear-gradient(135deg, $mid-gold 0%, $mid-gold-light 100%) !important;
+              color: $mid-blue !important;
+              box-shadow: 0 2px 8px rgba(255, 213, 79, 0.4) !important;
+              
+              span, div, .el-text, .el-icon, svg {
+                color: $mid-blue !important;
+              }
+            }
+          }
         }
       }
     }
@@ -1001,35 +1417,61 @@ html[data-skin="christmas"] {
       }
     }
 
-    // 右栏
+    // 右栏 - 参考垂直导航样式
     .double-nav-right {
       background: linear-gradient(180deg, $xmas-green-light, $xmas-green) !important;
 
-      // 子菜单列表
+      // 子菜单列表 - 参考垂直导航样式
       .sub-menu-list {
+        padding: 8px !important;
+        
         .el-menu-item {
+          height: 46px !important;
           color: $xmas-white !important;
-          background: rgba(darken($xmas-green, 5%), 0.6) !important;
-          border: 1.5px solid rgba($xmas-gold, 0.3) !important;
-          border-radius: 6px !important;
+          background: transparent !important;
+          border: none !important;
+          border-radius: 8px !important;
           margin: 4px 8px !important;
+          padding: 0 16px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+          // 文字样式 - 与垂直导航一致
+          span, div, .el-text {
+            height: 46px !important;
+            line-height: 46px !important;
+            font-size: 14px !important;
+            letter-spacing: 0.3px !important;
+            color: $xmas-white !important;
+          }
 
           .el-icon,
           svg {
             color: $xmas-gold !important;
+            margin-right: 8px;
           }
 
           &:hover {
-            background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
-            border-color: rgba($xmas-gold, 0.5) !important;
+            background: rgba($xmas-red, 0.3) !important;
+            transform: translateX(2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             color: $xmas-white !important;
+
+            .el-icon,
+            svg {
+              color: $xmas-white !important;
+            }
           }
 
+          // 选中状态 - 与垂直导航一致（红色背景白色文字）
           &.is-active {
-            background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
-            border: 2px solid $xmas-gold !important;
+            background: linear-gradient(135deg, $xmas-red 0%, $xmas-red-light 100%) !important;
             color: $xmas-white !important;
-            box-shadow: 0 4px 16px rgba($xmas-red, 0.5) !important;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba($xmas-red, 0.4) !important;
+
+            span, div, .el-text {
+              color: $xmas-white !important;
+            }
 
             .el-icon,
             svg {
@@ -1038,26 +1480,115 @@ html[data-skin="christmas"] {
           }
         }
 
+        // 父菜单标题 - 圣诞主题特色样式
         .el-sub-menu__title {
+          height: 46px !important;
           color: $xmas-white !important;
-          background: rgba(darken($xmas-green, 5%), 0.4) !important;
-          border-radius: 6px !important;
+          background: linear-gradient(135deg, rgba($xmas-green-light, 0.7), rgba($xmas-green, 0.7)) !important;
+          border: 1.5px solid rgba($xmas-gold, 0.3) !important;
+          border-radius: 8px !important;
           margin: 4px 8px !important;
+          padding: 0 16px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+
+          // 文字样式
+          span, div, .el-text {
+            height: 46px !important;
+            line-height: 46px !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            letter-spacing: 0.3px !important;
+            color: $xmas-white !important;
+          }
 
           .el-icon,
           svg {
             color: $xmas-gold !important;
+            margin-right: 8px;
+            filter: drop-shadow(0 0 2px rgba($xmas-gold, 0.3));
+          }
+
+          // 展开箭头
+          .el-sub-menu__icon-arrow {
+            color: $xmas-gold !important;
           }
 
           &:hover {
-            background: linear-gradient(135deg, rgba($xmas-red, 0.6), rgba($xmas-red-light, 0.5)) !important;
+            background: linear-gradient(135deg, rgba($xmas-red, 0.6), rgba($xmas-red-light, 0.6)) !important;
+            border-color: rgba($xmas-gold, 0.5) !important;
+            transform: translateX(2px);
+            box-shadow: 0 4px 12px rgba($xmas-red, 0.3);
             color: $xmas-white !important;
+
+            .el-icon, svg, .el-sub-menu__icon-arrow {
+              color: $xmas-white !important;
+            }
           }
         }
 
-        .el-sub-menu.is-active > .el-sub-menu__title {
+        // 父菜单选中状态
+        .el-sub-menu.is-active > .el-sub-menu__title,
+        .el-sub-menu.is-opened > .el-sub-menu__title {
+          background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
+          border-color: rgba($xmas-gold, 0.5) !important;
           color: $xmas-white !important;
           font-weight: 600;
+          box-shadow: 0 4px 12px rgba($xmas-red, 0.4);
+
+          span, div, .el-text {
+            color: $xmas-white !important;
+            font-weight: 600 !important;
+          }
+
+          .el-icon, svg, .el-sub-menu__icon-arrow {
+            color: $xmas-white !important;
+          }
+        }
+        
+        // 嵌套子菜单样式
+        .el-sub-menu .el-menu {
+          background: transparent !important;
+          
+          .el-menu-item {
+            height: 44px !important;
+            color: $xmas-white !important;
+            background: transparent !important;
+            border: none !important;
+            border-radius: 8px !important;
+            margin: 2px 8px 2px 16px !important;
+            padding: 0 16px !important;
+            
+            span, div, .el-text {
+              height: 44px !important;
+              line-height: 44px !important;
+              font-size: 14px !important;
+              color: $xmas-white !important;
+            }
+            
+            .el-icon, svg {
+              color: $xmas-gold !important;
+            }
+            
+            &:hover {
+              background: rgba($xmas-red, 0.3) !important;
+              color: $xmas-white !important;
+              
+              .el-icon, svg {
+                color: $xmas-white !important;
+              }
+            }
+            
+            &.is-active {
+              background: linear-gradient(135deg, $xmas-red 0%, $xmas-red-light 100%) !important;
+              color: $xmas-white !important;
+              box-shadow: 0 2px 8px rgba($xmas-red, 0.4) !important;
+              
+              span, div, .el-text, .el-icon, svg {
+                color: $xmas-white !important;
+              }
+            }
+          }
         }
       }
     }

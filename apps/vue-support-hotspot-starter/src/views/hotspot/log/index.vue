@@ -1,35 +1,7 @@
 <template>
   <div class="page-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <IconifyIconOnline icon="ri:file-text-line" class="header-icon" />
-        <div class="header-info">
-          <h2 class="header-title">日志监控</h2>
-          <p class="header-desc">实时查看应用运行日志输出</p>
-        </div>
-      </div>
-      <div class="header-right">
-        <div class="stat-card">
-          <div class="stat-number">{{ dataList.length }}</div>
-          <div class="stat-label">日志总数</div>
-        </div>
-        <div class="stat-card error">
-          <div class="stat-number">{{ errorCount }}</div>
-          <div class="stat-label">ERROR</div>
-        </div>
-        <div class="stat-card warning">
-          <div class="stat-number">{{ warnCount }}</div>
-          <div class="stat-label">WARN</div>
-        </div>
-        <el-tag :type="wsConnected ? 'success' : 'danger'" effect="light" size="large">
-          {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
-        </el-tag>
-      </div>
-    </div>
-
     <!-- 内容区域 -->
-    <el-card shadow="never" class="log-card">
+    <el-card shadow="hover" class="log-card">
       <div class="log-container">
         <!-- 控制面板 -->
         <div class="control-panel">
@@ -195,79 +167,6 @@ onUnmounted(() => {
   background: var(--el-bg-color-page);
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, var(--el-color-info-light-9) 0%, var(--el-color-info-light-8) 100%);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-
-    .header-icon {
-      font-size: 40px;
-      color: var(--el-color-info);
-      padding: 12px;
-      background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
-      border-radius: 12px;
-    }
-
-    .header-info {
-      .header-title {
-        margin: 0 0 4px 0;
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-      }
-
-      .header-desc {
-        margin: 0;
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-      }
-    }
-  }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .stat-card {
-      background: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      text-align: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-      .stat-number {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--el-color-info);
-      }
-
-      .stat-label {
-        font-size: 11px;
-        color: var(--el-text-color-secondary);
-      }
-
-      &.error .stat-number {
-        color: var(--el-color-danger);
-      }
-
-      &.warning .stat-number {
-        color: var(--el-color-warning);
-      }
-    }
-  }
-}
-
 .log-card {
   flex: 1;
   overflow: hidden;
@@ -374,15 +273,6 @@ onUnmounted(() => {
 html.dark {
   .page-container {
     background: var(--el-bg-color-page);
-  }
-
-  .page-header {
-    background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-
-    .header-right .stat-card {
-      background: var(--el-bg-color);
-    }
   }
 
   .log-card {

@@ -79,6 +79,7 @@ import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { http } from "@repo/utils";
 import { onBeforeMount, reactive, ref, computed, onUnmounted } from "vue";
+import { wsService } from "@/utils/websocket";
 const filterName = ref("");
 const tableRef = ref();
 const viewContent = ref();
@@ -89,14 +90,30 @@ const config = reactive({
   visibleCfrVisible: false,
   visibleCfrLoading: false
 });
+let unsubscribe = null;
+
+// 处理 WebSocket 消息
+const handleWsMessage = message => {
+  if (message.event === "OBJECT_INFO") {
+    // 刷新表格数据
+    tableRef.value?.refresh();
+  }
+};
+
 onBeforeMount(async () => {
   url.value = (window.agentPath || "/agent") + "/object_info";
   detailUrl.value = (window.agentPath || "/agent") + "/cfr";
   window.addEventListener("keydown", handleKeydown);
+  // 订阅 WebSocket 消息
+  wsService.connect();
+  unsubscribe = wsService.subscribe("JVM", "OBJECT_INFO", handleWsMessage);
 });
 
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeydown);
+  if (unsubscribe) {
+    unsubscribe();
+  }
 });
 
 const handleClose = async () => {

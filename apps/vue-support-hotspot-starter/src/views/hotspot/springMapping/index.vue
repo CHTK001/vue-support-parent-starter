@@ -1,29 +1,5 @@
 <template>
   <div class="page-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <IconifyIconOnline icon="ri:git-branch-line" class="header-icon" />
-        <div class="header-info">
-          <h2 class="header-title">Spring 映射管理</h2>
-          <p class="header-desc">查看和监控 Spring MVC 路由映射及 QPS 统计</p>
-        </div>
-      </div>
-      <div class="header-right">
-        <div class="stat-card mini">
-          <div class="stat-number">{{ data.length }}</div>
-          <div class="stat-label">路由总数</div>
-        </div>
-        <el-tag :type="wsConnected ? 'success' : 'danger'" effect="light" size="large">
-          {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
-        </el-tag>
-        <el-button type="info" @click="refreshData" :loading="loading">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-      </div>
-    </div>
-
     <!-- 容器 QPS 统计卡片 -->
     <el-row :gutter="20" class="stats-row">
       <el-col :span="6" v-for="container in containerStats" :key="container.type">
@@ -60,12 +36,19 @@
           <span class="card-title">
             <IconifyIconOnline icon="ri:git-branch-line" class="card-icon" />
             映射列表
+            <el-tag type="info" effect="plain" size="small" class="ml-2">{{ data.length }} 个路由</el-tag>
           </span>
-          <el-input v-model="searchKeyword" placeholder="搜索路由或类名..." clearable class="search-input">
-            <template #prefix>
-              <IconifyIconOnline icon="ep:search" />
-            </template>
-          </el-input>
+          <div class="header-actions">
+            <el-input v-model="searchKeyword" placeholder="搜索路由或类名..." clearable class="search-input">
+              <template #prefix>
+                <IconifyIconOnline icon="ep:search" />
+              </template>
+            </el-input>
+            <el-button type="info" @click="refreshData" :loading="loading">
+              <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+              刷新
+            </el-button>
+          </div>
         </div>
       </template>
 
@@ -344,71 +327,6 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, var(--el-color-success-light-9) 0%, var(--el-color-success-light-8) 100%);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-
-    .header-icon {
-      font-size: 40px;
-      color: var(--el-color-success);
-      padding: 12px;
-      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
-      border-radius: 12px;
-    }
-
-    .header-info {
-      .header-title {
-        margin: 0 0 4px 0;
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-      }
-
-      .header-desc {
-        margin: 0;
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-      }
-    }
-  }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .stat-card.mini {
-      background: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      text-align: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-      .stat-number {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--el-color-success);
-      }
-
-      .stat-label {
-        font-size: 11px;
-        color: var(--el-text-color-secondary);
-      }
-    }
-  }
-}
-
 .stats-row {
   margin-bottom: 20px;
 }
@@ -529,8 +447,14 @@ onUnmounted(() => {
 
       .card-icon {
         font-size: 18px;
-        color: var(--el-color-success);
+        color: var(--el-color-primary);
       }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
     .search-input {

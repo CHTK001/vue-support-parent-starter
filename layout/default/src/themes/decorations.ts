@@ -379,240 +379,120 @@ export const christmasDecorations: ThemeDecorationConfig = {
   }
 };
 
-/** 元旦主题装饰配置 */
+/** 元旦主题装饰配置 - 冰雪蓝白清新风格 */
 export const newYearDecorations: ThemeDecorationConfig = {
   themeKey: 'new-year',
   themeName: '元旦',
   enabled: true,
   decorations: [
-    // 元旦主题不需要 lay-tag 装饰
+    // 元旦主题 - 冰雪清新装饰
     {
       target: 'lay-header',
       elements: [
-        // 左侧烟花
+        // 左侧雪花
         {
-          content: '🎆',
+          content: '❄️',
           type: 'emoji',
           position: 'custom',
           customPosition: { top: '10px', left: '90px' },
-          size: '30px',
-          animation: 'twinkle',
-          animationDuration: 2,
+          size: '26px',
+          animation: 'float',
+          animationDuration: 4,
           zIndex: 1000,
           interactive: true,
-          hoverAnimation: 'bounce'
+          hoverAnimation: 'twinkle'
         },
-        // 右侧烟花
+        // 右侧雪花
         {
-          content: '🎇',
+          content: '❄️',
           type: 'emoji',
           position: 'custom',
           customPosition: { top: '10px', right: '90px' },
-          size: '30px',
-          animation: 'twinkle',
-          animationDuration: 1.8,
+          size: '26px',
+          animation: 'float',
+          animationDuration: 3.5,
           zIndex: 1000,
           interactive: true,
-          hoverAnimation: 'bounce'
+          hoverAnimation: 'twinkle'
         },
-        // 中间新年礼花
+        // 中间星星
         {
-          content: '🎉',
+          content: '✨',
           type: 'emoji',
           position: 'custom',
           customPosition: { top: '12px', left: '50%' },
-          size: '26px',
-          animation: 'bounce',
-          animationDuration: 2.5,
+          size: '22px',
+          animation: 'twinkle',
+          animationDuration: 2,
           zIndex: 999,
           interactive: true,
-          hoverAnimation: 'rotate'
+          hoverAnimation: 'bounce'
         },
-        // 彩带
+        // 左侧冰晶
         {
-          content: '🎊',
+          content: '💎',
           type: 'emoji',
           position: 'custom',
           customPosition: { top: '12px', left: '180px' },
-          size: '24px',
-          animation: 'rotate',
-          animationDuration: 4,
+          size: '20px',
+          animation: 'twinkle',
+          animationDuration: 3,
           zIndex: 998,
           interactive: true,
-          hoverAnimation: 'twinkle'
+          hoverAnimation: 'rotate'
         },
+        // 右侧冰晶
         {
-          content: '🎊',
+          content: '💎',
           type: 'emoji',
           position: 'custom',
           customPosition: { top: '12px', right: '180px' },
-          size: '24px',
-          animation: 'rotate',
-          animationDuration: 3.5,
+          size: '20px',
+          animation: 'twinkle',
+          animationDuration: 2.8,
           zIndex: 998,
           interactive: true,
-          hoverAnimation: 'twinkle'
+          hoverAnimation: 'rotate'
         }
       ]
     },
     {
       target: 'lay-sidebar',
       elements: [
+        // 雪花装饰
         {
-          content: '🎆',
+          content: '❄️',
           type: 'emoji',
           position: 'custom',
           customPosition: { top: '20px', right: '12px' },
-          size: '22px',
-          animation: 'twinkle',
-          animationDuration: 2,
+          size: '20px',
+          animation: 'float',
+          animationDuration: 4,
           zIndex: 50,
           interactive: true,
-          hoverAnimation: 'bounce'
+          hoverAnimation: 'twinkle'
         },
+        // 星星装饰
         {
-          content: '🎉',
+          content: '✨',
           type: 'emoji',
           position: 'custom',
           customPosition: { top: '90px', right: '10px' },
-          size: '20px',
-          animation: 'bounce',
+          size: '18px',
+          animation: 'twinkle',
           animationDuration: 2.5,
           zIndex: 49,
           interactive: true,
-          hoverAnimation: 'rotate'
+          hoverAnimation: 'bounce'
         }
       ]
     }
   ],
   particles: {
     enabled: true,
-    type: 'fireworks',
-    count: 10,
-    color: '#1890ff',
-  }
-};
-
-/** 情人节主题装饰配置 */
-export const valentinesDayDecorations: ThemeDecorationConfig = {
-  themeKey: 'valentines-day',
-  themeName: '情人节',
-  enabled: true,
-  decorations: [
-    // 情人节主题不需要 lay-tag 装饰
-    {
-      target: 'lay-header',
-      elements: [
-        // 左侧爱心
-        {
-          content: '💖',
-          type: 'emoji',
-          position: 'custom',
-          customPosition: { top: '10px', left: '90px' },
-          size: '28px',
-          animation: 'bounce',
-          animationDuration: 2,
-          zIndex: 1000,
-          interactive: true,
-          hoverAnimation: 'float'
-        },
-        // 右侧爱心
-        {
-          content: '💝',
-          type: 'emoji',
-          position: 'custom',
-          customPosition: { top: '10px', right: '90px' },
-          size: '28px',
-          animation: 'float',
-          animationDuration: 3,
-          zIndex: 1000,
-          interactive: true,
-          hoverAnimation: 'bounce'
-        },
-        // 中间爱心
-        {
-          content: '❤️',
-          type: 'emoji',
-          position: 'custom',
-          customPosition: { top: '12px', left: '50%' },
-          size: '26px',
-          animation: 'bounce',
-          animationDuration: 2.5,
-          zIndex: 999,
-          interactive: true,
-          hoverAnimation: 'twinkle'
-        },
-        // 小爱心点缀
-        {
-          content: '💕',
-          type: 'emoji',
-          position: 'custom',
-          customPosition: { top: '12px', left: '180px' },
-          size: '24px',
-          animation: 'float',
-          animationDuration: 3.5,
-          zIndex: 998,
-          interactive: true,
-          hoverAnimation: 'bounce'
-        },
-        {
-          content: '💞',
-          type: 'emoji',
-          position: 'custom',
-          customPosition: { top: '12px', right: '180px' },
-          size: '24px',
-          animation: 'twinkle',
-          animationDuration: 2.5,
-          zIndex: 998,
-          interactive: true,
-          hoverAnimation: 'bounce'
-        }
-      ]
-    },
-    {
-      target: 'lay-sidebar',
-      elements: [
-        {
-          content: '💖',
-          type: 'emoji',
-          position: 'custom',
-          customPosition: { top: '20px', right: '12px' },
-          size: '22px',
-          animation: 'bounce',
-          animationDuration: 2,
-          zIndex: 50,
-          interactive: true,
-          hoverAnimation: 'float'
-        },
-        {
-          content: '💕',
-          type: 'emoji',
-          position: 'custom',
-          customPosition: { top: '90px', right: '10px' },
-          size: '20px',
-          animation: 'float',
-          animationDuration: 3,
-          zIndex: 49,
-          interactive: true,
-          hoverAnimation: 'bounce'
-        },
-        {
-          content: '❤️',
-          type: 'emoji',
-          position: 'custom',
-          customPosition: { top: '160px', right: '10px' },
-          size: '18px',
-          animation: 'twinkle',
-          animationDuration: 2.5,
-          zIndex: 48,
-          interactive: true,
-          hoverAnimation: 'bounce'
-        }
-      ]
-    }
-  ],
-  particles: {
-    enabled: false,
+    type: 'snow',
+    count: 35,
+    color: '#7CC2E8',
   }
 };
 
@@ -784,7 +664,6 @@ export const themeDecorationsMap: Record<string, ThemeDecorationConfig> = {
   'spring-festival': springFestivalDecorations,
   'christmas': christmasDecorations,
   'new-year': newYearDecorations,
-  'valentines-day': valentinesDayDecorations,
   'mid-autumn': midAutumnDecorations,
 };
 

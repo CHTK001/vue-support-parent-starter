@@ -61,7 +61,11 @@
 
 <script setup>
 import { http } from "@repo/utils";
-import { onBeforeMount, reactive } from "vue";
+import { onBeforeMount, onUnmounted, reactive, ref } from "vue";
+import { wsService } from "@/utils/websocket";
+
+let unsubscribe = null;
+const loading = ref(false);
 
 function scrollToElement(element) {
   element?.scrollIntoView({
@@ -83,64 +87,91 @@ const handleClick = async index => {
   scrollToElement(document.getElementById("element" + index));
 };
 
-onBeforeMount(async () => {
-  http.get((window.agentPath || "/agent") + "/handle").then(res => {
-    const json = res.data;
-    const arr = [];
-    
-    // 处理句柄数据
-    if (json.data && json.data.length > 0) {
-      json.data.forEach((item, index) => {
-        // 解析消息，提取资源类型
-        const message = item.message || "";
-        let resourceType = "未知资源";
-        let resourceColor = "var(--el-text-color-regular)";
-        
-        if (message.includes("FileChannel")) {
-          resourceType = "文件通道";
-          resourceColor = "var(--el-color-primary)";
-        } else if (message.includes("socket")) {
-          resourceType = "Socket 连接";
-          resourceColor = "var(--el-color-success)";
-        } else if (message.includes("Pipe")) {
-          resourceType = "管道";
-          resourceColor = "var(--el-color-warning)";
-        } else if (message.includes("selector")) {
-          resourceType = "选择器";
-          resourceColor = "var(--el-color-info)";
-        } else if (message.includes("Opened")) {
-          resourceType = "文件句柄";
-          resourceColor = "var(--el-color-danger)";
-        }
-        
-        // 格式化堆栈信息
-        let stackTrace = "";
-        if (item.stack && item.stack.length > 0) {
-          stackTrace = item.stack.map(s => {
-            if (typeof s === "string") {
-              return `  at ${s}`;
-            }
-            return `  at ${s.className || ""}.${s.methodName || ""}(${s.fileName || ""}:${s.lineNumber || ""})`;
-          }).join("\n");
-        }
-        
-        arr.push({
-          index: index,
-          id: item.id || `handle_${index}`,
-          title: `<span style='color:${resourceColor};'>${resourceType}</span>`,
-          code: `${message}\n\n调用堆栈:\n${stackTrace || "无堆栈信息"}`
-        });
+// 解析句柄数据
+const parseHandleData = json => {
+  const arr = [];
+  if (json.data && json.data.length > 0) {
+    json.data.forEach((item, index) => {
+      const message = item.message || "";
+      let resourceType = "未知资源";
+      let resourceColor = "var(--el-text-color-regular)";
+      
+      if (message.includes("FileChannel")) {
+        resourceType = "文件通道";
+        resourceColor = "var(--el-color-primary)";
+      } else if (message.includes("socket")) {
+        resourceType = "Socket 连接";
+        resourceColor = "var(--el-color-success)";
+      } else if (message.includes("Pipe")) {
+        resourceType = "管道";
+        resourceColor = "var(--el-color-warning)";
+      } else if (message.includes("selector")) {
+        resourceType = "选择器";
+        resourceColor = "var(--el-color-info)";
+      } else if (message.includes("Opened")) {
+        resourceType = "文件句柄";
+        resourceColor = "var(--el-color-danger)";
+      }
+      
+      let stackTrace = "";
+      if (item.stack && item.stack.length > 0) {
+        stackTrace = item.stack.map(s => {
+          if (typeof s === "string") return `  at ${s}`;
+          return `  at ${s.className || ""}.${s.methodName || ""}(${s.fileName || ""}:${s.lineNumber || ""})`;
+        }).join("\n");
+      }
+      
+      arr.push({
+        index: index,
+        id: item.id || `handle_${index}`,
+        title: `<span style='color:${resourceColor};'>${resourceType}</span>`,
+        code: `${message}\n\n调用堆栈:\n${stackTrace || "无堆栈信息"}`
       });
-    }
-    
-    const total = json.total || arr.length;
-    const agentStatus = json.agentInstalled ? "已安装" : "未安装";
-    data.title = `<strong>句柄监控</strong> - 发现 <span style='color:var(--el-color-danger);'>${total}</span> 个打开的句柄 (Agent: ${agentStatus})`;
-    data.data = arr;
+    });
+  }
+  
+  const total = json.total || arr.length;
+  const agentStatus = json.agentInstalled ? "已安装" : "未安装";
+  data.title = `<strong>句柄监控</strong> - 发现 <span style='color:var(--el-color-danger);'>${total}</span> 个打开的句柄 (Agent: ${agentStatus})`;
+  data.data = arr;
+};
+
+// 刷新数据
+const refreshData = () => {
+  loading.value = true;
+  http.get((window.agentPath || "/agent") + "/handle").then(res => {
+    parseHandleData(res.data);
   }).catch(() => {
     data.title = "<strong>句柄监控</strong> - 无法获取数据";
     data.data = [];
+  }).finally(() => {
+    loading.value = false;
   });
+};
+
+// 处理 WebSocket 消息
+const handleWsMessage = message => {
+  if (message.event === "HANDLE_INFO") {
+    try {
+      const wsData = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
+      parseHandleData(wsData);
+    } catch (error) {
+      console.error("解析句柄数据失败:", error);
+    }
+  }
+};
+
+onBeforeMount(async () => {
+  refreshData();
+  // 订阅 WebSocket 消息
+  wsService.connect();
+  unsubscribe = wsService.subscribe("JVM", "HANDLE_INFO", handleWsMessage);
+});
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe();
+  }
 });
 </script>
 

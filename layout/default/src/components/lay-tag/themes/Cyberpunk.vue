@@ -57,35 +57,63 @@ onBeforeUnmount(() => {
 // 导入基础样式
 @use './default.scss';
 
-// 赛博朋克主题颜色变量
+// 赛博朋克主题颜色变量 - 优化版
 $cyber-cyan: #00ffff;
 $cyber-magenta: #ff00ff;
-$cyber-dark: #0a0a12;
-$cyber-dark-light: #12121f;
-$cyber-border: rgba(0, 255, 255, 0.25);
-$cyber-border-hover: rgba(0, 255, 255, 0.45);
+$cyber-purple: #a855f7;
+$cyber-dark: #050510;
+$cyber-dark-light: #0a0a1a;
+$cyber-border: rgba(0, 255, 255, 0.3);
+$cyber-border-hover: rgba(0, 255, 255, 0.5);
 
-// 赛博朋克主题样式
+// 赛博朋克主题样式 - 增强版
 html[data-skin="cyberpunk"] {
   // Tags 容器
   .tags-view,
   .cyberpunk-tag {
-    background: linear-gradient(135deg, rgba(10, 14, 25, 0.95), rgba(15, 20, 35, 0.95)) !important;
+    background: linear-gradient(
+      135deg, 
+      rgba(5, 5, 16, 0.97) 0%, 
+      rgba(10, 10, 26, 0.97) 50%,
+      rgba(5, 5, 16, 0.97) 100%
+    ) !important;
     border-top: 1px solid $cyber-border !important;
-    box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 255, 255, 0.08) !important;
+    box-shadow: 
+      0 -4px 20px rgba(0, 0, 0, 0.35), 
+      0 0 25px rgba(0, 255, 255, 0.08),
+      inset 0 1px 0 rgba(0, 255, 255, 0.1) !important;
     position: relative;
+    backdrop-filter: blur(12px);
 
-    // 顶部霓虹边线
+    // 顶部霓虹边线 - 增强流光效果
     &::before {
       content: '';
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, $cyber-cyan 20%, $cyber-magenta 50%, $cyber-cyan 80%, transparent);
+      height: 2px;
+      background: linear-gradient(
+        90deg, 
+        transparent 0%,
+        $cyber-cyan 15%,
+        $cyber-magenta 35%,
+        $cyber-purple 50%,
+        $cyber-magenta 65%,
+        $cyber-cyan 85%,
+        transparent 100%
+      );
+      box-shadow: 
+        0 0 10px rgba(0, 255, 255, 0.6),
+        0 0 20px rgba(255, 0, 255, 0.3);
       z-index: 1;
+      animation: cyber-tag-glow 3s ease-in-out infinite;
     }
+  }
+  
+  @keyframes cyber-tag-glow {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
   }
 
   // 左右箭头按钮
@@ -101,7 +129,7 @@ html[data-skin="cyberpunk"] {
     align-items: center !important;
     justify-content: center !important;
     border-radius: 8px !important;
-    transition: all 0.25s ease !important;
+    transition: none !important;
 
     svg {
       color: $cyber-cyan !important;
@@ -111,7 +139,6 @@ html[data-skin="cyberpunk"] {
     &:hover {
       background: rgba(0, 255, 255, 0.1) !important;
       border-color: $cyber-border-hover !important;
-      transform: scale(1.08) !important;
       box-shadow: 0 0 15px rgba(0, 255, 255, 0.3) !important;
 
       svg {
@@ -131,39 +158,17 @@ html[data-skin="cyberpunk"] {
     border: 1px solid rgba(0, 255, 255, 0.2) !important;
     border-radius: 8px !important;
     margin: 0 4px !important;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: none !important;
     position: relative;
     overflow: hidden;
     font-family: 'Rajdhani', 'Roboto', sans-serif;
 
-    // 悬停闪烁效果
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(0, 255, 255, 0.1),
-        transparent
-      );
-      transition: left 0.4s ease;
-    }
-
     &:hover {
       background: rgba(0, 255, 255, 0.1) !important;
       border-color: $cyber-border-hover !important;
-      transform: translateY(-2px) !important;
       box-shadow: 
         0 0 15px rgba(0, 255, 255, 0.25),
         inset 0 0 10px rgba(0, 255, 255, 0.05) !important;
-
-      &::before {
-        left: 100%;
-      }
     }
 
     // 激活状态
@@ -216,7 +221,7 @@ html[data-skin="cyberpunk"] {
     [class*="close"] {
       color: $cyber-cyan !important;
       opacity: 0.7;
-      transition: all 0.2s ease;
+      transition: none !important;
 
       &:hover {
         color: #fff !important;
@@ -242,6 +247,7 @@ html[data-skin="cyberpunk"] {
   // 右键菜单样式
   .tags-context-menu,
   .contextmenu {
+    z-index: 9999 !important;
     background: rgba(10, 14, 25, 0.96) !important;
     border: 1px solid $cyber-border !important;
     border-radius: 10px !important;
@@ -271,7 +277,8 @@ html[data-skin="cyberpunk"] {
       border: 1px solid transparent !important;
       border-radius: 6px !important;
       margin: 2px 0 !important;
-      transition: all 0.25s ease !important;
+      transition: none !important;
+      cursor: pointer !important;
 
       &:hover {
         background: rgba(0, 255, 255, 0.12) !important;
@@ -308,7 +315,7 @@ html[data-skin="cyberpunk"] {
 
     .el-dropdown-menu__item {
       color: $cyber-cyan !important;
-      transition: all 0.25s ease !important;
+      transition: none !important;
 
       &:hover {
         background: rgba(0, 255, 255, 0.12) !important;
@@ -377,7 +384,7 @@ html[data-skin="cyberpunk"] .tag-function-dropdown-popper {
     border-radius: 6px !important;
     margin: 2px 0 !important;
     padding: 8px 16px !important;
-    transition: all 0.25s ease !important;
+    transition: none !important;
     position: relative;
     z-index: 1;
     font-family: 'Rajdhani', 'Roboto', sans-serif;
@@ -396,7 +403,6 @@ html[data-skin="cyberpunk"] .tag-function-dropdown-popper {
       border-color: $cyber-cyan !important;
       color: #fff !important;
       box-shadow: 0 0 12px rgba(0, 255, 255, 0.2) !important;
-      transform: translateX(3px);
 
       .el-icon,
       svg {

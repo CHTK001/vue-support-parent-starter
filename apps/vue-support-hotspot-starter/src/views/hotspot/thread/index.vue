@@ -1,22 +1,60 @@
 <template>
   <div class="page flex flex-col h-full">
-    <div class="page-header">
-      <div class="header-content">
-        <div class="title-section">
-          <h1 class="page-title">
-            <IconifyIconOnline icon="ri:cpu-line" class="title-icon" />
-            线程监控
-          </h1>
-          <p class="page-subtitle">实时查看系统线程状态和CPU使用情况</p>
-        </div>
-        <div class="stats-section">
-          <div class="stat-card">
-            <div class="stat-number">{{ data.length }}</div>
-            <div class="stat-label">总线程数</div>
+    <!-- 统计卡片 -->
+    <el-row :gutter="20" class="stats-row">
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper primary">
+              <IconifyIconOnline icon="ri:cpu-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ data.length }}</div>
+              <div class="stat-label">总线程数</div>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper success">
+              <IconifyIconOnline icon="ri:play-circle-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ data.filter(t => t.state === 'RUNNABLE').length }}</div>
+              <div class="stat-label">RUNNABLE</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper warning">
+              <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ data.filter(t => t.state === 'WAITING' || t.state === 'TIMED_WAITING').length }}</div>
+              <div class="stat-label">WAITING</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper danger">
+              <IconifyIconOnline icon="ri:error-warning-line" class="stat-icon" />
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ data.filter(t => t.state === 'BLOCKED').length }}</div>
+              <div class="stat-label">BLOCKED</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
 
     <div class="flex-1 overflow-hidden">
       <el-card class="h-full" shadow="never">
@@ -96,9 +134,11 @@
 
 <script setup>
 import { http } from "@repo/utils";
-import { onBeforeMount, ref } from "vue";
+import { onBeforeMount, onUnmounted, ref } from "vue";
+import { wsService } from "@/utils/websocket";
 
 const data = ref([]);
+let unsubscribe = null;
 const infoVisible = ref(false);
 const info = ref("");
 
@@ -119,91 +159,126 @@ const handleInfo = row => {
   infoVisible.value = true;
 };
 
+// 映射线程数据
+const mapThreadData = threads => {
+  return (threads || []).map(thread => ({
+    id: thread.threadId,
+    name: thread.threadName,
+    state: thread.threadState,
+    cpu: 0,
+    blockedCount: thread.blockedCount || 0,
+    blockedTime: thread.blockedTime || 0,
+    waitedCount: thread.waitedCount || 0,
+    waitedTime: thread.waitedTime || 0,
+    lockName: thread.lockName,
+    lockOwnerId: thread.lockOwnerId,
+    lockOwnerName: thread.lockOwnerName,
+    inNative: thread.inNative,
+    suspended: thread.suspended,
+    stackTrace: thread.stackTrace || []
+  }));
+};
+
+// 处理 WebSocket 消息
+const handleWsMessage = message => {
+  if (message.event === "THREAD_INFO") {
+    try {
+      const wsData = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
+      data.value = mapThreadData(wsData.threads);
+    } catch (error) {
+      console.error("解析线程数据失败:", error);
+    }
+  }
+};
+
 onBeforeMount(async () => {
+  // 初始加载数据
   http.get((window.agentPath || "/agent") + "/thread").then(res => {
-    // 映射后端返回的字段名到前端使用的字段名
-    data.value = (res.data || []).map(thread => ({
-      id: thread.threadId,
-      name: thread.threadName,
-      state: thread.threadState,
-      cpu: 0, // ThreadInfoDTO 中没有 CPU 信息，默认为 0
-      blockedCount: thread.blockedCount || 0,
-      blockedTime: thread.blockedTime || 0,
-      waitedCount: thread.waitedCount || 0,
-      waitedTime: thread.waitedTime || 0,
-      lockName: thread.lockName,
-      lockOwnerId: thread.lockOwnerId,
-      lockOwnerName: thread.lockOwnerName,
-      inNative: thread.inNative,
-      suspended: thread.suspended,
-      stackTrace: thread.stackTrace || []
-    }));
+    data.value = mapThreadData(res.data);
   });
+  // 订阅 WebSocket 消息
+  wsService.connect();
+  unsubscribe = wsService.subscribe("JVM", "THREAD_INFO", handleWsMessage);
+});
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe();
+  }
 });
 </script>
 <style lang="scss" scoped>
 .page {
-  padding: 0;
+  padding: 20px;
   background: var(--el-bg-color-page);
 }
 
-.page-header {
-  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
-  padding: 24px 32px;
-  border-radius: 8px;
+.stats-row {
   margin-bottom: 16px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0 0 8px 0;
-
-  .title-icon {
-    font-size: 28px;
-    color: var(--el-color-primary);
-  }
-}
-
-.page-subtitle {
-  color: var(--el-text-color-regular);
-  font-size: 14px;
-  margin: 0;
-}
-
-.stats-section {
-  display: flex;
-  gap: 16px;
+  flex-shrink: 0;
 }
 
 .stat-card {
-  background: white;
-  padding: 16px 24px;
-  border-radius: 8px;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  border: none;
 
-  .stat-number {
-    font-size: 28px;
-    font-weight: 600;
-    color: var(--el-color-primary);
-    margin-bottom: 4px;
+  :deep(.el-card__body) {
+    padding: 20px;
   }
 
-  .stat-label {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
+  .stat-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.primary {
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
+      .stat-icon { color: var(--el-color-primary); }
+    }
+    &.success {
+      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
+      .stat-icon { color: var(--el-color-success); }
+    }
+    &.warning {
+      background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
+      .stat-icon { color: var(--el-color-warning); }
+    }
+    &.danger {
+      background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
+      .stat-icon { color: var(--el-color-danger); }
+    }
+    &.info {
+      background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
+      .stat-icon { color: var(--el-color-info); }
+    }
+
+    .stat-icon {
+      font-size: 24px;
+    }
+  }
+
+  .stat-info {
+    flex: 1;
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+    }
   }
 }
 

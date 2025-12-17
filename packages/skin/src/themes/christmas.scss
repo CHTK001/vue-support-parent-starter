@@ -523,4 +523,35 @@ html[data-skin="christmas"] {
       font-weight: 700 !important;
     }
   }
+
+  // ==================== 内容区域样式 ====================
+  .sidebar-custom {
+    border: 2px solid rgba($xmas-gold, 0.3) !important;
+    box-shadow: 
+      0 4px 20px rgba($xmas-green, 0.15),
+      0 0 30px rgba($xmas-gold, 0.08) !important;
+    background: var(--el-bg-color) !important;
+    
+    // 顶部装饰线
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, $xmas-gold 20%, $xmas-red 50%, $xmas-gold 80%, transparent);
+      z-index: 1;
+    }
+  }
+  
+  .no-card-mode.sidebar-custom {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    
+    &::before {
+      display: none;
+    }
+  }
 }
