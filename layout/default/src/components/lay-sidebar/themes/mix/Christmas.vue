@@ -12,6 +12,8 @@ import BaseCustomMix from './BaseCustomMix.vue';
 </template>
 
 <style lang="scss" scoped>
+@use "sass:color";
+
 $xmas-green: #1b5e20;
 $xmas-green-light: #2e7d32;
 $xmas-red: #c62828;
@@ -22,8 +24,8 @@ $xmas-white: #ffffff;
 .christmas-mix-wrapper {
   width: 100%;
   
-  :deep(.christmas-mix) {
-    background: linear-gradient(180deg, $xmas-green 0%, darken($xmas-green, 5%) 100%) !important;
+:deep(.christmas-mix) {
+    background: linear-gradient(180deg, $xmas-green 0%, color.adjust($xmas-green, $lightness: -5%) 100%) !important;
     
     .custom-menu-item {
       color: $xmas-white;
