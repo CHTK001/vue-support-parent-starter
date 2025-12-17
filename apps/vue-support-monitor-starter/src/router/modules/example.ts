@@ -21,7 +21,7 @@ export default [
       {
         path: "/example/techui",
         name: "ExampleTechUI",
-        component: () => import("@pages/example/src/views/TechUIPage.vue"),
+        component: () => import("@pages/example/TechUIPage"),
         meta: {
           title: "TechUI 科幻组件",
           icon: "ri:rocket-2-line",
