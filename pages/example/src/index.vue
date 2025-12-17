@@ -538,7 +538,7 @@ const components = [
     name: "TechUI",
     icon: "ri:rocket-2-line",
     description: "TechUI 科幻风格组件，基于 @techui/scifi 的科幻风格 UI 组件封装（独立页面）",
-    route: "/techui",  // 在独立页面中打开
+    route: "/example/techui",  // 在独立页面中打开
   },
 ];
 
