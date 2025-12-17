@@ -83,45 +83,43 @@ onBeforeUnmount(() => {
   height: calc(100% - 110px);
 }
 
+// 遮罩层 - 覆盖整个视口
 .right-panel-background {
   position: fixed;
-  /* 顶部距离 = 导航栏高度 + 标签页高度 */
-  top: calc(var(--pure-header-height, 56px) + var(--pure-tags-height, 36px));
-  left: var(--pure-sidebar-width, 210px);
+  top: 0;
+  left: 0;
   z-index: -1;
-  background: rgb(0 0 0 / 20%);
+  width: 100vw;
+  height: 100vh;
+  background: rgb(0 0 0 / 30%);
   opacity: 0;
   transition: opacity 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
+  pointer-events: none;
 }
 
+// 设置面板 - 从右侧滑入
 .right-panel {
   position: fixed;
-  /* 顶部距离 = 导航栏高度 + 标签页高度 */
-  top: calc(var(--pure-header-height, 56px) + var(--pure-tags-height, 36px));
+  top: 0;
   right: 0;
   z-index: 40000;
   width: 100%;
   max-width: 420px;
-  height: calc(100vh - var(--pure-header-height, 56px) - var(--pure-tags-height, 36px));
-  box-shadow: 0 0 15px 0 rgb(0 0 0 / 5%);
-  transition: all 0.25s cubic-bezier(0.7, 0.3, 0.1, 1);
-  transform: translate(100%);
+  height: 100vh;
+  box-shadow: -4px 0 20px rgb(0 0 0 / 10%);
+  transition: transform 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
+  transform: translateX(100%);
 }
 
 .show {
-  transition: all 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
-
   .right-panel-background {
-    z-index: 20000;
-    /* 宽度为屏幕宽度减去侧边栏宽度 */
-    width: calc(100vw - var(--pure-sidebar-width, 210px));
-    /* 高度为屏幕高度减去顶部导航和标签页高度 */
-    height: calc(100vh - var(--pure-header-height, 56px) - var(--pure-tags-height, 36px));
+    z-index: 39999;
     opacity: 1;
+    pointer-events: auto;
   }
 
   .right-panel {
-    transform: translate(0);
+    transform: translateX(0);
   }
 }
 
@@ -131,82 +129,8 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   padding: 14px 20px;
 }
+
 .bg-bg_color {
   background-color: var(--el-bg-color) !important;
-}
-</style>
-
-<!-- 全局样式：不同布局模式下的面板定位 -->
-<style lang="scss">
-/* 侧边栏收起时 */
-body.sidebar-collapsed {
-  .right-panel-background {
-    left: var(--pure-sidebar-collapsed-width, 54px) !important;
-  }
-  
-  .show .right-panel-background {
-    width: calc(100vw - var(--pure-sidebar-collapsed-width, 54px)) !important;
-  }
-}
-
-/* 水平布局 */
-body[layout="horizontal"] {
-  .right-panel-background {
-    left: 0 !important;
-  }
-  
-  .show .right-panel-background {
-    width: 100vw !important;
-  }
-}
-
-/* 双栏布局 */
-body[layout="double"] {
-  .right-panel-background {
-    left: 320px !important;
-  }
-  
-  .show .right-panel-background {
-    width: calc(100vw - 320px) !important;
-  }
-  
-  &.sidebar-collapsed {
-    .right-panel-background {
-      left: 54px !important;
-    }
-    
-    .show .right-panel-background {
-      width: calc(100vw - 54px) !important;
-    }
-  }
-}
-
-/* 悬停布局 */
-body[layout="hover"] {
-  .right-panel-background {
-    left: 200px !important;
-  }
-  
-  .show .right-panel-background {
-    width: calc(100vw - 200px) !important;
-  }
-}
-
-/* 移动布局 */
-body[layout="mobile"] {
-  .right-panel-background {
-    left: 0 !important;
-    top: var(--pure-header-height, 56px) !important;
-  }
-  
-  .right-panel {
-    top: var(--pure-header-height, 56px) !important;
-    height: calc(100vh - var(--pure-header-height, 56px)) !important;
-  }
-  
-  .show .right-panel-background {
-    width: 100vw !important;
-    height: calc(100vh - var(--pure-header-height, 56px)) !important;
-  }
 }
 </style>

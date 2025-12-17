@@ -80,19 +80,24 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 :deep(.el-scrollbar) {
-  height: calc(100vh - 110px);
+  height: calc(100% - 110px);
 }
 
+// 遮罩层 - 覆盖整个视口
 .right-panel-background {
   position: fixed;
   top: 0;
   left: 0;
   z-index: -1;
-  background: rgb(0 0 0 / 20%);
+  width: 100vw;
+  height: 100vh;
+  background: rgb(0 0 0 / 30%);
   opacity: 0;
   transition: opacity 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
+  pointer-events: none;
 }
 
+// 设置面板 - 从右侧滑入
 .right-panel {
   position: fixed;
   top: 0;
@@ -100,23 +105,21 @@ onBeforeUnmount(() => {
   z-index: 40000;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 0 15px 0 rgb(0 0 0 / 5%);
-  transition: all 0.25s cubic-bezier(0.7, 0.3, 0.1, 1);
-  transform: translate(100%);
+  height: 100vh;
+  box-shadow: -4px 0 20px rgb(0 0 0 / 10%);
+  transition: transform 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
+  transform: translateX(100%);
 }
 
 .show {
-  transition: all 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
-
   .right-panel-background {
-    z-index: 20000;
-    width: 100%;
-    height: 100%;
+    z-index: 39999;
     opacity: 1;
+    pointer-events: auto;
   }
 
   .right-panel {
-    transform: translate(0);
+    transform: translateX(0);
   }
 }
 
@@ -126,6 +129,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   padding: 14px 20px;
 }
+
 .bg-bg_color {
   background-color: var(--el-bg-color) !important;
 }
