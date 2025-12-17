@@ -40,20 +40,15 @@ const defaultActive = computed(() =>
 
 // === 菜单溢出处理 ===
 const menuContainerRef = ref<HTMLElement | null>(null);
-const visibleCount = ref(0); // 可见菜单数量，初始为0避免闪烁
-const isCalculated = ref(false); // 是否已计算
-const MENU_ITEM_WIDTH = 120; // 每个菜单项的估算宽度
-const MORE_MENU_WIDTH = 80; // "更多"菜单的宽度
+const visibleCount = ref(5); // 可见菜单数量，初始为5个
+const MENU_ITEM_WIDTH = 100; // 每个菜单项的估算宽度（保守估计）
+const MORE_MENU_WIDTH = 70; // "更多"菜单的宽度
 
 // 全部菜单
 const allMenus = computed(() => usePermissionStoreHook().wholeMenus);
 
 // 可见菜单
 const visibleMenus = computed(() => {
-  // 如果还没计算完成，显示所有菜单（防止闪烁）
-  if (!isCalculated.value) {
-    return allMenus.value;
-  }
   if (visibleCount.value >= allMenus.value.length) {
     return allMenus.value;
   }
@@ -62,9 +57,6 @@ const visibleMenus = computed(() => {
 
 // 溢出菜单（放入"更多"）
 const overflowMenus = computed(() => {
-  if (!isCalculated.value) {
-    return [];
-  }
   if (visibleCount.value >= allMenus.value.length) {
     return [];
   }
@@ -115,7 +107,6 @@ function calcVisibleCount(retryCount = 0) {
   // 如果所有菜单都能显示，就不需要"更多"
   if (totalMenus * MENU_ITEM_WIDTH <= containerWidth) {
     visibleCount.value = totalMenus;
-    isCalculated.value = true;
     return;
   }
   
@@ -125,7 +116,6 @@ function calcVisibleCount(retryCount = 0) {
   
   // 至少显示1个菜单
   visibleCount.value = Math.max(1, count);
-  isCalculated.value = true;
 }
 
 // 监听容器尺寸变化
@@ -314,24 +304,31 @@ watch(allMenus, () => {
   flex: 1;
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
   min-width: 0;
   height: 100%;
-  margin: 0 24px;
-  overflow: hidden; // 隐藏溢出，由"更多"菜单处理
+  margin: 0 16px;
+  
+  // 确保菜单项不会被压缩
+  :deep(.custom-menu-item),
+  :deep(.custom-sub-menu) {
+    flex-shrink: 0;
+  }
 }
 
 .horizontal-header-right {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  flex-shrink: 0;
   gap: 4px;
-  min-width: 300px;
   color: var(--pure-theme-sub-menu-active-text);
 }
 
 // "更多"菜单样式
 .more-menu {
   flex-shrink: 0;
+  margin-left: auto; // 推到右侧确保可见
   
   .menu-item-content {
     display: flex;
