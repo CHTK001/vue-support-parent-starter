@@ -1965,6 +1965,7 @@ onUnmounted(() => {
                 />
 
                 <ScSwitch
+                  v-if="isDevelopment || isTest"
                   v-model="settings.debugMode"
                   layout="visual-card"
                   size="small"
