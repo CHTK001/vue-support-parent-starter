@@ -1,0 +1,106 @@
+/**
+ * 元旦主题 - 自定义弹出菜单样式
+ * 冰蓝色主题
+ */
+
+// 颜色变量
+$ice-lightest: #F5FBFF;
+$ice-lighter: #E8F4FC;
+$ice-light: #B8E0F2;
+$ice-medium: #7CC2E8;
+$ice-primary: #4EA8DE;
+$ice-deep: #2A7AB8;
+$ice-darker: #1E5F8C;
+$frost-purple: #E0E7F5;
+$frost-white: #FFFFFF;
+
+// 元旦主题弹出层样式
+html[data-skin="new-year"] {
+  // 弹出层容器
+  .custom-sub-menu__popper {
+    background: linear-gradient(180deg, rgba($ice-lightest, 0.98), rgba($frost-purple, 0.96)) !important;
+    border: 1px solid rgba($ice-medium, 0.25) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba($ice-deep, 0.15) !important;
+    backdrop-filter: blur(16px);
+    
+    // 顶部冰晶线
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, $ice-medium 20%, $ice-primary 50%, $ice-medium 80%, transparent);
+      border-radius: 12px 12px 0 0;
+    }
+  }
+  
+  // 菜单项样式
+  .custom-menu-item {
+    color: $ice-darker !important;
+    background: rgba($frost-white, 0.6) !important;
+    border: 1px solid transparent !important;
+    border-radius: 6px !important;
+    transition: all 0.25s ease !important;
+    
+    .menu-icon {
+      color: $ice-primary !important;
+    }
+    
+    &:hover:not(.is-disabled) {
+      background: rgba($ice-medium, 0.15) !important;
+      border-color: rgba($ice-primary, 0.3) !important;
+      color: $ice-deep !important;
+      
+      .menu-icon {
+        color: $ice-deep !important;
+      }
+    }
+    
+    &.is-active {
+      background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
+      border-color: rgba($ice-deep, 0.2) !important;
+      color: $frost-white !important;
+      box-shadow: 0 4px 16px rgba($ice-primary, 0.3) !important;
+      
+      .menu-icon, .menu-title {
+        color: $frost-white !important;
+      }
+    }
+    
+    &.is-disabled {
+      color: rgba($ice-darker, 0.4) !important;
+      background: rgba($frost-white, 0.3) !important;
+    }
+  }
+  
+  // 子菜单标题样式
+  .custom-sub-menu__title {
+    color: $ice-darker !important;
+    
+    .menu-icon {
+      color: $ice-primary !important;
+    }
+    
+    &:hover {
+      background: rgba($ice-medium, 0.12) !important;
+      color: $ice-deep !important;
+      
+      .menu-icon {
+        color: $ice-deep !important;
+      }
+    }
+  }
+  
+  .custom-sub-menu.is-active > .custom-sub-menu__title {
+    background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
+    color: $frost-white !important;
+    box-shadow: 0 4px 16px rgba($ice-primary, 0.3) !important;
+    
+    .menu-icon, .menu-title, .custom-sub-menu__icon-arrow {
+      color: $frost-white !important;
+    }
+  }
+}
