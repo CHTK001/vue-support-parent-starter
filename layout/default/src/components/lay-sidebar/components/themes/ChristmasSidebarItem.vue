@@ -34,6 +34,8 @@ provide('themeSidebarItem', ChristmasSidebarItem);
 </template>
 
 <style lang="scss" scoped>
+@use "sass:color";
+
 // 圣诞主题颜色变量
 $xmas-green: #1b5e20;
 $xmas-green-light: #2e7d32;
@@ -109,7 +111,7 @@ $tree-svg-active: url('./assets/christmas-tree-active.svg');
   :deep(.sidebar-sub-menu) {
     .el-sub-menu__title {
       color: $xmas-white !important;
-      background: rgba(darken($xmas-green, 5%), 0.6) !important;
+background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
       margin: 4px 8px;
       border-radius: 8px;
       border: 1.5px solid rgba($xmas-gold, 0.25) !important;
@@ -152,11 +154,11 @@ $tree-svg-active: url('./assets/christmas-tree-active.svg');
     
     // 子菜单容器
     .el-menu {
-      background: rgba(darken($xmas-green, 8%), 0.8) !important;
+background: rgba(color.adjust($xmas-green, $lightness: -8%), 0.8) !important;
       
       .el-menu-item {
         color: $xmas-white !important;
-        background: rgba(darken($xmas-green, 5%), 0.6) !important;
+background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
         border: 1.5px solid rgba($xmas-gold, 0.25) !important;
         border-radius: 8px;
         margin: 4px 8px !important;

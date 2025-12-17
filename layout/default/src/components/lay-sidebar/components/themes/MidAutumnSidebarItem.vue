@@ -34,6 +34,8 @@ provide('themeSidebarItem', MidAutumnSidebarItem);
 </template>
 
 <style lang="scss" scoped>
+@use "sass:color";
+
 // 中秋主题颜色变量
 $mid-autumn-navy: #1a237e;
 $mid-autumn-navy-light: #283593;
@@ -131,7 +133,7 @@ $moon-active: url('./assets/mid-autumn-menu-active.svg');
     }
     
     .el-menu {
-      background: rgba(darken($mid-autumn-navy, 5%), 0.95) !important;
+background: rgba(color.adjust($mid-autumn-navy, $lightness: -5%), 0.95) !important;
       
       .el-menu-item {
         color: $mid-autumn-gold !important;

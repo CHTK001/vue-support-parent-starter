@@ -13,8 +13,10 @@ import ChristmasSidebarItem from '../components/themes/ChristmasSidebarItem.vue'
 </template>
 
 <style lang="scss" scoped>
+@use "sass:color";
+
 // 圣诞主题颜色变量
-$xmas-green: #1b5e20;         // 圣诞绿
+$xmas-green: #1b5e20;
 $xmas-green-light: #2e7d32;   // 浅绿
 $xmas-red: #c62828;           // 圣诞红
 $xmas-red-light: #e53935;     // 浅红
@@ -26,7 +28,7 @@ $xmas-border: rgba(255, 215, 0, 0.4);
   height: 100%;
   
   :deep(.christmas-sidebar) {
-    background: linear-gradient(180deg, $xmas-green 0%, darken($xmas-green, 5%) 100%) !important;
+background: linear-gradient(180deg, $xmas-green 0%, color.adjust($xmas-green, $lightness: -5%) 100%) !important;
     border-right: 3px solid $xmas-border !important;
     box-shadow: 
       0 4px 12px rgba(0, 0, 0, 0.2),
@@ -53,7 +55,7 @@ $xmas-border: rgba(255, 215, 0, 0.4);
     
     // Logo 区域样式
     .sidebar-logo-container {
-      background: linear-gradient(180deg, darken($xmas-green, 8%) 0%, darken($xmas-green, 5%) 100%);
+background: linear-gradient(180deg, color.adjust($xmas-green, $lightness: -8%) 0%, color.adjust($xmas-green, $lightness: -5%) 100%);
       border-bottom: 2px solid $xmas-border;
       position: relative;
       
@@ -97,7 +99,7 @@ $xmas-border: rgba(255, 215, 0, 0.4);
     .el-menu-item,
     .el-sub-menu__title {
       color: $xmas-white !important;
-      background: rgba(darken($xmas-green, 5%), 0.6) !important;
+background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
       margin: 4px 8px;
       border-radius: 8px;
       border: 1.5px solid rgba($xmas-gold, 0.25) !important;
@@ -168,7 +170,7 @@ $xmas-border: rgba(255, 215, 0, 0.4);
     
     // 底部折叠按钮
     .left-collapse {
-      background: linear-gradient(180deg, darken($xmas-green, 8%), darken($xmas-green, 10%)) !important;
+background: linear-gradient(180deg, color.adjust($xmas-green, $lightness: -8%), color.adjust($xmas-green, $lightness: -10%)) !important;
       border-top: 2px solid $xmas-border !important;
       box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3) !important;
       
@@ -204,7 +206,7 @@ $xmas-border: rgba(255, 215, 0, 0.4);
     
     // 中间折叠按钮
     .center-collapse {
-      background: linear-gradient(135deg, darken($xmas-green, 5%), $xmas-green) !important;
+background: linear-gradient(135deg, color.adjust($xmas-green, $lightness: -5%), $xmas-green) !important;
       border: 2px solid $xmas-border !important;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
       
@@ -225,7 +227,7 @@ $xmas-border: rgba(255, 215, 0, 0.4);
     
     // 垂直导航展开的子菜单容器
     .el-sub-menu .el-menu {
-      background: rgba(darken($xmas-green, 8%), 0.8) !important;
+background: rgba(color.adjust($xmas-green, $lightness: -8%), 0.8) !important;
       
       // 子菜单项
       .el-menu-item {
@@ -275,6 +277,8 @@ $xmas-border: rgba(255, 215, 0, 0.4);
 </style>
 
 <style lang="scss">
+@use "sass:color";
+
 // 子菜单弹出层全局样式（teleport 到 body，必须是全局样式）
 // 仅在圣诞主题下生效
 html[data-skin="christmas"] {
@@ -290,7 +294,7 @@ html[data-skin="christmas"] {
   .pure-scrollbar.el-menu--vertical,
   .el-menu--popup-container .el-menu--popup,
   .el-menu--popup {
-    background: linear-gradient(180deg, $xmas-green 0%, darken($xmas-green, 5%) 100%) !important;
+background: linear-gradient(180deg, $xmas-green 0%, color.adjust($xmas-green, $lightness: -5%) 100%) !important;
     border: 2px solid $xmas-border !important;
     border-radius: 8px !important;
     box-shadow:
@@ -319,7 +323,7 @@ html[data-skin="christmas"] {
       height: 40px !important;
       line-height: 40px !important;
       border-radius: 8px !important;
-      background: rgba(darken($xmas-green, 5%), 0.6) !important;
+background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
       border: 1.5px solid rgba($xmas-gold, 0.25) !important;
       color: $xmas-white !important;
       font-weight: 500;
@@ -394,7 +398,7 @@ html[data-skin="christmas"] {
       height: 40px !important;
       line-height: 40px !important;
       border-radius: 8px !important;
-      background: rgba(darken($xmas-green, 5%), 0.6) !important;
+background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
       border: 1.5px solid rgba($xmas-gold, 0.25) !important;
       color: $xmas-white !important;
       font-weight: 500;

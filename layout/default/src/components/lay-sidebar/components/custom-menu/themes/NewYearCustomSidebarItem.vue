@@ -130,6 +130,8 @@ const popperDirection = computed(() => props.isNest ? 'right' : 'bottom');
 </template>
 
 <style lang="scss" scoped>
+@use "sass:color";
+
 // 元旦冰雪主题色
 $ice-lightest: #F5FBFF;
 $ice-light: #B8E0F2;
@@ -173,11 +175,11 @@ $frost-purple: #E0E7F5;
 .new-year-menu-item {
   --custom-menu-text-color: #{$ice-darker};
   --custom-menu-item-bg: transparent;
-  --custom-menu-item-hover-bg: rgba(#{red($ice-medium)}, #{green($ice-medium)}, #{blue($ice-medium)}, 0.15);
+--custom-menu-item-hover-bg: rgba(#{color.channel($ice-medium, 'red', $space: rgb)}, #{color.channel($ice-medium, 'green', $space: rgb)}, #{color.channel($ice-medium, 'blue', $space: rgb)}, 0.15);
   --custom-menu-item-hover-color: #{$ice-deep};
   --custom-menu-item-active-bg: linear-gradient(135deg, #{$ice-primary}, #{$ice-medium});
   --custom-menu-item-active-color: #{$frost-white};
-  --custom-menu-item-active-shadow: 0 3px 12px rgba(#{red($ice-primary)}, #{green($ice-primary)}, #{blue($ice-primary)}, 0.35);
+--custom-menu-item-active-shadow: 0 3px 12px rgba(#{color.channel($ice-primary, 'red', $space: rgb)}, #{color.channel($ice-primary, 'green', $space: rgb)}, #{color.channel($ice-primary, 'blue', $space: rgb)}, 0.35);
   
   border-radius: 8px;
   margin: 2px 4px;
