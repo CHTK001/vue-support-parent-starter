@@ -206,7 +206,7 @@ const defer = useDefer(menuData.value.length);
   height: 100%;
   transition: none !important;
   overflow: visible;
-  z-index: 2000;
+  z-index: 0;
 
   &.has-logo {
     :deep(.scrollbar-wrapper) {
