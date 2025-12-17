@@ -25,6 +25,10 @@
       "types": "./src/index.ts",
       "development": "./src/index.ts",
       "default": "./dist/index.mjs"
+    },
+    "./TechUIPage": {
+      "development": "./src/views/TechUIPage.vue",
+      "default": "./src/views/TechUIPage.vue"
     }
   },
   "publishConfig": {
