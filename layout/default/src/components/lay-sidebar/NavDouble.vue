@@ -501,6 +501,8 @@ const defer = useDefer(firstLevelMenus.value.length);
 </style>
 
 <style lang="scss">
+@use "sass:color";
+
 // ==================== 春节主题样式 ====================
 html[data-skin="spring-festival"] {
   $spring-red: #dc143c;
