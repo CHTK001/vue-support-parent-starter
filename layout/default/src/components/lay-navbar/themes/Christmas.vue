@@ -44,6 +44,8 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
+@use "sass:color";
+
 $xmas-green: #1b5e20;
 $xmas-red: #c62828;
 $xmas-gold: #ffd700;
@@ -53,7 +55,7 @@ $xmas-gold: #ffd700;
   position: relative;
   
   :deep(.christmas-navbar) {
-    background: linear-gradient(180deg, $xmas-green 0%, darken($xmas-green, 5%) 100%) !important;
+    background: linear-gradient(180deg, $xmas-green 0%, color.adjust($xmas-green, $lightness: -5%) 100%) !important;
     border-bottom: 2px solid rgba($xmas-gold, 0.4) !important;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
   }

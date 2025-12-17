@@ -17,6 +17,8 @@ import '../../components/custom-menu/themes/christmas.scss';
 </template>
 
 <style lang="scss" scoped>
+@use "sass:color";
+
 $xmas-green: #1b5e20;
 $xmas-green-light: #2e7d32;
 $xmas-red: #c62828;
@@ -29,7 +31,7 @@ $xmas-border: rgba(255, 215, 0, 0.4);
   width: 100%;
   
   :deep(.christmas-horizontal) {
-    background: linear-gradient(180deg, $xmas-green 0%, darken($xmas-green, 5%) 100%) !important;
+    background: linear-gradient(180deg, $xmas-green 0%, color.adjust($xmas-green, $lightness: -5%) 100%) !important;
     border-bottom: 2px solid $xmas-border !important;
     
     .el-menu {
