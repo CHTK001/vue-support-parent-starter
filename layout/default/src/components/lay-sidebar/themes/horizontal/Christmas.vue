@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import BaseHorizontal from './BaseHorizontal.vue';
-import ChristmasSidebarItem from '../../components/themes/ChristmasSidebarItem.vue';
+import BaseCustomHorizontal from './BaseCustomHorizontal.vue';
+import ChristmasCustomSidebarItem from '../../components/custom-menu/themes/ChristmasCustomSidebarItem.vue';
+
+// 引入圣诞主题弹出层样式
+import '../../components/custom-menu/themes/christmas.scss';
 </script>
 
 <template>
   <div class="christmas-horizontal-wrapper">
-    <BaseHorizontal 
+    <BaseCustomHorizontal 
       theme-class="christmas-horizontal" 
-      :sidebar-item-component="ChristmasSidebarItem" 
+      popper-class="christmas-custom-popper"
+      :sidebar-item-component="ChristmasCustomSidebarItem" 
     />
   </div>
 </template>

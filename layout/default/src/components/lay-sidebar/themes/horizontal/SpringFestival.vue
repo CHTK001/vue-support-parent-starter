@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import BaseHorizontal from './BaseHorizontal.vue';
-import SpringFestivalSidebarItem from '../../components/themes/SpringFestivalSidebarItem.vue';
+import BaseCustomHorizontal from './BaseCustomHorizontal.vue';
+import SpringFestivalCustomSidebarItem from '../../components/custom-menu/themes/SpringFestivalCustomSidebarItem.vue';
+
+// 引入春节主题弹出层样式
+import '../../components/custom-menu/themes/spring-festival.scss';
 </script>
 
 <template>
   <div class="spring-festival-horizontal-wrapper">
-    <BaseHorizontal 
+    <BaseCustomHorizontal 
       theme-class="spring-festival-horizontal" 
-      :sidebar-item-component="SpringFestivalSidebarItem" 
+      popper-class="spring-festival-custom-popper"
+      :sidebar-item-component="SpringFestivalCustomSidebarItem" 
     />
   </div>
 </template>

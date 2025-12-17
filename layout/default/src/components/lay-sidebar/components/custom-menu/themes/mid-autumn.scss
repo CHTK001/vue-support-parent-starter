@@ -1,0 +1,110 @@
+/**
+ * 中秋主题 - 自定义弹出菜单样式
+ * 深蓝配金色月光
+ */
+
+$mid-blue: #1a237e;
+$mid-blue-light: #283593;
+$mid-gold: #ffd54f;
+$mid-gold-light: #ffecb3;
+
+.mid-autumn-custom-popper {
+  background: linear-gradient(180deg, rgba($mid-blue, 0.98), rgba($mid-blue-light, 0.98)) !important;
+  border: 2px solid rgba($mid-gold, 0.35) !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 8px 32px rgba($mid-blue, 0.4),
+    0 0 20px rgba($mid-gold, 0.15),
+    inset 0 1px 0 rgba($mid-gold, 0.25) !important;
+  padding: 8px !important;
+  
+  // 顶部金色装饰线
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12px;
+    right: 12px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, $mid-gold 30%, rgba(255, 255, 255, 0.7) 50%, $mid-gold 70%, transparent);
+    border-radius: 0 0 2px 2px;
+  }
+  
+  .custom-menu-item {
+    height: 40px;
+    padding: 0 14px;
+    margin: 3px 0;
+    color: rgba(255, 255, 255, 0.95);
+    background: transparent;
+    border-radius: 6px;
+    transition: all 0.25s ease;
+    
+    .menu-icon {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    &:hover:not(.is-disabled) {
+      background: rgba($mid-gold, 0.15);
+      color: $mid-gold;
+      
+      .menu-icon {
+        color: $mid-gold;
+      }
+    }
+    
+    &.is-active {
+      background: linear-gradient(135deg, $mid-gold, $mid-gold-light);
+      color: $mid-blue;
+      box-shadow: 0 3px 12px rgba($mid-gold, 0.4);
+      
+      .menu-icon, .menu-title {
+        color: $mid-blue;
+      }
+    }
+  }
+  
+  .custom-sub-menu {
+    .custom-sub-menu__title {
+      height: 40px;
+      padding: 0 14px;
+      margin: 3px 0;
+      border-radius: 6px;
+      color: rgba(255, 255, 255, 0.95);
+      
+      .menu-icon {
+        color: rgba(255, 255, 255, 0.9);
+      }
+      
+      .custom-sub-menu__icon-arrow {
+        color: rgba(255, 255, 255, 0.8);
+      }
+      
+      &:hover {
+        background: rgba($mid-gold, 0.12);
+        color: $mid-gold;
+        
+        .menu-icon {
+          color: $mid-gold;
+        }
+      }
+    }
+    
+    &.is-active > .custom-sub-menu__title {
+      background: linear-gradient(135deg, $mid-gold, $mid-gold-light);
+      color: $mid-blue;
+      box-shadow: 0 3px 12px rgba($mid-gold, 0.4);
+      
+      .menu-icon, .menu-title, .custom-sub-menu__icon-arrow {
+        color: $mid-blue;
+      }
+    }
+  }
+}
+
+.mid-autumn-custom-popper .custom-sub-menu__popper {
+  background: linear-gradient(180deg, rgba($mid-blue, 0.98), rgba($mid-blue-light, 0.98)) !important;
+  border: 1px solid rgba($mid-gold, 0.3) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 24px rgba($mid-blue, 0.3) !important;
+  padding: 6px !important;
+}
