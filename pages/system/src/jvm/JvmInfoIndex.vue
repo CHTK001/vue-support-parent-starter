@@ -46,26 +46,137 @@
     </div>
 
     <div class="content-wrapper" v-loading="loading">
-      <!-- 基础信息 -->
-      <el-card class="info-card" shadow="never">
-        <template #header>
-          <div class="card-header">
-            <IconifyIconOnline icon="ri:information-line" />
-            <span>基础信息</span>
+      <!-- 综合概览仪表板 -->
+      <div class="dashboard-overview">
+        <!-- 核心指标卡片 -->
+        <div class="metric-cards">
+          <div class="metric-card cpu-card">
+            <div class="metric-card-icon">
+              <IconifyIconOnline icon="ri:cpu-line" />
+            </div>
+            <div class="metric-card-content">
+              <div class="metric-card-value">{{ (jvmInfo.cpuInfo?.processCpuLoad || 0).toFixed(1) }}%</div>
+              <div class="metric-card-label">进程CPU</div>
+            </div>
+            <el-progress
+              type="circle"
+              :percentage="jvmInfo.cpuInfo?.processCpuLoad || 0"
+              :width="50"
+              :stroke-width="4"
+              :color="getProgressColor(jvmInfo.cpuInfo?.processCpuLoad || 0)"
+            />
           </div>
-        </template>
-        <el-descriptions :column="3" border>
-          <el-descriptions-item label="JVM 名称">{{ jvmInfo.jvmName || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="JVM 版本">{{ jvmInfo.jvmVersion || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="JVM 供应商">{{ jvmInfo.jvmVendor || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="Java 版本">{{ jvmInfo.javaVersion || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="Java Home" :span="2">{{ jvmInfo.javaHome || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="启动时间">{{ formatTime(jvmInfo.startTime) }}</el-descriptions-item>
-          <el-descriptions-item label="运行时长">{{ formatDuration(jvmInfo.uptime) }}</el-descriptions-item>
-        </el-descriptions>
-      </el-card>
 
-      <!-- CPU & 系统 -->
+          <div class="metric-card memory-card">
+            <div class="metric-card-icon">
+              <IconifyIconOnline icon="ri:hard-drive-2-line" />
+            </div>
+            <div class="metric-card-content">
+              <div class="metric-card-value">{{ (jvmInfo.heapMemory?.usagePercent || 0).toFixed(1) }}%</div>
+              <div class="metric-card-label">堆内存</div>
+              <div class="metric-card-detail">{{ formatBytes(jvmInfo.heapMemory?.used) }} / {{ formatBytes(jvmInfo.heapMemory?.max) }}</div>
+            </div>
+            <el-progress
+              type="circle"
+              :percentage="jvmInfo.heapMemory?.usagePercent || 0"
+              :width="50"
+              :stroke-width="4"
+              :color="getProgressColor(jvmInfo.heapMemory?.usagePercent || 0)"
+            />
+          </div>
+
+          <div class="metric-card thread-card">
+            <div class="metric-card-icon">
+              <IconifyIconOnline icon="ri:stack-line" />
+            </div>
+            <div class="metric-card-content">
+              <div class="metric-card-value">{{ jvmInfo.threadInfo?.threadCount || 0 }}</div>
+              <div class="metric-card-label">活动线程</div>
+              <div class="metric-card-detail">峰值: {{ jvmInfo.threadInfo?.peakThreadCount || 0 }}</div>
+            </div>
+            <div class="thread-mini-stats">
+              <span :class="{'danger': (jvmInfo.threadInfo?.deadlockedThreadCount || 0) > 0}">
+                死锁: {{ jvmInfo.threadInfo?.deadlockedThreadCount || 0 }}
+              </span>
+            </div>
+          </div>
+
+          <div class="metric-card class-card">
+            <div class="metric-card-icon">
+              <IconifyIconOnline icon="ri:file-code-line" />
+            </div>
+            <div class="metric-card-content">
+              <div class="metric-card-value">{{ formatNumber(jvmInfo.classLoadingInfo?.loadedClassCount) }}</div>
+              <div class="metric-card-label">已加载类</div>
+              <div class="metric-card-detail">卸载: {{ formatNumber(jvmInfo.classLoadingInfo?.unloadedClassCount) }}</div>
+            </div>
+          </div>
+
+          <div class="metric-card gc-card">
+            <div class="metric-card-icon">
+              <IconifyIconOnline icon="ri:recycle-line" />
+            </div>
+            <div class="metric-card-content">
+              <div class="metric-card-value">{{ getTotalGcCount() }}</div>
+              <div class="metric-card-label">GC次数</div>
+              <div class="metric-card-detail">{{ formatDuration(getTotalGcTime()) }}</div>
+            </div>
+          </div>
+
+          <div class="metric-card uptime-card">
+            <div class="metric-card-icon">
+              <IconifyIconOnline icon="ri:time-line" />
+            </div>
+            <div class="metric-card-content">
+              <div class="metric-card-value">{{ formatDuration(jvmInfo.uptime) }}</div>
+              <div class="metric-card-label">运行时长</div>
+              <div class="metric-card-detail">{{ formatTime(jvmInfo.startTime) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- JVM & 系统信息 -->
+      <div class="stats-row">
+        <el-card class="stat-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:information-line" />
+              <span>JVM 信息</span>
+            </div>
+          </template>
+          <el-descriptions :column="2" size="small">
+            <el-descriptions-item label="JVM 名称">{{ jvmInfo.jvmName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="JVM 版本">{{ jvmInfo.jvmVersion || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="Java 版本">{{ jvmInfo.javaVersion || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="供应商">{{ jvmInfo.jvmVendor || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="Java Home" :span="2">
+              <el-text truncated>{{ jvmInfo.javaHome || '-' }}</el-text>
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-card>
+
+        <el-card class="stat-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:computer-line" />
+              <span>系统信息</span>
+            </div>
+          </template>
+          <el-descriptions :column="2" size="small">
+            <el-descriptions-item label="操作系统">{{ jvmInfo.osInfo?.name || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="架构">{{ jvmInfo.osInfo?.arch || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="CPU 核心数">{{ jvmInfo.osInfo?.availableProcessors || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="系统负载">{{ jvmInfo.osInfo?.systemLoadAverage?.toFixed(2) || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="物理内存">
+              {{ formatBytes(jvmInfo.osInfo?.freePhysicalMemory) }} / {{ formatBytes(jvmInfo.osInfo?.totalPhysicalMemory) }}
+            </el-descriptions-item>
+            <el-descriptions-item label="系统CPU">{{ (jvmInfo.cpuInfo?.systemCpuLoad || 0).toFixed(1) }}%</el-descriptions-item>
+          </el-descriptions>
+        </el-card>
+      </div>
+
+      <!-- CPU & 内存详情 -->
       <div class="stats-row">
         <el-card class="stat-card" shadow="never">
           <template #header>
@@ -1902,6 +2013,22 @@ const handleGc = async () => {
 };
 
 /**
+ * 获取GC总次数
+ */
+const getTotalGcCount = () => {
+  if (!jvmInfo.value.garbageCollectors) return 0;
+  return jvmInfo.value.garbageCollectors.reduce((sum, gc) => sum + (gc.collectionCount || 0), 0);
+};
+
+/**
+ * 获取GC总时间
+ */
+const getTotalGcTime = () => {
+  if (!jvmInfo.value.garbageCollectors) return 0;
+  return jvmInfo.value.garbageCollectors.reduce((sum, gc) => sum + (gc.collectionTime || 0), 0);
+};
+
+/**
  * 格式化字节
  */
 const formatBytes = (bytes?: number) => {
@@ -2501,6 +2628,131 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+// 仪表板概览样式
+.dashboard-overview {
+  margin-bottom: 4px;
+
+  .metric-cards {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 16px;
+
+    @media (max-width: 1200px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .metric-card {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    gap: 12px;
+    transition: transform 0.2s, box-shadow 0.2s;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .metric-card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .metric-card-content {
+      flex: 1;
+      min-width: 0;
+
+      .metric-card-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #303133;
+        line-height: 1.2;
+      }
+
+      .metric-card-label {
+        font-size: 12px;
+        color: #909399;
+        margin-top: 2px;
+      }
+
+      .metric-card-detail {
+        font-size: 11px;
+        color: #c0c4cc;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+    .thread-mini-stats {
+      font-size: 12px;
+      color: #909399;
+
+      .danger {
+        color: #f56c6c;
+        font-weight: 600;
+      }
+    }
+
+    &.cpu-card {
+      .metric-card-icon {
+        background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+        color: #fff;
+      }
+    }
+
+    &.memory-card {
+      .metric-card-icon {
+        background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+        color: #fff;
+      }
+    }
+
+    &.thread-card {
+      .metric-card-icon {
+        background: linear-gradient(135deg, #e6a23c 0%, #f0b86c 100%);
+        color: #fff;
+      }
+    }
+
+    &.class-card {
+      .metric-card-icon {
+        background: linear-gradient(135deg, #909399 0%, #b4b4b4 100%);
+        color: #fff;
+      }
+    }
+
+    &.gc-card {
+      .metric-card-icon {
+        background: linear-gradient(135deg, #f56c6c 0%, #f89898 100%);
+        color: #fff;
+      }
+    }
+
+    &.uptime-card {
+      .metric-card-icon {
+        background: linear-gradient(135deg, #9b59b6 0%, #b07cc6 100%);
+        color: #fff;
+      }
+    }
+  }
 }
 
 .info-card {
