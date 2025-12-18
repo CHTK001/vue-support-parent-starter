@@ -234,6 +234,13 @@ html.dark {
   --console-margin: 20px; // 工作台盒子间距
   --art-card-border: rgba(var(--art-gray-300-rgb), 0.7); // 卡片边框颜色
   --art-card-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.04); // 卡片阴影
+  
+  // 布局尺寸变量（用于 drawer 等组件定位）
+  --pure-header-height: 56px; // 顶部导航栏高度
+  --pure-sidebar-width: 210px; // 侧边栏展开宽度 (vertical/mix)
+  --pure-sidebar-collapsed-width: 54px; // 侧边栏收起宽度
+  --pure-tags-height: 36px; // 标签页高度
+  --pure-transition-duration: 0.25s; // 过渡动画时长
 }
 
 // 媒体查询-设备尺寸

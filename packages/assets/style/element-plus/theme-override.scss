@@ -218,6 +218,65 @@ html.dark .el-button {
   --el-drawer-bg-color: var(--app-bg-primary);
 }
 
+/* el-drawer 全局在主内容区域内显示（不遮挡顶部导航和侧边栏） */
+.el-overlay:has(.el-drawer) {
+  position: fixed !important;
+  /* 顶部距离 = 导航栏高度 + 标签页高度 */
+  top: calc(var(--pure-header-height, 56px) + var(--pure-tags-height, 36px)) !important;
+  left: var(--pure-sidebar-width, 210px) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  
+  .el-drawer {
+    &.rtl,
+    &.ltr {
+      height: 100% !important;
+    }
+    &.ttb,
+    &.btt {
+      width: 100% !important;
+    }
+  }
+}
+
+/* 当侧边栏收起时调整 drawer 位置 */
+body.sidebar-collapsed .el-overlay:has(.el-drawer) {
+  left: var(--pure-sidebar-collapsed-width, 54px) !important;
+}
+
+/* 隐藏侧边栏时 drawer 占满左侧 */
+body.main-hidden .el-overlay:has(.el-drawer) {
+  left: 0 !important;
+}
+
+/* 水平布局时 drawer 占满左侧 */
+body[layout="horizontal"] .el-overlay:has(.el-drawer) {
+  left: 0 !important;
+}
+
+/* 双栏布局 - 侧边栏总宽度320px */
+body[layout="double"] .el-overlay:has(.el-drawer) {
+  left: 320px !important;
+}
+
+body[layout="double"].sidebar-collapsed .el-overlay:has(.el-drawer) {
+  left: 54px !important;
+}
+
+/* 悬停布局 - 侧边栏宽度200px */
+body[layout="hover"] .el-overlay:has(.el-drawer) {
+  left: 200px !important;
+}
+
+/* 移动导航布局 */
+body[layout="mobile"] .el-overlay:has(.el-drawer) {
+  left: 0 !important;
+  /* 移动端无标签页，只计算导航栏高度 */
+  top: var(--pure-header-height, 56px) !important;
+}
+
 /* 下拉菜单组件 Dropdown Component */
 .el-dropdown-menu {
   --el-dropdown-bg-color: var(--app-bg-primary);

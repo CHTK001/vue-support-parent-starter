@@ -38,9 +38,7 @@ const fetchClassList = async () => {
 const filteredClassList = computed(() => {
   if (!searchKeyword.value) return classList.value;
   const keyword = searchKeyword.value.toLowerCase();
-  return classList.value.filter(item => 
-    item.className?.toLowerCase().includes(keyword)
-  );
+  return classList.value.filter(item => item.className?.toLowerCase().includes(keyword));
 });
 
 // 手动重载类
@@ -175,7 +173,7 @@ onUnmounted(() => {
               <IconifyIconOnline icon="ri:refresh-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ status.enabled ? '已启用' : '未启用' }}</div>
+              <div class="stat-value">{{ status.enabled ? "已启用" : "未启用" }}</div>
               <div class="stat-label">热重载状态</div>
             </div>
           </div>
@@ -188,7 +186,7 @@ onUnmounted(() => {
               <IconifyIconOnline icon="ri:tools-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ status.instrumentation ? '可用' : '不可用' }}</div>
+              <div class="stat-value">{{ status.instrumentation ? "可用" : "不可用" }}</div>
               <div class="stat-label">Instrumentation</div>
             </div>
           </div>
@@ -221,13 +219,7 @@ onUnmounted(() => {
             已加载类列表
           </span>
           <div class="header-actions">
-            <el-input 
-              v-model="searchKeyword" 
-              placeholder="搜索类名..." 
-              clearable 
-              class="search-input"
-              @keyup.enter="searchClasses"
-            >
+            <el-input v-model="searchKeyword" placeholder="搜索类名..." clearable class="search-input" @keyup.enter="searchClasses">
               <template #prefix>
                 <IconifyIconOnline icon="ep:search" />
               </template>
@@ -237,20 +229,14 @@ onUnmounted(() => {
               <IconifyIconOnline icon="ri:file-upload-line" class="mr-1" />
               从文件重载
             </el-button>
-            <el-button type="info" @click="refreshAll" :loading="loading">
+            <el-button type="info" :loading="loading" @click="refreshAll">
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               刷新
             </el-button>
           </div>
         </div>
       </template>
-      <el-table 
-        :data="filteredClassList" 
-        v-loading="loading" 
-        stripe 
-        class="modern-table" 
-        max-height="500"
-      >
+      <el-table v-loading="loading" :data="filteredClassList" stripe class="modern-table" max-height="500">
         <el-table-column type="index" label="#" width="60" align="center" />
         <el-table-column prop="className" label="类名" min-width="400">
           <template #default="{ row }">
@@ -270,11 +256,7 @@ onUnmounted(() => {
         </el-table-column>
         <el-table-column label="操作" width="120" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button 
-              type="primary" 
-              link 
-              @click="reloadSingleClass(row.className || row)"
-            >
+            <el-button type="primary" link @click="reloadSingleClass(row.className || row)">
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               重载
             </el-button>
@@ -346,23 +328,33 @@ onUnmounted(() => {
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
-      .stat-icon { color: var(--el-color-primary); }
+      .stat-icon {
+        color: var(--el-color-primary);
+      }
     }
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
-      .stat-icon { color: var(--el-color-success); }
+      .stat-icon {
+        color: var(--el-color-success);
+      }
     }
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
-      .stat-icon { color: var(--el-color-warning); }
+      .stat-icon {
+        color: var(--el-color-warning);
+      }
     }
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
-      .stat-icon { color: var(--el-color-danger); }
+      .stat-icon {
+        color: var(--el-color-danger);
+      }
     }
     &.info {
       background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
-      .stat-icon { color: var(--el-color-info); }
+      .stat-icon {
+        color: var(--el-color-info);
+      }
     }
 
     .stat-icon {
@@ -483,7 +475,8 @@ html.dark {
     background: var(--el-bg-color-page);
   }
 
-  .stat-card, .modern-card {
+  .stat-card,
+  .modern-card {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 }

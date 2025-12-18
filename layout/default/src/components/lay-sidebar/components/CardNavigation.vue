@@ -645,7 +645,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 2000;
+  z-index: 0; // 布局组件 z-index 统一为 0，避免遮挡对话框
   display: flex;
   flex-direction: column;
   background: var(--el-bg-color-page);
@@ -666,7 +666,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  z-index: 2001;
+  z-index: 1; // 布局组件 z-index 统一为低值，避免遮挡对话框
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   /* 添加顶部装饰线 */
@@ -1002,7 +1002,7 @@ onUnmounted(() => {
     0 25px 50px -12px rgba(0, 0, 0, 0.25),
     0 0 0 1px rgba(255, 255, 255, 0.8);
   padding: 20px;
-  z-index: 3000;
+  z-index: 100; // 子菜单弹出层保持一定层级但不要太高
   animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(8px);
   pointer-events: auto;

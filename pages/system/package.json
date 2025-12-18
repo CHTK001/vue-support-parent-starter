@@ -26,6 +26,11 @@
       "development": "./src/index.ts",
       "default": "./dist/index.mjs"
     },
+    "./job": {
+      "types": "./src/job/index.ts",
+      "development": "./src/job/index.ts",
+      "default": "./dist/job.mjs"
+    },
     "./src/log/LogIndex.vue": {
       "default": "./src/log/LogIndex.vue"
     },
@@ -58,6 +63,7 @@
   "dependencies": {
     "@pureadmin/utils": "catalog:",
     "@repo/components": "workspace:^",
+    "@repo/utils": "workspace:^",
     "cropperjs": "^1.6.2",
     "element-plus": "catalog:",
     "lunisolar": "catalog:",

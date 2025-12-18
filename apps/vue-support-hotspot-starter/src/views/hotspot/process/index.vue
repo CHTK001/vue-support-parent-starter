@@ -35,7 +35,7 @@
               <IconifyIconOnline icon="ri:wifi-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ wsConnected ? '已连接' : '未连接' }}</div>
+              <div class="stat-value">{{ wsConnected ? "已连接" : "未连接" }}</div>
               <div class="stat-label">WebSocket 状态</div>
             </div>
           </div>
@@ -283,8 +283,8 @@ const refresh = async data => {
   const targetNodeId = Md5.hashStr(data.targetHost + data.targetPort);
   let nodes = [...graph.value.getNodeData()],
     edges = [];
- try{
-  if (!graph.value.getNodeData(sourceNodeId)) {
+  try {
+    if (!graph.value.getNodeData(sourceNodeId)) {
       nodes.push({
         id: sourceNodeId,
         type: data.sourceName,
@@ -293,16 +293,16 @@ const refresh = async data => {
         count: 1
       });
     }
- }catch(e){
+  } catch (e) {
     nodes.push({
-        id: sourceNodeId,
-        type: data.sourceName,
-        name: data.sourceHost + ":" + data.sourcePort,
-        data: data,
-        count: 1
-      });
- }
- try{
+      id: sourceNodeId,
+      type: data.sourceName,
+      name: data.sourceHost + ":" + data.sourcePort,
+      data: data,
+      count: 1
+    });
+  }
+  try {
     if (!graph.value.getNodeData(targetNodeId)) {
       nodes.push({
         id: targetNodeId,
@@ -312,14 +312,14 @@ const refresh = async data => {
         count: data.count
       });
     }
-  }catch(e){
-     nodes.push({
-        id: targetNodeId,
-        type: data.name,
-        name: data.targetHost + ":" + data.targetPort,
-        data: data,
-        count: data.count
-      });
+  } catch (e) {
+    nodes.push({
+      id: targetNodeId,
+      type: data.name,
+      name: data.targetHost + ":" + data.targetPort,
+      data: data,
+      count: data.count
+    });
   }
   edges = [...graph.value.getEdgeData()];
   // 过滤自己与自己关联的数据
@@ -384,23 +384,33 @@ const update = async data => {
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
-      .stat-icon { color: var(--el-color-primary); }
+      .stat-icon {
+        color: var(--el-color-primary);
+      }
     }
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
-      .stat-icon { color: var(--el-color-success); }
+      .stat-icon {
+        color: var(--el-color-success);
+      }
     }
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
-      .stat-icon { color: var(--el-color-warning); }
+      .stat-icon {
+        color: var(--el-color-warning);
+      }
     }
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
-      .stat-icon { color: var(--el-color-danger); }
+      .stat-icon {
+        color: var(--el-color-danger);
+      }
     }
     &.info {
       background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
-      .stat-icon { color: var(--el-color-info); }
+      .stat-icon {
+        color: var(--el-color-info);
+      }
     }
 
     .stat-icon {
@@ -443,7 +453,8 @@ html.dark {
     background: var(--el-bg-color-page);
   }
 
-  .stat-card, .graph-wrapper {
+  .stat-card,
+  .graph-wrapper {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 }

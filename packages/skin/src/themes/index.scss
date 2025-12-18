@@ -3,14 +3,7 @@
  * 集中导入所有主题样式
  */
 
-// 全局样式 - 适用于所有主题
-.shadow-tab,
-.fixed-header.shadow-tab,
-div.shadow-tab {
-  padding: 0 !important;
-}
-
-// 基础重置样式 - 所有主题皮肤共用
+// 基础重置样式
 @import './base-override.scss';
 
 // 默认主题

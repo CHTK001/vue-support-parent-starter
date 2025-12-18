@@ -13,8 +13,8 @@ import ServerErrorStyle from "./styles/ServerErrorStyle.vue";
 // 从配置获取是否显示风格切换器
 const showStyleSwitcher = computed(() => getConfig().ShowErrorPageStyleSwitcher ?? false);
 
-// 从配置获取默认错误页面风格
-const defaultStyle = computed(() => getConfig().ErrorPageStyle ?? "pixel");
+// 从配置获取默认错误页面风格（默认使用简约主题）
+const defaultStyle = computed(() => getConfig().ErrorPageStyle ?? "minimal");
 
 defineOptions({
   name: "ErrorPage",
@@ -28,7 +28,7 @@ const props = withDefaults(
     style?: StyleType;
   }>(),
   {
-    style: "pixel",
+    style: "minimal",
   }
 );
 

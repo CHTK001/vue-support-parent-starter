@@ -40,9 +40,18 @@
             <el-tooltip placement="top">
               <template #content>
                 <div style="max-width: 400px">
-                  <div><strong>Bean 名称:</strong> {{ row.name }}</div>
-                  <div><strong>类名:</strong> {{ row.className }}</div>
-                  <div v-if="row.resource"><strong>资源:</strong> {{ row.resource }}</div>
+                  <div>
+                    <strong>Bean 名称:</strong>
+                    {{ row.name }}
+                  </div>
+                  <div>
+                    <strong>类名:</strong>
+                    {{ row.className }}
+                  </div>
+                  <div v-if="row.resource">
+                    <strong>资源:</strong>
+                    {{ row.resource }}
+                  </div>
                 </div>
               </template>
               <div class="bean-name">
@@ -117,9 +126,9 @@ const handleInfo = row => {
 
 // 解析 Bean 数据
 const parseBeanData = res => {
-  if (res && typeof res === 'object' && Array.isArray(res.data)) {
+  if (res && typeof res === "object" && Array.isArray(res.data)) {
     data.value = res.data;
-  } else if (res && typeof res === 'object' && Array.isArray(res.data?.data)) {
+  } else if (res && typeof res === "object" && Array.isArray(res.data?.data)) {
     data.value = res.data.data;
   } else if (Array.isArray(res)) {
     data.value = res;

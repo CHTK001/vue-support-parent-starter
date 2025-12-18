@@ -976,7 +976,6 @@ const loadApiDocs = async () => {
     ]);
 
     console.log("API文档响应:", docsResponse);
-    console.log("API列表响应:", listResponse);
     console.log("Swagger资源响应:", resourcesResponse);
 
     let hasValidData = false;
@@ -986,18 +985,6 @@ const loadApiDocs = async () => {
       apiGroups.value = docsResponse.value.data || [];
       console.log("API分组数据:", apiGroups.value);
       hasValidData = apiGroups.value.length > 0;
-    }
-
-    // 处理API列表响应
-    if (listResponse.status === "fulfilled" && listResponse.value.success) {
-      const apiList = listResponse.value.data || [];
-      console.log("API列表数据:", apiList);
-
-      // 如果没有分组数据但有列表数据，将列表数据转换为分组格式
-      if (!hasValidData && apiList.length > 0) {
-        apiGroups.value = convertApiListToGroups(apiList);
-        hasValidData = true;
-      }
     }
 
     // 处理Swagger资源响应

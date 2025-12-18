@@ -1,0 +1,76 @@
+{
+  "name": "@pages/doc",
+  "version": "1.0.0",
+  "description": "API 文档模块 - 提供可复用的 Swagger/OpenAPI 文档查看器组件",
+  "private": true,
+  "keywords": [
+    "swagger",
+    "openapi",
+    "api-documentation",
+    "api-viewer"
+  ],
+  "author": "CH",
+  "license": "ISC",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm unbuild",
+    "build:standalone": "vite build --config vite.standalone.config.ts",
+    "dev:standalone": "vite --config vite.standalone.config.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ],
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./components": {
+      "types": "./src/components/index.ts",
+      "development": "./src/components/index.ts",
+      "default": "./dist/components.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.mjs"
+      },
+      "./components": {
+        "default": "./dist/components.mjs"
+      }
+    }
+  },
+  "dependencies": {
+    "@pureadmin/utils": "catalog:",
+    "@repo/components": "workspace:^",
+    "@repo/utils": "workspace:^",
+    "codemirror-editor-vue3": "catalog:",
+    "element-plus": "catalog:",
+    "unbuild": "catalog:",
+    "vue": "catalog:",
+    "vue-i18n": "catalog:",
+    "vue-router": "catalog:"
+  },
+  "devDependencies": {
+    "@repo/config": "workspace:^",
+    "@repo/tailwind-config": "workspace:^",
+    "@repo/tsconfig": "workspace:^",
+    "@types/node": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "autoprefixer": "catalog:",
+    "postcss": "catalog:",
+    "sass": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

@@ -9,10 +9,7 @@
     }
     // 主题皮肤（default/flat/enhanced）
     if (layoutConfig.themeSkin) {
-      document.documentElement.setAttribute(
-        "data-theme-skin",
-        layoutConfig.themeSkin
-      );
+      document.documentElement.setAttribute("data-theme-skin", layoutConfig.themeSkin);
     }
   } catch (e) {
     console.warn("Failed to set theme from localStorage:", e);
@@ -83,7 +80,7 @@ initializeWasmModule()
       app.mount("#app");
     });
   })
-  .catch((error) => {
+  .catch(error => {
     console.error("Failed to initialize WASM module:", error);
     // 即使WASM加载失败，也启动应用，但可能会缺少某些功能
     const app = createApp(App);

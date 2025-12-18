@@ -32,7 +32,7 @@ class WebSocketService {
     }
 
     this.isConnecting = true;
-    
+
     // 动态获取 WebSocket 端口
     let wsUrl = url;
     if (!wsUrl) {
@@ -62,7 +62,7 @@ class WebSocketService {
         this.startHeartbeat();
       };
 
-      this.socket.onmessage = (event) => {
+      this.socket.onmessage = event => {
         this.handleMessage(event);
       };
 
@@ -74,7 +74,7 @@ class WebSocketService {
         this.scheduleReconnect(wsUrl);
       };
 
-      this.socket.onerror = (error) => {
+      this.socket.onerror = error => {
         console.error("[WebSocket] 连接错误:", error);
         this.isConnecting = false;
       };
@@ -114,7 +114,7 @@ class WebSocketService {
 
     try {
       const message: WsMessage = JSON.parse(text);
-      
+
       // 保存消息（限制数量）
       this.messages.unshift(message);
       if (this.messages.length > 1000) {

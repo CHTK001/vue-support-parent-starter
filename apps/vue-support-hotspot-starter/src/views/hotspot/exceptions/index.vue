@@ -163,7 +163,7 @@ onUnmounted(() => {
             </div>
             <div class="stat-info">
               <div class="stat-actions">
-                <el-button type="primary" size="small" @click="fetchData" :loading="loading">刷新</el-button>
+                <el-button type="primary" size="small" :loading="loading" @click="fetchData">刷新</el-button>
                 <el-button type="danger" size="small" @click="clearStats">清除</el-button>
               </div>
               <div class="stat-label">操作</div>
@@ -186,8 +186,8 @@ onUnmounted(() => {
 
       <el-tabs v-model="activeTab" class="modern-tabs">
           <el-table
-            :data="exceptions"
             v-loading="loading"
+            :data="exceptions"
             stripe
             max-height="600"
           >
@@ -226,7 +226,7 @@ onUnmounted(() => {
         </el-tab-pane>
 
         <el-tab-pane label="异常统计" name="stats">
-          <el-table :data="stats" v-loading="loading" stripe>
+          <el-table v-loading="loading" :data="stats" stripe>
             <el-table-column prop="exceptionType" label="异常类型" width="300">
               <template #default="{ row }">
                 <el-tag type="danger">{{ row.exceptionType }}</el-tag>

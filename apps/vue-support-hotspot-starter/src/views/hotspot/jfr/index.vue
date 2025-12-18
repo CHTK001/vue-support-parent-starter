@@ -37,7 +37,7 @@ const presets = [
   { value: "default", label: "默认配置", duration: 60, maxSize: 100, desc: "通用性能分析" },
   { value: "short", label: "快速采样", duration: 30, maxSize: 50, desc: "快速问题定位" },
   { value: "long", label: "长时录制", duration: 300, maxSize: 500, desc: "深度性能分析" },
-  { value: "continuous", label: "持续录制", duration: 0, maxSize: 200, desc: "无限时录制，手动停止" },
+  { value: "continuous", label: "持续录制", duration: 0, maxSize: 200, desc: "无限时录制，手动停止" }
 ];
 
 // API 基础路径
@@ -127,7 +127,7 @@ const startRecording = async () => {
     if (newRecordingForm.maxSize > 0) {
       params.append("maxSize", String(newRecordingForm.maxSize));
     }
-    
+
     const res = await http.get(apiBase.value + "?" + params.toString());
     if (res?.success) {
       ElMessage.success(`JFR录制已开始: ${newRecordingForm.name}`);
@@ -175,7 +175,7 @@ const exportRecording = async () => {
     if (exportForm.filename) {
       params.append("filename", exportForm.filename);
     }
-    
+
     const res = await http.get(apiBase.value + "?" + params.toString());
     if (res?.success) {
       ElMessage.success(`录制文件已导出到服务器: ${res.filename}`);
@@ -196,7 +196,7 @@ const quickExport = async (row: any) => {
     const params = new URLSearchParams();
     params.append("action", "dump");
     params.append("recordingId", String(row.recordingId));
-    
+
     const res = await http.get(apiBase.value + "?" + params.toString());
     if (res?.success) {
       ElMessage.success(`文件已导出: ${res.filename}`);
@@ -212,11 +212,7 @@ const quickExport = async (row: any) => {
 // 删除录制（从内存中移除）
 const deleteRecording = async (row: any) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除录制 "${row.name}" 吗？此操作将从内存中移除该录制，未导出的数据将丢失。`,
-      "删除确认",
-      { type: "warning" }
-    );
+    await ElMessageBox.confirm(`确定要删除录制 "${row.name}" 吗？此操作将从内存中移除该录制，未导出的数据将丢失。`, "删除确认", { type: "warning" });
     // 先停止再从列表中移除
     if (row.state === "RUNNING") {
       await http.get(apiBase.value + `?action=stop&recordingId=${row.recordingId}`);
@@ -252,21 +248,30 @@ const formatSize = (bytes: number | null) => {
 // 获取状态颜色
 const getStateType = (state: string) => {
   switch (state) {
-    case "RUNNING": return "success";
-    case "STOPPED": return "info";
-    case "CLOSED": return "danger";
-    default: return "info";
+    case "RUNNING":
+      return "success";
+    case "STOPPED":
+      return "info";
+    case "CLOSED":
+      return "danger";
+    default:
+      return "info";
   }
 };
 
 // 获取状态文字
 const getStateText = (state: string) => {
   switch (state) {
-    case "RUNNING": return "录制中";
-    case "STOPPED": return "已停止";
-    case "CLOSED": return "已关闭";
-    case "NEW": return "新建";
-    default: return state;
+    case "RUNNING":
+      return "录制中";
+    case "STOPPED":
+      return "已停止";
+    case "CLOSED":
+      return "已关闭";
+    case "NEW":
+      return "新建";
+    default:
+      return state;
   }
 };
 
@@ -278,15 +283,15 @@ const refreshAll = () => {
 
 onMounted(() => {
   refreshAll();
-  
+
   // 连接 WebSocket
   wsService.connect();
-  
+
   // 订阅 JFR 状态更新
   unsubscribeStatus = wsService.subscribe("JFR", "JFR_STATUS", handleStatusMessage);
   unsubscribeStarted = wsService.subscribe("JFR", "JFR_STARTED", handleStartedMessage);
   unsubscribeStopped = wsService.subscribe("JFR", "JFR_STOPPED", handleStoppedMessage);
-  
+
   // 每30秒刷新一次（作为 WebSocket 的备份）
   refreshTimer = setInterval(refreshAll, 30000);
 });
@@ -355,7 +360,7 @@ onUnmounted(() => {
               <IconifyIconOnline icon="ri:checkbox-circle-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ status.available ? 'JFR可用' : '不可用' }}</div>
+              <div class="stat-value">{{ status.available ? "JFR可用" : "不可用" }}</div>
               <div class="stat-label">JFR 状态</div>
               <div class="stat-detail">Java 11+</div>
             </div>
@@ -374,15 +379,12 @@ onUnmounted(() => {
           </span>
         </div>
       </template>
-      <el-table :data="recordings" v-loading="loading" stripe class="modern-table" max-height="400">
+      <el-table v-loading="loading" :data="recordings" stripe class="modern-table" max-height="400">
         <el-table-column prop="recordingId" label="ID" width="80" align="center" />
         <el-table-column prop="name" label="名称" min-width="200">
           <template #default="{ row }">
             <div class="flex items-center gap-2">
-              <IconifyIconOnline 
-                :icon="row.state === 'RUNNING' ? 'ri:record-circle-fill' : 'ri:file-chart-line'" 
-                :class="row.state === 'RUNNING' ? 'recording-icon' : 'text-primary'" 
-              />
+              <IconifyIconOnline :icon="row.state === 'RUNNING' ? 'ri:record-circle-fill' : 'ri:file-chart-line'" :class="row.state === 'RUNNING' ? 'recording-icon' : 'text-primary'" />
               <span>{{ row.name }}</span>
             </div>
           </template>
@@ -416,38 +418,19 @@ onUnmounted(() => {
         <el-table-column label="操作" width="240" align="center" fixed="right">
           <template #default="{ row }">
             <el-button-group>
-              <el-button
-                v-if="row.state === 'RUNNING'"
-                type="warning"
-                size="small"
-                @click="stopRecording(row.recordingId)"
-              >
+              <el-button v-if="row.state === 'RUNNING'" type="warning" size="small" @click="stopRecording(row.recordingId)">
                 <IconifyIconOnline icon="ri:stop-circle-line" />
                 停止
               </el-button>
-              <el-button
-                v-if="row.state === 'STOPPED'"
-                type="primary"
-                size="small"
-                @click="quickExport(row)"
-              >
+              <el-button v-if="row.state === 'STOPPED'" type="primary" size="small" @click="quickExport(row)">
                 <IconifyIconOnline icon="ri:download-line" />
                 快速导出
               </el-button>
-              <el-button
-                v-if="row.state === 'STOPPED'"
-                type="success"
-                size="small"
-                @click="openExportDialog(row)"
-              >
+              <el-button v-if="row.state === 'STOPPED'" type="success" size="small" @click="openExportDialog(row)">
                 <IconifyIconOnline icon="ri:save-line" />
                 自定义导出
               </el-button>
-              <el-button
-                type="danger"
-                size="small"
-                @click="deleteRecording(row)"
-              >
+              <el-button type="danger" size="small" @click="deleteRecording(row)">
                 <IconifyIconOnline icon="ri:delete-bin-line" />
               </el-button>
             </el-button-group>
@@ -502,7 +485,7 @@ onUnmounted(() => {
           <el-input v-model="newRecordingForm.name" placeholder="请输入录制名称" />
         </el-form-item>
         <el-form-item label="预设配置">
-          <el-select v-model="newRecordingForm.preset" @change="onPresetChange" style="width: 100%">
+          <el-select v-model="newRecordingForm.preset" style="width: 100%" @change="onPresetChange">
             <el-option v-for="p in presets" :key="p.value" :value="p.value" :label="p.label">
               <div class="preset-option">
                 <span class="preset-name">{{ p.label }}</span>
@@ -512,31 +495,17 @@ onUnmounted(() => {
           </el-select>
         </el-form-item>
         <el-form-item label="录制时长">
-          <el-input-number 
-            v-model="newRecordingForm.duration" 
-            :min="0" 
-            :max="3600" 
-            :step="10"
-            style="width: 200px"
-          />
+          <el-input-number v-model="newRecordingForm.duration" :min="0" :max="3600" :step="10" style="width: 200px" />
           <span class="form-hint">秒（0 表示无限制，需手动停止）</span>
         </el-form-item>
         <el-form-item label="最大文件">
-          <el-input-number 
-            v-model="newRecordingForm.maxSize" 
-            :min="0" 
-            :max="1024" 
-            :step="50"
-            style="width: 200px"
-          />
+          <el-input-number v-model="newRecordingForm.maxSize" :min="0" :max="1024" :step="50" style="width: 200px" />
           <span class="form-hint">MB（0 表示无限制）</span>
         </el-form-item>
         <el-form-item>
           <el-alert type="info" :closable="false" show-icon>
             <template #default>
-              <p class="alert-content-small">
-                将采集: CPU负载、GC事件、线程分配、对象分配、锁竞争等性能数据
-              </p>
+              <p class="alert-content-small">将采集: CPU负载、GC事件、线程分配、对象分配、锁竞争等性能数据</p>
             </template>
           </el-alert>
         </el-form-item>
@@ -616,23 +585,33 @@ onUnmounted(() => {
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
-      .stat-icon { color: var(--el-color-primary); }
+      .stat-icon {
+        color: var(--el-color-primary);
+      }
     }
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
-      .stat-icon { color: var(--el-color-success); }
+      .stat-icon {
+        color: var(--el-color-success);
+      }
     }
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
-      .stat-icon { color: var(--el-color-warning); }
+      .stat-icon {
+        color: var(--el-color-warning);
+      }
     }
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
-      .stat-icon { color: var(--el-color-danger); }
+      .stat-icon {
+        color: var(--el-color-danger);
+      }
     }
     &.info {
       background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
-      .stat-icon { color: var(--el-color-info); }
+      .stat-icon {
+        color: var(--el-color-info);
+      }
     }
 
     .stat-icon {
@@ -721,8 +700,13 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .alert-title {
@@ -771,7 +755,8 @@ html.dark {
     background: var(--el-bg-color-page);
   }
 
-  .stat-card, .modern-card {
+  .stat-card,
+  .modern-card {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 }

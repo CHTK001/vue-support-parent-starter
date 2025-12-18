@@ -63,7 +63,7 @@ const formatUptime = (ms: number) => {
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
-  
+
   let result = "";
   if (days > 0) result += `${days}天 `;
   if (hours > 0) result += `${hours}小时 `;
@@ -120,8 +120,7 @@ onUnmounted(() => {
               <div class="stat-detail">{{ formatBytes(jvmInfo.heapMemoryUsed) }} / {{ formatBytes(jvmInfo.heapMemoryMax) }}</div>
             </div>
           </div>
-          <el-progress :percentage="heapUsedPercent" :stroke-width="6" :show-text="false" 
-            :color="heapUsedPercent > 80 ? '#F56C6C' : heapUsedPercent > 60 ? '#E6A23C' : '#67C23A'" />
+          <el-progress :percentage="heapUsedPercent" :stroke-width="6" :show-text="false" :color="heapUsedPercent > 80 ? '#F56C6C' : heapUsedPercent > 60 ? '#E6A23C' : '#67C23A'" />
         </el-card>
       </el-col>
       <el-col :span="6">
@@ -170,7 +169,7 @@ onUnmounted(() => {
 
     <!-- 操作按钮 -->
     <div class="action-bar">
-      <el-button type="info" @click="fetchJvmInfo" :loading="loading">
+      <el-button type="info" :loading="loading" @click="fetchJvmInfo">
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
       </el-button>
@@ -194,11 +193,7 @@ onUnmounted(() => {
           </template>
           <div class="memory-info">
             <div class="memory-progress">
-              <el-progress 
-                :percentage="heapUsedPercent" 
-                :stroke-width="20"
-                :color="heapUsedPercent > 80 ? '#F56C6C' : heapUsedPercent > 60 ? '#E6A23C' : '#67C23A'"
-              />
+              <el-progress :percentage="heapUsedPercent" :stroke-width="20" :color="heapUsedPercent > 80 ? '#F56C6C' : heapUsedPercent > 60 ? '#E6A23C' : '#67C23A'" />
             </div>
             <div class="memory-details">
               <div class="detail-item">
@@ -229,11 +224,7 @@ onUnmounted(() => {
           </template>
           <div class="memory-info">
             <div class="memory-progress">
-              <el-progress 
-                :percentage="nonHeapUsedPercent" 
-                :stroke-width="20"
-                :color="nonHeapUsedPercent > 80 ? '#F56C6C' : nonHeapUsedPercent > 60 ? '#E6A23C' : '#409EFF'"
-              />
+              <el-progress :percentage="nonHeapUsedPercent" :stroke-width="20" :color="nonHeapUsedPercent > 80 ? '#F56C6C' : nonHeapUsedPercent > 60 ? '#E6A23C' : '#409EFF'" />
             </div>
             <div class="memory-details">
               <div class="detail-item">
@@ -246,7 +237,7 @@ onUnmounted(() => {
               </div>
               <div class="detail-item">
                 <span class="label">最大</span>
-                <span class="value">{{ jvmInfo.nonHeapMemoryMax > 0 ? formatBytes(jvmInfo.nonHeapMemoryMax) : '无限制' }}</span>
+                <span class="value">{{ jvmInfo.nonHeapMemoryMax > 0 ? formatBytes(jvmInfo.nonHeapMemoryMax) : "无限制" }}</span>
               </div>
             </div>
           </div>
@@ -270,15 +261,11 @@ onUnmounted(() => {
             <el-descriptions-item label="Young GC 次数">
               <span class="highlight-number">{{ jvmInfo.youngGcCount || 0 }}</span>
             </el-descriptions-item>
-            <el-descriptions-item label="Young GC 耗时">
-              {{ jvmInfo.youngGcTime || 0 }} ms
-            </el-descriptions-item>
+            <el-descriptions-item label="Young GC 耗时">{{ jvmInfo.youngGcTime || 0 }} ms</el-descriptions-item>
             <el-descriptions-item label="Full GC 次数">
               <span class="highlight-number danger">{{ jvmInfo.fullGcCount || 0 }}</span>
             </el-descriptions-item>
-            <el-descriptions-item label="Full GC 耗时">
-              {{ jvmInfo.fullGcTime || 0 }} ms
-            </el-descriptions-item>
+            <el-descriptions-item label="Full GC 耗时">{{ jvmInfo.fullGcTime || 0 }} ms</el-descriptions-item>
           </el-descriptions>
         </el-card>
       </el-col>
@@ -347,10 +334,10 @@ onUnmounted(() => {
           </template>
           <el-descriptions :column="1" border>
             <el-descriptions-item label="JVM名称">
-              {{ jvmInfo.vmName || '-' }}
+              {{ jvmInfo.vmName || "-" }}
             </el-descriptions-item>
             <el-descriptions-item label="JVM版本">
-              {{ jvmInfo.vmVersion || '-' }}
+              {{ jvmInfo.vmVersion || "-" }}
             </el-descriptions-item>
             <el-descriptions-item label="启动时间">
               {{ formatTime(jvmInfo.startTime) }}
@@ -402,19 +389,27 @@ onUnmounted(() => {
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
-      .stat-icon { color: var(--el-color-primary); }
+      .stat-icon {
+        color: var(--el-color-primary);
+      }
     }
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
-      .stat-icon { color: var(--el-color-success); }
+      .stat-icon {
+        color: var(--el-color-success);
+      }
     }
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
-      .stat-icon { color: var(--el-color-warning); }
+      .stat-icon {
+        color: var(--el-color-warning);
+      }
     }
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
-      .stat-icon { color: var(--el-color-danger); }
+      .stat-icon {
+        color: var(--el-color-danger);
+      }
     }
 
     .stat-icon {
@@ -477,10 +472,18 @@ onUnmounted(() => {
         font-size: 18px;
         color: var(--el-color-primary);
 
-        &.gc { color: var(--el-color-warning); }
-        &.thread { color: var(--el-color-info); }
-        &.class { color: var(--el-color-success); }
-        &.info { color: var(--el-color-primary); }
+        &.gc {
+          color: var(--el-color-warning);
+        }
+        &.thread {
+          color: var(--el-color-info);
+        }
+        &.class {
+          color: var(--el-color-success);
+        }
+        &.info {
+          color: var(--el-color-primary);
+        }
       }
     }
   }
@@ -530,7 +533,8 @@ html.dark {
     background: var(--el-bg-color-page);
   }
 
-  .stat-card, .modern-card {
+  .stat-card,
+  .modern-card {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 }

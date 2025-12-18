@@ -36,14 +36,14 @@
             </el-tooltip>
           </div>
         </div>
-          <!-- 日志列表 -->
-          <div id="logListContainer" class="log-list-container thin-scroller">
-            <ul class="log-list" :style="{ fontSize: config.fontSize + 'px' }">
-              <li v-for="(item, index) in getData(dataList)" :key="index" class="log-item">
-                <span class="log-index">{{ index + 1 }}</span>
-                <span class="log-content" v-html="ansiToHtml(item?.data?.message)" />
-              </li>
-            </ul>
+        <!-- 日志列表 -->
+        <div id="logListContainer" class="log-list-container thin-scroller">
+          <ul class="log-list" :style="{ fontSize: config.fontSize + 'px' }">
+            <li v-for="(item, index) in getData(dataList)" :key="index" class="log-item">
+              <span class="log-index">{{ index + 1 }}</span>
+              <span class="log-content" v-html="ansiToHtml(item?.data?.message)" />
+            </li>
+          </ul>
           <el-empty v-if="!dataList || dataList.length == 0" description="暂无日志记录" />
         </div>
       </div>
@@ -69,10 +69,10 @@ const config = reactive({
 
 // 统计计数
 const errorCount = computed(() => {
-  return dataList.filter(item => item?.data?.message?.includes('ERROR')).length;
+  return dataList.filter(item => item?.data?.message?.includes("ERROR")).length;
 });
 const warnCount = computed(() => {
-  return dataList.filter(item => item?.data?.message?.includes('WARN')).length;
+  return dataList.filter(item => item?.data?.message?.includes("WARN")).length;
 });
 let unsubscribe = null;
 
@@ -207,13 +207,13 @@ onUnmounted(() => {
     gap: 6px;
     align-items: center;
   }
-  
+
   .font-size-control {
     display: flex;
     gap: 6px;
     align-items: center;
     margin-left: auto;
-    
+
     .font-label {
       font-size: 12px;
       color: var(--el-text-color-secondary);

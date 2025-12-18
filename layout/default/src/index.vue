@@ -20,6 +20,7 @@ import {
   useDark,
   useGlobal,
   useResizeObserver,
+  useWatermark,
 } from "@pureadmin/utils";
 import {
   computed,
@@ -33,6 +34,7 @@ import {
   onUnmounted,
   reactive,
   ref,
+  watch,
 } from "vue";
 //@ts-ignore
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
@@ -67,8 +69,12 @@ const NavHover = markRaw(NavHoverLayout);
 const NavDouble = markRaw(NavDoubleLayout);
 const NavMobile = markRaw(NavMobileLayout);
 const { t } = useI18n();
-const appWrapperRef = ref();
+const appWrapperRef = ref<HTMLElement>();
+const watermarkContainerRef = ref<HTMLElement>();
 const { isDark } = useDark();
+
+// 防删除水印
+const { setWatermark: setForeverWatermark, clear: clearForeverWatermark } = useWatermark(watermarkContainerRef);
 
 // 添加加载状态管理（默认为 true，不显示加载遮罩）
 const isConfigLoaded = ref(true);
@@ -121,6 +127,7 @@ const debugMode = ref(false);
 const debugConsoleRef = ref<InstanceType<typeof ScDebugConsole> | null>(null);
 
 const { initStorage } = useLayout();
+const { dataThemeChange } = useDataThemeChange();
 
 initStorage();
 
@@ -187,6 +194,21 @@ const set: setType = reactive({
   }),
 });
 
+// 监听 sidebar 状态变化，同步到 body 上（用于 drawer 等组件的定位）
+watch(
+  () => set.sidebar.opened,
+  (opened) => {
+    if (opened) {
+      document.body.classList.remove('sidebar-collapsed');
+      document.body.classList.add('sidebar-expanded');
+    } else {
+      document.body.classList.remove('sidebar-expanded');
+      document.body.classList.add('sidebar-collapsed');
+    }
+  },
+  { immediate: true }
+);
+
 function setTheme(layoutModel: string) {
   window.document.body.setAttribute("layout", layoutModel);
   $storage.layout = {
@@ -245,6 +267,11 @@ const getDefaultSetting = async () => {
     isConfigLoaded.value = true;
     // 标记已加载过，下次刷新不显示"初始化"
     sessionStorage.setItem("_app_loaded", "1");
+    
+    // 启用防删除水印
+    nextTick(() => {
+      initForeverWatermark();
+    });
   } catch (error) {
     console.warn("Failed to load config:", error);
     // 根据配置决定是否保持加载页面
@@ -252,6 +279,21 @@ const getDefaultSetting = async () => {
       isConfigLoaded.value = true;
       sessionStorage.setItem("_app_loaded", "1");
     }
+  }
+};
+
+/** 初始化防删除水印 */
+const initForeverWatermark = () => {
+  const watermarkConfig = useConfigStore().getWatermarkConfig();
+  if (watermarkConfig.enabled && watermarkConfig.text) {
+    setForeverWatermark(watermarkConfig.text, {
+      forever: true,
+      width: 200,
+      height: 100,
+      rotate: watermarkConfig.rotate,
+      globalAlpha: watermarkConfig.globalAlpha,
+      color: watermarkConfig.color,
+    });
   }
 };
 
@@ -289,12 +331,8 @@ onMounted(async () => {
     if ($storage?.layout?.layout) {
       document.body.setAttribute("layout", $storage.layout.layout);
     }
-    // 确保在组件实例存在时才调用useDataThemeChange
-    try {
-      useDataThemeChange().dataThemeChange($storage?.layout?.overallStyle);
-    } catch (error) {
-      console.warn("Failed to call useDataThemeChange in onMounted:", error);
-    }
+    // 应用整体风格（使用在 setup 顶层获取的 dataThemeChange）
+    dataThemeChange($storage?.layout?.overallStyle);
     // 等待配置加载完成
     getDefaultSetting();
   });
@@ -303,6 +341,7 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener("visibilitychange", handleVisibilityChange);
   stopClock();
+  clearForeverWatermark();
 });
 
 /**
@@ -358,7 +397,7 @@ onBeforeMount(() => {
   }
   
   // 应用颜色主题（light/dark）
-  useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);
+  dataThemeChange($storage.layout?.overallStyle);
 });
 
 const LayHeader = defineComponent({
@@ -368,13 +407,6 @@ const LayHeader = defineComponent({
       "div",
       {
         class: { "fixed-header shadow-tab": set.fixedHeader },
-        style: [
-          set.hideTabs && layout.value === "horizontal"
-            ? isDark.value
-              ? "box-shadow: 0 1px 4px #0d0d0d"
-              : "box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)"
-            : "",
-        ],
       },
       {
         default: () => [
@@ -468,6 +500,8 @@ const LayHeader = defineComponent({
 
   <!-- 页面内容 -->
   <div v-else ref="appWrapperRef" :class="['app-wrapper', set.classes]">
+    <!-- 防删除水印容器 -->
+    <div ref="watermarkContainerRef" class="watermark-container"></div>
     <!-- 移动导航模式：底部导航栏设计 -->
     <template v-if="layout === 'mobile'">
       <NavMobile>
@@ -580,15 +614,24 @@ const LayHeader = defineComponent({
 </template>
 
 <style lang="scss" scoped>
-.shadow-tab {
-  --un-shadow: var(--tab-box-shadow-v2);
-  box-shadow:
-    var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
-  padding: 0 !important;
+.fixed-header {
+  padding: 0;
+  background: var(--el-bg-color);
+  position: relative;
+  z-index: 100;
 }
 
-.fixed-header {
-  padding: 0 !important;
+// 主内容区域立体感
+.main-container {
+  :deep(.el-scrollbar) {
+    &.pc {
+      background: var(--el-bg-color-page);
+      
+      .el-scrollbar__view {
+        min-height: 100%;
+      }
+    }
+  }
 }
 
 .app-wrapper {
@@ -601,6 +644,18 @@ const LayHeader = defineComponent({
     position: fixed;
     top: 0;
   }
+}
+
+// 防删除水印容器
+.watermark-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9998;
+  overflow: hidden;
 }
 
 :deep(.bg-layout > div > .el-card__body) {

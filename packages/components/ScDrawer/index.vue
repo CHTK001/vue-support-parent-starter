@@ -12,7 +12,7 @@
     :show-close="showClose"
     :before-close="handleBeforeClose"
     :with-header="withHeader"
-    :modal-class="modalClass"
+    :modal-class="inMainArea ? 'drawer-in-main-area ' + modalClass : modalClass"
     :z-index="zIndex"
     :destroy-on-close="destroyOnClose"
     :class="['sc-drawer', customClass]"
@@ -116,6 +116,11 @@ const props = withDefaults(
     memoryId?: string | number;
     /** 是否启用记忆功能 */
     memoryEnabled?: boolean;
+    /** 
+     * 是否在主内容区域内显示（不遮挡顶部导航和侧边栏）
+     * 设置为 true 时，drawer 将只在 main-container 区域内显示
+     */
+    inMainArea?: boolean;
   }>(),
   {
     modelValue: false,
@@ -140,7 +145,8 @@ const props = withDefaults(
     confirmText: "确定",
     loading: false,
     memoryId: 0,
-    memoryEnabled: false
+    memoryEnabled: false,
+    inMainArea: false
   }
 );
 

@@ -2,7 +2,6 @@ import { fetchSetting } from "@pages/setting";
 import { useWatermark } from "@pureadmin/utils";
 import { localStorageProxy, loopDebugger, redirectDebugger } from "@repo/utils";
 import { defineStore } from "pinia";
-import { nextTick, ref } from "vue";
 import {
   closeGlobalSocketService,
   getGlobalSocketService,
@@ -14,10 +13,7 @@ import { getConfig, putConfig } from "../utils";
 import { useSettingStore } from "./SettingStore";
 const config = getConfig();
 
-const preventLocal = ref();
 const { setWatermark, clear } = useWatermark();
-
-const { setWatermark: setPreventLocalWatermark } = useWatermark(preventLocal);
 
 // 百度统计初始化函数
 const initBaiduAnalytics = (hmId: string) => {
@@ -291,13 +287,16 @@ export const useConfigStore = defineStore({
         config.rotate = this.systemSetting["config:WatermarkRotate"];
       } catch (error) {}
       setWatermark(useUserStoreHook().nickname, config);
-      nextTick(() => {
-        setPreventLocalWatermark("无法删除的水印", {
-          forever: true,
-          width: 180,
-          height: 70,
-        });
-      });
+    },
+    /** 获取水印配置（供布局组件使用） */
+    getWatermarkConfig() {
+      return {
+        enabled: this.systemSetting["config:WatermarkOpen"] == "true",
+        text: useUserStoreHook().nickname || "水印",
+        color: this.systemSetting["config:WatermarkColor"] || "#888",
+        globalAlpha: this.systemSetting["config:WatermarkAlpha"] || 0.15,
+        rotate: this.systemSetting["config:WatermarkRotate"] || -15,
+      };
     },
   },
 });
