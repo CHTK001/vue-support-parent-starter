@@ -501,6 +501,165 @@
         </el-card>
       </div>
 
+      <!-- GC统计 & 元空间 -->
+      <div class="stats-row">
+        <el-card class="stat-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:recycle-line" />
+              <span>GC 统计</span>
+            </div>
+          </template>
+          <div v-if="jvmInfo.gcStats" class="gc-stats-panel">
+            <div class="gc-overview">
+              <div class="gc-stat-item">
+                <div class="gc-stat-value">{{ formatNumber(jvmInfo.gcStats?.totalCollectionCount) }}</div>
+                <div class="gc-stat-label">总次数</div>
+              </div>
+              <div class="gc-stat-item">
+                <div class="gc-stat-value">{{ formatDuration(jvmInfo.gcStats?.totalCollectionTime) }}</div>
+                <div class="gc-stat-label">总时间</div>
+              </div>
+              <div class="gc-stat-item">
+                <div class="gc-stat-value">{{ (jvmInfo.gcStats?.avgCollectionTime || 0).toFixed(2) }}ms</div>
+                <div class="gc-stat-label">平均时间</div>
+              </div>
+            </div>
+            <el-divider style="margin: 12px 0" />
+            <div class="gc-detail-stats">
+              <div class="gc-type-row">
+                <span class="gc-type-label">
+                  <el-tag type="success" size="small">Young GC</el-tag>
+                </span>
+                <span class="gc-type-value">{{ jvmInfo.gcStats?.youngGcCount || 0 }} 次 / {{ formatDuration(jvmInfo.gcStats?.youngGcTime) }}</span>
+              </div>
+              <div class="gc-type-row">
+                <span class="gc-type-label">
+                  <el-tag type="warning" size="small">Old GC</el-tag>
+                </span>
+                <span class="gc-type-value">{{ jvmInfo.gcStats?.oldGcCount || 0 }} 次 / {{ formatDuration(jvmInfo.gcStats?.oldGcTime) }}</span>
+              </div>
+              <div class="gc-type-row">
+                <span class="gc-type-label">GC频率</span>
+                <span class="gc-type-value">{{ (jvmInfo.gcStats?.gcPerMinute || 0).toFixed(2) }} 次/分</span>
+              </div>
+              <div class="gc-type-row">
+                <span class="gc-type-label">GC时间占比</span>
+                <span class="gc-type-value" :class="{'text-danger': (jvmInfo.gcStats?.gcTimePercent || 0) > 5}">
+                  {{ (jvmInfo.gcStats?.gcTimePercent || 0).toFixed(3) }}%
+                </span>
+              </div>
+            </div>
+          </div>
+          <el-empty v-else description="无GC统计信息" :image-size="40" />
+        </el-card>
+
+        <el-card class="stat-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:archive-line" />
+              <span>元空间 (Metaspace)</span>
+            </div>
+          </template>
+          <div v-if="jvmInfo.metaspaceInfo" class="metaspace-panel">
+            <div class="metaspace-main">
+              <el-progress
+                type="dashboard"
+                :percentage="jvmInfo.metaspaceInfo?.usagePercent || 0"
+                :color="getProgressColor(jvmInfo.metaspaceInfo?.usagePercent || 0)"
+                :stroke-width="8"
+                :width="80"
+              />
+              <div class="metaspace-details">
+                <div class="detail-row">
+                  <span class="label">已用</span>
+                  <span class="value">{{ formatBytes(jvmInfo.metaspaceInfo?.used) }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">已提交</span>
+                  <span class="value">{{ formatBytes(jvmInfo.metaspaceInfo?.committed) }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">最大</span>
+                  <span class="value">{{ formatBytes(jvmInfo.metaspaceInfo?.max) }}</span>
+                </div>
+              </div>
+            </div>
+            <el-divider style="margin: 12px 0" />
+            <div class="compressed-class-space" v-if="jvmInfo.metaspaceInfo?.compressedClassSpaceUsed">
+              <div class="ccs-header">压缩类空间</div>
+              <el-progress
+                :percentage="jvmInfo.metaspaceInfo?.compressedClassSpaceUsagePercent || 0"
+                :stroke-width="6"
+                :color="getProgressColor(jvmInfo.metaspaceInfo?.compressedClassSpaceUsagePercent || 0)"
+              />
+              <div class="ccs-detail">
+                {{ formatBytes(jvmInfo.metaspaceInfo?.compressedClassSpaceUsed) }} / {{ formatBytes(jvmInfo.metaspaceInfo?.compressedClassSpaceMax) }}
+              </div>
+            </div>
+          </div>
+          <el-empty v-else description="无元空间信息" :image-size="40" />
+        </el-card>
+      </div>
+
+      <!-- 直接内存 -->
+      <div class="stats-row" v-if="jvmInfo.directMemoryInfo?.used">
+        <el-card class="stat-card direct-memory-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:ram-2-line" />
+              <span>直接内存 (Direct Memory)</span>
+            </div>
+          </template>
+          <div class="direct-memory-panel">
+            <div class="direct-memory-section">
+              <div class="dm-title">Direct 缓冲区</div>
+              <div class="dm-stats">
+                <div class="dm-stat">
+                  <span class="label">已用</span>
+                  <span class="value">{{ formatBytes(jvmInfo.directMemoryInfo?.used) }}</span>
+                </div>
+                <div class="dm-stat">
+                  <span class="label">容量</span>
+                  <span class="value">{{ formatBytes(jvmInfo.directMemoryInfo?.totalCapacity) }}</span>
+                </div>
+                <div class="dm-stat">
+                  <span class="label">数量</span>
+                  <span class="value">{{ jvmInfo.directMemoryInfo?.count || 0 }}</span>
+                </div>
+              </div>
+              <el-progress
+                v-if="jvmInfo.directMemoryInfo?.usagePercent"
+                :percentage="jvmInfo.directMemoryInfo?.usagePercent || 0"
+                :stroke-width="8"
+                :color="getProgressColor(jvmInfo.directMemoryInfo?.usagePercent || 0)"
+                style="margin-top: 8px"
+              />
+            </div>
+            <div class="direct-memory-section" v-if="jvmInfo.directMemoryInfo?.mappedUsed">
+              <div class="dm-title">Mapped 缓冲区</div>
+              <div class="dm-stats">
+                <div class="dm-stat">
+                  <span class="label">已用</span>
+                  <span class="value">{{ formatBytes(jvmInfo.directMemoryInfo?.mappedUsed) }}</span>
+                </div>
+                <div class="dm-stat">
+                  <span class="label">容量</span>
+                  <span class="value">{{ formatBytes(jvmInfo.directMemoryInfo?.mappedCapacity) }}</span>
+                </div>
+                <div class="dm-stat">
+                  <span class="label">数量</span>
+                  <span class="value">{{ jvmInfo.directMemoryInfo?.mappedCount || 0 }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="max-direct-memory" v-if="jvmInfo.directMemoryInfo?.maxDirectMemory">
+              <span>最大直接内存: {{ formatBytes(jvmInfo.directMemoryInfo?.maxDirectMemory) }}</span>
+            </div>
+          </div>
+        </el-card>
+      </div>
+
       <!-- CPU 热点代码分析 -->
       <el-card class="info-card" shadow="never">
         <template #header>
@@ -4060,5 +4219,159 @@ onUnmounted(() => {
       }
     }
   }
+}
+
+// GC统计样式
+.gc-stats-panel {
+  padding: 8px 0;
+
+  .gc-overview {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+
+    .gc-stat-item {
+      .gc-stat-value {
+        font-size: 20px;
+        font-weight: 600;
+        color: #303133;
+      }
+
+      .gc-stat-label {
+        font-size: 12px;
+        color: #909399;
+        margin-top: 4px;
+      }
+    }
+  }
+
+  .gc-detail-stats {
+    .gc-type-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+
+      .gc-type-label {
+        font-size: 13px;
+        color: #606266;
+      }
+
+      .gc-type-value {
+        font-size: 13px;
+        color: #303133;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+// 元空间样式
+.metaspace-panel {
+  padding: 8px 0;
+
+  .metaspace-main {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+
+    .metaspace-details {
+      flex: 1;
+
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+
+        .label {
+          font-size: 13px;
+          color: #909399;
+        }
+
+        .value {
+          font-size: 13px;
+          color: #303133;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  .compressed-class-space {
+    .ccs-header {
+      font-size: 13px;
+      font-weight: 500;
+      color: #606266;
+      margin-bottom: 8px;
+    }
+
+    .ccs-detail {
+      font-size: 12px;
+      color: #909399;
+      margin-top: 4px;
+      text-align: right;
+    }
+  }
+}
+
+// 直接内存样式
+.direct-memory-card {
+  grid-column: span 2;
+
+  @media (max-width: 768px) {
+    grid-column: span 1;
+  }
+}
+
+.direct-memory-panel {
+  display: flex;
+  gap: 40px;
+  padding: 8px 0;
+  flex-wrap: wrap;
+
+  .direct-memory-section {
+    flex: 1;
+    min-width: 200px;
+
+    .dm-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #303133;
+      margin-bottom: 12px;
+    }
+
+    .dm-stats {
+      display: flex;
+      gap: 24px;
+
+      .dm-stat {
+        .label {
+          font-size: 12px;
+          color: #909399;
+          display: block;
+        }
+
+        .value {
+          font-size: 14px;
+          color: #303133;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  .max-direct-memory {
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    color: #909399;
+    padding-top: 8px;
+    border-top: 1px solid #ebeef5;
+    margin-top: 8px;
+  }
+}
+
+.text-danger {
+  color: #f56c6c !important;
 }
 </style>
