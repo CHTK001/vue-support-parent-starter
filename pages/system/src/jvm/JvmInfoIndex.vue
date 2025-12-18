@@ -405,6 +405,102 @@
         </el-card>
       </div>
 
+      <!-- 线程状态分布 & JIT编译统计 -->
+      <div class="stats-row">
+        <el-card class="stat-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:pie-chart-2-line" />
+              <span>线程状态分布</span>
+            </div>
+          </template>
+          <div class="thread-state-chart">
+            <div class="state-bars">
+              <div class="state-bar-item" v-for="state in threadStateItems" :key="state.name">
+                <div class="state-bar-header">
+                  <span class="state-name">{{ state.name }}</span>
+                  <span class="state-count">{{ state.count }}</span>
+                </div>
+                <el-progress
+                  :percentage="state.percent"
+                  :stroke-width="8"
+                  :color="state.color"
+                  :show-text="false"
+                />
+              </div>
+            </div>
+            <div class="state-summary">
+              <span>总线程: {{ jvmInfo.threadStateDistribution?.totalCount || 0 }}</span>
+            </div>
+          </div>
+        </el-card>
+
+        <el-card class="stat-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:speed-line" />
+              <span>JIT 编译统计</span>
+            </div>
+          </template>
+          <div v-if="jvmInfo.jitCompilationStats" class="jit-stats">
+            <el-descriptions :column="1" size="small">
+              <el-descriptions-item label="编译器">
+                {{ jvmInfo.jitCompilationStats?.compilerName || '-' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="总编译时间">
+                {{ formatDuration(jvmInfo.jitCompilationStats?.totalCompilationTime) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="估计编译方法数">
+                {{ formatNumber(jvmInfo.jitCompilationStats?.compiledMethodCount) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="平均编译时间">
+                {{ (jvmInfo.jitCompilationStats?.avgCompilationTime || 0).toFixed(3) }} ms/方法
+              </el-descriptions-item>
+            </el-descriptions>
+          </div>
+          <el-empty v-else description="无JIT编译信息" :image-size="40" />
+        </el-card>
+      </div>
+
+      <!-- 代码缓存信息 -->
+      <div class="stats-row" v-if="jvmInfo.codeCacheInfo">
+        <el-card class="stat-card code-cache-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:database-line" />
+              <span>代码缓存 (Code Cache)</span>
+              <el-tag v-if="jvmInfo.codeCacheInfo?.nearFull" type="danger" size="small" style="margin-left: 8px">接近满</el-tag>
+            </div>
+          </template>
+          <div class="code-cache-info">
+            <div class="cache-progress">
+              <el-progress
+                type="dashboard"
+                :percentage="jvmInfo.codeCacheInfo?.usagePercent || 0"
+                :color="getProgressColor(jvmInfo.codeCacheInfo?.usagePercent || 0)"
+                :stroke-width="10"
+                :width="100"
+              />
+              <div class="cache-label">使用率</div>
+            </div>
+            <div class="cache-details">
+              <div class="cache-detail-item">
+                <span class="label">已使用</span>
+                <span class="value">{{ formatBytes(jvmInfo.codeCacheInfo?.used) }}</span>
+              </div>
+              <div class="cache-detail-item">
+                <span class="label">已提交</span>
+                <span class="value">{{ formatBytes(jvmInfo.codeCacheInfo?.committed) }}</span>
+              </div>
+              <div class="cache-detail-item">
+                <span class="label">最大容量</span>
+                <span class="value">{{ formatBytes(jvmInfo.codeCacheInfo?.max) }}</span>
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </div>
+
       <!-- CPU 热点代码分析 -->
       <el-card class="info-card" shadow="never">
         <template #header>
@@ -2055,6 +2151,21 @@ const filteredThreads = computed(() => {
     threads = threads.filter(t => t.state === threadStateFilter.value);
   }
   return threads;
+});
+
+/**
+ * 线程状态分布数据
+ */
+const threadStateItems = computed(() => {
+  const dist = jvmInfo.value.threadStateDistribution;
+  const total = dist?.totalCount || 1;
+  return [
+    { name: 'RUNNABLE', count: dist?.runnableCount || 0, percent: ((dist?.runnableCount || 0) / total) * 100, color: '#67C23A' },
+    { name: 'WAITING', count: dist?.waitingCount || 0, percent: ((dist?.waitingCount || 0) / total) * 100, color: '#909399' },
+    { name: 'TIMED_WAITING', count: dist?.timedWaitingCount || 0, percent: ((dist?.timedWaitingCount || 0) / total) * 100, color: '#E6A23C' },
+    { name: 'BLOCKED', count: dist?.blockedCount || 0, percent: ((dist?.blockedCount || 0) / total) * 100, color: '#F56C6C' },
+    { name: 'NEW', count: dist?.newCount || 0, percent: ((dist?.newCount || 0) / total) * 100, color: '#409EFF' },
+  ].filter(s => s.count > 0);
 });
 
 /**
@@ -3851,6 +3962,103 @@ onUnmounted(() => {
     font-size: 12px;
     color: #909399;
     margin-top: 8px;
+  }
+}
+
+// 线程状态分布样式
+.thread-state-chart {
+  padding: 8px 0;
+
+  .state-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .state-bar-item {
+    .state-bar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+
+      .state-name {
+        font-size: 13px;
+        color: #606266;
+        font-weight: 500;
+      }
+
+      .state-count {
+        font-size: 13px;
+        color: #303133;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .state-summary {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 12px;
+    color: #909399;
+  }
+}
+
+// JIT编译统计样式
+.jit-stats {
+  padding: 8px 0;
+}
+
+// 代码缓存样式
+.code-cache-card {
+  grid-column: span 2;
+
+  @media (max-width: 768px) {
+    grid-column: span 1;
+  }
+}
+
+.code-cache-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  padding: 16px 0;
+
+  .cache-progress {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+
+    .cache-label {
+      font-size: 14px;
+      color: #606266;
+      font-weight: 500;
+    }
+  }
+
+  .cache-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .cache-detail-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+
+      .label {
+        font-size: 13px;
+        color: #909399;
+      }
+
+      .value {
+        font-size: 13px;
+        color: #303133;
+        font-weight: 500;
+      }
+    }
   }
 }
 </style>

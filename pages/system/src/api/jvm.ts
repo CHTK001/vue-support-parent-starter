@@ -243,6 +243,69 @@ export interface FileDescriptorInfo {
 }
 
 /**
+ * 线程状态分布接口
+ * @author CH
+ * @since 2024/12/18
+ * @version 1.0.0
+ */
+export interface ThreadStateDistribution {
+  /** NEW状态线程数 */
+  newCount?: number;
+  /** RUNNABLE状态线程数 */
+  runnableCount?: number;
+  /** BLOCKED状态线程数 */
+  blockedCount?: number;
+  /** WAITING状态线程数 */
+  waitingCount?: number;
+  /** TIMED_WAITING状态线程数 */
+  timedWaitingCount?: number;
+  /** TERMINATED状态线程数 */
+  terminatedCount?: number;
+  /** 总线程数 */
+  totalCount?: number;
+}
+
+/**
+ * JIT编译统计接口
+ * @author CH
+ * @since 2024/12/18
+ * @version 1.0.0
+ */
+export interface JitCompilationStats {
+  /** 编译器名称 */
+  compilerName?: string;
+  /** 总编译时间(毫秒) */
+  totalCompilationTime?: number;
+  /** 是否支持编译时间监控 */
+  compilationTimeMonitoringSupported?: boolean;
+  /** 编译任务数(估计) */
+  compiledMethodCount?: number;
+  /** 平均编译时间(毫秒) */
+  avgCompilationTime?: number;
+}
+
+/**
+ * 代码缓存信息接口
+ * @author CH
+ * @since 2024/12/18
+ * @version 1.0.0
+ */
+export interface CodeCacheInfo {
+  /** 代码缓存名称 */
+  name?: string;
+  /** 已使用(字节) */
+  used?: number;
+  /** 已提交(字节) */
+  committed?: number;
+  /** 最大容量(字节) */
+  max?: number;
+  /** 使用率(%) */
+  usagePercent?: number;
+  /** 是否接近满 */
+  nearFull?: boolean;
+}
+
+/**
  * JVM 信息接口
  * @author CH
  * @since 2024/12/18
@@ -291,6 +354,12 @@ export interface JvmInfo {
   bufferPools?: BufferPoolInfo[];
   /** 文件描述符信息 */
   fileDescriptorInfo?: FileDescriptorInfo;
+  /** 线程状态分布 */
+  threadStateDistribution?: ThreadStateDistribution;
+  /** JIT编译统计 */
+  jitCompilationStats?: JitCompilationStats;
+  /** 代码缓存信息 */
+  codeCacheInfo?: CodeCacheInfo;
 }
 
 /**
