@@ -306,6 +306,85 @@ export interface CodeCacheInfo {
 }
 
 /**
+ * GC统计信息接口
+ * @author CH
+ * @since 2024/12/18
+ * @version 1.0.0
+ */
+export interface GcStats {
+  /** 总收集次数 */
+  totalCollectionCount?: number;
+  /** 总收集时间(毫秒) */
+  totalCollectionTime?: number;
+  /** 平均收集时间(毫秒) */
+  avgCollectionTime?: number;
+  /** 最近一次GC名称 */
+  lastGcName?: string;
+  /** 每分钟GC次数 */
+  gcPerMinute?: number;
+  /** GC时间占比(%) */
+  gcTimePercent?: number;
+  /** Young GC次数 */
+  youngGcCount?: number;
+  /** Young GC时间(毫秒) */
+  youngGcTime?: number;
+  /** Old GC次数 */
+  oldGcCount?: number;
+  /** Old GC时间(毫秒) */
+  oldGcTime?: number;
+}
+
+/**
+ * 元空间信息接口
+ * @author CH
+ * @since 2024/12/18
+ * @version 1.0.0
+ */
+export interface MetaspaceInfo {
+  /** 已使用(字节) */
+  used?: number;
+  /** 已提交(字节) */
+  committed?: number;
+  /** 最大容量(字节) */
+  max?: number;
+  /** 使用率(%) */
+  usagePercent?: number;
+  /** 压缩类空间已用(字节) */
+  compressedClassSpaceUsed?: number;
+  /** 压缩类空间已提交(字节) */
+  compressedClassSpaceCommitted?: number;
+  /** 压缩类空间最大(字节) */
+  compressedClassSpaceMax?: number;
+  /** 压缩类空间使用率(%) */
+  compressedClassSpaceUsagePercent?: number;
+}
+
+/**
+ * 直接内存信息接口
+ * @author CH
+ * @since 2024/12/18
+ * @version 1.0.0
+ */
+export interface DirectMemoryInfo {
+  /** 已使用(字节) */
+  used?: number;
+  /** 总容量(字节) */
+  totalCapacity?: number;
+  /** 缓冲区数量 */
+  count?: number;
+  /** Mapped已用(字节) */
+  mappedUsed?: number;
+  /** Mapped容量(字节) */
+  mappedCapacity?: number;
+  /** Mapped缓冲区数量 */
+  mappedCount?: number;
+  /** 最大直接内存(字节) */
+  maxDirectMemory?: number;
+  /** 使用率(%) */
+  usagePercent?: number;
+}
+
+/**
  * JVM 信息接口
  * @author CH
  * @since 2024/12/18
@@ -360,6 +439,12 @@ export interface JvmInfo {
   jitCompilationStats?: JitCompilationStats;
   /** 代码缓存信息 */
   codeCacheInfo?: CodeCacheInfo;
+  /** GC统计信息 */
+  gcStats?: GcStats;
+  /** 元空间信息 */
+  metaspaceInfo?: MetaspaceInfo;
+  /** 直接内存信息 */
+  directMemoryInfo?: DirectMemoryInfo;
 }
 
 /**
