@@ -385,6 +385,71 @@ export interface DirectMemoryInfo {
 }
 
 /**
+ * 内存分配速率接口
+ * @author CH
+ * @since 2024/12/18
+ * @version 1.0.0
+ */
+export interface MemoryAllocationRate {
+  /** Eden区当前使用(字节) */
+  edenUsed?: number;
+  /** Eden区最大(字节) */
+  edenMax?: number;
+  /** Eden区使用率(%) */
+  edenUsagePercent?: number;
+  /** Survivor区当前使用(字节) */
+  survivorUsed?: number;
+  /** Survivor区最大(字节) */
+  survivorMax?: number;
+  /** Old区当前使用(字节) */
+  oldUsed?: number;
+  /** Old区最大(字节) */
+  oldMax?: number;
+  /** Old区使用率(%) */
+  oldUsagePercent?: number;
+  /** 估计分配速率(字节/秒) */
+  allocationRatePerSecond?: number;
+  /** 估计晒升速率(字节/秒) */
+  promotionRatePerSecond?: number;
+}
+
+/**
+ * 类加载详情接口
+ * @author CH
+ * @since 2024/12/18
+ * @version 1.0.0
+ */
+export interface ClassLoadingDetail {
+  /** 当前加载类数 */
+  currentLoadedCount?: number;
+  /** 总加载类数 */
+  totalLoadedCount?: number;
+  /** 卸载类数 */
+  unloadedCount?: number;
+  /** 每分钟加载类数 */
+  loadRatePerMinute?: number;
+  /** 每分钟卸载类数 */
+  unloadRatePerMinute?: number;
+  /** 是否启用详细输出 */
+  verbose?: boolean;
+}
+
+/**
+ * 安全管理器信息接口
+ * @author CH
+ * @since 2024/12/18
+ * @version 1.0.0
+ */
+export interface SecurityInfo {
+  /** 是否启用安全管理器 */
+  securityManagerEnabled?: boolean;
+  /** 安全管理器类名 */
+  securityManagerClass?: string;
+  /** 安全策略文件 */
+  policyFile?: string;
+}
+
+/**
  * JVM 信息接口
  * @author CH
  * @since 2024/12/18
@@ -445,6 +510,12 @@ export interface JvmInfo {
   metaspaceInfo?: MetaspaceInfo;
   /** 直接内存信息 */
   directMemoryInfo?: DirectMemoryInfo;
+  /** 内存分配速率 */
+  memoryAllocationRate?: MemoryAllocationRate;
+  /** 类加载详情 */
+  classLoadingDetail?: ClassLoadingDetail;
+  /** 安全管理器信息 */
+  securityInfo?: SecurityInfo;
 }
 
 /**
