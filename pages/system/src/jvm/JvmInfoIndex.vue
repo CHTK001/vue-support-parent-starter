@@ -660,6 +660,127 @@
         </el-card>
       </div>
 
+      <!-- 内存分配速率 -->
+      <div class="stats-row" v-if="jvmInfo.memoryAllocationRate">
+        <el-card class="stat-card memory-allocation-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:speed-line" />
+              <span>内存分配速率</span>
+            </div>
+          </template>
+          <div class="memory-allocation-panel">
+            <div class="allocation-sections">
+              <div class="allocation-section">
+                <div class="section-title">Eden 区</div>
+                <el-progress
+                  :percentage="jvmInfo.memoryAllocationRate?.edenUsagePercent || 0"
+                  :stroke-width="10"
+                  :color="getProgressColor(jvmInfo.memoryAllocationRate?.edenUsagePercent || 0)"
+                />
+                <div class="section-detail">
+                  {{ formatBytes(jvmInfo.memoryAllocationRate?.edenUsed) }} / {{ formatBytes(jvmInfo.memoryAllocationRate?.edenMax) }}
+                </div>
+              </div>
+              <div class="allocation-section">
+                <div class="section-title">Survivor 区</div>
+                <div class="section-detail">
+                  <span class="label">已用</span>
+                  <span class="value">{{ formatBytes(jvmInfo.memoryAllocationRate?.survivorUsed) }}</span>
+                  <span class="label" style="margin-left: 12px">最大</span>
+                  <span class="value">{{ formatBytes(jvmInfo.memoryAllocationRate?.survivorMax) }}</span>
+                </div>
+              </div>
+              <div class="allocation-section">
+                <div class="section-title">Old 区</div>
+                <el-progress
+                  :percentage="jvmInfo.memoryAllocationRate?.oldUsagePercent || 0"
+                  :stroke-width="10"
+                  :color="getProgressColor(jvmInfo.memoryAllocationRate?.oldUsagePercent || 0)"
+                />
+                <div class="section-detail">
+                  {{ formatBytes(jvmInfo.memoryAllocationRate?.oldUsed) }} / {{ formatBytes(jvmInfo.memoryAllocationRate?.oldMax) }}
+                </div>
+              </div>
+            </div>
+            <el-divider style="margin: 12px 0" />
+            <div class="rate-stats">
+              <div class="rate-item">
+                <span class="rate-label">分配速率</span>
+                <span class="rate-value">{{ formatBytes(jvmInfo.memoryAllocationRate?.allocationRatePerSecond) }}/s</span>
+              </div>
+              <div class="rate-item">
+                <span class="rate-label">晒升速率</span>
+                <span class="rate-value">{{ formatBytes(jvmInfo.memoryAllocationRate?.promotionRatePerSecond) }}/s</span>
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </div>
+
+      <!-- 类加载详情 & 安全信息 -->
+      <div class="stats-row" v-if="jvmInfo.classLoadingDetail || jvmInfo.securityInfo">
+        <el-card class="stat-card class-loading-detail-card" shadow="never" v-if="jvmInfo.classLoadingDetail">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:file-code-line" />
+              <span>类加载详情</span>
+            </div>
+          </template>
+          <el-descriptions :column="2" border size="small">
+            <el-descriptions-item label="当前加载">
+              <span class="highlight-value">{{ jvmInfo.classLoadingDetail?.currentLoadedCount?.toLocaleString() }}</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="总加载">
+              {{ jvmInfo.classLoadingDetail?.totalLoadedCount?.toLocaleString() }}
+            </el-descriptions-item>
+            <el-descriptions-item label="卸载类数">
+              {{ jvmInfo.classLoadingDetail?.unloadedCount?.toLocaleString() }}
+            </el-descriptions-item>
+            <el-descriptions-item label="详细输出">
+              <el-tag :type="jvmInfo.classLoadingDetail?.verbose ? 'success' : 'info'" size="small">
+                {{ jvmInfo.classLoadingDetail?.verbose ? '已启用' : '未启用' }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="加载速率">
+              {{ (jvmInfo.classLoadingDetail?.loadRatePerMinute || 0).toFixed(2) }} 类/分钟
+            </el-descriptions-item>
+            <el-descriptions-item label="卸载速率">
+              {{ (jvmInfo.classLoadingDetail?.unloadRatePerMinute || 0).toFixed(2) }} 类/分钟
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-card>
+
+        <el-card class="stat-card security-info-card" shadow="never" v-if="jvmInfo.securityInfo">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:shield-check-line" />
+              <span>安全管理器</span>
+            </div>
+          </template>
+          <el-descriptions :column="1" border size="small">
+            <el-descriptions-item label="状态">
+              <el-tag :type="jvmInfo.securityInfo?.securityManagerEnabled ? 'success' : 'info'" size="small">
+                {{ jvmInfo.securityInfo?.securityManagerEnabled ? '已启用' : '未启用' }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="管理器类" v-if="jvmInfo.securityInfo?.securityManagerClass">
+              <span class="mono-text">{{ jvmInfo.securityInfo?.securityManagerClass }}</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="策略文件" v-if="jvmInfo.securityInfo?.policyFile">
+              <span class="mono-text">{{ jvmInfo.securityInfo?.policyFile }}</span>
+            </el-descriptions-item>
+          </el-descriptions>
+          <div class="security-tip" v-if="!jvmInfo.securityInfo?.securityManagerEnabled">
+            <el-alert type="info" :closable="false" show-icon>
+              <template #title>
+                安全管理器未启用，应用运行无额外安全限制
+              </template>
+            </el-alert>
+          </div>
+        </el-card>
+      </div>
+
       <!-- CPU 热点代码分析 -->
       <el-card class="info-card" shadow="never">
         <template #header>
@@ -4373,5 +4494,100 @@ onUnmounted(() => {
 
 .text-danger {
   color: #f56c6c !important;
+}
+
+// 内存分配速率样式
+.memory-allocation-card {
+  grid-column: span 2;
+
+  @media (max-width: 768px) {
+    grid-column: span 1;
+  }
+}
+
+.memory-allocation-panel {
+  .allocation-sections {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+
+    .allocation-section {
+      .section-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: #303133;
+        margin-bottom: 8px;
+      }
+
+      .section-detail {
+        font-size: 12px;
+        color: #909399;
+        margin-top: 4px;
+
+        .label {
+          color: #909399;
+        }
+
+        .value {
+          color: #303133;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  .rate-stats {
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+
+    .rate-item {
+      text-align: center;
+
+      .rate-label {
+        display: block;
+        font-size: 13px;
+        color: #909399;
+        margin-bottom: 4px;
+      }
+
+      .rate-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: #409eff;
+      }
+    }
+  }
+}
+
+// 类加载详情样式
+.class-loading-detail-card {
+  flex: 1;
+  min-width: 300px;
+
+  .highlight-value {
+    font-weight: 600;
+    color: #409eff;
+  }
+}
+
+// 安全管理器样式
+.security-info-card {
+  flex: 1;
+  min-width: 280px;
+
+  .mono-text {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    word-break: break-all;
+  }
+
+  .security-tip {
+    margin-top: 12px;
+  }
 }
 </style>
