@@ -171,6 +171,78 @@ export interface ThreadDetail {
 }
 
 /**
+ * 编译信息接口
+ * @author CH
+ * @since 2024/12/18
+ * @version 1.0.0
+ */
+export interface CompilationInfo {
+  /** 编译器名称 */
+  name?: string;
+  /** 总编译时间(毫秒) */
+  totalCompilationTime?: number;
+  /** 是否支持编译时间监控 */
+  compilationTimeMonitoringSupported?: boolean;
+}
+
+/**
+ * 运行时信息接口
+ * @author CH
+ * @since 2024/12/18
+ * @version 1.0.0
+ */
+export interface RuntimeInfo {
+  /** 进程ID */
+  pid?: string;
+  /** 启动类路径 */
+  bootClassPath?: string;
+  /** 类路径 */
+  classPath?: string;
+  /** 库路径 */
+  libraryPath?: string;
+  /** 管理规范版本 */
+  managementSpecVersion?: string;
+  /** 规范名称 */
+  specName?: string;
+  /** 规范供应商 */
+  specVendor?: string;
+  /** 规范版本 */
+  specVersion?: string;
+}
+
+/**
+ * 缓冲池信息接口
+ * @author CH
+ * @since 2024/12/18
+ * @version 1.0.0
+ */
+export interface BufferPoolInfo {
+  /** 缓冲池名称 */
+  name?: string;
+  /** 缓冲区数量 */
+  count?: number;
+  /** 已用内存(字节) */
+  memoryUsed?: number;
+  /** 总容量(字节) */
+  totalCapacity?: number;
+}
+
+/**
+ * 文件描述符信息接口
+ * @author CH
+ * @since 2024/12/18
+ * @version 1.0.0
+ */
+export interface FileDescriptorInfo {
+  /** 打开的文件描述符数量 */
+  openFileDescriptorCount?: number;
+  /** 最大文件描述符数量 */
+  maxFileDescriptorCount?: number;
+  /** 使用率(%) */
+  usagePercent?: number;
+}
+
+/**
  * JVM 信息接口
  * @author CH
  * @since 2024/12/18
@@ -211,6 +283,14 @@ export interface JvmInfo {
   cpuInfo?: CpuInfo;
   /** 线程详情列表(按CPU占用排序) */
   topCpuThreads?: ThreadDetail[];
+  /** 编译信息 */
+  compilationInfo?: CompilationInfo;
+  /** 运行时信息 */
+  runtimeInfo?: RuntimeInfo;
+  /** 缓冲池信息列表 */
+  bufferPools?: BufferPoolInfo[];
+  /** 文件描述符信息 */
+  fileDescriptorInfo?: FileDescriptorInfo;
 }
 
 /**

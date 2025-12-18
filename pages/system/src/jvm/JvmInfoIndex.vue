@@ -176,6 +176,109 @@
         </el-card>
       </div>
 
+      <!-- 编译 & 运行时信息 -->
+      <div class="stats-row">
+        <el-card class="stat-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:code-s-slash-line" />
+              <span>编译信息</span>
+            </div>
+          </template>
+          <el-descriptions :column="1" size="small">
+            <el-descriptions-item label="编译器">
+              {{ jvmInfo.compilationInfo?.name || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="编译总时间">
+              {{ formatDuration(jvmInfo.compilationInfo?.totalCompilationTime) }}
+            </el-descriptions-item>
+            <el-descriptions-item label="时间监控">
+              <el-tag :type="jvmInfo.compilationInfo?.compilationTimeMonitoringSupported ? 'success' : 'info'" size="small">
+                {{ jvmInfo.compilationInfo?.compilationTimeMonitoringSupported ? '支持' : '不支持' }}
+              </el-tag>
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-card>
+
+        <el-card class="stat-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:terminal-box-line" />
+              <span>运行时信息</span>
+            </div>
+          </template>
+          <el-descriptions :column="2" size="small">
+            <el-descriptions-item label="进程ID">
+              <el-tag type="primary" size="small">{{ jvmInfo.runtimeInfo?.pid || '-' }}</el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="管理规范版本">{{ jvmInfo.runtimeInfo?.managementSpecVersion || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="规范名称" :span="2">
+              <el-text truncated>{{ jvmInfo.runtimeInfo?.specName || '-' }}</el-text>
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-card>
+      </div>
+
+      <!-- 缓冲池 & 文件描述符 -->
+      <div class="stats-row">
+        <el-card class="stat-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:ram-line" />
+              <span>缓冲池</span>
+            </div>
+          </template>
+          <div v-if="jvmInfo.bufferPools?.length" class="buffer-pool-list">
+            <div v-for="pool in jvmInfo.bufferPools" :key="pool.name" class="buffer-pool-item">
+              <div class="pool-header">
+                <span class="pool-name">{{ pool.name }}</span>
+                <span class="pool-count">{{ pool.count }} 个缓冲区</span>
+              </div>
+              <div class="pool-stats">
+                <span>已用: {{ formatBytes(pool.memoryUsed) }}</span>
+                <span>容量: {{ formatBytes(pool.totalCapacity) }}</span>
+              </div>
+              <el-progress
+                :percentage="pool.totalCapacity ? ((pool.memoryUsed || 0) / pool.totalCapacity * 100) : 0"
+                :stroke-width="6"
+                :color="getProgressColor(pool.totalCapacity ? ((pool.memoryUsed || 0) / pool.totalCapacity * 100) : 0)"
+              />
+            </div>
+          </div>
+          <el-empty v-else description="无缓冲池信息" :image-size="40" />
+        </el-card>
+
+        <el-card class="stat-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <IconifyIconOnline icon="ri:file-list-2-line" />
+              <span>文件描述符</span>
+            </div>
+          </template>
+          <div v-if="jvmInfo.fileDescriptorInfo" class="fd-info">
+            <div class="metric-grid">
+              <div class="metric-item">
+                <div class="metric-value">{{ formatNumber(jvmInfo.fileDescriptorInfo?.openFileDescriptorCount) }}</div>
+                <div class="metric-label">已打开</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-value">{{ formatNumber(jvmInfo.fileDescriptorInfo?.maxFileDescriptorCount) }}</div>
+                <div class="metric-label">最大限制</div>
+              </div>
+            </div>
+            <el-progress
+              :percentage="jvmInfo.fileDescriptorInfo?.usagePercent || 0"
+              :stroke-width="10"
+              :color="getProgressColor(jvmInfo.fileDescriptorInfo?.usagePercent || 0)"
+              :format="(p: number) => p.toFixed(1) + '%'"
+              style="margin-top: 12px"
+            />
+            <div class="fd-usage-text">文件描述符使用率</div>
+          </div>
+          <el-empty v-else description="无文件描述符信息 (仅Unix系统可用)" :image-size="40" />
+        </el-card>
+      </div>
+
       <!-- CPU & 内存详情 -->
       <div class="stats-row">
         <el-card class="stat-card" shadow="never">
@@ -3700,6 +3803,54 @@ onUnmounted(() => {
     :deep(.el-tabs__content) {
       padding: 8px 0 0 0;
     }
+  }
+}
+
+// 缓冲池样式
+.buffer-pool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0;
+
+  .buffer-pool-item {
+    .pool-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+
+      .pool-name {
+        font-weight: 500;
+        color: #303133;
+        font-size: 14px;
+      }
+
+      .pool-count {
+        font-size: 12px;
+        color: #909399;
+      }
+    }
+
+    .pool-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #606266;
+      margin-bottom: 8px;
+    }
+  }
+}
+
+// 文件描述符样式
+.fd-info {
+  padding: 8px 0;
+
+  .fd-usage-text {
+    text-align: center;
+    font-size: 12px;
+    color: #909399;
+    margin-top: 8px;
   }
 }
 </style>
