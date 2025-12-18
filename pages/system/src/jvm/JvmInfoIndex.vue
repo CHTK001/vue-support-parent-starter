@@ -413,6 +413,203 @@
           <el-empty v-if="!jvmInfo.inputArguments?.length" description="无启动参数" :image-size="60" />
         </div>
       </el-card>
+
+      <!-- 线程Dump概览 -->
+      <el-card class="info-card" shadow="never">
+        <template #header>
+          <div class="card-header">
+            <IconifyIconOnline icon="ri:file-list-3-line" />
+            <span>线程 Dump</span>
+            <el-button type="primary" link style="margin-left: auto" @click="runThreadDump" :loading="threadDumpLoading">
+              <IconifyIconOnline icon="ri:refresh-line" />
+              刷新
+            </el-button>
+            <el-button type="success" link @click="downloadThreadDump" :disabled="!threadDumpData">
+              <IconifyIconOnline icon="ri:download-line" />
+              下载
+            </el-button>
+            <el-button link @click="showThreadDumpDialog">
+              <IconifyIconOnline icon="ri:fullscreen-line" />
+              详情
+            </el-button>
+          </div>
+        </template>
+        <div v-loading="threadDumpLoading">
+          <div v-if="threadDumpData" class="thread-dump-overview">
+            <div class="dump-stats">
+              <div class="dump-stat-item">
+                <div class="stat-value">{{ threadDumpData.threadCount }}</div>
+                <div class="stat-label">线程总数</div>
+              </div>
+              <div class="dump-stat-item" :class="{'danger': (threadDumpData.deadlockedCount || 0) > 0}">
+                <div class="stat-value">{{ threadDumpData.deadlockedCount || 0 }}</div>
+                <div class="stat-label">死锁线程</div>
+              </div>
+              <div class="dump-stat-item">
+                <div class="stat-value">{{ formatTime(threadDumpData.timestamp) }}</div>
+                <div class="stat-label">采集时间</div>
+              </div>
+            </div>
+            <el-table :data="(threadDumpData.threads || []).slice(0, 10)" stripe border size="small" max-height="300">
+              <el-table-column prop="threadId" label="ID" width="60" />
+              <el-table-column prop="threadName" label="线程名" min-width="180" show-overflow-tooltip />
+              <el-table-column label="状态" width="100">
+                <template #default="{ row }">
+                  <el-tag :type="getThreadStateType(row.state)" size="small">{{ row.state }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="堆栈深度" width="80">
+                <template #default="{ row }">{{ row.stackTrace?.length || 0 }}</template>
+              </el-table-column>
+              <el-table-column label="操作" width="70">
+                <template #default="{ row }">
+                  <el-button type="primary" link size="small" @click="showThreadDumpStack(row)">查看</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <div v-else class="empty-panel">
+            <el-button type="primary" @click="runThreadDump" :loading="threadDumpLoading">
+              <IconifyIconOnline icon="ri:play-line" />
+              获取线程Dump
+            </el-button>
+            <p>点击获取当前 JVM 的线程Dump信息</p>
+          </div>
+        </div>
+      </el-card>
+
+      <!-- 内存泄漏检测概览 -->
+      <el-card class="info-card" shadow="never">
+        <template #header>
+          <div class="card-header">
+            <IconifyIconOnline icon="ri:bug-line" />
+            <span>内存泄漏检测</span>
+            <el-input-number v-model="leakIntervalSeconds" :min="3" :max="30" :step="1" size="small" style="width: 100px; margin-left: auto" />
+            <span style="font-size: 12px; color: #909399; margin: 0 8px">秒</span>
+            <el-button type="primary" link @click="runMemoryLeakAnalysis" :loading="memoryLeakLoading">
+              <IconifyIconOnline icon="ri:play-line" />
+              开始检测
+            </el-button>
+            <el-button link @click="showMemoryLeakDialog">
+              <IconifyIconOnline icon="ri:fullscreen-line" />
+              详情
+            </el-button>
+          </div>
+        </template>
+        <div v-loading="memoryLeakLoading" :element-loading-text="`正在采集内存快照，请等待 ${leakIntervalSeconds} 秒...`">
+          <div v-if="memoryLeakAnalysis" class="memory-leak-overview">
+            <div class="leak-risk-banner" :class="'risk-' + (memoryLeakAnalysis.leakRiskLevel || 'LOW').toLowerCase()">
+              <IconifyIconOnline :icon="getLeakRiskIcon(memoryLeakAnalysis.leakRiskLevel)" class="risk-icon" />
+              <div class="risk-info">
+                <div class="risk-level">风险等级: {{ memoryLeakAnalysis.leakRiskLevel }}</div>
+                <div class="risk-conclusion">{{ memoryLeakAnalysis.conclusion }}</div>
+              </div>
+              <div class="risk-stats">
+                <div>堆增长: <span :class="{'text-danger': (memoryLeakAnalysis.heapGrowthPercent || 0) > 10}">{{ formatBytes(memoryLeakAnalysis.heapGrowth) }} ({{ (memoryLeakAnalysis.heapGrowthPercent || 0).toFixed(1) }}%)</span></div>
+                <div>间隔: {{ ((memoryLeakAnalysis.intervalMs || 0) / 1000).toFixed(1) }}秒</div>
+              </div>
+            </div>
+            <el-table :data="(memoryLeakAnalysis.growingObjects || []).slice(0, 8)" stripe border size="small" max-height="250">
+              <el-table-column label="#" width="40">
+                <template #default="{ $index }">
+                  <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="simpleClassName" label="类名" min-width="200" show-overflow-tooltip />
+              <el-table-column label="内存增长" width="100">
+                <template #default="{ row }">
+                  <span class="text-danger">+{{ formatBytes(row.bytesGrowth) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="实例增长" width="80">
+                <template #default="{ row }">
+                  <span class="text-warning">+{{ formatNumber(row.countGrowth) }}</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <div v-else class="empty-panel">
+            <el-button type="primary" @click="runMemoryLeakAnalysis" :loading="memoryLeakLoading">
+              <IconifyIconOnline icon="ri:play-line" />
+              开始内存泄漏检测
+            </el-button>
+            <p>对比两次堆快照，检测内存增长情况</p>
+          </div>
+        </div>
+      </el-card>
+
+      <!-- JVM诊断信息概览 -->
+      <el-card class="info-card" shadow="never">
+        <template #header>
+          <div class="card-header">
+            <IconifyIconOnline icon="ri:tools-line" />
+            <span>JVM 诊断信息</span>
+            <el-button type="primary" link style="margin-left: auto" @click="runDiagnostic" :loading="diagnosticLoading">
+              <IconifyIconOnline icon="ri:refresh-line" />
+              刷新
+            </el-button>
+            <el-button link @click="showDiagnosticDialog">
+              <IconifyIconOnline icon="ri:fullscreen-line" />
+              详情
+            </el-button>
+          </div>
+        </template>
+        <div v-loading="diagnosticLoading">
+          <div v-if="diagnosticInfo" class="diagnostic-overview">
+            <el-tabs v-model="diagnosticOverviewTab" type="border-card" class="compact-tabs">
+              <el-tab-pane label="VM Flags" name="flags">
+                <el-table :data="(diagnosticInfo.vmFlags || []).slice(0, 10)" stripe size="small" max-height="250">
+                  <el-table-column prop="name" label="参数" min-width="200" show-overflow-tooltip />
+                  <el-table-column prop="value" label="值" min-width="120" show-overflow-tooltip />
+                  <el-table-column prop="origin" label="来源" width="100">
+                    <template #default="{ row }">
+                      <el-tag :type="getFlagOriginType(row.origin)" size="small">{{ row.origin }}</el-tag>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </el-tab-pane>
+              <el-tab-pane label="系统属性" name="sysProps">
+                <el-table :data="Object.entries(diagnosticInfo.systemProperties || {}).slice(0, 10).map(([k, v]) => ({key: k, value: v}))" stripe size="small" max-height="250">
+                  <el-table-column prop="key" label="属性名" width="150" />
+                  <el-table-column prop="value" label="值" min-width="300" show-overflow-tooltip />
+                </el-table>
+              </el-tab-pane>
+              <el-tab-pane label="内存池" name="memoryPools">
+                <el-table :data="diagnosticInfo.memoryPoolDetails || []" stripe size="small" max-height="250">
+                  <el-table-column prop="name" label="名称" width="150" show-overflow-tooltip />
+                  <el-table-column label="使用率" width="120">
+                    <template #default="{ row }">
+                      <el-progress
+                        :percentage="row.usage?.usagePercent || 0"
+                        :stroke-width="6"
+                        :color="getProgressColor(row.usage?.usagePercent || 0)"
+                        :format="(p: number) => p.toFixed(0) + '%'"
+                      />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="已用/最大" min-width="120">
+                    <template #default="{ row }">{{ formatBytes(row.usage?.used) }} / {{ formatBytes(row.usage?.max) }}</template>
+                  </el-table-column>
+                </el-table>
+              </el-tab-pane>
+              <el-tab-pane label="类加载器" name="classLoaders">
+                <el-table :data="diagnosticInfo.classLoaders || []" stripe size="small" max-height="250">
+                  <el-table-column prop="name" label="名称" width="150" />
+                  <el-table-column prop="type" label="类型" min-width="250" show-overflow-tooltip />
+                  <el-table-column prop="parent" label="父加载器" min-width="200" show-overflow-tooltip />
+                </el-table>
+              </el-tab-pane>
+            </el-tabs>
+          </div>
+          <div v-else class="empty-panel">
+            <el-button type="primary" @click="runDiagnostic" :loading="diagnosticLoading">
+              <IconifyIconOnline icon="ri:play-line" />
+              获取诊断信息
+            </el-button>
+            <p>获取 JVM 详细诊断信息，包括 VM Flags、系统属性等</p>
+          </div>
+        </div>
+      </el-card>
     </div>
 
     <!-- 线程列表对话框 -->
@@ -1625,6 +1822,7 @@ const diagnosticLoading = ref(false);
 const diagnosticDialogVisible = ref(false);
 const diagnosticInfo = ref<JvmDiagnostic | null>(null);
 const diagnosticActiveTab = ref("flags");
+const diagnosticOverviewTab = ref("flags");
 const includeEnvVars = ref(false);
 const selectedVmCommand = ref("vmFlags");
 const vmCommandLoading = ref(false);
@@ -3123,6 +3321,133 @@ onUnmounted(() => {
     overflow: auto;
     white-space: pre;
     min-height: 200px;
+  }
+}
+
+// 概览面板样式
+.empty-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #909399;
+
+  p {
+    margin-top: 12px;
+    font-size: 13px;
+  }
+}
+
+// 线程Dump概览样式
+.thread-dump-overview {
+  .dump-stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: #f5f7fa;
+    border-radius: 8px;
+
+    .dump-stat-item {
+      text-align: center;
+
+      .stat-value {
+        font-size: 20px;
+        font-weight: 600;
+        color: #303133;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #909399;
+        margin-top: 4px;
+      }
+
+      &.danger {
+        .stat-value {
+          color: #f56c6c;
+        }
+      }
+    }
+  }
+}
+
+// 内存泄漏概览样式
+.memory-leak-overview {
+  .leak-risk-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+
+    .risk-icon {
+      font-size: 32px;
+      flex-shrink: 0;
+    }
+
+    .risk-info {
+      flex: 1;
+
+      .risk-level {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .risk-conclusion {
+        font-size: 13px;
+      }
+    }
+
+    .risk-stats {
+      text-align: right;
+      font-size: 12px;
+
+      div {
+        margin-bottom: 4px;
+      }
+    }
+
+    &.risk-high {
+      background: linear-gradient(135deg, #fef0f0 0%, #fde2e2 100%);
+      color: #f56c6c;
+    }
+
+    &.risk-medium {
+      background: linear-gradient(135deg, #fdf6ec 0%, #faecd8 100%);
+      color: #e6a23c;
+    }
+
+    &.risk-low {
+      background: linear-gradient(135deg, #f0f9eb 0%, #e1f3d8 100%);
+      color: #67c23a;
+    }
+  }
+
+  .text-danger {
+    color: #f56c6c;
+    font-weight: 500;
+  }
+
+  .text-warning {
+    color: #e6a23c;
+    font-weight: 500;
+  }
+}
+
+// 诊断信息概览样式
+.diagnostic-overview {
+  .compact-tabs {
+    :deep(.el-tabs__header) {
+      margin-bottom: 0;
+    }
+
+    :deep(.el-tabs__content) {
+      padding: 8px 0 0 0;
+    }
   }
 }
 </style>
