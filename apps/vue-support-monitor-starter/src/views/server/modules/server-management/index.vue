@@ -133,7 +133,7 @@
     </div>
 
     <!-- 主体内容区域 -->
-    <div class="main-content">
+    <div class="main-content thin-scroller">
       <!-- 左侧服务器列表 -->
       <div class="left-panel" :class="{ minimized: leftPanelMinimized }" :style="{ width: leftPanelMinimized ? '60px' : leftPanelWidth + 'px' }">
         <!-- 面板头部控制栏 -->
@@ -1486,6 +1486,34 @@ onUnmounted(() => {
   flex-direction: row;
   overflow: hidden;
   gap: 2px;
+
+  // thin-scroller 样式
+  &.thin-scroller,
+  .thin-scroller {
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(144, 147, 153, 0.3);
+      border-radius: 3px;
+      transition: background 0.3s ease;
+
+      &:hover {
+        background: rgba(144, 147, 153, 0.5);
+      }
+    }
+
+    &::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+  }
 }
 
 /* 左侧面板 */

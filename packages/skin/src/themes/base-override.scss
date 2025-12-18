@@ -56,10 +56,9 @@ html[data-skin]:not([data-skin=""]):not([data-skin="default"]) {
   }
 
   // ==================== 标签页基础重置 ====================
+  // 注意：不重置 .tags-view 的 box-shadow，让各主题自己定义
   .tags-view {
     background: transparent !important;
-    border-bottom: none !important;
-    box-shadow: none !important;
     backdrop-filter: none !important;
   }
 

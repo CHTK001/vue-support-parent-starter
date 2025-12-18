@@ -62,8 +62,10 @@ import GlobalSocketPlugin from "./plugins/globalSocket";
 // 异步加载WASM模块
 import { initializeWasmModule } from "@repo/codec-wasm";
 
-// 导入 TechUI 初始化函数 (样式会自动导入)
+// 导入 TechUI 初始化函数
 import techuiScifiInit from "@techui/scifi";
+// 显式导入 TechUI 样式 (确保样式正确加载)
+import "@techui/scifi/dist/index.css";
 
 // 先加载WASM模块，再启动应用
 initializeWasmModule()

@@ -218,6 +218,16 @@ export interface PlatformConfigs {
   Performance?: PerformanceConfig;
 
   // ===========================================
+  // WASM 加解密配置
+  // ===========================================
+  /** 是否启用 WASM 加解密（默认: true）
+   * - true: 使用 WASM 实现的加解密算法（性能更好）
+   * - false: 使用 TypeScript 实现的加解密算法
+   * 注意：启用后加解密将完全使用 WASM 实现，不会降级到 TS 实现
+   */
+  wasmEnable?: boolean;
+
+  // ===========================================
   // 兼容旧配置（已废弃）
   // ===========================================
   /** @deprecated 使用Request.timeout替代 */

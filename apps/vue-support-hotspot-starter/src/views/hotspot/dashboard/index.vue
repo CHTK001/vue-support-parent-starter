@@ -141,7 +141,7 @@ const quickLinks = [
   { title: "异常监控", icon: "ri:bug-line", path: "/hotspot/exceptions", color: "#909399" },
   { title: "JVM监控", icon: "ri:stack-line", path: "/hotspot/jvm", color: "#67C23A" },
   { title: "Spring映射", icon: "ri:git-branch-line", path: "/hotspot/springMapping", color: "#409EFF" },
-  { title: "热重载", icon: "ri:refresh-line", path: "/hotspot/hotswap", color: "#E6A23C" },
+  { title: "热重载", icon: "ri:refresh-line", path: "/hotspot/hotswap", color: "#E6A23C" }
 ];
 
 // 跳转页面
@@ -204,8 +204,7 @@ onUnmounted(() => {
               <div class="stat-detail">{{ formatBytes(jvmInfo.heapMemoryUsed) }} / {{ formatBytes(jvmInfo.heapMemoryMax) }}</div>
             </div>
           </div>
-          <el-progress :percentage="memoryPercent" :stroke-width="6" :show-text="false" 
-            :color="memoryPercent > 80 ? '#F56C6C' : memoryPercent > 60 ? '#E6A23C' : '#67C23A'" />
+          <el-progress :percentage="memoryPercent" :stroke-width="6" :show-text="false" :color="memoryPercent > 80 ? '#F56C6C' : memoryPercent > 60 ? '#E6A23C' : '#67C23A'" />
         </el-card>
       </el-col>
       <el-col :span="6">
@@ -220,8 +219,7 @@ onUnmounted(() => {
               <div class="stat-detail">核心: {{ systemInfo.availableProcessors || 0 }}</div>
             </div>
           </div>
-          <el-progress :percentage="cpuPercent" :stroke-width="6" :show-text="false" 
-            :color="cpuPercent > 80 ? '#F56C6C' : cpuPercent > 60 ? '#E6A23C' : '#67C23A'" />
+          <el-progress :percentage="cpuPercent" :stroke-width="6" :show-text="false" :color="cpuPercent > 80 ? '#F56C6C' : cpuPercent > 60 ? '#E6A23C' : '#67C23A'" />
         </el-card>
       </el-col>
       <el-col :span="6">
@@ -236,8 +234,7 @@ onUnmounted(() => {
               <div class="stat-detail">{{ formatBytes(systemInfo.usedPhysicalMemory) }} / {{ formatBytes(systemInfo.totalPhysicalMemory) }}</div>
             </div>
           </div>
-          <el-progress :percentage="physicalMemoryPercent" :stroke-width="6" :show-text="false" 
-            :color="physicalMemoryPercent > 80 ? '#F56C6C' : physicalMemoryPercent > 60 ? '#E6A23C' : '#409EFF'" />
+          <el-progress :percentage="physicalMemoryPercent" :stroke-width="6" :show-text="false" :color="physicalMemoryPercent > 80 ? '#F56C6C' : physicalMemoryPercent > 60 ? '#E6A23C' : '#409EFF'" />
         </el-card>
       </el-col>
       <el-col :span="6">
@@ -249,7 +246,7 @@ onUnmounted(() => {
             <div class="stat-info">
               <div class="stat-value">{{ formatUptime(systemInfo.uptime) }}</div>
               <div class="stat-label">运行时长</div>
-              <div class="stat-detail">PID: {{ systemInfo.pid || '-' }}</div>
+              <div class="stat-detail">PID: {{ systemInfo.pid || "-" }}</div>
             </div>
           </div>
         </el-card>
@@ -307,9 +304,9 @@ onUnmounted(() => {
               <IconifyIconOnline icon="ri:server-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value text-sm">{{ systemInfo.hostname || '-' }}</div>
+              <div class="stat-value text-sm">{{ systemInfo.hostname || "-" }}</div>
               <div class="stat-label">主机名</div>
-              <div class="stat-detail">{{ systemInfo.hostAddress || '-' }}</div>
+              <div class="stat-detail">{{ systemInfo.hostAddress || "-" }}</div>
             </div>
           </div>
         </el-card>
@@ -327,12 +324,7 @@ onUnmounted(() => {
         </div>
       </template>
       <div class="quick-links">
-        <div 
-          v-for="link in quickLinks" 
-          :key="link.path" 
-          class="quick-link-item"
-          @click="navigateTo(link.path)"
-        >
+        <div v-for="link in quickLinks" :key="link.path" class="quick-link-item" @click="navigateTo(link.path)">
           <div class="link-icon" :style="{ backgroundColor: link.color + '15', color: link.color }">
             <IconifyIconOnline :icon="link.icon" />
           </div>
@@ -352,7 +344,8 @@ onUnmounted(() => {
                 最新链路
               </span>
               <el-button link type="primary" @click="navigateTo('/hotspot/trace')">
-                查看更多 <IconifyIconOnline icon="ri:arrow-right-s-line" />
+                查看更多
+                <IconifyIconOnline icon="ri:arrow-right-s-line" />
               </el-button>
             </div>
           </template>
@@ -360,7 +353,7 @@ onUnmounted(() => {
             <div v-for="(trace, index) in recentTraces" :key="index" class="recent-item">
               <div class="item-main">
                 <IconifyIconOnline icon="ri:checkbox-circle-line" class="item-icon success" />
-                <span class="item-title">{{ trace.description || trace.name || '-' }}</span>
+                <span class="item-title">{{ trace.description || trace.name || "-" }}</span>
               </div>
               <span class="item-time">{{ trace.costTime || 0 }}ms</span>
             </div>
@@ -377,7 +370,8 @@ onUnmounted(() => {
                 最新异常
               </span>
               <el-button link type="primary" @click="navigateTo('/hotspot/exceptions')">
-                查看更多 <IconifyIconOnline icon="ri:arrow-right-s-line" />
+                查看更多
+                <IconifyIconOnline icon="ri:arrow-right-s-line" />
               </el-button>
             </div>
           </template>
@@ -385,7 +379,7 @@ onUnmounted(() => {
             <div v-for="(ex, index) in recentExceptions" :key="index" class="recent-item">
               <div class="item-main">
                 <IconifyIconOnline icon="ri:error-warning-line" class="item-icon danger" />
-                <span class="item-title error">{{ ex.exceptionType?.split('.').pop() || '-' }}</span>
+                <span class="item-title error">{{ ex.exceptionType?.split(".").pop() || "-" }}</span>
               </div>
               <span class="item-time">{{ formatTime(ex.timestamp) }}</span>
             </div>
@@ -433,23 +427,33 @@ onUnmounted(() => {
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
-      .stat-icon { color: var(--el-color-primary); }
+      .stat-icon {
+        color: var(--el-color-primary);
+      }
     }
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
-      .stat-icon { color: var(--el-color-success); }
+      .stat-icon {
+        color: var(--el-color-success);
+      }
     }
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
-      .stat-icon { color: var(--el-color-warning); }
+      .stat-icon {
+        color: var(--el-color-warning);
+      }
     }
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
-      .stat-icon { color: var(--el-color-danger); }
+      .stat-icon {
+        color: var(--el-color-danger);
+      }
     }
     &.info {
       background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
-      .stat-icon { color: var(--el-color-info); }
+      .stat-icon {
+        color: var(--el-color-info);
+      }
     }
 
     .stat-icon {
@@ -622,7 +626,8 @@ html.dark {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 
-  .stat-card, .modern-card {
+  .stat-card,
+  .modern-card {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 }

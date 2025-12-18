@@ -34,7 +34,7 @@
           <template #default="{ row }">
             <div class="flex items-center gap-2">
               <IconifyIconOnline icon="ri:code-box-line" class="text-primary" />
-              <span v-html="row.name" class="font-mono text-sm" />
+              <span class="font-mono text-sm" v-html="row.name" />
             </div>
           </template>
         </el-table-column>

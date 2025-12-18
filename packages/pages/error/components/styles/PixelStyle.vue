@@ -319,11 +319,15 @@ $dino-color-dark: #a0a0a0;
   }
 }
 
-// 游戏场景
+// 游戏场景 - 全屏宽度
 .game-scene {
   position: relative;
   width: 100%;
+  max-width: 100%;
   height: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
 }
 
 // 像素云朵 - 使用box-shadow绘制

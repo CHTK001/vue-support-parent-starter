@@ -75,6 +75,20 @@ export const fetchLimitRecordPageForStrategy = (
 };
 
 /**
+ * 保存限流记录
+ *
+ * @param data 限流记录数据
+ * @returns 保存结果
+ */
+export const saveLimitRecordForStrategy = (
+  data: SysLimitRecord
+): Promise<ReturnResult<SysLimitRecord>> => {
+  return http.request<SysLimitRecord>("post", "/v2/strategy/limit-record/save", {
+    data,
+  });
+};
+
+/**
  * 删除限流记录
  *
  * @param id 限流记录ID

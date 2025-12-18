@@ -29,7 +29,7 @@
         <div class="nav-list">
           <div v-for="it in data.data" :key="it.index" class="nav-item" :title="it.title" @click="handleClick(it.index)">
             <IconifyIconOnline icon="ri:arrow-right-s-line" class="nav-icon" />
-            <span v-html="it.title" class="truncate" />
+            <span class="truncate" v-html="it.title" />
           </div>
         </div>
       </el-card>
@@ -95,7 +95,7 @@ const parseHandleData = json => {
       const message = item.message || "";
       let resourceType = "未知资源";
       let resourceColor = "var(--el-text-color-regular)";
-      
+
       if (message.includes("FileChannel")) {
         resourceType = "文件通道";
         resourceColor = "var(--el-color-primary)";
@@ -112,15 +112,17 @@ const parseHandleData = json => {
         resourceType = "文件句柄";
         resourceColor = "var(--el-color-danger)";
       }
-      
+
       let stackTrace = "";
       if (item.stack && item.stack.length > 0) {
-        stackTrace = item.stack.map(s => {
-          if (typeof s === "string") return `  at ${s}`;
-          return `  at ${s.className || ""}.${s.methodName || ""}(${s.fileName || ""}:${s.lineNumber || ""})`;
-        }).join("\n");
+        stackTrace = item.stack
+          .map(s => {
+            if (typeof s === "string") return `  at ${s}`;
+            return `  at ${s.className || ""}.${s.methodName || ""}(${s.fileName || ""}:${s.lineNumber || ""})`;
+          })
+          .join("\n");
       }
-      
+
       arr.push({
         index: index,
         id: item.id || `handle_${index}`,
@@ -129,7 +131,7 @@ const parseHandleData = json => {
       });
     });
   }
-  
+
   const total = json.total || arr.length;
   const agentStatus = json.agentInstalled ? "已安装" : "未安装";
   data.title = `<strong>句柄监控</strong> - 发现 <span style='color:var(--el-color-danger);'>${total}</span> 个打开的句柄 (Agent: ${agentStatus})`;
@@ -139,14 +141,18 @@ const parseHandleData = json => {
 // 刷新数据
 const refreshData = () => {
   loading.value = true;
-  http.get((window.agentPath || "/agent") + "/handle").then(res => {
-    parseHandleData(res.data);
-  }).catch(() => {
-    data.title = "<strong>句柄监控</strong> - 无法获取数据";
-    data.data = [];
-  }).finally(() => {
-    loading.value = false;
-  });
+  http
+    .get((window.agentPath || "/agent") + "/handle")
+    .then(res => {
+      parseHandleData(res.data);
+    })
+    .catch(() => {
+      data.title = "<strong>句柄监控</strong> - 无法获取数据";
+      data.data = [];
+    })
+    .finally(() => {
+      loading.value = false;
+    });
 };
 
 // 处理 WebSocket 消息

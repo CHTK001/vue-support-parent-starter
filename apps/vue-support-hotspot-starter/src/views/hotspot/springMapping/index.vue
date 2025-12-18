@@ -2,7 +2,7 @@
   <div class="page-container">
     <!-- 容器 QPS 统计卡片 -->
     <el-row :gutter="20" class="stats-row">
-      <el-col :span="6" v-for="container in containerStats" :key="container.type">
+      <el-col v-for="container in containerStats" :key="container.type" :span="6">
         <el-card class="stat-card" :class="{ 'current-container': container.type === currentContainer }" shadow="hover">
           <div class="stat-header">
             <IconifyIconOnline :icon="container.icon" class="stat-icon" />
@@ -14,12 +14,12 @@
               <span class="stat-value">{{ container.qps }}</span>
               <span class="stat-unit">QPS</span>
             </div>
-            <div class="stat-divider"></div>
+            <div class="stat-divider" />
             <div class="stat-item">
               <span class="stat-value">{{ formatNumber(container.totalRequests) }}</span>
               <span class="stat-unit">总请求</span>
             </div>
-            <div class="stat-divider"></div>
+            <div class="stat-divider" />
             <div class="stat-item">
               <span class="stat-value">{{ container.activeConnections }}</span>
               <span class="stat-unit">活跃连接</span>
@@ -44,7 +44,7 @@
                 <IconifyIconOnline icon="ep:search" />
               </template>
             </el-input>
-            <el-button type="info" @click="refreshData" :loading="loading">
+            <el-button type="info" :loading="loading" @click="refreshData">
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               刷新
             </el-button>
@@ -59,9 +59,18 @@
             <el-tooltip placement="top">
               <template #content>
                 <div style="max-width: 400px">
-                  <div><strong>路由路径:</strong> {{ row.name }}</div>
-                  <div><strong>处理类:</strong> {{ row.className }}</div>
-                  <div v-if="row.method"><strong>处理方法:</strong> {{ row.method }}</div>
+                  <div>
+                    <strong>路由路径:</strong>
+                    {{ row.name }}
+                  </div>
+                  <div>
+                    <strong>处理类:</strong>
+                    {{ row.className }}
+                  </div>
+                  <div v-if="row.method">
+                    <strong>处理方法:</strong>
+                    {{ row.method }}
+                  </div>
                 </div>
               </template>
               <div class="route-path">
@@ -76,8 +85,14 @@
             <el-tooltip placement="top" :show-after="300">
               <template #content>
                 <div style="max-width: 500px; word-break: break-all">
-                  <div><strong>完整类名:</strong> {{ row.className }}</div>
-                  <div v-if="row.method"><strong>方法名:</strong> {{ row.method }}</div>
+                  <div>
+                    <strong>完整类名:</strong>
+                    {{ row.className }}
+                  </div>
+                  <div v-if="row.method">
+                    <strong>方法名:</strong>
+                    {{ row.method }}
+                  </div>
                 </div>
               </template>
               <span class="class-name">{{ row.className }}</span>
@@ -98,7 +113,7 @@
         </el-table-column>
         <el-table-column prop="avgDuration" label="平均耗时(ms)" width="120">
           <template #default="{ row }">
-            {{ row.avgDuration ? row.avgDuration.toFixed(2) : '-' }}
+            {{ row.avgDuration ? row.avgDuration.toFixed(2) : "-" }}
           </template>
         </el-table-column>
         <el-table-column prop="resource" label="资源" min-width="120">
@@ -148,7 +163,7 @@ let wsUnsubscribeMappingQps = null;
 const wsConnected = computed(() => wsService.connected.value);
 
 // 处理 WebSocket 消息 - 路由映射数据推送
-const handleMappingMessage = (message) => {
+const handleMappingMessage = message => {
   if (message.event === "SPRING_MAPPING_UPDATE") {
     try {
       const newData = message.data;
@@ -162,11 +177,11 @@ const handleMappingMessage = (message) => {
 };
 
 // 处理 WebSocket 消息 - 容器 QPS 统计推送
-const handleQpsMessage = (message) => {
+const handleQpsMessage = message => {
   if (message.event === "CONTAINER_QPS_UPDATE") {
     try {
       const res = message.data;
-      if (res && res.status === 'ok') {
+      if (res && res.status === "ok") {
         const statsData = res.data;
         // 获取当前容器类型
         if (res.currentContainer) {
@@ -188,7 +203,7 @@ const handleQpsMessage = (message) => {
 };
 
 // 处理 WebSocket 消息 - 单个路由 QPS 推送
-const handleMappingQpsMessage = (message) => {
+const handleMappingQpsMessage = message => {
   if (message.event === "MAPPING_QPS_UPDATE") {
     try {
       const qpsData = message.data;
@@ -214,10 +229,10 @@ const handleMappingQpsMessage = (message) => {
 const currentContainer = ref(null);
 
 const containerStats = ref([
-  { type: 'TOMCAT', label: 'Tomcat', icon: 'logos:tomcat', qps: 0, totalRequests: 0, activeConnections: 0 },
-  { type: 'UNDERTOW', label: 'Undertow', icon: 'simple-icons:undertow', qps: 0, totalRequests: 0, activeConnections: 0 },
-  { type: 'JETTY', label: 'Jetty', icon: 'simple-icons:eclipsejetty', qps: 0, totalRequests: 0, activeConnections: 0 },
-  { type: 'NETTY', label: 'Netty', icon: 'simple-icons:netty', qps: 0, totalRequests: 0, activeConnections: 0 }
+  { type: "TOMCAT", label: "Tomcat", icon: "logos:tomcat", qps: 0, totalRequests: 0, activeConnections: 0 },
+  { type: "UNDERTOW", label: "Undertow", icon: "simple-icons:undertow", qps: 0, totalRequests: 0, activeConnections: 0 },
+  { type: "JETTY", label: "Jetty", icon: "simple-icons:eclipsejetty", qps: 0, totalRequests: 0, activeConnections: 0 },
+  { type: "NETTY", label: "Netty", icon: "simple-icons:netty", qps: 0, totalRequests: 0, activeConnections: 0 }
 ]);
 
 // 过滤后的数据
@@ -235,9 +250,9 @@ const handleInfo = row => {
 // 格式化数字
 const formatNumber = num => {
   if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
+    return (num / 1000000).toFixed(1) + "M";
   } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
+    return (num / 1000).toFixed(1) + "K";
   }
   return num;
 };
@@ -247,7 +262,7 @@ const refreshData = async () => {
   loading.value = true;
   try {
     const res = await http.get((window.agentPath || "/agent") + "/spring-mapping-data");
-    if (res && typeof res === 'object' && Array.isArray(res.data.data)) {
+    if (res && typeof res === "object" && Array.isArray(res.data.data)) {
       data.value = res.data.data;
     } else if (Array.isArray(res)) {
       data.value = res;
@@ -265,7 +280,7 @@ const refreshData = async () => {
 const fetchQpsData = async () => {
   try {
     const res = await http.get((window.agentPath || "/agent") + "/container-qps");
-    if (res && res.data && res.data.status === 'ok') {
+    if (res && res.data && res.data.status === "ok") {
       const statsData = res.data.data;
       if (res.data.currentContainer) {
         currentContainer.value = res.data.currentContainer;
@@ -293,7 +308,7 @@ onBeforeMount(async () => {
   wsUnsubscribeQps = wsService.subscribe("SERVER", "CONTAINER_QPS_UPDATE", handleQpsMessage);
   // 订阅单个路由 QPS 推送
   wsUnsubscribeMappingQps = wsService.subscribe("SERVER", "MAPPING_QPS_UPDATE", handleMappingQpsMessage);
-  
+
   // 初始加载数据
   refreshData();
   // 初始加载QPS数据
@@ -335,57 +350,60 @@ onUnmounted(() => {
   border-radius: 12px;
   border: none;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-  
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s,
+    border-color 0.2s;
+
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   }
-  
+
   &.current-container {
     border: 2px solid var(--el-color-success);
     box-shadow: 0 4px 16px rgba(var(--el-color-success-rgb), 0.2);
-    
+
     .stat-header .stat-label {
       color: var(--el-color-success);
     }
   }
-  
+
   :deep(.el-card__body) {
     padding: 16px;
   }
-  
+
   .stat-header {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-bottom: 12px;
     flex-wrap: wrap;
-    
+
     .stat-icon {
       font-size: 24px;
     }
-    
+
     .stat-label {
       font-size: 14px;
       font-weight: 600;
       color: var(--el-text-color-primary);
     }
-    
+
     .current-tag {
       margin-left: auto;
     }
   }
-  
+
   .stat-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    
+
     .stat-item {
       flex: 1;
       text-align: center;
-      
+
       .stat-value {
         display: block;
         font-size: 20px;
@@ -393,14 +411,14 @@ onUnmounted(() => {
         color: var(--el-color-primary);
         margin-bottom: 4px;
       }
-      
+
       .stat-unit {
         display: block;
         font-size: 11px;
         color: var(--el-text-color-secondary);
       }
     }
-    
+
     .stat-divider {
       width: 1px;
       height: 32px;
@@ -420,7 +438,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  
+
   :deep(.el-card__body) {
     flex: 1;
     overflow: hidden;
@@ -532,7 +550,7 @@ html.dark {
   .modern-card {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
-  
+
   .stat-card.current-container {
     box-shadow: 0 4px 16px rgba(var(--el-color-success-rgb), 0.3);
   }

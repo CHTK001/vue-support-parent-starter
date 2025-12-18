@@ -24,15 +24,20 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import { initTechUI } from "@repo/components/TechUI";
 
-// 导入 CSS 样式 (必须)
+// 导入 CSS 样式 (必须 - 确保样式正确加载)
 import "@techui/scifi/dist/index.css";
 
 const app = createApp(App);
 
-// 初始化 TechUI (同步)
-initTechUI(app, { debug: true });
-
-app.mount("#app");
+// 异步初始化 TechUI (包含 WASM 核心初始化)
+initTechUI(app, { debug: true })
+  .then(() => {
+    app.mount("#app");
+  })
+  .catch((err) => {
+    console.error("TechUI 初始化失败:", err);
+    app.mount("#app");
+  });
 ```
 
 ## 组件列表

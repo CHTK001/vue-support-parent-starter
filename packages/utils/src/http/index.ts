@@ -24,7 +24,7 @@ import Axios, {
 import NProgress from "nprogress";
 import { stringify } from "qs";
 import { transformI18n } from "../../../config/src/i18n";
-import { uu1, uu2 } from "../crypto/codec";
+import { uu1, uu2, isWasmEnabled, generateNonce as generateNonceFromCodec } from "../crypto/codec";
 import type {
   PureHttpError,
   PureHttpRequestConfig,
@@ -34,8 +34,11 @@ import type {
 import { message } from "../message";
 import {
   generateNonce as generateNonceWasm,
+  jsGenerateNonce,
   generateSign as generateSignWasm,
+  jsGenerateSign,
   md5Hash as md5HashWasm,
+  jsMd5Hash,
 } from "@repo/codec-wasm";
 
 /** 响应结果类型 */
@@ -611,80 +614,89 @@ class PureHttp {
 
 export const http = new PureHttp();
 
-/** 生成复杂的nonce值 */
+/** 
+ * 生成复杂的 nonce 值
+ * 根据 wasmEnable 配置决定使用 WASM 或 JS/TS 实现
+ * 不会降级：如果启用 WASM 但加载失败，将抛出错误
+ */
 const generateNonce = (): string => {
-  try {
-    // 使用WASM版本的generateNonce函数（同步方式）
+  if (isWasmEnabled()) {
+    // 使用 WASM 版本，不降级
     return generateNonceWasm();
-  } catch (error) {
-    console.error("Failed to generate nonce using WASM:", error);
-    // 如果WASM失败，提供一个备用实现
-    return (
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15)
-    );
+  } else {
+    // 使用 JS/TS 版本
+    return jsGenerateNonce();
   }
 };
 
-/** 生成签名 */
+/** 
+ * 生成签名
+ * 根据 wasmEnable 配置决定使用 WASM 或 JS/TS 实现
+ * 不会降级：如果启用 WASM 但加载失败，将抛出错误
+ */
 export const generateSign = (
   config: PureHttpRequestConfig,
   timestamp: number,
   nonce: string
 ): string => {
-  try {
-    // 准备签名参数
-    const params: Record<string, any> = {
-      ...config.params,
-      ...config.data,
-    };
+  // 准备签名参数
+  const params: Record<string, any> = {
+    ...config.params,
+    ...config.data,
+  };
 
-    // 过滤掉空值和函数
-    const filteredParams: Record<string, string> = {};
-    Object.keys(params).forEach((key) => {
-      const value = params[key];
-      if (
-        value !== null &&
-        value !== undefined &&
-        typeof value !== "function" &&
-        typeof value !== "object"
-      ) {
-        filteredParams[key] = String(value);
-      }
+  // 过滤掉空值和函数
+  const filteredParams: Record<string, string> = {};
+  Object.keys(params).forEach((key) => {
+    const value = params[key];
+    if (
+      value !== null &&
+      value !== undefined &&
+      typeof value !== "function" &&
+      typeof value !== "object"
+    ) {
+      filteredParams[key] = String(value);
+    }
+  });
+
+  // 将参数转换为 key=value 格式的字符串
+  const paramPairs: string[] = [];
+  Object.keys(filteredParams)
+    .sort()
+    .forEach((key) => {
+      paramPairs.push(`${key}=${filteredParams[key]}`);
     });
 
-    // 将参数转换为key=value格式的字符串
-    const paramPairs: string[] = [];
-    Object.keys(filteredParams)
-      .sort()
-      .forEach((key) => {
-        paramPairs.push(`${key}=${filteredParams[key]}`);
-      });
+  const paramsString = paramPairs.join("&");
 
-    const paramsString = paramPairs.join("&");
-
-    // 使用WASM版本的generateSign函数（同步方式）
+  if (isWasmEnabled()) {
+    // 使用 WASM 版本，不降级
     return generateSignWasm(
       paramsString,
       timestamp,
       nonce,
       getConfig().secretKey || ""
     );
-  } catch (error) {
-    console.error("Failed to generate sign using WASM:", error);
-    // 如果WASM失败，提供一个备用实现
-    return Math.random().toString(36).substring(2, 10);
+  } else {
+    // 使用 JS/TS 版本
+    return jsGenerateSign(
+      paramsString + timestamp + nonce + (getConfig().secretKey || ""),
+      getConfig().secretKey || ""
+    );
   }
 };
 
-/** MD5哈希函数 */
+/** 
+ * MD5 哈希函数
+ * 根据 wasmEnable 配置决定使用 WASM 或 JS/TS 实现
+ * 不会降级：如果启用 WASM 但加载失败，将抛出错误
+ */
 const md5Hash = (input: string): string => {
-  try {
-    // 使用WASM版本的md5Hash函数（同步方式）
+  if (isWasmEnabled()) {
+    // 使用 WASM 版本，不降级
     return md5HashWasm(input);
-  } catch (error) {
-    console.error("Failed to generate MD5 hash using WASM:", error);
-    // 如果WASM失败，提供一个备用实现
-    return btoa(input);
+  } else {
+    // 使用 JS/TS 版本
+    return jsMd5Hash(input);
   }
 };

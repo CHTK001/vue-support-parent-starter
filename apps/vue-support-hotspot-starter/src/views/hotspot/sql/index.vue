@@ -11,13 +11,16 @@
           </div>
           <div class="header-actions">
             <el-button v-if="config.lock" type="primary" size="small" @click="config.lock = false">
-              <IconifyIconOnline icon="ri:lock-line" class="mr-1" />锁定滚动
+              <IconifyIconOnline icon="ri:lock-line" class="mr-1" />
+              锁定滚动
             </el-button>
             <el-button v-else size="small" @click="config.lock = true">
-              <IconifyIconOnline icon="ri:lock-unlock-line" class="mr-1" />解锁滚动
+              <IconifyIconOnline icon="ri:lock-unlock-line" class="mr-1" />
+              解锁滚动
             </el-button>
             <el-button type="danger" size="small" @click="dataList.length = 0">
-              <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />清空
+              <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
+              清空
             </el-button>
           </div>
         </div>
@@ -194,7 +197,8 @@ onUnmounted(() => {
   height: 100%;
 }
 
-.sql-list-col, .sql-detail-col {
+.sql-list-col,
+.sql-detail-col {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -305,7 +309,7 @@ onUnmounted(() => {
 }
 
 // 深色主题
- html.dark {
+html.dark {
   .content-card {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }

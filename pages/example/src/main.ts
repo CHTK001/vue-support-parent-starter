@@ -4,7 +4,8 @@ import router from "./router";
 import { ScMap, ScLayer } from "@repo/components";
 import { initTechUI } from "@repo/components/TechUI";
 
-// TechUI 样式会在 @techui/scifi 导入时自动加载
+// 显式导入 TechUI 样式 (确保样式正确加载)
+import "@techui/scifi/dist/index.css";
 
 import "./styles/main.css";
 import "./styles/example-common.scss";

@@ -388,8 +388,7 @@ const router = useRouter();
   border: 1px solid var(--el-card-border-color);
   border-radius: var(--el-card-border-radius);
   color: var(--el-text-color-primary);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.04),
@@ -400,10 +399,23 @@ const router = useRouter();
       0 4px 16px rgba(0, 0, 0, 0.15),
       0 2px 8px rgba(0, 0, 0, 0.1);
   }
+
+  // el-card 的 body 不产生滚动条，由内部内容处理
+  :deep(.el-card__body) {
+    overflow: hidden;
+    height: 100%;
+    padding: 0;
+  }
+  
+  // 内部内容滚动
+  :deep(.main-content) {
+    overflow: auto;
+    height: 100%;
+  }
 }
 
 .content-scrollbar {
-  background: transparent;
+  background: var(--el-bg-color);
 }
 
 /* 非卡片内容模式：去除边框和背景 */
@@ -416,13 +428,24 @@ const router = useRouter();
   :deep(.main-content) {
     border: 0 !important;
   }
+
+  /* 禁止内部内容产生滚动条，统一由外层 el-scrollbar 处理 */
+  :deep(.main-content) {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 100%;
+  }
+
+  :deep(.thin-scroller) {
+    overflow: visible !important;
+  }
 }
 
 .app-main {
   position: relative;
   width: 100%;
   height: 100%;
-  overflow-x: hidden;
+  overflow: hidden; // 禁止外层滚动，让内部 el-scrollbar 独自处理滚动
   z-index: 0; // 系统框架层级统一为 0，避免与弹层冲突
   background: var(--el-bg-color-page);
   transition: background-color 0.2s ease;

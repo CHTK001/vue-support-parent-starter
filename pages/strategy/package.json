@@ -14,6 +14,8 @@
   "type": "module",
   "scripts": {
     "build": "pnpm unbuild",
+    "build:standalone": "vite build --config vite.standalone.config.ts",
+    "dev:standalone": "vite --config vite.standalone.config.ts",
     "prepublishOnly": "npm run build"
   },
   "files": [
@@ -54,7 +56,8 @@
     "element-plus": "catalog:",
     "unbuild": "catalog:",
     "vue": "catalog:",
-    "vue-i18n": "catalog:"
+    "vue-i18n": "catalog:",
+    "vue-router": "catalog:"
   },
   "devDependencies": {
     "@repo/config": "workspace:^",

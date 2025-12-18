@@ -10,3 +10,9 @@ import SystemHolidayIndex from "./holiday/HolidayIndex.vue";
 import SystemLogIndex from "./log/LogIndex.vue";
 import SystemFileSystem from "./file/index.vue";
 export { SystemHolidayIndex, SystemLogIndex, SystemFileSystem };
+
+// 导出 Job 任务调度模块
+export * from "./job";
+
+// 导出 JVM 监控模块
+export * from "./jvm";

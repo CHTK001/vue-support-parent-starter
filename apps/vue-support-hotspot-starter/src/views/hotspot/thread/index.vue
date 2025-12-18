@@ -22,7 +22,7 @@
               <IconifyIconOnline icon="ri:play-circle-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ data.filter(t => t.state === 'RUNNABLE').length }}</div>
+              <div class="stat-value">{{ data.filter(t => t.state === "RUNNABLE").length }}</div>
               <div class="stat-label">RUNNABLE</div>
             </div>
           </div>
@@ -35,7 +35,7 @@
               <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ data.filter(t => t.state === 'WAITING' || t.state === 'TIMED_WAITING').length }}</div>
+              <div class="stat-value">{{ data.filter(t => t.state === "WAITING" || t.state === "TIMED_WAITING").length }}</div>
               <div class="stat-label">WAITING</div>
             </div>
           </div>
@@ -48,7 +48,7 @@
               <IconifyIconOnline icon="ri:error-warning-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ data.filter(t => t.state === 'BLOCKED').length }}</div>
+              <div class="stat-value">{{ data.filter(t => t.state === "BLOCKED").length }}</div>
               <div class="stat-label">BLOCKED</div>
             </div>
           </div>
@@ -65,9 +65,18 @@
               <el-tooltip placement="top">
                 <template #content>
                   <div style="max-width: 300px">
-                    <div><strong>线程ID:</strong> {{ row.id }}</div>
-                    <div><strong>状态:</strong> {{ row.state }}</div>
-                    <div v-if="row.lockOwnerId > 0"><strong>锁拥有者ID:</strong> {{ row.lockOwnerId }}</div>
+                    <div>
+                      <strong>线程ID:</strong>
+                      {{ row.id }}
+                    </div>
+                    <div>
+                      <strong>状态:</strong>
+                      {{ row.state }}
+                    </div>
+                    <div v-if="row.lockOwnerId > 0">
+                      <strong>锁拥有者ID:</strong>
+                      {{ row.lockOwnerId }}
+                    </div>
                   </div>
                 </template>
                 <el-tag size="small">{{ row.id }}</el-tag>
@@ -79,11 +88,26 @@
               <el-tooltip placement="top">
                 <template #content>
                   <div style="max-width: 400px">
-                    <div><strong>线程名称:</strong> {{ row.name }}</div>
-                    <div><strong>是否守护线程:</strong> {{ row.daemon ? '是' : '否' }}</div>
-                    <div v-if="row.inNative"><strong>在Native方法中:</strong> 是</div>
-                    <div v-if="row.suspended"><strong>已暂停:</strong> 是</div>
-                    <div v-if="row.lockName"><strong>锁名称:</strong> {{ row.lockName }}</div>
+                    <div>
+                      <strong>线程名称:</strong>
+                      {{ row.name }}
+                    </div>
+                    <div>
+                      <strong>是否守护线程:</strong>
+                      {{ row.daemon ? "是" : "否" }}
+                    </div>
+                    <div v-if="row.inNative">
+                      <strong>在Native方法中:</strong>
+                      是
+                    </div>
+                    <div v-if="row.suspended">
+                      <strong>已暂停:</strong>
+                      是
+                    </div>
+                    <div v-if="row.lockName">
+                      <strong>锁名称:</strong>
+                      {{ row.lockName }}
+                    </div>
                   </div>
                 </template>
                 <div class="flex items-center gap-2">
@@ -103,11 +127,26 @@
               <el-tooltip placement="top">
                 <template #content>
                   <div style="max-width: 300px">
-                    <div><strong>CPU使用率:</strong> {{ row.cpu }}%</div>
-                    <div><strong>阻塞次数:</strong> {{ row.blockedCount }}</div>
-                    <div><strong>阻塞时间:</strong> {{ row.blockedTime }}ms</div>
-                    <div><strong>等待次数:</strong> {{ row.waitedCount }}</div>
-                    <div><strong>等待时间:</strong> {{ row.waitedTime }}ms</div>
+                    <div>
+                      <strong>CPU使用率:</strong>
+                      {{ row.cpu }}%
+                    </div>
+                    <div>
+                      <strong>阻塞次数:</strong>
+                      {{ row.blockedCount }}
+                    </div>
+                    <div>
+                      <strong>阻塞时间:</strong>
+                      {{ row.blockedTime }}ms
+                    </div>
+                    <div>
+                      <strong>等待次数:</strong>
+                      {{ row.waitedCount }}
+                    </div>
+                    <div>
+                      <strong>等待时间:</strong>
+                      {{ row.waitedTime }}ms
+                    </div>
                   </div>
                 </template>
                 <span class="font-mono font-semibold">{{ row.cpu }}%</span>
@@ -242,23 +281,33 @@ onUnmounted(() => {
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
-      .stat-icon { color: var(--el-color-primary); }
+      .stat-icon {
+        color: var(--el-color-primary);
+      }
     }
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
-      .stat-icon { color: var(--el-color-success); }
+      .stat-icon {
+        color: var(--el-color-success);
+      }
     }
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
-      .stat-icon { color: var(--el-color-warning); }
+      .stat-icon {
+        color: var(--el-color-warning);
+      }
     }
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
-      .stat-icon { color: var(--el-color-danger); }
+      .stat-icon {
+        color: var(--el-color-danger);
+      }
     }
     &.info {
       background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
-      .stat-icon { color: var(--el-color-info); }
+      .stat-icon {
+        color: var(--el-color-info);
+      }
     }
 
     .stat-icon {

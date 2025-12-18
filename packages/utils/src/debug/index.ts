@@ -7,9 +7,6 @@
  */
 import { addListener, crashBrowserCurrentTab, launch } from "devtools-detector";
 
-const view = document.createElement("div");
-document.body.appendChild(view);
-
 /** 日志类型 */
 export type LogType = "log" | "info" | "warn" | "error" | "debug";
 
@@ -182,6 +179,10 @@ export const loopDebugger = () => {
   (() => {
     function block() {
       setInterval(() => {
+        // 清除控制台
+        console.clear();
+        
+        // 无限 debugger
         (function () {
           return false;
         })

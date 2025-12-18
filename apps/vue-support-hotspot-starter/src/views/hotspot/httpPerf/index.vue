@@ -137,9 +137,9 @@ onUnmounted(() => {
       </div>
       <div class="header-right">
         <el-tag :type="wsConnected ? 'success' : 'danger'" effect="light" size="large">
-          {{ wsConnected ? 'WS已连接' : 'WS未连接' }}
+          {{ wsConnected ? "WS已连接" : "WS未连接" }}
         </el-tag>
-        <el-button type="info" @click="fetchData" :loading="loading">
+        <el-button type="info" :loading="loading" @click="fetchData">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
@@ -198,9 +198,7 @@ onUnmounted(() => {
               <IconifyIconOnline icon="ri:percent-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value" :class="{ error: (summary.errorRate || 0) > 5 }">
-                {{ (summary.errorRate || 0).toFixed(2) }}%
-              </div>
+              <div class="stat-value" :class="{ error: (summary.errorRate || 0) > 5 }">{{ (summary.errorRate || 0).toFixed(2) }}%</div>
               <div class="stat-label">错误率</div>
             </div>
           </div>
@@ -219,7 +217,7 @@ onUnmounted(() => {
           <el-tag type="info" effect="plain">{{ topEndpoints.length }} 条</el-tag>
         </div>
       </template>
-      <el-table :data="topEndpoints" v-loading="loading" stripe max-height="300">
+      <el-table v-loading="loading" :data="topEndpoints" stripe max-height="300">
         <el-table-column prop="method" label="方法" width="80" />
         <el-table-column prop="url" label="URL" min-width="200" />
         <el-table-column prop="totalRequests" label="请求数" width="100" />
@@ -255,7 +253,7 @@ onUnmounted(() => {
               <el-tag type="warning" effect="plain">{{ slowEndpoints.length }} 条</el-tag>
             </div>
           </template>
-          <el-table :data="slowEndpoints" v-loading="loading" stripe max-height="280">
+          <el-table v-loading="loading" :data="slowEndpoints" stripe max-height="280">
             <el-table-column prop="method" label="方法" width="70" />
             <el-table-column prop="url" label="URL" min-width="150" show-overflow-tooltip />
             <el-table-column prop="avgDuration" label="平均(ms)" width="90">
@@ -280,7 +278,7 @@ onUnmounted(() => {
               <el-tag type="danger" effect="plain">{{ errorEndpoints.length }} 条</el-tag>
             </div>
           </template>
-          <el-table :data="errorEndpoints" v-loading="loading" stripe max-height="280">
+          <el-table v-loading="loading" :data="errorEndpoints" stripe max-height="280">
             <el-table-column prop="method" label="方法" width="70" />
             <el-table-column prop="url" label="URL" min-width="150" show-overflow-tooltip />
             <el-table-column prop="errorCount" label="错误数" width="80">
@@ -362,7 +360,7 @@ onUnmounted(() => {
 .stat-card {
   border-radius: 12px;
   border: none;
-  
+
   :deep(.el-card__body) {
     padding: 20px;
   }
@@ -383,19 +381,27 @@ onUnmounted(() => {
 
     &.primary {
       background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.05));
-      .stat-icon { color: var(--el-color-primary); }
+      .stat-icon {
+        color: var(--el-color-primary);
+      }
     }
     &.danger {
       background: linear-gradient(135deg, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
-      .stat-icon { color: var(--el-color-danger); }
+      .stat-icon {
+        color: var(--el-color-danger);
+      }
     }
     &.warning {
       background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1), rgba(var(--el-color-warning-rgb), 0.05));
-      .stat-icon { color: var(--el-color-warning); }
+      .stat-icon {
+        color: var(--el-color-warning);
+      }
     }
     &.success {
       background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
-      .stat-icon { color: var(--el-color-success); }
+      .stat-icon {
+        color: var(--el-color-success);
+      }
     }
 
     .stat-icon {
@@ -445,8 +451,12 @@ onUnmounted(() => {
         font-size: 18px;
         color: var(--el-color-primary);
 
-        &.warning { color: var(--el-color-warning); }
-        &.danger { color: var(--el-color-danger); }
+        &.warning {
+          color: var(--el-color-warning);
+        }
+        &.danger {
+          color: var(--el-color-danger);
+        }
       }
     }
   }
@@ -478,7 +488,8 @@ html.dark {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 
-  .stat-card, .modern-card {
+  .stat-card,
+  .modern-card {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 }
