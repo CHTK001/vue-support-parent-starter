@@ -1,0 +1,391 @@
+/**
+ * 春节主题皮肤
+ * @author CH
+ * @date 2025-12-12
+ * @version 1.0.0
+ */
+
+// ==================== 春节主题颜色定义 ====================
+
+:root.theme-spring-festival {
+    // 主题颜色
+    --theme-primary: #f5222d;
+    --theme-secondary: #ffd700;
+    --theme-accent: #ff6b6b;
+    --theme-background: #fff8f0;
+    --theme-text: #2c2c2c;
+    --theme-border: #ffe8e8;
+
+    // Element Plus 颜色覆盖
+    --el-color-primary: #f5222d;
+    --el-color-primary-light-3: #f73f45;
+    --el-color-primary-light-5: #f95c5f;
+    --el-color-primary-light-7: #fb7979;
+    --el-color-primary-light-8: #fc9393;
+    --el-color-primary-light-9: #fdadad;
+
+    // 背景和边框
+    --el-bg-color: #fffaf5;
+    --el-border-color: #ffe8e8;
+    --el-border-color-light: #fff0f0;
+    --el-border-color-lighter: #fff8f5;
+}
+
+// ==================== 春节主题 - 导航栏 ====================
+
+.theme-spring-festival :deep(.lay-navbar) {
+    background: linear-gradient(135deg, #f5222d 0%, #ff6b6b 50%, #ff8787 100%);
+    box-shadow: 0 4px 16px rgba(245, 34, 45, 0.4);
+    border-bottom: 3px solid #ffd700;
+    position: relative;
+
+    // 春节装饰线
+    &::after {
+        content: "";
+        position: absolute;
+        bottom: -3px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #ffd700, #ff6b6b, #ffd700);
+        animation: spring-festival-shimmer 2s ease-in-out infinite;
+    }
+
+    // 导航栏文字和图标
+    .navbar-item,
+    .navbar-icon,
+    .navbar-text {
+        color: #ffffff;
+    }
+
+    // 导航栏按钮
+    :deep(.el-button--text) {
+        color: #ffffff;
+
+        &:hover {
+            color: #ffd700;
+        }
+    }
+
+    // 搜索框
+    :deep(.el-input__inner) {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: #ffffff;
+
+        &::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        &:focus {
+            background-color: rgba(255, 255, 255, 0.3);
+            border-color: #ffd700;
+        }
+    }
+}
+
+// ==================== 春节主题 - 侧边栏 ====================
+
+.theme-spring-festival :deep(.nav-vertical),
+.theme-spring-festival :deep(.nav-horizontal),
+.theme-spring-festival :deep(.nav-hover),
+.theme-spring-festival :deep(.nav-double) {
+    background: linear-gradient(180deg, #fff8f0 0%, #fff0e6 100%);
+    border-right: 3px solid #f5222d;
+
+    // 菜单背景
+    :deep(.el-menu) {
+        background-color: transparent;
+        border-right: none;
+    }
+
+    // 菜单项
+    :deep(.el-menu-item),
+    :deep(.el-sub-menu__title) {
+        color: #2c2c2c;
+        transition: all 0.3s ease;
+
+        &:hover {
+            background-color: rgba(245, 34, 45, 0.1) !important;
+            color: #f5222d !important;
+            border-left: 3px solid #f5222d;
+        }
+    }
+
+    // 选中菜单项
+    :deep(.el-menu-item.is-active),
+    :deep(.el-sub-menu__title.is-active) {
+        background-color: rgba(245, 34, 45, 0.15) !important;
+        color: #f5222d !important;
+        border-left: 3px solid #f5222d !important;
+        font-weight: 600;
+    }
+
+    // 子菜单
+    :deep(.el-menu--inline) {
+        background-color: rgba(245, 34, 45, 0.05);
+
+        :deep(.el-menu-item) {
+            &:hover {
+                background-color: rgba(245, 34, 45, 0.1) !important;
+            }
+
+            &.is-active {
+                background-color: rgba(245, 34, 45, 0.15) !important;
+            }
+        }
+    }
+}
+
+// ==================== 春节主题 - 标签页 ====================
+
+.theme-spring-festival :deep(.el-tabs) {
+    :deep(.el-tabs__nav-wrap::after) {
+        background-color: rgba(245, 34, 45, 0.2);
+    }
+
+    :deep(.el-tabs__item) {
+        color: #2c2c2c;
+
+        &:hover {
+            color: #f5222d;
+        }
+
+        &.is-active {
+            color: #f5222d;
+            border-bottom-color: #f5222d;
+            font-weight: 600;
+        }
+    }
+
+    :deep(.el-tabs__content) {
+        background-color: #ffffff;
+    }
+}
+
+// ==================== 春节主题 - 卡片 ====================
+
+.theme-spring-festival :deep(.el-card) {
+    border: 1px solid rgba(245, 34, 45, 0.1);
+    box-shadow: 0 2px 8px rgba(245, 34, 45, 0.08);
+    background-color: #ffffff;
+
+    :deep(.el-card__header) {
+        border-bottom: 1px solid rgba(245, 34, 45, 0.1);
+        background-color: rgba(245, 34, 45, 0.02);
+    }
+
+    &:hover {
+        box-shadow: 0 4px 16px rgba(245, 34, 45, 0.15);
+    }
+}
+
+// ==================== 春节主题 - 按钮 ====================
+
+.theme-spring-festival :deep(.el-button--primary) {
+    background-color: #f5222d;
+    border-color: #f5222d;
+
+    &:hover {
+        background-color: #f73f45;
+        border-color: #f73f45;
+    }
+
+    &:active {
+        background-color: #d91a23;
+        border-color: #d91a23;
+    }
+}
+
+.theme-spring-festival :deep(.el-button--success) {
+    background-color: #ffd700;
+    border-color: #ffd700;
+    color: #2c2c2c;
+
+    &:hover {
+        background-color: #ffe44d;
+        border-color: #ffe44d;
+    }
+}
+
+.theme-spring-festival :deep(.el-button--warning) {
+    background-color: #ff6b6b;
+    border-color: #ff6b6b;
+
+    &:hover {
+        background-color: #ff8888;
+        border-color: #ff8888;
+    }
+}
+
+// ==================== 春节主题 - 输入框 ====================
+
+.theme-spring-festival :deep(.el-input) {
+    :deep(.el-input__inner) {
+        border-color: rgba(245, 34, 45, 0.2);
+        transition: all 0.3s ease;
+
+        &:hover {
+            border-color: rgba(245, 34, 45, 0.4);
+        }
+
+        &:focus {
+            border-color: #f5222d;
+            box-shadow: 0 0 0 2px rgba(245, 34, 45, 0.2);
+        }
+    }
+}
+
+// ==================== 春节主题 - 进度条 ====================
+
+.theme-spring-festival :deep(.el-progress) {
+    :deep(.el-progress__bar) {
+        background-color: #f5222d;
+    }
+
+    :deep(.el-progress__text) {
+        color: #2c2c2c;
+    }
+}
+
+// ==================== 春节主题 - 表格 ====================
+
+.theme-spring-festival :deep(.el-table) {
+    :deep(.el-table__header th) {
+        background-color: rgba(245, 34, 45, 0.05);
+        color: #2c2c2c;
+        border-bottom: 2px solid rgba(245, 34, 45, 0.2);
+    }
+
+    :deep(.el-table__body tr) {
+        &:hover>td {
+            background-color: rgba(245, 34, 45, 0.05) !important;
+        }
+    }
+
+    :deep(.el-table__body-wrapper) {
+        :deep(.el-table__row.hover-row > td) {
+            background-color: rgba(245, 34, 45, 0.05);
+        }
+    }
+}
+
+// ==================== 春节主题 - 装饰元素 ====================
+
+.theme-spring-festival {
+
+    // 顶部装饰线
+    &::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #f5222d, #ff6b6b, #ffd700, #f5222d);
+        z-index: 9999;
+        pointer-events: none;
+        animation: spring-festival-gradient 3s ease infinite;
+    }
+
+    // 春节灯笼效果（可选）
+    &::after {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: radial-gradient(circle at 10% 20%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 90% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
+        pointer-events: none;
+        z-index: -1;
+    }
+}
+
+// ==================== 春节主题 - 动画 ====================
+
+@keyframes spring-festival-gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes spring-festival-shimmer {
+
+    0%,
+    100% {
+        opacity: 0.8;
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    }
+}
+
+@keyframes lantern-swing {
+
+    0%,
+    100% {
+        transform: translateX(0) rotateZ(-5deg);
+    }
+
+    50% {
+        transform: translateX(10px) rotateZ(5deg);
+    }
+}
+
+// ==================== 春节主题 - 暗色模式适配 ====================
+
+:root.dark.theme-spring-festival {
+    --theme-background: #1a1a1a;
+    --theme-text: #e8e8e8;
+    --theme-border: #333333;
+
+    --el-bg-color: #1f1f1f;
+    --el-border-color: #333333;
+    --el-border-color-light: #2a2a2a;
+    --el-border-color-lighter: #333333;
+}
+
+.dark.theme-spring-festival :deep(.nav-vertical),
+.dark.theme-spring-festival :deep(.nav-horizontal),
+.dark.theme-spring-festival :deep(.nav-hover),
+.dark.theme-spring-festival :deep(.nav-double) {
+    background: linear-gradient(180deg, #1f1f1f 0%, #1a1a1a 100%);
+
+    :deep(.el-menu-item),
+    :deep(.el-sub-menu__title) {
+        color: #e8e8e8;
+
+        &:hover {
+            background-color: rgba(245, 34, 45, 0.2) !important;
+            color: #ffd700 !important;
+        }
+    }
+
+    :deep(.el-menu-item.is-active),
+    :deep(.el-sub-menu__title.is-active) {
+        background-color: rgba(245, 34, 45, 0.25) !important;
+        color: #ffd700 !important;
+    }
+}
+
+.dark.theme-spring-festival :deep(.el-card) {
+    background-color: #1f1f1f;
+    border-color: rgba(245, 34, 45, 0.2);
+
+    :deep(.el-card__header) {
+        background-color: rgba(245, 34, 45, 0.1);
+    }
+}
