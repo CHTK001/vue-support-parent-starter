@@ -14,6 +14,8 @@ type Events = {
   breadcrumbModeChange: string;
   keepAliveChange: boolean;
   systemThemeChange: string;
+  /** 消息开关变化事件 */
+  showMessageChange: boolean;
 };
 
 export const emitter: Emitter<Events> = mitt<Events>();

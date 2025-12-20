@@ -28,11 +28,13 @@ const layout = reactive({
   email: defineAsyncComponent(() => import("./layout/email.vue")),
   group: GroupManagement,
   theme: defineAsyncComponent(() => import("./layout/theme.vue")),
+  history: defineAsyncComponent(() => import("./history/index.vue")),
 });
 
 // 抽屉显示状态控制
 const drawerVisible = reactive({
   group: false,
+  history: false,
 });
 // 默认配置项（作为后备）
 const defaultProductsConfig = [
@@ -61,6 +63,15 @@ const defaultProductsConfig = [
     isSetup: true,
     type: 6,
     icon: "ri:palette-line",
+    hide: false,
+  },
+  {
+    group: "history",
+    description: "配置变更历史记录、导入导出、回滚",
+    name: "历史记录",
+    isSetup: true,
+    type: 7,
+    icon: "ri:history-line",
     hide: false,
   },
 ];

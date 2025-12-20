@@ -434,3 +434,94 @@ export const deleteGroup = (
 export const initDefaultGroups = (): Promise<ReturnResult<boolean>> => {
   return http.request("post", "/v2/file/group/init");
 };
+
+// ==================== 秒传接口 ====================
+
+/**
+ * 秒传检查请求
+ */
+export interface InstantUploadRequest {
+  /** 文件MD5 */
+  fileMd5: string;
+  /** 文件大小 */
+  fileSize: number;
+  /** 文件名 */
+  fileName?: string;
+  /** 存储桶 */
+  fileBucket?: string;
+}
+
+/**
+ * 秒传检查响应
+ */
+export interface InstantUploadResponse {
+  /** 是否可以秒传 */
+  canInstantUpload: boolean;
+  /** 已存在的文件URL（秒传时返回） */
+  existingFileUrl?: string;
+  /** 已存在的文件ID */
+  existingFileId?: number;
+}
+
+/**
+ * 检查秒传
+ * @param request 秒传检查请求
+ * @returns 秒传检查响应
+ */
+export const checkInstantUpload = (
+  request: InstantUploadRequest
+): Promise<ReturnResult<InstantUploadResponse>> => {
+  return http.request("post", "/v2/file/instant-check", {
+    data: request,
+  });
+};
+
+// ==================== 断点续传接口 ====================
+
+/**
+ * 任务信息响应
+ */
+export interface TaskInfoResponse {
+  /** 任务ID */
+  taskId: string;
+  /** 文件名 */
+  fileName?: string;
+  /** 文件MD5 */
+  fileMd5?: string;
+  /** 文件大小 */
+  fileSize?: number;
+  /** 总分片数 */
+  totalChunks?: number;
+  /** 已上传的分片列表 */
+  uploadedParts?: number[];
+  /** 任务状态 */
+  status?: string;
+  /** 创建时间 */
+  createTime?: string;
+}
+
+/**
+ * 获取任务信息
+ * @param taskId 任务ID
+ * @returns 任务信息
+ */
+export const getTaskInfo = (
+  taskId: string
+): Promise<ReturnResult<TaskInfoResponse>> => {
+  return http.request("get", `/v2/file/task/info/${taskId}`);
+};
+
+/**
+ * 根据MD5查找任务（用于断点续传）
+ * @param fileMd5 文件MD5
+ * @param fileSize 文件大小
+ * @returns 任务信息
+ */
+export const findTaskByMd5 = (
+  fileMd5: string,
+  fileSize: number
+): Promise<ReturnResult<TaskInfoResponse>> => {
+  return http.request("get", "/v2/file/task/resume", {
+    params: { fileMd5, fileSize },
+  });
+};
