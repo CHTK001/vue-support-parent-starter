@@ -182,13 +182,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from "vue";
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
+import { useConfigStoreHook } from "@repo/core";
 import SparkMD5 from "spark-md5";
 import {
   uploadFile,
   createUploadTask,
   uploadTaskPart,
+  checkInstantUpload,
+  findTaskByMd5,
   type SysFileSystemSetting,
   type SysFileSystemGroup,
 } from "../../api/file";
@@ -196,10 +199,16 @@ import ImageCropDialog from "./ImageCropDialog.vue";
 
 interface FileItem {
   file: File;
-  status: "pending" | "uploading" | "success" | "error";
+  status: "pending" | "uploading" | "success" | "error" | "paused";
   progress: number;
   previewUrl?: string;
   result?: { url?: string };
+  /** 文件MD5（用于断点续传） */
+  fileMd5?: string;
+  /** 任务ID */
+  taskId?: string;
+  /** 已上传的分片 */
+  uploadedParts?: number[];
 }
 
 interface Props {
@@ -233,7 +242,17 @@ const config = reactive({
   groupId: undefined as number | undefined,
   uploadMode: "normal" as "normal" | "chunk",
   autoMerge: true,
+  /** 并发数 */
+  concurrency: 3,
+  /** 是否启用秒传 */
+  enableInstantUpload: true,
+  /** 是否启用断点续传 */
+  enableResume: true,
 });
+
+// ConfigStore Socket
+const configStore = useConfigStoreHook();
+const STORAGE_KEY = "file_upload_progress";
 
 // 统计
 const uploadStats = reactive({
@@ -392,7 +411,7 @@ const handleImageCropped = async (blob: Blob) => {
 };
 
 // 计算 MD5
-const calculateMD5 = async (file: File): Promise<string> => {
+const calculateMD5 = async (file: File, onProgress?: (percent: number) => void): Promise<string> => {
   return new Promise((resolve, reject) => {
     const spark = new SparkMD5.ArrayBuffer();
     const reader = new FileReader();
@@ -403,6 +422,9 @@ const calculateMD5 = async (file: File): Promise<string> => {
     reader.onload = (e) => {
       spark.append(e.target?.result as ArrayBuffer);
       currentChunk++;
+      if (onProgress) {
+        onProgress(Math.round((currentChunk / chunks) * 100));
+      }
       if (currentChunk < chunks) {
         loadNext();
       } else {
@@ -419,6 +441,110 @@ const calculateMD5 = async (file: File): Promise<string> => {
     loadNext();
   });
 };
+
+// ==================== 进度持久化 ====================
+interface PersistedUpload {
+  fileName: string;
+  fileSize: number;
+  fileMd5: string;
+  taskId: string;
+  uploadedParts: number[];
+  totalChunks: number;
+  timestamp: number;
+}
+
+const saveUploadProgress = (item: FileItem, totalChunks: number) => {
+  if (!item.fileMd5 || !item.taskId) return;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const data: Record<string, PersistedUpload> = stored ? JSON.parse(stored) : {};
+    data[item.fileMd5] = {
+      fileName: item.file.name,
+      fileSize: item.file.size,
+      fileMd5: item.fileMd5,
+      taskId: item.taskId,
+      uploadedParts: item.uploadedParts || [],
+      totalChunks,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error("保存上传进度失败", e);
+  }
+};
+
+const loadUploadProgress = (fileMd5: string): PersistedUpload | null => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return null;
+    const data: Record<string, PersistedUpload> = JSON.parse(stored);
+    const item = data[fileMd5];
+    // 24小时内有效
+    if (item && Date.now() - item.timestamp < 24 * 60 * 60 * 1000) {
+      return item;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const clearUploadProgress = (fileMd5: string) => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return;
+    const data: Record<string, PersistedUpload> = JSON.parse(stored);
+    delete data[fileMd5];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error("清除上传进度失败", e);
+  }
+};
+
+// ==================== 并发控制 ====================
+class ConcurrencyQueue {
+  private queue: (() => Promise<void>)[] = [];
+  private running = 0;
+  private maxConcurrency: number;
+
+  constructor(maxConcurrency: number) {
+    this.maxConcurrency = maxConcurrency;
+  }
+
+  async add(task: () => Promise<void>): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const wrappedTask = async () => {
+        try {
+          await task();
+          resolve();
+        } catch (e) {
+          reject(e);
+        } finally {
+          this.running--;
+          this.runNext();
+        }
+      };
+      this.queue.push(wrappedTask);
+      this.runNext();
+    });
+  }
+
+  private runNext() {
+    while (this.running < this.maxConcurrency && this.queue.length > 0) {
+      const task = this.queue.shift();
+      if (task) {
+        this.running++;
+        task();
+      }
+    }
+  }
+
+  setMaxConcurrency(value: number) {
+    this.maxConcurrency = value;
+  }
+}
+
+const chunkQueue = new ConcurrencyQueue(config.concurrency);
 
 // 普通上传
 const uploadSingleFile = async (item: FileItem) => {
@@ -448,67 +574,143 @@ const uploadSingleFile = async (item: FileItem) => {
   }
 };
 
-// 分片上传
+// 分片上传（支持秒传、断点续传、并发控制）
 const uploadChunkedFile = async (item: FileItem) => {
   item.status = "uploading";
   item.progress = 0;
 
   try {
-    const fileMd5 = await calculateMD5(item.file);
+    // 计算MD5
+    const fileMd5 = await calculateMD5(item.file, (percent) => {
+      // MD5计算进度占总进度的10%
+      item.progress = Math.round(percent * 0.1);
+    });
+    item.fileMd5 = fileMd5;
+
     const fileName = item.file.name;
     const fileType = fileName.substring(fileName.lastIndexOf(".") + 1);
     const chunkSize =
       (props.setting?.sysFileSystemSettingChunkSizeMb || 100) * 1024 * 1024;
-
-    // 创建任务
-    const taskRes = await createUploadTask({
-      fileName,
-      fileMd5,
-      fileType,
-      fileBucket: "default",
-      ssoType: "FILESYSTEM",
-      fileSize: item.file.size,
-    });
-
-    if (taskRes.code !== 200 || !taskRes.data) {
-      throw new Error(taskRes.msg || "创建任务失败");
-    }
-
-    const taskId = taskRes.data.taskId;
-
-    // 秒传
-    if (taskRes.data.url) {
-      item.status = "success";
-      item.progress = 100;
-      item.result = { url: taskRes.data.url };
-      message("文件秒传成功", { type: "success" });
-      return;
-    }
-
-    // 分片上传
     const totalChunks = Math.ceil(item.file.size / chunkSize);
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * chunkSize;
-      const end = Math.min(start + chunkSize, item.file.size);
-      const chunk = item.file.slice(start, end);
 
-      const partRes = await uploadTaskPart(
-        { taskId, partNumber: i + 1 },
-        chunk
-      );
-      if (partRes.code !== 200) {
-        throw new Error(partRes.msg || `分片 ${i + 1} 上传失败`);
+    // 1. 秒传检查
+    if (config.enableInstantUpload) {
+      const instantRes = await checkInstantUpload({
+        fileMd5,
+        fileSize: item.file.size,
+        fileName,
+        fileBucket: "default",
+      });
+      if (instantRes.code === 200 && instantRes.data?.canInstantUpload) {
+        item.status = "success";
+        item.progress = 100;
+        item.result = { url: instantRes.data.existingFileUrl };
+        message("文件秒传成功", { type: "success" });
+        return;
+      }
+    }
+
+    // 2. 断点续传检查
+    let taskId: string;
+    let uploadedParts: number[] = [];
+
+    if (config.enableResume) {
+      // 先检查本地缓存
+      const localProgress = loadUploadProgress(fileMd5);
+      if (localProgress && localProgress.taskId) {
+        // 验证服务端任务是否存在
+        const resumeRes = await findTaskByMd5(fileMd5, item.file.size);
+        if (resumeRes.code === 200 && resumeRes.data?.taskId) {
+          taskId = resumeRes.data.taskId;
+          uploadedParts = resumeRes.data.uploadedParts || [];
+          item.taskId = taskId;
+          item.uploadedParts = uploadedParts;
+          message(`检测到未完成任务，已上传 ${uploadedParts.length}/${totalChunks} 分片`, { type: "info" });
+        }
+      }
+    }
+
+    // 3. 创建新任务（如果没有续传任务）
+    if (!taskId!) {
+      const taskRes = await createUploadTask({
+        fileName,
+        fileMd5,
+        fileType,
+        fileBucket: "default",
+        ssoType: "FILESYSTEM",
+        fileSize: item.file.size,
+      });
+
+      if (taskRes.code !== 200 || !taskRes.data) {
+        throw new Error(taskRes.msg || "创建任务失败");
       }
 
-      item.progress = Math.round(((i + 1) / totalChunks) * 100);
+      taskId = taskRes.data.taskId;
+      item.taskId = taskId;
+
+      // 服务端秒传检查
+      if (taskRes.data.url) {
+        item.status = "success";
+        item.progress = 100;
+        item.result = { url: taskRes.data.url };
+        clearUploadProgress(fileMd5);
+        message("文件秒传成功", { type: "success" });
+        return;
+      }
     }
 
+    // 4. 并发上传分片
+    const uploadedSet = new Set(uploadedParts);
+    let completedChunks = uploadedParts.length;
+    const baseProgress = 10; // MD5计算占用的10%
+
+    // 创建分片上传任务
+    const chunkTasks: Promise<void>[] = [];
+    
+    for (let i = 0; i < totalChunks; i++) {
+      const partNumber = i + 1;
+      
+      // 跳过已上传的分片
+      if (uploadedSet.has(partNumber)) {
+        continue;
+      }
+
+      const task = chunkQueue.add(async () => {
+        const start = i * chunkSize;
+        const end = Math.min(start + chunkSize, item.file.size);
+        const chunk = item.file.slice(start, end);
+
+        const partRes = await uploadTaskPart(
+          { taskId, partNumber },
+          chunk
+        );
+        if (partRes.code !== 200) {
+          throw new Error(partRes.msg || `分片 ${partNumber} 上传失败`);
+        }
+
+        completedChunks++;
+        item.uploadedParts = item.uploadedParts || [];
+        item.uploadedParts.push(partNumber);
+        item.progress = baseProgress + Math.round((completedChunks / totalChunks) * (100 - baseProgress));
+        
+        // 保存进度
+        saveUploadProgress(item, totalChunks);
+      });
+      
+      chunkTasks.push(task);
+    }
+
+    // 等待所有分片上传完成
+    await Promise.all(chunkTasks);
+
+    // 上传完成，清除进度
+    clearUploadProgress(fileMd5);
     item.status = "success";
     item.progress = 100;
   } catch (e: unknown) {
     item.status = "error";
-    const message = e instanceof Error ? e.message : "上传失败";
-    message(message, { type: "error" });
+    const errMsg = e instanceof Error ? e.message : "上传失败";
+    message(errMsg, { type: "error" });
   }
 };
 
@@ -558,6 +760,43 @@ watch(visible, (val) => {
     uploadStats.total = 0;
     uploadStats.success = 0;
     uploadStats.error = 0;
+  }
+});
+
+// Socket监听上传进度
+onMounted(() => {
+  // 监听服务端推送的上传进度
+  const socket = configStore.getSocket();
+  if (socket) {
+    socket.on("service:file:upload:progress", (data: {
+      taskId: string;
+      progress: number;
+      status: string;
+      message?: string;
+    }) => {
+      // 查找对应的文件项
+      const item = fileList.value.find(f => f.taskId === data.taskId);
+      if (item) {
+        if (data.status === "completed") {
+          item.status = "success";
+          item.progress = 100;
+        } else if (data.status === "error") {
+          item.status = "error";
+          message(data.message || "服务端处理失败", { type: "error" });
+        } else if (data.status === "merging") {
+          // 合并中状态
+          item.progress = Math.max(item.progress, 95);
+        }
+      }
+    });
+  }
+});
+
+onUnmounted(() => {
+  // 移除监听
+  const socket = configStore.getSocket();
+  if (socket) {
+    socket.off("service:file:upload:progress");
   }
 });
 </script>

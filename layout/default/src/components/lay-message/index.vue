@@ -6,29 +6,45 @@
  * @version 1.0.0
  * @since 2024-12-04
  */
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { useConfigStore, router } from "@repo/core";
+import { useConfigStore, router, emitter } from "@repo/core";
 import MessageIcon from "@iconify-icons/ri/message-3-line";
 import { getConfig } from "@repo/config";
+import { useGlobal } from "@pureadmin/utils";
+import {
+  fetchUnreadMessages,
+  fetchMarkAsRead,
+  fetchMarkAllAsRead,
+  fetchDeleteMessage,
+  type SysMessage,
+} from "./api";
 
 defineOptions({
   name: "LayMessage",
 });
 
 const { t } = useI18n();
+const { $storage } = useGlobal<GlobalPropertiesApi>();
+
+// 消息功能开关 - 从配置中读取
+const messageEnabled = ref(
+  $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true
+);
 
 /**
  * 消息项接口
  */
 interface MessageItem {
-  id: string | number;
+  id: number;
   title: string;
   content: string;
   avatar?: string;
   time: string;
   read: boolean;
   type: string;
+  level: string;
+  url?: string;
 }
 
 // 消息列表
@@ -41,21 +57,56 @@ const unreadCount = computed(
 );
 
 /**
+ * 将后端消息转换为前端格式
+ */
+const transformMessage = (msg: SysMessage): MessageItem => {
+  return {
+    id: msg.sysMessageId,
+    title: msg.sysMessageTitle,
+    content: msg.sysMessageContent,
+    avatar: undefined,
+    time: msg.sysMessageSendTime || new Date().toLocaleString(),
+    read: msg.sysMessageRead === 1,
+    type: msg.sysMessageType || "system",
+    level: msg.sysMessageLevel || "normal",
+    url: msg.sysMessageUrl,
+  };
+};
+
+/**
  * 获取消息列表
  */
 const fetchMessages = async () => {
+  // 开关关闭时不请求后端
+  if (!messageEnabled.value) {
+    messages.value = [];
+    return;
+  }
   loading.value = true;
   try {
-    // 这里可以替换为实际的API请求
-    // const response = await fetchMessageList();
-    // messages.value = response.data;
-
-    // 模拟数据
-    messages.value = [];
+    const response = await fetchUnreadMessages();
+    if (response.success && response.data) {
+      messages.value = response.data.map(transformMessage);
+    } else {
+      messages.value = [];
+    }
   } catch (error) {
     console.error("获取消息列表失败:", error);
+    messages.value = [];
   } finally {
-    loading.value = false;
+  loading.value = false;
+  }
+};
+
+/**
+ * showMessage 变化监听处理函数
+ */
+const showMessageChangeHandler = (val: boolean) => {
+  messageEnabled.value = val;
+  if (val) {
+    fetchMessages();
+  } else {
+    messages.value = [];
   }
 };
 
@@ -64,17 +115,26 @@ const fetchMessages = async () => {
  * @param data 推送的消息数据
  */
 const handleSocketMessage = (data: any) => {
-  if (data && data.message) {
+  // 开关关闭时不处理推送
+  if (!messageEnabled.value) return;
+  
+  if (data) {
     const newMessage: MessageItem = {
-      id: data.id || Date.now(),
+      id: data.messageId || data.id || Date.now(),
       title: data.title || "新消息",
-      content: data.message || data.content,
+      content: data.content || data.message,
       avatar: data.avatar,
-      time: data.time || new Date().toLocaleString(),
+      time: data.sendTime || data.time || new Date().toLocaleString(),
       read: false,
       type: data.type || "system",
+      level: data.level || "normal",
+      url: data.url,
     };
-    messages.value.unshift(newMessage);
+    // 避免重复添加
+    const exists = messages.value.some((m) => m.id === newMessage.id);
+    if (!exists) {
+      messages.value.unshift(newMessage);
+    }
   }
 };
 
@@ -82,22 +142,56 @@ const handleSocketMessage = (data: any) => {
  * 标记消息为已读
  * @param message 消息项
  */
-const markAsRead = (message: MessageItem) => {
-  message.read = true;
+const markAsRead = async (message: MessageItem) => {
+  if (message.read) return;
+  // 开关关闭时只修改本地状态
+  if (!messageEnabled.value) {
+    const index = messages.value.findIndex((m) => m.id === message.id);
+    if (index > -1) {
+      messages.value.splice(index, 1);
+    }
+    return;
+  }
+  try {
+    const response = await fetchMarkAsRead(message.id);
+    if (response.success) {
+      // 标记已读后从列表移除（后端已转入历史记录）
+      const index = messages.value.findIndex((m) => m.id === message.id);
+      if (index > -1) {
+        messages.value.splice(index, 1);
+      }
+    }
+  } catch (error) {
+    console.error("标记已读失败:", error);
+  }
 };
 
 /**
  * 标记全部已读
  */
-const markAllAsRead = () => {
-  messages.value.forEach((m) => (m.read = true));
+const markAllAsRead = async () => {
+  // 开关关闭时只清空本地
+  if (!messageEnabled.value) {
+    messages.value = [];
+    return;
+  }
+  try {
+    const response = await fetchMarkAllAsRead();
+    if (response.success) {
+      // 清空未读列表（后端已全部转入历史记录）
+      messages.value = [];
+    }
+  } catch (error) {
+    console.error("全部标记已读失败:", error);
+  }
 };
 
 /**
  * 清空所有消息
  */
-const clearAll = () => {
-  messages.value = [];
+const clearAll = async () => {
+  // 批量标记已读后清空
+  await markAllAsRead();
 };
 
 // 消息中心 Drawer 状态
@@ -134,10 +228,36 @@ const filteredMessages = computed(() => {
 /**
  * 删除消息
  */
-const deleteMessage = (msg: MessageItem) => {
-  const index = messages.value.findIndex((m) => m.id === msg.id);
-  if (index > -1) {
-    messages.value.splice(index, 1);
+const deleteMessage = async (msg: MessageItem) => {
+  // 开关关闭时只删除本地
+  if (!messageEnabled.value) {
+    const index = messages.value.findIndex((m) => m.id === msg.id);
+    if (index > -1) {
+      messages.value.splice(index, 1);
+    }
+    return;
+  }
+  try {
+    const response = await fetchDeleteMessage(msg.id);
+    if (response.success) {
+      const index = messages.value.findIndex((m) => m.id === msg.id);
+      if (index > -1) {
+        messages.value.splice(index, 1);
+      }
+    }
+  } catch (error) {
+    console.error("删除消息失败:", error);
+  }
+};
+
+/**
+ * 点击消息跳转
+ */
+const handleMessageClick = (msg: MessageItem) => {
+  markAsRead(msg);
+  if (msg.url) {
+    router.push(msg.url);
+    drawerVisible.value = false;
   }
 };
 
@@ -146,11 +266,15 @@ onMounted(() => {
   // 获取消息列表
   fetchMessages();
 
+  // 监听消息开关变化
+  emitter.on("showMessageChange", showMessageChangeHandler);
+
   // 监听Socket消息推送
   const configStore = useConfigStore();
   const socket = configStore.getSocket();
   if (socket) {
-    // 使用统一的主题命名规范: system:message:push
+    // 使用统一的主题命名规范
+    socket.on("service:message:push", handleSocketMessage);
     socket.on("system:message:push", handleSocketMessage);
     socket.on("system:message:notification", handleSocketMessage);
   }
@@ -161,9 +285,12 @@ onUnmounted(() => {
   const configStore = useConfigStore();
   const socket = configStore.getSocket();
   if (socket) {
+    socket.off("service:message:push");
     socket.off("system:message:push");
     socket.off("system:message:notification");
   }
+  // 清理事件监听
+  emitter.off("showMessageChange", showMessageChangeHandler);
 });
 </script>
 
@@ -220,7 +347,7 @@ onUnmounted(() => {
                 v-for="msg in messages"
                 :key="msg.id"
                 :class="['message-item', { unread: !msg.read }]"
-                @click="markAsRead(msg)"
+                @click="handleMessageClick(msg)"
               >
                 <div class="item-avatar">
                   <el-avatar v-if="msg.avatar" :size="36" :src="msg.avatar" />
@@ -307,7 +434,7 @@ onUnmounted(() => {
               <IconifyIconOnline icon="ri:notification-3-line" />
             </div>
           </div>
-          <div class="msg-body" @click="markAsRead(msg)">
+          <div class="msg-body" @click="handleMessageClick(msg)">
             <div class="msg-header">
               <span class="msg-title">{{ msg.title }}</span>
               <span class="msg-time">{{ msg.time }}</span>
