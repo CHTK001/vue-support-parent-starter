@@ -50,6 +50,12 @@ import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
 import NavMobileLayout from "./components/lay-sidebar/NavMobile.vue";
 import LayTag from "./components/lay-tag/index.vue";
 import LayAiChat from "./components/lay-ai-chat/index.vue";
+import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
+import SpringFestivalDecorations from "./themes/SpringFestivalDecorations.vue";
+
+// 导入主题皮肤样式
+import "./themes/christmas.scss";
+import "./themes/spring-festival.scss";
 window.onload = () => {
   registerRequestIdleCallback(() => {
     createFingerprint((finger) => {
@@ -431,8 +437,12 @@ const LayHeader = defineComponent({
 </script>
 
 <template>
-  <!-- 全屏加载遮罩 -->
-  <div v-if="!isConfigLoaded" class="fullscreen-loading" :class="'loading-' + loadingStyle">
+  <ThemeSkinProvider>
+    <!-- 春节装饰 -->
+    <SpringFestivalDecorations />
+
+    <!-- 全屏加载遮罩 -->
+    <div v-if="!isConfigLoaded" class="fullscreen-loading" :class="'loading-' + loadingStyle">
    
     
     <!-- 加载信息 -->
@@ -611,6 +621,7 @@ const LayHeader = defineComponent({
       @close="handleDebugConsoleClose"
     />
   </div>
+  </ThemeSkinProvider>
 </template>
 
 <style lang="scss" scoped>

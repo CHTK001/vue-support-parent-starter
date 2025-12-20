@@ -1,25 +1,1134 @@
 <script setup lang="ts">
-import { useThemeComponent } from "../../hooks/useThemeComponent";
-import DefaultTag from "./themes/Default.vue";
-import SpringFestivalTag from "./themes/SpringFestival.vue";
-import CyberpunkTag from "./themes/Cyberpunk.vue";
-import MidAutumnTag from "./themes/MidAutumn.vue";
-import ChristmasTag from "./themes/Christmas.vue";
-import NewYearTag from "./themes/NewYear.vue";
+import { $t } from "@repo/config";
+import {
+  emitter,
+  getTopMenu,
+  handleAliveRoute,
+  useMultiTagsStoreHook,
+  useSettingStoreHook,
+} from "@repo/core";
+import { RouteConfigs } from "../../types";
+import { useTags } from "../../hooks/useTag";
+import { routerArrays } from "../../types";
+import { onClickOutside } from "@vueuse/core";
+import TagChrome from "./components/TagChrome.vue";
+import { usePermissionStoreHook } from "@repo/core";
+import { nextTick, onBeforeUnmount, ref, toRaw, unref, watch } from "vue";
+import {
+  delay,
+  isAllEmpty,
+  isEqual,
+  useGlobal,
+  useResizeObserver,
+} from "@pureadmin/utils";
+import { useDefer } from "@repo/utils";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
-// 主题组件映射
-const themeComponents = {
-  'default': DefaultTag,
-  'spring-festival': SpringFestivalTag,
-  'cyberpunk': CyberpunkTag,
-  'mid-autumn': MidAutumnTag,
-  'christmas': ChristmasTag,
-  'new-year': NewYearTag,
+import ExitFullscreen from "@iconify-icons/ri/fullscreen-exit-fill";
+import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
+import ArrowDown from "@iconify-icons/ri/arrow-down-s-line";
+import ArrowRightSLine from "@iconify-icons/ri/arrow-right-s-line";
+import ArrowLeftSLine from "@iconify-icons/ri/arrow-left-s-line";
+
+const {
+  Close,
+  route,
+  router,
+  visible,
+  showTags,
+  instance,
+  multiTags,
+  tagsViews,
+  buttonTop,
+  buttonLeft,
+  showModel,
+  translateX,
+  isFixedTag,
+  pureSetting,
+  activeIndex,
+  getTabStyle,
+  isScrolling,
+  iconIsActive,
+  linkIsActive,
+  currentSelect,
+  scheduleIsActive,
+  getContextMenuStyle,
+  closeMenu,
+  onMounted,
+  onMouseenter,
+  onMouseleave,
+  transformI18n,
+  onContentFullScreen,
+} = useTags();
+
+const tabDom = ref();
+const containerDom = ref();
+const scrollbarDom = ref();
+const contextmenuRef = ref();
+const isShowArrow = ref(false);
+const topPath = getTopMenu()?.path;
+//@ts-ignore
+const { VITE_HIDE_HOME } = import.meta.env;
+//@ts-ignore
+const { $storage } = useGlobal<GlobalPropertiesApi>();
+
+// 标签页是否显示图标
+const showTagIcon = ref($storage.configure?.showTagIcon ?? false);
+
+// 监听标签图标设置变化
+emitter.on("showTagIconChange", (val: boolean) => {
+  showTagIcon.value = val;
+});
+
+const fixedTags = [
+  ...routerArrays,
+  ...usePermissionStoreHook().flatteningRoutes.filter((v) => v?.meta?.fixedTag),
+];
+
+const dynamicTagView = async () => {
+  await nextTick();
+  let index = multiTags.value.findIndex((item) => {
+    if (!isAllEmpty(route.query) && Object.keys(route.query).length > 0) {
+      return isEqual(route.query, item.query) && route.path === item.path;
+    } else if (
+      !isAllEmpty(route.params) &&
+      Object.keys(route.params).length > 0
+    ) {
+      return isEqual(route.params, item.params) && route.path === item.path;
+    } else {
+      return route.path === item.path;
+    }
+  });
+
+  // 如果找不到匹配的标签，默认使用最后一个标签
+  if (index === -1 && multiTags.value.length > 0) {
+    index = multiTags.value.length - 1;
+  }
+
+  moveToView(index);
 };
 
-const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultTag);
+const moveToView = async (index: number): Promise<void> => {
+  await nextTick();
+  const tabNavPadding = 10;
+  if (!instance.refs["dynamic" + index] || index < 0) return;
+  const tabItemEl = instance.refs["dynamic" + index][0];
+  if (!tabItemEl) return; // 确保元素存在
+
+  const tabItemElOffsetLeft = (tabItemEl as HTMLElement)?.offsetLeft;
+  const tabItemOffsetWidth = (tabItemEl as HTMLElement)?.offsetWidth;
+  // 标签页导航栏可视长度（不包含溢出部分）
+  const scrollbarDomWidth = scrollbarDom.value
+    ? scrollbarDom.value?.offsetWidth
+    : 0;
+
+  // 已有标签页总长度（包含溢出部分）
+  const tabDomWidth = tabDom.value ? tabDom.value?.offsetWidth : 0;
+
+  scrollbarDomWidth <= tabDomWidth
+    ? (isShowArrow.value = true)
+    : (isShowArrow.value = false);
+  if (tabDomWidth < scrollbarDomWidth || tabItemElOffsetLeft === 0) {
+    translateX.value = 0;
+  } else if (tabItemElOffsetLeft < -translateX.value) {
+    // 标签在可视区域左侧
+    translateX.value = -tabItemElOffsetLeft + tabNavPadding;
+  } else if (
+    tabItemElOffsetLeft > -translateX.value &&
+    tabItemElOffsetLeft + tabItemOffsetWidth <
+      -translateX.value + scrollbarDomWidth
+  ) {
+    // 标签在可视区域
+    translateX.value = Math.min(
+      0,
+      scrollbarDomWidth -
+        tabItemOffsetWidth -
+        tabItemElOffsetLeft -
+        tabNavPadding
+    );
+  } else {
+    // 标签在可视区域右侧
+    translateX.value = -(
+      tabItemElOffsetLeft -
+      (scrollbarDomWidth - tabNavPadding - tabItemOffsetWidth)
+    );
+  }
+};
+
+const handleScroll = (offset: number): void => {
+  const scrollbarDomWidth = scrollbarDom.value
+    ? scrollbarDom.value?.offsetWidth
+    : 0;
+  const tabDomWidth = tabDom.value ? tabDom.value.offsetWidth : 0;
+  if (offset > 0) {
+    translateX.value = Math.min(0, translateX.value + offset);
+  } else {
+    if (scrollbarDomWidth < tabDomWidth) {
+      if (translateX.value >= -(tabDomWidth - scrollbarDomWidth)) {
+        translateX.value = Math.max(
+          translateX.value + offset,
+          scrollbarDomWidth - tabDomWidth
+        );
+      }
+    } else {
+      translateX.value = 0;
+    }
+  }
+  isScrolling.value = false;
+};
+
+const handleWheel = (event: WheelEvent): void => {
+  isScrolling.value = true;
+  const scrollIntensity = Math.abs(event.deltaX) + Math.abs(event.deltaY);
+  let offset = 0;
+  if (event.deltaX < 0) {
+    offset = scrollIntensity > 0 ? scrollIntensity : 100;
+  } else {
+    offset = scrollIntensity > 0 ? -scrollIntensity : -100;
+  }
+
+  smoothScroll(offset);
+};
+
+const smoothScroll = (offset: number): void => {
+  // 每帧滚动的距离
+  const scrollAmount = 20;
+  let remaining = Math.abs(offset);
+
+  const scrollStep = () => {
+    const scrollOffset = Math.sign(offset) * Math.min(scrollAmount, remaining);
+    handleScroll(scrollOffset);
+    remaining -= Math.abs(scrollOffset);
+
+    if (remaining > 0) {
+      requestAnimationFrame(scrollStep);
+    }
+  };
+
+  requestAnimationFrame(scrollStep);
+};
+
+function dynamicRouteTag(value: string): void {
+  const hasValue = multiTags.value.some((item) => {
+    return item.path === value;
+  });
+
+  function concatPath(arr: object[], value: string) {
+    if (!hasValue) {
+      arr.forEach((arrItem: any) => {
+        if (arrItem.path === value) {
+          useMultiTagsStoreHook().handleTags("push", {
+            path: value,
+            meta: arrItem.meta,
+            name: arrItem.name,
+            query: route.query,
+            params: route.params,
+          });
+          nextTick(() => {
+            dynamicTagView();
+          });
+        } else {
+          if (arrItem.children && arrItem.children.length > 0) {
+            concatPath(arrItem.children, value);
+          }
+        }
+      });
+    }
+  }
+  concatPath(router.options.routes as any, value);
+}
+
+/** 刷新路由 */
+function onFresh() {
+  const { fullPath, query } = unref(route);
+  router.replace({
+    path: "/redirect" + fullPath,
+    query,
+  });
+  handleAliveRoute(route as ToRouteType, "refresh");
+}
+
+function deleteDynamicTag(obj: any, current: any, tag?: string) {
+  const valueIndex: number = multiTags.value.findIndex((item: any) => {
+    if (item.query) {
+      if (item.path === obj.path) {
+        return item.query === obj.query;
+      }
+    } else if (item.params) {
+      if (item.path === obj.path) {
+        return item.params === obj.params;
+      }
+    } else {
+      return item.path === obj.path;
+    }
+  });
+
+  const spliceRoute = (
+    startIndex?: number,
+    length?: number,
+    other?: boolean
+  ): void => {
+    if (other) {
+      useMultiTagsStoreHook().handleTags(
+        "equal",
+        [
+          VITE_HIDE_HOME === "false" ? fixedTags : toRaw(getTopMenu()),
+          obj,
+        ].flat()
+      );
+    } else {
+      useMultiTagsStoreHook().handleTags("splice", "", {
+        startIndex,
+        length,
+      }) as any;
+    }
+    dynamicTagView();
+  };
+
+  if (tag === "other") {
+    spliceRoute(1, 1, true);
+  } else if (tag === "left") {
+    spliceRoute(fixedTags.length, valueIndex - 1, true);
+  } else if (tag === "right") {
+    spliceRoute(valueIndex + 1, multiTags.value.length);
+  } else {
+    // 从当前匹配到的路径中删除
+    spliceRoute(valueIndex, 1);
+  }
+  const newRoute = useMultiTagsStoreHook().handleTags("slice");
+  if (current === route.path) {
+    // 如果删除当前激活tag就自动切换到最后一个tag
+    if (tag === "left") return;
+    if (newRoute[0]?.query) {
+      router.push({ name: newRoute[0].name, query: newRoute[0].query });
+    } else if (newRoute[0]?.params) {
+      router.push({ name: newRoute[0].name, params: newRoute[0].params });
+    } else {
+      router.push({ path: newRoute[0].path });
+    }
+  } else {
+    if (!multiTags.value.length) return;
+    if (multiTags.value.some((item) => item.path === route.path)) return;
+    if (newRoute[0]?.query) {
+      router.push({ name: newRoute[0].name, query: newRoute[0].query });
+    } else if (newRoute[0]?.params) {
+      router.push({ name: newRoute[0].name, params: newRoute[0].params });
+    } else {
+      router.push({ path: newRoute[0].path });
+    }
+  }
+}
+
+function deleteMenu(item, tag?: string) {
+  deleteDynamicTag(item, item.path, tag);
+  handleAliveRoute(route as ToRouteType);
+}
+
+function onClickDrop(key, item, selectRoute?: RouteConfigs) {
+  if (item && item.disabled) return;
+
+  let selectTagRoute;
+  if (selectRoute) {
+    selectTagRoute = {
+      path: selectRoute.path,
+      meta: selectRoute.meta,
+      name: selectRoute.name,
+      query: selectRoute?.query,
+      params: selectRoute?.params,
+    };
+  } else {
+    selectTagRoute = { path: route.path, meta: route.meta };
+  }
+
+  // 当前路由信息
+  switch (key) {
+    case 0:
+      // 刷新路由
+      onFresh();
+      break;
+    case 1:
+      // 关闭当前标签页
+      deleteMenu(selectTagRoute);
+      break;
+    case 2:
+      // 关闭左侧标签页
+      deleteMenu(selectTagRoute, "left");
+      break;
+    case 3:
+      // 关闭右侧标签页
+      deleteMenu(selectTagRoute, "right");
+      break;
+    case 4:
+      // 关闭其他标签页
+      deleteMenu(selectTagRoute, "other");
+      break;
+    case 5:
+      // 关闭全部标签页
+      useMultiTagsStoreHook().handleTags("splice", "", {
+        startIndex: fixedTags.length,
+        length: multiTags.value.length,
+      });
+      router.push(topPath);
+      // router.push(fixedTags[fixedTags.length - 1]?.path);
+      handleAliveRoute(route as ToRouteType);
+      break;
+    case 6:
+      // 内容区全屏
+      onContentFullScreen();
+      setTimeout(() => {
+        if (pureSetting.hiddenSideBar) {
+          tagsViews[6].icon = ExitFullscreen;
+          tagsViews[6].text = $t("buttons.pureContentExitFullScreen");
+        } else {
+          tagsViews[6].icon = Fullscreen;
+          tagsViews[6].text = $t("buttons.pureContentFullScreen");
+        }
+      }, 100);
+      break;
+  }
+  setTimeout(() => {
+    showMenuModel(route.fullPath, route.query);
+  });
+}
+
+function handleCommand(command: any) {
+  const { key, item } = command;
+  onClickDrop(key, item);
+}
+
+/** 触发右键中菜单的点击事件 */
+function selectTag(key, item) {
+  closeMenu();
+  onClickDrop(key, item, currentSelect.value);
+}
+
+function showMenus(value: boolean) {
+  Array.of(1, 2, 3, 4, 5).forEach((v) => {
+    tagsViews[v].show = value;
+  });
+}
+
+function disabledMenus(value: boolean, fixedTag = false) {
+  Array.of(1, 2, 3, 4, 5).forEach((v) => {
+    tagsViews[v].disabled = value;
+  });
+  if (fixedTag) {
+    tagsViews[2].show = false;
+    tagsViews[2].disabled = true;
+  }
+}
+
+/** 检查当前右键的菜单两边是否存在别的菜单，如果左侧的菜单是顶级菜单，则不显示关闭左侧标签页，如果右侧没有菜单，则不显示关闭右侧标签页 */
+function showMenuModel(
+  currentPath: string,
+  query: object = {},
+  refresh = false
+) {
+  const allRoute = multiTags.value;
+  const routeLength = multiTags.value.length;
+  let currentIndex = -1;
+  if (isAllEmpty(query)) {
+    currentIndex = allRoute.findIndex((v) => v.path === currentPath);
+  } else {
+    currentIndex = allRoute.findIndex((v) => isEqual(v.query, query));
+  }
+  function fixedTagDisabled() {
+    if (allRoute[currentIndex]?.meta?.fixedTag) {
+      Array.of(1, 2, 3, 4, 5).forEach((v) => {
+        tagsViews[v].disabled = true;
+      });
+    }
+  }
+
+  showMenus(true);
+
+  if (refresh) {
+    tagsViews[0].show = true;
+  }
+
+  /**
+   * currentIndex为1时，左侧的菜单顶级菜单，则不显示关闭左侧标签页
+   * 如果currentIndex等于routeLength-1，右侧没有菜单，则不显示关闭右侧标签页
+   */
+  if (currentIndex === 1 && routeLength !== 2) {
+    // 左侧的菜单是顶级菜单，右侧存在别的菜单
+    tagsViews[2].show = false;
+    Array.of(1, 3, 4, 5).forEach((v) => {
+      tagsViews[v].disabled = false;
+    });
+    tagsViews[2].disabled = true;
+    fixedTagDisabled();
+  } else if (currentIndex === 1 && routeLength === 2) {
+    disabledMenus(false);
+    // 左侧的菜单是顶级菜单，右侧不存在别的菜单
+    Array.of(2, 3, 4).forEach((v) => {
+      tagsViews[v].show = false;
+      tagsViews[v].disabled = true;
+    });
+    fixedTagDisabled();
+  } else if (routeLength - 1 === currentIndex && currentIndex !== 0) {
+    // 当前路由是所有路由中的最后一个
+    tagsViews[3].show = false;
+    Array.of(1, 2, 4, 5).forEach((v) => {
+      tagsViews[v].disabled = false;
+    });
+    tagsViews[3].disabled = true;
+    if (allRoute[currentIndex - 1]?.meta?.fixedTag) {
+      tagsViews[2].show = false;
+      tagsViews[2].disabled = true;
+    }
+    fixedTagDisabled();
+  } else if (currentIndex === 0 || currentPath === `/redirect${topPath}`) {
+    // 当前路由为顶级菜单
+    disabledMenus(true);
+  } else {
+    disabledMenus(false, allRoute[currentIndex - 1]?.meta?.fixedTag);
+    fixedTagDisabled();
+  }
+}
+
+function openMenu(tag, e) {
+  closeMenu();
+  if (tag.path === topPath || tag?.meta?.fixedTag) {
+    // 右键菜单为顶级菜单或拥有 fixedTag 属性，只显示刷新
+    showMenus(false);
+    tagsViews[0].show = true;
+  } else if (route.path !== tag.path && route.name !== tag.name) {
+    // 右键菜单不匹配当前路由，隐藏刷新
+    tagsViews[0].show = false;
+    showMenuModel(tag.path, tag.query);
+  } else if (multiTags.value.length === 2 && route.path !== tag.path) {
+    showMenus(true);
+    // 只有两个标签时不显示关闭其他标签页
+    tagsViews[4].show = false;
+  } else if (route.path === tag.path) {
+    // 右键当前激活的菜单
+    showMenuModel(tag.path, tag.query, true);
+  }
+
+  currentSelect.value = tag;
+  const menuMinWidth = 140;
+  const offsetLeft = unref(containerDom).getBoundingClientRect().left;
+  const offsetWidth = unref(containerDom).offsetWidth;
+  const maxLeft = offsetWidth - menuMinWidth;
+  const left = e.clientX - offsetLeft + 5;
+  if (left > maxLeft) {
+    buttonLeft.value = maxLeft;
+  } else {
+    buttonLeft.value = left;
+  }
+  useSettingStoreHook().hiddenSideBar
+    ? (buttonTop.value = e.clientY)
+    : (buttonTop.value = e.clientY - 40);
+  nextTick(() => {
+    visible.value = true;
+  });
+}
+
+/** 触发tags标签切换 */
+function tagOnClick(item) {
+  // 确保在标签页切换时保持深色主题
+  try {
+    const storage = localStorage.getItem("layout");
+    if (storage) {
+      const layoutConfig = JSON.parse(storage);
+      if (layoutConfig.darkMode) {
+        document.documentElement.classList.add("dark");
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to set dark theme from localStorage:", e);
+  }
+
+  const { name, path } = item;
+  if (name) {
+    if (item.query) {
+      router.push({
+        name,
+        query: item.query,
+      });
+    } else if (item.params) {
+      router.push({
+        name,
+        params: item.params,
+      });
+    } else {
+      router.push({ name });
+    }
+  } else {
+    router.push({ path });
+  }
+}
+
+onClickOutside(contextmenuRef, closeMenu, {
+  detectIframe: true,
+});
+
+watch(route, () => {
+  activeIndex.value = -1;
+  // 路由变化时自动添加标签
+  dynamicRouteTag(route.path);
+  dynamicTagView();
+});
+
+onMounted(() => {
+  if (!instance) return;
+
+  // 根据当前路由初始化操作标签页的禁用状态
+  showMenuModel(route.fullPath);
+  // 解绑`tagViewsChange`、`tagViewsShowModel`、`changLayoutRoute`公共事件，防止多次触发
+  emitter.off("tagViewsChange");
+  emitter.off("tagViewsShowModel");
+  emitter.off("changLayoutRoute");
+  // 触发隐藏标签页
+  emitter.on("tagViewsChange", (key: any) => {
+    if (unref(showTags as any) === key) return;
+    (showTags as any).value = key;
+  });
+
+  // 改变标签风格
+  emitter.on("tagViewsShowModel", (key) => {
+    showModel.value = key;
+  });
+
+  //  接收侧边栏切换传递过来的参数
+  emitter.on("changLayoutRoute", (indexPath) => {
+    dynamicRouteTag(indexPath);
+    setTimeout(() => {
+      showMenuModel(indexPath);
+    });
+  });
+
+  useResizeObserver(scrollbarDom, dynamicTagView);
+  delay().then(() => dynamicTagView());
+});
+
+onBeforeUnmount(() => {
+  emitter.off("showTagIconChange");
+});
+const defer = useDefer(multiTags?.length);
+const deferTag = useDefer(tagsViews?.length);
 </script>
 
 <template>
-  <component :is="CurrentComponent" :key="currentTheme" />
+  <div v-if="!showTags" ref="containerDom" class="tags-view shadow-tab">
+    <!-- 春节灯笼装饰 -->
+    <div class="spring-festival-lantern lantern-left">
+      <div class="lantern-mini">
+        <div class="lantern-body-mini"></div>
+        <div class="lantern-tassel-mini"></div>
+      </div>
+    </div>
+
+    <span v-show="isShowArrow" class="arrow-left">
+      <IconifyIconOffline :icon="ArrowLeftSLine" @click="handleScroll(200)" />
+    </span>
+    <div
+      ref="scrollbarDom"
+      class="scroll-container"
+      :class="showModel === 'chrome' && 'chrome-scroll-container'"
+      @wheel.prevent="handleWheel"
+    >
+      <div ref="tabDom" class="tab select-none" :style="getTabStyle">
+        <div
+          v-for="(item, index) in multiTags"
+          :ref="'dynamic' + index"
+          :key="index"
+          :class="[
+            'scroll-item is-closable',
+            linkIsActive(item),
+            showModel === 'chrome' && 'chrome-item',
+            showModel === 'modern' && 'modern-item',
+            isFixedTag(item) && 'fixed-tag',
+          ]"
+          @contextmenu.prevent="openMenu(item, $event)"
+          @mouseenter.prevent="onMouseenter(index)"
+          @mouseleave.prevent="onMouseleave(index)"
+          @click="tagOnClick(item)"
+        >
+          <template v-if="showModel !== 'chrome' && defer(index)">
+            <component
+              v-if="showTagIcon && item.meta?.icon"
+              :is="useRenderIcon(item.meta.icon)"
+              class="tag-icon"
+            />
+            <span class="tag-title">
+              {{ transformI18n(item.meta.title) }}
+            </span>
+            <span
+              v-if="
+                isFixedTag(item)
+                  ? false
+                  : iconIsActive(item, index) ||
+                    (index === activeIndex && index !== 0)
+              "
+              class="el-icon-close"
+              @click.stop="deleteMenu(item)"
+            >
+              <IconifyIconOffline :icon="Close" />
+            </span>
+            <span
+              v-if="showModel !== 'card'"
+              :ref="'schedule' + index"
+              :class="[scheduleIsActive(item)]"
+            />
+          </template>
+          <div v-else class="chrome-tab">
+            <div class="chrome-tab__bg">
+              <TagChrome />
+            </div>
+            <component
+              v-if="showTagIcon && item.meta?.icon"
+              :is="useRenderIcon(item.meta.icon)"
+              class="tag-icon"
+            />
+            <span class="tag-title">
+              {{ transformI18n(item.meta.title) }}
+            </span>
+            <span
+              v-if="isFixedTag(item) ? false : index !== 0"
+              class="chrome-close-btn"
+              @click.stop="deleteMenu(item)"
+            >
+              <IconifyIconOffline :icon="Close" />
+            </span>
+            <span class="chrome-tab-divider" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <span v-show="isShowArrow" class="arrow-right">
+      <IconifyIconOffline :icon="ArrowRightSLine" @click="handleScroll(-200)" />
+    </span>
+
+    <!-- 春节灯笼装饰 -->
+    <div class="spring-festival-lantern lantern-right">
+      <div class="lantern-mini">
+        <div class="lantern-body-mini"></div>
+        <div class="lantern-tassel-mini"></div>
+      </div>
+    </div>
+
+    <!-- 右键菜单按钮 -->
+    <transition name="el-zoom-in-top">
+      <ul
+        v-show="visible"
+        ref="contextmenuRef"
+        :key="Math.random()"
+        :style="getContextMenuStyle"
+        class="contextmenu"
+      >
+        <div
+          v-for="(item, key) in tagsViews.slice(0, 6)"
+          :key="key"
+          style="display: flex; align-items: center"
+        >
+          <li v-if="item.show" @click="selectTag(key, item)">
+            <IconifyIconOffline :icon="item.icon" />
+            {{ transformI18n(item.text) }}
+          </li>
+        </div>
+      </ul>
+    </transition>
+    <!-- 右侧功能按钮 -->
+    <el-dropdown
+      trigger="click"
+      placement="bottom-end"
+      @command="handleCommand"
+    >
+      <span class="arrow-down">
+        <IconifyIconOffline :icon="ArrowDown" class="dark:text-white" />
+      </span>
+      <template #dropdown>
+        <el-dropdown-menu>
+          <span v-for="(item, key) in tagsViews" :key="key">
+            <el-dropdown-item
+              v-if="deferTag(key)"
+              :key="key"
+              :command="{ key, item }"
+              :divided="item.divided"
+              :disabled="item.disabled"
+            >
+              <IconifyIconOffline :icon="item.icon" />
+              {{ transformI18n(item.text) }}
+            </el-dropdown-item>
+          </span>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
+  </div>
 </template>
+
+<style lang="scss" scoped>
+@import url("@repo/assets/layout/index.scss");
+
+// ==================== 春节灯笼装饰 ====================
+
+.spring-festival-lantern {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+
+  &.lantern-left {
+    left: 5px;
+  }
+
+  &.lantern-right {
+    right: 5px;
+  }
+}
+
+.lantern-mini {
+  position: relative;
+  width: 24px;
+  height: 32px;
+  animation: lanternSwingMini 2s ease-in-out infinite;
+}
+
+.lantern-body-mini {
+  width: 100%;
+  height: 24px;
+  background: linear-gradient(135deg, #ff4444 0%, #ff6666 50%, #ff4444 100%);
+  border-radius: 50% 50% 40% 40%;
+  box-shadow: 0 0 12px rgba(255, 68, 68, 0.5), inset 0 0 6px rgba(255, 100, 100, 0.3);
+  border: 1px solid #cc0000;
+  position: relative;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: #ffd700;
+    left: 0;
+  }
+
+  &::before {
+    top: 4px;
+  }
+
+  &::after {
+    bottom: 4px;
+  }
+
+  // 灯光
+  &::after {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: radial-gradient(circle, #ffff00, #ff8800);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px #ffff00;
+  }
+}
+
+.lantern-tassel-mini {
+  position: absolute;
+  width: 2px;
+  height: 8px;
+  background: linear-gradient(180deg, #ffd700, #ff8800);
+  left: 50%;
+  top: 24px;
+  transform: translateX(-50%);
+  border-radius: 1px;
+  box-shadow: 0 0 4px rgba(255, 215, 0, 0.5);
+}
+
+@keyframes lanternSwingMini {
+  0%, 100% {
+    transform: translateY(-50%) rotateZ(-5deg);
+  }
+
+  50% {
+    transform: translateY(-50%) rotateZ(5deg);
+  }
+}
+
+// ==================== 标签页样式 ====================
+
+// 标签页鼠标经过特效
+.scroll-item {
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &.is-active {
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+}
+
+// 标签页图标样式
+.tag-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  flex-shrink: 0;
+  opacity: 0.85;
+  transition: all 0.2s ease;
+}
+
+.scroll-item:hover .tag-icon,
+.scroll-item.is-active .tag-icon {
+  opacity: 1;
+}
+
+// 选中状态下图标颜色为白色
+.scroll-item.is-active .tag-icon {
+  color: #fff;
+}
+
+.chrome-tab .tag-icon {
+  margin-right: 6px;
+}
+
+.chrome-item {
+  &:hover {
+    .chrome-tab__bg {
+      filter: brightness(1.05);
+    }
+  }
+
+  &.is-active {
+    .chrome-tab {
+      .tag-title {
+        color: #fff;
+      }
+
+      .tag-icon {
+        color: #fff;
+      }
+    }
+    &:hover {
+      .chrome-tab__bg {
+        filter: brightness(1.1);
+      }
+    }
+  }
+}
+
+/* 现代风格页签 */
+.modern-item {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(248, 250, 252, 0.95) 100%
+  );
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.3s ease;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 8px 20px rgba(var(--el-color-primary-rgb), 0.15),
+      0 4px 8px rgba(0, 0, 0, 0.06);
+    border-color: rgba(var(--el-color-primary-rgb), 0.2);
+
+    .tag-title {
+      color: var(--el-color-primary);
+    }
+  }
+
+  &.is-active {
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 100%
+    );
+    border-color: transparent;
+    box-shadow:
+      0 4px 12px rgba(var(--el-color-primary-rgb), 0.3),
+      0 2px 4px rgba(var(--el-color-primary-rgb), 0.2);
+
+    &::before {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .tag-title {
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .tag-icon {
+      color: #fff;
+    }
+
+    .el-icon-close {
+      color: rgba(255, 255, 255, 0.8);
+
+      &:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 8px 24px rgba(var(--el-color-primary-rgb), 0.4),
+        0 4px 8px rgba(var(--el-color-primary-rgb), 0.25);
+    }
+  }
+
+  .el-icon-close {
+    border-radius: 6px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(var(--el-color-primary-rgb), 0.1);
+    }
+  }
+}
+
+// 深色主题下的特殊处理
+html.dark {
+  .scroll-item {
+    background-color: var(--app-bg-overlay);
+
+    .tag-title {
+      color: var(--el-text-color-primary);
+    }
+
+    &:hover {
+      background-color: var(--el-bg-color-page);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+
+      .tag-title {
+        color: var(--el-text-color-primary);
+      }
+    }
+
+    &.is-active {
+      background-color: var(--app-bg-overlay);
+
+      .tag-title {
+        color: var(--el-text-color-primary);
+      }
+
+      &:hover {
+        background-color: var(--el-bg-color-page);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+
+        .tag-title {
+          color: var(--el-text-color-primary);
+        }
+      }
+    }
+  }
+
+  .chrome-item {
+    .tag-title {
+      color: var(--el-text-color-primary);
+    }
+
+    &:hover {
+      .chrome-tab__bg {
+        filter: brightness(1.2);
+      }
+
+      .tag-title {
+        color: var(--el-text-color-primary);
+      }
+    }
+
+    &.is-active {
+      .tag-title {
+        color: #fff;
+      }
+
+      .tag-icon {
+        color: #fff;
+      }
+
+      &:hover {
+        .chrome-tab__bg {
+          filter: brightness(1.3);
+        }
+
+        .tag-title {
+          color: #fff;
+        }
+      }
+    }
+  }
+
+  .modern-item {
+    background: linear-gradient(
+      135deg,
+      rgba(30, 41, 59, 0.9) 0%,
+      rgba(15, 23, 42, 0.95) 100%
+    );
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.2),
+      0 1px 2px rgba(0, 0, 0, 0.1);
+
+    .tag-title {
+      color: var(--el-text-color-primary);
+    }
+
+    &:hover {
+      background: linear-gradient(
+        135deg,
+        rgba(51, 65, 85, 0.9) 0%,
+        rgba(30, 41, 59, 0.95) 100%
+      );
+      border-color: rgba(var(--el-color-primary-rgb), 0.4);
+
+      .tag-title {
+        color: var(--el-color-primary-light-3);
+      }
+    }
+
+    &.is-active {
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 100%
+      );
+
+      .tag-title {
+        color: #fff;
+      }
+
+      .tag-icon {
+        color: #fff;
+      }
+
+      &:hover {
+        box-shadow:
+          0 8px 24px rgba(var(--el-color-primary-rgb), 0.35),
+          0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+    }
+  }
+}
+</style>

@@ -1,0 +1,358 @@
+/**
+ * 圣诞节主题皮肤
+ * @author CH
+ * @date 2025-12-12
+ * @version 1.0.0
+ */
+
+// ==================== 圣诞节主题颜色定义 ====================
+
+:root.theme-christmas {
+    // 主题颜色
+    --theme-primary: #c41e3a;
+    --theme-secondary: #165b33;
+    --theme-accent: #ffd700;
+    --theme-background: #f5f5f5;
+    --theme-text: #2c2c2c;
+    --theme-border: #e8e8e8;
+
+    // Element Plus 颜色覆盖
+    --el-color-primary: #c41e3a;
+    --el-color-primary-light-3: #d63a52;
+    --el-color-primary-light-5: #e05a6f;
+    --el-color-primary-light-7: #ea7a8d;
+    --el-color-primary-light-8: #f09aa8;
+    --el-color-primary-light-9: #f5bac3;
+
+    // 背景和边框
+    --el-bg-color: #fafafa;
+    --el-border-color: #e8e8e8;
+    --el-border-color-light: #f0f0f0;
+    --el-border-color-lighter: #f5f5f5;
+}
+
+// ==================== 圣诞节主题 - 导航栏 ====================
+
+.theme-christmas :deep(.lay-navbar) {
+    background: linear-gradient(135deg, #c41e3a 0%, #165b33 100%);
+    box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);
+    border-bottom: 2px solid #ffd700;
+
+    // 导航栏文字和图标
+    .navbar-item,
+    .navbar-icon,
+    .navbar-text {
+        color: #ffffff;
+    }
+
+    // 导航栏按钮
+    :deep(.el-button--text) {
+        color: #ffffff;
+
+        &:hover {
+            color: #ffd700;
+        }
+    }
+
+    // 搜索框
+    :deep(.el-input__inner) {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: #ffffff;
+
+        &::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        &:focus {
+            background-color: rgba(255, 255, 255, 0.3);
+            border-color: #ffd700;
+        }
+    }
+}
+
+// ==================== 圣诞节主题 - 侧边栏 ====================
+
+.theme-christmas :deep(.nav-vertical),
+.theme-christmas :deep(.nav-horizontal),
+.theme-christmas :deep(.nav-hover),
+.theme-christmas :deep(.nav-double) {
+    background: linear-gradient(180deg, #f5f5f5 0%, #efefef 100%);
+    border-right: 3px solid #c41e3a;
+
+    // 菜单背景
+    :deep(.el-menu) {
+        background-color: transparent;
+        border-right: none;
+    }
+
+    // 菜单项
+    :deep(.el-menu-item),
+    :deep(.el-sub-menu__title) {
+        color: #2c2c2c;
+        transition: all 0.3s ease;
+
+        &:hover {
+            background-color: rgba(196, 30, 58, 0.1) !important;
+            color: #c41e3a !important;
+            border-left: 3px solid #c41e3a;
+        }
+    }
+
+    // 选中菜单项
+    :deep(.el-menu-item.is-active),
+    :deep(.el-sub-menu__title.is-active) {
+        background-color: rgba(196, 30, 58, 0.15) !important;
+        color: #c41e3a !important;
+        border-left: 3px solid #c41e3a !important;
+        font-weight: 600;
+    }
+
+    // 子菜单
+    :deep(.el-menu--inline) {
+        background-color: rgba(196, 30, 58, 0.05);
+
+        :deep(.el-menu-item) {
+            &:hover {
+                background-color: rgba(196, 30, 58, 0.1) !important;
+            }
+
+            &.is-active {
+                background-color: rgba(196, 30, 58, 0.15) !important;
+            }
+        }
+    }
+}
+
+// ==================== 圣诞节主题 - 标签页 ====================
+
+.theme-christmas :deep(.el-tabs) {
+    :deep(.el-tabs__nav-wrap::after) {
+        background-color: rgba(196, 30, 58, 0.2);
+    }
+
+    :deep(.el-tabs__item) {
+        color: #2c2c2c;
+
+        &:hover {
+            color: #c41e3a;
+        }
+
+        &.is-active {
+            color: #c41e3a;
+            border-bottom-color: #c41e3a;
+            font-weight: 600;
+        }
+    }
+
+    :deep(.el-tabs__content) {
+        background-color: #ffffff;
+    }
+}
+
+// ==================== 圣诞节主题 - 卡片 ====================
+
+.theme-christmas :deep(.el-card) {
+    border: 1px solid rgba(196, 30, 58, 0.1);
+    box-shadow: 0 2px 8px rgba(196, 30, 58, 0.08);
+    background-color: #ffffff;
+
+    :deep(.el-card__header) {
+        border-bottom: 1px solid rgba(196, 30, 58, 0.1);
+        background-color: rgba(196, 30, 58, 0.02);
+    }
+
+    &:hover {
+        box-shadow: 0 4px 16px rgba(196, 30, 58, 0.15);
+    }
+}
+
+// ==================== 圣诞节主题 - 按钮 ====================
+
+.theme-christmas :deep(.el-button--primary) {
+    background-color: #c41e3a;
+    border-color: #c41e3a;
+
+    &:hover {
+        background-color: #d63a52;
+        border-color: #d63a52;
+    }
+
+    &:active {
+        background-color: #a01830;
+        border-color: #a01830;
+    }
+}
+
+.theme-christmas :deep(.el-button--success) {
+    background-color: #165b33;
+    border-color: #165b33;
+
+    &:hover {
+        background-color: #1a6d3d;
+        border-color: #1a6d3d;
+    }
+}
+
+.theme-christmas :deep(.el-button--warning) {
+    background-color: #ffd700;
+    border-color: #ffd700;
+    color: #2c2c2c;
+
+    &:hover {
+        background-color: #ffe44d;
+        border-color: #ffe44d;
+    }
+}
+
+// ==================== 圣诞节主题 - 输入框 ====================
+
+.theme-christmas :deep(.el-input) {
+    :deep(.el-input__inner) {
+        border-color: rgba(196, 30, 58, 0.2);
+        transition: all 0.3s ease;
+
+        &:hover {
+            border-color: rgba(196, 30, 58, 0.4);
+        }
+
+        &:focus {
+            border-color: #c41e3a;
+            box-shadow: 0 0 0 2px rgba(196, 30, 58, 0.2);
+        }
+    }
+}
+
+// ==================== 圣诞节主题 - 进度条 ====================
+
+.theme-christmas :deep(.el-progress) {
+    :deep(.el-progress__bar) {
+        background-color: #c41e3a;
+    }
+
+    :deep(.el-progress__text) {
+        color: #2c2c2c;
+    }
+}
+
+// ==================== 圣诞节主题 - 表格 ====================
+
+.theme-christmas :deep(.el-table) {
+    :deep(.el-table__header th) {
+        background-color: rgba(196, 30, 58, 0.05);
+        color: #2c2c2c;
+        border-bottom: 2px solid rgba(196, 30, 58, 0.2);
+    }
+
+    :deep(.el-table__body tr) {
+        &:hover>td {
+            background-color: rgba(196, 30, 58, 0.05) !important;
+        }
+    }
+
+    :deep(.el-table__body-wrapper) {
+        :deep(.el-table__row.hover-row > td) {
+            background-color: rgba(196, 30, 58, 0.05);
+        }
+    }
+}
+
+// ==================== 圣诞节主题 - 装饰元素 ====================
+
+.theme-christmas {
+
+    // 顶部装饰线
+    &::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #c41e3a, #165b33, #ffd700, #c41e3a);
+        z-index: 9999;
+        pointer-events: none;
+        animation: christmas-gradient 3s ease infinite;
+    }
+
+    // 圣诞节雪花效果（可选）
+    &::after {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: radial-gradient(2px 2px at 20px 30px, #ffffff, rgba(255, 255, 255, 0)),
+            radial-gradient(2px 2px at 60px 70px, #ffffff, rgba(255, 255, 255, 0)),
+            radial-gradient(1px 1px at 50px 50px, #ffffff, rgba(255, 255, 255, 0)),
+            radial-gradient(1px 1px at 130px 80px, #ffffff, rgba(255, 255, 255, 0)),
+            radial-gradient(2px 2px at 90px 10px, #ffffff, rgba(255, 255, 255, 0));
+        background-repeat: repeat;
+        background-size: 200px 200px;
+        pointer-events: none;
+        z-index: -1;
+        opacity: 0.05;
+    }
+}
+
+// ==================== 圣诞节主题 - 动画 ====================
+
+@keyframes christmas-gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+// ==================== 圣诞节主题 - 暗色模式适配 ====================
+
+:root.dark.theme-christmas {
+    --theme-background: #1a1a1a;
+    --theme-text: #e8e8e8;
+    --theme-border: #333333;
+
+    --el-bg-color: #1f1f1f;
+    --el-border-color: #333333;
+    --el-border-color-light: #2a2a2a;
+    --el-border-color-lighter: #333333;
+}
+
+.dark.theme-christmas :deep(.nav-vertical),
+.dark.theme-christmas :deep(.nav-horizontal),
+.dark.theme-christmas :deep(.nav-hover),
+.dark.theme-christmas :deep(.nav-double) {
+    background: linear-gradient(180deg, #1f1f1f 0%, #1a1a1a 100%);
+
+    :deep(.el-menu-item),
+    :deep(.el-sub-menu__title) {
+        color: #e8e8e8;
+
+        &:hover {
+            background-color: rgba(196, 30, 58, 0.2) !important;
+            color: #ffd700 !important;
+        }
+    }
+
+    :deep(.el-menu-item.is-active),
+    :deep(.el-sub-menu__title.is-active) {
+        background-color: rgba(196, 30, 58, 0.25) !important;
+        color: #ffd700 !important;
+    }
+}
+
+.dark.theme-christmas :deep(.el-card) {
+    background-color: #1f1f1f;
+    border-color: rgba(196, 30, 58, 0.2);
+
+    :deep(.el-card__header) {
+        background-color: rgba(196, 30, 58, 0.1);
+    }
+}
