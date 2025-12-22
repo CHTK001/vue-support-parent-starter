@@ -1618,4 +1618,252 @@ html[data-skin="christmas"] {
     }
   }
 }
+
+// ==================== 元旦主题样式 ====================
+html[data-skin="new-year"] {
+  // 元旦冰雪主题色
+  $ice-light: #B8E0F2;
+  $ice-medium: #7CC2E8;
+  $ice-primary: #4EA8DE;
+  $ice-dark: #2B6A99;
+  $ice-darkest: #1A4A6E;
+  $ice-border: rgba(184, 224, 242, 0.4);
+
+  // 双栏导航容器
+  .double-nav-container {
+    // 左栏
+    .double-nav-left {
+      background: linear-gradient(180deg, $ice-darkest, $ice-dark) !important;
+      border-right: 2px solid $ice-border !important;
+
+      // Logo区域
+      .sidebar-logo-container {
+        background: linear-gradient(180deg, color.adjust($ice-darkest, $lightness: -5%), $ice-darkest) !important;
+        border-bottom: 2px solid $ice-border !important;
+
+        .sidebar-title {
+          color: $ice-light !important;
+        }
+      }
+
+      // 一级菜单
+      .first-level-menu {
+        .el-menu-item {
+          color: $ice-light !important;
+
+          .menu-icon-only {
+            svg,
+            i {
+              color: $ice-medium !important;
+            }
+          }
+
+          &:hover {
+            background: rgba($ice-medium, 0.15) !important;
+            color: #fff !important;
+
+            .menu-icon-only svg,
+            .menu-icon-only i {
+              color: #fff !important;
+            }
+          }
+
+          &.is-active {
+            background: linear-gradient(135deg, $ice-medium, $ice-primary) !important;
+            color: $ice-darkest !important;
+            box-shadow: 0 4px 16px rgba($ice-medium, 0.5) !important;
+
+            .menu-icon-only svg,
+            .menu-icon-only i {
+              color: $ice-darkest !important;
+            }
+          }
+        }
+      }
+    }
+
+    // 右栏
+    .double-nav-right {
+      background: linear-gradient(180deg, $ice-dark, $ice-darkest) !important;
+
+      .sub-menu-list {
+        padding: 8px !important;
+        
+        .el-menu-item {
+          height: 46px !important;
+          color: $ice-light !important;
+          background: transparent !important;
+          border: none !important;
+          border-radius: 8px !important;
+          margin: 4px 8px !important;
+          padding: 0 16px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+          span, div, .el-text {
+            height: 46px !important;
+            line-height: 46px !important;
+            font-size: 14px !important;
+            letter-spacing: 0.3px !important;
+            color: $ice-light !important;
+          }
+
+          .el-icon,
+          svg {
+            color: $ice-medium !important;
+            margin-right: 8px;
+          }
+
+          &:hover {
+            background: rgba($ice-medium, 0.15) !important;
+            transform: translateX(2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            color: #fff !important;
+
+            span, div, .el-text {
+              color: #fff !important;
+            }
+
+            .el-icon,
+            svg {
+              color: #fff !important;
+            }
+          }
+
+          &.is-active {
+            background: linear-gradient(135deg, $ice-medium 0%, $ice-primary 100%) !important;
+            color: $ice-darkest !important;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba($ice-medium, 0.4) !important;
+
+            span, div, .el-text {
+              color: $ice-darkest !important;
+            }
+
+            .el-icon,
+            svg {
+              color: $ice-darkest !important;
+            }
+          }
+        }
+
+        .el-sub-menu__title {
+          height: 46px !important;
+          color: $ice-light !important;
+          background: rgba($ice-darkest, 0.5) !important;
+          border: 1px solid rgba($ice-medium, 0.25) !important;
+          border-radius: 8px !important;
+          margin: 4px 8px !important;
+          padding: 0 16px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+          span, div, .el-text {
+            height: 46px !important;
+            line-height: 46px !important;
+            font-size: 14px !important;
+            letter-spacing: 0.3px !important;
+            color: $ice-light !important;
+          }
+
+          .el-icon,
+          svg {
+            color: $ice-medium !important;
+            margin-right: 8px;
+          }
+
+          &:hover {
+            background: rgba($ice-medium, 0.2) !important;
+            border-color: $ice-medium !important;
+            transform: translateX(2px);
+            color: #fff !important;
+            box-shadow: 0 2px 8px rgba($ice-medium, 0.3);
+            
+            span, div, .el-text, .el-icon, svg {
+              color: #fff !important;
+            }
+          }
+        }
+
+        .el-sub-menu.is-active > .el-sub-menu__title {
+          color: #fff !important;
+          font-weight: 600;
+          background: rgba($ice-medium, 0.3) !important;
+          border-color: $ice-medium !important;
+          box-shadow: 0 2px 8px rgba($ice-medium, 0.4);
+          
+          span, div, .el-text {
+            color: #fff !important;
+          }
+          
+          .el-icon, svg {
+            color: #fff !important;
+          }
+        }
+        
+        .el-sub-menu .el-menu {
+          background: transparent !important;
+          
+          .el-menu-item {
+            height: 44px !important;
+            color: $ice-light !important;
+            background: transparent !important;
+            border: none !important;
+            border-radius: 8px !important;
+            margin: 2px 8px 2px 16px !important;
+            padding: 0 16px !important;
+            
+            span, div, .el-text {
+              height: 44px !important;
+              line-height: 44px !important;
+              font-size: 14px !important;
+              color: $ice-light !important;
+            }
+            
+            .el-icon, svg {
+              color: $ice-medium !important;
+            }
+            
+            &:hover {
+              background: rgba($ice-medium, 0.15) !important;
+              color: #fff !important;
+              
+              span, div, .el-text, .el-icon, svg {
+                color: #fff !important;
+              }
+            }
+            
+            &.is-active {
+              background: linear-gradient(135deg, $ice-medium 0%, $ice-primary 100%) !important;
+              color: $ice-darkest !important;
+              box-shadow: 0 2px 8px rgba($ice-medium, 0.4) !important;
+              
+              span, div, .el-text, .el-icon, svg {
+                color: $ice-darkest !important;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 折叠按钮
+    .double-nav-collapse {
+      .left-collapse {
+        background: linear-gradient(180deg, color.adjust($ice-darkest, $lightness: -5%), $ice-darkest) !important;
+        border-top: 2px solid $ice-border !important;
+
+        svg {
+          color: $ice-medium !important;
+        }
+
+        &:hover {
+          background: rgba($ice-medium, 0.15) !important;
+
+          svg {
+            color: #fff !important;
+          }
+        }
+      }
+    }
+  }
+}
 </style>

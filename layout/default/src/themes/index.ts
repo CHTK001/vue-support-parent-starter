@@ -2,8 +2,12 @@
  * Layout 主题皮肤配置
  * @author CH
  * @date 2025-12-12
- * @version 1.0.0
+ * @version 1.1.0
+ * @description 主题分类：常规主题(regular)、内测主题(beta)、节日主题(festival)
  */
+
+/** 主题类型 */
+export type ThemeType = 'regular' | 'beta' | 'festival';
 
 export interface LayoutTheme {
   name: string;
@@ -11,17 +15,44 @@ export interface LayoutTheme {
   description: string;
   stylesheet?: string;
   icon?: string;
+  /** 主题类型：regular-常规主题, beta-内测主题, festival-节日主题 */
+  type: ThemeType;
+  /** 主题颜色（用于显示） */
+  color?: string;
 }
 
 /**
  * 主题皮肤列表
  */
 export const layoutThemes: LayoutTheme[] = [
+  // === 常规主题 ===
   {
     name: "默认",
     key: "default",
     description: "系统默认主题皮肤",
     icon: "ri:settings-3-line",
+    type: "regular",
+    color: "#409EFF",
+  },
+  // === 内测主题 ===
+  {
+    name: "赛博朋克",
+    key: "cyberpunk",
+    description: "赛博朋克风格主题，科技感十足",
+    stylesheet: "cyberpunk.scss",
+    icon: "ri:robot-2-line",
+    type: "beta",
+    color: "#00ffff",
+  },
+  // === 节日主题 ===
+  {
+    name: "春节",
+    key: "spring-festival",
+    description: "春节主题皮肤，喜庆祥和",
+    stylesheet: "spring-festival.scss",
+    icon: "noto:firecracker",
+    type: "festival",
+    color: "#f5222d",
   },
   {
     name: "圣诞",
@@ -29,13 +60,8 @@ export const layoutThemes: LayoutTheme[] = [
     description: "圣诞主题皮肤，温馨浪漫",
     stylesheet: "christmas.scss",
     icon: "noto:christmas-tree",
-  },
-  {
-    name: "春节",
-    key: "spring-festival",
-    description: "春节主题皮肤，喜庆祥和",
-    stylesheet: "spring-festival.scss",
-    icon: "noto:firecracker",
+    type: "festival",
+    color: "#722ed1",
   },
   {
     name: "情人节",
@@ -43,6 +69,8 @@ export const layoutThemes: LayoutTheme[] = [
     description: "情人节主题皮肤，浪漫甜蜜",
     stylesheet: "valentines-day.scss",
     icon: "noto:red-heart",
+    type: "festival",
+    color: "#eb2f96",
   },
   {
     name: "中秋",
@@ -50,6 +78,8 @@ export const layoutThemes: LayoutTheme[] = [
     description: "中秋主题皮肤，月圆人团圆",
     stylesheet: "mid-autumn.scss",
     icon: "noto:full-moon",
+    type: "festival",
+    color: "#13c2c2",
   },
   {
     name: "国庆",
@@ -57,6 +87,8 @@ export const layoutThemes: LayoutTheme[] = [
     description: "国庆主题皮肤，祝福祖国",
     stylesheet: "national-day.scss",
     icon: "twemoji:flag-china",
+    type: "festival",
+    color: "#fa541c",
   },
   {
     name: "元旦",
@@ -64,6 +96,8 @@ export const layoutThemes: LayoutTheme[] = [
     description: "元旦主题皮肤，新年新气象",
     stylesheet: "new-year.scss",
     icon: "noto:party-popper",
+    type: "festival",
+    color: "#1b2a47",
   },
 ];
 
@@ -74,6 +108,49 @@ export const layoutThemes: LayoutTheme[] = [
 export const getLayoutTheme = (themeKey: string = "default"): LayoutTheme => {
   const theme = layoutThemes.find((t) => t.key === themeKey);
   return theme || layoutThemes[0];
+};
+
+/**
+ * 根据类型筛选获取主题列表
+ * @param types 主题类型数组
+ */
+export const getThemesByType = (types: ThemeType[]): LayoutTheme[] => {
+  return layoutThemes.filter((t) => types.includes(t.type));
+};
+
+/**
+ * 获取可用的主题列表（根据环境和权限过滤）
+ * @param enableFestivalTheme 是否启用节日主题自动切换
+ * @param userRoles 用户角色列表
+ * @param isDevelopment 是否为开发环境
+ * @param isTest 是否为测试环境
+ */
+export const getAvailableThemes = (
+  enableFestivalTheme: boolean = true,
+  userRoles: string[] = [],
+  isDevelopment: boolean = false,
+  isTest: boolean = false
+): LayoutTheme[] => {
+  let themes: LayoutTheme[] = [];
+
+  // 常规主题始终可用
+  themes = themes.concat(getThemesByType(['regular']));
+
+  // 内测主题在开发/测试环境或特定用户角色下可用
+  const hasBetaAccess = isDevelopment || isTest || 
+    userRoles.some(role => ['admin', 'developer', 'beta-tester'].includes(role));
+  if (hasBetaAccess) {
+    themes = themes.concat(getThemesByType(['beta']));
+  }
+
+  // 节日主题根据开关显示
+  if (!enableFestivalTheme) {
+    // 关闭自动切换时，显示所有节日主题供手动选择
+    themes = themes.concat(getThemesByType(['festival']));
+  }
+  // 开启自动切换时，节日主题由系统自动管理，不在列表中显示
+
+  return themes;
 };
 
 /**
