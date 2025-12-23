@@ -323,6 +323,96 @@ html[data-skin="new-year"] {
       position: relative;
       z-index: 1;
     }
+    
+    // ==================== 收缩状态样式 ====================
+    :deep(.el-menu--collapse) {
+      // 隐藏展开箭头
+      .el-sub-menu__icon-arrow {
+        display: none !important;
+      }
+      
+      // 统一菜单项基础样式
+      .el-menu-item,
+      .el-sub-menu > .el-sub-menu__title {
+        margin: 6px 10px !important;
+        border-radius: 10px !important;
+        padding: 0 !important;
+        justify-content: center;
+        height: 46px !important;
+        background: rgba($frost-white, 0.65) !important;
+        border: 1px solid rgba($ice-medium, 0.2) !important;
+        position: relative;
+        backdrop-filter: blur(8px);
+        
+        .sub-menu-icon {
+          margin: 0 !important;
+        }
+        
+        > div {
+          width: 100% !important;
+          flex: none !important;
+          display: flex;
+          justify-content: center;
+        }
+        
+        .el-icon, svg {
+          color: $ice-primary !important;
+          font-size: 18px;
+        }
+        
+        &:hover {
+          background: rgba($frost-white, 0.85) !important;
+          border-color: rgba($ice-primary, 0.4) !important;
+          box-shadow: 0 4px 16px rgba($ice-primary, 0.15) !important;
+        }
+      }
+      
+      // 收缩状态下的激活样式 - 无子菜单
+      .el-menu-item.is-active.submenu-title-noDropdown {
+        background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
+        border: 1px solid rgba($ice-deep, 0.3) !important;
+        box-shadow: 0 4px 20px rgba($ice-primary, 0.35) !important;
+        
+        &::before {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          content: "";
+          background: linear-gradient(to bottom, $ice-deep, $ice-primary);
+          border-radius: 0 4px 4px 0;
+          box-shadow: 0 0 8px rgba($ice-primary, 0.6);
+        }
+        
+        .el-icon, svg, i {
+          color: $frost-white !important;
+        }
+      }
+      
+      // 有子菜单的激活状态
+      .el-sub-menu.is-active > .el-sub-menu__title {
+        background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
+        border: 1px solid rgba($ice-deep, 0.3) !important;
+        box-shadow: 0 4px 20px rgba($ice-primary, 0.35) !important;
+        
+        &::before {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          content: "";
+          background: linear-gradient(to bottom, $ice-deep, $ice-primary);
+          border-radius: 0 4px 4px 0;
+          box-shadow: 0 0 8px rgba($ice-primary, 0.6);
+        }
+        
+        .el-icon, svg, i {
+          color: $frost-white !important;
+        }
+      }
+    }
   }
   
   // 雪花闪烁动画

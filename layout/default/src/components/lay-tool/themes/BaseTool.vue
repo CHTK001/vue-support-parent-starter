@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { useNav } from "../../../hooks/useNav";
+import { useTranslationLang } from "../../../hooks/useTranslationLang";
 import LaySearch from "../../lay-search/index.vue";
 import LayMessage from "../../lay-message/index.vue";
-import { useTranslationLang } from "../../../hooks/useTranslationLang";
 import LaySidebarFullScreen from "../../lay-sidebar/components/SidebarFullScreen.vue";
-import AccountSettingsIcon from "@iconify-icons/ri/user-settings-line";
-import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
+import LangDropdown from "../dropdowns/LangDropdown.vue";
+import UserDropdown from "../dropdowns/UserDropdown.vue";
 import Setting from "@iconify-icons/ri/settings-3-line";
-import Check from "@iconify-icons/ep/check";
-import Restore from "@iconify-icons/line-md/backup-restore";
 import { getConfig } from "@repo/config";
-import { useDefer } from "@repo/utils";
-import { router, emitter } from "@repo/core";
+import { emitter } from "@repo/core";
 import { ref, onBeforeUnmount, computed } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 
@@ -20,30 +17,29 @@ const props = defineProps<{
   themeClass?: string;
 }>();
 
-const {
-  logout,
-  onPanel,
-  username,
-  userAvatar,
-  avatarsStyle,
-  clickClearRouter,
-} = useNav();
-
-const { t, locale, translationCh, translationEn } = useTranslationLang();
-const deferLang = useDefer(2);
-
 // 获取当前主题和配置
 const { $storage } = useGlobal<GlobalPropertiesApi>();
-const currentTheme = ref<string>($storage.configure?.systemTheme || 'default');
+const { onPanel } = useNav();
+const { t } = useTranslationLang();
+
+// 当前主题 - 用于节日主题按钮显示
+const storageTheme = computed(() => $storage?.configure?.systemTheme || 'default');
+const currentTheme = ref<string>(storageTheme.value);
+
+const handleThemeChange = (themeKey: string) => {
+  currentTheme.value = themeKey;
+};
+
+// 监听主题变化
+emitter.on("systemThemeChange", handleThemeChange);
+
+// 主题判断函数
+const isSpringFestival = () => currentTheme.value === 'spring-festival';
+const isMidAutumn = () => currentTheme.value === 'mid-autumn';
 
 // 界面元素显示状态 - 从存储中读取初始值
 const showSearch = ref($storage.configure?.showSearch ?? getConfig().ShowBarSearch ?? true);
 const showFullscreen = ref($storage.configure?.showFullscreen ?? true);
-
-// 监听主题切换
-emitter.on("systemThemeChange", (themeKey: string) => {
-  currentTheme.value = themeKey;
-});
 
 // 监听界面元素显示设置变化
 emitter.on("showSearchChange", (val: boolean) => {
@@ -53,25 +49,12 @@ emitter.on("showFullscreenChange", (val: boolean) => {
   showFullscreen.value = val;
 });
 
-// 判断是否为春节主题
-const isSpringFestival = () => currentTheme.value === 'spring-festival';
-
-// 判断是否为中秋主题
-const isMidAutumn = () => currentTheme.value === 'mid-autumn';
-
 // 清理事件监听
 onBeforeUnmount(() => {
-  emitter.off("systemThemeChange");
   emitter.off("showSearchChange");
   emitter.off("showFullscreenChange");
+  emitter.off("systemThemeChange", handleThemeChange);
 });
-
-/**
- * 跳转到账户设置页面
- */
-const gotoAccountSetting = () => {
-  router.push("/AccountSettings");
-};
 </script>
 
 <template>
@@ -97,167 +80,11 @@ const gotoAccountSetting = () => {
       class="tool-item"
     />
 
-    <!-- 语言切换 -->
-    <el-dropdown
-      v-if="getConfig().ShowLanguage"
-      id="header-translation"
-      trigger="click"
-      popper-class="lang-dropdown-popper"
-    >
-      <div class="user-trigger lang-style">
-        <div class="lang-icon-wrapper">
-          <IconifyIconOnline icon="ri:translate-2" class="lang-main-icon" />
-        </div>
-        <div class="user-info">
-          <span class="user-name">{{
-            locale === "zh-CN" ? "简体中文" : "English"
-          }}</span>
-          <span class="user-role">{{
-            locale === "zh-CN" ? "语言" : "Language"
-          }}</span>
-        </div>
-        <span class="dropdown-arrow-wrapper">
-          <IconifyIconOnline
-            icon="ri:arrow-down-s-line"
-            class="dropdown-arrow"
-          />
-        </span>
-      </div>
-      <template #dropdown>
-        <el-dropdown-menu class="lang-menu">
-          <div class="lang-header">
-            <IconifyIconOnline icon="ri:global-line" />
-            <span>选择语言</span>
-          </div>
-          <el-dropdown-item
-            v-if="deferLang(0)"
-            :class="['lang-item', { active: locale === 'zh-CN' }]"
-            @click="translationCh"
-          >
-            <div class="lang-item-content">
-              <span class="lang-flag">🇨🇳</span>
-              <div class="lang-info">
-                <span class="lang-name">简体中文</span>
-                <span class="lang-desc">Simplified Chinese</span>
-              </div>
-            </div>
-            <IconifyIconOffline
-              v-show="locale === 'zh-CN'"
-              class="lang-check"
-              :icon="Check"
-            />
-          </el-dropdown-item>
-          <el-dropdown-item
-            v-if="deferLang(1)"
-            :class="['lang-item', { active: locale === 'en-US' }]"
-            @click="translationEn"
-          >
-            <div class="lang-item-content">
-              <span class="lang-flag">🇺🇸</span>
-              <div class="lang-info">
-                <span class="lang-name">English</span>
-                <span class="lang-desc">United States</span>
-              </div>
-            </div>
-            <IconifyIconOffline
-              v-show="locale === 'en-US'"
-              class="lang-check"
-              :icon="Check"
-            />
-          </el-dropdown-item>
-        </el-dropdown-menu>
-      </template>
-    </el-dropdown>
+    <!-- 语言切换 - 组件化 -->
+    <LangDropdown v-if="getConfig().ShowLanguage" />
 
-    <!-- 用户头像下拉菜单 -->
-    <el-dropdown
-      trigger="click"
-      class="user-dropdown"
-      popper-class="user-dropdown-popper"
-    >
-      <div class="user-trigger">
-        <div class="avatar-container">
-          <img :src="userAvatar" :style="avatarsStyle" class="avatar-img" />
-          <span class="status-dot"></span>
-        </div>
-        <div v-if="username" class="user-info">
-          <span class="user-name">{{ username }}</span>
-          <span class="user-role">在线</span>
-        </div>
-        <span class="dropdown-arrow-wrapper">
-          <IconifyIconOnline
-            icon="ri:arrow-down-s-line"
-            class="dropdown-arrow"
-          />
-        </span>
-      </div>
-      <template #dropdown>
-        <el-dropdown-menu class="user-menu">
-          <!-- 用户信息头部 -->
-          <div class="menu-header">
-            <img
-              :src="userAvatar"
-              :style="avatarsStyle"
-              class="header-avatar"
-            />
-            <div class="header-info">
-              <span class="header-name">{{ username }}</span>
-              <span class="header-status">当前在线</span>
-            </div>
-          </div>
-
-          <!-- 菜单项容器 -->
-          <div class="menu-body">
-            <el-dropdown-item
-              v-menu="['AccountSettings']"
-              class="menu-item"
-              @click="gotoAccountSetting"
-            >
-              <div class="item-icon account-icon">
-                <IconifyIconOffline :icon="AccountSettingsIcon" />
-              </div>
-              <div class="item-content">
-                <span class="item-title">{{
-                  t("buttons.accountSetting")
-                }}</span>
-                <span class="item-desc">管理账户信息与偏好设置</span>
-              </div>
-              <IconifyIconOnline
-                icon="ri:arrow-right-s-line"
-                class="item-arrow"
-              />
-            </el-dropdown-item>
-
-            <el-dropdown-item class="menu-item" @click="clickClearRouter">
-              <div class="item-icon cache-icon">
-                <IconifyIconOffline :icon="Restore" />
-              </div>
-              <div class="item-content">
-                <span class="item-title">{{
-                  t("buttons.pureClearRouter")
-                }}</span>
-                <span class="item-desc">清除本地缓存数据</span>
-              </div>
-              <IconifyIconOnline
-                icon="ri:arrow-right-s-line"
-                class="item-arrow"
-              />
-            </el-dropdown-item>
-          </div>
-
-          <!-- 退出登录 -->
-          <div class="menu-footer">
-            <el-dropdown-item class="logout-item" @click="logout">
-              <IconifyIconOffline
-                :icon="LogoutCircleRLine"
-                class="logout-icon"
-              />
-              <span>退出登录</span>
-            </el-dropdown-item>
-          </div>
-        </el-dropdown-menu>
-      </template>
-    </el-dropdown>
+    <!-- 用户头像下拉菜单 - 组件化 -->
+    <UserDropdown />
 
     <!-- 系统设置 -->
     <span

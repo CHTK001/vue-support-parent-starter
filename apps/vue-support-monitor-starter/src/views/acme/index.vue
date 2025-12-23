@@ -2,47 +2,71 @@
   <div class="acme-container">
     <!-- 统计卡片 -->
     <div class="stats-row">
-      <ScCard
-        layout="stats"
-        icon="mdi:account-key"
-        :value="stats.accountCount"
-        label="账户总数"
-        theme="primary"
-        size="small"
-      />
-      <ScCard
-        layout="stats"
-        icon="mdi:certificate"
-        :value="stats.validCount"
-        label="有效证书"
-        theme="success"
-        size="small"
-      />
-      <ScCard
-        layout="stats"
-        icon="mdi:clock-alert"
-        :value="stats.expiringCount"
-        label="即将到期"
-        theme="warning"
-        size="small"
-      />
-      <ScCard
-        layout="stats"
-        icon="mdi:timer-sand"
-        :value="stats.pendingCount"
-        label="待验证"
-        theme="info"
-        size="small"
-      />
+      <div class="stat-card accounts">
+        <div class="stat-icon">
+          <IconifyIconOnline icon="mdi:account-key" />
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.accountCount }}</div>
+          <div class="stat-label">ACME 账户</div>
+        </div>
+        <div class="stat-decoration"></div>
+      </div>
+      <div class="stat-card valid">
+        <div class="stat-icon">
+          <IconifyIconOnline icon="mdi:certificate" />
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.validCount }}</div>
+          <div class="stat-label">有效证书</div>
+        </div>
+        <div class="stat-decoration"></div>
+      </div>
+      <div class="stat-card expiring">
+        <div class="stat-icon">
+          <IconifyIconOnline icon="mdi:clock-alert" />
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.expiringCount }}</div>
+          <div class="stat-label">即将到期</div>
+        </div>
+        <div class="stat-decoration"></div>
+      </div>
+      <div class="stat-card pending">
+        <div class="stat-icon">
+          <IconifyIconOnline icon="mdi:timer-sand" />
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.pendingCount }}</div>
+          <div class="stat-label">待验证</div>
+        </div>
+        <div class="stat-decoration"></div>
+      </div>
     </div>
 
     <!-- 标签页切换 -->
-    <el-card class="main-card">
+    <div class="main-card">
       <div class="tabs-header">
-        <el-tabs v-model="activeTab" class="tabs-content">
-          <el-tab-pane label="证书列表" name="certs" />
-          <el-tab-pane label="账户管理" name="accounts" />
-        </el-tabs>
+        <div class="custom-tabs">
+          <div
+            class="tab-item"
+            :class="{ active: activeTab === 'certs' }"
+            @click="activeTab = 'certs'"
+          >
+            <IconifyIconOnline icon="mdi:certificate" />
+            <span>证书列表</span>
+            <span class="tab-badge" v-if="stats.validCount">{{ stats.validCount }}</span>
+          </div>
+          <div
+            class="tab-item"
+            :class="{ active: activeTab === 'accounts' }"
+            @click="activeTab = 'accounts'"
+          >
+            <IconifyIconOnline icon="mdi:account-group" />
+            <span>账户管理</span>
+            <span class="tab-badge" v-if="stats.accountCount">{{ stats.accountCount }}</span>
+          </div>
+        </div>
         <div class="tabs-actions">
           <el-button type="primary" @click="handleApplyCert">
             <IconifyIconOnline icon="mdi:certificate-outline" />
@@ -55,14 +79,14 @@
         </div>
       </div>
       <!-- 证书列表内容 -->
-      <div v-show="activeTab === 'certs'">
+      <div class="tab-content" v-show="activeTab === 'certs'">
         <CertList ref="certListRef" />
       </div>
       <!-- 账户管理内容 -->
-      <div v-show="activeTab === 'accounts'">
+      <div class="tab-content" v-show="activeTab === 'accounts'">
         <AccountList ref="accountListRef" />
       </div>
-    </el-card>
+    </div>
 
     <!-- 申请证书对话框 -->
     <ApplyCertDialog
@@ -81,7 +105,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { getCertStats, type AcmeCertStats } from "@/api/acme";
-import ScCard from "@repo/components/ScCard/index.vue";
 import CertList from "./components/CertList.vue";
 import AccountList from "./components/AccountList.vue";
 import ApplyCertDialog from "./components/ApplyCertDialog.vue";
@@ -161,45 +184,221 @@ onMounted(() => {
   flex-direction: column;
   gap: 16px;
   padding: 16px;
+  min-height: 100vh;
+}
 
-  .stats-row {
+/* 统计卡片 */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
     display: flex;
-    gap: 16px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
 
-    > * {
-      flex: 1;
-      min-width: 0;
+  .stat-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--el-text-color-primary);
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    margin-top: 4px;
+  }
+
+  .stat-decoration {
+    position: absolute;
+    right: -20px;
+    top: -20px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    opacity: 0.1;
+  }
+
+  /* 账户卡片 */
+  &.accounts {
+    .stat-icon {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+    }
+    .stat-decoration {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
   }
 
-  .main-card {
-    flex: 1;
-    min-height: 500px;
+  /* 有效证书卡片 */
+  &.valid {
+    .stat-icon {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: #fff;
+    }
+    .stat-decoration {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+  }
 
-    .tabs-header {
-      display: flex;
-      justify-content: space-between;
+  /* 即将到期卡片 */
+  &.expiring {
+    .stat-icon {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: #fff;
+    }
+    .stat-decoration {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+  }
+
+  /* 待验证卡片 */
+  &.pending {
+    .stat-icon {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: #fff;
+    }
+    .stat-decoration {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+  }
+}
+
+/* 主卡片 */
+.main-card {
+  flex: 1;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+
+  .tabs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  .tabs-actions {
+    display: flex;
+    gap: 10px;
+    padding-bottom: 12px;
+
+    .el-button {
+      display: inline-flex;
       align-items: center;
-      margin-bottom: 16px;
-      border-bottom: 1px solid var(--el-border-color-lighter);
+      gap: 6px;
+      border-radius: 8px;
+    }
+  }
 
-      .tabs-content {
-        flex: 1;
+  .tab-content {
+    padding: 16px 20px;
+  }
+}
 
-        :deep(.el-tabs__header) {
-          margin-bottom: 0;
-        }
+/* 自定义标签页 */
+.custom-tabs {
+  display: flex;
+  gap: 8px;
+}
 
-        :deep(.el-tabs__nav-wrap::after) {
-          display: none;
-        }
-      }
+.tab-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.3s ease;
 
-      .tabs-actions {
-        display: flex;
-        gap: 12px;
-        padding-bottom: 10px;
-      }
+  &:hover {
+    color: var(--el-color-primary);
+  }
+
+  &.active {
+    color: var(--el-color-primary);
+    border-bottom-color: var(--el-color-primary);
+  }
+
+  .tab-badge {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 20px;
+    text-align: center;
+    background: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
+    border-radius: 10px;
+  }
+
+  &.active .tab-badge {
+    background: var(--el-color-primary);
+    color: #fff;
+  }
+}
+
+/* 响应式 */
+@media (max-width: 1200px) {
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .main-card .tabs-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+
+    .custom-tabs {
+      justify-content: center;
+    }
+
+    .tabs-actions {
+      justify-content: center;
     }
   }
 }

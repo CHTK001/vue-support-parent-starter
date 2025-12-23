@@ -12,6 +12,8 @@ export const sm4_decrypt: (a: number, b: number, c: number, d: number) => number
 export const generate_sm2_key_pair: () => number;
 export const sm2_encrypt: (a: number, b: number, c: number, d: number) => number;
 export const sm2_decrypt: (a: number, b: number, c: number, d: number) => number;
+export const generate_nonce: () => [number, number];
+export const get_current_timestamp: () => number;
 export const generate_sign: (a: number, b: number, c: number, d: number) => number;
 export const verify_sign: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
 export const uu3_decrypt_simple: (a: number, b: number) => number;
@@ -30,4 +32,5 @@ export const __externref_table_alloc: () => number;
 export const __wbindgen_export_2: WebAssembly.Table;
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_free: (a: number, b: number, c: number) => void;
 export const __wbindgen_start: () => void;

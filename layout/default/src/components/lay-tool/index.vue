@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onBeforeUnmount, watch, computed } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 import { emitter } from "@repo/core";
@@ -11,35 +11,35 @@ import NewYearTool from "./themes/NewYear.vue";
 
 const { $storage } = useGlobal<any>();
 
-// 使用 computed 来响应式读取 storage 中的主题值
+// 浣跨敤 computed 鏉ュ搷搴斿紡璇诲彇 storage 涓殑涓婚鍊?
 const storageTheme = computed(() => $storage?.configure?.systemTheme || 'default');
 const currentTheme = ref<string>(storageTheme.value);
 
-console.log('🚀 lay-tool 初始主题:', currentTheme.value);
+console.log('馃殌 lay-tool 鍒濆涓婚:', currentTheme.value);
 
 const handleThemeChange = (themeKey: string) => {
-  console.log('🎨 lay-tool 收到主题变化:', themeKey);
+  console.log('馃帹 lay-tool 鏀跺埌涓婚鍙樺寲:', themeKey);
   currentTheme.value = themeKey;
 };
 
-// 监听 emitter 事件
+// 鐩戝惉 emitter 浜嬩欢
 emitter.on("systemThemeChange", handleThemeChange);
 
-// 同时监听 storage 变化作为备用机制
+// 鍚屾椂鐩戝惉 storage 鍙樺寲浣滀负澶囩敤鏈哄埗
 watch(storageTheme, (newTheme) => {
   if (newTheme && newTheme !== currentTheme.value) {
-    console.log('🔄 lay-tool 检测到 storage 主题变化:', newTheme);
+    console.log('馃攧 lay-tool 妫€娴嬪埌 storage 涓婚鍙樺寲:', newTheme);
     currentTheme.value = newTheme;
   }
 }, { immediate: false });
 
-// 监听 data-skin 属性变化作为最终保障
+// 鐩戝惉 data-skin 灞炴€у彉鍖栦綔涓烘渶缁堜繚闅?
 const observer = new MutationObserver((mutations) => {
   mutations.forEach((mutation) => {
     if (mutation.type === 'attributes' && mutation.attributeName === 'data-skin') {
       const newTheme = document.documentElement.getAttribute('data-skin') || 'default';
       if (newTheme !== currentTheme.value) {
-        console.log('🔄 lay-tool 检测到 data-skin 属性变化:', newTheme);
+        console.log('馃攧 lay-tool 妫€娴嬪埌 data-skin 灞炴€у彉鍖?', newTheme);
         currentTheme.value = newTheme;
       }
     }
@@ -68,7 +68,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="scss">
-// 语言下拉菜单样式（全局）
+// 璇█涓嬫媺鑿滃崟鏍峰紡锛堝叏灞€锛?
 .lang-dropdown-popper {
   .el-dropdown-menu {
     padding: 0;
@@ -202,7 +202,7 @@ onBeforeUnmount(() => {
   100% { transform: scale(1); }
 }
 
-// 用户下拉菜单样式（全局）
+// 鐢ㄦ埛涓嬫媺鑿滃崟鏍峰紡锛堝叏灞€锛?
 .user-dropdown-popper {
   .el-dropdown-menu {
     padding: 0;
@@ -446,1383 +446,459 @@ html.dark {
   }
 }
 
-// ==================== 赛博朋克主题下拉样式 ====================
-html[data-skin="cyberpunk"] {
-  // 赛博朋克颜色变量
-  $cyber-cyan: #00ffff;
-  $cyber-magenta: #ff00ff;
-  $cyber-dark: #0a0a12;
-  $cyber-dark-light: #12121f;
-  $cyber-glass: rgba(10, 10, 18, 0.95);
-  $cyber-border: rgba(0, 255, 255, 0.3);
+// ==================== 主题适配 ====================
 
-  // 语言下拉菜单 - 赛博朋克主题
-  .lang-dropdown-popper {
-    .el-dropdown-menu {
-      background: $cyber-glass !important;
-      border: 1px solid $cyber-border !important;
-      box-shadow:
-        0 0 30px rgba(0, 255, 255, 0.2),
-        0 0 60px rgba(255, 0, 255, 0.1),
-        0 20px 60px rgba(0, 0, 0, 0.5) !important;
-      border-radius: 12px !important;
-      overflow: hidden;
-      position: relative;
+// 春节主题
+$spring-red: #DC143C;
+$spring-red-dark: #B22222;
+$spring-gold: #FFD700;
 
-      // 扫描线效果
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: repeating-linear-gradient(
-          0deg,
-          transparent,
-          transparent 2px,
-          rgba(0, 255, 255, 0.02) 2px,
-          rgba(0, 255, 255, 0.02) 4px
-        );
-        pointer-events: none;
-        z-index: 0;
-      }
-    }
+html[data-skin="spring-festival"] {
+  .lang-dropdown-popper .el-dropdown-menu,
+  .user-dropdown-popper .el-dropdown-menu {
+    background: linear-gradient(180deg, $spring-red 0%, $spring-red-dark 100%) !important;
+    border: 2px solid $spring-gold !important;
+    box-shadow: 0 0 20px rgba($spring-gold, 0.3), 0 20px 60px rgba(0, 0, 0, 0.4) !important;
   }
 
   .lang-menu {
-    background: transparent !important;
-
     .lang-header {
-      background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(255, 0, 255, 0.05) 100%) !important;
-      border-bottom: 1px solid $cyber-border !important;
-      color: $cyber-cyan !important;
-      position: relative;
-      z-index: 1;
-
-      // 底部霓虹线
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, $cyber-cyan 30%, $cyber-magenta 50%, $cyber-cyan 70%, transparent);
-      }
-
-      svg {
-        color: $cyber-cyan !important;
-        filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.6));
-      }
+      background: linear-gradient(135deg, rgba($spring-gold, 0.2) 0%, rgba(139, 0, 0, 0.2) 100%) !important;
+      border-bottom-color: rgba($spring-gold, 0.4) !important;
+      color: $spring-gold !important;
+      svg { color: $spring-gold !important; }
     }
 
     .lang-item {
-      background: rgba(10, 10, 18, 0.6) !important;
-      border: 1px solid rgba(0, 255, 255, 0.15) !important;
-      margin: 8px 10px !important;
-      border-radius: 8px !important;
-      position: relative;
-      z-index: 1;
-      transition: all 0.3s ease !important;
-
-      &::before {
-        background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(255, 0, 255, 0.05) 100%) !important;
-      }
+      background: rgba(139, 0, 0, 0.4) !important;
+      border: 1px solid rgba($spring-gold, 0.2) !important;
+      .lang-name { color: rgba(255, 255, 255, 0.95) !important; }
+      .lang-desc { color: rgba($spring-gold, 0.7) !important; }
 
       &:hover {
-        background: rgba(0, 255, 255, 0.1) !important;
-        border-color: $cyber-cyan !important;
-        box-shadow:
-          0 0 15px rgba(0, 255, 255, 0.3),
-          inset 0 0 15px rgba(0, 255, 255, 0.05) !important;
-        transform: translateX(4px) !important;
-
-        .lang-name {
-          color: #fff !important;
-          text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
-        }
+        background: rgba($spring-gold, 0.15) !important;
+        border-color: $spring-gold !important;
+        .lang-name { color: $spring-gold !important; }
       }
 
       &.active {
-        background: linear-gradient(135deg, rgba(0, 255, 255, 0.15) 0%, rgba(255, 0, 255, 0.1) 100%) !important;
-        border: 1px solid $cyber-cyan !important;
-        box-shadow:
-          0 0 20px rgba(0, 255, 255, 0.3),
-          0 0 40px rgba(255, 0, 255, 0.15) !important;
-
-        .lang-name {
-          color: $cyber-cyan !important;
-          text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
-          font-weight: 700 !important;
-        }
-
-        .lang-check {
-          color: $cyber-cyan !important;
-          filter: drop-shadow(0 0 6px rgba(0, 255, 255, 0.8)) !important;
-        }
-      }
-
-      .lang-flag {
-        filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.3));
-      }
-
-      .lang-name {
-        color: $cyber-cyan !important;
-        font-family: 'Rajdhani', 'Roboto', sans-serif;
-        letter-spacing: 0.5px;
-      }
-
-      .lang-desc {
-        color: rgba(0, 255, 255, 0.6) !important;
-      }
-    }
-  }
-
-  // 用户下拉菜单 - 赛博朋克主题
-  .user-dropdown-popper {
-    .el-dropdown-menu {
-      background: $cyber-glass !important;
-      border: 1px solid $cyber-border !important;
-      box-shadow:
-        0 0 30px rgba(0, 255, 255, 0.2),
-        0 0 60px rgba(255, 0, 255, 0.1),
-        0 25px 80px rgba(0, 0, 0, 0.5) !important;
-      border-radius: 16px !important;
-      overflow: hidden;
-      position: relative;
-
-      // 扫描线效果
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: repeating-linear-gradient(
-          0deg,
-          transparent,
-          transparent 2px,
-          rgba(0, 255, 255, 0.02) 2px,
-          rgba(0, 255, 255, 0.02) 4px
-        );
-        pointer-events: none;
-        z-index: 0;
+        background: linear-gradient(135deg, rgba($spring-gold, 0.2) 0%, rgba(139, 0, 0, 0.3) 100%) !important;
+        border-color: $spring-gold !important;
+        .lang-name { color: $spring-gold !important; font-weight: 700; }
+        .lang-check { color: $spring-gold !important; }
       }
     }
   }
 
   .user-menu {
-    background: transparent !important;
-
     .menu-header {
-      background: linear-gradient(135deg, rgba(0, 255, 255, 0.15) 0%, rgba(255, 0, 255, 0.1) 100%) !important;
-      border-bottom: 1px solid $cyber-border;
-      position: relative;
-      z-index: 1;
-
-      // 底部霓虹线
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, $cyber-cyan 20%, $cyber-magenta 50%, $cyber-cyan 80%, transparent);
-        animation: cyber-header-glow 2s ease-in-out infinite;
-      }
-
-      // 网格背景
-      &::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background:
-          linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-          linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px);
-        background-size: 20px 20px;
-        pointer-events: none;
-      }
-
-      .header-avatar {
-        border-color: $cyber-cyan !important;
-        box-shadow:
-          0 0 15px rgba(0, 255, 255, 0.4),
-          0 0 30px rgba(255, 0, 255, 0.2),
-          0 8px 24px rgba(0, 0, 0, 0.4) !important;
-
-        &:hover {
-          box-shadow:
-            0 0 20px rgba(0, 255, 255, 0.6),
-            0 0 40px rgba(255, 0, 255, 0.3),
-            0 8px 24px rgba(0, 0, 0, 0.4) !important;
-        }
-      }
-
-      .header-name {
-        color: #fff !important;
-        text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-        font-family: 'Orbitron', 'Rajdhani', monospace;
-        letter-spacing: 1px;
-      }
-
-      .header-status {
-        color: $cyber-cyan !important;
-
-        &::before {
-          background: linear-gradient(135deg, $cyber-cyan, #00ffa3) !important;
-          box-shadow:
-            0 0 0 3px rgba(0, 255, 255, 0.2),
-            0 0 15px rgba(0, 255, 255, 0.6) !important;
-          animation: cyber-status-pulse 2s infinite;
-        }
-      }
+      background: linear-gradient(135deg, rgba($spring-gold, 0.2) 0%, rgba(139, 0, 0, 0.25) 100%) !important;
+      border-bottom: 1px solid rgba($spring-gold, 0.4) !important;
+      .header-avatar { border-color: $spring-gold !important; box-shadow: 0 0 15px rgba($spring-gold, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3) !important; }
+      .header-name { color: $spring-gold !important; }
+      .header-status { color: rgba(255, 255, 255, 0.9) !important; }
     }
 
     .menu-body {
-      position: relative;
-      z-index: 1;
+      background: transparent !important;
     }
 
     .menu-item {
-      background: rgba(10, 10, 18, 0.6) !important;
-      border: 1px solid rgba(0, 255, 255, 0.15) !important;
-      margin: 6px 10px !important;
-      border-radius: 10px !important;
-      transition: all 0.3s ease !important;
-
-      &::before {
-        background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(255, 0, 255, 0.05) 100%) !important;
-      }
-
+      background: rgba(139, 0, 0, 0.4) !important;
+      border: 1px solid rgba($spring-gold, 0.2) !important;
+      .item-title { color: rgba(255, 255, 255, 0.95) !important; }
+      .item-desc { color: rgba($spring-gold, 0.7) !important; }
+      .account-icon { background: linear-gradient(135deg, $spring-gold, #DAA520) !important; color: $spring-red-dark !important; }
+      .cache-icon { background: linear-gradient(135deg, $spring-red, $spring-red-dark) !important; color: #fff !important; box-shadow: 0 6px 16px rgba($spring-red, 0.35) !important; }
       &:hover {
-        background: rgba(0, 255, 255, 0.1) !important;
-        border-color: $cyber-cyan !important;
-        box-shadow:
-          0 0 15px rgba(0, 255, 255, 0.3),
-          inset 0 0 15px rgba(0, 255, 255, 0.05) !important;
-        transform: translateX(4px) !important;
-
-        .item-title {
-          color: #fff !important;
-          text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
-        }
-
-        .item-arrow {
-          color: $cyber-cyan !important;
-          filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.6));
-        }
-      }
-
-      .item-icon {
-        box-shadow:
-          0 0 15px rgba(0, 255, 255, 0.3),
-          0 6px 16px rgba(0, 0, 0, 0.3) !important;
-      }
-
-      .account-icon {
-        background: linear-gradient(135deg, $cyber-cyan, rgba(0, 200, 255, 0.8)) !important;
-        color: $cyber-dark !important;
-      }
-
-      .cache-icon {
-        background: linear-gradient(135deg, $cyber-magenta, rgba(255, 100, 200, 0.8)) !important;
-        color: $cyber-dark !important;
-      }
-
-      .item-title {
-        color: $cyber-cyan !important;
-        font-family: 'Rajdhani', 'Roboto', sans-serif;
-        letter-spacing: 0.5px;
-      }
-
-      .item-desc {
-        color: rgba(0, 255, 255, 0.6) !important;
+        background: rgba($spring-gold, 0.15) !important;
+        border-color: $spring-gold !important;
+        .item-title { color: $spring-gold !important; }
+        .item-arrow { color: $spring-gold !important; }
       }
     }
 
     .menu-footer {
-      background: linear-gradient(135deg, rgba(0, 255, 255, 0.05) 0%, rgba(255, 0, 255, 0.03) 100%) !important;
-      border-top: 1px solid $cyber-border !important;
-      position: relative;
-      z-index: 1;
-
-      // 顶部霓虹线
-      &::before {
-        content: '';
-        position: absolute;
-        top: -1px;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, $cyber-cyan 30%, $cyber-magenta 50%, $cyber-cyan 70%, transparent);
-      }
+      background: linear-gradient(135deg, rgba($spring-gold, 0.1) 0%, rgba(139, 0, 0, 0.15) 100%) !important;
+      border-top-color: rgba($spring-gold, 0.4) !important;
     }
 
     .logout-item {
-      background: rgba(10, 10, 18, 0.6) !important;
+      background: rgba(0, 0, 0, 0.2) !important;
+      border: 1px solid rgba(255, 100, 100, 0.3) !important;
+      color: rgba(255, 200, 200, 0.9) !important;
+      .logout-icon { color: rgba(255, 200, 200, 0.9) !important; }
+      &:hover {
+        background: rgba(255, 100, 100, 0.2) !important;
+        border-color: rgba(255, 150, 150, 0.5) !important;
+        color: #fff !important;
+        .logout-icon { color: #fff !important; }
+      }
+    }
+  }
+}
+
+// 赛博朋克主题
+$cyber-cyan: #00ffff;
+$cyber-magenta: #ff00ff;
+$cyber-dark: #0a0a12;
+
+html[data-skin="cyberpunk"] {
+  .lang-dropdown-popper .el-dropdown-menu,
+  .user-dropdown-popper .el-dropdown-menu {
+    background: rgba($cyber-dark, 0.95) !important;
+    border: 1px solid rgba($cyber-cyan, 0.3) !important;
+    box-shadow: 0 0 30px rgba($cyber-cyan, 0.2), 0 0 60px rgba($cyber-magenta, 0.1), 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .lang-menu {
+    .lang-header {
+      background: linear-gradient(135deg, rgba($cyber-cyan, 0.1) 0%, rgba($cyber-magenta, 0.05) 100%) !important;
+      border-bottom-color: rgba($cyber-cyan, 0.3) !important;
+      color: $cyber-cyan !important;
+      svg { color: $cyber-cyan !important; filter: drop-shadow(0 0 4px rgba($cyber-cyan, 0.6)); }
+    }
+
+    .lang-item {
+      background: rgba($cyber-dark, 0.6) !important;
+      border: 1px solid rgba($cyber-cyan, 0.15) !important;
+      .lang-name { color: $cyber-cyan !important; font-family: 'Rajdhani', 'Roboto', sans-serif; }
+      .lang-desc { color: rgba($cyber-cyan, 0.6) !important; }
+
+      &:hover {
+        background: rgba($cyber-cyan, 0.1) !important;
+        border-color: $cyber-cyan !important;
+        box-shadow: 0 0 15px rgba($cyber-cyan, 0.3) !important;
+        .lang-name { color: #fff !important; text-shadow: 0 0 8px rgba($cyber-cyan, 0.6); }
+      }
+
+      &.active {
+        background: linear-gradient(135deg, rgba($cyber-cyan, 0.15) 0%, rgba($cyber-magenta, 0.1) 100%) !important;
+        border-color: $cyber-cyan !important;
+        box-shadow: 0 0 20px rgba($cyber-cyan, 0.3) !important;
+        .lang-name { color: $cyber-cyan !important; text-shadow: 0 0 8px rgba($cyber-cyan, 0.8); font-weight: 700; }
+        .lang-check { color: $cyber-cyan !important; filter: drop-shadow(0 0 6px rgba($cyber-cyan, 0.8)); }
+      }
+    }
+  }
+
+  .user-menu {
+    .menu-header {
+      background: linear-gradient(135deg, rgba($cyber-cyan, 0.15) 0%, rgba($cyber-magenta, 0.1) 100%) !important;
+      border-bottom: 1px solid rgba($cyber-cyan, 0.3) !important;
+      .header-avatar { border-color: $cyber-cyan !important; box-shadow: 0 0 15px rgba($cyber-cyan, 0.4), 0 0 30px rgba($cyber-magenta, 0.2), 0 8px 24px rgba(0, 0, 0, 0.4) !important; }
+      .header-name { color: #fff !important; text-shadow: 0 0 10px rgba($cyber-cyan, 0.5); font-family: 'Orbitron', 'Rajdhani', monospace; }
+      .header-status { color: $cyber-cyan !important; &::before { background: linear-gradient(135deg, $cyber-cyan, #00ffa3) !important; box-shadow: 0 0 0 3px rgba($cyber-cyan, 0.2), 0 0 15px rgba($cyber-cyan, 0.6) !important; } }
+    }
+
+    .menu-body {
+      background: transparent !important;
+    }
+
+    .menu-item {
+      background: rgba($cyber-dark, 0.6) !important;
+      border: 1px solid rgba($cyber-cyan, 0.15) !important;
+      .item-title { color: $cyber-cyan !important; font-family: 'Rajdhani', 'Roboto', sans-serif; }
+      .item-desc { color: rgba($cyber-cyan, 0.6) !important; }
+      .account-icon { background: linear-gradient(135deg, $cyber-cyan, rgba(0, 200, 255, 0.8)) !important; color: $cyber-dark !important; box-shadow: 0 0 15px rgba($cyber-cyan, 0.4) !important; }
+      .cache-icon { background: linear-gradient(135deg, $cyber-magenta, rgba(255, 100, 200, 0.8)) !important; color: $cyber-dark !important; box-shadow: 0 0 15px rgba($cyber-magenta, 0.4) !important; }
+      &:hover {
+        background: rgba($cyber-cyan, 0.1) !important;
+        border-color: $cyber-cyan !important;
+        box-shadow: 0 0 15px rgba($cyber-cyan, 0.3) !important;
+        .item-title { color: #fff !important; text-shadow: 0 0 8px rgba($cyber-cyan, 0.6); }
+        .item-arrow { color: $cyber-cyan !important; filter: drop-shadow(0 0 4px rgba($cyber-cyan, 0.6)); }
+      }
+    }
+
+    .menu-footer {
+      background: linear-gradient(135deg, rgba($cyber-cyan, 0.05) 0%, rgba($cyber-magenta, 0.03) 100%) !important;
+      border-top-color: rgba($cyber-cyan, 0.3) !important;
+    }
+
+    .logout-item {
+      background: rgba($cyber-dark, 0.6) !important;
       border: 1px solid rgba(255, 50, 100, 0.3) !important;
       color: rgba(255, 100, 150, 0.9) !important;
-      border-radius: 10px !important;
-
-      &::before {
-        background: linear-gradient(135deg, rgba(255, 50, 100, 0.15) 0%, rgba(255, 0, 100, 0.1) 100%) !important;
-      }
-
-      .logout-icon {
-        color: rgba(255, 100, 150, 0.9) !important;
-        filter: drop-shadow(0 0 4px rgba(255, 50, 100, 0.5));
-      }
-
+      .logout-icon { color: rgba(255, 100, 150, 0.9) !important; filter: drop-shadow(0 0 4px rgba(255, 50, 100, 0.5)); }
       &:hover {
         background: rgba(255, 50, 100, 0.15) !important;
         border-color: rgba(255, 50, 100, 0.6) !important;
         color: #ff6b9d !important;
-        box-shadow:
-          0 0 15px rgba(255, 50, 100, 0.3),
-          inset 0 0 15px rgba(255, 50, 100, 0.05) !important;
-        transform: scale(1.02) !important;
-
-        .logout-icon {
-          color: #ff6b9d !important;
-          filter: drop-shadow(0 0 8px rgba(255, 50, 100, 0.8)) !important;
-        }
+        box-shadow: 0 0 15px rgba(255, 50, 100, 0.3) !important;
+        .logout-icon { color: #ff6b9d !important; filter: drop-shadow(0 0 8px rgba(255, 50, 100, 0.8)); }
       }
     }
   }
 }
 
-// 赛博朋克主题动画
-@keyframes cyber-header-glow {
-  0%, 100% {
-    opacity: 0.8;
-  }
-  50% {
-    opacity: 1;
-    filter: brightness(1.3);
-  }
-}
+// 中秋主题
+$mid-blue: #1a237e;
+$mid-blue-light: #283593;
+$mid-gold: #ffd54f;
 
-@keyframes cyber-status-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2), 0 0 15px rgba(0, 255, 255, 0.6);
-  }
-  50% {
-    box-shadow: 0 0 0 5px rgba(0, 255, 255, 0.1), 0 0 25px rgba(0, 255, 255, 0.4);
-  }
-}
-
-// ==================== 春节主题下拉样式 ====================
-html[data-skin="spring-festival"] {
-  // 春节颜色变量
-  $spring-red: #DC143C;
-  $spring-red-dark: #B22222;
-  $spring-gold: #FFD700;
-  $spring-gold-dark: #DAA520;
-  $spring-border: rgba(255, 215, 0, 0.4);
-
-  // 语言下拉菜单 - 春节主题
-  .lang-dropdown-popper {
-    .el-dropdown-menu {
-      background: linear-gradient(180deg, $spring-red 0%, $spring-red-dark 100%) !important;
-      border: 2px solid $spring-gold !important;
-      box-shadow:
-        0 0 20px rgba(255, 215, 0, 0.3),
-        0 0 40px rgba(255, 215, 0, 0.15),
-        0 20px 60px rgba(0, 0, 0, 0.4) !important;
-      border-radius: 12px !important;
-      overflow: hidden;
-    }
-  }
-
-  .lang-menu {
-    background: transparent !important;
-
-    .lang-header {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(139, 0, 0, 0.2) 100%) !important;
-      border-bottom: 1px solid $spring-border !important;
-      color: $spring-gold !important;
-      position: relative;
-
-      // 底部金色线
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, $spring-gold 30%, rgba(255, 255, 255, 0.8) 50%, $spring-gold 70%, transparent);
-      }
-
-      svg {
-        color: $spring-gold !important;
-        filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
-      }
-    }
-
-    .lang-item {
-      background: rgba(139, 0, 0, 0.4) !important;
-      border: 1px solid rgba(255, 215, 0, 0.2) !important;
-      margin: 8px 10px !important;
-      border-radius: 8px !important;
-      transition: all 0.3s ease !important;
-
-      &:hover {
-        background: rgba(255, 215, 0, 0.15) !important;
-        border-color: $spring-gold !important;
-        box-shadow: 0 0 15px rgba(255, 215, 0, 0.25) !important;
-        transform: translateX(4px) !important;
-
-        .lang-name {
-          color: $spring-gold !important;
-        }
-      }
-
-      &.active {
-        background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(139, 0, 0, 0.3) 100%) !important;
-        border: 1px solid $spring-gold !important;
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.3) !important;
-
-        .lang-name {
-          color: $spring-gold !important;
-          font-weight: 700 !important;
-        }
-
-        .lang-check {
-          color: $spring-gold !important;
-          filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6)) !important;
-        }
-      }
-
-      .lang-flag {
-        filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.3));
-      }
-
-      .lang-name {
-        color: rgba(255, 255, 255, 0.95) !important;
-      }
-
-      .lang-desc {
-        color: rgba(255, 215, 0, 0.7) !important;
-      }
-    }
-  }
-
-  // 用户下拉菜单 - 春节主题
-  .user-dropdown-popper {
-    .el-dropdown-menu {
-      background: linear-gradient(180deg, $spring-red 0%, $spring-red-dark 100%) !important;
-      border: 2px solid $spring-gold !important;
-      box-shadow:
-        0 0 20px rgba(255, 215, 0, 0.3),
-        0 0 40px rgba(255, 215, 0, 0.15),
-        0 25px 80px rgba(0, 0, 0, 0.4) !important;
-      border-radius: 16px !important;
-      overflow: hidden;
-    }
-  }
-
-  .user-menu {
-    background: transparent !important;
-
-    .menu-header {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(139, 0, 0, 0.25) 100%) !important;
-      border-bottom: 1px solid $spring-border;
-      position: relative;
-
-      // 底部金色线
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, $spring-gold 20%, rgba(255, 255, 255, 0.8) 50%, $spring-gold 80%, transparent);
-      }
-
-      .header-avatar {
-        border-color: $spring-gold !important;
-        box-shadow:
-          0 0 15px rgba(255, 215, 0, 0.4),
-          0 8px 24px rgba(0, 0, 0, 0.3) !important;
-
-        &:hover {
-          box-shadow:
-            0 0 20px rgba(255, 215, 0, 0.6),
-            0 8px 24px rgba(0, 0, 0, 0.3) !important;
-        }
-      }
-
-      .header-name {
-        color: $spring-gold !important;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        font-weight: 600;
-      }
-
-      .header-status {
-        color: rgba(255, 255, 255, 0.9) !important;
-
-        &::before {
-          background: linear-gradient(135deg, #4ade80, #22c55e) !important;
-          box-shadow:
-            0 0 0 3px rgba(74, 222, 128, 0.2),
-            0 0 10px rgba(74, 222, 128, 0.4) !important;
-        }
-      }
-    }
-
-    .menu-item {
-      background: rgba(139, 0, 0, 0.4) !important;
-      border: 1px solid rgba(255, 215, 0, 0.2) !important;
-      margin: 6px 10px !important;
-      border-radius: 10px !important;
-      transition: all 0.3s ease !important;
-
-      &:hover {
-        background: rgba(255, 215, 0, 0.15) !important;
-        border-color: $spring-gold !important;
-        box-shadow: 0 0 15px rgba(255, 215, 0, 0.25) !important;
-        transform: translateX(4px) !important;
-
-        .item-title {
-          color: $spring-gold !important;
-        }
-
-        .item-arrow {
-          color: $spring-gold !important;
-        }
-      }
-
-      .item-icon {
-        box-shadow: 0 0 12px rgba(255, 215, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-      }
-
-      .account-icon {
-        background: linear-gradient(135deg, $spring-gold, $spring-gold-dark) !important;
-        color: $spring-red-dark !important;
-      }
-
-      .cache-icon {
-        background: linear-gradient(135deg, $spring-red, $spring-red-dark) !important;
-        color: #fff !important;
-      }
-
-      .item-title {
-        color: rgba(255, 255, 255, 0.95) !important;
-      }
-
-      .item-desc {
-        color: rgba(255, 215, 0, 0.7) !important;
-      }
-    }
-
-    .menu-footer {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(139, 0, 0, 0.15) 100%) !important;
-      border-top: 1px solid $spring-border !important;
-      position: relative;
-
-      // 顶部金色线
-      &::before {
-        content: '';
-        position: absolute;
-        top: -1px;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, $spring-gold 30%, rgba(255, 255, 255, 0.8) 50%, $spring-gold 70%, transparent);
-      }
-    }
-
-    .logout-item {
-      background: rgba(0, 0, 0, 0.2) !important;
-      border: 1px solid rgba(255, 100, 100, 0.3) !important;
-      color: rgba(255, 200, 200, 0.9) !important;
-      border-radius: 10px !important;
-
-      .logout-icon {
-        color: rgba(255, 200, 200, 0.9) !important;
-      }
-
-      &:hover {
-        background: rgba(255, 100, 100, 0.2) !important;
-        border-color: rgba(255, 150, 150, 0.5) !important;
-        color: #fff !important;
-        box-shadow: 0 0 15px rgba(255, 100, 100, 0.25) !important;
-        transform: scale(1.02) !important;
-
-        .logout-icon {
-          color: #fff !important;
-        }
-      }
-    }
-  }
-}
-
-// ==================== 中秋主题下拉样式 ====================
 html[data-skin="mid-autumn"] {
-  // 中秋颜色变量
-  $mid-blue: #1a237e;
-  $mid-blue-light: #283593;
-  $mid-gold: #ffd54f;
-  $mid-gold-light: #ffecb3;
-  $mid-cyan: #00bcd4;
-  $mid-border: rgba(255, 213, 79, 0.4);
-
-  // 语言下拉菜单 - 中秋主题
-  .lang-dropdown-popper {
-    .el-dropdown-menu {
-      background: linear-gradient(180deg, $mid-blue 0%, $mid-blue-light 100%) !important;
-      border: 2px solid $mid-gold !important;
-      box-shadow:
-        0 0 20px rgba(255, 213, 79, 0.3),
-        0 0 40px rgba(255, 213, 79, 0.15),
-        0 20px 60px rgba(0, 0, 0, 0.4) !important;
-      border-radius: 12px !important;
-      overflow: hidden;
-    }
+  .lang-dropdown-popper .el-dropdown-menu,
+  .user-dropdown-popper .el-dropdown-menu {
+    background: linear-gradient(180deg, $mid-blue 0%, $mid-blue-light 100%) !important;
+    border: 2px solid $mid-gold !important;
+    box-shadow: 0 0 20px rgba($mid-gold, 0.3), 0 20px 60px rgba(0, 0, 0, 0.4) !important;
   }
 
   .lang-menu {
-    background: transparent !important;
-
     .lang-header {
-      background: linear-gradient(135deg, rgba(255, 213, 79, 0.2) 0%, rgba(26, 35, 126, 0.2) 100%) !important;
-      border-bottom: 1px solid $mid-border !important;
+      background: linear-gradient(135deg, rgba($mid-gold, 0.2) 0%, rgba($mid-blue, 0.2) 100%) !important;
+      border-bottom-color: rgba($mid-gold, 0.4) !important;
       color: $mid-gold !important;
-      position: relative;
-
-      // 底部金色线
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, $mid-gold 30%, rgba(255, 255, 255, 0.8) 50%, $mid-gold 70%, transparent);
-      }
-
-      svg {
-        color: $mid-gold !important;
-        filter: drop-shadow(0 0 4px rgba(255, 213, 79, 0.5));
-      }
+      svg { color: $mid-gold !important; }
     }
 
     .lang-item {
-      background: rgba(26, 35, 126, 0.4) !important;
-      border: 1px solid rgba(255, 213, 79, 0.2) !important;
-      margin: 8px 10px !important;
-      border-radius: 8px !important;
-      transition: all 0.3s ease !important;
+      background: rgba($mid-blue, 0.4) !important;
+      border: 1px solid rgba($mid-gold, 0.2) !important;
+      .lang-name { color: rgba(255, 255, 255, 0.95) !important; }
+      .lang-desc { color: rgba($mid-gold, 0.7) !important; }
 
       &:hover {
-        background: rgba(255, 213, 79, 0.15) !important;
+        background: rgba($mid-gold, 0.15) !important;
         border-color: $mid-gold !important;
-        box-shadow: 0 0 15px rgba(255, 213, 79, 0.25) !important;
-        transform: translateX(4px) !important;
-
-        .lang-name {
-          color: $mid-gold !important;
-        }
+        .lang-name { color: $mid-gold !important; }
       }
 
       &.active {
-        background: linear-gradient(135deg, rgba(255, 213, 79, 0.2) 0%, rgba(26, 35, 126, 0.3) 100%) !important;
-        border: 1px solid $mid-gold !important;
-        box-shadow: 0 0 20px rgba(255, 213, 79, 0.3) !important;
-
-        .lang-name {
-          color: $mid-gold !important;
-          font-weight: 700 !important;
-        }
-
-        .lang-check {
-          color: $mid-gold !important;
-          filter: drop-shadow(0 0 6px rgba(255, 213, 79, 0.6)) !important;
-        }
+        background: linear-gradient(135deg, rgba($mid-gold, 0.2) 0%, rgba($mid-blue, 0.3) 100%) !important;
+        border-color: $mid-gold !important;
+        .lang-name { color: $mid-gold !important; font-weight: 700; }
+        .lang-check { color: $mid-gold !important; }
       }
-
-      .lang-flag {
-        filter: drop-shadow(0 0 4px rgba(255, 213, 79, 0.3));
-      }
-
-      .lang-name {
-        color: rgba(255, 255, 255, 0.95) !important;
-      }
-
-      .lang-desc {
-        color: rgba(255, 213, 79, 0.7) !important;
-      }
-    }
-  }
-
-  // 用户下拉菜单 - 中秋主题
-  .user-dropdown-popper {
-    .el-dropdown-menu {
-      background: linear-gradient(180deg, $mid-blue 0%, $mid-blue-light 100%) !important;
-      border: 2px solid $mid-gold !important;
-      box-shadow:
-        0 0 20px rgba(255, 213, 79, 0.3),
-        0 0 40px rgba(255, 213, 79, 0.15),
-        0 25px 80px rgba(0, 0, 0, 0.4) !important;
-      border-radius: 16px !important;
-      overflow: hidden;
     }
   }
 
   .user-menu {
-    background: transparent !important;
-
     .menu-header {
-      background: linear-gradient(135deg, rgba(255, 213, 79, 0.2) 0%, rgba(26, 35, 126, 0.25) 100%) !important;
-      border-bottom: 1px solid $mid-border;
-      position: relative;
+      background: linear-gradient(135deg, rgba($mid-gold, 0.2) 0%, rgba($mid-blue, 0.25) 100%) !important;
+      border-bottom: 1px solid rgba($mid-gold, 0.4) !important;
+      .header-avatar { border-color: $mid-gold !important; box-shadow: 0 0 15px rgba($mid-gold, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3) !important; }
+      .header-name { color: $mid-gold !important; }
+      .header-status { color: rgba(255, 255, 255, 0.9) !important; }
+    }
 
-      // 底部金色线
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, $mid-gold 20%, rgba(255, 255, 255, 0.8) 50%, $mid-gold 80%, transparent);
-      }
-
-      .header-avatar {
-        border-color: $mid-gold !important;
-        box-shadow:
-          0 0 15px rgba(255, 213, 79, 0.4),
-          0 8px 24px rgba(0, 0, 0, 0.3) !important;
-
-        &:hover {
-          box-shadow:
-            0 0 20px rgba(255, 213, 79, 0.6),
-            0 8px 24px rgba(0, 0, 0, 0.3) !important;
-        }
-      }
-
-      .header-name {
-        color: $mid-gold !important;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        font-weight: 600;
-      }
-
-      .header-status {
-        color: rgba(255, 255, 255, 0.9) !important;
-
-        &::before {
-          background: linear-gradient(135deg, #4ade80, #22c55e) !important;
-          box-shadow:
-            0 0 0 3px rgba(74, 222, 128, 0.2),
-            0 0 10px rgba(74, 222, 128, 0.4) !important;
-        }
-      }
+    .menu-body {
+      background: transparent !important;
     }
 
     .menu-item {
-      background: rgba(26, 35, 126, 0.4) !important;
-      border: 1px solid rgba(255, 213, 79, 0.2) !important;
-      margin: 6px 10px !important;
-      border-radius: 10px !important;
-      transition: all 0.3s ease !important;
-
+      background: rgba($mid-blue, 0.4) !important;
+      border: 1px solid rgba($mid-gold, 0.2) !important;
+      .item-title { color: rgba(255, 255, 255, 0.95) !important; }
+      .item-desc { color: rgba($mid-gold, 0.7) !important; }
+      .account-icon { background: linear-gradient(135deg, $mid-gold, #ffecb3) !important; color: $mid-blue !important; }
+      .cache-icon { background: linear-gradient(135deg, $mid-blue, $mid-blue-light) !important; color: #fff !important; }
       &:hover {
-        background: rgba(255, 213, 79, 0.15) !important;
+        background: rgba($mid-gold, 0.15) !important;
         border-color: $mid-gold !important;
-        box-shadow: 0 0 15px rgba(255, 213, 79, 0.25) !important;
-        transform: translateX(4px) !important;
-
-        .item-title {
-          color: $mid-gold !important;
-        }
-
-        .item-arrow {
-          color: $mid-gold !important;
-        }
-      }
-
-      .item-icon {
-        box-shadow: 0 0 12px rgba(255, 213, 79, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-      }
-
-      .account-icon {
-        background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
-        color: $mid-blue !important;
-      }
-
-      .cache-icon {
-        background: linear-gradient(135deg, $mid-blue, $mid-blue-light) !important;
-        color: #fff !important;
-      }
-
-      .item-title {
-        color: rgba(255, 255, 255, 0.95) !important;
-      }
-
-      .item-desc {
-        color: rgba(255, 213, 79, 0.7) !important;
+        .item-title { color: $mid-gold !important; }
+        .item-arrow { color: $mid-gold !important; }
       }
     }
 
     .menu-footer {
-      background: linear-gradient(135deg, rgba(255, 213, 79, 0.1) 0%, rgba(26, 35, 126, 0.15) 100%) !important;
-      border-top: 1px solid $mid-border !important;
-      position: relative;
-
-      // 顶部金色线
-      &::before {
-        content: '';
-        position: absolute;
-        top: -1px;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, $mid-gold 30%, rgba(255, 255, 255, 0.8) 50%, $mid-gold 70%, transparent);
-      }
+      background: linear-gradient(135deg, rgba($mid-gold, 0.1) 0%, rgba($mid-blue, 0.15) 100%) !important;
+      border-top-color: rgba($mid-gold, 0.4) !important;
     }
 
     .logout-item {
       background: rgba(0, 0, 0, 0.2) !important;
       border: 1px solid rgba(255, 100, 100, 0.3) !important;
       color: rgba(255, 200, 200, 0.9) !important;
-      border-radius: 10px !important;
-
-      .logout-icon {
-        color: rgba(255, 200, 200, 0.9) !important;
-      }
-
+      .logout-icon { color: rgba(255, 200, 200, 0.9) !important; }
       &:hover {
         background: rgba(255, 100, 100, 0.2) !important;
-        border-color: rgba(255, 150, 150, 0.5) !important;
         color: #fff !important;
-        box-shadow: 0 0 15px rgba(255, 100, 100, 0.25) !important;
-        transform: scale(1.02) !important;
-
-        .logout-icon {
-          color: #fff !important;
-        }
+        .logout-icon { color: #fff !important; }
       }
     }
   }
 }
 
-// ==================== 圣诞主题下拉样式 ====================
-html[data-skin="christmas"] {
-  // 圣诞颜色变量
-  $xmas-green: #1b5e20;
-  $xmas-green-light: #2e7d32;
-  $xmas-red: #c62828;
-  $xmas-red-light: #e53935;
-  $xmas-gold: #ffd700;
-  $xmas-white: #ffffff;
-  $xmas-border: rgba(255, 215, 0, 0.4);
+// 圣诞主题
+$xmas-green: #1b5e20;
+$xmas-green-light: #2e7d32;
+$xmas-red: #c62828;
+$xmas-gold: #ffd700;
 
-  // 语言下拉菜单 - 圣诞主题
-  .lang-dropdown-popper {
-    .el-dropdown-menu {
-      background: linear-gradient(180deg, $xmas-green 0%, $xmas-green-light 100%) !important;
-      border: 2px solid $xmas-gold !important;
-      box-shadow:
-        0 0 20px rgba(255, 215, 0, 0.3),
-        0 0 40px rgba(198, 40, 40, 0.15),
-        0 20px 60px rgba(0, 0, 0, 0.4) !important;
-      border-radius: 12px !important;
-      overflow: hidden;
-    }
+html[data-skin="christmas"] {
+  .lang-dropdown-popper .el-dropdown-menu,
+  .user-dropdown-popper .el-dropdown-menu {
+    background: linear-gradient(180deg, $xmas-green 0%, $xmas-green-light 100%) !important;
+    border: 2px solid $xmas-gold !important;
+    box-shadow: 0 0 20px rgba($xmas-gold, 0.3), 0 20px 60px rgba(0, 0, 0, 0.4) !important;
   }
 
   .lang-menu {
-    background: transparent !important;
-
     .lang-header {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(27, 94, 32, 0.2) 100%) !important;
-      border-bottom: 1px solid $xmas-border !important;
+      background: linear-gradient(135deg, rgba($xmas-gold, 0.2) 0%, rgba($xmas-green, 0.2) 100%) !important;
+      border-bottom-color: rgba($xmas-gold, 0.4) !important;
       color: $xmas-gold !important;
-      position: relative;
-
-      // 底部金色线
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, $xmas-gold 30%, $xmas-white 50%, $xmas-gold 70%, transparent);
-      }
-
-      svg {
-        color: $xmas-gold !important;
-        filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
-      }
+      svg { color: $xmas-gold !important; }
     }
 
     .lang-item {
-      background: rgba(27, 94, 32, 0.4) !important;
-      border: 1px solid rgba(255, 215, 0, 0.2) !important;
-      margin: 8px 10px !important;
-      border-radius: 8px !important;
-      transition: all 0.3s ease !important;
+      background: rgba($xmas-green, 0.4) !important;
+      border: 1px solid rgba($xmas-gold, 0.2) !important;
+      .lang-name { color: rgba(255, 255, 255, 0.95) !important; }
+      .lang-desc { color: rgba($xmas-gold, 0.7) !important; }
 
       &:hover {
-        background: rgba(255, 215, 0, 0.15) !important;
+        background: rgba($xmas-gold, 0.15) !important;
         border-color: $xmas-gold !important;
-        box-shadow: 0 0 15px rgba(255, 215, 0, 0.25) !important;
-        transform: translateX(4px) !important;
-
-        .lang-name {
-          color: $xmas-gold !important;
-        }
+        .lang-name { color: $xmas-gold !important; }
       }
 
       &.active {
-        background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(198, 40, 40, 0.2) 100%) !important;
-        border: 1px solid $xmas-gold !important;
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.3) !important;
-
-        .lang-name {
-          color: $xmas-gold !important;
-          font-weight: 700 !important;
-        }
-
-        .lang-check {
-          color: $xmas-gold !important;
-          filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6)) !important;
-        }
+        background: linear-gradient(135deg, rgba($xmas-gold, 0.2) 0%, rgba(198, 40, 40, 0.2) 100%) !important;
+        border-color: $xmas-gold !important;
+        .lang-name { color: $xmas-gold !important; font-weight: 700; }
+        .lang-check { color: $xmas-gold !important; }
       }
-
-      .lang-flag {
-        filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.3));
-      }
-
-      .lang-name {
-        color: rgba(255, 255, 255, 0.95) !important;
-      }
-
-      .lang-desc {
-        color: rgba(255, 215, 0, 0.7) !important;
-      }
-    }
-  }
-
-  // 用户下拉菜单 - 圣诞主题
-  .user-dropdown-popper {
-    .el-dropdown-menu {
-      background: linear-gradient(180deg, $xmas-green 0%, $xmas-green-light 100%) !important;
-      border: 2px solid $xmas-gold !important;
-      box-shadow:
-        0 0 20px rgba(255, 215, 0, 0.3),
-        0 0 40px rgba(198, 40, 40, 0.15),
-        0 25px 80px rgba(0, 0, 0, 0.4) !important;
-      border-radius: 16px !important;
-      overflow: hidden;
     }
   }
 
   .user-menu {
-    background: transparent !important;
-
     .menu-header {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(198, 40, 40, 0.15) 100%) !important;
-      border-bottom: 1px solid $xmas-border;
-      position: relative;
+      background: linear-gradient(135deg, rgba($xmas-gold, 0.2) 0%, rgba($xmas-red, 0.15) 100%) !important;
+      border-bottom: 1px solid rgba($xmas-gold, 0.4) !important;
+      .header-avatar { border-color: $xmas-gold !important; box-shadow: 0 0 15px rgba($xmas-gold, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3) !important; }
+      .header-name { color: $xmas-gold !important; }
+      .header-status { color: rgba(255, 255, 255, 0.9) !important; }
+    }
 
-      // 底部金色线
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, $xmas-gold 20%, $xmas-white 50%, $xmas-gold 80%, transparent);
-      }
-
-      .header-avatar {
-        border-color: $xmas-gold !important;
-        box-shadow:
-          0 0 15px rgba(255, 215, 0, 0.4),
-          0 8px 24px rgba(0, 0, 0, 0.3) !important;
-
-        &:hover {
-          box-shadow:
-            0 0 20px rgba(255, 215, 0, 0.6),
-            0 8px 24px rgba(0, 0, 0, 0.3) !important;
-        }
-      }
-
-      .header-name {
-        color: $xmas-gold !important;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        font-weight: 600;
-      }
-
-      .header-status {
-        color: rgba(255, 255, 255, 0.9) !important;
-
-        &::before {
-          background: linear-gradient(135deg, #4ade80, #22c55e) !important;
-          box-shadow:
-            0 0 0 3px rgba(74, 222, 128, 0.2),
-            0 0 10px rgba(74, 222, 128, 0.4) !important;
-        }
-      }
+    .menu-body {
+      background: transparent !important;
     }
 
     .menu-item {
-      background: rgba(27, 94, 32, 0.4) !important;
-      border: 1px solid rgba(255, 215, 0, 0.2) !important;
-      margin: 6px 10px !important;
-      border-radius: 10px !important;
-      transition: all 0.3s ease !important;
-
+      background: rgba($xmas-green, 0.4) !important;
+      border: 1px solid rgba($xmas-gold, 0.2) !important;
+      .item-title { color: rgba(255, 255, 255, 0.95) !important; }
+      .item-desc { color: rgba($xmas-gold, 0.7) !important; }
+      .account-icon { background: linear-gradient(135deg, $xmas-gold, #daa520) !important; color: $xmas-green !important; }
+      .cache-icon { background: linear-gradient(135deg, $xmas-red, #e53935) !important; color: #fff !important; }
       &:hover {
-        background: rgba(255, 215, 0, 0.15) !important;
+        background: rgba($xmas-gold, 0.15) !important;
         border-color: $xmas-gold !important;
-        box-shadow: 0 0 15px rgba(255, 215, 0, 0.25) !important;
-        transform: translateX(4px) !important;
-
-        .item-title {
-          color: $xmas-gold !important;
-        }
-
-        .item-arrow {
-          color: $xmas-gold !important;
-        }
-      }
-
-      .item-icon {
-        box-shadow: 0 0 12px rgba(255, 215, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-      }
-
-      .account-icon {
-        background: linear-gradient(135deg, $xmas-gold, #daa520) !important;
-        color: $xmas-green !important;
-      }
-
-      .cache-icon {
-        background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
-        color: #fff !important;
-      }
-
-      .item-title {
-        color: rgba(255, 255, 255, 0.95) !important;
-      }
-
-      .item-desc {
-        color: rgba(255, 215, 0, 0.7) !important;
+        .item-title { color: $xmas-gold !important; }
+        .item-arrow { color: $xmas-gold !important; }
       }
     }
 
     .menu-footer {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(198, 40, 40, 0.1) 100%) !important;
-      border-top: 1px solid $xmas-border !important;
-      position: relative;
-
-      // 顶部金色线
-      &::before {
-        content: '';
-        position: absolute;
-        top: -1px;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, $xmas-gold 30%, $xmas-white 50%, $xmas-gold 70%, transparent);
-      }
+      background: linear-gradient(135deg, rgba($xmas-gold, 0.1) 0%, rgba($xmas-red, 0.1) 100%) !important;
+      border-top-color: rgba($xmas-gold, 0.4) !important;
     }
 
     .logout-item {
-      background: rgba(198, 40, 40, 0.3) !important;
+      background: rgba($xmas-red, 0.3) !important;
       border: 1px solid rgba(255, 100, 100, 0.3) !important;
       color: rgba(255, 200, 200, 0.9) !important;
-      border-radius: 10px !important;
-
-      .logout-icon {
-        color: rgba(255, 200, 200, 0.9) !important;
-      }
-
+      .logout-icon { color: rgba(255, 200, 200, 0.9) !important; }
       &:hover {
         background: rgba(255, 100, 100, 0.25) !important;
-        border-color: rgba(255, 150, 150, 0.5) !important;
         color: #fff !important;
-        box-shadow: 0 0 15px rgba(255, 100, 100, 0.25) !important;
-        transform: scale(1.02) !important;
-
-        .logout-icon {
-          color: #fff !important;
-        }
+        .logout-icon { color: #fff !important; }
       }
     }
   }
 }
 
-// ==================== 元旦主题下拉样式 ====================
-html[data-skin="new-year"] {
-  // 元旦冰雪主题色
-  $ice-lightest: #F5FBFF;
-  $ice-light: #B8E0F2;
-  $ice-medium: #7CC2E8;
-  $ice-primary: #4EA8DE;
-  $ice-deep: #2A7AB8;
-  $ice-darker: #1E5F8C;
-  $frost-white: #FFFFFF;
-  $frost-purple: #E0E7F5;
-  $ice-border: rgba(78, 168, 222, 0.4);
+// 元旦主题
+$ice-lightest: #F5FBFF;
+$ice-primary: #4EA8DE;
+$ice-deep: #2A7AB8;
+$frost-purple: #E0E7F5;
 
-  // 语言下拉菜单 - 元旦主题
-  .lang-dropdown-popper {
-    .el-dropdown-menu {
-      background: linear-gradient(180deg, rgba($ice-lightest, 0.98) 0%, rgba($frost-purple, 0.95) 100%) !important;
-      border: 2px solid $ice-border !important;
-      box-shadow:
-        0 0 20px rgba($ice-primary, 0.2),
-        0 0 40px rgba($ice-deep, 0.1),
-        0 20px 60px rgba(0, 0, 0, 0.15) !important;
-      border-radius: 16px !important;
-      overflow: hidden;
-      backdrop-filter: blur(12px);
-    }
+html[data-skin="new-year"] {
+  .lang-dropdown-popper .el-dropdown-menu,
+  .user-dropdown-popper .el-dropdown-menu {
+    background: linear-gradient(180deg, rgba($ice-lightest, 0.98) 0%, rgba($frost-purple, 0.95) 100%) !important;
+    border: 2px solid rgba($ice-primary, 0.4) !important;
+    box-shadow: 0 0 20px rgba($ice-primary, 0.2), 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+    backdrop-filter: blur(12px);
   }
 
   .lang-menu {
-    background: transparent !important;
-
     .lang-header {
-      background: linear-gradient(135deg, rgba($frost-white, 0.8) 0%, rgba($ice-lightest, 0.6) 100%) !important;
-      border-bottom: 1px solid rgba($ice-medium, 0.3) !important;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba($ice-lightest, 0.6) 100%) !important;
+      border-bottom-color: rgba($ice-primary, 0.3) !important;
       color: $ice-deep !important;
-      position: relative;
-
-      // 底部装饰线
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, $ice-primary 30%, $ice-medium 50%, $ice-primary 70%, transparent);
-      }
-
-      svg {
-        color: $ice-primary !important;
-        filter: drop-shadow(0 0 4px rgba($ice-primary, 0.4));
-      }
+      svg { color: $ice-primary !important; }
     }
 
     .lang-item {
-      background: rgba($frost-white, 0.7) !important;
-      border: 1px solid rgba($ice-medium, 0.25) !important;
-      margin: 8px 10px !important;
-      border-radius: 10px !important;
-      transition: all 0.3s ease !important;
+      background: rgba(255, 255, 255, 0.6) !important;
+      border: 1px solid rgba($ice-primary, 0.2) !important;
+      .lang-name { color: $ice-deep !important; }
+      .lang-desc { color: rgba($ice-deep, 0.7) !important; }
 
       &:hover {
-        background: rgba($ice-medium, 0.2) !important;
-        border-color: $ice-primary !important;
-        box-shadow: 0 4px 15px rgba($ice-primary, 0.2) !important;
-        transform: translateX(4px) !important;
-
-        .lang-name {
-          color: $ice-deep !important;
-        }
+        background: rgba($ice-primary, 0.1) !important;
+        border-color: rgba($ice-primary, 0.4) !important;
+        .lang-name { color: $ice-deep !important; }
       }
 
       &.active {
-        background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
-        border: 2px solid rgba($frost-white, 0.5) !important;
-        box-shadow: 0 4px 20px rgba($ice-primary, 0.35) !important;
-
-        .lang-name {
-          color: $frost-white !important;
-          font-weight: 700 !important;
-        }
-
-        .lang-desc {
-          color: rgba($frost-white, 0.8) !important;
-        }
-
-        .lang-check {
-          color: $frost-white !important;
-          filter: drop-shadow(0 0 6px rgba($frost-white, 0.6)) !important;
-        }
+        background: linear-gradient(135deg, $ice-primary, $ice-deep) !important;
+        border-color: rgba(255, 255, 255, 0.5) !important;
+        .lang-name { color: #fff !important; font-weight: 700; }
+        .lang-desc { color: rgba(255, 255, 255, 0.8) !important; }
+        .lang-check { color: #fff !important; }
       }
-
-      .lang-flag {
-        filter: drop-shadow(0 2px 4px rgba($ice-deep, 0.2));
-      }
-
-      .lang-name {
-        color: $ice-darker !important;
-      }
-
-      .lang-desc {
-        color: rgba($ice-deep, 0.7) !important;
-      }
-    }
-  }
-
-  // 用户下拉菜单 - 元旦主题
-  .user-dropdown-popper {
-    .el-dropdown-menu {
-      background: linear-gradient(180deg, rgba($ice-lightest, 0.98) 0%, rgba($frost-purple, 0.95) 100%) !important;
-      border: 2px solid $ice-border !important;
-      box-shadow:
-        0 0 20px rgba($ice-primary, 0.2),
-        0 0 40px rgba($ice-deep, 0.1),
-        0 25px 80px rgba(0, 0, 0, 0.15) !important;
-      border-radius: 20px !important;
-      overflow: hidden;
-      backdrop-filter: blur(12px);
     }
   }
 
   .user-menu {
-    background: transparent !important;
-
     .menu-header {
-      background: linear-gradient(135deg, $ice-primary 0%, $ice-medium 50%, $ice-light 100%) !important;
-      border-bottom: 1px solid rgba($ice-medium, 0.3);
-      position: relative;
+      background: linear-gradient(135deg, $ice-primary 0%, $ice-deep 100%) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
+      .header-avatar { border-color: rgba(255, 255, 255, 0.8) !important; box-shadow: 0 0 15px rgba($ice-primary, 0.4), 0 8px 24px rgba(0, 0, 0, 0.2) !important; }
+      .header-name { color: #fff !important; }
+      .header-status { color: rgba(255, 255, 255, 0.9) !important; }
+    }
 
-      // 底部装饰线
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, $frost-white 20%, rgba($ice-medium, 0.8) 50%, $frost-white 80%, transparent);
-      }
-
-      // 沙雪背景纹理
-      &::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='3' cy='3' r='1'/%3E%3Ccircle cx='13' cy='13' r='1'/%3E%3C/g%3E%3C/svg%3E");
-        pointer-events: none;
-      }
-
-      .header-avatar {
-        border-color: $frost-white !important;
-        box-shadow:
-          0 0 15px rgba($frost-white, 0.5),
-          0 8px 24px rgba($ice-deep, 0.3) !important;
-
-        &:hover {
-          box-shadow:
-            0 0 20px rgba($frost-white, 0.7),
-            0 8px 24px rgba($ice-deep, 0.3) !important;
-        }
-      }
-
-      .header-name {
-        color: $frost-white !important;
-        text-shadow: 0 1px 3px rgba($ice-deep, 0.3);
-        font-weight: 700;
-      }
-
-      .header-status {
-        color: rgba($frost-white, 0.95) !important;
-
-        &::before {
-          background: linear-gradient(135deg, #4ade80, #22c55e) !important;
-          box-shadow:
-            0 0 0 3px rgba(74, 222, 128, 0.3),
-            0 0 10px rgba(74, 222, 128, 0.5) !important;
-        }
-      }
+    .menu-body {
+      background: transparent !important;
     }
 
     .menu-item {
-      background: rgba($frost-white, 0.7) !important;
-      border: 1px solid rgba($ice-medium, 0.25) !important;
-      margin: 6px 10px !important;
-      border-radius: 12px !important;
-      transition: all 0.3s ease !important;
-
+      background: rgba(255, 255, 255, 0.6) !important;
+      border: 1px solid rgba($ice-primary, 0.2) !important;
+      .item-title { color: #1E5F8C !important; }
+      .item-desc { color: rgba($ice-deep, 0.7) !important; }
+      .account-icon { background: linear-gradient(135deg, $ice-primary, $ice-deep) !important; color: #fff !important; }
+      .cache-icon { background: linear-gradient(135deg, #f59e0b, #d97706) !important; color: #fff !important; }
       &:hover {
-        background: rgba($ice-medium, 0.2) !important;
-        border-color: $ice-primary !important;
-        box-shadow: 0 4px 15px rgba($ice-primary, 0.2) !important;
-        transform: translateX(4px) !important;
-
-        .item-title {
-          color: $ice-deep !important;
-        }
-
-        .item-arrow {
-          color: $ice-primary !important;
-        }
-      }
-
-      .item-icon {
-        box-shadow: 0 4px 12px rgba($ice-deep, 0.2), 0 2px 6px rgba($ice-primary, 0.15) !important;
-      }
-
-      .account-icon {
-        background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
-        color: $frost-white !important;
-      }
-
-      .cache-icon {
-        background: linear-gradient(135deg, $ice-deep, $ice-darker) !important;
-        color: $frost-white !important;
-      }
-
-      .item-title {
-        color: $ice-darker !important;
-      }
-
-      .item-desc {
-        color: rgba($ice-deep, 0.7) !important;
+        background: rgba($ice-primary, 0.1) !important;
+        border-color: rgba($ice-primary, 0.4) !important;
+        .item-title { color: $ice-deep !important; }
+        .item-arrow { color: $ice-primary !important; }
       }
     }
 
     .menu-footer {
-      background: linear-gradient(135deg, rgba($frost-white, 0.6) 0%, rgba($ice-lightest, 0.4) 100%) !important;
-      border-top: 1px solid rgba($ice-medium, 0.3) !important;
-      position: relative;
-
-      // 顶部装饰线
-      &::before {
-        content: '';
-        position: absolute;
-        top: -1px;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, $ice-primary 30%, $ice-medium 50%, $ice-primary 70%, transparent);
-      }
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba($frost-purple, 0.4) 100%) !important;
+      border-top-color: rgba($ice-primary, 0.2) !important;
     }
 
     .logout-item {
-      background: rgba($frost-white, 0.6) !important;
-      border: 1px solid rgba(239, 68, 68, 0.25) !important;
-      color: rgba(220, 38, 38, 0.9) !important;
-      border-radius: 12px !important;
-
-      .logout-icon {
-        color: rgba(220, 38, 38, 0.9) !important;
-      }
-
+      background: rgba(239, 68, 68, 0.1) !important;
+      border: 1px solid rgba(239, 68, 68, 0.2) !important;
+      color: #ef4444 !important;
+      .logout-icon { color: #ef4444 !important; }
       &:hover {
-        background: rgba(239, 68, 68, 0.1) !important;
+        background: rgba(239, 68, 68, 0.15) !important;
         border-color: rgba(239, 68, 68, 0.4) !important;
         color: #dc2626 !important;
-        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15) !important;
-        transform: scale(1.02) !important;
-
-        .logout-icon {
-          color: #dc2626 !important;
-        }
+        .logout-icon { color: #dc2626 !important; }
       }
     }
   }

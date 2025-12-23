@@ -363,7 +363,7 @@ watch(
 }
 
 // 春节主题适配
-html.theme-spring-festival {
+html[data-skin="spring-festival"] {
   .breadcrumb-wrapper {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 250, 240, 0.9));
     border-radius: 19px;
@@ -578,6 +578,254 @@ html[data-skin="cyberpunk"] {
   .breadcrumb-icon {
     color: $cyber-cyan;
     filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.4));
+  }
+}
+
+// 中秋主题适配
+html[data-skin="mid-autumn"] {
+  $mid-blue: #1a237e;
+  $mid-blue-light: #283593;
+  $mid-gold: #ffd54f;
+  $mid-gold-light: #ffecb3;
+  $mid-border: rgba(255, 213, 79, 0.3);
+
+  .breadcrumb-wrapper {
+    background: linear-gradient(135deg, rgba($mid-blue, 0.95), rgba($mid-blue-light, 0.9));
+    border-radius: 12px;
+    padding: 0 12px;
+    border: 1px solid $mid-border;
+    box-shadow: 0 2px 12px rgba($mid-blue, 0.3);
+  }
+
+  .home-icon {
+    background: rgba($mid-blue, 0.6);
+    color: $mid-gold;
+    border: 1px solid $mid-border;
+
+    &:hover {
+      background: rgba($mid-gold, 0.2);
+      color: #fff;
+      border-color: $mid-gold;
+      box-shadow: 0 0 12px rgba($mid-gold, 0.4);
+    }
+  }
+
+  .breadcrumb-divider {
+    color: rgba($mid-gold, 0.5);
+  }
+
+  .breadcrumb-link {
+    background: rgba($mid-blue, 0.4);
+    border: 1px solid rgba($mid-gold, 0.2);
+    color: $mid-gold-light;
+
+    &:hover {
+      background: rgba($mid-gold, 0.15);
+      border-color: $mid-gold;
+      box-shadow: 0 0 12px rgba($mid-gold, 0.25);
+
+      .breadcrumb-text {
+        color: #fff;
+      }
+
+      .breadcrumb-icon {
+        color: #fff;
+      }
+    }
+
+    &.is-current {
+      background: linear-gradient(135deg, $mid-gold, $mid-gold-light);
+      border-color: rgba($mid-blue, 0.3);
+      box-shadow: 0 4px 16px rgba($mid-gold, 0.5);
+
+      .breadcrumb-text {
+        color: $mid-blue;
+        font-weight: 700;
+      }
+
+      .breadcrumb-icon {
+        color: $mid-blue;
+      }
+    }
+  }
+
+  .breadcrumb-separator {
+    color: rgba($mid-gold, 0.5);
+  }
+
+  .breadcrumb-text {
+    color: $mid-gold-light;
+  }
+
+  .breadcrumb-icon {
+    color: $mid-gold;
+  }
+}
+
+// 圣诞主题适配
+html[data-skin="christmas"] {
+  $xmas-green: #1b5e20;
+  $xmas-green-light: #2e7d32;
+  $xmas-red: #c62828;
+  $xmas-gold: #ffd700;
+  $xmas-white: #ffffff;
+  $xmas-border: rgba(255, 215, 0, 0.4);
+
+  .breadcrumb-wrapper {
+    background: linear-gradient(135deg, rgba($xmas-green, 0.95), rgba($xmas-green-light, 0.9));
+    border-radius: 12px;
+    padding: 0 12px;
+    border: 2px solid $xmas-border;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .home-icon {
+    background: rgba($xmas-green, 0.8);
+    color: $xmas-gold;
+    border: 1px solid $xmas-border;
+
+    &:hover {
+      background: rgba($xmas-red, 0.6);
+      color: $xmas-white;
+      border-color: $xmas-gold;
+      box-shadow: 0 0 12px rgba($xmas-red, 0.4);
+    }
+  }
+
+  .breadcrumb-divider {
+    color: rgba($xmas-gold, 0.6);
+  }
+
+  .breadcrumb-link {
+    background: rgba($xmas-green, 0.6);
+    border: 1px solid rgba($xmas-gold, 0.3);
+    color: $xmas-white;
+
+    &:hover {
+      background: rgba($xmas-red, 0.5);
+      border-color: rgba($xmas-gold, 0.5);
+      box-shadow: 0 0 12px rgba($xmas-red, 0.3);
+
+      .breadcrumb-text {
+        color: $xmas-white;
+      }
+
+      .breadcrumb-icon {
+        color: $xmas-white;
+      }
+    }
+
+    &.is-current {
+      background: linear-gradient(135deg, $xmas-red, lighten($xmas-red, 10%));
+      border: 2px solid $xmas-gold;
+      box-shadow: 0 4px 16px rgba($xmas-red, 0.5);
+
+      .breadcrumb-text {
+        color: $xmas-white;
+        font-weight: 700;
+      }
+
+      .breadcrumb-icon {
+        color: $xmas-white;
+      }
+    }
+  }
+
+  .breadcrumb-separator {
+    color: rgba($xmas-gold, 0.6);
+  }
+
+  .breadcrumb-text {
+    color: $xmas-white;
+  }
+
+  .breadcrumb-icon {
+    color: $xmas-gold;
+  }
+}
+
+// 元旦主题适配
+html[data-skin="new-year"] {
+  $ice-lightest: #F5FBFF;
+  $ice-light: #B8E0F2;
+  $ice-medium: #7CC2E8;
+  $ice-primary: #4EA8DE;
+  $ice-deep: #2A7AB8;
+  $ice-darker: #1E5F8C;
+  $frost-purple: #E0E7F5;
+  $ice-border: rgba(78, 168, 222, 0.3);
+
+  .breadcrumb-wrapper {
+    background: linear-gradient(135deg, rgba($ice-lightest, 0.98), rgba($frost-purple, 0.95));
+    border-radius: 12px;
+    padding: 0 12px;
+    border: 1px solid $ice-border;
+    box-shadow: 0 2px 12px rgba($ice-deep, 0.15);
+    backdrop-filter: blur(8px);
+  }
+
+  .home-icon {
+    background: rgba(255, 255, 255, 0.7);
+    color: $ice-primary;
+    border: 1px solid rgba($ice-medium, 0.3);
+
+    &:hover {
+      background: rgba($ice-medium, 0.2);
+      color: $ice-deep;
+      border-color: rgba($ice-primary, 0.5);
+      box-shadow: 0 0 12px rgba($ice-primary, 0.3);
+    }
+  }
+
+  .breadcrumb-divider {
+    color: rgba($ice-primary, 0.5);
+  }
+
+  .breadcrumb-link {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba($ice-medium, 0.25);
+    color: $ice-darker;
+
+    &:hover {
+      background: rgba($ice-medium, 0.2);
+      border-color: rgba($ice-primary, 0.4);
+      box-shadow: 0 0 12px rgba($ice-primary, 0.2);
+
+      .breadcrumb-text {
+        color: $ice-deep;
+      }
+
+      .breadcrumb-icon {
+        color: $ice-deep;
+      }
+    }
+
+    &.is-current {
+      background: linear-gradient(135deg, $ice-primary, $ice-medium);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 4px 16px rgba($ice-primary, 0.4);
+
+      .breadcrumb-text {
+        color: #fff;
+        font-weight: 700;
+      }
+
+      .breadcrumb-icon {
+        color: #fff;
+      }
+    }
+  }
+
+  .breadcrumb-separator {
+    color: rgba($ice-primary, 0.5);
+  }
+
+  .breadcrumb-text {
+    color: $ice-darker;
+  }
+
+  .breadcrumb-icon {
+    color: $ice-primary;
   }
 }
 

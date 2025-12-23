@@ -181,10 +181,10 @@ const ribbonStyle = computed(() => {
   align-items: center;
   justify-content: center;
   gap: var(--sc-ribbon-gap);
-  padding: var(--sc-ribbon-pad);
-  padding-inline: 40px;
+  padding: 4px 40px;
   font-size: var(--sc-ribbon-font);
   font-weight: 600;
+  line-height: 1.2;
   color: #fff;
   background: linear-gradient(135deg, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);

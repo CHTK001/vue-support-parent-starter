@@ -86,6 +86,66 @@
         </el-select>
       </el-form-item>
 
+      <!-- EAB 凭证（仅 ZeroSSL 等需要） -->
+      <template v-if="showEabFields && eabConfig">
+        <div class="eab-section">
+          <div class="eab-header">
+            <div class="eab-title">
+              <IconifyIconOnline icon="mdi:key-variant" class="title-icon" />
+              <span>{{ eabConfig.name }} EAB 凭证</span>
+            </div>
+            <a :href="eabConfig.eabUrl" target="_blank" class="eab-link">
+              <IconifyIconOnline icon="mdi:open-in-new" />
+              <span>获取凭证</span>
+            </a>
+          </div>
+          <div class="eab-tip">
+            <IconifyIconOnline icon="mdi:information-outline" class="tip-icon" />
+            <span>{{ eabConfig.eabTip }}</span>
+          </div>
+          
+          <el-form-item prop="acmeAccountEabKid">
+            <template #label>
+              <div class="form-label">
+                <IconifyIconOnline icon="mdi:identifier" class="label-icon" />
+                <span>EAB Key ID</span>
+                <span class="required-mark">*</span>
+              </div>
+            </template>
+            <el-input
+              v-model="form.acmeAccountEabKid"
+              placeholder="请输入 EAB Key ID (KID)"
+              class="form-input"
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="mdi:key" class="input-icon" />
+              </template>
+            </el-input>
+          </el-form-item>
+
+          <el-form-item prop="acmeAccountEabHmacKey">
+            <template #label>
+              <div class="form-label">
+                <IconifyIconOnline icon="mdi:shield-key" class="label-icon" />
+                <span>EAB HMAC Key</span>
+                <span class="required-mark">*</span>
+              </div>
+            </template>
+            <el-input
+              v-model="form.acmeAccountEabHmacKey"
+              placeholder="请输入 EAB HMAC Key (Base64 编码)"
+              class="form-input"
+              type="password"
+              show-password
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="mdi:lock" class="input-icon" />
+              </template>
+            </el-input>
+          </el-form-item>
+        </div>
+      </template>
+
       <el-form-item>
         <template #label>
           <div class="form-label">
@@ -138,6 +198,8 @@ import {
   saveAccount,
   ACME_SERVER_GROUPS,
   ACME_SERVERS,
+  isEabRequired,
+  getEabConfig,
   type AcmeAccount,
 } from "@/api/acme";
 
@@ -161,6 +223,8 @@ const dialogVisible = computed({
 });
 
 const isEdit = computed(() => !!props.account?.acmeAccountId);
+const showEabFields = computed(() => isEabRequired(form.acmeAccountServer));
+const eabConfig = computed(() => getEabConfig(form.acmeAccountServer));
 
 const formRef = ref<FormInstance>();
 const submitting = ref(false);
@@ -168,6 +232,8 @@ const submitting = ref(false);
 const form = reactive<AcmeAccount>({
   acmeAccountEmail: "",
   acmeAccountServer: "",
+  acmeAccountEabKid: "",
+  acmeAccountEabHmacKey: "",
   acmeAccountRemark: "",
 });
 
@@ -215,6 +281,8 @@ watch(
       } else {
         form.acmeAccountEmail = "";
         form.acmeAccountServer = ACME_SERVERS[0].value;
+        form.acmeAccountEabKid = "";
+        form.acmeAccountEabHmacKey = "";
         form.acmeAccountRemark = "";
       }
       formRef.value?.clearValidate();
@@ -325,6 +393,74 @@ watch(
       border-color: var(--el-color-primary);
       background: var(--el-bg-color);
     }
+  }
+}
+
+/* EAB 凭证区域 */
+.eab-section {
+  margin-top: 8px;
+  padding: 16px;
+  background: var(--el-color-warning-light-9);
+  border-radius: 8px;
+  border: 1px solid var(--el-color-warning-light-5);
+}
+
+.eab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.eab-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--el-color-warning-dark-2);
+
+  .title-icon {
+    font-size: 18px;
+  }
+}
+
+.eab-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--el-color-warning);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--el-color-warning-dark-2);
+    transform: translateY(-1px);
+  }
+}
+
+.eab-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
+  background: var(--el-fill-color-light);
+  padding: 10px 12px;
+  border-radius: 6px;
+
+  .tip-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--el-color-info);
   }
 }
 

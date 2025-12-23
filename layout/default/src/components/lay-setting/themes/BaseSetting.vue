@@ -53,6 +53,12 @@ const { isDark } = useDark();
 //@ts-ignore
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
+// 判断当前是否为非默认主题（节日主题优先级高于页签风格和整体风格）
+const isNonDefaultTheme = computed(() => {
+  const currentTheme = $storage?.configure?.systemTheme || 'default';
+  return currentTheme !== 'default';
+});
+
 const mixRef = ref();
 const verticalRef = ref();
 const horizontalRef = ref();
@@ -998,8 +1004,8 @@ onUnmounted(() => {
   <div>
     <LayPanel>
       <div class="modern-setting-container">
-        <!-- 主题风格设置区域 -->
-        <div class="setting-section">
+        <!-- 主题风格设置区域 - 非默认主题下隐藏（节日主题优先级大于整体风格） -->
+        <div v-if="!isNonDefaultTheme" class="setting-section">
           <div class="section-header">
             <IconifyIconOffline
               :icon="'ri:palette-line'"
@@ -1575,8 +1581,8 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- 标签页样式设置区域 -->
-        <div class="setting-section">
+        <!-- 标签页样式设置区域 - 非默认主题下隐藏（节日主题优先级大于页签风格） -->
+        <div v-if="!isNonDefaultTheme" class="setting-section">
           <div class="section-header">
             <IconifyIconOffline
               :icon="'ri:price-tag-3-line'"

@@ -440,6 +440,97 @@ html[data-skin="spring-festival"] {
         display: none;
       }
     }
+    
+    // ==================== 收缩状态样式 ====================
+    :deep(.el-menu--collapse) {
+      // 隐藏展开箭头
+      .el-sub-menu__icon-arrow {
+        display: none !important;
+      }
+      
+      // 统一菜单项基础样式
+      .el-menu-item,
+      .el-sub-menu > .el-sub-menu__title {
+        margin: 4px 8px !important;
+        border-radius: 8px !important;
+        padding: 0 !important;
+        justify-content: center;
+        height: 46px !important;
+        background: linear-gradient(135deg, rgba(139, 0, 0, 0.7) 0%, rgba(178, 34, 34, 0.7) 100%) !important;
+        border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
+        position: relative;
+        
+        .sub-menu-icon {
+          margin: 0 !important;
+        }
+        
+        > div {
+          width: 100% !important;
+          flex: none !important;
+          display: flex;
+          justify-content: center;
+        }
+        
+        .el-icon, svg {
+          color: #FFD700 !important;
+          font-size: 18px;
+        }
+        
+        &:hover {
+          background: linear-gradient(135deg, rgba(220, 20, 60, 0.9) 0%, rgba(178, 34, 34, 0.9) 100%) !important;
+          border-color: rgba(255, 215, 0, 0.6) !important;
+          box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
+        }
+      }
+      
+      // 收缩状态下的激活样式 - 无子菜单
+      .el-menu-item.is-active.submenu-title-noDropdown {
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+        border: 2px solid #DC143C !important;
+        box-shadow: 0 4px 16px rgba(255, 215, 0, 0.5) !important;
+        
+        &::before {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          content: "";
+          background: linear-gradient(to bottom, #DC143C, #8B0000);
+          border-radius: 0 4px 4px 0;
+        }
+        
+        &::after {
+          display: none !important;
+        }
+        
+        .el-icon, svg, i {
+          color: #6B0000 !important;
+        }
+      }
+      
+      // 有子菜单的激活状态
+      .el-sub-menu.is-active > .el-sub-menu__title {
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+        border: 2px solid #DC143C !important;
+        box-shadow: 0 4px 16px rgba(255, 215, 0, 0.5) !important;
+        
+        &::before {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          content: "";
+          background: linear-gradient(to bottom, #DC143C, #8B0000);
+          border-radius: 0 4px 4px 0;
+        }
+        
+        .el-icon, svg, i {
+          color: #6B0000 !important;
+        }
+      }
+    }
   }
 
   // ==================== 嵌套菜单激活背景 - 高优先级覆盖 ====================
