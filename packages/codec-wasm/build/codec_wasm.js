@@ -234,6 +234,32 @@ export function sm2_decrypt(data_ptr, data_len, privkey_ptr, privkey_len) {
 }
 
 /**
+ * 生成随机 nonce 字符串
+ * @returns {string}
+ */
+export function generate_nonce() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.generate_nonce();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * 获取当前时间戳
+ * @returns {number}
+ */
+export function get_current_timestamp() {
+    const ret = wasm.get_current_timestamp();
+    return ret;
+}
+
+/**
  * @param {number} data_ptr
  * @param {number} data_len
  * @param {number} privkey_ptr

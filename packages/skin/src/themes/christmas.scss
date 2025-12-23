@@ -155,6 +155,97 @@ html[data-skin="christmas"] {
       position: relative;
       z-index: 1;
     }
+    
+    // ==================== 收缩状态样式 ====================
+    :deep(.el-menu--collapse) {
+      // 隐藏展开箭头
+      .el-sub-menu__icon-arrow {
+        display: none !important;
+      }
+      
+      // 统一菜单项基础样式
+      .el-menu-item,
+      .el-sub-menu > .el-sub-menu__title {
+        margin: 4px 8px !important;
+        border-radius: 8px !important;
+        padding: 0 !important;
+        justify-content: center;
+        height: 46px !important;
+        background: rgba(darken($xmas-green, 5%), 0.6) !important;
+        border: 1.5px solid rgba($xmas-gold, 0.2) !important;
+        position: relative;
+        
+        .sub-menu-icon {
+          margin: 0 !important;
+        }
+        
+        > div {
+          width: 100% !important;
+          flex: none !important;
+          display: flex;
+          justify-content: center;
+        }
+        
+        .el-icon, svg {
+          color: $xmas-gold !important;
+          font-size: 18px;
+        }
+        
+        &:hover {
+          background: rgba($xmas-red, 0.7) !important;
+          border-color: rgba($xmas-gold, 0.5) !important;
+          box-shadow: 0 2px 12px rgba($xmas-red, 0.3) !important;
+        }
+      }
+      
+      // 收缩状态下的激活样式 - 无子菜单
+      .el-menu-item.is-active.submenu-title-noDropdown {
+        background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
+        border: 2px solid $xmas-gold !important;
+        box-shadow: 0 2px 12px rgba($xmas-red, 0.4) !important;
+        
+        &::before {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          content: "";
+          background: linear-gradient(to bottom, $xmas-gold, $xmas-red);
+          border-radius: 0 4px 4px 0;
+        }
+        
+        &::after {
+          display: none !important;
+        }
+        
+        .el-icon, svg, i {
+          color: $xmas-white !important;
+        }
+      }
+      
+      // 有子菜单的激活状态
+      .el-sub-menu.is-active > .el-sub-menu__title {
+        background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
+        border: 2px solid $xmas-gold !important;
+        box-shadow: 0 2px 12px rgba($xmas-red, 0.4) !important;
+        
+        &::before {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          content: "";
+          background: linear-gradient(to bottom, $xmas-gold, $xmas-red);
+          border-radius: 0 4px 4px 0;
+        }
+        
+        .el-icon, svg, i {
+          color: $xmas-white !important;
+        }
+      }
+    }
   }
   
   // 圣诞树发光动画

@@ -18,6 +18,8 @@ export interface AcmeAccount {
   acmeAccountServer: string;
   acmeAccountStatus?: string;
   acmeAccountPrivateKeyPem?: string;
+  acmeAccountEabKid?: string;
+  acmeAccountEabHmacKey?: string;
   acmeAccountRemark?: string;
   createTime?: string;
   updateTime?: string;
@@ -297,3 +299,65 @@ export const ACCOUNT_STATUS = [
   { label: "已停用", value: "deactivated", type: "warning" },
   { label: "已吊销", value: "revoked", type: "danger" },
 ];
+
+/** 需要 EAB (External Account Binding) 的 ACME 服务器配置 */
+export interface EabServerConfig {
+  /** ACME 服务器地址 */
+  serverUrl: string;
+  /** CA 名称 */
+  name: string;
+  /** 获取 EAB 凭证的链接 */
+  eabUrl: string;
+  /** 获取说明 */
+  eabTip: string;
+}
+
+/** 需要 EAB 的服务器配置列表 */
+export const EAB_SERVER_CONFIGS: EabServerConfig[] = [
+  {
+    serverUrl: "https://acme.zerossl.com/v2/DV90",
+    name: "ZeroSSL",
+    eabUrl: "https://app.zerossl.com/developer",
+    eabTip: "登录后在 Developer 页面生成 EAB Credentials",
+  },
+  {
+    serverUrl: "https://acme.ssl.com/sslcom-dv-rsa",
+    name: "SSL.com (RSA)",
+    eabUrl: "https://www.ssl.com/how-to/obtain-eab-credentials-for-ssl-com-acme/",
+    eabTip: "登录后在账户设置中获取 ACME 凭证",
+  },
+  {
+    serverUrl: "https://acme.ssl.com/sslcom-dv-ecc",
+    name: "SSL.com (ECC)",
+    eabUrl: "https://www.ssl.com/how-to/obtain-eab-credentials-for-ssl-com-acme/",
+    eabTip: "登录后在账户设置中获取 ACME 凭证",
+  },
+  {
+    serverUrl: "https://dv.acme-v02.api.pki.goog/directory",
+    name: "Google Trust Services",
+    eabUrl: "https://cloud.google.com/certificate-manager/docs/public-ca-tutorial",
+    eabTip: "在 Google Cloud Console 中启用 Public CA 并获取凭证",
+  },
+  {
+    serverUrl: "https://dv.acme-v02.test-api.pki.goog/directory",
+    name: "Google Trust Services (测试)",
+    eabUrl: "https://cloud.google.com/certificate-manager/docs/public-ca-tutorial",
+    eabTip: "在 Google Cloud Console 中启用 Public CA 并获取凭证",
+  },
+];
+
+/**
+ * 检查服务器是否需要 EAB
+ * @param serverUrl ACME 服务器地址
+ */
+export function isEabRequired(serverUrl: string): boolean {
+  return EAB_SERVER_CONFIGS.some((c) => c.serverUrl === serverUrl);
+}
+
+/**
+ * 获取服务器的 EAB 配置信息
+ * @param serverUrl ACME 服务器地址
+ */
+export function getEabConfig(serverUrl: string): EabServerConfig | undefined {
+  return EAB_SERVER_CONFIGS.find((c) => c.serverUrl === serverUrl);
+}

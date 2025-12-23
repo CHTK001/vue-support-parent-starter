@@ -179,6 +179,98 @@ html[data-skin="cyberpunk"] {
 
     // 滚动条
     :deep(.el-scrollbar__bar) { background: rgba(0, 255, 255, 0.25); }
+    
+    // ==================== 收缩状态样式 ====================
+    :deep(.el-menu--collapse) {
+      // 隐藏展开箭头
+      .el-sub-menu__icon-arrow {
+        display: none !important;
+      }
+      
+      // 统一菜单项基础样式
+      .el-menu-item,
+      .el-sub-menu > .el-sub-menu__title {
+        margin: 4px 8px !important;
+        border-radius: 8px !important;
+        padding: 0 !important;
+        justify-content: center;
+        height: 46px !important;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)) !important;
+        border: 1px solid rgba(0, 255, 255, 0.12) !important;
+        position: relative;
+        
+        .sub-menu-icon {
+          margin: 0 !important;
+        }
+        
+        > div {
+          width: 100% !important;
+          flex: none !important;
+          display: flex;
+          justify-content: center;
+        }
+        
+        .el-icon, svg {
+          color: $cyan !important;
+          font-size: 18px;
+          filter: drop-shadow(0 0 4px $cyan);
+        }
+        
+        &:hover {
+          background: linear-gradient(135deg, rgba($cyan, 0.15), rgba($magenta, 0.1)) !important;
+          border-color: rgba(0, 255, 255, 0.35) !important;
+          box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25), 0 0 12px rgba(0, 255, 255, 0.18) !important;
+        }
+      }
+      
+      // 收缩状态下的激活样式 - 无子菜单
+      .el-menu-item.is-active.submenu-title-noDropdown {
+        background: linear-gradient(135deg, rgba($cyan, 0.25), rgba($magenta, 0.18)) !important;
+        border: 1px solid rgba(0, 255, 255, 0.5) !important;
+        box-shadow: 0 4px 16px rgba(0, 255, 255, 0.25), inset 0 0 0 1px rgba(255, 0, 255, 0.15) !important;
+        
+        &::before {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          content: "";
+          background: linear-gradient(to bottom, $cyan, $magenta);
+          border-radius: 0 4px 4px 0;
+          box-shadow: 0 0 10px $cyan, 0 0 20px $magenta;
+        }
+        
+        .el-icon, svg, i {
+          color: #fff !important;
+          filter: drop-shadow(0 0 8px $cyan);
+        }
+      }
+      
+      // 有子菜单的激活状态
+      .el-sub-menu.is-active > .el-sub-menu__title {
+        background: linear-gradient(135deg, rgba($cyan, 0.25), rgba($magenta, 0.18)) !important;
+        border: 1px solid rgba(0, 255, 255, 0.5) !important;
+        box-shadow: 0 4px 16px rgba(0, 255, 255, 0.25), inset 0 0 0 1px rgba(255, 0, 255, 0.15) !important;
+        
+        &::before {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          content: "";
+          background: linear-gradient(to bottom, $cyan, $magenta);
+          border-radius: 0 4px 4px 0;
+          box-shadow: 0 0 10px $cyan, 0 0 20px $magenta;
+        }
+        
+        .el-icon, svg, i {
+          color: #fff !important;
+          filter: drop-shadow(0 0 8px $cyan);
+        }
+      }
+    }
   }
 
   // ==================== 嵌套菜单激活背景 - 高优先级覆盖 ====================
@@ -408,95 +500,53 @@ html[data-skin="cyberpunk"] {
     }
   }
 
-  // Tags 区域
+  // Tags 区域 - 简化版本
   .tags-view {
-    background: linear-gradient(135deg, rgba(10, 14, 25, 0.95), rgba(15, 20, 35, 0.95)) !important;
-    border-top: 1px solid rgba(0, 255, 255, 0.25) !important;
+    background: transparent !important;
+    border-top: 1px solid rgba(0, 255, 255, 0.15) !important;
 
     .arrow-left, .arrow-right, .arrow-down {
-      background: rgba(0, 0, 0, 0.6) !important; color: $cyan !important;
-      border: 1px solid $glassBorder !important; width: 30px !important; height: 30px !important;
-      display: flex !important; align-items: center !important; justify-content: center !important;
-      border-radius: 50% !important; transition: all .25s ease !important;
+      background: transparent !important;
+      color: $cyan !important;
+      border: none !important;
       svg { color: $cyan !important; }
-      &:hover { border-color: $glassBorderHover !important; transform: scale(1.08) !important; box-shadow: $shadowCyan; }
+      &:hover { color: #fff !important; }
     }
 
     .scroll-item, .chrome-item, .modern-item, .card-item, .smart-item {
-      background: rgba($blueDark, 0.8) !important;
+      background: transparent !important;
       color: $cyan !important;
-      border: 1px solid rgba($cyan, 0.3) !important;
-      border-radius: 4px !important;
-      margin: 0 4px !important;
-      font-family: 'Rajdhani', 'Roboto', monospace !important;
-      position: relative;
+      border: none !important;
       
       .tag-title {
         color: $cyan !important;
-        letter-spacing: 0.5px !important;
       }
       
       .tag-icon {
         color: $cyan !important;
-        filter: drop-shadow(0 0 3px rgba($cyan, 0.5));
       }
       
       &:hover {
-        background: rgba($cyan, 0.1) !important;
-        border-color: $cyan !important;
-        box-shadow: 
-          0 0 15px rgba($cyan, 0.3),
-          inset 0 0 15px rgba($cyan, 0.1) !important;
+        background: transparent !important;
         
         .tag-title {
           color: #fff !important;
-          text-shadow: 0 0 8px rgba($cyan, 0.6);
         }
       }
       
       &.is-active,
       &.active {
-        background: linear-gradient(135deg, rgba($cyan, 0.2) 0%, rgba($magenta, 0.15) 100%) !important;
-        border: 1px solid $cyan !important;
-        box-shadow: 
-          0 0 20px rgba($cyan, 0.4),
-          0 0 40px rgba($magenta, 0.2),
-          inset 0 0 20px rgba($cyan, 0.1) !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
         
         .tag-title {
           color: #fff !important;
-          font-weight: 700 !important;
-          text-shadow: 0 0 10px rgba($cyan, 0.8) !important;
+          font-weight: 600 !important;
         }
         
         .tag-icon {
           color: #fff !important;
-          filter: drop-shadow(0 0 6px $cyan);
-        }
-        
-        .el-icon-close,
-        .chrome-close-btn {
-          color: $cyan !important;
-          &:hover {
-            color: #fff !important;
-            background: rgba($magenta, 0.3) !important;
-            box-shadow: 0 0 10px rgba($magenta, 0.5);
-          }
-        }
-        
-        // 左侧霓虹指示条
-        &::after {
-          content: '';
-          position: absolute;
-          left: -1px;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 3px;
-          height: 60%;
-          background: linear-gradient(to bottom, $cyan, $magenta, $cyan);
-          border-radius: 2px;
-          box-shadow: 0 0 10px $cyan, 0 0 20px $magenta;
-          animation: cyber-indicator 1.5s ease-in-out infinite;
         }
       }
       
@@ -505,8 +555,6 @@ html[data-skin="cyberpunk"] {
         color: $cyan !important;
         &:hover {
           color: #fff !important;
-          background: rgba($cyan, 0.2) !important;
-          border-radius: 50% !important;
         }
       }
     }
@@ -516,17 +564,12 @@ html[data-skin="cyberpunk"] {
       background: rgba($blueDark, 0.96) !important;
       border: 1px solid rgba($cyan, 0.3) !important;
       border-radius: 8px !important;
-      box-shadow: 
-        0 0 30px rgba($cyan, 0.2),
-        0 0 60px rgba($magenta, 0.1) !important;
       
       li {
         color: $cyan !important;
-        font-family: 'Rajdhani', monospace !important;
         &:hover {
           background: rgba($cyan, 0.1) !important;
           color: #fff !important;
-          text-shadow: 0 0 8px rgba($cyan, 0.6);
         }
       }
     }
@@ -534,7 +577,6 @@ html[data-skin="cyberpunk"] {
     // 灵动模式进度条
     .schedule-active, .schedule-in {
       background: linear-gradient(90deg, $cyan, $magenta) !important;
-      box-shadow: 0 0 15px rgba($cyan, 0.6), 0 0 30px rgba($magenta, 0.4) !important;
     }
   }
 

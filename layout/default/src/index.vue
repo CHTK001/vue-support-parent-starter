@@ -51,7 +51,6 @@ import NavMobileLayout from "./components/lay-sidebar/NavMobile.vue";
 import LayTag from "./components/lay-tag/index.vue";
 import LayAiChat from "./components/lay-ai-chat/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
-import SpringFestivalDecorations from "./themes/SpringFestivalDecorations.vue";
 
 // 导入主题皮肤样式
 import "./themes/christmas.scss";
@@ -438,9 +437,6 @@ const LayHeader = defineComponent({
 
 <template>
   <ThemeSkinProvider>
-    <!-- 春节装饰 -->
-    <SpringFestivalDecorations />
-
     <!-- 全屏加载遮罩 -->
     <div v-if="!isConfigLoaded" class="fullscreen-loading" :class="'loading-' + loadingStyle">
    
@@ -721,6 +717,16 @@ const LayHeader = defineComponent({
   :deep(.fixed-header) {
     width: 100% !important;
     margin-left: 0 !important;
+  }
+}
+
+// 双栏导航布局 - 确保navbar撑满容器
+.double-layout-container {
+  .double-main {
+    :deep(.fixed-header) {
+      width: 100% !important;
+      margin-left: 0 !important;
+    }
   }
 }
 

@@ -227,6 +227,30 @@ pub fn sm2_decrypt(data_ptr: *const u8, data_len: usize, privkey_ptr: *const u8,
         .unwrap_or_else(|_| String::from_utf8_lossy(&decrypted).into_owned()))
 }
 
+// ============ 工具函数 ============
+
+/// 生成随机 nonce 字符串
+#[wasm_bindgen]
+pub fn generate_nonce() -> String {
+    use sm2::elliptic_curve::rand_core::{OsRng, RngCore};
+    
+    let mut bytes = [0u8; 16];
+    OsRng.fill_bytes(&mut bytes);
+    
+    // 转换为 base36 格式的字符串
+    let mut result = String::with_capacity(24);
+    for byte in bytes.iter() {
+        result.push_str(&format!("{:02x}", byte));
+    }
+    result
+}
+
+/// 获取当前时间戳
+#[wasm_bindgen]
+pub fn get_current_timestamp() -> f64 {
+    js_sys::Date::now()
+}
+
 // ============ 签名函数 ============
 
 #[wasm_bindgen]

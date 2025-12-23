@@ -64,15 +64,6 @@ export const layoutThemes: LayoutTheme[] = [
     color: "#722ed1",
   },
   {
-    name: "情人节",
-    key: "valentines-day",
-    description: "情人节主题皮肤，浪漫甜蜜",
-    stylesheet: "valentines-day.scss",
-    icon: "noto:red-heart",
-    type: "festival",
-    color: "#eb2f96",
-  },
-  {
     name: "中秋",
     key: "mid-autumn",
     description: "中秋主题皮肤，月圆人团圆",
@@ -124,6 +115,9 @@ export const getThemesByType = (types: ThemeType[]): LayoutTheme[] => {
  * @param userRoles 用户角色列表
  * @param isDevelopment 是否为开发环境
  * @param isTest 是否为测试环境
+ * @description 
+ *   - 常规主题和内测主题：始终显示，不受节日主题自动切换开关影响
+ *   - 节日主题：仅在关闭自动切换时显示，开启自动切换时由系统自动管理
  */
 export const getAvailableThemes = (
   enableFestivalTheme: boolean = true,
@@ -133,22 +127,18 @@ export const getAvailableThemes = (
 ): LayoutTheme[] => {
   let themes: LayoutTheme[] = [];
 
-  // 常规主题始终可用
+  // 常规主题始终可用（不受节日主题自动切换开关影响）
   themes = themes.concat(getThemesByType(['regular']));
 
-  // 内测主题在开发/测试环境或特定用户角色下可用
-  const hasBetaAccess = isDevelopment || isTest || 
-    userRoles.some(role => ['admin', 'developer', 'beta-tester'].includes(role));
-  if (hasBetaAccess) {
-    themes = themes.concat(getThemesByType(['beta']));
-  }
+  // 内测主题始终可用（所有用户都可以使用）
+  themes = themes.concat(getThemesByType(['beta']));
 
   // 节日主题根据开关显示
+  // 关闭自动切换时，显示所有节日主题供手动选择
+  // 开启自动切换时，节日主题由系统自动管理，不在列表中显示
   if (!enableFestivalTheme) {
-    // 关闭自动切换时，显示所有节日主题供手动选择
     themes = themes.concat(getThemesByType(['festival']));
   }
-  // 开启自动切换时，节日主题由系统自动管理，不在列表中显示
 
   return themes;
 };

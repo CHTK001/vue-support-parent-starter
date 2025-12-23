@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { layoutThemes, loadThemeStylesheet } from '../../themes';
+import ScRibbon from '@repo/components/ScRibbon/index.vue';
 
 // 导入春节标签页样式
 import '../lay-tag/themes/spring-festival.css';
@@ -56,6 +57,11 @@ const availableThemes = computed<ThemeItem[]>(() => {
   return mapped.filter(t => !!t.key && t.key !== 'national-day');
 });
 
+// 按类型分组主题
+const regularThemes = computed(() => availableThemes.value.filter(t => t.type === 'regular' && t.key !== 'default'));
+const betaThemes = computed(() => availableThemes.value.filter(t => t.type === 'beta'));
+const festivalThemes = computed(() => availableThemes.value.filter(t => t.type === 'festival'));
+
 function removeAllThemeClasses() {
   const htmlEl = document.documentElement;
   [...htmlEl.classList]
@@ -101,6 +107,7 @@ onMounted(() => {
 
 <template>
   <div class="lay-theme-switcher">
+    <!-- 常规主题 -->
     <div class="theme-grid">
       <!-- 默认主题卡片 -->
       <div
@@ -120,12 +127,11 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 其他主题卡片 -->
+      <!-- 其他常规主题 -->
       <div
-        v-for="item in availableThemes"
+        v-for="item in regularThemes"
         :key="item.key"
-        v-show="item.key !== 'default'"
-        class="theme-card festival"
+        class="theme-card"
         :class="{ 'is-active': internalTheme === item.key }"
         @click="onSelect(item.key)"
       >
@@ -133,10 +139,7 @@ onMounted(() => {
           <IconifyIconOnline :icon="item.icon || 'ri:palette-line'" />
         </div>
         <div v-if="showMeta" class="card-meta">
-          <div class="card-name">
-            {{ item.name }}
-            <span v-if="item.type === 'beta'" class="beta-badge">BETA</span>
-          </div>
+          <div class="card-name">{{ item.name }}</div>
           <div class="card-desc">{{ item.description }}</div>
         </div>
         <div v-if="internalTheme === item.key" class="card-check">
@@ -144,6 +147,74 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- 内测主题 -->
+    <template v-if="betaThemes.length > 0">
+      <el-divider content-position="left">
+        <span class="divider-text">
+          <IconifyIconOnline icon="ri:flask-line" class="divider-icon" />
+          内测主题
+        </span>
+      </el-divider>
+      <div class="theme-grid">
+        <div
+          v-for="item in betaThemes"
+          :key="item.key"
+          class="theme-card beta"
+          :class="{ 'is-active': internalTheme === item.key }"
+          @click="onSelect(item.key)"
+        >
+          <!-- 斜向绸带标识 -->
+          <ScRibbon
+            text="BETA"
+            variant="diagonal"
+            position="rt"
+            size="sm"
+            color="#00d4d4"
+          />
+          <div class="card-icon">
+            <IconifyIconOnline :icon="item.icon || 'ri:palette-line'" />
+          </div>
+          <div v-if="showMeta" class="card-meta">
+            <div class="card-name">{{ item.name }}</div>
+            <div class="card-desc">{{ item.description }}</div>
+          </div>
+          <div v-if="internalTheme === item.key" class="card-check">
+            <IconifyIconOnline icon="ep:check" />
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 节日主题 -->
+    <template v-if="festivalThemes.length > 0">
+      <el-divider content-position="left">
+        <span class="divider-text">
+          <IconifyIconOnline icon="ri:gift-line" class="divider-icon" />
+          节日主题
+        </span>
+      </el-divider>
+      <div class="theme-grid">
+        <div
+          v-for="item in festivalThemes"
+          :key="item.key"
+          class="theme-card festival"
+          :class="{ 'is-active': internalTheme === item.key }"
+          @click="onSelect(item.key)"
+        >
+          <div class="card-icon">
+            <IconifyIconOnline :icon="item.icon || 'ri:palette-line'" />
+          </div>
+          <div v-if="showMeta" class="card-meta">
+            <div class="card-name">{{ item.name }}</div>
+            <div class="card-desc">{{ item.description }}</div>
+          </div>
+          <div v-if="internalTheme === item.key" class="card-check">
+            <IconifyIconOnline icon="ep:check" />
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -163,8 +234,15 @@ onMounted(() => {
   cursor: pointer;
   transition: all .25s ease;
 }
-.theme-card:hover { transform: translateY(-2px); box-shadow: var(--el-box-shadow-light); }
-.theme-card.is-active { outline: 2px solid var(--el-color-primary); }
+.theme-card:hover { 
+  transform: translateY(-2px); 
+  box-shadow: var(--el-box-shadow-light); 
+  border-color: var(--el-color-primary);
+}
+.theme-card.is-active { 
+  border-color: var(--el-color-primary); 
+  box-shadow: 0 0 0 1px var(--el-color-primary);
+}
 .card-icon { font-size: 22px; color: var(--el-color-primary); margin-bottom: 6px; }
 .card-meta { text-align: left; }
 .card-name { 
@@ -175,29 +253,56 @@ onMounted(() => {
   gap: 6px;
 }
 .card-desc { font-size: 12px; color: var(--el-text-color-secondary); }
-.card-check { position: absolute; right: 10px; top: 10px; color: var(--el-color-success); }
-
-/* BETA标识 */
-.beta-badge {
-  display: inline-flex;
+.card-check { 
+  position: absolute; 
+  right: 8px; 
+  top: 8px; 
+  width: 20px;
+  height: 20px;
+  display: flex;
   align-items: center;
-  padding: 2px 6px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  justify-content: center;
+  background: var(--el-color-primary); 
   color: #fff;
-  background: linear-gradient(135deg, #00ffff, #00d4d4);
-  border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0, 255, 255, 0.4);
-  animation: betaGlow 2s ease-in-out infinite;
+  border-radius: 50%;
+  font-size: 12px;
 }
 
-@keyframes betaGlow {
-  0%, 100% {
-    box-shadow: 0 2px 6px rgba(0, 255, 255, 0.4);
-  }
-  50% {
-    box-shadow: 0 2px 10px rgba(0, 255, 255, 0.6), 0 0 20px rgba(0, 255, 255, 0.3);
-  }
+/* 内测主题卡片 */
+.theme-card.beta {
+  overflow: hidden;
+}
+
+/* 分隔线样式 */
+:deep(.el-divider) {
+  margin: 16px 0 12px;
+}
+
+:deep(.el-divider__text) {
+  background-color: var(--el-bg-color);
+  padding: 0 10px;
+}
+
+.divider-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+}
+
+.divider-icon {
+  font-size: 14px;
+}
+
+/* 内测主题卡片特殊样式 */
+.theme-card.beta .card-icon {
+  color: #00d4d4;
+}
+
+/* 节日主题卡片特殊样式 */
+.theme-card.festival .card-icon {
+  color: #f5222d;
 }
 </style>

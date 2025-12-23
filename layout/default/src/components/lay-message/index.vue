@@ -19,6 +19,7 @@ import {
   fetchDeleteMessage,
   type SysMessage,
 } from "./api";
+import LayMessageToast from "../lay-message-toast/index.vue";
 
 defineOptions({
   name: "LayMessage",
@@ -134,6 +135,18 @@ const handleSocketMessage = (data: any) => {
     const exists = messages.value.some((m) => m.id === newMessage.id);
     if (!exists) {
       messages.value.unshift(newMessage);
+      
+      // 触发消息弹窗推送事件
+      emitter.emit("messageToastPush", {
+        messageId: newMessage.id,
+        title: newMessage.title,
+        content: newMessage.content,
+        avatar: newMessage.avatar,
+        sendTime: newMessage.time,
+        type: newMessage.type,
+        level: newMessage.level,
+        url: newMessage.url,
+      });
     }
   }
 };
@@ -465,6 +478,9 @@ onUnmounted(() => {
     </el-scrollbar>
     </el-drawer>
     </Teleport>
+    
+    <!-- 消息弹窗组件 -->
+    <LayMessageToast />
   </div>
 </template>
 

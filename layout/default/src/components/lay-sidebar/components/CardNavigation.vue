@@ -4,7 +4,7 @@ import { usePermissionStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import LayTool from "../../lay-tool/index.vue";
-import LaySidebarBreadCrumb from "./SidebarBreadCrumb.vue";
+import LayBreadcrumb from "../../breadcrumb/index.vue";
 const { $storage, $config } = useGlobal();
 
 // Props
@@ -460,7 +460,7 @@ onUnmounted(() => {
         <span>返回导航</span>
       </div>
       <!-- 面包屑导航 -->
-      <LaySidebarBreadCrumb class="breadcrumb-container" />
+      <LayBreadcrumb class="breadcrumb-container" />
       <!-- 工具栏 -->
       <LayTool class="tool-container" />
     </div>

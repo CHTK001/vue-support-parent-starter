@@ -1621,135 +1621,84 @@ html[data-skin="christmas"] {
 
 // ==================== 元旦主题样式 ====================
 html[data-skin="new-year"] {
-  // 元旦冰雪主题色
+  // 元旦冰雪主题色 - 浅色风格（与悬停导航保持一致）
+  $ice-lightest: #F5FBFF;
   $ice-light: #B8E0F2;
   $ice-medium: #7CC2E8;
   $ice-primary: #4EA8DE;
-  $ice-dark: #2B6A99;
-  $ice-darkest: #1A4A6E;
-  $ice-border: rgba(184, 224, 242, 0.4);
+  $ice-deep: #2A7AB8;
+  $ice-darker: #1E5F8C;
+  $frost-white: #FFFFFF;
+  $frost-purple: #E0E7F5;
+  $ice-border: rgba(78, 168, 222, 0.3);
 
   // 双栏导航容器
   .double-nav-container {
-    // 左栏
+    // 左栏 - 浅色背景
     .double-nav-left {
-      background: linear-gradient(180deg, $ice-darkest, $ice-dark) !important;
+      background: linear-gradient(180deg, rgba($frost-white, 0.98), rgba($frost-purple, 0.95)) !important;
       border-right: 2px solid $ice-border !important;
+      backdrop-filter: blur(12px);
 
       // Logo区域
       .sidebar-logo-container {
-        background: linear-gradient(180deg, color.adjust($ice-darkest, $lightness: -5%), $ice-darkest) !important;
-        border-bottom: 2px solid $ice-border !important;
+        background: linear-gradient(180deg, rgba($frost-white, 0.95), rgba($ice-lightest, 0.9)) !important;
+        border-bottom: 1px solid rgba($ice-medium, 0.3) !important;
 
         .sidebar-title {
-          color: $ice-light !important;
+          color: $ice-darker !important;
+          text-shadow: 0 1px 2px rgba($ice-deep, 0.2);
         }
       }
 
       // 一级菜单
       .first-level-menu {
         .el-menu-item {
-          color: $ice-light !important;
+          color: $ice-darker !important;
 
           .menu-icon-only {
             svg,
             i {
-              color: $ice-medium !important;
+              color: $ice-primary !important;
             }
           }
 
           &:hover {
-            background: rgba($ice-medium, 0.15) !important;
-            color: #fff !important;
+            background: rgba($ice-medium, 0.2) !important;
+            color: $ice-deep !important;
 
             .menu-icon-only svg,
             .menu-icon-only i {
-              color: #fff !important;
+              color: $ice-deep !important;
             }
           }
 
           &.is-active {
-            background: linear-gradient(135deg, $ice-medium, $ice-primary) !important;
-            color: $ice-darkest !important;
-            box-shadow: 0 4px 16px rgba($ice-medium, 0.5) !important;
+            background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
+            color: $frost-white !important;
+            box-shadow: 0 4px 16px rgba($ice-primary, 0.4) !important;
 
             .menu-icon-only svg,
             .menu-icon-only i {
-              color: $ice-darkest !important;
+              color: $frost-white !important;
             }
           }
         }
       }
     }
 
-    // 右栏
+    // 右栏 - 浅色背景
     .double-nav-right {
-      background: linear-gradient(180deg, $ice-dark, $ice-darkest) !important;
+      background: linear-gradient(180deg, rgba($ice-lightest, 0.98), rgba($frost-purple, 0.95)) !important;
+      backdrop-filter: blur(12px);
 
       .sub-menu-list {
         padding: 8px !important;
         
         .el-menu-item {
           height: 46px !important;
-          color: $ice-light !important;
-          background: transparent !important;
-          border: none !important;
-          border-radius: 8px !important;
-          margin: 4px 8px !important;
-          padding: 0 16px !important;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-          span, div, .el-text {
-            height: 46px !important;
-            line-height: 46px !important;
-            font-size: 14px !important;
-            letter-spacing: 0.3px !important;
-            color: $ice-light !important;
-          }
-
-          .el-icon,
-          svg {
-            color: $ice-medium !important;
-            margin-right: 8px;
-          }
-
-          &:hover {
-            background: rgba($ice-medium, 0.15) !important;
-            transform: translateX(2px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            color: #fff !important;
-
-            span, div, .el-text {
-              color: #fff !important;
-            }
-
-            .el-icon,
-            svg {
-              color: #fff !important;
-            }
-          }
-
-          &.is-active {
-            background: linear-gradient(135deg, $ice-medium 0%, $ice-primary 100%) !important;
-            color: $ice-darkest !important;
-            font-weight: 600;
-            box-shadow: 0 2px 8px rgba($ice-medium, 0.4) !important;
-
-            span, div, .el-text {
-              color: $ice-darkest !important;
-            }
-
-            .el-icon,
-            svg {
-              color: $ice-darkest !important;
-            }
-          }
-        }
-
-        .el-sub-menu__title {
-          height: 46px !important;
-          color: $ice-light !important;
-          background: rgba($ice-darkest, 0.5) !important;
+          color: $ice-darker !important;
+          background: rgba($frost-white, 0.7) !important;
           border: 1px solid rgba($ice-medium, 0.25) !important;
           border-radius: 8px !important;
           margin: 4px 8px !important;
@@ -1761,83 +1710,146 @@ html[data-skin="new-year"] {
             line-height: 46px !important;
             font-size: 14px !important;
             letter-spacing: 0.3px !important;
-            color: $ice-light !important;
+            color: $ice-darker !important;
           }
 
           .el-icon,
           svg {
-            color: $ice-medium !important;
+            color: $ice-primary !important;
             margin-right: 8px;
           }
 
           &:hover {
             background: rgba($ice-medium, 0.2) !important;
-            border-color: $ice-medium !important;
+            border-color: rgba($ice-primary, 0.4) !important;
             transform: translateX(2px);
-            color: #fff !important;
-            box-shadow: 0 2px 8px rgba($ice-medium, 0.3);
+            box-shadow: 0 4px 12px rgba($ice-primary, 0.2) !important;
+            color: $ice-deep !important;
+
+            span, div, .el-text {
+              color: $ice-deep !important;
+            }
+
+            .el-icon,
+            svg {
+              color: $ice-deep !important;
+            }
+          }
+
+          &.is-active {
+            background: linear-gradient(135deg, $ice-primary 0%, $ice-medium 100%) !important;
+            color: $frost-white !important;
+            border: 1px solid rgba($frost-white, 0.5) !important;
+            font-weight: 600;
+            box-shadow: 0 4px 16px rgba($ice-primary, 0.4) !important;
+
+            span, div, .el-text {
+              color: $frost-white !important;
+            }
+
+            .el-icon,
+            svg {
+              color: $frost-white !important;
+            }
+          }
+        }
+
+        .el-sub-menu__title {
+          height: 46px !important;
+          color: $ice-darker !important;
+          background: rgba($frost-white, 0.6) !important;
+          border: 1px solid rgba($ice-medium, 0.25) !important;
+          border-radius: 8px !important;
+          margin: 4px 8px !important;
+          padding: 0 16px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+          span, div, .el-text {
+            height: 46px !important;
+            line-height: 46px !important;
+            font-size: 14px !important;
+            letter-spacing: 0.3px !important;
+            color: $ice-darker !important;
+          }
+
+          .el-icon,
+          svg {
+            color: $ice-primary !important;
+            margin-right: 8px;
+          }
+
+          &:hover {
+            background: rgba($ice-medium, 0.2) !important;
+            border-color: rgba($ice-primary, 0.4) !important;
+            transform: translateX(2px);
+            color: $ice-deep !important;
+            box-shadow: 0 4px 12px rgba($ice-primary, 0.2);
             
             span, div, .el-text, .el-icon, svg {
-              color: #fff !important;
+              color: $ice-deep !important;
             }
           }
         }
 
         .el-sub-menu.is-active > .el-sub-menu__title {
-          color: #fff !important;
+          color: $frost-white !important;
           font-weight: 600;
-          background: rgba($ice-medium, 0.3) !important;
-          border-color: $ice-medium !important;
-          box-shadow: 0 2px 8px rgba($ice-medium, 0.4);
+          background: linear-gradient(135deg, rgba($ice-primary, 0.8), rgba($ice-medium, 0.7)) !important;
+          border-color: rgba($frost-white, 0.4) !important;
+          box-shadow: 0 4px 16px rgba($ice-primary, 0.35);
           
           span, div, .el-text {
-            color: #fff !important;
+            color: $frost-white !important;
           }
           
           .el-icon, svg {
-            color: #fff !important;
+            color: $frost-white !important;
           }
         }
         
         .el-sub-menu .el-menu {
-          background: transparent !important;
+          background: rgba($ice-lightest, 0.6) !important;
+          border-radius: 8px;
+          margin: 4px 8px;
           
           .el-menu-item {
             height: 44px !important;
-            color: $ice-light !important;
-            background: transparent !important;
-            border: none !important;
+            color: $ice-darker !important;
+            background: rgba($frost-white, 0.5) !important;
+            border: 1px solid rgba($ice-medium, 0.15) !important;
             border-radius: 8px !important;
-            margin: 2px 8px 2px 16px !important;
+            margin: 4px 6px !important;
             padding: 0 16px !important;
             
             span, div, .el-text {
               height: 44px !important;
               line-height: 44px !important;
               font-size: 14px !important;
-              color: $ice-light !important;
+              color: $ice-darker !important;
             }
             
             .el-icon, svg {
-              color: $ice-medium !important;
+              color: $ice-primary !important;
             }
             
             &:hover {
-              background: rgba($ice-medium, 0.15) !important;
-              color: #fff !important;
+              background: rgba($frost-white, 0.8) !important;
+              border-color: rgba($ice-primary, 0.3) !important;
+              color: $ice-deep !important;
               
               span, div, .el-text, .el-icon, svg {
-                color: #fff !important;
+                color: $ice-deep !important;
               }
             }
             
             &.is-active {
-              background: linear-gradient(135deg, $ice-medium 0%, $ice-primary 100%) !important;
-              color: $ice-darkest !important;
-              box-shadow: 0 2px 8px rgba($ice-medium, 0.4) !important;
+              background: linear-gradient(135deg, $ice-primary 0%, $ice-medium 100%) !important;
+              color: $frost-white !important;
+              border: 1px solid rgba($ice-deep, 0.2) !important;
+              box-shadow: 0 4px 16px rgba($ice-primary, 0.4) !important;
               
               span, div, .el-text, .el-icon, svg {
-                color: $ice-darkest !important;
+                color: $frost-white !important;
               }
             }
           }
@@ -1845,21 +1857,21 @@ html[data-skin="new-year"] {
       }
     }
 
-    // 折叠按钮
+    // 折叠按钮 - 浅色风格
     .double-nav-collapse {
       .left-collapse {
-        background: linear-gradient(180deg, color.adjust($ice-darkest, $lightness: -5%), $ice-darkest) !important;
-        border-top: 2px solid $ice-border !important;
+        background: linear-gradient(180deg, rgba($frost-white, 0.95), rgba($ice-lightest, 0.9)) !important;
+        border-top: 1px solid rgba($ice-medium, 0.3) !important;
 
         svg {
-          color: $ice-medium !important;
+          color: $ice-primary !important;
         }
 
         &:hover {
-          background: rgba($ice-medium, 0.15) !important;
+          background: rgba($ice-medium, 0.2) !important;
 
           svg {
-            color: #fff !important;
+            color: $ice-deep !important;
           }
         }
       }

@@ -11,6 +11,14 @@ export function sm4_decrypt(data_ptr: number, data_len: number, key_ptr: number,
 export function generate_sm2_key_pair(): number;
 export function sm2_encrypt(data_ptr: number, data_len: number, pubkey_ptr: number, pubkey_len: number): number;
 export function sm2_decrypt(data_ptr: number, data_len: number, privkey_ptr: number, privkey_len: number): number;
+/**
+ * 生成随机 nonce 字符串
+ */
+export function generate_nonce(): string;
+/**
+ * 获取当前时间戳
+ */
+export function get_current_timestamp(): number;
 export function generate_sign(data_ptr: number, data_len: number, privkey_ptr: number, privkey_len: number): number;
 export function verify_sign(data_ptr: number, data_len: number, sig_ptr: number, sig_len: number, pubkey_ptr: number, pubkey_len: number): boolean;
 export function uu3_decrypt_simple(data_ptr: number, data_len: number): number;
@@ -40,6 +48,8 @@ export interface InitOutput {
   readonly generate_sm2_key_pair: () => number;
   readonly sm2_encrypt: (a: number, b: number, c: number, d: number) => number;
   readonly sm2_decrypt: (a: number, b: number, c: number, d: number) => number;
+  readonly generate_nonce: () => [number, number];
+  readonly get_current_timestamp: () => number;
   readonly generate_sign: (a: number, b: number, c: number, d: number) => number;
   readonly verify_sign: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
   readonly uu3_decrypt_simple: (a: number, b: number) => number;
@@ -58,6 +68,7 @@ export interface InitOutput {
   readonly __wbindgen_export_2: WebAssembly.Table;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+  readonly __wbindgen_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_start: () => void;
 }
 

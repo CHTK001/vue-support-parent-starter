@@ -168,6 +168,97 @@ html[data-skin="mid-autumn"] {
       position: relative;
       z-index: 1;
     }
+    
+    // ==================== 收缩状态样式 ====================
+    :deep(.el-menu--collapse) {
+      // 隐藏展开箭头
+      .el-sub-menu__icon-arrow {
+        display: none !important;
+      }
+      
+      // 统一菜单项基础样式
+      .el-menu-item,
+      .el-sub-menu > .el-sub-menu__title {
+        margin: 4px 8px !important;
+        border-radius: 8px !important;
+        padding: 0 !important;
+        justify-content: center;
+        height: 46px !important;
+        background: linear-gradient(180deg, $mid-blue 0%, $mid-blue-light 100%) !important;
+        border: 2px solid darken($mid-blue, 5%) !important;
+        position: relative;
+        
+        .sub-menu-icon {
+          margin: 0 !important;
+        }
+        
+        > div {
+          width: 100% !important;
+          flex: none !important;
+          display: flex;
+          justify-content: center;
+        }
+        
+        .el-icon, svg {
+          color: $mid-gold !important;
+          font-size: 18px;
+        }
+        
+        &:hover {
+          background: linear-gradient(180deg, $mid-blue-light 0%, $mid-blue 100%) !important;
+          border-color: $mid-gold !important;
+          box-shadow: 0 2px 12px rgba($mid-gold, 0.3) !important;
+        }
+      }
+      
+      // 收缩状态下的激活样式 - 无子菜单
+      .el-menu-item.is-active.submenu-title-noDropdown {
+        background: linear-gradient(180deg, $mid-gold, $mid-gold-light) !important;
+        border: 2px solid $mid-cyan !important;
+        box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
+        
+        &::before {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          content: "";
+          background: linear-gradient(to bottom, $mid-cyan, $mid-blue);
+          border-radius: 0 4px 4px 0;
+        }
+        
+        &::after {
+          display: none !important;
+        }
+        
+        .el-icon, svg, i {
+          color: $mid-blue !important;
+        }
+      }
+      
+      // 有子菜单的激活状态
+      .el-sub-menu.is-active > .el-sub-menu__title {
+        background: linear-gradient(180deg, $mid-gold, $mid-gold-light) !important;
+        border: 2px solid $mid-cyan !important;
+        box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
+        
+        &::before {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          content: "";
+          background: linear-gradient(to bottom, $mid-cyan, $mid-blue);
+          border-radius: 0 4px 4px 0;
+        }
+        
+        .el-icon, svg, i {
+          color: $mid-blue !important;
+        }
+      }
+    }
   }
   
   // 月亮发光动画
