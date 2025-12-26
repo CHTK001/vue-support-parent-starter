@@ -33,7 +33,6 @@
     "@imgly/background-removal": "^1.7.0",
     "@intlify/unplugin-vue-i18n": "catalog:",
     "@layout/default": "workspace:^",
-    "@layout/engine": "workspace:^",
     "@pages/dict": "workspace:^",
     "@pages/example": "workspace:^",
     "@pages/map": "workspace:^",
