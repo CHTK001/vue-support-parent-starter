@@ -1,20 +1,32 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    :title="isEdit ? '编辑账户' : '添加账户'"
-    width="520px"
+    :title="''"
+    width="560px"
     :close-on-click-modal="false"
     class="account-dialog"
+    :show-close="false"
+    append-to-body
   >
-    <!-- 头部提示 -->
-    <div class="dialog-tip">
-      <IconifyIconOnline icon="mdi:information-outline" class="tip-icon" />
-      <span>{{
-        isEdit
-          ? "修改账户信息后将自动更新关联的证书配置"
-          : "ACME账户用于与证书颁发机构通信，请使用有效的邮箱地址"
-      }}</span>
-    </div>
+    <!-- 自定义头部 -->
+    <template #header>
+      <div class="dialog-header">
+        <div class="header-icon" :class="isEdit ? 'edit' : 'add'">
+          <IconifyIconOnline :icon="isEdit ? 'mdi:account-edit' : 'mdi:account-plus'" />
+        </div>
+        <div class="header-info">
+          <h3 class="header-title">{{ isEdit ? '编辑 ACME 账户' : '添加 ACME 账户' }}</h3>
+          <p class="header-desc">{{
+            isEdit
+              ? '修改账户信息后将自动更新关联的证书配置'
+              : 'ACME 账户用于与证书颁发机构通信'
+          }}</p>
+        </div>
+        <button class="close-btn" @click="dialogVisible = false">
+          <IconifyIconOnline icon="mdi:close" />
+        </button>
+      </div>
+    </template>
 
     <el-form
       ref="formRef"
@@ -23,154 +35,164 @@
       label-position="top"
       class="account-form"
     >
-      <el-form-item prop="acmeAccountEmail">
-        <template #label>
-          <div class="form-label">
-            <IconifyIconOnline icon="mdi:email-outline" class="label-icon" />
-            <span>邮箱地址</span>
-            <span class="required-mark">*</span>
-          </div>
-        </template>
-        <el-input
-          v-model="form.acmeAccountEmail"
-          placeholder="请输入用于接收证书通知的邮箱地址"
-          :disabled="isEdit"
-          :prefix-icon="isEdit ? undefined : undefined"
-          class="form-input"
-        >
-          <template #prefix>
-            <IconifyIconOnline icon="mdi:at" class="input-icon" />
-          </template>
-        </el-input>
-      </el-form-item>
-
-      <el-form-item prop="acmeAccountServer">
-        <template #label>
-          <div class="form-label">
-            <IconifyIconOnline icon="mdi:server" class="label-icon" />
-            <span>ACME服务器</span>
-            <span class="required-mark">*</span>
-          </div>
-        </template>
-        <el-select
-          v-model="form.acmeAccountServer"
-          placeholder="请选择ACME服务器"
-          class="form-select"
-          :popper-options="{
-            modifiers: [
-              { name: 'computeStyles', options: { adaptive: false } },
-            ],
-          }"
-          popper-class="acme-server-dropdown"
-        >
-          <el-option-group
-            v-for="group in ACME_SERVER_GROUPS"
-            :key="group.label"
-            :label="group.label"
-          >
-            <el-option
-              v-for="item in group.options"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            >
-              <div class="server-option">
-                <IconifyIconOnline
-                  icon="mdi:shield-check"
-                  class="option-icon"
-                />
-                <span>{{ item.label }}</span>
+      <!-- 邮箱地址 -->
+      <div class="form-section">
+        <el-form-item prop="acmeAccountEmail">
+          <template #label>
+            <div class="form-label">
+              <div class="label-icon-wrapper email">
+                <IconifyIconOnline icon="mdi:email-outline" />
               </div>
-            </el-option>
-          </el-option-group>
-        </el-select>
-      </el-form-item>
+              <div class="label-text">
+                <span class="label-title">邮箱地址</span>
+                <span class="label-hint">用于接收证书到期通知</span>
+              </div>
+            </div>
+          </template>
+          <el-input
+            v-model="form.acmeAccountEmail"
+            placeholder="example@domain.com"
+            :disabled="isEdit"
+            class="form-input"
+            size="large"
+          />
+        </el-form-item>
+      </div>
 
-      <!-- EAB 凭证（仅 ZeroSSL 等需要） -->
-      <template v-if="showEabFields && eabConfig">
-        <div class="eab-section">
+      <!-- ACME 服务器 -->
+      <div class="form-section">
+        <el-form-item prop="acmeAccountServer">
+          <template #label>
+            <div class="form-label">
+              <div class="label-icon-wrapper server">
+                <IconifyIconOnline icon="mdi:server-security" />
+              </div>
+              <div class="label-text">
+                <span class="label-title">ACME 服务器</span>
+                <span class="label-hint">选择证书颁发机构</span>
+              </div>
+            </div>
+          </template>
+          <el-select
+            v-model="form.acmeAccountServer"
+            placeholder="请选择 ACME 服务器"
+            class="form-select"
+            size="large"
+            :popper-options="{
+              modifiers: [
+                { name: 'computeStyles', options: { adaptive: false } },
+              ],
+            }"
+            popper-class="acme-server-dropdown"
+          >
+            <el-option-group
+              v-for="group in ACME_SERVER_GROUPS"
+              :key="group.label"
+              :label="group.label"
+            >
+              <el-option
+                v-for="item in group.options"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              >
+                <div class="server-option">
+                  <IconifyIconOnline icon="mdi:shield-check" class="option-icon" />
+                  <span>{{ item.label }}</span>
+                  <span class="server-badge" v-if="isEabRequired(item.value)">EAB</span>
+                </div>
+              </el-option>
+            </el-option-group>
+          </el-select>
+        </el-form-item>
+      </div>
+
+      <!-- EAB 凭证区域 -->
+      <transition name="eab-slide">
+        <div class="eab-section" v-if="showEabFields && eabConfig">
           <div class="eab-header">
-            <div class="eab-title">
-              <IconifyIconOnline icon="mdi:key-variant" class="title-icon" />
-              <span>{{ eabConfig.name }} EAB 凭证</span>
+            <div class="eab-badge">
+              <IconifyIconOnline icon="mdi:key-chain" />
+              <span>EAB 凭证配置</span>
             </div>
             <a :href="eabConfig.eabUrl" target="_blank" class="eab-link">
-              <IconifyIconOnline icon="mdi:open-in-new" />
               <span>获取凭证</span>
+              <IconifyIconOnline icon="mdi:open-in-new" />
             </a>
           </div>
+          
           <div class="eab-tip">
-            <IconifyIconOnline icon="mdi:information-outline" class="tip-icon" />
-            <span>{{ eabConfig.eabTip }}</span>
+            <IconifyIconOnline icon="mdi:lightbulb-on-outline" class="tip-icon" />
+            <div class="tip-content">
+              <strong>{{ eabConfig.name }}</strong>
+              <span>{{ eabConfig.eabTip }}</span>
+            </div>
           </div>
           
-          <el-form-item prop="acmeAccountEabKid">
-            <template #label>
-              <div class="form-label">
-                <IconifyIconOnline icon="mdi:identifier" class="label-icon" />
-                <span>EAB Key ID</span>
-                <span class="required-mark">*</span>
-              </div>
-            </template>
-            <el-input
-              v-model="form.acmeAccountEabKid"
-              placeholder="请输入 EAB Key ID (KID)"
-              class="form-input"
-            >
-              <template #prefix>
-                <IconifyIconOnline icon="mdi:key" class="input-icon" />
+          <div class="eab-fields">
+            <el-form-item prop="acmeAccountEabKid">
+              <template #label>
+                <div class="eab-label">
+                  <IconifyIconOnline icon="mdi:identifier" />
+                  <span>EAB Key ID (KID)</span>
+                </div>
               </template>
-            </el-input>
-          </el-form-item>
+              <el-input
+                v-model="form.acmeAccountEabKid"
+                placeholder="请输入 EAB Key ID"
+                class="form-input"
+                size="large"
+              />
+            </el-form-item>
 
-          <el-form-item prop="acmeAccountEabHmacKey">
-            <template #label>
-              <div class="form-label">
-                <IconifyIconOnline icon="mdi:shield-key" class="label-icon" />
-                <span>EAB HMAC Key</span>
-                <span class="required-mark">*</span>
-              </div>
-            </template>
-            <el-input
-              v-model="form.acmeAccountEabHmacKey"
-              placeholder="请输入 EAB HMAC Key (Base64 编码)"
-              class="form-input"
-              type="password"
-              show-password
-            >
-              <template #prefix>
-                <IconifyIconOnline icon="mdi:lock" class="input-icon" />
+            <el-form-item prop="acmeAccountEabHmacKey">
+              <template #label>
+                <div class="eab-label">
+                  <IconifyIconOnline icon="mdi:shield-key" />
+                  <span>EAB HMAC Key</span>
+                </div>
               </template>
-            </el-input>
-          </el-form-item>
-        </div>
-      </template>
-
-      <el-form-item>
-        <template #label>
-          <div class="form-label">
-            <IconifyIconOnline
-              icon="mdi:note-text-outline"
-              class="label-icon"
-            />
-            <span>备注信息</span>
-            <span class="optional-mark">（可选）</span>
+              <el-input
+                v-model="form.acmeAccountEabHmacKey"
+                placeholder="请输入 EAB HMAC Key (Base64)"
+                class="form-input"
+                type="password"
+                show-password
+                size="large"
+              />
+            </el-form-item>
           </div>
-        </template>
-        <el-input
-          v-model="form.acmeAccountRemark"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入备注信息，如：用途说明、负责人等"
-          class="form-textarea"
-        />
-      </el-form-item>
+        </div>
+      </transition>
+
+      <!-- 备注 -->
+      <div class="form-section">
+        <el-form-item>
+          <template #label>
+            <div class="form-label">
+              <div class="label-icon-wrapper remark">
+                <IconifyIconOnline icon="mdi:note-text-outline" />
+              </div>
+              <div class="label-text">
+                <span class="label-title">备注信息</span>
+                <span class="label-hint">可选，用于记录账户用途</span>
+              </div>
+            </div>
+          </template>
+          <el-input
+            v-model="form.acmeAccountRemark"
+            type="textarea"
+            :rows="3"
+            placeholder="例如：生产环境主域名证书申请账户"
+            class="form-textarea"
+          />
+        </el-form-item>
+      </div>
     </el-form>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="dialogVisible = false" class="cancel-btn">
-          <IconifyIconOnline icon="mdi:close" />
+        <el-button @click="dialogVisible = false" class="cancel-btn" size="large">
           取消
         </el-button>
         <el-button
@@ -178,12 +200,13 @@
           :loading="submitting"
           @click="handleSubmit"
           class="submit-btn"
+          size="large"
         >
           <IconifyIconOnline
             v-if="!submitting"
-            :icon="isEdit ? 'mdi:content-save' : 'mdi:plus'"
+            :icon="isEdit ? 'mdi:content-save' : 'mdi:plus-circle'"
           />
-          {{ isEdit ? "保存修改" : "添加账户" }}
+          {{ isEdit ? '保存更改' : '创建账户' }}
         </el-button>
       </div>
     </template>
@@ -292,34 +315,92 @@ watch(
 </script>
 
 <style scoped lang="scss">
-/* 提示信息 */
-.dialog-tip {
+/* 自定义头部 */
+.dialog-header {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 16px;
-  background: var(--el-color-primary-light-9);
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-size: 13px;
-  color: var(--el-color-primary);
-  line-height: 1.5;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 0;
 
-  .tip-icon {
-    font-size: 18px;
+  .header-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 24px;
     flex-shrink: 0;
-    margin-top: 1px;
+
+    &.add {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    &.edit {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(17, 153, 142, 0.3);
+    }
+  }
+
+  .header-info {
+    flex: 1;
+
+    .header-title {
+      margin: 0 0 4px;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+    }
+
+    .header-desc {
+      margin: 0;
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+
+  .close-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: var(--el-fill-color-light);
+    border-radius: 8px;
+    color: var(--el-text-color-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 18px;
+
+    &:hover {
+      background: var(--el-fill-color);
+      color: var(--el-text-color-primary);
+    }
   }
 }
 
 /* 表单样式 */
 .account-form {
   :deep(.el-form-item) {
-    margin-bottom: 20px;
+    margin-bottom: 0;
   }
 
   :deep(.el-form-item__label) {
-    padding-bottom: 8px;
+    padding-bottom: 10px;
+  }
+}
+
+/* 表单分区 */
+.form-section {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+
+  &:last-child {
+    border-bottom: none;
   }
 }
 
@@ -327,30 +408,50 @@ watch(
 .form-label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-weight: 500;
+  gap: 12px;
 
-  .label-icon {
-    font-size: 16px;
-    color: var(--el-text-color-secondary);
+  .label-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    font-size: 18px;
+
+    &.email {
+      background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+      color: #667eea;
+    }
+
+    &.server {
+      background: linear-gradient(135deg, #11998e15 0%, #38ef7d15 100%);
+      color: #11998e;
+    }
+
+    &.remark {
+      background: linear-gradient(135deg, #f093fb15 0%, #f5576c15 100%);
+      color: #f5576c;
+    }
   }
 
-  .required-mark {
-    color: var(--el-color-danger);
-    margin-left: 2px;
-  }
+  .label-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 
-  .optional-mark {
-    font-size: 12px;
-    color: var(--el-text-color-placeholder);
-    font-weight: 400;
-  }
-}
+    .label-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
 
-/* 输入框图标 */
-.input-icon {
-  font-size: 16px;
-  color: var(--el-text-color-placeholder);
+    .label-hint {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      font-weight: 400;
+    }
+  }
 }
 
 /* 表单输入框 */
@@ -360,19 +461,22 @@ watch(
 
   :deep(.el-input__wrapper),
   :deep(.el-select__wrapper) {
-    border-radius: 8px;
-    background: var(--el-fill-color-light);
+    border-radius: 10px;
+    background: var(--el-fill-color-lighter);
     box-shadow: none;
-    border: 1px solid transparent;
-    transition: all 0.2s;
+    border: 2px solid transparent;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 4px 12px;
 
     &:hover {
-      background: var(--el-fill-color);
+      background: var(--el-fill-color-light);
+      border-color: var(--el-border-color);
     }
 
     &.is-focus {
       border-color: var(--el-color-primary);
       background: var(--el-bg-color);
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
     }
   }
 }
@@ -380,99 +484,150 @@ watch(
 /* 文本域 */
 .form-textarea {
   :deep(.el-textarea__inner) {
-    border-radius: 8px;
-    background: var(--el-fill-color-light);
-    border: 1px solid transparent;
-    transition: all 0.2s;
+    border-radius: 10px;
+    background: var(--el-fill-color-lighter);
+    border: 2px solid transparent;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 12px 14px;
 
     &:hover {
-      background: var(--el-fill-color);
+      background: var(--el-fill-color-light);
+      border-color: var(--el-border-color);
     }
 
     &:focus {
       border-color: var(--el-color-primary);
       background: var(--el-bg-color);
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
     }
   }
 }
 
 /* EAB 凭证区域 */
 .eab-section {
-  margin-top: 8px;
-  padding: 16px;
-  background: var(--el-color-warning-light-9);
-  border-radius: 8px;
-  border: 1px solid var(--el-color-warning-light-5);
+  margin: 16px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #fef9e7 0%, #fdf6e3 100%);
+  border-radius: 14px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .eab-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
-.eab-title {
-  display: flex;
+.eab-badge {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #fff;
+  font-size: 13px;
   font-weight: 600;
-  font-size: 14px;
-  color: var(--el-color-warning-dark-2);
-
-  .title-icon {
-    font-size: 18px;
-  }
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
 .eab-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background: var(--el-color-warning);
-  color: #fff;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #fff;
+  color: #d97706;
   font-size: 13px;
-  font-weight: 500;
-  border-radius: 6px;
+  font-weight: 600;
+  border-radius: 8px;
   text-decoration: none;
-  transition: all 0.2s;
+  transition: all 0.25s ease;
+  border: 1px solid rgba(245, 158, 11, 0.2);
 
   &:hover {
-    background: var(--el-color-warning-dark-2);
-    transform: translateY(-1px);
+    background: #d97706;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
   }
 }
 
 .eab-tip {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border-radius: 10px;
   margin-bottom: 16px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  line-height: 1.5;
-  background: var(--el-fill-color-light);
-  padding: 10px 12px;
-  border-radius: 6px;
+  border: 1px solid rgba(245, 158, 11, 0.15);
 
   .tip-icon {
-    font-size: 16px;
+    font-size: 20px;
+    color: #f59e0b;
     flex-shrink: 0;
-    margin-top: 1px;
-    color: var(--el-color-info);
+    margin-top: 2px;
   }
+
+  .tip-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    line-height: 1.5;
+
+    strong {
+      color: #b45309;
+      font-weight: 600;
+    }
+
+    span {
+      color: var(--el-text-color-secondary);
+    }
+  }
+}
+
+.eab-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  :deep(.el-form-item) {
+    margin-bottom: 0;
+  }
+}
+
+.eab-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
 }
 
 /* 服务器选项 */
 .server-option {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 
   .option-icon {
     font-size: 16px;
     color: var(--el-color-success);
+  }
+
+  .server-badge {
+    margin-left: auto;
+    padding: 2px 8px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
   }
 }
 
@@ -481,35 +636,92 @@ watch(
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  padding-top: 8px;
 }
 
-.cancel-btn,
+.cancel-btn {
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
 .submit-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border-radius: 8px;
-  padding: 10px 20px;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-weight: 600;
+  min-width: 140px;
+  justify-content: center;
 }
 
-.submit-btn {
-  min-width: 120px;
+/* EAB 动画 */
+.eab-slide-enter-active,
+.eab-slide-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.eab-slide-enter-from,
+.eab-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style>
 
-<!-- 全局样式：下拉菜单宽度 -->
+<!-- 全局样式 -->
 <style lang="scss">
+.account-dialog {
+  .el-dialog__header {
+    padding: 20px 24px;
+    margin: 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  .el-dialog__body {
+    padding: 0 24px;
+    max-height: 60vh;
+    overflow-y: auto;
+
+    /* thin-scroller */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--el-border-color);
+      border-radius: 3px;
+
+      &:hover {
+        background: var(--el-border-color-darker);
+      }
+    }
+  }
+
+  .el-dialog__footer {
+    padding: 16px 24px 24px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+}
+
 .acme-server-dropdown {
   min-width: 480px !important;
 
   .el-select-dropdown__item {
-    padding: 8px 16px;
+    padding: 10px 16px;
   }
 
   .el-select-group__title {
-    font-weight: 600;
+    font-weight: 700;
     color: var(--el-text-color-primary);
-    padding-left: 16px;
+    padding: 8px 16px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 }
 </style>

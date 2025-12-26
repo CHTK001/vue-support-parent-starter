@@ -315,6 +315,12 @@ export interface EabServerConfig {
 /** 需要 EAB 的服务器配置列表 */
 export const EAB_SERVER_CONFIGS: EabServerConfig[] = [
   {
+    serverUrl: "https://acme.hi.cn/directory",
+    name: "HiCA",
+    eabUrl: "https://www.hi.cn/user/ssl",
+    eabTip: "登录 HiCA 后在 SSL 证书管理页面获取 ACME 凭证",
+  },
+  {
     serverUrl: "https://acme.zerossl.com/v2/DV90",
     name: "ZeroSSL",
     eabUrl: "https://app.zerossl.com/developer",

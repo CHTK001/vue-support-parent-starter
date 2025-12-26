@@ -69,6 +69,29 @@ export default [
         ],
       },
       {
+        path: "/spider-management",
+        name: "spiderManagement",
+        meta: {
+          icon: "ri:bug-2-line",
+          title: "爬虫管理",
+          showLink: true,
+          showParent: true,
+        },
+        children: [
+          {
+            path: "/spider-list",
+            name: "spider-list",
+            component: () => import("@/views/spider/index.vue"),
+            meta: {
+              icon: "ri:spider-line",
+              title: "爬虫任务",
+              showLink: true,
+              showParent: true,
+            },
+          },
+        ],
+      },
+      {
         path: "/config-management",
         name: "configManagement",
         meta: {

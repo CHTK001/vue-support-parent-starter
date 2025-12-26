@@ -4,6 +4,7 @@
     width="1200px"
     :close-on-click-modal="false"
     destroy-on-close
+    append-to-body
     top="5vh"
     class="server-config-dialog"
   >
@@ -48,14 +49,14 @@
             class="config-menu"
             @select="handleSectionChange"
           >
-            <el-menu-item index="proxy">
-              <IconifyIconOnline icon="ri:global-line" />
-              <span>代理设置</span>
-            </el-menu-item>
-            <el-menu-item index="monitor">
-              <IconifyIconOnline icon="ri:eye-line" />
-              <span>监控配置</span>
-            </el-menu-item>
+          <el-menu-item index="connection">
+            <IconifyIconOnline icon="ri:link" />
+            <span>连接配置</span>
+          </el-menu-item>
+          <el-menu-item index="monitor">
+            <IconifyIconOnline icon="ri:eye-line" />
+            <span>监控配置</span>
+          </el-menu-item>
             <el-menu-item index="alert">
               <IconifyIconOnline icon="ri:alarm-warning-line" />
               <span>告警配置</span>
@@ -110,116 +111,51 @@
               class="config-form"
               :disabled="loadingSettings"
             >
-              <!-- 代理配置 -->
-              <div v-show="activeSection === 'proxy'" class="config-section">
-                <el-form-item label="启用代理">
-                  <div class="switch-wrapper">
-                    <el-switch
-                      v-model="
-                        settingData.monitorSysGenServerSettingProxyEnabled
-                      "
-                      :active-value="1"
-                      :inactive-value="0"
-                      active-text="启用"
-                      inactive-text="禁用"
-                      @change="handleSettingChange"
-                    />
-                    <el-tooltip
-                      content="启用后将通过代理服务器进行连接"
-                      placement="top"
-                    >
-                      <IconifyIconOnline
-                        icon="ri:question-line"
-                        class="help-icon"
-                      />
-                    </el-tooltip>
-                  </div>
+              <!-- 连接配置 -->
+              <div v-show="activeSection === 'connection'" class="config-section">
+                <el-form-item label="连接模式">
+                  <el-radio-group v-model="connectionMode">
+                    <el-radio-button label="SSH">SSH</el-radio-button>
+                    <el-radio-button label="REMOTE">远程桌面</el-radio-button>
+                    <el-radio-button label="GUACAMOLE">Guacamole</el-radio-button>
+                    <el-radio-button label="VNC">VNC</el-radio-button>
+                  </el-radio-group>
                 </el-form-item>
 
-                <template
-                  v-if="
-                    settingData.monitorSysGenServerSettingProxyEnabled === 1
-                  "
-                >
-                  <el-form-item label="代理类型">
-                    <el-select
-                      v-model="settingData.monitorSysGenServerSettingProxyType"
-                      placeholder="选择代理类型"
-                      @change="handleSettingChange"
-                    >
-                      <el-option label="HTTP代理" value="HTTP" />
-                      <el-option label="SOCKS5代理" value="SOCKS5" />
-                      <el-option label="SSH隧道" value="SSH_TUNNEL" />
-                      <el-option label="Guacamole代理" value="GUACAMOLE" />
-                    </el-select>
-                  </el-form-item>
+                <div class="config-tip" v-if="(currentServer?.monitorSysGenServerOsType || '').toLowerCase().includes('linux')">
+                  <IconifyIconOnline icon="ri:information-line" />
+                  <span>检测到 Linux，默认建议使用 SSH。</span>
+                </div>
 
+                <!-- 远程桌面配置（REMOTE 模式） -->
+                <template v-if="connectionMode === 'REMOTE'">
+                  <div class="config-tip">
+                    <IconifyIconOnline icon="ri:information-line" />
+                    <span>远程桌面模式需要目标服务器运行 Remote Desktop Agent（默认端口 8899）。</span>
+                  </div>
+                  <el-row :gutter="20">
+                    <el-col :span="10">
+                      <el-form-item label="Agent 端口">
+                        <el-input-number v-model="settingData.monitorSysGenServerSettingRemotePort" :min="1" :max="65535" placeholder="8899" controls-position="right" style="width: 100%" @change="handleSettingChange" />
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                </template>
+
+                <!-- Guacamole 代理配置（GUACAMOLE/VNC 时需要） -->
+                <template v-if="['GUACAMOLE','VNC'].includes(connectionMode)">
                   <el-row :gutter="20">
                     <el-col :span="14">
-                      <el-form-item label="代理地址">
-                        <el-input
-                          v-model="
-                            settingData.monitorSysGenServerSettingProxyHost
-                          "
-                          placeholder="代理服务器地址"
-                          @change="handleSettingChange"
-                        />
+                      <el-form-item label="Guacd 地址">
+                        <el-input v-model="settingData.monitorSysGenServerSettingProxyHost" placeholder="guacd 主机名或IP" @change="handleSettingChange" />
                       </el-form-item>
                     </el-col>
                     <el-col :span="10">
-                      <el-form-item label="端口">
-                        <el-input-number
-                          v-model="
-                            settingData.monitorSysGenServerSettingProxyPort
-                          "
-                          :min="1"
-                          :max="65535"
-                          placeholder="端口"
-                          controls-position="right"
-                          style="width: 100%"
-                          @change="handleSettingChange"
-                        />
+                      <el-form-item label="Guacd 端口">
+                        <el-input-number v-model="settingData.monitorSysGenServerSettingProxyPort" :min="1" :max="65535" placeholder="4822" controls-position="right" style="width: 100%" @change="handleSettingChange" />
                       </el-form-item>
                     </el-col>
                   </el-row>
-
-                  <el-row :gutter="20">
-                    <el-col :span="12">
-                      <el-form-item label="用户名">
-                        <el-input
-                          v-model="
-                            settingData.monitorSysGenServerSettingProxyUsername
-                          "
-                          placeholder="可选"
-                          @change="handleSettingChange"
-                        />
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-form-item label="密码">
-                        <el-input
-                          v-model="
-                            settingData.monitorSysGenServerSettingProxyPassword
-                          "
-                          type="password"
-                          placeholder="可选"
-                          show-password
-                          @change="handleSettingChange"
-                        />
-                      </el-form-item>
-                    </el-col>
-                  </el-row>
-
-                  <div
-                    v-if="
-                      settingData.monitorSysGenServerSettingProxyType ===
-                      'GUACAMOLE'
-                    "
-                    class="config-tip"
-                  >
-                    <IconifyIconOnline icon="ri:information-line" />
-                    <span>Guacamole代理将通过Web界面提供远程桌面连接功能</span>
-                  </div>
                 </template>
               </div>
 
@@ -332,7 +268,7 @@
 </template>
 
 <script setup lang="ts">
-import { getServerInfo, type ServerInfo } from "@/api/server";
+import { getServerInfo, type ServerInfo, updateServer } from "@/api/server";
 import {
   getServerSettingByServerId,
   saveOrUpdateServerSetting,
@@ -360,7 +296,9 @@ const visible = ref(false);
 const loading = ref(false);
 const saving = ref(false);
 const loadingSettings = ref(false);
-const activeSection = ref("proxy");
+const activeSection = ref("connection");
+// 当前连接模式（SSH/RDP/VNC/GUACAMOLE）
+const connectionMode = ref('SSH');
 const formRef = ref();
 
 // 服务器ID
@@ -423,10 +361,10 @@ const validationRules = {
  */
 // 配置项元数据（包含详细说明）
 const sectionMeta = {
-  proxy: {
-    title: "代理设置",
-    icon: "ri:global-line",
-    desc: "配置代理服务器连接，支持 HTTP、SOCKS5、SSH隧道等多种代理方式",
+  connection: {
+    title: "连接配置",
+    icon: "ri:link",
+    desc: "选择连接模式（SSH/RDP/VNC/Guacamole）并配置所需参数",
   },
   monitor: {
     title: "监控配置",
@@ -612,7 +550,16 @@ const handleSave = async () => {
 
     saving.value = true;
 
-    // 保存服务器设置
+    // 先保存连接模式到服务器基础信息（如有变化）
+    if (currentServer.value && connectionMode.value && connectionMode.value !== (currentServer.value.monitorSysGenServerProtocol || '')) {
+      await updateServer({
+        monitorSysGenServerId: serverId.value!,
+        monitorSysGenServerProtocol: connectionMode.value,
+        // 端口保持不变；如需切换默认端口，后续可在此按模式设置默认值
+      } as any);
+    }
+
+    // 保存服务器设置（包含 guacd 配置等）
     const submitData = {
       ...settingData.value,
       monitorSysGenServerId: serverId.value,
@@ -646,6 +593,7 @@ const loadServerInfo = async () => {
     const result = await getServerInfo(String(serverId.value));
     if (result.code === "00000" && result.data) {
       currentServer.value = result.data;
+      connectionMode.value = (currentServer.value?.monitorSysGenServerProtocol || 'SSH').toUpperCase();
     }
   } catch (error) {
     console.error("加载服务器信息失败:", error);
@@ -713,7 +661,7 @@ const loadServerData = async () => {
 const open = async (id: number) => {
   serverId.value = id;
   visible.value = true;
-  activeSection.value = "proxy";
+  activeSection.value = "connection";
   await loadServerData();
 };
 

@@ -1,68 +1,35 @@
 <template>
   <div class="script-management-page">
-    <!-- 现代化页面头部 -->
-    <div class="modern-header">
-      <div class="header-content">
-        <div class="header-left">
-          <div class="header-icon-wrapper">
-            <IconifyIconOnline icon="ri:code-s-slash-fill" class="header-main-icon" />
-          </div>
-          <div class="header-text">
-            <h1 class="header-title">脚本管理</h1>
-            <p class="header-desc">管理和执行服务器运维脚本</p>
-          </div>
-        </div>
-        <div class="header-actions">
-          <el-button @click="handleViewAllRecords" class="action-btn">
-            <IconifyIconOnline icon="ri:history-line" />
-            <span>执行记录</span>
-          </el-button>
-          <el-button type="primary" @click="handleCreate" class="action-btn">
-            <IconifyIconOnline icon="ri:add-line" />
-            <span>新建脚本</span>
-          </el-button>
-        </div>
-      </div>
-    </div>
-
     <!-- 统计卡片 -->
-    <div class="stats-section">
-      <div class="stat-card total">
-        <div class="stat-icon-bg">
-          <IconifyIconOnline icon="ri:file-code-fill" />
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">{{ totalCount }}</span>
-          <span class="stat-label">脚本总数</span>
-        </div>
-      </div>
-      <div class="stat-card enabled">
-        <div class="stat-icon-bg">
-          <IconifyIconOnline icon="ri:checkbox-circle-fill" />
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">{{ enabledCount }}</span>
-          <span class="stat-label">已启用</span>
-        </div>
-      </div>
-      <div class="stat-card disabled">
-        <div class="stat-icon-bg">
-          <IconifyIconOnline icon="ri:close-circle-fill" />
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">{{ totalCount - enabledCount }}</span>
-          <span class="stat-label">已禁用</span>
-        </div>
-      </div>
-      <div class="stat-card types">
-        <div class="stat-icon-bg">
-          <IconifyIconOnline icon="ri:stack-fill" />
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">6</span>
-          <span class="stat-label">脚本类型</span>
-        </div>
-      </div>
+    <div class="stats-row">
+      <ScCard
+        layout="stats-simple"
+        theme="blue"
+        icon="ri:file-code-fill"
+        :value="totalCount"
+        label="脚本总数"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="success"
+        icon="ri:checkbox-circle-fill"
+        :value="enabledCount"
+        label="已启用"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="warning"
+        icon="ri:close-circle-fill"
+        :value="totalCount - enabledCount"
+        label="已禁用"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="purple"
+        icon="ri:stack-fill"
+        :value="6"
+        label="脚本类型"
+      />
     </div>
 
     <!-- 工具栏 -->
@@ -124,6 +91,14 @@
         <el-button @click="tableRef?.refresh()">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
+        </el-button>
+        <el-button @click="handleViewAllRecords">
+          <IconifyIconOnline icon="ri:history-line" class="mr-1" />
+          执行记录
+        </el-button>
+        <el-button type="primary" @click="handleCreate">
+          <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+          新建脚本
         </el-button>
       </div>
     </div>
@@ -271,6 +246,7 @@ import { message } from "@repo/utils";
 import ScriptEditDialog from "./components/ScriptEditDialog.vue";
 import ServerSelectDialog from "./components/ServerSelectDialog.vue";
 import ExecuteRecordDialog from "./components/ExecuteRecordDialog.vue";
+import ScCard from "@repo/components/ScCard/index.vue";
 import * as ScriptAPI from "@/api/server/script-management";
 import type { Script } from "./types";
 import { ScriptStatus } from "./types";
@@ -502,96 +478,6 @@ const getTypeTagType = (type: string): "primary" | "success" | "warning" | "info
   min-height: 100%;
   padding: 20px;
   background: var(--el-bg-color-page);
-}
-
-// 现代化页面头部
-.modern-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  padding: 24px 28px;
-  margin-bottom: 20px;
-  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
-
-  .header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .header-icon-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 56px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 14px;
-    backdrop-filter: blur(10px);
-
-    .header-main-icon {
-      font-size: 28px;
-      color: white;
-    }
-  }
-
-  .header-text {
-    .header-title {
-      margin: 0;
-      font-size: 24px;
-      font-weight: 700;
-      color: white;
-      letter-spacing: -0.5px;
-    }
-
-    .header-desc {
-      margin: 4px 0 0;
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.85);
-    }
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 12px;
-
-    .action-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      height: 40px;
-      padding: 0 20px;
-      border-radius: 10px;
-      font-weight: 500;
-      transition: all 0.2s;
-
-      &:not(.el-button--primary) {
-        background: rgba(255, 255, 255, 0.15);
-        border-color: rgba(255, 255, 255, 0.3);
-        color: white;
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.25);
-          border-color: rgba(255, 255, 255, 0.5);
-        }
-      }
-
-      &.el-button--primary {
-        background: white;
-        border-color: white;
-        color: #667eea;
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.9);
-        }
-      }
-    }
-  }
 }
 
 // 统计卡片

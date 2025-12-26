@@ -275,6 +275,25 @@
 
       <!-- 无参数提示 -->
       <el-empty v-else description="该节点类型无需配置参数" :image-size="100" />
+
+      <!-- 输出节点自动建表配置（仅数据库类型） -->
+      <el-card v-if="showColumnEditor" shadow="never" class="config-section">
+        <template #header>
+          <div class="section-header">
+            <el-icon><Grid /></el-icon>
+            <span>目标表列定义</span>
+            <el-tag size="small" type="info">自动建表</el-tag>
+          </div>
+        </template>
+        <ColumnDefinitionEditor
+          v-model="formData.config.columns"
+          v-model:autoCreate="formData.config.autoCreateTable"
+          :nodeConfig="JSON.stringify(formData.config)"
+          :tableName="formData.config.table || formData.config.tableName"
+          :showAutoCreateSwitch="true"
+          @import="handleImportColumns"
+        />
+      </el-card>
     </el-form>
 
     <template #footer>
@@ -310,13 +329,17 @@ import {
   Connection,
   Check,
   Loading,
+  Grid,
 } from "@element-plus/icons-vue";
 import {
   getSpiParameters,
   testSpiConnection,
+  getOutputTableStructure,
   type SyncNode,
   type SpiParameter,
+  type ColumnDefinition,
 } from "@/api/sync";
+import ColumnDefinitionEditor from "./ColumnDefinitionEditor.vue";
 
 interface Props {
   modelValue: boolean;
@@ -344,6 +367,16 @@ const dialogTitle = computed(() => {
 
 const canTest = computed(() => {
   return props.node?.syncNodeType === "INPUT" || props.node?.syncNodeType === "OUTPUT";
+});
+
+// 是否显示列定义编辑器（仅数据库类型输出节点）
+const showColumnEditor = computed(() => {
+  if (props.node?.syncNodeType !== "OUTPUT") return false;
+  const spiName = props.node?.syncNodeSpiName?.toLowerCase() || "";
+  // 数据库类型SPI
+  return ["jdbc", "mysql", "postgresql", "oracle", "sqlserver", "sqlite", "database"].some(
+    (db) => spiName.includes(db)
+  );
 });
 
 const formRef = ref<FormInstance>();
@@ -562,6 +595,29 @@ const handleTestConnection = async () => {
     ElMessage.error("测试连接失败");
   } finally {
     testing.value = false;
+  }
+};
+
+// 从源表导入列定义
+const handleImportColumns = async () => {
+  const tableName = formData.config.table || formData.config.tableName;
+  if (!tableName) {
+    ElMessage.warning("请先配置表名");
+    return;
+  }
+
+  try {
+    const nodeConfig = JSON.stringify(formData.config);
+    const res = await getOutputTableStructure(nodeConfig, tableName);
+    if (res.data?.success && res.data.data) {
+      formData.config.columns = res.data.data;
+      ElMessage.success("已从目标表导入列定义");
+    } else {
+      ElMessage.warning(res.data?.msg || "获取表结构失败");
+    }
+  } catch (e) {
+    console.error(e);
+    ElMessage.error("导入失败");
   }
 };
 

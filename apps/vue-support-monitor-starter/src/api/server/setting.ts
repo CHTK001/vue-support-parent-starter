@@ -95,6 +95,11 @@ export interface ServerSetting {
   monitorSysGenServerSettingProxyUsername?: string;
   /** 代理密码 */
   monitorSysGenServerSettingProxyPassword?: string;
+
+  // ==================== 远程桌面配置 ====================
+  /** 远程桌面 Agent 端口（默认 8899，用于 utils-support-remote-starter） */
+  monitorSysGenServerSettingRemotePort?: number;
+
   /** 自定义标签 */
   monitorSysGenServerSettingCustomTags?: string;
   /** 配置描述 */

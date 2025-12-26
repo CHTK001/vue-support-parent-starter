@@ -835,6 +835,7 @@ export const PROTOCOL_TYPES = {
   SSH: "SSH",
   RDP: "RDP",
   VNC: "VNC",
+  REMOTE: "REMOTE",
 } as const;
 
 export type ProtocolType = (typeof PROTOCOL_TYPES)[keyof typeof PROTOCOL_TYPES];
@@ -918,10 +919,11 @@ export const onlineStatusMap: Record<OnlineStatus, StatusMapItem> = {
 /**
  * 协议图标映射
  */
-export const protocolIconMap: Record<ProtocolType, string> = {
+export const protocolIconMap: Record<ProtocolType | string, string> = {
   SSH: "ri:terminal-line",
   RDP: "ri:computer-line",
   VNC: "ri:remote-control-line",
+  REMOTE: "ri:remote-control-2-line",
 };
 
 // ==================== WebSocket 相关 ====================
@@ -1488,6 +1490,15 @@ export function mapDisplayDataToSaveParams(displayData: Partial<ServerDisplayDat
 }
 
 // ==================== 新增API函数 ====================
+
+/**
+ * 检测服务器远程桌面是否可用
+ * @param id 服务器ID
+ * @returns 检测结果，包含 available 和 recommendedProtocol 字段
+ */
+export function checkRemoteDesktopAvailability(id: string) {
+  return http.request<ReturnResult<{ available: boolean; recommendedProtocol: string; host?: string; remotePort?: number; reason?: string; error?: string }>>("get", "v1/gen/server/remote-desktop/check", { params: { id } });
+}
 
 /**
  * 获取Guacamole代理连接URL

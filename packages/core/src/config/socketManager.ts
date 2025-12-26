@@ -20,6 +20,12 @@ import {
   type GlobalSocketService,
 } from "./socket";
 import {
+  createSseService,
+  provideGlobalSse,
+  type SseConfig,
+  type SseService,
+} from "./sse";
+import {
   type ProtocolType,
   type SocketTemplate,
   SocketTemplateKey,
@@ -55,6 +61,11 @@ export interface SocketManagerConfig {
    * RSocket 配置（当 protocol 为 rsocket 时使用）
    */
   rsocket?: RSocketConfig;
+
+  /**
+   * SSE 配置（当 protocol 为 sse 时使用）
+   */
+  sse?: SseConfig;
 }
 
 /**
@@ -69,6 +80,10 @@ export function createSocketService(
 ): SocketTemplate {
   if (config.protocol === "rsocket" && config.rsocket) {
     return createRSocketService(config.rsocket);
+  }
+
+  if (config.protocol === "sse" && config.sse) {
+    return createSseService(config.sse);
   }
 
   // 默认使用 Socket.IO
@@ -105,7 +120,7 @@ export function createSocketService(
   }
 
   throw new Error(
-    "[SocketManager] 无效的配置，需要提供 socketio 或 rsocket 配置"
+    "[SocketManager] 无效的配置，需要提供 socketio、rsocket 或 sse 配置"
   );
 }
 
@@ -202,6 +217,16 @@ export function initSocketByProtocol(
         (options?.metadataMimeType as string) || "message/x.rsocket.routing.v0",
     };
     return provideGlobalRSocket(rsocketConfig);
+  }
+
+  if (protocol === "sse") {
+    // SSE 使用第一个 URL
+    const sseConfig: SseConfig = {
+      url: urls[0] + (context || "/sse/connect"),
+      clientId: options?.clientId as string,
+      withCredentials: (options?.withCredentials as boolean) ?? false,
+    };
+    return provideGlobalSse(sseConfig);
   }
 
   // 默认 Socket.IO

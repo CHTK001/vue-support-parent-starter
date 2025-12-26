@@ -15,11 +15,12 @@ import HeaderContentLayout from "./layouts/HeaderContent.vue";
 import Panel3D from "./layouts/Panel3D.vue";
 import CompactLayout from "./layouts/Compact.vue";
 import StatsLayout from "./layouts/Stats.vue";
+import StatsSimpleLayout from "./layouts/StatsSimple.vue";
 import TechLayout from "./layouts/Tech.vue";
 import { getThemeConfig, type IotCardTheme } from "./themes";
 
 // 布局类型
-type LayoutType = "default" | "media" | "header-content" | "panel-3d" | "compact" | "stats" | "tech" | "custom";
+type LayoutType = "default" | "media" | "header-content" | "panel-3d" | "compact" | "stats" | "stats-simple" | "tech" | "custom";
 
 export default defineComponent({
   name: "ScCard",
@@ -31,6 +32,7 @@ export default defineComponent({
     Panel3D,
     CompactLayout,
     StatsLayout,
+    StatsSimpleLayout,
     TechLayout
   },
   props: {
@@ -40,7 +42,7 @@ export default defineComponent({
     layout: {
       type: String as PropType<LayoutType>,
       default: "default",
-      validator: (val: string) => ["default", "media", "header-content", "panel-3d", "compact", "stats", "tech", "custom"].includes(val)
+      validator: (val: string) => ["default", "media", "header-content", "panel-3d", "compact", "stats", "stats-simple", "tech", "custom"].includes(val)
     },
     /**
      * 渲染模式，可以选择使用 el-card 或自定义 div
@@ -303,6 +305,8 @@ export default defineComponent({
           return CompactLayout;
         case "stats":
           return StatsLayout;
+        case "stats-simple":
+          return StatsSimpleLayout;
         case "tech":
           return TechLayout;
         case "custom":
@@ -379,6 +383,14 @@ export default defineComponent({
             active: props.active,
             theme: props.theme,
             size: props.size === "normal" ? "small" : props.size
+          };
+        case "stats-simple":
+          return {
+            ...baseProps,
+            icon: props.icon,
+            value: props.value,
+            label: props.label,
+            theme: props.theme
           };
         case "tech": {
           // 映射 ScCard 主题到 TechLayout 主题

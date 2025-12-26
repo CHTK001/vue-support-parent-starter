@@ -439,3 +439,13 @@ catalog:
   xterm-addon-unicode11: ^0.7.0-beta.36
   interactjs: ^1.10.27
   "@interactjs/types": ^1.10.27
+  # Rete.js - Node Editor
+  rete: ^2.0.3
+  "rete-vue-plugin": ^2.1.2
+  "rete-area-plugin": ^2.0.5
+  "rete-connection-plugin": ^2.0.4
+  "rete-context-menu-plugin": ^2.0.4
+  "rete-minimap-plugin": ^2.0.2
+  "rete-auto-arrange-plugin": ^2.0.1
+  "rete-render-utils": ^2.0.3
+  "rete-connection-reroute-plugin": ^2.0.2

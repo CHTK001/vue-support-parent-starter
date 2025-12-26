@@ -127,6 +127,14 @@ export interface SpiInfo {
   available?: boolean;
 }
 
+/** SPI 类型列表 */
+export interface SpiTypeList {
+  input: SpiInfo[];
+  output: SpiInfo[];
+  dataCenter: SpiInfo[];
+  filter: SpiInfo[];
+}
+
 /** 查询参数 */
 export interface SyncTaskQuery {
   page?: number;
@@ -193,6 +201,35 @@ export interface SyncTaskStatistics {
   statusDistribution: StatusDistribution[];
   triggerTypeDistribution: TriggerTypeDistribution[];
   taskRanking?: TaskRanking[];
+}
+
+/** 表信息 */
+export interface TableInfo {
+  tableName: string;
+  exists: boolean;
+  description: string;
+}
+
+/** 同步表状态 */
+export interface SyncTableStatus {
+  initialized: boolean;
+  tables: TableInfo[];
+  message: string;
+}
+
+/** 列定义 */
+export interface ColumnDefinition {
+  name: string;
+  type: "VARCHAR" | "INT" | "BIGINT" | "TEXT" | "DATETIME" | "DATE" | "DECIMAL" | "BOOLEAN" | "FLOAT" | "DOUBLE" | "BLOB" | "JSON";
+  length?: number;
+  scale?: number;
+  nullable?: boolean;
+  defaultValue?: string;
+  primaryKey?: boolean;
+  autoIncrement?: boolean;
+  comment?: string;
+  order?: number;
+  sourceField?: string;
 }
 
 // ==================== 任务管理 API ====================
@@ -462,5 +499,93 @@ export function getTaskStatistics(taskId: number, params?: { startTime?: string;
     url: `/v1/sync/task/statistics/${taskId}`,
     method: "get",
     params,
+  });
+}
+
+// ==================== 表管理 API ====================
+
+/**
+ * 检查同步表状态
+ */
+export function checkTableStatus() {
+  return request({
+    url: "/v1/sync/task/table/status",
+    method: "get",
+  });
+}
+
+/**
+ * 初始化同步表
+ * @param force 是否强制重建（会删除现有表和数据）
+ */
+export function initializeTables(force = false) {
+  return request({
+    url: "/v1/sync/task/table/initialize",
+    method: "post",
+    params: { force },
+  });
+}
+
+// ==================== 输出节点表管理 API ====================
+
+/**
+ * 检查输出目标表是否存在
+ */
+export function checkOutputTableExists(nodeConfig: string, tableName: string) {
+  return request({
+    url: "/v1/sync/task/output/table/exists",
+    method: "post",
+    data: nodeConfig,
+    params: { tableName },
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+/**
+ * 创建输出目标表
+ */
+export function createOutputTable(nodeConfig: string, tableName: string, columns: ColumnDefinition[]) {
+  return request({
+    url: "/v1/sync/task/output/table/create",
+    method: "post",
+    data: columns,
+    params: { nodeConfig, tableName },
+  });
+}
+
+/**
+ * 获取输出目标表结构
+ */
+export function getOutputTableStructure(nodeConfig: string, tableName: string) {
+  return request({
+    url: "/v1/sync/task/output/table/structure",
+    method: "post",
+    data: nodeConfig,
+    params: { tableName },
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+/**
+ * 预览建表SQL
+ */
+export function previewCreateTableSql(tableName: string, columns: ColumnDefinition[], dbType = "mysql") {
+  return request({
+    url: "/v1/sync/task/output/table/preview-sql",
+    method: "post",
+    data: columns,
+    params: { tableName, dbType },
+  });
+}
+
+/**
+ * 同步输出目标表结构
+ */
+export function syncOutputTableStructure(nodeConfig: string, tableName: string, columns: ColumnDefinition[]) {
+  return request({
+    url: "/v1/sync/task/output/table/sync-structure",
+    method: "post",
+    data: columns,
+    params: { nodeConfig, tableName },
   });
 }

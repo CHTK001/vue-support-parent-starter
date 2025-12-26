@@ -3,11 +3,12 @@
  * 圣诞绿配金色和红色的设计
  */
 
-/* 圣诞主题标签页容器 */
+/* 圣诞主题标签页容器 - 红绿圣诞渐变 */
 html[data-skin="christmas"] .tags-view,
 html[data-skin="christmas"] .shadow-tab {
-  background: linear-gradient(180deg, #e8f5e9 0%, #ffffff 100%) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  background: linear-gradient(180deg, rgba(27, 94, 32, 0.08) 0%, rgba(198, 40, 40, 0.05) 50%, rgba(27, 94, 32, 0.03) 100%) !important;
+  border-top: 1px solid rgba(27, 94, 32, 0.15) !important;
+  box-shadow: 0 2px 8px rgba(27, 94, 32, 0.1), inset 0 1px 0 rgba(255, 215, 0, 0.1) !important;
   position: relative !important;
   z-index: 10 !important;
 }

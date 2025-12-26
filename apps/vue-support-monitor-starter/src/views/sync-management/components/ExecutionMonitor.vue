@@ -263,7 +263,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onUnmounted, nextTick } from "vue";
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { ElMessage } from "element-plus";
 import {
   Loading,
@@ -290,6 +290,7 @@ import {
   type SyncTask,
   type SyncTaskLog,
 } from "@/api/sync";
+import { useSyncTaskStoreHook } from "@/stores/syncTaskStore";
 
 interface Props {
   modelValue: boolean;
@@ -303,6 +304,9 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+// 同步任务 Store（WebSocket 实时数据）
+const syncTaskStore = useSyncTaskStoreHook();
 
 const visible = computed({
   get: () => props.modelValue,
@@ -420,6 +424,9 @@ const canStop = computed(() => executionStatus.value === "RUNNING");
 // 刷新定时器
 let refreshTimer: number | null = null;
 
+// 是否已初始化 Socket 监听
+const socketInitialized = ref(false);
+
 // 开始执行
 const handleStart = async () => {
   if (!props.task?.syncTaskId) return;
@@ -507,8 +514,64 @@ const loadExecutionData = async () => {
   }
 };
 
-// 模拟性能指标（实际应从API获取）
+// 从 Store 更新性能指标（通过 WebSocket 实时数据）
+const updateMetricsFromStore = () => {
+  if (!props.task?.syncTaskId) return;
+
+  const taskId = props.task.syncTaskId;
+
+  // 获取实时状态
+  const statusData = syncTaskStore.getTaskStatus(taskId);
+  if (statusData) {
+    executionStatus.value = statusData.status;
+    executing.value = statusData.status === 'RUNNING';
+    if (statusData.status !== 'RUNNING' && statusData.status !== 'STOPPED') {
+      emit('statusChange', statusData.status);
+    }
+  }
+
+  // 获取实时进度
+  const progressData = syncTaskStore.getTaskProgress(taskId);
+  if (progressData) {
+    progress.value = progressData.progress;
+    stats.successRecords = progressData.successCount;
+    stats.failedRecords = progressData.failCount;
+    stats.totalRecords = progressData.readCount;
+    stats.recordsPerSecond = Math.round(stats.successRecords / Math.max(1, executionDuration.value));
+  }
+
+  // 获取实时指标
+  const metricsData = syncTaskStore.getTaskMetrics(taskId);
+  if (metricsData) {
+    metrics.cpuUsage = metricsData.cpuUsage || 0;
+    metrics.memoryUsage = metricsData.memoryUsage || 0;
+    metrics.memoryUsed = Math.round((metrics.memoryUsage / 100) * 8 * 1024 * 1024 * 1024);
+    metrics.memoryTotal = 8 * 1024 * 1024 * 1024;
+    metrics.ioThroughput = Math.round(metricsData.throughput * 1024); // 转换为字节/秒
+    metrics.avgLatency = Math.round(metricsData.avgProcessTime);
+  }
+
+  // 获取实时日志
+  const logsData = syncTaskStore.getTaskLogs(taskId);
+  if (logsData.length > 0) {
+    logs.value = logsData.map(log => ({
+      time: log.time,
+      level: log.level,
+      message: log.message,
+    }));
+    scrollToBottom();
+  }
+};
+
+// 模拟性能指标（作为后备，当 WebSocket 不可用时）
 const simulateMetrics = () => {
+  // 优先使用 Store 中的实时数据
+  if (syncTaskStore.isConnected) {
+    updateMetricsFromStore();
+    return;
+  }
+
+  // WebSocket 不可用时使用模拟数据
   if (executing.value) {
     metrics.cpuUsage = Math.min(100, Math.max(0, metrics.cpuUsage + (Math.random() - 0.5) * 10));
     metrics.memoryUsage = Math.min(100, Math.max(20, metrics.memoryUsage + (Math.random() - 0.5) * 5));
@@ -629,6 +692,14 @@ const getMemoryColor = (percentage: number) => {
   return "#409eff";
 };
 
+// 初始化 Socket 监听
+const initSocket = () => {
+  if (!socketInitialized.value) {
+    syncTaskStore.initSocketListeners();
+    socketInitialized.value = true;
+  }
+};
+
 // 关闭对话框
 const handleClosed = () => {
   stopDurationTimer();
@@ -639,6 +710,11 @@ const handleClosed = () => {
   flowNodes.value = [];
   Object.assign(stats, { totalRecords: 0, successRecords: 0, failedRecords: 0, recordsPerSecond: 0 });
   Object.assign(metrics, { cpuUsage: 0, memoryUsage: 0, memoryUsed: 0, memoryTotal: 0, ioThroughput: 0, avgLatency: 0 });
+  
+  // 停止监听任务
+  if (props.task?.syncTaskId) {
+    syncTaskStore.unwatchTask();
+  }
 };
 
 // 监听任务变化
@@ -656,6 +732,10 @@ watch(
       }
       initFlowNodes();
       loadExecutionData();
+      
+      // 初始化 Socket 并开始监听任务
+      initSocket();
+      syncTaskStore.watchTask(newTask.syncTaskId);
     }
   },
   { immediate: true }
@@ -667,13 +747,37 @@ watch(
     if (show && props.task) {
       initFlowNodes();
       loadExecutionData();
+      
+      // 初始化 Socket 并开始监听任务
+      initSocket();
+      syncTaskStore.watchTask(props.task.syncTaskId);
+    } else if (!show) {
+      // 对话框关闭时停止监听
+      syncTaskStore.unwatchTask();
     }
   }
 );
 
+// 监听 Store 中的实时数据变化
+watch(
+  () => syncTaskStore.lastUpdateTime,
+  () => {
+    if (props.task?.syncTaskId) {
+      updateMetricsFromStore();
+    }
+  }
+);
+
+onMounted(() => {
+  // 组件挂载时初始化 Socket
+  initSocket();
+});
+
 onUnmounted(() => {
   stopDurationTimer();
   stopRefreshTimer();
+  // 停止监听任务
+  syncTaskStore.unwatchTask();
 });
 </script>
 

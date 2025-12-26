@@ -309,6 +309,13 @@
       </el-tab-pane>
     </el-tabs>
 
+    <!-- 执行监控对话框 -->
+    <ExecutionMonitor
+      v-model="monitorDialogVisible"
+      :task="currentMonitorTask"
+      @status-change="handleMonitorStatusChange"
+    />
+
     <!-- 执行日志对话框 -->
     <el-dialog
       v-model="logsDialogVisible"
@@ -382,6 +389,7 @@ import {
   type SyncTaskLog,
 } from "@/api/sync";
 import StatisticsCharts from "./components/StatisticsCharts.vue";
+import ExecutionMonitor from "./components/ExecutionMonitor.vue";
 
 const router = useRouter();
 
@@ -451,6 +459,10 @@ const logsTotal = ref(0);
 const logsPage = ref(1);
 const logsSize = ref(10);
 const currentTaskId = ref<number | null>(null);
+
+// 执行监控相关
+const monitorDialogVisible = ref(false);
+const currentMonitorTask = ref<SyncTask | null>(null);
 
 // 加载任务列表
 const loadTaskList = async () => {
@@ -629,20 +641,16 @@ const handleStop = async (row: SyncTask) => {
   }
 };
 
-// 执行一次
+// 执行一次(打开监控对话框)
 const handleExecuteOnce = async (row: SyncTask) => {
-  try {
-    const res = await executeSyncTaskOnce(row.syncTaskId!);
-    if (res.data?.success) {
-      ElMessage.success("执行中...");
-      setTimeout(loadTaskList, 1000);
-    } else {
-      ElMessage.error(res.data?.msg || "执行失败");
-    }
-  } catch (e) {
-    console.error(e);
-    ElMessage.error("执行失败");
-  }
+  currentMonitorTask.value = row;
+  monitorDialogVisible.value = true;
+};
+
+// 监控状态变化
+const handleMonitorStatusChange = (status: string) => {
+  // 刷新任务列表以获取最新状态
+  loadTaskList();
 };
 
 // 查看日志

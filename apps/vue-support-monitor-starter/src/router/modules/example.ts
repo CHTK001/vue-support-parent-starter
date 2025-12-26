@@ -28,6 +28,15 @@ export default [
           showLink: false,
         },
       },
+      {
+        path: "/example/rete-editor",
+        name: "ExampleReteEditor",
+        component: () => import("@/views/example/rete-editor/index.vue"),
+        meta: {
+          title: "ScReteEditor 编辑器",
+          icon: "ri:node-tree",
+        },
+      },
     ],
   },
 ];
