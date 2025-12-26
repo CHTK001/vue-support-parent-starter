@@ -343,8 +343,20 @@
             <template #default>
               <!-- SSH终端组件 -->
               <SSHTerminal v-if="currentComponent === 'SSHTerminal'" :server="selectedServer" :key="selectedServerId + '-ssh'" @close="closeRightPanel" />
-              <!-- 远程桌面组件 (统一处理RDP和VNC) -->
-              <RemoteDesktop v-else-if="currentComponent === 'RemoteDesktop'" :server="convertServerForRemoteDesktop(selectedServer)" :key="selectedServerId + '-remote'" @close="closeRightPanel" />
+              <!-- 原生远程桌面组件（utils-support-remote-starter） -->
+              <NativeRemoteDesktop v-else-if="currentComponent === 'NativeRemoteDesktop'"
+                :server="convertServerForRemoteDesktop(selectedServer)"
+                :key="selectedServerId + '-native-remote'"
+                @close="closeRightPanel"
+              />
+              <!-- 远程桌面组件 (Guacamole: RDP/VNC) -->
+              <RemoteDesktop v-else-if="currentComponent === 'RemoteDesktop'"
+                :server="convertServerForRemoteDesktop(selectedServer)"
+                :default-protocol="remoteDefaultProtocol || undefined"
+                :auto-select-protocol="true"
+                :key="selectedServerId + '-remote'"
+                @close="closeRightPanel"
+              />
               <!-- 服务器监控组件 -->
               <ServerMonitor v-else-if="currentComponent === 'ServerMonitor'" :server="selectedServer" :metrics-data="getServerMonitorMetrics(selectedServerId)" :metrics-loading="loading" :key="selectedServerId + '-monitor'" @close="closeRightPanel" @refresh-metrics="handleRefreshMetrics" />
               <!-- 文件管理组件 -->
@@ -379,7 +391,7 @@
 </template>
 
 <script setup lang="ts">
-import { ONLINE_STATUS, SERVER_STATUS, type ServerDisplayData } from "@/api/server";
+import { ONLINE_STATUS, SERVER_STATUS, type ServerDisplayData, getServerInfo } from "@/api/server";
 import { useGlobalServerLatency } from "@/composables/useServerLatency";
 import { useServerMetricsStore } from "@/stores/serverMetrics";
 import ScProgress from "@repo/components/ScProgress/index.vue";
@@ -423,6 +435,7 @@ const ServerGroupManageDialog = defineAsyncComponent(() => import("./components/
 // 远程连接组件
 const SSHTerminal = defineAsyncComponent(() => import("./components/remote/SSHTerminal.vue"));
 const RemoteDesktop = defineAsyncComponent(() => import("./components/remote/RemoteDesktop.vue"));
+const NativeRemoteDesktop = defineAsyncComponent(() => import("./components/remote/NativeRemoteDesktop.vue"));
 const ServerMonitor = defineAsyncComponent(() => import("./components/ServerMonitor.vue"));
 const FileManager = defineAsyncComponent(() => import("../file-management/index.vue"));
 const ServerLatencyDisplay = defineAsyncComponent(() => import("../../components/ServerLatencyDisplay.vue"));
@@ -450,6 +463,8 @@ const leftPanelMinimized = ref(false);
 const leftPanelOriginalWidth = ref(400);
 const selectedServerId = ref("");
 const currentComponent = ref("");
+// 远程桌面默认协议（当服务端返回 GUACAMOLE 或未知时用于选择 RDP/VNC）
+const remoteDefaultProtocol = ref<'rdp' | 'vnc' | null>(null);
 
 // 服务器数据 - 从 props 获取
 const servers = computed(() => props.servers || []);
@@ -821,17 +836,56 @@ const connectServer = async (server: any) => {
   console.log("server-management: 通知父组件连接服务器", server);
   selectedServerId.value = server.id;
 
-  // 根据协议选择对应的远程组件
-  switch (server.protocol) {
-    case "SSH":
-      currentComponent.value = "SSHTerminal";
-      break;
-    case "RDP":
-    case "VNC":
-      currentComponent.value = "RemoteDesktop";
-      break;
-    default:
-      currentComponent.value = "SSHTerminal";
+  try {
+    // 先获取服务器最新模式，避免使用列表中的旧数据
+    const res = await getServerInfo(String(server.id));
+    let mode = (res?.data?.monitorSysGenServerProtocol || server.protocol || 'SSH').toUpperCase();
+    // 计算默认协议（用于 GUACAMOLE 或未知时的选择）
+    const os = (res?.data?.monitorSysGenServerOsType || '').toLowerCase();
+    const port = Number(res?.data?.monitorSysGenServerPort || server.port || 0);
+
+    // 选择组件
+    switch (mode) {
+      case 'SSH':
+        currentComponent.value = 'SSHTerminal';
+        break;
+      case 'REMOTE':
+        // 远程桌面模式（utils-support-remote-starter）
+        currentComponent.value = 'NativeRemoteDesktop';
+        break;
+      case 'GUACAMOLE':
+        // Guacamole 模式，根据 OS 和端口智能选择 RDP/VNC
+        if (os.includes('windows') || port === 3389) remoteDefaultProtocol.value = 'rdp';
+        else if (port >= 5900 && port <= 5999) remoteDefaultProtocol.value = 'vnc';
+        else remoteDefaultProtocol.value = os.includes('linux') ? 'vnc' : 'rdp';
+        currentComponent.value = 'RemoteDesktop';
+        break;
+      case 'VNC':
+        remoteDefaultProtocol.value = 'vnc';
+        currentComponent.value = 'RemoteDesktop';
+        break;
+      default:
+        // 未知模式默认使用 SSH
+        currentComponent.value = 'SSHTerminal';
+    }
+  } catch (e) {
+    console.warn('获取服务器模式失败，降级为列表中的模式', e);
+    // 回退逻辑
+    switch (server.protocol) {
+      case 'SSH':
+        currentComponent.value = 'SSHTerminal';
+        break;
+      case 'REMOTE':
+        currentComponent.value = 'NativeRemoteDesktop';
+        break;
+      case 'GUACAMOLE':
+      case 'VNC':
+        remoteDefaultProtocol.value = server.protocol === 'VNC' ? 'vnc' : 'rdp';
+        currentComponent.value = 'RemoteDesktop';
+        break;
+      default:
+        currentComponent.value = 'SSHTerminal';
+    }
   }
 
   emit("server-action", "connect", server);

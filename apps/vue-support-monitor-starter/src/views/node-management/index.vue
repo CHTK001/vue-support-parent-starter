@@ -4,50 +4,38 @@
     <div class="stats-section">
       <div class="stats-grid">
         <ScCard
-          layout="stats"
+          layout="stats-simple"
           label="总节点数"
           :value="animatedStats.totalNodes"
           icon="ri:server-line"
           theme="primary"
-          trendText="实时更新"
-          hoverable
-          class="stat-card-item"
           @click="filterByStatus('all')"
         />
 
         <ScCard
-          layout="stats"
+          layout="stats-simple"
           label="在线节点"
           :value="animatedStats.onlineNodes"
           icon="ri:checkbox-circle-line"
           theme="success"
-          :trendText="`${getOnlineRate()}%`"
-          hoverable
-          class="stat-card-item"
           @click="filterByStatus('ONLINE')"
         />
 
         <ScCard
-          layout="stats"
+          layout="stats-simple"
           label="健康节点"
           :value="animatedStats.healthyNodes"
           icon="ri:heart-pulse-line"
           theme="purple"
-          :trendText="`${getHealthRate()}%`"
-          hoverable
-          class="stat-card-item"
           @click="filterByStatus('healthy')"
         />
 
         <ScCard
-          layout="stats"
+          layout="stats-simple"
           label="异常节点"
           :value="animatedStats.errorNodes"
           icon="ri:error-warning-line"
           theme="danger"
-          :trendText="animatedStats.errorNodes > 0 ? '需要关注' : '正常'"
-          hoverable
-          class="stat-card-item"
           @click="filterByStatus('error')"
         />
       </div>

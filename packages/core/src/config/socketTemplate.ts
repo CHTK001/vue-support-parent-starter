@@ -35,7 +35,7 @@ export interface SocketMessage {
 /**
  * 协议类型
  */
-export type ProtocolType = "socketio" | "rsocket";
+export type ProtocolType = "socketio" | "rsocket" | "websocket" | "sse";
 
 /**
  * Socket 模板接口

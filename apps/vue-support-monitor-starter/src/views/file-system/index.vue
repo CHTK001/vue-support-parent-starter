@@ -1,51 +1,5 @@
 <template>
   <div class="file-system-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <h2 class="page-title">
-          <IconifyIconOnline icon="ri:file-list-3-line" class="mr-2" />
-          文件管理
-        </h2>
-        <p class="page-description">分片上传、文件管理、HTTP访问控制</p>
-      </div>
-      <div class="header-right">
-        <!-- WebSocket连接状态 -->
-        <div class="connection-status">
-          <el-tooltip :content="connectionStatusText" placement="bottom">
-            <div class="status-indicator" :class="connectionStatusClass">
-              <IconifyIconOnline
-                :icon="connectionStatusIcon"
-                class="status-icon"
-              />
-              <span class="status-text">{{ connectionStatusText }}</span>
-            </div>
-          </el-tooltip>
-        </div>
-
-        <el-button @click="showSettingsDialog = true">
-          <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
-          设置
-        </el-button>
-        <el-button @click="showMD5TestDialog = true">
-          <IconifyIconOnline icon="ri:shield-check-line" class="mr-1" />
-          MD5测试
-        </el-button>
-        <el-button type="primary" @click="showUploadDialog = true">
-          <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-1" />
-          上传文件
-        </el-button>
-        <el-button @click="refreshData">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          刷新
-        </el-button>
-        <el-button @click="showDebugInfo = !showDebugInfo">
-          <IconifyIconOnline icon="ri:bug-line" class="mr-1" />
-          调试
-        </el-button>
-      </div>
-    </div>
-
     <!-- 调试信息面板 -->
     <div v-if="showDebugInfo" class="debug-panel">
       <el-card>
@@ -93,55 +47,35 @@
     </div>
 
     <!-- 统计卡片 -->
-    <div class="statistics-cards">
-      <el-row :gutter="16">
-        <el-col :span="6">
-          <div class="stat-card total">
-            <div class="stat-icon">
-              <IconifyIconOnline icon="ri:file-list-line" />
-            </div>
-            <div class="stat-content">
-              <div class="stat-value">{{ statistics.totalFiles }}</div>
-              <div class="stat-label">总文件数</div>
-            </div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="stat-card size">
-            <div class="stat-icon">
-              <IconifyIconOnline icon="ri:hard-drive-line" />
-            </div>
-            <div class="stat-content">
-              <div class="stat-value">
-                {{ formatFileSize(statistics.totalSize) }}
-              </div>
-              <div class="stat-label">总大小</div>
-            </div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="stat-card completed">
-            <div class="stat-icon">
-              <IconifyIconOnline icon="ri:checkbox-circle-line" />
-            </div>
-            <div class="stat-content">
-              <div class="stat-value">{{ statistics.completedFiles }}</div>
-              <div class="stat-label">已完成</div>
-            </div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="stat-card failed">
-            <div class="stat-icon">
-              <IconifyIconOnline icon="ri:error-warning-line" />
-            </div>
-            <div class="stat-content">
-              <div class="stat-value">{{ statistics.failedFiles }}</div>
-              <div class="stat-label">失败</div>
-            </div>
-          </div>
-        </el-col>
-      </el-row>
+    <div class="stats-row">
+      <ScCard
+        layout="stats-simple"
+        theme="blue"
+        icon="ri:file-list-line"
+        :value="statistics.totalFiles"
+        label="总文件数"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="purple"
+        icon="ri:hard-drive-line"
+        :value="formatFileSize(statistics.totalSize)"
+        label="总大小"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="success"
+        icon="ri:checkbox-circle-line"
+        :value="statistics.completedFiles"
+        label="已完成"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="danger"
+        icon="ri:error-warning-line"
+        :value="statistics.failedFiles"
+        label="失败"
+      />
     </div>
 
     <!-- 分组树和文件列表 -->
@@ -182,11 +116,13 @@
 
       <!-- 右侧文件列表 -->
       <div class="file-list-container">
-        <div class="list-header">
-          <div class="search-bar">
+        <!-- 工具栏 -->
+        <div class="toolbar-section">
+          <div class="toolbar-left">
             <el-input
               v-model="searchQuery.fileName"
               placeholder="搜索文件名..."
+              class="search-input"
               clearable
               @clear="handleSearch"
               @keyup.enter="handleSearch"
@@ -198,6 +134,7 @@
             <el-select
               v-model="searchQuery.fileStatus"
               placeholder="文件状态"
+              class="filter-select"
               clearable
               @change="handleSearch"
             >
@@ -207,14 +144,19 @@
               <el-option label="已完成" :value="2" />
               <el-option label="合并失败" :value="3" />
             </el-select>
-            <el-button type="primary" @click="handleSearch">
-              <IconifyIconOnline icon="ri:search-line" class="mr-1" />
-              搜索
-            </el-button>
+            <!-- WebSocket连接状态 -->
+            <el-tooltip :content="connectionStatusText" placement="bottom">
+              <div class="status-indicator" :class="connectionStatusClass">
+                <IconifyIconOnline
+                  :icon="connectionStatusIcon"
+                  class="status-icon"
+                />
+                <span class="status-text">{{ connectionStatusText }}</span>
+              </div>
+            </el-tooltip>
           </div>
-          <div class="list-actions">
+          <div class="toolbar-right">
             <el-button
-              type="primary"
               :disabled="!selectedFiles.length"
               @click="showMoveToGroupDialog = true"
             >
@@ -232,6 +174,32 @@
             <el-button @click="handleCleanExpired">
               <IconifyIconOnline icon="ri:delete-bin-2-line" class="mr-1" />
               清理过期
+            </el-button>
+            <el-dropdown trigger="click">
+              <el-button>
+                <IconifyIconOnline icon="ri:more-2-fill" class="mr-1" />
+                更多
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="showSettingsDialog = true">
+                    <IconifyIconOnline icon="ri:settings-3-line" class="mr-2" />
+                    设置
+                  </el-dropdown-item>
+                  <el-dropdown-item @click="showMD5TestDialog = true">
+                    <IconifyIconOnline icon="ri:shield-check-line" class="mr-2" />
+                    MD5测试
+                  </el-dropdown-item>
+                  <el-dropdown-item divided @click="showDebugInfo = !showDebugInfo">
+                    <IconifyIconOnline icon="ri:bug-line" class="mr-2" />
+                    {{ showDebugInfo ? '关闭调试' : '调试模式' }}
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+            <el-button type="primary" @click="showUploadDialog = true">
+              <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-1" />
+              上传文件
             </el-button>
           </div>
         </div>
@@ -495,6 +463,7 @@ import UploadQueueStatusComponent from "./components/UploadQueueStatus.vue";
 import FileSystemSettings from "./components/FileSystemSettings.vue";
 import MD5TestDialog from "./components/MD5TestDialog.vue";
 import FileSystemGroupDialog from "./components/FileSystemGroupDialog.vue";
+import ScCard from "@repo/components/ScCard/index.vue";
 
 // SSE连接
 const {
@@ -1089,179 +1058,51 @@ const testBackendAPI = async () => {
 
 <style scoped lang="scss">
 .file-system-page {
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding: 20px;
-    background: var(--el-bg-color-overlay);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 100vh;
+  background: var(--el-bg-color-page);
 
-    .header-left {
-      .page-title {
-        margin: 0 0 8px 0;
-        font-size: 24px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-        display: flex;
-        align-items: center;
-      }
-
-      .page-description {
-        margin: 0;
-         color: var(--el-text-color-primary);
-        font-size: 14px;
-      }
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      .connection-status {
-        .status-indicator {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.3s ease;
-
-          .status-icon {
-            font-size: 14px;
-          }
-
-          &.status-connected {
-            background: #f0f9ff;
-            color: #0ea5e9;
-            border: 1px solid #bae6fd;
-
-            .status-icon {
-              animation: none;
-            }
-          }
-
-          &.status-connecting {
-            background: #fef3c7;
-            color: #d97706;
-            border: 1px solid #fde68a;
-
-            .status-icon {
-              animation: spin 1s linear infinite;
-            }
-          }
-
-          &.status-error,
-          &.status-disconnected {
-            background: #fef2f2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-          }
-
-          &:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-          }
-        }
-      }
-    }
+  .debug-panel {
+    margin-bottom: 0;
   }
 
-  .statistics-cards {
-    margin-bottom: 20px;
-
-    .stat-card {
-      padding: 20px;
-      background: var(--el-bg-color-overlay);
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-      transition: transform 0.2s ease;
-
-      &:hover {
-        transform: translateY(-2px);
-      }
-
-      .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 16px;
-        font-size: 24px;
-        color: var(--el-text-color-primary);
-      }
-
-      .stat-content {
-        flex: 1;
-
-        .stat-value {
-          font-size: 24px;
-          font-weight: 600;
-          color: var(--el-text-color-primary);
-          margin-bottom: 4px;
-        }
-
-        .stat-label {
-          font-size: 14px;
-           color: var(--el-text-color-primary);
-        }
-      }
-
-      &.total .stat-icon {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      }
-
-      &.size .stat-icon {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      }
-
-      &.completed .stat-icon {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      }
-
-      &.failed .stat-icon {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      }
-    }
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
   }
 
   .content-layout {
     display: flex;
-    gap: 20px;
-    height: calc(100vh - 300px);
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
   }
 
   .group-tree-container {
-    width: 280px;
-    background: var(--el-bg-color-overlay);
-    border-radius: 8px;
-    padding: 16px;
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--el-bg-color);
+    border-radius: 12px;
+    border: 1px solid var(--el-border-color-lighter);
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
     .group-tree-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #ebeef5;
+      padding: 16px;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+      background: var(--el-bg-color);
 
       h3 {
         margin: 0;
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 600;
         color: var(--el-text-color-primary);
       }
@@ -1270,6 +1111,7 @@ const testBackendAPI = async () => {
     .group-tree-content {
       flex: 1;
       overflow-y: auto;
+      padding: 12px;
 
       .group-tree-node {
         display: flex;
@@ -1279,13 +1121,14 @@ const testBackendAPI = async () => {
         .group-name {
           flex: 1;
           margin-right: 8px;
+          font-size: 13px;
         }
 
         .file-count {
-          font-size: 12px;
-           color: var(--el-text-color-primary);
-          background: var(--el-bg-color-overlay);
-          padding: 2px 6px;
+          font-size: 11px;
+          color: var(--el-text-color-secondary);
+          background: var(--el-fill-color-light);
+          padding: 2px 8px;
           border-radius: 10px;
         }
       }
@@ -1293,47 +1136,97 @@ const testBackendAPI = async () => {
   }
 
   .file-list-container {
-    padding: 20px;
     flex: 1;
     background: var(--el-bg-color-overlay);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     display: flex;
     flex-direction: column;
 
-    .list-header {
-      padding: 20px;
-      border-bottom: 1px solid #ebeef5;
+    .toolbar-section {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
+      padding: 16px 20px;
+      background: var(--el-bg-color);
+      border-bottom: 1px solid var(--el-border-color-lighter);
       gap: 16px;
+      flex-wrap: wrap;
 
-      .search-bar {
+      .toolbar-left {
         display: flex;
-        gap: 12px;
         align-items: center;
-        flex: 1;
-        min-width: 400px;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
 
-        .el-input {
-          width: 200px;
-        }
+      .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
 
-        .el-select {
-          width: 120px;
+      .search-input {
+        width: 220px;
+
+        :deep(.el-input__wrapper) {
+          border-radius: 8px;
         }
       }
 
-      .list-actions {
+      .filter-select {
+        width: 120px;
+
+        :deep(.el-select__wrapper) {
+          border-radius: 8px;
+        }
+      }
+
+      .status-indicator {
         display: flex;
-        gap: 12px;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: default;
+        transition: all 0.3s ease;
+
+        .status-icon {
+          font-size: 14px;
+        }
+
+        &.status-connected {
+          background: var(--el-color-success-light-9);
+          color: var(--el-color-success);
+          border: 1px solid var(--el-color-success-light-5);
+        }
+
+        &.status-connecting {
+          background: var(--el-color-warning-light-9);
+          color: var(--el-color-warning);
+          border: 1px solid var(--el-color-warning-light-5);
+
+          .status-icon {
+            animation: spin 1s linear infinite;
+          }
+        }
+
+        &.status-error,
+        &.status-disconnected {
+          background: var(--el-color-danger-light-9);
+          color: var(--el-color-danger);
+          border: 1px solid var(--el-color-danger-light-5);
+        }
       }
     }
 
     .file-table {
+      flex: 1;
+      padding: 16px;
       .file-name-cell {
         display: flex;
         align-items: center;

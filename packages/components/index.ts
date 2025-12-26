@@ -15,8 +15,10 @@ import { ScPanel } from "./ScPanel";
 import ScNumber from "./ScNumber/index.vue";
 import ScDictSelect from "./ScDictSelect/index.vue";
 import ScDrawer from "./ScDrawer/index.vue";
+import { ScReteEditor, useReteEditor } from "./ScReteEditor";
 
-export { ReMenuNewBadge, ReSplitPane, ScCard, ScTable, ScRibbon, ScProgress, ScImage, ScMessageDialog, ScDebugConsole, ScText, ScFilterBar, ScContainer, ScPanel, ScNumber, ScDictSelect, ScDrawer };
+export { ReMenuNewBadge, ReSplitPane, ScCard, ScTable, ScRibbon, ScProgress, ScImage, ScMessageDialog, ScDebugConsole, ScText, ScFilterBar, ScContainer, ScPanel, ScNumber, ScDictSelect, ScDrawer, ScReteEditor, useReteEditor };
+export * from "./ScReteEditor/types";
 
 export default {
   ScTable,
@@ -35,5 +37,7 @@ export default {
   ScPanel,
   ScNumber,
   ScDictSelect,
-  ScDrawer
+  ScDrawer,
+  ScReteEditor,
+  useReteEditor
 };

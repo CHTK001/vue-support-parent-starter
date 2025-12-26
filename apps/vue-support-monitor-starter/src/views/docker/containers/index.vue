@@ -2,83 +2,49 @@
   <div class="container-management">
     <ProgressMonitor />
 
-    <!-- 现代化页面头部 -->
-    <div class="modern-header">
-      <div class="header-content">
-        <div class="header-left">
-          <div class="header-icon-wrapper">
-            <IconifyIconOnline icon="ri:ship-2-fill" class="header-main-icon" />
-          </div>
-          <div class="header-text">
-            <h1 class="header-title">容器管理</h1>
-            <p class="header-desc">管理和监控 Docker 容器的运行状态</p>
-          </div>
-        </div>
-        <div class="header-actions">
-          <el-button
-            @click="handleRefresh"
-            :loading="loading"
-            class="action-btn"
-          >
-            <IconifyIconOnline icon="ri:refresh-line" />
-            <span>刷新</span>
-          </el-button>
-          <el-button
-            type="primary"
-            @click="handleSyncStatus"
-            :loading="syncLoading"
-            class="action-btn"
-          >
-            <IconifyIconOnline icon="ri:loop-left-line" />
-            <span>同步状态</span>
-          </el-button>
-        </div>
-      </div>
-    </div>
-
     <!-- 统计卡片 -->
-    <div class="stats-section">
-      <div class="stat-card running">
-        <div class="stat-icon-bg">
-          <IconifyIconOnline icon="ri:play-circle-fill" />
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">{{ runningCount }}</span>
-          <span class="stat-label">运行中</span>
-        </div>
-      </div>
-      <div class="stat-card stopped">
-        <div class="stat-icon-bg">
-          <IconifyIconOnline icon="ri:stop-circle-fill" />
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">{{ stoppedCount }}</span>
-          <span class="stat-label">已停止</span>
-        </div>
-      </div>
-      <div class="stat-card paused">
-        <div class="stat-icon-bg">
-          <IconifyIconOnline icon="ri:pause-circle-fill" />
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">{{ pausedCount }}</span>
-          <span class="stat-label">暂停</span>
-        </div>
-      </div>
-      <div class="stat-card total">
-        <div class="stat-icon-bg">
-          <IconifyIconOnline icon="ri:stack-fill" />
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">{{ totalCount }}</span>
-          <span class="stat-label">总容器</span>
-        </div>
-      </div>
+    <div class="stats-row">
+      <ScCard
+        layout="stats-simple"
+        theme="success"
+        icon="ri:play-circle-fill"
+        :value="runningCount"
+        label="运行中"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="default"
+        icon="ri:stop-circle-fill"
+        :value="stoppedCount"
+        label="已停止"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="warning"
+        icon="ri:pause-circle-fill"
+        :value="pausedCount"
+        label="暂停"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="purple"
+        icon="ri:stack-fill"
+        :value="totalCount"
+        label="总容器"
+      />
     </div>
 
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar-left">
+        <el-button @click="handleRefresh" :loading="loading">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+        <el-button type="primary" @click="handleSyncStatus" :loading="syncLoading">
+          <IconifyIconOnline icon="ri:loop-left-line" class="mr-1" />
+          同步状态
+        </el-button>
         <el-input
           v-model="searchParams.keyword"
           placeholder="搜索容器名称或镜像"
@@ -375,6 +341,7 @@ import {
   type SystemSoftContainer,
 } from "@/api/docker";
 import ScTable from "@repo/components/ScTable/index.vue";
+import { ScCard } from "@repo/components";
 import { message, messageBox } from "@repo/utils";
 import { computed, onMounted, reactive, ref } from "vue";
 import ContainerDetailDialog from "./components/ContainerDetailDialog.vue";
@@ -743,164 +710,18 @@ async function openExec(row: any) {
 
 <style scoped>
 .container-management {
-  padding: 24px;
-  background: var(--app-bg-secondary);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   min-height: calc(100vh - 60px);
 }
 
-/* 现代化头部样式 */
-.modern-header {
-  background: linear-gradient(135deg, var(--app-primary) 0%, #6366f1 100%);
-  border-radius: 16px;
-  padding: 24px 32px;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.25);
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.header-icon-wrapper {
-  width: 56px;
-  height: 56px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(10px);
-}
-
-.header-main-icon {
-  font-size: 28px;
-  color: #fff;
-}
-
-.header-text {
-  color: #fff;
-}
-
-.header-title {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0 0 4px 0;
-  letter-spacing: -0.5px;
-}
-
-.header-desc {
-  font-size: 14px;
-  opacity: 0.85;
-  margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-weight: 500;
-}
-
-/* 统计卡片样式 */
-.stats-section {
+/* 统计卡片 */
+.stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-bottom: 24px;
-}
-
-.stat-card {
-  background: var(--app-card-bg);
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  transition: all 0.3s ease;
-  border: 1px solid transparent;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-.stat-card.running {
-  border-color: rgba(16, 185, 129, 0.2);
-}
-
-.stat-card.running .stat-icon-bg {
-  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-}
-
-.stat-card.stopped {
-  border-color: rgba(107, 114, 128, 0.2);
-}
-
-.stat-card.stopped .stat-icon-bg {
-  background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
-}
-
-.stat-card.paused {
-  border-color: rgba(245, 158, 11, 0.2);
-}
-
-.stat-card.paused .stat-icon-bg {
-  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
-}
-
-.stat-card.total {
-  border-color: rgba(99, 102, 241, 0.2);
-}
-
-.stat-card.total .stat-icon-bg {
-  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
-}
-
-.stat-icon-bg {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.stat-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--app-text-primary);
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: var(--app-text-secondary);
 }
 
 /* 工具栏样式 */

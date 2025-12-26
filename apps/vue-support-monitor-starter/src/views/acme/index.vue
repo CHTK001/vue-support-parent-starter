@@ -2,46 +2,34 @@
   <div class="acme-container">
     <!-- 统计卡片 -->
     <div class="stats-row">
-      <div class="stat-card accounts">
-        <div class="stat-icon">
-          <IconifyIconOnline icon="mdi:account-key" />
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.accountCount }}</div>
-          <div class="stat-label">ACME 账户</div>
-        </div>
-        <div class="stat-decoration"></div>
-      </div>
-      <div class="stat-card valid">
-        <div class="stat-icon">
-          <IconifyIconOnline icon="mdi:certificate" />
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.validCount }}</div>
-          <div class="stat-label">有效证书</div>
-        </div>
-        <div class="stat-decoration"></div>
-      </div>
-      <div class="stat-card expiring">
-        <div class="stat-icon">
-          <IconifyIconOnline icon="mdi:clock-alert" />
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.expiringCount }}</div>
-          <div class="stat-label">即将到期</div>
-        </div>
-        <div class="stat-decoration"></div>
-      </div>
-      <div class="stat-card pending">
-        <div class="stat-icon">
-          <IconifyIconOnline icon="mdi:timer-sand" />
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stats.pendingCount }}</div>
-          <div class="stat-label">待验证</div>
-        </div>
-        <div class="stat-decoration"></div>
-      </div>
+      <ScCard
+        layout="stats-simple"
+        theme="purple"
+        icon="mdi:account-key"
+        :value="stats.accountCount"
+        label="ACME 账户"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="success"
+        icon="mdi:certificate"
+        :value="stats.validCount"
+        label="有效证书"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="warning"
+        icon="mdi:clock-alert"
+        :value="stats.expiringCount"
+        label="即将到期"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="blue"
+        icon="mdi:timer-sand"
+        :value="stats.pendingCount"
+        label="待验证"
+      />
     </div>
 
     <!-- 标签页切换 -->
@@ -104,6 +92,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { ScCard } from "@repo/components";
 import { getCertStats, type AcmeCertStats } from "@/api/acme";
 import CertList from "./components/CertList.vue";
 import AccountList from "./components/AccountList.vue";
@@ -192,107 +181,6 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-}
-
-.stat-card {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-  }
-
-  .stat-icon {
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 12px;
-    font-size: 24px;
-    flex-shrink: 0;
-  }
-
-  .stat-content {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .stat-value {
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1.2;
-    color: var(--el-text-color-primary);
-  }
-
-  .stat-label {
-    font-size: 13px;
-    color: var(--el-text-color-secondary);
-    margin-top: 4px;
-  }
-
-  .stat-decoration {
-    position: absolute;
-    right: -20px;
-    top: -20px;
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    opacity: 0.1;
-  }
-
-  /* 账户卡片 */
-  &.accounts {
-    .stat-icon {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #fff;
-    }
-    .stat-decoration {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-  }
-
-  /* 有效证书卡片 */
-  &.valid {
-    .stat-icon {
-      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      color: #fff;
-    }
-    .stat-decoration {
-      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    }
-  }
-
-  /* 即将到期卡片 */
-  &.expiring {
-    .stat-icon {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      color: #fff;
-    }
-    .stat-decoration {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    }
-  }
-
-  /* 待验证卡片 */
-  &.pending {
-    .stat-icon {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      color: #fff;
-    }
-    .stat-decoration {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    }
-  }
 }
 
 /* 主卡片 */

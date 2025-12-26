@@ -101,7 +101,7 @@ import {
   createConfig, 
   updateConfig,
   type MonitorConfig 
-} from '@/api/config';
+} from '@/api/config/index';
 
 interface Props {
   visible: boolean;

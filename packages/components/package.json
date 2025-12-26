@@ -78,7 +78,16 @@
     "vue3-puzzle-vcode": "catalog:",
     "vuedraggable": "catalog:",
     "interactjs": "catalog:",
-    "@techui/scifi": "catalog:"
+    "@techui/scifi": "catalog:",
+    "rete": "catalog:",
+    "rete-vue-plugin": "catalog:",
+    "rete-area-plugin": "catalog:",
+    "rete-connection-plugin": "catalog:",
+    "rete-context-menu-plugin": "catalog:",
+    "rete-minimap-plugin": "catalog:",
+    "rete-auto-arrange-plugin": "catalog:",
+    "rete-render-utils": "catalog:",
+    "rete-connection-reroute-plugin": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",

@@ -95,7 +95,7 @@ export function createRSocketService(config: RSocketConfig): RSocketService {
     try {
       // 构建 WebSocket URL，添加认证信息
       const token = getToken();
-      const wsUrl = config.url.replace(/^http/, "ws");
+      const wsUrl = toWebSocketUrl(config.url);
       const url = new URL(wsUrl);
       if (token?.accessToken) {
         url.searchParams.set("x-oauth-token", token.accessToken);

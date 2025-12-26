@@ -1,59 +1,16 @@
+/**
+ * @deprecated 请使用 socketService.ts 代替
+ * 本文件仅保留用于向后兼容，将在未来版本移除
+ */
+
 import { getToken } from "@repo/core";
 import { message, uu4 } from "@repo/utils";
 import { io } from "socket.io-client";
 import { inject, provide, ref, type InjectionKey } from "vue";
 import { SystemTopics } from "./socketTopics";
 
-/**
- * Socket消息数据结构
- * 后端发送的数据格式
- */
-export interface SocketMessageWrapper {
-  data: string;
-  encrypted: boolean;
-  timestamp: string;
-  uuid?: string;
-}
-
-/**
- * 解析Socket消息数据
- * 处理后端发送的加密/非加密数据格式
- *
- * @param rawData 原始数据
- * @returns 解析后的数据对象
- */
-export function parseSocketMessage(rawData: any): any {
-  try {
-    // 如果是字符串，先解析为对象
-    const wrapper: SocketMessageWrapper =
-      typeof rawData === "string" ? JSON.parse(rawData) : rawData;
-
-    // 检查是否为新格式（包含 encrypted 字段）
-    if (wrapper && typeof wrapper.encrypted === "boolean") {
-      if (wrapper.encrypted) {
-        // 加密数据，暂时返回原始数据（需要解密逻辑）
-        console.warn("收到加密数据，暂不支持前端解密");
-        return wrapper;
-      } else {
-        // 非加密数据，解析 data 字段
-        if (typeof wrapper.data === "string") {
-          try {
-            return JSON.parse(wrapper.data);
-          } catch {
-            return wrapper.data;
-          }
-        }
-        return wrapper.data;
-      }
-    }
-
-    // 兼容旧格式，直接返回
-    return wrapper;
-  } catch (error) {
-    console.error("解析Socket消息失败:", error);
-    return rawData;
-  }
-}
+// 从 socketUtils 重新导出 parseSocketMessage 以保持兼容性
+export { parseSocketMessage, type SocketMessageWrapper } from "./socketUtils";
 
 /**
  * Socket监听选项

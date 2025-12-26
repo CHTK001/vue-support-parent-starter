@@ -1,107 +1,56 @@
 <template>
   <div class="images-management">
-    <!-- 页面头部 - 现代化设计 -->
-    <div class="page-header-modern">
-      <div class="header-content">
-        <div class="header-left">
-          <div class="title-wrapper">
-            <div class="title-icon-box">
-              <IconifyIconOnline icon="ri:image-2-line" />
-            </div>
-            <div class="title-text">
-              <h1>镜像管理</h1>
-              <p>管理Docker镜像的拉取、安装、导入和导出</p>
-            </div>
-          </div>
-        </div>
-        <div class="header-actions">
-          <el-button
-            @click="handleRefresh"
-            :loading="loading"
-            class="action-btn"
-          >
-            <IconifyIconOnline icon="ri:refresh-line" />
-          </el-button>
-          <el-button @click="syncVisible = true" class="action-btn sync-btn">
-            <IconifyIconOnline icon="ri:cloud-line" class="mr-1" />
-            同步
-          </el-button>
-          <el-button
-            @click="importVisible = true"
-            class="action-btn import-btn"
-          >
-            <IconifyIconOnline icon="ri:upload-2-line" class="mr-1" />
-            导入
-          </el-button>
-          <el-button
-            type="primary"
-            @click="pullVisible = true"
-            class="action-btn primary-btn"
-          >
-            <IconifyIconOnline icon="ri:download-cloud-line" class="mr-1" />
-            拉取镜像
-          </el-button>
-        </div>
-      </div>
-
-      <!-- 统计卡片 -->
-      <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-icon total">
-            <IconifyIconOnline icon="ri:stack-line" />
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ total }}</span>
-            <span class="stat-label">全部镜像</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon available">
-            <IconifyIconOnline icon="ri:checkbox-circle-line" />
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ availableCount }}</span>
-            <span class="stat-label">可用</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon pulling">
-            <IconifyIconOnline icon="ri:loader-4-line" />
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ pullingCount }}</span>
-            <span class="stat-label">拉取中</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon servers">
-            <IconifyIconOnline icon="ri:server-line" />
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ servers.length }}</span>
-            <span class="stat-label">服务器</span>
-          </div>
-        </div>
-      </div>
+    <!-- 统计卡片 -->
+    <div class="stats-row">
+      <ScCard
+        layout="stats-simple"
+        theme="purple"
+        icon="ri:stack-line"
+        :value="total"
+        label="全部镜像"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="success"
+        icon="ri:checkbox-circle-line"
+        :value="availableCount"
+        label="可用"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="warning"
+        icon="ri:loader-4-line"
+        :value="pullingCount"
+        label="拉取中"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="blue"
+        icon="ri:server-line"
+        :value="servers.length"
+        label="服务器"
+      />
     </div>
 
-    <!-- 搜索和分组栏 - 现代化 -->
-    <div class="toolbar-modern">
-      <div class="search-section">
-        <div class="search-box">
-          <IconifyIconOnline icon="ri:search-line" class="search-icon" />
-          <input
-            v-model="searchParams.keyword"
-            type="text"
-            placeholder="搜索镜像名称、标签..."
-            @keyup.enter="handleSearch"
-          />
-        </div>
+    <!-- 工具栏 -->
+    <div class="toolbar-section">
+      <div class="toolbar-left">
+        <el-input
+          v-model="searchParams.keyword"
+          placeholder="搜索镜像名称、标签..."
+          class="search-input"
+          clearable
+          @keyup.enter="handleSearch"
+        >
+          <template #prefix>
+            <IconifyIconOnline icon="ri:search-line" />
+          </template>
+        </el-input>
         <el-select
           v-model="searchParams.serverId"
           placeholder="全部服务器"
           clearable
-          class="filter-select-modern"
+          class="filter-select"
           @change="handleSearch"
         >
           <el-option label="全部服务器" :value="undefined" />
@@ -116,7 +65,7 @@
           v-model="searchParams.status"
           placeholder="全部状态"
           clearable
-          class="filter-select-modern"
+          class="filter-select"
           @change="handleSearch"
         >
           <el-option label="全部状态" :value="undefined" />
@@ -124,17 +73,35 @@
           <el-option label="拉取中" value="PULLING" />
           <el-option label="错误" value="PULL_FAILED" />
         </el-select>
+        <div class="view-toggle">
+          <button
+            v-for="view in viewOptions"
+            :key="view.value"
+            :class="['toggle-btn', { active: groupBy === view.value }]"
+            @click="handleViewChange(view.value)"
+          >
+            <IconifyIconOnline :icon="view.icon" />
+            <span>{{ view.label }}</span>
+          </button>
+        </div>
       </div>
-      <div class="view-toggle">
-        <button
-          v-for="view in viewOptions"
-          :key="view.value"
-          :class="['toggle-btn', { active: groupBy === view.value }]"
-          @click="handleViewChange(view.value)"
-        >
-          <IconifyIconOnline :icon="view.icon" />
-          <span>{{ view.label }}</span>
-        </button>
+      <div class="toolbar-right">
+        <el-button @click="handleRefresh" :loading="loading">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+        <el-button @click="syncVisible = true">
+          <IconifyIconOnline icon="ri:cloud-line" class="mr-1" />
+          同步
+        </el-button>
+        <el-button @click="importVisible = true">
+          <IconifyIconOnline icon="ri:upload-2-line" class="mr-1" />
+          导入
+        </el-button>
+        <el-button type="primary" @click="pullVisible = true">
+          <IconifyIconOnline icon="ri:download-cloud-line" class="mr-1" />
+          拉取镜像
+        </el-button>
       </div>
     </div>
 
@@ -493,6 +460,7 @@ import ImageSyncDialog from "./components/ImageSyncDialog.vue";
 import ImageImportDialog from "./components/ImageImportDialog.vue";
 import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
 import ScTable from "@repo/components/ScTable/index.vue";
+import { ScCard } from "@repo/components";
 
 /**
  * 镜像管理页面 - 现代化重构版本
@@ -958,74 +926,11 @@ onUnmounted(() => {
 
 <style scoped>
 .images-management {
-  padding: 24px;
-  background: var(--app-bg-secondary);
-  min-height: 100vh;
-}
-
-/* 现代化页面头部 */
-.page-header-modern {
-  background: linear-gradient(
-    135deg,
-    rgba(99, 102, 241, 0.1) 0%,
-    rgba(14, 165, 233, 0.1) 100%
-  );
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 20px;
-}
-
-.header-content {
+  padding: 16px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.title-wrapper {
-  display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 16px;
-}
-
-.title-icon-box {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  color: white;
-}
-
-.title-text h1 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-}
-
-.title-text p {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.action-btn {
-  border-radius: 10px;
-  font-weight: 500;
-}
-
-.primary-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
+  min-height: 100vh;
 }
 
 /* 统计卡片 */
@@ -1035,66 +940,39 @@ onUnmounted(() => {
   gap: 16px;
 }
 
-.stat-card {
+/* 工具栏 */
+.toolbar-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
   background: var(--el-bg-color);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.toolbar-left {
   display: flex;
   align-items: center;
-  gap: 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  gap: 12px;
 }
 
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-}
-
-.stat-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+.toolbar-right {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  color: white;
+  gap: 8px;
 }
 
-.stat-icon.total {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-.stat-icon.available {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-.stat-icon.pulling {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-.stat-icon.servers {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+.search-input {
+  width: 240px;
 }
 
-.stat-info {
-  display: flex;
-  flex-direction: column;
+.filter-select {
+  width: 130px;
 }
 
-.stat-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-}
-
-.stat-label {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-/* 现代化工具栏 */
-.toolbar-modern {
+/* 视图切换 */
+.view-toggle {
   display: flex;
   justify-content: space-between;
   align-items: center;

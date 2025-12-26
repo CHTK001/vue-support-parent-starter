@@ -3,13 +3,19 @@
  * 覆盖默认主题的部分样式，实现春节装饰效果
  */
 
-/* 春节主题标签页容器 */
+/* 春节主题标签页容器 - 红色喜庆背景 */
 html[data-skin="spring-festival"] .tags-view,
 html[data-skin="spring-festival"] .shadow-tab {
-  background: linear-gradient(180deg, #fff5f0 0%, #ffffff 100%) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  background: linear-gradient(180deg, 
+    rgba(220, 20, 60, 0.08) 0%, 
+    rgba(178, 34, 34, 0.05) 50%,
+    rgba(139, 0, 0, 0.03) 100%) !important;
+  border-top: 1px solid rgba(220, 20, 60, 0.15) !important;
+  box-shadow: 
+    0 2px 8px rgba(220, 20, 60, 0.1),
+    inset 0 1px 0 rgba(255, 215, 0, 0.1) !important;
   position: relative !important;
-  z-index: 10 !important; /* 保持在装饰元素之上，但不影响弹层 */
+  z-index: 10 !important;
 }
 
 /* 隐藏 Chrome 样式的背景图 */

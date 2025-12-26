@@ -183,7 +183,7 @@
 import { ref, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { message } from "@repo/utils";
-import { getServerStatistics } from "@/api/server";
+import { getServerStatistics, checkRemoteDesktopAvailability } from "@/api/server";
 // import { startFileUploadTask, pauseFileUploadTask, cancelFileUploadTask } from "@/api/server";
 
 // 导入组件
@@ -286,9 +286,31 @@ const handleDeleteServer = (server: any) => {
 
 /**
  * 处理连接服务器
+ * 对于 REMOTE 协议，先检测远程桌面可用性，如果不可用则自动降级到 SSH
  */
-const handleConnectServer = (server: any) => {
-  serverTerminalDialogRef.value?.open(server);
+const handleConnectServer = async (server: any) => {
+  // 对于 REMOTE 协议，先检测远程桌面可用性
+  if (server.monitorSysGenServerProtocol === 'REMOTE') {
+    try {
+      const res = await checkRemoteDesktopAvailability(String(server.monitorSysGenServerId));
+      if (res.code === '00000' && res.data) {
+        if (!res.data.available) {
+          // 远程桌面不可用，自动降级到 SSH
+          message(res.data.reason || '远程桌面不可用，已自动切换到 SSH 模式', { type: 'warning' });
+          // 修改协议为推荐的协议（通常是 SSH）
+          server = { ...server, monitorSysGenServerProtocol: res.data.recommendedProtocol || 'SSH' };
+        }
+      }
+    } catch (error) {
+      console.error('检测远程桌面可用性失败:', error);
+      // 检测失败时默认降级到 SSH
+      message('检测远程桌面失败，已自动切换到 SSH 模式', { type: 'warning' });
+      server = { ...server, monitorSysGenServerProtocol: 'SSH' };
+    }
+  }
+  
+  serverTerminalDialogRef.value?.setData(server);
+  serverTerminalDialogRef.value?.open();
 };
 
 /**

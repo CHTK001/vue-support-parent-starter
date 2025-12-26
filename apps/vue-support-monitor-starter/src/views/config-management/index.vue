@@ -1,73 +1,48 @@
 <template>
   <div class="config-management">
-    <!-- 现代化页面头部 -->
-    <div class="modern-header">
-      <div class="header-content">
-        <div class="header-info">
-          <div class="icon-wrapper">
-            <IconifyIconOnline icon="ri:settings-4-line" class="header-icon" />
-          </div>
-          <div class="title-wrapper">
-            <h1 class="page-title">配置管理</h1>
-            <p class="page-subtitle">集中管理应用配置，支持多环境、动态下发</p>
-          </div>
-        </div>
-        <div class="header-actions">
-          <el-button @click="reload" class="action-btn">
-            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-            刷新
-          </el-button>
-          <el-button type="primary" @click="openEdit()" class="action-btn">
-            <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-            新增配置
-          </el-button>
-        </div>
-      </div>
-    </div>
-
     <!-- 统计卡片区域 -->
-    <div class="stats-section">
-      <div class="stat-card">
-        <div class="stat-icon total">
-          <IconifyIconOnline icon="ri:settings-3-line" />
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">{{ stats.total }}</span>
-          <span class="stat-label">配置总数</span>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon enabled">
-          <IconifyIconOnline icon="ri:checkbox-circle-line" />
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">{{ stats.enabled }}</span>
-          <span class="stat-label">已启用</span>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon disabled">
-          <IconifyIconOnline icon="ri:close-circle-line" />
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">{{ stats.disabled }}</span>
-          <span class="stat-label">已禁用</span>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon envs">
-          <IconifyIconOnline icon="ri:global-line" />
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">{{ Object.keys(stats.envStats).length }}</span>
-          <span class="stat-label">环境数</span>
-        </div>
-      </div>
+    <div class="stats-row">
+      <ScCard
+        layout="stats-simple"
+        theme="purple"
+        icon="ri:settings-3-line"
+        :value="stats.total"
+        label="配置总数"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="success"
+        icon="ri:checkbox-circle-line"
+        :value="stats.enabled"
+        label="已启用"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="default"
+        icon="ri:close-circle-line"
+        :value="stats.disabled"
+        label="已禁用"
+      />
+      <ScCard
+        layout="stats-simple"
+        theme="blue"
+        icon="ri:global-line"
+        :value="Object.keys(stats.envStats).length"
+        label="环境数"
+      />
     </div>
 
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar-left">
+        <el-button @click="reload">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+        <el-button type="primary" @click="openEdit()">
+          <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+          新增配置
+        </el-button>
         <el-input
           v-model="params.keyword"
           placeholder="搜索配置键/值/描述"
@@ -225,6 +200,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { message } from '@repo/utils';
 import ScTable from '@repo/components/ScTable/index.vue';
+import { ScCard } from '@repo/components';
 import { 
   getConfigPageList, 
   deleteConfig, 
@@ -399,151 +375,18 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .config-management {
-  padding: 0;
-  background: var(--app-bg-secondary);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   min-height: 100vh;
 }
 
-// 现代化头部
-.modern-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 28px 32px;
-  color: #fff;
-  margin-bottom: 0;
-
-  .header-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    max-width: 1600px;
-    margin: 0 auto;
-  }
-
-  .header-info {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .icon-wrapper {
-    width: 56px;
-    height: 56px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(10px);
-
-    .header-icon {
-      font-size: 28px;
-      color: #fff;
-    }
-  }
-
-  .title-wrapper {
-    .page-title {
-      font-size: 24px;
-      font-weight: 700;
-      margin: 0 0 4px 0;
-      letter-spacing: -0.5px;
-    }
-
-    .page-subtitle {
-      font-size: 14px;
-      opacity: 0.85;
-      margin: 0;
-    }
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 12px;
-
-    .action-btn {
-      border-radius: 10px;
-      padding: 10px 18px;
-      font-weight: 500;
-      transition: all 0.2s ease;
-
-      &:hover {
-        transform: translateY(-2px);
-      }
-    }
-  }
-}
-
-// 统计卡片区域
-.stats-section {
+// 统计卡片
+.stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  padding: 24px 32px;
-  background: var(--el-bg-color);
-  border-bottom: 1px solid var(--el-border-color-lighter);
-
-  .stat-card {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 20px;
-    background: var(--el-fill-color-lighter);
-    border-radius: 14px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    }
-
-    .stat-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-
-      &.total {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #fff;
-      }
-
-      &.enabled {
-        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-        color: #fff;
-      }
-
-      &.disabled {
-        background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
-        color: #fff;
-      }
-
-      &.envs {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        color: #fff;
-      }
-    }
-
-    .stat-info {
-      display: flex;
-      flex-direction: column;
-
-      .stat-value {
-        font-size: 28px;
-        font-weight: 700;
-        color: var(--el-text-color-primary);
-        line-height: 1.2;
-      }
-
-      .stat-label {
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-        margin-top: 4px;
-      }
-    }
-  }
+  gap: 16px;
 }
 
 // 工具栏

@@ -164,6 +164,21 @@
         </div>
       </div>
 
+      <!-- REMOTE 原生远程桌面 -->
+      <div
+        v-else-if="serverData.monitorSysGenServerProtocol === 'REMOTE'"
+        class="terminal-wrapper remote-terminal"
+      >
+        <NativeRemoteDesktop
+          ref="nativeRemoteRef"
+          :server="serverData"
+          @connected="handleRemoteConnected"
+          @disconnected="handleRemoteDisconnected"
+          @fallback-ssh="handleFallbackToSSH"
+          @close="visible = false"
+        />
+      </div>
+
       <!-- 连接状态 -->
       <div v-if="!isConnected" class="connection-overlay">
         <div class="connection-content">
@@ -225,6 +240,7 @@ import {
   defaultGuacamoleConfig,
   setupFileDrop,
 } from "@/utils/guacamole";
+import NativeRemoteDesktop from "./remote/NativeRemoteDesktop.vue";
 
 // 响应式状态
 const visible = ref(false);
@@ -240,6 +256,7 @@ const serverData = reactive<any>({});
 const terminalRef = ref();
 const rdpDisplayRef = ref();
 const vncDisplayRef = ref();
+const nativeRemoteRef = ref();
 let terminal: Terminal | null = null;
 let fitAddon: FitAddon | null = null;
 
@@ -318,7 +335,18 @@ const initTerminal = () => {
     initRDPTerminal();
   } else if (serverData.monitorSysGenServerProtocol === "VNC") {
     initVNCTerminal();
+  } else if (serverData.monitorSysGenServerProtocol === "REMOTE") {
+    initREMOTETerminal();
   }
+};
+
+/**
+ * 初始化 REMOTE 原生远程桌面
+ */
+const initREMOTETerminal = () => {
+  // NativeRemoteDesktop 组件会自动处理连接
+  // 设置初始状态
+  connecting.value = true;
 };
 
 /**
@@ -545,6 +573,40 @@ const connectVNCWebSocket = () => {
 };
 
 /**
+ * REMOTE 连接成功回调
+ */
+const handleRemoteConnected = () => {
+  isConnected.value = true;
+  connectionStatus.value = "connected";
+  connecting.value = false;
+};
+
+/**
+ * REMOTE 连接断开回调
+ */
+const handleRemoteDisconnected = () => {
+  isConnected.value = false;
+  connectionStatus.value = "disconnected";
+  connecting.value = false;
+};
+
+/**
+ * REMOTE 降级到 SSH 模式
+ * 当远程桌面连接失败（如 Linux 无桌面环境）时，自动切换到 SSH 终端
+ */
+const handleFallbackToSSH = () => {
+  console.log('REMOTE 模式降级到 SSH');
+  
+  // 切换协议类型
+  serverData.monitorSysGenServerProtocol = 'SSH';
+  
+  // 重新初始化终端（现在会使用 SSH 模式）
+  nextTick(() => {
+    initTerminal();
+  });
+};
+
+/**
  * 设置 Guacamole 事件处理器
  */
 const setupGuacamoleEventHandlers = (
@@ -722,6 +784,9 @@ const handleClear = () => {
   } else if (serverData.monitorSysGenServerProtocol === "VNC" && vncClient) {
     vncClient.disconnect();
     setTimeout(() => connectVNCWebSocket(), 1000);
+  } else if (serverData.monitorSysGenServerProtocol === "REMOTE" && nativeRemoteRef.value) {
+    // REMOTE 模式重新连接
+    nativeRemoteRef.value.reconnect?.();
   }
 };
 
@@ -741,6 +806,14 @@ const handleReconnect = async () => {
     }
     if (vncClient) {
       vncClient.disconnect();
+    }
+
+    // REMOTE 模式由组件自己处理重连
+    if (serverData.monitorSysGenServerProtocol === "REMOTE") {
+      if (nativeRemoteRef.value) {
+        nativeRemoteRef.value.reconnect?.();
+      }
+      return;
     }
 
     // 重新连接服务器
@@ -909,7 +982,8 @@ defineExpose({
     }
 
     &.rdp-terminal,
-    &.vnc-terminal {
+    &.vnc-terminal,
+    &.remote-terminal {
       display: flex;
       flex-direction: column;
       background: var(--el-bg-color-overlay);

@@ -5,6 +5,7 @@
     width="680px"
     :close-on-click-modal="false"
     class="apply-cert-dialog"
+    append-to-body
   >
     <!-- 步骤说明 -->
     <div class="dialog-header">
@@ -346,7 +347,7 @@ async function handleSubmit() {
   submitting.value = true;
   try {
     await applyCert(form);
-    message("证书申请已提交，请完成域名验证", { type: "success" });
+    message("证书申请已提交，请在消息中心查看进度", { type: "success" });
     dialogVisible.value = false;
     emit("success");
   } catch (error) {

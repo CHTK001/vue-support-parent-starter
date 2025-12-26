@@ -3,11 +3,12 @@
  * 深蓝夜空配金黄月光的设计
  */
 
-/* 中秋主题标签页容器 */
+/* 中秋主题标签页容器 - 夜空月光渐变 */
 html[data-skin="mid-autumn"] .tags-view,
 html[data-skin="mid-autumn"] .shadow-tab {
-  background: linear-gradient(180deg, #e8eaf6 0%, #ffffff 100%) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  background: linear-gradient(180deg, rgba(26, 35, 126, 0.08) 0%, rgba(255, 213, 79, 0.05) 50%, rgba(26, 35, 126, 0.03) 100%) !important;
+  border-top: 1px solid rgba(26, 35, 126, 0.15) !important;
+  box-shadow: 0 2px 8px rgba(26, 35, 126, 0.1), inset 0 1px 0 rgba(255, 213, 79, 0.15) !important;
   position: relative !important;
   z-index: 10 !important;
 }
