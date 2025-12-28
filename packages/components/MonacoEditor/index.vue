@@ -117,7 +117,9 @@ export default {
     watch(() => props.modelValue, updateValue);
     watch(() => props.language, updateLanguage);
     watch(() => props.theme, updateTheme);
-    watch(() => props.options, updateOptions, { deep: true });
+    // 使用版本号避免深度监听 options
+    const optionsVersion = computed(() => JSON.stringify(props.options));
+    watch(optionsVersion, () => updateOptions(props.options));
     watch(() => props.height, (value) => {
       editorHeight.value = typeof value === 'number' ? `${value}px` : value;
       nextTick(() => {

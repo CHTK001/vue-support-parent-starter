@@ -8,6 +8,10 @@ export { useLayout } from "./hooks/useLayout";
 export { useNav } from "./hooks/useNav";
 export { useTranslationLang } from "./hooks/useTranslationLang";
 export { useThemeComponent, useTheme } from "./hooks/useThemeComponent";
+export { useLoadingPage } from "./hooks/useLoadingPage";
+export { useResponsiveLayout } from "./hooks/useResponsiveLayout";
+export { useWatermarkSetup } from "./hooks/useWatermarkSetup";
+export { useDebugMode } from "./hooks/useDebugMode";
 
 // Stores
 export { useThemeStore, useThemeStoreHook } from "./stores/themeStore";

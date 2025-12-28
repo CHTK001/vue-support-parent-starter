@@ -1,20 +1,16 @@
 <script setup lang="ts">
+import { defineAsyncComponent } from "vue";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultSidebar from "./themes/Default.vue";
-import SpringFestivalSidebar from "./themes/SpringFestival.vue";
-import CyberpunkSidebar from "./themes/Cyberpunk.vue";
-import MidAutumnSidebar from "./themes/MidAutumn.vue";
-import ChristmasSidebar from "./themes/Christmas.vue";
-import NewYearSidebar from "./themes/NewYear.vue";
 
-// 主题组件映射
+// 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
   'default': DefaultSidebar,
-  'spring-festival': SpringFestivalSidebar,
-  'cyberpunk': CyberpunkSidebar,
-  'mid-autumn': MidAutumnSidebar,
-  'christmas': ChristmasSidebar,
-  'new-year': NewYearSidebar,
+  'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestival.vue")),
+  'cyberpunk': defineAsyncComponent(() => import("./themes/Cyberpunk.vue")),
+  'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumn.vue")),
+  'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
+  'new-year': defineAsyncComponent(() => import("./themes/NewYear.vue")),
 };
 
 const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultSidebar);

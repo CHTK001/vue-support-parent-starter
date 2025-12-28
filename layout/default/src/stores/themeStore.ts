@@ -21,8 +21,7 @@ export const useThemeStore = defineStore("theme", () => {
     ($storage?.configure?.systemTheme as ThemeKey) || "default"
   );
 
-  // MutationObserver 实例（单例）
-  let observer: MutationObserver | null = null;
+  // 初始化标记
   let isInitialized = false;
 
   // ===== 计算属性 =====
@@ -90,6 +89,7 @@ export const useThemeStore = defineStore("theme", () => {
 
   /**
    * 初始化主题监听
+   * 简化版：只使用 emitter 事件监听，移除冗余的 MutationObserver
    */
   function initThemeListener(): void {
     if (isInitialized) return;
@@ -97,31 +97,8 @@ export const useThemeStore = defineStore("theme", () => {
 
     log("初始化主题监听器");
 
-    // 1. 监听 emitter 事件（用于外部切换）
+    // 监听 emitter 事件（用于外部切换）
     emitter.on("systemThemeChange", handleExternalThemeChange);
-
-    // 2. 创建 MutationObserver 监听 data-skin 属性变化
-    observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (
-          mutation.type === "attributes" &&
-          mutation.attributeName === "data-skin"
-        ) {
-          const newTheme =
-            (document.documentElement.getAttribute("data-skin") as ThemeKey) ||
-            "default";
-          if (newTheme !== currentTheme.value) {
-            log("检测到 data-skin 属性变化:", newTheme);
-            currentTheme.value = newTheme;
-          }
-        }
-      });
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-skin"],
-    });
 
     // 初始化时同步 DOM 状态
     const domTheme = document.documentElement.getAttribute("data-skin");
@@ -146,8 +123,6 @@ export const useThemeStore = defineStore("theme", () => {
   function destroyThemeListener(): void {
     log("销毁主题监听器");
     emitter.off("systemThemeChange", handleExternalThemeChange);
-    observer?.disconnect();
-    observer = null;
     isInitialized = false;
   }
 

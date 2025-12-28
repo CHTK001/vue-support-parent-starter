@@ -419,16 +419,15 @@ watch(
   { immediate: true }
 );
 
-// 监听配置状态变化，触发重新渲染
-watch(
-  configState,
-  () => {
-    nextTick(() => {
-      toggleIndex.value += 1;
-    });
-  },
-  { deep: true }
+// 监听配置状态中影响渲染的属性变化
+const configRenderKey = computed(() => 
+  `${configState.border}-${configState.stripe}-${configState.size}`
 );
+watch(configRenderKey, () => {
+  nextTick(() => {
+    toggleIndex.value += 1;
+  });
+});
 
 // 方法
 const openTimer = () => {
@@ -1029,19 +1028,22 @@ if (props.keyboardEnabled) {
   });
 }
 
-// 监听属性变化
+// 监听属性变化 - 使用版本号避免深度监听
+const paramsVersion = computed(() => JSON.stringify(props.params));
 watch(
-  () => props.params,
-  newValue => {
-    tableParams.value = newValue;
+  paramsVersion,
+  () => {
+    tableParams.value = props.params;
   },
-  { immediate: true, deep: true }
+  { immediate: true }
 );
 
-// 监听ScFilterBar筛选条件变化
+// 监听ScFilterBar筛选条件变化 - 使用版本号避免深度监听
+const filterConditionsVersion = computed(() => JSON.stringify(props.filterConditions));
 watch(
-  () => props.filterConditions,
-  newValue => {
+  filterConditionsVersion,
+  () => {
+    const newValue = props.filterConditions;
     if (newValue && Object.keys(newValue).length > 0) {
       // 合并筛选条件到请求参数
       Object.assign(tableParams.value, newValue);
@@ -1050,8 +1052,7 @@ watch(
       clearNamespaceCache();
       getData(true);
     }
-  },
-  { deep: true }
+  }
 );
 
 // 监听是否开启定时刷新
@@ -1066,16 +1067,22 @@ watch(
   { immediate: true }
 );
 
-// 监听data变化
+// 监听data变化 - 使用引用和长度作为触发条件，避免深度监听
+const dataVersion = computed(() => {
+  const d = props.data;
+  if (!d) return 'null';
+  const arr = d.data || d;
+  return `${Array.isArray(arr) ? arr.length : 0}-${d.total || 0}`;
+});
 watch(
-  () => props.data,
-  newData => {
+  [() => props.data, dataVersion],
+  ([newData]) => {
     if (!newData) {
       return;
     }
     getStatisticData(false);
   },
-  { immediate: true, deep: true }
+  { immediate: true }
 );
 
 // 监听url变化
@@ -1092,7 +1099,6 @@ watch(
   () => props.columns,
   () => {
     userColumn.value = props.columns;
-    console.log(userColumn.value);
   }
 );
 

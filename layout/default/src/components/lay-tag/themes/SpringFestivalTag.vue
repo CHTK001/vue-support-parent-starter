@@ -72,6 +72,10 @@ const { $storage } = useGlobal<GlobalPropertiesApi>();
 // 标签页是否显示图标
 const showTagIcon = ref($storage.configure?.showTagIcon ?? false);
 
+// 提取 store 到顶层避免重复调用
+const multiTagsStore = useMultiTagsStoreHook();
+const permissionStore = usePermissionStoreHook();
+
 // 监听标签图标设置变化
 emitter.on("showTagIconChange", (val: boolean) => {
   showTagIcon.value = val;
@@ -79,7 +83,7 @@ emitter.on("showTagIconChange", (val: boolean) => {
 
 const fixedTags = [
   ...routerArrays,
-  ...usePermissionStoreHook().flatteningRoutes.filter((v) => v?.meta?.fixedTag),
+  ...permissionStore.flatteningRoutes.filter((v) => v?.meta?.fixedTag),
 ];
 
 const dynamicTagView = async () => {
@@ -188,7 +192,7 @@ function dynamicRouteTag(value: string): void {
     if (!hasValue) {
       arr.forEach((arrItem: any) => {
         if (arrItem.path === value) {
-          useMultiTagsStoreHook().handleTags("push", {
+          multiTagsStore.handleTags("push", {
             path: value,
             parentPath: arrItem.parentPath,
             meta: arrItem.meta,
@@ -200,12 +204,12 @@ function dynamicRouteTag(value: string): void {
       });
     }
   }
-  concatPath(usePermissionStoreHook().flatteningRoutes, value);
+  concatPath(permissionStore.flatteningRoutes, value);
 }
 
 function deleteMenu(item: RouteConfigs, tag?: string): void {
   handleAliveRoute(item);
-  useMultiTagsStoreHook().handleTags("splice", "", {
+  multiTagsStore.handleTags("splice", "", {
     startIndex: multiTags.value.findIndex((v) => v.path === item.path),
     deleteCount: 1,
   });
@@ -252,7 +256,7 @@ function selectTag(key: number, item: any): void {
 
 function closeOther(item: RouteConfigs): void {
   handleAliveRoute(item, "others");
-  useMultiTagsStoreHook().handleTags("equal", "", {
+  multiTagsStore.handleTags("equal", "", {
     path: item.path,
     meta: item.meta,
   });
@@ -260,7 +264,7 @@ function closeOther(item: RouteConfigs): void {
 
 function closeLeft(item: RouteConfigs): void {
   handleAliveRoute(item, "left");
-  useMultiTagsStoreHook().handleTags("left", "", {
+  multiTagsStore.handleTags("left", "", {
     path: item.path,
     meta: item.meta,
   });
@@ -268,7 +272,7 @@ function closeLeft(item: RouteConfigs): void {
 
 function closeRight(item: RouteConfigs): void {
   handleAliveRoute(item, "right");
-  useMultiTagsStoreHook().handleTags("right", "", {
+  multiTagsStore.handleTags("right", "", {
     path: item.path,
     meta: item.meta,
   });
@@ -280,8 +284,8 @@ function closeAll(): void {
     router.push("/welcome");
   }
   handleAliveRoute(route as RouteConfigs, "all");
-  useMultiTagsStoreHook().handleTags("deleteCache");
-  useMultiTagsStoreHook().handleTags("splice");
+  multiTagsStore.handleTags("deleteCache");
+  multiTagsStore.handleTags("splice");
 }
 
 function handleCommand({ key, item }) {

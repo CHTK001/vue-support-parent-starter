@@ -19,6 +19,8 @@ export function useTags() {
   const router = useRouter();
   const instance = getCurrentInstance();
   const pureSetting = useSettingStoreHook();
+  // 提取 store 引用到顶层
+  const multiTagsStore = useMultiTagsStoreHook();
 
   const buttonTop = ref(0);
   const buttonLeft = ref(0);
@@ -34,7 +36,7 @@ export function useTags() {
   /** 是否隐藏标签页，默认显示 */
   const showTags = ref(localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`).hideTabs) ?? ref("false");
   const multiTags: any = computed(() => {
-    return useMultiTagsStoreHook().multiTags || [];
+    return multiTagsStore.multiTags || [];
   });
 
   const tagsViews = reactive<Array<tagsViewsType>>([

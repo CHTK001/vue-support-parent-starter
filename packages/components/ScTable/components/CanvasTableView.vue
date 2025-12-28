@@ -603,10 +603,11 @@ const handleResize = debounce(() => {
   rerenderTable();
 }, 100);
 
-// 监听行数据变化，确保数据更新时重新渲染
+// 监听行数据变化 - 使用引用+长度作为版本号避免深度监听
+const tableDataVersion = computed(() => props.tableData?.length ?? 0);
 watch(
-  () => props.tableData,
-  newData => {
+  [() => props.tableData, tableDataVersion],
+  ([newData]) => {
     if (newData && newData.length > 0) {
       nextTick(() => {
         initCanvases();
@@ -620,19 +621,19 @@ watch(
       });
     }
   },
-  { immediate: true, deep: true }
+  { immediate: true }
 );
 
-// 监听列配置变化
+// 监听列配置变化 - 使用长度作为版本号避免深度监听
+const userColumnVersion = computed(() => props.userColumn?.length ?? 0);
 watch(
-  () => props.userColumn,
+  [() => props.userColumn, userColumnVersion],
   () => {
     nextTick(() => {
       initColumnWidths();
       rerenderTable();
     });
-  },
-  { deep: true }
+  }
 );
 
 // 监听toggleIndex变化
@@ -643,13 +644,15 @@ watch(
   }
 );
 
-// 监听config变化
+// 监听config变化 - 使用关键属性版本号避免深度监听
+const configVersion = computed(() => 
+  `${props.config?.border}-${props.config?.stripe}-${props.config?.size}`
+);
 watch(
-  () => props.config,
+  configVersion,
   () => {
     rerenderTable();
-  },
-  { deep: true }
+  }
 );
 
 // 处理右键菜单

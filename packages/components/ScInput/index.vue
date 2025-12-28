@@ -282,37 +282,37 @@ const loadData = async () => {
   }
 };
 
-// 监听选项变化
+// 监听选项变化 - 使用版本号避免深度监听
+const optionsVersion = computed(() => JSON.stringify(props.options));
 watch(
-  () => props.options,
-  newVal => {
+  [() => props.options, optionsVersion],
+  ([newVal]) => {
     if (!props.url || !optionsData.value.length) {
       optionsData.value = newVal || [];
     }
-  },
-  { deep: true }
+  }
 );
 
-// 监听fetchParams变化
+// 监听fetchParams变化 - 使用版本号避免深度监听
+const fetchParamsVersion = computed(() => JSON.stringify(props.fetchParams));
 watch(
-  () => props.fetchParams,
+  fetchParamsVersion,
   () => {
     if (props.autoLoad && typeof props.url === "function") {
       loadData();
     }
-  },
-  { deep: true }
+  }
 );
 
-// 监听params变化
+// 监听params变化 - 使用版本号避免深度监听
+const paramsVersion = computed(() => JSON.stringify(props.params));
 watch(
-  () => props.params,
+  paramsVersion,
   () => {
     if (props.autoLoad && typeof props.url === "function") {
       loadData();
     }
-  },
-  { deep: true }
+  }
 );
 
 // 监听url变化

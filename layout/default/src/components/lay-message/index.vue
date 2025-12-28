@@ -27,6 +27,8 @@ defineOptions({
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
+// 提取 store 引用到顶层，避免在生命周期中重复调用
+const configStore = useConfigStore();
 
 // 消息功能开关 - 从配置中读取
 const messageEnabled = ref(
@@ -283,7 +285,6 @@ onMounted(() => {
   emitter.on("showMessageChange", showMessageChangeHandler);
 
   // 监听Socket消息推送
-  const configStore = useConfigStore();
   const socket = configStore.getSocket();
   if (socket) {
     // 使用统一的主题命名规范
@@ -295,7 +296,6 @@ onMounted(() => {
 
 // 组件卸载时清理
 onUnmounted(() => {
-  const configStore = useConfigStore();
   const socket = configStore.getSocket();
   if (socket) {
     socket.off("service:message:push");

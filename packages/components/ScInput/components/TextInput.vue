@@ -205,8 +205,10 @@ watch(() => props.disabled, (newVal) => {
   }
 });
 
-// 监听选项变化
-watch(() => props.options, (newOptions) => {
+// 监听选项变化 - 使用版本号避免深度监听
+const optionsVersion = computed(() => JSON.stringify(props.options));
+watch(optionsVersion, () => {
+  const newOptions = props.options;
   // 如果当前值不在新选项中，可以在这里处理
   if (Array.isArray(newOptions) && newOptions.length > 0 && innerValue.value) {
     const found = newOptions.some(option => option.value === innerValue.value);
@@ -216,7 +218,7 @@ watch(() => props.options, (newOptions) => {
       // emit('update:modelValue', innerValue.value);
     }
   }
-}, { deep: true });
+});
 
 // 获取数据
 const fetchData = async () => {

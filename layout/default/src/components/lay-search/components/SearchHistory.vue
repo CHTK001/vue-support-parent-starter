@@ -25,11 +25,14 @@ const emit = defineEmits<Emits>();
 const instance = getCurrentInstance()!;
 const props = withDefaults(defineProps<Props>(), {});
 
+// 提取 epThemeStore 到顶层避免重复调用
+const epThemeStore = useEpThemeStoreHook();
+
 const itemStyle = computed(() => {
   return (item) => {
     return {
       background:
-        item?.path === active.value ? useEpThemeStoreHook().epThemeColor : "",
+        item?.path === active.value ? epThemeStore.epThemeColor : "",
       color: item.path === active.value ? "#fff" : "",
       fontSize: item.path === active.value ? "16px" : "14px",
     };
@@ -38,7 +41,7 @@ const itemStyle = computed(() => {
 
 const titleStyle = computed(() => {
   return {
-    color: useEpThemeStoreHook().epThemeColor,
+    color: epThemeStore.epThemeColor,
     fontWeight: 500,
   };
 });
@@ -112,10 +115,11 @@ const handleChangeIndex = (evt): void => {
 
 let sortableInstance = null;
 
+// 监听收藏列表长度变化，而不是深度监听整个数组
 watch(
-  collectList,
-  (val) => {
-    if (val.length > 1) {
+  () => collectList.value.length,
+  (len) => {
+    if (len > 1) {
       nextTick(() => {
         const wrapper: HTMLElement =
           document.querySelector(".collect-container");
@@ -134,7 +138,7 @@ watch(
       });
     }
   },
-  { deep: true, immediate: true }
+  { immediate: true }
 );
 
 defineExpose({ handleScroll });

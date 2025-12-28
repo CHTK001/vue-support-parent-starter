@@ -15,7 +15,7 @@ import {
 import { useI18n } from "vue-i18n";
 import { useNav } from "../../../hooks/useNav";
 import LayPanel from "../../lay-panel/index.vue";
-import { getAvailableThemes, ThemeType } from "../../../themes";
+import { getAvailableThemes, ThemeType, detectFestivalTheme } from "../../../themes";
 
 import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
@@ -273,7 +273,6 @@ const festivalThemeChange = (value: boolean): void => {
   
   if (value) {
     // 开启自动切换，检测并应用节日主题
-    const { detectFestivalTheme } = require("../../themes");
     const festivalTheme = detectFestivalTheme();
     
     if (festivalTheme) {

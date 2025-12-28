@@ -750,10 +750,11 @@ const useQuery = (query) => {
   emit('select-query', query);
 };
 
-// 监听自定义示例变化
-watch(() => props.customExamples, () => {
+// 监听自定义示例变化 - 使用长度作为版本号避免深度监听
+const customExamplesVersion = computed(() => props.customExamples?.length ?? 0);
+watch(customExamplesVersion, () => {
   // 可以添加额外的处理逻辑
-}, { deep: true });
+});
 </script>
 
 <style lang="scss" scoped>

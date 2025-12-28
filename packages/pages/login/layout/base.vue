@@ -199,7 +199,6 @@ const onLogin = async (formEl) => {
         });
     } else {
       // 表单验证失败
-      console.log("表单验证失败:", fields);
     }
   });
 };

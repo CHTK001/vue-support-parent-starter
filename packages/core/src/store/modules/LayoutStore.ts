@@ -208,7 +208,6 @@ export const useLayoutStore = defineStore({
       if (!getConfig().RemoteLayout) {
         return;
       }
-      console.log(console.trace());
       await this.loadSfc();
       const data = localStorageProxy().getItem(this.storageKey);
       if (!data) {

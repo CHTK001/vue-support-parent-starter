@@ -13,13 +13,16 @@ const props = defineProps<{
 const compList = shallowRef([]);
 const { setMap, getMap, MAP, delMap } = useMultiFrame();
 
+// 提取 store 到顶层避免重复调用
+const multiTagsStore = useMultiTagsStoreHook();
+
 const keep = computed(() => {
   return getConfig().KeepAlive && props.currRoute.meta?.keepAlive && !!props.currRoute.meta?.frameSrc;
 });
 // 避免重新渲染 LayFrame
 const normalComp = computed(() => !keep.value && props.currComp);
 
-watch(useMultiTagsStoreHook().multiTags, (tags: any) => {
+watch(multiTagsStore.multiTags, (tags: any) => {
   if (!Array.isArray(tags) || !keep.value) {
     return;
   }
@@ -38,7 +41,7 @@ watch(useMultiTagsStoreHook().multiTags, (tags: any) => {
 watch(
   () => props.currRoute.fullPath,
   (path) => {
-    const multiTags = useMultiTagsStoreHook().multiTags as RouteRecordRaw[];
+    const multiTags = multiTagsStore.multiTags as RouteRecordRaw[];
     const iframeTags = multiTags?.filter((i) => i.meta?.frameSrc);
     if (keep.value) {
       if (iframeTags.length !== MAP.size) {

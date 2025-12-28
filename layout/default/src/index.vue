@@ -6,21 +6,21 @@ import {
   emitter,
   initRouter,
   useAppStoreHook,
-  useConfigStore,
   useSettingStoreHook,
 } from "@repo/core";
 import { useI18n } from "vue-i18n";
 import { useDataThemeChange } from "./hooks/useDataThemeChange";
 import { useLayout } from "./hooks/useLayout";
+import { useLoadingPage } from "./hooks/useLoadingPage";
+import { useResponsiveLayout } from "./hooks/useResponsiveLayout";
+import { useWatermarkSetup } from "./hooks/useWatermarkSetup";
+import { useDebugMode } from "./hooks/useDebugMode";
 import { setType } from "./types";
 import ScDebugConsole from "@repo/components/ScDebugConsole/index.vue";
 
 import {
-  deviceDetection,
   useDark,
   useGlobal,
-  useResizeObserver,
-  useWatermark,
 } from "@pureadmin/utils";
 import {
   computed,
@@ -54,6 +54,7 @@ import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 // 导入主题皮肤样式
 import "./themes/christmas.scss";
 import "./themes/spring-festival.scss";
+
 window.onload = () => {
   registerRequestIdleCallback(() => {
     createFingerprint((finger) => {
@@ -61,6 +62,7 @@ window.onload = () => {
     });
   });
 };
+
 const CardNavigation = defineAsyncComponent(
   () => import("./components/lay-sidebar/components/CardNavigation.vue")
 );
@@ -72,129 +74,73 @@ const NavHorizontal = markRaw(NavHorizontalLayout);
 const NavHover = markRaw(NavHoverLayout);
 const NavDouble = markRaw(NavDoubleLayout);
 const NavMobile = markRaw(NavMobileLayout);
+
 const { t } = useI18n();
 const appWrapperRef = ref<HTMLElement>();
 const watermarkContainerRef = ref<HTMLElement>();
+const debugConsoleRef = ref<InstanceType<typeof ScDebugConsole> | null>(null);
 const { isDark } = useDark();
 
-// 防删除水印
-const { setWatermark: setForeverWatermark, clear: clearForeverWatermark } = useWatermark(watermarkContainerRef);
+// ===== Composables =====
+// 加载页逻辑
+const {
+  isConfigLoaded,
+  isFirstLoad,
+  loadingStyle,
+  secondRotation,
+  minuteRotation,
+  hourRotation,
+  startClock,
+  loadConfig,
+} = useLoadingPage();
 
-// 添加加载状态管理（默认为 true，不显示加载遮罩）
-const isConfigLoaded = ref(true);
+// 水印功能
+const { initWatermark } = useWatermarkSetup(watermarkContainerRef);
 
-// 是否首次加载（用于显示不同的加载文字）
-const isFirstLoad = ref(!sessionStorage.getItem("_app_loaded"));
+// 调试模式
+const { debugMode, setDebugConsoleRef, handleDebugConsoleClose } = useDebugMode();
+setDebugConsoleRef(debugConsoleRef);
 
-// 加载页面风格（从配置读取，默认简约风格）
-const loadingStyle = computed(() => getConfig().LoadingPageStyle || "minimal");
-
-// 时钟相关状态
-const currentTime = ref(new Date());
-const clockTimer = ref<number | null>(null);
-
-// 时钟指针角度计算
-const secondRotation = computed(() => {
-  return currentTime.value.getSeconds() * 6; // 每秒6度
-});
-const minuteRotation = computed(() => {
-  const minutes = currentTime.value.getMinutes();
-  const seconds = currentTime.value.getSeconds();
-  return minutes * 6 + seconds * 0.1; // 每分钟6度，秒针带动分针微动
-});
-const hourRotation = computed(() => {
-  const hours = currentTime.value.getHours() % 12;
-  const minutes = currentTime.value.getMinutes();
-  return hours * 30 + minutes * 0.5; // 每小时30度，分针带动时针微动
-});
-
-// 启动时钟
-const startClock = () => {
-  clockTimer.value = window.setInterval(() => {
-    currentTime.value = new Date();
-  }, 1000);
-};
-
-// 停止时钟
-const stopClock = () => {
-  if (clockTimer.value) {
-    clearInterval(clockTimer.value);
-    clockTimer.value = null;
-  }
-};
-
-// AI 助手皮肤主题（初始化后在 onMounted 中设置正确的值）
+// AI 助手皮肤主题
 const aiChatTheme = ref(getConfig().AiChatTheme || "default");
-
-// 调试模式状态
-const debugMode = ref(false);
-const debugConsoleRef = ref<InstanceType<typeof ScDebugConsole> | null>(null);
 
 const { initStorage } = useLayout();
 const { dataThemeChange } = useDataThemeChange();
 
 initStorage();
 
+const pureSetting = useSettingStoreHook();
+const appStore = useAppStoreHook();
+const { $storage } = useGlobal<GlobalPropertiesApi>();
+
 // 将layout改为字符串形式
 const layout = computed(() => {
   return $storage?.layout?.layout || "vertical";
 });
 
-const isMobile = deviceDetection();
-const pureSetting = useSettingStoreHook();
-const { $storage } = useGlobal<any>();
-
-// 从本地存储初始化调试模式状态
-debugMode.value = $storage?.configure?.debugMode ?? false;
+// 响应式布局
+const { isMobile, initResponsiveObserver, initMobile } = useResponsiveLayout(
+  appWrapperRef,
+  { get isClickCollapse() { return set.sidebar.isClickCollapse; } }
+);
 
 // 监听 AI 助手皮肤变更
 emitter.on("aiChatThemeChange", (theme: string) => {
   aiChatTheme.value = theme;
 });
 
-// 监听调试模式变更
-emitter.on("debugModeChange", (enabled: boolean) => {
-  debugMode.value = enabled;
-  if (enabled) {
-    nextTick(() => {
-      debugConsoleRef.value?.show();
-    });
-  } else {
-    debugConsoleRef.value?.handleClose();
-  }
-});
-
-// 调试控制台关闭回调
-function handleDebugConsoleClose() {
-  debugMode.value = false;
-  emitter.emit("debugModeChanged", false);
-}
-
+// 提取 store 引用到顶层避免重复调用
 const set: setType = reactive({
-  sidebar: computed(() => {
-    return useAppStoreHook().sidebar;
-  }),
-
-  device: computed(() => {
-    return useAppStoreHook().device;
-  }),
-
-  fixedHeader: computed(() => {
-    return pureSetting.fixedHeader;
-  }),
-
-  classes: computed(() => {
-    return {
-      hideSidebar: !set.sidebar.opened,
-      openSidebar: set.sidebar.opened,
-      withoutAnimation: set.sidebar.withoutAnimation,
-      mobile: set.device === "mobile",
-    };
-  }),
-
-  hideTabs: computed(() => {
-    return $storage?.configure.hideTabs;
-  }),
+  sidebar: computed(() => appStore.sidebar),
+  device: computed(() => appStore.device),
+  fixedHeader: computed(() => pureSetting.fixedHeader),
+  classes: computed(() => ({
+    hideSidebar: !set.sidebar.opened,
+    openSidebar: set.sidebar.opened,
+    withoutAnimation: set.sidebar.withoutAnimation,
+    mobile: set.device === "mobile",
+  })),
+  hideTabs: computed(() => $storage?.configure.hideTabs),
 });
 
 // 监听 sidebar 状态变化，同步到 body 上（用于 drawer 等组件的定位）
@@ -212,94 +158,6 @@ watch(
   { immediate: true }
 );
 
-function setTheme(layoutModel: string) {
-  window.document.body.setAttribute("layout", layoutModel);
-  $storage.layout = {
-    layout: `${layoutModel}`,
-    theme: $storage.layout?.theme,
-    darkMode: $storage.layout?.darkMode,
-    sidebarStatus: $storage.layout?.sidebarStatus,
-    epThemeColor: $storage.layout?.epThemeColor,
-    themeColor: $storage.layout?.themeColor,
-    overallStyle: $storage.layout?.overallStyle,
-  };
-}
-
-function toggle(device: string, bool: boolean) {
-  useAppStoreHook().toggleDevice(device);
-  useAppStoreHook().toggleSideBar(bool, "resize");
-}
-
-// 判断是否可自动关闭菜单栏
-let isAutoCloseSidebar = true;
-
-useResizeObserver(appWrapperRef, (entries) => {
-  if (isMobile) return;
-  const entry = entries[0];
-  const [{ inlineSize: width, blockSize: height }] = entry.borderBoxSize;
-  useAppStoreHook().setViewportSize({ width, height });
-  width <= 760 ? setTheme("vertical") : setTheme(useAppStoreHook().layout);
-  /** width app-wrapper类容器宽度
-   * 0 < width <= 760 隐藏侧边栏
-   * 760 < width <= 990 折叠侧边栏
-   * width > 990 展开侧边栏
-   */
-  if (width > 0 && width <= 760) {
-    toggle("mobile", false);
-    isAutoCloseSidebar = true;
-  } else if (width > 760 && width <= 990) {
-    if (isAutoCloseSidebar) {
-      toggle("desktop", false);
-      isAutoCloseSidebar = false;
-    }
-  } else if (width > 990 && !set.sidebar.isClickCollapse) {
-    toggle("desktop", true);
-    isAutoCloseSidebar = true;
-  } else {
-    toggle("desktop", false);
-    isAutoCloseSidebar = false;
-  }
-});
-
-/**
- * 获取系统默认配置
- */
-const getDefaultSetting = async () => {
-  try {
-    await useConfigStore().load();
-    isConfigLoaded.value = true;
-    // 标记已加载过，下次刷新不显示"初始化"
-    sessionStorage.setItem("_app_loaded", "1");
-    
-    // 启用防删除水印
-    nextTick(() => {
-      initForeverWatermark();
-    });
-  } catch (error) {
-    console.warn("Failed to load config:", error);
-    // 根据配置决定是否保持加载页面
-    if (!getConfig().BlockOnConfigLoadFail) {
-      isConfigLoaded.value = true;
-      sessionStorage.setItem("_app_loaded", "1");
-    }
-  }
-};
-
-/** 初始化防删除水印 */
-const initForeverWatermark = () => {
-  const watermarkConfig = useConfigStore().getWatermarkConfig();
-  if (watermarkConfig.enabled && watermarkConfig.text) {
-    setForeverWatermark(watermarkConfig.text, {
-      forever: true,
-      width: 200,
-      height: 100,
-      rotate: watermarkConfig.rotate,
-      globalAlpha: watermarkConfig.globalAlpha,
-      color: watermarkConfig.color,
-    });
-  }
-};
-
 // 页面可见性变化处理
 let originalTitle = "";
 const handleVisibilityChange = () => {
@@ -308,7 +166,6 @@ const handleVisibilityChange = () => {
     document.title = "👀 快回来呀~";
   } else {
     document.title = "🎉 欢迎回来！";
-    // 2秒后恢复原标题
     setTimeout(() => {
       if (!document.hidden && originalTitle) {
         document.title = originalTitle;
@@ -321,30 +178,30 @@ onMounted(async () => {
   // 启动加载页时钟
   startClock();
   
-  if (isMobile) {
-    toggle("mobile", false);
-  }
+  // 初始化移动端
+  initMobile();
+  
+  // 初始化响应式监听
+  initResponsiveObserver();
 
   // 监听页面可见性变化
   document.addEventListener("visibilitychange", handleVisibilityChange);
 
   // 页面加载完成后检查配置并应用
   nextTick(() => {
-    // 确保body的layout属性正确设置
+    // 确保 body 的 layout 属性正确设置
     if ($storage?.layout?.layout) {
       document.body.setAttribute("layout", $storage.layout.layout);
     }
-    // 应用整体风格（使用在 setup 顶层获取的 dataThemeChange）
+    // 应用整体风格
     dataThemeChange($storage?.layout?.overallStyle);
-    // 等待配置加载完成
-    getDefaultSetting();
+    // 加载配置，完成后初始化水印
+    loadConfig(() => nextTick(initWatermark));
   });
 });
 
 onUnmounted(() => {
   document.removeEventListener("visibilitychange", handleVisibilityChange);
-  stopClock();
-  clearForeverWatermark();
 });
 
 /**
@@ -374,11 +231,10 @@ if (!window.__THEME_INITIALIZED__) {
   try {
     // 直接操作 DOM，不依赖模块导入
     const systemTheme = $storage?.configure?.systemTheme || 'default';
-    console.log('🎨 首次初始化主题:', systemTheme);
     document.documentElement.setAttribute('data-skin', systemTheme);
     window.__THEME_INITIALIZED__ = true;
   } catch (error) {
-    console.error('主题初始化失败:', error);
+    // theme init error ignored
   }
 }
 

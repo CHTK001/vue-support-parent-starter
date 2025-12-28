@@ -1,6 +1,6 @@
 import type { El } from "typeit/dist/types";
 import TypeIt, { type Options as TypeItOptions } from "typeit";
-import { type PropType, ref, defineComponent, onMounted, onUnmounted, watch } from "vue";
+import { type PropType, ref, defineComponent, onMounted, onUnmounted, watch, computed } from "vue";
 
 /**
  * 打字机效果组件
@@ -90,14 +90,11 @@ export default defineComponent({
       destroyTypeIt();
     });
 
-    // 监听 options 变化，重新初始化
-    watch(
-      () => props.options,
-      () => {
-        initTypeIt();
-      },
-      { deep: true }
-    );
+    // 监听 options 变化 - 使用版本号避免深度监听
+    const optionsVersion = computed(() => JSON.stringify(props.options));
+    watch(optionsVersion, () => {
+      initTypeIt();
+    });
 
     expose({
       typeIt: typeItInstance,

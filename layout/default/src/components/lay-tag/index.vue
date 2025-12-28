@@ -2,24 +2,21 @@
 /**
  * lay-tag 组件
  * @description 使用 useThemeComponent Hook 统一管理主题切换
- * @version 2.0.0 - 重构版本
+ * @version 2.1.0 - 支持主题组件懒加载
  */
+import { defineAsyncComponent } from "vue";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultTag from "./themes/Default.vue";
-import SpringFestivalTag from "./themes/SpringFestival.vue";
-import CyberpunkTag from "./themes/Cyberpunk.vue";
-import MidAutumnTag from "./themes/MidAutumn.vue";
-import ChristmasTag from "./themes/Christmas.vue";
-import NewYearTag from "./themes/NewYear.vue";
 
-// 主题组件映射
+// 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
   'default': DefaultTag,
-  'spring-festival': SpringFestivalTag,
-  'cyberpunk': CyberpunkTag,
-  'mid-autumn': MidAutumnTag,
-  'christmas': ChristmasTag,
-  'new-year': NewYearTag,
+  'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestivalTag.vue")),
+  'lunar-spring-festival': defineAsyncComponent(() => import("./themes/LunarSpringTag.vue")),
+  'cyberpunk': defineAsyncComponent(() => import("./themes/Cyberpunk.vue")),
+  'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumnTag.vue")),
+  'christmas': defineAsyncComponent(() => import("./themes/ChristmasTag.vue")),
+  'new-year': defineAsyncComponent(() => import("./themes/NewYearTag.vue")),
 };
 
 // 使用统一的主题切换 Hook

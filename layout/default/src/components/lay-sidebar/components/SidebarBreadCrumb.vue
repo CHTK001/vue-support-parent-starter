@@ -126,9 +126,6 @@ watch(
   () => route.path,
   () => {
     getBreadcrumb();
-  },
-  {
-    deep: true,
   }
 );
 </script>

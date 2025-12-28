@@ -320,7 +320,7 @@ const flightLineAdapter = computed(() => {
 
     startDrawing: () => {
       // 简单实现，可以在这里添加绘制逻辑
-      console.log('开始绘制飞线');
+      logger.debug('开始绘制飞线');
       return true;
     },
 
@@ -977,12 +977,13 @@ onBeforeUnmount(() => {
   configObject = null;
 });
 
-// 监听属性变化
-watch(() => props.center, (newCenter) => {
+// 监听属性变化 - 使用数组join作为版本号避免深度监听
+const centerVersion = computed(() => props.center?.join(',') ?? '');
+watch(centerVersion, () => {
   if (mapObj && mapInitialized.value) {
-    mapObj.setCenter(newCenter[0], newCenter[1]);
+    mapObj.setCenter(props.center[0], props.center[1]);
   }
-}, { deep: true });
+});
 
 watch(() => props.zoom, (newZoom) => {
   if (mapObj && mapInitialized.value) {
@@ -1002,19 +1003,21 @@ watch(() => props.scrollWheelZoom, (newVal) => {
   }
 });
 
-// 监听标记配置变化
-watch(() => props.markerConfig, (newConfig) => {
-  if (markerObject && newConfig) {
-    markerObject.setConfig(newConfig);
+// 监听标记配置变化 - 使用版本号避免深度监听
+const markerConfigVersion = computed(() => JSON.stringify(props.markerConfig));
+watch(markerConfigVersion, () => {
+  if (markerObject && props.markerConfig) {
+    markerObject.setConfig(props.markerConfig);
   }
-}, { deep: true });
+});
 
-// 监听聚合配置变化
-watch(() => props.aggregationOptions, (newOptions) => {
-  if (toolbarObject && newOptions) {
-    toolbarObject.setClusterConfig(newOptions);
+// 监听聚合配置变化 - 使用版本号避免深度监听
+const aggregationOptionsVersion = computed(() => JSON.stringify(props.aggregationOptions));
+watch(aggregationOptionsVersion, () => {
+  if (toolbarObject && props.aggregationOptions) {
+    toolbarObject.setClusterConfig(props.aggregationOptions);
   }
-}, { deep: true });
+});
 
 // 地图事件处理函数
 const handleMapClick = (event: any) => {

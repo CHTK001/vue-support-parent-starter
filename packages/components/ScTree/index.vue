@@ -263,10 +263,11 @@ const treeRef = ref<TreeComponentInstance | null>(null);
 // 树形数据
 const treeData = ref<TreeNodeData[]>([...props.data]);
 
-// 监听data变化，更新内部数据
-watch(() => props.data, (val) => {
+// 监听data变化 - 使用引用+长度作为触发条件，避免深度监听
+const dataVersion = computed(() => props.data?.length ?? 0);
+watch([() => props.data, dataVersion], ([val]) => {
   treeData.value = [...val];
-}, { deep: true });
+});
 
 // 过滤树节点
 const filter = (value: TreeFilterValue) => {

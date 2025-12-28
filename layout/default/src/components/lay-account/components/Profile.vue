@@ -87,13 +87,11 @@ const handleSubmitImage = () => {
 
 // 更新信息
 const onSubmit = async (formEl: FormInstance) => {
-  await formEl.validate((valid, fields) => {
+    await formEl.validate((valid, fields) => {
     if (valid) {
       fetchUpdateUser(userInfos).then(res => {
         message("更新信息成功", { type: "success" });
       });
-    } else {
-      console.log("error submit!", fields);
     }
   });
 };

@@ -4,22 +4,18 @@
  * @description 使用 useThemeComponent Hook 统一管理主题切换
  * @version 2.0.0 - 重构版本
  */
+import { defineAsyncComponent } from "vue";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultBreadcrumb from "./themes/Default.vue";
-import SpringFestivalBreadcrumb from "./themes/SpringFestival.vue";
-import CyberpunkBreadcrumb from "./themes/Cyberpunk.vue";
-import MidAutumnBreadcrumb from "./themes/MidAutumn.vue";
-import ChristmasBreadcrumb from "./themes/Christmas.vue";
-import NewYearBreadcrumb from "./themes/NewYear.vue";
 
-// 主题组件映射
+// 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
   'default': DefaultBreadcrumb,
-  'spring-festival': SpringFestivalBreadcrumb,
-  'cyberpunk': CyberpunkBreadcrumb,
-  'mid-autumn': MidAutumnBreadcrumb,
-  'christmas': ChristmasBreadcrumb,
-  'new-year': NewYearBreadcrumb,
+  'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestival.vue")),
+  'cyberpunk': defineAsyncComponent(() => import("./themes/Cyberpunk.vue")),
+  'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumn.vue")),
+  'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
+  'new-year': defineAsyncComponent(() => import("./themes/NewYear.vue")),
 };
 
 // 使用统一的主题切换 Hook

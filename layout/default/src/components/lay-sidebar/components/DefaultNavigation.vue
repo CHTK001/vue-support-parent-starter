@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useNav } from "../../../hooks/useNav";
+import type { MenuItem } from "../../../types/menu";
 import NavVertical from "../NavVertical.vue";
 import NavHorizontal from "../NavHorizontal.vue";
 import NavMix from "../NavMix.vue";
@@ -17,8 +18,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Emits
 interface Emits {
-  menuClick: [menu: any];
-  favoriteToggle: [menu: any, isFavorited: boolean];
+  menuClick: [menu: MenuItem];
+  favoriteToggle: [menu: MenuItem, isFavorited: boolean];
 }
 
 const emit = defineEmits<Emits>();
@@ -26,12 +27,12 @@ const emit = defineEmits<Emits>();
 const { layout } = useNav();
 
 // 处理菜单点击事件
-function handleMenuClick(menu: any) {
+function handleMenuClick(menu: MenuItem) {
   emit('menuClick', menu);
 }
 
 // 处理收藏切换事件
-function handleFavoriteToggle(menu: any, isFavorited: boolean) {
+function handleFavoriteToggle(menu: MenuItem, isFavorited: boolean) {
   emit('favoriteToggle', menu, isFavorited);
 }
 </script>

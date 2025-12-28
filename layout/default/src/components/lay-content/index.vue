@@ -48,6 +48,10 @@ const { t } = useI18n();
 const { showModel } = useTags();
 const { $storage, $config } = useGlobal<GlobalPropertiesApi>();
 
+// 提取 store 引用到顶层，避免每次渲染重复调用
+const permissionStore = usePermissionStoreHook();
+const cachePageList = computed(() => permissionStore.cachePageList);
+
 // 组件缓存，从配置中读取
 const isKeepAlive = ref(
   $storage?.configure?.keepAlive ?? $config?.KeepAlive ?? true
@@ -289,9 +293,9 @@ onBeforeUnmount(() => {
                 }"
               >
                 <transitionMain :route="route">
-                  <keep-alive
+                <keep-alive
                     v-if="isKeepAlive"
-                    :include="usePermissionStoreHook().cachePageList"
+                    :include="cachePageList"
                   >
                     <component
                       :is="Comp"
@@ -319,9 +323,9 @@ onBeforeUnmount(() => {
                 }"
               >
                 <transitionMain :route="route">
-                  <keep-alive
+                <keep-alive
                     v-if="isKeepAlive"
-                    :include="usePermissionStoreHook().cachePageList"
+                    :include="cachePageList"
                   >
                     <component
                       :is="Comp"
@@ -356,7 +360,7 @@ onBeforeUnmount(() => {
                 <transitionMain :route="route">
                   <keep-alive
                     v-if="isKeepAlive"
-                    :include="usePermissionStoreHook().cachePageList"
+                    :include="cachePageList"
                   >
                     <component
                       :is="Comp"
@@ -387,7 +391,7 @@ onBeforeUnmount(() => {
                 <transitionMain :route="route">
                   <keep-alive
                     v-if="isKeepAlive"
-                    :include="usePermissionStoreHook().cachePageList"
+                    :include="cachePageList"
                   >
                     <component
                       :is="Comp"

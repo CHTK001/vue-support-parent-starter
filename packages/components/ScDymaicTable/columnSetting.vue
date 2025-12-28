@@ -51,12 +51,15 @@ export default {
       usercolumn: JSON.parse(JSON.stringify(this.column || []))
     };
   },
+  computed: {
+    // 版本号用于监听 usercolumn 变化，避免深度监听
+    usercolumnVersion() {
+      return JSON.stringify(this.usercolumn);
+    }
+  },
   watch: {
-    usercolumn: {
-      handler() {
-        this.$emit("userChange", this.usercolumn);
-      },
-      deep: true
+    usercolumnVersion() {
+      this.$emit("userChange", this.usercolumn);
     }
   },
   mounted() {

@@ -12,11 +12,15 @@ import { transformI18n } from "@repo/config";
 import { isAllEmpty } from "@pureadmin/utils";
 import { computed, ref, toRaw, watch } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import type { MenuItem } from "../../types/menu";
 import LaySidebarExtraIcon from "./components/SidebarExtraIcon.vue";
 
 const route = useRoute();
 const router = useRouter();
 const { pureApp, menuSelect, getLogo, onPanel } = useNav();
+
+// 提取 store 到顶层避免重复调用
+const permissionStore = usePermissionStoreHook();
 
 // 打开设置面板
 function openSetting() {
@@ -34,7 +38,7 @@ const activeMenuIndex = ref(0);
 
 // 获取菜单数据
 const menuData = computed(() => {
-  return usePermissionStoreHook().wholeMenus || [];
+  return permissionStore.wholeMenus || [];
 });
 
 // 当前激活路径
@@ -57,7 +61,7 @@ const hasMoreMenu = computed(() => {
  * 获取菜单的实际跳转路径
  * 优先使用 redirect，否则递归查找第一个可跳转的子菜单
  */
-function getMenuPath(item: any): string {
+function getMenuPath(item: MenuItem): string {
   // 如果有 redirect，优先使用
   if (item.redirect && item.redirect !== item.path) {
     return item.redirect;
@@ -65,7 +69,7 @@ function getMenuPath(item: any): string {
   // 如果有子菜单，递归查找第一个可跳转的
   if (item.children && item.children.length > 0) {
     const showingChildren = item.children.filter(
-      (child: any) => child.meta?.showLink !== false
+      (child: MenuItem) => child.meta?.showLink !== false
     );
     if (showingChildren.length > 0) {
       return getMenuPath(showingChildren[0]);
@@ -78,13 +82,13 @@ function getMenuPath(item: any): string {
 /**
  * 递归获取所有叶子菜单（没有子菜单的菜单项）
  */
-function getAllLeafMenus(menus: any[]): any[] {
-  const result: any[] = [];
+function getAllLeafMenus(menus: MenuItem[]): MenuItem[] {
+  const result: MenuItem[] = [];
   for (const menu of menus) {
     if (menu.meta?.showLink === false) continue;
 
     const showingChildren =
-      menu.children?.filter((child: any) => child.meta?.showLink !== false) ||
+      menu.children?.filter((child: MenuItem) => child.meta?.showLink !== false) ||
       [];
 
     if (showingChildren.length === 0) {
@@ -99,12 +103,12 @@ function getAllLeafMenus(menus: any[]): any[] {
 }
 
 // 点击底部导航项 - 直接弹出子菜单
-function handleNavClick(item: any, index: number) {
+function handleNavClick(item: MenuItem, index: number) {
   activeMenuIndex.value = index;
 
   // 如果有子菜单，打开抽屉显示子菜单
   const showingChildren =
-    item.children?.filter((child: any) => child.meta?.showLink !== false) || [];
+    item.children?.filter((child: MenuItem) => child.meta?.showLink !== false) || [];
 
   if (showingChildren.length > 0) {
     drawerVisible.value = true;
@@ -123,7 +127,7 @@ function handleMoreClick() {
 }
 
 // 点击子菜单项
-function handleSubMenuClick(item: any) {
+function handleSubMenuClick(item: MenuItem) {
   const targetPath = getMenuPath(item);
   router.push(targetPath);
   menuSelect(targetPath);
@@ -150,7 +154,7 @@ const currentSubMenus = computed(() => {
   // 显示当前菜单的子菜单
   return (
     currentMenu.value?.children?.filter(
-      (child: any) => child.meta?.showLink !== false
+      (child: MenuItem) => child.meta?.showLink !== false
     ) || []
   );
 });

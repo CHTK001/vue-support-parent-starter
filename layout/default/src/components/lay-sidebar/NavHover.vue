@@ -1,48 +1,21 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { useNav } from "../../hooks/useNav";
-import DefaultNavigation from "./components/DefaultNavigation.vue";
-import HoverNavigation from "./components/HoverNavigation.vue";
+import { defineAsyncComponent } from "vue";
+import { useThemeComponent } from "../../hooks/useThemeComponent";
+import DefaultHover from "./themes/hover/Default.vue";
 
-// Props
-interface Props {
-  showLogo?: boolean;
-}
+// 主题组件映射 - 默认主题静态导入，其他主题懒加载
+const themeComponents = {
+  'default': DefaultHover,
+  'spring-festival': defineAsyncComponent(() => import("./themes/hover/SpringFestival.vue")),
+  'cyberpunk': defineAsyncComponent(() => import("./themes/hover/Cyberpunk.vue")),
+  'mid-autumn': defineAsyncComponent(() => import("./themes/hover/MidAutumn.vue")),
+  'christmas': defineAsyncComponent(() => import("./themes/hover/Christmas.vue")),
+  'new-year': defineAsyncComponent(() => import("./themes/hover/NewYear.vue")),
+};
 
-const props = withDefaults(defineProps<Props>(), {
-  showLogo: true,
-});
-
-// Emits
-interface Emits {
-  menuClick: [menu: any];
-  favoriteToggle: [menu: any, isFavorited: boolean];
-}
-
-const emit = defineEmits<Emits>();
-
-const { layout } = useNav();
-
-// 从全局状态获取布局模式
-const isHoverMode = computed(() => layout.value === "hover");
-
-// 处理菜单点击事件
-function handleMenuClick(menu: any) {
-  emit("menuClick", menu);
-}
-
-// 处理收藏切换事件
-function handleFavoriteToggle(menu: any, isFavorited: boolean) {
-  emit("favoriteToggle", menu, isFavorited);
-}
+const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultHover);
 </script>
 
 <template>
-  <!-- 根据导航模式选择对应的组件 -->
-  <HoverNavigation v-if="isHoverMode" :show-logo="props.showLogo" @menu-click="handleMenuClick" @favorite-toggle="handleFavoriteToggle" />
-  <DefaultNavigation v-else :show-logo="props.showLogo" @menu-click="handleMenuClick" @favorite-toggle="handleFavoriteToggle" />
+  <component :is="CurrentComponent" :key="currentTheme" />
 </template>
-
-<style lang="scss" scoped>
-/* 主容器样式由子组件负责 */
-</style>

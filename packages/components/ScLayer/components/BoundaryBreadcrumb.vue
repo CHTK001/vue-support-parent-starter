@@ -45,10 +45,15 @@ export default defineComponent({
     // 面包屑项目
     const breadcrumbItems = ref<BoundaryData[]>([]);
 
-    // 监听历史和当前边界变化，更新面包屑
+    // 监听历史和当前边界变化 - 使用版本号避免深度监听
+    const boundaryVersion = computed(() => 
+      `${props.historyBoundaries?.length ?? 0}-${props.currentBoundary?.code ?? ''}`
+    );
     watch(
-      [() => props.historyBoundaries, () => props.currentBoundary],
-      ([history, current]) => {
+      boundaryVersion,
+      () => {
+        const history = props.historyBoundaries;
+        const current = props.currentBoundary;
         if (current) {
           // 构建面包屑路径
           breadcrumbItems.value = [
@@ -66,7 +71,7 @@ export default defineComponent({
           ];
         }
       },
-      { immediate: true, deep: true }
+      { immediate: true }
     );
 
     // 处理面包屑点击

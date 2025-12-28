@@ -2,24 +2,20 @@
 /**
  * lay-tool 组件
  * @description 使用 useThemeComponent Hook 统一管理主题切换
- * @version 2.0.0 - 重构版本
+ * @version 2.1.0 - 支持主题组件懒加载
  */
+import { defineAsyncComponent } from "vue";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultTool from "./themes/Default.vue";
-import SpringFestivalTool from "./themes/SpringFestival.vue";
-import CyberpunkTool from "./themes/Cyberpunk.vue";
-import MidAutumnTool from "./themes/MidAutumn.vue";
-import ChristmasTool from "./themes/Christmas.vue";
-import NewYearTool from "./themes/NewYear.vue";
 
-// 主题组件映射
+// 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
   'default': DefaultTool,
-  'spring-festival': SpringFestivalTool,
-  'cyberpunk': CyberpunkTool,
-  'mid-autumn': MidAutumnTool,
-  'christmas': ChristmasTool,
-  'new-year': NewYearTool,
+  'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestival.vue")),
+  'cyberpunk': defineAsyncComponent(() => import("./themes/Cyberpunk.vue")),
+  'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumn.vue")),
+  'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
+  'new-year': defineAsyncComponent(() => import("./themes/NewYear.vue")),
 };
 
 // 使用统一的主题切换 Hook

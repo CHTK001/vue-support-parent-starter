@@ -1,25 +1,21 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
  * lay-setting 组件
  * @description 使用 useThemeComponent Hook 统一管理主题切换
- * @version 2.0.0 - 重构版本
+ * @version 2.1.0 - 支持主题组件懒加载
  */
+import { defineAsyncComponent } from "vue";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultSetting from "./themes/Default.vue";
-import SpringFestivalSetting from "./themes/SpringFestival.vue";
-import CyberpunkSetting from "./themes/Cyberpunk.vue";
-import MidAutumnSetting from "./themes/MidAutumn.vue";
-import ChristmasSetting from "./themes/Christmas.vue";
-import NewYearSetting from "./themes/NewYear.vue";
 
-// 主题组件映射
+// 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
   'default': DefaultSetting,
-  'spring-festival': SpringFestivalSetting,
-  'cyberpunk': CyberpunkSetting,
-  'mid-autumn': MidAutumnSetting,
-  'christmas': ChristmasSetting,
-  'new-year': NewYearSetting,
+  'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestival.vue")),
+  'cyberpunk': defineAsyncComponent(() => import("./themes/Cyberpunk.vue")),
+  'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumn.vue")),
+  'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
+  'new-year': defineAsyncComponent(() => import("./themes/NewYear.vue")),
 };
 
 // 使用统一的主题切换 Hook

@@ -138,7 +138,9 @@ export default {
         height: this.height + "px"
       },
       cropperDialogVisible: false,
-      cropperFile: null
+      cropperFile: null,
+      // 缓存 OssAddress 避免重复调用 getConfig()
+      cachedOssAddress: getConfig().OssAddress || ''
     };
   },
   watch: {
@@ -175,7 +177,7 @@ export default {
       if (url) {
         this.file = {
           status: "success",
-          url: formatFilePath(this.urlPrefix || getConfig().OssAddress || '', (url?.tempFile || url))
+          url: formatFilePath(this.urlPrefix || this.cachedOssAddress, (url?.tempFile || url))
         };
       } else {
         this.file = null;
@@ -423,12 +425,12 @@ export default {
           var response = parseData(res);
           if (response.code == config.successCode) {
             try {
-              this.file.url = formatFilePath(this.urlPrefix || getConfig().OssAddress || '', response.url);
+              this.file.url = formatFilePath(this.urlPrefix || this.cachedOssAddress, response.url);
               this.$emit("modelValue:url", this.file.url);
               this.$emit("url", this.file.url);
               param.onSuccess(res);
             } catch (e) {
-              console.log();
+              // upload error ignored
             }
             this.$emit("handleSuccess", res);
             this.$emit("handlerSuccess", res);

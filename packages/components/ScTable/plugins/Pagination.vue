@@ -125,17 +125,23 @@ watch(
   { immediate: true }
 );
 
+// 使用版本号避免深度监听 columns
+const columnsVersion = computed(() => props.columns?.length ?? 0);
 watch(
-  () => props.columns,
-  newValue => {
+  columnsVersion,
+  () => {
     // 在列数据变化时，可以进行处理
-  },
-  { deep: true }
+  }
 );
 
+// 使用版本号避免深度监听 tableConfig
+const tableConfigVersion = computed(() => 
+  `${props.tableConfig?.border}-${props.tableConfig?.stripe}-${props.tableConfig?.size}-${props.tableConfig?.draggable}`
+);
 watch(
-  () => props.tableConfig,
-  newValue => {
+  tableConfigVersion,
+  () => {
+    const newValue = props.tableConfig;
     if (newValue) {
       tableConfigData.value = {
         border: newValue.border ?? tableConfigData.value.border,
@@ -151,7 +157,7 @@ watch(
       };
     }
   },
-  { deep: true, immediate: true }
+  { immediate: true }
 );
 
 watch(

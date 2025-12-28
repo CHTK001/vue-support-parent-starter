@@ -7,6 +7,7 @@
 export type ThemeKey =
   | "default"
   | "spring-festival"
+  | "lunar-spring-festival"
   | "christmas"
   | "mid-autumn"
   | "national-day"

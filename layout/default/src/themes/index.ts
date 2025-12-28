@@ -45,6 +45,15 @@ export const layoutThemes: LayoutTheme[] = [
     type: "beta",
     color: "#00ffff",
   },
+  {
+    name: "新春灯笼",
+    key: "lunar-spring-festival",
+    description: "深度定制新春主题，灯笼样式标签、烟花粒子、新年装饰",
+    stylesheet: "lunar-spring-festival.css",
+    icon: "noto:red-paper-lantern",
+    type: "beta",
+    color: "#ff4d4f",
+  },
   // === 节日主题 ===
   {
     name: "春节",
