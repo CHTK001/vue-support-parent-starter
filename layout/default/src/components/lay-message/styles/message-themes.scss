@@ -1,0 +1,103 @@
+/**
+ * lay-message 主题样式
+ * 使用 CSS 变量提升可维护性
+ * @version 2.0.0
+ */
+
+// ==================== CSS 变量定义 ====================
+:root {
+  // 默认主题变量
+  --message-panel-bg: var(--el-bg-color);
+  --message-panel-border: var(--el-border-color-lighter);
+  --message-header-bg: var(--el-fill-color-light);
+  --message-item-bg: var(--el-bg-color);
+  --message-item-hover-bg: var(--el-fill-color-lighter);
+  --message-item-border: var(--el-border-color-lighter);
+  --message-text-color: var(--el-text-color-primary);
+  --message-text-secondary: var(--el-text-color-secondary);
+  --message-accent-color: var(--el-color-primary);
+  --message-badge-bg: var(--el-color-danger);
+  --message-badge-color: #ffffff;
+}
+
+// 深色模式
+html.dark {
+  --message-panel-bg: var(--el-bg-color);
+  --message-header-bg: var(--el-fill-color-dark);
+  --message-item-hover-bg: var(--el-fill-color-dark);
+}
+
+// ==================== 春节主题 ====================
+html[data-skin="spring-festival"] {
+  --message-panel-bg: linear-gradient(180deg, #8b0000 0%, #6b0000 100%);
+  --message-panel-border: rgba(255, 215, 0, 0.4);
+  --message-header-bg: rgba(139, 0, 0, 0.8);
+  --message-item-bg: rgba(139, 0, 0, 0.6);
+  --message-item-hover-bg: rgba(255, 215, 0, 0.15);
+  --message-item-border: rgba(255, 215, 0, 0.2);
+  --message-text-color: #ffd700;
+  --message-text-secondary: rgba(255, 215, 0, 0.7);
+  --message-accent-color: #ffd700;
+  --message-badge-bg: #ffd700;
+  --message-badge-color: #8b0000;
+}
+
+// ==================== 赛博朋克主题 ====================
+html[data-skin="cyberpunk"] {
+  --message-panel-bg: rgba(10, 10, 18, 0.98);
+  --message-panel-border: rgba(0, 255, 255, 0.3);
+  --message-header-bg: rgba(0, 255, 255, 0.1);
+  --message-item-bg: rgba(18, 18, 31, 0.8);
+  --message-item-hover-bg: rgba(0, 255, 255, 0.1);
+  --message-item-border: rgba(0, 255, 255, 0.2);
+  --message-text-color: #00ffff;
+  --message-text-secondary: rgba(0, 255, 255, 0.7);
+  --message-accent-color: #00ffff;
+  --message-badge-bg: #ff00ff;
+  --message-badge-color: #ffffff;
+}
+
+// ==================== 中秋主题 ====================
+html[data-skin="mid-autumn"] {
+  --message-panel-bg: linear-gradient(180deg, #1a237e 0%, #0d1652 100%);
+  --message-panel-border: rgba(255, 213, 79, 0.4);
+  --message-header-bg: rgba(26, 35, 126, 0.8);
+  --message-item-bg: rgba(26, 35, 126, 0.6);
+  --message-item-hover-bg: rgba(255, 213, 79, 0.15);
+  --message-item-border: rgba(255, 213, 79, 0.2);
+  --message-text-color: #ffd54f;
+  --message-text-secondary: rgba(255, 213, 79, 0.7);
+  --message-accent-color: #ffd54f;
+  --message-badge-bg: #ffd54f;
+  --message-badge-color: #1a237e;
+}
+
+// ==================== 圣诞主题 ====================
+html[data-skin="christmas"] {
+  --message-panel-bg: linear-gradient(180deg, #1b5e20 0%, #0d3d12 100%);
+  --message-panel-border: rgba(255, 215, 0, 0.3);
+  --message-header-bg: rgba(27, 94, 32, 0.8);
+  --message-item-bg: rgba(27, 94, 32, 0.6);
+  --message-item-hover-bg: rgba(198, 40, 40, 0.2);
+  --message-item-border: rgba(255, 215, 0, 0.2);
+  --message-text-color: #ffffff;
+  --message-text-secondary: rgba(255, 255, 255, 0.7);
+  --message-accent-color: #ffd700;
+  --message-badge-bg: #c62828;
+  --message-badge-color: #ffffff;
+}
+
+// ==================== 元旦主题 ====================
+html[data-skin="new-year"] {
+  --message-panel-bg: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 100%);
+  --message-panel-border: rgba(78, 168, 222, 0.3);
+  --message-header-bg: rgba(78, 168, 222, 0.2);
+  --message-item-bg: rgba(255, 255, 255, 0.8);
+  --message-item-hover-bg: rgba(78, 168, 222, 0.15);
+  --message-item-border: rgba(78, 168, 222, 0.2);
+  --message-text-color: #2a7ab8;
+  --message-text-secondary: rgba(42, 122, 184, 0.7);
+  --message-accent-color: #4ea8de;
+  --message-badge-bg: #4ea8de;
+  --message-badge-color: #ffffff;
+}
