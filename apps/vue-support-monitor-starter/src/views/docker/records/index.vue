@@ -84,7 +84,7 @@
         stripe
         class="records-table"
         table-name="docker-records"
-        height="auto"
+        height="100%"
       >
         <el-table-column type="selection" width="55" />
         <el-table-column prop="systemSoftName" label="软件名称" width="150" show-overflow-tooltip />
@@ -666,7 +666,11 @@ onMounted(async () => {
 .records-page {
   padding: 0;
   background: var(--app-bg-secondary);
-  min-height: 100vh;
+  min-height: calc(100vh - 60px);
+  height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 // 现代化头部
@@ -793,6 +797,20 @@ onMounted(async () => {
   margin: 0 32px 32px;
   border-radius: 14px;
   overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.records-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .card-header {

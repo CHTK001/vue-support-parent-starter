@@ -595,8 +595,8 @@ const markOptions = computed<Array<OptionsType>>(() => {
       value: "chrome",
     },
     {
-      label: "现代风格",
-      tip: "渐变背景、阴影效果，现代化视觉体验",
+      label: t("panel.pureTagsStyleModern"),
+      tip: t("panel.pureTagsStyleModernTip"),
       value: "modern",
     },
   ];
@@ -789,7 +789,7 @@ function resetToDefault() {
   cardBodyChange();
   multiTagsCacheChange();
 
-  ElMessage.success("已恢复默认设置");
+  ElMessage.success(t("panel.resetSuccess"));
 }
 
 /** 导出设置 */
@@ -813,7 +813,7 @@ function exportSettings() {
   link.click();
 
   URL.revokeObjectURL(url);
-  ElMessage.success("设置已导出");
+  ElMessage.success(t("panel.exportSuccess"));
 }
 
 /** 菜单设置变更处理 */
@@ -963,9 +963,9 @@ function importSettings() {
         newMenuTextChange();
         newMenuTimeLimitChange();
 
-        ElMessage.success("设置已导入");
+        ElMessage.success(t("panel.importSuccess"));
       } catch (error) {
-        ElMessage.error("导入失败，文件格式不正确");
+        ElMessage.error(t("message.formatError"));
       }
     };
 

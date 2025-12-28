@@ -123,20 +123,20 @@ export const MonitorTopics = {
   },
   // 数据同步相关
   SYNC: {
-    STATUS: "/monitor/sync/task/status",
-    LOG: "/monitor/sync/task/log",
-    PROGRESS: "/monitor/sync/task/progress",
-    METRICS: "/monitor/sync/task/metrics",
-    ERROR: "/monitor/sync/task/error",
+    STATUS: "monitor:sync:status",
+    LOG: "monitor:sync:log",
+    PROGRESS: "monitor:sync:progress",
+    METRICS: "monitor:sync:metrics",
+    ERROR: "monitor:sync:error",
   },
   // 爬虫相关
   SPIDER: {
-    STATUS: "/monitor/spider/task/status",
-    LOG: "/monitor/spider/task/log",
-    PROGRESS: "/monitor/spider/task/progress",
-    METRICS: "/monitor/spider/task/metrics",
-    DATA: "/monitor/spider/task/data",
-    ERROR: "/monitor/spider/task/error",
+    STATUS: "monitor:spider:status",
+    LOG: "monitor:spider:log",
+    PROGRESS: "monitor:spider:progress",
+    METRICS: "monitor:spider:metrics",
+    DATA: "monitor:spider:data",
+    ERROR: "monitor:spider:error",
   },
 } as const;
 

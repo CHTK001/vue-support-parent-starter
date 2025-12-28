@@ -66,3 +66,38 @@ export interface scrollbarDomType extends HTMLElement {
     offsetWidth: number;
   };
 }
+
+/**
+ * 布局事件类型定义
+ * 用于 emitter 事件总线的类型约束
+ */
+export interface LayoutEmitterEvents {
+  // 标签页相关
+  tagViewsChange: string;
+  tagViewsShowModel: string;
+  showTagIconChange: boolean;
+
+  // 布局相关
+  changLayoutRoute: string;
+  openPanel: void;
+  logoChange: boolean;
+  hideFooterChange: boolean;
+  hideHeaderChange: boolean;
+
+  // 面包屑相关
+  breadcrumbChange: boolean;
+  breadcrumbModeChange: "icon" | "icon-text";
+
+  // 主题相关
+  systemThemeChange: string;
+  aiChatThemeChange: string;
+
+  // 功能开关
+  keepAliveChange: boolean;
+  debugModeChange: boolean;
+  debugModeChanged: boolean;
+  messagePopupConfigChange: void;
+
+  // 设置面板
+  settingPanelClosed: void;
+}
