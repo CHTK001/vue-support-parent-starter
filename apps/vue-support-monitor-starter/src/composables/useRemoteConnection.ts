@@ -12,7 +12,7 @@ import {
   getNamedSocketService,
   parseSocketMessage,
   type SocketTemplate,
-  RcTopics,
+  RemoteTopics,
 } from "@repo/core";
 import { getConfig } from "@repo/config";
 
@@ -60,11 +60,11 @@ export interface RemoteConnectionOptions {
 function getProtocolTopics(protocol: ConnectionProtocol) {
   switch (protocol) {
     case "ssh":
-      return RcTopics.SSH;
+      return RemoteTopics.SSH;
     case "rdp":
-      return RcTopics.RDP;
+      return RemoteTopics.RDP;
     case "vnc":
-      return RcTopics.VNC;
+      return RemoteTopics.VNC;
   }
 }
 

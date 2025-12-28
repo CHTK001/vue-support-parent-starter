@@ -91,7 +91,7 @@ import { Terminal } from 'xterm'
 import { Unicode11Addon } from 'xterm-addon-unicode11'
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import { FitAddon } from 'xterm-addon-fit'
-import { createNamedSocketService, closeNamedSocketService, getNamedSocketService, parseSocketMessage, type SocketTemplate, RcTopics } from "@repo/core";
+import { createNamedSocketService, closeNamedSocketService, getNamedSocketService, parseSocketMessage, type SocketTemplate, RemoteTopics } from "@repo/core";
 import { getConfig } from "@repo/config";
 
 
@@ -160,9 +160,9 @@ const connectSSH = (serverHost: string, serverPort: number): boolean => {
 
     // 监听连接成功事件
     socketService.value.on("connect", () => {
-      console.log("Socket连接成功，发送ssh_connect请求到", RcTopics.SSH.CONNECT);
-      // 发送 SSH 连接请求消息到 rc:ssh:connect 主题
-      socketService.value?.emit(RcTopics.SSH.CONNECT, JSON.stringify({
+      console.log("Socket连接成功，发送ssh_connect请求到", RemoteTopics.SSH.CONNECT);
+      // 发送 SSH 连接请求消息到 remote:ssh:connect 主题
+      socketService.value?.emit(RemoteTopics.SSH.CONNECT, JSON.stringify({
         serverId: Number(props.server?.id),
         serverHost: serverHost,
         serverPort: serverPort,
@@ -193,7 +193,7 @@ const sendSSHInput = (input: string): boolean => {
     return false;
   }
   
-  socketService.value.emit(RcTopics.SSH.INPUT, JSON.stringify({
+  socketService.value.emit(RemoteTopics.SSH.INPUT, JSON.stringify({
     serverId: Number(props.server?.id),
     data: input,
     timestamp: Date.now(),
@@ -206,7 +206,7 @@ const sendSSHInput = (input: string): boolean => {
  */
 const disconnectSSH = (reason?: string): boolean => {
   if (socketService.value && socketService.value.isConnected) {
-    socketService.value.emit(RcTopics.SSH.DISCONNECT, JSON.stringify({
+    socketService.value.emit(RemoteTopics.SSH.DISCONNECT, JSON.stringify({
       serverId: Number(props.server?.id),
       errorMessage: reason || "用户主动断开",
       timestamp: Date.now(),
@@ -385,8 +385,8 @@ const initSSHMessageHandlers = () => {
 
   console.log('初始化SSH消息监听器...');
 
-  // 监听 rc:ssh:data 主题的消息（SSH 数据输出）
-  socketService.value.on(RcTopics.SSH.DATA, (rawMessage: any) => {
+  // 监听 remote:ssh:data 主题的消息（SSH 数据输出）
+  socketService.value.on(RemoteTopics.SSH.DATA, (rawMessage: any) => {
     try {
       const data = parseSocketMessage(rawMessage);
       let messageData = data;
@@ -424,8 +424,8 @@ const initSSHMessageHandlers = () => {
     }
   });
 
-  // 监听 rc:ssh:connect 主题的消息（连接成功响应）
-  socketService.value.on(RcTopics.SSH.CONNECT, (rawMessage: any) => {
+  // 监听 remote:ssh:connect 主题的消息（连接成功响应）
+  socketService.value.on(RemoteTopics.SSH.CONNECT, (rawMessage: any) => {
     try {
       const data = parseSocketMessage(rawMessage);
       const serverId = data?.serverId;
@@ -465,8 +465,8 @@ const initSSHMessageHandlers = () => {
     }
   });
 
-  // 监听 rc:ssh:disconnect 主题的消息（断开连接）
-  socketService.value.on(RcTopics.SSH.DISCONNECT, (rawMessage: any) => {
+  // 监听 remote:ssh:disconnect 主题的消息（断开连接）
+  socketService.value.on(RemoteTopics.SSH.DISCONNECT, (rawMessage: any) => {
     try {
       const data = parseSocketMessage(rawMessage);
       const serverId = data?.serverId;
@@ -482,8 +482,8 @@ const initSSHMessageHandlers = () => {
     }
   });
 
-  // 监听 rc:ssh:error 主题的消息（错误）
-  socketService.value.on(RcTopics.SSH.ERROR, (rawMessage: any) => {
+  // 监听 remote:ssh:error 主题的消息（错误）
+  socketService.value.on(RemoteTopics.SSH.ERROR, (rawMessage: any) => {
     try {
       const data = parseSocketMessage(rawMessage);
       const serverId = data?.serverId;

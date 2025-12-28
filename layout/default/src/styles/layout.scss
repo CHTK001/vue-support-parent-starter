@@ -1,0 +1,353 @@
+/**
+ * Layout 主布局样式
+ * 从 index.vue 提取的核心样式
+ */
+
+// ==================== 基础布局 ====================
+.fixed-header {
+  padding: 0;
+  background: var(--el-bg-color);
+  position: relative;
+  z-index: 100;
+}
+
+.main-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+
+  :deep(.el-scrollbar) {
+    &.pc {
+      background: var(--el-bg-color-page);
+      
+      .el-scrollbar__view {
+        min-height: 100%;
+      }
+    }
+  }
+}
+
+.app-wrapper {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+
+  &.mobile.openSidebar {
+    position: fixed;
+    top: 0;
+  }
+}
+
+.watermark-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9998;
+  overflow: hidden;
+}
+
+:deep(.bg-layout > div > .el-card__body) {
+  padding: 0;
+}
+
+.bg-bg_color {
+  background-color: var(--el-bg-color) !important;
+}
+
+.app-mask {
+  position: absolute;
+  top: 0;
+  z-index: 2001;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  opacity: 0.3;
+}
+
+.re-screen {
+  margin-top: 12px;
+}
+
+// ==================== 双栏导航布局 ====================
+.double-layout-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+
+  .double-main {
+    flex: 1;
+    min-width: 0;
+    margin-left: 0 !important;
+
+    :deep(.fixed-header) {
+      width: 100% !important;
+      margin-left: 0 !important;
+    }
+  }
+}
+
+// 悬停导航布局
+.app-wrapper.hover {
+  :deep(.fixed-header) {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+}
+
+// 移动导航容器
+.mobile-main-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+
+  :deep(.fixed-header) {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+}
+
+// ==================== 加载动画 ====================
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  background: var(--el-bg-color-overlay);
+}
+
+.fullscreen-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #f7f7f7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  overflow: hidden;
+  
+  :global(.dark) & {
+    background: #1a1a2e;
+  }
+}
+
+.loading-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  
+  :global(.dark) & {
+    background: rgba(30, 30, 50, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.loading-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  
+  .brand-clock {
+    width: 80px;
+    height: 80px;
+    color: #333;
+    
+    :global(.dark) & {
+      color: #e0e0e0;
+    }
+    
+    .clock-svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+    }
+    
+    .clock-hand {
+      transition: transform 0.1s cubic-bezier(0.4, 2.08, 0.55, 0.44);
+      transform-origin: 50px 50px;
+    }
+    
+    .second-hand {
+      transition: transform 0.1s linear;
+    }
+  }
+  
+  .brand-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    
+    :global(.dark) & {
+      color: #a0a0a0;
+    }
+  }
+}
+
+.loading-progress {
+  width: 240px;
+  
+  .progress-track {
+    position: relative;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+    
+    :global(.dark) & {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+  
+  .progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 30%;
+    background: linear-gradient(90deg, 
+      var(--el-color-primary, #409eff), 
+      var(--el-color-primary-light-3, #79bbff)
+    );
+    border-radius: 3px;
+    animation: progress-slide 2s ease-in-out infinite;
+  }
+  
+  .progress-glow {
+    position: absolute;
+    top: -2px;
+    left: 0;
+    height: 10px;
+    width: 30%;
+    background: linear-gradient(90deg, 
+      transparent,
+      rgba(var(--el-color-primary-rgb, 64, 158, 255), 0.4),
+      transparent
+    );
+    filter: blur(4px);
+    animation: progress-slide 2s ease-in-out infinite;
+  }
+}
+
+.loading-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .status-text {
+    font-size: 13px;
+    color: #666;
+    letter-spacing: 1px;
+    
+    :global(.dark) & {
+      color: #a0a0a0;
+    }
+  }
+  
+  .status-dots {
+    display: flex;
+    gap: 4px;
+    
+    i {
+      width: 5px;
+      height: 5px;
+      background: var(--el-color-primary, #409eff);
+      border-radius: 50%;
+      animation: dot-wave 1.2s ease-in-out infinite;
+      
+      &:nth-child(1) { animation-delay: 0s; }
+      &:nth-child(2) { animation-delay: 0.15s; }
+      &:nth-child(3) { animation-delay: 0.3s; }
+    }
+  }
+}
+
+// ==================== 动画关键帧 ====================
+@keyframes progress-slide {
+  0% { 
+    left: -30%;
+    width: 30%;
+  }
+  50% {
+    width: 50%;
+  }
+  100% { 
+    left: 100%;
+    width: 30%;
+  }
+}
+
+@keyframes dot-wave {
+  0%, 100% { 
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% { 
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+// ==================== 节日主题变量 ====================
+:global(.theme-christmas) {
+  --theme-primary: #c41e3a;
+  --theme-secondary: #165b33;
+  --theme-accent: #ffd700;
+  --theme-background: #f5f5f5;
+  
+  :deep(.el-color-primary) {
+    color: var(--theme-primary);
+  }
+}
+
+:global(.theme-spring-festival) {
+  --theme-primary: #f5222d;
+  --theme-secondary: #ffd700;
+  --theme-accent: #ff6b6b;
+  --theme-background: #fff8f0;
+}
+
+:global(.theme-valentines-day) {
+  --theme-primary: #eb2f96;
+  --theme-secondary: #ff69b4;
+  --theme-accent: #ff1493;
+  --theme-background: #fff0f5;
+}
+
+:global(.theme-mid-autumn) {
+  --theme-primary: #13c2c2;
+  --theme-secondary: #20b2aa;
+  --theme-accent: #ffd700;
+  --theme-background: #f0f8ff;
+}
+
+:global(.theme-new-year) {
+  --theme-primary: #1b2a47;
+  --theme-secondary: #409eff;
+  --theme-accent: #ffd700;
+  --theme-background: #f0f5ff;
+}
