@@ -281,10 +281,9 @@ const festivalThemeChange = (value: boolean): void => {
     } else {
       ElMessage.info(t("panel.notInFestivalPeriod"));
     }
-    } else {
-      // 关闭自动切换，但不移除当前主题，用户需要手动切换回默认主题
-      ElMessage.success(t("panel.festivalThemeDisabled"));
-    }
+  } else {
+    // 关闭自动切换，但不移除当前主题，用户需要手动切换回默认主题
+    ElMessage.success(t("panel.festivalThemeDisabled"));
   }
 };
 /**
