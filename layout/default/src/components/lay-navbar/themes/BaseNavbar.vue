@@ -13,8 +13,6 @@ const props = defineProps<{
   themeClass?: string;
 }>();
 
-console.log('🌈 BaseNavbar 渲染 - themeClass:', props.themeClass);
-
 const { isDark } = useDark();
 
 const {

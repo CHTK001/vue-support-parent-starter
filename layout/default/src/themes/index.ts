@@ -2,16 +2,17 @@
  * Layout 主题皮肤配置
  * @author CH
  * @date 2025-12-12
- * @version 1.1.0
+ * @version 2.0.0
  * @description 主题分类：常规主题(regular)、内测主题(beta)、节日主题(festival)
  */
+import type { ThemeKey, ThemeType } from "../types/theme";
 
-/** 主题类型 */
-export type ThemeType = 'regular' | 'beta' | 'festival';
+// 重新导出类型以保持向后兼容
+export type { ThemeKey, ThemeType };
 
 export interface LayoutTheme {
   name: string;
-  key: string;
+  key: ThemeKey;
   description: string;
   stylesheet?: string;
   icon?: string;
@@ -96,7 +97,7 @@ export const layoutThemes: LayoutTheme[] = [
  * 获取主题皮肤
  * @param themeKey 主题键值
  */
-export const getLayoutTheme = (themeKey: string = "default"): LayoutTheme => {
+export const getLayoutTheme = (themeKey: ThemeKey = "default"): LayoutTheme => {
   const theme = layoutThemes.find((t) => t.key === themeKey);
   return theme || layoutThemes[0];
 };

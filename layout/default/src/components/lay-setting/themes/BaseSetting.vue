@@ -279,26 +279,23 @@ const festivalThemeChange = (value: boolean): void => {
     if (festivalTheme) {
       switchSystemTheme(festivalTheme.key, true);
     } else {
-      ElMessage.info("当前不在节日期间");
+      ElMessage.info(t("panel.notInFestivalPeriod"));
     }
-  } else {
-    // 关闭自动切换，但不移除当前主题，用户需要手动切换回默认主题
-    ElMessage.success("已关闭节日主题自动切换，当前主题保持不变");
+    } else {
+      // 关闭自动切换，但不移除当前主题，用户需要手动切换回默认主题
+      ElMessage.success(t("panel.festivalThemeDisabled"));
+    }
   }
 };
-
 /**
  * 切换系统主题皮肤
  * @param themeKey 主题键值
  * @param showMessage 是否显示消息，默认为true
  */
 const switchSystemTheme = (themeKey: string, showMessage: boolean = true): void => {
-  console.log('🎨 切换主题:', themeKey);
-  
   // 检查是否已经是当前主题，避免重复切换
   const currentTheme = $storage.configure?.systemTheme || 'default';
   if (currentTheme === themeKey) {
-    console.log('ℹ️ 已经是当前主题，跳过切换');
     return;
   }
   
@@ -306,13 +303,11 @@ const switchSystemTheme = (themeKey: string, showMessage: boolean = true): void 
   
   // 使用 data-skin 属性而不是 class
   htmlEl.setAttribute('data-skin', themeKey);
-  console.log(`✅ 主题已应用: data-skin="${themeKey}"`);
   
   // 不再需要动态加载CSS，所有主题样式已在 @repo/skin 中
   
   // 保存到本地存储
   storageConfigureChange("systemTheme", themeKey);
-  console.log('💾 已保存主题到本地存储:', themeKey);
   
   // 发送主题切换事件
   emitter.emit("systemThemeChange", themeKey);
@@ -329,18 +324,14 @@ const switchSystemTheme = (themeKey: string, showMessage: boolean = true): void 
  * @param themeKey 主题键值
  */
 const loadThemeStylesheet = (themeKey: string): void => {
-  console.log('📄 开始加载主题样式表:', themeKey);
-  
   // 移除现有的主题样式表
   const existingLink = document.getElementById("layout-theme-stylesheet");
   if (existingLink) {
     existingLink.remove();
-    console.log('✅ 已移除旧的样式表');
   }
 
   // 如果是默认主题，不需要加载额外样式
   if (themeKey === "default") {
-    console.log('ℹ️ 默认主题，不需要加载样式表');
     return;
   }
 
@@ -350,17 +341,11 @@ const loadThemeStylesheet = (themeKey: string): void => {
   link.href = `/themes/${themeKey}.css`;
   
   // 添加加载事件监听
-  link.onload = () => {
-    console.log('✅ 主题样式表加载成功:', link.href);
-  };
-  
   link.onerror = () => {
-    console.error('❌ 主题样式表加载失败:', link.href);
-    ElMessage.error('主题样式加载失败，请检查文件是否存在');
+    ElMessage.error(t("panel.themeStyleLoadFailed"));
   };
   
   document.head.appendChild(link);
-  console.log('🔗 已添加样式表到 head:', link.href);
 };
 
 /** 隐藏标签页设置 */
@@ -575,8 +560,8 @@ const markOptions = computed<Array<OptionsType>>(() => {
       value: "chrome",
     },
     {
-      label: "现代风格",
-      tip: "渐变背景、立体阴影，精致现代化风格",
+      label: t("panel.pureTagsStyleModern"),
+      tip: t("panel.pureTagsStyleModernTip"),
       value: "modern",
     },
   ];
@@ -660,7 +645,6 @@ const initializeTheme = () => {
     
     if (festivalTheme) {
       switchSystemTheme(festivalTheme.key, false); // 初始化时不显示消息
-      console.log('🎉 检测到节日主题，自动应用:', festivalTheme.name);
       return;
     }
   }
@@ -668,9 +652,6 @@ const initializeTheme = () => {
   // 应用保存的主题或默认主题
   if (savedTheme && savedTheme !== "default") {
     switchSystemTheme(savedTheme, false); // 初始化时不显示消息
-    console.log('🎨 应用保存的主题:', savedTheme);
-  } else {
-    console.log('✅ 使用默认主题');
   }
 };
 
@@ -799,7 +780,7 @@ function resetToDefault() {
   cardBodyChange();
   multiTagsCacheChange();
 
-  ElMessage.success("已恢复默认设置");
+  ElMessage.success(t("panel.settingsRestored"));
 }
 
 /** 导出设置 */
@@ -823,7 +804,7 @@ function exportSettings() {
   link.click();
 
   URL.revokeObjectURL(url);
-  ElMessage.success("设置已导出");
+  ElMessage.success(t("panel.settingsExported"));
 }
 
 /** 菜单设置变更处理 */
@@ -970,9 +951,9 @@ function importSettings() {
         newMenuTextChange();
         newMenuTimeLimitChange();
 
-        ElMessage.success("设置已导入");
+        ElMessage.success(t("panel.settingsImported"));
       } catch (error) {
-        ElMessage.error("导入失败，文件格式不正确");
+        ElMessage.error(t("panel.importFailed"));
       }
     };
 

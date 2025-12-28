@@ -1,7 +1,10 @@
-﻿<script setup lang="ts">
-import { ref, onBeforeUnmount, watch, computed } from "vue";
-import { useGlobal } from "@pureadmin/utils";
-import { emitter } from "@repo/core";
+<script setup lang="ts">
+/**
+ * lay-tool 组件
+ * @description 使用 useThemeComponent Hook 统一管理主题切换
+ * @version 2.0.0 - 重构版本
+ */
+import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultTool from "./themes/Default.vue";
 import SpringFestivalTool from "./themes/SpringFestival.vue";
 import CyberpunkTool from "./themes/Cyberpunk.vue";
@@ -9,62 +12,22 @@ import MidAutumnTool from "./themes/MidAutumn.vue";
 import ChristmasTool from "./themes/Christmas.vue";
 import NewYearTool from "./themes/NewYear.vue";
 
-const { $storage } = useGlobal<any>();
-
-// 浣跨敤 computed 鏉ュ搷搴斿紡璇诲彇 storage 涓殑涓婚鍊?
-const storageTheme = computed(() => $storage?.configure?.systemTheme || 'default');
-const currentTheme = ref<string>(storageTheme.value);
-
-console.log('馃殌 lay-tool 鍒濆涓婚:', currentTheme.value);
-
-const handleThemeChange = (themeKey: string) => {
-  console.log('馃帹 lay-tool 鏀跺埌涓婚鍙樺寲:', themeKey);
-  currentTheme.value = themeKey;
+// 主题组件映射
+const themeComponents = {
+  'default': DefaultTool,
+  'spring-festival': SpringFestivalTool,
+  'cyberpunk': CyberpunkTool,
+  'mid-autumn': MidAutumnTool,
+  'christmas': ChristmasTool,
+  'new-year': NewYearTool,
 };
 
-// 鐩戝惉 emitter 浜嬩欢
-emitter.on("systemThemeChange", handleThemeChange);
-
-// 鍚屾椂鐩戝惉 storage 鍙樺寲浣滀负澶囩敤鏈哄埗
-watch(storageTheme, (newTheme) => {
-  if (newTheme && newTheme !== currentTheme.value) {
-    console.log('馃攧 lay-tool 妫€娴嬪埌 storage 涓婚鍙樺寲:', newTheme);
-    currentTheme.value = newTheme;
-  }
-}, { immediate: false });
-
-// 鐩戝惉 data-skin 灞炴€у彉鍖栦綔涓烘渶缁堜繚闅?
-const observer = new MutationObserver((mutations) => {
-  mutations.forEach((mutation) => {
-    if (mutation.type === 'attributes' && mutation.attributeName === 'data-skin') {
-      const newTheme = document.documentElement.getAttribute('data-skin') || 'default';
-      if (newTheme !== currentTheme.value) {
-        console.log('馃攧 lay-tool 妫€娴嬪埌 data-skin 灞炴€у彉鍖?', newTheme);
-        currentTheme.value = newTheme;
-      }
-    }
-  });
-});
-
-observer.observe(document.documentElement, {
-  attributes: true,
-  attributeFilter: ['data-skin']
-});
-
-onBeforeUnmount(() => {
-  emitter.off("systemThemeChange", handleThemeChange);
-  observer.disconnect();
-});
+// 使用统一的主题切换 Hook
+const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultTool);
 </script>
 
 <template>
-  <DefaultTool v-if="currentTheme === 'default'" />
-  <SpringFestivalTool v-else-if="currentTheme === 'spring-festival'" />
-  <CyberpunkTool v-else-if="currentTheme === 'cyberpunk'" />
-  <MidAutumnTool v-else-if="currentTheme === 'mid-autumn'" />
-  <ChristmasTool v-else-if="currentTheme === 'christmas'" />
-  <NewYearTool v-else-if="currentTheme === 'new-year'" />
-  <DefaultTool v-else />
+  <component :is="CurrentComponent" :key="currentTheme" />
 </template>
 
 <style lang="scss">
