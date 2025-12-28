@@ -1,9 +1,17 @@
 import { useNav } from "./useNav";
-import { useI18n } from "vue-i18n";
-import { useRoute } from "vue-router";
+import { useI18n, type Composer } from "vue-i18n";
+import { useRoute, type RouteLocationNormalizedLoaded } from "vue-router";
 import { watch, onBeforeMount, type Ref } from "vue";
 
-export function useTranslationLang(ref?: Ref) {
+interface TranslationLangReturn {
+  t: Composer['t'];
+  route: RouteLocationNormalizedLoaded;
+  locale: Composer['locale'];
+  translationCh: () => void;
+  translationEn: () => void;
+}
+
+export function useTranslationLang(ref?: Ref): TranslationLangReturn {
   const { $storage, changeTitle, handleResize } = useNav();
   const { locale, t } = useI18n();
   const route = useRoute();
