@@ -15,9 +15,6 @@ import type { StorageConfigs } from '@repo/config';
 import { useNav } from '../../../../hooks/useNav';
 import { CustomMenu, CustomMenuItem, CustomSubMenu } from '../../components/custom-menu';
 import LayTool from '../../../lay-tool/index.vue';
-import ThemeDecoration from '../../../ThemeDecoration.vue';
-import { getComponentDecorations } from '../../../../themes/decorations';
-import type { DecorationConfig } from '../../../../themes/decorations';
 
 const props = defineProps<{
   /** 主题类名 */
@@ -192,22 +189,7 @@ function setupResizeObserver() {
   resizeObserver.observe(headerRef.value);
 }
 
-// === 主题装饰功能 ===
-const currentTheme = ref<string>(
-  localStorageProxy().getItem<StorageConfigs>(
-    `${responsiveStorageNameSpace()}configure`
-  )?.systemTheme || 'default'
-);
-
-const sidebarDecorations = computed<DecorationConfig[]>(() => {
-  return getComponentDecorations(currentTheme.value, 'lay-sidebar');
-});
-
 onMounted(() => {
-  emitter.on("systemThemeChange", (themeKey: string) => {
-    currentTheme.value = themeKey;
-  });
-  
   nextTick(() => {
     setupResizeObserver();
     setTimeout(() => calcVisibleCount(), 200);
@@ -215,7 +197,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  emitter.off("systemThemeChange");
   resizeObserver?.disconnect();
   if (initTimer) clearTimeout(initTimer);
   if (recalcTimer) clearTimeout(recalcTimer);
