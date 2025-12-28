@@ -34,51 +34,51 @@ provide('themeSidebarItem', CyberpunkSidebarItem);
 </template>
 
 <style lang="scss" scoped>
-// 赛博朋克主题颜色变量
+// 赛博朋克主题 - CSS 变量优化
 $cyber-dark: #0a0a0f;
-$cyber-dark-light: #1a1a2e;
 $cyber-cyan: #00ffff;
-$cyber-magenta: #ff00ff;
-$cyber-yellow: #ffff00;
-$cyber-pink: #ff0080;
 $cyber-white: #ffffff;
 $cyber-border: rgba(0, 255, 255, 0.4);
 
 .cyberpunk-sidebar-item-wrapper {
+  --cyber-cyan: #{$cyber-cyan};
+  --cyber-white: #{$cyber-white};
+  --cyber-dark: #{$cyber-dark};
+  
   :deep(.sidebar-menu-item) {
-    color: $cyber-cyan !important;
-    background: rgba($cyber-dark, 0.95) !important;
+    color: var(--cyber-cyan);
+    background: rgba($cyber-dark, 0.95);
     margin: 4px 8px;
     border-radius: 4px;
-    border: 1px solid $cyber-border !important;
+    border: 1px solid $cyber-border;
     font-weight: 500;
     transition: all 0.2s ease;
     position: relative;
     
     span, div, .el-text {
       font-size: 14px;
-      color: inherit !important;
+      color: inherit;
     }
     
     &:hover {
-      background: rgba($cyber-cyan, 0.1) !important;
-      color: $cyber-white !important;
-      border-color: $cyber-cyan !important;
+      background: rgba($cyber-cyan, 0.1);
+      color: var(--cyber-white);
+      border-color: $cyber-cyan;
       box-shadow: 0 0 10px rgba($cyber-cyan, 0.4);
     }
     
     .el-icon, svg {
-      color: $cyber-cyan !important;
+      color: var(--cyber-cyan);
     }
     
     &.is-active {
-      background: rgba($cyber-cyan, 0.15) !important;
-      color: $cyber-white !important;
-      border: 1px solid $cyber-cyan !important;
+      background: rgba($cyber-cyan, 0.15);
+      color: var(--cyber-white);
+      border: 1px solid $cyber-cyan;
       box-shadow: 0 0 12px rgba($cyber-cyan, 0.5);
       
       .el-icon, svg, span, div {
-        color: $cyber-white !important;
+        color: var(--cyber-white);
       }
       
       // 左侧霓虹装饰条
@@ -99,11 +99,11 @@ $cyber-border: rgba(0, 255, 255, 0.4);
   
   :deep(.sidebar-sub-menu) {
     .el-sub-menu__title {
-      color: $cyber-cyan !important;
-      background: rgba($cyber-dark, 0.95) !important;
+      color: var(--cyber-cyan);
+      background: rgba($cyber-dark, 0.95);
       margin: 4px 8px;
       border-radius: 4px;
-      border: 1px solid $cyber-border !important;
+      border: 1px solid $cyber-border;
       font-weight: 500;
       transition: all 0.2s ease;
       
@@ -112,63 +112,62 @@ $cyber-border: rgba(0, 255, 255, 0.4);
       }
       
       &:hover {
-        background: rgba($cyber-cyan, 0.08) !important;
-        color: $cyber-white !important;
-        border-color: $cyber-cyan !important;
+        background: rgba($cyber-cyan, 0.08);
+        color: var(--cyber-white);
+        border-color: $cyber-cyan;
       }
       
       .el-icon, svg {
-        color: $cyber-cyan !important;
+        color: var(--cyber-cyan);
       }
     }
     
     &.is-active > .el-sub-menu__title {
-      color: $cyber-white !important;
-      background: rgba($cyber-cyan, 0.1) !important;
-      border-color: $cyber-cyan !important;
+      color: var(--cyber-white);
+      background: rgba($cyber-cyan, 0.1);
+      border-color: $cyber-cyan;
       box-shadow: 0 0 8px rgba($cyber-cyan, 0.4);
       
       .el-icon, svg {
-        color: $cyber-white !important;
+        color: var(--cyber-white);
       }
     }
     
     .el-menu {
-      background: transparent !important;
+      background: transparent;
       border-left: 1px solid rgba($cyber-cyan, 0.2);
       
       .el-menu-item {
-        color: $cyber-cyan !important;
-        background: rgba($cyber-dark, 0.9) !important;
-        border: 1px solid $cyber-border !important;
+        color: var(--cyber-cyan);
+        background: rgba($cyber-dark, 0.9);
+        border: 1px solid $cyber-border;
         border-radius: 4px;
-        margin: 4px 8px !important;
+        margin: 4px 8px;
         
         span, div, .el-text {
           font-size: 14px;
         }
         
         &:hover {
-          background: rgba($cyber-cyan, 0.08) !important;
-          color: $cyber-white !important;
-          border-color: $cyber-cyan !important;
+          background: rgba($cyber-cyan, 0.08);
+          color: var(--cyber-white);
+          border-color: $cyber-cyan;
         }
         
         &.is-active {
-          background: rgba($cyber-cyan, 0.15) !important;
-          color: $cyber-white !important;
-          border: 1px solid $cyber-cyan !important;
+          background: rgba($cyber-cyan, 0.15);
+          color: var(--cyber-white);
+          border: 1px solid $cyber-cyan;
           box-shadow: 0 0 10px rgba($cyber-cyan, 0.4);
         }
         
         .el-icon, svg {
-          color: $cyber-cyan !important;
+          color: var(--cyber-cyan);
         }
       }
     }
   }
 }
-
 </style>
 
 <style lang="scss">

@@ -44,52 +44,53 @@ provide('themeSidebarItem', NewYearSidebarItem);
 </template>
 
 <style lang="scss" scoped>
-// 元旦冰雪主题色
-$ice-lightest: #F5FBFF;
-$ice-light: #B8E0F2;
+// 元旦冰雪主题 - CSS 变量优化
 $ice-medium: #7CC2E8;
 $ice-primary: #4EA8DE;
 $ice-deep: #2A7AB8;
 $frost-white: #FFFFFF;
-$frost-purple: #E0E7F5;
 
 .new-year-sidebar-item-wrapper {
+  --ice-deep: #{$ice-deep};
+  --ice-primary: #{$ice-primary};
+  --frost-white: #{$frost-white};
+  
   :deep(.sidebar-menu-item) {
-    color: $ice-deep;
-    background-color: transparent !important;
+    color: var(--ice-deep);
+    background-color: transparent;
     transition: all 0.3s ease;
     
     &:hover {
-      color: $ice-primary !important;
-      background: linear-gradient(135deg, rgba($ice-medium, 0.15), rgba($ice-primary, 0.1)) !important;
+      color: var(--ice-primary);
+      background: linear-gradient(135deg, rgba($ice-medium, 0.15), rgba($ice-primary, 0.1));
       box-shadow: 0 2px 8px rgba($ice-primary, 0.15);
     }
     
     &.is-active {
-      background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
-      color: $frost-white !important;
+      background: linear-gradient(135deg, $ice-primary, $ice-medium);
+      color: var(--frost-white);
       box-shadow: 0 2px 12px rgba($ice-primary, 0.35);
       
       .el-icon, svg, span, div {
-        color: $frost-white !important;
+        color: var(--frost-white);
       }
     }
   }
   
   :deep(.sidebar-sub-menu) {
     .el-sub-menu__title {
-      color: $ice-deep;
+      color: var(--ice-deep);
       
       &:hover {
-        background: linear-gradient(135deg, rgba($ice-medium, 0.12), rgba($ice-primary, 0.08)) !important;
+        background: linear-gradient(135deg, rgba($ice-medium, 0.12), rgba($ice-primary, 0.08));
       }
     }
     
     &.is-active > .el-sub-menu__title {
-      color: $ice-primary !important;
+      color: var(--ice-primary);
       
       .el-icon, svg {
-        color: $ice-primary !important;
+        color: var(--ice-primary);
       }
     }
   }
