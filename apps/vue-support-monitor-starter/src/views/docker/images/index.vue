@@ -754,22 +754,6 @@ function formatSize(bytes: number | undefined): string {
   return `${size.toFixed(2)} ${units[unitIndex]}`;
 }
 
-// 获取状态标签类型
-function getStatusTagType(
-  status: string | undefined
-): "success" | "warning" | "danger" | "info" {
-  switch (status) {
-    case "AVAILABLE":
-      return "success";
-    case "PULLING":
-      return "warning";
-    case "PULL_FAILED":
-      return "danger";
-    default:
-      return "info";
-  }
-}
-
 // 获取状态文本
 function getStatusText(status: string | undefined): string {
   switch (status) {

@@ -105,18 +105,6 @@ export const MonitorTopics = {
     ERROR: "monitor:operation:error",
     UPDATE: "monitor:operation:update",
   },
-  // WebRTC相关
-  WEBRTC: {
-    USER_JOINED: "monitor:webrtc:user_joined",
-    USER_LEFT: "monitor:webrtc:user_left",
-    OFFER: "monitor:webrtc:offer",
-    ANSWER: "monitor:webrtc:answer",
-    ICE_CANDIDATE: "monitor:webrtc:ice_candidate",
-    AUDIO_TOGGLE: "monitor:webrtc:audio_toggle",
-    VIDEO_TOGGLE: "monitor:webrtc:video_toggle",
-    SCREEN_SHARE_START: "monitor:webrtc:screen_share_start",
-    SCREEN_SHARE_STOP: "monitor:webrtc:screen_share_stop",
-  },
   // 数据同步相关
   SYNC: {
     STATUS: "monitor:sync:status",
@@ -167,6 +155,19 @@ export const RemoteTopics = {
     DISCONNECT: "remote:vnc:disconnect",
     RESIZE: "remote:vnc:resize",
     ERROR: "remote:vnc:error",
+  },
+  // 自定义连接相关
+  CUSTOM: {
+    CONNECT: "remote:custom:connect",
+    CONNECTED: "remote:custom:connected",
+    DATA: "remote:custom:data",
+    INPUT: "remote:custom:input",
+    DISCONNECT: "remote:custom:disconnect",
+    DISCONNECTED: "remote:custom:disconnected",
+    COMMAND: "remote:custom:command",
+    COMMAND_RESULT: "remote:custom:command_result",
+    RESIZE: "remote:custom:resize",
+    ERROR: "remote:custom:error",
   },
 } as const;
 

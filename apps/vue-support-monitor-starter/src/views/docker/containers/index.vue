@@ -176,7 +176,7 @@
         <el-table-column label="服务器" width="180">
           <template #default="{ row }">
             <div class="server-info">
-              <div class="server-name">{{ row.systemServerId }}</div>
+              <div class="server-name">{{ getServerName(row.systemServerId) }}</div>
             </div>
           </template>
         </el-table-column>
@@ -355,29 +355,31 @@ import ContainerLogsDialog from "./components/ContainerLogsDialog.vue";
 const loading = ref(false);
 const syncLoading = ref(false);
 const selectedIds = ref<number[]>([]);
-const containerList = ref<SystemSoftContainer[]>([]);
 const serverOptions = ref<any[]>([]);
 const detailDialogVisible = ref(false);
 const logsDialogVisible = ref(false);
 const currentContainer = ref<SystemSoftContainer | null>(null);
 
-// 统计数据计算
-const runningCount = computed(
-  () =>
-    containerList.value.filter((c) => c.systemSoftContainerStatus === "running")
-      .length
-);
-const stoppedCount = computed(
-  () =>
-    containerList.value.filter((c) => c.systemSoftContainerStatus === "stopped")
-      .length
-);
-const pausedCount = computed(
-  () =>
-    containerList.value.filter((c) => c.systemSoftContainerStatus === "paused")
-      .length
-);
-const totalCount = computed(() => containerList.value.length);
+// 统计数据（从后端 API 获取）
+const runningCount = ref(0);
+const stoppedCount = ref(0);
+const pausedCount = ref(0);
+const totalCount = ref(0);
+
+// 加载统计数据
+const loadOverviewStats = async () => {
+  try {
+    const response = await containerApi.getContainerOverviewStats();
+    if (response.code === "00000" && response.data) {
+      totalCount.value = response.data.total || 0;
+      runningCount.value = response.data.running || 0;
+      stoppedCount.value = response.data.stopped || 0;
+      pausedCount.value = response.data.error || 0; // error 计入异常状态
+    }
+  } catch (error) {
+    console.error("加载容器统计数据失败:", error);
+  }
+};
 
 // 搜索参数
 const searchParams = reactive({
@@ -388,26 +390,15 @@ const searchParams = reactive({
   page: 1,
 });
 
-// 分页参数
-const pagination = reactive({
-  page: 1,
-  size: 10,
-  total: 0,
-});
-
-// 基础方法
-// ScTable会自动处理数据加载，此方法不再需要
-const loadContainers = () => {
-  // 空实现，保持向后兼容性
+// 刷新表格
+const handleRefresh = () => {
+  tableRef.value?.refresh?.();
+  loadOverviewStats();
 };
 
-const handleRefresh = () => loadContainers();
 const handleSearch = () => {
-  pagination.page = 1;
-  loadContainers();
-};
-const clearSelection = () => {
-  selectedIds.value = [];
+  searchParams.page = 1;
+  tableRef.value?.refresh?.();
 };
 
 // 工具函数
@@ -456,7 +447,7 @@ const handleStart = async (container: SystemSoftContainer) => {
     );
     if (response.code === "00000") {
       message.success("容器启动成功");
-      loadContainers();
+      handleRefresh();
     } else {
       message.error(response.msg || "容器启动失败");
     }
@@ -476,7 +467,7 @@ const handleStop = async (container: SystemSoftContainer) => {
     );
     if (response.code === "00000") {
       message.success("容器停止成功");
-      loadContainers();
+      handleRefresh();
     } else {
       message.error(response.msg || "容器停止失败");
     }
@@ -516,7 +507,7 @@ const handleRestart = async (container: SystemSoftContainer) => {
     );
     if (response.code === "00000") {
       message.success("容器重启成功");
-      loadContainers();
+      handleRefresh();
     } else {
       message.error(response.msg || "容器重启失败");
     }
@@ -540,7 +531,7 @@ const handleDelete = async (container: SystemSoftContainer) => {
     );
     if (response.code === "00000") {
       message.success("容器删除成功");
-      loadContainers();
+      handleRefresh();
     } else {
       message.error(response.msg || "容器删除失败");
     }
@@ -557,7 +548,7 @@ const handleSyncStatus = async () => {
     const response = await containerApi.syncContainerStatus();
     if (response.code === "00000") {
       message.success("容器状态同步成功");
-      loadContainers();
+      handleRefresh();
     } else {
       message.error(response.msg || "同步失败");
     }
@@ -584,7 +575,7 @@ const handleBatchStart = async () => {
     if (response.code === "00000") {
       message.success("批量启动成功");
       selectedIds.value = [];
-      loadContainers();
+      handleRefresh();
     } else {
       message.error(response.msg || "批量启动失败");
     }
@@ -616,7 +607,7 @@ const handleBatchStop = async () => {
     if (response.code === "00000") {
       message.success("批量停止成功");
       selectedIds.value = [];
-      loadContainers();
+      handleRefresh();
     } else {
       message.error(response.msg || "批量停止失败");
     }
@@ -650,7 +641,7 @@ const handleBatchDelete = async () => {
     if (response.code === "00000") {
       message.success("批量删除成功");
       selectedIds.value = [];
-      loadContainers();
+      handleRefresh();
     } else {
       message.error(response.msg || "批量删除失败");
     }
@@ -666,11 +657,22 @@ const loadServers = async () => {
   try {
     const response = await getServerList();
     if (response.code === "00000") {
-      serverOptions.value = response.data || [];
+      serverOptions.value = (response.data || []).map((s: any) => ({
+        id: s.monitorSysGenServerId,
+        name: s.monitorSysGenServerName,
+        host: s.monitorSysGenServerHost,
+      }));
     }
   } catch (error) {
     console.error("加载服务器列表失败:", error);
   }
+};
+
+// 根据服务器 ID 获取服务器名称
+const getServerName = (serverId?: number) => {
+  if (!serverId) return "-";
+  const server = serverOptions.value.find((s) => s.id === serverId);
+  return server?.name || `服务器 #${serverId}`;
 };
 
 // 获取全局Socket服务
@@ -790,6 +792,12 @@ function setupSocketListeners() {
       });
     }
   });
+
+  // 监听容器实时日志（通过全局 Socket 的 CONTAINER_LOG topic）
+  globalSocket.on(MonitorTopics.DOCKER.CONTAINER_LOG, (data: any) => {
+    console.log("📝 容器日志:", data);
+    // 日志数据通过 ContainerLogsDialog 组件处理
+  });
 }
 
 // 清理Socket事件监听
@@ -798,6 +806,7 @@ function cleanupSocketListeners() {
 
   globalSocket.off(MonitorTopics.DOCKER.CONTAINER_STATUS);
   globalSocket.off(MonitorTopics.DOCKER.CONTAINER_EVENTS);
+  globalSocket.off(MonitorTopics.DOCKER.CONTAINER_LOG);
   globalSocket.off(MonitorTopics.DOCKER.PROGRESS);
   globalSocket.off(MonitorTopics.DOCKER.START);
   globalSocket.off(MonitorTopics.DOCKER.COMPLETE);
@@ -809,8 +818,8 @@ function cleanupSocketListeners() {
 onMounted(() => {
   // 设置Socket事件监听
   setupSocketListeners();
-  loadContainers();
   loadServers();
+  loadOverviewStats();
 });
 
 onUnmounted(() => {
@@ -1073,24 +1082,6 @@ async function openExec(row: any) {
   z-index: 1000;
 }
 
-.batch-info {
-  color: var(--app-link);
-  font-weight: 500;
-}
-
-.search-input {
-  width: 280px;
-}
-
-.filter-select {
-  width: 140px;
-}
-
-.search-right {
-  display: flex;
-  gap: 8px;
-}
-
 /* 统计信息 */
 .stats-grid {
   display: grid;
@@ -1157,64 +1148,6 @@ async function openExec(row: any) {
 .stat-label {
   font-size: 14px;
   color: var(--el-text-color-primary);
-}
-
-/* 容器表格特有样式 */
-.container-name {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.name-text {
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-}
-
-.container-id {
-  font-size: 12px;
-  color: var(--el-text-color-primary);
-  font-family: "Courier New", monospace;
-}
-
-.server-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.server-name {
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-}
-
-.server-host {
-  font-size: 12px;
-  color: var(--el-text-color-primary);
-}
-
-.ports-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.port-tag {
-  font-size: 11px;
-  font-family: "Courier New", monospace;
-}
-
-.resource-usage {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.usage-text {
-  font-size: 12px;
-  color: #606266;
-  min-width: 40px;
-  text-align: right;
 }
 
 /* 容器详情对话框 */
