@@ -434,7 +434,7 @@ const LayHeader = defineComponent({
 </script>
 
 <style lang="scss" scoped>
-@import "./styles/layout.scss";
+@use "./styles/layout.scss" as *;
 </style>
 
 <template>

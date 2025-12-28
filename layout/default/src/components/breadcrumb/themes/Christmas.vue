@@ -11,6 +11,7 @@ import BaseBreadcrumb from './BaseBreadcrumb.vue';
 $xmas-green: #1b5e20;
 $xmas-green-light: #2e7d32;
 $xmas-red: #c62828;
+$xmas-red-light: #d54343; // lighten($xmas-red, 10%)
 $xmas-gold: #ffd700;
 $xmas-white: #ffffff;
 $xmas-border: rgba(255, 215, 0, 0.4);
@@ -59,7 +60,7 @@ $xmas-border: rgba(255, 215, 0, 0.4);
     }
 
     &.is-current {
-      background: linear-gradient(135deg, $xmas-red, lighten($xmas-red, 10%));
+      background: linear-gradient(135deg, $xmas-red, $xmas-red-light);
       border: 2px solid $xmas-gold;
       box-shadow: 0 4px 16px rgba($xmas-red, 0.5);
 
