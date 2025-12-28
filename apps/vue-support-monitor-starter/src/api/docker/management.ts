@@ -390,8 +390,23 @@ export function getContainerLogs(id: number, lines?: number) {
   return http.request<ReturnResult<string>>("get", `/api/monitor/system-soft-container/${id}/logs`, { params: { lines } });
 }
 
+// 启动容器日志实时推送（通过全局 Socket 的 CONTAINER_LOG topic 接收）
+export function startContainerLog(id: number, lines?: number) {
+  return http.request<ReturnResult<boolean>>("post", `/api/monitor/system-soft-container/${id}/logs/start`, { params: { lines } });
+}
+
+// 停止容器日志实时推送
+export function stopContainerLog(id: number) {
+  return http.request<ReturnResult<boolean>>("post", `/api/monitor/system-soft-container/${id}/logs/stop`);
+}
+
+// 在容器中执行命令
+export function execContainerCommand(id: number, command: string) {
+  return http.request<ReturnResult<string>>("post", `/api/monitor/system-soft-container/${id}/exec`, { params: { command } });
+}
+
 // 批量操作容器
-export function batchOperateContainers(data: { containerIds: number[]; operation: 'start' | 'stop' | 'restart' | 'remove' }) {
+export function batchOperateContainers
   return http.request<ReturnResult<{ total: number; success: number; failed: number }>>("post", "/api/monitor/system-soft-container/batch", { data });
 }
 
@@ -437,6 +452,31 @@ export function getWebSocketTopics() {
 
 // ========= API对象导出 =========
 
+// 获取默认仓库
+export function getDefaultRegistry(serverId?: number) {
+  return http.request<ReturnResult<SystemSoftRegistry>>("get", "v1/system/soft/registry/default", { params: { serverId } });
+}
+
+// 设置默认仓库
+export function setDefaultRegistry(id: number) {
+  return http.request<ReturnResult<boolean>>("post", `v1/system/soft/registry/${id}/default`);
+}
+
+// 获取启用的仓库列表
+export function getEnabledRegistries() {
+  return http.request<ReturnResult<SystemSoftRegistry[]>>("get", "v1/system/soft/registry/enabled");
+}
+
+// 根据类型获取仓库列表
+export function getRegistriesByType(type: string) {
+  return http.request<ReturnResult<SystemSoftRegistry[]>>("get", `v1/system/soft/registry/type/${type}`);
+}
+
+// 批量更新仓库状态
+export function batchUpdateRegistryStatus(ids: number[], status: number) {
+  return http.request<ReturnResult<boolean>>("put", "v1/system/soft/registry/batch/status", { params: { ids, status } });
+}
+
 export const registryApi = {
   pageRegistry,
   getAllRegistries,
@@ -450,6 +490,11 @@ export const registryApi = {
   activateRegistry,
   deactivateRegistry,
   getActiveRegistries,
+  getDefaultRegistry,
+  setDefaultRegistry,
+  getEnabledRegistries,
+  getRegistriesByType,
+  batchUpdateRegistryStatus,
 };
 
 // ========= 2.1 在线搜索（检索激活的仓库，后端SPI实现） =========
@@ -506,6 +551,9 @@ export const containerApi = {
   deleteContainer,
   updateContainer,
   getContainerLogs,
+  startContainerLog,
+  stopContainerLog,
+  execContainerCommand,
   getContainerStats,
   getContainerOverviewStats,
   syncContainerStatus,
