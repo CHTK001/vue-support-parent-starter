@@ -111,14 +111,10 @@ const remotePort = computed(() => {
 
 // 获取 WebSocket URL
 const getWebSocketUrl = () => {
-  const host = props.server?.monitorSysGenServerHost || 'localhost';
-  const port = remotePort.value;
-  const serverId = props.server?.monitorSysGenServerId;
-  
   // 通过后端 WebSocket 代理连接
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsHost = window.location.host;
-  return `${wsProtocol}//${wsHost}/websocket/remote?serverId=${serverId}&host=${host}&port=${port}`;
+  return `${wsProtocol}//${wsHost}/websocket/remote`;
 };
 
 // 连接远程桌面
@@ -139,14 +135,18 @@ const connect = () => {
     ws.binaryType = 'arraybuffer';
     
     ws.onopen = () => {
-      console.log('WebSocket 连接已建立');
-      connectionStatus.value = 'connected';
-      emit('connected');
-      message('远程桌面连接成功', { type: 'success' });
+      console.log('WebSocket 连接已建立，发送连接请求...');
+      // 发送连接请求（JSON格式）
+      sendConnectRequest();
     };
     
     ws.onmessage = (event) => {
-      handleScreenData(event.data);
+      // 处理文本消息（JSON响应）和二进制消息（屏幕数据）
+      if (typeof event.data === 'string') {
+        handleJsonMessage(event.data);
+      } else {
+        handleScreenData(event.data);
+      }
     };
     
     ws.onerror = (error) => {
@@ -175,6 +175,62 @@ const connect = () => {
     console.error('连接失败:', error);
     connectionStatus.value = 'disconnected';
     errorMessage.value = '连接失败: ' + (error as Error).message;
+  }
+};
+
+// 发送连接请求
+const sendConnectRequest = () => {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  
+  const connectMsg = JSON.stringify({
+    type: 'connect',
+    serverId: props.server?.monitorSysGenServerId
+  });
+  ws.send(connectMsg);
+};
+
+// 处理 JSON 消息
+const handleJsonMessage = (data: string) => {
+  try {
+    const msg = JSON.parse(data);
+    const msgType = msg.type;
+    const msgData = msg.data;
+    
+    switch (msgType) {
+      case 'connect-ready':
+        console.log('服务器就绪:', msgData);
+        break;
+      case 'connect-result':
+        if (msgData.success) {
+          console.log('远程桌面连接成功, 模式:', msgData.mode);
+          connectionStatus.value = 'connected';
+          emit('connected');
+          message(`远程桌面连接成功 (${msgData.mode} 模式)`, { type: 'success' });
+          
+          // 如果是 SSH 模式，降级到 SSH 终端
+          if (msgData.mode === 'SSH') {
+            message('检测到 SSH 模式，正在切换到终端...', { type: 'warning' });
+            emit('fallback-ssh');
+          }
+        } else {
+          console.error('远程桌面连接失败:', msgData.message);
+          errorMessage.value = msgData.message || '连接失败';
+          connectionStatus.value = 'disconnected';
+        }
+        break;
+      case 'error':
+        console.error('服务器错误:', msgData.message);
+        errorMessage.value = msgData.message;
+        break;
+      case 'terminal':
+        // SSH 模式下的终端输出
+        console.log('终端输出:', msgData.data);
+        break;
+      default:
+        console.log('未知消息类型:', msgType, msgData);
+    }
+  } catch (e) {
+    console.error('解析 JSON 消息失败:', e);
   }
 };
 
