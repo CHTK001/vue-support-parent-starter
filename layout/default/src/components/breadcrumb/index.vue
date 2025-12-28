@@ -12,6 +12,7 @@ import DefaultBreadcrumb from "./themes/Default.vue";
 const themeComponents = {
   'default': DefaultBreadcrumb,
   'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestival.vue")),
+  'lunar-spring-festival': defineAsyncComponent(() => import("./themes/LunarSpringFestival.vue")),
   'cyberpunk': defineAsyncComponent(() => import("./themes/Cyberpunk.vue")),
   'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumn.vue")),
   'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
