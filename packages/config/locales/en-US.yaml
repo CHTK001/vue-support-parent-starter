@@ -303,20 +303,6 @@ panel:
   animPulseTip: "Pulse animation effect"
   animShake: "Shake"
   animShakeTip: "Shake animation effect"
-  # Advanced Settings
-  advancedSettings: "Advanced Settings"
-  advancedSettingsDesc: "More personalized configuration options"
-  advancedFeatures: "Advanced Features"
-  componentCache: "Component Cache"
-  componentCacheDesc: "Improve page switching speed"
-  pageStretch: "Page Stretch"
-  pageStretchDesc: "Make full use of screen space"
-  debugMode: "Debug Mode"
-  debugModeDesc: "Display console logs in top-right corner"
-  resetOptions: "Reset Options"
-  restoreDefault: "Restore Default"
-  exportConfig: "Export Config"
-  importConfig: "Import Config"
 product:
   config: >-
     System settings, used to set system watermarks, encryption and decryption,
