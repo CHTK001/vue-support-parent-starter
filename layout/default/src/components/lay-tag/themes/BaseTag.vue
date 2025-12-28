@@ -30,9 +30,11 @@ import ArrowDown from "@iconify-icons/ri/arrow-down-s-line";
 import ArrowRightSLine from "@iconify-icons/ri/arrow-right-s-line";
 import ArrowLeftSLine from "@iconify-icons/ri/arrow-left-s-line";
 
-// 接收主题类名
+// 接收主题类名和背景配置
 const props = defineProps<{
   themeClass?: string;
+  /** 是否使用自定义背景插槽 */
+  useCustomBackground?: boolean;
 }>();
 
 const {
@@ -558,6 +560,11 @@ const deferTag = useDefer(tagsViews?.length);
 
 <template>
   <div v-if="!showTags" ref="containerDom" :class="['tags-view', themeClass]">
+    <!-- 背景装饰插槽 - 允许主题注入自定义背景（烟花/雪花/等） -->
+    <div v-if="useCustomBackground" class="tags-view-background">
+      <slot name="background" />
+    </div>
+    
     <span v-show="isShowArrow" class="arrow-left">
       <IconifyIconOffline :icon="ArrowLeftSLine" @click="handleScroll(200)" />
     </span>
@@ -696,6 +703,15 @@ const deferTag = useDefer(tagsViews?.length);
 .tags-view {
   position: relative;
   overflow: visible !important;
+  z-index: 0;
+}
+
+// 背景装饰层
+.tags-view-background {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
   z-index: 0;
 }
 </style>
