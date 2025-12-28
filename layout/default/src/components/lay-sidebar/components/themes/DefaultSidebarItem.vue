@@ -34,31 +34,37 @@ provide('themeSidebarItem', DefaultSidebarItem);
 </template>
 
 <style lang="scss" scoped>
+// CSS 变量管理主题样式
 .default-sidebar-item-wrapper {
+  --item-text-color: var(--el-text-color-primary);
+  --item-hover-shadow: rgba(0, 0, 0, 0.05);
+  --item-active-bg: var(--el-color-primary);
+  --item-active-text: #fff;
+  
   :deep(.sidebar-menu-item) {
-    color: var(--app-text-primary);
-    background-color: transparent !important;
+    color: var(--item-text-color);
+    background-color: transparent;
     transition: all 0.3s ease;
     
     &:hover {
-      color: var(--app-text-primary) !important;
       transform: translateX(2px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 2px 8px var(--item-hover-shadow);
     }
     
     &.is-active {
-      background: var(--el-color-primary) !important;
-      color: #fff !important;
+      background: var(--item-active-bg);
+      color: var(--item-active-text);
       
       .el-icon, svg, span, div {
-        color: #fff !important;
+        color: var(--item-active-text);
       }
     }
   }
   
   :deep(.sidebar-sub-menu) {
     .el-sub-menu__title {
-      color: var(--app-text-primary);
+      color: var(--item-text-color);
+      transition: transform 0.2s ease;
       
       &:hover {
         transform: translateX(2px);

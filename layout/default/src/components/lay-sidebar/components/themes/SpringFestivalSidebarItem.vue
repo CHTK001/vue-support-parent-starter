@@ -34,28 +34,28 @@ provide('themeSidebarItem', SpringFestivalSidebarItem);
 </template>
 
 <style lang="scss" scoped>
-// 春节主题颜色变量
+// 春节主题 - 使用 CSS 变量提升可维护性
+// SCSS 变量用于编译时，CSS 变量用于运行时主题切换
 $spring-red: #dc143c;
-$spring-red-light: #ff4d4f;
 $spring-red-dark: #a52a2a;
 $spring-gold: #ffd700;
-$spring-gold-light: #ffeb3b;
-$spring-white: #ffffff;
-$spring-border: rgba(255, 215, 0, 0.5);
-
-// 春联 SVG 背景
 $couplet-normal: url('./assets/spring-couplet-menu-normal.svg');
 $couplet-active: url('./assets/spring-couplet-menu-active.svg');
 
 .spring-festival-sidebar-item-wrapper {
+  // CSS 变量（可被父级覆盖）
+  --spring-gold: #{$spring-gold};
+  --spring-red: #{$spring-red};
+  --spring-active-text: #8B0000;
+  
   :deep(.sidebar-menu-item) {
-    color: $spring-gold !important;
-    background: $couplet-normal !important;
-    background-size: 100% 100% !important;
-    background-repeat: no-repeat !important;
+    color: var(--spring-gold);
+    background: $couplet-normal;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
     margin: 4px 8px;
     border-radius: 4px;
-    border: none !important;
+    border: none;
     font-weight: 600;
     font-family: 'STKaiti', 'KaiTi', 'SimKai', serif;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -68,30 +68,30 @@ $couplet-active: url('./assets/spring-couplet-menu-active.svg');
     }
     
     .el-icon, svg {
-      color: $spring-gold !important;
+      color: var(--spring-gold);
       position: relative;
       z-index: 2;
     }
     
     span, div {
-      color: inherit !important;
+      color: inherit;
       position: relative;
       z-index: 2;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
     
     &.is-active {
-      background: $couplet-active !important;
-      background-size: 100% 100% !important;
-      background-repeat: no-repeat !important;
-      color: #8B0000 !important;
+      background: $couplet-active;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      color: var(--spring-active-text);
       font-weight: 700;
       box-shadow: 
         0 4px 16px rgba($spring-gold, 0.5),
         0 0 20px rgba($spring-gold, 0.3);
       
       .el-icon, svg, span, div {
-        color: #8B0000 !important;
+        color: var(--spring-active-text);
         text-shadow: 0 1px 2px rgba(255, 215, 0, 0.5);
       }
     }
@@ -99,13 +99,13 @@ $couplet-active: url('./assets/spring-couplet-menu-active.svg');
   
   :deep(.sidebar-sub-menu) {
     .el-sub-menu__title {
-      color: $spring-gold !important;
-      background: $couplet-normal !important;
-      background-size: 100% 100% !important;
-      background-repeat: no-repeat !important;
+      color: var(--spring-gold);
+      background: $couplet-normal;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
       margin: 4px 8px;
       border-radius: 4px;
-      border: none !important;
+      border: none;
       font-weight: 600;
       font-family: 'STKaiti', 'KaiTi', 'SimKai', serif;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -116,33 +116,33 @@ $couplet-active: url('./assets/spring-couplet-menu-active.svg');
       }
       
       .el-icon, svg {
-        color: $spring-gold !important;
+        color: var(--spring-gold);
       }
     }
     
     &.is-active > .el-sub-menu__title {
-      background: $couplet-active !important;
-      background-size: 100% 100% !important;
-      background-repeat: no-repeat !important;
-      color: #8B0000 !important;
+      background: $couplet-active;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      color: var(--spring-active-text);
       font-weight: 700;
       
       .el-icon, svg {
-        color: #8B0000 !important;
+        color: var(--spring-active-text);
       }
     }
     
     .el-menu {
-      background: rgba($spring-red-dark, 0.9) !important;
+      background: rgba($spring-red-dark, 0.9);
       
       .el-menu-item {
-        color: $spring-gold !important;
-        background: $couplet-normal !important;
-        background-size: 100% 100% !important;
-        background-repeat: no-repeat !important;
-        border: none !important;
+        color: var(--spring-gold);
+        background: $couplet-normal;
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+        border: none;
         border-radius: 4px;
-        margin: 4px 8px !important;
+        margin: 4px 8px;
         font-family: 'STKaiti', 'KaiTi', 'SimKai', serif;
         
         &:hover {
@@ -150,19 +150,19 @@ $couplet-active: url('./assets/spring-couplet-menu-active.svg');
         }
         
         &.is-active {
-          background: $couplet-active !important;
-          background-size: 100% 100% !important;
-          background-repeat: no-repeat !important;
-          color: #8B0000 !important;
+          background: $couplet-active;
+          background-size: 100% 100%;
+          background-repeat: no-repeat;
+          color: var(--spring-active-text);
         }
         
         .el-icon, svg {
-          color: $spring-gold !important;
+          color: var(--spring-gold);
         }
         
         &.is-active .el-icon,
         &.is-active svg {
-          color: #8B0000 !important;
+          color: var(--spring-active-text);
         }
       }
     }
