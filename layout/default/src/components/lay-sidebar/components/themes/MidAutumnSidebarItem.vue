@@ -36,28 +36,24 @@ provide('themeSidebarItem', MidAutumnSidebarItem);
 <style lang="scss" scoped>
 @use "sass:color";
 
-// 中秋主题颜色变量
+// 中秋主题 - CSS 变量提升可维护性
 $mid-autumn-navy: #1a237e;
-$mid-autumn-navy-light: #283593;
 $mid-autumn-gold: #ffd54f;
-$mid-autumn-gold-light: #ffeb3b;
-$mid-autumn-orange: #ff8f00;
-$mid-autumn-white: #ffffff;
-$mid-autumn-border: rgba(255, 213, 79, 0.4);
-
-// 月光 SVG 背景
 $moon-normal: url('./assets/mid-autumn-menu-normal.svg');
 $moon-active: url('./assets/mid-autumn-menu-active.svg');
 
 .mid-autumn-sidebar-item-wrapper {
+  --mid-gold: #{$mid-autumn-gold};
+  --mid-navy: #{$mid-autumn-navy};
+  
   :deep(.sidebar-menu-item) {
-    color: $mid-autumn-gold !important;
-    background: $moon-normal !important;
-    background-size: 100% 100% !important;
-    background-repeat: no-repeat !important;
+    color: var(--mid-gold);
+    background: $moon-normal;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
     margin: 4px 8px;
     border-radius: 4px;
-    border: none !important;
+    border: none;
     font-weight: 600;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -69,30 +65,30 @@ $moon-active: url('./assets/mid-autumn-menu-active.svg');
     }
     
     .el-icon, svg {
-      color: $mid-autumn-gold !important;
+      color: var(--mid-gold);
       position: relative;
       z-index: 2;
     }
     
     span, div {
-      color: inherit !important;
+      color: inherit;
       position: relative;
       z-index: 2;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
     
     &.is-active {
-      background: $moon-active !important;
-      background-size: 100% 100% !important;
-      background-repeat: no-repeat !important;
-      color: $mid-autumn-navy !important;
+      background: $moon-active;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      color: var(--mid-navy);
       font-weight: 700;
       box-shadow: 
         0 4px 16px rgba($mid-autumn-gold, 0.5),
         0 0 20px rgba($mid-autumn-gold, 0.3);
       
       .el-icon, svg, span, div {
-        color: $mid-autumn-navy !important;
+        color: var(--mid-navy);
         text-shadow: 0 1px 2px rgba($mid-autumn-gold, 0.5);
       }
     }
@@ -100,13 +96,13 @@ $moon-active: url('./assets/mid-autumn-menu-active.svg');
   
   :deep(.sidebar-sub-menu) {
     .el-sub-menu__title {
-      color: $mid-autumn-gold !important;
-      background: $moon-normal !important;
-      background-size: 100% 100% !important;
-      background-repeat: no-repeat !important;
+      color: var(--mid-gold);
+      background: $moon-normal;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
       margin: 4px 8px;
       border-radius: 4px;
-      border: none !important;
+      border: none;
       font-weight: 600;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       
@@ -116,52 +112,52 @@ $moon-active: url('./assets/mid-autumn-menu-active.svg');
       }
       
       .el-icon, svg {
-        color: $mid-autumn-gold !important;
+        color: var(--mid-gold);
       }
     }
     
     &.is-active > .el-sub-menu__title {
-      background: $moon-active !important;
-      background-size: 100% 100% !important;
-      background-repeat: no-repeat !important;
-      color: $mid-autumn-navy !important;
+      background: $moon-active;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      color: var(--mid-navy);
       font-weight: 700;
       
       .el-icon, svg {
-        color: $mid-autumn-navy !important;
+        color: var(--mid-navy);
       }
     }
     
     .el-menu {
-background: rgba(color.adjust($mid-autumn-navy, $lightness: -5%), 0.95) !important;
+      background: rgba(color.adjust($mid-autumn-navy, $lightness: -5%), 0.95);
       
       .el-menu-item {
-        color: $mid-autumn-gold !important;
-        background: $moon-normal !important;
-        background-size: 100% 100% !important;
-        background-repeat: no-repeat !important;
-        border: none !important;
+        color: var(--mid-gold);
+        background: $moon-normal;
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+        border: none;
         border-radius: 4px;
-        margin: 4px 8px !important;
+        margin: 4px 8px;
         
         &:hover {
           filter: brightness(1.1);
         }
         
         &.is-active {
-          background: $moon-active !important;
-          background-size: 100% 100% !important;
-          background-repeat: no-repeat !important;
-          color: $mid-autumn-navy !important;
+          background: $moon-active;
+          background-size: 100% 100%;
+          background-repeat: no-repeat;
+          color: var(--mid-navy);
         }
         
         .el-icon, svg {
-          color: $mid-autumn-gold !important;
+          color: var(--mid-gold);
         }
         
         &.is-active .el-icon,
         &.is-active svg {
-          color: $mid-autumn-navy !important;
+          color: var(--mid-navy);
         }
       }
     }
