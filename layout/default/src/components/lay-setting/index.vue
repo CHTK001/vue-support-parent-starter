@@ -137,12 +137,12 @@ const settings = reactive({
 
 /** AI 助手皮肤主题选项 */
 const aiChatThemeOptions = computed<Array<OptionsType>>(() => [
-  { label: "紫色", tip: "默认紫色渐变", value: "default" },
-  { label: "蓝色", tip: "蓝色科技风", value: "blue" },
-  { label: "绿色", tip: "绿色清新风", value: "green" },
-  { label: "橙色", tip: "橙色活力风", value: "orange" },
-  { label: "粉色", tip: "粉色可爱风", value: "pink" },
-  { label: "暗黑", tip: "暗黑酷炫风", value: "dark" },
+  { label: t("panel.aiThemePurple"), tip: t("panel.aiThemePurpleTip"), value: "default" },
+  { label: t("panel.aiThemeBlue"), tip: t("panel.aiThemeBlueTip"), value: "blue" },
+  { label: t("panel.aiThemeGreen"), tip: t("panel.aiThemeGreenTip"), value: "green" },
+  { label: t("panel.aiThemeOrange"), tip: t("panel.aiThemeOrangeTip"), value: "orange" },
+  { label: t("panel.aiThemePink"), tip: t("panel.aiThemePinkTip"), value: "pink" },
+  { label: t("panel.aiThemeDark"), tip: t("panel.aiThemeDarkTip"), value: "dark" },
 ]);
 
 /** 卡片颜色模式配置 */
@@ -151,18 +151,18 @@ const cardColorMode = ref($storage.configure?.cardColorMode ?? "all");
 const cardColorOptions = computed<Array<OptionsType>>(() => {
   return [
     {
-      label: "全部颜色",
-      tip: "所有卡片使用随机渐变色",
+      label: t("panel.cardColorAll"),
+      tip: t("panel.cardColorAllTip"),
       value: "all",
     },
     {
-      label: "1/3颜色",
-      tip: "仅使用部分颜色组合",
+      label: t("panel.cardColorThird"),
+      tip: t("panel.cardColorThirdTip"),
       value: "third",
     },
     {
-      label: "纯白模式",
-      tip: "所有卡片使用纯白背景",
+      label: t("panel.cardColorWhite"),
+      tip: t("panel.cardColorWhiteTip"),
       value: "white",
     },
   ];
@@ -1049,8 +1049,8 @@ onUnmounted(() => {
         <div v-if="getConfig().EnableThemeManagement !== false" class="setting-section">
           <div class="section-header">
             <IconifyIconOffline :icon="'ri:palette-fill'" class="section-icon" />
-            <h3 class="section-title">主题皮肤</h3>
-            <div class="section-description">管理和配置系统皮肤主题</div>
+            <h3 class="section-title">{{ t("panel.themeSkin") }}</h3>
+            <div class="section-description">{{ t("panel.themeSkinDesc") }}</div>
           </div>
           <div class="setting-content">
             <!-- 节日主题自动切换开关 -->
@@ -1059,8 +1059,8 @@ onUnmounted(() => {
                 v-model="settings.enableFestivalTheme"
                 layout="visual-card"
                 size="small"
-                label="节日主题自动切换"
-                description="自动检测并应用节日主题，关闭后需手动切换主题"
+                :label="t('panel.festivalThemeAuto')"
+                :description="t('panel.festivalThemeAutoDesc')"
                 active-icon="ri:calendar-event-line"
                 @change="festivalThemeChange"
               />
@@ -1069,7 +1069,7 @@ onUnmounted(() => {
             <!-- 节日装饰显示提示 -->
             <div v-if="!settings.enableFestivalTheme" class="festival-decoration-tip">
               <IconifyIconOffline :icon="'ri:information-line'" class="tip-icon" />
-              <span>关闭自动切换后，节日装饰元素仍会显示，但不会自动切换主题样式</span>
+              <span>{{ t("panel.festivalThemeOffTip") }}</span>
             </div>
             
             <!-- 开启自动切换时：显示当前生效的主题提示 -->
@@ -1079,15 +1079,15 @@ onUnmounted(() => {
                   <IconifyIconOffline :icon="'ri:calendar-check-line'" />
                 </div>
                 <div class="status-content">
-                  <div class="status-title">自动主题已启用</div>
-                  <div class="status-desc">系统将根据当前日期自动应用节日主题，节日主题已隐藏</div>
+                  <div class="status-title">{{ t("panel.autoThemeEnabled") }}</div>
+                  <div class="status-desc">{{ t("panel.autoThemeEnabledDesc") }}</div>
                   <div class="status-current">
-                    <span class="label">当前主题：</span>
+                    <span class="label">{{ t("panel.currentThemeLabel") }}</span>
                     <span class="value">
                       {{ 
                         $storage.configure?.systemTheme === 'default' 
-                          ? '默认' 
-                          : festivalThemesList.find(t => t.themeKey === $storage.configure?.systemTheme)?.name || $storage.configure?.systemTheme
+                          ? t("panel.defaultTheme") 
+                          : festivalThemesList.find(th => th.themeKey === $storage.configure?.systemTheme)?.name || $storage.configure?.systemTheme
                       }}
                     </span>
                   </div>
@@ -1112,8 +1112,8 @@ onUnmounted(() => {
         <div v-if="getConfig().ShowAiChat !== false" class="setting-section">
           <div class="section-header">
             <IconifyIconOffline :icon="'ri:robot-line'" class="section-icon" />
-            <h3 class="section-title">AI 助手皮肤</h3>
-            <div class="section-description">自定义 AI 助手的外观主题</div>
+            <h3 class="section-title">{{ t("panel.aiChatSkin") }}</h3>
+            <div class="section-description">{{ t("panel.aiChatSkinDesc") }}</div>
           </div>
           <div class="setting-content">
             <div class="ai-theme-grid">
@@ -1148,7 +1148,7 @@ onUnmounted(() => {
           <div class="section-header">
             <IconifyIconOffline :icon="'ri:layout-line'" class="section-icon" />
             <h3 class="section-title">{{ t("panel.pureLayoutModel") }}</h3>
-            <div class="section-description">选择适合您的导航布局模式</div>
+            <div class="section-description">{{ t("panel.layoutModeDesc") }}</div>
           </div>
           <div class="setting-content">
             <div class="layout-mode-grid">

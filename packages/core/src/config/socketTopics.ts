@@ -171,11 +171,6 @@ export const RemoteTopics = {
 } as const;
 
 /**
- * @deprecated 使用 RemoteTopics 替代
- */
-export const RcTopics = RemoteTopics;
-
-/**
  * 视频模块主题 (video)
  * 用于视频监控相关功能
  */
