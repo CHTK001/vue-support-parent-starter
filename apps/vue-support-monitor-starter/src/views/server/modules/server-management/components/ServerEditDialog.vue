@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     :title="mode === 'add' ? '新增服务器' : '编辑服务器'"
     width="80%"
@@ -608,7 +608,7 @@
         </div>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 
   <!-- 组编辑弹框 -->
   <ServerGroupEditDialog

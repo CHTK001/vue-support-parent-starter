@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page flex flex-col h-full">
     <!-- 页面标题区域 -->
     <div class="page-header">
@@ -56,9 +56,9 @@
     </div>
 
     <!-- 详情对话框 -->
-    <el-dialog v-model="infoVisible" title="表详情" width="60%" destroy-on-close>
+    <sc-dialog v-model="infoVisible" title="表详情" width="60%" destroy-on-close>
       <pre class="code-block"><code>{{ info }}</code></pre>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

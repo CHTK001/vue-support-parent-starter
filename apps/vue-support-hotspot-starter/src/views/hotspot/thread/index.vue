@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page flex flex-col h-full">
     <!-- 统计卡片 -->
     <el-row :gutter="20" class="stats-row">
@@ -165,9 +165,9 @@
       </el-card>
     </div>
 
-    <el-dialog v-model="infoVisible" title="线程详情" width="60%" destroy-on-close>
+    <sc-dialog v-model="infoVisible" title="线程详情" width="60%" destroy-on-close>
       <pre class="code-block"><code>{{ info }}</code></pre>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

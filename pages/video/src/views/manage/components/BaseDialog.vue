@@ -1,7 +1,7 @@
 <template>
-  <el-dialog v-model="dialogVisible" :title="title" :width="width" :destroy-on-close="destroyOnClose" :close-on-click-modal="closeOnClickModal" @closed="handleClosed" @open="handleOpen">
+  <sc-dialog v-model="dialogVisible" :title="title" :width="width" :destroy-on-close="destroyOnClose" :close-on-click-modal="closeOnClickModal" @closed="handleClosed" @open="handleOpen">
     <slot></slot>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

@@ -284,8 +284,13 @@ const memoryStorageKey = computed(() => {
 
 // 计算高度
 const computedHeight = computed(() => {
-  // 当 height 为 auto 或未设置时，返回 undefined 让表格自适应
-  if (props.height === "auto" || !props.height) {
+  // 当 height 为 auto 时，传递 'auto' 给子组件，让表格撑满父容器
+  if (props.height === "auto") {
+    return "auto";
+  }
+  
+  // 未设置时返回 undefined 让表格自适应内容
+  if (!props.height) {
     return undefined;
   }
   
@@ -1695,13 +1700,6 @@ defineExpose({
   position: relative;
   display: flex;
   flex-direction: column;
-
-  .auto-height & {
-    flex: none;
-    height: auto;
-    min-height: 300px;
-    overflow-y: auto;
-  }
 }
 
 // 拖拽排序操作栏样式 - 现代化设计

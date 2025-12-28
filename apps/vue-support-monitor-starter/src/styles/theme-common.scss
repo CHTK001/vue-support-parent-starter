@@ -146,6 +146,67 @@ html.dark {
   }
 }
 
+// ========== 细滚动条样式 ==========
+.thin-scroller,
+form.el-form {
+  &::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent !important;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(144, 147, 153, 0.3) !important;
+    border-radius: 3px;
+    transition: background 0.3s ease;
+
+    &:hover {
+      background: rgba(144, 147, 153, 0.5) !important;
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: transparent !important;
+  }
+}
+
+// 深色主题滚动条适配
+html.dark {
+  .thin-scroller,
+  form.el-form {
+    &::-webkit-scrollbar-thumb {
+      background: rgba(144, 147, 153, 0.4) !important;
+
+      &:hover {
+        background: rgba(144, 147, 153, 0.6) !important;
+      }
+    }
+  }
+}
+
+// ========== 表单组件默认宽度 ==========
+.el-form--inline {
+  .el-select {
+    width: 180px;
+  }
+
+  .el-input {
+    width: 200px;
+  }
+}
+
+// 搜索表单中的下拉框默认宽度
+.search-form,
+.search-card {
+  .el-select {
+    min-width: 160px;
+  }
+}
+
 // ========== 响应式 ==========
 @media (max-width: 768px) {
   .toolbar {
@@ -157,6 +218,13 @@ html.dark {
 
     .stat-value {
       font-size: 20px;
+    }
+  }
+
+  .el-form--inline {
+    .el-select,
+    .el-input {
+      width: 100%;
     }
   }
 }

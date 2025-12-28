@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visibleProxy"
     title="同步镜像"
     width="600px"
@@ -96,7 +96,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

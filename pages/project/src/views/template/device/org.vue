@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div>
-    <el-dialog
+    <sc-dialog
       v-model="env.visible"
       :title="env.title"
       width="70%"
@@ -19,7 +19,7 @@
         <el-table-column prop="sysDeviceOrgName" label="组织名称" />
         <el-table-column prop="sysDeviceOrgPid" label="父组织" />
       </el-table>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 <script setup>

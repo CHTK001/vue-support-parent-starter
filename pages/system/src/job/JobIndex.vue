@@ -151,7 +151,7 @@
     </div>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
       width="700px"
@@ -260,10 +260,10 @@
           确定
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 执行任务对话框 -->
-    <el-dialog v-model="triggerDialogVisible" title="手动执行任务" width="500px">
+    <sc-dialog v-model="triggerDialogVisible" title="手动执行任务" width="500px">
       <el-form label-width="100px">
         <el-form-item label="任务名称">
           <span>{{ currentJob?.jobName }}</span>
@@ -283,7 +283,7 @@
           执行
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

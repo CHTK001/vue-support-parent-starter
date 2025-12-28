@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 import { defineComponent } from "vue";
 import { fetchUpdateRole, fetchSaveRole } from "@/api/manage/role";
 
@@ -74,7 +74,7 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
+    <sc-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-form-item label="角色名称" prop="sysRoleName">
           <el-input v-model="form.sysRoleName" placeholder="请输入角色名称" />
@@ -107,6 +107,6 @@ export default defineComponent({
         <el-button @click="visible = false">取 消</el-button>
         <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()">保 存</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>

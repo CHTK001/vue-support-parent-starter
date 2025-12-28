@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     title="MD5计算测试"
     width="600px"
@@ -65,7 +65,7 @@
         <el-button @click="clearResults">清空结果</el-button>
       </div>
     </div>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

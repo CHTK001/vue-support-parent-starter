@@ -1203,7 +1203,7 @@
     </div>
 
     <!-- 线程列表对话框 -->
-    <el-dialog v-model="threadDialogVisible" title="线程列表" width="90%" top="5vh">
+    <sc-dialog v-model="threadDialogVisible" title="线程列表" width="90%" top="5vh">
       <div class="thread-dialog-toolbar">
         <el-input
           v-model="threadSearchKey"
@@ -1290,10 +1290,10 @@
           </template>
         </el-table-column>
       </el-table>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 线程堆栈对话框 -->
-    <el-dialog v-model="stackDialogVisible" :title="`线程堆栈 - ${selectedThread?.threadName}`" width="70%" top="5vh">
+    <sc-dialog v-model="stackDialogVisible" :title="`线程堆栈 - ${selectedThread?.threadName}`" width="70%" top="5vh">
       <div v-loading="stackLoading">
         <el-descriptions :column="2" border size="small" v-if="selectedThread">
           <el-descriptions-item label="线程 ID">{{ selectedThread.threadId }}</el-descriptions-item>
@@ -1320,10 +1320,10 @@
         </div>
         <el-empty v-else description="无堆栈信息" />
       </div>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- CPU 热点分析对话框 -->
-    <el-dialog v-model="hotspotDialogVisible" title="CPU 热点代码分析" width="90%" top="3vh">
+    <sc-dialog v-model="hotspotDialogVisible" title="CPU 热点代码分析" width="90%" top="3vh">
       <div class="hotspot-dialog-toolbar">
         <el-input
           v-model="hotspotPackageFilter"
@@ -1438,10 +1438,10 @@
           </el-table>
         </el-tab-pane>
       </el-tabs>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 业务代码归因分析对话框 -->
-    <el-dialog v-model="businessAnalysisDialogVisible" title="业务代码归因分析" width="90%" top="3vh">
+    <sc-dialog v-model="businessAnalysisDialogVisible" title="业务代码归因分析" width="90%" top="3vh">
       <div class="hotspot-dialog-toolbar">
         <el-input
           v-model="businessPackageFilter"
@@ -1667,10 +1667,10 @@
           </div>
         </el-tab-pane>
       </el-tabs>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 内存分析对话框 -->
-    <el-dialog v-model="heapDialogVisible" title="堆内存分析" width="90%" top="3vh">
+    <sc-dialog v-model="heapDialogVisible" title="堆内存分析" width="90%" top="3vh">
       <div class="hotspot-dialog-toolbar">
         <el-input
           v-model="heapPackageFilter"
@@ -1804,10 +1804,10 @@
           </el-table>
         </el-tab-pane>
       </el-tabs>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- JVM优化建议对话框 -->
-    <el-dialog v-model="optimizationDialogVisible" title="JVM 优化建议" width="90%" top="3vh">
+    <sc-dialog v-model="optimizationDialogVisible" title="JVM 优化建议" width="90%" top="3vh">
       <div class="hotspot-dialog-toolbar">
         <el-input-number v-model="targetLatency" :min="50" :max="1000" :step="50" style="width: 180px">
           <template #prefix>目标延迟(ms)</template>
@@ -2029,10 +2029,10 @@
           </div>
         </el-tab-pane>
       </el-tabs>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 线程Dump导出对话框 -->
-    <el-dialog v-model="threadDumpDialogVisible" title="线程 Dump" width="80%" top="3vh">
+    <sc-dialog v-model="threadDumpDialogVisible" title="线程 Dump" width="80%" top="3vh">
       <div class="hotspot-dialog-toolbar">
         <el-button type="primary" @click="runThreadDump" :loading="threadDumpLoading">
           <IconifyIconOnline icon="ri:refresh-line" />
@@ -2095,10 +2095,10 @@
           <pre class="thread-dump-text">{{ threadDumpData?.dumpContent || '暂无数据' }}</pre>
         </el-tab-pane>
       </el-tabs>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 线程Dump堆栈详情 -->
-    <el-dialog v-model="threadDumpStackVisible" title="线程堆栈详情" width="70%">
+    <sc-dialog v-model="threadDumpStackVisible" title="线程堆栈详情" width="70%">
       <div v-if="selectedDumpThread" class="thread-stack-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="线程ID">{{ selectedDumpThread.threadId }}</el-descriptions-item>
@@ -2126,10 +2126,10 @@
           <pre class="stack-trace-text">{{ (selectedDumpThread.stackTrace || []).map(s => '\tat ' + s).join('\n') || '无堆栈信息' }}</pre>
         </div>
       </div>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 内存泄漏检测对话框 -->
-    <el-dialog v-model="memoryLeakDialogVisible" title="内存泄漏检测" width="85%" top="3vh">
+    <sc-dialog v-model="memoryLeakDialogVisible" title="内存泄漏检测" width="85%" top="3vh">
       <div class="hotspot-dialog-toolbar">
         <el-input-number v-model="leakIntervalSeconds" :min="3" :max="60" :step="1" style="width: 180px">
           <template #prefix>检测间隔(秒)</template>
@@ -2223,10 +2223,10 @@
       </div>
 
       <el-empty v-else-if="!memoryLeakLoading" description="点击“开始检测”进行内存泄漏分析" />
-    </el-dialog>
+    </sc-dialog>
 
     <!-- JVM诊断信息对话框 -->
-    <el-dialog v-model="diagnosticDialogVisible" title="JVM 诊断信息" width="85%" top="3vh">
+    <sc-dialog v-model="diagnosticDialogVisible" title="JVM 诊断信息" width="85%" top="3vh">
       <div class="hotspot-dialog-toolbar">
         <el-checkbox v-model="includeEnvVars">包含环境变量</el-checkbox>
         <el-button type="primary" @click="runDiagnostic" :loading="diagnosticLoading">
@@ -2327,7 +2327,7 @@
           </div>
         </el-tab-pane>
       </el-tabs>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

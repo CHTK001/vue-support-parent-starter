@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div>
-    <el-dialog draggable :title="env.title" v-model="env.visible" width="600px" :close-on-click-modal="false" @close="handleClose">
+    <sc-dialog draggable :title="env.title" v-model="env.visible" width="600px" :close-on-click-modal="false" @close="handleClose">
       <el-tabs v-model="env.tab">
         <el-tab-pane name="role" :label="$t('buttons.role-perm')">
           <el-skeleton :loading="loading.menu" animated>
@@ -73,7 +73,7 @@
         <el-button @click="handleClose">{{ $t("buttons.cancel") }}</el-button>
         <el-button type="primary" @click="handleTabEvent">{{ $t("buttons.confirm") }}</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 <script setup>

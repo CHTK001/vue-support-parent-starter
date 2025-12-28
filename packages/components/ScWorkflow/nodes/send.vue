@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="node-wrap">
     <div class="node-wrap-box" @click="show">
       <div class="title" style="background: #3296fa">
@@ -12,7 +12,7 @@
       </div>
     </div>
     <add-node v-model="nodeConfig.childNode" />
-    <el-drawer v-model="drawer" title="抄送人设置" destroy-on-close append-to-body :size="500">
+    <sc-drawer v-model="drawer" title="抄送人设置" destroy-on-close append-to-body :size="500">
       <template #header>
         <div class="node-wrap-drawer__title">
           <label v-if="!isEditTitle" @click="editTitle">
@@ -41,7 +41,7 @@
           <el-button @click="drawer = false">取消</el-button>
         </el-footer>
       </el-container>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 

@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     title="URL QPS 统计"
     width="1100px"
@@ -254,7 +254,7 @@
         <el-button @click="handleClose">关闭</el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

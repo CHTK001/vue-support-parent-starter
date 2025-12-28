@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="dialogVisible" :title="titleMap[type - 1]" :width="type == 1 ? 680 : 460" destroy-on-close append-to-body @closed="$emit('closed')">
+﻿<template>
+  <sc-dialog v-model="dialogVisible" :title="titleMap[type - 1]" :width="type == 1 ? 680 : 460" destroy-on-close append-to-body @closed="$emit('closed')">
     <template v-if="type == 1">
       <div class="sc-user-select">
         <div class="sc-user-select__left">
@@ -118,7 +118,7 @@
       <el-button @click="dialogVisible = false">取 消</el-button>
       <el-button type="primary" @click="save">确 认</el-button>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script>

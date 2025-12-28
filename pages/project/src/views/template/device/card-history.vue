@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { defineExpose, nextTick, reactive, shallowRef } from "vue";
 import { fetchPageProjectForDeviceMenJinHistory } from "../../../api/manage/device";
 
@@ -27,7 +27,7 @@ defineExpose({
 </script>
 <template>
   <div>
-    <el-dialog
+    <sc-dialog
       v-model="visible"
       title="门禁历史记录"
       draggable
@@ -62,7 +62,7 @@ defineExpose({
           label="事件ID"
         ></el-table-column>
       </ScTable>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

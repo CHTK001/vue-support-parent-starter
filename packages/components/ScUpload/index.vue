@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-upload" :class="{ 'sc-upload-round': round }" :style="style">
     <div v-if="file && file.status != 'success'" class="sc-upload__uploading">
       <div v-if="autoUpload" class="sc-upload__progress">
@@ -73,13 +73,13 @@
     <span style="display: none !important">
       <el-input v-model="value" />
     </span>
-    <el-dialog :append-to-body="true" v-model="cropperDialogVisible" title="剪裁" draggable :width="680" destroy-on-close @closed="cropperClosed">
+    <sc-dialog :append-to-body="true" v-model="cropperDialogVisible" title="剪裁" draggable :width="680" destroy-on-close @closed="cropperClosed">
       <sc-cropper ref="cropper" :src="cropperFile.tempCropperFile" :compress="compress" :aspectRatio="aspectRatio" />
       <template #footer>
         <el-button @click="cropperDialogVisible = false">取 消</el-button>
         <el-button type="primary" @click="cropperSave">确 定</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

@@ -89,6 +89,17 @@ export default [
               showParent: true,
             },
           },
+          {
+            path: "/spider/design/:taskId",
+            name: "spider-design",
+            component: () => import("@/views/spider/design/index.vue"),
+            meta: {
+              icon: "ri:flow-chart",
+              title: "流程设计",
+              showLink: false,
+              showParent: false,
+            },
+          },
         ],
       },
       {

@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     :title="dialogTitle"
     width="1000px"
@@ -214,7 +214,7 @@
     </div>
 
     <!-- 日志详情对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="detailDialogVisible"
       title="日志详情"
       width="700px"
@@ -305,14 +305,14 @@
           </div>
         </div>
       </div>
-    </el-dialog>
+    </sc-dialog>
 
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose">关闭</el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

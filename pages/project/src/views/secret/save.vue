@@ -1,4 +1,4 @@
-<script>
+﻿<script>
 import { fetchListDictItem } from "@repo/core";
 import { defineComponent } from "vue";
 import { fetchSaveSecret, fetchUpdateSecret } from "../../api/manage/secret";
@@ -118,7 +118,7 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-dialog
+    <sc-dialog
       v-model="visible"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -247,7 +247,7 @@ export default defineComponent({
           >保 存</el-button
         >
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div>
-    <el-dialog draggable :title="env.title" width="80%" v-model="env.visible" @close="handleClose" :close-on-click-modal="false">
+    <sc-dialog draggable :title="env.title" width="80%" v-model="env.visible" @close="handleClose" :close-on-click-modal="false">
       <div class="h-[600px]">
         <ScTable :url="fetchPageProjectForEmailLog" :columns="env.columns">
           <el-table-column prop="sysEmailRead" label="是否已读">
@@ -17,7 +17,7 @@
           </el-table-column>
         </ScTable>
       </div>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 <script setup>

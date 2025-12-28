@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     :model-value="visible"
     @update:model-value="$emit('update:visible', $event)"
     title="脚本执行记录"
@@ -175,7 +175,7 @@
     </div>
 
     <!-- 详情抽屉 -->
-    <el-drawer
+    <sc-drawer
       v-model="detailDrawerVisible"
       title="执行详情"
       size="50%"
@@ -258,8 +258,8 @@
           </div>
         </div>
       </div>
-    </el-drawer>
-  </el-dialog>
+    </sc-drawer>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

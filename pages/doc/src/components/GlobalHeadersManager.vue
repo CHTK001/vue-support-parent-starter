@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="global-headers-manager">
     <!-- 预览区域 -->
     <div class="headers-preview">
@@ -25,7 +25,7 @@
     </div>
 
     <!-- 设置对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="showDialog"
       title="全局请求头设置"
       width="600px"
@@ -115,7 +115,7 @@
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

@@ -983,6 +983,9 @@ export interface ServerDisplayData {
   monitorSysGenServerOsType?: string;
   monitorSysGenServerOsVersion?: string;
   monitorSysGenServerOsArch?: string;
+  // 延迟检测开关
+  latencyCheckEnabled?: boolean;
+  monitorSysGenServerSettingLatencyCheckEnabled?: number;
 }
 
 /**
@@ -1421,6 +1424,9 @@ export function mapServerInfoToDisplayData(serverInfo: ServerInfo): ServerDispla
     monitorSysGenServerOsType: serverInfo.monitorSysGenServerOsType,
     monitorSysGenServerOsVersion: serverInfo.monitorSysGenServerOsVersion,
     monitorSysGenServerOsArch: serverInfo.monitorSysGenServerOsArch,
+    // 延迟检测开关
+    latencyCheckEnabled: (serverInfo as any).monitorSysGenServerSettingLatencyCheckEnabled === 1,
+    monitorSysGenServerSettingLatencyCheckEnabled: (serverInfo as any).monitorSysGenServerSettingLatencyCheckEnabled,
     ...serverInfo,
   };
 }

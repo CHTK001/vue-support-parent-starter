@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="visibleProxy" class="soft-install-dialog" :show-close="true">
+﻿<template>
+  <sc-dialog v-model="visibleProxy" class="soft-install-dialog" :show-close="true">
     <template #header>
       <div class="dlg-header">
         <div class="title">
@@ -86,7 +86,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

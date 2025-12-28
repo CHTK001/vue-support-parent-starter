@@ -119,10 +119,101 @@ const directMenuCount = computed(() => {
   ).length;
 });
 
-// 动态计算容器宽度 - 横向多列布局
+// 计算每个分组的菜单项数量
+const groupItemCounts = computed(() => {
+  return currentSubMenus.value.map((menu) => ({
+    menu,
+    count: menu.children?.length || 1,
+    hasChildren: menu.children && menu.children.length > 0,
+  }));
+});
+
+// 智能布局算法：计算分组布局方式
+const layoutStrategy = computed(() => {
+  const groups = groupItemCounts.value;
+  const totalItems = totalMenuItems.value;
+  
+  // 如果总数少于等于12个，使用纯横向布局
+  if (totalItems <= 12) {
+    return { type: 'horizontal', verticalGroups: [], horizontalGroups: groups };
+  }
+  
+  // 如果总数超过30个，使用纯纵向布局
+  if (totalItems > 30) {
+    return { type: 'vertical', verticalGroups: groups, horizontalGroups: [] };
+  }
+  
+  // 混合布局算法：小分组纵向，大分组横向
+  const avgCount = totalItems / groups.length;
+  const verticalGroups = [];
+  const horizontalGroups = [];
+  
+  // 按菜单项数量排序
+  const sortedGroups = [...groups].sort((a, b) => a.count - b.count);
+  
+  // 计算纵向分组的总数和横向分组的总数
+  let verticalTotal = 0;
+  
+  for (const group of sortedGroups) {
+    // 如果当前分组菜单项数量小于平均值的一半，或纵向组总数不超过横向组最大项
+    // 或者分组菜单项数量小于等于5
+    if (group.count <= 5 || group.count < avgCount * 0.6) {
+      verticalGroups.push(group);
+      verticalTotal += group.count;
+    } else {
+      horizontalGroups.push(group);
+    }
+  }
+  
+  // 如果没有横向分组，取最大的一个作为横向
+  if (horizontalGroups.length === 0 && verticalGroups.length > 1) {
+    const largest = verticalGroups.pop();
+    horizontalGroups.push(largest);
+  }
+  
+  // 按原始顺序恢复
+  const originalOrder = groups.map(g => g.menu.path);
+  verticalGroups.sort((a, b) => originalOrder.indexOf(a.menu.path) - originalOrder.indexOf(b.menu.path));
+  horizontalGroups.sort((a, b) => originalOrder.indexOf(a.menu.path) - originalOrder.indexOf(b.menu.path));
+  
+  if (verticalGroups.length > 0 && horizontalGroups.length > 0) {
+    return { type: 'mixed', verticalGroups, horizontalGroups };
+  }
+  
+  return { type: 'horizontal', verticalGroups: [], horizontalGroups: groups };
+});
+
+// 判断是否应该使用纵向布局（当菜单项过多时）
+const shouldUseVerticalLayout = computed(() => {
+  return layoutStrategy.value.type === 'vertical';
+});
+
+// 是否使用混合布局
+const shouldUseMixedLayout = computed(() => {
+  return layoutStrategy.value.type === 'mixed';
+});
+
+// 动态计算容器宽度 - 根据布局模式调整
 const dynamicContainerWidth = computed(() => {
   const itemCount = totalMenuItems.value;
   if (itemCount === 0) return "320px";
+
+  // 纵向布局时使用固定宽度
+  if (shouldUseVerticalLayout.value) {
+    return "360px";
+  }
+  
+  // 混合布局时计算宽度
+  if (shouldUseMixedLayout.value) {
+    const strategy = layoutStrategy.value;
+    // 纵向分组占一列，横向分组每个占一列
+    const columns = 1 + strategy.horizontalGroups.length;
+    const baseWidth = 180;
+    const padding = 32;
+    const gap = 16;
+    const calculatedWidth = columns * baseWidth + (columns - 1) * gap + padding;
+    return `${Math.min(900, Math.max(400, calculatedWidth))}px`;
+  }
 
   // 根据列数计算最优宽度
   const columnsNeeded = getGridColumns(itemCount);
@@ -640,10 +731,135 @@ const defer = useDefer(firstLevelMenus.value.length);
               </div>
             </div>
 
-            <!-- 普通菜单内容 - 横向多列布局 -->
-            <div v-else class="horizontal-menu-container">
-              <!-- 横向多列布局 -->
+            <!-- 普通菜单内容 - 根据菜单数量自动选择布局 -->
+            <div v-else class="horizontal-menu-container" :class="{ 'vertical-mode': shouldUseVerticalLayout, 'mixed-mode': shouldUseMixedLayout }">
+              
+              <!-- 混合布局：小分组纵向 + 大分组横向 -->
+              <div v-if="shouldUseMixedLayout" class="mixed-layout-container">
+                <!-- 纵向分组区域 -->
+                <div v-if="layoutStrategy.verticalGroups.length > 0" class="vertical-section">
+                  <template v-for="groupInfo in layoutStrategy.verticalGroups" :key="groupInfo.menu.path">
+                    <div v-if="groupInfo.hasChildren" class="vertical-menu-group">
+                      <div class="vertical-group-title">{{ groupInfo.menu.meta?.title }}</div>
+                      <div class="vertical-group-items">
+                        <div
+                          v-for="thirdMenu in groupInfo.menu.children"
+                          :key="thirdMenu.path"
+                          class="menu-item-wrapper"
+                          @mouseenter="handleMenuItemHover(thirdMenu)"
+                          @mouseleave="handleMenuItemLeave"
+                        >
+                          <router-link
+                            :to="thirdMenu.path"
+                            class="menu-item"
+                            :class="{ 'is-active': defaultActive === thirdMenu.path }"
+                            @click="handleSubMenuClick(thirdMenu, $event)"
+                          >
+                            {{ thirdMenu.meta?.title }}
+                          </router-link>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-else class="menu-item-wrapper">
+                      <router-link
+                        :to="groupInfo.menu.path"
+                        class="menu-item"
+                        :class="{ 'is-active': defaultActive === groupInfo.menu.path }"
+                        @click="handleSubMenuClick(groupInfo.menu, $event)"
+                      >
+                        {{ groupInfo.menu.meta?.title }}
+                      </router-link>
+                    </div>
+                  </template>
+                </div>
+                
+                <!-- 横向分组区域 -->
+                <div v-if="layoutStrategy.horizontalGroups.length > 0" class="horizontal-section">
+                  <template v-for="groupInfo in layoutStrategy.horizontalGroups" :key="groupInfo.menu.path">
+                    <div v-if="groupInfo.hasChildren" class="menu-column">
+                      <div class="column-title">{{ groupInfo.menu.meta?.title }}</div>
+                      <div class="column-items">
+                        <div
+                          v-for="thirdMenu in groupInfo.menu.children"
+                          :key="thirdMenu.path"
+                          class="menu-item-wrapper"
+                          @mouseenter="handleMenuItemHover(thirdMenu)"
+                          @mouseleave="handleMenuItemLeave"
+                        >
+                          <router-link
+                            :to="thirdMenu.path"
+                            class="menu-item"
+                            :class="{ 'is-active': defaultActive === thirdMenu.path }"
+                            @click="handleSubMenuClick(thirdMenu, $event)"
+                          >
+                            {{ thirdMenu.meta?.title }}
+                          </router-link>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+              
+              <!-- 纵向布局（菜单项过多时） -->
+              <div v-else-if="shouldUseVerticalLayout" class="vertical-columns-layout">
+                <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
+                  <!-- 有子菜单的分组 -->
+                  <div v-if="subMenu.children && subMenu.children.length > 0" class="vertical-menu-group">
+                    <div class="vertical-group-title">{{ subMenu.meta?.title }}</div>
+                    <div class="vertical-group-items">
+                      <div
+                        v-for="thirdMenu in subMenu.children"
+                        :key="thirdMenu.path"
+                        class="menu-item-wrapper"
+                        @mouseenter="handleMenuItemHover(thirdMenu)"
+                        @mouseleave="handleMenuItemLeave"
+                      >
+                        <router-link
+                          :to="thirdMenu.path"
+                          class="menu-item"
+                          :class="{ 'is-active': defaultActive === thirdMenu.path }"
+                          @click="handleSubMenuClick(thirdMenu, $event)"
+                        >
+                          {{ thirdMenu.meta?.title }}
+                        </router-link>
+                        <button
+                          v-if="hoveredMenuItem?.path === thirdMenu.path"
+                          class="favorite-btn"
+                          :class="{ 'is-favorited': isMenuFavorited(thirdMenu) }"
+                          @click="toggleFavorite(thirdMenu, $event)"
+                          :title="isMenuFavorited(thirdMenu) ? '取消收藏' : '添加收藏'"
+                        >
+                          <IconifyIconOnline :icon="isMenuFavorited(thirdMenu) ? 'ep:star-filled' : 'ep:star'" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- 直接的二级菜单项 -->
+                  <div v-else class="menu-item-wrapper">
+                    <router-link
+                      :to="subMenu.path"
+                      class="menu-item"
+                      :class="{ 'is-active': defaultActive === subMenu.path }"
+                      @click="handleSubMenuClick(subMenu, $event)"
+                    >
+                      {{ subMenu.meta?.title }}
+                    </router-link>
+                    <button
+                      v-if="hoveredMenuItem?.path === subMenu.path"
+                      class="favorite-btn"
+                      :class="{ 'is-favorited': isMenuFavorited(subMenu) }"
+                      @click="toggleFavorite(subMenu, $event)"
+                      :title="isMenuFavorited(subMenu) ? '取消收藏' : '添加收藏'"
+                    >
+                      <IconifyIconOnline :icon="isMenuFavorited(subMenu) ? 'ep:star-filled' : 'ep:star'" />
+                    </button>
+                  </div>
+                </template>
+              </div>
+              <!-- 横向多列布局（默认） -->
               <div
+                v-else
                 class="horizontal-columns-grid"
                 :style="{
                   gridTemplateColumns: `repeat(${getGridColumns(totalMenuItems)}, 1fr)`,
@@ -1039,6 +1255,78 @@ const defer = useDefer(firstLevelMenus.value.length);
 /* 横向多列菜单容器 */
 .horizontal-menu-container {
   width: 100%;
+  
+  &.vertical-mode {
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+  
+  &.mixed-mode {
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+}
+
+/* 混合布局容器 */
+.mixed-layout-container {
+  display: flex;
+  gap: 16px;
+  
+  .vertical-section {
+    min-width: 160px;
+    max-width: 200px;
+    border-right: 1px solid var(--el-border-color-lighter);
+    padding-right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    
+    html.dark & {
+      border-right-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+  
+  .horizontal-section {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+}
+
+/* 纵向布局容器 */
+.vertical-columns-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vertical-menu-group {
+  .vertical-group-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    padding: 8px 12px 6px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    margin-bottom: 4px;
+    position: sticky;
+    top: 0;
+    background: var(--el-bg-color-overlay);
+    z-index: 1;
+    
+    html.dark & {
+      color: rgba(255, 255, 255, 0.6);
+      background: rgba(28, 28, 35, 0.95);
+    }
+  }
+  
+  .vertical-group-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 4px;
+  }
 }
 
 /* 横向列网格布局 */

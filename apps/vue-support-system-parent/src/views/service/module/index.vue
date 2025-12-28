@@ -277,7 +277,7 @@ onMounted(async () => {
         <!-- 数据表格 -->
         <el-main class="module-main">
           <div class="table-wrapper">
-            <ScTable ref="tableRef" :url="fetchPageServiceModule" :params="env.params" @data-loaded="onDataLoaded">
+            <ScTable ref="tableRef" :url="fetchPageServiceModule" :params="env.params" @data-loaded="onDataLoaded" height="auto">
               <el-table-column type="index" label="序号" width="80" align="center">
                 <template #default="scope">
                   <el-tag type="primary" size="small" effect="plain">{{ scope.$index + 1 }}</el-tag>

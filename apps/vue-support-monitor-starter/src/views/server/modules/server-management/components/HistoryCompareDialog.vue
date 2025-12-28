@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="dialogVisible"
     title="配置对比"
     width="90%"
@@ -210,7 +210,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

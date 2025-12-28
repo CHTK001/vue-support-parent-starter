@@ -952,7 +952,7 @@ onMounted(() => {
     </div>
 
     <!-- 环境变量管理对话框 -->
-    <el-dialog v-model="env.showEnvironmentModal" title="管理环境变量" width="600px">
+    <sc-dialog v-model="env.showEnvironmentModal" title="管理环境变量" width="600px">
       <el-tabs type="border-card">
         <el-tab-pane v-for="environment in env.environments" :key="environment.name" :label="environment.name">
           <div v-for="(variable, index) in environment.variables" :key="index" class="postman-tool__environment-variable">
@@ -988,7 +988,7 @@ onMounted(() => {
         <el-button @click="env.showEnvironmentModal = false">取消</el-button>
         <el-button type="primary" @click="createEnvironment">创建环境</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

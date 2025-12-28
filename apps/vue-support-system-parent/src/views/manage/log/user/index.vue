@@ -247,7 +247,7 @@ const onDataLoaded = (data, total) => {
         <div ref="contentRef" class="log-content">
           <div :class="[visible.role ? 'log-table-container-narrow' : 'log-table-container-full']">
             <!-- 表格组件 -->
-            <ScTable ref="table" :url="fetchPageUserLog" :rowClick="openDetail" @data-loaded="onDataLoaded" class="log-table">
+            <ScTable ref="table" :url="fetchPageUserLog" :rowClick="openDetail" @data-loaded="onDataLoaded" class="log-table" height="auto">
               <!-- 表格列保持不变 -->
               <el-table-column label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip
                 min-width="120px" />

@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     :title="`${serverData.monitorSysGenServerName} - 终端`"
     width="90%"
@@ -214,7 +214,7 @@
         </div>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

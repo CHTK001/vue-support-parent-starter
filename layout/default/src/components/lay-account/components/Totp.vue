@@ -55,12 +55,12 @@ async function handleCloseTopt() {
 
 <template>
   <div :class="['min-w-[180px]', deviceDetection() ? 'max-w-[100%]' : 'max-w-[70%]']">
-    <el-dialog v-if="visible.phone" v-model="visible.phone" draggable :title="title">
+    <sc-dialog v-if="visible.phone" v-model="visible.phone" draggable :title="title">
       <password :show-title="false" />
-    </el-dialog>
-    <el-dialog v-if="visible.email" v-model="visible.email" draggable :title="title">
+    </sc-dialog>
+    <sc-dialog v-if="visible.email" v-model="visible.email" draggable :title="title">
       <profile :show-title="false" />
-    </el-dialog>
+    </sc-dialog>
     <div>
       <div class="flex items-center">
         <div class="flex-1">

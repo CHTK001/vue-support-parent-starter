@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-image-container" :class="{ 'sc-image-compare': compareMode }" :style="containerStyle">
     <!-- 图片比较模式 -->
     <div v-if="compareMode && compareImage" class="sc-image-compare-wrapper">
@@ -182,7 +182,7 @@
     </el-upload>
 
     <!-- 图片比较选择对话框 -->
-    <el-dialog v-model="compareDialogVisible" title="选择对比图片" width="600px" :append-to-body="true" destroy-on-close>
+    <sc-dialog v-model="compareDialogVisible" title="选择对比图片" width="600px" :append-to-body="true" destroy-on-close>
       <el-upload ref="compareUploadRef" class="compare-upload" :show-file-list="false" :auto-upload="false" :accept="accept" :on-change="handleCompareImageChange" drag>
         <div v-if="!tempCompareImage" class="upload-content">
           <el-icon class="upload-icon">
@@ -200,7 +200,7 @@
         <el-button @click="compareDialogVisible = false">取消</el-button>
         <el-button type="primary" :disabled="!tempCompareImage" @click="confirmCompare">开始比较</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 图片编辑器 -->
     <ImageEditor 

@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     :title="mode === 'add' ? '新增分组' : '编辑分组'"
     width="600px"
@@ -191,7 +191,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

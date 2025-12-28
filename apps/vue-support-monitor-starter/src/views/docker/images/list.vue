@@ -62,6 +62,7 @@
         @selection-change="handleSelectionChange"
         class="images-table"
         table-name="soft-images"
+        height="auto"
       >
         <el-table-column type="selection" width="55" />
 
@@ -323,7 +324,9 @@ onMounted(() => {
 .images-management {
   padding: 20px;
   background: var(--app-bg-secondary);
-  min-height: calc(100vh - 60px);
+  height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
 }
 
 .page-header {
@@ -391,9 +394,20 @@ onMounted(() => {
 }
 
 .images-table-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background: var(--app-card-bg);
   border-radius: 8px;
   box-shadow: var(--app-card-shadow);
+}
+
+.images-table-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .image-info {

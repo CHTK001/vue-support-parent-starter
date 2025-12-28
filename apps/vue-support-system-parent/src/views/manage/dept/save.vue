@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { reactive, ref } from "vue";
 import { fetchSaveDept, fetchUpdateDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
@@ -143,7 +143,7 @@ defineExpose({
 </script>
 <template>
   <div>
-    <el-dialog 
+    <sc-dialog 
       v-model="visible" 
       :close-on-click-modal="false" 
       :close-on-press-escape="false" 
@@ -266,7 +266,7 @@ defineExpose({
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

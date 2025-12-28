@@ -198,7 +198,7 @@
     </el-card>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
       width="600px"
@@ -312,7 +312,7 @@
           <el-button type="primary" @click="handleSubmit">确定</el-button>
         </span>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="server-connection-status-list">
     <!-- 统计概览 -->
     <div class="status-overview">
@@ -220,7 +220,7 @@
     </div>
 
     <!-- 连接趋势对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="trendDialogVisible"
       title="连接状态趋势"
       width="80%"
@@ -234,7 +234,7 @@
         </div>
       </div>
       <el-empty v-else description="暂无趋势数据" />
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

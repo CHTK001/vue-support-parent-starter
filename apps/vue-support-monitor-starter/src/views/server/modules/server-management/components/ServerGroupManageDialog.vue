@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     title="服务器组管理"
     width="900px"
@@ -160,7 +160,7 @@
         <el-button @click="visible = false">关闭</el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 
   <!-- 分组编辑对话框 -->
   <ServerGroupEditDialog ref="editDialogRef" @success="handleRefresh" />

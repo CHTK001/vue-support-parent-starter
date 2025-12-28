@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message, stringSplitToArray } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, ref, watch } from "vue";
@@ -71,7 +71,7 @@ defineExpose({
 </script>
 <template>
   <div>
-    <el-dialog
+    <sc-dialog
       v-model="visible"
       :title="title"
       :close-on-click-modal="false"
@@ -108,7 +108,7 @@ defineExpose({
           @click="handleSubmit"
         />
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

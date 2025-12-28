@@ -376,7 +376,7 @@ onUnmounted((): void => {
     </div>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="dialogVisible"
       width="520px"
       :show-close="false"
@@ -484,7 +484,7 @@ onUnmounted((): void => {
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

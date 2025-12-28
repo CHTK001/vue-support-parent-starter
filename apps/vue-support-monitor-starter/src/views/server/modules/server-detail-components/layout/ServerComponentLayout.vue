@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div ref="serverLayoutRef" class="server-component-layout h-full">
     <div class="layout-header" v-if="editable">
       <!-- 左侧编辑操作区 -->
@@ -82,7 +82,7 @@
     </div>
 
     <!-- 添加组件抽屉 -->
-    <el-drawer v-model="showAddComponentDrawer" title="添加组件" size="600px" direction="rtl">
+    <sc-drawer v-model="showAddComponentDrawer" title="添加组件" size="600px" direction="rtl">
       <div class="add-component-form">
         <el-form ref="addFormRef" :model="addForm" :rules="addFormRules" label-width="120px">
           <el-form-item label="组件名称" prop="title">
@@ -153,10 +153,10 @@
           </el-button>
         </div>
       </div>
-    </el-drawer>
+    </sc-drawer>
 
     <!-- 组件选择器对话框 -->
-    <el-dialog v-model="showComponentSelector" title="选择组件" width="60%" destroy-on-close>
+    <sc-dialog v-model="showComponentSelector" title="选择组件" width="60%" destroy-on-close>
       <div class="component-selector">
         <el-tabs v-model="componentSelectorTab">
           <el-tab-pane label="我的组件" name="my">
@@ -209,7 +209,7 @@
           </div>
         </div>
       </div>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 图表配置对话框 -->
     <ChartConfigDialog ref="chartConfigDialogRef" @save="handleChartConfigSave" />

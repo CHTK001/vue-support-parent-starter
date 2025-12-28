@@ -84,7 +84,7 @@
     </div>
 
     <!-- 组件详情对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="dialogVisible"
       :title="currentComponent?.name + ' 组件示例'"
       width="90%"
@@ -109,7 +109,7 @@
         :is="currentComponent?.component"
         v-if="currentComponent"
       ></component>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

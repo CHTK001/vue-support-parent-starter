@@ -115,6 +115,7 @@ const settings = reactive({
   showLogo: $storage.configure.showLogo,
   showModel: $storage.configure.showModel,
   hideFooter: $storage.configure.hideFooter,
+  hideHeader: $storage.configure.hideHeader ?? false,
   multiTagsCache: $storage.configure.multiTagsCache ?? true,
   stretch: $storage.configure.stretch,
   // 高级功能
@@ -387,6 +388,13 @@ const hideFooterChange = () => {
   const hideFooter = settings.hideFooter;
   storageConfigureChange("hideFooter", hideFooter);
   emitter.emit("hideFooterChange", hideFooter);
+};
+
+/** 隐藏顶部设置 */
+const hideHeaderChange = (value: boolean) => {
+  settings.hideHeader = value;
+  storageConfigureChange("hideHeader", value);
+  emitter.emit("hideHeaderChange", value);
 };
 
 /** 标签页持久化设置 */
@@ -1679,6 +1687,19 @@ onUnmounted(() => {
                 界面元素
               </h4>
               <div class="switch-card-grid">
+                <ScSwitch
+                  v-model="settings.hideHeader"
+                  layout="visual-card"
+                  size="small"
+                  label="隐藏顶部"
+                  description="隐藏页面顶部区域"
+                  active-icon="ri:eye-off-line"
+                  inactive-icon="ri:layout-top-line"
+                  ribbon-text="隐藏"
+                  ribbon-color="var(--el-color-warning)"
+                  @change="hideHeaderChange"
+                />
+
                 <ScSwitch
                   v-model="logoVal"
                   layout="visual-card"

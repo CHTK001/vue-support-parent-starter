@@ -158,4 +158,16 @@ message.closeAll = closeAllMessage;
 // 导出 MessageBox 作为 messageBox
 export const messageBox = ElMessageBox;
 
+/**
+ * 确认对话框
+ */
+export const confirm = (message: string, title?: string, options?: any) => {
+  return ElMessageBox.confirm(message, title || '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+    ...options
+  });
+};
+
 export { message, closeAllMessage };

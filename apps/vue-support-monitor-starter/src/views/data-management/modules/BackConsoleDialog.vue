@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div>
-    <el-dialog v-model="showBackupDialog" draggable title="备份数据" width="60%" @close="handleClose" class="!max-h-[80vh] overflow-auto">
+    <sc-dialog v-model="showBackupDialog" draggable title="备份数据" width="60%" @close="handleClose" class="!max-h-[80vh] overflow-auto">
       <ul v-if="data.length">
         <li v-for="item in data">
           <!-- 高亮结果 -->
@@ -10,7 +10,7 @@
         </li>
       </ul>
       <el-empty v-else />
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 <script lang="ts" setup>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="node-selector">
     <!-- 节点选择下拉框 -->
     <el-select
@@ -40,7 +40,7 @@
     </el-button>
 
     <!-- 节点管理对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="showManageDialog"
       title="节点管理"
       width="700px"
@@ -107,7 +107,7 @@
         <el-button @click="showManageDialog = false">取消</el-button>
         <el-button type="primary" @click="saveNodes">保存</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="visible" title="文件上传" width="600px" :close-on-click-modal="false" @close="handleClose">
+﻿<template>
+  <sc-dialog v-model="visible" title="文件上传" width="600px" :close-on-click-modal="false" @close="handleClose">
     <div class="upload-dialog">
       <!-- 拖拽上传区域 -->
       <div class="upload-area" :class="{ 'is-dragover': isDragOver }" @drop="handleDrop" @dragover="handleDragOver" @dragleave="handleDragLeave" @click="triggerFileSelect">
@@ -81,7 +81,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="project-save-container">
-    <el-dialog v-model="visible" :title="env.title" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable class="project-dialog" @close="close">
+    <sc-dialog v-model="visible" :title="env.title" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable class="project-dialog" @close="close">
       <template #header>
         <div class="dialog-custom-header">
           <!-- 基本信息区域 -->
@@ -164,7 +164,7 @@
         <el-button @click="handleClose" class="cancel-btn"> 取消 </el-button>
         <el-button v-if="mode != 'show'" type="primary" :loading="env.loading" @click="debounce(handleSaveOrUpdate(), 1000, true)" class="save-btn"> 保存 </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

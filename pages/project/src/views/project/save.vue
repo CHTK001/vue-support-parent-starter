@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="dialogVisible" top="10px" :title="dialogTitle" :width="dialogWidth" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" class="modern-dialog" @close="handleClose">
+﻿<template>
+  <sc-dialog v-model="dialogVisible" top="10px" :title="dialogTitle" :width="dialogWidth" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" class="modern-dialog" @close="handleClose">
     <div class="dialog-content">
       <!-- 表单头部 -->
       <div class="form-header" v-if="!isViewMode">
@@ -239,7 +239,7 @@
         </div>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup>

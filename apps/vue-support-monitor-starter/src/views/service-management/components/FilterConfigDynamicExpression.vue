@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visibleInner"
     title="动态表达式过滤器配置"
     width="980px"
@@ -76,7 +76,7 @@
         >
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="screen-share-container">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -305,7 +305,7 @@
     </div>
 
     <!-- 观看者列表对话框 -->
-    <el-dialog v-model="showViewers" title="观看者列表" width="500px">
+    <sc-dialog v-model="showViewers" title="观看者列表" width="500px">
       <el-table :data="viewers" style="width: 100%">
         <el-table-column prop="username" label="用户名" />
         <el-table-column prop="status" label="状态" width="100">
@@ -332,10 +332,10 @@
           </template>
         </el-table-column>
       </el-table>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 邀请观看对话框 -->
-    <el-dialog v-model="showInvite" title="邀请观看" width="500px">
+    <sc-dialog v-model="showInvite" title="邀请观看" width="500px">
       <div class="invite-content">
         <el-form-item label="共享链接">
           <el-input v-model="shareLink" readonly>
@@ -370,10 +370,10 @@
           发送邀请
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 设置对话框 -->
-    <el-dialog v-model="showSettings" title="共享设置" width="600px">
+    <sc-dialog v-model="showSettings" title="共享设置" width="600px">
       <el-form :model="shareSettings" label-width="120px">
         <el-form-item label="共享质量">
           <el-select v-model="shareSettings.quality" style="width: 100%">
@@ -416,7 +416,7 @@
           应用设置
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

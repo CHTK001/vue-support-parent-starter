@@ -148,7 +148,7 @@
     </div>
 
     <!-- 详情对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="detailDialogVisible"
       title="限流记录详情"
       width="600px"
@@ -204,10 +204,10 @@
           删除此记录
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 新增对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="addDialogVisible"
       title="新增限流记录"
       width="650px"
@@ -296,7 +296,7 @@
           确定
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

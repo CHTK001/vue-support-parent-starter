@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     :title="dialogTitle"
     width="900px"
@@ -259,7 +259,7 @@
         </el-row>
       </el-card>
     </div>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

@@ -16,14 +16,20 @@ export interface WebRTCUser {
  * 房间信息
  */
 export interface RoomInfo {
-  id: string;
-  name: string;
-  type: "video" | "audio" | "screen";
+  id?: string;
+  roomId?: string;
+  name?: string;
+  roomName?: string;
+  type?: "video" | "audio" | "screen";
+  roomType?: "video_call" | "video_conference";
   maxUsers: number;
   currentUsers: number;
-  creator: string;
+  creator?: string;
+  creatorName?: string;
   createTime: string;
-  status: "active" | "closed";
+  status: "active" | "closed" | "inactive";
+  description?: string;
+  requirePassword?: boolean;
   users?: WebRTCUser[];
 }
 
@@ -31,9 +37,12 @@ export interface RoomInfo {
  * 创建房间参数
  */
 export interface CreateRoomParams {
-  name: string;
-  type: "video" | "audio" | "screen";
+  name?: string;
+  roomName?: string;
+  type?: "video" | "audio" | "screen";
+  roomType?: "video_call" | "video_conference";
   maxUsers?: number;
+  description?: string;
   password?: string;
 }
 
@@ -42,10 +51,13 @@ export interface CreateRoomParams {
  */
 export interface RoomListParams {
   page?: number;
+  size?: number;
   pageSize?: number;
   type?: string;
+  roomType?: string;
   status?: string;
   keyword?: string;
+  roomName?: string;
 }
 
 /**
@@ -103,8 +115,8 @@ export function createRoom(data: CreateRoomParams) {
 /**
  * 加入房间
  */
-export function joinRoom(roomId: string, password?: string) {
-  return http.post(`/webrtc/rooms/${roomId}/join`, { password });
+export function joinRoom(params: { roomId: string; password?: string }) {
+  return http.post(`/webrtc/rooms/${params.roomId}/join`, { password: params.password });
 }
 
 /**
@@ -118,5 +130,12 @@ export function leaveRoom(roomId: string) {
  * 关闭房间
  */
 export function closeRoom(roomId: string) {
+  return http.delete(`/webrtc/rooms/${roomId}`);
+}
+
+/**
+ * 删除房间
+ */
+export function deleteRoom(roomId: string) {
   return http.delete(`/webrtc/rooms/${roomId}`);
 }

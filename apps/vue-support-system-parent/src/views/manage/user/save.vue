@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="user-save-container">
-    <el-dialog v-model="visible" :title="title" :close-on-click-modal="false" :close-on-press-escape="false"
+    <sc-dialog v-model="visible" :title="title" :close-on-click-modal="false" :close-on-press-escape="false"
       :destroy-on-close="true" draggable width="800px" class="user-dialog" @close="close">
       <el-form ref="dialogFormRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px"
         class="user-form">
@@ -164,7 +164,7 @@
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

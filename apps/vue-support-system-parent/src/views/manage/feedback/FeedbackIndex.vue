@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { reactive, ref, computed, nextTick, defineAsyncComponent, onMounted } from "vue";
 import { fetchPageFeedback, fetchIssueFeedback, fetchFeedbackStatistic } from "@/api/manage/feedback";
@@ -309,7 +309,7 @@ const closeDetail = () => {
     <DetailDialog v-if="visible.detail" ref="detailRef" @close="closeDetail" />
 
     <!-- 回复弹窗 -->
-    <el-dialog v-model="visible.issue" title="回复反馈" width="500px" destroy-on-close>
+    <sc-dialog v-model="visible.issue" title="回复反馈" width="500px" destroy-on-close>
       <el-form :model="issueForm" label-width="80px">
         <el-form-item label="回复内容" required>
           <el-input
@@ -330,7 +330,7 @@ const closeDetail = () => {
         <el-button @click="visible.issue = false">取消</el-button>
         <el-button type="primary" :loading="loading.issue" @click="submitIssue">确认回复</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <el-container class="feedback-container">
       <!-- 头部搜索区域 -->
@@ -394,7 +394,7 @@ const closeDetail = () => {
       <!-- 主体表格区域 -->
       <el-main class="feedback-main-content">
         <div class="feedback-content">
-          <ScTable ref="table" :url="fetchPageFeedback" :rowClick="openDetail" class="feedback-table">
+          <ScTable ref="table" :url="fetchPageFeedback" :rowClick="openDetail" class="feedback-table" height="auto">
             <el-table-column label="反馈类型" prop="sysFeedbackType" align="center" width="120">
               <template #default="{ row }">
                 <el-tag :type="row.sysFeedbackType === 'BUG' ? 'danger' : row.sysFeedbackType === 'SUGGESTION' ? 'primary' : 'info'">

@@ -49,7 +49,7 @@
     </main>
 
     <!-- 关于对话框 -->
-    <el-dialog v-model="showAbout" title="关于" width="400px">
+    <sc-dialog v-model="showAbout" title="关于" width="400px">
       <div class="about-content">
         <div class="about-logo">
           <i class="ri-shield-check-fill"></i>
@@ -79,7 +79,7 @@
           </div>
         </div>
       </div>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

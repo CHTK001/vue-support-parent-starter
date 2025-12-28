@@ -97,9 +97,10 @@ h1, h2, h3, h4, h5, h6,
 
 /* ===== 滚动条样式 ===== */
 .thin-scroller,
-.custom-scrollbar {
+.custom-scrollbar,
+.el-dialog__body {
   scrollbar-width: thin;
-  scrollbar-color: var(--app-scrollbar-thumb) var(--app-scrollbar-track);
+  scrollbar-color: var(--el-color-primary) transparent;
   
   &::-webkit-scrollbar {
     width: 6px;
@@ -107,16 +108,16 @@ h1, h2, h3, h4, h5, h6,
   }
   
   &::-webkit-scrollbar-track {
-    background: var(--app-scrollbar-track);
-    border-radius: 3px;
+    background: transparent;
+    border-radius: 4px;
   }
   
   &::-webkit-scrollbar-thumb {
-    background: var(--app-scrollbar-thumb);
-    border-radius: 3px;
+    background-color: var(--el-color-primary-light-3);
+    border-radius: 4px;
     
     &:hover {
-      background: var(--app-scrollbar-thumb-hover);
+      background: var(--el-color-primary);
     }
   }
 }

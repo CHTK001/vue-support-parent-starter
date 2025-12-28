@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="server-scripts">
     <!-- 工具栏 -->
     <div class="toolbar">
@@ -220,7 +220,7 @@
     </div>
 
     <!-- 脚本代码查看对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="codeDialogVisible"
       title="脚本代码"
       width="80%"
@@ -244,10 +244,10 @@
           <pre><code>{{ selectedScript.monitorSysGenScriptContent }}</code></pre>
         </div>
       </div>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 文件上传对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="importDialogVisible"
       title="导入脚本"
       width="500px"
@@ -275,7 +275,7 @@
           >确定导入</el-button
         >
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

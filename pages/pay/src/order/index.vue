@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="order-page">
     <div class="order-header">
       <div class="left">
@@ -161,7 +161,7 @@
       </el-table-column>
     </ScTable>
   </div>
-  <el-drawer
+  <sc-drawer
     v-model="detail.visible"
     :title="`订单详情 - ${detail.row?.payMerchantOrderCode || ''}`"
     size="60%"
@@ -201,7 +201,7 @@
         </el-scrollbar>
       </div>
     </div>
-  </el-drawer>
+  </sc-drawer>
 </template>
 
 <script setup lang="ts">

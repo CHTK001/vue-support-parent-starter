@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="dialogVisible"
     title="容器详情"
     width="800px"
@@ -284,7 +284,7 @@
         </el-button>
       </span>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

@@ -1,39 +1,41 @@
 <template>
   <div class="skywalking-alarm">
-    <!-- 筛选区域 -->
-    <el-card class="filter-card" shadow="never">
-      <el-form :inline="true" :model="filterForm" class="filter-form">
-        <el-form-item label="SkyWalking">
-          <el-select v-model="filterForm.configId" placeholder="请选择配置" @change="fetchData">
-            <el-option
-              v-for="item in configList"
-              :key="item.skywalkingConfigId"
-              :label="item.skywalkingConfigName"
-              :value="item.skywalkingConfigId"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="时间范围">
-          <el-date-picker
-            v-model="timeRange"
-            type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            format="YYYY-MM-DD HH:mm"
-            value-format="YYYY-MM-DD HHmm"
-            @change="handleTimeChange"
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="header-icon">
+          <el-icon :size="28"><Bell /></el-icon>
+        </div>
+        <div class="header-text">
+          <h2>告警中心</h2>
+          <p>查看和管理所有 SkyWalking 告警信息</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <el-select v-model="filterForm.configId" placeholder="选择配置" @change="fetchData" style="width: 180px">
+          <el-option
+            v-for="item in configList"
+            :key="item.skywalkingConfigId"
+            :label="item.skywalkingConfigName"
+            :value="item.skywalkingConfigId"
           />
-        </el-form-item>
-        <el-form-item label="关键字">
-          <el-input v-model="filterForm.keyword" placeholder="匹配消息/范围" clearable style="width: 220px" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="fetchData">查询</el-button>
-          <el-button @click="resetFilter">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+        </el-select>
+        <el-date-picker
+          v-model="timeRange"
+          type="datetimerange"
+          range-separator="-"
+          start-placeholder="开始"
+          end-placeholder="结束"
+          format="MM-DD HH:mm"
+          value-format="YYYY-MM-DD HHmm"
+          @change="handleTimeChange"
+          style="width: 280px"
+        />
+        <el-input v-model="filterForm.keyword" placeholder="关键字搜索" clearable style="width: 180px" />
+        <el-button type="primary" :icon="Search" @click="fetchData">查询</el-button>
+        <el-button :icon="RefreshRight" @click="resetFilter">重置</el-button>
+      </div>
+    </div>
 
     <!-- 告警列表 -->
     <el-card class="table-card" shadow="never" v-loading="loading">
@@ -74,6 +76,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
+import { Search, RefreshRight, Bell } from "@element-plus/icons-vue";
 import { getEnabledSkywalkingConfigs, type SkywalkingConfig } from "@/api/skywalking/config";
 import { getDefaultTimeRange, getSkywalkingAlarms, type AlarmMessage } from "@/api/skywalking/data";
 
@@ -181,19 +184,83 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .skywalking-alarm {
-  padding: 16px;
+  padding: 20px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
 
-  .filter-card {
-    margin-bottom: 16px;
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 16px 24px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--el-border-color-lighter);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
-    .filter-form {
-      :deep(.el-form-item) {
-        margin-bottom: 0;
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .header-icon {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
+        border-radius: 10px;
+        color: #fff;
+      }
+
+      .header-text {
+        h2 {
+          margin: 0 0 2px;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+        }
+        p {
+          margin: 0;
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+        }
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      :deep(.el-select),
+      :deep(.el-input),
+      :deep(.el-date-editor) {
+        .el-input__wrapper {
+          background: var(--el-fill-color-blank);
+          border: 1px solid var(--el-border-color-lighter);
+          box-shadow: none;
+        }
+      }
+
+      :deep(.el-button) {
+        border: 1px solid var(--el-border-color-lighter);
+        box-shadow: none;
       }
     }
   }
 
   .table-card {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+    :deep(.el-table) {
+      border-radius: 8px;
+    }
+
     .card-header {
       display: flex;
       justify-content: space-between;

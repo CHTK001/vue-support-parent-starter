@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="api-history">
     <!-- 头部 -->
     <div class="history-header">
@@ -92,7 +92,7 @@
     </div>
 
     <!-- 详情对话框 -->
-    <el-drawer
+    <sc-drawer
       v-model="detailVisible"
       title="请求详情"
       direction="rtl"
@@ -154,7 +154,7 @@
           重新请求
         </el-button>
       </template>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 

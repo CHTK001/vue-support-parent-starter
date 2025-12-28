@@ -106,3 +106,123 @@ export function getWebSocketUrl(url: string, parameter: any) {
   const fullUrl: string = ((baseURL || "") + (routerBase || "") + url).replace(new RegExp("//", "gm"), "/");
   return `${protocol}${location.host}${fullUrl}?${parameter}`;
 }
+
+// ==================== 配置管理相关类型和接口 ====================
+
+/**
+ * 配置项类型
+ */
+export interface MonitorConfig {
+  monitorSysGenConfigId?: number;
+  monitorSysGenConfigKey?: string;
+  monitorSysGenConfigValue?: string;
+  monitorSysGenConfigDescription?: string;
+  monitorSysGenConfigEnv?: string;
+  monitorSysGenConfigApp?: string;
+  monitorSysGenConfigStatus?: number;
+  createTime?: string;
+  updateTime?: string;
+}
+
+/**
+ * 配置推送请求
+ */
+export interface ConfigPushRequest {
+  configIds: number[];
+  serverIds: number[];
+}
+
+/**
+ * 配置推送历史
+ */
+export interface ConfigPushHistory {
+  id: number;
+  configId: number;
+  configKey: string;
+  configValue: string;
+  serverId: number;
+  serverName: string;
+  success: boolean;
+  pushTime: string;
+  operator: string;
+}
+
+/**
+ * 配置统计
+ */
+export interface ConfigStats {
+  total: number;
+  enabled: number;
+  disabled: number;
+  envStats: Record<string, number>;
+}
+
+/**
+ * 获取配置分页列表
+ */
+export function getConfigPageList(params?: any) {
+  return request("/config/page", { params });
+}
+
+/**
+ * 删除配置
+ */
+export function deleteConfig(id: number) {
+  return request(`/config/${id}`, { method: "DELETE" });
+}
+
+/**
+ * 获取环境列表
+ */
+export function getEnvList() {
+  return request("/config/envs");
+}
+
+/**
+ * 获取配置统计
+ */
+export function getConfigStats() {
+  return request("/config/stats");
+}
+
+/**
+ * 推送配置到节点
+ */
+export function pushConfigToNodes(data: ConfigPushRequest) {
+  return request("/config/push", { method: "POST", data });
+}
+
+/**
+ * 获取配置推送历史
+ */
+export function getConfigPushHistory(params?: any) {
+  return request("/config/push/history", { params });
+}
+
+/**
+ * 从历史记录重新推送
+ */
+export function repushFromHistory(historyId: number) {
+  return request(`/config/push/history/${historyId}/repush`, { method: "POST" });
+}
+
+/**
+ * 批量从历史记录重新推送
+ */
+export function batchRepushFromHistory(historyIds: number[]) {
+  return request("/config/push/history/batch-repush", { method: "POST", data: { ids: historyIds } });
+}
+
+/**
+ * 删除推送历史
+ */
+export function deletePushHistory(historyId: number) {
+  return request(`/config/push/history/${historyId}`, { method: "DELETE" });
+}
+
+/**
+ * 批量删除推送历史
+ */
+export function batchDeletePushHistory(historyIds: number[]) {
+  return request("/config/push/history/batch-delete", { method: "POST", data: { ids: historyIds } });
+}

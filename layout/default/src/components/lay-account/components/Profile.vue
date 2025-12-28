@@ -132,7 +132,7 @@ getMine().then(res => {
         {{ $t("buttons.updateInfo") }}
       </el-button>
     </el-form>
-    <el-dialog v-model="isShow" width="40%" :title="$t('button.updateAvatar')" destroy-on-close :closeOnClickModal="false" :before-close="handleClose" :fullscreen="deviceDetection()">
+    <sc-dialog v-model="isShow" width="40%" :title="$t('button.updateAvatar')" destroy-on-close :closeOnClickModal="false" :before-close="handleClose" :fullscreen="deviceDetection()">
       <sc-cropper ref="cropper" :src="imgSrc" />
       <template #footer>
         <div class="dialog-footer">
@@ -144,6 +144,6 @@ getMine().then(res => {
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="server-detail-page">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -82,9 +82,9 @@
     <ComponentManageDialog ref="componentManageDialogRef" @success="handleComponentsManaged" />
 
     <!-- 文件管理对话框 -->
-    <el-dialog v-model="fileManagerVisible" title="文件管理" width="90%" :before-close="handleFileManagerClose" append-to-body destroy-on-close>
+    <sc-dialog v-model="fileManagerVisible" title="文件管理" width="90%" :before-close="handleFileManagerClose" append-to-body destroy-on-close>
       <FileManager :server="serverInfo" @close="handleFileManagerClose" />
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 组件配置对话框 -->
     <ComponentConfigDialog ref="componentConfigDialogRef" :server-id="serverId" @success="handleComponentConfigSuccess" />

@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { deepClean, message } from "@repo/utils";
 import * as _ from "lodash-es";
 import { computed, defineExpose, reactive, ref, shallowRef } from "vue";
@@ -187,7 +187,7 @@ defineExpose({
 
 <template>
   <div>
-    <el-dialog
+    <sc-dialog
       :title="title"
       draggable
       v-model="visible"
@@ -375,7 +375,7 @@ defineExpose({
           >
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

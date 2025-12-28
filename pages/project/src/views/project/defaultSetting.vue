@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div>
-    <el-dialog
+    <sc-dialog
       v-model="visible"
       draggable
       title="设置默认"
@@ -38,7 +38,7 @@
           >保存</el-button
         >
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 <script setup>

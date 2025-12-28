@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="visible" title="上传文件到服务器/节点" width="680px" :close-on-click-modal="false" @close="handleClose">
+﻿<template>
+  <sc-dialog v-model="visible" title="上传文件到服务器/节点" width="680px" :close-on-click-modal="false" @close="handleClose">
     <el-form :model="form" label-width="100px" :rules="rules" ref="formRef">
       <el-form-item label="上传对象" prop="type">
         <el-radio-group v-model="form.type" size="small">
@@ -43,7 +43,7 @@
       <el-button @click="handleClose">取消</el-button>
       <el-button type="primary" :loading="submitting" @click="handleConfirm">开始上传</el-button>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

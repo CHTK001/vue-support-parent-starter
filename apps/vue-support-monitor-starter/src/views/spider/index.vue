@@ -143,7 +143,7 @@
         </template>
       </el-table-column>
       
-      <el-table-column label="操作" width="340" align="center" fixed="right">
+      <el-table-column label="操作" width="400" align="center" fixed="right">
         <template #default="{ row }">
           <el-button-group>
             <el-button 
@@ -164,6 +164,10 @@
             >
               <IconifyIconOnline icon="ri:stop-line" />
               停止
+            </el-button>
+            <el-button size="small" type="success" @click="handleDesign(row)">
+              <IconifyIconOnline icon="ri:flow-chart" />
+              设计
             </el-button>
             <el-button size="small" @click="handleEdit(row)">
               <IconifyIconOnline icon="ri:edit-line" />
@@ -218,8 +222,11 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, watch } from "vue";
+import { useRouter } from "vue-router";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
+
+const router = useRouter();
 import {
   getSpiderTaskPageList,
   getSpiderTaskStatistics,
@@ -351,6 +358,13 @@ const handleCreate = () => {
 const handleEdit = (row: any) => {
   currentTaskId.value = row.spiderTaskId;
   dialogVisible.value = true;
+};
+
+/**
+ * 设计任务流程
+ */
+const handleDesign = (row: any) => {
+  router.push(`/spider/design/${row.spiderTaskId}`);
 };
 
 /**

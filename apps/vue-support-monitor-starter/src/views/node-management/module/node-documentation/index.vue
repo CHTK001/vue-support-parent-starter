@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="node-documentation">
     <!-- 顶部导航栏 -->
     <div class="doc-header">
@@ -644,7 +644,7 @@
     </div>
 
     <!-- 全局请求头设置对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="showHeaderDialog"
       title="全局请求头设置"
       width="600px"
@@ -741,7 +741,7 @@
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

@@ -512,7 +512,7 @@ export default defineComponent({
           <div ref="contentRef" class="h-full flex">
             <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
               style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
-              <ScTable ref="table" :url="fetchPageUserValue" :params="form" @data-loaded="onDataLoaded" @selection-change="handleSelectionChange">
+              <ScTable ref="table" :url="fetchPageUserValue" :params="form" @data-loaded="onDataLoaded" @selection-change="handleSelectionChange" height="auto">
                 <el-table-column type="selection" width="55" />
                 <el-table-column type="index" label="序号" width="80px">
                   <template #default="scope">

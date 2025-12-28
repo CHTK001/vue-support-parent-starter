@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="visible" title="Arthas 配置" width="620px" @open="onOpen">
+﻿<template>
+  <sc-dialog v-model="visible" title="Arthas 配置" width="620px" @open="onOpen">
     <el-form :model="form" label-width="150px">
       <el-form-item label="Tunnel 地址">
         <el-input v-model="form.address" placeholder="ws://host:port/ws" />
@@ -21,7 +21,7 @@
       <el-button @click="close">取消</el-button>
       <el-button type="primary" :loading="loading" @click="save">保存</el-button>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

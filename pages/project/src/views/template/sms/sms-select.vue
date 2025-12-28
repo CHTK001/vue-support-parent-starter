@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message, stringSplitToArray } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, ref, watch } from "vue";
@@ -98,7 +98,7 @@ defineExpose({
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" :title="title" :close-on-click-modal="false" draggable width="40%" @close="handleClose">
+    <sc-dialog v-model="visible" :title="title" :close-on-click-modal="false" draggable width="40%" @close="handleClose">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="模板" class="w-full">
           <ScTableSelect v-model="sysTemplateObject" placeholder="请选择模板" :keywords="keywords" remoteParameterName="sysSmsTemplateName" :columns="env.columns" :url="fetchPageProjectForSms" :params="params" class="w-full" @selectionChange="handleSelectionChange" />
@@ -127,6 +127,6 @@ defineExpose({
       <template #footer>
         <el-button type="primary" size="default" :icon="useRenderIcon('bi:send')" @click="handleSubmit" />
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>

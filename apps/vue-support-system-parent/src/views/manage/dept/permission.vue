@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { fetchUpdateDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
 import { defineExpose, reactive, watch } from "vue";
@@ -83,7 +83,7 @@ defineExpose({
 
 <template>
   <div>
-    <el-dialog
+    <sc-dialog
       v-model="env.visible"
       :title="env.title"
       width="600px"
@@ -158,7 +158,7 @@ defineExpose({
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

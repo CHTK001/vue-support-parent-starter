@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="file-tree">
     <!-- 头部工具栏 -->
     <div class="tree-header">
@@ -78,7 +78,7 @@
     </div>
 
     <!-- 新建文件夹对话框 -->
-    <el-dialog v-model="createFolderVisible" title="新建文件夹" width="400px" :close-on-click-modal="false">
+    <sc-dialog v-model="createFolderVisible" title="新建文件夹" width="400px" :close-on-click-modal="false">
       <el-form :model="createFolderForm" label-width="80px">
         <el-form-item label="文件夹名">
           <el-input v-model="createFolderForm.name" placeholder="请输入文件夹名称" @keyup.enter="confirmCreateFolder" />
@@ -88,7 +88,7 @@
         <el-button @click="createFolderVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmCreateFolder">确定</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

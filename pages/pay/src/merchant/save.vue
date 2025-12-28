@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     :title="mode === 'add' ? '新增商户' : '编辑商户'"
     width="520px"
@@ -48,7 +48,7 @@
       <el-button @click="visible = false">取消</el-button>
       <el-button type="primary" @click="handleSubmit">保存</el-button>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

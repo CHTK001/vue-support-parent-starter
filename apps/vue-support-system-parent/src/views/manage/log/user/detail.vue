@@ -1,4 +1,4 @@
-<script>
+﻿<script>
 import { defineComponent } from "vue";
 import EyeClose from "@iconify-icons/ri/eye-close-line";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
@@ -63,7 +63,7 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-drawer
+    <sc-drawer
       v-model="visible"
       size="50%"
       @close="onClose"
@@ -181,7 +181,7 @@ export default defineComponent({
           </div>
         </div>
       </div>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 

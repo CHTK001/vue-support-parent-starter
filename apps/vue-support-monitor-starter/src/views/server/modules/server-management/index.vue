@@ -237,8 +237,8 @@
                           {{ getOnlineStatusText(server.onlineStatus, server.isLocal) }}
                         </el-tag>
                       </el-tooltip>
-                      <!-- 延迟显示 -->
-                      <ServerLatencyDisplay :latency="server.latency" size="small" mode="full" class="server-latency" />
+                      <!-- 延迟显示（仅在开启延迟检测时显示） -->
+                      <ServerLatencyDisplay v-if="server.latencyCheckEnabled" :latency="server.latency" size="small" mode="full" class="server-latency" />
                       <!-- 健康状态指示器 -->
                       <el-tooltip v-if="realTimeMetricsEnabled && getServerHealthStatus(server.id) !== 'unknown'" :content="`健康状态: ${getHealthStatusText(getServerHealthStatus(server.id))}`" placement="top" :show-after="300">
                         <el-tag :type="getHealthStatusType(getServerHealthStatus(server.id))" size="small" effect="light" class="health-status">
@@ -397,7 +397,7 @@ import { useServerMetricsStore } from "@/stores/serverMetrics";
 import ScProgress from "@repo/components/ScProgress/index.vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
-import { Suspense, computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref } from "vue";
+import { Suspense, computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 // 定义 props 接收来自父组件的数据
@@ -1352,10 +1352,20 @@ const getHealthStatusIcon = (status: string) => {
 
 // WebSocket 消息监听已移除，所有数据通过 props 从父组件获取
 
+// 监听服务器列表变化，重新获取延迟数据
+watch(() => props.servers, async (newServers) => {
+  if (newServers && newServers.length > 0) {
+    await loadServerLatency();
+  }
+}, { immediate: true });
+
 // 生命周期钩子
 onMounted(async () => {
-  // 不再直接加载服务器列表，数据由父组件提供
-  console.log("server-management 组件已挂载，等待父组件数据");
+  console.log("server-management 组件已挂载");
+  // 加载服务器延迟数据
+  if (servers.value.length > 0) {
+    await loadServerLatency();
+  }
 });
 
 onUnmounted(() => {
@@ -2055,6 +2065,7 @@ onUnmounted(() => {
 
             &:hover {
               background-color: var(--el-color-primary);
+              color: #fff;
               transform: translateY(-1px);
             }
 

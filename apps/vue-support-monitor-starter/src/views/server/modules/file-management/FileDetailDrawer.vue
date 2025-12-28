@@ -1,5 +1,5 @@
-<template>
-  <el-drawer
+﻿<template>
+  <sc-drawer
     v-model="drawerVisible"
     :title="drawerTitle"
     direction="rtl"
@@ -65,7 +65,7 @@
         </div>
       </div>
     </div>
-  </el-drawer>
+  </sc-drawer>
 </template>
 
 <script setup lang="ts">

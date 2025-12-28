@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div>
-    <el-dialog
+    <sc-dialog
       title="更新配置"
       width="400px"
       draggable
@@ -26,7 +26,7 @@
         <el-button @click="handleClose">取消</el-button>
         <el-button type="primary" @click="handleSubmit">确定</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 <script setup lang="ts">

@@ -1,15 +1,15 @@
 import config from ".";
+import fixColorAdjust from "./postcss-fix-color-adjust";
 
 export default {
-  plugins: {
-    ...(process.env.NODE_ENV === "production" ? { cssnano: {} } : {}),
-    // Specifying the config is not necessary in most cases, but it is included
-    "tailwindcss/nesting": "postcss-nesting",
-    tailwindcss: { config },
-    autoprefixer: {},
-    // 修复 element-plus 和 ant-design-vue 的样式和tailwindcss冲突问题
-    "postcss-antd-fixes": { prefixes: ["ant", "el"] },
-    "postcss-import": {},
-    "postcss-preset-env": {},
-  },
+  plugins: [
+    process.env.NODE_ENV === "production" ? ["cssnano", {}] : false,
+    ["tailwindcss/nesting", "postcss-nesting"],
+    ["tailwindcss", { config }],
+    "autoprefixer",
+    ["postcss-antd-fixes", { prefixes: ["ant", "el"] }],
+    "postcss-import",
+    "postcss-preset-env",
+    fixColorAdjust,
+  ].filter(Boolean),
 };

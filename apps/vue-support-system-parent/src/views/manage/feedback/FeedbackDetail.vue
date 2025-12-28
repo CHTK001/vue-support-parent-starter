@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, reactive } from "vue";
 
 const emit = defineEmits(["close"]);
@@ -65,7 +65,7 @@ defineExpose({
 </script>
 
 <template>
-  <el-dialog
+  <sc-dialog
     v-model="visible"
     title="反馈详情"
     width="700px"
@@ -145,7 +145,7 @@ defineExpose({
     <template #footer>
       <el-button @click="handleClose">关闭</el-button>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <style scoped lang="scss">

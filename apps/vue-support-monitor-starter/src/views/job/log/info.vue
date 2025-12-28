@@ -1,5 +1,5 @@
-<template>
-  <el-drawer
+﻿<template>
+  <sc-drawer
     v-model="visible"
     :size="600"
     destroy-on-close
@@ -114,7 +114,7 @@
         </div>
       </div>
     </div>
-  </el-drawer>
+  </sc-drawer>
 </template>
 
 <script>

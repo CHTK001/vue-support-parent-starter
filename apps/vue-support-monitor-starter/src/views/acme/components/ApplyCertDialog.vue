@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="dialogVisible"
     title="申请 SSL/TLS 证书"
     width="680px"
@@ -133,6 +133,90 @@
         </ScSelect>
       </el-form-item>
 
+      <!-- 部署模式（仅 HTTP-01 时显示） -->
+      <el-form-item label="部署模式" prop="deployMode" v-if="form.challengeType === 'HTTP-01'">
+        <el-radio-group v-model="form.deployMode">
+          <el-radio value="local">本机部署</el-radio>
+          <el-radio value="ssh">远程部署 (SSH)</el-radio>
+          <el-radio value="manual">手动部署</el-radio>
+        </el-radio-group>
+        <div class="field-desc">
+          <IconifyIconOnline icon="mdi:information-outline" />
+          <span v-if="form.deployMode === 'local'">本机部署：域名需解析到本服务器，系统自动响应验证请求</span>
+          <span v-else-if="form.deployMode === 'ssh'">远程部署：通过 SSH 在远程服务器创建验证文件</span>
+          <span v-else>手动部署：查看验证信息后自行配置</span>
+        </div>
+      </el-form-item>
+
+      <!-- SSH 配置（仅 SSH 模式时显示） -->
+      <div class="ssh-config" v-if="form.challengeType === 'HTTP-01' && form.deployMode === 'ssh'">
+        <div class="config-title">
+          <IconifyIconOnline icon="mdi:server" />
+          <span>SSH 连接配置</span>
+        </div>
+        <el-row :gutter="12">
+          <el-col :span="16">
+            <el-form-item label="服务器地址" prop="sshHost">
+              <el-input v-model="form.sshHost" placeholder="域名指向的服务器 IP">
+                <template #prefix>
+                  <IconifyIconOnline icon="mdi:server" />
+                </template>
+              </el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="端口" prop="sshPort">
+              <el-input-number v-model="form.sshPort" :min="1" :max="65535" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="12">
+          <el-col :span="12">
+            <el-form-item label="用户名" prop="sshUsername">
+              <el-input v-model="form.sshUsername" placeholder="root">
+                <template #prefix>
+                  <IconifyIconOnline icon="mdi:account" />
+                </template>
+              </el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="密码" prop="sshPassword">
+              <el-input v-model="form.sshPassword" type="password" show-password placeholder="SSH 密码">
+                <template #prefix>
+                  <IconifyIconOnline icon="mdi:lock" />
+                </template>
+              </el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="Webroot 路径" prop="webrootPath">
+          <el-input v-model="form.webrootPath" placeholder="/var/www/html">
+            <template #prefix>
+              <IconifyIconOnline icon="mdi:folder" />
+            </template>
+          </el-input>
+          <div class="field-desc">
+            <IconifyIconOnline icon="mdi:information-outline" />
+            <span>Nginx/Apache 的网站根目录，系统会在此目录下创建 <code>/.well-known/acme-challenge/</code> 文件</span>
+          </div>
+        </el-form-item>
+        <!-- Nginx 配置参考 -->
+        <div class="nginx-config-tip">
+          <div class="tip-header">
+            <IconifyIconOnline icon="mdi:lightbulb" />
+            <span>Nginx 配置参考</span>
+            <el-button size="small" text @click="copyNginxConfig">
+              <IconifyIconOnline icon="mdi:content-copy" />
+              复制
+            </el-button>
+          </div>
+          <pre class="nginx-code">location /.well-known/acme-challenge/ {
+    root {{ form.webrootPath || '/var/www/html' }};
+}</pre>
+        </div>
+      </div>
+
       <!-- 验证说明 -->
       <div class="validation-guide">
         <template v-if="form.challengeType === 'HTTP-01'">
@@ -224,15 +308,22 @@
     </el-form>
 
     <template #footer>
-      <div class="dialog-footer">
+      <div class="dialog-footer" v-if="!submitSuccess">
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit">
           <IconifyIconOnline icon="mdi:certificate" class="mr-1" />
           提交申请
         </el-button>
       </div>
+      <div class="dialog-footer success-footer" v-else>
+        <el-button @click="handleClose">关闭</el-button>
+        <el-button type="primary" @click="handleViewCert">
+          <IconifyIconOnline icon="mdi:eye-outline" class="mr-1" />
+          查看证书
+        </el-button>
+      </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">
@@ -269,11 +360,18 @@ defineOptions({
 
 const props = defineProps<{
   visible: boolean;
+  initData?: {
+    acmeAccountId?: number;
+    acmeCertPrimaryDomain?: string;
+    acmeCertSan?: string;
+    acmeCertChallengeType?: string;
+  };
 }>();
 
 const emit = defineEmits<{
   "update:visible": [value: boolean];
-  success: [];
+  success: [certId?: number];
+  viewCert: [certId: number];
 }>();
 
 const dialogVisible = computed({
@@ -283,6 +381,8 @@ const dialogVisible = computed({
 
 const formRef = ref<FormInstance>();
 const submitting = ref(false);
+const submitSuccess = ref(false);
+const submittedCertId = ref<number>();
 const accountList = ref<AcmeAccount[]>([]);
 
 const form = reactive({
@@ -290,6 +390,12 @@ const form = reactive({
   primaryDomain: "",
   sanDomains: [] as string[],
   challengeType: "HTTP-01",
+  deployMode: "manual",
+  sshHost: "",
+  sshPort: 22,
+  sshUsername: "",
+  sshPassword: "",
+  webrootPath: "/var/www/html",
 });
 
 const rules: FormRules = {
@@ -324,6 +430,21 @@ function getServerName(url: string): string {
 }
 
 /**
+ * 复制 Nginx 配置
+ */
+async function copyNginxConfig() {
+  const config = `location /.well-known/acme-challenge/ {
+    root ${form.webrootPath || '/var/www/html'};
+}`;
+  try {
+    await navigator.clipboard.writeText(config);
+    message("已复制 Nginx 配置", { type: "success" });
+  } catch {
+    message("复制失败", { type: "error" });
+  }
+}
+
+/**
  * 加载账户列表
  */
 async function loadAccounts() {
@@ -346,10 +467,13 @@ async function handleSubmit() {
 
   submitting.value = true;
   try {
-    await applyCert(form);
+    const res = await applyCert(form) as unknown as { data: number };
+    submittedCertId.value = res.data;
+    submitSuccess.value = true;
     message("证书申请已提交，请在消息中心查看进度", { type: "success" });
+    emit("success", submittedCertId.value);
+    // 申请成功后自动关闭弹框
     dialogVisible.value = false;
-    emit("success");
   } catch (error) {
     message("申请失败", { type: "error" });
   } finally {
@@ -357,14 +481,51 @@ async function handleSubmit() {
   }
 }
 
+/**
+ * 关闭弹框
+ */
+function handleClose() {
+  dialogVisible.value = false;
+}
+
+/**
+ * 查看证书
+ */
+function handleViewCert() {
+  if (submittedCertId.value) {
+    emit("viewCert", submittedCertId.value);
+  }
+  dialogVisible.value = false;
+}
+
 watch(
   () => props.visible,
   (val) => {
     if (val) {
-      form.acmeAccountId = undefined;
-      form.primaryDomain = "";
-      form.sanDomains = [];
-      form.challengeType = "HTTP-01";
+      // 重置提交状态
+      submitSuccess.value = false;
+      submittedCertId.value = undefined;
+      // 如果有初始数据，使用初始数据填充表单
+      if (props.initData) {
+        form.acmeAccountId = props.initData.acmeAccountId;
+        form.primaryDomain = props.initData.acmeCertPrimaryDomain || "";
+        form.sanDomains = props.initData.acmeCertSan
+          ? props.initData.acmeCertSan.split(",").filter(Boolean)
+          : [];
+        form.challengeType = props.initData.acmeCertChallengeType || "HTTP-01";
+      } else {
+        form.acmeAccountId = undefined;
+        form.primaryDomain = "";
+        form.sanDomains = [];
+        form.challengeType = "HTTP-01";
+      }
+      // 重置部署配置
+      form.deployMode = "manual";
+      form.sshHost = "";
+      form.sshPort = 22;
+      form.sshUsername = "";
+      form.sshPassword = "";
+      form.webrootPath = "/var/www/html";
       formRef.value?.clearValidate();
       loadAccounts();
     }

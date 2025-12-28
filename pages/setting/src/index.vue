@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineComponent, defineAsyncComponent, nextTick, onMounted, reactive, ref, shallowRef, watch } from "vue";
+import { computed, defineComponent, defineAsyncComponent, nextTick, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from "vue";
 // 将同步组件改为异步组件
 const SaveLayoutRaw = defineAsyncComponent(() => import("./layout/base.vue"));
 const SaveItem = defineAsyncComponent(() => import("./admin/index.vue"));
@@ -10,11 +10,27 @@ import { localStorageProxy } from "@repo/utils";
 import { message } from "@repo/utils";
 import { ElLoading } from "element-plus";
 import { useI18n } from "vue-i18n";
+import { emitter } from "@repo/core";
+import { useGlobal } from "@pureadmin/utils";
 import { fetchListForGroup, type SysSettingGroup } from "./api/group";
 const localStorageProxyObject = localStorageProxy();
 const SETTING_TAB_VALUE = "setting-tab-value";
 
 const { t } = useI18n();
+//@ts-ignore
+const { $storage } = useGlobal<GlobalPropertiesApi>();
+
+// 顶部显示/隐藏状态（从全局配置获取）
+const headerVisible = ref(!($storage.configure?.hideHeader ?? false));
+
+// 监听全局配置变化
+watch(
+  () => $storage.configure?.hideHeader,
+  (newVal) => {
+    headerVisible.value = !newVal;
+  },
+  { immediate: false }
+);
 
 const config = reactive({
   tabValue: localStorageProxyObject.getItem(SETTING_TAB_VALUE) || "default",
@@ -345,6 +361,15 @@ onMounted(() => {
       componentLoadStatus.saveLayout = !!saveLayoutRef.value;
     }, 100);
   });
+
+  // 监听顶部显示/隐藏事件
+  emitter.on("hideHeaderChange", (hideHeader: boolean) => {
+    headerVisible.value = !hideHeader;
+  });
+});
+
+onUnmounted(() => {
+  emitter.off("hideHeaderChange");
 });
 </script>
 <template>
@@ -356,10 +381,12 @@ onMounted(() => {
       @click="openGroupManagement" />
 
     <!-- 页面标题 -->
-    <div class="setting-header">
-      <h1 class="setting-title">系统设置</h1>
-      <p class="setting-subtitle">管理和配置系统各项功能</p>
-    </div>
+    <transition name="header-slide">
+      <div class="setting-header" v-show="headerVisible">
+        <h1 class="setting-title">系统设置</h1>
+        <p class="setting-subtitle">管理和配置系统各项功能</p>
+      </div>
+    </transition>
 
     <!-- 卡片网格布局 -->
     <div class="setting-cards-container">
@@ -395,16 +422,16 @@ onMounted(() => {
       <SaveLayoutRaw ref="saveLayoutRef" @close="close(currentItem.group)" class="w-full" />
       <template v-if="currentItem.group === 'group'">
         <!-- 配置组管理使用抽屉显示 -->
-        <el-drawer v-model="drawerVisible.group" size="60%" :title="currentItem.name" destroy-on-close
+        <sc-drawer v-model="drawerVisible.group" size="60%" :title="currentItem.name" destroy-on-close
           @close="close(currentItem.group)" :z-index="2000" :append-to-body="true" class="setting-drawer">
           <GroupManagement :data="currentItem" />
-        </el-drawer>
+        </sc-drawer>
       </template>
       <template v-else>
-        <el-drawer v-model="drawerVisible[currentItem.group]" size="50%" :title="currentItem.name" :z-index="2000"
+        <sc-drawer v-model="drawerVisible[currentItem.group]" size="50%" :title="currentItem.name" :z-index="2000"
           :append-to-body="true" :destroy-on-close="true" class="setting-drawer">
           <component :is="layout[currentItem.group]" :data="currentItem" />
-        </el-drawer>
+        </sc-drawer>
       </template>
     </div>
 
@@ -477,6 +504,14 @@ onMounted(() => {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25), 0 5px 15px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 0 rgba(255, 255, 255, 0.3) inset;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 
+  &:hover {
+    box-shadow:
+      0 12px 30px rgba(0, 0, 0, 0.3),
+      0 8px 20px rgba(0, 0, 0, 0.25),
+      0 4px 12px rgba(0, 0, 0, 0.2),
+      0 1px 0 rgba(255, 255, 255, 0.4) inset;
+    transform: translateY(-3px) scale(1.05);
+  }
 }
 
 .setting-tabs-container {
@@ -768,6 +803,30 @@ onMounted(() => {
     font-size: 15px;
     transition: all 0.3s ease;
   }
+}
+
+/* 顶部显示/隐藏动画 */
+.header-slide-enter-active,
+.header-slide-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.header-slide-enter-from,
+.header-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+  max-height: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.header-slide-enter-to,
+.header-slide-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+  max-height: 200px;
 }
 
 /* 动画效果 */

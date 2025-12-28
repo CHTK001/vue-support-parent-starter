@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :model-value="visible" @update:model-value="handleClose" :title="editing ? '编辑配置' : '新增配置'" width="600px" @close="handleClose">
+  <sc-dialog :model-value="visible" @update:model-value="handleClose" :title="editing ? '编辑配置' : '新增配置'" width="600px" @close="handleClose">
     <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
       <el-form-item label="配置名称" prop="videoSyncConfigName">
         <el-input v-model="formData.videoSyncConfigName" placeholder="请输入配置名称" />
@@ -45,7 +45,7 @@
         </el-button>
       </span>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

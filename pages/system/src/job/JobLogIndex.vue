@@ -119,7 +119,7 @@
     </div>
 
     <!-- 日志详情对话框 -->
-    <el-dialog v-model="detailDialogVisible" title="日志详情" width="800px">
+    <sc-dialog v-model="detailDialogVisible" title="日志详情" width="800px">
       <div v-if="currentLog" class="log-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="日志ID">{{ currentLog.logId }}</el-descriptions-item>
@@ -168,10 +168,10 @@
           加载实时日志
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 清理日志对话框 -->
-    <el-dialog v-model="clearDialogVisible" title="清理日志" width="500px">
+    <sc-dialog v-model="clearDialogVisible" title="清理日志" width="500px">
       <el-form label-width="120px">
         <el-form-item label="清理方式">
           <el-radio-group v-model="clearType">
@@ -194,7 +194,7 @@
           确认清理
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

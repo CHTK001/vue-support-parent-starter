@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="video-call-container">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -219,7 +219,7 @@
     </div>
 
     <!-- 设置对话框 -->
-    <el-dialog v-model="showSettings" title="通话设置" width="500px">
+    <sc-dialog v-model="showSettings" title="通话设置" width="500px">
       <el-form :model="settings" label-width="120px">
         <el-form-item label="摄像头">
           <el-select v-model="settings.videoDeviceId" placeholder="选择摄像头">
@@ -267,7 +267,7 @@
         <el-button @click="showSettings = false">取消</el-button>
         <el-button type="primary" @click="applySettings">应用</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

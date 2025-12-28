@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { fetchUploadFile } from "@/api/manage/upload";
 import { fetchBindServiceModule } from "@/api/service/module";
 import { fetchBindService, fetchSaveService, fetchUpdateService } from "@/api/service/service";
@@ -107,7 +107,7 @@ defineExpose({
 </script>
 <template>
   <div>
-    <el-dialog v-model="env.visible" :title="env.title" draggable :close-on-click-modal="false">
+    <sc-dialog v-model="env.visible" :title="env.title" draggable :close-on-click-modal="false">
       <el-row>
         <el-col :span="env.form.sysServiceImageUploadType == 'URL' ? 0 : 4">
           <div class="flex justify-center items-start h-full">
@@ -193,6 +193,6 @@ defineExpose({
         <el-button @click="handleClose">{{ $t("buttons.cancel") }}</el-button>
         <el-button type="primary" :loading="env.loading" @click="handleUpdate">{{ $t("buttons.confirm") }}</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>

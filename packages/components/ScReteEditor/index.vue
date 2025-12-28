@@ -178,59 +178,7 @@ import type { EditorData, NodeTypeName, BaseNode, EditorConfig } from "./types";
  * - 自动排列
  * - 数据导入/导出
  * 
- * @example 基础用法
- * ```vue
- * <template>
- *   <ScReteEditor
- *     v-model="editorData"
- *     :minimap="true"
- *     @data-changed="onDataChange"
- *   />
- * </template>
- * 
- * <script setup>
- * import { ref } from 'vue';
- * import { ScReteEditor } from '@repo/components';
- * 
- * const editorData = ref({ nodes: [], connections: [] });
- * 
- * const onDataChange = (data) => {
- *   console.log('数据变化:', data);
- * };
- * </script>
- * ```
- * 
- * @example 加载已有数据
- * ```vue
- * <ScReteEditor
- *   v-model="editorData"
- *   :show-node-panel="true"
- *   :show-property-panel="true"
- *   :auto-arrange="true"
- *   :node-menu-items="[
- *     { label: '输入源', type: 'input', icon: 'ri:database-2-line' },
- *     { label: '输出目标', type: 'output', icon: 'ri:send-plane-line' }
- *   ]"
- * />
- * ```
- * 
- * @example 调用组件方法
- * ```vue
- * <template>
- *   <ScReteEditor ref="editorRef" v-model="data" />
- *   <button @click="handleArrange">自动排列</button>
- * </template>
- * 
- * <script setup>
- * const editorRef = ref();
- * 
- * const handleArrange = () => {
- *   editorRef.value?.arrange();
- * };
- * 
- * // 可用方法: getData, loadData, clear, addNode, removeNode, arrange, zoomToFit, setZoom
- * </script>
- * ```
+ * 可用方法: getData, loadData, clear, addNode, removeNode, arrange, zoomToFit, setZoom
  */
 defineOptions({
   name: "ScReteEditor",
@@ -548,14 +496,26 @@ async function handleDrop(e: DragEvent) {
 }
 
 // 监听数据变化
+// 注意：不要使用 deep watch，否则会导致无限循环
+// 因为 loadData 会触发 onDataChange -> emit update:modelValue -> 触发 watch -> loadData
+let isInternalUpdate = false;
 watch(
   () => props.modelValue,
-  async (newData) => {
-    if (initialized.value && newData) {
-      await loadData(newData);
+  async (newData, oldData) => {
+    // 跳过内部更新触发的变化
+    if (isInternalUpdate) {
+      return;
     }
-  },
-  { deep: true }
+    // 只有当引用变化时才加载（用户从外部传入新数据）
+    if (initialized.value && newData && newData !== oldData) {
+      isInternalUpdate = true;
+      try {
+        await loadData(newData);
+      } finally {
+        isInternalUpdate = false;
+      }
+    }
+  }
 );
 
 // 生命周期

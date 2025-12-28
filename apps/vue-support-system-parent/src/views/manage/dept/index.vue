@@ -263,7 +263,7 @@ onMounted(async () => {
           </el-header>
           <!-- 表格组件，显示部门列表数据 -->
           <div class="table-container">
-            <ScTable ref="tableRef" :data="tableData" row-key="sysDeptId" @row-click="handleOpenDetail">
+            <ScTable ref="tableRef" :data="tableData" row-key="sysDeptId" @row-click="handleOpenDetail" height="auto">
               <!-- 表格列，显示部门ID -->
               <el-table-column label="" prop="sysDeptIds" width="60"></el-table-column>
               <!-- 表格列，显示部门名称 -->

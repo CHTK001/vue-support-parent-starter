@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page flex flex-col h-full">
     <!-- 页面标题 -->
     <div class="page-header">
@@ -54,7 +54,7 @@
       </ScTable>
     </div>
 
-    <el-dialog v-model="config.visibleCfrVisible" title="详情" draggable :close-on-click-modal="false" @close="handleClose">
+    <sc-dialog v-model="config.visibleCfrVisible" title="详情" draggable :close-on-click-modal="false" @close="handleClose">
       <el-skeleton animated :loading="config.visibleCfrLoading" />
       <div v-if="!config.visibleCfrLoading">
         <pre ref="code" data-prismjs-copy="复制代码" data-prismjs-copy-success="复制成功" data-prismjs-copy-timeout="1000">
@@ -63,7 +63,7 @@
           </code>
         </pre>
       </div>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 <script setup>

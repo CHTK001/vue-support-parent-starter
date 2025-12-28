@@ -12,9 +12,10 @@ import {
   onBeforeUnmount,
   ref,
   Transition,
+  watch,
 } from "vue";
 import { useI18n } from "vue-i18n";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { useTags } from "../../hooks/useTag";
 import LayFooter from "../lay-footer/index.vue";
 import LayFrame from "../lay-frame/index.vue";
@@ -213,6 +214,43 @@ const transitionMain = defineComponent({
 });
 
 const router = useRouter();
+
+// 路由切换loading状态
+const routeLoading = ref(false);
+const MIN_LOADING_TIME = 200; // 最小显示时间(ms)，避免闪烁
+let loadingTimer: ReturnType<typeof setTimeout> | null = null;
+
+const route = useRoute();
+
+// 监听路由变化，使用 flush: 'sync' 确保立即执行
+watch(
+  () => route.path,
+  (newPath, oldPath) => {
+    if (newPath !== oldPath && oldPath !== undefined) {
+      // 路由变化时立即显示loading
+      routeLoading.value = true;
+      
+      // 清除之前的定时器
+      if (loadingTimer) {
+        clearTimeout(loadingTimer);
+      }
+      
+      // 最小显示时间后隐藏
+      loadingTimer = setTimeout(() => {
+        nextTick(() => {
+          routeLoading.value = false;
+        });
+      }, MIN_LOADING_TIME);
+    }
+  },
+  { immediate: false, flush: 'sync' }
+);
+
+onBeforeUnmount(() => {
+  if (loadingTimer) {
+    clearTimeout(loadingTimer);
+  }
+});
 </script>
 
 <template>
@@ -220,7 +258,12 @@ const router = useRouter();
     :class="[fixedHeader ? 'app-main' : 'app-main-nofixed-header']"
     :style="getSectionStyle"
   >
-    <router-view>
+    <!-- 路由切换时的loading骨架屏 -->
+    <div v-if="routeLoading" class="route-loading-container">
+      <el-skeleton :rows="8" animated />
+    </div>
+
+    <router-view v-show="!routeLoading">
       <template #default="{ Component, route }">
         <LayFrame :currComp="Component" :currRoute="route">
           <template #default="{ Comp, fullPath, frameInfo }">
@@ -556,4 +599,25 @@ const router = useRouter();
 }
 
 /* 移除冗余的过渡样式定义，使用全局的 transition.scss */
+
+/* 路由切换loading骨架屏容器 */
+.route-loading-container {
+  padding: var(--contentMargin, 16px);
+  height: calc(100vh - 86px - var(--contentMargin, 16px) * 2);
+  display: flex;
+  flex-direction: column;
+  background: var(--el-bg-color);
+  border-radius: var(--layoutRadius, 10px);
+  margin: var(--contentMargin, 16px);
+  border: 1px solid var(--el-card-border-color);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02);
+
+  .dark & {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  :deep(.el-skeleton) {
+    padding: 20px;
+  }
+}
 </style>

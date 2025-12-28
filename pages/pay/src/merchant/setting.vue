@@ -1,5 +1,5 @@
-<template>
-  <el-drawer
+﻿<template>
+  <sc-drawer
     v-model="visible"
     :title="`支付配置 - ${merchant?.payMerchantName || ''}`"
     size="70%"
@@ -55,7 +55,7 @@
     </div>
 
     <!-- 配置弹窗（微信） -->
-    <el-dialog
+    <sc-dialog
       v-model="config.visible"
       :title="`配置 - ${config.current?.title || ''}`"
       width="600px"
@@ -111,8 +111,8 @@
         <el-button @click="config.visible = false">取消</el-button>
         <el-button type="primary" @click="handleSaveConfig">保存</el-button>
       </template>
-    </el-dialog>
-  </el-drawer>
+    </sc-dialog>
+  </sc-drawer>
 </template>
 
 <script setup lang="ts">

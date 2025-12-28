@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     title="组件管理"
     width="1000px"
@@ -159,7 +159,7 @@
       ref="componentEditDialogRef"
       @success="handleComponentSaved"
     />
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

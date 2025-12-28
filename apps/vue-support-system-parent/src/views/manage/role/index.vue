@@ -161,7 +161,7 @@ const contentRef = ref();
         <el-main class="role-main">
           <div ref="contentRef" class="table-wrapper">
             <div :class="visible.role ? 'h-full !w-[380vw]' : 'h-full w-full'">
-              <ScTable ref="table" :url="fetchPageRole" @data-loaded="onDataLoaded">
+              <ScTable ref="table" :url="fetchPageRole" @data-loaded="onDataLoaded" height="auto">
                 <el-table-column type="index" label="序号" width="120px">
                   <template #default="scope">
                     <el-tag type="primary" size="small">{{ scope.$index + 1 }}</el-tag>

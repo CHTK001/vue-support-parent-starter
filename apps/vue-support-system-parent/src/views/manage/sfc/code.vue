@@ -1,8 +1,8 @@
-<template>
+﻿<template>
   <div>
-    <el-dialog v-model="visible" draggable title="编码" width="70vw" top="10px" @close="handleClose">
+    <sc-dialog v-model="visible" draggable title="编码" width="70vw" top="10px" @close="handleClose">
       <ScCodeEditor v-model="form.sysSfcContent" style="width: 100%; height: 70vh" :options="options" mode="vue" @updateValue="handleUpdateValue" />
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

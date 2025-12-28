@@ -1,5 +1,5 @@
 ﻿﻿<template>
-  <el-dialog
+  <sc-dialog
     v-model="dialogVisible"
     :title="isEdit ? '编辑仓库' : '添加仓库'"
     width="720px"
@@ -207,7 +207,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

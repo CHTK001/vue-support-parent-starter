@@ -1,40 +1,42 @@
 <template>
   <div class="skywalking-topology">
-    <!-- 筛选区域 -->
-    <el-card class="filter-card" shadow="never">
-      <el-form :inline="true" :model="filterForm" class="filter-form">
-        <el-form-item label="SkyWalking">
-          <el-select v-model="filterForm.configId" placeholder="请选择配置" @change="handleConfigChange">
-            <el-option
-              v-for="item in configList"
-              :key="item.skywalkingConfigId"
-              :label="item.skywalkingConfigName"
-              :value="item.skywalkingConfigId"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="时间范围">
-          <el-date-picker
-            v-model="timeRange"
-            type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            format="YYYY-MM-DD HH:mm"
-            value-format="YYYY-MM-DD HHmm"
-            @change="handleTimeChange"
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="header-icon">
+          <el-icon :size="28"><Share /></el-icon>
+        </div>
+        <div class="header-text">
+          <h2>服务拓扑</h2>
+          <p>可视化服务间的调用关系和依赖拓扑</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <el-select v-model="filterForm.configId" placeholder="选择配置" @change="handleConfigChange" style="width: 180px">
+          <el-option
+            v-for="item in configList"
+            :key="item.skywalkingConfigId"
+            :label="item.skywalkingConfigName"
+            :value="item.skywalkingConfigId"
           />
-        </el-form-item>
-        <el-form-item label="层">
-          <el-select v-model="filterForm.layer" placeholder="请选择层" clearable style="width: 150px">
-            <el-option v-for="layer in layerList" :key="layer" :label="layer" :value="layer" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="fetchData">查询</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+        </el-select>
+        <el-date-picker
+          v-model="timeRange"
+          type="datetimerange"
+          range-separator="-"
+          start-placeholder="开始"
+          end-placeholder="结束"
+          format="MM-DD HH:mm"
+          value-format="YYYY-MM-DD HHmm"
+          @change="handleTimeChange"
+          style="width: 280px"
+        />
+        <el-select v-model="filterForm.layer" placeholder="选择层" clearable style="width: 120px">
+          <el-option v-for="layer in layerList" :key="layer" :label="layer" :value="layer" />
+        </el-select>
+        <el-button type="primary" :icon="Search" @click="fetchData">查询</el-button>
+      </div>
+    </div>
 
     <!-- 拓扑图区域 -->
     <el-card class="topology-card" shadow="never" v-loading="loading">
@@ -95,7 +97,7 @@
     </el-card>
 
     <!-- 节点详情抽屉 -->
-    <el-drawer v-model="drawerVisible" title="节点详情" size="400px">
+    <sc-drawer v-model="drawerVisible" title="节点详情" size="400px">
       <template v-if="selectedNode">
         <el-descriptions :column="1" border>
           <el-descriptions-item label="节点ID">{{ selectedNode.id }}</el-descriptions-item>
@@ -118,7 +120,7 @@
           <el-empty v-if="!nodeRelatedCalls.length" description="暂无调用关系" :image-size="60" />
         </div>
       </template>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 
@@ -126,7 +128,7 @@
 import { ref, reactive, computed, onMounted, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
-import { Monitor } from "@element-plus/icons-vue";
+import { Monitor, Share, Search } from "@element-plus/icons-vue";
 import { getEnabledSkywalkingConfigs, type SkywalkingConfig } from "@/api/skywalking/config";
 import {
   getSkywalkingGlobalTopology,
@@ -321,17 +323,71 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .skywalking-topology {
-  padding: 16px;
+  padding: 20px;
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
 
-  .filter-card {
-    margin-bottom: 16px;
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 16px 24px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--el-border-color-lighter);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
-    .filter-form {
-      :deep(.el-form-item) {
-        margin-bottom: 0;
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .header-icon {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
+        border-radius: 10px;
+        color: #fff;
+      }
+
+      .header-text {
+        h2 {
+          margin: 0 0 2px;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+        }
+        p {
+          margin: 0;
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+        }
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      :deep(.el-select),
+      :deep(.el-date-editor) {
+        .el-input__wrapper {
+          background: var(--el-fill-color-blank);
+          border: 1px solid var(--el-border-color-lighter);
+          box-shadow: none;
+        }
+      }
+
+      :deep(.el-button) {
+        border: 1px solid var(--el-border-color-lighter);
+        box-shadow: none;
       }
     }
   }
@@ -339,6 +395,9 @@ onMounted(() => {
   .topology-card {
     flex: 1;
     overflow: hidden;
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 
     .card-header {
       display: flex;
@@ -361,7 +420,7 @@ onMounted(() => {
             border-radius: 50%;
 
             &.real {
-              background: var(--el-color-primary);
+              background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
             }
 
             &.virtual {
@@ -392,16 +451,17 @@ onMounted(() => {
         position: absolute;
         width: 120px;
         padding: 12px;
-        background: var(--el-bg-color);
-        border: 2px solid var(--el-color-primary);
-        border-radius: 8px;
+        background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+        border: 2px solid #11998e;
+        border-radius: 12px;
         cursor: pointer;
         text-align: center;
-        transition: all 0.3s;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
         &:hover {
-          transform: scale(1.05);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          transform: translateY(-4px) scale(1.02);
+          box-shadow: 0 8px 24px rgba(17, 153, 142, 0.25);
         }
 
         &.is-virtual {
@@ -410,13 +470,13 @@ onMounted(() => {
         }
 
         &.is-selected {
-          border-color: var(--el-color-success);
-          box-shadow: 0 0 0 3px var(--el-color-success-light-5);
+          border-color: #38ef7d;
+          box-shadow: 0 0 0 3px rgba(56, 239, 125, 0.3);
         }
 
         .node-icon {
           margin-bottom: 4px;
-          color: var(--el-color-primary);
+          color: #11998e;
         }
 
         .node-name {
@@ -446,8 +506,15 @@ onMounted(() => {
     .call-item {
       display: flex;
       gap: 8px;
-      padding: 8px;
-      border-bottom: 1px solid var(--el-border-color-lighter);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: var(--el-fill-color-light);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: var(--el-fill-color);
+      }
 
       .call-direction {
         color: var(--el-text-color-secondary);

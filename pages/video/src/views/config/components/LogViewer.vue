@@ -1,5 +1,5 @@
 <template>
-  <el-dialog 
+  <sc-dialog 
     :model-value="visible" 
     @update:model-value="handleClose"
     title="同步日志" 
@@ -36,7 +36,7 @@
         </div>
       </div>
     </div>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="server-proxy-connection">
     <el-card>
       <template #header>
@@ -80,7 +80,20 @@
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="颜色深度">
+                <el-form-item :label="portLabel">
+                  <el-input-number
+                    v-model="guacamoleOptions.port"
+                    :min="1"
+                    :max="65535"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="颜色深度" v-if="guacamoleOptions.protocol !== 'ssh'">
                   <el-select v-model="guacamoleOptions.colorDepth" style="width: 100%">
                     <el-option label="256色" value="8" />
                     <el-option label="高彩色(16位)" value="16" />
@@ -88,6 +101,16 @@
                     <el-option label="真彩色(32位)" value="32" />
                   </el-select>
                 </el-form-item>
+                <el-form-item label="字符编码" v-else>
+                  <el-select v-model="guacamoleOptions.charset" style="width: 100%">
+                    <el-option label="UTF-8" value="UTF-8" />
+                    <el-option label="GBK" value="GBK" />
+                    <el-option label="GB2312" value="GB2312" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12" v-if="guacamoleOptions.protocol !== 'ssh'">
+                <!-- placeholder for layout balance -->
               </el-col>
             </el-row>
             
@@ -145,7 +168,7 @@
     </el-card>
 
     <!-- Guacamole 连接对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="guacamoleDialogVisible"
       title="Guacamole 远程连接"
       width="90%"
@@ -173,12 +196,12 @@
           在新窗口打开
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { message } from "@repo/utils";
 import IconifyIconOnline from "@repo/components/ReIcon/src/iconifyIconOnline";
 import {
@@ -209,11 +232,40 @@ const guacamoleUrl = ref<string>('');
 // Guacamole 连接选项
 const guacamoleOptions = reactive({
   protocol: 'ssh',
+  port: 22,
   colorDepth: '24',
+  charset: 'UTF-8',
   width: 1024,
   height: 768,
   enableAudio: false,
   enableClipboard: true
+});
+
+// 端口标签
+const portLabel = computed(() => {
+  switch (guacamoleOptions.protocol) {
+    case 'ssh': return 'SSH端口';
+    case 'rdp': return 'RDP端口';
+    case 'vnc': return 'VNC端口';
+    default: return '端口';
+  }
+});
+
+// 监听协议变化，只在端口未设置时自动填充默认端口
+const getDefaultPort = (protocol: string) => {
+  switch (protocol) {
+    case 'ssh': return 22;
+    case 'rdp': return 3389;
+    case 'vnc': return 5900;
+    default: return 22;
+  }
+};
+
+// 初始化时设置默认端口
+onMounted(() => {
+  if (!guacamoleOptions.port) {
+    guacamoleOptions.port = getDefaultPort(guacamoleOptions.protocol);
+  }
 });
 
 // 连接历史

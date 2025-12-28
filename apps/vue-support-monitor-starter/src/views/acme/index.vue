@@ -68,7 +68,7 @@
       </div>
       <!-- 证书列表内容 -->
       <div class="tab-content" v-show="activeTab === 'certs'">
-        <CertList ref="certListRef" />
+        <CertList ref="certListRef" @copy="handleCopyCert" />
       </div>
       <!-- 账户管理内容 -->
       <div class="tab-content" v-show="activeTab === 'accounts'">
@@ -79,7 +79,9 @@
     <!-- 申请证书对话框 -->
     <ApplyCertDialog
       v-model:visible="applyDialogVisible"
+      :init-data="applyInitData"
       @success="handleApplySuccess"
+      @view-cert="handleViewCert"
     />
 
     <!-- 添加账户对话框 -->
@@ -87,17 +89,24 @@
       v-model:visible="accountDialogVisible"
       @success="handleAccountSuccess"
     />
+
+    <!-- 证书详情对话框 -->
+    <CertDetailDialog
+      v-model:visible="detailDialogVisible"
+      :cert-id="currentCertId"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { ScCard } from "@repo/components";
-import { getCertStats, type AcmeCertStats } from "@/api/acme";
+import { getCertStats, type AcmeCertStats, type AcmeCertificate } from "@/api/acme";
 import CertList from "./components/CertList.vue";
 import AccountList from "./components/AccountList.vue";
 import ApplyCertDialog from "./components/ApplyCertDialog.vue";
 import AccountDialog from "./components/AccountDialog.vue";
+import CertDetailDialog from "./components/CertDetailDialog.vue";
 
 defineOptions({
   name: "AcmeCertManagement",
@@ -108,6 +117,9 @@ const certListRef = ref();
 const accountListRef = ref();
 const applyDialogVisible = ref(false);
 const accountDialogVisible = ref(false);
+const applyInitData = ref<Partial<AcmeCertificate>>();
+const detailDialogVisible = ref(false);
+const currentCertId = ref<number>(0);
 
 const stats = ref<AcmeCertStats>({
   accountCount: 0,
@@ -136,7 +148,24 @@ async function loadStats() {
  * 打开申请证书对话框
  */
 function handleApplyCert() {
+  applyInitData.value = undefined;
   applyDialogVisible.value = true;
+}
+
+/**
+ * 复制证书申请
+ */
+function handleCopyCert(cert: AcmeCertificate) {
+  applyInitData.value = cert;
+  applyDialogVisible.value = true;
+}
+
+/**
+ * 查看证书详情
+ */
+function handleViewCert(certId: number) {
+  currentCertId.value = certId;
+  detailDialogVisible.value = true;
 }
 
 /**
@@ -173,7 +202,8 @@ onMounted(() => {
   flex-direction: column;
   gap: 16px;
   padding: 16px;
-  min-height: 100vh;
+  height: 100vh;
+  box-sizing: border-box;
 }
 
 /* 统计卡片 */
@@ -186,6 +216,9 @@ onMounted(() => {
 /* 主卡片 */
 .main-card {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
@@ -213,7 +246,12 @@ onMounted(() => {
   }
 
   .tab-content {
+    flex: 1;
     padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
   }
 }
 

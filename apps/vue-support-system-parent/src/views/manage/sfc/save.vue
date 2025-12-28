@@ -1,4 +1,4 @@
-<script>
+﻿<script>
 import { fetchListDictItem } from "@repo/core";
 import { fetchSaveSfc, fetchUpdateSfc } from "@repo/core";
 import { defineAsyncComponent } from "vue";
@@ -154,7 +154,7 @@ export default {
 
 <template>
   <div>
-    <el-dialog 
+    <sc-dialog 
       v-model="visible" 
       :close-on-click-modal="false" 
       :close-on-press-escape="false" 
@@ -378,7 +378,7 @@ export default {
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <CodeLayout v-if="visibleCodeLayout" ref="codeLayoutRef" @updateValue="handleUpdateValue" />
   </div>

@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="dialogVisible" draggable title="设备详情" width="700px" :close-on-click-modal="true" :destroy-on-close="true" class="device-detail-dialog" @close="handleClose">
+﻿<template>
+  <sc-dialog v-model="dialogVisible" draggable title="设备详情" width="700px" :close-on-click-modal="true" :destroy-on-close="true" class="device-detail-dialog" @close="handleClose">
     <div class="device-detail-container">
       <div class="device-detail-left">
         <div
@@ -78,7 +78,7 @@
         </div>
       </div>
     </div>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="trace-detail">
     <!-- 头部信息 -->
     <el-card class="header-card" shadow="never">
@@ -82,7 +82,7 @@
     </el-card>
 
     <!-- Span 详情抽屉 -->
-    <el-drawer v-model="drawerVisible" title="Span 详情" size="600px">
+    <sc-drawer v-model="drawerVisible" title="Span 详情" size="600px">
       <template v-if="selectedSpan">
         <el-descriptions :column="1" border>
           <el-descriptions-item label="Span ID">{{ selectedSpan.spanId }}</el-descriptions-item>
@@ -124,7 +124,7 @@
         </div>
         <el-empty v-else description="无日志" :image-size="60" />
       </template>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 

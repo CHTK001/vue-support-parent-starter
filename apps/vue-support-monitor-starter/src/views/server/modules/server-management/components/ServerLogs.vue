@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="server-logs">
     <!-- 工具栏 -->
     <div class="toolbar">
@@ -112,7 +112,7 @@
     </div>
 
     <!-- 日志详情对话框 -->
-    <el-dialog v-model="logDetailVisible" title="日志详情" width="80%" destroy-on-close>
+    <sc-dialog v-model="logDetailVisible" title="日志详情" width="80%" destroy-on-close>
       <div v-if="selectedLog" class="log-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="时间">
@@ -141,10 +141,10 @@
         <el-button @click="logDetailVisible = false">关闭</el-button>
         <el-button type="primary" @click="handleCopyLogContent">复制内容</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 清理日志对话框 -->
-    <el-dialog v-model="cleanupDialogVisible" title="清理日志" width="400px" destroy-on-close>
+    <sc-dialog v-model="cleanupDialogVisible" title="清理日志" width="400px" destroy-on-close>
       <div class="cleanup-form">
         <el-form :model="cleanupForm" label-width="100px">
           <el-form-item label="保留天数">
@@ -160,7 +160,7 @@
         <el-button @click="cleanupDialogVisible = false">取消</el-button>
         <el-button type="danger" @click="handleConfirmCleanup">确定清理</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

@@ -1,4 +1,4 @@
-<script>
+﻿<script>
 import {
   fetchListDictItem,
   fetchSaveDictItem,
@@ -116,7 +116,7 @@ export default defineComponent({
 </script>
 <template>
   <div class="dict-item-save">
-    <el-dialog
+    <sc-dialog
       v-model="visible"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -244,7 +244,7 @@ export default defineComponent({
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

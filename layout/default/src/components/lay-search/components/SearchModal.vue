@@ -280,7 +280,7 @@ onKeyStroke("ArrowDown", handleDown);
 </script>
 
 <template>
-  <el-dialog
+  <sc-dialog
     v-model="show"
     top="5vh"
     class="pure-search-dialog"
@@ -334,7 +334,7 @@ onKeyStroke("ArrowDown", handleDown);
     <template #footer>
       <SearchFooter :total="resultOptions.length" />
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <style lang="scss" scoped>

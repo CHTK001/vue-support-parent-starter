@@ -219,7 +219,7 @@ watch(
     </div>
 
     <!-- 菜单抽屉 -->
-    <el-drawer
+    <sc-drawer
       v-model="drawerVisible"
       direction="btt"
       size="60%"
@@ -271,7 +271,7 @@ watch(
           </div>
         </div>
       </div>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 

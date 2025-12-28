@@ -1,10 +1,11 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="dialogVisible"
     :title="isEdit ? '编辑爬虫任务' : '创建爬虫任务'"
     width="90%"
     :close-on-click-modal="false"
     destroy-on-close
+    append-to-body
   >
     <el-steps :active="currentStep" finish-status="success" simple style="margin-bottom: 20px">
       <el-step title="基本配置" />
@@ -326,7 +327,7 @@
         复制XPath
       </div>
     </div>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

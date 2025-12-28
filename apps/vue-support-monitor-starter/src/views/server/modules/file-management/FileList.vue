@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="file-list">
     <!-- 头部工具栏 -->
     <div class="list-header">
@@ -133,7 +133,7 @@
     </div>
 
     <!-- 新建文件夹对话框 -->
-    <el-dialog v-model="createFolderVisible" title="新建文件夹" width="400px" :close-on-click-modal="false">
+    <sc-dialog v-model="createFolderVisible" title="新建文件夹" width="400px" :close-on-click-modal="false">
       <el-form :model="createFolderForm" label-width="80px">
         <el-form-item label="文件夹名">
           <el-input v-model="createFolderForm.name" placeholder="请输入文件夹名称" @keyup.enter="confirmCreateFolder" />
@@ -143,10 +143,10 @@
         <el-button @click="createFolderVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmCreateFolder">确定</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 文件预览对话框 -->
-    <el-dialog
+    <sc-dialog
       draggable
       v-model="previewDialogVisible"
       :title="`文件预览 - ${previewFileInfo?.name || ''}`"
@@ -159,7 +159,7 @@
       <div class="preview-container" v-if="previewFileInfo">
         <iframe :src="getPreviewUrl(previewFileInfo)" class="preview-iframe min-h-[768px]" frameborder="0" @load="onIframeLoad" @error="onIframeError"></iframe>
       </div>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

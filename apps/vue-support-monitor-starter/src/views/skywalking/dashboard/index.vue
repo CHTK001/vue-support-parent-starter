@@ -1,40 +1,64 @@
 <template>
   <div class="skywalking-dashboard">
-    <!-- 筛选区域 -->
-    <el-card class="filter-card" shadow="never">
-      <el-form :inline="true" :model="filterForm" class="filter-form">
-        <el-form-item label="SkyWalking">
-          <el-select v-model="filterForm.configId" placeholder="请选择配置" @change="handleConfigChange">
-            <el-option
-              v-for="item in configList"
-              :key="item.skywalkingConfigId"
-              :label="item.skywalkingConfigName"
-              :value="item.skywalkingConfigId"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="时间范围">
-          <el-date-picker
-            v-model="timeRange"
-            type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            format="YYYY-MM-DD HH:mm"
-            value-format="YYYY-MM-DD HHmm"
-            @change="handleTimeChange"
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <el-icon :size="28"><Monitor /></el-icon>
+        </div>
+        <div class="header-info">
+          <h2 class="header-title">SkyWalking 仪表盘</h2>
+          <p class="header-desc">实时监控应用程序性能指标</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <el-select v-model="filterForm.configId" placeholder="选择服务器" @change="handleConfigChange" class="config-select">
+          <el-option
+            v-for="item in configList"
+            :key="item.skywalkingConfigId"
+            :label="item.skywalkingConfigName"
+            :value="item.skywalkingConfigId"
           />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="fetchAllData">查询</el-button>
-          <el-button :loading="autoRefresh" :type="autoRefresh ? 'success' : 'default'" @click="toggleAutoRefresh">
-            {{ autoRefresh ? '自动刷新中' : '自动刷新' }}
-          </el-button>
-        </el-form-item>
-      </el-form>
+        </el-select>
+        <el-date-picker
+          v-model="timeRange"
+          type="datetimerange"
+          range-separator="-"
+          start-placeholder="开始"
+          end-placeholder="结束"
+          format="MM-DD HH:mm"
+          value-format="YYYY-MM-DD HHmm"
+          @change="handleTimeChange"
+          class="time-picker"
+        />
+        <el-button type="primary" @click="fetchAllData">
+          <el-icon><Search /></el-icon>
+          查询
+        </el-button>
+        <el-button :type="autoRefresh ? 'success' : 'default'" @click="toggleAutoRefresh">
+          <el-icon><Refresh /></el-icon>
+          {{ autoRefresh ? '刷新中' : '自动刷新' }}
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 无配置提示 -->
+    <el-card v-if="!configList.length && !configLoading" class="empty-config-card" shadow="never">
+      <el-empty description="暂无 SkyWalking 配置" :image-size="120">
+        <template #description>
+          <div class="empty-config-desc">
+            <p>请先添加 SkyWalking 服务器配置，才能查看监控数据</p>
+          </div>
+        </template>
+        <el-button type="primary" @click="goToConfig">
+          <el-icon><Plus /></el-icon>
+          添加配置
+        </el-button>
+      </el-empty>
     </el-card>
 
     <!-- 指标概览卡片 -->
+    <template v-if="configList.length">
     <el-row :gutter="16" class="metrics-row">
       <el-col :span="6">
         <el-card class="metric-card" shadow="hover">
@@ -97,7 +121,8 @@
           <template #header>
             <span>CPM 趋势</span>
           </template>
-          <div ref="cpmChartRef" class="chart-container"></div>
+          <div v-if="hasTrendData" ref="cpmChartRef" class="chart-container"></div>
+          <el-empty v-else-if="!trendLoading" description="暂无数据" :image-size="100" />
         </el-card>
       </el-col>
       <el-col :span="12">
@@ -105,7 +130,8 @@
           <template #header>
             <span>响应时间趋势</span>
           </template>
-          <div ref="respTimeChartRef" class="chart-container"></div>
+          <div v-if="hasTrendData" ref="respTimeChartRef" class="chart-container"></div>
+          <el-empty v-else-if="!trendLoading" description="暂无数据" :image-size="100" />
         </el-card>
       </el-col>
     </el-row>
@@ -116,7 +142,8 @@
           <template #header>
             <span>慢端点排行 (Top 10)</span>
           </template>
-          <div ref="slowEndpointsChartRef" class="chart-container"></div>
+          <div v-if="slowEndpoints.length" ref="slowEndpointsChartRef" class="chart-container"></div>
+          <el-empty v-else-if="!slowEndpointsLoading" description="暂无数据" :image-size="100" />
         </el-card>
       </el-col>
       <el-col :span="12">
@@ -124,7 +151,8 @@
           <template #header>
             <span>成功率趋势</span>
           </template>
-          <div ref="slaChartRef" class="chart-container"></div>
+          <div v-if="hasTrendData" ref="slaChartRef" class="chart-container"></div>
+          <el-empty v-else-if="!trendLoading" description="暂无数据" :image-size="100" />
         </el-card>
       </el-col>
     </el-row>
@@ -136,7 +164,7 @@
           <template #header>
             <span>高错误率服务</span>
           </template>
-          <el-table :data="errorServices" stripe border style="width: 100%" max-height="300">
+          <el-table v-if="errorServices.length" :data="errorServices" stripe border style="width: 100%" max-height="300">
             <el-table-column type="index" label="#" width="60" />
             <el-table-column prop="name" label="服务名称" min-width="200" show-overflow-tooltip />
             <el-table-column label="错误率" width="200">
@@ -155,10 +183,11 @@
               </template>
             </el-table-column>
           </el-table>
-          <el-empty v-if="!errorServicesLoading && !errorServices.length" description="暂无数据" :image-size="80" />
+          <el-empty v-else-if="!errorServicesLoading" description="暂无数据" :image-size="100" />
         </el-card>
       </el-col>
     </el-row>
+    </template>
   </div>
 </template>
 
@@ -166,7 +195,7 @@
 import { ref, reactive, onMounted, onUnmounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { Monitor, Odometer, Timer, CircleCheck } from "@element-plus/icons-vue";
+import { Monitor, Odometer, Timer, CircleCheck, Plus, Search, Refresh } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
 import { getEnabledSkywalkingConfigs, type SkywalkingConfig } from "@/api/skywalking/config";
 import {
@@ -183,6 +212,7 @@ const router = useRouter();
 
 // 配置列表
 const configList = ref<SkywalkingConfig[]>([]);
+const configLoading = ref(false);
 const timeRange = ref<string[]>([]);
 const autoRefresh = ref(false);
 let refreshTimer: number | null = null;
@@ -211,6 +241,7 @@ const errorServicesLoading = ref(false);
 // 数据
 const slowEndpoints = ref<Array<{ id: string; name: string; value: number }>>([]);
 const errorServices = ref<Array<{ id: string; name: string; value: number }>>([]);
+const hasTrendData = ref(false);
 
 // 图表引用
 const cpmChartRef = ref<HTMLElement>();
@@ -233,14 +264,24 @@ const initTimeRange = () => {
 
 // 加载配置列表
 const loadConfigList = async () => {
-  const res = await getEnabledSkywalkingConfigs();
-  if (res.code === "00000") {
-    configList.value = res.data || [];
-    if (configList.value.length > 0) {
-      filterForm.configId = configList.value[0].skywalkingConfigId;
-      fetchAllData();
+  configLoading.value = true;
+  try {
+    const res = await getEnabledSkywalkingConfigs();
+    if (res.code === "00000") {
+      configList.value = res.data || [];
+      if (configList.value.length > 0) {
+        filterForm.configId = configList.value[0].skywalkingConfigId;
+        fetchAllData();
+      }
     }
+  } finally {
+    configLoading.value = false;
   }
+};
+
+// 跳转到配置页面
+const goToConfig = () => {
+  router.push('/skywalking/config');
 };
 
 // 配置变更
@@ -289,6 +330,7 @@ const fetchGlobalOverview = async () => {
 // 获取趋势数据
 const fetchGlobalTrend = async () => {
   trendLoading.value = true;
+  hasTrendData.value = false;
   try {
     const res = await getGlobalMetricsTrend({
       configId: filterForm.configId!,
@@ -296,10 +338,14 @@ const fetchGlobalTrend = async () => {
       endTime: filterForm.endTime,
     });
     if (res.code === "00000" && res.data) {
-      await nextTick();
-      renderCpmChart(res.data);
-      renderRespTimeChart(res.data);
-      renderSlaChart(res.data);
+      const hasData = res.data.timestamps?.length > 0 || res.data.cpm?.length > 0;
+      hasTrendData.value = hasData;
+      if (hasData) {
+        await nextTick();
+        renderCpmChart(res.data);
+        renderRespTimeChart(res.data);
+        renderSlaChart(res.data);
+      }
     }
   } finally {
     trendLoading.value = false;
@@ -502,35 +548,96 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .skywalking-dashboard {
-  padding: 16px;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-fill-color-lighter) 100%);
+  min-height: 100%;
 
-  .filter-card {
-    margin-bottom: 16px;
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 16px 24px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--el-border-color-lighter);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
-    .filter-form {
-      :deep(.el-form-item) {
-        margin-bottom: 0;
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .header-icon {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
+        border-radius: 10px;
+        color: white;
+      }
+
+      .header-info {
+        .header-title {
+          margin: 0 0 2px;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+        }
+
+        .header-desc {
+          margin: 0;
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+        }
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .config-select {
+        width: 180px;
+      }
+
+      .time-picker {
+        width: 280px;
       }
     }
   }
 
   .metrics-row {
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 
     .metric-card {
+      border-radius: 16px;
+      border: none;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+      }
+
       .metric-content {
         display: flex;
         align-items: center;
         gap: 16px;
+        padding: 8px;
 
         .metric-icon {
           width: 64px;
           height: 64px;
-          border-radius: 12px;
+          border-radius: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
           color: #fff;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 
           &.services {
             background: linear-gradient(135deg, #409EFF, #66b1ff);
@@ -559,6 +666,7 @@ onUnmounted(() => {
           .metric-label {
             font-size: 14px;
             color: var(--el-text-color-secondary);
+            margin-top: 4px;
           }
         }
       }
@@ -566,9 +674,19 @@ onUnmounted(() => {
   }
 
   .charts-row {
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 
     .chart-card {
+      border-radius: 16px;
+      border: none;
+
+      :deep(.el-card__header) {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--el-border-color-lighter);
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
       .chart-container {
         height: 280px;
       }
@@ -576,8 +694,43 @@ onUnmounted(() => {
   }
 
   .table-card {
+    border-radius: 16px;
+    border: none;
+
+    :deep(.el-card__header) {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+      font-weight: 600;
+    }
+
     :deep(.el-card__body) {
-      padding: 12px;
+      padding: 16px;
+    }
+
+    :deep(.el-table) {
+      border-radius: 12px;
+      overflow: hidden;
+    }
+  }
+
+  .empty-config-card {
+    margin-bottom: 20px;
+    border-radius: 16px;
+    border: 2px dashed var(--el-border-color);
+    background: var(--el-fill-color-lighter);
+    
+    :deep(.el-empty) {
+      padding: 80px 0;
+    }
+
+    .empty-config-desc {
+      text-align: center;
+      color: var(--el-text-color-secondary);
+      
+      p {
+        margin: 8px 0 0;
+        font-size: 14px;
+      }
     }
   }
 }

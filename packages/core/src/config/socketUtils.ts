@@ -27,6 +27,11 @@ export interface SocketMessageWrapper {
  */
 export function parseSocketMessage(rawData: unknown): unknown {
   try {
+    // 如果是空值或空字符串，直接返回
+    if (rawData === null || rawData === undefined || rawData === "") {
+      return rawData;
+    }
+    
     // 如果是字符串，先解析为对象
     const wrapper: SocketMessageWrapper =
       typeof rawData === "string" ? JSON.parse(rawData) : (rawData as SocketMessageWrapper);

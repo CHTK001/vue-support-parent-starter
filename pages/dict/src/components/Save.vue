@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="dict-save-container">
-    <el-dialog
+    <sc-dialog
       v-model="visible"
       :title="title"
       :close-on-click-modal="false"
@@ -141,7 +141,7 @@
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

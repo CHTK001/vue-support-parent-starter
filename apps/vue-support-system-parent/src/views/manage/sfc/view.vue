@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="overflow-hidden">
-    <el-dialog 
+    <sc-dialog 
       v-model="visible" 
       class="preview-dialog" 
       top="5vh" 
@@ -88,7 +88,7 @@
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

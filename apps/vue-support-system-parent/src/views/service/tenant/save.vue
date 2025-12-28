@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { fetchSaveTenant, fetchUpdateTenant } from "@/api/service/tenant";
 import { dateFormat, message } from "@repo/utils";
 import { defineExpose, shallowRef, reactive, ref } from "vue";
@@ -131,7 +131,7 @@ defineExpose({
 </script>
 <template>
   <div>
-    <el-dialog top="10px" v-model="env.visible" :title="env.title" draggable :close-on-click-modal="false">
+    <sc-dialog top="10px" v-model="env.visible" :title="env.title" draggable :close-on-click-modal="false">
       <el-row>
         <el-form :model="env.form" ref="formRef" :rules="rules" label-width="120px">
           <el-row>
@@ -246,7 +246,7 @@ defineExpose({
         <el-button @click="handleClose">{{ $t("buttons.cancel") }}</el-button>
         <el-button type="primary" :loading="env.loading" @click="handleUpdate">{{ $t("buttons.confirm") }}</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 <style scoped>

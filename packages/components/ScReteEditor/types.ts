@@ -205,12 +205,14 @@ export class InputNode extends BaseNode {
  * 
  * 特点：
  * - 只有输入端口，无输出端口
+ * - 输入端口支持多连接（可接收多个数据源）
  * - 橙色主题（#f59e0b）
  * 
  * @example
  * ```typescript
  * const outputNode = new OutputNode('Redis 缓存');
  * await editor.addNode(outputNode);
+ * // 可以接收多个数据源的输出
  * ```
  */
 export class OutputNode extends BaseNode {
@@ -220,7 +222,8 @@ export class OutputNode extends BaseNode {
   
   constructor(label: string = "输出") {
     super(label);
-    this.addInput("input", new ClassicPreset.Input(Sockets.any, "输入"));
+    // 启用多连接，允许多个数据源输出到同一个节点
+    this.addInput("input", new ClassicPreset.Input(Sockets.any, "输入", true));
   }
 }
 
@@ -229,12 +232,14 @@ export class OutputNode extends BaseNode {
  * 
  * 特点：
  * - 同时拥有输入和输出端口
+ * - 输入端口支持多连接（可接收多个数据源）
  * - 紫色主题（#6366f1）
  * 
  * @example
  * ```typescript
  * const processNode = new ProcessNode('数据过滤');
  * await editor.addNode(processNode);
+ * // 可以连接多个输入到同一个处理节点
  * ```
  */
 export class ProcessNode extends BaseNode {
@@ -244,7 +249,8 @@ export class ProcessNode extends BaseNode {
   
   constructor(label: string = "处理") {
     super(label);
-    this.addInput("input", new ClassicPreset.Input(Sockets.any, "输入"));
+    // 启用多连接，允许多个数据源连接到同一个处理节点
+    this.addInput("input", new ClassicPreset.Input(Sockets.any, "输入", true));
     this.addOutput("output", new ClassicPreset.Output(Sockets.any, "输出"));
   }
 }
@@ -253,7 +259,7 @@ export class ProcessNode extends BaseNode {
  * 条件节点 - 分支逻辑控制
  * 
  * 特点：
- * - 一个输入端口，两个输出端口（真/假）
+ * - 一个输入端口（支持多连接），两个输出端口（真/假）
  * - 包含条件表达式输入控件
  * - 深紫色主题（#8b5cf6）
  * 
@@ -271,7 +277,8 @@ export class ConditionNode extends BaseNode {
   
   constructor(label: string = "条件") {
     super(label);
-    this.addInput("input", new ClassicPreset.Input(Sockets.any, "输入"));
+    // 启用多连接，允许多个数据源连接到条件节点
+    this.addInput("input", new ClassicPreset.Input(Sockets.any, "输入", true));
     this.addOutput("true", new ClassicPreset.Output(Sockets.any, "真"));
     this.addOutput("false", new ClassicPreset.Output(Sockets.any, "假"));
     this.addControl(
@@ -313,6 +320,7 @@ export class MergeNode extends BaseNode {
  * 
  * 特点：
  * - 同时拥有输入和输出端口
+ * - 输入端口支持多连接
  * - 包含延迟时间输入控件（毫秒）
  * - 青色主题（#14b8a6）
  * 
@@ -329,7 +337,8 @@ export class DelayNode extends BaseNode {
   
   constructor(label: string = "延迟") {
     super(label);
-    this.addInput("input", new ClassicPreset.Input(Sockets.any, "输入"));
+    // 启用多连接
+    this.addInput("input", new ClassicPreset.Input(Sockets.any, "输入", true));
     this.addOutput("output", new ClassicPreset.Output(Sockets.any, "输出"));
     this.addControl(
       "delay",

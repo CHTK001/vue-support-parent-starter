@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="job-management-container">
     <!-- 搜索和筛选 -->
     <div class="search-section">
@@ -272,7 +272,7 @@
     </div>
 
     <!-- 弹窗组件 -->
-    <el-dialog
+    <sc-dialog
       v-model="triggerShow"
       draggable
       :title="triggerTitle"
@@ -300,9 +300,9 @@
           >
         </span>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
-    <el-dialog
+    <sc-dialog
       v-model="jobinfoNextTriggerTimeShow"
       draggable
       title="下一次执行时间"
@@ -331,9 +331,9 @@
           <span class="time-value">{{ item }}</span>
         </div>
       </div>
-    </el-dialog>
+    </sc-dialog>
 
-    <el-dialog
+    <sc-dialog
       v-model="jobgroupByIdShow"
       draggable
       title="注册地址"
@@ -346,7 +346,7 @@
           <el-tag effect="light">{{ item?.host }}:{{ item?.port }}</el-tag>
         </div>
       </div>
-    </el-dialog>
+    </sc-dialog>
 
     <save ref="saveRef" @success="handlerSuccess" @close="saveShow = false" />
   </div>

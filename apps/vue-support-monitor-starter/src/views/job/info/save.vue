@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="triggerShow"
     draggable
     append-to-body
@@ -285,7 +285,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 <script>
 import { fetchJobSave, fetchJobUpdate } from "@/api/monitor/job";

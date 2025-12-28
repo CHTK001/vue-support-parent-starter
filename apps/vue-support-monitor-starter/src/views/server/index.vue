@@ -17,15 +17,14 @@
 import { ref, onMounted, onUnmounted, computed, defineAsyncComponent } from "vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
-import { useServerWebSocket } from "@/composables/useServerWebSocket";
 import { useServerMetricsStore } from "@/stores/serverMetrics";
 import { useGlobalServerLatency } from "@/composables/useServerLatency";
+import { createNamedSocketService, closeNamedSocketService, getNamedSocketService, parseSocketMessage, type SocketTemplate } from "@repo/core";
+import { getConfig } from "@repo/config";
 import {
   getServerPageList,
   deleteServer,
   testServerConnection,
-  connectServer as connectServerApi,
-  disconnectServer as disconnectServerApi,
   type ServerDisplayData,
   type ServerMetricsDisplay,
   mapServerListToDisplayData,
@@ -44,9 +43,10 @@ const totalCount = ref(0);
 const servers = ref<ServerDisplayData[]>([]);
 const serverMetrics = ref<Map<string, ServerMetricsDisplay>>(new Map());
 
-// WebSocket相关状态
-const { state: wsState, onMessage, connect, disconnect } = useServerWebSocket();
-const wsConnected = computed(() => wsState.value?.connected || false);
+// Socket 服务实例
+const globalSocketService = ref<SocketTemplate | null>(null);
+const wsConnected = computed(() => globalSocketService.value?.isConnected || false);
+const GLOBAL_SOCKET_NAME = "server-global";
 
 // ServerMetrics Store
 const serverMetricsStore = useServerMetricsStore();
@@ -139,21 +139,53 @@ const testConnection = async (server: any) => {
 };
 
 /**
- * 连接服务器
+ * 连接服务器 - 使用 SocketService 创建 Socket 连接
  */
 const connectServer = async (server: any) => {
   try {
     console.log("开始连接服务器:", server);
     message.info("正在连接服务器...");
 
-    const connectResult = await connectServerApi(server.id);
-    console.log("连接API响应:", connectResult);
-
-    if (connectResult.code === "00000") {
-      message.success("服务器连接成功");
-    } else {
-      message.error(connectResult.msg || "连接失败");
+    const socketName = `server-${server.id}`;
+    const config = getConfig();
+    
+    // 先关闭已存在的连接
+    const existingService = getNamedSocketService(socketName);
+    if (existingService) {
+      closeNamedSocketService(socketName);
     }
+    
+    // 创建命名 Socket 服务
+    const socketService = createNamedSocketService(socketName, {
+      protocol: "socketio",
+      urls: config.SocketUrl ? config.SocketUrl.split(",") : [],
+      query: { serverId: server.id },
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 3,
+    });
+
+    // 监听连接成功事件，连接成功后再发送请求
+    socketService.on("connect", () => {
+      console.log("Socket连接成功，发送ssh_connect请求到 gen/server");
+      // 发送 SSH 连接请求消息到 gen/server 主题
+      socketService.emit("gen/server", JSON.stringify({
+        messageType: "ssh_connect",
+        serverId: Number(server.id),
+        serverHost: server.host,
+        serverPort: server.port || 22,
+        timestamp: Date.now(),
+      }));
+      message.success("服务器连接成功");
+    });
+
+    // 监听连接错误
+    socketService.on("connect_error", (error: any) => {
+      console.error("Socket连接失败:", error);
+      message.error("连接失败");
+    });
+
+    console.log("Socket服务创建成功:", socketName);
   } catch (error) {
     message.error("连接异常，请稍后重试");
     console.error("连接服务器出错:", error);
@@ -161,20 +193,32 @@ const connectServer = async (server: any) => {
 };
 
 /**
- * 断开服务器连接
+ * 断开服务器连接 - 关闭 Socket 连接
  */
 const disconnectServer = async (server: any) => {
   try {
     console.log("断开服务器连接:", server);
     message.info("正在断开连接...");
 
-    const disconnectResult = await disconnectServerApi(server.id);
-    console.log("断开连接API响应:", disconnectResult);
-
-    if (disconnectResult.code === "00000") {
+    const socketName = `server-${server.id}`;
+    
+    // 检查是否存在连接
+    const existingService = getNamedSocketService(socketName);
+    if (existingService) {
+      // 发送断开连接消息到 gen/server 主题
+      existingService.emit("gen/server", JSON.stringify({
+        messageType: "ssh_disconnect",
+        serverId: Number(server.id),
+        errorMessage: "用户主动断开",
+        timestamp: Date.now(),
+      }));
+      
+      // 关闭 Socket 服务
+      closeNamedSocketService(socketName);
+      console.log("Socket服务已关闭:", socketName);
       message.success("服务器连接已断开");
     } else {
-      message.error(disconnectResult.msg || "断开连接失败");
+      message.warning("服务器未连接");
     }
   } catch (error) {
     message.error("断开连接异常，请稍后重试");
@@ -225,134 +269,179 @@ const safeExtractValue = (newValue: any, oldValue: any): number => {
 };
 
 /**
- * 初始化WebSocket消息处理
+ * 处理 Socket 消息
  */
-const initWebSocketHandlers = () => {
-  console.log("初始化WebSocket消息处理器...");
+const handleSocketMessage = (msgData: any) => {
+  const messageType = msgData.messageType;
+  
+  switch (messageType) {
+    case "server_metrics":
+      console.log("收到server_metrics消息:", msgData);
+      if (msgData.serverId && msgData.data) {
+        const data = msgData.data;
+        const currentMetrics = serverMetrics.value.get(msgData.serverId as any);
 
-  // 监听服务器指标数据
-  onMessage("server_metrics", message => {
-    console.log("收到server_metrics消息:", message);
-    if (message.serverId && message.data) {
-      // 处理嵌套数据格式，兼容新旧格式
-      const data = message.data;
+        const cpuUsage = safeExtractValue(data.cpu?.usage ?? data.cpuUsage, currentMetrics?.cpuUsage);
+        const memoryUsage = safeExtractValue(data.memory?.usage ?? data.memoryUsage, currentMetrics?.memoryUsage);
+        const diskUsage = safeExtractValue(data.disk?.usage ?? data.diskUsage, currentMetrics?.diskUsage);
+        const networkIn = safeExtractValue(data.network?.in ?? data.networkIn, currentMetrics?.networkIn);
+        const networkOut = safeExtractValue(data.network?.out ?? data.networkOut, currentMetrics?.networkOut);
+        const osInfo = data.osInfo ? JSON.parse(data.osInfo) : {};
+        const loadAverage = data.loadAverage ?? (data.cpu?.load1m ? `${data.cpu.load1m} ${data.cpu.load5m || 0} ${data.cpu.load15m || 0}` : undefined) ?? currentMetrics?.loadAverage;
 
-      // 获取当前存储的指标数据
-      const currentMetrics = serverMetrics.value.get(message.serverId as any);
+        serverMetricsStore.updateServerMetrics(msgData.serverId, {
+          serverId: msgData.serverId,
+          serverName: msgData.serverName,
+          cpuUsage,
+          memoryUsage,
+          diskUsage,
+          diskPartitions: data.disk?.partitions || [],
+          networkIn,
+          networkOut,
+          networkInSpeed: data.network?.inSpeed || 0,
+          networkOutSpeed: data.network?.outSpeed || 0,
+          uptime: data.uptime || 0,
+          processCount: data.processCount || 0,
+          loadAverage,
+          temperature: data.temperature,
+          status: data.status === 1 ? "online" : "offline",
+          collectTime: data.collectTime || new Date().toISOString(),
+          osInfo: osInfo.osInfo,
+          osName: osInfo.osName,
+          osVersion: osInfo.osVersion,
+          hostname: osInfo.hostname || "未知",
+          extraInfo: data.extraInfo
+        });
 
-      // 安全提取数据 - 如果新值无效且旧值存在，则保持旧值
-      const cpuUsage = safeExtractValue(data.cpu?.usage ?? data.cpuUsage, currentMetrics?.cpuUsage);
-      const memoryUsage = safeExtractValue(data.memory?.usage ?? data.memoryUsage, currentMetrics?.memoryUsage);
-      const diskUsage = safeExtractValue(data.disk?.usage ?? data.diskUsage, currentMetrics?.diskUsage);
-      const networkIn = safeExtractValue(data.network?.in ?? data.networkIn, currentMetrics?.networkIn);
-      const networkOut = safeExtractValue(data.network?.out ?? data.networkOut, currentMetrics?.networkOut);
-      const osInfo = data.osInfo ? JSON.parse(data.osInfo) : {};
-
-      // 提取负载平均值
-      const loadAverage = data.loadAverage ?? (data.cpu?.load1m ? `${data.cpu.load1m} ${data.cpu.load5m || 0} ${data.cpu.load15m || 0}` : undefined) ?? currentMetrics?.loadAverage;
-
-      // 更新store中的指标数据
-      serverMetricsStore.updateServerMetrics(message.serverId, {
-        serverId: message.serverId,
-        serverName: message.serverName,
-        cpuUsage,
-        memoryUsage,
-        diskUsage,
-        diskPartitions: data.disk?.partitions || [], // 添加磁盘分区信息
-        networkIn,
-        networkOut,
-        networkInSpeed: data.network?.inSpeed || 0,
-        networkOutSpeed: data.network?.outSpeed || 0,
-        uptime: data.uptime || 0,
-        processCount: data.processCount || 0,
-        loadAverage,
-        temperature: data.temperature,
-        status: data.status === 1 ? "online" : "offline",
-        collectTime: data.collectTime || new Date().toISOString(),
-        // 添加系统信息字段
-        osInfo: osInfo.osInfo,
-        osName: osInfo.osName,
-        osVersion: osInfo.osVersion,
-        hostname: osInfo.hostname || "未知",
-        extraInfo: data.extraInfo
-      });
-
-      // 同时更新本地缓存，传递完整的数据对象
-      const displayMetrics = mapServerMetricsToDisplay(data);
-      serverMetrics.value.set(String(message.serverId), displayMetrics);
-
-      console.log(`已更新服务器 ${message.serverId} 指标数据: CPU=${cpuUsage}%, Memory=${memoryUsage}%, Disk=${diskUsage}%`);
-    }
-  });
-
-  // 监听服务器状态汇总
-  onMessage("server_status_summary", message => {
-    console.log("收到server_status_summary消息:", message);
-    if (message.data) {
-      serverMetricsStore.updateStatusSummary(message.data);
-      console.log("已更新服务器状态汇总");
-    }
-  });
-
-  // 监听连接状态变化
-  onMessage("connection_status_change", message => {
-    console.log("收到connection_status_change消息:", message);
-    if (message.serverId) {
-      // 更新服务器连接状态
-      const serverIndex = servers.value.findIndex(s => s.id === String(message.serverId));
-      if (serverIndex !== -1) {
-        servers.value[serverIndex].connectionStatus = message.connectionStatus as any;
-        console.log(`已更新服务器 ${message.serverId} 连接状态`);
+        const displayMetrics = mapServerMetricsToDisplay(data);
+        serverMetrics.value.set(String(msgData.serverId), displayMetrics);
+        console.log(`已更新服务器 ${msgData.serverId} 指标数据`);
       }
-    }
-  });
+      break;
 
-  // 监听服务器告警
-  onMessage("server_alerts", message => {
-    console.log("收到server_alerts消息:", message);
-    if (message.serverId && message.data) {
-      console.log(`服务器 ${message.serverId} 告警信息:`, message.data);
-      // 可以显示告警通知
-    }
-  });
-
-  // 监听服务器延迟数据
-  onMessage(SERVER_WS_MESSAGE_TYPE.SERVER_LATENCY, message => {
-    console.log("收到server_latency消息:", message);
-    if (message.serverId && message.data && typeof message.data.latency === "number") {
-      // 更新延迟数据到延迟管理器
-      latencyManager.updateLatencyData(message.serverId, message.data.latency, message.data.timestamp);
-
-      // 更新服务器列表中的延迟显示
-      const serverIndex = servers.value.findIndex(s => s.id === String(message.serverId));
-      if (serverIndex !== -1) {
-        servers.value[serverIndex].latency = message.data.latency;
-        console.log(`已更新服务器 ${message.serverId} 延迟: ${message.data.latency}ms`);
+    case "server_status_summary":
+      console.log("收到server_status_summary消息:", msgData);
+      if (msgData.data) {
+        serverMetricsStore.updateStatusSummary(msgData.data);
       }
-    }
-  });
+      break;
 
-  // 监听批量服务器延迟数据
-  onMessage(SERVER_WS_MESSAGE_TYPE.BATCH_SERVER_LATENCY, message => {
-    console.log("收到batch_server_latency消息:", message);
-    if (Array.isArray(message.data)) {
-      message.data.forEach((latencyData: any) => {
-        if (latencyData.serverId && typeof latencyData.latency === "number") {
-          // 更新延迟数据到延迟管理器
-          latencyManager.updateLatencyData(latencyData.serverId, latencyData.latency, latencyData.timestamp);
-
-          // 更新服务器列表中的延迟显示
-          const serverIndex = servers.value.findIndex(s => s.id === String(latencyData.serverId));
-          if (serverIndex !== -1) {
-            servers.value[serverIndex].latency = latencyData.latency;
-            console.log(`已更新服务器 ${latencyData.serverId} 延迟: ${latencyData.latency}ms`);
-          }
+    case "connection_status_change":
+      console.log("收到connection_status_change消息:", msgData);
+      if (msgData.serverId) {
+        const serverIndex = servers.value.findIndex(s => s.id === String(msgData.serverId));
+        if (serverIndex !== -1) {
+          servers.value[serverIndex].connectionStatus = msgData.connectionStatus as any;
         }
-      });
+      }
+      break;
+
+    case "server_alerts":
+      console.log("收到server_alerts消息:", msgData);
+      break;
+
+    case SERVER_WS_MESSAGE_TYPE.SERVER_LATENCY:
+    case "server_latency":
+      console.log("收到server_latency消息:", msgData);
+      if (msgData.serverId && msgData.data && typeof msgData.data.latency === "number") {
+        latencyManager.updateLatencyData(msgData.serverId, msgData.data.latency, msgData.data.timestamp);
+        const serverIndex = servers.value.findIndex(s => s.id === String(msgData.serverId));
+        if (serverIndex !== -1) {
+          servers.value[serverIndex].latency = msgData.data.latency;
+        }
+      }
+      break;
+
+    case SERVER_WS_MESSAGE_TYPE.BATCH_SERVER_LATENCY:
+    case "batch_server_latency":
+      console.log("收到batch_server_latency消息:", msgData);
+      if (Array.isArray(msgData.data)) {
+        msgData.data.forEach((latencyData: any) => {
+          if (latencyData.serverId && typeof latencyData.latency === "number") {
+            latencyManager.updateLatencyData(latencyData.serverId, latencyData.latency, latencyData.timestamp);
+            const serverIndex = servers.value.findIndex(s => s.id === String(latencyData.serverId));
+            if (serverIndex !== -1) {
+              servers.value[serverIndex].latency = latencyData.latency;
+            }
+          }
+        });
+      }
+      break;
+  }
+};
+
+/**
+ * 初始化 Socket 连接和消息处理
+ */
+const initSocketService = () => {
+  console.log("初始化Socket服务...");
+  
+  const config = getConfig();
+  
+  // 先关闭已存在的连接
+  const existing = getNamedSocketService(GLOBAL_SOCKET_NAME);
+  if (existing) {
+    closeNamedSocketService(GLOBAL_SOCKET_NAME);
+  }
+  
+  // 创建全局 Socket 服务
+  globalSocketService.value = createNamedSocketService(GLOBAL_SOCKET_NAME, {
+    protocol: "socketio",
+    urls: config.SocketUrl ? config.SocketUrl.split(",") : [],
+    autoConnect: true,
+    reconnection: true,
+    reconnectionAttempts: 5,
+  });
+
+  // 连接 Socket
+  globalSocketService.value.connect();
+
+  // 监听连接成功
+  globalSocketService.value.on("connect", () => {
+    console.log("全局Socket连接成功");
+  });
+
+  // 监听 gen/server 主题的消息
+  globalSocketService.value.on("gen/server", (rawMessage: any) => {
+    try {
+      const data = parseSocketMessage(rawMessage);
+      let messageData = data;
+      
+      if (data && (data as any).data && typeof (data as any).data === "string") {
+        try {
+          messageData = JSON.parse((data as any).data);
+        } catch {
+          messageData = data;
+        }
+      }
+      
+      handleSocketMessage(messageData);
+    } catch (error) {
+      console.error("解析Socket消息失败:", error);
     }
   });
 
-  console.log("WebSocket消息处理器初始化完成");
+  // 监听 monitor:server:metrics 主题
+  globalSocketService.value.on("monitor:server:metrics", (rawMessage: any) => {
+    try {
+      const data = parseSocketMessage(rawMessage);
+      handleSocketMessage({ messageType: "server_metrics", ...data });
+    } catch (error) {
+      console.error("解析指标消息失败:", error);
+    }
+  });
+
+  // 监听 monitor:server:status 主题
+  globalSocketService.value.on("monitor:server:status", (rawMessage: any) => {
+    try {
+      const data = parseSocketMessage(rawMessage);
+      handleSocketMessage(data);
+    } catch (error) {
+      console.error("解析状态消息失败:", error);
+    }
+  });
+
+  console.log("Socket服务初始化完成");
 };
 
 // 生命周期钩子
@@ -362,24 +451,17 @@ onMounted(async () => {
   // 加载服务器列表
   await loadServers();
 
-  // 初始化WebSocket消息处理
-  initWebSocketHandlers();
-
-  // 连接 WebSocket
-  try {
-    await connect();
-    console.log("WebSocket 连接成功");
-  } catch (error) {
-    console.error("WebSocket 连接失败:", error);
-  }
+  // 初始化 Socket 服务
+  initSocketService();
 });
 
 onUnmounted(() => {
   console.log("server/index.vue 组件已卸载");
 
-  // 断开 WebSocket 连接
-  disconnect();
-  console.log("WebSocket 连接已断开");
+  // 关闭全局 Socket 服务
+  closeNamedSocketService(GLOBAL_SOCKET_NAME);
+  globalSocketService.value = null;
+  console.log("Socket连接已断开");
 
   // 清理缓存数据
   serverMetricsStore.clearCache();

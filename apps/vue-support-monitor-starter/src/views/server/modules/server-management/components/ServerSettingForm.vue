@@ -51,7 +51,7 @@
 
       <!-- 检测间隔（健康检测开启时显示） -->
       <el-form-item
-        v-if="formData.monitorSysGenServerSettingHealthCheckEnabled === 1"
+        v-show="formData.monitorSysGenServerSettingHealthCheckEnabled === 1"
         prop="monitorSysGenServerSettingMonitorInterval"
       >
         <template #label>
@@ -103,8 +103,8 @@
       </el-form-item>
 
       <!-- 指标采集相关配置（开启指标采集时显示） -->
-      <template
-        v-if="formData.monitorSysGenServerSettingMetricsCollectionEnabled === 1"
+      <div
+        v-show="formData.monitorSysGenServerSettingMetricsCollectionEnabled === 1"
       >
         <!-- 指标上报方式 -->
         <el-form-item prop="monitorSysGenServerSettingDataReportMethod">
@@ -123,15 +123,11 @@
           <ScSelect
             layout="select"
             v-model="formData.monitorSysGenServerSettingDataReportMethod"
+            :options="reportMethodOptions"
             placeholder="请选择上报方式"
             style="width: 200px"
             @change="handleChange"
-          >
-            <el-option label="不上报" value="NONE" />
-            <el-option label="节点上报" value="NODE" />
-            <el-option label="本地采集" value="LOCAL" />
-            <el-option label="Prometheus" value="PROMETHEUS" />
-          </ScSelect>
+          />
         </el-form-item>
 
         <!-- 指标上报方式说明卡片 -->
@@ -340,7 +336,7 @@
 
         <!-- Prometheus配置 - 当选择Prometheus上报方式时显示 -->
         <div
-          v-if="
+          v-show="
             formData.monitorSysGenServerSettingDataReportMethod === 'PROMETHEUS'
           "
           class="prometheus-basic-config"
@@ -399,7 +395,7 @@
             <span class="form-tip">端口号，默认9090</span>
           </el-form-item>
         </div>
-      </template>
+      </div>
     </div>
 
     <!-- 告警配置 -->
@@ -446,18 +442,12 @@
         <ScSelect
           layout="select"
           v-model="formData.monitorSysGenServerSettingAlertNotificationMethod"
+          :options="alertNotificationMethodOptions"
           placeholder="请选择告警方式"
           style="width: 200px !important"
           class="min-w-[200px]"
           @change="handleChange"
-        >
-          <el-option label="邮件" value="EMAIL" />
-          <el-option label="短信" value="SMS" />
-          <el-option label="钉钉" value="DINGTALK" />
-          <el-option label="企业微信" value="WECHAT" />
-          <el-option label="网页推送" value="WEB_PUSH" />
-          <el-option label="Webhook" value="WEBHOOK" />
-        </ScSelect>
+        />
       </el-form-item>
 
       <el-form-item
@@ -488,7 +478,7 @@
       </el-form-item>
 
       <!-- 告警阈值配置 -->
-      <template v-if="formData.monitorSysGenServerSettingAlertEnabled">
+      <div v-show="formData.monitorSysGenServerSettingAlertEnabled">
         <el-divider content-position="left">
           <span class="divider-text">告警阈值配置</span>
         </el-divider>
@@ -657,7 +647,7 @@
         <el-divider content-position="left">
           <span class="divider-text">通知配置</span>
         </el-divider>
-      </template>
+      </div>
 
       <el-form-item
         v-show="formData.monitorSysGenServerSettingAlertEnabled"
@@ -786,18 +776,16 @@
         <ScSelect
           layout="select"
           v-model="formData.monitorSysGenServerSettingDockerConnectionType"
+          :options="dockerConnectionTypeOptions"
           placeholder="请选择连接方式"
           style="width: 200px !important"
           @change="handleChange"
-        >
-          <el-option label="Shell命令" value="SHELL" />
-          <el-option label="Docker API" value="API" />
-        </ScSelect>
+        />
       </el-form-item>
 
       <!-- Docker连接方式说明 -->
       <div
-        v-if="formData.monitorSysGenServerSettingDockerEnabled === 1"
+        v-show="formData.monitorSysGenServerSettingDockerEnabled === 1"
         class="report-method-tips"
       >
         <div
@@ -1075,7 +1063,7 @@
         />
       </el-form-item>
 
-      <template v-if="formData.monitorSysGenServerSettingScriptEnabled === 1">
+      <div v-show="formData.monitorSysGenServerSettingScriptEnabled === 1">
         <el-form-item prop="monitorSysGenServerSettingScriptExecuteMethod">
           <template #label>
             <div class="form-label">
@@ -1186,7 +1174,7 @@
             @change="handleChange"
           />
         </el-form-item>
-      </template>
+      </div>
     </div>
 
     <!-- 代理配置 -->
@@ -1233,14 +1221,11 @@
         <ScSelect
           layout="select"
           v-model="formData.monitorSysGenServerSettingProxyType"
+          :options="proxyTypeOptions"
           placeholder="请选择代理类型"
           style="width: 200px !important"
           @change="handleChange"
-        >
-          <el-option label="HTTP代理" value="HTTP" />
-          <el-option label="SOCKS5代理" value="SOCKS5" />
-          <el-option label="Guacamole代理" value="GUACAMOLE" />
-        </ScSelect>
+        />
       </el-form-item>
 
       <el-form-item
@@ -1484,7 +1469,7 @@
       </el-form-item>
 
       <el-form-item
-        v-if="formData.monitorSysGenServerSettingOnlineCheckEnabled === 1"
+        v-show="formData.monitorSysGenServerSettingOnlineCheckEnabled === 1"
         prop="monitorSysGenServerSettingOnlineCheckInterval"
       >
         <template #label>
@@ -1535,7 +1520,7 @@
       </el-form-item>
 
       <el-form-item
-        v-if="formData.monitorSysGenServerSettingLatencyCheckEnabled === 1"
+        v-show="formData.monitorSysGenServerSettingLatencyCheckEnabled === 1"
         prop="monitorSysGenServerSettingLatencyCheckInterval"
       >
         <template #label>
@@ -1609,7 +1594,7 @@
 
         <!-- 文件管理模式 -->
         <el-form-item
-          v-if="formData.monitorSysGenServerSettingFileManagementEnabled === 1"
+          v-show="formData.monitorSysGenServerSettingFileManagementEnabled === 1"
           prop="monitorSysGenServerSettingFileManagementMode"
         >
           <template #label>
@@ -1627,19 +1612,15 @@
           <ScSelect
             layout="select"
             v-model="formData.monitorSysGenServerSettingFileManagementMode"
+            :options="fileManagementModeOptions"
             placeholder="请选择文件管理模式"
             @change="handleFileManagementModeChange"
-          >
-            <el-option label="不启用" value="NONE" />
-            <el-option v-if="isLocalServer" label="本地连接" value="LOCAL" />
-            <el-option label="SSH连接" value="SSH" />
-            <el-option label="NODE客户端" value="NODE" />
-          </ScSelect>
+          />
         </el-form-item>
 
         <!-- 文件管理模式说明卡片 -->
         <div
-          v-if="formData.monitorSysGenServerSettingFileManagementEnabled === 1"
+          v-show="formData.monitorSysGenServerSettingFileManagementEnabled === 1"
           class="report-method-tips"
         >
           <div
@@ -1714,7 +1695,7 @@
 
         <!-- NODE客户端选择 -->
         <el-form-item
-          v-if="
+          v-show="
             formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
             formData.monitorSysGenServerSettingFileManagementMode === 'NODE'
           "
@@ -1734,20 +1715,12 @@
           </template>
           <ScSelect
             layout="select"
-            v-model="
-              formData.monitorSysGenServerSettingFileManagementNodeClient
-            "
+            v-model="formData.monitorSysGenServerSettingFileManagementNodeClient"
+            :options="nodeClientOptions"
             placeholder="请选择NODE客户端"
             :loading="loadingNodeClients"
             @change="handleChange"
-          >
-            <el-option
-              v-for="client in nodeClients"
-              :key="client.serverId"
-              :label="`${client.name} (${client.address})`"
-              :value="client.serverId"
-            />
-          </ScSelect>
+          />
           <div class="form-item-help">
             <el-button size="small" type="primary" link @click="loadNodeClients"
               >刷新客户端列表</el-button
@@ -1757,7 +1730,7 @@
 
         <!-- 高级配置 -->
         <div
-          v-if="
+          v-show="
             formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
             formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'
           "
@@ -1879,7 +1852,7 @@
 
         <!-- 测试连接按钮 -->
         <el-form-item
-          v-if="
+          v-show="
             formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
             formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'
           "
@@ -1990,7 +1963,7 @@
       </el-form-item>
 
       <el-form-item
-        v-if="formData.monitorSysGenServerSettingPrometheusAuthEnabled === 1"
+        v-show="formData.monitorSysGenServerSettingPrometheusAuthEnabled === 1"
         prop="monitorSysGenServerSettingPrometheusUsername"
       >
         <template #label>
@@ -2014,7 +1987,7 @@
       </el-form-item>
 
       <el-form-item
-        v-if="formData.monitorSysGenServerSettingPrometheusAuthEnabled === 1"
+        v-show="formData.monitorSysGenServerSettingPrometheusAuthEnabled === 1"
         prop="monitorSysGenServerSettingPrometheusPassword"
       >
         <template #label>
@@ -2203,6 +2176,57 @@ const DEFAULT_VALUES = {
   monitorSysGenServerSettingClientHealthCheckInterval: 30,
   monitorSysGenServerSettingClientHealthTimeout: 10,
 };
+
+// ScSelect 选项定义
+const reportMethodOptions = [
+  { label: '不上报', value: 'NONE' },
+  { label: '节点上报', value: 'NODE' },
+  { label: '本地采集', value: 'LOCAL' },
+  { label: 'Prometheus', value: 'PROMETHEUS' },
+];
+
+const alertNotificationMethodOptions = [
+  { label: '邮件', value: 'EMAIL' },
+  { label: '短信', value: 'SMS' },
+  { label: '钉钉', value: 'DINGTALK' },
+  { label: '企业微信', value: 'WECHAT' },
+  { label: '网页推送', value: 'WEB_PUSH' },
+  { label: 'Webhook', value: 'WEBHOOK' },
+];
+
+const dockerConnectionTypeOptions = [
+  { label: 'Shell命令', value: 'SHELL' },
+  { label: 'Docker API', value: 'API' },
+];
+
+const proxyTypeOptions = [
+  { label: 'HTTP代理', value: 'HTTP' },
+  { label: 'SOCKS5代理', value: 'SOCKS5' },
+  { label: 'Guacamole代理', value: 'GUACAMOLE' },
+];
+
+// 文件管理模式选项 (computed, 因为依赖 isLocalServer)
+const fileManagementModeOptions = computed(() => {
+  const options = [
+    { label: '不启用', value: 'NONE' },
+  ];
+  if (props.isLocalServer) {
+    options.push({ label: '本地连接', value: 'LOCAL' });
+  }
+  options.push(
+    { label: 'SSH连接', value: 'SSH' },
+    { label: 'NODE客户端', value: 'NODE' }
+  );
+  return options;
+});
+
+// NODE客户端选项 (computed, 因为依赖 nodeClients)
+const nodeClientOptions = computed(() => {
+  return nodeClients.value.map(client => ({
+    label: `${client.name} (${client.address})`,
+    value: client.serverId,
+  }));
+});
 
 // 表单数据
 const formData = reactive<Partial<ServerSetting & any>>({ ...DEFAULT_VALUES });

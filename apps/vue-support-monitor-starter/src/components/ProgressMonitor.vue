@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div class="progress-monitor">
     <!-- 进度列表抽屉 -->
-    <el-drawer
+    <sc-drawer
       v-model="drawerVisible"
       title="操作进度"
       direction="rtl"
@@ -91,7 +91,7 @@
           </div>
         </div>
       </div>
-    </el-drawer>
+    </sc-drawer>
 
     <!-- 悬浮球 -->
     <div

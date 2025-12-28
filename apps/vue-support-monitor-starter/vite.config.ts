@@ -1,4 +1,4 @@
-import { type ConfigEnv, loadEnv, type UserConfigExport } from "vite";
+import { type ConfigEnv, loadEnv, type UserConfigExport, createLogger } from "vite";
 import {
   root,
   wrapperEnv,
@@ -10,6 +10,14 @@ import {
   exclude,
 } from "@repo/build-config";
 import pkg from "./package.json";
+
+// 创建自定义logger过滤color-adjust警告
+const logger = createLogger();
+const originalWarn = logger.warn;
+logger.warn = (msg, options) => {
+  if (msg.includes('color-adjust')) return;
+  originalWarn(msg, options);
+};
 
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = mode;
@@ -53,6 +61,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         clientFiles: ["./index.html", "./src/{views,components}/*"],
       },
     },
+    customLogger: logger,
     css: {
       preprocessorOptions: {
         less: {

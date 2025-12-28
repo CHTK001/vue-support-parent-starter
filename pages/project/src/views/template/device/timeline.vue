@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div>
-    <el-dialog
+    <sc-dialog
       v-model="env.visible"
       :title="env.title"
       width="360px"
@@ -24,7 +24,7 @@
           </el-timeline>
         </template>
       </el-skeleton>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 <script setup>

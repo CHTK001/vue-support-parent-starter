@@ -1,6 +1,6 @@
-<template>
+﻿<template>
     
-  <el-dialog v-model="visibleProxy" title="安装容器" width="720px" :show-close="true" @close="handleClose">
+  <sc-dialog v-model="visibleProxy" title="安装容器" width="720px" :show-close="true" @close="handleClose">
     <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
       <el-form-item label="镜像">
         <div class="image-display">
@@ -145,7 +145,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

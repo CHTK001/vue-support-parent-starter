@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="dialogVisible"
     :title="dialogTitle"
     width="900px"
@@ -139,7 +139,7 @@
         <el-tag type="danger" size="small">ERROR</el-tag> {{ logStats.error }}
       </span>
     </div>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

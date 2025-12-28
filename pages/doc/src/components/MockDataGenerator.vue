@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="mock-generator">
     <!-- 头部 -->
     <div class="mock-header">
@@ -149,7 +149,7 @@
     </div>
 
     <!-- AI 配置对话框 -->
-    <el-dialog v-model="showAIConfigDialog" title="AI 服务配置" width="550px">
+    <sc-dialog v-model="showAIConfigDialog" title="AI 服务配置" width="550px">
       <el-form label-width="100px" size="small">
         <el-form-item label="启用 AI">
           <el-switch v-model="aiConfig.enabled" />
@@ -194,10 +194,10 @@
         <el-button @click="showAIConfigDialog = false">取消</el-button>
         <el-button type="primary" @click="saveAIConfig">保存配置</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 测试结果对话框 -->
-    <el-dialog v-model="testDialogVisible" title="Mock 测试结果" width="600px">
+    <sc-dialog v-model="testDialogVisible" title="Mock 测试结果" width="600px">
       <div class="test-result">
         <el-descriptions :column="2" border size="small">
           <el-descriptions-item label="状态码">
@@ -217,7 +217,7 @@
       <template #footer>
         <el-button @click="testDialogVisible = false">关闭</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

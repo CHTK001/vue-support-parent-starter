@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     title="服务器详情"
     width="800px"
@@ -253,7 +253,7 @@
         <el-button type="success" @click="handleConnect">连接</el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

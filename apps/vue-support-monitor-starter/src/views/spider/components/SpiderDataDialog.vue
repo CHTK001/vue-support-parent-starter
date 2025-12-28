@@ -1,10 +1,11 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="dialogVisible"
     title="爬取数据"
     width="80%"
     :close-on-click-modal="false"
     destroy-on-close
+    append-to-body
   >
     <div class="data-toolbar">
       <div class="toolbar-left">
@@ -108,7 +109,7 @@
     </div>
 
     <!-- 详情弹窗 -->
-    <el-dialog
+    <sc-dialog
       v-model="detailVisible"
       title="数据详情"
       width="600px"
@@ -131,8 +132,8 @@
           </template>
         </el-descriptions-item>
       </el-descriptions>
-    </el-dialog>
-  </el-dialog>
+    </sc-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

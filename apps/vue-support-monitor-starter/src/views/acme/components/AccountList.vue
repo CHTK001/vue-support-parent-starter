@@ -15,6 +15,7 @@
       :url="getAccountPage"
       row-key="acmeAccountId"
       stripe
+      height="auto"
     >
       <el-table-column
         prop="acmeAccountId"
@@ -193,6 +194,11 @@ defineExpose({ refresh });
 
 <style scoped lang="scss">
 .account-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
   .toolbar {
     margin-bottom: 16px;
   }

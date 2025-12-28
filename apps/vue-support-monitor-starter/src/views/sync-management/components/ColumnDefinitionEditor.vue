@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="column-definition-editor">
     <!-- 工具栏 -->
     <div class="editor-toolbar">
@@ -155,7 +155,7 @@
     <el-empty v-if="columns.length === 0" description="暂无列定义，点击"添加列"开始定义" :image-size="80" />
 
     <!-- SQL预览对话框 -->
-    <el-dialog v-model="sqlPreviewVisible" title="建表SQL预览" width="700px">
+    <sc-dialog v-model="sqlPreviewVisible" title="建表SQL预览" width="700px">
       <el-input
         v-model="previewSqlText"
         type="textarea"
@@ -167,7 +167,7 @@
         <el-button @click="sqlPreviewVisible = false">关闭</el-button>
         <el-button type="primary" @click="copySql">复制SQL</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

@@ -1,5 +1,5 @@
 ﻿<template>
-  <el-dialog
+  <sc-dialog
     title="同步进度"
     v-model="dialogVisible"
     width="700px"
@@ -151,7 +151,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

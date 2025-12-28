@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="dialogVisible" :title="`配置 ${filterName}`" width="800px" :close-on-click-modal="false" @close="handleClose">
+﻿<template>
+  <sc-dialog v-model="dialogVisible" :title="`配置 ${filterName}`" width="800px" :close-on-click-modal="false" @close="handleClose">
     <div class="config-container">
       <div class="config-header">
         <div class="filter-info">
@@ -77,7 +77,7 @@
         <el-button type="primary" :loading="saving" @click="handleSave">保存配置</el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

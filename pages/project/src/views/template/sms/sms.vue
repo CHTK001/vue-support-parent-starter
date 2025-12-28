@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message, stringSplitToArray } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, ref, watch } from "vue";
@@ -80,7 +80,7 @@ defineExpose({
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" :title="title" :close-on-click-modal="false" draggable width="55%" @close="handleClose">
+    <sc-dialog v-model="visible" :title="title" :close-on-click-modal="false" draggable width="55%" @close="handleClose">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item prop="target" label="被叫号码">
           <el-input v-model="form.target" placeholder="请输入被叫号码" />
@@ -103,6 +103,6 @@ defineExpose({
       <template #footer>
         <el-button type="primary" :loading="loading.send" size="default" :icon="useRenderIcon('bi:send')" @click="handleSubmit" />
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="serial-list-container">
     <div class="serial-list-header flex justify-between items-center p-4 border-b border-[var(--el-border-color-light)]">
       <h3 class="text-lg font-medium">串口列表</h3>
@@ -51,7 +51,7 @@
     </div>
 
     <!-- 添加/编辑串口对话框 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑串口' : '添加串口'" width="500px" destroy-on-close>
+    <sc-dialog v-model="dialogVisible" :title="isEdit ? '编辑串口' : '添加串口'" width="500px" destroy-on-close>
       <el-form ref="formRef" :model="form" label-width="100px" :rules="rules">
         <el-form-item label="串口名称" prop="monitorSerialName">
           <el-input v-model="form.monitorSerialName" placeholder="请输入串口名称" />
@@ -132,10 +132,10 @@
           <el-button type="primary" @click="submitForm" :loading="submitting">确定</el-button>
         </span>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 删除确认对话框 -->
-    <el-dialog v-model="deleteDialogVisible" title="删除确认" width="400px">
+    <sc-dialog v-model="deleteDialogVisible" title="删除确认" width="400px">
       <div class="delete-confirm">
         <IconifyIconOnline icon="ep:warning" class="text-warning text-xl mr-2" />
         <span>确定要删除此串口配置吗？此操作不可恢复。</span>
@@ -146,7 +146,7 @@
           <el-button type="danger" @click="confirmDelete" :loading="deleting">确定</el-button>
         </span>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

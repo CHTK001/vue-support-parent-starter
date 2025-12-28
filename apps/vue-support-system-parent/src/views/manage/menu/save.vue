@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { fetchSaveMenu, fetchUpdateMenu } from "@/api/manage/menu";
 import { fetchListRole } from "@/api/manage/role";
 import { ref, reactive, computed, onMounted, nextTick, h, defineComponent } from "vue";
@@ -204,7 +204,7 @@ defineExpose({
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" top="10px" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
+    <sc-dialog v-model="visible" top="10px" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
       <el-form ref="dialogFormRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row :gutter="30">
           <re-col>
@@ -399,7 +399,7 @@ defineExpose({
         <el-button @click="visible = false">取 消</el-button>
         <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()">保 存</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 <style lang="scss">

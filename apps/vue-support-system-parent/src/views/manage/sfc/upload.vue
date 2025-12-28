@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div>
-    <el-dialog 
+    <sc-dialog 
       v-model="visible" 
       :title="title" 
       draggable 
@@ -61,7 +61,7 @@
           关闭
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

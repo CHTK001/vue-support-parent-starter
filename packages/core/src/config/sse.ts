@@ -1,6 +1,6 @@
 /**
  * SSE (Server-Sent Events) 协议实现
- * 封装 EventSource API，提供统一的 SocketTemplate 接口
+ * 使用 @microsoft/fetch-event-source 提供统一的 SocketTemplate 接口
  *
  * @author CH
  * @version 2.0.0
@@ -8,6 +8,7 @@
  */
 
 import { ref, type InjectionKey } from "vue";
+import { fetchEventSource, EventStreamContentType } from "@microsoft/fetch-event-source";
 import { getToken } from "../utils/auth";
 import type { SocketTemplate, SocketTemplateListenOptions } from "./socketTemplate";
 import { parseSocketMessage, buildAuthUrl } from "./socketUtils";
@@ -50,6 +51,11 @@ export interface SseConfig {
    * 重连延迟（毫秒），默认 3000
    */
   reconnectionDelay?: number;
+
+  /**
+   * 最大重连次数，默认 5
+   */
+  reconnectionAttempts?: number;
 }
 
 /**
@@ -57,9 +63,9 @@ export interface SseConfig {
  */
 export interface SseService extends SocketTemplate {
   /**
-   * EventSource 实例
+   * AbortController 实例（用于取消连接）
    */
-  readonly eventSource: EventSource | null;
+  readonly abortController: AbortController | null;
 }
 
 /**
@@ -74,9 +80,11 @@ export const SseServiceKey: InjectionKey<SseService> = Symbol("SseService");
  * @returns SseService 实例
  */
 export function createSseService(config: SseConfig): SseService {
-  let eventSource: EventSource | null = null;
+  let abortController: AbortController | null = null;
   const isConnected = ref(false);
   const listeners = new Map<string, Set<Function>>();
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = config.reconnectionAttempts ?? 5;
 
   // 构建连接URL
   const buildUrl = (): string => {
@@ -100,39 +108,77 @@ export function createSseService(config: SseConfig): SseService {
    * 连接 SSE
    */
   const connect = () => {
-    if (eventSource) {
+    if (abortController) {
       console.warn("[SSE] 已连接，请先断开连接");
       return;
     }
 
+    abortController = new AbortController();
     const url = buildUrl();
-    eventSource = new EventSource(url, {
-      withCredentials: config.withCredentials ?? false,
-    });
+    const token = getToken();
 
-    eventSource.onopen = () => {
-      isConnected.value = true;
-      console.log("[SSE] 连接成功");
-    };
+    fetchEventSource(url, {
+      method: "GET",
+      headers: {
+        "Accept": "text/event-stream",
+        "Authorization": token?.accessToken ? `Bearer ${token.accessToken}` : "",
+        ...(config.query || {}),
+      },
+      signal: abortController.signal,
+      openWhenHidden: true, // 保持后台连接
+      
+      async onopen(response) {
+        if (response.ok && response.headers.get("content-type")?.includes(EventStreamContentType)) {
+          isConnected.value = true;
+          reconnectAttempts = 0;
+          console.log("[SSE] 连接成功");
+          triggerListeners("connect", { connected: true });
+        } else {
+          throw new Error(`[SSE] 连接失败: ${response.status} ${response.statusText}`);
+        }
+      },
 
-    eventSource.onerror = (error) => {
-      console.error("[SSE] 连接错误", error);
-      if (eventSource?.readyState === EventSource.CLOSED) {
+      onmessage(event) {
+        // 处理事件名称
+        const eventName = event.event || "message";
+        const data = parseSocketMessage(event.data);
+        
+        // 处理连接确认事件
+        if (eventName === "connected") {
+          console.log("[SSE] 连接确认", data);
+        }
+        
+        triggerListeners(eventName, data);
+      },
+
+      onerror(error) {
+        console.error("[SSE] 连接错误", error);
         isConnected.value = false;
+        triggerListeners("error", error);
+        
+        // 自动重连逻辑
+        if (config.reconnection !== false && reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          const delay = config.reconnectionDelay ?? 3000;
+          console.log(`[SSE] 将在 ${delay}ms 后尝试重连 (${reconnectAttempts}/${maxReconnectAttempts})`);
+          // fetchEventSource 会自动重试，这里抛出错误表示需要重连
+          throw error;
+        } else if (reconnectAttempts >= maxReconnectAttempts) {
+          console.error("[SSE] 达到最大重连次数，停止重连");
+          abortController?.abort();
+          abortController = null;
+        }
+      },
+
+      onclose() {
+        isConnected.value = false;
+        console.log("[SSE] 连接已关闭");
+        triggerListeners("close", { closed: true });
+      },
+    }).catch((error) => {
+      if (error.name !== "AbortError") {
+        console.error("[SSE] fetchEventSource 错误:", error);
       }
-    };
-
-    // 监听默认消息
-    eventSource.onmessage = (event) => {
-      const data = parseSocketMessage(event.data);
-      triggerListeners("message", data);
-    };
-
-    // 监听连接成功事件
-    eventSource.addEventListener("connected", (event: MessageEvent) => {
-      const data = parseSocketMessage(event.data);
-      console.log("[SSE] 连接确认", data);
-      triggerListeners("connected", data);
     });
   };
 
@@ -140,10 +186,11 @@ export function createSseService(config: SseConfig): SseService {
    * 断开连接
    */
   const disconnect = () => {
-    if (eventSource) {
-      eventSource.close();
-      eventSource = null;
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
       isConnected.value = false;
+      reconnectAttempts = maxReconnectAttempts; // 阻止自动重连
       console.log("[SSE] 已断开连接");
     }
   };
@@ -179,27 +226,10 @@ export function createSseService(config: SseConfig): SseService {
     // 注册到内部监听器Map
     if (!listeners.has(event)) {
       listeners.set(event, new Set());
-
-      // 为 EventSource 添加事件监听
-      if (eventSource) {
-        eventSource.addEventListener(event, (e: MessageEvent) => {
-          const data = parseSocketMessage(e.data);
-
-          // dataId 过滤
-          if (options?.dataId !== undefined) {
-            if (String(data?.dataId) !== String(options.dataId)) {
-              return;
-            }
-          }
-
-          triggerListeners(event, data);
-        });
-      }
     }
 
-    // 添加回调
+    // 添加回调（带 dataId 过滤）
     const wrappedCallback = (data: any) => {
-      // dataId 过滤
       if (options?.dataId !== undefined) {
         if (String(data?.dataId) !== String(options.dataId)) {
           return;
@@ -209,14 +239,6 @@ export function createSseService(config: SseConfig): SseService {
     };
 
     listeners.get(event)?.add(wrappedCallback);
-
-    // 如果 EventSource 已存在，立即添加监听器
-    if (eventSource && !listeners.get(event)?.has(wrappedCallback)) {
-      eventSource.addEventListener(event, (e: MessageEvent) => {
-        const data = parseSocketMessage(e.data);
-        wrappedCallback(data);
-      });
-    }
   };
 
   /**
@@ -253,10 +275,10 @@ export function createSseService(config: SseConfig): SseService {
   return {
     protocol: "sse" as const,
     get socket() {
-      return eventSource;
+      return abortController;
     },
-    get eventSource() {
-      return eventSource;
+    get abortController() {
+      return abortController;
     },
     get isConnected() {
       return isConnected.value;

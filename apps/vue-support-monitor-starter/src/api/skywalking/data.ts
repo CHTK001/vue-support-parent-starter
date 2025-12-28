@@ -517,6 +517,52 @@ export function getErrorRateServices(params: {
   }>>>("get", "v1/skywalking/data/metrics/error-rate-services", { params });
 }
 
+// ==================== 自定义查询 API ====================
+
+/**
+ * 自定义查询请求
+ */
+export interface CustomQueryRequest {
+  configId: number;
+  query: string;
+  variables?: Record<string, any>;
+  queryName?: string;
+}
+
+/**
+ * 执行自定义 GraphQL 查询
+ */
+export function executeCustomQuery(data: CustomQueryRequest) {
+  return http.request<ReturnResult<any>>("post", "v1/skywalking/data/custom/query", { data });
+}
+
+/**
+ * 获取 GraphQL Schema
+ */
+export function getGraphQLSchema(configId: number) {
+  return http.request<ReturnResult<any>>("get", "v1/skywalking/data/custom/schema", {
+    params: { configId },
+  });
+}
+
+/**
+ * 获取可用的查询列表
+ */
+export function getAvailableQueries(configId: number) {
+  return http.request<ReturnResult<any>>("get", "v1/skywalking/data/custom/queries", {
+    params: { configId },
+  });
+}
+
+/**
+ * 获取可用的指标名称列表
+ */
+export function getAvailableMetrics(configId: number, regex?: string) {
+  return http.request<ReturnResult<string[]>>("get", "v1/skywalking/data/custom/metrics", {
+    params: { configId, regex: regex || ".*" },
+  });
+}
+
 // ==================== 工具函数 ====================
 
 /**

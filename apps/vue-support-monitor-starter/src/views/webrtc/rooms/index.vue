@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="room-management">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -125,7 +125,7 @@
     </el-card>
 
     <!-- 创建房间对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="showCreateDialog"
       title="创建房间"
       width="500px"
@@ -177,10 +177,10 @@
           创建
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 加入房间对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="showJoinDialog"
       title="加入房间"
       width="400px"
@@ -204,7 +204,7 @@
           加入
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

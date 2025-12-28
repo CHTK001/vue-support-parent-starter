@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="visible" :title="mode === 'create' ? '创建组件' : '编辑组件'" width="1200px" :close-on-click-modal="false" destroy-on-close class="component-edit-dialog" align-center top="5vh">
+﻿<template>
+  <sc-dialog v-model="visible" :title="mode === 'create' ? '创建组件' : '编辑组件'" width="1200px" :close-on-click-modal="false" destroy-on-close class="component-edit-dialog" align-center top="5vh">
     <!-- 自定义头部 -->
     <template #header="{ titleId, titleClass }">
       <div class="dialog-header">
@@ -236,7 +236,7 @@
 
     <!-- 组件预览对话框 -->
     <ComponentPreviewDialog ref="componentPreviewDialogRef" :server-id="serverId" />
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">
