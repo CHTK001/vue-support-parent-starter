@@ -114,7 +114,7 @@
     </div>
 
     <!-- 历史详情对话框 -->
-    <el-dialog v-model="detailDialogVisible" title="变更详情" width="700px">
+    <sc-dialog v-model="detailDialogVisible" title="变更详情" width="700px">
       <div v-if="currentHistory" class="history-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="ID">{{ currentHistory.sysSettingHistoryId }}</el-descriptions-item>
@@ -145,13 +145,13 @@
           @click="handleRollbackSingle(currentHistory)"
           :disabled="currentHistory?.sysSettingOperation === 'ROLLBACK'"
         >
-          回滚此变更
+        回滚此变更
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 批次详情对话框 -->
-    <el-dialog v-model="batchDialogVisible" title="批次变更详情" width="900px">
+    <sc-dialog v-model="batchDialogVisible" title="批次变更详情" width="900px">
       <el-table :data="batchHistoryList" stripe border>
         <el-table-column prop="sysSettingName" label="配置名称" min-width="150" />
         <el-table-column prop="sysSettingGroup" label="分组" width="120" />
@@ -185,10 +185,10 @@
           回滚整个批次
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 导入配置对话框 -->
-    <el-dialog v-model="importDialogVisible" title="导入配置" width="600px">
+    <sc-dialog v-model="importDialogVisible" title="导入配置" width="600px">
       <el-form label-width="100px">
         <el-form-item label="配置数据">
           <el-input
@@ -222,10 +222,10 @@
           确认导入
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 导出配置对话框 -->
-    <el-dialog v-model="exportDialogVisible" title="导出配置" width="600px">
+    <sc-dialog v-model="exportDialogVisible" title="导出配置" width="600px">
       <el-form label-width="100px">
         <el-form-item label="配置分组">
           <el-input
@@ -259,7 +259,7 @@
           {{ exportedJson ? '重新导出' : '确认导出' }}
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

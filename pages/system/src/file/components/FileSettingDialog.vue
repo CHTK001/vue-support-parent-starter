@@ -1,5 +1,5 @@
 <template>
-  <el-dialog
+  <sc-dialog
     v-model="visible"
     title="文件服务设置"
     width="700px"
@@ -242,7 +242,7 @@
         >保存</el-button
       >
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

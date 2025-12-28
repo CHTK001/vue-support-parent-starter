@@ -48,13 +48,13 @@
     </el-skeleton>
   </div>
 
-  <el-dialog v-model="dialogVisible" title="24小时天气情况" draggable>
+  <sc-dialog v-model="dialogVisible" title="24小时天气情况" draggable>
     <div class="sw-ui-main-container sc-fjdhpX fAFgBy">
       <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB">
         <scEcharts height="200px" width="100%" :option="useWeatherStore.options" />
       </div>
     </div>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script>

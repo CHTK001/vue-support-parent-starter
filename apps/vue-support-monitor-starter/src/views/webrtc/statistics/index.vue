@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="statistics-container">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -210,7 +210,7 @@
     </div>
 
     <!-- 房间详情对话框 -->
-    <el-dialog v-model="showRoomDetail" title="房间详情" width="800px">
+    <sc-dialog v-model="showRoomDetail" title="房间详情" width="800px">
       <div class="room-detail-content" v-if="selectedRoom">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="房间名称">{{ selectedRoom.roomName }}</el-descriptions-item>
@@ -250,10 +250,10 @@
           </el-table>
         </div>
       </div>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 房间历史对话框 -->
-    <el-dialog v-model="showRoomHistory" title="房间历史" width="1000px">
+    <sc-dialog v-model="showRoomHistory" title="房间历史" width="1000px">
       <div class="room-history-content">
         <!-- 历史图表 -->
         <div ref="roomHistoryChartRef" class="chart-container" style="height: 300px; margin-bottom: 20px"></div>
@@ -276,7 +276,7 @@
           </el-table-column>
         </el-table>
       </div>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

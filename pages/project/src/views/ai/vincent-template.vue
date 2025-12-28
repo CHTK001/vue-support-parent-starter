@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div>
-    <el-dialog
+    <sc-dialog
       v-model="env.visible"
       :title="env.title"
       width="70%"
@@ -210,7 +210,7 @@
             </el-form-item> </el-form
         ></el-col>
       </el-row>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 <script setup>

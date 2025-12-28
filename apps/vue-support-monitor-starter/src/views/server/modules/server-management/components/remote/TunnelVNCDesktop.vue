@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="tunnel-vnc-desktop">
     <!-- 工具栏 -->
     <div class="desktop-toolbar">
@@ -83,7 +83,7 @@
     </div>
 
     <!-- 连接错误对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="showErrorDialog"
       title="连接错误"
       width="500px"
@@ -107,7 +107,7 @@
         <el-button @click="showErrorDialog = false">关闭</el-button>
         <el-button type="primary" @click="retryConnection">重试连接</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

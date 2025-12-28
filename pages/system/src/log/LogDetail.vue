@@ -58,7 +58,7 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-drawer v-model="visible" title="详情页" @close="onClose">
+    <sc-drawer v-model="visible" title="详情页" @close="onClose">
       <el-divider />
       <el-main style="padding: 0 20px">
         <el-descriptions :column="1" border size="small">
@@ -116,6 +116,6 @@ export default defineComponent({
           </el-collapse-item> -->
         </el-collapse>
       </el-main>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>

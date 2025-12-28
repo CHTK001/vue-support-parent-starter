@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message, queryEmail, stringSplitToArray } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, ref, watch } from "vue";
@@ -71,7 +71,7 @@ defineExpose({
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" :title="title" :close-on-click-modal="false" draggable width="40%" @close="handleClose">
+    <sc-dialog v-model="visible" :title="title" :close-on-click-modal="false" draggable width="40%" @close="handleClose">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item prop="target" label="被叫号码">
           <el-autocomplete v-model="form.target" :fetch-suggestions="queryEmail" :trigger-on-focus="false" placeholder="请输入主体账号邮箱" clearable class="w-full" />
@@ -94,6 +94,6 @@ defineExpose({
       <template #footer>
         <el-button type="primary" :loading="loading.send" size="default" :icon="useRenderIcon('bi:send')" @click="handleSubmit" />
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>

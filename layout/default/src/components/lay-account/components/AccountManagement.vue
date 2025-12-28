@@ -47,12 +47,12 @@ async function onClick(item) {
 
 <template>
   <div :class="['min-w-[180px]', deviceDetection() ? 'max-w-[100%]' : 'max-w-[70%]']">
-    <el-dialog v-if="visible.phone" v-model="visible.phone" draggable :title="title">
+    <sc-dialog v-if="visible.phone" v-model="visible.phone" draggable :title="title">
       <password :show-title="false" />
-    </el-dialog>
-    <el-dialog v-if="visible.email" v-model="visible.email" draggable :title="title">
+    </sc-dialog>
+    <sc-dialog v-if="visible.email" v-model="visible.email" draggable :title="title">
       <profile :show-title="false" />
-    </el-dialog>
+    </sc-dialog>
     <h3 class="my-8">{{ $t("buttons.AccountManagement") }}</h3>
     <div v-for="(item, index) in list" :key="index">
       <div class="flex items-center">

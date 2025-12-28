@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="env.visible"
     :title="env.title"
     draggable
@@ -91,7 +91,7 @@
         >确 定</el-button
       >
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 <script setup>
 import { debounce } from "@pureadmin/utils";

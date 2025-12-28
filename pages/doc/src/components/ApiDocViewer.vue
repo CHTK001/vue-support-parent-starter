@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="api-doc-viewer">
     <!-- 顶部导航栏 -->
     <div class="doc-header" v-if="showHeader">
@@ -192,7 +192,7 @@
       </div>
     </div>
     <!-- 历史记录抽屉 -->
-    <el-drawer
+    <sc-drawer
       v-model="historyDrawerVisible"
       title="请求历史"
       direction="rtl"
@@ -203,10 +203,10 @@
         @select="handleHistorySelect"
         @replay="handleHistoryReplay"
       />
-    </el-drawer>
+    </sc-drawer>
 
     <!-- Mock 配置抽屉 -->
-    <el-drawer
+    <sc-drawer
       v-model="mockDrawerVisible"
       title="Mock 配置"
       direction="rtl"
@@ -217,7 +217,7 @@
         :api="selectedApi"
         @mock-enabled="handleMockEnabled"
       />
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 

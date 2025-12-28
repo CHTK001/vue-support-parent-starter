@@ -175,7 +175,7 @@ export default defineComponent({
 </script>
 <template>
   <div class="h-full">
-    <el-drawer
+    <sc-drawer
       v-model="visible"
       @close="close"
       size="50%"
@@ -338,7 +338,7 @@ export default defineComponent({
           </div>
         </div>
       </div>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 <style lang="scss" scoped>

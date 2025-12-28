@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div class="pure-container">
     <div>
-      <el-dialog
+      <sc-dialog
         v-model="visible"
         width="20%"
         :close-on-click-modal="false"
@@ -43,7 +43,7 @@
             >保 存</el-button
           >
         </template>
-      </el-dialog>
+      </sc-dialog>
     </div>
   </div>
 </template>

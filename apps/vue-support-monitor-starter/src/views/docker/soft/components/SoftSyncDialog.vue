@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="visibleProxy" class="soft-sync-dialog" :show-close="true" width="680px">
+﻿<template>
+  <sc-dialog v-model="visibleProxy" class="soft-sync-dialog" :show-close="true" width="680px">
     <template #header>
       <div class="dlg-header">
         <div class="title">
@@ -86,7 +86,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

@@ -70,7 +70,7 @@
     </main>
 
     <!-- 下载进度 -->
-    <el-dialog v-model="downloadDialogVisible" title="下载进度" width="400px">
+    <sc-dialog v-model="downloadDialogVisible" title="下载进度" width="400px">
       <div v-for="task in downloadTasks" :key="task.id" class="progress-item">
         <div class="progress-header">
           <span>{{ task.fileName }}</span>
@@ -81,7 +81,7 @@
       <template #footer>
         <el-button @click="downloadDialogVisible = false">关闭</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

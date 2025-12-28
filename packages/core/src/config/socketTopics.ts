@@ -121,6 +121,57 @@ export const MonitorTopics = {
     SCREEN_SHARE_START: "monitor:webrtc:screen_share_start",
     SCREEN_SHARE_STOP: "monitor:webrtc:screen_share_stop",
   },
+  // 数据同步相关
+  SYNC: {
+    STATUS: "/monitor/sync/task/status",
+    LOG: "/monitor/sync/task/log",
+    PROGRESS: "/monitor/sync/task/progress",
+    METRICS: "/monitor/sync/task/metrics",
+    ERROR: "/monitor/sync/task/error",
+  },
+  // 爬虫相关
+  SPIDER: {
+    STATUS: "/monitor/spider/task/status",
+    LOG: "/monitor/spider/task/log",
+    PROGRESS: "/monitor/spider/task/progress",
+    METRICS: "/monitor/spider/task/metrics",
+    DATA: "/monitor/spider/task/data",
+    ERROR: "/monitor/spider/task/error",
+  },
+} as const;
+
+/**
+ * 远程连接模块主题 (rc - Remote Connection)
+ * 用于远程服务器连接 (SSH/RDP/VNC)
+ */
+export const RcTopics = {
+  // SSH 相关
+  SSH: {
+    CONNECT: "rc:ssh:connect",
+    DATA: "rc:ssh:data",
+    INPUT: "rc:ssh:input",
+    DISCONNECT: "rc:ssh:disconnect",
+    RESIZE: "rc:ssh:resize",
+    ERROR: "rc:ssh:error",
+  },
+  // RDP 相关
+  RDP: {
+    CONNECT: "rc:rdp:connect",
+    DATA: "rc:rdp:data",
+    INPUT: "rc:rdp:input",
+    DISCONNECT: "rc:rdp:disconnect",
+    RESIZE: "rc:rdp:resize",
+    ERROR: "rc:rdp:error",
+  },
+  // VNC 相关
+  VNC: {
+    CONNECT: "rc:vnc:connect",
+    DATA: "rc:vnc:data",
+    INPUT: "rc:vnc:input",
+    DISCONNECT: "rc:vnc:disconnect",
+    RESIZE: "rc:vnc:resize",
+    ERROR: "rc:vnc:error",
+  },
 } as const;
 
 /**
@@ -156,6 +207,7 @@ export const SocketTopics = {
   system: SystemTopics,
   service: ServiceTopics,
   monitor: MonitorTopics,
+  rc: RcTopics,
   video: VideoTopics,
 } as const;
 

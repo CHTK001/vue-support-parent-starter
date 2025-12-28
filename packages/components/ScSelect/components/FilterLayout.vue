@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-filterBar">
     <slot :filterLength="filterObjLength" :openFilter="openFilter">
       <el-badge :value="filterObjLength" type="danger" :hidden="filterObjLength <= 0">
@@ -6,7 +6,7 @@
       </el-badge>
     </slot>
 
-    <el-drawer v-model="drawer" title="过滤器" :size="650" append-to-body>
+    <sc-drawer v-model="drawer" title="过滤器" :size="650" append-to-body>
       <el-container v-loading="saveLoading">
         <el-main style="padding: 0">
           <el-tabs class="root">
@@ -143,7 +143,7 @@
           <el-button @click="clear">清空过滤</el-button>
         </el-footer>
       </el-container>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 <script setup lang="ts">

@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visibleProxy"
     title="下载镜像"
     width="560px"
@@ -53,7 +53,7 @@
         开始下载
       </el-button>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

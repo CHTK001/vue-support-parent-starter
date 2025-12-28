@@ -211,6 +211,13 @@ html.dark .el-button {
 .el-dialog {
   --el-dialog-bg-color: var(--app-bg-primary);
   --el-dialog-box-shadow: var(--app-shadow-lg);
+  /* 默认距离顶部 30px */
+  margin-top: 30px !important;
+  
+  /* 全屏对话框不需要 margin-top */
+  &.is-fullscreen {
+    margin-top: 0 !important;
+  }
 }
 
 /* 抽屉组件 Drawer Component */

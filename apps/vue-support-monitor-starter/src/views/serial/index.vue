@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="serial-monitor-container">
     <div class="header-actions flex justify-between items-center mb-4">
       <div class="flex items-center">
@@ -62,7 +62,7 @@
     </el-card>
 
     <!-- 串口设置对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="settingsVisible"
       title="串口设置"
       width="500px"
@@ -144,7 +144,7 @@
           <el-button type="primary" @click="saveSettings">确定</el-button>
         </span>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

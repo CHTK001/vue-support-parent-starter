@@ -328,7 +328,7 @@ onBeforeUnmount(() => {
       </defs>
     </svg>
     <!-- 滑动验证码对话框 -->
-    <el-dialog v-model="openVcode" width="480px" draggable title="滑动验证" @close="vcodeClose" class="modern-dialog vcode-dialog" append-to-body>
+    <sc-dialog v-model="openVcode" width="480px" draggable title="滑动验证" @close="vcodeClose" class="modern-dialog vcode-dialog" append-to-body>
       <div v-if="props.defaultSetting.OpenVcode" class="vcode-container">
         <Motion :delay="150">
           <div class="vcode-wrapper">
@@ -395,10 +395,10 @@ onBeforeUnmount(() => {
           </div>
         </Motion>
       </div>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- TOTP验证码对话框 -->
-    <el-dialog v-model="openToptcode" width="480px" :close-on-click-modal="false" draggable title="动态验证码验证" @close="vcodeToptClose" class="modern-dialog totp-dialog" append-to-body>
+    <sc-dialog v-model="openToptcode" width="480px" :close-on-click-modal="false" draggable title="动态验证码验证" @close="vcodeToptClose" class="modern-dialog totp-dialog" append-to-body>
       <div class="totp-container">
         <Motion :delay="150">
           <div class="totp-wrapper">
@@ -438,7 +438,7 @@ onBeforeUnmount(() => {
           </div>
         </Motion>
       </div>
-    </el-dialog>
+    </sc-dialog>
     <div class="modern-login-form-container">
       <div class="modern-login-form">
         <!-- 头像和标题区域 - 增强版 -->

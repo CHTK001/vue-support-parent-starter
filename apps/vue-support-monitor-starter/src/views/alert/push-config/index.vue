@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-container">
     <div class="toolbar">
       <el-input v-model="search.keyword" placeholder="服务器/类型/通道" clearable style="width: 260px" />
@@ -45,7 +45,7 @@
       </template>
     </data-table>
 
-    <el-dialog v-model="edit.visible" :title="edit.form.monitorSysGenAlertPushConfigId ? '编辑配置' : '新增配置'" width="780px">
+    <sc-dialog v-model="edit.visible" :title="edit.form.monitorSysGenAlertPushConfigId ? '编辑配置' : '新增配置'" width="780px">
       <el-form :model="edit.form" :rules="rules" ref="formRef" label-width="140px">
         <el-form-item label="服务器ID(可选全局)">
           <el-input-number v-model="edit.form.monitorSysGenServerId" :min="0" :step="1" />
@@ -97,7 +97,7 @@
         <el-button @click="edit.visible = false">取消</el-button>
         <el-button type="primary" @click="handleSave">保存</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

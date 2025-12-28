@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="node-maintenance">
     <!-- 节点选择 -->
     <ScCard class="mb-4">
@@ -211,14 +211,14 @@
     </el-tabs>
 
     <!-- 备份内容查看对话框 -->
-    <el-dialog v-model="viewDialogVisible" title="备份内容" width="70%">
+    <sc-dialog v-model="viewDialogVisible" title="备份内容" width="70%">
       <el-input
         v-model="backupContentJson"
         type="textarea"
         :rows="20"
         readonly
       />
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

@@ -109,7 +109,7 @@
     </div>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="showAddDialog"
       :title="editingSource ? '编辑视频源' : '新增视频源'"
       width="80%"
@@ -123,7 +123,7 @@
         @cancel="handleCancel"
         ref="formRef"
       />
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

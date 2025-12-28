@@ -133,6 +133,7 @@
         :loading="loading"
         class="container-table"
         table-name="soft-containers"
+        height="auto"
       >
         <el-table-column type="selection" width="55" />
 

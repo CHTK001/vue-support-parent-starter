@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="fs-full">
     <aside :class="['fs-left', { collapsed }]">
       <div class="left-header">
@@ -320,7 +320,7 @@
       </div>
     </main>
     <!-- 预览弹窗：非图片文件用 iframe 预览（?preview） -->
-    <el-dialog
+    <sc-dialog
       v-model="previewDialogVisible"
       width="80%"
       top="20px"
@@ -331,7 +331,7 @@
         :src="previewUrl"
         style="width: 100%; height: 70vh; border: none"
       />
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

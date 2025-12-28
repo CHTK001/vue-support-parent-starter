@@ -119,7 +119,7 @@
       </div>
 
       <!-- 播放列表抽屉 -->
-      <el-drawer v-model="showPlaylistDrawer" title="播放列表" direction="rtl" size="350px" custom-class="music-playlist-drawer">
+      <sc-drawer v-model="showPlaylistDrawer" title="播放列表" direction="rtl" size="350px" custom-class="music-playlist-drawer">
         <template #header>
           <div class="music-playlist__header">
             <div class="music-playlist__title">播放列表 ({{ musicList.length }})</div>
@@ -147,7 +147,7 @@
             </div>
           </div>
         </div>
-      </el-drawer>
+      </sc-drawer>
     </div>
   </div>
 </template>

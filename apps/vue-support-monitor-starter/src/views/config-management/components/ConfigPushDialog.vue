@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="visibleProxy" class="config-push-dialog" :show-close="true" width="720px">
+﻿<template>
+  <sc-dialog v-model="visibleProxy" class="config-push-dialog" :show-close="true" width="720px">
     <template #header>
       <div class="dlg-header">
         <div class="title">
@@ -104,7 +104,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

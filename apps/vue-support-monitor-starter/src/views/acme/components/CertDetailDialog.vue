@@ -1,10 +1,11 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="dialogVisible"
     title=""
     width="780px"
     :close-on-click-modal="false"
     class="cert-detail-dialog"
+    append-to-body
   >
     <template #header>
       <div class="dialog-header">
@@ -114,6 +115,84 @@
           />
         </div>
 
+        <!-- 验证信息（待验证状态时显示） -->
+        <div class="validation-section" v-if="detail?.certificate?.acmeCertStatus === 'validating' && validationInfos.length > 0">
+          <div class="section-title">
+            <IconifyIconOnline icon="mdi:shield-check" />
+            <span>验证信息</span>
+            <el-tag type="warning" size="small">待完成</el-tag>
+          </div>
+          <el-alert
+            title="请按以下信息完成域名验证，部署完成后点击重新验证"
+            type="warning"
+            :closable="false"
+            style="margin-bottom: 16px;"
+          />
+          <div class="validation-list">
+            <div class="validation-item" v-for="(info, index) in validationInfos" :key="index">
+              <div class="validation-header">
+                <div class="validation-domain">
+                  <IconifyIconOnline icon="mdi:web" />
+                  <span>{{ info.domain }}</span>
+                </div>
+                <el-tag size="small" :type="info.type === 'HTTP-01' ? 'primary' : 'success'">
+                  {{ info.type }}
+                </el-tag>
+              </div>
+              <!-- HTTP-01 验证 -->
+              <div class="validation-body" v-if="info.type === 'HTTP-01'">
+                <div class="validation-row">
+                  <span class="validation-label">验证地址</span>
+                  <div class="validation-value-box">
+                    <code class="validation-code">http://{{ info.domain }}/.well-known/acme-challenge/{{ info.token }}</code>
+                    <el-button size="small" text @click="copyToClipboard(`http://${info.domain}/.well-known/acme-challenge/${info.token}`)">
+                      <IconifyIconOnline icon="mdi:content-copy" />
+                    </el-button>
+                  </div>
+                </div>
+                <div class="validation-row">
+                  <span class="validation-label">文件内容</span>
+                  <div class="validation-value-box">
+                    <code class="validation-code">{{ info.keyAuthorization }}</code>
+                    <el-button size="small" text @click="copyToClipboard(info.keyAuthorization)">
+                      <IconifyIconOnline icon="mdi:content-copy" />
+                    </el-button>
+                  </div>
+                </div>
+                <div class="validation-tip">
+                  <IconifyIconOnline icon="mdi:information" />
+                  <span>在服务器上创建文件 <code>/.well-known/acme-challenge/{{ info.token }}</code>，内容为上面的文件内容</span>
+                </div>
+              </div>
+              <!-- DNS-01 验证 -->
+              <div class="validation-body" v-if="info.type === 'DNS-01'">
+                <div class="validation-row">
+                  <span class="validation-label">TXT 记录名</span>
+                  <div class="validation-value-box">
+                    <code class="validation-code">{{ info.dnsName }}</code>
+                    <el-button size="small" text @click="copyToClipboard(info.dnsName)">
+                      <IconifyIconOnline icon="mdi:content-copy" />
+                    </el-button>
+                  </div>
+                </div>
+                <div class="validation-row">
+                  <span class="validation-label">TXT 记录值</span>
+                  <div class="validation-value-box">
+                    <code class="validation-code">{{ info.dnsValue }}</code>
+                    <el-button size="small" text @click="copyToClipboard(info.dnsValue)">
+                      <IconifyIconOnline icon="mdi:content-copy" />
+                    </el-button>
+                  </div>
+                </div>
+                <div class="validation-tip">
+                  <IconifyIconOnline icon="mdi:information" />
+                  <span>在 DNS 管理面板添加 TXT 记录，名称为 <code>{{ info.dnsName }}</code>，值为上面的 TXT 记录值</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 证书内容 -->
         <div class="cert-content-section">
           <div class="section-title">
@@ -166,6 +245,55 @@
           </div>
         </div>
 
+        <!-- 申请历史时间线 -->
+        <div class="history-section">
+          <div class="section-title">
+            <IconifyIconOnline icon="mdi:history" />
+            <span>申请历史</span>
+          </div>
+          <div class="history-timeline">
+            <div class="history-item">
+              <div class="history-dot create"></div>
+              <div class="history-line"></div>
+              <div class="history-content">
+                <div class="history-title">创建证书申请</div>
+                <div class="history-time">{{ detail?.certificate?.createTime || '-' }}</div>
+              </div>
+            </div>
+            <div class="history-item" v-if="detail?.certificate?.acmeCertStatus === 'validating' || detail?.certificate?.acmeCertStatus === 'valid'">
+              <div class="history-dot validating"></div>
+              <div class="history-line"></div>
+              <div class="history-content">
+                <div class="history-title">开始域名验证</div>
+                <div class="history-desc">{{ detail?.certificate?.acmeCertChallengeType }} 验证方式</div>
+              </div>
+            </div>
+            <div class="history-item" v-if="detail?.certificate?.acmeCertNotBefore">
+              <div class="history-dot success"></div>
+              <div class="history-line"></div>
+              <div class="history-content">
+                <div class="history-title">证书签发成功</div>
+                <div class="history-time">{{ detail?.certificate?.acmeCertNotBefore }}</div>
+              </div>
+            </div>
+            <div class="history-item" v-if="detail?.certificate?.acmeCertStatus === 'failed'">
+              <div class="history-dot failed"></div>
+              <div class="history-line"></div>
+              <div class="history-content">
+                <div class="history-title">申请失败</div>
+                <div class="history-desc text-danger">{{ detail?.certificate?.acmeCertLastError }}</div>
+              </div>
+            </div>
+            <div class="history-item" v-if="detail?.certificate?.acmeCertRenewAt">
+              <div class="history-dot renew"></div>
+              <div class="history-content">
+                <div class="history-title">计划续签时间</div>
+                <div class="history-time">{{ detail?.certificate?.acmeCertRenewAt }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 订单记录 -->
         <div class="orders-section" v-if="detail?.orders?.length">
           <div class="section-title">
@@ -175,10 +303,36 @@
           </div>
           <div class="orders-list">
             <div class="order-item" v-for="order in detail.orders" :key="order.acmeOrderId">
-              <div class="order-id">#{{ order.acmeOrderId }}</div>
-              <div class="order-status" :class="`status-${order.acmeOrderStatus}`">{{ order.acmeOrderStatus }}</div>
-              <div class="order-url">{{ order.acmeOrderUrl }}</div>
-              <div class="order-time">{{ order.updateTime }}</div>
+              <div class="order-header">
+                <div class="order-id">
+                  <IconifyIconOnline icon="mdi:identifier" />
+                  <span>#{{ order.acmeOrderId }}</span>
+                </div>
+                <div class="order-status-badge" :class="getOrderStatusClass(order.acmeOrderStatus)">
+                  <span class="status-dot"></span>
+                  <span>{{ getOrderStatusLabel(order.acmeOrderStatus) }}</span>
+                </div>
+              </div>
+              <div class="order-body">
+                <div class="order-row" v-if="order.acmeOrderUrl">
+                  <span class="order-label">订单URL</span>
+                  <span class="order-value order-url">{{ order.acmeOrderUrl }}</span>
+                </div>
+                <div class="order-row" v-if="order.acmeCertificateUrl">
+                  <span class="order-label">证书URL</span>
+                  <span class="order-value">{{ order.acmeCertificateUrl }}</span>
+                </div>
+              </div>
+              <div class="order-footer">
+                <div class="order-time">
+                  <IconifyIconOnline icon="mdi:clock-outline" />
+                  <span>创建: {{ order.createTime }}</span>
+                </div>
+                <div class="order-time" v-if="order.updateTime !== order.createTime">
+                  <IconifyIconOnline icon="mdi:update" />
+                  <span>更新: {{ order.updateTime }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -190,7 +344,7 @@
         <el-button @click="dialogVisible = false">关闭</el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">
@@ -223,6 +377,19 @@ const dialogVisible = computed({
 const loading = ref(false);
 const activeTab = ref("chain");
 const detail = ref<AcmeCertificateDetail>();
+
+/** 解析后的验证信息 */
+interface ValidationInfo {
+  domain: string;
+  type: string;
+  token?: string;
+  keyAuthorization?: string;
+  httpPath?: string;
+  httpContent?: string;
+  dnsName?: string;
+  dnsValue?: string;
+}
+const validationInfos = ref<ValidationInfo[]>([]);
 
 /**
  * 获取状态类型
@@ -282,6 +449,57 @@ async function copyToClipboard(text?: string) {
 }
 
 /**
+ * 获取订单状态样式类
+ */
+function getOrderStatusClass(status?: string) {
+  if (!status) return '';
+  const statusMap: Record<string, string> = {
+    'pending': 'pending',
+    'ready': 'ready',
+    'processing': 'processing',
+    'valid': 'valid',
+    'invalid': 'invalid'
+  };
+  return statusMap[status] || '';
+}
+
+/**
+ * 获取订单状态标签
+ */
+function getOrderStatusLabel(status?: string) {
+  if (!status) return '未知';
+  const labelMap: Record<string, string> = {
+    'pending': '待处理',
+    'ready': '就绪',
+    'processing': '处理中',
+    'valid': '已完成',
+    'invalid': '已失效'
+  };
+  return labelMap[status] || status;
+}
+
+/**
+ * 解析验证信息
+ */
+function parseValidationInfos() {
+  validationInfos.value = [];
+  if (!detail.value?.orders?.length) return;
+  
+  // 取最新的订单
+  const latestOrder = detail.value.orders[0];
+  if (!latestOrder.acmeAuthzUrls) return;
+  
+  try {
+    const infos = JSON.parse(latestOrder.acmeAuthzUrls);
+    if (Array.isArray(infos)) {
+      validationInfos.value = infos;
+    }
+  } catch (e) {
+    console.error('解析验证信息失败', e);
+  }
+}
+
+/**
  * 加载详情
  */
 async function loadDetail() {
@@ -293,6 +511,7 @@ async function loadDetail() {
       data: AcmeCertificateDetail;
     };
     detail.value = res.data;
+    parseValidationInfos();
   } catch (error) {
     console.error("加载证书详情失败", error);
   } finally {
@@ -374,11 +593,12 @@ watch(
     }
   }
 
-  &.status-pending {
-    background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+  &.status-pending,
+  &.status-validating {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
     .status-dot {
-      background: #3b82f6;
+      background: #f59e0b;
       animation: pulse 2s infinite;
     }
   }
@@ -591,6 +811,115 @@ watch(
   margin-bottom: 24px;
 }
 
+/* 验证信息 */
+.validation-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(245, 158, 11, 0.05);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 12px;
+
+  .section-title {
+    .el-tag {
+      margin-left: auto;
+    }
+  }
+}
+
+.validation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.validation-item {
+  padding: 16px;
+  background: var(--el-bg-color);
+  border-radius: 10px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+
+.validation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--el-border-color-lighter);
+}
+
+.validation-domain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+
+  svg {
+    color: var(--el-color-primary);
+  }
+}
+
+.validation-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.validation-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .validation-label {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.validation-value-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+
+  .validation-code {
+    flex: 1;
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 12px;
+    color: var(--el-text-color-primary);
+    word-break: break-all;
+  }
+}
+
+.validation-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+
+  svg {
+    color: #3b82f6;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  code {
+    background: rgba(59, 130, 246, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", Monaco, monospace;
+    color: #3b82f6;
+  }
+}
+
 /* 证书内容 */
 .cert-content-section {
   margin-bottom: 24px;
@@ -667,61 +996,244 @@ watch(
   }
 }
 
+/* 申请历史时间线 */
+.history-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 12px;
+}
+
+.history-timeline {
+  display: flex;
+  flex-direction: column;
+  padding-left: 12px;
+}
+
+.history-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+  padding-bottom: 20px;
+
+  &:last-child {
+    padding-bottom: 0;
+
+    .history-line {
+      display: none;
+    }
+  }
+
+  .history-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+    z-index: 1;
+
+    &.create {
+      background: var(--el-color-primary);
+      box-shadow: 0 0 8px rgba(64, 158, 255, 0.4);
+    }
+
+    &.validating {
+      background: #f59e0b;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+    }
+
+    &.success {
+      background: #10b981;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    }
+
+    &.failed {
+      background: #ef4444;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+    }
+
+    &.renew {
+      background: #8b5cf6;
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
+    }
+  }
+
+  .history-line {
+    position: absolute;
+    left: 5px;
+    top: 20px;
+    width: 2px;
+    height: calc(100% - 8px);
+    background: var(--el-border-color-lighter);
+  }
+
+  .history-content {
+    flex: 1;
+
+    .history-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+    }
+
+    .history-time {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      margin-top: 4px;
+    }
+
+    .history-desc {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      margin-top: 4px;
+
+      &.text-danger {
+        color: var(--el-color-danger);
+      }
+    }
+  }
+}
+
 /* 订单列表 */
 .orders-section {
   .orders-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
   }
 
   .order-item {
-    display: grid;
-    grid-template-columns: 80px 100px 1fr 160px;
-    gap: 12px;
-    align-items: center;
-    padding: 12px 16px;
+    padding: 16px;
     background: var(--el-fill-color-lighter);
-    border-radius: 8px;
-    font-size: 13px;
+    border-radius: 10px;
+    border: 1px solid var(--el-border-color-lighter);
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: var(--el-color-primary-light-5);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    }
+  }
+
+  .order-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed var(--el-border-color-lighter);
   }
 
   .order-id {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-family: "SF Mono", Monaco, monospace;
-    color: var(--el-text-color-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+
+    svg {
+      color: var(--el-color-primary);
+    }
   }
 
-  .order-status {
-    padding: 2px 8px;
-    border-radius: 4px;
+  .order-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
     font-size: 12px;
     font-weight: 500;
-    text-align: center;
 
-    &.status-valid {
-      background: rgba(16, 185, 129, 0.1);
-      color: #10b981;
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
     }
-    &.status-pending {
+
+    &.pending {
       background: rgba(59, 130, 246, 0.1);
       color: #3b82f6;
+      .status-dot { background: #3b82f6; }
     }
-    &.status-invalid {
+
+    &.ready {
+      background: rgba(245, 158, 11, 0.1);
+      color: #f59e0b;
+      .status-dot { background: #f59e0b; }
+    }
+
+    &.processing {
+      background: rgba(139, 92, 246, 0.1);
+      color: #8b5cf6;
+      .status-dot { background: #8b5cf6; animation: pulse 2s infinite; }
+    }
+
+    &.valid {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+      .status-dot { background: #10b981; }
+    }
+
+    &.invalid {
       background: rgba(239, 68, 68, 0.1);
       color: #ef4444;
+      .status-dot { background: #ef4444; }
     }
   }
 
-  .order-url {
-    color: var(--el-text-color-regular);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .order-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .order-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 13px;
+
+    .order-label {
+      flex-shrink: 0;
+      width: 60px;
+      color: var(--el-text-color-secondary);
+    }
+
+    .order-value {
+      flex: 1;
+      color: var(--el-text-color-regular);
+      word-break: break-all;
+
+      &.order-url {
+        font-family: "SF Mono", Monaco, monospace;
+        font-size: 12px;
+      }
+    }
+  }
+
+  .order-footer {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--el-border-color-lighter);
   }
 
   .order-time {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
     color: var(--el-text-color-secondary);
-    text-align: right;
+
+    svg {
+      font-size: 14px;
+    }
   }
 }
 

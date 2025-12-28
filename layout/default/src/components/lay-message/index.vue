@@ -392,7 +392,7 @@ onUnmounted(() => {
 
     <!-- 消息中心 Drawer - 使用 Teleport 避免父元素堆叠上下文限制 -->
     <Teleport to="body">
-    <el-drawer
+    <sc-drawer
       v-model="drawerVisible"
       title="消息中心"
       direction="rtl"
@@ -476,7 +476,7 @@ onUnmounted(() => {
         </div>
       </div>
     </el-scrollbar>
-    </el-drawer>
+    </sc-drawer>
     </Teleport>
     
     <!-- 消息弹窗组件 -->

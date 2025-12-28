@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="connection-status-container">
     <!-- 连接状态指示器 -->
     <div class="status-indicator">
@@ -26,7 +26,7 @@
     </div>
 
     <!-- 错误详情对话框 -->
-    <el-dialog v-model="showErrorDialog" title="连接错误详情" width="500px" :close-on-click-modal="false">
+    <sc-dialog v-model="showErrorDialog" title="连接错误详情" width="500px" :close-on-click-modal="false">
       <div class="error-details">
         <el-alert :title="errorMessage || '连接失败'" type="error" :closable="false" show-icon />
 
@@ -51,7 +51,7 @@
         <el-button @click="showErrorDialog = false">关闭</el-button>
         <el-button type="primary" @click="testConnection">重新测试</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

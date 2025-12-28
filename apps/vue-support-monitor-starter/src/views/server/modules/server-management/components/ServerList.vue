@@ -570,5 +570,12 @@ onMounted(() => {
     justify-content: center;
     margin-top: 20px;
   }
+
+  // 修复按钮 hover 时图标不可见问题
+  :deep(.el-button-group) {
+    .el-button:not(.el-button--primary):hover {
+      color: #fff;
+    }
+  }
 }
 </style>

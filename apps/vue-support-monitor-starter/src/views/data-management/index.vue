@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="data-management-page">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -308,7 +308,7 @@
       :model-value="current"
       @success="load"
     />
-    <el-dialog
+    <sc-dialog
       v-model="showDoc"
       width="85%"
       draggable
@@ -340,7 +340,7 @@
           @load="docLoading = false"
         ></iframe>
       </div>
-    </el-dialog>
+    </sc-dialog>
     <ConsoleSettingDialog
       v-model="showSetting"
       :setting-id="settingId"

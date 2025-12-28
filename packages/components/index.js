@@ -1,4 +1,2 @@
-import { useRenderIcon } from "./ReIcon/src/hooks";
-import ScMessageDialog from "./ScMessageDialog/index.vue";
-
-export { useRenderIcon, ScMessageDialog };
+export * from "./index.ts";
+export { default } from "./index.ts";

@@ -1,4 +1,4 @@
-<script>
+﻿<script>
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineComponent } from "vue";
@@ -118,7 +118,7 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
+    <sc-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
           <el-col :span="24">
@@ -165,6 +165,6 @@ export default defineComponent({
         <el-button @click="visible = false">取 消</el-button>
         <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()">保 存</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>

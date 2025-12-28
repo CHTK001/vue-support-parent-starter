@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     title="表达式语法帮助"
     width="800px"
@@ -135,7 +135,7 @@ AND collect_time BETWEEN ? AND ?</code></pre>
         <el-button @click="visible = false">关闭</el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

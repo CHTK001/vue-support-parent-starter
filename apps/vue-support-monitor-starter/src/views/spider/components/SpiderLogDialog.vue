@@ -1,10 +1,11 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="dialogVisible"
     title="任务日志"
     width="70%"
     :close-on-click-modal="false"
     destroy-on-close
+    append-to-body
   >
     <div class="log-toolbar">
       <div class="toolbar-left">
@@ -79,7 +80,7 @@
         @current-change="handleCurrentChange"
       />
     </div>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

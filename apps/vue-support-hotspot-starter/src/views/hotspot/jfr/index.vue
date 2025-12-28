@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, computed } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { http } from "@repo/utils";
@@ -479,7 +479,7 @@ onUnmounted(() => {
     </el-card>
 
     <!-- 新建录制对话框 -->
-    <el-dialog v-model="showNewRecordingDialog" title="新建 JFR 录制" width="520px">
+    <sc-dialog v-model="showNewRecordingDialog" title="新建 JFR 录制" width="520px">
       <el-form :model="newRecordingForm" label-width="100px">
         <el-form-item label="录制名称">
           <el-input v-model="newRecordingForm.name" placeholder="请输入录制名称" />
@@ -517,10 +517,10 @@ onUnmounted(() => {
           开始录制
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 导出对话框 -->
-    <el-dialog v-model="showExportDialog" title="导出 JFR 文件" width="480px">
+    <sc-dialog v-model="showExportDialog" title="导出 JFR 文件" width="480px">
       <el-form :model="exportForm" label-width="100px">
         <el-form-item label="录制名称">
           <el-input :model-value="exportForm.recordingName" disabled />
@@ -545,7 +545,7 @@ onUnmounted(() => {
           导出
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

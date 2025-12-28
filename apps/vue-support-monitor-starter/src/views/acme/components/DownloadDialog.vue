@@ -1,10 +1,11 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="dialogVisible"
     title=""
     width="480px"
     :close-on-click-modal="false"
     class="download-dialog"
+    append-to-body
   >
     <template #header>
       <div class="dialog-header">
@@ -71,7 +72,7 @@
         <el-button @click="dialogVisible = false" class="close-btn">关闭</el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

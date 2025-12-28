@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visibleInner"
     :title="`配置 - ${filterSetting?.systemServerSettingName || '通用'}`"
     width="800px"
@@ -128,7 +128,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 <script setup lang="ts">
 import type { SystemServerSetting } from "@/api/system-server-setting";

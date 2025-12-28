@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-filter-bar" :class="containerClass">
     <!-- 内联过滤表单 -->
     <div class="filter-inline">
@@ -113,7 +113,7 @@
     </div>
 
     <!-- 高级过滤抽屉 -->
-    <el-drawer v-if="showDrawer" v-model="drawer" title="高级过滤器" :size="650" append-to-body>
+    <sc-drawer v-if="showDrawer" v-model="drawer" title="高级过滤器" :size="650" append-to-body>
       <el-container v-loading="saveLoading">
         <el-main style="padding: 0">
           <el-tabs class="root">
@@ -275,7 +275,7 @@
           <el-button v-if="filter.length > 0" text type="info" @click="copyExpression">复制表达式</el-button>
         </el-footer>
       </el-container>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 

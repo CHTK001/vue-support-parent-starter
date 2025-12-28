@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div>
-    <el-dialog
+    <sc-dialog
       v-model="showDialog"
       draggable
       width="70%"
@@ -22,7 +22,7 @@
           </div>
         </el-skeleton>
       </div>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

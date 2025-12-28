@@ -230,6 +230,20 @@ const plugins = [ElLoading, ElInfiniteScroll, ElPopoverDirective, ElMessage, ElM
 
 /** 按需引入`element-plus` */
 export function useElementPlus(app: App) {
+  // 设置 ElDialog 和 ElDrawer 默认挂载到 body
+  if (ElDialog.props) {
+    ElDialog.props.appendToBody = {
+      ...ElDialog.props.appendToBody,
+      default: true
+    };
+  }
+  if (ElDrawer.props) {
+    ElDrawer.props.appendToBody = {
+      ...ElDrawer.props.appendToBody,
+      default: true
+    };
+  }
+
   // 全局注册组件
   components.forEach((component: Component) => {
     app.component(component.name, component);

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="trace-history">
     <!-- 搜索栏 -->
     <el-card class="search-card" shadow="never">
@@ -120,7 +120,7 @@
     </el-card>
 
     <!-- 链路详情抽屉 -->
-    <el-drawer
+    <sc-drawer
       v-model="detailVisible"
       title="链路详情"
       direction="rtl"
@@ -246,7 +246,7 @@
           </el-timeline>
         </div>
       </div>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 

@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="visibleLocal" title="控制台权限设置" width="520px" @close="handleClose" class="data-console-setting-dialog">
+﻿<template>
+  <sc-dialog v-model="visibleLocal" title="控制台权限设置" width="520px" @close="handleClose" class="data-console-setting-dialog">
     <div v-if="isJdbc" class="section">
       <div class="section-title">JDBC 控制台</div>
       <el-form label-width="140px">
@@ -43,7 +43,7 @@
       <el-button @click="visibleLocal=false">取消</el-button>
       <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 <script setup lang="ts">
 import { computed,ref, watch, reactive } from 'vue'

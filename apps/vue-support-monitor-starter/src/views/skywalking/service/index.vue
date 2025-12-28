@@ -1,44 +1,44 @@
 <template>
   <div class="skywalking-service">
-    <!-- 筛选区域 -->
-    <el-card class="filter-card" shadow="never">
-      <el-form :inline="true" :model="filterForm" class="filter-form">
-        <el-form-item label="SkyWalking">
-          <el-select v-model="filterForm.configId" placeholder="请选择配置" @change="handleConfigChange">
-            <el-option
-              v-for="item in configList"
-              :key="item.skywalkingConfigId"
-              :label="item.skywalkingConfigName"
-              :value="item.skywalkingConfigId"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="时间范围">
-          <el-date-picker
-            v-model="timeRange"
-            type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            format="YYYY-MM-DD HH:mm"
-            value-format="YYYY-MM-DD HHmm"
-            @change="handleTimeChange"
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="header-icon">
+          <el-icon :size="28"><Monitor /></el-icon>
+        </div>
+        <div class="header-text">
+          <h2>服务列表</h2>
+          <p>查看和管理所有 SkyWalking 监控的服务</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <el-select v-model="filterForm.configId" placeholder="选择配置" @change="handleConfigChange" style="width: 180px">
+          <el-option
+            v-for="item in configList"
+            :key="item.skywalkingConfigId"
+            :label="item.skywalkingConfigName"
+            :value="item.skywalkingConfigId"
           />
-        </el-form-item>
-        <el-form-item label="层">
-          <el-select v-model="filterForm.layer" placeholder="请选择层" clearable style="width: 150px">
-            <el-option v-for="layer in layerList" :key="layer" :label="layer" :value="layer" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="服务名">
-          <el-input v-model="filterForm.keyword" placeholder="请输入服务名关键字" clearable style="width: 200px" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="fetchData">查询</el-button>
-          <el-button @click="resetFilter">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+        </el-select>
+        <el-date-picker
+          v-model="timeRange"
+          type="datetimerange"
+          range-separator="-"
+          start-placeholder="开始"
+          end-placeholder="结束"
+          format="MM-DD HH:mm"
+          value-format="YYYY-MM-DD HHmm"
+          @change="handleTimeChange"
+          style="width: 280px"
+        />
+        <el-select v-model="filterForm.layer" placeholder="选择层" clearable style="width: 120px">
+          <el-option v-for="layer in layerList" :key="layer" :label="layer" :value="layer" />
+        </el-select>
+        <el-input v-model="filterForm.keyword" placeholder="服务名关键字" clearable style="width: 160px" />
+        <el-button type="primary" :icon="Search" @click="fetchData">查询</el-button>
+        <el-button :icon="RefreshRight" @click="resetFilter">重置</el-button>
+      </div>
+    </div>
 
     <!-- 服务列表 -->
     <el-card class="table-card" shadow="never" v-loading="loading">
@@ -84,7 +84,7 @@
     </el-card>
 
     <!-- 服务详情抽屉 -->
-    <el-drawer v-model="drawerVisible" title="服务详情" size="720px">
+    <sc-drawer v-model="drawerVisible" title="服务详情" size="720px">
       <template v-if="selectedService">
         <!-- 指标概览卡片 -->
         <el-row :gutter="12" class="metrics-overview">
@@ -162,7 +162,7 @@
         </el-table>
         <el-empty v-if="!instanceLoading && !serviceInstances.length" description="暂无实例数据" :image-size="60" />
       </template>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 
@@ -170,6 +170,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
+import { Search, RefreshRight, Monitor } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
 import { getEnabledSkywalkingConfigs, type SkywalkingConfig } from "@/api/skywalking/config";
 import {
@@ -464,19 +465,80 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .skywalking-service {
-  padding: 16px;
+  padding: 20px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
 
-  .filter-card {
-    margin-bottom: 16px;
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 16px 24px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--el-border-color-lighter);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
-    .filter-form {
-      :deep(.el-form-item) {
-        margin-bottom: 0;
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .header-icon {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
+        border-radius: 10px;
+        color: #fff;
+      }
+
+      .header-text {
+        h2 {
+          margin: 0 0 2px;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+        }
+        p {
+          margin: 0;
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+        }
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+
+      :deep(.el-select),
+      :deep(.el-input),
+      :deep(.el-date-editor) {
+        .el-input__wrapper {
+          background: var(--el-fill-color-blank);
+          border: 1px solid var(--el-border-color-lighter);
+          box-shadow: none;
+        }
+      }
+
+      :deep(.el-button) {
+        border: 1px solid var(--el-border-color-lighter);
+        box-shadow: none;
       }
     }
   }
 
   .table-card {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
     .card-header {
       display: flex;
       justify-content: space-between;
@@ -486,6 +548,10 @@ onUnmounted(() => {
         font-size: 12px;
         color: var(--el-text-color-secondary);
       }
+    }
+
+    :deep(.el-table) {
+      border-radius: 8px;
     }
   }
 
@@ -507,14 +573,23 @@ onUnmounted(() => {
 
     .metric-item {
       text-align: center;
-      padding: 12px 8px;
-      background: var(--el-fill-color-light);
-      border-radius: 8px;
+      padding: 16px 8px;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+      border-radius: 12px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
 
       .metric-value {
-        font-size: 20px;
+        font-size: 22px;
         font-weight: 700;
-        color: var(--el-color-primary);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
 
       .metric-label {
@@ -531,6 +606,8 @@ onUnmounted(() => {
 
   .service-info {
     margin-top: 16px;
+    border-radius: 8px;
+    overflow: hidden;
   }
 }
 </style>

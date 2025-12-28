@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     width="1200px"
     :close-on-click-modal="false"
@@ -122,13 +122,32 @@
                   </el-radio-group>
                 </el-form-item>
 
-                <div class="config-tip" v-if="(currentServer?.monitorSysGenServerOsType || '').toLowerCase().includes('linux')">
+                <div class="config-tip" v-show="(currentServer?.monitorSysGenServerOsType || '').toLowerCase().includes('linux')">
                   <IconifyIconOnline icon="ri:information-line" />
                   <span>检测到 Linux，默认建议使用 SSH。</span>
                 </div>
 
+                <!-- SSH 配置 -->
+                <div v-show="connectionMode === 'SSH'" class="sub-config-section">
+                  <el-row :gutter="20">
+                    <el-col :span="10">
+                      <el-form-item label="SSH 端口">
+                        <el-input-number 
+                          v-model="settingData.monitorSysGenServerSettingSshPort" 
+                          :min="1" 
+                          :max="65535" 
+                          placeholder="22" 
+                          controls-position="right" 
+                          style="width: 100%" 
+                          @change="handleSettingChange" 
+                        />
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                </div>
+
                 <!-- 远程桌面配置（REMOTE 模式） -->
-                <template v-if="connectionMode === 'REMOTE'">
+                <div v-show="connectionMode === 'REMOTE'" class="sub-config-section">
                   <div class="config-tip">
                     <IconifyIconOnline icon="ri:information-line" />
                     <span>远程桌面模式需要目标服务器运行 Remote Desktop Agent（默认端口 8899）。</span>
@@ -140,10 +159,25 @@
                       </el-form-item>
                     </el-col>
                   </el-row>
-                </template>
+                </div>
 
                 <!-- Guacamole 代理配置（GUACAMOLE/VNC 时需要） -->
-                <template v-if="['GUACAMOLE','VNC'].includes(connectionMode)">
+                <div v-show="['GUACAMOLE','VNC'].includes(connectionMode)" class="sub-config-section">
+                  <el-row :gutter="20">
+                    <el-col :span="10">
+                      <el-form-item :label="connectionMode === 'VNC' ? 'VNC 端口' : '连接端口'">
+                        <el-input-number 
+                          v-model="settingData.monitorSysGenServerSettingVncPort" 
+                          :min="1" 
+                          :max="65535" 
+                          :placeholder="connectionMode === 'VNC' ? '5900' : '22'" 
+                          controls-position="right" 
+                          style="width: 100%" 
+                          @change="handleSettingChange" 
+                        />
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
                   <el-row :gutter="20">
                     <el-col :span="14">
                       <el-form-item label="Guacd 地址">
@@ -156,7 +190,7 @@
                       </el-form-item>
                     </el-col>
                   </el-row>
-                </template>
+                </div>
               </div>
 
               <!-- 监控配置节 -->
@@ -239,7 +273,7 @@
               <!-- 配置历史节 -->
               <div v-show="activeSection === 'history'" class="config-section">
                 <ServerSettingHistory
-                  v-if="serverId && activeSection === 'history'"
+                  v-show="serverId && activeSection === 'history'"
                   :server-id="serverId"
                   :server-info="currentServer"
                   @restored="handleHistoryRestored"
@@ -264,7 +298,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

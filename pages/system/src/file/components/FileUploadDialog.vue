@@ -1,5 +1,5 @@
 <template>
-  <el-dialog
+  <sc-dialog
     v-model="visible"
     title="上传文件"
     width="800px"
@@ -178,7 +178,7 @@
         </div>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

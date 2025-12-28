@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="dialogVisible"
     :title="`组件数据查询 - ${component?.monitorSysGenServerComponentName}`"
     width="80%"
@@ -143,7 +143,7 @@
         <el-button type="primary" @click="handleExport">导出数据</el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

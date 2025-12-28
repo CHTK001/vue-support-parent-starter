@@ -262,6 +262,9 @@ export function useReteEditor(options: UseReteEditorOptions = {}): UseReteEditor
   const loading = ref(false);
   const selectedNode = ref<BaseNode | null>(null);
   const zoomLevel = ref(1);
+  
+  // 标记是否正在加载数据，避免在加载过程中触发 onDataChange
+  let isLoadingData = false;
 
   // 合并自定义节点类型
   const allNodeTypes: Record<string, typeof BaseNode> = {
@@ -308,6 +311,9 @@ export function useReteEditor(options: UseReteEditorOptions = {}): UseReteEditor
         vue,
       };
       
+      // 先将 area 挂载到 editor，这必须在 area.use() 之前
+      await editor.use(area);
+      
       // 右键菜单
       if (options.contextMenu !== false) {
         const contextMenu = new ContextMenuPlugin<Schemes>({
@@ -344,7 +350,6 @@ export function useReteEditor(options: UseReteEditorOptions = {}): UseReteEditor
       // 使用插件
       area.use(connection);
       area.use(vue);
-      editor.use(area);
       
       // 设置选择扩展
       AreaExtensions.selectableNodes(area, AreaExtensions.selector(), {
@@ -360,6 +365,10 @@ export function useReteEditor(options: UseReteEditorOptions = {}): UseReteEditor
       
       // 监听事件
       editor.addPipe((context) => {
+        // 在加载数据过程中不触发 onDataChange，避免无限循环
+        if (isLoadingData) {
+          return context;
+        }
         if (context.type === "nodecreated") {
           options.onDataChange?.(getData());
         }
@@ -509,8 +518,8 @@ export function useReteEditor(options: UseReteEditorOptions = {}): UseReteEditor
       const controls: Record<string, any> = {};
       
       // 收集控件值
-      node.controls.forEach((control, key) => {
-        if ("value" in control) {
+      Object.entries(node.controls).forEach(([key, control]) => {
+        if (control && "value" in control) {
           controls[key] = (control as any).value;
         }
       });
@@ -538,6 +547,10 @@ export function useReteEditor(options: UseReteEditorOptions = {}): UseReteEditor
   async function loadData(data: EditorData): Promise<void> {
     if (!editorInstance.value) return;
     
+    // 标记正在加载数据，避免触发 onDataChange
+    isLoadingData = true;
+    
+    try {
     // 清空现有数据
     await clear();
     
@@ -551,7 +564,7 @@ export function useReteEditor(options: UseReteEditorOptions = {}): UseReteEditor
         // 恢复控件值
         if (nodeData.controls) {
           Object.entries(nodeData.controls).forEach(([key, value]) => {
-            const control = node.controls.get(key);
+            const control = node.controls[key];
             if (control && "value" in control) {
               (control as any).value = value;
             }
@@ -579,22 +592,39 @@ export function useReteEditor(options: UseReteEditorOptions = {}): UseReteEditor
         await editorInstance.value!.editor.addConnection(conn);
       }
     }
+    } finally {
+      // 加载完成，恢复标记
+      isLoadingData = false;
+    }
   }
 
   // 清空编辑器
   async function clear(): Promise<void> {
     if (!editorInstance.value) return;
     
+    const editor = editorInstance.value.editor;
+    
     // 删除所有连接
-    const connections = [...editorInstance.value.editor.getConnections()];
+    const connections = [...editor.getConnections()];
     for (const conn of connections) {
-      await editorInstance.value.editor.removeConnection(conn.id);
+      try {
+        await editor.removeConnection(conn.id);
+      } catch (e) {
+        // 连接可能已被删除
+      }
     }
     
     // 删除所有节点
-    const nodes = [...editorInstance.value.editor.getNodes()];
+    const nodes = [...editor.getNodes()];
     for (const node of nodes) {
-      await editorInstance.value.editor.removeNode(node.id);
+      try {
+        // 检查节点是否仍存在
+        if (editor.getNode(node.id)) {
+          await editor.removeNode(node.id);
+        }
+      } catch (e) {
+        // 节点可能已被删除
+      }
     }
   }
 

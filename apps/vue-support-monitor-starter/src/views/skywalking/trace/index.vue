@@ -1,51 +1,49 @@
 <template>
   <div class="skywalking-trace">
-    <!-- 筛选区域 -->
-    <el-card class="filter-card" shadow="never">
-      <el-form :inline="true" :model="filterForm" class="filter-form">
-        <el-form-item label="SkyWalking">
-          <el-select v-model="filterForm.configId" placeholder="请选择配置" @change="handleConfigChange">
-            <el-option
-              v-for="item in configList"
-              :key="item.skywalkingConfigId"
-              :label="item.skywalkingConfigName"
-              :value="item.skywalkingConfigId"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="服务">
-          <el-select v-model="filterForm.serviceId" placeholder="请选择服务" clearable filterable>
-            <el-option v-for="item in serviceList" :key="item.id" :label="item.name" :value="item.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="TraceID">
-          <el-input v-model="filterForm.traceId" placeholder="请输入TraceID" clearable style="width: 300px" />
-        </el-form-item>
-        <el-form-item label="时间范围">
-          <el-date-picker
-            v-model="timeRange"
-            type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            format="YYYY-MM-DD HH:mm"
-            value-format="YYYY-MM-DD HHmm"
-            @change="handleTimeChange"
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="header-icon">
+          <el-icon :size="28"><Connection /></el-icon>
+        </div>
+        <div class="header-text">
+          <h2>链路追踪</h2>
+          <p>查询和分析分布式请求链路</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <el-select v-model="filterForm.configId" placeholder="选择配置" @change="handleConfigChange" style="width: 160px">
+          <el-option
+            v-for="item in configList"
+            :key="item.skywalkingConfigId"
+            :label="item.skywalkingConfigName"
+            :value="item.skywalkingConfigId"
           />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="filterForm.traceState" placeholder="请选择状态" style="width: 120px">
-            <el-option label="全部" value="ALL" />
-            <el-option label="成功" value="SUCCESS" />
-            <el-option label="错误" value="ERROR" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+        </el-select>
+        <el-select v-model="filterForm.serviceId" placeholder="选择服务" clearable filterable style="width: 160px">
+          <el-option v-for="item in serviceList" :key="item.id" :label="item.name" :value="item.id" />
+        </el-select>
+        <el-input v-model="filterForm.traceId" placeholder="TraceID" clearable style="width: 200px" />
+        <el-date-picker
+          v-model="timeRange"
+          type="datetimerange"
+          range-separator="-"
+          start-placeholder="开始"
+          end-placeholder="结束"
+          format="MM-DD HH:mm"
+          value-format="YYYY-MM-DD HHmm"
+          @change="handleTimeChange"
+          style="width: 260px"
+        />
+        <el-select v-model="filterForm.traceState" placeholder="状态" style="width: 100px">
+          <el-option label="全部" value="ALL" />
+          <el-option label="成功" value="SUCCESS" />
+          <el-option label="错误" value="ERROR" />
+        </el-select>
+        <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+        <el-button :icon="RefreshRight" @click="handleReset">重置</el-button>
+      </div>
+    </div>
 
     <!-- 表格区域 -->
     <el-card class="table-card" shadow="never">
@@ -97,6 +95,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
+import { Search, RefreshRight, Connection } from "@element-plus/icons-vue";
 import { getEnabledSkywalkingConfigs, type SkywalkingConfig } from "@/api/skywalking/config";
 import {
   getSkywalkingServices,
@@ -261,26 +260,93 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .skywalking-trace {
-  padding: 16px;
+  padding: 20px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
 
-  .filter-card {
-    margin-bottom: 16px;
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 16px 24px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--el-border-color-lighter);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
-    .filter-form {
-      :deep(.el-form-item) {
-        margin-bottom: 0;
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .header-icon {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
+        border-radius: 10px;
+        color: #fff;
+      }
+
+      .header-text {
+        h2 {
+          margin: 0 0 2px;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+        }
+        p {
+          margin: 0;
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+        }
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+
+      :deep(.el-select),
+      :deep(.el-input),
+      :deep(.el-date-editor) {
+        .el-input__wrapper {
+          background: var(--el-fill-color-blank);
+          border: 1px solid var(--el-border-color-lighter);
+          box-shadow: none;
+        }
+      }
+
+      :deep(.el-button) {
+        border: 1px solid var(--el-border-color-lighter);
+        box-shadow: none;
       }
     }
   }
 
   .table-card {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+    :deep(.el-table) {
+      border-radius: 8px;
+    }
+
     .trace-id {
       font-family: monospace;
-      color: var(--el-color-primary);
+      color: #f5576c;
       cursor: pointer;
+      transition: all 0.3s ease;
 
       &:hover {
         text-decoration: underline;
+        color: #f093fb;
       }
     }
 

@@ -44,6 +44,8 @@ import { FontIcon, IconifyIconOffline, IconifyIconOnline } from "@repo/component
 // 全局注册按钮级别权限组件
 import { Auth } from "@repo/components/ReAuth";
 import ScTable from "@repo/components/ScTable/index.vue";
+import ScDialog from "@repo/components/ScDialog/src/index.vue";
+import ScDrawer from "@repo/components/ScDrawer/index.vue";
 // 全局注册vue-tippy
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
@@ -66,6 +68,8 @@ initializeWasmModule()
 
     app.component("Auth", Auth);
     app.component("ScTable", ScTable);
+    app.component("ScDialog", ScDialog);
+    app.component("ScDrawer", ScDrawer);
 
     app.use(VueTippy);
 
@@ -94,6 +98,8 @@ initializeWasmModule()
 
     app.component("Auth", Auth);
     app.component("ScTable", ScTable);
+    app.component("ScDialog", ScDialog);
+    app.component("ScDrawer", ScDrawer);
 
     app.use(VueTippy);
 

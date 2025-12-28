@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sync-management">
     <!-- 页面切换 -->
     <el-tabs v-model="activeTab" class="main-tabs">
@@ -241,7 +241,7 @@
     </el-card>
 
     <!-- 新建/编辑任务对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
       width="600px"
@@ -300,7 +300,7 @@
           确定
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
       </el-tab-pane>
 
@@ -317,7 +317,7 @@
     />
 
     <!-- 执行日志对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="logsDialogVisible"
       title="执行日志"
       width="900px"
@@ -352,7 +352,7 @@
         class="pagination"
         @current-change="handleLogsPageChange"
       />
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

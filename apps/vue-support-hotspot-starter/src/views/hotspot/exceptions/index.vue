@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { ElMessage } from "element-plus";
 import { wsService } from "@/utils/websocket";
@@ -256,7 +256,7 @@ onUnmounted(() => {
     </el-card>
 
     <!-- 异常详情对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="dialogVisible"
       title="异常详情"
       width="80%"
@@ -286,7 +286,7 @@ onUnmounted(() => {
           <pre>{{ selectedEx.stackTrace }}</pre>
         </div>
       </div>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

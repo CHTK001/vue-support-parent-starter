@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { defineExpose, defineAsyncComponent, reactive, shallowRef } from "vue";
 import { localStorageProxy, message } from "@repo/utils";
 import { fetchSaveOrUpdateDictItemProperty } from "@repo/core";
@@ -100,7 +100,7 @@ defineExpose({
 
 <template>
   <div class="dict-property-drawer">
-    <el-drawer
+    <sc-drawer
       size="55%"
       v-model="env.visible"
       :title="env.title"
@@ -232,7 +232,7 @@ defineExpose({
           </el-button>
         </div>
       </template>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 

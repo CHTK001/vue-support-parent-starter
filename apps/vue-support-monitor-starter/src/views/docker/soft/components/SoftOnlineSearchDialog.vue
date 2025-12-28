@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visibleProxy"
     title="在线搜索软件"
     width="80%"
@@ -114,7 +114,7 @@
         <el-button @click="visibleProxy = false">关闭</el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

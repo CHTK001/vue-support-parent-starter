@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="video-conference-container">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -311,7 +311,7 @@
     </div>
 
     <!-- 参与者列表对话框 -->
-    <el-dialog v-model="showParticipants" title="参与者列表" width="500px">
+    <sc-dialog v-model="showParticipants" title="参与者列表" width="500px">
       <el-table :data="participants" style="width: 100%">
         <el-table-column prop="username" label="用户名" />
         <el-table-column label="状态" width="120">
@@ -344,10 +344,10 @@
           </template>
         </el-table-column>
       </el-table>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 邀请对话框 -->
-    <el-dialog v-model="showInvite" title="邀请参与者" width="500px">
+    <sc-dialog v-model="showInvite" title="邀请参与者" width="500px">
       <div class="invite-content">
         <el-form-item label="会议链接">
           <el-input v-model="inviteLink" readonly>
@@ -382,7 +382,7 @@
           发送邀请
         </el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-container">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -93,11 +93,11 @@
     </el-card>
 
     <!-- 详情对话框 -->
-    <el-dialog v-model="infoVisible" title="Bean 详情" width="60%" destroy-on-close class="modern-dialog">
+    <sc-dialog v-model="infoVisible" title="Bean 详情" width="60%" destroy-on-close class="modern-dialog">
       <div class="detail-content">
         <pre class="code-block"><code>{{ info }}</code></pre>
       </div>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

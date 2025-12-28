@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="visibleProxy" title="导入镜像" width="600px" :show-close="true">
+﻿<template>
+  <sc-dialog v-model="visibleProxy" title="导入镜像" width="600px" :show-close="true">
     <div class="content">
       <div class="import-steps">
         <el-steps :active="currentStep" align-center finish-status="success">
@@ -130,7 +130,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

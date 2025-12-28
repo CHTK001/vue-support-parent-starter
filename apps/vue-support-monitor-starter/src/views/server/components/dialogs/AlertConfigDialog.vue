@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     v-model="visible"
     title="告警配置"
     width="700px"
@@ -463,7 +463,7 @@
     </div>
 
     <!-- 规则编辑对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="ruleDialogVisible"
       :title="editingRuleIndex === -1 ? '新增规则' : '编辑规则'"
       width="500px"
@@ -533,7 +533,7 @@
         <el-button @click="ruleDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="saveRule">保存</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <template #footer>
       <div class="dialog-footer">
@@ -541,7 +541,7 @@
         <el-button type="primary" @click="saveConfig">保存配置</el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

@@ -14,5 +14,9 @@
     "@fullcalendar/daygrid": "catalog:",
     "@fullcalendar/interaction": "catalog:",
     "@fullcalendar/vue3": "catalog:"
+  },
+  "peerDependencies": {
+    "vue": ">=3.0.0",
+    "vue-router": ">=4.0.0"
   }
 }

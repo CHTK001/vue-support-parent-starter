@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="server-management">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -156,7 +156,7 @@
     <ServerMonitorDialog ref="serverMonitorDialogRef" />
 
     <!-- 文件管理对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="fileManagerVisible"
       title="文件管理"
       width="90%"
@@ -168,7 +168,7 @@
         :server="currentFileManagerServer"
         @close="handleFileManagerClose"
       />
-    </el-dialog>
+    </sc-dialog>
 
     <ScriptExecutorDialog ref="scriptExecutorDialogRef" />
 

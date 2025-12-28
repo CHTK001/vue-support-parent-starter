@@ -872,10 +872,14 @@ onMounted(() => {
 .node-management-container {
   padding: 16px;
   background: var(--el-bg-color);
-  min-height: calc(100vh - 120px);
+  height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 
   // 统计卡片
   .stats-section {
+    flex-shrink: 0; // 不收缩
     margin-bottom: 16px;
 
     .stats-grid {
@@ -896,6 +900,7 @@ onMounted(() => {
 
   // 搜索区域
   .search-section {
+    flex-shrink: 0; // 不收缩
     margin-bottom: 16px;
 
     .search-card {
@@ -963,6 +968,10 @@ onMounted(() => {
   // 节点列表区域
   .nodes-section {
     flex: 1;
+    min-height: 0; // 关键：允许 flex 子项收缩
+    overflow: hidden; // 防止内容溢出
+    display: flex;
+    flex-direction: column;
 
     // 节点卡片样式
     .node-card {

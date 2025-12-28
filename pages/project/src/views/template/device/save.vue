@@ -1,4 +1,4 @@
-<script>
+﻿<script>
 import { fetchListDictItem } from "@repo/core";
 import { getCameraRtspTemplates, message } from "@repo/utils";
 import { defineComponent } from "vue";
@@ -557,7 +557,7 @@ export default defineComponent({
 </style>
 <template>
   <div>
-    <el-dialog
+    <sc-dialog
       v-model="visible"
       top="10px"
       :close-on-click-modal="false"
@@ -849,6 +849,6 @@ export default defineComponent({
           >
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>

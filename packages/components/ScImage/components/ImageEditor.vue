@@ -1,5 +1,5 @@
-<template>
-  <el-dialog v-model="visible" title="图片编辑" width="90%" :close-on-click-modal="false" :close-on-press-escape="false" destroy-on-close draggable class="image-editor-dialog">
+﻿<template>
+  <sc-dialog v-model="visible" title="图片编辑" width="90%" :close-on-click-modal="false" :close-on-press-escape="false" destroy-on-close draggable class="image-editor-dialog">
     <div class="image-editor-container">
       <!-- 工具栏 -->
       <div class="editor-toolbar">
@@ -121,7 +121,7 @@
       </div>
 
       <!-- 背景颜色选择器 -->
-      <el-dialog v-model="showBackgroundPicker" title="选择背景颜色" width="300px" append-to-body>
+      <sc-dialog v-model="showBackgroundPicker" title="选择背景颜色" width="300px" append-to-body>
         <div class="color-picker-content">
           <el-color-picker v-model="backgroundColor" show-alpha />
           <div class="preset-colors">
@@ -132,7 +132,7 @@
           <el-button @click="showBackgroundPicker = false">取消</el-button>
           <el-button type="primary" @click="applyBackgroundColor">确定</el-button>
         </template>
-      </el-dialog>
+      </sc-dialog>
 
       <!-- 背景图片上传（隐藏） -->
       <input ref="backgroundImageInput" type="file" accept="image/*" style="display: none" @change="handleBackgroundImageChange" />
@@ -143,7 +143,7 @@
       <el-button @click="handleReset">重置</el-button>
       <el-button type="primary" @click="handleConfirm">确定</el-button>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup>

@@ -237,6 +237,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { getServerSettingHistory } from "@/api/server/setting";
 import type { ServerInfo } from "@/api/server";
 import HistoryDetailDialog from "./HistoryDetailDialog.vue";

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="file-system-page">
     <!-- 调试信息面板 -->
     <div v-if="showDebugInfo" class="debug-panel">
@@ -211,6 +211,7 @@
             :url="getFileSystemPage"
             :params="searchQuery"
             table-name="file-system"
+            height="auto"
             @selection-change="handleSelectionChange"
           >
             <el-table-column type="selection" width="55" />
@@ -359,7 +360,7 @@
     />
 
     <!-- 移动到分组对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="showMoveToGroupDialog"
       title="移动文件到分组"
       width="500px"
@@ -426,7 +427,7 @@
           </el-button>
         </div>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

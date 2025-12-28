@@ -1,28 +1,39 @@
 <template>
   <div class="skywalking-config">
-    <!-- 搜索区域 -->
-    <el-card class="search-card" shadow="never">
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="配置名称">
-          <el-input v-model="searchForm.name" placeholder="请输入配置名称" clearable />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-          <el-button type="primary" @click="handleAdd">新增配置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="header-icon">
+          <el-icon :size="28"><Setting /></el-icon>
+        </div>
+        <div class="header-text">
+          <h2>配置管理</h2>
+          <p>管理 SkyWalking 服务器连接配置</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <el-input v-model="searchForm.name" placeholder="配置名称" clearable style="width: 160px" />
+        <el-select v-model="searchForm.status" placeholder="状态" clearable style="width: 100px">
+          <el-option label="启用" :value="1" />
+          <el-option label="禁用" :value="0" />
+        </el-select>
+        <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+        <el-button :icon="RefreshRight" @click="handleReset">重置</el-button>
+        <el-button type="success" :icon="Plus" @click="handleAdd">新增配置</el-button>
+      </div>
+    </div>
 
     <!-- 表格区域 -->
     <el-card class="table-card" shadow="never">
-      <el-table v-loading="loading" :data="tableData" border stripe>
+      <ScTable
+        ref="tableRef"
+        :url="getSkywalkingConfigPage"
+        :params="searchParams"
+        row-key="skywalkingConfigId"
+        border
+        stripe
+        height="100%"
+      >
         <el-table-column prop="skywalkingConfigName" label="配置名称" min-width="150" />
         <el-table-column prop="skywalkingConfigHost" label="服务地址" min-width="150" />
         <el-table-column prop="skywalkingConfigPort" label="端口" width="100" />
@@ -56,61 +67,169 @@
             </el-popconfirm>
           </template>
         </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="pagination.total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
+      </ScTable>
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px" destroy-on-close>
-      <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px">
-        <el-form-item label="配置名称" prop="skywalkingConfigName">
-          <el-input v-model="formData.skywalkingConfigName" placeholder="请输入配置名称" />
-        </el-form-item>
-        <el-form-item label="服务地址" prop="skywalkingConfigHost">
-          <el-input v-model="formData.skywalkingConfigHost" placeholder="请输入服务地址" />
-        </el-form-item>
-        <el-form-item label="端口" prop="skywalkingConfigPort">
-          <el-input-number v-model="formData.skywalkingConfigPort" :min="1" :max="65535" />
-        </el-form-item>
-        <el-form-item label="HTTPS">
-          <el-switch v-model="formData.skywalkingConfigUseHttps" :active-value="1" :inactive-value="0" />
-        </el-form-item>
-        <el-form-item label="用户名">
-          <el-input v-model="formData.skywalkingConfigUsername" placeholder="请输入用户名（可选）" />
-        </el-form-item>
-        <el-form-item label="密码">
-          <el-input v-model="formData.skywalkingConfigPassword" type="password" placeholder="请输入密码（可选）" show-password />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-switch v-model="formData.skywalkingConfigStatus" :active-value="1" :inactive-value="0" />
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="formData.skywalkingConfigDesc" type="textarea" :rows="3" placeholder="请输入描述" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">确定</el-button>
-      </template>
-    </el-dialog>
+    <sc-dialog 
+      v-model="dialogVisible" 
+      :title="dialogTitle" 
+      width="850px" 
+      destroy-on-close
+      :icon="formData.skywalkingConfigId ? 'ri:edit-line' : 'ri:add-line'"
+      icon-mode="inline"
+      :show-footer="false"
+    >
+      <div class="config-form-wrapper">
+        <el-form ref="formRef" :model="formData" :rules="rules" label-width="110px" class="config-form">
+          <!-- 基本信息 -->
+          <div class="form-section">
+            <div class="section-header">
+              <IconifyIconOnline icon="ri:information-line" class="section-icon" />
+              <span>基本信息</span>
+            </div>
+            <div class="section-content">
+              <el-form-item label="配置名称" prop="skywalkingConfigName">
+                <el-input 
+                  v-model="formData.skywalkingConfigName" 
+                  placeholder="请输入配置名称"
+                  :prefix-icon="useRenderIcon('ri:bookmark-line')"
+                />
+              </el-form-item>
+              <el-form-item label="描述">
+                <el-input 
+                  v-model="formData.skywalkingConfigDesc" 
+                  type="textarea" 
+                  :rows="2" 
+                  placeholder="请输入配置描述（可选）" 
+                />
+              </el-form-item>
+            </div>
+          </div>
+
+          <!-- 连接配置 -->
+          <div class="form-section">
+            <div class="section-header">
+              <IconifyIconOnline icon="ri:link" class="section-icon" />
+              <span>连接配置</span>
+            </div>
+            <div class="section-content">
+              <el-row :gutter="16">
+                <el-col :span="16">
+                  <el-form-item label="服务地址" prop="skywalkingConfigHost">
+                    <el-input 
+                      v-model="formData.skywalkingConfigHost" 
+                      placeholder="如: localhost 或 192.168.1.100"
+                      :prefix-icon="useRenderIcon('ri:server-line')"
+                    />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="端口" prop="skywalkingConfigPort">
+                    <el-input-number 
+                      v-model="formData.skywalkingConfigPort" 
+                      :min="1" 
+                      :max="65535" 
+                      controls-position="right"
+                      style="width: 100%"
+                    />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-form-item label="启用 HTTPS">
+                <div class="switch-wrapper">
+                  <el-switch 
+                    v-model="formData.skywalkingConfigUseHttps" 
+                    :active-value="1" 
+                    :inactive-value="0"
+                    active-text="是"
+                    inactive-text="否"
+                  />
+                  <span class="switch-hint">如果 SkyWalking 服务启用了 HTTPS，请开启此选项</span>
+                </div>
+              </el-form-item>
+            </div>
+          </div>
+
+          <!-- 认证配置 -->
+          <div class="form-section">
+            <div class="section-header">
+              <IconifyIconOnline icon="ri:shield-keyhole-line" class="section-icon" />
+              <span>认证配置</span>
+              <el-tag type="info" size="small" class="optional-tag">可选</el-tag>
+            </div>
+            <div class="section-content">
+              <el-row :gutter="16">
+                <el-col :span="12">
+                  <el-form-item label="用户名">
+                    <el-input 
+                      v-model="formData.skywalkingConfigUsername" 
+                      placeholder="请输入用户名"
+                      :prefix-icon="useRenderIcon('ri:user-line')"
+                    />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="密码">
+                    <el-input 
+                      v-model="formData.skywalkingConfigPassword" 
+                      type="password" 
+                      placeholder="请输入密码" 
+                      show-password
+                      :prefix-icon="useRenderIcon('ri:lock-line')"
+                    />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+          </div>
+
+          <!-- 状态配置 -->
+          <div class="form-section">
+            <div class="section-header">
+              <IconifyIconOnline icon="ri:toggle-line" class="section-icon" />
+              <span>状态配置</span>
+            </div>
+            <div class="section-content">
+              <el-form-item label="启用状态">
+                <div class="switch-wrapper">
+                  <el-switch 
+                    v-model="formData.skywalkingConfigStatus" 
+                    :active-value="1" 
+                    :inactive-value="0"
+                    active-text="启用"
+                    inactive-text="禁用"
+                    inline-prompt
+                    style="--el-switch-on-color: var(--el-color-success); --el-switch-off-color: var(--el-color-danger)"
+                  />
+                  <span class="switch-hint">禁用后该配置将不会被使用</span>
+                </div>
+              </el-form-item>
+            </div>
+          </div>
+        </el-form>
+
+        <!-- 底部操作按钮 -->
+        <div class="form-actions">
+          <el-button @click="dialogVisible = false">
+            <IconifyIconOnline icon="ri:close-line" />
+            取消
+          </el-button>
+          <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+            <IconifyIconOnline icon="ri:check-line" />
+            {{ formData.skywalkingConfigId ? '更新配置' : '创建配置' }}
+          </el-button>
+        </div>
+      </div>
+    </sc-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, computed } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { Search, RefreshRight, Plus, Setting } from "@element-plus/icons-vue";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import {
   getSkywalkingConfigPage,
   saveSkywalkingConfig,
@@ -123,22 +242,20 @@ import {
 
 defineOptions({ name: "SkywalkingConfig" });
 
+// 表格引用
+const tableRef = ref();
+
 // 搜索表单
 const searchForm = reactive({
   name: "",
   status: undefined as number | undefined,
 });
 
-// 表格数据
-const tableData = ref<SkywalkingConfig[]>([]);
-const loading = ref(false);
-
-// 分页
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  total: 0,
-});
+// 搜索参数
+const searchParams = computed(() => ({
+  name: searchForm.name || undefined,
+  status: searchForm.status,
+}));
 
 // 弹窗相关
 const dialogVisible = ref(false);
@@ -163,41 +280,17 @@ const rules: FormRules = {
   skywalkingConfigPort: [{ required: true, message: "请输入端口", trigger: "blur" }],
 };
 
-// 获取数据
-const fetchData = async () => {
-  loading.value = true;
-  try {
-    const res = await getSkywalkingConfigPage({
-      page: pagination.page,
-      pageSize: pagination.pageSize,
-      name: searchForm.name || undefined,
-      status: searchForm.status,
-    });
-    if (res.code === "00000") {
-      tableData.value = res.data?.records || [];
-      pagination.total = res.data?.total || 0;
-    }
-  } finally {
-    loading.value = false;
-  }
-};
-
 // 搜索
 const handleSearch = () => {
-  pagination.page = 1;
-  fetchData();
+  tableRef.value?.refresh();
 };
 
 // 重置
 const handleReset = () => {
   searchForm.name = "";
   searchForm.status = undefined;
-  handleSearch();
+  tableRef.value?.refresh();
 };
-
-// 分页
-const handleSizeChange = () => fetchData();
-const handleCurrentChange = () => fetchData();
 
 // 新增
 const handleAdd = () => {
@@ -235,7 +328,7 @@ const handleSubmit = async () => {
     if (res.code === "00000") {
       ElMessage.success(formData.skywalkingConfigId ? "更新成功" : "新增成功");
       dialogVisible.value = false;
-      fetchData();
+      tableRef.value?.refresh();
     } else {
       ElMessage.error(res.msg || "操作失败");
     }
@@ -249,7 +342,7 @@ const handleDelete = async (row: SkywalkingConfig) => {
   const res = await deleteSkywalkingConfig(row.skywalkingConfigId!);
   if (res.code === "00000") {
     ElMessage.success("删除成功");
-    fetchData();
+    tableRef.value?.refresh();
   } else {
     ElMessage.error(res.msg || "删除失败");
   }
@@ -278,31 +371,182 @@ const handleToggleStatus = async (row: SkywalkingConfig) => {
   }
 };
 
-onMounted(() => {
-  fetchData();
-});
 </script>
 
 <style scoped lang="scss">
 .skywalking-config {
-  padding: 16px;
+  padding: 20px;
+  height: 100%;
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
 
-  .search-card {
-    margin-bottom: 16px;
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 16px 24px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--el-border-color-lighter);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    flex-shrink: 0;
 
-    .search-form {
-      :deep(.el-form-item) {
-        margin-bottom: 0;
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .header-icon {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
+        border-radius: 10px;
+        color: #fff;
+      }
+
+      .header-text {
+        h2 {
+          margin: 0 0 2px;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+        }
+        p {
+          margin: 0;
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+        }
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      :deep(.el-select),
+      :deep(.el-input) {
+        .el-input__wrapper {
+          background: var(--el-fill-color-blank);
+          border: 1px solid var(--el-border-color-lighter);
+          box-shadow: none;
+        }
+      }
+
+      :deep(.el-button) {
+        border: 1px solid var(--el-border-color-lighter);
+        box-shadow: none;
       }
     }
   }
 
   .table-card {
-    .pagination-container {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 16px;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+    :deep(.el-card__body) {
+      height: 100%;
+      padding: 16px;
+      box-sizing: border-box;
     }
+
+    :deep(.el-table) {
+      border-radius: 8px;
+    }
+  }
+}
+
+/* 配置表单样式 */
+.config-form-wrapper {
+  padding: 8px 0;
+}
+
+.config-form {
+  .form-section {
+    margin-bottom: 20px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 12px;
+    overflow: hidden;
+
+    &:last-of-type {
+      margin-bottom: 0;
+    }
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-fill-color-light) 100%);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--el-text-color-primary);
+
+    .section-icon {
+      font-size: 18px;
+      color: var(--el-color-primary);
+    }
+
+    .optional-tag {
+      margin-left: auto;
+    }
+  }
+
+  .section-content {
+    padding: 16px;
+
+    :deep(.el-form-item) {
+      margin-bottom: 16px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    :deep(.el-form-item__label) {
+      font-weight: 500;
+    }
+  }
+}
+
+.switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .switch-hint {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  margin-top: 20px;
+
+  .el-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: 8px;
   }
 }
 </style>

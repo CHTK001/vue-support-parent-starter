@@ -46,7 +46,7 @@ defineExpose({
 </script>
 
 <template>
-  <el-dialog
+  <sc-dialog
     :model-value="modelValue"
     width="480px"
     draggable
@@ -210,7 +210,7 @@ defineExpose({
         </div>
       </Motion>
     </div>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <style lang="scss" scoped>

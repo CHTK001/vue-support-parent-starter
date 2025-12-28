@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import {
   type EventType,
   type ButtonProps,
@@ -106,7 +106,7 @@ function handleClose(
 </script>
 
 <template>
-  <el-dialog
+  <sc-dialog
     v-for="(options, index) in dialogStore"
     :key="index"
     v-bind="options"
@@ -202,5 +202,5 @@ function handleClose(
         </template>
       </span>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>

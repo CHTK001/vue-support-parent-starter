@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div>
-    <el-dialog
+    <sc-dialog
       v-model="env.visible"
       :title="env.title"
       draggable
@@ -234,7 +234,7 @@
           >确 定</el-button
         >
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 <script setup>

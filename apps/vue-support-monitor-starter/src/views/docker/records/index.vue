@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="records-page">
     <!-- 现代化页面头部 -->
     <div class="modern-header">
@@ -84,6 +84,7 @@
         stripe
         class="records-table"
         table-name="docker-records"
+        height="auto"
       >
         <el-table-column type="selection" width="55" />
         <el-table-column prop="systemSoftName" label="软件名称" width="150" show-overflow-tooltip />
@@ -181,7 +182,7 @@
     </el-card>
 
     <!-- 详情对话框 -->
-    <el-dialog v-model="detailVisible" title="安装记录详情" width="800px" destroy-on-close>
+    <sc-dialog v-model="detailVisible" title="安装记录详情" width="800px" destroy-on-close>
       <div v-if="currentRecord" class="record-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="记录ID">{{ currentRecord.recordId }}</el-descriptions-item>
@@ -204,10 +205,10 @@
           </el-descriptions-item>
         </el-descriptions>
       </div>
-    </el-dialog>
+    </sc-dialog>
 
     <!-- 日志对话框 -->
-    <el-dialog v-model="logsVisible" title="安装日志" width="900px" destroy-on-close>
+    <sc-dialog v-model="logsVisible" title="安装日志" width="900px" destroy-on-close>
       <div class="logs-container">
         <div class="logs-header">
           <el-button size="small" @click="refreshLogs" :loading="logsLoading">
@@ -227,7 +228,7 @@
           </div>
         </div>
       </div>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

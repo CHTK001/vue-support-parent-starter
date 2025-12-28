@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="thread-viewer">
     <div class="toolbar">
       <el-input v-model="keyword" placeholder="按线程名称过滤" clearable style="max-width: 200px" />
@@ -89,7 +89,7 @@
     </div>
 
     <!-- 堆栈跟踪对话框 -->
-    <el-dialog v-model="stackTraceVisible" :title="`线程堆栈 - ${selectedThread?.name} (ID: ${selectedThread?.id})`" width="80%" top="5vh">
+    <sc-dialog v-model="stackTraceVisible" :title="`线程堆栈 - ${selectedThread?.name} (ID: ${selectedThread?.id})`" width="80%" top="5vh">
       <div v-if="selectedThread" class="stack-trace-content">
         <div class="thread-info">
           <el-descriptions :column="3" border>
@@ -139,7 +139,7 @@
           </div>
         </div>
       </div>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

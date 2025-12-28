@@ -1,5 +1,5 @@
 <template>
-  <el-dialog
+  <sc-dialog
     v-model="visible"
     title="图片裁剪"
     width="800px"
@@ -64,7 +64,7 @@
         >确定裁剪</el-button
       >
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

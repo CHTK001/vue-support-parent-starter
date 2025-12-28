@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="job-log-wrapper">
     <div class="job-log-container">
       <!-- 统计图表区域 -->
@@ -249,7 +249,7 @@
         </scTable>
       </div>
     </div>
-    <el-dialog v-model="clearShow" title="日志清理" @close="clearShow = !1">
+    <sc-dialog v-model="clearShow" title="日志清理" @close="clearShow = !1">
       <el-form :model="form" label-width="120px">
         <el-form-item label="执行器">
           <el-input v-model="jobGroupName" disabled readonly />
@@ -277,7 +277,7 @@
           <el-button type="primary" @click="clearLog(0)">确定</el-button>
         </span>
       </template>
-    </el-dialog>
+    </sc-dialog>
 
     <cat ref="catRef" />
     <info ref="infoRef" />

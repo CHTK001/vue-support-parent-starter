@@ -1,5 +1,5 @@
-<template>
-  <el-dialog
+﻿<template>
+  <sc-dialog
     :model-value="visible"
     @update:model-value="$emit('update:visible', $event)"
     :title="isEdit ? '编辑脚本' : '新建脚本'"
@@ -165,7 +165,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

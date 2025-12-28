@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div>
-    <el-dialog
+    <sc-dialog
       draggable
       :title="env.title"
       width="80%"
@@ -21,7 +21,7 @@
           </el-table-column>
         </ScTable>
       </div>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 <script setup>

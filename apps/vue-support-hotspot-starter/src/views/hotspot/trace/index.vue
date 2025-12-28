@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page flex flex-col h-full">
     <!-- 统计卡片 -->
     <el-row :gutter="20" class="stats-row">
@@ -112,7 +112,7 @@
     </div>
 
     <!-- 详情抽屉 -->
-    <el-drawer ref="drawerRef" v-model="config.dialogVisible" :append-to-body="true" size="60%" direction="rtl" class="trace-drawer" :destroy-on-close="true">
+    <sc-drawer ref="drawerRef" v-model="config.dialogVisible" :append-to-body="true" size="60%" direction="rtl" class="trace-drawer" :destroy-on-close="true">
       <template #title>
         <span v-html="config.dialogDetailData.description" />
       </template>
@@ -149,7 +149,7 @@
           <pre><code class="language-java">{{ config.dialogDetailData.stackTrace  instanceof Array ? config.dialogDetailData.stackTrace?.join('\r\n') : config.dialogDetailData.stackTrace}}</code></pre>
         </div>
       </div>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 <script setup>

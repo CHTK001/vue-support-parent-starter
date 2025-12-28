@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page-container">
     <div class="toolbar">
       <el-input v-model="search.keyword" placeholder="模板名称/通道" clearable style="width: 240px" />
@@ -45,7 +45,7 @@
       </template>
     </data-table>
 
-    <el-dialog v-model="edit.visible" :title="edit.form.monitorSysGenMessagePushTemplateId ? '编辑模板' : '新增模板'" width="680px">
+    <sc-dialog v-model="edit.visible" :title="edit.form.monitorSysGenMessagePushTemplateId ? '编辑模板' : '新增模板'" width="680px">
       <el-form :model="edit.form" :rules="rules" ref="formRef" label-width="120px">
         <el-form-item label="模板名称" prop="monitorSysGenMessagePushTemplateName">
           <el-input v-model="edit.form.monitorSysGenMessagePushTemplateName" placeholder="请输入模板名称" />
@@ -84,7 +84,7 @@
         <el-button @click="edit.visible = false">取消</el-button>
         <el-button type="primary" @click="handleSave">保存</el-button>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

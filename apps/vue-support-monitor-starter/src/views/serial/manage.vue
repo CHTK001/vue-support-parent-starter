@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div
     class="serial-manage-container !overflow-hidden h-[100vh]"
     :style="{
@@ -99,7 +99,7 @@
     </el-container>
 
     <!-- 设置对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="settingsDialogVisible"
       title="串口设置"
       width="500px"
@@ -116,7 +116,7 @@
           <el-button type="primary" @click="saveSettings">确定</el-button>
         </span>
       </template>
-    </el-dialog>
+    </sc-dialog>
   </div>
 </template>
 

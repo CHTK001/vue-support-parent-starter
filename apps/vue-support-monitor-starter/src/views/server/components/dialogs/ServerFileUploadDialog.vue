@@ -1,5 +1,5 @@
-<template>
-  <el-dialog 
+﻿<template>
+  <sc-dialog 
     v-model="visible" 
     width="900px" 
     :close-on-click-modal="false" 
@@ -294,7 +294,7 @@
         </div>
       </div>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

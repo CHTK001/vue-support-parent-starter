@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="branch-wrap">
     <div class="branch-box-wrap">
       <div class="branch-box">
@@ -35,7 +35,7 @@
       </div>
       <add-node v-model="nodeConfig.childNode" />
     </div>
-    <el-drawer v-model="drawer" title="条件设置" destroy-on-close append-to-body :size="600">
+    <sc-drawer v-model="drawer" title="条件设置" destroy-on-close append-to-body :size="600">
       <template #header>
         <div class="node-wrap-drawer__title">
           <label v-if="!isEditTitle" @click="editTitle">
@@ -101,7 +101,7 @@
           <el-button @click="drawer = false">取消</el-button>
         </el-footer>
       </el-container>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 

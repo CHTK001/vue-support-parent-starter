@@ -199,6 +199,14 @@ export function triggerRenewCheck() {
   return http.post("/v1/cert/renew-check");
 }
 
+/**
+ * 重新验证证书（用户手动部署完成后调用）
+ * @param certId 证书ID
+ */
+export function retryValidation(certId: number) {
+  return http.post(`/v1/cert/${certId}/retry-validation`);
+}
+
 // ======================== 订单管理 API ========================
 
 /**
@@ -286,7 +294,7 @@ export const CHALLENGE_TYPES = [
 /** 证书状态 */
 export const CERT_STATUS = [
   { label: "待验证", value: "pending", type: "warning" },
-  { label: "验证中", value: "validating", type: "info" },
+  { label: "验证中", value: "validating", type: "warning" },
   { label: "有效", value: "valid", type: "success" },
   { label: "已过期", value: "expired", type: "danger" },
   { label: "已吊销", value: "revoked", type: "danger" },

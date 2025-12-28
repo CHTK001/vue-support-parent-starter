@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-input v-model="defaultValue" v-bind="$attrs">
     <template #append>
       <el-dropdown size="medium" @command="handleShortcuts">
@@ -21,7 +21,7 @@
     </template>
   </el-input>
 
-  <el-dialog v-model="dialogVisible" title="cron规则生成器" :width="580" destroy-on-close append-to-body>
+  <sc-dialog v-model="dialogVisible" title="cron规则生成器" :width="580" destroy-on-close append-to-body>
     <div class="sc-cron">
       <el-tabs>
         <el-tab-pane>
@@ -288,7 +288,7 @@
       <el-button @click="dialogVisible = false">取 消</el-button>
       <el-button type="primary" @click="submit()">确 认</el-button>
     </template>
-  </el-dialog>
+  </sc-dialog>
 </template>
 
 <script>

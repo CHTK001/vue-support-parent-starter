@@ -1,5 +1,5 @@
 <template>
-  <el-dialog
+  <sc-dialog
     v-model="visible"
     title="分组管理"
     width="700px"
@@ -96,7 +96,7 @@
     </div>
 
     <!-- 编辑对话框 -->
-    <el-dialog
+    <sc-dialog
       v-model="showEditDialog"
       :title="editForm.sysFileSystemGroupId ? '编辑分组' : '新增分组'"
       width="500px"
@@ -156,8 +156,8 @@
           >保存</el-button
         >
       </template>
-    </el-dialog>
-  </el-dialog>
+    </sc-dialog>
+  </sc-dialog>
 </template>
 
 <script setup lang="ts">

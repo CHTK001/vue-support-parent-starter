@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="service-topology">
     <!-- 工具栏 -->
     <el-card class="toolbar-card" shadow="never">
@@ -59,7 +59,7 @@
     </el-card>
 
     <!-- 节点详情抽屉 -->
-    <el-drawer
+    <sc-drawer
       v-model="detailVisible"
       title="节点详情"
       direction="rtl"
@@ -101,7 +101,7 @@
           <el-empty v-if="getNodeEdges(selectedNode.id).length === 0" description="暂无调用关系" :image-size="60" />
         </div>
       </div>
-    </el-drawer>
+    </sc-drawer>
   </div>
 </template>
 

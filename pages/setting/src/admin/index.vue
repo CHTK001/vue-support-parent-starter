@@ -43,7 +43,7 @@ defineExpose({
 
 <template>
   <div>
-    <el-drawer
+    <sc-drawer
       v-model="config.visible"
       size="80%"
       :title="config.title"
@@ -89,7 +89,7 @@ defineExpose({
           </el-table-column>
         </ScTable>
       </el-main>
-    </el-drawer>
+    </sc-drawer>
     <ItemSave ref="itemSaveRef" @close="config.itemSaveStatus = false" />
   </div>
 </template>

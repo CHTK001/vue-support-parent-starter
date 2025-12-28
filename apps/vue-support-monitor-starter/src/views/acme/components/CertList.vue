@@ -16,6 +16,7 @@
             v-model="queryForm.acmeCertStatus"
             placeholder="全部"
             clearable
+            style="width: 120px"
           >
             <el-option
               v-for="item in CERT_STATUS"
@@ -48,17 +49,11 @@
     <!-- 证书表格 -->
     <ScTable
       ref="tableRef"
-      v-loading="loading"
-      :data="tableData"
-      :params="{}"
+      :url="getCertPage"
+      :params="queryForm"
       row-key="acmeCertId"
-      :page-size="pagination.size"
-      :current-page="pagination.page"
-      :total="pagination.total"
-      :page-sizes="[10, 20, 50, 100]"
-      @page-change="handlePageChange"
-      @size-change="handleSizeChange"
       class="cert-table"
+      height="auto"
     >
       <el-table-column prop="acmeCertId" label="ID" width="80" align="center">
         <template #default="{ row }">
@@ -99,7 +94,18 @@
       </el-table-column>
       <el-table-column prop="acmeCertStatus" label="状态" width="110" align="center">
         <template #default="{ row }">
-          <div class="status-badge" :class="`status-${row.acmeCertStatus}`">
+          <el-tooltip
+            v-if="row.acmeCertStatus === 'failed' && row.acmeCertLastError"
+            :content="row.acmeCertLastError"
+            placement="top"
+            :show-after="200"
+          >
+            <div class="status-badge" :class="`status-${row.acmeCertStatus}`">
+              <span class="status-dot"></span>
+              <span>{{ getStatusLabel(row.acmeCertStatus) }}</span>
+            </div>
+          </el-tooltip>
+          <div v-else class="status-badge" :class="`status-${row.acmeCertStatus}`">
             <span class="status-dot"></span>
             <span>{{ getStatusLabel(row.acmeCertStatus) }}</span>
           </div>
@@ -121,9 +127,14 @@
           <span class="empty-text" v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right" align="center">
+      <el-table-column label="操作" width="220" fixed="right" align="center">
         <template #default="{ row }">
           <div class="action-cell">
+            <el-tooltip content="复制申请" placement="top">
+              <button class="action-btn" @click="handleCopy(row)">
+                <IconifyIconOnline icon="mdi:content-copy" />
+              </button>
+            </el-tooltip>
             <el-tooltip content="查看详情" placement="top">
               <button class="action-btn" @click="handleView(row)">
                 <IconifyIconOnline icon="mdi:eye-outline" />
@@ -134,16 +145,36 @@
                 <IconifyIconOnline icon="mdi:download" />
               </button>
             </el-tooltip>
-            <el-tooltip content="续签证书" placement="top" v-if="row.acmeCertStatus === 'valid'">
-              <button class="action-btn warning" @click="handleRenew(row)">
-                <IconifyIconOnline icon="mdi:autorenew" />
+            <el-tooltip content="重新验证" placement="top" v-if="row.acmeCertStatus === 'validating'">
+              <button class="action-btn warning" @click="handleRetryValidation(row)">
+                <IconifyIconOnline icon="mdi:refresh" />
               </button>
             </el-tooltip>
-            <el-tooltip content="删除证书" placement="top">
-              <button class="action-btn danger" @click="handleDelete(row)">
-                <IconifyIconOnline icon="mdi:delete-outline" />
-              </button>
-            </el-tooltip>
+            <el-popconfirm
+              v-if="row.acmeCertStatus === 'valid'"
+              title="确定要续签该证书吗？"
+              confirm-button-text="续签"
+              cancel-button-text="取消"
+              @confirm="handleRenew(row)"
+            >
+              <template #reference>
+                <button class="action-btn warning">
+                  <IconifyIconOnline icon="mdi:autorenew" />
+                </button>
+              </template>
+            </el-popconfirm>
+            <el-popconfirm
+              title="确定要删除该证书吗？"
+              confirm-button-text="删除"
+              cancel-button-text="取消"
+              @confirm="handleDelete(row)"
+            >
+              <template #reference>
+                <button class="action-btn danger">
+                  <IconifyIconOnline icon="mdi:delete-outline" />
+                </button>
+              </template>
+            </el-popconfirm>
           </div>
         </template>
       </el-table-column>
@@ -164,14 +195,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive } from "vue";
 import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
 import {
   getCertPage,
   deleteCert,
   renewCert,
   triggerRenewCheck,
+  retryValidation,
   CERT_STATUS,
   type AcmeCertificate,
 } from "@/api/acme";
@@ -182,9 +213,11 @@ defineOptions({
   name: "CertList",
 });
 
-const loading = ref(false);
+const emit = defineEmits<{
+  copy: [cert: AcmeCertificate];
+}>();
+
 const tableRef = ref();
-const tableData = ref<AcmeCertificate[]>([]);
 const detailDialogVisible = ref(false);
 const downloadDialogVisible = ref(false);
 const currentCertId = ref<number>(0);
@@ -193,12 +226,6 @@ const currentCert = ref<AcmeCertificate>();
 const queryForm = reactive({
   acmeCertPrimaryDomain: "",
   acmeCertStatus: "",
-});
-
-const pagination = reactive({
-  page: 1,
-  size: 10,
-  total: 0,
 });
 
 /**
@@ -293,52 +320,10 @@ function getExpiryProgress(row: AcmeCertificate) {
 }
 
 /**
- * 加载数据
- */
-async function loadData() {
-  loading.value = true;
-  try {
-    const res = await getCertPage({
-      page: pagination.page,
-      size: pagination.size,
-      ...queryForm,
-    });
-    const data = res as unknown as {
-      records: AcmeCertificate[];
-      total: number;
-    };
-    tableData.value = data.records || [];
-    pagination.total = data.total || 0;
-  } catch (error) {
-    console.error("加载证书列表失败", error);
-  } finally {
-    loading.value = false;
-  }
-}
-
-/**
  * 搜索
  */
 function handleSearch() {
-  pagination.page = 1;
-  loadData();
-}
-
-/**
- * 分页变化
- */
-function handlePageChange(page: number) {
-  pagination.page = page;
-  loadData();
-}
-
-/**
- * 每页条数变化
- */
-function handleSizeChange(size: number) {
-  pagination.size = size;
-  pagination.page = 1;
-  loadData();
+  tableRef.value?.refresh();
 }
 
 /**
@@ -347,7 +332,14 @@ function handleSizeChange(size: number) {
 function handleReset() {
   queryForm.acmeCertPrimaryDomain = "";
   queryForm.acmeCertStatus = "";
-  handleSearch();
+  tableRef.value?.refresh();
+}
+
+/**
+ * 复制申请
+ */
+function handleCopy(row: AcmeCertificate) {
+  emit("copy", row);
 }
 
 /**
@@ -371,18 +363,11 @@ function handleDownload(row: AcmeCertificate) {
  */
 async function handleRenew(row: AcmeCertificate) {
   try {
-    await ElMessageBox.confirm(
-      `确定要续签证书 ${row.acmeCertPrimaryDomain} 吗？`,
-      "续签确认",
-      { type: "warning" }
-    );
     await renewCert(row.acmeCertId!);
     message("续签请求已提交", { type: "success" });
-    loadData();
+    tableRef.value?.refresh();
   } catch (error) {
-    if (error !== "cancel") {
-      message("续签失败", { type: "error" });
-    }
+    message("续签失败", { type: "error" });
   }
 }
 
@@ -391,18 +376,24 @@ async function handleRenew(row: AcmeCertificate) {
  */
 async function handleDelete(row: AcmeCertificate) {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除证书 ${row.acmeCertPrimaryDomain} 吗？此操作不可恢复！`,
-      "删除确认",
-      { type: "warning" }
-    );
     await deleteCert(row.acmeCertId!);
     message("删除成功", { type: "success" });
-    loadData();
+    tableRef.value?.refresh();
   } catch (error) {
-    if (error !== "cancel") {
-      message("删除失败", { type: "error" });
-    }
+    message("删除失败", { type: "error" });
+  }
+}
+
+/**
+ * 重新验证
+ */
+async function handleRetryValidation(row: AcmeCertificate) {
+  try {
+    await retryValidation(row.acmeCertId!);
+    message("重新验证已提交，请在消息中心查看进度", { type: "success" });
+    tableRef.value?.refresh();
+  } catch (error) {
+    message("重新验证失败", { type: "error" });
   }
 }
 
@@ -422,18 +413,19 @@ async function handleRenewCheck() {
  * 刷新
  */
 function refresh() {
-  loadData();
+  tableRef.value?.refresh();
 }
 
 defineExpose({ refresh });
-
-onMounted(() => {
-  loadData();
-});
 </script>
 
 <style scoped lang="scss">
 .cert-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
   .toolbar {
     display: flex;
     justify-content: space-between;
@@ -578,11 +570,12 @@ onMounted(() => {
     }
   }
 
-  &.status-pending {
-    background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+  &.status-pending,
+  &.status-validating {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
     .status-dot {
-      background: #3b82f6;
+      background: #f59e0b;
       animation: pulse 2s infinite;
     }
   }

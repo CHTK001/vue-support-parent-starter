@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="page-container">
-    <el-drawer
+    <sc-drawer
       size="70%"
       v-model="env.visible"
       width="70%"
@@ -283,7 +283,7 @@
           </template>
         </el-table-column>
       </ScTable>
-    </el-drawer>
+    </sc-drawer>
     <!-- 弹窗组件 -->
     <ModuleUpdateDialog
       ref="moduleUpdateDialogRef"
