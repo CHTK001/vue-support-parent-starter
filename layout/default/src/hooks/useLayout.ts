@@ -3,9 +3,13 @@ import { useI18n } from "vue-i18n";
 import { routerArrays } from "../types";
 import { useGlobal } from "@pureadmin/utils";
 import { useMultiTagsStore } from "@repo/core";
+import type { StorageLayout } from "../types/theme";
+
+/** 布局类型 */
+type LayoutType = "vertical" | "horizontal" | "mix" | "hover" | "double" | "mobile";
 
 export function useLayout() {
-  const { $storage, $config } = useGlobal<any>();
+  const { $storage, $config } = useGlobal<GlobalPropertiesApi>();
   let _isInitialed = false;
 
   const initStorage = () => {
@@ -52,13 +56,13 @@ export function useLayout() {
     }
   };
 
-  /** 清空缓存后从platform-config.json读取默认配置并赋值到storage中 */
-  const layout = computed(() => {
-    return $storage?.layout?.layout || $config?.Layout || "vertical";
+  /** 清空缓存后从Platform-config.json读取默认配置并赋值到storage中 */
+  const layout = computed<LayoutType>(() => {
+    return ($storage?.layout?.layout || $config?.Layout || "vertical") as LayoutType;
   });
 
-  const layoutTheme = computed(() => {
-    return $storage.layout;
+  const layoutTheme = computed<StorageLayout | undefined>(() => {
+    return $storage?.layout;
   });
 
   return {

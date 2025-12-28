@@ -1,7 +1,11 @@
 /**
  * 全局类型声明
  * 用于解决 @ts-ignore 和类型推断问题
+ * @version 2.0.0 - 重构版本，统一类型定义
  */
+
+// 导入统一类型
+import type { ThemeKey as ImportedThemeKey, StorageConfig as ImportedStorageConfig, StorageLayout } from "./theme";
 
 // Vite SVG 组件导入声明
 declare module "*.svg?component" {
@@ -25,6 +29,9 @@ declare module "*.gif" {
   const src: string;
   export default src;
 }
+
+/** 主题键值类型（全局可用） */
+type ThemeKey = ImportedThemeKey;
 
 /**
  * 全局属性 API 类型
@@ -71,43 +78,9 @@ interface LayoutConfig {
 
 /**
  * 配置选项类型
+ * @description 使用统一的 StorageConfig 类型
  */
-interface ConfigureOptions {
-  grey?: boolean;
-  weak?: boolean;
-  invert?: boolean;
-  monochrome?: boolean;
-  hideTabs?: boolean;
-  hideFooter?: boolean;
-  hideHeader?: boolean;
-  showLogo?: boolean;
-  showModel?: string;
-  multiTagsCache?: boolean;
-  stretch?: number | boolean;
-  keepAlive?: boolean;
-  debugMode?: boolean;
-  showBreadcrumb?: boolean;
-  breadcrumbIconOnly?: boolean;
-  showTagIcon?: boolean;
-  showNewMenu?: boolean;
-  newMenuText?: string;
-  newMenuTimeLimit?: number;
-  newMenuAnimation?: string;
-  doubleNavExpandMode?: string;
-  doubleNavAutoExpandAll?: boolean;
-  aiChatTheme?: string;
-  enableFestivalTheme?: boolean;
-  messagePopupEnabled?: boolean;
-  messagePopupPosition?: string;
-  messagePopupDuration?: number;
-  systemTheme?: string;
-  cardColorMode?: string;
-  contentMargin?: number;
-  layoutRadius?: number;
-  layoutBlur?: number;
-  menuTransition?: boolean;
-}
-
+type ConfigureOptions = ImportedStorageConfig;
 /**
  * 应用配置类型
  */

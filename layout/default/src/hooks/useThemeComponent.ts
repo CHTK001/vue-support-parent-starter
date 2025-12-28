@@ -1,72 +1,78 @@
 /**
- * 主题组件Hook
- * 提供主题组件动态加载功能
- * 支持多层监听机制确保实时响应主题切换
+ * 主题组件 Hook
+ * @description 提供主题组件动态加载功能，基于全局 themeStore 实现
+ * @version 2.0.0 - 重构版本，移除重复监听逻辑
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useGlobal } from "@pureadmin/utils";
-import { emitter } from "@repo/core";
+import { computed, onMounted } from "vue";
+import { storeToRefs } from "pinia";
+import { useThemeStore } from "../stores/themeStore";
+import type { ThemeKey, ThemeComponentMap } from "../types/theme";
+import type { Component } from "vue";
 
-export function useThemeComponent(themeComponents: Record<string, any>, defaultComponent: any) {
-  const { $storage } = useGlobal<any>();
-  
-  // 使用 computed 来响应式读取 storage 中的主题值
-  const storageTheme = computed(() => $storage?.configure?.systemTheme || 'default');
-  
-  // 获取当前主题
-  const currentTheme = ref<string>(storageTheme.value);
-  
-  // 动态选择当前主题组件
-  const CurrentComponent = computed(() => {
-    const component = themeComponents[currentTheme.value] || defaultComponent;
-    return component;
-  });
-  
-  // 主题变化处理函数
-  const handleThemeChange = (themeKey: string) => {
-    if (currentTheme.value !== themeKey) {
-      currentTheme.value = themeKey;
-    }
-  };
-  
-  // 1. emitter 事件监听
-  emitter.on("systemThemeChange", handleThemeChange);
-  
-  // 2. 监听 storage 变化作为备用机制
-  watch(storageTheme, (newTheme) => {
-    if (newTheme && newTheme !== currentTheme.value) {
-      currentTheme.value = newTheme;
-    }
-  }, { immediate: false });
-  
-  // 3. MutationObserver 监听 data-skin 属性变化作为最终保障
-  let observer: MutationObserver | null = null;
-  
+/**
+ * 主题组件 Hook
+ * @param themeComponents 主题组件映射表
+ * @param defaultComponent 默认组件
+ * @returns 当前主题和对应组件
+ * 
+ * @example
+ * ```ts
+ * const themeComponents = {
+ *   'default': DefaultNavbar,
+ *   'spring-festival': SpringFestivalNavbar,
+ * };
+ * const { currentTheme, CurrentComponent } = useThemeComponent(themeComponents, DefaultNavbar);
+ * ```
+ */
+export function useThemeComponent<T extends Component>(
+  themeComponents: ThemeComponentMap<T>,
+  defaultComponent: T
+) {
+  const themeStore = useThemeStore();
+  const { currentTheme } = storeToRefs(themeStore);
+
+  // 初始化主题监听（只在首次调用时执行）
   onMounted(() => {
-    observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'data-skin') {
-          const newTheme = document.documentElement.getAttribute('data-skin') || 'default';
-          if (newTheme !== currentTheme.value) {
-            currentTheme.value = newTheme;
-          }
-        }
-      });
-    });
-    
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-skin']
-    });
+    themeStore.initThemeListener();
   });
-  
-  onBeforeUnmount(() => {
-    emitter.off("systemThemeChange", handleThemeChange);
-    observer?.disconnect();
+
+  // 动态选择当前主题组件
+  const CurrentComponent = computed<T>(() => {
+    const themeKey = currentTheme.value as ThemeKey;
+    return themeComponents[themeKey] ?? defaultComponent;
   });
-  
+
+  return {
+    /** 当前主题键值 */
+    currentTheme,
+    /** 当前主题对应的组件 */
+    CurrentComponent,
+    /** 主题配置信息 */
+    themeConfig: themeStore.themeConfig,
+    /** 是否为默认主题 */
+    isDefaultTheme: themeStore.isDefaultTheme,
+    /** 切换主题方法 */
+    setTheme: themeStore.setTheme,
+  };
+}
+
+/**
+ * 简化版：仅获取主题状态，不涉及组件切换
+ */
+export function useTheme() {
+  const themeStore = useThemeStore();
+  const { currentTheme } = storeToRefs(themeStore);
+
+  onMounted(() => {
+    themeStore.initThemeListener();
+  });
+
   return {
     currentTheme,
-    CurrentComponent,
+    themeConfig: themeStore.themeConfig,
+    isDefaultTheme: themeStore.isDefaultTheme,
+    isFestivalTheme: themeStore.isFestivalTheme,
+    availableThemes: themeStore.availableThemes,
+    setTheme: themeStore.setTheme,
   };
 }

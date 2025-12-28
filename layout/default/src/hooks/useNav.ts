@@ -125,11 +125,11 @@ const device = computed(() => {
     pureApp.toggleSideBar();
   }
 
-  function handleResize(menuRef) {
+  function handleResize(menuRef: { handleResize?: () => void } | null) {
     menuRef?.handleResize();
   }
 
-  function resolvePath(route) {
+  function resolvePath(route: { path?: string; children?: Array<{ path?: string }> } | null) {
     if (!route.children) return console.error(errorInfo);
     const httpReg = /^http(s?):\/\//;
     const routeChildPath = route.children[0]?.path;
