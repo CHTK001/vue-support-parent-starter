@@ -1,48 +1,68 @@
 <script setup lang="ts">
-import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
-import { getConfig } from "@repo/config";
-import {
-  computed,
-  nextTick,
-  onBeforeMount,
-  onMounted,
-  onUnmounted,
-  reactive,
-  ref,
-  unref,
-  watch,
-} from "vue";
-import { useI18n } from "vue-i18n";
-import { useNav } from "../../hooks/useNav";
-import LayPanel from "../lay-panel/index.vue";
-import { getAvailableThemes } from "../../themes";
-import LayThemeSwitcher from "../lay-theme-switcher/index.vue";
+import { ref, computed, onBeforeUnmount, watch } from "vue";
+import { useGlobal } from "@pureadmin/utils";
+import { emitter } from "@repo/core";
+import DefaultSetting from "./themes/Default.vue";
+import SpringFestivalSetting from "./themes/SpringFestival.vue";
+import CyberpunkSetting from "./themes/Cyberpunk.vue";
+import MidAutumnSetting from "./themes/MidAutumn.vue";
+import ChristmasSetting from "./themes/Christmas.vue";
 
-import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
-import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
-import ScSwitch from "@repo/components/ScSwitch/index.vue";
-import ScRibbon from "@repo/components/ScRibbon/index.vue";
-import ScDebugConsole from "@repo/components/ScDebugConsole/index.vue";
-import { ElMessage } from "element-plus";
-import { useDataThemeChange } from "../../hooks/useDataThemeChange";
-
-import Check from "@iconify-icons/ep/check";
-import LeftArrow from "@iconify-icons/ri/arrow-left-s-line";
-import RightArrow from "@iconify-icons/ri/arrow-right-s-line";
-import DayIcon from "@repo/assets/svg/day.svg?component";
-import DarkIcon from "@repo/assets/svg/dark.svg?component";
-import SystemIcon from "@repo/assets/svg/system.svg?component";
-import VerticalIcon from "@repo/assets/svg/vertical.svg?component";
-import HorizontalIcon from "@repo/assets/svg/horizontal.svg?component";
-import MixIcon from "@repo/assets/svg/mix.svg?component";
-import HoverIcon from "@repo/assets/svg/hover.svg?component";
-import MobileIcon from "@repo/assets/svg/mobile.svg?component";
-import DoubleIcon from "@repo/assets/svg/double.svg?component";
-
-const { t } = useI18n();
-const { device } = useNav();
-const { isDark } = useDark();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
+
+// 使用 computed 来响应式读取 storage 中的主题值
+const storageTheme = computed(() => $storage?.configure?.systemTheme || 'default');
+const currentTheme = ref<string>(storageTheme.value);
+
+const handleThemeChange = (themeKey: string) => {
+  currentTheme.value = themeKey;
+};
+
+// 监听 emitter 事件
+emitter.on("systemThemeChange", handleThemeChange);
+
+// 同时监听 storage 变化作为备用机制
+watch(storageTheme, (newTheme) => {
+  if (newTheme && newTheme !== currentTheme.value) {
+    currentTheme.value = newTheme;
+  }
+}, { immediate: false });
+
+// 监听 data-skin 属性变化作为最终保障
+const observer = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    if (mutation.type === 'attributes' && mutation.attributeName === 'data-skin') {
+      const newTheme = document.documentElement.getAttribute('data-skin') || 'default';
+      if (newTheme !== currentTheme.value) {
+        currentTheme.value = newTheme;
+      }
+    }
+  });
+});
+
+observer.observe(document.documentElement, {
+  attributes: true,
+  attributeFilter: ['data-skin']
+});
+
+onBeforeUnmount(() => {
+  emitter.off("systemThemeChange", handleThemeChange);
+  observer.disconnect();
+});
+</script>
+
+<template>
+  <DefaultSetting v-if="currentTheme === 'default'" />
+  <SpringFestivalSetting v-else-if="currentTheme === 'spring-festival'" />
+  <CyberpunkSetting v-else-if="currentTheme === 'cyberpunk'" />
+  <MidAutumnSetting v-else-if="currentTheme === 'mid-autumn'" />
+  <ChristmasSetting v-else-if="currentTheme === 'christmas'" />
+  <DefaultSetting v-else />
+</template>
+
+<style lang="scss" scoped>
+// 主题切换入口组件，无需特殊样式
+</style>
 
 // 判断当前是否为非默认主题（节日主题等）
 const isNonDefaultTheme = computed(() => {
