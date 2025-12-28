@@ -1174,7 +1174,7 @@ onUnmounted(() => {
                 class="layout-mode-item"
                 :class="{ 'is-active': layoutTheme.layout === 'vertical' }"
                 v-tippy="{
-                  content: '经典侧边栏导航，适合功能丰富的管理系统',
+                  content: t('panel.layoutVerticalTip'),
                   zIndex: 41000,
                 }"
                 @click="setLayoutModel('vertical')"
@@ -1183,8 +1183,8 @@ onUnmounted(() => {
                   <VerticalIcon />
                 </div>
                 <div class="layout-mode-info">
-                  <span class="layout-mode-name">纵向布局</span>
-                  <span class="layout-mode-desc">侧边导航</span>
+                  <span class="layout-mode-name">{{ t("panel.layoutVertical") }}</span>
+                  <span class="layout-mode-desc">{{ t("panel.layoutVerticalDesc") }}</span>
                 </div>
                 <div
                   v-if="layoutTheme.layout === 'vertical'"
@@ -1200,7 +1200,7 @@ onUnmounted(() => {
                 class="layout-mode-item"
                 :class="{ 'is-active': layoutTheme.layout === 'horizontal' }"
                 v-tippy="{
-                  content: '顶部导航栏设计，充分利用屏幕宽度',
+                  content: t('panel.layoutHorizontalTip'),
                   zIndex: 41000,
                 }"
                 @click="setLayoutModel('horizontal')"
@@ -1209,8 +1209,8 @@ onUnmounted(() => {
                   <HorizontalIcon />
                 </div>
                 <div class="layout-mode-info">
-                  <span class="layout-mode-name">横向布局</span>
-                  <span class="layout-mode-desc">顶部导航</span>
+                  <span class="layout-mode-name">{{ t("panel.layoutHorizontal") }}</span>
+                  <span class="layout-mode-desc">{{ t("panel.layoutHorizontalDesc") }}</span>
                 </div>
                 <div
                   v-if="layoutTheme.layout === 'horizontal'"
@@ -1226,7 +1226,7 @@ onUnmounted(() => {
                 class="layout-mode-item"
                 :class="{ 'is-active': layoutTheme.layout === 'mix' }"
                 v-tippy="{
-                  content: '结合顶部和侧边导航优势',
+                  content: t('panel.layoutMixTip'),
                   zIndex: 41000,
                 }"
                 @click="setLayoutModel('mix')"
@@ -1235,8 +1235,8 @@ onUnmounted(() => {
                   <MixIcon />
                 </div>
                 <div class="layout-mode-info">
-                  <span class="layout-mode-name">混合布局</span>
-                  <span class="layout-mode-desc">双导航</span>
+                  <span class="layout-mode-name">{{ t("panel.layoutMix") }}</span>
+                  <span class="layout-mode-desc">{{ t("panel.layoutMixDesc") }}</span>
                 </div>
                 <div
                   v-if="layoutTheme.layout === 'mix'"
@@ -1252,7 +1252,7 @@ onUnmounted(() => {
                 class="layout-mode-item"
                 :class="{ 'is-active': layoutTheme.layout === 'hover' }"
                 v-tippy="{
-                  content: '极简设计，鼠标悬停展开子菜单',
+                  content: t('panel.layoutHoverTip'),
                   zIndex: 41000,
                 }"
                 @click="setLayoutModel('hover')"
@@ -1261,8 +1261,8 @@ onUnmounted(() => {
                   <HoverIcon />
                 </div>
                 <div class="layout-mode-info">
-                  <span class="layout-mode-name">悬停导航</span>
-                  <span class="layout-mode-desc">极简设计</span>
+                  <span class="layout-mode-name">{{ t("panel.layoutHover") }}</span>
+                  <span class="layout-mode-desc">{{ t("panel.layoutHoverDesc") }}</span>
                 </div>
                 <div
                   v-if="layoutTheme.layout === 'hover'"
@@ -1277,7 +1277,7 @@ onUnmounted(() => {
                 class="layout-mode-item"
                 :class="{ 'is-active': layoutTheme.layout === 'mobile' }"
                 v-tippy="{
-                  content: '适用于手机和平板的触控友好导航',
+                  content: t('panel.layoutMobileTip'),
                   zIndex: 41000,
                 }"
                 @click="setLayoutModel('mobile')"
@@ -1286,8 +1286,8 @@ onUnmounted(() => {
                   <MobileIcon />
                 </div>
                 <div class="layout-mode-info">
-                  <span class="layout-mode-name">移动导航</span>
-                  <span class="layout-mode-desc">触控优化</span>
+                  <span class="layout-mode-name">{{ t("panel.layoutMobile") }}</span>
+                  <span class="layout-mode-desc">{{ t("panel.layoutMobileDesc") }}</span>
                 </div>
                 <div
                   v-if="layoutTheme.layout === 'mobile'"
@@ -1303,7 +1303,7 @@ onUnmounted(() => {
                 class="layout-mode-item"
                 :class="{ 'is-active': layoutTheme.layout === 'double' }"
                 v-tippy="{
-                  content: '左右双栏布局，支持子菜单展开控制',
+                  content: t('panel.layoutDoubleTip'),
                   zIndex: 41000,
                 }"
                 @click="setLayoutModel('double')"
@@ -1312,8 +1312,8 @@ onUnmounted(() => {
                   <DoubleIcon />
                 </div>
                 <div class="layout-mode-info">
-                  <span class="layout-mode-name">双栏导航</span>
-                  <span class="layout-mode-desc">双层菜单</span>
+                  <span class="layout-mode-name">{{ t("panel.layoutDouble") }}</span>
+                  <span class="layout-mode-desc">{{ t("panel.layoutDoubleDesc") }}</span>
                 </div>
                 <div
                   v-if="layoutTheme.layout === 'double'"
@@ -1332,25 +1332,25 @@ onUnmounted(() => {
               :icon="'ri:smartphone-line'"
               class="section-icon"
             />
-            <h3 class="section-title">移动导航配置</h3>
-            <div class="section-description">为触控设备优化的导航体验</div>
+            <h3 class="section-title">{{ t("panel.mobileNavConfig") }}</h3>
+            <div class="section-description">{{ t("panel.mobileNavConfigDesc") }}</div>
           </div>
           <div class="setting-content">
             <div class="mobile-nav-tips">
               <div class="tip-item">
                 <IconifyIconOnline icon="ri:gesture-line" class="tip-icon" />
-                <span>支持手势滑动操作</span>
+                <span>{{ t("panel.gestureSupport") }}</span>
               </div>
               <div class="tip-item">
                 <IconifyIconOnline icon="ri:thumb-up-line" class="tip-icon" />
-                <span>大尺寸触控区域</span>
+                <span>{{ t("panel.largeTouchArea") }}</span>
               </div>
               <div class="tip-item">
                 <IconifyIconOnline
                   icon="ri:layout-bottom-line"
                   class="tip-icon"
                 />
-                <span>底部导航栏设计</span>
+                <span>{{ t("panel.bottomNavDesign") }}</span>
               </div>
             </div>
           </div>
@@ -1363,12 +1363,12 @@ onUnmounted(() => {
               :icon="'ri:layout-column-line'"
               class="section-icon"
             />
-            <h3 class="section-title">双栏导航配置</h3>
-            <div class="section-description">配置双栏导航的子菜单展开行为</div>
+            <h3 class="section-title">{{ t("panel.doubleNavConfig") }}</h3>
+            <div class="section-description">{{ t("panel.doubleNavConfigDesc") }}</div>
           </div>
           <div class="setting-content">
             <div class="switch-item">
-              <label class="switch-label">展开模式</label>
+              <label class="switch-label">{{ t("panel.expandMode") }}</label>
               <div class="radio-group">
                 <el-radio-group
                   v-model="settings.doubleNavExpandMode"
@@ -1885,7 +1885,7 @@ onUnmounted(() => {
                   :icon="'ri:magic-line'"
                   class="group-icon"
                 />
-                动画效果
+                {{ t("panel.animationEffect") }}
               </h4>
               <div class="setting-content">
                 <Segmented
@@ -1903,10 +1903,10 @@ onUnmounted(() => {
                             : 1
                   "
                   :options="[
-                    { label: '无', tip: '不显示动画', value: 'none' },
-                    { label: '弹跳', tip: '弹跳动画效果', value: 'bounce' },
-                    { label: '脉冲', tip: '脉冲动画效果', value: 'pulse' },
-                    { label: '抖动', tip: '抖动动画效果', value: 'shake' },
+                    { label: t('panel.animNone'), tip: t('panel.animNoneTip'), value: 'none' },
+                    { label: t('panel.animBounce'), tip: t('panel.animBounceTip'), value: 'bounce' },
+                    { label: t('panel.animPulse'), tip: t('panel.animPulseTip'), value: 'pulse' },
+                    { label: t('panel.animShake'), tip: t('panel.animShakeTip'), value: 'shake' },
                   ]"
                   @change="newMenuAnimationChange"
                 />
@@ -1919,8 +1919,8 @@ onUnmounted(() => {
         <div class="setting-section">
           <div class="section-header">
             <IconifyIconOffline :icon="'ri:tools-line'" class="section-icon" />
-            <h3 class="section-title">高级设置</h3>
-            <div class="section-description">更多个性化配置选项</div>
+            <h3 class="section-title">{{ t("panel.advancedSettings") }}</h3>
+            <div class="section-description">{{ t("panel.advancedSettingsDesc") }}</div>
           </div>
           <div class="setting-content">
             <!-- 高级功能开关 -->
@@ -1930,15 +1930,15 @@ onUnmounted(() => {
                   :icon="'ri:settings-4-line'"
                   class="group-icon"
                 />
-                高级功能
+                {{ t("panel.advancedFeatures") }}
               </h4>
               <div class="switch-card-grid">
                 <ScSwitch
                   v-model="settings.keepAlive"
                   layout="visual-card"
                   size="small"
-                  label="组件缓存"
-                  description="提升页面切换速度"
+                  :label="t('panel.componentCache')"
+                  :description="t('panel.componentCacheDesc')"
                   active-icon="ri:speed-line"
                   ribbon-color="var(--el-color-success)"
                   @change="keepAliveChange"
@@ -1948,8 +1948,8 @@ onUnmounted(() => {
                   v-model="settings.stretch"
                   layout="visual-card"
                   size="small"
-                  label="页面拉伸"
-                  description="充分利用屏幕空间"
+                  :label="t('panel.pageStretch')"
+                  :description="t('panel.pageStretchDesc')"
                   active-icon="ri:fullscreen-line"
                   ribbon-color="var(--el-color-success)"
                 />
@@ -1959,8 +1959,8 @@ onUnmounted(() => {
                   v-model="settings.debugMode"
                   layout="visual-card"
                   size="small"
-                  label="调试模式"
-                  description="控制台日志显示在右上角"
+                  :label="t('panel.debugMode')"
+                  :description="t('panel.debugModeDesc')"
                   active-icon="ri:terminal-box-line"
                   ribbon-color="var(--el-color-warning)"
                   @change="debugModeChange"
@@ -1975,20 +1975,20 @@ onUnmounted(() => {
                   :icon="'ri:refresh-line'"
                   class="group-icon"
                 />
-                重置选项
+                {{ t("panel.resetOptions") }}
               </h4>
               <div class="reset-actions">
                 <el-button type="warning" plain @click="resetToDefault">
                   <IconifyIconOffline :icon="'ri:restart-line'" />
-                  恢复默认设置
+                  {{ t("panel.restoreDefault") }}
                 </el-button>
                 <el-button type="info" plain @click="exportSettings">
                   <IconifyIconOffline :icon="'ri:download-line'" />
-                  导出配置
+                  {{ t("panel.exportConfig") }}
                 </el-button>
                 <el-button type="success" plain @click="importSettings">
                   <IconifyIconOffline :icon="'ri:upload-line'" />
-                  导入配置
+                  {{ t("panel.importConfig") }}
                 </el-button>
               </div>
             </div>
