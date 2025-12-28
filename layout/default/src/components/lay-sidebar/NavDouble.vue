@@ -12,11 +12,6 @@ import DoubleNavSidebarItem from "./components/DoubleNavSidebarItem.vue";
 import LaySidebarLeftCollapse from "./components/SidebarLeftCollapse.vue";
 import LaySidebarLogo from "./components/SidebarLogo.vue";
 
-// 导入主题装饰功能
-import ThemeDecoration from "../ThemeDecoration.vue";
-import { getComponentDecorations } from "../../themes/decorations";
-import type { DecorationConfig } from "../../themes/decorations";
-
 // Props
 interface Props {
   showLogo?: boolean;
@@ -169,16 +164,6 @@ watch(
   }
 );
 
-// === 主题装饰功能 ===
-const currentTheme = ref<string>(
-  localStorageProxy().getItem<StorageConfigs>(
-    `${responsiveStorageNameSpace()}configure`
-  )?.systemTheme || 'default'
-);
-const sidebarDecorations = computed<DecorationConfig[]>(() => {
-  return getComponentDecorations(currentTheme.value, 'lay-sidebar');
-});
-
 onMounted(() => {
   // 初始化选中的一级菜单
   const currentFirstLevel = getCurrentFirstLevelMenu();
@@ -194,22 +179,17 @@ onMounted(() => {
   emitter.on("logoChange", (key) => {
     showLogo.value = key;
   });
-  
-  emitter.on("systemThemeChange", (themeKey: string) => {
-    currentTheme.value = themeKey;
-  });
 });
 
 onBeforeUnmount(() => {
   emitter.off("logoChange");
-  emitter.off("systemThemeChange");
 });
 
 const defer = useDefer(firstLevelMenus.value.length);
 </script>
 
 <template>
-  <div :class="['double-nav-container double-nav-with-decoration', { collapsed: isCollapse }]" @mouseenter.prevent="isShow = true" @mouseleave.prevent="isShow = false">
+<div :class="['double-nav-container', { collapsed: isCollapse }]" @mouseenter.prevent="isShow = true" @mouseleave.prevent="isShow = false">
     <!-- 左栏：一级菜单 -->
     <div :class="['double-nav-left', showLogo ? 'has-logo' : 'no-logo', { collapsed: isCollapse }]">
       <LaySidebarLogo v-if="showLogo" :collapse="isCollapse" />
@@ -285,15 +265,6 @@ const defer = useDefer(firstLevelMenus.value.length);
 
     <!-- 折叠按钮 -->
     <LaySidebarLeftCollapse v-if="device !== 'mobile'" :is-active="pureApp?.sidebar?.opened" class="double-nav-collapse" @toggleClick="toggleSideBar" />
-    
-    <!-- 主题装饰元素 -->
-    <ThemeDecoration
-      v-for="(decoration, index) in sidebarDecorations"
-      :key="`double-nav-decoration-${index}`"
-      :config="decoration"
-      :index="index"
-      :visible="true"
-    />
   </div>
 </template>
 

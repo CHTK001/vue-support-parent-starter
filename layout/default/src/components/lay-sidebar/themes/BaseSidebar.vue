@@ -17,11 +17,6 @@ import LaySidebarLeftCollapse from "../components/SidebarLeftCollapse.vue";
 import LaySidebarCenterCollapse from "../components/SidebarCenterCollapse.vue";
 import { localStorageProxy, useDefer } from "@repo/utils";
 
-// 导入主题装饰功能
-import ThemeDecoration from "../../ThemeDecoration.vue";
-import { getComponentDecorations } from "../../../themes/decorations";
-import type { DecorationConfig } from "../../../themes/decorations";
-
 // 接收主题类名和主题 SidebarItem 组件
 const props = defineProps<{
   themeClass?: string;
@@ -107,32 +102,17 @@ watch(
   }
 );
 
-// === 主题装饰功能 ===
-const currentTheme = ref<string>(
-  localStorageProxy().getItem<StorageConfigs>(
-    `${responsiveStorageNameSpace()}configure`
-  )?.systemTheme || 'default'
-);
-const sidebarDecorations = computed<DecorationConfig[]>(() => {
-  return getComponentDecorations(currentTheme.value, 'lay-sidebar');
-});
-
 onMounted(() => {
   getSubMenuData();
 
   emitter.on("logoChange", (key) => {
     showLogo.value = key;
   });
-  
-  emitter.on("systemThemeChange", (themeKey: string) => {
-    currentTheme.value = themeKey;
-  });
 });
 
 onBeforeUnmount(() => {
   // 解绑`logoChange`公共事件,防止多次触发
   emitter.off("logoChange");
-  emitter.off("systemThemeChange");
 });
 const defer = useDefer(menuData.value.length);
 </script>
@@ -142,7 +122,6 @@ const defer = useDefer(menuData.value.length);
     v-loading="loading"
     :class="[
       'base-sidebar',
-      'sidebar-container-with-decoration',
       'sidebar-custom',
       'sidebar-container',
       themeClass,
@@ -186,15 +165,6 @@ const defer = useDefer(menuData.value.length);
       v-if="device !== 'mobile'"
       :is-active="pureApp?.sidebar?.opened"
       @toggleClick="toggleSideBar"
-    />
-    
-    <!-- 主题装饰元素 -->
-    <ThemeDecoration
-      v-for="(decoration, index) in sidebarDecorations"
-      :key="`sidebar-decoration-${index}`"
-      :config="decoration"
-      :index="index"
-      :visible="true"
     />
   </div>
 </template>
