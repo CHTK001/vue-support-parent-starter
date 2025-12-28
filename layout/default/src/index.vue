@@ -148,7 +148,6 @@ const { $storage } = useGlobal<any>();
 debugMode.value = $storage?.configure?.debugMode ?? false;
 
 // 监听 AI 助手皮肤变更
-//@ts-ignore
 emitter.on("aiChatThemeChange", (theme: string) => {
   aiChatTheme.value = theme;
 });
