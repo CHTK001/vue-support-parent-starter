@@ -15,7 +15,6 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 
-//@ts-ignore
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
 /**

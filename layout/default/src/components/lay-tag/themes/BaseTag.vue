@@ -72,9 +72,7 @@ const scrollbarDom = ref();
 const contextmenuRef = ref();
 const isShowArrow = ref(false);
 const topPath = getTopMenu()?.path;
-//@ts-ignore
 const { VITE_HIDE_HOME } = import.meta.env;
-//@ts-ignore
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
 // 标签页是否显示图标
