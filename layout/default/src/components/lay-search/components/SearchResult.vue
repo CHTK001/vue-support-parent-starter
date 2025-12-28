@@ -18,11 +18,14 @@ const emit = defineEmits<Emits>();
 const instance = getCurrentInstance()!;
 const props = withDefaults(defineProps<Props>(), {});
 
+// 提取 epThemeStore 到顶层避免重复调用
+const epThemeStore = useEpThemeStoreHook();
+
 const itemStyle = computed(() => {
   return (item) => {
     return {
       background:
-        item?.path === active.value ? useEpThemeStoreHook().epThemeColor : "",
+        item?.path === active.value ? epThemeStore.epThemeColor : "",
       color: item.path === active.value ? "#fff" : "",
       fontSize: item.path === active.value ? "16px" : "14px",
     };

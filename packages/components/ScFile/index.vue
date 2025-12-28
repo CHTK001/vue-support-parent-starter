@@ -48,12 +48,13 @@ const treeProps = {
   value: "absolutePath",
   isLeaf: "isLeaf"
 };
+// modelValue 是字符串，不需要深度监听
 watch(
   () => props.modelValue,
   val => {
     selectValue.value = val;
   },
-  { immediate: true, deep: true }
+  { immediate: true }
 );
 // 节点单击事件
 const handleNodeClick = async (data, node, component) => {

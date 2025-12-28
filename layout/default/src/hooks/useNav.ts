@@ -16,11 +16,16 @@ const errorInfo = "The current routing configuration is incorrect, please check 
 
 export function useNav() {
   const pureApp = useAppStoreHook();
+  // 提取 store 引用到顶层，避免在 computed 中重复调用
+  const userStore = useUserStoreHook();
+  const epThemeStore = useEpThemeStoreHook();
   const routers = useRouter()?.options?.routes || router?.options?.routes;
   const { isFullscreen, toggle } = useFullscreen();
   const { wholeMenus } = storeToRefs(usePermissionStoreHook());
+  // 缓存配置对象，避免重复调用
+  const appConfig = getConfig();
   /** 平台`layout`中所有`el-tooltip`的`effect`配置，默认`light` */
-  const tooltipEffect = getConfig()?.TooltipEffect ?? "light";
+  const tooltipEffect = appConfig?.TooltipEffect ?? "light";
   const { t } = useI18n();
   const getDivStyle = computed((): CSSProperties => {
     return {
@@ -34,19 +39,19 @@ export function useNav() {
 
   /** 头像（如果头像为空则使用 src/assets/user.jpg ） */
   const userAvatar = computed(() => {
-    return isAllEmpty(useUserStoreHook()?.avatar) ? Avatar : useUserStoreHook()?.avatar;
+    return isAllEmpty(userStore?.avatar) ? Avatar : userStore?.avatar;
   });
 
   /** 昵称（如果昵称为空则显示用户名） */
   const username = computed(() => {
-    return isAllEmpty(useUserStoreHook()?.nickname) ? useUserStoreHook()?.username : useUserStoreHook()?.nickname;
+    return isAllEmpty(userStore?.nickname) ? userStore?.username : userStore?.nickname;
   });
 
   /** 设置国际化选中后的样式 */
   const getDropdownItemStyle = computed(() => {
     return (locale, t) => {
       return {
-        background: locale === t ? useEpThemeStoreHook().epThemeColor : "",
+        background: locale === t ? epThemeStore.epThemeColor : "",
         color: locale === t ? "#f4f4f5" : "#000",
       };
     };
@@ -75,19 +80,19 @@ const device = computed(() => {
   });
 
   const title = computed(() => {
-    return getConfig().Title;
+    return appConfig.Title;
   });
 
   /** 动态title */
   function changeTitle(meta: RouteMetaType) {
-    const Title = getConfig().Title;
+    const Title = appConfig.Title;
     if (Title) document.title = `${transformI18n(meta.i18nKey || meta.title)} | ${Title}`;
     else document.title = transformI18n(meta.i18nKey || meta.title);
   }
 
   /** 退出登录 */
   function logout() {
-    useUserStoreHook().logOut();
+    userStore.logOut();
   }
 
   function clickClearRouter() {
@@ -102,7 +107,7 @@ const device = computed(() => {
 
   function handleRefreshToken() {
     const tokenInfo = getToken();
-    useUserStoreHook().handRefreshToken({
+    userStore.handRefreshToken({
       refreshToken: tokenInfo.refreshToken,
     });
   }

@@ -26,7 +26,6 @@ const list = ref([
 ]);
 
 function onChange(val, item) {
-  console.log("onChange", val);
   message(`${item.title}设置成功`, { type: "success" });
 }
 </script>

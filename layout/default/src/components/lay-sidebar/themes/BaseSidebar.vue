@@ -10,12 +10,12 @@ import { useNav } from "../../../hooks/useNav";
 import type { StorageConfigs } from "@repo/config";
 import { responsiveStorageNameSpace } from "@repo/config";
 import { isAllEmpty } from "@pureadmin/utils";
-import { computed, onBeforeUnmount, onMounted, ref, watch, type Component, provide } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch, type Component, provide } from "vue";
 import LaySidebarLogo from "../components/SidebarLogo.vue";
 import DefaultSidebarItem from "../components/themes/DefaultSidebarItem.vue";
 import LaySidebarLeftCollapse from "../components/SidebarLeftCollapse.vue";
 import LaySidebarCenterCollapse from "../components/SidebarCenterCollapse.vue";
-import { localStorageProxy, useDefer } from "@repo/utils";
+import { localStorageProxy } from "@repo/utils";
 
 // 接收主题类名和主题 SidebarItem 组件
 const props = defineProps<{
@@ -31,6 +31,9 @@ provide('themeSidebarItem', ThemeSidebarItem);
 
 const route = useRoute();
 const isShow = ref(false);
+
+// 提取 store 引用到顶层，避免重复调用
+const permissionStore = usePermissionStoreHook();
 const showLogo = ref(
   localStorageProxy().getItem<StorageConfigs>(
     `${responsiveStorageNameSpace()}configure`
@@ -46,12 +49,13 @@ const {
   toggleSideBar,
 } = useNav();
 
-const subMenuData = ref([]);
+// 使用 shallowRef 避免深度响应式开销
+const subMenuData = shallowRef([]);
 
 const menuData = computed(() => {
   return pureApp?.layout === "mix" && device.value !== "mobile"
     ? subMenuData.value
-    : usePermissionStoreHook().wholeMenus;
+    : permissionStore.wholeMenus;
 });
 
 const loading = computed(() =>
@@ -63,18 +67,14 @@ const defaultActive = computed(() =>
 );
 
 function getSubMenuData() {
-  let path = "";
-  path = defaultActive.value;
+  const path = defaultActive.value;
   subMenuData.value = [];
   // path的上级路由组成的数组
-  const parentPathArr = getParentPaths(
-    path,
-    usePermissionStoreHook().wholeMenus
-  );
+  const parentPathArr = getParentPaths(path, permissionStore.wholeMenus);
   // 当前路由的父级路由信息
   const parenetRoute = findRouteByPath(
     parentPathArr[0] || path,
-    usePermissionStoreHook().wholeMenus
+    permissionStore.wholeMenus
   );
   if (!parenetRoute?.children) return;
   subMenuData.value = parenetRoute?.children;
@@ -92,13 +92,11 @@ watch(
   }
 );
 
+// 移除 deep: true，使用数组长度变化作为触发条件
 watch(
-  () => usePermissionStoreHook().wholeMenus,
+  () => permissionStore.wholeMenus.length,
   () => {
     getSubMenuData();
-  },
-  {
-    deep: true,
   }
 );
 
@@ -114,7 +112,6 @@ onBeforeUnmount(() => {
   // 解绑`logoChange`公共事件,防止多次触发
   emitter.off("logoChange");
 });
-const defer = useDefer(menuData.value.length);
 </script>
 
 <template>

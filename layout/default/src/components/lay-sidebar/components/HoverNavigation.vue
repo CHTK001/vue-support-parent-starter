@@ -6,6 +6,7 @@ import { responsiveStorageNameSpace } from "@repo/config";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useNav } from "../../../hooks/useNav";
+import type { MenuItem } from "../../../types/menu";
 import LaySidebarLeftCollapse from "./SidebarLeftCollapse.vue";
 import LaySidebarLogo from "./SidebarLogo.vue";
 
@@ -20,8 +21,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Emits
 interface Emits {
-  menuClick: [menu: any];
-  favoriteToggle: [menu: any, isFavorited: boolean];
+  menuClick: [menu: MenuItem];
+  favoriteToggle: [menu: MenuItem, isFavorited: boolean];
 }
 
 const emit = defineEmits<Emits>();
@@ -45,6 +46,9 @@ const {
   layout,
 } = useNav();
 
+// 提取 permissionStore 到顶层避免重复调用
+const permissionStore = usePermissionStoreHook();
+
 // 悬浮导航的收缩状态
 const isHoverCollapsed = ref(false);
 
@@ -67,7 +71,7 @@ const hoveredMenuItem = ref(null);
 
 // 只获取一级菜单，并添加"我的收藏"菜单
 const firstLevelMenus = computed(() => {
-  const menus = usePermissionStoreHook().wholeMenus.filter(
+  const menus = permissionStore.wholeMenus.filter(
     (menu) => menu.meta?.showLink !== false
   );
 
@@ -257,7 +261,7 @@ const isSingleColumn = computed(() => {
 });
 
 // 获取第一个可导航的菜单路径
-const getFirstNavigablePath = (menu: any): string | null => {
+const getFirstNavigablePath = (menu: MenuItem): string | null => {
   if (!menu.children || menu.children.length === 0) {
     return menu.path;
   }
@@ -303,7 +307,7 @@ function clearTimers() {
 }
 
 // 处理菜单悬停
-function handleMenuHover(menu: any, event: MouseEvent) {
+function handleMenuHover(menu: MenuItem, event: MouseEvent) {
   clearTimers();
 
   // 如果是收藏菜单且为空，不显示浮动框
@@ -380,16 +384,16 @@ function hideSubMenu() {
 }
 
 // 判断菜单是否激活
-function isMenuActive(menu: any): boolean {
+function isMenuActive(menu: MenuItem): boolean {
   if (menu.path === route.path) return true;
 
   // 检查子菜单是否有激活的
   if (menu.children) {
-    return menu.children.some((child: any) => {
+    return menu.children.some((child: MenuItem) => {
       if (child.path === route.path) return true;
       if (child.children) {
         return child.children.some(
-          (grandChild: any) => grandChild.path === route.path
+          (grandChild: MenuItem) => grandChild.path === route.path
         );
       }
       return false;
@@ -422,11 +426,11 @@ async function saveFavorites() {
   }
 }
 
-function isMenuFavorited(menu: any): boolean {
+function isMenuFavorited(menu: MenuItem): boolean {
   return favoriteMenus.value.some((fav) => fav.path === menu.path);
 }
 
-async function toggleFavorite(menu: any, event?: Event) {
+async function toggleFavorite(menu: MenuItem, event?: Event) {
   if (event) {
     event.preventDefault();
     event.stopPropagation();
@@ -457,7 +461,7 @@ async function toggleFavorite(menu: any, event?: Event) {
 }
 
 // 处理菜单项悬停（用于显示收藏按钮）
-async function handleMenuItemHover(menu: any) {
+async function handleMenuItemHover(menu: MenuItem) {
   hoveredMenuItem.value = menu;
 }
 
@@ -484,7 +488,7 @@ function formatAddTime(timeStr: string): string {
 }
 
 // 处理子菜单点击
-function handleSubMenuClick(menu: any, event?: Event) {
+function handleSubMenuClick(menu: MenuItem, event?: Event) {
   // 阻止默认的router-link导航行为
   if (event) {
     event.preventDefault();
@@ -520,7 +524,7 @@ function convertPathToComponentParam(path: string): string {
 }
 
 // 处理菜单点击
-function handleMenuClick(menu: any) {
+function handleMenuClick(menu: MenuItem) {
   // 触发菜单点击事件
   emit("menuClick", menu);
 
@@ -562,16 +566,14 @@ function handleMenuClick(menu: any) {
   // 如果有多列，则通过悬停显示浮动框（已在 handleMenuHover 中处理）
 }
 
+// 监听路由变化 - 分离监听以避免不必要的 deep watcher
 watch(
-  () => [route.path, usePermissionStoreHook().wholeMenus],
-  () => {
-    if (route.path.includes("/redirect")) return;
-    menuSelect(route.path);
+  () => route.path,
+  (newPath) => {
+    if (newPath.includes("/redirect")) return;
+    menuSelect(newPath);
   },
-  {
-    deep: true,
-    immediate: true,
-  }
+  { immediate: true }
 );
 
 onMounted(async () => {

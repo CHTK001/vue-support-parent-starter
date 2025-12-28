@@ -70,8 +70,9 @@ const scrollToBottom = () => {
   });
 };
 
-// 监听日志变化，自动滚动
-watch(() => props.logs, scrollToBottom, { deep: true });
+// 监听日志变化 - 使用长度作为版本号避免深度监听
+const logsVersion = computed(() => props.logs?.length ?? 0);
+watch(logsVersion, scrollToBottom);
 
 // 暴露方法
 defineExpose({

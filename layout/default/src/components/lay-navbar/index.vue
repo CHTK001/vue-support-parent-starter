@@ -2,24 +2,20 @@
 /**
  * lay-navbar 组件
  * @description 使用 useThemeComponent Hook 统一管理主题切换
- * @version 2.0.0 - 重构版本
+ * @version 2.1.0 - 支持主题组件懒加载
  */
+import { defineAsyncComponent } from "vue";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultNavbar from "./themes/Default.vue";
-import SpringFestivalNavbar from "./themes/SpringFestival.vue";
-import CyberpunkNavbar from "./themes/Cyberpunk.vue";
-import MidAutumnNavbar from "./themes/MidAutumn.vue";
-import ChristmasNavbar from "./themes/Christmas.vue";
-import NewYearNavbar from "./themes/NewYear.vue";
 
-// 主题组件映射
+// 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
   'default': DefaultNavbar,
-  'spring-festival': SpringFestivalNavbar,
-  'cyberpunk': CyberpunkNavbar,
-  'mid-autumn': MidAutumnNavbar,
-  'christmas': ChristmasNavbar,
-  'new-year': NewYearNavbar,
+  'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestival.vue")),
+  'cyberpunk': defineAsyncComponent(() => import("./themes/Cyberpunk.vue")),
+  'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumn.vue")),
+  'christmas': defineAsyncComponent(() => import("./themes/Christmas.vue")),
+  'new-year': defineAsyncComponent(() => import("./themes/NewYear.vue")),
 };
 
 // 使用统一的主题切换 Hook

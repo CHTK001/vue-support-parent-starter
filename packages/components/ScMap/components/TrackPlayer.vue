@@ -437,8 +437,9 @@ const applyConfig = () => {
   logger.debug('轨迹播放器配置已应用', props.config);
 };
 
-// 监听config变化，动态应用新配置
-watch(() => props.config, () => {
+// 监听config变化 - 使用版本号避免深度监听
+const configVersion = computed(() => JSON.stringify(props.config));
+watch(configVersion, () => {
   console.log('轨迹播放器配置变化，重新应用配置');
   applyConfig();
   
@@ -460,14 +461,14 @@ watch(() => props.config, () => {
       speedFactor: speedFactor.value
     });
   }
-}, { deep: true });
+});
 
-// 监听props.trackObj变化，实时刷新轨迹列表
+// 监听props.trackObj变化 - trackObj是对象引用，不需要深度监听
 watch(() => props.trackObj, (newTrackObj) => {
   if (newTrackObj) {
     refreshTrackList();
   }
-}, { deep: true, immediate: true });
+}, { immediate: true });
 
 // 监听props.trackObj.getAllTracks()的结果，当轨迹数据变化时刷新列表
 // 由于无法直接监听对象方法的返回值，采用副作用函数定期检查

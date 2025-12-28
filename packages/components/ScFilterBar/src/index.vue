@@ -584,17 +584,18 @@ onMounted(() => {
   loadFieldOptions();
 });
 
-// 监听 modelValue 变化
+// 监听 modelValue 变化 - 使用版本号避免深度监听
+const modelValueVersion = computed(() => JSON.stringify(props.modelValue));
 watch(
-  () => props.modelValue,
-  newVal => {
+  modelValueVersion,
+  () => {
+    const newVal = props.modelValue;
     if (newVal) {
       Object.entries(newVal).forEach(([key, value]) => {
         formModel[key] = value;
       });
     }
-  },
-  { deep: true }
+  }
 );
 
 // 暴露方法

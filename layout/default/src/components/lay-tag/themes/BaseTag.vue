@@ -83,9 +83,13 @@ emitter.on("showTagIconChange", (val: boolean) => {
   showTagIcon.value = val;
 });
 
+// 提取 store 到顶层避免重复调用
+const multiTagsStore = useMultiTagsStoreHook();
+const permissionStore = usePermissionStoreHook();
+
 const fixedTags = [
   ...routerArrays,
-  ...usePermissionStoreHook().flatteningRoutes.filter((v) => v?.meta?.fixedTag),
+  ...permissionStore.flatteningRoutes.filter((v) => v?.meta?.fixedTag),
 ];
 
 const dynamicTagView = async () => {
@@ -197,7 +201,7 @@ function dynamicRouteTag(value: string): void {
     if (!hasValue) {
       arr.forEach((arrItem: any) => {
         if (arrItem.path === value) {
-          useMultiTagsStoreHook().handleTags("push", {
+          multiTagsStore.handleTags("push", {
             path: value,
             meta: arrItem.meta,
             name: arrItem.name,
@@ -251,7 +255,7 @@ function deleteDynamicTag(obj: any, current: any, tag?: string) {
     other?: boolean
   ): void => {
     if (other) {
-      useMultiTagsStoreHook().handleTags(
+      multiTagsStore.handleTags(
         "equal",
         [
           VITE_HIDE_HOME === "false" ? fixedTags : toRaw(getTopMenu()),
@@ -259,7 +263,7 @@ function deleteDynamicTag(obj: any, current: any, tag?: string) {
         ].flat()
       );
     } else {
-      useMultiTagsStoreHook().handleTags("splice", "", {
+      multiTagsStore.handleTags("splice", "", {
         startIndex,
         length,
       }) as any;
@@ -276,7 +280,7 @@ function deleteDynamicTag(obj: any, current: any, tag?: string) {
   } else {
     spliceRoute(valueIndex, 1);
   }
-  const newRoute = useMultiTagsStoreHook().handleTags("slice");
+  const newRoute = multiTagsStore.handleTags("slice");
   if (current === route.path) {
     if (tag === "left") return;
     if (newRoute[0]?.query) {
@@ -337,7 +341,7 @@ function onClickDrop(key, item, selectRoute?: RouteConfigs) {
       deleteMenu(selectTagRoute, "other");
       break;
     case 5:
-      useMultiTagsStoreHook().handleTags("splice", "", {
+      multiTagsStore.handleTags("splice", "", {
         startIndex: fixedTags.length,
         length: multiTags.value.length,
       });

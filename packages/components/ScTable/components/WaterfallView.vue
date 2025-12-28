@@ -454,7 +454,7 @@ const handleContextMenu = (event, row) => {
  * 处理菜单动作
  */
 const handleMenuAction = action => {
-  console.log("菜单动作:", action);
+  // 菜单动作由父组件处理
 };
 
 /**
@@ -484,16 +484,17 @@ const scrollToItem = index => {
   waterfallContainer.value.scrollTop = pos.top - props.gap;
 };
 
-// 监听数据变化
+// 监听数据变化 - 使用引用+长度作为版本号避免深度监听
+const tableDataVersion = computed(() => props.tableData?.length ?? 0);
 watch(
-  () => props.tableData,
-  newVal => {
+  [() => props.tableData, tableDataVersion],
+  ([newVal]) => {
     currentDataList.value = newVal || [];
     nextTick(() => {
       calculatePositions();
     });
   },
-  { immediate: true, deep: true }
+  { immediate: true }
 );
 
 // 监听列数变化

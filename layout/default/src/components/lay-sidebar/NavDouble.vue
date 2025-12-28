@@ -8,6 +8,7 @@ import { localStorageProxy, useDefer } from "@repo/utils";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useNav } from "../../hooks/useNav";
+import type { MenuItem } from "../../types/menu";
 import DoubleNavSidebarItem from "./components/DoubleNavSidebarItem.vue";
 import LaySidebarLeftCollapse from "./components/SidebarLeftCollapse.vue";
 import LaySidebarLogo from "./components/SidebarLogo.vue";
@@ -23,8 +24,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Emits
 interface Emits {
-  menuClick: [menu: any];
-  favoriteToggle: [menu: any, isFavorited: boolean];
+  menuClick: [menu: MenuItem];
+  favoriteToggle: [menu: MenuItem, isFavorited: boolean];
 }
 
 const emit = defineEmits<Emits>();
@@ -34,6 +35,9 @@ const isShow = ref(false);
 const showLogo = ref(localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`)?.showLogo ?? true);
 
 const { device, pureApp, isCollapse, tooltipEffect, menuSelect, toggleSideBar } = useNav();
+
+// 提取 permissionStore 到顶层避免重复调用
+const permissionStore = usePermissionStoreHook();
 
 // 双栏导航配置
 const doubleNavConfig = computed(() => {
@@ -46,7 +50,7 @@ const doubleNavConfig = computed(() => {
 
 // 一级菜单数据（左栏）
 const firstLevelMenus = computed(() => {
-  return usePermissionStoreHook().wholeMenus.filter((menu) => {
+  return permissionStore.wholeMenus.filter((menu) => {
     // 只显示有子菜单的一级菜单
     return menu.children && menu.children.length > 0;
   });
@@ -64,7 +68,7 @@ const defaultActive = computed(() => (!isAllEmpty(route.meta?.activePath) ? rout
 // 获取当前路由对应的一级菜单
 function getCurrentFirstLevelMenu() {
   const currentPath = defaultActive.value;
-  const parentPaths = getParentPaths(currentPath, usePermissionStoreHook().wholeMenus);
+  const parentPaths = getParentPaths(currentPath, permissionStore.wholeMenus);
 
   // 找到顶级父路径
   const topLevelPath = parentPaths.length > 0 ? parentPaths[0] : currentPath;
@@ -94,7 +98,7 @@ function getSubMenuData(firstLevelMenu = null) {
 }
 
 // 处理一级菜单点击
-function handleFirstLevelMenuClick(menu: any) {
+function handleFirstLevelMenuClick(menu: MenuItem) {
   // 始终更新选中的菜单和子菜单数据，确保三级菜单能正确展开
   selectedFirstLevelMenu.value = menu;
   getSubMenuData(menu);
@@ -102,12 +106,12 @@ function handleFirstLevelMenuClick(menu: any) {
 }
 
 // 处理子菜单点击
-function handleSubMenuClick(menu: any) {
+function handleSubMenuClick(menu: MenuItem) {
   emit("menuClick", menu);
 }
 
 // 处理收藏切换
-function handleFavoriteToggle(menu: any, isFavorited: boolean) {
+function handleFavoriteToggle(menu: MenuItem, isFavorited: boolean) {
   emit("favoriteToggle", menu, isFavorited);
 }
 
@@ -115,7 +119,7 @@ function handleFavoriteToggle(menu: any, isFavorited: boolean) {
 const defaultOpeneds = computed(() => {
   if (doubleNavConfig.value.expandMode === "auto") {
     // 自动展开模式下，递归获取所有子菜单路径
-    const getAllMenuPaths = (menus: any[]): string[] => {
+    const getAllMenuPaths = (menus: MenuItem[]): string[] => {
       const paths: string[] = [];
       menus.forEach((menu) => {
         if (menu.children && menu.children.length > 0) {
@@ -136,18 +140,18 @@ const defaultOpeneds = computed(() => {
 });
 
 // 检查菜单是否展开（根据配置）
-function isMenuExpanded(menu: any) {
+function isMenuExpanded(menu: MenuItem) {
   if (doubleNavConfig.value.expandMode === "auto") {
     return doubleNavConfig.value.autoExpandAll;
   }
   return false; // 手动模式默认不展开
 }
 
-// 监听路由变化
+// 监听路由变化 - 分离监听以避免不必要的 deep watcher
 watch(
-  () => [route.path, usePermissionStoreHook().wholeMenus],
-  () => {
-    if (route.path.includes("/redirect")) return;
+  () => route.path,
+  (newPath) => {
+    if (newPath.includes("/redirect")) return;
 
     // 根据当前路由自动选择对应的一级菜单
     const currentFirstLevel = getCurrentFirstLevelMenu();
@@ -156,11 +160,20 @@ watch(
       getSubMenuData(currentFirstLevel);
     }
 
-    menuSelect(route.path);
+    menuSelect(newPath);
   },
-  {
-    deep: true,
-    immediate: true,
+  { immediate: true }
+);
+
+// 监听菜单数据变化
+watch(
+  () => permissionStore.wholeMenus.length,
+  () => {
+    const currentFirstLevel = getCurrentFirstLevelMenu();
+    if (currentFirstLevel) {
+      selectedFirstLevelMenu.value = currentFirstLevel;
+      getSubMenuData(currentFirstLevel);
+    }
   }
 );
 

@@ -20,19 +20,23 @@ export default {
   data() {
     return {
       isActivat: false,
-      myChart: null
+      myChart: null,
+      resizeHandler: null
     };
   },
   computed: {
     myOptions: function () {
       return this.option || {};
+    },
+    // 版本号用于监听 option 变化，避免深度监听
+    optionVersion() {
+      return JSON.stringify(this.option);
     }
   },
   watch: {
-    option: {
-      deep: true,
-      handler(v) {
-        setTimeout(() => unwarp(this.myChart).setOption(v), 300);
+    optionVersion(newVersion, oldVersion) {
+      if (newVersion !== oldVersion) {
+        setTimeout(() => unwarp(this.myChart).setOption(this.option), 300);
       }
     }
   },
@@ -52,12 +56,25 @@ export default {
       this.draw();
     });
   },
+  beforeUnmount() {
+    // 移除事件监听器
+    if (this.resizeHandler) {
+      window.removeEventListener("resize", this.resizeHandler);
+    }
+    // 销毁 echarts 实例
+    if (this.myChart) {
+      this.myChart.dispose();
+      this.myChart = null;
+    }
+  },
   methods: {
     draw() {
       var myChart = echarts.init(this.$refs.scEcharts, "T");
       myChart.setOption(this.myOptions, true);
       this.myChart = myChart;
-      window.addEventListener("resize", () => myChart.resize());
+      // 保存引用以便清理
+      this.resizeHandler = () => myChart.resize();
+      window.addEventListener("resize", this.resizeHandler);
     }
   }
 };

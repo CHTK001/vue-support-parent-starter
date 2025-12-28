@@ -29,7 +29,7 @@ function resolvePath(routePath: string) {
 }
 
 const onlyOneChild = computed(() => {
-  const children = props.item?.children?.filter((item: any) => item.meta?.showLink !== false) || [];
+  const children = props.item?.children?.filter((item: MenuType) => item.meta?.showLink !== false) || [];
   if (children.length === 0) {
     return { ...props.item, path: props.item?.path || '', noShowingChildren: true };
   }

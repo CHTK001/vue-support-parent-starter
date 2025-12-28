@@ -147,15 +147,15 @@ watch(
   { immediate: true }
 );
 
-// 监听IP地址变化
+// 监听IP地址变化 - 使用版本号避免深度监听
+const ipAddressVersion = computed(() => ipAddress.value.map(item => item.value).join('.'));
 watch(
-  ipAddress,
+  ipAddressVersion,
   () => {
     if (!props.disabled) {
       updateModelValue();
     }
-  },
-  { deep: true }
+  }
 );
 
 // 监听禁用状态变化

@@ -65,6 +65,12 @@ export default {
       defaultFileList: []
     };
   },
+  computed: {
+    // 版本号用于监听 defaultFileList 变化，避免深度监听
+    fileListVersion() {
+      return this.defaultFileList.map(f => f.url || f.name).join(',');
+    }
+  },
   watch: {
     modelValue(val) {
       if (Array.isArray(val)) {
@@ -79,12 +85,9 @@ export default {
         }
       }
     },
-    defaultFileList: {
-      handler(val) {
-        this.$emit("update:modelValue", Array.isArray(this.modelValue) ? this.formatArr(val) : this.toStr(val));
-        this.value = this.toStr(val);
-      },
-      deep: true
+    fileListVersion() {
+      this.$emit("update:modelValue", Array.isArray(this.modelValue) ? this.formatArr(this.defaultFileList) : this.toStr(this.defaultFileList));
+      this.value = this.toStr(this.defaultFileList);
     }
   },
   mounted() {

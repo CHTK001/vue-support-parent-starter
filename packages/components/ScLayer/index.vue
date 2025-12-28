@@ -942,12 +942,12 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
   }
 };
 
-// 监听坐标选项变化
-watch(() => props.coordinateOptions, (newOptions) => {
+// 监听坐标选项变化 - 使用版本号避免深度监听
+const coordinateOptionsVersion = computed(() => JSON.stringify(props.coordinateOptions));
+watch(coordinateOptionsVersion, () => {
   if (!toolbarObject) return;
-
-  logger.debug('坐标选项已更新:', newOptions);
-}, { deep: true });
+  logger.debug('坐标选项已更新:', props.coordinateOptions);
+});
 
 // 处理工具栏工具激活
 const handleToolActivated = (toolId) => {
@@ -1139,15 +1139,18 @@ const setupCoordinatePanelWatcher = () => {
   }, { immediate: true }); // 添加immediate确保立即执行
 };
 
-// 监听配置变化
-watch(() => props, (newConfig) => {
+// 监听配置变化 - 使用关键属性版本号避免深度监听
+const propsConfigVersion = computed(() => 
+  `${props.mapType}-${props.mapTile}-${props.zoom}-${props.center?.join(',')}`
+);
+watch(propsConfigVersion, () => {
   if (configObject) {
-    configObject.updateConfig(newConfig);
+    configObject.updateConfig(props);
   }
   if (searchBoxRef.value) {
     searchBoxRef.value.setConfigObject(configObject);
   }
-}, { deep: true });
+});
 
 // 检测地图容器尺寸变化
 const resizeMap = () => {
@@ -1293,17 +1296,17 @@ const initTrackObject = () => {
 
 // 处理轨迹选择事件
 const handleTrackSelected = (trackId) => {
-  console.log('轨迹已选择:', trackId);
+  logger.debug('轨迹已选择:', trackId);
 };
 
 // 处理轨迹删除事件
 const handleTrackDeleted = (trackId) => {
-  console.log('轨迹已删除:', trackId);
+  logger.debug('轨迹已删除:', trackId);
 };
 
 // 处理轨迹播放器折叠状态变化
 const handleTrackPlayerCollapseChange = (collapsed) => {
-  console.log('轨迹播放器折叠状态:', collapsed ? '已折叠' : '已展开');
+  logger.debug('轨迹播放器折叠状态:', collapsed ? '已折叠' : '已展开');
 };
 
 // 刷新轨迹列表
@@ -1311,9 +1314,9 @@ const refreshTrackList = () => {
   // 获取轨迹播放器组件引用
   if (trackPlayerRef.value) {
     trackPlayerRef.value.refreshTrackList();
-    console.log('已刷新轨迹列表');
+    logger.debug('已刷新轨迹列表');
   } else {
-    console.warn('未找到轨迹播放器组件引用，无法刷新列表');
+    logger.warn('未找到轨迹播放器组件引用，无法刷新列表');
   }
 };
 
@@ -1520,13 +1523,13 @@ watch(() => props.showScaleLine, (newValue) => {
   mapObj.toggleScaleLine(newValue);
 });
 
-// 监听网格配置变化
-watch(() => props.gridConfig, (newConfig) => {
-  if (!gridManager || !newConfig) return;
-
-  logger.debug('网格配置变化，应用新配置:', newConfig);
-  gridManager.setConfig(newConfig);
-}, { deep: true });
+// 监听网格配置变化 - 使用版本号避免深度监听
+const gridConfigVersion = computed(() => JSON.stringify(props.gridConfig));
+watch(gridConfigVersion, () => {
+  if (!gridManager || !props.gridConfig) return;
+  logger.debug('网格配置变化，应用新配置:', props.gridConfig);
+  gridManager.setConfig(props.gridConfig);
+});
 
 // 新增轨迹（演示）
 const addDemoTrack = () => {
@@ -1617,7 +1620,7 @@ const addDemoTrack = () => {
     trackPlayerElement.dispatchEvent(new CustomEvent('track-added'));
   }
 
-  console.log('已添加演示轨迹:', trackId);
+  logger.debug('已添加演示轨迹:', trackId);
 };
 
 
@@ -2648,21 +2651,23 @@ watch(() => props.scrollWheelZoom, (newVal) => {
   }
 });
 
-// 监听标记点配置变化
-watch(() => props.markerConfig, (newConfig) => {
-  if (markerObject && newConfig) {
-    markerObject.setConfig(newConfig);
-    logger.debug('[Marker] 标记点配置已更新:', newConfig);
+// 监听标记点配置变化 - 使用版本号避免深度监听
+const markerConfigVersion = computed(() => JSON.stringify(props.markerConfig));
+watch(markerConfigVersion, () => {
+  if (markerObject && props.markerConfig) {
+    markerObject.setConfig(props.markerConfig);
+    logger.debug('[Marker] 标记点配置已更新:', props.markerConfig);
   }
-}, { deep: true });
+});
 
-// 添加对aggregationOptions变化的监听
-watch(() => props.aggregationOptions, (newOptions) => {
-  if (toolbarObject && newOptions) {
-    logger.debug('聚合配置已更新:', newOptions);
-    toolbarObject.setClusterConfig(newOptions);
+// 添加对aggregationOptions变化的监听 - 使用版本号避免深度监听
+const aggregationOptionsVersion = computed(() => JSON.stringify(props.aggregationOptions));
+watch(aggregationOptionsVersion, () => {
+  if (toolbarObject && props.aggregationOptions) {
+    logger.debug('聚合配置已更新:', props.aggregationOptions);
+    toolbarObject.setClusterConfig(props.aggregationOptions);
   }
-}, { deep: true });
+});
 
 const is3D = ref(false);
 let cesiumObj: CesiumObject | null = null;

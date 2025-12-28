@@ -172,8 +172,7 @@ const handleRowContextMenu = (row, column, event) => {
 
 // 处理菜单动作
 const handleMenuAction = action => {
-  // 如果需要，可以在这里处理菜单动作
-  console.log("菜单动作:", action);
+  // 菜单动作由父组件处理
 };
 
 // refs
@@ -483,15 +482,17 @@ watch(
   }
 );
 
-// 监听配置变更以重新应用表格布局
+// 监听配置变更 - 使用关键属性版本号避免深度监听
+const configVersion = computed(() => 
+  `${props.config?.border}-${props.config?.stripe}-${props.config?.size}`
+);
 watch(
-  () => props.config,
+  configVersion,
   () => {
     nextTick(() => {
       doLayout();
     });
-  },
-  { deep: true }
+  }
 );
 
 // 监听拖拽属性变化

@@ -616,13 +616,13 @@ function resetSettings() {
   options.value = { ...DEFAULT_BOUNDARY_OPTIONS, ...props.defaultOptions };
 }
 
-// 监听选项变化
+// 监听选项变化 - 使用版本号避免深度监听
+const defaultOptionsVersion = computed(() => JSON.stringify(props.defaultOptions));
 watch(
-  () => props.defaultOptions,
-  newOptions => {
-    options.value = { ...DEFAULT_BOUNDARY_OPTIONS, ...newOptions };
-  },
-  { deep: true }
+  defaultOptionsVersion,
+  () => {
+    options.value = { ...DEFAULT_BOUNDARY_OPTIONS, ...props.defaultOptions };
+  }
 );
 
 // 监听搜索文本变化

@@ -3,6 +3,7 @@ import { useGlobal } from "@pureadmin/utils";
 import { usePermissionStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import type { MenuItem } from "../../../types/menu";
 import LayTool from "../../lay-tool/index.vue";
 import LayBreadcrumb from "../../breadcrumb/index.vue";
 const { $storage, $config } = useGlobal();
@@ -15,12 +16,12 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   showTitle: true,
-  maxVisibleCards: 6, // 默认显示6个卡片
+  maxVisibleCards: 6, // 默认显礴6个卡片
 });
 
 // Emits
 interface Emits {
-  cardClick: [menu: any];
+  cardClick: [menu: MenuItem];
 }
 
 const emit = defineEmits<Emits>();
@@ -79,15 +80,15 @@ const mainMenuItems = computed(() => {
 });
 
 // 获取子菜单项（优化版：支持三级菜单）
-function getSubMenuItems(menu: any, level: number = 1) {
+function getSubMenuItems(menu: MenuItem, level: number = 1) {
   if (!menu.children || menu.children.length === 0) return [];
 
   // 最多支持三级菜单
   if (level > 3) return [];
 
-  const items: any[] = [];
+  const items: MenuItem[] = [];
 
-  menu.children.forEach((child: any) => {
+  menu.children.forEach((child: MenuItem) => {
     if (child.meta?.showLink === false) return;
 
     // 检查是否有components（即是否为最终页面）
@@ -119,13 +120,13 @@ function getSubMenuItems(menu: any, level: number = 1) {
 }
 
 // 检查菜单是否应该显示子菜单弹出
-function shouldShowSubMenu(menu: any, level: number = 1) {
+function shouldShowSubMenu(menu: MenuItem, level: number = 1) {
   const subItems = getSubMenuItems(menu, level);
   return subItems.length > 0;
 }
 
 // 处理卡片点击事件
-function handleCardClick(menu: any) {
+function handleCardClick(menu: MenuItem) {
   emit("cardClick", menu);
 
   // 如果有子菜单，不直接跳转
@@ -144,7 +145,7 @@ function handleCardClick(menu: any) {
 }
 
 // 处理子菜单点击
-function handleSubMenuClick(subMenu: any) {
+function handleSubMenuClick(subMenu: MenuItem) {
   emit("cardClick", subMenu);
 
   // 检查是否为remaining菜单项
@@ -176,7 +177,7 @@ function convertPathToComponentParam(path: string): string {
 }
 
 // 处理鼠标悬停
-function handleMouseEnter(menu: any, event?: MouseEvent) {
+function handleMouseEnter(menu: MenuItem, event?: MouseEvent) {
   if (hoverTimeout.value) {
     clearTimeout(hoverTimeout.value);
   }
@@ -214,7 +215,7 @@ function handleMouseLeave() {
 }
 
 // 处理二级菜单悬停
-function handleSubMenuEnter(subMenu: any, event?: MouseEvent) {
+function handleSubMenuEnter(subMenu: MenuItem, event?: MouseEvent) {
   // 清除相关的超时定时器
   if (subHoverTimeout.value) {
     clearTimeout(subHoverTimeout.value);

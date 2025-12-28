@@ -1,20 +1,16 @@
 <script setup lang="ts">
+import { defineAsyncComponent } from "vue";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultMix from "./themes/mix/Default.vue";
-import SpringFestivalMix from "./themes/mix/SpringFestival.vue";
-import CyberpunkMix from "./themes/mix/Cyberpunk.vue";
-import MidAutumnMix from "./themes/mix/MidAutumn.vue";
-import ChristmasMix from "./themes/mix/Christmas.vue";
-import NewYearMix from "./themes/mix/NewYear.vue";
 
-// 主题组件映射
+// 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
   'default': DefaultMix,
-  'spring-festival': SpringFestivalMix,
-  'cyberpunk': CyberpunkMix,
-  'mid-autumn': MidAutumnMix,
-  'christmas': ChristmasMix,
-  'new-year': NewYearMix,
+  'spring-festival': defineAsyncComponent(() => import("./themes/mix/SpringFestival.vue")),
+  'cyberpunk': defineAsyncComponent(() => import("./themes/mix/Cyberpunk.vue")),
+  'mid-autumn': defineAsyncComponent(() => import("./themes/mix/MidAutumn.vue")),
+  'christmas': defineAsyncComponent(() => import("./themes/mix/Christmas.vue")),
+  'new-year': defineAsyncComponent(() => import("./themes/mix/NewYear.vue")),
 };
 
 const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultMix);

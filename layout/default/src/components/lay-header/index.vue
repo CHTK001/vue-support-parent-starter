@@ -33,44 +33,33 @@ import LayNavbar from "../lay-navbar/index.vue";
 import NavHorizontal from "../lay-sidebar/NavHorizontal.vue";
 import LayTag from "../lay-tag/index.vue";
 import { useAppStoreHook, useSettingStoreHook } from "@repo/core";
-import { useDark, useGlobal } from "@pureadmin/utils";
+import { useGlobal } from "@pureadmin/utils";
 import { computed, reactive } from "vue";
 import { useLayout } from "../../hooks/useLayout";
 import { setType } from "../../types";
 import { useDefer } from "@repo/utils";
 
 const { layout } = useLayout();
-const { isDark } = useDark();
-const { $storage } = useGlobal<any>();
+const { $storage } = useGlobal<GlobalPropertiesApi>();
 const pureSetting = useSettingStoreHook();
+
+// 提取 store 引用到顶层，避免在 computed 中重复调用
+const appStore = useAppStoreHook();
 
 const defer = useDefer(3);
 
 const set: setType = reactive({
-  sidebar: computed(() => {
-    return useAppStoreHook().sidebar;
-  }),
-
-  device: computed(() => {
-    return useAppStoreHook().device;
-  }),
-
-  fixedHeader: computed(() => {
-    return pureSetting.fixedHeader;
-  }),
-
-  classes: computed(() => {
-    return {
-      hideSidebar: !set.sidebar.opened,
-      openSidebar: set.sidebar.opened,
-      withoutAnimation: set.sidebar.withoutAnimation,
-      mobile: set.device === "mobile",
-    };
-  }),
-
-  hideTabs: computed(() => {
-    return $storage?.configure.hideTabs;
-  }),
+  sidebar: computed(() => appStore.sidebar),
+  device: computed(() => appStore.device),
+  fixedHeader: computed(() => pureSetting.fixedHeader),
+  // 保留以下属性以保持类型完整性，即使未在模板中直接使用
+  classes: computed(() => ({
+    hideSidebar: !set.sidebar.opened,
+    openSidebar: set.sidebar.opened,
+    withoutAnimation: set.sidebar.withoutAnimation,
+    mobile: set.device === "mobile",
+  })),
+  hideTabs: computed(() => $storage?.configure.hideTabs),
 });
 </script>
 

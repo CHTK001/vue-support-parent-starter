@@ -57,15 +57,18 @@ export default {
       data: []
     };
   },
+  computed: {
+    // 版本号用于监听 data 变化，避免深度监听
+    dataVersion() {
+      return this.data.length + '-' + JSON.stringify(this.data.map(d => d.id || JSON.stringify(d)));
+    }
+  },
   watch: {
     modelValue() {
       this.data = this.modelValue;
     },
-    data: {
-      handler() {
-        this.$emit("update:modelValue", this.data);
-      },
-      deep: true
+    dataVersion() {
+      this.$emit("update:modelValue", this.data);
     }
   },
   mounted() {

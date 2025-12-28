@@ -543,14 +543,18 @@ export default {
         default:
           return this.filterObj;
       }
+    },
+    // 版本号用于监听 modelValue 变化，避免深度监听
+    modelValueVersion() {
+      return JSON.stringify(this.modelValue);
     }
   },
   watch: {
-    modelValue: {
-      handler(val) {
-        this.formData = { ...val };
-      },
-      deep: true
+    // 使用 JSON.stringify 生成版本号避免深度监听
+    modelValueVersion(newVersion, oldVersion) {
+      if (newVersion !== oldVersion) {
+        this.formData = { ...this.modelValue };
+      }
     },
     options: {
       handler(val) {
@@ -731,7 +735,7 @@ export default {
         try {
           var data = await item.field.extend.request();
         } catch (error) {
-          console.log(error);
+          // request error ignored
         }
         item.field.extend.data = data;
         item.selectLoading = false;
@@ -747,7 +751,7 @@ export default {
         try {
           var data = await item.field.extend.request(query);
         } catch (error) {
-          console.log(error);
+          // request error ignored
         }
         item.field.extend.data = data;
         item.selectLoading = false;
@@ -847,7 +851,6 @@ export default {
             var save = await config.saveMy(this.filterName, saveObj);
           } catch (error) {
             this.saveLoading = false;
-            console.log(error);
             return false;
           }
           if (!save) {

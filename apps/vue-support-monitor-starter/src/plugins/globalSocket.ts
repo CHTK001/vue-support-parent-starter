@@ -7,24 +7,44 @@ type Handler = (data: any) => void;
 class GlobalSocket {
   private client: any | null = null;
   private connecting = false;
+  private connectPromise: Promise<boolean> | null = null;
 
-  async connect(): Promise<boolean> {
-    if (this.client) return true;
+  /**
+   * 连接 Socket（非阻塞懒加载）
+   * 多次调用会复用同一个 Promise，避免重复创建
+   */
+  connect(): Promise<boolean> {
+    if (this.client) return Promise.resolve(true);
+    if (this.connectPromise) return this.connectPromise;
+
+    this.connectPromise = this.doConnect();
+    return this.connectPromise;
+  }
+
+  private async doConnect(): Promise<boolean> {
     if (this.connecting) return false;
     this.connecting = true;
+    
     try {
-      useConfigStore().load();
+      // 异步加载配置，不阻塞主线程
+      await useConfigStore().load();
+      // 优先使用全局 socket 服务
       this.client = useConfigStore().getSocket();
-      if(null == this.client) {
+      // 如果全局 socket 不可用，回退到本地配置创建
+      if (this.client == null) {
         const cfg = getConfig();
-        this.client = socket(splitToArray(cfg.SocketUrl), undefined, {});
+        if (cfg.SocketUrl) {
+          this.client = socket(splitToArray(cfg.SocketUrl), undefined, {});
+        }
       }
-      this.connecting = false;
-      return true;
+      return this.client != null;
     } catch (e) {
+      console.warn("[GlobalSocket] 连接失败:", e);
       this.client = null;
-      this.connecting = false;
       return false;
+    } finally {
+      this.connecting = false;
+      this.connectPromise = null;
     }
   }
 

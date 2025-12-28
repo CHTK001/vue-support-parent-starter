@@ -48,12 +48,15 @@ export default {
       myFilter: []
     };
   },
+  computed: {
+    // 版本号用于监听 data 变化，避免深度监听
+    dataVersion() {
+      return JSON.stringify(this.data);
+    }
+  },
   watch: {
-    data: {
-      handler() {
-        this.myFilter = this.data;
-      },
-      deep: true
+    dataVersion() {
+      this.myFilter = this.data;
     }
   },
   mounted() {

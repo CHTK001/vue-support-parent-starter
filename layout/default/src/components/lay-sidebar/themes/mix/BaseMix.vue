@@ -22,6 +22,9 @@ const props = defineProps<{
 const menuRef = ref();
 const defaultActive = ref(null);
 
+// 提取 store 到顶层避免重复调用
+const permissionStore = usePermissionStoreHook();
+
 const { t, route, locale, translationCh, translationEn } =
   useTranslationLang(menuRef);
 
@@ -48,7 +51,7 @@ const {
 } = useNav();
 
 function getDefaultActive(routePath) {
-  const wholeMenus = usePermissionStoreHook().wholeMenus;
+  const wholeMenus = permissionStore.wholeMenus;
   /** 当前路由的父级路径 */
   const parentRoutes = getParentPaths(routePath, wholeMenus)[0];
   defaultActive.value = !isAllEmpty(route.meta?.activePath)
@@ -65,7 +68,7 @@ nextTick(() => {
 });
 
 watch(
-  () => [route.path, usePermissionStoreHook().wholeMenus],
+  () => [route.path, permissionStore.wholeMenus],
   () => {
     getDefaultActive(route.path);
   }
@@ -76,7 +79,7 @@ const deferDropdown = useDefer(4);
 <template>
   <div
     v-if="device !== 'mobile'"
-    v-loading="usePermissionStoreHook().wholeMenus.length === 0"
+    v-loading="permissionStore.wholeMenus.length === 0"
     :class="['horizontal-header', themeClass]"
   >
     <el-menu
@@ -88,7 +91,7 @@ const deferDropdown = useDefer(4);
       :default-active="defaultActive"
     >
       <el-menu-item
-        v-for="route in usePermissionStoreHook().wholeMenus"
+        v-for="route in permissionStore.wholeMenus"
         :key="route.path"
         :index="resolvePath(route) || route.redirect"
       >

@@ -159,9 +159,14 @@ const handleClose = async () => {
   tSelectTableRef.value?.blur();
 };
 
+// 使用版本号避免深度监听
+const modelValueVersion = computed(() => 
+  Array.isArray(props.modelValue) ? props.modelValue.join(',') : String(props.modelValue ?? '')
+);
 watch(
-  () => props.modelValue,
-  val => {
+  modelValueVersion,
+  () => {
+    const val = props.modelValue;
     if (!val) {
       return;
     }
@@ -173,7 +178,7 @@ watch(
       handleSettingDefault([val]);
     } catch (error) {}
   },
-  { immediate: true, deep: true }
+  { immediate: true }
 );
 
 const handleSettingDefault = val => {

@@ -27,6 +27,9 @@ const props = defineProps<{
 const route = useRoute();
 const { getLogo, backTopMenu } = useNav();
 
+// 提取 store 到顶层避免重复调用
+const permissionStore = usePermissionStoreHook();
+
 // 提供主题化组件给子组件递归使用
 const ThemeSidebarItem = computed(() => props.sidebarItemComponent || CustomSidebarItem);
 provide('themeSidebarItem', ThemeSidebarItem.value);
@@ -45,7 +48,7 @@ const MORE_MENU_WIDTH = 80; // "更多"菜单的宽度
 const LOGO_WIDTH = 210; // Logo 区域的估算宽度
 
 // 全部菜单
-const allMenus = computed(() => usePermissionStoreHook().wholeMenus);
+const allMenus = computed(() => permissionStore.wholeMenus);
 
 // 可见菜单
 const visibleMenus = computed(() => {
@@ -295,15 +298,6 @@ watch(visibleCount, () => {
     <div ref="rightToolbarRef" class="horizontal-header-right">
       <LayTool />
     </div>
-    
-    <!-- 主题装饰元素 -->
-    <ThemeDecoration
-      v-for="(decoration, index) in sidebarDecorations"
-      :key="`horizontal-decoration-${index}`"
-      :config="decoration"
-      :index="index"
-      :visible="true"
-    />
   </div>
 </template>
 

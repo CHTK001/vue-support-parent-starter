@@ -162,8 +162,9 @@ onBeforeUnmount(() => {
   }
 });
 
-// 监听配置变化
-watch(() => props.config, () => {
+// 监听配置变化 - 使用版本号避免深度监听
+const configVersion = computed(() => JSON.stringify(props.config));
+watch(configVersion, () => {
   if (miniMapControl.value && props.mainMap) {
     props.mainMap.removeControl(miniMapControl.value);
     miniMapControl.value = null;
@@ -171,7 +172,7 @@ watch(() => props.config, () => {
   if (finalConfig.value.visible && !collapsed.value) {
     initMiniMap();
   }
-}, { deep: true });
+});
       
 // 监听主地图变化
 watch(() => props.mainMap, () => {

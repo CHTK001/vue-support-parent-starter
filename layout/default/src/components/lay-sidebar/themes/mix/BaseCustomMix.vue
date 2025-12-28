@@ -29,9 +29,12 @@ const route = useRoute();
 const router = useRouter();
 const { resolvePath, device } = useNav();
 
+// 提取 store 到顶层避免重复调用
+const permissionStore = usePermissionStoreHook();
+
 // 当前激活路径
 const defaultActive = computed(() => {
-  const wholeMenus = usePermissionStoreHook().wholeMenus;
+  const wholeMenus = permissionStore.wholeMenus;
   const parentRoutes = getParentPaths(route.path, wholeMenus)[0];
   return !isAllEmpty(route.meta?.activePath)
     ? route.meta.activePath as string
@@ -51,7 +54,7 @@ const visibleCount = ref(999); // 可见菜单数量，初始全部显示
 const MORE_MENU_WIDTH = 60; // "..."菜单的宽度
 
 // 全部菜单
-const allMenus = computed(() => usePermissionStoreHook().wholeMenus);
+const allMenus = computed(() => permissionStore.wholeMenus);
 
 // 可见菜单
 const visibleMenus = computed(() => {
@@ -300,15 +303,6 @@ watch(visibleCount, () => {
     <div ref="rightToolbarRef" class="horizontal-header-right">
       <LayTool />
     </div>
-    
-    <!-- 主题装饰元素 -->
-    <ThemeDecoration
-      v-for="(decoration, index) in sidebarDecorations"
-      :key="`mix-decoration-${index}`"
-      :config="decoration"
-      :index="index"
-      :visible="true"
-    />
   </div>
 </template>
 

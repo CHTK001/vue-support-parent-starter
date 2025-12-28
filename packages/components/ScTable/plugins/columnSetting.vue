@@ -17,31 +17,34 @@ export default defineComponent({
       usercolumn: JSON.parse(JSON.stringify(this.column || []))
     };
   },
+  computed: {
+    // 版本号用于监听 usercolumn 变化，避免深度监听
+    usercolumnVersion() {
+      return JSON.stringify(this.usercolumn);
+    },
+    // 版本号用于监听 column 变化
+    columnVersion() {
+      return JSON.stringify(this.column);
+    }
+  },
   watch: {
-    usercolumn: {
-      handler() {
-        this.$emit("userChange", this.usercolumn);
-
-        // 如果开启了实时更新，立即发送变更的列数据
-        if (this.liveUpdate) {
-          this.$emit("live-update", this.usercolumn);
-        }
-      },
-      deep: true
+    usercolumnVersion() {
+      this.$emit("userChange", this.usercolumn);
+      // 如果开启了实时更新，立即发送变更的列数据
+      if (this.liveUpdate) {
+        this.$emit("live-update", this.usercolumn);
+      }
     },
     // 监听外部传入的column变化
-    column: {
-      handler(newVal) {
-        if (newVal && JSON.stringify(newVal) !== JSON.stringify(this.usercolumn)) {
-          this.usercolumn = JSON.parse(JSON.stringify(newVal || []));
-          this.$nextTick(() => {
-            if (this.usercolumn.length > 0) {
-              this.rowDrop();
-            }
-          });
-        }
-      },
-      deep: true
+    columnVersion(newVersion, oldVersion) {
+      if (newVersion !== oldVersion) {
+        this.usercolumn = JSON.parse(JSON.stringify(this.column || []));
+        this.$nextTick(() => {
+          if (this.usercolumn.length > 0) {
+            this.rowDrop();
+          }
+        });
+      }
     }
   },
   mounted() {

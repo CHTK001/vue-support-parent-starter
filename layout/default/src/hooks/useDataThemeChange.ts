@@ -9,6 +9,11 @@ import { useLayout } from "./useLayout";
 
 export function useDataThemeChange() {
   const { layoutTheme, layout } = useLayout();
+  
+  // 提取 store 到函数顶层避免重复调用
+  const epThemeStore = useEpThemeStoreHook();
+  const multiTagsStore = useMultiTagsStoreHook();
+  
   const themeColors = ref<Array<themeColorsType>>([
     /* 亮白色 */
     { color: "#ffffff", themeColor: "light", description: "清新明亮的白色主题" },
@@ -74,7 +79,7 @@ export function useDataThemeChange() {
 
   /** 设置 `element-plus` 主题色 - 优化性能 */
   const setEpThemeColor = (color: string) => {
-    useEpThemeStoreHook().setEpThemeColor(color);
+    epThemeStore.setEpThemeColor(color);
 
     // 使用 DocumentFragment 或批量操作来减少重绘
     const style = document.documentElement.style;
@@ -122,12 +127,12 @@ export function useDataThemeChange() {
 
       // 更新 data-theme 属性
       const targetTheme = (() => {
-        if (useEpThemeStoreHook().epTheme === "light" && dataTheme.value) {
+        if (epThemeStore.epTheme === "light" && dataTheme.value) {
           return "default";
         } else if (!dataTheme.value && $storage.layout.themeColor === "light") {
           return "light";
         } else {
-          return useEpThemeStoreHook().epTheme;
+          return epThemeStore.epTheme;
         }
       })();
 
@@ -158,13 +163,13 @@ export function useDataThemeChange() {
     const { Grey, Weak, Invert, Monochrome, MultiTagsCache, EpThemeColor, Layout } = getConfig();
     useAppStoreHook().setLayout(Layout);
     setEpThemeColor(EpThemeColor);
-    useMultiTagsStoreHook().multiTagsCacheChange(MultiTagsCache);
+    multiTagsStore.multiTagsCacheChange(MultiTagsCache);
     toggleClass(Grey, "html-grey", document.querySelector("html"));
     toggleClass(Weak, "html-weakness", document.querySelector("html"));
     toggleClass(Invert, "html-invert", document.querySelector("html"));
     toggleClass(Monochrome, "html-monochrome", document.querySelector("html"));
     router.push("/login");
-    useMultiTagsStoreHook().handleTags("equal", [...defaultRouterArrays]);
+    multiTagsStore.handleTags("equal", [...defaultRouterArrays]);
     resetRouter();
   }
 
