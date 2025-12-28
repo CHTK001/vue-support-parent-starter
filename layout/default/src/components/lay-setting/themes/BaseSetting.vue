@@ -28,23 +28,14 @@ import LayThemeSwitcher from "../../lay-theme-switcher/index.vue";
 import Check from "@iconify-icons/ep/check";
 import LeftArrow from "@iconify-icons/ri/arrow-left-s-line";
 import RightArrow from "@iconify-icons/ri/arrow-right-s-line";
-//@ts-ignore
 import DayIcon from "@repo/assets/svg/day.svg?component";
-//@ts-ignore
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
-//@ts-ignore
 import SystemIcon from "@repo/assets/svg/system.svg?component";
-//@ts-ignore
 import VerticalIcon from "@repo/assets/svg/vertical.svg?component";
-//@ts-ignore
 import HorizontalIcon from "@repo/assets/svg/horizontal.svg?component";
-//@ts-ignore
 import MixIcon from "@repo/assets/svg/mix.svg?component";
-//@ts-ignore
 import HoverIcon from "@repo/assets/svg/hover.svg?component";
-//@ts-ignore
 import MobileIcon from "@repo/assets/svg/mobile.svg?component";
-//@ts-ignore
 import DoubleIcon from "@repo/assets/svg/double.svg?component";
 
 const { t } = useI18n();

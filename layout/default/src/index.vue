@@ -36,7 +36,6 @@ import {
   ref,
   watch,
 } from "vue";
-//@ts-ignore
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
 import { createFingerprint, registerRequestIdleCallback } from "@repo/core";

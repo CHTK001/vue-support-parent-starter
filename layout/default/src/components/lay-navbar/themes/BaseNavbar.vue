@@ -3,7 +3,6 @@ import { useNav } from "../../../hooks/useNav";
 import LayBreadcrumb from "../../breadcrumb/index.vue";
 import LaySidebarTopCollapse from "../../lay-sidebar/components/SidebarTopCollapse.vue";
 import LayNavMix from "../../lay-sidebar/NavMix.vue";
-//@ts-ignore
 import LayTool from "../../lay-tool/index.vue";
 import { useGlobal, useDark } from "@pureadmin/utils";
 import { emitter } from "@repo/core";
