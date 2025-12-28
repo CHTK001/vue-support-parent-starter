@@ -1,5 +1,4 @@
 <script setup lang="ts">
-//@ts-ignore
 import { emitter } from "@repo/core";
 import { isNumber, useGlobal } from "@pureadmin/utils";
 import { usePermissionStoreHook } from "@repo/core";
@@ -47,7 +46,6 @@ const props = defineProps({
 
 const { t } = useI18n();
 const { showModel } = useTags();
-//@ts-ignore
 const { $storage, $config } = useGlobal<GlobalPropertiesApi>();
 
 // 组件缓存，从配置中读取
