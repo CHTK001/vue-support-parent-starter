@@ -14,6 +14,8 @@ $ny-gold-light: #ffe066;
 $ny-champagne: #f7e7ce;
 $ny-dark: #1a1a2e;
 $ny-dark-light: #16213e;
+$ny-dark-darker: #141422;  // darken($ny-dark, 3%)
+$ny-dark-darkest: #0f0f19; // darken($ny-dark, 6%)
 $ny-white: #ffffff;
 
 .new-year-setting-wrapper {
@@ -22,7 +24,7 @@ $ny-white: #ffffff;
     border-left: 3px solid rgba($ny-gold, 0.4) !important;
     
     .el-drawer__header {
-      background: linear-gradient(180deg, darken($ny-dark, 3%), darken($ny-dark, 6%)) !important;
+      background: linear-gradient(180deg, $ny-dark-darker, $ny-dark-darkest) !important;
       border-bottom: 2px solid rgba($ny-gold, 0.3) !important;
       color: $ny-white !important;
     }
