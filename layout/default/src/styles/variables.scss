@@ -1,0 +1,169 @@
+/**
+ * 统一 CSS 变量定义
+ * @version 2.0.0
+ * 
+ * 使用方式：
+ * 1. 在组件中直接使用 var(--xxx)
+ * 2. 通过主题类覆盖变量值
+ * 3. 避免使用 :deep() 和 !important
+ */
+
+// ==================== 布局变量 ====================
+:root {
+  // 侧边栏
+  --layout-sidebar-width: 210px;
+  --layout-sidebar-collapsed-width: 54px;
+  --layout-sidebar-bg: var(--el-bg-color);
+  --layout-sidebar-text: var(--el-text-color-primary);
+  --layout-sidebar-hover-bg: var(--el-fill-color-light);
+  --layout-sidebar-active-bg: var(--el-color-primary-light-9);
+  --layout-sidebar-active-text: var(--el-color-primary);
+  
+  // 导航栏
+  --layout-navbar-height: 48px;
+  --layout-navbar-bg: var(--el-bg-color);
+  --layout-navbar-text: var(--el-text-color-primary);
+  --layout-navbar-border: var(--el-border-color-lighter);
+  
+  // 标签栏
+  --layout-tag-height: 34px;
+  --layout-tag-bg: var(--el-bg-color);
+  --layout-tag-item-bg: var(--el-fill-color-blank);
+  --layout-tag-item-active-bg: var(--el-color-primary);
+  --layout-tag-item-active-text: #fff;
+  
+  // 内容区
+  --layout-content-bg: var(--el-bg-color-page);
+  --layout-content-padding: 12px;
+  
+  // 面板
+  --layout-panel-width: 280px;
+  --layout-panel-bg: var(--el-bg-color);
+  
+  // 层级
+  --layout-z-sidebar: 100;
+  --layout-z-navbar: 101;
+  --layout-z-tag: 99;
+  --layout-z-panel: 200;
+  --layout-z-mask: 2001;
+}
+
+// ==================== 组件变量 ====================
+:root {
+  // 菜单项
+  --menu-item-height: 50px;
+  --menu-item-padding: 0 20px;
+  --menu-item-border-radius: 4px;
+  --menu-icon-size: 18px;
+  --menu-icon-margin: 8px;
+  
+  // 工具栏
+  --tool-item-size: 32px;
+  --tool-item-margin: 4px;
+  --tool-icon-size: 18px;
+  
+  // 面包屑
+  --breadcrumb-height: 30px;
+  --breadcrumb-font-size: 14px;
+  --breadcrumb-separator-color: var(--el-text-color-placeholder);
+}
+
+// ==================== 动画变量 ====================
+:root {
+  --transition-fast: 0.15s;
+  --transition-normal: 0.3s;
+  --transition-slow: 0.5s;
+  --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// ==================== 主题覆盖 Mixin ====================
+
+/// 主题变量覆盖 mixin
+/// @param {String} $theme - 主题名称
+/// @content 变量覆盖内容
+@mixin theme-vars($theme) {
+  :global(.theme-#{$theme}) {
+    @content;
+  }
+}
+
+/// 深色模式适配
+@mixin dark-mode {
+  :global(.dark) & {
+    @content;
+  }
+}
+
+// ==================== 主题预设 ====================
+
+// 默认主题
+@include theme-vars('default') {
+  --theme-primary: var(--el-color-primary);
+  --theme-secondary: var(--el-color-primary-light-3);
+  --theme-accent: var(--el-color-warning);
+}
+
+// 圣诞节
+@include theme-vars('christmas') {
+  --theme-primary: #c41e3a;
+  --theme-secondary: #165b33;
+  --theme-accent: #ffd700;
+  --layout-sidebar-active-bg: rgba(196, 30, 58, 0.1);
+  --layout-sidebar-active-text: #c41e3a;
+}
+
+// 春节
+@include theme-vars('spring-festival') {
+  --theme-primary: #f5222d;
+  --theme-secondary: #ffd700;
+  --theme-accent: #ff6b6b;
+  --layout-sidebar-active-bg: rgba(245, 34, 45, 0.1);
+  --layout-sidebar-active-text: #f5222d;
+}
+
+// 中秋节
+@include theme-vars('mid-autumn') {
+  --theme-primary: #13c2c2;
+  --theme-secondary: #20b2aa;
+  --theme-accent: #ffd700;
+  --layout-sidebar-active-bg: rgba(19, 194, 194, 0.1);
+  --layout-sidebar-active-text: #13c2c2;
+}
+
+// 新年
+@include theme-vars('new-year') {
+  --theme-primary: #1b2a47;
+  --theme-secondary: #409eff;
+  --theme-accent: #ffd700;
+  --layout-sidebar-active-bg: rgba(27, 42, 71, 0.1);
+  --layout-sidebar-active-text: #1b2a47;
+}
+
+// 赛博朋克
+@include theme-vars('cyberpunk') {
+  --theme-primary: #00ffff;
+  --theme-secondary: #ff00ff;
+  --theme-accent: #ffff00;
+  --layout-sidebar-bg: #0a0a0a;
+  --layout-sidebar-text: #00ffff;
+  --layout-sidebar-active-bg: rgba(0, 255, 255, 0.1);
+  --layout-sidebar-active-text: #00ffff;
+  --layout-navbar-bg: #0a0a0a;
+  --layout-navbar-text: #00ffff;
+}
+
+// ==================== 工具类 ====================
+
+/// 使用主题色
+.use-theme-primary {
+  color: var(--theme-primary);
+}
+
+.use-theme-bg {
+  background-color: var(--theme-primary);
+}
+
+/// 平滑过渡
+.smooth-transition {
+  transition: all var(--transition-normal) var(--transition-timing);
+}
