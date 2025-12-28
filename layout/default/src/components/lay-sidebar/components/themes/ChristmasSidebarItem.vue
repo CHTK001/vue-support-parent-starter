@@ -36,34 +36,34 @@ provide('themeSidebarItem', ChristmasSidebarItem);
 <style lang="scss" scoped>
 @use "sass:color";
 
-// 圣诞主题颜色变量
+// 圣诞主题 - CSS 变量提升可维护性
 $xmas-green: #1b5e20;
 $xmas-green-light: #2e7d32;
 $xmas-red: #c62828;
 $xmas-red-light: #e53935;
 $xmas-gold: #ffd700;
 $xmas-white: #ffffff;
-$xmas-border: rgba(255, 215, 0, 0.4);
-
-// 使用独立 SVG 文件作为横向圣诞树背景
 $tree-svg-normal: url('./assets/christmas-tree-normal.svg');
 $tree-svg-active: url('./assets/christmas-tree-active.svg');
 
 .christmas-sidebar-item-wrapper {
+  --xmas-white: #{$xmas-white};
+  --xmas-gold: #{$xmas-gold};
+  --xmas-green: #{$xmas-green};
+  --xmas-red: #{$xmas-red};
+  
   :deep(.sidebar-menu-item) {
-    color: $xmas-white !important;
+    color: var(--xmas-white);
     margin: 4px 8px;
     border-radius: 4px;
-    border: none !important;
+    border: none;
     font-weight: 500;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    
-    // 横向圣诞树 SVG 背景
-    background: $tree-svg-normal !important;
-    background-size: 100% 100% !important;
-    background-repeat: no-repeat !important;
+    background: $tree-svg-normal;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
     
     &:hover {
       transform: translateX(4px);
@@ -74,35 +74,35 @@ $tree-svg-active: url('./assets/christmas-tree-active.svg');
     }
     
     .el-icon, .sub-menu-icon svg {
-      color: $xmas-gold !important;
+      color: var(--xmas-gold);
       position: relative;
       z-index: 2;
       filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
     }
     
     span, div {
-      color: inherit !important;
+      color: inherit;
       position: relative;
       z-index: 2;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     }
     
     &.is-active {
-      background: $tree-svg-active !important;
-      background-size: 100% 100% !important;
-      background-repeat: no-repeat !important;
+      background: $tree-svg-active;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
       font-weight: 700;
       box-shadow: 
         0 4px 16px rgba($xmas-green, 0.5),
         0 0 15px rgba($xmas-gold, 0.3);
       
       .el-icon, .sub-menu-icon svg {
-        color: $xmas-gold !important;
+        color: var(--xmas-gold);
         filter: drop-shadow(0 0 4px rgba($xmas-gold, 0.6));
       }
       
       span, div {
-        color: $xmas-white !important;
+        color: var(--xmas-white);
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
       }
     }
@@ -110,18 +110,18 @@ $tree-svg-active: url('./assets/christmas-tree-active.svg');
   
   :deep(.sidebar-sub-menu) {
     .el-sub-menu__title {
-      color: $xmas-white !important;
-background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
+      color: var(--xmas-white);
+      background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6);
       margin: 4px 8px;
       border-radius: 8px;
-      border: 1.5px solid rgba($xmas-gold, 0.25) !important;
+      border: 1.5px solid rgba($xmas-gold, 0.25);
       font-weight: 500;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       
       &:hover {
-        background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
-        color: $xmas-white !important;
-        border-color: rgba($xmas-gold, 0.5) !important;
+        background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7));
+        color: var(--xmas-white);
+        border-color: rgba($xmas-gold, 0.5);
         transform: translateX(4px) scale(1.02);
         box-shadow: 
           0 4px 12px rgba($xmas-red, 0.3),
@@ -129,62 +129,62 @@ background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
       }
       
       .el-icon, svg {
-        color: $xmas-gold !important;
+        color: var(--xmas-gold);
       }
       
       span, div {
-        color: inherit !important;
+        color: inherit;
       }
     }
     
     // 当子菜单项选中时，父级菜单显示激活样式
     &.is-active > .el-sub-menu__title {
-      color: $xmas-white !important;
-      background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
-      border-color: rgba($xmas-gold, 0.5) !important;
+      color: var(--xmas-white);
+      background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7));
+      border-color: rgba($xmas-gold, 0.5);
       font-weight: 700;
       box-shadow: 
         0 4px 12px rgba($xmas-red, 0.3),
-        0 2px 8px rgba(0, 0, 0, 0.2) !important;
+        0 2px 8px rgba(0, 0, 0, 0.2);
       
       .el-icon, svg {
-        color: $xmas-white !important;
+        color: var(--xmas-white);
       }
     }
     
     // 子菜单容器
     .el-menu {
-background: rgba(color.adjust($xmas-green, $lightness: -8%), 0.8) !important;
+      background: rgba(color.adjust($xmas-green, $lightness: -8%), 0.8);
       
       .el-menu-item {
-        color: $xmas-white !important;
-background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
-        border: 1.5px solid rgba($xmas-gold, 0.25) !important;
+        color: var(--xmas-white);
+        background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6);
+        border: 1.5px solid rgba($xmas-gold, 0.25);
         border-radius: 8px;
-        margin: 4px 8px !important;
+        margin: 4px 8px;
         
         &:hover {
-          background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
-          color: $xmas-white !important;
-          border-color: rgba($xmas-gold, 0.5) !important;
+          background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7));
+          color: var(--xmas-white);
+          border-color: rgba($xmas-gold, 0.5);
         }
         
         &.is-active {
-          background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
-          color: $xmas-white !important;
-          border: 2px solid $xmas-gold !important;
+          background: linear-gradient(135deg, $xmas-red, $xmas-red-light);
+          color: var(--xmas-white);
+          border: 2px solid $xmas-gold;
           
           .el-icon, svg, span, div {
-            color: $xmas-white !important;
+            color: var(--xmas-white);
           }
         }
         
         .el-icon, svg {
-          color: $xmas-gold !important;
+          color: var(--xmas-gold);
         }
         
         span, div {
-          color: inherit !important;
+          color: inherit;
         }
       }
     }
