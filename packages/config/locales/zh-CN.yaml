@@ -360,6 +360,49 @@ panel:
   restoreDefault: 恢复默认设置
   exportConfig: 导出配置
   importConfig: 导入配置
+  layoutMix: 混合布局
+  layoutMixDesc: 双导航
+  layoutMixTip: 结合顶部和侧边导航优势
+  layoutHover: 悬停导航
+  layoutHoverDesc: 极简设计
+  layoutHoverTip: 极简设计，鼠标悬停展开子菜单
+  layoutMobile: 移动导航
+  layoutMobileDesc: 触控优化
+  layoutMobileTip: 适用于手机和平板的触控友好导航
+  layoutDouble: 双栏导航
+  layoutDoubleDesc: 双层菜单
+  layoutDoubleTip: 左右双栏布局，支持子菜单展开控制
+  mobileNavConfig: 移动导航配置
+  mobileNavConfigDesc: 为触控设备优化的导航体验
+  gestureSupport: 支持手势滑动操作
+  largeTouchArea: 大尺寸触控区域
+  bottomNavDesign: 底部导航栏设计
+  doubleNavConfig: 双栏导航配置
+  doubleNavConfigDesc: 配置双栏导航的子菜单展开行为
+  expandMode: 展开模式
+  animationEffect: 动画效果
+  animNone: "无"
+  animNoneTip: "不显示动画"
+  animBounce: "弹跳"
+  animBounceTip: "弹跳动画效果"
+  animPulse: "脉冲"
+  animPulseTip: "脉冲动画效果"
+  animShake: "抖动"
+  animShakeTip: "抖动动画效果"
+  # 高级设置
+  advancedSettings: "高级设置"
+  advancedSettingsDesc: "更多个性化配置选项"
+  advancedFeatures: "高级功能"
+  componentCache: "组件缓存"
+  componentCacheDesc: "提升页面切换速度"
+  pageStretch: "页面拉伸"
+  pageStretchDesc: "充分利用屏幕空间"
+  debugMode: "调试模式"
+  debugModeDesc: "控制台日志显示在右上角"
+  resetOptions: "重置选项"
+  restoreDefault: "恢复默认设置"
+  exportConfig: "导出配置"
+  importConfig: "导入配置"
 pay:
   merchant: 租户管理
   order: 订单管理

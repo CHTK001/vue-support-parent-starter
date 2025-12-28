@@ -274,6 +274,49 @@ panel:
   restoreDefault: Restore Default
   exportConfig: Export Config
   importConfig: Import Config
+  layoutMix: Mix
+  layoutMixDesc: Dual nav
+  layoutMixTip: Combines top and side navigation advantages
+  layoutHover: Hover
+  layoutHoverDesc: Minimal
+  layoutHoverTip: Minimal design, hover to expand submenus
+  layoutMobile: Mobile
+  layoutMobileDesc: Touch optimized
+  layoutMobileTip: Touch-friendly navigation for phones and tablets
+  layoutDouble: Double
+  layoutDoubleDesc: Dual menu
+  layoutDoubleTip: Left-right dual column with submenu expansion control
+  mobileNavConfig: Mobile Navigation Config
+  mobileNavConfigDesc: Navigation optimized for touch devices
+  gestureSupport: Gesture swipe support
+  largeTouchArea: Large touch areas
+  bottomNavDesign: Bottom navigation bar design
+  doubleNavConfig: Double Column Config
+  doubleNavConfigDesc: Configure submenu expansion behavior
+  expandMode: Expand Mode
+  animationEffect: Animation Effect
+  animNone: "None"
+  animNoneTip: "No animation"
+  animBounce: "Bounce"
+  animBounceTip: "Bounce animation effect"
+  animPulse: "Pulse"
+  animPulseTip: "Pulse animation effect"
+  animShake: "Shake"
+  animShakeTip: "Shake animation effect"
+  # Advanced Settings
+  advancedSettings: "Advanced Settings"
+  advancedSettingsDesc: "More personalized configuration options"
+  advancedFeatures: "Advanced Features"
+  componentCache: "Component Cache"
+  componentCacheDesc: "Improve page switching speed"
+  pageStretch: "Page Stretch"
+  pageStretchDesc: "Make full use of screen space"
+  debugMode: "Debug Mode"
+  debugModeDesc: "Display console logs in top-right corner"
+  resetOptions: "Reset Options"
+  restoreDefault: "Restore Default"
+  exportConfig: "Export Config"
+  importConfig: "Import Config"
 product:
   config: >-
     System settings, used to set system watermarks, encryption and decryption,
