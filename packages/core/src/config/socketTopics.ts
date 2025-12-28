@@ -89,10 +89,6 @@ export const MonitorTopics = {
     METRICS: "monitor:server:metrics",
     ALERT: "monitor:server:alert",
     TERMINAL: "monitor:server:terminal",
-    SSH_CONNECT: "monitor:server:ssh_connect",
-    SSH_DISCONNECT: "monitor:server:ssh_disconnect",
-    RDP_CONNECT: "monitor:server:rdp_connect",
-    VNC_CONNECT: "monitor:server:vnc_connect",
     CONNECTION_STATUS: "monitor:server:connection_status",
     CONNECTION_TEST: "monitor:server:connection_test",
     HEALTH: "monitor:server:health",
@@ -141,38 +137,43 @@ export const MonitorTopics = {
 } as const;
 
 /**
- * 远程连接模块主题 (rc - Remote Connection)
+ * 远程连接模块主题 (remote)
  * 用于远程服务器连接 (SSH/RDP/VNC)
  */
-export const RcTopics = {
+export const RemoteTopics = {
   // SSH 相关
   SSH: {
-    CONNECT: "rc:ssh:connect",
-    DATA: "rc:ssh:data",
-    INPUT: "rc:ssh:input",
-    DISCONNECT: "rc:ssh:disconnect",
-    RESIZE: "rc:ssh:resize",
-    ERROR: "rc:ssh:error",
+    CONNECT: "remote:ssh:connect",
+    DATA: "remote:ssh:data",
+    INPUT: "remote:ssh:input",
+    DISCONNECT: "remote:ssh:disconnect",
+    RESIZE: "remote:ssh:resize",
+    ERROR: "remote:ssh:error",
   },
   // RDP 相关
   RDP: {
-    CONNECT: "rc:rdp:connect",
-    DATA: "rc:rdp:data",
-    INPUT: "rc:rdp:input",
-    DISCONNECT: "rc:rdp:disconnect",
-    RESIZE: "rc:rdp:resize",
-    ERROR: "rc:rdp:error",
+    CONNECT: "remote:rdp:connect",
+    DATA: "remote:rdp:data",
+    INPUT: "remote:rdp:input",
+    DISCONNECT: "remote:rdp:disconnect",
+    RESIZE: "remote:rdp:resize",
+    ERROR: "remote:rdp:error",
   },
   // VNC 相关
   VNC: {
-    CONNECT: "rc:vnc:connect",
-    DATA: "rc:vnc:data",
-    INPUT: "rc:vnc:input",
-    DISCONNECT: "rc:vnc:disconnect",
-    RESIZE: "rc:vnc:resize",
-    ERROR: "rc:vnc:error",
+    CONNECT: "remote:vnc:connect",
+    DATA: "remote:vnc:data",
+    INPUT: "remote:vnc:input",
+    DISCONNECT: "remote:vnc:disconnect",
+    RESIZE: "remote:vnc:resize",
+    ERROR: "remote:vnc:error",
   },
 } as const;
+
+/**
+ * @deprecated 使用 RemoteTopics 替代
+ */
+export const RcTopics = RemoteTopics;
 
 /**
  * 视频模块主题 (video)
@@ -207,7 +208,7 @@ export const SocketTopics = {
   system: SystemTopics,
   service: ServiceTopics,
   monitor: MonitorTopics,
-  rc: RcTopics,
+  remote: RemoteTopics,
   video: VideoTopics,
 } as const;
 
