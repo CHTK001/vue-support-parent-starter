@@ -27,7 +27,6 @@ defineOptions({
 const { t } = useI18n();
 const router = useRouter();
 const isOpen = ref(!deviceDetection());
-//@ts-ignore
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 onBeforeMount(() => {
   useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);

@@ -29,7 +29,6 @@ export function useDataThemeChange() {
     /**紫色 */
     { color: "#4e69fd", themeColor: "#4e69fd", description: "梦幻迷人的紫色主题" },
   ]);
-  //@ts-ignore
   const { $storage } = useGlobal<GlobalPropertiesApi>();
   const dataTheme = ref<boolean>($storage?.layout?.darkMode);
   const overallStyle = ref<string>($storage?.layout?.overallStyle);

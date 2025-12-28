@@ -5,7 +5,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, type Component, pr
 import { useNav } from "../../../../hooks/useNav";
 import { useTranslationLang } from "../../../../hooks/useTranslationLang";
 import DefaultSidebarItem from "../../components/themes/DefaultSidebarItem.vue";
-//@ts-ignore
 import { getConfig, responsiveStorageNameSpace } from "@repo/config";
 import type { StorageConfigs } from "@repo/config";
 import { localStorageProxy } from "@repo/utils";

@@ -5,7 +5,6 @@ import { useResizeObserver } from "@pureadmin/utils";
 import { useEpThemeStoreHook } from "@repo/core";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ref, computed, getCurrentInstance, onMounted } from "vue";
-//@ts-ignore
 import EnterOutlined from "@repo/assets/svg/enter_outlined.svg?component";
 
 interface Emits {

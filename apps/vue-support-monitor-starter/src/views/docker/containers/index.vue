@@ -127,6 +127,7 @@
     <!-- 容器表格 -->
     <el-card class="container-table-card">
       <ScTable
+        ref="tableRef"
         :url="containerApi.getContainerPageList"
         :params="searchParams"
         stripe
@@ -344,7 +345,9 @@ import {
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ScCard } from "@repo/components";
 import { message, messageBox } from "@repo/utils";
-import { computed, onMounted, reactive, ref } from "vue";
+import { useGlobalSocket, MonitorTopics } from "@repo/core";
+import { ElNotification } from "element-plus";
+import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
 import ContainerDetailDialog from "./components/ContainerDetailDialog.vue";
 import ContainerLogsDialog from "./components/ContainerLogsDialog.vue";
 
@@ -670,11 +673,150 @@ const loadServers = async () => {
   }
 };
 
+// 获取全局Socket服务
+const globalSocket = useGlobalSocket();
+const tableRef = ref();
+
+// 设置Socket事件监听
+function setupSocketListeners() {
+  if (!globalSocket) {
+    console.warn("Global Socket服务未初始化");
+    return;
+  }
+
+  // 监听容器状态变化
+  globalSocket.on(MonitorTopics.DOCKER.CONTAINER_STATUS, (data: any) => {
+    console.log("🐳 容器状态变化:", data);
+    // 刷新表格数据
+    tableRef.value?.reload?.();
+    // 显示通知
+    ElNotification.info({
+      title: "容器状态变化",
+      message: `容器 ${data.containerName} 状态变更为: ${data.status}`,
+      duration: 3000,
+      position: "bottom-right",
+    });
+  });
+
+  // 监听容器事件
+  globalSocket.on(MonitorTopics.DOCKER.CONTAINER_EVENTS, (data: any) => {
+    console.log("📢 容器事件:", data);
+    const eventTypeMap: Record<string, string> = {
+      create: "创建",
+      start: "启动",
+      stop: "停止",
+      restart: "重启",
+      delete: "删除",
+    };
+    const eventText = eventTypeMap[data.eventType] || data.eventType;
+    if (data.success) {
+      ElNotification.success({
+        title: `容器${eventText}成功`,
+        message: data.eventMessage || `容器 ${data.containerName} ${eventText}成功`,
+        duration: 3000,
+        position: "bottom-right",
+      });
+    } else {
+      ElNotification.error({
+        title: `容器${eventText}失败`,
+        message: data.eventMessage || `容器 ${data.containerName} ${eventText}失败`,
+        duration: 5000,
+        position: "bottom-right",
+      });
+    }
+    // 刷新表格数据
+    tableRef.value?.reload?.();
+  });
+
+  // 监听Docker操作进度
+  globalSocket.on(MonitorTopics.DOCKER.PROGRESS, (data: any) => {
+    console.log("⚙️ Docker操作进度:", data);
+  });
+
+  // 监听Docker操作开始
+  globalSocket.on(MonitorTopics.DOCKER.START, (data: any) => {
+    console.log("🚀 Docker操作开始:", data);
+    ElNotification.info({
+      title: "操作开始",
+      message: `${data.operation} - ${data.containerName || data.imageName}`,
+      duration: 2000,
+      position: "bottom-right",
+    });
+  });
+
+  // 监听Docker操作完成
+  globalSocket.on(MonitorTopics.DOCKER.COMPLETE, (data: any) => {
+    console.log("✅ Docker操作完成:", data);
+    if (data.success) {
+      ElNotification.success({
+        title: "操作完成",
+        message: `${data.operation} - ${data.containerName || data.imageName} 完成`,
+        duration: 3000,
+        position: "bottom-right",
+      });
+    }
+    // 刷新表格数据
+    tableRef.value?.reload?.();
+  });
+
+  // 监听Docker操作错误
+  globalSocket.on(MonitorTopics.DOCKER.ERROR, (data: any) => {
+    console.error("❌ Docker操作错误:", data);
+    ElNotification.error({
+      title: "操作失败",
+      message: data.error || data.errorMessage || "操作执行失败",
+      duration: 5000,
+      position: "bottom-right",
+    });
+  });
+
+  // 监听通用操作完成
+  globalSocket.on(MonitorTopics.OPERATION.COMPLETE, (data: any) => {
+    if (data.type?.includes("container")) {
+      console.log("✅ 容器操作完成:", data);
+      tableRef.value?.reload?.();
+    }
+  });
+
+  // 监听通用操作错误
+  globalSocket.on(MonitorTopics.OPERATION.ERROR, (data: any) => {
+    if (data.type?.includes("container")) {
+      console.error("❌ 容器操作错误:", data);
+      ElNotification.error({
+        title: "操作失败",
+        message: data.error || "操作执行失败",
+        duration: 5000,
+        position: "bottom-right",
+      });
+    }
+  });
+}
+
+// 清理Socket事件监听
+function cleanupSocketListeners() {
+  if (!globalSocket) return;
+
+  globalSocket.off(MonitorTopics.DOCKER.CONTAINER_STATUS);
+  globalSocket.off(MonitorTopics.DOCKER.CONTAINER_EVENTS);
+  globalSocket.off(MonitorTopics.DOCKER.PROGRESS);
+  globalSocket.off(MonitorTopics.DOCKER.START);
+  globalSocket.off(MonitorTopics.DOCKER.COMPLETE);
+  globalSocket.off(MonitorTopics.DOCKER.ERROR);
+  globalSocket.off(MonitorTopics.OPERATION.COMPLETE);
+  globalSocket.off(MonitorTopics.OPERATION.ERROR);
+}
+
 onMounted(() => {
-  // Global Socket已在App层面初始化
+  // 设置Socket事件监听
+  setupSocketListeners();
   loadContainers();
   loadServers();
 });
+
+onUnmounted(() => {
+  cleanupSocketListeners();
+});
+
 const terminalRef = ref();
 
 async function openExec(row: any) {

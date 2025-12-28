@@ -66,10 +66,9 @@ export function useNav() {
     return !pureApp.getSidebarStatus;
   });
 
-  const device = computed(() => {
+const device = computed(() => {
     return pureApp.getDevice;
   });
-  //@ts-ignore
   const { $storage } = useGlobal<GlobalPropertiesApi>();
   const layout = computed(() => {
     return $storage?.layout?.layout;

@@ -324,8 +324,7 @@ function handleMenuHover(menu: any, event: MouseEvent) {
   hoveredMenu.value = menu;
 
   // 在setTimeout之前获取rect，避免异步回调中event.currentTarget为null
-  //@ts-ignore
-  const rect = event.currentTarget.getBoundingClientRect();
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
 
   showTimer.value = setTimeout(() => {
     // 计算子菜单的预估高度（根据子菜单项数量估算）
@@ -413,8 +412,7 @@ async function loadFavorites() {
   try {
     const stored = await indexedDBProxy().getItem("favoriteMenus");
     if (stored) {
-      //@ts-ignore
-      favoriteMenus.value = stored;
+      favoriteMenus.value = stored as typeof favoriteMenus.value;
     }
   } catch (error) {
     console.warn("加载收藏菜单失败:", error);

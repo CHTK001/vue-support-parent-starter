@@ -42,7 +42,6 @@ import DoubleIcon from "@repo/assets/svg/double.svg?component";
 const { t } = useI18n();
 const { device } = useNav();
 const { isDark } = useDark();
-//@ts-ignore
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
 // 判断当前是否为非默认主题（节日主题等）
