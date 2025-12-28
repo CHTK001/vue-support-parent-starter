@@ -246,6 +246,7 @@ watch(
   flex-wrap: nowrap;
   white-space: nowrap;
 
+  // 覆盖 element-plus 面包屑默认样式
   :deep(.el-breadcrumb__inner) {
     display: inline-flex;
     align-items: center;
@@ -254,7 +255,7 @@ watch(
   :deep(.el-breadcrumb__item) {
     display: inline-flex;
     align-items: center;
-    float: none !important;
+    float: none; // element-plus 默认 float:left，需覆盖
 
     .el-breadcrumb__inner {
       color: var(--el-text-color-secondary);
@@ -268,9 +269,9 @@ watch(
 }
 
 .breadcrumb-item {
-  display: inline-flex !important;
+  display: inline-flex;
   align-items: center;
-  float: none !important;
+  float: none;
 }
 
 .breadcrumb-link {
@@ -354,7 +355,7 @@ watch(
 // 面包屑动画 - 禁用以消除闪烁
 .breadcrumb-enter-active,
 .breadcrumb-leave-active {
-  transition: none !important;
+  transition: none;
 }
 
 .breadcrumb-enter-from,
