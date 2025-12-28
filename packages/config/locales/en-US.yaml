@@ -225,6 +225,55 @@ panel:
   pureVerticalTip: The menu on the left is familiar and friendly
   pureWeakModel: Weak Model
   transition: Animation settings
+  themeSkin: Theme Skin
+  themeSkinDesc: Manage and configure system theme skins
+  festivalThemeAuto: Auto Festival Theme
+  festivalThemeAutoDesc: Automatically detect and apply festival themes
+  festivalThemeOffTip: Festival decorations will still display but theme styles won't auto-switch
+  autoThemeEnabled: Auto Theme Enabled
+  autoThemeEnabledDesc: System will automatically apply festival themes based on current date
+  currentThemeLabel: Current Theme:
+  defaultTheme: Default
+  aiChatSkin: AI Assistant Skin
+  aiChatSkinDesc: Customize AI assistant appearance
+  aiThemePurple: Purple
+  aiThemePurpleTip: Default purple gradient
+  aiThemeBlue: Blue
+  aiThemeBlueTip: Tech blue style
+  aiThemeGreen: Green
+  aiThemeGreenTip: Fresh green style
+  aiThemeOrange: Orange
+  aiThemeOrangeTip: Vibrant orange style
+  aiThemePink: Pink
+  aiThemePinkTip: Cute pink style
+  aiThemeDark: Dark
+  aiThemeDarkTip: Cool dark style
+  cardColorAll: All Colors
+  cardColorAllTip: Cards use random gradients
+  cardColorThird: 1/3 Colors
+  cardColorThirdTip: Use partial color combinations
+  cardColorWhite: White Mode
+  cardColorWhiteTip: All cards use white background
+  layoutModeDesc: Choose your preferred navigation layout
+  layoutVertical: Vertical
+  layoutVerticalDesc: Side navigation
+  layoutVerticalTip: Classic sidebar navigation for feature-rich systems
+  layoutHorizontal: Horizontal
+  layoutHorizontalDesc: Top navigation
+  layoutHorizontalTip: Top navigation bar design, maximize screen width
+  advancedSettings: Advanced Settings
+  advancedSettingsDesc: More personalization options
+  advancedFeatures: Advanced Features
+  componentCache: Component Cache
+  componentCacheDesc: Improve page switching speed
+  pageStretch: Page Stretch
+  pageStretchDesc: Maximize screen space
+  debugMode: Debug Mode
+  debugModeDesc: Show console logs in top right corner
+  resetOptions: Reset Options
+  restoreDefault: Restore Default
+  exportConfig: Export Config
+  importConfig: Import Config
 product:
   config: >-
     System settings, used to set system watermarks, encryption and decryption,

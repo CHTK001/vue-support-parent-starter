@@ -311,6 +311,55 @@ panel:
   pureVerticalTip: 左侧菜单，亲切熟悉
   pureWeakModel: 色弱模式
   transition: 动画设置
+  themeSkin: 主题皮肤
+  themeSkinDesc: 管理和配置系统皮肤主题
+  festivalThemeAuto: 节日主题自动切换
+  festivalThemeAutoDesc: 自动检测并应用节日主题，关闭后需手动切换主题
+  festivalThemeOffTip: 关闭自动切换后，节日装饰元素仍会显示，但不会自动切换主题样式
+  autoThemeEnabled: 自动主题已启用
+  autoThemeEnabledDesc: 系统将根据当前日期自动应用节日主题，节日主题已隐藏
+  currentThemeLabel: 当前主题：
+  defaultTheme: 默认
+  aiChatSkin: AI 助手皮肤
+  aiChatSkinDesc: 自定义 AI 助手的外观主题
+  aiThemePurple: 紫色
+  aiThemePurpleTip: 默认紫色渐变
+  aiThemeBlue: 蓝色
+  aiThemeBlueTip: 蓝色科技风
+  aiThemeGreen: 绿色
+  aiThemeGreenTip: 绿色清新风
+  aiThemeOrange: 橙色
+  aiThemeOrangeTip: 橙色活力风
+  aiThemePink: 粉色
+  aiThemePinkTip: 粉色可爱风
+  aiThemeDark: 暗黑
+  aiThemeDarkTip: 暗黑酷炫风
+  cardColorAll: 全部颜色
+  cardColorAllTip: 所有卡片使用随机渐变色
+  cardColorThird: 1/3颜色
+  cardColorThirdTip: 仅使用部分颜色组合
+  cardColorWhite: 纯白模式
+  cardColorWhiteTip: 所有卡片使用纯白背景
+  layoutModeDesc: 选择适合您的导航布局模式
+  layoutVertical: 纵向布局
+  layoutVerticalDesc: 侧边导航
+  layoutVerticalTip: 经典侧边栏导航，适合功能丰富的管理系统
+  layoutHorizontal: 横向布局
+  layoutHorizontalDesc: 顶部导航
+  layoutHorizontalTip: 顶部导航栏设计，充分利用屏幕宽度
+  advancedSettings: 高级设置
+  advancedSettingsDesc: 更多个性化配置选项
+  advancedFeatures: 高级功能
+  componentCache: 组件缓存
+  componentCacheDesc: 提升页面切换速度
+  pageStretch: 页面拉伸
+  pageStretchDesc: 充分利用屏幕空间
+  debugMode: 调试模式
+  debugModeDesc: 控制台日志显示在右上角
+  resetOptions: 重置选项
+  restoreDefault: 恢复默认设置
+  exportConfig: 导出配置
+  importConfig: 导入配置
 pay:
   merchant: 租户管理
   order: 订单管理
