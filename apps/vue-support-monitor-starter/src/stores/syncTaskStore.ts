@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed, onUnmounted } from 'vue';
-import { useConfigStoreHook } from '@repo/core';
+import { useConfigStoreHook, MonitorTopics } from '@repo/core';
 
 /**
  * 同步任务状态数据
@@ -55,12 +55,7 @@ export interface SyncTaskMetrics {
 /**
  * WebSocket Topic 常量（与后端 SyncTaskWebSocketService 对应）
  */
-const TOPICS = {
-  STATUS: '/monitor/sync/task/status',
-  LOG: '/monitor/sync/task/log',
-  PROGRESS: '/monitor/sync/task/progress',
-  METRICS: '/monitor/sync/task/metrics',
-};
+const TOPICS = MonitorTopics.SYNC;
 
 /**
  * 同步任务实时数据状态管理

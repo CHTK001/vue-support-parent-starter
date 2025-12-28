@@ -214,8 +214,13 @@ panel:
   pureTagsStyleCardTip: Card tags for efficient browsing
   pureTagsStyleChrome: Chrome
   pureTagsStyleChromeTip: Chrome style is classic and elegant
+  pureTagsStyleModern: Modern
+  pureTagsStyleModernTip: Gradient background, shadow effects, modern visual experience
   pureTagsStyleSmart: Smart
   pureTagsStyleSmartTip: Smart tags add fun and brilliance
+  resetSuccess: Settings have been reset
+  exportSuccess: Settings exported
+  importSuccess: Settings imported
   pureThemeColor: Theme Color
   pureVerticalTip: The menu on the left is familiar and friendly
   pureWeakModel: Weak Model

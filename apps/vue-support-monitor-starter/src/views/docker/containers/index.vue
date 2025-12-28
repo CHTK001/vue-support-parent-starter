@@ -133,7 +133,7 @@
         :loading="loading"
         class="container-table"
         table-name="soft-containers"
-        height="auto"
+        height="100%"
       >
         <el-table-column type="selection" width="55" />
 
@@ -715,7 +715,9 @@ async function openExec(row: any) {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: calc(100vh - 60px);
+  min-height: calc(100vh - 120px);
+  height: calc(100vh - 120px);
+  overflow: hidden;
 }
 
 /* 统计卡片 */
@@ -804,6 +806,21 @@ async function openExec(row: any) {
   background: var(--app-card-bg);
   border-radius: 8px;
   box-shadow: var(--app-card-shadow);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.container-table-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .container-info {

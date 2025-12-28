@@ -300,8 +300,13 @@ panel:
   pureTagsStyleCardTip: 卡片标签，高效浏览
   pureTagsStyleChrome: 谷歌
   pureTagsStyleChromeTip: 谷歌风格，经典美观
+  pureTagsStyleModern: 现代
+  pureTagsStyleModernTip: 渐变背景、阴影效果，现代化视觉体验
   pureTagsStyleSmart: 灵动
   pureTagsStyleSmartTip: 灵动标签，添趣生辉
+  resetSuccess: 已恢复默认设置
+  exportSuccess: 设置已导出
+  importSuccess: 设置已导入
   pureThemeColor: 主题色
   pureVerticalTip: 左侧菜单，亲切熟悉
   pureWeakModel: 色弱模式
