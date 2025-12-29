@@ -234,22 +234,51 @@ const handleJsonMessage = (data: string) => {
   }
 };
 
-// 处理屏幕数据
+// 处理屏幕数据（二进制图片数据）
+// 后端格式: [4字节格式长度][格式字符串如"png"][图像数据]
 const handleScreenData = (data: ArrayBuffer) => {
   if (!screenCanvas.value) return;
   
   const ctx = screenCanvas.value.getContext('2d');
   if (!ctx) return;
   
-  // 解析二进制数据包格式: [4字节格式长度][格式字符串][图像数据]
-  const view = new DataView(data);
-  const formatLen = view.getInt32(0);
-  const formatBytes = new Uint8Array(data, 4, formatLen);
-  const format = new TextDecoder().decode(formatBytes);
-  const imageData = new Uint8Array(data, 4 + formatLen);
-  
-  // 创建 Blob 并渲染图像
-  const blob = new Blob([imageData], { type: `image/${format}` });
+  try {
+    const dataView = new DataView(data);
+    
+    // 读取格式长度（Big Endian 4字节）
+    const formatLength = dataView.getInt32(0);
+    
+    // 验证格式长度合理性
+    if (formatLength <= 0 || formatLength > 20 || formatLength + 4 > data.byteLength) {
+      // 如果格式长度不合理，尝试直接作为PNG处理（兼容旧格式）
+      console.debug('尝试直接解析为PNG图片');
+      renderImage(data, 'image/png', ctx);
+      return;
+    }
+    
+    // 读取格式字符串
+    const formatBytes = new Uint8Array(data, 4, formatLength);
+    const format = new TextDecoder().decode(formatBytes);
+    
+    // 提取图像数据
+    const imageData = data.slice(4 + formatLength);
+    
+    // 根据格式确定MIME类型
+    const mimeType = format === 'png' ? 'image/png' : 
+                     format === 'jpg' || format === 'jpeg' ? 'image/jpeg' : 
+                     'image/png';
+    
+    renderImage(imageData, mimeType, ctx);
+  } catch (e) {
+    console.error('解析屏幕数据失败:', e);
+    // 降级尝试直接解析
+    renderImage(data, 'image/png', ctx);
+  }
+};
+
+// 渲染图像到画布
+const renderImage = (imageData: ArrayBuffer, mimeType: string, ctx: CanvasRenderingContext2D) => {
+  const blob = new Blob([imageData], { type: mimeType });
   const url = URL.createObjectURL(blob);
   
   const img = new Image();
@@ -263,6 +292,10 @@ const handleScreenData = (data: ArrayBuffer) => {
       ctx.drawImage(img, 0, 0);
     }
     URL.revokeObjectURL(url);
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    console.error('图片加载失败');
   };
   img.src = url;
 };
