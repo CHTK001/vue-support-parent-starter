@@ -169,6 +169,24 @@ export const RemoteTopics = {
     RESIZE: "remote:custom:resize",
     ERROR: "remote:custom:error",
   },
+  // 远程桌面相关（图片传输模式）
+  DESKTOP: {
+    CONNECT: "remote:desktop:connect",
+    CONNECTED: "remote:desktop:connected",
+    DISCONNECT: "remote:desktop:disconnect",
+    DISCONNECTED: "remote:desktop:disconnected",
+    SCREEN: "remote:desktop:screen",
+    MOUSE_MOVE: "remote:desktop:mouse_move",
+    MOUSE_CLICK: "remote:desktop:mouse_click",
+    MOUSE_WHEEL: "remote:desktop:mouse_wheel",
+    KEY_PRESS: "remote:desktop:key_press",
+    KEY_RELEASE: "remote:desktop:key_release",
+    SET_QUALITY: "remote:desktop:set_quality",
+    SET_COMPRESSOR: "remote:desktop:set_compressor",
+    CAPTURE_RESET: "remote:desktop:capture_reset",
+    MODE_DETECTED: "remote:desktop:mode_detected",
+    ERROR: "remote:desktop:error",
+  },
 } as const;
 
 /**

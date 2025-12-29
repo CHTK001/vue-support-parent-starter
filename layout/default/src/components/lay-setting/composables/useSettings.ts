@@ -11,9 +11,13 @@ import type { StorageConfig } from "../../../types/theme";
 /**
  * 设置状态类型
  */
+/** 可用的动画类型 */
+export type TransitionType = 'fade-slide' | 'fade-scale' | 'fade-only' | 'slide-right';
+
 export interface SettingsState {
   // 过渡动画
   menuTransition: boolean;
+  transitionType: TransitionType;
   // 布局参数
   contentMargin: number;
   layoutRadius: number;
@@ -67,6 +71,7 @@ export function useSettings() {
   // ===== 初始化状态 =====
   const settings = reactive<SettingsState>({
     menuTransition: $storage.configure?.menuTransition ?? false,
+    transitionType: $storage.configure?.transitionType ?? 'fade-slide',
     contentMargin: $storage.configure?.contentMargin ?? 16,
     layoutRadius: $storage.configure?.layoutRadius ?? 10,
     layoutBlur: $storage.configure?.layoutBlur ?? 4,
@@ -240,6 +245,12 @@ export function useSettings() {
     emitter.emit("menuTransitionChange", value);
   }
 
+  function setTransitionType(value: TransitionType): void {
+    settings.transitionType = value;
+    saveToStorage("transitionType", value);
+    emitter.emit("transitionTypeChange", value);
+  }
+
   // ===== 菜单设置 =====
   
   function setShowNewMenu(value: boolean): void {
@@ -325,6 +336,7 @@ export function useSettings() {
     setKeepAlive,
     setDebugMode,
     setMenuTransition,
+    setTransitionType,
     // 菜单设置
     setShowNewMenu,
     setNewMenuText,

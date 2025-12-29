@@ -6,6 +6,7 @@ import {
   closeGlobalSocketService,
   getGlobalSocketService,
   initGlobalSocketService,
+  setGlobalSocketConfig,
   type ProtocolType,
 } from "../../config/socketService";
 import { useUserStoreHook } from "../../store/modules/UserStore";
@@ -243,11 +244,13 @@ export const useConfigStore = defineStore({
         const protocol =
           (this.systemSetting["config:SocketProtocol"] as ProtocolType) ||
           "socketio";
-        this.openSocket(
-          this.systemSetting["config:SocketUrl"]?.split(","),
-          this.systemSetting["config:SocketPath"],
-          protocol
-        );
+        const urls = this.systemSetting["config:SocketUrl"]?.split(",");
+        const context = this.systemSetting["config:SocketPath"];
+        
+        // 缓存全局配置，供 createNamedSocketService 使用
+        setGlobalSocketConfig({ protocol, urls, context });
+        
+        this.openSocket(urls, context, protocol);
       }
       // 初始化百度统计
       if (this.systemSetting["config:BaiduHmId"]) {

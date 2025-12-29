@@ -1,0 +1,88 @@
+// ==================== 中秋主题样式 ====================
+html[data-skin="mid-autumn"] {
+  $autumn-purple: #6a1b9a;
+  $autumn-gold: #ffc107;
+  $autumn-orange: #ff9800;
+  $autumn-dark: #1a0a2e;
+  $autumn-border: rgba(106, 27, 154, 0.3);
+
+  .toast-card {
+    background: linear-gradient(135deg, rgba(26, 10, 46, 0.98) 0%, rgba(40, 20, 60, 0.98) 100%) !important;
+    border: 1px solid $autumn-border !important;
+    box-shadow:
+      0 8px 32px rgba(106, 27, 154, 0.25),
+      0 0 30px rgba(255, 193, 7, 0.08) !important;
+    position: relative;
+    overflow: hidden;
+
+    // 顶部月光渐变
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        $autumn-gold 30%,
+        $autumn-purple 50%,
+        $autumn-gold 70%,
+        transparent 100%
+      );
+      z-index: 1;
+    }
+
+    &:hover {
+      border-color: $autumn-gold !important;
+      box-shadow:
+        0 12px 40px rgba(106, 27, 154, 0.35),
+        0 0 40px rgba(255, 193, 7, 0.12) !important;
+    }
+
+    // 消息级别样式
+    &.toast-level-warning {
+      border-left: 3px solid $autumn-orange !important;
+    }
+
+    &.toast-level-error {
+      border-left: 3px solid #e91e63 !important;
+    }
+
+    &.toast-level-success {
+      border-left: 3px solid $autumn-gold !important;
+    }
+  }
+
+  .toast-default-icon {
+    background: linear-gradient(135deg, $autumn-purple 0%, $autumn-gold 100%) !important;
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+  }
+
+  .toast-title {
+    color: #fff !important;
+  }
+
+  .toast-time {
+    color: rgba(255, 193, 7, 0.6) !important;
+  }
+
+  .toast-body {
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+
+  .toast-close {
+    background: rgba(255, 193, 7, 0.1) !important;
+    color: $autumn-gold !important;
+    border: 1px solid rgba(255, 193, 7, 0.2);
+
+    &:hover {
+      background: rgba(255, 193, 7, 0.2) !important;
+    }
+  }
+
+  .toast-progress {
+    background: linear-gradient(90deg, $autumn-purple, $autumn-gold) !important;
+  }
+}

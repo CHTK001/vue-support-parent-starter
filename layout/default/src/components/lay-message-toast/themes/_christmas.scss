@@ -1,0 +1,86 @@
+// ==================== 圣诞主题样式 ====================
+html[data-skin="christmas"] {
+  $christmas-red: #c41e3a;
+  $christmas-green: #228b22;
+  $christmas-gold: #ffd700;
+  $christmas-white: #fffafa;
+  $christmas-border: rgba(196, 30, 58, 0.3);
+
+  .toast-card {
+    background: linear-gradient(135deg, $christmas-white 0%, #fff 100%) !important;
+    border: 1px solid $christmas-border !important;
+    box-shadow:
+      0 8px 32px rgba(196, 30, 58, 0.12),
+      0 4px 16px rgba(0, 0, 0, 0.06) !important;
+    position: relative;
+    overflow: hidden;
+
+    // 顶部红绿条纹
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: repeating-linear-gradient(
+        90deg,
+        $christmas-red 0px,
+        $christmas-red 15px,
+        $christmas-green 15px,
+        $christmas-green 30px
+      );
+      z-index: 1;
+    }
+
+    &:hover {
+      border-color: $christmas-red !important;
+      box-shadow:
+        0 12px 40px rgba(196, 30, 58, 0.18),
+        0 6px 20px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    // 消息级别样式
+    &.toast-level-warning {
+      border-left: 3px solid $christmas-gold !important;
+    }
+
+    &.toast-level-error {
+      border-left: 3px solid $christmas-red !important;
+    }
+
+    &.toast-level-success {
+      border-left: 3px solid $christmas-green !important;
+    }
+  }
+
+  .toast-default-icon {
+    background: linear-gradient(135deg, $christmas-red 0%, $christmas-green 100%) !important;
+    box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);
+  }
+
+  .toast-title {
+    color: $christmas-red !important;
+  }
+
+  .toast-time {
+    color: rgba(34, 139, 34, 0.7) !important;
+  }
+
+  .toast-body {
+    color: rgba(0, 0, 0, 0.65) !important;
+  }
+
+  .toast-close {
+    background: rgba(196, 30, 58, 0.08) !important;
+    color: $christmas-red !important;
+
+    &:hover {
+      background: rgba(196, 30, 58, 0.15) !important;
+    }
+  }
+
+  .toast-progress {
+    background: linear-gradient(90deg, $christmas-red, $christmas-green) !important;
+  }
+}

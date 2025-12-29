@@ -24,7 +24,6 @@ import {
 } from "@pureadmin/utils";
 import {
   computed,
-  defineAsyncComponent,
   defineComponent,
   h,
   markRaw,
@@ -36,6 +35,7 @@ import {
   ref,
   watch,
 } from "vue";
+import { createLayoutAsyncComponent } from "./utils/asyncComponentLoader";
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
 import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
@@ -63,10 +63,11 @@ window.onload = () => {
   });
 };
 
-const CardNavigation = defineAsyncComponent(
+// 使用带 loading/error 状态的异步组件加载器
+const CardNavigation = createLayoutAsyncComponent(
   () => import("./components/lay-sidebar/components/CardNavigation.vue")
 );
-const LayContent = defineAsyncComponent(
+const LayContent = createLayoutAsyncComponent(
   () => import("./components/lay-content/index.vue")
 );
 const NavVertical = markRaw(NavVerticalLayout);

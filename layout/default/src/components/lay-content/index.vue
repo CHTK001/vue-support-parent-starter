@@ -1,23 +1,24 @@
 <script setup lang="ts">
-import { emitter } from "@repo/core";
 import { isNumber, useGlobal } from "@pureadmin/utils";
 import { usePermissionStoreHook } from "@repo/core";
 import {
   computed,
-  defineComponent,
-  h,
   nextTick,
   onMounted,
   onBeforeUnmount,
   ref,
-  Transition,
   watch,
+  Suspense,
+  onErrorCaptured,
 } from "vue";
+import { useLayoutEvents } from "../../hooks/useLayoutEvents";
 import { useI18n } from "vue-i18n";
-import { useRouter, useRoute } from "vue-router";
+import { useRoute } from "vue-router";
 import { useTags } from "../../hooks/useTag";
 import LayFooter from "../lay-footer/index.vue";
 import LayFrame from "../lay-frame/index.vue";
+import ContentRenderer from "./components/ContentRenderer.vue";
+import RouteLoadingSkeleton from "./components/RouteLoadingSkeleton.vue";
 
 // 离开确认功能
 let beforeUnloadHandler: ((e: BeforeUnloadEvent) => string) | null = null;
@@ -57,11 +58,6 @@ const isKeepAlive = ref(
   $storage?.configure?.keepAlive ?? $config?.KeepAlive ?? true
 );
 
-// 监听 keepAlive 变更事件
-emitter.on("keepAliveChange", (value: boolean) => {
-  isKeepAlive.value = value;
-});
-
 const transitions = computed(() => {
   return (route) => {
     return route.meta.transition;
@@ -85,41 +81,32 @@ const layoutBlur = computed(() => {
 });
 
 const hideFooter = ref($storage?.configure.hideFooter ?? false);
-
-// 菜单过渡动画配置
 const menuTransition = ref($storage?.configure?.menuTransition ?? false);
-
-// 监听菜单过渡动画变更
-emitter.on("menuTransitionChange", (value: boolean) => {
-  menuTransition.value = value;
-});
-
-// 监听页脚显示/隐藏事件
-emitter.on("hideFooterChange", (value: boolean) => {
-  hideFooter.value = value;
-});
-
-// 离开确认功能 - 从存储中读取初始值
+const transitionType = ref($storage?.configure?.transitionType ?? 'fade-slide');
 const confirmOnLeave = ref($storage?.configure?.confirmOnLeave ?? false);
+
+// 初始化离开确认功能
 if (confirmOnLeave.value) {
   enableConfirmOnLeave();
 }
 
-// 监听离开确认设置变化
-emitter.on("confirmOnLeaveChange", (value: boolean) => {
-  confirmOnLeave.value = value;
-  if (value) {
-    enableConfirmOnLeave();
-  } else {
-    disableConfirmOnLeave();
-  }
-});
+// 使用 useLayoutEvents 统一管理所有事件，自动在组件卸载时注销
+useLayoutEvents([
+  { name: 'keepAliveChange', handler: (v: boolean) => { isKeepAlive.value = v; } },
+  { name: 'menuTransitionChange', handler: (v: boolean) => { menuTransition.value = v; } },
+  { name: 'transitionTypeChange', handler: (v: string) => { transitionType.value = v; } },
+  { name: 'hideFooterChange', handler: (v: boolean) => { hideFooter.value = v; } },
+  {
+    name: 'confirmOnLeaveChange',
+    handler: (v: boolean) => {
+      confirmOnLeave.value = v;
+      v ? enableConfirmOnLeave() : disableConfirmOnLeave();
+    },
+  },
+]);
 
+// 组件卸载时清理 beforeunload 监听器
 onBeforeUnmount(() => {
-  emitter.off("hideFooterChange");
-  emitter.off("keepAliveChange");
-  emitter.off("menuTransitionChange");
-  emitter.off("confirmOnLeaveChange");
   disableConfirmOnLeave();
 });
 
@@ -174,61 +161,60 @@ onMounted(() => {
   });
 });
 
-// 根据配置启用过渡动画
-const transitionMain = defineComponent({
-  props: {
-    route: {
-      type: undefined,
-      required: true,
-    },
-  },
-  setup(props, { slots }) {
-    // 获取过渡动画名称
-    const getTransitionName = computed(() => {
-      if (!menuTransition.value) return undefined;
-      // 支持路由级别的自定义过渡动画
-      const routeTransition = props.route?.meta?.transition;
-      if (routeTransition) return routeTransition;
-      // 默认使用 fade-slide 过渡
-      return "fade-slide";
-    });
-
-    return () => {
-      const content = slots.default?.();
-      
-      // 如果未启用过渡动画，直接返回内容
-      if (!menuTransition.value) {
-        return content;
-      }
-      
-      // 启用过渡动画
-      return h(
-        Transition,
-        {
-          name: getTransitionName.value,
-          mode: "out-in",
-          appear: true,
-        },
-        () => content
-      );
-    };
-  },
-});
-
-const router = useRouter();
+const route = useRoute();
 
 // 路由切换loading状态
 const routeLoading = ref(false);
-const MIN_LOADING_TIME = 200; // 最小显示时间(ms)，避免闪烁
+const suspenseLoading = ref(false); // Suspense 加载状态
+const MIN_LOADING_TIME = 300; // 最小显示时间(ms)，避免闪烁
 let loadingTimer: ReturnType<typeof setTimeout> | null = null;
+let suspenseTimer: ReturnType<typeof setTimeout> | null = null;
 
-const route = useRoute();
+// 组合加载状态：路由切换或 Suspense 加载中
+const isLoading = computed(() => routeLoading.value || suspenseLoading.value);
+
+// Suspense 事件处理
+const onSuspensePending = () => {
+  // 延迟显示 loading，避免快速加载时闪烁
+  if (suspenseTimer) {
+    clearTimeout(suspenseTimer);
+  }
+  suspenseTimer = setTimeout(() => {
+    suspenseLoading.value = true;
+  }, 100);
+};
+
+const onSuspenseResolve = () => {
+  if (suspenseTimer) {
+    clearTimeout(suspenseTimer);
+    suspenseTimer = null;
+  }
+  // 确保最小显示时间
+  setTimeout(() => {
+    suspenseLoading.value = false;
+  }, MIN_LOADING_TIME);
+};
+
+const onSuspenseFallback = () => {
+  suspenseLoading.value = true;
+};
+
+// 捕获异步组件加载错误
+const loadError = ref<Error | null>(null);
+onErrorCaptured((err) => {
+  loadError.value = err;
+  suspenseLoading.value = false;
+  console.error('组件加载错误:', err);
+  return false; // 阻止错误继续传播
+});
 
 // 监听路由变化，使用 flush: 'sync' 确保立即执行
 watch(
   () => route.path,
   (newPath, oldPath) => {
     if (newPath !== oldPath && oldPath !== undefined) {
+      // 重置错误状态
+      loadError.value = null;
       // 路由变化时立即显示loading
       routeLoading.value = true;
       
@@ -252,6 +238,9 @@ onBeforeUnmount(() => {
   if (loadingTimer) {
     clearTimeout(loadingTimer);
   }
+  if (suspenseTimer) {
+    clearTimeout(suspenseTimer);
+  }
 });
 </script>
 
@@ -260,15 +249,37 @@ onBeforeUnmount(() => {
     :class="[fixedHeader ? 'app-main' : 'app-main-nofixed-header']"
     :style="getSectionStyle"
   >
-    <!-- 路由切换时的loading骨架屏 -->
-    <div v-if="routeLoading" class="route-loading-container">
-      <el-skeleton :rows="8" animated />
+    <!-- 加载状态骨架屏 -->
+    <Transition :name="menuTransition ? transitionType : undefined" mode="out-in">
+      <RouteLoadingSkeleton 
+        v-if="isLoading" 
+        :rows="6" 
+        :show-header="true"
+        loading-text="页面加载中..."
+        :min-height="fixedHeader ? 'calc(100vh - 120px)' : '400px'"
+      />
+    </Transition>
+
+    <!-- 错误状态 -->
+    <div v-if="loadError && !isLoading" class="route-error-container">
+      <el-result icon="error" title="加载失败" :sub-title="loadError.message">
+        <template #extra>
+          <el-button type="primary" @click="loadError = null; $router.go(0)">
+            重新加载
+          </el-button>
+        </template>
+      </el-result>
     </div>
 
-    <router-view v-show="!routeLoading">
+    <router-view v-show="!isLoading && !loadError">
       <template #default="{ Component, route }">
-        <LayFrame :currComp="Component" :currRoute="route">
-          <template #default="{ Comp, fullPath, frameInfo }">
+        <Suspense
+          @pending="onSuspensePending"
+          @resolve="onSuspenseResolve"
+          @fallback="onSuspenseFallback"
+        >
+          <LayFrame :currComp="Component" :currRoute="route">
+            <template #default="{ Comp, fullPath, frameInfo }">
             <div
               v-if="fixedHeader"
               class="content-area"
@@ -292,26 +303,15 @@ onBeforeUnmount(() => {
                   margin: contentMargin + 'px'
                 }"
               >
-                <transitionMain :route="route">
-                <keep-alive
-                    v-if="isKeepAlive"
-                    :include="cachePageList"
-                  >
-                    <component
-                      :is="Comp"
-                      :key="route.name"
-                      :frameInfo="frameInfo"
-                      class="main-content"
-                    />
-                  </keep-alive>
-                  <component
-                    :is="Comp"
-                    v-else
-                    :key="route.name"
-                    :frameInfo="frameInfo"
-                    class="main-content"
-                  />
-                </transitionMain>
+                <ContentRenderer
+                  :comp="Comp"
+                  :route="route"
+                  :is-keep-alive="isKeepAlive"
+                  :cache-page-list="cachePageList"
+                  :frame-info="frameInfo"
+                  :menu-transition="menuTransition"
+                  :transition-type="transitionType"
+                />
               </el-card>
               <el-scrollbar
                 v-else
@@ -322,28 +322,16 @@ onBeforeUnmount(() => {
                   'border-radius': layoutRadius + 'px !important',
                 }"
               >
-                <transitionMain :route="route">
-                <keep-alive
-                    v-if="isKeepAlive"
-                    :include="cachePageList"
-                  >
-                    <component
-                      :is="Comp"
-                      :key="route.name"
-                      :frameInfo="frameInfo"
-                      class="main-content"
-                      :style="{ 'border-radius': layoutRadius + 'px' }"
-                    />
-                  </keep-alive>
-                  <component
-                    :is="Comp"
-                    v-else
-                    :key="route.name"
-                    :frameInfo="frameInfo"
-                    class="main-content"
-                    :style="{ 'border-radius': layoutRadius + 'px' }"
-                  />
-                </transitionMain>
+                <ContentRenderer
+                  :comp="Comp"
+                  :route="route"
+                  :is-keep-alive="isKeepAlive"
+                  :cache-page-list="cachePageList"
+                  :frame-info="frameInfo"
+                  :layout-radius="layoutRadius"
+                  :menu-transition="menuTransition"
+                  :transition-type="transitionType"
+                />
               </el-scrollbar>
             </div>
             <div v-else class="grow bg-layout">
@@ -357,26 +345,15 @@ onBeforeUnmount(() => {
                   margin: contentMargin + 'px'
                 }"
               >
-                <transitionMain :route="route">
-                  <keep-alive
-                    v-if="isKeepAlive"
-                    :include="cachePageList"
-                  >
-                    <component
-                      :is="Comp"
-                      :key="route.name"
-                      :frameInfo="frameInfo"
-                      class="main-content"
-                    />
-                  </keep-alive>
-                  <component
-                    :is="Comp"
-                    v-else
-                    :key="route.name"
-                    :frameInfo="frameInfo"
-                    class="main-content"
-                  />
-                </transitionMain>
+                <ContentRenderer
+                  :comp="Comp"
+                  :route="route"
+                  :is-keep-alive="isKeepAlive"
+                  :cache-page-list="cachePageList"
+                  :frame-info="frameInfo"
+                  :menu-transition="menuTransition"
+                  :transition-type="transitionType"
+                />
               </el-card>
               <div
                 v-else
@@ -388,32 +365,29 @@ onBeforeUnmount(() => {
                   'border-radius': layoutRadius + 'px  !important'
                 }"
               >
-                <transitionMain :route="route">
-                  <keep-alive
-                    v-if="isKeepAlive"
-                    :include="cachePageList"
-                  >
-                    <component
-                      :is="Comp"
-                      :key="route.name"
-                      :frameInfo="frameInfo"
-                      class="main-content"
-                      :style="{ 'border-radius': layoutRadius + 'px' }"
-                    />
-                  </keep-alive>
-                  <component
-                    :is="Comp"
-                    v-else
-                    :key="route.name"
-                    :frameInfo="frameInfo"
-                    class="main-content"
-                    :style="{ 'border-radius': layoutRadius + 'px' }"
-                  />
-                </transitionMain>
+                <ContentRenderer
+                  :comp="Comp"
+                  :route="route"
+                  :is-keep-alive="isKeepAlive"
+                  :cache-page-list="cachePageList"
+                  :frame-info="frameInfo"
+                  :layout-radius="layoutRadius"
+                  :menu-transition="menuTransition"
+                  :transition-type="transitionType"
+                />
               </div>
             </div>
           </template>
         </LayFrame>
+          <template #fallback>
+            <RouteLoadingSkeleton 
+              :rows="6" 
+              :show-header="true"
+              loading-text="组件加载中..."
+              :min-height="fixedHeader ? 'calc(100vh - 120px)' : '400px'"
+            />
+          </template>
+        </Suspense>
       </template>
     </router-view>
 
@@ -601,6 +575,29 @@ onBeforeUnmount(() => {
 }
 
 /* 移除冗余的过渡样式定义，使用全局的 transition.scss */
+
+/* Fade 过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* 错误容器 */
+.route-error-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 120px);
+  padding: 20px;
+  background: var(--el-bg-color);
+  border-radius: var(--layoutRadius, 10px);
+  margin: var(--contentMargin, 16px);
+}
 
 /* 路由切换loading骨架屏容器 */
 .route-loading-container {

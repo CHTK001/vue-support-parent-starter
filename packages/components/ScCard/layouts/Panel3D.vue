@@ -29,19 +29,10 @@
       <div v-if="$slots.footer" class="panel-3d__footer">
         <slot name="footer" />
       </div>
-
-      <!-- 装饰角 -->
-      <div class="panel-3d__corner panel-3d__corner--tl" />
-      <div class="panel-3d__corner panel-3d__corner--tr" />
-      <div class="panel-3d__corner panel-3d__corner--bl" />
-      <div class="panel-3d__corner panel-3d__corner--br" />
-
-      <!-- 装饰边 -->
-      <div class="panel-3d__border panel-3d__border--top" />
-      <div class="panel-3d__border panel-3d__border--right" />
-      <div class="panel-3d__border panel-3d__border--bottom" />
-      <div class="panel-3d__border panel-3d__border--left" />
+      <!-- 装饰角和边框使用 CSS 伪元素实现，减少 8 个 DOM 元素 -->
     </div>
+    <!-- 装饰层（使用单个元素 + CSS 实现） -->
+    <div class="panel-3d__decoration" aria-hidden="true" />
   </div>
 </template>
 
@@ -293,77 +284,55 @@ export default defineComponent({
     border-top: 1px solid var(--panel-border-color);
   }
 
-  // 装饰角
-  &__corner {
+  // 装饰层（合并 8 个 DOM 元素为 1 个 + CSS 伪元素）
+  &__decoration {
     position: absolute;
-    width: 20px;
-    height: 20px;
+    inset: 0;
+    pointer-events: none;
     z-index: 2;
-
-    &--tl {
-      top: 0;
-      left: 0;
-      border-top: 2px solid var(--panel-border-color);
-      border-left: 2px solid var(--panel-border-color);
+    
+    // 四个角用 box-shadow 实现
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      // 左上角
+      box-shadow:
+        inset 20px 0 0 -18px var(--panel-border-color),
+        inset 0 20px 0 -18px var(--panel-border-color),
+        // 右上角
+        inset -20px 0 0 -18px var(--panel-border-color),
+        inset 0 20px 0 -18px var(--panel-border-color),
+        // 左下角
+        inset 20px 0 0 -18px var(--panel-border-color),
+        inset 0 -20px 0 -18px var(--panel-border-color),
+        // 右下角
+        inset -20px 0 0 -18px var(--panel-border-color),
+        inset 0 -20px 0 -18px var(--panel-border-color);
     }
-
-    &--tr {
-      top: 0;
-      right: 0;
-      border-top: 2px solid var(--panel-border-color);
-      border-right: 2px solid var(--panel-border-color);
-    }
-
-    &--bl {
-      bottom: 0;
-      left: 0;
-      border-bottom: 2px solid var(--panel-border-color);
-      border-left: 2px solid var(--panel-border-color);
-    }
-
-    &--br {
-      bottom: 0;
-      right: 0;
-      border-bottom: 2px solid var(--panel-border-color);
-      border-right: 2px solid var(--panel-border-color);
-    }
-  }
-
-  // 装饰边
-  &__border {
-    position: absolute;
-    z-index: 2;
-
-    &--top {
-      top: 0;
-      left: 20px;
-      right: 20px;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--panel-border-color) 20%, var(--panel-border-color) 80%, transparent);
-    }
-
-    &--right {
-      top: 20px;
-      right: 0;
-      bottom: 20px;
-      width: 2px;
-      background: linear-gradient(180deg, transparent, var(--panel-border-color) 20%, var(--panel-border-color) 80%, transparent);
-    }
-
-    &--bottom {
-      bottom: 0;
-      left: 20px;
-      right: 20px;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--panel-border-color) 20%, var(--panel-border-color) 80%, transparent);
-    }
-
-    &--left {
-      top: 20px;
-      left: 0;
-      bottom: 20px;
-      width: 2px;
-      background: linear-gradient(180deg, transparent, var(--panel-border-color) 20%, var(--panel-border-color) 80%, transparent);
+    
+    // 四条边用渐变边框实现
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 2px solid transparent;
+      // 上下边框
+      border-image: linear-gradient(
+        90deg,
+        transparent 0,
+        transparent 20px,
+        var(--panel-border-color) 40px,
+        var(--panel-border-color) calc(100% - 40px),
+        transparent calc(100% - 20px),
+        transparent 100%
+      ) 1;
+      // 左右边框用 mask 实现渐变
+      mask-image: 
+        linear-gradient(to bottom, transparent 0, transparent 20px, black 40px, black calc(100% - 40px), transparent calc(100% - 20px), transparent 100%),
+        linear-gradient(to right, transparent 0, transparent 20px, black 40px, black calc(100% - 40px), transparent calc(100% - 20px), transparent 100%);
+      mask-composite: intersect;
+      -webkit-mask-composite: source-in;
     }
   }
 
@@ -375,8 +344,7 @@ export default defineComponent({
         0 var(--panel-depth) 30px rgba(0, 0, 0, 0.5),
         inset 0 0 15px rgba(0, 0, 0, 0.3);
 
-      .panel-3d__corner,
-      .panel-3d__border {
+      .panel-3d__decoration {
         --panel-border-color: var(--panel-active-border-color);
       }
 
@@ -397,8 +365,7 @@ export default defineComponent({
       0 var(--panel-depth) 30px rgba(0, 0, 0, 0.5),
       inset 0 0 15px rgba(0, 0, 0, 0.3);
 
-    .panel-3d__corner,
-    .panel-3d__border {
+    .panel-3d__decoration {
       --panel-border-color: var(--panel-active-border-color);
     }
 
