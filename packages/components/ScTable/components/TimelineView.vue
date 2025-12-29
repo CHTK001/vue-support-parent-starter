@@ -22,6 +22,8 @@
         <!-- 自定义内容 -->
         <slot :row="item" :index="index">
           <div class="timeline-content">
+            <!-- 序号徽章 -->
+            <div v-if="showIndex" class="timeline-index-badge">{{ index + 1 }}</div>
             <!-- 默认渲染所有列 -->
             <div v-for="col in visibleColumns" :key="col.prop" class="timeline-field">
               <span class="timeline-field-label">{{ col.label }}：</span>
@@ -81,7 +83,8 @@ const props = defineProps({
   timelineHollow: { type: Boolean, default: false },
   timelinePlacement: { type: String, default: "bottom" },
   timelineTypeField: { type: String, default: "type" },
-  timelineColorField: { type: String, default: "color" }
+  timelineColorField: { type: String, default: "color" },
+  showIndex: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(["row-click", "load-more"]);
@@ -140,6 +143,7 @@ function handleRowClick(row: Record<string, any>, index: number): void {
   overflow: auto;
 
   .timeline-content {
+    position: relative;
     padding: 12px 16px;
     background: var(--el-fill-color-lighter);
     border-radius: 8px;
@@ -149,6 +153,24 @@ function handleRowClick(row: Record<string, any>, index: number): void {
     &:hover {
       background: var(--el-fill-color);
       transform: translateX(4px);
+    }
+
+    .timeline-index-badge {
+      position: absolute;
+      top: -8px;
+      left: -8px;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 11px;
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      box-shadow: 0 2px 6px var(--el-color-primary-light-5);
     }
   }
 

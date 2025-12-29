@@ -31,10 +31,15 @@
         v-for="(row, index) in currentDataList"
         :key="rowKey ? row[rowKey] : index"
         class="list-item"
-        :class="{ 'is-selected': isSelected(row) }"
+        :class="{ 'is-selected': isSelected(row), 'has-index': showIndex }"
         @click="onRowClick(row)"
         @contextmenu.prevent="handleContextMenu($event, row)"
       >
+        <!-- 序号 -->
+        <div v-if="showIndex" class="list-item-index">
+          <span class="index-number">{{ index + 1 }}</span>
+        </div>
+
         <!-- 选择框 -->
         <div v-if="hasSelectionColumn" class="list-item-selection">
           <el-checkbox v-model="row.isSelected" @change="val => toggleSelection(row, val)" />
@@ -107,6 +112,10 @@ const props = defineProps({
   emptyText: {
     type: String,
     default: "暂无数据"
+  },
+  showIndex: {
+    type: Boolean,
+    default: false
   },
   paginationType: {
     type: String,
@@ -520,6 +529,35 @@ defineExpose({
 
       &::before {
         height: 60%;
+      }
+    }
+
+    .list-item-index {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 40px;
+      height: 100%;
+      padding: 12px 8px 12px 14px;
+
+      .index-number {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        box-shadow: 0 2px 6px var(--el-color-primary-light-5);
+      }
+    }
+
+    &.has-index {
+      .list-item-selection {
+        padding-left: 0;
       }
     }
 

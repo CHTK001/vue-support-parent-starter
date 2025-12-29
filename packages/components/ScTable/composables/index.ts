@@ -3,7 +3,7 @@
  */
 
 /** 分页模式类型 */
-export type PaginationMode = 'server' | 'local' | 'prefetch';
+export type PaginationMode = 'server' | 'local';
 
 // 缓存管理
 export { useTableCache } from './useTableCache';
@@ -61,3 +61,91 @@ export type {
   FetchParams as PrefetchFetchParams,
   PrefetchReturn 
 } from './useTablePrefetch';
+
+// 数据导出
+export { useTableExport } from './useTableExport';
+export type { 
+  ExportType,
+  ExportOptions,
+  ExportReturn 
+} from './useTableExport';
+
+// 打印功能
+export { useTablePrint } from './useTablePrint';
+export type { 
+  PrintOptions,
+  PrintReturn 
+} from './useTablePrint';
+
+// 行展开
+export { useTableExpand } from './useTableExpand';
+export type { 
+  ExpandOptions,
+  ExpandReturn 
+} from './useTableExpand';
+
+// 批量操作
+export { useTableBatchAction } from './useTableBatchAction';
+export type { 
+  BatchAction,
+  BatchActionOptions,
+  BatchActionReturn 
+} from './useTableBatchAction';
+
+// 数据编辑
+export { useTableEdit } from './useTableEdit';
+export type { 
+  EditMode,
+  EditState,
+  EditOptions,
+  EditReturn 
+} from './useTableEdit';
+
+// 列搜索
+export { useTableColumnSearch } from './useTableColumnSearch';
+export type { 
+  ColumnSearchOptions,
+  ColumnSearchReturn 
+} from './useTableColumnSearch';
+
+// 数据统计
+export { useTableStatistics } from './useTableStatistics';
+export type { 
+  StatType,
+  ColumnStatConfig,
+  StatResult,
+  StatisticsOptions,
+  StatisticsReturn 
+} from './useTableStatistics';
+
+// 变更高亮
+export { useTableChangeHighlight } from './useTableChangeHighlight';
+export type { 
+  ChangeRecord,
+  ChangeHighlightOptions,
+  ChangeHighlightReturn 
+} from './useTableChangeHighlight';
+
+// 行合并
+export { useTableRowMerge } from './useTableRowMerge';
+export type { 
+  MergeInfo,
+  RowMergeOptions,
+  RowMergeReturn 
+} from './useTableRowMerge';
+
+// 性能优化
+export { useTablePerformance, createDebounce, createThrottle, createRAFThrottle } from './useTablePerformance';
+export type { 
+  PerformanceOptions,
+  PerformanceMetrics,
+  PerformanceReturn 
+} from './useTablePerformance';
+
+// 十字高亮优化
+export { useTableCrossHighlight, crossHighlightStyles } from './useTableCrossHighlight';
+export type { 
+  CrossHighlightOptions,
+  CrossHighlightState,
+  CrossHighlightReturn 
+} from './useTableCrossHighlight';

@@ -15,20 +15,52 @@
       </slot>
     </template>
 
-    <!-- 瀑布流虚拟滚动容器 -->
-    <div v-else class="waterfall-scroll-container" :style="{ height: `${totalHeight}px`, position: 'relative' }">
-      <!-- 只渲染可见区域的项目 -->
-      <div
-        v-for="item in visibleItems"
-        :key="item.key"
-        class="waterfall-item"
-        :style="item.style"
-        @contextmenu="handleContextMenu($event, item.data)"
-        @click="onRowClick(item.data)"
-      >
-        <slot :row="item.data" :index="item.index" />
+    <!-- 瀑布流布局容器 -->
+    <template v-else>
+      <!-- 经典瀑布流/虚拟滚动模式 -->
+      <div v-if="layoutMode === 'waterfall'" class="waterfall-scroll-container" :style="{ height: `${totalHeight}px`, position: 'relative' }">
+        <div
+          v-for="item in visibleItems"
+          :key="item.key"
+          class="waterfall-item"
+          :style="item.style"
+          @contextmenu="handleContextMenu($event, item.data)"
+          @click="onRowClick(item.data)"
+        >
+          <div v-if="showIndex" class="waterfall-index-badge">{{ item.index + 1 }}</div>
+          <slot :row="item.data" :index="item.index" />
+        </div>
       </div>
-    </div>
+
+      <!-- Flex 瀑布流模式 -->
+      <div v-else-if="layoutMode === 'flex'" class="waterfall-flex-container" :style="flexContainerStyle">
+        <div
+          v-for="(row, index) in currentDataList"
+          :key="rowKey ? row[rowKey] : index"
+          class="waterfall-flex-item"
+          :style="flexItemStyle"
+          @contextmenu="handleContextMenu($event, row)"
+          @click="onRowClick(row)"
+        >
+          <div v-if="showIndex" class="waterfall-index-badge">{{ index + 1 }}</div>
+          <slot :row="row" :index="index" />
+        </div>
+      </div>
+
+      <!-- CSS Masonry 模式 -->
+      <div v-else class="waterfall-masonry-container" :style="masonryContainerStyle">
+        <div
+          v-for="(row, index) in currentDataList"
+          :key="rowKey ? row[rowKey] : index"
+          class="waterfall-masonry-item"
+          @contextmenu="handleContextMenu($event, row)"
+          @click="onRowClick(row)"
+        >
+          <div v-if="showIndex" class="waterfall-index-badge">{{ index + 1 }}</div>
+          <slot :row="row" :index="index" />
+        </div>
+      </div>
+    </template>
 
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-overlay">
@@ -178,6 +210,28 @@ const props = defineProps({
   bufferSize: {
     type: Number,
     default: 5
+  },
+  /**
+   * 布局模式: waterfall(经典瀑布流) | flex(弹性瀑布流) | masonry(CSS masonry)
+   */
+  layoutMode: {
+    type: String,
+    default: "waterfall",
+    validator: val => ["waterfall", "flex", "masonry"].includes(val)
+  },
+  /**
+   * 是否显示序号
+   */
+  showIndex: {
+    type: Boolean,
+    default: false
+  },
+  /**
+   * 卡片最小宽度 (flex 模式)
+   */
+  cardMinWidth: {
+    type: Number,
+    default: 280
   }
 });
 
@@ -252,6 +306,34 @@ const hasMoreData = computed(() => {
   if (!props.total || !props.pageSize) return false;
   return currentDataList.value.length < props.total;
 });
+
+/**
+ * Flex 布局容器样式
+ */
+const flexContainerStyle = computed(() => ({
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: `${props.gap}px`,
+  alignItems: 'flex-start',
+  alignContent: 'flex-start'
+}));
+
+/**
+ * Flex 布局卡片样式
+ */
+const flexItemStyle = computed(() => ({
+  flex: `1 1 ${props.cardMinWidth}px`,
+  maxWidth: `calc(${100 / props.colSize}% - ${props.gap * (props.colSize - 1) / props.colSize}px)`,
+  minWidth: `${props.cardMinWidth}px`
+}));
+
+/**
+ * CSS Masonry 容器样式
+ */
+const masonryContainerStyle = computed(() => ({
+  columnCount: props.colSize,
+  columnGap: `${props.gap}px`
+}));
 
 /**
  * 计算可见项目
@@ -551,20 +633,74 @@ defineExpose({
   width: 100%;
   position: relative;
 
+  // 经典瀑布流容器
   .waterfall-scroll-container {
     width: 100%;
     min-height: 100%;
   }
 
-  .waterfall-item {
+  // 瀑布流卡片项
+  .waterfall-item,
+  .waterfall-flex-item,
+  .waterfall-masonry-item {
+    position: relative;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
     will-change: transform;
+    border-radius: 12px;
+    overflow: visible;
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
 
     &:hover {
       transform: translateY(-4px) translateZ(0);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      border-color: var(--el-color-primary-light-5);
+      z-index: 10;
     }
+  }
+
+  // Flex 布局容器
+  .waterfall-flex-container {
+    width: 100%;
+    min-height: 100%;
+  }
+
+  // Flex 布局卡片
+  .waterfall-flex-item {
+    margin-bottom: 0; // gap 已在容器中设置
+  }
+
+  // CSS Masonry 布局容器
+  .waterfall-masonry-container {
+    width: 100%;
+    min-height: 100%;
+  }
+
+  // Masonry 卡片
+  .waterfall-masonry-item {
+    break-inside: avoid;
+    margin-bottom: 16px;
+  }
+
+  // 序号角标
+  .waterfall-index-badge {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 6px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.4);
   }
 
   .loading-overlay {

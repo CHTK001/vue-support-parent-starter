@@ -3,27 +3,25 @@
     ref="cardContainer"
     class="card-view-container thin-scrollbar"
     :class="{
-      'flex justify-center items-center': !currentDataList || currentDataList.length === 0,
-      'h-full': height === 'full'
+      'is-empty': !currentDataList || currentDataList.length === 0,
+      'h-full': height === 'full',
+      'is-draggable': draggable
     }"
     :style="containerStyle"
     @scroll="handleScroll"
   >
     <!-- 顶部加载状态 -->
-    <div v-if="isScrollPagination && loadingPrev && hasMorePrevData" class="loading-more flex justify-center items-center py-4">
-      <el-icon class="is-loading mr-2">
+    <div v-if="isScrollPagination && loadingPrev && hasMorePrevData" class="loading-more">
+      <el-icon class="is-loading">
         <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-          <path
-            fill="currentColor"
-            d="M512 64a32 32 0 0 1 32 32v192a32 32 0 0 1-64 0V96a32 32 0 0 1 32-32zm0 640a32 32 0 0 1 32 32v192a32 32 0 1 1-64 0V736a32 32 0 0 1 32-32zm448-192a32 32 0 0 1-32 32H736a32 32 0 1 1 0-64h192a32 32 0 0 1 32 32zm-640 0a32 32 0 0 1-32 32H96a32 32 0 0 1 0-64h192a32 32 0 0 1 32 32zM195.2 195.2a32 32 0 0 1 45.248 0L376.32 331.008a32 32 0 0 1-45.248 45.248L195.2 240.448a32 32 0 0 1 0-45.248zm452.544 452.544a32 32 0 0 1 45.248 0L828.8 783.552a32 32 0 0 1-45.248 45.248L647.744 692.992a32 32 0 0 1 0-45.248zM828.8 195.264a32 32 0 0 1 0 45.184L692.992 376.32a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0zm-452.544 452.48a32 32 0 0 1 0 45.248L240.448 828.8a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0z"
-          />
+          <path fill="currentColor" d="M512 64a32 32 0 0 1 32 32v192a32 32 0 0 1-64 0V96a32 32 0 0 1 32-32zm0 640a32 32 0 0 1 32 32v192a32 32 0 1 1-64 0V736a32 32 0 0 1 32-32zm448-192a32 32 0 0 1-32 32H736a32 32 0 1 1 0-64h192a32 32 0 0 1 32 32zm-640 0a32 32 0 0 1-32 32H96a32 32 0 0 1 0-64h192a32 32 0 0 1 32 32zM195.2 195.2a32 32 0 0 1 45.248 0L376.32 331.008a32 32 0 0 1-45.248 45.248L195.2 240.448a32 32 0 0 1 0-45.248zm452.544 452.544a32 32 0 0 1 45.248 0L828.8 783.552a32 32 0 0 1-45.248 45.248L647.744 692.992a32 32 0 0 1 0-45.248zM828.8 195.264a32 32 0 0 1 0 45.184L692.992 376.32a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0zm-452.544 452.48a32 32 0 0 1 0 45.248L240.448 828.8a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0z" />
         </svg>
       </el-icon>
       <span>加载上一页...</span>
     </div>
 
     <!-- 向上滚动提示 -->
-    <div v-if="isScrollPagination && !loadingPrev && hasMorePrevData" class="scroll-tip flex justify-center items-center py-2 text-[var(--el-text-color-regular)] text-sm" @click="loadPrevPage">
+    <div v-if="isScrollPagination && !loadingPrev && hasMorePrevData" class="scroll-tip" @click="loadPrevPage">
       <span>向上滚动加载更多</span>
     </div>
 
@@ -34,32 +32,57 @@
       </slot>
     </template>
 
-    <!-- 卡片网格布局 -->
-    <el-row v-else :gutter="16">
-      <el-col
+    <!-- 卡片网格布局 - 使用 CSS Grid -->
+    <div 
+      v-else 
+      ref="cardGridRef"
+      class="card-grid"
+      :style="gridStyle"
+    >
+      <div
         v-for="(row, index) in currentDataList"
         :key="rowKey ? row[rowKey] : index"
-        :xs="computedPageSize"
-        :sm="computedPageSize"
-        :md="computedPageSize"
-        :lg="computedPageSize"
-        :xl="computedPageSize"
-        class="card-col"
-        :class="{ 'justify-center flex': center }"
+        class="card-item-wrapper"
+        :class="{ 
+          'is-selected': isSelected(row),
+          'is-dragging': draggingIndex === index
+        }"
+        :data-index="index"
+        @contextmenu="handleContextMenu($event, row)"
+        @click="onRowClick(row)"
       >
-        <div class="is-always-shadow" @contextmenu="handleContextMenu($event, row)" @click="onRowClick(row)">
-          <!-- 根据layout属性决定是否使用ScCard包装 -->
+        <!-- 序号角标 -->
+        <div v-if="showIndex" class="card-index-badge">
+          <span>{{ (currentPage - 1) * pageSize + index + 1 }}</span>
+        </div>
+        
+        <!-- 拖拽手柄 -->
+        <div v-if="draggable" class="card-drag-handle">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+          </svg>
+        </div>
+        
+        <!-- 选择框 -->
+        <div v-if="selectable" class="card-checkbox" @click.stop="toggleSelection(row)">
+          <el-checkbox :model-value="isSelected(row)" @change="toggleSelection(row)" />
+        </div>
+        
+        <!-- 卡片内容 -->
+        <div class="card-content-wrapper">
           <template v-if="layout === 'card'">
-            <ScCard hoverable class="is-always-shadow-item">
+            <ScCard hoverable class="card-inner">
               <slot :row="row" :index="index" />
             </ScCard>
           </template>
           <template v-else>
-            <slot :row="row" :index="index" class="is-always-shadow-item" />
+            <div class="card-inner card-default">
+              <slot :row="row" :index="index" />
+            </div>
           </template>
         </div>
-      </el-col>
-    </el-row>
+      </div>
+    </div>
 
     <!-- 向下滚动提示 -->
     <div v-if="isScrollPagination && !loadingNext && hasMoreNextData" class="scroll-tip flex justify-center items-center py-2 text-[var(--el-text-color-regular)] text-sm" @click="loadNextPage">
@@ -156,11 +179,42 @@ const props = defineProps({
     type: String,
     default: "card",
     validator: val => ["card", "default"].includes(val)
+  },
+  // 是否显示序号
+  showIndex: {
+    type: Boolean,
+    default: false
+  },
+  // 是否可选择
+  selectable: {
+    type: Boolean,
+    default: false
+  },
+  // 是否可拖拽排序
+  draggable: {
+    type: Boolean,
+    default: false
+  },
+  // 布局模式: grid | flex
+  layoutMode: {
+    type: String,
+    default: "grid",
+    validator: val => ["grid", "flex"].includes(val)
+  },
+  // 卡片最小宽度 (flex模式下有效)
+  cardMinWidth: {
+    type: Number,
+    default: 280
+  },
+  // 拖拽行标识字段
+  dragRowKey: {
+    type: String,
+    default: "id"
   }
 });
 
 // 定义emits
-const emit = defineEmits(["row-click", "selection-change", "load-more", "layout-updated", "next-page", "prev-page", "update:currentPage", "col-click"]);
+const emit = defineEmits(["row-click", "selection-change", "load-more", "layout-updated", "next-page", "prev-page", "update:currentPage", "col-click", "drag-sort-change"]);
 
 // 响应式数据
 const currentDataList = ref([]);
@@ -174,6 +228,8 @@ const scrollDirection = ref(""); // 'up' 或 'down'
 const loadingNext = ref(false);
 const loadingPrev = ref(false);
 const internalCurrentPage = ref(props.currentPage);
+const cardGridRef = ref(null);
+const draggingIndex = ref(-1);
 
 // 右键菜单相关状态
 const contextMenuRef = ref(null);
@@ -213,6 +269,39 @@ const containerStyle = computed(() => {
 // 计算属性
 const isScrollPagination = computed(() => {
   return props.paginationType === "scroll";
+});
+
+// Grid/Flex 布局样式
+const gridStyle = computed(() => {
+  if (props.layoutMode === 'flex') {
+    // Flex 布局：自动换行，自适应宽度
+    return {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: `${props.cardGap}px`,
+      justifyContent: props.center ? 'center' : 'flex-start',
+      alignItems: 'stretch'
+    };
+  }
+  // Grid 布局：固定列数
+  return {
+    display: 'grid',
+    gridTemplateColumns: `repeat(${props.colSize}, 1fr)`,
+    gap: `${props.cardGap}px`,
+    justifyItems: props.center ? 'center' : 'stretch'
+  };
+});
+
+// 卡片项样式 (flex 模式)
+const cardItemStyle = computed(() => {
+  if (props.layoutMode === 'flex') {
+    return {
+      flex: `1 1 ${props.cardMinWidth}px`,
+      maxWidth: `calc(${100 / Math.min(props.colSize, 4)}% - ${props.cardGap}px)`,
+      minWidth: `${props.cardMinWidth}px`
+    };
+  }
+  return {};
 });
 
 // 判断是否还有更多下一页数据
@@ -543,39 +632,158 @@ const handleMenuAction = action => {
 
 <style lang="scss" scoped>
 .card-view-container {
-  // 卡片阴影样式
-  .is-always-shadow {
-    border-radius: 14px;
-    overflow: hidden;
-    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  &.is-empty {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
-    &:hover {
-      transform: translateY(-6px);
-      
-      .is-always-shadow-item {
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+  &.is-draggable .card-item-wrapper {
+    cursor: default;
+  }
+
+  // Grid/Flex 布局容器
+  .card-grid {
+    width: 100%;
+
+    &.card-grid-flex {
+      .card-item-wrapper {
+        flex: 1 1 280px;
+        max-width: calc(33.333% - 12px);
+        min-width: 280px;
+        
+        @media (max-width: 768px) {
+          max-width: calc(50% - 8px);
+          min-width: 240px;
+        }
+        
+        @media (max-width: 480px) {
+          max-width: 100%;
+          min-width: 100%;
+        }
       }
     }
   }
 
-  .is-always-shadow-item {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  // 卡片项包装器
+  .card-item-wrapper {
+    position: relative;
     border-radius: 14px;
-    border: 1px solid var(--el-border-color-lighter);
+    overflow: visible;
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    background: var(--el-bg-color);
-    overflow: hidden;
-  }
 
-  .card-col {
-    margin-bottom: 16px;
-    min-height: 100px;
-
-    // 卡片悬停效果
     &:hover {
-      .is-always-shadow-item {
+      transform: translateY(-6px);
+      z-index: 10;
+
+      .card-inner {
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
         border-color: var(--el-color-primary-light-5);
       }
+
+      .card-drag-handle {
+        opacity: 1;
+      }
+    }
+
+    &.is-selected {
+      .card-inner {
+        border-color: var(--el-color-primary);
+        box-shadow: 0 4px 16px var(--el-color-primary-light-7);
+        background: linear-gradient(180deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
+      }
+
+      .card-index-badge {
+        background: var(--el-color-primary);
+      }
+    }
+
+    &.is-dragging {
+      opacity: 0.5;
+      transform: scale(1.02);
+    }
+  }
+
+  // 序号角标
+  .card-index-badge {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.4);
+  }
+
+  // 拖拽手柄
+  .card-drag-handle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    opacity: 0;
+    transition: all 0.2s;
+    z-index: 20;
+    color: var(--el-text-color-secondary);
+
+    &:hover {
+      background: var(--el-color-primary-light-9);
+      color: var(--el-color-primary);
+      border-color: var(--el-color-primary-light-5);
+    }
+
+    &:active {
+      cursor: grabbing;
+      background: var(--el-color-primary-light-8);
+    }
+  }
+
+  // 选择框
+  .card-checkbox {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 20;
+    background: var(--el-bg-color);
+    border-radius: 4px;
+    padding: 2px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  // 卡片内容区域
+  .card-content-wrapper {
+    height: 100%;
+  }
+
+  // 卡片内部样式
+  .card-inner {
+    height: 100%;
+    border-radius: 14px;
+    border: 2px solid var(--el-border-color-lighter);
+    background: var(--el-bg-color);
+    overflow: hidden;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+
+    &.card-default {
+      padding: 16px;
     }
   }
 
