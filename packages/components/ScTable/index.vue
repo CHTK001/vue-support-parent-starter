@@ -10,6 +10,8 @@ import { useTableSelection } from "./composables/useTableSelection";
 import { useTableDragScroll } from "./composables/useTableDragScroll";
 import { useTableLocalPagination } from "./composables/useTableLocalPagination";
 import { useTablePrefetch } from "./composables/useTablePrefetch";
+import { useTableEdit } from "./composables/useTableEdit";
+import { useTablePerformance } from "./composables/useTablePerformance";
 import CanvasTableView from "./components/CanvasTableView.vue";
 import CardView from "./components/CardView.vue";
 import GalleryView from "./components/GalleryView.vue";
@@ -192,7 +194,6 @@ const props = defineProps({
    * 分页模式
    * - server: 服务器分页（默认），每次翻页请求服务器
    * - local: 本地分页/静态数据模式，首次查询全量数据，后续前端分页
-   * - prefetch: 预取缓存模式，访问当前页时后台预加载下N页数据
    */
   paginationMode: { type: String, default: "server" },
   /**
@@ -201,8 +202,8 @@ const props = defineProps({
    */
   localPagination: { type: Boolean, default: false },
   /**
-   * @deprecated 请使用 paginationMode="prefetch" 代替
-   * 是否启用预加载缓存
+   * 是否启用预加载缓存（仅在 server 模式下生效）
+   * 访问当前页时后台预加载下N页数据
    */
   prefetchEnabled: { type: Boolean, default: false },
   /**
@@ -212,7 +213,92 @@ const props = defineProps({
   /**
    * 预加载缓存过期时间（毫秒），默认5分钟
    */
-  prefetchExpiry: { type: Number, default: 5 * 60 * 1000 }
+  prefetchExpiry: { type: Number, default: 5 * 60 * 1000 },
+  // ==================== 新增功能 Props ====================
+  /**
+   * 是否启用数据导出功能
+   */
+  exportEnabled: { type: Boolean, default: false },
+  /**
+   * 导出类型：excel/csv/json
+   */
+  exportTypes: { type: Array, default: () => ['excel', 'csv', 'json'] },
+  /**
+   * 导出文件名
+   */
+  exportFilename: { type: String, default: 'table-data' },
+  /**
+   * 是否启用打印功能
+   */
+  printEnabled: { type: Boolean, default: false },
+  /**
+   * 打印标题
+   */
+  printTitle: { type: String, default: '表格数据' },
+  /**
+   * 是否启用行展开功能
+   */
+  expandable: { type: Boolean, default: false },
+  /**
+   * 手风琴模式（同时只展开一行）
+   */
+  expandAccordion: { type: Boolean, default: false },
+  /**
+   * 默认展开的行键值
+   */
+  defaultExpandKeys: { type: Array, default: () => [] },
+  /**
+   * 是否启用批量操作工具栏
+   */
+  batchActionEnabled: { type: Boolean, default: false },
+  /**
+   * 批量操作项配置
+   */
+  batchActions: { type: Array, default: () => [] },
+  /**
+   * 是否启用数据编辑模式
+   */
+  editable: { type: Boolean, default: false },
+  /**
+   * 编辑模式：cell(单元格)/row(行)
+   */
+  editMode: { type: String, default: 'cell' },
+  /**
+   * 可编辑的列（空为全部）
+   */
+  editableColumns: { type: Array, default: () => [] },
+  /**
+   * 是否启用列搜索
+   */
+  columnSearchEnabled: { type: Boolean, default: false },
+  /**
+   * 可搜索的列（空为全部）
+   */
+  searchableColumns: { type: Array, default: () => [] },
+  /**
+   * 是否启用数据统计面板
+   */
+  statisticsEnabled: { type: Boolean, default: false },
+  /**
+   * 统计列配置 [{column: 'amount', types: ['sum', 'avg']}]
+   */
+  statisticsColumns: { type: Array, default: () => [] },
+  /**
+   * 是否启用变更高亮
+   */
+  changeHighlightEnabled: { type: Boolean, default: false },
+  /**
+   * 高亮持续时间（毫秒）
+   */
+  highlightDuration: { type: Number, default: 3000 },
+  /**
+   * 是否启用行合并
+   */
+  rowMergeEnabled: { type: Boolean, default: false },
+  /**
+   * 需要合并的列
+   */
+  rowMergeColumns: { type: Array, default: () => [] }
 });
 
 // 定义组件事件
@@ -228,13 +314,21 @@ const emit = defineEmits([
   "drag-sort-save", // 拖拽排序保存
   "drag-sort-success", // 拖拽排序保存成功
   "drag-sort-error", // 拖拽排序保存失败
-  "keyboard-delete" // 快捷键删除事件
+  "keyboard-delete", // 快捷键删除事件
+  "edit-save", // 编辑保存
+  "edit-cancel", // 编辑取消
+  "cell-copy", // 单元格复制
 ]);
 
 // 拖拽排序相关状态
 const dragSortPending = ref(false); // 是否有待保存的排序
-const dragChangeCount = ref(0); // 拖拽变化次数
+const dragChangeCount = ref(0); // 拖抽变化次数
 const dragSortLoading = ref(false); // 拖拽排序保存中
+
+// 编辑功能相关状态
+const editPending = ref(false); // 是否有待保存的编辑
+const editChangeCount = ref(0); // 编辑变化次数
+const editSaveLoading = ref(false); // 编辑保存中
 
 // 引用
 const scTableMain = ref(null);
@@ -296,16 +390,15 @@ const actualPaginationMode = computed(() => {
   }
   // 向后兼容：检查旧的 boolean props
   if (props.localPagination) return 'local';
-  if (props.prefetchEnabled) return 'prefetch';
   return props.paginationMode || 'server';
 });
 
 // 是否使用本地分页模式
 const useLocalPagination = computed(() => actualPaginationMode.value === 'local');
-// 是否使用预取缓存模式
-const usePrefetchMode = computed(() => actualPaginationMode.value === 'prefetch');
 // 是否使用服务器分页模式
 const useServerPagination = computed(() => actualPaginationMode.value === 'server');
+// 是否启用预取缓存（仅 server 模式下生效）
+const usePrefetch = computed(() => useServerPagination.value && props.prefetchEnabled);
 
 // 使用本地分页/静态数据模式 composable
 const {
@@ -339,10 +432,62 @@ const {
   clearCache: clearPrefetchCache,
   getCacheStats: getPrefetchCacheStats,
 } = useTablePrefetch({
-  enabled: usePrefetchMode.value,
+  enabled: usePrefetch.value,
   prefetchCount: props.prefetchCount,
   cacheExpiry: props.prefetchExpiry,
   maxCachePages: 10,
+});
+
+// 使用编辑 composable
+const {
+  isEnabled: isEditEnabled,
+  editMode: currentEditMode,
+  editingStates,
+  isEditing,
+  hasChanges: hasEditChanges,
+  startCellEdit,
+  startRowEdit,
+  updateEditValue,
+  cancelEdit,
+  cancelAllEdits,
+  saveEdit,
+  saveAllEdits,
+  isCellEditing,
+  isRowEditing,
+  isColumnEditable,
+  getEditValue,
+  getRowChanges,
+} = useTableEdit({
+  enabled: props.editable,
+  mode: props.editMode,
+  rowKey: props.rowKey || 'id',
+  editableColumns: props.editableColumns,
+});
+
+// 使用性能优化 composable
+const {
+  metrics: performanceMetrics,
+  isLargeData,
+  showLargeDataTip,
+  debouncedDoLayout,
+  startTiming,
+  endTiming,
+  recordDataSize,
+  dismissLargeDataTip,
+  getReport: getPerformanceReport,
+} = useTablePerformance({
+  enableMonitor: import.meta.env?.DEV ?? false,
+  layoutDebounce: 50,
+  largeDataThreshold: 500,
+  renderWarnThreshold: 100,
+});
+
+// 监听编辑变化
+watch(hasEditChanges, (newVal) => {
+  editPending.value = newVal;
+  if (newVal) {
+    editChangeCount.value++;
+  }
 });
 
 // 响应式数据
@@ -723,6 +868,9 @@ const getData = async isLoading => {
 };
 
 const loaded = () => {
+  // 记录数据量用于性能监控
+  recordDataSize(tableData.value.length);
+  
   emit("loaded");
   emit("data-loaded", tableData.value, total.value);
   props.dataLoaded(tableData.value, total.value);
@@ -1077,6 +1225,50 @@ const cancelDragSort = () => {
     getData(false);
     dragSortPending.value = false;
     dragChangeCount.value = 0;
+  }
+};
+
+/**
+ * 保存编辑更改
+ */
+const saveEditChanges = async () => {
+  if (!editPending.value) return;
+  
+  editSaveLoading.value = true;
+  
+  try {
+    // 获取所有编辑状态
+    const editStates = saveAllEdits();
+    
+    // 构建更改数据
+    const changes = editStates.map(state => ({
+      rowKey: state.rowKey,
+      columnKey: state.columnKey,
+      originalValue: state.originalValue,
+      newValue: state.currentValue,
+    }));
+    
+    // 触发保存事件，由父组件处理实际保存逻辑
+    emit("edit-save", changes);
+    
+    editPending.value = false;
+    editChangeCount.value = 0;
+  } catch (error) {
+    console.error('保存编辑失败:', error);
+  } finally {
+    editSaveLoading.value = false;
+  }
+};
+
+/**
+ * 取消编辑更改
+ */
+const cancelEditChanges = () => {
+  if (editPending.value) {
+    cancelAllEdits();
+    editPending.value = false;
+    editChangeCount.value = 0;
+    emit("edit-cancel");
   }
 };
 
@@ -1710,8 +1902,34 @@ defineExpose({
   // 分页模式
   paginationMode: actualPaginationMode,
   useLocalPagination,
-  usePrefetchMode,
   useServerPagination,
+  usePrefetch,
+  // 编辑功能
+  isEditEnabled,
+  isEditing,
+  hasEditChanges,
+  editPending,
+  editChangeCount,
+  editSaveLoading,
+  startCellEdit,
+  startRowEdit,
+  updateEditValue,
+  cancelEdit,
+  cancelAllEdits,
+  saveEdit,
+  saveAllEdits,
+  saveEditChanges,
+  cancelEditChanges,
+  isCellEditing,
+  isRowEditing,
+  getEditValue,
+  getRowChanges,
+  // 性能监控
+  performanceMetrics,
+  isLargeData,
+  showLargeDataTip,
+  dismissLargeDataTip,
+  getPerformanceReport,
 });
 </script>
 
@@ -1734,6 +1952,35 @@ defineExpose({
             保存排序
           </el-button>
         </div>
+      </div>
+
+      <!-- 编辑操作栏 - 显示在表头上方 -->
+      <div v-if="editable && editPending" class="sc-table-edit-actions">
+        <div class="edit-action-info">
+          <IconifyIconOnline icon="ep:edit" />
+          <span>已编辑 {{ editChangeCount }} 处，数据已变更</span>
+        </div>
+        <div class="edit-action-buttons">
+          <el-button size="small" @click="cancelEditChanges">
+            <IconifyIconOnline icon="ep:refresh-left" />
+            取消
+          </el-button>
+          <el-button type="primary" size="small" :loading="editSaveLoading" @click="saveEditChanges">
+            <IconifyIconOnline icon="ep:check" />
+            保存编辑
+          </el-button>
+        </div>
+      </div>
+
+      <!-- 大数据量提示 - 建议切换虚拟滚动 -->
+      <div v-if="showLargeDataTip && layout === 'table'" class="sc-table-large-data-tip">
+        <div class="tip-content">
+          <IconifyIconOnline icon="ep:warning-filled" />
+          <span>检测到大数据量 ({{ performanceMetrics.rowCount }} 行)，建议切换到虚拟滚动模式以获得更好的性能</span>
+        </div>
+        <el-button size="small" text @click="dismissLargeDataTip">
+          <IconifyIconOnline icon="ep:close" />
+        </el-button>
       </div>
 
       <!-- 表格内容区域 -->
@@ -1968,6 +2215,115 @@ defineExpose({
   }
   50% {
     transform: scale(1.1);
+  }
+}
+
+// 编辑操作栏样式 - 现代化设计
+.sc-table-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, 
+    var(--el-color-primary-light-9) 0%, 
+    var(--el-color-primary-light-8) 50%,
+    var(--el-color-primary-light-9) 100%);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border: 2px solid var(--el-color-primary-light-5);
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.15);
+  animation: slideDown 0.3s ease-out;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+  }
+
+  .edit-action-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--el-color-primary-dark-2);
+    font-size: 14px;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+    
+    svg {
+      font-size: 20px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    span {
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  .edit-action-buttons {
+    display: flex;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+    
+    .el-button {
+      font-weight: 500;
+      border-radius: 8px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+}
+
+// 大数据量提示样式
+.sc-table-large-data-tip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, 
+    var(--el-color-warning-light-9) 0%, 
+    var(--el-color-warning-light-8) 100%);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid var(--el-color-warning-light-5);
+  animation: slideDown 0.3s ease-out;
+  
+  .tip-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--el-color-warning-dark-2);
+    font-size: 13px;
+    
+    svg {
+      font-size: 18px;
+      color: var(--el-color-warning);
+    }
+  }
+  
+  .el-button {
+    color: var(--el-color-warning-dark-2);
+    
+    &:hover {
+      color: var(--el-color-warning);
+    }
   }
 }
 

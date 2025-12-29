@@ -15,6 +15,9 @@
         :class="{ 'is-selected': selectedItems.includes(item[rowKey] || index) }"
         @click="handleItemClick(item, index)"
       >
+        <!-- 序号徽章 -->
+        <div v-if="showIndex" class="gallery-index-badge">{{ index + 1 }}</div>
+
         <!-- 自定义内容 -->
         <slot :row="item" :index="index">
           <!-- 图片区域 -->
@@ -103,6 +106,7 @@ const props = defineProps({
   downloadable: { type: Boolean, default: false },
   selectable: { type: Boolean, default: false },
   showInfo: { type: Boolean, default: true },
+  showIndex: { type: Boolean, default: false },
   aspectRatio: { type: String, default: "1/1" }
 });
 
@@ -257,6 +261,25 @@ function handleDownload(row: Record<string, any>): void {
         }
       }
     }
+  }
+
+  .gallery-index-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
 
   .gallery-checkbox {

@@ -22,6 +22,7 @@
         @filter-change="filterChange"
         @row-contextmenu="handleRowContextMenu"
         @cell-click="handleCellClick"
+        @cell-dblclick="handleCellDblClick"
       >
         <!-- 拖拽手柄列 -->
         <el-table-column v-if="draggable" :width="dragHandleWidth" align="center" fixed="left">
@@ -136,7 +137,7 @@ const highlightRowIndex = ref(-1);
 const highlightColIndex = ref(-1);
 
 // 定义emits
-const emit = defineEmits(["row-click", "selection-change", "sort-change", "filter-change", "col-click", "drag-sort-change", "cell-click"]);
+const emit = defineEmits(["row-click", "selection-change", "sort-change", "filter-change", "col-click", "drag-sort-change", "cell-click", "cell-dblclick", "cell-copy"]);
 
 // 拖拽排序实例
 let sortableInstance = null;
@@ -428,6 +429,87 @@ const handleCellClick = (row, column, cell, event) => {
   }
 
   emit("cell-click", row, column, cell, event);
+};
+
+/**
+ * 处理单元格双击 - 复制内容
+ */
+const handleCellDblClick = (row, column, cell, event) => {
+  const columnKey = column.property;
+  if (!columnKey) return;
+
+  // 获取单元格值
+  const value = row[columnKey];
+  const textToCopy = value !== null && value !== undefined ? String(value) : '';
+
+  // 复制到剪贴板
+  if (textToCopy) {
+    copyToClipboard(textToCopy).then(() => {
+      showCopyToast(cell);
+      emit("cell-copy", { row, column, value: textToCopy });
+    });
+  }
+
+  emit("cell-dblclick", row, column, cell, event);
+};
+
+/**
+ * 复制到剪贴板
+ */
+const copyToClipboard = async (text) => {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      // 回退方案
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    return true;
+  } catch (err) {
+    console.error('复制失败:', err);
+    return false;
+  }
+};
+
+/**
+ * 显示复制成功提示
+ */
+const showCopyToast = (cell) => {
+  // 创建提示元素
+  const toast = document.createElement('div');
+  toast.className = 'copy-toast';
+  toast.textContent = '已复制';
+  toast.style.cssText = `
+    position: fixed;
+    z-index: 9999;
+    background: var(--el-color-success);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+    animation: copyToastFade 1.5s ease forwards;
+  `;
+
+  // 计算位置
+  const rect = cell.getBoundingClientRect();
+  toast.style.left = `${rect.left + rect.width / 2}px`;
+  toast.style.top = `${rect.top - 30}px`;
+  toast.style.transform = 'translateX(-50%)';
+
+  document.body.appendChild(toast);
+
+  // 自动移除
+  setTimeout(() => {
+    toast.remove();
+  }, 1500);
 };
 
 const filterHandler = (value, row, column) => {
@@ -924,39 +1006,106 @@ defineExpose({
 // 十字标记样式
 .cross-highlight-enabled {
   :deep(.cross-highlight-row) {
-    background: rgba(var(--el-color-primary-rgb), 0.08) !important;
+    background: var(--el-color-primary-light-9) !important;
 
     td {
-      background: rgba(var(--el-color-primary-rgb), 0.08) !important;
+      background: var(--el-color-primary-light-9) !important;
     }
   }
 
   :deep(.cross-highlight-col) {
-    background: rgba(var(--el-color-primary-rgb), 0.08) !important;
+    background: var(--el-color-primary-light-9) !important;
     position: relative;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 3px;
+      background: var(--el-color-primary);
+      pointer-events: none;
+    }
 
     &::after {
       content: "";
       position: absolute;
       top: 0;
-      left: 0;
-      right: 0;
       bottom: 0;
-      border-left: 2px solid var(--el-color-primary-light-5);
-      border-right: 2px solid var(--el-color-primary-light-5);
+      right: 0;
+      width: 3px;
+      background: var(--el-color-primary);
       pointer-events: none;
     }
   }
 
   :deep(.cross-highlight-row .cross-highlight-col) {
-    background: rgba(var(--el-color-primary-rgb), 0.15) !important;
-    box-shadow: inset 0 0 0 2px var(--el-color-primary-light-3);
+    background: var(--el-color-primary-light-7) !important;
+    box-shadow: inset 0 0 0 3px var(--el-color-primary);
+    position: relative;
+    z-index: 1;
+
+    &::before,
+    &::after {
+      display: none;
+    }
+  }
+
+  // 行高亮横线
+  :deep(.cross-highlight-row) {
+    position: relative;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--el-color-primary);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--el-color-primary);
+      pointer-events: none;
+      z-index: 2;
+    }
   }
 
   :deep(.el-table__body) {
     tr {
       cursor: pointer;
+      transition: background 0.15s;
     }
+  }
+}
+
+// 复制提示动画
+@keyframes copyToastFade {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  80% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
   }
 }
 </style>
