@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { useNav } from "../../../hooks/useNav";
+import { useLayoutEvent } from "../../../hooks/useLayoutEvents";
 import LayBreadcrumb from "../../breadcrumb/index.vue";
 import LaySidebarTopCollapse from "../../lay-sidebar/components/SidebarTopCollapse.vue";
 import LayNavMix from "../../lay-sidebar/NavMix.vue";
 import LayTool from "../../lay-tool/index.vue";
 import { useGlobal } from "@pureadmin/utils";
-import { emitter } from "@repo/core";
-import { onBeforeUnmount, ref } from "vue";
+import { ref } from "vue";
 
 const {
   layout,
@@ -18,12 +18,9 @@ const {
 const { $storage } = useGlobal<any>();
 const showBreadcrumb = ref($storage?.configure?.showBreadcrumb ?? true);
 
-emitter.on("breadcrumbChange", (value: boolean) => {
+// 使用 useLayoutEvent 统一管理事件，自动在组件卸载时注销
+useLayoutEvent('breadcrumbChange', (value: boolean) => {
   showBreadcrumb.value = value;
-});
-
-onBeforeUnmount(() => {
-  emitter.off("breadcrumbChange");
 });
 </script>
 

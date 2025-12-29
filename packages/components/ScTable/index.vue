@@ -2,9 +2,14 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { deepCopy, localStorageProxy, paginate } from "@repo/utils";
-import { computed, defineAsyncComponent, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, defineAsyncComponent, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from "vue";
 import { columnSettingGet, columnSettingReset, columnSettingSave, config, parseData } from "./column";
 import { useKeyboard } from "./composables/useKeyboard";
+import { useTableCache } from "./composables/useTableCache";
+import { useTableSelection } from "./composables/useTableSelection";
+import { useTableDragScroll } from "./composables/useTableDragScroll";
+import { useTableLocalPagination } from "./composables/useTableLocalPagination";
+import { useTablePrefetch } from "./composables/useTablePrefetch";
 import CanvasTableView from "./components/CanvasTableView.vue";
 import CardView from "./components/CardView.vue";
 import GalleryView from "./components/GalleryView.vue";
@@ -178,7 +183,36 @@ const props = defineProps({
   /**
    * 是否启用列宽自适应
    */
-  autoColumnWidth: { type: Boolean, default: false }
+  autoColumnWidth: { type: Boolean, default: false },
+  /**
+   * 是否启用鼠标拖拽水平滚动
+   */
+  dragScrollEnabled: { type: Boolean, default: false },
+  /**
+   * 分页模式
+   * - server: 服务器分页（默认），每次翻页请求服务器
+   * - local: 本地分页/静态数据模式，首次查询全量数据，后续前端分页
+   * - prefetch: 预取缓存模式，访问当前页时后台预加载下N页数据
+   */
+  paginationMode: { type: String, default: "server" },
+  /**
+   * @deprecated 请使用 paginationMode="local" 代替
+   * 是否启用本地分页/静态数据模式
+   */
+  localPagination: { type: Boolean, default: false },
+  /**
+   * @deprecated 请使用 paginationMode="prefetch" 代替
+   * 是否启用预加载缓存
+   */
+  prefetchEnabled: { type: Boolean, default: false },
+  /**
+   * 预加载页数，默认3页
+   */
+  prefetchCount: { type: Number, default: 3 },
+  /**
+   * 预加载缓存过期时间（毫秒），默认5分钟
+   */
+  prefetchExpiry: { type: Number, default: 5 * 60 * 1000 }
 });
 
 // 定义组件事件
@@ -207,17 +241,118 @@ const scTableMain = ref(null);
 const scTable = ref(null);
 const columnSettingRef = ref(null);
 
-// 全局内存缓存（按组件ID或共享）
-// 使用 globalThis 确保浏览器/SSR 环境兼容
-const GLOBAL_CACHE = (globalThis.__SC_TABLE_CACHE__ = globalThis.__SC_TABLE_CACHE__ || new Map());
+// 组件缓存命名空间（组件ID优先，其次表名，否则 shared）
+const cacheNamespaceKey = computed(() => {
+  return props.tableId || props.tableName || "shared";
+});
+
+// 使用缓存管理 composable（修复内存泄漏）
+const {
+  getCache,
+  setCache,
+  hasCache,
+  clearCache: clearNamespaceCache,
+} = useTableCache({
+  storageKey: cacheNamespaceKey.value,
+  maxCachePages: 3,
+});
+
+// 使用选择管理 composable
+const {
+  selectedRows,
+  selectedKeys,
+  selectRow,
+  unselectRow,
+  toggleRowSelection: toggleSelectionInCache,
+  setPageSelection,
+  getPageSelection,
+  clearSelection: clearSelectionCache,
+  getSelection,
+  hasSelection,
+} = useTableSelection({
+  rowKey: props.rowKey || 'id',
+  crossPageSelection: true,
+});
+
+// 使用鼠标拖拽滚动 composable
+const {
+  initDragScroll,
+  destroyDragScroll,
+  isDragging: isDragScrolling,
+  isEnabled: isDragScrollEnabled,
+  toggleEnabled: toggleDragScrollEnabled,
+} = useTableDragScroll({
+  enabled: props.dragScrollEnabled,
+  speedMultiplier: 1,
+  threshold: 5,
+  showGrabCursor: true,
+});
+
+// 分页模式计算属性（paginationMode 优先级高于单独的 boolean props）
+const actualPaginationMode = computed(() => {
+  // 如果明确设置了 paginationMode，优先使用
+  if (props.paginationMode && props.paginationMode !== 'server') {
+    return props.paginationMode;
+  }
+  // 向后兼容：检查旧的 boolean props
+  if (props.localPagination) return 'local';
+  if (props.prefetchEnabled) return 'prefetch';
+  return props.paginationMode || 'server';
+});
+
+// 是否使用本地分页模式
+const useLocalPagination = computed(() => actualPaginationMode.value === 'local');
+// 是否使用预取缓存模式
+const usePrefetchMode = computed(() => actualPaginationMode.value === 'prefetch');
+// 是否使用服务器分页模式
+const useServerPagination = computed(() => actualPaginationMode.value === 'server');
+
+// 使用本地分页/静态数据模式 composable
+const {
+  fullData: localFullData,
+  pageData: localPageData,
+  currentPage: localCurrentPage,
+  pageSize: localPageSize,
+  total: localTotal,
+  totalPages: localTotalPages,
+  isEnabled: isLocalPaginationEnabled,
+  isLoaded: isLocalDataLoaded,
+  setFullData: setLocalFullData,
+  clearData: clearLocalData,
+  goToPage: goToLocalPage,
+  filterData: filterLocalData,
+  clearFilter: clearLocalFilter,
+  sortData: sortLocalData,
+} = useTableLocalPagination({
+  enabled: useLocalPagination.value,
+  pageSize: props.pageSize,
+});
+
+// 使用预加载缓存 composable
+const {
+  isEnabled: isPrefetchEnabled,
+  prefetchCount: prefetchPageCount,
+  initPrefetch,
+  getPageData: getPrefetchPageData,
+  triggerPrefetch,
+  hasCache: hasPrefetchCache,
+  clearCache: clearPrefetchCache,
+  getCacheStats: getPrefetchCacheStats,
+} = useTablePrefetch({
+  enabled: usePrefetchMode.value,
+  prefetchCount: props.prefetchCount,
+  cacheExpiry: props.prefetchExpiry,
+  maxCachePages: 10,
+});
 
 // 响应式数据
 const scPageSize = ref(props.pageSize);
 const scPageSizes = ref(props.pageSizes);
 const isActive = ref(true);
 const emptyText = ref("暂无数据");
-const toggleIndex = ref(0);
-const tableData = ref([]);
+// 使用计算属性替代 toggleIndex 强制刷新
+const renderVersion = ref(0);
+const tableData = shallowRef([]); // 使用 shallowRef 优化大数据性能
 const total = ref(0);
 const currentPage = ref(1);
 const prop = ref(null);
@@ -226,7 +361,6 @@ const loading = ref(false);
 const tableHeight = ref(props.height);
 const tableParams = ref(props.params);
 const userColumn = ref(props.columns);
-const selectCacheData = ref({});
 const customColumnShow = ref(false);
 const summary = ref({});
 const filterParams = ref({}); // 存储当前的过滤参数
@@ -234,6 +368,16 @@ const isLoading = ref(false); // 是否正在加载中，避免重复加载
 const observerRef = ref(null); // 用于存储IntersectionObserver实例
 const rowSize = ref(props.rowSize); // 卡片布局行数
 const colSize = ref(props.colSize); // 卡片布局列数
+
+// 计算渲染 key（替代 toggleIndex += 1 的强制刷新方式）
+const tableRenderKey = computed(() => 
+  `${renderVersion.value}-${configState.border}-${configState.stripe}-${configState.size}`
+);
+
+// 触发重新渲染的方法
+const triggerRerender = () => {
+  renderVersion.value++;
+};
 
 // 确保配置对象是响应式的
 const configState = reactive({
@@ -303,24 +447,6 @@ const computedHeight = computed(() => {
   return props.height;
 });
 
-// 组件缓存命名空间（组件ID优先，其次表名，否则 shared）
-const cacheNamespaceKey = computed(() => {
-  return props.tableId || props.tableName || "shared";
-});
-
-const getNamespaceCache = () => {
-  const key = cacheNamespaceKey.value;
-  let ns = GLOBAL_CACHE.get(key);
-  if (!ns) {
-    ns = new Map();
-    GLOBAL_CACHE.set(key, ns);
-  }
-  return ns;
-};
-
-const clearNamespaceCache = () => {
-  GLOBAL_CACHE.delete(cacheNamespaceKey.value);
-};
 
 // 从localStorage加载配置
 const loadConfigFromStorage = () => {
@@ -391,10 +517,6 @@ watch(
   () => props.border,
   newVal => {
     configState.border = typeof newVal === "string" ? newVal === "true" : !!newVal;
-    // 触发重新渲染
-    nextTick(() => {
-      toggleIndex.value += 1;
-    });
   },
   { immediate: true }
 );
@@ -403,10 +525,6 @@ watch(
   () => props.stripe,
   newVal => {
     configState.stripe = typeof newVal === "string" ? newVal === "true" : !!newVal;
-    // 触发重新渲染
-    nextTick(() => {
-      toggleIndex.value += 1;
-    });
   },
   { immediate: true }
 );
@@ -419,15 +537,7 @@ watch(
   { immediate: true }
 );
 
-// 监听配置状态中影响渲染的属性变化
-const configRenderKey = computed(() => 
-  `${configState.border}-${configState.stripe}-${configState.size}`
-);
-watch(configRenderKey, () => {
-  nextTick(() => {
-    toggleIndex.value += 1;
-  });
-});
+// 配置状态变化时自动触发重新渲染（通过 tableRenderKey 计算属性实现）
 
 // 方法
 const openTimer = () => {
@@ -494,11 +604,9 @@ const getPageSize = () => {
  * 获取远程数据
  */
 const getRemoteData = async isLoading => {
-  const ns = getNamespaceCache();
-  
   // 如果启用缓存且命中缓存,直接返回缓存数据
-  if (configState.cacheEnabled && ns.has(currentPage.value)) {
-    tableData.value = ns.get(currentPage.value);
+  if (configState.cacheEnabled && hasCache(currentPage.value)) {
+    tableData.value = getCache(currentPage.value);
     loading.value = false;
     loaded();
     return;
@@ -569,8 +677,6 @@ const rebuildCache = async response => {
     newData = handleSorted(response.rows || []);
   }
 
-  const ns = getNamespaceCache();
-
   // 启用数据缓存:预取3页数据并分别缓存
   if (configState.cacheEnabled) {
     const size = getPageSize();
@@ -579,11 +685,11 @@ const rebuildCache = async response => {
       const pageNo = currentPage.value + i;
       const slice = newData.slice(i * size, (i + 1) * size);
       if (slice && slice.length > 0) {
-        ns.set(pageNo, slice);
+        setCache(pageNo, slice);
       }
     }
     // 当前页从缓存中取数据
-    tableData.value = ns.get(currentPage.value) || [];
+    tableData.value = getCache(currentPage.value) || [];
   } else {
     // 未启用缓存:直接显示数据
     tableData.value = newData;
@@ -735,7 +841,7 @@ const reload = (params, page = 1) => {
 // 自定义变化事件
 const columnSettingChangeHandler = column => {
   userColumn.value = column;
-  toggleIndex.value += 1;
+  triggerRerender();
 };
 
 // 自定义列保存
@@ -974,28 +1080,27 @@ const cancelDragSort = () => {
   }
 };
 
+// 选择变化处理（使用 composable）
 const selectionChange = values => {
-  selectCacheData.value[currentPage.value] = values;
+  setPageSelection(currentPage.value, values);
 };
 
+// 清除选择值
 const clearSelectionValue = () => {
   scTable.value?.clearSelection();
-  selectCacheData.value = {};
+  clearSelectionCache();
 };
 
+// 重置选中值（切换页面后恢复选中状态）
 const resetSelectedValue = () => {
   nextTick(async () => {
-    const selectedValues = selectCacheData.value[currentPage.value];
-    if (selectedValues) {
+    const selectedValues = getPageSelection(currentPage.value);
+    if (selectedValues && selectedValues.length > 0) {
       selectedValues.forEach(it => {
-        scTable.value.toggleRowSelection(it, true);
+        scTable.value?.toggleRowSelection(it, true);
       });
     }
   });
-};
-
-const getSelection = () => {
-  return Object.values(selectCacheData.value).flat();
 };
 
 // 集成快捷键支持
@@ -1158,15 +1263,47 @@ onMounted(() => {
   }
   getData(true);
 
-  // 如果是滚动分页并且需要自动加载，设置滚动监听
+// 如果是滚动分页并且需要自动加载，设置滚动监听
   if (props.paginationType === "scroll" && props.autoLoad) {
     setupScrollObserver();
+  }
+
+  // 初始化鼠标拖拽滚动
+  if (props.dragScrollEnabled) {
+    nextTick(() => {
+      if (scTableMain.value) {
+        initDragScroll(scTableMain.value);
+      }
+    });
+  }
+
+  // 初始化预加载功能
+  if (props.prefetchEnabled && props.url) {
+    initPrefetch(async (params) => {
+      const reqData = {
+        [config.request.page]: params.page,
+        [config.request.pageSize]: params.pageSize,
+        ...tableParams.value,
+      };
+      const res = await props.url(reqData);
+      const response = parseData(res);
+      return {
+        data: response.rows || [],
+        total: response.total || 0,
+      };
+    });
   }
 });
 
 onUnmounted(() => {
   closeTimer();
   removeScrollObserver();
+  // 清理拖拽滚动
+  destroyDragScroll();
+  // 清理本地分页数据
+  clearLocalData();
+  // 清理预加载缓存
+  clearPrefetchCache();
 });
 
 onActivated(() => {
@@ -1283,7 +1420,7 @@ watch(
       }
       // 触发重新渲染
       nextTick(() => {
-        toggleIndex.value += 1;
+        triggerRerender();
       });
     }
   },
@@ -1350,7 +1487,7 @@ const saveConfig = config => {
 
     // 触发重新渲染
     nextTick(() => {
-      toggleIndex.value += 1;
+      triggerRerender();
       scTable.value?.doLayout();
     });
   } else if (config.type === "column") {
@@ -1375,7 +1512,7 @@ const saveConfig = config => {
 
       // 触发重新渲染
       nextTick(() => {
-        toggleIndex.value += 1;
+        triggerRerender();
         if (scTable.value?.doLayout) {
           scTable.value.doLayout();
         }
@@ -1458,7 +1595,7 @@ const autoFitColumnWidth = (columnProp) => {
     }
     
     // 重新渲染
-    toggleIndex.value += 1;
+    triggerRerender();
   });
 };
 
@@ -1477,7 +1614,7 @@ const resetColumnWidth = () => {
     console.error('重置列宽失败:', error);
   }
   
-  toggleIndex.value += 1;
+  triggerRerender();
 };
 
 // 处理列表视图中加载页面的事件
@@ -1550,7 +1687,31 @@ defineExpose({
   dragSortLoading,
   // 列宽自适应
   autoFitColumnWidth,
-  resetColumnWidth
+  resetColumnWidth,
+  // 鼠标拖拽滚动
+  isDragScrolling,
+  isDragScrollEnabled,
+  toggleDragScrollEnabled,
+  // 本地分页/静态数据模式
+  isLocalPaginationEnabled,
+  isLocalDataLoaded,
+  localFullData,
+  setLocalFullData,
+  clearLocalData,
+  goToLocalPage,
+  filterLocalData,
+  clearLocalFilter,
+  sortLocalData,
+  // 预加载缓存
+  isPrefetchEnabled,
+  hasPrefetchCache,
+  clearPrefetchCache,
+  getPrefetchCacheStats,
+  // 分页模式
+  paginationMode: actualPaginationMode,
+  useLocalPagination,
+  usePrefetchMode,
+  useServerPagination,
 });
 </script>
 
@@ -1580,7 +1741,7 @@ defineExpose({
         <component
           :is="componentMap[layout]"
           ref="scTable"
-          :key="toggleIndex"
+          :key="tableRenderKey"
           v-loading="loading"
           :center="center"
           v-bind="$attrs"
@@ -1596,7 +1757,7 @@ defineExpose({
           :remote-filter="remoteFilter"
           :remote-summary="remoteSummary"
           :summary-method="summaryMethod"
-          :toggle-index="toggleIndex"
+          :toggle-index="renderVersion"
           :empty-text="emptyText"
           :col-size="colSize"
           :row-size="rowSize"

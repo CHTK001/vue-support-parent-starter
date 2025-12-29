@@ -53,6 +53,19 @@ const menusData = computed(() => {
   return cloneDeep(usePermissionStoreHook().wholeMenus);
 });
 
+/** 将菜单树形结构扁平化为一维数组（缓存计算结果） */
+const flatMenusData = computed(() => {
+  const res: any[] = [];
+  function deep(arr: any[]) {
+    arr.forEach((item) => {
+      res.push(item);
+      item.children && deep(item.children);
+    });
+  }
+  deep(menusData.value);
+  return res;
+});
+
 const show = computed({
   get() {
     return props.value;
@@ -92,23 +105,9 @@ function setStorageItem(key, value) {
   localStorageProxy().setItem(key, value);
 }
 
-/** 将菜单树形结构扁平化为一维数组，用于菜单查询 */
-function flatTree(arr) {
-  const res = [];
-  function deep(arr) {
-    arr.forEach((item) => {
-      res.push(item);
-      item.children && deep(item.children);
-    });
-  }
-  deep(arr);
-  return res;
-}
-
-/** 查询 */
+/** 查询 - 使用缓存的扁平化菜单数据 */
 function search() {
-  const flatMenusData = flatTree(menusData.value);
-  resultOptions.value = flatMenusData.filter((menu) =>
+  resultOptions.value = flatMenusData.value.filter((menu) =>
     keyword.value
       ? transformI18n(menu.meta?.i18nKey || menu.meta?.title)
           .toLocaleLowerCase()
@@ -341,4 +340,9 @@ onKeyStroke("ArrowDown", handleDown);
 .search-content {
   margin-top: 12px;
 }
+</style>
+
+<style lang="scss">
+// 引入主题样式
+@import '../themes/index';
 </style>

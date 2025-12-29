@@ -70,6 +70,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { message } from "@repo/utils";
+import { useSocketService, type SocketTemplate } from "@repo/core";
+import { RemoteTopics } from "@repo/core";
 
 interface Props {
   /** 服务器信息 */
@@ -100,22 +102,14 @@ const errorMessage = ref<string>('');
 const screenCanvas = ref<HTMLCanvasElement | null>(null);
 const canvasContainer = ref<HTMLDivElement | null>(null);
 
-// WebSocket 连接
-let ws: WebSocket | null = null;
+// Socket 服务
+let socketService: SocketTemplate | null = null;
 
 // 远程桌面默认端口（utils-support-remote-starter 的 agent 端口）
 const remotePort = computed(() => {
   // 使用服务器配置的端口，或默认 8899
   return props.server?.monitorSysGenServerPort || 8899;
 });
-
-// 获取 WebSocket URL
-const getWebSocketUrl = () => {
-  // 通过后端 WebSocket 代理连接
-  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsHost = window.location.host;
-  return `${wsProtocol}//${wsHost}/websocket/remote`;
-};
 
 // 连接远程桌面
 const connect = () => {
@@ -128,49 +122,25 @@ const connect = () => {
   errorMessage.value = '';
   
   try {
-    const wsUrl = getWebSocketUrl();
-    console.log('连接远程桌面:', wsUrl);
+    // 获取全局 Socket 服务
+    socketService = useSocketService();
     
-    ws = new WebSocket(wsUrl);
-    ws.binaryType = 'arraybuffer';
-    
-    ws.onopen = () => {
-      console.log('WebSocket 连接已建立，发送连接请求...');
-      // 发送连接请求（JSON格式）
-      sendConnectRequest();
-    };
-    
-    ws.onmessage = (event) => {
-      // 处理文本消息（JSON响应）和二进制消息（屏幕数据）
-      if (typeof event.data === 'string') {
-        handleJsonMessage(event.data);
-      } else {
-        handleScreenData(event.data);
-      }
-    };
-    
-    ws.onerror = (error) => {
-      console.error('WebSocket 错误:', error);
-      errorMessage.value = '连接发生错误';
-    };
-    
-    ws.onclose = (event) => {
-      console.log('WebSocket 连接关闭:', event.code, event.reason);
+    if (!socketService) {
+      errorMessage.value = 'Socket 服务不可用';
       connectionStatus.value = 'disconnected';
-      
-      // 4010 状态码表示需要降级到 SSH（Linux 无桌面环境）
-      if (event.code === 4010 || event.reason === 'FALLBACK_SSH') {
-        console.log('远程桌面不可用，降级到 SSH 模式');
-        message('远程桌面不可用（可能是 Linux 无桌面环境），正在切换到 SSH 模式...', { type: 'warning' });
-        emit('fallback-ssh');
-        return;
-      }
-      
-      if (event.code !== 1000) {
-        errorMessage.value = event.reason || '连接已断开';
-      }
-      emit('disconnected');
-    };
+      return;
+    }
+    
+    // 注册事件监听
+    setupSocketListeners();
+    
+    // 发送连接请求
+    socketService.emit(RemoteTopics.DESKTOP.CONNECT, JSON.stringify({
+      serverId: props.server.monitorSysGenServerId
+    }));
+    
+    console.log('发送远程桌面连接请求:', props.server.monitorSysGenServerId);
+    
   } catch (error) {
     console.error('连接失败:', error);
     connectionStatus.value = 'disconnected';
@@ -178,59 +148,104 @@ const connect = () => {
   }
 };
 
-// 发送连接请求
-const sendConnectRequest = () => {
-  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+// 设置 Socket 事件监听
+const setupSocketListeners = () => {
+  if (!socketService) return;
   
-  const connectMsg = JSON.stringify({
-    type: 'connect',
-    serverId: props.server?.monitorSysGenServerId
+  // 连接成功
+  socketService.on(RemoteTopics.DESKTOP.CONNECTED, (data: string) => {
+    try {
+      const msg = JSON.parse(data);
+      console.log('远程桌面连接成功:', msg);
+      connectionStatus.value = 'connected';
+      emit('connected');
+      
+      const mode = msg.data?.mode || 'DESKTOP';
+      message(`远程桌面连接成功 (${mode} 模式)`, { type: 'success' });
+      
+      // 如果是 SSH 模式，降级到 SSH 终端
+      if (mode === 'SSH') {
+        message('检测到 SSH 模式，正在切换到终端...', { type: 'warning' });
+        emit('fallback-ssh');
+      }
+    } catch (e) {
+      console.error('解析连接响应失败:', e);
+    }
   });
-  ws.send(connectMsg);
+  
+  // 屏幕数据（二进制）
+  socketService.on(RemoteTopics.DESKTOP.SCREEN, (data: ArrayBuffer | string) => {
+    if (data instanceof ArrayBuffer) {
+      handleScreenData(data);
+    } else if (typeof data === 'string') {
+      // Base64 编码的图像数据
+      handleBase64ScreenData(data);
+    }
+  });
+  
+  // 模式检测
+  socketService.on(RemoteTopics.DESKTOP.MODE_DETECTED, (data: string) => {
+    try {
+      const msg = JSON.parse(data);
+      const mode = msg.data?.mode;
+      console.log('检测到模式:', mode);
+      
+      if (mode === 'SSH') {
+        message('检测到 SSH 模式，正在切换到终端...', { type: 'warning' });
+        emit('fallback-ssh');
+      }
+    } catch (e) {
+      console.error('解析模式检测消息失败:', e);
+    }
+  });
+  
+  // 断开连接
+  socketService.on(RemoteTopics.DESKTOP.DISCONNECTED, (data: string) => {
+    console.log('远程桌面连接断开:', data);
+    connectionStatus.value = 'disconnected';
+    emit('disconnected');
+  });
+  
+  // 错误
+  socketService.on(RemoteTopics.DESKTOP.ERROR, (data: string) => {
+    try {
+      const msg = JSON.parse(data);
+      console.error('远程桌面错误:', msg);
+      errorMessage.value = msg.msg || msg.message || '连接错误';
+    } catch (e) {
+      errorMessage.value = data || '连接错误';
+    }
+  });
 };
 
-// 处理 JSON 消息
-const handleJsonMessage = (data: string) => {
+// 移除 Socket 事件监听
+const removeSocketListeners = () => {
+  if (!socketService) return;
+  
+  socketService.off(RemoteTopics.DESKTOP.CONNECTED);
+  socketService.off(RemoteTopics.DESKTOP.SCREEN);
+  socketService.off(RemoteTopics.DESKTOP.MODE_DETECTED);
+  socketService.off(RemoteTopics.DESKTOP.DISCONNECTED);
+  socketService.off(RemoteTopics.DESKTOP.ERROR);
+};
+
+// 处理 Base64 编码的屏幕数据
+const handleBase64ScreenData = (base64Data: string) => {
+  if (!screenCanvas.value) return;
+  
+  const ctx = screenCanvas.value.getContext('2d');
+  if (!ctx) return;
+  
   try {
-    const msg = JSON.parse(data);
-    const msgType = msg.type;
-    const msgData = msg.data;
-    
-    switch (msgType) {
-      case 'connect-ready':
-        console.log('服务器就绪:', msgData);
-        break;
-      case 'connect-result':
-        if (msgData.success) {
-          console.log('远程桌面连接成功, 模式:', msgData.mode);
-          connectionStatus.value = 'connected';
-          emit('connected');
-          message(`远程桌面连接成功 (${msgData.mode} 模式)`, { type: 'success' });
-          
-          // 如果是 SSH 模式，降级到 SSH 终端
-          if (msgData.mode === 'SSH') {
-            message('检测到 SSH 模式，正在切换到终端...', { type: 'warning' });
-            emit('fallback-ssh');
-          }
-        } else {
-          console.error('远程桌面连接失败:', msgData.message);
-          errorMessage.value = msgData.message || '连接失败';
-          connectionStatus.value = 'disconnected';
-        }
-        break;
-      case 'error':
-        console.error('服务器错误:', msgData.message);
-        errorMessage.value = msgData.message;
-        break;
-      case 'terminal':
-        // SSH 模式下的终端输出
-        console.log('终端输出:', msgData.data);
-        break;
-      default:
-        console.log('未知消息类型:', msgType, msgData);
+    const binaryString = atob(base64Data);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
     }
+    handleScreenData(bytes.buffer);
   } catch (e) {
-    console.error('解析 JSON 消息失败:', e);
+    console.error('解析 Base64 屏幕数据失败:', e);
   }
 };
 
@@ -300,22 +315,6 @@ const renderImage = (imageData: ArrayBuffer, mimeType: string, ctx: CanvasRender
   img.src = url;
 };
 
-// 发送二进制命令
-const sendBinaryCommand = (type: number, ...data: number[]) => {
-  if (!ws || ws.readyState !== WebSocket.OPEN) return;
-  
-  const buffer = new ArrayBuffer(1 + data.length * 4);
-  const view = new DataView(buffer);
-  view.setUint8(0, type);
-  
-  let offset = 1;
-  for (const value of data) {
-    view.setInt32(offset, value);
-    offset += 4;
-  }
-  
-  ws.send(buffer);
-};
 
 // 鼠标事件处理
 const getMousePosition = (event: MouseEvent) => {
@@ -332,82 +331,73 @@ const getMousePosition = (event: MouseEvent) => {
 };
 
 const handleMouseMove = (event: MouseEvent) => {
+  if (!socketService || connectionStatus.value !== 'connected') return;
+  
   const pos = getMousePosition(event);
-  sendBinaryCommand(1, pos.x, pos.y); // mouseMove
+  socketService.emit(RemoteTopics.DESKTOP.MOUSE_MOVE, JSON.stringify({
+    x: pos.x,
+    y: pos.y
+  }));
 };
 
 const handleMouseDown = (event: MouseEvent) => {
   screenCanvas.value?.focus();
+  if (!socketService || connectionStatus.value !== 'connected') return;
+  
   const pos = getMousePosition(event);
-  // mouseClick: type=2, x, y, button, pressed(1)
-  const buffer = new ArrayBuffer(14);
-  const view = new DataView(buffer);
-  view.setUint8(0, 2);
-  view.setInt32(1, pos.x);
-  view.setInt32(5, pos.y);
-  view.setUint8(9, event.button);
-  view.setUint8(10, 1); // pressed
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(buffer);
-  }
+  socketService.emit(RemoteTopics.DESKTOP.MOUSE_CLICK, JSON.stringify({
+    x: pos.x,
+    y: pos.y,
+    button: event.button,
+    pressed: true
+  }));
 };
 
 const handleMouseUp = (event: MouseEvent) => {
+  if (!socketService || connectionStatus.value !== 'connected') return;
+  
   const pos = getMousePosition(event);
-  const buffer = new ArrayBuffer(14);
-  const view = new DataView(buffer);
-  view.setUint8(0, 2);
-  view.setInt32(1, pos.x);
-  view.setInt32(5, pos.y);
-  view.setUint8(9, event.button);
-  view.setUint8(10, 0); // released
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(buffer);
-  }
+  socketService.emit(RemoteTopics.DESKTOP.MOUSE_CLICK, JSON.stringify({
+    x: pos.x,
+    y: pos.y,
+    button: event.button,
+    pressed: false
+  }));
 };
 
 const handleMouseWheel = (event: WheelEvent) => {
   event.preventDefault();
+  if (!socketService || connectionStatus.value !== 'connected') return;
+  
   const pos = getMousePosition(event);
-  // mouseWheel: type=3, x, y, amount
-  const buffer = new ArrayBuffer(13);
-  const view = new DataView(buffer);
-  view.setUint8(0, 3);
-  view.setInt32(1, pos.x);
-  view.setInt32(5, pos.y);
-  view.setInt32(9, Math.sign(event.deltaY) * -3);
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(buffer);
-  }
+  socketService.emit(RemoteTopics.DESKTOP.MOUSE_WHEEL, JSON.stringify({
+    x: pos.x,
+    y: pos.y,
+    amount: Math.sign(event.deltaY) * -3
+  }));
 };
 
 // 键盘事件处理
 const handleKeyDown = (event: KeyboardEvent) => {
   event.preventDefault();
-  // keyPress: type=4, keyCode, keyChar, modifiers
-  const buffer = new ArrayBuffer(11);
-  const view = new DataView(buffer);
-  view.setUint8(0, 4);
-  view.setInt32(1, event.keyCode);
-  view.setUint16(5, event.key.charCodeAt(0) || 0);
-  view.setInt32(7, getModifiers(event));
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(buffer);
-  }
+  if (!socketService || connectionStatus.value !== 'connected') return;
+  
+  socketService.emit(RemoteTopics.DESKTOP.KEY_PRESS, JSON.stringify({
+    keyCode: event.keyCode,
+    keyChar: event.key,
+    modifiers: getModifiers(event)
+  }));
 };
 
 const handleKeyUp = (event: KeyboardEvent) => {
   event.preventDefault();
-  // keyRelease: type=5, keyCode, keyChar, modifiers
-  const buffer = new ArrayBuffer(11);
-  const view = new DataView(buffer);
-  view.setUint8(0, 5);
-  view.setInt32(1, event.keyCode);
-  view.setUint16(5, event.key.charCodeAt(0) || 0);
-  view.setInt32(7, getModifiers(event));
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(buffer);
-  }
+  if (!socketService || connectionStatus.value !== 'connected') return;
+  
+  socketService.emit(RemoteTopics.DESKTOP.KEY_RELEASE, JSON.stringify({
+    keyCode: event.keyCode,
+    keyChar: event.key,
+    modifiers: getModifiers(event)
+  }));
 };
 
 const getModifiers = (event: KeyboardEvent) => {
@@ -426,10 +416,12 @@ const reconnect = () => {
 };
 
 const disconnect = () => {
-  if (ws) {
-    ws.close(1000, '用户断开连接');
-    ws = null;
+  if (socketService && props.server) {
+    socketService.emit(RemoteTopics.DESKTOP.DISCONNECT, JSON.stringify({
+      serverId: props.server.monitorSysGenServerId
+    }));
   }
+  removeSocketListeners();
   connectionStatus.value = 'disconnected';
 };
 

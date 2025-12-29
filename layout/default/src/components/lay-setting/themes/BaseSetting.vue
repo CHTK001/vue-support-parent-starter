@@ -91,6 +91,7 @@ const cardBodyVal = ref($storage.configure?.cardBody ?? true);
 
 const settings = reactive({
   menuTransition: $storage.configure.menuTransition,
+  transitionType: $storage.configure.transitionType ?? 'fade-slide',
   contentMargin: $storage.configure.contentMargin,
   layoutRadius: $storage.configure.layoutRadius,
   layoutBlur: $storage.configure.layoutBlur,
@@ -127,6 +128,14 @@ const settings = reactive({
   // 主题皮肤设置（优先从本地存储读取，其次从配置文件，最后默认为 true）
   enableFestivalTheme: $storage.configure?.enableFestivalTheme ?? (getConfig().EnableFestivalTheme ?? true),
 });
+
+/** 过渡动画类型选项 */
+const transitionTypeOptions = computed<Array<OptionsType>>(() => [
+  { label: "滑动淡入", tip: "平滑的上下滑动效果", value: "fade-slide" },
+  { label: "缩放淡入", tip: "带缩放的淡入淡出效果", value: "fade-scale" },
+  { label: "纯淡入", tip: "仅淡入淡出无位移", value: "fade-only" },
+  { label: "右侧滑入", tip: "从右侧滑入的效果", value: "slide-right" },
+]);
 
 /** AI 助手皮肤主题选项 */
 const aiChatThemeOptions = computed<Array<OptionsType>>(() => [
@@ -237,6 +246,15 @@ const layoutBlurChange = (value: number): void => {
 /** 切换菜单动画设置 */
 const menuTransitionChange = (value: boolean): void => {
   storageConfigureChange("menuTransition", value);
+  emitter.emit("menuTransitionChange", value);
+};
+
+/** 切换动画类型 */
+const transitionTypeChange = ({ option }: { option: OptionsType }): void => {
+  const value = option.value as string;
+  settings.transitionType = value;
+  storageConfigureChange("transitionType", value);
+  emitter.emit("transitionTypeChange", value);
 };
 
 /** 灰色模式设置 */
@@ -1598,6 +1616,16 @@ onUnmounted(() => {
               ribbon-color="var(--el-color-primary)"
               @change="menuTransitionChange"
             />
+            <!-- 动画类型选择器 -->
+            <div v-if="settings.menuTransition" class="transition-type-selector">
+              <div class="selector-label">动画类型</div>
+              <Segmented
+                v-model="settings.transitionType"
+                :options="transitionTypeOptions"
+                size="small"
+                @change="transitionTypeChange"
+              />
+            </div>
           </div>
         </div>
 

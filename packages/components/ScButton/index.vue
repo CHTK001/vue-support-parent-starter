@@ -13,7 +13,8 @@
         'is-round': round,
         'is-circle': circle,
         'is-text': text,
-        'is-link': link
+        'is-link': link,
+        'no-animation': disableAnimation
       }
     ]"
     :disabled="disabled || loading"
@@ -80,7 +81,8 @@
         'is-round': round,
         'is-circle': circle,
         'is-text': text,
-        'is-link': link
+        'is-link': link,
+        'no-animation': disableAnimation
       }
     ]"
     :disabled="disabled || loading"
@@ -287,6 +289,14 @@ export default defineComponent({
      * 是否显示背景色
      */
     bg: {
+      type: Boolean,
+      default: false
+    },
+    /**
+     * 是否禁用动画效果（提升性能）
+     * 适用于大量按钮场景或低端设备
+     */
+    disableAnimation: {
       type: Boolean,
       default: false
     }
@@ -689,6 +699,159 @@ export default defineComponent({
         color: #00f6ff;
         filter: drop-shadow(0 0 5px rgba(0, 246, 255, 0.8));
       }
+    }
+
+    // 禁用动画模式（性能优化）
+    &.no-animation {
+      transition: none !important;
+
+      &:hover {
+        transform: none;
+      }
+
+      .sc-button__tech-corner,
+      .sc-button__tech-glow {
+        transition: none !important;
+      }
+    }
+  }
+
+  // Scifi 主题模式的样式
+  &--scifi-mode {
+    background: rgba(0, 10, 30, 0.9);
+    border: none;
+    color: #00f6ff;
+    border-radius: 2px;
+    position: relative;
+    overflow: visible;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 600;
+    text-shadow: 0 0 10px rgba(0, 246, 255, 0.5);
+
+    // SVG 边框
+    .sc-button__scifi-border {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+
+      .scifi-rect {
+        width: calc(100% - 2px);
+        height: calc(100% - 2px);
+        transition: all 0.3s ease;
+      }
+
+      .scifi-corner {
+        transition: all 0.3s ease;
+
+        &--tr {
+          d: path('M calc(100% - 1) 12 L calc(100% - 1) 1 L calc(100% - 12) 1');
+        }
+
+        &--bl {
+          d: path('M 1 calc(100% - 12) L 1 calc(100% - 1) L 12 calc(100% - 1)');
+        }
+
+        &--br {
+          d: path('M calc(100% - 12) calc(100% - 1) L calc(100% - 1) calc(100% - 1) L calc(100% - 1) calc(100% - 12)');
+        }
+      }
+    }
+
+    // 扫描线效果
+    .sc-button__scifi-scanline {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0, 246, 255, 0.1) 50%,
+        transparent 100%
+      );
+      background-size: 100% 4px;
+      animation: scifi-scan 4s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    // 发光层
+    .sc-button__scifi-glow {
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: transparent;
+      box-shadow: 
+        0 0 20px rgba(0, 246, 255, 0.3),
+        inset 0 0 20px rgba(0, 246, 255, 0.1);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .sc-button__text,
+    .sc-button__icon,
+    .sc-button__suffix-icon {
+      position: relative;
+      z-index: 2;
+    }
+
+    &:hover {
+      color: #fff;
+      text-shadow: 0 0 15px rgba(0, 246, 255, 0.8);
+
+      .sc-button__scifi-glow {
+        opacity: 1;
+      }
+
+      .scifi-corner {
+        stroke-width: 3;
+      }
+    }
+
+    &:active {
+      color: #00d4ff;
+    }
+
+    // 禁用动画模式
+    &.no-animation {
+      .sc-button__scifi-scanline {
+        animation: none;
+      }
+
+      .sc-button__scifi-glow,
+      .scifi-rect,
+      .scifi-corner {
+        transition: none !important;
+      }
+    }
+
+    // Scifi 主题禁用状态
+    &.is-disabled {
+      opacity: 0.4;
+      color: rgba(0, 246, 255, 0.4);
+
+      .sc-button__scifi-scanline {
+        animation: none;
+      }
+    }
+  }
+
+  @keyframes scifi-scan {
+    0% {
+      background-position: 0 -100%;
+    }
+    100% {
+      background-position: 0 100%;
     }
   }
 }

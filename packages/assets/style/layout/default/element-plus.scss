@@ -25,21 +25,42 @@
   padding: 0 !important;
 }
 
-/* nprogress 适配 element-plus 的主题色 */
+/* nprogress 适配 element-plus 的主题色 - 增强视觉反馈 */
 #nprogress {
+  pointer-events: none;
+
   & .bar {
-    background-color: var(--el-color-primary) !important;
+    background: linear-gradient(
+      90deg,
+      var(--el-color-primary-light-3),
+      var(--el-color-primary),
+      var(--el-color-primary-dark-2)
+    ) !important;
+    height: 3px !important;
+    box-shadow: 0 0 10px var(--el-color-primary),
+                0 0 5px var(--el-color-primary-light-3) !important;
   }
 
   & .peg {
     box-shadow:
+      0 0 15px var(--el-color-primary),
       0 0 10px var(--el-color-primary),
-      0 0 5px var(--el-color-primary) !important;
+      0 0 5px var(--el-color-primary-light-3) !important;
+  }
+
+  & .spinner {
+    top: 15px !important;
+    right: 15px !important;
   }
 
   & .spinner-icon {
-    border-top-color: var(--el-color-primary);
-    border-left-color: var(--el-color-primary);
+    width: 20px !important;
+    height: 20px !important;
+    border-width: 3px !important;
+    border-top-color: var(--el-color-primary) !important;
+    border-left-color: var(--el-color-primary) !important;
+    border-right-color: transparent !important;
+    border-bottom-color: transparent !important;
   }
 }
 

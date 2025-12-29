@@ -35,10 +35,10 @@ export type ProtocolType = "socketio" | "rsocket" | "websocket" | "sse";
  * Socket 服务统一配置
  */
 export interface SocketServiceConfig {
-  /** 协议类型，默认 socketio */
+  /** 协议类型，默认从全局配置获取 */
   protocol?: ProtocolType;
-  /** 服务器地址列表 */
-  urls: string[];
+  /** 服务器地址列表，不传则从全局配置获取 */
+  urls?: string[];
   /** 上下文路径（Socket.IO/WebSocket 专用） */
   context?: string;
   /** WebSocket/SSE 路径 */
@@ -75,6 +75,29 @@ const namedSocketServices = new Map<string, SocketTemplate>();
  * 当前协议类型
  */
 let currentProtocol: ProtocolType = "socketio";
+
+/**
+ * 全局 Socket 配置缓存
+ */
+let globalSocketConfig: { protocol?: ProtocolType; urls?: string[]; context?: string } = {};
+
+/**
+ * 设置全局 Socket 配置（由 ConfigStore 调用）
+ */
+export function setGlobalSocketConfig(config: { protocol?: ProtocolType; urls?: string[]; context?: string }): void {
+  globalSocketConfig = { ...globalSocketConfig, ...config };
+}
+
+/**
+ * 获取全局 Socket 配置
+ */
+export function getGlobalSocketConfig(): { protocol: ProtocolType; urls: string[]; context?: string } {
+  return {
+    protocol: globalSocketConfig.protocol || "socketio",
+    urls: globalSocketConfig.urls || [],
+    context: globalSocketConfig.context,
+  };
+}
 
 /**
  * 创建 Socket 服务
@@ -196,14 +219,15 @@ export function closeGlobalSocketService(): void {
 /**
  * 创建命名 Socket 服务
  * 用于服务器管理等场景，需要多个独立的 Socket 连接
+ * 如果不指定 protocol 和 urls，会自动从全局配置中获取
  *
  * @param name 实例名称
- * @param config 配置
+ * @param config 配置（可选，不传则使用全局配置）
  * @returns SocketTemplate 实例
  */
 export function createNamedSocketService(
   name: string,
-  config: SocketServiceConfig
+  config?: SocketServiceConfig
 ): SocketTemplate {
   // 如果已存在，先关闭旧连接
   if (namedSocketServices.has(name)) {
@@ -211,10 +235,19 @@ export function createNamedSocketService(
     existing.close();
   }
 
-  const service = createSocketService(config);
+  // 从全局配置获取默认值
+  const globalConfig = getGlobalSocketConfig();
+  const mergedConfig: SocketServiceConfig = {
+    protocol: config?.protocol || globalConfig.protocol,
+    urls: config?.urls || globalConfig.urls,
+    context: config?.context || globalConfig.context,
+    ...config,
+  };
+
+  const service = createSocketService(mergedConfig);
   namedSocketServices.set(name, service);
 
-  console.log(`[SocketService] 创建命名实例: ${name}`);
+  console.log(`[SocketService] 创建命名实例: ${name}, 协议: ${mergedConfig.protocol}`);
   return service;
 }
 

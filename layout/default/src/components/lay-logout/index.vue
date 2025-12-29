@@ -88,4 +88,89 @@ import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
     }
   }
 }
+
+// 赛博朋克主题
+:global(html[data-skin="cyberpunk"]) .logout-btn {
+  &::before {
+    background: rgba(255, 0, 85, 0.15);
+  }
+
+  .logout-icon {
+    color: #00ffff;
+  }
+
+  &:hover {
+    box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);
+
+    &::before {
+      background: rgba(255, 0, 85, 0.25);
+    }
+
+    .logout-icon {
+      color: #ff0055;
+      filter: drop-shadow(0 0 6px rgba(255, 0, 85, 0.6));
+    }
+  }
+}
+
+// 春节主题
+:global(html[data-skin="spring-festival"]),
+:global(html[data-skin="lunar-spring-festival"]),
+:global(html[data-skin="new-year"]) {
+  .logout-btn {
+    &::before {
+      background: rgba(229, 57, 53, 0.1);
+    }
+
+    .logout-icon {
+      color: #c62828;
+    }
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
+
+      .logout-icon {
+        color: #e53935;
+      }
+    }
+  }
+}
+
+// 中秋主题
+:global(html[data-skin="mid-autumn"]) .logout-btn {
+  &::before {
+    background: rgba(106, 27, 154, 0.15);
+  }
+
+  .logout-icon {
+    color: #ffc107;
+  }
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+
+    .logout-icon {
+      color: #ff9800;
+    }
+  }
+}
+
+// 圣诞主题
+:global(html[data-skin="christmas"]) .logout-btn {
+  &::before {
+    background: rgba(196, 30, 58, 0.1);
+  }
+
+  .logout-icon {
+    color: #228b22;
+  }
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);
+
+    .logout-icon {
+      color: #c41e3a;
+    }
+  }
+}
 </style>

@@ -142,10 +142,8 @@ const connectSSH = (serverHost: string, serverPort: number): boolean => {
       closeNamedSocketService(socketName);
     }
     
-    // 创建命名 Socket 服务
+    // 创建命名 Socket 服务（协议和 urls 自动从全局配置获取）
     socketService.value = createNamedSocketService(socketName, {
-      protocol: "socketio",
-      urls: config.SocketUrl ? config.SocketUrl.split(",") : [],
       query: { serverId: String(props.server?.id || 0) },
       autoConnect: true,
       reconnection: true,
