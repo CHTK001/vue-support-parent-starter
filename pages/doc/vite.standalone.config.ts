@@ -4,7 +4,18 @@ import { resolve } from "path";
 
 // 独立构建配置 - 用于生成 doc-v2.html
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    {
+      name: "rename-html",
+      generateBundle(options, bundle) {
+        if (bundle["index.html"]) {
+          bundle["doc-v2.html"] = bundle["index.html"];
+          delete bundle["index.html"];
+        }
+      },
+    },
+  ],
   root: resolve(__dirname, "standalone"),
   base: "./",
   resolve: {
