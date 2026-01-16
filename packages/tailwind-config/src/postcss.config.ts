@@ -1,9 +1,11 @@
 import config from ".";
 import fixColorAdjust from "./postcss-fix-color-adjust";
 
+import cssnano from "cssnano";
+
 export default {
   plugins: [
-    process.env.NODE_ENV === "production" ? ["cssnano", {}] : false,
+    ...(process.env.NODE_ENV === "production" ? [cssnano({})] : []),
     ["tailwindcss/nesting", "postcss-nesting"],
     ["tailwindcss", { config }],
     "autoprefixer",
@@ -11,5 +13,5 @@ export default {
     "postcss-import",
     "postcss-preset-env",
     fixColorAdjust,
-  ].filter(Boolean),
+  ],
 };

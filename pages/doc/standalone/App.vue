@@ -43,6 +43,19 @@ const title = ref("API Documentation V2");
 const apiGroups = ref<ApiGroup[]>([]);
 const nodes = ref<NodeInfo[]>([]);
 
+// 从配置文件加载配置
+const loadConfig = async () => {
+  try {
+    const configResponse = await fetch("/platform-config.json");
+    if (configResponse.ok) {
+      return await configResponse.json();
+    }
+  } catch (error) {
+    console.warn("无法加载配置文件:", error);
+  }
+  return {};
+};
+
 // 从 URL 参数获取配置
 const getUrlParams = () => {
   const params = new URLSearchParams(window.location.search);
@@ -50,8 +63,13 @@ const getUrlParams = () => {
     baseUrl: params.get("baseUrl") || params.get("url") || "",
     title: params.get("title") || "API Documentation V2",
     specUrl: params.get("specUrl") || params.get("spec") || "",
+    username: params.get("username") || params.get("user") || "",
+    password: params.get("password") || params.get("pwd") || "",
   };
 };
+
+// 认证信息
+const authConfig = ref<{ username?: string; password?: string }>({});
 
 // 解析 OpenAPI/Swagger 规范
 const parseOpenApiSpec = (spec: any): ApiGroup[] => {
@@ -104,11 +122,24 @@ const parseOpenApiSpec = (spec: any): ApiGroup[] => {
   return Object.values(groups);
 };
 
+// 创建 Basic Auth 请求头
+const createAuthHeaders = (): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  if (authConfig.value.username && authConfig.value.password) {
+    const credentials = btoa(`${authConfig.value.username}:${authConfig.value.password}`);
+    headers["Authorization"] = `Basic ${credentials}`;
+  }
+  return headers;
+};
+
 // 加载 API 规范
 const loadApiSpec = async (specUrl: string) => {
   loading.value = true;
   try {
-    const response = await fetch(specUrl);
+    const headers = createAuthHeaders();
+    const response = await fetch(specUrl, {
+      headers,
+    });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
@@ -180,10 +211,12 @@ const handleExecute = async (params: ExecuteApiParams) => {
 
     // 发送请求
     const startTime = Date.now();
+    const authHeaders = createAuthHeaders();
     const response = await fetch(url, {
       method: params.api.method,
       headers: {
         "Content-Type": "application/json",
+        ...authHeaders,
         ...params.headers,
       },
       body: params.api.method !== "GET" && params.requestBody ? params.requestBody : undefined,
@@ -228,19 +261,34 @@ const handleNodeChange = (node: NodeInfo) => {
 
 // 初始化
 onMounted(async () => {
+  // 加载配置文件
+  const config = await loadConfig();
+  
+  // 获取 URL 参数
   const params = getUrlParams();
+  
+  // 设置认证信息（优先使用 URL 参数，其次使用配置文件）
+  authConfig.value = {
+    username: params.username || config.username || config.user || "",
+    password: params.password || config.password || config.pwd || "",
+  };
   
   if (params.baseUrl) {
     baseUrl.value = params.baseUrl;
+  } else if (config.baseUrl || config.url) {
+    baseUrl.value = config.baseUrl || config.url;
   }
   
   if (params.title) {
     title.value = params.title;
+  } else if (config.title) {
+    title.value = config.title;
   }
 
-  if (params.specUrl) {
-    await loadApiSpec(params.specUrl);
-  } else if (params.baseUrl) {
+  const specUrl = params.specUrl || config.specUrl || config.spec;
+  if (specUrl) {
+    await loadApiSpec(specUrl);
+  } else if (baseUrl.value) {
     // 尝试从常见路径加载
     const commonPaths = [
       "/v3/api-docs",
@@ -251,7 +299,7 @@ onMounted(async () => {
 
     for (const path of commonPaths) {
       try {
-        await loadApiSpec(params.baseUrl + path);
+        await loadApiSpec(baseUrl.value + path);
         if (apiGroups.value.length > 0) break;
       } catch {
         continue;
