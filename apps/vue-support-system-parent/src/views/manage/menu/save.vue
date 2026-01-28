@@ -205,7 +205,7 @@ defineExpose({
 <template>
   <div>
     <sc-dialog v-model="visible" top="10px" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
-      <el-form ref="dialogFormRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
+      <el-form ref="dialogFormRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="modern-form">
         <el-row :gutter="30">
           <re-col>
             <el-form-item label="菜单类型">

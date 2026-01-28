@@ -142,7 +142,7 @@ const onDataLoaded = (data, total) => {
 </script>
 
 <template>
-  <div class="log-main">
+  <div class="system-container log-main">
     <!-- 详情页组件，根据 visible.detail 控制显示 -->
     <DetailLayout v-if="visible.detail" ref="detailRef" :moduleOptions="moduleOptions" />
     <el-container class="log-container">
@@ -186,10 +186,10 @@ const onDataLoaded = (data, total) => {
         </div>
       </div>
       <!-- 头部搜索区域 -->
-      <el-header class="log-header">
-        <div class="log-left-panel">
+      <el-header class="toolbar-section log-header">
+        <div class="toolbar-left log-left-panel">
           <!-- 搜索表单 -->
-          <el-form ref="formRef" label-width="40px" :inline="true" :model="form" class="log-search-form">
+          <el-form ref="formRef" label-width="40px" :inline="true" :model="form" class="modern-form log-search-form">
             <!-- 账号输入框 -->
             <el-form-item label="账号" prop="sysLogUsername" class="log-form-item">
               <el-input v-model="form.sysLogUsername" placeholder="请输入账号名称" clearable class="log-input" />
@@ -222,7 +222,7 @@ const onDataLoaded = (data, total) => {
             </el-form-item>
           </el-form>
         </div>
-        <div class="log-right-panel">
+        <div class="toolbar-right log-right-panel">
           <div class="log-right-panel-search">
             <div class="log-flex-1">
               <div>
@@ -247,7 +247,7 @@ const onDataLoaded = (data, total) => {
         <div ref="contentRef" class="log-content">
           <div :class="[visible.role ? 'log-table-container-narrow' : 'log-table-container-full']">
             <!-- 表格组件 -->
-            <ScTable ref="table" :url="fetchPageUserLog" :rowClick="openDetail" @data-loaded="onDataLoaded" class="log-table" height="auto">
+            <ScTable ref="table" :url="fetchPageUserLog" :rowClick="openDetail" @data-loaded="onDataLoaded" class="modern-table log-table" height="auto">
               <!-- 表格列保持不变 -->
               <el-table-column label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip
                 min-width="120px" />

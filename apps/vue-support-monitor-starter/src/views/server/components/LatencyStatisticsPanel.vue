@@ -1,5 +1,5 @@
 <template>
-  <div class="latency-statistics-panel">
+  <div class="latency-statistics-panel system-container modern-bg">
     <el-card class="statistics-card" shadow="hover">
       <template #header>
         <div class="card-header">
@@ -196,17 +196,53 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: $gradient-bg-1, $gradient-bg-2;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .latency-statistics-panel {
   .statistics-card {
-    border-radius: 12px;
+    border-radius: $radius-lg;
+    border: 1px solid $border-light;
+    @include glass-effect(0.95, 18px);
+    box-shadow: $shadow-md;
+    transition: all $duration-normal $ease-standard;
+
+    &:hover {
+      box-shadow: $shadow-hover-md;
+      transform: translateY(-1px);
+    }
     
     :deep(.el-card__header) {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--el-border-color-lighter);
+      padding: $spacing-lg $spacing-xl;
+      border-bottom: 1px solid $border-light;
+      background: $gradient-bg-1;
     }
     
     :deep(.el-card__body) {
-      padding: 20px;
+      padding: $spacing-xl;
     }
   }
 }
@@ -238,21 +274,21 @@ onUnmounted(() => {
   .overview-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: $spacing-lg;
+    margin-bottom: $spacing-2xl;
     
     .stat-item {
       text-align: center;
-      padding: 16px;
-      background: var(--el-bg-color-page);
-      border-radius: 8px;
-      border: 1px solid var(--el-border-color-lighter);
+      padding: $spacing-lg;
+      border-radius: $radius-md;
+      border: 1px solid $border-light;
+      @include glass-effect(0.9, 14px);
       
       .stat-value {
         font-size: 24px;
         font-weight: 700;
         color: var(--el-color-primary);
-        margin-bottom: 4px;
+        margin-bottom: $spacing-xs;
       }
       
       .stat-label {
@@ -266,10 +302,10 @@ onUnmounted(() => {
     font-size: 14px;
     font-weight: 600;
     color: var(--el-text-color-primary);
-    margin: 0 0 12px 0;
+    margin: 0 0 $spacing-md 0;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: $spacing-sm;
     
     .warning-icon {
       color: var(--el-color-warning);
@@ -277,26 +313,33 @@ onUnmounted(() => {
   }
   
   .latency-distribution {
-    margin-bottom: 24px;
+    margin-bottom: $spacing-2xl;
     
     .distribution-items {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: $spacing-sm;
     }
     
     .distribution-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px;
-      border-radius: 6px;
-      border: 1px solid var(--el-border-color-lighter);
+      padding: $spacing-md;
+      border-radius: $radius-sm;
+      border: 1px solid $border-light;
+      @include glass-effect(0.88, 12px);
+      transition: all $duration-fast $ease-standard;
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: $shadow-sm;
+      }
       
       .item-header {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: $spacing-sm;
         
         .status-dot {
           width: 8px;
@@ -341,18 +384,24 @@ onUnmounted(() => {
   }
   
   .alerts-section {
-    margin-bottom: 16px;
+    margin-bottom: $spacing-lg;
     
     .alerts-list {
       .alert-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 8px 12px;
-        margin-bottom: 6px;
-        background: var(--el-color-danger-light-9);
-        border: 1px solid var(--el-color-danger-light-7);
-        border-radius: 6px;
+        padding: $spacing-sm $spacing-md;
+        margin-bottom: $spacing-sm;
+        border-radius: $radius-sm;
+        background: rgba(245, 108, 108, 0.08);
+        border: 1px solid rgba(245, 108, 108, 0.18);
+        transition: all $duration-fast $ease-standard;
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: $shadow-sm;
+        }
         
         .alert-content {
           display: flex;
@@ -375,7 +424,7 @@ onUnmounted(() => {
       
       .more-alerts {
         text-align: center;
-        padding: 8px;
+        padding: $spacing-sm;
         font-size: 12px;
         color: var(--el-text-color-secondary);
         font-style: italic;
@@ -385,8 +434,8 @@ onUnmounted(() => {
   
   .update-time {
     text-align: center;
-    padding-top: 12px;
-    border-top: 1px solid var(--el-border-color-lighter);
+    padding-top: $spacing-md;
+    border-top: 1px solid $border-light;
     
     .update-label {
       font-size: 12px;
@@ -401,17 +450,10 @@ onUnmounted(() => {
   }
 }
 
-// 响应式设计
-@media (max-width: 768px) {
+@include respond-to(md) {
   .overview-stats {
     grid-template-columns: 1fr !important;
-    gap: 12px !important;
-  }
-  
-  .distribution-item {
-    .item-header .status-text {
-      font-size: 12px !important;
-    }
+    gap: $spacing-md !important;
   }
 }
 </style>

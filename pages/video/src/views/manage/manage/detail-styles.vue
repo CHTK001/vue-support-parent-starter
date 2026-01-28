@@ -1,3 +1,11 @@
+<template>
+  <div></div>
+</template>
+
+<script setup lang="ts">
+// 样式文件，无需逻辑
+</script>
+
 <style scoped>
 /* 全局容器样式 */
 .video-detail-container {

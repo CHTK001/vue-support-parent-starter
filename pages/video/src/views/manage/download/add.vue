@@ -1,5 +1,5 @@
 <template>
-  <div class="download-add-container">
+  <div class="system-container modern-bg download-add-container">
     <div class="download-add-header">
       <h1 class="download-add-title">添加下载链接</h1>
       <el-button @click="goBack" icon="ArrowLeft">返回</el-button>
@@ -82,12 +82,23 @@ const handleSuccess = (data: DownloadItem) => {
 <style lang="scss" scoped>
 .download-add-container {
   padding: 24px;
-  background-color: var(--el-bg-color);
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   height: 100%;
   display: flex;
   flex-direction: column;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .download-add-header {

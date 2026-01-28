@@ -988,11 +988,17 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+    background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
     border-radius: 12px;
     padding: 30px;
     color: #fff;
     box-shadow: 0 4px 20px rgba(var(--el-color-primary-rgb), 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      box-shadow: 0 6px 24px rgba(var(--el-color-primary-rgb), 0.4);
+      transform: translateY(-2px);
+    }
   }
 
   &__header-inner {
@@ -1039,11 +1045,14 @@ onMounted(() => {
   &__scan-card,
   &__scan-result-card {
     margin-bottom: 24px;
-    border-radius: 8px;
-    transition: all 0.3s ease;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--el-border-color-lighter);
 
     &:hover {
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      border-color: var(--el-color-primary-light-7);
     }
   }
 
@@ -1105,10 +1114,10 @@ onMounted(() => {
     flex: 0 0 auto;
     width: 80px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-      transform: translateY(-5px);
+      transform: translateY(-5px) scale(1.05);
     }
   }
 

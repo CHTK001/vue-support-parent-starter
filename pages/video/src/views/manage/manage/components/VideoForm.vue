@@ -1,5 +1,5 @@
 <template>
-  <div class="video-form-container">
+  <div class="modern-form video-form-container">
     <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px" label-position="right" :disabled="loading">
       <el-form-item label="视频名称" prop="videoName">
         <el-input v-model="formData.videoName" placeholder="请输入视频名称" />
@@ -210,20 +210,36 @@ defineExpose({
 
 <style scoped>
 .video-form-container {
-  padding: 20px;
-  background-color: var(--el-bg-color);
-  border-radius: 4px;
+  padding: 24px;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  animation: fadeInUp 0.6s ease-out;
 }
 
 .preview-container {
-  margin-top: 8px;
+  margin-top: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.preview-container:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .cover-image {
   width: 200px;
   height: 120px;
-  border-radius: 4px;
+  border-radius: 8px;
   object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.preview-container:hover .cover-image {
+  transform: scale(1.05);
 }
 
 .tag-input {
@@ -234,5 +250,22 @@ defineExpose({
 
 .button-new-tag {
   margin-left: 8px;
+  transition: all 0.3s ease;
+}
+
+.button-new-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

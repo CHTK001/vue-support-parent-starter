@@ -95,7 +95,7 @@ const contentRef = ref();
 </script>
 
 <template>
-  <div class="role-container">
+  <div class="system-container role-container">
     <SaveDialog ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
     <RoleDialog ref="roleDialogRef" />
     <div class="role-wrapper">
@@ -139,9 +139,9 @@ const contentRef = ref();
             </div>
           </div>
         </div>
-        <el-header class="role-header">
-          <div class="left-panel">
-            <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color pl-6 pt-[10px] overflow-auto">
+        <el-header class="toolbar-section role-header">
+          <div class="toolbar-left left-panel">
+            <el-form ref="formRef" :inline="true" :model="form" class="modern-form search-form bg-bg_color pl-6 pt-[10px] overflow-auto">
               <el-form-item label="角色名称" prop="sysRoleName">
                 <el-input v-model="form.sysRoleName" placeholder="请输入角色名称" clearable class="!w-[180px]" />
               </el-form-item>
@@ -150,7 +150,7 @@ const contentRef = ref();
               </el-form-item>
             </el-form>
           </div>
-          <div class="right-panel">
+          <div class="toolbar-right right-panel">
             <div class="right-panel-search">
               <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
               <el-button :icon="useRenderIcon('ep:refresh')" @click="resetForm(formRef)" />
@@ -161,7 +161,7 @@ const contentRef = ref();
         <el-main class="role-main">
           <div ref="contentRef" class="table-wrapper">
             <div :class="visible.role ? 'h-full !w-[380vw]' : 'h-full w-full'">
-              <ScTable ref="table" :url="fetchPageRole" @data-loaded="onDataLoaded" height="auto">
+              <ScTable ref="table" :url="fetchPageRole" @data-loaded="onDataLoaded" height="auto" class="modern-table">
                 <el-table-column type="index" label="序号" width="120px">
                   <template #default="scope">
                     <el-tag type="primary" size="small">{{ scope.$index + 1 }}</el-tag>

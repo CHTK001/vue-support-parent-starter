@@ -22,6 +22,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     root,
     resolve: {
       alias: createAlias(import.meta.url),
+      dedupe: ["vue", "vue-router", "vue-i18n"],
+      preserveSymlinks: false,
     },
     // 服务端渲染
     server: {
@@ -82,11 +84,51 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         input: {
           index: pathResolve("./index.html", import.meta.url),
         },
+        external: ["@element-plus/icons-vue"],
         // 静态资源分类打包
         output: {
           chunkFileNames: "static/js/[name]-[hash].js",
           entryFileNames: "static/js/[name]-[hash].js",
           assetFileNames: "static/[ext]/[name]-[hash].[ext]",
+          manualChunks: (id) => {
+            // 将大型依赖拆分为独立 chunk
+            if (id.includes("node_modules")) {
+              // Element Plus
+              if (id.includes("element-plus")) {
+                return "vendor-element-plus";
+              }
+              // Vue 核心
+              if (id.includes("vue") && !id.includes("vue-router") && !id.includes("vue-i18n")) {
+                return "vendor-vue";
+              }
+              // Vue Router
+              if (id.includes("vue-router")) {
+                return "vendor-vue-router";
+              }
+              // Vue I18n
+              if (id.includes("vue-i18n")) {
+                return "vendor-vue-i18n";
+              }
+              // VueUse
+              if (id.includes("@vueuse")) {
+                return "vendor-vueuse";
+              }
+              // PureAdmin
+              if (id.includes("@pureadmin")) {
+                return "vendor-pureadmin";
+              }
+              // Tippy.js
+              if (id.includes("tippy.js")) {
+                return "vendor-tippy";
+              }
+              // Vue Grid Layout
+              if (id.includes("vue-grid-layout")) {
+                return "vendor-grid-layout";
+              }
+              // 其他 node_modules
+              return "vendor";
+            }
+          },
         },
       },
     },

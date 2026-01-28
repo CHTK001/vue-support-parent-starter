@@ -106,11 +106,12 @@ export default defineComponent({
 <style lang="scss" scoped>
 .sc-card-stats {
   position: relative;
-  border-radius: 18px;
+  border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 120px;
+  backdrop-filter: blur(10px);
 
   // 主题色定义
   &.theme--default {
@@ -183,11 +184,16 @@ export default defineComponent({
   }
 
   &.is-hoverable:hover {
-    transform: translateY(-6px) scale(1.01);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
 
     .sc-card-stats__icon {
-      transform: scale(1.1) rotate(5deg);
+      transform: scale(1.12) rotate(5deg);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .sc-card-stats__pattern {
+      animation-duration: 10s;
     }
   }
 
@@ -287,8 +293,8 @@ export default defineComponent({
     width: 52px;
     height: 52px;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -296,7 +302,22 @@ export default defineComponent({
     color: #fff;
     flex-shrink: 0;
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    &:hover::before {
+      opacity: 1;
+    }
   }
 
   &__info {

@@ -140,9 +140,10 @@ export default defineComponent({
   --compact-transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 
   position: relative;
-  background: var(--el-bg-color-overlay, #fff);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
   border-radius: var(--compact-radius);
-  border: 1px solid var(--el-border-color-lighter, #e4e7ed);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
   transition: var(--compact-transition);
   overflow: hidden;
@@ -179,11 +180,11 @@ export default defineComponent({
     cursor: pointer;
 
     &:hover {
-      border-color: var(--el-color-primary-light-5);
+      border-color: rgba(99, 102, 241, 0.3);
       box-shadow:
-        0 12px 28px rgba(var(--el-color-primary-rgb), 0.1),
-        0 4px 12px rgba(0, 0, 0, 0.04);
-      transform: translateY(-3px);
+        0 12px 32px rgba(99, 102, 241, 0.12),
+        0 4px 12px rgba(0, 0, 0, 0.06);
+      transform: translateY(-4px);
 
       &::before {
         opacity: 1;
@@ -195,8 +196,8 @@ export default defineComponent({
       }
 
       .sc-card-compact__icon {
-        transform: scale(1.08) rotate(-2deg);
-        box-shadow: 0 8px 20px rgba(var(--el-color-primary-rgb), 0.35);
+        transform: scale(1.1) rotate(-3deg);
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
       }
 
       .sc-card-compact__title {

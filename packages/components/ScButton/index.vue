@@ -330,23 +330,28 @@ export default defineComponent({
   cursor: pointer;
   background: var(--el-button-bg-color, var(--el-fill-color-blank));
   border: 1px solid var(--el-button-border-color, var(--el-border-color));
-  border-radius: 4px;
+  border-radius: 8px;
   color: var(--el-button-text-color, var(--el-text-color-regular));
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
   &:hover {
     color: var(--el-button-hover-text-color, var(--el-color-primary));
     border-color: var(--el-button-hover-border-color, var(--el-color-primary-light-7));
     background-color: var(--el-button-hover-bg-color, var(--el-color-primary-light-9));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   }
 
   &:active {
     color: var(--el-button-active-text-color, var(--el-color-primary-dark-2));
     border-color: var(--el-button-active-border-color, var(--el-color-primary-dark-2));
     background-color: var(--el-button-active-bg-color, var(--el-color-primary-light-8));
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   }
 
   &__loading-icon {
@@ -403,6 +408,13 @@ export default defineComponent({
     --el-button-active-text-color: #fff;
     --el-button-active-bg-color: var(--el-color-primary-dark-2);
     --el-button-active-border-color: var(--el-color-primary-dark-2);
+    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+
+    &:hover {
+      background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+      box-shadow: 0 6px 16px rgba(64, 158, 255, 0.4);
+    }
   }
 
   &--success {
@@ -462,7 +474,8 @@ export default defineComponent({
 
   // 圆角
   &.is-round {
-    border-radius: 20px;
+    border-radius: 24px;
+    padding: 8px 20px;
   }
 
   // 圆形

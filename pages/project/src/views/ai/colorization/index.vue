@@ -231,7 +231,7 @@ onMounted(async () => {
 });
 </script>
 <template>
-  <div class="colorization-container h-full w-full pt-4 px-4 overflow-hidden">
+  <div class="colorization-container h-full w-full pt-4 px-4 overflow-hidden system-container modern-bg">
     <ModuleDialog
       ref="moduleDialogRef"
       @success="handleRefreshEnvironment"

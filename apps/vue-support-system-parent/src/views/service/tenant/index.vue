@@ -180,7 +180,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="tenant-container">
+  <div class="system-container tenant-container">
     <SaveDialog ref="saveDialogRef" @success="loadData" />
     <div class="tenant-wrapper">
       <el-container>
@@ -226,8 +226,8 @@ onMounted(async () => {
 
         <!-- 搜索栏 -->
         <el-header class="tenant-header">
-          <div class="left-panel">
-            <el-form ref="formRef" :inline="true" :model="env.params" class="search-form">
+          <div class="toolbar-left left-panel">
+            <el-form ref="formRef" :inline="true" :model="env.params" class="modern-form search-form">
               <el-form-item label="租户名称" prop="sysTenantName">
                 <el-input 
                   v-model="env.params.sysTenantName" 
@@ -254,7 +254,7 @@ onMounted(async () => {
               </el-form-item>
             </el-form>
           </div>
-          <div class="right-panel">
+          <div class="toolbar-right right-panel">
             <div class="right-panel-search">
               <el-button type="primary" :icon="useRenderIcon('ri:search-line')" @click="onSearch">
                 搜索
@@ -272,7 +272,7 @@ onMounted(async () => {
         <!-- 数据表格 -->
         <el-main class="tenant-main">
           <div class="table-wrapper">
-            <ScTable ref="tableRef" :url="fetchPageTenant" :params="env.params" @data-loaded="onDataLoaded" height="auto">
+            <ScTable ref="tableRef" :url="fetchPageTenant" :params="env.params" @data-loaded="onDataLoaded" height="auto" class="modern-table">
               <el-table-column type="index" label="序号" width="80" align="center">
                 <template #default="scope">
                   <el-tag type="primary" size="small" effect="plain">{{ scope.$index + 1 }}</el-tag>

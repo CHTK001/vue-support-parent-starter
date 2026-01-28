@@ -1,5 +1,16 @@
 <template>
-  <div class="video-config">
+  <div class="system-container modern-bg">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="page-header-content">
+        <IconifyIconOnline icon="ri:settings-3-line" class="page-header-icon" />
+        <div>
+          <h2 class="page-header-title">视频同步配置</h2>
+          <p class="page-header-desc">管理视频同步源配置，监控同步状态和日志</p>
+        </div>
+      </div>
+    </div>
+
     <!-- 统计信息组件 -->
     <ConfigStats :stats="stats" class="mb-6" />
 
@@ -20,63 +31,52 @@
     />
 
     <!-- 配置列表 -->
-    <div class="config-list flex flex-col">
-      <div class="list-header">
-        <div class="list-header-content">
-          <div class="list-title-section">
-            <div class="list-icon">
-              <IconifyIconOnline icon="ep:list" />
-            </div>
-            <h3 class="list-title">同步配置列表</h3>
+    <div class="modern-table">
+      <div class="table-header">
+        <div class="table-header-content">
+          <div class="table-title-section">
+            <IconifyIconOnline icon="ri:list-check" class="table-icon" />
+            <h3 class="table-title">同步配置列表</h3>
           </div>
 
-          <div class="list-actions">
-            <div class="search-input">
-              <el-input
-                v-model="searchKeyword"
-                placeholder="搜索配置名称"
-                @input="handleSearch"
-              >
-                <template #prefix>
-                  <el-icon><IconifyIconOnline icon="ep:search" /></el-icon>
-                </template>
-              </el-input>
-            </div>
+          <div class="table-actions">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="搜索配置名称"
+              clearable
+              style="width: 200px"
+              @input="handleSearch"
+            >
+              <template #prefix>
+                <el-icon><IconifyIconOnline icon="ep:search" /></el-icon>
+              </template>
+            </el-input>
 
-            <div class="filter-select">
-              <el-select
-                v-model="statusFilter"
-                placeholder="状态筛选"
-                @change="handleFilter"
-              >
-                <el-option label="全部" value="" />
-                <el-option label="启用" value="enabled" />
-                <el-option label="禁用" value="disabled" />
-                <el-option label="同步中" value="syncing" />
-                <el-option label="异常" value="error" />
-              </el-select>
-            </div>
+            <el-select
+              v-model="statusFilter"
+              placeholder="状态筛选"
+              style="width: 120px"
+              @change="handleFilter"
+            >
+              <el-option label="全部" value="" />
+              <el-option label="启用" value="enabled" />
+              <el-option label="禁用" value="disabled" />
+              <el-option label="同步中" value="syncing" />
+              <el-option label="异常" value="error" />
+            </el-select>
 
-            <div class="header-actions">
-              <el-button
-                type="primary"
-                @click="showAddDialog = true"
-                class="action-btn primary-action"
-              >
-                <IconifyIconOnline icon="ep:plus" />
-              </el-button>
-              <el-button
-                @click="refreshConfigs"
-                class="action-btn secondary-action"
-              >
-                <el-icon><IconifyIconOnline icon="ep:refresh" /></el-icon>
-              </el-button>
-            </div>
+            <el-button type="primary" @click="showAddDialog = true">
+              <IconifyIconOnline icon="ep:plus" class="mr-1" />
+              新增配置
+            </el-button>
+            <el-button @click="refreshConfigs">
+              <el-icon><IconifyIconOnline icon="ep:refresh" /></el-icon>
+            </el-button>
           </div>
         </div>
       </div>
 
-      <div class="list-content flex-[1]">
+      <div class="table-content">
         <ScTable
           :url="getSyncConfigs"
           :params="{
@@ -539,154 +539,91 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
-.video-config {
-  padding: 24px;
-  background: var(--el-bg-color-overlay);
-  min-height: 100%;
-}
-
-/* 头部样式 */
-.config-header {
-  margin-bottom: 2rem;
-}
-
-.header-content {
-  background: var(--el-bg-color-overlay);
+<style scoped lang="scss">
+/* 页面头部 */
+.page-header {
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
   border-radius: 12px;
   padding: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e4e7ed;
+  margin-bottom: 20px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.header-info {
+.page-header-content {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.header-icon {
-  width: 48px;
-  height: 48px;
-  background: var(--el-bg-color-overlay);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-text-color-primary);
-  font-size: 20px;
+.page-header-icon {
+  font-size: 48px;
+  opacity: 0.9;
 }
 
-.header-title {
-  font-size: 1.8rem;
+.page-header-title {
+  margin: 0 0 8px 0;
+  font-size: 24px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0 0 4px 0;
 }
 
-.header-subtitle {
-  font-size: 0.9rem;
-  color: var(--el-text-color-primary);
+.page-header-desc {
   margin: 0;
-  line-height: 1.4;
-}
-
-.header-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.action-btn {
-  border-radius: 6px;
-  font-weight: 600;
   font-size: 14px;
-  transition: all 0.2s ease;
+  opacity: 0.9;
 }
 
-.primary-action {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 100%
-  );
-  color: var(--el-color-white);
-  border: none;
-}
-
-.secondary-action {
+/* 表格样式 */
+.modern-table {
   background: var(--el-bg-color-overlay);
-  color: var(--el-text-color-primary);
-  border: 1px solid var(--el-border-color);
-}
-
-/* 配置列表样式 */
-.config-list {
-  background: var(--el-bg-color-overlay);
-  border: 1px solid var(--el-border-color);
   border-radius: 12px;
-  flex: 1;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.list-header {
-  background: var(--el-bg-color-overlay);
+.table-header {
+  background: var(--el-bg-color);
   border-bottom: 1px solid var(--el-border-color);
-  padding: 20px 24px;
+  padding: 16px 20px;
 }
 
-.list-header-content {
+.table-header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.list-title-section {
+.table-title-section {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.list-icon {
-  width: 40px;
-  height: 40px;
-  background: var(--el-bg-color-overlay);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-text-color-primary);
-  font-size: 18px;
+.table-icon {
+  font-size: 20px;
+  color: var(--el-color-primary);
 }
 
-.list-title {
-  font-size: 1.2rem;
+.table-title {
+  font-size: 16px;
   font-weight: 600;
   color: var(--el-text-color-primary);
   margin: 0;
 }
 
-.list-actions {
+.table-actions {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.search-input {
-  width: 200px;
-}
-
-.filter-select {
-  width: 120px;
+.table-content {
+  padding: 20px;
 }
 
 /* 卡片容器样式 */
 .config-cards {
   width: 100%;
-  padding: 20px 24px 24px;
 }
 
 /* 空状态样式 */
@@ -712,7 +649,7 @@ onUnmounted(() => {
 
 .empty-description {
   font-size: 14px;
-  color: var(--el-text-color-primary);
+  color: var(--el-text-color-secondary);
   line-height: 1.5;
   max-width: 400px;
   margin: 0 auto 32px;
@@ -723,96 +660,40 @@ onUnmounted(() => {
   border-radius: 8px;
   font-weight: 600;
   font-size: 14px;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 100%
-  );
-  border: none;
-  color: var(--el-color-white);
-  transition: all 0.2s ease;
-}
-
-.empty-action::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
-  transition: left 0.5s;
-}
-
-.empty-action:hover {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-dark-2) 0%,
-    var(--el-color-primary) 100%
-  );
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
 }
 
 @media (max-width: 768px) {
-  .video-config {
-    padding: 16px;
-  }
-
-  .header-content {
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
+  .page-header {
     padding: 20px;
   }
 
-  .header-info {
+  .page-header-content {
     flex-direction: column;
-    gap: 12px;
+    text-align: center;
   }
 
-  .header-title {
-    font-size: 1.5rem;
-  }
-
-  .header-actions {
-    flex-direction: column;
-    gap: 8px;
-    width: 100%;
-  }
-
-  .action-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .list-header-content {
+  .table-header-content {
     flex-direction: column;
     gap: 16px;
     align-items: stretch;
   }
 
-  .list-title-section {
+  .table-title-section {
     justify-content: center;
   }
 
-  .list-actions {
+  .table-actions {
     flex-direction: column;
     gap: 8px;
   }
 
-  .search-input,
-  .filter-select {
+  .table-actions .el-input,
+  .table-actions .el-select {
     width: 100%;
   }
 
-  .config-cards {
-    padding: 16px 20px 20px;
+  .table-content {
+    padding: 16px;
   }
 
   .empty-state {

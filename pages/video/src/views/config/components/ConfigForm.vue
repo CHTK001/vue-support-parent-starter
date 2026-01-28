@@ -1,6 +1,6 @@
 <template>
   <sc-dialog :model-value="visible" @update:model-value="handleClose" :title="editing ? '编辑配置' : '新增配置'" width="600px" @close="handleClose">
-    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
+    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" class="modern-form">
       <el-form-item label="配置名称" prop="videoSyncConfigName">
         <el-input v-model="formData.videoSyncConfigName" placeholder="请输入配置名称" />
       </el-form-item>

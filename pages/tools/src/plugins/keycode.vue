@@ -76,7 +76,7 @@ const env = reactive({
       { code: "KeyK", label: "K", width: 1 },
       { code: "KeyL", label: "L", width: 1 },
       { code: "Semicolon", label: ";", shiftLabel: ":", width: 1 },
-      { code: "Quote", label: "'", shiftLabel: "\"", width: 1 },
+      { code: "Quote", label: "'", shiftLabel: '"', width: 1 },
       { code: "Enter", label: "Enter", width: 2.2 },
     ],
     // 第五行 - 第三行字母
@@ -154,7 +154,7 @@ const env = reactive({
 const handleKeyEvent = (event) => {
   // 阻止默认行为，避免按下空格滚动页面等
   event.preventDefault();
-  
+
   // 获取按键信息
   const keyInfo = {
     id: Date.now(),
@@ -188,7 +188,7 @@ const handleKeyEvent = (event) => {
 const addToHistory = (keyInfo) => {
   // 添加到历史记录开头
   env.history.unshift(keyInfo);
-  
+
   // 限制历史记录数量为10条
   if (env.history.length > 10) {
     env.history.pop();
@@ -201,18 +201,18 @@ const addToHistory = (keyInfo) => {
  */
 const highlightKey = (code) => {
   // 移除所有高亮
-  document.querySelectorAll('.keycode-tool__key--active').forEach(el => {
-    el.classList.remove('keycode-tool__key--active');
+  document.querySelectorAll(".keycode-tool__key--active").forEach((el) => {
+    el.classList.remove("keycode-tool__key--active");
   });
-  
+
   // 添加高亮到当前按键
   const keyElement = document.querySelector(`[data-key="${code}"]`);
   if (keyElement) {
-    keyElement.classList.add('keycode-tool__key--active');
-    
+    keyElement.classList.add("keycode-tool__key--active");
+
     // 2秒后移除高亮
     setTimeout(() => {
-      keyElement.classList.remove('keycode-tool__key--active');
+      keyElement.classList.remove("keycode-tool__key--active");
     }, 2000);
   }
 };
@@ -248,11 +248,16 @@ const clearHistory = () => {
  */
 const getKeyLocation = (location) => {
   switch (location) {
-    case 0: return "标准键";
-    case 1: return "左侧键";
-    case 2: return "右侧键";
-    case 3: return "数字键盘";
-    default: return "未知位置";
+    case 0:
+      return "标准键";
+    case 1:
+      return "左侧键";
+    case 2:
+      return "右侧键";
+    case 3:
+      return "数字键盘";
+    default:
+      return "未知位置";
   }
 };
 
@@ -284,79 +289,174 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="keycode-tool">
+    <!-- 头部区域 -->
+    <div class="keycode-tool__header">
+      <h1 class="keycode-tool__header-title">键盘键码查询工具</h1>
+      <p class="keycode-tool__header-subtitle">
+        实时检测键盘按键，查看键码、键值和修饰键状态
+      </p>
+    </div>
+
     <div class="keycode-tool__content">
       <!-- 主要信息显示区域 -->
-      <div class="keycode-tool__main-display" :class="{ 'keycode-tool__main-display--active': env.currentKey }">
+      <div
+        class="keycode-tool__main-display"
+        :class="{ 'keycode-tool__main-display--active': env.currentKey }"
+      >
         <div v-if="!env.currentKey" class="keycode-tool__empty-state">
-          <IconifyIconOnline icon="ri:keyboard-line" class="keycode-tool__empty-icon" />
+          <IconifyIconOnline
+            icon="ri:keyboard-line"
+            class="keycode-tool__empty-icon"
+          />
           <div class="keycode-tool__empty-text">按下任意键查看按键码信息</div>
         </div>
-        
+
         <div v-else class="keycode-tool__key-info">
           <div class="keycode-tool__key-display">
             <div class="keycode-tool__key-value">{{ env.currentKey.key }}</div>
             <div class="keycode-tool__key-name">{{ env.currentKey.code }}</div>
           </div>
-          
+
           <div class="keycode-tool__key-details">
             <div class="keycode-tool__key-detail-item">
-              <IconifyIconOnline icon="ri:code-line" class="keycode-tool__detail-icon" />
+              <IconifyIconOnline
+                icon="ri:code-line"
+                class="keycode-tool__detail-icon"
+              />
               <span class="keycode-tool__detail-label">Code:</span>
-              <span class="keycode-tool__detail-value">{{ env.currentKey.code }}</span>
-              <el-button type="primary" link size="small" class="keycode-tool__copy-btn" @click="copyToClipboard(env.currentKey.code)">
+              <span class="keycode-tool__detail-value">{{
+                env.currentKey.code
+              }}</span>
+              <el-button
+                type="primary"
+                link
+                size="small"
+                class="keycode-tool__copy-btn"
+                @click="copyToClipboard(env.currentKey.code)"
+              >
                 <IconifyIconOnline icon="ri:file-copy-line" />
               </el-button>
             </div>
-            
+
             <div class="keycode-tool__key-detail-item">
-              <IconifyIconOnline icon="ri:keyboard-line" class="keycode-tool__detail-icon" />
+              <IconifyIconOnline
+                icon="ri:keyboard-line"
+                class="keycode-tool__detail-icon"
+              />
               <span class="keycode-tool__detail-label">Key:</span>
-              <span class="keycode-tool__detail-value">{{ env.currentKey.key }}</span>
-              <el-button type="primary" link size="small" class="keycode-tool__copy-btn" @click="copyToClipboard(env.currentKey.key)">
+              <span class="keycode-tool__detail-value">{{
+                env.currentKey.key
+              }}</span>
+              <el-button
+                type="primary"
+                link
+                size="small"
+                class="keycode-tool__copy-btn"
+                @click="copyToClipboard(env.currentKey.key)"
+              >
                 <IconifyIconOnline icon="ri:file-copy-line" />
               </el-button>
             </div>
-            
+
             <div class="keycode-tool__key-detail-item">
-              <IconifyIconOnline icon="ri:hashtag" class="keycode-tool__detail-icon" />
+              <IconifyIconOnline
+                icon="ri:hashtag"
+                class="keycode-tool__detail-icon"
+              />
               <span class="keycode-tool__detail-label">KeyCode:</span>
-              <span class="keycode-tool__detail-value">{{ env.currentKey.keyCode }}</span>
-              <el-button type="primary" link size="small" class="keycode-tool__copy-btn" @click="copyToClipboard(env.currentKey.keyCode.toString())">
+              <span class="keycode-tool__detail-value">{{
+                env.currentKey.keyCode
+              }}</span>
+              <el-button
+                type="primary"
+                link
+                size="small"
+                class="keycode-tool__copy-btn"
+                @click="copyToClipboard(env.currentKey.keyCode.toString())"
+              >
                 <IconifyIconOnline icon="ri:file-copy-line" />
               </el-button>
             </div>
-            
+
             <div class="keycode-tool__key-detail-item">
-              <IconifyIconOnline icon="ri:question-line" class="keycode-tool__detail-icon" />
+              <IconifyIconOnline
+                icon="ri:question-line"
+                class="keycode-tool__detail-icon"
+              />
               <span class="keycode-tool__detail-label">Which:</span>
-              <span class="keycode-tool__detail-value">{{ env.currentKey.which }}</span>
-              <el-button type="primary" link size="small" class="keycode-tool__copy-btn" @click="copyToClipboard(env.currentKey.which.toString())">
+              <span class="keycode-tool__detail-value">{{
+                env.currentKey.which
+              }}</span>
+              <el-button
+                type="primary"
+                link
+                size="small"
+                class="keycode-tool__copy-btn"
+                @click="copyToClipboard(env.currentKey.which.toString())"
+              >
                 <IconifyIconOnline icon="ri:file-copy-line" />
               </el-button>
             </div>
-            
+
             <div class="keycode-tool__key-detail-item">
-              <IconifyIconOnline icon="ri:map-pin-line" class="keycode-tool__detail-icon" />
+              <IconifyIconOnline
+                icon="ri:map-pin-line"
+                class="keycode-tool__detail-icon"
+              />
               <span class="keycode-tool__detail-label">Location:</span>
-              <span class="keycode-tool__detail-value">{{ env.currentKey.location }} ({{ getKeyLocation(env.currentKey.location) }})</span>
+              <span class="keycode-tool__detail-value"
+                >{{ env.currentKey.location }} ({{
+                  getKeyLocation(env.currentKey.location)
+                }})</span
+              >
             </div>
-            
+
             <div class="keycode-tool__key-detail-item">
-              <IconifyIconOnline icon="ri:function-line" class="keycode-tool__detail-icon" />
+              <IconifyIconOnline
+                icon="ri:function-line"
+                class="keycode-tool__detail-icon"
+              />
               <span class="keycode-tool__detail-label">修饰键:</span>
               <span class="keycode-tool__detail-value">
-                <el-tag size="small" :type="env.currentKey.ctrlKey ? 'success' : 'info'" class="keycode-tool__modifier-tag">Ctrl</el-tag>
-                <el-tag size="small" :type="env.currentKey.altKey ? 'success' : 'info'" class="keycode-tool__modifier-tag">Alt</el-tag>
-                <el-tag size="small" :type="env.currentKey.shiftKey ? 'success' : 'info'" class="keycode-tool__modifier-tag">Shift</el-tag>
-                <el-tag size="small" :type="env.currentKey.metaKey ? 'success' : 'info'" class="keycode-tool__modifier-tag">Meta</el-tag>
+                <el-tag
+                  size="small"
+                  :type="env.currentKey.ctrlKey ? 'success' : 'info'"
+                  class="keycode-tool__modifier-tag"
+                  >Ctrl</el-tag
+                >
+                <el-tag
+                  size="small"
+                  :type="env.currentKey.altKey ? 'success' : 'info'"
+                  class="keycode-tool__modifier-tag"
+                  >Alt</el-tag
+                >
+                <el-tag
+                  size="small"
+                  :type="env.currentKey.shiftKey ? 'success' : 'info'"
+                  class="keycode-tool__modifier-tag"
+                  >Shift</el-tag
+                >
+                <el-tag
+                  size="small"
+                  :type="env.currentKey.metaKey ? 'success' : 'info'"
+                  class="keycode-tool__modifier-tag"
+                  >Meta</el-tag
+                >
               </span>
             </div>
-            
+
             <div class="keycode-tool__key-detail-item">
-              <IconifyIconOnline icon="ri:repeat-line" class="keycode-tool__detail-icon" />
+              <IconifyIconOnline
+                icon="ri:repeat-line"
+                class="keycode-tool__detail-icon"
+              />
               <span class="keycode-tool__detail-label">Repeat:</span>
               <span class="keycode-tool__detail-value">
-                <el-tag size="small" :type="env.currentKey.repeat ? 'warning' : 'info'">{{ env.currentKey.repeat ? '是' : '否' }}</el-tag>
+                <el-tag
+                  size="small"
+                  :type="env.currentKey.repeat ? 'warning' : 'info'"
+                  >{{ env.currentKey.repeat ? "是" : "否" }}</el-tag
+                >
               </span>
             </div>
           </div>
@@ -369,18 +469,21 @@ onBeforeUnmount(() => {
           <el-card class="keycode-tool__keyboard-card" shadow="hover">
             <template #header>
               <div class="keycode-tool__card-header">
-                <IconifyIconOnline icon="ri:keyboard-box-line" class="keycode-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:keyboard-box-line"
+                  class="keycode-tool__card-icon"
+                />
                 <span>虚拟键盘</span>
               </div>
             </template>
-            
+
             <div class="keycode-tool__keyboard">
               <!-- 主键盘区域 -->
               <div class="keycode-tool__keyboard-main">
                 <!-- 第一行 - 功能键 -->
                 <div class="keycode-tool__keyboard-row">
-                  <div 
-                    v-for="key in env.keyboard.row1" 
+                  <div
+                    v-for="key in env.keyboard.row1"
                     :key="key.code"
                     :data-key="key.code"
                     class="keycode-tool__key keycode-tool__key--function"
@@ -389,87 +492,103 @@ onBeforeUnmount(() => {
                     {{ key.label }}
                   </div>
                 </div>
-                
+
                 <!-- 第二行 - 数字键 -->
                 <div class="keycode-tool__keyboard-row">
-                  <div 
-                    v-for="key in env.keyboard.row2" 
+                  <div
+                    v-for="key in env.keyboard.row2"
                     :key="key.code"
                     :data-key="key.code"
                     class="keycode-tool__key"
                     :style="{ width: `${key.width * 50}px` }"
                   >
                     <template v-if="key.shiftLabel">
-                      <div class="keycode-tool__key-shift-label">{{ key.shiftLabel }}</div>
-                      <div class="keycode-tool__key-main-label">{{ key.label }}</div>
+                      <div class="keycode-tool__key-shift-label">
+                        {{ key.shiftLabel }}
+                      </div>
+                      <div class="keycode-tool__key-main-label">
+                        {{ key.label }}
+                      </div>
                     </template>
                     <template v-else>
                       {{ key.label }}
                     </template>
                   </div>
                 </div>
-                
+
                 <!-- 第三行 - 第一行字母 -->
                 <div class="keycode-tool__keyboard-row">
-                  <div 
-                    v-for="key in env.keyboard.row3" 
+                  <div
+                    v-for="key in env.keyboard.row3"
                     :key="key.code"
                     :data-key="key.code"
                     class="keycode-tool__key"
                     :style="{ width: `${key.width * 50}px` }"
                   >
                     <template v-if="key.shiftLabel">
-                      <div class="keycode-tool__key-shift-label">{{ key.shiftLabel }}</div>
-                      <div class="keycode-tool__key-main-label">{{ key.label }}</div>
+                      <div class="keycode-tool__key-shift-label">
+                        {{ key.shiftLabel }}
+                      </div>
+                      <div class="keycode-tool__key-main-label">
+                        {{ key.label }}
+                      </div>
                     </template>
                     <template v-else>
                       {{ key.label }}
                     </template>
                   </div>
                 </div>
-                
+
                 <!-- 第四行 - 第二行字母 -->
                 <div class="keycode-tool__keyboard-row">
-                  <div 
-                    v-for="key in env.keyboard.row4" 
+                  <div
+                    v-for="key in env.keyboard.row4"
                     :key="key.code"
                     :data-key="key.code"
                     class="keycode-tool__key"
                     :style="{ width: `${key.width * 50}px` }"
                   >
                     <template v-if="key.shiftLabel">
-                      <div class="keycode-tool__key-shift-label">{{ key.shiftLabel }}</div>
-                      <div class="keycode-tool__key-main-label">{{ key.label }}</div>
+                      <div class="keycode-tool__key-shift-label">
+                        {{ key.shiftLabel }}
+                      </div>
+                      <div class="keycode-tool__key-main-label">
+                        {{ key.label }}
+                      </div>
                     </template>
                     <template v-else>
                       {{ key.label }}
                     </template>
                   </div>
                 </div>
-                
+
                 <!-- 第五行 - 第三行字母 -->
                 <div class="keycode-tool__keyboard-row">
-                  <div 
-                    v-for="key in env.keyboard.row5" 
+                  <div
+                    v-for="key in env.keyboard.row5"
                     :key="key.code"
                     :data-key="key.code"
                     class="keycode-tool__key"
                     :style="{ width: `${key.width * 50}px` }"
                   >
                     <template v-if="key.shiftLabel">
-                      <div class="keycode-tool__key-shift-label">{{ key.shiftLabel }}</div>
-                      <div class="keycode-tool__key-main-label">{{ key.label }}</div>
+                      <div class="keycode-tool__key-shift-label">
+                        {{ key.shiftLabel }}
+                      </div>
+                      <div class="keycode-tool__key-main-label">
+                        {{ key.label }}
+                      </div>
                     </template>
                     <template v-else>
                       {{ key.label }}
                     </template>
                   </div>
                 </div>
-                
+
                 <!-- 第六行 - 控制键 -->
                 <div class="keycode-tool__keyboard-row">
-                  <div 
-                    v-for="key in env.keyboard.row6" 
+                  <div
+                    v-for="key in env.keyboard.row6"
                     :key="key.code"
                     :data-key="key.code"
                     class="keycode-tool__key"
@@ -479,12 +598,14 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
               </div>
-              
+
               <!-- 导航键区域 -->
               <div class="keycode-tool__keyboard-navigation">
-                <div class="keycode-tool__keyboard-row keycode-tool__keyboard-row--navigation">
-                  <div 
-                    v-for="key in env.keyboard.navigation.slice(0, 3)" 
+                <div
+                  class="keycode-tool__keyboard-row keycode-tool__keyboard-row--navigation"
+                >
+                  <div
+                    v-for="key in env.keyboard.navigation.slice(0, 3)"
                     :key="key.code"
                     :data-key="key.code"
                     class="keycode-tool__key keycode-tool__key--small keycode-tool__key--function"
@@ -492,10 +613,12 @@ onBeforeUnmount(() => {
                     {{ key.label }}
                   </div>
                 </div>
-                
-                <div class="keycode-tool__keyboard-row keycode-tool__keyboard-row--navigation">
-                  <div 
-                    v-for="key in env.keyboard.navigation.slice(3, 6)" 
+
+                <div
+                  class="keycode-tool__keyboard-row keycode-tool__keyboard-row--navigation"
+                >
+                  <div
+                    v-for="key in env.keyboard.navigation.slice(3, 6)"
                     :key="key.code"
                     :data-key="key.code"
                     class="keycode-tool__key keycode-tool__key--small"
@@ -503,10 +626,12 @@ onBeforeUnmount(() => {
                     {{ key.label }}
                   </div>
                 </div>
-                
-                <div class="keycode-tool__keyboard-row keycode-tool__keyboard-row--navigation">
-                  <div 
-                    v-for="key in env.keyboard.navigation.slice(6, 9)" 
+
+                <div
+                  class="keycode-tool__keyboard-row keycode-tool__keyboard-row--navigation"
+                >
+                  <div
+                    v-for="key in env.keyboard.navigation.slice(6, 9)"
                     :key="key.code"
                     :data-key="key.code"
                     class="keycode-tool__key keycode-tool__key--small"
@@ -514,34 +639,38 @@ onBeforeUnmount(() => {
                     {{ key.label }}
                   </div>
                 </div>
-                
+
                 <!-- 方向键区域 -->
                 <div class="keycode-tool__keyboard-arrows">
-                  <div class="keycode-tool__keyboard-row keycode-tool__keyboard-row--arrows">
-                    <div 
+                  <div
+                    class="keycode-tool__keyboard-row keycode-tool__keyboard-row--arrows"
+                  >
+                    <div
                       :data-key="env.keyboard.arrows[0].code"
                       class="keycode-tool__key keycode-tool__key--arrow"
                     >
                       {{ env.keyboard.arrows[0].label }}
                     </div>
                   </div>
-                  
-                  <div class="keycode-tool__keyboard-row keycode-tool__keyboard-row--arrows">
-                    <div 
+
+                  <div
+                    class="keycode-tool__keyboard-row keycode-tool__keyboard-row--arrows"
+                  >
+                    <div
                       :data-key="env.keyboard.arrows[1].code"
                       class="keycode-tool__key keycode-tool__key--arrow"
                     >
                       {{ env.keyboard.arrows[1].label }}
                     </div>
-                    
-                    <div 
+
+                    <div
                       :data-key="env.keyboard.arrows[2].code"
                       class="keycode-tool__key keycode-tool__key--arrow"
                     >
                       {{ env.keyboard.arrows[2].label }}
                     </div>
-                    
-                    <div 
+
+                    <div
                       :data-key="env.keyboard.arrows[3].code"
                       class="keycode-tool__key keycode-tool__key--arrow"
                     >
@@ -550,32 +679,38 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
               </div>
-              
+
               <!-- 数字键盘区域 -->
               <div class="keycode-tool__keyboard-numpad">
-                <div class="keycode-tool__keyboard-row keycode-tool__keyboard-row--numpad">
-                  <div 
-                    v-for="key in env.keyboard.numpad.slice(0, 4)" 
+                <div
+                  class="keycode-tool__keyboard-row keycode-tool__keyboard-row--numpad"
+                >
+                  <div
+                    v-for="key in env.keyboard.numpad.slice(0, 4)"
                     :key="key.code"
                     :data-key="key.code"
                     class="keycode-tool__key keycode-tool__key--small"
-                    :class="{ 'keycode-tool__key--function': key.code === 'NumLock' }"
+                    :class="{
+                      'keycode-tool__key--function': key.code === 'NumLock',
+                    }"
                   >
                     {{ key.label }}
                   </div>
                 </div>
-                
-                <div class="keycode-tool__keyboard-row keycode-tool__keyboard-row--numpad">
-                  <div 
-                    v-for="key in env.keyboard.numpad.slice(4, 7)" 
+
+                <div
+                  class="keycode-tool__keyboard-row keycode-tool__keyboard-row--numpad"
+                >
+                  <div
+                    v-for="key in env.keyboard.numpad.slice(4, 7)"
                     :key="key.code"
                     :data-key="key.code"
                     class="keycode-tool__key keycode-tool__key--small"
                   >
                     {{ key.label }}
                   </div>
-                  
-                  <div 
+
+                  <div
                     :data-key="env.keyboard.numpad[7].code"
                     class="keycode-tool__key keycode-tool__key--small keycode-tool__key--tall"
                     :style="{ height: '86px' }"
@@ -583,10 +718,12 @@ onBeforeUnmount(() => {
                     {{ env.keyboard.numpad[7].label }}
                   </div>
                 </div>
-                
-                <div class="keycode-tool__keyboard-row keycode-tool__keyboard-row--numpad">
-                  <div 
-                    v-for="key in env.keyboard.numpad.slice(8, 11)" 
+
+                <div
+                  class="keycode-tool__keyboard-row keycode-tool__keyboard-row--numpad"
+                >
+                  <div
+                    v-for="key in env.keyboard.numpad.slice(8, 11)"
                     :key="key.code"
                     :data-key="key.code"
                     class="keycode-tool__key keycode-tool__key--small"
@@ -594,18 +731,20 @@ onBeforeUnmount(() => {
                     {{ key.label }}
                   </div>
                 </div>
-                
-                <div class="keycode-tool__keyboard-row keycode-tool__keyboard-row--numpad">
-                  <div 
-                    v-for="key in env.keyboard.numpad.slice(11, 14)" 
+
+                <div
+                  class="keycode-tool__keyboard-row keycode-tool__keyboard-row--numpad"
+                >
+                  <div
+                    v-for="key in env.keyboard.numpad.slice(11, 14)"
                     :key="key.code"
                     :data-key="key.code"
                     class="keycode-tool__key keycode-tool__key--small"
                   >
                     {{ key.label }}
                   </div>
-                  
-                  <div 
+
+                  <div
                     :data-key="env.keyboard.numpad[14].code"
                     class="keycode-tool__key keycode-tool__key--small keycode-tool__key--tall"
                     :style="{ height: '86px' }"
@@ -613,17 +752,19 @@ onBeforeUnmount(() => {
                     {{ env.keyboard.numpad[14].label }}
                   </div>
                 </div>
-                
-                <div class="keycode-tool__keyboard-row keycode-tool__keyboard-row--numpad">
-                  <div 
+
+                <div
+                  class="keycode-tool__keyboard-row keycode-tool__keyboard-row--numpad"
+                >
+                  <div
                     :data-key="env.keyboard.numpad[15].code"
                     class="keycode-tool__key keycode-tool__key--small"
                     :style="{ width: '86px' }"
                   >
                     {{ env.keyboard.numpad[15].label }}
                   </div>
-                  
-                  <div 
+
+                  <div
                     :data-key="env.keyboard.numpad[16].code"
                     class="keycode-tool__key keycode-tool__key--small"
                   >
@@ -634,55 +775,102 @@ onBeforeUnmount(() => {
             </div>
           </el-card>
         </el-col>
-        
+
         <!-- 历史记录区域 -->
         <el-col :xs="24" :sm="24" :md="24" :lg="8">
           <el-card class="keycode-tool__history-card" shadow="hover">
             <template #header>
               <div class="keycode-tool__card-header">
-                <IconifyIconOnline icon="ri:history-line" class="keycode-tool__card-icon" />
+                <IconifyIconOnline
+                  icon="ri:history-line"
+                  class="keycode-tool__card-icon"
+                />
                 <span>按键历史记录</span>
                 <div class="keycode-tool__card-actions">
-                  <el-button type="danger" link size="small" @click="clearHistory">
+                  <el-button
+                    type="danger"
+                    link
+                    size="small"
+                    @click="clearHistory"
+                  >
                     <IconifyIconOnline icon="ri:delete-bin-line" />
                     <span>清空</span>
                   </el-button>
                 </div>
               </div>
             </template>
-            
+
             <div v-if="!env.history.length" class="keycode-tool__empty-state">
-              <IconifyIconOnline icon="ri:history-line" class="keycode-tool__empty-icon" />
+              <IconifyIconOnline
+                icon="ri:history-line"
+                class="keycode-tool__empty-icon"
+              />
               <div class="keycode-tool__empty-text">暂无历史记录</div>
             </div>
-            
+
             <div v-else class="keycode-tool__history">
-              <div v-for="item in env.history" :key="item.id" class="keycode-tool__history-item">
+              <div
+                v-for="item in env.history"
+                :key="item.id"
+                class="keycode-tool__history-item"
+              >
                 <div class="keycode-tool__history-key">
-                  <span class="keycode-tool__history-key-value">{{ item.key }}</span>
-                  <span class="keycode-tool__history-key-code">{{ item.code }}</span>
+                  <span class="keycode-tool__history-key-value">{{
+                    item.key
+                  }}</span>
+                  <span class="keycode-tool__history-key-code">{{
+                    item.code
+                  }}</span>
                 </div>
-                
+
                 <div class="keycode-tool__history-details">
                   <div class="keycode-tool__history-detail">
-                    <span class="keycode-tool__history-detail-label">KeyCode:</span>
-                    <span class="keycode-tool__history-detail-value">{{ item.keyCode }}</span>
+                    <span class="keycode-tool__history-detail-label"
+                      >KeyCode:</span
+                    >
+                    <span class="keycode-tool__history-detail-value">{{
+                      item.keyCode
+                    }}</span>
                   </div>
-                  
+
                   <div class="keycode-tool__history-detail">
-                    <span class="keycode-tool__history-detail-label">修饰键:</span>
+                    <span class="keycode-tool__history-detail-label"
+                      >修饰键:</span
+                    >
                     <span class="keycode-tool__history-detail-value">
-                      <el-tag size="small" :type="item.ctrlKey ? 'success' : 'info'" class="keycode-tool__modifier-tag">Ctrl</el-tag>
-                      <el-tag size="small" :type="item.altKey ? 'success' : 'info'" class="keycode-tool__modifier-tag">Alt</el-tag>
-                      <el-tag size="small" :type="item.shiftKey ? 'success' : 'info'" class="keycode-tool__modifier-tag">Shift</el-tag>
+                      <el-tag
+                        size="small"
+                        :type="item.ctrlKey ? 'success' : 'info'"
+                        class="keycode-tool__modifier-tag"
+                        >Ctrl</el-tag
+                      >
+                      <el-tag
+                        size="small"
+                        :type="item.altKey ? 'success' : 'info'"
+                        class="keycode-tool__modifier-tag"
+                        >Alt</el-tag
+                      >
+                      <el-tag
+                        size="small"
+                        :type="item.shiftKey ? 'success' : 'info'"
+                        class="keycode-tool__modifier-tag"
+                        >Shift</el-tag
+                      >
                     </span>
                   </div>
-                  
-                  <div class="keycode-tool__history-time">{{ item.timestamp }}</div>
+
+                  <div class="keycode-tool__history-time">
+                    {{ item.timestamp }}
+                  </div>
                 </div>
-                
+
                 <div class="keycode-tool__history-actions">
-                  <el-button type="primary" link size="small" @click="copyToClipboard(item.code)">
+                  <el-button
+                    type="primary"
+                    link
+                    size="small"
+                    @click="copyToClipboard(item.code)"
+                  >
                     <IconifyIconOnline icon="ri:file-copy-line" />
                   </el-button>
                 </div>
@@ -699,6 +887,38 @@ onBeforeUnmount(() => {
 .keycode-tool {
   padding: 20px;
 
+  &__header {
+    background: linear-gradient(
+      135deg,
+      var(--el-color-success-light-3) 0%,
+      var(--el-color-success) 100%
+    );
+    border-radius: 12px;
+    padding: 30px;
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(var(--el-color-success-rgb), 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 24px;
+    text-align: center;
+
+    &:hover {
+      box-shadow: 0 6px 24px rgba(var(--el-color-success-rgb), 0.4);
+    }
+  }
+
+  &__header-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  &__header-subtitle {
+    font-size: 16px;
+    opacity: 0.95;
+    margin: 0;
+  }
+
   &__content {
     background-color: var(--el-bg-color);
     border-radius: 12px;
@@ -707,7 +927,11 @@ onBeforeUnmount(() => {
 
   /* 主要信息显示区域 */
   &__main-display {
-    background: linear-gradient(135deg, var(--el-color-primary-dark-2), var(--el-color-primary));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-success-light-3) 0%,
+      var(--el-color-success) 100%
+    );
     border-radius: 12px;
     padding: 30px;
     text-align: center;
@@ -716,7 +940,9 @@ onBeforeUnmount(() => {
     overflow: hidden;
     transform-style: preserve-3d;
     transform: rotateX(5deg);
-    transition: transform 0.5s ease, box-shadow 0.5s ease;
+    transition:
+      transform 0.5s ease,
+      box-shadow 0.5s ease;
     margin-bottom: 30px;
     min-height: 200px;
     display: flex;
@@ -844,15 +1070,16 @@ onBeforeUnmount(() => {
   &__keyboard-card,
   &__history-card {
     height: 100%;
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 12px;
     overflow: hidden;
-    border: none;
+    border: 1px solid var(--el-border-color-lighter);
     margin-bottom: 20px;
 
     &:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      border-color: var(--el-color-success-light-7);
     }
   }
 
@@ -952,7 +1179,9 @@ onBeforeUnmount(() => {
     justify-content: center;
     background-color: var(--el-fill-color);
     border-radius: 6px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 1px var(--el-border-color);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.1),
+      0 0 0 1px var(--el-border-color);
     font-size: 14px;
     font-weight: 500;
     color: var(--el-text-color-primary);
@@ -963,14 +1192,18 @@ onBeforeUnmount(() => {
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--el-color-primary-light-7);
+      box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.15),
+        0 0 0 1px var(--el-color-primary-light-7);
       background-color: var(--el-fill-color-light);
     }
 
     &--active {
       background-color: var(--el-color-primary-light-8);
       color: var(--el-color-primary-dark-2);
-      box-shadow: 0 0 0 2px var(--el-color-primary), 0 4px 8px rgba(0, 0, 0, 0.15);
+      box-shadow:
+        0 0 0 2px var(--el-color-primary),
+        0 4px 8px rgba(0, 0, 0, 0.15);
       transform: translateY(-2px);
       animation: pulse-key 2s 1;
     }
@@ -1110,7 +1343,8 @@ onBeforeUnmount(() => {
 
   /* 动画效果 */
   @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(1);
       opacity: 0.8;
     }

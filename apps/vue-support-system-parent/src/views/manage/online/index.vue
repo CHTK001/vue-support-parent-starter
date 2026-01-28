@@ -1,10 +1,10 @@
 <template>
-  <div class="online-container">
+  <div class="system-container online-container">
     <div class="online-wrapper">
       <el-container>
         <!-- 页面头部 -->
-        <el-header class="online-header">
-          <div class="header-left">
+        <el-header class="toolbar-section online-header">
+          <div class="toolbar-left header-left">
             <div class="header-title">
               <IconifyIconOnline icon="mdi:account-multiple-check" />
               <span>在线用户管理</span>
@@ -16,9 +16,9 @@
               </el-tag>
             </div>
           </div>
-          <div class="header-actions">
+          <div class="toolbar-right header-actions">
             <!-- 搜索表单 -->
-            <el-form :inline="true" :model="searchForm" class="search-form">
+            <el-form :inline="true" :model="searchForm" class="modern-form search-form">
               <el-form-item>
                 <el-input
                   v-model="searchForm.username"
@@ -70,7 +70,7 @@
               v-else
               :data="tableData"
               row-key="userId"
-              class="online-table"
+              class="modern-table online-table"
               @selection-change="handleSelectionChange"
             >
               <!-- 多选列 -->

@@ -1,21 +1,22 @@
 import { defineBuildConfig } from "unbuild";
 
 export default defineBuildConfig({
-  entries: ["src/index"],
   clean: true,
   declaration: true,
-  rollup: {
-    emitCJS: false,
-    esbuild: {
-      minify: false,
+  failOnWarn: false,
+  entries: [
+    {
+      builder: "mkdist",
+      input: "./src",
+      loaders: ["vue"],
+      pattern: ["**/*.vue"],
     },
-  },
-  externals: [
-    "vue",
-    "@pureadmin/utils",
-    "element-plus",
-    "unbuild",
-    "vue-i18n",
-    "@repo/components"
+    {
+      builder: "mkdist",
+      format: "esm",
+      input: "./src",
+      loaders: ["js"],
+      pattern: ["**/*.ts"],
+    },
   ],
 }); 

@@ -638,34 +638,69 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
 .operation-log {
   .log-filters {
-    margin-bottom: 16px;
-    padding: 16px;
-    background-color: var(--el-fill-color-extra-light);
-    border-radius: 6px;
+    margin-bottom: $spacing-lg;
+    padding: $spacing-lg;
+    @include glass-effect(0.9, 16px);
+    border-radius: $radius-md;
+    box-shadow: $shadow-sm;
+    border: 1px solid $border-light;
+    transition: all $duration-normal $ease-standard;
+
+    &:hover {
+      box-shadow: $shadow-md;
+    }
+
+    .el-button {
+      border-radius: $radius-sm;
+      transition: all $duration-fast $ease-standard;
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: $shadow-sm;
+      }
+
+      :deep(.iconify-icon) {
+        transition: transform $duration-fast $ease-standard;
+      }
+
+      &:hover :deep(.iconify-icon) {
+        transform: scale(1.1);
+      }
+    }
   }
 
   .log-list {
-    margin-bottom: 16px;
+    margin-bottom: $spacing-lg;
 
     .log-pagination {
-      margin-top: 16px;
+      margin-top: $spacing-lg;
       display: flex;
       justify-content: center;
     }
   }
 
   .log-statistics {
-    padding: 16px;
-    background-color: var(--el-fill-color-extra-light);
-    border-radius: 6px;
+    padding: $spacing-lg;
+    @include glass-effect(0.9, 16px);
+    border-radius: $radius-md;
+    box-shadow: $shadow-sm;
+    border: 1px solid $border-light;
 
     .stat-item {
       text-align: center;
-      padding: 12px;
-      border-radius: 6px;
-      background-color: var(--el-bg-color);
+      padding: $spacing-md;
+      border-radius: $radius-sm;
+      background-color: rgba(255, 255, 255, 0.6);
+      transition: all $duration-fast $ease-standard;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: $shadow-sm;
+      }
 
       &.info {
         border-left: 4px solid var(--el-color-primary);
@@ -680,15 +715,16 @@ defineExpose({
       }
 
       .stat-value {
-        font-size: 24px;
-        font-weight: 600;
+        font-size: $font-4xl;
+        font-weight: $font-weight-bold;
         color: var(--el-text-color-primary);
-        margin-bottom: 4px;
+        margin-bottom: $spacing-xs;
       }
 
       .stat-label {
-        font-size: 12px;
+        font-size: $font-xs;
         color: var(--el-text-color-secondary);
+        font-weight: $font-weight-medium;
       }
     }
   }
@@ -698,44 +734,48 @@ defineExpose({
   .log-content {
     max-height: 200px;
     overflow-y: auto;
-    padding: 8px;
-    background-color: var(--el-fill-color-extra-light);
-    border-radius: 4px;
+    @include custom-scrollbar;
+    padding: $spacing-sm;
+    @include glass-effect(0.85, 16px);
+    border-radius: $radius-sm;
     font-family: "Consolas", "Monaco", "Courier New", monospace;
-    font-size: 12px;
+    font-size: $font-xs;
     line-height: 1.4;
     white-space: pre-wrap;
     word-break: break-all;
+    border: 1px solid $border-light;
   }
 
   .detail-content {
-    margin-top: 20px;
+    margin-top: $spacing-xl;
 
     .detail-section {
-      margin-bottom: 16px;
+      margin-bottom: $spacing-lg;
 
       h4 {
-        margin: 0 0 8px 0;
-        font-size: 14px;
-        font-weight: 500;
+        margin: 0 0 $spacing-sm 0;
+        font-size: $font-md;
+        font-weight: $font-weight-semibold;
         color: var(--el-text-color-primary);
       }
 
       .detail-code {
-        background: var(--el-bg-color-overlay);
-        border: 1px solid var(--el-border-color-light);
-        border-radius: 4px;
-        padding: 12px;
+        @include glass-effect(0.9, 16px);
+        border: 1px solid $border-light;
+        border-radius: $radius-sm;
+        padding: $spacing-md;
         font-family: "Consolas", "Monaco", "Courier New", monospace;
-        font-size: 12px;
+        font-size: $font-xs;
         line-height: 1.4;
         overflow-x: auto;
+        @include custom-scrollbar;
         margin: 0;
         max-height: 300px;
         overflow-y: auto;
+        box-shadow: $shadow-sm;
 
         &.error {
-          background-color: #fef0f0;
+          background-color: rgba(245, 108, 108, 0.1);
           border-color: var(--el-color-danger-light-7);
           color: var(--el-color-danger);
         }
@@ -747,15 +787,79 @@ defineExpose({
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: $spacing-md;
+
+  .el-button {
+    border-radius: $radius-sm;
+    padding: $button-padding-md;
+    transition: all $duration-fast $ease-standard;
+    font-weight: $font-weight-medium;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: $shadow-md;
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
 }
 
 :deep(.el-table) {
+  @include glass-effect(0.9, 16px);
+  border-radius: $radius-md;
+  border: 1px solid $border-light;
+
+  .el-table__header {
+    th {
+      background: rgba(255, 255, 255, 0.6);
+      font-weight: $font-weight-semibold;
+    }
+  }
+
   .el-table__row {
     cursor: pointer;
+    transition: all $duration-fast $ease-standard;
 
     &:hover {
-      background-color: var(--el-fill-color-light);
+      background-color: rgba(99, 102, 241, 0.05);
+      transform: scale(1.001);
+    }
+  }
+}
+
+// 响应式设计
+@include respond-to(lg) {
+  .operation-log {
+    .log-filters {
+      padding: $spacing-md;
+    }
+  }
+}
+
+@include respond-to(sm) {
+  .operation-log {
+    .log-filters {
+      .el-row .el-col {
+        width: 100% !important;
+        margin-bottom: $spacing-sm;
+      }
+    }
+
+    .log-statistics {
+      .stat-item {
+        margin-bottom: $spacing-sm;
+      }
+    }
+  }
+
+  .dialog-footer {
+    flex-direction: column-reverse;
+    width: 100%;
+
+    .el-button {
+      width: 100%;
     }
   }
 }

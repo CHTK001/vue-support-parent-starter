@@ -25,6 +25,7 @@
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
+    "@layout/default": "workspace:^",
     "@microsoft/fetch-event-source": "catalog:",
     "@pureadmin/descriptions": "catalog:",
     "@pureadmin/table": "catalog:",

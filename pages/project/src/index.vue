@@ -1,5 +1,5 @@
 <template>
-  <div class="project-home">
+  <div class="project-home system-container modern-bg">
     <!-- 顶部欢迎区域 -->
     <div class="hero-section">
       <div class="hero-bg"></div>
@@ -154,8 +154,6 @@
 
 <style lang="scss" scoped>
 .project-home {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
   padding-bottom: 40px;
 }
 

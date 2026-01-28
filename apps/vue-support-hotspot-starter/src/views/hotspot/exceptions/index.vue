@@ -185,6 +185,7 @@ onUnmounted(() => {
       </template>
 
       <el-tabs v-model="activeTab" class="modern-tabs">
+        <el-tab-pane label="异常列表" name="list">
           <el-table
             v-loading="loading"
             :data="exceptions"
@@ -252,6 +253,7 @@ onUnmounted(() => {
               </template>
             </el-table-column>
           </el-table>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
 

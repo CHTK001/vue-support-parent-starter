@@ -141,7 +141,7 @@ const moduleOptions = reactive([
 </script>
 
 <template>
-  <div class="log-main">
+  <div class="log-main system-container modern-bg">
     <!-- 详情页组件，根据 visible.detail 控制显示 -->
     <DetailLayout v-if="visible.detail" ref="detailRef" :moduleOptions="moduleOptions" />
     <el-container class="log-container">
@@ -301,8 +301,11 @@ const moduleOptions = reactive([
 
 // 主容器样式
 .log-main {
-  height: 100%;
-  background-color: var(--app-bg-primary);
+  padding: clamp(20px, 3vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(18px, 2vw, 24px);
+  min-height: 100%;
   animation: log-fade-in 0.5s ease-out;
 }
 
@@ -310,19 +313,25 @@ const moduleOptions = reactive([
   height: 100%;
   display: flex;
   flex-direction: column;
-  border-radius: 8px;
-  box-shadow: var(--app-shadow);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--el-bg-color-overlay) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(8px);
   overflow: hidden;
 }
 
 // 头部样式
 .log-header {
-  padding: 16px;
-  background-color: var(--app-bg-primary);
-  border-bottom: 1px solid var(--app-border-primary);
-  box-shadow: var(--app-shadow-sm);
+  padding: clamp(16px, 2vw, 24px);
+  background: linear-gradient(
+    135deg,
+    rgba(64, 158, 255, 0.08),
+    rgba(64, 158, 255, 0.04)
+  );
+  border-bottom: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
   height: auto !important;
-  max-height: 160px;
+  max-height: 180px;
   transition: all 0.3s ease;
 }
 
@@ -331,13 +340,13 @@ const moduleOptions = reactive([
 }
 
 .log-search-form {
-  background-color: var(--app-bg-primary);
+  background: transparent;
   width: 100%;
-  padding: 16px;
-  border-radius: 8px;
+  padding: 0;
+  border-radius: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
   animation: log-scale-in 0.4s ease-out;
 }
 

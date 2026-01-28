@@ -76,7 +76,7 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .common-context-menu {
   position: fixed;
   z-index: 9999;

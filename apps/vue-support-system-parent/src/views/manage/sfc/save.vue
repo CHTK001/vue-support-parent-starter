@@ -178,7 +178,7 @@ export default {
         </div>
       </template>
 
-      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="sfc-form">
+      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="modern-form sfc-form">
         <!-- 基本信息 -->
         <div class="form-section">
           <div class="section-title">

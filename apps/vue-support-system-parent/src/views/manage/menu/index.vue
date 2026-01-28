@@ -1,5 +1,5 @@
 <template>
-  <div class="menu-container">
+  <div class="system-container menu-container">
     <!-- 保存对话框组件 -->
     <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSuccess"
       @close="dialogClose" />
@@ -46,8 +46,8 @@
           </div>
         </div>
         <!-- 表格头部 -->
-        <el-header class="menu-header">
-          <div class="header-left">
+        <el-header class="toolbar-section menu-header">
+          <div class="toolbar-left header-left">
             <el-input
               v-model="searchKeyword"
               placeholder="搜索菜单名称/路由"
@@ -60,7 +60,7 @@
               </template>
             </el-input>
           </div>
-          <div class="header-actions">
+          <div class="toolbar-right header-actions">
             <!-- 展开/折叠全部 -->
             <el-tooltip :content="isExpanded ? '折叠全部' : '展开全部'" placement="top">
               <el-button @click="toggleExpandAll">
@@ -95,7 +95,7 @@
               :data="filteredTableData" 
               row-key="sysMenuId" 
               border 
-              class="menu-table" 
+              class="modern-table menu-table" 
               :default-expand-all="isExpanded"
               @row-click="getOpenDetail"
             >

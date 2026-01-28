@@ -1,5 +1,5 @@
 <template>
-  <div class="gauge-chart" :style="{ height: height + 'px' }">
+  <div class="gauge-chart system-container modern-bg" :style="{ height: height + 'px' }">
     <div v-if="loading" class="loading-container">
       <el-skeleton :rows="2" animated />
     </div>
@@ -181,6 +181,41 @@ const handleResize = () => {
 </script>
 
 <style lang="scss" scoped>
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .gauge-chart {
   width: 100%;
 }
@@ -197,4 +232,15 @@ const handleResize = () => {
   width: 100%;
   height: 100%;
 }
+
+
+// 响应式设计
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

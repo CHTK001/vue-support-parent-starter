@@ -1543,7 +1543,8 @@ defineExpose({
   padding-top: 15vh;
 
   &.has-modal {
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
   }
 
   // 任务栏模式：允许点击穿透到下层对话框
@@ -1554,11 +1555,14 @@ defineExpose({
 
 .sc-dialog--custom {
   position: relative;
-  background: var(--el-bg-color);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.1),
-    0 2px 6px rgba(0, 0, 0, 0.08);
+    0 20px 60px rgba(0, 0, 0, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
   // 对话框本身可以点击
   pointer-events: auto;
   display: flex;
@@ -1606,9 +1610,13 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    padding: 18px 24px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 16px 16px 0 0;
     cursor: move;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .sc-dialog__header-content {
@@ -1637,35 +1645,43 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     padding: 0;
-    background: none;
+    background: rgba(0, 0, 0, 0.03);
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     color: var(--el-text-color-regular);
-    transition: all 0.2s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-      background: var(--el-fill-color-light);
+      background: rgba(0, 0, 0, 0.08);
       color: var(--el-text-color-primary);
+      transform: scale(1.05);
+    }
+
+    &:active {
+      transform: scale(0.95);
     }
   }
 
   .sc-dialog__minimize:hover {
-    background: var(--el-color-warning-light-9);
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.25));
     color: var(--el-color-warning);
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
   }
 
   .sc-dialog__maximize:hover {
-    background: var(--el-color-success-light-9);
+    background: linear-gradient(135deg, rgba(67, 160, 71, 0.15), rgba(67, 160, 71, 0.25));
     color: var(--el-color-success);
+    box-shadow: 0 2px 8px rgba(67, 160, 71, 0.3);
   }
 
   .sc-dialog__close:hover {
-    background: var(--el-color-danger-light-9);
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.15), rgba(244, 67, 54, 0.25));
     color: var(--el-color-danger);
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
   }
 
   // 最大化状态
@@ -1689,16 +1705,20 @@ defineExpose({
 
   .sc-dialog__body {
     flex: 1;
-    padding: 20px;
+    padding: 24px;
     overflow: auto;
+    background: rgba(255, 255, 255, 0.5);
   }
 
   .sc-dialog__footer {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    padding: 12px 20px;
-    border-top: 1px solid var(--el-border-color-lighter);
+    gap: 12px;
+    padding: 16px 24px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.8) 100%);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 0 0 16px 16px;
   }
 
   // 缩放手柄
@@ -2018,20 +2038,26 @@ defineExpose({
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  background: var(--el-color-primary);
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
   color: #fff;
   font-size: 20px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   transition:
-    box-shadow 0.3s ease,
-    transform 0.2s ease;
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   touch-action: none;
   user-select: none;
-  border-radius: 8px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
 
   &:hover {
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+    box-shadow: 
+      0 12px 32px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+    transform: translateY(-2px) scale(1.05);
   }
 
   &.is-dragging {

@@ -3,7 +3,7 @@
     <sc-dialog v-model="visible" :title="title" :close-on-click-modal="false" :close-on-press-escape="false"
       :destroy-on-close="true" draggable width="800px" class="user-dialog" @close="close">
       <el-form ref="dialogFormRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px"
-        class="user-form">
+        class="modern-form user-form">
         <el-row :gutter="20">
           <!-- 头像区域 -->
           <el-col :span="24">

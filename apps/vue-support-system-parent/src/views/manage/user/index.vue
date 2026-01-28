@@ -4,7 +4,7 @@ const IndexLayout = defineAsyncComponent(() => import("./layout.vue"));
 </script>
 
 <template>
-  <div class="main">
+  <div class="system-container main">
     <IndexLayout />
   </div>
 </template>

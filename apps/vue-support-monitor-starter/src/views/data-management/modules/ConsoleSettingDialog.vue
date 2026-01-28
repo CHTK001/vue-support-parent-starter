@@ -121,12 +121,23 @@ async function handleSave() {
   }
 }
 </script>
-<style scoped>
+<style scoped lang="scss">
 .section { padding: 8px 4px }
 .section-title { font-weight: 600; color: var(--el-text-color-regular); margin-bottom: 8px }
 .data-console-setting-dialog :deep(.el-dialog__body) {
   padding-left: 24px;
   padding-right: 24px;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>
 

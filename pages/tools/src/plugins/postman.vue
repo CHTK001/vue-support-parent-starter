@@ -1005,16 +1005,21 @@ onMounted(() => {
   }
 
   &__header {
-    /* Postman 工具专属渐变色 - 橙色调 */
-    background: linear-gradient(135deg, #ff6b6b 0%, #cc2e5d 100%);
+    background: linear-gradient(135deg, var(--el-color-danger-light-3) 0%, var(--el-color-danger) 100%);
     border-radius: 12px;
     padding: 30px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(204, 46, 93, 0.3);
+    box-shadow: 0 4px 20px rgba(var(--el-color-danger-rgb), 0.3);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      box-shadow: 0 6px 24px rgba(var(--el-color-danger-rgb), 0.4);
+      transform: translateY(-2px);
+    }
 
     &-inner {
       position: relative;

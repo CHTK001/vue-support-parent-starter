@@ -1,5 +1,5 @@
 <template>
-  <div class="setting-history-container">
+  <div class="setting-history-container system-container modern-bg">
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <el-card class="toolbar-card" shadow="never">

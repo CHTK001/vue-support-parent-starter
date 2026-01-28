@@ -21,6 +21,8 @@ import { router, setupStore } from "@repo/core";
 import App from "./App.vue";
 import { useElementPlus } from "@repo/plugins";
 import { createApp } from "vue";
+// 字体加密指令
+import { vFontEncryption } from "@layout/default";
 
 // 引入重置样式
 import "@repo/assets/style/layout/default/reset.scss";
@@ -30,6 +32,9 @@ import "element-plus/dist/index.css";
 import "@repo/assets/style/layout/default/index.scss";
 
 const app = createApp(App);
+
+// 注册字体加密指令
+app.directive("font-encryption", vFontEncryption);
 
 getPlatformConfig(app).then(async config => {
   setupStore(app);

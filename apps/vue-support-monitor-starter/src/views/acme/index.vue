@@ -1,5 +1,5 @@
 <template>
-  <div class="acme-container">
+  <div class="acme-container system-container modern-bg">
     <!-- 统计卡片 -->
     <div class="stats-row">
       <ScCard
@@ -197,59 +197,61 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+@import '@/styles/mixins.scss';
+
 .acme-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-  height: 100vh;
-  box-sizing: border-box;
+  @include system-container;
+  @include modern-bg;
+  @include flex-column;
+  gap: $spacing-lg;
+  padding: $padding-container;
 }
 
 /* 统计卡片 */
 .stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: $spacing-lg;
+
+  @include respond-to(lg) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include respond-to(sm) {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* 主卡片 */
 .main-card {
+  @include card-style;
   flex: 1;
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   min-height: 0;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   overflow: hidden;
 
   .tabs-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 20px 0;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    @include flex-between;
+    padding: $spacing-md $spacing-xl 0;
+    border-bottom: 1px solid $border-light;
   }
 
   .tabs-actions {
-    display: flex;
-    gap: 10px;
-    padding-bottom: 12px;
+    @include flex-align-center;
+    gap: $spacing-md;
+    padding-bottom: $spacing-md;
 
     .el-button {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      border-radius: 8px;
+      @include flex-align-center;
+      gap: $spacing-sm;
+      border-radius: $radius-md;
     }
   }
 
   .tab-content {
     flex: 1;
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
+    padding: $spacing-lg $spacing-xl;
+    @include flex-column;
     min-height: 0;
     overflow: hidden;
   }
@@ -257,22 +259,21 @@ onMounted(() => {
 
 /* 自定义标签页 */
 .custom-tabs {
-  display: flex;
-  gap: 8px;
+  @include flex-align-center;
+  gap: $spacing-sm;
 }
 
 .tab-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  font-size: 14px;
-  font-weight: 500;
+  @include flex-align-center;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-xl;
+  font-size: $font-md;
+  font-weight: $font-weight-medium;
   color: var(--el-text-color-secondary);
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  transition: all 0.3s ease;
+  transition: all $duration-normal $ease-standard;
 
   &:hover {
     color: var(--el-color-primary);
@@ -286,9 +287,9 @@ onMounted(() => {
   .tab-badge {
     min-width: 20px;
     height: 20px;
-    padding: 0 6px;
+    padding: 0 $spacing-sm;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: $font-weight-semibold;
     line-height: 20px;
     text-align: center;
     background: var(--el-color-primary-light-9);
@@ -303,21 +304,11 @@ onMounted(() => {
 }
 
 /* 响应式 */
-@media (max-width: 1200px) {
-  .stats-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .stats-row {
-    grid-template-columns: 1fr;
-  }
-
+@include respond-to(md) {
   .main-card .tabs-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: $spacing-md;
 
     .custom-tabs {
       justify-content: center;

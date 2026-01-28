@@ -389,11 +389,13 @@ onMounted(() => {
     <div class="meme-tool__content">
       <!-- 头部区域 -->
       <div class="meme-tool__header">
-        <div class="meme-tool__title">
-          <IconifyIconOnline icon="ri:emotion-laugh-fill" class="meme-tool__title-icon" />
-          <span>斗图搜索引擎</span>
+        <div class="meme-tool__header-content">
+          <IconifyIconOnline icon="ri:emotion-laugh-fill" class="meme-tool__header-icon" />
+          <div>
+            <h2 class="meme-tool__header-title">斗图搜索引擎</h2>
+            <p class="meme-tool__header-desc">快速搜索、收藏和分享你喜欢的表情包，让聊天更有趣！</p>
+          </div>
         </div>
-        <div class="meme-tool__subtitle">快速搜索、收藏和分享你喜欢的表情包，让聊天更有趣！</div>
       </div>
 
       <!-- 搜索区域 -->
@@ -621,43 +623,35 @@ onMounted(() => {
 
   /* 头部样式 */
   &__header {
-    margin-bottom: 30px;
-    text-align: center;
-    position: relative;
-    &::after {
-      content: "";
-      position: absolute;
-      bottom: -15px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80px;
-      height: 3px;
-      background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
-      border-radius: 3px;
-    }
+    background: linear-gradient(135deg, var(--el-color-warning-light-3) 0%, var(--el-color-warning) 100%);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
-  &__title {
+  &__header-content {
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin-bottom: 12px;
-    font-size: 28px;
-    font-weight: 600;
-    color: var(--el-color-primary);
-
-    &-icon {
-      font-size: 32px;
-      margin-right: 10px;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
-      animation: bounce 2s infinite ease-in-out;
-    }
+    gap: 16px;
   }
 
-  &__subtitle {
-    font-size: 16px;
-    color: var(--el-text-color-secondary);
-    margin-bottom: 16px;
+  &__header-icon {
+    font-size: 48px;
+    opacity: 0.9;
+  }
+
+  &__header-title {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  &__header-desc {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.9;
   }
 
   /* 搜索区域样式 */

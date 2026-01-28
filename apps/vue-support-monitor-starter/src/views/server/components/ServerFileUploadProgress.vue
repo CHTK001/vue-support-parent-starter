@@ -1,5 +1,5 @@
 <template>
-  <div class="server-file-upload-progress">
+  <div class="server-file-upload-progress system-container modern-bg">
     <!-- Socket.IO连接状态 -->
     <div class="connection-status">
       <el-card class="status-card" shadow="hover">
@@ -485,13 +485,39 @@ const getProgressStatus = (status: string) => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: $gradient-bg-1, $gradient-bg-2;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .server-file-upload-progress {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 24px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  gap: $spacing-2xl;
+  padding: $spacing-2xl;
+  background: $gradient-bg-2;
   min-height: 100vh;
 }
 
@@ -500,12 +526,11 @@ const getProgressStatus = (status: string) => {
 .queue-card,
 .tasks-card,
 .stats-card {
-  border-radius: 16px;
-  border: none;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.95);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: $radius-lg;
+  border: 1px solid $border-light;
+  @include glass-effect(0.95, 18px);
+  box-shadow: $shadow-lg;
+  transition: all $duration-normal $ease-standard;
 }
 
 .status-card:hover,
@@ -513,7 +538,7 @@ const getProgressStatus = (status: string) => {
 .tasks-card:hover,
 .stats-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+  box-shadow: $shadow-hover-lg;
 }
 
 /* 通用头部样式 */
@@ -530,8 +555,8 @@ const getProgressStatus = (status: string) => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #409eff, #66b1ff);
+  border-radius: $radius-sm;
+  background: $gradient-primary;
   color: var(--el-text-color-primary);
   font-size: 16px;
 }
@@ -576,7 +601,7 @@ const getProgressStatus = (status: string) => {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  transition: all 0.3s ease;
+  transition: all $duration-normal $ease-standard;
 }
 
 .status-icon-wrapper.status-connected {
@@ -602,7 +627,7 @@ const getProgressStatus = (status: string) => {
 .status-icon {
   font-size: 24px;
   color: var(--el-text-color-primary);
-  transition: all 0.3s ease;
+  transition: all $duration-normal $ease-standard;
 }
 
 .status-pulse {
@@ -660,24 +685,23 @@ const getProgressStatus = (status: string) => {
 
 .connection-metrics {
   display: flex;
-  gap: 24px;
+  gap: $spacing-2xl;
 }
 
 .metric-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color);
-  transition: all 0.3s ease;
+  gap: $spacing-md;
+  padding: $spacing-lg $spacing-xl;
+  border-radius: $radius-md;
+  border: 1px solid $border-light;
+  @include glass-effect(0.9, 14px);
+  transition: all $duration-normal $ease-standard;
 }
 
 .metric-card:hover {
-  background: rgba(255, 255, 255, 1);
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: $shadow-md;
 }
 
 .metric-icon {
@@ -686,8 +710,8 @@ const getProgressStatus = (status: string) => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #409eff, #66b1ff);
+  border-radius: $radius-sm;
+  background: $gradient-primary;
   color: var(--el-text-color-primary);
   font-size: 16px;
 }
@@ -712,22 +736,22 @@ const getProgressStatus = (status: string) => {
 
 .connection-actions {
   display: flex;
-  gap: 12px;
+  gap: $spacing-md;
 }
 
 .action-button {
-  border-radius: 8px;
+  border-radius: $radius-sm;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: all $duration-normal $ease-standard;
   border: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: $shadow-sm;
   position: relative;
   overflow: hidden;
 }
 
 .action-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: $shadow-md;
 }
 
 .action-button::before {
@@ -746,7 +770,7 @@ const getProgressStatus = (status: string) => {
 }
 
 .refresh-btn {
-  background: linear-gradient(135deg, #409eff, #66b1ff);
+  background: $gradient-primary;
   color: var(--el-text-color-primary);
 }
 
@@ -758,25 +782,24 @@ const getProgressStatus = (status: string) => {
 .queue-metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-2xl;
 }
 
 .queue-metric-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color);
-  transition: all 0.3s ease;
+  gap: $spacing-lg;
+  padding: $spacing-xl;
+  border-radius: $radius-md;
+  border: 1px solid $border-light;
+  @include glass-effect(0.9, 14px);
+  transition: all $duration-normal $ease-standard;
 }
 
 .queue-metric-card:hover {
-  background: rgba(255, 255, 255, 1);
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: $shadow-md;
 }
 
 .metric-icon-wrapper {
@@ -785,10 +808,10 @@ const getProgressStatus = (status: string) => {
   justify-content: center;
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: $radius-md;
   font-size: 20px;
   color: var(--el-text-color-primary);
-  transition: all 0.3s ease;
+  transition: all $duration-normal $ease-standard;
 }
 
 .metric-icon-wrapper.pending {
@@ -818,10 +841,10 @@ const getProgressStatus = (status: string) => {
 }
 
 .queue-progress-section {
-  padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color);
+  padding: $spacing-lg $spacing-xl;
+  border-radius: $radius-md;
+  border: 1px solid $border-light;
+  @include glass-effect(0.88, 12px);
 }
 
 .progress-info {
@@ -881,15 +904,15 @@ const getProgressStatus = (status: string) => {
 .task-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: $spacing-xl;
 }
 
 .task-item {
-  padding: 24px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 16px;
-  border: 1px solid var(--el-border-color);
-  transition: all 0.3s ease;
+  padding: $spacing-2xl;
+  border-radius: $radius-lg;
+  border: 1px solid $border-light;
+  @include glass-effect(0.92, 16px);
+  transition: all $duration-normal $ease-standard;
   position: relative;
   overflow: hidden;
 }
@@ -922,9 +945,8 @@ const getProgressStatus = (status: string) => {
 }
 
 .task-item:hover {
-  background: rgba(255, 255, 255, 1);
   transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: $shadow-lg;
 }
 
 .task-header {
@@ -977,9 +999,9 @@ const getProgressStatus = (status: string) => {
 .task-filename {
   font-size: 14px;
   color: #606266;
-  background: rgba(0, 0, 0, 0.05);
-  padding: 4px 8px;
-  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.04);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-sm;
 }
 
 .task-status-tag {
@@ -1014,19 +1036,19 @@ const getProgressStatus = (status: string) => {
 
 .task-metrics {
   display: flex;
-  gap: 24px;
-  margin-bottom: 20px;
+  gap: $spacing-2xl;
+  margin-bottom: $spacing-xl;
   flex-wrap: wrap;
 }
 
 .metric-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
   background: rgba(0, 0, 0, 0.03);
-  border-radius: 8px;
-  transition: all 0.3s ease;
+  border-radius: $radius-sm;
+  transition: all $duration-normal $ease-standard;
 }
 
 .metric-item:hover {
@@ -1052,14 +1074,14 @@ const getProgressStatus = (status: string) => {
 
 .task-actions {
   display: flex;
-  gap: 12px;
+  gap: $spacing-md;
   justify-content: flex-end;
 }
 
 .action-btn {
-  border-radius: 8px;
+  border-radius: $radius-sm;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: all $duration-normal $ease-standard;
 }
 
 .action-btn:hover {
@@ -1068,9 +1090,9 @@ const getProgressStatus = (status: string) => {
 }
 
 .refresh-button {
-  border-radius: 8px;
+  border-radius: $radius-sm;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: all $duration-normal $ease-standard;
 }
 
 .refresh-button:hover {
@@ -1086,18 +1108,18 @@ const getProgressStatus = (status: string) => {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
+  gap: $spacing-lg;
 }
 
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color);
-  transition: all 0.3s ease;
+  gap: $spacing-lg;
+  padding: $spacing-xl;
+  border-radius: $radius-md;
+  border: 1px solid $border-light;
+  @include glass-effect(0.9, 14px);
+  transition: all $duration-normal $ease-standard;
   position: relative;
   overflow: hidden;
 }
@@ -1138,9 +1160,8 @@ const getProgressStatus = (status: string) => {
 }
 
 .stat-card:hover {
-  background: rgba(255, 255, 255, 1);
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: $shadow-md;
 }
 
 .stat-icon-wrapper {
@@ -1149,10 +1170,10 @@ const getProgressStatus = (status: string) => {
   justify-content: center;
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: $radius-md;
   font-size: 20px;
   color: var(--el-text-color-primary);
-  transition: all 0.3s ease;
+  transition: all $duration-normal $ease-standard;
 }
 
 .stat-card.total .stat-icon-wrapper {
@@ -1206,8 +1227,8 @@ const getProgressStatus = (status: string) => {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .server-file-upload-progress {
-    padding: 16px;
-    gap: 16px;
+    padding: $spacing-lg;
+    gap: $spacing-lg;
   }
 
   .connection-metrics {

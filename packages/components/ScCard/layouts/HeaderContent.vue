@@ -110,19 +110,21 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .sc-card-header-content {
-  border-radius: 4px;
-  border: 1px solid var(--el-border-color-light);
-  background-color: var(--el-bg-color);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
   overflow: hidden;
   color: var(--el-text-color-primary);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   &::before {
     content: "";
     position: absolute;
-    background-color: var(--el-color-primary);
-    transition: all 0.3s ease;
+    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1;
   }
 
@@ -131,7 +133,7 @@ export default defineComponent({
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
+    height: 3px;
     width: 100%;
   }
 
@@ -139,7 +141,7 @@ export default defineComponent({
     top: 0;
     right: 0;
     bottom: 0;
-    width: 4px;
+    width: 3px;
     height: 100%;
   }
 
@@ -147,7 +149,7 @@ export default defineComponent({
     bottom: 0;
     left: 0;
     right: 0;
-    height: 4px;
+    height: 3px;
     width: 100%;
   }
 
@@ -155,7 +157,7 @@ export default defineComponent({
     top: 0;
     left: 0;
     bottom: 0;
-    width: 4px;
+    width: 3px;
     height: 100%;
   }
 
@@ -167,70 +169,11 @@ export default defineComponent({
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
-    background-color: var(--el-color-primary-light-9);
+    padding: 24px 20px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
     position: relative;
-  }
+    overflow: hidden;
 
-  &__title {
-    font-size: 18px;
-    font-weight: 500;
-    color: var(--el-text-color-primary);
-    text-align: center;
-
-    &::after {
-      content: "";
-      display: block;
-      width: 40px;
-      height: 3px;
-      background-color: var(--el-color-primary);
-      margin: 10px auto 0;
-      border-radius: 2px;
-    }
-  }
-
-  &__body {
-    padding: 20px;
-  }
-
-  &__footer {
-    padding: 10px 20px;
-    border-top: 1px solid var(--el-border-color-light);
-  }
-
-  &.is-hoverable {
-    cursor: pointer;
-
-    &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-      border-color: var(--el-color-primary);
-
-      .sc-card-header-content__header {
-        &::before {
-          opacity: 1;
-        }
-      }
-    }
-  }
-
-  &.is-shadow {
-    &:hover {
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-      border-color: var(--el-color-primary);
-    }
-  }
-
-  &.is-shadow-always {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-
-    &:hover {
-      border-color: var(--el-color-primary);
-    }
-  }
-
-  // 头部悬停效果
-  &__header {
     &::before {
       content: "";
       position: absolute;
@@ -238,9 +181,86 @@ export default defineComponent({
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(to bottom, rgba(var(--el-color-primary-rgb), 0.1), transparent);
+      background: linear-gradient(to bottom, rgba(99, 102, 241, 0.15), transparent);
       opacity: 0;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(99, 102, 241, 0.3), transparent);
+    }
+  }
+
+  &__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    text-align: center;
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 1;
+
+    &::after {
+      content: "";
+      display: block;
+      width: 50px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--el-color-primary), transparent);
+      margin: 12px auto 0;
+      border-radius: 2px;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+
+  &__body {
+    padding: 24px;
+  }
+
+  &__footer {
+    padding: 16px 24px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    background: linear-gradient(to top, rgba(255, 255, 255, 0.5), transparent);
+  }
+
+  &.is-hoverable {
+    cursor: pointer;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      border-color: rgba(99, 102, 241, 0.3);
+
+      .sc-card-header-content__header {
+        &::before {
+          opacity: 1;
+        }
+      }
+
+      .sc-card-header-content__title::after {
+        width: 80px;
+      }
+    }
+  }
+
+  &.is-shadow {
+    &:hover {
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+  }
+
+  &.is-shadow-always {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+    &:hover {
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      border-color: rgba(99, 102, 241, 0.3);
     }
   }
 }

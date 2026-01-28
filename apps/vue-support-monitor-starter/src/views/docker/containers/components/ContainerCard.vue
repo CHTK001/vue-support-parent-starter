@@ -268,7 +268,7 @@ const handleCommand = (command: string) => {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .container-card {
   border-radius: 8px;
   transition: all 0.3s ease;

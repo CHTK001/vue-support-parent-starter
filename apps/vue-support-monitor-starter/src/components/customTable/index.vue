@@ -436,18 +436,18 @@ export default defineComponent({
   // padding-top: 36px;
   &__box {
     padding: 0 px;
-    // height: 36px;
+    /* height: 36px; */
     box-sizing: border-box;
     border-radius: 4px 4px 0 0px;
     position: absolute;
     right: 0px;
     top: 0;
     //background: #fff;
-    // border: 1px solid rgb(240, 240, 240);
+    /* border: 1px solid rgb(240, 240, 240); */
     border-bottom: 0px;
     display: flex;
     align-items: center;
-    // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); */
   }
 }
 
@@ -479,7 +479,7 @@ export default defineComponent({
   justify-content: flex-end;
 }
 </style>
-<style scoped>
+<style scoped lang="scss">
 :deep(.ant-form-item) {
   margin-inline-end: 0;
 }

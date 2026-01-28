@@ -1,5 +1,5 @@
 ﻿<template>
-  <div ref="serverLayoutRef" class="server-component-layout h-full">
+  <div class="system-container modern-bg server-component-layout h-full" ref="serverLayoutRef">
     <div class="layout-header" v-if="editable">
       <!-- 左侧编辑操作区 -->
       <div class="layout-actions-left">
@@ -1209,49 +1209,149 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    @include gradient-bg;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
 .server-component-layout {
   height: 100%;
   width: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
-  background-color: #1e1e2e;
+  padding: $spacing-md;
+  border-radius: $radius-lg;
 
   &:deep(.vue-grid-layout) {
     flex: 1;
     overflow: auto;
+    padding: $spacing-sm;
+    border-radius: $radius-md;
+    background: rgba(255, 255, 255, 0.02);
+    transition: all $duration-normal $ease-standard;
   }
 
   .layout-header {
-    padding: 12px 16px;
+    padding: $spacing-md $spacing-lg;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #1e1e2e;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    @include glass-effect(0.95, 16px);
+    border-bottom: 1px solid $border-light;
+    border-radius: $radius-md $radius-md 0 0;
     z-index: 10;
-    color: #e0e0e0;
     min-height: 60px;
+    margin-bottom: $spacing-md;
+    box-shadow: $shadow-sm;
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: $gradient-line-top;
+    }
 
     .layout-actions-left {
       display: flex;
-      gap: 8px;
+      gap: $spacing-sm;
       flex-shrink: 0;
+
+      .el-button {
+        border-radius: $radius-sm;
+        padding: $button-padding-md;
+        transition: all $duration-fast $ease-standard;
+        font-weight: $font-weight-medium;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: $shadow-md;
+        }
+
+        &:active:not(:disabled) {
+          transform: translateY(0);
+        }
+      }
     }
 
-    .layout-actions {
+    .layout-actions-right {
       display: flex;
-      gap: 8px;
+      gap: $spacing-sm;
+
+      .el-button {
+        border-radius: $radius-sm;
+        padding: $button-padding-md;
+        transition: all $duration-fast $ease-standard;
+        font-weight: $font-weight-medium;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: $shadow-md;
+        }
+
+        &:active:not(:disabled) {
+          transform: translateY(0);
+        }
+      }
     }
   }
 
   .grid-item-content {
     height: 100%;
     position: relative;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    @include glass-effect(0.9, 12px);
+    border-radius: $radius-md;
+    border: 1px solid $border-light;
     overflow: hidden;
+    transition: all $duration-normal $ease-standard;
+    box-shadow: $shadow-sm;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: $gradient-line-top;
+      opacity: 0;
+      transition: opacity $duration-normal ease;
+      z-index: 1;
+    }
+
+    &:hover {
+      border-color: var(--el-color-primary);
+      box-shadow: $shadow-md;
+      transform: translateY(-2px);
+
+      &::before {
+        opacity: 1;
+      }
+    }
 
     .grid-item-overlay {
       position: absolute;
@@ -1259,13 +1359,15 @@ defineExpose({
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
       justify-content: center;
       opacity: 0;
-      transition: opacity 0.2s ease;
+      transition: opacity $duration-fast $ease-standard;
       z-index: 10;
+      border-radius: $radius-md;
 
       &:hover {
         opacity: 1;
@@ -1273,7 +1375,22 @@ defineExpose({
 
       .grid-item-actions {
         display: flex;
-        gap: 8px;
+        gap: $spacing-sm;
+
+        .el-button {
+          border-radius: 50%;
+          transition: all $duration-fast $ease-standard;
+          box-shadow: $shadow-md;
+
+          &:hover {
+            transform: scale(1.1);
+            box-shadow: $shadow-lg;
+          }
+
+          &:active {
+            transform: scale(0.95);
+          }
+        }
       }
     }
   }
@@ -1283,102 +1400,173 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #e0e0e0;
+    padding: $spacing-3xl;
+    border-radius: $radius-md;
+    @include glass-effect(0.9, 16px);
+    border: 2px dashed $border-light;
+
+    :deep(.el-empty) {
+      .el-empty__description {
+        color: var(--el-text-color-placeholder);
+        font-size: $font-md;
+      }
+
+      .el-button {
+        border-radius: $radius-sm;
+        padding: $button-padding-md;
+        transition: all $duration-fast $ease-standard;
+        font-weight: $font-weight-medium;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: $shadow-md;
+        }
+      }
+    }
   }
 }
 
 .add-component-form {
+  padding: $spacing-md 0;
+
   .expression-examples {
-    margin-top: 8px;
+    margin-top: $spacing-sm;
 
     .examples-header {
-      font-size: 12px;
+      font-size: $font-sm;
       color: var(--el-text-color-regular);
-      margin-bottom: 8px;
+      margin-bottom: $spacing-sm;
+      font-weight: $font-weight-medium;
     }
 
     .examples-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: $spacing-sm;
 
       .example-tag {
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all $duration-fast $ease-standard;
+        border-radius: $radius-sm;
 
         &:hover {
           transform: translateY(-1px);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          box-shadow: $shadow-md;
+          border-color: var(--el-color-primary);
         }
       }
     }
   }
 
   .form-help {
-    margin-left: 8px;
-    font-size: 12px;
+    margin-left: $spacing-sm;
+    font-size: $font-sm;
     color: var(--el-text-color-regular);
   }
 
   .drawer-footer {
-    margin-top: 24px;
+    margin-top: $spacing-xl;
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
+    gap: $spacing-md;
+
+    .el-button {
+      border-radius: $radius-sm;
+      padding: $button-padding-md;
+      transition: all $duration-fast $ease-standard;
+      font-weight: $font-weight-medium;
+
+      &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: $shadow-md;
+      }
+
+      &:active:not(:disabled) {
+        transform: translateY(0);
+      }
+    }
   }
 }
 
 .component-selector {
   .component-cards {
     min-height: 300px;
+    padding: $spacing-md 0;
   }
 
   .component-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 16px;
-    padding: 16px 0;
+    gap: $spacing-lg;
+    padding: $spacing-md 0;
   }
 
   .component-card {
-    border: 1px solid var(--el-border-color-light);
-    border-radius: 8px;
-    padding: 16px;
+    border: 1px solid $border-light;
+    border-radius: $radius-md;
+    padding: $spacing-lg;
     cursor: pointer;
-    transition: all 0.2s ease;
-    background: var(--el-bg-color-overlay);
+    transition: all $duration-normal $ease-standard;
+    @include glass-effect(0.9, 12px);
+    box-shadow: $shadow-sm;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: $gradient-line-top;
+      opacity: 0;
+      transition: opacity $duration-normal ease;
+    }
 
     &:hover {
       border-color: var(--el-color-primary);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: $shadow-md;
+      transform: translateY(-2px);
+
+      &::before {
+        opacity: 1;
+      }
     }
 
     &.component-card-selected {
       border-color: var(--el-color-primary);
       background: var(--el-color-primary-light-9);
+      box-shadow: $shadow-md;
+
+      &::before {
+        opacity: 1;
+      }
     }
 
     .component-card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: $spacing-sm;
 
       .component-card-title {
-        font-weight: 500;
+        font-weight: $font-weight-semibold;
         color: var(--el-text-color-primary);
+        font-size: $font-md;
       }
     }
 
     .component-card-content {
       .component-expression {
-        font-size: 12px;
+        font-size: $font-sm;
         color: var(--el-text-color-regular);
         background: var(--el-fill-color-light);
-        padding: 8px;
-        border-radius: 4px;
+        padding: $spacing-sm;
+        border-radius: $radius-sm;
         font-family: monospace;
         word-break: break-all;
+        border: 1px solid $border-light;
       }
     }
   }
@@ -1387,18 +1575,39 @@ defineExpose({
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 0;
-    border-top: 1px solid var(--el-border-color-light);
-    margin-top: 16px;
+    padding: $spacing-lg 0;
+    border-top: 1px solid $border-light;
+    margin-top: $spacing-lg;
 
     .selected-info {
-      font-size: 14px;
+      font-size: $font-md;
       color: var(--el-text-color-regular);
+      font-weight: $font-weight-medium;
+      padding: $spacing-xs $spacing-sm;
+      background: var(--el-color-primary-light-9);
+      border-radius: $radius-sm;
+      border: 1px solid var(--el-color-primary-light-7);
     }
 
     .selector-actions {
       display: flex;
-      gap: 12px;
+      gap: $spacing-md;
+
+      .el-button {
+        border-radius: $radius-sm;
+        padding: $button-padding-md;
+        transition: all $duration-fast $ease-standard;
+        font-weight: $font-weight-medium;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: $shadow-md;
+        }
+
+        &:active:not(:disabled) {
+          transform: translateY(0);
+        }
+      }
     }
   }
 }
@@ -1407,96 +1616,72 @@ defineExpose({
   margin-right: 4px;
 }
 
-/* 新增的查询控制样式 */
-.layout-query-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
-  padding: 0 20px;
+// 响应式设计
+@include respond-to(lg) {
+  .server-component-layout {
+    padding: $spacing-sm;
 
-  .query-row {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    justify-content: center;
-  }
+    .layout-header {
+      flex-direction: column;
+      gap: $spacing-sm;
+      align-items: stretch;
 
-  .query-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    .query-label {
-      font-size: 14px;
-      color: var(--el-text-color-regular);
-      white-space: nowrap;
-      font-weight: 500;
+      .layout-actions-left,
+      .layout-actions-right {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
     }
 
-    .last-update-time {
-      font-size: 14px;
-      color: var(--el-color-success);
-      font-weight: 500;
-      padding: 2px 8px;
-      background: var(--el-color-success-light-9);
-      border-radius: 4px;
-      border: 1px solid var(--el-color-success-light-7);
-    }
-  }
-
-  .refresh-countdown {
-    .countdown-text {
-      font-size: 12px;
-      color: var(--el-color-primary);
-      background: var(--el-color-primary-light-9);
-      padding: 4px 8px;
-      border-radius: 4px;
-      border: 1px solid var(--el-color-primary-light-7);
-      font-weight: 500;
+    .component-selector .component-grid {
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: $spacing-md;
     }
   }
 }
 
-.layout-actions-right {
-  display: flex;
-  gap: 12px;
-}
+@include respond-to(sm) {
+  .server-component-layout {
+    padding: $spacing-xs;
 
-/* 新增的查询控制样式 */
-.layout-query-controls {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
-  justify-content: center;
+    .layout-header {
+      padding: $spacing-sm;
+      flex-direction: column;
+      gap: $spacing-xs;
 
-  .query-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+      .layout-actions-left,
+      .layout-actions-right {
+        width: 100%;
+        flex-direction: column;
 
-    .query-label {
-      font-size: 14px;
-      color: var(--el-text-color-regular);
-      white-space: nowrap;
+        .el-button {
+          width: 100%;
+        }
+      }
+    }
+
+    .component-selector {
+      .component-grid {
+        grid-template-columns: 1fr;
+        gap: $spacing-sm;
+      }
+
+      .selector-footer {
+        flex-direction: column;
+        gap: $spacing-sm;
+        align-items: stretch;
+
+        .selector-actions {
+          width: 100%;
+          flex-direction: column;
+
+          .el-button {
+            width: 100%;
+          }
+        }
+      }
     }
   }
-
-  .refresh-countdown {
-    .countdown-text {
-      font-size: 12px;
-      color: var(--el-color-primary);
-      background: var(--el-color-primary-light-9);
-      padding: 4px 8px;
-      border-radius: 4px;
-      border: 1px solid var(--el-color-primary-light-7);
-    }
-  }
 }
 
-.layout-actions-right {
-  display: flex;
-  gap: 12px;
-}
 </style>

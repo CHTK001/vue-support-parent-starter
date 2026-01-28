@@ -1,5 +1,5 @@
 ﻿<template>
-  <div class="serial-list-container">
+  <div class="serial-list-container system-container modern-bg">
     <div class="serial-list-header flex justify-between items-center p-4 border-b border-[var(--el-border-color-light)]">
       <h3 class="text-lg font-medium">串口列表</h3>
       <div class="flex gap-2">
@@ -316,6 +316,41 @@ const resetForm = () => {
 </script>
 
 <style scoped lang="scss">
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .serial-list-container {
   height: 100%;
   display: flex;
@@ -356,4 +391,15 @@ const resetForm = () => {
   align-items: center;
   padding: 10px 0;
 }
+
+
+// 响应式设计
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

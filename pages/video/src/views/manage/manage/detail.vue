@@ -1,5 +1,5 @@
 <template>
-  <div class="video-detail-container">
+  <div class="system-container modern-bg video-detail-container">
     <!-- 美化后的页面头部 -->
     <div class="detail-header">
       <div class="header-background"></div>
@@ -883,7 +883,6 @@ onMounted(() => {
 /* 全局容器样式 */
 .video-detail-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   position: relative;
   overflow-x: hidden;
   animation: fadeInUp 0.6s ease-out;
@@ -902,7 +901,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
   backdrop-filter: blur(10px);
 }
 

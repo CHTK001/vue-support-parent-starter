@@ -1,47 +1,82 @@
 <template>
-  <div class="arthas-management">
+  <div class="arthas-management system-container modern-bg">
+    <!-- 工具栏 -->
     <div class="toolbar">
-      <NodeSelector
-        :nodes="arthasNodes"
-        label="在线节点"
-        placeholder="选择 Arthas 节点"
-        v-model="selectedNodeId"
-        @change="handleSelectNode"
-      />
-      <div class="ops">
-        <el-button type="primary" :disabled="!selectedNode" @click="reloadNodes"
-          >刷新</el-button
-        >
-        <el-button
-          type="primary"
-          :disabled="!selectedNode || connected"
-          @click="connectNode"
-          >连接</el-button
-        >
-        <el-button :disabled="!connected" @click="disconnectNode"
-          >断开</el-button
-        >
-        <el-button :disabled="!selectedNode" @click="configVisible = true"
-          >配置</el-button
-        >
+      <div class="toolbar-left">
+        <div class="page-title">
+          <IconifyIconOnline icon="ri:terminal-box-line" class="title-icon" />
+          <div>
+            <h2>Arthas 管理</h2>
+            <p>Java 应用诊断和性能分析工具</p>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <NodeSelector
+          :nodes="arthasNodes"
+          label="在线节点"
+          placeholder="选择 Arthas 节点"
+          v-model="selectedNodeId"
+          @change="handleSelectNode"
+          class="node-selector"
+        />
+        <div class="ops">
+          <el-tooltip content="刷新节点列表" placement="bottom" :show-after="500">
+            <el-button type="primary" :disabled="!selectedNode" @click="reloadNodes" size="small">
+              <IconifyIconOnline icon="ep:refresh" class="mr-1" />
+              刷新
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="连接到选中的节点" placement="bottom" :show-after="500">
+            <el-button
+              type="primary"
+              :disabled="!selectedNode || connected"
+              @click="connectNode"
+              size="small"
+            >
+              <IconifyIconOnline icon="ep:connection" class="mr-1" />
+              连接
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="断开连接" placement="bottom" :show-after="500">
+            <el-button :disabled="!connected" @click="disconnectNode" size="small">
+              <IconifyIconOnline icon="ep:close" class="mr-1" />
+              断开
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="配置 Arthas" placement="bottom" :show-after="500">
+            <el-button :disabled="!selectedNode" @click="configVisible = true" size="small">
+              <IconifyIconOnline icon="ep:setting" class="mr-1" />
+              配置
+            </el-button>
+          </el-tooltip>
+        </div>
       </div>
     </div>
 
+    <!-- 内容区域 -->
     <div class="content">
+      <!-- 左侧功能菜单 -->
       <div v-if="connected" class="left-panel">
-        <div class="panel-title">功能列表</div>
+        <div class="panel-header">
+          <IconifyIconOnline icon="ri:menu-line" class="panel-icon" />
+          <span class="panel-title">功能列表</span>
+        </div>
         <FeatureMenu
           v-model="activeFeature"
           :features="features"
           @select="handleFeatureSelect"
+          class="feature-menu"
         />
       </div>
 
+      <!-- 右侧内容区 -->
       <div class="right-panel">
         <div v-if="!connected" class="empty-state">
-          <el-empty
-            description="请选择包含 Arthas 客户端的在线节点并点击连接"
-          />
+          <div class="empty-card">
+            <IconifyIconOnline icon="ri:terminal-box-line" class="empty-icon" />
+            <el-empty description="请选择包含 Arthas 客户端的在线节点并点击连接" />
+          </div>
         </div>
         <div v-else class="feature-container">
           <TerminalConsole
@@ -69,7 +104,7 @@
               type="info"
               :closable="false"
               show-icon
-              class="mb-2"
+              class="alert-tip"
               :title="`当前功能（${currentFeature?.title || '功能'}）由 Arthas 控制台提供，请在下方控制台内操作`"
             />
             <TerminalConsole :node-id="selectedNodeId" />
@@ -89,6 +124,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { message } from "@repo/utils";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import NodeSelector from "@/views/arthas-managemenet/components/NodeSelector.vue";
 import FeatureMenu from "@/views/arthas-managemenet/components/FeatureMenu.vue";
 import TerminalConsole from "@/views/arthas-managemenet/components/TerminalConsole.vue";
@@ -197,65 +233,233 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "@/styles/mixins.scss";
+
 .arthas-management {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   height: 100%;
-  padding: 12px;
+  padding: $spacing-lg;
+  gap: $spacing-lg;
 }
+
 .toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  @include toolbar-style;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+  
+  .toolbar-left {
+    @include flex-align-center;
+    flex: 1;
+    min-width: 200px;
+  }
+  
+  .toolbar-right {
+    @include flex-align-center;
+    gap: $spacing-md;
+    flex-wrap: wrap;
+  }
+  
+  .page-title {
+    @include flex-align-center;
+    gap: $spacing-md;
+    
+    .title-icon {
+      font-size: 32px;
+      color: $primary-color;
+      @include gradient-text;
+    }
+    
+    h2 {
+      margin: 0 0 $spacing-xs 0;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+      @include gradient-text;
+    }
+    
+    p {
+      margin: 0;
+      color: var(--el-text-color-regular);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  }
+  
+  .node-selector {
+    min-width: 200px;
+  }
+  
+  .ops {
+    @include flex-align-center;
+    gap: $spacing-sm;
+  }
+  
+  .mr-1 {
+    margin-right: $spacing-xs;
+  }
 }
+
 .content {
-  display: flex;
-  height: calc(100% - 56px);
-}
-.left-panel {
-  width: 240px;
-  border-right: 1px solid var(--el-border-color);
-  padding-right: 8px;
-}
-.panel-title {
-  font-weight: 600;
-  margin: 6px 0 8px 12px;
-  color: var(--el-text-color-primary);
-}
-.feature-menu {
-  border-right: none;
-}
-.right-panel {
+  @include flex-align-center;
   flex: 1;
-  padding-left: 12px;
+  gap: $spacing-lg;
   overflow: hidden;
 }
-.console-wrap {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+
+.left-panel {
+  width: 260px;
+  min-width: 200px;
+  @include glass-card;
+  padding: $spacing-md;
+  @include flex-column;
+  gap: $spacing-md;
+  
+  .panel-header {
+    @include flex-align-center;
+    gap: $spacing-sm;
+    padding-bottom: $spacing-md;
+    border-bottom: 1px solid $border-light;
+    
+    .panel-icon {
+      font-size: 20px;
+      color: $primary-color;
+    }
+    
+    .panel-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+  
+  .feature-menu {
+    flex: 1;
+    overflow-y: auto;
+  }
 }
-.console-iframe {
+
+.right-panel {
   flex: 1;
-  width: 100%;
-  border: 1px solid var(--el-border-color);
-  border-radius: 4px;
+  @include flex-column;
+  overflow: hidden;
+  min-width: 0;
 }
+
 .empty-state {
+  @include flex-center;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: $spacing-xl;
+  
+  .empty-card {
+    @include glass-card;
+    @include flex-center;
+    @include flex-column;
+    gap: $spacing-lg;
+    padding: $spacing-4xl;
+    min-width: 400px;
+    max-width: 600px;
+    
+    .empty-icon {
+      font-size: 80px;
+      color: $primary-color;
+      opacity: 0.6;
+      animation: pulse 2s ease-in-out infinite;
+    }
+  }
 }
-.placeholder {
-  padding: 24px;
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
-.mb-2 {
-  margin-bottom: 8px;
+
+.feature-container {
+  flex: 1;
+  overflow: hidden;
+  @include glass-card;
+  padding: $spacing-md;
 }
-.mr-2 {
-  margin-right: 6px;
+
+.console-wrap {
+  @include flex-column;
+  height: 100%;
+  gap: $spacing-md;
+  
+  .alert-tip {
+    margin-bottom: $spacing-md;
+  }
+}
+
+// 响应式设计
+@include respond-to(md) {
+  .content {
+    flex-direction: column;
+  }
+  
+  .left-panel {
+    width: 100%;
+    max-height: 200px;
+    
+    .feature-menu {
+      display: flex;
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+  }
+}
+
+@include respond-to(sm) {
+  .arthas-management {
+    padding: $spacing-md;
+  }
+  
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    
+    .toolbar-left,
+    .toolbar-right {
+      width: 100%;
+    }
+    
+    .page-title {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $spacing-sm;
+      
+      .title-icon {
+        font-size: 24px;
+      }
+      
+      h2 {
+        font-size: 20px;
+      }
+    }
+    
+    .ops {
+      flex-wrap: wrap;
+      width: 100%;
+      
+      .el-button {
+        flex: 1;
+        min-width: 80px;
+      }
+    }
+  }
+  
+  .empty-state {
+    .empty-card {
+      min-width: auto;
+      width: 100%;
+    }
+  }
 }
 </style>

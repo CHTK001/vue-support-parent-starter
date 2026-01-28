@@ -1,5 +1,6 @@
 ﻿<script setup>
 import { ref, reactive } from "vue";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 const emit = defineEmits(["close"]);
 
@@ -71,10 +72,24 @@ defineExpose({
     width="700px"
     destroy-on-close
     @close="handleClose"
+    class="feedback-detail-dialog"
   >
+    <template #header="{ titleId, titleClass }">
+      <div class="dialog-header">
+        <el-icon class="header-icon" :size="22">
+          <component :is="useRenderIcon('ri:feedback-line')" />
+        </el-icon>
+        <span :id="titleId" :class="titleClass">反馈详情</span>
+      </div>
+    </template>
     <div class="detail-container">
       <!-- 基本信息 -->
-      <el-descriptions :column="2" border class="detail-section">
+      <div class="detail-card">
+        <div class="card-header">
+          <el-icon class="card-icon"><component :is="useRenderIcon('ri:information-line')" /></el-icon>
+          <span>基本信息</span>
+        </div>
+        <el-descriptions :column="2" border class="detail-section">
         <el-descriptions-item label="反馈类型">
           <el-tag :type="getTypeConfig(feedbackData.sysFeedbackType).type">
             {{ getTypeConfig(feedbackData.sysFeedbackType).label }}
@@ -108,12 +123,14 @@ defineExpose({
           <span v-else>-</span>
         </el-descriptions-item>
       </el-descriptions>
+      </div>
 
       <!-- 处理信息 -->
-      <div v-if="feedbackData.sysFeedbackStatus === 1" class="reply-section">
-        <el-divider content-position="left">
-          <span class="divider-text">处理信息</span>
-        </el-divider>
+      <div v-if="feedbackData.sysFeedbackStatus === 1" class="detail-card reply-section">
+        <div class="card-header">
+          <el-icon class="card-icon"><component :is="useRenderIcon('ri:check-double-line')" /></el-icon>
+          <span>处理信息</span>
+        </div>
         <el-descriptions :column="2" border>
           <el-descriptions-item label="处理人">
             {{ feedbackData.sysFeedbackDealName || "-" }}
@@ -143,18 +160,77 @@ defineExpose({
     </div>
 
     <template #footer>
-      <el-button @click="handleClose">关闭</el-button>
+      <div class="dialog-footer">
+        <el-button @click="handleClose">关闭</el-button>
+      </div>
     </template>
   </sc-dialog>
 </template>
 
 <style scoped lang="scss">
+.feedback-detail-dialog {
+  :deep(.el-dialog__header) {
+    padding: 16px 20px;
+    margin: 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    background: linear-gradient(135deg, var(--el-color-info-light-9) 0%, var(--el-bg-color) 100%);
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 20px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 16px 20px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .header-icon {
+    color: var(--el-color-info);
+  }
+}
+
 .detail-container {
-  padding: 0 10px;
+  padding: 0;
+}
+
+.detail-card {
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+
+    .card-icon {
+      font-size: 18px;
+      color: var(--el-color-primary);
+    }
+  }
 }
 
 .detail-section {
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .content-text {
@@ -182,12 +258,12 @@ defineExpose({
 }
 
 .reply-section {
-  margin-top: 20px;
+  margin-top: 0;
 }
 
-.divider-text {
-  font-weight: 600;
-  color: var(--el-color-primary);
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
 }
 
 :deep(.el-descriptions__label) {
@@ -197,5 +273,23 @@ defineExpose({
 
 :deep(.el-descriptions__content) {
   min-width: 150px;
+}
+
+// 暗色主题适配
+:root[data-theme='dark'] {
+  .feedback-detail-dialog {
+    :deep(.el-dialog__header) {
+      background: linear-gradient(135deg, rgba(var(--el-color-info-rgb), 0.15) 0%, var(--el-bg-color-overlay) 100%);
+    }
+  }
+
+  .detail-card {
+    background: var(--el-bg-color-overlay);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+  }
 }
 </style>

@@ -75,3 +75,203 @@ defineProps({
     </div>
   </div>
 </template>
+
+<style lang="scss" scoped>
+.music-player__controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: var(--el-bg-color-overlay);
+  border-top: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  
+  &__now-playing {
+    display: flex;
+    align-items: center;
+    min-width: 250px;
+    margin-right: 24px;
+    
+    &-cover {
+      width: 56px;
+      height: 56px;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-right: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      flex-shrink: 0;
+      
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+      }
+      
+      &:hover img {
+        transform: scale(1.1);
+      }
+    }
+    
+    &-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    &-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--el-text-color-primary);
+    }
+    
+    &-artist {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  
+  &__control-center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  &__control-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    :deep(.el-button) {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      &:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+      }
+      
+      &.is-circle {
+        border-radius: 50%;
+      }
+    }
+    
+    :deep(.el-button--large) {
+      width: 48px;
+      height: 48px;
+      font-size: 20px;
+      background: var(--el-color-primary);
+      color: #fff;
+      border: none;
+      
+      &:hover {
+        background: var(--el-color-primary-light-3);
+        transform: scale(1.15);
+      }
+    }
+  }
+  
+  &__progress-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+  
+  &__time {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    min-width: 40px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  &__progress-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--el-border-color-lighter);
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+    transition: height 0.3s ease;
+    
+    &:hover {
+      height: 6px;
+    }
+  }
+  
+  &__progress-current {
+    height: 100%;
+    background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    border-radius: 2px;
+    transition: width 0.1s linear;
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      right: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 12px;
+      height: 12px;
+      background: var(--el-color-primary);
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+  }
+  
+  &__progress-bar:hover &__progress-current::after {
+    opacity: 1;
+  }
+  
+  &__control-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 200px;
+    justify-content: flex-end;
+    
+    :deep(.el-button) {
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
+  }
+  
+  &__volume-slider {
+    width: 100px;
+    
+    :deep(.el-slider__runway) {
+      background: var(--el-border-color-lighter);
+    }
+    
+    :deep(.el-slider__bar) {
+      background: var(--el-color-primary);
+    }
+    
+    :deep(.el-slider__button) {
+      border-color: var(--el-color-primary);
+    }
+  }
+}
+</style>

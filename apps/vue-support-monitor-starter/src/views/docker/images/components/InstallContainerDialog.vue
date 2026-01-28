@@ -348,7 +348,7 @@ watch(() => visibleProxy.value, (val) => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .image-display {
   display: flex;
   align-items: center;
@@ -395,5 +395,16 @@ watch(() => visibleProxy.value, (val) => {
   justify-content: flex-end;
   gap: 8px;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>
 

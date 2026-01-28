@@ -60,6 +60,12 @@ export interface SettingsState {
   messagePopupEnabled: boolean;
   messagePopupPosition: string;
   messagePopupDuration: number;
+  // 字体加密
+  fontEncryptionEnabled: boolean;
+  fontEncryptionNumbers: boolean;
+  fontEncryptionChinese: boolean;
+  fontEncryptionGlobal: boolean;
+  fontEncryptionOcrNoise: boolean;
 }
 
 /**
@@ -103,6 +109,11 @@ export function useSettings() {
     messagePopupEnabled: $storage.configure?.messagePopupEnabled ?? getConfig().MessagePopupEnabled ?? true,
     messagePopupPosition: $storage.configure?.messagePopupPosition ?? "top-right",
     messagePopupDuration: $storage.configure?.messagePopupDuration ?? 5,
+    fontEncryptionEnabled: $storage.configure?.fontEncryptionEnabled ?? false,
+    fontEncryptionNumbers: $storage.configure?.fontEncryptionNumbers ?? true,
+    fontEncryptionChinese: $storage.configure?.fontEncryptionChinese ?? true,
+    fontEncryptionGlobal: $storage.configure?.fontEncryptionGlobal ?? false,
+    fontEncryptionOcrNoise: $storage.configure?.fontEncryptionOcrNoise ?? false,
   });
 
   // ===== 通用方法 =====
@@ -293,6 +304,64 @@ export function useSettings() {
     emitter.emit("messagePopupConfigChange");
   }
 
+  // ===== 字体加密设置 =====
+  
+  function setFontEncryptionEnabled(value: boolean): void {
+    settings.fontEncryptionEnabled = value;
+    saveToStorage("fontEncryptionEnabled", value);
+    emitter.emit("fontEncryptionChange", {
+      enabled: value,
+      encryptNumbers: settings.fontEncryptionNumbers,
+      encryptChinese: settings.fontEncryptionChinese,
+      applyGlobal: settings.fontEncryptionGlobal,
+    });
+  }
+
+  function setFontEncryptionNumbers(value: boolean): void {
+    settings.fontEncryptionNumbers = value;
+    saveToStorage("fontEncryptionNumbers", value);
+    emitter.emit("fontEncryptionChange", {
+      enabled: settings.fontEncryptionEnabled,
+      encryptNumbers: value,
+      encryptChinese: settings.fontEncryptionChinese,
+      applyGlobal: settings.fontEncryptionGlobal,
+    });
+  }
+
+  function setFontEncryptionChinese(value: boolean): void {
+    settings.fontEncryptionChinese = value;
+    saveToStorage("fontEncryptionChinese", value);
+    emitter.emit("fontEncryptionChange", {
+      enabled: settings.fontEncryptionEnabled,
+      encryptNumbers: settings.fontEncryptionNumbers,
+      encryptChinese: value,
+      applyGlobal: settings.fontEncryptionGlobal,
+    });
+  }
+
+  function setFontEncryptionGlobal(value: boolean): void {
+    settings.fontEncryptionGlobal = value;
+    saveToStorage("fontEncryptionGlobal", value);
+    emitter.emit("fontEncryptionChange", {
+      enabled: settings.fontEncryptionEnabled,
+      encryptNumbers: settings.fontEncryptionNumbers,
+      encryptChinese: settings.fontEncryptionChinese,
+      applyGlobal: value,
+    });
+  }
+
+  function setFontEncryptionOcrNoise(value: boolean): void {
+    settings.fontEncryptionOcrNoise = value;
+    saveToStorage("fontEncryptionOcrNoise", value);
+    emitter.emit("fontEncryptionChange", {
+      enabled: settings.fontEncryptionEnabled,
+      encryptNumbers: settings.fontEncryptionNumbers,
+      encryptChinese: settings.fontEncryptionChinese,
+      applyGlobal: settings.fontEncryptionGlobal,
+      ocrNoise: value,
+    });
+  }
+
   // ===== 重置功能 =====
   
   function resetToDefault(): void {
@@ -346,6 +415,12 @@ export function useSettings() {
     setMessagePopupEnabled,
     setMessagePopupPosition,
     setMessagePopupDuration,
+    // 字体加密
+    setFontEncryptionEnabled,
+    setFontEncryptionNumbers,
+    setFontEncryptionChinese,
+    setFontEncryptionGlobal,
+    setFontEncryptionOcrNoise,
     // 重置
     resetToDefault,
     // 工具方法

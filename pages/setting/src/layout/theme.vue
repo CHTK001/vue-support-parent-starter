@@ -5,7 +5,7 @@
  * @version 1.0.0
  -->
 <template>
-  <div class="theme-management">
+  <div class="theme-management system-container modern-bg">
     <el-alert
       title="登录主题管理"
       type="info"

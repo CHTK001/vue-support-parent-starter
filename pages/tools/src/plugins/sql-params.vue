@@ -440,13 +440,12 @@ const toggleMybatisLogInput = () => {
   <div class="sql-params">
     <div class="sql-params__content">
       <!-- 头部信息 -->
-      <div class="sql-params__header-container">
-        <div class="sql-params__header">
-          <div class="sql-params__header-inner">
-            <h1 class="sql-params__header-title">SQL参数填充工具</h1>
-            <p class="sql-params__header-subtitle">
-              填充SQL预处理语句中的参数，支持问号占位符、数字占位符和命名参数
-            </p>
+      <div class="sql-params__header">
+        <div class="sql-params__header-content">
+          <IconifyIconOnline icon="ri:database-2-line" class="sql-params__header-icon" />
+          <div>
+            <h2 class="sql-params__header-title">SQL参数填充工具</h2>
+            <p class="sql-params__header-desc">填充SQL预处理语句中的参数，支持问号占位符、数字占位符和命名参数</p>
           </div>
         </div>
       </div>
@@ -916,30 +915,35 @@ Parameters: 123(Integer)</code></pre>
     padding: 20px;
   }
 
-  &__header-container {
-    margin-bottom: 24px;
-  }
-
   &__header {
-    background: linear-gradient(135deg, #0891b2 0%, #155e75 100%);
+    background: linear-gradient(135deg, var(--el-color-info-light-3) 0%, var(--el-color-info) 100%);
     border-radius: 12px;
     padding: 24px;
-    color: #fff;
+    margin-bottom: 20px;
+    color: white;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
-  &__header-inner {
-    max-width: 800px;
+  &__header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  &__header-icon {
+    font-size: 48px;
+    opacity: 0.9;
   }
 
   &__header-title {
-    font-size: 28px;
-    font-weight: 700;
-    margin-bottom: 8px;
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
   }
 
-  &__header-subtitle {
-    font-size: 16px;
+  &__header-desc {
+    margin: 0;
+    font-size: 14px;
     opacity: 0.9;
   }
 

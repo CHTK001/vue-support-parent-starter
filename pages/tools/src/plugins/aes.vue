@@ -543,11 +543,17 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, var(--el-color-danger-light-3) 0%, var(--el-color-danger) 100%);
     border-radius: 12px;
-    padding: 24px;
+    padding: 30px;
     color: #fff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px rgba(var(--el-color-danger-rgb), 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      box-shadow: 0 6px 24px rgba(var(--el-color-danger-rgb), 0.4);
+      transform: translateY(-2px);
+    }
   }
 
   &__header-inner {
@@ -582,8 +588,16 @@ onMounted(() => {
   &__examples-card,
   &__history-card {
     margin-bottom: 24px;
-    border-radius: 8px;
+    border-radius: 12px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--el-border-color-lighter);
+
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      border-color: var(--el-color-danger-light-7);
+    }
   }
 
   &__input,

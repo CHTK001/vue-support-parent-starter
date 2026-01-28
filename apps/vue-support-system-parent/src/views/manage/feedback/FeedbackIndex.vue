@@ -304,7 +304,7 @@ const closeDetail = () => {
 </script>
 
 <template>
-  <div class="feedback-main">
+  <div class="system-container feedback-main">
     <!-- 详情弹窗 -->
     <DetailDialog v-if="visible.detail" ref="detailRef" @close="closeDetail" />
 
@@ -334,9 +334,9 @@ const closeDetail = () => {
 
     <el-container class="feedback-container">
       <!-- 头部搜索区域 -->
-      <el-header class="feedback-header">
-        <div class="feedback-left-panel">
-          <el-form ref="formRef" label-width="60px" :inline="true" :model="form" class="feedback-search-form">
+      <el-header class="toolbar-section feedback-header">
+        <div class="toolbar-left feedback-left-panel">
+          <el-form ref="formRef" label-width="60px" :inline="true" :model="form" class="modern-form feedback-search-form">
             <el-form-item label="类型" prop="sysFeedbackType" class="feedback-form-item">
               <el-select v-model="form.sysFeedbackType" placeholder="请选择类型" clearable class="feedback-select">
                 <el-option v-for="item in typeOptions" :key="item.value" :value="item.value" :label="item.label" />
@@ -349,7 +349,7 @@ const closeDetail = () => {
             </el-form-item>
           </el-form>
         </div>
-        <div class="feedback-right-panel">
+        <div class="toolbar-right feedback-right-panel">
           <div class="feedback-button-container">
             <el-tooltip content="搜索" placement="top">
               <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
@@ -394,7 +394,7 @@ const closeDetail = () => {
       <!-- 主体表格区域 -->
       <el-main class="feedback-main-content">
         <div class="feedback-content">
-          <ScTable ref="table" :url="fetchPageFeedback" :rowClick="openDetail" class="feedback-table" height="auto">
+          <ScTable ref="table" :url="fetchPageFeedback" :rowClick="openDetail" class="modern-table feedback-table" height="auto">
             <el-table-column label="反馈类型" prop="sysFeedbackType" align="center" width="120">
               <template #default="{ row }">
                 <el-tag :type="row.sysFeedbackType === 'BUG' ? 'danger' : row.sysFeedbackType === 'SUGGESTION' ? 'primary' : 'info'">

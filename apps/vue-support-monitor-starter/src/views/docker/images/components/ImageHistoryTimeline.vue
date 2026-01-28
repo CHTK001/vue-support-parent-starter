@@ -397,7 +397,7 @@ watch(visible, (val) => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .history-dialog-header {
   display: flex;
   flex-direction: column;
@@ -572,4 +572,15 @@ watch(visible, (val) => {
   display: flex;
   align-items: center;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

@@ -13,6 +13,12 @@ export { useResponsiveLayout } from "./hooks/useResponsiveLayout";
 export { useWatermarkSetup } from "./hooks/useWatermarkSetup";
 export { useDebugMode } from "./hooks/useDebugMode";
 
+// Font Encryption
+export { useFontEncryption, type FontEncryptionConfig } from "./utils/useFontEncryption";
+export { useFontEncryptionControl, type FontEncryptionControlOptions, type FontEncryptionControlReturn } from "./composables/useFontEncryptionControl";
+export { vFontEncryption } from "./directives/fontEncryption";
+export { encryptText, decryptText, isEncryptedChar, getMappedCharCount } from "./utils/fontEncryption";
+
 // Stores
 export { useThemeStore, useThemeStoreHook } from "./stores/themeStore";
 

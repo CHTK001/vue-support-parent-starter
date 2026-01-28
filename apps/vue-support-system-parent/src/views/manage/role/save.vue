@@ -75,7 +75,7 @@ export default defineComponent({
 <template>
   <div>
     <sc-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
-      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
+      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="modern-form">
         <el-form-item label="角色名称" prop="sysRoleName">
           <el-input v-model="form.sysRoleName" placeholder="请输入角色名称" />
         </el-form-item>

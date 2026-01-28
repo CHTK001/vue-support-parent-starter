@@ -1,5 +1,5 @@
 ﻿<template>
-  <div class="column-definition-editor">
+  <div class="column-definition-editor system-container modern-bg">
     <!-- 工具栏 -->
     <div class="editor-toolbar">
       <el-button type="primary" :icon="Plus" @click="addColumn">添加列</el-button>
@@ -152,7 +152,7 @@
     </el-table>
 
     <!-- 空状态 -->
-    <el-empty v-if="columns.length === 0" description="暂无列定义，点击"添加列"开始定义" :image-size="80" />
+    <el-empty v-if="columns.length === 0" description='暂无列定义，点击"添加列"开始定义' :image-size="80" />
 
     <!-- SQL预览对话框 -->
     <sc-dialog v-model="sqlPreviewVisible" title="建表SQL预览" width="700px">
@@ -391,6 +391,41 @@ const handleCreateTable = async () => {
 </script>
 
 <style scoped lang="scss">
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .column-definition-editor {
   .editor-toolbar {
     display: flex;
@@ -426,4 +461,15 @@ const handleCreateTable = async () => {
     font-size: 13px;
   }
 }
+
+
+// 响应式设计
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

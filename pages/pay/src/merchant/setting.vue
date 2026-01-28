@@ -5,6 +5,9 @@
     size="70%"
     :with-header="true"
   >
+    <div class="dialog-header">
+      <h3>支付配置 - {{ merchant?.payMerchantName || '' }}</h3>
+    </div>
     <div class="grid grid-cols-4 gap-4">
       <el-card v-for="item in configList" :key="item.type" shadow="hover">
         <template #header>
@@ -61,7 +64,10 @@
       width="600px"
       append-to-body
     >
-      <el-form :model="config.form" label-width="140px">
+      <div class="dialog-header">
+        <h3>配置 - {{ config.current?.title || '' }}</h3>
+      </div>
+      <el-form :model="config.form" label-width="140px" class="modern-form">
         <template v-if="config.current?.type !== 'wallet'">
           <el-form-item label="AppId">
             <el-input v-model="config.form.payMerchantConfigWechatAppId" />

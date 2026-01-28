@@ -1,14 +1,38 @@
 <template>
-  <div class="video-manage-page">
+  <div class="system-container modern-bg">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="page-header-content">
+        <IconifyIconOnline icon="ep:video-camera" class="page-header-icon" />
+        <div>
+          <h2 class="page-header-title">视频管理</h2>
+          <p class="page-header-desc">管理和浏览视频资源</p>
+        </div>
+      </div>
+    </div>
+
     <!-- 条件筛选：类型/年代/地区/语言，与目标布局一致 -->
-    <VideoFilter v-model="filters" :autoSearch="true" @filter-change="applyFilters" />
+    <div class="filter-section">
+      <VideoFilter v-model="filters" :autoSearch="true" @filter-change="applyFilters" />
+    </div>
 
     <!-- 顶部工具栏：关键词搜索 -->
     <div class="toolbar">
-      <el-input v-model="keyword" placeholder="请输入关键词" class="toolbar__search" clearable @keyup.enter="applyFilters">
+      <el-input 
+        v-model="keyword" 
+        placeholder="请输入关键词搜索视频..." 
+        class="toolbar__search" 
+        clearable 
+        @keyup.enter="applyFilters"
+        size="large"
+      >
+        <template #prefix>
+          <IconifyIconOnline icon="ep:search" />
+        </template>
         <template #append>
-          <el-button @click="applyFilters">
+          <el-button type="primary" @click="applyFilters">
             <IconifyIconOnline icon="ep:search" />
+            搜索
           </el-button>
         </template>
       </el-input>
@@ -74,23 +98,98 @@ const onVideoClick = (video: any) => {
 };
 </script>
 
-<style scoped>
-.video-manage-page {
+<style scoped lang="scss">
+/* 页面头部 */
+.page-header {
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+  border-radius: 12px;
   padding: 24px;
+  margin-bottom: 20px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.page-header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-header-icon {
+  font-size: 48px;
+  opacity: 0.9;
+}
+
+.page-header-title {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.page-header-desc {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.filter-section {
+  margin-bottom: 20px;
 }
 
 .toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .toolbar__search {
-  width: 360px;
+  width: 480px;
+  max-width: 100%;
+}
+
+.toolbar__search :deep(.el-input__wrapper) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.toolbar__search :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+}
+
+.toolbar__search :deep(.el-input-group__append) {
+  .el-button {
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+    transition: all 0.3s ease;
+  }
+
+  .el-button:hover {
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+    transform: translateY(-2px);
+  }
 }
 
 @media (max-width: 768px) {
+  .page-header {
+    padding: 16px;
+  }
+
+  .page-header-icon {
+    font-size: 36px;
+  }
+
+  .page-header-title {
+    font-size: 20px;
+  }
+
+  .toolbar {
+    padding: 16px;
+  }
+
   .toolbar__search {
     width: 100%;
   }

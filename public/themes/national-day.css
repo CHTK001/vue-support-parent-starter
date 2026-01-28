@@ -1,0 +1,402 @@
+/**
+ * 国庆主题皮肤 - 中国红与金色华章
+ * @author CH
+ * @date 2025-12-16
+ * 
+ * 设计理念：庆祝祖国华诞，展现大国风范
+ * 主色调：中国红 (#DC143C, #FF4444) + 金色 (#FFD700, #FFA500)
+ * 辅助色：深红 #B22222、浅金 #FFF8DC
+ */
+
+/* ========================================
+   国庆主题色彩变量
+   ======================================== */
+:root.theme-national-day {
+  /* 中国红色系 */
+  --red-primary: #DC143C;
+  --red-bright: #FF4444;
+  --red-dark: #B22222;
+  --red-light: #FF6B6B;
+  --red-soft: #FFE4E1;
+  
+  /* 金色系 */
+  --gold-primary: #FFD700;
+  --gold-bright: #FFA500;
+  --gold-light: #FFF8DC;
+  --gold-glow: rgba(255, 215, 0, 0.6);
+  
+  /* Element Plus 主题覆盖 */
+  --el-color-primary: #DC143C;
+  --el-color-primary-light-3: #FF4444;
+  --el-color-primary-light-5: #FF6B6B;
+  --el-color-primary-light-7: #FFB3B3;
+  --el-color-primary-light-8: #FFD9D9;
+  --el-color-primary-light-9: #FFE4E1;
+  
+  /* 主题语义变量 */
+  --theme-primary: #DC143C;
+  --theme-secondary: #FFD700;
+  --theme-accent: #FFA500;
+  --theme-background: #FFF8DC;
+}
+
+/* ========================================
+   全局组件样式（全局选择器版本）
+   ======================================== */
+
+/* 导航栏 - 中国红渐变 */
+.theme-national-day .modern-navbar,
+.theme-national-day .lay-navbar { 
+  background: linear-gradient(135deg, #DC143C 0%, #FF4444 50%, #FF6B6B 100%);
+  backdrop-filter: blur(20px);
+  border-bottom: 4px solid #FFD700;
+  box-shadow: 0 4px 20px rgba(220, 20, 60, 0.6),
+    0 0 40px rgba(255, 215, 0, 0.4);
+  position: relative;
+}
+
+.theme-national-day .modern-navbar::before,
+.theme-national-day .lay-navbar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 215, 0, 0.3) 50%,
+    transparent 100%
+  );
+  animation: national-day-shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 头部容器 */
+.theme-national-day .header-container-with-decoration { 
+  background: linear-gradient(180deg, rgba(255, 248, 220, 0.98), rgba(255, 228, 225, 0.96));
+  border-bottom: 2px solid rgba(220, 20, 60, 0.2);
+}
+
+/* 侧边栏容器 */
+.theme-national-day .sidebar-container-with-decoration,
+.theme-national-day .sidebar-container { 
+  background: linear-gradient(180deg, rgba(255, 248, 220, 0.98) 0%, rgba(255, 228, 225, 0.95) 100%);
+  border-right: 2px solid rgba(220, 20, 60, 0.2);
+  box-shadow: 2px 0 20px rgba(220, 20, 60, 0.1);
+}
+
+/* 标签视图 */
+.theme-national-day .tags-view { 
+  background: linear-gradient(180deg, rgba(255, 248, 220, 0.98), rgba(255, 228, 225, 0.95));
+  border-bottom: 2px solid rgba(220, 20, 60, 0.2);
+}
+.theme-national-day .tags-view .tab { 
+  border: 2px solid rgba(220, 20, 60, 0.3);
+  background: rgba(255, 255, 255, 0.8);
+}
+.theme-national-day .tags-view .tab.is-active { 
+  border-color: #DC143C;
+  background: linear-gradient(135deg, #DC143C, #FF4444);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(220, 20, 60, 0.4);
+}
+
+/* 工具栏 */
+.theme-national-day .tool-bar .tool-item { 
+  border: 2px solid rgba(220, 20, 60, 0.25);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* 主内容区 - 五星红旗氛围 */
+.theme-national-day .app-main,
+.theme-national-day .app-main-nofixed-header { 
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(220, 20, 60, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(255, 215, 0, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(255, 68, 68, 0.05) 0%, transparent 60%),
+    linear-gradient(180deg, #FFF8DC 0%, #FFE4E1 100%);
+}
+
+/* 页脚 */
+.theme-national-day .lay-footer,
+.theme-national-day .footer-container { 
+  background: linear-gradient(180deg, rgba(255, 248, 220, 0.95), rgba(255, 228, 225, 0.98));
+  border-top: 2px solid rgba(220, 20, 60, 0.2);
+}
+
+.theme-national-day .search-footer .icon { color: #DC143C; }
+
+/* ========================================
+   深度选择器样式覆盖
+   ======================================== */
+
+/* 导航栏深度样式 */
+.theme-national-day :deep(.lay-navbar) {
+  background: linear-gradient(135deg, #DC143C 0%, #FF4444 50%, #FF6B6B 100%);
+  border-bottom: 4px solid #FFD700;
+  box-shadow: 0 4px 20px rgba(220, 20, 60, 0.6);
+}
+
+/* 侧边栏导航深度样式 */
+.theme-national-day :deep(.nav-vertical),
+.theme-national-day :deep(.nav-horizontal),
+.theme-national-day :deep(.nav-hover),
+.theme-national-day :deep(.nav-double) {
+  background: linear-gradient(180deg, rgba(255, 248, 220, 0.98) 0%, rgba(255, 228, 225, 0.96) 100%);
+}
+
+/* 菜单项悬停 - 中国红高亮 */
+.theme-national-day :deep(.nav-vertical .el-menu-item:hover),
+.theme-national-day :deep(.nav-vertical .el-sub-menu__title:hover) {
+  background: linear-gradient(135deg, rgba(220, 20, 60, 0.2), rgba(255, 68, 68, 0.15)) !important;
+  color: #DC143C !important;
+}
+
+/* 菜单项选中 - 中国红渐变 */
+.theme-national-day :deep(.nav-vertical .el-menu-item.is-active),
+.theme-national-day :deep(.nav-vertical .el-sub-menu__title.is-active) {
+  background: linear-gradient(135deg, #DC143C, #FF4444) !important;
+  color: #fff !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 16px rgba(220, 20, 60, 0.4);
+}
+
+/* 按钮 - 中国红风格 */
+.theme-national-day :deep(.el-button--primary) {
+  background: linear-gradient(135deg, #DC143C, #FF4444);
+  border: none;
+  box-shadow: 0 2px 12px rgba(220, 20, 60, 0.4);
+}
+
+.theme-national-day :deep(.el-button--primary:hover) {
+  background: linear-gradient(135deg, #FF4444, #FF6B6B);
+  box-shadow: 0 4px 20px rgba(220, 20, 60, 0.5);
+}
+
+/* 标签页 */
+.theme-national-day :deep(.el-tabs__nav-wrap::after) {
+  background-color: rgba(220, 20, 60, 0.3);
+}
+
+.theme-national-day :deep(.el-tabs__item.is-active) {
+  color: #DC143C;
+  border-bottom-color: #DC143C;
+  font-weight: bold;
+}
+
+/* 卡片 - 金色边框 */
+.theme-national-day :deep(.el-card) {
+  border: 2px solid rgba(220, 20, 60, 0.2);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 20px rgba(220, 20, 60, 0.15);
+}
+
+/* 输入框焦点 */
+.theme-national-day :deep(.el-input__inner:focus),
+.theme-national-day :deep(.el-textarea__inner:focus) {
+  border-color: #DC143C;
+  box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.2);
+}
+
+/* 进度条 */
+.theme-national-day :deep(.el-progress__bar) {
+  background: linear-gradient(90deg, #FF4444, #DC143C);
+}
+
+/* 加载遮罩 */
+.theme-national-day :deep(.el-loading-mask) {
+  background-color: rgba(255, 248, 220, 0.9);
+  backdrop-filter: blur(4px);
+}
+
+/* ========================================
+   顶部装饰线 - 五星红旗色带
+   ======================================== */
+.theme-national-day::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(
+    90deg, 
+    #DC143C 0%,
+    #FF4444 20%,
+    #FFD700 40%,
+    #FF4444 60%,
+    #DC143C 80%,
+    #FFD700 100%
+  );
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: 0 2px 20px rgba(220, 20, 60, 0.6),
+    0 0 30px rgba(255, 215, 0, 0.5);
+  animation: national-day-flag-wave 4s ease-in-out infinite;
+}
+
+/* ========================================
+   五星装饰
+   ======================================== */
+.theme-national-day::after {
+  content: "⭐";
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  font-size: 40px;
+  color: #FFD700;
+  animation: star-rotate 3s ease-in-out infinite;
+  z-index: 9998;
+  pointer-events: none;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.8);
+  filter: drop-shadow(0 0 8px rgba(220, 20, 60, 0.4));
+}
+
+/* 左侧国旗装饰 */
+.theme-national-day body::before {
+  content: "🇨🇳";
+  position: fixed;
+  top: 60px;
+  left: 5%;
+  font-size: 56px;
+  z-index: 9997;
+  pointer-events: none;
+  animation: flag-wave 4s ease-in-out infinite;
+  filter: drop-shadow(0 4px 16px rgba(220, 20, 60, 0.5));
+}
+
+/* 右侧烟花装饰 */
+.theme-national-day body::after {
+  content: "🎆";
+  position: fixed;
+  bottom: 20px;
+  right: 5%;
+  font-size: 48px;
+  z-index: 9997;
+  pointer-events: none;
+  animation: firework-burst 2s ease-in-out infinite;
+  filter: drop-shadow(0 4px 16px rgba(255, 215, 0, 0.6));
+}
+
+/* ========================================
+   动画效果
+   ======================================== */
+@keyframes national-day-shimmer {
+  0%, 100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(100%);
+    opacity: 1;
+  }
+}
+
+@keyframes national-day-flag-wave {
+  0%, 100% {
+    background-position: 0% 50%;
+    opacity: 1;
+  }
+  50% {
+    background-position: 100% 50%;
+    opacity: 0.95;
+  }
+}
+
+@keyframes star-rotate {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+    filter: brightness(1) drop-shadow(0 0 12px rgba(255, 215, 0, 0.8));
+  }
+  25% {
+    transform: rotate(90deg) scale(1.1);
+    filter: brightness(1.2) drop-shadow(0 0 20px rgba(255, 215, 0, 1));
+  }
+  50% {
+    transform: rotate(180deg) scale(1);
+    filter: brightness(1) drop-shadow(0 0 12px rgba(255, 215, 0, 0.8));
+  }
+  75% {
+    transform: rotate(270deg) scale(1.1);
+    filter: brightness(1.2) drop-shadow(0 0 20px rgba(255, 215, 0, 1));
+  }
+}
+
+@keyframes flag-wave {
+  0%, 100% {
+    transform: translateX(0) rotateY(0deg);
+  }
+  25% {
+    transform: translateX(5px) rotateY(5deg);
+  }
+  50% {
+    transform: translateX(0) rotateY(0deg);
+  }
+  75% {
+    transform: translateX(-5px) rotateY(-5deg);
+  }
+}
+
+@keyframes firework-burst {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.3) rotate(180deg);
+    opacity: 1;
+  }
+}
+
+/* ========================================
+   深度组件样式统一
+   ======================================== */
+.theme-national-day :deep(.modern-navbar),
+.theme-national-day :deep(.lay-navbar) {
+  background: linear-gradient(135deg, #DC143C 0%, #FF4444 50%, #FF6B6B 100%);
+  border-bottom: 4px solid #FFD700;
+}
+
+.theme-national-day :deep(.header-container-with-decoration) {
+  background: linear-gradient(180deg, rgba(255, 248, 220, 0.98), rgba(255, 228, 225, 0.96));
+}
+
+.theme-national-day :deep(.sidebar-container-with-decoration),
+.theme-national-day :deep(.sidebar-container) {
+  background: linear-gradient(180deg, rgba(255, 248, 220, 0.98) 0%, rgba(255, 228, 225, 0.95));
+  border-right: 2px solid rgba(220, 20, 60, 0.2);
+}
+
+.theme-national-day :deep(.tags-view) { 
+  background: linear-gradient(180deg, rgba(255, 248, 220, 0.98), rgba(255, 228, 225, 0.95));
+}
+.theme-national-day :deep(.tags-view .tab) { 
+  border: 2px solid rgba(220, 20, 60, 0.3);
+}
+.theme-national-day :deep(.tags-view .tab.is-active) { 
+  border-color: #DC143C;
+  background: linear-gradient(135deg, #DC143C, #FF4444);
+}
+
+.theme-national-day :deep(.tool-bar .tool-item) { 
+  border: 2px solid rgba(220, 20, 60, 0.25);
+}
+
+.theme-national-day :deep(.app-main),
+.theme-national-day :deep(.app-main-nofixed-header) {
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(220, 20, 60, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(255, 215, 0, 0.12) 0%, transparent 50%),
+    linear-gradient(180deg, #FFF8DC 0%, #FFE4E1 100%);
+}
+
+.theme-national-day :deep(.lay-footer),
+.theme-national-day :deep(.footer-container) {
+  background: linear-gradient(180deg, rgba(255, 248, 220, 0.95), rgba(255, 228, 225, 0.98));
+  border-top: 2px solid rgba(220, 20, 60, 0.2);
+}
+
+.theme-national-day :deep(.search-footer .icon) { color: #DC143C; }
+

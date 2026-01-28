@@ -75,10 +75,41 @@
   --theme-text-dark: #2c3e50;
 }
 
-/* 中秋主题 - 导航栏背景 */
+/* 中秋主题 - 导航栏背景 - 增强版 */
 .theme-mid-autumn :deep(.lay-navbar) {
-  background: linear-gradient(135deg, #13c2c2 0%, #36cfc9 100%);
-  box-shadow: 0 4px 12px rgba(19, 194, 194, 0.3);
+  background: linear-gradient(135deg, #13c2c2 0%, #36cfc9 50%, #5cdbd3 100%);
+  box-shadow: 0 4px 20px rgba(19, 194, 194, 0.5),
+    0 0 40px rgba(250, 173, 20, 0.3);
+  border-bottom: 3px solid #faad14;
+  position: relative;
+}
+
+.theme-mid-autumn :deep(.lay-navbar)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(250, 173, 20, 0.2) 50%,
+    transparent 100%
+  );
+  animation: navbar-glow-mid-autumn 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes navbar-glow-mid-autumn {
+  0%, 100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(100%);
+    opacity: 1;
+  }
 }
 
 /* 中秋主题 - 侧边栏 */
@@ -148,37 +179,109 @@
   background-color: rgba(19, 194, 194, 0.1);
 }
 
-/* 中秋主题 - 装饰元素 */
+/* 中秋主题 - 装饰元素 - 增强版 */
 .theme-mid-autumn::before {
   content: "";
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #13c2c2, #36cfc9, #faad14, #13c2c2);
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    #13c2c2 0%,
+    #36cfc9 20%,
+    #faad14 40%,
+    #ffd666 60%,
+    #faad14 80%,
+    #13c2c2 100%
+  );
   z-index: 9999;
   pointer-events: none;
+  animation: mid-autumn-gradient 4s ease infinite;
+  box-shadow: 0 2px 16px rgba(19, 194, 194, 0.5),
+    0 0 24px rgba(250, 173, 20, 0.4);
 }
 
-/* 中秋主题 - 月亮装饰 */
+/* 中秋主题 - 月亮装饰 - 增强版 */
 .theme-mid-autumn::after {
   content: "🌕";
   position: fixed;
   top: 20px;
   right: 20px;
-  font-size: 32px;
+  font-size: 48px;
   animation: moonGlow 3s ease-in-out infinite;
   z-index: 9998;
   pointer-events: none;
+  filter: drop-shadow(0 0 20px rgba(250, 173, 20, 0.8));
 }
 
 @keyframes moonGlow {
   0%, 100% {
-    filter: brightness(1) drop-shadow(0 0 10px rgba(250, 173, 20, 0.5));
+    filter: brightness(1) drop-shadow(0 0 15px rgba(250, 173, 20, 0.6));
+    transform: scale(1);
   }
   50% {
-    filter: brightness(1.2) drop-shadow(0 0 20px rgba(250, 173, 20, 0.8));
+    filter: brightness(1.3) drop-shadow(0 0 30px rgba(250, 173, 20, 1));
+    transform: scale(1.05);
+  }
+}
+
+@keyframes mid-autumn-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 中秋主题 - 桂花装饰 */
+.theme-mid-autumn body::before {
+  content: "🌼";
+  position: fixed;
+  top: 80px;
+  left: 5%;
+  font-size: 36px;
+  z-index: 9997;
+  pointer-events: none;
+  animation: osmanthus-float 4s ease-in-out infinite;
+  filter: drop-shadow(0 2px 8px rgba(250, 173, 20, 0.4));
+}
+
+/* 中秋主题 - 月饼装饰 */
+.theme-mid-autumn body::after {
+  content: "🥮";
+  position: fixed;
+  bottom: 20px;
+  left: 5%;
+  font-size: 40px;
+  z-index: 9997;
+  pointer-events: none;
+  animation: mooncake-bounce 3s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(250, 173, 20, 0.5));
+}
+
+@keyframes osmanthus-float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-10px) rotate(180deg);
+    opacity: 1;
+  }
+}
+
+@keyframes mooncake-bounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.1);
   }
 }
 

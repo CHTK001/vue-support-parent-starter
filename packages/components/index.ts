@@ -19,6 +19,7 @@ import { ScReteEditor, useReteEditor } from "./ScReteEditor";
 
 export { ReMenuNewBadge, ReSplitPane, ScCard, ScTable, ScRibbon, ScProgress, ScImage, ScMessageDialog, ScDebugConsole, ScText, ScFilterBar, ScContainer, ScPanel, ScNumber, ScDictSelect, ScDrawer, ScReteEditor, useReteEditor, useRenderIcon };
 export * from "./ScReteEditor/types";
+export * from "./ReIcon";
 
 export default {
   ScTable,

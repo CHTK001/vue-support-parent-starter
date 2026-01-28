@@ -49,3 +49,4 @@ tests/**/coverage/
 tsconfig.tsbuildinfo
 target/*
 **/target/*
+.turbo/

@@ -5,7 +5,10 @@
     width="520px"
     append-to-body
   >
-    <el-form :model="form" label-width="100px">
+    <div class="dialog-header">
+      <h3>{{ mode === 'add' ? '新增商户' : '编辑商户' }}</h3>
+    </div>
+    <el-form :model="form" label-width="100px" class="modern-form">
       <el-form-item label="商户名称" prop="payMerchantName">
         <el-input v-model="form.payMerchantName" placeholder="请输入商户名称" />
       </el-form-item>

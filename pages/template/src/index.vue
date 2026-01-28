@@ -1,5 +1,5 @@
 <template>
-  <div class="template-showcase">
+  <div class="template-showcase page-container">
     <div class="page-header">
       <div class="header-content">
         <div class="title-section">
@@ -97,9 +97,6 @@ const templateCount = computed(() => templates.length);
 
 <style lang="scss" scoped>
 .template-showcase {
-  padding: 0;
-  background: var(--el-bg-color-page);
-  min-height: 100vh;
 }
 
 .page-header {

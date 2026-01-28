@@ -632,7 +632,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="markdown-tool" :class="{ 'dark-mode': env.settings.darkMode }">
+  <div
+    class="markdown-tool system-container modern-bg"
+    :class="{ 'dark-mode': env.settings.darkMode }"
+  >
     <div class="markdown-tool__content">
       <!-- 头部信息 -->
       <div class="markdown-tool__header-container">
@@ -836,7 +839,9 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .markdown-tool {
-  padding: 20px;
+  padding: 0;
+  background: var(--page-bg);
+  border-radius: var(--card-radius);
 }
 
 .markdown-tool__content {

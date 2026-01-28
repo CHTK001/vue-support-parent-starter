@@ -1,5 +1,5 @@
 <template>
-  <div class="container-group-view">
+  <div class="container-group-view system-container modern-bg">
     <ProgressMonitor />
     
     <!-- 页面头部 -->
@@ -26,22 +26,35 @@
     <!-- 搜索栏 -->
     <div class="search-bar">
       <el-input 
-        v-model="searchKeyword" 
+        v-model="searchParams.keyword" 
         placeholder="搜索容器名称或镜像..." 
         class="search-input" 
         clearable
-        @input="handleSearch"
+        @keyup.enter="handleSearch"
       >
         <template #prefix>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
       </el-input>
-      <el-select v-model="statusFilter" placeholder="状态筛选" clearable @change="handleSearch">
+      <el-select v-model="searchParams.status" placeholder="状态筛选" clearable @change="handleSearch">
         <el-option label="全部" value="" />
         <el-option label="运行中" value="running" />
         <el-option label="已停止" value="stopped" />
         <el-option label="暂停" value="paused" />
       </el-select>
+      <el-select v-model="searchParams.serverId" placeholder="选择服务器" clearable @change="handleSearch">
+        <el-option label="全部服务器" value="" />
+        <el-option
+          v-for="server in serverOptions"
+          :key="server.id"
+          :label="server.name"
+          :value="server.id"
+        />
+      </el-select>
+      <el-button @click="handleSyncStatus" :loading="syncLoading">
+        <IconifyIconOnline icon="ri:loop-left-line" class="mr-1" />
+        同步状态
+      </el-button>
     </div>
 
     <!-- 分组展示区域 -->
@@ -180,11 +193,18 @@ import { getServerInfo, sendServerData } from '@/api/server'
 // 状态
 const groupMode = ref<'server' | 'software'>('server')
 const loading = ref(false)
-const searchKeyword = ref('')
-const statusFilter = ref('')
+const syncLoading = ref(false)
 const activeGroups = ref<(number | string)[]>([])
 const containerList = ref<SystemSoftContainer[]>([])
 const serverList = ref<any[]>([])
+const serverOptions = ref<any[]>([])
+
+// 搜索参数（与表格视图保持一致）
+const searchParams = reactive({
+  keyword: '',
+  status: '',
+  serverId: '',
+})
 
 // 对话框状态
 const detailDialogVisible = ref(false)
@@ -212,7 +232,7 @@ const serverGroups = computed<ServerGroup[]>(() => {
   filteredContainers.value.forEach(container => {
     const serverId = container.systemServerId || 0
     if (!groups.has(serverId)) {
-      const server = serverList.value.find(s => s.id === serverId)
+      const server = serverOptions.value.find(s => s.id === serverId)
       groups.set(serverId, {
         serverId,
         serverName: server?.name || `服务器 #${serverId}`,
@@ -244,25 +264,9 @@ const softwareGroups = computed<SoftwareGroup[]>(() => {
   return Array.from(groups.values())
 })
 
-// 过滤后的容器列表
+// 过滤后的容器列表（前端仅做展示筛选，主要筛选由后端完成）
 const filteredContainers = computed(() => {
-  let result = containerList.value
-  
-  // 关键词搜索
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase()
-    result = result.filter(c => 
-      c.systemSoftContainerName?.toLowerCase().includes(keyword) ||
-      c.systemSoftContainerImage?.toLowerCase().includes(keyword)
-    )
-  }
-  
-  // 状态筛选
-  if (statusFilter.value) {
-    result = result.filter(c => c.systemSoftContainerStatus === statusFilter.value)
-  }
-  
-  return result
+  return containerList.value
 })
 
 // 工具函数
@@ -282,11 +286,28 @@ const getStoppedCount = (containers: SystemSoftContainer[]) => {
   return containers.filter(c => c.systemSoftContainerStatus === 'stopped' || c.systemSoftContainerStatus === 'exited').length
 }
 
-// 数据加载
+// 数据加载（统一使用后端筛选）
 const loadContainers = async () => {
   try {
     loading.value = true
-    const response = await containerApi.getContainerPageList({ page: 1, size: 1000 })
+    // 构建查询参数，与表格视图保持一致
+    const params: any = { 
+      page: 1, 
+      size: 1000 
+    }
+    
+    // 添加筛选参数
+    if (searchParams.keyword) {
+      params.keyword = searchParams.keyword
+    }
+    if (searchParams.status) {
+      params.status = searchParams.status
+    }
+    if (searchParams.serverId) {
+      params.serverId = searchParams.serverId
+    }
+    
+    const response = await containerApi.getContainerPageList(params)
     if (response.code === '00000') {
       containerList.value = response.data.records || []
     } else {
@@ -303,10 +324,37 @@ const loadServers = async () => {
   try {
     const response = await getServerList()
     if (response.code === '00000') {
-      serverList.value = response.data || []
+      const servers = response.data || []
+      serverList.value = servers
+      serverOptions.value = servers.map((s: any) => ({
+        id: s.monitorSysGenServerId,
+        name: s.monitorSysGenServerName,
+        host: s.monitorSysGenServerHost,
+      }))
     }
   } catch (error) {
     console.error('加载服务器列表失败:', error)
+  }
+}
+
+// 同步容器状态
+const handleSyncStatus = async () => {
+  try {
+    syncLoading.value = true
+    const serverId = searchParams.serverId ? Number(searchParams.serverId) : undefined
+    const response = await containerApi.syncContainerStatus(serverId)
+    if (response.code === '00000') {
+      message.success('容器状态同步成功')
+      setTimeout(() => {
+        loadContainers()
+      }, 1000)
+    } else {
+      message.error(response.msg || '同步失败')
+    }
+  } catch (error) {
+    message.error('同步容器状态失败')
+  } finally {
+    syncLoading.value = false
   }
 }
 
@@ -316,7 +364,8 @@ const handleRefresh = () => {
 }
 
 const handleSearch = () => {
-  // 筛选逻辑由computed自动处理
+  // 重新加载数据，使用后端筛选
+  loadContainers()
 }
 
 const handleGroupModeChange = () => {
@@ -351,7 +400,9 @@ const handleGroupStartAll = async (serverId: number) => {
     
     if (response.code === '00000') {
       message.success(`批量启动完成，成功: ${response.data.success}，失败: ${response.data.failed}`)
-      loadContainers()
+      setTimeout(() => {
+        loadContainers()
+      }, 1000)
     } else {
       message.error(response.msg || '批量启动失败')
     }
@@ -387,7 +438,9 @@ const handleGroupStopAll = async (serverId: number) => {
     
     if (response.code === '00000') {
       message.success(`批量停止完成，成功: ${response.data.success}，失败: ${response.data.failed}`)
-      loadContainers()
+      setTimeout(() => {
+        loadContainers()
+      }, 1000)
     } else {
       message.error(response.msg || '批量停止失败')
     }
@@ -404,7 +457,9 @@ const handleStart = async (container: SystemSoftContainer) => {
     const response = await containerApi.startContainer(container.systemSoftContainerId!)
     if (response.code === '00000') {
       message.success('容器启动成功')
-      loadContainers()
+      setTimeout(() => {
+        loadContainers()
+      }, 1000)
     } else {
       message.error(response.msg || '容器启动失败')
     }
@@ -420,7 +475,9 @@ const handleStop = async (container: SystemSoftContainer) => {
     const response = await containerApi.stopContainer(container.systemSoftContainerId!)
     if (response.code === '00000') {
       message.success('容器停止成功')
-      loadContainers()
+      setTimeout(() => {
+        loadContainers()
+      }, 1000)
     } else {
       message.error(response.msg || '容器停止失败')
     }
@@ -436,7 +493,9 @@ const handleRestart = async (container: SystemSoftContainer) => {
     const response = await containerApi.restartContainer(container.systemSoftContainerId!)
     if (response.code === '00000') {
       message.success('容器重启成功')
-      loadContainers()
+      setTimeout(() => {
+        loadContainers()
+      }, 1000)
     } else {
       message.error(response.msg || '容器重启失败')
     }
@@ -456,7 +515,9 @@ const handleDelete = async (container: SystemSoftContainer) => {
     const response = await containerApi.deleteContainer(container.systemSoftContainerId!)
     if (response.code === '00000') {
       message.success('容器删除成功')
-      loadContainers()
+      setTimeout(() => {
+        loadContainers()
+      }, 1000)
     } else {
       message.error(response.msg || '容器删除失败')
     }
@@ -512,7 +573,61 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 32px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  }
+}
+
+
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  /* 渐变背景 */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .container-group-view {
   padding: 20px;
   background: var(--app-bg-secondary);

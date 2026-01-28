@@ -1,2 +1,1 @@
-import { default as LayoutDefault } from "./index.vue";
-export default LayoutDefault; 
+export { default } from "./index.vue"; 

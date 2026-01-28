@@ -21,15 +21,9 @@
 
 import { getPlatformConfig, injectResponsiveStorage, useI18n } from "@repo/config";
 import { router, setupStore } from "@repo/core";
-import { MotionPlugin } from "@vueuse/motion";
-import VueGridLayout from "vue-grid-layout";
 import App from "./App.vue";
 
-// import { useEcharts } from "@/plugins/echarts";
-import Table from "@pureadmin/table";
-import { useElementPlus } from "@repo/plugins";
 import { createApp, type Directive } from "vue";
-// import PureDescriptions from "@pureadmin/descriptions";
 // 引入重置样式
 import "@repo/assets/style/layout/default/reset.scss";
 // 一定要在main.ts中导入tailwind.css，防止vite每次hmr都会请求src/style/index.scss整体css文件导致热更新慢的问题
@@ -41,9 +35,12 @@ import "@repo/assets/iconfont/iconfont.css";
 import "@repo/assets/iconfont/iconfont.js";
 // 导入公共样式
 import "@repo/assets/style/layout/default/index.scss";
+import "@repo/assets/style/modern-page.scss";
 // 自定义指令
 //@ts-ignore
 import * as directives from "@repo/core/directives";
+// 字体加密指令
+import { vFontEncryption } from "@layout/default";
 // 全局注册@iconify/vue图标库
 import { FontIcon, IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
 // 全局注册按钮级别权限组件
@@ -54,8 +51,6 @@ import ScDrawer from "@repo/components/ScDrawer/index.vue";
 // 全局注册vue-tippy
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
-import VueTippy from "vue-tippy";
-import vClickOutside from "click-outside-vue3";
 
 // 异步加载WASM模块
 import { initializeWasmModule } from "@repo/codec-wasm";
@@ -67,6 +62,8 @@ initializeWasmModule()
     Object.keys(directives).forEach(key => {
       app.directive(key, (directives as { [key: string]: Directive })[key]);
     });
+    // 注册字体加密指令
+    app.directive("font-encryption", vFontEncryption);
 
     app.component("IconifyIconOffline", IconifyIconOffline);
     app.component("IconifyIconOnline", IconifyIconOnline);
@@ -77,18 +74,26 @@ initializeWasmModule()
     app.component("ScDialog", ScDialog);
     app.component("ScDrawer", ScDrawer);
 
-    app.use(VueTippy);
-    app.use(vClickOutside);
+    // 动态导入大型依赖
+    Promise.all([
+      import("vue-tippy").then(m => m.default),
+      import("click-outside-vue3").then(m => m.default),
+      import("@vueuse/motion").then(m => m.MotionPlugin),
+      import("vue-grid-layout").then(m => m.default),
+      import("@pureadmin/table").then(m => m.default),
+      import("@repo/plugins").then(m => m.useElementPlus),
+    ]).then(([VueTippy, vClickOutside, MotionPlugin, VueGridLayout, Table, useElementPlus]) => {
+      app.use(VueTippy);
+      app.use(vClickOutside);
 
-    getPlatformConfig(app).then(async config => {
-      setupStore(app);
-      app.use(router);
-      await router.isReady();
-      injectResponsiveStorage(app, config);
-      app.use(MotionPlugin).use(VueGridLayout).use(useI18n).use(useElementPlus).use(Table);
-      // .use(PureDescriptions)
-      // .use(useEcharts);
-      app.mount("#app");
+      getPlatformConfig(app).then(async config => {
+        setupStore(app);
+        app.use(router);
+        await router.isReady();
+        injectResponsiveStorage(app, config);
+        app.use(MotionPlugin).use(VueGridLayout).use(useI18n).use(useElementPlus).use(Table);
+        app.mount("#app");
+      });
     });
   })
   .catch((error) => {
@@ -98,6 +103,8 @@ initializeWasmModule()
     Object.keys(directives).forEach(key => {
       app.directive(key, (directives as { [key: string]: Directive })[key]);
     });
+    // 注册字体加密指令
+    app.directive("font-encryption", vFontEncryption);
 
     app.component("IconifyIconOffline", IconifyIconOffline);
     app.component("IconifyIconOnline", IconifyIconOnline);
@@ -108,17 +115,25 @@ initializeWasmModule()
     app.component("ScDialog", ScDialog);
     app.component("ScDrawer", ScDrawer);
 
-    app.use(VueTippy);
-    app.use(vClickOutside);
+    // 动态导入大型依赖
+    Promise.all([
+      import("vue-tippy").then(m => m.default),
+      import("click-outside-vue3").then(m => m.default),
+      import("@vueuse/motion").then(m => m.MotionPlugin),
+      import("vue-grid-layout").then(m => m.default),
+      import("@pureadmin/table").then(m => m.default),
+      import("@repo/plugins").then(m => m.useElementPlus),
+    ]).then(([VueTippy, vClickOutside, MotionPlugin, VueGridLayout, Table, useElementPlus]) => {
+      app.use(VueTippy);
+      app.use(vClickOutside);
 
-    getPlatformConfig(app).then(async config => {
-      setupStore(app);
-      app.use(router);
-      await router.isReady();
-      injectResponsiveStorage(app, config);
-      app.use(MotionPlugin).use(VueGridLayout).use(useI18n).use(useElementPlus).use(Table);
-      // .use(PureDescriptions)
-      // .use(useEcharts);
-      app.mount("#app");
+      getPlatformConfig(app).then(async config => {
+        setupStore(app);
+        app.use(router);
+        await router.isReady();
+        injectResponsiveStorage(app, config);
+        app.use(MotionPlugin).use(VueGridLayout).use(useI18n).use(useElementPlus).use(Table);
+        app.mount("#app");
+      });
     });
   });

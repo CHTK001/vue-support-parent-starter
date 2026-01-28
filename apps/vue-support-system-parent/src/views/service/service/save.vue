@@ -1,6 +1,5 @@
 ﻿<script setup>
 import { fetchUploadFile } from "@/api/manage/upload";
-import { fetchBindServiceModule } from "@/api/service/module";
 import { fetchBindService, fetchSaveService, fetchUpdateService } from "@/api/service/service";
 import { getRandomIntBelow, message } from "@repo/utils";
 import { defineExpose, shallowRef, reactive, defineAsyncComponent } from "vue";
@@ -126,7 +125,7 @@ defineExpose({
           </div>
         </el-col>
         <el-col :span="env.form.sysServiceImageUploadType == 'URL' ? 24 : 20">
-          <el-form :model="env.form" ref="formRef" :rules="rules" label-width="120px">
+          <el-form :model="env.form" ref="formRef" :rules="rules" label-width="120px" class="modern-form">
             <el-form-item label="服务名称" prop="sysServiceName">
               <el-input v-model="env.form.sysServiceName" placeholder="请输入服务名称" :maxlength="50" show-word-limit />
             </el-form-item>

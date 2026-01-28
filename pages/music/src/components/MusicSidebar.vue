@@ -50,9 +50,11 @@ defineProps({
 .music-sidebar {
   width: 250px;
   padding: 20px;
-  border-right: 1px solid var(--el-border-color-light);
+  border-right: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
   display: flex;
   flex-direction: column;
+  transition: all 0.3s ease;
   
   &__nav {
     margin-bottom: 30px;
@@ -65,21 +67,28 @@ defineProps({
     border-radius: 8px;
     cursor: pointer;
     margin-bottom: 5px;
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     
     .iconify {
       margin-right: 10px;
       font-size: 18px;
+      transition: transform 0.3s ease;
     }
     
     &:hover {
-      background-color: var(--el-color-primary-light-9);
+      background: color-mix(in srgb, var(--el-color-primary) 10%, var(--el-bg-color));
+      transform: translateX(4px);
+      
+      .iconify {
+        transform: scale(1.1);
+      }
     }
     
     &--active {
-      background-color: var(--el-color-primary-light-8);
+      background: color-mix(in srgb, var(--el-color-primary) 15%, var(--el-bg-color));
       color: var(--el-color-primary);
       font-weight: 500;
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
     }
   }
   
@@ -88,10 +97,13 @@ defineProps({
     align-items: center;
     margin-bottom: 15px;
     font-size: 14px;
-    color: var(--el-text-color-secondary);
+    font-weight: 500;
+    color: var(--el-text-color-regular);
     
     .iconify {
-      margin-right: 5px;
+      margin-right: 8px;
+      font-size: 16px;
+      color: var(--el-color-primary);
     }
     
     span {
@@ -99,46 +111,93 @@ defineProps({
     }
   }
   
-  &__playlist-preview {
+  &__recent {
+    margin-top: 20px;
+  }
+  
+  &__recent-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
   
-  &__playlist-item {
+  &__recent-item {
     display: flex;
     align-items: center;
-    padding: 8px 10px;
-    border-radius: 6px;
+    padding: 10px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
     
     &:hover {
-      background-color: var(--el-color-primary-light-9);
+      background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-bg-color));
+      border-color: var(--el-border-color-lighter);
+      transform: translateX(4px);
     }
     
     &--active {
-      background-color: var(--el-color-primary-light-8);
-      color: var(--el-color-primary);
+      background: color-mix(in srgb, var(--el-color-primary) 12%, var(--el-bg-color));
+      border-color: color-mix(in srgb, var(--el-color-primary) 30%, transparent);
     }
   }
   
-  &__playlist-index {
-    width: 20px;
-    text-align: center;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
+  &__recent-cover {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-right: 12px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    
+    &:hover img {
+      transform: scale(1.1);
+    }
+  }
+  
+  &__recent-play {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: color-mix(in srgb, var(--el-color-primary) 80%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    
+    .iconify {
+      font-size: 24px;
+      color: #fff;
+    }
+  }
+  
+  &__recent-item:hover &__recent-play {
+    opacity: 1;
   }
   
   &__playlist-info {
     flex: 1;
     margin: 0 10px;
     overflow: hidden;
+    min-width: 0;
   }
   
   &__playlist-title {
     font-size: 13px;
-    margin-bottom: 2px;
+    font-weight: 500;
+    margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -155,20 +214,12 @@ defineProps({
   &__playlist-duration {
     font-size: 12px;
     color: var(--el-text-color-secondary);
-  }
-  
-  &__playlist-more {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    text-align: center;
-    padding: 5px;
-    margin-top: 5px;
-    border-top: 1px dashed var(--el-border-color-lighter);
+    flex-shrink: 0;
   }
   
   &__current-playlist {
     margin-top: auto;
     padding-top: 20px;
-    border-top: 1px solid var(--el-border-color-light);
+    border-top: 1px solid var(--el-border-color-lighter);
   }
 }

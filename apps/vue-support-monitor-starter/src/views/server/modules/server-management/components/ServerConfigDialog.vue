@@ -997,6 +997,17 @@ defineExpose({
 :deep(.el-switch) {
   --el-switch-on-color: var(--el-color-primary);
 }
+
+
+// 响应式设计
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>
 
 <!-- 全局对话框样式 -->

@@ -1,66 +1,90 @@
 <template>
-  <div class="pinyin-container">
-    <sc-panel class="converter-panel" title="汉字拼音转换工具" theme="primary">
-      <div class="action-bar">
-        <el-radio-group v-model="convertType" size="large" @change="convert">
-          <el-radio-button label="pinyin">汉字转拼音</el-radio-button>
-          <el-radio-button label="zhuyin">汉字转注音</el-radio-button>
-          <el-radio-button label="wubi">汉字转五笔</el-radio-button>
-        </el-radio-group>
-
-        <div class="action-buttons">
-          <el-button type="success" @click="copyResult" :icon="CopyDocument">复制结果</el-button>
-          <el-button @click="clearText" :icon="Delete">清空</el-button>
+  <div class="pinyin-tool">
+    <!-- 头部区域 -->
+    <div class="pinyin-tool__header">
+      <div class="pinyin-tool__header-content">
+        <IconifyIconOnline icon="ri:translate-2" class="pinyin-tool__header-icon" />
+        <div>
+          <h2 class="pinyin-tool__header-title">汉字拼音转换工具</h2>
+          <p class="pinyin-tool__header-desc">将汉字转换为拼音、注音符号和五笔编码，支持批量处理</p>
         </div>
       </div>
+    </div>
 
-      <div class="converter-container">
-        <div class="input-area">
-          <div class="area-header">
-            <span>输入汉字</span>
-            <el-button size="small" @click="pasteText">粘贴</el-button>
+    <div class="pinyin-tool__content">
+      <el-card class="pinyin-tool__converter-card" shadow="hover">
+        <template #header>
+          <div class="pinyin-tool__card-header">
+            <IconifyIconOnline icon="ri:translate-2" class="pinyin-tool__card-icon" />
+            <span>拼音转换器</span>
           </div>
-          <el-input v-model="inputText" type="textarea" :rows="10" placeholder="请输入需要转换的汉字文本..." @input="handleInput" />
-          <div class="char-count">{{ inputText.length }} 个字符</div>
-        </div>
+        </template>
+        <div class="pinyin-tool__action-bar">
+          <el-radio-group v-model="convertType" size="large" @change="convert">
+            <el-radio-button label="pinyin">汉字转拼音</el-radio-button>
+            <el-radio-button label="zhuyin">汉字转注音</el-radio-button>
+            <el-radio-button label="wubi">汉字转五笔</el-radio-button>
+          </el-radio-group>
 
-        <div class="output-area">
-          <div class="area-header">
-            <span>转换结果</span>
-            <div class="output-options">
-              <el-checkbox v-if="convertType === 'pinyin'" v-model="options.toneType" @change="convert" label="number">数字声调</el-checkbox>
-              <el-checkbox v-if="convertType === 'pinyin'" v-model="options.uppercase" @change="convert">首字母大写</el-checkbox>
-              <el-checkbox v-if="convertType === 'pinyin'" v-model="options.removeTone" @change="convert">去除声调</el-checkbox>
-              <el-checkbox v-model="options.addSpace" @change="convert">添加空格</el-checkbox>
-            </div>
-          </div>
-          <div class="result-display" ref="resultDisplay">
-            <div v-if="resultDisplay.length > 0">
-              <template v-for="(item, index) in resultDisplay" :key="index">
-                <span class="result-item" :class="{ 'with-space': options.addSpace }" :title="item.original">
-                  {{ item.converted }}
-                </span>
-              </template>
-            </div>
-            <div v-else class="empty-result">转换结果将显示在这里</div>
+          <div class="pinyin-tool__action-buttons">
+            <el-button type="success" @click="copyResult" :icon="CopyDocument">复制结果</el-button>
+            <el-button @click="clearText" :icon="Delete">清空</el-button>
           </div>
         </div>
-      </div>
-    </sc-panel>
 
-    <el-row :gutter="20">
-      <el-col :span="12">
-        <sc-panel title="常用汉字查询" theme="warning">
-          <div class="search-container">
+        <div class="pinyin-tool__converter-container">
+          <div class="pinyin-tool__input-area">
+            <div class="pinyin-tool__area-header">
+              <span>输入汉字</span>
+              <el-button size="small" @click="pasteText">粘贴</el-button>
+            </div>
+            <el-input v-model="inputText" type="textarea" :rows="10" placeholder="请输入需要转换的汉字文本..." @input="handleInput" />
+            <div class="pinyin-tool__char-count">{{ inputText.length }} 个字符</div>
+          </div>
+
+          <div class="pinyin-tool__output-area">
+            <div class="pinyin-tool__area-header">
+              <span>转换结果</span>
+              <div class="pinyin-tool__output-options">
+                <el-checkbox v-if="convertType === 'pinyin'" v-model="options.toneType" @change="convert" label="number">数字声调</el-checkbox>
+                <el-checkbox v-if="convertType === 'pinyin'" v-model="options.uppercase" @change="convert">首字母大写</el-checkbox>
+                <el-checkbox v-if="convertType === 'pinyin'" v-model="options.removeTone" @change="convert">去除声调</el-checkbox>
+                <el-checkbox v-model="options.addSpace" @change="convert">添加空格</el-checkbox>
+              </div>
+            </div>
+            <div class="pinyin-tool__result-display" ref="resultDisplay">
+              <div v-if="resultDisplay.length > 0">
+                <template v-for="(item, index) in resultDisplay" :key="index">
+                  <span class="pinyin-tool__result-item" :class="{ 'with-space': options.addSpace }" :title="item.original">
+                    {{ item.converted }}
+                  </span>
+                </template>
+              </div>
+              <div v-else class="pinyin-tool__empty-result">转换结果将显示在这里</div>
+            </div>
+          </div>
+        </div>
+      </el-card>
+
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <el-card class="pinyin-tool__query-card" shadow="hover">
+            <template #header>
+              <div class="pinyin-tool__card-header">
+                <IconifyIconOnline icon="ri:search-line" class="pinyin-tool__card-icon" />
+                <span>常用汉字查询</span>
+              </div>
+            </template>
+          <div class="pinyin-tool__search-container">
             <el-input v-model="searchChar" placeholder="输入汉字查询拼音、注音和五笔..." maxlength="1" show-word-limit clearable>
               <template #append>
                 <el-button :icon="Search" @click="searchCharInfo"></el-button>
               </template>
             </el-input>
 
-            <div v-if="charInfo.char" class="char-info">
-              <div class="char-display">{{ charInfo.char }}</div>
-              <ul class="char-details">
+            <div v-if="charInfo.char" class="pinyin-tool__char-info">
+              <div class="pinyin-tool__char-display">{{ charInfo.char }}</div>
+              <ul class="pinyin-tool__char-details">
                 <li>
                   <strong>拼音：</strong>
                   <span>{{ charInfo.pinyin || "暂无数据" }}</span>
@@ -83,19 +107,25 @@
                 </li>
               </ul>
             </div>
-            <div v-else-if="searchChar && charInfo.error" class="no-result">
+            <div v-else-if="searchChar && charInfo.error" class="pinyin-tool__no-result">
               {{ charInfo.error }}
             </div>
-            <div v-else-if="searchChar" class="no-result">正在查询...</div>
-            <div v-else class="search-hint">请输入一个汉字进行查询</div>
+            <div v-else-if="searchChar" class="pinyin-tool__no-result">正在查询...</div>
+            <div v-else class="pinyin-tool__search-hint">请输入一个汉字进行查询</div>
           </div>
-        </sc-panel>
-      </el-col>
+          </el-card>
+        </el-col>
 
-      <el-col :span="12">
-        <sc-panel title="批量处理" theme="info">
-          <div class="batch-process">
-            <div class="file-upload">
+        <el-col :span="12">
+          <el-card class="pinyin-tool__batch-card" shadow="hover">
+            <template #header>
+              <div class="pinyin-tool__card-header">
+                <IconifyIconOnline icon="ri:file-list-3-line" class="pinyin-tool__card-icon" />
+                <span>批量处理</span>
+              </div>
+            </template>
+          <div class="pinyin-tool__batch-process">
+            <div class="pinyin-tool__file-upload">
               <el-upload action="#" :auto-upload="false" :limit="1" :on-change="handleFileChange">
                 <template #trigger>
                   <el-button type="primary">选择文本文件</el-button>
@@ -106,7 +136,7 @@
               </el-upload>
             </div>
 
-            <div class="batch-options">
+            <div class="pinyin-tool__batch-options">
               <h4>批量转换选项</h4>
               <el-form :model="batchOptions" label-position="top" size="small">
                 <el-form-item label="转换格式">
@@ -130,12 +160,18 @@
               </el-form>
             </div>
           </div>
-        </sc-panel>
-      </el-col>
-    </el-row>
+          </el-card>
+        </el-col>
+      </el-row>
 
-    <sc-panel title="使用说明" theme="success">
-      <div class="usage-guide">
+      <el-card class="pinyin-tool__help-card" shadow="hover">
+        <template #header>
+          <div class="pinyin-tool__card-header">
+            <IconifyIconOnline icon="ri:question-line" class="pinyin-tool__card-icon" />
+            <span>使用说明</span>
+          </div>
+        </template>
+      <div class="pinyin-tool__usage-guide">
         <h3>功能介绍</h3>
         <p>本工具提供汉字转拼音、注音符号和五笔编码的功能，适用于学习、翻译和文本处理等场景。</p>
 
@@ -170,7 +206,8 @@
           <li>转换过程完全在浏览器中进行，不会上传您的文本</li>
         </ul>
       </div>
-    </sc-panel>
+      </el-card>
+    </div>
   </div>
 </template>
 
@@ -602,187 +639,251 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.pinyin-container {
-  padding: 0;
-}
+<style lang="scss" scoped>
+.pinyin-tool {
+  padding: 20px;
 
-.converter-panel {
-  margin-bottom: 20px;
-}
+  &__header {
+    background: linear-gradient(135deg, var(--el-color-info-light-3) 0%, var(--el-color-info) 100%);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 
-.action-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
+  &__header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
 
-.action-buttons {
-  display: flex;
-  gap: 10px;
-}
+  &__header-icon {
+    font-size: 48px;
+    opacity: 0.9;
+  }
 
-.converter-container {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
-}
+  &__header-title {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+  }
 
-.input-area,
-.output-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
+  &__header-desc {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.9;
+  }
 
-.area-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
+  &__content {
+    background-color: var(--el-bg-color);
+    border-radius: 12px;
+    padding: 24px;
+  }
 
-.area-header span {
-  font-weight: bold;
-  color: var(--el-color-primary);
-}
+  &__card-header {
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
 
-.output-options {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+  &__card-icon {
+    font-size: 22px;
+    margin-right: 10px;
+    color: var(--el-color-info);
+  }
 
-.result-display {
-  flex: 1;
-  min-height: 200px;
-  padding: 12px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 4px;
-  background-color: var(--el-fill-color-light);
-  overflow-y: auto;
-  line-height: 1.6;
-}
+  &__converter-card,
+  &__query-card,
+  &__batch-card,
+  &__help-card {
+    margin-bottom: 24px;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--el-border-color-lighter);
 
-.result-item {
-  display: inline-block;
-}
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+      border-color: var(--el-color-info-light-7);
+    }
+  }
 
-.result-item.with-space {
-  margin-right: 4px;
-}
+  &__action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
 
-.empty-result {
-  color: var(--el-text-color-secondary);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-}
+  &__action-buttons {
+    display: flex;
+    gap: 10px;
+  }
 
-.char-count {
-  text-align: right;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-  margin-top: 5px;
-}
+  &__converter-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
 
-.search-container {
-  margin-bottom: 20px;
-}
+  &__input-area,
+  &__output-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
 
-.char-info {
-  display: flex;
-  gap: 20px;
-  margin-top: 20px;
-  padding: 16px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 4px;
-  background-color: var(--el-fill-color-light);
-}
+  &__area-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
 
-.char-display {
-  font-size: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100px;
-  height: 100px;
-  background-color: var(--el-color-primary-light-9);
-  border-radius: 8px;
-  color: var(--el-color-primary);
-}
+  &__area-header span {
+    font-weight: bold;
+    color: var(--el-color-info);
+  }
 
-.char-details {
-  flex: 1;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
+  &__output-options {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
 
-.char-details li {
-  margin-bottom: 8px;
-  line-height: 1.5;
-}
+  &__result-display {
+    flex: 1;
+    min-height: 200px;
+    padding: 12px;
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 8px;
+    background-color: var(--el-fill-color-light);
+    overflow-y: auto;
+    line-height: 1.6;
+  }
 
-.no-result,
-.search-hint {
-  margin-top: 20px;
-  padding: 16px;
-  text-align: center;
-  color: var(--el-text-color-secondary);
-  background-color: var(--el-fill-color-light);
-  border-radius: 4px;
-}
+  &__result-item {
+    display: inline-block;
+  }
 
-.batch-process {
-  display: flex;
-  gap: 20px;
-}
+  &__result-item.with-space {
+    margin-right: 4px;
+  }
 
-.file-upload,
-.batch-options {
-  flex: 1;
-}
+  &__empty-result {
+    color: var(--el-text-color-secondary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+  }
 
-.batch-options h4 {
-  margin-top: 0;
-  margin-bottom: 16px;
-  color: var(--el-color-primary);
-}
+  &__char-count {
+    text-align: right;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    margin-top: 5px;
+  }
 
-.usage-guide h3 {
-  color: var(--el-color-primary);
-  margin-top: 16px;
-  margin-bottom: 8px;
-}
+  &__search-container {
+    margin-bottom: 20px;
+  }
 
-.usage-guide ul,
-.usage-guide ol {
+  &__char-info {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+    padding: 16px;
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 8px;
+    background-color: var(--el-fill-color-light);
+  }
+
+  &__char-display {
+    font-size: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    height: 100px;
+    background-color: var(--el-color-info-light-9);
+    border-radius: 8px;
+    color: var(--el-color-info);
+  }
+
+  &__char-details {
+    flex: 1;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  &__char-details li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+
+  &__no-result,
+  &__search-hint {
+    margin-top: 20px;
+    padding: 16px;
+    text-align: center;
+    color: var(--el-text-color-secondary);
+    background-color: var(--el-fill-color-light);
+    border-radius: 8px;
+  }
+
+  &__batch-process {
+    display: flex;
+    gap: 20px;
+  }
+
+  &__file-upload,
+  &__batch-options {
+    flex: 1;
+  }
+
+  &__batch-options h4 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    color: var(--el-color-info);
+  }
+
+  &__usage-guide h3 {
+    color: var(--el-color-info);
+    margin-top: 16px;
+    margin-bottom: 8px;
+  }
+
+  &__usage-guide ul,
+  &__usage-guide ol {
   padding-left: 20px;
   margin-bottom: 16px;
 }
 
-.usage-guide li {
+  &__usage-guide li {
   margin-bottom: 8px;
 }
 
-@media (max-width: 768px) {
-  .converter-container,
-  .batch-process {
-    flex-direction: column;
-  }
+  @media (max-width: 768px) {
+    &__converter-container,
+    &__batch-process {
+      flex-direction: column;
+    }
 
-  .char-info {
-    flex-direction: column;
-    align-items: center;
-  }
+    &__char-info {
+      flex-direction: column;
+      align-items: center;
+    }
 
-  .char-display {
-    margin-bottom: 16px;
+    &__char-display {
+      margin-bottom: 16px;
+    }
   }
 }
 </style>

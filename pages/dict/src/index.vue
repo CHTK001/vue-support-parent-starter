@@ -74,7 +74,7 @@ const dialogClose = () => {
 };
 </script>
 <template>
-  <div class="dict-page h-full">
+  <div class="dict-page system-container modern-bg">
     <SaveDialog
       ref="saveDialog"
       :mode="saveDialogParams.mode"
@@ -270,14 +270,15 @@ const dialogClose = () => {
 
 <style scoped lang="scss">
 .dict-page {
-  background: linear-gradient(
-    135deg,
-    var(--el-bg-color) 0%,
-    var(--el-fill-color-lighter) 100%
-  );
-  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 640px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+  color: var(--app-text-primary);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
 .dict-container {

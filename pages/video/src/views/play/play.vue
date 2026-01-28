@@ -1,5 +1,16 @@
 <template>
-  <div class="video-player-container">
+  <div class="system-container modern-bg">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="page-header-content">
+        <IconifyIconOnline icon="ep:video-play" class="page-header-icon" />
+        <div>
+          <h2 class="page-header-title">{{ videoTitle || '视频播放' }}</h2>
+          <p class="page-header-desc">在线播放视频内容</p>
+        </div>
+      </div>
+    </div>
+
     <!-- 视频播放器 -->
     <div class="player-wrapper" ref="playerContainer">
       <div class="video-container" ref="videoContainer">
@@ -21,31 +32,39 @@
 
         <!-- 加载状态 -->
         <div v-if="loading" class="loading-overlay">
-          <el-loading-spinner />
-          <p>正在加载视频...</p>
+          <el-icon class="loading-icon"><Loading /></el-icon>
+          <p class="loading-text">正在加载视频...</p>
         </div>
 
         <!-- 错误状态 -->
         <div v-if="error" class="error-overlay">
-          <IconifyIconOnline icon="ep:warning" class="error-icon" />
+          <IconifyIconOnline icon="ep:warning-filled" class="error-icon" />
           <p class="error-message">{{ error }}</p>
-          <el-button type="primary" @click="retryLoad">重试</el-button>
+          <el-button type="primary" @click="retryLoad" class="retry-btn">
+            <IconifyIconOnline icon="ep:refresh" />
+            重试
+          </el-button>
         </div>
       </div>
 
       <!-- 播放控制信息 -->
       <div class="player-info" v-if="!loading && !error">
-        <div class="info-row">
-          <span class="info-label">播放地址:</span>
-          <span class="info-value">{{ videoUrl }}</span>
-        </div>
-        <div class="info-row" v-if="videoInfo.duration">
-          <span class="info-label">视频时长:</span>
-          <span class="info-value">{{ formatTime(videoInfo.duration) }}</span>
-        </div>
-        <div class="info-row" v-if="videoInfo.resolution">
-          <span class="info-label">分辨率:</span>
-          <span class="info-value">{{ videoInfo.resolution }}</span>
+        <div class="info-card">
+          <div class="info-row">
+            <IconifyIconOnline icon="ep:link" class="info-icon" />
+            <span class="info-label">播放地址:</span>
+            <span class="info-value">{{ videoUrl }}</span>
+          </div>
+          <div class="info-row" v-if="videoInfo.duration">
+            <IconifyIconOnline icon="ep:clock" class="info-icon" />
+            <span class="info-label">视频时长:</span>
+            <span class="info-value">{{ formatTime(videoInfo.duration) }}</span>
+          </div>
+          <div class="info-row" v-if="videoInfo.resolution">
+            <IconifyIconOnline icon="ep:monitor" class="info-icon" />
+            <span class="info-label">分辨率:</span>
+            <span class="info-value">{{ videoInfo.resolution }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -55,6 +74,7 @@
 <script setup lang="ts">
 import { message } from "@repo/utils";
 import Hls from "hls.js";
+import { Loading } from "@element-plus/icons-vue";
 import { nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -260,62 +280,45 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
-.video-player-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
-}
-
-.player-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 15px 20px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+<style scoped lang="scss">
+/* 页面头部 */
+.page-header {
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
   border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin-bottom: 20px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.header-left {
+.page-header-content {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 16px;
 }
 
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.page-header-icon {
+  font-size: 48px;
+  opacity: 0.9;
 }
 
-.video-title {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 20px;
+.page-header-title {
+  margin: 0 0 8px 0;
+  font-size: 24px;
   font-weight: 600;
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.fullscreen-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.page-header-desc {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
 }
 
 .player-wrapper {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
 .video-container {
@@ -324,14 +327,15 @@ onUnmounted(() => {
   max-width: 1200px;
   margin: 0 auto;
   background: #000;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .video-player {
   width: 100%;
   height: auto;
-  min-height: 400px;
+  min-height: 500px;
   display: block;
 }
 
@@ -346,124 +350,134 @@ onUnmounted(() => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: rgba(0, 0, 0, 0.8);
-  color: var(--el-text-color-primary);
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
   z-index: 10;
+  backdrop-filter: blur(4px);
 }
 
-.loading-overlay p,
-.error-overlay p {
-  margin: 15px 0;
+.loading-icon {
+  font-size: 48px;
+  color: var(--el-color-primary);
+  margin-bottom: 16px;
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  margin: 0;
   font-size: 16px;
+  color: white;
 }
 
 .error-icon {
-  font-size: 48px;
+  font-size: 64px;
   color: #f56565;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
 
 .error-message {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  font-size: 16px;
+  color: white;
+}
+
+.retry-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
 }
 
 .player-info {
-  margin-top: 20px;
-  padding: 15px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 8px;
+  margin-top: 24px;
+}
+
+.info-card {
+  background: var(--el-bg-color-overlay);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .info-row {
   display: flex;
-  margin-bottom: 8px;
   align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .info-row:last-child {
   margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.info-icon {
+  font-size: 18px;
+  color: var(--el-color-primary);
+  flex-shrink: 0;
 }
 
 .info-label {
   font-weight: 600;
-  color: var(--el-text-color-primary);
-  min-width: 80px;
-  margin-right: 10px;
+  color: var(--el-text-color-regular);
+  min-width: 90px;
+  flex-shrink: 0;
 }
 
 .info-value {
   color: var(--el-text-color-primary);
   word-break: break-all;
   flex: 1;
-}
-
-/* 全屏样式 */
-.video-player-container:fullscreen {
-  padding: 0;
-  background: #000;
-}
-
-.video-player-container:fullscreen .player-header {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  right: 20px;
-  z-index: 100;
-  background: rgba(0, 0, 0, 0.8);
-  color: var(--el-text-color-primary);
-}
-
-.video-player-container:fullscreen .player-wrapper {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  background: transparent;
-  padding: 0;
-}
-
-.video-player-container:fullscreen .video-container {
-  max-width: none;
-  height: 100%;
-}
-
-.video-player-container:fullscreen .video-player {
-  height: 100%;
-  object-fit: contain;
-}
-
-.video-player-container:fullscreen .player-info {
-  display: none;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .video-player-container {
-    padding: 10px;
+  .page-header {
+    padding: 16px;
   }
 
-  .player-header {
-    flex-direction: column;
-    gap: 10px;
-    text-align: center;
+  .page-header-icon {
+    font-size: 36px;
   }
 
-  .header-left {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .video-title {
-    font-size: 18px;
+  .page-header-title {
+    font-size: 20px;
   }
 
   .player-wrapper {
-    padding: 15px;
+    padding: 16px;
   }
 
   .video-player {
-    min-height: 250px;
+    min-height: 300px;
+  }
+
+  .info-card {
+    padding: 16px;
+  }
+
+  .info-row {
+    flex-wrap: wrap;
+  }
+
+  .info-label {
+    min-width: auto;
+    width: 100%;
   }
 }
 </style>

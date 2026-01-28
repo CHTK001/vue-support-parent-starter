@@ -150,7 +150,7 @@ export default {
   }
 }
 </script>
-<style scoped>
+<style scoped lang="scss">
 .log-filter {
   padding: 0 10px;
   padding-top: 0;

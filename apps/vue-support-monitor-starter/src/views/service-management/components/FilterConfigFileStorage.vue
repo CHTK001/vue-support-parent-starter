@@ -1573,7 +1573,7 @@ async function loadData() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .three-col {
   display: grid;
   grid-template-columns: 1fr 1fr 1.5fr;
@@ -2370,4 +2370,15 @@ async function loadData() {
     flex-direction: column;
   }
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

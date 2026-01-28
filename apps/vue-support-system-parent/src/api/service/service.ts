@@ -124,6 +124,12 @@ export const fetchBindServiceModules = (data: { sysServiceId: number; sysService
 };
 
 /**
+ * 绑定服务（fetchBindServiceModules 的别名）
+ * @param data 服务数据（包含服务ID和模块ID列表）
+ */
+export const fetchBindService = fetchBindServiceModules;
+
+/**
  * 服务统计数据
  */
 export interface ServiceStats {

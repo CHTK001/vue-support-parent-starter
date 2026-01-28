@@ -1,5 +1,5 @@
 <template>
-  <div class="remote-desktop">
+  <div class="remote-desktop system-container modern-bg">
     <!-- 协议选择面板 -->
     <div v-if="!selectedProtocol" class="protocol-selection">
       <el-card shadow="hover" class="protocol-card">
@@ -190,6 +190,41 @@ initializeProtocol();
 </script>
 
 <style scoped lang="scss">
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .remote-desktop {
   display: flex;
   flex-direction: column;

@@ -225,9 +225,49 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
 .config-template-dialog {
   :deep(.el-dialog) {
-    border-radius: 12px;
+    border-radius: $radius-lg;
+    @include glass-effect(0.95, 20px);
+    box-shadow: $shadow-xl;
+    border: 1px solid $border-light;
+    overflow: hidden;
+
+    .el-dialog__header {
+      padding: $spacing-lg $spacing-xl;
+      background: $gradient-bg-1;
+      border-bottom: 1px solid $border-light;
+      position: relative;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: $gradient-line-top;
+      }
+
+      .el-dialog__title {
+        font-weight: $font-weight-semibold;
+        font-size: $font-lg;
+        color: var(--el-text-color-primary);
+      }
+    }
+
+    .el-dialog__body {
+      padding: $spacing-xl;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .el-dialog__footer {
+      padding: $spacing-lg $spacing-xl;
+      background: rgba(255, 255, 255, 0.6);
+      border-top: 1px solid $border-light;
+    }
   }
 }
 
@@ -235,60 +275,79 @@ defineExpose({
   .template-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: $spacing-lg;
     max-height: 500px;
     overflow-y: auto;
+    @include custom-scrollbar;
 
     .template-item {
-      border: 1px solid var(--el-border-color-lighter);
-      border-radius: 8px;
-      padding: 16px;
+      @include card-style;
+      padding: $spacing-lg;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: all $duration-normal $ease-standard;
 
       &:hover {
         border-color: var(--el-color-primary);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
       }
 
       .template-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 8px;
+        margin-bottom: $spacing-sm;
 
         .template-title {
           display: flex;
           align-items: center;
-          gap: 8px;
-          font-size: 16px;
-          font-weight: 600;
+          gap: $spacing-sm;
+          font-size: $font-lg;
+          font-weight: $font-weight-semibold;
           color: var(--el-text-color-primary);
 
           .template-icon {
-            font-size: 18px;
+            font-size: $icon-lg;
             color: var(--el-color-primary);
+            transition: transform $duration-fast $ease-standard;
+          }
+        }
+
+        .el-button {
+          border-radius: $radius-sm;
+          transition: all $duration-fast $ease-standard;
+
+          &:hover {
+            transform: scale(1.05);
           }
         }
       }
 
+      &:hover .template-icon {
+        transform: scale(1.1) rotate(5deg);
+      }
+
       .template-description {
-        font-size: 14px;
+        font-size: $font-md;
         color: var(--el-text-color-regular);
-        margin-bottom: 12px;
+        margin-bottom: $spacing-md;
         line-height: 1.5;
       }
 
       .template-preview {
-        background: var(--el-fill-color-extra-light);
-        border-radius: 6px;
-        padding: 12px;
-        border: 1px solid var(--el-border-color-extra-light);
+        @include glass-effect(0.85, 16px);
+        border-radius: $radius-sm;
+        padding: $spacing-md;
+        border: 1px solid $border-light;
+        transition: all $duration-fast $ease-standard;
+
+        &:hover {
+          border-color: $border-primary;
+        }
 
         pre {
           margin: 0;
           font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-          font-size: 12px;
+          font-size: $font-xs;
           line-height: 1.4;
           color: var(--el-text-color-primary);
           white-space: pre-wrap;
@@ -310,31 +369,56 @@ defineExpose({
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
+
+  .el-button {
+    border-radius: $radius-sm;
+    padding: $button-padding-md;
+    transition: all $duration-fast $ease-standard;
+    font-weight: $font-weight-medium;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: $shadow-md;
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
 }
 
 // 响应式设计
-@media (max-width: 768px) {
+@include respond-to(lg) {
+  .template-content .template-list {
+    max-height: 400px;
+  }
+}
+
+@include respond-to(sm) {
   .template-content {
     .template-list {
+      gap: $spacing-md;
+      max-height: 350px;
+
       .template-item {
-        padding: 12px;
+        padding: $spacing-md;
 
         .template-header {
           .template-title {
-            font-size: 14px;
+            font-size: $font-md;
 
             .template-icon {
-              font-size: 16px;
+              font-size: $icon-md;
             }
           }
         }
 
         .template-description {
-          font-size: 13px;
+          font-size: $font-sm;
         }
 
         .template-preview {
-          padding: 8px;
+          padding: $spacing-sm;
 
           pre {
             font-size: 11px;

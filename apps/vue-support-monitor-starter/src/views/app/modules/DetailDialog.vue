@@ -353,4 +353,15 @@ const handleVisitDevice = (device: Discovery) => {
     opacity: 0.5;
   }
 }
+
+
+// 响应式设计
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

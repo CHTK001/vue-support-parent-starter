@@ -178,3 +178,44 @@ export const loadThemeStylesheet = (themeKey: string): void => {
     document.head.appendChild(link);
   }
 };
+
+/**
+ * 检测当前日期是否匹配节日主题
+ * @returns 匹配的节日主题，如果没有匹配则返回 null
+ */
+export const detectFestivalTheme = (): LayoutTheme | null => {
+  const now = new Date();
+  const month = now.getMonth() + 1; // 0-11 -> 1-12
+  const date = now.getDate();
+  
+  // 春节：农历正月初一（简化处理：公历1-2月）
+  if (month === 1 || month === 2) {
+    // 这里可以添加更精确的农历计算逻辑
+    // 简化处理：1月20日-2月20日视为春节期间
+    if ((month === 1 && date >= 20) || (month === 2 && date <= 20)) {
+      return getLayoutTheme("spring-festival");
+    }
+  }
+  
+  // 国庆：10月1日-10月7日
+  if (month === 10 && date >= 1 && date <= 7) {
+    return getLayoutTheme("national-day");
+  }
+  
+  // 元旦：1月1日
+  if (month === 1 && date === 1) {
+    return getLayoutTheme("new-year");
+  }
+  
+  // 中秋：农历八月十五（简化处理：公历9月15日-9月20日）
+  if (month === 9 && date >= 15 && date <= 20) {
+    return getLayoutTheme("mid-autumn");
+  }
+  
+  // 圣诞：12月24日-12月26日
+  if (month === 12 && date >= 24 && date <= 26) {
+    return getLayoutTheme("christmas");
+  }
+  
+  return null;
+};

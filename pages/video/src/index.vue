@@ -1,5 +1,5 @@
 <template>
-  <div class="video-module">
+  <div class="video-module system-container modern-bg">
     <div class="video-header">
       <h1 class="text-2xl font-bold text-[var(--app-text-primary)] mb-4">视频管理</h1>
       <p class="text-[var(--app-text-secondary)] mb-6">视频资源管理、搜索、配置和解析功能</p>
@@ -163,9 +163,6 @@ onMounted(() => {
 
 <style scoped>
 .video-module {
-  padding: 24px;
-  background: var(--app-bg-primary);
-  min-height: 100vh;
 }
 
 .nav-card:hover {

@@ -591,36 +591,37 @@ onMounted(async () => {
 <template>
   <div class="ip-tool">
     <div class="ip-tool__content">
-      <!-- 页面头部区域 - 带有渐变背景和动画效果 -->
-      <div class="ip-tool__header-container">
-        <div class="ip-tool__header">
-          <div class="ip-tool__header-inner">
-            <div class="ip-tool__header-title">IP 地址解析工具</div>
-            <div class="ip-tool__header-subtitle">解析 IP 地址，提供详细的网络信息</div>
+      <!-- 页面头部区域 -->
+      <div class="ip-tool__header">
+        <div class="ip-tool__header-content">
+          <IconifyIconOnline icon="ri:ip-line" class="ip-tool__header-icon" />
+          <div>
+            <h2 class="ip-tool__header-title">IP 地址解析工具</h2>
+            <p class="ip-tool__header-desc">解析 IP 地址，提供详细的网络信息</p>
+          </div>
+        </div>
 
-            <!-- IP 信息卡片 -->
-            <div class="ip-tool__header-info" v-if="env.currentIP">
-              <!-- IP 地址显示 -->
-              <div class="ip-tool__header-info-item ip-tool__header-info-ip">
-                <IconifyIconOnline icon="ri:ip-line" class="ip-tool__header-info-icon" />
-                <span>{{ env.currentIP }}</span>
-                <el-button type="primary" link size="small" @click="copyToClipboard(env.currentIP)" class="ip-tool__copy-ip-btn">
-                  <IconifyIconOnline icon="ri:file-copy-line" />
-                </el-button>
-              </div>
+        <!-- IP 信息卡片 -->
+        <div class="ip-tool__header-info" v-if="env.currentIP">
+          <!-- IP 地址显示 -->
+          <div class="ip-tool__header-info-item ip-tool__header-info-ip">
+            <IconifyIconOnline icon="ri:ip-line" class="ip-tool__header-info-icon" />
+            <span>{{ env.currentIP }}</span>
+            <el-button type="primary" link size="small" @click="copyToClipboard(env.currentIP)" class="ip-tool__copy-ip-btn">
+              <IconifyIconOnline icon="ri:file-copy-line" />
+            </el-button>
+          </div>
 
-              <!-- 位置信息显示 -->
-              <div class="ip-tool__header-info-item" v-if="env.currentIP !== '离线状态' && env.currentIP !== '获取失败'">
-                <IconifyIconOnline icon="ri:map-pin-line" class="ip-tool__header-info-icon" />
-                <span>{{ env.ipDetails.country }} {{ env.ipDetails.region }} {{ env.ipDetails.city }}</span>
-              </div>
+          <!-- 位置信息显示 -->
+          <div class="ip-tool__header-info-item" v-if="env.currentIP !== '离线状态' && env.currentIP !== '获取失败'">
+            <IconifyIconOnline icon="ri:map-pin-line" class="ip-tool__header-info-icon" />
+            <span>{{ env.ipDetails.country }} {{ env.ipDetails.region }} {{ env.ipDetails.city }}</span>
+          </div>
 
-              <!-- ISP 信息显示 -->
-              <div class="ip-tool__header-info-item" v-if="env.currentIP !== '离线状态' && env.currentIP !== '获取失败'">
-                <IconifyIconOnline icon="ri:global-line" class="ip-tool__header-info-icon" />
-                <span>{{ env.ipDetails.isp }} {{ env.ipDetails.asn }}</span>
-              </div>
-            </div>
+          <!-- ISP 信息显示 -->
+          <div class="ip-tool__header-info-item" v-if="env.currentIP !== '离线状态' && env.currentIP !== '获取失败'">
+            <IconifyIconOnline icon="ri:global-line" class="ip-tool__header-info-icon" />
+            <span>{{ env.ipDetails.isp }} {{ env.ipDetails.asn }}</span>
           </div>
         </div>
       </div>
@@ -1214,90 +1215,73 @@ onMounted(async () => {
 
   /* 头部样式 */
   &__header {
-    background: linear-gradient(135deg, var(--el-color-success-dark-2), var(--el-color-success));
+    background: linear-gradient(135deg, var(--el-color-success-light-3) 0%, var(--el-color-success) 100%);
     border-radius: 12px;
-    padding: 30px;
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(var(--el-color-success-rgb), 0.3);
-    position: relative;
-    overflow: hidden;
-    transform-style: preserve-3d;
-    transform: rotateX(5deg);
-    transition:
-      transform 0.5s ease,
-      box-shadow 0.5s ease;
+    padding: 24px;
+    margin-bottom: 20px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 
-    &:hover {
-      transform: rotateX(0deg) scale(1.02);
-      box-shadow: 0 15px 40px rgba(var(--el-color-success-rgb), 0.4);
-    }
+  &__header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
 
-    &-inner {
-      position: relative;
-      z-index: 2;
-    }
+  &__header-icon {
+    font-size: 48px;
+    opacity: 0.9;
+  }
 
-    &-title {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--el-text-color-primary);
-      margin-bottom: 10px;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
+  &__header-title {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+  }
 
-    &-subtitle {
-      font-size: 16px;
-      color: rgba(255, 255, 255, 0.9);
-      margin-bottom: 20px;
-    }
+  &__header-desc {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.9;
+  }
 
-    /* IP 信息区域样式 */
-    &-info {
+  /* IP 信息区域样式 */
+  &__header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+
+    &-item {
       display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-width: 500px;
-      margin: 0 auto;
+      align-items: center;
+      background-color: rgba(255, 255, 255, 0.15);
+      padding: 8px 16px;
+      border-radius: 10px;
+      color: white;
+      font-weight: 500;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      text-align: left;
 
-      &-item {
-        display: flex;
-        align-items: center;
-        background-color: rgba(255, 255, 255, 0.15);
-        padding: 8px 16px;
-        border-radius: 10px;
-        color: var(--el-text-color-primary);
-        font-weight: 500;
-        backdrop-filter: blur(4px);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-        text-align: left;
-
-        &:hover {
-          background-color: rgba(255, 255, 255, 0.25);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-      }
-
-      &-ip {
+      &:hover {
         background-color: rgba(255, 255, 255, 0.25);
-        font-size: 1.1em;
-        font-weight: 600;
-      }
-
-      &-icon {
-        margin-right: 10px;
-        font-size: 18px;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
     }
 
-    &-decoration {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
+    &-ip {
+      background-color: rgba(255, 255, 255, 0.25);
+      font-size: 1.1em;
+      font-weight: 600;
+    }
+
+    &-icon {
+      margin-right: 10px;
+      font-size: 18px;
     }
   }
 
@@ -1307,108 +1291,6 @@ onMounted(async () => {
     border-radius: 12px;
     box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
     padding: 24px;
-  }
-
-  /* 头部容器样式 */
-  &__header-container {
-    margin-bottom: 30px;
-    perspective: 1000px;
-  }
-
-  /* 头部样式 */
-  &__header {
-    background: linear-gradient(135deg, var(--el-color-success-dark-2), var(--el-color-success));
-    border-radius: 12px;
-    padding: 30px;
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(var(--el-color-success-rgb), 0.3);
-    position: relative;
-    overflow: hidden;
-    transform-style: preserve-3d;
-    transform: rotateX(5deg);
-    transition:
-      transform 0.5s ease,
-      box-shadow 0.5s ease;
-
-    &:hover {
-      transform: rotateX(0deg) scale(1.02);
-      box-shadow: 0 15px 40px rgba(var(--el-color-success-rgb), 0.4);
-    }
-
-    &-inner {
-      position: relative;
-      z-index: 2;
-    }
-
-    &-title {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--el-text-color-primary);
-      margin-bottom: 10px;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-
-    &-subtitle {
-      font-size: 16px;
-      color: rgba(255, 255, 255, 0.9);
-      margin-bottom: 20px;
-    }
-
-    &-ip {
-      display: inline-flex;
-      align-items: center;
-      background-color: rgba(255, 255, 255, 0.2);
-      padding: 8px 16px;
-      border-radius: 20px;
-      color: var(--el-text-color-primary);
-      font-weight: 500;
-      backdrop-filter: blur(4px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease;
-
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.3);
-      }
-    }
-
-    &-decoration {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
-
-    &-circle {
-      position: absolute;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-
-      &:nth-child(1) {
-        width: 200px;
-        height: 200px;
-        top: -100px;
-        right: -50px;
-        animation: ip-tool-float 15s infinite ease-in-out;
-      }
-
-      &:nth-child(2) {
-        width: 150px;
-        height: 150px;
-        bottom: -50px;
-        left: -30px;
-        animation: ip-tool-float 12s infinite ease-in-out reverse;
-      }
-
-      &:nth-child(3) {
-        width: 100px;
-        height: 100px;
-        bottom: 50px;
-        right: 100px;
-        animation: ip-tool-float 10s infinite ease-in-out;
-      }
-    }
   }
 
   /* 卡片样式 */

@@ -447,11 +447,12 @@ onMounted(() => {
   <div class="random-tool">
     <div class="random-tool__content">
       <!-- 头部信息 -->
-      <div class="random-tool__header-container">
-        <div class="random-tool__header">
-          <div class="random-tool__header-inner">
-            <h1 class="random-tool__header-title">随机生成器</h1>
-            <p class="random-tool__header-subtitle">生成随机字符串、UUID和随机数字，支持自定义参数和多种预设</p>
+      <div class="random-tool__header">
+        <div class="random-tool__header-content">
+          <IconifyIconOnline icon="ri:shuffle-line" class="random-tool__header-icon" />
+          <div>
+            <h2 class="random-tool__header-title">随机生成器</h2>
+            <p class="random-tool__header-desc">生成随机字符串、UUID和随机数字，支持自定义参数和多种预设</p>
           </div>
         </div>
       </div>
@@ -750,30 +751,35 @@ onMounted(() => {
     padding: 20px;
   }
 
-  &__header-container {
-    margin-bottom: 24px;
-  }
-
   &__header {
-    background: linear-gradient(135deg, #f97316 0%, #c2410c 100%);
+    background: linear-gradient(135deg, var(--el-color-danger-light-3) 0%, var(--el-color-danger) 100%);
     border-radius: 12px;
     padding: 24px;
-    color: #fff;
+    margin-bottom: 20px;
+    color: white;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
-  &__header-inner {
-    max-width: 800px;
+  &__header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  &__header-icon {
+    font-size: 48px;
+    opacity: 0.9;
   }
 
   &__header-title {
-    font-size: 28px;
-    font-weight: 700;
-    margin-bottom: 8px;
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
   }
 
-  &__header-subtitle {
-    font-size: 16px;
+  &__header-desc {
+    margin: 0;
+    font-size: 14px;
     opacity: 0.9;
   }
 

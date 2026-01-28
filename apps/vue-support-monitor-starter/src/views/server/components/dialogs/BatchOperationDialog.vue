@@ -368,62 +368,116 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
 .batch-operation {
+  :deep(.el-alert) {
+    border-radius: $radius-md;
+    @include glass-effect(0.9, 16px);
+    border: 1px solid $border-light;
+    box-shadow: $shadow-sm;
+    margin-bottom: $spacing-xl;
+  }
+
   .server-list {
     max-height: 120px;
     overflow-y: auto;
-    border: 1px solid var(--el-border-color-light);
-    border-radius: 4px;
-    padding: 8px;
-    background-color: var(--el-fill-color-extra-light);
+    @include custom-scrollbar;
+    border: 1px solid $border-light;
+    border-radius: $radius-sm;
+    padding: $spacing-sm;
+    @include glass-effect(0.85, 16px);
+    transition: all $duration-fast $ease-standard;
+
+    &:hover {
+      border-color: $border-primary;
+      box-shadow: $shadow-sm;
+    }
 
     .server-tag {
-      margin: 2px 4px 2px 0;
+      margin: 2px $spacing-xs 2px 0;
+      border-radius: $radius-sm;
+      transition: all $duration-fast $ease-standard;
+
+      &:hover {
+        transform: scale(1.05);
+        box-shadow: $shadow-sm;
+      }
     }
   }
 
   .server-count {
-    margin-top: 8px;
-    font-size: 12px;
+    margin-top: $spacing-sm;
+    font-size: $font-xs;
     color: var(--el-text-color-secondary);
+    font-weight: $font-weight-medium;
   }
 
   .execute-mode-tip,
   .timeout-tip {
-    margin-top: 4px;
+    margin-top: $spacing-xs;
   }
 
   .execution-progress {
-    margin-top: 20px;
+    margin-top: $spacing-xl;
+    padding: $spacing-lg;
+    @include glass-effect(0.9, 16px);
+    border-radius: $radius-md;
+    border: 1px solid $border-light;
+    box-shadow: $shadow-sm;
+
+    :deep(.el-divider) {
+      margin: $spacing-md 0;
+    }
+
+    :deep(.el-progress) {
+      .el-progress-bar__outer {
+        border-radius: $radius-sm;
+        overflow: hidden;
+      }
+    }
 
     .progress-info {
       display: flex;
       justify-content: space-between;
-      margin-top: 8px;
-      font-size: 14px;
+      margin-top: $spacing-sm;
+      font-size: $font-md;
+      font-weight: $font-weight-medium;
 
       .progress-detail {
         color: var(--el-text-color-secondary);
+        font-weight: $font-weight-normal;
       }
     }
 
     .execution-log {
       max-height: 200px;
       overflow-y: auto;
-      margin-top: 16px;
-      border: 1px solid var(--el-border-color-light);
-      border-radius: 4px;
-      background-color: var(--el-fill-color-extra-light);
+      @include custom-scrollbar;
+      margin-top: $spacing-lg;
+      border: 1px solid $border-light;
+      border-radius: $radius-sm;
+      @include glass-effect(0.85, 16px);
+      padding: $spacing-sm;
 
       .log-item {
         display: flex;
         align-items: center;
-        padding: 4px 8px;
-        font-size: 12px;
-        border-bottom: 1px solid var(--el-border-color-lighter);
+        padding: $spacing-xs $spacing-sm;
+        font-size: $font-xs;
+        border-bottom: 1px solid $border-light;
+        transition: all $duration-fast $ease-standard;
+        border-radius: $radius-sm;
+        margin-bottom: 2px;
 
         &:last-child {
           border-bottom: none;
+          margin-bottom: 0;
+        }
+
+        &:hover {
+          background: rgba(99, 102, 241, 0.05);
+          transform: translateX(4px);
         }
 
         &.success {
@@ -443,14 +497,20 @@ defineExpose({
         }
 
         .log-icon {
-          margin-right: 6px;
+          margin-right: $spacing-sm;
           flex-shrink: 0;
+          transition: transform $duration-fast $ease-standard;
+        }
+
+        &:hover .log-icon {
+          transform: scale(1.2);
         }
 
         .log-time {
-          margin-right: 8px;
+          margin-right: $spacing-sm;
           color: var(--el-text-color-secondary);
           flex-shrink: 0;
+          font-family: monospace;
         }
 
         .log-message {
@@ -459,15 +519,84 @@ defineExpose({
       }
     }
   }
+
+  :deep(.el-form-item) {
+    margin-bottom: $spacing-lg;
+
+    .el-form-item__label {
+      font-weight: $font-weight-medium;
+    }
+
+    .el-input__wrapper,
+    .el-select__wrapper,
+    .el-textarea__inner {
+      border-radius: $radius-sm;
+      transition: all $duration-fast $ease-standard;
+
+      &:hover {
+        box-shadow: $shadow-sm;
+      }
+
+      &.is-focus {
+        box-shadow: 0 0 0 2px $primary-light;
+      }
+    }
+  }
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: $spacing-md;
+
+  .el-button {
+    border-radius: $radius-sm;
+    padding: $button-padding-md;
+    transition: all $duration-fast $ease-standard;
+    font-weight: $font-weight-medium;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: $shadow-md;
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+  }
 }
 
-:deep(.el-form-item) {
-  margin-bottom: 18px;
+// 响应式设计
+@include respond-to(lg) {
+  .batch-operation {
+    .execution-progress {
+      padding: $spacing-md;
+    }
+  }
+}
+
+@include respond-to(sm) {
+  .batch-operation {
+    .server-list {
+      max-height: 100px;
+    }
+
+    .execution-progress {
+      padding: $spacing-sm;
+
+      .execution-log {
+        max-height: 150px;
+      }
+    }
+  }
+
+  .dialog-footer {
+    flex-direction: column-reverse;
+    width: 100%;
+
+    .el-button {
+      width: 100%;
+    }
+  }
 }
 </style>

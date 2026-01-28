@@ -1,5 +1,5 @@
 <template>
-  <div class="sfc-container">
+  <div class="system-container sfc-container">
     <!-- 页面头部 -->
     <div class="sfc-header">
       <div class="header-title">
@@ -9,8 +9,8 @@
         <span>动态插件管理</span>
         <el-tag type="info" size="small" class="ml-2">SFC</el-tag>
       </div>
-      <div class="header-actions">
-        <el-form :model="form" :inline="true" class="search-form">
+      <div class="toolbar-right header-actions">
+        <el-form :model="form" :inline="true" class="modern-form search-form">
           <el-form-item>
             <el-input 
               v-model="form.sysSfcName" 

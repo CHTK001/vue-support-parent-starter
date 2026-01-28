@@ -1,7 +1,7 @@
 <template>
-  <div class="file-management">
+  <div class="file-management system-container modern-bg">
     <!-- 页面头部 -->
-    <div class="page-header">
+    <div class="page-header modern-header">
       <div class="header-right">
         <el-button
           v-auth="'file:upload'"
@@ -634,18 +634,27 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .file-management {
-  padding: 16px;
-  background: var(--el-bg-color-page);
-  height: calc(100vh - 100px);
+  padding: clamp(20px, 3vw, 32px);
   display: flex;
   flex-direction: column;
+  gap: clamp(18px, 2vw, 24px);
+  min-height: 100%;
 }
 
 .page-header {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  margin-bottom: 16px;
+  padding: clamp(16px, 2vw, 24px);
+  background: linear-gradient(
+    135deg,
+    rgba(64, 158, 255, 0.12),
+    rgba(64, 158, 255, 0.06)
+  );
+  border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 70%, transparent);
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 
   .header-right {
     display: flex;
@@ -654,20 +663,10 @@ onMounted(() => {
 }
 
 .stats-section {
-  margin-bottom: 24px;
-
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-
-    @media (max-width: 1200px) {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    @media (max-width: 768px) {
-      grid-template-columns: 1fr;
-    }
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: clamp(14px, 2vw, 20px);
   }
 }
 
@@ -677,11 +676,12 @@ onMounted(() => {
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
-  margin-bottom: 20px;
-  padding: 16px;
-  background: var(--el-bg-color);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: clamp(16px, 2vw, 20px);
+  background: color-mix(in srgb, var(--el-bg-color-overlay) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(8px);
 
   .toolbar-left,
   .toolbar-right {
@@ -693,11 +693,14 @@ onMounted(() => {
 }
 
 .table-section {
-  background: var(--el-bg-color);
-  border-radius: 12px;
+  background: color-mix(in srgb, var(--el-bg-color-overlay) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
+  border-radius: 14px;
   overflow: hidden;
   flex: 1;
   min-height: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(8px);
 }
 
 .file-name-cell {
@@ -725,16 +728,19 @@ onMounted(() => {
   }
 
   .file-card {
-    background: var(--el-bg-color);
-    border-radius: 12px;
+    background: color-mix(in srgb, var(--el-bg-color-overlay) 95%, transparent);
+    border-radius: 14px;
     overflow: hidden;
     cursor: pointer;
-    transition: all 0.3s ease;
-    border: 1px solid var(--el-border-color-lighter);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    backdrop-filter: blur(8px);
 
     &:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      border-color: color-mix(in srgb, var(--el-color-primary) 30%, var(--el-border-color-lighter));
 
       .card-actions {
         opacity: 1;

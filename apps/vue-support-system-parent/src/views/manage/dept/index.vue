@@ -35,19 +35,19 @@ const stats = reactive({
   total: 0,
   topLevel: 0,
   subLevel: 0,
-  enabled: 0
+  enabled: 0,
 });
 
 /**
  * 计算部门统计数据
  */
-const calcStats = (data: any[]) => {
+const calcStats = (data) => {
   let total = 0;
   let topLevel = 0;
   let subLevel = 0;
   let enabled = 0;
 
-  const countDepts = (items: any[], isTop = true) => {
+  const countDepts = (items, isTop = true) => {
     items.forEach(item => {
       total++;
       if (isTop) topLevel++;
@@ -196,7 +196,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="dept-page">
+  <div class="system-container dept-page">
     <!-- 权限对话框组件 -->
     <PermissionDialog ref="permissionDialogRef"></PermissionDialog>
     <!-- 骨架屏组件，在数据加载时显示 -->
@@ -243,15 +243,15 @@ onMounted(async () => {
             </div>
           </div>
           <!-- 页面头部 -->
-          <el-header class="dept-header">
-            <div class="left-panel">
-              <el-form :model="form" :inline="true" class="search-form">
+          <el-header class="toolbar-section dept-header">
+            <div class="toolbar-left left-panel">
+              <el-form :model="form" :inline="true" class="modern-form search-form">
                 <el-form-item label="机构名称">
                   <el-input v-model="form.sysDeptName" placeholder="机构名称" clearable class="!w-[180px]" />
                 </el-form-item>
               </el-form>
             </div>
-            <div class="right-panel">
+            <div class="toolbar-right right-panel">
               <div class="right-panel-search">
                 <!-- 搜索按钮，点击后调用加载数据函数，并进行防抖处理 -->
                 <el-button type="primary" :icon="useRenderIcon('ri:search-line')" @click="debounce(loadData, 1000, true)" />
@@ -263,7 +263,7 @@ onMounted(async () => {
           </el-header>
           <!-- 表格组件，显示部门列表数据 -->
           <div class="table-container">
-            <ScTable ref="tableRef" :data="tableData" row-key="sysDeptId" @row-click="handleOpenDetail" height="auto">
+            <ScTable ref="tableRef" :data="tableData" row-key="sysDeptId" @row-click="handleOpenDetail" height="auto" class="modern-table">
               <!-- 表格列，显示部门ID -->
               <el-table-column label="" prop="sysDeptIds" width="60"></el-table-column>
               <!-- 表格列，显示部门名称 -->

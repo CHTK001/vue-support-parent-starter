@@ -1,5 +1,5 @@
 <template>
-  <div class="container-management">
+  <div class="container-management system-container modern-bg">
     <ProgressMonitor />
 
     <!-- 统计卡片 -->
@@ -135,6 +135,7 @@
         class="container-table"
         table-name="soft-containers"
         height="100%"
+        @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55" />
 
@@ -345,9 +346,7 @@ import {
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ScCard } from "@repo/components";
 import { message, messageBox } from "@repo/utils";
-import { useGlobalSocket, MonitorTopics } from "@repo/core";
-import { ElNotification } from "element-plus";
-import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import ContainerDetailDialog from "./components/ContainerDetailDialog.vue";
 import ContainerLogsDialog from "./components/ContainerLogsDialog.vue";
 
@@ -394,6 +393,11 @@ const searchParams = reactive({
 const handleRefresh = () => {
   tableRef.value?.refresh?.();
   loadOverviewStats();
+};
+
+// 监听表格选择变化
+const handleSelectionChange = (selection: SystemSoftContainer[]) => {
+  selectedIds.value = selection.map(item => item.systemSoftContainerId!).filter(Boolean);
 };
 
 const handleSearch = () => {
@@ -447,7 +451,9 @@ const handleStart = async (container: SystemSoftContainer) => {
     );
     if (response.code === "00000") {
       message.success("容器启动成功");
-      handleRefresh();
+      setTimeout(() => {
+        handleRefresh();
+      }, 1000);
     } else {
       message.error(response.msg || "容器启动失败");
     }
@@ -467,7 +473,9 @@ const handleStop = async (container: SystemSoftContainer) => {
     );
     if (response.code === "00000") {
       message.success("容器停止成功");
-      handleRefresh();
+      setTimeout(() => {
+        handleRefresh();
+      }, 1000);
     } else {
       message.error(response.msg || "容器停止失败");
     }
@@ -507,7 +515,9 @@ const handleRestart = async (container: SystemSoftContainer) => {
     );
     if (response.code === "00000") {
       message.success("容器重启成功");
-      handleRefresh();
+      setTimeout(() => {
+        handleRefresh();
+      }, 1000);
     } else {
       message.error(response.msg || "容器重启失败");
     }
@@ -531,7 +541,9 @@ const handleDelete = async (container: SystemSoftContainer) => {
     );
     if (response.code === "00000") {
       message.success("容器删除成功");
-      handleRefresh();
+      setTimeout(() => {
+        handleRefresh();
+      }, 1000);
     } else {
       message.error(response.msg || "容器删除失败");
     }
@@ -575,7 +587,9 @@ const handleBatchStart = async () => {
     if (response.code === "00000") {
       message.success("批量启动成功");
       selectedIds.value = [];
-      handleRefresh();
+      setTimeout(() => {
+        handleRefresh();
+      }, 1000);
     } else {
       message.error(response.msg || "批量启动失败");
     }
@@ -607,7 +621,9 @@ const handleBatchStop = async () => {
     if (response.code === "00000") {
       message.success("批量停止成功");
       selectedIds.value = [];
-      handleRefresh();
+      setTimeout(() => {
+        handleRefresh();
+      }, 1000);
     } else {
       message.error(response.msg || "批量停止失败");
     }
@@ -641,7 +657,9 @@ const handleBatchDelete = async () => {
     if (response.code === "00000") {
       message.success("批量删除成功");
       selectedIds.value = [];
-      handleRefresh();
+      setTimeout(() => {
+        handleRefresh();
+      }, 1000);
     } else {
       message.error(response.msg || "批量删除失败");
     }
@@ -675,155 +693,11 @@ const getServerName = (serverId?: number) => {
   return server?.name || `服务器 #${serverId}`;
 };
 
-// 获取全局Socket服务
-const globalSocket = useGlobalSocket();
 const tableRef = ref();
 
-// 设置Socket事件监听
-function setupSocketListeners() {
-  if (!globalSocket) {
-    console.warn("Global Socket服务未初始化");
-    return;
-  }
-
-  // 监听容器状态变化
-  globalSocket.on(MonitorTopics.DOCKER.CONTAINER_STATUS, (data: any) => {
-    console.log("🐳 容器状态变化:", data);
-    // 刷新表格数据
-    tableRef.value?.reload?.();
-    // 显示通知
-    ElNotification.info({
-      title: "容器状态变化",
-      message: `容器 ${data.containerName} 状态变更为: ${data.status}`,
-      duration: 3000,
-      position: "bottom-right",
-    });
-  });
-
-  // 监听容器事件
-  globalSocket.on(MonitorTopics.DOCKER.CONTAINER_EVENTS, (data: any) => {
-    console.log("📢 容器事件:", data);
-    const eventTypeMap: Record<string, string> = {
-      create: "创建",
-      start: "启动",
-      stop: "停止",
-      restart: "重启",
-      delete: "删除",
-    };
-    const eventText = eventTypeMap[data.eventType] || data.eventType;
-    if (data.success) {
-      ElNotification.success({
-        title: `容器${eventText}成功`,
-        message: data.eventMessage || `容器 ${data.containerName} ${eventText}成功`,
-        duration: 3000,
-        position: "bottom-right",
-      });
-    } else {
-      ElNotification.error({
-        title: `容器${eventText}失败`,
-        message: data.eventMessage || `容器 ${data.containerName} ${eventText}失败`,
-        duration: 5000,
-        position: "bottom-right",
-      });
-    }
-    // 刷新表格数据
-    tableRef.value?.reload?.();
-  });
-
-  // 监听Docker操作进度
-  globalSocket.on(MonitorTopics.DOCKER.PROGRESS, (data: any) => {
-    console.log("⚙️ Docker操作进度:", data);
-  });
-
-  // 监听Docker操作开始
-  globalSocket.on(MonitorTopics.DOCKER.START, (data: any) => {
-    console.log("🚀 Docker操作开始:", data);
-    ElNotification.info({
-      title: "操作开始",
-      message: `${data.operation} - ${data.containerName || data.imageName}`,
-      duration: 2000,
-      position: "bottom-right",
-    });
-  });
-
-  // 监听Docker操作完成
-  globalSocket.on(MonitorTopics.DOCKER.COMPLETE, (data: any) => {
-    console.log("✅ Docker操作完成:", data);
-    if (data.success) {
-      ElNotification.success({
-        title: "操作完成",
-        message: `${data.operation} - ${data.containerName || data.imageName} 完成`,
-        duration: 3000,
-        position: "bottom-right",
-      });
-    }
-    // 刷新表格数据
-    tableRef.value?.reload?.();
-  });
-
-  // 监听Docker操作错误
-  globalSocket.on(MonitorTopics.DOCKER.ERROR, (data: any) => {
-    console.error("❌ Docker操作错误:", data);
-    ElNotification.error({
-      title: "操作失败",
-      message: data.error || data.errorMessage || "操作执行失败",
-      duration: 5000,
-      position: "bottom-right",
-    });
-  });
-
-  // 监听通用操作完成
-  globalSocket.on(MonitorTopics.OPERATION.COMPLETE, (data: any) => {
-    if (data.type?.includes("container")) {
-      console.log("✅ 容器操作完成:", data);
-      tableRef.value?.reload?.();
-    }
-  });
-
-  // 监听通用操作错误
-  globalSocket.on(MonitorTopics.OPERATION.ERROR, (data: any) => {
-    if (data.type?.includes("container")) {
-      console.error("❌ 容器操作错误:", data);
-      ElNotification.error({
-        title: "操作失败",
-        message: data.error || "操作执行失败",
-        duration: 5000,
-        position: "bottom-right",
-      });
-    }
-  });
-
-  // 监听容器实时日志（通过全局 Socket 的 CONTAINER_LOG topic）
-  globalSocket.on(MonitorTopics.DOCKER.CONTAINER_LOG, (data: any) => {
-    console.log("📝 容器日志:", data);
-    // 日志数据通过 ContainerLogsDialog 组件处理
-  });
-}
-
-// 清理Socket事件监听
-function cleanupSocketListeners() {
-  if (!globalSocket) return;
-
-  globalSocket.off(MonitorTopics.DOCKER.CONTAINER_STATUS);
-  globalSocket.off(MonitorTopics.DOCKER.CONTAINER_EVENTS);
-  globalSocket.off(MonitorTopics.DOCKER.CONTAINER_LOG);
-  globalSocket.off(MonitorTopics.DOCKER.PROGRESS);
-  globalSocket.off(MonitorTopics.DOCKER.START);
-  globalSocket.off(MonitorTopics.DOCKER.COMPLETE);
-  globalSocket.off(MonitorTopics.DOCKER.ERROR);
-  globalSocket.off(MonitorTopics.OPERATION.COMPLETE);
-  globalSocket.off(MonitorTopics.OPERATION.ERROR);
-}
-
 onMounted(() => {
-  // 设置Socket事件监听
-  setupSocketListeners();
   loadServers();
   loadOverviewStats();
-});
-
-onUnmounted(() => {
-  cleanupSocketListeners();
 });
 
 const terminalRef = ref();
@@ -860,7 +734,42 @@ async function openExec(row: any) {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  /* 渐变背景 */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .container-management {
   padding: 16px;
   display: flex;

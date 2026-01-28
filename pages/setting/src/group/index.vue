@@ -244,7 +244,7 @@ onUnmounted((): void => {
 </script>
 
 <template>
-  <div class="group-management">
+  <div class="group-management system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-content">

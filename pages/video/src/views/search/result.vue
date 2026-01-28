@@ -1,13 +1,19 @@
 <template>
-  <div class="search-result-page">
+  <div class="system-container modern-bg">
     <!-- 顶部栏 -->
-    <header class="header">
-      <div class="header-content">
-        <span class="back" @click="goBack">← 返回</span>
-        <h1 class="title">「{{ searchKeyword }}」的搜索结果</h1>
-        <span class="count">共 {{ totalCount }} 条</span>
+    <div class="page-header">
+      <div class="page-header-content">
+        <IconifyIconOnline icon="ep:search" class="page-header-icon" />
+        <div class="page-header-text">
+          <h2 class="page-header-title">「{{ searchKeyword }}」的搜索结果</h2>
+          <p class="page-header-desc">共找到 {{ totalCount }} 条结果</p>
+        </div>
+        <el-button @click="goBack" type="primary" class="back-btn">
+          <IconifyIconOnline icon="ep:arrow-left" />
+          返回搜索
+        </el-button>
       </div>
-    </header>
+    </div>
 
     <!-- 结果列表 -->
     <main class="main">
@@ -254,89 +260,100 @@ watch(
 );
 </script>
 
-<style scoped>
-/* 页面容器 */
-.search-result-page {
-  min-height: 100vh;
-  background: #f8f8f8;
+<style scoped lang="scss">
+/* 页面头部 */
+.page-header {
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* 顶部栏 */
-.header {
-  background: #fff;
-  border-bottom: 1px solid #eee;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.header-content {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 16px 20px;
+.page-header-content {
   display: flex;
   align-items: center;
   gap: 20px;
 }
 
-.back {
-  color: #666;
-  cursor: pointer;
-  font-size: 14px;
+.page-header-icon {
+  font-size: 48px;
+  opacity: 0.9;
+  flex-shrink: 0;
 }
 
-.back:hover {
-  color: #333;
-}
-
-.title {
+.page-header-text {
   flex: 1;
-  font-size: 18px;
-  font-weight: 500;
-  color: #333;
-  margin: 0;
+  min-width: 0;
 }
 
-.count {
-  color: #999;
-  font-size: 13px;
+.page-header-title {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-header-desc {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
 }
 
 /* 主内容 */
 .main {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
+  padding: 0;
 }
 
 /* 电影项 */
 .movie-item {
   display: flex;
-  gap: 16px;
-  padding: 16px;
-  background: #fff;
-  border-radius: 8px;
-  margin-bottom: 12px;
+  gap: 20px;
+  padding: 20px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 12px;
+  margin-bottom: 16px;
   cursor: pointer;
-  transition: box-shadow 0.2s;
+  transition: all 0.3s ease;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .movie-item:hover {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  border-color: var(--el-color-primary);
 }
 
 /* 海报 */
 .poster {
-  width: 90px;
-  height: 130px;
-  border-radius: 6px;
+  width: 100px;
+  height: 140px;
+  border-radius: 12px;
   overflow: hidden;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.movie-item:hover .poster {
+  transform: scale(1.05);
 }
 
 .poster-img {
   width: 100%;
   height: 100%;
+  object-fit: cover;
 }
 
 /* 信息 */
@@ -346,15 +363,16 @@ watch(
 }
 
 .name {
-  font-size: 16px;
-  font-weight: 500;
-  color: #333;
-  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 0 0 12px 0;
   line-height: 1.4;
+  transition: color 0.3s ease;
 }
 
 .movie-item:hover .name {
-  color: #1890ff;
+  color: var(--el-color-primary);
 }
 
 .meta {
@@ -387,15 +405,30 @@ watch(
   align-items: flex-start;
 }
 
+.actions .el-button {
+  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+  transition: all 0.3s ease;
+}
+
+.actions .el-button:hover {
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+  transform: translateY(-2px);
+}
+
 /* 空状态 */
 .empty {
   text-align: center;
-  padding: 80px 20px;
-  color: #999;
+  padding: 100px 20px;
+  color: var(--el-text-color-secondary);
 }
 
 .empty p {
-  margin: 0 0 16px 0;
+  margin: 0 0 24px 0;
+  font-size: 16px;
+}
+
+.empty .el-button {
+  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
 }
 
 /* 进度对话框 */
@@ -423,30 +456,46 @@ watch(
 }
 
 /* 响应式 */
-@media (max-width: 640px) {
-  .header-content {
-    padding: 12px 16px;
+@media (max-width: 768px) {
+  .page-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
   }
 
-  .title {
-    font-size: 15px;
+  .page-header-icon {
+    font-size: 36px;
   }
 
-  .main {
-    padding: 12px;
+  .page-header-title {
+    font-size: 20px;
+  }
+
+  .back-btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .movie-item {
-    padding: 12px;
+    padding: 16px;
+    flex-direction: column;
   }
 
   .poster {
-    width: 70px;
-    height: 100px;
+    width: 100%;
+    max-width: 200px;
+    height: 280px;
+    margin: 0 auto;
   }
 
   .name {
-    font-size: 14px;
+    font-size: 16px;
+    text-align: center;
+  }
+
+  .actions {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>

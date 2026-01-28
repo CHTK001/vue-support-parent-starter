@@ -159,7 +159,7 @@ defineExpose({
           <span>{{ title }}部门</span>
         </div>
       </template>
-      <el-form ref="dialogFormRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="dept-form">
+      <el-form ref="dialogFormRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="modern-form dept-form">
         <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item label="父级机构" prop="sysDeptPid">

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * 消息菜单组件
- * 支持异步请求获取消息列表，以及通过Socket.IO实时推�?
+ * 支持异步请求获取消息列表，以及通过Socket.IO实时推�?
  * @author CH
  * @version 1.0.0
  * @since 2024-12-04
@@ -30,13 +30,13 @@ const { $storage } = useGlobal<GlobalPropertiesApi>();
 // 提取 store 引用到顶层，避免在生命周期中重复调用
 const configStore = useConfigStore();
 
-// 消息功能开�?- 从配置中读取
+// 消息功能开�?- 从配置中读取
 const messageEnabled = ref(
   $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true
 );
 
 /**
- * 消息项接�?
+ * 消息项接�?
  */
 interface MessageItem {
   id: number;
@@ -52,7 +52,7 @@ interface MessageItem {
 
 // 消息列表
 const messages = ref<MessageItem[]>([]);
-// 加载状�?
+// 加载状�?
 const loading = ref(false);
 // 未读消息数量
 const unreadCount = computed(
@@ -80,7 +80,7 @@ const transformMessage = (msg: SysMessage): MessageItem => {
  * 获取消息列表
  */
 const fetchMessages = async () => {
-  // 开关关闭时不请求后�?
+  // 开关关闭时不请求后�?
   if (!messageEnabled.value) {
     messages.value = [];
     return;
@@ -114,17 +114,17 @@ const showMessageChangeHandler = (val: boolean) => {
 };
 
 /**
- * 处理Socket消息推�?
+ * 处理Socket消息推�?
  * @param data 推送的消息数据
  */
 const handleSocketMessage = (data: any) => {
-  // 开关关闭时不处理推�?
+  // 开关关闭时不处理推送
   if (!messageEnabled.value) return;
   
   if (data) {
     const newMessage: MessageItem = {
       id: data.messageId || data.id || Date.now(),
-      title: data.title || "新消�?,
+      title: data.title || "新消息",
       content: data.content || data.message,
       avatar: data.avatar,
       time: data.sendTime || data.time || new Date().toLocaleString(),
@@ -138,7 +138,7 @@ const handleSocketMessage = (data: any) => {
     if (!exists) {
       messages.value.unshift(newMessage);
       
-      // 触发消息弹窗推送事�?
+      // 触发消息弹窗推送事�?
       emitter.emit("messageToastPush", {
         messageId: newMessage.id,
         title: newMessage.title,
@@ -154,12 +154,12 @@ const handleSocketMessage = (data: any) => {
 };
 
 /**
- * 标记消息为已�?
- * @param message 消息�?
+ * 标记消息为已�?
+ * @param message 消息�?
  */
 const markAsRead = async (message: MessageItem) => {
   if (message.read) return;
-  // 开关关闭时只修改本地状�?
+  // 开关关闭时只修改本地状�?
   if (!messageEnabled.value) {
     const index = messages.value.findIndex((m) => m.id === message.id);
     if (index > -1) {
@@ -170,7 +170,7 @@ const markAsRead = async (message: MessageItem) => {
   try {
     const response = await fetchMarkAsRead(message.id);
     if (response.success) {
-      // 标记已读后从列表移除（后端已转入历史记录�?
+      // 标记已读后从列表移除（后端已转入历史记录�?
       const index = messages.value.findIndex((m) => m.id === message.id);
       if (index > -1) {
         messages.value.splice(index, 1);
@@ -185,7 +185,7 @@ const markAsRead = async (message: MessageItem) => {
  * 标记全部已读
  */
 const markAllAsRead = async () => {
-  // 开关关闭时只清空本�?
+  // 开关关闭时只清空本�?
   if (!messageEnabled.value) {
     messages.value = [];
     return;
@@ -193,7 +193,7 @@ const markAllAsRead = async () => {
   try {
     const response = await fetchMarkAllAsRead();
     if (response.success) {
-      // 清空未读列表（后端已全部转入历史记录�?
+      // 清空未读列表（后端已全部转入历史记录�?
       messages.value = [];
     }
   } catch (error) {
@@ -202,14 +202,14 @@ const markAllAsRead = async () => {
 };
 
 /**
- * 清空所有消�?
+ * 清空所有消�?
  */
 const clearAll = async () => {
-  // 批量标记已读后清�?
+  // 批量标记已读后清�?
   await markAllAsRead();
 };
 
-// 消息中心 Drawer 状�?
+// 消息中心 Drawer 状�?
 const drawerVisible = ref(false);
 const activeTab = ref("all");
 const dropdownRef = ref();
@@ -218,7 +218,7 @@ const dropdownRef = ref();
  * 打开消息中心 Drawer
  */
 const openMessageCenter = () => {
-  // 先关闭下拉菜�?
+  // 先关闭下拉菜�?
   dropdownRef.value?.handleClose();
   drawerVisible.value = true;
 };
@@ -230,7 +230,7 @@ const closeMessageCenter = () => {
   drawerVisible.value = false;
 };
 
-// 根据选项卡过滤消�?
+// 根据选项卡过滤消�?
 const filteredMessages = computed(() => {
   if (activeTab.value === "unread") {
     return messages.value.filter((m) => !m.read);
@@ -244,7 +244,7 @@ const filteredMessages = computed(() => {
  * 删除消息
  */
 const deleteMessage = async (msg: MessageItem) => {
-  // 开关关闭时只删除本�?
+  // 开关关闭时只删除本�?
   if (!messageEnabled.value) {
     const index = messages.value.findIndex((m) => m.id === msg.id);
     if (index > -1) {
@@ -281,20 +281,20 @@ onMounted(() => {
   // 获取消息列表
   fetchMessages();
 
-  // 监听消息开关变�?
+  // 监听消息开关变�?
   emitter.on("showMessageChange", showMessageChangeHandler);
 
-  // 监听Socket消息推�?
+  // 监听Socket消息推�?
   const socket = configStore.getSocket();
   if (socket) {
-    // 使用统一的主题命名规�?
+    // 使用统一的主题命名规�?
     socket.on("service:message:push", handleSocketMessage);
     socket.on("system:message:push", handleSocketMessage);
     socket.on("system:message:notification", handleSocketMessage);
   }
 });
 
-// 组件卸载时清�?
+// 组件卸载时清�?
 onUnmounted(() => {
   const socket = configStore.getSocket();
   if (socket) {
@@ -348,7 +348,7 @@ onUnmounted(() => {
               <el-icon class="is-loading"
                 ><IconifyIconOnline icon="ri:loader-4-line"
               /></el-icon>
-              <span>加载�?..</span>
+              <span>加载�?..</span>
             </div>
             <el-empty
               v-else-if="messages.length === 0"
@@ -408,7 +408,7 @@ onUnmounted(() => {
       </div>
     </template>
 
-    <!-- 选项�?-->
+    <!-- 选项�?-->
     <el-tabs v-model="activeTab" class="message-tabs">
       <el-tab-pane label="全部消息" name="all" />
       <el-tab-pane name="unread">
@@ -420,7 +420,7 @@ onUnmounted(() => {
       <el-tab-pane label="系统通知" name="system" />
     </el-tabs>
 
-    <!-- 操作�?-->
+    <!-- 操作�?-->
     <div class="drawer-actions">
       <el-button size="small" @click="markAllAsRead" :disabled="unreadCount === 0">
         <IconifyIconOnline icon="ri:check-double-line" />
@@ -834,7 +834,7 @@ html.dark .message-center-drawer {
   }
 }
 
-// 导入拆分的主题样式文�?
+// 导入拆分的主题样式文�?
 @import './themes/index';
 
 </style>

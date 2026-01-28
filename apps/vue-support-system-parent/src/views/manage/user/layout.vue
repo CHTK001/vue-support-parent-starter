@@ -412,7 +412,7 @@ export default defineComponent({
 </script>
 
 <template>
-  <div class="main background-color">
+  <div class="system-container main background-color">
     <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch"
       @close="dialogClose" />
     <div class="main">

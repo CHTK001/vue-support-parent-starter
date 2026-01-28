@@ -1,5 +1,5 @@
 <template>
-  <div class="server-detail-components">
+  <div class="server-detail-components system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -65,13 +65,13 @@ import { ref, watch } from "vue";
 // 导入组件
 import GridLayoutEditor from "../../components/layout/GridLayoutEditor.vue";
 import ComponentEditDialog from "./components/ComponentEditDialog.vue";
-import ComponentManageDialog from "./components/ComponentManageDialog.vue";
-import BarChartComponent from "./components/previews/BarPreview.vue";
-import CardComponent from "./components/previews/CardPreview.vue";
-import GaugeComponent from "./components/previews/GaugePreview.vue";
-import LineChartComponent from "./components/previews/LinePreview.vue";
-import PieChartComponent from "./components/previews/PiePreview.vue";
-import TableComponent from "./components/previews/TablePreview.vue";
+import ComponentManageDialog from "@/views/server/components/dialogs/ComponentManageDialog.vue";
+import BarChartComponent from "./charts/BarChart.vue";
+import CardComponent from "./charts/CardChart.vue";
+import GaugeComponent from "./charts/GaugeChart.vue";
+import LineChartComponent from "./charts/LineChart.vue";
+import PieChartComponent from "./charts/PieChart.vue";
+import TableComponent from "./charts/CardChart.vue";
 
 // 定义属性
 const props = defineProps<{
@@ -347,6 +347,60 @@ watch(
 </script>
 
 <style lang="scss" scoped>
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 32px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  }
+}
+
+
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .server-detail-components {
   height: 100%;
   display: flex;
@@ -416,4 +470,15 @@ watch(
     height: 400px;
   }
 }
+
+
+// 响应式设计
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

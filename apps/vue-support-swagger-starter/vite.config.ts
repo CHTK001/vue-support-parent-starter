@@ -22,6 +22,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     root,
     resolve: {
       alias: createAlias(import.meta.url),
+      dedupe: ["vue", "vue-router", "vue-i18n"],
+      preserveSymlinks: false,
     },
     server: {
       port: VITE_PORT,
@@ -75,6 +77,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         input: {
           index: pathResolve("./index.html", import.meta.url),
         },
+        external: ["@element-plus/icons-vue"],
         output: {
           chunkFileNames: "static/js/[name]-[hash].js",
           entryFileNames: "static/js/[name]-[hash].js",

@@ -6,6 +6,12 @@
   "module": "src/index.js",
   "types": "src/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "types": "./src/index.d.ts"
+    }
+  },
   "files": [
     "src/",
     "build/"
@@ -13,7 +19,7 @@
   "scripts": {
     "test": "node test/sm2-test.js",
     "dev": "vite",
-    "build": "rimraf build && cd src-rust && wasm-pack build --target web --out-dir ../build --release"
+    "build": "bash build-wasm.sh"
   },
   "keywords": [
     "webassembly",
@@ -26,8 +32,8 @@
   "author": "CH",
   "license": "MIT",
   "devDependencies": {
-    "vite": "^7.1.7",
-    "rimraf": "^5.0.0"
+    "vite": "catalog:",
+    "rimraf": "catalog:"
   },
   "dependencies": {
     "crypto-js": "^4.2.0",

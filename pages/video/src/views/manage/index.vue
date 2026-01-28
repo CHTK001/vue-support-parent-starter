@@ -1,29 +1,28 @@
 <template>
-  <div class="video-manage">
-    <!-- 顶部栏 -->
-    <header class="header">
-      <div class="header-left">
-        <h1 class="title">视频管理</h1>
-      </div>
-      <div class="header-right">
-        <div class="search-box">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索视频..."
-            clearable
-            @keyup.enter="handleSearch"
-          >
-            <template #suffix>
-              <IconifyIconOnline
-                icon="ep:search"
-                class="search-icon"
-                @click="handleSearch"
-              />
-            </template>
-          </el-input>
+  <div class="system-container modern-bg">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="page-header-content">
+        <IconifyIconOnline icon="ri:video-line" class="page-header-icon" />
+        <div>
+          <h2 class="page-header-title">视频管理</h2>
+          <p class="page-header-desc">浏览、搜索和管理您的视频资源</p>
         </div>
       </div>
-    </header>
+      <div class="page-header-actions">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索视频..."
+          clearable
+          style="width: 280px"
+          @keyup.enter="handleSearch"
+        >
+          <template #prefix>
+            <el-icon><IconifyIconOnline icon="ep:search" /></el-icon>
+          </template>
+        </el-input>
+      </div>
+    </div>
 
     <!-- 分类标签 -->
     <div class="category-tabs">
@@ -67,72 +66,107 @@ const handleSearch = () => {
 };
 </script>
 
-<style scoped>
-.video-manage {
-  min-height: 100vh;
-  background: #f5f5f5;
-}
-
-/* 顶部栏 */
-.header {
+<style scoped lang="scss">
+/* 页面头部 */
+.page-header {
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  background: #fff;
-  border-bottom: 1px solid #eee;
+  justify-content: space-between;
+  gap: 20px;
 }
 
-.title {
-  font-size: 20px;
+.page-header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-header-icon {
+  font-size: 48px;
+  opacity: 0.9;
+}
+
+.page-header-title {
+  margin: 0 0 8px 0;
+  font-size: 24px;
   font-weight: 600;
-  color: #333;
+}
+
+.page-header-desc {
   margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
 }
 
-.search-box {
-  width: 280px;
-}
-
-.search-box :deep(.el-input__wrapper) {
-  border-radius: 20px;
-}
-
-.search-icon {
-  cursor: pointer;
-  color: #999;
-}
-
-.search-icon:hover {
-  color: #1890ff;
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 /* 分类标签 */
 .category-tabs {
   display: flex;
   gap: 8px;
-  padding: 16px 24px;
-  background: #fff;
-  border-bottom: 1px solid #eee;
+  padding: 16px 20px;
+  background: var(--el-bg-color-overlay);
+  border-radius: 12px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .tab {
-  padding: 6px 16px;
+  padding: 8px 16px;
   font-size: 14px;
-  color: #666;
+  color: var(--el-text-color-regular);
   cursor: pointer;
-  border-radius: 16px;
-  transition: all 0.2s;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  border: 1px solid transparent;
+
+  &:hover {
+    color: var(--el-color-primary);
+    background: rgba(var(--el-color-primary-rgb), 0.1);
+    border-color: rgba(var(--el-color-primary-rgb), 0.2);
+  }
+
+  &.active {
+    color: white;
+    background: var(--el-color-primary);
+    border-color: var(--el-color-primary);
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
+  }
 }
 
-.tab:hover {
-  color: #1890ff;
-  background: rgba(24, 144, 255, 0.1);
-}
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+  }
 
-.tab.active {
-  color: #fff;
-  background: #1890ff;
+  .page-header-content {
+    width: 100%;
+  }
+
+  .page-header-actions {
+    width: 100%;
+  }
+
+  .page-header-actions .el-input {
+    width: 100%;
+  }
+
+  .category-tabs {
+    padding: 12px 16px;
+  }
 }
 </style>

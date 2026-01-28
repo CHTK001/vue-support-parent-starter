@@ -1,28 +1,27 @@
 <template>
-  <div class="pomodoro-container">
-    <div class="tool-description">
-      <el-alert type="info" show-icon :closable="false">
-        <p>
-          番茄工作法是一种时间管理方法，使用一个定时器来分割工作和休息时间，以提高效率和保持专注。
-        </p>
-        <p>
-          传统的番茄工作法包括25分钟的工作时间和5分钟的休息时间，完成4个周期后进行一次较长休息。
-        </p>
-      </el-alert>
+  <div class="pomodoro-tool">
+    <div class="pomodoro-tool__header">
+      <div class="pomodoro-tool__header-content">
+        <IconifyIconOnline icon="ri:timer-line" class="pomodoro-tool__header-icon" />
+        <div>
+          <h2 class="pomodoro-tool__header-title">番茄工作法计时器</h2>
+          <p class="pomodoro-tool__header-desc">使用定时器分割工作和休息时间，提高效率和保持专注</p>
+        </div>
+      </div>
     </div>
 
-    <el-row :gutter="20" class="main-content">
+    <el-row :gutter="20" class="pomodoro-tool__main-content">
       <el-col :span="16">
-        <el-card class="timer-card">
+        <el-card class="pomodoro-tool__card" shadow="hover">
           <div
-            class="timer-display"
-            :class="{ 'work-mode': isWorkMode, 'break-mode': !isWorkMode }"
+            class="pomodoro-tool__timer-display"
+            :class="{ 'pomodoro-tool__timer-display--work': isWorkMode, 'pomodoro-tool__timer-display--break': !isWorkMode }"
           >
-            <div class="timer-status">
+            <div class="pomodoro-tool__timer-status">
               {{ isWorkMode ? "工作时间" : "休息时间" }}
             </div>
-            <div class="timer-clock">{{ formatTime(currentTime) }}</div>
-            <div class="timer-progress">
+            <div class="pomodoro-tool__timer-clock">{{ formatTime(currentTime) }}</div>
+            <div class="pomodoro-tool__timer-progress">
               <el-progress
                 :percentage="progressPercentage"
                 :stroke-width="10"
@@ -32,7 +31,7 @@
             </div>
           </div>
 
-          <div class="timer-controls">
+          <div class="pomodoro-tool__timer-controls">
             <el-button-group>
               <el-button
                 v-if="!isRunning"
@@ -71,14 +70,14 @@
             </el-button-group>
           </div>
 
-          <div class="timer-cycles">
-            <div class="cycle-label">已完成番茄数：</div>
-            <div class="cycle-indicators">
+          <div class="pomodoro-tool__timer-cycles">
+            <div class="pomodoro-tool__cycle-label">已完成番茄数：</div>
+            <div class="pomodoro-tool__cycle-indicators">
               <div
                 v-for="n in workCyclesTarget"
                 :key="n"
-                class="cycle-indicator"
-                :class="{ completed: n <= completedWorkCycles }"
+                class="pomodoro-tool__cycle-indicator"
+                :class="{ 'pomodoro-tool__cycle-indicator--completed': n <= completedWorkCycles }"
               >
                 <IconifyIconOnline
                   :icon="
@@ -91,34 +90,35 @@
             </div>
           </div>
 
-          <div class="timer-stats">
-            <div class="stats-item">
-              <div class="stats-value">{{ completedWorkCycles }}</div>
-              <div class="stats-label">已完成</div>
+          <div class="pomodoro-tool__timer-stats">
+            <div class="pomodoro-tool__stats-item">
+              <div class="pomodoro-tool__stats-value">{{ completedWorkCycles }}</div>
+              <div class="pomodoro-tool__stats-label">已完成</div>
             </div>
-            <div class="stats-item">
-              <div class="stats-value">{{ formatTime(totalWorkTime) }}</div>
-              <div class="stats-label">总工作时间</div>
+            <div class="pomodoro-tool__stats-item">
+              <div class="pomodoro-tool__stats-value">{{ formatTime(totalWorkTime) }}</div>
+              <div class="pomodoro-tool__stats-label">总工作时间</div>
             </div>
-            <div class="stats-item">
-              <div class="stats-value">{{ formatTime(totalBreakTime) }}</div>
-              <div class="stats-label">总休息时间</div>
+            <div class="pomodoro-tool__stats-item">
+              <div class="pomodoro-tool__stats-value">{{ formatTime(totalBreakTime) }}</div>
+              <div class="pomodoro-tool__stats-label">总休息时间</div>
             </div>
           </div>
         </el-card>
       </el-col>
 
       <el-col :span="8">
-        <el-card class="settings-card">
+        <el-card class="pomodoro-tool__card" shadow="hover">
           <template #header>
-            <div class="settings-header">
+            <div class="pomodoro-tool__card-header">
+              <IconifyIconOnline icon="ri:settings-3-line" class="pomodoro-tool__card-icon" />
               <span>计时器设置</span>
             </div>
           </template>
 
-          <div class="settings-content">
-            <div class="settings-item">
-              <div class="settings-label">工作时间 (分钟):</div>
+          <div class="pomodoro-tool__settings-content">
+            <div class="pomodoro-tool__settings-item">
+              <div class="pomodoro-tool__settings-label">工作时间 (分钟):</div>
               <el-input-number
                 v-model="workTime"
                 :min="1"
@@ -128,8 +128,8 @@
               />
             </div>
 
-            <div class="settings-item">
-              <div class="settings-label">短休息时间 (分钟):</div>
+            <div class="pomodoro-tool__settings-item">
+              <div class="pomodoro-tool__settings-label">短休息时间 (分钟):</div>
               <el-input-number
                 v-model="shortBreakTime"
                 :min="1"
@@ -139,8 +139,8 @@
               />
             </div>
 
-            <div class="settings-item">
-              <div class="settings-label">长休息时间 (分钟):</div>
+            <div class="pomodoro-tool__settings-item">
+              <div class="pomodoro-tool__settings-label">长休息时间 (分钟):</div>
               <el-input-number
                 v-model="longBreakTime"
                 :min="1"
@@ -150,8 +150,8 @@
               />
             </div>
 
-            <div class="settings-item">
-              <div class="settings-label">长休息周期 (工作次数):</div>
+            <div class="pomodoro-tool__settings-item">
+              <div class="pomodoro-tool__settings-label">长休息周期 (工作次数):</div>
               <el-input-number
                 v-model="workCyclesTarget"
                 :min="1"
@@ -163,8 +163,8 @@
 
             <el-divider />
 
-            <div class="settings-item">
-              <div class="settings-label">自动开始休息:</div>
+            <div class="pomodoro-tool__settings-item">
+              <div class="pomodoro-tool__settings-label">自动开始休息:</div>
               <ScSwitch
                 v-model="autoStartBreak"
                 :disabled="isRunning"
@@ -172,8 +172,8 @@
               />
             </div>
 
-            <div class="settings-item">
-              <div class="settings-label">自动开始工作:</div>
+            <div class="pomodoro-tool__settings-item">
+              <div class="pomodoro-tool__settings-label">自动开始工作:</div>
               <ScSwitch
                 v-model="autoStartWork"
                 :disabled="isRunning"
@@ -181,13 +181,13 @@
               />
             </div>
 
-            <div class="settings-item">
-              <div class="settings-label">声音提醒:</div>
+            <div class="pomodoro-tool__settings-item">
+              <div class="pomodoro-tool__settings-label">声音提醒:</div>
               <ScSwitch v-model="soundEnabled" layout="modern" />
             </div>
 
-            <div class="settings-item">
-              <div class="settings-label">声音音量:</div>
+            <div class="pomodoro-tool__settings-item">
+              <div class="pomodoro-tool__settings-label">声音音量:</div>
               <el-slider
                 v-model="soundVolume"
                 :min="0"
@@ -202,15 +202,16 @@
 
     <el-row>
       <el-col :span="24">
-        <el-card class="tips-card">
+        <el-card class="pomodoro-tool__card" shadow="hover">
           <template #header>
-            <div class="tips-header">
+            <div class="pomodoro-tool__card-header">
+              <IconifyIconOnline icon="ri:lightbulb-line" class="pomodoro-tool__card-icon" />
               <span>番茄工作法小贴士</span>
             </div>
           </template>
 
-          <div class="tips-content">
-            <ul class="tips-list">
+          <div class="pomodoro-tool__tips-content">
+            <ul class="pomodoro-tool__tips-list">
               <li>每个番茄时间（通常为25分钟）专注于单一任务，不受干扰。</li>
               <li>
                 休息时间应远离工作，真正放松身心（起身走动、伸展、闭目养神等）。
@@ -493,160 +494,230 @@ watch([workTime, shortBreakTime, longBreakTime], () => {
 });
 </script>
 
-<style scoped>
-.pomodoro-container {
+<style scoped lang="scss">
+.pomodoro-tool {
   padding: 20px;
-}
 
-.tool-description {
-  margin-bottom: 20px;
-}
+  &__header {
+    background: linear-gradient(135deg, var(--el-color-warning-light-3) 0%, var(--el-color-warning) 100%);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 
-.main-content {
-  margin-bottom: 20px;
-}
+  &__header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
 
-.timer-card,
-.settings-card,
-.tips-card {
-  height: 100%;
-}
+  &__header-icon {
+    font-size: 48px;
+    opacity: 0.9;
+  }
 
-.timer-display {
-  text-align: center;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
-  margin-bottom: 20px;
-  transition: all 0.3s ease;
-}
+  &__header-title {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+  }
 
-.work-mode {
-  background-color: #fff5f5;
-  border: 1px solid #ffcccc;
-}
+  &__header-desc {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.9;
+  }
 
-.break-mode {
-  background-color: #f0f9f0;
-  border: 1px solid #c8e6c9;
-}
+  &__main-content {
+    margin-bottom: 20px;
+  }
 
-.timer-status {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 10px;
-  color: var(--el-text-color-primary);
-}
+  &__card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--el-border-color-lighter);
+    height: 100%;
 
-.timer-clock {
-  font-size: 64px;
-  font-weight: bold;
-  font-family: "Courier New", monospace;
-  margin: 20px 0;
-  letter-spacing: 2px;
-}
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      border-color: var(--el-color-warning-light-5);
+    }
+  }
 
-.work-mode .timer-clock {
-  color: #ff6b6b;
-}
+  &__card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--el-color-warning);
+  }
 
-.break-mode .timer-clock {
-  color: #4caf50;
-}
+  &__card-icon {
+    font-size: 20px;
+  }
 
-.timer-progress {
-  margin: 20px 0;
-}
+  &__timer-display {
+    text-align: center;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-.timer-controls {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 30px;
-}
+  &__timer-display--work {
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+    border: 2px solid var(--el-color-danger-light-5);
+  }
 
-.timer-cycles {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 20px 0;
-}
+  &__timer-display--break {
+    background: linear-gradient(135deg, #f0f9f0 0%, #e0f5e0 100%);
+    border: 2px solid var(--el-color-success-light-5);
+  }
 
-.cycle-label {
-  margin-right: 10px;
-  font-weight: bold;
-}
+  &__timer-status {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--el-text-color-primary);
+  }
 
-.cycle-indicators {
-  display: flex;
-}
+  &__timer-clock {
+    font-size: 72px;
+    font-weight: 700;
+    font-family: "Courier New", monospace;
+    margin: 24px 0;
+    letter-spacing: 4px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
 
-.cycle-indicator {
-  font-size: 24px;
-  margin: 0 3px;
-  color: var(--el-text-color-secondary);
-}
+  &__timer-display--work &__timer-clock {
+    color: var(--el-color-danger);
+  }
 
-.cycle-indicator.completed {
-  color: var(--el-color-success);
-}
+  &__timer-display--break &__timer-clock {
+    color: var(--el-color-success);
+  }
 
-.timer-stats {
-  display: flex;
-  justify-content: space-around;
-  background-color: var(--el-fill-color-light);
-  padding: 15px;
-  border-radius: 8px;
-  margin-top: 20px;
-}
+  &__timer-progress {
+    margin: 24px 0;
+  }
 
-.stats-item {
-  text-align: center;
-}
+  &__timer-controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
 
-.stats-value {
-  font-size: 18px;
-  font-weight: bold;
-  color: var(--el-text-color-primary);
-}
+  &__timer-cycles {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 24px 0;
+    padding: 16px;
+    background-color: var(--el-fill-color-lighter);
+    border-radius: 8px;
+  }
 
-.stats-label {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 5px;
-}
+  &__cycle-label {
+    margin-right: 12px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
 
-.settings-header,
-.tips-header {
-  font-weight: bold;
-}
+  &__cycle-indicators {
+    display: flex;
+    gap: 8px;
+  }
 
-.settings-content {
-  padding: 10px 0;
-}
+  &__cycle-indicator {
+    font-size: 28px;
+    color: var(--el-text-color-placeholder);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-.settings-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
+  &__cycle-indicator--completed {
+    color: var(--el-color-success);
+    transform: scale(1.1);
+  }
 
-.settings-label {
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-}
+  &__timer-stats {
+    display: flex;
+    justify-content: space-around;
+    background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-light) 100%);
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 24px;
+  }
 
-.tips-content {
-  padding: 10px;
-}
+  &__stats-item {
+    text-align: center;
+    flex: 1;
+  }
 
-.tips-list {
-  padding-left: 20px;
-  margin: 0;
-}
+  &__stats-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--el-color-primary);
+    margin-bottom: 4px;
+  }
 
-.tips-list li {
-  margin-bottom: 8px;
-  line-height: 1.5;
+  &__stats-label {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+  }
+
+  &__settings-content {
+    padding: 8px 0;
+  }
+
+  &__settings-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 12px;
+    background-color: var(--el-fill-color-lighter);
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      background-color: var(--el-fill-color-light);
+    }
+  }
+
+  &__settings-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+  }
+
+  &__tips-content {
+    padding: 8px 0;
+  }
+
+  &__tips-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      position: relative;
+      margin-bottom: 12px;
+      padding-left: 24px;
+      line-height: 1.6;
+      color: var(--el-text-color-regular);
+
+      &::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: var(--el-color-warning);
+        font-weight: bold;
+        font-size: 18px;
+      }
+    }
+  }
 }
 </style>

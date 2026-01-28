@@ -503,7 +503,7 @@ watch(dialogVisible, (visible) => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .dialog-content {
   padding: 0 4px;
 }
@@ -627,4 +627,15 @@ watch(dialogVisible, (visible) => {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

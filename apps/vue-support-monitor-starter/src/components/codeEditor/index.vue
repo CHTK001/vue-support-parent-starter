@@ -727,7 +727,7 @@ export default {
   background: rgba(251, 191, 36, 0.4);
 }
 </style>
-<style scoped>
+<style scoped lang="scss">
 /* .CodeMirror-hints {
   z-index: 3330 !important;
 } */

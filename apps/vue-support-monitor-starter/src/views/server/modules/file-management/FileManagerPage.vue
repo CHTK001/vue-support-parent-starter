@@ -1,5 +1,5 @@
 <template>
-  <div class="file-manager-page" @dragenter.prevent @dragover.prevent @drop.prevent>
+  <div class="file-manager-page system-container modern-bg" @dragenter.prevent @dragover.prevent @drop.prevent>
     <!-- 主要内容区域 -->
     <div class="manager-content">
       <!-- 左侧文件树 -->
@@ -585,7 +585,42 @@ defineExpose({
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  /* 渐变背景 */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .file-manager-page {
   height: 100vh; /* 撑满整个视口高度 */
   width: 100vw; /* 撑满整个视口宽度 */

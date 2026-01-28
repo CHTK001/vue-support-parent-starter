@@ -26,11 +26,22 @@ function onSelect(key: string) {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .feature-menu {
   border-right: none;
 }
 .mr-2 {
   margin-right: 6px;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

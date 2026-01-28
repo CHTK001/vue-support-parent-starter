@@ -373,7 +373,7 @@ onUnmounted(() => {
 });
 </script>
 <template>
-  <div class="app-container h-full modern-setting-container">
+  <div class="app-container modern-setting-container system-container modern-bg">
 
     <el-button :icon="useRenderIcon('ri:settings-4-line')" class="floating-settings-btn" type="primary" circle
       @click="handleOpenItemDialog" />

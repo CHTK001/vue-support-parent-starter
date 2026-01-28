@@ -423,7 +423,7 @@ const handleClose = () => {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .container-detail {
   max-height: 600px;
   overflow-y: auto;

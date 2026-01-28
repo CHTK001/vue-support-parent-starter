@@ -368,7 +368,7 @@ function handleClose() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .proxy-config-container {
   max-height: 65vh;
   overflow-y: auto;

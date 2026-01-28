@@ -1,0 +1,408 @@
+/**
+ * 情人节主题皮肤 - 浪漫粉红与爱心
+ * @author CH
+ * @date 2025-12-16
+ * 
+ * 设计理念：浪漫温馨，充满爱意
+ * 主色调：粉红渐变 (#FF69B4, #FFB6C1, #FFC0CB) + 玫瑰红 (#DC143C)
+ * 辅助色：淡粉 #FFF0F5、深粉 #FF1493
+ */
+
+/* ========================================
+   情人节主题色彩变量
+   ======================================== */
+:root.theme-valentines-day {
+  /* 粉红色系 */
+  --pink-primary: #FF69B4;
+  --pink-bright: #FF1493;
+  --pink-light: #FFB6C1;
+  --pink-soft: #FFC0CB;
+  --pink-pale: #FFF0F5;
+  --pink-rose: #DC143C;
+  
+  /* 爱心色系 */
+  --heart-red: #FF6B9D;
+  --heart-pink: #FFB3D9;
+  --heart-glow: rgba(255, 105, 180, 0.5);
+  
+  /* Element Plus 主题覆盖 */
+  --el-color-primary: #FF69B4;
+  --el-color-primary-light-3: #FFB6C1;
+  --el-color-primary-light-5: #FFC0CB;
+  --el-color-primary-light-7: #FFD9E6;
+  --el-color-primary-light-8: #FFE6F0;
+  --el-color-primary-light-9: #FFF0F5;
+  
+  /* 主题语义变量 */
+  --theme-primary: #FF69B4;
+  --theme-secondary: #FF1493;
+  --theme-accent: #FF6B9D;
+  --theme-background: #FFF0F5;
+}
+
+/* ========================================
+   全局组件样式（全局选择器版本）
+   ======================================== */
+
+/* 导航栏 - 粉红渐变 */
+.theme-valentines-day .modern-navbar,
+.theme-valentines-day .lay-navbar { 
+  background: linear-gradient(135deg, #FF69B4 0%, #FFB6C1 50%, #FFC0CB 100%);
+  backdrop-filter: blur(20px);
+  border-bottom: 3px solid #FF1493;
+  box-shadow: 0 4px 20px rgba(255, 105, 180, 0.5),
+    0 0 40px rgba(255, 20, 147, 0.3);
+  position: relative;
+}
+
+.theme-valentines-day .modern-navbar::before,
+.theme-valentines-day .lay-navbar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  animation: valentines-shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 头部容器 */
+.theme-valentines-day .header-container-with-decoration { 
+  background: linear-gradient(180deg, rgba(255, 240, 245, 0.98), rgba(255, 228, 225, 0.96));
+  border-bottom: 2px solid rgba(255, 105, 180, 0.2);
+}
+
+/* 侧边栏容器 */
+.theme-valentines-day .sidebar-container-with-decoration,
+.theme-valentines-day .sidebar-container { 
+  background: linear-gradient(180deg, rgba(255, 240, 245, 0.98) 0%, rgba(255, 228, 225, 0.95) 100%);
+  border-right: 2px solid rgba(255, 105, 180, 0.2);
+  box-shadow: 2px 0 20px rgba(255, 105, 180, 0.1);
+}
+
+/* 标签视图 */
+.theme-valentines-day .tags-view { 
+  background: linear-gradient(180deg, rgba(255, 240, 245, 0.98), rgba(255, 228, 225, 0.95));
+  border-bottom: 2px solid rgba(255, 105, 180, 0.2);
+}
+.theme-valentines-day .tags-view .tab { 
+  border: 2px solid rgba(255, 105, 180, 0.3);
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+}
+.theme-valentines-day .tags-view .tab.is-active { 
+  border-color: #FF69B4;
+  background: linear-gradient(135deg, #FF69B4, #FFB6C1);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(255, 105, 180, 0.4);
+}
+
+/* 工具栏 */
+.theme-valentines-day .tool-bar .tool-item { 
+  border: 2px solid rgba(255, 105, 180, 0.25);
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 20px;
+}
+
+/* 主内容区 - 爱心氛围 */
+.theme-valentines-day .app-main,
+.theme-valentines-day .app-main-nofixed-header { 
+  background: 
+    radial-gradient(circle at 15% 25%, rgba(255, 105, 180, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(255, 182, 193, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(255, 20, 147, 0.05) 0%, transparent 60%),
+    linear-gradient(180deg, #FFF0F5 0%, #FFE4E1 100%);
+}
+
+/* 页脚 */
+.theme-valentines-day .lay-footer,
+.theme-valentines-day .footer-container { 
+  background: linear-gradient(180deg, rgba(255, 240, 245, 0.95), rgba(255, 228, 225, 0.98));
+  border-top: 2px solid rgba(255, 105, 180, 0.2);
+}
+
+.theme-valentines-day .search-footer .icon { color: #FF69B4; }
+
+/* ========================================
+   深度选择器样式覆盖
+   ======================================== */
+
+/* 导航栏深度样式 */
+.theme-valentines-day :deep(.lay-navbar) {
+  background: linear-gradient(135deg, #FF69B4 0%, #FFB6C1 50%, #FFC0CB 100%);
+  border-bottom: 3px solid #FF1493;
+  box-shadow: 0 4px 20px rgba(255, 105, 180, 0.5);
+}
+
+/* 侧边栏导航深度样式 */
+.theme-valentines-day :deep(.nav-vertical),
+.theme-valentines-day :deep(.nav-horizontal),
+.theme-valentines-day :deep(.nav-hover),
+.theme-valentines-day :deep(.nav-double) {
+  background: linear-gradient(180deg, rgba(255, 240, 245, 0.98) 0%, rgba(255, 228, 225, 0.96) 100%);
+}
+
+/* 菜单项悬停 - 粉红高亮 */
+.theme-valentines-day :deep(.nav-vertical .el-menu-item:hover),
+.theme-valentines-day :deep(.nav-vertical .el-sub-menu__title:hover) {
+  background: linear-gradient(135deg, rgba(255, 105, 180, 0.2), rgba(255, 182, 193, 0.15)) !important;
+  color: #FF1493 !important;
+  border-radius: 20px;
+}
+
+/* 菜单项选中 - 粉红渐变 */
+.theme-valentines-day :deep(.nav-vertical .el-menu-item.is-active),
+.theme-valentines-day :deep(.nav-vertical .el-sub-menu__title.is-active) {
+  background: linear-gradient(135deg, #FF69B4, #FFB6C1) !important;
+  color: #fff !important;
+  border-radius: 20px;
+  box-shadow: 0 2px 16px rgba(255, 105, 180, 0.4);
+}
+
+/* 按钮 - 粉红风格 */
+.theme-valentines-day :deep(.el-button--primary) {
+  background: linear-gradient(135deg, #FF69B4, #FFB6C1);
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 2px 12px rgba(255, 105, 180, 0.4);
+}
+
+.theme-valentines-day :deep(.el-button--primary:hover) {
+  background: linear-gradient(135deg, #FFB6C1, #FFC0CB);
+  box-shadow: 0 4px 20px rgba(255, 105, 180, 0.5);
+}
+
+/* 标签页 */
+.theme-valentines-day :deep(.el-tabs__nav-wrap::after) {
+  background-color: rgba(255, 105, 180, 0.3);
+}
+
+.theme-valentines-day :deep(.el-tabs__item.is-active) {
+  color: #FF69B4;
+  border-bottom-color: #FF69B4;
+  font-weight: bold;
+}
+
+/* 卡片 - 粉红边框 */
+.theme-valentines-day :deep(.el-card) {
+  border: 2px solid rgba(255, 105, 180, 0.2);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(255, 105, 180, 0.15);
+}
+
+/* 输入框焦点 */
+.theme-valentines-day :deep(.el-input__inner:focus),
+.theme-valentines-day :deep(.el-textarea__inner:focus) {
+  border-color: #FF69B4;
+  box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.2);
+  border-radius: 20px;
+}
+
+/* 进度条 */
+.theme-valentines-day :deep(.el-progress__bar) {
+  background: linear-gradient(90deg, #FFB6C1, #FF69B4);
+  border-radius: 20px;
+}
+
+/* 加载遮罩 */
+.theme-valentines-day :deep(.el-loading-mask) {
+  background-color: rgba(255, 240, 245, 0.9);
+  backdrop-filter: blur(4px);
+}
+
+/* ========================================
+   顶部装饰线 - 爱心色带
+   ======================================== */
+.theme-valentines-day::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    90deg, 
+    #FF69B4 0%,
+    #FFB6C1 25%,
+    #FF1493 50%,
+    #FFB6C1 75%,
+    #FF69B4 100%
+  );
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: 0 2px 16px rgba(255, 105, 180, 0.6),
+    0 0 24px rgba(255, 20, 147, 0.4);
+  animation: valentines-gradient 4s ease-in-out infinite;
+}
+
+/* ========================================
+   爱心装饰
+   ======================================== */
+.theme-valentines-day::after {
+  content: "💕";
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  font-size: 40px;
+  animation: heart-beat 1.5s ease-in-out infinite;
+  z-index: 9998;
+  pointer-events: none;
+  filter: drop-shadow(0 0 12px rgba(255, 105, 180, 0.8));
+}
+
+/* 左侧爱心装饰 */
+.theme-valentines-day body::before {
+  content: "💖";
+  position: fixed;
+  top: 60px;
+  left: 5%;
+  font-size: 48px;
+  z-index: 9997;
+  pointer-events: none;
+  animation: heart-float 3s ease-in-out infinite;
+  filter: drop-shadow(0 4px 16px rgba(255, 105, 180, 0.5));
+}
+
+/* 右侧玫瑰装饰 */
+.theme-valentines-day body::after {
+  content: "🌹";
+  position: fixed;
+  bottom: 20px;
+  right: 5%;
+  font-size: 44px;
+  z-index: 9997;
+  pointer-events: none;
+  animation: rose-sway 4s ease-in-out infinite;
+  filter: drop-shadow(0 4px 16px rgba(255, 20, 147, 0.6));
+}
+
+/* ========================================
+   动画效果
+   ======================================== */
+@keyframes valentines-shimmer {
+  0%, 100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(100%);
+    opacity: 1;
+  }
+}
+
+@keyframes valentines-gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+    opacity: 1;
+  }
+  50% {
+    background-position: 100% 50%;
+    opacity: 0.95;
+  }
+}
+
+@keyframes heart-beat {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1) drop-shadow(0 0 12px rgba(255, 105, 180, 0.8));
+  }
+  25% {
+    transform: scale(1.15);
+    filter: brightness(1.3) drop-shadow(0 0 20px rgba(255, 105, 180, 1));
+  }
+  50% {
+    transform: scale(1);
+    filter: brightness(1) drop-shadow(0 0 12px rgba(255, 105, 180, 0.8));
+  }
+  75% {
+    transform: scale(1.1);
+    filter: brightness(1.2) drop-shadow(0 0 18px rgba(255, 105, 180, 0.9));
+  }
+}
+
+@keyframes heart-float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(-12px) rotate(10deg);
+    opacity: 1;
+  }
+}
+
+@keyframes rose-sway {
+  0%, 100% {
+    transform: rotate(-5deg) translateY(0);
+  }
+  25% {
+    transform: rotate(5deg) translateY(-3px);
+  }
+  50% {
+    transform: rotate(-3deg) translateY(0);
+  }
+  75% {
+    transform: rotate(3deg) translateY(-3px);
+  }
+}
+
+/* ========================================
+   深度组件样式统一
+   ======================================== */
+.theme-valentines-day :deep(.modern-navbar),
+.theme-valentines-day :deep(.lay-navbar) {
+  background: linear-gradient(135deg, #FF69B4 0%, #FFB6C1 50%, #FFC0CB 100%);
+  border-bottom: 3px solid #FF1493;
+}
+
+.theme-valentines-day :deep(.header-container-with-decoration) {
+  background: linear-gradient(180deg, rgba(255, 240, 245, 0.98), rgba(255, 228, 225, 0.96));
+}
+
+.theme-valentines-day :deep(.sidebar-container-with-decoration),
+.theme-valentines-day :deep(.sidebar-container) {
+  background: linear-gradient(180deg, rgba(255, 240, 245, 0.98) 0%, rgba(255, 228, 225, 0.95));
+  border-right: 2px solid rgba(255, 105, 180, 0.2);
+}
+
+.theme-valentines-day :deep(.tags-view) { 
+  background: linear-gradient(180deg, rgba(255, 240, 245, 0.98), rgba(255, 228, 225, 0.95));
+}
+.theme-valentines-day :deep(.tags-view .tab) { 
+  border: 2px solid rgba(255, 105, 180, 0.3);
+  border-radius: 20px;
+}
+.theme-valentines-day :deep(.tags-view .tab.is-active) { 
+  border-color: #FF69B4;
+  background: linear-gradient(135deg, #FF69B4, #FFB6C1);
+}
+
+.theme-valentines-day :deep(.tool-bar .tool-item) { 
+  border: 2px solid rgba(255, 105, 180, 0.25);
+  border-radius: 20px;
+}
+
+.theme-valentines-day :deep(.app-main),
+.theme-valentines-day :deep(.app-main-nofixed-header) {
+  background: 
+    radial-gradient(circle at 15% 25%, rgba(255, 105, 180, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(255, 182, 193, 0.1) 0%, transparent 50%),
+    linear-gradient(180deg, #FFF0F5 0%, #FFE4E1 100%);
+}
+
+.theme-valentines-day :deep(.lay-footer),
+.theme-valentines-day :deep(.footer-container) {
+  background: linear-gradient(180deg, rgba(255, 240, 245, 0.95), rgba(255, 228, 225, 0.98));
+  border-top: 2px solid rgba(255, 105, 180, 0.2);
+}
+
+.theme-valentines-day :deep(.search-footer .icon) { color: #FF69B4; }
+

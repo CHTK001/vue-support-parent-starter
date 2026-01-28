@@ -1,5 +1,5 @@
 <template>
-  <div class="llm-container">
+  <div class="llm-container system-container modern-bg">
     <!-- 保持原有结构，添加新的类名 -->
     <ModuleUpdateDialog
       ref="moduleUpdateDialogRef"

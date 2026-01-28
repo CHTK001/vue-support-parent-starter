@@ -1,5 +1,5 @@
 <template>
-  <div class="pay-page">
+  <div class="system-container pay-page">
     <div class="header">
       <iconifyIconOnline icon="mdi:credit-card-outline" width="20" />
       <span class="title">支付管理 / 商户管理</span>
@@ -28,11 +28,7 @@ watch(
 
 <style scoped lang="scss">
 .pay-page {
-  padding: 24px;
-  background: var(--el-bg-color);
   color: var(--el-text-color-primary);
-  min-height: 100%;
-  border-radius: 12px;
 }
 
 .header {

@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite ",
     "serve": "pnpm dev",
-    "build": "rimraf dist && vite build",
-    "build:staging": "rimraf dist && vite build --mode test",
+    "build:wasm": "cd ../../packages/codec-wasm && pnpm build",
+    "build": "pnpm build:wasm && rimraf dist && vite build",
+    "build:staging": "pnpm build:wasm && rimraf dist && vite build --mode test",
     "report": "rimraf dist && vite build",
     "preview": "vite preview",
     "preview:build": "pnpm build && vite preview",
@@ -22,6 +23,7 @@
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
+    "@layout/default": "workspace:^",
     "@antv/g6": "catalog:",
     "@codemirror/lang-javascript": "catalog:",
     "@codemirror/lang-yaml": "catalog:",

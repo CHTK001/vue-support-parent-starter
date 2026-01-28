@@ -450,23 +450,29 @@ const handleFileUpload = (event) => {
 .json-tool {
   /* 头部样式 */
   &__content {
-    padding: 0 10px;
+    padding: 0 20px 20px;
   }
 
   &__header-container {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
   }
 
   &__header {
-    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
-    border-radius: 12px;
-    padding: 30px;
+    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    border-radius: 16px;
+    padding: 32px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(var(--el-color-primary-rgb), 0.3);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      box-shadow: 0 12px 32px color-mix(in srgb, var(--el-color-primary) 40%, transparent);
+      transform: translateY(-2px);
+    }
 
     &-inner {
       position: relative;
@@ -543,53 +549,96 @@ const handleFileUpload = (event) => {
 
   /* 输入区域样式 */
   &__input-card {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
   }
 
   &__actions-top {
     display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    
+    :deep(.el-button) {
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: translateY(-2px);
+      }
+    }
   }
 
   &__textarea {
     font-family: "Courier New", monospace;
-    margin-bottom: 15px;
+    margin-bottom: 16px;
+    
+    :deep(.el-textarea__inner) {
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      
+      &:focus {
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+      }
+    }
   }
 
   &__options {
-    margin-bottom: 15px;
-    padding: 10px;
-    background-color: var(--el-fill-color-light);
-    border-radius: 6px;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: var(--el-bg-color-overlay);
+    border-radius: 8px;
+    border: 1px solid var(--el-border-color-lighter);
   }
 
   &__actions {
     display: flex;
-    gap: 10px;
+    gap: 12px;
+    flex-wrap: wrap;
+    
+    :deep(.el-button) {
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+      }
+    }
   }
 
   /* 结果区域样式 */
   &__result-card {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
   }
 
   &__empty {
-    padding: 40px 0;
+    padding: 60px 20px;
 
     &-icon {
-      font-size: 60px;
+      font-size: 64px;
       color: var(--el-text-color-placeholder);
+      opacity: 0.5;
     }
   }
 
   &__error {
     padding: 20px;
-    background-color: rgba(var(--el-color-danger-rgb), 0.1);
-    border-radius: 6px;
+    background: color-mix(in srgb, var(--el-color-danger) 10%, var(--el-bg-color));
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--el-color-danger) 30%, transparent);
     display: flex;
     align-items: flex-start;
-    gap: 10px;
+    gap: 12px;
+    transition: all 0.3s ease;
 
     &-icon {
       font-size: 24px;
@@ -601,6 +650,7 @@ const handleFileUpload = (event) => {
       font-family: "Courier New", monospace;
       color: var(--el-color-danger);
       word-break: break-all;
+      line-height: 1.6;
     }
   }
 
@@ -610,74 +660,112 @@ const handleFileUpload = (event) => {
 
   &__result-actions {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 8px;
+    right: 8px;
     display: flex;
-    gap: 10px;
-    padding: 5px;
-    background-color: rgba(var(--el-bg-color-rgb), 0.8);
-    border-radius: 4px;
+    gap: 8px;
+    padding: 8px;
+    background: color-mix(in srgb, var(--el-bg-color) 95%, transparent);
+    backdrop-filter: blur(8px);
+    border-radius: 8px;
+    border: 1px solid var(--el-border-color-lighter);
     z-index: 1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    
+    :deep(.el-button) {
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
   }
 
   &__output {
     font-family: "Courier New", monospace;
-    background-color: var(--el-bg-color-page);
-    padding: 15px;
-    border-radius: 6px;
+    background: var(--el-bg-color-page);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--el-border-color-lighter);
     overflow: auto;
     max-height: 400px;
     white-space: pre-wrap;
     word-break: break-all;
+    transition: all 0.3s ease;
+    
+    &--with-line-numbers {
+      .json-tool__line-number {
+        display: inline-block;
+        width: 40px;
+        color: var(--el-text-color-placeholder);
+        text-align: right;
+        margin-right: 12px;
+        user-select: none;
+      }
+    }
   }
 
   /* 使用说明样式 */
   &__tips-card {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
   }
 
   &__tips-content {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 16px;
   }
 
   &__tip-item {
     display: flex;
     align-items: flex-start;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateX(4px);
+    }
 
     &--warning {
-      margin-top: 10px;
-      padding: 15px;
-      background-color: rgba(var(--el-color-warning-rgb), 0.1);
+      margin-top: 12px;
+      padding: 16px;
+      background: color-mix(in srgb, var(--el-color-warning) 10%, var(--el-bg-color));
       border-radius: 8px;
-      border-left: 3px solid var(--el-color-warning);
+      border-left: 4px solid var(--el-color-warning);
     }
   }
 
   &__tip-number {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    background-color: var(--el-color-primary);
-    color: var(--el-text-color-primary);
+    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    margin-right: 10px;
+    font-size: 14px;
+    margin-right: 12px;
     flex-shrink: 0;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
   }
 
   &__tip-icon {
     font-size: 24px;
     color: var(--el-color-warning);
-    margin-right: 10px;
+    margin-right: 12px;
+    flex-shrink: 0;
   }
 
   &__tip-text {
     flex: 1;
-    line-height: 1.5;
+    line-height: 1.8;
+    color: var(--el-text-color-regular);
   }
 }
 

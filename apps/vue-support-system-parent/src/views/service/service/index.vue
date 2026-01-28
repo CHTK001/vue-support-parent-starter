@@ -136,7 +136,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="service-container">
+  <div class="system-container service-container">
     <SaveDialog ref="saveDialogRef" @success="loadData" />
     <div class="service-wrapper">
       <el-container>
@@ -173,8 +173,8 @@ onMounted(async () => {
 
         <!-- 搜索栏 -->
         <el-header class="service-header">
-          <div class="left-panel">
-            <el-form ref="formRef" :inline="true" :model="env.params" class="search-form">
+          <div class="toolbar-left left-panel">
+            <el-form ref="formRef" :inline="true" :model="env.params" class="modern-form search-form">
               <el-form-item label="服务名称" prop="sysServiceName">
                 <el-input 
                   v-model="env.params.sysServiceName" 
@@ -201,7 +201,7 @@ onMounted(async () => {
               </el-form-item>
             </el-form>
           </div>
-          <div class="right-panel">
+          <div class="toolbar-right right-panel">
             <div class="right-panel-search">
               <el-button type="primary" :icon="useRenderIcon('ri:search-line')" @click="onSearch">
                 搜索

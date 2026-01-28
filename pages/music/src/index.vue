@@ -285,6 +285,175 @@ const formatTime = (seconds: number) => {
   return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };
 
+// 切换播放/暂停
+const togglePlay = () => {
+  if (!audioRef.value) return;
+
+  if (env.isPlaying) {
+    audioRef.value.pause();
+  } else {
+    audioRef.value.play().catch((error) => {
+      console.error("播放失败:", error);
+      message("播放失败，请稍后重试", { type: "error" });
+    });
+  }
+};
+
+// 播放下一首
+const playNext = () => {
+  if (env.currentPlaylist.length === 0) return;
+
+  const currentIndex = env.currentPlaylist.findIndex((item) => item.musicId === env.currentMusic?.musicId);
+  let nextIndex: number;
+
+  if (env.isRandom) {
+    // 随机播放
+    nextIndex = Math.floor(Math.random() * env.currentPlaylist.length);
+  } else {
+    // 顺序播放
+    nextIndex = currentIndex + 1;
+    if (nextIndex >= env.currentPlaylist.length) {
+      nextIndex = 0;
+    }
+  }
+
+  if (nextIndex >= 0 && nextIndex < env.currentPlaylist.length) {
+    playMusic(env.currentPlaylist[nextIndex]);
+  }
+};
+
+// 播放上一首
+const playPrev = () => {
+  if (env.currentPlaylist.length === 0) return;
+
+  const currentIndex = env.currentPlaylist.findIndex((item) => item.musicId === env.currentMusic?.musicId);
+  let prevIndex: number;
+
+  if (env.isRandom) {
+    // 随机播放
+    prevIndex = Math.floor(Math.random() * env.currentPlaylist.length);
+  } else {
+    // 顺序播放
+    prevIndex = currentIndex - 1;
+    if (prevIndex < 0) {
+      prevIndex = env.currentPlaylist.length - 1;
+    }
+  }
+
+  if (prevIndex >= 0 && prevIndex < env.currentPlaylist.length) {
+    playMusic(env.currentPlaylist[prevIndex]);
+  }
+};
+
+// 切换随机播放
+const toggleRandom = () => {
+  env.isRandom = !env.isRandom;
+  message(env.isRandom ? "已开启随机播放" : "已关闭随机播放", { type: "success" });
+};
+
+// 切换循环播放
+const toggleLoop = () => {
+  env.isLoop = !env.isLoop;
+  message(env.isLoop ? "已开启单曲循环" : "已关闭单曲循环", { type: "success" });
+};
+
+// 切换静音
+const toggleMute = () => {
+  if (!audioRef.value) return;
+  env.isMuted = !env.isMuted;
+  audioRef.value.muted = env.isMuted;
+};
+
+// 调整音量
+const adjustVolume = () => {
+  if (!audioRef.value) return;
+  audioRef.value.volume = env.volume / 100;
+  audioRef.value.muted = env.isMuted;
+};
+
+// 跳转到指定时间
+const seekTo = (time: number) => {
+  if (!audioRef.value) return;
+  audioRef.value.currentTime = time;
+  env.currentTime = time;
+};
+
+// 切换收藏状态
+const toggleFavorite = (music: MusicInfo) => {
+  const index = env.favorites.findIndex((item) => item.musicId === music.musicId);
+  if (index !== -1) {
+    env.favorites.splice(index, 1);
+    message("已取消收藏", { type: "success" });
+  } else {
+    env.favorites.push(music);
+    message("已添加收藏", { type: "success" });
+  }
+  localStorage.setItem("music-favorites", JSON.stringify(env.favorites));
+};
+
+// 解析歌词
+const parseLyrics = (lyrics: string) => {
+  if (!lyrics) {
+    env.parsedLyrics = [];
+    return;
+  }
+
+  const lines = lyrics.split("\n");
+  const parsed: { time: number; text: string }[] = [];
+
+  for (const line of lines) {
+    const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
+    if (match) {
+      const minutes = parseInt(match[1], 10);
+      const seconds = parseInt(match[2], 10);
+      const milliseconds = parseInt(match[3].padEnd(3, "0"), 10);
+      const time = minutes * 60 + seconds + milliseconds / 1000;
+      const text = match[4].trim();
+      if (text) {
+        parsed.push({ time, text });
+      }
+    }
+  }
+
+  env.parsedLyrics = parsed;
+};
+
+// 更新当前歌词索引
+const updateCurrentLyric = () => {
+  if (env.parsedLyrics.length === 0) {
+    env.currentLyricIndex = -1;
+    return;
+  }
+
+  for (let i = env.parsedLyrics.length - 1; i >= 0; i--) {
+    if (env.currentTime >= env.parsedLyrics[i].time) {
+      env.currentLyricIndex = i;
+      return;
+    }
+  }
+  env.currentLyricIndex = -1;
+};
+
+// 添加到播放历史
+const addToPlayHistory = (music: MusicInfo) => {
+  // 如果已存在，先移除
+  const index = env.playHistory.findIndex((item) => item.musicId === music.musicId);
+  if (index !== -1) {
+    env.playHistory.splice(index, 1);
+  }
+
+  // 添加到最前面
+  env.playHistory.unshift(music);
+
+  // 限制历史记录数量
+  if (env.playHistory.length > 100) {
+    env.playHistory = env.playHistory.slice(0, 100);
+  }
+
+  // 保存到本地存储
+  localStorage.setItem("music-history", JSON.stringify(env.playHistory));
+};
+
 // 监听音频事件
 const setupAudioListeners = () => {
   if (!audioRef.value) return;
@@ -397,7 +566,7 @@ const musicPlayerProps = {
 </script>
 
 <template>
-  <div class="music-player">
+  <div class="music-player system-container modern-bg">
     <!-- 音频元素 -->
     <audio ref="audioRef" :src="env.currentMusic?.url" preload="auto" hidden></audio>
 
@@ -428,9 +597,14 @@ const musicPlayerProps = {
 .music-player {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  background-color: var(--app-bg-primary);
+  min-height: 640px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   color: var(--app-text-primary);
+  box-shadow: var(--card-shadow);
+  padding: 12px;
+  gap: 12px;
 
   &__main {
     display: flex;

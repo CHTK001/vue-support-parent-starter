@@ -122,7 +122,7 @@ defineExpose({
 <template>
   <div>
     <sc-dialog v-model="env.visible" :title="env.title" draggable :close-on-click-modal="false">
-      <el-form :model="env.form" ref="formRef" :rules="rules" label-width="120px">
+      <el-form :model="env.form" ref="formRef" :rules="rules" label-width="120px" class="modern-form">
         <el-form-item label="名称" prop="sysServiceModuleName">
           <el-input v-model="env.form.sysServiceModuleName" placeholder="请输入名称" />
         </el-form-item>

@@ -39,6 +39,8 @@ import "@repo/assets/style/modern-page.scss";
 // 自定义指令
 //@ts-ignore
 import * as directives from "@repo/core/directives";
+// 字体加密指令
+import { vFontEncryption } from "@layout/default";
 // 全局注册@iconify/vue图标库
 import { FontIcon, IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
 // 全局注册按钮级别权限组件
@@ -61,6 +63,8 @@ initializeWasmModule()
     Object.keys(directives).forEach(key => {
       app.directive(key, (directives as { [key: string]: Directive })[key]);
     });
+    // 注册字体加密指令
+    app.directive("font-encryption", vFontEncryption);
 
     app.component("IconifyIconOffline", IconifyIconOffline);
     app.component("IconifyIconOnline", IconifyIconOnline);
@@ -91,6 +95,8 @@ initializeWasmModule()
     Object.keys(directives).forEach(key => {
       app.directive(key, (directives as { [key: string]: Directive })[key]);
     });
+    // 注册字体加密指令
+    app.directive("font-encryption", vFontEncryption);
 
     app.component("IconifyIconOffline", IconifyIconOffline);
     app.component("IconifyIconOnline", IconifyIconOnline);

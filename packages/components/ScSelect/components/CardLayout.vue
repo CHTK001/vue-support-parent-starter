@@ -97,11 +97,14 @@ const handleSelect = () => {
   align-items: center;
   gap: 10px;
   padding: 20px 16px;
-  background: var(--el-bg-color);
-  border-radius: 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(15px);
+  border-radius: 16px;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid var(--el-border-color-lighter);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -157,9 +160,12 @@ const handleSelect = () => {
 
   // 悬停效果
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transform: translateY(-6px);
+    box-shadow: 
+      0 12px 32px rgba(0, 0, 0, 0.12),
+      0 0 0 1px rgba(255, 255, 255, 0.6) inset;
     border-color: var(--el-color-primary-light-5);
+    background: rgba(255, 255, 255, 0.95);
 
     .card-bottom-bar {
       width: 50%;
@@ -173,9 +179,11 @@ const handleSelect = () => {
   // 激活状态
   &.active {
     border-color: var(--el-color-primary);
-    background: linear-gradient(180deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
+    background: linear-gradient(180deg, rgba(64, 158, 255, 0.15) 0%, rgba(255, 255, 255, 0.9) 100%);
+    backdrop-filter: blur(20px);
     box-shadow: 
-      0 4px 16px var(--el-color-primary-light-7),
+      0 8px 24px rgba(64, 158, 255, 0.25),
+      0 0 0 1px rgba(255, 255, 255, 0.7) inset,
       inset 0 1px 0 rgba(255, 255, 255, 0.8);
 
     .card-bottom-bar {

@@ -133,7 +133,7 @@ defineExpose({
   <div>
     <sc-dialog top="10px" v-model="env.visible" :title="env.title" draggable :close-on-click-modal="false">
       <el-row>
-        <el-form :model="env.form" ref="formRef" :rules="rules" label-width="120px">
+        <el-form :model="env.form" ref="formRef" :rules="rules" label-width="120px" class="modern-form">
           <el-row>
             <el-col :span="12">
               <el-form-item label="租户名称" prop="sysTenantName">

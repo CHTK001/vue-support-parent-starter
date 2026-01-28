@@ -268,7 +268,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="face-detection-container h-full w-full overflow-hidden">
+  <div class="face-detection-container h-full w-full overflow-hidden system-container modern-bg">
     <!-- 背景装饰 -->
     <div class="background-decoration">
       <!-- 动态粒子背景 -->

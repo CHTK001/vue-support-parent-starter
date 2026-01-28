@@ -1,5 +1,5 @@
 <template>
-  <div class="email-detail">
+  <div class="email-detail system-container modern-bg">
     <!-- 邮件详情 -->
     <div v-if="email" class="detail-area">
       <div class="detail-header">
@@ -239,25 +239,25 @@ function sanitizeHtmlContent(htmlContent: string): string {
   let sanitized = htmlContent
     // 移除style标签
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    // 移除link标签（CSS链接）
+    /* 移除link标签（CSS链接） */
     .replace(/<link[^>]*>/gi, "")
-    // 移除script标签
+    /* 移除script标签 */
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    // 移除内联style属性中可能影响全局的样式
+    /* 移除内联style属性中可能影响全局的样式 */
     .replace(
       /style\s*=\s*["'][^"']*(?:position\s*:\s*(?:fixed|absolute)|z-index\s*:|top\s*:|left\s*:|right\s*:|bottom\s*:)[^"']*["']/gi,
       ""
     )
-    // 移除可能的CSS导入
+    /* 移除可能的CSS导入 */
     .replace(/@import[^;]+;/gi, "")
-    // 移除html、head、body标签
+    /* 移除html、head、body标签 */
     .replace(/<\/?(?:html|head|body)[^>]*>/gi, "")
-    // 移除meta标签
+    /* 移除meta标签 */
     .replace(/<meta[^>]*>/gi, "")
-    // 移除title标签
+    /* 移除title标签 */
     .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, "");
 
-  // 转换现有链接，确保在新窗口打开
+  /* 转换现有链接，确保在新窗口打开 */
   sanitized = sanitized.replace(
     /<a([^>]*href=["'][^"']+["'][^>]*)>/gi,
     (match, attrs) => {
@@ -268,14 +268,14 @@ function sanitizeHtmlContent(htmlContent: string): string {
     }
   );
 
-  // 转换HTML内容中未被标记的纯文本链接
-  // 注意：需要避免转换已经在<a>标签内的链接
+  /* 转换HTML内容中未被标记的纯文本链接 */
+  /* 注意：需要避免转换已经在<a>标签内的链接 */
   sanitized = sanitized.replace(
     /(?!<a[^>]*>)(https?:\/\/[^\s<>"']+)(?![^<]*<\/a>)/gi,
     '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
   );
 
-  // 转换HTML内容中未被标记的邮箱地址
+  /* 转换HTML内容中未被标记的邮箱地址 */
   sanitized = sanitized.replace(
     /(?!<a[^>]*>)([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?![^<]*<\/a>)/gi,
     '<a href="mailto:$1">$1</a>'
@@ -290,7 +290,7 @@ function downloadAttachment() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .email-detail {
   flex: 1;
   background: #fff;
@@ -654,4 +654,15 @@ function downloadAttachment() {
 .detail-content::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
 }
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style>

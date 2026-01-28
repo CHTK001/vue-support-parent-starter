@@ -2,7 +2,9 @@
   <div class="color-picker-container">
     <div class="tool-description">
       <el-alert type="info" show-icon :closable="false">
-        <p>颜色选择器工具可以帮助您选择颜色并获取不同格式（HEX、RGB、HSL）的颜色值，还可以生成颜色渐变。</p>
+        <p>
+          颜色选择器工具可以帮助您选择颜色并获取不同格式（HEX、RGB、HSL）的颜色值，还可以生成颜色渐变。
+        </p>
         <p>选择颜色后，您可以复制颜色代码或将其添加到收藏夹。</p>
       </el-alert>
     </div>
@@ -14,14 +16,23 @@
             <el-card class="picker-card">
               <div class="color-picker-section">
                 <div class="color-display-group">
-                  <div class="color-preview" :style="{ backgroundColor: currentColor }"></div>
+                  <div
+                    class="color-preview"
+                    :style="{ backgroundColor: currentColor }"
+                  ></div>
                   <div class="color-info">
-                    <div class="color-name">{{ getColorName(currentColor) }}</div>
+                    <div class="color-name">
+                      {{ getColorName(currentColor) }}
+                    </div>
                     <div class="color-formats">
                       <div class="format-item">
                         <div class="format-label">HEX</div>
                         <div class="format-value">
-                          <el-input v-model="hexColor" @change="updateFromHex" @focus="$event.target.select()">
+                          <el-input
+                            v-model="hexColor"
+                            @change="updateFromHex"
+                            @focus="$event.target.select()"
+                          >
                             <template #append>
                               <el-button @click="copyToClipboard(hexColor)">
                                 <IconifyIconOnline icon="ri:clipboard-line" />
@@ -33,7 +44,10 @@
                       <div class="format-item">
                         <div class="format-label">RGB</div>
                         <div class="format-value">
-                          <el-input v-model="rgbColor" @focus="$event.target.select()">
+                          <el-input
+                            v-model="rgbColor"
+                            @focus="$event.target.select()"
+                          >
                             <template #append>
                               <el-button @click="copyToClipboard(rgbColor)">
                                 <IconifyIconOnline icon="ri:clipboard-line" />
@@ -45,7 +59,10 @@
                       <div class="format-item">
                         <div class="format-label">HSL</div>
                         <div class="format-value">
-                          <el-input v-model="hslColor" @focus="$event.target.select()">
+                          <el-input
+                            v-model="hslColor"
+                            @focus="$event.target.select()"
+                          >
                             <template #append>
                               <el-button @click="copyToClipboard(hslColor)">
                                 <IconifyIconOnline icon="ri:clipboard-line" />
@@ -59,7 +76,13 @@
                 </div>
 
                 <div class="color-picker-main">
-                  <el-color-picker v-model="currentColor" show-alpha :predefine="predefineColors" @change="handleColorChange" class="full-picker" />
+                  <el-color-picker
+                    v-model="currentColor"
+                    show-alpha
+                    :predefine="predefineColors"
+                    @change="handleColorChange"
+                    class="full-picker"
+                  />
                 </div>
               </div>
             </el-card>
@@ -70,15 +93,27 @@
               <template #header>
                 <div class="favorites-header">
                   <span>我的收藏颜色</span>
-                  <el-button type="primary" @click="addToFavorites" :disabled="isFavorite">
+                  <el-button
+                    type="primary"
+                    @click="addToFavorites"
+                    :disabled="isFavorite"
+                  >
                     <IconifyIconOnline icon="ri:star-line" />
                     添加到收藏
                   </el-button>
                 </div>
               </template>
               <div class="favorites-list" v-if="favoriteColors.length > 0">
-                <div v-for="(color, index) in favoriteColors" :key="index" class="favorite-item">
-                  <div class="favorite-color" :style="{ backgroundColor: color }" @click="selectFavoriteColor(color)"></div>
+                <div
+                  v-for="(color, index) in favoriteColors"
+                  :key="index"
+                  class="favorite-item"
+                >
+                  <div
+                    class="favorite-color"
+                    :style="{ backgroundColor: color }"
+                    @click="selectFavoriteColor(color)"
+                  ></div>
                   <div class="favorite-info">
                     <div class="favorite-hex">{{ color }}</div>
                     <div class="favorite-name">{{ getColorName(color) }}</div>
@@ -132,23 +167,52 @@
 
               <div class="gradient-colors">
                 <h4>渐变颜色：</h4>
-                <draggable v-model="gradientColors" handle=".color-handle" item-key="id" @change="updateGradient" class="gradient-colors-list">
+                <draggable
+                  v-model="gradientColors"
+                  handle=".color-handle"
+                  item-key="id"
+                  @change="updateGradient"
+                  class="gradient-colors-list"
+                >
                   <template #item="{ element, index }">
                     <div class="gradient-color-item">
                       <div class="color-handle">
                         <IconifyIconOnline icon="ri:drag-move-line" />
                       </div>
-                      <el-color-picker v-model="element.color" show-alpha @change="updateGradient" size="small" />
-                      <el-input-number v-model="element.position" :min="0" :max="100" size="small" @change="updateGradient" class="position-input" />
+                      <el-color-picker
+                        v-model="element.color"
+                        show-alpha
+                        @change="updateGradient"
+                        size="small"
+                      />
+                      <el-input-number
+                        v-model="element.position"
+                        :min="0"
+                        :max="100"
+                        size="small"
+                        @change="updateGradient"
+                        class="position-input"
+                      />
                       <span class="position-label">%</span>
-                      <el-button type="danger" icon="delete" size="small" circle @click="removeGradientColor(index)" :disabled="gradientColors.length <= 2">
+                      <el-button
+                        type="danger"
+                        icon="delete"
+                        size="small"
+                        circle
+                        @click="removeGradientColor(index)"
+                        :disabled="gradientColors.length <= 2"
+                      >
                         <IconifyIconOnline icon="ri:close-line" />
                       </el-button>
                     </div>
                   </template>
                 </draggable>
                 <div class="add-color">
-                  <el-button type="primary" @click="addGradientColor" :disabled="gradientColors.length >= 10">
+                  <el-button
+                    type="primary"
+                    @click="addGradientColor"
+                    :disabled="gradientColors.length >= 10"
+                  >
                     <IconifyIconOnline icon="ri:add-line" />
                     添加颜色
                   </el-button>
@@ -158,11 +222,24 @@
 
             <div class="gradient-preview-section">
               <h3>渐变预览</h3>
-              <div class="gradient-preview" :style="{ background: gradientValue }"></div>
+              <div
+                class="gradient-preview"
+                :style="{ background: gradientValue }"
+              ></div>
               <div class="gradient-code">
                 <h4>CSS 代码:</h4>
-                <el-input type="textarea" v-model="gradientCSS" readonly rows="4" class="gradient-textarea" />
-                <el-button type="primary" @click="copyToClipboard(gradientCSS)" class="copy-gradient">
+                <el-input
+                  type="textarea"
+                  v-model="gradientCSS"
+                  readonly
+                  rows="4"
+                  class="gradient-textarea"
+                />
+                <el-button
+                  type="primary"
+                  @click="copyToClipboard(gradientCSS)"
+                  class="copy-gradient"
+                >
                   <IconifyIconOnline icon="ri:clipboard-line" />
                   复制CSS代码
                 </el-button>
@@ -184,7 +261,17 @@ import draggable from "vuedraggable";
 const activeTab = ref("picker");
 
 // 预定义颜色
-const predefineColors = ["#ff4500", "#ff8c00", "#ffd700", "#90ee90", "#00ced1", "#1e90ff", "#c71585", "#000000", "#ffffff"];
+const predefineColors = [
+  "#ff4500",
+  "#ff8c00",
+  "#ffd700",
+  "#90ee90",
+  "#00ced1",
+  "#1e90ff",
+  "#c71585",
+  "#000000",
+  "#ffffff",
+];
 
 // 当前选择的颜色
 const currentColor = ref("#409EFF");
@@ -285,7 +372,10 @@ const handleColorChange = (color) => {
 const addToFavorites = () => {
   if (!favoriteColors.value.includes(currentColor.value)) {
     favoriteColors.value.push(currentColor.value);
-    localStorage.setItem("favoriteColors", JSON.stringify(favoriteColors.value));
+    localStorage.setItem(
+      "favoriteColors",
+      JSON.stringify(favoriteColors.value)
+    );
     message("已添加到收藏", { type: "success" });
   }
 };
@@ -380,19 +470,28 @@ const gradientCSS = ref("");
 // 更新渐变
 const updateGradient = () => {
   // 按位置排序
-  const sortedColors = [...gradientColors.value].sort((a, b) => a.position - b.position);
+  const sortedColors = [...gradientColors.value].sort(
+    (a, b) => a.position - b.position
+  );
 
   // 生成渐变字符串
-  let gradientStr = gradientType.value === "linear" ? `linear-gradient(${gradientDirection.value}, ` : `radial-gradient(circle, `;
+  let gradientStr =
+    gradientType.value === "linear"
+      ? `linear-gradient(${gradientDirection.value}, `
+      : `radial-gradient(circle, `;
 
-  const colorStops = sortedColors.map((color) => `${color.color} ${color.position}%`).join(", ");
+  const colorStops = sortedColors
+    .map((color) => `${color.color} ${color.position}%`)
+    .join(", ");
   gradientStr += colorStops + ")";
 
   gradientValue.value = gradientStr;
 
   // 生成CSS代码
-  const prefix = gradientType.value === "linear" ? "linear-gradient" : "radial-gradient";
-  const direction = gradientType.value === "linear" ? gradientDirection.value : "circle";
+  const prefix =
+    gradientType.value === "linear" ? "linear-gradient" : "radial-gradient";
+  const direction =
+    gradientType.value === "linear" ? gradientDirection.value : "circle";
 
   gradientCSS.value = `background: ${gradientStr};\n`;
   gradientCSS.value += `background: -webkit-${prefix}(${direction}, ${colorStops});\n`;
@@ -437,6 +536,15 @@ onMounted(() => {
 .picker-card,
 .favorites-card {
   height: 100%;
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--el-border-color-lighter);
+
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+    border-color: var(--el-color-primary-light-7);
+  }
 }
 
 .color-picker-section {
@@ -454,9 +562,15 @@ onMounted(() => {
 .color-preview {
   width: 80px;
   height: 80px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--el-border-color-light);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid var(--el-border-color-lighter);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  }
 }
 
 .color-info {

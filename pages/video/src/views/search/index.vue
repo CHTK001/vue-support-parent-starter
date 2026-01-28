@@ -1,23 +1,37 @@
 <template>
-  <div class="search-page">
+  <div class="system-container modern-bg">
     <div class="search-container">
       <!-- Logo -->
-      <h1 class="logo">影视搜索</h1>
+      <div class="logo-section">
+        <IconifyIconOnline icon="ri:search-line" class="logo-icon" />
+        <h1 class="logo">影视搜索</h1>
+        <p class="logo-desc">搜索您想看的影视内容</p>
+      </div>
 
       <!-- 搜索框 -->
       <div class="search-box">
-        <input
-          v-model="searchKeyword"
-          type="text"
-          class="search-input"
-          placeholder="输入影视名称"
-          @keyup.enter="handleSearch"
-        />
-        <button class="search-btn" @click="handleSearch">搜索</button>
+        <div class="search-input-wrapper">
+          <IconifyIconOnline icon="ep:search" class="search-icon" />
+          <input
+            v-model="searchKeyword"
+            type="text"
+            class="search-input"
+            placeholder="输入影视名称、演员或导演"
+            @keyup.enter="handleSearch"
+          />
+        </div>
+        <el-button type="primary" class="search-btn" @click="handleSearch">
+          <IconifyIconOnline icon="ep:search" />
+          搜索
+        </el-button>
       </div>
 
       <!-- 热词 -->
       <div class="hot-words">
+        <span class="hot-words-label">
+          <IconifyIconOnline icon="ep:hot-water" />
+          热门搜索：
+        </span>
         <span
           v-for="item in hotSearchKeywords.slice(0, 6)"
           :key="item.value"
@@ -317,109 +331,168 @@ const handleVideoClick = (video: any) => {
 };
 </script>
 
-<style scoped>
-.search-page {
-  min-height: 100vh;
+<style scoped lang="scss">
+.search-container {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 60px 20px;
+  min-height: calc(100vh - 200px);
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
-  background: #fff;
 }
 
-.search-container {
-  text-align: center;
-  padding: 20px;
+.logo-section {
+  margin-bottom: 40px;
+}
+
+.logo-icon {
+  font-size: 64px;
+  color: var(--el-color-primary);
+  margin-bottom: 16px;
+  display: block;
 }
 
 .logo {
-  font-size: 36px;
-  font-weight: 600;
-  color: #4e6ef2;
-  margin: 0 0 30px 0;
+  font-size: 42px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 12px 0;
   letter-spacing: 2px;
+}
+
+.logo-desc {
+  font-size: 16px;
+  color: var(--el-text-color-secondary);
+  margin: 0;
 }
 
 .search-box {
   display: flex;
-  width: 560px;
-  max-width: 100%;
-  margin: 0 auto 20px;
-  border: 1px solid #c4c7ce;
-  border-radius: 10px;
-  overflow: hidden;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
+  gap: 12px;
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto 32px;
+  background: var(--el-bg-color-overlay);
+  padding: 8px;
+  border-radius: 50px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
 .search-box:focus-within {
-  border-color: #4e6ef2;
-  box-shadow: 0 0 0 2px rgba(78, 110, 242, 0.1);
+  box-shadow: 0 6px 30px rgba(var(--el-color-primary-rgb), 0.2);
+}
+
+.search-input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+}
+
+.search-icon {
+  font-size: 20px;
+  color: var(--el-text-color-placeholder);
+  flex-shrink: 0;
 }
 
 .search-input {
   flex: 1;
-  height: 44px;
-  padding: 0 16px;
+  height: 48px;
   border: none;
   outline: none;
   font-size: 16px;
-  color: #222;
+  color: var(--el-text-color-primary);
+  background: transparent;
 }
 
 .search-input::placeholder {
-  color: #9195a3;
+  color: var(--el-text-color-placeholder);
 }
 
 .search-btn {
-  width: 108px;
-  height: 44px;
-  background: #4e6ef2;
-  border: none;
-  color: #fff;
+  height: 48px;
+  padding: 0 32px;
+  border-radius: 50px;
   font-size: 16px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.search-btn:hover {
-  background: #4662d9;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
 }
 
 .hot-words {
   display: flex;
   justify-content: center;
-  gap: 16px;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
+}
+
+.hot-words-label {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .hot-word {
   font-size: 13px;
-  color: #9195a3;
+  color: var(--el-text-color-regular);
   cursor: pointer;
-  transition: color 0.2s;
+  padding: 6px 16px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color);
+  font-weight: 500;
 }
 
 .hot-word:hover {
-  color: #4e6ef2;
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  background: rgba(var(--el-color-primary-rgb), 0.1);
 }
 
 @media (max-width: 640px) {
+  .search-container {
+    padding: 40px 16px;
+  }
+
+  .logo-icon {
+    font-size: 48px;
+  }
+
   .logo {
-    font-size: 28px;
+    font-size: 32px;
   }
 
   .search-box {
-    width: 100%;
+    flex-direction: column;
+    border-radius: 16px;
+    padding: 12px;
+  }
+
+  .search-input-wrapper {
+    padding: 0 12px;
   }
 
   .search-btn {
-    width: 80px;
-    font-size: 14px;
+    width: 100%;
+    justify-content: center;
   }
 
   .hot-words {
-    gap: 12px;
+    gap: 8px;
   }
 }
 </style>

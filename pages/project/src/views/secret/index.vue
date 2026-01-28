@@ -89,7 +89,7 @@ const dialogClose = async () => {
 };
 </script>
 <template>
-  <div class="main background-color">
+  <div class="main background-color system-container modern-bg">
     <SaveDialog
       v-if="visible.save"
       ref="saveDialog"

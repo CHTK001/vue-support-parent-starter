@@ -1,5 +1,5 @@
 ﻿<template>
-  <div class="serial-monitor-container">
+  <div class="serial-monitor-container system-container modern-bg">
     <div class="header-actions flex justify-between items-center mb-4">
       <div class="flex items-center">
         <IconifyIconOnline icon="mdi:serial-port" class="mr-2 text-primary text-xl" />
@@ -366,6 +366,41 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+
+.modern-bg {
+  position: relative;
+  overflow: hidden;
+
+  // 渐变背景
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(99, 102, 241, 0.08) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(168, 85, 247, 0.06) 0%,
+        transparent 50%
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+
 .serial-monitor-container {
   padding: 16px;
   height: 100%;
@@ -413,4 +448,15 @@ onMounted(() => {
   display: flex;
   align-items: center;
 }
+
+
+// 响应式设计
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
 </style> 

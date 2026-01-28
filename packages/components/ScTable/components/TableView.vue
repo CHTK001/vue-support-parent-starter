@@ -821,13 +821,15 @@ defineExpose({
       position: sticky !important;
       top: 0;
       z-index: 10;
-      background-color: var(--el-bg-color, #ffffff);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
       width: 100%;
       overflow-x: hidden !important;
 
       th {
-        background-color: var(--el-bg-color, #ffffff) !important;
+        background: rgba(255, 255, 255, 0.85) !important;
+        backdrop-filter: blur(10px);
       }
     }
 
@@ -839,16 +841,19 @@ defineExpose({
   }
 
   :deep(.el-table__header) {
-    background: rgba(var(--el-color-primary-rgb), 0.02);
+    background: linear-gradient(180deg, rgba(99, 102, 241, 0.03) 0%, rgba(99, 102, 241, 0.01) 100%);
     table-layout: fixed !important;
 
     th {
       font-weight: 600;
       color: var(--el-text-color-primary);
-      background-color: var(--el-bg-color, #ffffff) !important;
+      background: rgba(255, 255, 255, 0.85) !important;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
       &.is-sortable:hover {
-        background: rgba(var(--el-color-primary-rgb), 0.04) !important;
+        background: rgba(99, 102, 241, 0.08) !important;
+        transform: translateY(-1px);
       }
     }
   }
@@ -857,15 +862,16 @@ defineExpose({
     table-layout: fixed !important;
 
     tr {
-      transition: all 0.3s;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
       &:hover {
-        background: rgba(var(--el-color-primary-rgb), 0.04);
+        background: rgba(99, 102, 241, 0.06) !important;
         transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       }
 
       td {
-        transition: all 0.3s;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       }
     }
   }

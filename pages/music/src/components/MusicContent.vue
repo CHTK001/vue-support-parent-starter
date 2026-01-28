@@ -33,7 +33,27 @@ defineProps({
 <style lang="scss" scoped>
 .music-content {
   flex: 1;
-  padding: 20px;
+  padding: 24px;
   overflow-y: auto;
+  background: var(--el-bg-color);
+  
+  // 自定义滚动条样式
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: var(--el-bg-color-page);
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--el-border-color);
+    border-radius: 4px;
+    
+    &:hover {
+      background: var(--el-border-color-darker);
+    }
+  }
 }
 </style>

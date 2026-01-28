@@ -238,7 +238,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-full holiday-container">
+  <div class="h-full holiday-container system-container modern-bg">
     <el-container>
       <el-main class="nopadding">
         <el-container>

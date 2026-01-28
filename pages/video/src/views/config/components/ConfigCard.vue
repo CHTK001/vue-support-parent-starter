@@ -216,41 +216,58 @@ const handleCopyUrl = (url: string) => {
 .config-card {
   position: relative;
   background: var(--el-bg-color-overlay);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   overflow: hidden;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .config-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: var(--el-color-primary);
 }
 
 .status-indicator {
   position: absolute;
   top: 0;
   left: 0;
-  width: 4px;
+  width: 5px;
   height: 100%;
+  border-radius: 0 4px 4px 0;
+  transition: all 0.3s ease;
 }
 
 .status-disabled {
-  background: #909399;
+  background: linear-gradient(180deg, #909399 0%, #a6a9ad 100%);
 }
 
 .status-enabled {
-  background: #67c23a;
+  background: linear-gradient(180deg, #67c23a 0%, #85ce61 100%);
+  box-shadow: 0 0 8px rgba(103, 194, 58, 0.4);
 }
 
 .status-syncing {
-  background: #e6a23c;
+  background: linear-gradient(180deg, #e6a23c 0%, #ebb563 100%);
+  box-shadow: 0 0 8px rgba(230, 162, 60, 0.4);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .status-error {
-  background: #f56c6c;
+  background: linear-gradient(180deg, #f56c6c 0%, #f78989 100%);
+  box-shadow: 0 0 8px rgba(245, 108, 108, 0.4);
 }
 
 .config-card-header {
@@ -267,16 +284,23 @@ const handleCopyUrl = (url: string) => {
 }
 
 .config-icon {
-  width: 40px;
-  height: 40px;
-  background: var(--el-bg-color-overlay);
-  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
-  font-size: 20px;
-  color: #409eff;
+  margin-right: 16px;
+  font-size: 24px;
+  color: var(--el-color-primary);
+  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+  transition: all 0.3s ease;
+}
+
+.config-card:hover .config-icon {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
 }
 
 .config-details {
@@ -284,10 +308,15 @@ const handleCopyUrl = (url: string) => {
 }
 
 .config-name {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--el-text-color-primary);
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
+  transition: color 0.3s ease;
+}
+
+.config-card:hover .config-name {
+  color: var(--el-color-primary);
 }
 
 .config-meta {
@@ -297,7 +326,17 @@ const handleCopyUrl = (url: string) => {
 
 .quick-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+}
+
+.quick-actions .el-button {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.quick-actions .el-button:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .config-card-body {
@@ -334,48 +373,81 @@ const handleCopyUrl = (url: string) => {
 
 .config-stats {
   display: flex;
-  gap: 24px;
+  gap: 32px;
+  padding: 20px;
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .stat-item {
   text-align: center;
+  flex: 1;
 }
 
 .stat-label {
-  font-size: 12px;
-   color: var(--el-text-color-primary);
-  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  margin-bottom: 8px;
+  font-weight: 500;
 }
 
 .stat-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--el-color-primary);
+  font-family: 'Courier New', monospace;
 }
 
 .config-card-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 
 .primary-actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
+}
+
+.primary-actions .el-button {
+  box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+  transition: all 0.3s ease;
+}
+
+.primary-actions .el-button:hover {
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+  transform: translateY(-2px);
 }
 
 .secondary-actions {
   display: flex;
 }
 
+.secondary-actions .el-button {
+  transition: all 0.3s ease;
+}
+
+.secondary-actions .el-button:hover {
+  transform: translateY(-2px);
+}
+
 .card-decoration {
   position: absolute;
-  top: -50px;
-  right: -50px;
-  width: 100px;
-  height: 100px;
-  background: linear-gradient(45deg, rgba(64, 158, 255, 0.1), rgba(64, 158, 255, 0.05));
+  top: -60px;
+  right: -60px;
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.08) 0%, rgba(var(--el-color-primary-rgb), 0.03) 100%);
   border-radius: 50%;
   pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.config-card:hover .card-decoration {
+  transform: scale(1.1);
+  opacity: 0.6;
 }
 </style>

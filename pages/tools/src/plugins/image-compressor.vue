@@ -1,114 +1,132 @@
 <template>
-  <div class="image-compressor-container">
-    <div class="tool-description">
+  <div class="image-compressor-tool">
+    <div class="image-compressor-tool__header">
+      <div class="image-compressor-tool__header-content">
+        <IconifyIconOnline icon="ri:image-edit-line" class="image-compressor-tool__header-icon" />
+        <div>
+          <h2 class="image-compressor-tool__header-title">图片压缩工具</h2>
+          <p class="image-compressor-tool__header-desc">快速压缩图片大小，支持多种格式，压缩效果清晰可见</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="image-compressor-tool__description">
       <el-alert type="info" show-icon :closable="false">
-        <p>图片压缩工具可以帮助您快速压缩图片大小，支持多种图片格式，压缩效果清晰可见。</p>
         <p>上传图片后可以调整压缩质量，预览效果并下载压缩后的图片。</p>
       </el-alert>
     </div>
 
-    <el-row :gutter="20" class="main-content">
+    <el-row :gutter="20" class="image-compressor-tool__main-content">
       <el-col :span="12">
-        <div class="upload-area">
-          <div v-if="!originalImage.url" class="drop-area" @dragover.prevent @drop="handleDrop">
-            <el-upload drag action="#" :auto-upload="false" :show-file-list="false" :on-change="handleFileChange" accept="image/jpeg,image/png,image/gif,image/webp">
-              <IconifyIconOnline icon="ri:upload-cloud-2-line" class="upload-icon" />
-              <div class="el-upload__text">拖拽图片到此处或 <em>点击上传</em></div>
-              <template #tip>
-                <div class="el-upload__tip">支持 JPG、PNG、GIF、WebP 格式，单个文件不超过10MB</div>
-              </template>
-            </el-upload>
-          </div>
-          <div v-else class="image-preview original-preview">
-            <div class="image-header">
-              <h3>原始图片</h3>
-              <div class="image-info">
-                <span>{{ originalImage.size }}</span>
-                <span>{{ originalImage.dimensions }}</span>
+        <el-card class="image-compressor-tool__card" shadow="hover">
+          <div class="image-compressor-tool__upload-area">
+            <div v-if="!originalImage.url" class="image-compressor-tool__drop-area" @dragover.prevent @drop="handleDrop">
+              <el-upload drag action="#" :auto-upload="false" :show-file-list="false" :on-change="handleFileChange" accept="image/jpeg,image/png,image/gif,image/webp">
+                <IconifyIconOnline icon="ri:upload-cloud-2-line" class="image-compressor-tool__upload-icon" />
+                <div class="el-upload__text">拖拽图片到此处或 <em>点击上传</em></div>
+                <template #tip>
+                  <div class="el-upload__tip">支持 JPG、PNG、GIF、WebP 格式，单个文件不超过10MB</div>
+                </template>
+              </el-upload>
+            </div>
+            <div v-else class="image-compressor-tool__image-preview image-compressor-tool__image-preview--original">
+              <div class="image-compressor-tool__image-header">
+                <h3>原始图片</h3>
+                <div class="image-compressor-tool__image-info">
+                  <span>{{ originalImage.size }}</span>
+                  <span>{{ originalImage.dimensions }}</span>
+                </div>
+              </div>
+              <div class="image-compressor-tool__image-container">
+                <img :src="originalImage.url" alt="原始图片" />
+              </div>
+              <div class="image-compressor-tool__preview-actions">
+                <el-button type="danger" @click="resetImage" size="small">
+                  <IconifyIconOnline icon="ri:delete-bin-line" />
+                  移除图片
+                </el-button>
               </div>
             </div>
-            <div class="image-container">
-              <img :src="originalImage.url" alt="原始图片" />
-            </div>
-            <div class="preview-actions">
-              <el-button type="danger" @click="resetImage" size="small">
-                <IconifyIconOnline icon="ri:delete-bin-line" />
-                移除图片
-              </el-button>
-            </div>
           </div>
-        </div>
+        </el-card>
       </el-col>
 
       <el-col :span="12">
-        <div class="compression-area">
-          <div v-if="compressedImage.url" class="image-preview compressed-preview">
-            <div class="image-header">
-              <h3>压缩图片</h3>
-              <div class="image-info">
-                <span>{{ compressedImage.size }}</span>
-                <span>{{ compressedImage.dimensions }}</span>
-                <span class="saving-info" v-if="savingPercent">节省 {{ savingPercent }}%</span>
-              </div>
-            </div>
-            <div class="image-container">
-              <img :src="compressedImage.url" alt="压缩图片" />
-            </div>
-            <div class="preview-actions">
-              <el-button type="primary" @click="downloadImage" size="small">
-                <IconifyIconOnline icon="ri:download-line" />
-                下载图片
-              </el-button>
-            </div>
-          </div>
-          <div v-else-if="originalImage.url" class="compression-placeholder">
-            <div class="compression-controls">
-              <h3>压缩设置</h3>
-              <div class="quality-slider">
-                <span>压缩质量：{{ quality }}%</span>
-                <el-slider v-model="quality" :min="1" :max="100" @change="compressImage" />
-              </div>
-              <div class="format-selector">
-                <span>输出格式：</span>
-                <el-radio-group v-model="outputFormat" @change="compressImage">
-                  <el-radio label="jpeg">JPEG</el-radio>
-                  <el-radio label="png">PNG</el-radio>
-                  <el-radio label="webp">WebP</el-radio>
-                </el-radio-group>
-              </div>
-              <div class="resize-control">
-                <el-checkbox v-model="shouldResize" @change="compressImage">调整图片大小</el-checkbox>
-                <div v-if="shouldResize" class="resize-inputs">
-                  <el-input-number v-model="resizeWidth" :min="10" :max="5000" @change="compressImage" size="small" />
-                  <span>×</span>
-                  <el-input-number v-model="resizeHeight" :min="10" :max="5000" @change="compressImage" size="small" />
-                  <el-checkbox v-model="keepAspectRatio" @change="handleAspectRatioChange">保持比例</el-checkbox>
+        <el-card class="image-compressor-tool__card" shadow="hover">
+          <div class="image-compressor-tool__compression-area">
+            <div v-if="compressedImage.url" class="image-compressor-tool__image-preview image-compressor-tool__image-preview--compressed">
+              <div class="image-compressor-tool__image-header">
+                <h3>压缩图片</h3>
+                <div class="image-compressor-tool__image-info">
+                  <span>{{ compressedImage.size }}</span>
+                  <span>{{ compressedImage.dimensions }}</span>
+                  <span class="image-compressor-tool__saving-info" v-if="savingPercent">节省 {{ savingPercent }}%</span>
                 </div>
               </div>
-              <el-button type="success" @click="compressImage" :loading="isCompressing" class="compress-btn">
-                <IconifyIconOnline icon="ri:compress-line" />
-                开始压缩
-              </el-button>
+              <div class="image-compressor-tool__image-container">
+                <img :src="compressedImage.url" alt="压缩图片" />
+              </div>
+              <div class="image-compressor-tool__preview-actions">
+                <el-button type="primary" @click="downloadImage" size="small">
+                  <IconifyIconOnline icon="ri:download-line" />
+                  下载图片
+                </el-button>
+              </div>
+            </div>
+            <div v-else-if="originalImage.url" class="image-compressor-tool__compression-placeholder">
+              <div class="image-compressor-tool__compression-controls">
+                <h3>压缩设置</h3>
+                <div class="image-compressor-tool__quality-slider">
+                  <span>压缩质量：{{ quality }}%</span>
+                  <el-slider v-model="quality" :min="1" :max="100" @change="compressImage" />
+                </div>
+                <div class="image-compressor-tool__format-selector">
+                  <span>输出格式：</span>
+                  <el-radio-group v-model="outputFormat" @change="compressImage">
+                    <el-radio label="jpeg">JPEG</el-radio>
+                    <el-radio label="png">PNG</el-radio>
+                    <el-radio label="webp">WebP</el-radio>
+                  </el-radio-group>
+                </div>
+                <div class="image-compressor-tool__resize-control">
+                  <el-checkbox v-model="shouldResize" @change="compressImage">调整图片大小</el-checkbox>
+                  <div v-if="shouldResize" class="image-compressor-tool__resize-inputs">
+                    <el-input-number v-model="resizeWidth" :min="10" :max="5000" @change="compressImage" size="small" />
+                    <span>×</span>
+                    <el-input-number v-model="resizeHeight" :min="10" :max="5000" @change="compressImage" size="small" />
+                    <el-checkbox v-model="keepAspectRatio" @change="handleAspectRatioChange">保持比例</el-checkbox>
+                  </div>
+                </div>
+                <el-button type="success" @click="compressImage" :loading="isCompressing" class="image-compressor-tool__compress-btn">
+                  <IconifyIconOnline icon="ri:compress-line" />
+                  开始压缩
+                </el-button>
+              </div>
+            </div>
+            <div v-else class="image-compressor-tool__empty-preview">
+              <IconifyIconOnline icon="ri:image-edit-line" class="image-compressor-tool__empty-icon" />
+              <p>请先上传图片</p>
             </div>
           </div>
-          <div v-else class="empty-preview">
-            <IconifyIconOnline icon="ri:image-edit-line" class="empty-icon" />
-            <p>请先上传图片</p>
-          </div>
-        </div>
+        </el-card>
       </el-col>
     </el-row>
 
-    <div class="compression-tips">
-      <h3>图片压缩小贴士</h3>
-      <ul>
+    <el-card class="image-compressor-tool__tips-card" shadow="hover">
+      <template #header>
+        <div class="image-compressor-tool__card-header">
+          <IconifyIconOnline icon="ri:lightbulb-line" class="image-compressor-tool__card-icon" />
+          <span>图片压缩小贴士</span>
+        </div>
+      </template>
+      <ul class="image-compressor-tool__tips-list">
         <li>对于照片和复杂图像，建议使用JPEG格式，质量设置为70-80%</li>
         <li>对于需要透明度的图像，建议使用PNG格式</li>
         <li>WebP格式提供更好的压缩比，但较老的浏览器可能不支持</li>
         <li>调整图片尺寸是减小文件大小的有效方法</li>
         <li>压缩是不可逆的过程，请确保保留原图的副本</li>
       </ul>
-    </div>
+    </el-card>
   </div>
 </template>
 
@@ -357,162 +375,233 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
-.image-compressor-container {
+<style scoped lang="scss">
+.image-compressor-tool {
   padding: 20px;
-}
 
-.tool-description {
-  margin-bottom: 20px;
-}
+  &__header {
+    background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 
-.main-content {
-  margin-bottom: 30px;
-}
+  &__header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
 
-.upload-area,
-.compression-area {
-  height: 100%;
-  min-height: 400px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
-  overflow: hidden;
-}
+  &__header-icon {
+    font-size: 48px;
+    opacity: 0.9;
+  }
 
-.drop-area {
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-}
+  &__header-title {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+  }
 
-.upload-icon {
-  font-size: 48px;
-  color: var(--el-color-primary);
-  margin-bottom: 10px;
-}
+  &__header-desc {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.9;
+  }
 
-.image-preview {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
+  &__description {
+    margin-bottom: 20px;
+  }
 
-.image-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 15px;
-  background-color: var(--el-background-color-base);
-  border-bottom: 1px solid var(--el-border-color-light);
-}
+  &__main-content {
+    margin-bottom: 20px;
+  }
 
-.image-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
+  &__card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--el-border-color-lighter);
 
-.image-info {
-  display: flex;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      border-color: var(--el-color-primary-light-5);
+    }
+  }
 
-.saving-info {
-  color: var(--el-color-success);
-  font-weight: bold;
-}
+  &__card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--el-color-primary);
+  }
 
-.image-container {
-  flex: 1;
-  overflow: auto;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 15px;
-  background-color: #f5f7fa;
-}
+  &__card-icon {
+    font-size: 20px;
+  }
 
-.image-container img {
-  max-width: 100%;
-  max-height: 300px;
-  object-fit: contain;
-}
+  &__upload-area,
+  &__compression-area {
+    height: 100%;
+    min-height: 400px;
+  }
 
-.preview-actions {
-  padding: 10px 15px;
-  border-top: 1px solid var(--el-border-color-light);
-  display: flex;
-  justify-content: flex-end;
-}
+  &__drop-area {
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
 
-.compression-placeholder,
-.empty-preview {
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  padding: 20px;
-}
+  &__upload-icon {
+    font-size: 48px;
+    color: var(--el-color-primary);
+    margin-bottom: 10px;
+  }
 
-.empty-icon {
-  font-size: 60px;
-  color: var(--el-text-color-secondary);
-  margin-bottom: 15px;
-}
+  &__image-preview {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
 
-.compression-controls {
-  width: 100%;
-  max-width: 400px;
-}
+  &__image-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: var(--el-fill-color-lighter);
+    border-bottom: 1px solid var(--el-border-color-lighter);
 
-.compression-controls h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  text-align: center;
-}
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
 
-.quality-slider,
-.format-selector,
-.resize-control {
-  margin-bottom: 20px;
-}
+  &__image-info {
+    display: flex;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+  }
 
-.resize-inputs {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+  &__saving-info {
+    color: var(--el-color-success);
+    font-weight: 600;
+  }
 
-.compress-btn {
-  width: 100%;
-  margin-top: 10px;
-}
+  &__image-container {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-light) 100%);
 
-.compression-tips {
-  background-color: var(--el-fill-color-light);
-  border-radius: 8px;
-  padding: 15px 20px;
-}
+    img {
+      max-width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+  }
 
-.compression-tips h3 {
-  margin-top: 0;
-  font-size: 16px;
-  margin-bottom: 10px;
-}
+  &__preview-actions {
+    padding: 12px 16px;
+    border-top: 1px solid var(--el-border-color-lighter);
+    display: flex;
+    justify-content: flex-end;
+    background-color: var(--el-fill-color-lighter);
+  }
 
-.compression-tips ul {
-  margin: 0;
-  padding-left: 20px;
-}
+  &__compression-placeholder,
+  &__empty-preview {
+    height: 100%;
+    min-height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 40px;
+  }
 
-.compression-tips li {
-  margin-bottom: 5px;
-  line-height: 1.5;
+  &__empty-icon {
+    font-size: 64px;
+    color: var(--el-text-color-placeholder);
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  &__compression-controls {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  &__compression-controls h3 {
+    margin-top: 0;
+    margin-bottom: 24px;
+    text-align: center;
+    color: var(--el-text-color-primary);
+    font-size: 18px;
+  }
+
+  &__quality-slider,
+  &__format-selector,
+  &__resize-control {
+    margin-bottom: 24px;
+  }
+
+  &__resize-inputs {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__compress-btn {
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  &__tips-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--el-border-color-lighter);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      border-color: var(--el-color-info-light-5);
+    }
+  }
+
+  &__tips-list {
+    margin: 0;
+    padding-left: 24px;
+    list-style: none;
+
+    li {
+      position: relative;
+      margin-bottom: 12px;
+      padding-left: 20px;
+      line-height: 1.6;
+      color: var(--el-text-color-regular);
+
+      &::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: var(--el-color-info);
+        font-weight: bold;
+        font-size: 18px;
+      }
+    }
+  }
 }
 </style>

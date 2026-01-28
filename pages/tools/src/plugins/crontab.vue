@@ -15,13 +15,41 @@ const env = reactive({
     { label: "每秒钟", value: "* * * * * ?", description: "每秒钟执行一次" },
     { label: "每分钟", value: "0 * * * * ?", description: "每分钟执行一次" },
     { label: "每小时", value: "0 0 * * * ?", description: "每小时执行一次" },
-    { label: "每天午夜", value: "0 0 0 * * ?", description: "每天午夜执行一次" },
-    { label: "每天早上8点", value: "0 0 8 * * ?", description: "每天早上8点执行一次" },
-    { label: "每周一早上8点", value: "0 0 8 * 1 ?", description: "每周一早上8点执行一次" },
-    { label: "每月1号午夜", value: "0 0 0 1 * ?", description: "每月1号午夜执行一次" },
-    { label: "每年1月1日午夜", value: "0 0 0 1 1 ?", description: "每年1月1日午夜执行一次" },
-    { label: "每15分钟", value: "0 0/15 * * * ?", description: "每15分钟执行一次" },
-    { label: "工作日早上9点到下午6点每小时", value: "0 0 9-18 * 1-5 ?", description: "工作日早上9点到下午6点每小时执行一次" },
+    {
+      label: "每天午夜",
+      value: "0 0 0 * * ?",
+      description: "每天午夜执行一次",
+    },
+    {
+      label: "每天早上8点",
+      value: "0 0 8 * * ?",
+      description: "每天早上8点执行一次",
+    },
+    {
+      label: "每周一早上8点",
+      value: "0 0 8 * 1 ?",
+      description: "每周一早上8点执行一次",
+    },
+    {
+      label: "每月1号午夜",
+      value: "0 0 0 1 * ?",
+      description: "每月1号午夜执行一次",
+    },
+    {
+      label: "每年1月1日午夜",
+      value: "0 0 0 1 1 ?",
+      description: "每年1月1日午夜执行一次",
+    },
+    {
+      label: "每15分钟",
+      value: "0 0/15 * * * ?",
+      description: "每15分钟执行一次",
+    },
+    {
+      label: "工作日早上9点到下午6点每小时",
+      value: "0 0 9-18 * 1-5 ?",
+      description: "工作日早上9点到下午6点每小时执行一次",
+    },
   ],
   cronParts: [
     { name: "分钟", range: "0-59", examples: ["0", "*/5", "1,10,30"] },
@@ -31,11 +59,31 @@ const env = reactive({
     { name: "星期", range: "0-6", examples: ["*", "1-5", "0,6"] },
   ],
   specialExpressions: [
-    { name: "@yearly", equivalent: "0 0 1 1 * ?", description: "每年1月1日午夜执行一次" },
-    { name: "@monthly", equivalent: "0 0 1 * * ?", description: "每月1号午夜执行一次" },
-    { name: "@weekly", equivalent: "0 0 * * 0 ?", description: "每周日午夜执行一次" },
-    { name: "@daily", equivalent: "0 0 * * * ?", description: "每天午夜执行一次" },
-    { name: "@hourly", equivalent: "0 * * * * ?", description: "每小时执行一次" },
+    {
+      name: "@yearly",
+      equivalent: "0 0 1 1 * ?",
+      description: "每年1月1日午夜执行一次",
+    },
+    {
+      name: "@monthly",
+      equivalent: "0 0 1 * * ?",
+      description: "每月1号午夜执行一次",
+    },
+    {
+      name: "@weekly",
+      equivalent: "0 0 * * 0 ?",
+      description: "每周日午夜执行一次",
+    },
+    {
+      name: "@daily",
+      equivalent: "0 0 * * * ?",
+      description: "每天午夜执行一次",
+    },
+    {
+      name: "@hourly",
+      equivalent: "0 * * * * ?",
+      description: "每小时执行一次",
+    },
   ],
   shortcuts: [
     {
@@ -72,7 +120,8 @@ const calculateNextExecutions = async () => {
     };
 
     // 解析 cron 表达式各部分
-    const [second, minute, hour, day, month, weekday] = env.inputValue.split(" ");
+    const [second, minute, hour, day, month, weekday] =
+      env.inputValue.split(" ");
 
     // 辅助函数:获取字段可能的值
     const getFieldValues = (field, min, max) => {
@@ -119,7 +168,14 @@ const calculateNextExecutions = async () => {
       nextDate = new Date(nextDate.getTime() + 1000); // 增加1秒
 
       // 检查是否匹配 cron 表达式
-      if (seconds.includes(nextDate.getSeconds()) && minutes.includes(nextDate.getMinutes()) && hours.includes(nextDate.getHours()) && days.includes(nextDate.getDate()) && months.includes(nextDate.getMonth() + 1) && weekdays.includes(nextDate.getDay())) {
+      if (
+        seconds.includes(nextDate.getSeconds()) &&
+        minutes.includes(nextDate.getMinutes()) &&
+        hours.includes(nextDate.getHours()) &&
+        days.includes(nextDate.getDate()) &&
+        months.includes(nextDate.getMonth() + 1) &&
+        weekdays.includes(nextDate.getDay())
+      ) {
         _result.data.push(
           nextDate.toLocaleString("zh-CN", {
             year: "numeric",
@@ -214,7 +270,9 @@ const handleCronChange = (val) => {
         <div class="crontab-tool__header">
           <div class="crontab-tool__header-inner">
             <h1 class="crontab-tool__header-title">Cron 表达式工具</h1>
-            <p class="crontab-tool__header-subtitle">创建、解析和测试 Cron 表达式，用于定时任务调度</p>
+            <p class="crontab-tool__header-subtitle">
+              创建、解析和测试 Cron 表达式，用于定时任务调度
+            </p>
           </div>
         </div>
       </div>
@@ -228,7 +286,10 @@ const handleCronChange = (val) => {
               <el-card class="crontab-tool__input-card" shadow="hover">
                 <template #header>
                   <div class="crontab-tool__card-header">
-                    <IconifyIconOnline icon="ri:time-line" class="crontab-tool__card-icon" />
+                    <IconifyIconOnline
+                      icon="ri:time-line"
+                      class="crontab-tool__card-icon"
+                    />
                     <span>Cron 表达式</span>
                   </div>
                 </template>
@@ -237,14 +298,27 @@ const handleCronChange = (val) => {
                   <!-- Cron 表达式输入 - 使用 ScCron 替换 -->
                   <el-form-item label="Cron 表达式">
                     <div class="crontab-tool__vcrontab-wrapper w-full">
-                      <ScCron v-model="env.inputValue" maxlength="128" :shortcuts="env.shortcuts" placeholder="请输入Cron定时规则" clearable />
+                      <ScCron
+                        v-model="env.inputValue"
+                        maxlength="128"
+                        :shortcuts="env.shortcuts"
+                        placeholder="请输入Cron定时规则"
+                        clearable
+                      />
                     </div>
                     <div class="crontab-tool__input-actions">
-                      <el-button type="primary" :loading="env.loading" @click="calculateNextExecutions">
+                      <el-button
+                        type="primary"
+                        :loading="env.loading"
+                        @click="calculateNextExecutions"
+                      >
                         <IconifyIconOnline icon="ri:play-line" />
                         <span>解析表达式</span>
                       </el-button>
-                      <el-button type="success" @click="copyToClipboard(env.inputValue)">
+                      <el-button
+                        type="success"
+                        @click="copyToClipboard(env.inputValue)"
+                      >
                         <IconifyIconOnline icon="ri:file-copy-line" />
                         <span>复制</span>
                       </el-button>
@@ -255,10 +329,19 @@ const handleCronChange = (val) => {
                   <el-form-item label="常用表达式">
                     <div class="crontab-tool__expressions">
                       <el-scrollbar height="200px">
-                        <div v-for="(expr, index) in env.cronExpressions" :key="index" class="crontab-tool__expression-item" @click="useExpression(expr)">
+                        <div
+                          v-for="(expr, index) in env.cronExpressions"
+                          :key="index"
+                          class="crontab-tool__expression-item"
+                          @click="useExpression(expr)"
+                        >
                           <div class="crontab-tool__expression-header">
-                            <span class="crontab-tool__expression-name">{{ expr.label }}</span>
-                            <span class="crontab-tool__expression-value">{{ expr.value }}</span>
+                            <span class="crontab-tool__expression-name">{{
+                              expr.label
+                            }}</span>
+                            <span class="crontab-tool__expression-value">{{
+                              expr.value
+                            }}</span>
                           </div>
                           <div class="crontab-tool__expression-desc">
                             {{ expr.description }}
@@ -270,17 +353,29 @@ const handleCronChange = (val) => {
 
                   <!-- 操作按钮 -->
                   <div class="crontab-tool__actions">
-                    <el-button type="primary" :loading="env.loading" class="crontab-tool__parse-btn" @click="calculateNextExecutions">
+                    <el-button
+                      type="primary"
+                      :loading="env.loading"
+                      class="crontab-tool__parse-btn"
+                      @click="calculateNextExecutions"
+                    >
                       <IconifyIconOnline icon="ri:time-line" />
                       <span>解析表达式</span>
                     </el-button>
 
-                    <el-button class="crontab-tool__reset-btn" @click="resetForm">
+                    <el-button
+                      class="crontab-tool__reset-btn"
+                      @click="resetForm"
+                    >
                       <IconifyIconOnline icon="ri:refresh-line" />
                       <span>重置</span>
                     </el-button>
 
-                    <el-button type="success" class="crontab-tool__copy-btn" @click="copyToClipboard(env.inputValue)">
+                    <el-button
+                      type="success"
+                      class="crontab-tool__copy-btn"
+                      @click="copyToClipboard(env.inputValue)"
+                    >
                       <IconifyIconOnline icon="ri:file-copy-line" />
                       <span>复制</span>
                     </el-button>
@@ -294,26 +389,45 @@ const handleCronChange = (val) => {
               <el-card class="crontab-tool__result-card" shadow="hover">
                 <template #header>
                   <div class="crontab-tool__card-header">
-                    <IconifyIconOnline icon="ri:calendar-check-line" class="crontab-tool__card-icon" />
+                    <IconifyIconOnline
+                      icon="ri:calendar-check-line"
+                      class="crontab-tool__card-icon"
+                    />
                     <span>执行计划</span>
                   </div>
                 </template>
 
-                <el-empty v-if="!env.nextExecutions.length" description="请先解析 Cron 表达式" class="crontab-tool__empty">
+                <el-empty
+                  v-if="!env.nextExecutions.length"
+                  description="请先解析 Cron 表达式"
+                  class="crontab-tool__empty"
+                >
                   <template #image>
-                    <IconifyIconOnline icon="ri:calendar-line" class="crontab-tool__empty-icon" />
+                    <IconifyIconOnline
+                      icon="ri:calendar-line"
+                      class="crontab-tool__empty-icon"
+                    />
                   </template>
                 </el-empty>
 
                 <div v-else class="crontab-tool__results">
                   <div class="crontab-tool__result-section">
                     <div class="crontab-tool__result-section-header">
-                      <IconifyIconOnline icon="ri:calendar-event-line" class="crontab-tool__result-section-icon" />
+                      <IconifyIconOnline
+                        icon="ri:calendar-event-line"
+                        class="crontab-tool__result-section-icon"
+                      />
                       <span>未来执行时间</span>
                     </div>
                     <div class="crontab-tool__result-content">
-                      <div v-for="(date, index) in env.nextExecutions" :key="index" class="crontab-tool__execution-time">
-                        <div class="crontab-tool__execution-index">{{ index + 1 }}</div>
+                      <div
+                        v-for="(date, index) in env.nextExecutions"
+                        :key="index"
+                        class="crontab-tool__execution-time"
+                      >
+                        <div class="crontab-tool__execution-index">
+                          {{ index + 1 }}
+                        </div>
                         <div class="crontab-tool__execution-date">
                           {{ date.toLocaleString() }}
                         </div>
@@ -327,7 +441,10 @@ const handleCronChange = (val) => {
               <el-card class="crontab-tool__reference-card" shadow="hover">
                 <template #header>
                   <div class="crontab-tool__card-header">
-                    <IconifyIconOnline icon="ri:information-line" class="crontab-tool__card-icon" />
+                    <IconifyIconOnline
+                      icon="ri:information-line"
+                      class="crontab-tool__card-icon"
+                    />
                     <span>Cron 语法参考</span>
                   </div>
                 </template>
@@ -349,25 +466,37 @@ const handleCronChange = (val) => {
                       <div class="crontab-tool__reference-row">
                         <div class="crontab-tool__reference-cell">*</div>
                         <div class="crontab-tool__reference-cell">任意值</div>
-                        <div class="crontab-tool__reference-cell">* * * * *</div>
+                        <div class="crontab-tool__reference-cell">
+                          * * * * *
+                        </div>
                         <div class="crontab-tool__reference-cell">每分钟</div>
                       </div>
                       <div class="crontab-tool__reference-row">
                         <div class="crontab-tool__reference-cell">,</div>
                         <div class="crontab-tool__reference-cell">值列表</div>
-                        <div class="crontab-tool__reference-cell">1,3,5 * * * *</div>
-                        <div class="crontab-tool__reference-cell">第1,3,5分钟</div>
+                        <div class="crontab-tool__reference-cell">
+                          1,3,5 * * * *
+                        </div>
+                        <div class="crontab-tool__reference-cell">
+                          第1,3,5分钟
+                        </div>
                       </div>
                       <div class="crontab-tool__reference-row">
                         <div class="crontab-tool__reference-cell">-</div>
                         <div class="crontab-tool__reference-cell">范围</div>
-                        <div class="crontab-tool__reference-cell">1-5 * * * *</div>
-                        <div class="crontab-tool__reference-cell">第1至5分钟</div>
+                        <div class="crontab-tool__reference-cell">
+                          1-5 * * * *
+                        </div>
+                        <div class="crontab-tool__reference-cell">
+                          第1至5分钟
+                        </div>
                       </div>
                       <div class="crontab-tool__reference-row">
                         <div class="crontab-tool__reference-cell">/</div>
                         <div class="crontab-tool__reference-cell">步长</div>
-                        <div class="crontab-tool__reference-cell">*/15 * * * *</div>
+                        <div class="crontab-tool__reference-cell">
+                          */15 * * * *
+                        </div>
                         <div class="crontab-tool__reference-cell">每15分钟</div>
                       </div>
                     </div>
@@ -376,10 +505,20 @@ const handleCronChange = (val) => {
                   <div class="crontab-tool__reference-section">
                     <h4 class="crontab-tool__reference-title">特殊表达式</h4>
                     <div class="crontab-tool__reference-table">
-                      <div v-for="(expr, index) in env.specialExpressions" :key="index" class="crontab-tool__reference-row">
-                        <div class="crontab-tool__reference-cell">{{ expr.name }}</div>
-                        <div class="crontab-tool__reference-cell">{{ expr.equivalent }}</div>
-                        <div class="crontab-tool__reference-cell">{{ expr.description }}</div>
+                      <div
+                        v-for="(expr, index) in env.specialExpressions"
+                        :key="index"
+                        class="crontab-tool__reference-row"
+                      >
+                        <div class="crontab-tool__reference-cell">
+                          {{ expr.name }}
+                        </div>
+                        <div class="crontab-tool__reference-cell">
+                          {{ expr.equivalent }}
+                        </div>
+                        <div class="crontab-tool__reference-cell">
+                          {{ expr.description }}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -395,17 +534,25 @@ const handleCronChange = (val) => {
               <el-card class="crontab-tool__tester-card" shadow="hover">
                 <template #header>
                   <div class="crontab-tool__card-header">
-                    <IconifyIconOnline icon="ri:test-tube-line" class="crontab-tool__card-icon" />
+                    <IconifyIconOnline
+                      icon="ri:test-tube-line"
+                      class="crontab-tool__card-icon"
+                    />
                     <span>Cron 在线测试</span>
                   </div>
                 </template>
 
                 <div class="crontab-tool__tester">
-                  <p class="crontab-tool__tester-desc">此功能允许您测试 Cron 表达式在特定时间范围内的执行情况。输入 Cron 表达式和时间范围，然后点击"测试"按钮。</p>
+                  <p class="crontab-tool__tester-desc">
+                    此功能允许您测试 Cron 表达式在特定时间范围内的执行情况。输入
+                    Cron 表达式和时间范围，然后点击"测试"按钮。
+                  </p>
 
                   <div class="crontab-tool__tester-form">
                     <!-- 这里可以添加更复杂的测试功能，如时间范围选择等 -->
-                    <p class="crontab-tool__tester-note">注意：此功能正在开发中，敬请期待。</p>
+                    <p class="crontab-tool__tester-note">
+                      注意：此功能正在开发中，敬请期待。
+                    </p>
                   </div>
                 </div>
               </el-card>
@@ -433,11 +580,21 @@ const handleCronChange = (val) => {
   }
 
   &__header {
-    background: linear-gradient(135deg, var(--el-color-primary-light-5), var(--el-color-primary));
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-3) 0%,
+      var(--el-color-primary) 100%
+    );
     border-radius: 12px;
-    padding: 24px;
+    padding: 30px;
     color: #fff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px rgba(var(--el-color-primary-rgb), 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      box-shadow: 0 6px 24px rgba(var(--el-color-primary-rgb), 0.4);
+      transform: translateY(-2px);
+    }
   }
 
   &__header-inner {

@@ -443,9 +443,49 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
 .component-manage-dialog {
   :deep(.el-dialog) {
-    border-radius: 12px;
+    border-radius: $radius-lg;
+    @include glass-effect(0.95, 20px);
+    box-shadow: $shadow-xl;
+    border: 1px solid $border-light;
+    overflow: hidden;
+
+    .el-dialog__header {
+      padding: $spacing-lg $spacing-xl;
+      background: $gradient-bg-1;
+      border-bottom: 1px solid $border-light;
+      position: relative;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: $gradient-line-top;
+      }
+
+      .el-dialog__title {
+        font-weight: $font-weight-semibold;
+        font-size: $font-lg;
+        color: var(--el-text-color-primary);
+      }
+    }
+
+    .el-dialog__body {
+      padding: $spacing-xl;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .el-dialog__footer {
+      padding: $spacing-lg $spacing-xl;
+      background: rgba(255, 255, 255, 0.6);
+      border-top: 1px solid $border-light;
+    }
   }
 }
 
@@ -454,39 +494,169 @@ defineExpose({
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding: 16px;
-    background: var(--el-fill-color-extra-light);
-    border-radius: 8px;
+    margin-bottom: $spacing-xl;
+    padding: $spacing-lg;
+    @include glass-effect(0.9, 16px);
+    border-radius: $radius-md;
+    box-shadow: $shadow-sm;
+    border: 1px solid $border-light;
+    transition: all $duration-normal $ease-standard;
+
+    &:hover {
+      box-shadow: $shadow-md;
+    }
 
     .toolbar-left {
       display: flex;
-      gap: 12px;
+      gap: $spacing-md;
+
+      .el-button {
+        border-radius: $radius-sm;
+        transition: all $duration-fast $ease-standard;
+        font-weight: $font-weight-medium;
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: $shadow-sm;
+        }
+
+        :deep(.iconify-icon) {
+          transition: transform $duration-fast $ease-standard;
+        }
+
+        &:hover :deep(.iconify-icon) {
+          transform: scale(1.1);
+        }
+      }
+    }
+
+    .toolbar-right {
+      .el-input {
+        :deep(.el-input__wrapper) {
+          border-radius: $radius-sm;
+          transition: all $duration-fast $ease-standard;
+
+          &:hover {
+            box-shadow: $shadow-sm;
+          }
+
+          &.is-focus {
+            box-shadow: 0 0 0 2px $primary-light;
+          }
+        }
+      }
     }
   }
 
   .component-list {
-    margin-bottom: 20px;
+    margin-bottom: $spacing-xl;
+    border-radius: $radius-md;
+    overflow: hidden;
+
+    :deep(.el-table) {
+      @include glass-effect(0.9, 16px);
+      border-radius: $radius-md;
+      border: 1px solid $border-light;
+
+      .el-table__header {
+        th {
+          background: rgba(255, 255, 255, 0.6);
+          font-weight: $font-weight-semibold;
+          color: var(--el-text-color-primary);
+          border-bottom: 2px solid $border-medium;
+        }
+      }
+
+      .el-table__body {
+        tr {
+          transition: all $duration-fast $ease-standard;
+
+          &:hover {
+            background: rgba(99, 102, 241, 0.05);
+            transform: scale(1.001);
+          }
+        }
+
+        td {
+          border-bottom: 1px solid $border-light;
+        }
+      }
+
+      .el-tag {
+        border-radius: $radius-sm;
+        font-weight: $font-weight-medium;
+      }
+
+      .el-button {
+        border-radius: $radius-sm;
+        transition: all $duration-fast $ease-standard;
+
+        &:hover {
+          transform: translateY(-1px);
+        }
+
+        :deep(.iconify-icon) {
+          transition: transform $duration-fast $ease-standard;
+        }
+
+        &:hover :deep(.iconify-icon) {
+          transform: scale(1.1);
+        }
+      }
+    }
   }
 
   .batch-actions {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
-    background: var(--el-color-primary-light-9);
-    border-radius: 8px;
-    border: 1px solid var(--el-color-primary-light-7);
+    padding: $spacing-md $spacing-lg;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.08));
+    border-radius: $radius-md;
+    border: 1px solid $border-primary;
+    box-shadow: $shadow-sm;
+    animation: slideInUp $duration-normal $ease-standard;
 
     .selected-info {
-      font-size: 14px;
+      font-size: $font-md;
       color: var(--el-color-primary);
-      font-weight: 500;
+      font-weight: $font-weight-semibold;
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+
+      &::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        background: var(--el-color-primary);
+        border-radius: 50%;
+        animation: pulse 2s ease-in-out infinite;
+      }
     }
 
     .actions {
       display: flex;
-      gap: 8px;
+      gap: $spacing-sm;
+
+      .el-button {
+        border-radius: $radius-sm;
+        transition: all $duration-fast $ease-standard;
+        font-weight: $font-weight-medium;
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: $shadow-sm;
+        }
+
+        :deep(.iconify-icon) {
+          transition: transform $duration-fast $ease-standard;
+        }
+
+        &:hover :deep(.iconify-icon) {
+          transform: scale(1.1);
+        }
+      }
     }
   }
 }
@@ -494,5 +664,111 @@ defineExpose({
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
+
+  .el-button {
+    border-radius: $radius-sm;
+    padding: $button-padding-md;
+    transition: all $duration-fast $ease-standard;
+    font-weight: $font-weight-medium;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: $shadow-md;
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+
+// 响应式设计
+@include respond-to(lg) {
+  .component-manage-dialog {
+    :deep(.el-dialog) {
+      width: 95% !important;
+      margin: 3vh auto;
+
+      .el-dialog__body {
+        padding: $spacing-lg;
+      }
+    }
+  }
+
+  .manage-content {
+    .toolbar {
+      flex-direction: column;
+      gap: $spacing-md;
+      align-items: stretch;
+
+      .toolbar-left,
+      .toolbar-right {
+        width: 100%;
+      }
+    }
+  }
+}
+
+@include respond-to(sm) {
+  .component-manage-dialog {
+    :deep(.el-dialog) {
+      width: 98% !important;
+      margin: 1vh auto;
+
+      .el-dialog__header,
+      .el-dialog__body,
+      .el-dialog__footer {
+        padding: $spacing-md;
+      }
+    }
+  }
+
+  .manage-content {
+    .toolbar {
+      padding: $spacing-md;
+
+      .toolbar-left {
+        flex-direction: column;
+        gap: $spacing-sm;
+      }
+    }
+
+    .batch-actions {
+      flex-direction: column;
+      gap: $spacing-md;
+      align-items: stretch;
+
+      .actions {
+        flex-direction: column;
+        width: 100%;
+
+        .el-button {
+          width: 100%;
+        }
+      }
+    }
+  }
 }
 </style>
